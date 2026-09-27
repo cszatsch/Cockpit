@@ -99,7 +99,14 @@ npm run test:unit   # règles de domaine seules (sans base)
 
 - La base de test est migrée automatiquement, puis réamorcée au début de chaque suite.
 - Les tests e2e reprennent les critères d'acceptation des deux briefs (§ 13).
-- Tests des frontends dans le navigateur (Chromium sans interface, Playwright) : voir `backend/test/browser/` et la section 6.
+- Tests des frontends dans le navigateur (Chromium sans interface, Playwright). Ils nécessitent un PostgreSQL local (`rise:rise@localhost:5432`) et un `npm run build` préalable :
+
+  ```bash
+  npx ts-node --transpile-only test/browser/cockpit.e2e.ts   # 23 vues comparées à l'original + persistance après rechargement
+  npx ts-node --transpile-only test/browser/console.e2e.ts   # 13 menus comparés à l'original + actions de la console
+  ```
+
+  Chaque script amorce sa propre base (`rise_fe_cockpit`, `rise_fe_console`). Le script du Cockpit démarre l’API (port 3101) si besoin ; celui de la console attend une API déjà lancée sur le port 3102 avec `DATABASE_URL=…/rise_fe_console AUTH_DEV=true DEMO_TODAY=2026-09-26 DEMO_NOW=2026-09-26T08:24:00Z JOBS_ENABLED=false OFFLINE=true FRONTEND_DIR=../frontends`. La page du Cockpit est ouverte avec `?e2e=1`, qui expose le composant au test (`window.__riseCockpit`) ; sans ce paramètre, rien n'est exposé.
 
 ## 6. Brancher les frontends
 

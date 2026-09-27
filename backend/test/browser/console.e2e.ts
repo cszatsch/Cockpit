@@ -9,7 +9,7 @@
  *
  * Étapes :
  *  1. amorce la base rise_fe_console (`npm run db:seed`) ;
- *  2. sert la copie d'origine des écrans (`git show HEAD:…`) avec `python3 -m http.server` ;
+ *  2. sert la copie d'origine des écrans (révision qui précède `admin-api.js`) avec `python3 -m http.server` ;
  *  3. visite chaque menu de la console branchée et de la copie d'origine, sans erreur JS bloquante,
  *     capture les deux rendus et mesure l'écart visuel (pourcentage de pixels différents) ;
  *  4. fait des modifications par l'interface (suspendre un compte, changer un plafond, désactiver une règle,
@@ -112,10 +112,17 @@ async function diffPct(page: Page, a: string, b: string, outDiff: string): Promi
   return Math.round(res.pct * 10) / 10;
 }
 
+/** Révision d'origine des écrans : celle qui précède l'ajout d'admin-api.js (branchement). */
+function originalRev(): string {
+  const added = execSync('git log --diff-filter=A --format=%H -- frontends/admin-api.js', { cwd: ROOT }).toString().trim().split('\n').pop();
+  return added ? `${added}^` : 'HEAD';
+}
+
 function serveOriginal(): { dir: string; proc: ChildProcess } {
+  const rev = originalRev();
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rise-console-orig-'));
   for (const f of ['Console Admin.dc.html', 'ConsoCouts.dc.html', 'ProjetInit.dc.html', 'ProjetsBiblio.dc.html', 'support.js', 'rise-data.js', 'planning-data.js']) {
-    fs.writeFileSync(path.join(dir, f), execSync(`git show "HEAD:frontends/${f}"`, { cwd: ROOT, maxBuffer: 64 << 20 }));
+    fs.writeFileSync(path.join(dir, f), execSync(`git show "${rev}:frontends/${f}"`, { cwd: ROOT, maxBuffer: 64 << 20 }));
   }
   fs.cpSync(path.join(ROOT, 'frontends/assets'), path.join(dir, 'assets'), { recursive: true });
   const proc = spawn('python3', ['-m', 'http.server', String(ORIG_PORT), '--bind', '127.0.0.1', '--directory', dir], { stdio: 'ignore' });
