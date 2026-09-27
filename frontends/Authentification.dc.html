@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,600;1,700;1,800&amp;display=swap" rel="stylesheet"><style>
+html,body{margin:0;background:#f2f6f5;font-family:'Plus Jakarta Sans',sans-serif;color:#10233a;-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5}
+*{box-sizing:border-box}button,input{font-family:inherit;color:inherit}
+a{color:#1d8f86;text-decoration:none}a:hover{color:#146b64}
+:focus-visible{outline:2px solid #1d8f86;outline-offset:3px;border-radius:6px}
+input::placeholder{color:#9aabb5}
+@keyframes auth-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes auth-kb{from{opacity:0;transform:scale(1.06)}to{opacity:1;transform:scale(1)}}
+@keyframes auth-fade{from{opacity:0}to{opacity:1}}
+@keyframes auth-spin{to{transform:rotate(360deg)}}
+@keyframes auth-arc{from{opacity:0;transform:rotate(-4deg) translateY(24px)}to{opacity:1;transform:rotate(-4deg)}}
+@keyframes auth-bar{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes auth-shake{0%,100%{transform:none}20%{transform:translateX(-6px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style></helmet>
+<div style="{{ shellSt }}" data-screen-label="{{ screenLabel }}">
+
+  <div aria-hidden="true" style="{{ visSt }}">
+    <sc-if value="{{ isApp }}" hint-placeholder-val="{{ true }}">
+      <img src="assets/banner-aujourdhui.jpg" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:60% 32%;animation:auth-kb 1.4s cubic-bezier(.2,.7,.2,1) both">
+      <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(6,35,34,.55) 0%,rgba(6,35,34,.08) 34%,rgba(6,35,34,.42) 62%,rgba(6,35,34,.9) 100%)"></div>
+      <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(6,35,34,.35),transparent 60%)"></div>
+    </sc-if>
+    <sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;inset:0;background:radial-gradient(90% 70% at 0% 100%,rgba(31,179,165,.2),transparent 62%),radial-gradient(60% 50% at 100% 0%,rgba(0,150,214,.12),transparent 70%),linear-gradient(180deg,#0f2034 0%,#0a1727 100%)"></div>
+      <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);background-size:44px 44px;-webkit-mask-image:radial-gradient(ellipse 80% 70% at 65% 35%,#000 10%,transparent 72%);mask-image:radial-gradient(ellipse 80% 70% at 65% 35%,#000 10%,transparent 72%);animation:auth-fade 1.2s ease both"></div>
+    </sc-if>
+    <div style="{{ arcSt }}"></div>
+    <div style="{{ visInnerSt }}">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <div style="display:flex;align-items:baseline;gap:6px;color:#fff"><span style="font-weight:800;font-size:15px;letter-spacing:.04em">COCKPIT</span><span style="font-size:11px;color:#a8c4bf;font-style:italic">by</span><span style="font-size:14px;font-weight:700;letter-spacing:-.01em">onepoint</span></div>
+        <sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ false }}"><span style="height:22px;padding:0 8px;border-radius:6px;background:#f7a41c;color:#1a1200;font-size:10.5px;font-weight:800;letter-spacing:.12em;display:inline-flex;align-items:center">CONSOLE</span></sc-if>
+      </div>
+      <sc-if value="{{ showHeadline }}" hint-placeholder-val="{{ true }}">
+        <div style="margin-top:auto;max-width:560px;animation:auth-in .7s .15s cubic-bezier(.2,.7,.2,1) both">
+          <sc-if value="{{ isApp }}" hint-placeholder-val="{{ true }}">
+            <div style="font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;font-weight:700;color:#d5e6e2">Pilotage de projets</div>
+            <div style="{{ headSt }}">Chaque décision,<br>au bon moment.</div>
+          </sc-if>
+          <sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;font-weight:700;color:#8fa9bb">Administration de la plateforme</div>
+            <div style="{{ headSt }}">Accès réservé.</div>
+            <p style="margin:16px 0 0;font-size:14px;color:#a9bccb;max-width:400px;text-wrap:pretty">Comptes, profils et droits se gèrent ici. Chaque action est tracée dans le journal d’audit.</p>
+          </sc-if>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+
+  <main style="{{ sideSt }}">
+    <div style="width:100%;max-width:392px;margin:auto 0">
+
+      <sc-if value="{{ vLogin }}" hint-placeholder-val="{{ true }}">
+        <div style="animation:auth-in .45s cubic-bezier(.2,.7,.2,1) both">
+          <sc-if value="{{ isApp }}" hint-placeholder-val="{{ true }}">
+            <div style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;color:#1d8f86">Connexion</div>
+            <h1 style="margin:10px 0 0;font-size:32px;font-weight:800;font-style:italic;letter-spacing:-.035em;line-height:1.05">Accédez à votre cockpit.</h1>
+          </sc-if>
+          <sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;color:#1d8f86">Console · Connexion</div>
+            <h1 style="margin:10px 0 0;font-size:32px;font-weight:800;font-style:italic;letter-spacing:-.035em;line-height:1.05">Espace administrateur.</h1>
+          </sc-if>
+
+          <div aria-live="polite" style="display:flex;flex-direction:column;gap:10px;margin-top:22px">
+            <sc-if value="{{ nExpired }}" hint-placeholder-val="{{ false }}"><div style="display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;background:#eaf4f2;color:#154d48;font-size:13px;animation:auth-in .35s both"><svg style="flex:none;margin-top:1px" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg><span>Session expirée après {{ idleMin }} minutes d’inactivité. Reconnectez-vous pour continuer.</span></div></sc-if>
+            <sc-if value="{{ nLogout }}" hint-placeholder-val="{{ false }}"><div style="display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;background:#eaf4f2;color:#154d48;font-size:13px;animation:auth-in .35s both"><svg style="flex:none;margin-top:1px" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg><span>Vous êtes déconnecté.</span></div></sc-if>
+            <sc-if value="{{ err }}" hint-placeholder-val="{{ false }}"><div role="alert" style="{{ errSt }}"><svg style="flex:none;margin-top:1px" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7.5v5.5M12 16.5h.01"></path></svg><span><b style="font-weight:700">Identifiant ou mot de passe incorrect.</b><sc-if value="{{ showLeft }}" hint-placeholder-val="{{ false }}"><span style="display:block;margin-top:2px;color:#9a3a2a">{{ leftLabel }}</span></sc-if></span></div></sc-if>
+          </div>
+
+          <form onSubmit="{{ onLogin }}" noValidate="{{ true }}" style="margin-top:22px;display:flex;flex-direction:column;gap:18px">
+            <div style="display:flex;flex-direction:column;gap:7px">
+              <label for="auth-email" style="font-size:12px;font-weight:600;color:#43586a">Adresse e-mail</label>
+              <div style="position:relative">
+                <input id="auth-email" type="email" autoComplete="username" inputMode="email" autoFocus="{{ true }}" spellCheck="false" value="{{ email }}" onChange="{{ setEmail }}" onBlur="{{ blurEmail }}" placeholder="prenom.nom@entreprise.com" aria-invalid="{{ emailInvalid }}" aria-describedby="auth-email-msg" style="{{ emailSt }}" style-focus="border-color:#1d8f86;box-shadow:0 0 0 4px rgba(29,143,134,.14)">
+                <sc-if value="{{ emailOk }}" hint-placeholder-val="{{ false }}"><svg aria-hidden="true" style="position:absolute;right:15px;top:16px;animation:auth-fade .25s both" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1d8f86" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></sc-if>
+              </div>
+              <span id="auth-email-msg" style="{{ emailMsgSt }}">{{ emailMsg }}</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:7px">
+              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px">
+                <label for="auth-pwd" style="font-size:12px;font-weight:600;color:#43586a">Mot de passe</label>
+                <button type="button" onClick="{{ goForgot }}" style="border:0;background:none;padding:0;font-size:12.5px;font-weight:600;color:#1d8f86;cursor:pointer" style-hover="color:#146b64">Mot de passe oublié ?</button>
+              </div>
+              <div style="position:relative">
+                <input id="auth-pwd" type="{{ pwdType }}" autoComplete="current-password" value="{{ pwd }}" onChange="{{ setPwd }}" onKeyUp="{{ capsCheck }}" onKeyDown="{{ capsCheck }}" aria-invalid="{{ pwdInvalid }}" aria-describedby="auth-pwd-msg" style="{{ pwdSt }}" style-focus="border-color:#1d8f86;box-shadow:0 0 0 4px rgba(29,143,134,.14)">
+                <button type="button" onClick="{{ togglePwd }}" aria-label="{{ pwdToggleL }}" aria-pressed="{{ showPwd }}" aria-controls="auth-pwd" title="{{ pwdToggleL }}" style="position:absolute;right:5px;top:5px;width:38px;height:38px;border:0;border-radius:9px;background:transparent;color:#5c7280;display:grid;place-items:center;cursor:pointer;transition:background .15s,color .15s" style-hover="background:#eef4f2;color:#10233a">
+                  <sc-if value="{{ showPwd }}" hint-placeholder-val="{{ false }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"></path><path d="M10.6 5.1A10.4 10.4 0 0 1 12 5c5.5 0 9 5.5 9 7 0 .7-.8 2.2-2.2 3.7M6.2 6.3C4 7.8 3 10.9 3 12c0 1.5 3.5 7 9 7 1.8 0 3.3-.6 4.6-1.4"></path><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"></path></svg></sc-if>
+                  <sc-if value="{{ hidePwd }}" hint-placeholder-val="{{ true }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12c0-1.5 3.5-7 9-7s9 5.5 9 7-3.5 7-9 7-9-5.5-9-7z"></path><circle cx="12" cy="12" r="3"></circle></svg></sc-if>
+                </button>
+              </div>
+              <span id="auth-pwd-msg" style="{{ pwdMsgSt }}">{{ pwdMsg }}</span>
+            </div>
+            <button type="submit" disabled="{{ busy }}" style="{{ ctaSt }}" style-hover="{{ ctaHover }}">
+              <sc-if value="{{ busy }}" hint-placeholder-val="{{ false }}"><span aria-hidden="true" style="{{ spinSt }}"></span><span>Vérification…</span></sc-if>
+              <sc-if value="{{ idle }}" hint-placeholder-val="{{ true }}"><span>Se connecter</span></sc-if>
+            </button>
+          </form>
+
+          <div style="margin-top:26px;padding-top:20px;border-top:1px solid #e3ebe9;font-size:12.5px;color:#5c7280;text-wrap:pretty">
+            <sc-if value="{{ isApp }}" hint-placeholder-val="{{ true }}"><span>Pas de compte ? Il est créé par l’administrateur de la plateforme.</span></sc-if>
+            <sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ false }}"><span>Vous cherchez l’application ? <a href="Connexion.dc.html" style="font-weight:600">Connexion au Cockpit</a></span></sc-if>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ vLocked }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;align-items:flex-start;animation:auth-in .45s cubic-bezier(.2,.7,.2,1) both">
+          <div role="timer" aria-label="{{ lockAria }}" style="position:relative;width:132px;height:132px">
+            <svg width="132" height="132" viewBox="0 0 132 132" style="transform:rotate(-90deg)"><circle cx="66" cy="66" r="58" fill="none" stroke="#e7eeec" stroke-width="5"></circle><circle cx="66" cy="66" r="58" fill="none" stroke="#f0752b" stroke-width="5" stroke-linecap="round" stroke-dasharray="364.42" stroke-dashoffset="{{ lockOff }}" style="transition:stroke-dashoffset 1s linear"></circle></svg>
+            <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f0752b" stroke-width="2" stroke-linecap="round"><rect x="5" y="10.5" width="14" height="10" rx="2.5"></rect><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"></path></svg><span style="font-size:26px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums">{{ lockLeft }}</span></div>
+          </div>
+          <h1 style="margin:26px 0 0;font-size:30px;font-weight:800;font-style:italic;letter-spacing:-.035em;line-height:1.08">Connexion suspendue.</h1>
+          <p style="margin:12px 0 0;font-size:14px;color:#43586a;text-wrap:pretty">Trop de tentatives infructueuses. Par sécurité, la connexion à ce compte est bloquée pendant 15 minutes.</p>
+          <button type="button" onClick="{{ goForgot }}" style="margin-top:28px;height:48px;width:100%;border:1px solid #cfdcd9;border-radius:12px;background:#fff;font-size:14px;font-weight:700;color:#10233a;cursor:pointer;transition:border-color .15s,background .15s" style-hover="border-color:#10233a">Réinitialiser mon mot de passe</button>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ vForgot }}" hint-placeholder-val="{{ false }}">
+        <div style="animation:auth-in .45s cubic-bezier(.2,.7,.2,1) both">
+          <button type="button" onClick="{{ goLogin }}" style="border:0;background:none;padding:0;display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:#5c7280;cursor:pointer" style-hover="color:#10233a"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"></path></svg>Retour à la connexion</button>
+          <h1 style="margin:22px 0 0;font-size:32px;font-weight:800;font-style:italic;letter-spacing:-.035em;line-height:1.05">Mot de passe oublié.</h1>
+          <p style="margin:12px 0 0;font-size:14px;color:#43586a;text-wrap:pretty">Saisissez l’adresse e-mail de votre compte. Vous recevrez un lien de réinitialisation valable 30 minutes.</p>
+          <form onSubmit="{{ onForgot }}" noValidate="{{ true }}" style="margin-top:26px;display:flex;flex-direction:column;gap:18px">
+            <div style="display:flex;flex-direction:column;gap:7px">
+              <label for="auth-femail" style="font-size:12px;font-weight:600;color:#43586a">Adresse e-mail</label>
+              <div style="position:relative">
+                <input id="auth-femail" type="email" autoComplete="username" inputMode="email" autoFocus="{{ true }}" spellCheck="false" value="{{ email }}" onChange="{{ setEmail }}" onBlur="{{ blurEmail }}" placeholder="prenom.nom@entreprise.com" aria-invalid="{{ emailInvalid }}" aria-describedby="auth-femail-msg" style="{{ emailSt }}" style-focus="border-color:#1d8f86;box-shadow:0 0 0 4px rgba(29,143,134,.14)">
+                <sc-if value="{{ emailOk }}" hint-placeholder-val="{{ false }}"><svg aria-hidden="true" style="position:absolute;right:15px;top:16px" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1d8f86" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></sc-if>
+              </div>
+              <span id="auth-femail-msg" style="{{ emailMsgSt }}">{{ emailMsg }}</span>
+            </div>
+            <button type="submit" disabled="{{ busy }}" style="{{ ctaSt }}" style-hover="{{ ctaHover }}">
+              <sc-if value="{{ busy }}" hint-placeholder-val="{{ false }}"><span aria-hidden="true" style="{{ spinSt }}"></span><span>Envoi…</span></sc-if>
+              <sc-if value="{{ idle }}" hint-placeholder-val="{{ true }}"><span>Envoyer le lien</span></sc-if>
+            </button>
+          </form>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ vSent }}" hint-placeholder-val="{{ false }}">
+        <div style="animation:auth-in .45s cubic-bezier(.2,.7,.2,1) both">
+          <span style="width:52px;height:52px;border-radius:16px;background:#e3f2ef;color:#1d8f86;display:grid;place-items:center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"></rect><path d="M3.5 7l8.5 6 8.5-6"></path></svg></span>
+          <h1 style="margin:24px 0 0;font-size:32px;font-weight:800;font-style:italic;letter-spacing:-.035em;line-height:1.05">Vérifiez votre messagerie.</h1>
+          <p role="status" style="margin:14px 0 0;font-size:15px;color:#10233a;font-weight:500;text-wrap:pretty">Si un compte existe pour cette adresse, un e-mail vous a été envoyé.</p>
+          <p style="margin:10px 0 0;font-size:13.5px;color:#5c7280;text-wrap:pretty">Le lien est à usage unique et expire dans 30 minutes. Pensez à vérifier vos courriers indésirables.</p>
+          <div style="margin-top:26px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-radius:12px;background:#f5f8f7;border:1px solid #e3ebe9">
+            <span style="font-size:13px;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ email }}</span>
+            <button type="button" onClick="{{ resend }}" disabled="{{ resendWait }}" style="{{ resendSt }}">{{ resendL }}</button>
+          </div>
+          <button type="button" onClick="{{ goLogin }}" style="margin-top:14px;height:48px;width:100%;border:1px solid #cfdcd9;border-radius:12px;background:#fff;font-size:14px;font-weight:700;color:#10233a;cursor:pointer;transition:border-color .15s" style-hover="border-color:#10233a">Retour à la connexion</button>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ vPwdSet }}" hint-placeholder-val="{{ false }}">
+        <div style="animation:auth-in .45s cubic-bezier(.2,.7,.2,1) both">
+          <sc-if value="{{ vFirst }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;color:#1d8f86">Première connexion</div>
+            <h1 style="margin:10px 0 0;font-size:32px;font-weight:800;font-style:italic;letter-spacing:-.035em;line-height:1.05">Bienvenue, {{ firstName }}.</h1>
+            <p style="margin:12px 0 0;font-size:14px;color:#43586a;text-wrap:pretty">Remplacez le mot de passe provisoire pour sécuriser votre compte.</p>
+          </sc-if>
+          <sc-if value="{{ vReset }}" hint-placeholder-val="{{ false }}">
+            <div style="display:inline-flex;align-items:center;gap:7px;height:26px;padding:0 10px;border-radius:999px;background:#f5f8f7;border:1px solid #e3ebe9;font-size:11.5px;font-weight:600;color:#43586a;font-variant-numeric:tabular-nums"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>Lien valable encore {{ linkLeft }}</div>
+            <h1 style="margin:16px 0 0;font-size:32px;font-weight:800;font-style:italic;letter-spacing:-.035em;line-height:1.05">Nouveau mot de passe.</h1>
+            <p style="margin:12px 0 0;font-size:14px;color:#43586a;text-wrap:pretty">Choisissez un mot de passe que vous n’utilisez nulle part ailleurs.</p>
+          </sc-if>
+          <form onSubmit="{{ onSetPwd }}" noValidate="{{ true }}" style="margin-top:26px;display:flex;flex-direction:column;gap:18px">
+            <input type="email" autoComplete="username" value="{{ email }}" readOnly="{{ true }}" tabIndex="-1" aria-hidden="true" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">
+            <div style="display:flex;flex-direction:column;gap:7px">
+              <label for="auth-np" style="font-size:12px;font-weight:600;color:#43586a">Nouveau mot de passe</label>
+              <div style="position:relative">
+                <input id="auth-np" type="{{ npType }}" autoComplete="new-password" autoFocus="{{ true }}" value="{{ np }}" onChange="{{ setNp }}" onKeyUp="{{ capsCheck }}" aria-describedby="auth-rules" style="{{ npSt }}" style-focus="border-color:#1d8f86;box-shadow:0 0 0 4px rgba(29,143,134,.14)">
+                <button type="button" onClick="{{ toggleNp }}" aria-label="{{ npToggleL }}" aria-pressed="{{ showNp }}" title="{{ npToggleL }}" style="position:absolute;right:5px;top:5px;width:38px;height:38px;border:0;border-radius:9px;background:transparent;color:#5c7280;display:grid;place-items:center;cursor:pointer" style-hover="background:#eef4f2;color:#10233a">
+                  <sc-if value="{{ showNp }}" hint-placeholder-val="{{ false }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"></path><path d="M10.6 5.1A10.4 10.4 0 0 1 12 5c5.5 0 9 5.5 9 7 0 .7-.8 2.2-2.2 3.7M6.2 6.3C4 7.8 3 10.9 3 12c0 1.5 3.5 7 9 7 1.8 0 3.3-.6 4.6-1.4"></path><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"></path></svg></sc-if>
+                  <sc-if value="{{ hideNp }}" hint-placeholder-val="{{ true }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12c0-1.5 3.5-7 9-7s9 5.5 9 7-3.5 7-9 7-9-5.5-9-7z"></path><circle cx="12" cy="12" r="3"></circle></svg></sc-if>
+                </button>
+              </div>
+              <div aria-hidden="true" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin-top:3px">
+                <sc-for list="{{ meter }}" as="m" hint-placeholder-count="4"><span style="{{ m.st }}"></span></sc-for>
+              </div>
+              <ul id="auth-rules" aria-label="Règles du mot de passe" style="list-style:none;margin:6px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:7px 14px">
+                <sc-for list="{{ rules }}" as="r" hint-placeholder-count="4"><li style="{{ r.st }}"><span style="{{ r.dot }}"><sc-if value="{{ r.ok }}" hint-placeholder-val="{{ false }}"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></sc-if></span><span>{{ r.l }}</span><span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">{{ r.sr }}</span></li></sc-for>
+              </ul>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:7px">
+              <label for="auth-np2" style="font-size:12px;font-weight:600;color:#43586a">Confirmation</label>
+              <div style="position:relative">
+                <input id="auth-np2" type="{{ np2Type }}" autoComplete="new-password" value="{{ np2 }}" onChange="{{ setNp2 }}" aria-invalid="{{ mismatch }}" aria-describedby="auth-np2-msg" style="{{ np2St }}" style-focus="border-color:#1d8f86;box-shadow:0 0 0 4px rgba(29,143,134,.14)">
+                <sc-if value="{{ match }}" hint-placeholder-val="{{ false }}"><svg aria-hidden="true" style="position:absolute;right:15px;top:16px;animation:auth-fade .25s both" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1d8f86" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></sc-if>
+              </div>
+              <span id="auth-np2-msg" style="{{ np2MsgSt }}">Les deux saisies ne correspondent pas.</span>
+            </div>
+            <sc-if value="{{ capsNp }}" hint-placeholder-val="{{ false }}"><span style="margin-top:-8px;display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:#9a6208"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4l7 8h-4v4H9v-4H5z"></path><path d="M9 20h6"></path></svg>Verrouillage majuscule activé</span></sc-if>
+            <button type="submit" disabled="{{ setBlocked }}" style="{{ ctaSetSt }}" style-hover="{{ ctaSetHover }}">
+              <sc-if value="{{ busy }}" hint-placeholder-val="{{ false }}"><span aria-hidden="true" style="{{ spinSt }}"></span><span>Enregistrement…</span></sc-if>
+              <sc-if value="{{ idle }}" hint-placeholder-val="{{ true }}"><span>{{ setCtaL }}</span></sc-if>
+            </button>
+          </form>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ vExpiredLink }}" hint-placeholder-val="{{ false }}">
+        <div style="animation:auth-in .45s cubic-bezier(.2,.7,.2,1) both">
+          <span style="width:52px;height:52px;border-radius:16px;background:#fdf0e6;color:#d0621f;display:grid;place-items:center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"></path><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"></path><path d="M4 4l16 16"></path></svg></span>
+          <h1 style="margin:24px 0 0;font-size:32px;font-weight:800;font-style:italic;letter-spacing:-.035em;line-height:1.05">Ce lien n’est plus valide.</h1>
+          <p style="margin:12px 0 0;font-size:14px;color:#43586a;text-wrap:pretty">Il a déjà été utilisé ou sa durée de validité de 30 minutes est dépassée.</p>
+          <button type="button" onClick="{{ goForgot }}" style="{{ ctaStaticSt }}" style-hover="{{ ctaHover }}">Demander un nouveau lien</button>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ vDone }}" hint-placeholder-val="{{ false }}">
+        <div style="animation:auth-in .45s cubic-bezier(.2,.7,.2,1) both">
+          <span style="width:52px;height:52px;border-radius:16px;background:#1d8f86;color:#fff;display:grid;place-items:center;box-shadow:0 12px 26px -12px rgba(29,143,134,.8)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span>
+          <h1 style="margin:24px 0 0;font-size:32px;font-weight:800;font-style:italic;letter-spacing:-.035em;line-height:1.05">Mot de passe modifié.</h1>
+          <p role="status" style="margin:12px 0 0;font-size:14px;color:#43586a;text-wrap:pretty">Connectez-vous avec votre nouveau mot de passe. Par sécurité, vos autres sessions ont été fermées.</p>
+          <button type="button" onClick="{{ goLogin }}" style="{{ ctaStaticSt }}" style-hover="{{ ctaHover }}">Se connecter</button>
+          <div style="margin-top:14px;display:flex;align-items:center;gap:10px;font-size:12px;color:#5c7280;font-variant-numeric:tabular-nums"><span style="flex:1;height:2px;border-radius:2px;background:#e3ebe9;overflow:hidden"><span style="display:block;height:100%;background:#1d8f86;transform-origin:left;animation:auth-bar 6s linear both"></span></span>Redirection dans {{ doneLeft }} s</div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ vSuccess }}" hint-placeholder-val="{{ false }}">
+        <div style="animation:auth-in .45s cubic-bezier(.2,.7,.2,1) both">
+          <span style="width:52px;height:52px;border-radius:16px;background:#1d8f86;color:#fff;display:grid;place-items:center;box-shadow:0 12px 26px -12px rgba(29,143,134,.8)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span>
+          <h1 style="margin:24px 0 0;font-size:32px;font-weight:800;font-style:italic;letter-spacing:-.035em;line-height:1.05">Bonjour {{ firstName }}.</h1>
+          <p role="status" style="margin:12px 0 0;font-size:14px;color:#43586a">Connexion réussie · {{ roleL }}</p>
+          <a href="{{ destHref }}" style="{{ ctaLinkSt }}" style-hover="{{ ctaHover }}">{{ destL }}<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></a>
+          <div style="margin-top:18px;display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:12.5px;color:#5c7280;flex-wrap:wrap">
+            <span>Déconnexion automatique après {{ idleMin }} min d’inactivité</span>
+            <button type="button" onClick="{{ logout }}" style="border:0;background:none;padding:0;display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:#43586a;cursor:pointer" style-hover="color:#10233a"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h3.5A2.5 2.5 0 0 1 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5H14"></path><path d="M10 16.5 5.5 12 10 7.5"></path><path d="M5.5 12H15"></path></svg>Se déconnecter</button>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ vDenied }}" hint-placeholder-val="{{ false }}">
+        <div style="animation:auth-in .45s cubic-bezier(.2,.7,.2,1) both">
+          <span style="width:52px;height:52px;border-radius:16px;background:#10233a;color:#f7a41c;display:grid;place-items:center"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7.5 3v5.5c0 4.6-3.2 8.2-7.5 9.5-4.3-1.3-7.5-4.9-7.5-9.5V6z"></path><path d="M9.5 9.5l5 5M14.5 9.5l-5 5"></path></svg></span>
+          <h1 style="margin:24px 0 0;font-size:32px;font-weight:800;font-style:italic;letter-spacing:-.035em;line-height:1.05">Accès non autorisé.</h1>
+          <p role="alert" style="margin:12px 0 0;font-size:14px;color:#43586a;text-wrap:pretty">Ce compte ne dispose pas des droits d’administration. La tentative a été enregistrée dans le journal d’audit.</p>
+          <a href="Connexion.dc.html" style="{{ ctaLinkSt }}" style-hover="{{ ctaHover }}">Aller à l’application<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></a>
+          <button type="button" onClick="{{ otherAccount }}" style="margin-top:14px;border:0;background:none;padding:0;font-size:12.5px;font-weight:600;color:#1d8f86;cursor:pointer" style-hover="color:#146b64">Utiliser un autre compte</button>
+        </div>
+      </sc-if>
+
+    </div>
+  </main>
+
+  <sc-if value="{{ vExpiring }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:20px;animation:auth-fade .3s both">
+      <div style="position:absolute;inset:0;background:url(assets/banner-aujourdhui.jpg) center/cover;filter:blur(18px) saturate(.8);transform:scale(1.1)"></div>
+      <div style="position:absolute;inset:0;background:rgba(10,23,39,.62)"></div>
+      <div role="alertdialog" aria-modal="true" aria-labelledby="auth-exp-t" aria-describedby="auth-exp-d" style="position:relative;width:100%;max-width:400px;background:#fff;border-radius:22px;padding:32px 30px 26px;box-shadow:0 40px 80px -30px rgba(0,0,0,.6);display:flex;flex-direction:column;align-items:center;text-align:center;animation:auth-in .45s .05s cubic-bezier(.2,.7,.2,1) both">
+        <div style="position:relative;width:104px;height:104px">
+          <svg width="104" height="104" viewBox="0 0 104 104" style="transform:rotate(-90deg)"><circle cx="52" cy="52" r="46" fill="none" stroke="#eef3f2" stroke-width="4"></circle><circle cx="52" cy="52" r="46" fill="none" stroke="#f7a41c" stroke-width="4" stroke-linecap="round" stroke-dasharray="289.03" stroke-dashoffset="{{ expOff }}" style="transition:stroke-dashoffset 1s linear"></circle></svg>
+          <span role="timer" style="position:absolute;inset:0;display:grid;place-items:center;font-size:24px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums">{{ expLeft }}</span>
+        </div>
+        <h2 id="auth-exp-t" style="margin:22px 0 0;font-size:24px;font-weight:800;font-style:italic;letter-spacing:-.03em">Toujours là ?</h2>
+        <p id="auth-exp-d" style="margin:10px 0 0;font-size:13.5px;color:#43586a;text-wrap:pretty">Sans activité depuis {{ idleMin }} minutes, votre session va être fermée pour protéger vos données.</p>
+        <button type="button" autoFocus="{{ true }}" onClick="{{ stay }}" style="{{ ctaStaticSt }}" style-hover="{{ ctaHover }}">Rester connecté</button>
+        <button type="button" onClick="{{ logout }}" style="margin-top:12px;border:0;background:none;padding:6px;font-size:13px;font-weight:600;color:#43586a;cursor:pointer" style-hover="color:#10233a">Se déconnecter</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ demo }}" hint-placeholder-val="{{ true }}">
+    <div style="position:fixed;right:16px;bottom:16px;z-index:70;display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+      <sc-if value="{{ demoOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="width:300px;background:#fff;border:1px solid #e1e9e7;border-radius:16px;box-shadow:0 24px 50px -24px rgba(16,35,58,.45);padding:16px;animation:auth-in .25s both">
+          <div style="font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;color:#5c7280">Comptes de démonstration</div>
+          <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px">
+            <sc-for list="{{ demoAccts }}" as="a" hint-placeholder-count="2"><button type="button" onClick="{{ a.use }}" style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:9px 11px;border:1px solid #e3ebe9;border-radius:10px;background:#fff;text-align:left;cursor:pointer" style-hover="border-color:#1d8f86;background:#f6faf9"><b style="font-size:12.5px">{{ a.e }}</b><span style="font-size:11.5px;color:#5c7280">{{ a.r }} · <code style="font-family:ui-monospace,Menlo,monospace;color:#10233a">{{ a.p }}</code></span></button></sc-for>
+          </div>
+          <sc-if value="{{ vSent }}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{ openLink }}" style="margin-top:10px;width:100%;height:36px;border:0;border-radius:10px;background:#10233a;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer">Ouvrir le lien reçu par e-mail</button></sc-if>
+          <div style="margin-top:10px;font-size:11px;color:#8a9aa6;text-wrap:pretty">Simulation front uniquement. Autres états : panneau Tweaks.</div>
+        </div>
+      </sc-if>
+      <button type="button" onClick="{{ toggleDemo }}" aria-expanded="{{ demoOpen }}" style="height:30px;padding:0 12px;border-radius:999px;border:1px solid #d3dedb;background:rgba(255,255,255,.9);backdrop-filter:blur(8px);font-size:11.5px;font-weight:700;letter-spacing:.06em;color:#43586a;cursor:pointer;display:inline-flex;align-items:center;gap:6px" style-hover="color:#10233a;border-color:#10233a"><span style="width:6px;height:6px;border-radius:50%;background:#f7a41c"></span>DÉMO</button>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;surface&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;app&quot;,&quot;admin&quot;],&quot;default&quot;:&quot;app&quot;,&quot;tsType&quot;:&quot;'app'|'admin'&quot;},&quot;scenario&quot;:{&quot;editor&quot;:null,&quot;default&quot;:&quot;Connexion&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;demo&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  // Simulation front uniquement : l'authentification réelle (hachage Argon2/bcrypt, verrouillage, jetons) est côté serveur.
+  state = {
+    view: 'login', notice: null, email: '', pwd: '', showPwd: false, emailTouched: false, pwdTouched: false,
+    err: false, errKey: 0, fails: 0, lockUntil: 0, busy: false, caps: false, np: '', np2: '', showNp: false,
+    linkUntil: 0, resendAt: 0, expAt: 0, doneAt: 0, now: Date.now(), w: typeof window !== 'undefined' ? window.innerWidth : 1280,
+    demoOpen: false, user: null,
+    accts: {
+      'c.schmitz@groupeonepoint.com': { pwd: 'Provisoire-2027!', first: true, admin: true, name: 'Cédric', role: 'Administrateur · PMO' },
+      'm.durand@groupeonepoint.com': { pwd: 'Lecteur-2027!', first: false, admin: false, name: 'Marie', role: 'Lecteur' }
+    }
+  };
+  LOCK = 15 * 60e3; LINK = 30 * 60e3; WARN = 60e3; MAXF = 5;
+
+  componentDidMount() {
+    this.t = setInterval(() => this.tick(), 1000);
+    this.onR = () => this.setState({ w: window.innerWidth });
+    this.onK = e => { if (e.key === 'Escape' && this.state.view === 'expiring') this.stay(); };
+    window.addEventListener('resize', this.onR); window.addEventListener('keydown', this.onK);
+    this.apply(this.props.scenario);
+  }
+  componentWillUnmount() { clearInterval(this.t); clearTimeout(this.bt); window.removeEventListener('resize', this.onR); window.removeEventListener('keydown', this.onK); }
+  componentDidUpdate(p) { if (p.scenario !== this.props.scenario) this.apply(this.props.scenario); }
+
+  tick() {
+    const now = Date.now(), s = this.state, up = { now };
+    if (s.view === 'locked' && now >= s.lockUntil) Object.assign(up, { view: 'login', fails: 0, err: false });
+    if (s.view === 'expiring' && now >= s.expAt) Object.assign(up, { view: 'login', notice: 'expired', pwd: '' });
+    if (s.view === 'reset' && now >= s.linkUntil) up.view = 'expiredLink';
+    if (s.view === 'resetDone' && now - s.doneAt >= 6000) Object.assign(up, { view: 'login', pwd: '', notice: null });
+    this.setState(up);
+  }
+
+  apply(sc) {
+    const now = Date.now(), cs = 'c.schmitz@groupeonepoint.com';
+    const base = { busy: false, err: false, notice: null, pwd: '', np: '', np2: '', emailTouched: false, pwdTouched: false, now };
+    const m = {
+      "Connexion": { view: 'login' },
+      "Erreur d'identification": { view: 'login', err: true, fails: 3, email: cs },
+      "Compte bloqué": { view: 'locked', lockUntil: now + this.LOCK - 1000 },
+      "Première connexion": { view: 'first', email: cs, user: this.state.accts[cs] },
+      "Mot de passe oublié": { view: 'forgot' },
+      "E-mail envoyé": { view: 'sent', email: this.state.email || cs, resendAt: now + 42e3, linkUntil: now + this.LINK },
+      "Nouveau mot de passe": { view: 'reset', email: this.state.email || cs, linkUntil: now + this.LINK - 19e3 },
+      "Lien expiré": { view: 'expiredLink' },
+      "Mot de passe modifié": { view: 'resetDone', doneAt: now },
+      "Session sur le point d'expirer": { view: 'expiring', expAt: now + this.WARN },
+      "Session expirée": { view: 'login', notice: 'expired' },
+      "Déconnecté": { view: 'login', notice: 'logout' },
+      "Accès refusé": { view: this.props.surface === 'admin' ? 'denied' : 'login' },
+      "Connexion réussie": { view: 'success', user: this.state.accts[cs] }
+    };
+    if (sc && m[sc]) this.setState({ ...base, ...m[sc] });
+  }
+
+  validEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e.trim()); }
+  mmss(ms) { const t = Math.max(0, Math.ceil(ms / 1000)); return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`; }
+  rulesOf(p) {
+    return [
+      { l: '12 caractères minimum', ok: p.length >= 12 },
+      { l: 'Majuscule et minuscule', ok: /[a-z]/.test(p) && /[A-Z]/.test(p) },
+      { l: 'Au moins un chiffre', ok: /\d/.test(p) },
+      { l: 'Un caractère spécial', ok: /[^A-Za-z0-9]/.test(p) }
+    ];
+  }
+  go(view, extra) { clearTimeout(this.bt); this.setState({ view, busy: false, err: false, notice: null, emailTouched: false, pwdTouched: false, ...extra }); }
+  later(fn) { clearTimeout(this.bt); this.setState({ busy: true }); this.bt = setTimeout(fn, 650); }
+
+  onLogin = e => {
+    e.preventDefault();
+    const s = this.state, em = s.email.trim().toLowerCase();
+    if (s.busy) return;
+    if (!this.validEmail(em) || !s.pwd) { this.setState({ emailTouched: true, pwdTouched: true }); return; }
+    this.later(() => {
+      const a = this.state.accts[em];
+      if (!a || a.pwd !== this.state.pwd) {
+        const f = this.state.fails + 1;
+        if (f >= this.MAXF) this.go('locked', { lockUntil: Date.now() + this.LOCK, fails: 0, pwd: '' });
+        else this.setState({ busy: false, err: true, errKey: this.state.errKey + 1, fails: f, pwd: '', notice: null });
+        return;
+      }
+      if (this.props.surface === 'admin' && !a.admin) return this.go('denied', { fails: 0, pwd: '' });
+      if (a.first) return this.go('first', { user: a, fails: 0, pwd: '', np: '', np2: '' });
+      this.go('success', { user: a, fails: 0, pwd: '' });
+    });
+  };
+  onForgot = e => {
+    e.preventDefault();
+    if (this.state.busy) return;
+    if (!this.validEmail(this.state.email)) { this.setState({ emailTouched: true }); return; }
+    this.later(() => this.go('sent', { resendAt: Date.now() + 60e3, linkUntil: Date.now() + this.LINK }));
+  };
+  onSetPwd = e => {
+    e.preventDefault();
+    const s = this.state;
+    if (s.busy || !this.rulesOf(s.np).every(r => r.ok) || s.np !== s.np2) return;
+    this.later(() => {
+      const em = this.state.email.trim().toLowerCase(), accts = { ...this.state.accts };
+      if (accts[em]) accts[em] = { ...accts[em], pwd: this.state.np, first: false };
+      if (this.state.view === 'first') this.go('success', { accts, user: accts[em], np: '', np2: '' });
+      else this.go('resetDone', { accts, doneAt: Date.now(), np: '', np2: '' });
+    });
+  };
+
+  renderVals() {
+    const s = this.state, admin = this.props.surface === 'admin', mob = s.w < 900, v = s.view;
+    const emailValid = this.validEmail(s.email);
+    const emailErr = s.emailTouched && !emailValid;
+    const pwdErr = s.pwdTouched && !s.pwd;
+    const rules = this.rulesOf(s.np), score = rules.filter(r => r.ok).length, allOk = score === 4;
+    const mismatch = s.np2.length > 0 && s.np2 !== s.np.slice(0, s.np2.length) || (s.np2.length >= s.np.length && s.np2.length > 0 && s.np2 !== s.np);
+    const match = s.np2.length > 0 && s.np2 === s.np && allOk;
+    const red = '#c2412d';
+    const inp = 'width:100%;height:48px;padding:0 44px 0 14px;border-radius:12px;border:1px solid #d3dedb;background:#fff;font-size:14.5px;color:#10233a;outline:none;transition:border-color .15s,box-shadow .15s;';
+    const inpErr = `border-color:${red};box-shadow:0 0 0 4px rgba(194,65,45,.1);`;
+    const msg = on => `font-size:12px;font-weight:500;color:${red};min-height:0;${on ? 'display:block;animation:auth-in .2s both' : 'display:none'}`;
+    const ctaBase = 'margin-top:4px;height:50px;width:100%;border:0;border-radius:12px;font-size:14.5px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;text-decoration:none;transition:transform .18s cubic-bezier(.2,.7,.2,1),box-shadow .18s,background .18s,opacity .18s;';
+    const ctaSkin = admin ? 'background:#10233a;color:#fff;box-shadow:0 10px 24px -14px rgba(16,35,58,.9);' : 'background:linear-gradient(90deg,#f7a41c,#f0752b);color:#1a1200;box-shadow:0 10px 24px -12px rgba(240,120,40,.75);';
+    const ctaHover = admin ? 'background:#1b3752;color:#fff;transform:translateY(-1px)' : 'transform:translateY(-1px);box-shadow:0 14px 28px -12px rgba(240,120,40,.9);color:#1a1200';
+    const setBlocked = s.busy || !allOk || s.np !== s.np2;
+    const ctaSt = ctaBase + ctaSkin + (s.busy ? 'opacity:.85;cursor:progress;' : '');
+    const toS = (ms, tot) => ms;
+    const lockMs = Math.max(0, s.lockUntil - s.now), expMs = Math.max(0, s.expAt - s.now), linkMs = Math.max(0, s.linkUntil - s.now), resendMs = Math.max(0, s.resendAt - s.now);
+    const left = this.MAXF - s.fails;
+    const meterCol = ['#e3ebe9', '#e0673f', '#f0a02b', '#7bbf9e', '#1d8f86'][score];
+    const pwdHead = mob ? 'font-size:34px' : 'font-size:clamp(44px,4.6vw,68px)';
+    const cs = 'c.schmitz@groupeonepoint.com';
+    return {
+      isApp: !admin, isAdmin: admin, demo: this.props.demo ?? true,
+      screenLabel: admin ? 'Connexion console' : 'Connexion application',
+      idleMin: admin ? 15 : 30,
+      shellSt: `min-height:100vh;display:grid;${mob ? 'grid-template-columns:minmax(0,1fr);grid-template-rows:auto 1fr' : 'grid-template-columns:minmax(0,1.12fr) minmax(460px,1fr)'};background:#fff`,
+      visSt: `position:relative;overflow:hidden;${mob ? 'height:196px' : 'min-height:100vh;position:sticky;top:0;height:100vh'};background:${admin ? '#0f2034' : '#062322'}`,
+      visInnerSt: `position:relative;height:100%;display:flex;flex-direction:column;padding:${mob ? '22px 22px 30px' : '34px 48px 160px'}`,
+      arcSt: `position:absolute;left:-20%;right:-20%;bottom:${mob ? '-66px' : '-40px'};height:${mob ? '120px' : '150px'};border-radius:50%;border-top:${mob ? 7 : 10}px solid rgba(247,164,28,.92);transform:rotate(-4deg);pointer-events:none;animation:auth-arc .9s .25s cubic-bezier(.2,.7,.2,1) both`,
+      showHeadline: true,
+      headSt: `margin-top:10px;${pwdHead};font-weight:800;font-style:italic;letter-spacing:-.04em;line-height:.98;color:#fff;text-wrap:balance`,
+      sideSt: `display:flex;flex-direction:column;align-items:center;padding:${mob ? '34px 22px 72px' : '56px 64px'};background:#fff;min-width:0`,
+      vLogin: v === 'login', vLocked: v === 'locked', vForgot: v === 'forgot', vSent: v === 'sent',
+      vPwdSet: v === 'first' || v === 'reset', vFirst: v === 'first', vReset: v === 'reset',
+      vExpiredLink: v === 'expiredLink', vDone: v === 'resetDone', vSuccess: v === 'success', vDenied: v === 'denied', vExpiring: v === 'expiring',
+      nExpired: s.notice === 'expired', nLogout: s.notice === 'logout',
+      err: s.err, showLeft: s.err && s.fails >= 3 && left > 0,
+      leftLabel: left === 1 ? 'Dernière tentative avant blocage temporaire de 15 minutes.' : `Encore ${left} tentatives avant blocage temporaire de 15 minutes.`,
+      errSt: `display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;background:#fdf1ee;color:#8f2c1d;font-size:13px;animation:${s.errKey % 2 ? 'auth-shake' : 'auth-in'} .4s both`,
+      email: s.email, emailOk: emailValid, emailInvalid: emailErr,
+      emailSt: inp + (emailErr ? inpErr : ''),
+      emailMsg: s.email.trim() ? 'Format attendu : prenom.nom@entreprise.com' : 'Saisissez votre adresse e-mail.',
+      emailMsgSt: msg(emailErr),
+      setEmail: e => this.setState({ email: e.target.value, err: false }),
+      blurEmail: () => { if (this.state.email.trim()) this.setState({ emailTouched: true }); },
+      pwd: s.pwd, showPwd: s.showPwd, hidePwd: !s.showPwd, pwdType: s.showPwd ? 'text' : 'password',
+      pwdToggleL: s.showPwd ? 'Masquer le mot de passe' : 'Afficher le mot de passe',
+      pwdInvalid: pwdErr, pwdSt: inp + (pwdErr ? inpErr : ''),
+      pwdMsg: s.caps && !pwdErr ? 'Verrouillage majuscule activé' : 'Saisissez votre mot de passe.',
+      pwdMsgSt: pwdErr ? msg(true) : (s.caps ? 'display:block;font-size:12px;font-weight:600;color:#9a6208' : 'display:none'),
+      setPwd: e => this.setState({ pwd: e.target.value, pwdTouched: false }),
+      togglePwd: () => this.setState({ showPwd: !this.state.showPwd }),
+      capsCheck: e => { const c = e.getModifierState && e.getModifierState('CapsLock'); if (c !== this.state.caps) this.setState({ caps: c }); },
+      busy: s.busy, idle: !s.busy, ctaSt, ctaHover,
+      ctaStaticSt: ctaBase + ctaSkin + 'margin-top:28px;',
+      ctaLinkSt: ctaBase + ctaSkin + 'margin-top:28px;',
+      ctaSetSt: ctaBase + ctaSkin + (setBlocked && !s.busy ? 'opacity:.38;cursor:not-allowed;box-shadow:none;' : ''),
+      ctaSetHover: setBlocked ? '' : ctaHover, setBlocked,
+      spinSt: `width:16px;height:16px;border-radius:50%;border:2px solid ${admin ? 'rgba(255,255,255,.3)' : 'rgba(26,18,0,.25)'};border-top-color:${admin ? '#fff' : '#1a1200'};animation:auth-spin .7s linear infinite`,
+      goForgot: () => this.go('forgot'), goLogin: () => this.go('login', { pwd: '' }),
+      lockLeft: this.mmss(lockMs), lockOff: (364.42 * (1 - lockMs / this.LOCK)).toFixed(2), lockAria: `Nouvel essai possible dans ${this.mmss(lockMs)}`,
+      resendWait: resendMs > 0, resendL: resendMs > 0 ? `Renvoyer dans ${this.mmss(resendMs)}` : 'Renvoyer',
+      resendSt: `flex:none;border:0;background:none;padding:0;font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums;color:${resendMs > 0 ? '#8a9aa6' : '#1d8f86'};cursor:${resendMs > 0 ? 'default' : 'pointer'}`,
+      resend: () => { if (Date.now() >= this.state.resendAt) this.setState({ resendAt: Date.now() + 60e3, linkUntil: Date.now() + this.LINK }); },
+      linkLeft: this.mmss(linkMs), firstName: (s.user && s.user.name) || 'Cédric', roleL: (s.user && s.user.role) || '',
+      np: s.np, np2: s.np2, showNp: s.showNp, hideNp: !s.showNp, npType: s.showNp ? 'text' : 'password', np2Type: s.showNp ? 'text' : 'password',
+      npToggleL: s.showNp ? 'Masquer les mots de passe' : 'Afficher les mots de passe',
+      toggleNp: () => this.setState({ showNp: !this.state.showNp }),
+      setNp: e => this.setState({ np: e.target.value }), setNp2: e => this.setState({ np2: e.target.value }),
+      npSt: inp, np2St: inp + (mismatch ? inpErr : ''), mismatch, match,
+      np2MsgSt: msg(mismatch), capsNp: s.caps,
+      meter: [0, 1, 2, 3].map(i => ({ st: `height:4px;border-radius:2px;background:${i < score ? meterCol : '#e3ebe9'};transition:background .25s` })),
+      rules: rules.map(r => ({ l: r.l, ok: r.ok, sr: r.ok ? ' : respectée' : ' : non respectée',
+        st: `position:relative;display:flex;align-items:center;gap:8px;font-size:12px;font-weight:${r.ok ? 600 : 500};color:${r.ok ? '#10233a' : '#6b7f8c'};transition:color .2s`,
+        dot: `flex:none;width:15px;height:15px;border-radius:50%;display:grid;place-items:center;transition:background .2s,box-shadow .2s;${r.ok ? 'background:#1d8f86' : 'background:#fff;box-shadow:inset 0 0 0 1.5px #c6d3d0'}` })),
+      setCtaL: v === 'first' ? 'Définir mon mot de passe' : 'Enregistrer le mot de passe',
+      doneLeft: Math.max(0, Math.ceil((6000 - (s.now - s.doneAt)) / 1000)),
+      destHref: admin ? 'Console%20Admin.dc.html' : 'RISE%20Cockpit.dc.html', destL: admin ? 'Ouvrir la console' : 'Ouvrir le Cockpit',
+      logout: () => this.go('login', { notice: 'logout', pwd: '', user: null }),
+      otherAccount: () => this.go('login', { email: '', pwd: '' }),
+      expLeft: this.mmss(expMs), expOff: (289.03 * (1 - expMs / this.WARN)).toFixed(2),
+      stay: () => this.go('success', { user: this.state.user || this.state.accts[cs] }),
+      demoOpen: s.demoOpen, toggleDemo: () => this.setState({ demoOpen: !this.state.demoOpen }),
+      demoAccts: Object.entries(s.accts).map(([e, a]) => ({ e, r: a.role + (a.first ? ' · 1re connexion' : ''), p: a.pwd,
+        use: () => this.go('login', { email: e, pwd: a.pwd, demoOpen: false }) })),
+      openLink: () => this.go('reset', { linkUntil: Date.now() + this.LINK, np: '', np2: '', demoOpen: false })
+    };
+  }
+}
+</script>
+</body>
+</html>
