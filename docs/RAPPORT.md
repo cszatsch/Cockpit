@@ -31,7 +31,7 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 | Suite | Contenu | Résultat |
 |---|---|---|
 | `npm test` (Jest + Supertest, base `rise_test`) | 14 tests unitaires des règles de domaine ; 85 tests e2e qui reprennent les critères d'acceptation des deux briefs (§ 13) : droits, Référentiel, Pilotage, bootstrap, import, annexes, console | **8 suites, 99 tests verts** |
-| `test/browser/cockpit.e2e.ts` (Chromium, Playwright) | 23 vues, 48 écrans comparés au pixel près avec le frontend d'origine ; 20 contrôles de persistance après rechargement | **0 erreur JS, 20/20 contrôles** ; écart moyen 0,4 % (voir § 3.3) |
+| `test/browser/cockpit.e2e.ts` (Chromium, Playwright) | 23 vues, 48 écrans comparés au pixel près avec le frontend d'origine ; 20 contrôles de persistance après rechargement | **0 erreur JS, 20/20 contrôles** ; écart moyen 0,1 %, maximum 3,5 % (voir § 3.3) |
 | `test/browser/console.e2e.ts` | 12 menus comparés avec l'origine ; actions réelles (suspension, plafond, règle, snapshot, import ORION, clés, invitation, envoi de test) vérifiées après rechargement et dans l'API ; mode démonstration | **34/34 vérifications** ; écarts de 0 à 1,7 % |
 | `test/browser/cockpit.stores.ts` | Sonde : modifie chaque magasin synchronisé du Cockpit et liste les appels émis | Tous les appels aboutissent |
 
@@ -57,7 +57,7 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 ### 3.3 Écarts visuels mesurés
 
 - **Cockpit, Dispositif (3,5 %)** : l'historique des rôles est plus court, conséquence des affectations régénérées (Q6).
-- **Cockpit, Aujourd'hui (jusqu'à 7,6 % selon le moment de la capture)** : les widgets s'appuient sur `Widget.dc.html`, qui **ne fait pas partie des fichiers livrés**. Les deux versions affichent donc des emplacements vides. La version branchée les affiche un peu plus tard, une fois les données du serveur chargées. Après quelques secondes, les deux rendus sont identiques.
+- **Cockpit, Aujourd'hui (0,2 %)** : seul le bloc « Incohérences à traiter » diffère. Dans l'original, ses lignes sont des textes figés de `rise-data.js` (par exemple « Jalon Go / No-Go replanifié… »). Le serveur les calcule selon les règles du brief (§ 7.13 et § 9) : risque critique sans plan, jalon non confirmé depuis plus de 14 jours, budget non renseigné, modifications depuis la dernière capture, actions échues. Les widgets eux-mêmes (`Widget.dc.html`, fourni après la première livraison et ajouté tel quel) s'affichent à l'identique.
 - **Console** : écarts entre 0 et 1,7 %. Ils viennent de données mesurées au lieu de données générées (consommation, projection), du module Budget inactif (Q10) et de la carte « Charger l'exemple », masquée hors démonstration.
 
 ### 3.4 Limites du branchement de la console
@@ -74,5 +74,4 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 2. **Clé stable des commentaires de cellule** : faut-il que le Cockpit expose un identifiant de ligne ? Cela rendrait les commentaires insensibles aux renommages, mais demande de modifier chaque tableau du frontend.
 3. **Écrans manquants de la console** : faut-il ajouter l'export d'un snapshot et le traitement des demandes d'invitation ?
 4. **Identité dans la console** : faut-il remplacer `u1` par le compte connecté (`GET /api/admin/me`) ? La modification est simple, mais elle touche plusieurs libellés.
-5. **`Widget.dc.html`** : ce composant est référencé par l'écran Aujourd'hui mais absent des fichiers livrés. Pouvez-vous le fournir ?
-6. **Fournisseur d'identité (SSO)** : il est hors périmètre (Q11). L'AuthGuard accepte un jeton porteur, et le passage à OIDC ne touche que `core/auth`.
+5. **Fournisseur d'identité (SSO)** : il est hors périmètre (Q11). L'AuthGuard accepte un jeton porteur, et le passage à OIDC ne touche que `core/auth`.

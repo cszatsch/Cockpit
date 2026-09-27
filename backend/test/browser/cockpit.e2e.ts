@@ -84,7 +84,7 @@ async function ensureServices() {
     console.log('▸ copie d’origine servie sur ' + ORIG);
     const dir = fs.mkdtempSync('/tmp/rise-orig-');
     fs.writeFileSync(path.join(dir, 'RISE Cockpit.dc.html'), originalHtml());
-    for (const f of ['support.js', 'rise-data.js', 'planning-data.js']) fs.copyFileSync(path.join(REPO, 'frontends', f), path.join(dir, f));
+    for (const f of ['support.js', 'rise-data.js', 'planning-data.js', 'Widget.dc.html']) fs.copyFileSync(path.join(REPO, 'frontends', f), path.join(dir, f));
     fs.cpSync(path.join(REPO, 'frontends/assets'), path.join(dir, 'assets'), { recursive: true });
     const p = spawn('python3', ['-m', 'http.server', new URL(ORIG).port || '3199'], { cwd: dir, stdio: 'ignore' });
     children.push(p);

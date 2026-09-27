@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="height:100%;display:flex;flex-direction:column;gap:10px;padding:16px 18px;box-sizing:border-box;font-family:'Plus Jakarta Sans',sans-serif;color:var(--wi,#10233a);min-width:0;{{ w.vars }}">
+  <div style="display:flex;align-items:center;gap:8px;min-width:0;padding-right:18px">
+    <span style="font-size:10.5px;letter-spacing:.12em;line-height:1.35;text-transform:uppercase;font-weight:700;color:var(--wh,#5c7280);min-width:0;padding-right:44px">{{ w.name }}</span>
+    <span style="flex:1"></span>
+    <sc-if value="{{ w.isAi }}" hint-placeholder-val="{{ false }}"><span style="font-size:10px;font-weight:700;color:#1d8f86;background:#e6f3f2;border-radius:5px;padding:2px 6px;white-space:nowrap">IA · {{ w.ai.at }}</span></sc-if>
+  </div>
+  <sc-if value="{{ w.isSun }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;inset:0;overflow:hidden;border-radius:inherit;{{ w.thBg }}"><div style="position:absolute;inset:0;padding:16px 18px;color:#fff;{{ w.thF }}">
+      <span style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#9fdcd4">{{ w.sn.lbl }}</span>
+      <svg viewBox="0 0 264 90" preserveAspectRatio="none" style="position:absolute;left:18px;bottom:24px;width:calc(100% - 36px);height:90px;overflow:visible"><path d="M8 84 A124 76 0 0 1 256 84" fill="none" stroke="rgba(255,255,255,.14)" stroke-width="1.5" stroke-dasharray="3 4"></path><path d="{{ w.sn.arc }}" fill="none" stroke="#f7a41c" stroke-width="2"></path><circle cx="{{ w.sn.cx }}" cy="{{ w.sn.cy }}" r="12" fill="rgba(247,164,28,.2)" opacity="{{ w.sn.dot }}"></circle><circle cx="{{ w.sn.cx }}" cy="{{ w.sn.cy }}" r="6" fill="#f7a41c" opacity="{{ w.sn.dot }}"></circle><line x1="0" y1="84" x2="264" y2="84" stroke="rgba(255,255,255,.18)"></line></svg>
+      <div style="position:absolute;left:0;right:0;bottom:36px;display:flex;flex-direction:column;align-items:center;gap:2px"><span style="font-size:34px;font-weight:800;letter-spacing:-.04em;line-height:1">{{ w.sn.t }}</span><span style="font-size:11.5px;color:rgba(255,255,255,.7)">{{ w.sn.sub }}</span></div>
+      <div style="position:absolute;left:18px;right:18px;bottom:10px;display:flex;justify-content:space-between;font-size:10px;font-weight:700;color:rgba(255,255,255,.55);font-variant-numeric:tabular-nums"><span>{{ w.sn.rise }}</span><span>{{ w.sn.set }}</span></div>
+    </div></div>
+  </sc-if>
+  <sc-if value="{{ w.isRoute }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;inset:0;overflow:hidden;border-radius:inherit;{{ w.thBg2 }}"><div style="position:absolute;inset:0;color:#fff;padding:16px 18px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;{{ w.thF }}">
+      <div style="display:flex;flex-direction:column;gap:8px;min-width:0">
+        <div style="display:flex;align-items:center;gap:8px"><span style="width:9px;height:9px;border-radius:50%;box-shadow:0 0 0 2px #fff;flex:none"></span><span style="font-size:12.5px;font-weight:600;color:rgba(255,255,255,.8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ w.rt.from }}</span></div>
+        <span style="margin-left:4px;width:1px;height:10px;border-left:1.5px dashed rgba(255,255,255,.3)"></span>
+        <div style="display:flex;align-items:center;gap:8px"><span style="width:9px;height:9px;border-radius:50%;background:#f7a41c;flex:none"></span><span style="font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ w.rt.to }}</span></div>
+        <span style="flex:1"></span>
+        <div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:32px;font-weight:800;letter-spacing:-.04em;line-height:1">{{ w.rt.t }}</span><span style="font-size:11.5px;font-weight:700;color:#f7c56b">{{ w.rt.d }}</span></div>
+      </div>
+      <span onClick="{{ w.rt.swap }}" title="Inverser le sens" style="align-self:start;margin-top:8px;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:rgba(255,255,255,.1);color:#fff;cursor:pointer;transition:background .15s" style-hover="background:rgba(255,255,255,.2)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="{{ w.rt.rot }}"><path d="M8 4v16M4 8l4-4 4 4M16 20V4M12 16l4 4 4-4"></path></svg></span>
+    </div></div>
+  </sc-if>
+  <sc-if value="{{ w.isKpi }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;flex-direction:column;gap:6px;flex:1;justify-content:flex-end">
+      <div style="display:flex;align-items:baseline;gap:6px"><span style="{{ w.k.vS }}">{{ w.k.v }}</span><span style="font-size:13px;font-weight:600;color:var(--wl,#5c7280)">{{ w.k.u }}</span></div>
+      <span style="font-size:12px;color:var(--wl,#5c7280);line-height:1.4">{{ w.k.sub }}</span>
+      <sc-if value="{{ w.k.hasBar }}" hint-placeholder-val="{{ false }}"><span style="position:relative;height:4px;border-radius:2px;background:var(--wt,#e6edeb);overflow:visible;display:block;margin-top:4px"><span style="{{ w.k.bar }}"></span><span style="{{ w.k.ref }}"></span></span></sc-if>
+    </div>
+  </sc-if>
+  <sc-if value="{{ w.isList }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden">
+      <sc-for list="{{ w.rows }}" as="r" hint-placeholder-count="3">
+        <div style="display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:baseline;padding:7px 0;border-top:1px solid var(--wln,#f0f4f3)">
+          <span style="{{ r.aS }}">{{ r.a }}</span>
+          <span style="font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.t }}</span>
+          <span style="{{ r.rS }}">{{ r.r }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </sc-if>
+  <sc-if value="{{ w.isBars }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;flex-direction:column;gap:9px;flex:1;justify-content:center">
+      <sc-for list="{{ w.rows }}" as="r" hint-placeholder-count="4">
+        <div style="display:grid;grid-template-columns:118px minmax(0,1fr) 38px;gap:10px;align-items:center">
+          <span style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.t }}</span>
+          <span style="position:relative;height:6px;border-radius:3px;background:var(--wt,#eef3f2);display:block"><span style="{{ r.bar }}"></span><span style="{{ r.ref }}"></span></span>
+          <span style="{{ r.vS }}">{{ r.v }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </sc-if>
+  <sc-if value="{{ w.isSpark }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;flex-direction:column;gap:6px;flex:1;justify-content:flex-end">
+      <div style="display:flex;align-items:baseline;gap:6px"><span style="font-size:30px;font-weight:800;letter-spacing:-.03em">{{ w.s.v }}</span><span style="font-size:12px;color:var(--wl,#5c7280)">{{ w.s.u }}</span></div>
+      <svg viewBox="0 0 200 44" preserveAspectRatio="none" style="width:100%;height:44px;overflow:visible"><path d="{{ w.s.area }}" fill="{{ w.s.fill }}"></path><path d="{{ w.s.line }}" fill="none" stroke="{{ w.s.c }}" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"></path></svg>
+      <span style="font-size:11px;color:var(--wm,#8a9aa6)">{{ w.s.sub }}</span>
+    </div>
+  </sc-if>
+  <sc-if value="{{ w.isGantt }}" hint-placeholder-val="{{ false }}">
+    <div style="position:relative;display:flex;flex-direction:column;gap:8px;flex:1;justify-content:center">
+      <span style="{{ w.g.today }}"></span>
+      <sc-for list="{{ w.rows }}" as="r" hint-placeholder-count="4">
+        <div style="display:grid;grid-template-columns:130px minmax(0,1fr);gap:10px;align-items:center">
+          <span style="font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.t }}</span>
+          <span style="position:relative;height:10px;display:block"><span style="{{ r.bar }}"></span></span>
+        </div>
+      </sc-for>
+      <div style="display:grid;grid-template-columns:130px minmax(0,1fr);gap:10px"><span></span><span style="display:flex;justify-content:space-between;font-size:10px;color:var(--wm,#a3b0b9)"><span>{{ w.g.a }}</span><span>{{ w.g.b }}</span></span></div>
+    </div>
+  </sc-if>
+  <sc-if value="{{ w.isAi }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;flex-direction:column;gap:10px;flex:1;min-height:0">
+      <span style="font-size:15px;font-weight:700;line-height:1.4;letter-spacing:-.01em;text-wrap:pretty">{{ w.ai.head }}</span>
+      <sc-for list="{{ w.ai.pts }}" as="p" hint-placeholder-count="4">
+        <div style="display:grid;grid-template-columns:8px minmax(0,1fr);gap:10px;align-items:baseline"><span style="{{ p.dot }}"></span><span style="font-size:12.5px;line-height:1.5;color:var(--wb,#3d5465);text-wrap:pretty"><b style="color:var(--wi,#10233a);font-weight:700">{{ p.k }}</b> {{ p.t }}</span></div>
+      </sc-for>
+      <span style="flex:1"></span>
+      <span style="font-size:10.5px;color:var(--wm,#8a9aa6)">{{ w.ai.src }}</span>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:320,&quot;height&quot;:160},&quot;w&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;object&quot;}}"></script>
+</body>
+</html>

@@ -101,3 +101,7 @@ Plus aucune clé `localStorage` n'est lue ou écrite par le fichier HTML. api.js
 - **Chantiers et sous-phases sans dates** (créés depuis le Référentiel) : exclus du Gantt (l'écran d'origine ne sait pas les dessiner).
 - **Jev** : les réponses sont celles du service bouchon du serveur (création d'action, statut, report d'échéance) ; les règles locales (création de risque guidée, confirmations multiples) ne servent plus qu'en repli.
 - **API injoignable** : l'écran reste vide et le toast affiche « Données indisponibles — … · nouvel essai dans 15 s » jusqu'au rétablissement.
+
+## Fichier ajouté
+
+- `Widget.dc.html` : composant des widgets de l'écran Aujourd'hui (`<dc-import name="Widget">`). Il manquait dans la première livraison et a été fourni ensuite. Il est ajouté **sans modification** : il ne fait qu'afficher l'objet `w` calculé par le Cockpit, et n'appelle donc pas l'API.
