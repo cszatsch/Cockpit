@@ -40,7 +40,10 @@ export class MeController {
   async me(@CurrentActor() actor: Actor, @Query('projectId') projectId?: string) {
     const account = await this.prisma.account.findUniqueOrThrow({ where: { id: actor.accountId } });
     const projects = await this.access.accessibleProjects(actor);
-    const current = (projectId && projects.find((p) => p.project.id === projectId || p.project.code === projectId)) || projects[0];
+    const current =
+      (projectId && projects.find((p) => p.project.id === projectId || p.project.code === projectId)) ||
+      projects.find((p) => p.access.personId) ||
+      projects[0];
     const person = current?.access.personId ? await this.prisma.person.findUnique({ where: { id: current.access.personId } }) : null;
     const habilitations = current
       ? await this.prisma.habilitation.findMany({

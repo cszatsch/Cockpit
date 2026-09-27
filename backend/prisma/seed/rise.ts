@@ -88,6 +88,7 @@ export async function seedRise(db: PrismaClient, rise: J, plan: J): Promise<void
       forecastGoliveIso: rise.project.forecast.goliveIso,
       // Brief § 12 : le forçage « Go-Live 1er décembre maintenu » est contredit par D-007 → supprimé.
       healthOverride: Prisma.DbNull,
+      createdAt: new Date('2024-03-01T08:00:00Z'),
     },
   });
   const b = rise.project.baseline;
