@@ -899,7 +899,7 @@ export function attach(comp) {
     },
   };
   comp._api = api;
-  // Point d'accès pour les tests navigateur (backend/test/browser/cockpit.e2e.ts) et le débogage.
-  if (typeof window !== 'undefined') window.__riseCockpit = comp;
+  // Point d'accès réservé aux tests navigateur (?e2e=1).
+  if (typeof window !== 'undefined' && /[?&]e2e=1\b/.test(window.location.search)) window.__riseCockpit = comp;
   return api;
 }

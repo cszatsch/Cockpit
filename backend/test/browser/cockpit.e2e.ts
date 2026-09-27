@@ -4,7 +4,7 @@
  * Lancement : `cd backend && npx ts-node --transpile-only test/browser/cockpit.e2e.ts`
  *
  * 1. Amorce la base `rise_fe_cockpit`, démarre l'API (port 3101) si elle ne répond pas, et sert la copie
- *    d'origine du frontend (`git show HEAD:…`, port 3199) pour la comparaison visuelle.
+ *    d'origine du frontend (dernière révision git sans api.js, port 3199) pour la comparaison visuelle.
  * 2. Visite chaque espace et onglet principal dans les deux versions, sans erreur JS bloquante,
  *    prend une capture de chacun et mesure l'écart de pixels avec le rendu d'origine.
  * 3. Vérifie que des modifications survivent au rechargement (relecture de l'API puis de l'écran).
@@ -26,7 +26,7 @@ const API = process.env.E2E_API || 'http://localhost:3101';
 const ORIG = process.env.E2E_ORIG || 'http://localhost:3199';
 const OUT = process.env.E2E_OUT || path.join(os.tmpdir(), 'rise-cockpit-e2e');
 const DB = 'postgresql://rise:rise@localhost:5432/rise_fe_cockpit';
-const PAGE = '/RISE%20Cockpit.dc.html';
+const PAGE = '/RISE%20Cockpit.dc.html?e2e=1';
 
 const pwBase = path.dirname(require.resolve('playwright-core/package.json'));
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -52,6 +52,22 @@ async function waitUp(url: string, ms = 60000) {
   throw new Error('Service injoignable : ' + url);
 }
 
+/**
+ * Fichier HTML d'origine : dernière révision du dépôt qui ne charge pas encore api.js
+ * (E2E_ORIG_REV pour la forcer, ex. f7707a4).
+ */
+function originalHtml(): Buffer {
+  const file = 'frontends/RISE Cockpit.dc.html';
+  const show = (rev: string) => execSync(`git show ${rev}:"${file}"`, { cwd: REPO, maxBuffer: 64 << 20 });
+  if (process.env.E2E_ORIG_REV) return show(process.env.E2E_ORIG_REV);
+  const revs = execSync(`git log --format=%H -- "${file}"`, { cwd: REPO }).toString().trim().split('\n').filter(Boolean);
+  for (const rev of revs) {
+    const html = show(rev);
+    if (!html.includes("import('./api.js')")) return html;
+  }
+  throw new Error('Révision d’origine introuvable (E2E_ORIG_REV)');
+}
+
 async function ensureServices() {
   if (!process.env.E2E_NO_SEED) {
     console.log('▸ amorçage de rise_fe_cockpit');
@@ -67,7 +83,7 @@ async function ensureServices() {
   if (!(await up(ORIG + PAGE))) {
     console.log('▸ copie d’origine servie sur ' + ORIG);
     const dir = fs.mkdtempSync('/tmp/rise-orig-');
-    fs.writeFileSync(path.join(dir, 'RISE Cockpit.dc.html'), execSync('git show HEAD:"frontends/RISE Cockpit.dc.html"', { cwd: REPO, maxBuffer: 64 << 20 }));
+    fs.writeFileSync(path.join(dir, 'RISE Cockpit.dc.html'), originalHtml());
     for (const f of ['support.js', 'rise-data.js', 'planning-data.js']) fs.copyFileSync(path.join(REPO, 'frontends', f), path.join(dir, f));
     fs.cpSync(path.join(REPO, 'frontends/assets'), path.join(dir, 'assets'), { recursive: true });
     const p = spawn('python3', ['-m', 'http.server', new URL(ORIG).port || '3199'], { cwd: dir, stdio: 'ignore' });

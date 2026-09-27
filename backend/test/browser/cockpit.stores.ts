@@ -2,7 +2,7 @@
  * Sonde de synchronisation du RISE Cockpit : modifie chaque magasin persistant de l'écran
  * (comme le font les gestionnaires de l'interface) et relève les appels API émis et leur statut.
  *
- * Lancement (API démarrée sur E2E_API, base réamorcée) :
+ * Lancement (API démarrée sur E2E_API ; réamorcer d'abord la base : DATABASE_URL=…/rise_fe_cockpit npm run db:seed) :
  *   cd backend && npx ts-node --transpile-only test/browser/cockpit.stores.ts
  */
 import { Page } from 'playwright';
@@ -67,7 +67,7 @@ async function run(page: Page, log: Array<{ step: string; calls: string[] }>) {
   const b = await openBrowser();
   const errors: string[] = [];
   const page = await newPage(b, { errors });
-  await page.goto(API + '/RISE%20Cockpit.dc.html', { waitUntil: 'load' });
+  await page.goto(API + '/RISE%20Cockpit.dc.html?e2e=1', { waitUntil: 'load' });
   await page.waitForFunction(() => (window as any).__riseCockpit && (window as any).__riseCockpit.state.data, null, { timeout: 30000 });
   await page.waitForTimeout(1500);
   const log: Array<{ step: string; calls: string[] }> = [];
