@@ -1,0 +1,39 @@
+# RISE — API (Cockpit + Console Admin) et PostgreSQL.
+# Démarrage : docker compose up --build   puis   docker compose exec api npm run db:seed
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: rise
+      POSTGRES_PASSWORD: rise
+      POSTGRES_DB: rise
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rise"]
+      interval: 5s
+      retries: 10
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://rise:rise@db:5432/rise
+      JWT_SECRET: change-me-in-production
+      # Connexion de développement (utilisateur p01) : à désactiver en production.
+      AUTH_DEV: "true"
+      # Date de démonstration (brief § 7.1) : vider pour utiliser l'horloge réelle.
+      DEMO_TODAY: "2026-09-26"
+      # Clé AES-256-GCM des clés API (64 caractères hexadécimaux) : à remplacer.
+      SECRETS_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      JOBS_ENABLED: "true"
+    ports:
+      - "3000:3000"
+    volumes:
+      - storage:/data/storage
+volumes:
+  pgdata:
+  storage:
