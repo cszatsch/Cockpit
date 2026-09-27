@@ -224,6 +224,16 @@ enum RuleKind {
   ALERT
 }
 
+/// Déclencheur d'une règle (absent du brief : ajouté pour relier une règle à son événement).
+enum RuleTrigger {
+  SCHEDULE
+  MILESTONE_LATE
+  RISK_CRITICAL
+  DOCUMENT_ANALYZED
+  BUDGET_THRESHOLD
+  MANUAL
+}
+
 enum RuleFrequency {
   IMMEDIATE
   DAILY
@@ -1197,6 +1207,7 @@ model NotificationRule {
   hour           String?
   everyDays      Int?
   channels       Channel[]
+  trigger        RuleTrigger   @default(SCHEDULE)
   enabled        Boolean       @default(false)
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
@@ -1216,6 +1227,11 @@ model Delivery {
   projectId       String?
   subject         String?
   body            String?
+  /// Clé de dédoublonnage d'un événement (ex. « n1|RISE|J03 ») : un seul envoi par événement.
+  eventKey        String?
+  recipients      String[]       @default([])
+
+  @@index([ruleId, eventKey])
 }
 
 model Module {
