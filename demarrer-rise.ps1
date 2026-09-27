@@ -18,8 +18,10 @@
     2. démarre le serveur PostgreSQL personnel (créé au premier lancement s'il n'existe pas) ;
     3. prépare l'application : configuration, dépendances, migrations et compilation,
        chacune seulement si nécessaire (fichiers modifiés depuis la dernière fois, par exemple après un git pull) ;
+       crée le compte initial (Cédric Schmitz) s'il n'existe pas : son mot de passe provisoire est demandé
+       en saisie masquée, transmis au seul script de création et jamais écrit sur le disque ;
     4. lance l'application dans sa propre fenêtre ;
-    5. ouvre le Cockpit et la Console Admin dans le navigateur.
+    5. ouvre les écrans de connexion du Cockpit et de la Console Admin dans le navigateur.
 #>
 param(
   [switch]$Arreter,
@@ -204,6 +206,30 @@ if ($premierLancement -or $Reinitialiser) {
   Ok 'données de démonstration chargées'
 }
 
+# Compte initial (Cédric Schmitz, administrateur et PMO) : créé une seule fois (et après -Reinitialiser,
+# qui vide la base). Mot de passe provisoire : variable RISE_INITIAL_ADMIN_PASSWORD si elle est définie,
+# sinon saisie masquée ; il n'est passé qu'au processus de création et doit être changé à la première connexion.
+Push-Location $Backend
+try { & npm.cmd run -s init:admin -- --etat *> $null; $etatCompte = $LASTEXITCODE } finally { Pop-Location }
+if ($etatCompte -eq 0) {
+  Ok 'compte initial présent'
+} elseif ($etatCompte -eq 2) {
+  $mdp = $env:RISE_INITIAL_ADMIN_PASSWORD
+  if (-not $mdp) {
+    Info 'compte initial c.schmitz@groupeonepoint.com absent : choisissez son mot de passe provisoire'
+    Info '(12 caractères minimum, majuscule, minuscule, chiffre et caractère spécial ; à changer à la première connexion)'
+    $saisie = Read-Host '  Mot de passe provisoire (Entrée seule pour passer)' -AsSecureString
+    $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($saisie)
+    try { $mdp = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr) } finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr) }
+  }
+  if ($mdp) {
+    $env:RISE_INITIAL_ADMIN_PASSWORD = $mdp
+    Push-Location $Backend
+    try { & npm.cmd run -s init:admin; $code = $LASTEXITCODE } finally { Pop-Location; Remove-Item Env:RISE_INITIAL_ADMIN_PASSWORD -ErrorAction SilentlyContinue; $mdp = $null }
+    if ($code -eq 0) { Ok 'compte initial créé' } else { Info 'compte initial non créé (voir le message ci-dessus) : relancez le script pour réessayer' }
+  } else { Info 'compte initial non créé : relancez le script pour le créer' }
+} else { Info 'état du compte initial inconnu (la base répond-elle ?)' }
+
 # Compilation : seulement si le code a changé depuis la dernière compilation réussie (repère dist\.compilation).
 $repere = 'dist\.compilation'
 $derniereCompilation = Date-De $repere
@@ -237,15 +263,15 @@ if (-not $pret) { Echec 'l''application ne répond pas. Regardez les messages da
 Ok "application prête sur $UrlBase"
 
 # ───── 5. Navigateur ─────
-Etape '5/5 Ouverture du Cockpit et de la Console Admin'
-Start-Process "$UrlBase/RISE%20Cockpit.dc.html"
-Start-Process "$UrlBase/Console%20Admin.dc.html"
+Etape '5/5 Ouverture des écrans de connexion'
+Start-Process "$UrlBase/connexion"
+Start-Process "$UrlBase/console/connexion"
 Ok 'pages ouvertes dans le navigateur'
 
 Write-Host ''
 Write-Host '═══════════════════════════════════════════' -ForegroundColor Green
 Write-Host '  RISE est démarré' -ForegroundColor Green
-Write-Host "  Cockpit : $UrlBase/RISE%20Cockpit.dc.html"
-Write-Host "  Console : $UrlBase/Console%20Admin.dc.html"
+Write-Host "  Cockpit : $UrlBase/connexion"
+Write-Host "  Console : $UrlBase/console/connexion"
 Write-Host '  Pour tout arrêter : double-clic sur arreter-rise.cmd'
 Write-Host '═══════════════════════════════════════════' -ForegroundColor Green

@@ -14,7 +14,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - Options du `.ps1` : `-Reinitialiser` (recharge les données de démo), `-Compiler` (force la compilation), `-Arreter`.
 - **Arrêter** : `arreter-rise.cmd` (application et PostgreSQL).
 - **PostgreSQL local : port 5433** (et non 5432), utilisateur `rise` en authentification `trust`, données dans `%USERPROFILE%\rise-pgdata`. L'application écoute sur le port 3000.
-  - Cockpit : http://localhost:3000/RISE%20Cockpit.dc.html — Console : http://localhost:3000/Console%20Admin.dc.html — OpenAPI : http://localhost:3000/api/docs
+  - Connexion Cockpit : http://localhost:3000/connexion (puis `/`) — Connexion Console : http://localhost:3000/console/connexion (puis `/console`) — OpenAPI : http://localhost:3000/api/docs
+  - Compte initial (Cédric Schmitz, admin + PMO) : `demarrer-rise.ps1` demande son mot de passe provisoire s'il n'existe pas ; sinon `RISE_INITIAL_ADMIN_PASSWORD='…' npm run init:admin`. Ne jamais écrire ce mot de passe dans un fichier.
 
 ## Commandes (dans `backend/`)
 
@@ -46,6 +47,7 @@ Monorepo : `backend/` (API NestJS 11 + Prisma 6 + PostgreSQL), `frontends/` (pag
 - **`src/cockpit`** : référentiel (moteur CRUD générique avec contrôle des usages bloquants), pilotage, comités, Aujourd'hui, documents, collaboration… et `GET /api/projects/{id}/bootstrap`, qui renvoie la même forme que `frontends/rise-data.js` + `planning-data.js`.
 - **`src/import`** : lecture et contrôle du fichier Excel d'initialisation, moteur commun au Cockpit et à la Console ; le serveur refait tous les contrôles et fait foi.
 - **`src/admin`** : Console Admin (comptes, habilitations, audit, IA, consommation, snapshots, notifications, modules, bibliothèque).
-- **Frontends** : le Cockpit passe par `frontends/api.js` (charge le bootstrap au montage ; chaque écriture appelle l'API puis recharge), la Console par `frontends/admin-api.js`. Design et textes restent inchangés ; chaque modification d'un frontend est justifiée dans `frontends/CHANGES-cockpit.md` / `CHANGES-console.md`. Paramètres d'URL de développement : `?as=p06` (Cockpit), `?as=u1` (Console), `?e2e=1` (expose `window.__riseCockpit` aux tests).
+- **Frontends** : le Cockpit passe par `frontends/api.js` (charge le bootstrap au montage ; chaque écriture appelle l'API puis recharge), la Console par `frontends/admin-api.js`. Design et textes restent inchangés ; chaque modification d'un frontend est justifiée dans `frontends/CHANGES-cockpit.md` / `CHANGES-console.md`. Paramètres d'URL de développement : `?as=p06` (Cockpit), `?as=u1` (Console) — sans eux, session par cookie —, `?e2e=1` (expose `window.__riseCockpit` aux tests).
 - **Amorçage** : `prisma/seed/source.ts` lit les fichiers de données des frontends, `rise.ts` amorce le Cockpit (y compris les corrections et affectations des décisions Q5 et Q6), `admin.ts` la Console.
-- **Authentification de développement** (`AUTH_DEV=true`) : `POST /api/auth/dev-login` avec `{"personId":"p01"}` (PMO) ou `{"accountId":"u1"}` (Admin) ; autres comptes dans le README § 4.
+- **Authentification** (`src/core/auth`, spécification `docs/specs/AUTH - specification.md`) : écrans `Connexion.dc.html` / `Connexion Console.dc.html` (composant `Authentification.dc.html`, client `frontends/auth-api.js`) ; sessions par cookie HttpOnly, une par surface (`APP`, `ADMIN`), jeton anti-CSRF `X-CSRF-Token` pour les écritures ; règles et durées dans `policy.ts`. Les pages `/` et `/console` sont servies par `pages.ts` seulement avec une session de leur surface.
+- **Authentification de développement** (`AUTH_DEV=true`) : `POST /api/auth/dev-login` avec `{"personId":"p01"}` (PMO) ou `{"accountId":"u1"}` (Admin) délivre un jeton porteur ; dans les écrans, `?as=p06` / `?as=u1` active ce mode (les tests navigateur l'utilisent) ; autres comptes dans le README § 4.

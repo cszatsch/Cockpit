@@ -7,17 +7,21 @@ import { AppModule } from './app.module';
 import { ApiExceptionFilter } from './core/errors';
 import { EtagInterceptor } from './core/http';
 import { config } from './core/config';
+import { registerPages } from './core/auth/pages';
 
 /** Construit l'application (partagé par `main.ts`, les tests e2e et l'export OpenAPI). */
 export async function createApp(opts: { logger?: boolean } = {}): Promise<INestApplication> {
   const app = await NestFactory.create(AppModule, { logger: opts.logger === false ? false : undefined });
   app.enableCors({ origin: true, exposedHeaders: ['ETag'] });
+  // Adresse IP réelle derrière un mandataire inverse (compteur d'échecs de connexion par IP).
+  if (process.env.TRUST_PROXY) app.getHttpAdapter().getInstance().set('trust proxy', process.env.TRUST_PROXY);
   app.use(express.json({ limit: '10mb' }));
   app.useGlobalFilters(new ApiExceptionFilter());
   app.useGlobalInterceptors(new EtagInterceptor());
   const doc = SwaggerModule.createDocument(app, openApiConfig());
   SwaggerModule.setup('api/docs', app, doc, { jsonDocumentUrl: 'api/docs/openapi.json' });
   if (config.frontendDir) {
+    registerPages(app, path.resolve(config.frontendDir));
     app.use('/', express.static(path.resolve(config.frontendDir), { index: false }));
   }
   return app;

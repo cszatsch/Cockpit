@@ -3,17 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<script src="./auth-bundle.js"></script>
+<base href="/">
+<title>Connexion · RISE Cockpit</title>
 <script src="./support.js"></script>
 </head>
 <body>
 <x-dc>
 <helmet><style>html,body{margin:0;background:#fff}a{color:#1d8f86}a:hover{color:#146b64}</style></helmet>
-<dc-import name="Authentification" surface="app" scenario="{{ scenario }}" demo="{{ demo }}" hint-size="100%,100vh"></dc-import>
+<dc-import name="Authentification" surface="app" scenario="{{ scenario }}" hint-size="100%,100vh"></dc-import>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;scenario&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;section&quot;:&quot;État affiché&quot;,&quot;options&quot;:[&quot;Connexion&quot;,&quot;Erreur d'identification&quot;,&quot;Compte bloqué&quot;,&quot;Première connexion&quot;,&quot;Mot de passe oublié&quot;,&quot;E-mail envoyé&quot;,&quot;Nouveau mot de passe&quot;,&quot;Lien expiré&quot;,&quot;Mot de passe modifié&quot;,&quot;Connexion réussie&quot;,&quot;Session sur le point d'expirer&quot;,&quot;Session expirée&quot;,&quot;Déconnecté&quot;],&quot;default&quot;:&quot;Connexion&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;demo&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;État affiché&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;scenario&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;section&quot;:&quot;État affiché&quot;,&quot;options&quot;:[&quot;Connexion&quot;,&quot;Erreur d'identification&quot;,&quot;Compte bloqué&quot;,&quot;Première connexion&quot;,&quot;Mot de passe oublié&quot;,&quot;E-mail envoyé&quot;,&quot;Nouveau mot de passe&quot;,&quot;Lien expiré&quot;,&quot;Mot de passe modifié&quot;,&quot;Connexion réussie&quot;,&quot;Session sur le point d'expirer&quot;,&quot;Session expirée&quot;,&quot;Déconnecté&quot;],&quot;default&quot;:&quot;Connexion&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
 class Component extends DCLogic {
-  renderVals() { return { scenario: this.props.scenario ?? 'Connexion', demo: this.props.demo ?? true }; }
+  renderVals() { return { scenario: this.props.scenario ?? 'Connexion' }; }
 }
 </script>
 </body>

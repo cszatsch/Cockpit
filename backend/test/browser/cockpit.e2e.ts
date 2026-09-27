@@ -26,7 +26,8 @@ const API = process.env.E2E_API || 'http://localhost:3101';
 const ORIG = process.env.E2E_ORIG || 'http://localhost:3199';
 const OUT = process.env.E2E_OUT || path.join(os.tmpdir(), 'rise-cockpit-e2e');
 const DB = 'postgresql://rise:rise@localhost:5432/rise_fe_cockpit';
-const PAGE = '/RISE%20Cockpit.dc.html?e2e=1';
+// `as=p01` : connexion de développement par jeton (sans `as=`, la page exige une session par cookie).
+const PAGE = '/RISE%20Cockpit.dc.html?e2e=1&as=p01';
 
 const pwBase = path.dirname(require.resolve('playwright-core/package.json'));
 // eslint-disable-next-line @typescript-eslint/no-var-requires

@@ -105,3 +105,8 @@ Plus aucune clé `localStorage` n'est lue ou écrite par le fichier HTML. api.js
 ## Fichier ajouté
 
 - `Widget.dc.html` : composant des widgets de l'écran Aujourd'hui (`<dc-import name="Widget">`). Il manquait dans la première livraison et a été fourni ensuite. Il est ajouté **sans modification** : il ne fait qu'afficher l'objet `w` calculé par le Cockpit, et n'appelle donc pas l'API.
+
+## Authentification (écrans de connexion, voir `CHANGES-auth.md`)
+
+- **`RISE Cockpit.dc.html`, `logout` du profil (barre latérale)** : le bouton affichait seulement le toast « Vous êtes déconnecté ». Il appelle désormais `api.logout()` : `POST /api/auth/logout`, puis écran `/connexion` avec le bandeau « Vous êtes déconnecté ». Sans `api.js` chargé, le toast d'origine reste. Une ligne modifiée, commentée `API :`.
+- **`api.js`** : sans `?as=`, les appels passent par la session par cookie ouverte sur `/connexion` (en-têtes `X-Rise-Surface: app` et `X-CSRF-Token`). Une réponse `401` (session absente, expirée, fermée) ou `403 PASSWORD_CHANGE_REQUIRED` renvoie vers `/connexion`, avec `?raison=expiree` si la session a expiré et `?suite=` pour revenir à la page ouverte. `attach()` lance la surveillance d'inactivité (30 min, « Toujours là ? » 60 s avant). Avec `?as=<personne>` (serveur en `AUTH_DEV`), la connexion de développement par jeton reste inchangée : c'est le mode des tests navigateur, qui passent maintenant `&as=p01`.

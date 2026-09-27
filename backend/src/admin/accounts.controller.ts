@@ -6,6 +6,7 @@ import { AdminOnly, Actor, CurrentActor } from '../core/auth/auth';
 import { AuditService } from '../core/audit.service';
 import { PrismaService, Tx } from '../core/prisma.service';
 import { MailerService } from '../core/mailer.service';
+import { CredentialsService } from '../core/auth/credentials.service';
 import { TodayService } from '../core/today.service';
 import { badRequest, businessRule, conflict, inUse, notFound, Usage } from '../core/errors';
 import { techId } from '../core/ids';
@@ -46,7 +47,20 @@ export class AccountsController {
     private readonly profiles: ProfilesService,
     private readonly mailer: MailerService,
     private readonly today: TodayService,
+    private readonly creds: CredentialsService,
   ) {}
+
+  /** E-mail d'invitation : lien à usage unique pour définir son mot de passe (pas d'inscription en libre-service). */
+  private inviteMail(a: Account, raw: string, again: boolean) {
+    return this.mailer.send({
+      to: [a.email],
+      subject: again ? 'Invitation à RISE Cockpit (relance)' : 'Invitation à RISE Cockpit',
+      text:
+        `Bonjour ${a.fullName}, ${again ? 'voici un nouveau lien d’accès' : 'vous êtes invité(e) sur RISE Cockpit'}.\n\n` +
+        `Pour activer votre compte, choisissez votre mot de passe en ouvrant ce lien :\n${this.creds.resetLink(raw)}\n\n` +
+        `Ce lien est à usage unique et valable ${INVITE_VALIDITY_DAYS} jours.`,
+    });
+  }
 
   private async view(accounts: Array<Account & { projects: { projectId: string }[] }>) {
     const rights = await this.profiles.rightsOf(accounts);
@@ -161,7 +175,7 @@ export class AccountsController {
     if (await this.prisma.account.findUnique({ where: { email: input.email } })) throw conflict('DUPLICATE', `Un compte existe déjà pour ${input.email}`);
     const projects = await this.resolveProjects(input.projectCodes);
     const now = this.today.now();
-    const account = await this.prisma.$transaction(async (db) => {
+    const created = await this.prisma.$transaction(async (db) => {
       const person = await db.person.findFirst({ where: { projectId: { in: projects.map((p) => p.id) }, email: { equals: input.email, mode: 'insensitive' } } });
       const a = await db.account.create({
         data: {
@@ -177,9 +191,11 @@ export class AccountsController {
       });
       if (!keepReferentialRights) await this.applyProfile(db, a, input.profile, projects);
       await this.audit.action(db, adminCtx(actor), { action: 'Invitation d’un utilisateur', target: `${a.fullName} · ${input.profile}`, severity: 'INFO', entityType: 'Account', entityId: a.id, details: { email: a.email, profile: input.profile, projects: input.projectCodes } });
-      return a;
+      const raw = await this.creds.issueToken(db, a, 'INVITE', input.profile === 'ADMIN' ? 'ADMIN' : 'APP', INVITE_VALIDITY_DAYS * DAY);
+      return { a, raw };
     });
-    await this.mailer.send({ to: [account.email], subject: 'Invitation à RISE Cockpit', text: `Bonjour ${account.fullName}, vous êtes invité(e) sur RISE Cockpit. Ce lien est valable ${INVITE_VALIDITY_DAYS} jours.` });
+    await this.inviteMail(created.a, created.raw, false);
+    const account = created.a;
     return (await this.view([await this.one(account.id)]))[0];
   }
 
@@ -257,11 +273,13 @@ export class AccountsController {
     const a = await this.one(id);
     if (a.status !== 'INVITED') throw conflict('NOT_INVITED', 'Seule une invitation en attente peut être relancée');
     const now = this.today.now();
-    await this.prisma.$transaction(async (db) => {
+    const raw = await this.prisma.$transaction(async (db) => {
       await db.account.update({ where: { id }, data: { invitedAt: now, inviteExpiresAt: new Date(now.getTime() + INVITE_VALIDITY_DAYS * DAY), version: { increment: 1 } } });
       await this.audit.action(db, adminCtx(actor), { action: 'Relance d’une invitation', target: a.fullName, severity: 'INFO', entityType: 'Account', entityId: id });
+      const isAdmin = !!(await db.adminGrant.findUnique({ where: { accountId: id } }));
+      return this.creds.issueToken(db, a, 'INVITE', isAdmin ? 'ADMIN' : 'APP', INVITE_VALIDITY_DAYS * DAY);
     });
-    await this.mailer.send({ to: [a.email], subject: 'Invitation à RISE Cockpit (relance)', text: `Bonjour ${a.fullName}, voici un nouveau lien d'accès, valable ${INVITE_VALIDITY_DAYS} jours.` });
+    await this.inviteMail(a, raw, true);
     return (await this.view([await this.one(id)]))[0];
   }
 

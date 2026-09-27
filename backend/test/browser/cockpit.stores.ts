@@ -67,7 +67,7 @@ async function run(page: Page, log: Array<{ step: string; calls: string[] }>) {
   const b = await openBrowser();
   const errors: string[] = [];
   const page = await newPage(b, { errors });
-  await page.goto(API + '/RISE%20Cockpit.dc.html?e2e=1', { waitUntil: 'load' });
+  await page.goto(API + '/RISE%20Cockpit.dc.html?e2e=1&as=p01', { waitUntil: 'load' });
   await page.waitForFunction(() => (window as any).__riseCockpit && (window as any).__riseCockpit.state.data, null, { timeout: 30000 });
   await page.waitForTimeout(1500);
   const log: Array<{ step: string; calls: string[] }> = [];

@@ -15,7 +15,7 @@ import { addDays } from '../domain/dates';
 
 /** Fréquence du test automatique des clés (brief Console § 10.1). */
 export const KEY_TEST_CRON = '0 */2 * * *';
-const SYSTEM_ACTOR = { accountId: 'system', sessionId: 'system', email: 'system@rise.local', fullName: 'Système', personId: null, isAdmin: true };
+const SYSTEM_ACTOR = { accountId: 'system', sessionId: 'system', email: 'system@rise.local', fullName: 'Système', personId: null, isAdmin: true, surface: null, restricted: false, viaCookie: false };
 
 const ApiKey = z.string().trim().min(20, '20 caractères minimum').max(400);
 

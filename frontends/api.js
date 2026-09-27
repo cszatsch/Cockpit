@@ -14,6 +14,12 @@
 //      demandes d'activation de module).
 //
 // Chaque modification du fichier HTML qui s'appuie sur ce module est justifiée dans CHANGES-cockpit.md.
+//
+// Authentification (auth-api.js) : session par cookie ouverte sur /connexion ; sans session, ou quand
+// elle expire, retour à l'écran de connexion. `?as=<personne>` (serveur en AUTH_DEV) garde la connexion
+// de développement par jeton, pour les tests et la démonstration.
+
+import * as Auth from './auth-api.js';
 
 // ───────────────────────────── Accès HTTP ─────────────────────────────
 
@@ -22,8 +28,10 @@ const API_ROOT = ((typeof window !== 'undefined' && window.RISE_API_BASE) || '')
 const QS = new URLSearchParams(typeof location !== 'undefined' ? location.search : '');
 /** Projet courant : `?project=` sinon RISE. */
 export const projectId = QS.get('project') || 'RISE';
-/** Personne de la connexion de développement : `?as=` sinon p01 (PMO du jeu de démonstration). */
+/** Personne de la connexion de développement : `?as=` (sans `?as=`, session par cookie). */
 const AS = QS.get('as') || '';
+/** Connexion de développement par jeton (`?as=`) plutôt que session par cookie. */
+const DEV = !!AS;
 const DEFAULT_PERSON = 'p01';
 const TOKEN_KEY = 'rise-token';
 const TOKEN_AS_KEY = 'rise-token-as';
@@ -76,14 +84,27 @@ function token(renew) {
 /** Appel HTTP. `path` commençant par `/projects/` ou `/me`… est relatif à `/api`. */
 export async function request(method, path, body, opts = {}) {
   const send = async (tok) => {
-    const headers = { Authorization: 'Bearer ' + tok };
+    const headers = tok ? { Authorization: 'Bearer ' + tok } : Auth.sessionHeaders('app');
     let payload;
     if (body instanceof FormData) payload = body;
     else if (body !== undefined) { headers['Content-Type'] = 'application/json'; payload = JSON.stringify(body); }
-    return fetch(API_ROOT + path, { method, headers, body: payload });
+    return fetch(API_ROOT + path, { method, headers, body: payload, credentials: 'same-origin' });
   };
-  let r = await send(await token());
-  if (r.status === 401) r = await send(await token(true));
+  let r;
+  if (DEV) {
+    r = await send(await token());
+    if (r.status === 401) r = await send(await token(true));
+  } else {
+    r = await send(null);
+    // Session absente, expirée ou limitée (mot de passe provisoire) : retour à l'écran de connexion.
+    if (r.status === 401 || r.status === 403) {
+      const b = await r.clone().json().catch(() => null);
+      if (r.status === 401 || (b && b.code === 'PASSWORD_CHANGE_REQUIRED')) {
+        Auth.toLogin('app', b && b.code === 'SESSION_EXPIRED' ? 'expiree' : '');
+        throw new ApiError(r.status, b);
+      }
+    }
+  }
   if (opts.raw) {
     if (!r.ok) throw new ApiError(r.status, await r.json().catch(() => null));
     return r;
@@ -899,6 +920,9 @@ export function attach(comp) {
     },
   };
   comp._api = api;
+  // Session par cookie : expiration après 30 min d'inactivité (« Toujours là ? » 60 s avant) et déconnexion.
+  if (!DEV) Auth.startSessionGuard('app');
+  api.logout = () => (DEV ? (ls.set(TOKEN_KEY, null), Auth.logout('app')) : Auth.logout('app'));
   // Point d'accès réservé aux tests navigateur (?e2e=1).
   if (typeof window !== 'undefined' && /[?&]e2e=1\b/.test(window.location.search)) window.__riseCockpit = comp;
   return api;

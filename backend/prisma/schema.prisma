@@ -1015,12 +1015,18 @@ model Account {
   photoUrl        String?
   /// Profil de l'administrateur (fonction, société, téléphone, ville, pays, langue, fuseau)
   profile         Json?
+  /// Empreinte Argon2id du mot de passe (null : mot de passe jamais défini, connexion impossible)
+  passwordHash       String?
+  /// Changement de mot de passe exigé à la prochaine connexion (compte initial, mot de passe provisoire)
+  mustChangePassword Boolean   @default(false)
+  passwordChangedAt  DateTime?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
   version         Int           @default(1)
 
-  projects AccountProject[]
-  sessions AuthSession[]
+  projects       AccountProject[]
+  sessions       AuthSession[]
+  passwordTokens PasswordToken[]
 }
 
 model AccountProject {
@@ -1059,6 +1065,37 @@ model AuthSession {
   createdAt  DateTime  @default(now())
   lastSeenAt DateTime  @default(now())
   revokedAt  DateTime?
+  /// Surface de connexion : APP (Cockpit) ou ADMIN (Console) ; null pour les sessions de développement
+  surface    String?
+  /// Session limitée au changement de mot de passe obligatoire (première connexion)
+  restricted Boolean   @default(false)
+  /// Rotation du jeton : incrémentée à chaque renouvellement, l'ancien cookie devient invalide
+  rotation   Int       @default(0)
+}
+
+/// Lien de réinitialisation ou d'invitation : jeton aléatoire de 256 bits, stocké haché (SHA-256), à usage unique.
+model PasswordToken {
+  id        String    @id @default(cuid())
+  accountId String
+  account   Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  /// RESET (mot de passe oublié) ou INVITE (invitation de la Console)
+  purpose   String
+  /// Surface d'origine (APP ou ADMIN) : l'écran de réinitialisation y renvoie
+  surface   String    @default("APP")
+  createdAt DateTime  @default(now())
+  expiresAt DateTime
+  usedAt    DateTime?
+
+  @@index([accountId, createdAt])
+}
+
+/// Compteur d'échecs de connexion : clé « email:<adresse> » (comptes existants ou non) ou « ip:<adresse> ».
+model LoginThrottle {
+  key         String    @id
+  failures    Int       @default(0)
+  lockedUntil DateTime?
+  updatedAt   DateTime  @updatedAt
 }
 
 /// Q8 bis : demande d'invitation émise depuis le Référentiel du Cockpit.

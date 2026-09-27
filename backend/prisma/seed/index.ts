@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { loadDemo } from './source';
 import { seedRise } from './rise';
 import { seedAdmin } from './admin';
+import { createInitialAdmin } from '../../src/core/auth/initial-admin';
 
 /**
  * Script d'amorçage : vide la base puis charge le jeu de démonstration
@@ -13,6 +14,8 @@ export async function runSeed(db: PrismaClient): Promise<void> {
   const { rise, plan } = await loadDemo();
   await seedRise(db, rise, plan);
   await seedAdmin(db);
+  // Compte initial (Cédric Schmitz), si RISE_INITIAL_ADMIN_PASSWORD est défini : il survit à la réinitialisation.
+  await createInitialAdmin(db);
 }
 
 /** TRUNCATE ne déclenche pas les triggers de ligne : le journal reste protégé contre UPDATE/DELETE. */

@@ -13,11 +13,17 @@
 // Base de l'API : `window.RISE_API_BASE` si elle est définie (ex. 'https://api.exemple.fr'),
 // sinon relative à l'origine de la page ('' + '/api/admin/…').
 //
-// Jeton : `localStorage['rise-admin-token']` ; à défaut, connexion de développement
-// (`POST /api/auth/dev-login`) avec le compte `?as=<accountId>` de l'URL, sinon `u1`.
+// Authentification (auth-api.js) : session par cookie de la Console, ouverte sur /console/connexion ;
+// sans session, ou quand elle expire, retour à cet écran. Connexion de développement par jeton
+// seulement avec `?as=<accountId>` dans l'URL (serveur en AUTH_DEV) : `POST /api/auth/dev-login`,
+// jeton gardé dans `localStorage['rise-admin-token']`.
+
+import * as Auth from './auth-api.js';
 
 const TOKEN_KEY = 'rise-admin-token';
 const W = typeof window !== 'undefined' ? window : {};
+/** Connexion de développement par jeton (`?as=`) plutôt que session par cookie. */
+const DEV = (() => { try { return new URLSearchParams(W.location.search).has('as'); } catch (e) { return false; } })();
 
 /** Base de l'API : `window.RISE_API_BASE`, sinon même origine que la page. */
 export const apiBase = () => String(W.RISE_API_BASE || '').replace(/\/+$/, '');
@@ -65,13 +71,17 @@ export function token(renew) {
 
 /** Appel brut (chemin absolu `/api/...`). Rejoue une fois après un 401 (jeton expiré ou révoqué). */
 async function raw(method, path, body, retry = true) {
-  const t = await token();
-  const headers = { Authorization: 'Bearer ' + t };
+  const headers = DEV ? { Authorization: 'Bearer ' + (await token()) } : Auth.sessionHeaders('admin');
   let payload;
   if (body instanceof FormData) payload = body;
   else if (body !== undefined) { headers['Content-Type'] = 'application/json'; payload = JSON.stringify(body); }
-  const r = await fetch(apiBase() + path, { method, headers, body: payload });
-  if (r.status === 401 && retry) { await token(true); return raw(method, path, body, false); }
+  const r = await fetch(apiBase() + path, { method, headers, body: payload, credentials: 'same-origin' });
+  if (DEV && r.status === 401 && retry) { await token(true); return raw(method, path, body, false); }
+  // Session de console absente, expirée ou limitée (mot de passe provisoire) : retour à /console/connexion.
+  if (!DEV && (r.status === 401 || r.status === 403)) {
+    const b = await r.clone().json().catch(() => null);
+    if (r.status === 401 || (b && b.code === 'PASSWORD_CHANGE_REQUIRED')) Auth.toLogin('admin', b && b.code === 'SESSION_EXPIRED' ? 'expiree' : '');
+  }
   return r;
 }
 
@@ -200,6 +210,9 @@ const TH_DOT = t => `width:6px;height:6px;border-radius:50%;flex:none;background
 export function bindConsole(c) {
   if (isDemo() || c.__api) return;
   c.__api = true;
+  // Session par cookie : expiration après 15 min d'inactivité (« Toujours là ? » 60 s avant) ; déconnexion du profil.
+  if (!DEV) Auth.startSessionGuard('admin');
+  c._logout = () => { if (DEV) writeToken(null); return Auth.logout('admin'); };
   const set0 = c.setState.bind(c), orig = {};
   ['go', 'setUser', 'saveUser', 'removeUser', 'saveAdmin', 'removeAdmin', 'testKey', 'testAll', 'saveKey', 'saveProv', 'toggleModel', 'saveModel', 'saveFiche', 'saveAsg', 'setTh', 'doCapture',
     'toggleRule', 'saveRule', 'newRule', 'setMod', 'approve', 'reject', 'saveMe', 'revoke', 'revokeAll', 'onPhoto', 'exportAudit', 'exportCsv', 'jevReply', 'mtd', 'thVals', 'renderVals'].forEach(k => { orig[k] = c[k].bind(c); });

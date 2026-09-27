@@ -13,6 +13,8 @@ import { EventBus } from './events';
 import { LlmService } from './llm.service';
 import { JobsService } from './jobs.service';
 import { MailerService } from './mailer.service';
+import { SessionService } from './auth/session.service';
+import { CredentialsService } from './auth/credentials.service';
 
 /** Socle commun au Cockpit et à la Console : base, authentification, droits, audit, date du jour. */
 @Global()
@@ -25,7 +27,7 @@ import { MailerService } from './mailer.service';
     }),
   ],
   controllers: [AuthController],
-  providers: [{ provide: APP_GUARD, useClass: AuthGuard }, AccessService, AuditService, TodayService, StorageService, EventBus, LlmService, JobsService, MailerService],
-  exports: [AccessService, AuditService, TodayService, StorageService, EventBus, LlmService, JobsService, MailerService],
+  providers: [{ provide: APP_GUARD, useClass: AuthGuard }, AccessService, AuditService, TodayService, StorageService, EventBus, LlmService, JobsService, MailerService, SessionService, CredentialsService],
+  exports: [AccessService, AuditService, TodayService, StorageService, EventBus, LlmService, JobsService, MailerService, SessionService, CredentialsService],
 })
 export class CoreModule {}

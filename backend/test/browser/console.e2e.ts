@@ -145,7 +145,7 @@ async function main() {
     const ctxA = await newContext(b), ctxO = await newContext(b), cmpCtx = await newContext(b);
     const pa = await ctxA.newPage(), po = await ctxO.newPage(), pc = await cmpCtx.newPage();
     watch(pa, errsA); watch(po, errsO);
-    await pa.goto(`${API}/${PAGE}`, { waitUntil: 'load' });
+    await pa.goto(`${API}/${PAGE}?as=u1`, { waitUntil: 'load' });
     await po.goto(`http://127.0.0.1:${ORIG_PORT}/${PAGE}`, { waitUntil: 'load' });
     await settle(pa, 2000); await settle(po, 2000);
 
@@ -298,7 +298,7 @@ async function main() {
     const pd = await (await newContext(b)).newPage();
     watch(pd, errsD);
     pd.on('request', (r) => { if (/\/api\//.test(r.url())) calls.push(r.url()); });
-    await pd.goto(`${API}/${PAGE}?demo=1`, { waitUntil: 'load' });
+    await pd.goto(`${API}/${PAGE}?demo=1&as=u1`, { waitUntil: 'load' });
     await settle(pd, 1500);
     await goMenu(pd, 'Initialisation d’un projet');
     check('mode démonstration (?demo=1) : aucun appel à l’API, « Charger l’exemple » proposé', calls.length === 0 && (await pd.getByRole('button', { name: 'Charger l’exemple' }).count()) === 1 && errsD.length === 0, `${calls.length} appel(s) · ${errsD.slice(0, 2).join(' | ')}`);

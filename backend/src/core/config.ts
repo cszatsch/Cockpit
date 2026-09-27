@@ -49,4 +49,12 @@ export const config = {
   get mailFrom() {
     return process.env.MAIL_FROM ?? 'RISE <no-reply@rise.local>';
   },
+  /** Attribut `Secure` des cookies de session (les navigateurs l'acceptent aussi sur http://localhost). */
+  get cookieSecure() {
+    return process.env.COOKIE_SECURE !== 'false';
+  },
+  /** Adresse publique de l'application, pour les liens envoyés par e-mail. */
+  get appUrl() {
+    return (process.env.APP_URL || `http://localhost:${this.port}`).replace(/\/+$/, '');
+  },
 };
