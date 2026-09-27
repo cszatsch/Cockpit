@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><style>@keyframes grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}</style></helmet>
+<div style="display:flex;flex-direction:column;gap:18px" data-screen-label="Initialisation d’un projet">
+  <div style="display:flex;align-items:center;gap:0;background:#fff;border-radius:16px;box-shadow:0 0 0 1px #e1e9e7;padding:6px">
+    <sc-for list="{{ steps }}" as="s" hint-placeholder-count="4"><div style="{{ s.st }}"><span style="{{ s.dot }}">{{ s.g }}</span><span style="display:flex;flex-direction:column;min-width:0"><span style="font-weight:800;font-size:13px;white-space:nowrap">{{ s.l }}</span><span style="font-size:11.5px;color:#8a9aa6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ s.d }}</span></span></div></sc-for>
+  </div>
+
+  <sc-if value="{{ isUp }}" hint-placeholder-val="{{ true }}">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;align-items:stretch">
+      <label onDragOver="{{ drag }}" onDragLeave="{{ undrag }}" onDrop="{{ drop }}" style="{{ zoneSt }}">
+        <input type="file" accept=".xlsx" onChange="{{ pick }}" style="display:none">
+        <span style="width:64px;height:64px;border-radius:20px;background:#fff;box-shadow:0 0 0 1px #d7e2df,0 12px 26px -16px rgba(16,35,58,.4);display:grid;place-items:center"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1d8f86" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z M14 3v5h5 M9 13l3 3 3-3 M12 16V10"></path></svg></span>
+        <span style="font-size:17px;font-weight:800;letter-spacing:-.01em">{{ zoneT }}</span>
+        <span style="font-size:12.5px;color:#5c7280">Fichier « Référentiel … initialisation.xlsx » rempli par le PMO · 13 onglets</span>
+        <span style="height:36px;padding:0 16px;border-radius:10px;background:#10233a;color:#fff;font-weight:700;display:inline-flex;align-items:center;margin-top:4px;white-space:nowrap">Choisir un fichier</span>
+        <sc-if value="{{ upErr }}" hint-placeholder-val="{{ false }}"><span role="alert" style="font-size:12.5px;color:#a8372c;font-weight:700">{{ upErrL }}</span></sc-if>
+      </label>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="background:#fff;border-radius:16px;box-shadow:0 0 0 1px #e1e9e7;padding:18px;display:flex;flex-direction:column;gap:10px"><span style="font-weight:800">Pas encore de fichier ?</span><span style="font-size:12.5px;color:#5c7280;line-height:1.5">Téléchargez le modèle, faites-le remplir par le PMO pendant la préparation du projet, puis importez-le ici.</span><a href="./Referentiel RISE - initialisation.xlsx" download style="align-self:flex-start;height:34px;padding:0 14px;border-radius:10px;border:1px solid #d3dedb;background:#fff;font-weight:700;color:#10233a;text-decoration:none;display:inline-flex;align-items:center;gap:8px;white-space:nowrap">↓ Modèle Excel</a></div>
+        <div style="background:#fff;border-radius:16px;box-shadow:0 0 0 1px #e1e9e7;padding:18px;display:flex;flex-direction:column;gap:10px"><span style="font-weight:800">Découvrir avec un exemple</span><span style="font-size:12.5px;color:#5c7280;line-height:1.5">Un projet fictif complet (ORION) pour parcourir le contrôle et la prévisualisation.</span><button onClick="{{ demo }}" style="align-self:flex-start;height:34px;padding:0 14px;border-radius:10px;border:0;background:#e6f4f2;color:#146b64;font:inherit;font-weight:700;cursor:pointer">Charger l’exemple</button></div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isChk }}" hint-placeholder-val="{{ false }}">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;align-items:start">
+      <div style="background:#fff;border-radius:18px;box-shadow:0 0 0 1px #e1e9e7;padding:8px 22px">
+        <sc-for list="{{ checks }}" as="c" hint-placeholder-count="5">
+          <div style="{{ c.row }}"><span style="{{ c.ic }}">{{ c.g }}</span><div style="flex:1;min-width:0"><div style="font-weight:700">{{ c.l }}</div><div style="font-size:12px;color:#5c7280">{{ c.d }}</div></div><span style="{{ c.nSt }}">{{ c.n }}</span></div>
+        </sc-for>
+        <sc-if value="{{ hasIssues }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:6px 0 14px;display:flex;flex-direction:column;gap:6px">
+            <sc-for list="{{ issues }}" as="i" hint-placeholder-count="2"><div style="{{ i.st }}"><span style="{{ i.tag }}">{{ i.tagL }}</span><span style="display:flex;flex-direction:column;gap:2px;min-width:0;flex:1"><span style="font-weight:700">{{ i.where }}</span><span style="color:#43586a">{{ i.msg }}</span></span></div></sc-for>
+          </div>
+        </sc-if>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="background:#fff;border-radius:18px;box-shadow:0 0 0 1px #e1e9e7;padding:18px;display:flex;flex-direction:column;gap:6px"><span style="font-size:11px;font-weight:800;letter-spacing:.1em;color:#8a9aa6">FICHIER</span><span style="font-weight:800;word-break:break-all">{{ fileN }}</span><span style="font-size:12px;color:#5c7280">{{ fileD }}</span></div>
+        <div style="{{ verdict.box }}"><span style="{{ verdict.t }}">{{ verdict.l }}</span><span style="font-size:12.5px;line-height:1.5;color:#43586a">{{ verdict.d }}</span>
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><button onClick="{{ restart }}" style="height:36px;padding:0 14px;border-radius:10px;border:1px solid #d3dedb;background:#fff;font:inherit;font-weight:700;cursor:pointer;white-space:nowrap">Importer un autre fichier</button><sc-if value="{{ verdict.ok }}" hint-placeholder-val="{{ false }}"><button onClick="{{ toPrev }}" style="height:36px;padding:0 16px;border-radius:10px;border:0;background:#10233a;color:#fff;font:inherit;font-weight:700;cursor:pointer;white-space:nowrap">Prévisualiser →</button></sc-if></div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isPrev }}" hint-placeholder-val="{{ false }}">
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div style="background:linear-gradient(120deg,#10233a,#17405a);border-radius:20px;padding:22px 26px;color:#fff;display:flex;align-items:center;gap:22px;flex-wrap:wrap">
+        <span style="width:54px;height:54px;border-radius:16px;background:rgba(255,255,255,.12);display:grid;place-items:center;font-weight:800;font-size:15px;letter-spacing:.04em;flex:none">{{ pj.code }}</span>
+        <div style="flex:1;min-width:220px"><div style="font-size:20px;font-weight:800;letter-spacing:-.02em">{{ pj.name }}</div><div style="font-size:12.5px;color:#b9cad5;margin-top:3px">{{ pj.sub }}</div></div>
+        <div style="display:flex;gap:22px"><sc-for list="{{ pj.kpis }}" as="k" hint-placeholder-count="4"><div style="text-align:right"><div style="font-size:22px;font-weight:800">{{ k.v }}</div><div style="font-size:11px;color:#9fb3c1;font-weight:700;white-space:nowrap">{{ k.l }}</div></div></sc-for></div>
+      </div>
+      <div style="display:grid;grid-template-columns:220px minmax(0,1fr);gap:14px;align-items:start">
+        <div style="background:#fff;border-radius:16px;box-shadow:0 0 0 1px #e1e9e7;padding:8px;display:flex;flex-direction:column;gap:2px;position:sticky;top:12px">
+          <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="10"><button onClick="{{ t.pick }}" style="{{ t.st }}"><span style="flex:1;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.l }}</span><span style="{{ t.nSt }}">{{ t.n }}</span></button></sc-for>
+        </div>
+        <div style="background:#fff;border-radius:16px;box-shadow:0 0 0 1px #e1e9e7;overflow:hidden">
+          <div style="padding:16px 20px;border-bottom:1px solid #eef3f2;display:flex;align-items:baseline;gap:10px"><span style="font-size:16px;font-weight:800;white-space:nowrap">{{ view.t }}</span><span style="font-size:12px;color:#8a9aa6">{{ view.d }}</span></div>
+          <sc-if value="{{ view.isPlan }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:16px 20px 20px;display:flex;flex-direction:column;gap:8px">
+              <div style="position:relative;height:18px;margin-left:190px"><sc-for list="{{ view.years }}" as="y" hint-placeholder-count="3"><span style="{{ y.st }}">{{ y.l }}</span></sc-for></div>
+              <sc-for list="{{ view.bars }}" as="b" hint-placeholder-count="6"><div style="display:grid;grid-template-columns:180px minmax(0,1fr);gap:10px;align-items:center;height:30px"><span style="{{ b.lSt }}">{{ b.l }}</span><div style="position:relative;height:100%;border-radius:6px;background:#f5f8f7"><div style="{{ b.st }}" title="{{ b.t }}"></div></div></div></sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{ view.isForm }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:6px 20px 16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:0 24px"><sc-for list="{{ view.fields }}" as="f" hint-placeholder-count="8"><div style="display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid #f1f5f4"><span style="color:#5c7280;flex:none;white-space:nowrap">{{ f.l }}</span><span style="font-weight:700;text-align:right;min-width:0">{{ f.v }}</span></div></sc-for></div>
+          </sc-if>
+          <sc-if value="{{ view.isGrid }}" hint-placeholder-val="{{ true }}">
+            <div style="overflow-x:auto"><div style="{{ view.minW }}">
+              <div style="{{ view.gridHead }}"><sc-for list="{{ view.heads }}" as="h" hint-placeholder-count="5"><span style="{{ h.st }}">{{ h.l }}</span></sc-for></div>
+              <sc-for list="{{ view.rows }}" as="r" hint-placeholder-count="6"><div style="{{ view.gridRow }}"><sc-for list="{{ r.c }}" as="c" hint-placeholder-count="5"><span style="{{ c.st }}">{{ c.v }}</span></sc-for></div></sc-for>
+              <sc-if value="{{ view.more }}" hint-placeholder-val="{{ false }}"><div style="padding:10px 20px;font-size:12px;color:#8a9aa6">{{ view.moreL }}</div></sc-if>
+            </div></div>
+          </sc-if>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;padding:14px 18px;border-radius:16px;background:#fff;box-shadow:0 0 0 1px #e1e9e7"><span style="flex:1;font-size:12.5px;color:#43586a">{{ confirmL }}</span><button onClick="{{ back }}" style="height:38px;padding:0 14px;border-radius:10px;border:1px solid #d3dedb;background:#fff;font:inherit;font-weight:700;cursor:pointer;white-space:nowrap">← Contrôle</button><button onClick="{{ doImport }}" style="height:38px;padding:0 18px;border-radius:10px;border:0;background:linear-gradient(90deg,#f7a41c,#f0752b);font:inherit;font-weight:800;cursor:pointer;white-space:nowrap">Valider l’importation</button></div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isDone }}" hint-placeholder-val="{{ false }}">
+    <div style="background:#fff;border-radius:20px;box-shadow:0 0 0 1px #e1e9e7;padding:44px 30px;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center">
+      <sc-if value="{{ busy }}" hint-placeholder-val="{{ false }}"><span style="width:280px;height:6px;border-radius:3px;background:#eef3f2;overflow:hidden"><span style="{{ barSt }}"></span></span><span style="font-weight:700;color:#43586a">{{ busyL }}</span></sc-if>
+      <sc-if value="{{ ok }}" hint-placeholder-val="{{ false }}"><span style="width:64px;height:64px;border-radius:50%;background:#e6f4f2;display:grid;place-items:center;color:#1d8f86;font-size:28px;font-weight:800">✓</span><span style="font-size:20px;font-weight:800;letter-spacing:-.02em">{{ doneT }}</span><span style="font-size:13px;color:#5c7280;max-width:520px;line-height:1.5">{{ doneD }}</span><div style="display:flex;gap:8px;margin-top:6px"><button onClick="{{ restart }}" style="height:38px;padding:0 14px;border-radius:10px;border:1px solid #d3dedb;background:#fff;font:inherit;font-weight:700;cursor:pointer">Importer un autre projet</button><button onClick="{{ openLib }}" style="height:38px;padding:0 16px;border-radius:10px;border:0;background:#10233a;color:#fff;font:inherit;font-weight:700;cursor:pointer">Ouvrir la bibliothèque →</button></div></sc-if>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;1100px&quot;,&quot;height&quot;:&quot;820px&quot;},&quot;existingCodes&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string[]&quot;},&quot;onImported&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(p:any)=&gt;void&quot;},&quot;onOpenLib&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;()=&gt;void&quot;}}">
+const SH = [['01 Équipes', 'Équipes'], ['02 Rôles', 'Rôles'], ['03 Personnes', 'Personnes'], ['04 Affectations', 'Affectations'], ['05 Projet', 'Projet'], ['06 Lots', 'Lots'], ['07 Phases', 'Phases'], ['08 Sous-phases', 'Sous-phases'], ['09 Chantiers', 'Chantiers'], ['10 Instances', 'Instances'], ['11 Membres', 'Membres'], ['12 Jalons', 'Jalons'], ['13 Livrables', 'Livrables']];
+const D = (y, m, d) => new Date(y, m - 1, d);
+function demoData() {
+  const P = [['Nom du client', 'AMC Corp', 1], ['Secteur d’activité', 'Distribution B2B'], ['Pays', 'France', 1], ['Code projet', 'ORION', 1], ['Nom du projet', 'ORION — Déploiement CRM Europe', 1], ['Objectifs', 'Unifier la relation client des 6 filiales européennes sur un CRM commun.'], ['Éditeur de la solution', 'Brand X'], ['Intégrateur', 'Codilog'], ['Date de démarrage', D(2026, 11, 2), 1], ['Date de fin cible', D(2028, 3, 31), 1], ['Fuseau horaire', 'Europe/Paris', 1], ['Statut', 'Préparation'], ['Directeur de programme', 'Claire Dumont', 1], ['Sponsor', 'Vincent Lambert']];
+  const g = (h, rows) => ({ heads: h, rows });
+  const S = {
+    'Équipes': g([['Nom', 'r'], ['Description', 'o'], ['Personnes', 'c']], [['AMC Corp', 'Client', 9], ['Onepoint', 'AMOA', 5], ['Codilog', 'Intégrateur', 4]]),
+    'Rôles': g([['Libellé', 'r'], ['Description', 'o']], [['Sponsor exécutif', 'Arbitre les décisions structurantes'], ['Directeur de programme', 'Pilote le projet de bout en bout'], ['PMO', 'Consolide et contrôle'], ['Responsable chantier', 'Pilote un chantier'], ['Key user', 'Représente le métier']]),
+    'Personnes': g([['Nom complet', 'r'], ['Email', 'r'], ['Équipe', 'r'], ['Fonction', 'o'], ['Permission', 'r']], [['Claire Dumont', 'claire.dumont@example.com', 'AMC Corp', 'Directrice de programme', 'Responsable'], ['Vincent Lambert', 'vincent.lambert@example.com', 'AMC Corp', 'DG', 'Lecteur'], ['Camille Rey', 'camille.rey@example.com', 'Onepoint', 'PMO', 'PMO'], ['Robin Lefèvre', 'robin.lefevre@example.com', 'Onepoint', 'PMO', 'PMO'], ['Thomas Girard', 'thomas.girard@example.com', 'AMC Corp', 'Directeur commercial', 'Responsable'], ['Élodie Faure', 'elodie.faure@example.com', 'AMC Corp', 'Référente DSI', 'Responsable'], ['Karim Benali', 'karim.benali@example.com', 'AMC Corp', 'Responsable IT', 'Responsable'], ['Léa Fontaine', 'lea.fontaine@example.com', 'Codilog', 'Cheffe de projet', 'Lecteur'], ['Manon Petit', 'manon.petit@example.com', 'Codilog', 'PMO intégrateur', 'Lecteur'], ['Maxime Arnaud', 'maxime.arnaud@example.com', 'Onepoint', 'AMOA CRM', 'Lecteur'], ['Pauline Renard', 'pauline.renard@example.com', 'Onepoint', 'AMOA CRM', 'Lecteur'], ['Olivier Chevalier', 'olivier.chevalier@example.com', 'Codilog', 'Directeur de projet', 'Lecteur']]),
+    'Affectations': g([['Personne', 'r'], ['Rôle', 'r'], ['Début', 'r'], ['Fin', 'o']], [['Claire Dumont', 'Directeur de programme', D(2026, 11, 2), ''], ['Vincent Lambert', 'Sponsor exécutif', D(2026, 11, 2), ''], ['Camille Rey', 'PMO', D(2026, 11, 2), ''], ['Thomas Girard', 'Responsable chantier', D(2026, 11, 16), ''], ['Élodie Faure', 'Responsable chantier', D(2026, 11, 16), ''], ['Karim Benali', 'Responsable chantier', D(2026, 12, 1), '']]),
+    'Lots': g([['N°', 'r'], ['Périmètre', 'r'], ['Début', 'r'], ['Fin', 'r'], ['Statut', 'o']], [[1, 'France et Benelux', D(2026, 11, 2), D(2027, 9, 30), 'Prévu'], [2, 'Allemagne, Italie, Espagne', D(2027, 6, 1), D(2028, 3, 31), 'Prévu']]),
+    'Phases': g([['N°', 'r'], ['Nom', 'r'], ['Lot', 'r'], ['Début', 'r'], ['Fin', 'r']], [[1, 'Discover', 'Lot 1', D(2026, 11, 2), D(2026, 12, 18)], [2, 'Prepare', 'Lot 1', D(2027, 1, 4), D(2027, 2, 26)], [3, 'Explore', 'Lot 1', D(2027, 3, 1), D(2027, 5, 28)], [4, 'Realize', 'Lot 1', D(2027, 6, 1), D(2027, 10, 29)], [5, 'Deploy', 'Lot 1', D(2027, 11, 2), D(2028, 1, 31)], [6, 'Run', 'Lot 2', D(2028, 2, 1), D(2028, 3, 31)]]),
+    'Sous-phases': g([['Phase', 'r'], ['N°', 'r'], ['Nom', 'r'], ['Début', 'o'], ['Fin', 'o']], [['1 · Discover', '1.1', 'Cadrage', D(2026, 11, 2), D(2026, 11, 27)], ['1 · Discover', '1.2', 'Feuille de route', D(2026, 11, 30), D(2026, 12, 18)], ['2 · Prepare', '2.1', 'Mobilisation des équipes', D(2027, 1, 4), D(2027, 1, 29)], ['2 · Prepare', '2.2', 'Plan projet détaillé', D(2027, 2, 1), D(2027, 2, 26)], ['3 · Explore', '3.1', 'Ateliers de conception', D(2027, 3, 1), D(2027, 4, 30)], ['3 · Explore', '3.2', 'Validation des processus', D(2027, 5, 3), D(2027, 5, 28)], ['4 · Realize', '4.1', 'Paramétrage', D(2027, 6, 1), D(2027, 8, 31)], ['4 · Realize', '4.2', 'Recette', D(2027, 9, 1), D(2027, 10, 29)], ['5 · Deploy', '5.1', 'Répétition générale', D(2027, 11, 2), D(2027, 12, 17)], ['5 · Deploy', '5.2', 'Go-live', D(2028, 1, 3), D(2028, 1, 31)]]),
+    'Chantiers': g([['Code', 'c'], ['Nom', 'r'], ['Responsable', 'r'], ['Lot', 'o']], [['C1', 'Ventes et CRM', 'Thomas Girard', 'Lot 1'], ['C2', 'Service client', 'Élodie Faure', 'Lot 1'], ['C3', 'Données et migration', 'Karim Benali', 'Lot 1'], ['C4', 'Conduite du changement', 'Claire Dumont', ''], ['C5', 'Pilotage et transverse', 'Camille Rey', '']]),
+    'Instances': g([['Nom', 'r'], ['Nom court', 'r'], ['Couleur', 'r'], ['Fréquence', 'r']], [['Comité de pilotage', 'COPIL', 'Marine', 'Mensuelle'], ['Comité projet', 'COPROJ', 'Sarcelle', 'Hebdomadaire'], ['Comité de chantier', 'CODIR C', 'Ambre', 'Bimensuelle']]),
+    'Membres': g([['Instance', 'r'], ['Personne', 'r'], ['Rôle', 'o']], [['Comité de pilotage', 'Vincent Lambert', 'Président'], ['Comité de pilotage', 'Claire Dumont', 'Membre'], ['Comité de pilotage', 'Camille Rey', 'Secrétaire'], ['Comité projet', 'Claire Dumont', 'Président'], ['Comité projet', 'Thomas Girard', 'Membre'], ['Comité projet', 'Élodie Faure', 'Membre'], ['Comité projet', 'Karim Benali', 'Membre']]),
+    'Jalons': g([['Code', 'c'], ['Libellé', 'r'], ['Phase', 'r'], ['Chantier', 'o'], ['Date prévue', 'r']], [['J01', 'Lancement du projet', '1 · Discover', 'Pilotage et transverse', D(2026, 11, 2)], ['J02', 'Feuille de route validée', '1 · Discover', 'Pilotage et transverse', D(2026, 12, 18)], ['J03', 'Fin des ateliers', '3 · Explore', 'Ventes et CRM', D(2027, 4, 30)], ['J04', 'Conception validée', '3 · Explore', '', D(2027, 5, 28)], ['J05', 'Fin de recette', '4 · Realize', 'Service client', D(2027, 10, 29)], ['J06', 'Go / No-Go', '5 · Deploy', 'Pilotage et transverse', D(2027, 12, 17)], ['J07', 'Go-live Lot 1', '5 · Deploy', '', D(2028, 1, 3)]]),
+    'Livrables': g([['Nom', 'r'], ['Sous-phase', 'r'], ['Responsable', 'r'], ['Échéance', 'r']], [['Note de cadrage', '1.1 · Cadrage', 'Camille Rey', D(2026, 11, 27)], ['Feuille de route', '1.2 · Feuille de route', 'Claire Dumont', D(2026, 12, 18)], ['Plan projet détaillé', '2.2 · Plan projet détaillé', 'Camille Rey', D(2027, 2, 26)], ['Dossier de conception CRM', '3.1 · Ateliers de conception', 'Thomas Girard', D(2027, 4, 30)], ['Stratégie de migration', '3.2 · Validation des processus', 'Karim Benali', D(2027, 5, 28)], ['Cahier de recette', '4.2 · Recette', 'Élodie Faure', D(2027, 9, 15)], ['Plan de bascule', '5.1 · Répétition générale', 'Karim Benali', D(2027, 12, 3)]]) };
+  const issues = [{ lvl: 'warn', sheet: 'Personnes', row: 11, msg: 'E-mail en domaine générique à vérifier (example.com).' }, { lvl: 'warn', sheet: 'Jalons', row: 14, msg: 'J04 « Conception validée » n’a pas de chantier : il sera rattaché au projet.' }];
+  return { file: 'Referentiel ORION - initialisation.xlsx', size: '146 Ko', project: P.map(([l, v, r]) => ({ l, v, r: !!r })), sheets: S, issues, missing: [] };
+}
+async function parseXlsx(file) {
+  const X = await import('https://cdn.sheetjs.com/xlsx-0.20.2/package/xlsx.mjs');
+  const wb = X.read(await file.arrayBuffer(), { cellDates: true }), out = { file: file.name, size: Math.round(file.size / 1024) + ' Ko', project: [], sheets: {}, issues: [], missing: [] };
+  const low = s => String(s || '').trim();
+  SH.forEach(([sn, key]) => { const ws = wb.Sheets[sn]; if (!ws) { out.missing.push(sn); return; } const A = X.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' });
+    if (key === 'Projet') { for (let r = 6; r < A.length; r++) { const row = A[r] || [], l = low(row[1]), t = low(row[2]); if (!l || !t) continue; const v = row[3]; out.project.push({ l, v, r: /OBLIG/.test(t) }); if (/OBLIG/.test(t) && (v === '' || v == null)) out.issues.push({ lvl: 'err', sheet: key, row: r + 1, msg: '« ' + l + ' » est obligatoire.' }); } return; }
+    const types = (A[6] || []).slice(1), heads = (A[7] || []).slice(1), cols = heads.map((h, i) => ({ h: low(h), t: /OBLIG/.test(types[i]) ? 'r' : /FACULT/.test(types[i]) ? 'o' : /CONTR/.test(types[i]) ? 'x' : 'c' })).filter(c => c.h || c.t === 'x');
+    const idx = cols.map(c => heads.findIndex(h => low(h) === c.h)), rows = [];
+    for (let r = 8; r < A.length; r++) { const row = (A[r] || []).slice(1); const inp = cols.some((c, j) => (c.t === 'r' || c.t === 'o') && row[idx[j]] !== '' && row[idx[j]] != null); if (!inp) continue;
+      cols.forEach((c, j) => { const v = row[idx[j]]; if (c.t === 'r' && (v === '' || v == null)) out.issues.push({ lvl: 'err', sheet: key, row: r + 1, msg: '« ' + c.h + ' » est obligatoire.' }); if (c.t === 'x' && typeof v === 'string') { if (v.startsWith('⚠')) out.issues.push({ lvl: 'err', sheet: key, row: r + 1, msg: v.replace('⚠', '').trim() }); if (v.startsWith('◔')) out.issues.push({ lvl: 'warn', sheet: key, row: r + 1, msg: v.replace('◔', '').trim() }); } });
+      rows.push(cols.map((c, j) => row[idx[j]])); }
+    out.sheets[key] = { heads: cols.filter(c => c.t !== 'x' && c.h).map(c => [c.h, c.t]), rows: rows.map(rw => rw.filter((v, j) => cols[j].t !== 'x' && cols[j].h)) }; });
+  return out;
+}
+class Component extends DCLogic {
+  state = { step: 'up', data: null, drag: false, upErr: '', chk: 0, tab: 'Projet', prog: 0 };
+  componentWillUnmount() { clearInterval(this._iv); clearInterval(this._pv); }
+  load(d) { clearInterval(this._iv); this.setState({ data: d, step: 'chk', chk: 0, tab: 'Projet', upErr: '' }); this._iv = setInterval(() => { const n = this.state.chk + 1; this.setState({ chk: n }); if (n >= 5) clearInterval(this._iv); }, 380); }
+  async file(f) { if (!f) return; if (!/\.xlsx$/i.test(f.name)) return this.setState({ upErr: 'Format attendu : .xlsx' }); this.setState({ upErr: '', busyRead: true }); try { this.load(await parseXlsx(f)); } catch (e) { this.setState({ upErr: 'Lecture impossible : ' + (e.message || 'fichier illisible'), busyRead: false }); } }
+  renderVals() {
+    const S = this.state, d = S.data, fmt = v => v instanceof Date ? v.toLocaleDateString('fr-FR') : v === '' || v == null ? '—' : String(v);
+    const ORDER = ['up', 'chk', 'prev', 'done'], si = ORDER.indexOf(S.step);
+    const steps = [['Importer', 'le fichier Excel'], ['Contrôler', 'la conformité'], ['Prévisualiser', 'le référentiel'], ['Valider', 'et publier']].map(([l, dd], i) => ({ l, d: dd, g: i < si ? '✓' : String(i + 1),
+      st: 'flex:1;min-width:0;display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;transition:background .2s;' + (i === si ? 'background:#f1f6f5' : ''),
+      dot: 'width:30px;height:30px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:800;font-size:12.5px;' + (i < si ? 'background:#1d8f86;color:#fff' : i === si ? 'background:#10233a;color:#fff' : 'background:#eef3f2;color:#8a9aa6') }));
+    const v = { steps, isUp: S.step === 'up', isChk: S.step === 'chk', isPrev: S.step === 'prev', isDone: S.step === 'done',
+      zoneT: S.busyRead ? 'Lecture du fichier…' : S.drag ? 'Déposez le fichier ici' : 'Glissez le fichier Excel ici',
+      zoneSt: 'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:280px;border-radius:20px;cursor:pointer;text-align:center;padding:24px;transition:background .2s,box-shadow .2s;' + (S.drag ? 'background:#e6f4f2;box-shadow:inset 0 0 0 2px #1d8f86' : 'background:#fbfdfc;box-shadow:inset 0 0 0 2px #cfdcd9;background-image:repeating-linear-gradient(0deg,transparent 0 0)'),
+      drag: e => { e.preventDefault(); if (!S.drag) this.setState({ drag: true }); }, undrag: () => this.setState({ drag: false }), drop: e => { e.preventDefault(); this.setState({ drag: false }); this.file(e.dataTransfer.files[0]); },
+      pick: e => this.file(e.target.files[0]), demo: () => this.load(demoData()), upErr: !!S.upErr, upErrL: S.upErr, restart: () => this.setState({ step: 'up', data: null, busyRead: false }),
+      checks: [], issues: [], hasIssues: false, fileN: '', fileD: '', verdict: {}, tabs: [], view: { heads: [], rows: [], fields: [], bars: [], years: [] }, pj: { kpis: [] } };
+    if (!d) return v;
+    const cnt = k => ((d.sheets[k] || {}).rows || []).length, errs = d.issues.filter(i => i.lvl === 'err'), warns = d.issues.filter(i => i.lvl === 'warn');
+    const code = String((d.project.find(p => /Code projet/.test(p.l)) || {}).v || '').trim(), dup = (this.props.existingCodes || ['RISE', 'ATLAS', 'HORIZON', 'NOVA']).includes(code.toUpperCase());
+    const lvl = n => n === 0 ? 'ok' : 'err';
+    const C = [['Structure du fichier', d.missing.length ? 'Onglets manquants : ' + d.missing.join(', ') : '13 onglets reconnus', d.missing.length ? d.missing.length : '13 / 13', lvl(d.missing.length)],
+      ['Fiche projet', code ? 'Code ' + code + (dup ? ' · déjà utilisé dans la bibliothèque' : ' · disponible') : 'Code projet absent', dup || !code ? '1' : '✓', dup || !code ? 'err' : 'ok'],
+      ['Champs obligatoires', errs.filter(i => /obligatoire/.test(i.msg)).length ? 'Des champs obligatoires sont vides' : 'Tous les champs obligatoires sont renseignés', errs.filter(i => /obligatoire/.test(i.msg)).length || '✓', lvl(errs.filter(i => /obligatoire/.test(i.msg)).length)],
+      ['Contrôles de cohérence', errs.filter(i => !/obligatoire/.test(i.msg)).length ? 'Incohérences signalées par le fichier' : 'Aucune incohérence bloquante', errs.filter(i => !/obligatoire/.test(i.msg)).length || '✓', lvl(errs.filter(i => !/obligatoire/.test(i.msg)).length)],
+      ['Avertissements', warns.length ? 'À vérifier, sans bloquer l’import' : 'Aucun', warns.length || '✓', warns.length ? 'warn' : 'ok']];
+    const T = { ok: ['#e6f4f2', '#146b64', '✓'], err: ['#fbe4e1', '#a2352a', '!'], warn: ['#fff1dc', '#9a5a0c', '!'], wait: ['#eef3f2', '#8a9aa6', '…'] };
+    v.checks = C.map(([l, dd, n, t], i) => { const done = i < S.chk, tt = done ? t : 'wait'; return { l, d: done ? dd : 'Vérification…', n: done ? String(n) : '', g: T[tt][2], ic: 'width:28px;height:28px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:800;font-size:12px;transition:background .3s;background:' + T[tt][0] + ';color:' + T[tt][1], nSt: 'font-weight:800;font-variant-numeric:tabular-nums;color:' + T[tt][1], row: 'display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid #f1f5f4;opacity:' + (done || i === S.chk ? 1 : .45) + ';transition:opacity .3s' }; });
+    const allErr = [...(dup ? [{ lvl: 'err', sheet: 'Projet', row: '', msg: 'Le code ' + code + ' existe déjà : choisissez un autre code.' }] : []), ...(!code ? [{ lvl: 'err', sheet: 'Projet', row: '', msg: 'Le code projet est obligatoire.' }] : []), ...d.missing.map(m => ({ lvl: 'err', sheet: m, row: '', msg: 'Onglet absent du fichier.' })), ...d.issues];
+    const shown = S.chk >= 5;
+    v.hasIssues = shown && allErr.length > 0; v.issues = allErr.slice(0, 12).map(i => ({ where: i.sheet + (i.row ? ' · ligne ' + i.row : ''), msg: i.msg, tagL: i.lvl === 'err' ? 'Erreur' : 'À vérifier', tag: 'height:20px;padding:0 7px;border-radius:999px;font-size:10.5px;font-weight:800;display:inline-flex;align-items:center;flex:none;' + (i.lvl === 'err' ? 'background:#fbe4e1;color:#a2352a' : 'background:#fff1dc;color:#9a5a0c'), st: 'display:flex;align-items:flex-start;gap:10px;font-size:12.5px;padding:8px 10px;border-radius:10px;background:' + (i.lvl === 'err' ? '#fff8f6' : '#fffaf1') }));
+    const nErr = allErr.filter(i => i.lvl === 'err').length, okImp = shown && nErr === 0;
+    v.fileN = d.file; v.fileD = d.size + ' · ' + Object.keys(d.sheets).reduce((a, k) => a + cnt(k), 0) + ' lignes lues';
+    v.verdict = { ok: okImp, l: !shown ? 'Contrôle en cours…' : nErr ? nErr + ' erreur' + (nErr > 1 ? 's' : '') + ' à corriger' : 'Fichier conforme', d: !shown ? 'Le fichier est vérifié onglet par onglet.' : nErr ? 'Corrigez le fichier Excel puis importez-le de nouveau. Rien n’a été créé.' : (warns.length ? warns.length + ' avertissement' + (warns.length > 1 ? 's' : '') + ' à relire. ' : '') + 'Prévisualisez le référentiel avant de valider.',
+      t: 'font-size:16px;font-weight:800;color:' + (!shown ? '#43586a' : nErr ? '#a2352a' : '#146b64'), box: 'border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:10px;transition:background .3s;' + (!shown ? 'background:#fff;box-shadow:0 0 0 1px #e1e9e7' : nErr ? 'background:#fff8f6;box-shadow:0 0 0 1px #f0cfc9' : 'background:#eef8f6;box-shadow:0 0 0 1px #bfe3de') };
+    v.toPrev = () => this.setState({ step: 'prev' });
+    // preview
+    const pv = l => (d.project.find(p => p.l === l) || {}).v, name = pv('Nom du projet') || code;
+    v.pj = { code: code.slice(0, 5), name, sub: [pv('Nom du client'), fmt(pv('Date de démarrage')) + ' → ' + fmt(pv('Date de fin cible')), pv('Directeur de programme') && 'Direction : ' + pv('Directeur de programme')].filter(Boolean).join(' · '),
+      kpis: [['Lots', cnt('Lots')], ['Phases', cnt('Phases')], ['Chantiers', cnt('Chantiers')], ['Personnes', cnt('Personnes')]].map(([l, n]) => ({ l, v: n })) };
+    const TABS = ['Projet', 'Planning', ...SH.map(s => s[1]).filter(k => k !== 'Projet')];
+    v.tabs = TABS.map(k => { const on = S.tab === k, n = k === 'Projet' ? '' : k === 'Planning' ? cnt('Phases') + cnt('Sous-phases') : cnt(k); return { l: k === 'Planning' ? 'Planning (phases)' : k, n: String(n), on, pick: () => this.setState({ tab: k }), st: 'display:flex;align-items:center;gap:8px;height:34px;padding:0 10px;border-radius:9px;border:0;font:inherit;font-size:12.5px;font-weight:' + (on ? 800 : 600) + ';cursor:pointer;' + (on ? 'background:#10233a;color:#fff' : 'background:transparent;color:#10233a'), nSt: 'font-size:11.5px;font-weight:700;color:' + (on ? '#9fb3c1' : '#8a9aa6') }; });
+    if (S.tab === 'Projet') v.view = { t: 'Fiche projet', d: 'Onglet 05 Projet', isForm: true, fields: d.project.map(p => ({ l: p.l, v: fmt(p.v) })), heads: [], rows: [], bars: [], years: [] };
+    else if (S.tab === 'Planning') { const ph = (d.sheets['Phases'] || { rows: [] }).rows, sp = (d.sheets['Sous-phases'] || { rows: [] }).rows, hp = (d.sheets['Phases'] || { heads: [] }).heads.map(h => h[0]), hs = (d.sheets['Sous-phases'] || { heads: [] }).heads.map(h => h[0]);
+      const gi = (hh, n) => hh.findIndex(h => h === n), items = []; ph.forEach(r => { items.push({ l: r[gi(hp, 'N°')] + ' · ' + r[gi(hp, 'Nom')], a: r[gi(hp, 'Début')], b: r[gi(hp, 'Fin')], ph: true }); sp.filter(s => String(s[gi(hs, 'Phase')] || '').startsWith(String(r[gi(hp, 'N°')]) + ' ')).forEach(s => items.push({ l: s[gi(hs, 'N°')] + ' ' + s[gi(hs, 'Nom')], a: s[gi(hs, 'Début')], b: s[gi(hs, 'Fin')] })); });
+      const ds = items.flatMap(i => [i.a, i.b]).filter(x => x instanceof Date), mn = Math.min(...ds), mx = Math.max(...ds), X = t => ((t - mn) / (mx - mn || 1) * 100);
+      const years = []; if (ds.length) for (let y = new Date(mn).getFullYear(); y <= new Date(mx).getFullYear(); y++) { const t = new Date(y, 0, 1); if (t >= mn) years.push({ l: String(y), st: 'position:absolute;top:0;font-size:11px;font-weight:700;color:#8a9aa6;transform:translateX(-50%);left:' + X(t) + '%' }); }
+      v.view = { t: 'Planning', d: 'Phases et sous-phases, comme dans Pilotage › Planning', isPlan: true, years, heads: [], rows: [], fields: [],
+        bars: items.slice(0, 22).map((it, i) => ({ l: it.l, t: fmt(it.a) + ' → ' + fmt(it.b), lSt: 'font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;' + (it.ph ? 'font-weight:800' : 'color:#43586a;padding-left:12px'),
+          st: it.a instanceof Date && it.b instanceof Date ? 'position:absolute;top:' + (it.ph ? 4 : 8) + 'px;bottom:' + (it.ph ? 4 : 8) + 'px;border-radius:5px;left:' + X(it.a) + '%;width:' + Math.max(.8, X(it.b) - X(it.a)) + '%;background:' + (it.ph ? '#10233a' : '#1d8f86') + ';opacity:' + (it.ph ? 1 : .75) + ';transform-origin:left;animation:grow .7s ' + (i * .03) + 's cubic-bezier(.2,.7,.2,1) both' : 'display:none' })) }; }
+    else { const s = d.sheets[S.tab] || { heads: [], rows: [] }, n = s.heads.length, tpl = 'grid-template-columns:' + s.heads.map((h, i) => i === 0 ? 'minmax(160px,1.4fr)' : 'minmax(110px,1fr)').join(' ') + ';gap:14px;padding:11px 20px';
+      v.view = { t: S.tab, d: s.rows.length + ' ligne' + (s.rows.length > 1 ? 's' : '') + ' · onglet ' + (SH.find(x => x[1] === S.tab) || [''])[0], isGrid: true, minW: 'min-width:' + Math.max(560, n * 130) + 'px', fields: [], bars: [], years: [],
+        gridHead: 'display:grid;' + tpl + ';border-bottom:1px solid #eef3f2;background:#fafcfb', gridRow: 'display:grid;' + tpl + ';border-bottom:1px solid #f4f7f6;align-items:center',
+        heads: s.heads.map(([h, t]) => ({ l: h + (t === 'r' ? ' *' : ''), st: 'font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;color:' + (t === 'c' ? '#1d8f86' : '#8a9aa6') })),
+        rows: s.rows.slice(0, 40).map(r => ({ c: r.map((x, j) => ({ v: fmt(x), st: 'min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;' + (j === 0 ? 'font-weight:700' : 'color:#43586a') + (x === '' || x == null ? ';color:#c3cdd2' : '') })) })),
+        more: s.rows.length > 40, moreL: '+ ' + (s.rows.length - 40) + ' lignes' }; }
+    v.confirmL = 'Valider crée le projet ' + code + ' avec ' + ['Lots', 'Phases', 'Sous-phases', 'Chantiers', 'Jalons', 'Personnes'].map(k => cnt(k) + ' ' + k.toLowerCase()).join(', ') + '. Il rejoint la bibliothèque des projets, au statut Préparation.';
+    v.back = () => this.setState({ step: 'chk' });
+    v.doImport = () => { this.setState({ step: 'done', prog: 0 }); clearInterval(this._pv); this._pv = setInterval(() => { const p = Math.min(100, this.state.prog + 7); this.setState({ prog: p }); if (p >= 100) { clearInterval(this._pv); this.props.onImported && this.props.onImported({ code, name, client: pv('Nom du client') || '', start: pv('Date de démarrage'), end: pv('Date de fin cible'), dir: pv('Directeur de programme') || '', counts: { lots: cnt('Lots'), phases: cnt('Phases'), chantiers: cnt('Chantiers'), jalons: cnt('Jalons'), personnes: cnt('Personnes') }, file: d.file }); } }, 70); };
+    const ph = ['Création du projet', 'Lots et phases', 'Chantiers et jalons', 'Personnes et habilitations', 'Instances de pilotage'];
+    v.busy = S.step === 'done' && S.prog < 100; v.ok = S.step === 'done' && S.prog >= 100; v.busyL = ph[Math.min(4, Math.floor(S.prog / 20))] + '…';
+    v.barSt = 'display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,#1d8f86,#46b3a8);transition:width .07s linear;width:' + S.prog + '%';
+    v.doneT = code + ' a rejoint la bibliothèque des projets'; v.doneD = name + ' est créé au statut Préparation. Le journal d’audit trace l’importation (' + d.file + '). Le PMO peut maintenant compléter le référentiel dans le Cockpit.';
+    v.openLib = () => this.props.onOpenLib && this.props.onOpenLib();
+    return v;
+  }
+}
+</script>
+</body>
+</html>

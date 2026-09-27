@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="display:flex;flex-direction:column;gap:16px" data-screen-label="Bibliothèque des projets">
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <div role="tablist" aria-label="Statut" style="display:inline-flex;gap:2px;padding:3px;border-radius:11px;background:#e5edeb"><sc-for list="{{ seg }}" as="o" hint-placeholder-count="4"><button role="tab" aria-selected="{{ o.on }}" onClick="{{ o.pick }}" style="{{ o.st }}">{{ o.l }}<span style="font-size:11px;font-weight:700;color:#8a9aa6">{{ o.n }}</span></button></sc-for></div>
+    <span style="flex:1"></span>
+    <input value="{{ q }}" onChange="{{ setQ }}" placeholder="Code, nom ou client" aria-label="Rechercher un projet" style="height:36px;width:240px;padding:0 12px;border:1px solid #d3dedb;border-radius:10px;background:#fff;font:inherit;font-size:12.5px;outline:none" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.15)">
+    <button onClick="{{ newP }}" style="height:36px;padding:0 16px;border:0;border-radius:10px;background:linear-gradient(90deg,#f7a41c,#f0752b);font:inherit;font-size:12.5px;font-weight:800;cursor:pointer;white-space:nowrap">+ Initialiser un projet</button>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px">
+    <sc-for list="{{ cards }}" as="p" hint-placeholder-count="4">
+      <div style="{{ p.card }}">
+        <div style="display:flex;align-items:flex-start;gap:12px">
+          <span style="{{ p.badge }}">{{ p.code }}</span>
+          <div style="flex:1;min-width:0"><div style="font-weight:800;font-size:14.5px;line-height:1.3">{{ p.name }}</div><div style="font-size:12px;color:#5c7280;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.client }}</div></div>
+          <span style="{{ p.pill }}">{{ p.stL }}</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:#5c7280"><span style="white-space:nowrap">{{ p.phase }}</span><span style="white-space:nowrap">{{ p.dates }}</span></div>
+          <div style="position:relative;height:6px;border-radius:3px;background:#eef3f2;overflow:hidden"><div style="{{ p.bar }}"></div><div style="{{ p.today }}"></div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px"><sc-for list="{{ p.kpis }}" as="k" hint-placeholder-count="4"><div style="display:flex;flex-direction:column;gap:1px"><span style="font-size:16px;font-weight:800;font-variant-numeric:tabular-nums">{{ k.v }}</span><span style="font-size:11px;color:#8a9aa6;white-space:nowrap">{{ k.l }}</span></div></sc-for></div>
+        <div style="display:flex;align-items:center;gap:8px;border-top:1px solid #f1f5f4;padding-top:12px;font-size:12px;color:#5c7280">
+          <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.foot }}</span>
+          <sc-if value="{{ p.isNew }}" hint-placeholder-val="{{ false }}"><span style="height:20px;padding:0 7px;border-radius:999px;background:#fff1dc;color:#9a5a0c;font-size:10.5px;font-weight:800;display:inline-flex;align-items:center">Nouveau</span></sc-if>
+          <a href="./RISE Cockpit.dc.html" style="height:30px;padding:0 11px;border-radius:9px;background:#10233a;color:#fff;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;white-space:nowrap">Ouvrir</a>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+  <sc-if value="{{ empty }}" hint-placeholder-val="{{ false }}"><div style="padding:48px;text-align:center;color:#5c7280">Aucun projet ne correspond.</div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;1100px&quot;,&quot;height&quot;:&quot;720px&quot;},&quot;imported&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;any[]&quot;},&quot;onNew&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;()=&gt;void&quot;}}">
+class Component extends DCLogic {
+  state = { st: 'tous', q: '' };
+  renderVals() {
+    const S = this.state, D = (y, m, d) => new Date(y, m - 1, d), today = D(2026, 9, 26);
+    const base = [
+      { code: 'RISE', name: 'RISE — Implémentation Brand X + CRM', client: 'AMC Corp', st: 'actif', phase: 'Deploy · Recette utilisateur', start: D(2023, 6, 1), end: D(2028, 6, 30), k: [4, 6, 8, 38], snap: 'snapshot hier 04:00', health: 'warn' },
+      { code: 'ATLAS', name: 'ATLAS — Refonte finance groupe', client: 'AMC Corp · Direction financière', st: 'actif', phase: 'Realize · Paramétrage', start: D(2025, 2, 3), end: D(2027, 6, 30), k: [2, 5, 6, 24], snap: 'snapshot du 18 sept.', health: 'ok' },
+      { code: 'HORIZON', name: 'HORIZON — Portail fournisseurs', client: 'AMC Corp · Achats', st: 'actif', phase: 'Explore · Ateliers', start: D(2026, 3, 2), end: D(2027, 12, 17), k: [1, 5, 4, 15], snap: 'snapshot du 18 sept.', health: 'ok' },
+      { code: 'NOVA', name: 'NOVA — Data platform', client: 'AMC Corp · DSI', st: 'prep', phase: 'Préparation', start: D(2026, 11, 2), end: D(2028, 3, 31), k: [1, 4, 3, 9], snap: 'aucun snapshot', health: 'neu' },
+      { code: 'ORBIT', name: 'ORBIT — Migration messagerie', client: 'AMC Corp · IT', st: 'clos', phase: 'Clos le 30 juin 2025', start: D(2024, 1, 8), end: D(2025, 6, 30), k: [1, 4, 3, 11], snap: 'archivé', health: 'neu' }];
+    const imp = (this.props.imported || []).map(p => ({ code: p.code, name: p.name, client: p.client, st: 'prep', phase: 'Préparation · importé', start: p.start instanceof Date ? p.start : null, end: p.end instanceof Date ? p.end : null, k: [p.counts.lots, p.counts.phases, p.counts.chantiers, p.counts.personnes], snap: 'importé depuis ' + p.file, health: 'neu', isNew: true }));
+    const all = [...imp, ...base], cnt = k => all.filter(p => k === 'tous' || p.st === k).length, q = S.q.trim().toLowerCase();
+    const SL = { actif: ['Actif', '#e6f4f2', '#146b64'], prep: ['Préparation', '#fff1dc', '#9a5a0c'], clos: ['Clos', '#eef2f1', '#5c7280'] };
+    const list = all.filter(p => (S.st === 'tous' || p.st === S.st) && (!q || (p.code + ' ' + p.name + ' ' + p.client).toLowerCase().includes(q)));
+    const HC = { ok: '#1d8f86', warn: '#e39a2d', neu: '#8a9aa6' }, fmt = d => d ? d.toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }) : '—';
+    return {
+      seg: [['tous', 'Tous'], ['actif', 'Actifs'], ['prep', 'En préparation'], ['clos', 'Clos']].map(([k, l]) => { const on = S.st === k; return { l, n: cnt(k), on, pick: () => this.setState({ st: k }), st: 'height:32px;padding:0 12px;border-radius:9px;border:0;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;' + (on ? 'background:#fff;color:#10233a;box-shadow:0 1px 2px rgba(16,35,58,.12)' : 'background:transparent;color:#5c7280') }; }),
+      q: S.q, setQ: e => this.setState({ q: e.target.value }), newP: () => this.props.onNew && this.props.onNew(), empty: !list.length,
+      cards: list.map((p, i) => { const pr = p.start && p.end ? Math.max(0, Math.min(1, (today - p.start) / (p.end - p.start))) : 0;
+        return { code: p.code, name: p.name, client: p.client, stL: SL[p.st][0], isNew: !!p.isNew, phase: p.phase, dates: fmt(p.start) + ' → ' + fmt(p.end), foot: p.snap,
+          kpis: [['Lots', p.k[0]], ['Phases', p.k[1]], ['Chantiers', p.k[2]], ['Personnes', p.k[3]]].map(([l, v]) => ({ l, v })),
+          pill: 'height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:800;display:inline-flex;align-items:center;white-space:nowrap;flex:none;background:' + SL[p.st][1] + ';color:' + SL[p.st][2],
+          badge: 'min-width:50px;height:44px;padding:0 8px;border-radius:13px;display:grid;place-items:center;font-size:11.5px;font-weight:800;letter-spacing:.05em;flex:none;color:#fff;background:' + (p.st === 'clos' ? '#a9b7bf' : p.isNew ? 'linear-gradient(135deg,#f7a41c,#f0752b)' : '#10233a'),
+          bar: 'position:absolute;left:0;top:0;bottom:0;border-radius:3px;width:' + (pr * 100).toFixed(1) + '%;background:' + HC[p.health],
+          today: 'display:none',
+          card: 'background:#fff;border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:14px;animation:rise-in .4s ' + (i * .05) + 's cubic-bezier(.2,.7,.2,1) both;box-shadow:0 0 0 ' + (p.isNew ? '1.5px #f3c47d,0 14px 30px -20px rgba(240,120,40,.5)' : '1px #e1e9e7') + (p.st === 'clos' ? ';opacity:.7' : '') }; })
+    };
+  }
+}
+</script>
+</body>
+</html>
