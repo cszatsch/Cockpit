@@ -35,6 +35,13 @@ export class ApiError extends HttpException {
   }
 }
 
+/** Erreur portant un corps enrichi (ex. rapport d'import refusé). */
+export class ApiErrorWithBody extends HttpException {
+  constructor(status: number, body: ErrorBody & Record<string, unknown>) {
+    super(body, status);
+  }
+}
+
 export const badRequest = (message: string, fields?: Record<string, string>) =>
   new ApiError(400, 'VALIDATION_ERROR', message, fields);
 export const unauthorized = (message = 'Authentification requise') =>
@@ -73,7 +80,7 @@ export class ApiExceptionFilter implements ExceptionFilter {
 }
 
 export function toErrorBody(exception: unknown): [number, ErrorBody] {
-  if (exception instanceof ApiError) {
+  if (exception instanceof ApiError || exception instanceof ApiErrorWithBody) {
     return [exception.getStatus(), exception.getResponse() as ErrorBody];
   }
   if (exception instanceof ZodError) {

@@ -8,4 +8,5 @@ module.exports = {
   setupFiles: ['<rootDir>/test/env.ts'],
   transform: { '^.+\\.ts$': ['ts-jest', { diagnostics: false }] },
   testTimeout: 60000,
+  maxWorkers: 1,
 };
