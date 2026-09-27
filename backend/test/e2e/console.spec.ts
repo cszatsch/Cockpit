@@ -60,6 +60,11 @@ describe('Console Admin — critères d’acceptation (brief Console § 13)', ()
       const byStatus = await (await t.as(WHO.admin)).get(`${A}/accounts?status=suspendu`).expect(200);
       expect(Object.values(byStatus.body.counts.byProfile).slice(1).reduce((a: number, b: any) => a + b, 0)).toBe(byStatus.body.items.length);
     });
+    it('modifier les projets d’un Responsable du référentiel ne réattribue pas son profil (branchement de la console)', async () => {
+      const c = await t.as(WHO.admin);
+      const r = await c.patch(`${A}/accounts/u8`, { projectCodes: ['RISE', 'ATLAS'] }).expect(200);
+      expect(r.body).toMatchObject({ profile: 'RESPONSABLE', projectCodes: expect.arrayContaining(['RISE', 'ATLAS']) });
+    });
   });
 
   describe('3. Administrateurs', () => {
@@ -133,6 +138,12 @@ describe('Console Admin — critères d’acceptation (brief Console § 13)', ()
       const demo = await c.get(`${A}/snapshots/compare?a=r1&b=r9`).expect(200);
       expect(demo.body.summary).toMatchObject({ add: expect.any(Number), mod: expect.any(Number), del: expect.any(Number) });
       expect(demo.body.summary.del).toBeGreaterThan(0);
+    });
+    it('planification par projet : fréquence mensuelle acceptée (option de la console)', async () => {
+      const c = await t.as(WHO.admin);
+      const r = await c.put(`${A}/projects/ATLAS/snapshot-schedule`, { enabled: true, frequency: 'Mensuelle', hour: '02:00', retention: '6 mois' }).expect(200);
+      expect(r.body).toMatchObject({ projectId: 'ATLAS', frequency: 'Mensuelle', hour: '02:00', retention: '6 mois' });
+      await c.put(`${A}/projects/ATLAS/snapshot-schedule`, { frequency: 'Annuelle' }).expect(400);
     });
     it('aucune route de restauration n’existe', async () => {
       const c = await t.as(WHO.admin);

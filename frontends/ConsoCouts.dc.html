@@ -87,7 +87,9 @@ html,body{margin:0;background:#f2f6f5;font-family:'Plus Jakarta Sans',sans-serif
 <script type="text/x-dc" data-dc-script>
 class Component extends DCLogic {
   state = { per: 'mois', fn: null, hov: null, dim: 'fn', t: 0, google: false, th: { all: { lim: 1200, warn: 80 }, insights: { lim: 800, warn: 80 }, docs: { lim: 400, warn: 80 }, crud: { lim: '', warn: 80 } }, th0: null, toast: null, anim: 0 };
-  componentDidMount() { this.setState({ th0: JSON.parse(JSON.stringify(this.state.th)) }); this.count(); }
+  componentDidMount() { this.setState({ th0: JSON.parse(JSON.stringify(this.state.th)) }); this.count();
+    // API : data() et plafonds lus sur /api/admin/usage/month, /usage et /budget-thresholds (admin-api.js) ; rien en mode démonstration.
+    import('./admin-api.js').then(m => m.bindConso(this)).catch(e => console.warn('admin-api', e)); }
   componentWillUnmount() { cancelAnimationFrame(this._raf); clearTimeout(this._tt); }
   count() { cancelAnimationFrame(this._raf); const t0 = performance.now(), step = n => { const t = Math.min(1, (n - t0) / 900); this.setState({ t: 1 - Math.pow(1 - t, 3) }); if (t < 1) this._raf = requestAnimationFrame(step); }; this._raf = requestAnimationFrame(step); }
   toast(t) { clearTimeout(this._tt); this.setState({ toast: t }); this._tt = setTimeout(() => this.setState({ toast: null }), 2600); }

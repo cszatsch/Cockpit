@@ -1180,6 +1180,8 @@ class Component extends DCLogic {
     this._md = e => { if (this.state.menu && !e.target.closest('[data-pop]')) this.setState({ menu: null }); }; document.addEventListener('mousedown', this._md);
     if (this.props.scenario === 'nominal') this.applyScenario();
     if (this.props.startSection && this.props.startSection !== 'overview') this.go(this.props.startSection);
+    // API : branchement sur /api/admin (données, écritures, audit côté serveur) ; rien en mode démonstration (?demo=1).
+    import('./admin-api.js').then(m => m.bindConsole(this)).catch(e => console.warn('admin-api', e));
   }
   _jb = React.createRef(); _pf = React.createRef();
   componentDidUpdate(pp, ps) { if (ps && (ps.jm !== this.state.jm || ps.jThink !== this.state.jThink || (!ps.jev && this.state.jev))) this.jScroll(); if (pp.scenario !== this.props.scenario) this.applyScenario(); if (pp.startSection !== this.props.startSection && this.props.startSection) this.go(this.props.startSection); }
@@ -1434,7 +1436,8 @@ class Component extends DCLogic {
 
   // ——— Snapshots
   openSnap() { this.setState({ dlg: { type: 'snap' }, form: { lab: '' }, fe: {} }); }
-  capture() { const S = this.state, lab = (S.form.lab || '').trim() || 'Capture manuelle'; this.setState({ dlg: null, form: {} }); this.doCapture(S.sPj, lab); }
+  // API : plus de libellé par défaut « Capture manuelle » (Q10) ; sans libellé, le serveur répond 400, affiché dans le toast.
+  capture() { const S = this.state, lab = (S.form.lab || '').trim(); this.setState({ dlg: null, form: {} }); this.doCapture(S.sPj, lab); }
   restore(s) {
     const p = this.state.sPj;
     this.ask({ tone: 'danger', title: 'Restaurer ' + p + ' à l’état du ' + fDT(s.t) + ' ?', body: 'Les données actuelles du projet seront remplacées. Un snapshot de sécurité de l’état actuel est créé automatiquement juste avant, pour pouvoir revenir en arrière.', items: [{ l: 'Projet', a: 'État actuel', b: 'État du ' + fDT(s.t) }], req: p, cta: 'Restaurer le projet',

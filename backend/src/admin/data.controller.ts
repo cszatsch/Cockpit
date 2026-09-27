@@ -79,7 +79,7 @@ export class DataController {
   async putSchedule(@CurrentActor() actor: Actor, @Param('id') id: string, @Body() body: unknown) {
     const p = await this.project(id);
     const input = parse(
-      z.object({ enabled: z.boolean(), frequency: z.enum(['Quotidienne', 'Hebdomadaire']), day: z.string().min(3).max(12), hour: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/), retention: z.string().regex(/^\d+\s*(mois|jours?|ans?|semaines?)$/i, 'ex. « 12 mois »') }).partial().strict(),
+      z.object({ enabled: z.boolean(), frequency: z.enum(['Quotidienne', 'Hebdomadaire', 'Mensuelle']), day: z.string().min(3).max(12), hour: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/), retention: z.string().regex(/^\d+\s*(mois|jours?|ans?|semaines?)$/i, 'ex. « 12 mois »') }).partial().strict(),
       body,
     );
     const before = await this.prisma.snapshotSchedule.findUnique({ where: { projectId: p.id } });

@@ -30,7 +30,8 @@
         <div style="display:flex;align-items:center;gap:8px;border-top:1px solid #f1f5f4;padding-top:12px;font-size:12px;color:#5c7280">
           <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.foot }}</span>
           <sc-if value="{{ p.isNew }}" hint-placeholder-val="{{ false }}"><span style="height:20px;padding:0 7px;border-radius:999px;background:#fff1dc;color:#9a5a0c;font-size:10.5px;font-weight:800;display:inline-flex;align-items:center">Nouveau</span></sc-if>
-          <a href="./RISE Cockpit.dc.html" style="height:30px;padding:0 11px;border-radius:9px;background:#10233a;color:#fff;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;white-space:nowrap">Ouvrir</a>
+          <!-- API : lien « Ouvrir » vers le Cockpit du projet (?project=CODE) -->
+          <a href="{{ p.href }}" style="height:30px;padding:0 11px;border-radius:9px;background:#10233a;color:#fff;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;white-space:nowrap">Ouvrir</a>
         </div>
       </div>
     </sc-for>
@@ -41,9 +42,11 @@
 <script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;1100px&quot;,&quot;height&quot;:&quot;720px&quot;},&quot;imported&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;any[]&quot;},&quot;onNew&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;()=&gt;void&quot;}}">
 class Component extends DCLogic {
   state = { st: 'tous', q: '' };
+  // API : liste des projets lue sur /api/admin/projects (admin-api.js, dans state.api) ; rien en mode démonstration.
+  componentDidMount() { import('./admin-api.js').then(m => m.bindBiblio(this)).catch(e => console.warn('admin-api', e)); }
   renderVals() {
     const S = this.state, D = (y, m, d) => new Date(y, m - 1, d), today = D(2026, 9, 26);
-    const base = [
+    const base = this.state.api || [ // API : cartes du serveur, sinon projets de démonstration
       { code: 'RISE', name: 'RISE — Implémentation Brand X + CRM', client: 'AMC Corp', st: 'actif', phase: 'Deploy · Recette utilisateur', start: D(2023, 6, 1), end: D(2028, 6, 30), k: [4, 6, 8, 38], snap: 'snapshot hier 04:00', health: 'warn' },
       { code: 'ATLAS', name: 'ATLAS — Refonte finance groupe', client: 'AMC Corp · Direction financière', st: 'actif', phase: 'Realize · Paramétrage', start: D(2025, 2, 3), end: D(2027, 6, 30), k: [2, 5, 6, 24], snap: 'snapshot du 18 sept.', health: 'ok' },
       { code: 'HORIZON', name: 'HORIZON — Portail fournisseurs', client: 'AMC Corp · Achats', st: 'actif', phase: 'Explore · Ateliers', start: D(2026, 3, 2), end: D(2027, 12, 17), k: [1, 5, 4, 15], snap: 'snapshot du 18 sept.', health: 'ok' },
@@ -58,7 +61,8 @@ class Component extends DCLogic {
       seg: [['tous', 'Tous'], ['actif', 'Actifs'], ['prep', 'En préparation'], ['clos', 'Clos']].map(([k, l]) => { const on = S.st === k; return { l, n: cnt(k), on, pick: () => this.setState({ st: k }), st: 'height:32px;padding:0 12px;border-radius:9px;border:0;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;' + (on ? 'background:#fff;color:#10233a;box-shadow:0 1px 2px rgba(16,35,58,.12)' : 'background:transparent;color:#5c7280') }; }),
       q: S.q, setQ: e => this.setState({ q: e.target.value }), newP: () => this.props.onNew && this.props.onNew(), empty: !list.length,
       cards: list.map((p, i) => { const pr = p.start && p.end ? Math.max(0, Math.min(1, (today - p.start) / (p.end - p.start))) : 0;
-        return { code: p.code, name: p.name, client: p.client, stL: SL[p.st][0], isNew: !!p.isNew, phase: p.phase, dates: fmt(p.start) + ' → ' + fmt(p.end), foot: p.snap,
+        // API : href, lien « Ouvrir » vers le Cockpit du projet choisi.
+        return { code: p.code, name: p.name, client: p.client, stL: SL[p.st][0], isNew: !!p.isNew, href: './RISE Cockpit.dc.html?project=' + encodeURIComponent(p.code), phase: p.phase, dates: fmt(p.start) + ' → ' + fmt(p.end), foot: p.snap,
           kpis: [['Lots', p.k[0]], ['Phases', p.k[1]], ['Chantiers', p.k[2]], ['Personnes', p.k[3]]].map(([l, v]) => ({ l, v })),
           pill: 'height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:800;display:inline-flex;align-items:center;white-space:nowrap;flex:none;background:' + SL[p.st][1] + ';color:' + SL[p.st][2],
           badge: 'min-width:50px;height:44px;padding:0 8px;border-radius:13px;display:grid;place-items:center;font-size:11.5px;font-weight:800;letter-spacing:.05em;flex:none;color:#fff;background:' + (p.st === 'clos' ? '#a9b7bf' : p.isNew ? 'linear-gradient(135deg,#f7a41c,#f0752b)' : '#10233a'),

@@ -25,7 +25,8 @@
       </label>
       <div style="display:flex;flex-direction:column;gap:12px">
         <div style="background:#fff;border-radius:16px;box-shadow:0 0 0 1px #e1e9e7;padding:18px;display:flex;flex-direction:column;gap:10px"><span style="font-weight:800">Pas encore de fichier ?</span><span style="font-size:12.5px;color:#5c7280;line-height:1.5">Téléchargez le modèle, faites-le remplir par le PMO pendant la préparation du projet, puis importez-le ici.</span><a href="./Referentiel RISE - initialisation.xlsx" download style="align-self:flex-start;height:34px;padding:0 14px;border-radius:10px;border:1px solid #d3dedb;background:#fff;font-weight:700;color:#10233a;text-decoration:none;display:inline-flex;align-items:center;gap:8px;white-space:nowrap">↓ Modèle Excel</a></div>
-        <div style="background:#fff;border-radius:16px;box-shadow:0 0 0 1px #e1e9e7;padding:18px;display:flex;flex-direction:column;gap:10px"><span style="font-weight:800">Découvrir avec un exemple</span><span style="font-size:12.5px;color:#5c7280;line-height:1.5">Un projet fictif complet (ORION) pour parcourir le contrôle et la prévisualisation.</span><button onClick="{{ demo }}" style="align-self:flex-start;height:34px;padding:0 14px;border-radius:10px;border:0;background:#e6f4f2;color:#146b64;font:inherit;font-weight:700;cursor:pointer">Charger l’exemple</button></div>
+        <!-- API : carte « Charger l’exemple » affichée en mode démonstration seulement -->
+        <sc-if value="{{ demoOn }}" hint-placeholder-val="{{ true }}"><div style="background:#fff;border-radius:16px;box-shadow:0 0 0 1px #e1e9e7;padding:18px;display:flex;flex-direction:column;gap:10px"><span style="font-weight:800">Découvrir avec un exemple</span><span style="font-size:12.5px;color:#5c7280;line-height:1.5">Un projet fictif complet (ORION) pour parcourir le contrôle et la prévisualisation.</span><button onClick="{{ demo }}" style="align-self:flex-start;height:34px;padding:0 14px;border-radius:10px;border:0;background:#e6f4f2;color:#146b64;font:inherit;font-weight:700;cursor:pointer">Charger l’exemple</button></div></sc-if>
       </div>
     </div>
   </sc-if>
@@ -132,6 +133,8 @@ async function parseXlsx(file) {
 }
 class Component extends DCLogic {
   state = { step: 'up', data: null, drag: false, upErr: '', chk: 0, tab: 'Projet', prog: 0 };
+  // API : lecture du fichier et création du projet par /api/admin/project-imports (admin-api.js) ; rien en mode démonstration.
+  componentDidMount() { import('./admin-api.js').then(m => m.bindInit(this)).catch(e => console.warn('admin-api', e)); }
   componentWillUnmount() { clearInterval(this._iv); clearInterval(this._pv); }
   load(d) { clearInterval(this._iv); this.setState({ data: d, step: 'chk', chk: 0, tab: 'Projet', upErr: '' }); this._iv = setInterval(() => { const n = this.state.chk + 1; this.setState({ chk: n }); if (n >= 5) clearInterval(this._iv); }, 380); }
   async file(f) { if (!f) return; if (!/\.xlsx$/i.test(f.name)) return this.setState({ upErr: 'Format attendu : .xlsx' }); this.setState({ upErr: '', busyRead: true }); try { this.load(await parseXlsx(f)); } catch (e) { this.setState({ upErr: 'Lecture impossible : ' + (e.message || 'fichier illisible'), busyRead: false }); } }
@@ -145,7 +148,9 @@ class Component extends DCLogic {
       zoneT: S.busyRead ? 'Lecture du fichier…' : S.drag ? 'Déposez le fichier ici' : 'Glissez le fichier Excel ici',
       zoneSt: 'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:280px;border-radius:20px;cursor:pointer;text-align:center;padding:24px;transition:background .2s,box-shadow .2s;' + (S.drag ? 'background:#e6f4f2;box-shadow:inset 0 0 0 2px #1d8f86' : 'background:#fbfdfc;box-shadow:inset 0 0 0 2px #cfdcd9;background-image:repeating-linear-gradient(0deg,transparent 0 0)'),
       drag: e => { e.preventDefault(); if (!S.drag) this.setState({ drag: true }); }, undrag: () => this.setState({ drag: false }), drop: e => { e.preventDefault(); this.setState({ drag: false }); this.file(e.dataTransfer.files[0]); },
-      pick: e => this.file(e.target.files[0]), demo: () => this.load(demoData()), upErr: !!S.upErr, upErrL: S.upErr, restart: () => this.setState({ step: 'up', data: null, busyRead: false }),
+      pick: e => this.file(e.target.files[0]), demo: () => this.load(demoData()),
+      // API : « Charger l’exemple » n’est proposé qu’en mode démonstration (?demo=1 ou window.RISE_DEMO = true).
+      demoOn: typeof window !== 'undefined' && (window.RISE_DEMO === true || /[?&]demo=1\b/.test(window.location.search)), upErr: !!S.upErr, upErrL: S.upErr, restart: () => this.setState({ step: 'up', data: null, busyRead: false }),
       checks: [], issues: [], hasIssues: false, fileN: '', fileD: '', verdict: {}, tabs: [], view: { heads: [], rows: [], fields: [], bars: [], years: [] }, pj: { kpis: [] } };
     if (!d) return v;
     const cnt = k => ((d.sheets[k] || {}).rows || []).length, errs = d.issues.filter(i => i.lvl === 'err'), warns = d.issues.filter(i => i.lvl === 'warn');

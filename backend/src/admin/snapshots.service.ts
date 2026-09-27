@@ -130,7 +130,10 @@ export class SnapshotsService implements OnModuleInit {
     const day = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', weekday: 'long' }).format(now).toLowerCase();
     const hour = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', hourCycle: 'h23' }).format(now);
     for (const sc of await this.prisma.snapshotSchedule.findMany({ where: { enabled: true } })) {
-      const due = sc.hour.slice(0, 2) === hour && (sc.frequency.toLowerCase().startsWith('quotid') || sc.day.toLowerCase() === day);
+      // Mensuelle (option de la console) : le 1er du mois, à l'heure choisie.
+      const dom = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', day: 'numeric' }).format(now);
+      const f = sc.frequency.toLowerCase();
+      const due = sc.hour.slice(0, 2) === hour && (f.startsWith('quotid') || (f.startsWith('mensu') ? dom === '1' : sc.day.toLowerCase() === day));
       if (due) {
         const s = await this.prisma.snapshot.create({ data: { projectId: sc.projectId, kind: 'AUTO', status: 'RUNNING' } });
         await this.capture(s.id);

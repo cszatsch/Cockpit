@@ -198,8 +198,12 @@ export class AccountsController {
         await db.accountProject.deleteMany({ where: { accountId: id } });
         await db.accountProject.createMany({ data: projects.map((p) => ({ accountId: id, projectId: p.id })) });
       }
-      if (rightsChange) {
-        const profile = input.profile ?? before.profile ?? 'LECTEUR';
+      // Les profils ne sont recalculés que si le profil change, ou si les projets d'un profil global
+      // (ADMIN, PMO) changent : modifier les projets d'un Responsable ou d'un Lecteur du référentiel
+      // ne doit pas réattribuer un profil qui relève du PMO (Q3, 422).
+      const profile = input.profile ?? before.profile ?? 'LECTEUR';
+      const profileChanged = input.profile !== undefined && input.profile !== before.profile;
+      if (profileChanged || (input.projectCodes !== undefined && (profile === 'ADMIN' || profile === 'PMO'))) {
         if (profile !== 'ADMIN' && before.admin) {
           if ((await db.adminGrant.count()) <= 1) throw conflict('LAST_ADMIN', 'Il doit toujours rester au moins un administrateur');
           await db.adminGrant.delete({ where: { accountId: id } });
