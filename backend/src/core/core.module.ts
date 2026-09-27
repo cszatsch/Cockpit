@@ -8,6 +8,7 @@ import { AccessService } from './access.service';
 import { AuditService } from './audit.service';
 import { TodayService } from './today.service';
 import { config } from './config';
+import { StorageService } from './storage.service';
 
 /** Socle commun au Cockpit et à la Console : base, authentification, droits, audit, date du jour. */
 @Global()
@@ -20,7 +21,7 @@ import { config } from './config';
     }),
   ],
   controllers: [AuthController],
-  providers: [{ provide: APP_GUARD, useClass: AuthGuard }, AccessService, AuditService, TodayService],
-  exports: [AccessService, AuditService, TodayService],
+  providers: [{ provide: APP_GUARD, useClass: AuthGuard }, AccessService, AuditService, TodayService, StorageService],
+  exports: [AccessService, AuditService, TodayService, StorageService],
 })
 export class CoreModule {}

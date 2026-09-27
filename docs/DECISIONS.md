@@ -26,3 +26,26 @@ Ces choix découlent directement des briefs ou de la règle « le plus prudent �
 - **Routes `/api/admin`** : le brief Console fait foi (§ 2 de ce brief). Les routes du Cockpit § 9.11 qui ne se recoupent pas avec lui (`global-profiles`, `reader-scopes`) sont livrées en plus.
 - **Anomalies de l'écran Aujourd'hui** : risques **critiques** sans plan (brief), jalons non confirmés depuis plus de 14 j (alerte) et plus de 7 j (vigilance), budget non renseigné, modifications depuis la capture du dernier rapport, plus les actions échues (frontend).
 - **D-002** passe au statut SUPERSEDED à l'amorçage, puisque D-007 la remplace.
+
+## Décisions prises pendant le développement (écarts documentés, sans question bloquante)
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| RG16 et § 13.7 | Deux règles du brief se contredisent pour la modification d'un objet existant hors périmètre de lecture (ex. risque de C3 modifié par le Responsable de C5). RG16 donnerait 404 ; § 13.7 exige explicitement 403. Retenu : **403** en écriture, **404** en lecture. | `WRITE_OUT_OF_SCOPE_STATUS` (`transactional.ts`) |
+| Décision arbitrée | Toute modification (`PATCH`, fiche, suppression) d'une décision ARBITRATED → `409 READ_ONLY`. L'arbitrage d'une décision qui en remplace une autre fait passer l'ancienne à SUPERSEDED (tracé). Une décision ne passe à ARBITRATED qu'avec son texte `decL` (`422`). | `DECISIONS.guardPatch` |
+| Clôture de décision | Règle du frontend reprise : passage à un statut clos sans `ddIso` → date du jour ; réouverture → `ddIso` effacée. | `transactional.ts` |
+| Action : `closedAt` | Posée à la date du jour au passage à DONE, effacée à la réouverture. | `ACTIONS.prepare` |
+| Signal `sig` (Q9) | Calculé : écart < −20 → RISK, < 0 → WATCH, sinon OK. Le jeu stockait `ok` pour « Recette Achats » (77 / 80) : le calcul donne WATCH. | `SIG_RISK_GAP`, `SIG_WATCH_GAP` |
+| Séances : identifiant | `S-<instance>-<numéro>` quand il est libre (lisible, comme la démo). | `committees.controller.ts` |
+| Rapport : fichier | `GET /reports/{id}/file` génère un PDF texte minimal (jalons, risques, décisions, actions selon les composants du template), stocké puis resservi. La mise en page réelle des supports est hors périmètre. | `core/pdf.ts` |
+| Rapport publié | Un rapport PUBLISHED ne revient pas à un statut antérieur (`422`). | `patchReport` |
+| Templates : pages | `pages = 1 + Σ poids des composants`, avec les poids du frontend (`PW`). | `PAGE_WEIGHT` |
+| Écran Aujourd'hui | Le message compte les validations dont l'utilisateur est décideur (brief § 7.9) et **toutes ses tâches** (§ 7.12 : actions, décisions, jalons, tâches manuelles). Le frontend ne comptait que ses actions. Instance annoncée : nom court `COPIL`. | `WELCOME_BODY_SHORT_NAME` |
+| Baromètre : droits | PMO ou Responsable du chantier de code `C8`. | `BAROMETER_WS_CODE` |
+| Budget | Lecture toujours possible (avec `moduleActive`). Écriture : PMO et module actif sur le projet, sinon `409 MODULE_INACTIVE`. | `BUDGET_MODULE_ID` |
+| Nom et dates du projet RISE | Nom pris dans `project.name` (plus récent que `model.PROJECT`). Début et fin du Référentiel : 01/03/2024 → 31/12/2030. La fin du planning (`projectEnd`) est calculée sur les phases (30/06/2028). | `seed/rise.ts` |
+| Membres d'instance | Le jeu n'a pas de rôle. Le sponsor (p04) préside COPIL et Comité sponsors ; le directeur de programme (p03) préside COPROJ et Arbitrage ; pour les autres instances, le premier membre préside. | `memberRole()` |
+| Problème P03 | Échéance « fin sept. » → 30/09/2026. | `seed/rise.ts` |
+| Projets ATLAS, HORIZON, NOVA, ORBIT | Créés sans référentiel (brief Console § 12). Les compteurs de la bibliothèque viennent de `project.display.demoCounts`, marqués `demo: true` dans la réponse, tant que le projet n'a aucun référentiel réel. | `seed/admin.ts` |
+| Consommation de démonstration | Série `genUsage()` reproduite à l'identique et chargée en `UsageRecord`. Elle est recalée sur 1 032,40 € au 26/09 en comptant **depuis le 1er du mois** (brief § 7.4), alors que la console comptait depuis le 2. | `domain/demo-usage.ts` |
+| Clés API de démonstration | Clés fictives chiffrées (AES-256-GCM). La clé Google contient `revoked` : le test bouchon la déclare en erreur (401). | `seed/admin.ts` |
