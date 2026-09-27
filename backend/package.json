@@ -4,6 +4,7 @@
   "private": true,
   "description": "Backend RISE Cockpit + Console Admin",
   "scripts": {
+    "postinstall": "prisma generate",
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/main.js",
     "dev": "ts-node-dev --respawn --transpile-only src/main.ts",

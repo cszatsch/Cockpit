@@ -3,7 +3,7 @@ FROM node:22-slim AS build
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*
 COPY backend/package*.json ./
-RUN npm ci
+RUN npm ci --ignore-scripts
 COPY backend/ ./
 RUN npx prisma generate && npm run build
 
