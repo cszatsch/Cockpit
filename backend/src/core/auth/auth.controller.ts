@@ -77,7 +77,10 @@ export class AuthController {
     });
     const best = ['PMO', 'RESPONSABLE', 'LECTEUR'].find((p) => habs.some((h) => h.profile === p));
     const roles = [...(isAdmin ? ['Administrateur'] : []), ...(best ? [PROFILE_LABEL[best]] : [])];
-    return { email: a.email, fullName: a.fullName, firstName: a.fullName.split(/\s+/)[0], roleLabel: roles.join(' · '), isAdmin };
+    return {
+      email: a.email, fullName: a.fullName, firstName: a.fullName.split(/\s+/)[0], roleLabel: roles.join(' · '), isAdmin,
+      passwordChangedAt: a.passwordChangedAt?.toISOString() ?? null,
+    };
   }
 
   @Public()

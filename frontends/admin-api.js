@@ -529,7 +529,19 @@ export function bindConsole(c) {
     rd.onload = () => patch('/me/profile', { photoUrl: String(rd.result) }).then(me => { set0({ photo: me.photoUrl }); toast('Photo mise à jour'); touch(); }).catch(fail);
     rd.readAsDataURL(f);
   };
-  const pwd = () => post('/me/password-reset').then(() => { toast('Lien de changement envoyé à ' + c.state.prof.mail); touch(); }).catch(fail);
+  // Mon profil › Sécurité : « Modifier » → fenêtre de changement (auth-api.js), POST /api/auth/password ;
+  // ancienneté réelle du mot de passe (GET /api/auth/session). Le serveur ferme les autres sessions.
+  const setPwdAge = iso => set0({ pwdAge: Auth.passwordAgeLabel(iso) });
+  if (!DEV) Auth.session('admin').then(r => { if (r.body && r.body.user) setPwdAge(r.body.user.passwordChangedAt); });
+  const pwd = () => Auth.openPasswordDialog({
+    send: async b => {
+      const r = await raw('POST', '/api/auth/password', b);
+      const body = await r.json().catch(() => null);
+      if (r.ok) { setPwdAge(body.user.passwordChangedAt); load(['sess']).catch(() => {}); return { ok: true }; }
+      return { message: (body && body.message) || 'Erreur ' + r.status, field: body && body.fields && body.fields.currentPassword ? 'currentPassword' : null };
+    },
+    onDone: () => { toast('Mot de passe modifié · vos autres sessions ont été fermées'); touch(); },
+  });
 
   // ── Jev : les règles locales d'origine répondent ; une demande non reconnue part au serveur ──
   c.jevReply = text => {

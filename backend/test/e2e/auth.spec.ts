@@ -259,6 +259,39 @@ describe('Authentification (spécification AUTH)', () => {
     });
   });
 
+  describe('changement de mot de passe depuis le profil', () => {
+    const OTHER_PWD = 'Profil-Change-2026%';
+
+    it('exige le mot de passe actuel, ferme les autres sessions et garde la session courante', async () => {
+      const email = 'ines.test@exemple.fr';
+      const other = await signIn(email, NEW_PWD);
+      const me = await signIn(email, NEW_PWD);
+      const wrong = await request(server()).post('/api/auth/password').set(me.h).send({ currentPassword: 'Faux-Mot-2026!', password: OTHER_PWD }).expect(400);
+      expect(wrong.body.fields.currentPassword).toBe('Mot de passe actuel incorrect');
+      await request(server()).post('/api/auth/password').set(me.h).send({ password: OTHER_PWD }).expect(400);
+      const weak = await request(server()).post('/api/auth/password').set(me.h).send({ currentPassword: NEW_PWD, password: 'court' }).expect(400);
+      expect(weak.body.fields.password).toMatch(/Règles/);
+
+      const ok = await request(server()).post('/api/auth/password').set(me.h).send({ currentPassword: NEW_PWD, password: OTHER_PWD }).expect(200);
+      expect(Date.now() - Date.parse(ok.body.user.passwordChangedAt)).toBeLessThan(60_000);
+      const rotated = cookieHeader(cookiesOf(ok).jar);
+      await request(server()).get('/api/me').set('Cookie', rotated).expect(200);
+      await request(server()).get('/api/me').set('Cookie', me.h.Cookie).expect(401); // ancien jeton (rotation)
+      await request(server()).get('/api/me').set('Cookie', other.h.Cookie).expect(401); // autre session fermée
+      const s = await request(server()).get('/api/auth/session?surface=app').set('Cookie', rotated).expect(200);
+      expect(s.body.user.passwordChangedAt).toBe(ok.body.user.passwordChangedAt);
+      await login(email, NEW_PWD).expect(401);
+      await login(email, OTHER_PWD).expect(200);
+      const audit = await t.db.auditEntry.findFirst({ where: { action: 'Changement du mot de passe', target: 'Inès Test' } });
+      expect(audit?.severity).toBe('SENSITIVE');
+    });
+
+    it('l’ancienne demande simulée de la console n’existe plus', async () => {
+      const a = await t.as({ accountId: 'u1' });
+      await a.post('/api/admin/me/password-reset').expect(404);
+    });
+  });
+
   describe('compte initial', () => {
     it('refuse sans variable d’environnement ou avec un mot de passe faible', async () => {
       delete process.env.RISE_INITIAL_ADMIN_PASSWORD;

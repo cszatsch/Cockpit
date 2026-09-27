@@ -5,7 +5,6 @@ import { z } from 'zod';
 import { AdminOnly, Actor, CurrentActor } from '../core/auth/auth';
 import { AuditService } from '../core/audit.service';
 import { PrismaService } from '../core/prisma.service';
-import { MailerService } from '../core/mailer.service';
 import { JobsService } from '../core/jobs.service';
 import { TodayService } from '../core/today.service';
 import { LlmService, AI_FUNCTIONS } from '../core/llm.service';
@@ -30,7 +29,6 @@ export class ConsoleController implements OnModuleInit {
     private readonly audit: AuditService,
     private readonly usage: UsageService,
     private readonly llm: LlmService,
-    private readonly mailer: MailerService,
     private readonly jobs: JobsService,
     private readonly today: TodayService,
   ) {}
@@ -203,15 +201,6 @@ export class ConsoleController implements OnModuleInit {
       await db.authSession.update({ where: { id }, data: { revokedAt: new Date() } });
       await this.audit.action(db, adminCtx(actor), { action: 'Révocation d’une session', target: s.device ?? id, severity: 'SENSITIVE', entityType: 'AuthSession', entityId: id });
     });
-  }
-
-  /** Demande de changement de mot de passe : lien envoyé par e-mail (fournisseur d'identité hors périmètre). */
-  @Post('me/password-reset')
-  @HttpCode(202)
-  async passwordReset(@CurrentActor() actor: Actor) {
-    await this.mailer.send({ to: [actor.email], subject: 'RISE — changement de mot de passe', text: 'Suivez le lien reçu pour définir un nouveau mot de passe (valable 1 heure).' });
-    await this.audit.action(this.prisma, adminCtx(actor), { action: 'Demande de changement de mot de passe', target: actor.fullName, severity: 'SENSITIVE', entityType: 'Account', entityId: actor.accountId });
-    return { status: 'SENT' };
   }
 
   @Patch('me/notifications')

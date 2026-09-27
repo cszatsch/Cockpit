@@ -49,3 +49,7 @@ La simulation est remplacée par les appels au serveur (`auth-api.js` → `/api/
 ## `auth-api.js` (nouveau)
 
 Module partagé par les écrans de connexion, le Cockpit (`api.js`) et la Console (`admin-api.js`) : appels `/api/auth/…`, en-têtes `X-Rise-Surface` et `X-CSRF-Token`, déconnexion, retour à la connexion, et surveillance de l'inactivité. Le dialogue « Toujours là ? » reprend le dessin de l'état « Session sur le point d'expirer » du composant (compte à rebours, `role="alertdialog"`, Échap = rester connecté, focus retenu dans la fenêtre).
+
+## Fenêtre « Modifier le mot de passe » (`auth-api.js`, 28/09/2026)
+
+`openPasswordDialog({ send, onDone })`, ouverte par « Mon profil › Sécurité › Modifier » du Cockpit et de la Console : mot de passe actuel, nouveau mot de passe et confirmation, avec les boutons afficher / masquer, les quatre règles et la jauge des écrans de connexion. Le refus du mot de passe actuel s'affiche sous son champ ; les autres refus du serveur (règles, mot de passe compromis ou identique) s'affichent dans un bandeau `role="alert"`. C'est une fenêtre modale (`role="dialog"`, `aria-modal`) : Échap ou « Annuler » la ferment, Tab reste à l'intérieur, et le focus revient ensuite sur « Modifier ». Couleur d'action : le vert des boutons « Enregistrer » du profil (`#1d8f86`).

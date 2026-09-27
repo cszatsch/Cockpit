@@ -5903,25 +5903,6 @@
         ]
       }
     },
-    "/api/admin/me/password-reset": {
-      "post": {
-        "operationId": "ConsoleController_passwordReset",
-        "parameters": [],
-        "responses": {
-          "202": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "console · supervision et compte"
-        ]
-      }
-    },
     "/api/admin/me/notifications": {
       "patch": {
         "operationId": "ConsoleController_myNotifications",

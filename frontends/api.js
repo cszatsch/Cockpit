@@ -923,6 +923,16 @@ export function attach(comp) {
   // Session par cookie : expiration après 30 min d'inactivité (« Toujours là ? » 60 s avant) et déconnexion.
   if (!DEV) Auth.startSessionGuard('app');
   api.logout = () => (DEV ? (ls.set(TOKEN_KEY, null), Auth.logout('app')) : Auth.logout('app'));
+  // Mon profil › Sécurité : ancienneté réelle du mot de passe, et « Modifier » → POST /api/auth/password.
+  const setPwdAge = (iso) => comp.setState({ pwdAge: Auth.passwordAgeLabel(iso) });
+  if (!DEV) Auth.session('app').then((r) => { if (r.body && r.body.user) setPwdAge(r.body.user.passwordChangedAt); });
+  api.changePassword = () => Auth.openPasswordDialog({
+    send: (b) => post('/auth/password', b).then(
+      (r) => { setPwdAge(r.user.passwordChangedAt); return { ok: true }; },
+      (e) => ({ message: e instanceof ApiError ? e.message : errorText(e), field: e.fields && e.fields.currentPassword ? 'currentPassword' : null }),
+    ),
+    onDone: () => toast('Mot de passe modifié · vos autres sessions ont été fermées'),
+  });
   // Point d'accès réservé aux tests navigateur (?e2e=1).
   if (typeof window !== 'undefined' && /[?&]e2e=1\b/.test(window.location.search)) window.__riseCockpit = comp;
   return api;
