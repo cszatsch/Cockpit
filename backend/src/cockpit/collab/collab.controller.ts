@@ -31,8 +31,14 @@ const OPEN_TO_ALL: Record<string, string> = {
   REPORT: 'reportInstance',
 };
 
+/**
+ * Longueur maximale du champ commenté. Le Cockpit identifie une cellule par la clé `onglet|libellé de ligne|colonne`
+ * (libellé tronqué à 70 caractères par l'écran) : 200 caractères couvrent cette clé (branchement du frontend).
+ */
+export const COMMENT_FIELD_MAX = 200;
+
 const CommentCreate = z
-  .object({ entityType: z.string().min(1).max(40), entityId: z.string().min(1).max(120), field: z.string().min(1).max(80), text: z.string().trim().min(1, 'obligatoire').max(4000) })
+  .object({ entityType: z.string().min(1).max(40), entityId: z.string().min(1).max(120), field: z.string().min(1).max(COMMENT_FIELD_MAX), text: z.string().trim().min(1, 'obligatoire').max(4000) })
   .strict();
 
 /** Commentaires de cellule et historique d'un objet (brief § 9.9). */

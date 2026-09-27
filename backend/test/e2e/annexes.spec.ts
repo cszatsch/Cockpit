@@ -50,6 +50,14 @@ describe('Étape 10 — documents, commentaires, historique, Jev, services exter
     expect(list.body).toHaveLength(1);
   });
 
+  it('commentaires : clé de cellule du Cockpit (onglet|libellé|colonne) jusqu’à 200 caractères', async () => {
+    const pmo = await t.as(WHO.pmo);
+    const key = 'risques|' + 'R03 · '.padEnd(70, 'x') + '|2';
+    const c = await pmo.post(`${R}/comments`, { entityType: 'RISK', entityId: 'R03', field: key, text: 'Clé longue' }).expect(201);
+    expect(c.body.field).toBe(key);
+    await pmo.post(`${R}/comments`, { entityType: 'RISK', entityId: 'R03', field: 'x'.repeat(201), text: 'Trop long' }).expect(400);
+  });
+
   it('historique d’un objet (§ 9.9)', async () => {
     const c = await t.as(WHO.pmo);
     await c.patch(`${R}/risks/R05`, { p: 3 }).expect(200);
