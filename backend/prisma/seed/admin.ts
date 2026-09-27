@@ -316,6 +316,7 @@ export async function seedAdmin(db: PrismaClient): Promise<void> {
         day: 'day' in r ? r.day : null,
         hour: 'hour' in r ? r.hour : null,
         channels: [...r.ch],
+        trigger: ({ n1: 'MILESTONE_LATE', n2: 'RISK_CRITICAL', n3: 'BUDGET_THRESHOLD', n4: 'SCHEDULE', n5: 'DOCUMENT_ANALYZED' } as const)[r.id],
         enabled: r.on,
       },
     });

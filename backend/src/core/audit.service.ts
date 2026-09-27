@@ -46,9 +46,9 @@ export class AuditService {
 
   private base(ctx: WriteCtx) {
     return {
-      accountId: ctx.actor.accountId,
+      accountId: ctx.origin === 'SYSTEM' ? null : ctx.actor.accountId,
       actorName: ctx.actor.fullName,
-      personId: ctx.actor.personId,
+      personId: ctx.origin === 'SYSTEM' ? null : ctx.actor.personId,
       profileUsed: ctx.profileUsed,
       origin: ctx.origin ?? 'MANUAL',
       projectId: ctx.projectId ?? null,

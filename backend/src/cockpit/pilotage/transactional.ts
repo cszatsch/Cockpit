@@ -11,6 +11,8 @@ import { nextCode, readableId } from '../../core/ids';
 import { canReadWs, canWriteWs, profileUsedFor, visibleWorkstreams } from '../../domain/rights';
 import { actionView, decisionView, issueView, riskView } from '../views';
 import { UsagesService } from '../referential/usages.service';
+import { EventBus } from '../../core/events';
+import { riskScore, RISK_CRITICAL_MIN } from '../../domain/rules';
 import { id, isoDate, optIsoDate, optText, text } from '../referential/schemas';
 
 export interface TxCtx {
@@ -255,7 +257,15 @@ export class TransactionalService {
     readonly audit: AuditService,
     readonly todaySvc: TodayService,
     private readonly usagesSvc: UsagesService,
+    private readonly events: EventBus,
   ) {}
+
+  /** Un risque qui devient critique (p × i ≥ 20) déclenche l'alerte correspondante (Console § 10.5). */
+  private async emitRisk(before: any | null, after: any) {
+    if (riskScore(after.p, after.i) >= RISK_CRITICAL_MIN && after.status !== 'CLOSED' && (!before || riskScore(before.p, before.i) < RISK_CRITICAL_MIN)) {
+      await this.events.emit({ type: 'risk.critical', projectId: after.projectId, riskId: after.id });
+    }
+  }
 
   today(scope: ProjectScope) {
     return this.todaySvc.today(scope.project.timezone);
@@ -310,7 +320,7 @@ export class TransactionalService {
   async create(def: TxEntity, actor: Actor, scope: ProjectScope, body: unknown, origin: WriteCtx['origin'] = 'MANUAL') {
     const input = parse(def.create, body);
     this.assertWriteWs(scope, input.wsId, true);
-    return this.prisma.$transaction(async (tx) => {
+    const out = await this.prisma.$transaction(async (tx) => {
       const c: TxCtx = { db: tx, scope, today: this.today(scope) };
       await ref(tx, 'workstream', scope.project.id, input.wsId, 'wsId');
       const { data, warnings } = await def.prepare(c, input, null);
@@ -320,13 +330,15 @@ export class TransactionalService {
       const row = await (tx as any)[def.delegate].create({ data: { ...data, id: newId, code, projectId: scope.project.id } });
       const view = def.view(row, c.today);
       await this.audit.record(tx, this.wctx(actor, scope, row.wsId, origin), { entityType: def.entityType, entityId: row.id, before: null, after: view, wsId: row.wsId, target: def.label(row) });
-      return withWarnings(view, warnings);
+      return { row, result: withWarnings(view, warnings) };
     });
+    if (def.entityType === 'RISK') await this.emitRisk(null, out.row);
+    return out.result;
   }
 
   async patch(def: TxEntity, actor: Actor, scope: ProjectScope, idOrCode: string, body: unknown, ifMatch?: string, origin: WriteCtx['origin'] = 'MANUAL') {
     const input = parse(def.patch, body);
-    return this.prisma.$transaction(async (tx) => {
+    const out = await this.prisma.$transaction(async (tx) => {
       const existing = await this.row(def, scope, idOrCode, tx, true);
       this.assertWriteWs(scope, existing.wsId, false);
       if (input.wsId && input.wsId !== existing.wsId) {
@@ -343,8 +355,10 @@ export class TransactionalService {
       if (def.entityType === 'DECISION' && row.status === 'ARBITRATED' && existing.status !== 'ARBITRATED' && row.supersedesId) {
         await this.supersede(tx, actor, scope, row.supersedesId);
       }
-      return withWarnings(view, warnings);
+      return { existing, row, result: withWarnings(view, warnings) };
     });
+    if (def.entityType === 'RISK') await this.emitRisk(out.existing, out.row);
+    return out.result;
   }
 
   /** Une décision arbitrée qui en remplace une autre fait passer celle-ci à SUPERSEDED. */

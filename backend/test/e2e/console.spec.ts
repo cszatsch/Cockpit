@@ -1,0 +1,225 @@
+import request from 'supertest';
+import { setup, TestCtx, WHO } from '../helpers';
+import { buildWorkbook, validAtlas } from '../fixtures/excel';
+
+const A = '/api/admin';
+
+describe('Console Admin — critères d’acceptation (brief Console § 13)', () => {
+  let t: TestCtx;
+  beforeAll(async () => {
+    t = await setup();
+  });
+  afterAll(() => t.close());
+
+  describe('1. Accès', () => {
+    it('un PMO sans profil Admin reçoit 403, un Admin 200', async () => {
+      const r = await (await t.as(WHO.pmo)).get(`${A}/overview`).expect(403);
+      expect(r.body.code).toBe('FORBIDDEN');
+      const ok = await (await t.as(WHO.admin)).get(`${A}/overview`).expect(200);
+      expect(ok.body.attention[0]).toMatchObject({ level: 'error', kind: 'PROVIDER_ERROR' });
+      expect(ok.body.attention[0].detail).toMatch(/Documents tourne sur son modèle de secours/);
+    });
+    it('toute écriture crée une entrée d’audit avec profileUsed = ADMIN', async () => {
+      const c = await t.as(WHO.admin);
+      await c.post(`${A}/accounts/u31/resend-invite`).expect(200);
+      const a = await t.db.auditEntry.findFirst({ where: { entityType: 'Account', entityId: 'u31' }, orderBy: { at: 'desc' } });
+      expect(a).toMatchObject({ profileUsed: 'ADMIN', accountId: 'u1', action: 'Relance d’une invitation' });
+    });
+  });
+
+  describe('2. Comptes', () => {
+    it('inviter un e-mail déjà utilisé → 409 ; invitation valable 14 jours', async () => {
+      const c = await t.as(WHO.admin);
+      await c.post(`${A}/accounts`, { fullName: 'Robin', email: 'robin.lefevre@example.com', profile: 'pmo', projectCodes: ['RISE'] }).expect(409);
+      await c.post(`${A}/accounts`, { fullName: 'X', email: 'x@example.com', profile: 'pmo', projectCodes: ['RISE'] }).expect(400);
+      const r = await c.post(`${A}/accounts`, { fullName: 'Nadia Colin', email: 'nadia.colin@example.com', profile: 'pmo', projectCodes: ['HORIZON'] }).expect(201);
+      expect(r.body).toMatchObject({ status: 'INVITED', profile: 'PMO', projectCodes: ['HORIZON'] });
+      expect(new Date(r.body.inviteExpiresAt).getTime() - new Date(r.body.invitedAt).getTime()).toBe(14 * 86_400_000);
+      // Responsable d'une personne du référentiel : attribué par le PMO (Q3).
+      await c.patch(`${A}/accounts/u15`, { profile: 'resp' }).expect(422);
+    });
+    it('suspendre ferme les sessions actives', async () => {
+      const token = await t.token({ personId: 'p07' });
+      await request(t.app.getHttpServer()).get('/api/me').set('Authorization', `Bearer ${token}`).expect(200);
+      await (await t.as(WHO.admin)).post(`${A}/accounts/u7/suspend`).expect(200);
+      await request(t.app.getHttpServer()).get('/api/me').set('Authorization', `Bearer ${token}`).expect(401);
+      expect(await t.db.authSession.count({ where: { accountId: 'u7', revokedAt: null } })).toBe(0);
+      await (await t.as(WHO.admin)).post(`${A}/accounts/u1/suspend`).expect(409);
+    });
+    it('supprimer un compte lié → 409 + usages', async () => {
+      const r = await (await t.as(WHO.admin)).del(`${A}/accounts/u3`).expect(409);
+      expect(r.body.usages.length).toBeGreaterThan(0);
+      expect(r.body.usages.map((u: any) => u.entityType)).toContain('GOVERNANCE_BODY');
+    });
+    it('filtrer par profil Responsable : compteurs de statut cohérents avec ce filtre', async () => {
+      const r = await (await t.as(WHO.admin)).get(`${A}/accounts?profile=resp`).expect(200);
+      const items = r.body.items;
+      expect(items.every((a: any) => a.profile === 'RESPONSABLE')).toBe(true);
+      expect(r.body.counts.byStatus.total).toBe(items.length);
+      expect(r.body.counts.byStatus.ACTIVE + r.body.counts.byStatus.INVITED + r.body.counts.byStatus.SUSPENDED).toBe(items.length);
+      const byStatus = await (await t.as(WHO.admin)).get(`${A}/accounts?status=suspendu`).expect(200);
+      expect(Object.values(byStatus.body.counts.byProfile).slice(1).reduce((a: number, b: any) => a + b, 0)).toBe(byStatus.body.items.length);
+    });
+  });
+
+  describe('3. Administrateurs', () => {
+    it('retirer le dernier administrateur → 409 ; un administrateur ne peut pas se retirer lui-même', async () => {
+      const c = await t.as(WHO.admin);
+      await c.del(`${A}/admins/u1`).expect(409);
+      await c.post(`${A}/admins`, { accountId: 'u13' }).expect(201);
+      const other = await t.as({ accountId: 'u13' });
+      await other.del(`${A}/admins/u13`).expect(409);
+      await other.del(`${A}/admins/u1`).expect(204);
+      await other.del(`${A}/admins/u13`).expect(409);
+      await other.post(`${A}/admins`, { accountId: 'u1' }).expect(201);
+    });
+  });
+
+  describe('4. Clés', () => {
+    it('une clé révoquée passe en ERROR et Documents passe « Sur secours » ; jamais de clé en clair', async () => {
+      const c = await t.as(WHO.admin);
+      const all = await c.post(`${A}/providers/test-all`).expect(200);
+      expect(JSON.stringify(all.body)).not.toMatch(/sk-ant-demo|AIza-demo|keyCipher/);
+      expect(all.body.find((p: any) => p.id === 'google')).toMatchObject({ status: 'ERROR', functionsOnFallback: ['docs'] });
+      const asg = await c.get(`${A}/assignments`).expect(200);
+      expect(asg.body.find((x: any) => x.functionId === 'docs').state).toBe('FALLBACK');
+      expect(asg.body.find((x: any) => x.functionId === 'insights').state).toBe('NOMINAL');
+    });
+    it('remplacer la clé la reteste et trace une action critique', async () => {
+      const c = await t.as(WHO.admin);
+      const r = await c.put(`${A}/providers/google/key`, { apiKey: 'AIzaSyNEWKEY-000000000000000000000Zz9' }).expect(200);
+      expect(r.body).toMatchObject({ status: 'OK', keyPrefix: 'AIza', keyLast4: '0Zz9' });
+      expect(JSON.stringify(r.body)).not.toContain('NEWKEY');
+      const a = await t.db.auditEntry.findFirst({ where: { action: 'Rotation de clé API', target: 'Google' }, orderBy: { at: 'desc' } });
+      expect(a).toMatchObject({ severity: 'CRITICAL', profileUsed: 'ADMIN' });
+      expect((await c.get(`${A}/assignments`).expect(200)).body.find((x: any) => x.functionId === 'docs').state).toBe('NOMINAL');
+    });
+  });
+
+  describe('5. Consommation', () => {
+    it('la dépense du mois est la somme des UsageRecord ; projection cohérente avec le rythme de 7 jours', async () => {
+      const m = (await (await t.as(WHO.admin)).get(`${A}/usage/month`).expect(200)).body;
+      const sum = await t.db.usageRecord.aggregate({ where: { at: { gte: new Date('2026-08-31T22:00:00Z'), lt: new Date('2026-09-26T22:00:00Z') } }, _sum: { costEur: true } });
+      expect(m.spent).toBeCloseTo(sum._sum.costEur!, 1);
+      expect(m.projection).toBeCloseTo(m.spent + m.rate7d * 4, 0);
+      if (m.crossDate) expect(m.crossDate >= '2026-09-26').toBe(true);
+      const all = m.thresholds.find((x: any) => x.id === 'all');
+      expect(all.status).toBe(all.projection > 1200 ? 'EXCEEDED' : all.spent >= 960 ? 'ALERT' : 'UNDER');
+    });
+    it('franchir 80 % déclenche la règle budgétaire une seule fois', async () => {
+      const c = await t.as(WHO.admin);
+      await c.put(`${A}/budget-thresholds/crud`, { limitEur: 1, warnPct: 80, enabled: true }).expect(200);
+      // Un appel LLM (Jev) déclenche le contrôle.
+      await (await t.as(WHO.pmo)).post('/api/projects/RISE/assistant/messages', { context: { space: 'today' }, text: 'Bonjour' }).expect(200);
+      await (await t.as(WHO.pmo)).post('/api/projects/RISE/assistant/messages', { context: { space: 'today' }, text: 'Encore' }).expect(200);
+      const fired = await t.db.budgetAlertFired.findMany({ where: { thresholdId: 'crud' } });
+      expect(fired).toHaveLength(1);
+      const sent = await t.db.delivery.findMany({ where: { ruleId: 'n3', eventKey: { contains: '|crud|' } } });
+      expect(sent.length).toBe(1);
+    });
+  });
+
+  describe('6. Snapshots', () => {
+    it('snapshot manuel sans libellé → 400 ; avec libellé : capturé', async () => {
+      const c = await t.as(WHO.admin);
+      await c.post(`${A}/projects/RISE/snapshots`, {}).expect(400);
+      const s = await c.post(`${A}/projects/RISE/snapshots`, { label: 'Avant import' }).expect(201);
+      expect(s.body).toMatchObject({ kind: 'MANUAL', status: 'DONE', hasContent: true });
+      await (await t.as(WHO.pmo)).patch('/api/projects/RISE/risks/R07', { p: 5 }).expect(200);
+      await (await t.as(WHO.pmo)).post('/api/projects/RISE/risks', { n: 'Nouveau', p: 1, i: 1, owner: 'p01', wsId: 'C8' }).expect(201);
+      const s2 = await c.post(`${A}/projects/RISE/snapshots`, { label: 'Après' }).expect(201);
+      const cmp = await c.get(`${A}/snapshots/compare?a=${s.body.id}&b=${s2.body.id}`).expect(200);
+      expect(cmp.body.changes).toEqual(expect.arrayContaining([expect.objectContaining({ op: 'mod', entity: 'Risque', field: 'p', before: 3, after: 5 }), expect.objectContaining({ op: 'add', entity: 'Risque' })]));
+      const demo = await c.get(`${A}/snapshots/compare?a=r1&b=r9`).expect(200);
+      expect(demo.body.summary).toMatchObject({ add: expect.any(Number), mod: expect.any(Number), del: expect.any(Number) });
+      expect(demo.body.summary.del).toBeGreaterThan(0);
+    });
+    it('aucune route de restauration n’existe', async () => {
+      const c = await t.as(WHO.admin);
+      await c.post(`${A}/snapshots/r9/restore`).expect(404);
+      const doc = await t.http().get('/api/docs/openapi.json').expect(200);
+      expect(Object.keys(doc.body.paths).some((p) => /restor/i.test(p))).toBe(false);
+    });
+  });
+
+  describe('7. Notifications', () => {
+    it('enregistrer sans prompt → 400 ; modèle inactif → 400', async () => {
+      const c = await t.as(WHO.admin);
+      const r = await c.patch(`${A}/notification-rules/n4`, { prompt: '' }).expect(400);
+      expect(r.body.fields.prompt).toBeDefined();
+      const m = await c.patch(`${A}/notification-rules/n4`, { modelId: 'gflash' }).expect(400);
+      expect(m.body.fields.modelId).toBe('modèle inactif');
+      await c.patch(`${A}/notification-rules/n4`, { prompt: 'Réponds {reponse_llm}' }).expect(400);
+    });
+    it('preview remplace {reponse_llm} ; un envoi consomme des jetons visibles dans la consommation', async () => {
+      const c = await t.as(WHO.admin);
+      await c.patch(`${A}/notification-rules/n4`, { body: 'Synthèse : {reponse_llm}' }).expect(200);
+      const p = await c.post(`${A}/notification-rules/n4/preview`, { sampleContext: { semaine: 'semaine 40' } }).expect(200);
+      expect(p.body.body).toMatch(/^Synthèse : Synthèse \(réf\./);
+      expect(p.body.body).not.toContain('{reponse_llm}');
+      expect(p.body.tokens).toBeGreaterThan(0);
+      const before = await t.db.usageRecord.count({ where: { source: 'NOTIFICATION' } });
+      const sent = await c.post(`${A}/notification-rules/n4/test`).expect(200);
+      expect(sent.body[0]).toMatchObject({ status: 'OK', recipientsCount: 1 });
+      expect(await t.db.usageRecord.count({ where: { source: 'NOTIFICATION' } })).toBe(before + 1);
+    });
+    it('un risque qui devient critique déclenche l’alerte n2 (une seule fois)', async () => {
+      await (await t.as(WHO.pmo)).patch('/api/projects/RISE/risks/R07', { i: 5 }).expect(200);
+      const d = await t.db.delivery.findMany({ where: { ruleId: 'n2', eventKey: { contains: 'R07' } } });
+      expect(d.length).toBe(2); // APP + EMAIL
+    });
+  });
+
+  describe('8. Modules', () => {
+    it('approuver une demande active le module sur le seul projet demandé', async () => {
+      const c = await t.as(WHO.admin);
+      const r = await c.post(`${A}/module-requests/q1/approve`).expect(200);
+      const ben = r.body.find((m: any) => m.id === 'ben');
+      expect(ben).toMatchObject({ scope: 'PROJECTS', projectIds: ['RISE'] });
+      const mods = await (await t.as(WHO.pmo)).get('/api/projects/RISE/modules').expect(200);
+      expect(mods.body.find((m: any) => m.id === 'ben').active).toBe(true);
+      expect((await (await t.as(WHO.pmo)).get('/api/projects/ATLAS/modules').expect(200)).body.find((m: any) => m.id === 'ben').active).toBe(false);
+    });
+  });
+
+  describe('9. Import d’un projet', () => {
+    let adminToken = '';
+    beforeAll(async () => {
+      adminToken = await t.token(WHO.admin);
+    });
+    const upload = (buf: Buffer) => request(t.app.getHttpServer()).post(`${A}/project-imports`).set('Authorization', `Bearer ${adminToken}`).attach('file', buf, 'init.xlsx');
+
+    it('onglet manquant → rapport en erreur, rien créé ; code existant → erreur', async () => {
+      const r = await upload(await buildWorkbook({ dropSheets: ['03 Personnes'] })).expect(201);
+      expect(r.body.status).toBe('REJECTED');
+      expect(r.body.report.issues[0]).toMatchObject({ level: 'ERROR', sheet: '03 Personnes' });
+      await (await t.as(WHO.admin)).post(`${A}/project-imports/${r.body.importId}/commit`).expect(422);
+      const dup = await upload(await buildWorkbook(validAtlas('RISE'))).expect(201);
+      expect(dup.body.report.issues[0].message).toBe('Le code RISE existe déjà');
+    });
+    it('fichier conforme : commit crée le projet au statut PREPARATION, visible dans GET /projects', async () => {
+      const r = await upload(await buildWorkbook(validAtlas('ORION'))).expect(201);
+      expect(r.body.status).toBe('CHECKED');
+      const c = await t.as(WHO.admin);
+      const pv = await c.get(`${A}/project-imports/${r.body.importId}/preview?tab=planning`).expect(200);
+      expect(pv.body.data.phases).toHaveLength(2);
+      const done = await c.post(`${A}/project-imports/${r.body.importId}/commit`).expect(200);
+      expect(done.body).toEqual({ projectId: 'ORION', code: 'ORION' });
+      const lib = await c.get(`${A}/projects`).expect(200);
+      expect(lib.body[0]).toMatchObject({ code: 'ORION', status: 'PREPARATION', isNew: true, counts: { waves: 1, phases: 2, workstreams: 1, persons: 3 } });
+      const audit = await t.db.auditEntry.findFirst({ where: { action: 'Initialisation d’un projet' } });
+      expect(audit).toMatchObject({ severity: 'SENSITIVE', target: 'ORION · init.xlsx' });
+      await c.post(`${A}/project-imports/${r.body.importId}/commit`).expect(409);
+    });
+    it('une erreur pendant le commit annule tout', async () => {
+      const r = await upload(await buildWorkbook(validAtlas('VEGA'))).expect(201);
+      // Collision provoquée : une équipe au même identifiant technique existe déjà.
+      await t.db.client.upsert({ where: { code: 'AMC Corp' }, create: { id: 'c1', code: 'AMC Corp', name: 'AMC Corp' }, update: {} });
+      await t.db.project.create({ data: { id: 'TMP', clientId: 'c1', code: 'TMP', name: 'tmp', startDate: '2026-01-01', targetEndDate: '2026-12-31' } });
+      await t.db.team.create({ data: { id: 'VEGA-t-2', projectId: 'TMP', name: 'x' } });
+      await (await t.as(WHO.admin)).post(`${A}/project-imports/${r.body.importId}/commit`).expect(409);
+      expect(await t.db.project.findUnique({ where: { code: 'VEGA' } })).toBeNull();
+      expect(await t.db.person.count({ where: { projectId: 'VEGA' } })).toBe(0);
+    });
+  });
+});
