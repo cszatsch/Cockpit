@@ -4,6 +4,7 @@ import { PrismaService } from './prisma.service';
 import { EventBus } from './events';
 import { ApiError } from './errors';
 import { decryptSecret } from './crypto';
+import { KeyTestResult, ProviderKeyTester } from './provider-key-tester';
 
 export type AiFunctionId = 'insights' | 'crud' | 'docs';
 export type UsageSourceCode = 'COCKPIT' | 'JEV' | 'NOTIFICATION' | 'IMPORT';
@@ -19,11 +20,7 @@ export interface LlmResult {
   ms: number;
 }
 
-export interface KeyTestResult {
-  status: 'OK' | 'ERROR';
-  latencyMs: number | null;
-  error: string | null;
-}
+export type { KeyTestResult } from './provider-key-tester';
 
 /** Fonctions IA (Console `FNS`). */
 export const AI_FUNCTIONS: Array<{ id: AiFunctionId; name: string; short: string; description: string }> = [
@@ -38,11 +35,11 @@ export const AI_FUNCTIONS: Array<{ id: AiFunctionId; name: string; short: string
  * (texte construit à partir du prompt, jetons estimés à ~4 caractères par jeton) qui respecte
  * les règles de la plateforme : modèle principal, bascule sur le secours si le fournisseur du principal
  * n'est pas OK, refus si aucun n'est disponible, et une ligne `UsageRecord` par appel au tarif du moment.
- * Pour brancher de vrais fournisseurs, remplacer `generate()` et `ping()`.
+ * Pour brancher de vrais fournisseurs, remplacer `generate()`. Le test des clés (`ping()`) est réel.
  */
 @Injectable()
 export class LlmService {
-  constructor(private readonly prisma: PrismaService, private readonly events: EventBus) {}
+  constructor(private readonly prisma: PrismaService, private readonly events: EventBus, private readonly keys: ProviderKeyTester) {}
 
   /** Modèle disponible : LLM actif et fournisseur au statut OK (UNTESTED = indisponible, Q10). Embedding et Reranking ne génèrent pas de texte. */
   async modelAvailable(modelId: string | null | undefined): Promise<boolean> {
@@ -93,19 +90,17 @@ export class LlmService {
   }
 
   /**
-   * Test d'une clé (Console § 7.2) : appel minimal au fournisseur. Bouchon : une clé contenant « revoked »
-   * ou trop courte est refusée (401), sinon la latence est simulée de façon stable.
+   * Test d'une clé (Console § 7.2) : appel réel et authentifié à l'API du fournisseur
+   * (`ProviderKeyTester`, liste des modèles, sans coût). Une clé illisible ou absente est refusée sans appel.
    */
-  async ping(providerId: string, keyCipher: string | null): Promise<KeyTestResult> {
-    if (!keyCipher) return { status: 'ERROR', latencyMs: null, error: '401 · API key missing' };
+  async ping(provider: { id: string; name: string; keyCipher: string | null }): Promise<KeyTestResult> {
+    if (!provider.keyCipher) return { status: 'ERROR', latencyMs: null, error: 'Aucune clé enregistrée' };
     let key: string;
     try {
-      key = decryptSecret(keyCipher);
+      key = decryptSecret(provider.keyCipher);
     } catch {
-      return { status: 'ERROR', latencyMs: null, error: '500 · Clé illisible (chiffrement)' };
+      return { status: 'ERROR', latencyMs: null, error: 'Clé illisible (chiffrement : SECRETS_KEY a-t-elle changé ?)' };
     }
-    if (/revoked/i.test(key) || key.length < 20) return { status: 'ERROR', latencyMs: null, error: '401 · API key revoked. La clé a été révoquée côté fournisseur.' };
-    const latency = 250 + (parseInt(createHash('md5').update(providerId + key).digest('hex').slice(0, 4), 16) % 300);
-    return { status: 'OK', latencyMs: latency, error: null };
+    return this.keys.test(provider.id, provider.name, key);
   }
 }

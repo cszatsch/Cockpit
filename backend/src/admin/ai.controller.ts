@@ -83,7 +83,7 @@ export class AiController implements OnModuleInit {
   private async test(id: string, ctx: WriteCtx) {
     const p = await this.prisma.provider.findUnique({ where: { id } });
     if (!p) throw notFound('Fournisseur introuvable');
-    const r = await this.llm.ping(p.id, p.keyCipher);
+    const r = await this.llm.ping(p);
     await this.prisma.provider.update({ where: { id }, data: { status: r.status, latencyMs: r.latencyMs, lastError: r.error, lastTestedAt: new Date(), version: { increment: 1 } } });
     if (r.status === 'ERROR' && p.status !== 'ERROR') {
       // Une clé en erreur bascule les fonctions sur leur secours ; alerte critique (§ 10.1).

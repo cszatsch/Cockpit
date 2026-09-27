@@ -15,6 +15,7 @@ import { JobsService } from './jobs.service';
 import { MailerService } from './mailer.service';
 import { SessionService } from './auth/session.service';
 import { CredentialsService } from './auth/credentials.service';
+import { ProviderKeyTester } from './provider-key-tester';
 
 /** Socle commun au Cockpit et à la Console : base, authentification, droits, audit, date du jour. */
 @Global()
@@ -27,7 +28,7 @@ import { CredentialsService } from './auth/credentials.service';
     }),
   ],
   controllers: [AuthController],
-  providers: [{ provide: APP_GUARD, useClass: AuthGuard }, AccessService, AuditService, TodayService, StorageService, EventBus, LlmService, JobsService, MailerService, SessionService, CredentialsService],
-  exports: [AccessService, AuditService, TodayService, StorageService, EventBus, LlmService, JobsService, MailerService, SessionService, CredentialsService],
+  providers: [{ provide: APP_GUARD, useClass: AuthGuard }, AccessService, AuditService, TodayService, StorageService, EventBus, LlmService, JobsService, MailerService, SessionService, CredentialsService, ProviderKeyTester],
+  exports: [AccessService, AuditService, TodayService, StorageService, EventBus, LlmService, JobsService, MailerService, SessionService, CredentialsService, ProviderKeyTester],
 })
 export class CoreModule {}

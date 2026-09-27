@@ -4,6 +4,7 @@ import request from 'supertest';
 import { createApp } from '../src/app.factory';
 import { runSeed } from '../prisma/seed';
 import { seedDemoAi } from '../prisma/seed/admin';
+import { ProviderKeyTester } from '../src/core/provider-key-tester';
 
 /** Application de test sur une base amorçée avec le jeu de démonstration. */
 export interface TestCtx {
@@ -31,6 +32,8 @@ export async function setup(): Promise<TestCtx> {
   await seedDemoAi(db);
   const app = await createApp({ logger: false });
   await app.init();
+  // Les tests ne sortent jamais sur Internet : les fournisseurs d'IA sont simulés.
+  app.get(ProviderKeyTester).fetchImpl = fakeProviderFetch;
   const server = app.getHttpServer();
   const tokens: Record<string, string> = {};
   const token = async (who: { personId?: string; accountId?: string }) => {
@@ -74,4 +77,16 @@ export const WHO = {
   respC1: { personId: 'p07' },
   lecteurC3: { personId: 'p04' },
   lecteurC8: { personId: 'p05' },
+};
+
+/**
+ * Double des API des fournisseurs pour le test des clés : une clé qui contient « revoked » ou compte
+ * moins de 20 caractères est refusée (401), les autres sont acceptées (200, liste de modèles vide).
+ */
+export const fakeProviderFetch: typeof fetch = async (_url, init) => {
+  const h = (init?.headers ?? {}) as Record<string, string>;
+  const key = h['x-api-key'] ?? h['x-goog-api-key'] ?? String(h.Authorization ?? '').replace(/^Bearer /, '');
+  const refused = /revoked/i.test(key) || key.length < 20;
+  const body = refused ? { error: { message: 'Invalid API key' } } : { data: [] };
+  return new Response(JSON.stringify(body), { status: refused ? 401 : 200, headers: { 'Content-Type': 'application/json' } });
 };

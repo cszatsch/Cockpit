@@ -369,7 +369,7 @@ export function bindConsole(c) {
   };
 
   // ── Fournisseurs et modèles : la clé saisie part au serveur et n'est jamais conservée dans l'état ──
-  const provTested = (p, silent) => { const x = toProv(p); repl('provs', x.id, x); if (!silent) toast(x.st === 'ok' ? x.n + ' répond en ' + x.lat + ' ms' : x.n + ' refuse la clé : ' + (x.err || '401').split('.')[0], x.st === 'ok' ? 'ok' : 'err'); return x; };
+  const provTested = (p, silent) => { const x = toProv(p); repl('provs', x.id, x); if (!silent) toast(x.st === 'ok' ? x.n + ' répond en ' + x.lat + ' ms' : /^\d{3} /.test(x.err) ? x.n + ' refuse la clé (' + x.err.slice(0, 3) + ')' : x.n + ' : ' + (x.err || 'test impossible'), x.st === 'ok' ? 'ok' : 'err'); return x; };
   c.testKey = async (id, silent) => {
     c.setProv(id, { testing: true });
     try { const p = await post('/providers/' + id + '/test'); provTested(p, silent); touch(); } catch (e) { c.setProv(id, { testing: false }); fail(e); }

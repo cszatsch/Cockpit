@@ -154,3 +154,8 @@ Les captures sont écrites dans `OUT` (par défaut `<tmp>/rise-console-e2e`).
 - **Règles de notification** : seuls les LLM sont proposés ; une règle dont le modèle n'existe plus affiche « Choisissez un LLM » (le calcul du tarif plantait). Nouvelle règle : premier LLM actif.
 - **Schéma des connexions** : chaque fournisseur réserve au moins deux lignes, pour que les tuiles ne se chevauchent pas quand il n'a aucun modèle actif.
 - **`admin-api.js`** : `toModel` lit `category` ; `saveModel` crée (`POST /models`) ou modifie (`PATCH`) avec la catégorie ; `delModel` supprime après la confirmation d'origine ; `fromAsg` omet les fonctions sans principal.
+
+## Test réel des clés d'API (28/09/2026)
+
+- **Schéma des connexions** : sous un fournisseur en erreur, « <code> · clé révoquée » devient « <code> · clé refusée » (le code vient du fournisseur : 401, 403, 400…) ; sans code, « Injoignable » ou « Test impossible » selon la cause, au lieu de « Clé invalide ». Un emplacement, commenté `API :`.
+- **`admin-api.js`, message après un test** : « <fournisseur> refuse la clé (<code>) », ou « <fournisseur> : <cause> » quand le fournisseur est injoignable ou non reconnu. « Tester toutes les clés » compte les clés réellement acceptées.

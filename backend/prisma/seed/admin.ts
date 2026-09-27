@@ -170,12 +170,12 @@ export async function seedAdmin(db: PrismaClient): Promise<void> {
   }
 
   // ── Fournisseurs et modèles ──
-  // Clés de démonstration (fictives), chiffrées ; la clé Google est révoquée.
+  // Clés de démonstration (fictives), chiffrées : le test réel les refusera.
   const PROV = [
-    { id: 'anthropic', name: 'Anthropic', key: 'sk-ant-demo-000000000000000000007Q2f', status: 'OK', lat: 384, ago: 118 },
-    { id: 'openai', name: 'OpenAI', key: 'sk-proj-demo-00000000000000000000m81X', status: 'OK', lat: 512, ago: 118 },
-    { id: 'mistral', name: 'Mistral AI', key: 'demo-mistral-0000000000000000000Zp0c', status: 'OK', lat: 297, ago: 118 },
-    { id: 'google', name: 'Google', key: 'AIza-demo-revoked-00000000000000Qe4k', status: 'ERROR', lat: null, ago: 124, err: '401 · API key revoked. La clé a été révoquée côté fournisseur.' },
+    { id: 'anthropic', name: 'Anthropic', key: 'sk-ant-demo-000000000000000000007Q2f' },
+    { id: 'openai', name: 'OpenAI', key: 'sk-proj-demo-00000000000000000000m81X' },
+    { id: 'mistral', name: 'Mistral AI', key: 'demo-mistral-0000000000000000000Zp0c' },
+    { id: 'google', name: 'Google', key: 'AIza-demo-revoked-00000000000000Qe4k' },
   ] as const;
   for (const p of PROV) {
     await db.provider.create({
@@ -185,10 +185,8 @@ export async function seedAdmin(db: PrismaClient): Promise<void> {
         keyPrefix: p.key.startsWith('sk-ant-') ? 'sk-ant-' : p.key.startsWith('sk-proj-') ? 'sk-proj-' : p.key.startsWith('AIza') ? 'AIza' : '',
         keyLast4: p.key.slice(-4),
         keyCipher: encryptSecret(p.key),
-        status: p.status,
-        latencyMs: p.lat,
-        lastTestedAt: back(p.ago),
-        lastError: 'err' in p ? p.err : null,
+        // Clés fictives : jamais testées tant que l'administrateur ne les a pas remplacées (test réel, 28/09/2026).
+        status: 'UNTESTED',
       },
     });
   }
@@ -309,6 +307,13 @@ export async function seedAdmin(db: PrismaClient): Promise<void> {
  * comme jeu d'essai de la passerelle LLM, de l'affectation et de la consommation.
  */
 export async function seedDemoAi(db: PrismaClient): Promise<void> {
+  // État des clés du jeu d'essai (les tests remplacent l'appel réel au fournisseur par un double).
+  for (const [id, status, latencyMs, ago, lastError] of [
+    ['anthropic', 'OK', 384, 118, null], ['openai', 'OK', 512, 118, null], ['mistral', 'OK', 297, 118, null],
+    ['google', 'ERROR', null, 124, '401 · API key revoked. La clé a été révoquée côté fournisseur.'],
+  ] as const) {
+    await db.provider.update({ where: { id }, data: { status, latencyMs, lastTestedAt: back(ago), lastError } });
+  }
   const MODELS: Array<[string, string, string, string, number, number, boolean]> = [
     ['opus', 'anthropic', 'Claude Opus 4.1', 'Raisonnement long et analyses complexes.', 15, 75, true],
     ['sonnet', 'anthropic', 'Claude Sonnet 4.5', 'Polyvalent, excellent en synthèse et en rédaction.', 3, 15, true],
