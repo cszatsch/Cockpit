@@ -10,12 +10,14 @@ import { PilotageController } from './pilotage/pilotage.controller';
 import { AnomaliesService } from './pilotage/anomalies.service';
 import { TodayController } from './today/today.controller';
 import { CommitteesController } from './committees/committees.controller';
+import { BootstrapController } from './bootstrap/bootstrap.controller';
+import { BootstrapService } from './bootstrap/bootstrap.service';
 
 /** API du Cockpit : `/api/me`, `/api/projects/{projectId}/…`. */
 @Module({
   // Ordre significatif : les routes fixes (ex. deliverables/tracking) avant les routes paramétrées (deliverables/:id).
-  controllers: [MeController, ProjectController, PilotageController, TodayController, CommitteesController, ...REFERENTIAL_CONTROLLERS, ...TX_CONTROLLERS],
-  providers: [ReferentialService, UsagesService, TransactionalService, AnomaliesService],
+  controllers: [MeController, ProjectController, BootstrapController, PilotageController, TodayController, CommitteesController, ...REFERENTIAL_CONTROLLERS, ...TX_CONTROLLERS],
+  providers: [ReferentialService, UsagesService, TransactionalService, AnomaliesService, BootstrapService],
   exports: [ReferentialService, UsagesService, TransactionalService, AnomaliesService],
 })
 export class CockpitModule {}
