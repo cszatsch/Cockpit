@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, OnModuleInit, Param, Patch, Post, Put, Query, Res } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, OnModuleInit, Param, Patch, Post, Put, Query, Res } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
 import { AdminOnly, Actor, CurrentActor } from '../core/auth/auth';
@@ -7,7 +7,7 @@ import { PrismaService } from '../core/prisma.service';
 import { LlmService, AI_FUNCTIONS } from '../core/llm.service';
 import { JobsService } from '../core/jobs.service';
 import { encryptSecret, keyFingerprint } from '../core/crypto';
-import { badRequest, businessRule, conflict, notFound } from '../core/errors';
+import { badRequest, businessRule, conflict, inUse, notFound, Usage } from '../core/errors';
 import { parse } from '../core/http';
 import { adminCtx } from './profiles.service';
 import { round2, UsageService } from './usage.service';
@@ -18,6 +18,26 @@ export const KEY_TEST_CRON = '0 */2 * * *';
 const SYSTEM_ACTOR = { accountId: 'system', sessionId: 'system', email: 'system@rise.local', fullName: 'Système', personId: null, isAdmin: true, surface: null, restricted: false, viaCookie: false };
 
 const ApiKey = z.string().trim().min(20, '20 caractères minimum').max(400);
+
+/** Catégories de modèles ; seuls les LLM peuvent servir une fonction du Cockpit ou une règle de notification. */
+export const MODEL_CATEGORIES = ['LLM', 'EMBEDDING', 'RERANKING'] as const;
+export const GENERATIVE_CATEGORY = 'LLM';
+const MODEL_CATEGORY_LABEL: Record<string, string> = { LLM: 'LLM', EMBEDDING: 'Embedding', RERANKING: 'Reranking' };
+const Category = z.preprocess((v) => (typeof v === 'string' ? v.toUpperCase() : v), z.enum(MODEL_CATEGORIES, { errorMap: () => ({ message: 'LLM, Embedding ou Reranking' }) }));
+const ModelFields = z.object({
+  name: z.string().trim().min(1, 'obligatoire').max(80),
+  description: z.string().max(300),
+  category: Category,
+  priceIn: z.number().min(0, 'montant invalide'),
+  priceOut: z.number().min(0, 'montant invalide'),
+  active: z.boolean(),
+});
+const ModelCreate = ModelFields.partial({ description: true, active: true }).extend({ providerId: z.string().min(1, 'obligatoire') }).strict();
+
+/** Identifiant lisible d'un modèle : nom sans accents ni ponctuation (« Claude Sonnet 4.5 » → claude-sonnet-4-5). */
+function modelSlug(name: string): string {
+  return name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60) || 'modele';
+}
 
 /** Fournisseurs, modèles, affectation, consommation et plafonds (brief Console § 9.4-9.6). */
 @ApiTags('console · intelligence artificielle')
@@ -124,7 +144,7 @@ export class AiController implements OnModuleInit {
   // ───────────── Modèles ─────────────
 
   private modelView(m: any) {
-    return { id: m.id, providerId: m.providerId, name: m.name, description: m.description, priceIn: m.priceInPerMTok, priceOut: m.priceOutPerMTok, active: m.active, version: m.version };
+    return { id: m.id, providerId: m.providerId, name: m.name, description: m.description, category: m.category, priceIn: m.priceInPerMTok, priceOut: m.priceOutPerMTok, active: m.active, version: m.version };
   }
 
   @Get('models')
@@ -133,9 +153,63 @@ export class AiController implements OnModuleInit {
     return rows.map((m) => this.modelView(m));
   }
 
+  /** Ajout d'un modèle à un fournisseur existant (action sensible, tracée). */
+  @Post('models')
+  async createModel(@CurrentActor() actor: Actor, @Body() body: unknown) {
+    const input = parse(ModelCreate, body);
+    const provider = await this.prisma.provider.findUnique({ where: { id: input.providerId } });
+    if (!provider) throw badRequest('Fournisseur inconnu', { providerId: 'introuvable' });
+    if (await this.prisma.aiModel.findFirst({ where: { providerId: input.providerId, name: { equals: input.name, mode: 'insensitive' } } })) {
+      throw conflict('DUPLICATE', `${provider.name} a déjà un modèle « ${input.name} »`);
+    }
+    const base = modelSlug(input.name);
+    let id = base;
+    for (let n = 2; await this.prisma.aiModel.findUnique({ where: { id } }); n++) id = `${base}-${n}`;
+    const row = await this.prisma.$transaction(async (db) => {
+      const row = await db.aiModel.create({
+        data: { id, providerId: input.providerId, name: input.name, description: input.description ?? '', category: input.category, priceInPerMTok: input.priceIn, priceOutPerMTok: input.priceOut, active: input.active ?? true },
+      });
+      await this.audit.action(db, adminCtx(actor), {
+        action: 'Ajout d’un modèle', target: `${row.name} · ${provider.name} · ${MODEL_CATEGORY_LABEL[row.category]} · ${row.priceInPerMTok}/${row.priceOutPerMTok} €/MTok`,
+        severity: 'SENSITIVE', entityType: 'AiModel', entityId: id,
+      });
+      return row;
+    });
+    return this.modelView(row);
+  }
+
+  /** Usages qui empêchent de supprimer un modèle : affectation, règle de notification, historique de consommation. */
+  private async modelUsages(id: string): Promise<Usage[]> {
+    const out: Usage[] = [];
+    for (const a of await this.prisma.modelAssignment.findMany({ where: { OR: [{ primaryModelId: id }, { fallbackModelId: id }] } })) {
+      const fn = AI_FUNCTIONS.find((f) => f.id === a.functionId)?.short ?? a.functionId;
+      out.push({ entityType: 'MODEL_ASSIGNMENT', id: a.functionId, label: `${a.primaryModelId === id ? 'Principal' : 'Secours'} de ${fn}` });
+    }
+    for (const r of await this.prisma.notificationRule.findMany({ where: { modelId: id }, select: { id: true, name: true } })) {
+      out.push({ entityType: 'NOTIFICATION_RULE', id: r.id, label: `Règle « ${r.name} »` });
+    }
+    const records = await this.prisma.usageRecord.count({ where: { modelId: id } });
+    if (records) out.push({ entityType: 'USAGE_RECORD', id, label: `${records} ligne(s) de consommation (désactivez le modèle pour le retirer de l’affectation)` });
+    return out;
+  }
+
+  /** Suppression d'un modèle jamais utilisé ; sinon 409 IN_USE avec les usages (le désactiver reste possible). */
+  @Delete('models/:id')
+  @HttpCode(204)
+  async deleteModel(@CurrentActor() actor: Actor, @Param('id') id: string) {
+    const m = await this.prisma.aiModel.findUnique({ where: { id } });
+    if (!m) throw notFound('Modèle introuvable');
+    const usages = await this.modelUsages(id);
+    if (usages.length) throw inUse(usages);
+    await this.prisma.$transaction(async (db) => {
+      await db.aiModel.delete({ where: { id } });
+      await this.audit.action(db, adminCtx(actor), { action: 'Suppression d’un modèle', target: m.name, severity: 'SENSITIVE', entityType: 'AiModel', entityId: id });
+    });
+  }
+
   @Patch('models/:id')
   async patchModel(@CurrentActor() actor: Actor, @Param('id') id: string, @Body() body: unknown) {
-    const input = parse(z.object({ name: z.string().trim().min(1).max(80), description: z.string().max(300), priceIn: z.number().min(0), priceOut: z.number().min(0), active: z.boolean() }).partial().strict(), body);
+    const input = parse(ModelFields.partial().strict(), body);
     const m = await this.prisma.aiModel.findUnique({ where: { id } });
     if (!m) throw notFound('Modèle introuvable');
     if (input.active === false && m.active) {
@@ -143,13 +217,19 @@ export class AiController implements OnModuleInit {
       const uses = await this.prisma.modelAssignment.findMany({ where: { primaryModelId: id } });
       if (uses.length) throw conflict('MODEL_IN_USE', `Modèle principal de : ${uses.map((u) => AI_FUNCTIONS.find((f) => f.id === u.functionId)?.short).join(', ')} — changez d'abord l'affectation`, uses.map((u) => ({ entityType: 'MODEL_ASSIGNMENT', id: u.functionId, label: `Principal de ${u.functionId}` })));
     }
+    if (input.category && input.category !== GENERATIVE_CATEGORY && m.category === GENERATIVE_CATEGORY) {
+      // Les fonctions du Cockpit et les notifications génèrent du texte : leur modèle reste un LLM.
+      const usages = (await this.modelUsages(id)).filter((u) => u.entityType !== 'USAGE_RECORD');
+      if (usages.length) throw conflict('MODEL_IN_USE', `${m.name} est utilisé comme LLM : ${usages.map((u) => u.label).join(', ')} — changez d'abord l'affectation`, usages);
+    }
     const priceChanged = (input.priceIn !== undefined && input.priceIn !== m.priceInPerMTok) || (input.priceOut !== undefined && input.priceOut !== m.priceOutPerMTok);
     const row = await this.prisma.$transaction(async (db) => {
-      const row = await db.aiModel.update({ where: { id }, data: { name: input.name, description: input.description, priceInPerMTok: input.priceIn, priceOutPerMTok: input.priceOut, active: input.active, version: { increment: 1 } } });
+      const row = await db.aiModel.update({ where: { id }, data: { name: input.name, description: input.description, category: input.category, priceInPerMTok: input.priceIn, priceOutPerMTok: input.priceOut, active: input.active, version: { increment: 1 } } });
       const ctx = adminCtx(actor);
       if (priceChanged) await this.audit.action(db, ctx, { action: 'Modification du tarif d’un modèle', target: `${m.name} · ${m.priceInPerMTok}/${m.priceOutPerMTok} → ${row.priceInPerMTok}/${row.priceOutPerMTok} €/MTok`, severity: 'SENSITIVE', entityType: 'AiModel', entityId: id });
       if (input.active !== undefined && input.active !== m.active) await this.audit.action(db, ctx, { action: input.active ? 'Activation d’un modèle' : 'Désactivation d’un modèle', target: m.name, severity: 'SENSITIVE', entityType: 'AiModel', entityId: id });
       if ((input.name && input.name !== m.name) || (input.description !== undefined && input.description !== m.description)) await this.audit.action(db, ctx, { action: 'Modification d’un modèle', target: row.name, severity: 'INFO', entityType: 'AiModel', entityId: id });
+      if (input.category && input.category !== m.category) await this.audit.action(db, ctx, { action: 'Changement de catégorie d’un modèle', target: `${row.name} · ${MODEL_CATEGORY_LABEL[m.category]} → ${MODEL_CATEGORY_LABEL[row.category]}`, severity: 'SENSITIVE', entityType: 'AiModel', entityId: id });
       return row;
     });
     return this.modelView(row);
@@ -203,8 +283,11 @@ export class AiController implements OnModuleInit {
       const pm = models.find((m) => m.id === v!.primary);
       if (!pm) throw badRequest('Modèle inconnu', { [`${fn}.primary`]: 'introuvable' });
       if (!pm.active) throw businessRule('Le modèle principal doit être actif', { [`${fn}.primary`]: `${pm.name} est inactif` });
+      if (pm.category !== GENERATIVE_CATEGORY) throw businessRule('Une fonction du Cockpit n’accepte qu’un LLM', { [`${fn}.primary`]: `${pm.name} est un modèle ${MODEL_CATEGORY_LABEL[pm.category]}` });
       if (v!.fallback) {
-        if (!models.some((m) => m.id === v!.fallback)) throw badRequest('Modèle inconnu', { [`${fn}.fallback`]: 'introuvable' });
+        const fm = models.find((m) => m.id === v!.fallback);
+        if (!fm) throw badRequest('Modèle inconnu', { [`${fn}.fallback`]: 'introuvable' });
+        if (fm.category !== GENERATIVE_CATEGORY) throw businessRule('Une fonction du Cockpit n’accepte qu’un LLM', { [`${fn}.fallback`]: `${fm.name} est un modèle ${MODEL_CATEGORY_LABEL[fm.category]}` });
         if (v!.fallback === v!.primary) throw businessRule('Le secours doit différer du principal', { [`${fn}.fallback`]: 'identique au principal' });
       }
     }

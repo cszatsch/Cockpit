@@ -192,42 +192,8 @@ export async function seedAdmin(db: PrismaClient): Promise<void> {
       },
     });
   }
-  const MODELS: Array<[string, string, string, string, number, number, boolean]> = [
-    ['opus', 'anthropic', 'Claude Opus 4.1', 'Raisonnement long et analyses complexes.', 15, 75, true],
-    ['sonnet', 'anthropic', 'Claude Sonnet 4.5', 'Polyvalent, excellent en synthèse et en rédaction.', 3, 15, true],
-    ['haiku', 'anthropic', 'Claude Haiku 4.5', 'Rapide et économique pour les opérations courantes.', 1, 5, true],
-    ['gpt5', 'openai', 'GPT-5', 'Généraliste haut de gamme.', 1.25, 10, true],
-    ['gpt5mini', 'openai', 'GPT-5 mini', 'Version légère pour les volumes élevés.', 0.25, 2, true],
-    ['mlarge', 'mistral', 'Mistral Large 2', 'Modèle européen, hébergement UE.', 2, 6, true],
-    ['msmall', 'mistral', 'Mistral Small 3', 'Très faible coût, tâches simples.', 0.1, 0.3, true],
-    ['gpro', 'google', 'Gemini 2.5 Pro', 'Grand contexte, adapté aux documents longs.', 1.25, 10, true],
-    ['gflash', 'google', 'Gemini 2.5 Flash', 'Rapide, multimodal.', 0.3, 2.5, false],
-  ];
-  for (const [id, providerId, name, description, pin, pout, active] of MODELS) {
-    await db.aiModel.create({ data: { id, providerId, name, description, priceInPerMTok: pin, priceOutPerMTok: pout, active } });
-  }
-  const asg = { insights: { p: 'sonnet', f: 'gpt5' }, crud: { p: 'haiku', f: 'gpt5mini' }, docs: { p: 'gpro', f: 'sonnet' } };
-  for (const [fn, a] of Object.entries(asg)) {
-    await db.modelAssignment.create({ data: { functionId: fn, primaryModelId: a.p, fallbackModelId: a.f } });
-  }
-
-  // ── Consommation de démonstration (genUsage, déterministe) ──
-  const models = await db.aiModel.findMany();
-  const rows = genDemoUsage(models, asg, '2026-09-26', 1032.4);
-  await db.usageRecord.createMany({
-    data: rows.map((x) => ({
-      at: new Date(`${x.date}T10:00:00Z`),
-      projectId: RISE_ID,
-      functionId: x.fn,
-      modelId: x.model,
-      providerId: x.provider,
-      tokensIn: x.tin,
-      tokensOut: x.tout,
-      costEur: x.cost,
-      fallbackUsed: x.fallback,
-      source: x.fn === 'crud' ? 'JEV' : 'COCKPIT',
-    })),
-  });
+  // Modèles, affectation et consommation : aucun à l'amorçage depuis la réinitialisation du 28/09/2026
+  // (docs/DECISIONS.md). L'ancien jeu reste disponible pour les tests : `seedDemoAi()`.
   await db.budgetThreshold.createMany({
     data: [
       { id: 'all', limitEur: 1200, warnPct: 80, enabled: true },
@@ -335,4 +301,48 @@ export async function seedAdmin(db: PrismaClient): Promise<void> {
   await db.module.create({ data: { id: 'bud', name: 'Budget', description: 'Budget prévisionnel, consommé, reste à faire et arbitrages.', scope: 'OFF' } });
   await db.module.create({ data: { id: 'ben', name: 'Suivi des bénéfices', description: 'Indicateurs de valeur, trajectoire des bénéfices et revues.', scope: 'OFF' } });
   await db.moduleRequest.create({ data: { id: 'q1', moduleId: 'ben', projectId: RISE_ID, requestedById: 'u13', requestedBy: 'Camille Rey', at: back(60 * 48 + 40) } });
+}
+
+/**
+ * Jeu de modèles de démonstration (9 LLM, affectation des 3 fonctions, 90 jours de consommation recalés
+ * sur 1 032,40 € au 26/09). Il n'est plus chargé par `npm run db:seed` : les tests e2e l'utilisent
+ * comme jeu d'essai de la passerelle LLM, de l'affectation et de la consommation.
+ */
+export async function seedDemoAi(db: PrismaClient): Promise<void> {
+  const MODELS: Array<[string, string, string, string, number, number, boolean]> = [
+    ['opus', 'anthropic', 'Claude Opus 4.1', 'Raisonnement long et analyses complexes.', 15, 75, true],
+    ['sonnet', 'anthropic', 'Claude Sonnet 4.5', 'Polyvalent, excellent en synthèse et en rédaction.', 3, 15, true],
+    ['haiku', 'anthropic', 'Claude Haiku 4.5', 'Rapide et économique pour les opérations courantes.', 1, 5, true],
+    ['gpt5', 'openai', 'GPT-5', 'Généraliste haut de gamme.', 1.25, 10, true],
+    ['gpt5mini', 'openai', 'GPT-5 mini', 'Version légère pour les volumes élevés.', 0.25, 2, true],
+    ['mlarge', 'mistral', 'Mistral Large 2', 'Modèle européen, hébergement UE.', 2, 6, true],
+    ['msmall', 'mistral', 'Mistral Small 3', 'Très faible coût, tâches simples.', 0.1, 0.3, true],
+    ['gpro', 'google', 'Gemini 2.5 Pro', 'Grand contexte, adapté aux documents longs.', 1.25, 10, true],
+    ['gflash', 'google', 'Gemini 2.5 Flash', 'Rapide, multimodal.', 0.3, 2.5, false],
+  ];
+  for (const [id, providerId, name, description, pin, pout, active] of MODELS) {
+    await db.aiModel.create({ data: { id, providerId, name, description, priceInPerMTok: pin, priceOutPerMTok: pout, active } });
+  }
+  const asg = { insights: { p: 'sonnet', f: 'gpt5' }, crud: { p: 'haiku', f: 'gpt5mini' }, docs: { p: 'gpro', f: 'sonnet' } };
+  for (const [fn, a] of Object.entries(asg)) {
+    await db.modelAssignment.create({ data: { functionId: fn, primaryModelId: a.p, fallbackModelId: a.f } });
+  }
+
+  // ── Consommation de démonstration (genUsage, déterministe) ──
+  const models = await db.aiModel.findMany();
+  const rows = genDemoUsage(models, asg, '2026-09-26', 1032.4);
+  await db.usageRecord.createMany({
+    data: rows.map((x) => ({
+      at: new Date(`${x.date}T10:00:00Z`),
+      projectId: RISE_ID,
+      functionId: x.fn,
+      modelId: x.model,
+      providerId: x.provider,
+      tokensIn: x.tin,
+      tokensOut: x.tout,
+      costEur: x.cost,
+      fallbackUsed: x.fallback,
+      source: x.fn === 'crud' ? 'JEV' : 'COCKPIT',
+    })),
+  });
 }

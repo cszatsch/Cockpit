@@ -33,6 +33,7 @@ cp .env.example .env              # puis adapter DATABASE_URL, SECRETS_KEY, JWT_
 npx prisma migrate deploy         # crée le schéma (et le trigger qui protège le journal d'audit)
 npm run db:seed                   # charge le jeu de démonstration (rise-data.js, planning-data.js, console)
 RISE_INITIAL_ADMIN_PASSWORD='…' npm run init:admin   # compte initial (voir § 4) ; mot de passe provisoire jamais écrit dans un fichier
+npm run ia:reinitialiser -- --confirmer   # (au besoin) supprime modèles, affectation et consommation ; garde les fournisseurs
 npm run build && npm start        # API sur http://localhost:3000
 ```
 

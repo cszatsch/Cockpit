@@ -1151,11 +1151,19 @@ model Provider {
   version      Int            @default(1)
 }
 
+/// Catégorie d'un modèle : seuls les LLM génèrent du texte (fonctions du Cockpit, notifications).
+enum ModelCategory {
+  LLM
+  EMBEDDING
+  RERANKING
+}
+
 model AiModel {
-  id              String   @id
+  id              String        @id
   providerId      String
   name            String
-  description     String   @default("")
+  description     String        @default("")
+  category        ModelCategory @default(LLM)
   priceInPerMTok  Float
   priceOutPerMTok Float
   active          Boolean  @default(true)

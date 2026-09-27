@@ -9,7 +9,7 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 | Code source (un seul service NestJS pour les deux backends) | `backend/src/` : `core`, `domain`, `cockpit`, `import`, `admin` |
 | Migrations (schéma, trigger du journal d'audit en ajout seul, console) | `backend/prisma/migrations/` |
 | Script d'amorçage (RISE depuis `rise-data.js` et `planning-data.js`, démonstration de la console) | `backend/prisma/seed/`, `npm run db:seed` |
-| `openapi.json` (172 chemins, 242 opérations), aussi servi sur `/api/docs` | `backend/openapi.json`, `npm run openapi` |
+| `openapi.json` (172 chemins, 244 opérations), aussi servi sur `/api/docs` | `backend/openapi.json`, `npm run openapi` |
 | `README.md` : installation, variables, lancement, tests, branchement | racine du dépôt |
 | `DECISIONS.md` : arbitrages Q1 à Q12 et décisions documentées | `docs/DECISIONS.md` |
 | `api.js` et le Cockpit branché | `frontends/api.js`, `frontends/RISE Cockpit.dc.html` |
@@ -32,11 +32,11 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 
 | Suite | Contenu | Résultat |
 |---|---|---|
-| `npm test` (Jest + Supertest, base `rise_test`) | 14 tests unitaires des règles de domaine ; 85 tests e2e qui reprennent les critères d'acceptation des deux briefs (§ 13) : droits, Référentiel, Pilotage, bootstrap, import, annexes, console ; 23 tests e2e de l'authentification (`auth.spec.ts`) : cookies, CSRF, message générique, blocage par adresse (compte existant ou non), console refusée et journalisée, inactivité, rotation, déconnexion, mot de passe oublié (message neutre, lien haché, usage unique, expiration, renvoi limité, règles, mot de passe compromis ou identique), invitation, changement depuis le profil (mot de passe actuel, autres sessions fermées, rotation), compte initial, adresses des pages | **9 suites, 124 tests verts** |
+| `npm test` (Jest + Supertest, base `rise_test`) | 14 tests unitaires des règles de domaine ; 85 tests e2e qui reprennent les critères d'acceptation des deux briefs (§ 13) : droits, Référentiel, Pilotage, bootstrap, import, annexes, console ; 23 tests e2e de l'authentification (`auth.spec.ts`) : cookies, CSRF, message générique, blocage par adresse (compte existant ou non), console refusée et journalisée, inactivité, rotation, déconnexion, mot de passe oublié (message neutre, lien haché, usage unique, expiration, renvoi limité, règles, mot de passe compromis ou identique), invitation, changement depuis le profil (mot de passe actuel, autres sessions fermées, rotation), compte initial, adresses des pages ; 5 tests des modèles d'IA (`ai-models.spec.ts`) : catégorie, ajout, suppression, LLM obligatoire, réinitialisation | **10 suites, 129 tests verts** |
 | `test/browser/cockpit.e2e.ts` (Chromium, Playwright) | 23 vues, 48 écrans comparés au pixel près avec le frontend d'origine ; 20 contrôles de persistance après rechargement | **0 erreur JS, 20/20 contrôles** ; écart moyen 0,1 %, maximum 3,5 % (voir § 3.3) |
 | `test/browser/console.e2e.ts` | 12 menus comparés avec l'origine ; actions réelles (suspension, plafond, règle, snapshot, import ORION, clés, invitation, envoi de test) vérifiées après rechargement et dans l'API ; mode démonstration | **34/34 vérifications** ; écarts de 0 à 1,7 % |
 | `test/browser/cockpit.stores.ts` | Sonde : modifie chaque magasin synchronisé du Cockpit et liste les appels émis | Tous les appels aboutissent |
-| Écrans de connexion (vérification manuelle dans le navigateur, 28/09/2026) | Erreur générique avec tentatives restantes ; première connexion du compte initial avec refus d'un mot de passe compromis ; arrivée sur le Cockpit ; « Toujours là ? » (Échap = rester connecté) puis expiration ; console : connexion, déconnexion, mot de passe oublié, lien ouvert avec l'habillage console, réinitialisation, refus d'un compte non administrateur ; affichage mobile (375 px, sans défilement horizontal) ; « Mon profil › Sécurité › Modifier » dans le Cockpit et la Console (mot de passe actuel refusé, changement, session conservée, autres sessions fermées) | Conforme. Les trois scripts Playwright ci-dessus n'ont pas été relancés après ce changement (voir § 3.5) |
+| Écrans de connexion (vérification manuelle dans le navigateur, 28/09/2026) | Erreur générique avec tentatives restantes ; première connexion du compte initial avec refus d'un mot de passe compromis ; arrivée sur le Cockpit ; « Toujours là ? » (Échap = rester connecté) puis expiration ; console : connexion, déconnexion, mot de passe oublié, lien ouvert avec l'habillage console, réinitialisation, refus d'un compte non administrateur ; affichage mobile (375 px, sans défilement horizontal) ; « Mon profil › Sécurité › Modifier » dans le Cockpit et la Console (mot de passe actuel refusé, changement, session conservée, autres sessions fermées) ; console sans aucun modèle (tous les menus sans erreur), ajout d'un Embedding et d'un LLM, affectation limitée aux LLM, suppression, changement de catégorie refusé pour un modèle affecté | Conforme. Les trois scripts Playwright ci-dessus n'ont pas été relancés après ce changement (voir § 3.5) |
 
 ## 3. Écarts connus
 
@@ -79,6 +79,12 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 - **Délai de la console** : l'expiration suit l'activité des onglets de la console ; l'activité dans le Cockpit ne la prolonge pas, puisque les sessions sont distinctes.
 - **Composant livré** : ses trois formulaires n'avaient pas de gestionnaire accessible au moteur (`onLogin`, `onForgot` et `onSetPwd` hors de `renderVals()`), si bien que la soumission rechargeait la page. C'est corrigé et consigné dans `frontends/CHANGES-auth.md`.
 - **Réinitialisation de la base** : `npm run db:seed` (et `demarrer-rise.ps1 -Reinitialiser`) vide aussi le compte initial. Le script de démarrage redemande alors son mot de passe provisoire.
+
+### 3.6 Modèles d'IA
+
+- **Jeu de démonstration sans modèle** : les tests navigateur de la console (`console.e2e.ts`) comparent l'affectation et la consommation au rendu d'origine, qui avait des modèles ; ils ne sont plus comparables tels quels sur une base amorcée par `db:seed`.
+- **Tarifs** : un Embedding ou un Reranking garde les deux tarifs « entrée » et « sortie » en € par million de tokens ; la sortie vaut en général 0. Un Reranking facturé à la requête n'est pas représentable.
+- **Jev et analyse de documents (Cockpit)** : aucun modèle n'étant affecté après la réinitialisation, Jev et l'analyse de documents répondent « indisponible » (`503 AI_UNAVAILABLE`) jusqu'à l'affectation d'un LLM.
 
 ## 4. Questions ouvertes
 

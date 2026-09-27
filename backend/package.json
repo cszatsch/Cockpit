@@ -14,6 +14,7 @@
     "db:seed": "ts-node --transpile-only prisma/seed/index.ts",
     "db:reset": "prisma migrate reset --force --skip-seed && npm run db:seed",
     "init:admin": "ts-node --transpile-only scripts/init-admin.ts",
+    "ia:reinitialiser": "ts-node --transpile-only scripts/reset-ai.ts",
     "openapi": "ts-node --transpile-only scripts/export-openapi.ts",
     "lint": "tsc --noEmit -p tsconfig.json",
     "test": "jest --runInBand",

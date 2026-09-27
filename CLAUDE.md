@@ -31,6 +31,8 @@ npm run db:migrate      # prisma migrate deploy
 npm run db:seed         # vide puis recharge le jeu de démonstration (idempotent)
 npm run db:reset
 npm run openapi         # régénère backend/openapi.json (versionné)
+npm run init:admin      # compte initial (RISE_INITIAL_ADMIN_PASSWORD, jamais dans un fichier)
+npm run ia:reinitialiser -- --confirmer   # supprime modèles d'IA, affectation et consommation (fournisseurs gardés)
 ```
 
 - **Base de test** : Jest ne lit pas `.env`. `test/env.ts` et `test/global-setup.ts` prennent `DATABASE_URL_TEST`, sinon `…@localhost:5432/rise_test`. Avec le PostgreSQL local sur 5433, exporter avant `npm test` : `DATABASE_URL_TEST=postgresql://rise@localhost:5433/rise_test` (base `rise_test` à créer une fois avec `createdb -h localhost -p 5433 -U rise rise_test`). Les migrations sont appliquées automatiquement et chaque suite réamorce la base.
@@ -48,6 +50,7 @@ Monorepo : `backend/` (API NestJS 11 + Prisma 6 + PostgreSQL), `frontends/` (pag
 - **`src/import`** : lecture et contrôle du fichier Excel d'initialisation, moteur commun au Cockpit et à la Console ; le serveur refait tous les contrôles et fait foi.
 - **`src/admin`** : Console Admin (comptes, habilitations, audit, IA, consommation, snapshots, notifications, modules, bibliothèque).
 - **Frontends** : le Cockpit passe par `frontends/api.js` (charge le bootstrap au montage ; chaque écriture appelle l'API puis recharge), la Console par `frontends/admin-api.js`. Design et textes restent inchangés ; chaque modification d'un frontend est justifiée dans `frontends/CHANGES-cockpit.md` / `CHANGES-console.md`. Paramètres d'URL de développement : `?as=p06` (Cockpit), `?as=u1` (Console) — sans eux, session par cookie —, `?e2e=1` (expose `window.__riseCockpit` aux tests).
-- **Amorçage** : `prisma/seed/source.ts` lit les fichiers de données des frontends, `rise.ts` amorce le Cockpit (y compris les corrections et affectations des décisions Q5 et Q6), `admin.ts` la Console.
+- **Amorçage** : `prisma/seed/source.ts` lit les fichiers de données des frontends, `rise.ts` amorce le Cockpit (y compris les corrections et affectations des décisions Q5 et Q6), `admin.ts` la Console — sans modèle d'IA depuis le 28/09/2026 ; `seedDemoAi()` (9 LLM, affectation, consommation) n'est chargé que par les tests (`test/helpers.ts`).
+- **Modèles d'IA** : catégorie `LLM` / `EMBEDDING` / `RERANKING` ; seuls les LLM servent l'affectation des fonctions et les règles de notification.
 - **Authentification** (`src/core/auth`, spécification `docs/specs/AUTH - specification.md`) : écrans `Connexion.dc.html` / `Connexion Console.dc.html` (composant `Authentification.dc.html`, client `frontends/auth-api.js`) ; sessions par cookie HttpOnly, une par surface (`APP`, `ADMIN`), jeton anti-CSRF `X-CSRF-Token` pour les écritures ; règles et durées dans `policy.ts`. Les pages `/` et `/console` sont servies par `pages.ts` seulement avec une session de leur surface.
 - **Authentification de développement** (`AUTH_DEV=true`) : `POST /api/auth/dev-login` avec `{"personId":"p01"}` (PMO) ou `{"accountId":"u1"}` (Admin) délivre un jeton porteur ; dans les écrans, `?as=p06` / `?as=u1` active ce mode (les tests navigateur l'utilisent) ; autres comptes dans le README § 4.

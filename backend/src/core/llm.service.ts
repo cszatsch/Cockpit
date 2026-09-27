@@ -44,11 +44,11 @@ export const AI_FUNCTIONS: Array<{ id: AiFunctionId; name: string; short: string
 export class LlmService {
   constructor(private readonly prisma: PrismaService, private readonly events: EventBus) {}
 
-  /** Modèle disponible : actif et fournisseur au statut OK (UNTESTED = indisponible, Q10). */
+  /** Modèle disponible : LLM actif et fournisseur au statut OK (UNTESTED = indisponible, Q10). Embedding et Reranking ne génèrent pas de texte. */
   async modelAvailable(modelId: string | null | undefined): Promise<boolean> {
     if (!modelId) return false;
     const m = await this.prisma.aiModel.findUnique({ where: { id: modelId } });
-    if (!m || !m.active) return false;
+    if (!m || !m.active || m.category !== 'LLM') return false;
     const p = await this.prisma.provider.findUnique({ where: { id: m.providerId } });
     return p?.status === 'OK';
   }
@@ -64,7 +64,7 @@ export class LlmService {
 
   /** Appel direct d'un modèle (règles de notification : modèle propre à la règle). */
   async completeWithModel(modelId: string, input: { functionId: AiFunctionId; prompt: string; projectId?: string | null; source: UsageSourceCode }): Promise<LlmResult> {
-    if (!(await this.modelAvailable(modelId))) throw new ApiError(503, 'AI_UNAVAILABLE', `Modèle ${modelId} inactif ou fournisseur en erreur`);
+    if (!(await this.modelAvailable(modelId))) throw new ApiError(503, 'AI_UNAVAILABLE', `Modèle ${modelId} inconnu, inactif, non LLM ou fournisseur en erreur`);
     return this.run(modelId, input, false);
   }
 

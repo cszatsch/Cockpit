@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import request from 'supertest';
 import { createApp } from '../src/app.factory';
 import { runSeed } from '../prisma/seed';
+import { seedDemoAi } from '../prisma/seed/admin';
 
 /** Application de test sur une base amorçée avec le jeu de démonstration. */
 export interface TestCtx {
@@ -26,6 +27,8 @@ export interface Client {
 export async function setup(): Promise<TestCtx> {
   const db = new PrismaClient();
   await runSeed(db);
+  // Jeu d'essai des modèles d'IA (l'amorçage n'en crée plus depuis le 28/09/2026).
+  await seedDemoAi(db);
   const app = await createApp({ logger: false });
   await app.init();
   const server = app.getHttpServer();

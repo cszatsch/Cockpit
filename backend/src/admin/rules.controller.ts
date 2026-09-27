@@ -68,9 +68,11 @@ export class RulesController {
     if (!r.platform && !r.projectIds.length) fields.projectIds = 'au moins un projet (hors règle de plateforme)';
     if (!r.prompt.trim()) fields.prompt = 'obligatoire';
     if (r.prompt.includes(`{${LLM_RESPONSE_VARIABLE}}`)) fields.prompt = `{${LLM_RESPONSE_VARIABLE}} n'est utilisable que dans le message`;
-    const model = await this.prisma.aiModel.findUnique({ where: { id: r.modelId } });
-    if (!model) fields.modelId = 'modèle inconnu';
+    const model = r.modelId ? await this.prisma.aiModel.findUnique({ where: { id: r.modelId } }) : null;
+    if (!r.modelId) fields.modelId = 'obligatoire';
+    else if (!model) fields.modelId = 'modèle inconnu';
     else if (!model.active) fields.modelId = 'modèle inactif';
+    else if (model.category !== 'LLM') fields.modelId = 'un LLM est requis pour rédiger le message';
     if (r.frequency === 'CUSTOM' && !r.everyDays) fields.everyDays = 'obligatoire pour une fréquence personnalisée';
     if (r.projectIds.length) {
       const found = await this.prisma.project.count({ where: { code: { in: r.projectIds } } });
@@ -95,7 +97,7 @@ export class RulesController {
       targetProfiles: i.targetProfiles ?? [],
       projectIds: (i.projectIds ?? []).map((c) => c.toUpperCase()),
       platform: i.platform ?? false,
-      modelId: i.modelId ?? 'haiku',
+      modelId: i.modelId ?? '',
       prompt: i.prompt ?? '',
       subject: i.subject ?? '',
       body: i.body ?? '',

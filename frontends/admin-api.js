@@ -153,10 +153,11 @@ export const toAudit = a => ({ id: a.id, who: a.who, a: a.action, tg: a.target |
 /** Fournisseur → `{ id, n, pre, l4, st, lat, t, err }` (jamais de clé en clair). */
 export const toProv = p => ({ id: p.id, n: p.name, pre: p.keyPrefix || '', l4: p.keyLast4 || '', st: PROV_ST[p.status] || 'new', lat: p.latencyMs, t: D(p.lastTestedAt) || new Date(), err: p.lastError || '', bad: p.status === 'ERROR', testing: false });
 /** Modèle → `{ id, pv, n, d, pin, pout, act }`. */
-export const toModel = m => ({ id: m.id, pv: m.providerId, n: m.name, d: m.description || '', pin: m.priceIn, pout: m.priceOut, act: m.active });
+export const toModel = m => ({ id: m.id, pv: m.providerId, n: m.name, d: m.description || '', c: m.category || 'LLM', pin: m.priceIn, pout: m.priceOut, act: m.active });
 /** Affectations → `{ insights:{p,f}, crud:{p,f}, docs:{p,f} }`. */
 export const toAsg = list => Object.fromEntries(list.map(a => [a.functionId, { p: a.primary || '', f: a.fallback || '' }]));
-export const fromAsg = asg => Object.fromEntries(Object.entries(asg).map(([k, v]) => [k, { primary: v.p, fallback: v.f || null }]));
+/** Affectation → corps de `PUT /assignments` ; une fonction sans modèle principal n'est pas envoyée (aucun LLM choisi). */
+export const fromAsg = asg => Object.fromEntries(Object.entries(asg).filter(([, v]) => v.p).map(([k, v]) => [k, { primary: v.p, fallback: v.f || null }]));
 /** Détail jour × fonction × modèle → lignes `{ d, fn, m, pv, tin, tout, c }` de `genUsage()` (d = 0…89, 89 = aujourd'hui). */
 export const toUsageRows = (detail, from) => (detail || []).map(r => ({ d: daysBetween(from, r.day), fn: r.functionId, m: r.modelId, pv: r.providerId, tin: r.tokensIn, tout: r.tokensOut, c: r.costEur, fb: r.fallbackUsed }));
 /** Plafonds → `th[]` de la console `{ id, n, lim, warn, on }` (seulement ceux qui ont un plafond). */
@@ -404,17 +405,26 @@ export function bindConsole(c) {
     patch('/models/' + m.id, { active: true }).then(r => { modelSaved(r); toast(m.n + ' est disponible pour l’affectation'); touch(); }).catch(fail);
   };
   const num = v => parseFloat(String(v).replace(',', '.'));
+  // Création (POST /models) ou modification (PATCH /models/{id}), catégorie comprise.
   c.saveModel = async () => {
-    const S = c.state, f = S.form, fe = {};
+    const S = c.state, f = S.form, fe = {}, isNew = !S.dlg.id;
+    if (isNew && !f.pv) fe.pv = 'Choisissez un fournisseur.';
     if (!f.n || !f.n.trim()) fe.n = 'Nom requis.'; if (!(num(f.pin) >= 0)) fe.pin = 'Montant invalide.'; if (!(num(f.pout) >= 0)) fe.pout = 'Montant invalide.';
     if (Object.keys(fe).length) return c.setState({ fe });
-    try { modelSaved(await patch('/models/' + S.dlg.id, { name: f.n.trim(), description: f.d || '', priceIn: num(f.pin), priceOut: num(f.pout) })); set0({ dlg: null, form: {} }); toast('Modèle mis à jour'); touch(); } catch (e) { fail(e); }
+    const body = { name: f.n.trim(), description: f.d || '', category: f.c || 'LLM', priceIn: num(f.pin), priceOut: num(f.pout) };
+    try {
+      if (isNew) { const m = toModel(await post('/models', { providerId: f.pv, ...body })); set0(st => ({ models: [...st.models, m], dlg: null, form: {} })); toast(m.n + ' ajouté'); }
+      else { modelSaved(await patch('/models/' + S.dlg.id, body)); set0({ dlg: null, form: {} }); toast('Modèle mis à jour'); }
+      touch();
+    } catch (e) { fail(e); }
   };
+  // Suppression après la confirmation de l'écran ; refusée par le serveur si le modèle a servi (409 IN_USE).
+  c.delModel = gateAsk('delModel', id => del('/models/' + id).then(() => () => load(['models', 'asg']).catch(() => {})));
   c.saveFiche = async () => {
     const S = c.state, f = S.fF, fe = {};
     if (!f.n || !f.n.trim()) fe.n = 'Nom requis.'; if (!(num(f.pin) >= 0)) fe.pin = 'Montant invalide.'; if (!(num(f.pout) >= 0)) fe.pout = 'Montant invalide.';
     if (Object.keys(fe).length) return c.setState({ fFe: fe });
-    try { modelSaved(await patch('/models/' + S.fiche.id, { name: f.n.trim(), description: f.d || '', priceIn: num(f.pin), priceOut: num(f.pout) })); set0({ fFe: {} }); toast('Modèle enregistré'); touch(); } catch (e) { fail(e); }
+    try { modelSaved(await patch('/models/' + S.fiche.id, { name: f.n.trim(), description: f.d || '', category: f.c || 'LLM', priceIn: num(f.pin), priceOut: num(f.pout) })); set0({ fFe: {} }); toast('Modèle enregistré'); touch(); } catch (e) { fail(e); }
   };
 
   // ── Affectation ──
