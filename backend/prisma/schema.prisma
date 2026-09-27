@@ -1,0 +1,1262 @@
+// RISE — schéma de données commun au Cockpit et à la Console Admin.
+// Conventions :
+//  - identifiants : chaînes stables (ids historiques du jeu de démonstration, sinon générés par le serveur) ;
+//  - dates métier : chaînes ISO 8601 `YYYY-MM-DD` (jamais de libellé) ; horodatages : DateTime UTC ;
+//  - `*Prec` : précision d'affichage d'une date saisie au mois ou à l'année dans le Référentiel (D | M | Y) ;
+//  - `version` : verrouillage optimiste (ETag / If-Match) ;
+//  - enums : codes anglais majuscules.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────── Enums ───────────────────────────
+
+enum ActiveStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum ProjectStatus {
+  PREPARATION
+  ACTIVE
+  CLOSED
+}
+
+enum PlanStatus {
+  PLANNED
+  IN_PROGRESS
+  DONE
+}
+
+enum WorkstreamStatus {
+  ACTIVE
+  CLOSED
+}
+
+enum DatePrecision {
+  D
+  M
+  Y
+}
+
+enum TeamKind {
+  CLIENT
+  AMOA
+  INTEGRATOR
+  OTHER
+}
+
+enum Frequency {
+  DAILY
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+  QUARTERLY
+  SEMIANNUAL
+  ON_DEMAND
+}
+
+enum BodyLevel {
+  STRATEGIC
+  STEERING
+  OPERATIONAL
+  OFF_CYCLE
+}
+
+enum MemberRole {
+  CHAIR
+  MEMBER
+  SECRETARY
+  GUEST
+}
+
+enum RiskStatus {
+  OPEN
+  MITIGATING
+  CLOSED
+}
+
+enum IssueStatus {
+  OPEN
+  RESOLVING
+  RESOLVED
+}
+
+enum ActionStatus {
+  OPEN
+  IN_PROGRESS
+  BLOCKED
+  DONE
+}
+
+enum Priority {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum SourceType {
+  RISK
+  ISSUE
+  MILESTONE
+  DECISION
+}
+
+enum DecisionStatus {
+  DRAFT
+  IN_REVIEW
+  TO_ARBITRATE
+  ARBITRATED
+  CANCELLED
+  SUPERSEDED
+}
+
+enum SessionStatus {
+  PLANNED
+  HELD
+  CANCELLED
+}
+
+enum ReportStatus {
+  DRAFT
+  IN_REVIEW
+  PUBLISHED
+}
+
+enum DeliverableRisk {
+  OK
+  TENSION
+  CRITICAL
+}
+
+enum MissionStatus {
+  INVOICED
+  IN_PROGRESS
+  NEGOTIATION
+}
+
+enum Confidentiality {
+  INTERNAL
+  RESTRICTED
+}
+
+enum DocumentSource {
+  UPLOADED
+  GENERATED
+}
+
+enum ExtractionStatus {
+  PENDING
+  SUCCEEDED
+  PARTIAL
+  UNSUPPORTED
+}
+
+enum TaskStatus {
+  TODO
+  DONE
+}
+
+enum AccountStatus {
+  INVITED
+  ACTIVE
+  SUSPENDED
+}
+
+enum Profile {
+  ADMIN
+  PMO
+  RESPONSABLE
+  LECTEUR
+}
+
+enum AuditOrigin {
+  MANUAL
+  JEV
+  IMPORT
+  SYSTEM
+}
+
+enum Severity {
+  INFO
+  SENSITIVE
+  CRITICAL
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ProviderStatus {
+  OK
+  ERROR
+  UNTESTED
+}
+
+enum UsageSource {
+  COCKPIT
+  JEV
+  NOTIFICATION
+  IMPORT
+}
+
+enum SnapshotKind {
+  AUTO
+  MANUAL
+}
+
+enum SnapshotStatus {
+  RUNNING
+  DONE
+  FAILED
+}
+
+enum RuleKind {
+  NOTIFICATION
+  ALERT
+}
+
+enum RuleFrequency {
+  IMMEDIATE
+  DAILY
+  WEEKLY
+  CUSTOM
+}
+
+enum Channel {
+  APP
+  EMAIL
+}
+
+enum DeliveryStatus {
+  OK
+  ERROR
+}
+
+enum ModuleScope {
+  OFF
+  ALL
+  PROJECTS
+}
+
+enum ImportStatus {
+  CHECKED
+  REJECTED
+  IMPORTED
+}
+
+enum ChangeStatus {
+  PROPOSED
+  CONFIRMED
+  REJECTED
+}
+
+// ─────────────────────────── Référentiel ───────────────────────────
+
+model Client {
+  id          String       @id
+  code        String       @unique
+  name        String
+  description String?
+  status      ActiveStatus @default(ACTIVE)
+  projects    Project[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  version     Int          @default(1)
+}
+
+model Project {
+  id                 String        @id
+  clientId           String
+  client             Client        @relation(fields: [clientId], references: [id])
+  code               String        @unique
+  name               String
+  objective          String?
+  startDate          String
+  targetEndDate      String
+  timezone           String        @default("Europe/Paris")
+  city               String?
+  country            String        @default("France")
+  status             ProjectStatus @default(PREPARATION)
+  editorTeamId       String?
+  integratorTeamId   String?
+  programDirectorId  String?
+  sponsorId          String?
+  currency           String        @default("EUR")
+  forecastGoliveIso  String?
+  /// { value, reason, by, at } — `reason` obligatoire
+  healthOverride     Json?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  version            Int           @default(1)
+
+  sections           ProjectSection[]
+  baselines          BaselineVersion[]
+  waves              Wave[]
+  phases             Phase[]
+  subphases          Subphase[]
+  workstreams        Workstream[]
+  milestones         Milestone[]
+  deliverables       Deliverable[]
+  teams              Team[]
+  roles              ProjectRole[]
+  persons            Person[]
+  assignments        Assignment[]
+  bodies             GovernanceBody[]
+  habilitations      Habilitation[]
+  contentBlocks      ContentBlock[]
+}
+
+/// Sections libres de la fiche projet. Clé = identifiant stable d'un champ de la fiche (surcharge éditée).
+model ProjectSection {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  key       String
+  label     String?
+  value     Json
+  order     Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, key])
+}
+
+model BaselineVersion {
+  id           String   @id @default(cuid())
+  projectId    String
+  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  version      String
+  date         String
+  approvedAt   String?
+  approvedById String?
+  reason       String?
+  current      Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  @@unique([projectId, version])
+}
+
+/// Données de présentation sans règle de calcul (brief Cockpit § 12) : committee, volets, riskStats,
+/// weekWins, referential.*, raci, modelGaps, métadonnées d'affichage de model.*, missionNext…
+model ContentBlock {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  key       String
+  data      Json
+  updatedAt DateTime @updatedAt
+  version   Int      @default(1)
+
+  @@unique([projectId, key])
+}
+
+model Wave {
+  id        String        @id
+  projectId String
+  project   Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  seq       Int
+  name      String
+  startDate String?
+  startPrec DatePrecision @default(D)
+  endDate   String?
+  endPrec   DatePrecision @default(D)
+  status    PlanStatus    @default(PLANNED)
+  ownerId   String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  version   Int           @default(1)
+
+  phases      PhaseWave[]
+  workstreams WorkstreamWave[]
+
+  @@unique([projectId, seq])
+}
+
+model Phase {
+  id                 String        @id
+  projectId          String
+  project            Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  seq                Int
+  code               String
+  name               String
+  description        String?
+  startDate          String
+  startPrec          DatePrecision @default(D)
+  endDate            String
+  endPrec            DatePrecision @default(D)
+  status             PlanStatus    @default(PLANNED)
+  progressPct        Int           @default(0)
+  /// Q8 : avancement prévu forcé (planning)
+  plannedPctOverride Int?
+  critical           Boolean       @default(false)
+  ownerId            String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  version            Int           @default(1)
+
+  waves       PhaseWave[]
+  subphases   Subphase[]
+  workstreams WorkstreamPhase[]
+  milestones  Milestone[]
+
+  @@unique([projectId, seq])
+}
+
+/// Relation N-N Phase ↔ Lot ; Q8 : dates de la phase propres au lot (facultatives).
+model PhaseWave {
+  phaseId   String
+  phase     Phase          @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+  waveId    String
+  wave      Wave           @relation(fields: [waveId], references: [id], onDelete: Cascade)
+  startDate String?
+  startPrec DatePrecision?
+  endDate   String?
+  endPrec   DatePrecision?
+
+  @@id([phaseId, waveId])
+}
+
+model Subphase {
+  id                 String        @id
+  projectId          String
+  project            Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  phaseId            String
+  phase              Phase         @relation(fields: [phaseId], references: [id])
+  code               String
+  name               String
+  description        String?
+  startDate          String?
+  startPrec          DatePrecision @default(D)
+  endDate            String?
+  endPrec            DatePrecision @default(D)
+  status             PlanStatus    @default(PLANNED)
+  progressPct        Int           @default(0)
+  plannedPctOverride Int?
+  critical           Boolean       @default(false)
+  ownerId            String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  version            Int           @default(1)
+
+  milestones   Milestone[]
+  deliverables Deliverable[]
+
+  @@unique([projectId, code])
+}
+
+model Workstream {
+  id                 String           @id
+  projectId          String
+  project            Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  code               String
+  seq                Int
+  name               String
+  ownerId            String
+  status             WorkstreamStatus @default(ACTIVE)
+  startDate          String?
+  endDate            String?
+  progressPct        Int              @default(0)
+  plannedPctOverride Int?
+  critical           Boolean          @default(false)
+  description        String?
+  dependsOnAll       Boolean          @default(false)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  version            Int              @default(1)
+
+  phases       WorkstreamPhase[]
+  waves        WorkstreamWave[]
+  dependencies WorkstreamDependency[] @relation("dependent")
+  dependents   WorkstreamDependency[] @relation("dependency")
+
+  @@unique([projectId, code])
+}
+
+model WorkstreamPhase {
+  wsId    String
+  ws      Workstream @relation(fields: [wsId], references: [id], onDelete: Cascade)
+  phaseId String
+  phase   Phase      @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+
+  @@id([wsId, phaseId])
+}
+
+model WorkstreamWave {
+  wsId   String
+  ws     Workstream @relation(fields: [wsId], references: [id], onDelete: Cascade)
+  waveId String
+  wave   Wave       @relation(fields: [waveId], references: [id], onDelete: Cascade)
+
+  @@id([wsId, waveId])
+}
+
+model WorkstreamDependency {
+  wsId        String
+  ws          Workstream @relation("dependent", fields: [wsId], references: [id], onDelete: Cascade)
+  dependsOnId String
+  dependsOn   Workstream @relation("dependency", fields: [dependsOnId], references: [id], onDelete: Cascade)
+
+  @@id([wsId, dependsOnId])
+}
+
+/// Bloc « Avancement » (8 lignes) ; `sig` calculé (Q9).
+model WorkstreamProgress {
+  id          String    @id
+  projectId   String
+  wsId        String
+  label       String
+  valuePct    Int
+  targetPct   Int
+  detail      String?
+  ownerId     String?
+  order       Int       @default(0)
+  confirmedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  version     Int       @default(1)
+}
+
+model Milestone {
+  id          String    @id
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  code        String
+  n           String
+  phaseId     String
+  phase       Phase     @relation(fields: [phaseId], references: [id])
+  subphaseId  String?
+  subphase    Subphase? @relation(fields: [subphaseId], references: [id])
+  wsId        String?
+  waveId      String?
+  ownerId     String?
+  iso         String
+  baselineIso String
+  confirmedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  version     Int       @default(1)
+
+  @@unique([projectId, code])
+}
+
+model Deliverable {
+  id           String           @id
+  projectId    String
+  project      Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name         String
+  subphaseId   String
+  subphase     Subphase         @relation(fields: [subphaseId], references: [id])
+  workstreamId String?
+  ownerId      String
+  start        String?
+  due          String
+  prog         Int              @default(0)
+  riskOverride DeliverableRisk?
+  /// Libellé d'équipe affiché (colonne « équipe » du Référentiel), dérivé si vide.
+  teamLabel    String?
+  order        Int              @default(0)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  version      Int              @default(1)
+}
+
+model Team {
+  id          String   @id
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  /// Q8 : type d'équipe utilisé par le Dispositif (client / AMOA / intégrateur)
+  kind        TeamKind @default(OTHER)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  version     Int      @default(1)
+
+  @@unique([projectId, name])
+}
+
+model ProjectRole {
+  id          String   @id
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  label       String
+  description String?
+  order       Int      @default(0)
+  /// Q8 : niveau d'affichage dans l'organigramme (0-3)
+  tier        Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  version     Int      @default(1)
+
+  @@unique([projectId, label])
+}
+
+model Person {
+  id          String   @id
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  firstName   String
+  lastName    String
+  email       String
+  teamId      String?
+  title       String?
+  active      Boolean  @default(true)
+  photoUrl    String?
+  /// Chantiers de rattachement affichés dans la fiche personne (colonne « chantier »)
+  wsIds       String[] @default([])
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  version     Int      @default(1)
+
+  @@unique([projectId, email])
+}
+
+model Assignment {
+  id        String   @id
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  personId  String
+  roleId    String
+  startDate String
+  endDate   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  version   Int      @default(1)
+
+  @@unique([personId, roleId, startDate])
+}
+
+model GovernanceBody {
+  id          String     @id
+  projectId   String
+  project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name        String
+  shortName   String
+  color       String
+  frequency   Frequency
+  level       BodyLevel?
+  description String?
+  order       Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  version     Int        @default(1)
+
+  members BodyMember[]
+
+  @@unique([projectId, shortName])
+}
+
+model BodyMember {
+  bodyId   String
+  body     GovernanceBody @relation(fields: [bodyId], references: [id], onDelete: Cascade)
+  personId String
+  role     MemberRole     @default(MEMBER)
+  order    Int            @default(0)
+
+  @@id([bodyId, personId])
+}
+
+// ─────────────────────────── Transactionnel ───────────────────────────
+
+model Risk {
+  id        String     @id
+  projectId String
+  code      String
+  n         String
+  p         Int
+  i         Int
+  plan      String?
+  ownerId   String
+  wsId      String
+  dueIso    String?
+  status    RiskStatus @default(OPEN)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  version   Int        @default(1)
+
+  @@unique([projectId, code])
+}
+
+model Issue {
+  id              String      @id
+  projectId       String
+  code            String
+  n               String
+  sev             Int
+  originRiskId    String?
+  openedIso       String
+  ownerId         String
+  wsId            String
+  targetIso       String?
+  targetSessionId String?
+  detail          String      @default("")
+  status          IssueStatus @default(OPEN)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  version         Int         @default(1)
+
+  @@unique([projectId, code])
+}
+
+model Action {
+  id         String       @id
+  projectId  String
+  code       String
+  n          String
+  detail     String?
+  ownerId    String
+  /// Q2 : chantier obligatoire
+  wsId       String
+  dueIso     String?
+  status     ActionStatus @default(OPEN)
+  prio       Priority     @default(MEDIUM)
+  sourceType SourceType?
+  sourceId   String?
+  closedAt   String?
+  order      Int          @default(0)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  version    Int          @default(1)
+
+  @@unique([projectId, code])
+}
+
+model Decision {
+  id                String         @id
+  projectId         String
+  code              String
+  t                 String
+  p                 Int
+  status            DecisionStatus @default(DRAFT)
+  crIso             String
+  ddIso             String?
+  wsId              String
+  bodyId            String
+  decL              String?
+  makerId           String?
+  impact            String?
+  supersedesId      String?
+  expectedSessionId String?
+  full              Boolean        @default(false)
+  opt               String?
+  /// Fiche d'arbitrage : { question, options[], criteria[], recommendation, texts{} }
+  arbitration       Json?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  version           Int            @default(1)
+
+  @@unique([projectId, code])
+}
+
+model Session {
+  id           String        @id
+  projectId    String
+  bodyId       String
+  number       Int
+  dateIso      String
+  time         String?
+  place        String?
+  status       SessionStatus @default(PLANNED)
+  participants String[]      @default([])
+  reportId     String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  version      Int           @default(1)
+
+  @@unique([bodyId, number])
+}
+
+model ReportTemplate {
+  id          String    @id
+  projectId   String
+  name        String
+  bodyId      String?
+  authorId    String?
+  authorLabel String?
+  version     String    @default("v1")
+  description String    @default("")
+  /// [{ id, scope: PROJECT|WAVE|PHASE|WORKSTREAM, targetId? }] (Q8 : composant budget, portée PHASE)
+  components  Json
+  pages       Int       @default(1)
+  publishedAt String?
+  active      Boolean   @default(true)
+  order       Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  rowVersion  Int       @default(1)
+}
+
+model ReportInstance {
+  id            String       @id
+  projectId     String
+  templateId    String?
+  sessionId     String
+  name          String
+  v             String       @default("v1")
+  status        ReportStatus @default(DRAFT)
+  generatedAt   DateTime     @default(now())
+  reportingDate String?
+  captureAt     DateTime?
+  reviewerId    String?
+  validatorId   String?
+  audience      String?
+  fileId        String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  version       Int          @default(1)
+}
+
+model BarometerSurvey {
+  id           String   @id @default(cuid())
+  projectId    String
+  /// YYYY-MM
+  month        String
+  /// Clé et libellé d'affichage historiques (« nov », « nov. 25 »)
+  key          String
+  label        String
+  overallScore Float?
+  respondents  Int?
+  /// { negative, neutral, positive } (somme = 100)
+  sentiment    Json?
+  /// [{ label, score, delta }]
+  questions    Json?
+  /// [{ label, tone: OK|WATCH|RISK }]
+  themes       Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  version      Int      @default(1)
+
+  @@unique([projectId, month])
+}
+
+model BarometerDomain {
+  id        String   @id @default(cuid())
+  projectId String
+  n         String
+  size      Int      @default(0)
+  resp      Int      @default(0)
+  /// { "YYYY-MM": score | null }
+  series    Json
+  range     String   @default("")
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  version   Int      @default(1)
+}
+
+model MissionPeriod {
+  id        String        @id
+  projectId String
+  period    String
+  amoa      Float
+  sub       Float
+  status    MissionStatus
+  order     Int           @default(0)
+  updatedAt DateTime      @updatedAt
+  version   Int           @default(1)
+}
+
+model ProgramBudget {
+  projectId String   @id
+  known     Boolean  @default(false)
+  reason    String?
+  updatedAt DateTime @updatedAt
+  version   Int      @default(1)
+}
+
+model Document {
+  id        String           @id
+  projectId String
+  n         String
+  type      String
+  dateIso   String
+  v         String           @default("v1")
+  conf      Confidentiality  @default(INTERNAL)
+  src       DocumentSource   @default(UPLOADED)
+  ext       ExtractionStatus @default(PENDING)
+  mime      String
+  pages     Int?
+  fileKey   String?
+  sizeBytes Int?
+  /// Texte d'origine de la colonne « liens » quand il ne se résout pas en liens typés
+  linkedLabel String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  version   Int              @default(1)
+
+  links DocumentLink[]
+}
+
+model DocumentLink {
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  entityType String
+  entityId   String
+
+  @@id([documentId, entityType, entityId])
+}
+
+/// Tâche manuelle, visible par son auteur seulement.
+model Task {
+  id        String     @id
+  projectId String
+  authorId  String
+  title     String
+  dueIso    String?
+  detail    String?
+  status    TaskStatus @default(TODO)
+  /// { entityType, entityId }
+  link      Json?
+  cta       String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  version   Int        @default(1)
+}
+
+/// Q8 : surcharge personnelle d'une tâche calculée (archivage, renommage).
+model TaskOverride {
+  id         String   @id @default(cuid())
+  projectId  String
+  personId   String
+  entityType String
+  entityId   String
+  archived   Boolean  @default(false)
+  title      String?
+  detail     String?
+  dueIso     String?
+  cta        String?
+  updatedAt  DateTime @updatedAt
+
+  @@unique([personId, entityType, entityId])
+}
+
+model CellComment {
+  id         String   @id @default(cuid())
+  projectId  String
+  entityType String
+  entityId   String
+  field      String
+  text       String
+  authorId   String
+  authorName String
+  resolved   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model UserPreferences {
+  accountId       String   @id
+  dashboardLayout Json?
+  theme           Json?
+  firstName       String?
+  city            String?
+  photoUrl        String?
+  notifications   Json?
+  language        String?
+  timezone        String?
+  updatedAt       DateTime @updatedAt
+}
+
+model AssistantChange {
+  id         String       @id @default(cuid())
+  projectId  String
+  accountId  String
+  entityType String
+  entityId   String?
+  op         String
+  patch      Json
+  summary    String
+  status     ChangeStatus @default(PROPOSED)
+  createdAt  DateTime     @default(now())
+  decidedAt  DateTime?
+}
+
+model AssistantFile {
+  id        String   @id @default(cuid())
+  projectId String?
+  accountId String
+  name      String
+  mime      String
+  fileKey   String
+  status    String   @default("READY")
+  createdAt DateTime @default(now())
+}
+
+// ─────────────────────────── Accès (communs) ───────────────────────────
+
+model Account {
+  id              String        @id
+  email           String        @unique
+  fullName        String
+  personId        String?
+  status          AccountStatus @default(INVITED)
+  invitedAt       DateTime?
+  inviteExpiresAt DateTime?
+  lastLoginAt     DateTime?
+  photoUrl        String?
+  /// Profil de l'administrateur (fonction, société, téléphone, ville, pays, langue, fuseau)
+  profile         Json?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  version         Int           @default(1)
+
+  projects AccountProject[]
+  sessions AuthSession[]
+}
+
+model AccountProject {
+  accountId String
+  account   Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  projectId String
+
+  @@id([accountId, projectId])
+}
+
+/// Habilitation (brief § 8.3) : RESPONSABLE et LECTEUR exigent un chantier.
+/// ADMIN est porté par AdminGrant (plateforme) ; les lignes ADMIN éventuelles sont ignorées par le calcul.
+model Habilitation {
+  id        String  @id
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  personId  String?
+  accountId String?
+  profile   Profile
+  wsId      String?
+  createdAt DateTime @default(now())
+}
+
+model AdminGrant {
+  accountId   String   @id
+  since       DateTime @default(now())
+  grantedById String?
+}
+
+model AuthSession {
+  id         String    @id @default(cuid())
+  accountId  String
+  account    Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  device     String?
+  location   String?
+  createdAt  DateTime  @default(now())
+  lastSeenAt DateTime  @default(now())
+  revokedAt  DateTime?
+}
+
+/// Q8 bis : demande d'invitation émise depuis le Référentiel du Cockpit.
+model InvitationRequest {
+  id            String        @id @default(cuid())
+  projectId     String
+  personId      String
+  requestedById String
+  status        RequestStatus @default(PENDING)
+  createdAt     DateTime      @default(now())
+  decidedAt     DateTime?
+  decidedById   String?
+}
+
+/// Journal d'audit — ajout seul (trigger SQL refusant UPDATE/DELETE).
+model AuditEntry {
+  id          String      @id @default(cuid())
+  at          DateTime    @default(now())
+  accountId   String?
+  actorName   String
+  personId    String?
+  profileUsed String?
+  origin      AuditOrigin @default(MANUAL)
+  severity    Severity    @default(INFO)
+  action      String
+  target      String?
+  projectId   String?
+  wsId        String?
+  entityType  String
+  entityId    String?
+  field       String?
+  oldValue    Json?
+  newValue    Json?
+
+  @@index([projectId, entityType, entityId])
+  @@index([at])
+}
+
+// ─────────────────────────── Console Admin ───────────────────────────
+
+model Provider {
+  id           String         @id
+  name         String
+  keyPrefix    String?
+  keyLast4     String?
+  keyCipher    String?
+  status       ProviderStatus @default(UNTESTED)
+  latencyMs    Int?
+  lastTestedAt DateTime?
+  lastError    String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  version      Int            @default(1)
+}
+
+model AiModel {
+  id              String   @id
+  providerId      String
+  name            String
+  description     String   @default("")
+  priceInPerMTok  Float
+  priceOutPerMTok Float
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  version         Int      @default(1)
+}
+
+model ModelAssignment {
+  functionId      String   @id
+  primaryModelId  String
+  fallbackModelId String?
+  updatedAt       DateTime @updatedAt
+  version         Int      @default(1)
+}
+
+model UsageRecord {
+  id           String      @id @default(cuid())
+  at           DateTime
+  projectId    String?
+  functionId   String
+  modelId      String
+  providerId   String
+  tokensIn     Int
+  tokensOut    Int
+  costEur      Float
+  fallbackUsed Boolean     @default(false)
+  source       UsageSource
+
+  @@index([at])
+}
+
+model BudgetThreshold {
+  id        String   @id
+  limitEur  Float?
+  warnPct   Int      @default(80)
+  enabled   Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+  version   Int      @default(1)
+}
+
+model BudgetAlertFired {
+  thresholdId String
+  month       String
+  firedAt     DateTime @default(now())
+
+  @@id([thresholdId, month])
+}
+
+model Snapshot {
+  id         String         @id @default(cuid())
+  projectId  String
+  takenAt    DateTime       @default(now())
+  kind       SnapshotKind
+  label      String?
+  takenById  String?
+  takenBy    String?
+  status     SnapshotStatus @default(DONE)
+  storageKey String?
+  stats      Json?
+}
+
+model SnapshotSchedule {
+  projectId String   @id
+  enabled   Boolean  @default(true)
+  frequency String   @default("Hebdomadaire")
+  day       String   @default("Vendredi")
+  hour      String   @default("04:00")
+  retention String   @default("12 mois")
+  updatedAt DateTime @updatedAt
+}
+
+model NotificationRule {
+  id             String        @id
+  kind           RuleKind
+  name           String
+  targetProfiles String[]
+  projectIds     String[]
+  platform       Boolean       @default(false)
+  modelId        String
+  prompt         String
+  subject        String
+  body           String
+  frequency      RuleFrequency
+  day            String?
+  hour           String?
+  everyDays      Int?
+  channels       Channel[]
+  enabled        Boolean       @default(false)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  version        Int           @default(1)
+}
+
+model Delivery {
+  id              String         @id @default(cuid())
+  ruleId          String
+  at              DateTime       @default(now())
+  channel         Channel
+  recipientsCount Int
+  status          DeliveryStatus
+  error           String?
+  costEur         Float          @default(0)
+  tokens          Int            @default(0)
+  projectId       String?
+  subject         String?
+  body            String?
+}
+
+model Module {
+  id          String      @id
+  name        String
+  description String
+  scope       ModuleScope @default(OFF)
+  globalSince DateTime?
+  updatedAt   DateTime    @updatedAt
+  version     Int         @default(1)
+  projects    ModuleProject[]
+}
+
+model ModuleProject {
+  moduleId  String
+  module    Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  projectId String
+  since     DateTime @default(now())
+
+  @@id([moduleId, projectId])
+}
+
+model ModuleRequest {
+  id            String        @id @default(cuid())
+  moduleId      String
+  projectId     String
+  requestedById String?
+  requestedBy   String
+  at            DateTime      @default(now())
+  status        RequestStatus @default(PENDING)
+  decidedAt     DateTime?
+}
+
+model ProjectImport {
+  id         String       @id @default(cuid())
+  fileName   String
+  fileKey    String
+  uploadedBy String
+  uploadedAt DateTime     @default(now())
+  status     ImportStatus
+  report     Json
+  parsed     Json?
+  projectId  String?
+}
