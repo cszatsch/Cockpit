@@ -218,3 +218,10 @@ Les captures sont écrites dans `OUT` (par défaut `<tmp>/rise-console-e2e`).
 - `Notifications.dc.html` (livraison) copié tel quel et placé à la fin du shell (`ntLeft` : 252, 72 en mode réduit, 0 en mobile).
 - Démonstration : `NT0` (mêmes notifications que le composant, avec la page à ouvrir) ; décisions locales annulables 10 s. API (`admin-api.js`) : `/api/admin/notifications`, rafraîchie à l'ouverture et toutes les 60 s, décisions, annulation, « Tout lire », lecture et navigation pour « Corriger » / « Voir le détail ».
 - Échap ferme d'abord le tiroir ; signal « Accès » = demandes d'invitation à traiter.
+
+## Registre des cartes API (28/09/2026)
+
+- `Registre API.dc.html` (livraison) copié tel quel ; affiché pour `apis` (spécification § 7), en-tête générique masqué ; `META.apis`.
+- `Sidebar Console.dc.html` remplacé par la version livrée (entrée `apis` dans Plateforme) ; prop `jevName` réappliquée à l'identique.
+- Signal `apis` de la sidebar (§ 2) : corail si une carte active est en erreur ou a une clé expirée, ambre si échéance ≤ 30 j ou quota ≥ 85 % (`apiSignal`) ; démonstration : `APIS0`, mêmes états que le composant.
+- `admin-api.js` : chargement `apis` (au démarrage et à l'ouverture), `apTest` (renvoie la promesse `{ code, ms, body }`), `apCreate`, `apRotate`, `apToggle` (route puis rechargement ; un refus rétablit l'état du serveur) ; `apiNow` = date du jour du serveur. En démonstration, le test reste simulé par le composant.

@@ -69,6 +69,14 @@ export const OTHER_PROJECTS = [
 export async function seedAdmin(db: PrismaClient): Promise<void> {
   // ── Skills de Jev : les cinq skills de démonstration (mêmes données initiales que la migration 20261003000000_skills_jev) ──
   await db.skill.createMany({ data: DEMO_SKILLS.map((k, i) => ({ ...k, position: i + 1, updatedBy: 'Données initiales' })) });
+  // ── Registre des cartes API : services déjà appelés par les widgets (mêmes données que la migration 20261006000000_registre_api) ──
+  await db.apiCard.createMany({
+    data: [
+      { id: 'open-meteo-geocodage', name: 'Open-Meteo · géocodage', category: 'Météo', endpoint: 'https://geocoding-api.open-meteo.com/v1/search?name=Paris&count=1&format=json', widgets: ['Météo · ville'], updatedBy: 'Données initiales' },
+      { id: 'open-meteo', name: 'Open-Meteo · prévisions', category: 'Météo', endpoint: 'https://api.open-meteo.com/v1/forecast?latitude=48.85&longitude=2.35&current=temperature_2m', widgets: ['Météo · ville'], updatedBy: 'Données initiales' },
+      { id: 'gdelt', name: 'GDELT · actualités', category: 'Actualités', endpoint: 'https://api.gdeltproject.org/api/v2/doc/doc?query=France&mode=artlist&maxrecords=1&timespan=1d&format=json', widgets: ['Actualités'], updatedBy: 'Données initiales' },
+    ],
+  });
   // ── Persona de Jev : valeur initiale (même donnée que la migration 20261004000000_persona_jev) ──
   await db.persona.create({ data: { id: 'jev', ...DEMO_PERSONA.identity, soul: DEMO_PERSONA.soul, updatedBy: 'Données initiales' } });
   // ── Projets de la bibliothèque (hors RISE) ──

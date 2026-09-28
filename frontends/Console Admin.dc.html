@@ -508,6 +508,12 @@ a{color:#1d8f86}a:hover{color:#146b64}
         </div>
       </div>
     </sc-if>
+    <!-- API : Registre des cartes API (Registre API.dc.html, REGISTRE API - specification.md § 7) ; en-tête générique masqué. -->
+    <sc-if value="{{ isApis }}" hint-placeholder-val="{{ false }}">
+      <div style="{{ skWrap }}" data-screen-label="Registre des cartes API">
+        <dc-import name="Registre API" cards="{{ apiCards }}" now="{{ apiNow }}" on-test="{{ apTest }}" on-create="{{ apCreate }}" on-rotate-key="{{ apRotate }}" on-toggle="{{ apToggle }}" hint-size="100%,760px"></dc-import>
+      </div>
+    </sc-if>
     <!-- API : page Persona (Persona.dc.html, PERSONA - specification.md § 7) ; l’en-tête générique est masqué, le composant a le sien. -->
     <sc-if value="{{ isPersona }}" hint-placeholder-val="{{ false }}">
       <div style="{{ skWrap }}" data-screen-label="Persona">
@@ -1030,6 +1036,7 @@ const META = {
   conso: ['IA', 'Consommation et coûts', 'Tokens et dépenses par fournisseur, modèle et fonction, avec seuils d’alerte.'],
   snaps: ['Projets', 'Snapshots', 'L’historique des données de chaque projet : capturer, comparer, restaurer.'],
   notifs: ['Plateforme', 'Notifications et alertes', 'Les notifications informent. Les alertes signalent un événement ou un seuil critique.'],
+  apis: ['Plateforme', 'Registre des cartes API', 'Les services externes appelés par les widgets : endpoint, clé, quota, santé et échéance de la clé.'],
   modules: ['Plateforme', 'Modules', 'Activez les modules optionnels pour toute la plateforme ou projet par projet.'],
   init: ['Projets', 'Initialisation d’un projet', 'Importez le fichier Excel rempli par le PMO : contrôle de conformité, prévisualisation du référentiel, puis création du projet.'],
   library: ['Projets', 'Bibliothèque des projets', 'Tous les projets de la plateforme, leur état et leur référentiel.'],
@@ -1050,6 +1057,8 @@ const JCHIPS = {
   modules: ['Activer Suivi des bénéfices sur RISE', 'Quels modules sont actifs ?'],
   profil: ['Quels sont mes droits ?', 'Mes sessions actives']
 };
+// Registre des cartes API (démonstration, mêmes états que Registre API.dc.html : Airparif en erreur, TomTom au quota) — signal de la sidebar.
+const APIS0 = [{ name: 'OpenWeather', enabled: true, status: 'ok' }, { name: 'TomTom Traffic', enabled: true, status: 'warn' }, { name: 'NewsAPI', enabled: true, status: 'ok' }, { name: 'Airparif', enabled: true, status: 'err' }, { name: 'Île-de-France Mobilités', enabled: true, status: 'ok' }, { name: 'Jours fériés', enabled: true, status: 'ok' }];
 // Notifications de l’administrateur (démonstration ; API : GET /api/admin/notifications). `pending` : demande encore à traiter.
 const NT0 = [
   { id: 'n1', type: 'err', title: 'Clé API Google refusée', text: 'Insights répond sur son modèle de secours ; la Vectorisation est à l’arrêt.', when: 'il y a 12 min', unread: true, actLabel: 'Remplacer la clé', target: 'providers' },
@@ -1156,12 +1165,25 @@ class Component extends DCLogic {
   }
   ntUndo(id) { clearTimeout((this._ntT || {})[id]); this.setState(s => ({ nt: s.nt.map(x => x.id === id ? { ...x, pending: true } : x) })); this.log('Décision annulée', id, 'sensible'); }
   ntReadAll() { this.setState(s => ({ nt: s.nt.map(x => ({ ...x, unread: false })) })); }
+  // ——— Registre des cartes API (démonstration : journal local ; API : admin-api.js)
+  apiSignal() {
+    const S = this.state, list = (S.apiCards || APIS0).filter(c => c.enabled), today = S.apiNow ? new Date(S.apiNow) : nowD();
+    const left = c => { if (!c.keyExpiresAt) return null; const [y, m, d] = c.keyExpiresAt.split('-').map(Number); return Math.round((Date.UTC(y, m - 1, d) - Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())) / 864e5); };
+    const st = c => { const d = left(c), q = c.quotaLimit ? (c.quotaUsed || 0) / c.quotaLimit * 100 : null; return c.status === 'err' || (d != null && d < 0) ? 'err' : c.status === 'warn' || (d != null && d <= 30) || (q != null && q >= 85) ? 'warn' : null; };
+    const all = list.map(st); return all.includes('err') ? { dot: 'err' } : all.includes('warn') ? { dot: 'warn' } : undefined;
+  }
+  apLog(action, target) { this.log(action, target, 'sensible'); }
+  apCreate(c) { this.apLog('Création d’une carte API', c.name); }
+  apRotate(id) { this.apLog('Rotation de la clé d’une carte API', id); }
+  apToggle(id, on) { this.apLog(on ? 'Activation d’une carte API' : 'Désactivation d’une carte API', id); }
+  apTest() { return Promise.reject(new Error('Test disponible avec le serveur')); }
   sbSignals(badge) {
     const S = this.state, st = FNS.map(f => this.fnState(f.id, S.asg[f.id]).tone), anyDown = st.includes('err'), anyFallback = st.includes('warn');
     return {
       users: this.ntPendingInvites() ? { b: this.ntPendingInvites() } : undefined,
       providers: S.provs.some(p => p.st === 'err') ? { dot: 'err' } : undefined,
-      assign: anyDown ? { dot: 'err' } : anyFallback ? { dot: 'warn' } : undefined
+      assign: anyDown ? { dot: 'err' } : anyFallback ? { dot: 'warn' } : undefined,
+      apis: this.apiSignal()
     };
   }
   navMode() { const S = this.state; if (S.vw < 760) return 'mob'; if (S.navC === true) return 'rail'; if (S.navC === false) return 'full'; return S.vw >= 1180 ? 'full' : 'rail'; }
@@ -1644,9 +1666,13 @@ class Component extends DCLogic {
       mob: mode === 'mob', scrim: mode === 'mob' && S.mnav, openNav: () => this.setState({ mnav: true }), closeNav: () => this.setState({ mnav: false }),
       padSt: `max-width:1320px;margin:0 auto;padding:${mode === 'mob' ? '20px 16px 96px' : mode === 'rail' ? '28px 28px 96px' : '32px 44px 96px'}`,
       topSt: `position:sticky;top:0;z-index:40;height:60px;display:flex;align-items:center;gap:12px;padding:0 ${mode === 'mob' ? 16 : mode === 'rail' ? 28 : 44}px;background:rgba(242,246,245,.82);backdrop-filter:saturate(1.4) blur(14px);-webkit-backdrop-filter:saturate(1.4) blur(14px);border-bottom:1px solid rgba(16,35,58,.06)`,
-      eyebrow: meta[0], title: meta[1], desc: meta[2], isOv: is('overview'), notOv: !is('overview') && !is('skills') && !is('persona'), loading: S.loading, ready: !S.loading,
+      eyebrow: meta[0], title: meta[1], desc: meta[2], isOv: is('overview'), notOv: !is('overview') && !is('skills') && !is('persona') && !is('apis'), loading: S.loading, ready: !S.loading,
       healthL: errN ? errN + ' incident' + (errN > 1 ? 's' : '') : 'Opérationnelle', healthPill: pill(errN ? 'err' : 'ok'), healthDot: dot(errN ? 'err' : 'ok'), goOv: () => this.go('overview'),
       isUsers: is('users') && !S.loading, isAdmins: is('admins') && !S.loading, isRights: is('rights') && !S.loading, isProv: is('providers') && !S.loading, isAsg: is('assign') && !S.loading, isConso: is('conso') && !S.loading, isInit: is('init') && !S.loading, isLib: is('library') && !S.loading, isSnaps: is('snaps') && !S.loading, isNotifs: is('notifs') && !S.loading, isMods: is('modules') && !S.loading,
+      isApis: is('apis') && !S.loading,
+      // Registre des cartes API : liste du serveur (admin-api.js) ; sans elle, le composant affiche sa démonstration et simule les appels.
+      apiCards: S.apiCards || undefined, apiNow: S.apiNow || undefined,
+      apTest: S.apiCards ? id => this.apTest(id) : undefined, apCreate: c => this.apCreate(c), apRotate: (id, key, exp) => this.apRotate(id, key, exp), apToggle: (id, on) => this.apToggle(id, on),
       isPersona: is('persona') && !S.loading, isSkills: is('skills') && !S.loading,
       // Skills : liste du serveur (admin-api.js) ; démonstration intégrée au composant sinon. Le composant apporte ses propres marges.
       // Notifications : cloche (non lues et non traitées, corail si un incident non lu) et tiroir le long de la sidebar.

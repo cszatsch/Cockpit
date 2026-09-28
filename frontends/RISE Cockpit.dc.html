@@ -1950,7 +1950,7 @@ class Component extends DCLogic {
     document.addEventListener('mouseover', this._tOver); document.addEventListener('mouseout', this._tOut); document.addEventListener('mousedown', this._tHide, true); window.addEventListener('scroll', this._tHide, true); document.addEventListener('dragstart', this._tHide, true);
   }
   componentWillUnmount() { document.removeEventListener('mouseover', this._tOver); document.removeEventListener('mouseout', this._tOut); document.removeEventListener('mousedown', this._tHide, true); window.removeEventListener('scroll', this._tHide, true); document.removeEventListener('dragstart', this._tHide, true); if (this._tip) this._tip.remove(); document.removeEventListener('mouseover', this._pOver); document.removeEventListener('mouseout', this._pOut); document.removeEventListener('click', this._pClick, true); document.removeEventListener('dblclick', this._pDblc, true); window.removeEventListener('keydown', this._onKey); document.removeEventListener('pointerdown', this._outside, true); if (this._rm) this._rm.remove(); }
-  // API : météo et actualités par le proxy serveur GET /external/weather?city= et /external/news?country= (503 hors ligne : état d'erreur de la tuile).
+  // API : météo et actualités par le proxy des cartes API GET /api/widgets/proxy/{open-meteo-geocodage | open-meteo | gdelt} (503 hors ligne : état d'erreur de la tuile).
   dbExtLoad() { if (this._api) this._api.dbExtLoad(); }
   dbLoad() { this._dbLoaded = true; } // API : disposition et thème du tableau de bord lus dans GET /api/me (préférences), hydratés par api.js
   profFileRef = React.createRef();

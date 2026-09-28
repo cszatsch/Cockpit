@@ -13,6 +13,8 @@ import { AccountsController } from './accounts.controller';
 import { DataController } from './data.controller';
 import { adminCtx } from './profiles.service';
 import { UsageService } from './usage.service';
+import { ApiCardsService } from './api-cards.service';
+import { daysLeft, expiryLevel, QUOTA_WARN_PCT } from '../domain/api-cards';
 
 /** Délai d'annulation d'une décision (spécification NOTIFICATIONS § 3) : l'action ne s'exécute qu'ensuite. */
 export const DECISION_UNDO_MS = 10_000;
@@ -53,6 +55,7 @@ export class InboxService implements OnModuleInit, OnModuleDestroy {
     private readonly jobs: JobsService,
     private readonly accounts: AccountsController,
     private readonly data: DataController,
+    private readonly apiCards: ApiCardsService,
   ) {}
 
   onModuleInit() {
@@ -106,7 +109,7 @@ export class InboxService implements OnModuleInit, OnModuleDestroy {
 
   async sync(): Promise<void> {
     const wanted: Wanted[] = [];
-    const prefixes = ['provider:', 'import:', 'snapshot:', 'budget:', 'invite:', 'module:'];
+    const prefixes = ['provider:', 'import:', 'snapshot:', 'budget:', 'invite:', 'module:', 'apicard:'];
 
     // Clés API refusées (dernier test en échec) : incident jusqu'à un test réussi.
     const [providers, models, asg] = await Promise.all([this.prisma.provider.findMany(), this.prisma.aiModel.findMany(), this.prisma.modelAssignment.findMany()]);
@@ -180,6 +183,30 @@ export class InboxService implements OnModuleInit, OnModuleDestroy {
       const code = projects.find((x) => x.id === r.projectId)?.code ?? r.projectId;
       const m = mods.find((x) => x.id === r.moduleId);
       wanted.push({ key: `module:${r.id}`, kind: 'MODULE', title: `Activer « ${m?.name ?? r.moduleId} »`, text: `Demandé par ${r.requestedBy}, pour le projet ${code} uniquement.`, meta: { project: code, by: r.requestedBy } });
+    }
+
+    // Cartes API actives (registre, § 6) : erreur, échéance de la clé (J-30, J-7, J-1, expirée), quota ≥ 85 %.
+    for (const c of (await this.apiCards.views()).filter((x) => x.enabled)) {
+      const base = { actLabel: 'Voir la carte', target: 'apis' };
+      if (c.status === 'err' && c.statusNote !== 'Clé expirée') {
+        wanted.push({ key: `apicard:${c.id}:err`, kind: 'ERR', title: `Carte API ${c.name} en erreur`, text: `${c.statusNote}. Les widgets ${c.widgets.join(', ') || 'concernés'} passent en mode dégradé.`, ...base });
+      }
+      const d = daysLeft(c.keyExpiresAt, this.usage.todayIso());
+      const lvl = c.keyLast4 ? expiryLevel(d) : null;
+      if (lvl) {
+        wanted.push({
+          key: `apicard:${c.id}:exp`,
+          kind: lvl === 'expired' ? 'ERR' : 'WARN',
+          title: lvl === 'expired' ? `Clé ${c.name} expirée` : `Clé ${c.name} : expire dans ${d} j`,
+          text: lvl === 'expired' ? `La clé ••••${c.keyLast4} a expiré le ${c.keyExpiresAt}. Remplacez-la pour rétablir le service.` : `La clé ••••${c.keyLast4} expire le ${c.keyExpiresAt} (palier J-${lvl}).`,
+          level: lvl,
+          ...base,
+          actLabel: 'Remplacer la clé',
+        });
+      }
+      if (c.quotaLimit && (c.quotaUsed ?? 0) / c.quotaLimit * 100 >= QUOTA_WARN_PCT) {
+        wanted.push({ key: `apicard:${c.id}:quota`, kind: 'WARN', title: `Quota ${c.name} à ${Math.round(((c.quotaUsed ?? 0) / c.quotaLimit) * 100)} %`, text: `${c.quotaUsed} appels sur ${c.quotaLimit} aujourd’hui. Au-delà, les widgets reçoivent 429.`, level: (c.quotaUsed ?? 0) >= c.quotaLimit ? 'full' : 'warn', ...base });
+      }
     }
 
     // Application : création ou réouverture, mise à jour du texte, fermeture des causes disparues.

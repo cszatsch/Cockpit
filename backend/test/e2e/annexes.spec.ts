@@ -103,9 +103,9 @@ describe('Étape 10 — documents, commentaires, historique, Jev, services exter
     expect(inv2.body.status).toBe('PENDING');
   });
 
-  it('proxy météo / actualités : 503 hors ligne', async () => {
+  it('proxy météo / actualités (registre des cartes API) : 503 hors ligne', async () => {
     const c = await t.as(WHO.pmo);
-    const r = await c.get(`${R}/external/weather?city=Grigny`).expect(503);
-    expect(r.body.code).toBe('EXTERNAL_UNAVAILABLE');
+    const r = await c.get('/api/widgets/proxy/open-meteo-geocodage?name=Grigny').expect(503);
+    expect(r.body.code).toBe('CARD_UNAVAILABLE');
   });
 });

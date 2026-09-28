@@ -242,7 +242,7 @@ export function bindConsole(c) {
   c._logout = () => { if (DEV) writeToken(null); return Auth.logout('admin'); };
   const set0 = c.setState.bind(c), orig = {};
   ['go', 'setUser', 'saveUser', 'removeUser', 'saveAdmin', 'removeAdmin', 'testKey', 'testAll', 'saveKey', 'saveProv', 'toggleModel', 'saveModel', 'saveFiche', 'saveAsg', 'setTh', 'doCapture',
-    'toggleRule', 'saveRule', 'newRule', 'setMod', 'approve', 'reject', 'saveMe', 'revoke', 'revokeAll', 'onPhoto', 'exportAudit', 'exportCsv', 'jevReply', 'mtd', 'thVals', 'renderVals', 'skSave', 'skToggle', 'skCreate', 'skDelete', 'psSave', 'psUpload', 'ntToggle', 'ntAct', 'ntUndo', 'ntReadAll'].forEach(k => { orig[k] = c[k].bind(c); });
+    'toggleRule', 'saveRule', 'newRule', 'setMod', 'approve', 'reject', 'saveMe', 'revoke', 'revokeAll', 'onPhoto', 'exportAudit', 'exportCsv', 'jevReply', 'mtd', 'thVals', 'renderVals', 'skSave', 'skToggle', 'skCreate', 'skDelete', 'psSave', 'psUpload', 'ntToggle', 'ntAct', 'ntUndo', 'ntReadAll', 'apTest', 'apCreate', 'apRotate', 'apToggle'].forEach(k => { orig[k] = c[k].bind(c); });
   const toast = (m, t, u) => c.toast(m, t, u), fail = e => { console.warn('[admin-api]', e); toast(errText(e), 'err'); };
   let meId = 'u1';
   const PROJ = () => Object.keys(c.state.snaps || {});
@@ -284,11 +284,12 @@ export function bindConsole(c) {
     skills: async () => ({ skills: toSkills(await apiAbs('GET', SK)) }),
     persona: async () => ({ persona: toPersona(await apiAbs('GET', PS)) }),
     notifs: async () => ({ nt: (await get('/notifications')).items.map(toNotif) }),
+    apis: async () => ({ apiCards: await get('/api-cards') }),
   };
   const SECTION = {
     overview: ['accounts', 'providers', 'month', 'audit', 'reqs', 'snaps', 'models', 'asg', 'fns'], users: ['accounts'], admins: ['admins', 'audit', 'accounts'], providers: ['providers', 'models', 'asg', 'fns'],
     assign: ['asg', 'models', 'providers', 'usage', 'fns'], conso: ['month', 'providers'], snaps: ['snaps', 'sched'], notifs: ['rules', 'hist', 'models'], modules: ['mods', 'reqs'],
-    init: ['projects'], library: ['projects'], profil: ['prof', 'sess', 'audit'], skills: ['skills'], persona: ['persona'],
+    init: ['projects'], library: ['projects'], profil: ['prof', 'sess', 'audit'], skills: ['skills'], persona: ['persona'], apis: ['apis'],
   };
   async function load(keys) {
     const parts = await Promise.all(keys.map(k => L[k]()));
@@ -303,7 +304,9 @@ export function bindConsole(c) {
     try {
       const ov = await get('/overview');
       clock = { server: new Date(ov.date).getTime(), local: Date.now() };
-      await load(['prof', 'accounts', 'admins', 'audit', 'providers', 'models', 'asg', 'usage', 'snaps', 'sched', 'rules', 'hist', 'mods', 'reqs', 'sess', 'projects', 'skills', 'persona', 'notifs']);
+      // Échéances des clés API : même date du jour que le serveur (DEMO_TODAY compris).
+      set0({ apiNow: String(ov.date).slice(0, 10) + 'T12:00:00' });
+      await load(['prof', 'accounts', 'admins', 'audit', 'providers', 'models', 'asg', 'usage', 'snaps', 'sched', 'rules', 'hist', 'mods', 'reqs', 'sess', 'projects', 'skills', 'persona', 'notifs', 'apis']);
       set0({ apiBoot: false, loading: false });
     } catch (e) {
       fail(e);
@@ -367,6 +370,16 @@ export function bindConsole(c) {
   };
   c.ntUndo = id => post('/notifications/' + id + '/undo').then(() => { toast('Décision annulée'); refreshNt(); touch(); }).catch(e => { fail(e); refreshNt(); });
   c.ntReadAll = () => post('/notifications/read-all').then(refreshNt).catch(fail);
+
+  // ── Registre des cartes API (/api/admin/api-cards, REGISTRE API - specification.md § 4 et § 7) ──
+  // Mise à jour locale optimiste dans le composant ; la liste du serveur est rechargée après chaque appel
+  // (et rétablit l'état réel en cas de refus). Les notifications suivent (état, échéance, quota).
+  const apDone = () => { load(['apis']).catch(() => {}); refreshNt(); touch(); };
+  const apFail = e => { fail(e); apDone(); };
+  c.apTest = id => post('/api-cards/' + encodeURIComponent(id) + '/test').then(r => { apDone(); return r; });
+  c.apCreate = card => post('/api-cards', { name: card.name, category: card.category, endpoint: card.endpoint, key: card.key || null, keyExpiresAt: card.keyExpiresAt || null, quotaLimit: card.quotaLimit || null }).then(() => { toast('Carte ajoutée'); apDone(); }).catch(apFail);
+  c.apRotate = (id, key, exp) => put('/api-cards/' + encodeURIComponent(id) + '/key', exp ? { key, keyExpiresAt: exp } : { key }).then(() => { toast('Clé remplacée'); apDone(); }).catch(apFail);
+  c.apToggle = (id, on) => patch('/api-cards/' + encodeURIComponent(id), { enabled: on }).then(() => { toast(on ? 'Carte réactivée' : 'Carte désactivée'); apDone(); }).catch(apFail);
 
   // Ouverture d'un menu : rechargement de la section en arrière-plan.
   c.go = (sec, then) => { orig.go(sec, then); if (!c.state.apiBoot && SECTION[sec]) load(SECTION[sec]).catch(fail); };

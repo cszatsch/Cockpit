@@ -1437,3 +1437,44 @@ model Notification {
 
   @@index([status])
 }
+
+// ─────────────────────────── Registre des cartes API ───────────────────────────
+
+/// Service externe appelé par les widgets (spécification REGISTRE API § 3). La clé est chiffrée
+/// (AES-256-GCM, clé maître SECRETS_KEY) et ne quitte jamais le serveur : seuls ses 4 derniers caractères sont exposés.
+model ApiCard {
+  id           String    @id
+  name         String
+  category     String
+  endpoint     String
+  keyEncrypted String?   @map("key_encrypted")
+  keyLast4     String?   @map("key_last4")
+  keyExpiresAt DateTime? @map("key_expires_at") @db.Date
+  enabled      Boolean   @default(true)
+  /// Échec du dernier contrôle (« Clé refusée · 401 ») ; null si le dernier appel a réussi.
+  checkError   String?   @map("check_error")
+  latencyMs    Int?      @map("latency_ms")
+  quotaLimit   Int?      @map("quota_limit")
+  widgets      String[]  @default([])
+  lastTest     Json?     @map("last_test")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  updatedBy    String?   @map("updated_by")
+  version      Int       @default(1)
+
+  @@map("api_cards")
+}
+
+/// Appel sortant d'une carte (proxy, contrôle de santé, test) : latence sur 24 h et quota du jour.
+model ApiCardCall {
+  id     String   @id @default(cuid())
+  at     DateTime @default(now())
+  cardId String   @map("card_id")
+  code   Int
+  ms     Int?
+  source String
+  widget String?
+
+  @@index([cardId, at])
+  @@map("api_card_calls")
+}

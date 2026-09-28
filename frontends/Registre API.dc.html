@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700;1,800&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"><style>
+html,body{margin:0;background:#f2f6f5;font-family:'Plus Jakarta Sans',sans-serif;color:#10233a;-webkit-font-smoothing:antialiased;font-size:13px}
+*{box-sizing:border-box}a{color:#1d8f86}a:hover{color:#146b64}
+button,input,select{font:inherit;color:inherit}input:focus,select:focus{outline:none}
+button:focus-visible,[role="button"]:focus-visible{outline:2px solid #1d8f86;outline-offset:2px}
+input::placeholder{color:#a9b8c0}
+@keyframes rg-spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style></helmet>
+
+<div data-screen-label="Registre des cartes API" style="max-width:1240px;margin:0 auto;padding:32px 40px 40px;display:flex;flex-direction:column;gap:24px">
+  <div style="display:flex;align-items:flex-end;gap:20px">
+    <div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:800;letter-spacing:.16em;color:#1d8f86">PLATEFORME</div><h1 style="margin:4px 0 0;font-size:30px;font-weight:800;font-style:italic;letter-spacing:-.03em">Registre des cartes API</h1><div style="font-size:13px;color:#43586a;margin-top:4px">{{ sub }}</div></div>
+    <button type="button" onClick="{{ openCreate }}" style="flex:none;white-space:nowrap;height:38px;padding:0 16px;border:0;border-radius:10px;background:#10233a;color:#fff;font-weight:700;display:inline-flex;align-items:center;gap:8px;cursor:pointer" style-hover="background:#1d3654"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>Nouvelle carte</button>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">
+    <div role="table" aria-label="Cartes API" style="flex:1 1 640px;min-width:0;background:#fff;border:1px solid #e1e9e7;border-radius:18px;padding:6px;overflow-x:auto">
+      <div role="row" style="display:grid;grid-template-columns:14px minmax(150px,1.2fr) minmax(180px,1.45fr) 128px 112px 84px;gap:16px;align-items:center;height:40px;padding:0 14px;font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#5c7280"><span></span><span role="columnheader">Carte</span><span role="columnheader">Endpoint</span><span role="columnheader">Latence 24 h</span><span role="columnheader">Quota jour</span><span role="columnheader" style="text-align:right">Clé</span></div>
+      <sc-for list="{{ rows }}" as="r" hint-placeholder-count="6">
+        <div role="row" tabIndex="0" onClick="{{ r.pick }}" onKeyDown="{{ r.key }}" aria-current="{{ r.cur }}" aria-label="{{ r.aria }}" style="{{ r.st }}" style-hover="background:#f5f8f7">
+          <span style="{{ r.markSt }}"></span>
+          <span title="{{ r.sL }}" style="{{ r.dSt }}"></span>
+          <span style="min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.n }}</span><span style="font-size:11.5px;color:#8a9aa6">{{ r.cat }}</span></span>
+          <span style="min-width:0;font-family:'JetBrains Mono',monospace;font-size:11px;color:#43586a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.ep }}</span>
+          <span style="display:flex;align-items:center;gap:8px"><svg width="58" height="20" viewBox="0 0 58 20" aria-hidden="true" style="flex:none;overflow:visible"><path d="{{ r.spark }}" fill="none" stroke="{{ r.sc }}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"></path></svg><span style="{{ r.latSt }}">{{ r.lat }}</span></span>
+          <span style="display:flex;align-items:center;gap:8px"><span style="flex:1;height:4px;border-radius:2px;background:#e8efed;overflow:hidden"><span style="{{ r.qBar }}"></span></span><span style="width:34px;text-align:right;font-size:11.5px;font-weight:600;font-variant-numeric:tabular-nums;color:#43586a">{{ r.q }}</span></span>
+          <span style="{{ r.expSt }}">{{ r.exp }}</span>
+        </div>
+      </sc-for>
+      <sc-if value="{{ none }}" hint-placeholder-val="{{ false }}"><div style="padding:40px 16px;text-align:center;font-size:13px;color:#8a9aa6">Aucune carte. Ajoutez un premier service externe.</div></sc-if>
+    </div>
+
+    <aside aria-label="{{ panelL }}" style="flex:0 0 360px;max-width:100%;background:#fff;border:1px solid #e1e9e7;border-radius:18px;overflow:hidden;display:flex;flex-direction:column">
+      <sc-if value="{{ isView }}" hint-placeholder-val="{{ true }}">
+        <div style="padding:20px 22px 16px;display:flex;flex-direction:column;gap:6px;border-bottom:1px solid #eef3f2">
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-size:10.5px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#5c7280">{{ sel.cat }}</span><span style="flex:1"></span><span style="{{ sel.pillSt }}"><span style="{{ sel.pillDot }}"></span>{{ sel.sL }}</span></div>
+          <div style="font-size:22px;font-weight:800;font-style:italic;letter-spacing:-.02em">{{ sel.n }}</div>
+        </div>
+        <div style="padding:16px 22px;display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#8a9aa6">Endpoint</span><div style="display:flex;align-items:center;gap:8px;padding:9px 10px 9px 12px;border-radius:10px;background:#f5f8f7"><span style="flex:1;min-width:0;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.5;word-break:break-all">{{ sel.url }}</span><button type="button" onClick="{{ copy }}" aria-label="Copier l’endpoint" title="{{ copyL }}" style="flex:none;width:26px;height:26px;border:0;border-radius:7px;background:transparent;color:#5c7280;display:grid;place-items:center;cursor:pointer" style-hover="background:#e3eae8;color:#10233a"><sc-if value="{{ copied }}" hint-placeholder-val="{{ false }}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#1d8f86" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></sc-if><sc-if value="{{ notCopied }}" hint-placeholder-val="{{ true }}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 9h11v11H9z M5 15H4V4h11v1"></path></svg></sc-if></button></div></div>
+          <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#8a9aa6">Clé API</span><div style="display:flex;align-items:center;gap:8px;height:40px;padding:0 12px;border-radius:10px;background:#f5f8f7"><span style="flex:1;font-family:'JetBrains Mono',monospace;font-size:12.5px;letter-spacing:.12em">{{ sel.key }}</span><span style="{{ sel.expLSt }}">{{ sel.expL }}</span></div></div>
+          <button type="button" onClick="{{ test }}" disabled="{{ testOff }}" style="{{ testSt }}" style-hover="background:#1d3654"><sc-if value="{{ testing }}" hint-placeholder-val="{{ false }}"><span style="width:12px;height:12px;border-radius:50%;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;animation:rg-spin .8s linear infinite"></span></sc-if><sc-if value="{{ notTesting }}" hint-placeholder-val="{{ true }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l12-7.5z"></path></svg></sc-if>{{ testL }}</button>
+          <sc-if value="{{ hasResp }}" hint-placeholder-val="{{ true }}">
+            <div aria-live="polite" style="border-radius:12px;background:#0f2034;overflow:hidden">
+              <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.07);font-family:'JetBrains Mono',monospace;font-size:11px"><span style="{{ sel.codeSt }}">{{ sel.code }}</span><span style="color:#8fa9bb">{{ sel.ms }}</span><span style="flex:1"></span><span style="color:#6f8a9e">{{ sel.when }}</span></div>
+              <div style="padding:10px 12px 12px;max-height:180px;overflow:auto;font-family:'JetBrains Mono',monospace;font-size:11px;line-height:1.7;color:#c9d6de;white-space:pre">{{ sel.body }}</div>
+            </div>
+          </sc-if>
+          <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#8a9aa6">Alimente</span><div style="display:flex;flex-wrap:wrap;gap:6px"><sc-for list="{{ sel.w }}" as="w" hint-placeholder-count="2"><span style="{{ sel.chipSt }}">{{ w }}</span></sc-for><sc-if value="{{ sel.noW }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:#8a9aa6">Aucun widget pour l’instant</span></sc-if></div></div>
+        </div>
+        <div style="margin-top:auto;display:flex;gap:8px;padding:12px 16px;border-top:1px solid #eef3f2"><button type="button" onClick="{{ toggleOn }}" style="height:34px;padding:0 12px;border:0;border-radius:9px;background:transparent;color:#5c7280;font-size:12.5px;font-weight:600;cursor:pointer" style-hover="background:#f0f4f3">{{ onL }}</button><span style="flex:1"></span><sc-if value="{{ sel.hasKey }}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{ openRotate }}" style="{{ sel.rotSt }}">Remplacer la clé</button></sc-if></div>
+      </sc-if>
+
+      <sc-if value="{{ isForm }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:20px 22px 16px;border-bottom:1px solid #eef3f2;display:flex;flex-direction:column;gap:4px"><span style="font-size:10.5px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#5c7280">{{ formEyebrow }}</span><span style="font-size:22px;font-weight:800;font-style:italic;letter-spacing:-.02em">{{ formTitle }}</span></div>
+        <div style="padding:16px 22px;display:flex;flex-direction:column;gap:14px">
+          <sc-for list="{{ fields }}" as="f" hint-placeholder-count="3">
+            <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#8a9aa6">{{ f.l }}</span>
+              <sc-if value="{{ f.isSel }}" hint-placeholder-val="{{ false }}"><select value="{{ f.v }}" onChange="{{ f.set }}" style="height:40px;padding:0 10px;border:1px solid #e1e9e7;border-radius:10px;background:#f5f8f7;font-size:13px"><sc-for list="{{ cats }}" as="c" hint-placeholder-count="0"><option value="{{ c }}">{{ c }}</option></sc-for></select></sc-if>
+              <sc-if value="{{ f.isIn }}" hint-placeholder-val="{{ true }}"><input type="{{ f.type }}" value="{{ f.v }}" onChange="{{ f.set }}" placeholder="{{ f.ph }}" autoComplete="off" spellCheck="false" style="{{ f.st }}" style-focus="border-color:#10233a;background:#fff"></sc-if>
+              <sc-if value="{{ f.hasHint }}" hint-placeholder-val="{{ false }}"><span style="{{ f.hSt }}">{{ f.hint }}</span></sc-if>
+            </label>
+          </sc-for>
+        </div>
+        <div style="margin-top:auto;display:flex;gap:8px;padding:12px 16px;border-top:1px solid #eef3f2"><span style="flex:1"></span><button type="button" onClick="{{ closeForm }}" style="height:34px;padding:0 12px;border:0;border-radius:9px;background:transparent;color:#5c7280;font-size:12.5px;font-weight:600;cursor:pointer" style-hover="background:#f0f4f3">Annuler</button><button type="button" onClick="{{ submit }}" disabled="{{ invalid }}" style="{{ submitSt }}">Enregistrer</button></div>
+      </sc-if>
+    </aside>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;cards&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;ApiCard[]&quot;},&quot;now&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;onTest&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(id: string) =&gt; Promise&lt;{ code: number; ms: number; body: string }&gt;&quot;},&quot;onCreate&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(card: { name, category, endpoint, key, keyExpiresAt, quotaLimit }) =&gt; void&quot;},&quot;onRotateKey&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(id: string, key: string, keyExpiresAt: string | null) =&gt; void&quot;},&quot;onToggle&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(id: string, enabled: boolean) =&gt; void&quot;}}">
+// Démonstration : remplacer par GET /api/admin/api-cards via le prop `cards`. Les clés ne quittent jamais le serveur : seuls les 4 derniers caractères (keyLast4) sont exposés.
+const DAY = 864e5, T0 = new Date('2026-09-28T10:00:00');
+const iso = d => { const x = new Date(Date.UTC(2026, 8, 28) + d * DAY); return x.toISOString().slice(0, 10); };
+const lat = (b, v, n, drop) => Array.from({ length: 24 }, (_, i) => drop && i >= drop ? null : Math.round(b + Math.sin(i * 1.7 + b) * v + (i % 5) * v / 6));
+const DEMO = [
+  { id: 'meteo', name: 'OpenWeather', category: 'Météo', endpoint: 'https://api.openweathermap.org/data/3.0/onecall', keyLast4: '7F3A', keyExpiresAt: iso(167), enabled: true, status: 'ok', latencyMs: 182, latency24h: lat(180, 30), quotaUsed: 612, quotaLimit: 1000, widgets: ['Météo du site', 'Bandeau Aujourd’hui'], lastTest: { code: 200, ms: 182, at: T0.toISOString(), body: '{\n  "current": {\n    "temp": 17.4,\n    "weather": [{ "main": "Clouds" }],\n    "wind_speed": 3.6\n  }\n}' } },
+  { id: 'trafic', name: 'TomTom Traffic', category: 'Trafic', endpoint: 'https://api.tomtom.com/traffic/services/4/flowSegmentData', keyLast4: 'C09E', keyExpiresAt: iso(145), enabled: true, status: 'warn', statusNote: 'Quota à 87 %', latencyMs: 310, latency24h: lat(260, 60), quotaUsed: 2175, quotaLimit: 2500, widgets: ['Trafic d’accès'], lastTest: { code: 200, ms: 310, at: T0.toISOString(), body: '{\n  "flowSegmentData": {\n    "currentSpeed": 38,\n    "freeFlowSpeed": 52,\n    "confidence": 0.96\n  }\n}' } },
+  { id: 'actus', name: 'NewsAPI', category: 'Actualités', endpoint: 'https://newsapi.org/v2/top-headlines', keyLast4: '51B2', keyExpiresAt: iso(6), enabled: true, status: 'ok', latencyMs: 240, latency24h: lat(230, 40), quotaUsed: 41, quotaLimit: 100, widgets: ['Bandeau Aujourd’hui', 'Revue de presse'], lastTest: { code: 200, ms: 240, at: T0.toISOString(), body: '{\n  "status": "ok",\n  "totalResults": 34,\n  "articles": [ … ]\n}' } },
+  { id: 'air', name: 'Airparif', category: 'Environnement', endpoint: 'https://api.airparif.fr/indices/prevision', keyLast4: '88D1', keyExpiresAt: iso(275), enabled: true, status: 'err', statusNote: 'Clé refusée · 401', latencyMs: null, latency24h: lat(150, 25, 0, 17), quotaUsed: 120, quotaLimit: 1000, widgets: ['Qualité de l’air'], lastTest: { code: 401, ms: 38, at: T0.toISOString(), body: '{\n  "error": "invalid_api_key",\n  "message": "API key revoked"\n}' } },
+  { id: 'idfm', name: 'Île-de-France Mobilités', category: 'Mobilité', endpoint: 'https://prim.iledefrance-mobilites.fr/marketplace/stop-monitoring', keyLast4: '2E77', keyExpiresAt: iso(78), enabled: true, status: 'ok', latencyMs: 96, latency24h: lat(95, 20), quotaUsed: 4600, quotaLimit: 20000, widgets: ['Trafic d’accès'], lastTest: { code: 200, ms: 96, at: T0.toISOString(), body: '{\n  "Siri": {\n    "ServiceDelivery": {\n      "StopMonitoringDelivery": [ … ]\n    }\n  }\n}' } },
+  { id: 'feries', name: 'Jours fériés', category: 'Calendrier', endpoint: 'https://calendrier.api.gouv.fr/jours-feries/metropole.json', keyLast4: null, keyExpiresAt: null, enabled: true, status: 'ok', latencyMs: 64, latency24h: lat(64, 10), quotaUsed: null, quotaLimit: null, widgets: ['Bandeau Aujourd’hui', 'Frise des jalons'], lastTest: { code: 200, ms: 64, at: T0.toISOString(), body: '{\n  "2026-11-01": "Toussaint",\n  "2026-11-11": "Armistice",\n  "2026-12-25": "Jour de Noël"\n}' } }
+];
+const CATS = ['Météo', 'Trafic', 'Actualités', 'Environnement', 'Mobilité', 'Calendrier', 'Finance', 'Autre'];
+const SOON = 30;
+const LT = { ok: '#1d8f86', warn: '#f7a41c', err: '#f07b67', off: '#a9b8c0' };
+const TX = { ok: '#146b64', warn: '#8a5a12', err: '#b23a26', off: '#5c7280' };
+const BG = { ok: '#e3f4f1', warn: '#fdf0da', err: '#fbe4e1', off: '#eef3f2' };
+const RING = { warn: 'rgba(247,164,28,.2)', err: 'rgba(240,123,103,.18)' };
+const dot = (c, r, sz) => 'width:' + (sz || 7) + 'px;height:' + (sz || 7) + 'px;border-radius:50%;flex:none;background:' + c + (r ? ';box-shadow:0 0 0 3px ' + r : '');
+const host = u => (u || '').replace(/^https?:\/\//, '');
+const fmtD = s => { const [y, m, d] = s.split('-'); return d + '/' + m + '/' + y.slice(2); };
+const EMPTY = { name: '', category: 'Météo', endpoint: 'https://', key: '', quotaLimit: '' };
+
+class Component extends DCLogic {
+  state = { list: null, sel: null, mode: 'view', form: EMPTY, testing: false, copied: false };
+  list() { return this.state.list ?? (this.props.cards ?? DEMO).map(c => ({ ...c })); }
+  componentDidUpdate(pp) { if (pp.cards !== this.props.cards && this.props.cards) this.setState({ list: null }); }
+  componentWillUnmount() { clearTimeout(this._cp); }
+  now() { return this.props.now ? new Date(this.props.now) : (this.props.cards ? new Date() : T0); }
+  daysLeft(c) { if (!c.keyExpiresAt) return null; const n = this.now(), t = Date.UTC(n.getFullYear(), n.getMonth(), n.getDate()), [y, m, d] = c.keyExpiresAt.split('-').map(Number); return Math.round((Date.UTC(y, m - 1, d) - t) / DAY); }
+  // État affiché : désactivée > erreur serveur > échéance proche > quota ≥ 85 % > statut serveur
+  view(c) {
+    const d = this.daysLeft(c), q = c.quotaLimit ? Math.round(c.quotaUsed / c.quotaLimit * 100) : null;
+    if (!c.enabled) return { st: 'off', l: 'Désactivée', d, q };
+    if (c.status === 'err') return { st: 'err', l: c.statusNote || 'En erreur', d, q };
+    if (d != null && d < 0) return { st: 'err', l: 'Clé expirée', d, q };
+    if (d != null && d <= SOON) return { st: 'warn', l: 'Clé expire dans ' + d + ' j', d, q };
+    if (q != null && q >= 85) return { st: 'warn', l: 'Quota à ' + q + ' %', d, q };
+    return { st: c.status === 'warn' ? 'warn' : 'ok', l: c.status === 'warn' ? (c.statusNote || 'À surveiller') : 'Opérationnelle', d, q };
+  }
+  spark(a) {
+    const v = (a || []).filter(x => x != null); if (!v.length) return '';
+    const mx = Math.max(...v), mn = Math.min(...v), r = mx - mn || 1; let p = '', pen = false;
+    (a || []).forEach((x, i) => { if (x == null) { pen = false; return; } const X = (i * 58 / 23).toFixed(1), Y = (17 - (x - mn) / r * 14).toFixed(1); p += (pen ? ' L' : ' M') + X + ',' + Y; pen = true; });
+    return p.trim();
+  }
+  patch(id, ch) { this.setState({ list: this.list().map(c => c.id === id ? { ...c, ...ch } : c) }); }
+
+  async test(c) {
+    this.setState({ testing: true });
+    try {
+      const r = this.props.onTest ? await this.props.onTest(c.id) : await new Promise(ok => setTimeout(() => ok(c.lastTest), 700));
+      const t = { ...r, at: new Date().toISOString() };
+      this.patch(c.id, { lastTest: t, latencyMs: t.code < 400 ? t.ms : null, status: t.code < 400 ? (c.status === 'err' ? 'ok' : c.status) : 'err', statusNote: t.code < 400 ? c.statusNote : 'Erreur ' + t.code });
+    } catch (e) { this.patch(c.id, { lastTest: { code: 0, ms: null, at: new Date().toISOString(), body: String(e && e.message || e) }, status: 'err', statusNote: 'Injoignable' }); }
+    this.setState({ testing: false });
+  }
+  submit(c) {
+    const F = this.state.form, P = this.props;
+    if (this.state.mode === 'rotate') {
+      const ch = { keyLast4: F.key.trim().slice(-4).toUpperCase(), status: 'ok', statusNote: undefined, keyExpiresAt: F.exp || c.keyExpiresAt };
+      P.onRotateKey?.(c.id, F.key.trim(), F.exp || null); this.patch(c.id, ch); this.setState({ mode: 'view', form: EMPTY }); return;
+    }
+    const id = 'new-' + Date.now(), card = { id, name: F.name.trim(), category: F.category, endpoint: F.endpoint.trim(), keyLast4: F.key.trim() ? F.key.trim().slice(-4).toUpperCase() : null, keyExpiresAt: F.exp || null, enabled: true, status: 'ok', latencyMs: null, latency24h: [], quotaUsed: F.quotaLimit ? 0 : null, quotaLimit: F.quotaLimit ? +F.quotaLimit : null, widgets: [], lastTest: null };
+    P.onCreate?.({ name: card.name, category: card.category, endpoint: card.endpoint, key: F.key.trim() || null, keyExpiresAt: card.keyExpiresAt, quotaLimit: card.quotaLimit });
+    this.setState({ list: this.list().concat(card), sel: id, mode: 'view', form: EMPTY });
+  }
+
+  renderVals() {
+    const S = this.state, P = this.props, list = this.list();
+    const c = list.find(x => x.id === S.sel) || list.find(x => this.view(x).st === 'err') || list[0] || null;
+    const nErr = list.filter(x => this.view(x).st === 'err').length, nW = list.filter(x => this.view(x).st === 'warn').length;
+    const last = list.map(x => x.lastTest && x.lastTest.at).filter(Boolean).sort().pop();
+    const ago = t => { if (!t) return 'jamais testée'; const m = Math.max(0, Math.round((this.now() - new Date(t)) / 6e4)); return m < 1 ? 'à l’instant' : m < 60 ? 'il y a ' + m + ' min' : m < 1440 ? 'il y a ' + Math.round(m / 60) + ' h' : 'le ' + new Date(t).toLocaleDateString('fr-FR'); };
+    const pick = id => this.setState({ sel: id, mode: 'view', copied: false });
+
+    const rows = list.map(x => {
+      const v = this.view(x), on = c && x.id === c.id, soon = v.d != null && v.d <= SOON, dim = v.st === 'off';
+      return { n: x.name, cat: x.category, ep: host(x.endpoint), sL: v.l, cur: on ? 'true' : undefined, aria: x.name + ', ' + v.l,
+        pick: () => pick(x.id), key: e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(x.id); } },
+        st: 'position:relative;display:grid;grid-template-columns:14px minmax(150px,1.2fr) minmax(180px,1.45fr) 128px 112px 84px;gap:16px;align-items:center;height:62px;padding:0 14px;border-radius:12px;cursor:pointer;transition:background .15s;opacity:' + (dim ? .55 : 1) + ';background:' + (on ? '#f2f6f5' : 'transparent'),
+        markSt: on ? 'position:absolute;left:0;top:18px;bottom:18px;width:3px;border-radius:0 3px 3px 0;background:#f7a41c' : 'display:none',
+        dSt: dot(LT[v.st], RING[v.st]),
+        spark: this.spark(x.latency24h), sc: v.st === 'err' ? LT.err : v.st === 'off' ? LT.off : (v.q != null && v.q >= 85) ? '#d9921a' : '#1d8f86',
+        lat: x.latencyMs != null ? x.latencyMs + ' ms' : x.lastTest ? String(x.lastTest.code || '—') : '—',
+        latSt: "white-space:nowrap;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:" + (x.latencyMs == null && x.lastTest ? TX.err : '#43586a'),
+        q: v.q == null ? '—' : v.q + ' %', qBar: 'display:block;height:4px;border-radius:2px;width:' + Math.min(100, v.q || 0) + '%;background:' + (v.q >= 85 ? '#f7a41c' : '#1d8f86'),
+        exp: !x.keyLast4 ? 'Sans clé' : v.d == null ? '—' : v.d < 0 ? 'Expirée' : soon ? v.d + ' j' : fmtD(x.keyExpiresAt),
+        expSt: "text-align:right;font-size:12px;font-family:'JetBrains Mono',monospace;font-weight:" + (soon ? 800 : 600) + ';color:' + (v.d != null && v.d < 0 ? TX.err : soon ? TX.warn : x.keyLast4 ? '#43586a' : '#8a9aa6') };
+    });
+
+    let sel = {}, hasResp = false;
+    if (c) {
+      const v = this.view(c), t = c.lastTest, soon = v.d != null && v.d <= SOON, hot = v.st === 'err' || soon;
+      hasResp = !!t;
+      sel = { cat: c.category, n: c.name, url: c.endpoint, sL: v.l, w: c.widgets || [], noW: !(c.widgets || []).length, hasKey: !!c.keyLast4,
+        pillSt: 'display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:700;background:' + BG[v.st] + ';color:' + TX[v.st],
+        pillDot: dot(LT[v.st], null, 6),
+        key: c.keyLast4 ? '•••• •••• •••• ' + c.keyLast4 : 'Aucune clé requise',
+        expL: !c.keyExpiresAt ? '' : v.d < 0 ? 'expirée' : soon ? 'expire dans ' + v.d + ' j' : 'expire ' + fmtD(c.keyExpiresAt),
+        expLSt: 'font-size:11px;font-weight:' + (soon ? 700 : 500) + ';color:' + (v.d != null && v.d < 0 ? TX.err : soon ? TX.warn : '#8a9aa6'),
+        code: t ? (t.code ? t.code + (t.code < 400 ? ' OK' : t.code === 401 ? ' Unauthorized' : '') : 'Injoignable') : '', codeSt: 'font-weight:600;color:' + (t && t.code && t.code < 400 ? '#3dd6c6' : '#f07b67'),
+        ms: t && t.ms != null ? t.ms + ' ms' : '', when: t ? ago(t.at) : '', body: t ? t.body : '',
+        chipSt: 'height:26px;padding:0 10px;border-radius:8px;display:inline-flex;align-items:center;font-size:12px;font-weight:600;' + (v.st === 'err' ? 'background:#fbe4e1;color:#b23a26' : 'background:#eef3f2;color:#10233a'),
+        rotSt: 'height:34px;padding:0 14px;border:0;border-radius:9px;font-size:12.5px;font-weight:700;cursor:pointer;' + (hot ? 'background:#f7a41c;color:#1a1200' : 'background:#eef3f2;color:#10233a') };
+    }
+
+    const F = S.form, rot = S.mode === 'rotate', fin = 'height:40px;padding:0 12px;border:1px solid #e1e9e7;border-radius:10px;background:#f5f8f7;font-size:13px;transition:border-color .15s,background .15s;';
+    const urlOk = /^https:\/\/[^\s/]+\.[^\s]+/.test(F.endpoint.trim());
+    const mk = (k, l, o) => ({ l, v: F[k] ?? '', isSel: !!o.sel, isIn: !o.sel, type: o.type || 'text', ph: o.ph || '', hint: o.hint || '', hasHint: !!o.hint,
+      hSt: 'font-size:11.5px;color:' + (o.bad ? TX.err : '#8a9aa6'), st: fin + (o.mono ? "font-family:'JetBrains Mono',monospace;font-size:12px;" : '') + (o.bad ? 'border-color:#f07b67;' : ''),
+      set: e => this.setState({ form: { ...this.state.form, [k]: e.target.value } }) });
+    const fields = rot
+      ? [mk('key', 'Nouvelle clé', { type: 'password', mono: true, ph: 'Collez la clé fournie', hint: 'Elle remplace l’ancienne dès l’enregistrement. Seuls les 4 derniers caractères resteront visibles.' }), mk('exp', 'Expiration', { type: 'date', hint: 'Laissez vide si la clé n’expire pas.' })]
+      : [mk('name', 'Nom', { ph: 'OpenWeather' }), mk('category', 'Catégorie', { sel: true }), mk('endpoint', 'Endpoint', { mono: true, ph: 'https://…', bad: F.endpoint.length > 8 && !urlOk, hint: F.endpoint.length > 8 && !urlOk ? 'L’URL doit commencer par https://' : '' }),
+         mk('key', 'Clé API', { type: 'password', mono: true, ph: 'Facultatif pour une API ouverte' }), mk('exp', 'Expiration de la clé', { type: 'date' }), mk('quotaLimit', 'Quota journalier', { type: 'number', ph: 'Nombre d’appels, facultatif' })];
+    const invalid = rot ? F.key.trim().length < 8 : !(F.name.trim() && urlOk);
+
+    return {
+      sub: list.length + ' carte' + (list.length > 1 ? 's' : '') + (nErr ? ' · ' + nErr + ' en erreur' : '') + (nW ? ' · ' + nW + ' à surveiller' : '') + ' · dernière vérification ' + ago(last),
+      rows, none: !list.length, sel, hasResp, cats: CATS, fields, invalid,
+      isView: S.mode === 'view' && !!c, isForm: S.mode !== 'view' || !c, panelL: S.mode === 'view' ? 'Détail de la carte' : 'Formulaire',
+      formEyebrow: rot ? (c ? c.name : '') : 'Nouvelle carte', formTitle: rot ? 'Remplacer la clé' : 'Ajouter un service',
+      openCreate: () => this.setState({ mode: 'create', form: EMPTY }), openRotate: () => this.setState({ mode: 'rotate', form: { ...EMPTY, key: '', exp: '' } }),
+      closeForm: () => this.setState({ mode: 'view', form: EMPTY }), submit: () => { if (!invalid) this.submit(c); },
+      submitSt: 'height:34px;padding:0 14px;border:0;border-radius:9px;font-size:12.5px;font-weight:700;' + (invalid ? 'background:#eef3f2;color:#a9b8c0;cursor:default' : 'background:#10233a;color:#fff;cursor:pointer'),
+      test: () => c && !S.testing && this.test(c), testing: S.testing, notTesting: !S.testing, testOff: S.testing || !c || !c.enabled,
+      testL: S.testing ? 'Appel en cours…' : 'Tester l’appel',
+      testSt: 'height:38px;border:0;border-radius:10px;background:#10233a;color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;opacity:' + (c && !c.enabled ? .4 : 1),
+      copied: S.copied, notCopied: !S.copied, copyL: S.copied ? 'Copié' : 'Copier',
+      copy: () => { if (!c) return; navigator.clipboard?.writeText(c.endpoint).catch(() => {}); this.setState({ copied: true }); clearTimeout(this._cp); this._cp = setTimeout(() => this.setState({ copied: false }), 1600); },
+      onL: c && c.enabled ? 'Désactiver' : 'Réactiver',
+      toggleOn: () => { if (!c) return; P.onToggle?.(c.id, !c.enabled); this.patch(c.id, { enabled: !c.enabled }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

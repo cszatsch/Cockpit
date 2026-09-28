@@ -2215,78 +2215,6 @@
         ]
       }
     },
-    "/api/projects/{projectId}/external/weather": {
-      "get": {
-        "operationId": "ExternalController_weather",
-        "parameters": [
-          {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "city",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "cockpit · services externes"
-        ]
-      }
-    },
-    "/api/projects/{projectId}/external/news": {
-      "get": {
-        "operationId": "ExternalController_news",
-        "parameters": [
-          {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "country",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "cockpit · services externes"
-        ]
-      }
-    },
     "/api/projects/{projectId}/phases/{id}/waves": {
       "put": {
         "operationId": "ReferentialRelationsController_phaseWaves",
@@ -7874,6 +7802,180 @@
         ],
         "tags": [
           "console · notifications"
+        ]
+      }
+    },
+    "/api/admin/api-cards": {
+      "get": {
+        "operationId": "ApiCardsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · registre des cartes API"
+        ]
+      },
+      "post": {
+        "operationId": "ApiCardsController_create",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · registre des cartes API"
+        ]
+      }
+    },
+    "/api/admin/api-cards/{id}": {
+      "patch": {
+        "operationId": "ApiCardsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · registre des cartes API"
+        ]
+      },
+      "delete": {
+        "operationId": "ApiCardsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · registre des cartes API"
+        ]
+      }
+    },
+    "/api/admin/api-cards/{id}/key": {
+      "put": {
+        "operationId": "ApiCardsController_rotate",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · registre des cartes API"
+        ]
+      }
+    },
+    "/api/admin/api-cards/{id}/test": {
+      "post": {
+        "operationId": "ApiCardsController_test",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · registre des cartes API"
+        ]
+      }
+    },
+    "/api/widgets/proxy/{cardId}": {
+      "get": {
+        "operationId": "WidgetProxyController_proxy",
+        "parameters": [
+          {
+            "name": "cardId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "widgets · proxy des cartes API"
         ]
       }
     }

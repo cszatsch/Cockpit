@@ -84,7 +84,7 @@ function token(renew) {
 /** Appel HTTP. `path` commençant par `/projects/` ou `/me`… est relatif à `/api`. */
 export async function request(method, path, body, opts = {}) {
   const send = async (tok) => {
-    const headers = tok ? { Authorization: 'Bearer ' + tok } : Auth.sessionHeaders('app');
+    const headers = { ...(tok ? { Authorization: 'Bearer ' + tok } : Auth.sessionHeaders('app')), ...(opts.headers || {}) };
     let payload;
     if (body instanceof FormData) payload = body;
     else if (body !== undefined) { headers['Content-Type'] = 'application/json'; payload = JSON.stringify(body); }
@@ -843,10 +843,17 @@ export function attach(comp) {
       const city = getV('city') || 'Paris', country = getV('country') || 'France', up = (p) => comp.setState((s) => ({ dbExt: { ...(s.dbExt || {}), ...p } }));
       up({ city, country });
       const WMO = (c) => (c === 0 ? 'Ciel dégagé' : c <= 2 ? 'Peu nuageux' : c === 3 ? 'Couvert' : c <= 48 ? 'Brouillard' : c <= 57 ? 'Bruine' : c <= 67 ? 'Pluie' : c <= 77 ? 'Neige' : c <= 82 ? 'Averses' : 'Orages');
-      pget('/external/weather?city=' + enc(city))
+      // Proxy des cartes API (GET /api/widgets/proxy/{carte}) : la clé, le quota et le cache sont gérés par le serveur ;
+      // 503 (carte désactivée ou en erreur) ou 429 (quota) : la tuile affiche son état d'erreur.
+      const PX = (card, q, widget) => get('/widgets/proxy/' + enc(card) + '?' + new URLSearchParams(q), { headers: { 'X-RISE-Widget': widget } });
+      PX('open-meteo-geocodage', { name: city, count: 1, language: 'fr', format: 'json' }, 'Météo · ville')
+        .then((geo) => { const g = geo && geo.results && geo.results[0]; if (!g) throw 0;
+          return PX('open-meteo', { latitude: g.latitude, longitude: g.longitude, current: 'temperature_2m,weather_code', daily: 'temperature_2m_max,temperature_2m_min,sunrise,sunset', timezone: 'auto', forecast_days: 1 }, 'Météo · ville')
+            .then((f) => ({ temperature: f.current ? f.current.temperature_2m : null, weatherCode: f.current ? f.current.weather_code : null, min: f.daily ? f.daily.temperature_2m_min[0] : null, max: f.daily ? f.daily.temperature_2m_max[0] : null, sunrise: f.daily ? f.daily.sunrise[0] : null, sunset: f.daily ? f.daily.sunset[0] : null, fetchedAt: new Date().toISOString() })); })
         .then((w) => { if (w.temperature == null) throw 0; const now = new Date(w.fetchedAt || Date.now()); up({ wx: { t: Math.round(w.temperature), lbl: WMO(w.weatherCode), max: Math.round(w.max), min: Math.round(w.min), rise: w.sunrise || '', set: w.sunset || '', now: now.getFullYear() + '-' + pad2(now.getMonth() + 1) + '-' + pad2(now.getDate()) + 'T' + pad2(now.getHours()) + ':' + pad2(now.getMinutes()) } }); })
         .catch(() => up({ wxErr: true }));
-      pget('/external/news?country=' + enc(country))
+      PX('gdelt', { query: '"' + country + '" sourcelang:french', mode: 'artlist', maxrecords: 8, timespan: '1d', format: 'json' }, 'Actualités')
+        .then((j) => ({ articles: ((j && j.articles) || []).slice(0, 5).map((a) => ({ t: a.title, src: a.domain, d: a.seendate })) }))
         .then((j) => { const A = (j.articles || []).filter((a) => a.t).slice(0, 5).map((a) => { const s = String(a.d || ''); return { t: a.t, src: String(a.src || '').replace(/^www\./, '').split('.')[0], d: s.length >= 12 ? s.slice(9, 11) + ':' + s.slice(11, 13) : '' }; }); if (!A.length) throw 0; up({ news: A }); })
         .catch(() => { up({ newsErr: true }); setTimeout(() => { comp._dbExtOn = false; }, 60000); });
     },
