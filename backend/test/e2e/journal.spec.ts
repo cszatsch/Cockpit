@@ -74,7 +74,7 @@ describe('Console — Journal des appels', () => {
     expect(month[month.length - 1].date).toBe(process.env.DEMO_TODAY);
   });
 
-  it('recette 2 : coûts entrée + sortie = dépense de « Consommation et coûts » ; jetons et appels = consommation', async () => {
+  it('recette 2 : coûts entrée + sortie = dépense de « Vue générale des coûts » ; jetons et appels = consommation', async () => {
     const days = (await admin.get(`${A}/usage/daily`).expect(200)).body;
     const month = (await admin.get(`${A}/usage/month`).expect(200)).body;
     const sum = (k: string) => days.reduce((a: number, d: any) => a + d[k], 0);

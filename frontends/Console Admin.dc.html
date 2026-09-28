@@ -348,13 +348,13 @@ a{color:#1d8f86}a:hover{color:#146b64}
       <div data-screen-label="Affectation des modèles" style="animation:rise-in .35s cubic-bezier(.2,.7,.2,1) both"><dc-import name="Affectation des modeles" embedded="{{ true }}" providers="{{ ia.provs }}" models="{{ ia.models }}" functions="{{ ia.fns }}" groups="{{ ia.groups }}" assignment="{{ ia.asg }}" on-save="{{ ia.saveAsg }}" hint-size="100%,900px"></dc-import></div>
     </sc-if>
     <sc-if value="{{ isConso }}" hint-placeholder-val="{{ false }}">
-      <div data-screen-label="Consommation et coûts" style="animation:rise-in .35s cubic-bezier(.2,.7,.2,1) both">
+      <div data-screen-label="Vue générale des coûts" style="animation:rise-in .35s cubic-bezier(.2,.7,.2,1) both">
         <dc-import name="ConsoCouts" mtd-ref="{{ consoMtd }}" google-ok="{{ consoGoogleOk }}" on-fix-key="{{ consoFixKey }}" hint-size="100%,1200px"></dc-import>
       </div>
     </sc-if>
     <sc-if value="{{ isJournal }}" hint-placeholder-val="{{ false }}">
       <!-- API : GET /usage/daily et /usage/calls (Journal des appels.dc.html, admin-api.js → journalApi). -->
-      <div data-screen-label="Journal des appels" style="animation:rise-in .35s cubic-bezier(.2,.7,.2,1) both">
+      <div data-screen-label="Journal consommation et coûts" style="animation:rise-in .35s cubic-bezier(.2,.7,.2,1) both">
         <dc-import name="Journal des appels" hint-size="100%,1400px"></dc-import>
       </div>
     </sc-if>
@@ -1042,8 +1042,8 @@ const META = {
   rights: ['Accès', 'Droits et habilitations', 'Trois niveaux : projet, module, fonction. Les profils types évitent de configurer chaque utilisateur un par un.'],
   providers: ['IA', 'Fournisseurs et modèles', 'Clés API, tests de connexion et catalogue des modèles avec leur coût.'],
   assign: ['IA', 'Affectation des modèles', 'Un modèle principal et un modèle de secours pour chaque fonction IA du Cockpit.'],
-  conso: ['IA', 'Consommation et coûts', 'Tokens et dépenses par fournisseur, modèle et fonction, avec seuils d’alerte.'],
-  journal: ['Intelligence artificielle', 'Journal des appels', 'Tokens consommés et détail de chaque appel LLM.'],
+  conso: ['IA', 'Vue générale des coûts', 'Tokens et dépenses par fournisseur, modèle et fonction, avec seuils d’alerte.'],
+  journal: ['Intelligence artificielle', 'Journal consommation et coûts', 'Tokens consommés et détail de chaque appel LLM.'],
   snaps: ['Projets', 'Snapshots', 'L’historique des données de chaque projet : capturer, comparer, restaurer.'],
   notifs: ['Plateforme', 'Notifications et alertes', 'Les notifications informent. Les alertes signalent un événement ou un seuil critique.'],
   apis: ['Plateforme', 'Registre des cartes API', 'Les services externes appelés par les widgets : endpoint, clé, quota, santé et échéance de la clé.'],

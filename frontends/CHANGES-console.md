@@ -258,3 +258,8 @@ Les captures sont écrites dans `OUT` (par défaut `<tmp>/rise-console-e2e`).
 - `Journal des appels.dc.html` : nouvelle vue livrée, gabarit inchangé. Script : données lues par `journalApi` (`admin-api.js` : `/usage/daily` par ligne budgétaire, `/usage/calls` avec curseur, `/usage/calls.csv`) ; `build()` réservé au mode démonstration. Ajustements aux règles de la spécification : agrégats en euros à 2 décimales sous 100 € ; mois lu dans les données au lieu de « sept. » en dur ; état vide sans division par zéro (« Aucun appel sur la période ») ; calcul du coût avec les tarifs figés de l'appel (« Tarif non enregistré » pour les appels antérieurs ; facturation à la requête pour le Reranking) ; logos Google et OpenRouter ajoutés.
 - `Console Admin.dc.html` : `META.journal`, montage de la vue quand `S.sec === 'journal'` (sous Consommation et coûts), suggestions de Jev pour la page.
 - `Sidebar Console.dc.html` : entrée « Journal des appels » dans IA, après « Consommation et coûts ».
+
+## Écrans de coûts renommés ; journal sans données fictives (29/09/2026)
+
+- `Sidebar Console.dc.html`, `Console Admin.dc.html` (`META`, repères d'écran), `ConsoCouts.dc.html`, `Journal des appels.dc.html` : « Vue générale des coûts » et « Journal consommation et coûts » (demande du commanditaire).
+- `Journal des appels.dc.html` : les données de démonstration ne s'affichent plus qu'en mode démonstration ; en mode API, la vue reste vide jusqu'au chargement et après un échec (message).

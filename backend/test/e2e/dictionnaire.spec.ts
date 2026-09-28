@@ -121,7 +121,7 @@ describe('Jev de la Console — dictionnaire des données', () => {
       expect(v.detail).toBe(s ? `${s.projet_id} · ${s.type}` : 'aucun');
     });
 
-    it('dépense du mois et projection de fin de mois (Consommation et coûts)', async () => {
+    it('dépense du mois et projection de fin de mois (Vue générale des coûts)', async () => {
       const month = (await admin.get('/api/admin/usage/month').expect(200)).body;
       const [r] = await sql(`
         WITH d AS (SELECT ${TODAY} AS j),

@@ -107,7 +107,7 @@ describe('Guidage console : prompt (spécification IA § 8)', () => {
     expect(pickGuidanceSkill(skills).n).toBe('Guider l’utilisateur dans les fonctionnalités');
     expect(pickGuidanceSkill([{ ...skills[2], on: true }, skills[1]]).n).toBe('Répondre sur la Console d’administration');
     expect(pickGuidanceSkill([skills[0]])).toBeNull();
-    expect(assembleConsoleGuidancePrompt('Base', null, [skills[0]], 'conso')).toBe('Base\n\n## Page de console ouverte\nconso · Consommation et coûts');
+    expect(assembleConsoleGuidancePrompt('Base', null, [skills[0]], 'conso')).toBe('Base\n\n## Page de console ouverte\nconso · Vue générale des coûts');
   });
 });
 

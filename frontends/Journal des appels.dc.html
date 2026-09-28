@@ -15,10 +15,10 @@ html,body{margin:0;background:#f2f6f5;font-family:'Plus Jakarta Sans',sans-serif
 @keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @keyframes toastIn{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
 </style></helmet>
-<div data-screen-label="Journal des appels" style="max-width:1240px;margin:0 auto;padding:40px 36px 80px;display:flex;flex-direction:column;gap:22px">
+<div data-screen-label="Journal consommation et coûts" style="max-width:1240px;margin:0 auto;padding:40px 36px 80px;display:flex;flex-direction:column;gap:22px">
   <div style="display:flex;flex-direction:column;gap:6px;animation:rise .45s cubic-bezier(.2,.7,.2,1) both">
     <div style="font-size:11px;font-weight:800;letter-spacing:.16em;color:#1d8f86">IA</div>
-    <div style="font-size:34px;font-weight:800;font-style:italic;letter-spacing:-.03em">Journal des appels</div>
+    <div style="font-size:34px;font-weight:800;font-style:italic;letter-spacing:-.03em">Journal consommation et coûts</div>
     <div style="font-size:14px;color:#43586a">Tokens consommés et détail de chaque appel LLM : date, fonction, fournisseur, modèle, tokens et coût.</div>
   </div>
 
@@ -40,7 +40,7 @@ html,body{margin:0;background:#f2f6f5;font-family:'Plus Jakarta Sans',sans-serif
 
   <div style="background:#fff;border-radius:20px;box-shadow:0 0 0 1px #e1e9e7;overflow:hidden;animation:rise .5s .16s cubic-bezier(.2,.7,.2,1) both">
     <div style="display:flex;align-items:center;gap:14px;padding:20px 24px 16px">
-      <div style="flex:1"><div style="font-size:16px;font-weight:800;letter-spacing:-.01em">Journal des appels</div><div style="font-size:12.5px;color:#8a9aa6;margin-top:2px">{{ a.logSub }}</div></div>
+      <div style="flex:1"><div style="font-size:16px;font-weight:800;letter-spacing:-.01em">Journal consommation et coûts</div><div style="font-size:12.5px;color:#8a9aa6;margin-top:2px">{{ a.logSub }}</div></div>
       <button onClick="{{ exportCsv }}" style="height:34px;padding:0 12px;border-radius:10px;border:1px solid #cfdcd9;background:#fff;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px" style-hover="border-color:#10233a"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11 M7 10l5 5 5-5 M5 20h14"></path></svg>CSV</button>
     </div>
     <div style="overflow-x:auto"><div style="min-width:900px">
@@ -136,15 +136,20 @@ function calcOf(c) {
 class Component extends DCLogic {
   state = { met: 'tok', fn: null, hov: null, open: 'first', n: PAGE, toast: null, tick: 0 };
   componentDidMount() {
-    import('./admin-api.js').then(m => { if (m.isDemo()) return; this._api = m.journalApi; this._errText = m.errText; this.load(); }).catch(e => console.warn('admin-api', e));
+    import('./admin-api.js').then(m => {
+      if (m.isDemo()) { this._demo = true; return this.forceUpdate(); }
+      this._api = m.journalApi; this._errText = m.errText; this.load();
+    }).catch(e => { console.warn('admin-api', e); this._demo = true; this.forceUpdate(); }); // fichier ouvert seul : démonstration
   }
+  /** Données réelles (vides tant qu'elles ne sont pas chargées) ; données fictives de build() en mode démonstration seulement. */
   data() {
-    if (this._api) return this._d || { calls: [], month: [], maxTT: 1, total: 0, period: 'ce mois' };
-    return this._d || (this._d = build());
+    if (this._demo) return this._dDemo || (this._dDemo = build());
+    return this._d || { calls: [], month: [], maxTT: 1, total: 0, period: 'ce mois' };
   }
   /** Graphique (toutes les lignes budgétaires) et première page du journal du filtre courant. */
   async load() {
     try {
+      if (!this._api) throw new Error('Journal indisponible : rechargez la page');
       const A = this._api, fn = this.state.fn;
       const [series, page] = await Promise.all([this._series || Promise.all(FK.map(k => A.daily(k))).then(l => Object.fromEntries(FK.map((k, i) => [k, l[i]]))), A.calls({ fn, limit: PAGE })]);
       if (fn !== this.state.fn) return; // filtre changé pendant le chargement
@@ -152,7 +157,7 @@ class Component extends DCLogic {
       const calls = page.items.map(toCall);
       this._d = { calls, month: toMonth(series), maxTT: Math.max(1, ...calls.map(c => c.tt)), total: page.total, next: page.nextCursor, period: 'ce mois' };
       this.setState(s => ({ tick: s.tick + 1, open: 'first' }));
-    } catch (e) { this.toast(this._errText ? this._errText(e) : 'Chargement impossible'); }
+    } catch (e) { this._d = null; this.setState(s => ({ tick: s.tick + 1 })); this.toast(this._errText ? this._errText(e) : 'Chargement impossible'); }
   }
   /** Page suivante du journal (curseur). */
   async more() {

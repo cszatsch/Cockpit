@@ -282,7 +282,7 @@ export const DICTIONNAIRE: DictTable[] = [
   {
     nom: 'consommation_ia',
     source: '"UsageRecord" t',
-    description: 'Une ligne par appel à un modèle d’IA : fonction, modèle, jetons, coût, bascule sur le secours. Écran : IA › Consommation et coûts ; Vue d’ensemble « Dépense IA du mois ».',
+    description: 'Une ligne par appel à un modèle d’IA : fonction, modèle, jetons, coût, bascule sur le secours. Écran : IA › Vue générale des coûts ; Vue d’ensemble « Dépense IA du mois ».',
     colonnes: [
       { nom: 'date', expr: P('at'), type: 'date-heure', signification: 'Moment de l’appel' },
       { nom: 'fonction', expr: `t.${q('functionId')}`, type: 'texte', signification: 'Fonction IA appelée (voir affectations_ia.fonction)' },
@@ -295,7 +295,7 @@ export const DICTIONNAIRE: DictTable[] = [
       { nom: 'cout_eur', expr: `t.${q('costEur')}`, type: 'décimal', signification: 'Coût de l’appel au tarif du moment', exemples: 'en euros' },
       { nom: 'secours_utilise', expr: `t.${q('fallbackUsed')}`, type: 'booléen', signification: 'L’appel a été servi par le modèle de secours' },
       { nom: 'origine', expr: 't.source::text', type: 'texte', signification: 'Origine de l’appel', exemples: 'COCKPIT, JEV, NOTIFICATION, IMPORT' },
-      { nom: 'requete_id', expr: 't.id', type: 'texte', signification: 'Identifiant de la requête (Journal des appels)', exemples: 'req_4f9a1c02b7' },
+      { nom: 'requete_id', expr: 't.id', type: 'texte', signification: 'Identifiant de la requête (Journal consommation et coûts)', exemples: 'req_4f9a1c02b7' },
       { nom: 'prix_entree_eur_million', expr: `t.${q('priceIn')}`, type: 'décimal', signification: 'Tarif d’entrée du modèle au moment de l’appel, figé', exemples: '€ par million de jetons ; null pour les appels antérieurs au journal' },
       { nom: 'prix_sortie_eur_million', expr: `t.${q('priceOut')}`, type: 'décimal', signification: 'Tarif de sortie du modèle au moment de l’appel, figé', exemples: '€ par million de jetons' },
       { nom: 'duree_ms', expr: `t.${q('durationMs')}`, type: 'entier', signification: 'Latence totale de l’appel', exemples: 'en millisecondes ; null si non mesurée' },
@@ -313,7 +313,7 @@ export const DICTIONNAIRE: DictTable[] = [
   {
     nom: 'plafonds_budget_ia',
     source: '"BudgetThreshold" t',
-    description: 'Plafonds de dépense IA mensuels (global et par ligne budgétaire) et leur seuil d’alerte. Écran : IA › Consommation et coûts.',
+    description: 'Plafonds de dépense IA mensuels (global et par ligne budgétaire) et leur seuil d’alerte. Écran : IA › Vue générale des coûts.',
     colonnes: [
       { nom: 'id', expr: 't.id', type: 'texte', signification: 'Plafond', exemples: 'all = global ; insights, crud, rapports, guidage, docs = par ligne budgétaire' },
       { nom: 'plafond_eur', expr: `t.${q('limitEur')}`, type: 'décimal', signification: 'Plafond mensuel', exemples: 'en euros ; null = pas de plafond' },
