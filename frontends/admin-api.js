@@ -661,10 +661,12 @@ export function bindConsole(c) {
 
   // ── Jev : chaque question part au serveur, qui répond par les modèles de la fonction guidage (Identité, Soul,
   // skill « Guidage console », page ouverte). Aucun moteur de mots-clés : la réponse du modèle est affichée telle quelle. ──
+  // Vue consultée → libellé des sources affiché sous la réponse (« modeles_ia » → « modèles IA »).
+  const srcLabel = v => v.replace(/_/g, ' ').replace(/\bia\b/, 'IA').replace(/\bapi\b/, 'API').replace(/\bmodeles\b/, 'modèles').replace(/\bregles\b/, 'règles');
   c.jevReply = text => {
     Promise.resolve().then(() => c.setState({ jThink: true }));
     post('/assistant/messages', { context: { section: c.state.sec }, text })
-      .then(r => { c.setState({ jThink: false }); c.jPush({ t: 'jev', text: r.reply, err: !r.ai }); })
+      .then(r => { c.setState({ jThink: false }); c.jPush({ t: 'jev', text: r.reply, err: !r.ai, src: (r.sources || []).map(srcLabel).join(', ') || undefined }); })
       .catch(e => { c.setState({ jThink: false }); c.jPush({ t: 'jev', text: 'Jev n’a pas pu répondre : ' + ((e && e.message) || 'erreur du serveur') + '.', err: true }); });
     return [];
   };

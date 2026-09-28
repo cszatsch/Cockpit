@@ -12,6 +12,7 @@ import { ApiCardsController, WidgetFeedsController, WidgetNewsController, Widget
 import { ApiCardsService } from './api-cards.service';
 import { ProfilesService } from './profiles.service';
 import { UsageService } from './usage.service';
+import { JevSqlService } from './jev-sql.service';
 import { NotificationsService } from './notifications.service';
 import { SnapshotsService } from './snapshots.service';
 
@@ -21,6 +22,6 @@ import { SnapshotsService } from './snapshots.service';
   controllers: [ConsoleController, AccountsController, AiController, RulesController, DataController, SkillsController, PersonaController, InboxController, ApiCardsController, WidgetProxyController, WidgetFeedsController, WidgetNewsController],
   // AccountsController et DataController servent aussi de fournisseurs : les décisions du tiroir de notifications
   // reprennent exactement le traitement des pages Utilisateurs et Modules.
-  providers: [ProfilesService, UsageService, NotificationsService, SnapshotsService, InboxService, ApiCardsService, AccountsController, DataController],
+  providers: [ProfilesService, UsageService, JevSqlService, NotificationsService, SnapshotsService, InboxService, ApiCardsService, AccountsController, DataController],
 })
 export class AdminModule {}

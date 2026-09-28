@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, HttpCode, OnModuleInit, Param, Patch, Post, Query, Res } from '@nestjs/common';
 import { JevPromptService } from '../core/jev-prompt.service';
+import { JevSqlService } from './jev-sql.service';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
@@ -33,6 +34,7 @@ export class ConsoleController implements OnModuleInit {
     private readonly jobs: JobsService,
     private readonly today: TodayService,
     private readonly jevPrompt: JevPromptService,
+    private readonly jevSql: JevSqlService,
   ) {}
 
   onModuleInit() {
@@ -219,16 +221,17 @@ export class ConsoleController implements OnModuleInit {
   /**
    * Jev de la console (spécification IA § 8) : **seul un modèle d'IA répond**, celui de la fonction `guidage`
    * (principal, sinon secours), avec le prompt système de la Console : base, Identité, Personnalité (Soul),
-   * skill « Guidage console », page ouverte. Aucun moteur de mots-clés, aucune action : la question part telle
-   * quelle. Aucune clé API n'entre dans le prompt. Modèles indisponibles : le motif, sans consommation.
+   * skill « Guidage console », page ouverte. Aucun moteur de mots-clés, aucune action. Les questions sur les
+   * données passent par le dictionnaire des données et une requête en lecture seule (`JevSqlService`) ; les vues
+   * consultées sont renvoyées dans `sources`. Aucune clé API n'est lisible. Modèles indisponibles : le motif.
    */
   @Post('assistant/messages')
   @HttpCode(200)
   async jev(@Body() body: unknown) {
     const input = parse(z.object({ context: z.object({ section: z.string().max(40) }).strict(), text: z.string().trim().min(1).max(2000) }).strict(), body);
     try {
-      const res = await this.llm.complete({ functionId: 'guidage', prompt: input.text, system: await this.jevPrompt.consolePrompt(input.context.section), source: 'COCKPIT' });
-      return { reply: res.text, sources: [], actions: [], ai: { functionId: 'guidage', modelId: res.modelId, fallbackUsed: res.fallbackUsed } };
+      const res = await this.jevSql.ask(input.text, input.context.section);
+      return { reply: res.reply, sources: res.sources, actions: [], ai: res.ai };
     } catch (e: any) {
       const why = String(e?.response?.message ?? e?.message ?? 'modèles indisponibles');
       return { reply: `Je ne peux pas répondre pour l’instant : ${why}`, sources: [], actions: [], ai: null, unavailable: why };

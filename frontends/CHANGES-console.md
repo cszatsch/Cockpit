@@ -243,3 +243,7 @@ Les captures sont écrites dans `OUT` (par défaut `<tmp>/rise-console-e2e`).
 
 - `Console Admin.dc.html` : la méthode `jevReply` (moteur de mots-clés, actions directes) et l'utilitaire `nrm` sont supprimés ; `jevReply()` ne renvoie plus qu'un message « la console doit être reliée au serveur » (page sans API). Textes du panneau Jev ajustés, car Jev n'agit plus : accueil, badge « Explication et guidage », pied du panneau, et suggestions d'action reformulées en questions (« Comment relancer les invitations en attente ? », « Comment suspendre un compte ? », « Comment tester les clés API ? », « Comment créer un snapshot ? », « Comment activer un module sur un projet ? »).
 - `admin-api.js` (`c.jevReply`) : la question part seule au serveur (`POST /api/admin/assistant/messages`) ; l'indicateur « Jev réfléchit » reste affiché jusqu'à la réponse du modèle ; sans modèle disponible, le motif s'affiche en erreur.
+
+## Jev : sources des réponses sur les données (28/09/2026)
+
+- `admin-api.js` (`c.jevReply`) : les vues consultées renvoyées par le serveur (`sources`) s'affichent sous la réponse, dans l'emplacement « Sources : » déjà prévu par le panneau (libellés lisibles : « modeles_ia » → « modèles IA »).
