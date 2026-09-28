@@ -46,6 +46,8 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 
 - **Jev interroge les données (Text-to-SQL, 28/09/2026)** : `test/unit/jev-sql.spec.ts` (22 tests : extraction, requêtes acceptées et refusées, sources, dictionnaire et consignes, mise en forme des résultats) et `test/e2e/jev-sql.spec.ts` (13 tests, modèle simulé : prompt de la Console + dictionnaire lu en base + date du jour, résultats réels transmis, fiche désactivée non envoyée, réponse directe sans données, correction après erreur, double échec, écriture refusée ; garanties de la base : lecture des vues permise, écriture impossible, tables réelles et secrets inaccessibles, `set_config` et `query_to_xml` refusés, 5 s et 200 lignes au plus). `npm test` : 288 tests, tous verts. Essai réel (Claude Haiku 4.5, instance de test) : « Quels sont les modèles LLM utilisés par Anthropic ? » → les 3 modèles, sorties et tarifs exacts, « Sources : modèles IA » ; invitations en attente exactes ; dépense du mois : 0,12 €, écart avec l'écran expliqué en question 23.
 
+- **Consommation et coûts, toutes les lignes (29/09/2026)** : 2 tests dans `console.spec.ts` (une ligne par ligne budgétaire même sans plafond ; plafonds Guidage console et Documents modifiables, étape refusée). `npm test` : 290 tests, tous verts. Vérifié dans le navigateur : six lignes (Budget global, Insights, Rapports, Guidage console, Documents, Gestion des données) avec les modèles réellement affectés, en mode API comme en démonstration ; plus de « NaN % ».
+
 ## 3. Écarts connus
 
 ### 3.1 Écarts par rapport aux briefs

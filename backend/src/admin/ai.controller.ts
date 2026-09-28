@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { AdminOnly, Actor, CurrentActor } from '../core/auth/auth';
 import { AuditService, WriteCtx } from '../core/audit.service';
 import { PrismaService } from '../core/prisma.service';
-import { LlmService, AI_FUNCTIONS, AI_GROUPS, aiFunction, aiFunctionLabel } from '../core/llm.service';
+import { LlmService, AI_BUDGET_LINES, AI_FUNCTIONS, AI_GROUPS, aiFunction, aiFunctionLabel } from '../core/llm.service';
 import { JobsService } from '../core/jobs.service';
 import { encryptSecret, keyFingerprint } from '../core/crypto';
 import { badRequest, businessRule, conflict, inUse, notFound, Usage } from '../core/errors';
@@ -520,7 +520,8 @@ export class AiController implements OnModuleInit {
 
   @Put('budget-thresholds/:id')
   async putThreshold(@CurrentActor() actor: Actor, @Param('id') id: string, @Body() body: unknown) {
-    if (id !== 'all' && !AI_FUNCTIONS.some((f) => f.id === id)) throw notFound('Plafond inconnu');
+    // Un plafond par ligne budgétaire (Documents = « docs », pour ses trois étapes), ou « all ».
+    if (id !== 'all' && !AI_BUDGET_LINES.some((f) => f.id === id)) throw notFound('Plafond inconnu');
     const input = parse(
       z.object({ limitEur: z.number().positive().nullable().optional(), warnPct: z.number().int().min(50).max(100).refine((v) => v % 5 === 0, 'pas de 5'), enabled: z.boolean() }).strict(),
       body,

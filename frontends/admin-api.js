@@ -715,7 +715,9 @@ export const FALLBACK_DAY_SHARE = 0.5;
 export function bindConso(c) {
   if (isDemo() || c.__api) return;
   c.__api = true;
-  const set0 = c.setState.bind(c), rv0 = c.renderVals.bind(c), data0 = c.data.bind(c), FN = ['insights', 'crud', 'docs'];
+  const set0 = c.setState.bind(c), rv0 = c.renderVals.bind(c), data0 = c.data.bind(c);
+  // Lignes budgétaires, dans l'ordre de l'écran (serveur : AI_BUDGET_LINES ; Documents = « docs », pour ses trois étapes).
+  const FN = ['insights', 'rapports', 'guidage', 'docs', 'crud'], zero = () => Object.fromEntries(FN.map(k => [k, 0]));
   let cache = null, thSrv = [];
   const fail = e => { console.warn('[admin-api]', e); c.toast(errText(e)); };
 
@@ -724,7 +726,8 @@ export function bindConso(c) {
     const from = addDays(m.today, -89), u = await get('/usage?from=' + from + '&to=' + m.today + '&groupBy=day');
     const byDay = {};
     for (const r of u.detail) {
-      const d = (byDay[r.day] = byDay[r.day] || { insights: 0, crud: 0, docs: 0, fbc: 0, m: {}, pv: {}, tok: { insights: 0, crud: 0, docs: 0 }, mt: {}, pt: {} });
+      const d = (byDay[r.day] = byDay[r.day] || { ...zero(), fbc: 0, m: {}, pv: {}, tok: zero(), mt: {}, pt: {} });
+      if (!FN.includes(r.functionId)) continue;
       const t = r.tokensIn + r.tokensOut;
       d[r.functionId] += r.costEur; d.tok[r.functionId] += t; if (r.fallbackUsed) d.fbc += r.costEur;
       d.m[r.modelId] = (d.m[r.modelId] || 0) + r.costEur; d.mt[r.modelId] = (d.mt[r.modelId] || 0) + t;
@@ -737,14 +740,14 @@ export function bindConso(c) {
     for (let iso = from; iso <= m.monthEnd; iso = addDays(iso, 1)) {
       const fut = iso > m.today, d = byDay[iso], x = { dt: dayOf(iso), fut };
       FN.forEach(k => { x[k] = fut ? rate[k] : d ? d[k] : 0; });
-      x.t = x.insights + x.crud + x.docs;
+      x.t = FN.reduce((a, k) => a + x[k], 0);
       x.fb = !fut && !!d && x.t > 0 && d.fbc / x.t > FALLBACK_DAY_SHARE;
       x._d = d || null;
       days.push(x);
     }
     cache = { days, g: null, r: null, m, asg, models, provs };
     thSrv = list;
-    const th = {}; ['all', 'insights', 'docs', 'crud'].forEach(k => { const t = list.find(x => x.id === k); th[k] = { lim: t && t.limitEur != null ? t.limitEur : '', warn: t ? t.warnPct : 80 }; });
+    const th = {}; ['all', ...FN].forEach(k => { const t = list.find(x => x.id === k); th[k] = { lim: t && t.limitEur != null ? t.limitEur : '', warn: t ? t.warnPct : 80 }; });
     set0({ th, th0: JSON.parse(JSON.stringify(th)), apiTick: Date.now() });
     c.count();
   }
@@ -757,7 +760,7 @@ export function bindConso(c) {
   // Données de démonstration remplacées ; tant que la réponse n'est pas arrivée, série nulle.
   c.data = () => {
     if (cache) return cache;
-    if (!c._zero) { const z = data0(); c._zero = { ...z, days: z.days.map(d => ({ ...d, insights: 1e-6, crud: 1e-6, docs: 1e-6, t: 3e-6, fb: false })) }; }
+    if (!c._zero) { const z = data0(); c._zero = { ...z, days: z.days.map(d => ({ ...d, ...Object.fromEntries(FN.map(k => [k, 1e-6])), t: FN.length * 1e-6, fb: false })) }; }
     return c._zero;
   };
 
@@ -783,14 +786,14 @@ export function bindConso(c) {
     // Modèle réellement servi par fonction (principal, ou secours si le principal est indisponible).
     const M = id => models.find(m => m.id === id) || { name: id, providerId: '' };
     const served = k => { const a = asg.find(x => x.functionId === (k === 'docs' ? 'doc_syn' : k)) || {}; const fb = a.state === 'FALLBACK'; return { m: M(fb ? a.fallback : a.primary), fb }; };
-    const FNI = ['insights', 'docs', 'crud'];
+    const FNI = FN;
     (v.fns || []).forEach((f, i) => { const s = served(FNI[i]); f.model = s.m.name + (s.fb ? ' · secours' : ''); f.logo = 'width:16px;height:16px;flex:none;background:url("' + (LOGO[s.m.providerId] || '') + '") center/contain no-repeat'; });
-    (v.rows || []).forEach((r, i) => { if (!i) return; const s = served(['all', 'insights', 'docs', 'crud'][i]); r.sub = (s.fb ? 'Secours · ' : '') + s.m.name; r.logo = 'width:14px;height:14px;flex:none;background:url("' + (LOGO[s.m.providerId] || '') + '") center/contain no-repeat'; });
+    (v.rows || []).forEach((r, i) => { if (!i) return; const s = served(['all', ...FN][i]); r.sub = (s.fb ? 'Secours · ' : '') + s.m.name; r.logo = 'width:14px;height:14px;flex:none;background:url("' + (LOGO[s.m.providerId] || '') + '") center/contain no-repeat'; });
     // Tokens réels.
-    if (S.per === 'mois' && v.kpi && v.kpi.facts[2]) { v.kpi.facts[2].v = mtok(sumOf(past, d => (S.fn ? d.tok[S.fn] : d.tok.insights + d.tok.crud + d.tok.docs))) + ' M'; v.kpi.factL = v.kpi.facts.map(f => f.l + ' ' + f.v).join(' · '); }
+    if (S.per === 'mois' && v.kpi && v.kpi.facts[2]) { v.kpi.facts[2].v = mtok(sumOf(past, d => (S.fn ? d.tok[S.fn] : FN.reduce((a, k) => a + d.tok[k], 0)))) + ' M'; v.kpi.factL = v.kpi.facts.map(f => f.l + ' ' + f.v).join(' · '); }
     // Répartition par modèle et par fournisseur : mesurée, et non plus déduite de l'affectation.
     if (v.rep) {
-      const FNN = { insights: ['Insights', '#1d8f86'], docs: ['Documents', '#e39a2d'], crud: ['Gestion des données', '#3b7dd8'] };
+      const FNN = { insights: ['Insights', '#1d8f86'], rapports: ['Rapports', '#8e5bd0'], guidage: ['Guidage console', '#d0578a'], docs: ['Documents', '#e39a2d'], crud: ['Gestion des données', '#3b7dd8'] };
       const src = S.dim === 'fn' ? FNI.map(k => ({ id: k, n: FNN[k][0], logo: null, col: FNN[k][1], v: last.reduce((a, d) => a + d[k], 0), tok: sumOf(last, d => d.tok[k]) }))
         : S.dim === 'm' ? models.map(m => ({ id: m.id, n: m.name, logo: m.providerId, v: sumOf(last, d => d.m[m.id] || 0), tok: sumOf(last, d => d.mt[m.id] || 0) })).filter(r => r.v > 0)
           : provs.map(p => ({ id: p.id, n: p.name, logo: p.id, v: sumOf(last, d => d.pv[p.id] || 0), tok: sumOf(last, d => d.pt[p.id] || 0) }));

@@ -122,6 +122,21 @@ describe('Console Admin — critères d’acceptation (brief Console § 13)', ()
       const sent = await t.db.delivery.findMany({ where: { ruleId: 'n3', eventKey: { contains: '|crud|' } } });
       expect(sent.length).toBe(1);
     });
+    it('une ligne par ligne budgétaire, même sans plafond enregistré (Rapports, Guidage console)', async () => {
+      const c = await t.as(WHO.admin);
+      await t.db.budgetThreshold.deleteMany({ where: { id: { in: ['rapports', 'guidage'] } } });
+      const list = (await c.get(`${A}/budget-thresholds`).expect(200)).body;
+      expect(list.map((x: any) => x.id)).toEqual(['all', 'insights', 'crud', 'rapports', 'guidage', 'docs']);
+      expect(list.find((x: any) => x.id === 'guidage')).toMatchObject({ name: 'Guider l’utilisateur sur la console', limitEur: null, warnPct: 80, enabled: false, status: 'NO_LIMIT', version: 0 });
+      const month = (await c.get(`${A}/usage/month`).expect(200)).body;
+      expect(month.thresholds.map((x: any) => x.id)).toEqual(list.map((x: any) => x.id));
+    });
+    it('plafond d’une ligne budgétaire : Guidage console et Documents modifiables, identifiant inconnu refusé', async () => {
+      const c = await t.as(WHO.admin);
+      expect((await c.put(`${A}/budget-thresholds/guidage`, { limitEur: 20, warnPct: 75, enabled: true }).expect(200)).body).toMatchObject({ id: 'guidage', limitEur: 20, warnPct: 75, enabled: true, version: 1 });
+      expect((await c.put(`${A}/budget-thresholds/docs`, { limitEur: 450, warnPct: 80, enabled: true }).expect(200)).body).toMatchObject({ id: 'docs', limitEur: 450 });
+      await c.put(`${A}/budget-thresholds/doc_syn`, { limitEur: 10, warnPct: 80, enabled: true }).expect(404);
+    });
   });
 
   describe('6. Snapshots', () => {

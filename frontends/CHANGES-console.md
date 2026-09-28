@@ -247,3 +247,8 @@ Les captures sont écrites dans `OUT` (par défaut `<tmp>/rise-console-e2e`).
 ## Jev : sources des réponses sur les données (28/09/2026)
 
 - `admin-api.js` (`c.jevReply`) : les vues consultées renvoyées par le serveur (`sources`) s'affichent sous la réponse, dans l'emplacement « Sources : » déjà prévu par le panneau (libellés lisibles : « modeles_ia » → « modèles IA »).
+
+## Consommation et coûts : Rapports et Guidage console (29/09/2026)
+
+- `ConsoCouts.dc.html` : les lignes budgétaires ne sont plus figées à trois ; constantes `BUDGET_LINES` / `BUDGET_FN` (Insights, Rapports, Guidage console, Documents, Gestion des données), utilisées par le tableau, la courbe, la répartition, les plafonds et les données de démonstration (séries Rapports et Guidage ajoutées). Couleurs des nouvelles lignes : violet (Rapports), rose (Guidage console). Part du mois à 0 % si la dépense est nulle (plus de « NaN % »). Design inchangé.
+- `admin-api.js` (`bindConso`) : cumuls par jour, jetons, plafonds et modèles servis calculés pour les cinq lignes.

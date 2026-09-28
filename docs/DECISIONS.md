@@ -341,3 +341,11 @@ Demande du commanditaire : deux écrans de connexion distincts (application, adm
 | Sources | Les vues citées par la requête sont renvoyées (`sources`) et affichées sous la réponse (« Sources : modèles IA »). La requête n'est ni affichée ni tracée au journal (choix du commanditaire). | `viewsUsed()`, `admin-api.js` |
 | Réponse | Consignes : rien d'inventé, résultats vides ou tronqués signalés, codes traduits, pas d'offre d'action (Jev n'agit pas), même registre (tu / vous) d'un bout à l'autre. | `ANSWER_INSTRUCTIONS` |
 | Coût | Mesuré en réel (Claude Haiku 4.5) : environ 18 000 jetons pour écrire la requête (dictionnaire complet) et 7 000 pour répondre, soit environ 0,024 € par question avec données ; 0,017 € sans données. | — |
+
+## Consommation et coûts : toutes les lignes budgétaires (29/09/2026)
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Lignes affichées | Le tableau « Fonction · Modèle », la courbe, la répartition et les plafonds couvrent les cinq lignes budgétaires du serveur : Insights, Rapports, Guidage console, Documents (trois étapes), Gestion des données. Rapports et Guidage console manquaient (liste figée à trois lignes dans l'écran). | `BUDGET_LINES`, `BUDGET_FN` (`ConsoCouts.dc.html`), `FN` (`bindConso`) |
+| Plafonds | `GET /budget-thresholds` et `/usage/month` renvoient une ligne par ligne budgétaire, même sans plafond enregistré (sans plafond, seuil 80 %, version 0). La modification d'un plafond accepte les lignes budgétaires (« docs » compris, jusque-là refusé en 404) et refuse les étapes (`doc_syn`…). | `DEFAULT_WARN_PCT = 80`, `AI_BUDGET_LINES` |
+| Part du mois | « 0 % du mois » quand rien n'est dépensé (et non « NaN % »). | `ConsoCouts.dc.html` |

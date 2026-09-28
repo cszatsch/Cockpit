@@ -9,6 +9,8 @@ import { addDays, daysBetween, isoInTimezone, lastDayOfMonth } from '../domain/d
 export const PLATFORM_TIMEZONE = 'Europe/Paris';
 /** Fenêtre du rythme de dépense utilisé pour la projection (§ 7.4). */
 export const PROJECTION_WINDOW_DAYS = 7;
+/** Seuil d’alerte proposé pour une ligne budgétaire sans plafond enregistré. */
+export const DEFAULT_WARN_PCT = 80;
 
 export type FunctionState = 'NOMINAL' | 'FALLBACK' | 'UNAVAILABLE';
 export type ThresholdStatus = 'EXCEEDED' | 'ALERT' | 'UNDER' | 'NO_LIMIT';
@@ -137,12 +139,16 @@ export class UsageService {
       const m = await this.month();
       return m.thresholds;
     }
-    const rows = await this.prisma.budgetThreshold.findMany({ orderBy: { id: 'asc' } });
+    const saved = await this.prisma.budgetThreshold.findMany();
     const order = ['all', ...AI_BUDGET_LINES.map((f) => f.id)];
+    // Une ligne par ligne budgétaire, même sans plafond enregistré (Rapports, Guidage console…) : sans plafond, seuil 80 %.
+    const rows = [
+      ...order.map((id) => saved.find((t) => t.id === id) ?? { id, limitEur: null, warnPct: DEFAULT_WARN_PCT, enabled: false, version: 0 }),
+      ...saved.filter((t) => !order.includes(t.id)),
+    ];
     const today = this.todayIso();
     const last7 = await this.records(addDays(today, -(PROJECTION_WINDOW_DAYS - 1)), today);
     return rows
-      .sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id))
       .map((t) => {
         const s = t.id === 'all' ? spent : byFunction!.find((f) => f.functionId === t.id)?.spent ?? 0;
         const rate = t.id === 'all' ? rate7d! : last7.filter((r) => budgetLineOf(r.functionId) === t.id).reduce((a, r) => a + r.costEur, 0) / PROJECTION_WINDOW_DAYS;
