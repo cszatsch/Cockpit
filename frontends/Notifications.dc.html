@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><style>
+html,body{margin:0;background:#f2f6f5;font-family:'Plus Jakarta Sans',sans-serif;color:#10233a;-webkit-font-smoothing:antialiased;font-size:13px}
+*{box-sizing:border-box}a{color:#1d8f86}a:hover{color:#146b64}
+button:focus-visible{outline:2px solid #1d8f86;outline-offset:2px}
+@keyframes ntIn{from{transform:translateX(-16px);opacity:0}to{transform:none;opacity:1}}
+@keyframes ntFade{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style></helmet>
+
+<sc-if value="{{ open }}" hint-placeholder-val="{{ true }}">
+<div data-screen-label="Notifications">
+  <div onClick="{{ close }}" style="{{ scrimSt }}"></div>
+  <div role="dialog" aria-modal="true" aria-labelledby="nt-title" style="{{ panelSt }}">
+    <div style="display:flex;align-items:center;gap:10px;padding:18px 20px 12px">
+      <span id="nt-title" style="font-size:16px;font-weight:800;letter-spacing:-.01em">Notifications</span>
+      <sc-if value="{{ hasN }}" hint-placeholder-val="{{ true }}"><span style="font-size:12px;color:#5c7280">{{ nL }}</span></sc-if>
+      <span style="flex:1"></span>
+      <button type="button" onClick="{{ readAll }}" disabled="{{ noUnread }}" style="{{ readAllSt }}" style-hover="background:#e6f4f2">Tout lire</button>
+      <button type="button" onClick="{{ close }}" aria-label="Fermer" style="width:28px;height:28px;border:0;border-radius:8px;background:transparent;color:#5c7280;display:grid;place-items:center;cursor:pointer" style-hover="background:#eef3f2"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+    </div>
+    <div role="tablist" aria-label="Filtre" style="display:flex;gap:4px;padding:0 20px 12px"><sc-for list="{{ tabs }}" as="t" hint-placeholder-count="3"><button type="button" role="tab" onClick="{{ t.pick }}" aria-selected="{{ t.on }}" style="{{ t.st }}">{{ t.l }}<span style="font-size:11px;font-weight:700;opacity:.7">{{ t.c }}</span></button></sc-for></div>
+    <div style="flex:1;min-height:0;overflow:auto;border-top:1px solid #eef3f2;padding:6px 0 10px">
+      <sc-for list="{{ groups }}" as="g" hint-placeholder-count="2">
+        <div style="padding:12px 20px 6px;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:800;color:#5c7280">{{ g.l }}</div>
+        <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="2">
+          <sc-if value="{{ it.isOpen }}" hint-placeholder-val="{{ true }}">
+            <div style="{{ it.rowSt }}">
+              <span style="{{ it.tile }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="{{ it.ic }}"></path></svg></span>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+                <div style="display:flex;align-items:baseline;gap:8px"><span style="{{ it.tSt }}">{{ it.t }}</span><span style="margin-left:auto;font-size:11px;color:#8a9aa6;white-space:nowrap">{{ it.when }}</span></div>
+                <div style="font-size:12px;color:#5c7280;line-height:1.45;text-wrap:pretty">{{ it.s }}</div>
+                <sc-if value="{{ it.hasNote }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;color:#2a3f53;font-style:italic;line-height:1.45">{{ it.note }}</div></sc-if>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px"><sc-for list="{{ it.acts }}" as="a" hint-placeholder-count="2"><button type="button" onClick="{{ a.go }}" style="{{ a.st }}" style-hover="{{ a.hov }}">{{ a.l }}</button></sc-for></div>
+              </div>
+              <sc-if value="{{ it.unread }}" hint-placeholder-val="{{ false }}"><span aria-label="Non lue" style="{{ it.dot }}"></span></sc-if>
+            </div>
+          </sc-if>
+          <sc-if value="{{ it.isDone }}" hint-placeholder-val="{{ false }}">
+            <div role="status" style="margin:2px 12px;display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:#e6f4f2;color:#146b64;font-size:12.5px;font-weight:700;animation:ntFade .2s both"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"></path></svg><span style="flex:1;min-width:0">{{ it.doneL }}</span><button type="button" onClick="{{ it.undo }}" style="border:0;background:transparent;font:inherit;font-weight:700;color:#10233a;cursor:pointer;text-decoration:underline;text-underline-offset:3px">Annuler</button></div>
+          </sc-if>
+        </sc-for>
+      </sc-for>
+      <sc-if value="{{ empty }}" hint-placeholder-val="{{ false }}"><div style="padding:48px 20px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px"><span style="width:44px;height:44px;border-radius:50%;background:#e6f4f2;color:#1d8f86;display:grid;place-items:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"></path></svg></span><span style="font-weight:700">Tout est traité</span><span style="font-size:12px;color:#5c7280">Les nouvelles demandes apparaîtront ici.</span></div></sc-if>
+    </div>
+  </div>
+</div>
+</sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:820},&quot;open&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;left&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:252,&quot;tsType&quot;:&quot;number&quot;,&quot;unit&quot;:&quot;px&quot;},&quot;items&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{ id: string; type: 'err'|'warn'|'invite'|'module'; title: string; text: string; note?: string; when: string; unread: boolean; actLabel?: string; meta?: { name?: string; by?: string; project?: string } }[]&quot;},&quot;onClose&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;onAction&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(id: string, action: 'accept'|'refuse'|'fix'|'open') =&gt; void&quot;},&quot;onUndo&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(id: string) =&gt; void&quot;},&quot;onReadAll&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;}}">
+// Types : err (incident), warn (alerte), invite (demande d’invitation), module (demande d’activation)
+const IC = {
+  err: 'M7.5 15a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z M11 11.5h10 M17.5 11.5v3 M20.5 11.5v2',
+  invite: 'M15 19v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1 M9 10.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z M19 8v6 M16 11h6',
+  module: 'M4 7h9 M17 7h3 M15 5v4 M4 17h3 M11 17h9 M9 15v4',
+  warn: 'M5 20V11 M11 20V5 M17 20v-6 M3 20h18'
+};
+const TILE = { err: ['rgba(240,123,103,.14)', '#c2473b'], warn: ['#fdf1dc', '#8a5a12'], invite: ['#e6f4f2', '#146b64'], module: ['#e6f4f2', '#146b64'] };
+// Actions par type : [libellé, principale ?, id d’action, message de confirmation | null si navigation]
+const ACTS = {
+  err: [['Corriger', true, 'fix', null]],
+  warn: [['Voir le détail', false, 'open', null]],
+  invite: [['Refuser', false, 'refuse', 'Demande refusée · {by} est prévenu'], ['Inviter', true, 'accept', 'Invitation envoyée à {name}']],
+  module: [['Refuser', false, 'refuse', 'Demande refusée · {by} est prévenu'], ['Activer', true, 'accept', 'Module activé pour {project}']]
+};
+const DEMO = [
+  { id: 'n1', type: 'err', title: 'Clé API Google refusée', text: 'Insights répond sur son modèle de secours ; la Vectorisation est à l’arrêt.', when: 'il y a 12 min', unread: true, actLabel: 'Remplacer la clé' },
+  { id: 'n2', type: 'invite', title: 'Inviter Léa Martin', text: 'Demandé par Paul Girard, chef de projet RISE · lea.martin@client.fr · profil Contributeur.', note: '« Léa rejoint l’équipe data le 1er octobre. »', when: 'il y a 1 h', unread: true, meta: { name: 'Léa Martin', by: 'Paul Girard' } },
+  { id: 'n3', type: 'invite', title: 'Inviter Hugo Bernard', text: 'Demandé par Sophie Leroy, PMO ATLAS · hugo.bernard@client.fr · profil Chef de projet.', when: 'hier, 17:20', unread: true, meta: { name: 'Hugo Bernard', by: 'Sophie Leroy' } },
+  { id: 'n4', type: 'module', title: 'Activer « Risques avancés »', text: 'Demandé par Marc Dubois, sponsor, pour le projet HORIZON uniquement.', note: '« Nécessaire pour le comité du 14 octobre. »', when: 'hier, 11:05', unread: true, meta: { project: 'HORIZON', by: 'Marc Dubois' } },
+  { id: 'n5', type: 'warn', title: 'Budget IA à 82 %', text: '46 € consommés sur un plafond de 56 € ce mois-ci. Projection fin de mois : 61 €.', when: 'il y a 2 j', unread: false, actLabel: 'Voir les coûts' }
+];
+const isReq = t => t === 'invite' || t === 'module';
+
+class Component extends DCLogic {
+  state = { tab: 'all', done: {}, read: {}, open: true };
+  componentDidMount() { this._k = e => { if (e.key === 'Escape' && this.isOpen()) this.close(); }; window.addEventListener('keydown', this._k); }
+  componentWillUnmount() { window.removeEventListener('keydown', this._k); }
+  isOpen() { return this.props.open ?? this.state.open; }
+  close() { this.setState({ open: false }); this.props.onClose?.(); }
+  items() { return (this.props.items ?? DEMO).map(i => ({ ...i, unread: i.unread && !this.state.read[i.id] })); }
+  fill(tpl, i) { return tpl.replace(/\{(\w+)\}/g, (_, k) => (i.meta || {})[k] || ''); }
+  act(i, a) {
+    const [, , id, msg] = a;
+    this.setState(s => ({ read: { ...s.read, [i.id]: true }, done: msg ? { ...s.done, [i.id]: this.fill(msg, i) } : s.done }));
+    this.props.onAction?.(i.id, id);
+  }
+  undo(i) { this.setState(s => { const d = { ...s.done }; delete d[i.id]; return { done: d }; }); this.props.onUndo?.(i.id); }
+  renderVals() {
+    const S = this.state, all = this.items(), live = all.filter(i => !S.done[i.id]), unread = live.filter(i => i.unread);
+    const inTab = i => S.tab === 'all' || (S.tab === 'req' ? isReq(i.type) : !isReq(i.type));
+    const vis = all.filter(inTab);
+    const map = i => { const done = S.done[i.id], T = TILE[i.type];
+      return { t: i.title, s: i.text, note: i.note || '', hasNote: !!i.note, when: i.when, ic: IC[i.type], unread: i.unread && !done, isOpen: !done, isDone: !!done, doneL: done || '', undo: () => this.undo(i),
+        tile: 'width:34px;height:34px;border-radius:10px;flex:none;display:grid;place-items:center;background:' + T[0] + ';color:' + T[1],
+        dot: 'width:8px;height:8px;border-radius:50%;flex:none;margin-top:6px;background:' + (i.type === 'err' ? '#f07b67' : '#1d8f86'),
+        tSt: 'font-size:13px;font-weight:' + (i.unread ? 800 : 600) + ';color:#10233a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis',
+        rowSt: 'display:flex;gap:12px;padding:12px 20px;transition:background .2s;' + (i.unread ? 'background:linear-gradient(90deg,rgba(29,143,134,.05),transparent 70%)' : ''),
+        acts: ACTS[i.type].map((a, k) => { const l = (!isReq(i.type) && i.actLabel) || a[0];
+          return { l, go: () => this.act(i, a), hov: a[1] ? 'background:#1d3654' : 'border-color:#10233a',
+            st: 'height:30px;padding:0 12px;border-radius:9px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;' + (a[1] ? 'border:0;background:#10233a;color:#fff' : 'border:1px solid #cfdcd9;background:#fff;color:#10233a') }; }) }; };
+    const groups = [['Incidents et alertes', i => !isReq(i.type)], ['Demandes à traiter', i => isReq(i.type)]].map(([l, f]) => ({ l, items: vis.filter(f).map(map) })).filter(g => g.items.length);
+    const left = this.props.left ?? 252, n = unread.length;
+    return {
+      open: this.isOpen(), close: () => this.close(), hasN: n > 0, nL: n + ' non lue' + (n > 1 ? 's' : ''), noUnread: !n,
+      readAll: () => { if (!n) return; this.setState(s => ({ read: { ...s.read, ...Object.fromEntries(all.map(i => [i.id, true])) } })); this.props.onReadAll?.(); },
+      readAllSt: 'height:28px;padding:0 8px;border:0;border-radius:8px;background:transparent;font:inherit;font-size:12px;font-weight:700;color:#1d8f86;cursor:' + (n ? 'pointer' : 'default;opacity:.4'),
+      tabs: [['all', 'Tout', all.length], ['req', 'Demandes', all.filter(i => isReq(i.type)).length], ['inc', 'Incidents', all.filter(i => !isReq(i.type)).length]].map(([k, l, c]) => ({ l, c: String(c), on: S.tab === k, pick: () => this.setState({ tab: k }),
+        st: 'height:30px;padding:0 12px;border:0;border-radius:8px;font:inherit;font-size:12.5px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:background .15s;' + (S.tab === k ? 'background:#10233a;color:#fff;font-weight:700' : 'background:#eef3f2;color:#43586a;font-weight:600') })),
+      groups, empty: !vis.length || vis.every(i => false) ? !vis.length : false,
+      scrimSt: 'position:fixed;top:0;bottom:0;right:0;left:' + left + 'px;z-index:70;background:rgba(10,23,39,.28);animation:ntFade .2s both',
+      panelSt: 'position:fixed;top:0;bottom:0;left:' + left + 'px;z-index:71;width:min(440px,calc(100vw - ' + left + 'px));display:flex;flex-direction:column;background:#fff;box-shadow:24px 0 60px -30px rgba(10,23,39,.6);animation:ntIn .24s cubic-bezier(.2,.7,.2,1) both'
+    };
+  }
+}
+</script>
+</body>
+</html>

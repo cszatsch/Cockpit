@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { ZodError } from 'zod';
+import { routeKey, techErrors } from './tech-errors';
 
 /** Usage d'un objet qui empêche sa suppression (brief § 7.7). */
 export interface Usage {
@@ -74,7 +75,13 @@ export class ApiExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
     const res = host.switchToHttp().getResponse();
     const [status, body] = toErrorBody(exception);
-    if (status >= 500 && !(exception instanceof ApiError)) console.error(exception);
+    if (status >= 500 && !(exception instanceof ApiError)) {
+      console.error(exception);
+      // Erreur technique : incident dans les notifications de l'administrateur (fermé à la réussite suivante).
+      const key = routeKey(host.switchToHttp().getRequest());
+      techErrors.open.add(key);
+      techErrors.onError?.(key, exception instanceof Error ? exception.message : String(exception));
+    }
     res.status(status).json(body);
   }
 }

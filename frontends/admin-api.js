@@ -174,6 +174,20 @@ export const fromAsg = asg => Object.fromEntries(Object.entries(asg).filter(([, 
 export const toUsageRows = (detail, from) => (detail || []).map(r => ({ d: daysBetween(from, r.day), fn: r.functionId, m: r.modelId, pv: r.providerId, tin: r.tokensIn, tout: r.tokensOut, c: r.costEur, fb: r.fallbackUsed }));
 /** Plafonds → `th[]` de la console `{ id, n, lim, warn, on }` (seulement ceux qui ont un plafond). */
 export const toTh = list => list.filter(t => t.limitEur != null).map(t => ({ id: t.id, n: t.name, lim: t.limitEur, warn: t.warnPct, on: t.enabled }));
+/** Rafraîchissement des notifications de l'administrateur (spécification NOTIFICATIONS § 5). */
+const NT_REFRESH_MS = 60_000;
+/** Date relative d'une notification : « à l'instant », « il y a 12 min », « il y a 1 h », « hier, 17:20 », « il y a 2 j ». */
+export const relWhen = (iso, now = Date.now()) => {
+  const d = new Date(iso), m = Math.max(0, Math.round((now - d.getTime()) / 60_000));
+  if (m < 1) return 'à l’instant';
+  if (m < 60) return 'il y a ' + m + ' min';
+  const today = new Date(now); today.setHours(0, 0, 0, 0);
+  if (d >= today) return 'il y a ' + Math.round(m / 60) + ' h';
+  if (d >= new Date(today.getTime() - 86_400_000)) return 'hier, ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  return 'il y a ' + Math.max(2, Math.round((today - d) / 86_400_000) + 1) + ' j';
+};
+/** Notification du serveur → élément du tiroir (`Notifications.dc.html`) ; `pending` : demande encore à traiter. */
+export const toNotif = n => ({ id: n.id, type: n.type, title: n.title, text: n.text, note: n.note, when: relWhen(n.createdAt), unread: n.unread, actLabel: n.actLabel, meta: n.meta, target: n.target, pending: n.pending });
 /** Snapshot → `{ id, t, k, lab, by, ix }`. */
 export const toSnap = (s, ix) => ({ id: s.id, t: D(s.takenAt), k: s.kind === 'MANUAL' ? 'man' : 'auto', lab: s.label || '', by: s.takenBy || '', ix });
 /** Planification d'un projet → `sched` `{ on, fq, day, hour, keep }`. */
@@ -228,7 +242,7 @@ export function bindConsole(c) {
   c._logout = () => { if (DEV) writeToken(null); return Auth.logout('admin'); };
   const set0 = c.setState.bind(c), orig = {};
   ['go', 'setUser', 'saveUser', 'removeUser', 'saveAdmin', 'removeAdmin', 'testKey', 'testAll', 'saveKey', 'saveProv', 'toggleModel', 'saveModel', 'saveFiche', 'saveAsg', 'setTh', 'doCapture',
-    'toggleRule', 'saveRule', 'newRule', 'setMod', 'approve', 'reject', 'saveMe', 'revoke', 'revokeAll', 'onPhoto', 'exportAudit', 'exportCsv', 'jevReply', 'mtd', 'thVals', 'renderVals', 'skSave', 'skToggle', 'skCreate', 'skDelete', 'psSave', 'psUpload'].forEach(k => { orig[k] = c[k].bind(c); });
+    'toggleRule', 'saveRule', 'newRule', 'setMod', 'approve', 'reject', 'saveMe', 'revoke', 'revokeAll', 'onPhoto', 'exportAudit', 'exportCsv', 'jevReply', 'mtd', 'thVals', 'renderVals', 'skSave', 'skToggle', 'skCreate', 'skDelete', 'psSave', 'psUpload', 'ntToggle', 'ntAct', 'ntUndo', 'ntReadAll'].forEach(k => { orig[k] = c[k].bind(c); });
   const toast = (m, t, u) => c.toast(m, t, u), fail = e => { console.warn('[admin-api]', e); toast(errText(e), 'err'); };
   let meId = 'u1';
   const PROJ = () => Object.keys(c.state.snaps || {});
@@ -269,6 +283,7 @@ export function bindConsole(c) {
     projects: async () => ({ apiCodes: (await get('/projects')).map(p => p.code) }),
     skills: async () => ({ skills: toSkills(await apiAbs('GET', SK)) }),
     persona: async () => ({ persona: toPersona(await apiAbs('GET', PS)) }),
+    notifs: async () => ({ nt: (await get('/notifications')).items.map(toNotif) }),
   };
   const SECTION = {
     overview: ['accounts', 'providers', 'month', 'audit', 'reqs', 'snaps', 'models', 'asg', 'fns'], users: ['accounts'], admins: ['admins', 'audit', 'accounts'], providers: ['providers', 'models', 'asg', 'fns'],
@@ -283,12 +298,12 @@ export function bindConsole(c) {
   }
 
   // ── Démarrage : squelette de chargement jusqu'à la réception des données du serveur ──
-  set0({ apiBoot: true, loading: true });
+  set0({ apiBoot: true, loading: true, nt: [] });
   (async () => {
     try {
       const ov = await get('/overview');
       clock = { server: new Date(ov.date).getTime(), local: Date.now() };
-      await load(['prof', 'accounts', 'admins', 'audit', 'providers', 'models', 'asg', 'usage', 'snaps', 'sched', 'rules', 'hist', 'mods', 'reqs', 'sess', 'projects', 'skills', 'persona']);
+      await load(['prof', 'accounts', 'admins', 'audit', 'providers', 'models', 'asg', 'usage', 'snaps', 'sched', 'rules', 'hist', 'mods', 'reqs', 'sess', 'projects', 'skills', 'persona', 'notifs']);
       set0({ apiBoot: false, loading: false });
     } catch (e) {
       fail(e);
@@ -332,6 +347,26 @@ export function bindConsole(c) {
     try { const r = await apiAbs('PUT', PS, body); psUp = null; set0({ persona: toPersona(r) }); toast('Persona enregistré'); touch(); }
     catch (e) { fail(e); load(['persona']).catch(() => {}); }
   };
+
+  // ── Notifications de l'administrateur (/api/admin/notifications, NOTIFICATIONS - specification.md § 5) ──
+  // Rafraîchies à l'ouverture du tiroir et toutes les 60 s ; une décision est exécutée par le serveur après 10 s,
+  // d'où un rechargement des pages concernées (comptes, modules) juste après ce délai.
+  const refreshNt = () => load(['notifs']).catch(() => {});
+  const ntTimer = setInterval(refreshNt, NT_REFRESH_MS);
+  const unmountNt = c.componentWillUnmount.bind(c);
+  c.componentWillUnmount = () => { clearInterval(ntTimer); unmountNt(); };
+  c.ntToggle = () => { const open = !c.state.ntOpen; set0({ ntOpen: open }); if (open) refreshNt(); };
+  c.ntAct = async (id, a) => {
+    const n = (c.state.nt || []).find(x => x.id === id);
+    if (a === 'fix' || a === 'open') { set0({ ntOpen: false }); if (n && n.target) c.go(n.target); post('/notifications/' + id + '/read').then(refreshNt).catch(() => {}); return; }
+    try {
+      await post('/notifications/' + id + '/decision', { decision: a });
+      refreshNt(); touch();
+      setTimeout(() => { load(['notifs', 'accounts', 'reqs', 'mods']).catch(() => {}); touch(); }, 10_000 + 1_500);
+    } catch (e) { fail(e); refreshNt(); }
+  };
+  c.ntUndo = id => post('/notifications/' + id + '/undo').then(() => { toast('Décision annulée'); refreshNt(); touch(); }).catch(e => { fail(e); refreshNt(); });
+  c.ntReadAll = () => post('/notifications/read-all').then(refreshNt).catch(fail);
 
   // Ouverture d'un menu : rechargement de la section en arrière-plan.
   c.go = (sec, then) => { orig.go(sec, then); if (!c.state.apiBoot && SECTION[sec]) load(SECTION[sec]).catch(fail); };

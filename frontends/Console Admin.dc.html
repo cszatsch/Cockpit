@@ -28,7 +28,8 @@ a{color:#1d8f86}a:hover{color:#146b64}
 <!-- API : barre latérale = composant Sidebar Console (SIDEBAR - specification.md § 3) ; en mobile, tiroir ouvert par le bouton menu. -->
 <div style="{{ sbWrap }}">
 <dc-import name="Sidebar Console" mode="{{ sbMode }}" active="{{ sec }}" signals="{{ sbSignals }}"
-  user="{{ sbUser }}" jev-on="{{ jvOn }}" jev-name="{{ jevName }}" cockpit-url="./RISE Cockpit.dc.html"
+  user="{{ sbUser }}" jev-on="{{ jvOn }}" jev-name="{{ jevName }}"
+  notif-count="{{ ntUnread }}" notif-has-error="{{ ntHasErr }}" notif-open="{{ ntOpen }}" on-toggle-notifications="{{ ntToggle }}" cockpit-url="./RISE Cockpit.dc.html"
   on-navigate="{{ sbGo }}" on-toggle-jev="{{ toggleJev }}"
   on-open-profile="{{ goProfil }}" on-toggle-collapse="{{ toggleRail }}" on-close="{{ closeNav }}"
   hint-size="252px,100vh"></dc-import>
@@ -614,6 +615,9 @@ a{color:#1d8f86}a:hover{color:#146b64}
     </div>
   </aside>
 </div>
+<!-- API : tiroir des notifications de l’administrateur (Notifications.dc.html, NOTIFICATIONS - specification.md § 6). -->
+<dc-import name="Notifications" open="{{ ntOpen }}" left="{{ ntLeft }}" items="{{ ntItems }}"
+  on-close="{{ ntClose }}" on-action="{{ ntAct }}" on-undo="{{ ntUndo }}" on-read-all="{{ ntReadAll }}" hint-size="0,0"></dc-import>
 </div>
 
 <sc-if value="{{ pend.on }}" hint-placeholder-val="{{ false }}">
@@ -1046,6 +1050,14 @@ const JCHIPS = {
   modules: ['Activer Suivi des bénéfices sur RISE', 'Quels modules sont actifs ?'],
   profil: ['Quels sont mes droits ?', 'Mes sessions actives']
 };
+// Notifications de l’administrateur (démonstration ; API : GET /api/admin/notifications). `pending` : demande encore à traiter.
+const NT0 = [
+  { id: 'n1', type: 'err', title: 'Clé API Google refusée', text: 'Insights répond sur son modèle de secours ; la Vectorisation est à l’arrêt.', when: 'il y a 12 min', unread: true, actLabel: 'Remplacer la clé', target: 'providers' },
+  { id: 'n2', type: 'invite', title: 'Inviter Léa Martin', text: 'Demandé par Paul Girard, chef de projet RISE · lea.martin@client.fr · profil Contributeur.', note: '« Léa rejoint l’équipe data le 1er octobre. »', when: 'il y a 1 h', unread: true, pending: true, meta: { name: 'Léa Martin', by: 'Paul Girard' } },
+  { id: 'n3', type: 'invite', title: 'Inviter Hugo Bernard', text: 'Demandé par Sophie Leroy, PMO ATLAS · hugo.bernard@client.fr · profil Chef de projet.', when: 'hier, 17:20', unread: true, pending: true, meta: { name: 'Hugo Bernard', by: 'Sophie Leroy' } },
+  { id: 'n4', type: 'module', title: 'Activer « Risques avancés »', text: 'Demandé par Marc Dubois, sponsor, pour le projet HORIZON uniquement.', note: '« Nécessaire pour le comité du 14 octobre. »', when: 'hier, 11:05', unread: true, pending: true, meta: { project: 'HORIZON', by: 'Marc Dubois' } },
+  { id: 'n5', type: 'warn', title: 'Budget IA à 82 %', text: '46 € consommés sur un plafond de 56 € ce mois-ci. Projection fin de mois : 61 €.', when: 'il y a 2 j', unread: false, actLabel: 'Voir les coûts', target: 'conso' }
+];
 // Persona de Jev (démonstration ; API : GET /api/assistant/persona) et avatars prédéfinis de Persona.dc.html.
 const PERSONA0 = { identity: { name: 'Jev', creature: 'Copilote de projet', style: 'Direct, chaleureux, précis', emoji: '🧭', avatar: 'nuit', photo: null }, soul: '' };
 const PERSONA_AV = { nuit: 'linear-gradient(135deg,#1d8f86,#0f2034)', ambre: 'linear-gradient(135deg,#f7a41c,#f0752b)', lagon: 'linear-gradient(135deg,#3dd6c6,#1d8f86)', encre: 'linear-gradient(135deg,#10233a,#2e5173)' };
@@ -1072,7 +1084,7 @@ class Component extends DCLogic {
       mods: [{ id: 'bud', n: 'Budget', d: 'Budget prévisionnel, consommé, reste à faire et arbitrages.', sc: 'projet', pj: { RISE: new Date(2026, 2, 12), ATLAS: new Date(2026, 5, 2) }, g: null },
         { id: 'ben', n: 'Suivi des bénéfices', d: 'Indicateurs de valeur, trajectoire des bénéfices et revues.', sc: 'off', pj: {}, g: null }],
       reqs: [{ id: 'q1', m: 'ben', who: 'Camille Rey', p: 'RISE', t: back(60 * 48 + 40) }],
-      dlg: null, dt: '', form: {}, fe: {}, toast: null,
+      dlg: null, dt: '', form: {}, fe: {}, toast: null, nt: NT0.map(n => ({ ...n })), ntOpen: false,
       jev: false, jm: [], jIn: '', jThink: false, jCtx: null,
       prof: { first: 'Julien', last: 'Morel', pos: 'Directeur de projet', soc: 'Onepoint', team: 'Onepoint', mail: 'julien.morel@example.com', tel: '+33 6 12 48 90 27', city: 'Paris', country: 'France', lang: 'Français', tz: 'Europe/Paris (UTC+2)' },
       pd: null, profTab: 'infos', photo: null, pn: { crit: true, budget: true, req: true, hebdo: true, fail: false },
@@ -1087,7 +1099,7 @@ class Component extends DCLogic {
     this._sc = () => { if (this.state.menu) this.setState({ menu: null }); }; window.addEventListener('scroll', this._sc, true);
     this._kd = e => {
       const k = e.key, S = this.state;
-      if (k === 'Escape') { if (S.menu) this.setState({ menu: null }); else if (S.dlg) this.cancelDlg(); else if (S.jev) this.setState({ jev: false }); else if (S.mnav) this.setState({ mnav: false }); return; }
+      if (k === 'Escape') { if (S.ntOpen) this.ntClose(); else if (S.menu) this.setState({ menu: null }); else if (S.dlg) this.cancelDlg(); else if (S.jev) this.setState({ jev: false }); else if (S.mnav) this.setState({ mnav: false }); return; }
     };
     window.addEventListener('keydown', this._kd);
     this._md = e => { if (this.state.menu && !e.target.closest('[data-pop]')) this.setState({ menu: null }); }; document.addEventListener('mousedown', this._md);
@@ -1130,10 +1142,24 @@ class Component extends DCLogic {
   }
   // ——— Barre latérale : mode (mobile, réduite, déployée) et bouton réduire / déployer du composant Sidebar Console
   // Signaux : invitations en attente (compteur), clé refusée (point rouge), fonction IA à l'arrêt (rouge) ou sur secours (ambre).
+  // ——— Notifications de l’administrateur (démonstration : état local ; API : admin-api.js)
+  ntPendingInvites() { return (this.state.nt || []).filter(n => n.type === 'invite' && n.pending).length; }
+  ntToggle() { this.setState(s => ({ ntOpen: !s.ntOpen })); }
+  ntClose() { this.setState({ ntOpen: false }); }
+  ntAct(id, a) {
+    const n = (this.state.nt || []).find(x => x.id === id); if (!n) return;
+    if (a === 'fix' || a === 'open') { this.setState(s => ({ ntOpen: false, nt: s.nt.map(x => x.id === id ? { ...x, unread: false } : x) })); if (n.target) this.go(n.target); return; }
+    // Décision : annulable 10 s, puis la demande disparaît de la liste.
+    this.setState(s => ({ nt: s.nt.map(x => x.id === id ? { ...x, pending: false, unread: false } : x) }));
+    this.log(n.type === 'invite' ? 'Demande d’invitation ' + (a === 'accept' ? 'acceptée' : 'refusée') : 'Demande de module ' + (a === 'accept' ? 'acceptée' : 'refusée'), n.title, 'sensible');
+    clearTimeout((this._ntT = this._ntT || {})[id]); this._ntT[id] = setTimeout(() => this.setState(s => ({ nt: s.nt.filter(x => x.id !== id || x.pending) })), 10000);
+  }
+  ntUndo(id) { clearTimeout((this._ntT || {})[id]); this.setState(s => ({ nt: s.nt.map(x => x.id === id ? { ...x, pending: true } : x) })); this.log('Décision annulée', id, 'sensible'); }
+  ntReadAll() { this.setState(s => ({ nt: s.nt.map(x => ({ ...x, unread: false })) })); }
   sbSignals(badge) {
     const S = this.state, st = FNS.map(f => this.fnState(f.id, S.asg[f.id]).tone), anyDown = st.includes('err'), anyFallback = st.includes('warn');
     return {
-      users: badge.users ? { b: badge.users[1] } : undefined,
+      users: this.ntPendingInvites() ? { b: this.ntPendingInvites() } : undefined,
       providers: S.provs.some(p => p.st === 'err') ? { dot: 'err' } : undefined,
       assign: anyDown ? { dot: 'err' } : anyFallback ? { dot: 'warn' } : undefined
     };
@@ -1623,6 +1649,10 @@ class Component extends DCLogic {
       isUsers: is('users') && !S.loading, isAdmins: is('admins') && !S.loading, isRights: is('rights') && !S.loading, isProv: is('providers') && !S.loading, isAsg: is('assign') && !S.loading, isConso: is('conso') && !S.loading, isInit: is('init') && !S.loading, isLib: is('library') && !S.loading, isSnaps: is('snaps') && !S.loading, isNotifs: is('notifs') && !S.loading, isMods: is('modules') && !S.loading,
       isPersona: is('persona') && !S.loading, isSkills: is('skills') && !S.loading,
       // Skills : liste du serveur (admin-api.js) ; démonstration intégrée au composant sinon. Le composant apporte ses propres marges.
+      // Notifications : cloche (non lues et non traitées, corail si un incident non lu) et tiroir le long de la sidebar.
+      ...(() => { const live = (S.nt || []).filter(n => n.unread && (n.pending !== false || n.type === 'err' || n.type === 'warn'));
+        return { ntUnread: live.length, ntHasErr: live.some(n => n.type === 'err'), ntOpen: !!S.ntOpen, ntItems: S.nt || [], ntLeft: mode === 'rail' ? 72 : mode === 'mob' ? 0 : 252,
+          ntToggle: () => this.ntToggle(), ntClose: () => this.ntClose(), ntAct: (id, a) => this.ntAct(id, a), ntUndo: id => this.ntUndo(id), ntReadAll: () => this.ntReadAll() }; })(),
       // Persona : Identity + Soul ; le nom de Jev (sidebar, panneau) vient d’identity.name.
       persona: S.persona || undefined, psSave: p => this.psSave(p), psUpload: f => this.psUpload(f),
       jevName: this.persona().identity.name || 'Jev', jevAria: (this.persona().identity.name || 'Jev') + ', assistant IA',

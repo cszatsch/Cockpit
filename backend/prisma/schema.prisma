@@ -1390,3 +1390,50 @@ model PersonaVersion {
 
   @@index([savedAt])
 }
+
+// ─────────────────────────── Notifications de l'administrateur ───────────────────────────
+
+enum AdminNotificationKind {
+  ERR
+  WARN
+  INVITE
+  MODULE
+}
+
+/// OPEN : à traiter ; DECIDED : décision prise, annulable jusqu'à `undoUntil` ; DONE : décision exécutée ;
+/// RESOLVED : cause disparue ou demande traitée ailleurs.
+enum AdminNotificationStatus {
+  OPEN
+  DECIDED
+  DONE
+  RESOLVED
+}
+
+/// Notification du tiroir de la console (spécification NOTIFICATIONS) : incident, alerte, demande d'invitation
+/// ou d'activation de module. Une par cause (`key`), rouverte si la cause réapparaît.
+model Notification {
+  id           String                  @id @default(cuid())
+  key          String                  @unique
+  kind         AdminNotificationKind
+  status       AdminNotificationStatus @default(OPEN)
+  title        String
+  text         String
+  note         String?
+  actLabel     String?
+  target       String?
+  meta         Json?
+  /// Niveau d'une alerte (ex. WARN, OVER) : une aggravation la remet en « non lue ».
+  level        String?
+  readAt       DateTime?
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
+  decision     String?
+  decidedAt    DateTime?
+  decidedById  String?
+  decidedBy    String?
+  undoUntil    DateTime?
+  doneAt       DateTime?
+  resolvedAt   DateTime?
+
+  @@index([status])
+}

@@ -211,3 +211,10 @@ Les captures sont écrites dans `OUT` (par défaut `<tmp>/rise-console-e2e`).
 - Rappels `psSave` / `psUpload` : démonstration (état local) ; API dans `admin-api.js` (`/api/assistant/persona`, chargement au démarrage et à l'ouverture de la page, image envoyée dès son choix puis URL substituée à l'aperçu à l'enregistrement).
 - Nom de Jev (`identity.name`) : bouton Jev de la sidebar (`jev-name`), en-tête, libellé et champ de saisie du panneau Jev ; avatar (image ou teinte prédéfinie avec l'emoji) et emoji dans l'en-tête du panneau (`PERSONA_AV`, mêmes teintes que le composant).
 - `Sidebar Console.dc.html` : prop `jevName` (« Jev » par défaut) pour le texte et les libellés accessibles du bouton Jev ; aucune autre modification.
+
+## Notifications de l'administrateur (28/09/2026)
+
+- `Sidebar Console.dc.html` remplacé par la version livrée (cloche) ; prop `jevName` réappliquée à l'identique (Persona). Nouveaux attributs : `notif-count`, `notif-has-error`, `notif-open`, `on-toggle-notifications`.
+- `Notifications.dc.html` (livraison) copié tel quel et placé à la fin du shell (`ntLeft` : 252, 72 en mode réduit, 0 en mobile).
+- Démonstration : `NT0` (mêmes notifications que le composant, avec la page à ouvrir) ; décisions locales annulables 10 s. API (`admin-api.js`) : `/api/admin/notifications`, rafraîchie à l'ouverture et toutes les 60 s, décisions, annulation, « Tout lire », lecture et navigation pour « Corriger » / « Voir le détail ».
+- Échap ferme d'abord le tiroir ; signal « Accès » = demandes d'invitation à traiter.

@@ -7754,6 +7754,128 @@
           "console · assistant"
         ]
       }
+    },
+    "/api/admin/notifications": {
+      "get": {
+        "operationId": "InboxController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · notifications"
+        ]
+      }
+    },
+    "/api/admin/notifications/read-all": {
+      "post": {
+        "operationId": "InboxController_readAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · notifications"
+        ]
+      }
+    },
+    "/api/admin/notifications/{id}/read": {
+      "post": {
+        "operationId": "InboxController_read",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · notifications"
+        ]
+      }
+    },
+    "/api/admin/notifications/{id}/decision": {
+      "post": {
+        "operationId": "InboxController_decide",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · notifications"
+        ]
+      }
+    },
+    "/api/admin/notifications/{id}/undo": {
+      "post": {
+        "operationId": "InboxController_undo",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · notifications"
+        ]
+      }
     }
   },
   "info": {

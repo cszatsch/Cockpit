@@ -6,6 +6,7 @@ import path from 'path';
 import { AppModule } from './app.module';
 import { ApiExceptionFilter } from './core/errors';
 import { EtagInterceptor } from './core/http';
+import { TechRecoveryInterceptor } from './core/tech-errors';
 import { config } from './core/config';
 import { registerPages } from './core/auth/pages';
 
@@ -17,7 +18,7 @@ export async function createApp(opts: { logger?: boolean } = {}): Promise<INestA
   if (process.env.TRUST_PROXY) app.getHttpAdapter().getInstance().set('trust proxy', process.env.TRUST_PROXY);
   app.use(express.json({ limit: '10mb' }));
   app.useGlobalFilters(new ApiExceptionFilter());
-  app.useGlobalInterceptors(new EtagInterceptor());
+  app.useGlobalInterceptors(new EtagInterceptor(), new TechRecoveryInterceptor());
   const doc = SwaggerModule.createDocument(app, openApiConfig());
   SwaggerModule.setup('api/docs', app, doc, { jsonDocumentUrl: 'api/docs/openapi.json' });
   if (config.frontendDir) {
