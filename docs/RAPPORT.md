@@ -42,6 +42,8 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 
 - **Moteur de mots-clés supprimé (28/09/2026)** : `guidage.spec.ts` vérifie que les questions autrefois interceptées (relance, coût, snapshot, suspension, clé API) partent telles quelles au modèle, sans réponse toute faite ni action ; qu'aucune clé n'entre dans ce qui part au modèle ; que le champ `facts` est refusé. `npm test` : 207 tests, tous verts. Vérifié dans le navigateur (instance de test sur le port 3001) : page chargée, nouveaux textes du panneau, réponses de Claude Haiku 4.5.
 
+- **Dictionnaire des données du Jev de la Console (28/09/2026)** : `test/e2e/dictionnaire.spec.ts`, 46 tests : une vue par fiche, colonnes des 31 vues identiques aux colonnes documentées, fiches complètes, tables du dictionnaire conformes à la source ; aucune colonne ni valeur secrète (empreinte de mot de passe, clés de démonstration, chiffrés, clé en clair dans un endpoint masquée) ; 10 questions de référence égales aux écrans (comptes par statut, invitations sans réponse et expirées, fournisseurs opérationnels, dernier snapshot, dépense et projection du mois, statut du plafond global, état des fonctions IA, appels du jour et état des cartes API, actions sensibles récentes). `npm test` : 253 tests, tous verts. Dictionnaire chargé dans la base locale (31 fiches).
+
 ## 3. Écarts connus
 
 ### 3.1 Écarts par rapport aux briefs

@@ -284,45 +284,45 @@ model Client {
 }
 
 model Project {
-  id                 String        @id
-  clientId           String
-  client             Client        @relation(fields: [clientId], references: [id])
-  code               String        @unique
-  name               String
-  objective          String?
-  startDate          String
-  targetEndDate      String
-  timezone           String        @default("Europe/Paris")
-  city               String?
-  country            String        @default("France")
-  status             ProjectStatus @default(PREPARATION)
-  editorTeamId       String?
-  integratorTeamId   String?
-  programDirectorId  String?
-  sponsorId          String?
-  currency           String        @default("EUR")
-  forecastGoliveIso  String?
+  id                String        @id
+  clientId          String
+  client            Client        @relation(fields: [clientId], references: [id])
+  code              String        @unique
+  name              String
+  objective         String?
+  startDate         String
+  targetEndDate     String
+  timezone          String        @default("Europe/Paris")
+  city              String?
+  country           String        @default("France")
+  status            ProjectStatus @default(PREPARATION)
+  editorTeamId      String?
+  integratorTeamId  String?
+  programDirectorId String?
+  sponsorId         String?
+  currency          String        @default("EUR")
+  forecastGoliveIso String?
   /// { value, reason, by, at } — `reason` obligatoire
-  healthOverride     Json?
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
-  version            Int           @default(1)
+  healthOverride    Json?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  version           Int           @default(1)
 
-  sections           ProjectSection[]
-  baselines          BaselineVersion[]
-  waves              Wave[]
-  phases             Phase[]
-  subphases          Subphase[]
-  workstreams        Workstream[]
-  milestones         Milestone[]
-  deliverables       Deliverable[]
-  teams              Team[]
-  roles              ProjectRole[]
-  persons            Person[]
-  assignments        Assignment[]
-  bodies             GovernanceBody[]
-  habilitations      Habilitation[]
-  contentBlocks      ContentBlock[]
+  sections      ProjectSection[]
+  baselines     BaselineVersion[]
+  waves         Wave[]
+  phases        Phase[]
+  subphases     Subphase[]
+  workstreams   Workstream[]
+  milestones    Milestone[]
+  deliverables  Deliverable[]
+  teams         Team[]
+  roles         ProjectRole[]
+  persons       Person[]
+  assignments   Assignment[]
+  bodies        GovernanceBody[]
+  habilitations Habilitation[]
+  contentBlocks ContentBlock[]
 }
 
 /// Sections libres de la fiche projet. Clé = identifiant stable d'un champ de la fiche (surcharge éditée).
@@ -610,22 +610,22 @@ model ProjectRole {
 }
 
 model Person {
-  id          String   @id
-  projectId   String
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  firstName   String
-  lastName    String
-  email       String
-  teamId      String?
-  title       String?
-  active      Boolean  @default(true)
-  photoUrl    String?
+  id        String   @id
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  firstName String
+  lastName  String
+  email     String
+  teamId    String?
+  title     String?
+  active    Boolean  @default(true)
+  photoUrl  String?
   /// Chantiers de rattachement affichés dans la fiche personne (colonne « chantier »)
-  wsIds       String[] @default([])
-  order       Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  version     Int      @default(1)
+  wsIds     String[] @default([])
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  version   Int      @default(1)
 
   @@unique([projectId, email])
 }
@@ -786,23 +786,23 @@ model Session {
 }
 
 model ReportTemplate {
-  id          String    @id
+  id          String   @id
   projectId   String
   name        String
   bodyId      String?
   authorId    String?
   authorLabel String?
-  version     String    @default("v1")
-  description String    @default("")
+  version     String   @default("v1")
+  description String   @default("")
   /// [{ id, scope: PROJECT|WAVE|PHASE|WORKSTREAM, targetId? }] (Q8 : composant budget, portée PHASE)
   components  Json
-  pages       Int       @default(1)
+  pages       Int      @default(1)
   publishedAt String?
-  active      Boolean   @default(true)
-  order       Int       @default(0)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  rowVersion  Int       @default(1)
+  active      Boolean  @default(true)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  rowVersion  Int      @default(1)
 }
 
 model ReportInstance {
@@ -884,24 +884,24 @@ model ProgramBudget {
 }
 
 model Document {
-  id        String           @id
-  projectId String
-  n         String
-  type      String
-  dateIso   String
-  v         String           @default("v1")
-  conf      Confidentiality  @default(INTERNAL)
-  src       DocumentSource   @default(UPLOADED)
-  ext       ExtractionStatus @default(PENDING)
-  mime      String
-  pages     Int?
-  fileKey   String?
-  sizeBytes Int?
+  id          String           @id
+  projectId   String
+  n           String
+  type        String
+  dateIso     String
+  v           String           @default("v1")
+  conf        Confidentiality  @default(INTERNAL)
+  src         DocumentSource   @default(UPLOADED)
+  ext         ExtractionStatus @default(PENDING)
+  mime        String
+  pages       Int?
+  fileKey     String?
+  sizeBytes   Int?
   /// Texte d'origine de la colonne « liens » quand il ne se résout pas en liens typés
   linkedLabel String?
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
-  version   Int              @default(1)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  version     Int              @default(1)
 
   links DocumentLink[]
 }
@@ -1004,25 +1004,25 @@ model AssistantFile {
 // ─────────────────────────── Accès (communs) ───────────────────────────
 
 model Account {
-  id              String        @id
-  email           String        @unique
-  fullName        String
-  personId        String?
-  status          AccountStatus @default(INVITED)
-  invitedAt       DateTime?
-  inviteExpiresAt DateTime?
-  lastLoginAt     DateTime?
-  photoUrl        String?
+  id                 String        @id
+  email              String        @unique
+  fullName           String
+  personId           String?
+  status             AccountStatus @default(INVITED)
+  invitedAt          DateTime?
+  inviteExpiresAt    DateTime?
+  lastLoginAt        DateTime?
+  photoUrl           String?
   /// Profil de l'administrateur (fonction, société, téléphone, ville, pays, langue, fuseau)
-  profile         Json?
+  profile            Json?
   /// Empreinte Argon2id du mot de passe (null : mot de passe jamais défini, connexion impossible)
   passwordHash       String?
   /// Changement de mot de passe exigé à la prochaine connexion (compte initial, mot de passe provisoire)
-  mustChangePassword Boolean   @default(false)
+  mustChangePassword Boolean       @default(false)
   passwordChangedAt  DateTime?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  version         Int           @default(1)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  version            Int           @default(1)
 
   projects       AccountProject[]
   sessions       AuthSession[]
@@ -1040,9 +1040,9 @@ model AccountProject {
 /// Habilitation (brief § 8.3) : RESPONSABLE et LECTEUR exigent un chantier.
 /// ADMIN est porté par AdminGrant (plateforme) ; les lignes ADMIN éventuelles sont ignorées par le calcul.
 model Habilitation {
-  id        String  @id
+  id        String   @id
   projectId String
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   personId  String?
   accountId String?
   profile   Profile
@@ -1196,14 +1196,14 @@ model AiModel {
 }
 
 model ModelAssignment {
-  functionId      String   @id
-  primaryModelId  String
-  fallbackModelId String?
+  functionId        String   @id
+  primaryModelId    String
+  fallbackModelId   String?
   /// Taille des vecteurs produits (fonction Embedding) par le principal et par le secours
   primaryDimension  Int?
   fallbackDimension Int?
-  updatedAt       DateTime @updatedAt
-  version         Int      @default(1)
+  updatedAt         DateTime @updatedAt
+  version           Int      @default(1)
 }
 
 model UsageRecord {
@@ -1308,13 +1308,13 @@ model Delivery {
 }
 
 model Module {
-  id          String      @id
+  id          String          @id
   name        String
   description String
-  scope       ModuleScope @default(OFF)
+  scope       ModuleScope     @default(OFF)
   globalSince DateTime?
-  updatedAt   DateTime    @updatedAt
-  version     Int         @default(1)
+  updatedAt   DateTime        @updatedAt
+  version     Int             @default(1)
   projects    ModuleProject[]
 }
 
@@ -1412,28 +1412,28 @@ enum AdminNotificationStatus {
 /// Notification du tiroir de la console (spécification NOTIFICATIONS) : incident, alerte, demande d'invitation
 /// ou d'activation de module. Une par cause (`key`), rouverte si la cause réapparaît.
 model Notification {
-  id           String                  @id @default(cuid())
-  key          String                  @unique
-  kind         AdminNotificationKind
-  status       AdminNotificationStatus @default(OPEN)
-  title        String
-  text         String
-  note         String?
-  actLabel     String?
-  target       String?
-  meta         Json?
+  id          String                  @id @default(cuid())
+  key         String                  @unique
+  kind        AdminNotificationKind
+  status      AdminNotificationStatus @default(OPEN)
+  title       String
+  text        String
+  note        String?
+  actLabel    String?
+  target      String?
+  meta        Json?
   /// Niveau d'une alerte (ex. WARN, OVER) : une aggravation la remet en « non lue ».
-  level        String?
-  readAt       DateTime?
-  createdAt    DateTime                @default(now())
-  updatedAt    DateTime                @updatedAt
-  decision     String?
-  decidedAt    DateTime?
-  decidedById  String?
-  decidedBy    String?
-  undoUntil    DateTime?
-  doneAt       DateTime?
-  resolvedAt   DateTime?
+  level       String?
+  readAt      DateTime?
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+  decision    String?
+  decidedAt   DateTime?
+  decidedById String?
+  decidedBy   String?
+  undoUntil   DateTime?
+  doneAt      DateTime?
+  resolvedAt  DateTime?
 
   @@index([status])
 }
@@ -1481,4 +1481,43 @@ model ApiCardCall {
 
   @@index([cardId, at])
   @@map("api_card_calls")
+}
+
+/// Dictionnaire des données du Jev de la Console (Text-to-SQL) : une fiche par vue du schéma `jev`.
+/// Contenu chargé par `prisma/seed/dictionnaire.ts` depuis `src/domain/jev-dictionnaire.ts`.
+model DictionnaireTable {
+  /// Nom de la vue interrogeable, sans le schéma (`jev.<nom>`)
+  nom         String                @id
+  description String
+  /// Clés et jointures vers les autres vues, une par ligne
+  relations   String                @default("")
+  /// Questions auxquelles la vue répond, agrégations, filtres fréquents, un par ligne
+  usages      String                @default("")
+  /// Règles de calcul et précautions (valeurs nulles, statuts, fuseau…), une par ligne
+  regles      String                @default("")
+  /// Fiche envoyée au modèle
+  actif       Boolean               @default(true)
+  position    Int                   @default(0)
+  version     Int                   @default(1)
+  modifieLe   DateTime              @updatedAt @map("modifie_le")
+  modifiePar  String?               @map("modifie_par")
+  colonnes    DictionnaireColonne[]
+
+  @@map("dictionnaire_tables")
+}
+
+/// Une colonne d'une vue du dictionnaire.
+model DictionnaireColonne {
+  tableNom       String            @map("table_nom")
+  table          DictionnaireTable @relation(fields: [tableNom], references: [nom], onDelete: Cascade)
+  nom            String
+  /// texte, entier, décimal, booléen, date, date-heure, json, liste de textes, liste d’entiers
+  type           String
+  signification  String
+  /// Valeurs possibles, exemples ou unité (€, ms, %, jetons)
+  exemplesUnites String?           @map("exemples_unites")
+  position       Int               @default(0)
+
+  @@id([tableNom, nom])
+  @@map("dictionnaire_colonnes")
 }

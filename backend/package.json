@@ -16,6 +16,8 @@
     "init:admin": "ts-node --transpile-only scripts/init-admin.ts",
     "ia:reinitialiser": "ts-node --transpile-only scripts/reset-ai.ts",
     "ia:catalogue": "ts-node --transpile-only scripts/ia-catalogue.ts",
+    "dictionnaire:charger": "ts-node --transpile-only prisma/seed/dictionnaire.ts",
+    "dictionnaire:doc": "ts-node --transpile-only scripts/dictionnaire-doc.ts",
     "openapi": "ts-node --transpile-only scripts/export-openapi.ts",
     "lint": "tsc --noEmit -p tsconfig.json",
     "test": "jest --runInBand",
