@@ -32,8 +32,12 @@ describe('Console — modèles d’IA', () => {
     await admin.post('/api/admin/models', { ...llm, name: 'X3', maxOutputTokens: 12.5 }).expect(400);
 
     // Embedding : entrée seule, pas de max output tokens (ignoré).
-    const emb = await admin.post('/api/admin/models', { providerId: 'mistral', name: 'Mistral Embed', category: 'embedding', releaseDate: '2023-12-11', maxOutputTokens: 999, price: { unit: 'TOKENS', in: 0.09, out: 5 } }).expect(201);
-    expect(emb.body).toMatchObject({ category: 'EMBEDDING', maxOutputTokens: null, price: { unit: 'TOKENS', in: 0.09, out: null } });
+    const emb = await admin.post('/api/admin/models', { providerId: 'mistral', name: 'Mistral Embed', category: 'embedding', releaseDate: '2023-12-11', maxOutputTokens: 999, price: { unit: 'TOKENS', in: 0.09, out: 5 }, dimensions: [1024], providerModelId: 'mistral-embed', contextTokens: 8192 }).expect(201);
+    expect(emb.body).toMatchObject({ category: 'EMBEDDING', maxOutputTokens: null, price: { unit: 'TOKENS', in: 0.09, out: null }, dimensions: [1024], defaultDimension: 1024, providerModelId: 'mistral-embed', contextTokens: 8192 });
+    // Embedding : au moins une dimension ; valeur par défaut parmi elles.
+    const noDim = await admin.post('/api/admin/models', { providerId: 'mistral', name: 'X7', category: 'EMBEDDING', releaseDate: '2024-01-01', price: { unit: 'TOKENS', in: 0.1 } }).expect(400);
+    expect(noDim.body.fields.dimensions).toBeTruthy();
+    await admin.post('/api/admin/models', { providerId: 'mistral', name: 'X8', category: 'EMBEDDING', releaseDate: '2024-01-01', price: { unit: 'TOKENS', in: 0.1 }, dimensions: [1024, 512], defaultDimension: 768 }).expect(400);
     const embReq = await admin.post('/api/admin/models', { providerId: 'mistral', name: 'X4', category: 'EMBEDDING', releaseDate: '2024-01-01', price: { unit: 'REQUESTS', per1k: 1 } }).expect(400);
     expect(embReq.body.fields['price.unit']).toMatch(/Reranking/);
 
@@ -55,6 +59,21 @@ describe('Console — modèles d’IA', () => {
     await admin.patch('/api/admin/models/rerank35', { price: { unit: 'TOKENS' } }).expect(400);
     expect((await admin.patch('/api/admin/models/rerank35', { price: { unit: 'TOKENS', in: 0.5 } }).expect(200)).body.price).toEqual({ unit: 'TOKENS', in: 0.5, out: null, per1k: null });
     await admin.patch('/api/admin/models/rerank35', { price: { unit: 'REQUESTS', per1k: 1.85 } }).expect(200);
+  });
+
+  it('dimension de la vectorisation : parmi celles du modèle, défaut du modèle, réindexation tracée', async () => {
+    let a = (await admin.get('/api/admin/assignments').expect(200)).body.find((x: any) => x.functionId === 'doc_vec');
+    expect(a).toMatchObject({ primary: 'te3large', dimension: 3072 });
+    const bad = await admin.put('/api/admin/assignments', { doc_vec: { primary: 'te3large', dimension: 768 } }).expect(422);
+    expect(bad.body.fields['doc_vec.dimension']).toContain('3072');
+    await admin.put('/api/admin/assignments', { crud: { primary: 'haiku', dimension: 1024 } }).expect(400);
+    a = (await admin.put('/api/admin/assignments', { doc_vec: { primary: 'te3large', dimension: 1024 } }).expect(200)).body.find((x: any) => x.functionId === 'doc_vec');
+    expect(a.dimension).toBe(1024);
+    const re = await t.db.auditEntry.findFirst({ where: { action: 'Réindexation des documents requise' } });
+    expect(re).toMatchObject({ severity: 'CRITICAL', target: expect.stringContaining('1024 dimensions') });
+    // Une dimension affectée ne peut pas être retirée du modèle.
+    expect((await admin.patch('/api/admin/models/te3large', { dimensions: [3072, 512] }).expect(409)).body.code).toBe('DIMENSION_IN_USE');
+    expect((await admin.patch('/api/admin/models/te3large', { dimensions: [3072, 1024] }).expect(200)).body).toMatchObject({ dimensions: [3072, 1024], defaultDimension: 3072 });
   });
 
   it('chaque fonction n’accepte que sa catégorie ; la chaîne Documents a trois étapes', async () => {

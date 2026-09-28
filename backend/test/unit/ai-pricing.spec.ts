@@ -1,4 +1,4 @@
-import { chainStates, costOf, modelAgeMonths, modelAgeTier, normalizePrice } from '../../src/domain/ai-pricing';
+import { chainStates, costOf, effectiveDimension, modelAgeMonths, modelAgeTier, normalizeDimensions, normalizePrice, reindexRequired, REINDEX_WARNING } from '../../src/domain/ai-pricing';
 
 describe('Tarification des modèles et chaîne Documents (spécification IA § 3)', () => {
   const m = (o: object) => ({ category: 'LLM', priceUnit: 'TOKENS', priceInPerMTok: null, priceOutPerMTok: null, pricePer1kRequests: null, ...o });
@@ -31,5 +31,26 @@ describe('Tarification des modèles et chaîne Documents (spécification IA § 3
     expect(chainStates(['NOMINAL', 'UNAVAILABLE', 'NOMINAL'])).toEqual(['NOMINAL', 'UNAVAILABLE', 'BLOCKED']);
     expect(chainStates(['FALLBACK', 'NOMINAL', 'NOMINAL'])).toEqual(['FALLBACK', 'NOMINAL', 'NOMINAL']);
     expect(chainStates(['UNAVAILABLE', 'UNAVAILABLE', 'NOMINAL'])).toEqual(['UNAVAILABLE', 'BLOCKED', 'BLOCKED']);
+  });
+});
+
+describe('Dimensions des modèles d’embedding et réindexation', () => {
+  it('seul un Embedding a des dimensions ; liste triée, défaut compris dans la liste', () => {
+    expect(normalizeDimensions('LLM', [1024], 1024)).toEqual({ dimensions: [], defaultDimension: null });
+    expect(normalizeDimensions('EMBEDDING', [256, 4096, 1024, 1024], 1024)).toEqual({ dimensions: [4096, 1024, 256], defaultDimension: 1024 });
+    expect(normalizeDimensions('EMBEDDING', [1024], null)).toEqual({ dimensions: [1024], defaultDimension: 1024 });
+    expect(normalizeDimensions('EMBEDDING', [], null)).toMatchObject({ errors: { dimensions: expect.any(String) } });
+    expect(normalizeDimensions('EMBEDDING', [512, 0], 512)).toMatchObject({ errors: { dimensions: expect.any(String) } });
+    expect(normalizeDimensions('EMBEDDING', [1024, 512], 768)).toMatchObject({ errors: { defaultDimension: expect.any(String) } });
+  });
+
+  it('réindexation : changement de modèle ou de dimension, pas pour une première affectation', () => {
+    expect(effectiveDimension(null, { defaultDimension: 1024 })).toBe(1024);
+    expect(effectiveDimension(512, { defaultDimension: 1024 })).toBe(512);
+    expect(reindexRequired({ modelId: null, dimension: null }, { modelId: 'a', dimension: 1024 })).toBe(false);
+    expect(reindexRequired({ modelId: 'a', dimension: 1024 }, { modelId: 'a', dimension: 1024 })).toBe(false);
+    expect(reindexRequired({ modelId: 'a', dimension: 1024 }, { modelId: 'b', dimension: 1024 })).toBe(true);
+    expect(reindexRequired({ modelId: 'a', dimension: 1024 }, { modelId: 'a', dimension: 512 })).toBe(true);
+    expect(REINDEX_WARNING).toMatch(/réindexer tous les documents/);
   });
 });

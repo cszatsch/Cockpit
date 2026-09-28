@@ -24,11 +24,17 @@ export interface CatalogModel {
   /** Identifiant de l'API du fournisseur (information, non utilisé par la passerelle bouchon). */
   apiId: string;
   description: string;
-  category: 'LLM';
+  category: 'LLM' | 'EMBEDDING' | 'RERANKING';
   releaseDate: string;
-  maxOutputTokens: number;
-  /** Tarif publié, $ / M tokens. */
-  usd: { in: number; out: number };
+  /** LLM seulement. */
+  maxOutputTokens?: number;
+  /** Longueur de contexte (tokens), si relevée. */
+  contextTokens?: number;
+  /** Embedding : dimensions de sortie acceptées (vraiment proposées par le modèle) et valeur par défaut. */
+  dimensions?: number[];
+  defaultDimension?: number;
+  /** Tarif publié, $ / M tokens (entrée seule pour Embedding et Reranking). */
+  usd: { in: number; out?: number };
   sources: string[];
   /** Point d'attention (tarif temporaire, palier, retrait annoncé…). */
   note?: string;
@@ -124,4 +130,47 @@ export const CATALOG_MODELS: CatalogModel[] = [
 ];
 
 /** $ → €, arrondi à 4 décimales. */
+/**
+ * Modèles d'embedding et de reranking servis par OpenRouter (demande du 28/09/2026).
+ * Identifiants et tarifs : API publique OpenRouter (GET /api/v1/embeddings/models, /api/v1/models?output_modalities=rerank),
+ * tarifs Voyage recoupés sur docs.voyageai.com ; dates : annonces des éditeurs (pas la date de mise en ligne sur OpenRouter).
+ */
+export const OPENROUTER_MODELS: CatalogModel[] = [
+  // ───── Embedding ─────
+  {
+    providerId: 'openrouter', name: 'Qwen3 Embedding 8B', apiId: 'qwen/qwen3-embedding-8b', category: 'EMBEDDING',
+    description: 'Embedding multilingue pour textes longs : recherche de textes et de code, classification, clustering, alignement de traductions (bitext mining).',
+    releaseDate: '2025-06-05', contextTokens: 32_768, usd: { in: 0.01 },
+    // Dimension native 4096, réductible (MRL, 32 à 4096) : on ne propose que des tailles usuelles.
+    dimensions: [4096, 2048, 1536, 1024, 512, 256], defaultDimension: 1024,
+    sources: ['https://openrouter.ai/qwen/qwen3-embedding-8b', 'https://qwenlm.github.io/blog/qwen3-embedding/', 'https://huggingface.co/Qwen/Qwen3-Embedding-8B'],
+    note: 'Défaut 1 024 : sous la limite d’index HNSW de pgvector (2 000 dimensions pour le type vector), bon compromis qualité / stockage.',
+  },
+  {
+    providerId: 'openrouter', name: 'BAAI bge-m3', apiId: 'baai/bge-m3', category: 'EMBEDDING',
+    description: 'Embedding multilingue produisant des vecteurs denses de 1 024 dimensions ; recherche sémantique et documents longs.',
+    releaseDate: '2024-01-30', contextTokens: 8_192, usd: { in: 0.01 },
+    dimensions: [1024], defaultDimension: 1024,
+    sources: ['https://openrouter.ai/baai/bge-m3', 'https://github.com/FlagOpen/FlagEmbedding', 'https://huggingface.co/BAAI/bge-m3'],
+    note: 'Dimension fixe (1 024) : pas de réduction possible.',
+  },
+  // ───── Reranking ─────
+  {
+    providerId: 'openrouter', name: 'Voyage rerank-2.5', apiId: 'voyageai/rerank-2.5', category: 'RERANKING',
+    description: 'Reranker de qualité (VoyageAI by MongoDB) : environ 7,9 % de mieux que Cohere Rerank v3.5 sur 93 jeux de données ; accepte des instructions en langage naturel.',
+    releaseDate: '2025-08-11', contextTokens: 32_000, usd: { in: 0.05 },
+    sources: ['https://openrouter.ai/voyageai/rerank-2.5', 'https://blog.voyageai.com/2025/08/11/rerank-2-5/', 'https://docs.voyageai.com/docs/reranker', 'https://docs.voyageai.com/docs/pricing'],
+    note: 'Contexte 32K (requête + document), requête limitée à 8K tokens.',
+  },
+  {
+    providerId: 'openrouter', name: 'Voyage rerank-2.5-lite', apiId: 'voyageai/rerank-2.5-lite', category: 'RERANKING',
+    description: 'Version rapide et économique de rerank-2.5 (VoyageAI by MongoDB) : environ 7,2 % de mieux que Cohere Rerank v3.5.',
+    releaseDate: '2025-08-11', contextTokens: 32_000, usd: { in: 0.02 },
+    sources: ['https://openrouter.ai/voyageai/rerank-2.5-lite', 'https://blog.voyageai.com/2025/08/11/rerank-2-5/', 'https://docs.voyageai.com/docs/reranker', 'https://docs.voyageai.com/docs/pricing'],
+    note: 'Contexte 32K (requête + document), requête limitée à 8K tokens.',
+  },
+];
+
+CATALOG_MODELS.push(...OPENROUTER_MODELS);
+
 export const toEur = (usd: number) => Math.round((usd / USD_PER_EUR) * 10_000) / 10_000;

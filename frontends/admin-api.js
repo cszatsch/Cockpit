@@ -153,16 +153,19 @@ export const toAudit = a => ({ id: a.id, who: a.who, a: a.action, tg: a.target |
 /** Fournisseur → `{ id, n, pre, l4, st, lat, t, err }` (jamais de clé en clair). */
 export const toProv = p => ({ id: p.id, n: p.name, pre: p.keyPrefix || '', l4: p.keyLast4 || '', st: PROV_ST[p.status] || 'new', lat: p.latencyMs, t: D(p.lastTestedAt) || new Date(), err: p.lastError || '', bad: p.status === 'ERROR', testing: false });
 /** Modèle → `{ id, pv, n, d, pin, pout, act }`. */
-/** Modèle → `{ id, pv, n, d, c, rel, maxOut, unit, pin, pout, per1k, act }` (tarif selon l'unité : € / M tokens ou € / 1 000 requêtes). */
-export const toModel = m => { const pr = m.price || { unit: 'TOKENS', in: m.priceIn, out: m.priceOut, per1k: null }; return { id: m.id, pv: m.providerId, n: m.name, d: m.description || '', c: m.category || 'LLM', rel: m.releaseDate || '', maxOut: m.maxOutputTokens || null, unit: pr.unit, pin: pr.in, pout: pr.out, per1k: pr.per1k, act: m.active }; };
+/** Modèle → `{ id, pv, n, d, c, rel, maxOut, apiId, ctx, dims, dim, unit, pin, pout, per1k, act }` (tarif selon l'unité : € / M tokens ou € / 1 000 requêtes). */
+export const toModel = m => { const pr = m.price || { unit: 'TOKENS', in: m.priceIn, out: m.priceOut, per1k: null }; return { id: m.id, pv: m.providerId, n: m.name, d: m.description || '', c: m.category || 'LLM', rel: m.releaseDate || '', maxOut: m.maxOutputTokens || null,
+  apiId: m.providerModelId || '', ctx: m.contextTokens || null, dims: m.dimensions || [], dim: m.defaultDimension || null, unit: pr.unit, pin: pr.in, pout: pr.out, per1k: pr.per1k, act: m.active }; };
 /** Modèle des écrans IA (`ia-data.js`, catégorie en minuscules) → corps de `POST` / `PATCH /models`. */
-export const fromIaModel = im => { const p = im.price || {}, rq = p.unit === 'requests'; return { name: im.n, description: im.d || '', category: String(im.cat || 'llm').toUpperCase(), releaseDate: im.rel || null, maxOutputTokens: im.cat === 'llm' ? im.maxOut || null : null, price: rq ? { unit: 'REQUESTS', per1k: p.per1k } : { unit: 'TOKENS', in: p.in, out: im.cat === 'llm' ? p.out : null } }; };
+export const fromIaModel = im => { const p = im.price || {}, rq = p.unit === 'requests'; return { name: im.n, description: im.d || '', category: String(im.cat || 'llm').toUpperCase(), releaseDate: im.rel || null, maxOutputTokens: im.cat === 'llm' ? im.maxOut || null : null,
+  providerModelId: im.apiId || null, contextTokens: im.ctx || null, dimensions: im.cat === 'embedding' ? im.dims || [] : [], defaultDimension: im.cat === 'embedding' ? im.dim || null : null, price: rq ? { unit: 'REQUESTS', per1k: p.per1k } : { unit: 'TOKENS', in: p.in, out: im.cat === 'llm' ? p.out : null } }; };
 /** Volumes 30 jours par fonction (`GET /functions`) → `{ fnId: { tin, tout, req } }` en tokens et requêtes. */
 export const toVol = r => Object.fromEntries(r.functions.map(f => [f.id, { tin: f.volume30d.tokensIn, tout: f.volume30d.tokensOut, req: f.volume30d.requests }]));
 /** Affectations → `{ insights:{p,f}, crud:{p,f}, docs:{p,f} }`. */
-export const toAsg = list => Object.fromEntries(list.map(a => [a.functionId, { p: a.primary || '', f: a.fallback || '' }]));
+// Embedding : `d` = dimension des vecteurs du principal (chaîne, comme la valeur d'un <select>).
+export const toAsg = list => Object.fromEntries(list.map(a => [a.functionId, a.dimension ? { p: a.primary || '', f: a.fallback || '', d: String(a.dimension) } : { p: a.primary || '', f: a.fallback || '' }]));
 /** Affectation → corps de `PUT /assignments` ; une fonction sans modèle principal n'est pas envoyée (aucun LLM choisi). */
-export const fromAsg = asg => Object.fromEntries(Object.entries(asg).filter(([, v]) => v.p).map(([k, v]) => [k, { primary: v.p, fallback: v.f || null }]));
+export const fromAsg = asg => Object.fromEntries(Object.entries(asg).filter(([, v]) => v.p).map(([k, v]) => [k, v.d ? { primary: v.p, fallback: v.f || null, dimension: +v.d } : { primary: v.p, fallback: v.f || null }]));
 /** Détail jour × fonction × modèle → lignes `{ d, fn, m, pv, tin, tout, c }` de `genUsage()` (d = 0…89, 89 = aujourd'hui). */
 export const toUsageRows = (detail, from) => (detail || []).map(r => ({ d: daysBetween(from, r.day), fn: r.functionId, m: r.modelId, pv: r.providerId, tin: r.tokensIn, tout: r.tokensOut, c: r.costEur, fb: r.fallbackUsed }));
 /** Plafonds → `th[]` de la console `{ id, n, lim, warn, on }` (seulement ceux qui ont un plafond). */

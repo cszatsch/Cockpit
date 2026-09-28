@@ -334,9 +334,9 @@ export async function seedDemoAi(db: PrismaClient): Promise<void> {
   }
   // Chaîne Documents : un Embedding et un Reranking (Cohere, facturé à la requête).
   await db.provider.upsert({ where: { id: 'cohere' }, create: { id: 'cohere', name: 'Cohere', keyPrefix: '', keyLast4: 'Co01', keyCipher: encryptSecret('cohere-demo-000000000000000000Co01'), status: 'OK', latencyMs: 288, lastTestedAt: back(118) }, update: {} });
-  await db.aiModel.create({ data: { id: 'te3large', providerId: 'openai', name: 'text-embedding-3-large', description: 'Vecteurs 3 072 dimensions', category: 'EMBEDDING', priceInPerMTok: 0.12, releaseDate: new Date('2024-01-25') } });
+  await db.aiModel.create({ data: { id: 'te3large', providerId: 'openai', name: 'text-embedding-3-large', description: 'Vecteurs 3 072 dimensions', category: 'EMBEDDING', priceInPerMTok: 0.12, releaseDate: new Date('2024-01-25'), dimensions: [3072, 1536, 1024, 512, 256], defaultDimension: 3072, contextTokens: 8191, providerModelId: 'text-embedding-3-large' } });
   await db.aiModel.create({ data: { id: 'rerank35', providerId: 'cohere', name: 'Rerank 3.5', description: 'Reclassement multilingue', category: 'RERANKING', priceUnit: 'REQUESTS', pricePer1kRequests: 1.85, releaseDate: new Date('2024-12-02') } });
-  await db.modelAssignment.create({ data: { functionId: 'doc_vec', primaryModelId: 'te3large', fallbackModelId: null } });
+  await db.modelAssignment.create({ data: { functionId: 'doc_vec', primaryModelId: 'te3large', fallbackModelId: null, primaryDimension: 3072 } });
   await db.modelAssignment.create({ data: { functionId: 'doc_rrk', primaryModelId: 'rerank35', fallbackModelId: null } });
   const asg = { insights: { p: 'sonnet', f: 'gpt5' }, crud: { p: 'haiku', f: 'gpt5mini' }, doc_syn: { p: 'gpro', f: 'sonnet' } };
   for (const [fn, a] of Object.entries(asg)) {

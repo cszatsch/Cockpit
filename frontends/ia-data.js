@@ -11,16 +11,16 @@
 
   // cat : 'llm' | 'embedding' | 'reranking'
   // price.unit : 'tokens' (in, out en € / M tokens) | 'requests' (per1k en € / 1 000 requêtes)
-  // rel : date de sortie ISO · maxOut : LLM uniquement
+  // rel : date de sortie ISO · maxOut : LLM uniquement · dims / dim : dimensions acceptées et par défaut (embedding)
   const MODELS = [
     { id: 'sonnet45', pv: 'anthropic', n: 'Claude Sonnet 4.5', d: 'Raisonnement et rédaction', cat: 'llm', rel: '2025-09-29', maxOut: 64000, price: { unit: 'tokens', in: 2.8, out: 14 }, act: true },
     { id: 'haiku45', pv: 'anthropic', n: 'Claude Haiku 4.5', d: 'Rapide et économique', cat: 'llm', rel: '2025-10-15', maxOut: 64000, price: { unit: 'tokens', in: 0.92, out: 4.6 }, act: true },
     { id: 'gpt5mini', pv: 'openai', n: 'GPT-5 mini', d: 'Polyvalent, faible coût', cat: 'llm', rel: '2025-08-07', maxOut: 128000, price: { unit: 'tokens', in: 0.23, out: 1.85 }, act: true },
     { id: 'mistralL2', pv: 'mistral', n: 'Mistral Large 2', d: 'Modèle européen', cat: 'llm', rel: '2024-07-24', maxOut: 32000, price: { unit: 'tokens', in: 1.85, out: 5.5 }, act: true },
     { id: 'gemini25pro', pv: 'google', n: 'Gemini 2.5 Pro', d: 'Long contexte', cat: 'llm', rel: '2025-06-17', maxOut: 65536, price: { unit: 'tokens', in: 1.15, out: 9.2 }, act: true },
-    { id: 'te3large', pv: 'openai', n: 'text-embedding-3-large', d: 'Vecteurs 3 072 dimensions', cat: 'embedding', rel: '2024-01-25', price: { unit: 'tokens', in: 0.12 }, act: true },
-    { id: 'mistralEmbed', pv: 'mistral', n: 'Mistral Embed', d: 'Vecteurs 1 024 dimensions', cat: 'embedding', rel: '2023-12-11', price: { unit: 'tokens', in: 0.09 }, act: true },
-    { id: 'geminiEmb', pv: 'google', n: 'Gemini Embedding', d: 'Multilingue', cat: 'embedding', rel: '2025-07-14', price: { unit: 'tokens', in: 0.14 }, act: true },
+    { id: 'te3large', pv: 'openai', n: 'text-embedding-3-large', d: 'Vecteurs 3 072 dimensions', cat: 'embedding', rel: '2024-01-25', dims: [3072, 1536, 1024, 512, 256], dim: 3072, price: { unit: 'tokens', in: 0.12 }, act: true },
+    { id: 'mistralEmbed', pv: 'mistral', n: 'Mistral Embed', d: 'Vecteurs 1 024 dimensions', cat: 'embedding', rel: '2023-12-11', dims: [1024], dim: 1024, price: { unit: 'tokens', in: 0.09 }, act: true },
+    { id: 'geminiEmb', pv: 'google', n: 'Gemini Embedding', d: 'Multilingue', cat: 'embedding', rel: '2025-07-14', dims: [3072, 1536, 768], dim: 3072, price: { unit: 'tokens', in: 0.14 }, act: true },
     { id: 'rerank35', pv: 'cohere', n: 'Rerank 3.5', d: 'Reclassement multilingue', cat: 'reranking', rel: '2024-12-02', price: { unit: 'requests', per1k: 1.85 }, act: true }
   ];
 
@@ -89,6 +89,10 @@
     return raw;
   }
   const catModels = (models, cat) => models.filter(m => m.cat === cat && m.act);
+  // Embedding : dimension retenue (choix de l'affectation, sinon défaut du modèle) et réindexation.
+  const dimOf = (a, models) => { const m = model(models, (a || {}).p); return !m || m.cat !== 'embedding' ? null : (+(a || {}).d || m.dim || null); };
+  const reindex = (before, after, models) => !!(before && before.p) && (before.p !== (after || {}).p || dimOf(before, models) !== dimOf(after, models));
+  const REINDEX_WARNING = "Changer de modèle d'embedding oblige à réindexer tous les documents. Chaque modèle a son propre espace vectoriel : les vecteurs de deux modèles différents ne sont pas compatibles, même s'ils ont la même dimension. Sans réindexation, la recherche renverra des résultats faux ou incohérents.";
 
-  window.RISE_IA = { PROVIDERS, MODELS, FUNCTIONS, GROUPS, ASSIGN, CAT, eur, nf, num, model, prov, usable, cost, priceLabel, priceShort, age, states, catModels };
+  window.RISE_IA = { PROVIDERS, MODELS, FUNCTIONS, GROUPS, ASSIGN, CAT, eur, nf, num, model, prov, usable, cost, priceLabel, priceShort, age, states, catModels, dimOf, reindex, REINDEX_WARNING };
 })();

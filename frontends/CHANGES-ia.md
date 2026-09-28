@@ -28,3 +28,12 @@ Les trois écrans sont chargés par `<dc-import>` dans `Console Admin.dc.html` e
 | propriété `onDelete` et bouton « Supprimer » (modification seulement), au dessin du bouton de suppression de la console | la suppression d'un modèle existait dans l'ancien formulaire (décision du 28/09/2026) |
 | en choisissant Reranking, unité « À la requête » par défaut | la spécification indique que le Reranking est « souvent au nombre de requêtes » ; la livraison gardait l'unité précédente (au token) |
 | tarifs affichés jusqu'à 4 décimales | 0,125 € / M tokens devenait 0,13 € à la réouverture |
+
+## Dimensions des modèles d'embedding et réindexation (28/09/2026)
+
+| Modification | Justification |
+|---|---|
+| `ia-data.js` : champs `dims` / `dim` sur les modèles d'embedding de démonstration ; fonctions `dimOf`, `reindex` et texte `REINDEX_WARNING` | demande du commanditaire : liste des dimensions de sortie acceptées, valeur par défaut, avertissement de réindexation |
+| Fiche modèle : champs « Identifiant chez le fournisseur » et « Longueur de contexte » (tous modèles) ; pour un Embedding, « Dimensions » (liste séparée par des virgules) et « Dimension par défaut » (choisie dans la liste) | renseigner l'identifiant, le contexte et les dimensions demandés pour les modèles OpenRouter |
+| Affectation : sous le modèle principal d'une fonction d'embedding, sélecteur de dimension (verrouillé si le modèle n'en a qu'une) ; changer de principal revient à sa dimension par défaut | choisir la taille des vecteurs parmi les seules valeurs acceptées par le modèle |
+| Affectation : encadré « ⚠️ » avec le texte du commanditaire dans la carte Vectorisation dès que le modèle d'embedding ou sa dimension change | avertissement demandé, y compris pour un changement de dimension d'un même modèle |

@@ -6,11 +6,12 @@
  *
  * - Fournisseur absent : créé sans clé (« Non testée ») ; la clé se saisit dans la console.
  * - Modèle : retrouvé par fournisseur et nom (sans tenir compte de la casse), sinon créé.
- *   Mis à jour : description, catégorie, date de sortie, max output tokens, tarif (converti en euros).
+ *   Mis à jour : description, catégorie, identifiant chez le fournisseur, contexte, date de sortie,
+ *   max output tokens (LLM), dimensions (Embedding), tarif (converti en euros).
  * Les mêmes contrôles que l'API s'appliquent (tarif selon la catégorie, date pas dans le futur).
  */
 import { PrismaClient } from '@prisma/client';
-import { normalizePrice } from '../src/domain/ai-pricing';
+import { normalizeDimensions, normalizePrice } from '../src/domain/ai-pricing';
 import { CATALOG_MODELS, CATALOG_PROVIDERS, toEur, USD_PER_EUR, USD_PER_EUR_DATE } from '../prisma/catalog/ia-modeles';
 
 const slug = (name: string) => name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60) || 'modele';
@@ -34,13 +35,21 @@ async function main(): Promise<number> {
     for (const m of CATALOG_MODELS) {
       if (!(await db.provider.findUnique({ where: { id: m.providerId } }))) throw new Error(`Fournisseur ${m.providerId} absent : ${m.name} ne peut pas être ajouté`);
       if (m.releaseDate > today) throw new Error(`${m.name} : date de sortie dans le futur`);
-      const priced = normalizePrice(m.category, { unit: 'TOKENS', in: toEur(m.usd.in), out: toEur(m.usd.out) });
+      const priced = normalizePrice(m.category, { unit: 'TOKENS', in: toEur(m.usd.in), out: m.usd.out == null ? null : toEur(m.usd.out) });
       if ('errors' in priced) throw new Error(`${m.name} : tarif invalide ${JSON.stringify(priced.errors)}`);
+      const dims = normalizeDimensions(m.category, m.dimensions ?? [], m.defaultDimension ?? null);
+      if ('errors' in dims) throw new Error(`${m.name} : dimensions invalides ${JSON.stringify(dims.errors)}`);
+      if (m.category === 'LLM' && !m.maxOutputTokens) throw new Error(`${m.name} : max output tokens manquant`);
       const data = {
-        name: m.name, description: m.description, category: m.category, releaseDate: new Date(m.releaseDate), maxOutputTokens: m.maxOutputTokens,
+        name: m.name, description: m.description, category: m.category, releaseDate: new Date(m.releaseDate),
+        maxOutputTokens: m.category === 'LLM' ? m.maxOutputTokens! : null, providerModelId: m.apiId, contextTokens: m.contextTokens ?? null, ...dims,
         priceUnit: priced.price.unit, priceInPerMTok: priced.price.in, priceOutPerMTok: priced.price.out, pricePer1kRequests: null,
       };
-      const price = `${m.usd.in} $ / ${m.usd.out} $ → ${priced.price.in} € / ${priced.price.out} € par M tokens`;
+      const price = m.usd.out == null
+        ? `${m.usd.in} $ → ${priced.price.in} € par M tokens`
+        : `${m.usd.in} $ / ${m.usd.out} $ → ${priced.price.in} € / ${priced.price.out} € par M tokens`;
+      const cat = { LLM: 'LLM', EMBEDDING: 'Embedding', RERANKING: 'Reranking' }[m.category];
+      const size = m.category === 'LLM' ? `${m.maxOutputTokens} tokens` : m.category === 'EMBEDDING' ? `${dims.dimensions.join('/')} dim. (défaut ${dims.defaultDimension})` : `contexte ${m.contextTokens ?? '—'}`;
       const found = await db.aiModel.findFirst({ where: { providerId: m.providerId, name: { equals: m.name, mode: 'insensitive' } } });
       if (found) {
         console.log(`~ ${m.providerId} · ${m.name} (${found.id}) : mis à jour · ${price}`);
@@ -52,10 +61,10 @@ async function main(): Promise<number> {
       }
       let id = slug(m.name);
       for (let n = 2; await db.aiModel.findUnique({ where: { id } }); n++) id = `${slug(m.name)}-${n}`;
-      console.log(`+ ${m.providerId} · ${m.name} (${id}) · sortie ${m.releaseDate} · ${m.maxOutputTokens} tokens · ${price}`);
+      console.log(`+ ${m.providerId} · ${m.name} (${id}) · ${cat} · sortie ${m.releaseDate} · ${size} · ${price}`);
       if (apply) {
         await db.aiModel.create({ data: { id, providerId: m.providerId, active: true, ...data } });
-        await audit(db, 'Ajout d’un modèle', `${m.name} · LLM · catalogue du 28/09/2026 · ${price}`, 'AiModel', id);
+        await audit(db, 'Ajout d’un modèle', `${m.name} · ${cat} · catalogue du 28/09/2026 · ${price}`, 'AiModel', id);
       }
     }
     return 0;

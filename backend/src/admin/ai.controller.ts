@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { AdminOnly, Actor, CurrentActor } from '../core/auth/auth';
 import { AuditService, WriteCtx } from '../core/audit.service';
 import { PrismaService } from '../core/prisma.service';
-import { LlmService, AI_FUNCTIONS, AI_GROUPS, aiFunction } from '../core/llm.service';
+import { LlmService, AI_FUNCTIONS, AI_GROUPS, aiFunction, aiFunctionLabel } from '../core/llm.service';
 import { JobsService } from '../core/jobs.service';
 import { encryptSecret, keyFingerprint } from '../core/crypto';
 import { badRequest, businessRule, conflict, inUse, notFound, Usage } from '../core/errors';
@@ -13,7 +13,7 @@ import { adminCtx } from './profiles.service';
 import { round2, UsageService } from './usage.service';
 import { addDays } from '../domain/dates';
 import { AiModel } from '@prisma/client';
-import { chainStates, costOf, ModelCategory, normalizePrice, Price, priceOf, Volume } from '../domain/ai-pricing';
+import { chainStates, costOf, effectiveDimension, ModelCategory, normalizeDimensions, normalizePrice, Price, priceOf, reindexRequired, REINDEX_WARNING, Volume } from '../domain/ai-pricing';
 
 /** Fréquence du test automatique des clés (brief Console § 10.1). */
 export const KEY_TEST_CRON = '0 */2 * * *';
@@ -42,6 +42,13 @@ const ModelFields = z.object({
   releaseDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'date AAAA-MM-JJ').nullable(),
   /** Longueur maximale d'une réponse (LLM). */
   maxOutputTokens: z.number().int('nombre entier').positive('entier > 0').max(10_000_000).nullable(),
+  /** Identifiant chez le fournisseur (ex. qwen/qwen3-embedding-8b). */
+  providerModelId: z.string().trim().max(160).nullable(),
+  /** Longueur de contexte (tokens). */
+  contextTokens: z.number().int('nombre entier').positive('entier > 0').max(100_000_000).nullable(),
+  /** Dimensions de sortie acceptées et valeur par défaut (Embedding). */
+  dimensions: z.array(z.number().int('nombre entier')).max(64),
+  defaultDimension: z.number().int('nombre entier').nullable(),
   price: PriceBody,
   /** Tarifs au token à plat (compatibilité avec la première version de l'API). */
   priceIn: Money,
@@ -165,6 +172,8 @@ export class AiController implements OnModuleInit {
       id: m.id, providerId: m.providerId, name: m.name, description: m.description, category: m.category,
       releaseDate: m.releaseDate ? m.releaseDate.toISOString().slice(0, 10) : null,
       maxOutputTokens: m.maxOutputTokens,
+      providerModelId: m.providerModelId, contextTokens: m.contextTokens,
+      dimensions: m.dimensions, defaultDimension: m.defaultDimension,
       price,
       // Compatibilité : tarifs au token à plat (null si sans objet).
       priceIn: m.priceInPerMTok, priceOut: m.priceOutPerMTok,
@@ -203,12 +212,20 @@ export class AiController implements OnModuleInit {
     // Changement de catégorie vers un tarif au token sans sortie : la sortie d'un ancien LLM est abandonnée.
     const priced = normalizePrice(category, priceIn);
     if ('errors' in priced) Object.assign(fields, priced.errors);
+    // Dimensions : Embedding seulement ; obligatoires à la création, facultatives pour un modèle déjà saisi sans elles.
+    const dimsIn = input.dimensions !== undefined ? input.dimensions : (before?.dimensions ?? []);
+    const defIn = input.defaultDimension !== undefined ? input.defaultDimension : (before?.defaultDimension ?? null);
+    const dims = category === 'EMBEDDING' && !dimsIn.length && before ? { dimensions: [], defaultDimension: null } : normalizeDimensions(category, dimsIn, defIn);
+    if ('errors' in dims) Object.assign(fields, dims.errors);
     if (Object.keys(fields).length) throw badRequest('Modèle invalide', fields);
     const price = (priced as { price: Price }).price;
     return {
       category,
       releaseDate: release ? new Date(release) : null,
       maxOutputTokens: maxOut,
+      providerModelId: input.providerModelId !== undefined ? input.providerModelId || null : (before?.providerModelId ?? null),
+      contextTokens: input.contextTokens !== undefined ? input.contextTokens : (before?.contextTokens ?? null),
+      ...(dims as { dimensions: number[]; defaultDimension: number | null }),
       priceUnit: price.unit,
       priceInPerMTok: price.in,
       priceOutPerMTok: price.out,
@@ -290,6 +307,12 @@ export class AiController implements OnModuleInit {
       if (usages.length) throw conflict('MODEL_IN_USE', `${m.name} est utilisé comme ${MODEL_CATEGORY_LABEL[m.category]} : ${usages.map((u) => u.label).join(', ')} — changez d'abord l'affectation`, usages);
     }
     const data = this.checkModel(input, m);
+    for (const a of await this.prisma.modelAssignment.findMany({ where: { OR: [{ primaryModelId: id }, { fallbackModelId: id }] } })) {
+      const d = a.primaryModelId === id ? a.primaryDimension : a.fallbackDimension;
+      if (d != null && data.dimensions.length && !data.dimensions.includes(d)) {
+        throw conflict('DIMENSION_IN_USE', `La dimension ${d} est utilisée par ${aiFunctionLabel(a.functionId)} — changez d'abord l'affectation`, [{ entityType: 'MODEL_ASSIGNMENT', id: a.functionId, label: `${aiFunctionLabel(a.functionId)} · ${d} dimensions` }]);
+      }
+    }
     const priceChanged = data.priceUnit !== m.priceUnit || data.priceInPerMTok !== m.priceInPerMTok || data.priceOutPerMTok !== m.priceOutPerMTok || data.pricePer1kRequests !== m.pricePer1kRequests;
     const row = await this.prisma.$transaction(async (db) => {
       const row = await db.aiModel.update({ where: { id }, data: { name: input.name, description: input.description, active: input.active, ...data, version: { increment: 1 } } });
@@ -297,7 +320,8 @@ export class AiController implements OnModuleInit {
       if (priceChanged) await this.audit.action(db, ctx, { action: 'Modification du tarif d’un modèle', target: `${m.name} · ${this.priceText(m)} → ${this.priceText(row)}`, severity: 'SENSITIVE', entityType: 'AiModel', entityId: id });
       if (input.active !== undefined && input.active !== m.active) await this.audit.action(db, ctx, { action: input.active ? 'Activation d’un modèle' : 'Désactivation d’un modèle', target: m.name, severity: 'SENSITIVE', entityType: 'AiModel', entityId: id });
       const infoChanged = (input.name && input.name !== m.name) || (input.description !== undefined && input.description !== m.description)
-        || +(row.releaseDate ?? 0) !== +(m.releaseDate ?? 0) || row.maxOutputTokens !== m.maxOutputTokens;
+        || +(row.releaseDate ?? 0) !== +(m.releaseDate ?? 0) || row.maxOutputTokens !== m.maxOutputTokens
+        || row.providerModelId !== m.providerModelId || row.contextTokens !== m.contextTokens || row.defaultDimension !== m.defaultDimension || row.dimensions.join() !== m.dimensions.join();
       if (infoChanged) await this.audit.action(db, ctx, { action: 'Modification d’un modèle', target: row.name, severity: 'INFO', entityType: 'AiModel', entityId: id });
       if (input.category && input.category !== m.category) await this.audit.action(db, ctx, { action: 'Changement de catégorie d’un modèle', target: `${row.name} · ${MODEL_CATEGORY_LABEL[m.category]} → ${MODEL_CATEGORY_LABEL[row.category]}`, severity: 'SENSITIVE', entityType: 'AiModel', entityId: id });
       return row;
@@ -371,6 +395,9 @@ export class AiController implements OnModuleInit {
         step: f.step ?? null,
         primary: a?.primaryModelId ?? null,
         fallback: a?.fallbackModelId ?? null,
+        // Taille des vecteurs (Embedding) : choisie, sinon la valeur par défaut du modèle.
+        dimension: f.category === 'EMBEDDING' && a ? effectiveDimension(a.primaryDimension, models.find((m) => m.id === a.primaryModelId)) : null,
+        fallbackDimension: f.category === 'EMBEDDING' && a?.fallbackModelId ? effectiveDimension(a.fallbackDimension, models.find((m) => m.id === a.fallbackModelId)) : null,
         state: state[f.id],
         volume30d: volumes[f.id],
         // Coût mensuel estimé = volume des 30 derniers jours × tarif du modèle (tokens ou requêtes, § 3).
@@ -387,7 +414,7 @@ export class AiController implements OnModuleInit {
    */
   @Put('assignments')
   async putAssignments(@CurrentActor() actor: Actor, @Body() body: unknown) {
-    const pair = z.object({ primary: z.string().min(1), fallback: z.string().min(1).nullable().optional() }).strict();
+    const pair = z.object({ primary: z.string().min(1), fallback: z.string().min(1).nullable().optional(), dimension: z.number().int().nullable().optional(), fallbackDimension: z.number().int().nullable().optional() }).strict();
     const input = parse(z.object(Object.fromEntries(AI_FUNCTIONS.map((f) => [f.id, pair]))).partial().strict(), body) as Record<string, z.infer<typeof pair> | undefined>;
     const models = await this.prisma.aiModel.findMany();
     for (const [fn, v] of Object.entries(input)) {
@@ -403,17 +430,31 @@ export class AiController implements OnModuleInit {
         if (v.fallback === v.primary) throw businessRule('Le secours doit différer du principal', { [`${fn}.fallback`]: 'identique au principal' });
         if (fm.category !== cat) throw businessRule(`Cette fonction n’accepte qu’un modèle ${MODEL_CATEGORY_LABEL[cat]}`, { [`${fn}.fallback`]: `${fm.name} est un modèle ${MODEL_CATEGORY_LABEL[fm.category]}` });
       }
+      // Dimension : seulement pour un Embedding, et parmi celles que le modèle accepte.
+      for (const [slot, mid, d] of [['dimension', v.primary, v.dimension], ['fallbackDimension', v.fallback, v.fallbackDimension]] as const) {
+        if (d == null) continue;
+        const mm = models.find((m) => m.id === mid);
+        if (cat !== 'EMBEDDING' || !mm) throw badRequest('Dimension sans objet', { [`${fn}.${slot}`]: 'réservée à un modèle d’embedding' });
+        if (mm.dimensions.length && !mm.dimensions.includes(d)) throw businessRule(`${mm.name} ne produit pas de vecteurs de ${d} dimensions`, { [`${fn}.${slot}`]: `valeurs acceptées : ${mm.dimensions.join(', ')}` });
+      }
     }
     await this.prisma.$transaction(async (db) => {
       for (const [fn, v] of Object.entries(input)) {
         if (!v) continue;
         const before = await db.modelAssignment.findUnique({ where: { functionId: fn } });
-        await db.modelAssignment.upsert({ where: { functionId: fn }, create: { functionId: fn, primaryModelId: v.primary, fallbackModelId: v.fallback ?? null }, update: { primaryModelId: v.primary, fallbackModelId: v.fallback ?? null, version: { increment: 1 } } });
+        const dimsData = aiFunction(fn)!.category === 'EMBEDDING'
+          ? { primaryDimension: effectiveDimension(v.dimension, models.find((m) => m.id === v.primary)), fallbackDimension: v.fallback ? effectiveDimension(v.fallbackDimension, models.find((m) => m.id === v.fallback)) : null }
+          : { primaryDimension: null, fallbackDimension: null };
+        await db.modelAssignment.upsert({ where: { functionId: fn }, create: { functionId: fn, primaryModelId: v.primary, fallbackModelId: v.fallback ?? null, ...dimsData }, update: { primaryModelId: v.primary, fallbackModelId: v.fallback ?? null, ...dimsData, version: { increment: 1 } } });
         const f = aiFunction(fn)!;
         const label = f.group ? `${AI_GROUPS[f.group].name} · étape ${f.step} · ${f.name}` : f.name;
         const name = (id: string | null | undefined) => models.find((m) => m.id === id)?.name ?? '—';
         if (before?.primaryModelId !== v.primary) await this.audit.action(db, adminCtx(actor), { action: 'Changement de modèle principal', target: `${label} → ${name(v.primary)}`, severity: 'SENSITIVE', entityType: 'ModelAssignment', entityId: fn });
         if ((before?.fallbackModelId ?? null) !== (v.fallback ?? null)) await this.audit.action(db, adminCtx(actor), { action: 'Changement de modèle de secours', target: `${label} → ${name(v.fallback)}`, severity: 'SENSITIVE', entityType: 'ModelAssignment', entityId: fn });
+        // Embedding : un changement de modèle ou de dimension oblige à réindexer les documents (tracé, critique).
+        if (f.category === 'EMBEDDING' && before && reindexRequired({ modelId: before.primaryModelId, dimension: effectiveDimension(before.primaryDimension, models.find((m) => m.id === before.primaryModelId)) }, { modelId: v.primary, dimension: dimsData.primaryDimension })) {
+          await this.audit.action(db, adminCtx(actor), { action: 'Réindexation des documents requise', target: `${label} : ${name(before.primaryModelId)} → ${name(v.primary)} · ${dimsData.primaryDimension ?? '—'} dimensions`, severity: 'CRITICAL', entityType: 'ModelAssignment', entityId: fn, details: { warning: REINDEX_WARNING } });
+        }
       }
     });
     return this.assignments();

@@ -38,6 +38,10 @@ button:focus-visible{outline:2px solid #1d8f86;outline-offset:2px}
         <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12.5px;font-weight:700">Nom</span><input value="{{ f.n }}" onChange="{{ set.n }}" placeholder="ex. Rerank 3.5" style="{{ st.n }}"><sc-if value="{{ er.hasN }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;font-weight:700;color:#a2352a">{{ er.n }}</span></sc-if></label>
       </div>
       <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12.5px;font-weight:700">Description</span><input value="{{ f.d }}" onChange="{{ set.d }}" placeholder="Usage conseillé, en une ligne" style="height:40px;background:#fff;border:1px solid #cfdcd9;border-radius:10px;padding:0 12px;font:inherit;font-size:13.5px;color:#10233a"></label>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;align-items:start">
+        <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12.5px;font-weight:700">Identifiant chez le fournisseur</span><input value="{{ f.apiId }}" onChange="{{ set.apiId }}" placeholder="ex. qwen/qwen3-embedding-8b" style="{{ st.apiId }}"><span style="font-size:11px;color:#5c7280">Nom du modèle dans l’API du fournisseur</span></label>
+        <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12.5px;font-weight:700">Longueur de contexte</span><input inputMode="numeric" value="{{ f.ctx }}" onChange="{{ set.ctx }}" placeholder="ex. 32 768" style="{{ st.ctx }}"><span style="font-size:11px;color:#5c7280">Tokens (facultatif)</span><sc-if value="{{ er.hasCtx }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;font-weight:700;color:#a2352a">{{ er.ctx }}</span></sc-if></label>
+      </div>
 
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;align-items:start">
         <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12.5px;font-weight:700">Date de sortie</span>
@@ -49,6 +53,13 @@ button:focus-visible{outline:2px solid #1d8f86;outline-offset:2px}
           <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12.5px;font-weight:700">Max output tokens</span><input inputMode="numeric" value="{{ f.maxOut }}" onChange="{{ set.maxOut }}" placeholder="ex. 64 000" style="{{ st.maxOut }}"><span style="font-size:11px;color:#5c7280">Longueur maximale d’une réponse</span><sc-if value="{{ er.hasMaxOut }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;font-weight:700;color:#a2352a">{{ er.maxOut }}</span></sc-if></label>
         </sc-if>
       </div>
+
+      <sc-if value="{{ isEmb }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;align-items:start">
+          <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12.5px;font-weight:700">Dimensions</span><input inputMode="numeric" value="{{ f.dims }}" onChange="{{ set.dims }}" placeholder="ex. 1536, 1024, 512, 256" style="{{ st.dims }}"><span style="font-size:11px;color:#5c7280">Tailles de vecteur que le modèle accepte vraiment, séparées par des virgules</span><sc-if value="{{ er.hasDims }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;font-weight:700;color:#a2352a">{{ er.dims }}</span></sc-if></label>
+          <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12.5px;font-weight:700">Dimension par défaut</span><select value="{{ f.dim }}" onChange="{{ set.dim }}" style="height:40px;border:1px solid #cfdcd9;border-radius:10px;padding:0 12px;font:inherit;font-size:13.5px;font-weight:600;color:#10233a;background:#fff"><sc-for list="{{ dimOpts }}" as="o" hint-placeholder-count="0"><option value="{{ o.v }}">{{ o.l }}</option></sc-for></select><span style="font-size:11px;color:#5c7280">Proposée à l’affectation de la vectorisation</span><sc-if value="{{ er.hasDim }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;font-weight:700;color:#a2352a">{{ er.dim }}</span></sc-if></label>
+        </div>
+      </sc-if>
 
       <div style="display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:14px;background:#f5f8f7">
         <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px"><span style="font-size:12.5px;font-weight:700">Tarification</span>
@@ -102,6 +113,7 @@ class Component extends DCLogic {
   toForm(m) {
     const D = window.RISE_IA, c = v => v == null ? '' : v.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 4 }), p = m.price || {};
     return { id: m.id || '', pv: m.pv, cat: m.cat || 'llm', n: m.n || '', d: m.d || '', rel: m.rel || '', maxOut: m.maxOut ? D.nf(m.maxOut, 0) : '',
+      apiId: m.apiId || '', ctx: m.ctx ? D.nf(m.ctx, 0) : '', dims: (m.dims || []).join(', '), dim: m.dim ? String(m.dim) : '',
       unit: p.unit || (m.cat === 'reranking' ? 'requests' : 'tokens'), pin: c(p.in), pout: c(p.out), per1k: c(p.per1k) };
   }
   form() {
@@ -120,6 +132,12 @@ class Component extends DCLogic {
     const rq = f.cat === 'reranking' && f.unit === 'requests';
     if (rq ? !pos(f.per1k) : !pos(f.pin)) e[rq ? 'per1k' : 'pin'] = 'Tarif obligatoire.';
     if (f.cat === 'llm' && !pos(f.pout)) e.pout = 'Tarif obligatoire.';
+    if (String(f.ctx).trim()) { const v = this.int(f.ctx); if (!(v > 0)) e.ctx = 'Nombre entier de tokens.'; }
+    if (f.cat === 'embedding') {
+      const d = this.dimList(f.dims);
+      if (!d) e.dims = 'Entiers de 1 à 65 536, séparés par des virgules.'; else if (!d.length) e.dims = 'Au moins une dimension.';
+      else if (f.dim && !d.includes(+f.dim)) e.dim = 'Choisissez une des dimensions.';
+    }
     return e;
   }
   // Formulaire → modèle (même forme que RISE_IA.MODELS)
@@ -128,7 +146,16 @@ class Component extends DCLogic {
     const price = rq ? { unit: 'requests', per1k: D.num(f.per1k) } : f.cat === 'llm' ? { unit: 'tokens', in: D.num(f.pin), out: D.num(f.pout) } : { unit: 'tokens', in: D.num(f.pin) };
     const m = { id: f.id || null, pv: f.pv, n: f.n.trim(), d: f.d.trim(), cat: f.cat, rel: f.rel, price, act: true };
     if (f.cat === 'llm') m.maxOut = D.num(String(f.maxOut).replace(/\s|\u202f/g, ''));
+    m.apiId = f.apiId.trim() || null; m.ctx = String(f.ctx).trim() ? this.int(f.ctx) : null;
+    if (f.cat === 'embedding') { const d = this.dimList(f.dims) || []; m.dims = d; m.dim = d.includes(+f.dim) ? +f.dim : (d[0] ?? null); }
     return m;
+  }
+  int(s) { const v = Number(String(s).replace(/[\s\u202f.]/g, '')); return Number.isInteger(v) ? v : null; }
+  // « 4096, 1024 512 » → [4096, 1024, 512] (tri décroissant, sans doublon) ; null si une valeur est invalide.
+  dimList(s) {
+    const parts = String(s).split(/[,;\s]+/).filter(Boolean), d = parts.map(Number);
+    if (d.some(v => !Number.isInteger(v) || v < 1 || v > 65536)) return null;
+    return [...new Set(d)].sort((a, b) => b - a);
   }
 
   renderVals() {
@@ -165,11 +192,13 @@ class Component extends DCLogic {
     const edit = !!(P.model && P.model.id), done = r => { if (r !== false) this.close(); };
     return {
       open: P.open !== false, title: edit ? 'Modifier le modèle' : 'Ajouter un modèle', submitL: edit ? 'Enregistrer' : 'Ajouter le modèle',
-      f, cats, units, priceFields, isLlm: f.cat === 'llm', isEmb: f.cat === 'embedding', isRrk, today: new Date().toISOString().slice(0, 10),
+      dimOpts: (this.dimList(f.dims) || []).map(v => ({ v: String(v), l: D.nf(v, 0) + ' dimensions' })),
+      f: { ...f, dim: f.dim || String((this.dimList(f.dims) || [])[0] ?? '') }, cats, units, priceFields, isLlm: f.cat === 'llm', isEmb: f.cat === 'embedding', isRrk, today: new Date().toISOString().slice(0, 10),
       pvOpts: provs.map(x => ({ v: x.id, l: x.n + (x.st !== 'ok' ? ' · clé refusée' : '') })),
-      set: { pv: ev => this.up('pv', ev.target.value), n: ev => this.up('n', ev.target.value), d: ev => this.up('d', ev.target.value), rel: ev => this.up('rel', ev.target.value), maxOut: ev => this.up('maxOut', ev.target.value) },
-      st: { n: inp('n'), rel: inp('rel'), maxOut: inp('maxOut') },
-      er: { hasN: !!err('n'), n: err('n'), hasRel: !!err('rel'), rel: err('rel'), hasMaxOut: !!err('maxOut'), maxOut: err('maxOut') },
+      set: { pv: ev => this.up('pv', ev.target.value), n: ev => this.up('n', ev.target.value), d: ev => this.up('d', ev.target.value), rel: ev => this.up('rel', ev.target.value), maxOut: ev => this.up('maxOut', ev.target.value),
+        apiId: ev => this.up('apiId', ev.target.value), ctx: ev => this.up('ctx', ev.target.value), dims: ev => this.up('dims', ev.target.value), dim: ev => this.up('dim', ev.target.value) },
+      st: { n: inp('n'), rel: inp('rel'), maxOut: inp('maxOut'), apiId: inp('apiId'), ctx: inp('ctx'), dims: inp('dims') },
+      er: { hasN: !!err('n'), n: err('n'), hasRel: !!err('rel'), rel: err('rel'), hasMaxOut: !!err('maxOut'), maxOut: err('maxOut'), hasCtx: !!err('ctx'), ctx: err('ctx'), hasDims: !!err('dims'), dims: err('dims'), hasDim: !!err('dim'), dim: err('dim') },
       hasAge: !!a, ageL: a ? a.l + ' · ' + a.tierL.toLowerCase() : '',
       ageSt: tone ? 'align-self:flex-start;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font-size:11.5px;font-weight:700;background:' + tone[0] + ';color:' + tone[1] : '',
       ageDot: tone ? 'width:7px;height:7px;border-radius:50%;background:' + tone[2] : '',

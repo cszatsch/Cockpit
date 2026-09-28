@@ -1174,6 +1174,14 @@ model AiModel {
   releaseDate        DateTime?     @db.Date
   /// Longueur maximale d'une réponse, LLM uniquement
   maxOutputTokens    Int?
+  /// Identifiant du modèle chez le fournisseur (ex. qwen/qwen3-embedding-8b)
+  providerModelId    String?
+  /// Longueur de contexte (tokens)
+  contextTokens      Int?
+  /// Dimensions de sortie acceptées (Embedding) ; vide pour les autres catégories
+  dimensions         Int[]         @default([])
+  /// Dimension proposée par défaut (Embedding), comprise dans `dimensions`
+  defaultDimension   Int?
   priceUnit          PriceUnit     @default(TOKENS)
   /// € / M tokens en entrée (unité TOKENS)
   priceInPerMTok     Float?
@@ -1191,6 +1199,9 @@ model ModelAssignment {
   functionId      String   @id
   primaryModelId  String
   fallbackModelId String?
+  /// Taille des vecteurs produits (fonction Embedding) par le principal et par le secours
+  primaryDimension  Int?
+  fallbackDimension Int?
   updatedAt       DateTime @updatedAt
   version         Int      @default(1)
 }

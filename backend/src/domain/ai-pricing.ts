@@ -92,3 +92,42 @@ export function chainStates(ordered: Array<'NOMINAL' | 'FALLBACK' | 'UNAVAILABLE
     return s;
   });
 }
+
+// ───────────── Dimensions des modèles d'embedding (28/09/2026) ─────────────
+
+/** Bornes d'une dimension de vecteur. */
+export const DIMENSION_MIN = 1;
+export const DIMENSION_MAX = 65_536;
+
+/**
+ * Dimensions d'un modèle selon sa catégorie : seul un Embedding en a. Liste d'entiers distincts
+ * (triés du plus grand au plus petit) et valeur par défaut comprise dans la liste (la première si absente).
+ */
+export function normalizeDimensions(category: ModelCategory, dims: number[] | null | undefined, def: number | null | undefined): { dimensions: number[]; defaultDimension: number | null } | { errors: Record<string, string> } {
+  if (category !== 'EMBEDDING') return { dimensions: [], defaultDimension: null };
+  const list = [...new Set(dims ?? [])];
+  if (!list.length) return { errors: { dimensions: 'au moins une dimension pour un modèle d’embedding' } };
+  if (list.some((d) => !Number.isInteger(d) || d < DIMENSION_MIN || d > DIMENSION_MAX)) return { errors: { dimensions: `entiers de ${DIMENSION_MIN} à ${DIMENSION_MAX}` } };
+  list.sort((a, b) => b - a);
+  const d = def ?? list[0];
+  if (!list.includes(d)) return { errors: { defaultDimension: 'doit faire partie des dimensions proposées' } };
+  return { dimensions: list, defaultDimension: d };
+}
+
+/** Dimension effective d'une affectation : celle choisie, sinon la valeur par défaut du modèle. */
+export function effectiveDimension(chosen: number | null | undefined, model: { defaultDimension: number | null } | null | undefined): number | null {
+  return chosen ?? model?.defaultDimension ?? null;
+}
+
+/**
+ * Réindexation nécessaire : chaque modèle d'embedding a son propre espace vectoriel. Changer de modèle, ou
+ * de dimension pour un même modèle, rend les vecteurs déjà calculés incompatibles.
+ */
+export function reindexRequired(before: { modelId: string | null; dimension: number | null }, after: { modelId: string | null; dimension: number | null }): boolean {
+  if (!before.modelId) return false; // aucun vecteur n'a encore été produit par cette fonction
+  return before.modelId !== after.modelId || before.dimension !== after.dimension;
+}
+
+/** Message affiché à chaque changement de modèle d'embedding ou de dimension (demande du 28/09/2026). */
+export const REINDEX_WARNING =
+  "Changer de modèle d'embedding oblige à réindexer tous les documents. Chaque modèle a son propre espace vectoriel : les vecteurs de deux modèles différents ne sont pas compatibles, même s'ils ont la même dimension. Sans réindexation, la recherche renverra des résultats faux ou incohérents.";

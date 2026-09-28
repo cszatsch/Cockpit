@@ -179,3 +179,8 @@ Les captures sont écrites dans `OUT` (par défaut `<tmp>/rise-console-e2e`).
 - **Réduire / déployer** : bouton en haut à droite de la barre latérale déployée (« Réduire la barre latérale ») et sous le logo de la barre réduite (« Déployer la barre latérale »). Le choix l'emporte sur le mode automatique (déployée à partir de 1 180 px, réduite en dessous) ; sous 760 px, le menu mobile est inchangé. Méthodes `navMode`, `toggleNav`.
 - **Largeur** : poignée à la limite de la barre et de l'écran central (`role="separator"`) : au survol ou au focus, un trait et une icône ↔ apparaissent ; glisser règle la largeur entre 200 et 420 px (`NAV_W_MIN`, `NAV_W_MAX`), les flèches du clavier par pas de 16 px (Début / Fin : minimum / maximum), le double-clic revient à 252 px (`NAV_W_DEF`). L'animation de la grille est coupée pendant le glisser.
 - **Mémorisation** : réduite / déployée et largeur dans `localStorage['rise-console-nav']` (préférence du navigateur, sans appel au serveur).
+
+## Dimensions des modèles d'embedding (28/09/2026)
+
+- `iaModel` / `fromIa` transportent l'identifiant chez le fournisseur, le contexte et les dimensions ; l'affectation porte la dimension (`d`) de la vectorisation (`admin-api.js` : `toModel`, `fromIaModel`, `toAsg`, `fromAsg`).
+- Confirmation d'enregistrement de l'affectation : ligne « dimensions » et, pour un changement de modèle d'embedding ou de dimension, l'avertissement de réindexation (corps du dialogue avec retours à la ligne conservés).
