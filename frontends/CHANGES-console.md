@@ -204,3 +204,10 @@ Les captures sont écrites dans `OUT` (par défaut `<tmp>/rise-console-e2e`).
 - `Skills.dc.html` (livraison Skills) copié tel quel ; affiché pour `skills` par `<dc-import name="Skills" …>` (spécification § 7), à la place de l'écran provisoire. En-tête générique masqué sur cette page (`notOv`), marges de la Console neutralisées (`skWrap`) ; `META.skills` de la spécification.
 - Rappels `skSave`, `skToggle`, `skCreate`, `skDelete` : démonstration (journal local, toast) ; API dans `admin-api.js` (`/api/assistant/skills`, chargement `skills` à l'ouverture de la page, correspondance identifiant provisoire → serveur, rechargement après chaque écriture, rechargement aussi en cas d'erreur pour rétablir l'état du serveur).
 - `admin-api.js` : `apiAbs()` pour les routes hors `/api/admin`.
+
+## Page Persona (28/09/2026)
+
+- `Persona.dc.html` (livraison Persona) copié tel quel ; affiché pour `persona` (spécification § 7) à la place de l'écran provisoire ; en-tête générique masqué ; `META.persona` de la spécification.
+- Rappels `psSave` / `psUpload` : démonstration (état local) ; API dans `admin-api.js` (`/api/assistant/persona`, chargement au démarrage et à l'ouverture de la page, image envoyée dès son choix puis URL substituée à l'aperçu à l'enregistrement).
+- Nom de Jev (`identity.name`) : bouton Jev de la sidebar (`jev-name`), en-tête, libellé et champ de saisie du panneau Jev ; avatar (image ou teinte prédéfinie avec l'emoji) et emoji dans l'en-tête du panneau (`PERSONA_AV`, mêmes teintes que le composant).
+- `Sidebar Console.dc.html` : prop `jevName` (« Jev » par défaut) pour le texte et les libellés accessibles du bouton Jev ; aucune autre modification.

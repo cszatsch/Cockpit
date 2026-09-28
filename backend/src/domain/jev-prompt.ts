@@ -15,11 +15,59 @@ export const JEV_SYSTEM_PROMPT =
   'Tu es Jev, l’assistant IA de RISE Cockpit. Tu réponds en français, de façon factuelle et concise, à partir des données du projet et de la plateforme. ' +
   'Tu ne modifies jamais une donnée sans la validation explicite de l’utilisateur.';
 
+/** Persona de Jev (spécification PERSONA § 5) : un seul pour la plateforme. */
+export const PERSONA_NAME_MAX = 30;
+export const PERSONA_CREATURE_MAX = 40;
+export const PERSONA_STYLE_MAX = 60;
+export const PERSONA_SOUL_MAX = 20_000;
+/** Avatars prédéfinis et emojis proposés par l'écran Persona. */
+export const PERSONA_AVATARS = ['nuit', 'ambre', 'lagon', 'encre'] as const;
+export const PERSONA_EMOJIS = ['🧭', '✨', '🦉', '🛰️', '🐙', '🌱'];
+
+export interface PersonaIdentity {
+  name: string;
+  creature: string;
+  style: string;
+  emoji: string;
+  avatar: string;
+  photo: string | null;
+}
+export interface PersonaText {
+  identity: PersonaIdentity;
+  soul: string;
+}
+
+/** Contrôle d'un Persona : message par champ (422 côté API). */
+export function personaErrors(p: PersonaText): Record<string, string> {
+  const e: Record<string, string> = {};
+  const i = p.identity;
+  if (!i.name.trim()) e['identity.name'] = 'obligatoire';
+  else if (i.name.length > PERSONA_NAME_MAX) e['identity.name'] = `${PERSONA_NAME_MAX} caractères au plus`;
+  if (i.creature.length > PERSONA_CREATURE_MAX) e['identity.creature'] = `${PERSONA_CREATURE_MAX} caractères au plus`;
+  if (i.style.length > PERSONA_STYLE_MAX) e['identity.style'] = `${PERSONA_STYLE_MAX} caractères au plus`;
+  if (i.emoji && !PERSONA_EMOJIS.includes(i.emoji)) e['identity.emoji'] = `un parmi ${PERSONA_EMOJIS.join(' ')}`;
+  if (!(PERSONA_AVATARS as readonly string[]).includes(i.avatar)) e['identity.avatar'] = `un parmi ${PERSONA_AVATARS.join(', ')}`;
+  if (p.soul.length > PERSONA_SOUL_MAX) e.soul = `${PERSONA_SOUL_MAX.toLocaleString('fr-FR')} caractères au plus`;
+  return e;
+}
+
 /**
- * Persona de Jev (ton, style, règles de comportement). La page Persona reste à concevoir :
- * tant qu'elle n'existe pas, aucun texte de Persona n'est ajouté.
+ * Section « Identité » du prompt (§ 6) : une phrase par champ renseigné (un champ vide est omis).
+ * L'avatar et la photo ne sont jamais envoyés au modèle.
  */
-export const JEV_PERSONA: string | null = null;
+export function identityText(i: PersonaIdentity): string {
+  const s = [`Tu t’appelles ${i.name.trim()}.`];
+  if (i.creature.trim()) s.push(`Tu es ${i.creature.trim()}.`);
+  if (i.style.trim()) s.push(`Ton style : ${i.style.trim()}.`);
+  if (i.emoji) s.push(`Ton emoji : ${i.emoji}.`);
+  return s.join(' ');
+}
+
+/** Persona de démonstration (livraison Persona), valeur initiale. */
+export const DEMO_PERSONA: PersonaText = {
+  identity: { name: 'Jev', creature: 'Copilote de projet', style: 'Direct, chaleureux, précis', emoji: '🧭', avatar: 'nuit', photo: null },
+  soul: "## Qui je suis\nJe suis le copilote des équipes projet. Je lis les données avant de parler, et je dis ce que je vois, même quand ce n’est pas agréable.\n\n## Comment j’écris\n- Je tutoie et je vais droit au but.\n- Une idée par phrase ; les chiffres avant les adjectifs.\n- Je cite toujours mes sources.\n\n## Ce en quoi je crois\n- Un risque nommé tôt coûte moins cher qu’un risque découvert tard.\n- La décision appartient à l’humain : je l’éclaire, je ne la prends pas.\n- Mieux vaut « je ne sais pas » qu’une réponse inventée.",
+};
 
 export interface SkillText {
   n: string;
@@ -29,13 +77,16 @@ export interface SkillText {
 }
 
 /**
- * Assemble le prompt système de Jev : prompt de base, Persona, puis une section par skill active,
- * dans l'ordre de `position`. Les skills désactivées sont ignorées ; le texte est injecté tel quel
- * (aucun rendu Markdown).
+ * Assemble le prompt système de Jev (Persona § 6, Skills § 6) : prompt de base, « ## Identité »,
+ * « ## Personnalité » (le Soul, tel quel), puis une section par skill active dans l'ordre de `position`.
+ * Les skills désactivées sont ignorées ; aucun rendu Markdown.
  */
-export function assembleJevPrompt(base: string, persona: string | null, skills: SkillText[]): string {
+export function assembleJevPrompt(base: string, persona: PersonaText | null, skills: SkillText[]): string {
   const parts = [base];
-  if (persona && persona.trim()) parts.push(persona);
+  if (persona) {
+    parts.push(`## Identité\n${identityText(persona.identity)}`);
+    if (persona.soul.trim()) parts.push(`## Personnalité\n${persona.soul}`);
+  }
   for (const s of [...skills].filter((x) => x.on).sort((a, b) => a.position - b.position)) parts.push(`## Skill : ${s.n}\n${s.t}`);
   return parts.join('\n\n');
 }

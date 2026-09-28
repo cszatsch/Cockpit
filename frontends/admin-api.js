@@ -228,7 +228,7 @@ export function bindConsole(c) {
   c._logout = () => { if (DEV) writeToken(null); return Auth.logout('admin'); };
   const set0 = c.setState.bind(c), orig = {};
   ['go', 'setUser', 'saveUser', 'removeUser', 'saveAdmin', 'removeAdmin', 'testKey', 'testAll', 'saveKey', 'saveProv', 'toggleModel', 'saveModel', 'saveFiche', 'saveAsg', 'setTh', 'doCapture',
-    'toggleRule', 'saveRule', 'newRule', 'setMod', 'approve', 'reject', 'saveMe', 'revoke', 'revokeAll', 'onPhoto', 'exportAudit', 'exportCsv', 'jevReply', 'mtd', 'thVals', 'renderVals', 'skSave', 'skToggle', 'skCreate', 'skDelete'].forEach(k => { orig[k] = c[k].bind(c); });
+    'toggleRule', 'saveRule', 'newRule', 'setMod', 'approve', 'reject', 'saveMe', 'revoke', 'revokeAll', 'onPhoto', 'exportAudit', 'exportCsv', 'jevReply', 'mtd', 'thVals', 'renderVals', 'skSave', 'skToggle', 'skCreate', 'skDelete', 'psSave', 'psUpload'].forEach(k => { orig[k] = c[k].bind(c); });
   const toast = (m, t, u) => c.toast(m, t, u), fail = e => { console.warn('[admin-api]', e); toast(errText(e), 'err'); };
   let meId = 'u1';
   const PROJ = () => Object.keys(c.state.snaps || {});
@@ -268,11 +268,12 @@ export function bindConsole(c) {
     sess: async () => ({ sess: (await get('/me/sessions')).map(toSess) }),
     projects: async () => ({ apiCodes: (await get('/projects')).map(p => p.code) }),
     skills: async () => ({ skills: toSkills(await apiAbs('GET', SK)) }),
+    persona: async () => ({ persona: toPersona(await apiAbs('GET', PS)) }),
   };
   const SECTION = {
     overview: ['accounts', 'providers', 'month', 'audit', 'reqs', 'snaps', 'models', 'asg', 'fns'], users: ['accounts'], admins: ['admins', 'audit', 'accounts'], providers: ['providers', 'models', 'asg', 'fns'],
     assign: ['asg', 'models', 'providers', 'usage', 'fns'], conso: ['month', 'providers'], snaps: ['snaps', 'sched'], notifs: ['rules', 'hist', 'models'], modules: ['mods', 'reqs'],
-    init: ['projects'], library: ['projects'], profil: ['prof', 'sess', 'audit'], skills: ['skills'],
+    init: ['projects'], library: ['projects'], profil: ['prof', 'sess', 'audit'], skills: ['skills'], persona: ['persona'],
   };
   async function load(keys) {
     const parts = await Promise.all(keys.map(k => L[k]()));
@@ -287,7 +288,7 @@ export function bindConsole(c) {
     try {
       const ov = await get('/overview');
       clock = { server: new Date(ov.date).getTime(), local: Date.now() };
-      await load(['prof', 'accounts', 'admins', 'audit', 'providers', 'models', 'asg', 'usage', 'snaps', 'sched', 'rules', 'hist', 'mods', 'reqs', 'sess', 'projects', 'skills']);
+      await load(['prof', 'accounts', 'admins', 'audit', 'providers', 'models', 'asg', 'usage', 'snaps', 'sched', 'rules', 'hist', 'mods', 'reqs', 'sess', 'projects', 'skills', 'persona']);
       set0({ apiBoot: false, loading: false });
     } catch (e) {
       fail(e);
@@ -305,6 +306,7 @@ export function bindConsole(c) {
   // Une skill créée garde dans l'écran son identifiant provisoire `new-…`, relié à l'identifiant du serveur :
   // la sélection et le brouillon du composant (indexés par identifiant) sont ainsi conservés.
   const SK = '/api/assistant/skills', skAlias = {}, skPend = {};
+  const toPersona = r => ({ identity: { name: r.identity.name, creature: r.identity.creature, style: r.identity.style, emoji: r.identity.emoji, avatar: r.identity.avatar, photo: r.identity.photo }, soul: r.soul });
   const toSkills = list => { const back = Object.fromEntries(Object.entries(skAlias).map(([p, id]) => [id, p])); return list.map(s => ({ id: back[s.id] || s.id, n: s.n, t: s.t, on: s.on })); };
   const skId = async id => skPend[id] ? await skPend[id] : (skAlias[id] || id);
   const skDone = () => { touch(); return load(['skills']); };
@@ -314,6 +316,22 @@ export function bindConsole(c) {
   c.skSave = sk => skId(sk.id).then(id => apiAbs('PATCH', SK + '/' + id, { n: sk.n, t: sk.t })).then(() => { toast('Skill enregistrée'); return skDone(); }).catch(skFail);
   c.skToggle = (id0, on) => skId(id0).then(id => apiAbs('PATCH', SK + '/' + id, { on })).then(() => { toast(on ? 'Skill activée' : 'Skill désactivée'); return skDone(); }).catch(skFail);
   c.skDelete = id0 => skId(id0).then(id => apiAbs('DELETE', SK + '/' + id)).then(() => { toast('Skill supprimée'); return skDone(); }).catch(skFail);
+
+  // ── Persona de Jev (/api/assistant/persona, PERSONA - specification.md § 5) ──
+  // L'image importée est envoyée dès son choix ; le composant la garde en aperçu (data URL) dans son brouillon :
+  // à l'enregistrement, cet aperçu est remplacé par l'URL renvoyée par le serveur.
+  const PS = '/api/assistant/persona';
+  let psUp = null;
+  c.psUpload = file => { const fd = new FormData(); fd.append('file', file); psUp = apiAbs('POST', PS + '/avatar', fd).then(r => r.url); psUp.catch(e => { fail(e); }); };
+  c.psSave = async p => {
+    const body = JSON.parse(JSON.stringify(p)), prev = (c.state.persona || {}).identity || {};
+    if (body.identity.photo && body.identity.photo.startsWith('data:')) {
+      const url = psUp ? await psUp.catch(() => null) : null;
+      if (url) body.identity.photo = url; else { body.identity.photo = prev.photo || null; toast('Image non enregistrée : le reste du Persona est enregistré', 'err'); }
+    }
+    try { const r = await apiAbs('PUT', PS, body); psUp = null; set0({ persona: toPersona(r) }); toast('Persona enregistré'); touch(); }
+    catch (e) { fail(e); load(['persona']).catch(() => {}); }
+  };
 
   // Ouverture d'un menu : rechargement de la section en arrière-plan.
   c.go = (sec, then) => { orig.go(sec, then); if (!c.state.apiBoot && SECTION[sec]) load(SECTION[sec]).catch(fail); };

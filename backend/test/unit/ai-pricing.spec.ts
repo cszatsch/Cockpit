@@ -73,8 +73,25 @@ describe('Prompt de Jev : skills (spécification SKILLS § 6)', () => {
       { n: 'A', t: '## Titre\n1. un', on: true, position: 1 },
     ];
     expect(assembleJevPrompt('Base', null, skills)).toBe('Base\n\n## Skill : A\n## Titre\n1. un\n\n## Skill : B\n- deux');
-    expect(assembleJevPrompt('Base', 'Persona', [])).toBe('Base\n\nPersona');
+    const persona = { identity: { name: 'Jev', creature: 'Copilote de projet', style: 'Direct', emoji: '🧭', avatar: 'nuit', photo: '/api/x.png' }, soul: '## Qui je suis\n- moi' };
+    // Ordre : base, Identité, Personnalité (Soul tel quel), skills ; l'avatar et la photo ne sont pas envoyés.
+    const full = assembleJevPrompt('Base', persona, skills);
+    expect(full).toBe('Base\n\n## Identité\nTu t’appelles Jev. Tu es Copilote de projet. Ton style : Direct. Ton emoji : 🧭.\n\n## Personnalité\n## Qui je suis\n- moi\n\n## Skill : A\n## Titre\n1. un\n\n## Skill : B\n- deux');
+    expect(full).not.toContain('nuit');
+    expect(full).not.toContain('/api/x.png');
+    // Champ vide omis.
+    expect(assembleJevPrompt('Base', { ...persona, identity: { ...persona.identity, creature: '', style: '' }, soul: '' }, [])).toBe('Base\n\n## Identité\nTu t’appelles Jev. Ton emoji : 🧭.');
     expect(skillLimits({ n: 'x'.repeat(61), t: 'y'.repeat(20_001) })).toEqual({ n: expect.any(String), t: expect.any(String) });
     expect(skillLimits({ n: 'x'.repeat(60), t: 'y'.repeat(20_000) })).toEqual({});
+  });
+});
+
+describe('Persona de Jev (spécification PERSONA § 5)', () => {
+  it('nom requis, longueurs, avatar et emoji parmi les choix proposés', () => {
+    const { personaErrors, DEMO_PERSONA } = require('../../src/domain/jev-prompt');
+    expect(personaErrors(DEMO_PERSONA)).toEqual({});
+    const bad = { identity: { name: ' ', creature: 'c'.repeat(41), style: 's'.repeat(61), emoji: '🤖', avatar: 'rose', photo: null }, soul: 'x'.repeat(20_001) };
+    expect(Object.keys(personaErrors(bad)).sort()).toEqual(['identity.avatar', 'identity.creature', 'identity.emoji', 'identity.name', 'identity.style', 'soul']);
+    expect(personaErrors({ ...DEMO_PERSONA, identity: { ...DEMO_PERSONA.identity, name: 'n'.repeat(31) } })).toHaveProperty(['identity.name']);
   });
 });

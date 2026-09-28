@@ -7644,6 +7644,116 @@
           "console · assistant"
         ]
       }
+    },
+    "/api/assistant/persona": {
+      "get": {
+        "operationId": "PersonaController_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · assistant"
+        ]
+      },
+      "put": {
+        "operationId": "PersonaController_put",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · assistant"
+        ]
+      }
+    },
+    "/api/assistant/persona/avatar": {
+      "post": {
+        "operationId": "PersonaController_avatar",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · assistant"
+        ]
+      }
+    },
+    "/api/assistant/persona/avatar/{day}/{file}": {
+      "get": {
+        "operationId": "PersonaController_avatarFile",
+        "parameters": [
+          {
+            "name": "day",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "file",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · assistant"
+        ]
+      }
+    },
+    "/api/assistant/persona/versions": {
+      "get": {
+        "operationId": "PersonaController_versions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · assistant"
+        ]
+      }
     }
   },
   "info": {

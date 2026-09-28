@@ -28,7 +28,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
 <!-- API : barre latérale = composant Sidebar Console (SIDEBAR - specification.md § 3) ; en mobile, tiroir ouvert par le bouton menu. -->
 <div style="{{ sbWrap }}">
 <dc-import name="Sidebar Console" mode="{{ sbMode }}" active="{{ sec }}" signals="{{ sbSignals }}"
-  user="{{ sbUser }}" jev-on="{{ jvOn }}" cockpit-url="./RISE Cockpit.dc.html"
+  user="{{ sbUser }}" jev-on="{{ jvOn }}" jev-name="{{ jevName }}" cockpit-url="./RISE Cockpit.dc.html"
   on-navigate="{{ sbGo }}" on-toggle-jev="{{ toggleJev }}"
   on-open-profile="{{ goProfil }}" on-toggle-collapse="{{ toggleRail }}" on-close="{{ closeNav }}"
   hint-size="252px,100vh"></dc-import>
@@ -507,15 +507,10 @@ a{color:#1d8f86}a:hover{color:#146b64}
         </div>
       </div>
     </sc-if>
-    <!-- Assistant : Persona et Skills restent à concevoir (SIDEBAR - specification.md § 2). -->
+    <!-- API : page Persona (Persona.dc.html, PERSONA - specification.md § 7) ; l’en-tête générique est masqué, le composant a le sien. -->
     <sc-if value="{{ isPersona }}" hint-placeholder-val="{{ false }}">
-      <div style="animation:rise-in .35s cubic-bezier(.2,.7,.2,1) both" data-screen-label="Persona">
-        <div style="background:#fff;border:1px solid #e1e9e7;border-radius:18px;box-shadow:0 1px 2px rgba(16,35,58,.04);padding:48px 28px;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center">
-          <span aria-hidden="true" style="width:52px;height:52px;border-radius:16px;background:#e6f4f2;color:#1d8f86;display:grid;place-items:center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z M9 9.5h.01 M15 9.5h.01 M9.5 12.5a3.5 3.5 0 0 0 5 0"></path></svg></span>
-          <span style="display:inline-flex;align-items:center;height:24px;padding:0 10px;border-radius:999px;background:#fdf1dc;color:#8a5a12;font-size:11.5px;font-weight:700">Bientôt disponible</span>
-          <div style="font-size:20px;font-weight:800;letter-spacing:-.02em">Persona de Jev</div>
-          <p style="margin:0;font-size:13.5px;color:#43586a;max-width:520px;text-wrap:pretty">Le ton, le style et les règles de comportement de Jev se régleront ici. Cet écran est en cours de conception.</p>
-        </div>
+      <div style="{{ skWrap }}" data-screen-label="Persona">
+        <dc-import name="Persona" persona="{{ persona }}" on-save="{{ psSave }}" on-upload-avatar="{{ psUpload }}" hint-size="100%,680px"></dc-import>
       </div>
     </sc-if>
     <!-- API : page Skills (Skills.dc.html, SKILLS - specification.md § 7) ; l’en-tête générique est masqué, le composant a le sien. -->
@@ -592,10 +587,10 @@ a{color:#1d8f86}a:hover{color:#146b64}
 </main>
 
 <div style="{{ jvWrap }}">
-  <aside aria-label="Jev, assistant IA" style="background:#fff;border-left:1px solid #e0e9e6;height:100vh;display:flex;flex-direction:column;width:100%;min-width:0" data-screen-label="Jev">
+  <aside aria-label="{{ jevAria }}" style="background:#fff;border-left:1px solid #e0e9e6;height:100vh;display:flex;flex-direction:column;width:100%;min-width:0" data-screen-label="Jev">
     <div style="display:flex;align-items:flex-start;gap:12px;padding:22px 22px 18px;border-bottom:1px solid #eef3f1">
-      <span style="width:34px;height:34px;border-radius:50%;background:#1fb3a5;color:#fff;font-weight:800;font-size:15px;display:grid;place-items:center;flex:none">J</span>
-      <div style="flex:1;min-width:0"><div style="font-weight:800;font-size:18px;letter-spacing:-.02em;line-height:1.1">Jev</div><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px"><span style="padding:2px 8px;border-radius:6px;background:#eef3f2;font-size:11px;font-weight:700;color:#43586a;max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Contexte : {{ jv.ctx }}</span><span style="padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap;background:#e6f3f2;color:#0f5f5a">Explication et action</span></div></div>
+      <span aria-hidden="true" style="{{ jv.avSt }}">{{ jv.avTx }}</span>
+      <div style="flex:1;min-width:0"><div style="font-weight:800;font-size:18px;letter-spacing:-.02em;line-height:1.1">{{ jv.name }}<sc-if value="{{ jv.hasEmoji }}" hint-placeholder-val="{{ true }}"><span style="margin-left:6px;font-weight:400">{{ jv.emoji }}</span></sc-if></div><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px"><span style="padding:2px 8px;border-radius:6px;background:#eef3f2;font-size:11px;font-weight:700;color:#43586a;max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Contexte : {{ jv.ctx }}</span><span style="padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap;background:#e6f3f2;color:#0f5f5a">Explication et action</span></div></div>
       <button onClick="{{ jv.close }}" aria-label="Fermer Jev" style="width:28px;height:28px;border-radius:8px;border:0;background:transparent;display:grid;place-items:center;cursor:pointer;color:#5c7280;flex:none" style-hover="background:#f3f7f6"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
     </div>
     <div ref="{{ jv.ref }}" data-jev-body="1" aria-live="polite" style="flex:1;overflow:auto;padding:20px 22px;display:flex;flex-direction:column;gap:12px;background:#fbfdfc">
@@ -612,7 +607,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
     </div>
     <div style="padding:12px 18px 14px;border-top:1px solid #eef3f1;display:flex;flex-direction:column;gap:8px">
       <div style="display:flex;align-items:center;gap:10px">
-        <input id="jev-input" value="{{ jv.inp }}" onChange="{{ jv.setIn }}" onKeyDown="{{ jv.key }}" placeholder="Écris à Jev…" aria-label="Message pour Jev" autoComplete="off" style="flex:1;min-width:0;height:42px;padding:0 16px;border:1px solid #d9e4e1;border-radius:21px;color:#10233a;background:#fff;font-size:13px;outline:none;transition:border-color .15s,box-shadow .15s" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.15)">
+        <input id="jev-input" value="{{ jv.inp }}" onChange="{{ jv.setIn }}" onKeyDown="{{ jv.key }}" placeholder="{{ jv.ph }}" aria-label="{{ jv.inL }}" autoComplete="off" style="flex:1;min-width:0;height:42px;padding:0 16px;border:1px solid #d9e4e1;border-radius:21px;color:#10233a;background:#fff;font-size:13px;outline:none;transition:border-color .15s,box-shadow .15s" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.15)">
         <button onClick="{{ jv.send }}" aria-label="Envoyer" title="Envoyer" style="{{ jv.sendSt }}" style-hover="background:#146b64"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"></path></svg></button>
       </div>
       <span style="font-size:11px;color:#5c7280;text-wrap:pretty">Jev agit avec vos droits d’administrateur. Chaque action sensible demande votre confirmation et est tracée.</span>
@@ -1034,7 +1029,7 @@ const META = {
   modules: ['Plateforme', 'Modules', 'Activez les modules optionnels pour toute la plateforme ou projet par projet.'],
   init: ['Projets', 'Initialisation d’un projet', 'Importez le fichier Excel rempli par le PMO : contrôle de conformité, prévisualisation du référentiel, puis création du projet.'],
   library: ['Projets', 'Bibliothèque des projets', 'Tous les projets de la plateforme, leur état et leur référentiel.'],
-  persona: ['Assistant', 'Persona', 'Ton, style et règles de comportement de Jev.'],
+  persona: ['Assistant', 'Persona', 'Qui est Jev, et comment il pense.'],
   skills: ['Assistant', 'Skills', 'Des consignes ajoutées au prompt de Jev.'],
   profil: ['Compte', 'Mon profil', 'Vos informations, vos habilitations d’administratrice et la sécurité de votre compte.']
 };
@@ -1051,6 +1046,9 @@ const JCHIPS = {
   modules: ['Activer Suivi des bénéfices sur RISE', 'Quels modules sont actifs ?'],
   profil: ['Quels sont mes droits ?', 'Mes sessions actives']
 };
+// Persona de Jev (démonstration ; API : GET /api/assistant/persona) et avatars prédéfinis de Persona.dc.html.
+const PERSONA0 = { identity: { name: 'Jev', creature: 'Copilote de projet', style: 'Direct, chaleureux, précis', emoji: '🧭', avatar: 'nuit', photo: null }, soul: '' };
+const PERSONA_AV = { nuit: 'linear-gradient(135deg,#1d8f86,#0f2034)', ambre: 'linear-gradient(135deg,#f7a41c,#f0752b)', lagon: 'linear-gradient(135deg,#3dd6c6,#1d8f86)', encre: 'linear-gradient(135deg,#10233a,#2e5173)' };
 const nrm = x => String(x).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 const csvDl = (name, lines) => { const b = new Blob(['\ufeff' + lines.join('\n')], { type: 'text/csv;charset=utf-8' }); const u = URL.createObjectURL(b); const a = document.createElement('a'); a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 2000); };
 
@@ -1271,6 +1269,10 @@ class Component extends DCLogic {
 
   // ——— Profil
   pSet(k) { return e => { const v = e && e.target ? e.target.value : e; this.setState(s => ({ pd: { ...(s.pd || s.prof), [k]: v } })); }; }
+  // ——— Persona de Jev (démonstration : état local ; API : admin-api.js)
+  psSave(p) { this.setState({ persona: p }); this.log('Persona modifié', p.identity.name, 'sensible'); this.toast('Persona enregistré'); }
+  psUpload() { /* démonstration : l’image reste dans le brouillon du composant */ }
+  persona() { return this.state.persona || PERSONA0; }
   // ——— Skills de Jev (démonstration : journal local ; API : admin-api.js)
   skSave(sk) { this.log('Skill modifiée', sk.n, 'sensible'); this.toast('Skill enregistrée'); }
   skToggle(id, on) { this.log(on ? 'Skill activée' : 'Skill désactivée', id, 'sensible'); this.toast(on ? 'Skill activée' : 'Skill désactivée'); }
@@ -1616,11 +1618,14 @@ class Component extends DCLogic {
       mob: mode === 'mob', scrim: mode === 'mob' && S.mnav, openNav: () => this.setState({ mnav: true }), closeNav: () => this.setState({ mnav: false }),
       padSt: `max-width:1320px;margin:0 auto;padding:${mode === 'mob' ? '20px 16px 96px' : mode === 'rail' ? '28px 28px 96px' : '32px 44px 96px'}`,
       topSt: `position:sticky;top:0;z-index:40;height:60px;display:flex;align-items:center;gap:12px;padding:0 ${mode === 'mob' ? 16 : mode === 'rail' ? 28 : 44}px;background:rgba(242,246,245,.82);backdrop-filter:saturate(1.4) blur(14px);-webkit-backdrop-filter:saturate(1.4) blur(14px);border-bottom:1px solid rgba(16,35,58,.06)`,
-      eyebrow: meta[0], title: meta[1], desc: meta[2], isOv: is('overview'), notOv: !is('overview') && !is('skills'), loading: S.loading, ready: !S.loading,
+      eyebrow: meta[0], title: meta[1], desc: meta[2], isOv: is('overview'), notOv: !is('overview') && !is('skills') && !is('persona'), loading: S.loading, ready: !S.loading,
       healthL: errN ? errN + ' incident' + (errN > 1 ? 's' : '') : 'Opérationnelle', healthPill: pill(errN ? 'err' : 'ok'), healthDot: dot(errN ? 'err' : 'ok'), goOv: () => this.go('overview'),
       isUsers: is('users') && !S.loading, isAdmins: is('admins') && !S.loading, isRights: is('rights') && !S.loading, isProv: is('providers') && !S.loading, isAsg: is('assign') && !S.loading, isConso: is('conso') && !S.loading, isInit: is('init') && !S.loading, isLib: is('library') && !S.loading, isSnaps: is('snaps') && !S.loading, isNotifs: is('notifs') && !S.loading, isMods: is('modules') && !S.loading,
       isPersona: is('persona') && !S.loading, isSkills: is('skills') && !S.loading,
       // Skills : liste du serveur (admin-api.js) ; démonstration intégrée au composant sinon. Le composant apporte ses propres marges.
+      // Persona : Identity + Soul ; le nom de Jev (sidebar, panneau) vient d’identity.name.
+      persona: S.persona || undefined, psSave: p => this.psSave(p), psUpload: f => this.psUpload(f),
+      jevName: this.persona().identity.name || 'Jev', jevAria: (this.persona().identity.name || 'Jev') + ', assistant IA',
       skills: S.skills || undefined, skSave: sk => this.skSave(sk), skToggle: (id, on) => this.skToggle(id, on), skCreate: sk => this.skCreate(sk), skDelete: id => this.skDelete(id),
       skWrap: `margin:${mode === 'mob' ? '-20px -16px 0' : mode === 'rail' ? '-28px -28px 0' : '-32px -44px 0'};animation:rise-in .35s cubic-bezier(.2,.7,.2,1) both`
     };
@@ -1836,7 +1841,12 @@ class Component extends DCLogic {
       };
     }
     // Jev
+    const jid = this.persona().identity;
     vals.jv = {
+      // Persona : nom, emoji et avatar (image importée, sinon teinte prédéfinie avec l’emoji).
+      ph: 'Écris à ' + (jid.name || 'Jev') + '…', inL: 'Message pour ' + (jid.name || 'Jev'),
+      name: jid.name || 'Jev', emoji: jid.emoji || '', hasEmoji: !!jid.emoji && !!jid.photo, avTx: jid.photo ? '' : (jid.emoji || (jid.name || 'J').slice(0, 1)),
+      avSt: `width:34px;height:34px;border-radius:50%;color:#fff;font-weight:800;font-size:${jid.photo || !jid.emoji ? 15 : 17}px;display:grid;place-items:center;flex:none;background:${jid.photo ? `url(${jid.photo}) center/cover` : PERSONA_AV[jid.avatar] || PERSONA_AV.nuit}`,
       ctx: META[S.sec][1], think: S.jThink, inp: S.jIn, setIn: e => this.setState({ jIn: e.target.value }), key: e => { if (e.key === 'Enter') this.jevAsk(S.jIn); }, send: () => this.jevAsk(S.jIn), close: () => this.setState({ jev: false }), ref: this._jb,
       sendSt: `width:42px;height:42px;border-radius:50%;border:0;color:#fff;display:grid;place-items:center;cursor:pointer;flex:none;transition:background .15s,opacity .15s;background:#1d8f86;opacity:${S.jIn.trim() && !S.jThink ? 1 : .45}`,
       msgs: S.jm.map((m, i) => {

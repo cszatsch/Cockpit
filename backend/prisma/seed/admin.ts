@@ -2,7 +2,7 @@ import { Prisma, PrismaClient } from '@prisma/client';
 import { encryptSecret } from '../../src/core/crypto';
 import { genDemoUsage } from '../../src/domain/demo-usage';
 import { RISE_ID } from './rise';
-import { DEMO_SKILLS } from '../../src/domain/jev-prompt';
+import { DEMO_PERSONA, DEMO_SKILLS } from '../../src/domain/jev-prompt';
 
 /**
  * Amorçage de la Console Admin à partir des constantes de `Console Admin.dc.html`
@@ -69,6 +69,8 @@ export const OTHER_PROJECTS = [
 export async function seedAdmin(db: PrismaClient): Promise<void> {
   // ── Skills de Jev : les cinq skills de démonstration (mêmes données initiales que la migration 20261003000000_skills_jev) ──
   await db.skill.createMany({ data: DEMO_SKILLS.map((k, i) => ({ ...k, position: i + 1, updatedBy: 'Données initiales' })) });
+  // ── Persona de Jev : valeur initiale (même donnée que la migration 20261004000000_persona_jev) ──
+  await db.persona.create({ data: { id: 'jev', ...DEMO_PERSONA.identity, soul: DEMO_PERSONA.soul, updatedBy: 'Données initiales' } });
   // ── Projets de la bibliothèque (hors RISE) ──
   for (const p of OTHER_PROJECTS) {
     await db.project.create({

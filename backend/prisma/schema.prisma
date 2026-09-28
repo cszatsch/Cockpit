@@ -1363,3 +1363,30 @@ model Skill {
   updatedAt DateTime @updatedAt @map("updated_at")
   updatedBy String?  @map("updated_by")
 }
+
+/// Persona de Jev (spécification PERSONA § 5) : un seul pour la plateforme (id « jev »).
+/// Identity (nom ≤ 30 requis, créature ≤ 40, style ≤ 60, emoji, avatar prédéfini, photo importée) et Soul (≤ 20 000).
+model Persona {
+  id        String   @id @default("jev")
+  name      String
+  creature  String   @default("")
+  style     String   @default("")
+  emoji     String   @default("")
+  avatar    String   @default("nuit")
+  photo     String?
+  soul      String   @default("")
+  version   Int      @default(1)
+  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedBy String?  @map("updated_by")
+}
+
+/// Versions précédentes du Persona : l'état remplacé à chaque enregistrement, pour revenir en arrière.
+model PersonaVersion {
+  id      String   @id @default(cuid())
+  version Int
+  data    Json
+  savedAt DateTime @default(now()) @map("saved_at")
+  savedBy String?  @map("saved_by")
+
+  @@index([savedAt])
+}
