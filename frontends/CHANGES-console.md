@@ -189,3 +189,11 @@ Les captures sont écrites dans `OUT` (par défaut `<tmp>/rise-console-e2e`).
 
 - `FNS` : fonction `rapports` (LLM, badge « Nouveau », sortie requise) ; `iaVals()` transmet `isNew` et `needOut` aux écrans IA (sortie requise du serveur, `GET /functions`, via `admin-api.js` → `aiNeed`).
 - `CONSO` : ligne Rapports, volume de démonstration nul (sans effet sur le tirage de la consommation de démonstration) ; affectation de démonstration Claude Sonnet 4.5 / Mistral Large 2.
+
+## Nouvelle barre latérale : composant Sidebar Console (28/09/2026)
+
+- `Sidebar Console.dc.html` (livraison Sidebar) copié tel quel ; le bloc `<aside>` de la Console (en-tête, recherche, navigation, lien Cockpit, Jev, profil) et la poignée de largeur sont remplacés par `<dc-import name="Sidebar Console" …>` (spécification § 3), dans un conteneur `sbWrap` qui en fait un tiroir en mobile.
+- Retirés : `NAV`, la construction `nav`, les styles `asideSt`, `jevBtnSt`, `meSt`, `meAv`, `srchPad`, la largeur réglable (`NAV_W_*`, `navWidth`, `rzStart`, `rzKey`), la palette ⌘K (`palItems`, état `pal*`, fenêtre) et les raccourcis ⌘K / ⌘J.
+- Props : `sbMode`, `sec`, `sbSignals()` (invitations, clés refusées, fonctions IA à l'arrêt ou sur secours), `sbUser` (nom et photo de l'administrateur connecté, sans initiales sur la photo), `sbGo`, `toggleJev`, `goProfil`, `toggleRail`, `closeNav`.
+- `META` : groupes renommés selon les domaines ; pages `persona` et `skills` ajoutées avec un écran provisoire « Bientôt disponible ».
+- Test navigateur `console.e2e.ts` : `goMenu` déplie le domaine avant de cliquer une page.

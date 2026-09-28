@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700;1,800&amp;display=swap" rel="stylesheet"><style>
+html,body{margin:0;background:#f2f6f5;font-family:'Plus Jakarta Sans',sans-serif;-webkit-font-smoothing:antialiased;font-size:13px}
+*{box-sizing:border-box}a{color:#3dd6c6}a:hover{color:#fff}
+button:focus-visible{outline:2px solid #3dd6c6;outline-offset:2px}
+[data-screen-label="Sidebar Console"]{scrollbar-width:none}[data-screen-label="Sidebar Console"]::-webkit-scrollbar{display:none}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style></helmet>
+
+<aside data-screen-label="Sidebar Console" aria-label="Navigation de la console" style="{{ asideSt }}">
+  <div style="{{ headSt }}">
+    <sc-if value="{{ full }}" hint-placeholder-val="{{ true }}">
+      <button type="button" onClick="{{ goOv }}" aria-label="Vue d’ensemble" style="display:flex;align-items:baseline;gap:6px;border:0;background:transparent;padding:0;cursor:pointer;color:#fff;font:inherit"><span style="font-weight:800;font-size:14px;letter-spacing:.04em">COCKPIT</span><span style="font-size:10.5px;color:#8fa9bb;font-style:italic">by</span><span style="font-size:13px;font-weight:700;letter-spacing:-.01em">onepoint</span></button>
+      <span style="flex:1"></span>
+      <div style="position:relative;flex:none;display:flex" onMouseEnter="{{ tipOn }}" onMouseLeave="{{ tipOff }}">
+        <button type="button" onClick="{{ openCockpit }}" onFocus="{{ tipOn }}" onBlur="{{ tipOff }}" aria-label="Ouvrir le Cockpit (⇧⌘C)" aria-describedby="sb-ck-tip" style="flex:none;width:28px;height:28px;border:0;border-radius:8px;display:grid;place-items:center;color:#8fa9bb;background:transparent;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);cursor:pointer;transition:color .15s,background .15s" style-hover="color:#fff;background:rgba(255,255,255,.07)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M8 16L17 7 M9 7h8v8"></path></svg></button>
+        <sc-if value="{{ tip }}" hint-placeholder-val="{{ false }}"><span id="sb-ck-tip" role="tooltip" style="position:absolute;top:36px;right:-34px;z-index:90;display:flex;align-items:center;gap:10px;padding:7px 8px 7px 11px;border-radius:9px;background:#f2f6f5;color:#10233a;font-size:11.5px;font-weight:700;white-space:nowrap;box-shadow:0 14px 30px -10px rgba(0,0,0,.6);pointer-events:none">Ouvrir le Cockpit<span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:5px;background:#dfe7e5;color:#43586a;font-family:ui-monospace,Menlo,monospace">⇧⌘C</span></span></sc-if>
+      </div>
+      <sc-if value="{{ desk }}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{ collapse }}" aria-label="Réduire la navigation" style="flex:none;width:28px;height:28px;border:0;border-radius:8px;display:grid;place-items:center;color:#8fa9bb;background:transparent;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);cursor:pointer;transition:color .15s,background .15s" style-hover="color:#fff;background:rgba(255,255,255,.07)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v14H4z M9 5v14"></path></svg></button></sc-if>
+      <sc-if value="{{ mob }}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{ close }}" aria-label="Fermer le menu" style="width:28px;height:28px;border:0;border-radius:8px;display:grid;place-items:center;color:#c9d6de;background:rgba(255,255,255,.06);cursor:pointer"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></sc-if>
+    </sc-if>
+    <sc-if value="{{ rail }}" hint-placeholder-val="{{ false }}">
+      <button type="button" onClick="{{ collapse }}" aria-label="Déplier la navigation" title="Déplier la navigation" style="width:40px;height:32px;border:0;border-radius:9px;background:rgba(255,255,255,.06);color:#fff;font:inherit;font-weight:800;font-size:13px;cursor:pointer" style-hover="background:rgba(255,255,255,.12)">C</button>
+    </sc-if>
+  </div>
+
+  <sc-if value="{{ full }}" hint-placeholder-val="{{ true }}"><div style="flex:none;margin:16px 2px 0;display:flex;align-items:center;gap:8px"><span style="height:22px;padding:0 8px;border-radius:6px;background:#f7a41c;color:#1a1200;font-size:10.5px;font-weight:800;letter-spacing:.12em;display:inline-flex;align-items:center">CONSOLE</span><span style="font-size:12px;font-weight:600;color:#8fa9bb;letter-spacing:.01em">d’administration</span></div></sc-if>
+
+
+  <nav aria-label="Pages de la console" style="flex:none;margin-top:{{ navMt }};display:flex;flex-direction:column;gap:2px">
+    <button type="button" onClick="{{ goOv }}" aria-current="{{ ovCur }}" title="Vue d’ensemble" style="{{ ovSt }}" style-hover="background:rgba(255,255,255,.06);color:#fff"><span style="{{ ovMark }}"></span><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="{{ ovIc }}"><path d="M4 16a8 8 0 1 1 16 0 M12 16l4-5"></path></svg><sc-if value="{{ full }}" hint-placeholder-val="{{ true }}"><span>Vue d’ensemble</span></sc-if></button>
+    <div style="{{ sepSt }}"></div>
+
+    <sc-for list="{{ doms }}" as="d" hint-placeholder-count="5">
+      <div style="position:relative;display:flex;flex-direction:column">
+        <button type="button" onClick="{{ d.toggle }}" aria-expanded="{{ d.exp }}" aria-controls="{{ d.ctrl }}" aria-label="{{ d.aria }}" title="{{ d.title }}" style="{{ d.hSt }}" style-hover="background:rgba(255,255,255,.05)">
+          <span style="{{ d.markSt }}"></span>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="{{ d.icSt }}"><path d="{{ d.ic }}"></path></svg>
+          <sc-if value="{{ full }}" hint-placeholder-val="{{ true }}"><span style="flex:1;min-width:0">{{ d.l }}</span></sc-if>
+          <sc-if value="{{ d.hasBadge }}" hint-placeholder-val="{{ false }}"><span style="{{ d.badgeSt }}">{{ d.badge }}</span></sc-if>
+          <sc-if value="{{ d.hasDot }}" hint-placeholder-val="{{ false }}"><span style="{{ d.dotSt }}"></span></sc-if>
+          <sc-if value="{{ full }}" hint-placeholder-val="{{ true }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="{{ d.chevSt }}"><path d="M9 6l6 6-6 6"></path></svg></sc-if>
+        </button>
+
+        <sc-if value="{{ full }}" hint-placeholder-val="{{ true }}">
+          <div id="{{ d.ctrl }}" style="{{ d.bodySt }}">
+            <div style="overflow:hidden;min-height:0">
+              <div role="group" aria-label="{{ d.l }}" style="position:relative;display:flex;flex-direction:column;gap:1px;padding:2px 0 8px">
+                <span aria-hidden="true" style="position:absolute;left:18px;top:4px;bottom:12px;width:1px;background:rgba(255,255,255,.1)"></span>
+                <sc-for list="{{ d.items }}" as="it" hint-placeholder-count="0">
+                  <button type="button" onClick="{{ it.go }}" aria-current="{{ it.cur }}" tabIndex="{{ it.tab }}" style="{{ it.st }}" style-hover="color:#fff;background:rgba(255,255,255,.06)"><span style="{{ it.markSt }}"></span><span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ it.l }}</span><sc-if value="{{ it.hasBadge }}" hint-placeholder-val="{{ false }}"><span style="{{ it.badgeSt }}">{{ it.badge }}</span></sc-if><sc-if value="{{ it.hasDot }}" hint-placeholder-val="{{ false }}"><span style="{{ it.dotSt }}"></span></sc-if></button>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ d.fly }}" hint-placeholder-val="{{ false }}">
+          <div id="{{ d.ctrl }}" role="menu" aria-label="{{ d.l }}" style="position:absolute;left:54px;top:-6px;z-index:90;width:232px;padding:6px;border-radius:14px;background:#16304a;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1),0 24px 44px -16px rgba(0,0,0,.65)">
+            <div style="padding:8px 10px 6px;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#8fa9bb">{{ d.l }}</div>
+            <sc-for list="{{ d.items }}" as="it" hint-placeholder-count="0">
+              <button type="button" role="menuitem" onClick="{{ it.go }}" aria-current="{{ it.cur }}" style="{{ it.flySt }}" style-hover="color:#fff;background:rgba(255,255,255,.07)"><span style="flex:1;min-width:0">{{ it.l }}</span><sc-if value="{{ it.hasBadge }}" hint-placeholder-val="{{ false }}"><span style="{{ it.badgeSt }}">{{ it.badge }}</span></sc-if><sc-if value="{{ it.hasDot }}" hint-placeholder-val="{{ false }}"><span style="{{ it.dotSt }}"></span></sc-if></button>
+            </sc-for>
+          </div>
+        </sc-if>
+      </div>
+    </sc-for>
+  </nav>
+
+  <div style="flex:none;margin-top:auto;padding-top:22px;display:flex;flex-direction:column;gap:10px">
+    <sc-if value="{{ rail }}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{ openCockpit }}" aria-label="Ouvrir le Cockpit (⇧⌘C)" title="Ouvrir le Cockpit · ⇧⌘C" style="width:40px;height:36px;margin:0 auto;border:0;border-radius:10px;display:grid;place-items:center;color:#8fa9bb;background:transparent;cursor:pointer" style-hover="color:#fff;background:rgba(255,255,255,.07)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M8 16L17 7 M9 7h8v8"></path></svg></button></sc-if>
+    <div style="position:relative">
+      <div aria-hidden="true" style="position:absolute;left:-40px;bottom:-10px;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle,rgba(31,179,165,.3),transparent 70%);pointer-events:none"></div>
+      <button type="button" onClick="{{ toggleJev }}" aria-pressed="{{ jevOn }}" aria-label="Jev, assistant IA (⌘J)" title="Jev · assistant IA" style="{{ jevSt }}" style-hover="background:rgba(255,255,255,.07)">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#f7a41c" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"></path><path d="M19 17l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z"></path></svg>
+        <sc-if value="{{ full }}" hint-placeholder-val="{{ true }}"><span style="display:flex;flex-direction:column;min-width:0;text-align:left"><span style="font-weight:700;color:#3dd6c6;font-size:12.5px">Jev</span><span style="font-size:10.5px;color:#8fa9bb">Ton assistant IA</span></span></sc-if>
+      </button>
+    </div>
+    <button type="button" onClick="{{ openProfile }}" aria-label="Mon profil" title="Mon profil" style="{{ meSt }}" style-hover="background:rgba(255,255,255,.12)">
+      <span style="{{ avSt }}">{{ ini }}</span>
+      <sc-if value="{{ full }}" hint-placeholder-val="{{ true }}"><span style="min-width:0;display:flex;flex-direction:column;text-align:left"><span style="font-weight:700;color:#fff;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ userName }}</span><span style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#8fa9bb">{{ userRole }}</span></span></sc-if>
+    </button>
+  </div>
+</aside>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:252,&quot;height&quot;:860},&quot;mode&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;full&quot;,&quot;rail&quot;,&quot;mob&quot;],&quot;default&quot;:&quot;full&quot;,&quot;tsType&quot;:&quot;'full' | 'rail' | 'mob'&quot;},&quot;active&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;signals&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Record&lt;string, { b?: number; dot?: 'err' | 'warn' }&gt;&quot;},&quot;user&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{ name: string; role?: string; ini?: string; photo?: string }&quot;},&quot;jevOn&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;cockpitUrl&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;onNavigate&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(pageId: string) =&gt; void&quot;},&quot;onOpenCockpit&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;onOpenPalette&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;onToggleJev&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;onOpenProfile&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;onToggleCollapse&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;onClose&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;}}">
+// Domaines de la Console : 13 pages. Les identifiants reprennent S.sec de Console Admin (persona et skills sont nouveaux).
+const DOMS = [
+  { id: 'acces', l: 'Accès', ic: 'M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z', items: [['users', 'Utilisateurs'], ['admins', 'Administrateurs']] },
+  { id: 'ia', l: 'IA', ic: 'M7 7h10v10H7z M10 3v4 M14 3v4 M10 17v4 M14 17v4 M3 10h4 M3 14h4 M17 10h4 M17 14h4', items: [['providers', 'Fournisseurs et modèles'], ['assign', 'Affectation des modèles'], ['conso', 'Consommation et coûts']] },
+  { id: 'jev', l: 'Assistant', ic: 'M4 5h16v11H9l-5 4z M9 9.5h.01 M15 9.5h.01 M9.5 12.5a3.5 3.5 0 0 0 5 0', items: [['persona', 'Persona'], ['skills', 'Skills']] },
+  { id: 'projets', l: 'Projets', ic: 'M4 5h5v14H4z M10 5h4v14h-4z M15.5 5.5l3.6-1 3.4 13.8-3.6 1z', items: [['library', 'Bibliothèque des projets'], ['init', 'Initialisation d’un projet'], ['snaps', 'Snapshots']] },
+  { id: 'plat', l: 'Plateforme', ic: 'M4 7h9 M17 7h3 M15 5v4 M4 17h3 M11 17h9 M9 15v4', items: [['modules', 'Modules'], ['notifs', 'Notifications et alertes']] }
+];
+// Signaux de démonstration : { b: compteur } (pastille ambre) ou { dot: 'err' | 'warn' }
+const DEMO_SIG = { users: { b: 2 }, providers: { dot: 'err' }, assign: { dot: 'warn' } };
+const TONE = { err: ['#f07b67', 'rgba(240,123,103,.18)'], warn: ['#f7a41c', 'rgba(247,164,28,.18)'] };
+const BADGE = 'min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#f7a41c;color:#1a1200;font-size:10.5px;font-weight:800;display:grid;place-items:center;flex:none';
+
+class Component extends DCLogic {
+  state = { act: 'providers', open: undefined, fly: null, tip: false };
+
+  componentDidMount() {
+    this._k = e => {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'c' || e.key === 'C')) { e.preventDefault(); this.openCockpit(); }
+      if (e.key === 'Escape' && this.state.fly) this.setState({ fly: null });
+    };
+    this._c = e => { if (this.state.fly && !e.target.closest('[data-screen-label="Sidebar Console"]')) this.setState({ fly: null }); };
+    window.addEventListener('keydown', this._k); document.addEventListener('mousedown', this._c);
+  }
+  componentWillUnmount() { window.removeEventListener('keydown', this._k); document.removeEventListener('mousedown', this._c); }
+  componentDidUpdate(pp) { if (pp.active !== this.props.active) this.setState({ open: undefined, fly: null }); }
+
+  active() { return this.props.active ?? this.state.act; }
+  mode() { return this.props.mode ?? 'full'; }
+  go(id) { this.setState({ act: id, open: undefined, fly: null }); this.props.onNavigate?.(id); }
+  openCockpit() { const P = this.props; this.setState({ tip: false }); if (P.onOpenCockpit) P.onOpenCockpit(); else window.open(P.cockpitUrl ?? './RISE Cockpit.dc.html', '_blank', 'noopener'); }
+  dot(t, rail) { return (rail ? 'position:absolute;top:7px;right:7px;box-shadow:0 0 0 2px #0f2034;' : 'margin:0 2px 0 4px;box-shadow:0 0 0 3px ' + TONE[t][1] + ';') + 'width:7px;height:7px;border-radius:50%;flex:none;background:' + TONE[t][0]; }
+
+  renderVals() {
+    const P = this.props, S = this.state, mode = this.mode(), rail = mode === 'rail', full = !rail, act = this.active();
+    const sig = P.signals ?? DEMO_SIG, pad = rail ? 12 : 16;
+    const actDom = (DOMS.find(d => d.items.some(([i]) => i === act)) || {}).id || null;
+    const openId = S.open === undefined ? actDom : S.open;
+
+    const doms = DOMS.map(d => {
+      const open = full && openId === d.id, has = d.id === actDom, fly = rail && S.fly === d.id;
+      const b = d.items.reduce((s, [i]) => s + ((sig[i] || {}).b || 0), 0), dots = d.items.map(([i]) => (sig[i] || {}).dot).filter(Boolean), dot = dots.includes('err') ? 'err' : dots[0];
+      const showSig = rail || !open;
+      return {
+        l: d.l, ic: d.ic, ctrl: 'sb-' + d.id, exp: rail ? fly : open, fly,
+        aria: d.l + (b ? ', ' + b + ' en attente' : dot === 'err' ? ', incident' : dot ? ', à surveiller' : ''), title: rail ? d.l : undefined,
+        toggle: () => rail ? this.setState({ fly: fly ? null : d.id }) : this.setState({ open: open ? null : d.id }),
+        hSt: rail
+          ? 'position:relative;display:grid;place-items:center;width:44px;height:40px;margin:0 auto;border:0;border-radius:10px;cursor:pointer;transition:background .15s,color .15s;background:' + (has || fly ? 'rgba(255,255,255,.09)' : 'transparent') + ';color:' + (has || fly ? '#fff' : '#a9bccb')
+          : 'position:relative;display:flex;align-items:center;gap:11px;width:100%;height:38px;padding:0 10px 0 12px;border:0;border-radius:10px;background:transparent;font:inherit;font-size:13px;font-weight:700;cursor:pointer;text-align:left;transition:color .2s,background .15s;color:' + (open ? '#fff' : '#dfe8ee'),
+        markSt: 'position:absolute;left:-' + pad + 'px;top:' + (rail ? 11 : 12) + 'px;bottom:' + (rail ? 11 : 12) + 'px;width:3px;border-radius:0 3px 3px 0;background:#f7a41c;transition:opacity .2s;opacity:' + (has && (rail || !open) ? 1 : 0),
+        icSt: 'flex:none;transition:color .2s;color:' + (open || (rail && (has || fly)) ? '#3dd6c6' : '#8fa9bb'),
+        hasBadge: showSig && b > 0, badge: String(b), badgeSt: rail ? BADGE.replace('min-width:18px;height:18px', 'position:absolute;top:1px;right:0;min-width:16px;height:16px;box-shadow:0 0 0 2px #0f2034') + ';font-size:9.5px' : BADGE,
+        hasDot: showSig && !b && !!dot, dotSt: dot ? this.dot(dot, rail) : '',
+        chevSt: 'flex:none;transition:transform .3s cubic-bezier(.2,.7,.2,1),color .2s;transform:rotate(' + (open ? 90 : 0) + 'deg);color:' + (open ? '#c9d6de' : '#6f8a9e'),
+        bodySt: 'display:grid;transition:grid-template-rows .32s cubic-bezier(.2,.7,.2,1),opacity .22s;grid-template-rows:' + (open ? '1fr' : '0fr') + ';opacity:' + (open ? 1 : 0),
+        items: d.items.map(([i, l]) => {
+          const on = act === i, s = sig[i] || {};
+          return { l, cur: on ? 'page' : undefined, tab: open ? 0 : -1, go: () => this.go(i),
+            st: 'position:relative;display:flex;align-items:center;gap:8px;width:100%;height:34px;padding:0 10px 0 36px;border:0;border-radius:9px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;text-align:left;transition:background .15s,color .15s;' + (on ? 'color:#fff;background:rgba(255,255,255,.08)' : 'color:#a9bccb;background:transparent'),
+            flySt: 'display:flex;align-items:center;gap:8px;width:100%;height:36px;padding:0 10px;border:0;border-radius:9px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;text-align:left;' + (on ? 'color:#fff;background:rgba(255,255,255,.08)' : 'color:#c9d6de;background:transparent'),
+            markSt: on ? 'position:absolute;left:17px;top:9px;bottom:9px;width:3px;border-radius:2px;background:#f7a41c' : 'display:none',
+            hasBadge: !!s.b, badge: String(s.b || ''), badgeSt: BADGE, hasDot: !!s.dot, dotSt: s.dot ? this.dot(s.dot, false) : '' };
+        })
+      };
+    });
+
+    const ov = act === 'overview', u = P.user ?? { name: 'Cédric Schmitz', role: 'Administrateur' };
+    const ini = u.ini ?? u.name.split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+    return {
+      full, rail, desk: mode === 'full', mob: mode === 'mob', doms, tip: S.tip && full, ini, userName: u.name, userRole: u.role ?? 'Administrateur', jevOn: !!P.jevOn,
+      asideSt: 'position:sticky;top:0;height:100vh;flex:none;white-space:nowrap;width:' + (rail ? 72 : 252) + 'px;min-width:' + (rail ? 72 : 252) + 'px;background:linear-gradient(180deg,#0f2034 0%,#0a1727 100%);color:#c9d6de;display:flex;flex-direction:column;padding:22px ' + pad + 'px 16px;z-index:60;' + (rail ? 'overflow:visible' : 'overflow-y:auto;overflow-x:hidden'),
+      headSt: 'flex:none;display:flex;align-items:center;gap:4px;min-height:30px;' + (rail ? 'justify-content:center' : 'padding-left:2px'),
+      searchSt: 'flex:none;margin-top:22px;display:flex;align-items:center;gap:10px;height:40px;padding:0 ' + (rail ? 0 : 12) + 'px;justify-content:center;width:100%;border-radius:11px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:#a9bccb;font:inherit;cursor:pointer;transition:border-color .15s,background .15s',
+      navMt: rail ? '22px' : '26px',
+      sepSt: 'height:1px;background:rgba(255,255,255,.07);margin:8px ' + (rail ? 8 : 12) + 'px',
+      ovCur: ov ? 'page' : undefined,
+      ovSt: 'position:relative;display:flex;align-items:center;gap:11px;width:' + (rail ? '44px;margin:0 auto' : '100%') + ';height:38px;padding:0 ' + (rail ? 0 : 12) + 'px;justify-content:' + (rail ? 'center' : 'flex-start') + ';border:0;border-radius:10px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;text-align:left;transition:background .15s,color .15s;' + (ov ? 'color:#fff;background:rgba(255,255,255,.08)' : 'color:#dfe8ee;background:transparent'),
+      ovMark: ov ? 'position:absolute;left:-' + pad + 'px;top:11px;bottom:11px;width:3px;border-radius:0 3px 3px 0;background:#f7a41c' : 'display:none',
+      ovIc: 'flex:none;color:' + (ov ? '#3dd6c6' : '#8fa9bb'),
+      jevSt: 'position:relative;display:flex;align-items:center;gap:12px;width:100%;padding:8px ' + (rail ? 0 : 12) + 'px;justify-content:' + (rail ? 'center' : 'flex-start') + ';border:0;border-radius:10px;font:inherit;cursor:pointer;transition:background .15s;background:' + (P.jevOn ? 'rgba(255,255,255,.07)' : 'transparent'),
+      meSt: 'display:flex;align-items:center;gap:11px;width:100%;padding:' + (rail ? '6px 0' : '10px') + ';justify-content:' + (rail ? 'center' : 'flex-start') + ';border:0;border-radius:13px;font:inherit;cursor:pointer;transition:background .15s;background:' + (act === 'profil' ? 'rgba(255,255,255,.12)' : 'rgba(255,255,255,.06)'),
+      avSt: 'flex:none;width:32px;height:32px;border-radius:50%;color:#fff;font-weight:800;display:grid;place-items:center;font-size:11.5px;background:' + (u.photo ? 'url(' + u.photo + ') center/cover' : '#1d8f86'),
+      goOv: () => this.go('overview'), openPalette: () => P.onOpenPalette?.(), toggleJev: () => P.onToggleJev?.(), openProfile: () => { P.onOpenProfile ? P.onOpenProfile() : this.go('profil'); },
+      collapse: () => P.onToggleCollapse?.(), close: () => P.onClose?.(),
+      openCockpit: () => this.openCockpit(), tipOn: () => this.setState({ tip: true }), tipOff: () => this.setState({ tip: false })
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -166,3 +166,15 @@ Demande du commanditaire : deux écrans de connexion distincts (application, adm
 | Capacité | Un LLM couvre la fonction si son max output tokens ≥ sortie requise ; un modèle sans max output tokens connu n'est pas signalé. Un modèle trop court reste choisissable (alerte, pas de refus). | `fitsOut` (serveur), `RISE_IA.fitsOut` (écrans) |
 | Repli des groupes | Documents replié par défaut dans les deux écrans ; état mémorisé par navigateur (`localStorage` `rise-ia-asg-open` et `rise-ia-net-open`), pas encore par administrateur. | livraison v2 |
 | Console hors API | La ligne de consommation Rapports a un volume de démonstration nul (fonction pas encore en service) : le tirage de la consommation de démonstration est inchangé. | `CONSO` |
+
+## Nouvelle barre latérale de la Console (livraison Sidebar, 28/09/2026)
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Composant | `Sidebar Console.dc.html` copié à l'identique à côté de la Console (apparence, libellés et animations inchangés) ; il remplace tout l'ancien bloc `<aside>`. Spécification versionnée : `docs/specs/SIDEBAR - specification.md`. | `DOMS` (composant) |
+| Raccourcis | Arbitrage du commanditaire, qui prime sur la spécification (§ 1 et § 3.5) : ⌘K et ⌘J ne sont plus gérés par la Console. La palette de recherche, qui ne pouvait plus s'ouvrir (plus de barre de recherche ni de ⌘K) et reposait sur `NAV`, est retirée, ainsi que la prop `on-open-palette`. ⇧⌘C n'a jamais été géré par la Console ; le composant garde son propre raccourci, conformément à la spécification (non modifié). | `Console Admin.dc.html` |
+| Largeur | Colonnes 252 / 72 / 0 px, comme demandé : la poignée de largeur réglable (ajoutée le 28/09/2026) est retirée, le composant ayant des largeurs fixes. Le choix réduit / déployé reste mémorisé (`rise-console-nav`). | `shellSt`, `navMode()` |
+| Signaux | Accès : compteur des invitations sans réponse depuis plus de 7 jours (objet `badge` existant ; 1 dans les données de démonstration) ; IA : point rouge si une clé est refusée, sinon point rouge / ambre si une fonction IA est à l'arrêt / sur secours. Les autres pastilles de l'ancienne barre (consommation, modules, habilitations) ne sont pas transmises (spécification § 3.3). | `sbSignals()` |
+| Mobile | Le composant garde son rendu complet ; la Console le place dans un tiroir fixe (252 px) ouvert par le bouton menu de l'en-tête et fermé par la croix du composant ou le voile. | `sbWrap` |
+| Fil d'Ariane | Groupe des pages = domaine : Accès, IA, Assistant, Projets, Plateforme ; la page « Droits et habilitations », hors barre latérale, suit Accès ; Vue d'ensemble (« Supervision ») et Mon profil (« Compte ») n'ont pas de domaine et gardent leur libellé. | `META` |
+| Lien Cockpit | `cockpit-url="./RISE Cockpit.dc.html"`, valeur de la spécification (même cible que l'ancien lien). | dc-import |

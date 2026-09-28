@@ -85,8 +85,17 @@ const dcErrors = (page: Page) => page.evaluate(() => Array.from(document.querySe
 
 async function goMenu(page: Page, label: string) {
   // « Mon profil » s'ouvre par la carte de l'administrateur connecté, en bas de la navigation.
-  if (label === 'Mon profil') await page.locator('aside button', { hasText: 'Julien Morel' }).last().click();
-  else await page.locator('aside button', { hasText: label }).first().click();
+  // Sidebar Console : les pages sont rangées par domaine (accordéon) ; on déplie le domaine s'il est replié.
+  const DOM: Record<string, string> = { Utilisateurs: 'Accès', Administrateurs: 'Accès', 'Fournisseurs et modèles': 'IA', 'Affectation des modèles': 'IA', 'Consommation et coûts': 'IA', Persona: 'Assistant', Skills: 'Assistant', 'Bibliothèque des projets': 'Projets', 'Initialisation d’un projet': 'Projets', Snapshots: 'Projets', Modules: 'Plateforme', 'Notifications et alertes': 'Plateforme' };
+  if (label === 'Mon profil') await page.locator('aside button[aria-label="Mon profil"]').click();
+  else {
+    const dom = DOM[label];
+    if (dom) {
+      const head = page.locator('aside button[aria-expanded]', { hasText: dom }).first();
+      if ((await head.getAttribute('aria-expanded')) !== 'true') { await head.click(); await page.waitForTimeout(400); }
+    }
+    await page.locator('aside button', { hasText: label }).first().click();
+  }
   await settle(page);
 }
 
