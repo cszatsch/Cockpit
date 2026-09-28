@@ -198,3 +198,9 @@ Les captures sont écrites dans `OUT` (par défaut `<tmp>/rise-console-e2e`).
 - `META` : groupes renommés selon les domaines ; pages `persona` et `skills` ajoutées avec un écran provisoire « Bientôt disponible ».
 - Test navigateur `console.e2e.ts` : `goMenu` déplie le domaine avant de cliquer une page.
 - Correctif : le conteneur `sbWrap` est lui-même collant (`position:sticky;top:0;align-self:start;height:100vh`) ; l'`aside` sticky du composant, enfermé dans un conteneur de sa propre hauteur, défilait avec la page.
+
+## Page Skills (28/09/2026)
+
+- `Skills.dc.html` (livraison Skills) copié tel quel ; affiché pour `skills` par `<dc-import name="Skills" …>` (spécification § 7), à la place de l'écran provisoire. En-tête générique masqué sur cette page (`notOv`), marges de la Console neutralisées (`skWrap`) ; `META.skills` de la spécification.
+- Rappels `skSave`, `skToggle`, `skCreate`, `skDelete` : démonstration (journal local, toast) ; API dans `admin-api.js` (`/api/assistant/skills`, chargement `skills` à l'ouverture de la page, correspondance identifiant provisoire → serveur, rechargement après chaque écriture, rechargement aussi en cas d'erreur pour rétablir l'état du serveur).
+- `admin-api.js` : `apiAbs()` pour les routes hors `/api/admin`.

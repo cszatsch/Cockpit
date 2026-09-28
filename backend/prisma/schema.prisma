@@ -1349,3 +1349,17 @@ model ProjectImport {
   parsed     Json?
   projectId  String?
 }
+
+// ─────────────────────────── Assistant (Jev) ───────────────────────────
+
+/// Skill de Jev : consigne ajoutée au prompt système de Jev (spécification SKILLS § 5).
+/// Nom ≤ 60 caractères, texte ≤ 20 000 ; seules les skills actives sont envoyées, dans l'ordre de `position`.
+model Skill {
+  id        String   @id @default(cuid())
+  n         String
+  t         String   @default("")
+  on        Boolean  @default(false)
+  position  Int
+  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedBy String?  @map("updated_by")
+}

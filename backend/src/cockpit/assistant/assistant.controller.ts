@@ -1,4 +1,5 @@
 import { Body, Controller, HttpCode, Param, Post, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { JevPromptService } from '../../core/jev-prompt.service';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
@@ -50,6 +51,7 @@ export class AssistantController {
     private readonly tx: TransactionalService,
     private readonly llm: LlmService,
     private readonly storage: StorageService,
+    private readonly jev: JevPromptService,
   ) {}
 
   private entityOf(code: string): { type: string; def: TxEntity } | null {
@@ -84,7 +86,7 @@ export class AssistantController {
     }
 
     const proposals = readOnly ? [] : await this.propose(scope, input.text, sources);
-    const llm = await this.llm.complete({ functionId: proposals.length ? 'crud' : 'insights', prompt: `[${input.context.space}/${input.context.tab ?? ''}] ${input.text}`, projectId: scope.project.id, source: 'JEV' });
+    const llm = await this.llm.complete({ functionId: proposals.length ? 'crud' : 'insights', prompt: `[${input.context.space}/${input.context.tab ?? ''}] ${input.text}`, system: await this.jev.systemPrompt(), projectId: scope.project.id, source: 'JEV' });
     const created = [];
     for (const pr of proposals) {
       created.push(

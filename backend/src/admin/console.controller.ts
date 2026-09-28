@@ -1,4 +1,5 @@
 import { Body, Controller, Delete, Get, HttpCode, OnModuleInit, Param, Patch, Post, Query, Res } from '@nestjs/common';
+import { JevPromptService } from '../core/jev-prompt.service';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
@@ -31,6 +32,7 @@ export class ConsoleController implements OnModuleInit {
     private readonly llm: LlmService,
     private readonly jobs: JobsService,
     private readonly today: TodayService,
+    private readonly jevPrompt: JevPromptService,
   ) {}
 
   onModuleInit() {
@@ -245,7 +247,7 @@ export class ConsoleController implements OnModuleInit {
       reply = 'Je peux préparer un snapshot manuel : donnez-lui un libellé, puis confirmez.';
       actions.push({ type: 'OPEN_SECTION', section: 'snaps', requiresConfirmation: false });
     } else {
-      const res = await this.llm.complete({ functionId: 'insights', prompt: `[console/${input.context.section}] ${input.text}`, source: 'COCKPIT' }).catch(() => null);
+      const res = await this.llm.complete({ functionId: 'insights', prompt: `[console/${input.context.section}] ${input.text}`, system: await this.jevPrompt.systemPrompt(), source: 'COCKPIT' }).catch(() => null);
       reply = res?.text ?? 'Je n’ai pas compris la demande.';
     }
     return { reply, sources: [], actions };

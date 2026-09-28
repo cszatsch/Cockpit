@@ -105,7 +105,7 @@ export class LlmService {
   }
 
   /** Appel via l'affectation d'une fonction (principal, sinon secours). */
-  async complete(input: { functionId: AiFunctionId; prompt: string; projectId?: string | null; source: UsageSourceCode; maxWords?: number }): Promise<LlmResult> {
+  async complete(input: { functionId: AiFunctionId; prompt: string; system?: string; projectId?: string | null; source: UsageSourceCode; maxWords?: number }): Promise<LlmResult> {
     const route = await this.route(input.functionId);
     return this.run(route.modelId, input, route.fallback);
   }
@@ -159,11 +159,12 @@ export class LlmService {
     return this.run(modelId, input, false);
   }
 
-  private async run(modelId: string, input: { functionId: AiFunctionId; prompt: string; projectId?: string | null; source: UsageSourceCode; maxWords?: number }, fallbackUsed: boolean): Promise<LlmResult> {
+  private async run(modelId: string, input: { functionId: AiFunctionId; prompt: string; system?: string; projectId?: string | null; source: UsageSourceCode; maxWords?: number }, fallbackUsed: boolean): Promise<LlmResult> {
     const model = await this.prisma.aiModel.findUniqueOrThrow({ where: { id: modelId } });
     const t0 = Date.now();
     const text = this.generate(input.prompt, input.maxWords ?? 60);
-    const tokensIn = Math.max(1, Math.ceil(input.prompt.length / 4));
+    // Le prompt système (Jev : base, Persona, skills actives) est envoyé avec la demande : il compte en entrée.
+    const tokensIn = Math.max(1, Math.ceil(((input.system ? input.system.length + 2 : 0) + input.prompt.length) / 4));
     const tokensOut = Math.max(1, Math.ceil(text.length / 4));
     const costEur = await this.record(model, input.functionId, { tokensIn, tokensOut, requests: 0 }, fallbackUsed, input);
     return { text, modelId: model.id, providerId: model.providerId, tokensIn, tokensOut, costEur, fallbackUsed, ms: Date.now() - t0 };

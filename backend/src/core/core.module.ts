@@ -1,4 +1,5 @@
 import { Global, Module } from '@nestjs/common';
+import { JevPromptService } from './jev-prompt.service';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { PrismaModule } from './prisma.service';
@@ -28,7 +29,7 @@ import { ProviderKeyTester } from './provider-key-tester';
     }),
   ],
   controllers: [AuthController],
-  providers: [{ provide: APP_GUARD, useClass: AuthGuard }, AccessService, AuditService, TodayService, StorageService, EventBus, LlmService, JobsService, MailerService, SessionService, CredentialsService, ProviderKeyTester],
-  exports: [AccessService, AuditService, TodayService, StorageService, EventBus, LlmService, JobsService, MailerService, SessionService, CredentialsService, ProviderKeyTester],
+  providers: [{ provide: APP_GUARD, useClass: AuthGuard }, AccessService, AuditService, TodayService, StorageService, EventBus, LlmService, JevPromptService, JobsService, MailerService, SessionService, CredentialsService, ProviderKeyTester],
+  exports: [AccessService, AuditService, TodayService, StorageService, EventBus, LlmService, JevPromptService, JobsService, MailerService, SessionService, CredentialsService, ProviderKeyTester],
 })
 export class CoreModule {}

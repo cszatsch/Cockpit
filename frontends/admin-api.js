@@ -87,7 +87,11 @@ async function raw(method, path, body, retry = true) {
 
 /** Appel JSON de l'API de la console : `api('GET', '/accounts')` → `/api/admin/accounts`. */
 export async function api(method, path, body) {
-  const r = await raw(method, '/api/admin' + path, body);
+  return apiAbs(method, '/api/admin' + path, body);
+}
+/** Appel JSON sur un chemin absolu (`/api/assistant/skills`…). */
+async function apiAbs(method, path, body) {
+  const r = await raw(method, path, body);
   if (r.status === 204) return null;
   const txt = await r.text();
   let b = null;
@@ -224,7 +228,7 @@ export function bindConsole(c) {
   c._logout = () => { if (DEV) writeToken(null); return Auth.logout('admin'); };
   const set0 = c.setState.bind(c), orig = {};
   ['go', 'setUser', 'saveUser', 'removeUser', 'saveAdmin', 'removeAdmin', 'testKey', 'testAll', 'saveKey', 'saveProv', 'toggleModel', 'saveModel', 'saveFiche', 'saveAsg', 'setTh', 'doCapture',
-    'toggleRule', 'saveRule', 'newRule', 'setMod', 'approve', 'reject', 'saveMe', 'revoke', 'revokeAll', 'onPhoto', 'exportAudit', 'exportCsv', 'jevReply', 'mtd', 'thVals', 'renderVals'].forEach(k => { orig[k] = c[k].bind(c); });
+    'toggleRule', 'saveRule', 'newRule', 'setMod', 'approve', 'reject', 'saveMe', 'revoke', 'revokeAll', 'onPhoto', 'exportAudit', 'exportCsv', 'jevReply', 'mtd', 'thVals', 'renderVals', 'skSave', 'skToggle', 'skCreate', 'skDelete'].forEach(k => { orig[k] = c[k].bind(c); });
   const toast = (m, t, u) => c.toast(m, t, u), fail = e => { console.warn('[admin-api]', e); toast(errText(e), 'err'); };
   let meId = 'u1';
   const PROJ = () => Object.keys(c.state.snaps || {});
@@ -263,11 +267,12 @@ export function bindConsole(c) {
     prof: async () => { const me = await get('/me/profile'); meId = me.id; return { prof: toProf(me), pn: { crit: true, budget: true, req: true, hebdo: true, fail: false, ...(me.notifications || {}) }, photo: me.photoUrl || null }; },
     sess: async () => ({ sess: (await get('/me/sessions')).map(toSess) }),
     projects: async () => ({ apiCodes: (await get('/projects')).map(p => p.code) }),
+    skills: async () => ({ skills: toSkills(await apiAbs('GET', SK)) }),
   };
   const SECTION = {
     overview: ['accounts', 'providers', 'month', 'audit', 'reqs', 'snaps', 'models', 'asg', 'fns'], users: ['accounts'], admins: ['admins', 'audit', 'accounts'], providers: ['providers', 'models', 'asg', 'fns'],
     assign: ['asg', 'models', 'providers', 'usage', 'fns'], conso: ['month', 'providers'], snaps: ['snaps', 'sched'], notifs: ['rules', 'hist', 'models'], modules: ['mods', 'reqs'],
-    init: ['projects'], library: ['projects'], profil: ['prof', 'sess', 'audit'],
+    init: ['projects'], library: ['projects'], profil: ['prof', 'sess', 'audit'], skills: ['skills'],
   };
   async function load(keys) {
     const parts = await Promise.all(keys.map(k => L[k]()));
@@ -282,7 +287,7 @@ export function bindConsole(c) {
     try {
       const ov = await get('/overview');
       clock = { server: new Date(ov.date).getTime(), local: Date.now() };
-      await load(['prof', 'accounts', 'admins', 'audit', 'providers', 'models', 'asg', 'usage', 'snaps', 'sched', 'rules', 'hist', 'mods', 'reqs', 'sess', 'projects']);
+      await load(['prof', 'accounts', 'admins', 'audit', 'providers', 'models', 'asg', 'usage', 'snaps', 'sched', 'rules', 'hist', 'mods', 'reqs', 'sess', 'projects', 'skills']);
       set0({ apiBoot: false, loading: false });
     } catch (e) {
       fail(e);
@@ -295,6 +300,20 @@ export function bindConsole(c) {
   W.addEventListener && W.addEventListener('rise-admin:thresholds', onTh);
   const unmount0 = c.componentWillUnmount.bind(c);
   c.componentWillUnmount = () => { W.removeEventListener && W.removeEventListener('rise-admin:thresholds', onTh); unmount0(); };
+
+  // ── Skills de Jev (/api/assistant/skills, SKILLS - specification.md § 5) ──
+  // Une skill créée garde dans l'écran son identifiant provisoire `new-…`, relié à l'identifiant du serveur :
+  // la sélection et le brouillon du composant (indexés par identifiant) sont ainsi conservés.
+  const SK = '/api/assistant/skills', skAlias = {}, skPend = {};
+  const toSkills = list => { const back = Object.fromEntries(Object.entries(skAlias).map(([p, id]) => [id, p])); return list.map(s => ({ id: back[s.id] || s.id, n: s.n, t: s.t, on: s.on })); };
+  const skId = async id => skPend[id] ? await skPend[id] : (skAlias[id] || id);
+  const skDone = () => { touch(); return load(['skills']); };
+  const skFail = e => { fail(e); load(['skills']).catch(() => {}); };
+  c.skCreate = sk => { skPend[sk.id] = apiAbs('POST', SK, { n: sk.n, t: sk.t, on: false }).then(r => { skAlias[sk.id] = r.id; delete skPend[sk.id]; return r.id; });
+    skPend[sk.id].then(() => { toast('Skill créée'); return skDone(); }).catch(e => { delete skPend[sk.id]; skFail(e); }); };
+  c.skSave = sk => skId(sk.id).then(id => apiAbs('PATCH', SK + '/' + id, { n: sk.n, t: sk.t })).then(() => { toast('Skill enregistrée'); return skDone(); }).catch(skFail);
+  c.skToggle = (id0, on) => skId(id0).then(id => apiAbs('PATCH', SK + '/' + id, { on })).then(() => { toast(on ? 'Skill activée' : 'Skill désactivée'); return skDone(); }).catch(skFail);
+  c.skDelete = id0 => skId(id0).then(id => apiAbs('DELETE', SK + '/' + id)).then(() => { toast('Skill supprimée'); return skDone(); }).catch(skFail);
 
   // Ouverture d'un menu : rechargement de la section en arrière-plan.
   c.go = (sec, then) => { orig.go(sec, then); if (!c.state.apiBoot && SECTION[sec]) load(SECTION[sec]).catch(fail); };

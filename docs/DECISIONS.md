@@ -178,3 +178,14 @@ Demande du commanditaire : deux écrans de connexion distincts (application, adm
 | Mobile | Le composant garde son rendu complet ; la Console le place dans un tiroir fixe (252 px) ouvert par le bouton menu de l'en-tête et fermé par la croix du composant ou le voile. | `sbWrap` |
 | Fil d'Ariane | Groupe des pages = domaine : Accès, IA, Assistant, Projets, Plateforme ; la page « Droits et habilitations », hors barre latérale, suit Accès ; Vue d'ensemble (« Supervision ») et Mon profil (« Compte ») n'ont pas de domaine et gardent leur libellé. | `META` |
 | Lien Cockpit | `cockpit-url="./RISE Cockpit.dc.html"`, valeur de la spécification (même cible que l'ancien lien). | dc-import |
+
+## Skills de Jev (livraison Skills, 28/09/2026)
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Sidebar | La livraison Skills contient la même sidebar et la même spécification que la livraison Sidebar, déjà intégrées (fichiers identiques) : l'étape 1 était faite. | `Sidebar Console.dc.html` |
+| Modèle et API | `Skill { id, n, t, on, position, updated_at, updated_by }` ; `GET/POST /api/assistant/skills`, `PATCH/DELETE /api/assistant/skills/:id`, réservés à l'administrateur. Nom vide → « Sans nom » ; nom > 60 ou texte > 20 000 caractères → 422. Une création se place en fin de liste. Audit : « Skill créée / modifiée / activée / désactivée / supprimée ». | `SKILL_NAME_MAX`, `SKILL_TEXT_MAX`, `SKILL_UNNAMED` (`src/domain/jev-prompt.ts`), `SkillsController` |
+| Données initiales | Les cinq skills de démonstration sont insérées par la migration `20261003000000_skills_jev` (base locale et toute nouvelle base) et par l'amorçage (qui vide la base). | `DEMO_SKILLS` |
+| Prompt de Jev | Relu à chaque réponse : prompt de base, Persona, puis `## Skill : {n}` + texte brut de chaque skill active, dans l'ordre de `position` ; les skills désactivées ne sont pas envoyées. Appliqué aux deux Jev (Cockpit et Console). Le prompt système compte dans les tokens d'entrée. Persona : aucune (page à concevoir). | `assembleJevPrompt`, `JEV_SYSTEM_PROMPT`, `JEV_PERSONA`, `JevPromptService` |
+| Identifiant provisoire | Le composant indexe sélection et brouillons par identifiant : la Console garde à l'écran l'identifiant `new-…` d'une skill créée et le relie à l'identifiant du serveur pour tous les appels (y compris ceux faits avant la réponse du `POST`). Après rechargement, l'identifiant du serveur est utilisé. | `skAlias`, `skPend` (`admin-api.js`) |
+| En-tête | L'en-tête générique de la Console est masqué sur la page Skills (le composant a le sien) ; le fil d'Ariane du bandeau reste. Le composant apporte ses propres marges : la Console neutralise les siennes sur cette page. | `notOv`, `skWrap` |

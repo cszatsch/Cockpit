@@ -63,3 +63,18 @@ describe('Capacité de sortie (génération de rapports)', () => {
     expect(fitsOut(38000, null)).toBe(true);
   });
 });
+
+describe('Prompt de Jev : skills (spécification SKILLS § 6)', () => {
+  it('base, Persona, puis une section par skill active dans l’ordre de position ; texte tel quel', () => {
+    const { assembleJevPrompt, skillLimits } = require('../../src/domain/jev-prompt');
+    const skills = [
+      { n: 'B', t: '- deux', on: true, position: 2 },
+      { n: 'Off', t: 'jamais', on: false, position: 0 },
+      { n: 'A', t: '## Titre\n1. un', on: true, position: 1 },
+    ];
+    expect(assembleJevPrompt('Base', null, skills)).toBe('Base\n\n## Skill : A\n## Titre\n1. un\n\n## Skill : B\n- deux');
+    expect(assembleJevPrompt('Base', 'Persona', [])).toBe('Base\n\nPersona');
+    expect(skillLimits({ n: 'x'.repeat(61), t: 'y'.repeat(20_001) })).toEqual({ n: expect.any(String), t: expect.any(String) });
+    expect(skillLimits({ n: 'x'.repeat(60), t: 'y'.repeat(20_000) })).toEqual({});
+  });
+});
