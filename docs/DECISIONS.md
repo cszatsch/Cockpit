@@ -214,3 +214,10 @@ Demande du commanditaire : deux écrans de connexion distincts (application, adm
 | Réutilisation | `AccountsController` et `DataController` sont aussi déclarés comme fournisseurs du module Admin pour être appelés par le service des notifications (même traitement, sans duplication). | `admin.module.ts` |
 | Compteurs | Cloche : non lues et non traitées, corail s'il y a un incident non lu. « Accès » : demandes d'invitation encore à traiter (et non plus les invitations envoyées sans réponse depuis 7 jours) : il baisse dès qu'une demande est acceptée ou refusée et remonte si la décision est annulée. | `sbSignals`, `ntPendingInvites` |
 | Page « Notifications et alertes » | Inchangée (elle règle les messages envoyés aux utilisateurs). Proposition de la spécification, à valider : la renommer « Alertes utilisateurs ». | `META.notifs` |
+
+## Skill « Répondre sur la Console d’administration » (28/09/2026)
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Contenu | Skill de Jev rédigée sur le modèle des skills de Claude (objectif, quand l’appliquer, méthode, carte de la Console, règles chiffrées, diagnostic, garde-fous, format, exemples), en Markdown simple (`##`, `-`, `1.`) seul rendu par l’aperçu. Les règles chiffrées reprennent les constantes du code (invitation 14 j / 7 j, verrouillage 5 échecs / 15 min, sessions 15 / 30 min, test des clés toutes les 2 h, annulation 10 s, audit 24 mois). | `docs/skills/Repondre sur la Console d'administration.md` |
+| Mise en place | Ajoutée à la base locale par l’API, **désactivée** (règle des nouvelles skills) : à relire puis activer dans Assistant › Skills. Recouvre et précise « Assister l’administration » (déjà désactivée). Non ajoutée aux données initiales. Toute évolution d’une règle chiffrée du code doit être répercutée dans ce texte. | Assistant › Skills |
