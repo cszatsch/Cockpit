@@ -23,8 +23,12 @@ describe('Étape 10 — documents, commentaires, historique, Jev, services exter
     expect(doc).toMatchObject({ ext: 'SUCCEEDED', pages: 1 });
     const dl = await http().get(`${R}/documents/${up.body.id}/file`).set('Authorization', `Bearer ${token}`).expect(200);
     expect(dl.body.slice(0, 5).toString()).toBe('%PDF-');
-    const usage = await t.db.usageRecord.findFirst({ where: { functionId: 'docs' }, orderBy: { at: 'desc' } });
-    expect(usage!.at.getTime()).toBeGreaterThan(Date.now() - 60_000);
+    // Chaîne Documents : une ligne de consommation par étape (vectorisation, reclassement à la requête, synthèse).
+    const recent = { at: { gte: new Date(Date.now() - 60_000) } };
+    const steps = await t.db.usageRecord.findMany({ where: { ...recent, functionId: { in: ['doc_vec', 'doc_rrk', 'doc_syn'] } } });
+    expect(steps.map((u) => u.functionId).sort()).toEqual(['doc_rrk', 'doc_syn', 'doc_vec']);
+    expect(steps.find((u) => u.functionId === 'doc_rrk')).toMatchObject({ requests: 1, tokensIn: 0, costEur: 1.85 / 1000 });
+    expect(steps.find((u) => u.functionId === 'doc_vec')!.tokensOut).toBe(0);
     const links = await (await t.as(WHO.pmo)).put(`${R}/documents/${up.body.id}/links`, { links: [{ entityType: 'RISK', entityId: 'R01' }] }).expect(200);
     expect(links.body.links).toEqual([{ entityType: 'RISK', entityId: 'R01' }]);
     // Un Lecteur consulte mais ne dépose pas.

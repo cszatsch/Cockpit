@@ -13,7 +13,7 @@ html,body{margin:0;background:#f2f6f5;font-family:'Plus Jakarta Sans',sans-serif
 button:focus-visible{outline:2px solid #5fd0c3;outline-offset:2px}
 </style><script src="./ia-data.js"></script></helmet>
 
-<div data-screen-label="Vue réseau IA" style="max-width:1160px;margin:0 auto;padding:28px 28px 40px">
+<div data-screen-label="Vue réseau IA" style="{{ wrapSt }}">
   <div style="background:#0f2034;border-radius:20px;padding:26px 28px 20px;box-shadow:0 18px 50px -24px rgba(16,35,58,.55);color:#e6eef2;display:flex;flex-direction:column;gap:18px">
     <div style="display:flex;flex-wrap:wrap;gap:28px">
       <div style="flex:1 1 560px;min-width:0;display:flex;flex-direction:column">
@@ -76,7 +76,7 @@ button:focus-visible{outline:2px solid #5fd0c3;outline-offset:2px}
   </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;googleKeyOk&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Simulation&quot;},&quot;assignment&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Record&lt;string,{p:string,f:string}&gt;&quot;},&quot;providers&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Provider[]&quot;},&quot;models&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Model[]&quot;},&quot;functions&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;AiFunction[]&quot;},&quot;groups&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Record&lt;string,{n:string,d:string}&gt;&quot;},&quot;onOpenModel&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(modelId: string) =&gt; void&quot;},&quot;onOpenProvider&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(providerId: string) =&gt; void&quot;},&quot;onTestKey&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(providerId: string) =&gt; void&quot;},&quot;onReplaceKey&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(providerId: string) =&gt; void&quot;},&quot;onAddFallback&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(functionId: string, slot: 'p'|'f') =&gt; void&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;googleKeyOk&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Simulation&quot;},&quot;assignment&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Record&lt;string,{p:string,f:string}&gt;&quot;},&quot;providers&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Provider[]&quot;},&quot;models&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Model[]&quot;},&quot;functions&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;AiFunction[]&quot;},&quot;groups&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Record&lt;string,{n:string,d:string}&gt;&quot;},&quot;onOpenModel&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(modelId: string) =&gt; void&quot;},&quot;onOpenProvider&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(providerId: string) =&gt; void&quot;},&quot;onTestKey&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(providerId: string) =&gt; void&quot;},&quot;onReplaceKey&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(providerId: string) =&gt; void&quot;},&quot;onAddFallback&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(functionId: string, slot: 'p'|'f') =&gt; void&quot;},&quot;embedded&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;boolean&quot;}}">
 class Component extends DCLogic {
   componentDidMount() { if (!window.RISE_IA) this._t = setInterval(() => { if (window.RISE_IA) { clearInterval(this._t); this.forceUpdate(); } }, 30); }
   componentWillUnmount() { clearInterval(this._t); }
@@ -116,7 +116,7 @@ class Component extends DCLogic {
   }
 
   renderVals() {
-    const D = window.RISE_IA; if (!D) return { solo: [], groups: [], provs: [] };
+    const D = window.RISE_IA, wrapSt = this.props.embedded ? '' : 'max-width:1160px;margin:0 auto;padding:28px 28px 40px'; if (!D) return { solo: [], groups: [], provs: [], wrapSt };
     const P = this.props;
     const provs = (P.providers ?? D.PROVIDERS).map(p => p.id === 'google' && P.googleKeyOk ? { ...p, st: 'ok', lat: 431, err: null } : p);
     const models = P.models ?? D.MODELS, fns = P.functions ?? D.FUNCTIONS, groups = P.groups ?? D.GROUPS, asg = P.assignment ?? D.ASSIGN;
@@ -152,7 +152,7 @@ class Component extends DCLogic {
         replSt: 'border:0;background:transparent;padding:0;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer;color:' + (bad ? '#f7a41c' : '#9fb3c1'),
         open: () => P.onOpenProvider?.(p.id), test: () => P.onTestKey?.(p.id), repl: () => P.onReplaceKey?.(p.id) };
     });
-    return { solo, groups: gl, provs: pl };
+    return { solo, groups: gl, provs: pl, wrapSt };
   }
 }
 </script>

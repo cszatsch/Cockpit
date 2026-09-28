@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../core/prisma.service';
 import { TodayService } from '../core/today.service';
-import { LlmService, AI_FUNCTIONS } from '../core/llm.service';
+import { LlmService, AI_BUDGET_LINES, budgetLineOf } from '../core/llm.service';
+import { ModelCategory } from '../domain/ai-pricing';
 import { addDays, daysBetween, isoInTimezone, lastDayOfMonth } from '../domain/dates';
 
 /** Fuseau de la plateforme pour les agrégats de consommation (§ 7.4 : fuseau du projet ou de la plateforme). */
@@ -68,10 +69,10 @@ export class UsageService {
     });
   }
 
-  /** État d'une fonction : Nominal / Sur secours / Indisponible (§ 7.3). */
-  async functionState(primary: string, fallback: string | null): Promise<FunctionState> {
-    if (await this.llm.modelAvailable(primary)) return 'NOMINAL';
-    if (await this.llm.modelAvailable(fallback)) return 'FALLBACK';
+  /** État d'une fonction : Nominal / Sur secours / Indisponible (§ 7.3), selon la catégorie qu'elle accepte. */
+  async functionState(primary: string, fallback: string | null, category: ModelCategory = 'LLM'): Promise<FunctionState> {
+    if (await this.llm.modelAvailable(primary, category)) return 'NOMINAL';
+    if (await this.llm.modelAvailable(fallback, category)) return 'FALLBACK';
     return 'UNAVAILABLE';
   }
 
@@ -102,8 +103,9 @@ export class UsageService {
     const prevMonthStart = `${prevEnd.toISOString().slice(0, 8)}01`;
     const sameDay = `${prevEnd.toISOString().slice(0, 8)}${String(Math.min(+today.slice(8, 10), prevEnd.getUTCDate())).padStart(2, '0')}`;
     const prevRows = await this.records(prevMonthStart, sameDay);
-    const byFunction = AI_FUNCTIONS.map((f) => {
-      const fr = rows.filter((r) => r.functionId === f.id);
+    // Par ligne budgétaire : les étapes d'une chaîne (ex. Documents) sont regroupées (spécification IA § 2).
+    const byFunction = AI_BUDGET_LINES.map((f) => {
+      const fr = rows.filter((r) => budgetLineOf(r.functionId) === f.id);
       return { functionId: f.id, spent: fr.reduce((a, r) => a + r.costEur, 0), tokensIn: fr.reduce((a, r) => a + r.tokensIn, 0), tokensOut: fr.reduce((a, r) => a + r.tokensOut, 0), fallbackCost: fr.filter((r) => r.fallbackUsed).reduce((a, r) => a + r.costEur, 0) };
     });
     const fallbackDays = [...new Set(rows.filter((r) => r.fallbackUsed).map((r) => this.day(r.at)))].sort();
@@ -136,18 +138,18 @@ export class UsageService {
       return m.thresholds;
     }
     const rows = await this.prisma.budgetThreshold.findMany({ orderBy: { id: 'asc' } });
-    const order = ['all', ...AI_FUNCTIONS.map((f) => f.id)];
+    const order = ['all', ...AI_BUDGET_LINES.map((f) => f.id)];
     const today = this.todayIso();
     const last7 = await this.records(addDays(today, -(PROJECTION_WINDOW_DAYS - 1)), today);
     return rows
       .sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id))
       .map((t) => {
         const s = t.id === 'all' ? spent : byFunction!.find((f) => f.functionId === t.id)?.spent ?? 0;
-        const rate = t.id === 'all' ? rate7d! : last7.filter((r) => r.functionId === t.id).reduce((a, r) => a + r.costEur, 0) / PROJECTION_WINDOW_DAYS;
+        const rate = t.id === 'all' ? rate7d! : last7.filter((r) => budgetLineOf(r.functionId) === t.id).reduce((a, r) => a + r.costEur, 0) / PROJECTION_WINDOW_DAYS;
         const proj = t.id === 'all' ? projection! : s + rate * remaining!;
         return {
           id: t.id,
-          name: t.id === 'all' ? 'Budget mensuel global' : AI_FUNCTIONS.find((f) => f.id === t.id)?.name ?? t.id,
+          name: t.id === 'all' ? 'Budget mensuel global' : AI_BUDGET_LINES.find((f) => f.id === t.id)?.name ?? t.id,
           limitEur: t.limitEur,
           warnPct: t.warnPct,
           enabled: t.enabled,
@@ -163,7 +165,7 @@ export class UsageService {
   /** Séries et agrégats (€ et jetons) pour l'écran Consommation et coûts. */
   async series(fromIso: string, toIso: string, groupBy: string, projectId?: string) {
     const rows = await this.records(fromIso, toIso, projectId);
-    const key = (r: (typeof rows)[number]) => (groupBy === 'function' ? r.functionId : groupBy === 'model' ? r.modelId : groupBy === 'provider' ? r.providerId : this.day(r.at));
+    const key = (r: (typeof rows)[number]) => (groupBy === 'function' ? budgetLineOf(r.functionId) : groupBy === 'step' ? r.functionId : groupBy === 'model' ? r.modelId : groupBy === 'provider' ? r.providerId : this.day(r.at));
     const map = new Map<string, { key: string; costEur: number; tokensIn: number; tokensOut: number; calls: number; fallbackCost: number }>();
     if (groupBy === 'day') for (let d = fromIso; d <= toIso; d = addDays(d, 1)) map.set(d, { key: d, costEur: 0, tokensIn: 0, tokensOut: 0, calls: 0, fallbackCost: 0 });
     for (const r of rows) {
@@ -184,7 +186,7 @@ export class UsageService {
       items,
       totals: { costEur: round2(rows.reduce((a, r) => a + r.costEur, 0)), tokensIn: rows.reduce((a, r) => a + r.tokensIn, 0), tokensOut: rows.reduce((a, r) => a + r.tokensOut, 0), calls: rows.length },
       // Détail jour × fonction × modèle, pour les graphiques empilés du frontend.
-      detail: groupBy === 'day' ? rows.map((r) => ({ day: this.day(r.at), functionId: r.functionId, modelId: r.modelId, providerId: r.providerId, tokensIn: r.tokensIn, tokensOut: r.tokensOut, costEur: round4(r.costEur), fallbackUsed: r.fallbackUsed })) : undefined,
+      detail: groupBy === 'day' ? rows.map((r) => ({ day: this.day(r.at), functionId: budgetLineOf(r.functionId), stepId: r.functionId, requests: r.requests, modelId: r.modelId, providerId: r.providerId, tokensIn: r.tokensIn, tokensOut: r.tokensOut, costEur: round4(r.costEur), fallbackUsed: r.fallbackUsed })) : undefined,
     };
   }
 }

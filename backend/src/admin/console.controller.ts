@@ -7,7 +7,7 @@ import { AuditService } from '../core/audit.service';
 import { PrismaService } from '../core/prisma.service';
 import { JobsService } from '../core/jobs.service';
 import { TodayService } from '../core/today.service';
-import { LlmService, AI_FUNCTIONS } from '../core/llm.service';
+import { LlmService, aiFunctionLabel } from '../core/llm.service';
 import { conflict, notFound } from '../core/errors';
 import { parse } from '../core/http';
 import { adminCtx } from './profiles.service';
@@ -105,7 +105,7 @@ export class ConsoleController implements OnModuleInit {
       const fns = [];
       for (const a of asg) {
         const pm = models.find((m) => m.id === a.primaryModelId);
-        if (pm?.providerId === p.id) fns.push(`${AI_FUNCTIONS.find((f) => f.id === a.functionId)?.short} tourne sur son modèle de secours`);
+        if (pm?.providerId === p.id) fns.push(`${aiFunctionLabel(a.functionId)} tourne sur son modèle de secours`);
       }
       attention.push({ level: 'error', kind: 'PROVIDER_ERROR', title: `Clé API ${p.name} invalide`, detail: [p.lastError, ...fns].filter(Boolean).join(' · '), target: 'providers', ids: [p.id] });
     }

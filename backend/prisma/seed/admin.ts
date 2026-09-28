@@ -325,10 +325,20 @@ export async function seedDemoAi(db: PrismaClient): Promise<void> {
     ['gpro', 'google', 'Gemini 2.5 Pro', 'Grand contexte, adapté aux documents longs.', 1.25, 10, true],
     ['gflash', 'google', 'Gemini 2.5 Flash', 'Rapide, multimodal.', 0.3, 2.5, false],
   ];
+  const RELEASE: Record<string, [string, number]> = {
+    opus: ['2025-08-05', 32000], sonnet: ['2025-09-29', 64000], haiku: ['2025-10-15', 64000], gpt5: ['2025-08-07', 128000], gpt5mini: ['2025-08-07', 128000],
+    mlarge: ['2024-07-24', 32000], msmall: ['2025-03-17', 32000], gpro: ['2025-06-17', 65536], gflash: ['2025-06-17', 65536],
+  };
   for (const [id, providerId, name, description, pin, pout, active] of MODELS) {
-    await db.aiModel.create({ data: { id, providerId, name, description, priceInPerMTok: pin, priceOutPerMTok: pout, active } });
+    await db.aiModel.create({ data: { id, providerId, name, description, priceInPerMTok: pin, priceOutPerMTok: pout, active, releaseDate: new Date(RELEASE[id][0]), maxOutputTokens: RELEASE[id][1] } });
   }
-  const asg = { insights: { p: 'sonnet', f: 'gpt5' }, crud: { p: 'haiku', f: 'gpt5mini' }, docs: { p: 'gpro', f: 'sonnet' } };
+  // Chaîne Documents : un Embedding et un Reranking (Cohere, facturé à la requête).
+  await db.provider.upsert({ where: { id: 'cohere' }, create: { id: 'cohere', name: 'Cohere', keyPrefix: '', keyLast4: 'Co01', keyCipher: encryptSecret('cohere-demo-000000000000000000Co01'), status: 'OK', latencyMs: 288, lastTestedAt: back(118) }, update: {} });
+  await db.aiModel.create({ data: { id: 'te3large', providerId: 'openai', name: 'text-embedding-3-large', description: 'Vecteurs 3 072 dimensions', category: 'EMBEDDING', priceInPerMTok: 0.12, releaseDate: new Date('2024-01-25') } });
+  await db.aiModel.create({ data: { id: 'rerank35', providerId: 'cohere', name: 'Rerank 3.5', description: 'Reclassement multilingue', category: 'RERANKING', priceUnit: 'REQUESTS', pricePer1kRequests: 1.85, releaseDate: new Date('2024-12-02') } });
+  await db.modelAssignment.create({ data: { functionId: 'doc_vec', primaryModelId: 'te3large', fallbackModelId: null } });
+  await db.modelAssignment.create({ data: { functionId: 'doc_rrk', primaryModelId: 'rerank35', fallbackModelId: null } });
+  const asg = { insights: { p: 'sonnet', f: 'gpt5' }, crud: { p: 'haiku', f: 'gpt5mini' }, doc_syn: { p: 'gpro', f: 'sonnet' } };
   for (const [fn, a] of Object.entries(asg)) {
     await db.modelAssignment.create({ data: { functionId: fn, primaryModelId: a.p, fallbackModelId: a.f } });
   }

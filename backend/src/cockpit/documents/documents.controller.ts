@@ -99,7 +99,7 @@ export class DocumentsController implements OnModuleInit {
     return this.view(doc);
   }
 
-  /** Extraction (bouchon) : pages comptées pour les PDF, analyse via la fonction IA « docs ». */
+  /** Extraction (bouchon) : pages comptées pour les PDF, analyse par la chaîne Documents (vectorisation → reclassement → synthèse). */
   async extract(documentId: string) {
     const d = await this.prisma.document.findUnique({ where: { id: documentId } });
     if (!d || !d.fileKey) return;
@@ -109,7 +109,7 @@ export class DocumentsController implements OnModuleInit {
     if (d.mime === 'application/pdf' && buf) pages = (buf.toString('latin1').match(/\/Type\s*\/Page[^s]/g) ?? []).length || null;
     if (d.mime === 'message/rfc822' || d.mime === 'application/vnd.ms-outlook') ext = 'PARTIAL';
     try {
-      await this.llm.complete({ functionId: 'docs', prompt: `Extrais décisions, actions et risques du document « ${d.n} » (${d.type}).`, projectId: d.projectId, source: 'COCKPIT' });
+      await this.llm.analyzeDocument({ prompt: `Extrais décisions, actions et risques du document « ${d.n} » (${d.type}).`, text: buf ? buf.toString('utf8').slice(0, 200_000) : d.n, projectId: d.projectId, source: 'COCKPIT' });
     } catch {
       ext = 'UNSUPPORTED';
     }

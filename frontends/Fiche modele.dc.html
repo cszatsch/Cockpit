@@ -65,7 +65,7 @@ button:focus-visible{outline:2px solid #1d8f86;outline-offset:2px}
       </div>
 
       <div style="font-size:11.5px;color:#5c7280;line-height:1.5">Un changement de tarif met à jour les estimations de l’affectation. L’historique de consommation n’est pas recalculé.</div>
-      <div style="display:flex;justify-content:flex-end;gap:8px;padding-top:2px"><button type="button" onClick="{{ close }}" style="height:38px;padding:0 16px;border-radius:10px;border:1px solid #cfdcd9;background:#fff;font:inherit;font-weight:700;color:#10233a;cursor:pointer" style-hover="border-color:#10233a">Annuler</button><button type="submit" style="height:38px;padding:0 16px;border-radius:10px;border:0;background:#10233a;color:#fff;font:inherit;font-weight:700;cursor:pointer" style-hover="background:#1d3654">{{ submitL }}</button></div>
+      <div style="display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px;padding-top:2px"><sc-if value="{{ canDel }}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{ del }}" style="margin-right:auto;height:38px;padding:0 14px;border-radius:10px;border:1px solid #ecd0cc;background:#fff;font:inherit;font-weight:700;color:#a8372c;cursor:pointer" style-hover="background:#fdecec">Supprimer</button></sc-if><button type="button" onClick="{{ close }}" style="height:38px;padding:0 16px;border-radius:10px;border:1px solid #cfdcd9;background:#fff;font:inherit;font-weight:700;color:#10233a;cursor:pointer" style-hover="border-color:#10233a">Annuler</button><button type="submit" style="height:38px;padding:0 16px;border-radius:10px;border:0;background:#10233a;color:#fff;font:inherit;font-weight:700;cursor:pointer" style-hover="background:#1d3654">{{ submitL }}</button></div>
     </div>
 
     <aside aria-live="polite" style="background:#f2f6f5;border-left:1px solid #e1e9e7;padding:26px 22px;display:flex;flex-direction:column;gap:20px;min-width:0">
@@ -88,7 +88,7 @@ button:focus-visible{outline:2px solid #1d8f86;outline-offset:2px}
 </div>
 </sc-if>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;demo&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Simulation&quot;},&quot;open&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;model&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Model | null&quot;},&quot;providers&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Provider[]&quot;},&quot;models&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Model[]&quot;},&quot;functions&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;AiFunction[]&quot;},&quot;groups&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Record&lt;string,{n:string,d:string}&gt;&quot;},&quot;onSubmit&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(model: Model) =&gt; void&quot;},&quot;onClose&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;demo&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Simulation&quot;},&quot;open&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;model&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Model | null&quot;},&quot;providers&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Provider[]&quot;},&quot;models&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Model[]&quot;},&quot;functions&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;AiFunction[]&quot;},&quot;groups&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Record&lt;string,{n:string,d:string}&gt;&quot;},&quot;onSubmit&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(model: Model) =&gt; void&quot;},&quot;onClose&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;onDelete&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(modelId: string) =&gt; void&quot;}}">
 class Component extends DCLogic {
   state = { f: null, tried: false };
   componentDidMount() {
@@ -100,7 +100,7 @@ class Component extends DCLogic {
 
   // Modèle → champs du formulaire (texte, virgule décimale)
   toForm(m) {
-    const D = window.RISE_IA, c = v => v == null ? '' : D.nf(v, 2), p = m.price || {};
+    const D = window.RISE_IA, c = v => v == null ? '' : v.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 4 }), p = m.price || {};
     return { id: m.id || '', pv: m.pv, cat: m.cat || 'llm', n: m.n || '', d: m.d || '', rel: m.rel || '', maxOut: m.maxOut ? D.nf(m.maxOut, 0) : '',
       unit: p.unit || (m.cat === 'reranking' ? 'requests' : 'tokens'), pin: c(p.in), pout: c(p.out), per1k: c(p.per1k) };
   }
@@ -139,7 +139,7 @@ class Component extends DCLogic {
     const draft = this.toModel(f), isRrk = f.cat === 'reranking', rq = isRrk && f.unit === 'requests';
 
     const cats = ['llm', 'embedding', 'reranking'].map(c => { const on = f.cat === c; return { l: D.CAT[c].l, d: D.CAT[c].d, on, isLlm: c === 'llm', isEmb: c === 'embedding', isRrk: c === 'reranking', ink: on ? '#10233a' : '#5c7280',
-      pick: () => this.setState({ f: { ...f, cat: c, unit: c === 'reranking' ? f.unit : 'tokens' } }),
+      pick: () => this.setState({ f: { ...f, cat: c, unit: c === 'reranking' ? (f.cat === 'reranking' ? f.unit : 'requests') : 'tokens' } }), // Reranking : « à la requête » par défaut
       st: 'padding:12px;border-radius:12px;display:flex;flex-direction:column;align-items:flex-start;gap:8px;text-align:left;font:inherit;color:#10233a;cursor:pointer;' + (on ? 'border:1.5px solid #10233a;background:#f5f8f7;box-shadow:0 0 0 4px rgba(16,35,58,.06)' : 'border:1px solid #d7e1de;background:#fff') }; });
     const units = [['requests', 'À la requête'], ['tokens', 'Au token']].map(([v, l]) => ({ l, on: f.unit === v, pick: () => this.up('unit', v),
       st: 'height:28px;padding:0 12px;border-radius:8px;border:0;font:inherit;font-size:12px;cursor:pointer;' + (f.unit === v ? 'background:#fff;box-shadow:0 1px 2px rgba(16,35,58,.12);font-weight:700;color:#10233a' : 'background:transparent;font-weight:600;color:#5c7280') }));
@@ -162,7 +162,7 @@ class Component extends DCLogic {
       : others === 0 ? 'Ce serait le seul modèle ' + D.CAT[f.cat].l + ' actif : ' + names + ' n’' + (same.length > 1 ? 'auraient' : 'aurait') + ' pas de secours.'
       : others + ' autre' + (others > 1 ? 's' : '') + ' modèle' + (others > 1 ? 's' : '') + ' ' + D.CAT[f.cat].l + ' actif' + (others > 1 ? 's peuvent' : ' peut') + ' servir de secours.';
 
-    const edit = !!(P.model && P.model.id);
+    const edit = !!(P.model && P.model.id), done = r => { if (r !== false) this.close(); };
     return {
       open: P.open !== false, title: edit ? 'Modifier le modèle' : 'Ajouter un modèle', submitL: edit ? 'Enregistrer' : 'Ajouter le modèle',
       f, cats, units, priceFields, isLlm: f.cat === 'llm', isEmb: f.cat === 'embedding', isRrk, today: new Date().toISOString().slice(0, 10),
@@ -175,7 +175,9 @@ class Component extends DCLogic {
       ageDot: tone ? 'width:7px;height:7px;border-radius:50%;background:' + tone[2] : '',
       uses, noUse: !same.length, total: D.eur(total), formula, continuity,
       close: () => this.close(), backdrop: () => this.close(), stop: ev => ev.stopPropagation(),
-      submit: ev => { ev.preventDefault(); if (Object.keys(e).length) { this.setState({ tried: true }); return; } P.onSubmit?.(this.toModel(f)); this.close(); }
+      // onSubmit peut renvoyer une promesse : la fiche ne se ferme qu'après l'accord du serveur (false : reste ouverte).
+      submit: ev => { ev.preventDefault(); if (Object.keys(e).length) { this.setState({ tried: true }); return; } const r = P.onSubmit?.(this.toModel(f)); if (r && typeof r.then === 'function') r.then(done); else done(r); },
+      canDel: edit && !!P.onDelete, del: () => P.onDelete?.(P.model.id)
     };
   }
 }

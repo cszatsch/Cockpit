@@ -17,7 +17,7 @@ describe('Console Admin — critères d’acceptation (brief Console § 13)', ()
       expect(r.body.code).toBe('FORBIDDEN');
       const ok = await (await t.as(WHO.admin)).get(`${A}/overview`).expect(200);
       expect(ok.body.attention[0]).toMatchObject({ level: 'error', kind: 'PROVIDER_ERROR' });
-      expect(ok.body.attention[0].detail).toMatch(/Documents tourne sur son modèle de secours/);
+      expect(ok.body.attention[0].detail).toMatch(/Documents · Synthèse tourne sur son modèle de secours/);
     });
     it('toute écriture crée une entrée d’audit avec profileUsed = ADMIN', async () => {
       const c = await t.as(WHO.admin);
@@ -85,9 +85,9 @@ describe('Console Admin — critères d’acceptation (brief Console § 13)', ()
       const c = await t.as(WHO.admin);
       const all = await c.post(`${A}/providers/test-all`).expect(200);
       expect(JSON.stringify(all.body)).not.toMatch(/sk-ant-demo|AIza-demo|keyCipher/);
-      expect(all.body.find((p: any) => p.id === 'google')).toMatchObject({ status: 'ERROR', functionsOnFallback: ['docs'] });
+      expect(all.body.find((p: any) => p.id === 'google')).toMatchObject({ status: 'ERROR', functionsOnFallback: ['doc_syn'] });
       const asg = await c.get(`${A}/assignments`).expect(200);
-      expect(asg.body.find((x: any) => x.functionId === 'docs').state).toBe('FALLBACK');
+      expect(asg.body.find((x: any) => x.functionId === 'doc_syn').state).toBe('FALLBACK');
       expect(asg.body.find((x: any) => x.functionId === 'insights').state).toBe('NOMINAL');
     });
     it('remplacer la clé la reteste et trace une action critique', async () => {
@@ -97,7 +97,7 @@ describe('Console Admin — critères d’acceptation (brief Console § 13)', ()
       expect(JSON.stringify(r.body)).not.toContain('NEWKEY');
       const a = await t.db.auditEntry.findFirst({ where: { action: 'Rotation de clé API', target: 'Google' }, orderBy: { at: 'desc' } });
       expect(a).toMatchObject({ severity: 'CRITICAL', profileUsed: 'ADMIN' });
-      expect((await c.get(`${A}/assignments`).expect(200)).body.find((x: any) => x.functionId === 'docs').state).toBe('NOMINAL');
+      expect((await c.get(`${A}/assignments`).expect(200)).body.find((x: any) => x.functionId === 'doc_syn').state).toBe('NOMINAL');
     });
   });
 

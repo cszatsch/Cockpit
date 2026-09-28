@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script src="./support.js"></script>
+<!-- API : règles partagées des écrans IA (coût, états, ancienneté) : ia-data.js (window.RISE_IA). -->
+<script src="./ia-data.js"></script>
 </head>
 <body>
 <x-dc>
@@ -350,36 +352,8 @@ a{color:#1d8f86}a:hover{color:#146b64}
           <button onClick="{{ pv.testAll }}" style="height:36px;padding:0 14px;border:1px solid #d3dedb;border-radius:10px;background:#fff;font-size:12.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:8px" style-hover="border-color:#10233a"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3L5 14h6l-1 7 8-11h-6z"></path></svg><span style="white-space:nowrap">Tester toutes les clés</span></button>
           <button onClick="{{ pv.add }}" style="height:36px;padding:0 16px;border:0;border-radius:10px;background:#10233a;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px" style-hover="background:#1d3654"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>Ajouter un fournisseur</button>
         </div>
-        <div style="background:#0f2034;border-radius:20px;padding:26px 28px 22px;box-shadow:0 18px 50px -24px rgba(16,35,58,.55);color:#e6eef2;display:flex;flex-direction:column;gap:18px;overflow-x:auto">
-          <div style="{{ pv.wire.headSt }}"><span>FOURNISSEURS</span><span style="{{ pv.wire.mHeadSt }}">MODÈLES ACTIFS · SORTIE €/M</span><span style="{{ pv.wire.fHeadSt }}">FONCTIONS DU COCKPIT</span></div>
-          <div style="{{ pv.wire.boxSt }}">
-            <div style="position:absolute;inset:0;pointer-events:none">{{ pv.wire.svg }}</div>
-            <sc-for list="{{ pv.wire.provs }}" as="p" hint-placeholder-count="4">
-              <div style="{{ p.pos }}" onClick="{{ p.open }}" role="button" tabIndex="0" aria-label="Ouvrir la fiche {{ p.n }}">
-                <div style="width:40px;height:40px;border-radius:12px;background:#fff;display:grid;place-items:center;flex:none;overflow:hidden"><sc-if value="{{ p.hasLogo }}" hint-placeholder-val="{{ false }}"><span role="img" aria-label="{{ p.n }}" style="{{ p.logoSt }}"></span></sc-if><sc-if value="{{ p.noLogo }}" hint-placeholder-val="{{ false }}"><span style="font-weight:800;color:#10233a;font-size:15px">{{ p.ini }}</span></sc-if></div>
-                <div style="min-width:0;display:flex;flex-direction:column;gap:3px">
-                  <span style="font-weight:800;color:#fff;font-size:14px;white-space:nowrap">{{ p.n }}</span>
-                  <span style="{{ p.subSt }}">{{ p.sub }}</span>
-                  <span style="display:flex;gap:10px;margin-top:2px"><button onClick="{{ p.test }}" disabled="{{ p.testing }}" style="border:0;background:transparent;padding:0;font:inherit;font-size:11.5px;font-weight:700;color:#9fb3c1;cursor:pointer" style-hover="color:#fff">{{ p.testL }}</button><button onClick="{{ p.repl }}" style="{{ p.replSt }}" style-hover="color:#fff">Remplacer la clé</button></span>
-                </div>
-              </div>
-            </sc-for>
-            <sc-for list="{{ pv.wire.models }}" as="m" hint-placeholder-count="8">
-              <div style="{{ m.pos }}" title="{{ m.tip }}" onClick="{{ m.open }}" role="button" tabIndex="0" aria-label="Ouvrir la fiche {{ m.n }}" style-hover="filter:brightness(1.25)"><span style="{{ m.dot }}"></span><span style="flex:1;min-width:0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ m.n }}</span><span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#8ea4b3">{{ m.out }}</span></div>
-            </sc-for>
-            <sc-for list="{{ pv.wire.fns }}" as="f" hint-placeholder-count="3">
-              <div style="{{ f.pos }}">
-                <div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><span style="font-weight:800;color:#fff;font-size:14px">{{ f.n }}</span><span style="{{ f.pill }}">{{ f.stL }}</span></div>
-                <div style="font-size:12px;color:#9fb3c1;line-height:1.45;text-wrap:pretty">{{ f.d }}</div>
-                <div style="display:flex;flex-direction:column;gap:6px;border-top:1px solid rgba(255,255,255,.08);padding-top:10px;font-size:12px;margin-top:auto">
-                  <div style="display:flex;justify-content:space-between;gap:8px"><span style="color:#7f97a8">Principal</span><span style="{{ f.pSt }}">{{ f.p }}</span></div>
-                  <div style="display:flex;justify-content:space-between;gap:8px"><span style="color:#7f97a8">Secours</span><span style="{{ f.fSt }}">{{ f.f }}</span></div>
-                </div>
-              </div>
-            </sc-for>
-          </div>
-          <div style="display:flex;flex-wrap:wrap;gap:20px;font-size:12px;color:#9fb3c1;border-top:1px solid rgba(255,255,255,.08);padding-top:14px"><span style="display:inline-flex;align-items:center;gap:8px"><span style="width:22px;height:0;border-top:2px solid #5fd0c3"></span>Modèle principal</span><span style="display:inline-flex;align-items:center;gap:8px"><span style="width:22px;height:0;border-top:2px dashed #8ea4b3"></span>Secours</span><span style="display:inline-flex;align-items:center;gap:8px"><span style="width:22px;height:0;border-top:2px solid #f07b67"></span>Coupé : clé invalide</span><span style="display:inline-flex;align-items:center;gap:8px"><span style="width:22px;height:0;border-top:2px solid #f7a41c"></span>Secours en service</span><span style="margin-left:auto;color:#7f97a8">Cliquez un fournisseur ou un modèle pour ouvrir sa fiche.</span></div>
-        </div>
+        <!-- API : vue réseau Fournisseurs → Fonctions (Vue reseau IA.dc.html), avec la chaîne Documents regroupée. -->
+        <dc-import name="Vue reseau IA" embedded="{{ true }}" providers="{{ ia.provs }}" models="{{ ia.models }}" functions="{{ ia.fns }}" groups="{{ ia.groups }}" assignment="{{ ia.asg }}" on-open-model="{{ ia.openModel }}" on-open-provider="{{ ia.openProv }}" on-test-key="{{ ia.testKey }}" on-replace-key="{{ ia.replKey }}" on-add-fallback="{{ ia.addFallback }}" hint-size="100%,560px"></dc-import>
 
         <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:10px"><h2 style="margin:0;font-size:17px;font-weight:800">Modèles</h2><span style="font-size:12.5px;color:#5c7280">Coûts en euros par million de tokens</span><span style="flex:1"></span><div role="tablist" aria-label="Fournisseur" style="display:inline-flex;flex-wrap:wrap;gap:2px;padding:3px;border-radius:11px;background:#e5edeb"><sc-for list="{{ pv.flt }}" as="o" hint-placeholder-count="5"><button role="tab" aria-selected="{{ o.on }}" onClick="{{ o.pick }}" style="{{ o.st }}">{{ o.l }}</button></sc-for></div><button onClick="{{ pv.addModel }}" style="height:36px;padding:0 16px;border:0;border-radius:10px;background:#10233a;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px" style-hover="background:#1d3654"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>Ajouter un modèle</button></div>
         <div style="background:#fff;border:1px solid #e1e9e7;border-radius:16px;box-shadow:0 1px 2px rgba(16,35,58,.04);overflow-x:auto">
@@ -387,7 +361,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
             <div style="display:grid;grid-template-columns:minmax(240px,2.2fr) 110px 104px 104px minmax(180px,1.6fr) 64px 44px;gap:16px;padding:12px 20px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#5c7280"><span>Modèle</span><span>Fournisseur</span><span style="text-align:right">Entrée</span><span style="text-align:right">Sortie</span><span>Utilisé par</span><span>Actif</span><span></span></div>
             <sc-for list="{{ pv.models }}" as="m" hint-placeholder-count="8">
               <div style="{{ m.rowSt }}">
-                <div style="min-width:0"><div style="display:flex;align-items:center;gap:8px;min-width:0"><span style="font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ m.n }}</span><span style="{{ m.catSt }}">{{ m.catL }}</span></div><div style="font-size:12px;color:#5c7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ m.d }}</div></div>
+                <div style="min-width:0"><div style="display:flex;align-items:center;gap:8px;min-width:0"><span style="font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ m.n }}</span><span style="{{ m.catSt }}">{{ m.catL }}</span><sc-if value="{{ m.ageOn }}" hint-placeholder-val="{{ false }}"><span title="{{ m.ageT }}" style="{{ m.ageSt }}">{{ m.ageL }}</span></sc-if></div><div style="font-size:12px;color:#5c7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ m.d }}</div></div>
                 <span style="font-size:12.5px;color:#43586a">{{ m.pvN }}</span>
                 <span style="font-size:13px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums">{{ m.pinL }}</span>
                 <span style="font-size:13px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums">{{ m.poutL }}</span>
@@ -403,38 +377,8 @@ a{color:#1d8f86}a:hover{color:#146b64}
     </sc-if>
 
     <sc-if value="{{ isAsg }}" hint-placeholder-val="{{ false }}">
-      <div style="display:flex;flex-direction:column;gap:14px;animation:rise-in .35s cubic-bezier(.2,.7,.2,1) both" data-screen-label="Affectation des modèles">
-        <sc-for list="{{ as.cards }}" as="c" hint-placeholder-count="3">
-          <div style="background:#fff;border:1px solid #e1e9e7;border-radius:18px;box-shadow:0 1px 2px rgba(16,35,58,.04);display:flex;flex-wrap:wrap">
-            <div style="flex:1 1 280px;min-width:0;padding:22px 22px 20px;display:flex;flex-direction:column;gap:8px">
-              <div style="font-size:16px;font-weight:800;letter-spacing:-.01em;text-wrap:pretty">{{ c.n }}</div>
-              <div style="font-size:12.5px;color:#43586a;text-wrap:pretty">{{ c.d }}</div>
-              <div style="font-size:11.5px;color:#5c7280">{{ c.vol }}</div>
-              <div style="margin-top:auto;padding-top:6px"><span style="{{ c.stPill }}"><span style="{{ c.stDot }}"></span>{{ c.stL }}</span></div>
-            </div>
-            <div style="flex:1 1 300px;min-width:0;padding:22px;display:flex;flex-direction:column;gap:12px;border-left:1px solid #eef3f2">
-              <label style="display:flex;flex-direction:column;gap:6px"><span style="display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#5c7280"><span style="width:10px;height:10px;border-radius:50%;background:#f0752b"></span>Modèle principal</span>{{ c.pEl }}</label>
-              <label style="display:flex;flex-direction:column;gap:6px"><span style="display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#5c7280"><span style="width:10px;height:10px;border-radius:50%;border:2px solid #10233a"></span>Modèle de secours</span>{{ c.fEl }}</label>
-              <span style="{{ c.fbSt }}">{{ c.fbCost }}</span>
-            </div>
-            <div style="flex:1 1 260px;min-width:0;padding:22px;display:flex;flex-direction:column;gap:10px;border-left:1px solid #eef3f2;background:#fbfdfc;border-radius:0 18px 18px 0">
-              <span style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#5c7280;white-space:nowrap">Coût mensuel estimé</span>
-              <div style="display:flex;align-items:baseline;flex-wrap:wrap;gap:10px"><span style="font-size:30px;font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums">{{ c.cost }}</span><sc-if value="{{ c.hasDelta }}" hint-placeholder-val="{{ false }}"><span style="{{ c.deltaSt }}">{{ c.deltaL }}</span></sc-if></div>
-              <div aria-label="Position du modèle choisi parmi les modèles actifs" style="position:relative;height:22px;margin:6px 6px 0"><div style="position:absolute;left:0;right:0;top:50%;height:2px;background:#e1e9e7;border-radius:1px"></div><sc-for list="{{ c.ticks }}" as="t" hint-placeholder-count="8"><span title="{{ t.t }}" style="{{ t.st }}"></span></sc-for></div>
-              <div style="display:flex;justify-content:space-between;gap:10px;font-size:11px;color:#5c7280"><span>{{ c.minL }}</span><span style="text-align:right">{{ c.maxL }}</span></div>
-            </div>
-          </div>
-        </sc-for>
-        <div style="font-size:12px;color:#5c7280">Estimations calculées sur le volume réel des 30 derniers jours et le tarif actuel de chaque modèle. Échelle de coût logarithmique.</div>
-        <sc-if value="{{ as.dirty }}" hint-placeholder-val="{{ false }}">
-          <div style="position:sticky;bottom:20px;z-index:20;display:flex;flex-wrap:wrap;align-items:center;gap:14px;padding:12px 12px 12px 18px;border-radius:16px;background:#10233a;color:#fff;box-shadow:0 24px 50px -18px rgba(16,35,58,.6);animation:rise-in .3s cubic-bezier(.2,.7,.2,1) both">
-            <span style="width:8px;height:8px;border-radius:50%;background:#f0752b"></span>
-            <div style="flex:1 1 220px"><div style="font-size:13px;font-weight:700">Affectation modifiée, non enregistrée</div><div style="font-size:12px;color:#a9c7d0">Estimation mensuelle : {{ as.tot0 }} → <strong style="color:#fff">{{ as.tot1 }}</strong></div></div>
-            <button onClick="{{ as.cancel }}" style="height:36px;padding:0 14px;border:1px solid rgba(255,255,255,.2);border-radius:10px;background:transparent;color:#fff;font-size:12.5px;font-weight:600;cursor:pointer" style-hover="background:rgba(255,255,255,.08)">Annuler</button>
-            <button onClick="{{ as.save }}" style="height:36px;padding:0 16px;border:0;border-radius:10px;background:linear-gradient(90deg,#f7a41c,#f0752b);color:#1a1200;font-size:12.5px;font-weight:700;cursor:pointer">Enregistrer</button>
-          </div>
-        </sc-if>
-      </div>
+      <!-- API : affectation par fonction, chaîne Documents en trois étapes (Affectation des modeles.dc.html). -->
+      <div data-screen-label="Affectation des modèles" style="animation:rise-in .35s cubic-bezier(.2,.7,.2,1) both"><dc-import name="Affectation des modeles" embedded="{{ true }}" providers="{{ ia.provs }}" models="{{ ia.models }}" functions="{{ ia.fns }}" groups="{{ ia.groups }}" assignment="{{ ia.asg }}" on-save="{{ ia.saveAsg }}" hint-size="100%,900px"></dc-import></div>
     </sc-if>
     <sc-if value="{{ isConso }}" hint-placeholder-val="{{ false }}">
       <div data-screen-label="Consommation et coûts" style="animation:rise-in .35s cubic-bezier(.2,.7,.2,1) both">
@@ -891,22 +835,6 @@ a{color:#1d8f86}a:hover{color:#146b64}
           <div style="display:flex;justify-content:flex-end;gap:8px"><button onClick="{{ dl.cancel }}" style="height:38px;padding:0 16px;border:1px solid #d3dedb;border-radius:10px;background:#fff;font-size:13px;font-weight:600;cursor:pointer" style-hover="border-color:#10233a">Annuler</button><button onClick="{{ dl.doCap }}" style="height:38px;padding:0 18px;border:0;border-radius:10px;background:linear-gradient(90deg,#f7a41c,#f0752b);color:#1a1200;font-size:13px;font-weight:700;cursor:pointer">Capturer maintenant</button></div>
         </div>
       </sc-if>
-      <sc-if value="{{ dl.isModel }}" hint-placeholder-val="{{ false }}">
-        <div style="padding:24px 26px 22px;display:flex;flex-direction:column;gap:14px">
-          <h2 style="margin:0;font-size:19px;font-weight:800;letter-spacing:-.015em">{{ dl.mTitle }}</h2>
-          <!-- API : création d'un modèle (fournisseur choisi une fois pour toutes) et catégorie LLM / Embedding / Reranking. -->
-          <sc-if value="{{ dl.mNew }}" hint-placeholder-val="{{ false }}"><label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700;color:#43586a">Fournisseur{{ dl.pvEl }}<sc-if value="{{ fe.pv }}" hint-placeholder-val="{{ false }}"><span role="alert" style="font-size:12px;font-weight:600;color:#a8372c">{{ fe.pv }}</span></sc-if></label></sc-if>
-          <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700;color:#43586a">Nom<input value="{{ form.n }}" onChange="{{ ff.n }}" style="height:40px;padding:0 12px;border:1px solid #d3dedb;border-radius:10px;font-size:13px;font-weight:500;outline:none;color:#10233a" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.15)"><sc-if value="{{ fe.n }}" hint-placeholder-val="{{ false }}"><span role="alert" style="font-size:12px;font-weight:600;color:#a8372c">{{ fe.n }}</span></sc-if></label>
-          <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700;color:#43586a">Description<input value="{{ form.d }}" onChange="{{ ff.d }}" style="height:40px;padding:0 12px;border:1px solid #d3dedb;border-radius:10px;font-size:13px;font-weight:500;outline:none;color:#10233a" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.15)"></label>
-          <div style="display:flex;flex-direction:column;gap:6px"><span id="dlg-mcat" style="font-size:12px;font-weight:700;color:#43586a">Catégorie</span><div role="radiogroup" aria-labelledby="dlg-mcat" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px"><sc-for list="{{ dl.cOpts }}" as="o" hint-placeholder-count="3"><button type="button" role="radio" aria-checked="{{ o.on }}" onClick="{{ o.pick }}" style="{{ o.st }}"><span style="font-size:13px;font-weight:700">{{ o.l }}</span><span style="font-size:11px;font-weight:500;color:#5c7280;line-height:1.3">{{ o.d }}</span></button></sc-for></div></div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-            <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700;color:#43586a">Entrée · € / M tokens<input inputMode="decimal" value="{{ form.pin }}" onChange="{{ ff.pin }}" style="height:40px;padding:0 12px;border:1px solid #d3dedb;border-radius:10px;font-size:13px;font-weight:700;outline:none;color:#10233a;font-variant-numeric:tabular-nums" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.15)"><sc-if value="{{ fe.pin }}" hint-placeholder-val="{{ false }}"><span role="alert" style="font-size:12px;font-weight:600;color:#a8372c">{{ fe.pin }}</span></sc-if></label>
-            <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700;color:#43586a">Sortie · € / M tokens<input inputMode="decimal" value="{{ form.pout }}" onChange="{{ ff.pout }}" style="height:40px;padding:0 12px;border:1px solid #d3dedb;border-radius:10px;font-size:13px;font-weight:700;outline:none;color:#10233a;font-variant-numeric:tabular-nums" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.15)"><sc-if value="{{ fe.pout }}" hint-placeholder-val="{{ false }}"><span role="alert" style="font-size:12px;font-weight:600;color:#a8372c">{{ fe.pout }}</span></sc-if></label>
-          </div>
-          <div style="font-size:12px;color:#5c7280">Un changement de tarif met à jour les estimations de l’affectation. L’historique de consommation n’est pas recalculé.</div>
-          <div style="display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px"><sc-if value="{{ dl.mCanDel }}" hint-placeholder-val="{{ false }}"><button onClick="{{ dl.delModel }}" style="margin-right:auto;height:38px;padding:0 14px;border:1px solid #ecd0cc;border-radius:10px;background:#fff;color:#a8372c;font-size:13px;font-weight:700;cursor:pointer" style-hover="background:#fdecec">Supprimer</button></sc-if><button onClick="{{ dl.cancel }}" style="height:38px;padding:0 16px;border:1px solid #d3dedb;border-radius:10px;background:#fff;font-size:13px;font-weight:600;cursor:pointer" style-hover="border-color:#10233a">Annuler</button><button onClick="{{ dl.saveModel }}" style="height:38px;padding:0 18px;border:0;border-radius:10px;background:#10233a;color:#fff;font-size:13px;font-weight:700;cursor:pointer" style-hover="background:#1d3654">{{ dl.mCta }}</button></div>
-        </div>
-      </sc-if>
       <sc-if value="{{ dl.isProf }}" hint-placeholder-val="{{ false }}">
         <div style="padding:24px 26px 22px;display:flex;flex-direction:column;gap:14px">
           <div><h2 style="margin:0;font-size:19px;font-weight:800;letter-spacing:-.015em">Nouveau profil type</h2><p style="margin:6px 0 0;font-size:12.5px;color:#43586a">Il reprend les niveaux du profil de départ ; vous les ajusterez ensuite.</p></div>
@@ -944,6 +872,8 @@ a{color:#1d8f86}a:hover{color:#146b64}
   </div>
 </sc-if>
 
+<!-- API : ajout et modification d’un modèle (Fiche modele.dc.html) : champs selon la catégorie. -->
+<sc-if value="{{ fm.on }}" hint-placeholder-val="{{ false }}"><dc-import name="Fiche modele" demo="{{ false }}" model="{{ fm.model }}" providers="{{ ia.provs }}" models="{{ ia.models }}" functions="{{ ia.fns }}" groups="{{ ia.groups }}" on-submit="{{ fm.submit }}" on-close="{{ fm.close }}" on-delete="{{ fm.del }}" hint-size="100%,100%"></dc-import></sc-if>
 <sc-if value="{{ ts.on }}" hint-placeholder-val="{{ false }}">
   <div role="status" aria-live="polite" style="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:95;max-width:calc(100% - 32px);background:#10233a;color:#fff;padding:11px 12px 11px 16px;border-radius:13px;font-weight:600;font-size:13px;display:flex;align-items:center;gap:12px;box-shadow:0 20px 50px -20px rgba(16,35,58,.7);animation:rise-in .28s cubic-bezier(.2,.7,.2,1) both">
     <sc-if value="{{ ts.isOk }}" hint-placeholder-val="{{ true }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3dd6c6" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M5 12.5l4.5 4.5L19 7"></path></svg></sc-if>
@@ -1056,17 +986,27 @@ const MODELS0 = [
   ['msmall', 'mistral', 'Mistral Small 3', 'Très faible coût, tâches simples.', 0.1, 0.3, true],
   ['gpro', 'google', 'Gemini 2.5 Pro', 'Grand contexte, adapté aux documents longs.', 1.25, 10, true],
   ['gflash', 'google', 'Gemini 2.5 Flash', 'Rapide, multimodal.', 0.3, 2.5, false]
-].map(m => ({ id: m[0], pv: m[1], n: m[2], d: m[3], pin: m[4], pout: m[5], act: m[6] }));
+].map(m => ({ id: m[0], pv: m[1], n: m[2], d: m[3], c: 'LLM', unit: 'TOKENS', pin: m[4], pout: m[5], per1k: null, rel: '', maxOut: null, act: m[6] }));
+// API : lignes de consommation et de plafond (la ligne Documents regroupe les trois étapes de la chaîne).
+const CONSO = [
+  { id: 'insights', n: 'Analyse des données et insights', sh: 'Insights', vin: 120e6, vout: 18e6, fn: 'insights' },
+  { id: 'crud', n: 'Création, modification et suppression des données', sh: 'Gestion des données', vin: 50e6, vout: 12e6, fn: 'crud' },
+  { id: 'docs', n: 'Documents', sh: 'Documents', vin: 180e6, vout: 9e6, fn: 'doc_syn' }];
+// API : fonctions affectables (spécification IA § 2) : catégorie acceptée, chaîne Documents en trois étapes.
 const FNS = [
-  { id: 'insights', n: 'Analyse des données et insights', sh: 'Insights', d: 'Lit les données du projet et produit les signaux, écarts et recommandations.', vin: 120e6, vout: 18e6 },
-  { id: 'crud', n: 'Création, modification et suppression des données', sh: 'Gestion des données', d: 'Prépare les modifications demandées à Jev, l’assistant du Cockpit ; l’utilisateur les valide avant enregistrement.', vin: 50e6, vout: 12e6 },
-  { id: 'docs', n: 'Analyse de documents', sh: 'Documents', d: 'Extrait décisions, actions et risques des comptes rendus et livrables.', vin: 180e6, vout: 9e6 }];
+  { id: 'insights', n: 'Analyse des données et insights', sh: 'Insights', d: 'Lit les données du projet et produit les signaux, écarts et recommandations.', cat: 'LLM', line: 'insights' },
+  { id: 'crud', n: 'Création, modification et suppression des données', sh: 'Gestion des données', d: 'Prépare les modifications demandées à Jev, l’assistant du Cockpit ; l’utilisateur les valide avant enregistrement.', cat: 'LLM', line: 'crud' },
+  { id: 'doc_vec', n: 'Vectorisation', sh: 'Vectorisation', d: 'Découpe le texte extrait en passages et les transforme en vecteurs pour la recherche sémantique.', cat: 'EMBEDDING', group: 'documents', step: 1, line: 'docs' },
+  { id: 'doc_rrk', n: 'Reclassement', sh: 'Reclassement', d: 'Réordonne les passages trouvés selon leur pertinence réelle par rapport à la question posée.', cat: 'RERANKING', group: 'documents', step: 2, line: 'docs' },
+  { id: 'doc_syn', n: 'Synthèse', sh: 'Synthèse', d: 'Rédige une réponse claire à partir des passages retenus : décisions, actions, risques.', cat: 'LLM', group: 'documents', step: 3, line: 'docs' }];
+const FN_GROUPS = { documents: { n: 'Documents', d: 'Le texte extrait suit la ligne de gauche à droite. Une étape à l’arrêt suspend la suite.' } };
+const fnLabel = f => f.group ? FN_GROUPS[f.group].n + ' · ' + f.sh : f.sh;
 function genUsage(models, asg) {
   const r = rng(11), P = Object.fromEntries(models.map(m => [m.id, m])), rows = [];
   for (let d = 0; d < 90; d++) {
     const dt = new Date(2026, 8, 26 - (89 - d)), wd = dt.getDay(), wf = (wd === 0 || wd === 6) ? .28 : 1, tr = .82 + d / 320;
-    FNS.forEach(fn => { let f = wf * tr * (.78 + .44 * r()); if (d === 89) f *= .43; const tin = fn.vin / 30 * f, tout = fn.vout / 30 * f;
-      [[asg[fn.id].p, .95], [asg[fn.id].f, .05]].forEach(([m, sh]) => rows.push({ d, fn: fn.id, m, pv: P[m].pv, tin: tin * sh, tout: tout * sh })); });
+    CONSO.forEach(fn => { let f = wf * tr * (.78 + .44 * r()); if (d === 89) f *= .43; const tin = fn.vin / 30 * f, tout = fn.vout / 30 * f;
+      [[asg[fn.fn].p, .95], [asg[fn.fn].f, .05]].forEach(([m, sh]) => rows.push({ d, fn: fn.id, m, pv: P[m].pv, tin: tin * sh, tout: tout * sh })); });
   }
   rows.forEach(x => x.c = (x.tin * P[x.m].pin + x.tout * P[x.m].pout) / 1e6);
   const mtd = rows.filter(x => x.d >= 65).reduce((a, x) => a + x.c, 0), k = 1032.4 / mtd;
@@ -1147,7 +1087,7 @@ const csvDl = (name, lines) => { const b = new Blob(['\ufeff' + lines.join('\n')
 class Component extends DCLogic {
   state = this.init();
   init() {
-    const asg = { insights: { p: 'sonnet', f: 'gpt5' }, crud: { p: 'haiku', f: 'gpt5mini' }, docs: { p: 'gpro', f: 'sonnet' } };
+    const asg = { insights: { p: 'sonnet', f: 'gpt5' }, crud: { p: 'haiku', f: 'gpt5mini' }, doc_vec: { p: '', f: '' }, doc_rrk: { p: '', f: '' }, doc_syn: { p: 'gpro', f: 'sonnet' } };
     const snaps = {}; Object.keys(SNAPS0).forEach(p => snaps[p] = SNAPS0[p].map((s, i) => ({ id: s[0], t: s[1], k: s[2] ? 'man' : 'auto', lab: s[2] || '', by: s[3] || '', ix: i })));
     return {
       sec: 'overview', vw: typeof window !== 'undefined' ? window.innerWidth : 1400, mnav: false, loading: false, seen: { overview: 1 },
@@ -1157,7 +1097,7 @@ class Component extends DCLogic {
       rTab: 'matrice', rView: 'user', rUser: 'u7', rProj: 'RISE', ov: { 'u7|RISE|pil': 3, 'u7|RISE|pil.risk': 1 }, pend: {}, menu: null, exp: { pil: true }, rProf: 'pmo', profs: PROFS.map(p => ({ ...p, lv: { ...p.lv } })),
       provs: PROV0.map(p => ({ ...p, t: back(p.ago) })), models: MODELS0.map(m => ({ ...m })), pvF: 'tous',
       asg, draft: JSON.parse(JSON.stringify(asg)), usage: genUsage(MODELS0, asg), cPer: 30, cDim: 'pv', cHov: null,
-      th: [{ id: 'all', n: 'Budget mensuel global', lim: 1200, warn: 80, on: true }, { id: 'insights', n: 'Analyse des données et insights', lim: 800, warn: 80, on: true }, { id: 'docs', n: 'Analyse de documents', lim: 400, warn: 80, on: true }],
+      th: [{ id: 'all', n: 'Budget mensuel global', lim: 1200, warn: 80, on: true }, { id: 'insights', n: 'Analyse des données et insights', lim: 800, warn: 80, on: true }, { id: 'docs', n: 'Documents', lim: 400, warn: 80, on: true }],
       sPj: 'RISE', snaps, sSel: ['r9', 'r10'], sched: { on: true, fq: 'Hebdomadaire', day: 'vendredi', hour: '04:00', keep: '12 mois' }, cap: null, sFilt: 'tous',
       rules: RULES0.map(r => ({ ...r, tg: [...r.tg], ch: [...r.ch], pj: [...r.pj] })), nSel: 'n1', nd: null, pvCh: 'app', hAll: false,
       hist: HIST0.map((h, i) => ({ id: 'h' + i, r: h[0], t: back(h[1]), ch: h[2], n: h[3], st: h[4] })),
@@ -1280,7 +1220,7 @@ class Component extends DCLogic {
       out.push(C(['Tester toutes les clés'])); return out;
     }
     if (has(/redui|econom|moins cher|optimis/)) {
-      let best = null; FNS.forEach(f => { const cur = S.asg[f.id].p, c = this.est(f.id, cur); S.models.filter(m => m.act && (m.c || 'LLM') === 'LLM' && m.id !== cur && this.fnState(f.id, { p: m.id, f: '' }).tone === 'ok').forEach(m => { const c2 = this.est(f.id, m.id); if (c2 < c && c2 >= c * .3 && (!best || c - c2 > best.save)) best = { f, cur, alt: m, c, c2, save: c - c2 }; }); });
+      let best = null; FNS.forEach(f => { const cur = (S.asg[f.id] || {}).p, c = this.est(f.id, cur); S.models.filter(m => m.act && (m.c || 'LLM') === f.cat && m.id !== cur && this.fnState(f.id, { p: m.id, f: '' }).tone === 'ok').forEach(m => { const c2 = this.est(f.id, m.id); if (c2 < c && c2 >= c * .3 && (!best || c - c2 > best.save)) best = { f, cur, alt: m, c, c2, save: c - c2 }; }); });
       if (!best) return [J('Je ne vois pas de levier significatif : chaque fonction utilise déjà un modèle parmi les moins coûteux de sa catégorie.')];
       return [J('Le levier le plus important : « ' + best.f.n + ' » sur ' + best.alt.n + ' au lieu de ' + M(best.cur) + '. Économie estimée : ' + eur(best.save) + ' par mois (' + eur(best.c) + ' → ' + eur(best.c2) + '), sur la base du volume des 30 derniers jours. La qualité est à valider sur vos cas d’usage.', 'Affectation des modèles · estimation'),
         C([{ label: 'Préparer ce changement', run: () => { this.setState(s => ({ draft: { ...s.draft, [best.f.id]: { p: best.alt.id, f: s.draft[best.f.id].f === best.alt.id ? best.cur : s.draft[best.f.id].f } } })); this.go('assign'); return [J('C’est préparé dans « Affectation des modèles », sans être enregistré. Vérifiez l’estimation puis cliquez sur Enregistrer : le changement sera confirmé et tracé.')]; } }])];
@@ -1302,7 +1242,7 @@ class Component extends DCLogic {
       const tot = Object.values(by).reduce((a, b) => a + b, 0), tf = Object.entries(by).sort((a, b) => b[1] - a[1])[0], tm = Object.entries(bm).sort((a, b) => b[1] - a[1])[0];
       return [J('Septembre : ' + g.spL + ' dépensés sur un plafond de ' + g.limL + ' (' + g.pct + ' %). Au rythme actuel, la projection de fin de mois est de ' + g.projL + (g.over ? ', soit ' + eur(g.proj - g.lim) + ' au-delà du plafond.' : ', dans le budget.') + ' Sur 30 jours, « ' + FNS.find(f => f.id === tf[0]).n + ' » représente ' + Math.round(tf[1] / tot * 100) + ' % des coûts ; le modèle le plus coûteux est ' + M(tm[0]) + ' (' + eur(tm[1]) + ').', 'Consommation et coûts · 30 derniers jours'), R('Voir la consommation', () => this.go('conso')), C(['Comment réduire les coûts ?'])];
     }
-    if (has(/secours|affect|modele|llm/)) return [J(FNS.map(f => '• ' + f.sh + ' : ' + M(S.asg[f.id].p) + ', secours ' + M(S.asg[f.id].f) + ' · ' + this.fnState(f.id, S.asg[f.id]).l.toLowerCase()).join('\n'), 'Affectation des modèles'), R('Ouvrir l’affectation', () => this.go('assign')), C(['Comment réduire les coûts ?'])];
+    if (has(/secours|affect|modele|llm/)) return [J(FNS.map(f => '• ' + fnLabel(f) + ' : ' + M(S.asg[f.id].p) + ', secours ' + M(S.asg[f.id].f) + ' · ' + this.fnState(f.id, S.asg[f.id]).l.toLowerCase()).join('\n'), 'Affectation des modèles'), R('Ouvrir l’affectation', () => this.go('assign')), C(['Comment réduire les coûts ?'])];
     if (has(/restaur/)) return [J('La restauration n’est pas proposée : le journal d’audit n’est ni modifiable ni supprimable, et une restauration effacerait l’historique des données. Les snapshots servent à comparer deux états et à les exporter.'), R('Ouvrir les snapshots', () => this.go('snaps'))];
     if (has(/snapshot|sauvegard|captur/)) {
       const p = pj || 'RISE';
@@ -1410,6 +1350,24 @@ class Component extends DCLogic {
   openKey(id) { this.setState({ dlg: { type: 'key', id }, form: { k: '' }, fe: {} }); }
   saveKey() { const S = this.state, k = (S.form.k || '').trim(), id = S.dlg.id; if (k.length < 20) return this.setState({ fe: { k: 'La clé semble incomplète (20 caractères minimum).' } }); const p = S.provs.find(x => x.id === id); this.setProv(id, { l4: k.slice(-4), pre: k.startsWith('sk-ant-') ? 'sk-ant-' : k.startsWith('sk-proj-') ? 'sk-proj-' : k.startsWith('AIza') ? 'AIza' : k.startsWith('sk-') ? 'sk-' : '', bad: false, st: 'new', err: '' }); this.setState({ dlg: null, form: {} }); this.log('Rotation de clé API', p.n, 'critique'); this.toast('Nouvelle clé ' + p.n + ' enregistrée · test en cours'); setTimeout(() => this.testKey(id), 200); }
   saveProv() { const f = this.state.form, fe = {}; if (!f.n || f.n.trim().length < 2) fe.n = 'Indiquez le nom du fournisseur.'; if ((f.k || '').trim().length < 20) fe.k = 'La clé semble incomplète (20 caractères minimum).'; if (Object.keys(fe).length) return this.setState({ fe }); const id = 'pv' + Date.now(), k = f.k.trim(); this.setState(s => ({ provs: [...s.provs, { id, n: f.n.trim(), pre: '', l4: k.slice(-4), st: 'new', lat: null, t: nowD() }], dlg: null, form: {} })); this.log('Ajout d’un fournisseur LLM', f.n.trim(), 'critique'); setTimeout(() => this.testKey(id), 200); }
+  // API : fiche modèle (Fiche modele.dc.html). S.fm = { model } ; model null = ajout.
+  openModel(m) { this.setState({ fm: { model: m ? this.iaModel(m) : null } }); }
+  openModelId(id) { const m = this.state.models.find(x => x.id === id); if (m) this.openModel(m); }
+  // Enregistrement local (démonstration) ; branché sur POST / PATCH /api/admin/models par admin-api.js. Renvoie true si la fiche peut se fermer.
+  saveIaModel(im) { const m = this.fromIa(im); if (!im.id) { m.id = 'm' + Date.now(); this.setState(s => ({ models: [...s.models, m], fm: null })); this.log('Ajout d’un modèle', m.n, 'sensible'); this.toast('Modèle ajouté'); } else { this.setState(s => ({ models: s.models.map(x => x.id === m.id ? { ...x, ...m, act: x.act } : x), fm: null })); this.toast('Modèle mis à jour'); } return true; }
+  // Adaptateurs Console ⇄ écrans IA (ia-data.js) : catégories en minuscules, tarif { unit, in, out, per1k }.
+  iaModel(m) { const c = m.c || 'LLM', rq = m.unit === 'REQUESTS'; return { id: m.id, pv: m.pv, n: m.n, d: m.d || '', cat: c.toLowerCase(), rel: m.rel || '', maxOut: c === 'LLM' ? m.maxOut || null : undefined, price: rq ? { unit: 'requests', per1k: m.per1k } : c === 'LLM' ? { unit: 'tokens', in: m.pin, out: m.pout } : { unit: 'tokens', in: m.pin }, act: m.act }; }
+  fromIa(im) { const p = im.price || {}, rq = p.unit === 'requests'; return { id: im.id || null, pv: im.pv, n: im.n, d: im.d || '', c: String(im.cat || 'llm').toUpperCase(), rel: im.rel || '', maxOut: im.maxOut || null, unit: rq ? 'REQUESTS' : 'TOKENS', pin: rq ? null : p.in ?? null, pout: p.out ?? null, per1k: rq ? p.per1k : null, act: im.act !== false }; }
+  iaVals() {
+    const S = this.state, LOGO = { anthropic: './assets/logos/lh-anthropic.svg', openai: './assets/logos/lh-openai.svg', mistral: './assets/logos/lh-mistral-color.svg', google: './assets/logos/lh-gemini-color.svg' }, v = this.vol30();
+    const provs = S.provs.map(p => ({ id: p.id, n: p.n, st: p.st === 'ok' ? 'ok' : 'err', lat: p.lat, err: p.st === 'ok' ? null : p.err || (p.st === 'new' ? 'Clé jamais testée' : 'Clé invalide'), logo: LOGO[p.id], mono: p.id === 'anthropic' || p.id === 'openai', ini: p.n.slice(0, 2) }));
+    const fns = FNS.map(f => { const x = v[f.id] || { tin: 0, tout: 0, req: 0 }; return { id: f.id, n: f.n, sh: f.sh, d: f.d, cat: f.cat.toLowerCase(), group: f.group, step: f.step, vol: f.cat === 'RERANKING' ? { req: x.req } : f.cat === 'EMBEDDING' ? { in: x.tin / 1e6 } : { in: x.tin / 1e6, out: x.tout / 1e6 } }; });
+    return { provs, models: S.models.map(m => this.iaModel(m)), fns, groups: FN_GROUPS, asg: S.asg,
+      openModel: id => this.openModelId(id), openProv: id => this.openFiche('prov', id), testKey: id => this.testKey(id), replKey: id => this.openKey(id), addFallback: () => this.go('assign'),
+      saveAsg: d => { this.setState({ draft: JSON.parse(JSON.stringify(d)) }); this.saveAsg(); } };
+  }
+  // Ancienneté (date de sortie) : badge « À surveiller » (12 à 24 mois) ou « Ancien » (> 24 mois).
+  ageOf(m) { const a = m.rel && window.RISE_IA ? window.RISE_IA.age(m.rel) : null, show = !!a && a.tier !== 'recent'; return { ageOn: show, ageL: show ? a.tierL + ' · ' + a.l : '', ageT: m.rel ? 'Sorti le ' + m.rel.split('-').reverse().join('/') : '', ageSt: 'flex:none;display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:6px;font-size:10.5px;font-weight:700;' + (a && a.tier === 'old' ? 'background:#fbe4e1;color:#a2352a' : 'background:#fdf1dc;color:#8a5a12') }; }
   usedBy(mid) { const A = this.state.asg, r = []; FNS.forEach(f => { if (A[f.id].p === mid) r.push({ fn: f, role: 'principal' }); if (A[f.id].f === mid) r.push({ fn: f, role: 'secours' }); }); return r; }
   toggleModel(m) {
     if (!m.act) { this.setState(s => ({ models: s.models.map(x => x.id === m.id ? { ...x, act: true } : x) })); this.log('Activation d’un modèle', m.n, 'sensible'); this.toast(m.n + ' est disponible pour l’affectation'); return; }
@@ -1417,21 +1375,23 @@ class Component extends DCLogic {
     this.ask({ tone: use.length ? 'danger' : 'warn', title: 'Désactiver ' + m.n + ' ?', body: use.length ? 'Ce modèle est affecté à des fonctions du Cockpit. Elles basculeront automatiquement sur leur modèle de secours, s’il existe.' : 'Le modèle ne pourra plus être choisi pour une fonction.', items: use.map(u => ({ l: u.fn.sh, a: 'Modèle ' + u.role, b: u.role === 'principal' ? 'Secours activé' : 'Sans secours' })), cta: 'Désactiver le modèle',
       ok: () => { this.setState(s => ({ models: s.models.map(x => x.id === m.id ? { ...x, act: false } : x) })); this.log('Désactivation d’un modèle', m.n, 'sensible'); this.toast(m.n + ' désactivé'); } });
   }
-  openModel(m) { this.setState({ dlg: { type: 'model', id: m.id }, form: { n: m.n, d: m.d, c: m.c || 'LLM', pin: String(m.pin).replace('.', ','), pout: String(m.pout).replace('.', ',') }, fe: {} }); }
+  openModelOld(m) { this.setState({ dlg: { type: 'model', id: m.id }, form: { n: m.n, d: m.d, c: m.c || 'LLM', pin: String(m.pin).replace('.', ','), pout: String(m.pout).replace('.', ',') }, fe: {} }); }
   // API : « Ajouter un modèle » (POST /api/admin/models, admin-api.js) ; catégorie LLM par défaut.
-  newModel() { const S = this.state, pv = S.pvF !== 'tous' ? S.pvF : (S.provs[0] || {}).id || ''; this.setState({ dlg: { type: 'model', id: null }, form: { pv, n: '', d: '', c: 'LLM', pin: '', pout: '' }, fe: {} }); }
+  newModel() { this.openModel(null); }
   // Catégories d'un modèle : seuls les LLM servent les fonctions du Cockpit et les notifications.
   catOpts(cur, pick) { return [['LLM', 'LLM', 'Génère du texte'], ['EMBEDDING', 'Embedding', 'Vectorise des textes'], ['RERANKING', 'Reranking', 'Reclasse des résultats']].map(([k, l, d]) => { const on = (cur || 'LLM') === k; return { l, d, on, pick: () => pick(k), st: `display:flex;flex-direction:column;gap:2px;text-align:left;padding:9px 11px;border-radius:10px;cursor:pointer;font:inherit;color:#10233a;border:1px solid ${on ? '#10233a' : '#dbe4e2'};background:${on ? '#f5f8f7' : '#fff'};box-shadow:${on ? 'inset 0 0 0 1px #10233a' : 'none'}` }; }); }
-  delModel(id) { const m = this.state.models.find(x => x.id === id); if (!m) return; if (this.usedBy(id).length) return this.toast(m.n + ' est affecté : changez d’abord l’affectation', 'err'); this.ask({ tone: 'warn', title: 'Supprimer « ' + m.n + ' » ?', body: 'Le modèle disparaît de la liste et de l’affectation. S’il a déjà servi, désactivez-le plutôt : son historique de consommation reste lisible.', cta: 'Supprimer', ok: () => { this.setState(s => ({ models: s.models.filter(x => x.id !== id), fiche: null })); this.log('Suppression d’un modèle', m.n, 'sensible'); this.toast('Modèle supprimé'); } }); }
+  delModel(id) { const m = this.state.models.find(x => x.id === id); if (!m) return; if (this.usedBy(id).length) return this.toast(m.n + ' est affecté : changez d’abord l’affectation', 'err'); this.ask({ tone: 'warn', title: 'Supprimer « ' + m.n + ' » ?', body: 'Le modèle disparaît de la liste et de l’affectation. S’il a déjà servi, désactivez-le plutôt : son historique de consommation reste lisible.', cta: 'Supprimer', ok: () => { this.setState(s => ({ models: s.models.filter(x => x.id !== id), fiche: null, fm: null })); this.log('Suppression d’un modèle', m.n, 'sensible'); this.toast('Modèle supprimé'); } }); }
   saveModel() { const S = this.state, f = S.form, fe = {}, num = v => parseFloat(String(v).replace(',', '.')); if (!f.n || !f.n.trim()) fe.n = 'Nom requis.'; if (!(num(f.pin) >= 0)) fe.pin = 'Montant invalide.'; if (!(num(f.pout) >= 0)) fe.pout = 'Montant invalide.'; if (!S.dlg.id && !f.pv) fe.pv = 'Choisissez un fournisseur.'; if (Object.keys(fe).length) return this.setState({ fe }); if (!S.dlg.id) { const id = 'm' + Date.now(); this.setState(s => ({ models: [...s.models, { id, pv: f.pv, n: f.n.trim(), d: f.d || '', c: f.c || 'LLM', pin: num(f.pin), pout: num(f.pout), act: true }], dlg: null, form: {} })); this.log('Ajout d’un modèle', f.n.trim(), 'sensible'); return this.toast('Modèle ajouté'); } const m = S.models.find(x => x.id === S.dlg.id); this.setState(s => ({ models: s.models.map(x => x.id === m.id ? { ...x, n: f.n.trim(), d: f.d, c: f.c || 'LLM', pin: num(f.pin), pout: num(f.pout) } : x), dlg: null, form: {} })); if (num(f.pin) !== m.pin || num(f.pout) !== m.pout) this.log('Modification du tarif d’un modèle', m.n + ' · ' + eur(num(f.pin), 2) + ' / ' + eur(num(f.pout), 2), 'sensible'); this.toast('Modèle mis à jour'); }
 
   // ——— Affectation
-  vol30() { if (this._v30) return this._v30; const v = {}; FNS.forEach(f => v[f.id] = { tin: 0, tout: 0 }); this.state.usage.forEach(r => { if (r.d >= 60) { v[r.fn].tin += r.tin; v[r.fn].tout += r.tout; } }); return this._v30 = v; }
-  est(fid, mid) { const m = this.state.models.find(x => x.id === mid); if (!m) return 0; const v = this.vol30()[fid]; return (v.tin * m.pin + v.tout * m.pout) / 1e6; }
+  // API : volume réel des 30 derniers jours par fonction (GET /functions, admin-api.js) ; démonstration : tiré de la consommation générée.
+  vol30() { if (this._v30) return this._v30; if (this.state.aiVol) return this._v30 = this.state.aiVol; const v = {}; FNS.forEach(f => v[f.id] = { tin: 0, tout: 0, req: 0 }); this.state.usage.forEach(r => { const f = r.d >= 60 && (CONSO.find(c => c.id === r.fn) || {}).fn; if (f) { v[f].tin += r.tin; v[f].tout += r.tout; } }); v.doc_vec.tin = v.doc_syn.tin; v.doc_rrk.req = Math.round(v.doc_syn.tin / 57000); return this._v30 = v; }
+  // Coût mensuel estimé : tokens × € / M, ou requêtes / 1 000 × € / 1 000 requêtes (spécification IA § 3).
+  est(fid, mid) { const m = this.state.models.find(x => x.id === mid); if (!m) return 0; const v = this.vol30()[fid] || { tin: 0, tout: 0, req: 0 }; if (m.unit === 'REQUESTS') return (v.req || 0) / 1000 * (m.per1k || 0); return (v.tin * (m.pin || 0) + v.tout * (m.pout || 0)) / 1e6; }
   saveAsg() {
     const S = this.state, M = id => (S.models.find(m => m.id === id) || { n: 'Aucun' }).n, items = [];
-    FNS.forEach(f => { const a = S.asg[f.id], b = S.draft[f.id]; if (a.p !== b.p) items.push({ l: f.sh + ' · principal', a: M(a.p), b: M(b.p) }); if (a.f !== b.f) items.push({ l: f.sh + ' · secours', a: M(a.f), b: M(b.f) }); });
-    const tot = x => FNS.reduce((s, f) => s + this.est(f.id, x[f.id].p), 0);
+    FNS.forEach(f => { const a = S.asg[f.id] || {}, b = S.draft[f.id] || {}; if ((a.p || '') !== (b.p || '')) items.push({ l: fnLabel(f) + ' · principal', a: M(a.p), b: M(b.p) }); if ((a.f || '') !== (b.f || '')) items.push({ l: fnLabel(f) + ' · secours', a: M(a.f), b: M(b.f) }); });
+    const tot = x => FNS.reduce((s, f) => s + this.est(f.id, (x[f.id] || {}).p), 0);
     this.ask({ tone: 'warn', title: 'Changer l’affectation des modèles ?', body: 'Les nouveaux modèles répondent dès la prochaine requête. Estimation mensuelle : ' + eur(tot(S.asg)) + ' → ' + eur(tot(S.draft)) + '.', items, cta: 'Enregistrer l’affectation',
       ok: () => { const d = JSON.parse(JSON.stringify(S.draft)); this.setState({ asg: d }); items.forEach(i => this.log('Changement d’affectation de modèle', i.l + ' · ' + i.a + ' → ' + i.b, 'sensible')); this.toast('Affectation enregistrée'); } });
   }
@@ -1508,7 +1468,7 @@ class Component extends DCLogic {
   }
 
   // ——— Vues
-  mtd() { const S = this.state, r = { all: 0 }; FNS.forEach(f => r[f.id] = 0); S.usage.forEach(x => { if (x.d >= 65) { r.all += x.c; r[x.fn] += x.c; } }); return r; }
+  mtd() { const S = this.state, r = { all: 0 }; CONSO.forEach(f => r[f.id] = 0); S.usage.forEach(x => { if (x.d >= 65) { r.all += x.c; r[x.fn] += x.c; } }); return r; }
   thVals() {
     const mtd = this.mtd(), proj = mtd.all / (24 + 10.4 / 24) * 30;
     return this.state.th.map(t => { const sp = mtd[t.id] || 0, pct = Math.round(sp / t.lim * 100), tone = !t.on ? 'neu' : pct >= 100 ? 'err' : pct >= t.warn ? 'warn' : 'ok', pr = t.id === 'all' ? proj : sp / (24 + 10.4 / 24) * 30;
@@ -1521,8 +1481,9 @@ class Component extends DCLogic {
   sw(on, fn, label) { return { on, label, toggle: fn, st: `width:36px;height:20px;border-radius:999px;border:0;padding:0;position:relative;cursor:pointer;flex:none;transition:background .2s;background:${on ? '#1d8f86' : '#c3d0cd'}`, knob: `position:absolute;top:2px;left:${on ? 18 : 2}px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(16,35,58,.25);transition:left .22s cubic-bezier(.2,.7,.2,1)` }; }
   provLabel(p) { return p.testing ? ['neu', 'Test en cours'] : p.st === 'ok' ? ['ok', 'Opérationnelle'] : p.st === 'err' ? ['err', 'Clé invalide'] : ['neu', 'Non testée']; }
   fnState(fid, a) {
-    const S = this.state, M = id => S.models.find(m => m.id === id), P = id => S.provs.find(p => p.id === id);
-    const ok = id => { const m = M(id); if (!m) return [false, 'aucun']; if (!m.act) return [false, m.n + ' est désactivé']; const p = P(m.pv); if (!p || p.st === 'err') return [false, 'clé ' + (p ? p.n : '') + ' invalide']; return [true, '']; };
+    const S = this.state, M = id => S.models.find(m => m.id === id), P = id => S.provs.find(p => p.id === id), cat = (FNS.find(f => f.id === fid) || { cat: 'LLM' }).cat;
+    a = a || {};
+    const ok = id => { const m = M(id); if (!m) return [false, 'aucun']; if (!m.act) return [false, m.n + ' est désactivé']; if ((m.c || 'LLM') !== cat) return [false, m.n + ' n’est pas un modèle ' + cat]; const p = P(m.pv); if (!p || p.st === 'err') return [false, 'clé ' + (p ? p.n : '') + ' invalide']; return [true, '']; };
     const [po, pr] = ok(a.p), [fo] = a.f ? ok(a.f) : [false];
     if (po) return { tone: 'ok', l: 'Sur le modèle principal' };
     if (fo) return { tone: 'warn', l: 'Bascule sur le secours · ' + pr, why: pr };
@@ -1530,8 +1491,8 @@ class Component extends DCLogic {
   }
   attention() {
     const S = this.state, out = [], th = this.thVals();
-    S.provs.filter(p => p.st === 'err').forEach(p => { const hit = FNS.filter(f => { const m = S.models.find(x => x.id === S.asg[f.id].p); return m && m.pv === p.id; }); const fb = hit.map(f => (S.models.find(m => m.id === S.asg[f.id].f) || {}).n).filter(Boolean);
-      out.push({ tone: 'err', t: 'Clé API ' + p.n + ' invalide depuis ' + ago(p.t).replace('il y a ', ''), d: hit.length ? '« ' + hit.map(f => f.n).join(', ') + ' » tourne sur son modèle de secours' + (fb.length ? ' (' + fb.join(', ') + ')' : '') + '.' : (p.err || ''), cta: 'Remplacer la clé', go: () => this.go('providers', () => this.openKey(p.id)) }); });
+    S.provs.filter(p => p.st === 'err').forEach(p => { const hit = FNS.filter(f => { const m = S.models.find(x => x.id === (S.asg[f.id] || {}).p); return m && m.pv === p.id; }); const fb = hit.map(f => (S.models.find(m => m.id === S.asg[f.id].f) || {}).n).filter(Boolean);
+      out.push({ tone: 'err', t: 'Clé API ' + p.n + ' invalide depuis ' + ago(p.t).replace('il y a ', ''), d: hit.length ? '« ' + hit.map(f => f.group ? fnLabel(f) : f.n).join(', ') + ' » tourne sur son modèle de secours' + (fb.length ? ' (' + fb.join(', ') + ')' : '') + '.' : (p.err || ''), cta: 'Remplacer la clé', go: () => this.go('providers', () => this.openKey(p.id)) }); });
     th.filter(t => t.on && t.pct >= t.warn).forEach(t => out.push({ tone: t.pct >= 100 ? 'err' : 'warn', t: (t.id === 'all' ? 'Budget IA' : t.n) + ' à ' + t.pct + ' % du plafond mensuel', d: t.spL + ' sur ' + t.limL + (t.over ? ' · au rythme actuel, ' + t.projL + ' fin septembre.' : '.'), cta: 'Voir la consommation', go: () => this.go('conso') }));
     const stale = S.users.filter(u => u.s === 'invité' && u.inv > 7);
     if (stale.length) out.push({ tone: 'warn', t: stale.length + ' invitation' + (stale.length > 1 ? 's' : '') + ' sans réponse depuis plus de 7 jours', d: stale.map(u => u.n).join(', ') + '.', cta: 'Voir les invités', go: () => this.go('users', () => this.setState({ uSt: 'invité', uq: '', uPf: 'tous', uPj: 'tous' })) });
@@ -1599,7 +1560,7 @@ class Component extends DCLogic {
       edit: () => this.openUser(u), hasA: !!a, aL: a ? a[0] : '', a: a ? a[1] : null, aSt: 'height:38px;padding:0 14px;border-radius:10px;border:0;font:inherit;font-weight:700;font-size:12.5px;cursor:pointer;white-space:nowrap;' + (a && a[2] ? 'background:#fbe4e1;color:#a2352a' : 'background:#e6f4f2;color:#146b64'),
       log: () => this.setState({ ucId: null }, () => this.go('admins', () => this.setState({ adTab: 'audit', aq: u.n, aSev: 'tous' }))) };
   }
-  openFiche(k, id) { const m = k === 'model' ? this.state.models.find(x => x.id === id) : null; this.setState({ fiche: { k, id }, fF: m ? { n: m.n, d: m.d || '', c: m.c || 'LLM', pin: String(m.pin).replace('.', ','), pout: String(m.pout).replace('.', ',') } : {}, fFe: {} }); }
+  openFiche(k, id) { if (k === 'model') return this.openModelId(id); const m = k === 'model' ? this.state.models.find(x => x.id === id) : null; this.setState({ fiche: { k, id }, fF: m ? { n: m.n, d: m.d || '', c: m.c || 'LLM', pin: String(m.pin).replace('.', ','), pout: String(m.pout).replace('.', ',') } : {}, fFe: {} }); }
   saveFiche() { const S = this.state, f = S.fF, fe = {}, num = v => parseFloat(String(v).replace(',', '.')), m = S.models.find(x => x.id === S.fiche.id);
     if (!f.n || !f.n.trim()) fe.n = 'Nom requis.'; if (!(num(f.pin) >= 0)) fe.pin = 'Montant invalide.'; if (!(num(f.pout) >= 0)) fe.pout = 'Montant invalide.';
     if (Object.keys(fe).length) return this.setState({ fFe: fe });
@@ -1634,37 +1595,6 @@ class Component extends DCLogic {
       noUse: !u.length, costL: u.length ? 'coût estimé si 100 % du volume : ' + eur(tot) + ' / mois' : '', goAsg: () => this.setState({ fiche: null }, () => this.go('assign')), openPv: () => this.openFiche('prov', m.pv), pvPill: pillOf(pt).replace('align-self:flex-start;', ''), pvStL: pl,
       clean, dirtyL: clean ? 'Aucune modification' : 'Modifications non enregistrées', save: () => this.saveFiche(),
       saveSt: 'height:38px;padding:0 18px;border:0;border-radius:10px;background:#10233a;color:#fff;font:inherit;font-weight:700;cursor:pointer;opacity:' + (clean ? .35 : 1) };
-  }
-  wireVals(pvs, mode) {
-    const S = this.state, e = React.createElement, LOGO = { anthropic: './assets/logos/lh-anthropic.svg', openai: './assets/logos/lh-openai.svg', mistral: './assets/logos/lh-mistral-color.svg', google: './assets/logos/lh-gemini-color.svg' };
-    const W = Math.max(720, Math.min(1112, (S.vw || 1400) - (mode === 'full' ? 272 : mode === 'rail' ? 84 : 0) - 186)), nar = W < 960, cP = nar ? 196 : 230, cM = nar ? 218 : 250, cF = nar ? 236 : 272, x2 = W - cF, g = (W - cP - cM - cF) / 2, x1 = Math.round(cP + g), k = Math.max(28, g * .6), MH = 40, FH = nar ? 206 : 176, FG = 20;
-    const ok = id => { const p = S.provs.find(x => x.id === id); return !!p && p.st === 'ok'; }, mById = id => S.models.find(m => m.id === id) || { n: '—', pv: '' };
-    const eur = v => (v < 1 ? v.toFixed(2) : Number.isInteger(v) ? String(v) : v.toFixed(2)).replace('.', ',') + ' €';
-    const actM = S.models.filter(m => m.act), groups = S.provs.map(p => ({ p, ms: actM.filter(m => m.pv === p.id) })), mTot = groups.reduce((a, g) => a + Math.max(2, g.ms.length) * MH, 0) + (groups.length - 1) * 22, H = Math.max(mTot, 3 * FH + 2 * FG);
-    let y = (H - mTot) / 2; const mY = {}, pY = {}, provs = [], models = [];
-    groups.forEach(({ p, ms }) => { const n = Math.max(2, ms.length) /* API : au moins deux lignes, la tuile du fournisseur tient même sans modèle actif */, h = n * MH, good = p.st === 'ok', err = p.st === 'err'; pY[p.id] = y + h / 2 - 6;
-      const pv = pvs.find(x => x.id === p.id) || {};
-      provs.push({ n: p.n, logo: LOGO[p.id] || '', logoSt: 'display:block;width:22px;height:22px;background:url("' + (LOGO[p.id] || '') + '") center/contain no-repeat', hasLogo: !!LOGO[p.id], noLogo: !LOGO[p.id], ini: p.n.slice(0, 1), sub: p.testing ? 'Test en cours…' : good ? 'Connecté · ' + p.lat + ' ms' : err ? /* API : libellé tiré du test réel (code HTTP du fournisseur, injoignable, non reconnu) */ ((String(p.err || '').match(/^\d{3}/) || [''])[0] ? String(p.err).match(/^\d{3}/)[0] + ' · clé refusée' : /injoignable/.test(p.err || '') ? 'Injoignable' : /non reconnu/.test(p.err || '') ? 'Test impossible' : 'Clé invalide') : 'Jamais testée', subSt: 'font-size:12px;white-space:nowrap;' + (good ? 'color:#5fd0c3' : err ? 'color:#f07b67;font-weight:700' : 'color:#9fb3c1'),
-        open: () => this.openFiche('prov', p.id), test: ev => { ev && ev.stopPropagation(); pv.test && pv.test(); }, repl: ev => { ev && ev.stopPropagation(); pv.repl && pv.repl(); }, testing: !!p.testing, testL: p.testing ? 'Test…' : 'Tester', replSt: 'border:0;background:transparent;padding:0;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer;color:' + (err ? '#f7b84d' : '#9fb3c1'),
-        pos: 'position:absolute;left:-10px;top:' + (y + h / 2 - 44) + 'px;width:' + (cP + 10) + 'px;display:flex;align-items:center;gap:12px;padding:10px;border-radius:14px;cursor:pointer;transition:background .15s;' + (S.fiche && S.fiche.k === 'prov' && S.fiche.id === p.id ? 'background:rgba(255,255,255,.09);box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)' : '') });
-      ms.forEach((m, i) => { const yy = y + i * MH; mY[m.id] = yy + 17; const prim = Object.keys(S.asg).some(k => S.asg[k].p === m.id && good), fbLive = Object.keys(S.asg).some(k => S.asg[k].f === m.id && !ok(mById(S.asg[k].p).pv));
-        models.push({ n: m.n, open: () => this.openFiche('model', m.id), out: eur(m.pout), tip: m.n + ' · entrée ' + eur(m.pin) + ' · sortie ' + eur(m.pout) + ' par million de tokens',
-          pos: 'position:absolute;left:' + x1 + 'px;top:' + yy + 'px;width:' + cM + 'px;height:34px;padding:0 12px;border-radius:10px;display:flex;align-items:center;gap:10px;font-size:12.5px;cursor:pointer;transition:filter .15s;' + (S.fiche && S.fiche.k === 'model' && S.fiche.id === m.id ? 'outline:2px solid #fff;outline-offset:2px;' : '') + (!good ? 'background:rgba(240,123,103,.08);color:#f0a497;box-shadow:inset 0 0 0 1px rgba(240,123,103,.35)' : prim ? 'background:rgba(95,208,195,.12);color:#fff;box-shadow:inset 0 0 0 1px rgba(95,208,195,.45)' : fbLive ? 'background:rgba(247,164,28,.12);color:#fff;box-shadow:inset 0 0 0 1px rgba(247,164,28,.55)' : 'background:rgba(255,255,255,.04);color:#c9d6de'),
-          dot: 'width:7px;height:7px;border-radius:50%;flex:none;background:' + (!good ? '#f07b67' : prim ? '#5fd0c3' : fbLive ? '#f7a41c' : '#4d6577') }); });
-      y += h + 22; });
-    const gap = (H - 3 * FH) / 2, fY = FNS.map((f, i) => i * (FH + gap)), paths = [];
-    const fns = FNS.map((f, i) => { const a = S.asg[f.id] || {}, pm = mById(a.p), fm = mById(a.f), down = !ok(pm.pv), both = down && !ok(fm.pv);
-      return { n: f.sh, d: f.d, p: pm.n, f: fm.n, stL: both ? 'Indisponible' : down ? 'Sur secours' : 'Nominal',
-        pill: 'height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:800;display:inline-flex;align-items:center;white-space:nowrap;' + (both ? 'background:rgba(240,123,103,.18);color:#f7a497' : down ? 'background:rgba(247,164,28,.16);color:#f7b84d' : 'background:rgba(95,208,195,.14);color:#5fd0c3'),
-        pSt: down ? 'color:#f07b67;text-decoration:line-through;font-weight:600;text-align:right' : 'color:#fff;font-weight:700;text-align:right', fSt: down && !both ? 'color:#f7b84d;font-weight:700;text-align:right' : 'color:#c9d6de;font-weight:600;text-align:right',
-        pos: 'position:absolute;left:' + x2 + 'px;top:' + fY[i] + 'px;width:' + cF + 'px;height:' + FH + 'px;border-radius:16px;padding:15px 16px 14px;display:flex;flex-direction:column;gap:8px;' + (down ? 'background:linear-gradient(160deg,rgba(247,164,28,.10),rgba(255,255,255,.03));box-shadow:inset 0 0 0 1px rgba(247,164,28,.4)' : 'background:rgba(255,255,255,.05);box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)') }; });
-    FNS.forEach((f, i) => { const a = S.asg[f.id] || {}, down = !ok(mById(a.p).pv), ty = fY[i] + FH / 2, xa = x1 + cM, xb = x2;
-      const link = (id, dy, stroke, dash, w) => { const sy = mY[id]; if (sy == null) return; paths.push(e('path', { key: f.id + id + dy, d: 'M' + xa + ' ' + sy + ' C ' + (xa + k) + ' ' + sy + ', ' + (xb - k) + ' ' + (ty + dy) + ', ' + xb + ' ' + (ty + dy), fill: 'none', stroke, strokeWidth: w, strokeDasharray: dash, strokeLinecap: 'round' })); };
-      link(a.p, -8, down ? '#f07b67' : '#5fd0c3', down ? '2 5' : null, down ? 1.6 : 2);
-      link(a.f, 10, down ? '#f7a41c' : 'rgba(142,164,179,.55)', down ? null : '5 5', down ? 2 : 1.4); });
-    groups.forEach(({ p, ms }) => ms.forEach(m => { const py = pY[p.id] + 6, sx = cP - 8; paths.push(e('path', { key: 'p' + m.id, d: 'M ' + sx + ' ' + py + ' C ' + (sx + k) + ' ' + py + ', ' + (x1 - k) + ' ' + mY[m.id] + ', ' + x1 + ' ' + mY[m.id], fill: 'none', stroke: p.st === 'ok' ? 'rgba(201,214,222,.22)' : 'rgba(240,123,103,.4)', strokeWidth: 1.2, strokeDasharray: p.st === 'ok' ? null : '2 4' })); }));
-    return { svg: e('svg', { width: W, height: H, viewBox: '0 0 ' + W + ' ' + H, style: { position: 'absolute', inset: 0, overflow: 'visible' } }, paths), provs, models, fns,
-      boxSt: 'position:relative;flex:none;width:' + W + 'px;height:' + H + 'px', headSt: 'position:relative;width:' + W + 'px;height:14px;font-size:10.5px;font-weight:800;letter-spacing:.12em;color:#7f97a8', mHeadSt: 'position:absolute;left:' + x1 + 'px', fHeadSt: 'position:absolute;left:' + x2 + 'px' };
   }
   renderVals() {
     const S = this.state, mode = S.vw >= 1180 ? 'full' : S.vw >= 760 ? 'rail' : 'mob', lab = mode !== 'rail', is = k => S.sec === k;
@@ -1793,31 +1723,11 @@ class Component extends DCLogic {
     if (is('providers')) {
       const pvs = S.provs.map(p => { const [t, l] = this.provLabel(p), nm = S.models.filter(m => m.pv === p.id).length; return { ...p, mask: (p.pre || '') + '••••••••••••' + p.l4, pill: pill(t), dot: dot(t), stL: l, testing: !!p.testing, notTesting: !p.testing, isErr: p.st === 'err' && !p.testing, latL: p.lat ? p.lat + ' ms' : '—', latSt: `font-size:22px;font-weight:800;letter-spacing:-.02em;color:${!p.lat ? '#8a9aa6' : p.lat > 800 ? '#8a5a12' : '#10233a'}`, when: p.testing ? 'Test en cours…' : p.st === 'new' ? 'Jamais testée' : 'Testée ' + ago(p.t), nm: nm + ' modèle' + (nm > 1 ? 's' : ''), test: () => this.testKey(p.id), repl: () => this.openKey(p.id) }; });
       const ml = S.models.filter(m => S.pvF === 'tous' || m.pv === S.pvF);
-      vals.pv = { list: pvs, wire: this.wireVals(pvs, mode), testAll: () => this.testAll(), add: () => this.setState({ dlg: { type: 'prov' }, form: { n: '', k: '' }, fe: {} }), addModel: () => this.newModel(), noModels: !ml.length,
+      vals.pv = { list: pvs, testAll: () => this.testAll(), add: () => this.setState({ dlg: { type: 'prov' }, form: { n: '', k: '' }, fe: {} }), addModel: () => this.newModel(), noModels: !ml.length,
         flt: [['tous', 'Tous'], ...S.provs.map(p => [p.id, p.n])].map(([k, l]) => ({ l, on: S.pvF === k, st: segSt(S.pvF === k), pick: () => this.setState({ pvF: k }) })),
-        models: ml.map(m => { const use = this.usedBy(m.id), pv = S.provs.find(p => p.id === m.pv); return { ...m, pvN: pv ? pv.n : m.pv, pinL: eur(m.pin, 2), poutL: eur(m.pout, 2), use: use.map(x => ({ l: x.fn.sh + ' · ' + x.role, st: x.role === 'principal' ? 'display:inline-flex;height:22px;align-items:center;padding:0 8px;border-radius:6px;font-size:11px;font-weight:700;background:#10233a;color:#fff;white-space:nowrap' : 'display:inline-flex;height:22px;align-items:center;padding:0 8px;border-radius:6px;font-size:11px;font-weight:700;border:1px solid #cfdad7;color:#43586a;white-space:nowrap' })), noUse: !use.length, catL: { EMBEDDING: 'Embedding', RERANKING: 'Reranking' }[m.c] || 'LLM', catSt: 'flex:none;display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:6px;font-size:10.5px;font-weight:700;letter-spacing:.02em;' + ((m.c || 'LLM') === 'LLM' ? 'background:#e6f3f2;color:#0f5f5a' : 'background:#eef0f6;color:#3b4a7a'), sw: this.sw(m.act, () => this.toggleModel(m), (m.act ? 'Désactiver ' : 'Activer ') + m.n), edit: () => this.openModel(m), rowSt: `display:grid;grid-template-columns:minmax(240px,2.2fr) 110px 104px 104px minmax(180px,1.6fr) 64px 44px;align-items:center;gap:16px;padding:14px 20px;border-top:1px solid #eef3f2;opacity:${m.act ? 1 : .6};transition:opacity .2s` }; }) };
+        models: ml.map(m => { const use = this.usedBy(m.id), pv = S.provs.find(p => p.id === m.pv); return { ...m, pvN: pv ? pv.n : m.pv, pinL: m.unit === 'REQUESTS' ? eur(m.per1k || 0, 2) + ' / 1 000 req.' : eur(m.pin || 0, 2), poutL: m.pout != null && m.unit !== 'REQUESTS' ? eur(m.pout, 2) : '—', ...this.ageOf(m), use: use.map(x => ({ l: x.fn.sh + ' · ' + x.role, st: x.role === 'principal' ? 'display:inline-flex;height:22px;align-items:center;padding:0 8px;border-radius:6px;font-size:11px;font-weight:700;background:#10233a;color:#fff;white-space:nowrap' : 'display:inline-flex;height:22px;align-items:center;padding:0 8px;border-radius:6px;font-size:11px;font-weight:700;border:1px solid #cfdad7;color:#43586a;white-space:nowrap' })), noUse: !use.length, catL: { EMBEDDING: 'Embedding', RERANKING: 'Reranking' }[m.c] || 'LLM', catSt: 'flex:none;display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:6px;font-size:10.5px;font-weight:700;letter-spacing:.02em;' + ((m.c || 'LLM') === 'LLM' ? 'background:#e6f3f2;color:#0f5f5a' : 'background:#eef0f6;color:#3b4a7a'), sw: this.sw(m.act, () => this.toggleModel(m), (m.act ? 'Désactiver ' : 'Activer ') + m.n), edit: () => this.openModel(m), rowSt: `display:grid;grid-template-columns:minmax(240px,2.2fr) 110px 104px 104px minmax(180px,1.6fr) 64px 44px;align-items:center;gap:16px;padding:14px 20px;border-top:1px solid #eef3f2;opacity:${m.act ? 1 : .6};transition:opacity .2s` }; }) };
     }
     // Assign
-    if (is('assign')) {
-      const llm = S.models.filter(m => (m.c || 'LLM') === 'LLM'), act = llm.filter(m => m.act), tot = x => FNS.reduce((s, f) => s + this.est(f.id, x[f.id].p), 0), none = { m: { n: '—', id: '' }, c: 0 };
-      const dirty = JSON.stringify(S.asg) !== JSON.stringify(S.draft);
-      vals.as = {
-        cards: FNS.map(f => { const d = S.draft[f.id], saved = S.asg[f.id], v = this.vol30()[f.id], costs = act.map(m => ({ m, c: this.est(f.id, m.id) })).sort((a, b) => a.c - b.c), min = costs[0] || none, max = costs[costs.length - 1] || none, c = this.est(f.id, d.p), c0 = this.est(f.id, saved.p), delta = c - c0, stt = this.fnState(f.id, d), pos = x => max.c === min.c ? 50 : (Math.log(x + 1) - Math.log(min.c + 1)) / (Math.log(max.c + 1) - Math.log(min.c + 1)) * 100;
-          const fbm = S.models.find(m => m.id === d.f);
-          return { n: f.n, d: f.d, vol: mt(v.tin) + ' tokens en entrée · ' + mt(v.tout) + ' en sortie · 30 derniers jours', pSel: d.p, fSel: d.f || '',
-            pOpts: [...(d.p ? [] : [{ v: '', l: llm.length ? 'Choisir un modèle principal…' : 'Aucun LLM : ajoutez-en un dans Fournisseurs', dis: true }]), ...llm.map(m => ({ v: m.id, l: m.n + ' — ' + eur(this.est(f.id, m.id)) + ' / mois' + (m.act ? '' : ' (inactif)'), dis: !m.act }))],
-            fOpts: [{ v: '', l: 'Aucun modèle de secours', dis: false }, ...llm.filter(m => m.id !== d.p).map(m => ({ v: m.id, l: m.n + ' — ' + eur(this.est(f.id, m.id)) + ' / mois' + (m.act ? '' : ' (inactif)'), dis: !m.act }))],
-            setP: e => { const val = e.target.value; this.setState(s => ({ draft: { ...s.draft, [f.id]: { p: val, f: s.draft[f.id].f === val ? '' : s.draft[f.id].f } } })); },
-            setFb: e => { const val = e.target.value; this.setState(s => ({ draft: { ...s.draft, [f.id]: { ...s.draft[f.id], f: val } } })); },
-            cost: eur(c), fbCost: fbm ? 'Secours : ' + eur(this.est(f.id, d.f)) + ' / mois s’il prend tout le trafic' : 'Aucun secours : la fonction s’arrête si le principal est indisponible.', fbWarn: !fbm, fbSt: `font-size:12px;color:${fbm ? '#5c7280' : '#8a5a12'};font-weight:${fbm ? 500 : 700}`,
-            hasDelta: Math.abs(delta) >= 1, deltaL: (delta > 0 ? '+ ' : '− ') + eur(Math.abs(delta)) + ' / mois', deltaSt: pill(delta > 0 ? 'warn' : 'ok'),
-            stL: stt.l, stPill: pill(stt.tone), stDot: dot(stt.tone),
-            ticks: costs.map(x => ({ t: x.m.n + ' · ' + eur(x.c), st: `position:absolute;top:50%;left:${pos(x.c)}%;width:${x.m.id === d.p ? 14 : x.m.id === d.f ? 12 : 6}px;height:${x.m.id === d.p ? 14 : x.m.id === d.f ? 12 : 6}px;border-radius:50%;transform:translate(-50%,-50%);transition:left .4s cubic-bezier(.2,.7,.2,1);z-index:${x.m.id === d.p ? 3 : x.m.id === d.f ? 2 : 1};${x.m.id === d.p ? 'background:#f0752b;box-shadow:0 0 0 3px #fff,0 0 0 4px #f0752b' : x.m.id === d.f ? 'background:#fff;border:2px solid #10233a' : 'background:#b8c7c4'}` })),
-            minL: min.m.n + ' · ' + eur(min.c), maxL: max.m.n + ' · ' + eur(max.c) };
-        }),
-        dirty, tot0: eur(tot(S.asg)), tot1: eur(tot(S.draft)), cancel: () => this.setState({ draft: JSON.parse(JSON.stringify(S.asg)) }), save: () => this.saveAsg()
-      };
-    }
     // Conso
     if (is('conso')) {
       const P = S.cPer, from = 90 - P, M = Object.fromEntries(S.models.map(m => [m.id, m.n])), PV = Object.fromEntries(S.provs.map(p => [p.id, p.n])), F = Object.fromEntries(FNS.map(f => [f.id, f.sh]));
@@ -2004,6 +1914,9 @@ class Component extends DCLogic {
     if (vals.dl.isAdm) vals.dl.aEl = SE(S.form.u || '', vals.ff.u, vals.dl.aOpts, 'Utilisateur', '100%');
     if (vals.dl.mNew) vals.dl.pvEl = SE(S.form.pv || '', vals.ff.pv, vals.dl.pvOpts, 'Fournisseur', '100%');
     if (vals.dl.isProf) vals.dl.bEl = SE(S.form.base, vals.ff.base, vals.dl.bOpts, 'Profil de départ', '100%');
+    // API : données des écrans IA (vue réseau, affectation, fiche modèle).
+    vals.ia = this.iaVals();
+    vals.fm = { on: !!S.fm, model: S.fm ? S.fm.model : null, submit: m => this.saveIaModel(m), close: () => this.setState({ fm: null }), del: id => { this.setState({ fm: null }); this.delModel(id); } };
     return vals;
   }
   selEl(value, onChange, opts, aria, w) {

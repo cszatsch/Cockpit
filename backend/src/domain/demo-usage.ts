@@ -17,7 +17,8 @@ function rng(seed: number) {
 export const DEMO_FUNCTIONS = [
   { id: 'insights', vin: 120e6, vout: 18e6 },
   { id: 'crud', vin: 50e6, vout: 12e6 },
-  { id: 'docs', vin: 180e6, vout: 9e6 },
+  // Ancienne « Analyse de documents » : sa consommation est celle de l'étape Synthèse (LLM).
+  { id: 'doc_syn', vin: 180e6, vout: 9e6 },
 ];
 
 export interface DemoUsageRow {
@@ -33,7 +34,7 @@ export interface DemoUsageRow {
 }
 
 export function genDemoUsage(
-  models: Array<{ id: string; providerId: string; priceInPerMTok: number; priceOutPerMTok: number }>,
+  models: Array<{ id: string; providerId: string; priceInPerMTok: number | null; priceOutPerMTok: number | null }>,
   asg: Record<string, { p: string; f: string }>,
   endIso = '2026-09-26',
   monthSpent = 1032.4,
@@ -60,7 +61,7 @@ export function genDemoUsage(
       }
     }
   }
-  for (const x of rows) x.cost = (x.tin * P[x.model].priceInPerMTok + x.tout * P[x.model].priceOutPerMTok) / 1e6;
+  for (const x of rows) x.cost = (x.tin * (P[x.model].priceInPerMTok ?? 0) + x.tout * (P[x.model].priceOutPerMTok ?? 0)) / 1e6;
   const monthStart = endIso.slice(0, 8) + '01';
   const mtd = rows.filter((x) => x.date >= monthStart).reduce((a, x) => a + x.cost, 0);
   const k = monthSpent / mtd;

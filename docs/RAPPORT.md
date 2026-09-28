@@ -9,7 +9,7 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 | Code source (un seul service NestJS pour les deux backends) | `backend/src/` : `core`, `domain`, `cockpit`, `import`, `admin` |
 | Migrations (schéma, trigger du journal d'audit en ajout seul, console) | `backend/prisma/migrations/` |
 | Script d'amorçage (RISE depuis `rise-data.js` et `planning-data.js`, démonstration de la console) | `backend/prisma/seed/`, `npm run db:seed` |
-| `openapi.json` (172 chemins, 244 opérations), aussi servi sur `/api/docs` | `backend/openapi.json`, `npm run openapi` |
+| `openapi.json` (173 chemins, 245 opérations), aussi servi sur `/api/docs` | `backend/openapi.json`, `npm run openapi` |
 | `README.md` : installation, variables, lancement, tests, branchement | racine du dépôt |
 | `DECISIONS.md` : arbitrages Q1 à Q12 et décisions documentées | `docs/DECISIONS.md` |
 | `api.js` et le Cockpit branché | `frontends/api.js`, `frontends/RISE Cockpit.dc.html` |
@@ -32,7 +32,7 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 
 | Suite | Contenu | Résultat |
 |---|---|---|
-| `npm test` (Jest + Supertest, base `rise_test`) | 14 tests unitaires des règles de domaine ; 85 tests e2e qui reprennent les critères d'acceptation des deux briefs (§ 13) : droits, Référentiel, Pilotage, bootstrap, import, annexes, console ; 23 tests e2e de l'authentification (`auth.spec.ts`) : cookies, CSRF, message générique, blocage par adresse (compte existant ou non), console refusée et journalisée, inactivité, rotation, déconnexion, mot de passe oublié (message neutre, lien haché, usage unique, expiration, renvoi limité, règles, mot de passe compromis ou identique), invitation, changement depuis le profil (mot de passe actuel, autres sessions fermées, rotation), compte initial, adresses des pages ; 5 tests des modèles d'IA (`ai-models.spec.ts`) : catégorie, ajout, suppression, LLM obligatoire, réinitialisation ; 8 tests unitaires du test réel des clés (`provider-key-tester.spec.ts`) : requête et authentification par fournisseur, 2xx, 401, 400 de Google, 429, réseau, délai, fournisseur non reconnu | **11 suites, 137 tests verts** |
+| `npm test` (Jest + Supertest, base `rise_test`) | 14 tests unitaires des règles de domaine ; 85 tests e2e qui reprennent les critères d'acceptation des deux briefs (§ 13) : droits, Référentiel, Pilotage, bootstrap, import, annexes, console ; 23 tests e2e de l'authentification (`auth.spec.ts`) : cookies, CSRF, message générique, blocage par adresse (compte existant ou non), console refusée et journalisée, inactivité, rotation, déconnexion, mot de passe oublié (message neutre, lien haché, usage unique, expiration, renvoi limité, règles, mot de passe compromis ou identique), invitation, changement depuis le profil (mot de passe actuel, autres sessions fermées, rotation), compte initial, adresses des pages ; 5 tests des modèles d'IA (`ai-models.spec.ts`) : catégorie, ajout, suppression, LLM obligatoire, réinitialisation ; 8 tests unitaires du test réel des clés (`provider-key-tester.spec.ts`) : requête et authentification par fournisseur, 2xx, 401, 400 de Google, 429, réseau, délai, fournisseur non reconnu ; pipeline Documents et fiche modèle (`ai-models.spec.ts` réécrit, 8 tests ; `ai-pricing.spec.ts`, 4 tests unitaires : coût tokens / requêtes, tarif selon la catégorie, ancienneté, chaîne) | **12 suites, 144 tests verts** |
 | `test/browser/cockpit.e2e.ts` (Chromium, Playwright) | 23 vues, 48 écrans comparés au pixel près avec le frontend d'origine ; 20 contrôles de persistance après rechargement | **0 erreur JS, 20/20 contrôles** ; écart moyen 0,1 %, maximum 3,5 % (voir § 3.3) |
 | `test/browser/console.e2e.ts` | 12 menus comparés avec l'origine ; actions réelles (suspension, plafond, règle, snapshot, import ORION, clés, invitation, envoi de test) vérifiées après rechargement et dans l'API ; mode démonstration | **34/34 vérifications** ; écarts de 0 à 1,7 % |
 | `test/browser/cockpit.stores.ts` | Sonde : modifie chaque magasin synchronisé du Cockpit et liste les appels émis | Tous les appels aboutissent |
@@ -91,6 +91,14 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 - **Réseau** : le test part du serveur de l'API. Derrière un proxy d'entreprise non configuré pour Node.js, les fournisseurs apparaissent « injoignables », ce qui n'est pas une erreur de clé.
 - **Fournisseurs** : seuls les fournisseurs reconnus (Anthropic, OpenAI, Mistral AI, Google Gemini, Cohere, Groq, DeepSeek, xAI) sont testables ; un autre nom donne « Test impossible ». Un fournisseur compatible OpenAI hébergé ailleurs (adresse propre) demanderait un champ d'adresse, absent aujourd'hui.
 - **Génération** : la passerelle LLM reste un bouchon pour les réponses de Jev et les notifications ; seul le test des clés appelle réellement les fournisseurs.
+
+### 3.8 Pipeline Documents et fiche modèle
+
+- **Vérification navigateur (28/09/2026)** : affectation (chaîne Documents à trois étapes, listes filtrées par catégorie, étape 3 sur secours quand la clé Google est refusée, enregistrement avec la confirmation de la console), vue réseau (chaîne regroupée sous Documents), fiche modèle (champs selon la catégorie, Reranking à la requête, refus du serveur affiché sans fermer la fiche), mode démonstration (chaîne « Interrompue à l'étape 1 »). Aucune erreur JavaScript.
+- **Bouchon** : la vectorisation et le reclassement ne font pas de vraie recherche sémantique ; ils tracent seulement leur consommation. La Synthèse reste le bouchon de la passerelle LLM.
+- **Volume des étapes** : tant qu'aucun document n'est passé par la chaîne, les volumes (et donc les coûts estimés) de Vectorisation et de Reclassement valent zéro.
+- **Seuils d'ancienneté** : 12 et 24 mois, marqués « à confirmer » dans la spécification.
+- **Ta base locale** : la migration s'applique au prochain `demarrer-rise.cmd` ; sans modèle, la chaîne Documents est « Interrompue à l'étape 1 » jusqu'à l'ajout d'un Embedding, d'un Reranking et d'un LLM.
 
 ## 4. Questions ouvertes
 

@@ -159,3 +159,12 @@ Les captures sont écrites dans `OUT` (par défaut `<tmp>/rise-console-e2e`).
 
 - **Schéma des connexions** : sous un fournisseur en erreur, « <code> · clé révoquée » devient « <code> · clé refusée » (le code vient du fournisseur : 401, 403, 400…) ; sans code, « Injoignable » ou « Test impossible » selon la cause, au lieu de « Clé invalide ». Un emplacement, commenté `API :`.
 - **`admin-api.js`, message après un test** : « <fournisseur> refuse la clé (<code>) », ou « <fournisseur> : <cause> » quand le fournisseur est injoignable ou non reconnu. « Tester toutes les clés » compte les clés réellement acceptées.
+
+## Pipeline Documents et fiche modèle (28/09/2026, voir `CHANGES-ia.md`)
+
+- **En-tête** : `<script src="./ia-data.js">` (règles partagées des écrans IA).
+- **Fournisseurs et modèles** : le schéma sombre d'origine (`pv.wire`, méthode `wireVals`) est remplacé par `<dc-import name="Vue reseau IA">` ; clic sur un modèle → fiche modèle, sur un fournisseur → sa fiche, « Tester » / « Remplacer la clé » → actions existantes, « en ajouter un » → Affectation. Liste des modèles : tarif selon l'unité (€ / 1 000 req. pour un Reranking à la requête, « — » sans tarif de sortie) et badge d'ancienneté (« À surveiller », « Ancien »).
+- **Affectation des modèles** : le contenu d'origine (cartes et barre d'enregistrement) est remplacé par `<dc-import name="Affectation des modeles">` ; « Enregistrer » passe par la confirmation existante (`saveAsg`) puis `PUT /assignments`.
+- **Fiche modèle** : la modale « Ajouter / Modifier un modèle » (`dl.isModel`) est remplacée par `<dc-import name="Fiche modele">`, rendue hors du cadre des dialogues (elle a son propre voile) ; la fiche latérale d'un modèle ouvre désormais cette fiche. « Supprimer » ferme la fiche puis demande la confirmation existante.
+- **Données** : `FNS` décrit les cinq fonctions (catégorie, chaîne, étape) ; `CONSO` garde les trois lignes de consommation et de plafond (Insights, Gestion des données, Documents). Démonstration : Vectorisation et Reclassement sans modèle, Synthèse sur l'ancienne affectation de Documents. Coût estimé (`est`) selon l'unité ; état d'une fonction (`fnState`) selon sa catégorie ; libellé des étapes « Documents · Synthèse ».
+- **`admin-api.js`** : `toModel` lit date de sortie, max output tokens et tarif `{ unit, in, out, per1k }` ; `fns` charge `GET /functions` (volumes 30 jours) ; `saveIaModel` crée (`POST`) ou modifie (`PATCH`) et garde la fiche ouverte en cas de refus ; la ligne Documents de la consommation affiche le modèle de l'étape Synthèse.

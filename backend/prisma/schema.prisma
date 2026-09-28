@@ -1158,18 +1158,33 @@ enum ModelCategory {
   RERANKING
 }
 
+/// Unité de facturation : au token (€ / M tokens) ou à la requête (€ / 1 000 requêtes, Reranking).
+enum PriceUnit {
+  TOKENS
+  REQUESTS
+}
+
 model AiModel {
-  id              String        @id
-  providerId      String
-  name            String
-  description     String        @default("")
-  category        ModelCategory @default(LLM)
-  priceInPerMTok  Float
-  priceOutPerMTok Float
-  active          Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  version         Int      @default(1)
+  id                 String        @id
+  providerId         String
+  name               String
+  description        String        @default("")
+  category           ModelCategory @default(LLM)
+  /// Date de sortie du modèle (ancienneté) ; null pour les modèles saisis avant ce champ
+  releaseDate        DateTime?     @db.Date
+  /// Longueur maximale d'une réponse, LLM uniquement
+  maxOutputTokens    Int?
+  priceUnit          PriceUnit     @default(TOKENS)
+  /// € / M tokens en entrée (unité TOKENS)
+  priceInPerMTok     Float?
+  /// € / M tokens en sortie (LLM uniquement)
+  priceOutPerMTok    Float?
+  /// € / 1 000 requêtes (unité REQUESTS, Reranking)
+  pricePer1kRequests Float?
+  active             Boolean       @default(true)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  version            Int           @default(1)
 }
 
 model ModelAssignment {
@@ -1189,6 +1204,8 @@ model UsageRecord {
   providerId   String
   tokensIn     Int
   tokensOut    Int
+  /// Requêtes facturées (Reranking à la requête)
+  requests     Int         @default(0)
   costEur      Float
   fallbackUsed Boolean     @default(false)
   source       UsageSource

@@ -153,7 +153,12 @@ export const toAudit = a => ({ id: a.id, who: a.who, a: a.action, tg: a.target |
 /** Fournisseur → `{ id, n, pre, l4, st, lat, t, err }` (jamais de clé en clair). */
 export const toProv = p => ({ id: p.id, n: p.name, pre: p.keyPrefix || '', l4: p.keyLast4 || '', st: PROV_ST[p.status] || 'new', lat: p.latencyMs, t: D(p.lastTestedAt) || new Date(), err: p.lastError || '', bad: p.status === 'ERROR', testing: false });
 /** Modèle → `{ id, pv, n, d, pin, pout, act }`. */
-export const toModel = m => ({ id: m.id, pv: m.providerId, n: m.name, d: m.description || '', c: m.category || 'LLM', pin: m.priceIn, pout: m.priceOut, act: m.active });
+/** Modèle → `{ id, pv, n, d, c, rel, maxOut, unit, pin, pout, per1k, act }` (tarif selon l'unité : € / M tokens ou € / 1 000 requêtes). */
+export const toModel = m => { const pr = m.price || { unit: 'TOKENS', in: m.priceIn, out: m.priceOut, per1k: null }; return { id: m.id, pv: m.providerId, n: m.name, d: m.description || '', c: m.category || 'LLM', rel: m.releaseDate || '', maxOut: m.maxOutputTokens || null, unit: pr.unit, pin: pr.in, pout: pr.out, per1k: pr.per1k, act: m.active }; };
+/** Modèle des écrans IA (`ia-data.js`, catégorie en minuscules) → corps de `POST` / `PATCH /models`. */
+export const fromIaModel = im => { const p = im.price || {}, rq = p.unit === 'requests'; return { name: im.n, description: im.d || '', category: String(im.cat || 'llm').toUpperCase(), releaseDate: im.rel || null, maxOutputTokens: im.cat === 'llm' ? im.maxOut || null : null, price: rq ? { unit: 'REQUESTS', per1k: p.per1k } : { unit: 'TOKENS', in: p.in, out: im.cat === 'llm' ? p.out : null } }; };
+/** Volumes 30 jours par fonction (`GET /functions`) → `{ fnId: { tin, tout, req } }` en tokens et requêtes. */
+export const toVol = r => Object.fromEntries(r.functions.map(f => [f.id, { tin: f.volume30d.tokensIn, tout: f.volume30d.tokensOut, req: f.volume30d.requests }]));
 /** Affectations → `{ insights:{p,f}, crud:{p,f}, docs:{p,f} }`. */
 export const toAsg = list => Object.fromEntries(list.map(a => [a.functionId, { p: a.primary || '', f: a.fallback || '' }]));
 /** Affectation → corps de `PUT /assignments` ; une fonction sans modèle principal n'est pas envoyée (aucun LLM choisi). */
@@ -234,6 +239,7 @@ export function bindConsole(c) {
     audit: async () => ({ audit: (await get('/audit')).map(toAudit) }),
     providers: async () => ({ provs: (await get('/providers')).map(toProv) }),
     models: async () => ({ models: (await get('/models')).map(toModel) }),
+    fns: async () => ({ aiVol: toVol(await get('/functions')) }),
     asg: async () => { const asg = toAsg(await get('/assignments')), S = c.state, clean = !S.draft || JSON.stringify(S.asg) === JSON.stringify(S.draft); return clean ? { asg, draft: JSON.parse(JSON.stringify(asg)) } : { asg }; },
     usage: async () => {
       const m = await get('/usage/month'), from = addDays(m.today, -89), u = await get('/usage?from=' + from + '&to=' + m.today + '&groupBy=day');
@@ -255,8 +261,8 @@ export function bindConsole(c) {
     projects: async () => ({ apiCodes: (await get('/projects')).map(p => p.code) }),
   };
   const SECTION = {
-    overview: ['accounts', 'providers', 'month', 'audit', 'reqs', 'snaps'], users: ['accounts'], admins: ['admins', 'audit', 'accounts'], providers: ['providers', 'models', 'asg'],
-    assign: ['asg', 'models', 'providers', 'usage'], conso: ['month', 'providers'], snaps: ['snaps', 'sched'], notifs: ['rules', 'hist', 'models'], modules: ['mods', 'reqs'],
+    overview: ['accounts', 'providers', 'month', 'audit', 'reqs', 'snaps', 'models', 'asg', 'fns'], users: ['accounts'], admins: ['admins', 'audit', 'accounts'], providers: ['providers', 'models', 'asg', 'fns'],
+    assign: ['asg', 'models', 'providers', 'usage', 'fns'], conso: ['month', 'providers'], snaps: ['snaps', 'sched'], notifs: ['rules', 'hist', 'models'], modules: ['mods', 'reqs'],
     init: ['projects'], library: ['projects'], profil: ['prof', 'sess', 'audit'],
   };
   async function load(keys) {
@@ -419,6 +425,16 @@ export function bindConsole(c) {
     } catch (e) { fail(e); }
   };
   // Suppression après la confirmation de l'écran ; refusée par le serveur si le modèle a servi (409 IN_USE).
+  // Fiche modèle (Fiche modele.dc.html) : POST /models (ajout) ou PATCH /models/{id} ; la fiche reste ouverte en cas de refus.
+  c.saveIaModel = async im => {
+    const body = fromIaModel(im);
+    try {
+      if (!im.id) { const m = toModel(await post('/models', { providerId: im.pv, ...body })); set0(st => ({ models: [...st.models, m], fm: null })); toast(m.n + ' ajouté'); }
+      else { const m = toModel(await patch('/models/' + im.id, body)); repl('models', m.id, m); set0({ fm: null }); toast('Modèle mis à jour'); }
+      touch(); load(['asg', 'fns']).catch(() => {});
+      return true;
+    } catch (e) { fail(e); return false; }
+  };
   c.delModel = gateAsk('delModel', id => del('/models/' + id).then(() => () => load(['models', 'asg']).catch(() => {})));
   c.saveFiche = async () => {
     const S = c.state, f = S.fF, fe = {};
@@ -675,7 +691,7 @@ export function bindConso(c) {
     const sumOf = (arr, pick) => arr.reduce((a, d) => a + (d._d ? pick(d._d) : 0), 0);
     // Modèle réellement servi par fonction (principal, ou secours si le principal est indisponible).
     const M = id => models.find(m => m.id === id) || { name: id, providerId: '' };
-    const served = k => { const a = asg.find(x => x.functionId === k) || {}; const fb = a.state === 'FALLBACK'; return { m: M(fb ? a.fallback : a.primary), fb }; };
+    const served = k => { const a = asg.find(x => x.functionId === (k === 'docs' ? 'doc_syn' : k)) || {}; const fb = a.state === 'FALLBACK'; return { m: M(fb ? a.fallback : a.primary), fb }; };
     const FNI = ['insights', 'docs', 'crud'];
     (v.fns || []).forEach((f, i) => { const s = served(FNI[i]); f.model = s.m.name + (s.fb ? ' · secours' : ''); f.logo = 'width:16px;height:16px;flex:none;background:url("' + (LOGO[s.m.providerId] || '') + '") center/contain no-repeat'; });
     (v.rows || []).forEach((r, i) => { if (!i) return; const s = served(['all', 'insights', 'docs', 'crud'][i]); r.sub = (s.fb ? 'Secours · ' : '') + s.m.name; r.logo = 'width:14px;height:14px;flex:none;background:url("' + (LOGO[s.m.providerId] || '') + '") center/contain no-repeat'; });

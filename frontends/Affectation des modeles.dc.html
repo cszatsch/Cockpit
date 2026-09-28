@@ -13,8 +13,8 @@ html,body{margin:0;background:#f2f6f5;font-family:'Plus Jakarta Sans',sans-serif
 select:focus-visible,button:focus-visible{outline:2px solid #1d8f86;outline-offset:2px}
 </style><script src="./ia-data.js"></script></helmet>
 
-<div data-screen-label="Affectation des modèles" style="max-width:1160px;margin:0 auto;padding:36px 40px 40px;display:flex;flex-direction:column;gap:14px">
-  <div style="margin-bottom:8px"><div style="font-size:11px;font-weight:800;letter-spacing:.16em;color:#1d8f86">INTELLIGENCE ARTIFICIELLE</div><h1 style="margin:4px 0 0;font-size:30px;font-weight:800;font-style:italic;letter-spacing:-.03em">Affectation des modèles</h1><div style="font-size:13px;color:#43586a;margin-top:4px">Un modèle principal et un modèle de secours pour chaque fonction IA du Cockpit.</div></div>
+<div data-screen-label="Affectation des modèles" style="{{ wrapSt }}">
+  <sc-if value="{{ standalone }}" hint-placeholder-val="{{ true }}"><div style="margin-bottom:8px"><div style="font-size:11px;font-weight:800;letter-spacing:.16em;color:#1d8f86">INTELLIGENCE ARTIFICIELLE</div><h1 style="margin:4px 0 0;font-size:30px;font-weight:800;font-style:italic;letter-spacing:-.03em">Affectation des modèles</h1><div style="font-size:13px;color:#43586a;margin-top:4px">Un modèle principal et un modèle de secours pour chaque fonction IA du Cockpit.</div></div></sc-if>
 
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:14px">
     <sc-for list="{{ solo }}" as="c" hint-placeholder-count="2">
@@ -73,18 +73,20 @@ select:focus-visible,button:focus-visible{outline:2px solid #1d8f86;outline-offs
   </sc-if>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;googleKeyOk&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Simulation&quot;},&quot;assignment&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Record&lt;string,{p:string,f:string}&gt;&quot;},&quot;providers&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Provider[]&quot;},&quot;models&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Model[]&quot;},&quot;functions&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;AiFunction[]&quot;},&quot;groups&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Record&lt;string,{n:string,d:string}&gt;&quot;},&quot;onSave&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(assignment) =&gt; void&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;googleKeyOk&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Simulation&quot;},&quot;assignment&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Record&lt;string,{p:string,f:string}&gt;&quot;},&quot;providers&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Provider[]&quot;},&quot;models&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Model[]&quot;},&quot;functions&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;AiFunction[]&quot;},&quot;groups&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Record&lt;string,{n:string,d:string}&gt;&quot;},&quot;onSave&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(assignment) =&gt; void&quot;},&quot;embedded&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;boolean&quot;}}">
 class Component extends DCLogic {
   state = { asg: null, draft: null };
   componentDidMount() { if (!window.RISE_IA) this._t = setInterval(() => { if (window.RISE_IA) { clearInterval(this._t); this.forceUpdate(); } }, 30); }
   componentWillUnmount() { clearInterval(this._t); }
+  // Intégration : l'affectation enregistrée vient du parent ; son changement (serveur) efface le brouillon.
+  componentDidUpdate(prev) { if (prev.assignment !== this.props.assignment && this.state.draft) this.setState({ draft: null }); }
 
   data() {
     const D = window.RISE_IA, P = this.props;
     const provs = (P.providers ?? D.PROVIDERS).map(p => p.id === 'google' && P.googleKeyOk ? { ...p, st: 'ok', lat: 431, err: null } : p);
     return { provs, models: P.models ?? D.MODELS, fns: P.functions ?? D.FUNCTIONS, groups: P.groups ?? D.GROUPS };
   }
-  saved() { return this.state.asg || this.props.assignment || window.RISE_IA.ASSIGN; }
+  saved() { return this.props.assignment || this.state.asg || window.RISE_IA.ASSIGN; }
   pick(id, slot, v) { this.setState(s => { const d = JSON.parse(JSON.stringify(s.draft || this.saved())); d[id] = { ...(d[id] || {}), [slot]: v }; if (slot === 'p' && d[id].f === v) d[id].f = ''; return { draft: d }; }); }
 
   sel(fn, slot, a, models, provs) {
@@ -121,7 +123,8 @@ class Component extends DCLogic {
   vol(fn) { const D = window.RISE_IA, v = fn.vol || {}; return v.req != null ? D.nf(v.req, 0) + ' requêtes · 30 j' : D.nf(v.in || 0, 1) + ' M entrée' + (v.out != null ? ' · ' + D.nf(v.out, 1) + ' M sortie' : '') + ' · 30 j'; }
 
   renderVals() {
-    const D = window.RISE_IA; if (!D) return { solo: [], groups: [], dirty: false };
+    const D = window.RISE_IA, E = !!this.props.embedded, wrapSt = E ? 'display:flex;flex-direction:column;gap:14px' : 'max-width:1160px;margin:0 auto;padding:36px 40px 40px;display:flex;flex-direction:column;gap:14px';
+    if (!D) return { solo: [], groups: [], dirty: false, standalone: !E, wrapSt };
     const { provs, models, fns, groups } = this.data(), saved = this.saved(), draft = this.state.draft || saved;
     const R = D.states(fns, draft, models, provs), L = { ok: 'Opérationnel', fallback: 'Secours en service', down: 'Indisponible', blocked: 'Suspendue' };
     const setF = (id, v) => () => this.pick(id, 'f', v);
@@ -169,9 +172,10 @@ class Component extends DCLogic {
     const tot = x => fns.reduce((s, f) => s + (D.cost(f, D.model(models, (x[f.id] || {}).p)) || 0), 0);
     const dirty = !!this.state.draft && JSON.stringify(this.state.draft) !== JSON.stringify(saved);
     return {
-      solo, groups: gl, dirty, tot0: D.eur(tot(saved)), tot1: D.eur(tot(draft)),
+      solo, groups: gl, dirty, tot0: D.eur(tot(saved)), tot1: D.eur(tot(draft)), standalone: !E, wrapSt,
       cancel: () => this.setState({ draft: null }),
-      save: () => { const d = this.state.draft; this.setState({ asg: d, draft: null }); this.props.onSave?.(d); }
+      // Avec onSave : le parent confirme et enregistre ; le brouillon reste affiché jusqu'à la nouvelle affectation.
+      save: () => { const d = this.state.draft; if (this.props.onSave) return this.props.onSave(d); this.setState({ asg: d, draft: null }); }
     };
   }
 }

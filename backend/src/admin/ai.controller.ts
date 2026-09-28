@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { AdminOnly, Actor, CurrentActor } from '../core/auth/auth';
 import { AuditService, WriteCtx } from '../core/audit.service';
 import { PrismaService } from '../core/prisma.service';
-import { LlmService, AI_FUNCTIONS } from '../core/llm.service';
+import { LlmService, AI_FUNCTIONS, AI_GROUPS, aiFunction } from '../core/llm.service';
 import { JobsService } from '../core/jobs.service';
 import { encryptSecret, keyFingerprint } from '../core/crypto';
 import { badRequest, businessRule, conflict, inUse, notFound, Usage } from '../core/errors';
@@ -12,6 +12,8 @@ import { parse } from '../core/http';
 import { adminCtx } from './profiles.service';
 import { round2, UsageService } from './usage.service';
 import { addDays } from '../domain/dates';
+import { AiModel } from '@prisma/client';
+import { chainStates, costOf, ModelCategory, normalizePrice, Price, priceOf, Volume } from '../domain/ai-pricing';
 
 /** Fréquence du test automatique des clés (brief Console § 10.1). */
 export const KEY_TEST_CRON = '0 */2 * * *';
@@ -24,15 +26,29 @@ export const MODEL_CATEGORIES = ['LLM', 'EMBEDDING', 'RERANKING'] as const;
 export const GENERATIVE_CATEGORY = 'LLM';
 const MODEL_CATEGORY_LABEL: Record<string, string> = { LLM: 'LLM', EMBEDDING: 'Embedding', RERANKING: 'Reranking' };
 const Category = z.preprocess((v) => (typeof v === 'string' ? v.toUpperCase() : v), z.enum(MODEL_CATEGORIES, { errorMap: () => ({ message: 'LLM, Embedding ou Reranking' }) }));
+const Money = z.number().min(0, 'montant invalide');
+/** Tarif : unité (TOKENS : € / M tokens ; REQUESTS : € / 1 000 requêtes) et montants selon la catégorie. */
+const PriceBody = z.object({
+  unit: z.preprocess((v) => (typeof v === 'string' ? v.toUpperCase() : v), z.enum(['TOKENS', 'REQUESTS'])),
+  in: Money.nullable().optional(),
+  out: Money.nullable().optional(),
+  per1k: Money.nullable().optional(),
+}).strict();
 const ModelFields = z.object({
   name: z.string().trim().min(1, 'obligatoire').max(80),
   description: z.string().max(300),
   category: Category,
-  priceIn: z.number().min(0, 'montant invalide'),
-  priceOut: z.number().min(0, 'montant invalide'),
+  /** Date de sortie AAAA-MM-JJ. */
+  releaseDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'date AAAA-MM-JJ').nullable(),
+  /** Longueur maximale d'une réponse (LLM). */
+  maxOutputTokens: z.number().int('nombre entier').positive('entier > 0').max(10_000_000).nullable(),
+  price: PriceBody,
+  /** Tarifs au token à plat (compatibilité avec la première version de l'API). */
+  priceIn: Money,
+  priceOut: Money,
   active: z.boolean(),
-});
-const ModelCreate = ModelFields.partial({ description: true, active: true }).extend({ providerId: z.string().min(1, 'obligatoire') }).strict();
+}).partial();
+const ModelCreate = ModelFields.extend({ name: ModelFields.shape.name.unwrap(), category: Category, providerId: z.string().min(1, 'obligatoire') }).strict();
 
 /** Identifiant lisible d'un modèle : nom sans accents ni ponctuation (« Claude Sonnet 4.5 » → claude-sonnet-4-5). */
 function modelSlug(name: string): string {
@@ -68,7 +84,7 @@ export class AiController implements OnModuleInit {
       const onFallback = [];
       for (const a of asg) {
         const primary = models.find((m) => m.id === a.primaryModelId);
-        if (primary?.providerId === p.id && p.status !== 'OK' && (await this.usage.functionState(a.primaryModelId, a.fallbackModelId)) === 'FALLBACK') onFallback.push(a.functionId);
+        if (primary?.providerId === p.id && p.status !== 'OK' && (await this.usage.functionState(a.primaryModelId, a.fallbackModelId, aiFunction(a.functionId)?.category)) === 'FALLBACK') onFallback.push(a.functionId);
       }
       out.push({ id: p.id, name: p.name, keyPrefix: p.keyPrefix, keyLast4: p.keyLast4, hasKey: !!p.keyCipher, status: p.status, latencyMs: p.latencyMs, lastTestedAt: p.lastTestedAt, lastError: p.lastError, functionsOnFallback: onFallback, modelCount: models.filter((m) => m.providerId === p.id).length, version: p.version });
     }
@@ -143,14 +159,66 @@ export class AiController implements OnModuleInit {
 
   // ───────────── Modèles ─────────────
 
-  private modelView(m: any) {
-    return { id: m.id, providerId: m.providerId, name: m.name, description: m.description, category: m.category, priceIn: m.priceInPerMTok, priceOut: m.priceOutPerMTok, active: m.active, version: m.version };
+  private modelView(m: AiModel) {
+    const price = priceOf(m);
+    return {
+      id: m.id, providerId: m.providerId, name: m.name, description: m.description, category: m.category,
+      releaseDate: m.releaseDate ? m.releaseDate.toISOString().slice(0, 10) : null,
+      maxOutputTokens: m.maxOutputTokens,
+      price,
+      // Compatibilité : tarifs au token à plat (null si sans objet).
+      priceIn: m.priceInPerMTok, priceOut: m.priceOutPerMTok,
+      active: m.active, version: m.version,
+    };
   }
 
   @Get('models')
   async models(@Query('provider') provider?: string) {
     const rows = await this.prisma.aiModel.findMany({ where: provider ? { providerId: provider } : {}, orderBy: { createdAt: 'asc' } });
     return rows.map((m) => this.modelView(m));
+  }
+
+  /**
+   * État final d'un modèle (création, ou modification fusionnée avec l'existant), contrôlé selon sa catégorie :
+   * date de sortie (pas dans le futur ; obligatoire à la création), max output tokens (LLM seulement,
+   * entier > 0, obligatoire pour un LLM créé), tarif adapté (`normalizePrice`).
+   */
+  private checkModel(input: z.infer<typeof ModelFields>, before: AiModel | null) {
+    const category = (input.category ?? before?.category ?? 'LLM') as ModelCategory;
+    const fields: Record<string, string> = {};
+    const release = input.releaseDate !== undefined ? input.releaseDate : before?.releaseDate ? before.releaseDate.toISOString().slice(0, 10) : null;
+    if (!before && !release) fields.releaseDate = 'obligatoire';
+    if (release && release > new Date().toISOString().slice(0, 10)) fields.releaseDate = 'ne peut pas être dans le futur';
+    let maxOut = input.maxOutputTokens !== undefined ? input.maxOutputTokens : (before?.maxOutputTokens ?? null);
+    if (category !== 'LLM') maxOut = null;
+    else if (!before && maxOut == null) fields.maxOutputTokens = 'obligatoire pour un LLM';
+    const priceIn: Partial<Price> = input.price
+      ? { unit: input.price.unit, in: input.price.in ?? null, out: input.price.out ?? null, per1k: input.price.per1k ?? null }
+      : {
+          unit: (before?.priceUnit as Price['unit']) ?? 'TOKENS',
+          in: input.priceIn !== undefined ? input.priceIn : (before?.priceInPerMTok ?? null),
+          out: input.priceOut !== undefined ? input.priceOut : (before?.priceOutPerMTok ?? null),
+          per1k: before?.pricePer1kRequests ?? null,
+        };
+    // Changement de catégorie vers un tarif au token sans sortie : la sortie d'un ancien LLM est abandonnée.
+    const priced = normalizePrice(category, priceIn);
+    if ('errors' in priced) Object.assign(fields, priced.errors);
+    if (Object.keys(fields).length) throw badRequest('Modèle invalide', fields);
+    const price = (priced as { price: Price }).price;
+    return {
+      category,
+      releaseDate: release ? new Date(release) : null,
+      maxOutputTokens: maxOut,
+      priceUnit: price.unit,
+      priceInPerMTok: price.in,
+      priceOutPerMTok: price.out,
+      pricePer1kRequests: price.per1k,
+    };
+  }
+
+  private priceText(m: AiModel) {
+    const p = priceOf(m);
+    return p.unit === 'REQUESTS' ? `${p.per1k} € / 1 000 requêtes` : p.out != null ? `${p.in}/${p.out} €/MTok` : `${p.in} €/MTok en entrée`;
   }
 
   /** Ajout d'un modèle à un fournisseur existant (action sensible, tracée). */
@@ -162,15 +230,14 @@ export class AiController implements OnModuleInit {
     if (await this.prisma.aiModel.findFirst({ where: { providerId: input.providerId, name: { equals: input.name, mode: 'insensitive' } } })) {
       throw conflict('DUPLICATE', `${provider.name} a déjà un modèle « ${input.name} »`);
     }
+    const data = this.checkModel(input as z.infer<typeof ModelFields>, null);
     const base = modelSlug(input.name);
     let id = base;
     for (let n = 2; await this.prisma.aiModel.findUnique({ where: { id } }); n++) id = `${base}-${n}`;
     const row = await this.prisma.$transaction(async (db) => {
-      const row = await db.aiModel.create({
-        data: { id, providerId: input.providerId, name: input.name, description: input.description ?? '', category: input.category, priceInPerMTok: input.priceIn, priceOutPerMTok: input.priceOut, active: input.active ?? true },
-      });
+      const row = await db.aiModel.create({ data: { id, providerId: input.providerId, name: input.name, description: input.description ?? '', active: input.active ?? true, ...data } });
       await this.audit.action(db, adminCtx(actor), {
-        action: 'Ajout d’un modèle', target: `${row.name} · ${provider.name} · ${MODEL_CATEGORY_LABEL[row.category]} · ${row.priceInPerMTok}/${row.priceOutPerMTok} €/MTok`,
+        action: 'Ajout d’un modèle', target: `${row.name} · ${provider.name} · ${MODEL_CATEGORY_LABEL[row.category]} · ${this.priceText(row)}`,
         severity: 'SENSITIVE', entityType: 'AiModel', entityId: id,
       });
       return row;
@@ -182,7 +249,7 @@ export class AiController implements OnModuleInit {
   private async modelUsages(id: string): Promise<Usage[]> {
     const out: Usage[] = [];
     for (const a of await this.prisma.modelAssignment.findMany({ where: { OR: [{ primaryModelId: id }, { fallbackModelId: id }] } })) {
-      const fn = AI_FUNCTIONS.find((f) => f.id === a.functionId)?.short ?? a.functionId;
+      const fn = aiFunction(a.functionId)?.short ?? a.functionId;
       out.push({ entityType: 'MODEL_ASSIGNMENT', id: a.functionId, label: `${a.primaryModelId === id ? 'Principal' : 'Secours'} de ${fn}` });
     }
     for (const r of await this.prisma.notificationRule.findMany({ where: { modelId: id }, select: { id: true, name: true } })) {
@@ -209,96 +276,144 @@ export class AiController implements OnModuleInit {
 
   @Patch('models/:id')
   async patchModel(@CurrentActor() actor: Actor, @Param('id') id: string, @Body() body: unknown) {
-    const input = parse(ModelFields.partial().strict(), body);
+    const input = parse(ModelFields.strict(), body);
     const m = await this.prisma.aiModel.findUnique({ where: { id } });
     if (!m) throw notFound('Modèle introuvable');
     if (input.active === false && m.active) {
       // § 7.3 : chaque fonction garde un modèle principal actif.
       const uses = await this.prisma.modelAssignment.findMany({ where: { primaryModelId: id } });
-      if (uses.length) throw conflict('MODEL_IN_USE', `Modèle principal de : ${uses.map((u) => AI_FUNCTIONS.find((f) => f.id === u.functionId)?.short).join(', ')} — changez d'abord l'affectation`, uses.map((u) => ({ entityType: 'MODEL_ASSIGNMENT', id: u.functionId, label: `Principal de ${u.functionId}` })));
+      if (uses.length) throw conflict('MODEL_IN_USE', `Modèle principal de : ${uses.map((u) => aiFunction(u.functionId)?.short).join(', ')} — changez d'abord l'affectation`, uses.map((u) => ({ entityType: 'MODEL_ASSIGNMENT', id: u.functionId, label: `Principal de ${u.functionId}` })));
     }
-    if (input.category && input.category !== GENERATIVE_CATEGORY && m.category === GENERATIVE_CATEGORY) {
-      // Les fonctions du Cockpit et les notifications génèrent du texte : leur modèle reste un LLM.
-      const usages = (await this.modelUsages(id)).filter((u) => u.entityType !== 'USAGE_RECORD');
-      if (usages.length) throw conflict('MODEL_IN_USE', `${m.name} est utilisé comme LLM : ${usages.map((u) => u.label).join(', ')} — changez d'abord l'affectation`, usages);
+    if (input.category && input.category !== m.category) {
+      // Une fonction n'accepte qu'une catégorie ; une règle de notification rédige avec un LLM.
+      const usages = (await this.modelUsages(id)).filter((u) => (u.entityType === 'MODEL_ASSIGNMENT' && aiFunction(u.id)?.category !== input.category) || (u.entityType === 'NOTIFICATION_RULE' && input.category !== 'LLM'));
+      if (usages.length) throw conflict('MODEL_IN_USE', `${m.name} est utilisé comme ${MODEL_CATEGORY_LABEL[m.category]} : ${usages.map((u) => u.label).join(', ')} — changez d'abord l'affectation`, usages);
     }
-    const priceChanged = (input.priceIn !== undefined && input.priceIn !== m.priceInPerMTok) || (input.priceOut !== undefined && input.priceOut !== m.priceOutPerMTok);
+    const data = this.checkModel(input, m);
+    const priceChanged = data.priceUnit !== m.priceUnit || data.priceInPerMTok !== m.priceInPerMTok || data.priceOutPerMTok !== m.priceOutPerMTok || data.pricePer1kRequests !== m.pricePer1kRequests;
     const row = await this.prisma.$transaction(async (db) => {
-      const row = await db.aiModel.update({ where: { id }, data: { name: input.name, description: input.description, category: input.category, priceInPerMTok: input.priceIn, priceOutPerMTok: input.priceOut, active: input.active, version: { increment: 1 } } });
+      const row = await db.aiModel.update({ where: { id }, data: { name: input.name, description: input.description, active: input.active, ...data, version: { increment: 1 } } });
       const ctx = adminCtx(actor);
-      if (priceChanged) await this.audit.action(db, ctx, { action: 'Modification du tarif d’un modèle', target: `${m.name} · ${m.priceInPerMTok}/${m.priceOutPerMTok} → ${row.priceInPerMTok}/${row.priceOutPerMTok} €/MTok`, severity: 'SENSITIVE', entityType: 'AiModel', entityId: id });
+      if (priceChanged) await this.audit.action(db, ctx, { action: 'Modification du tarif d’un modèle', target: `${m.name} · ${this.priceText(m)} → ${this.priceText(row)}`, severity: 'SENSITIVE', entityType: 'AiModel', entityId: id });
       if (input.active !== undefined && input.active !== m.active) await this.audit.action(db, ctx, { action: input.active ? 'Activation d’un modèle' : 'Désactivation d’un modèle', target: m.name, severity: 'SENSITIVE', entityType: 'AiModel', entityId: id });
-      if ((input.name && input.name !== m.name) || (input.description !== undefined && input.description !== m.description)) await this.audit.action(db, ctx, { action: 'Modification d’un modèle', target: row.name, severity: 'INFO', entityType: 'AiModel', entityId: id });
+      const infoChanged = (input.name && input.name !== m.name) || (input.description !== undefined && input.description !== m.description)
+        || +(row.releaseDate ?? 0) !== +(m.releaseDate ?? 0) || row.maxOutputTokens !== m.maxOutputTokens;
+      if (infoChanged) await this.audit.action(db, ctx, { action: 'Modification d’un modèle', target: row.name, severity: 'INFO', entityType: 'AiModel', entityId: id });
       if (input.category && input.category !== m.category) await this.audit.action(db, ctx, { action: 'Changement de catégorie d’un modèle', target: `${row.name} · ${MODEL_CATEGORY_LABEL[m.category]} → ${MODEL_CATEGORY_LABEL[row.category]}`, severity: 'SENSITIVE', entityType: 'AiModel', entityId: id });
       return row;
     });
     return this.modelView(row);
   }
 
-  // ───────────── Affectation ─────────────
+  // ───────────── Fonctions et affectation ─────────────
+
+  /** Volume réel des 30 derniers jours par fonction : tokens en entrée, en sortie et requêtes. */
+  private async volumes30d() {
+    const today = this.usage.todayIso();
+    const rows = await this.usage.records(addDays(today, -29), today);
+    const out: Record<string, Volume> = {};
+    for (const f of AI_FUNCTIONS) out[f.id] = { tokensIn: 0, tokensOut: 0, requests: 0 };
+    for (const r of rows) {
+      const v = out[r.functionId];
+      if (!v) continue;
+      v.tokensIn += r.tokensIn;
+      v.tokensOut += r.tokensOut;
+      v.requests += r.requests;
+    }
+    return { rows, volumes: out };
+  }
+
+  /** Fonctions IA : catégorie acceptée, chaîne et rang, volume réel des 30 derniers jours (spécification IA § 2). */
+  @Get('functions')
+  async functions() {
+    const { volumes } = await this.volumes30d();
+    return {
+      functions: AI_FUNCTIONS.map((f) => ({ id: f.id, name: f.name, short: f.short, description: f.description, category: f.category, group: f.group ?? null, step: f.step ?? null, budgetLine: f.budgetLine, volume30d: volumes[f.id] })),
+      groups: Object.entries(AI_GROUPS).map(([id, g]) => ({ id, name: g.name, description: g.description })),
+    };
+  }
 
   @Get('assignments')
   async assignments() {
     const [asg, models] = await Promise.all([this.prisma.modelAssignment.findMany(), this.prisma.aiModel.findMany()]);
-    const today = this.usage.todayIso();
-    const rows = await this.usage.records(addDays(today, -29), today);
-    return Promise.all(
+    const { rows, volumes } = await this.volumes30d();
+    const est = (fid: string, mid: string | null | undefined) => {
+      const m = models.find((x) => x.id === mid);
+      return m ? round2(costOf(m, volumes[fid])) : null;
+    };
+    const raw = await Promise.all(
       AI_FUNCTIONS.map(async (f) => {
         const a = asg.find((x) => x.functionId === f.id);
-        const fr = rows.filter((r) => r.functionId === f.id);
-        const tin = fr.reduce((s, r) => s + r.tokensIn, 0);
-        const tout = fr.reduce((s, r) => s + r.tokensOut, 0);
-        const byModel = [...new Set(fr.map((r) => r.modelId))].map((mid) => {
-          const mr = fr.filter((r) => r.modelId === mid);
-          return { modelId: mid, costEur: round2(mr.reduce((s, r) => s + r.costEur, 0)), tokensIn: mr.reduce((s, r) => s + r.tokensIn, 0), tokensOut: mr.reduce((s, r) => s + r.tokensOut, 0) };
-        });
-        // Coût mensuel estimé = volume des 30 derniers jours × tarif du modèle, entrée et sortie séparément (§ 7.3).
-        const est = (mid: string | null | undefined) => {
-          const m = models.find((x) => x.id === mid);
-          return m ? round2((tin * m.priceInPerMTok + tout * m.priceOutPerMTok) / 1e6) : null;
-        };
-        return {
-          functionId: f.id,
-          name: f.name,
-          short: f.short,
-          description: f.description,
-          primary: a?.primaryModelId ?? null,
-          fallback: a?.fallbackModelId ?? null,
-          state: a ? await this.usage.functionState(a.primaryModelId, a.fallbackModelId) : 'UNAVAILABLE',
-          volume30d: { tokensIn: tin, tokensOut: tout },
-          estimatedMonthlyCost: { primary: est(a?.primaryModelId), fallback: est(a?.fallbackModelId) },
-          costByModel: byModel,
-          version: a?.version ?? 0,
-        };
+        return a ? this.usage.functionState(a.primaryModelId, a.fallbackModelId, f.category) : ('UNAVAILABLE' as const);
       }),
     );
+    // Chaîne : une étape indisponible suspend les suivantes (BLOCKED).
+    const state: Record<string, string> = {};
+    AI_FUNCTIONS.forEach((f, i) => (state[f.id] = raw[i]));
+    for (const g of Object.keys(AI_GROUPS)) {
+      const steps = AI_FUNCTIONS.filter((f) => f.group === g).sort((a, b) => a.step! - b.step!);
+      chainStates(steps.map((f) => state[f.id] as 'NOMINAL' | 'FALLBACK' | 'UNAVAILABLE')).forEach((s, i) => (state[steps[i].id] = s));
+    }
+    return AI_FUNCTIONS.map((f) => {
+      const a = asg.find((x) => x.functionId === f.id);
+      const fr = rows.filter((r) => r.functionId === f.id);
+      const byModel = [...new Set(fr.map((r) => r.modelId))].map((mid) => {
+        const mr = fr.filter((r) => r.modelId === mid);
+        return { modelId: mid, costEur: round2(mr.reduce((s, r) => s + r.costEur, 0)), tokensIn: mr.reduce((s, r) => s + r.tokensIn, 0), tokensOut: mr.reduce((s, r) => s + r.tokensOut, 0), requests: mr.reduce((s, r) => s + r.requests, 0) };
+      });
+      return {
+        functionId: f.id,
+        name: f.name,
+        short: f.short,
+        description: f.description,
+        category: f.category,
+        group: f.group ?? null,
+        step: f.step ?? null,
+        primary: a?.primaryModelId ?? null,
+        fallback: a?.fallbackModelId ?? null,
+        state: state[f.id],
+        volume30d: volumes[f.id],
+        // Coût mensuel estimé = volume des 30 derniers jours × tarif du modèle (tokens ou requêtes, § 3).
+        estimatedMonthlyCost: { primary: est(f.id, a?.primaryModelId), fallback: est(f.id, a?.fallbackModelId) },
+        costByModel: byModel,
+        version: a?.version ?? 0,
+      };
+    });
   }
 
+  /**
+   * Affectation : un principal et un secours facultatif par fonction, de la catégorie de la fonction (422 sinon),
+   * principal actif, secours différent du principal. Une entrée d'audit par changement (principal, secours).
+   */
   @Put('assignments')
   async putAssignments(@CurrentActor() actor: Actor, @Body() body: unknown) {
     const pair = z.object({ primary: z.string().min(1), fallback: z.string().min(1).nullable().optional() }).strict();
-    const input = parse(z.object({ insights: pair, crud: pair, docs: pair }).partial().strict(), body);
+    const input = parse(z.object(Object.fromEntries(AI_FUNCTIONS.map((f) => [f.id, pair]))).partial().strict(), body) as Record<string, z.infer<typeof pair> | undefined>;
     const models = await this.prisma.aiModel.findMany();
     for (const [fn, v] of Object.entries(input)) {
-      const pm = models.find((m) => m.id === v!.primary);
+      if (!v) continue;
+      const cat = aiFunction(fn)!.category;
+      const pm = models.find((m) => m.id === v.primary);
       if (!pm) throw badRequest('Modèle inconnu', { [`${fn}.primary`]: 'introuvable' });
       if (!pm.active) throw businessRule('Le modèle principal doit être actif', { [`${fn}.primary`]: `${pm.name} est inactif` });
-      if (pm.category !== GENERATIVE_CATEGORY) throw businessRule('Une fonction du Cockpit n’accepte qu’un LLM', { [`${fn}.primary`]: `${pm.name} est un modèle ${MODEL_CATEGORY_LABEL[pm.category]}` });
-      if (v!.fallback) {
-        const fm = models.find((m) => m.id === v!.fallback);
+      if (pm.category !== cat) throw businessRule(`Cette fonction n’accepte qu’un modèle ${MODEL_CATEGORY_LABEL[cat]}`, { [`${fn}.primary`]: `${pm.name} est un modèle ${MODEL_CATEGORY_LABEL[pm.category]}` });
+      if (v.fallback) {
+        const fm = models.find((m) => m.id === v.fallback);
         if (!fm) throw badRequest('Modèle inconnu', { [`${fn}.fallback`]: 'introuvable' });
-        if (fm.category !== GENERATIVE_CATEGORY) throw businessRule('Une fonction du Cockpit n’accepte qu’un LLM', { [`${fn}.fallback`]: `${fm.name} est un modèle ${MODEL_CATEGORY_LABEL[fm.category]}` });
-        if (v!.fallback === v!.primary) throw businessRule('Le secours doit différer du principal', { [`${fn}.fallback`]: 'identique au principal' });
+        if (v.fallback === v.primary) throw businessRule('Le secours doit différer du principal', { [`${fn}.fallback`]: 'identique au principal' });
+        if (fm.category !== cat) throw businessRule(`Cette fonction n’accepte qu’un modèle ${MODEL_CATEGORY_LABEL[cat]}`, { [`${fn}.fallback`]: `${fm.name} est un modèle ${MODEL_CATEGORY_LABEL[fm.category]}` });
       }
     }
     await this.prisma.$transaction(async (db) => {
       for (const [fn, v] of Object.entries(input)) {
+        if (!v) continue;
         const before = await db.modelAssignment.findUnique({ where: { functionId: fn } });
-        await db.modelAssignment.upsert({ where: { functionId: fn }, create: { functionId: fn, primaryModelId: v!.primary, fallbackModelId: v!.fallback ?? null }, update: { primaryModelId: v!.primary, fallbackModelId: v!.fallback ?? null, version: { increment: 1 } } });
-        const label = AI_FUNCTIONS.find((f) => f.id === fn)?.name ?? fn;
+        await db.modelAssignment.upsert({ where: { functionId: fn }, create: { functionId: fn, primaryModelId: v.primary, fallbackModelId: v.fallback ?? null }, update: { primaryModelId: v.primary, fallbackModelId: v.fallback ?? null, version: { increment: 1 } } });
+        const f = aiFunction(fn)!;
+        const label = f.group ? `${AI_GROUPS[f.group].name} · étape ${f.step} · ${f.name}` : f.name;
         const name = (id: string | null | undefined) => models.find((m) => m.id === id)?.name ?? '—';
-        if (before?.primaryModelId !== v!.primary) await this.audit.action(db, adminCtx(actor), { action: 'Changement de modèle principal', target: `${label} → ${name(v!.primary)}`, severity: 'SENSITIVE', entityType: 'ModelAssignment', entityId: fn });
-        if ((before?.fallbackModelId ?? null) !== (v!.fallback ?? null)) await this.audit.action(db, adminCtx(actor), { action: 'Changement de modèle de secours', target: `${label} → ${name(v!.fallback)}`, severity: 'SENSITIVE', entityType: 'ModelAssignment', entityId: fn });
+        if (before?.primaryModelId !== v.primary) await this.audit.action(db, adminCtx(actor), { action: 'Changement de modèle principal', target: `${label} → ${name(v.primary)}`, severity: 'SENSITIVE', entityType: 'ModelAssignment', entityId: fn });
+        if ((before?.fallbackModelId ?? null) !== (v.fallback ?? null)) await this.audit.action(db, adminCtx(actor), { action: 'Changement de modèle de secours', target: `${label} → ${name(v.fallback)}`, severity: 'SENSITIVE', entityType: 'ModelAssignment', entityId: fn });
       }
     });
     return this.assignments();
@@ -318,7 +433,7 @@ export class AiController implements OnModuleInit {
     const t = to && iso.test(to) ? to : today;
     const f = from && iso.test(from) ? from : addDays(t, -29);
     if (f > t) throw badRequest('Période invalide', { from: 'postérieure à la date de fin' });
-    if (!['day', 'function', 'model', 'provider'].includes(groupBy)) throw badRequest('Regroupement invalide', { groupBy: 'day, function, model ou provider' });
+    if (!['day', 'function', 'step', 'model', 'provider'].includes(groupBy)) throw badRequest('Regroupement invalide', { groupBy: 'day, function, step, model ou provider' });
     return this.usage.series(f, t, groupBy, projectId);
   }
 
