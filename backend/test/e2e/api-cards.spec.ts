@@ -31,8 +31,8 @@ describe('Console — registre des cartes API', () => {
 
   it('liste : cartes initiales des widgets Météo et Actualités, sans clé', async () => {
     const r = await admin.get(AC).expect(200);
-    expect(r.body.map((c: any) => c.id).sort()).toEqual(['gdelt', 'open-meteo', 'open-meteo-geocodage', 'rss-bbc', 'rss-le-monde', 'rss-les-echos', 'rss-lequipe'].sort());
-    expect(Object.fromEntries(r.body.filter((c: any) => c.feed).map((c: any) => [c.id, c.enabled]))).toEqual({ 'rss-bbc': true, 'rss-le-monde': true, 'rss-les-echos': false, 'rss-lequipe': true });
+    expect(r.body.map((c: any) => c.id).sort()).toEqual(['open-meteo', 'open-meteo-geocodage', 'rss-bbc', 'rss-le-monde', 'rss-lequipe'].sort());
+    expect(Object.fromEntries(r.body.filter((c: any) => c.feed).map((c: any) => [c.id, c.enabled]))).toEqual({ 'rss-bbc': true, 'rss-le-monde': true, 'rss-lequipe': true });
     expect(r.body[0]).toMatchObject({ keyLast4: null, enabled: true, status: 'ok' });
     expect(r.body[0].latency24h).toHaveLength(24);
     await (await t.as(WHO.pmo)).get(AC).expect(403);
@@ -124,22 +124,22 @@ describe('Console — registre des cartes API', () => {
     expect(n).toMatchObject({ level: '1', readAt: null, title: 'Clé NewsAPI : expire dans 1 j' });
   });
 
-  it('service lent (GDELT) : délai propre à la carte, dernière réponse servie si l’appel échoue, un seul appel en cours', async () => {
+  it('service lent : délai propre à la carte, dernière réponse servie si l’appel échoue, un seul appel en cours', async () => {
     const pmo = await t.as(WHO.pmo);
-    expect((await admin.get(AC).expect(200)).body.find((c: any) => c.id === 'gdelt').timeoutMs).toBe(45000);
-    await admin.patch(`${AC}/gdelt`, { timeoutMs: 120000 }).expect(400);
-    const q = '/api/widgets/proxy/gdelt?query=France&format=json';
+    expect((await admin.patch(`${AC}/rss-bbc`, { timeoutMs: 45000 }).expect(200)).body.timeoutMs).toBe(45000);
+    await admin.patch(`${AC}/rss-bbc`, { timeoutMs: 120000 }).expect(400);
+    const q = '/api/widgets/proxy/rss-bbc?query=France&format=json';
     let calls = 0;
-    upstream = (u) => (u.includes('gdelt') ? (calls++, { status: 200, body: '{"articles":[{"title":"A"}]}' }) : { status: 200, body: '{}' });
-    await admin.post(`${AC}/gdelt/test`).expect(200); // le contrôle précédent l'a laissée en erreur
+    upstream = (u) => (u.includes('bbci') ? (calls++, { status: 200, body: '{"articles":[{"title":"A"}]}' }) : { status: 200, body: '{}' });
+    await admin.post(`${AC}/rss-bbc/test`).expect(200); // le contrôle précédent l'a laissée en erreur
     calls = 0;
     const [a, b] = await Promise.all([pmo.get(q).expect(200), pmo.get(q).expect(200)]);
     expect(calls).toBe(1);
     // Une seule réponse vient d'un appel réel ; l'autre partage l'appel en cours ou lit le cache frais.
     expect([a.headers['x-rise-cache'], b.headers['x-rise-cache']]).toContain('miss');
-    svc.forget('gdelt');
+    svc.forget('rss-bbc');
     // Le cache frais est vidé mais la dernière réponse reste en réserve : un échec (429, 5xx, délai) la sert.
-    (svc as any).cache.set('gdelt?format=json&query=France', { until: 0, staleUntil: Date.now() + 60_000, r: { code: 200, ms: 20, body: '{"articles":[{"title":"A"}]}', contentType: 'application/json' } });
+    (svc as any).cache.set('rss-bbc?format=json&query=France', { until: 0, staleUntil: Date.now() + 60_000, r: { code: 200, ms: 20, body: '{"articles":[{"title":"A"}]}', contentType: 'application/json' } });
     upstream = () => ({ status: 429, body: 'Please limit requests to one every 5 seconds' });
     const s = await pmo.get(q).expect(200);
     expect(s.headers['x-rise-cache']).toBe('stale');
@@ -160,9 +160,31 @@ describe('Console — registre des cartes API', () => {
     const all = await pmo.get('/api/widgets/feeds?limit=5').set('X-RISE-Widget', 'Actualités').expect(200);
     expect(all.body.items.map((i: any) => i.source + ' · ' + i.title)).toEqual(['BBC News · Title BBC', 'Le Monde · Titre LM']);
     expect(Object.fromEntries(all.body.sources.map((x: any) => [x.id, x.ok]))).toEqual({ 'rss-bbc': true, 'rss-lequipe': false, 'rss-le-monde': true });
-    expect(all.body.sources.find((x: any) => x.id === 'rss-les-echos')).toBeUndefined();
     // Une carte JSON n'est pas un flux.
     expect((await pmo.get('/api/widgets/feeds/open-meteo').expect(502)).body.code).toBe('NOT_A_FEED');
+  });
+
+  it('actualités agrégées : GNews, NewsData.io, Finnhub et flux RSS ramenés à une même forme ; économie à part', async () => {
+    const pmo = await t.as(WHO.pmo);
+    for (const [name, category, endpoint] of [
+      ['GNews', 'Actualités', 'https://gnews.io/api/v4/top-headlines?lang=fr&apikey={key}'],
+      ['NewsData.io', 'Actualités', 'https://newsdata.io/api/1/latest?language=fr&apikey={key}'],
+      ['Finnhub', 'Finance', 'https://finnhub.io/api/v1/news?category=general&token={key}'],
+    ]) await admin.post(AC, { name, category, endpoint, key: `cle-test-${name}-0001` }).expect(201);
+    upstream = (u) =>
+      u.includes('gnews.io') ? { status: 200, body: JSON.stringify({ articles: [{ title: 'G1', url: 'https://g.fr/1', publishedAt: '2026-09-28T12:00:00Z', source: { name: 'Le Figaro' } }] }) }
+      : u.includes('newsdata.io') ? { status: 200, body: JSON.stringify({ status: 'success', results: [{ title: 'N1', link: 'https://n.fr/1', pubDate: '2026-09-28 13:00:00', source_name: 'Ouest-France' }] }) }
+      : u.includes('finnhub.io') ? { status: 200, body: JSON.stringify([{ headline: 'F1', url: 'https://f.com/1', datetime: 1790600000, source: 'Reuters' }]) }
+      : u.includes('lemonde') ? { status: 200, body: '<rss version="2.0"><channel><title>LM</title><item><title>R1</title><link>https://lm.fr/1</link><pubDate>Mon, 28 Sep 2026 11:00:00 GMT</pubDate></item></channel></rss>' }
+      : { status: 503, body: 'indisponible' };
+    for (const id of ['gnews', 'newsdata-io', 'finnhub', 'rss-le-monde']) await admin.post(`${AC}/${id}/test`).expect(200);
+    (svc as any).cache.clear(); // réponses des tests précédents (cache de 30 min des actualités)
+    const a = await pmo.get('/api/widgets/news?limit=5').expect(200);
+    expect(a.body.items.map((i: any) => `${i.source} (${i.via}) · ${i.title}`)).toEqual(['Ouest-France (NewsData.io) · N1', 'Le Figaro (GNews) · G1', 'Le Monde (Le Monde) · R1']);
+    expect(Object.fromEntries(a.body.sources.map((x: any) => [x.id, x.format]))).toMatchObject({ gnews: 'gnews', 'newsdata-io': 'newsdata', 'rss-le-monde': 'rss' });
+    const e = await pmo.get('/api/widgets/news?category=economie').expect(200);
+    expect(e.body.items.map((i: any) => i.title)).toEqual(['F1']);
+    await pmo.get('/api/widgets/news?category=sport').expect(422);
   });
 
   it('suppression refusée tant qu’un widget consomme la carte ; aucune réponse de la console ne contient une clé', async () => {

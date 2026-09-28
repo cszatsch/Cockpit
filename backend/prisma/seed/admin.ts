@@ -74,14 +74,12 @@ export async function seedAdmin(db: PrismaClient): Promise<void> {
     data: [
       { id: 'open-meteo-geocodage', name: 'Open-Meteo · géocodage', category: 'Météo', endpoint: 'https://geocoding-api.open-meteo.com/v1/search?name=Paris&count=1&format=json', widgets: ['Météo · ville'], updatedBy: 'Données initiales' },
       { id: 'open-meteo', name: 'Open-Meteo · prévisions', category: 'Météo', endpoint: 'https://api.open-meteo.com/v1/forecast?latitude=48.85&longitude=2.35&current=temperature_2m', widgets: ['Météo · ville'], updatedBy: 'Données initiales' },
-      { id: 'gdelt', name: 'GDELT · actualités', category: 'Actualités', endpoint: 'https://api.gdeltproject.org/api/v2/doc/doc?query=France&mode=artlist&maxrecords=1&timespan=1d&format=json', widgets: ['Actualités'], timeoutMs: 45_000, updatedBy: 'Données initiales' },
     ],
   });
-  // ── Flux RSS d'actualités (registre des cartes API) : Les Échos désactivée (le site refuse l'accès, 403) ──
+  // ── Flux RSS d'actualités (registre des cartes API) : Le Monde, L’Équipe, BBC (Les Échos et GDELT retirés le 28/09/2026) ──
   await db.apiCard.createMany({
     data: [
       { id: 'rss-le-monde', name: 'Le Monde', category: 'Actualités', endpoint: 'https://www.lemonde.fr/rss/une.xml', feed: true, widgets: ['Actualités'], updatedBy: 'Données initiales' },
-      { id: 'rss-les-echos', name: 'Les Échos', category: 'Actualités', endpoint: 'https://syndication.lesechos.fr/rss/rss_une.xml', feed: true, enabled: false, updatedBy: 'Données initiales' },
       { id: 'rss-lequipe', name: 'L’Équipe', category: 'Actualités', endpoint: 'https://dwh.lequipe.fr/api/edito/rss?path=/', feed: true, widgets: ['Actualités'], updatedBy: 'Données initiales' },
       { id: 'rss-bbc', name: 'BBC News', category: 'Actualités', endpoint: 'https://feeds.bbci.co.uk/news/rss.xml', feed: true, widgets: ['Actualités'], updatedBy: 'Données initiales' },
     ],

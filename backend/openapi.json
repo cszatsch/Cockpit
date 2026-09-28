@@ -8025,6 +8025,25 @@
           "widgets · flux d’actualités"
         ]
       }
+    },
+    "/api/widgets/news": {
+      "get": {
+        "operationId": "WidgetNewsController_news",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "widgets · flux d’actualités"
+        ]
+      }
     }
   },
   "info": {

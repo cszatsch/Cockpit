@@ -120,3 +120,7 @@ Plus aucune clé `localStorage` n'est lue ou écrite par le fichier HTML. api.js
 ## Tuile Actualités : secours par les flux RSS (28/09/2026)
 
 - `api.js` : si GDELT ne répond pas ou ne renvoie rien, la tuile lit `GET /api/widgets/feeds?limit=5` (Le Monde, L'Équipe, BBC…) ; la date est remise au format attendu par la tuile.
+
+## Tuile Actualités : actualités agrégées du registre (28/09/2026)
+
+- `api.js` : la tuile lit `GET /api/widgets/news?limit=5` (cartes actives de la catégorie Actualités : GNews, NewsData.io, flux RSS…) ; GDELT retiré.

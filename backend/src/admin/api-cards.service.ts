@@ -22,6 +22,9 @@ import {
   PROXY_CACHE_MS,
   PROXY_FAST_CATEGORIES,
   PROXY_STALE_MS,
+  PROXY_CACHE_NEWS_MS,
+  PROXY_NEWS_CATEGORIES,
+  HEALTH_SKIP_IF_OK_MS,
   redactKey,
   TEST_BODY_MAX,
 } from '../domain/api-cards';
@@ -124,8 +127,13 @@ export class ApiCardsService implements OnModuleInit {
   /** Contrôle de santé de toutes les cartes actives. */
   async healthCheck(): Promise<number> {
     const cards = await this.prisma.apiCard.findMany({ where: { enabled: true } });
-    for (const c of cards) await this.test(c, 'HEALTH').catch((e) => console.error('[api-cards]', c.id, e));
-    return cards.length;
+    // Contrôle passif : une carte qui a réussi un vrai appel dans l'heure est saine ; pas d'appel (ni de quota) en plus.
+    const since = new Date(this.today.now().getTime() - HEALTH_SKIP_IF_OK_MS);
+    const recent = await this.prisma.apiCardCall.findMany({ where: { at: { gte: since }, source: 'PROXY', code: { gte: 200, lt: 300 } }, select: { cardId: true }, distinct: ['cardId'] });
+    const skip = new Set(recent.map((r) => r.cardId));
+    const todo = cards.filter((c) => !skip.has(c.id) || c.checkError);
+    for (const c of todo) await this.test(c, 'HEALTH').catch((e) => console.error('[api-cards]', c.id, e));
+    return todo.length;
   }
 
   /** Appels du jour (depuis minuit, heure de Paris) par carte. */
@@ -200,6 +208,7 @@ export class ApiCardsService implements OnModuleInit {
       if (failed && stale) return stale;
       if (!r.code || redirect) throw new ApiError(503, 'CARD_UNAVAILABLE', `Service « ${card.name} » ${redirect ? `déplacé (redirection ${r.code})` : 'injoignable'}`);
       if (r.code < 400) this.cache.set(cacheKey, { until: Date.now() + (PROXY_FAST_CATEGORIES.includes(card.category) ? PROXY_CACHE_FAST_MS : PROXY_CACHE_MS), staleUntil: Date.now() + PROXY_STALE_MS, r });
+      if (r.code < 400 && PROXY_NEWS_CATEGORIES.includes(card.category)) this.cache.get(cacheKey)!.until = Date.now() + PROXY_CACHE_NEWS_MS;
       return { ...r, cache: 'miss' as const };
     })();
     this.inflight.set(cacheKey, run);

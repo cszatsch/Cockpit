@@ -11,6 +11,7 @@ import { PrismaService } from '../core/prisma.service';
 import { API_CALL_TIMEOUT_MAX_MS, API_CARD_CATEGORIES, API_CARD_NAME_MAX, API_KEY_MIN_LENGTH, endpointError } from '../domain/api-cards';
 import { ApiCardsService } from './api-cards.service';
 import { FEED_ITEMS_DEFAULT, FEED_ITEMS_MAX, isFeed, mergeFeeds, parseFeed } from '../domain/rss';
+import { parseNews } from '../domain/news';
 import { adminCtx } from './profiles.service';
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'date AAAA-MM-JJ attendue');
@@ -252,3 +253,45 @@ export class WidgetFeedsController {
 }
 
 const clamp = (limit: string | undefined) => Math.min(FEED_ITEMS_MAX, Math.max(1, Number(limit) || FEED_ITEMS_DEFAULT));
+
+/** Catégories des actualités : générales (cartes Actualités) ou économiques (cartes Finance). */
+const NEWS_CATEGORY: Record<string, string> = { actualites: 'Actualités', economie: 'Finance' };
+
+/**
+ * Actualités agrégées (tuile Actualités) : toutes les cartes actives de la catégorie, quel que soit le
+ * fournisseur (GNews, NewsData.io, Finnhub, flux RSS / Atom), plus récentes d'abord, doublons retirés.
+ * `category` : `actualites` (défaut) ou `economie`. Une source en échec est signalée sans bloquer les autres.
+ */
+@ApiTags('widgets · flux d’actualités')
+@ApiBearerAuth()
+@Controller('api/widgets/news')
+export class WidgetNewsController {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cards: ApiCardsService,
+  ) {}
+
+  @Get()
+  async news(@Query('category') category: string | undefined, @Query('limit') limit: string | undefined, @Req() req: Request) {
+    const cat = NEWS_CATEGORY[category ?? 'actualites'];
+    if (!cat) throw businessRule('Catégorie inconnue', { category: 'actualites ou economie' });
+    const list = await this.prisma.apiCard.findMany({ where: { enabled: true, category: cat }, orderBy: { name: 'asc' } });
+    const widget = String(req.headers['x-rise-widget'] ?? '').slice(0, 60) || null;
+    const read = await Promise.all(list.map(async (c) => {
+      try {
+        const r = await this.cards.proxy(c.id, {}, widget);
+        if (r.code >= 400) throw new ApiError(502, 'NEWS_ERROR', `Service en erreur (${r.code})`);
+        const parsed = parseNews(r.body);
+        if (!parsed) throw new ApiError(502, 'NOT_NEWS', 'Réponse non reconnue (format d’actualités inconnu)');
+        return { card: c, parsed, error: null as string | null };
+      } catch (e: any) {
+        return { card: c, parsed: null, error: e?.message ?? 'indisponible' };
+      }
+    }));
+    const n = Math.min(FEED_ITEMS_MAX, Math.max(1, Number(limit) || FEED_ITEMS_DEFAULT));
+    // Source affichée : le journal d'origine quand le fournisseur le donne (agrégateurs), sinon le nom de la carte.
+    const items = mergeFeeds(read.filter((r) => r.parsed).map((r) => ({ source: r.card.name, feed: { title: r.card.name, items: r.parsed!.items } })), n)
+      .map((i: any) => ({ title: i.title, url: i.url, date: i.date, summary: i.summary, image: i.image, source: i.publisher || i.source, via: i.source }));
+    return { category: category ?? 'actualites', items, sources: read.map((r) => ({ id: r.card.id, name: r.card.name, ok: !!r.parsed, format: r.parsed?.format ?? null, count: r.parsed?.items.length ?? 0, error: r.error })) };
+  }
+}

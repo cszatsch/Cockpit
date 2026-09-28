@@ -27,6 +27,11 @@ export const TEST_BODY_MAX = 2048;
 export const PROXY_CACHE_MS = 5 * 60_000;
 export const PROXY_CACHE_FAST_MS = 2 * 60_000;
 export const PROXY_FAST_CATEGORIES: readonly string[] = ['Météo', 'Trafic'];
+/** Actualités et finance : cache de 30 min (quotas gratuits serrés : GNews 100 appels / jour, NewsData 200). */
+export const PROXY_CACHE_NEWS_MS = 30 * 60_000;
+export const PROXY_NEWS_CATEGORIES: readonly string[] = ['Actualités', 'Finance'];
+/** Contrôle de santé passif : une carte ayant réussi un vrai appel dans l'heure n'est pas re-testée. */
+export const HEALTH_SKIP_IF_OK_MS = 60 * 60_000;
 /** Emplacement de la clé dans l'endpoint ; sans ce marqueur, la clé part dans l'en-tête `X-Api-Key`. */
 export const KEY_PLACEHOLDER = '{key}';
 export const KEY_HEADER = 'X-Api-Key';

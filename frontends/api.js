@@ -852,12 +852,10 @@ export function attach(comp) {
             .then((f) => ({ temperature: f.current ? f.current.temperature_2m : null, weatherCode: f.current ? f.current.weather_code : null, min: f.daily ? f.daily.temperature_2m_min[0] : null, max: f.daily ? f.daily.temperature_2m_max[0] : null, sunrise: f.daily ? f.daily.sunrise[0] : null, sunset: f.daily ? f.daily.sunset[0] : null, fetchedAt: new Date().toISOString() })); })
         .then((w) => { if (w.temperature == null) throw 0; const now = new Date(w.fetchedAt || Date.now()); up({ wx: { t: Math.round(w.temperature), lbl: WMO(w.weatherCode), max: Math.round(w.max), min: Math.round(w.min), rise: w.sunrise || '', set: w.sunset || '', now: now.getFullYear() + '-' + pad2(now.getMonth() + 1) + '-' + pad2(now.getDate()) + 'T' + pad2(now.getHours()) + ':' + pad2(now.getMinutes()) } }); })
         .catch(() => up({ wxErr: true }));
-      PX('gdelt', { query: '"' + country + '" sourcelang:french', mode: 'artlist', maxrecords: 8, timespan: '1d', format: 'json' }, 'Actualités')
-        .then((j) => ({ articles: ((j && j.articles) || []).slice(0, 5).map((a) => ({ t: a.title, src: a.domain, d: a.seendate })) }))
-        // Secours : flux RSS du registre (Le Monde, L'Équipe, BBC…) si GDELT ne répond pas ou ne renvoie rien ;
-        // la date ISO est remise au format GDELT (AAAAMMJJTHHMMSS, heure locale) attendu par la tuile.
-        .then((j) => { if (!j.articles.length) throw 0; return j; })
-        .catch(() => get('/widgets/feeds?limit=5', { headers: { 'X-RISE-Widget': 'Actualités' } }).then((r) => ({ articles: (r.items || []).map((i) => { const d = i.date ? new Date(i.date) : null; return { t: i.title, src: i.source, d: d ? d.getFullYear() + pad2(d.getMonth() + 1) + pad2(d.getDate()) + 'T' + pad2(d.getHours()) + pad2(d.getMinutes()) + '00' : '' }; }) })))
+      // Actualités agrégées du registre (GNews, NewsData.io, flux RSS Le Monde, L'Équipe, BBC… : cartes actives) ;
+      // la date ISO est remise au format AAAAMMJJTHHMMSS (heure locale) attendu par la tuile.
+      get('/widgets/news?limit=5', { headers: { 'X-RISE-Widget': 'Actualités' } })
+        .then((r) => ({ articles: (r.items || []).map((i) => { const d = i.date ? new Date(i.date) : null; return { t: i.title, src: i.source, d: d ? d.getFullYear() + pad2(d.getMonth() + 1) + pad2(d.getDate()) + 'T' + pad2(d.getHours()) + pad2(d.getMinutes()) + '00' : '' }; }) }))
         .then((j) => { const A = (j.articles || []).filter((a) => a.t).slice(0, 5).map((a) => { const s = String(a.d || ''); return { t: a.t, src: String(a.src || '').replace(/^www\./, '').split('.')[0], d: s.length >= 12 ? s.slice(9, 11) + ':' + s.slice(11, 13) : '' }; }); if (!A.length) throw 0; up({ news: A }); })
         .catch(() => { up({ newsErr: true }); setTimeout(() => { comp._dbExtOn = false; }, 60000); });
     },
