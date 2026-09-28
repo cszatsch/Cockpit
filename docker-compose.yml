@@ -26,7 +26,8 @@ services:
       # Connexion de développement (utilisateur p01) : à désactiver en production.
       AUTH_DEV: "true"
       # Date de démonstration (brief § 7.1) : vider pour utiliser l'horloge réelle.
-      DEMO_TODAY: "2026-09-26"
+      # Date du jour de démonstration (brief § 7.1) : vide = date réelle.
+      DEMO_TODAY: ""
       # Clé AES-256-GCM des clés API (64 caractères hexadécimaux) : à remplacer.
       SECRETS_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
       JOBS_ENABLED: "true"

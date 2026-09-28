@@ -228,7 +228,7 @@ export class BootstrapService {
       id: d.id,
       n: d.n,
       type: d.type,
-      date: d.dateIso.startsWith('2026') ? frShort(d.dateIso) : frWithYear(d.dateIso),
+      date: d.dateIso.startsWith(today.slice(0, 4)) ? frShort(d.dateIso) : frWithYear(d.dateIso),
       dateIso: d.dateIso,
       v: d.v,
       conf: CONF_FR[d.conf],

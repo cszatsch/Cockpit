@@ -124,3 +124,7 @@ Plus aucune clé `localStorage` n'est lue ou écrite par le fichier HTML. api.js
 ## Tuile Actualités : actualités agrégées du registre (28/09/2026)
 
 - `api.js` : la tuile lit `GET /api/widgets/news?limit=5` (cartes actives de la catégorie Actualités : GNews, NewsData.io, flux RSS…) ; GDELT retiré.
+
+## Date réelle du jour (29/09/2026)
+
+- `RISE Cockpit.dc.html` : aides `thisYear()`, `nextSession()`, `sessionLabel()`, `frShortIso()`. Plus de dates figées : compte à rebours du Go-Live (prévision du bootstrap), prochain COPIL et échéances des 15 jours (séances planifiées), compte à rebours de la fiche d'arbitrage (prochaine séance), mini-Gantt du chemin critique (éléments critiques du planning), références de planning (bootstrap), raccourcis d'échéance du formulaire de tâche (calculés), année en cours au lieu de 2026 ; date du jour du projet (`fToday()`) au lieu de l'horloge du navigateur pour ces calculs.

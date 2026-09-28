@@ -864,12 +864,15 @@ a{color:#1d8f86}a:hover{color:#146b64}
 
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;scenario&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;incident&quot;,&quot;nominal&quot;],&quot;default&quot;:&quot;incident&quot;,&quot;tsType&quot;:&quot;'incident' | 'nominal'&quot;,&quot;section&quot;:&quot;Démonstration&quot;},&quot;startSection&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;overview&quot;,&quot;users&quot;,&quot;admins&quot;,&quot;providers&quot;,&quot;assign&quot;,&quot;conso&quot;,&quot;snaps&quot;,&quot;notifs&quot;,&quot;modules&quot;],&quot;default&quot;:&quot;overview&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Démonstration&quot;}}">
-const TODAY = new Date(2026, 8, 26, 10, 24), BOOT = Date.now();
+// Horloge de la Console : 26/09/2026 10:24 en démonstration ; en mode API, recalée sur l'heure du serveur (apiClock()).
+let TODAY = new Date(2026, 8, 26, 10, 24), BOOT = Date.now();
 const nowD = () => new Date(TODAY.getTime() + (Date.now() - BOOT));
+const MO_L = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+const DOW_L = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
 const MO = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
 const DOW = ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'];
 const p2 = n => String(n).padStart(2, '0');
-const fD = d => (d.getDate() === 1 ? '1er' : d.getDate()) + ' ' + MO[d.getMonth()] + (d.getFullYear() !== 2026 ? ' ' + d.getFullYear() : '');
+const fD = d => (d.getDate() === 1 ? '1er' : d.getDate()) + ' ' + MO[d.getMonth()] + (d.getFullYear() !== nowD().getFullYear() ? ' ' + d.getFullYear() : '');
 const fT = d => p2(d.getHours()) + ':' + p2(d.getMinutes());
 const fDT = d => fD(d) + ' · ' + fT(d);
 const ago = d => { const m = Math.max(0, Math.round((nowD() - d) / 60000)); if (m < 1) return 'à l’instant'; if (m < 60) return 'il y a ' + m + ' min'; const h = Math.round(m / 60); if (h < 24) return 'il y a ' + h + ' h'; const j = Math.round(h / 24); return j < 30 ? 'il y a ' + j + ' j' : 'le ' + fD(d); };
@@ -1000,7 +1003,16 @@ function genUsage(models, asg) {
   rows.forEach(x => { x.tin *= k; x.tout *= k; x.c *= k; });
   return rows;
 }
-const dayDate = d => new Date(2026, 8, 26 - (89 - d));
+const dayDate = d => { const t = nowD(); return new Date(t.getFullYear(), t.getMonth(), t.getDate() - (89 - d)); };
+/** Prochaine capture automatique d'après la planification (quotidienne, hebdomadaire le jour choisi, mensuelle le 1er). */
+const nextCapture = s => {
+  const t = nowD(), [h, mi] = String(s.hour || '04:00').split(':').map(Number);
+  let d = new Date(t.getFullYear(), t.getMonth(), t.getDate(), h || 0, mi || 0);
+  if (s.fq === 'Mensuelle') { d = new Date(t.getFullYear(), t.getMonth(), 1, h || 0, mi || 0); if (d <= t) d = new Date(t.getFullYear(), t.getMonth() + 1, 1, h || 0, mi || 0); }
+  else if (s.fq === 'Hebdomadaire') { const w = Math.max(0, DOW_L.indexOf(String(s.day || 'vendredi').toLowerCase())); d.setDate(d.getDate() + ((w - d.getDay() + 7) % 7)); if (d <= t) d.setDate(d.getDate() + 7); }
+  else if (d <= t) d.setDate(d.getDate() + 1);
+  return d;
+};
 const SN = (m, d, h, mi) => new Date(2026, m, d, h, mi);
 const SNAPS0 = {
   RISE: [['r1', SN(6, 17, 4, 0)], ['r2', SN(6, 26, 18, 30), 'Après le 18e COPIL', 'Julien Morel'], ['r3', SN(7, 21, 4, 0)], ['r4', SN(7, 28, 4, 0)], ['r5', SN(8, 4, 4, 0)], ['r6', SN(8, 8, 11, 5), 'Replanification du Run 3', 'Julien Morel'], ['r7', SN(8, 11, 4, 0)], ['r8', SN(8, 18, 4, 0)], ['r9', SN(8, 22, 16, 40), 'Avant le 19e COPIL', 'Julien Morel'], ['r10', SN(8, 25, 4, 0)]],
@@ -1177,7 +1189,7 @@ class Component extends DCLogic {
   ntReadAll() { this.setState(s => ({ nt: s.nt.map(x => ({ ...x, unread: false })) })); }
   // ——— Registre des cartes API (démonstration : journal local ; API : admin-api.js)
   apiSignal() {
-    const S = this.state, list = (S.apiCards || APIS0).filter(c => c.enabled), today = S.apiNow ? new Date(S.apiNow) : nowD();
+    const S = this.state, list = (S.apiCards || APIS0).filter(c => c.enabled), today = nowD();
     const left = c => { if (!c.keyExpiresAt) return null; const [y, m, d] = c.keyExpiresAt.split('-').map(Number); return Math.round((Date.UTC(y, m - 1, d) - Date.UTC(today.getFullYear(), today.getMonth(), today.getDate())) / 864e5); };
     const st = c => { const d = left(c), q = c.quotaLimit ? (c.quotaUsed || 0) / c.quotaLimit * 100 : null; return c.status === 'err' || (d != null && d < 0) ? 'err' : c.status === 'warn' || (d != null && d <= 30) || (q != null && q >= 85) ? 'warn' : null; };
     const all = list.map(st); return all.includes('err') ? { dot: 'err' } : all.includes('warn') ? { dot: 'warn' } : undefined;
@@ -1222,6 +1234,8 @@ class Component extends DCLogic {
     this.setState({ jev: true, mnav: false, jCtx: S.sec }); this.jPush(...add);
     setTimeout(() => { const el = document.getElementById('jev-input'); if (el) el.focus(); }, 380);
   }
+  /** Mode API : l'horloge de la Console suit celle du serveur (date réelle, ou DEMO_NOW s'il est défini). */
+  apiClock(ms) { TODAY = new Date(ms); BOOT = Date.now(); this.forceUpdate && this.forceUpdate(); }
   jevAsk(text, fn) {
     text = (text || '').trim(); if (!text || this.state.jThink) return;
     this.jPush({ t: 'user', text }); this.setState({ jIn: '', jThink: true }); clearTimeout(this._jt);
@@ -1467,7 +1481,7 @@ class Component extends DCLogic {
     const S = this.state, out = [], th = this.thVals();
     S.provs.filter(p => p.st === 'err').forEach(p => { const hit = FNS.filter(f => { const m = S.models.find(x => x.id === (S.asg[f.id] || {}).p); return m && m.pv === p.id; }); const fb = hit.map(f => (S.models.find(m => m.id === S.asg[f.id].f) || {}).n).filter(Boolean);
       out.push({ tone: 'err', t: 'Clé API ' + p.n + ' invalide depuis ' + ago(p.t).replace('il y a ', ''), d: hit.length ? '« ' + hit.map(f => f.group ? fnLabel(f) : f.n).join(', ') + ' » tourne sur son modèle de secours' + (fb.length ? ' (' + fb.join(', ') + ')' : '') + '.' : (p.err || ''), cta: 'Remplacer la clé', go: () => this.go('providers', () => this.openKey(p.id)) }); });
-    th.filter(t => t.on && t.pct >= t.warn).forEach(t => out.push({ tone: t.pct >= 100 ? 'err' : 'warn', t: (t.id === 'all' ? 'Budget IA' : t.n) + ' à ' + t.pct + ' % du plafond mensuel', d: t.spL + ' sur ' + t.limL + (t.over ? ' · au rythme actuel, ' + t.projL + ' fin septembre.' : '.'), cta: 'Voir la consommation', go: () => this.go('conso') }));
+    th.filter(t => t.on && t.pct >= t.warn).forEach(t => out.push({ tone: t.pct >= 100 ? 'err' : 'warn', t: (t.id === 'all' ? 'Budget IA' : t.n) + ' à ' + t.pct + ' % du plafond mensuel', d: t.spL + ' sur ' + t.limL + (t.over ? ' · au rythme actuel, ' + t.projL + ' fin ' + MO_L[nowD().getMonth()] + '.' : '.'), cta: 'Voir la consommation', go: () => this.go('conso') }));
     const stale = S.users.filter(u => u.s === 'invité' && u.inv > 7);
     if (stale.length) out.push({ tone: 'warn', t: stale.length + ' invitation' + (stale.length > 1 ? 's' : '') + ' sans réponse depuis plus de 7 jours', d: stale.map(u => u.n).join(', ') + '.', cta: 'Voir les invités', go: () => this.go('users', () => this.setState({ uSt: 'invité', uq: '', uPf: 'tous', uPj: 'tous' })) });
     S.reqs.forEach(q => { const m = S.mods.find(x => x.id === q.m); out.push({ tone: 'info', t: q.who + ' demande l’activation de « ' + m.n + ' »', d: 'Projet ' + q.p + ' · ' + ago(q.t) + '.', cta: 'Examiner', go: () => this.go('modules') }); });
@@ -1595,7 +1609,7 @@ class Component extends DCLogic {
       isUsers: is('users') && !S.loading, isAdmins: is('admins') && !S.loading, isRights: is('rights') && !S.loading, isProv: is('providers') && !S.loading, isAsg: is('assign') && !S.loading, isConso: is('conso') && !S.loading, isInit: is('init') && !S.loading, isLib: is('library') && !S.loading, isSnaps: is('snaps') && !S.loading, isNotifs: is('notifs') && !S.loading, isMods: is('modules') && !S.loading,
       isApis: is('apis') && !S.loading, isJournal: is('journal') && !S.loading,
       // Registre des cartes API : liste du serveur (admin-api.js) ; sans elle, le composant affiche sa démonstration et simule les appels.
-      apiCards: S.apiCards || undefined, apiNow: S.apiNow || undefined,
+      apiCards: S.apiCards || undefined, apiNow: S.apiNow ? nowD().toISOString() : undefined,
       apTest: S.apiCards ? id => this.apTest(id) : undefined, apCreate: c => this.apCreate(c), apRotate: (id, key, exp) => this.apRotate(id, key, exp), apToggle: (id, on) => this.apToggle(id, on),
       isPersona: is('persona') && !S.loading, isSkills: is('skills') && !S.loading,
       // Skills : liste du serveur (admin-api.js) ; démonstration intégrée au composant sinon. Le composant apporte ses propres marges.
@@ -1619,9 +1633,9 @@ class Component extends DCLogic {
         sub: att.length ? att.length + ' point' + (att.length > 1 ? 's' : '') + ' à traiter' + (errN ? ', dont ' + errN + ' critique' + (errN > 1 ? 's' : '') : '') + '. Le reste de la plateforme fonctionne normalement.' : 'Aucun point en attente. Les fournisseurs répondent, les budgets sont tenus.',
         vit: [
           { k: 'Utilisateurs actifs', v: String(act), s: 'sur ' + S.users.length + ' comptes · ' + invs + ' invitations en attente', go: () => this.go('users'), dot: dot('ok'), hasBar: false },
-          { k: 'Coût IA · septembre', v: eur(g.sp), s: g.pct + ' % du budget de ' + g.limL, go: () => this.go('conso'), dot: dot(g.tone), hasBar: true, bar: `height:100%;border-radius:2px;width:${Math.min(100, g.pct)}%;background:${g.tone === 'ok' ? '#3dd6c6' : g.tone === 'warn' ? '#f7a41c' : '#ff6b5e'}` },
+          { k: 'Coût IA · ' + MO_L[nowD().getMonth()], v: eur(g.sp), s: g.pct + ' % du budget de ' + g.limL, go: () => this.go('conso'), dot: dot(g.tone), hasBar: true, bar: `height:100%;border-radius:2px;width:${Math.min(100, g.pct)}%;background:${g.tone === 'ok' ? '#3dd6c6' : g.tone === 'warn' ? '#f7a41c' : '#ff6b5e'}` },
           { k: 'Fournisseurs IA', v: okP.length + ' / ' + S.provs.length, s: okP.length === S.provs.length ? 'Tous opérationnels' : S.provs.filter(p => p.st === 'err').map(p => p.n).join(', ') + ' hors service', go: () => this.go('providers'), dot: dot(okP.length === S.provs.length ? 'ok' : 'err'), hasBar: false },
-          { k: 'Dernier snapshot', v: ago(lastSnap.t).replace('il y a ', ''), s: Object.keys(S.snaps).find(p => S.snaps[p].includes(lastSnap)) + ' · prochain ven. 2 oct. 04:00', go: () => this.go('snaps'), dot: dot('ok'), hasBar: false }],
+          { k: 'Dernier snapshot', v: ago(lastSnap.t).replace('il y a ', ''), s: Object.keys(S.snaps).find(p => S.snaps[p].includes(lastSnap)) + (S.sched && S.sched.on ? ' · prochain ' + DOW[nextCapture(S.sched).getDay()] + ' ' + fDT(nextCapture(S.sched)) : ''), go: () => this.go('snaps'), dot: dot('ok'), hasBar: false }],
         att, hasAtt: att.length > 0, noAtt: att.length === 0, attN: att.length,
         act: S.audit.filter(a => a.sev !== 'info').slice(0, 5).map(a => ({ ...a, when: ago(a.t), exact: fDT(a.t), pill: pill(a.sev === 'critique' ? 'err' : 'warn'), dot: dot(a.sev === 'critique' ? 'err' : 'warn'), sevL: a.sev === 'critique' ? 'Critique' : 'Sensible' })),
         goAudit: () => this.go('admins', () => this.setState({ adTab: 'audit' }))
@@ -1733,7 +1747,7 @@ class Component extends DCLogic {
         kpi: [{ k: 'Coût sur la période', v: eur(tot), s: dp == null ? 'Pas de période précédente comparable' : (dp >= 0 ? '+' : '−') + Math.abs(dp) + ' % par rapport aux ' + P + ' jours précédents', sSt: `font-size:12px;font-weight:600;color:${dp == null ? '#5c7280' : dp > 10 ? '#8a5a12' : '#5c7280'}` },
           { k: 'Tokens en entrée', v: mt(tin), s: 'Coût moyen ' + eur(tot / (tin + tout) * 1e6, 2) + ' / M tokens', sSt: 'font-size:12px;font-weight:600;color:#5c7280' },
           { k: 'Tokens en sortie', v: mt(tout), s: Math.round(tout / (tin + tout) * 100) + ' % du volume, ' + Math.round(rows.reduce((a, r) => { const m = S.models.find(x => x.id === r.m); return a + r.tout * m.pout / 1e6; }, 0) / tot * 100) + ' % du coût', sSt: 'font-size:12px;font-weight:600;color:#5c7280' },
-          { k: 'Projection septembre', v: th[0].projL, s: th[0].over ? 'Dépasserait le budget de ' + eur(th[0].proj - th[0].lim) : 'Dans le budget de ' + th[0].limL, sSt: `font-size:12px;font-weight:700;color:${th[0].over ? '#a8372c' : '#0f5f5a'}` }],
+          { k: 'Projection ' + MO_L[nowD().getMonth()], v: th[0].projL, s: th[0].over ? 'Dépasserait le budget de ' + eur(th[0].proj - th[0].lim) : 'Dans le budget de ' + th[0].limL, sSt: `font-size:12px;font-weight:700;color:${th[0].over ? '#a8372c' : '#0f5f5a'}` }],
         series, bars: days.map((x, i) => ({ col: 'flex:1 1 0;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end;cursor:crosshair', st: `height:${x.t / mx * 100}%;display:flex;flex-direction:column-reverse;border-radius:${P > 40 ? 2 : 4}px ${P > 40 ? 2 : 4}px 0 0;overflow:hidden;transition:opacity .15s,height .5s cubic-bezier(.2,.7,.2,1);opacity:${hv && S.cHov !== i ? .35 : 1}`, segs: series.map(s => ({ st: `flex:none;height:${x.t ? (x.s[s.k] || 0) / x.t * 100 : 0}%;background:${s.col}` })), enter: () => this.setState({ cHov: i }) })),
         gap: P > 40 ? '2px' : P > 10 ? '4px' : '10px', leave: () => this.setState({ cHov: null }),
         budLine: `position:absolute;left:0;right:0;bottom:${daily / mx * 100}%;border-top:1.5px dashed #c2473b;pointer-events:none`, budL: 'Rythme du budget · ' + eur(daily) + ' / jour',
@@ -1753,7 +1767,6 @@ class Component extends DCLogic {
       if (A && S.sPj === 'RISE') diff = EV.filter(e => e[0] > A[0].ix && e[0] <= A[1].ix && A[1].ix < 10 || (e[0] > A[0].ix && A[1].ix >= 10 && e[0] <= 9)).map(e => ({ k: e[1], e: e[2], n: e[3], f: e[4] || '', a: e[5] || '', b: e[6] || '' }));
       const dc = { add: diff.filter(x => x.k === 'add').length, mod: diff.filter(x => x.k === 'mod').length, del: diff.filter(x => x.k === 'del').length };
       const df = diff.filter(x => S.sFilt === 'tous' || x.k === S.sFilt), SG = { add: ['+', 'ok'], mod: ['~', 'info'], del: ['−', 'err'] };
-      const nd = new Date(2026, 9, 2, 4, 0);
       vals.sn = {
         pj: PROJ.map(p => ({ l: p, c: (S.snaps[p] || []).length, on: S.sPj === p, st: segSt(S.sPj === p), pick: () => this.setState({ sPj: p, sSel: (S.snaps[p] || []).slice(-2).map(s => s.id), sFilt: 'tous' }) })),
         items: [...list].sort((a, b) => b.t - a.t).map((s, i, arr) => { const si = sel.indexOf(s.id), letter = si < 0 ? '' : A ? (A[0].id === s.id ? 'A' : 'B') : 'A';
@@ -1775,7 +1788,7 @@ class Component extends DCLogic {
         sch: { sw: this.sw(S.sched.on, () => { this.setState(s => ({ sched: { ...s.sched, on: !s.sched.on } })); this.log('Planification des snapshots', S.sched.on ? 'désactivée' : 'activée', 'sensible'); this.toast(S.sched.on ? 'Planification suspendue' : 'Planification activée'); }, 'Planification automatique'), on: S.sched.on,
           fq: S.sched.fq, day: S.sched.day, hour: S.sched.hour, keep: S.sched.keep, isW: S.sched.fq === 'Hebdomadaire',
           set: k => e => { const v = e.target.value; this.setState(s => ({ sched: { ...s.sched, [k]: v } })); this.log('Planification des snapshots', k + ' → ' + v); this.toast('Planification mise à jour'); },
-          next: S.sched.on ? 'Prochaine capture : ' + (S.sched.fq === 'Quotidienne' ? 'demain' : S.sched.fq === 'Mensuelle' ? 'jeudi 1er oct.' : 'vendredi 2 oct.') + ' à ' + S.sched.hour : 'Aucune capture automatique programmée' }
+          next: S.sched.on ? 'Prochaine capture : ' + (d => DOW_L[d.getDay()] + ' ' + fD(d))(nextCapture(S.sched)) + ' à ' + S.sched.hour : 'Aucune capture automatique programmée' }
       };
       vals.sn.sch.setFq = vals.sn.sch.set('fq'); vals.sn.sch.setDay = vals.sn.sch.set('day'); vals.sn.sch.setHour = vals.sn.sch.set('hour'); vals.sn.sch.setKeep = vals.sn.sch.set('keep');
       vals.sn.fqOpts = ['Quotidienne', 'Hebdomadaire', 'Mensuelle'].map(v => ({ v, l: v })); vals.sn.dayOpts = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'].map(v => ({ v, l: v })); vals.sn.hourOpts = ['00:00', '02:00', '04:00', '06:00', '20:00', '22:00'].map(v => ({ v, l: v })); vals.sn.keepOpts = ['3 mois', '6 mois', '12 mois', '24 mois'].map(v => ({ v, l: v }));

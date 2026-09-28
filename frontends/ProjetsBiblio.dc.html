@@ -45,7 +45,7 @@ class Component extends DCLogic {
   // API : liste des projets lue sur /api/admin/projects (admin-api.js, dans state.api) ; rien en mode démonstration.
   componentDidMount() { import('./admin-api.js').then(m => m.bindBiblio(this)).catch(e => console.warn('admin-api', e)); }
   renderVals() {
-    const S = this.state, D = (y, m, d) => new Date(y, m - 1, d), today = D(2026, 9, 26);
+    const S = this.state, D = (y, m, d) => new Date(y, m - 1, d), today = S.apiToday || D(2026, 9, 26); // démonstration : 26/09/2026 ; API : date du serveur (bindBiblio)
     const base = this.state.api || [ // API : cartes du serveur, sinon projets de démonstration
       { code: 'RISE', name: 'RISE — Implémentation Brand X + CRM', client: 'AMC Corp', st: 'actif', phase: 'Deploy · Recette utilisateur', start: D(2023, 6, 1), end: D(2028, 6, 30), k: [4, 6, 8, 38], snap: 'snapshot hier 04:00', health: 'warn' },
       { code: 'ATLAS', name: 'ATLAS — Refonte finance groupe', client: 'AMC Corp · Direction financière', st: 'actif', phase: 'Realize · Paramétrage', start: D(2025, 2, 3), end: D(2027, 6, 30), k: [2, 5, 6, 24], snap: 'snapshot du 18 sept.', health: 'ok' },

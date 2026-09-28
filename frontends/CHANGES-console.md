@@ -263,3 +263,10 @@ Les captures sont écrites dans `OUT` (par défaut `<tmp>/rise-console-e2e`).
 
 - `Sidebar Console.dc.html`, `Console Admin.dc.html` (`META`, repères d'écran), `ConsoCouts.dc.html`, `Journal des appels.dc.html` : « Vue générale des coûts » et « Journal consommation et coûts » (demande du commanditaire).
 - `Journal des appels.dc.html` : les données de démonstration ne s'affichent plus qu'en mode démonstration ; en mode API, la vue reste vide jusqu'au chargement et après un échec (message).
+
+## Date réelle du jour (29/09/2026)
+
+- `Console Admin.dc.html` : `TODAY` modifiable et `apiClock()` (horloge recalée sur le serveur) ; année courante dans `fD` ; `dayDate` relatif à aujourd'hui ; `nextCapture()` pour le prochain snapshot ; libellés « Coût IA · », « Projection », « fin … » au mois en cours ; `apiNow` transmis au Registre à l'heure courante.
+- `ConsoCouts.dc.html` : mois en cours déduit des données (plus de `getMonth() === 8`, de 30 jours ni de « sept. » en dur).
+- `ProjetsBiblio.dc.html` : avancement à la date du serveur (`apiToday`).
+- `admin-api.js` : appel de `apiClock()`, titre du mois de la répartition, `apiToday` de la bibliothèque.

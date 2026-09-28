@@ -87,6 +87,10 @@ html,body{margin:0;background:#f2f6f5;font-family:'Plus Jakarta Sans',sans-serif
 <script type="text/x-dc" data-dc-script>
 // Lignes budgétaires de l'IA, dans l'ordre d'affichage (mêmes identifiants que le serveur : AI_BUDGET_LINES), libellé et couleur.
 const BUDGET_LINES = ['insights', 'rapports', 'guidage', 'docs', 'crud'];
+// Mois (abrégé, en toutes lettres) : le mois affiché est celui du dernier jour écoulé des données, jamais un mois figé.
+const MO = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+const MO_L = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 const BUDGET_FN = { insights: ['Insights', '#1d8f86'], rapports: ['Rapports', '#8e5bd0'], guidage: ['Guidage console', '#d0578a'], docs: ['Documents', '#e39a2d'], crud: ['Gestion des données', '#3b7dd8'] };
 class Component extends DCLogic {
   state = { per: 'mois', fn: null, hov: null, dim: 'fn', t: 0, google: false, th: { all: { lim: 1200, warn: 80 }, insights: { lim: 800, warn: 80 }, rapports: { lim: '', warn: 80 }, guidage: { lim: '', warn: 80 }, docs: { lim: 400, warn: 80 }, crud: { lim: '', warn: 80 } }, th0: null, toast: null, anim: 0 };
@@ -111,7 +115,8 @@ class Component extends DCLogic {
     const { days } = this.data(), FN = BUDGET_FN, keys = BUDGET_LINES;
     const LOGO = { anthropic: './assets/logos/lh-anthropic.svg', openrouter: './assets/logos/lh-openrouter.webp', google: './assets/logos/lh-gemini-color.svg', openai: './assets/logos/lh-openai.svg', mistral: './assets/logos/lh-mistral-color.svg' };
     const val = d => S.fn ? d[S.fn] : d.t, fmtD = dt => dt.getDate() + ' ' + ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'][dt.getMonth()];
-    const sep = days.filter(d => d.dt.getMonth() === 8), past = sep.filter(d => !d.fut), fut = sep.filter(d => d.fut && d.dt.getDate() <= 30);
+    const ref = (days.filter(d => !d.fut).pop() || days[days.length - 1]).dt, RM = ref.getMonth(), RY = ref.getFullYear(), NJ = new Date(RY, RM + 1, 0).getDate(), PM = new Date(RY, RM - 1, 1);
+    const sep = days.filter(d => d.dt.getMonth() === RM && d.dt.getFullYear() === RY), past = sep.filter(d => !d.fut), fut = sep.filter(d => d.fut);
     const sumK = (arr, k) => arr.reduce((a, d) => a + (k ? d[k] : d.t), 0), mtd = sumK(past), mtdF = S.fn ? sumK(past, S.fn) : mtd;
     const lim = S.fn ? (S.th[S.fn] && +S.th[S.fn].lim ? +S.th[S.fn].lim : null) : +S.th.all.lim, warnP = S.fn ? (S.th[S.fn] ? S.th[S.fn].warn : null) : S.th.all.warn;
     const projF = mtdF + sumK(fut, S.fn), cross = (() => { let c = 0; for (const d of [...past, ...fut]) { c += val(d); if (lim && c >= lim) return d; } return null; })();
@@ -124,7 +129,7 @@ class Component extends DCLogic {
     let svgKids = [], xs = [], hovInfo = null;
     const grid = (max, fmt) => { const st = max > 900 ? 400 : max > 300 ? 100 : max > 60 ? 20 : 10; const out = []; for (let v = 0; v <= max; v += st) out.push(e('g', { key: 'g' + v }, e('line', { x1: L, x2: W - R, y1: T + ih - v / max * ih, y2: T + ih - v / max * ih, stroke: '#eef3f2' }), e('text', { x: 0, y: T + ih - v / max * ih + 4, fontSize: 10.5, fill: '#a3b1ba', fontFamily: 'Plus Jakarta Sans' }, fmt ? fmt(v) : v))); return out; };
     if (S.per === 'mois') {
-      const N = 30, px = i => L + (i / (N - 1)) * iw, all = [...past, ...fut]; let c = 0; const pts = all.map((d, i) => { c += val(d); return { i, d, c }; });
+      const N = NJ, px = i => L + (i / (N - 1)) * iw, all = [...past, ...fut]; let c = 0; const pts = all.map((d, i) => { c += val(d); return { i, d, c }; });
       const max = Math.max(lim || 0, pts[pts.length - 1].c) * 1.12, py = v => T + ih - v / max * ih;
       xs = pts.map(p => px(p.i)); const pp = pts.filter(p => !p.d.fut), pf = [pp[pp.length - 1], ...pts.filter(p => p.d.fut)];
       const path = arr => arr.map((p, j) => (j ? 'L' : 'M') + px(p.i).toFixed(1) + ' ' + py(p.c).toFixed(1)).join(' ');
@@ -139,7 +144,7 @@ class Component extends DCLogic {
         e('path', { key: 'f' + ANIM, d: path(pf), fill: 'none', stroke: '#e39a2d', strokeWidth: 2, strokeDasharray: '4 5', style: { animation: 'fadeIn .5s 1s both' } }),
         cross ? e('circle', { key: 'cr' + ANIM, cx: px(all.indexOf(cross)), cy: py(lim), r: 5, fill: '#e39a2d', stroke: '#fff', strokeWidth: 2, style: { animation: 'fadeIn .3s 1.3s both' } }) : null,
         e('circle', { key: 'td' + ANIM, cx: px(pp.length - 1), cy: py(pp[pp.length - 1].c), r: 5.5, fill: '#fff', stroke: S.fn ? FN[S.fn][1] : '#1d8f86', strokeWidth: 2.5, style: { animation: 'fadeIn .3s 1s both' } }),
-        ...[0, 7, 14, 21, 28].map(i => e('text', { key: 'x' + i, x: px(i), y: H - 8, textAnchor: 'middle', fontSize: 11, fill: '#a3b1ba', fontFamily: 'Plus Jakarta Sans' }, (i + 1) + ' sept.'))];
+        ...[0, 7, 14, 21, 28].filter(i => i < NJ).map(i => e('text', { key: 'x' + i, x: px(i), y: H - 8, textAnchor: 'middle', fontSize: 11, fill: '#a3b1ba', fontFamily: 'Plus Jakarta Sans' }, (i + 1) + ' ' + MO[RM]))];
       if (S.hov != null && pts[S.hov]) { const p = pts[S.hov]; hovInfo = { x: px(p.i), y: py(p.c), d: p.d, cum: p.c };
         svgKids.push(e('line', { key: 'hl', x1: px(p.i), x2: px(p.i), y1: T, y2: T + ih, stroke: '#10233a', strokeOpacity: .18 }), e('circle', { key: 'hc', cx: px(p.i), cy: py(p.c), r: 4.5, fill: p.d.fut ? '#e39a2d' : '#10233a' })); }
     } else {
@@ -160,19 +165,19 @@ class Component extends DCLogic {
         st: 'position:absolute;top:' + Math.max(0, Math.min(hovInfo.y / H * 100 - 10, 30)).toFixed(1) + '%;' + (right ? 'right:' + (100 - lp + 2).toFixed(1) + '%' : 'left:' + (lp + 2).toFixed(1) + '%') + ';min-width:190px;padding:10px 12px;border-radius:12px;background:#fff;box-shadow:0 0 0 1px #e1e9e7,0 14px 30px -14px rgba(16,35,58,.4);display:flex;flex-direction:column;gap:5px;pointer-events:none;animation:fadeIn .12s both;z-index:3' }; })() : { on: false };
     // KPI
     const pP = lim ? projF / lim : 0, over = lim && projF > lim;
-    const kpi = { lbl: S.per === 'mois' ? (S.fn ? FN[S.fn][0] + ' · depuis le 1er sept.' : 'Dépensé depuis le 1er sept.') : (S.fn ? FN[S.fn][0] + ' · ' : '') + (S.per === '7' ? '7 derniers jours' : '90 derniers jours'),
+    const kpi = { lbl: S.per === 'mois' ? (S.fn ? FN[S.fn][0] + ' · depuis le 1er ' + MO[RM] : 'Dépensé depuis le 1er ' + MO[RM]) : (S.fn ? FN[S.fn][0] + ' · ' : '') + (S.per === '7' ? '7 derniers jours' : '90 derniers jours'),
       v: eur((S.per === 'mois' ? mtdF : totP) * t), hasLim: S.per === 'mois' && !!lim, lim: lim ? eur(lim) : '', hasProj: S.per === 'mois', proj: eur(projF), projPct: lim ? Math.round(pP * 100) + ' %' : 'sans plafond',
-      projL: !lim ? 'Aucun plafond défini pour cette fonction.' : over ? 'Plafond dépassé le ' + (cross ? cross.dt.getDate() + ' septembre' : '—') + ' au rythme actuel.' : 'Reste ' + eur(lim - projF) + ' sous le plafond en fin de mois.',
+      projL: !lim ? 'Aucun plafond défini pour cette fonction.' : over ? 'Plafond dépassé le ' + (cross ? cross.dt.getDate() + ' ' + MO_L[RM] : '—') + ' au rythme actuel.' : 'Reste ' + eur(lim - projF) + ' sous le plafond en fin de mois.',
       projBox: 'padding:14px 16px;border-radius:14px;display:flex;flex-direction:column;gap:4px;transition:background .3s;' + (over ? 'background:#fff4e6;box-shadow:inset 0 0 0 1px #f6d3a4;animation:pulse 1.8s 1.4s 2' : 'background:#eef8f6;box-shadow:inset 0 0 0 1px #bfe3de'),
       projT: 'font-size:12px;font-weight:800;color:' + (over ? '#9a5a0c' : '#146b64'), projV: 'font-size:22px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:' + (over ? '#9a5a0c' : '#146b64'), projD: 'font-size:12px;line-height:1.45;color:' + (over ? '#8a5a12' : '#146b64'),
-      facts: S.per === 'mois' ? [{ l: 'Rythme des 7 derniers jours', v: eur(sumK(allPast.slice(-7), S.fn) / 7) + ' / jour' }, { l: 'Août, même date', v: eur(sumK(days.filter(d => d.dt.getMonth() === 7 && d.dt.getDate() <= 26), S.fn)) }, { l: 'Tokens ce mois', v: (mtd ? mtdF / mtd * 318 : 0).toFixed(0) + ' M' }]
+      facts: S.per === 'mois' ? [{ l: 'Rythme des 7 derniers jours', v: eur(sumK(allPast.slice(-7), S.fn) / 7) + ' / jour' }, { l: cap(MO_L[PM.getMonth()]) + ', même date', v: eur(sumK(days.filter(d => d.dt.getMonth() === PM.getMonth() && d.dt.getFullYear() === PM.getFullYear() && d.dt.getDate() <= ref.getDate()), S.fn)) }, { l: 'Tokens ce mois', v: (mtd ? mtdF / mtd * 318 : 0).toFixed(0) + ' M' }]
         : [{ l: 'Moyenne par jour', v: eur(avg) }, { l: 'Jour le plus cher', v: eur(Math.max(...last.map(val))) }, { l: 'Jours sur secours', v: String(last.filter(d => d.fb).length) }],
       fnOn: !!S.fn, fnL: S.fn ? FN[S.fn][0] : '', clearFn: () => { this.setState({ fn: null, anim: S.anim + 1 }); this.count(); } };
     // function cards
     const MOD = { insights: ['Claude Sonnet 4.5', 'anthropic'], rapports: ['Claude Sonnet 4.5', 'anthropic'], guidage: ['Claude Haiku 4.5', 'anthropic'], docs: G ? ['Gemini 2.5 Pro', 'google'] : ['Claude Sonnet 4.5 · secours', 'anthropic'], crud: ['Claude Haiku 4.5', 'anthropic'] };
     const fns = keys.map((k, i) => { const v = sumK(past, k), pr = v + sumK(fut, k), th = S.th[k], l = th ? +th.lim : 0, on = S.fn === k, warn = k === 'docs' && !G;
       return { n: FN[k][0], on, v: eur(v * t), share: (mtd ? Math.round(v / mtd * 100) : 0) + ' % du mois', model: MOD[k][0], logo: 'width:16px;height:16px;flex:none;background:url("' + LOGO[MOD[k][1]] + '") center/contain no-repeat', limL: l ? 'plafond ' + eur(l) : 'sans plafond',
-        stL: !l ? 'Sans plafond' : pr > l ? 'Dépassement projeté' : v >= l * th.warn / 100 ? 'Seuil d’alerte' : 'Sous le plafond', warn, note: 'Coûte 110 % de plus depuis le 24 : son modèle principal (Gemini 2.5 Pro) est coupé.',
+        stL: !l ? 'Sans plafond' : pr > l ? 'Dépassement projeté' : v >= l * th.warn / 100 ? 'Seuil d’alerte' : 'Sous le plafond', warn, note: 'Coûte plus cher : son modèle principal (Gemini 2.5 Pro) est coupé, le secours répond.',
         pill: 'height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:800;display:inline-flex;align-items:center;white-space:nowrap;' + (!l ? 'background:#eef2f1;color:#8a9aa6' : pr > l ? 'background:#fbe4e1;color:#a2352a' : v >= l * th.warn / 100 ? 'background:#fff1dc;color:#9a5a0c' : 'background:#e6f4f2;color:#146b64'),
         dot: 'width:9px;height:9px;border-radius:3px;background:' + FN[k][1],
         bar: 'position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:' + FN[k][1] + ';transform-origin:left;animation:grow .9s ' + (.3 + i * .08) + 's cubic-bezier(.2,.7,.2,1) both;width:' + Math.min(100, (l ? v / l : mtd ? v / mtd : 0) * 100).toFixed(1) + '%',
@@ -185,7 +190,7 @@ class Component extends DCLogic {
     const PVS = [['anthropic', 'Anthropic', d => d.insights + d.rapports + d.guidage + d.crud + (d.fb ? d.docs : 0)], ['google', 'Google', d => d.fb ? 0 : d.docs], ['openai', 'OpenAI', () => 0], ['mistral', 'Mistral AI', () => 0]];
     const src = S.dim === 'fn' ? keys.map(k => [k, FN[k][0], null, d => d[k], FN[k][1]]) : S.dim === 'm' ? MODELS.map(m => [m[0], m[1], m[2], m[3]]) : PVS.map(p => [p[0], p[1], p[0], p[2]]);
     const rs = src.map(([id, n, logo, f, col]) => ({ id, n, logo, col, v: last.reduce((a, d) => a + f(d), 0) })).sort((a, b) => b.v - a.v), mx = rs[0].v || 1, tt = rs.reduce((a, r) => a + r.v, 0) || 1;
-    const rep = { sub: (S.per === 'mois' ? 'Septembre' : S.per === '7' ? '7 derniers jours' : '90 derniers jours') + ' · ' + eur(tt),
+    const rep = { sub: (S.per === 'mois' ? cap(MO_L[RM]) : S.per === '7' ? '7 derniers jours' : '90 derniers jours') + ' · ' + eur(tt),
       dims: [['fn', 'Fonction'], ['m', 'Modèle'], ['pv', 'Fournisseur']].map(([k, l]) => ({ l, st: 'height:28px;padding:0 11px;border-radius:8px;border:0;font:inherit;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;' + (S.dim === k ? 'background:#fff;color:#10233a;box-shadow:0 1px 2px rgba(16,35,58,.12)' : 'background:transparent;color:#5c7280'), pick: () => this.setState({ dim: k, anim: S.anim + 1 }) })),
       rows: rs.map((r, i) => ({ n: r.n, v: eur(r.v), sh: Math.round(r.v / tt * 100) + ' %', tok: r.v ? '≈ ' + Math.max(1, Math.round(r.v / mtd * 318)) + ' M tokens' : 'non utilisé',
         ic: r.logo ? 'width:28px;height:28px;border-radius:8px;background:#fff url("' + LOGO[r.logo] + '") center/16px no-repeat;box-shadow:0 0 0 1px #e1e9e7' + (r.v ? '' : ';opacity:.45') : 'width:28px;height:28px;border-radius:8px;background:' + r.col + '1f;box-shadow:inset 0 0 0 1.5px ' + r.col,
@@ -221,7 +226,7 @@ class Component extends DCLogic {
         warnDn: ev => { ev.stopPropagation(); setTh({ warn: Math.max(50, x.warn - 5) }); }, warnUp: ev => { ev.stopPropagation(); setTh({ warn: Math.min(100, x.warn + 5) }); } }; });
     const tfoot = 'Cliquez une fonction pour isoler sa courbe · la barre noire marque le seuil d’alerte, les hachures la projection fin de mois';
     const thDirty = S.th0 && JSON.stringify(S.th) !== JSON.stringify(S.th0);
-    const alert = G ? { on: false } : { on: true, t: 'Clé Google révoquée depuis le 24 septembre', d: 'Documents tourne sur Claude Sonnet 4.5 : environ 16 € de plus par jour ouvré. La remplacer ramène la projection de ' + eur(sumK(past) + sumK(fut)) + ' à ' + eur(sumK(past) + sumK(fut) - fut.reduce((a, d) => a + d.docs * (1 - 1 / 2.1), 0)) + '.',
+    const alert = G ? { on: false } : { on: true, t: 'Clé Google révoquée', d: 'Documents tourne sur Claude Sonnet 4.5 : environ 16 € de plus par jour ouvré. La remplacer ramène la projection de ' + eur(sumK(past) + sumK(fut)) + ' à ' + eur(sumK(past) + sumK(fut) - fut.reduce((a, d) => a + d.docs * (1 - 1 / 2.1), 0)) + '.',
       fix: () => { if (this.props.onFixKey) return this.props.onFixKey(); this._d = null; this.setState({ google: true, anim: S.anim + 1 }); this.count(); this.toast('Clé Google remplacée · Documents repasse sur Gemini 2.5 Pro'); } };
     kpi.factL = kpi.facts.map(f => f.l + ' ' + f.v).join(' · ');
     return { periods, chart, tip, kpi, rows, tfoot, fns, rep, th, thDirty, thCancel: () => this.setState({ th: JSON.parse(JSON.stringify(S.th0)) }), thSave: () => { this.setState({ th0: JSON.parse(JSON.stringify(S.th)) }); this.toast('Seuils enregistrés'); },

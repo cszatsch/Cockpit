@@ -305,6 +305,8 @@ export function bindConsole(c) {
     try {
       const ov = await get('/overview');
       clock = { server: new Date(ov.date).getTime(), local: Date.now() };
+      // L'horloge de la Console (« aujourd'hui », « il y a… », mois en cours) suit celle du serveur.
+      if (typeof c.apiClock === 'function') c.apiClock(clock.server);
       // Échéances des clés API : même date du jour que le serveur (DEMO_TODAY compris).
       set0({ apiNow: String(ov.date).slice(0, 10) + 'T12:00:00' });
       await load(['prof', 'accounts', 'admins', 'audit', 'providers', 'models', 'asg', 'usage', 'snaps', 'sched', 'rules', 'hist', 'mods', 'reqs', 'sess', 'projects', 'skills', 'persona', 'notifs', 'apis', 'fns']);
@@ -798,7 +800,7 @@ export function bindConso(c) {
         : S.dim === 'm' ? models.map(m => ({ id: m.id, n: m.name, logo: m.providerId, v: sumOf(last, d => d.m[m.id] || 0), tok: sumOf(last, d => d.mt[m.id] || 0) })).filter(r => r.v > 0)
           : provs.map(p => ({ id: p.id, n: p.name, logo: p.id, v: sumOf(last, d => d.pv[p.id] || 0), tok: sumOf(last, d => d.pt[p.id] || 0) }));
       const rs = src.sort((a, b) => b.v - a.v), mx = (rs[0] && rs[0].v) || 1, tt = rs.reduce((a, r) => a + r.v, 0) || 1;
-      v.rep.sub = (S.per === 'mois' ? 'Septembre' : S.per === '7' ? '7 derniers jours' : '90 derniers jours') + ' · ' + eur(tt);
+      v.rep.sub = (S.per === 'mois' ? (m => m.charAt(0).toUpperCase() + m.slice(1))(dayOf(cache.m.monthStart).toLocaleDateString('fr-FR', { month: 'long' })) : S.per === '7' ? '7 derniers jours' : '90 derniers jours') + ' · ' + eur(tt);
       v.rep.rows = rs.map((r, i) => ({ n: r.n, v: eur(r.v), sh: Math.round(r.v / tt * 100) + ' %', tok: r.v ? '≈ ' + mtok(r.tok) + ' M tokens' : 'non utilisé',
         ic: r.logo ? 'width:28px;height:28px;border-radius:8px;background:#fff url("' + (LOGO[r.logo] || '') + '") center/16px no-repeat;box-shadow:0 0 0 1px #e1e9e7' + (r.v ? '' : ';opacity:.45') : 'width:28px;height:28px;border-radius:8px;background:' + r.col + '1f;box-shadow:inset 0 0 0 1.5px ' + r.col,
         bar: 'height:100%;border-radius:3px;transform-origin:left;animation:grow .8s ' + (i * .07) + 's cubic-bezier(.2,.7,.2,1) both;background:' + (r.col || (r.logo === 'google' ? '#8e75b2' : '#1d8f86')) + ';width:' + (r.v / mx * 100).toFixed(1) + '%', key: S.anim }));
@@ -923,7 +925,8 @@ export function bindBiblio(c) {
       // Ordre de la bibliothèque : nouveaux projets en tête, puis actifs, en préparation, clos ; par date de début.
       const R = { actif: 0, prep: 1, clos: 2 };
       const list = (await get('/projects')).map(p => toLib(p, today)).sort((a, b) => Number(b.isNew) - Number(a.isNew) || R[a.st] - R[b.st] || (a.start || 0) - (b.start || 0));
-      c.setState({ api: list });
+      // Avancement des cartes : à la date du serveur (date réelle), pas à la date de démonstration.
+      c.setState({ api: list, apiToday: today });
     } catch (e) { console.warn('[admin-api]', e); }
   })();
 }
