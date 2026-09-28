@@ -287,3 +287,12 @@ Demande du commanditaire : deux écrans de connexion distincts (application, adm
 | Sujet | Décision | Constante / lieu |
 |---|---|---|
 | Ordre des articles | Arbitrage du commanditaire : garder le tri par date (plus récents d'abord), toutes sources confondues. Les articles des offres gratuites de GNews (12 h de retard) et NewsData.io, plus anciens, n'apparaissent en tête que si les flux RSS n'ont rien de plus récent. | `mergeFeeds` (`src/domain/rss.ts`) |
+
+## Skills « Rédiger les slides PowerPoint » et « Analyser un document » (28/09/2026)
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Format | Format Claude Skill : un dossier par skill, `SKILL.md` avec en-tête YAML (`name`, `description` : quoi et quand l'utiliser) puis les instructions en Markdown simple (`##`, `-`, `1.`), seul rendu par l'aperçu de la page Skills. Dans la plateforme, le nom est un champ à part : seul le corps (sans l'en-tête) est enregistré. | `docs/skills/rediger-slides-powerpoint/`, `docs/skills/analyser-un-document/` |
+| Slides | Fondée sur l'application : sections et poids des templates de rapport, niveaux des instances (stratégique, pilotage, opérationnel), règles de calcul (criticité p × i ≥ 20 / ≥ 12, livrables > 6 / > 18 points, avancement < 0 / < −20), fiche d'arbitrage, module Budget facultatif ; pas de fichier .pptx (export PDF du rapport officiel dans Comités et rapports, en lecture seule pour Jev). Complète la skill « Rapports » (choix des données) par la façon d'écrire chaque slide. | skill « Rédiger les slides PowerPoint » |
+| Documents | Fondée sur la Base de connaissance : formats (.pdf, .docx, .pptx, .xlsx, .msg, .eml, 25 Mo), états d'extraction, chaîne vectorisation → reclassement → synthèse, types, versions, liens aux objets, confidentialité (restreint : PMO et administrateur), lecture seule pour Jev ; extraction citée (page, slide, onglet et cellule) et rapprochement avec les objets du Cockpit ; créations proposées via « Gestion des données ». | skill « Analyser un document » |
+| Mise en place | Ajoutées **désactivées** à la base locale (positions 11 et 12), à relire puis activer. Limite connue : le contenu d'un document n'est pas encore transmis au modèle (passerelle bouchon, pas de recherche documentaire ; voir l'analyse du routage de Jev). | Assistant › Skills |
