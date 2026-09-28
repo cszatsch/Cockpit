@@ -135,3 +135,10 @@ Demande du commanditaire : deux écrans de connexion distincts (application, adm
 | Dates retenues | Date de disponibilité publique (annonce officielle). GPT-6 Astra : annoncé le 03/09/2026 en aperçu, diffusé le 04/09/2026 → 04/09. | `CATALOG_MODELS` |
 | À surveiller | Gemini 3.8 Flash : tarif de lancement jusqu'au 31/12/2026, puis 1,50 $ / 7,50 $ (catalogue à mettre à jour). Claude Haiku 4.5 : retrait annoncé « pas avant le 15/10/2026 ». GPT-6 : tarif plus élevé au-delà de 272K tokens d'entrée (non représenté). | `note` de chaque modèle |
 | OpenRouter | Nouveau fournisseur, créé **sans clé** (« Non testée ») : la clé se saisit dans la console (« Remplacer la clé »). Test réel de la clé : `GET https://openrouter.ai/api/v1/key` (Bearer), 401 si invalide. Logo fourni par le commanditaire : `frontends/assets/logos/lh-openrouter.webp`. | `KEY_PROBES`, `CATALOG_PROVIDERS` |
+
+## Console : ergonomie (28/09/2026)
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Tri de la liste des modèles | Toutes les colonnes sont triables ; premier clic croissant, second décroissant ; valeurs absentes en dernier. | `sortModels()` (`Console Admin.dc.html`) |
+| Barre latérale | Bouton réduire / déployer en haut à droite (interprétation de « réduire la sidebar et la fermer » : la fermeture laisse la barre réduite aux icônes, la navigation reste accessible) ; largeur réglable par une poignée de bordure, 200 à 420 px, 252 px par défaut ; préférences mémorisées dans le navigateur. | `NAV_W_DEF`, `NAV_W_MIN`, `NAV_W_MAX` |

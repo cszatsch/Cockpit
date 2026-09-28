@@ -172,3 +172,10 @@ Les captures sont écrites dans `OUT` (par défaut `<tmp>/rise-console-e2e`).
 ## Fournisseur OpenRouter (28/09/2026)
 
 - Logo `assets/logos/lh-openrouter.webp` (fourni par le commanditaire) ajouté aux tables de logos de `Console Admin.dc.html` (3), `ConsoCouts.dc.html` et `admin-api.js`.
+
+## Liste des modèles triable et barre latérale réglable (28/09/2026)
+
+- **Tri** : les en-têtes de la liste des modèles (Modèle, Fournisseur, Entrée, Sortie, Utilisé par, Actif) deviennent des boutons de tri (`aria-sort`, indicateur ▲ ▼ ↕) ; un clic trie en ordre croissant, un second en ordre décroissant ; valeurs absentes (pas de tarif de sortie, modèle inutilisé) en dernier ; à égalité, ordre alphabétique. Entrée d'un Reranking à la requête : tarif pour 1 000 requêtes. Méthodes `sortModels`, `sortCols`, état `mSort`.
+- **Réduire / déployer** : bouton en haut à droite de la barre latérale déployée (« Réduire la barre latérale ») et sous le logo de la barre réduite (« Déployer la barre latérale »). Le choix l'emporte sur le mode automatique (déployée à partir de 1 180 px, réduite en dessous) ; sous 760 px, le menu mobile est inchangé. Méthodes `navMode`, `toggleNav`.
+- **Largeur** : poignée à la limite de la barre et de l'écran central (`role="separator"`) : au survol ou au focus, un trait et une icône ↔ apparaissent ; glisser règle la largeur entre 200 et 420 px (`NAV_W_MIN`, `NAV_W_MAX`), les flèches du clavier par pas de 16 px (Début / Fin : minimum / maximum), le double-clic revient à 252 px (`NAV_W_DEF`). L'animation de la grille est coupée pendant le glisser.
+- **Mémorisation** : réduite / déployée et largeur dans `localStorage['rise-console-nav']` (préférence du navigateur, sans appel au serveur).

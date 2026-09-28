@@ -29,8 +29,11 @@ a{color:#1d8f86}a:hover{color:#146b64}
   <div style="flex:none;display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:30px;padding:0 4px">
     <sc-if value="{{ lab }}" hint-placeholder-val="{{ true }}"><button onClick="{{ goOv }}" style="display:flex;align-items:baseline;gap:6px;border:0;background:transparent;padding:0;cursor:pointer;color:#fff"><span style="font-weight:800;font-size:15px;letter-spacing:.04em">COCKPIT</span><span style="font-size:11px;color:#8fa9bb;font-style:italic">by</span><span style="font-size:14px;font-weight:700;letter-spacing:-.01em">onepoint</span></button></sc-if>
     <sc-if value="{{ rail }}" hint-placeholder-val="{{ false }}"><button onClick="{{ goOv }}" aria-label="Vue d’ensemble" style="width:40px;height:32px;margin:0 auto;border:0;border-radius:9px;background:rgba(255,255,255,.06);color:#fff;font-weight:800;font-size:13px;cursor:pointer">C</button></sc-if>
+    <!-- API : réduire la barre latérale (choix mémorisé dans le navigateur). -->
+    <sc-if value="{{ navFull }}" hint-placeholder-val="{{ true }}"><button onClick="{{ navTog }}" aria-label="{{ navTogL }}" title="{{ navTogL }}" style="flex:none;width:30px;height:30px;border:0;border-radius:8px;background:rgba(255,255,255,.06);color:#a9bccb;display:grid;place-items:center;cursor:pointer" style-hover="background:rgba(255,255,255,.12);color:#fff"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"></rect><path d="M9.5 4.5v15"></path><path d="M16 10l-2 2 2 2"></path></svg></button></sc-if>
     <sc-if value="{{ mob }}" hint-placeholder-val="{{ false }}"><button onClick="{{ closeNav }}" aria-label="Fermer le menu" style="width:32px;height:32px;border:0;border-radius:8px;background:rgba(255,255,255,.06);color:#c9d6de;display:grid;place-items:center;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></sc-if>
   </div>
+  <sc-if value="{{ rail }}" hint-placeholder-val="{{ false }}"><button onClick="{{ navTog }}" aria-label="{{ navTogL }}" title="{{ navTogL }}" style="flex:none;margin:10px auto 0;width:40px;height:28px;border:0;border-radius:8px;background:rgba(255,255,255,.06);color:#a9bccb;display:grid;place-items:center;cursor:pointer" style-hover="background:rgba(255,255,255,.12);color:#fff"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"></rect><path d="M9.5 4.5v15"></path><path d="M14 10l2 2-2 2"></path></svg></button></sc-if>
   <sc-if value="{{ lab }}" hint-placeholder-val="{{ true }}"><div style="flex:none;margin:14px 4px 0;display:flex;align-items:center;gap:8px"><span style="height:22px;padding:0 8px;border-radius:6px;background:#f7a41c;color:#1a1200;font-size:10.5px;font-weight:800;letter-spacing:.12em;display:inline-flex;align-items:center">CONSOLE</span><span style="font-size:11.5px;color:#8fa9bb">Administration de la plateforme</span></div></sc-if>
   <button onClick="{{ openPal }}" aria-label="Rechercher ou lancer une action" style="flex:none;margin-top:22px;display:flex;align-items:center;gap:10px;height:40px;padding:0 {{ srchPad }};border-radius:11px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:#a9bccb;cursor:pointer;width:100%;justify-content:center;transition:border-color .15s,background .15s" style-hover="border-color:rgba(255,255,255,.28);background:rgba(255,255,255,.07)">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"></circle><path d="M20 20l-4-4"></path></svg>
@@ -67,6 +70,8 @@ a{color:#1d8f86}a:hover{color:#146b64}
     </button>
   </div>
 </aside>
+<!-- API : largeur de la barre latérale réglable (glisser, flèches du clavier ; double-clic : largeur par défaut). -->
+<sc-if value="{{ rz.on }}" hint-placeholder-val="{{ false }}"><div role="separator" aria-orientation="vertical" aria-label="Largeur de la barre latérale" aria-valuemin="{{ rz.min }}" aria-valuemax="{{ rz.max }}" aria-valuenow="{{ rz.val }}" tabIndex="0" title="Glisser pour élargir ou réduire · double-clic : largeur par défaut" onPointerDown="{{ rz.start }}" onDoubleClick="{{ rz.reset }}" onKeyDown="{{ rz.key }}" onMouseEnter="{{ rz.enter }}" onMouseLeave="{{ rz.leave }}" onFocus="{{ rz.enter }}" onBlur="{{ rz.leave }}" style="{{ rz.st }}"><span aria-hidden="true" style="{{ rz.lineSt }}"></span><span aria-hidden="true" style="{{ rz.pillSt }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7l-5 5 5 5"></path><path d="M15 7l5 5-5 5"></path></svg></span></div></sc-if>
 <sc-if value="{{ scrim }}" hint-placeholder-val="{{ false }}"><div onClick="{{ closeNav }}" style="position:fixed;inset:0;background:rgba(10,23,38,.45);z-index:55;animation:fade .2s both"></div></sc-if>
 
 <main style="min-width:0">
@@ -358,7 +363,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
         <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:10px"><h2 style="margin:0;font-size:17px;font-weight:800">Modèles</h2><span style="font-size:12.5px;color:#5c7280">Coûts en euros par million de tokens</span><span style="flex:1"></span><div role="tablist" aria-label="Fournisseur" style="display:inline-flex;flex-wrap:wrap;gap:2px;padding:3px;border-radius:11px;background:#e5edeb"><sc-for list="{{ pv.flt }}" as="o" hint-placeholder-count="5"><button role="tab" aria-selected="{{ o.on }}" onClick="{{ o.pick }}" style="{{ o.st }}">{{ o.l }}</button></sc-for></div><button onClick="{{ pv.addModel }}" style="height:36px;padding:0 16px;border:0;border-radius:10px;background:#10233a;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px" style-hover="background:#1d3654"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>Ajouter un modèle</button></div>
         <div style="background:#fff;border:1px solid #e1e9e7;border-radius:16px;box-shadow:0 1px 2px rgba(16,35,58,.04);overflow-x:auto">
           <div style="min-width:980px">
-            <div style="display:grid;grid-template-columns:minmax(240px,2.2fr) 110px 104px 104px minmax(180px,1.6fr) 64px 44px;gap:16px;padding:12px 20px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#5c7280"><span>Modèle</span><span>Fournisseur</span><span style="text-align:right">Entrée</span><span style="text-align:right">Sortie</span><span>Utilisé par</span><span>Actif</span><span></span></div>
+            <div style="display:grid;grid-template-columns:minmax(240px,2.2fr) 110px 104px 104px minmax(180px,1.6fr) 64px 44px;gap:16px;padding:12px 20px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#5c7280"><sc-for list="{{ pv.sortCols }}" as="h" hint-placeholder-count="6"><button type="button" onClick="{{ h.pick }}" aria-sort="{{ h.aria }}" title="{{ h.tip }}" style="{{ h.st }}" style-hover="color:#10233a"><span>{{ h.l }}</span><span aria-hidden="true" style="{{ h.icSt }}">{{ h.ic }}</span></button></sc-for><span></span></div>
             <sc-for list="{{ pv.models }}" as="m" hint-placeholder-count="8">
               <div style="{{ m.rowSt }}">
                 <div style="min-width:0"><div style="display:flex;align-items:center;gap:8px;min-width:0"><span style="font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ m.n }}</span><span style="{{ m.catSt }}">{{ m.catL }}</span><sc-if value="{{ m.ageOn }}" hint-placeholder-val="{{ false }}"><span title="{{ m.ageT }}" style="{{ m.ageSt }}">{{ m.ageL }}</span></sc-if></div><div style="font-size:12px;color:#5c7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ m.d }}</div></div>
@@ -988,6 +993,8 @@ const MODELS0 = [
   ['gflash', 'google', 'Gemini 2.5 Flash', 'Rapide, multimodal.', 0.3, 2.5, false]
 ].map(m => ({ id: m[0], pv: m[1], n: m[2], d: m[3], c: 'LLM', unit: 'TOKENS', pin: m[4], pout: m[5], per1k: null, rel: '', maxOut: null, act: m[6] }));
 // API : lignes de consommation et de plafond (la ligne Documents regroupe les trois étapes de la chaîne).
+// Largeur de la barre latérale déployée (px) : par défaut, minimum et maximum de la poignée.
+const NAV_W_DEF = 252, NAV_W_MIN = 200, NAV_W_MAX = 420;
 const CONSO = [
   { id: 'insights', n: 'Analyse des données et insights', sh: 'Insights', vin: 120e6, vout: 18e6, fn: 'insights' },
   { id: 'crud', n: 'Création, modification et suppression des données', sh: 'Gestion des données', vin: 50e6, vout: 12e6, fn: 'crud' },
@@ -1095,7 +1102,7 @@ class Component extends DCLogic {
       admins: [{ u: 'u1', lv: 'admin', since: new Date(2025, 0, 14) }],
       adTab: 'admins', aq: '', aSev: 'tous', audit: AUDIT0.map((a, i) => ({ id: 'a' + i, who: a[0], a: a[1], tg: a[2], sev: a[3], t: back(a[4]) })),
       rTab: 'matrice', rView: 'user', rUser: 'u7', rProj: 'RISE', ov: { 'u7|RISE|pil': 3, 'u7|RISE|pil.risk': 1 }, pend: {}, menu: null, exp: { pil: true }, rProf: 'pmo', profs: PROFS.map(p => ({ ...p, lv: { ...p.lv } })),
-      provs: PROV0.map(p => ({ ...p, t: back(p.ago) })), models: MODELS0.map(m => ({ ...m })), pvF: 'tous',
+      provs: PROV0.map(p => ({ ...p, t: back(p.ago) })), models: MODELS0.map(m => ({ ...m })), pvF: 'tous', mSort: { k: 'n', d: 1 }, navW: NAV_W_DEF, navC: null, rzOn: false, rzDrag: false,
       asg, draft: JSON.parse(JSON.stringify(asg)), usage: genUsage(MODELS0, asg), cPer: 30, cDim: 'pv', cHov: null,
       th: [{ id: 'all', n: 'Budget mensuel global', lim: 1200, warn: 80, on: true }, { id: 'insights', n: 'Analyse des données et insights', lim: 800, warn: 80, on: true }, { id: 'docs', n: 'Documents', lim: 400, warn: 80, on: true }],
       sPj: 'RISE', snaps, sSel: ['r9', 'r10'], sched: { on: true, fq: 'Hebdomadaire', day: 'vendredi', hour: '04:00', keep: '12 mois' }, cap: null, sFilt: 'tous',
@@ -1113,6 +1120,8 @@ class Component extends DCLogic {
   }
   componentDidMount() {
     import('./rise-data.js').then(rd => this.setState({ rd })).catch(() => {});
+    // Barre latérale : réduite ou déployée, et largeur, mémorisées dans le navigateur.
+    try { const n = JSON.parse(localStorage.getItem('rise-console-nav') || '{}'); this.setState({ navW: Math.min(NAV_W_MAX, Math.max(NAV_W_MIN, +n.navW || NAV_W_DEF)), navC: typeof n.navC === 'boolean' ? n.navC : null }); } catch (e) { /* stockage indisponible */ }
     this._rs = () => this.setState({ vw: window.innerWidth, menu: null }); window.addEventListener('resize', this._rs);
     this._sc = () => { if (this.state.menu) this.setState({ menu: null }); }; window.addEventListener('scroll', this._sc, true);
     this._kd = e => {
@@ -1160,6 +1169,42 @@ class Component extends DCLogic {
   jGreet(sec) {
     const t = sec === 'overview' ? 'Bonjour ' + this.state.prof.first + '. Je peux résumer l’état de la plateforme, expliquer un chiffre ou agir pour vous : relancer, suspendre, tester des clés, capturer un snapshot. Les actions sensibles passent toujours par votre confirmation.' : 'Que souhaitez-vous faire dans « ' + META[sec][1] + ' » ? Je peux expliquer ce qui s’affiche ou agir pour vous.';
     return [{ t: 'jev', text: t }, { t: 'chips', chips: (JCHIPS[sec] || JCHIPS.overview).map(q => ({ label: q })) }];
+  }
+  // ——— Barre latérale : mode (mobile, réduite, déployée), bouton réduire / déployer, poignée de largeur
+  navMode() { const S = this.state; if (S.vw < 760) return 'mob'; if (S.navC === true) return 'rail'; if (S.navC === false) return 'full'; return S.vw >= 1180 ? 'full' : 'rail'; }
+  navSave(p) { try { const cur = JSON.parse(localStorage.getItem('rise-console-nav') || '{}'); localStorage.setItem('rise-console-nav', JSON.stringify({ ...cur, ...p })); } catch (e) { /* stockage indisponible */ } }
+  toggleNav() { const c = this.navMode() === 'full'; this.setState({ navC: c }); this.navSave({ navC: c }); }
+  navWidth(w) { const v = Math.round(Math.min(NAV_W_MAX, Math.max(NAV_W_MIN, w))); if (v !== this.state.navW) this.setState({ navW: v }); return v; }
+  rzStart(e) {
+    if (e.button !== undefined && e.button !== 0) return;
+    e.preventDefault();
+    const move = ev => this.navWidth(ev.clientX);
+    const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); document.body.style.cursor = ''; document.body.style.userSelect = ''; this.setState({ rzDrag: false }); this.navSave({ navW: this.state.navW }); };
+    window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
+    document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none';
+    this.setState({ rzDrag: true });
+  }
+  rzKey(e) {
+    const k = e.key, d = k === 'ArrowRight' ? 16 : k === 'ArrowLeft' ? -16 : 0;
+    if (k === 'Home' || k === 'End') { e.preventDefault(); this.navSave({ navW: this.navWidth(k === 'Home' ? NAV_W_MIN : NAV_W_MAX) }); return; }
+    if (!d) return; e.preventDefault(); this.navSave({ navW: this.navWidth(this.state.navW + d) });
+  }
+  // ——— Liste des modèles : tri par colonne (clic : croissant, puis décroissant)
+  sortModels(list) {
+    const S = this.state, { k, d } = S.mSort, pvN = m => ((S.provs.find(p => p.id === m.pv) || {}).n || m.pv || '').toLowerCase();
+    const inP = m => m.unit === 'REQUESTS' ? m.per1k : m.pin, use = m => this.usedBy(m.id);
+    const key = { n: m => m.n.toLowerCase(), pv: pvN, in: inP, out: m => m.unit === 'REQUESTS' ? null : m.pout, use: m => use(m).length ? use(m).length * 100 - (use(m)[0].role === 'principal' ? 0 : 1) : null, act: m => m.act ? 1 : 0 }[k];
+    return list.slice().sort((a, b) => { const x = key(a), y = key(b); if (x == null && y == null) return a.n.localeCompare(b.n, 'fr'); if (x == null) return 1; if (y == null) return -1; const c = typeof x === 'string' ? x.localeCompare(y, 'fr') : x - y; return c ? c * d : a.n.localeCompare(b.n, 'fr'); });
+  }
+  sortCols() {
+    const S = this.state, { k, d } = S.mSort;
+    return [['n', 'Modèle', 'left'], ['pv', 'Fournisseur', 'left'], ['in', 'Entrée', 'right'], ['out', 'Sortie', 'right'], ['use', 'Utilisé par', 'left'], ['act', 'Actif', 'left']].map(([id, l, al]) => {
+      const on = k === id;
+      return { l, ic: on ? (d === 1 ? '▲' : '▼') : '↕', aria: on ? (d === 1 ? 'ascending' : 'descending') : 'none', tip: 'Trier par ' + l.toLowerCase(),
+        pick: () => this.setState(s => ({ mSort: { k: id, d: s.mSort.k === id ? -s.mSort.d : 1 } })),
+        st: 'display:flex;align-items:center;gap:5px;justify-content:' + (al === 'right' ? 'flex-end' : 'flex-start') + ';border:0;background:transparent;padding:0;font:inherit;letter-spacing:inherit;text-transform:inherit;font-weight:700;cursor:pointer;white-space:nowrap;color:' + (on ? '#10233a' : '#5c7280'),
+        icSt: 'font-size:9px;letter-spacing:0;color:' + (on ? '#1d8f86' : '#b3c2c7') };
+    });
   }
   toggleJev() {
     const S = this.state; if (S.jev) return this.setState({ jev: false });
@@ -1597,7 +1642,7 @@ class Component extends DCLogic {
       saveSt: 'height:38px;padding:0 18px;border:0;border-radius:10px;background:#10233a;color:#fff;font:inherit;font-weight:700;cursor:pointer;opacity:' + (clean ? .35 : 1) };
   }
   renderVals() {
-    const S = this.state, mode = S.vw >= 1180 ? 'full' : S.vw >= 760 ? 'rail' : 'mob', lab = mode !== 'rail', is = k => S.sec === k;
+    const S = this.state, mode = this.navMode(), lab = mode !== 'rail', is = k => S.sec === k;
     this._v30 = null;
     const att = this.attention(), th = this.thVals(), mtd = this.mtd();
     const badge = { users: S.users.filter(u => u.s === 'invité' && u.inv > 7).length ? ['warn', S.users.filter(u => u.s === 'invité' && u.inv > 7).length] : null, providers: S.provs.filter(p => p.st === 'err').length ? ['err', S.provs.filter(p => p.st === 'err').length] : null, conso: th.some(t => t.on && t.pct >= t.warn) ? ['warn', th.filter(t => t.on && t.pct >= t.warn).length] : null, modules: S.reqs.length ? ['info', S.reqs.length] : null, rights: Object.keys(S.pend).length ? ['pend', Object.keys(S.pend).length] : null };
@@ -1608,7 +1653,12 @@ class Component extends DCLogic {
         mark: on ? `position:absolute;left:${lab ? -16 : -12}px;top:10px;bottom:10px;width:3px;border-radius:0 3px 3px 0;background:#f7a41c` : 'display:none' }; }) }));
     const meta = META[S.sec], errN = att.filter(a => a.tone === 'err').length;
     const vals = {
-      shellSt: `display:grid;grid-template-columns:${mode === 'full' ? '252px' : mode === 'rail' ? '72px' : '0px'} minmax(0,1fr) ${S.jev && mode === 'full' ? '400px' : '0px'};min-height:100vh;transition:grid-template-columns .4s cubic-bezier(.2,.7,.2,1)`,
+      shellSt: `display:grid;grid-template-columns:${mode === 'full' ? S.navW + 'px' : mode === 'rail' ? '72px' : '0px'} minmax(0,1fr) ${S.jev && mode === 'full' ? '400px' : '0px'};min-height:100vh;transition:${S.rzDrag ? 'none' : 'grid-template-columns .4s cubic-bezier(.2,.7,.2,1)'}`,
+      navFull: mode === 'full', navTog: () => this.toggleNav(), navTogL: mode === 'full' ? 'Réduire la barre latérale' : 'Déployer la barre latérale',
+      rz: { on: mode === 'full', val: S.navW, min: NAV_W_MIN, max: NAV_W_MAX, start: e => this.rzStart(e), key: e => this.rzKey(e), reset: () => { this.setState({ navW: NAV_W_DEF }); this.navSave({ navW: NAV_W_DEF }); }, enter: () => this.setState({ rzOn: true }), leave: () => this.setState({ rzOn: false }),
+        st: `position:fixed;top:0;bottom:0;left:${S.navW - 6}px;width:12px;z-index:61;cursor:col-resize;display:flex;align-items:center;justify-content:center;outline:none;touch-action:none`,
+        lineSt: `position:absolute;top:0;bottom:0;left:5px;width:2px;background:${S.rzOn || S.rzDrag ? '#1d8f86' : 'transparent'};transition:background .15s`,
+        pillSt: `position:relative;width:22px;height:34px;border-radius:8px;background:#1d8f86;color:#fff;display:grid;place-items:center;box-shadow:0 6px 16px -6px rgba(16,35,58,.5);opacity:${S.rzOn || S.rzDrag ? 1 : 0};transform:scale(${S.rzOn || S.rzDrag ? 1 : .8});transition:opacity .15s,transform .15s;pointer-events:none` },
       jvWrap: mode === 'full' ? `position:sticky;top:0;height:100vh;overflow:hidden;min-width:0;z-index:30;opacity:${S.jev ? 1 : 0};transform:translateX(${S.jev ? 0 : 24}px);transition:opacity .3s ease,transform .4s cubic-bezier(.2,.7,.2,1);pointer-events:${S.jev ? 'auto' : 'none'}` : `position:fixed;top:0;right:0;bottom:0;width:min(400px,100%);z-index:70;box-shadow:-24px 0 60px -20px rgba(10,23,38,.35);transform:translateX(${S.jev ? 0 : 105}%);transition:transform .35s cubic-bezier(.2,.7,.2,1)`,
       toggleJev: () => this.toggleJev(), jvOn: S.jev,
       jevBtnSt: `position:relative;display:flex;align-items:center;gap:12px;width:100%;padding:8px ${lab ? '12px' : '0'};justify-content:${lab ? 'flex-start' : 'center'};border:0;border-radius:10px;cursor:pointer;text-align:left;transition:background .15s;background:${S.jev ? 'rgba(61,214,198,.12)' : 'transparent'}`,
@@ -1722,8 +1772,8 @@ class Component extends DCLogic {
     // Providers
     if (is('providers')) {
       const pvs = S.provs.map(p => { const [t, l] = this.provLabel(p), nm = S.models.filter(m => m.pv === p.id).length; return { ...p, mask: (p.pre || '') + '••••••••••••' + p.l4, pill: pill(t), dot: dot(t), stL: l, testing: !!p.testing, notTesting: !p.testing, isErr: p.st === 'err' && !p.testing, latL: p.lat ? p.lat + ' ms' : '—', latSt: `font-size:22px;font-weight:800;letter-spacing:-.02em;color:${!p.lat ? '#8a9aa6' : p.lat > 800 ? '#8a5a12' : '#10233a'}`, when: p.testing ? 'Test en cours…' : p.st === 'new' ? 'Jamais testée' : 'Testée ' + ago(p.t), nm: nm + ' modèle' + (nm > 1 ? 's' : ''), test: () => this.testKey(p.id), repl: () => this.openKey(p.id) }; });
-      const ml = S.models.filter(m => S.pvF === 'tous' || m.pv === S.pvF);
-      vals.pv = { list: pvs, testAll: () => this.testAll(), add: () => this.setState({ dlg: { type: 'prov' }, form: { n: '', k: '' }, fe: {} }), addModel: () => this.newModel(), noModels: !ml.length,
+      const ml = this.sortModels(S.models.filter(m => S.pvF === 'tous' || m.pv === S.pvF));
+      vals.pv = { list: pvs, sortCols: this.sortCols(), testAll: () => this.testAll(), add: () => this.setState({ dlg: { type: 'prov' }, form: { n: '', k: '' }, fe: {} }), addModel: () => this.newModel(), noModels: !ml.length,
         flt: [['tous', 'Tous'], ...S.provs.map(p => [p.id, p.n])].map(([k, l]) => ({ l, on: S.pvF === k, st: segSt(S.pvF === k), pick: () => this.setState({ pvF: k }) })),
         models: ml.map(m => { const use = this.usedBy(m.id), pv = S.provs.find(p => p.id === m.pv); return { ...m, pvN: pv ? pv.n : m.pv, pinL: m.unit === 'REQUESTS' ? eur(m.per1k || 0, 2) + ' / 1 000 req.' : eur(m.pin || 0, 2), poutL: m.pout != null && m.unit !== 'REQUESTS' ? eur(m.pout, 2) : '—', ...this.ageOf(m), use: use.map(x => ({ l: x.fn.sh + ' · ' + x.role, st: x.role === 'principal' ? 'display:inline-flex;height:22px;align-items:center;padding:0 8px;border-radius:6px;font-size:11px;font-weight:700;background:#10233a;color:#fff;white-space:nowrap' : 'display:inline-flex;height:22px;align-items:center;padding:0 8px;border-radius:6px;font-size:11px;font-weight:700;border:1px solid #cfdad7;color:#43586a;white-space:nowrap' })), noUse: !use.length, catL: { EMBEDDING: 'Embedding', RERANKING: 'Reranking' }[m.c] || 'LLM', catSt: 'flex:none;display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:6px;font-size:10.5px;font-weight:700;letter-spacing:.02em;' + ((m.c || 'LLM') === 'LLM' ? 'background:#e6f3f2;color:#0f5f5a' : 'background:#eef0f6;color:#3b4a7a'), sw: this.sw(m.act, () => this.toggleModel(m), (m.act ? 'Désactiver ' : 'Activer ') + m.n), edit: () => this.openModel(m), rowSt: `display:grid;grid-template-columns:minmax(240px,2.2fr) 110px 104px 104px minmax(180px,1.6fr) 64px 44px;align-items:center;gap:16px;padding:14px 20px;border-top:1px solid #eef3f2;opacity:${m.act ? 1 : .6};transition:opacity .2s` }; }) };
     }
