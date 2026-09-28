@@ -29,6 +29,7 @@ describe('ProviderKeyTester', () => {
     expect(probeFor('fournisseur-1', 'Gemini')?.label).toBe('Google Gemini');
     expect(probeFor('x-ai', 'xAI')?.label).toBe('xAI');
     expect(probeFor('groq', 'Groq')?.label).toBe('Groq');
+    expect(probeFor('openrouter', 'OpenRouter')?.request('k').url).toBe('https://openrouter.ai/api/v1/key');
     expect(probeFor('maison', 'Mon LLM interne')).toBeNull();
   });
 

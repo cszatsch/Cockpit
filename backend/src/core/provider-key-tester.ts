@@ -33,6 +33,8 @@ export const KEY_PROBES: KeyProbe[] = [
   { label: 'Groq', match: /groq/, request: bearer('https://api.groq.com/openai/v1/models') },
   { label: 'DeepSeek', match: /deepseek/, request: bearer('https://api.deepseek.com/models') },
   { label: 'xAI', match: /(^|[^a-z])xai([^a-z]|$)|x-ai|grok/, request: bearer('https://api.x.ai/v1/models') },
+  // OpenRouter : informations sur la clé (crédits, limites), sans coût ; 401 si la clé est invalide.
+  { label: 'OpenRouter', match: /openrouter/, request: bearer('https://openrouter.ai/api/v1/key') },
 ];
 
 /** Sonde du fournisseur, reconnue par son identifiant puis par son nom. */

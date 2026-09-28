@@ -33,6 +33,7 @@ npm run db:reset
 npm run openapi         # régénère backend/openapi.json (versionné)
 npm run init:admin      # compte initial (RISE_INITIAL_ADMIN_PASSWORD, jamais dans un fichier)
 npm run ia:reinitialiser -- --confirmer   # supprime modèles d'IA, affectation et consommation (fournisseurs gardés)
+npm run ia:catalogue -- --confirmer       # applique le catalogue des modèles (prisma/catalog/ia-modeles.ts) ; sans l'option : simulation
 ```
 
 - **Base de test** : Jest ne lit pas `.env`. `test/env.ts` et `test/global-setup.ts` prennent `DATABASE_URL_TEST`, sinon `…@localhost:5432/rise_test`. Avec le PostgreSQL local sur 5433, exporter avant `npm test` : `DATABASE_URL_TEST=postgresql://rise@localhost:5433/rise_test` (base `rise_test` à créer une fois avec `createdb -h localhost -p 5433 -U rise rise_test`). Les migrations sont appliquées automatiquement et chaque suite réamorce la base.

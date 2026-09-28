@@ -204,6 +204,9 @@ if ($premierLancement -or $Reinitialiser) {
   Info 'chargement des données de démonstration'
   Lancer 'npm' @('run', 'db:seed') 'le chargement des données de démonstration a échoué.'
   Ok 'données de démonstration chargées'
+  # Catalogue des fournisseurs et modèles d'IA (prisma/catalog/ia-modeles.ts), vidé par l'amorçage.
+  Lancer 'npm' @('run', '-s', 'ia:catalogue', '--', '--confirmer') 'le chargement du catalogue des modèles d''IA a échoué.'
+  Ok 'catalogue des modèles d''IA chargé'
 }
 
 # Compte initial (Cédric Schmitz, administrateur et PMO) : créé une seule fois (et après -Reinitialiser,

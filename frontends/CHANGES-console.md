@@ -168,3 +168,7 @@ Les captures sont écrites dans `OUT` (par défaut `<tmp>/rise-console-e2e`).
 - **Fiche modèle** : la modale « Ajouter / Modifier un modèle » (`dl.isModel`) est remplacée par `<dc-import name="Fiche modele">`, rendue hors du cadre des dialogues (elle a son propre voile) ; la fiche latérale d'un modèle ouvre désormais cette fiche. « Supprimer » ferme la fiche puis demande la confirmation existante.
 - **Données** : `FNS` décrit les cinq fonctions (catégorie, chaîne, étape) ; `CONSO` garde les trois lignes de consommation et de plafond (Insights, Gestion des données, Documents). Démonstration : Vectorisation et Reclassement sans modèle, Synthèse sur l'ancienne affectation de Documents. Coût estimé (`est`) selon l'unité ; état d'une fonction (`fnState`) selon sa catégorie ; libellé des étapes « Documents · Synthèse ».
 - **`admin-api.js`** : `toModel` lit date de sortie, max output tokens et tarif `{ unit, in, out, per1k }` ; `fns` charge `GET /functions` (volumes 30 jours) ; `saveIaModel` crée (`POST`) ou modifie (`PATCH`) et garde la fiche ouverte en cas de refus ; la ligne Documents de la consommation affiche le modèle de l'étape Synthèse.
+
+## Fournisseur OpenRouter (28/09/2026)
+
+- Logo `assets/logos/lh-openrouter.webp` (fourni par le commanditaire) ajouté aux tables de logos de `Console Admin.dc.html` (3), `ConsoCouts.dc.html` et `admin-api.js`.

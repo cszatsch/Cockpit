@@ -100,6 +100,12 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 - **Seuils d'ancienneté** : 12 et 24 mois, marqués « à confirmer » dans la spécification.
 - **Ta base locale** : la migration s'applique au prochain `demarrer-rise.cmd` ; sans modèle, la chaîne Documents est « Interrompue à l'étape 1 » jusqu'à l'ajout d'un Embedding, d'un Reranking et d'un LLM.
 
+### 3.9 Catalogue des modèles
+
+- **Base locale** : 11 modèles ajoutés (catalogue du 28/09/2026) et OpenRouter créé sans clé. Les clés des quatre fournisseurs de démonstration sont fictives : le test réel les refuse, donc ces modèles restent indisponibles tant que de vraies clés ne sont pas saisies.
+- **Mise à jour des tarifs** : le catalogue est un relevé daté ; un changement de prix d'un fournisseur (ex. Gemini 3.8 Flash au 01/01/2027) demande de modifier `prisma/catalog/ia-modeles.ts` et de relancer `npm run ia:catalogue -- --confirmer`.
+- **Modèles OpenRouter** : aucun modèle n'a été ajouté pour OpenRouter (non demandé).
+
 ## 4. Questions ouvertes
 
 1. **Déclencheur des règles de notification** : faut-il ajouter un sélecteur de déclencheur dans la console ? Aujourd'hui, une règle créée depuis l'écran reçoit un déclencheur par défaut : « planifié » pour une notification, « manuel » pour une alerte.

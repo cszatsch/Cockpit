@@ -613,7 +613,7 @@ export function bindConsole(c) {
 
 // ───────────────────────────── Consommation et coûts ─────────────────────────────
 
-const LOGO = { anthropic: './assets/logos/lh-anthropic.svg', google: './assets/logos/lh-gemini-color.svg', openai: './assets/logos/lh-openai.svg', mistral: './assets/logos/lh-mistral-color.svg' };
+const LOGO = { anthropic: './assets/logos/lh-anthropic.svg', openrouter: './assets/logos/lh-openrouter.webp', google: './assets/logos/lh-gemini-color.svg', openai: './assets/logos/lh-openai.svg', mistral: './assets/logos/lh-mistral-color.svg' };
 /** Part du coût d'une journée payée au modèle de secours au-delà de laquelle la journée est « sur secours ». */
 export const FALLBACK_DAY_SHARE = 0.5;
 

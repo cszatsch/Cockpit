@@ -106,7 +106,7 @@ class Component extends DCLogic {
   renderVals() {
     const S = this.state, G = this.props.googleOk ?? S.google, e = React.createElement, eur = v => Math.round(v).toLocaleString('fr-FR') + ' €', t = S.t;
     const { days } = this.data(), FN = { insights: ['Insights', '#1d8f86'], docs: ['Documents', '#e39a2d'], crud: ['Gestion des données', '#3b7dd8'] }, keys = ['insights', 'docs', 'crud'];
-    const LOGO = { anthropic: './assets/logos/lh-anthropic.svg', google: './assets/logos/lh-gemini-color.svg', openai: './assets/logos/lh-openai.svg', mistral: './assets/logos/lh-mistral-color.svg' };
+    const LOGO = { anthropic: './assets/logos/lh-anthropic.svg', openrouter: './assets/logos/lh-openrouter.webp', google: './assets/logos/lh-gemini-color.svg', openai: './assets/logos/lh-openai.svg', mistral: './assets/logos/lh-mistral-color.svg' };
     const val = d => S.fn ? d[S.fn] : d.t, fmtD = dt => dt.getDate() + ' ' + ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'][dt.getMonth()];
     const sep = days.filter(d => d.dt.getMonth() === 8), past = sep.filter(d => !d.fut), fut = sep.filter(d => d.fut && d.dt.getDate() <= 30);
     const sumK = (arr, k) => arr.reduce((a, d) => a + (k ? d[k] : d.t), 0), mtd = sumK(past), mtdF = S.fn ? sumK(past, S.fn) : mtd;

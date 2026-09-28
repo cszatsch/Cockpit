@@ -1359,7 +1359,7 @@ class Component extends DCLogic {
   iaModel(m) { const c = m.c || 'LLM', rq = m.unit === 'REQUESTS'; return { id: m.id, pv: m.pv, n: m.n, d: m.d || '', cat: c.toLowerCase(), rel: m.rel || '', maxOut: c === 'LLM' ? m.maxOut || null : undefined, price: rq ? { unit: 'requests', per1k: m.per1k } : c === 'LLM' ? { unit: 'tokens', in: m.pin, out: m.pout } : { unit: 'tokens', in: m.pin }, act: m.act }; }
   fromIa(im) { const p = im.price || {}, rq = p.unit === 'requests'; return { id: im.id || null, pv: im.pv, n: im.n, d: im.d || '', c: String(im.cat || 'llm').toUpperCase(), rel: im.rel || '', maxOut: im.maxOut || null, unit: rq ? 'REQUESTS' : 'TOKENS', pin: rq ? null : p.in ?? null, pout: p.out ?? null, per1k: rq ? p.per1k : null, act: im.act !== false }; }
   iaVals() {
-    const S = this.state, LOGO = { anthropic: './assets/logos/lh-anthropic.svg', openai: './assets/logos/lh-openai.svg', mistral: './assets/logos/lh-mistral-color.svg', google: './assets/logos/lh-gemini-color.svg' }, v = this.vol30();
+    const S = this.state, LOGO = { anthropic: './assets/logos/lh-anthropic.svg', openrouter: './assets/logos/lh-openrouter.webp', openai: './assets/logos/lh-openai.svg', mistral: './assets/logos/lh-mistral-color.svg', google: './assets/logos/lh-gemini-color.svg' }, v = this.vol30();
     const provs = S.provs.map(p => ({ id: p.id, n: p.n, st: p.st === 'ok' ? 'ok' : 'err', lat: p.lat, err: p.st === 'ok' ? null : p.err || (p.st === 'new' ? 'Clé jamais testée' : 'Clé invalide'), logo: LOGO[p.id], mono: p.id === 'anthropic' || p.id === 'openai', ini: p.n.slice(0, 2) }));
     const fns = FNS.map(f => { const x = v[f.id] || { tin: 0, tout: 0, req: 0 }; return { id: f.id, n: f.n, sh: f.sh, d: f.d, cat: f.cat.toLowerCase(), group: f.group, step: f.step, vol: f.cat === 'RERANKING' ? { req: x.req } : f.cat === 'EMBEDDING' ? { in: x.tin / 1e6 } : { in: x.tin / 1e6, out: x.tout / 1e6 } }; });
     return { provs, models: S.models.map(m => this.iaModel(m)), fns, groups: FN_GROUPS, asg: S.asg,
@@ -1418,7 +1418,7 @@ class Component extends DCLogic {
 
   // ——— Notifications
   rule() { const S = this.state; return S.nd || S.rules.find(r => r.id === S.nSel) || S.rules[0]; }
-  ntExtra(r) { const S = this.state, pj = r.pj || [], plat = r.id === 'n3', LOGO = { anthropic: './assets/logos/lh-anthropic.svg', openai: './assets/logos/lh-openai.svg', mistral: './assets/logos/lh-mistral-color.svg', google: './assets/logos/lh-gemini-color.svg' };
+  ntExtra(r) { const S = this.state, pj = r.pj || [], plat = r.id === 'n3', LOGO = { anthropic: './assets/logos/lh-anthropic.svg', openrouter: './assets/logos/lh-openrouter.webp', openai: './assets/logos/lh-openai.svg', mistral: './assets/logos/lh-mistral-color.svg', google: './assets/logos/lh-gemini-color.svg' };
     const chip = on => 'height:32px;padding:0 12px;border-radius:9px;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap;' + (on ? 'border:0;background:#10233a;color:#fff' : 'border:1px solid #d3dedb;background:#fff;color:#43586a');
     const all = PROJ.every(p => pj.includes(p)), m = S.models.find(x => x.id === r.model) || { n: 'Aucun modèle', pv: '', act: false, pin: 0, pout: 0, none: true }, pv = S.provs.find(p => p.id === m.pv) || {}, ok = pv.st === 'ok' && m.act;
     const opts = [...(S.models.some(x => x.id === r.model) ? [] : [{ v: r.model || '', l: 'Choisir un LLM…' }]), ...S.provs.flatMap(p => S.models.filter(x => x.pv === p.id && (x.c || 'LLM') === 'LLM').map(x => ({ v: x.id, l: p.n + ' · ' + x.n + (x.act ? '' : ' (inactif)') + (p.st === 'err' ? ' · clé invalide' : '') })))];
@@ -1569,7 +1569,7 @@ class Component extends DCLogic {
     this.toast('Modèle enregistré'); }
   ficheVals() {
     const S = this.state, F = S.fiche; if (!F || S.sec !== 'providers') return { on: false };
-    const LOGO = { anthropic: './assets/logos/lh-anthropic.svg', openai: './assets/logos/lh-openai.svg', mistral: './assets/logos/lh-mistral-color.svg', google: './assets/logos/lh-gemini-color.svg' };
+    const LOGO = { anthropic: './assets/logos/lh-anthropic.svg', openrouter: './assets/logos/lh-openrouter.webp', openai: './assets/logos/lh-openai.svg', mistral: './assets/logos/lh-mistral-color.svg', google: './assets/logos/lh-gemini-color.svg' };
     const P = { ok: ['#e6f4f2', '#146b64', '#1d8f86'], err: ['#fbe4e1', '#a2352a', '#c2473b'], neu: ['#eef2f1', '#43586a', '#8a9aa6'] };
     const pillOf = t => 'align-self:flex-start;display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font-size:11.5px;font-weight:700;white-space:nowrap;background:' + P[t][0] + ';color:' + P[t][1];
     const dotOf = t => 'width:7px;height:7px;border-radius:50%;background:' + P[t][2];

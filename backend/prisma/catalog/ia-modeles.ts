@@ -1,0 +1,127 @@
+/**
+ * Catalogue des fournisseurs et modèles d'IA de la plateforme (recherche du 28/09/2026 sur les pages
+ * officielles des fournisseurs ; sources ci-dessous, modèle par modèle).
+ * Appliqué par `npm run ia:catalogue -- --confirmer` (scripts/ia-catalogue.ts) : ajoute ou met à jour.
+ *
+ * Tarifs : publiés en dollars par million de tokens (tarif API standard de base, hors cache, hors batch,
+ * palier de contexte le plus bas), convertis en euros au cours de référence BCE ci-dessous.
+ */
+
+/** Cours de référence BCE du 25/09/2026 : 1 € = 1,1403 $ (ecb.europa.eu, taux de référence de l'euro). */
+export const USD_PER_EUR = 1.1403;
+export const USD_PER_EUR_DATE = '2026-09-25';
+
+export interface CatalogProvider {
+  id: string;
+  name: string;
+  /** Fournisseur créé sans clé : l'administrateur la saisit dans la console (« Remplacer la clé »). */
+  note: string;
+}
+
+export interface CatalogModel {
+  providerId: string;
+  name: string;
+  /** Identifiant de l'API du fournisseur (information, non utilisé par la passerelle bouchon). */
+  apiId: string;
+  description: string;
+  category: 'LLM';
+  releaseDate: string;
+  maxOutputTokens: number;
+  /** Tarif publié, $ / M tokens. */
+  usd: { in: number; out: number };
+  sources: string[];
+  /** Point d'attention (tarif temporaire, palier, retrait annoncé…). */
+  note?: string;
+}
+
+export const CATALOG_PROVIDERS: CatalogProvider[] = [
+  { id: 'openrouter', name: 'OpenRouter', note: 'Passerelle multi-fournisseurs ; clé à saisir dans la console. Test de clé : GET https://openrouter.ai/api/v1/key.' },
+];
+
+export const CATALOG_MODELS: CatalogModel[] = [
+  // ───── Anthropic ─────
+  {
+    providerId: 'anthropic', name: 'Claude Opus 5.5', apiId: 'claude-opus-5-5', category: 'LLM',
+    description: 'Code agentique de longue durée et travail intellectuel ; modèle conseillé par défaut par Anthropic.',
+    releaseDate: '2026-09-22', maxOutputTokens: 128_000, usd: { in: 4, out: 20 },
+    sources: ['https://platform.claude.com/docs/en/about-claude/models/overview', 'https://platform.claude.com/docs/en/about-claude/pricing', 'https://www.anthropic.com/claude-opus-5-5'],
+    note: 'Jusqu’à 300K tokens de sortie en Batch API (en-tête bêta output-300k-2026-03-24).',
+  },
+  {
+    providerId: 'anthropic', name: 'Claude Sonnet 5', apiId: 'claude-sonnet-5', category: 'LLM',
+    description: 'Meilleur compromis vitesse et intelligence ; remplace Sonnet 4.6.',
+    releaseDate: '2026-06-30', maxOutputTokens: 128_000, usd: { in: 2, out: 10 },
+    sources: ['https://platform.claude.com/docs/en/about-claude/models/overview', 'https://platform.claude.com/docs/en/about-claude/pricing', 'https://www.anthropic.com/news/claude-sonnet-5'],
+    note: 'Tarif de lancement devenu tarif standard (la hausse annoncée au 01/09/2026 n’a pas eu lieu).',
+  },
+  {
+    providerId: 'anthropic', name: 'Claude Haiku 4.5', apiId: 'claude-haiku-4-5-20251001', category: 'LLM',
+    description: 'Le plus rapide et le moins cher : tâches simples, faible latence, grand volume.',
+    releaseDate: '2025-10-15', maxOutputTokens: 64_000, usd: { in: 1, out: 5 },
+    sources: ['https://platform.claude.com/docs/en/about-claude/models/overview', 'https://platform.claude.com/docs/en/about-claude/model-deprecations', 'https://www.anthropic.com/news/claude-haiku-4-5'],
+    note: 'Retrait annoncé « pas avant le 15/10/2026 ».',
+  },
+  // ───── Google ─────
+  {
+    providerId: 'google', name: 'Gemini 3.8 Flash', apiId: 'gemini-3.8-flash', category: 'LLM',
+    description: 'Flash le plus avancé : génie logiciel sur tâches longues, agents autonomes, flux d’entreprise.',
+    releaseDate: '2026-09-02', maxOutputTokens: 65_536, usd: { in: 0.75, out: 3.75 },
+    sources: ['https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash', 'https://ai.google.dev/gemini-api/docs/pricing', 'https://blog.google/innovation-and-ai/models-and-research/gemini-models/3-8-flash-and-3-8-flash-cyber/'],
+    note: 'Tarif de lancement jusqu’au 31/12/2026 ; 1,50 $ / 7,50 $ à partir du 01/01/2027 (à mettre à jour).',
+  },
+  {
+    providerId: 'google', name: 'Gemini 3.5 Flash-Lite', apiId: 'gemini-3.5-flash-lite', category: 'LLM',
+    description: 'Multimodal, faible latence et bas coût : sous-agents, analyse de documents, extraction en volume.',
+    releaseDate: '2026-07-21', maxOutputTokens: 65_536, usd: { in: 0.3, out: 2.5 },
+    sources: ['https://ai.google.dev/gemini-api/docs/models/gemini-3.5-flash-lite', 'https://ai.google.dev/gemini-api/docs/pricing', 'https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-3-6-flash-3-5-flash-lite-3-5-flash-cyber/'],
+  },
+  // ───── OpenAI ─────
+  {
+    providerId: 'openai', name: 'GPT-6 Astra', apiId: 'gpt-6-astra', category: 'LLM',
+    description: 'Le plus performant d’OpenAI : raisonnement complexe, code, utilisation d’ordinateur, recherche.',
+    releaseDate: '2026-09-04', maxOutputTokens: 128_000, usd: { in: 10, out: 50 },
+    sources: ['https://developers.openai.com/api/docs/models/gpt-6-astra', 'https://developers.openai.com/api/docs/pricing', 'https://en.wikipedia.org/wiki/GPT-6_Astra'],
+    note: 'Annoncé le 03/09/2026 (aperçu), diffusé le 04/09/2026. Au-delà de 272K tokens d’entrée : 20 $ / 75 $.',
+  },
+  {
+    providerId: 'openai', name: 'GPT-6 Sol', apiId: 'gpt-6-sol', category: 'LLM',
+    description: 'Code complexe et flux agentiques, pour un coût inférieur à Astra.',
+    releaseDate: '2026-09-22', maxOutputTokens: 128_000, usd: { in: 2, out: 10 },
+    sources: ['https://developers.openai.com/api/docs/models/gpt-6-sol', 'https://developers.openai.com/api/docs/pricing', 'https://community.openai.com/t/announcing-gpt-6-sol-and-gpt-6-luna-in-the-api-codex-and-chatgpt/1399925'],
+    note: 'Au-delà de 272K tokens d’entrée : 4 $ / 15 $.',
+  },
+  {
+    providerId: 'openai', name: 'GPT-6 Luna', apiId: 'gpt-6-luna', category: 'LLM',
+    description: 'Le plus efficace de la famille : tâches ciblées à fort volume.',
+    releaseDate: '2026-09-22', maxOutputTokens: 128_000, usd: { in: 0.1, out: 0.5 },
+    sources: ['https://developers.openai.com/api/docs/models/gpt-6-luna', 'https://developers.openai.com/api/docs/pricing', 'https://community.openai.com/t/announcing-gpt-6-sol-and-gpt-6-luna-in-the-api-codex-and-chatgpt/1399925'],
+    note: 'Au-delà de 272K tokens d’entrée : 0,20 $ / 0,75 $.',
+  },
+  // ───── Mistral AI ─────
+  // Mistral ne publie pas de limite de sortie distincte : « le prompt plus max_tokens ne peut pas dépasser
+  // le contexte » (docs.mistral.ai/api). Max output retenu = contexte de 256k.
+  {
+    providerId: 'mistral', name: 'Mistral Medium 3.5', apiId: 'mistral-medium-3-5', category: 'LLM',
+    description: 'Modèle phare multimodal (128 Md de paramètres, poids ouverts) pour les agents et le code.',
+    releaseDate: '2026-04-28', maxOutputTokens: 256_000, usd: { in: 1.5, out: 7.5 },
+    sources: ['https://docs.mistral.ai/models/model-cards/mistral-medium-3-5-26-04', 'https://docs.mistral.ai/getting-started/models/models_overview/', 'https://docs.mistral.ai/api/'],
+    note: 'Max output non publié : borné par le contexte de 256k.',
+  },
+  {
+    providerId: 'mistral', name: 'Mistral Small 4', apiId: 'mistral-small-2603', category: 'LLM',
+    description: 'Modèle hybride économique (MoE) réunissant instruction, raisonnement et code.',
+    releaseDate: '2026-03-16', maxOutputTokens: 256_000, usd: { in: 0.15, out: 0.6 },
+    sources: ['https://docs.mistral.ai/models/mistral-small-4-0-26-03', 'https://docs.mistral.ai/getting-started/models/models_overview/', 'https://docs.mistral.ai/api/'],
+    note: 'Max output non publié : borné par le contexte de 256k.',
+  },
+  {
+    providerId: 'mistral', name: 'Ministral 3 14B', apiId: 'ministral-14b-2512', category: 'LLM',
+    description: 'Le plus grand Ministral 3 (texte et vision), pour les tâches simples à faible coût.',
+    releaseDate: '2025-12-02', maxOutputTokens: 256_000, usd: { in: 0.2, out: 0.2 },
+    sources: ['https://docs.mistral.ai/models/ministral-3-14b-25-12', 'https://mistral.ai/news/mistral-3/', 'https://docs.mistral.ai/api/'],
+    note: 'Max output non publié : borné par le contexte de 256k.',
+  },
+];
+
+/** $ → €, arrondi à 4 décimales. */
+export const toEur = (usd: number) => Math.round((usd / USD_PER_EUR) * 10_000) / 10_000;
