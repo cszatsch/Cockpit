@@ -659,20 +659,13 @@ export function bindConsole(c) {
     onDone: () => { toast('Mot de passe modifié · vos autres sessions ont été fermées'); touch(); },
   });
 
-  // ── Jev : chaque question part au serveur (fonction guidage : Identité, Soul, skill « Guidage console », modèles affectés).
-  // Les règles locales d'origine préparent les faits (envoyés au modèle) et gardent leurs boutons, choix et confirmations ;
-  // si le modèle ne répond pas, leur réponse s'affiche telle quelle. ──
+  // ── Jev : chaque question part au serveur, qui répond par les modèles de la fonction guidage (Identité, Soul,
+  // skill « Guidage console », page ouverte). Aucun moteur de mots-clés : la réponse du modèle est affichée telle quelle. ──
   c.jevReply = text => {
-    const out = orig.jevReply(text) || [];
-    const texts = out.filter(m => m.t === 'jev'), rest = out.filter(m => m.t !== 'jev');
-    const understood = texts.length > 0 && !/^Je n’ai pas compris/.test(texts[0].text || '');
-    const facts = understood ? texts.map(m => m.text).join(' ').slice(0, 4000) : '';
-    post('/assistant/messages', { context: { section: c.state.sec }, text, ...(facts ? { facts } : {}) }).then(r => {
-      if (!r.ai && understood) return c.jPush(...out);
-      const SEC = { providers: 'Ouvrir les fournisseurs', conso: 'Voir la consommation', snaps: 'Ouvrir les snapshots' };
-      const redirs = rest.some(m => m.t === 'redir') ? [] : (r.actions || []).filter(a => a.type === 'OPEN_SECTION' && SEC[a.section]).map(a => ({ t: 'redir', btn: SEC[a.section], go: () => c.go(a.section) }));
-      c.jPush({ t: 'jev', text: r.reply, src: understood ? texts[0].src : undefined }, ...rest, ...redirs);
-    }).catch(() => c.jPush(...out));
+    Promise.resolve().then(() => c.setState({ jThink: true }));
+    post('/assistant/messages', { context: { section: c.state.sec }, text })
+      .then(r => { c.setState({ jThink: false }); c.jPush({ t: 'jev', text: r.reply, err: !r.ai }); })
+      .catch(e => { c.setState({ jThink: false }); c.jPush({ t: 'jev', text: 'Jev n’a pas pu répondre : ' + ((e && e.message) || 'erreur du serveur') + '.', err: true }); });
     return [];
   };
 

@@ -111,8 +111,8 @@ describe('Guidage console : prompt (spécification IA § 8)', () => {
   });
 });
 
-describe('Guidage console : skill, message au modèle, protocole du fournisseur', () => {
-  const { pickGuidanceSkill, skillKey, consoleUserPrompt, CONSOLE_FACTS_MAX } = require('../../src/domain/jev-prompt');
+describe('Guidage console : skill, protocole du fournisseur', () => {
+  const { pickGuidanceSkill, skillKey } = require('../../src/domain/jev-prompt');
   const { protocolFor } = require('../../src/core/llm-client');
   const sk = (n: string, on = true, position = 0) => ({ n, t: 'x', on, position });
 
@@ -125,15 +125,6 @@ describe('Guidage console : skill, message au modèle, protocole du fournisseur'
     expect(pickGuidanceSkill([sk('Guidage console', false)])).toBeNull();
     // « Guidage console » passe avant les anciens noms.
     expect(pickGuidanceSkill([sk('Guider l\'utilisateur'), sk('guidage console')])?.n).toBe('guidage console');
-  });
-
-  it('message au modèle : la question seule, ou suivie des faits de la console, bornés', () => {
-    expect(consoleUserPrompt('Bonjour', [])).toBe('Bonjour');
-    expect(consoleUserPrompt('Bonjour', ['  ', ''])).toBe('Bonjour');
-    const p = consoleUserPrompt('Coût ?', ['Dépense du mois : 12 €.', 'ligne 1\nligne 2']);
-    expect(p).toBe('Coût ?\n\n## Données de la console\nFaits relevés par la Console au moment de la question : appuie ta réponse sur eux, sans rien inventer au-delà.\n- Dépense du mois : 12 €.\n- ligne 1\n  ligne 2');
-    const long = consoleUserPrompt('Q', ['y'.repeat(10_000)]);
-    expect(long.split('\n').at(-1)!.length).toBe(CONSOLE_FACTS_MAX);
   });
 
   it('protocole de génération reconnu par le fournisseur', () => {

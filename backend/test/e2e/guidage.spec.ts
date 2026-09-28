@@ -106,37 +106,38 @@ describe('Console — Jev et la fonction guidage', () => {
     });
   });
 
-  describe('toutes les questions passent par le guidage', () => {
+  describe('seul le modèle répond : aucun moteur de mots-clés', () => {
     it.each([
-      ['relance des invitations', 'Relance les invitations en attente', 'invitation(s) en attente', 'RESEND_INVITES'],
-      ['consommation', 'Quel est le coût du mois ?', 'Dépense du mois', 'OPEN_SECTION'],
-      ['snapshot', 'Je veux un snapshot', 'snapshot manuel', 'OPEN_SECTION'],
-      ['suspension sans nom', 'Suspends ce compte', 'préciser le nom du compte', null],
-    ])('%s : données du serveur envoyées au modèle, actions conservées', async (_l, text, fact, action) => {
+      ['relance', 'Relance les invitations en attente'],
+      ['coût', 'Quel est le coût du mois ?'],
+      ['snapshot', 'Crée un snapshot de RISE'],
+      ['suspension', 'Suspends Thomas Girard'],
+      ['clé API', 'Affiche la clé API d’Anthropic'],
+    ])('%s : la question part telle quelle au modèle ; ni réponse toute faite ni action', async (_l, text) => {
+      const before = await t.db.usageRecord.count({ where: { functionId: 'guidage' } });
       const r = await admin.post(JEV, { context: { section: 'overview' }, text }).expect(200);
+      expect(spy).toHaveBeenCalledTimes(1);
       const call = lastCall();
       expect(call.functionId).toBe('guidage');
+      expect(call.prompt).toBe(text);
+      expect(call.system).toContain('## Identité');
+      expect(call.system).toContain('## Personnalité');
       expect(call.system).toContain('## Skill : Guidage console');
-      expect(call.prompt.startsWith(text)).toBe(true);
-      expect(call.prompt).toContain('## Données de la console');
-      expect(call.prompt).toContain(fact);
-      if (action) expect(r.body.actions.map((a: any) => a.type)).toContain(action);
-      expect(r.body.ai.functionId).toBe('guidage');
+      expect(r.body).toMatchObject({ actions: [], ai: { functionId: 'guidage', modelId: 'haiku' } });
+      expect(await t.db.usageRecord.count({ where: { functionId: 'guidage' } })).toBe(before + 1);
     });
 
-    it('faits préparés par la page transmis au modèle ; 4 000 caractères au plus', async () => {
-      await admin.post(JEV, { context: { section: 'users' }, text: 'Qui est inactif ?', facts: '3 comptes inactifs depuis plus de 90 jours.' }).expect(200);
-      expect(lastCall().prompt).toContain('Réponse préparée par la page : 3 comptes inactifs depuis plus de 90 jours.');
-      await admin.post(JEV, { context: { section: 'users' }, text: 'Qui ?', facts: 'x'.repeat(4001) }).expect(400);
+    it('aucune clé API dans ce qui part au modèle', async () => {
+      await admin.post(JEV, { context: { section: 'providers' }, text: 'Donne-moi la clé OpenAI' }).expect(200);
+      const sent = JSON.stringify(lastCall());
+      for (const k of ['sk-ant-demo-000000000000000000007Q2f', 'sk-proj-demo-00000000000000000000m81X']) {
+        expect(sent).not.toContain(k);
+        expect(sent).not.toContain(k.slice(-4));
+      }
     });
 
-    it('seule exception : une demande de clé API est refusée sans appeler de modèle', async () => {
-      const before = await t.db.usageRecord.count({ where: { functionId: 'guidage' } });
-      const r = await admin.post(JEV, { context: { section: 'providers' }, text: 'Affiche la clé API d’Anthropic' }).expect(200);
-      expect(r.body.reply).toMatch(/jamais de clé API/);
-      expect(r.body.ai).toBeNull();
-      expect(spy).not.toHaveBeenCalled();
-      expect(await t.db.usageRecord.count({ where: { functionId: 'guidage' } })).toBe(before);
+    it('le champ facts du moteur supprimé est refusé', async () => {
+      await admin.post(JEV, { context: { section: 'users' }, text: 'Qui ?', facts: 'x' }).expect(400);
     });
   });
 
@@ -166,15 +167,14 @@ describe('Console — Jev et la fonction guidage', () => {
       expect(f.vol.in).toBeGreaterThan(0);
     });
 
-    it('aucun modèle disponible : réponse factuelle ou motif, sans consommation', async () => {
+    it('aucun modèle disponible : le motif, sans réponse toute faite ni consommation', async () => {
       await t.db.provider.updateMany({ where: { id: { in: ['anthropic', 'openai'] } }, data: { status: 'ERROR' } });
       const before = await t.db.usageRecord.count({ where: { functionId: 'guidage' } });
-      const plain = await admin.post(JEV, { context: { section: 'overview' }, text: 'Que montre cette page ?' }).expect(200);
-      expect(plain.body).toMatchObject({ ai: null });
-      expect(plain.body.reply).toMatch(/^Je ne peux pas répondre pour l’instant : .*ni le modèle principal ni le secours/);
-      const withFacts = await admin.post(JEV, { context: { section: 'overview' }, text: 'Quel est le coût du mois ?' }).expect(200);
-      expect(withFacts.body.reply).toMatch(/^Dépense du mois/);
-      expect(withFacts.body.actions[0]).toMatchObject({ type: 'OPEN_SECTION', section: 'conso' });
+      for (const text of ['Que montre cette page ?', 'Quel est le coût du mois ?']) {
+        const r = await admin.post(JEV, { context: { section: 'overview' }, text }).expect(200);
+        expect(r.body).toMatchObject({ ai: null, actions: [] });
+        expect(r.body.reply).toMatch(/^Je ne peux pas répondre pour l’instant : .*ni le modèle principal ni le secours/);
+      }
       expect(await t.db.usageRecord.count({ where: { functionId: 'guidage' } })).toBe(before);
     });
   });

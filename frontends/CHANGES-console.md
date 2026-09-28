@@ -238,3 +238,8 @@ Les captures sont écrites dans `OUT` (par défaut `<tmp>/rise-console-e2e`).
 ## Jev : toutes les questions passent par la fonction guidage (28/09/2026)
 
 - `admin-api.js` (`c.jevReply`) : chaque question part à `POST /api/admin/assistant/messages`, et plus seulement celles que le moteur local ne comprend pas. La réponse du moteur local est envoyée comme faits (`facts`) ; la réponse du modèle la remplace, et les boutons, choix, confirmations et récapitulatifs du moteur local restent affichés en dessous. Sans réponse du modèle (`ai: null`) ou en cas d'erreur, la réponse locale s'affiche telle quelle. Design et textes des écrans inchangés.
+
+## Jev : suppression du moteur de mots-clés (28/09/2026)
+
+- `Console Admin.dc.html` : la méthode `jevReply` (moteur de mots-clés, actions directes) et l'utilitaire `nrm` sont supprimés ; `jevReply()` ne renvoie plus qu'un message « la console doit être reliée au serveur » (page sans API). Textes du panneau Jev ajustés, car Jev n'agit plus : accueil, badge « Explication et guidage », pied du panneau, et suggestions d'action reformulées en questions (« Comment relancer les invitations en attente ? », « Comment suspendre un compte ? », « Comment tester les clés API ? », « Comment créer un snapshot ? », « Comment activer un module sur un projet ? »).
+- `admin-api.js` (`c.jevReply`) : la question part seule au serveur (`POST /api/admin/assistant/messages`) ; l'indicateur « Jev réfléchit » reste affiché jusqu'à la réponse du modèle ; sans modèle disponible, le motif s'affiche en erreur.

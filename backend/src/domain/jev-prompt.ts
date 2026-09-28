@@ -150,18 +150,3 @@ export function assembleConsoleGuidancePrompt(base: string, persona: PersonaText
 ## Page de console ouverte
 ${page} · ${title}`;
 }
-
-/** Faits transmis avec une question à Jev dans la Console (moteur de la page et données du serveur) : 4 000 caractères au plus. */
-export const CONSOLE_FACTS_MAX = 4000;
-
-/**
- * Message utilisateur envoyé au modèle de la fonction `guidage` : la question, puis les faits relevés par la
- * Console (données du serveur, réponse préparée par la page). Le modèle les reformule avec la voix de Jev
- * sans rien inventer au-delà ; sans fait, la question seule.
- */
-export function consoleUserPrompt(text: string, facts: string[]): string {
-  const f = facts.map((x) => x.trim()).filter(Boolean);
-  if (!f.length) return text;
-  const block = f.map((x) => `- ${x.replace(/\n+/g, '\n  ')}`).join('\n').slice(0, CONSOLE_FACTS_MAX);
-  return `${text}\n\n## Données de la console\nFaits relevés par la Console au moment de la question : appuie ta réponse sur eux, sans rien inventer au-delà.\n${block}`;
-}

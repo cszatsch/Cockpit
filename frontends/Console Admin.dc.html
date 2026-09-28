@@ -597,7 +597,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
   <aside aria-label="{{ jevAria }}" style="background:#fff;border-left:1px solid #e0e9e6;height:100vh;display:flex;flex-direction:column;width:100%;min-width:0" data-screen-label="Jev">
     <div style="display:flex;align-items:flex-start;gap:12px;padding:22px 22px 18px;border-bottom:1px solid #eef3f1">
       <span aria-hidden="true" style="{{ jv.avSt }}">{{ jv.avTx }}</span>
-      <div style="flex:1;min-width:0"><div style="font-weight:800;font-size:18px;letter-spacing:-.02em;line-height:1.1">{{ jv.name }}<sc-if value="{{ jv.hasEmoji }}" hint-placeholder-val="{{ true }}"><span style="margin-left:6px;font-weight:400">{{ jv.emoji }}</span></sc-if></div><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px"><span style="padding:2px 8px;border-radius:6px;background:#eef3f2;font-size:11px;font-weight:700;color:#43586a;max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Contexte : {{ jv.ctx }}</span><span style="padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap;background:#e6f3f2;color:#0f5f5a">Explication et action</span></div></div>
+      <div style="flex:1;min-width:0"><div style="font-weight:800;font-size:18px;letter-spacing:-.02em;line-height:1.1">{{ jv.name }}<sc-if value="{{ jv.hasEmoji }}" hint-placeholder-val="{{ true }}"><span style="margin-left:6px;font-weight:400">{{ jv.emoji }}</span></sc-if></div><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px"><span style="padding:2px 8px;border-radius:6px;background:#eef3f2;font-size:11px;font-weight:700;color:#43586a;max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Contexte : {{ jv.ctx }}</span><span style="padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap;background:#e6f3f2;color:#0f5f5a">Explication et guidage</span></div></div>
       <button onClick="{{ jv.close }}" aria-label="Fermer Jev" style="width:28px;height:28px;border-radius:8px;border:0;background:transparent;display:grid;place-items:center;cursor:pointer;color:#5c7280;flex:none" style-hover="background:#f3f7f6"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
     </div>
     <div ref="{{ jv.ref }}" data-jev-body="1" aria-live="polite" style="flex:1;overflow:auto;padding:20px 22px;display:flex;flex-direction:column;gap:12px;background:#fbfdfc">
@@ -617,7 +617,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
         <input id="jev-input" value="{{ jv.inp }}" onChange="{{ jv.setIn }}" onKeyDown="{{ jv.key }}" placeholder="{{ jv.ph }}" aria-label="{{ jv.inL }}" autoComplete="off" style="flex:1;min-width:0;height:42px;padding:0 16px;border:1px solid #d9e4e1;border-radius:21px;color:#10233a;background:#fff;font-size:13px;outline:none;transition:border-color .15s,box-shadow .15s" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.15)">
         <button onClick="{{ jv.send }}" aria-label="Envoyer" title="Envoyer" style="{{ jv.sendSt }}" style-hover="background:#146b64"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"></path></svg></button>
       </div>
-      <span style="font-size:11px;color:#5c7280;text-wrap:pretty">Jev agit avec vos droits d’administrateur. Chaque action sensible demande votre confirmation et est tracée.</span>
+      <span style="font-size:11px;color:#5c7280;text-wrap:pretty">Jev répond avec les modèles d’IA de la plateforme. Il n’agit pas à votre place : les actions se font dans la console.</span>
     </div>
   </aside>
 </div>
@@ -1049,15 +1049,15 @@ const META = {
 };
 const JCHIPS = {
   overview: ['Quel est l’état de la plateforme ?', 'Où en est le budget IA ?', 'Qui a fait des actions sensibles récemment ?'],
-  users: ['Relancer les invitations en attente', 'Qui ne s’est pas connecté depuis 10 jours ?', 'Suspendre Thomas Girard'],
+  users: ['Comment relancer les invitations en attente ?', 'Qui ne s’est pas connecté depuis 10 jours ?', 'Comment suspendre un compte ?'],
   admins: ['Qui est administrateur ?', 'Résume le journal d’audit'],
   rights: ['Quels sont les droits de Thomas Girard ?', 'Qui est PMO sur RISE ?'],
-  providers: ['Tester toutes les clés', 'Pourquoi la clé Google est invalide ?'],
+  providers: ['Comment tester les clés API ?', 'Pourquoi la clé Google est invalide ?'],
   assign: ['Quelle fonction tourne sur son secours ?', 'Comment réduire les coûts ?'],
   conso: ['Où en est le budget IA ?', 'Comment réduire les coûts ?'],
-  snaps: ['Créer un snapshot de RISE', 'Qu’est-ce qui a changé depuis le 22 sept. ?'],
+  snaps: ['Comment créer un snapshot ?', 'Qu’est-ce qui a changé depuis le 22 sept. ?'],
   notifs: ['Quelles alertes sont actives ?', 'Y a-t-il eu des échecs d’envoi ?'],
-  modules: ['Activer Suivi des bénéfices sur RISE', 'Quels modules sont actifs ?'],
+  modules: ['Comment activer un module sur un projet ?', 'Quels modules sont actifs ?'],
   profil: ['Quels sont mes droits ?', 'Mes sessions actives']
 };
 // Registre des cartes API (démonstration, mêmes états que Registre API.dc.html : Airparif en erreur, TomTom au quota) — signal de la sidebar.
@@ -1073,7 +1073,6 @@ const NT0 = [
 // Persona de Jev (démonstration ; API : GET /api/assistant/persona) et avatars prédéfinis de Persona.dc.html.
 const PERSONA0 = { identity: { name: 'Jev', creature: 'Copilote de projet', style: 'Direct, chaleureux, précis', emoji: '🧭', avatar: 'nuit', photo: null }, soul: '' };
 const PERSONA_AV = { nuit: 'linear-gradient(135deg,#1d8f86,#0f2034)', ambre: 'linear-gradient(135deg,#f7a41c,#f0752b)', lagon: 'linear-gradient(135deg,#3dd6c6,#1d8f86)', encre: 'linear-gradient(135deg,#10233a,#2e5173)' };
-const nrm = x => String(x).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 const csvDl = (name, lines) => { const b = new Blob(['\ufeff' + lines.join('\n')], { type: 'text/csv;charset=utf-8' }); const u = URL.createObjectURL(b); const a = document.createElement('a'); a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 2000); };
 
 class Component extends DCLogic {
@@ -1149,7 +1148,7 @@ class Component extends DCLogic {
   jScroll() { const f = () => { const el = this._jb.current || document.querySelector('[data-jev-body]'); if (el) el.scrollTop = el.scrollHeight; }; requestAnimationFrame(f); setTimeout(f, 120); setTimeout(f, 420); }
   jUpd(id, p) { this.setState(s => ({ jm: s.jm.map(m => m.id === id ? { ...m, ...p } : m) })); }
   jGreet(sec) {
-    const t = sec === 'overview' ? 'Bonjour ' + this.state.prof.first + '. Je peux résumer l’état de la plateforme, expliquer un chiffre ou agir pour vous : relancer, suspendre, tester des clés, capturer un snapshot. Les actions sensibles passent toujours par votre confirmation.' : 'Que souhaitez-vous faire dans « ' + META[sec][1] + ' » ? Je peux expliquer ce qui s’affiche ou agir pour vous.';
+    const t = sec === 'overview' ? 'Bonjour ' + this.state.prof.first + '. Je peux expliquer la console, un chiffre ou une règle, et vous guider pas à pas. Je n’agis pas à votre place : je vous indique où faire chaque action.' : 'Que souhaitez-vous faire dans « ' + META[sec][1] + ' » ? Je peux expliquer ce qui s’affiche et vous guider.';
     return [{ t: 'jev', text: t }, { t: 'chips', chips: (JCHIPS[sec] || JCHIPS.overview).map(q => ({ label: q })) }];
   }
   // ——— Barre latérale : mode (mobile, réduite, déployée) et bouton réduire / déployer du composant Sidebar Console
@@ -1226,97 +1225,9 @@ class Component extends DCLogic {
       if (n >= 100) { clearInterval(this._ci); const id = 's' + Date.now(), t = nowD(); this.setState(s => ({ cap: null, snaps: { ...s.snaps, [p]: [...s.snaps[p], { id, t, k: 'man', lab, by: 'Julien Morel', ix: s.snaps[p].length }] } })); this.log('Création d’un snapshot manuel', p + ' · ' + lab); this.toast('Snapshot de ' + p + ' créé'); done && done(t); }
       else this.setState({ cap: { ...c, pct: n } }); }, 160);
   }
-  jevReply(text) {
-    const S = this.state, lc = nrm(text), J = (t, src) => ({ t: 'jev', text: t, src }), R = (btn, go) => ({ t: 'redir', btn, go }), C = qs => ({ t: 'chips', chips: qs.map(q => typeof q === 'string' ? { label: q } : q) });
-    const M = id => (S.models.find(m => m.id === id) || { n: 'aucun' }).n, att = this.attention(), th = this.thVals();
-    const me = /\b(mes|moi|mon|ma)\b/.test(lc);
-    const um = S.users.filter(u => nrm(u.n).replace('m. ', '').split(' ').some(w => w.length > 2 && new RegExp('\\b' + w + '\\b').test(lc)));
-    const U = me && !um.length ? [this.uById('u1')] : um, pj = PROJ.find(p => lc.includes(p.toLowerCase()));
-    const has = re => re.test(lc);
-    if (has(/^(bonjour|salut|hello|coucou)/) && lc.length < 25) return this.jGreet(S.sec);
-    if (has(/session/)) return [J('Vous avez ' + S.sess.length + ' session(s) ouverte(s) : ' + S.sess.map(s => s.d + ' (' + s.l + ', ' + s.t.toLowerCase() + ')').join(' ; ') + '.', 'Mon profil › Sécurité'), R('Gérer mes sessions', () => this.go('profil', () => this.setState({ profTab: 'secu' })))];
-    if (has(/supprim|efface/) && U.length) { const u = U[0]; if (u.id === 'u1') return [J('Je ne peux pas supprimer votre propre compte. Un autre administrateur doit le faire.')]; setTimeout(() => this.removeUser(u), 450); return [J('La suppression du compte de ' + u.n + ' est définitive. Je vous ouvre la confirmation sécurisée : il faudra saisir son nom pour valider.')]; }
-    if (has(/suspen/) && U.length) {
-      const cand = U.filter(u => u.s === 'actif' && u.id !== 'u1');
-      if (!cand.length) return [J(U[0].id === 'u1' ? 'Je ne peux pas suspendre votre propre compte.' : U.map(u => u.n).join(', ') + (U.length > 1 ? ' ne sont pas actifs.' : ' n’est pas actif (statut : ' + U[0].s + ').'))];
-      return [J('La suspension ferme immédiatement les sessions. Les droits et les données sont conservés. Cochez les comptes concernés :'), { t: 'confirm', tone: 'danger', title: 'Suspendre ' + (cand.length > 1 ? cand.length + ' comptes' : 'ce compte'), cta: 'Suspendre', rows: cand.map(u => ({ id: u.id, label: u.n + ' · ' + PN[u.p] + ' · ' + u.pr.join(', '), on: true })),
-        ok: ids => { const us = ids.map(id => this.uById(id)); us.forEach(u => { this.setUser(u.id, { s: 'suspendu' }); this.log('Suspension d’un utilisateur (via Jev)', u.n, 'sensible'); }); return [{ t: 'recap', title: us.length + ' compte' + (us.length > 1 ? 's suspendus' : ' suspendu'), items: us.map(u => ({ t: u.n, a: 'Actif', b: 'Suspendu' })), undo: () => { us.forEach(u => { this.setUser(u.id, { s: 'actif' }); this.log('Annulation de suspension (via Jev)', u.n, 'sensible'); }); this.toast('Suspension annulée'); } }]; } }];
-    }
-    if (has(/reactiv/) && U.length) { const cand = U.filter(u => u.s === 'suspendu'); if (!cand.length) return [J('Aucun de ces comptes n’est suspendu.')]; cand.forEach(u => { this.setUser(u.id, { s: 'actif' }); this.log('Réactivation d’un utilisateur (via Jev)', u.n, 'sensible'); }); return [{ t: 'recap', title: cand.length + ' compte(s) réactivé(s)', items: cand.map(u => ({ t: u.n, a: 'Suspendu', b: 'Actif' })), undo: () => cand.forEach(u => this.setUser(u.id, { s: 'suspendu' })) }]; }
-    if (has(/relanc|invit/)) {
-      const st = S.users.filter(u => u.s === 'invité' && u.inv > 7);
-      if (has(/relanc/)) { if (!st.length) return [J('Aucune invitation n’attend depuis plus de 7 jours.')]; st.forEach(u => { this.setUser(u.id, { inv: 0 }); this.log('Relance d’invitation (via Jev)', u.n); }); return [{ t: 'recap', title: st.length + ' invitation' + (st.length > 1 ? 's relancées' : ' relancée'), items: st.map(u => ({ t: u.n, b: 'Nouvel e-mail envoyé à ' + u.e })) }, J('Le lien d’invitation est de nouveau valable 14 jours.')]; }
-      const all = S.users.filter(u => u.s === 'invité');
-      return [J(all.length + ' invitation(s) en attente, dont ' + st.length + ' depuis plus de 7 jours : ' + (st.map(u => u.n + ' (' + u.inv + ' j)').join(', ') || 'aucune') + '.', 'Utilisateurs · statut Invité'), C(st.length ? ['Relancer les invitations en attente'] : [])];
-    }
-    if (has(/droit|acces|habilit|autoris/) && U.length) {
-      const u = U[0], ks = Object.keys(S.ov).filter(k => k.startsWith(u.id + '|'));
-      const ls = ks.map(k => { const [, p, mf] = k.split('|'), [m, f] = mf.split('.'), mo = MODS.find(x => x.id === m), fn = f && mo.f.find(x => x[0] === f); return p + ' · ' + mo.n + (fn ? ' › ' + fn[1] : '') + ' : ' + LV[S.ov[k]].l; });
-      const adm = S.admins.find(a => a.u === u.id);
-      return [J((u.id === 'u1' ? 'Vous avez' : u.n + ' a') + ' le profil ' + PN[u.p] + ' sur ' + u.pr.join(', ') + '. ' + (ls.length ? ls.length + ' droit(s) défini(s) hors profil : ' + ls.join(' ; ') + '.' : 'Aucun droit n’est défini hors profil.') + (adm ? ' ' + (u.id === 'u1' ? 'Vous êtes' : 'Il est aussi') + ' ' + 'administrateur' + ' de la plateforme.' : ''), 'Droits et habilitations · matrice par utilisateur'), R('Ouvrir la matrice de ' + u.n, () => this.go('users'))];
-    }
-    if (has(/administration/) && pj) {
-      const us = S.users.filter(u => u.pr.includes(pj) && u.s !== 'suspendu').map(u => ({ u, ms: MODS.filter(m => this.modLv(u, pj, m.id)[0] === 4).map(m => m.n) })).filter(x => x.ms.length);
-      return [J(us.length ? us.length + ' personne(s) ont le niveau Administration sur ' + pj + ' : ' + us.map(x => x.u.n + ' (' + (x.ms.length === MODS.length ? 'tous les modules' : x.ms.join(', ')) + ')').join(' ; ') + '.' : 'Personne n’a le niveau Administration sur ' + pj + '.', 'Droits et habilitations · vue par projet'), R('Voir la vue par projet', () => this.go('users'))];
-    }
-    if (has(/\bcles?\b|api|google|anthropic|openai|mistral|fournisseur|latence|tester|teste/)) {
-      if (has(/test/)) { this.testAll(); setTimeout(() => { const ps = this.state.provs; this.jPush({ t: 'recap', title: 'Résultat des tests', items: ps.map(p => ({ t: p.n, b: p.st === 'ok' ? 'Clé valide · ' + p.lat + ' ms' : 'Clé refusée · ' + (p.err || '401').split('.')[0], err: p.st !== 'ok' })) }); }, 1900); return [J('Je teste les ' + S.provs.length + ' clés. Résultat dans quelques secondes…')]; }
-      const ok = S.provs.filter(p => p.st === 'ok'), ko = S.provs.filter(p => p.st === 'err');
-      const hit = FNS.filter(f => this.fnState(f.id, S.asg[f.id]).tone !== 'ok');
-      const out = [J(ok.length + ' fournisseur(s) répondent : ' + ok.map(p => p.n + ' (' + p.lat + ' ms)').join(', ') + '.' + (ko.length ? ' ' + ko.map(p => 'La clé ' + p.n + ' est refusée depuis ' + ago(p.t).replace('il y a ', '') + ' : ' + (p.err || '')).join(' ') + (hit.length ? ' « ' + hit.map(f => f.n).join(', ') + ' » tourne sur son modèle de secours (' + hit.map(f => M(S.asg[f.id].f)).join(', ') + ').' : '') + ' Par sécurité, je ne lis ni ne saisis jamais de clé API : le remplacement se fait dans la console.' : ''), 'Fournisseurs et modèles · derniers tests')];
-      if (ko.length) out.push(R('Remplacer la clé ' + ko[0].n, () => this.go('providers', () => this.openKey(ko[0].id))));
-      out.push(C(['Tester toutes les clés'])); return out;
-    }
-    if (has(/redui|econom|moins cher|optimis/)) {
-      let best = null; FNS.forEach(f => { const cur = (S.asg[f.id] || {}).p, c = this.est(f.id, cur); S.models.filter(m => m.act && (m.c || 'LLM') === f.cat && m.id !== cur && this.fnState(f.id, { p: m.id, f: '' }).tone === 'ok').forEach(m => { const c2 = this.est(f.id, m.id); if (c2 < c && c2 >= c * .3 && (!best || c - c2 > best.save)) best = { f, cur, alt: m, c, c2, save: c - c2 }; }); });
-      if (!best) return [J('Je ne vois pas de levier significatif : chaque fonction utilise déjà un modèle parmi les moins coûteux de sa catégorie.')];
-      return [J('Le levier le plus important : « ' + best.f.n + ' » sur ' + best.alt.n + ' au lieu de ' + M(best.cur) + '. Économie estimée : ' + eur(best.save) + ' par mois (' + eur(best.c) + ' → ' + eur(best.c2) + '), sur la base du volume des 30 derniers jours. La qualité est à valider sur vos cas d’usage.', 'Affectation des modèles · estimation'),
-        C([{ label: 'Préparer ce changement', run: () => { this.setState(s => ({ draft: { ...s.draft, [best.f.id]: { p: best.alt.id, f: s.draft[best.f.id].f === best.alt.id ? best.cur : s.draft[best.f.id].f } } })); this.go('assign'); return [J('C’est préparé dans « Affectation des modèles », sans être enregistré. Vérifiez l’estimation puis cliquez sur Enregistrer : le changement sera confirmé et tracé.')]; } }])];
-    }
-    if (has(/module|benefice|budgetaire/)) {
-      const q = S.reqs[0];
-      if (has(/activ/) && !has(/actifs?\b/) || has(/activer/)) {
-        const m = S.mods.find(x => has(new RegExp(nrm(x.n).split(' ').pop()))) || (q && S.mods.find(x => x.id === q.m)) || S.mods[1];
-        if (m.sc === 'global') return [J('« ' + m.n + ' » est déjà actif sur tous les projets.')];
-        const target = pj || (q && q.m === m.id ? q.p : null), free = PROJ.filter(p => !m.pj[p]);
-        if (!free.length) return [J('« ' + m.n + ' » est déjà actif sur tous les projets.')];
-        return [J('Sur quels projets activer « ' + m.n + ' » ?' + (q && q.m === m.id ? ' ' + q.who + ' l’a demandé pour ' + q.p + ' ' + ago(q.t) + '.' : '')), { t: 'confirm', tone: 'neutral', title: 'Activer ' + m.n, cta: 'Activer', rows: free.map(p => ({ id: p, label: p + (q && q.m === m.id && q.p === p ? ' · demandé par ' + q.who : ''), on: p === target })),
-          ok: ids => { const d = nowD(), pjs = { ...this.state.mods.find(x => x.id === m.id).pj }; ids.forEach(p => pjs[p] = d); this.setMod(m.id, { sc: 'projet', pj: pjs }); ids.forEach(p => this.log('Activation de module (via Jev)', m.n + ' · ' + p, 'sensible')); if (q && ids.includes(q.p) && q.m === m.id) this.setState(s => ({ reqs: s.reqs.filter(r => r.id !== q.id) })); return [{ t: 'recap', title: m.n + ' activé', items: ids.map(p => ({ t: p, a: 'Inactif', b: 'Actif depuis le ' + fD(d) })), undo: () => { const pp = { ...this.state.mods.find(x => x.id === m.id).pj }; ids.forEach(p => delete pp[p]); this.setMod(m.id, { pj: pp }); this.toast('Activation annulée'); } }, ...(q && ids.includes(q.p) ? [J(q.who + ' est prévenu de l’activation.')] : [])]; } }];
-      }
-      return [J(S.mods.map(m => '« ' + m.n + ' » : ' + (m.sc === 'global' ? 'actif sur tous les projets' : m.sc === 'projet' && Object.keys(m.pj).length ? 'actif sur ' + Object.keys(m.pj).join(', ') : 'désactivé')).join('. ') + '.' + (q ? ' Une demande est en attente : ' + q.who + ' souhaite « ' + S.mods.find(x => x.id === q.m).n + ' » sur ' + q.p + '.' : ''), 'Modules'), q ? C(['Activer ' + S.mods.find(x => x.id === q.m).n + ' sur ' + q.p]) : null, R('Ouvrir les modules', () => this.go('modules'))];
-    }
-    if (has(/cout|budget|depens|consomm|factur|euro/)) {
-      const g = th[0], by = {}, bm = {}; S.usage.forEach(r => { if (r.d >= 60) { by[r.fn] = (by[r.fn] || 0) + r.c; bm[r.m] = (bm[r.m] || 0) + r.c; } });
-      const tot = Object.values(by).reduce((a, b) => a + b, 0), tf = Object.entries(by).sort((a, b) => b[1] - a[1])[0], tm = Object.entries(bm).sort((a, b) => b[1] - a[1])[0];
-      return [J('Septembre : ' + g.spL + ' dépensés sur un plafond de ' + g.limL + ' (' + g.pct + ' %). Au rythme actuel, la projection de fin de mois est de ' + g.projL + (g.over ? ', soit ' + eur(g.proj - g.lim) + ' au-delà du plafond.' : ', dans le budget.') + ' Sur 30 jours, « ' + FNS.find(f => f.id === tf[0]).n + ' » représente ' + Math.round(tf[1] / tot * 100) + ' % des coûts ; le modèle le plus coûteux est ' + M(tm[0]) + ' (' + eur(tm[1]) + ').', 'Consommation et coûts · 30 derniers jours'), R('Voir la consommation', () => this.go('conso')), C(['Comment réduire les coûts ?'])];
-    }
-    if (has(/secours|affect|modele|llm/)) return [J(FNS.map(f => '• ' + fnLabel(f) + ' : ' + M(S.asg[f.id].p) + ', secours ' + M(S.asg[f.id].f) + ' · ' + this.fnState(f.id, S.asg[f.id]).l.toLowerCase()).join('\n'), 'Affectation des modèles'), R('Ouvrir l’affectation', () => this.go('assign')), C(['Comment réduire les coûts ?'])];
-    if (has(/restaur/)) return [J('La restauration n’est pas proposée : le journal d’audit n’est ni modifiable ni supprimable, et une restauration effacerait l’historique des données. Les snapshots servent à comparer deux états et à les exporter.'), R('Ouvrir les snapshots', () => this.go('snaps'))];
-    if (has(/snapshot|sauvegard|captur/)) {
-      const p = pj || 'RISE';
-      if (has(/cree|fai|lance|prend|captur|nouveau/)) { if (S.cap) return [J('Une capture est déjà en cours, patientez quelques secondes.')]; this.doCapture(p, 'Capture demandée à Jev', t => this.jPush({ t: 'recap', title: 'Snapshot créé', items: [{ t: p, b: fDT(t) + ' · Capture demandée à Jev' }] })); return [J('Capture de ' + p + ' lancée : tâches, jalons, risques et livrables.')]; }
-      return [J(PROJ.map(x => { const l = [...S.snaps[x]].sort((a, b) => b.t - a.t)[0]; return x + ' : ' + (l ? 'dernier snapshot ' + ago(l.t) + ' (' + S.snaps[x].length + ' au total)' : 'aucun snapshot'); }).join('. ') + '. ' + (S.sched.on ? 'Prochaine capture planifiée ' + (S.sched.fq === 'Hebdomadaire' ? 'vendredi 2 oct.' : S.sched.fq === 'Quotidienne' ? 'demain' : 'le 1er oct.') + ' à ' + S.sched.hour + '.' : 'La planification est suspendue.'), 'Snapshots'), C(['Créer un snapshot de ' + p])];
-    }
-    if (has(/change|differen|compar|evolu/)) {
-      const ev = EV.filter(e => e[0] === 9), c = k => ev.filter(e => e[1] === k).length;
-      return [J('Sur RISE, entre le 22 sept. 16:40 et le 25 sept. 04:00 : ' + c('add') + ' ajout(s), ' + c('mod') + ' modification(s), ' + c('del') + ' suppression(s). ' + ev.filter(e => e[1] === 'mod').map(e => e[3] + ' : ' + e[4].toLowerCase() + ' ' + e[5] + ' → ' + e[6]).join(' ; ') + '.', 'Snapshots · comparaison'), R('Voir la comparaison', () => this.go('snaps', () => this.setState({ sPj: 'RISE', sSel: ['r9', 'r10'], sFilt: 'tous' })))];
-    }
-    if (has(/notif|alerte|envoi|echec|diffus/)) {
-      const on = S.rules.filter(r => r.on), fail = S.hist.filter(h => h.st === 'err');
-      return [J(on.filter(r => r.k === 'alerte').length + ' alerte(s) et ' + on.filter(r => r.k !== 'alerte').length + ' notification(s) sont actives : ' + on.map(r => r.n).join(', ') + '.' + (fail.length ? ' ' + fail.length + ' envoi en échec partiel : « ' + (S.rules.find(r => r.id === fail[0].r) || {}).n + ' » par e-mail ' + ago(fail[0].t) + ', 2 adresses rejetées.' : ' Aucun échec d’envoi récent.'), 'Notifications et alertes · historique'), R('Ouvrir les notifications', () => this.go('notifs'))];
-    }
-    if (has(/audit|journal|qui a|sensible|derniere action|trace/)) {
-      const l = S.audit.filter(a => a.sev !== 'info').slice(0, 4);
-      return [J(l.map(a => '• ' + ago(a.t) + ' · ' + a.who + ' · ' + a.a + ' (' + a.tg + ')').join('\n'), 'Journal d’audit · niveaux critique et sensible'), R('Ouvrir le journal d’audit', () => this.go('admins', () => this.setState({ adTab: 'audit' })))];
-    }
-    if (has(/admin/)) return [J(S.admins.length + ' administrateurs : ' + S.admins.map(a => (this.uById(a.u) || {}).n + ' (' + 'administrateur' + ')').join(', ') + '.', 'Administrateurs'), R('Voir les administrateurs', () => this.go('admins', () => this.setState({ adTab: 'admins' })))];
-    if (has(/connect|inactif|absent/)) { const l = S.users.filter(u => u.s === 'actif' && u.ll >= 10); return [J(l.length ? l.length + ' compte(s) actif(s) sans connexion depuis 10 jours ou plus : ' + l.map(u => u.n + ' (' + u.ll + ' j)').join(', ') + '.' : 'Tous les comptes actifs se sont connectés dans les 10 derniers jours.', 'Utilisateurs · dernière connexion'), l.length ? C(l.map(u => 'Suspendre ' + u.n)) : null]; }
-    if (has(/etat|situation|resum|priorit|traiter|urgent|quoi faire|synthese|point/)) {
-      if (!att.length) return [J('Tout est en ordre : les fournisseurs répondent, les budgets sont tenus et aucune demande n’est en attente.')];
-      return [J(att.length + ' point(s) à traiter :\n' + att.map(a => '• ' + a.t).join('\n'), 'Vue d’ensemble'), R(att[0].cta, att[0].go), C(['Où en est le budget IA ?', 'Pourquoi la clé Google est invalide ?'])];
-    }
-    return [J('Je n’ai pas compris cette demande. Je peux expliquer l’état de la plateforme, un coût, un droit, ou agir : relancer des invitations, suspendre un compte, tester les clés, créer un snapshot.'), C(['Quel est l’état de la plateforme ?', 'Où en est le budget IA ?', 'Relancer les invitations en attente'])];
-  }
+  // Jev répond uniquement par les modèles d’IA de la fonction « Guidage console » (admin-api.js → POST /api/admin/assistant/messages) :
+  // plus de moteur de mots-clés dans la page. Sans serveur, il ne répond pas.
+  jevReply() { return [{ t: 'jev', text: 'Jev répond par les modèles d’IA de la plateforme : la console doit être reliée au serveur.', err: true }]; }
 
   // ——— Profil
   pSet(k) { return e => { const v = e && e.target ? e.target.value : e; this.setState(s => ({ pd: { ...(s.pd || s.prof), [k]: v } })); }; }
