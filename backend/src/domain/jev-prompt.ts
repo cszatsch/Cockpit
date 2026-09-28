@@ -122,6 +122,7 @@ export const CONSOLE_PAGE_TITLES: Record<string, string> = {
   providers: 'Fournisseurs et modèles', assign: 'Affectation des modèles', conso: 'Consommation et coûts',
   persona: 'Persona', skills: 'Skills', library: 'Bibliothèque des projets', init: 'Initialisation d’un projet',
   snaps: 'Snapshots', modules: 'Modules', apis: 'Registre des cartes API', notifs: 'Notifications et alertes', profil: 'Mon profil',
+  journal: 'Journal des appels',
 };
 
 /** Nom de skill comparable : sans tenir compte de la casse, des espaces en trop ni de la forme de l'apostrophe (« Guidage Console » = « Guidage console »). */

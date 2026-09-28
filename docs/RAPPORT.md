@@ -48,6 +48,8 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 
 - **Consommation et coûts, toutes les lignes (29/09/2026)** : 2 tests dans `console.spec.ts` (une ligne par ligne budgétaire même sans plafond ; plafonds Guidage console et Documents modifiables, étape refusée). `npm test` : 290 tests, tous verts. Vérifié dans le navigateur : six lignes (Budget global, Insights, Rapports, Guidage console, Documents, Gestion des données) avec les modèles réellement affectés, en mode API comme en démonstration ; plus de « NaN % ».
 
+- **Journal des appels (29/09/2026)** : `test/e2e/journal.spec.ts` (10 tests, recette § 6 : appel avec identifiant `req_`, tarifs figés, durée et coût recalculé ; tarif du catalogue modifié sans effet sur les appels passés ; secours ; jours vides ; coûts entrée + sortie = dépense de Consommation et coûts, jetons et appels identiques ; filtre Guidage console ; Documents et fournisseur ; pagination par curseur sans doublon ni oubli ; CSV BOM / « ; » / virgule, lignes = total ; paramètres et droits) et `test/unit/journal.spec.ts` (6 tests). `npm test` : 306 tests, tous verts. Vérifié en réel (instance de test sans date de démonstration) : vue montée dans la Console sous Consommation et coûts ; 23 appels, graphique, ligne ouverte (requête, durée, calcul « 6 683 × 0,88 €/M + 136 × 4,38 €/M = 0,006 € ») ; bascule Coûts 0,22 € = dépense de Consommation et coûts ; pagination 10 → 20 sur 23 ; filtres ; CSV. Constat : la rédaction des notifications budgétaires est comptée sur la fonction Insights (comportement antérieur, inchangé).
+
 ## 3. Écarts connus
 
 ### 3.1 Écarts par rapport aux briefs

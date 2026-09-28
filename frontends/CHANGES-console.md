@@ -252,3 +252,9 @@ Les captures sont écrites dans `OUT` (par défaut `<tmp>/rise-console-e2e`).
 
 - `ConsoCouts.dc.html` : les lignes budgétaires ne sont plus figées à trois ; constantes `BUDGET_LINES` / `BUDGET_FN` (Insights, Rapports, Guidage console, Documents, Gestion des données), utilisées par le tableau, la courbe, la répartition, les plafonds et les données de démonstration (séries Rapports et Guidage ajoutées). Couleurs des nouvelles lignes : violet (Rapports), rose (Guidage console). Part du mois à 0 % si la dépense est nulle (plus de « NaN % »). Design inchangé.
 - `admin-api.js` (`bindConso`) : cumuls par jour, jetons, plafonds et modèles servis calculés pour les cinq lignes.
+
+## Journal des appels (29/09/2026)
+
+- `Journal des appels.dc.html` : nouvelle vue livrée, gabarit inchangé. Script : données lues par `journalApi` (`admin-api.js` : `/usage/daily` par ligne budgétaire, `/usage/calls` avec curseur, `/usage/calls.csv`) ; `build()` réservé au mode démonstration. Ajustements aux règles de la spécification : agrégats en euros à 2 décimales sous 100 € ; mois lu dans les données au lieu de « sept. » en dur ; état vide sans division par zéro (« Aucun appel sur la période ») ; calcul du coût avec les tarifs figés de l'appel (« Tarif non enregistré » pour les appels antérieurs ; facturation à la requête pour le Reranking) ; logos Google et OpenRouter ajoutés.
+- `Console Admin.dc.html` : `META.journal`, montage de la vue quand `S.sec === 'journal'` (sous Consommation et coûts), suggestions de Jev pour la page.
+- `Sidebar Console.dc.html` : entrée « Journal des appels » dans IA, après « Consommation et coûts ».

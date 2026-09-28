@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { createHash } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from './prisma.service';
 import { EventBus } from './events';
 import { ApiError } from './errors';
 import { decryptSecret } from './crypto';
 import { KeyTestResult, ProviderKeyTester } from './provider-key-tester';
 import { LlmCallError, LlmClient } from './llm-client';
-import { costOf, ModelCategory } from '../domain/ai-pricing';
+import { costOf, ModelCategory, priceOf } from '../domain/ai-pricing';
 
 export type AiFunctionId = 'insights' | 'crud' | 'rapports' | 'guidage' | 'doc_vec' | 'doc_rrk' | 'doc_syn';
 export type UsageSourceCode = 'COCKPIT' | 'JEV' | 'NOTIFICATION' | 'IMPORT';
@@ -164,8 +164,9 @@ export class LlmService {
     });
     const tokensIn = out.tokensIn ?? Math.max(1, Math.ceil(((input.system ? input.system.length + 2 : 0) + input.prompt.length) / 4));
     const tokensOut = out.tokensOut ?? Math.max(1, Math.ceil(out.text.length / 4));
-    const costEur = await this.record(model, input.functionId, { tokensIn, tokensOut, requests: 0 }, fallbackUsed, input);
-    return { text: out.text, modelId: model.id, providerId: model.providerId, tokensIn, tokensOut, costEur, fallbackUsed, ms: Date.now() - t0 };
+    const ms = Date.now() - t0;
+    const costEur = await this.record(model, input.functionId, { tokensIn, tokensOut, requests: 0 }, fallbackUsed, input, ms);
+    return { text: out.text, modelId: model.id, providerId: model.providerId, tokensIn, tokensOut, costEur, fallbackUsed, ms };
   }
 
   /** Modèle qui répond pour une fonction : principal utilisable, sinon secours ; sinon 503 explicite. */
@@ -200,12 +201,21 @@ export class LlmService {
     return this.run(syn.modelId, { ...input, functionId: 'doc_syn' }, syn.fallback);
   }
 
-  /** Une ligne de consommation au tarif en vigueur au moment de l'appel (Console § 6.3). */
-  private async record(model: Parameters<typeof costOf>[0] & { id: string; providerId: string }, functionId: AiFunctionId, v: { tokensIn: number; tokensOut: number; requests: number }, fallbackUsed: boolean, input: { projectId?: string | null; source: UsageSourceCode }) {
+  /**
+   * Une ligne de consommation au tarif en vigueur au moment de l'appel (Console § 6.3). Journal des appels (§ 3) :
+   * identifiant de requête `req_…`, tarifs du modèle figés sur la ligne (un changement de tarif au catalogue ne
+   * modifie pas les appels passés), latence. Le contenu des prompts et des réponses n'est jamais enregistré.
+   */
+  private async record(model: Parameters<typeof costOf>[0] & { id: string; providerId: string }, functionId: AiFunctionId, v: { tokensIn: number; tokensOut: number; requests: number }, fallbackUsed: boolean, input: { projectId?: string | null; source: UsageSourceCode }, durationMs?: number) {
     const costEur = costOf(model, v);
+    const price = priceOf(model);
     const at = new Date();
     await this.prisma.usageRecord.create({
-      data: { at, projectId: input.projectId ?? null, functionId, modelId: model.id, providerId: model.providerId, tokensIn: v.tokensIn, tokensOut: v.tokensOut, requests: v.requests, costEur, fallbackUsed, source: input.source },
+      data: {
+        id: `req_${randomBytes(6).toString('hex')}`, at, projectId: input.projectId ?? null, functionId, modelId: model.id, providerId: model.providerId,
+        tokensIn: v.tokensIn, tokensOut: v.tokensOut, requests: v.requests, costEur, fallbackUsed, source: input.source,
+        priceIn: price.in ?? null, priceOut: price.out ?? null, pricePer1k: price.per1k ?? null, durationMs: durationMs ?? null,
+      },
     });
     await this.events.emit({ type: 'usage.recorded', costEur, functionId, at });
     return costEur;
@@ -224,8 +234,9 @@ export class LlmService {
     // Le prompt système (Jev : base, Persona, skills actives) est envoyé avec la demande : il compte en entrée.
     const tokensIn = Math.max(1, Math.ceil(((input.system ? input.system.length + 2 : 0) + input.prompt.length) / 4));
     const tokensOut = Math.max(1, Math.ceil(text.length / 4));
-    const costEur = await this.record(model, input.functionId, { tokensIn, tokensOut, requests: 0 }, fallbackUsed, input);
-    return { text, modelId: model.id, providerId: model.providerId, tokensIn, tokensOut, costEur, fallbackUsed, ms: Date.now() - t0 };
+    const ms = Date.now() - t0;
+    const costEur = await this.record(model, input.functionId, { tokensIn, tokensOut, requests: 0 }, fallbackUsed, input, ms);
+    return { text, modelId: model.id, providerId: model.providerId, tokensIn, tokensOut, costEur, fallbackUsed, ms };
   }
 
   /** Bouchon : réponse factuelle courte, dérivée du prompt (déterministe). */

@@ -6718,6 +6718,63 @@
         ]
       }
     },
+    "/api/admin/usage/daily": {
+      "get": {
+        "operationId": "AiController_daily",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · intelligence artificielle"
+        ]
+      }
+    },
+    "/api/admin/usage/calls": {
+      "get": {
+        "operationId": "AiController_calls",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · intelligence artificielle"
+        ]
+      }
+    },
+    "/api/admin/usage/calls.csv": {
+      "get": {
+        "operationId": "AiController_callsCsv",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · intelligence artificielle"
+        ]
+      }
+    },
     "/api/admin/budget-thresholds": {
       "get": {
         "operationId": "AiController_thresholds",

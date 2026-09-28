@@ -5,6 +5,7 @@ import { AdminOnly, Actor, CurrentActor } from '../core/auth/auth';
 import { AuditService, WriteCtx } from '../core/audit.service';
 import { PrismaService } from '../core/prisma.service';
 import { LlmService, AI_BUDGET_LINES, AI_FUNCTIONS, AI_GROUPS, aiFunction, aiFunctionLabel } from '../core/llm.service';
+import { decodeCursor, JOURNAL_FNS, JOURNAL_PAGE, JOURNAL_PAGE_MAX, JournalFn } from '../domain/journal';
 import { JobsService } from '../core/jobs.service';
 import { encryptSecret, keyFingerprint } from '../core/crypto';
 import { badRequest, businessRule, conflict, inUse, notFound, Usage } from '../core/errors';
@@ -511,6 +512,51 @@ export class AiController implements OnModuleInit {
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="consommation-ia-${f}-${t}.csv"`);
     res.end('﻿' + lines.join('\n'));
+  }
+
+  // ───────────── Journal des appels (spécification JOURNAL § 4) ─────────────
+
+  /** Période et filtres du journal : par défaut, le mois de la date du jour (du 1er à aujourd'hui). */
+  private journalQuery(q: Record<string, string | undefined>) {
+    const today = this.usage.todayIso();
+    const iso = /^\d{4}-\d{2}-\d{2}$/;
+    if ((q.from && !iso.test(q.from)) || (q.to && !iso.test(q.to))) throw badRequest('Date invalide', { from: 'AAAA-MM-JJ', to: 'AAAA-MM-JJ' });
+    const to = q.to ?? today;
+    const from = q.from ?? `${to.slice(0, 8)}01`;
+    if (from > to) throw badRequest('Période invalide', { from: 'postérieure à la date de fin' });
+    if (addDays(from, 366) < to) throw badRequest('Période trop longue', { from: '366 jours au plus' });
+    if (q.fn && !(JOURNAL_FNS as readonly string[]).includes(q.fn)) throw badRequest('Fonction inconnue', { fn: JOURNAL_FNS.join(', ') });
+    if (q.provider && !/^[a-z0-9_-]{1,40}$/.test(q.provider)) throw badRequest('Fournisseur invalide', { provider: 'identifiant du fournisseur' });
+    return { from, to, fn: q.fn as JournalFn | undefined, provider: q.provider || undefined };
+  }
+
+  /** Un point par jour, jours vides inclus : jetons et coût d'entrée et de sortie, appels. */
+  @Get('usage/daily')
+  daily(@Query() q: Record<string, string>) {
+    const j = this.journalQuery(q);
+    return this.usage.daily(j.from, j.to, j.fn);
+  }
+
+  /** Journal : du plus récent au plus ancien, pagination par curseur (`nextCursor`), `total` du filtre. */
+  @Get('usage/calls')
+  calls(@Query() q: Record<string, string>) {
+    const j = this.journalQuery(q);
+    const limit = q.limit === undefined ? JOURNAL_PAGE : Number(q.limit);
+    if (!Number.isInteger(limit) || limit < 1 || limit > JOURNAL_PAGE_MAX) throw badRequest('Taille de page invalide', { limit: `1 à ${JOURNAL_PAGE_MAX}` });
+    const cursor = q.cursor ? decodeCursor(q.cursor) : null;
+    if (q.cursor && !cursor) throw badRequest('Curseur invalide', { cursor: 'valeur renvoyée par nextCursor' });
+    return this.usage.calls(j.from, j.to, { fn: j.fn, provider: j.provider, cursor, limit });
+  }
+
+  /** Export du journal : UTF-8 avec BOM, séparateur « ; », décimales à la virgule, mêmes colonnes que le journal. */
+  @Get('usage/calls.csv')
+  async callsCsv(@CurrentActor() actor: Actor, @Res() res: any, @Query() q: Record<string, string>) {
+    const j = this.journalQuery(q);
+    const { csv, count } = await this.usage.callsCsv(j.from, j.to, j.fn, j.provider);
+    await this.audit.action(this.prisma, adminCtx(actor), { action: 'Export du journal des appels IA', target: `${j.from} → ${j.to}${j.fn ? ` · ${j.fn}` : ''}${j.provider ? ` · ${j.provider}` : ''} · ${count} appel(s)`, severity: 'INFO', entityType: 'UsageRecord' });
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="journal-appels-${j.from}-${j.to}.csv"`);
+    res.end(csv);
   }
 
   @Get('budget-thresholds')

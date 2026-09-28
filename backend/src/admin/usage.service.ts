@@ -4,6 +4,8 @@ import { TodayService } from '../core/today.service';
 import { LlmService, AI_BUDGET_LINES, budgetLineOf } from '../core/llm.service';
 import { ModelCategory } from '../domain/ai-pricing';
 import { addDays, daysBetween, isoInTimezone, lastDayOfMonth } from '../domain/dates';
+import { csvFile, csvNum, encodeCursor, JournalFn, splitCost, stepsOf } from '../domain/journal';
+import { Prisma, UsageRecord } from '@prisma/client';
 
 /** Fuseau de la plateforme pour les agrégats de consommation (§ 7.4 : fuseau du projet ou de la plateforme). */
 export const PLATFORM_TIMEZONE = 'Europe/Paris';
@@ -195,6 +197,84 @@ export class UsageService {
       detail: groupBy === 'day' ? rows.map((r) => ({ day: this.day(r.at), functionId: budgetLineOf(r.functionId), stepId: r.functionId, requests: r.requests, modelId: r.modelId, providerId: r.providerId, tokensIn: r.tokensIn, tokensOut: r.tokensOut, costEur: round4(r.costEur), fallbackUsed: r.fallbackUsed })) : undefined,
     };
   }
+
+  // ───────────── Journal des appels (spécification JOURNAL) ─────────────
+
+  private journalWhere(fromIso: string, toIso: string, fn?: JournalFn, provider?: string): Prisma.UsageRecordWhereInput {
+    return {
+      at: { gte: this.startOf(fromIso), lt: this.startOf(addDays(toIso, 1)) },
+      ...(fn ? { functionId: { in: stepsOf(fn) } } : {}),
+      ...(provider ? { providerId: provider } : {}),
+    };
+  }
+
+  /** Un point par jour de la période (jours vides inclus) : jetons, coût entrée / sortie, appels (§ 4). */
+  async daily(fromIso: string, toIso: string, fn?: JournalFn) {
+    const [rows, models] = await Promise.all([
+      this.prisma.usageRecord.findMany({ where: this.journalWhere(fromIso, toIso, fn), select: { at: true, modelId: true, tokensIn: true, tokensOut: true, requests: true, costEur: true, priceIn: true, priceOut: true, pricePer1k: true } }),
+      this.prisma.aiModel.findMany({ select: { id: true, priceInPerMTok: true } }),
+    ]);
+    const catalogIn = new Map(models.map((m) => [m.id, m.priceInPerMTok]));
+    const days = new Map<string, { date: string; tokensIn: number; tokensOut: number; costIn: number; costOut: number; calls: number }>();
+    for (let d = fromIso; d <= toIso; d = addDays(d, 1)) days.set(d, { date: d, tokensIn: 0, tokensOut: 0, costIn: 0, costOut: 0, calls: 0 });
+    for (const r of rows) {
+      const e = days.get(this.day(r.at));
+      if (!e) continue;
+      const c = splitCost(r, catalogIn.get(r.modelId));
+      e.tokensIn += r.tokensIn;
+      e.tokensOut += r.tokensOut;
+      e.costIn += c.costIn;
+      e.costOut += c.costOut;
+      e.calls += 1;
+    }
+    return [...days.values()].map((e) => ({ ...e, costIn: round6(e.costIn), costOut: round6(e.costOut) }));
+  }
+
+  /** Page du journal : du plus récent au plus ancien, pagination par curseur (§ 4). */
+  async calls(fromIso: string, toIso: string, opts: { fn?: JournalFn; provider?: string; cursor?: { at: Date; id: string } | null; limit: number }) {
+    const where = this.journalWhere(fromIso, toIso, opts.fn, opts.provider);
+    const page: Prisma.UsageRecordWhereInput = opts.cursor ? { AND: [where, { OR: [{ at: { lt: opts.cursor.at } }, { at: opts.cursor.at, id: { lt: opts.cursor.id } }] }] } : where;
+    const [rows, total] = await Promise.all([
+      this.prisma.usageRecord.findMany({ where: page, orderBy: [{ at: 'desc' }, { id: 'desc' }], take: opts.limit + 1 }),
+      this.prisma.usageRecord.count({ where }),
+    ]);
+    const more = rows.length > opts.limit;
+    const items = await this.callViews(rows.slice(0, opts.limit));
+    const last = rows[opts.limit - 1];
+    return { items, nextCursor: more && last ? encodeCursor(last.at, last.id) : null, total };
+  }
+
+  /** Tous les appels du filtre, pour l'export CSV (mêmes colonnes que le journal). */
+  async callsCsv(fromIso: string, toIso: string, fn?: JournalFn, provider?: string): Promise<{ csv: string; count: number }> {
+    const rows = await this.prisma.usageRecord.findMany({ where: this.journalWhere(fromIso, toIso, fn, provider), orderBy: [{ at: 'desc' }, { id: 'desc' }] });
+    const items = await this.callViews(rows);
+    const time = new Intl.DateTimeFormat('fr-FR', { timeZone: PLATFORM_TIMEZONE, hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
+    const header = ['Date', 'Heure', 'Fonction', 'Fournisseur', 'Modèle', 'Secours', 'Tokens', 'Tokens entrée', 'Tokens sortie', 'Tarif entrée (€/M)', 'Tarif sortie (€/M)', 'Coût (€)', 'Requête', 'Durée (ms)'];
+    const lines = items.map((c) => [
+      this.day(new Date(c.at)), time.format(new Date(c.at)), JOURNAL_FN_NAMES[c.fn] ?? c.fn, c.providerName, c.modelName, c.fallback ? 'oui' : 'non',
+      String(c.tokensIn + c.tokensOut), String(c.tokensIn), String(c.tokensOut), csvNum(c.priceIn), csvNum(c.priceOut), csvNum(c.costEur, 6), c.id, c.durationMs == null ? '' : String(c.durationMs),
+    ]);
+    return { csv: csvFile(header, lines), count: lines.length };
+  }
+
+  /** Vue d'un appel : noms du modèle et du fournisseur, ligne budgétaire ; jamais de prompt ni de réponse (non stockés). */
+  private async callViews(rows: UsageRecord[]) {
+    const [models, providers] = await Promise.all([this.prisma.aiModel.findMany({ select: { id: true, name: true } }), this.prisma.provider.findMany({ select: { id: true, name: true } })]);
+    const mn = new Map(models.map((m) => [m.id, m.name])), pn = new Map(providers.map((p) => [p.id, p.name]));
+    return rows.map((r) => ({
+      id: r.id, at: r.at.toISOString(), fn: budgetLineOf(r.functionId), step: r.functionId,
+      provider: r.providerId, providerName: pn.get(r.providerId) ?? r.providerId, model: r.modelId, modelName: mn.get(r.modelId) ?? r.modelId,
+      fallback: r.fallbackUsed, tokensIn: r.tokensIn, tokensOut: r.tokensOut, requests: r.requests,
+      priceIn: r.priceIn, priceOut: r.priceOut, pricePer1k: r.pricePer1k, costEur: round6(r.costEur), durationMs: r.durationMs, source: r.source,
+    }));
+  }
+}
+
+/** Libellés des lignes budgétaires dans le journal et son export. */
+export const JOURNAL_FN_NAMES: Record<string, string> = { insights: 'Insights', rapports: 'Rapports', guidage: 'Guidage console', docs: 'Documents', crud: 'Gestion des données' };
+
+function round6(n: number) {
+  return Math.round(n * 1e6) / 1e6;
 }
 
 export function round2(n: number) {

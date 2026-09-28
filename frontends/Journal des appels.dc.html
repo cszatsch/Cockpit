@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet"><style>
+html,body{margin:0;background:#f2f6f5;font-family:'Plus Jakarta Sans',sans-serif;color:#10233a;-webkit-font-smoothing:antialiased;font-size:13px}
+*{box-sizing:border-box}a{color:#1d8f86}a:hover{color:#146b64}button{font:inherit;color:inherit}
+@keyframes growY{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes toastIn{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
+</style></helmet>
+<div data-screen-label="Journal des appels" style="max-width:1240px;margin:0 auto;padding:40px 36px 80px;display:flex;flex-direction:column;gap:22px">
+  <div style="display:flex;flex-direction:column;gap:6px;animation:rise .45s cubic-bezier(.2,.7,.2,1) both">
+    <div style="font-size:11px;font-weight:800;letter-spacing:.16em;color:#1d8f86">IA</div>
+    <div style="font-size:34px;font-weight:800;font-style:italic;letter-spacing:-.03em">Journal des appels</div>
+    <div style="font-size:14px;color:#43586a">Tokens consommés et détail de chaque appel LLM : date, fonction, fournisseur, modèle, tokens et coût.</div>
+  </div>
+
+  <div style="background:#fff;border-radius:20px;box-shadow:0 0 0 1px #e1e9e7,0 18px 40px -30px rgba(16,35,58,.35);padding:24px 28px 18px;display:flex;flex-direction:column;gap:18px;animation:rise .5s .08s cubic-bezier(.2,.7,.2,1) both">
+    <div style="display:flex;align-items:flex-end;gap:44px;flex-wrap:wrap">
+      <div><div style="font-size:12px;font-weight:700;color:#5c7280">{{ a.lbl }}</div><div style="font-size:42px;font-weight:800;letter-spacing:-.04em;line-height:1.05;font-variant-numeric:tabular-nums;white-space:nowrap">{{ a.tot }}<span style="font-size:18px;letter-spacing:-.01em;color:#8a9aa6;margin-left:6px">{{ a.unit }}</span></div></div>
+      <div style="width:300px;display:flex;flex-direction:column;gap:8px;padding-bottom:9px">
+        <div style="display:flex;height:6px;gap:2px"><span style="{{ a.inBar }}"></span><span style="flex:1;border-radius:3px;background:#10233a"></span></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:#5c7280;font-variant-numeric:tabular-nums;white-space:nowrap"><span style="display:flex;align-items:center;gap:6px"><span style="{{ a.inDot }}"></span><b style="color:#10233a">Entrée</b>{{ a.tin }} · {{ a.pin }}</span><span style="display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:2px;background:#10233a"></span><b style="color:#10233a">Sortie</b>{{ a.tout }} · {{ a.pout }}</span></div>
+      </div>
+      <div style="padding-bottom:4px"><div style="font-size:12px;font-weight:700;color:#5c7280">Appels</div><div style="font-size:22px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums">{{ a.calls }}</div></div>
+      <div style="margin-left:auto;display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;padding-bottom:4px">
+        <sc-for list="{{ a.chips }}" as="c" hint-placeholder-count="6"><button onClick="{{ c.pick }}" aria-pressed="{{ c.on }}" style="{{ c.st }}"><span style="{{ c.dot }}"></span>{{ c.l }}</button></sc-for>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:baseline;font-size:12.5px;color:#5c7280;min-height:18px;border-top:1px solid #f1f5f4;padding-top:14px;font-variant-numeric:tabular-nums;flex-wrap:wrap"><b style="color:#10233a">{{ a.rdT }}</b><span style="flex:1;min-width:0">{{ a.rdD }}</span><div role="tablist" aria-label="Mesure" style="display:inline-flex;gap:2px;padding:3px;border-radius:10px;background:#eef3f2;align-self:center"><sc-for list="{{ a.mets }}" as="m" hint-placeholder-count="2"><button role="tab" aria-selected="{{ m.on }}" onClick="{{ m.pick }}" style="{{ m.st }}">{{ m.l }}</button></sc-for></div></div>
+    <div>{{ a.svg }}</div>
+  </div>
+
+  <div style="background:#fff;border-radius:20px;box-shadow:0 0 0 1px #e1e9e7;overflow:hidden;animation:rise .5s .16s cubic-bezier(.2,.7,.2,1) both">
+    <div style="display:flex;align-items:center;gap:14px;padding:20px 24px 16px">
+      <div style="flex:1"><div style="font-size:16px;font-weight:800;letter-spacing:-.01em">Journal des appels</div><div style="font-size:12.5px;color:#8a9aa6;margin-top:2px">{{ a.logSub }}</div></div>
+      <button onClick="{{ exportCsv }}" style="height:34px;padding:0 12px;border-radius:10px;border:1px solid #cfdcd9;background:#fff;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px" style-hover="border-color:#10233a"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11 M7 10l5 5 5-5 M5 20h14"></path></svg>CSV</button>
+    </div>
+    <div style="overflow-x:auto"><div style="min-width:900px">
+      <div style="display:grid;grid-template-columns:96px minmax(150px,1fr) minmax(200px,1.2fr) 250px 84px 14px;gap:16px;padding:10px 24px;font-size:11px;font-weight:800;letter-spacing:.08em;color:#8a9aa6;border-top:1px solid #eef3f2;border-bottom:1px solid #eef3f2;background:#fafcfb"><span>DATE</span><span>FONCTION</span><span>FOURNISSEUR · MODÈLE</span><span>TOKENS · ENTRÉE → SORTIE</span><span style="text-align:right">COÛT</span><span></span></div>
+      <sc-for list="{{ a.rows }}" as="r" hint-placeholder-count="10">
+        <div style="{{ r.wrap }}">
+          <div onClick="{{ r.toggle }}" role="button" aria-expanded="{{ r.open }}" style="display:grid;grid-template-columns:96px minmax(150px,1fr) minmax(200px,1.2fr) 250px 84px 14px;gap:16px;align-items:center;padding:11px 24px;cursor:pointer;transition:background .15s" style-hover="background:#f8fbfa">
+            <div style="font-variant-numeric:tabular-nums"><div style="font-weight:700">{{ r.time }}</div><div style="font-size:11.5px;color:#8a9aa6">{{ r.date }}</div></div>
+            <div style="display:flex;align-items:center;gap:8px;font-weight:700;min-width:0;white-space:nowrap"><span style="{{ r.dot }}"></span>{{ r.fn }}</div>
+            <div style="display:flex;align-items:center;gap:10px;min-width:0"><span style="{{ r.logo }}"></span><div style="min-width:0"><div style="font-weight:600;display:flex;align-items:center;gap:6px;white-space:nowrap">{{ r.model }}<sc-if value="{{ r.fb }}" hint-placeholder-val="{{ false }}"><span style="height:18px;padding:0 7px;border-radius:999px;background:#fff1dc;color:#9a5a0c;font-size:10.5px;font-weight:800;display:inline-flex;align-items:center">Secours</span></sc-if></div><div style="font-size:11.5px;color:#8a9aa6">{{ r.pv }}</div></div></div>
+            <div style="display:flex;flex-direction:column;gap:6px;font-variant-numeric:tabular-nums"><div style="display:flex;justify-content:space-between;align-items:baseline"><b>{{ r.tt }}</b><span style="font-size:11.5px;color:#8a9aa6">{{ r.ti }} → {{ r.to }}</span></div><div style="height:4px;border-radius:2px;background:#f1f5f4"><div style="{{ r.barBox }}"><span style="{{ r.barIn }}"></span><span style="flex:1;background:#10233a"></span></div></div></div>
+            <div style="text-align:right;font-weight:800;font-variant-numeric:tabular-nums">{{ r.cost }}</div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8a9aa6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="{{ r.chev }}"><path d="M9 6l6 6-6 6"></path></svg>
+          </div>
+          <sc-if value="{{ r.open }}" hint-placeholder-val="{{ false }}">
+            <div style="margin:0 24px 14px 136px;padding:14px 16px;border-radius:12px;background:#f6f9f8;display:grid;grid-template-columns:180px 90px minmax(0,1fr);gap:24px;animation:rise .2s both">
+              <div><div style="font-size:11px;font-weight:800;letter-spacing:.08em;color:#8a9aa6">REQUÊTE</div><div style="font-family:'IBM Plex Mono',monospace;font-size:12px;margin-top:4px">{{ r.id }}</div></div>
+              <div><div style="font-size:11px;font-weight:800;letter-spacing:.08em;color:#8a9aa6">DURÉE</div><div style="font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums">{{ r.dur }}</div></div>
+              <div><div style="font-size:11px;font-weight:800;letter-spacing:.08em;color:#8a9aa6">CALCUL DU COÛT</div><div style="font-family:'IBM Plex Mono',monospace;font-size:12px;margin-top:4px">{{ r.calc }}</div><sc-if value="{{ r.fb }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;color:#9a5a0c;margin-top:6px">Modèle principal indisponible : l’appel est passé sur le secours.</div></sc-if></div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 24px;border-top:1px solid #eef3f2;font-size:12px;color:#8a9aa6"><span>{{ a.foot }}</span><sc-if value="{{ a.more }}" hint-placeholder-val="{{ true }}"><button onClick="{{ a.showMore }}" style="height:30px;padding:0 12px;border-radius:9px;border:0;background:#f1f5f4;font-weight:700;cursor:pointer" style-hover="background:#e6eeec">Afficher 10 de plus</button></sc-if></div>
+  </div>
+
+  <sc-if value="{{ toast.on }}" hint-placeholder-val="{{ false }}"><div role="status" style="position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:90;padding:10px 16px;border-radius:12px;background:#10233a;color:#fff;font-weight:700;display:flex;align-items:center;gap:10px;white-space:nowrap;box-shadow:0 18px 40px -16px rgba(16,35,58,.6);animation:toastIn .25s cubic-bezier(.2,.7,.2,1) both"><span style="width:18px;height:18px;border-radius:50%;background:#1d8f86;display:grid;place-items:center;font-size:11px">✓</span>{{ toast.t }}</div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+// Données : GET /usage/daily (graphique, une série par ligne budgétaire) et GET /usage/calls (journal, pagination par curseur),
+// lues par admin-api.js (journalApi) ; voir JOURNAL - specification.md. build() ne sert qu'au mode démonstration (?demo=1).
+const FN = { insights: { n: 'Insights', c: '#1d8f86', m: 's5', w: 22, i: 12000, o: 1600 }, rapports: { n: 'Rapports', c: '#8b5cd6', m: 's5', w: 3, i: 42000, o: 6500 }, guidage: { n: 'Guidage console', c: '#d6558a', m: 'h45', w: 34, i: 2800, o: 420 }, docs: { n: 'Documents', c: '#e39a2d', m: 's5', w: 16, i: 18000, o: 2100 }, crud: { n: 'Gestion des données', c: '#3b7dd8', m: 'g6', w: 25, i: 4200, o: 640 } };
+const FK = Object.keys(FN);
+const MOD = { s5: { n: 'Claude Sonnet 5', pv: 'anthropic', pi: 2.8, po: 14 }, h45: { n: 'Claude Haiku 4.5', pv: 'anthropic', pi: .92, po: 4.6 }, g6: { n: 'GPT-6 Luna', pv: 'openai', pi: 1.1, po: 8.8 }, ml2: { n: 'Mistral Large 2', pv: 'mistral', pi: 1.85, po: 5.5 } };
+const PV = { anthropic: { n: 'Anthropic', logo: './assets/logos/lh-anthropic.svg' }, openai: { n: 'OpenAI', logo: './assets/logos/lh-openai.svg' }, mistral: { n: 'Mistral AI', logo: './assets/logos/lh-mistral-color.svg' }, google: { n: 'Google', logo: './assets/logos/lh-gemini-color.svg' }, openrouter: { n: 'OpenRouter', logo: './assets/logos/lh-openrouter.webp' }, cohere: { n: 'Cohere', logo: '' } };
+const DWL = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+const MOIS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+const MOIS_L = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+const nf = (v, d) => v.toLocaleString('fr-FR', { minimumFractionDigits: d, maximumFractionDigits: d });
+const fk = n => n >= 1e6 ? nf(n / 1e6, n >= 1e8 ? 0 : 1) + ' M' : n >= 1e3 ? nf(n / 1e3, n >= 1e5 ? 0 : 1) + ' k' : String(Math.round(n));
+const fint = n => Math.round(n).toLocaleString('fr-FR');
+const e3 = v => nf(v, 3) + ' €', e2 = v => nf(v, 2) + ' €';
+// Agrégats en euros (§ 5) : 2 décimales sous 100 €, entier au-delà.
+const eAgg = v => v >= 100 ? fint(v) : nf(v, 2);
+const p2 = n => String(n).padStart(2, '0');
+const PAGE = 10;
+
+function build() {
+  let s = 20260929; const r = () => (s = (s * 16807) % 2147483647) / 2147483647;
+  const HW = [0, 0, 0, 0, 0, 0, .2, .6, 1.6, 2.6, 2.8, 2.2, 1, 1.4, 2.3, 2.4, 1.8, 1, .5, .3, .15, .1, 0, 0], HS = HW.reduce((a, b) => a + b, 0);
+  const pickH = () => { let x = r() * HS; for (let h = 0; h < 24; h++) { x -= HW[h]; if (x <= 0) return h; } return 10; };
+  const WS = FK.reduce((a, k) => a + FN[k].w, 0), pickF = () => { let x = r() * WS; for (const k of FK) { x -= FN[k].w; if (x <= 0) return k; } return 'guidage'; };
+  const calls = [];
+  for (let k = 0; k < 7; k++) {
+    const dt = new Date(2026, 8, 23 + k), we = dt.getDay() === 0 || dt.getDay() === 6, n = k === 6 ? 34 : we ? 11 : 46;
+    for (let j = 0; j < n; j++) {
+      let h = pickH(), mi = Math.floor(r() * 60); if (k === 6 && (h > 16 || (h === 16 && mi > 42))) h = 8 + Math.floor(r() * 8);
+      const f = pickF(), F = FN[f], fb = f === 'docs' && r() < .14, m = fb ? 'ml2' : F.m, M = MOD[m];
+      const ti = Math.round(F.i * (.45 + r() * 1.1)), to = Math.round(F.o * (.4 + r() * 1.2));
+      calls.push({ id: 'req_' + Math.floor(r() * 0xffffff).toString(16).padStart(6, '0') + Math.floor(r() * 0xffff).toString(16).padStart(4, '0'), dt: new Date(2026, 8, 23 + k, h, mi, Math.floor(r() * 60)), f, m, mn: M.n, pv: M.pv, pvn: PV[M.pv].n, pi: M.pi, po: M.po, fb, ti, to, tt: ti + to, c: (ti * M.pi + to * M.po) / 1e6, ms: Math.round(350 + to * 2.2 + r() * 600) });
+    }
+  }
+  calls.sort((a, b) => b.dt - a.dt);
+  const month = [];
+  for (let d = 1; d <= 29; d++) {
+    const dt = new Date(2026, 8, d), wf = dt.getDay() === 0 || dt.getDay() === 6 ? .28 : 1, row = { d, dt };
+    FK.forEach(k => { const F = FN[k], n = F.w * 6 * wf * (.82 + r() * .36) * (.9 + d / 150), M = MOD[F.m]; row[k] = { n, i: n * F.i, o: n * F.o, ci: n * F.i * M.pi / 1e6, co: n * F.o * M.po / 1e6, c: n * (F.i * M.pi + F.o * M.po) / 1e6 }; });
+    month.push(row);
+  }
+  return { calls, month, maxTT: Math.max(...calls.map(c => c.tt)), total: calls.length, period: 'ces 7 derniers jours' };
+}
+
+/** Jour ISO (AAAA-MM-JJ) → date locale à midi (aucun décalage de fuseau sur le jour affiché). */
+const dayOf = iso => new Date(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10), 12);
+/** Séries de /usage/daily (une par ligne budgétaire) → une ligne par jour, par fonction : appels, jetons, coûts. */
+function toMonth(series) {
+  const ref = series[FK[0]] || [];
+  return ref.map((p, i) => { const row = { d: dayOf(p.date).getDate(), dt: dayOf(p.date) };
+    FK.forEach(k => { const x = (series[k] || [])[i] || { calls: 0, tokensIn: 0, tokensOut: 0, costIn: 0, costOut: 0 }; row[k] = { n: x.calls, i: x.tokensIn, o: x.tokensOut, ci: x.costIn, co: x.costOut, c: x.costIn + x.costOut }; });
+    return row; });
+}
+/** Appel de /usage/calls → forme du journal (tarifs figés de l'appel, jamais ceux du catalogue). */
+const toCall = c => ({ id: c.id, dt: new Date(c.at), f: c.fn, m: c.model, mn: c.modelName, pv: c.provider, pvn: c.providerName, pi: c.priceIn, po: c.priceOut, p1k: c.pricePer1k, rq: c.requests, fb: c.fallback, ti: c.tokensIn, to: c.tokensOut, tt: c.tokensIn + c.tokensOut, c: c.costEur, ms: c.durationMs });
+/** Calcul du coût affiché à l'ouverture d'une ligne. */
+function calcOf(c) {
+  if (c.pi != null) return fint(c.ti) + ' × ' + nf(c.pi, 2) + ' €/M + ' + fint(c.to) + ' × ' + nf(c.po || 0, 2) + ' €/M = ' + e3(c.c);
+  if (c.p1k != null) return fint(c.rq) + ' requête(s) × ' + nf(c.p1k, 2) + ' € / 1 000 = ' + e3(c.c);
+  return 'Tarif non enregistré (appel antérieur au journal) · ' + e3(c.c);
+}
+
+class Component extends DCLogic {
+  state = { met: 'tok', fn: null, hov: null, open: 'first', n: PAGE, toast: null, tick: 0 };
+  componentDidMount() {
+    import('./admin-api.js').then(m => { if (m.isDemo()) return; this._api = m.journalApi; this._errText = m.errText; this.load(); }).catch(e => console.warn('admin-api', e));
+  }
+  data() {
+    if (this._api) return this._d || { calls: [], month: [], maxTT: 1, total: 0, period: 'ce mois' };
+    return this._d || (this._d = build());
+  }
+  /** Graphique (toutes les lignes budgétaires) et première page du journal du filtre courant. */
+  async load() {
+    try {
+      const A = this._api, fn = this.state.fn;
+      const [series, page] = await Promise.all([this._series || Promise.all(FK.map(k => A.daily(k))).then(l => Object.fromEntries(FK.map((k, i) => [k, l[i]]))), A.calls({ fn, limit: PAGE })]);
+      if (fn !== this.state.fn) return; // filtre changé pendant le chargement
+      this._series = series;
+      const calls = page.items.map(toCall);
+      this._d = { calls, month: toMonth(series), maxTT: Math.max(1, ...calls.map(c => c.tt)), total: page.total, next: page.nextCursor, period: 'ce mois' };
+      this.setState(s => ({ tick: s.tick + 1, open: 'first' }));
+    } catch (e) { this.toast(this._errText ? this._errText(e) : 'Chargement impossible'); }
+  }
+  /** Page suivante du journal (curseur). */
+  async more() {
+    const D = this._d, fn = this.state.fn;
+    if (!D || !D.next) return this.setState({ n: this.state.n + PAGE });
+    try {
+      const page = await this._api.calls({ fn, cursor: D.next, limit: PAGE });
+      if (fn !== this.state.fn) return;
+      const calls = [...D.calls, ...page.items.map(toCall)];
+      this._d = { ...D, calls, next: page.nextCursor, total: page.total, maxTT: Math.max(1, ...calls.map(c => c.tt)) };
+      this.setState(s => ({ n: s.n + PAGE, tick: s.tick + 1 }));
+    } catch (e) { this.toast(this._errText ? this._errText(e) : 'Chargement impossible'); }
+  }
+  pickFn(k) {
+    this.setState({ fn: k, hov: null, n: PAGE, open: null }, () => { if (this._api) { this._d = this._d && { ...this._d, calls: [], total: 0, next: null }; this.load(); } });
+  }
+  componentWillUnmount() { clearTimeout(this._tt); }
+  toast(t) { clearTimeout(this._tt); this.setState({ toast: t }); this._tt = setTimeout(() => this.setState({ toast: null }), 2600); }
+  renderVals() {
+    const S = this.state, e = React.createElement, D = this.data();
+    const keys = S.fn ? [S.fn] : FK, col = S.fn ? FN[S.fn].c : '#1d8f86', sum = (d, f) => keys.reduce((a, k) => a + d[k][f], 0);
+    const dv = D.month.map(d => ({ d: d.d, dt: d.dt, i: sum(d, 'i'), o: sum(d, 'o'), n: sum(d, 'n'), c: sum(d, 'c'), ci: sum(d, 'ci'), co: sum(d, 'co') }));
+    const mo = dv.length ? dv[0].dt.getMonth() : new Date().getMonth(), MO = MOIS[mo];
+    const EUR = S.met === 'eur', vI = d => EUR ? d.ci : d.i, vO = d => EUR ? d.co : d.o, fv = v => EUR ? eAgg(v) + ' €' : fk(v);
+    const tI = dv.reduce((a, d) => a + vI(d), 0), tO = dv.reduce((a, d) => a + vO(d), 0), tN = dv.reduce((a, d) => a + d.n, 0), pin = tI + tO ? Math.round(tI / (tI + tO) * 100) : 0;
+    const W = 1100, H = 190, L = 56, R = 4, iw = W - L - R, bw = iw / Math.max(1, dv.length), maxI = Math.max(0, ...dv.map(vI)), maxO = Math.max(0, ...dv.map(vO)), sc = maxI + maxO ? 150 / (maxI + maxO) : 0, AX = Math.max(22, maxI * sc + 8);
+    const st10 = maxI > 0 ? Math.pow(10, Math.floor(Math.log10(maxI))) : 0, ref = st10 ? Math.floor(maxI / st10) * st10 : 0, K = 'k' + (S.fn || 'all') + S.met + S.tick, F0 = 'Plus Jakarta Sans';
+    const kids = [
+      e('line', { key: 'ref', x1: L, x2: W - R, y1: AX - ref * sc, y2: AX - ref * sc, stroke: '#eef3f2' }),
+      e('text', { key: 'reft', x: 0, y: AX - ref * sc + 4, fontSize: 10.5, fill: '#a3b1ba', fontFamily: F0 }, fv(ref)),
+      e('text', { key: 'lin', x: 0, y: AX - 6, fontSize: 10.5, fill: '#5c7280', fontWeight: 700, fontFamily: F0 }, 'Entrée'),
+      e('text', { key: 'lout', x: 0, y: AX + 16, fontSize: 10.5, fill: '#5c7280', fontWeight: 700, fontFamily: F0 }, 'Sortie'),
+      e('line', { key: 'ax', x1: L, x2: W - R, y1: AX + .5, y2: AX + .5, stroke: '#d9e3e0' })];
+    dv.forEach((d, i) => {
+      const x = L + i * bw + bw * .2, w = bw * .6, hi = vI(d) * sc, ho = vO(d) * sc, op = S.hov == null || S.hov === i ? 1 : .3;
+      kids.push(e('rect', { key: K + 'i' + i, x, y: AX - hi, width: w, height: hi, rx: 2, fill: col, opacity: op, style: { transformOrigin: '0 ' + AX + 'px', transformBox: 'view-box', animation: 'growY .6s ' + (i * .015).toFixed(3) + 's cubic-bezier(.2,.7,.2,1) both', transition: 'opacity .15s' } }));
+      kids.push(e('rect', { key: K + 'o' + i, x, y: AX + 2, width: w, height: ho, rx: 1.5, fill: '#10233a', opacity: op, style: { transformOrigin: '0 ' + (AX + 2) + 'px', transformBox: 'view-box', animation: 'growY .6s ' + (.2 + i * .015).toFixed(3) + 's cubic-bezier(.2,.7,.2,1) both', transition: 'opacity .15s' } }));
+      kids.push(e('rect', { key: 'h' + i, x: L + i * bw, y: 0, width: bw, height: H - 18, fill: 'transparent', onMouseEnter: () => this.setState({ hov: i }) }));
+    });
+    [0, 7, 14, 21, 28].filter(i => i < dv.length).forEach(i => kids.push(e('text', { key: 'x' + i, x: L + i * bw + bw / 2, y: H - 2, textAnchor: 'middle', fontSize: 11, fill: '#a3b1ba', fontFamily: F0 }, (i + 1) + ' ' + MO)));
+    const svg = e('svg', { width: '100%', viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': 'Tokens ou coûts par jour, entrée au-dessus de l’axe, sortie en dessous', style: { display: 'block', overflow: 'visible' }, onMouseLeave: () => this.setState({ hov: null }) }, kids);
+    // Moyenne sur les jours ouvrés (lundi à vendredi) de la période.
+    const wd = dv.filter(d => d.dt.getDay() % 6 !== 0), pk = dv.reduce((a, d) => vI(d) + vO(d) > vI(a) + vO(a) ? d : a, dv[0] || { d: 1, i: 0, o: 0, ci: 0, co: 0 }), hv = S.hov != null ? dv[S.hov] : null;
+    const chips = [{ k: null, l: 'Toutes' }, ...FK.map(k => ({ k, l: FN[k].n }))].map(c => { const on = S.fn === c.k;
+      return { l: c.l, on, pick: () => this.pickFn(c.k), dot: c.k ? 'width:7px;height:7px;border-radius:50%;background:' + (on ? '#fff' : FN[c.k].c) : 'display:none',
+        st: 'height:30px;padding:0 11px;border-radius:999px;border:0;cursor:pointer;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:7px;white-space:nowrap;transition:background .15s,color .15s;' + (on ? 'background:#10233a;color:#fff' : 'background:#f1f5f4;color:#43586a') }; });
+    const log = D.calls.filter(c => !S.fn || c.f === S.fn), total = this._api ? D.total : log.length, open = S.open === 'first' ? (log[0] && log[0].id) : S.open;
+    const shown = Math.min(S.n, log.length);
+    const a = { lbl: (S.fn ? FN[S.fn].n : EUR ? 'Coût' : 'Tokens') + ' · depuis le 1er ' + MO, tot: EUR ? eAgg(tI + tO) : fk(tI + tO), unit: EUR ? '€' : 'tokens', tin: fv(tI), tout: fv(tO), pin: pin + ' %', pout: (tI + tO ? 100 - pin : 0) + ' %', calls: fint(tN), chips, svg,
+      mets: [['tok', 'Tokens'], ['eur', 'Coûts']].map(([k, l]) => ({ l, on: S.met === k, pick: () => this.setState({ met: k, hov: null }), st: 'height:28px;padding:0 12px;border-radius:8px;border:0;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap;transition:background .2s,color .2s;' + (S.met === k ? 'background:#fff;color:#10233a;box-shadow:0 1px 2px rgba(16,35,58,.12)' : 'background:transparent;color:#5c7280') })),
+      inBar: 'border-radius:3px;transition:width .4s cubic-bezier(.2,.7,.2,1);background:' + col + ';width:' + pin + '%', inDot: 'width:8px;height:8px;border-radius:2px;background:' + col,
+      rdT: hv ? DWL[hv.dt.getDay()] + ' ' + hv.d + ' ' + MO : MOIS_L[mo],
+      rdD: hv ? (EUR ? 'Entrée ' + e2(hv.ci) + ' · sortie ' + e2(hv.co) + ' · ' + fk(hv.i + hv.o) + ' tokens · ' + fint(hv.n) + ' appels' : 'Entrée ' + fk(hv.i) + ' · sortie ' + fk(hv.o) + ' · ' + fint(hv.n) + ' appels · ' + e2(hv.c))
+        : 'Moyenne ' + fv(wd.length ? wd.reduce((x, d) => x + vI(d) + vO(d), 0) / wd.length : 0) + ' par jour ouvré · pic le ' + pk.d + ' ' + MO + ' avec ' + fv(vI(pk) + vO(pk)) + (EUR && tI + tO ? ' · la sortie pèse ' + Math.round(tO / (tI + tO) * 100) + ' % du coût pour ' + Math.round(dv.reduce((x, d) => x + d.o, 0) / Math.max(1, dv.reduce((x, d) => x + d.i + d.o, 0)) * 100) + ' % des tokens' : ''),
+      logSub: 'Chaque appel LLM, du plus récent au plus ancien' + (S.fn ? ' · ' + FN[S.fn].n : ''),
+      rows: log.slice(0, S.n).map(c => { const Fc = FN[c.f] || { n: c.f, c: '#8a9aa6' }, P = PV[c.pv] || { n: c.pvn || c.pv, logo: '' }, isO = open === c.id;
+        return { id: c.id, time: p2(c.dt.getHours()) + ':' + p2(c.dt.getMinutes()), date: c.dt.getDate() + ' ' + MOIS[c.dt.getMonth()], fn: Fc.n, model: c.mn, pv: c.pvn || P.n, fb: c.fb, open: isO,
+          logo: 'width:16px;height:16px;flex:none;background:url("' + P.logo + '") center/contain no-repeat', dot: 'width:8px;height:8px;border-radius:50%;flex:none;background:' + Fc.c,
+          tt: fint(c.tt), ti: fint(c.ti), to: fint(c.to), cost: e3(c.c), dur: c.ms == null ? '—' : nf(c.ms / 1000, 1) + ' s',
+          calc: calcOf(c),
+          wrap: 'border-top:1px solid #f1f5f4;' + (isO ? 'background:#fcfdfd' : ''), chev: 'transition:transform .2s;transform:rotate(' + (isO ? 90 : 0) + 'deg)',
+          barBox: 'height:4px;border-radius:2px;overflow:hidden;display:flex;gap:1px;width:' + Math.max(2, c.tt / D.maxTT * 100).toFixed(1) + '%',
+          barIn: 'background:' + Fc.c + ';width:' + (c.tt ? c.ti / c.tt * 100 : 0).toFixed(1) + '%', toggle: () => this.setState({ open: isO ? null : c.id }) }; }),
+      foot: total ? shown + ' appels affichés sur ' + fint(total) + ' ' + D.period : 'Aucun appel sur la période', more: shown < total, showMore: () => this._api ? this.more() : this.setState({ n: S.n + PAGE }) };
+    const exportCsv = () => this._api ? this._api.csv(S.fn).then(() => this.toast('Export CSV préparé · ' + fint(total) + ' appels')).catch(e => this.toast(this._errText ? this._errText(e) : 'Export impossible')) : this.toast('Export CSV préparé · ' + log.length + ' appels');
+    return { a, toast: { on: !!S.toast, t: S.toast || '' }, exportCsv };
+  }
+}
+</script>
+</body>
+</html>

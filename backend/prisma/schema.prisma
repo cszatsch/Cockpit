@@ -1220,8 +1220,16 @@ model UsageRecord {
   costEur      Float
   fallbackUsed Boolean     @default(false)
   source       UsageSource
+  /// Tarifs du modèle au moment de l'appel, figés (Journal des appels § 3) : € / M jetons en entrée, en sortie ;
+  /// € / 1 000 requêtes (Reranking). Null pour les appels antérieurs au journal (tarif non enregistré).
+  priceIn      Float?
+  priceOut     Float?
+  pricePer1k   Float?
+  /// Latence totale de l'appel (ms) ; null si non mesurée
+  durationMs   Int?
 
   @@index([at])
+  @@index([providerId, at])
 }
 
 model BudgetThreshold {

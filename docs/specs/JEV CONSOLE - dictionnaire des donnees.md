@@ -16,7 +16,7 @@
 - [`jev.fournisseurs_ia`](#fournisseurs_ia) — 8 colonnes
 - [`jev.modeles_ia`](#modeles_ia) — 16 colonnes
 - [`jev.affectations_ia`](#affectations_ia) — 6 colonnes
-- [`jev.consommation_ia`](#consommation_ia) — 11 colonnes
+- [`jev.consommation_ia`](#consommation_ia) — 15 colonnes
 - [`jev.plafonds_budget_ia`](#plafonds_budget_ia) — 4 colonnes
 - [`jev.regles_notification`](#regles_notification) — 17 colonnes
 - [`jev.envois_notification`](#envois_notification) — 11 colonnes
@@ -385,6 +385,10 @@ Une ligne par appel à un modèle d’IA : fonction, modèle, jetons, coût, bas
 | `cout_eur` | décimal | Coût de l’appel au tarif du moment | en euros |
 | `secours_utilise` | booléen | L’appel a été servi par le modèle de secours |  |
 | `origine` | texte | Origine de l’appel | COCKPIT, JEV, NOTIFICATION, IMPORT |
+| `requete_id` | texte | Identifiant de la requête (Journal des appels) | req_4f9a1c02b7 |
+| `prix_entree_eur_million` | décimal | Tarif d’entrée du modèle au moment de l’appel, figé | € par million de jetons ; null pour les appels antérieurs au journal |
+| `prix_sortie_eur_million` | décimal | Tarif de sortie du modèle au moment de l’appel, figé | € par million de jetons |
+| `duree_ms` | entier | Latence totale de l’appel | en millisecondes ; null si non mesurée |
 
 **Relations**
 
@@ -405,6 +409,7 @@ Une ligne par appel à un modèle d’IA : fonction, modèle, jetons, coût, bas
 - Projection de fin de mois = dépense du mois + (dépense des 7 derniers jours, date du jour incluse, ÷ 7) × nombre de jours restants jusqu’à la fin du mois (date du jour exclue).
 - Ligne budgétaire : doc_vec, doc_rrk et doc_syn forment la ligne « docs » (Documents) ; les autres fonctions sont leur propre ligne.
 - Les jours sont des jours civils de Paris : grouper par date (date::date), les dates étant déjà en heure de Paris.
+- Le coût d’un appel est calculé avec les tarifs figés au moment de l’appel (prix_entree_eur_million, prix_sortie_eur_million), pas avec le catalogue actuel : ne pas le recalculer depuis modeles_ia.
 
 ## plafonds_budget_ia
 

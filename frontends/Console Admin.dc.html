@@ -352,6 +352,12 @@ a{color:#1d8f86}a:hover{color:#146b64}
         <dc-import name="ConsoCouts" mtd-ref="{{ consoMtd }}" google-ok="{{ consoGoogleOk }}" on-fix-key="{{ consoFixKey }}" hint-size="100%,1200px"></dc-import>
       </div>
     </sc-if>
+    <sc-if value="{{ isJournal }}" hint-placeholder-val="{{ false }}">
+      <!-- API : GET /usage/daily et /usage/calls (Journal des appels.dc.html, admin-api.js → journalApi). -->
+      <div data-screen-label="Journal des appels" style="animation:rise-in .35s cubic-bezier(.2,.7,.2,1) both">
+        <dc-import name="Journal des appels" hint-size="100%,1400px"></dc-import>
+      </div>
+    </sc-if>
 
     <sc-if value="{{ isInit }}" hint-placeholder-val="{{ false }}">
       <div style="animation:rise-in .35s cubic-bezier(.2,.7,.2,1) both"><dc-import name="ProjetInit" existing-codes="{{ libCodes }}" on-imported="{{ onImported }}" on-open-lib="{{ openLib }}" hint-size="100%,560px"></dc-import></div>
@@ -1037,6 +1043,7 @@ const META = {
   providers: ['IA', 'Fournisseurs et modèles', 'Clés API, tests de connexion et catalogue des modèles avec leur coût.'],
   assign: ['IA', 'Affectation des modèles', 'Un modèle principal et un modèle de secours pour chaque fonction IA du Cockpit.'],
   conso: ['IA', 'Consommation et coûts', 'Tokens et dépenses par fournisseur, modèle et fonction, avec seuils d’alerte.'],
+  journal: ['Intelligence artificielle', 'Journal des appels', 'Tokens consommés et détail de chaque appel LLM.'],
   snaps: ['Projets', 'Snapshots', 'L’historique des données de chaque projet : capturer, comparer, restaurer.'],
   notifs: ['Plateforme', 'Notifications et alertes', 'Les notifications informent. Les alertes signalent un événement ou un seuil critique.'],
   apis: ['Plateforme', 'Registre des cartes API', 'Les services externes appelés par les widgets : endpoint, clé, quota, santé et échéance de la clé.'],
@@ -1055,6 +1062,7 @@ const JCHIPS = {
   providers: ['Comment tester les clés API ?', 'Pourquoi la clé Google est invalide ?'],
   assign: ['Quelle fonction tourne sur son secours ?', 'Comment réduire les coûts ?'],
   conso: ['Où en est le budget IA ?', 'Comment réduire les coûts ?'],
+  journal: ['Combien de tokens ce mois-ci ?', 'Quel est l’appel le plus cher du mois ?'],
   snaps: ['Comment créer un snapshot ?', 'Qu’est-ce qui a changé depuis le 22 sept. ?'],
   notifs: ['Quelles alertes sont actives ?', 'Y a-t-il eu des échecs d’envoi ?'],
   modules: ['Comment activer un module sur un projet ?', 'Quels modules sont actifs ?'],
@@ -1582,10 +1590,10 @@ class Component extends DCLogic {
       mob: mode === 'mob', scrim: mode === 'mob' && S.mnav, openNav: () => this.setState({ mnav: true }), closeNav: () => this.setState({ mnav: false }),
       padSt: `max-width:1320px;margin:0 auto;padding:${mode === 'mob' ? '20px 16px 96px' : mode === 'rail' ? '28px 28px 96px' : '32px 44px 96px'}`,
       topSt: `position:sticky;top:0;z-index:40;height:60px;display:flex;align-items:center;gap:12px;padding:0 ${mode === 'mob' ? 16 : mode === 'rail' ? 28 : 44}px;background:rgba(242,246,245,.82);backdrop-filter:saturate(1.4) blur(14px);-webkit-backdrop-filter:saturate(1.4) blur(14px);border-bottom:1px solid rgba(16,35,58,.06)`,
-      eyebrow: meta[0], title: meta[1], desc: meta[2], isOv: is('overview'), notOv: !is('overview') && !is('skills') && !is('persona') && !is('apis'), loading: S.loading, ready: !S.loading,
+      eyebrow: meta[0], title: meta[1], desc: meta[2], isOv: is('overview'), notOv: !is('overview') && !is('skills') && !is('persona') && !is('apis') && !is('journal'), loading: S.loading, ready: !S.loading,
       healthL: errN ? errN + ' incident' + (errN > 1 ? 's' : '') : 'Opérationnelle', healthPill: pill(errN ? 'err' : 'ok'), healthDot: dot(errN ? 'err' : 'ok'), goOv: () => this.go('overview'),
       isUsers: is('users') && !S.loading, isAdmins: is('admins') && !S.loading, isRights: is('rights') && !S.loading, isProv: is('providers') && !S.loading, isAsg: is('assign') && !S.loading, isConso: is('conso') && !S.loading, isInit: is('init') && !S.loading, isLib: is('library') && !S.loading, isSnaps: is('snaps') && !S.loading, isNotifs: is('notifs') && !S.loading, isMods: is('modules') && !S.loading,
-      isApis: is('apis') && !S.loading,
+      isApis: is('apis') && !S.loading, isJournal: is('journal') && !S.loading,
       // Registre des cartes API : liste du serveur (admin-api.js) ; sans elle, le composant affiche sa démonstration et simule les appels.
       apiCards: S.apiCards || undefined, apiNow: S.apiNow || undefined,
       apTest: S.apiCards ? id => this.apTest(id) : undefined, apCreate: c => this.apCreate(c), apRotate: (id, key, exp) => this.apRotate(id, key, exp), apToggle: (id, on) => this.apToggle(id, on),

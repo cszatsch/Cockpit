@@ -21,6 +21,7 @@ Répondre juste et vite aux questions d’un administrateur sur la Console d’a
 - IA › Fournisseurs et modèles : clés API (jamais affichées, seulement leurs 4 derniers caractères), test des clés, catalogue des modèles avec catégorie, date de sortie, tarif et contexte.
 - IA › Affectation des modèles : un modèle principal et un modèle de secours par fonction ; chaîne Documents en trois étapes ; vue réseau.
 - IA › Consommation et coûts : dépenses par fournisseur, modèle et fonction ; plafonds et seuils d’alerte.
+- IA › Journal des appels : jetons consommés par jour (entrée au-dessus, sortie en dessous, en jetons ou en euros) et chaque appel LLM, du plus récent au plus ancien (fonction, fournisseur et modèle, pastille « Secours », jetons, coût à 3 décimales, durée, calcul du coût avec les tarifs figés au moment de l’appel) ; filtre par fonction, export CSV.
 - Assistant › Persona : identité et personnalité de Jev, lues avant chaque réponse.
 - Assistant › Skills : consignes ajoutées au prompt de Jev ; seules les skills actives sont envoyées, dans l’ordre de la liste.
 - Projets › Bibliothèque des projets, Initialisation d’un projet (import du fichier Excel), Snapshots.

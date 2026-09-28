@@ -295,6 +295,10 @@ export const DICTIONNAIRE: DictTable[] = [
       { nom: 'cout_eur', expr: `t.${q('costEur')}`, type: 'décimal', signification: 'Coût de l’appel au tarif du moment', exemples: 'en euros' },
       { nom: 'secours_utilise', expr: `t.${q('fallbackUsed')}`, type: 'booléen', signification: 'L’appel a été servi par le modèle de secours' },
       { nom: 'origine', expr: 't.source::text', type: 'texte', signification: 'Origine de l’appel', exemples: 'COCKPIT, JEV, NOTIFICATION, IMPORT' },
+      { nom: 'requete_id', expr: 't.id', type: 'texte', signification: 'Identifiant de la requête (Journal des appels)', exemples: 'req_4f9a1c02b7' },
+      { nom: 'prix_entree_eur_million', expr: `t.${q('priceIn')}`, type: 'décimal', signification: 'Tarif d’entrée du modèle au moment de l’appel, figé', exemples: '€ par million de jetons ; null pour les appels antérieurs au journal' },
+      { nom: 'prix_sortie_eur_million', expr: `t.${q('priceOut')}`, type: 'décimal', signification: 'Tarif de sortie du modèle au moment de l’appel, figé', exemples: '€ par million de jetons' },
+      { nom: 'duree_ms', expr: `t.${q('durationMs')}`, type: 'entier', signification: 'Latence totale de l’appel', exemples: 'en millisecondes ; null si non mesurée' },
     ],
     relations: ['consommation_ia.modele_id = modeles_ia.id', 'consommation_ia.fournisseur_id = fournisseurs_ia.id', 'consommation_ia.fonction = affectations_ia.fonction', 'consommation_ia.projet_id = projets.id'],
     usages: ['Dépense du mois, par jour, par fonction, par modèle, par fournisseur ou par projet.', 'Jetons consommés.', 'Part des appels servis par le secours.'],
@@ -303,6 +307,7 @@ export const DICTIONNAIRE: DictTable[] = [
       'Projection de fin de mois = dépense du mois + (dépense des 7 derniers jours, date du jour incluse, ÷ 7) × nombre de jours restants jusqu’à la fin du mois (date du jour exclue).',
       'Ligne budgétaire : doc_vec, doc_rrk et doc_syn forment la ligne « docs » (Documents) ; les autres fonctions sont leur propre ligne.',
       'Les jours sont des jours civils de Paris : grouper par date (date::date), les dates étant déjà en heure de Paris.',
+      'Le coût d’un appel est calculé avec les tarifs figés au moment de l’appel (prix_entree_eur_million, prix_sortie_eur_million), pas avec le catalogue actuel : ne pas le recalculer depuis modeles_ia.',
     ],
   },
   {

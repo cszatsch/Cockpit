@@ -927,3 +927,18 @@ export function bindBiblio(c) {
     } catch (e) { console.warn('[admin-api]', e); }
   })();
 }
+
+// ───────────────────────────── Journal des appels ─────────────────────────────
+
+/**
+ * Journal des appels (spécification JOURNAL § 4) : routes lues par `Journal des appels.dc.html`.
+ * Les dates d'un appel sont en UTC (`at`) ; le composant les affiche dans le fuseau du navigateur (celui de la plateforme).
+ */
+export const journalApi = {
+  /** Un point par jour du mois en cours (jours vides inclus), pour une ligne budgétaire. */
+  daily: fn => get('/usage/daily' + (fn ? '?fn=' + encodeURIComponent(fn) : '')),
+  /** Page du journal, du plus récent au plus ancien ; `cursor` : `nextCursor` de la page précédente. */
+  calls: ({ fn, cursor, limit } = {}) => get('/usage/calls?' + [fn && 'fn=' + encodeURIComponent(fn), cursor && 'cursor=' + encodeURIComponent(cursor), 'limit=' + (limit || 10)].filter(Boolean).join('&')),
+  /** Export CSV du filtre courant (UTF-8 avec BOM, « ; », virgule décimale). */
+  csv: fn => download('/usage/calls.csv' + (fn ? '?fn=' + encodeURIComponent(fn) : ''), 'journal-appels.csv'),
+};
