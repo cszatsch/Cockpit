@@ -197,3 +197,4 @@ Les captures sont écrites dans `OUT` (par défaut `<tmp>/rise-console-e2e`).
 - Props : `sbMode`, `sec`, `sbSignals()` (invitations, clés refusées, fonctions IA à l'arrêt ou sur secours), `sbUser` (nom et photo de l'administrateur connecté, sans initiales sur la photo), `sbGo`, `toggleJev`, `goProfil`, `toggleRail`, `closeNav`.
 - `META` : groupes renommés selon les domaines ; pages `persona` et `skills` ajoutées avec un écran provisoire « Bientôt disponible ».
 - Test navigateur `console.e2e.ts` : `goMenu` déplie le domaine avant de cliquer une page.
+- Correctif : le conteneur `sbWrap` est lui-même collant (`position:sticky;top:0;align-self:start;height:100vh`) ; l'`aside` sticky du composant, enfermé dans un conteneur de sa propre hauteur, défilait avec la page.

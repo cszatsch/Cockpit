@@ -1606,7 +1606,7 @@ class Component extends DCLogic {
       sbMode: mode === 'rail' ? 'rail' : mode === 'mob' ? 'mob' : 'full', sec: S.sec, sbGo: id => this.go(id), toggleRail: () => this.toggleNav(),
       sbUser: { name: S.prof.first + ' ' + S.prof.last, role: 'Administrateur', photo: S.photo || undefined, ini: S.photo ? '' : undefined },
       sbSignals: this.sbSignals(badge),
-      sbWrap: mode === 'mob' ? `position:fixed;top:0;left:0;bottom:0;width:252px;z-index:60;transform:translateX(${S.mnav ? 0 : -105}%);transition:transform .32s cubic-bezier(.2,.7,.2,1);box-shadow:${S.mnav ? '24px 0 60px -20px rgba(0,0,0,.5)' : 'none'}` : 'position:relative;min-width:0;z-index:60',
+      sbWrap: mode === 'mob' ? `position:fixed;top:0;left:0;bottom:0;width:252px;z-index:60;transform:translateX(${S.mnav ? 0 : -105}%);transition:transform .32s cubic-bezier(.2,.7,.2,1);box-shadow:${S.mnav ? '24px 0 60px -20px rgba(0,0,0,.5)' : 'none'}` : 'position:sticky;top:0;align-self:start;height:100vh;min-width:0;z-index:60',
       jvWrap: mode === 'full' ? `position:sticky;top:0;height:100vh;overflow:hidden;min-width:0;z-index:30;opacity:${S.jev ? 1 : 0};transform:translateX(${S.jev ? 0 : 24}px);transition:opacity .3s ease,transform .4s cubic-bezier(.2,.7,.2,1);pointer-events:${S.jev ? 'auto' : 'none'}` : `position:fixed;top:0;right:0;bottom:0;width:min(400px,100%);z-index:70;box-shadow:-24px 0 60px -20px rgba(10,23,38,.35);transform:translateX(${S.jev ? 0 : 105}%);transition:transform .35s cubic-bezier(.2,.7,.2,1)`,
       toggleJev: () => this.toggleJev(), jvOn: S.jev,
       goProfil: () => this.go('profil'),
