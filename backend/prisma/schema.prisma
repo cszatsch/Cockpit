@@ -1455,6 +1455,10 @@ model ApiCard {
   checkError   String?   @map("check_error")
   latencyMs    Int?      @map("latency_ms")
   quotaLimit   Int?      @map("quota_limit")
+  /// Délai d'un appel pour cette carte (ms) ; null = délai par défaut (8 s). Service lent : GDELT (45 s).
+  timeoutMs    Int?      @map("timeout_ms")
+  /// Flux d'actualités RSS ou Atom (reconnu à la première réponse) : lu par /api/widgets/feeds.
+  feed         Boolean   @default(false)
   widgets      String[]  @default([])
   lastTest     Json?     @map("last_test")
   createdAt    DateTime  @default(now()) @map("created_at")

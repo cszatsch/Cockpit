@@ -116,3 +116,7 @@ Plus aucune clé `localStorage` n'est lue ou écrite par le fichier HTML. api.js
 
 - `api.js` : la tuile météo appelle `/api/widgets/proxy/open-meteo-geocodage` puis `/api/widgets/proxy/open-meteo`, la tuile actualités `/api/widgets/proxy/gdelt` (en-tête `X-RISE-Widget`) ; la mise en forme des données est inchangée. `request()` accepte des en-têtes supplémentaires (`opts.headers`).
 - Justification : spécification REGISTRE API § 5 (clé, quota, cache et état gérés par le serveur ; 503 → état d'erreur de la tuile).
+
+## Tuile Actualités : secours par les flux RSS (28/09/2026)
+
+- `api.js` : si GDELT ne répond pas ou ne renvoie rien, la tuile lit `GET /api/widgets/feeds?limit=5` (Le Monde, L'Équipe, BBC…) ; la date est remise au format attendu par la tuile.

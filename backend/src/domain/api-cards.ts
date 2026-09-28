@@ -17,6 +17,10 @@ export const KEY_EXPIRY_NOTICE_DAYS = [30, 7, 1] as const;
 export const QUOTA_WARN_PCT = 85;
 /** Délai d'un appel sortant (test, contrôle de santé, proxy). */
 export const API_CALL_TIMEOUT_MS = 8000;
+/** Délai propre à une carte (service lent) : 60 s au plus. */
+export const API_CALL_TIMEOUT_MAX_MS = 60_000;
+/** Dernière réponse réussie servie si un nouvel appel échoue (délai, 5xx, 429) : 24 h au plus. */
+export const PROXY_STALE_MS = 24 * 3_600_000;
 /** Réponse de test conservée : 2 Ko au plus. */
 export const TEST_BODY_MAX = 2048;
 /** Cache du proxy : 5 min, 2 min pour la météo et le trafic (données qui changent vite). */
@@ -108,6 +112,7 @@ export function failureNote(code: number, kind?: 'timeout' | 'network' | 'blocke
   if (kind === 'network' || !code) return 'Injoignable';
   if (code === 401 || code === 403) return `Clé refusée · ${code}`;
   if (code === 429) return 'Quota du fournisseur dépassé · 429';
+  if (code >= 300 && code < 400) return `Redirection ${code} (adresse déplacée)`;
   return `Erreur ${code}`;
 }
 

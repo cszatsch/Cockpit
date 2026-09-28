@@ -5,11 +5,12 @@ import { z } from 'zod';
 import { AdminOnly, Actor, CurrentActor } from '../core/auth/auth';
 import { AuditService } from '../core/audit.service';
 import { encryptSecret } from '../core/crypto';
-import { businessRule, conflict, notFound } from '../core/errors';
+import { ApiError, businessRule, conflict, notFound } from '../core/errors';
 import { parse } from '../core/http';
 import { PrismaService } from '../core/prisma.service';
-import { API_CARD_CATEGORIES, API_CARD_NAME_MAX, API_KEY_MIN_LENGTH, endpointError } from '../domain/api-cards';
+import { API_CALL_TIMEOUT_MAX_MS, API_CARD_CATEGORIES, API_CARD_NAME_MAX, API_KEY_MIN_LENGTH, endpointError } from '../domain/api-cards';
 import { ApiCardsService } from './api-cards.service';
+import { FEED_ITEMS_DEFAULT, FEED_ITEMS_MAX, isFeed, mergeFeeds, parseFeed } from '../domain/rss';
 import { adminCtx } from './profiles.service';
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'date AAAA-MM-JJ attendue');
@@ -31,6 +32,8 @@ const Update = z
     endpoint: z.string().trim().optional(),
     keyExpiresAt: isoDate.nullable().optional(),
     quotaLimit: z.number().nullable().optional(),
+    /** Délai d'appel propre à la carte (service lent), 1 à 60 s ; null = délai par défaut (8 s). */
+    timeoutMs: z.number().int().min(1000).max(API_CALL_TIMEOUT_MAX_MS).nullable().optional(),
   })
   .strict();
 const Rotate = z.object({ key: z.string(), keyExpiresAt: isoDate.nullable().optional() }).strict();
@@ -91,6 +94,7 @@ export class ApiCardsController {
           endpoint: input.endpoint,
           keyExpiresAt: input.keyExpiresAt === undefined ? undefined : input.keyExpiresAt ? new Date(input.keyExpiresAt) : null,
           quotaLimit: input.quotaLimit,
+          timeoutMs: input.timeoutMs,
           // Endpoint modifié : l'erreur du dernier contrôle ne vaut plus.
           checkError: input.endpoint !== undefined && input.endpoint !== before.endpoint ? null : undefined,
           updatedBy: actor.fullName,
@@ -98,7 +102,7 @@ export class ApiCardsController {
         },
       });
       if (input.enabled !== undefined && input.enabled !== before.enabled) await this.trace(db, actor, req, input.enabled ? 'Activation d’une carte API' : 'Désactivation d’une carte API', c.name, id);
-      const fields = (['name', 'category', 'endpoint', 'quotaLimit'] as const).filter((k) => input[k] !== undefined && input[k] !== (before as any)[k]);
+      const fields = (['name', 'category', 'endpoint', 'quotaLimit', 'timeoutMs'] as const).filter((k) => input[k] !== undefined && input[k] !== (before as any)[k]);
       if (input.keyExpiresAt !== undefined) fields.push('keyExpiresAt' as any);
       if (fields.length) await this.trace(db, actor, req, 'Modification d’une carte API', `${c.name} · ${fields.join(', ')}`, id);
       return c;
@@ -195,6 +199,56 @@ export class WidgetProxyController {
     const q = Object.fromEntries(Object.entries(query).filter(([, v]) => typeof v === 'string')) as Record<string, string>;
     const widget = String(req.headers['x-rise-widget'] ?? '').slice(0, 60) || null;
     const r = await this.cards.proxy(cardId, q, widget);
-    res.status(r.code).setHeader('Content-Type', r.contentType).send(r.body);
+    res.status(r.code).setHeader('Content-Type', r.contentType).setHeader('X-RISE-Cache', r.cache ?? 'miss').send(r.body);
   }
 }
+
+/**
+ * Flux d'actualités (RSS / Atom) du registre : articles en texte clair, par flux ou agrégés (plus récents
+ * d'abord, doublons retirés). Chaque flux passe par le proxy : cache, dernière réponse en réserve, quota, état.
+ */
+@ApiTags('widgets · flux d’actualités')
+@ApiBearerAuth()
+@Controller('api/widgets/feeds')
+export class WidgetFeedsController {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cards: ApiCardsService,
+  ) {}
+
+  /** Tous les flux actifs (ou ceux de `cards=id1,id2`), `limit` articles au plus (10 par défaut, 50 au plus). */
+  @Get()
+  async all(@Query('cards') ids: string | undefined, @Query('limit') limit: string | undefined, @Req() req: Request) {
+    const list = await this.prisma.apiCard.findMany({ where: { feed: true, enabled: true, ...(ids ? { id: { in: ids.split(',').map((x) => x.trim()) } } : {}) }, orderBy: { name: 'asc' } });
+    const widget = String(req.headers['x-rise-widget'] ?? '').slice(0, 60) || null;
+    const read = await Promise.all(list.map(async (c) => {
+      try {
+        return { card: c, feed: await this.read(c.id, widget), error: null as string | null };
+      } catch (e: any) {
+        return { card: c, feed: null, error: e?.message ?? 'indisponible' };
+      }
+    }));
+    const n = clamp(limit);
+    return {
+      items: mergeFeeds(read.filter((r) => r.feed).map((r) => ({ source: r.card.name, feed: r.feed! })), n),
+      sources: read.map((r) => ({ id: r.card.id, name: r.card.name, ok: !!r.feed, count: r.feed?.items.length ?? 0, error: r.error })),
+    };
+  }
+
+  @Get(':cardId')
+  async one(@Param('cardId') cardId: string, @Query('limit') limit: string | undefined, @Req() req: Request) {
+    const card = await this.prisma.apiCard.findUnique({ where: { id: cardId } });
+    if (!card) throw notFound('Carte API inconnue');
+    const feed = await this.read(cardId, String(req.headers['x-rise-widget'] ?? '').slice(0, 60) || null);
+    return { id: card.id, source: card.name, title: feed.title, items: feed.items.slice(0, clamp(limit)).map((i) => ({ ...i, source: card.name })) };
+  }
+
+  private async read(cardId: string, widget: string | null) {
+    const r = await this.cards.proxy(cardId, {}, widget);
+    if (r.code >= 400) throw new ApiError(502, 'FEED_ERROR', `Flux indisponible (${r.code})`);
+    if (!isFeed(r.body)) throw new ApiError(502, 'NOT_A_FEED', 'La réponse n’est pas un flux RSS ou Atom');
+    return parseFeed(r.body);
+  }
+}
+
+const clamp = (limit: string | undefined) => Math.min(FEED_ITEMS_MAX, Math.max(1, Number(limit) || FEED_ITEMS_DEFAULT));

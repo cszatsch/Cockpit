@@ -30,6 +30,7 @@ describe('Registre des cartes API : règles (spécification REGISTRE API)', () =
     expect([45, 30, 12, 7, 2, 1, 0, -1].map(expiryLevel)).toEqual([null, '30', '30', '7', '7', '1', '1', 'expired']);
     expect(failureNote(401)).toBe('Clé refusée · 401');
     expect(failureNote(0, 'timeout')).toBe('Délai dépassé');
+    expect(failureNote(301)).toBe('Redirection 301 (adresse déplacée)');
   });
 
   it('latence 24 h : moyenne horaire des appels réussis, null pour une heure en échec ; clé masquée dans les réponses', () => {

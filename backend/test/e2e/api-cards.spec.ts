@@ -31,7 +31,8 @@ describe('Console — registre des cartes API', () => {
 
   it('liste : cartes initiales des widgets Météo et Actualités, sans clé', async () => {
     const r = await admin.get(AC).expect(200);
-    expect(r.body.map((c: any) => c.id).sort()).toEqual(['gdelt', 'open-meteo', 'open-meteo-geocodage']);
+    expect(r.body.map((c: any) => c.id).sort()).toEqual(['gdelt', 'open-meteo', 'open-meteo-geocodage', 'rss-bbc', 'rss-le-monde', 'rss-les-echos', 'rss-lequipe'].sort());
+    expect(Object.fromEntries(r.body.filter((c: any) => c.feed).map((c: any) => [c.id, c.enabled]))).toEqual({ 'rss-bbc': true, 'rss-le-monde': true, 'rss-les-echos': false, 'rss-lequipe': true });
     expect(r.body[0]).toMatchObject({ keyLast4: null, enabled: true, status: 'ok' });
     expect(r.body[0].latency24h).toHaveLength(24);
     await (await t.as(WHO.pmo)).get(AC).expect(403);
@@ -121,6 +122,47 @@ describe('Console — registre des cartes API', () => {
     await inbox.sync();
     const n = await t.db.notification.findUniqueOrThrow({ where: { key: 'apicard:newsapi:exp' } });
     expect(n).toMatchObject({ level: '1', readAt: null, title: 'Clé NewsAPI : expire dans 1 j' });
+  });
+
+  it('service lent (GDELT) : délai propre à la carte, dernière réponse servie si l’appel échoue, un seul appel en cours', async () => {
+    const pmo = await t.as(WHO.pmo);
+    expect((await admin.get(AC).expect(200)).body.find((c: any) => c.id === 'gdelt').timeoutMs).toBe(45000);
+    await admin.patch(`${AC}/gdelt`, { timeoutMs: 120000 }).expect(400);
+    const q = '/api/widgets/proxy/gdelt?query=France&format=json';
+    let calls = 0;
+    upstream = (u) => (u.includes('gdelt') ? (calls++, { status: 200, body: '{"articles":[{"title":"A"}]}' }) : { status: 200, body: '{}' });
+    await admin.post(`${AC}/gdelt/test`).expect(200); // le contrôle précédent l'a laissée en erreur
+    calls = 0;
+    const [a, b] = await Promise.all([pmo.get(q).expect(200), pmo.get(q).expect(200)]);
+    expect(calls).toBe(1);
+    // Une seule réponse vient d'un appel réel ; l'autre partage l'appel en cours ou lit le cache frais.
+    expect([a.headers['x-rise-cache'], b.headers['x-rise-cache']]).toContain('miss');
+    svc.forget('gdelt');
+    // Le cache frais est vidé mais la dernière réponse reste en réserve : un échec (429, 5xx, délai) la sert.
+    (svc as any).cache.set('gdelt?format=json&query=France', { until: 0, staleUntil: Date.now() + 60_000, r: { code: 200, ms: 20, body: '{"articles":[{"title":"A"}]}', contentType: 'application/json' } });
+    upstream = () => ({ status: 429, body: 'Please limit requests to one every 5 seconds' });
+    const s = await pmo.get(q).expect(200);
+    expect(s.headers['x-rise-cache']).toBe('stale');
+    expect(s.body.articles[0].title).toBe('A');
+  });
+
+  it('flux RSS : articles d’un flux, agrégation des flux actifs (Les Échos désactivée), flux en échec signalé', async () => {
+    const pmo = await t.as(WHO.pmo);
+    const rss = (title: string, items: Array<[string, string, string]>) => `<?xml version="1.0"?><rss version="2.0"><channel><title>${title}</title>${items.map(([t, u, d]) => `<item><title><![CDATA[${t}]]></title><link>${u}</link><pubDate>${d}</pubDate><description>&lt;p&gt;Résumé&lt;/p&gt;</description></item>`).join('')}</channel></rss>`;
+    upstream = (u) =>
+      u.includes('lemonde') ? { status: 200, body: rss('Le Monde', [['Titre LM', 'https://www.lemonde.fr/1', 'Mon, 28 Sep 2026 10:00:00 GMT']]) }
+      : u.includes('bbci') ? { status: 200, body: rss('BBC', [['Title BBC', 'https://www.bbc.co.uk/1', 'Mon, 28 Sep 2026 12:00:00 GMT']]) }
+      : u.includes('lequipe') ? { status: 500, body: 'panne' }
+      : { status: 200, body: '{}' };
+    for (const id of ['rss-le-monde', 'rss-bbc', 'rss-lequipe', 'open-meteo']) await admin.post(`${AC}/${id}/test`).expect(200); // état remis à jour après le contrôle précédent
+    const one = await pmo.get('/api/widgets/feeds/rss-le-monde').expect(200);
+    expect(one.body).toMatchObject({ source: 'Le Monde', title: 'Le Monde', items: [{ title: 'Titre LM', url: 'https://www.lemonde.fr/1', summary: 'Résumé', source: 'Le Monde' }] });
+    const all = await pmo.get('/api/widgets/feeds?limit=5').set('X-RISE-Widget', 'Actualités').expect(200);
+    expect(all.body.items.map((i: any) => i.source + ' · ' + i.title)).toEqual(['BBC News · Title BBC', 'Le Monde · Titre LM']);
+    expect(Object.fromEntries(all.body.sources.map((x: any) => [x.id, x.ok]))).toEqual({ 'rss-bbc': true, 'rss-lequipe': false, 'rss-le-monde': true });
+    expect(all.body.sources.find((x: any) => x.id === 'rss-les-echos')).toBeUndefined();
+    // Une carte JSON n'est pas un flux.
+    expect((await pmo.get('/api/widgets/feeds/open-meteo').expect(502)).body.code).toBe('NOT_A_FEED');
   });
 
   it('suppression refusée tant qu’un widget consomme la carte ; aucune réponse de la console ne contient une clé', async () => {

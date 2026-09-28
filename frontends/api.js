@@ -854,6 +854,10 @@ export function attach(comp) {
         .catch(() => up({ wxErr: true }));
       PX('gdelt', { query: '"' + country + '" sourcelang:french', mode: 'artlist', maxrecords: 8, timespan: '1d', format: 'json' }, 'Actualités')
         .then((j) => ({ articles: ((j && j.articles) || []).slice(0, 5).map((a) => ({ t: a.title, src: a.domain, d: a.seendate })) }))
+        // Secours : flux RSS du registre (Le Monde, L'Équipe, BBC…) si GDELT ne répond pas ou ne renvoie rien ;
+        // la date ISO est remise au format GDELT (AAAAMMJJTHHMMSS, heure locale) attendu par la tuile.
+        .then((j) => { if (!j.articles.length) throw 0; return j; })
+        .catch(() => get('/widgets/feeds?limit=5', { headers: { 'X-RISE-Widget': 'Actualités' } }).then((r) => ({ articles: (r.items || []).map((i) => { const d = i.date ? new Date(i.date) : null; return { t: i.title, src: i.source, d: d ? d.getFullYear() + pad2(d.getMonth() + 1) + pad2(d.getDate()) + 'T' + pad2(d.getHours()) + pad2(d.getMinutes()) + '00' : '' }; }) })))
         .then((j) => { const A = (j.articles || []).filter((a) => a.t).slice(0, 5).map((a) => { const s = String(a.d || ''); return { t: a.t, src: String(a.src || '').replace(/^www\./, '').split('.')[0], d: s.length >= 12 ? s.slice(9, 11) + ':' + s.slice(11, 13) : '' }; }); if (!A.length) throw 0; up({ news: A }); })
         .catch(() => { up({ newsErr: true }); setTimeout(() => { comp._dbExtOn = false; }, 60000); });
     },

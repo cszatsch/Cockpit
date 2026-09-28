@@ -7978,6 +7978,53 @@
           "widgets · proxy des cartes API"
         ]
       }
+    },
+    "/api/widgets/feeds": {
+      "get": {
+        "operationId": "WidgetFeedsController_all",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "widgets · flux d’actualités"
+        ]
+      }
+    },
+    "/api/widgets/feeds/{cardId}": {
+      "get": {
+        "operationId": "WidgetFeedsController_one",
+        "parameters": [
+          {
+            "name": "cardId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "widgets · flux d’actualités"
+        ]
+      }
     }
   },
   "info": {

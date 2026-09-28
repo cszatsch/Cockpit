@@ -230,3 +230,7 @@ Les captures sont écrites dans `OUT` (par défaut `<tmp>/rise-console-e2e`).
 
 - `FNS` : fonction `guidage` (scope console, estimation) ; `CONSO` : ligne Guidage console (volume de démonstration nul) ; affectation de démonstration Claude Haiku 4.5 / GPT-5 mini.
 - `iaVals()` transmet `scope`, `est` et `vol: null` tant que la fonction n'a pas d'historique (`aiHistory`, d'après `vol` renvoyé par `GET /functions`, chargé désormais au démarrage).
+
+## Registre des cartes API : clé à saisir (28/09/2026)
+
+- `Registre API.dc.html` : une carte dont l'endpoint attend une clé (`{key}`) sans l'avoir affiche « Clé à saisir » (tableau : « À saisir ») et le bouton « Remplacer la clé », pour saisir la clé d'une carte créée sans (TomTom Traffic). Aucun style modifié.

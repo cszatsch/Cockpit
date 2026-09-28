@@ -24,15 +24,15 @@ describe('Console — guidage (fonction IA guidage)', () => {
 
   it('question à Jev dans la console : fonction guidage, prompt système → persona → skill de guidage → page ouverte ; consommation tracée', async () => {
     const spy = jest.spyOn(t.app.get(LlmService), 'complete');
-    await admin.post('/api/assistant/skills', { n: 'Répondre sur la Console d’administration', t: '## Objectif\nGuider l’administrateur.', on: false }).expect(201);
-    const sk = (await admin.get('/api/assistant/skills').expect(200)).body.find((s: any) => s.n === 'Répondre sur la Console d’administration');
+    await admin.post('/api/assistant/skills', { n: 'Guidage console', t: '## Objectif\nGuider l’administrateur.', on: false }).expect(201);
+    const sk = (await admin.get('/api/assistant/skills').expect(200)).body.find((s: any) => s.n === 'Guidage console');
     await admin.patch(`/api/assistant/skills/${sk.id}`, { on: true }).expect(200);
     const before = await t.db.usageRecord.count({ where: { functionId: 'guidage' } });
     await admin.post('/api/admin/assistant/messages', { context: { section: 'apis' }, text: 'Où règle-t-on le quota d’une carte ?' }).expect(200);
     const call = spy.mock.calls.at(-1)![0];
     expect(call.functionId).toBe('guidage');
     const sys = call.system!;
-    const idx = ['## Identité', '## Personnalité', '## Skill : Répondre sur la Console d’administration', '## Page de console ouverte\napis · Registre des cartes API'].map((x) => sys.indexOf(x));
+    const idx = ['## Identité', '## Personnalité', '## Skill : Guidage console', '## Page de console ouverte\napis · Registre des cartes API'].map((x) => sys.indexOf(x));
     expect(sys.startsWith(JEV_SYSTEM_PROMPT)).toBe(true);
     expect(idx.every((i) => i > 0)).toBe(true);
     expect([...idx].sort((x, y) => x - y)).toEqual(idx);

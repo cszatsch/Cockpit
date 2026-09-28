@@ -1,6 +1,8 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { lookup } from 'dns/promises';
+import { Agent, fetch as undiciFetch } from 'undici';
 import { ApiCard } from '@prisma/client';
+import { isFeed } from '../domain/rss';
 import { config } from '../core/config';
 import { decryptSecret } from '../core/crypto';
 import { ApiError } from '../core/errors';
@@ -19,6 +21,7 @@ import {
   PROXY_CACHE_FAST_MS,
   PROXY_CACHE_MS,
   PROXY_FAST_CATEGORIES,
+  PROXY_STALE_MS,
   redactKey,
   TEST_BODY_MAX,
 } from '../domain/api-cards';
@@ -33,6 +36,8 @@ export interface CallResult {
   body: string;
   contentType: string;
   failure?: 'timeout' | 'network' | 'blocked';
+  /** Réponse du proxy : appel réel, cache frais, ou dernière réponse réussie servie après un échec. */
+  cache?: 'miss' | 'hit' | 'stale';
 }
 
 /**
@@ -43,11 +48,17 @@ export interface CallResult {
 @Injectable()
 export class ApiCardsService implements OnModuleInit {
   /** Remplaçables dans les tests (aucun appel réseau réel). */
-  fetchImpl: typeof fetch = (...a) => (config.offline ? Promise.reject(new Error('Service externe indisponible (mode hors ligne)')) : fetch(...a));
+  fetchImpl: typeof fetch = (url: any, init: any) =>
+    config.offline
+      ? Promise.reject(new Error('Service externe indisponible (mode hors ligne)'))
+      : // Délai de connexion aligné sur le délai de la carte : le client de Node le borne sinon à 10 s (GDELT le dépasse).
+        (undiciFetch(url, { ...init, dispatcher: agentFor(init?.connectTimeoutMs ?? API_CALL_TIMEOUT_MS) }) as unknown as Promise<Response>);
   lookupImpl: (host: string) => Promise<string[]> = async (host) => (await lookup(host, { all: true })).map((x) => x.address);
   /** Hors ligne, la résolution DNS n'est faite que si un résolveur de test est fourni. */
   resolveOffline = false;
-  private cache = new Map<string, { until: number; r: CallResult }>();
+  private cache = new Map<string, { until: number; staleUntil: number; r: CallResult }>();
+  /** Un seul appel en cours par requête identique (un service limité à 1 appel / 5 s, comme GDELT, répondrait 429). */
+  private inflight = new Map<string, Promise<CallResult>>();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -85,7 +96,8 @@ export class ApiCardsService implements OnModuleInit {
     let r: CallResult;
     try {
       await this.assertPublicHost(url.hostname);
-      const res = await this.fetchImpl(url.toString(), { headers, redirect: 'manual', signal: AbortSignal.timeout(API_CALL_TIMEOUT_MS) });
+      const timeout = card.timeoutMs ?? API_CALL_TIMEOUT_MS;
+      const res = await this.fetchImpl(url.toString(), { headers, redirect: 'manual', signal: AbortSignal.timeout(timeout), connectTimeoutMs: timeout } as RequestInit);
       const text = await res.text();
       r = { code: res.status, ms: Date.now() - t0, body: redactKey(text, key), contentType: res.headers.get('content-type') || 'application/json' };
     } catch (e: any) {
@@ -93,13 +105,16 @@ export class ApiCardsService implements OnModuleInit {
       r = { code: 0, ms: null, body: redactKey(String(e?.message ?? e), key), contentType: 'text/plain', failure };
     }
     await this.prisma.apiCardCall.create({ data: { at: this.today.now(), cardId: card.id, code: r.code, ms: r.ms, source, widget: widget ?? null } });
+    // Une réponse RSS ou Atom fait de la carte un flux d'actualités (lu par /api/widgets/feeds).
+    if (!card.feed && r.code > 0 && r.code < 400 && isFeed(r.body)) await this.prisma.apiCard.update({ where: { id: card.id }, data: { feed: true } });
     return r;
   }
 
   /** Test d'une carte (manuel ou contrôle de santé) : met à jour l'état, la latence et le dernier test. */
   async test(card: ApiCard, source: CallSource): Promise<{ code: number; ms: number | null; body: string }> {
     const r = await this.call(card, {}, source);
-    const ok = r.code > 0 && r.code < 400;
+    // Seul un 2xx est un succès : une redirection (non suivie) signale une adresse déplacée.
+    const ok = r.code >= 200 && r.code < 300;
     const body = r.body.length > TEST_BODY_MAX ? r.body.slice(0, TEST_BODY_MAX) + '\n…' : r.body;
     const lastTest = { code: r.code, ms: r.ms, at: this.today.now().toISOString(), body: prettify(body) };
     await this.prisma.apiCard.update({ where: { id: card.id }, data: { checkError: ok ? null : failureNote(r.code, r.failure), latencyMs: ok ? r.ms : card.latencyMs, lastTest } });
@@ -146,6 +161,8 @@ export class ApiCardsService implements OnModuleInit {
         latency24h: latency24h(calls.filter((x) => x.cardId === c.id), now),
         quotaUsed,
         quotaLimit: c.quotaLimit,
+        timeoutMs: c.timeoutMs ?? API_CALL_TIMEOUT_MS,
+        feed: c.feed,
         widgets: c.widgets,
         lastTest: (c.lastTest as { code: number; ms: number | null; at: string; body: string } | null) ?? null,
         version: c.version,
@@ -156,24 +173,41 @@ export class ApiCardsService implements OnModuleInit {
   // ───────────── Proxy des widgets ─────────────
 
   /**
-   * Proxy (spécification § 5) : carte désactivée ou en erreur → 503 ; quota atteint → 429 ; cache 5 min
-   * (2 min pour la météo et le trafic) ; chaque appel réel est journalisé.
+   * Proxy (spécification § 5) : carte désactivée → 503 ; quota atteint → 429 ; cache 5 min (2 min pour la météo
+   * et le trafic) ; chaque appel réel est journalisé. Carte en erreur ou appel en échec (délai, 5xx, 429) : la
+   * dernière réponse réussie (24 h au plus) est servie, sinon 503. Un seul appel en cours par requête identique.
    */
   async proxy(cardId: string, query: Record<string, string>, widget?: string | null): Promise<CallResult> {
     const card = await this.prisma.apiCard.findUnique({ where: { id: cardId } });
     if (!card) throw new ApiError(404, 'NOT_FOUND', 'Carte API inconnue');
     const [view] = await this.views([card]);
     if (!card.enabled) throw new ApiError(503, 'CARD_DISABLED', `Service « ${card.name} » désactivé`);
-    if (view.status === 'err') throw new ApiError(503, 'CARD_UNAVAILABLE', `Service « ${card.name} » indisponible : ${view.statusNote ?? 'erreur'}`);
     const cacheKey = `${card.id}?${Object.keys(query).sort().map((k) => `${k}=${query[k]}`).join('&')}`;
-    const hit = this.cache.get(cacheKey);
-    if (hit && hit.until > Date.now()) return hit.r;
+    const hit = this.cache.get(cacheKey), now = Date.now();
+    const stale = hit && hit.staleUntil > now ? { ...hit.r, cache: 'stale' as const } : null;
+    if (view.status === 'err') {
+      if (stale) return stale;
+      throw new ApiError(503, 'CARD_UNAVAILABLE', `Service « ${card.name} » indisponible : ${view.statusNote ?? 'erreur'}`);
+    }
+    if (hit && hit.until > now) return { ...hit.r, cache: 'hit' };
+    const pending = this.inflight.get(cacheKey);
+    if (pending) return pending;
     if (card.quotaLimit && (view.quotaUsed ?? 0) >= card.quotaLimit) throw new ApiError(429, 'QUOTA_EXCEEDED', `Quota journalier de « ${card.name} » atteint (${card.quotaLimit} appels)`);
     if (widget && !card.widgets.includes(widget)) await this.prisma.apiCard.update({ where: { id: card.id }, data: { widgets: { push: widget } } });
-    const r = await this.call(card, query, 'PROXY', widget);
-    if (!r.code) throw new ApiError(503, 'CARD_UNAVAILABLE', `Service « ${card.name} » injoignable`);
-    if (r.code < 400) this.cache.set(cacheKey, { until: Date.now() + (PROXY_FAST_CATEGORIES.includes(card.category) ? PROXY_CACHE_FAST_MS : PROXY_CACHE_MS), r });
-    return r;
+    const run = (async () => {
+      const r = await this.call(card, query, 'PROXY', widget);
+      const redirect = r.code >= 300 && r.code < 400, failed = !r.code || redirect || r.code >= 500 || r.code === 429;
+      if (failed && stale) return stale;
+      if (!r.code || redirect) throw new ApiError(503, 'CARD_UNAVAILABLE', `Service « ${card.name} » ${redirect ? `déplacé (redirection ${r.code})` : 'injoignable'}`);
+      if (r.code < 400) this.cache.set(cacheKey, { until: Date.now() + (PROXY_FAST_CATEGORIES.includes(card.category) ? PROXY_CACHE_FAST_MS : PROXY_CACHE_MS), staleUntil: Date.now() + PROXY_STALE_MS, r });
+      return { ...r, cache: 'miss' as const };
+    })();
+    this.inflight.set(cacheKey, run);
+    try {
+      return await run;
+    } finally {
+      this.inflight.delete(cacheKey);
+    }
   }
 
   /** Vide le cache d'une carte (clé remplacée, endpoint modifié, carte désactivée). */
@@ -196,4 +230,12 @@ function prettify(body: string): string {
   } catch {
     return body;
   }
+}
+
+/** Un client HTTP par délai de connexion (réutilisé : connexions gardées ouvertes). */
+const agents = new Map<number, Agent>();
+function agentFor(connectTimeoutMs: number): Agent {
+  let a = agents.get(connectTimeoutMs);
+  if (!a) agents.set(connectTimeoutMs, (a = new Agent({ connect: { timeout: connectTimeoutMs } })));
+  return a;
 }

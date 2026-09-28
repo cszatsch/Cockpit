@@ -110,10 +110,11 @@ export const DEMO_SKILLS: Array<{ id: string; n: string; on: boolean; t: string 
 
 /**
  * Skill de guidage de la Console (spécification IA § 8) : la première skill **active** dont le nom est l'un
- * de ceux-ci (ou commence par lui), dans cet ordre. « Guider l’utilisateur » est le nom de la spécification ;
- * « Répondre sur la Console d’administration » est la skill rédigée pour la Console (28/09/2026).
+ * de ceux-ci (ou commence par lui), dans cet ordre. « Guidage console » est le nom retenu le 28/09/2026 (ancien nom :
+ * « Répondre sur la Console d’administration ») ; « Guider l’utilisateur » est le nom de la spécification IA § 8.
+ * « Guidage Cockpit » n'est pas retenu : il guide dans le Cockpit, pas dans la Console.
  */
-export const CONSOLE_GUIDANCE_SKILLS = ['Répondre sur la Console d’administration', 'Guider l’utilisateur'];
+export const CONSOLE_GUIDANCE_SKILLS = ['Guidage console', 'Répondre sur la Console d’administration', 'Guider l’utilisateur'];
 
 /** Pages de la Console : identifiant (`S.sec`) → titre, pour situer la question de l'administrateur. */
 export const CONSOLE_PAGE_TITLES: Record<string, string> = {

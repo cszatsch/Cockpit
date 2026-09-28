@@ -99,6 +99,8 @@ const BG = { ok: '#e3f4f1', warn: '#fdf0da', err: '#fbe4e1', off: '#eef3f2' };
 const RING = { warn: 'rgba(247,164,28,.2)', err: 'rgba(240,123,103,.18)' };
 const dot = (c, r, sz) => 'width:' + (sz || 7) + 'px;height:' + (sz || 7) + 'px;border-radius:50%;flex:none;background:' + c + (r ? ';box-shadow:0 0 0 3px ' + r : '');
 const host = u => (u || '').replace(/^https?:\/\//, '');
+// Clé attendue par l’endpoint (marqueur {key}) mais pas encore saisie : « Clé à saisir » et bouton de saisie.
+const needsKey = c => !c.keyLast4 && (c.endpoint || '').includes('{key}');
 const fmtD = s => { const [y, m, d] = s.split('-'); return d + '/' + m + '/' + y.slice(2); };
 const EMPTY = { name: '', category: 'Météo', endpoint: 'https://', key: '', quotaLimit: '' };
 
@@ -166,7 +168,7 @@ class Component extends DCLogic {
         lat: x.latencyMs != null ? x.latencyMs + ' ms' : x.lastTest ? String(x.lastTest.code || '—') : '—',
         latSt: "white-space:nowrap;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:" + (x.latencyMs == null && x.lastTest ? TX.err : '#43586a'),
         q: v.q == null ? '—' : v.q + ' %', qBar: 'display:block;height:4px;border-radius:2px;width:' + Math.min(100, v.q || 0) + '%;background:' + (v.q >= 85 ? '#f7a41c' : '#1d8f86'),
-        exp: !x.keyLast4 ? 'Sans clé' : v.d == null ? '—' : v.d < 0 ? 'Expirée' : soon ? v.d + ' j' : fmtD(x.keyExpiresAt),
+        exp: needsKey(x) ? 'À saisir' : !x.keyLast4 ? 'Sans clé' : v.d == null ? '—' : v.d < 0 ? 'Expirée' : soon ? v.d + ' j' : fmtD(x.keyExpiresAt),
         expSt: "text-align:right;font-size:12px;font-family:'JetBrains Mono',monospace;font-weight:" + (soon ? 800 : 600) + ';color:' + (v.d != null && v.d < 0 ? TX.err : soon ? TX.warn : x.keyLast4 ? '#43586a' : '#8a9aa6') };
     });
 
@@ -174,10 +176,10 @@ class Component extends DCLogic {
     if (c) {
       const v = this.view(c), t = c.lastTest, soon = v.d != null && v.d <= SOON, hot = v.st === 'err' || soon;
       hasResp = !!t;
-      sel = { cat: c.category, n: c.name, url: c.endpoint, sL: v.l, w: c.widgets || [], noW: !(c.widgets || []).length, hasKey: !!c.keyLast4,
+      sel = { cat: c.category, n: c.name, url: c.endpoint, sL: v.l, w: c.widgets || [], noW: !(c.widgets || []).length, hasKey: !!c.keyLast4 || needsKey(c),
         pillSt: 'display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:700;background:' + BG[v.st] + ';color:' + TX[v.st],
         pillDot: dot(LT[v.st], null, 6),
-        key: c.keyLast4 ? '•••• •••• •••• ' + c.keyLast4 : 'Aucune clé requise',
+        key: c.keyLast4 ? '•••• •••• •••• ' + c.keyLast4 : needsKey(c) ? 'Clé à saisir' : 'Aucune clé requise',
         expL: !c.keyExpiresAt ? '' : v.d < 0 ? 'expirée' : soon ? 'expire dans ' + v.d + ' j' : 'expire ' + fmtD(c.keyExpiresAt),
         expLSt: 'font-size:11px;font-weight:' + (soon ? 700 : 500) + ';color:' + (v.d != null && v.d < 0 ? TX.err : soon ? TX.warn : '#8a9aa6'),
         code: t ? (t.code ? t.code + (t.code < 400 ? ' OK' : t.code === 401 ? ' Unauthorized' : '') : 'Injoignable') : '', codeSt: 'font-weight:600;color:' + (t && t.code && t.code < 400 ? '#3dd6c6' : '#f07b67'),
