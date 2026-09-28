@@ -37,3 +37,12 @@ Les trois écrans sont chargés par `<dc-import>` dans `Console Admin.dc.html` e
 | Fiche modèle : champs « Identifiant chez le fournisseur » et « Longueur de contexte » (tous modèles) ; pour un Embedding, « Dimensions » (liste séparée par des virgules) et « Dimension par défaut » (choisie dans la liste) | renseigner l'identifiant, le contexte et les dimensions demandés pour les modèles OpenRouter |
 | Affectation : sous le modèle principal d'une fonction d'embedding, sélecteur de dimension (verrouillé si le modèle n'en a qu'une) ; changer de principal revient à sa dimension par défaut | choisir la taille des vecteurs parmi les seules valeurs acceptées par le modèle |
 | Affectation : encadré « ⚠️ » avec le texte du commanditaire dans la carte Vectorisation dès que le modèle d'embedding ou sa dimension change | avertissement demandé, y compris pour un changement de dimension d'un même modèle |
+
+## Livraison IA v2 : Génération de rapports et repli des groupes (28/09/2026)
+
+Livraison intégrée par fusion à trois voies (livraison v1 → v2 appliquée sur les écrans adaptés) ; toutes les modifications de la livraison sont reprises. Adaptations propres au dépôt, conservées :
+
+| Modification | Justification |
+|---|---|
+| `ia-data.js` exporte à la fois `kTok`, `fitsOut` (livraison) et `dimOf`, `reindex`, `REINDEX_WARNING` (dimensions) | les deux évolutions coexistent |
+| Affectation : sélecteur de dimension et avertissement de réindexation dans la carte Vectorisation, visibles une fois le groupe Documents déplié | dimensions des modèles d'embedding (28/09/2026) ; la confirmation de la console reprend l'avertissement même groupe replié |

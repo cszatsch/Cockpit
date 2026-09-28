@@ -1,4 +1,4 @@
-import { chainStates, costOf, effectiveDimension, modelAgeMonths, modelAgeTier, normalizeDimensions, normalizePrice, reindexRequired, REINDEX_WARNING } from '../../src/domain/ai-pricing';
+import { chainStates, costOf, effectiveDimension, fitsOut, modelAgeMonths, modelAgeTier, normalizeDimensions, normalizePrice, reindexRequired, REINDEX_WARNING } from '../../src/domain/ai-pricing';
 
 describe('Tarification des modèles et chaîne Documents (spécification IA § 3)', () => {
   const m = (o: object) => ({ category: 'LLM', priceUnit: 'TOKENS', priceInPerMTok: null, priceOutPerMTok: null, pricePer1kRequests: null, ...o });
@@ -52,5 +52,14 @@ describe('Dimensions des modèles d’embedding et réindexation', () => {
     expect(reindexRequired({ modelId: 'a', dimension: 1024 }, { modelId: 'b', dimension: 1024 })).toBe(true);
     expect(reindexRequired({ modelId: 'a', dimension: 1024 }, { modelId: 'a', dimension: 512 })).toBe(true);
     expect(REINDEX_WARNING).toMatch(/réindexer tous les documents/);
+  });
+});
+
+describe('Capacité de sortie (génération de rapports)', () => {
+  it('un LLM couvre la sortie requise si son max output tokens l’atteint', () => {
+    expect(fitsOut(38000, { category: 'LLM', maxOutputTokens: 64000 })).toBe(true);
+    expect(fitsOut(38000, { category: 'LLM', maxOutputTokens: 32000 })).toBe(false);
+    expect(fitsOut(38000, { category: 'LLM', maxOutputTokens: null })).toBe(true);
+    expect(fitsOut(38000, null)).toBe(true);
   });
 });

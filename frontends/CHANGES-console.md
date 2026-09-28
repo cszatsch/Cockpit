@@ -184,3 +184,8 @@ Les captures sont écrites dans `OUT` (par défaut `<tmp>/rise-console-e2e`).
 
 - `iaModel` / `fromIa` transportent l'identifiant chez le fournisseur, le contexte et les dimensions ; l'affectation porte la dimension (`d`) de la vectorisation (`admin-api.js` : `toModel`, `fromIaModel`, `toAsg`, `fromAsg`).
 - Confirmation d'enregistrement de l'affectation : ligne « dimensions » et, pour un changement de modèle d'embedding ou de dimension, l'avertissement de réindexation (corps du dialogue avec retours à la ligne conservés).
+
+## Génération de rapports (28/09/2026)
+
+- `FNS` : fonction `rapports` (LLM, badge « Nouveau », sortie requise) ; `iaVals()` transmet `isNew` et `needOut` aux écrans IA (sortie requise du serveur, `GET /functions`, via `admin-api.js` → `aiNeed`).
+- `CONSO` : ligne Rapports, volume de démonstration nul (sans effet sur le tirage de la consommation de démonstration) ; affectation de démonstration Claude Sonnet 4.5 / Mistral Large 2.

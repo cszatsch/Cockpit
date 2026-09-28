@@ -13,7 +13,7 @@ import { adminCtx } from './profiles.service';
 import { round2, UsageService } from './usage.service';
 import { addDays } from '../domain/dates';
 import { AiModel } from '@prisma/client';
-import { chainStates, costOf, effectiveDimension, ModelCategory, normalizeDimensions, normalizePrice, Price, priceOf, reindexRequired, REINDEX_WARNING, Volume } from '../domain/ai-pricing';
+import { chainStates, costOf, effectiveDimension, fitsOut, ModelCategory, normalizeDimensions, normalizePrice, Price, priceOf, reindexRequired, REINDEX_WARNING, Volume } from '../domain/ai-pricing';
 
 /** Fréquence du test automatique des clés (brief Console § 10.1). */
 export const KEY_TEST_CRON = '0 */2 * * *';
@@ -337,22 +337,26 @@ export class AiController implements OnModuleInit {
     const rows = await this.usage.records(addDays(today, -29), today);
     const out: Record<string, Volume> = {};
     for (const f of AI_FUNCTIONS) out[f.id] = { tokensIn: 0, tokensOut: 0, requests: 0 };
+    // Sortie requise : le plus long rendu mesuré sur 30 jours (une ligne par appel), sinon la valeur déclarée.
+    const maxOut: Record<string, number> = {};
     for (const r of rows) {
       const v = out[r.functionId];
       if (!v) continue;
+      maxOut[r.functionId] = Math.max(maxOut[r.functionId] ?? 0, r.tokensOut);
       v.tokensIn += r.tokensIn;
       v.tokensOut += r.tokensOut;
       v.requests += r.requests;
     }
-    return { rows, volumes: out };
+    const needOut = Object.fromEntries(AI_FUNCTIONS.filter((f) => f.category === 'LLM' && f.needOut).map((f) => [f.id, maxOut[f.id] || f.needOut!]));
+    return { rows, volumes: out, needOut: needOut as Record<string, number | undefined> };
   }
 
   /** Fonctions IA : catégorie acceptée, chaîne et rang, volume réel des 30 derniers jours (spécification IA § 2). */
   @Get('functions')
   async functions() {
-    const { volumes } = await this.volumes30d();
+    const { volumes, needOut } = await this.volumes30d();
     return {
-      functions: AI_FUNCTIONS.map((f) => ({ id: f.id, name: f.name, short: f.short, description: f.description, category: f.category, group: f.group ?? null, step: f.step ?? null, budgetLine: f.budgetLine, volume30d: volumes[f.id] })),
+      functions: AI_FUNCTIONS.map((f) => ({ id: f.id, name: f.name, short: f.short, description: f.description, category: f.category, group: f.group ?? null, step: f.step ?? null, budgetLine: f.budgetLine, isNew: !!f.isNew, needOut: needOut[f.id] ?? null, volume30d: volumes[f.id] })),
       groups: Object.entries(AI_GROUPS).map(([id, g]) => ({ id, name: g.name, description: g.description })),
     };
   }
@@ -360,7 +364,7 @@ export class AiController implements OnModuleInit {
   @Get('assignments')
   async assignments() {
     const [asg, models] = await Promise.all([this.prisma.modelAssignment.findMany(), this.prisma.aiModel.findMany()]);
-    const { rows, volumes } = await this.volumes30d();
+    const { rows, volumes, needOut } = await this.volumes30d();
     const est = (fid: string, mid: string | null | undefined) => {
       const m = models.find((x) => x.id === mid);
       return m ? round2(costOf(m, volumes[fid])) : null;
@@ -393,6 +397,10 @@ export class AiController implements OnModuleInit {
         category: f.category,
         group: f.group ?? null,
         step: f.step ?? null,
+        isNew: !!f.isNew,
+        // Capacité de sortie : un LLM dont le max output tokens est inférieur tronquerait les rendus longs.
+        needOut: needOut[f.id] ?? null,
+        fits: needOut[f.id] ? { primary: fitsOut(needOut[f.id]!, models.find((m) => m.id === a?.primaryModelId)), fallback: a?.fallbackModelId ? fitsOut(needOut[f.id]!, models.find((m) => m.id === a.fallbackModelId)) : null } : null,
         primary: a?.primaryModelId ?? null,
         fallback: a?.fallbackModelId ?? null,
         // Taille des vecteurs (Embedding) : choisie, sinon la valeur par défaut du modèle.

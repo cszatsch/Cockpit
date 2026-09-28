@@ -16,14 +16,22 @@ select:focus-visible,button:focus-visible{outline:2px solid #1d8f86;outline-offs
 <div data-screen-label="Affectation des modèles" style="{{ wrapSt }}">
   <sc-if value="{{ standalone }}" hint-placeholder-val="{{ true }}"><div style="margin-bottom:8px"><div style="font-size:11px;font-weight:800;letter-spacing:.16em;color:#1d8f86">INTELLIGENCE ARTIFICIELLE</div><h1 style="margin:4px 0 0;font-size:30px;font-weight:800;font-style:italic;letter-spacing:-.03em">Affectation des modèles</h1><div style="font-size:13px;color:#43586a;margin-top:4px">Un modèle principal et un modèle de secours pour chaque fonction IA du Cockpit.</div></div></sc-if>
 
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:14px">
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px">
     <sc-for list="{{ solo }}" as="c" hint-placeholder-count="2">
       <div style="background:#fff;border:1px solid #e1e9e7;border-radius:18px;padding:18px 20px;display:flex;flex-direction:column;gap:12px">
-        <div style="display:flex;align-items:flex-start;gap:10px"><div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:800">{{ c.n }}</div><div style="font-size:11.5px;color:#5c7280;margin-top:3px">{{ c.vol }}</div></div><span style="{{ c.pill }}"><span style="{{ c.dot }}"></span>{{ c.stL }}</span></div>
+        <div style="display:flex;align-items:flex-start;gap:10px"><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="font-size:15px;font-weight:800">{{ c.n }}</span><sc-if value="{{ c.isNew }}" hint-placeholder-val="{{ false }}"><span style="font-size:9.5px;font-weight:800;letter-spacing:.12em;color:#146b64;padding:3px 7px;border-radius:6px;background:#e6f4f2">NOUVEAU</span></sc-if></div><div style="font-size:11.5px;color:#5c7280;margin-top:3px">{{ c.vol }}</div></div><span style="{{ c.pill }}"><span style="{{ c.dot }}"></span>{{ c.stL }}</span></div>
         <div style="display:flex;flex-direction:column;gap:8px">
           <div style="position:relative"><span aria-hidden="true" style="position:absolute;left:11px;top:12px;width:10px;height:10px;border-radius:50%;background:#f0752b;pointer-events:none"></span>{{ c.p.el }}</div>
           <div style="position:relative"><span aria-hidden="true" style="position:absolute;left:11px;top:12px;width:10px;height:10px;border-radius:50%;border:2px solid #10233a;pointer-events:none"></span>{{ c.f.el }}</div>
         </div>
+        <sc-if value="{{ c.hasGauge }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-direction:column;gap:7px;padding:10px 12px;border-radius:12px;background:#f5f8f7">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:11px;color:#5c7280"><span style="font-weight:700;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap">Sortie maximale</span><span style="text-align:right">rendu le plus long <strong style="color:#10233a;font-variant-numeric:tabular-nums">{{ c.g.need }}</strong></span></div>
+          <div style="position:relative;display:grid;grid-template-columns:12px minmax(0,1fr) 34px;gap:5px 8px;align-items:center">
+            <span style="font-size:10px;font-weight:800;color:#5c7280">P</span><span style="position:relative;height:5px;border-radius:3px;background:#e5edeb"><span style="{{ c.g.pSt }}"></span></span><span style="{{ c.g.pLSt }}">{{ c.g.pL }}</span>
+            <span style="font-size:10px;font-weight:800;color:#5c7280">S</span><span style="position:relative;height:5px;border-radius:3px;background:#e5edeb"><span style="{{ c.g.sSt }}"></span></span><span style="{{ c.g.sLSt }}">{{ c.g.sL }}</span>
+            <span aria-hidden="true" style="{{ c.g.markSt }}"></span>
+          </div>
+        </div></sc-if>
         <sc-if value="{{ c.hasMsg }}" hint-placeholder-val="{{ false }}"><div style="{{ c.msgSt }}"><span style="flex:1;min-width:0">{{ c.msg }}</span></div></sc-if>
         <sc-if value="{{ c.hasFix }}" hint-placeholder-val="{{ false }}"><button onClick="{{ c.fix }}" style="align-self:flex-start;min-height:30px;padding:6px 12px;line-height:1.3;text-align:left;border-radius:9px;border:0;background:#10233a;color:#fff;font:inherit;font-size:12px;font-weight:700;cursor:pointer" style-hover="background:#1d3654">{{ c.fixL }}</button></sc-if>
         <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:10px;border-top:1px solid #eef3f2;padding-top:10px;margin-top:auto"><span style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#5c7280;white-space:nowrap;padding-bottom:4px">Coût mensuel estimé</span><span style="display:flex;flex-direction:column;align-items:flex-end;gap:2px"><span style="font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap">{{ c.cost }}</span><sc-if value="{{ c.hasAlt }}" hint-placeholder-val="{{ false }}"><span style="font-size:11.5px;font-weight:600;color:#8a5a12;white-space:nowrap">{{ c.alt }}</span></sc-if></span></div>
@@ -32,8 +40,19 @@ select:focus-visible,button:focus-visible{outline:2px solid #1d8f86;outline-offs
   </div>
 
   <sc-for list="{{ groups }}" as="g" hint-placeholder-count="1">
-    <div style="background:#fff;border:1px solid #e1e9e7;border-radius:18px;padding:22px 24px 24px;display:flex;flex-direction:column;gap:18px">
-      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px"><h2 style="margin:0;font-size:17px;font-weight:800">{{ g.n }}</h2><span style="font-size:12.5px;color:#43586a">{{ g.d }}</span><span style="flex:1"></span><span style="{{ g.pill }}"><span style="{{ g.dot }}"></span>{{ g.stL }}</span></div>
+    <sc-if value="{{ g.folded }}" hint-placeholder-val="{{ true }}">
+    <div style="background:#fff;border:1px solid #e1e9e7;border-radius:18px;padding:12px 14px 12px 20px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px">
+      <h2 style="margin:0;font-size:15px;font-weight:800">{{ g.n }}</h2>
+      <span aria-hidden="true" style="display:flex;align-items:center"><sc-for list="{{ g.mini }}" as="m" hint-placeholder-count="9"><span style="{{ m.st }}"><sc-if value="{{ m.x }}" hint-placeholder-val="{{ false }}"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round"><path d="M6 6l12 12 M18 6L6 18"></path></svg></sc-if>{{ m.num }}</span></sc-for></span>
+      <span style="flex:1 1 160px;min-width:0;font-size:12px;color:#5c7280">{{ g.names }}</span>
+      <span style="{{ g.pill }}"><span style="{{ g.dot }}"></span>{{ g.stL }}</span>
+      <span style="font-size:15px;font-weight:800;font-variant-numeric:tabular-nums">{{ g.total }}</span>
+      <button type="button" onClick="{{ g.toggle }}" aria-expanded="false" style="display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border:0;border-radius:8px;background:transparent;font:inherit;font-size:12px;font-weight:700;color:#1d8f86;cursor:pointer" style-hover="background:#e6f4f2">Déplier<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#1d8f86" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></button>
+    </div>
+    </sc-if>
+    <sc-if value="{{ g.open }}" hint-placeholder-val="{{ false }}">
+    <div style="background:#fff;border:1px solid #e1e9e7;border-radius:18px;padding:18px 20px 24px 24px;display:flex;flex-direction:column;gap:18px">
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px"><h2 style="margin:0;font-size:17px;font-weight:800">{{ g.n }}</h2><span style="flex:1 1 240px;min-width:0;font-size:12.5px;color:#43586a;text-wrap:pretty">{{ g.d }}</span><span style="{{ g.pill }}"><span style="{{ g.dot }}"></span>{{ g.stL }}</span><button type="button" onClick="{{ g.toggle }}" aria-expanded="true" style="display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border:0;border-radius:8px;background:transparent;font:inherit;font-size:12px;font-weight:700;color:#1d8f86;cursor:pointer" style-hover="background:#e6f4f2">Plier<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#1d8f86" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"></path></svg></button></div>
       <div style="overflow-x:auto;margin:0 -4px;padding:0 4px">
         <div style="{{ g.gridSt }}">
           <sc-for list="{{ g.track }}" as="t" hint-placeholder-count="5">
@@ -61,9 +80,10 @@ select:focus-visible,button:focus-visible{outline:2px solid #1d8f86;outline-offs
         </div>
       </div>
     </div>
+    </sc-if>
   </sc-for>
 
-  <div style="display:flex;flex-wrap:wrap;gap:8px 18px;font-size:12px;color:#5c7280"><span style="display:inline-flex;align-items:center;gap:7px"><span style="width:10px;height:10px;border-radius:50%;background:#f0752b"></span>Principal</span><span style="display:inline-flex;align-items:center;gap:7px"><span style="width:10px;height:10px;border-radius:50%;border:2px solid #10233a"></span>Secours</span><span style="flex:1"></span><span>Estimations calculées sur le volume réel des 30 derniers jours et le tarif actuel de chaque modèle.</span></div>
+  <div style="display:flex;flex-wrap:wrap;gap:8px 18px;font-size:12px;color:#5c7280"><span style="display:inline-flex;align-items:center;gap:7px"><span style="width:10px;height:10px;border-radius:50%;background:#f0752b"></span>Principal</span><span style="display:inline-flex;align-items:center;gap:7px"><span style="width:10px;height:10px;border-radius:50%;border:2px solid #10233a"></span>Secours</span><span style="display:inline-flex;align-items:center;gap:7px"><span style="font-weight:700;color:#10233a">64k</span>Max output tokens</span><span style="flex:1"></span><span>Estimations calculées sur le volume réel des 30 derniers jours et le tarif actuel de chaque modèle.</span></div>
 
   <sc-if value="{{ dirty }}" hint-placeholder-val="{{ false }}">
     <div style="position:sticky;bottom:20px;z-index:20;display:flex;flex-wrap:wrap;align-items:center;gap:14px;padding:12px 12px 12px 18px;border-radius:16px;background:#10233a;color:#fff;box-shadow:0 24px 50px -18px rgba(16,35,58,.6)">
@@ -77,7 +97,10 @@ select:focus-visible,button:focus-visible{outline:2px solid #1d8f86;outline-offs
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;googleKeyOk&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Simulation&quot;},&quot;assignment&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Record&lt;string,{p:string,f:string}&gt;&quot;},&quot;providers&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Provider[]&quot;},&quot;models&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Model[]&quot;},&quot;functions&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;AiFunction[]&quot;},&quot;groups&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Record&lt;string,{n:string,d:string}&gt;&quot;},&quot;onSave&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(assignment) =&gt; void&quot;},&quot;embedded&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;boolean&quot;}}">
 class Component extends DCLogic {
-  state = { asg: null, draft: null };
+  state = { asg: null, draft: null, open: this.loadOpen() };
+  // Groupes dépliés, mémorisés par navigateur (à stocker par administrateur côté serveur si souhaité)
+  loadOpen() { try { return JSON.parse(localStorage.getItem('rise-ia-asg-open') || '[]'); } catch (e) { return []; } }
+  toggle(gid) { this.setState(s => { const o = s.open.includes(gid) ? s.open.filter(x => x !== gid) : s.open.concat(gid); try { localStorage.setItem('rise-ia-asg-open', JSON.stringify(o)); } catch (e) {} return { open: o }; }); }
   componentDidMount() { if (!window.RISE_IA) this._t = setInterval(() => { if (window.RISE_IA) { clearInterval(this._t); this.forceUpdate(); } }, 30); }
   componentWillUnmount() { clearInterval(this._t); }
   // Intégration : l'affectation enregistrée vient du parent ; son changement (serveur) efface le brouillon.
@@ -104,10 +127,10 @@ class Component extends DCLogic {
 
   sel(fn, slot, a, models, provs) {
     const D = window.RISE_IA, cur = a[slot] || '', other = slot === 'p' ? a.f : a.p, m = D.model(models, cur);
-    const opts = D.catModels(models, fn.cat).map(x => { const pv = D.prov(provs, x.pv) || {}; return { v: x.id, l: x.n + (pv.st !== 'ok' ? ' · clé refusée' : ' · ' + D.eur(D.cost(fn, x))), dis: x.id === other }; });
+    const opts = D.catModels(models, fn.cat).map(x => { const pv = D.prov(provs, x.pv) || {}; return { v: x.id, l: x.n + (fn.needOut && x.maxOut ? ' · ' + D.kTok(x.maxOut) + (D.fitsOut(fn, x) ? '' : ' trop court') : '') + (pv.st !== 'ok' ? ' · clé refusée' : ' · ' + D.eur(D.cost(fn, x))), dis: x.id === other }; });
     const head = slot === 'f' || !cur ? [{ v: '', l: slot === 'f' ? 'Aucun modèle de secours' : 'Aucun modèle ' + D.CAT[fn.cat].l, dis: false }] : [];
     const bad = !!m && !D.usable(m, provs), live = slot === 'f' && !!m && D.usable(m, provs) && !D.usable(D.model(models, a.p), provs);
-    const bd = bad ? '1px solid #efc6bf' : live ? '1.5px solid #f7a41c' : '1px solid #cfdcd9';
+    const short = !!m && !D.fitsOut(fn, m), bd = bad ? '1px solid #efc6bf' : live ? '1.5px solid #f7a41c' : short ? '1px solid #f3d193' : '1px solid #cfdcd9';
     const st = 'width:100%;height:34px;border-radius:10px;padding:0 30px 0 30px;font:inherit;font-size:12.5px;font-weight:600;appearance:none;cursor:pointer;text-overflow:ellipsis;'
       + 'color:' + (cur ? (bad ? '#a2352a' : '#10233a') : '#5c7280') + ';border:' + bd + ';'
       + 'background:' + (live ? '#fffaf1' : '#fff') + ' url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%235c7280\' stroke-width=\'2.4\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3Cpath d=\'M6 9l6 6 6-6\'/%3E%3C/svg%3E") no-repeat right 10px center';
@@ -124,13 +147,29 @@ class Component extends DCLogic {
   // Message + correctif proposé pour une fonction / étape
   advise(fn, a, r, models, provs, inGroup) {
     const D = window.RISE_IA, pvP = r.p && D.prov(provs, r.p.pv);
-    const fix = () => { const alt = D.catModels(models, fn.cat).filter(m => m.id !== a.p && D.usable(m, provs)).sort((x, y) => D.cost(fn, x) - D.cost(fn, y))[0]; return alt; };
+    const fix = () => { const alt = D.catModels(models, fn.cat).filter(m => m.id !== a.p && D.usable(m, provs) && D.fitsOut(fn, m)).sort((x, y) => D.cost(fn, x) - D.cost(fn, y))[0]; return alt; };
     if (r.st === 'blocked') return { msg: 'Attend l’étape ' + r.blockedBy.step + ' · ' + r.blockedBy.n, tone: 'wait' };
     if (!D.catModels(models, fn.cat).length) return { msg: 'Aucun modèle ' + D.CAT[fn.cat].l + ' actif : ajoutez-en un dans Fournisseurs et modèles.', tone: 'down' };
     if (r.st === 'fallback') return { msg: (pvP ? pvP.n + ' refuse la clé : ' : 'Principal indisponible : ') + r.s.n + ' répond à la place.', tone: 'fallback' };
     if (r.st === 'down') { const alt = fix(); return { msg: r.s ? 'Principal et secours indisponibles.' : inGroup ? 'Aucun secours : les étapes suivantes sont suspendues.' : 'Aucun secours : la fonction est à l’arrêt.', tone: 'down', alt, fixL: alt ? 'Secours : ' + alt.n + ' · ' + D.eur(D.cost(fn, alt)) : '' }; }
+    if (fn.needOut) {
+      const need = D.nf(fn.needOut, 0);
+      if (r.p && !D.fitsOut(fn, r.p)) return { msg: 'Principal limité à ' + D.nf(r.p.maxOut || 0, 0) + ' tokens : les rendus de plus de ' + need + ' tokens seraient tronqués.', tone: 'warn' };
+      if (r.s && !D.fitsOut(fn, r.s)) {
+        const alt = D.catModels(models, fn.cat).filter(m => m.id !== a.p && m.id !== a.f && D.usable(m, provs) && D.fitsOut(fn, m)).sort((x, y) => D.cost(fn, x) - D.cost(fn, y))[0];
+        return { msg: 'Secours limité à ' + D.nf(r.s.maxOut || 0, 0) + ' tokens : un rendu long serait tronqué.', tone: 'warn', alt, fixL: alt ? 'Secours : ' + alt.n + ' · ' + D.kTok(alt.maxOut) + ' · ' + D.eur(D.cost(fn, alt)) : '' };
+      }
+    }
     if (!r.s) return { msg: 'Aucun secours : ' + (inGroup ? 'la chaîne s’arrête' : 'la fonction s’arrête') + ' si le principal est indisponible.', tone: 'warn' };
     return { msg: 'Si le secours prend le relais : ≈ ' + D.eur(D.cost(fn, r.s)) + ' / mois', tone: 'muted' };
+  }
+  // Jauge : Max output tokens du principal et du secours face à la sortie requise
+  gauge(fn, r) {
+    const D = window.RISE_IA, pm = (r.p && r.p.maxOut) || 0, sm = (r.s && r.s.maxOut) || 0, need = fn.needOut, sc = Math.max(pm, sm, need) || 1;
+    const bar = v => 'position:absolute;left:0;top:0;bottom:0;border-radius:3px;width:' + (v / sc * 100).toFixed(1) + '%;background:' + (v >= need ? '#1d8f86' : '#f7a41c');
+    const lab = v => "font-family:'JetBrains Mono',monospace;font-size:10.5px;text-align:right;color:" + (!v ? '#8a9aa6' : v >= need ? '#146b64' : '#8a5a12');
+    return { need: D.nf(need, 0), pSt: bar(pm), sSt: bar(sm), pL: pm ? D.kTok(pm) : '—', sL: sm ? D.kTok(sm) : '—', pLSt: lab(pm), sLSt: lab(sm),
+      markSt: 'position:absolute;top:-4px;bottom:-4px;width:2px;margin-left:-1px;border-radius:1px;background:#10233a;left:calc(20px + (100% - 62px) * ' + (need / sc).toFixed(3) + ')' };
   }
   msgSt(t) { const c = { down: '#a2352a', fallback: '#8a5a12', warn: '#8a5a12', wait: '#43586a', muted: '#5c7280' }[t]; return 'display:flex;align-items:center;gap:6px;font-size:11.5px;line-height:1.45;text-wrap:pretty;color:' + c + ';font-weight:' + (t === 'muted' ? 500 : 700); }
   vol(fn) { const D = window.RISE_IA, v = fn.vol || {}; return v.req != null ? D.nf(v.req, 0) + ' requêtes · 30 j' : D.nf(v.in || 0, 1) + ' M entrée' + (v.out != null ? ' · ' + D.nf(v.out, 1) + ' M sortie' : '') + ' · 30 j'; }
@@ -146,7 +185,8 @@ class Component extends DCLogic {
       const a = draft[f.id] || {}, r = R[f.id], ad = this.advise(f, a, r, models, provs, false), c = D.cost(f, r.p);
       return { n: f.n, vol: this.vol(f), stL: L[r.st], ...this.pill(r.st), p: this.sel(f, 'p', a, models, provs), f: this.sel(f, 'f', a, models, provs),
         hasMsg: !!ad.msg, msg: ad.msg, msgSt: this.msgSt(ad.tone), hasFix: !!ad.alt, fixL: ad.fixL, fix: ad.alt ? setF(f.id, ad.alt.id) : null,
-        cost: D.eur(c), hasAlt: r.st === 'fallback', alt: D.eur(D.cost(f, r.s)) + ' sur secours' };
+        cost: D.eur(c), hasAlt: r.st === 'fallback', alt: D.eur(D.cost(f, r.s)) + ' sur secours',
+        isNew: !!f.isNew, hasGauge: !!f.needOut, g: f.needOut ? this.gauge(f, r) : {} };
     });
 
     const gl = Object.keys(groups).map(gid => {
@@ -163,11 +203,19 @@ class Component extends DCLogic {
         .concat([{ lSt: line(end, 'l'), rSt: none, nodeSt: 'position:relative;width:14px;height:14px;border-radius:50%;box-shadow:0 0 0 2px ' + (end ? '#1d8f86' : '#cfdcd9') + ',0 0 0 6px #fff;background:' + (end ? '#1d8f86' : '#fff'), x: false, num: '' }]);
       const first = steps.find(f => ['down', 'fallback'].includes(R[f.id].st)), gs = !first ? 'ok' : R[first.id].st;
       const stL = !first ? 'Opérationnelle' : gs === 'down' ? 'Interrompue à l’étape ' + first.step : 'Sur secours à l’étape ' + first.step;
+      const cn = lit => ({ st: 'width:16px;' + (lit ? 'height:2px;background:#1d8f86' : 'height:0;border-top:2px dotted #cfdcd9'), x: false, num: '' });
+      const mb = 'width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:800;flex:none;';
+      const mn = st => mb + ({ ok: 'background:#1d8f86;color:#fff', fallback: 'background:#f7a41c;color:#10233a', down: 'background:#c2473b;color:#fff', blocked: 'box-shadow:inset 0 0 0 1.5px #d5dfdc;color:#8a9aa6' }[st]);
+      const mini = [{ st: 'width:8px;height:8px;border-radius:50%;background:#1d8f86', x: false, num: '' }];
+      steps.forEach((f, i) => { mini.push(cn(flowIn[i])); mini.push({ st: mn(R[f.id].st), x: R[f.id].st === 'down', num: R[f.id].st === 'down' ? '' : String(f.step) }); });
+      mini.push(cn(end)); mini.push({ st: 'width:8px;height:8px;border-radius:50%;' + (end ? 'background:#1d8f86' : 'box-shadow:0 0 0 1.5px #cfdcd9'), x: false, num: '' });
+      const isOpen = this.state.open.includes(gid);
       const hatch = 'repeating-linear-gradient(135deg,#fbfcfc 0 7px,#f3f7f6 7px 14px)';
       const card = st => 'border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px;min-width:0;' + ({ ok: 'border:1px solid #e1e9e7;background:#fff', fallback: 'border:1.5px solid #f3d193;background:#fffcf5', down: 'border:1.5px solid #efc6bf;background:#fffafa', blocked: 'border:1px solid #e1e9e7;background:' + hatch }[st]);
       const total = steps.reduce((s, f) => s + (D.cost(f, R[f.id].p) || 0), 0), v0 = (steps[0] || {}).vol || {};
       return {
-        n: G.n, d: G.d, stL, ...this.pill(gs), track, total: D.eur(total), inVol: v0.in != null ? D.nf(v0.in, 1) + ' M tokens / 30 j' : '',
+        n: G.n, d: G.d, stL, ...this.pill(gs), track, mini, names: steps.map(f => f.n).join(' · '),
+        open: isOpen, folded: !isOpen, toggle: () => this.toggle(gid), total: D.eur(total), inVol: v0.in != null ? D.nf(v0.in, 1) + ' M tokens / 30 j' : '',
         gridSt: 'display:grid;grid-template-columns:110px repeat(' + n + ',minmax(190px,1fr)) 110px;column-gap:14px;min-width:' + (220 + n * 204) + 'px',
         endSt: 'font-size:12.5px;font-weight:800;color:' + (end ? '#10233a' : '#8a9aa6'),
         steps: steps.map(f => {

@@ -131,3 +131,12 @@ export function reindexRequired(before: { modelId: string | null; dimension: num
 /** Message affiché à chaque changement de modèle d'embedding ou de dimension (demande du 28/09/2026). */
 export const REINDEX_WARNING =
   "Changer de modèle d'embedding oblige à réindexer tous les documents. Chaque modèle a son propre espace vectoriel : les vecteurs de deux modèles différents ne sont pas compatibles, même s'ils ont la même dimension. Sans réindexation, la recherche renverra des résultats faux ou incohérents.";
+
+/**
+ * Capacité de sortie (spécification IA § 7) : un LLM couvre une fonction si son max output tokens atteint la sortie
+ * requise. Sans modèle, ou sans max output tokens connu, on ne peut pas conclure : considéré comme couvrant.
+ */
+export function fitsOut(needOut: number, model?: { category: string; maxOutputTokens: number | null } | null): boolean {
+  if (!model || model.category !== 'LLM' || model.maxOutputTokens == null) return true;
+  return model.maxOutputTokens >= needOut;
+}

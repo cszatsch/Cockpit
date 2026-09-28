@@ -1,4 +1,4 @@
-# RISE · IA : pipeline Documents et fiche modèle
+# RISE · IA : pipeline Documents, Génération de rapports et fiche modèle
 
 Spécification d’intégration des écrans 1b (Affectation), 1f (Vue réseau) et 1h (Fiche modèle) dans la Console Admin.
 
@@ -111,3 +111,38 @@ Migration de l’affectation : l’ancien principal/secours de `documents` devie
 
 ## 6. Démonstration
 Le prop `googleKeyOk` (écrans 1b et 1f) simule la clé Google valide ou refusée. `demo` (1h) pré-remplit l’exemple Rerank 3.5. Données de démonstration : 5 fournisseurs dont **Cohere** (ajouté pour disposer d’un modèle Reranking), tarifs et dates indicatifs.
+
+## 7. Évolution v2 : Génération de rapports et repli des groupes (variantes 2a et 2d)
+
+### Nouvelle fonction `rapports`
+```ts
+{ id: 'rapports', n: 'Génération de rapports', sh: 'Rapports', cat: 'llm',
+  isNew: true,        // badge « Nouveau » (à retirer après la mise en service)
+  needOut: 38000,     // longueur du plus long rapport produit (tokens), mesurée sur 30 jours
+  vol: { in: 1.9, out: 0.9 } }
+```
+- Affectation initiale : principal Claude Sonnet 4.5, secours à choisir par l’administrateur (démo : Mistral Large 2 pour illustrer l’alerte).
+- `needOut` est un champ générique d’`AiFunction` : toute fonction LLM à sortie longue peut le renseigner. Côté serveur, le calculer comme le maximum des `output_tokens` de la fonction sur 30 jours.
+- `UsageRecord.fn` accepte `rapports`.
+
+### Règle de capacité (`fitsOut`, `kTok` dans `ia-data.js`)
+- Un modèle LLM couvre la fonction si `maxOut ≥ needOut`. Sans `needOut`, ou pour Embedding / Reranking, la règle ne s’applique pas.
+- Un modèle trop court reste sélectionnable (libellé « trop court » dans la liste) mais déclenche une alerte :
+  - principal trop court : « Principal limité à N tokens… » ;
+  - secours trop court : « Secours limité à N tokens… » + bouton proposant le modèle utilisable le moins cher qui couvre la longueur.
+- Le correctif proposé pour une fonction à l’arrêt tient aussi compte de la capacité.
+- Le routeur, à l’exécution, doit passer au secours si le principal renvoie une réponse tronquée (`stop_reason = max_tokens`), et journaliser l’événement.
+
+### Affectation des modèles
+- Cartes des fonctions autonomes : 3 par ligne sur grand écran (min 300 px).
+- Carte Rapports : badge Nouveau, jauge « Sortie maximale » (barres P et S proportionnelles au Max output tokens, repère = `needOut`, teal si couvert, ambre sinon).
+- Groupes (Documents) **repliés par défaut** : une ligne avec mini-tracé des étapes (mêmes couleurs d’état que la ligne complète), noms des étapes, état, total mensuel, bouton « Déplier ». Déplié : la ligne de traitement complète, bouton « Plier » dans l’en-tête. `aria-expanded` renseigné.
+- L’état replié / déplié est mémorisé (`localStorage` `rise-ia-asg-open`, liste des groupes ouverts). Pour un stockage par administrateur : `GET/PUT /api/me/preferences` avec la clé `ia.asg.open`.
+
+### Vue réseau
+- Ligne Rapports après Gestion des données : badge Nouveau, « Sortie requise ≈ N ». Sur les voies, l’étiquette de la puce affiche le Max output tokens (`64k`) ; un modèle trop court affiche `32k < 38k` et un contour ambre.
+- Groupe Documents replié par défaut : étapes numérotées sur une ligne, colorées selon leur état, bouton « Déplier ». Déplié : voies complètes par étape et bouton « Plier ». État mémorisé séparément (`rise-ia-net-open`, préférence `ia.net.open`).
+- Légende : ajout « 64k = Max output tokens ».
+
+### Fiche modèle
+- Aucune modification : le champ Max output tokens existe déjà ; la fonction Rapports apparaît automatiquement dans l’aperçu « Proposé pour » des modèles LLM.

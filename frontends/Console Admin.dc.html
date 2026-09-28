@@ -998,11 +998,14 @@ const NAV_W_DEF = 252, NAV_W_MIN = 200, NAV_W_MAX = 420;
 const CONSO = [
   { id: 'insights', n: 'Analyse des données et insights', sh: 'Insights', vin: 120e6, vout: 18e6, fn: 'insights' },
   { id: 'crud', n: 'Création, modification et suppression des données', sh: 'Gestion des données', vin: 50e6, vout: 12e6, fn: 'crud' },
+  // Génération de rapports : nouvelle fonction, pas encore de consommation (volume nul, hors tirage de démonstration).
+  { id: 'rapports', n: 'Génération de rapports', sh: 'Rapports', vin: 0, vout: 0, fn: 'rapports' },
   { id: 'docs', n: 'Documents', sh: 'Documents', vin: 180e6, vout: 9e6, fn: 'doc_syn' }];
 // API : fonctions affectables (spécification IA § 2) : catégorie acceptée, chaîne Documents en trois étapes.
 const FNS = [
   { id: 'insights', n: 'Analyse des données et insights', sh: 'Insights', d: 'Lit les données du projet et produit les signaux, écarts et recommandations.', cat: 'LLM', line: 'insights' },
   { id: 'crud', n: 'Création, modification et suppression des données', sh: 'Gestion des données', d: 'Prépare les modifications demandées à Jev, l’assistant du Cockpit ; l’utilisateur les valide avant enregistrement.', cat: 'LLM', line: 'crud' },
+  { id: 'rapports', n: 'Génération de rapports', sh: 'Rapports', d: 'Rédige les rapports de comité, hebdomadaires et de phase.', cat: 'LLM', line: 'rapports', isNew: true, needOut: 38000 },
   { id: 'doc_vec', n: 'Vectorisation', sh: 'Vectorisation', d: 'Découpe le texte extrait en passages et les transforme en vecteurs pour la recherche sémantique.', cat: 'EMBEDDING', group: 'documents', step: 1, line: 'docs' },
   { id: 'doc_rrk', n: 'Reclassement', sh: 'Reclassement', d: 'Réordonne les passages trouvés selon leur pertinence réelle par rapport à la question posée.', cat: 'RERANKING', group: 'documents', step: 2, line: 'docs' },
   { id: 'doc_syn', n: 'Synthèse', sh: 'Synthèse', d: 'Rédige une réponse claire à partir des passages retenus : décisions, actions, risques.', cat: 'LLM', group: 'documents', step: 3, line: 'docs' }];
@@ -1014,7 +1017,7 @@ function genUsage(models, asg) {
   const r = rng(11), P = Object.fromEntries(models.map(m => [m.id, m])), rows = [];
   for (let d = 0; d < 90; d++) {
     const dt = new Date(2026, 8, 26 - (89 - d)), wd = dt.getDay(), wf = (wd === 0 || wd === 6) ? .28 : 1, tr = .82 + d / 320;
-    CONSO.forEach(fn => { let f = wf * tr * (.78 + .44 * r()); if (d === 89) f *= .43; const tin = fn.vin / 30 * f, tout = fn.vout / 30 * f;
+    CONSO.forEach(fn => { if (!fn.vin) return; let f = wf * tr * (.78 + .44 * r()); if (d === 89) f *= .43; const tin = fn.vin / 30 * f, tout = fn.vout / 30 * f;
       [[asg[fn.fn].p, .95], [asg[fn.fn].f, .05]].forEach(([m, sh]) => rows.push({ d, fn: fn.id, m, pv: P[m].pv, tin: tin * sh, tout: tout * sh })); });
   }
   rows.forEach(x => x.c = (x.tin * P[x.m].pin + x.tout * P[x.m].pout) / 1e6);
@@ -1096,7 +1099,7 @@ const csvDl = (name, lines) => { const b = new Blob(['\ufeff' + lines.join('\n')
 class Component extends DCLogic {
   state = this.init();
   init() {
-    const asg = { insights: { p: 'sonnet', f: 'gpt5' }, crud: { p: 'haiku', f: 'gpt5mini' }, doc_vec: { p: '', f: '' }, doc_rrk: { p: '', f: '' }, doc_syn: { p: 'gpro', f: 'sonnet' } };
+    const asg = { insights: { p: 'sonnet', f: 'gpt5' }, crud: { p: 'haiku', f: 'gpt5mini' }, rapports: { p: 'sonnet', f: 'mlarge' }, doc_vec: { p: '', f: '' }, doc_rrk: { p: '', f: '' }, doc_syn: { p: 'gpro', f: 'sonnet' } };
     const snaps = {}; Object.keys(SNAPS0).forEach(p => snaps[p] = SNAPS0[p].map((s, i) => ({ id: s[0], t: s[1], k: s[2] ? 'man' : 'auto', lab: s[2] || '', by: s[3] || '', ix: i })));
     return {
       sec: 'overview', vw: typeof window !== 'undefined' ? window.innerWidth : 1400, mnav: false, loading: false, seen: { overview: 1 },
@@ -1408,7 +1411,7 @@ class Component extends DCLogic {
   iaVals() {
     const S = this.state, LOGO = { anthropic: './assets/logos/lh-anthropic.svg', openrouter: './assets/logos/lh-openrouter.webp', openai: './assets/logos/lh-openai.svg', mistral: './assets/logos/lh-mistral-color.svg', google: './assets/logos/lh-gemini-color.svg' }, v = this.vol30();
     const provs = S.provs.map(p => ({ id: p.id, n: p.n, st: p.st === 'ok' ? 'ok' : 'err', lat: p.lat, err: p.st === 'ok' ? null : p.err || (p.st === 'new' ? 'Clé jamais testée' : 'Clé invalide'), logo: LOGO[p.id], mono: p.id === 'anthropic' || p.id === 'openai', ini: p.n.slice(0, 2) }));
-    const fns = FNS.map(f => { const x = v[f.id] || { tin: 0, tout: 0, req: 0 }; return { id: f.id, n: f.n, sh: f.sh, d: f.d, cat: f.cat.toLowerCase(), group: f.group, step: f.step, vol: f.cat === 'RERANKING' ? { req: x.req } : f.cat === 'EMBEDDING' ? { in: x.tin / 1e6 } : { in: x.tin / 1e6, out: x.tout / 1e6 } }; });
+    const fns = FNS.map(f => { const x = v[f.id] || { tin: 0, tout: 0, req: 0 }; const need = (S.aiNeed || {})[f.id] ?? f.needOut; return { id: f.id, n: f.n, sh: f.sh, d: f.d, cat: f.cat.toLowerCase(), group: f.group, step: f.step, isNew: !!f.isNew, needOut: need || undefined, vol: f.cat === 'RERANKING' ? { req: x.req } : f.cat === 'EMBEDDING' ? { in: x.tin / 1e6 } : { in: x.tin / 1e6, out: x.tout / 1e6 } }; });
     return { provs, models: S.models.map(m => this.iaModel(m)), fns, groups: FN_GROUPS, asg: S.asg,
       openModel: id => this.openModelId(id), openProv: id => this.openFiche('prov', id), testKey: id => this.testKey(id), replKey: id => this.openKey(id), addFallback: () => this.go('assign'),
       saveAsg: d => { this.setState({ draft: JSON.parse(JSON.stringify(d)) }); this.saveAsg(); } };

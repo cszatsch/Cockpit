@@ -76,10 +76,21 @@ describe('Console — modèles d’IA', () => {
     expect((await admin.patch('/api/admin/models/te3large', { dimensions: [3072, 1024] }).expect(200)).body).toMatchObject({ dimensions: [3072, 1024], defaultDimension: 3072 });
   });
 
+  it('génération de rapports : nouvelle fonction LLM, sortie requise et capacité des modèles affectés', async () => {
+    const f = (await admin.get('/api/admin/functions').expect(200)).body.functions.find((x: any) => x.id === 'rapports');
+    expect(f).toMatchObject({ name: 'Génération de rapports', category: 'LLM', isNew: true, needOut: 38000, budgetLine: 'rapports' });
+    let a = (await admin.get('/api/admin/assignments').expect(200)).body.find((x: any) => x.functionId === 'rapports');
+    // Sonnet (64k) couvre la sortie requise ; Mistral Large 2 (32k) non.
+    expect(a).toMatchObject({ primary: 'sonnet', fallback: 'mlarge', needOut: 38000, fits: { primary: true, fallback: false } });
+    a = (await admin.put('/api/admin/assignments', { rapports: { primary: 'sonnet', fallback: 'gpt5' } }).expect(200)).body.find((x: any) => x.functionId === 'rapports');
+    expect(a.fits).toEqual({ primary: true, fallback: true });
+    expect((await admin.get('/api/admin/functions').expect(200)).body.functions.find((x: any) => x.id === 'insights').needOut).toBeNull();
+  });
+
   it('chaque fonction n’accepte que sa catégorie ; la chaîne Documents a trois étapes', async () => {
     const f = (await admin.get('/api/admin/functions').expect(200)).body;
     expect(f.functions.map((x: any) => [x.id, x.category, x.group, x.step])).toEqual([
-      ['insights', 'LLM', null, null], ['crud', 'LLM', null, null],
+      ['insights', 'LLM', null, null], ['crud', 'LLM', null, null], ['rapports', 'LLM', null, null],
       ['doc_vec', 'EMBEDDING', 'documents', 1], ['doc_rrk', 'RERANKING', 'documents', 2], ['doc_syn', 'LLM', 'documents', 3],
     ]);
     expect(f.groups).toEqual([{ id: 'documents', name: 'Documents', description: expect.any(String) }]);
@@ -130,11 +141,11 @@ describe('Console — modèles d’IA', () => {
   it('réinitialisation : modèles, affectation et consommation supprimés, fournisseurs gardés', async () => {
     const providers = await t.db.provider.count();
     const r = await resetAiModels(t.db);
-    expect(r).toMatchObject({ assignments: 5, providersKept: providers });
+    expect(r).toMatchObject({ assignments: 6, providersKept: providers });
     expect(await t.db.aiModel.count()).toBe(0);
     expect(await t.db.usageRecord.count()).toBe(0);
     const asg = (await admin.get('/api/admin/assignments').expect(200)).body;
-    expect(asg.map((a: any) => a.state)).toEqual(['UNAVAILABLE', 'UNAVAILABLE', 'UNAVAILABLE', 'BLOCKED', 'BLOCKED']);
+    expect(asg.map((a: any) => a.state)).toEqual(['UNAVAILABLE', 'UNAVAILABLE', 'UNAVAILABLE', 'UNAVAILABLE', 'BLOCKED', 'BLOCKED']);
     await expect(t.app.get(LlmService).complete({ functionId: 'insights', prompt: 'x', source: 'COCKPIT' })).rejects.toMatchObject({ response: { code: 'AI_UNAVAILABLE' } });
   });
 });

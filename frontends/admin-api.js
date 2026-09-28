@@ -242,7 +242,8 @@ export function bindConsole(c) {
     audit: async () => ({ audit: (await get('/audit')).map(toAudit) }),
     providers: async () => ({ provs: (await get('/providers')).map(toProv) }),
     models: async () => ({ models: (await get('/models')).map(toModel) }),
-    fns: async () => ({ aiVol: toVol(await get('/functions')) }),
+    // Volume et sortie requise (Génération de rapports : plus long rendu mesuré sur 30 jours) par fonction.
+    fns: async () => { const r = await get('/functions'); return { aiVol: toVol(r), aiNeed: Object.fromEntries(r.functions.filter(f => f.needOut).map(f => [f.id, f.needOut])) }; },
     asg: async () => { const asg = toAsg(await get('/assignments')), S = c.state, clean = !S.draft || JSON.stringify(S.asg) === JSON.stringify(S.draft); return clean ? { asg, draft: JSON.parse(JSON.stringify(asg)) } : { asg }; },
     usage: async () => {
       const m = await get('/usage/month'), from = addDays(m.today, -89), u = await get('/usage?from=' + from + '&to=' + m.today + '&groupBy=day');

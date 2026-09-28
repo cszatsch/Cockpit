@@ -106,6 +106,7 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 - **Mise à jour des tarifs** : le catalogue est un relevé daté ; un changement de prix d'un fournisseur (ex. Gemini 3.8 Flash au 01/01/2027) demande de modifier `prisma/catalog/ia-modeles.ts` et de relancer `npm run ia:catalogue -- --confirmer`.
 - **Modèles OpenRouter** : 2 modèles d'embedding (Qwen3 Embedding 8B, BAAI bge-m3) et 2 de reranking (Voyage rerank-2.5 et rerank-2.5-lite) ajoutés le 28/09/2026 et appliqués sur la base locale. OpenRouter n'a pas encore de clé : ces modèles restent indisponibles tant qu'elle n'est pas saisie.
 - **Contexte des LLM** : le nouveau champ « longueur de contexte » n'est renseigné que pour les 4 modèles OpenRouter ; les 11 LLM du catalogue l'ont vide (à compléter au besoin).
+- **Génération de rapports** : la fonction existe pour l'affectation, la vue réseau, la consommation et les plafonds, mais aucun écran du Cockpit ne l'appelle encore ; la bascule sur le secours en cas de réponse tronquée (`stop_reason = max_tokens`, spécification § 7) n'est pas faite, la passerelle LLM étant un bouchon.
 - **Dimensions et réindexation** : la dimension choisie est enregistrée et tracée, l'avertissement s'affiche, mais aucune réindexation n'est lancée (la vectorisation des documents n'est pas encore construite).
 
 ## 4. Questions ouvertes
@@ -119,3 +120,4 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 7. ~~Changement de mot de passe depuis le profil~~ : tranché le 28/09/2026, oui ; branché dans le Cockpit et la Console.
 8. **Secours de la vectorisation** : un modèle d'embedding de secours produit des vecteurs incompatibles avec ceux du principal ; s'il prenait le relais, la recherche sur l'index existant serait fausse. Faut-il interdire le secours pour la vectorisation, ou ne s'en servir qu'après une réindexation complète ?
 9. **Tarif du reranking Voyage** : OpenRouter le facture au token (0,05 $ et 0,02 $ / M) ; si la facturation passait à la requête, l'unité est à changer dans la fiche du modèle.
+10. **Repli des groupes par administrateur** : l'état plié / déplié est mémorisé par navigateur ; faut-il le stocker par administrateur (`/api/me/preferences`, clés `ia.asg.open` et `ia.net.open`) ?

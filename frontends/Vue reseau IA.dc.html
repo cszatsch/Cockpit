@@ -21,7 +21,7 @@ button:focus-visible{outline:2px solid #5fd0c3;outline-offset:2px}
 
         <sc-for list="{{ solo }}" as="r" hint-placeholder-count="2">
           <div style="display:grid;grid-template-columns:200px minmax(0,1fr);gap:18px;align-items:center;padding:14px 0;border-top:1px solid rgba(255,255,255,.07)">
-            <div><div style="font-weight:800;color:#fff;font-size:14px">{{ r.n }}</div><span style="{{ r.pill }}">{{ r.stL }}</span></div>
+            <div><div style="display:flex;align-items:center;gap:8px"><span style="font-weight:800;color:#fff;font-size:14px">{{ r.n }}</span><sc-if value="{{ r.isNew }}" hint-placeholder-val="{{ false }}"><span style="font-size:9px;font-weight:800;letter-spacing:.12em;color:#5fd0c3;padding:2px 6px;border-radius:5px;box-shadow:inset 0 0 0 1px rgba(95,208,195,.45)">NOUVEAU</span></sc-if></div><span style="{{ r.pill }}">{{ r.stL }}</span><sc-if value="{{ r.hasNeed }}" hint-placeholder-val="{{ false }}"><div style="font-size:11px;color:#7f97a8;margin-top:6px;font-variant-numeric:tabular-nums">Sortie requise ≈ {{ r.need }}</div></sc-if></div>
             <div style="display:flex;flex-direction:column;gap:8px">
               <sc-for list="{{ r.tracks }}" as="t" hint-placeholder-count="2">
                 <div style="{{ t.rowSt }}">
@@ -35,8 +35,15 @@ button:focus-visible{outline:2px solid #5fd0c3;outline-offset:2px}
         </sc-for>
 
         <sc-for list="{{ groups }}" as="g" hint-placeholder-count="1">
+          <sc-if value="{{ g.folded }}" hint-placeholder-val="{{ true }}">
+          <div style="display:grid;grid-template-columns:200px minmax(0,1fr);gap:18px;align-items:center;padding:14px 0 4px;border-top:1px solid rgba(255,255,255,.07)">
+            <div><div style="font-weight:800;color:#fff;font-size:14px">{{ g.n }}</div><span style="{{ g.pillB }}">{{ g.stS }}</span></div>
+            <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;font-size:12px"><sc-for list="{{ g.mini }}" as="m" hint-placeholder-count="3"><sc-if value="{{ m.conn }}" hint-placeholder-val="{{ false }}"><span style="{{ m.cSt }}"></span></sc-if><span style="{{ m.nodeSt }}">{{ m.step }}</span><span style="{{ m.nSt }}">{{ m.n }}</span></sc-for><span style="flex:1"></span><button type="button" onClick="{{ g.toggle }}" aria-expanded="false" style="display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border:0;border-radius:8px;background:transparent;font:inherit;font-size:11.5px;font-weight:700;color:#9fb3c1;cursor:pointer" style-hover="background:rgba(255,255,255,.07);color:#fff">Déplier<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></button></div>
+          </div>
+          </sc-if>
+          <sc-if value="{{ g.open }}" hint-placeholder-val="{{ false }}">
           <div style="display:flex;flex-direction:column">
-            <div style="border-top:1px solid rgba(255,255,255,.07);padding-top:14px;display:flex;flex-wrap:wrap;align-items:center;gap:10px"><span style="font-weight:800;color:#fff;font-size:14px">{{ g.n }}</span><span style="font-size:11.5px;color:#7f97a8;white-space:nowrap">{{ g.sub }}</span><span style="flex:1"></span><span style="{{ g.pill }}">{{ g.stL }}</span></div>
+            <div style="border-top:1px solid rgba(255,255,255,.07);padding-top:14px;display:flex;flex-wrap:wrap;align-items:center;gap:10px"><span style="font-weight:800;color:#fff;font-size:14px">{{ g.n }}</span><span style="font-size:11.5px;color:#7f97a8;white-space:nowrap">{{ g.sub }}</span><span style="flex:1"></span><span style="{{ g.pill }}">{{ g.stL }}</span><button type="button" onClick="{{ g.toggle }}" aria-expanded="true" style="display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border:0;border-radius:8px;background:transparent;font:inherit;font-size:11.5px;font-weight:700;color:#9fb3c1;cursor:pointer" style-hover="background:rgba(255,255,255,.07);color:#fff">Plier<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"></path></svg></button></div>
             <sc-for list="{{ g.steps }}" as="r" hint-placeholder-count="3">
               <div style="{{ r.rowSt }}">
                 <div style="position:relative;display:flex;align-items:flex-start;gap:10px">
@@ -56,6 +63,7 @@ button:focus-visible{outline:2px solid #5fd0c3;outline-offset:2px}
               </div>
             </sc-for>
           </div>
+          </sc-if>
         </sc-for>
       </div>
 
@@ -72,12 +80,15 @@ button:focus-visible{outline:2px solid #5fd0c3;outline-offset:2px}
         </sc-for>
       </div>
     </div>
-    <div style="display:flex;flex-wrap:wrap;gap:10px 20px;font-size:12px;color:#9fb3c1;border-top:1px solid rgba(255,255,255,.08);padding-top:14px"><span style="display:inline-flex;align-items:center;gap:8px"><span style="width:22px;border-top:2px solid #5fd0c3"></span>Modèle principal</span><span style="display:inline-flex;align-items:center;gap:8px"><span style="width:22px;border-top:2px dashed #8ea4b3"></span>Secours</span><span style="display:inline-flex;align-items:center;gap:8px"><span style="width:22px;border-top:2px solid #f07b67"></span>Coupé : clé invalide</span><span style="display:inline-flex;align-items:center;gap:8px"><span style="width:22px;border-top:2px solid #f7a41c"></span>Secours en service</span><span style="display:inline-flex;align-items:center;gap:8px"><span style="width:22px;border-top:2px solid #3b5264"></span>Suspendu en amont</span><span style="margin-left:auto;color:#7f97a8">Voie lumineuse = modèle qui répond en ce moment.</span></div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px 20px;font-size:12px;color:#9fb3c1;border-top:1px solid rgba(255,255,255,.08);padding-top:14px"><span style="display:inline-flex;align-items:center;gap:8px"><span style="width:22px;border-top:2px solid #5fd0c3"></span>Modèle principal</span><span style="display:inline-flex;align-items:center;gap:8px"><span style="width:22px;border-top:2px dashed #8ea4b3"></span>Secours</span><span style="display:inline-flex;align-items:center;gap:8px"><span style="width:22px;border-top:2px solid #f07b67"></span>Coupé : clé invalide</span><span style="display:inline-flex;align-items:center;gap:8px"><span style="width:22px;border-top:2px solid #f7a41c"></span>Secours en service</span><span style="display:inline-flex;align-items:center;gap:8px"><span style="width:22px;border-top:2px solid #3b5264"></span>Suspendu en amont</span><span style="display:inline-flex;align-items:center;gap:8px"><span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#c9d6de">64k</span>Max output tokens</span><span style="margin-left:auto;color:#7f97a8">Voie lumineuse = modèle qui répond en ce moment.</span></div>
   </div>
 </div>
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;googleKeyOk&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Simulation&quot;},&quot;assignment&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Record&lt;string,{p:string,f:string}&gt;&quot;},&quot;providers&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Provider[]&quot;},&quot;models&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Model[]&quot;},&quot;functions&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;AiFunction[]&quot;},&quot;groups&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Record&lt;string,{n:string,d:string}&gt;&quot;},&quot;onOpenModel&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(modelId: string) =&gt; void&quot;},&quot;onOpenProvider&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(providerId: string) =&gt; void&quot;},&quot;onTestKey&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(providerId: string) =&gt; void&quot;},&quot;onReplaceKey&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(providerId: string) =&gt; void&quot;},&quot;onAddFallback&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(functionId: string, slot: 'p'|'f') =&gt; void&quot;},&quot;embedded&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;boolean&quot;}}">
 class Component extends DCLogic {
+  state = { open: this.loadOpen() };
+  loadOpen() { try { return JSON.parse(localStorage.getItem('rise-ia-net-open') || '[]'); } catch (e) { return []; } }
+  toggle(gid) { this.setState(s => { const o = s.open.includes(gid) ? s.open.filter(x => x !== gid) : s.open.concat(gid); try { localStorage.setItem('rise-ia-net-open', JSON.stringify(o)); } catch (e) {} return { open: o }; }); }
   componentDidMount() { if (!window.RISE_IA) this._t = setInterval(() => { if (window.RISE_IA) { clearInterval(this._t); this.forceUpdate(); } }, 30); }
   componentWillUnmount() { clearInterval(this._t); }
 
@@ -86,8 +97,19 @@ class Component extends DCLogic {
     if (pv.logo) return { hasLogo: true, ini: '', logoSt: 'width:14px;height:14px;flex:none;background:url("' + pv.logo + '") center/contain no-repeat' + (pv.mono ? ';filter:invert(1)' : '') };
     return { hasLogo: true, ini: pv.ini || pv.n.slice(0, 2), logoSt: 'width:14px;height:14px;flex:none;border-radius:4px;background:' + (pv.tint || '#43586a') + ';color:#fff;font-size:7.5px;font-weight:800;display:grid;place-items:center' };
   }
-  // Une voie (principal ou secours) : ligne + puce modèle
+  // Voie + capacité de sortie quand la fonction exige une longueur (needOut)
   track(fn, slot, r, provs) {
+    const D = window.RISE_IA, t = this.track0(fn, slot, r, provs), m = slot === 'p' ? r.p : r.s;
+    if (!fn.needOut || !m || !D.usable(m, provs) || r.st === 'blocked') return t;
+    const fits = D.fitsOut(fn, m), live = r.live && r.live.id === m.id;
+    t.tag = D.kTok(m.maxOut) + (fits ? '' : ' < ' + D.kTok(fn.needOut));
+    t.tagSt = "font-family:'JetBrains Mono',monospace;font-size:10px;white-space:nowrap;color:" + (!fits ? '#f7c46a' : live ? (slot === 'f' ? '#f7c46a' : '#5fd0c3') : '#8ea4b3');
+    if (!fits) { t.chipSt = t.chipSt.replace(/box-shadow:[^;]*$/, 'box-shadow:inset 0 0 0 1px rgba(247,164,28,.45)'); t.rowSt = t.rowSt.replace(/opacity:[\d.]+/, 'opacity:.85'); }
+    t.aria += ' · sortie max ' + D.nf(m.maxOut || 0, 0) + ' tokens';
+    return t;
+  }
+  // Une voie (principal ou secours) : ligne + puce modèle
+  track0(fn, slot, r, provs) {
     const D = window.RISE_IA, P = this.props, m = slot === 'p' ? r.p : r.s, blocked = r.st === 'blocked';
     const chip = (bg, ring) => 'width:250px;max-width:52%;height:32px;border-radius:9px;border:0;cursor:pointer;display:flex;align-items:center;gap:8px;padding:0 10px;font:inherit;font-size:12.5px;text-align:left;background:' + bg + ';box-shadow:' + ring;
     const lab = c => 'width:18px;flex:none;font-size:10.5px;font-weight:800;color:' + c;
@@ -112,7 +134,7 @@ class Component extends DCLogic {
   }
   pill(t, l, block) {
     const C = { ok: ['rgba(95,208,195,.14)', '#5fd0c3'], fallback: ['rgba(247,164,28,.16)', '#f7c46a'], down: ['rgba(240,123,103,.16)', '#f5a193'], blocked: ['rgba(255,255,255,.08)', '#c9d6de'] }[t];
-    return 'display:' + (block ? 'inline-flex;margin-top:6px' : 'inline-flex') + ';align-items:center;height:20px;padding:0 8px;border-radius:999px;font-size:10.5px;font-weight:700;white-space:nowrap;background:' + C[0] + ';color:' + C[1];
+    return 'display:' + (block ? 'flex;width:max-content;margin-top:6px' : 'inline-flex') + ';align-items:center;height:20px;padding:0 8px;border-radius:999px;font-size:10.5px;font-weight:700;white-space:nowrap;background:' + C[0] + ';color:' + C[1];
   }
 
   renderVals() {
@@ -123,12 +145,20 @@ class Component extends DCLogic {
     const R = D.states(fns, asg, models, provs), L = { ok: 'Opérationnel', fallback: 'Sur secours', down: 'Indisponible', blocked: 'Suspendue' };
     const tracks = (f, r) => { const t = [this.track(f, 'p', r, provs)]; if (r.s || r.st === 'down' || r.st === 'ok') t.push(this.track(f, 'f', r, provs)); if (r.st === 'blocked' && !r.s) t.length = 1; return t; };
 
-    const solo = fns.filter(f => !f.group).map(f => ({ n: f.sh || f.n, stL: L[R[f.id].st], pill: this.pill(R[f.id].st, '', true), tracks: tracks(f, R[f.id]) }));
+    const solo = fns.filter(f => !f.group).map(f => ({ n: f.sh || f.n, stL: L[R[f.id].st], pill: this.pill(R[f.id].st, '', true), tracks: tracks(f, R[f.id]),
+      isNew: !!f.isNew, hasNeed: !!f.needOut, need: f.needOut ? D.nf(f.needOut, 0) : '' }));
 
     const gl = Object.keys(groups).map(gid => {
       const steps = fns.filter(f => f.group === gid).sort((a, b) => a.step - b.step), first = steps.find(f => ['down', 'fallback'].includes(R[f.id].st));
-      const gs = !first ? 'ok' : R[first.id].st;
+      const gs = !first ? 'ok' : R[first.id].st, isOpen = this.state.open.includes(gid);
+      const mNode = { ok: 'background:#5fd0c3;color:#0f2034', fallback: 'background:#f7a41c;color:#0f2034', down: 'background:#f07b67;color:#0f2034', blocked: 'box-shadow:inset 0 0 0 1.5px #5f7686;color:#9fb3c1;opacity:.6' };
+      const mini = steps.map((f, i) => { const st = R[f.id].st, prev = i ? R[steps[i - 1].id].st : null;
+        return { conn: i > 0, cSt: 'width:28px;height:0;' + (prev === 'down' ? 'border-top:2px dashed rgba(240,123,103,.55)' : st === 'blocked' ? 'border-top:2px dashed #3b5264' : 'border-top:2px solid rgba(95,208,195,.6)'),
+          nodeSt: 'width:22px;height:22px;border-radius:50%;font-size:10.5px;font-weight:800;display:grid;place-items:center;flex:none;' + mNode[st], step: String(f.step), n: f.n,
+          nSt: st === 'blocked' ? 'color:#9fb3c1;opacity:.6' : 'color:#fff;font-weight:700' }; });
       return {
+        open: isOpen, folded: !isOpen, toggle: () => this.toggle(gid), mini, pillB: this.pill(gs, '', true),
+        stS: !first ? 'Opérationnelle' : gs === 'down' ? 'Interrompue · étape ' + first.step : 'Secours · étape ' + first.step,
         n: groups[gid].n, sub: steps.length + ' étapes en série', pill: this.pill(gs), stL: !first ? 'Opérationnelle' : gs === 'down' ? 'Interrompue à l’étape ' + first.step : 'Sur secours à l’étape ' + first.step,
         steps: steps.map((f, i) => {
           const r = R[f.id], st = r.st;

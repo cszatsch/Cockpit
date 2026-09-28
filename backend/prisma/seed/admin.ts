@@ -338,7 +338,8 @@ export async function seedDemoAi(db: PrismaClient): Promise<void> {
   await db.aiModel.create({ data: { id: 'rerank35', providerId: 'cohere', name: 'Rerank 3.5', description: 'Reclassement multilingue', category: 'RERANKING', priceUnit: 'REQUESTS', pricePer1kRequests: 1.85, releaseDate: new Date('2024-12-02') } });
   await db.modelAssignment.create({ data: { functionId: 'doc_vec', primaryModelId: 'te3large', fallbackModelId: null, primaryDimension: 3072 } });
   await db.modelAssignment.create({ data: { functionId: 'doc_rrk', primaryModelId: 'rerank35', fallbackModelId: null } });
-  const asg = { insights: { p: 'sonnet', f: 'gpt5' }, crud: { p: 'haiku', f: 'gpt5mini' }, doc_syn: { p: 'gpro', f: 'sonnet' } };
+  // Rapports : secours Mistral Large 2 (32k) plus court que la sortie requise, pour illustrer l'alerte (spécification IA § 7).
+  const asg = { insights: { p: 'sonnet', f: 'gpt5' }, crud: { p: 'haiku', f: 'gpt5mini' }, rapports: { p: 'sonnet', f: 'mlarge' }, doc_syn: { p: 'gpro', f: 'sonnet' } };
   for (const [fn, a] of Object.entries(asg)) {
     await db.modelAssignment.create({ data: { functionId: fn, primaryModelId: a.p, fallbackModelId: a.f } });
   }
