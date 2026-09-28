@@ -281,3 +281,9 @@ Demande du commanditaire : deux écrans de connexion distincts (application, adm
 | Actualités agrégées | `GET /api/widgets/news?category=actualites|economie&limit=` : toutes les cartes actives de la catégorie (Actualités ou Finance), formats reconnus par leur structure (GNews, NewsData.io, Finnhub, RSS / Atom), plus récentes d'abord, doublons retirés ; la source affichée est le journal d'origine quand l'agrégateur le donne ; état par source. La tuile Actualités du Cockpit l'utilise (plus de GDELT). | `src/domain/news.ts`, `WidgetNewsController` |
 | Quotas | Cache de 30 min pour les catégories Actualités et Finance ; contrôle de santé sauté pour une carte ayant réussi un vrai appel dans l'heure (sinon 96 contrôles / jour consommeraient l'essentiel des quotas gratuits). | `PROXY_CACHE_NEWS_MS`, `HEALTH_SKIP_IF_OK_MS` |
 | TomTom | Clé saisie par l'administrateur le 28/09/2026 : test 200 en 206 ms (Paris : 16 / 16 km/h) ; proxy du widget 200 (Étoile), clé absente de la réponse. | carte `tomtom-traffic` |
+
+## Tri des actualités agrégées (28/09/2026)
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Ordre des articles | Arbitrage du commanditaire : garder le tri par date (plus récents d'abord), toutes sources confondues. Les articles des offres gratuites de GNews (12 h de retard) et NewsData.io, plus anciens, n'apparaissent en tête que si les flux RSS n'ont rien de plus récent. | `mergeFeeds` (`src/domain/rss.ts`) |
