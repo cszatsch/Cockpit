@@ -124,11 +124,14 @@ export const CONSOLE_PAGE_TITLES: Record<string, string> = {
   snaps: 'Snapshots', modules: 'Modules', apis: 'Registre des cartes API', notifs: 'Notifications et alertes', profil: 'Mon profil',
 };
 
+/** Nom de skill comparable : sans tenir compte de la casse, des espaces en trop ni de la forme de l'apostrophe (« Guidage Console » = « Guidage console »). */
+export const skillKey = (n: string) => n.trim().replace(/\s+/g, ' ').replace(/[’']/g, '’').toLocaleLowerCase('fr');
+
 /** Choix de la skill de guidage parmi les skills actives. */
 export function pickGuidanceSkill<T extends SkillText>(skills: T[]): T | null {
   const on = skills.filter((s) => s.on);
-  for (const n of CONSOLE_GUIDANCE_SKILLS) {
-    const hit = on.find((s) => s.n === n) ?? on.find((s) => s.n.startsWith(n));
+  for (const n of CONSOLE_GUIDANCE_SKILLS.map(skillKey)) {
+    const hit = on.find((s) => skillKey(s.n) === n) ?? on.find((s) => skillKey(s.n).startsWith(n));
     if (hit) return hit;
   }
   return null;
@@ -146,4 +149,19 @@ export function assembleConsoleGuidancePrompt(base: string, persona: PersonaText
 
 ## Page de console ouverte
 ${page} · ${title}`;
+}
+
+/** Faits transmis avec une question à Jev dans la Console (moteur de la page et données du serveur) : 4 000 caractères au plus. */
+export const CONSOLE_FACTS_MAX = 4000;
+
+/**
+ * Message utilisateur envoyé au modèle de la fonction `guidage` : la question, puis les faits relevés par la
+ * Console (données du serveur, réponse préparée par la page). Le modèle les reformule avec la voix de Jev
+ * sans rien inventer au-delà ; sans fait, la question seule.
+ */
+export function consoleUserPrompt(text: string, facts: string[]): string {
+  const f = facts.map((x) => x.trim()).filter(Boolean);
+  if (!f.length) return text;
+  const block = f.map((x) => `- ${x.replace(/\n+/g, '\n  ')}`).join('\n').slice(0, CONSOLE_FACTS_MAX);
+  return `${text}\n\n## Données de la console\nFaits relevés par la Console au moment de la question : appuie ta réponse sur eux, sans rien inventer au-delà.\n${block}`;
 }

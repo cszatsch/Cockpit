@@ -5,6 +5,7 @@ import { EventBus } from './events';
 import { ApiError } from './errors';
 import { decryptSecret } from './crypto';
 import { KeyTestResult, ProviderKeyTester } from './provider-key-tester';
+import { LlmCallError, LlmClient } from './llm-client';
 import { costOf, ModelCategory } from '../domain/ai-pricing';
 
 export type AiFunctionId = 'insights' | 'crud' | 'rapports' | 'guidage' | 'doc_vec' | 'doc_rrk' | 'doc_syn';
@@ -89,16 +90,24 @@ export const aiFunctionLabel = (id: string) => {
 export const budgetLineOf = (functionId: string) => aiFunction(functionId)?.budgetLine ?? functionId;
 
 /**
+ * Fonctions dont la génération est réelle (décision du 28/09/2026) : le Jev de la Console (`guidage`).
+ * Les autres fonctions gardent le bouchon ; hors ligne (tests), toutes le gardent.
+ */
+export const LIVE_FUNCTIONS: readonly AiFunctionId[] = ['guidage'];
+/** Longueur maximale d'une réponse générée en direct (jetons), bornée par celle du modèle. */
+export const LIVE_MAX_OUTPUT_TOKENS = 1024;
+
+/**
  * Passerelle LLM (brief Cockpit § 7.14, Console § 7.2-7.4 et § 10.2).
  * Le moteur réel est hors périmètre : cette implémentation est un **bouchon déterministe**
  * (texte construit à partir du prompt, jetons estimés à ~4 caractères par jeton) qui respecte
  * les règles de la plateforme : modèle principal, bascule sur le secours si le fournisseur du principal
  * n'est pas OK, refus si aucun n'est disponible, et une ligne `UsageRecord` par appel au tarif du moment.
- * Pour brancher de vrais fournisseurs, remplacer `generate()`. Le test des clés (`ping()`) est réel.
+ * Les fonctions de `LIVE_FUNCTIONS` génèrent réellement chez le fournisseur (`LlmClient`). Le test des clés (`ping()`) est réel.
  */
 @Injectable()
 export class LlmService {
-  constructor(private readonly prisma: PrismaService, private readonly events: EventBus, private readonly keys: ProviderKeyTester) {}
+  constructor(private readonly prisma: PrismaService, private readonly events: EventBus, private readonly keys: ProviderKeyTester, private readonly client: LlmClient) {}
 
   /**
    * Modèle disponible : actif, de la catégorie attendue (LLM par défaut : Embedding et Reranking ne génèrent
@@ -112,10 +121,51 @@ export class LlmService {
     return p?.status === 'OK';
   }
 
-  /** Appel via l'affectation d'une fonction (principal, sinon secours). */
+  /**
+   * Appel via l'affectation d'une fonction (principal, sinon secours).
+   * Fonction en direct (`LIVE_FUNCTIONS`) : vraie génération chez le fournisseur ; si le principal échoue
+   * à l'appel (délai, erreur du fournisseur), le secours prend la demande ; si les deux échouent, 503.
+   */
   async complete(input: { functionId: AiFunctionId; prompt: string; system?: string; projectId?: string | null; source: UsageSourceCode; maxWords?: number }): Promise<LlmResult> {
     const route = await this.route(input.functionId);
-    return this.run(route.modelId, input, route.fallback);
+    if (!(LIVE_FUNCTIONS.includes(input.functionId) && this.client.live)) return this.run(route.modelId, input, route.fallback);
+    const fn = aiFunction(input.functionId);
+    const label = `Fonction ${fn?.short ?? input.functionId}`;
+    try {
+      return await this.runLive(route.modelId, input, route.fallback);
+    } catch (e) {
+      if (!(e instanceof LlmCallError)) throw e;
+      const asg = await this.prisma.modelAssignment.findUnique({ where: { functionId: input.functionId } });
+      if (route.fallback || !(await this.modelAvailable(asg?.fallbackModelId, fn?.category ?? 'LLM'))) throw new ApiError(503, 'AI_UNAVAILABLE', `${label} indisponible : ${e.message}`);
+      try {
+        return await this.runLive(asg!.fallbackModelId!, input, true);
+      } catch (e2) {
+        if (!(e2 instanceof LlmCallError)) throw e2;
+        throw new ApiError(503, 'AI_UNAVAILABLE', `${label} indisponible : ${e.message} ; secours : ${e2.message}`);
+      }
+    }
+  }
+
+  /** Vraie génération : clé du fournisseur déchiffrée le temps de l'appel, jetons comptés par le fournisseur. */
+  private async runLive(modelId: string, input: { functionId: AiFunctionId; prompt: string; system?: string; projectId?: string | null; source: UsageSourceCode }, fallbackUsed: boolean): Promise<LlmResult> {
+    const model = await this.prisma.aiModel.findUniqueOrThrow({ where: { id: modelId } });
+    const provider = await this.prisma.provider.findUniqueOrThrow({ where: { id: model.providerId } });
+    if (!provider.keyCipher) throw new LlmCallError(`${provider.name} : aucune clé enregistrée`);
+    let key: string;
+    try {
+      key = decryptSecret(provider.keyCipher);
+    } catch {
+      throw new LlmCallError(`${provider.name} : clé illisible`);
+    }
+    const t0 = Date.now();
+    const out = await this.client.generate({
+      providerId: provider.id, providerName: provider.name, model: model.providerModelId || model.id, key,
+      system: input.system ?? '', prompt: input.prompt, maxTokens: Math.min(LIVE_MAX_OUTPUT_TOKENS, model.maxOutputTokens ?? LIVE_MAX_OUTPUT_TOKENS),
+    });
+    const tokensIn = out.tokensIn ?? Math.max(1, Math.ceil(((input.system ? input.system.length + 2 : 0) + input.prompt.length) / 4));
+    const tokensOut = out.tokensOut ?? Math.max(1, Math.ceil(out.text.length / 4));
+    const costEur = await this.record(model, input.functionId, { tokensIn, tokensOut, requests: 0 }, fallbackUsed, input);
+    return { text: out.text, modelId: model.id, providerId: model.providerId, tokensIn, tokensOut, costEur, fallbackUsed, ms: Date.now() - t0 };
   }
 
   /** Modèle qui répond pour une fonction : principal utilisable, sinon secours ; sinon 503 explicite. */

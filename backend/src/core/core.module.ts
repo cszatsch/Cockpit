@@ -17,6 +17,7 @@ import { MailerService } from './mailer.service';
 import { SessionService } from './auth/session.service';
 import { CredentialsService } from './auth/credentials.service';
 import { ProviderKeyTester } from './provider-key-tester';
+import { LlmClient } from './llm-client';
 
 /** Socle commun au Cockpit et à la Console : base, authentification, droits, audit, date du jour. */
 @Global()
@@ -29,7 +30,7 @@ import { ProviderKeyTester } from './provider-key-tester';
     }),
   ],
   controllers: [AuthController],
-  providers: [{ provide: APP_GUARD, useClass: AuthGuard }, AccessService, AuditService, TodayService, StorageService, EventBus, LlmService, JevPromptService, JobsService, MailerService, SessionService, CredentialsService, ProviderKeyTester],
-  exports: [AccessService, AuditService, TodayService, StorageService, EventBus, LlmService, JevPromptService, JobsService, MailerService, SessionService, CredentialsService, ProviderKeyTester],
+  providers: [{ provide: APP_GUARD, useClass: AuthGuard }, AccessService, AuditService, TodayService, StorageService, EventBus, LlmService, JevPromptService, JobsService, MailerService, SessionService, CredentialsService, ProviderKeyTester, LlmClient],
+  exports: [AccessService, AuditService, TodayService, StorageService, EventBus, LlmService, JevPromptService, JobsService, MailerService, SessionService, CredentialsService, ProviderKeyTester, LlmClient],
 })
 export class CoreModule {}

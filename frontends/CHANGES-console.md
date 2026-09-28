@@ -234,3 +234,7 @@ Les captures sont écrites dans `OUT` (par défaut `<tmp>/rise-console-e2e`).
 ## Registre des cartes API : clé à saisir (28/09/2026)
 
 - `Registre API.dc.html` : une carte dont l'endpoint attend une clé (`{key}`) sans l'avoir affiche « Clé à saisir » (tableau : « À saisir ») et le bouton « Remplacer la clé », pour saisir la clé d'une carte créée sans (TomTom Traffic). Aucun style modifié.
+
+## Jev : toutes les questions passent par la fonction guidage (28/09/2026)
+
+- `admin-api.js` (`c.jevReply`) : chaque question part à `POST /api/admin/assistant/messages`, et plus seulement celles que le moteur local ne comprend pas. La réponse du moteur local est envoyée comme faits (`facts`) ; la réponse du modèle la remplace, et les boutons, choix, confirmations et récapitulatifs du moteur local restent affichés en dessous. Sans réponse du modèle (`ai: null`) ou en cas d'erreur, la réponse locale s'affiche telle quelle. Design et textes des écrans inchangés.

@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, HttpCode, OnModuleInit, Param, Patch, Post, Query, Res } from '@nestjs/common';
 import { JevPromptService } from '../core/jev-prompt.service';
+import { CONSOLE_FACTS_MAX, consoleUserPrompt } from '../domain/jev-prompt';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
@@ -214,44 +215,55 @@ export class ConsoleController implements OnModuleInit {
     return notifications;
   }
 
-  // ───────────── Jev (console) — bouchon ─────────────
+  // ───────────── Jev (console) ─────────────
 
   /**
-   * Jev de la console : répond et propose des actions qui exigent une confirmation explicite ;
-   * il ne lit, n'affiche ni ne saisit jamais de clé API et ne déclenche aucune action irréversible (§ 9.12).
+   * Jev de la console (spécification IA § 8) : **chaque question** passe par la fonction `guidage` — modèle
+   * principal, sinon secours —, avec le prompt système de la Console (base, Identité, Personnalité, skill
+   * « Guidage console », page ouverte). Les données utiles (invitations, comptes, dépense du mois) et les
+   * faits préparés par la page (`facts`) accompagnent la question ; les actions proposées exigent une
+   * confirmation explicite. Seul le refus de toute clé API répond sans modèle : il ne lit, n'affiche ni ne
+   * saisit jamais de clé API (§ 9.12). Modèles indisponibles : la réponse factuelle, sinon le motif.
    */
   @Post('assistant/messages')
   @HttpCode(200)
   async jev(@Body() body: unknown) {
-    const input = parse(z.object({ context: z.object({ section: z.string().max(40) }).strict(), text: z.string().trim().min(1).max(2000) }).strict(), body);
+    const input = parse(
+      z.object({ context: z.object({ section: z.string().max(40) }).strict(), text: z.string().trim().min(1).max(2000), facts: z.string().max(CONSOLE_FACTS_MAX).optional() }).strict(),
+      body,
+    );
     const t = input.text.toLowerCase();
     if (/(cl[ée]s?\b.*(affiche|montre|donne|lis|saisis|voir))|((affiche|montre|donne|lis|saisis).*cl[ée])|sk-|api key/i.test(t)) {
-      return { reply: 'Je ne lis, n’affiche ni ne saisis jamais de clé API. Pour remplacer une clé, ouvrez « Fournisseurs et modèles ».', sources: [], actions: [{ type: 'OPEN_SECTION', section: 'providers', requiresConfirmation: false }] };
+      return { reply: 'Je ne lis, n’affiche ni ne saisis jamais de clé API. Pour remplacer une clé, ouvrez « Fournisseurs et modèles ».', sources: [], actions: [{ type: 'OPEN_SECTION', section: 'providers', requiresConfirmation: false }], ai: null };
     }
     const actions: any[] = [];
-    let reply: string;
+    const facts: string[] = [];
     if (/relanc/.test(t)) {
       const invited = await this.prisma.account.findMany({ where: { status: 'INVITED' } });
-      reply = `${invited.length} invitation(s) en attente. Je peux les relancer après votre confirmation.`;
+      facts.push(`${invited.length} invitation(s) en attente${invited.length ? ` : ${invited.map((a) => a.fullName).join(', ')}` : ''}. La relance se fait après confirmation de l’administrateur.`);
       actions.push({ type: 'RESEND_INVITES', accountIds: invited.map((a) => a.id), requiresConfirmation: true });
     } else if (/suspend/.test(t)) {
       const accounts = await this.prisma.account.findMany({ where: { status: 'ACTIVE' } });
       const target = accounts.filter((a) => t.includes(a.fullName.toLowerCase()));
-      reply = target.length ? `Je peux suspendre ${target.map((a) => a.fullName).join(', ')} : confirmez l’action.` : 'Précisez le nom du compte à suspendre.';
+      facts.push(target.length ? `Compte(s) actif(s) visé(s) : ${target.map((a) => a.fullName).join(', ')}. La suspension se fait après confirmation de l’administrateur.` : 'Aucun compte actif nommé dans la demande : il faut préciser le nom du compte à suspendre.');
       if (target.length) actions.push({ type: 'SUSPEND_ACCOUNTS', accountIds: target.map((a) => a.id), requiresConfirmation: true });
     } else if (/budget|co[uû]t|consomm/.test(t)) {
       const m = await this.usage.month();
-      reply = `Dépense du mois : ${m.spent} €, projection fin de mois : ${m.projection} €${m.crossDate ? `, franchissement du plafond prévu le ${m.crossDate}` : ''}.`;
+      facts.push(`Dépense du mois : ${m.spent} €, projection fin de mois : ${m.projection} €${m.crossDate ? `, franchissement du plafond prévu le ${m.crossDate}` : ''}.`);
       actions.push({ type: 'OPEN_SECTION', section: 'conso', requiresConfirmation: false });
     } else if (/snapshot/.test(t)) {
-      reply = 'Je peux préparer un snapshot manuel : donnez-lui un libellé, puis confirmez.';
+      facts.push('Un snapshot manuel se prépare dans « Snapshots » : il faut lui donner un libellé, puis confirmer.');
       actions.push({ type: 'OPEN_SECTION', section: 'snaps', requiresConfirmation: false });
-    } else {
-      // Guidage console (spécification IA § 8) : fonction `guidage`, principal puis secours ; la page ouverte est dans le prompt système.
-      const res = await this.llm.complete({ functionId: 'guidage', prompt: input.text, system: await this.jevPrompt.consolePrompt(input.context.section), source: 'COCKPIT' }).catch(() => null);
-      reply = res?.text ?? 'Je n’ai pas compris la demande.';
     }
-    return { reply, sources: [], actions };
+    if (input.facts?.trim()) facts.push(`Réponse préparée par la page : ${input.facts.trim()}`);
+    try {
+      const res = await this.llm.complete({ functionId: 'guidage', prompt: consoleUserPrompt(input.text, facts), system: await this.jevPrompt.consolePrompt(input.context.section), source: 'COCKPIT' });
+      return { reply: res.text, sources: [], actions, ai: { functionId: 'guidage', modelId: res.modelId, fallbackUsed: res.fallbackUsed } };
+    } catch (e: any) {
+      const why = String(e?.response?.message ?? e?.message ?? 'modèles indisponibles');
+      const own = facts.filter((f) => !f.startsWith('Réponse préparée par la page'));
+      return { reply: own.length ? own.join(' ') : `Je ne peux pas répondre pour l’instant : ${why}`, sources: [], actions, ai: null, unavailable: why };
+    }
   }
 
 }

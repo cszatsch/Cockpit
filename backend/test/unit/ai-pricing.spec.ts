@@ -110,3 +110,38 @@ describe('Guidage console : prompt (spécification IA § 8)', () => {
     expect(assembleConsoleGuidancePrompt('Base', null, [skills[0]], 'conso')).toBe('Base\n\n## Page de console ouverte\nconso · Consommation et coûts');
   });
 });
+
+describe('Guidage console : skill, message au modèle, protocole du fournisseur', () => {
+  const { pickGuidanceSkill, skillKey, consoleUserPrompt, CONSOLE_FACTS_MAX } = require('../../src/domain/jev-prompt');
+  const { protocolFor } = require('../../src/core/llm-client');
+  const sk = (n: string, on = true, position = 0) => ({ n, t: 'x', on, position });
+
+  it('nom de la skill reconnu sans tenir compte de la casse, des espaces ni de l’apostrophe', () => {
+    expect(skillKey('  Guidage   Console ')).toBe('guidage console');
+    expect(skillKey('Guider l\'utilisateur')).toBe(skillKey('Guider l’utilisateur'));
+    expect(pickGuidanceSkill([sk('Insights'), sk('Guidage Console')])?.n).toBe('Guidage Console');
+    expect(pickGuidanceSkill([sk('GUIDAGE CONSOLE (v2)')])?.n).toBe('GUIDAGE CONSOLE (v2)');
+    expect(pickGuidanceSkill([sk('Guidage Cockpit'), sk('Insights')])).toBeNull();
+    expect(pickGuidanceSkill([sk('Guidage console', false)])).toBeNull();
+    // « Guidage console » passe avant les anciens noms.
+    expect(pickGuidanceSkill([sk('Guider l\'utilisateur'), sk('guidage console')])?.n).toBe('guidage console');
+  });
+
+  it('message au modèle : la question seule, ou suivie des faits de la console, bornés', () => {
+    expect(consoleUserPrompt('Bonjour', [])).toBe('Bonjour');
+    expect(consoleUserPrompt('Bonjour', ['  ', ''])).toBe('Bonjour');
+    const p = consoleUserPrompt('Coût ?', ['Dépense du mois : 12 €.', 'ligne 1\nligne 2']);
+    expect(p).toBe('Coût ?\n\n## Données de la console\nFaits relevés par la Console au moment de la question : appuie ta réponse sur eux, sans rien inventer au-delà.\n- Dépense du mois : 12 €.\n- ligne 1\n  ligne 2');
+    const long = consoleUserPrompt('Q', ['y'.repeat(10_000)]);
+    expect(long.split('\n').at(-1)!.length).toBe(CONSOLE_FACTS_MAX);
+  });
+
+  it('protocole de génération reconnu par le fournisseur', () => {
+    expect(protocolFor('anthropic', 'Anthropic')).toEqual({ kind: 'anthropic' });
+    expect(protocolFor('google', 'Google')).toEqual({ kind: 'gemini' });
+    expect(protocolFor('openai', 'OpenAI')).toMatchObject({ kind: 'openai', base: 'https://api.openai.com/v1', maxField: 'max_completion_tokens' });
+    expect(protocolFor('mistral', 'Mistral AI')).toMatchObject({ kind: 'openai', base: 'https://api.mistral.ai/v1', maxField: 'max_tokens' });
+    expect(protocolFor('openrouter', 'OpenRouter')).toMatchObject({ base: 'https://openrouter.ai/api/v1' });
+    expect(protocolFor('cohere', 'Cohere')).toBeNull();
+  });
+});
