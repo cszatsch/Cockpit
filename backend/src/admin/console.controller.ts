@@ -247,7 +247,8 @@ export class ConsoleController implements OnModuleInit {
       reply = 'Je peux préparer un snapshot manuel : donnez-lui un libellé, puis confirmez.';
       actions.push({ type: 'OPEN_SECTION', section: 'snaps', requiresConfirmation: false });
     } else {
-      const res = await this.llm.complete({ functionId: 'insights', prompt: `[console/${input.context.section}] ${input.text}`, system: await this.jevPrompt.systemPrompt(), source: 'COCKPIT' }).catch(() => null);
+      // Guidage console (spécification IA § 8) : fonction `guidage`, principal puis secours ; la page ouverte est dans le prompt système.
+      const res = await this.llm.complete({ functionId: 'guidage', prompt: input.text, system: await this.jevPrompt.consolePrompt(input.context.section), source: 'COCKPIT' }).catch(() => null);
       reply = res?.text ?? 'Je n’ai pas compris la demande.';
     }
     return { reply, sources: [], actions };

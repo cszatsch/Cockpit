@@ -107,3 +107,42 @@ export const DEMO_SKILLS: Array<{ id: string; n: string; on: boolean; t: string 
   { id: 's4', n: 'Assister l’administration', on: false, t: "## Objectif\nAssister l’administrateur de la plateforme.\n\n## Consignes\n- Contrôler un fichier d’initialisation et lister les non-conformités.\n- Expliquer une panne IA et proposer le correctif." },
   { id: 's5', n: 'Guider l’utilisateur', on: true, t: "## Objectif\nRépondre aux questions « comment faire » sur le Cockpit.\n\n## Consignes\n- Répondre en trois étapes au plus.\n- Terminer par le lien vers l’écran concerné." },
 ];
+
+/**
+ * Skill de guidage de la Console (spécification IA § 8) : la première skill **active** dont le nom est l'un
+ * de ceux-ci (ou commence par lui), dans cet ordre. « Guider l’utilisateur » est le nom de la spécification ;
+ * « Répondre sur la Console d’administration » est la skill rédigée pour la Console (28/09/2026).
+ */
+export const CONSOLE_GUIDANCE_SKILLS = ['Répondre sur la Console d’administration', 'Guider l’utilisateur'];
+
+/** Pages de la Console : identifiant (`S.sec`) → titre, pour situer la question de l'administrateur. */
+export const CONSOLE_PAGE_TITLES: Record<string, string> = {
+  overview: 'Vue d’ensemble', users: 'Utilisateurs', admins: 'Administrateurs', rights: 'Droits et habilitations',
+  providers: 'Fournisseurs et modèles', assign: 'Affectation des modèles', conso: 'Consommation et coûts',
+  persona: 'Persona', skills: 'Skills', library: 'Bibliothèque des projets', init: 'Initialisation d’un projet',
+  snaps: 'Snapshots', modules: 'Modules', apis: 'Registre des cartes API', notifs: 'Notifications et alertes', profil: 'Mon profil',
+};
+
+/** Choix de la skill de guidage parmi les skills actives. */
+export function pickGuidanceSkill<T extends SkillText>(skills: T[]): T | null {
+  const on = skills.filter((s) => s.on);
+  for (const n of CONSOLE_GUIDANCE_SKILLS) {
+    const hit = on.find((s) => s.n === n) ?? on.find((s) => s.n.startsWith(n));
+    if (hit) return hit;
+  }
+  return null;
+}
+
+/**
+ * Prompt du guidage console (spécification IA § 8), dans cet ordre : contexte système, persona (Identité,
+ * Personnalité), skill de guidage si elle est active, puis la page de console ouverte (identifiant et titre).
+ */
+export function assembleConsoleGuidancePrompt(base: string, persona: PersonaText | null, skills: SkillText[], page: string): string {
+  const skill = pickGuidanceSkill(skills);
+  const head = assembleJevPrompt(base, persona, skill ? [{ ...skill, position: 0 }] : []);
+  const title = CONSOLE_PAGE_TITLES[page] ?? page;
+  return `${head}
+
+## Page de console ouverte
+${page} · ${title}`;
+}

@@ -47,9 +47,11 @@ describe('Console — skills de Jev', () => {
   it('prompt de Jev : skills actives après le prompt de base, dans l’ordre ; une skill désactivée disparaît dès la réponse suivante', async () => {
     const llm = t.app.get(LlmService);
     const spy = jest.spyOn(llm, 'complete');
+    // Jev du Cockpit : toutes les skills actives (le Jev de la Console n'envoie que la skill de guidage, voir guidage.spec.ts).
+    const pmo = await t.as(WHO.pmo);
     const ask = async () => {
       spy.mockClear();
-      await admin.post('/api/admin/assistant/messages', { context: { section: 'skills' }, text: 'Bonjour Jev' }).expect(200);
+      await pmo.post('/api/projects/RISE/assistant/messages', { context: { space: 'pilotage', tab: 'actions' }, text: 'Bonjour Jev' }).expect(200);
       return spy.mock.calls[0][0].system!;
     };
     let sys = await ask();
@@ -63,10 +65,6 @@ describe('Console — skills de Jev', () => {
     sys = await ask();
     expect(sys).not.toContain('Guider l’utilisateur');
 
-    // Jev du Cockpit : même prompt système.
-    spy.mockClear();
-    await (await t.as(WHO.pmo)).post('/api/projects/RISE/assistant/messages', { context: { space: 'pilotage', tab: 'actions' }, text: 'Où en est le projet ?' }).expect(200);
-    expect(spy.mock.calls[0][0].system).toBe(sys);
     spy.mockRestore();
   });
 });

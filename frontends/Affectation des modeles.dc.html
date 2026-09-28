@@ -16,10 +16,10 @@ select:focus-visible,button:focus-visible{outline:2px solid #1d8f86;outline-offs
 <div data-screen-label="Affectation des modèles" style="{{ wrapSt }}">
   <sc-if value="{{ standalone }}" hint-placeholder-val="{{ true }}"><div style="margin-bottom:8px"><div style="font-size:11px;font-weight:800;letter-spacing:.16em;color:#1d8f86">INTELLIGENCE ARTIFICIELLE</div><h1 style="margin:4px 0 0;font-size:30px;font-weight:800;font-style:italic;letter-spacing:-.03em">Affectation des modèles</h1><div style="font-size:13px;color:#43586a;margin-top:4px">Un modèle principal et un modèle de secours pour chaque fonction IA du Cockpit.</div></div></sc-if>
 
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px">
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px">
     <sc-for list="{{ solo }}" as="c" hint-placeholder-count="2">
       <div style="background:#fff;border:1px solid #e1e9e7;border-radius:18px;padding:18px 20px;display:flex;flex-direction:column;gap:12px">
-        <div style="display:flex;align-items:flex-start;gap:10px"><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="font-size:15px;font-weight:800">{{ c.n }}</span><sc-if value="{{ c.isNew }}" hint-placeholder-val="{{ false }}"><span style="font-size:9.5px;font-weight:800;letter-spacing:.12em;color:#146b64;padding:3px 7px;border-radius:6px;background:#e6f4f2">NOUVEAU</span></sc-if></div><div style="font-size:11.5px;color:#5c7280;margin-top:3px">{{ c.vol }}</div></div><span style="{{ c.pill }}"><span style="{{ c.dot }}"></span>{{ c.stL }}</span></div>
+        <div style="display:flex;align-items:flex-start;gap:10px"><div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span title="{{ c.full }}" style="font-size:15px;font-weight:800">{{ c.n }}</span><sc-if value="{{ c.isNew }}" hint-placeholder-val="{{ false }}"><span style="font-size:9.5px;font-weight:800;letter-spacing:.12em;color:#146b64;padding:3px 7px;border-radius:6px;background:#e6f4f2">NOUVEAU</span></sc-if></div><div style="font-size:11.5px;color:#5c7280;margin-top:3px">{{ c.vol }}</div></div><span style="{{ c.pill }}"><span style="{{ c.dot }}"></span>{{ c.stL }}</span></div>
         <div style="display:flex;flex-direction:column;gap:8px">
           <div style="position:relative"><span aria-hidden="true" style="position:absolute;left:11px;top:12px;width:10px;height:10px;border-radius:50%;background:#f0752b;pointer-events:none"></span>{{ c.p.el }}</div>
           <div style="position:relative"><span aria-hidden="true" style="position:absolute;left:11px;top:12px;width:10px;height:10px;border-radius:50%;border:2px solid #10233a;pointer-events:none"></span>{{ c.f.el }}</div>
@@ -34,7 +34,7 @@ select:focus-visible,button:focus-visible{outline:2px solid #1d8f86;outline-offs
         </div></sc-if>
         <sc-if value="{{ c.hasMsg }}" hint-placeholder-val="{{ false }}"><div style="{{ c.msgSt }}"><span style="flex:1;min-width:0">{{ c.msg }}</span></div></sc-if>
         <sc-if value="{{ c.hasFix }}" hint-placeholder-val="{{ false }}"><button onClick="{{ c.fix }}" style="align-self:flex-start;min-height:30px;padding:6px 12px;line-height:1.3;text-align:left;border-radius:9px;border:0;background:#10233a;color:#fff;font:inherit;font-size:12px;font-weight:700;cursor:pointer" style-hover="background:#1d3654">{{ c.fixL }}</button></sc-if>
-        <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:10px;border-top:1px solid #eef3f2;padding-top:10px;margin-top:auto"><span style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#5c7280;white-space:nowrap;padding-bottom:4px">Coût mensuel estimé</span><span style="display:flex;flex-direction:column;align-items:flex-end;gap:2px"><span style="font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap">{{ c.cost }}</span><sc-if value="{{ c.hasAlt }}" hint-placeholder-val="{{ false }}"><span style="font-size:11.5px;font-weight:600;color:#8a5a12;white-space:nowrap">{{ c.alt }}</span></sc-if></span></div>
+        <div style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:2px 10px;border-top:1px solid #eef3f2;padding-top:10px;margin-top:auto"><span style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#5c7280;white-space:nowrap;padding-bottom:4px">Coût mensuel estimé</span><span style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;margin-left:auto;text-align:right"><span style="font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap">{{ c.cost }}</span><sc-if value="{{ c.hasEst }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;color:#5c7280">{{ c.est }}</span></sc-if><sc-if value="{{ c.hasAlt }}" hint-placeholder-val="{{ false }}"><span style="font-size:11.5px;font-weight:600;color:#8a5a12">{{ c.alt }}</span></sc-if></span></div>
       </div>
     </sc-for>
   </div>
@@ -127,7 +127,7 @@ class Component extends DCLogic {
 
   sel(fn, slot, a, models, provs) {
     const D = window.RISE_IA, cur = a[slot] || '', other = slot === 'p' ? a.f : a.p, m = D.model(models, cur);
-    const opts = D.catModels(models, fn.cat).map(x => { const pv = D.prov(provs, x.pv) || {}; return { v: x.id, l: x.n + (fn.needOut && x.maxOut ? ' · ' + D.kTok(x.maxOut) + (D.fitsOut(fn, x) ? '' : ' trop court') : '') + (pv.st !== 'ok' ? ' · clé refusée' : ' · ' + D.eur(D.cost(fn, x))), dis: x.id === other }; });
+    const opts = D.catModels(models, fn.cat).map(x => { const pv = D.prov(provs, x.pv) || {}; return { v: x.id, l: x.n + (fn.needOut && x.maxOut && !D.fitsOut(fn, x) ? ' · ' + D.kTok(x.maxOut) + ' trop court' : '') + (pv.st !== 'ok' ? ' · clé refusée' : ' · ' + (D.isEst(fn) ? '≈ ' : '') + D.eur(D.cost(fn, x))), dis: x.id === other }; });
     const head = slot === 'f' || !cur ? [{ v: '', l: slot === 'f' ? 'Aucun modèle de secours' : 'Aucun modèle ' + D.CAT[fn.cat].l, dis: false }] : [];
     const bad = !!m && !D.usable(m, provs), live = slot === 'f' && !!m && D.usable(m, provs) && !D.usable(D.model(models, a.p), provs);
     const short = !!m && !D.fitsOut(fn, m), bd = bad ? '1px solid #efc6bf' : live ? '1.5px solid #f7a41c' : short ? '1px solid #f3d193' : '1px solid #cfdcd9';
@@ -172,7 +172,7 @@ class Component extends DCLogic {
       markSt: 'position:absolute;top:-4px;bottom:-4px;width:2px;margin-left:-1px;border-radius:1px;background:#10233a;left:calc(20px + (100% - 62px) * ' + (need / sc).toFixed(3) + ')' };
   }
   msgSt(t) { const c = { down: '#a2352a', fallback: '#8a5a12', warn: '#8a5a12', wait: '#43586a', muted: '#5c7280' }[t]; return 'display:flex;align-items:center;gap:6px;font-size:11.5px;line-height:1.45;text-wrap:pretty;color:' + c + ';font-weight:' + (t === 'muted' ? 500 : 700); }
-  vol(fn) { const D = window.RISE_IA, v = fn.vol || {}; return v.req != null ? D.nf(v.req, 0) + ' requêtes · 30 j' : D.nf(v.in || 0, 1) + ' M entrée' + (v.out != null ? ' · ' + D.nf(v.out, 1) + ' M sortie' : '') + ' · 30 j'; }
+  vol(fn) { const D = window.RISE_IA, v = fn.vol || {}; if (D.isEst(fn)) return 'Pas encore d’historique'; return v.req != null ? D.nf(v.req, 0) + ' requêtes · 30 j' : D.nf((v.in || 0) + (v.out || 0), 1) + ' M tokens · 30 j'; }
 
   renderVals() {
     const D = window.RISE_IA, E = !!this.props.embedded, wrapSt = E ? 'display:flex;flex-direction:column;gap:14px' : 'max-width:1160px;margin:0 auto;padding:36px 40px 40px;display:flex;flex-direction:column;gap:14px';
@@ -183,9 +183,10 @@ class Component extends DCLogic {
 
     const solo = fns.filter(f => !f.group).map(f => {
       const a = draft[f.id] || {}, r = R[f.id], ad = this.advise(f, a, r, models, provs, false), c = D.cost(f, r.p);
-      return { n: f.n, vol: this.vol(f), stL: L[r.st], ...this.pill(r.st), p: this.sel(f, 'p', a, models, provs), f: this.sel(f, 'f', a, models, provs),
+      const est = D.isEst(f);
+      return { n: f.sh || f.n, full: f.n, vol: this.vol(f), stL: L[r.st], hasEst: est, est: est ? 'estimé sur ' + D.nf(f.est.req || 0, 0) + ' questions / mois' : '', ...this.pill(r.st), p: this.sel(f, 'p', a, models, provs), f: this.sel(f, 'f', a, models, provs),
         hasMsg: !!ad.msg, msg: ad.msg, msgSt: this.msgSt(ad.tone), hasFix: !!ad.alt, fixL: ad.fixL, fix: ad.alt ? setF(f.id, ad.alt.id) : null,
-        cost: D.eur(c), hasAlt: r.st === 'fallback', alt: D.eur(D.cost(f, r.s)) + ' sur secours',
+        cost: (est ? '≈ ' : '') + D.eur(c), hasAlt: r.st === 'fallback', alt: D.eur(D.cost(f, r.s)) + ' sur secours',
         isNew: !!f.isNew, hasGauge: !!f.needOut, g: f.needOut ? this.gauge(f, r) : {} };
     });
 

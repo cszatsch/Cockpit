@@ -24,11 +24,13 @@
     { id: 'rerank35', pv: 'cohere', n: 'Rerank 3.5', d: 'Reclassement multilingue', cat: 'reranking', rel: '2024-12-02', price: { unit: 'requests', per1k: 1.85 }, act: true }
   ];
 
-  // vol : volume réel des 30 derniers jours (M tokens ou requêtes) · needOut : sortie maximale requise · isNew : badge « Nouveau »
+  // vol : volume réel des 30 derniers jours (M tokens ou requêtes) · est : estimation tant que vol est null (fonction sans historique ; req = questions / mois)
+  // needOut : sortie maximale requise · isNew : badge « Nouveau » · scope : 'cockpit' (défaut) ou 'console'
   const FUNCTIONS = [
     { id: 'insights', n: 'Analyse des données et insights', sh: 'Insights', cat: 'llm', d: 'Lit les données du projet et produit les signaux, écarts et recommandations.', vol: { in: 6.8, out: 1.1 } },
     { id: 'gestion', n: 'Création, modification et suppression des données', sh: 'Gestion des données', cat: 'llm', d: 'Prépare les modifications demandées à Jev, l’assistant du Cockpit ; l’utilisateur les valide avant enregistrement.', vol: { in: 2.4, out: 0.6 } },
     { id: 'rapports', n: 'Génération de rapports', sh: 'Rapports', cat: 'llm', isNew: true, needOut: 38000, d: 'Rédige les rapports de comité, hebdomadaires et de phase.', vol: { in: 1.9, out: 0.9 } },
+    { id: 'guidage', n: 'Guider l’utilisateur sur la console', sh: 'Guidage console', cat: 'llm', isNew: true, scope: 'console', d: 'Répond aux administrateurs : où se trouve un réglage, comment le configurer, quoi corriger.', vol: null, est: { in: 0.9, out: 0.25, req: 800 } },
     { id: 'doc_vec', group: 'documents', step: 1, n: 'Vectorisation', sh: 'Vectorisation', cat: 'embedding', d: 'Texte → vecteurs, pour la recherche sémantique.', vol: { in: 4.2 } },
     { id: 'doc_rrk', group: 'documents', step: 2, n: 'Reclassement', sh: 'Reclassement', cat: 'reranking', d: 'Trie les passages par pertinence.', vol: { req: 3150 } },
     { id: 'doc_syn', group: 'documents', step: 3, n: 'Synthèse', sh: 'Synthèse', cat: 'llm', d: 'Rédige décisions, actions, risques.', vol: { in: 3.9, out: 0.7 } }
@@ -39,6 +41,7 @@
     insights: { p: 'gemini25pro', f: 'sonnet45' },
     gestion: { p: 'sonnet45', f: 'gpt5mini' },
     rapports: { p: 'sonnet45', f: 'mistralL2' },
+    guidage: { p: 'haiku45', f: 'gpt5mini' },
     doc_vec: { p: 'geminiEmb', f: '' },
     doc_rrk: { p: 'rerank35', f: '' },
     doc_syn: { p: 'haiku45', f: 'mistralL2' }
@@ -56,7 +59,7 @@
   const usable = (m, provs) => !!m && m.act && (prov(provs, m.pv) || {}).st === 'ok';
 
   function cost(fn, m) {
-    if (!m || !fn) return null; const p = m.price || {}, v = fn.vol || {};
+    if (!m || !fn) return null; const p = m.price || {}, v = fn.vol || fn.est || {};
     if (p.unit === 'requests') return (v.req || 0) / 1000 * (p.per1k || 0);
     return (v.in || 0) * (p.in || 0) + (v.out || 0) * (p.out || 0);
   }
@@ -93,11 +96,12 @@
   // Capacité de sortie : needOut = longueur du plus long rendu attendu (tokens)
   const kTok = v => v >= 1000 ? Math.round(v / 1000) + 'k' : String(v || 0);
   const fitsOut = (fn, m) => !fn || !fn.needOut || !m || m.cat !== 'llm' || (m.maxOut || 0) >= fn.needOut;
+  const isEst = fn => !!fn && !fn.vol && !!fn.est;
   const catModels = (models, cat) => models.filter(m => m.cat === cat && m.act);
   // Embedding : dimension retenue (choix de l'affectation, sinon défaut du modèle) et réindexation.
   const dimOf = (a, models) => { const m = model(models, (a || {}).p); return !m || m.cat !== 'embedding' ? null : (+(a || {}).d || m.dim || null); };
   const reindex = (before, after, models) => !!(before && before.p) && (before.p !== (after || {}).p || dimOf(before, models) !== dimOf(after, models));
   const REINDEX_WARNING = "Changer de modèle d'embedding oblige à réindexer tous les documents. Chaque modèle a son propre espace vectoriel : les vecteurs de deux modèles différents ne sont pas compatibles, même s'ils ont la même dimension. Sans réindexation, la recherche renverra des résultats faux ou incohérents.";
 
-  window.RISE_IA = { PROVIDERS, MODELS, FUNCTIONS, GROUPS, ASSIGN, CAT, eur, nf, num, model, prov, usable, cost, priceLabel, priceShort, age, states, catModels, dimOf, reindex, REINDEX_WARNING, kTok, fitsOut };
+  window.RISE_IA = { PROVIDERS, MODELS, FUNCTIONS, GROUPS, ASSIGN, CAT, eur, nf, num, model, prov, usable, cost, priceLabel, priceShort, age, states, catModels, dimOf, reindex, REINDEX_WARNING, kTok, fitsOut, isEst };
 })();

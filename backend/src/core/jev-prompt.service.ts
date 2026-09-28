@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Persona } from '@prisma/client';
 import { PrismaService } from './prisma.service';
-import { assembleJevPrompt, JEV_SYSTEM_PROMPT, PersonaText } from '../domain/jev-prompt';
+import { assembleConsoleGuidancePrompt, assembleJevPrompt, JEV_SYSTEM_PROMPT, PersonaText } from '../domain/jev-prompt';
 
 /** Ligne `Persona` → forme de l'écran et du prompt (`{ identity, soul }`). */
 export const personaText = (p: Persona): PersonaText => ({
@@ -24,5 +24,14 @@ export class JevPromptService {
       this.prisma.skill.findMany({ where: { on: true }, orderBy: { position: 'asc' } }),
     ]);
     return assembleJevPrompt(JEV_SYSTEM_PROMPT, persona ? personaText(persona) : null, skills);
+  }
+
+  /** Prompt du Jev de la Console (fonction `guidage`) : une seule skill, celle du guidage, et la page ouverte. */
+  async consolePrompt(page: string): Promise<string> {
+    const [persona, skills] = await Promise.all([
+      this.prisma.persona.findUnique({ where: { id: 'jev' } }),
+      this.prisma.skill.findMany({ where: { on: true }, orderBy: { position: 'asc' } }),
+    ]);
+    return assembleConsoleGuidancePrompt(JEV_SYSTEM_PROMPT, persona ? personaText(persona) : null, skills, page);
   }
 }

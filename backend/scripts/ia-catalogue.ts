@@ -12,7 +12,7 @@
  */
 import { PrismaClient } from '@prisma/client';
 import { normalizeDimensions, normalizePrice } from '../src/domain/ai-pricing';
-import { CATALOG_MODELS, CATALOG_PROVIDERS, toEur, USD_PER_EUR, USD_PER_EUR_DATE } from '../prisma/catalog/ia-modeles';
+import { CATALOG_ASSIGNMENTS, CATALOG_MODELS, CATALOG_PROVIDERS, toEur, USD_PER_EUR, USD_PER_EUR_DATE } from '../prisma/catalog/ia-modeles';
 
 const slug = (name: string) => name.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60) || 'modele';
 const audit = (db: PrismaClient, action: string, target: string, entityType: string, entityId: string, severity: 'SENSITIVE' | 'CRITICAL' = 'SENSITIVE') =>
@@ -65,6 +65,18 @@ async function main(): Promise<number> {
       if (apply) {
         await db.aiModel.create({ data: { id, providerId: m.providerId, active: true, ...data } });
         await audit(db, 'Ajout d’un modèle', `${m.name} · ${cat} · catalogue du 28/09/2026 · ${price}`, 'AiModel', id);
+      }
+    }
+    // Affectations par défaut : seulement si la fonction n'est pas encore affectée (un choix de l'administrateur est gardé).
+    for (const a of CATALOG_ASSIGNMENTS) {
+      if (await db.modelAssignment.findUnique({ where: { functionId: a.functionId } })) { console.log(`= affectation ${a.functionId} : déjà présente`); continue; }
+      const find = ([pv, n]: [string, string]) => db.aiModel.findFirst({ where: { providerId: pv, name: { equals: n, mode: 'insensitive' } } });
+      const [p, f] = [await find(a.primary), await find(a.fallback)];
+      if (!p) { console.log(`! affectation ${a.functionId} : ${a.primary[1]} absent`); continue; }
+      console.log(`+ affectation ${a.functionId} : ${p.name} / ${f?.name ?? 'sans secours'}`);
+      if (apply) {
+        await db.modelAssignment.create({ data: { functionId: a.functionId, primaryModelId: p.id, fallbackModelId: f?.id ?? null } });
+        await audit(db, 'Changement de modèle principal', `${a.functionId} → ${p.name} (affectation par défaut)`, 'ModelAssignment', a.functionId);
       }
     }
     return 0;

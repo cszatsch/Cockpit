@@ -95,3 +95,18 @@ describe('Persona de Jev (spécification PERSONA § 5)', () => {
     expect(personaErrors({ ...DEMO_PERSONA, identity: { ...DEMO_PERSONA.identity, name: 'n'.repeat(31) } })).toHaveProperty(['identity.name']);
   });
 });
+
+describe('Guidage console : prompt (spécification IA § 8)', () => {
+  it('une seule skill de guidage, la page ouverte en dernier', () => {
+    const { assembleConsoleGuidancePrompt, pickGuidanceSkill } = require('../../src/domain/jev-prompt');
+    const skills = [
+      { n: 'Analyser le projet', t: 'A', on: true, position: 1 },
+      { n: 'Guider l’utilisateur dans les fonctionnalités', t: 'G', on: true, position: 2 },
+      { n: 'Répondre sur la Console d’administration', t: 'C', on: false, position: 3 },
+    ];
+    expect(pickGuidanceSkill(skills).n).toBe('Guider l’utilisateur dans les fonctionnalités');
+    expect(pickGuidanceSkill([{ ...skills[2], on: true }, skills[1]]).n).toBe('Répondre sur la Console d’administration');
+    expect(pickGuidanceSkill([skills[0]])).toBeNull();
+    expect(assembleConsoleGuidancePrompt('Base', null, [skills[0]], 'conso')).toBe('Base\n\n## Page de console ouverte\nconso · Consommation et coûts');
+  });
+});

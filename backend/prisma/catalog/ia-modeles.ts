@@ -173,4 +173,12 @@ export const OPENROUTER_MODELS: CatalogModel[] = [
 
 CATALOG_MODELS.push(...OPENROUTER_MODELS);
 
+/**
+ * Affectations par défaut créées si la fonction n'en a pas encore (spécification IA § 8) : le guidage console
+ * sur un LLM rapide et économique, avec un secours chez un autre fournisseur. L'administrateur peut les changer.
+ */
+export const CATALOG_ASSIGNMENTS: Array<{ functionId: string; primary: [string, string]; fallback: [string, string] }> = [
+  { functionId: 'guidage', primary: ['anthropic', 'Claude Haiku 4.5'], fallback: ['openai', 'GPT-6 Luna'] },
+];
+
 export const toEur = (usd: number) => Math.round((usd / USD_PER_EUR) * 10_000) / 10_000;

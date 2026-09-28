@@ -966,12 +966,15 @@ const CONSO = [
   { id: 'crud', n: 'Création, modification et suppression des données', sh: 'Gestion des données', vin: 50e6, vout: 12e6, fn: 'crud' },
   // Génération de rapports : nouvelle fonction, pas encore de consommation (volume nul, hors tirage de démonstration).
   { id: 'rapports', n: 'Génération de rapports', sh: 'Rapports', vin: 0, vout: 0, fn: 'rapports' },
+  // Guidage console : pas encore d’historique (estimation dans l’affectation) ; volume de démonstration nul.
+  { id: 'guidage', n: 'Guider l’utilisateur sur la console', sh: 'Guidage console', vin: 0, vout: 0, fn: 'guidage' },
   { id: 'docs', n: 'Documents', sh: 'Documents', vin: 180e6, vout: 9e6, fn: 'doc_syn' }];
 // API : fonctions affectables (spécification IA § 2) : catégorie acceptée, chaîne Documents en trois étapes.
 const FNS = [
   { id: 'insights', n: 'Analyse des données et insights', sh: 'Insights', d: 'Lit les données du projet et produit les signaux, écarts et recommandations.', cat: 'LLM', line: 'insights' },
   { id: 'crud', n: 'Création, modification et suppression des données', sh: 'Gestion des données', d: 'Prépare les modifications demandées à Jev, l’assistant du Cockpit ; l’utilisateur les valide avant enregistrement.', cat: 'LLM', line: 'crud' },
   { id: 'rapports', n: 'Génération de rapports', sh: 'Rapports', d: 'Rédige les rapports de comité, hebdomadaires et de phase.', cat: 'LLM', line: 'rapports', isNew: true, needOut: 38000 },
+  { id: 'guidage', n: 'Guider l’utilisateur sur la console', sh: 'Guidage console', d: 'Répond aux administrateurs : où se trouve un réglage, comment le configurer, quoi corriger.', cat: 'LLM', line: 'guidage', isNew: true, scope: 'console', est: { in: 0.9, out: 0.25, req: 800 } },
   { id: 'doc_vec', n: 'Vectorisation', sh: 'Vectorisation', d: 'Découpe le texte extrait en passages et les transforme en vecteurs pour la recherche sémantique.', cat: 'EMBEDDING', group: 'documents', step: 1, line: 'docs' },
   { id: 'doc_rrk', n: 'Reclassement', sh: 'Reclassement', d: 'Réordonne les passages trouvés selon leur pertinence réelle par rapport à la question posée.', cat: 'RERANKING', group: 'documents', step: 2, line: 'docs' },
   { id: 'doc_syn', n: 'Synthèse', sh: 'Synthèse', d: 'Rédige une réponse claire à partir des passages retenus : décisions, actions, risques.', cat: 'LLM', group: 'documents', step: 3, line: 'docs' }];
@@ -1076,7 +1079,7 @@ const csvDl = (name, lines) => { const b = new Blob(['\ufeff' + lines.join('\n')
 class Component extends DCLogic {
   state = this.init();
   init() {
-    const asg = { insights: { p: 'sonnet', f: 'gpt5' }, crud: { p: 'haiku', f: 'gpt5mini' }, rapports: { p: 'sonnet', f: 'mlarge' }, doc_vec: { p: '', f: '' }, doc_rrk: { p: '', f: '' }, doc_syn: { p: 'gpro', f: 'sonnet' } };
+    const asg = { insights: { p: 'sonnet', f: 'gpt5' }, crud: { p: 'haiku', f: 'gpt5mini' }, rapports: { p: 'sonnet', f: 'mlarge' }, guidage: { p: 'haiku', f: 'gpt5mini' }, doc_vec: { p: '', f: '' }, doc_rrk: { p: '', f: '' }, doc_syn: { p: 'gpro', f: 'sonnet' } };
     const snaps = {}; Object.keys(SNAPS0).forEach(p => snaps[p] = SNAPS0[p].map((s, i) => ({ id: s[0], t: s[1], k: s[2] ? 'man' : 'auto', lab: s[2] || '', by: s[3] || '', ix: i })));
     return {
       sec: 'overview', vw: typeof window !== 'undefined' ? window.innerWidth : 1400, mnav: false, loading: false, seen: { overview: 1 },
@@ -1415,11 +1418,13 @@ class Component extends DCLogic {
   iaVals() {
     const S = this.state, LOGO = { anthropic: './assets/logos/lh-anthropic.svg', openrouter: './assets/logos/lh-openrouter.webp', openai: './assets/logos/lh-openai.svg', mistral: './assets/logos/lh-mistral-color.svg', google: './assets/logos/lh-gemini-color.svg' }, v = this.vol30();
     const provs = S.provs.map(p => ({ id: p.id, n: p.n, st: p.st === 'ok' ? 'ok' : 'err', lat: p.lat, err: p.st === 'ok' ? null : p.err || (p.st === 'new' ? 'Clé jamais testée' : 'Clé invalide'), logo: LOGO[p.id], mono: p.id === 'anthropic' || p.id === 'openai', ini: p.n.slice(0, 2) }));
-    const fns = FNS.map(f => { const x = v[f.id] || { tin: 0, tout: 0, req: 0 }; const need = (S.aiNeed || {})[f.id] ?? f.needOut; return { id: f.id, n: f.n, sh: f.sh, d: f.d, cat: f.cat.toLowerCase(), group: f.group, step: f.step, isNew: !!f.isNew, needOut: need || undefined, vol: f.cat === 'RERANKING' ? { req: x.req } : f.cat === 'EMBEDDING' ? { in: x.tin / 1e6 } : { in: x.tin / 1e6, out: x.tout / 1e6 } }; });
+    const fns = FNS.map(f => { const x = v[f.id] || { tin: 0, tout: 0, req: 0 }; const need = (S.aiNeed || {})[f.id] ?? f.needOut; return { id: f.id, n: f.n, sh: f.sh, d: f.d, cat: f.cat.toLowerCase(), group: f.group, step: f.step, isNew: !!f.isNew, needOut: need || undefined, scope: f.scope || 'cockpit', est: f.est, vol: f.est && !this.aiHistory(f.id, x) ? null : f.cat === 'RERANKING' ? { req: x.req } : f.cat === 'EMBEDDING' ? { in: x.tin / 1e6 } : { in: x.tin / 1e6, out: x.tout / 1e6 } }; });
     return { provs, models: S.models.map(m => this.iaModel(m)), fns, groups: FN_GROUPS, asg: S.asg,
       openModel: id => this.openModelId(id), openProv: id => this.openFiche('prov', id), testKey: id => this.testKey(id), replKey: id => this.openKey(id), addFallback: () => this.go('assign'),
       saveAsg: d => { this.setState({ draft: JSON.parse(JSON.stringify(d)) }); this.saveAsg(); } };
   }
+  // Fonction estimée (guidage) : historique réel sur 30 jours, selon le serveur (`vol` non nul) ou, en démonstration, un volume non nul.
+  aiHistory(id, x) { const H = this.state.aiHist; return H ? !!H[id] : !!(x && (x.tin || x.tout || x.req)); }
   // Ancienneté (date de sortie) : badge « À surveiller » (12 à 24 mois) ou « Ancien » (> 24 mois).
   ageOf(m) { const a = m.rel && window.RISE_IA ? window.RISE_IA.age(m.rel) : null, show = !!a && a.tier !== 'recent'; return { ageOn: show, ageL: show ? a.tierL + ' · ' + a.l : '', ageT: m.rel ? 'Sorti le ' + m.rel.split('-').reverse().join('/') : '', ageSt: 'flex:none;display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:6px;font-size:10.5px;font-weight:700;' + (a && a.tier === 'old' ? 'background:#fbe4e1;color:#a2352a' : 'background:#fdf1dc;color:#8a5a12') }; }
   usedBy(mid) { const A = this.state.asg, r = []; FNS.forEach(f => { if (A[f.id].p === mid) r.push({ fn: f, role: 'principal' }); if (A[f.id].f === mid) r.push({ fn: f, role: 'secours' }); }); return r; }

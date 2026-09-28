@@ -7,7 +7,7 @@ import { decryptSecret } from './crypto';
 import { KeyTestResult, ProviderKeyTester } from './provider-key-tester';
 import { costOf, ModelCategory } from '../domain/ai-pricing';
 
-export type AiFunctionId = 'insights' | 'crud' | 'rapports' | 'doc_vec' | 'doc_rrk' | 'doc_syn';
+export type AiFunctionId = 'insights' | 'crud' | 'rapports' | 'guidage' | 'doc_vec' | 'doc_rrk' | 'doc_syn';
 export type UsageSourceCode = 'COCKPIT' | 'JEV' | 'NOTIFICATION' | 'IMPORT';
 
 export interface LlmResult {
@@ -39,10 +39,16 @@ export interface AiFunctionDef {
   isNew?: boolean;
   /** Sortie requise (tokens) tant qu'aucun appel n'a été mesuré : un LLM la couvre si son max output tokens l'atteint. */
   needOut?: number;
+  /** Surface servie (spécification IA § 8) : le Cockpit (défaut) ou la Console d'administration. Informatif. */
+  scope?: 'cockpit' | 'console';
+  /** Estimation mensuelle (M tokens en entrée et en sortie, questions par mois) utilisée tant que la fonction n'a pas de volume sur 30 jours. */
+  est?: { in: number; out: number; req: number };
 }
 
 /** Longueur du plus long rapport attendu (tokens), hypothèse de la spécification IA § 7 avant toute mesure. */
 export const REPORTS_NEED_OUT_DEFAULT = 38_000;
+/** Estimation mensuelle du guidage console (spécification IA § 8) : 0,9 M tokens en entrée, 0,25 M en sortie, 800 questions. */
+export const GUIDAGE_ESTIMATE = { in: 0.9, out: 0.25, req: 800 };
 
 /**
  * Fonctions IA du Cockpit (spécification IA § 2, 28/09/2026) : l'ancienne « Analyse de documents »
@@ -52,6 +58,7 @@ export const AI_FUNCTIONS: AiFunctionDef[] = [
   { id: 'insights', name: 'Analyse des données et insights', short: 'Insights', description: 'Lit les données du projet et produit les signaux, écarts et recommandations.', category: 'LLM', budgetLine: 'insights' },
   { id: 'crud', name: 'Création, modification et suppression des données', short: 'Gestion des données', description: 'Prépare les modifications demandées à Jev, l’assistant du Cockpit ; l’utilisateur les valide avant enregistrement.', category: 'LLM', budgetLine: 'crud' },
   { id: 'rapports', name: 'Génération de rapports', short: 'Rapports', description: 'Rédige les rapports de comité, hebdomadaires et de phase.', category: 'LLM', budgetLine: 'rapports', isNew: true, needOut: REPORTS_NEED_OUT_DEFAULT },
+  { id: 'guidage', name: 'Guider l’utilisateur sur la console', short: 'Guidage console', description: 'Répond aux administrateurs : où se trouve un réglage, comment le configurer, quoi corriger.', category: 'LLM', budgetLine: 'guidage', isNew: true, scope: 'console', est: GUIDAGE_ESTIMATE },
   { id: 'doc_vec', name: 'Vectorisation', short: 'Vectorisation', description: 'Découpe le texte extrait en passages et les transforme en vecteurs pour la recherche sémantique.', category: 'EMBEDDING', group: 'documents', step: 1, budgetLine: 'docs' },
   { id: 'doc_rrk', name: 'Reclassement', short: 'Reclassement', description: 'Réordonne les passages trouvés selon leur pertinence réelle par rapport à la question posée.', category: 'RERANKING', group: 'documents', step: 2, budgetLine: 'docs' },
   { id: 'doc_syn', name: 'Synthèse', short: 'Synthèse', description: 'Rédige une réponse claire à partir des passages retenus : décisions, actions, risques.', category: 'LLM', group: 'documents', step: 3, budgetLine: 'docs' },
@@ -67,6 +74,7 @@ export const AI_BUDGET_LINES: Array<{ id: string; name: string }> = [
   { id: 'insights', name: 'Analyse des données et insights' },
   { id: 'crud', name: 'Création, modification et suppression des données' },
   { id: 'rapports', name: 'Génération de rapports' },
+  { id: 'guidage', name: 'Guider l’utilisateur sur la console' },
   { id: 'docs', name: 'Documents (vectorisation, reclassement, synthèse)' },
 ];
 

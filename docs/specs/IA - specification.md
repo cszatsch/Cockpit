@@ -134,7 +134,7 @@ Le prop `googleKeyOk` (écrans 1b et 1f) simule la clé Google valide ou refusé
 - Le routeur, à l’exécution, doit passer au secours si le principal renvoie une réponse tronquée (`stop_reason = max_tokens`), et journaliser l’événement.
 
 ### Affectation des modèles
-- Cartes des fonctions autonomes : 3 par ligne sur grand écran (min 300 px).
+- Cartes des fonctions autonomes : 3 par ligne sur grand écran (min 300 px). **Remplacé en v3 : 4 par ligne (min 240 px), voir §8.**
 - Carte Rapports : badge Nouveau, jauge « Sortie maximale » (barres P et S proportionnelles au Max output tokens, repère = `needOut`, teal si couvert, ambre sinon).
 - Groupes (Documents) **repliés par défaut** : une ligne avec mini-tracé des étapes (mêmes couleurs d’état que la ligne complète), noms des étapes, état, total mensuel, bouton « Déplier ». Déplié : la ligne de traitement complète, bouton « Plier » dans l’en-tête. `aria-expanded` renseigné.
 - L’état replié / déplié est mémorisé (`localStorage` `rise-ia-asg-open`, liste des groupes ouverts). Pour un stockage par administrateur : `GET/PUT /api/me/preferences` avec la clé `ia.asg.open`.
@@ -146,3 +146,43 @@ Le prop `googleKeyOk` (écrans 1b et 1f) simule la clé Google valide ou refusé
 
 ### Fiche modèle
 - Aucune modification : le champ Max output tokens existe déjà ; la fonction Rapports apparaît automatiquement dans l’aperçu « Proposé pour » des modèles LLM.
+
+
+## 8. Évolution v3 : Guider l’utilisateur sur la console (variantes 2a et 2d)
+
+### Nouvelle fonction `guidage`
+```ts
+{ id: 'guidage', n: 'Guider l’utilisateur sur la console', sh: 'Guidage console', cat: 'llm',
+  isNew: true,          // badge « Nouveau » (à retirer après la mise en service)
+  scope: 'console',     // nouveau champ : 'cockpit' (défaut) | 'console'. Informatif, pas de rendu séparé en 2a / 2d
+  d: 'Répond aux administrateurs : où se trouve un réglage, comment le configurer, quoi corriger.',
+  vol: null,            // pas encore d’historique
+  est: { in: 0.9, out: 0.25, req: 800 } }  // estimation mensuelle (M tokens, questions / mois) tant que vol est null
+```
+- Affectation initiale : principal Claude Haiku 4.5 (rapide, économique), secours GPT-5 mini. L’administrateur peut changer les deux.
+- `AiFunction` gagne deux champs facultatifs : `scope` et `est`. Dès qu’un volume réel existe sur 30 jours, le serveur renvoie `vol` et l’estimation n’est plus utilisée.
+- `UsageRecord.fn` accepte `guidage`. Consommation et coûts l’affiche comme les autres fonctions.
+- Branchement Jev : dans la Console d’administration, les questions posées à Jev passent par la fonction `guidage`. Le prompt est assemblé ainsi : contexte système, puis persona, puis skill « Guider l’utilisateur » si elle est active, puis la page ouverte de la console (identifiant et titre de la page). Le routeur applique principal → secours comme pour les autres fonctions.
+
+### Règle d’estimation (`ia-data.js`)
+- `cost(fn, m)` utilise `fn.vol` s’il existe, sinon `fn.est`.
+- `isEst(fn)` est vrai quand `vol` est absent et `est` présent. L’écran préfixe alors les montants par « ≈ ».
+
+### Affectation des modèles (2a)
+- Les fonctions autonomes passent à **4 cartes par ligne** sur grand écran (`minmax(240px, 1fr)`). En dessous, la grille se replie naturellement sur 3, 2 ou 1 colonne.
+- Titre de carte = nom court `sh`. Le nom complet `n` est en infobulle (`title`).
+- Ligne de volume condensée : « X M tokens · 30 j » (entrée + sortie). Sans historique : « Pas encore d’historique ».
+- Listes de modèles : la capacité de sortie (« 128k ») ne figure plus dans le libellé, car la jauge de la carte Rapports l’affiche déjà. Seule la mention « · Nk trop court » reste, quand elle s’applique.
+- Pied de carte : le bloc de coût passe sous le libellé quand la carte est étroite (`flex-wrap`). Pour `guidage` : « ≈ 2,10 € » (montant de démonstration) et « estimé sur 800 questions / mois ».
+
+### Vue réseau (2d)
+- Ligne « Guidage console » après Rapports, avant Documents, avec le badge Nouveau. Les voies P et S suivent les règles existantes. Aucune modification du composant : la ligne vient des données.
+
+### Fiche modèle
+- Aucune modification. La fonction apparaît automatiquement dans l’aperçu « Proposé pour » des modèles LLM.
+
+### Recette v3
+1. Affectation : quatre cartes sur une ligne à 1 160 px, aucun texte ne déborde, le coût du guidage est préfixé « ≈ ».
+2. Changer le principal du guidage : l’estimation du bandeau d’enregistrement change.
+3. Vue réseau : la ligne Guidage console est lumineuse sur Claude Haiku 4.5. Couper la clé Anthropic : le secours GPT-5 mini passe en ambre.
+4. Une question posée à Jev dans la console est journalisée avec `fn = 'guidage'`.

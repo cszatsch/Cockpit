@@ -11,7 +11,7 @@ import { badRequest, businessRule, conflict, inUse, notFound, Usage } from '../c
 import { parse } from '../core/http';
 import { adminCtx } from './profiles.service';
 import { round2, UsageService } from './usage.service';
-import { addDays } from '../domain/dates';
+import { addDays, isoInTimezone } from '../domain/dates';
 import { AiModel } from '@prisma/client';
 import { chainStates, costOf, effectiveDimension, fitsOut, ModelCategory, normalizeDimensions, normalizePrice, Price, priceOf, reindexRequired, REINDEX_WARNING, Volume } from '../domain/ai-pricing';
 
@@ -56,6 +56,15 @@ const ModelFields = z.object({
   active: z.boolean(),
 }).partial();
 const ModelCreate = ModelFields.extend({ name: ModelFields.shape.name.unwrap(), category: Category, providerId: z.string().min(1, 'obligatoire') }).strict();
+
+/**
+ * Volume réel des 30 derniers jours (M tokens, requêtes) ; `null` pour une fonction estimée (`est`) tant
+ * qu'elle n'a aucun appel : l'écran affiche alors l'estimation préfixée « ≈ » (spécification IA § 8).
+ */
+function volOf(f: { est?: unknown }, v: Volume): { in: number; out: number; req: number } | null {
+  if (f.est && !v.tokensIn && !v.tokensOut && !v.requests) return null;
+  return { in: v.tokensIn / 1e6, out: v.tokensOut / 1e6, req: v.requests };
+}
 
 /** Identifiant lisible d'un modèle : nom sans accents ni ponctuation (« Claude Sonnet 4.5 » → claude-sonnet-4-5). */
 function modelSlug(name: string): string {
@@ -333,7 +342,9 @@ export class AiController implements OnModuleInit {
 
   /** Volume réel des 30 derniers jours par fonction : tokens en entrée, en sortie et requêtes. */
   private async volumes30d() {
-    const today = this.usage.todayIso();
+    // Fin de fenêtre : la plus tardive de la date du jour de la plateforme (DEMO_TODAY éventuel) et de la date
+    // réelle, pour compter les appels réels horodatés après une date de démonstration.
+    const today = [this.usage.todayIso(), isoInTimezone(new Date(), 'Europe/Paris')].sort().pop()!;
     const rows = await this.usage.records(addDays(today, -29), today);
     const out: Record<string, Volume> = {};
     for (const f of AI_FUNCTIONS) out[f.id] = { tokensIn: 0, tokensOut: 0, requests: 0 };
@@ -356,7 +367,7 @@ export class AiController implements OnModuleInit {
   async functions() {
     const { volumes, needOut } = await this.volumes30d();
     return {
-      functions: AI_FUNCTIONS.map((f) => ({ id: f.id, name: f.name, short: f.short, description: f.description, category: f.category, group: f.group ?? null, step: f.step ?? null, budgetLine: f.budgetLine, isNew: !!f.isNew, needOut: needOut[f.id] ?? null, volume30d: volumes[f.id] })),
+      functions: AI_FUNCTIONS.map((f) => ({ id: f.id, name: f.name, short: f.short, description: f.description, category: f.category, group: f.group ?? null, step: f.step ?? null, budgetLine: f.budgetLine, isNew: !!f.isNew, needOut: needOut[f.id] ?? null, scope: f.scope ?? 'cockpit', est: f.est ?? null, vol: volOf(f, volumes[f.id]), volume30d: volumes[f.id] })),
       groups: Object.entries(AI_GROUPS).map(([id, g]) => ({ id, name: g.name, description: g.description })),
     };
   }
@@ -398,6 +409,9 @@ export class AiController implements OnModuleInit {
         group: f.group ?? null,
         step: f.step ?? null,
         isNew: !!f.isNew,
+        scope: f.scope ?? 'cockpit',
+        est: f.est ?? null,
+        vol: volOf(f, volumes[f.id]),
         // Capacité de sortie : un LLM dont le max output tokens est inférieur tronquerait les rendus longs.
         needOut: needOut[f.id] ?? null,
         fits: needOut[f.id] ? { primary: fitsOut(needOut[f.id]!, models.find((m) => m.id === a?.primaryModelId)), fallback: a?.fallbackModelId ? fitsOut(needOut[f.id]!, models.find((m) => m.id === a.fallbackModelId)) : null } : null,

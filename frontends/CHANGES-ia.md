@@ -46,3 +46,7 @@ Livraison intégrée par fusion à trois voies (livraison v1 → v2 appliquée s
 |---|---|
 | `ia-data.js` exporte à la fois `kTok`, `fitsOut` (livraison) et `dimOf`, `reindex`, `REINDEX_WARNING` (dimensions) | les deux évolutions coexistent |
 | Affectation : sélecteur de dimension et avertissement de réindexation dans la carte Vectorisation, visibles une fois le groupe Documents déplié | dimensions des modèles d'embedding (28/09/2026) ; la confirmation de la console reprend l'avertissement même groupe replié |
+
+## Livraison IA v3 : guidage console (28/09/2026)
+
+Fusion à trois voies (v2 → v3 appliquée sur les écrans adaptés) : toutes les modifications de la v3 sont reprises (4 cartes par ligne, titre court et nom complet en infobulle, ligne de volume condensée, libellés allégés, « ≈ » et « estimé sur N questions / mois »). `ia-data.js` exporte à la fois `isEst` (v3) et `dimOf`, `reindex`, `REINDEX_WARNING`, `kTok`, `fitsOut`. `Vue reseau IA.dc.html` et `Fiche modele.dc.html` : inchangés.

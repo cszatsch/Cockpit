@@ -225,3 +225,8 @@ Les captures sont écrites dans `OUT` (par défaut `<tmp>/rise-console-e2e`).
 - `Sidebar Console.dc.html` remplacé par la version livrée (entrée `apis` dans Plateforme) ; prop `jevName` réappliquée à l'identique.
 - Signal `apis` de la sidebar (§ 2) : corail si une carte active est en erreur ou a une clé expirée, ambre si échéance ≤ 30 j ou quota ≥ 85 % (`apiSignal`) ; démonstration : `APIS0`, mêmes états que le composant.
 - `admin-api.js` : chargement `apis` (au démarrage et à l'ouverture), `apTest` (renvoie la promesse `{ code, ms, body }`), `apCreate`, `apRotate`, `apToggle` (route puis rechargement ; un refus rétablit l'état du serveur) ; `apiNow` = date du jour du serveur. En démonstration, le test reste simulé par le composant.
+
+## Guidage console (IA v3, 28/09/2026)
+
+- `FNS` : fonction `guidage` (scope console, estimation) ; `CONSO` : ligne Guidage console (volume de démonstration nul) ; affectation de démonstration Claude Haiku 4.5 / GPT-5 mini.
+- `iaVals()` transmet `scope`, `est` et `vol: null` tant que la fonction n'a pas d'historique (`aiHistory`, d'après `vol` renvoyé par `GET /functions`, chargé désormais au démarrage).
