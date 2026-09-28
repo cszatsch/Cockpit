@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700;1,800&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"><style>
+html,body{margin:0;background:#f2f6f5;font-family:'Plus Jakarta Sans',sans-serif;color:#10233a;-webkit-font-smoothing:antialiased;font-size:13px}
+*{box-sizing:border-box}a{color:#5fd0c3}a:hover{color:#fff}
+button:focus-visible{outline:2px solid #5fd0c3;outline-offset:2px}
+</style><script src="./ia-data.js"></script></helmet>
+
+<div data-screen-label="Vue réseau IA" style="max-width:1160px;margin:0 auto;padding:28px 28px 40px">
+  <div style="background:#0f2034;border-radius:20px;padding:26px 28px 20px;box-shadow:0 18px 50px -24px rgba(16,35,58,.55);color:#e6eef2;display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;flex-wrap:wrap;gap:28px">
+      <div style="flex:1 1 560px;min-width:0;display:flex;flex-direction:column">
+        <div style="display:grid;grid-template-columns:200px minmax(0,1fr);gap:18px;font-size:10.5px;letter-spacing:.14em;font-weight:800;color:#7f97a8;padding-bottom:12px"><span>FONCTIONS DU COCKPIT</span><span>ROUTE ACTIVE · MODÈLE QUI RÉPOND</span></div>
+
+        <sc-for list="{{ solo }}" as="r" hint-placeholder-count="2">
+          <div style="display:grid;grid-template-columns:200px minmax(0,1fr);gap:18px;align-items:center;padding:14px 0;border-top:1px solid rgba(255,255,255,.07)">
+            <div><div style="font-weight:800;color:#fff;font-size:14px">{{ r.n }}</div><span style="{{ r.pill }}">{{ r.stL }}</span></div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <sc-for list="{{ r.tracks }}" as="t" hint-placeholder-count="2">
+                <div style="{{ t.rowSt }}">
+                  <span style="{{ t.labSt }}">{{ t.lab }}</span>
+                  <span style="{{ t.lineSt }}"><sc-if value="{{ t.cut }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;left:50%;top:-9px;width:16px;height:16px;margin-left:-8px;border-radius:50%;background:#0f2034;box-shadow:inset 0 0 0 1.5px #f07b67;display:grid;place-items:center"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#f07b67" stroke-width="4" stroke-linecap="round"><path d="M6 6l12 12 M18 6L6 18"></path></svg></span></sc-if></span>
+                  <button onClick="{{ t.open }}" aria-label="{{ t.aria }}" style="{{ t.chipSt }}" style-hover="filter:brightness(1.18)"><sc-if value="{{ t.hasLogo }}" hint-placeholder-val="{{ false }}"><span style="{{ t.logoSt }}">{{ t.ini }}</span></sc-if><sc-if value="{{ t.plus }}" hint-placeholder-val="{{ false }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></sc-if><span style="{{ t.nameSt }}">{{ t.name }}</span><span style="{{ t.tagSt }}">{{ t.tag }}</span></button>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-for>
+
+        <sc-for list="{{ groups }}" as="g" hint-placeholder-count="1">
+          <div style="display:flex;flex-direction:column">
+            <div style="border-top:1px solid rgba(255,255,255,.07);padding-top:14px;display:flex;flex-wrap:wrap;align-items:center;gap:10px"><span style="font-weight:800;color:#fff;font-size:14px">{{ g.n }}</span><span style="font-size:11.5px;color:#7f97a8;white-space:nowrap">{{ g.sub }}</span><span style="flex:1"></span><span style="{{ g.pill }}">{{ g.stL }}</span></div>
+            <sc-for list="{{ g.steps }}" as="r" hint-placeholder-count="3">
+              <div style="{{ r.rowSt }}">
+                <div style="position:relative;display:flex;align-items:flex-start;gap:10px">
+                  <sc-if value="{{ r.hasNext }}" hint-placeholder-val="{{ false }}"><span style="{{ r.spineSt }}"></span></sc-if>
+                  <span style="{{ r.nodeSt }}">{{ r.step }}</span>
+                  <div style="padding-top:2px"><div style="font-weight:700;color:#fff;font-size:13px">{{ r.n }}</div><div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#7f97a8;margin-top:3px;letter-spacing:.04em">{{ r.cat }}</div></div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:8px">
+                  <sc-for list="{{ r.tracks }}" as="t" hint-placeholder-count="2">
+                    <div style="{{ t.rowSt }}">
+                      <span style="{{ t.labSt }}">{{ t.lab }}</span>
+                      <span style="{{ t.lineSt }}"><sc-if value="{{ t.cut }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;left:50%;top:-9px;width:16px;height:16px;margin-left:-8px;border-radius:50%;background:#0f2034;box-shadow:inset 0 0 0 1.5px #f07b67;display:grid;place-items:center"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#f07b67" stroke-width="4" stroke-linecap="round"><path d="M6 6l12 12 M18 6L6 18"></path></svg></span></sc-if></span>
+                      <button onClick="{{ t.open }}" aria-label="{{ t.aria }}" style="{{ t.chipSt }}" style-hover="filter:brightness(1.18)"><sc-if value="{{ t.hasLogo }}" hint-placeholder-val="{{ false }}"><span style="{{ t.logoSt }}">{{ t.ini }}</span></sc-if><sc-if value="{{ t.plus }}" hint-placeholder-val="{{ false }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></sc-if><span style="{{ t.nameSt }}">{{ t.name }}</span><span style="{{ t.tagSt }}">{{ t.tag }}</span></button>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="flex:0 0 210px;display:flex;flex-direction:column;gap:6px;border-left:1px solid rgba(255,255,255,.07);padding-left:24px">
+        <span style="font-size:10.5px;letter-spacing:.14em;font-weight:800;color:#7f97a8;padding-bottom:8px">FOURNISSEURS</span>
+        <sc-for list="{{ provs }}" as="p" hint-placeholder-count="5">
+          <div style="{{ p.boxSt }}">
+            <button onClick="{{ p.open }}" aria-label="Ouvrir la fiche {{ p.n }}" style="display:flex;align-items:center;gap:10px;border:0;background:transparent;padding:0;cursor:pointer;text-align:left;font:inherit;color:inherit"><span style="{{ p.tileSt }}"><sc-if value="{{ p.hasLogo }}" hint-placeholder-val="{{ false }}"><span style="{{ p.logoSt }}"></span></sc-if>{{ p.ini }}</span><span><span style="display:block;font-weight:800;color:#fff;font-size:12.5px">{{ p.n }}</span><span style="{{ p.subSt }}">{{ p.sub }}</span></span></button>
+            <sc-if value="{{ p.bad }}" hint-placeholder-val="{{ false }}">
+              <div style="font-size:11px;color:#c9d6de;line-height:1.4">{{ p.impact }}</div>
+            </sc-if>
+            <div style="display:flex;gap:12px"><button onClick="{{ p.test }}" style="border:0;background:transparent;padding:0;font:inherit;font-size:11.5px;font-weight:700;color:#9fb3c1;cursor:pointer" style-hover="color:#fff">Tester</button><button onClick="{{ p.repl }}" style="{{ p.replSt }}" style-hover="color:#fff">Remplacer la clé</button></div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:10px 20px;font-size:12px;color:#9fb3c1;border-top:1px solid rgba(255,255,255,.08);padding-top:14px"><span style="display:inline-flex;align-items:center;gap:8px"><span style="width:22px;border-top:2px solid #5fd0c3"></span>Modèle principal</span><span style="display:inline-flex;align-items:center;gap:8px"><span style="width:22px;border-top:2px dashed #8ea4b3"></span>Secours</span><span style="display:inline-flex;align-items:center;gap:8px"><span style="width:22px;border-top:2px solid #f07b67"></span>Coupé : clé invalide</span><span style="display:inline-flex;align-items:center;gap:8px"><span style="width:22px;border-top:2px solid #f7a41c"></span>Secours en service</span><span style="display:inline-flex;align-items:center;gap:8px"><span style="width:22px;border-top:2px solid #3b5264"></span>Suspendu en amont</span><span style="margin-left:auto;color:#7f97a8">Voie lumineuse = modèle qui répond en ce moment.</span></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;googleKeyOk&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Simulation&quot;},&quot;assignment&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Record&lt;string,{p:string,f:string}&gt;&quot;},&quot;providers&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Provider[]&quot;},&quot;models&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Model[]&quot;},&quot;functions&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;AiFunction[]&quot;},&quot;groups&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Record&lt;string,{n:string,d:string}&gt;&quot;},&quot;onOpenModel&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(modelId: string) =&gt; void&quot;},&quot;onOpenProvider&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(providerId: string) =&gt; void&quot;},&quot;onTestKey&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(providerId: string) =&gt; void&quot;},&quot;onReplaceKey&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(providerId: string) =&gt; void&quot;},&quot;onAddFallback&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(functionId: string, slot: 'p'|'f') =&gt; void&quot;}}">
+class Component extends DCLogic {
+  componentDidMount() { if (!window.RISE_IA) this._t = setInterval(() => { if (window.RISE_IA) { clearInterval(this._t); this.forceUpdate(); } }, 30); }
+  componentWillUnmount() { clearInterval(this._t); }
+
+  logo(pv) {
+    if (!pv) return { hasLogo: false, logoSt: '', ini: '' };
+    if (pv.logo) return { hasLogo: true, ini: '', logoSt: 'width:14px;height:14px;flex:none;background:url("' + pv.logo + '") center/contain no-repeat' + (pv.mono ? ';filter:invert(1)' : '') };
+    return { hasLogo: true, ini: pv.ini || pv.n.slice(0, 2), logoSt: 'width:14px;height:14px;flex:none;border-radius:4px;background:' + (pv.tint || '#43586a') + ';color:#fff;font-size:7.5px;font-weight:800;display:grid;place-items:center' };
+  }
+  // Une voie (principal ou secours) : ligne + puce modèle
+  track(fn, slot, r, provs) {
+    const D = window.RISE_IA, P = this.props, m = slot === 'p' ? r.p : r.s, blocked = r.st === 'blocked';
+    const chip = (bg, ring) => 'width:250px;max-width:52%;height:32px;border-radius:9px;border:0;cursor:pointer;display:flex;align-items:center;gap:8px;padding:0 10px;font:inherit;font-size:12.5px;text-align:left;background:' + bg + ';box-shadow:' + ring;
+    const lab = c => 'width:18px;flex:none;font-size:10.5px;font-weight:800;color:' + c;
+    const line = css => 'flex:1;position:relative;' + css;
+    const tag = c => 'font-size:10.5px;font-weight:700;white-space:nowrap;color:' + c;
+    const base = { lab: slot === 'p' ? 'P' : 'S', cut: false, plus: false, nameSt: 'flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;color:#fff' };
+    const row = op => 'display:flex;align-items:center;gap:10px;opacity:' + op;
+    if (!m) {
+      const urgent = r.st === 'down' && slot === 'f';
+      return { ...base, hasLogo: false, plus: urgent, rowSt: row(urgent ? 1 : .55), labSt: lab('#7f97a8'), lineSt: line('border-top:2px dotted #3b5264'),
+        chipSt: chip('transparent', urgent ? 'inset 0 0 0 1px rgba(240,123,103,.55)' : 'inset 0 0 0 1px rgba(255,255,255,.1)') + ';color:' + (urgent ? '#f5a193' : '#8ea4b3'),
+        name: urgent ? 'Aucun secours · en ajouter un' : slot === 'f' ? 'Aucun secours' : 'Aucun modèle', nameSt: base.nameSt.replace('font-weight:600;color:#fff', 'font-weight:700;color:' + (urgent ? '#f5a193' : '#8ea4b3')), tag: '', tagSt: tag('#8ea4b3'),
+        aria: 'Choisir un modèle ' + (slot === 'p' ? 'principal' : 'de secours') + ' pour ' + fn.n, open: () => P.onAddFallback?.(fn.id, slot) };
+    }
+    const pv = D.prov(provs, m.pv), ok = D.usable(m, provs), open = () => P.onOpenModel?.(m.id), aria = 'Ouvrir la fiche ' + m.n, L = this.logo(pv);
+    if (!ok) return { ...base, ...L, cut: true, rowSt: row(blocked ? .8 : .8), labSt: lab('#7f97a8'), lineSt: line('border-top:2px solid #f07b67'), chipSt: chip('#2a2230', 'inset 0 0 0 1px rgba(240,123,103,.3)'), name: m.n, tag: pv && pv.st !== 'ok' ? (pv.err || '').split(' ')[0] || 'coupé' : 'inactif', tagSt: tag('#f07b67'), aria, open };
+    if (blocked) return { ...base, ...L, rowSt: row(1), labSt: lab('#7f97a8'), lineSt: line('border-top:2px ' + (slot === 'p' ? 'solid' : 'dashed') + ' #3b5264'), chipSt: chip('#16304a', 'none'), name: m.n, tag: slot === 'p' ? 'en attente' : '', tagSt: tag('#8ea4b3'), aria, open };
+    const live = r.live && r.live.id === m.id;
+    if (live && slot === 'f') return { ...base, ...L, rowSt: row(1), labSt: lab('#f7c46a'), lineSt: line('border-top:2.5px solid #f7a41c;box-shadow:0 0 12px rgba(247,164,28,.45)'), chipSt: chip('#2b2a24', 'inset 0 0 0 1.5px #f7a41c'), name: m.n, nameSt: base.nameSt.replace('600', '700'), tag: 'répond', tagSt: tag('#f7c46a'), aria, open };
+    if (live) return { ...base, ...L, rowSt: row(1), labSt: lab('#5fd0c3'), lineSt: line('border-top:2.5px solid #5fd0c3;box-shadow:0 0 12px rgba(95,208,195,.35)'), chipSt: chip('#16304a', 'inset 0 0 0 1.5px rgba(95,208,195,.6)'), name: m.n, nameSt: base.nameSt.replace('600', '700'), tag: 'répond', tagSt: tag('#5fd0c3'), aria, open };
+    return { ...base, ...L, rowSt: row(.6), labSt: lab('#7f97a8'), lineSt: line('border-top:2px dashed #8ea4b3'), chipSt: chip('#16304a', 'inset 0 0 0 1px rgba(255,255,255,.08)'), name: m.n, tag: 'prêt', tagSt: tag('#8ea4b3'), aria, open };
+  }
+  pill(t, l, block) {
+    const C = { ok: ['rgba(95,208,195,.14)', '#5fd0c3'], fallback: ['rgba(247,164,28,.16)', '#f7c46a'], down: ['rgba(240,123,103,.16)', '#f5a193'], blocked: ['rgba(255,255,255,.08)', '#c9d6de'] }[t];
+    return 'display:' + (block ? 'inline-flex;margin-top:6px' : 'inline-flex') + ';align-items:center;height:20px;padding:0 8px;border-radius:999px;font-size:10.5px;font-weight:700;white-space:nowrap;background:' + C[0] + ';color:' + C[1];
+  }
+
+  renderVals() {
+    const D = window.RISE_IA; if (!D) return { solo: [], groups: [], provs: [] };
+    const P = this.props;
+    const provs = (P.providers ?? D.PROVIDERS).map(p => p.id === 'google' && P.googleKeyOk ? { ...p, st: 'ok', lat: 431, err: null } : p);
+    const models = P.models ?? D.MODELS, fns = P.functions ?? D.FUNCTIONS, groups = P.groups ?? D.GROUPS, asg = P.assignment ?? D.ASSIGN;
+    const R = D.states(fns, asg, models, provs), L = { ok: 'Opérationnel', fallback: 'Sur secours', down: 'Indisponible', blocked: 'Suspendue' };
+    const tracks = (f, r) => { const t = [this.track(f, 'p', r, provs)]; if (r.s || r.st === 'down' || r.st === 'ok') t.push(this.track(f, 'f', r, provs)); if (r.st === 'blocked' && !r.s) t.length = 1; return t; };
+
+    const solo = fns.filter(f => !f.group).map(f => ({ n: f.sh || f.n, stL: L[R[f.id].st], pill: this.pill(R[f.id].st, '', true), tracks: tracks(f, R[f.id]) }));
+
+    const gl = Object.keys(groups).map(gid => {
+      const steps = fns.filter(f => f.group === gid).sort((a, b) => a.step - b.step), first = steps.find(f => ['down', 'fallback'].includes(R[f.id].st));
+      const gs = !first ? 'ok' : R[first.id].st;
+      return {
+        n: groups[gid].n, sub: steps.length + ' étapes en série', pill: this.pill(gs), stL: !first ? 'Opérationnelle' : gs === 'down' ? 'Interrompue à l’étape ' + first.step : 'Sur secours à l’étape ' + first.step,
+        steps: steps.map((f, i) => {
+          const r = R[f.id], st = r.st;
+          const node = 'position:relative;width:24px;height:24px;border-radius:50%;font-size:11px;font-weight:800;display:grid;place-items:center;flex:none;' + ({ ok: 'background:#5fd0c3;color:#0f2034', fallback: 'background:#f7a41c;color:#0f2034', down: 'background:#f07b67;color:#0f2034', blocked: 'background:#0f2034;box-shadow:inset 0 0 0 1.5px #5f7686;color:#9fb3c1' }[st]);
+          const spine = 'position:absolute;left:11px;top:28px;bottom:-22px;' + ({ ok: 'border-left:2px solid rgba(95,208,195,.6)', fallback: 'border-left:2px solid rgba(247,164,28,.6)', down: 'border-left:2px dashed rgba(240,123,103,.55)', blocked: 'border-left:2px dashed #3b5264' }[st]);
+          return { n: f.n, step: String(f.step), cat: D.CAT[f.cat].l.toUpperCase() + (st === 'blocked' ? ' · SUSPENDUE' : ''), nodeSt: node, spineSt: spine, hasNext: i < steps.length - 1,
+            rowSt: 'display:grid;grid-template-columns:200px minmax(0,1fr);gap:18px;padding:12px 0;opacity:' + (st === 'blocked' ? .45 : 1), tracks: tracks(f, r) };
+        })
+      };
+    });
+
+    const pl = provs.map(p => {
+      const bad = p.st !== 'ok', used = fns.filter(f => [R[f.id].p, R[f.id].s].some(m => m && m.pv === p.id));
+      const imp = used.map(f => f.sh + (R[f.id].st === 'fallback' ? ' (sur secours)' : R[f.id].st === 'down' ? ' (à l’arrêt)' : '')).join(', ');
+      return { n: p.n, bad, hasLogo: !!p.logo, ini: p.logo ? '' : (p.ini || p.n.slice(0, 2)),
+        tileSt: 'width:30px;height:30px;border-radius:9px;display:grid;place-items:center;flex:none;font-weight:800;font-size:11px;color:#fff;background:' + (p.logo ? '#fff' : (p.tint || '#43586a')),
+        logoSt: p.logo ? 'width:17px;height:17px;background:url("' + p.logo + '") center/contain no-repeat' : '',
+        sub: bad ? (p.err || 'Clé invalide') : 'Connecté · ' + p.lat + ' ms', subSt: 'display:block;font-size:11px;font-weight:' + (bad ? 700 : 600) + ';color:' + (bad ? '#f07b67' : '#5fd0c3'),
+        impact: used.length ? 'Touche ' + imp + '.' : 'Aucune fonction touchée.',
+        boxSt: 'display:flex;flex-direction:column;gap:8px;' + (bad ? 'padding:10px 12px;margin:2px -12px;border-radius:12px;background:#2a2230;box-shadow:inset 0 0 0 1px rgba(240,123,103,.3)' : 'padding:8px 0'),
+        replSt: 'border:0;background:transparent;padding:0;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer;color:' + (bad ? '#f7a41c' : '#9fb3c1'),
+        open: () => P.onOpenProvider?.(p.id), test: () => P.onTestKey?.(p.id), repl: () => P.onReplaceKey?.(p.id) };
+    });
+    return { solo, groups: gl, provs: pl };
+  }
+}
+</script>
+</body>
+</html>
