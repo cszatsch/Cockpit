@@ -221,3 +221,12 @@ Demande du commanditaire : deux écrans de connexion distincts (application, adm
 |---|---|---|
 | Contenu | Skill de Jev rédigée sur le modèle des skills de Claude (objectif, quand l’appliquer, méthode, carte de la Console, règles chiffrées, diagnostic, garde-fous, format, exemples), en Markdown simple (`##`, `-`, `1.`) seul rendu par l’aperçu. Les règles chiffrées reprennent les constantes du code (invitation 14 j / 7 j, verrouillage 5 échecs / 15 min, sessions 15 / 30 min, test des clés toutes les 2 h, annulation 10 s, audit 24 mois). | `docs/skills/Repondre sur la Console d'administration.md` |
 | Mise en place | Ajoutée à la base locale par l’API, **désactivée** (règle des nouvelles skills) : à relire puis activer dans Assistant › Skills. Recouvre et précise « Assister l’administration » (déjà désactivée). Non ajoutée aux données initiales. Toute évolution d’une règle chiffrée du code doit être répercutée dans ce texte. | Assistant › Skills |
+
+## Skills du Cockpit (28/09/2026)
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Contenu | Quatre skills de Jev rédigées sur le même modèle que la skill Console : « Analyser le projet · méthode complète », « Générer un rapport PowerPoint », « Mettre à jour les données d’un projet », « Guider l’utilisateur dans les fonctionnalités ». Règles reprises du code : criticité p × i (20 / 12 / 6), livrables (écart temps − avancement > 6 / > 18), avancement (< 0 / < −20), fraîcheur (7 / 14 j), écart des jalons, statuts, droits RG5 à RG9, périmètre d’écriture de Jev (risques, problèmes, actions, décisions ; lecture seule sur Référentiel, Comités et rapports, Base de connaissance). | `docs/skills/*.md` |
+| Santé du projet | Aucune formule de santé n’existe côté serveur (seule l’appréciation manuelle du PMO, avec raison) : la skill d’analyse interdit d’en inventer une. | `Project.healthOverride` |
+| PowerPoint | La plateforme ne génère pas de fichier PowerPoint (rapports de comité exportés en PDF minimal) : la skill fait préparer par Jev le contenu slide par slide (titre-message, contenu, visuel, note de l’orateur) et l’interdit de promettre un fichier .pptx. | `GET reports/:id/file`, `src/core/pdf.ts` |
+| Mise en place | Ajoutées désactivées à la base locale (positions 7 à 10), à relire puis activer ; elles précisent les skills de démonstration « Analyser le projet », « Mettre à jour les données » et « Guider l’utilisateur », à désactiver pour éviter des consignes en double. | Assistant › Skills |
