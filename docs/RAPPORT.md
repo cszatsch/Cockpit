@@ -133,3 +133,4 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 13. **Page « Notifications et alertes »** : la renommer « Alertes utilisateurs » (proposition de la spécification) pour la distinguer du tiroir de l'administrateur ?
 14. **Lecture des notifications** : l'état lu / non lu est commun à tous les administrateurs ; faut-il le suivre par administrateur ?
 15. **Export PowerPoint des rapports** : faut-il générer un vrai fichier .pptx (rapports de comité, fonction IA « Génération de rapports ») ? Aujourd’hui Jev prépare le contenu slide par slide et le Cockpit exporte un PDF minimal.
+16. **Routage de Jev** : Jev ne relie pas la demande, la skill et le modèle (mots-clés, toutes les skills envoyées, fonction fixe, aucune donnée transmise, passerelle bouchon) ; analyse et architecture cible dans `docs/ANALYSE - Jev, intentions, skills et modeles.md`. Quel chantier engager en premier (passerelle réelle, routeur d'intention, contexte de données) ?
