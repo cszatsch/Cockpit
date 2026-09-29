@@ -111,7 +111,9 @@ class Component extends DCLogic {
     return (this._d = { g, days, r: this.props.mtdRef });
   }
   renderVals() {
-    const S = this.state, G = this.props.googleOk ?? S.google, e = React.createElement, eur = v => Math.round(v).toLocaleString('fr-FR') + ' €', t = S.t;
+    const S = this.state, G = this.props.googleOk ?? S.google, e = React.createElement, // Montants : centimes sous 100 € (et « < 0,01 € » pour une dépense infime), euros entiers au-delà ; pourcentages :
+    // « < 1 % » pour une part non nulle qui s'arrondirait à 0.
+    eur = v => { const a = Math.abs(v || 0); if (!a) return '0 €'; if (a < 0.005) return '< 0,01 €'; const dec = a < 100 && Math.abs(a - Math.round(a)) >= 0.005 ? 2 : 0; return v.toLocaleString('fr-FR', { minimumFractionDigits: dec, maximumFractionDigits: dec }) + ' €'; }, pc = x => (x > 0 && x < 0.005 ? '< 1' : String(Math.round(x * 100))), t = S.t;
     const { days } = this.data(), FN = BUDGET_FN, keys = BUDGET_LINES;
     const LOGO = { anthropic: './assets/logos/lh-anthropic.svg', openrouter: './assets/logos/lh-openrouter.webp', google: './assets/logos/lh-gemini-color.svg', openai: './assets/logos/lh-openai.svg', mistral: './assets/logos/lh-mistral-color.svg' };
     const val = d => S.fn ? d[S.fn] : d.t, fmtD = dt => dt.getDate() + ' ' + ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'][dt.getMonth()];
@@ -166,8 +168,8 @@ class Component extends DCLogic {
     // KPI
     const pP = lim ? projF / lim : 0, over = lim && projF > lim;
     const kpi = { lbl: S.per === 'mois' ? (S.fn ? FN[S.fn][0] + ' · depuis le 1er ' + MO[RM] : 'Dépensé depuis le 1er ' + MO[RM]) : (S.fn ? FN[S.fn][0] + ' · ' : '') + (S.per === '7' ? '7 derniers jours' : '90 derniers jours'),
-      v: eur((S.per === 'mois' ? mtdF : totP) * t), hasLim: S.per === 'mois' && !!lim, lim: lim ? eur(lim) : '', hasProj: S.per === 'mois', proj: eur(projF), projPct: lim ? Math.round(pP * 100) + ' %' : 'sans plafond',
-      projL: !lim ? 'Aucun plafond défini pour cette fonction.' : over ? 'Plafond dépassé le ' + (cross ? cross.dt.getDate() + ' ' + MO_L[RM] : '—') + ' au rythme actuel.' : 'Reste ' + eur(lim - projF) + ' sous le plafond en fin de mois.',
+      v: eur((S.per === 'mois' ? mtdF : totP) * t), hasLim: S.per === 'mois' && !!lim, lim: lim ? eur(lim) : '', hasProj: S.per === 'mois', proj: eur(projF), projPct: lim ? pc(pP) + ' %' : 'sans plafond',
+      projL: !lim ? 'Aucun plafond défini pour cette fonction.' : over ? 'Plafond dépassé le ' + (cross ? cross.dt.getDate() + ' ' + MO_L[RM] : '—') + ' au rythme actuel.' : 'Reste ' + (r => Math.abs(r - Math.round(r)) >= 0.005 ? r.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €' : eur(r))(lim - projF) + ' sous le plafond en fin de mois.' /* reste exact : jamais arrondi vers le haut */,
       projBox: 'padding:14px 16px;border-radius:14px;display:flex;flex-direction:column;gap:4px;transition:background .3s;' + (over ? 'background:#fff4e6;box-shadow:inset 0 0 0 1px #f6d3a4;animation:pulse 1.8s 1.4s 2' : 'background:#eef8f6;box-shadow:inset 0 0 0 1px #bfe3de'),
       projT: 'font-size:12px;font-weight:800;color:' + (over ? '#9a5a0c' : '#146b64'), projV: 'font-size:22px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:' + (over ? '#9a5a0c' : '#146b64'), projD: 'font-size:12px;line-height:1.45;color:' + (over ? '#8a5a12' : '#146b64'),
       facts: S.per === 'mois' ? [{ l: 'Rythme des 7 derniers jours', v: eur(sumK(allPast.slice(-7), S.fn) / 7) + ' / jour' }, { l: cap(MO_L[PM.getMonth()]) + ', même date', v: eur(sumK(days.filter(d => d.dt.getMonth() === PM.getMonth() && d.dt.getFullYear() === PM.getFullYear() && d.dt.getDate() <= ref.getDate()), S.fn)) }, { l: 'Tokens ce mois', v: (mtd ? mtdF / mtd * 318 : 0).toFixed(0) + ' M' }]
@@ -176,7 +178,7 @@ class Component extends DCLogic {
     // function cards
     const MOD = { insights: ['Claude Sonnet 4.5', 'anthropic'], rapports: ['Claude Sonnet 4.5', 'anthropic'], guidage: ['Claude Haiku 4.5', 'anthropic'], docs: G ? ['Gemini 2.5 Pro', 'google'] : ['Claude Sonnet 4.5 · secours', 'anthropic'], crud: ['Claude Haiku 4.5', 'anthropic'] };
     const fns = keys.map((k, i) => { const v = sumK(past, k), pr = v + sumK(fut, k), th = S.th[k], l = th ? +th.lim : 0, on = S.fn === k, warn = k === 'docs' && !G;
-      return { n: FN[k][0], on, v: eur(v * t), share: (mtd ? Math.round(v / mtd * 100) : 0) + ' % du mois', model: MOD[k][0], logo: 'width:16px;height:16px;flex:none;background:url("' + LOGO[MOD[k][1]] + '") center/contain no-repeat', limL: l ? 'plafond ' + eur(l) : 'sans plafond',
+      return { n: FN[k][0], on, v: eur(v * t), share: (mtd ? pc(v / mtd) : '0') + ' % du mois', model: MOD[k][0], logo: 'width:16px;height:16px;flex:none;background:url("' + LOGO[MOD[k][1]] + '") center/contain no-repeat', limL: l ? 'plafond ' + eur(l) : 'sans plafond',
         stL: !l ? 'Sans plafond' : pr > l ? 'Dépassement projeté' : v >= l * th.warn / 100 ? 'Seuil d’alerte' : 'Sous le plafond', warn, note: 'Coûte plus cher : son modèle principal (Gemini 2.5 Pro) est coupé, le secours répond.',
         pill: 'height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:800;display:inline-flex;align-items:center;white-space:nowrap;' + (!l ? 'background:#eef2f1;color:#8a9aa6' : pr > l ? 'background:#fbe4e1;color:#a2352a' : v >= l * th.warn / 100 ? 'background:#fff1dc;color:#9a5a0c' : 'background:#e6f4f2;color:#146b64'),
         dot: 'width:9px;height:9px;border-radius:3px;background:' + FN[k][1],
@@ -192,7 +194,7 @@ class Component extends DCLogic {
     const rs = src.map(([id, n, logo, f, col]) => ({ id, n, logo, col, v: last.reduce((a, d) => a + f(d), 0) })).sort((a, b) => b.v - a.v), mx = rs[0].v || 1, tt = rs.reduce((a, r) => a + r.v, 0) || 1;
     const rep = { sub: (S.per === 'mois' ? cap(MO_L[RM]) : S.per === '7' ? '7 derniers jours' : '90 derniers jours') + ' · ' + eur(tt),
       dims: [['fn', 'Fonction'], ['m', 'Modèle'], ['pv', 'Fournisseur']].map(([k, l]) => ({ l, st: 'height:28px;padding:0 11px;border-radius:8px;border:0;font:inherit;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;' + (S.dim === k ? 'background:#fff;color:#10233a;box-shadow:0 1px 2px rgba(16,35,58,.12)' : 'background:transparent;color:#5c7280'), pick: () => this.setState({ dim: k, anim: S.anim + 1 }) })),
-      rows: rs.map((r, i) => ({ n: r.n, v: eur(r.v), sh: Math.round(r.v / tt * 100) + ' %', tok: r.v ? '≈ ' + Math.max(1, Math.round(r.v / mtd * 318)) + ' M tokens' : 'non utilisé',
+      rows: rs.map((r, i) => ({ n: r.n, v: eur(r.v), sh: pc(r.v / tt) + ' %', tok: r.v ? '≈ ' + Math.max(1, Math.round(r.v / mtd * 318)) + ' M tokens' : 'non utilisé',
         ic: r.logo ? 'width:28px;height:28px;border-radius:8px;background:#fff url("' + LOGO[r.logo] + '") center/16px no-repeat;box-shadow:0 0 0 1px #e1e9e7' + (r.v ? '' : ';opacity:.45') : 'width:28px;height:28px;border-radius:8px;background:' + r.col + '1f;box-shadow:inset 0 0 0 1.5px ' + r.col,
         bar: 'height:100%;border-radius:3px;transform-origin:left;animation:grow .8s ' + (i * .07) + 's cubic-bezier(.2,.7,.2,1) both;background:' + (r.col || (r.logo === 'google' ? '#8e75b2' : '#1d8f86')) + ';width:' + (r.v / mx * 100).toFixed(1) + '%', key: S.anim })) };
     // seuils
@@ -203,7 +205,7 @@ class Component extends DCLogic {
         bar: 'position:absolute;left:0;top:0;bottom:0;border-radius:4px;transition:width .4s cubic-bezier(.2,.7,.2,1);background:' + (p * 100 >= x.warn ? '#e39a2d' : '#1d8f86') + ';width:' + Math.min(100, p * 100).toFixed(1) + '%',
         proj: 'position:absolute;left:0;top:0;bottom:0;border-radius:4px;transition:width .4s;background:repeating-linear-gradient(135deg,#e39a2d44 0 3px,transparent 3px 6px);width:' + Math.min(100, pp * 100).toFixed(1) + '%',
         mark: 'position:absolute;top:-2px;bottom:-2px;width:2px;background:#10233a;transition:left .3s;left:' + x.warn + '%',
-        line: eur(v) + ' dépensés (' + Math.round(p * 100) + ' %) · projection ' + eur(pr) + ' (' + Math.round(pp * 100) + ' %)',
+        line: eur(v) + ' dépensés (' + pc(p) + ' %) · projection ' + eur(pr) + ' (' + pc(pp) + ' %)',
         setLim: ev => { const s = ev.target.value.replace(/[^\d]/g, ''); this.setState(st => ({ th: { ...st.th, [k]: { ...st.th[k], lim: s } } })); },
         setWarn: ev => { const w = +ev.target.value; this.setState(st => ({ th: { ...st.th, [k]: { ...st.th[k], warn: w } } })); } }; });
     const MOD2 = { insights: ['Claude Sonnet 4.5', 'anthropic'], rapports: ['Claude Sonnet 4.5', 'anthropic'], guidage: ['Claude Haiku 4.5', 'anthropic'], docs: G ? ['Gemini 2.5 Pro', 'google'] : ['Sur secours : Claude Sonnet 4.5', 'anthropic'], crud: ['Claude Haiku 4.5', 'anthropic'] };
@@ -211,10 +213,10 @@ class Component extends DCLogic {
     const rows = rowKeys.map(k => { const x = S.th[k] || { lim: '', warn: 80 }, l = +x.lim || 0, v = k === 'all' ? mtd : sumK(past, k), pr = v + (k === 'all' ? sumK(fut) : sumK(fut, k)), p = l ? v / l : 0, pp = l ? pr / l : 0, on = S.fn === k, fb = k === 'docs' && !G, col = k === 'all' ? '#10233a' : FN[k][1];
       const setTh = patch => this.setState(st => ({ th: { ...st.th, [k]: { ...(st.th[k] || { lim: '', warn: 80 }), ...patch } } }));
       return { n: thN2[k], v: eur(v * t), hasLim: !!l, noLim: !l, lim: x.lim, warnL: l ? x.warn + ' %' : '—',
-        sub: k === 'all' ? 'Toutes fonctions' : MOD2[k][0].replace('Sur secours : ', 'Secours · '), share: k === 'all' ? '100 %' : (mtd ? Math.round(v / mtd * 100) : 0) + ' % du mois',
+        sub: k === 'all' ? 'Toutes fonctions' : MOD2[k][0].replace('Sur secours : ', 'Secours · '), share: k === 'all' ? '100 %' : (mtd ? pc(v / mtd) : '0') + ' % du mois',
         subSt: 'display:flex;align-items:center;gap:6px;margin-top:4px;font-size:12px;min-width:0;color:' + (fb ? '#a2352a' : '#8a9aa6'), logo: k === 'all' ? 'display:none' : 'width:14px;height:14px;flex:none;background:url("' + LOGO[MOD2[k][1]] + '") center/contain no-repeat',
         dot: 'width:9px;height:9px;border-radius:3px;flex:none;background:' + col,
-        line: l ? Math.round(p * 100) + ' % → ' + Math.round(pp * 100) + ' % fin de mois' : eur(pr) + ' fin de mois', lineSt: 'font-size:11.5px;white-space:nowrap;' + (pp > 1 ? 'color:#a2352a;font-weight:700' : 'color:#8a9aa6'),
+        line: l ? pc(p) + ' % → ' + pc(pp) + ' % fin de mois' : eur(pr) + ' fin de mois', lineSt: 'font-size:11.5px;white-space:nowrap;' + (pp > 1 ? 'color:#a2352a;font-weight:700' : 'color:#8a9aa6'),
         bar: 'position:absolute;left:0;top:0;bottom:0;border-radius:4px;transform-origin:left;animation:grow .9s cubic-bezier(.2,.7,.2,1) both;transition:width .4s;background:' + (k === 'all' ? (p * 100 >= x.warn ? '#e39a2d' : '#1d8f86') : col) + ';width:' + Math.min(100, p * 100).toFixed(1) + '%',
         proj: 'position:absolute;left:0;top:0;bottom:0;border-radius:4px;transition:width .4s;background:repeating-linear-gradient(135deg,' + (pp > 1 ? '#c2473b66' : col + '55') + ' 0 3px,transparent 3px 6px);width:' + Math.min(100, pp * 100).toFixed(1) + '%',
         mark: 'position:absolute;top:-3px;bottom:-3px;width:2px;background:#10233a;transition:left .3s;left:' + x.warn + '%',

@@ -600,7 +600,7 @@ export function bindConsole(c) {
   };
   c.thVals = () => {
     const m = c.state.apiMonth, out = orig.thVals(); if (!m) return out;
-    const eur = v => v.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' €';
+    const eur = v => { const a = Math.abs(v || 0); if (!a) return '0 €'; if (a < 0.005) return '< 0,01 €'; const dec = a < 100 && Math.abs(a - Math.round(a)) >= 0.005 ? 2 : 0; return v.toLocaleString('fr-FR', { minimumFractionDigits: dec, maximumFractionDigits: dec }) + ' €'; };
     return out.map(t => {
       const s = m.thresholds.find(x => x.id === t.id); if (!s) return t;
       const pr = s.projection, x = { ...t, proj: pr, projL: eur(pr), over: pr > t.lim, projMark: `position:absolute;top:0;bottom:0;border-radius:4px;left:0;width:${Math.min(100, pr / t.lim * 100)}%;background:repeating-linear-gradient(135deg,rgba(16,35,58,.13) 0 4px,transparent 4px 8px)` };
@@ -794,7 +794,8 @@ export function bindConso(c) {
     } catch (e) { fail(e); }
   };
 
-  const eur = v => Math.round(v).toLocaleString('fr-FR') + ' €', mtok = t => Math.max(1, Math.round(t / 1e6));
+  // Même précision que l'écran : centimes sous 100 €, « < 1 % » pour une part non nulle.
+  const eur = v => { const a = Math.abs(v || 0); if (!a) return '0 €'; if (a < 0.005) return '< 0,01 €'; const dec = a < 100 && Math.abs(a - Math.round(a)) >= 0.005 ? 2 : 0; return v.toLocaleString('fr-FR', { minimumFractionDigits: dec, maximumFractionDigits: dec }) + ' €'; }, pc = x => (x > 0 && x < 0.005 ? '< 1' : String(Math.round(x * 100))), mtok = t => Math.max(1, Math.round(t / 1e6));
   c.renderVals = () => {
     const v = rv0(); if (!cache) return v;
     const S = c.state, { days, asg, models, provs } = cache, allPast = days.filter(d => !d.fut), past = allPast.filter(d => d.dt.getMonth() === days[days.length - 1].dt.getMonth());
@@ -816,7 +817,7 @@ export function bindConso(c) {
           : provs.map(p => ({ id: p.id, n: p.name, logo: p.id, v: sumOf(last, d => d.pv[p.id] || 0), tok: sumOf(last, d => d.pt[p.id] || 0) }));
       const rs = src.sort((a, b) => b.v - a.v), mx = (rs[0] && rs[0].v) || 1, tt = rs.reduce((a, r) => a + r.v, 0) || 1;
       v.rep.sub = (S.per === 'mois' ? (m => m.charAt(0).toUpperCase() + m.slice(1))(dayOf(cache.m.monthStart).toLocaleDateString('fr-FR', { month: 'long' })) : S.per === '7' ? '7 derniers jours' : '90 derniers jours') + ' · ' + eur(tt);
-      v.rep.rows = rs.map((r, i) => ({ n: r.n, v: eur(r.v), sh: Math.round(r.v / tt * 100) + ' %', tok: r.v ? '≈ ' + mtok(r.tok) + ' M tokens' : 'non utilisé',
+      v.rep.rows = rs.map((r, i) => ({ n: r.n, v: eur(r.v), sh: pc(r.v / tt) + ' %', tok: r.v ? '≈ ' + mtok(r.tok) + ' M tokens' : 'non utilisé',
         ic: r.logo ? 'width:28px;height:28px;border-radius:8px;background:#fff url("' + (LOGO[r.logo] || '') + '") center/16px no-repeat;box-shadow:0 0 0 1px #e1e9e7' + (r.v ? '' : ';opacity:.45') : 'width:28px;height:28px;border-radius:8px;background:' + r.col + '1f;box-shadow:inset 0 0 0 1.5px ' + r.col,
         bar: 'height:100%;border-radius:3px;transform-origin:left;animation:grow .8s ' + (i * .07) + 's cubic-bezier(.2,.7,.2,1) both;background:' + (r.col || (r.logo === 'google' ? '#8e75b2' : '#1d8f86')) + ';width:' + (r.v / mx * 100).toFixed(1) + '%', key: S.anim }));
     }

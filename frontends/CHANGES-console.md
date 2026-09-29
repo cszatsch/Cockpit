@@ -406,3 +406,12 @@ Vérification des éléments de la vue d'ensemble face au serveur. Conformes : d
   - **« il y a… »** : durées écoulées complètes (4 j 16 h → « 4 j », et non « 5 j »), dans toute la Console.
   - **À traiter** : reprend aussi les points que seul le serveur calcule (échecs d'envoi de notifications sur 7 jours, demandes d'invitation du PMO), jusque-là jamais affichés.
 - `admin-api.js` : chargement `ov` (`GET /overview` et planification du projet du dernier snapshot), au démarrage et à chaque retour sur la vue d'ensemble.
+
+## Vue générale des coûts : montants au centime (29/09/2026)
+
+- `ConsoCouts.dc.html` et sa liaison dans `admin-api.js` : les montants étaient arrondis à l'euro (0,41 € affiché « 0 € »). Nouvelle règle, la même que dans le Journal des appels et la vue d'ensemble :
+  - centimes sous 100 € (« 0,41 € », « 0,06 € / jour ») ;
+  - « < 0,01 € » pour une dépense infime ;
+  - euros entiers au-delà de 100 € ou pour un montant rond (« 1 200 € ») ;
+  - le reste sous le plafond est toujours exact (« 1 199,53 € », jamais arrondi vers le haut).
+  Les parts et progressions non nulles inférieures à 1 % s'affichent « < 1 % » au lieu de « 0 % ». Les données et les calculs sont inchangés.
