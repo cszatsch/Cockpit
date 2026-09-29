@@ -6144,6 +6144,62 @@
         ]
       }
     },
+    "/api/admin/projects/{id}/workstreams": {
+      "get": {
+        "operationId": "AccountsController_workstreams",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · comptes"
+        ]
+      }
+    },
+    "/api/admin/accounts/{id}/habilitations": {
+      "put": {
+        "operationId": "AccountsController_putHabilitations",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · comptes"
+        ]
+      }
+    },
     "/api/admin/accounts/{id}/global-profiles": {
       "put": {
         "operationId": "AccountsController_globalProfiles",

@@ -665,10 +665,13 @@ a{color:#1d8f86}a:hover{color:#146b64}
               <label style="display:flex;flex-direction:column;gap:6px;font-size:11px;font-weight:800;letter-spacing:.1em;color:#8a9aa6">NOM COMPLET<input value="{{ form.n }}" onChange="{{ ff.n }}" style="height:42px;padding:0 12px;border:1px solid #d3dedb;border-radius:11px;font:inherit;font-size:13.5px;font-weight:600;letter-spacing:0;outline:none;color:#10233a" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.15)"><sc-if value="{{ fe.n }}" hint-placeholder-val="{{ false }}"><span role="alert" style="font-size:12px;letter-spacing:0;font-weight:600;color:#a8372c">{{ fe.n }}</span></sc-if></label>
               <label style="display:flex;flex-direction:column;gap:6px;font-size:11px;font-weight:800;letter-spacing:.1em;color:#8a9aa6">E-MAIL PROFESSIONNEL<input value="{{ form.e }}" onChange="{{ ff.e }}" type="email" style="height:42px;padding:0 12px;border:1px solid #d3dedb;border-radius:11px;font:inherit;font-size:13.5px;font-weight:600;letter-spacing:0;outline:none;color:#10233a" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.15)"><sc-if value="{{ fe.e }}" hint-placeholder-val="{{ false }}"><span role="alert" style="font-size:12px;letter-spacing:0;font-weight:600;color:#a8372c">{{ fe.e }}</span></sc-if></label>
             </div>
+            <!-- Profils multiples (29/09/2026) : rôle de plateforme indépendant, puis profil propre à chaque projet. -->
             <div style="display:flex;flex-direction:column;gap:8px">
-              <span style="font-size:11px;font-weight:800;letter-spacing:.1em;color:#8a9aa6">PROFIL</span>
-              <div role="radiogroup" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding:4px;border-radius:14px;background:#eef3f2"><sc-for list="{{ du.prof }}" as="p" hint-placeholder-count="4"><button role="radio" aria-checked="{{ p.on }}" onClick="{{ p.pick }}" style="{{ p.st }}"><span style="{{ p.dot }}"></span><span style="font-weight:800;font-size:13px;white-space:nowrap">{{ p.n }}</span></button></sc-for></div>
-              <span style="font-size:12.5px;color:#43586a;line-height:1.5;min-height:19px">{{ du.profD }}</span>
+              <span style="font-size:11px;font-weight:800;letter-spacing:.1em;color:#8a9aa6">RÔLE DE PLATEFORME</span>
+              <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;box-shadow:inset 0 0 0 1px #e1e9e7;background:#fff">
+                <button onClick="{{ du.adm.tog }}" aria-pressed="{{ du.adm.on }}" aria-label="Administrateur de la plateforme" style="{{ du.adm.sw }}"><span style="{{ du.adm.knob }}"></span></button>
+                <div style="flex:1;min-width:0"><div style="font-weight:800;font-size:13px">Administrateur de la plateforme</div><div style="font-size:12px;color:#5c7280;line-height:1.45;margin-top:1px">{{ du.adm.d }}</div></div>
+              </div>
             </div>
             <div style="display:flex;flex-direction:column;gap:8px">
               <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px"><span style="font-size:11px;font-weight:800;letter-spacing:.1em;color:#8a9aa6;white-space:nowrap">ACCÈS PAR PROJET</span><span style="font-size:12px;color:#1d8f86;font-weight:700;white-space:nowrap">{{ du.prN }}</span></div>
@@ -681,18 +684,21 @@ a{color:#1d8f86}a:hover{color:#146b64}
                       <span style="flex:1;min-width:0;font-size:12.5px;color:#5c7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</span>
                       <span style="{{ r.sumSt }}">{{ r.sum }}</span>
                     </div>
-                    <sc-if value="{{ r.showWs }}" hint-placeholder-val="{{ false }}">
-                      <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;padding:10px 0 2px 60px">
-                        <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="8"><span title="{{ c.t }}" style="{{ c.st }}">{{ c.c }}</span></sc-for>
-                        <a href="./RISE Cockpit.dc.html" style="margin-left:auto;font-size:12px;font-weight:700;color:#1d8f86;text-decoration:none;white-space:nowrap">Modifier dans le Référentiel ↗</a>
+                    <sc-if value="{{ r.on }}" hint-placeholder-val="{{ false }}">
+                      <div style="display:flex;flex-direction:column;gap:10px;padding:10px 0 2px 60px">
+                        <div role="radiogroup" aria-label="{{ r.modeAria }}" style="display:inline-flex;align-self:flex-start;gap:2px;padding:3px;border-radius:10px;background:#eef3f2"><sc-for list="{{ r.modes }}" as="m" hint-placeholder-count="2"><button role="radio" aria-checked="{{ m.on }}" onClick="{{ m.pick }}" style="{{ m.st }}">{{ m.l }}</button></sc-for></div>
+                        <sc-if value="{{ r.showWs }}" hint-placeholder-val="{{ false }}">
+                          <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="8"><button onClick="{{ c.cycle }}" title="{{ c.t }}" aria-label="{{ c.t }}" style="{{ c.st }}">{{ c.c }}</button></sc-for></div>
+                          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;font-size:11.5px;color:#8a9aa6"><span style="display:inline-flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:3px;background:#10233a"></span>Responsable</span><span style="display:inline-flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:3px;background:#e6f3f2;box-shadow:inset 0 0 0 1px #9ccfc8"></span>Lecteur</span><span>Un clic sur un chantier : Lecteur, puis Responsable, puis sans accès.</span></div>
+                        </sc-if>
+                        <sc-if value="{{ r.showNote }}" hint-placeholder-val="{{ false }}"><div style="{{ r.noteSt }}">{{ r.note }}</div></sc-if>
                       </div>
                     </sc-if>
-                    <sc-if value="{{ r.showNote }}" hint-placeholder-val="{{ false }}"><div style="{{ r.noteSt }}">{{ r.note }}</div></sc-if>
                   </div>
                 </sc-for>
               </div>
               <sc-if value="{{ fe.pr }}" hint-placeholder-val="{{ false }}"><span role="alert" style="font-size:12px;font-weight:600;color:#a8372c">{{ fe.pr }}</span></sc-if>
-              <div style="display:flex;align-items:center;gap:14px;font-size:12px;color:#5c7280;flex-wrap:wrap"><span style="display:inline-flex;align-items:center;gap:6px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8a9aa6" stroke-width="2.2" stroke-linecap="round"><rect x="5" y="10.5" width="14" height="9.5" rx="2.2"></rect><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"></path></svg>Chantiers attribués par le PMO, dans le Référentiel de chaque projet</span></div>
+              <div style="display:flex;align-items:center;gap:14px;font-size:12px;color:#5c7280;flex-wrap:wrap"><span style="display:inline-flex;align-items:center;gap:6px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#8a9aa6" stroke-width="2.2" stroke-linecap="round"><rect x="5" y="10.5" width="14" height="9.5" rx="2.2"></rect><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"></path></svg>Profils attribués ici, projet par projet ; le PMO peut aussi ajuster les chantiers dans le Référentiel du Cockpit</span></div>
             </div>
           </div>
           <div style="display:flex;align-items:center;gap:10px;padding:14px 26px 18px;border-top:1px solid #eef3f2;background:#fafcfb">
@@ -805,6 +811,11 @@ const MODS = [
   { id: 'base', n: 'Base de connaissance', f: [['imp', 'Import de documents'], ['ana', 'Analyse de documents']] },
   { id: 'bud', n: 'Budget', opt: true, f: [['sai', 'Saisie'], ['arb', 'Arbitrages']] },
   { id: 'ben', n: 'Suivi des bénéfices', opt: true, f: [['ind', 'Indicateurs'], ['rev', 'Revues de bénéfices']] }];
+// ── Profils multiples (29/09/2026) : habilitations d'un compte = { adm, hab: { CODE: { pmo, ws: { chantier: 'resp' | 'lec' } } } } ──
+const hasProf = (u, p) => (u.profs && u.profs.length ? u.profs : u.p ? [u.p] : []).includes(p);
+/** Profils détenus (du plus large au plus restreint) et profil le plus large. */
+const habProfs = (adm, hab) => { const H = Object.values(hab || {}), ws = H.flatMap(h => Object.values(h.ws || {}));
+  return ['admin', 'pmo', 'resp', 'lec'].filter(p => p === 'admin' ? adm : p === 'pmo' ? H.some(h => h.pmo) : H.some(h => !h.pmo) && ws.includes(p)); };
 const PROFS = [
   { id: 'admin', n: 'Admin', d: 'Gère les comptes et consulte le journal d’audit. Lecture seule sur les données métier.', lv: { auj: 1, pil: 1, com: 1, base: 1, bud: 1, ben: 1 } },
   { id: 'pmo', n: 'PMO', d: 'Tous les droits sur le référentiel et le transactionnel, sur tous les chantiers.', lv: { auj: 4, pil: 4, com: 4, base: 4, bud: 4, ben: 4 } },
@@ -1183,22 +1194,30 @@ class Component extends DCLogic {
   setF(k) { return e => { const v = e && e.target ? (e.target.type === 'checkbox' ? e.target.checked : e.target.value) : e; this.setState(s => ({ form: { ...s.form, [k]: v }, fe: { ...s.fe, [k]: '' } })); }; }
 
   // ——— Utilisateurs
-  openUser(u) { this.setState({ dlg: { type: 'user', id: u ? u.id : null }, form: u ? { n: u.n, e: u.e, p: u.p, pr: [...u.pr] } : { n: '', e: '', p: 'lec', pr: ['RISE'] }, fe: {} }); }
+  openUser(u) { this.setState({ dlg: { type: 'user', id: u ? u.id : null }, form: u ? { n: u.n, e: u.e, p: u.p, pr: [...u.pr], adm: u.adm != null ? !!u.adm : u.p === 'admin', hab: JSON.parse(JSON.stringify(this.habOfUser(u))) } : { n: '', e: '', p: 'lec', pr: ['RISE'], adm: false, hab: { RISE: { pmo: false, ws: {} } } }, fe: {} }); }
+  /** Habilitations projet par projet d'un compte : celles du serveur, sinon reconstituées (démonstration : profil unique, chantiers de RISE). */
+  habOfUser(u) { if (u.hab) return u.hab; const hb = this.habOf(u), out = {};
+    (u.pr || []).forEach(code => { const ws = {}; if (code === 'RISE' && hb) { hb.lec.forEach(w => { ws[w] = 'lec'; }); hb.resp.forEach(w => { ws[w] = 'resp'; }); } out[code] = { pmo: u.p === 'pmo', ws }; }); return out; }
+  /** Chantiers d'un projet : ceux du serveur (apiWs), sinon ceux du référentiel de démonstration pour RISE. */
+  wsList(code) { const S = this.state; if (S.apiWs) return S.apiWs[code] || []; return code === 'RISE' ? ((S.rd && S.rd.model && S.rd.model.WORKSTREAM.rows) || []).map(w => ({ id: w.id, n: w.cells[1] })) : []; }
+  /** Contrôle des habilitations saisies : au moins un accès ; chaque projet rattaché a PMO ou au moins un chantier. */
+  habErr(f) { const pr = f.pr || []; if (!pr.length && !f.adm) return 'Rattachez au moins un projet, ou cochez Administrateur de la plateforme.';
+    const bad = pr.filter(code => { const h = (f.hab || {})[code] || {}; return !h.pmo && !Object.keys(h.ws || {}).length; }); return bad.length ? bad.join(', ') + ' : choisissez PMO ou au moins un chantier.' : ''; }
   saveUser() {
     const S = this.state, f = S.form, fe = {}, id = S.dlg.id;
     if (!f.n || f.n.trim().length < 2) fe.n = 'Indiquez le nom complet.';
     if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test((f.e || '').trim())) fe.e = 'Adresse e-mail invalide.';
     else if (S.users.some(u => u.e.toLowerCase() === f.e.trim().toLowerCase() && u.id !== id)) fe.e = 'Cette adresse est déjà utilisée par un autre compte.';
-    if (!f.pr.length) fe.pr = 'Rattachez au moins un projet.';
+    const he = this.habErr(f); if (he) fe.pr = he;
     if (Object.keys(fe).length) return this.setState({ fe });
+    // Démonstration : les habilitations saisies sont gardées telles quelles ; profil affiché = le plus large.
+    const hab = Object.fromEntries(f.pr.map(c => [c, (f.hab || {})[c] || { pmo: false, ws: {} }])), profs = habProfs(!!f.adm, hab), p = profs[0] || 'lec';
     if (!id) {
-      const nu = { id: 'u' + Date.now(), n: f.n.trim(), e: f.e.trim(), p: f.p, s: 'invité', inv: 0, ll: null, pr: f.pr, av: AV[S.users.length % AV.length] };
-      this.setState(s => ({ users: [nu, ...s.users], dlg: null, form: {} })); this.log('Invitation d’un utilisateur', nu.n + ' · ' + PN[f.p]); this.toast('Invitation envoyée à ' + nu.e); return;
+      const nu = { id: 'u' + Date.now(), n: f.n.trim(), e: f.e.trim(), p, profs, adm: !!f.adm, hab, s: 'invité', inv: 0, ll: null, pr: f.pr, av: AV[S.users.length % AV.length] };
+      this.setState(s => ({ users: [nu, ...s.users], dlg: null, form: {} })); this.log('Invitation d’un utilisateur', nu.n + ' · ' + profs.map(x => PN[x]).join(', ')); this.toast('Invitation envoyée à ' + nu.e); return;
     }
-    const u = this.uById(id), profCh = u.p !== f.p, prCh = [...f.pr].sort().join() !== [...u.pr].sort().join();
-    const apply = () => { this.setState(s => ({ users: s.users.map(x => x.id === id ? { ...x, n: f.n.trim(), e: f.e.trim(), p: f.p, pr: f.pr } : x), dlg: null, form: {} })); this.log(profCh || prCh ? 'Modification des habilitations' : 'Modification d’un utilisateur', u.n + (profCh ? ' · ' + PN[u.p] + ' → ' + PN[f.p] : ''), profCh || prCh ? 'sensible' : 'info'); this.toast('Modifications enregistrées pour ' + f.n.trim()); };
-    if (profCh || prCh) this.ask({ keepPrev: true, tone: 'warn', title: 'Modifier les habilitations de ' + u.n + ' ?', body: 'Ses droits sur les projets sont recalculés à partir du profil. Les droits définis individuellement sont conservés.', items: [profCh && { l: 'Profil', a: PN[u.p], b: PN[f.p] }, prCh && { l: 'Projets', a: u.pr.join(', '), b: f.pr.join(', ') }].filter(Boolean), cta: 'Confirmer la modification', ok: apply });
-    else apply();
+    this.setState(s => ({ users: s.users.map(x => x.id === id ? { ...x, n: f.n.trim(), e: f.e.trim(), p, profs, adm: !!f.adm, hab, pr: f.pr } : x), dlg: null, form: {} }));
+    this.log('Modification des habilitations', f.n.trim() + ' · ' + profs.map(x => PN[x]).join(', '), 'sensible'); this.toast('Modifications enregistrées pour ' + f.n.trim());
   }
   setUser(id, patch) { this.setState(s => ({ users: s.users.map(x => x.id === id ? { ...x, ...patch } : x) })); }
   suspend(u) { this.ask({ tone: 'warn', title: 'Suspendre ' + u.n + ' ?', body: 'Ses sessions sont fermées immédiatement. Son compte, ses droits et ses contributions sont conservés : la réactivation reste possible à tout moment.', cta: 'Suspendre le compte', ok: () => { this.setUser(u.id, { s: 'suspendu' }); this.log('Suspension d’un utilisateur', u.n, 'sensible'); this.toast(u.n + ' est suspendu', 'ok', () => { this.setUser(u.id, { s: 'actif' }); this.log('Annulation de suspension', u.n, 'sensible'); this.toast('Suspension annulée'); }); } }); }
@@ -1386,7 +1405,7 @@ class Component extends DCLogic {
   usRow(u) { const S = this.state, hb = this.habOf(u), glob = u.p === 'admin' || u.p === 'pmo', PC = { admin: ['#e8f0fb', '#1f5fb8'], pmo: ['#e3f4f2', '#146b64'], resp: ['#e7ecf1', '#10233a'], lec: ['#eef2f1', '#43586a'] }[u.p] || ['#eef2f1', '#43586a'];
     return { pPill: 'display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:999px;font-size:11.5px;font-weight:700;white-space:nowrap;background:' + PC[0] + ';color:' + PC[1], allWs: glob, ws: glob || !hb ? [] : [...hb.resp.map(w => this.usChip(w, 'r', hb.WS)), ...hb.lec.map(w => this.usChip(w, 'l', hb.WS))],
       open: () => this.setState({ ucId: u.id }), selSt: S.ucId === u.id ? 'background:#eef6f4;box-shadow:inset 3px 0 0 #1d8f86' : '' }; }
-  usExtra(list) { const S = this.state, FC = { admin: '#3b7dd8', pmo: '#1d8f86', resp: '#10233a', lec: '#8a9aa6' }, q = S.uq.trim().toLowerCase(), pool = S.users.filter(u => (!S.uStale || (u.s === 'actif' && u.ll > 14)) && (S.uSt === 'tous' || u.s === S.uSt) && (S.uPj === 'tous' || u.pr.includes(S.uPj)) && (!q || (u.n + ' ' + u.e).toLowerCase().includes(q))), cnt = k => pool.filter(u => u.p === k).length;
+  usExtra(list) { const S = this.state, FC = { admin: '#3b7dd8', pmo: '#1d8f86', resp: '#10233a', lec: '#8a9aa6' }, q = S.uq.trim().toLowerCase(), pool = S.users.filter(u => (!S.uStale || (u.s === 'actif' && u.ll > 14)) && (S.uSt === 'tous' || u.s === S.uSt) && (S.uPj === 'tous' || u.pr.includes(S.uPj)) && (!q || (u.n + ' ' + u.e).toLowerCase().includes(q))), cnt = k => pool.filter(u => hasProf(u, k)).length;
     const inv = S.users.filter(u => u.s === 'invité'), stale = S.users.filter(u => u.s === 'actif' && u.ll > 14), att = [];
     const TN = { warn: ['#fff6e8', '#9a5a0c', '#fde3b8'], info: ['#fff', '#1f5fb8', '#dbe7f7'] };
     if (inv.length) att.push({ tone: 'warn', g: '!', t: inv.length + ' invitation' + (inv.length > 1 ? 's' : '') + ' en attente', d: inv.map(u => u.n).join(', '), cta: 'Relancer', go: () => { inv.forEach(u => this.resend(u)); } });
@@ -1395,28 +1414,34 @@ class Component extends DCLogic {
       staleOn: !!S.uStale, staleOff: () => this.setState({ uStale: false }),
       fac: PROFS.map(p => { const on = S.uPf === p.id, n = cnt(p.id); return { l: p.n, n, on, bar: 'flex:' + Math.max(n, .001) + ';min-width:' + (n ? 6 : 0) + 'px;cursor:pointer;background:' + FC[p.id] + ';opacity:' + (S.uPf === 'tous' || on ? 1 : .25) + ';transition:opacity .2s,filter .15s', dot: 'width:8px;height:8px;border-radius:50%;background:' + (on ? '#fff' : FC[p.id]), nSt: 'font-variant-numeric:tabular-nums;color:' + (on ? '#9fb3c1' : '#8a9aa6'),
         chip: 'height:32px;padding:0 12px;border-radius:10px;border:0;font:inherit;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;' + (on ? 'background:#10233a;color:#fff' : 'background:#fff;color:#10233a;box-shadow:inset 0 0 0 1px #d7e2df'), pick: () => this.setState({ uPf: on ? 'tous' : p.id }) }; }) }; }
-  uDlgVals() { const S = this.state, D = S.dlg, f = S.form || {}; if (!D || D.type !== 'user') return { prof: [], rows: [] };
-    const u0 = D.id ? this.uById(D.id) : null, u = { ...(u0 || { id: null, s: 'invité', av: '#1d8f86', pr: [] }), n: f.n || '', e: f.e || '', p: f.p || 'lec' }, hb = u0 ? this.habOf({ ...u0, e: u0.e }) : null, glob = u.p === 'admin' || u.p === 'pmo';
-    const FC = { admin: '#3b7dd8', pmo: '#1d8f86', resp: '#10233a', lec: '#8a9aa6' }, NM = PROJ_NAMES;
-    const PD = { admin: 'Gère les comptes et consulte le journal d’audit. Lecture seule sur les données métier, sur tous les chantiers.', pmo: 'Tous les droits sur le référentiel et le transactionnel, sur tous les chantiers des projets rattachés.', resp: 'Gère le transactionnel des chantiers dont il est responsable. Les chantiers sont choisis par le PMO.', lec: 'Consulte le transactionnel des chantiers qui lui sont ouverts. Les chantiers sont choisis par le PMO.' };
-    const WS = ((S.rd && S.rd.model && S.rd.model.WORKSTREAM.rows) || []).map(w => ({ id: w.id, n: w.cells[1] })), pr = f.pr || [];
-    const rows = PROJ.map((code, i) => { const on = pr.includes(code), resp = code === 'RISE' && hb ? hb.resp : [], lec = code === 'RISE' && hb ? hb.lec : [], hasWs = resp.length + lec.length > 0;
-      const tog = () => this.setState(s => ({ form: { ...s.form, pr: on ? s.form.pr.filter(x => x !== code) : [...s.form.pr, code] }, fe: { ...s.fe, pr: '' } }));
-      return { code, name: NM[code] || '', on, tog, aria: (on ? 'Retirer ' : 'Rattacher ') + code, showWs: on && !glob && code === 'RISE' && WS.length > 0, showNote: on && (glob || code !== 'RISE' || !hasWs),
-        sum: !on ? 'Non rattaché' : glob ? 'Tous les chantiers' : hasWs ? [resp.length && 'Responsable de ' + resp.length + ' chantier' + (resp.length > 1 ? 's' : ''), lec.length && 'Lecteur de ' + lec.length].filter(Boolean).join(' · ') : 'Aucun chantier',
-        sumSt: 'font-size:12px;font-weight:700;white-space:nowrap;color:' + (!on ? '#b3c0c8' : glob ? '#146b64' : hasWs ? '#10233a' : '#9a5a0c'),
-        note: glob ? (u.p === 'admin' ? 'Profil Admin : lecture seule sur tous les chantiers de ' + code + '.' : 'Profil PMO : tous les droits sur tous les chantiers de ' + code + '.') : u0 ? 'Aucun chantier attribué pour l’instant. Le PMO de ' + code + ' les choisit dans le Référentiel.' : 'Les chantiers seront attribués par le PMO de ' + code + ' après l’invitation.',
-        noteSt: 'margin:10px 0 2px 60px;padding:9px 12px;border-radius:10px;font-size:12.5px;line-height:1.45;' + (glob ? 'background:#eef8f6;color:#146b64' : 'background:#fffaf1;color:#8a5a12'),
-        cells: WS.map(w => { const r = resp.includes(w.id), l = lec.includes(w.id); return { c: w.id, t: w.n + ' · ' + (r ? 'Responsable' : l ? 'Lecteur' : 'sans accès'), st: 'height:26px;min-width:34px;padding:0 7px;border-radius:7px;font-size:11px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;' + (r ? 'background:#10233a;color:#fff' : l ? 'background:#eaf6f4;color:#146b64;box-shadow:inset 0 0 0 1.5px #1d8f86' : 'color:#c3cdd2;box-shadow:inset 0 0 0 1px #e6eeec') }; }),
-        sw: 'width:38px;height:22px;border-radius:999px;border:0;padding:0;position:relative;cursor:pointer;flex:none;transition:background .2s;background:' + (on ? '#1d8f86' : '#c9d5d2'), knob: 'position:absolute;top:3px;left:' + (on ? 19 : 3) + 'px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(16,35,58,.25);transition:left .22s cubic-bezier(.2,.7,.2,1)',
+  uDlgVals() { const S = this.state, D = S.dlg, f = S.form || {}; if (!D || D.type !== 'user') return { prof: [], rows: [], adm: {} };
+    const u0 = D.id ? this.uById(D.id) : null, u = { ...(u0 || { id: null, s: 'invité', av: '#1d8f86', pr: [] }), n: f.n || '', e: f.e || '' }, hb = u0 ? this.habOf({ ...u0, e: u0.e }) : null, NM = PROJ_NAMES, pr = f.pr || [], hab = f.hab || {};
+    const setHab = (code, fn) => this.setState(s => { const h = JSON.parse(JSON.stringify(s.form.hab || {})); h[code] = h[code] || { pmo: false, ws: {} }; fn(h[code]); return { form: { ...s.form, hab: h }, fe: { ...s.fe, pr: '' } }; });
+    const seg = on => 'height:28px;padding:0 12px;border:0;border-radius:8px;font:inherit;font-size:12px;cursor:pointer;white-space:nowrap;' + (on ? 'background:#fff;box-shadow:0 1px 2px rgba(16,35,58,.12);font-weight:800;color:#10233a' : 'background:transparent;font-weight:600;color:#5c7280');
+    const CHIP = { resp: ['#10233a', '#fff', 'none'], lec: ['#e6f3f2', '#0f5f5a', 'inset 0 0 0 1px #9ccfc8'], '': ['#fff', '#8a9aa6', 'inset 0 0 0 1px #dbe4e2'] };
+    const rows = PROJ.map((code, i) => { const on = pr.includes(code), h = hab[code] || { pmo: false, ws: {} }, wsl = this.wsList(code), vals = Object.values(h.ws || {}), nR = vals.filter(v => v === 'resp').length, nL = vals.filter(v => v === 'lec').length;
+      const tog = () => this.setState(s => { const h2 = JSON.parse(JSON.stringify(s.form.hab || {})); if (!on && !h2[code]) h2[code] = { pmo: false, ws: {} }; return { form: { ...s.form, hab: h2, pr: on ? s.form.pr.filter(x => x !== code) : [...s.form.pr, code] }, fe: { ...s.fe, pr: '' } }; });
+      const empty = !h.pmo && nR + nL === 0;
+      return { code, name: NM[code] || '', on, tog, aria: (on ? 'Retirer ' : 'Rattacher ') + code, modeAria: 'Profil sur ' + code,
+        modes: [['pmo', 'PMO'], ['ws', 'Chantiers']].map(([k, l]) => { const m = k === 'pmo' ? h.pmo : !h.pmo; return { l, on: m, st: seg(m), pick: () => setHab(code, x => { x.pmo = k === 'pmo'; }) }; }),
+        showWs: on && !h.pmo && wsl.length > 0, showNote: on && (h.pmo || !wsl.length || empty),
+        sum: !on ? 'Non rattaché' : h.pmo ? 'PMO · tous les chantiers' : nR + nL ? [nR && 'Responsable de ' + nR + ' chantier' + (nR > 1 ? 's' : ''), nL && 'Lecteur de ' + nL].filter(Boolean).join(' · ') : 'Aucun chantier',
+        sumSt: 'font-size:12px;font-weight:700;white-space:nowrap;color:' + (!on ? '#b3c0c8' : h.pmo ? '#146b64' : nR + nL ? '#10233a' : '#9a5a0c'),
+        note: h.pmo ? 'PMO : tous les droits sur le référentiel et le transactionnel, sur tous les chantiers de ' + code + '.' : !wsl.length ? 'Aucun chantier dans le référentiel de ' + code + ' : seul le profil PMO est possible pour l’instant.' : 'Choisissez au moins un chantier, ou PMO.',
+        noteSt: 'padding:9px 12px;border-radius:10px;font-size:12.5px;line-height:1.45;' + (h.pmo ? 'background:#eef8f6;color:#146b64' : 'background:#fffaf1;color:#8a5a12'),
+        cells: wsl.map(w => { const v = (h.ws || {})[w.id] || '', c = CHIP[v];
+          return { c: w.id, t: w.n + ' · ' + (v === 'resp' ? 'Responsable' : v === 'lec' ? 'Lecteur' : 'sans accès'), cycle: () => setHab(code, x => { const nx = v === '' ? 'lec' : v === 'lec' ? 'resp' : ''; x.ws = x.ws || {}; if (nx) x.ws[w.id] = nx; else delete x.ws[w.id]; }),
+            st: 'height:26px;min-width:34px;padding:0 7px;border:0;border-radius:7px;font:inherit;font-size:11px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s,box-shadow .15s;background:' + c[0] + ';color:' + c[1] + ';box-shadow:' + c[2] }; }),
+        sw: 'width:38px;height:22px;border-radius:999px;border:0;padding:0;position:relative;cursor:pointer;flex:none;transition:background .2s;background:' + (on ? '#1d8f86' : '#c9d5d2'), knob: 'position:absolute;top:3px;left:' + (on ? 19 : 3) + 'px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:left .2s',
         st: 'padding:12px 14px;transition:background .2s;' + (i ? 'border-top:1px solid #eef3f2;' : '') + (on ? 'background:#fff' : 'background:#fafcfb') }; });
-    const onP = rows.filter(r => r.on), wsN = hb && pr.includes('RISE') && !glob ? hb.resp.concat(hb.lec) : [];
-    const summary = !pr.length ? 'Rattachez au moins un projet.' : (u.n || 'Ce compte') + ' · ' + (PROFS.find(p => p.id === u.p) || {}).n + ' sur ' + onP.map(r => r.code).join(', ') + (glob ? ', tous les chantiers.' : wsN.length ? ' · chantiers ' + wsN.join(', ') + '.' : '.');
+    const profs = habProfs(!!f.adm, Object.fromEntries(pr.map(c => [c, hab[c] || { pmo: false, ws: {} }])));
+    const summary = !pr.length && !f.adm ? 'Rattachez au moins un projet.' : (u.n || 'Ce compte') + ' · ' + (profs.length ? profs.map(p => (PROFS.find(x => x.id === p) || {}).n).join(', ') : 'aucun profil') + (pr.length ? ' · ' + pr.join(', ') : '') + '.';
     const stT = { actif: ['Actif', '#e6f4f2', '#146b64'], 'invité': ['Invité', '#fff1dc', '#9a5a0c'], suspendu: ['Suspendu', '#eef2f1', '#5c7280'] }[u.s] || ['', '', ''];
     return { ini: (u.n || '?').split(' ').map(x => x[0]).join('').slice(0, 2).toUpperCase(), av: 'width:48px;height:48px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:15px;font-weight:800;color:#fff;background:' + (u0 ? u.av : '#1d8f86'),
       sub: u0 ? (u.e || '') + (hb && hb.team ? ' · ' + hb.team : '') : 'Nouveau compte', hasSt: !!u0, stL: stT[0], stPill: 'height:24px;padding:0 10px;border-radius:999px;font-size:11.5px;font-weight:800;display:inline-flex;align-items:center;white-space:nowrap;background:' + stT[1] + ';color:' + stT[2],
-      prof: PROFS.map(p => { const on = u.p === p.id; return { n: p.n, on, pick: () => this.setState(s => ({ form: { ...s.form, p: p.id } })), dot: 'width:8px;height:8px;border-radius:50%;flex:none;background:' + FC[p.id], st: 'height:40px;border-radius:10px;border:0;font:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .2s,box-shadow .2s,color .2s;' + (on ? 'background:#fff;color:#10233a;box-shadow:0 1px 3px rgba(16,35,58,.14),0 0 0 1.5px #10233a' : 'background:transparent;color:#5c7280') }; }),
-      profD: PD[u.p] || '', prN: pr.length + ' projet' + (pr.length > 1 ? 's' : '') + ' sur ' + PROJ.length, rows, summary };
+      adm: { on: !!f.adm, d: 'Accès à la Console : comptes, habilitations, IA, journal d’audit. Lecture seule sur les données de tous les projets. Se cumule avec les profils ci-dessous.', tog: () => this.setState(s => ({ form: { ...s.form, adm: !s.form.adm }, fe: { ...s.fe, pr: '' } })),
+        sw: 'width:38px;height:22px;border-radius:999px;border:0;padding:0;position:relative;cursor:pointer;flex:none;transition:background .2s;background:' + (f.adm ? '#3b7dd8' : '#c9d5d2'), knob: 'position:absolute;top:3px;left:' + (f.adm ? 19 : 3) + 'px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:left .2s' },
+      prof: [], profD: '', prN: pr.length + ' projet' + (pr.length > 1 ? 's' : '') + ' sur ' + PROJ.length, rows, summary };
   }
   prGroups(u, prs) { const hb = this.habOf(u), glob = u.p === 'admin' || u.p === 'pmo', NM = PROJ_NAMES;
     return (prs || []).map(code => { const ws = !glob && code === 'RISE' && hb ? [...hb.resp.map(w => this.usChip(w, 'r', hb.WS)), ...hb.lec.map(w => this.usChip(w, 'l', hb.WS))] : [];
@@ -1547,14 +1572,14 @@ class Component extends DCLogic {
     }
     // Users
     if (is('users')) {
-      const q = S.uq.trim().toLowerCase(), base = S.users.filter(u => (!S.uStale || (u.s === 'actif' && u.ll > 14)) && (S.uPf === 'tous' || u.p === S.uPf) && (S.uPj === 'tous' || u.pr.includes(S.uPj)) && (!q || (u.n + ' ' + u.e).toLowerCase().includes(q))), cnt = { tous: base.length, actif: 0, 'invité': 0, suspendu: 0 }; base.forEach(u => cnt[u.s]++);
-      const list = S.users.filter(u => (!S.uStale || (u.s === 'actif' && u.ll > 14)) && (S.uSt === 'tous' || u.s === S.uSt) && (S.uPf === 'tous' || u.p === S.uPf) && (S.uPj === 'tous' || u.pr.includes(S.uPj)) && (!q || (u.n + ' ' + u.e).toLowerCase().includes(q)));
+      const q = S.uq.trim().toLowerCase(), base = S.users.filter(u => (!S.uStale || (u.s === 'actif' && u.ll > 14)) && (S.uPf === 'tous' || hasProf(u, S.uPf)) && (S.uPj === 'tous' || u.pr.includes(S.uPj)) && (!q || (u.n + ' ' + u.e).toLowerCase().includes(q))), cnt = { tous: base.length, actif: 0, 'invité': 0, suspendu: 0 }; base.forEach(u => cnt[u.s]++);
+      const list = S.users.filter(u => (!S.uStale || (u.s === 'actif' && u.ll > 14)) && (S.uSt === 'tous' || u.s === S.uSt) && (S.uPf === 'tous' || hasProf(u, S.uPf)) && (S.uPj === 'tous' || u.pr.includes(S.uPj)) && (!q || (u.n + ' ' + u.e).toLowerCase().includes(q)));
       vals.us = {
         seg: [['tous', 'Tous'], ['actif', 'Actifs'], ['invité', 'Invités'], ['suspendu', 'Suspendus']].map(([k, l]) => ({ l, c: cnt[k], on: S.uSt === k, st: segSt(S.uSt === k), pick: () => this.setState({ uSt: k }) })),
         q: S.uq, setQ: e => this.setState({ uq: e.target.value }), pf: S.uPf, setPf: e => this.setState({ uPf: e.target.value }), pj: S.uPj, setPj: e => this.setState({ uPj: e.target.value }),
         pfOpts: PROFS.map(p => ({ v: p.id, l: p.n })), pjOpts: PROJ.map(p => ({ v: p, l: p })),
         rows: list.map(u => { const t = u.s === 'actif' ? 'ok' : u.s === 'invité' ? 'info' : 'neu', stale = u.s === 'invité' && u.inv > 7;
-          return { ...u, ini: ini(u.n), avSt: `width:34px;height:34px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:12px;font-weight:800;color:#fff;background:${u.s === 'suspendu' ? '#a9b7bf' : u.av}`, isMe: u.id === 'u1', prof: PN[u.p] || '—', stL: { actif: 'Actif', 'invité': 'Invité', suspendu: 'Suspendu' }[u.s], pill: pill(t), dot: dot(t),
+          return { ...u, ini: ini(u.n), avSt: `width:34px;height:34px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:12px;font-weight:800;color:#fff;background:${u.s === 'suspendu' ? '#a9b7bf' : u.av}`, isMe: u.id === 'u1', prof: (u.profs && u.profs.length > 1 ? u.profs.map(p => PN[p]).join(' · ') : PN[u.p]) || '—', stL: { actif: 'Actif', 'invité': 'Invité', suspendu: 'Suspendu' }[u.s], pill: pill(t), dot: dot(t),
             last: u.s === 'invité' ? (u.inv === 0 ? 'Invité aujourd’hui' : 'Invité il y a ' + u.inv + ' j') : u.ll === 0 ? 'Aujourd’hui' + (u.lt ? ', ' + u.lt : '') : u.ll === 1 ? 'Hier' : 'Il y a ' + u.ll + ' j',
             lastSt: stale ? 'font-size:12.5px;color:#8a5a12;font-weight:700' : 'font-size:12.5px;color:#43586a', stale, isInv: u.s === 'invité', isAct: u.s === 'actif' && u.id !== 'u1', isSus: u.s === 'suspendu', canDel: u.id !== 'u1',
             ...this.usRow(u), edit: e => { e && e.stopPropagation(); this.openUser(u); }, suspend: e => { e && e.stopPropagation(); this.suspend(u); }, react: e => { e && e.stopPropagation(); this.reactivate(u); }, resend: e => { e && e.stopPropagation(); this.resend(u); }, del: e => { e && e.stopPropagation(); this.removeUser(u); } }; }),

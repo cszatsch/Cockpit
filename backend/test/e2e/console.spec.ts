@@ -41,6 +41,59 @@ describe('Console Admin — critères d’acceptation (brief Console § 13)', ()
     });
   });
 
+  describe('2 bis. Profils multiples (habilitations projet par projet)', () => {
+    it('invitation : Responsable d’un chantier, Lecteur d’autres, PMO d’un autre projet ; puis Administrateur + PMO', async () => {
+      const c = await t.as(WHO.admin);
+      const ws = (await c.get(`${A}/projects/RISE/workstreams`).expect(200)).body.map((w: any) => w.id);
+      expect(ws.length).toBeGreaterThan(3);
+      const inv = await c.post(`${A}/accounts`, { fullName: 'Nina Multi', email: 'nina.multi@exemple.test', habilitations: { admin: false, projects: [{ code: 'RISE', responsable: [ws[0]], lecteur: [ws[1], ws[2], ws[0]] }, { code: 'ATLAS', pmo: true }] } }).expect(201);
+      expect(inv.body.profiles).toEqual(['PMO', 'RESPONSABLE', 'LECTEUR']);
+      expect(inv.body.habilitations).toEqual(expect.arrayContaining([{ code: 'RISE', pmo: false, responsable: [ws[0]], lecteur: [ws[1], ws[2]].sort() }, { code: 'ATLAS', pmo: true, responsable: [], lecteur: [] }]));
+      const id = inv.body.id;
+
+      // Administrateur de la plateforme ET PMO : les deux se cumulent.
+      const up = await c.put(`${A}/accounts/${id}/habilitations`, { admin: true, projects: [{ code: 'RISE', lecteur: [ws[3]] }, { code: 'ATLAS', pmo: true }] }).expect(200);
+      expect(up.body).toMatchObject({ admin: true, profiles: ['ADMIN', 'PMO', 'LECTEUR'], projectCodes: expect.arrayContaining(['RISE', 'ATLAS']) });
+      expect(await t.db.adminGrant.count({ where: { accountId: id } })).toBe(1);
+      expect(await t.db.habilitation.count({ where: { accountId: id, projectId: 'ATLAS', profile: 'PMO' } })).toBe(1);
+
+      // Filtres : un compte figure dans chaque profil qu'il détient.
+      for (const p of ['admin', 'pmo', 'lec']) expect((await c.get(`${A}/accounts?profile=${p}`).expect(200)).body.items.some((a: any) => a.id === id)).toBe(true);
+      expect((await c.get(`${A}/accounts?profile=resp`).expect(200)).body.items.some((a: any) => a.id === id)).toBe(false);
+
+      // Projet retiré : rattachement et habilitations supprimés.
+      await c.put(`${A}/accounts/${id}/habilitations`, { admin: false, projects: [{ code: 'RISE', responsable: [ws[1]] }] }).expect(200);
+      expect(await t.db.habilitation.count({ where: { accountId: id, projectId: 'ATLAS' } })).toBe(0);
+      expect(await t.db.accountProject.count({ where: { accountId: id, projectId: 'ATLAS' } })).toBe(0);
+
+      // Heure figée en test : les deux modifications ont la même date, on les vérifie toutes les deux.
+      const audits = await t.db.auditEntry.findMany({ where: { entityType: 'Account', entityId: id, action: 'Modification des habilitations' } });
+      expect(audits).toHaveLength(2);
+      expect(audits.every((a) => a.severity === 'SENSITIVE' && a.profileUsed === 'ADMIN')).toBe(true);
+      expect(audits.map((a) => a.newValue)).toEqual(expect.arrayContaining([
+        expect.objectContaining({ avant: expect.objectContaining({ admin: false }), apres: expect.objectContaining({ admin: true }) }),
+        expect.objectContaining({ avant: expect.objectContaining({ admin: true }), apres: { admin: false, habilitations: [{ code: 'RISE', pmo: false, responsable: [ws[1]], lecteur: [] }] } }),
+      ]));
+    });
+
+    it('personne du référentiel : droits écrits sur la personne (vus par le Cockpit) ; contrôles', async () => {
+      const c = await t.as(WHO.admin);
+      const u2 = (await c.get(`${A}/accounts/u2`).expect(200)).body; // Robin Lefèvre, PMO de RISE (personne p01)
+      const ws = (await c.get(`${A}/projects/RISE/workstreams`).expect(200)).body.map((w: any) => w.id);
+      await c.put(`${A}/accounts/u2/habilitations`, { admin: false, projects: [{ code: 'RISE', responsable: [ws[0]], lecteur: [ws[1]] }] }).expect(200);
+      const rows = await t.db.habilitation.findMany({ where: { projectId: 'RISE', personId: 'p01' } });
+      expect(rows.map((r) => [r.profile, r.wsId]).sort()).toEqual([['LECTEUR', ws[1]], ['RESPONSABLE', ws[0]]].sort());
+      expect((await (await t.as(WHO.pmo)).get('/api/projects/RISE/bootstrap').expect(200)).status).toBe(200);
+
+      await c.put(`${A}/accounts/u2/habilitations`, { admin: false, projects: [{ code: 'RISE', lecteur: ['INCONNU'] }] }).expect(400);
+      await c.put(`${A}/accounts/u2/habilitations`, { admin: false, projects: [{ code: 'RISE', pmo: true }, { code: 'rise', pmo: true }] }).expect(400);
+      expect((await c.put(`${A}/accounts/u1/habilitations`, { admin: false, projects: [] }).expect(409)).body.code).toBe('SELF_ACTION');
+      // Remise en état : PMO de RISE.
+      await c.put(`${A}/accounts/u2/habilitations`, { admin: false, projects: u2.habilitations.map((h: any) => ({ code: h.code, pmo: h.pmo, responsable: h.responsable, lecteur: h.lecteur })) }).expect(200);
+      expect(await t.db.habilitation.count({ where: { projectId: 'RISE', personId: 'p01', profile: 'PMO' } })).toBe(1);
+    });
+  });
+
   describe('2. Comptes', () => {
     it('inviter un e-mail déjà utilisé → 409 ; invitation valable 14 jours', async () => {
       const c = await t.as(WHO.admin);

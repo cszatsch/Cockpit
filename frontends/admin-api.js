@@ -144,7 +144,9 @@ export function toUser(a, i = 0) {
   const s = STATUS[a.status] || 'actif', last = D(a.lastLoginAt);
   // Jours depuis la dernière connexion, bornés à 0 (la connexion de développement date du jour réel).
   const ll = s === 'invité' || a.lastLoginDays == null ? null : Math.max(0, a.lastLoginDays);
-  return { id: a.id, n: a.fullName, e: a.email, p: PROFILE[a.profile] || null, s, ll, inv: s === 'invité' ? Math.max(0, a.invitedDays || 0) : null,
+  // Profils multiples : tous les profils détenus, rôle d'administrateur et habilitations projet par projet.
+  const hab = Object.fromEntries((a.habilitations || []).map(h => [h.code, { pmo: !!h.pmo, ws: Object.fromEntries([...(h.lecteur || []).map(w => [w, 'lec']), ...(h.responsable || []).map(w => [w, 'resp'])]) }]));
+  return { id: a.id, n: a.fullName, e: a.email, p: PROFILE[a.profile] || null, profs: (a.profiles || []).map(p => PROFILE[p]).filter(Boolean), adm: !!a.admin, hab, s, ll, inv: s === 'invité' ? Math.max(0, a.invitedDays || 0) : null,
     pr: [...(a.projectCodes || [])], lt: ll === 0 && last ? p2(last.getHours()) + ':' + p2(last.getMinutes()) : '', av: AV[i % AV.length], _v: a.version };
 }
 /** Administrateur → `{ u, lv:'admin', since }` (un seul niveau, brief § 5). */
@@ -299,6 +301,8 @@ export function bindConsole(c) {
     reqs: async () => ({ reqs: (await get('/module-requests?status=PENDING')).map(toReq) }),
     prof: async () => { const me = await get('/me/profile'); meId = me.id; return { prof: toProf(me), pn: { crit: true, budget: true, req: true, hebdo: true, fail: false, ...(me.notifications || {}) }, photo: me.photoUrl || null }; },
     sess: async () => ({ sess: (await get('/me/sessions')).map(toSess) }),
+    // Chantiers de chaque projet, pour attribuer des chantiers en Responsable ou en Lecteur.
+    wsAll: async () => { const ps = await get('/projects'), lists = await Promise.all(ps.map(p => get('/projects/' + encodeURIComponent(p.code) + '/workstreams'))); return { apiWs: Object.fromEntries(ps.map((p, i) => [p.code, lists[i].map(w => ({ id: w.id, n: w.name }))])) }; },
     projects: async () => {
       const ps = await get('/projects');
       // Listes de projets de la Console (rattachements, droits, modules) : ceux de la base, du plus ancien au plus récent.
@@ -319,7 +323,7 @@ export function bindConsole(c) {
       return { apiCards: cards, apCards: cards.filter(v => !apPend[v.id]).map(toCard), apWidgets: widgets, apChecked: lastCheck(cards) }; },
   };
   const SECTION = {
-    overview: ['accounts', 'providers', 'month', 'audit', 'reqs', 'snaps', 'sched', 'ov', 'models', 'asg', 'fns'], users: ['accounts'], admins: ['admins', 'audit', 'accounts'], providers: ['providers', 'models', 'asg', 'fns'],
+    overview: ['accounts', 'providers', 'month', 'audit', 'reqs', 'snaps', 'sched', 'ov', 'models', 'asg', 'fns'], users: ['accounts', 'wsAll'], admins: ['admins', 'audit', 'accounts'], providers: ['providers', 'models', 'asg', 'fns'],
     assign: ['asg', 'models', 'providers', 'usage', 'fns'], conso: ['month', 'providers'], snaps: [], notifs: ['nrRules', 'nrHist', 'nrCounts', 'nrSchedule', 'models', 'providers', 'projects'], modules: ['mods', 'reqs'],
     smtp: ['smtp'], init: ['projects'], library: ['projects'], profil: ['prof', 'sess', 'audit'], skills: ['skills'], persona: ['persona'], apis: ['apis'],
   };
@@ -340,7 +344,7 @@ export function bindConsole(c) {
       if (typeof c.apiClock === 'function') c.apiClock(clock.server);
       // Échéances des clés API : même date du jour que le serveur (DEMO_TODAY compris).
       set0({ apiNow: String(ov.date).slice(0, 10) + 'T12:00:00' });
-      await load(['ov', 'prof', 'accounts', 'admins', 'audit', 'providers', 'models', 'asg', 'usage', 'snaps', 'sched', 'nrRules', 'nrHist', 'nrCounts', 'nrSchedule', 'smtp', 'mods', 'reqs', 'sess', 'projects', 'skills', 'persona', 'notifs', 'apis', 'fns']);
+      await load(['ov', 'wsAll', 'prof', 'accounts', 'admins', 'audit', 'providers', 'models', 'asg', 'usage', 'snaps', 'sched', 'nrRules', 'nrHist', 'nrCounts', 'nrSchedule', 'smtp', 'mods', 'reqs', 'sess', 'projects', 'skills', 'persona', 'notifs', 'apis', 'fns']);
       set0({ apiBoot: false, loading: false });
     } catch (e) {
       fail(e);
@@ -476,39 +480,37 @@ export function bindConsole(c) {
     const call = p.s === 'suspendu' && u.s !== 'suspendu' ? '/suspend' : p.s === 'actif' && u.s === 'suspendu' ? '/reactivate' : p.inv === 0 && u.s === 'invité' ? '/resend-invite' : null;
     if (call) post('/accounts/' + id + call).then(a => { repl('users', id, userFrom(a)); touch(); }).catch(e => { fail(e); load(['accounts']).catch(() => {}); });
   };
+  // Profils multiples : invitation et modification envoient les habilitations projet par projet (PUT …/habilitations).
+  const habBody = f => ({ admin: !!f.adm, projects: (f.pr || []).map(code => { const h = (f.hab || {})[code] || { pmo: false, ws: {} }, ws = Object.entries(h.ws || {});
+    return { code, pmo: !!h.pmo, responsable: h.pmo ? [] : ws.filter(([, v]) => v === 'resp').map(([w]) => w), lecteur: h.pmo ? [] : ws.filter(([, v]) => v === 'lec').map(([w]) => w) }; }) });
   c.saveUser = async () => {
-    const S = c.state, f = S.form, fe = {}, id = S.dlg.id, PN = { admin: 'Admin', pmo: 'PMO', resp: 'Responsable', lec: 'Lecteur' };
+    const S = c.state, f = S.form, fe = {}, id = S.dlg.id;
     if (!f.n || f.n.trim().length < 2) fe.n = 'Indiquez le nom complet.';
     if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test((f.e || '').trim())) fe.e = 'Adresse e-mail invalide.';
     else if (S.users.some(u => u.e.toLowerCase() === f.e.trim().toLowerCase() && u.id !== id)) fe.e = 'Cette adresse est déjà utilisée par un autre compte.';
-    if (!f.pr.length) fe.pr = 'Rattachez au moins un projet.';
+    const he = c.habErr(f); if (he) fe.pr = he;
     if (Object.keys(fe).length) return c.setState({ fe });
     // Erreur serveur : la fenêtre de saisie reste (ou redevient) ouverte, avec le message du serveur.
-    const onErr = e => { set0({ dlg: { type: 'user', id }, form: f }); if (e instanceof ApiError && e.code === 'DUPLICATE') set0({ fe: { e: e.message } }); else fail(e); };
+    const onErr = e => { set0({ dlg: { type: 'user', id }, form: f }); if (e instanceof ApiError && e.code === 'DUPLICATE') set0({ fe: { e: e.message } }); else if (e instanceof ApiError && (e.code === 'SELF_ACTION' || e.code === 'LAST_ADMIN')) set0({ fe: { pr: e.message } }); else fail(e); };
     if (!id) {
       try {
-        const a = await post('/accounts', { fullName: f.n.trim(), email: f.e.trim(), profile: f.p, projectCodes: f.pr });
+        const a = await post('/accounts', { fullName: f.n.trim(), email: f.e.trim(), habilitations: habBody(f) });
         const nu = toUser(a, S.users.length);
-        set0(s => ({ users: [nu, ...s.users], dlg: null, form: {} })); toast('Invitation envoyée à ' + nu.e); touch();
+        set0(s => ({ users: [nu, ...s.users], dlg: null, form: {} })); toast('Invitation envoyée à ' + nu.e); touch(); load(['admins']).catch(() => {});
       } catch (e) { onErr(e); }
       return;
     }
-    const u = c.uById(id), profCh = u.p !== f.p, prCh = [...f.pr].sort().join() !== [...u.pr].sort().join();
-    const apply = async () => {
+    const u = c.uById(id), before = JSON.stringify(habBody({ adm: u.adm, pr: u.pr, hab: u.hab })), after = JSON.stringify(habBody(f)), habCh = before !== after;
+    try {
       const body = {};
       if (f.n.trim() !== u.n) body.fullName = f.n.trim();
       if (f.e.trim().toLowerCase() !== u.e.toLowerCase()) body.email = f.e.trim();
-      if (profCh) body.profile = f.p;
-      if (prCh) body.projectCodes = f.pr;
-      try {
-        const a = Object.keys(body).length ? await patch('/accounts/' + id, body) : null;
-        if (a) repl('users', id, userFrom(a));
-        set0({ dlg: null, form: {} }); toast('Modifications enregistrées pour ' + f.n.trim()); touch();
-        if (profCh) load(['admins']).catch(() => {});
-      } catch (e) { onErr(e); }
-    };
-    if (profCh || prCh) c.ask({ keepPrev: true, tone: 'warn', title: 'Modifier les habilitations de ' + u.n + ' ?', body: 'Ses droits sur les projets sont recalculés à partir du profil. Les droits définis individuellement sont conservés.', items: [profCh && { l: 'Profil', a: PN[u.p], b: PN[f.p] }, prCh && { l: 'Projets', a: u.pr.join(', '), b: f.pr.join(', ') }].filter(Boolean), cta: 'Confirmer la modification', ok: apply });
-    else apply();
+      let a = Object.keys(body).length ? await patch('/accounts/' + id, body) : null;
+      if (habCh) a = await put('/accounts/' + id + '/habilitations', habBody(f));
+      if (a) repl('users', id, userFrom(a));
+      set0({ dlg: null, form: {} }); toast('Modifications enregistrées pour ' + f.n.trim()); touch();
+      if (habCh) load(['admins', 'accounts']).catch(() => {});
+    } catch (e) { onErr(e); }
   };
   c.removeUser = gateAsk('removeUser', u => del('/accounts/' + u.id));
 

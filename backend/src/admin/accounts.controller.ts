@@ -23,15 +23,33 @@ const PROFILE = z
   .transform((s) => ({ admin: 'ADMIN', pmo: 'PMO', resp: 'RESPONSABLE', lec: 'LECTEUR' } as Record<string, string>)[s] ?? s.toUpperCase())
   .pipe(z.enum(['ADMIN', 'PMO', 'RESPONSABLE', 'LECTEUR']));
 
+/**
+ * Habilitations d'un compte, projet par projet (profils multiples, 29/09/2026) : Administrateur de la plateforme
+ * (indépendant), puis sur chaque projet rattaché PMO, ou des chantiers en Responsable et en Lecteur.
+ */
+const Habilitations = z
+  .object({
+    admin: z.boolean(),
+    projects: z.array(z.object({ code: z.string().min(1), pmo: z.boolean().default(false), responsable: z.array(z.string().min(1)).default([]), lecteur: z.array(z.string().min(1)).default([]) }).strict()),
+  })
+  .strict();
+type HabilitationsInput = z.infer<typeof Habilitations>;
+
 const AccountCreate = z
   .object({
     fullName: z.string().trim().min(2, '2 caractères minimum').max(120),
     email: z.string().trim().toLowerCase().email('e-mail invalide'),
-    profile: PROFILE,
-    projectCodes: z.array(z.string().min(1)).min(1, 'au moins un projet'),
+    profile: PROFILE.optional(),
+    projectCodes: z.array(z.string().min(1)).min(1, 'au moins un projet').optional(),
+    habilitations: Habilitations.optional(),
   })
+  .strict()
+  .refine((v) => !!v.habilitations || (!!v.profile && !!v.projectCodes), { message: 'profil et projets, ou habilitations, attendus', path: ['habilitations'] });
+const AccountPatch = z
+  .object({ fullName: z.string().trim().min(2, '2 caractères minimum').max(120), email: z.string().trim().toLowerCase().email('e-mail invalide'), profile: PROFILE, projectCodes: z.array(z.string().min(1)).min(1, 'au moins un projet') })
+  .partial()
   .strict();
-const AccountPatch = AccountCreate.partial().strict();
+const PROFILE_ORDER = ['ADMIN', 'PMO', 'RESPONSABLE', 'LECTEUR'] as const;
 
 const DAY = 86_400_000;
 
@@ -62,12 +80,20 @@ export class AccountsController {
     });
   }
 
-  private async view(accounts: Array<Account & { projects: { projectId: string }[] }>) {
-    const rights = await this.profiles.rightsOf(accounts);
+  /** `db` : la transaction en cours, pour que la vue « après » d'un audit lise bien les droits qui viennent d'être écrits. */
+  private async view(accounts: Array<Account & { projects: { projectId: string }[] }>, db: Tx = this.prisma) {
+    const rights = await this.profiles.rightsOf(accounts, db);
     const now = this.today.now().getTime();
-    const codes = Object.fromEntries((await this.prisma.project.findMany({ select: { id: true, code: true } })).map((p) => [p.id, p.code]));
+    const codes = Object.fromEntries((await db.project.findMany({ select: { id: true, code: true } })).map((p) => [p.id, p.code]));
     return accounts.map((a) => {
       const r = rights.get(a.id)!;
+      const pids = [...new Set([...a.projects.map((p) => p.projectId), ...Object.keys(r.projects)])];
+      const habilitations = pids.map((pid) => {
+        const x = r.projects[pid] ?? { pmo: false, responsable: [], lecteur: [] };
+        return { code: codes[pid] ?? pid, pmo: x.pmo, responsable: [...x.responsable].sort(), lecteur: x.lecteur.filter((w) => !x.responsable.includes(w)).sort() };
+      });
+      // Tous les profils détenus (un compte peut en cumuler plusieurs), du plus large au plus restreint.
+      const has = { ADMIN: r.admin, PMO: habilitations.some((h) => h.pmo), RESPONSABLE: habilitations.some((h) => h.responsable.length > 0), LECTEUR: habilitations.some((h) => h.lecteur.length > 0) };
       return {
         id: a.id,
         fullName: a.fullName,
@@ -75,7 +101,9 @@ export class AccountsController {
         personId: a.personId,
         status: a.status,
         profile: r.strongest,
+        profiles: PROFILE_ORDER.filter((p) => has[p]),
         admin: r.admin,
+        habilitations,
         projectCodes: a.projects.map((p) => codes[p.projectId] ?? p.projectId),
         lastLoginAt: a.lastLoginAt,
         lastLoginDays: a.lastLoginAt ? Math.floor((now - a.lastLoginAt.getTime()) / DAY) : null,
@@ -106,14 +134,15 @@ export class AccountsController {
         (!text || `${a.fullName} ${a.email}`.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').includes(text)) &&
         (stale === null || (a.status === 'ACTIVE' && (a.lastLoginDays ?? 9999) >= stale)),
     );
-    const byStatusBase = base.filter((a) => !profile || a.profile === profile);
+    // Profil : tout compte qui le détient (profils cumulés), et non seulement son profil le plus large.
+    const byStatusBase = base.filter((a) => !profile || a.profiles.includes(profile as any));
     const byProfileBase = base.filter((a) => !status || a.status === status);
     const count = <T extends string>(rows: typeof all, key: (a: (typeof all)[number]) => T | null, keys: T[]) => Object.fromEntries(keys.map((k) => [k, rows.filter((a) => key(a) === k).length]));
     return {
-      items: base.filter((a) => (!status || a.status === status) && (!profile || a.profile === profile)),
+      items: base.filter((a) => (!status || a.status === status) && (!profile || a.profiles.includes(profile as any))),
       counts: {
         byStatus: { total: byStatusBase.length, ...count(byStatusBase, (a) => a.status, ['ACTIVE', 'INVITED', 'SUSPENDED']) },
-        byProfile: { total: byProfileBase.length, ...count(byProfileBase, (a) => a.profile, ['ADMIN', 'PMO', 'RESPONSABLE', 'LECTEUR']) },
+        byProfile: { total: byProfileBase.length, ...Object.fromEntries(PROFILE_ORDER.map((p) => [p, byProfileBase.filter((a) => a.profiles.includes(p)).length])) },
       },
     };
   }
@@ -173,7 +202,12 @@ export class AccountsController {
   /** `keepReferentialRights` : compte d'une personne du référentiel dont les droits viennent déjà du PMO. */
   private async createAccount(actor: Actor, input: z.infer<typeof AccountCreate>, keepReferentialRights: boolean) {
     if (await this.prisma.account.findUnique({ where: { email: input.email } })) throw conflict('DUPLICATE', `Un compte existe déjà pour ${input.email}`);
-    const projects = await this.resolveProjects(input.projectCodes);
+    const hab = input.habilitations;
+    const projects = await this.resolveProjects(hab ? hab.projects.map((p) => p.code) : input.projectCodes!);
+    if (!projects.length && !hab?.admin) throw badRequest('Aucun accès', { habilitations: 'au moins un projet, ou le rôle d’administrateur' });
+    const label = hab
+      ? [hab.admin ? 'ADMIN' : null, ...hab.projects.map((p) => `${p.code} ${p.pmo ? 'PMO' : `${p.responsable.length} resp. · ${p.lecteur.length} lect.`}`)].filter(Boolean).join(' · ')
+      : input.profile!;
     const now = this.today.now();
     const created = await this.prisma.$transaction(async (db) => {
       const person = await db.person.findFirst({ where: { projectId: { in: projects.map((p) => p.id) }, email: { equals: input.email, mode: 'insensitive' } } });
@@ -189,9 +223,10 @@ export class AccountsController {
           projects: { create: projects.map((p) => ({ projectId: p.id })) },
         },
       });
-      if (!keepReferentialRights) await this.applyProfile(db, a, input.profile, projects);
-      await this.audit.action(db, adminCtx(actor), { action: 'Invitation d’un utilisateur', target: `${a.fullName} · ${input.profile}`, severity: 'INFO', entityType: 'Account', entityId: a.id, details: { email: a.email, profile: input.profile, projects: input.projectCodes } });
-      const raw = await this.creds.issueToken(db, a, 'INVITE', input.profile === 'ADMIN' ? 'ADMIN' : 'APP', INVITE_VALIDITY_DAYS * DAY);
+      if (hab) await this.writeHabilitations(db, actor, a, hab);
+      else if (!keepReferentialRights) await this.applyProfile(db, a, input.profile!, projects);
+      await this.audit.action(db, adminCtx(actor), { action: 'Invitation d’un utilisateur', target: `${a.fullName} · ${label}`, severity: 'INFO', entityType: 'Account', entityId: a.id, details: { email: a.email, profile: input.profile ?? null, projects: projects.map((p) => p.code), habilitations: hab ?? null } });
+      const raw = await this.creds.issueToken(db, a, 'INVITE', (hab ? hab.admin : input.profile === 'ADMIN') ? 'ADMIN' : 'APP', INVITE_VALIDITY_DAYS * DAY);
       return { a, raw };
     });
     await this.inviteMail(created.a, created.raw, false);
@@ -226,7 +261,7 @@ export class AccountsController {
         }
         await this.applyProfile(db, { ...a, email: input.email ?? a.email }, profile, projects);
       }
-      const [after] = await this.view([await this.one(id, db)]);
+      const [after] = await this.view([await this.one(id, db)], db);
       await this.audit.action(db, adminCtx(actor), {
         action: rightsChange ? 'Modification des habilitations' : 'Modification d’un utilisateur',
         target: after.fullName,
@@ -320,6 +355,76 @@ export class AccountsController {
       await db.account.delete({ where: { id } });
       await this.audit.action(db, adminCtx(actor), { action: 'Suppression d’un utilisateur', target: `${a.fullName} · ${a.email}`, severity: 'CRITICAL', entityType: 'Account', entityId: id });
     });
+  }
+
+  // ───────────── Habilitations projet par projet (profils multiples) ─────────────
+
+  /** Chantiers d'un projet, pour attribuer des chantiers en Responsable ou en Lecteur. */
+  @Get('projects/:id/workstreams')
+  async workstreams(@Param('id') id: string) {
+    const [p] = await this.resolveProjects([id]);
+    return (await this.prisma.workstream.findMany({ where: { projectId: p.id }, orderBy: { seq: 'asc' }, select: { id: true, code: true, name: true } })).map((w) => ({ id: w.id, code: w.code, name: w.name }));
+  }
+
+  /**
+   * Remplace toutes les habilitations du compte : rôle d'administrateur, projets rattachés et, sur chacun, PMO ou
+   * chantiers en Responsable / Lecteur. Décision du 29/09/2026 : tout s'attribue depuis la Console, y compris pour
+   * une personne du référentiel (ses droits sont alors écrits sur la personne, comme ceux posés par le PMO).
+   */
+  @Put('accounts/:id/habilitations')
+  async putHabilitations(@CurrentActor() actor: Actor, @Param('id') id: string, @Body() body: unknown) {
+    const input = parse(Habilitations, body);
+    const a = await this.one(id);
+    if (id === actor.accountId && !input.admin) throw conflict('SELF_ACTION', 'Vous ne pouvez pas retirer vos propres droits d’administrateur');
+    const [before] = await this.view([a]);
+    await this.prisma.$transaction(async (db) => {
+      await this.writeHabilitations(db, actor, a, input);
+      const [after] = await this.view([await this.one(id, db)], db);
+      await this.audit.action(db, adminCtx(actor), {
+        action: 'Modification des habilitations',
+        target: `${a.fullName} · ${after.profiles.join(', ') || 'aucun profil'}`,
+        severity: 'SENSITIVE',
+        entityType: 'Account',
+        entityId: id,
+        details: { avant: { admin: before.admin, habilitations: before.habilitations }, apres: { admin: after.admin, habilitations: after.habilitations } },
+      });
+    });
+    return this.get(id);
+  }
+
+  private async writeHabilitations(db: Tx, actor: Actor, a: Account, input: HabilitationsInput) {
+    const codes = input.projects.map((p) => p.code.toUpperCase());
+    if (new Set(codes).size !== codes.length) throw badRequest('Projet en double', { projects: 'un projet apparaît deux fois' });
+    const projects = codes.length ? await this.resolveProjects(codes) : [];
+    // Rôle d'administrateur : indépendant des projets ; il reste toujours au moins un administrateur.
+    const isAdmin = !!(await db.adminGrant.findUnique({ where: { accountId: a.id } }));
+    if (input.admin && !isAdmin) await db.adminGrant.create({ data: { accountId: a.id, grantedById: actor.accountId } });
+    if (!input.admin && isAdmin) {
+      if ((await db.adminGrant.count()) <= 1) throw conflict('LAST_ADMIN', 'Il doit toujours rester au moins un administrateur');
+      await db.adminGrant.delete({ where: { accountId: a.id } });
+    }
+    // Projets touchés : ceux demandés et ceux rattachés jusqu'ici (un projet retiré perd ses habilitations).
+    const attached = (await db.accountProject.findMany({ where: { accountId: a.id } })).map((x) => x.projectId);
+    for (const pid of [...new Set([...attached, ...projects.map((p) => p.id)])]) {
+      const person = await db.person.findFirst({ where: { projectId: pid, OR: [...(a.personId ? [{ id: a.personId }] : []), { email: { equals: a.email, mode: 'insensitive' as const } }] } });
+      await db.habilitation.deleteMany({ where: { projectId: pid, OR: [{ accountId: a.id }, ...(person ? [{ personId: person.id }] : [])] } });
+      const code = projects.find((x) => x.id === pid)?.code;
+      const want = code ? input.projects.find((p) => p.code.toUpperCase() === code) : undefined;
+      if (!want) continue;
+      // Personne du référentiel : droits écrits sur la personne (mêmes lignes que celles du PMO dans le Cockpit).
+      const owner = person ? { personId: person.id } : { accountId: a.id };
+      if (want.pmo) {
+        await db.habilitation.create({ data: { id: techId('hab'), projectId: pid, profile: 'PMO', ...owner } });
+        continue;
+      }
+      const ws = new Set((await db.workstream.findMany({ where: { projectId: pid }, select: { id: true } })).map((w) => w.id));
+      const unknown = [...want.responsable, ...want.lecteur].filter((w) => !ws.has(w));
+      if (unknown.length) throw badRequest('Chantier inconnu', { projects: `${want.code} : ${unknown.join(', ')}` });
+      for (const w of new Set(want.responsable)) await db.habilitation.create({ data: { id: techId('hab'), projectId: pid, profile: 'RESPONSABLE', wsId: w, ...owner } });
+      for (const w of new Set(want.lecteur.filter((x) => !want.responsable.includes(x)))) await db.habilitation.create({ data: { id: techId('hab'), projectId: pid, profile: 'LECTEUR', wsId: w, ...owner } });
+    }
+    await db.accountProject.deleteMany({ where: { accountId: a.id } });
+    if (projects.length) await db.accountProject.createMany({ data: projects.map((p) => ({ accountId: a.id, projectId: p.id })) });
   }
 
   // ───────────── Profils globaux et lecteurs externes (brief Cockpit § 9.11) ─────────────

@@ -425,3 +425,12 @@ Vérification des éléments de la vue d'ensemble face au serveur. Conformes : d
 
 - `Registre des cartes API.dc.html` : colonne « ALIMENTE » renommée « WIDGETS ALIMENTÉS » (en-tête du tableau et bloc de la fiche).
 - Snapshots : plus aucun snapshot factice en base ni à l'amorçage ; la vue affiche « Aucun snapshot pour ce projet » et la vue d'ensemble « Aucun snapshot » jusqu'à la première capture.
+
+## Utilisateurs : profils multiples (29/09/2026)
+
+- `Console Admin.dc.html`, fenêtre d'un utilisateur :
+  - le choix unique « PROFIL » (Admin / PMO / Responsable / Lecteur) est remplacé par l'interrupteur « Administrateur de la plateforme », qui se cumule avec les profils par projet ;
+  - « ACCÈS PAR PROJET » : pour chaque projet rattaché, un choix « PMO » ou « Chantiers » ; les chantiers se règlent d'un clic (sans accès → Lecteur → Responsable), avec une légende ; le lien « Modifier dans le Référentiel » disparaît (attribution depuis la Console, décision du 29/09/2026) ;
+  - contrôle avant envoi : au moins un projet ou le rôle d'administrateur, et sur chaque projet PMO ou au moins un chantier.
+- Liste des utilisateurs : le libellé de profil montre tous les profils détenus (« Admin · PMO ») ; les filtres et compteurs par profil comptent chaque compte dans chacun de ses profils.
+- `admin-api.js` : `toUser` lit `profiles`, `admin` et `habilitations` ; chargement `wsAll` (chantiers de chaque projet) ; `saveUser` envoie les habilitations (`POST /accounts` avec `habilitations`, `PUT /accounts/:id/habilitations`).
