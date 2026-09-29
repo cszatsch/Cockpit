@@ -138,3 +138,7 @@ Plus aucune clé `localStorage` n'est lue ou écrite par le fichier HTML. api.js
 - `RISE Cockpit.dc.html` : cloche « Notifications » dans le pied de la barre latérale, au-dessus de Jev, avec le nombre de non lues (pastille sur l'icône en mode replié) ; tiroir `Notifications Cockpit.dc.html` le long de la barre ; méthodes `ntToggle`, `ntRead` et `ntReadAll`.
 - `Notifications Cockpit.dc.html` : nouveau composant (tiroir, onglets, lecture au clic, « Tout lire », Échap), démonstration intégrée sans API.
 - `api.js` : chargement des notifications au démarrage, toutes les 60 s et au retour sur l'onglet ; `ntLoad`, `ntRead` et `ntReadAll`, avec mise à jour immédiate du compteur.
+
+## Connexion Cockpit : nouvelle photo du volet gauche (29/09/2026)
+
+- `Authentification.dc.html` (surface `app`) : `assets/connexion-cockpit.webp` (1190 × 1322, 90 Ko) remplace `banner-aujourdhui.jpg` dans le volet gauche ; cadrage `32% 38%` (visage et cartes visibles, y compris dans le bandeau mobile) ; dégradés et textes inchangés. La fenêtre « session expirée » garde son image.

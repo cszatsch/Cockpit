@@ -377,3 +377,7 @@ Les captures sont écrites dans `OUT` (par défaut `<tmp>/rise-console-e2e`).
   Sans promesse ni `onQuery`, comportement d'origine.
 - `admin-api.js` : routes `PUT /:id`, `PATCH /:id/active`, liste paginée `skQuery` ; les actions renvoient des promesses (erreurs en français) sans relire la liste ; `skRemote` au-delà de 200 skills.
 - `Console Admin.dc.html` : `on-query` transmis à l'écran ; en démonstration, plus de seconde notification (l'écran confirme lui-même).
+
+## Connexion Console : photo du volet gauche (29/09/2026)
+
+- `Authentification.dc.html` (surface `admin`) : photo `assets/connexion-console.webp` (aviron vu du ciel, 1190 × 1322, 126 Ko) sous un dégradé bleu nuit qui garde le logo et le titre lisibles ; cadrage `72% 46%` (bateau visible, y compris dans le bandeau mobile de 196 px) ; même animation d'entrée que la photo du Cockpit ; quadrillage et arc conservés.

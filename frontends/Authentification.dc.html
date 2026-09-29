@@ -26,12 +26,14 @@ input::placeholder{color:#9aabb5}
 
   <div aria-hidden="true" style="{{ visSt }}">
     <sc-if value="{{ isApp }}" hint-placeholder-val="{{ true }}">
-      <img src="assets/banner-aujourdhui.jpg" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:60% 32%;animation:auth-kb 1.4s cubic-bezier(.2,.7,.2,1) both">
+      <img src="assets/connexion-cockpit.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:32% 38%;animation:auth-kb 1.4s cubic-bezier(.2,.7,.2,1) both">
       <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(6,35,34,.55) 0%,rgba(6,35,34,.08) 34%,rgba(6,35,34,.42) 62%,rgba(6,35,34,.9) 100%)"></div>
       <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(6,35,34,.35),transparent 60%)"></div>
     </sc-if>
     <sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ false }}">
-      <div style="position:absolute;inset:0;background:radial-gradient(90% 70% at 0% 100%,rgba(31,179,165,.2),transparent 62%),radial-gradient(60% 50% at 100% 0%,rgba(0,150,214,.12),transparent 70%),linear-gradient(180deg,#0f2034 0%,#0a1727 100%)"></div>
+      <div style="position:absolute;inset:0;background:#0a1727"></div>
+      <img src="assets/connexion-console.webp" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:72% 46%;animation:auth-kb 1.4s cubic-bezier(.2,.7,.2,1) both">
+      <div style="position:absolute;inset:0;background:radial-gradient(90% 70% at 0% 100%,rgba(31,179,165,.16),transparent 62%),linear-gradient(180deg,rgba(10,23,39,.5) 0%,rgba(10,23,39,.05) 30%,rgba(10,23,39,.25) 62%,rgba(10,23,39,.85) 100%)"></div>
       <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px);background-size:44px 44px;-webkit-mask-image:radial-gradient(ellipse 80% 70% at 65% 35%,#000 10%,transparent 72%);mask-image:radial-gradient(ellipse 80% 70% at 65% 35%,#000 10%,transparent 72%);animation:auth-fade 1.2s ease both"></div>
     </sc-if>
     <div style="{{ arcSt }}"></div>
