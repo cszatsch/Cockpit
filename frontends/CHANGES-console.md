@@ -337,3 +337,13 @@ Les captures sont écrites dans `OUT` (par défaut `<tmp>/rise-console-e2e`).
   - « Réinitialiser la session » et « Importer le fichier corrigé » oublient l'ancien fichier côté serveur (`DELETE`) ;
   - `importXlsx` retiré.
 - `Referentiel RISE - initialisation.xlsx` : liste Sous-phase des jalons dépendante de la phase choisie (validation de la colonne E de « 12 Jalons », reste du classeur intact).
+
+## Initialisation d'un projet : zone de dépôt « Feuillets » (29/09/2026)
+
+- `ProjetInit.dc.html`, demande du commanditaire (« plus classe et professionnel », sans les points) :
+  - la trame de points et le pointillé sont remplacés par un filet continu d'un pixel (#dde6e4), plus foncé au survol de la souris ;
+  - au survol d'un fichier, le filet passe en sarcelle, avec un halo de 4 px ;
+  - la tuile d'icône devient un éventail de trois feuilles de tableur (en-tête marine, grille) :
+    - au survol d'un fichier, l'éventail s'ouvre, la feuille du dessus se soulève et son en-tête passe en sarcelle ;
+    - pendant la lecture, l'indicateur de chargement tourne sur la feuille du dessus.
+  - textes, bouton, message d'erreur et bandeau « Onglets attendus » inchangés.
