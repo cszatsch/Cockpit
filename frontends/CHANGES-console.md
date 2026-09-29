@@ -282,3 +282,9 @@ Les captures sont écrites dans `OUT` (par défaut `<tmp>/rise-console-e2e`).
 - `Console Admin.dc.html` : bouton « Supprimer la règle » (pied de l'éditeur de règle) et méthode `deleteRule()` avec confirmation ; aperçu : {date} = date du jour ; `on-logout` de la sidebar branché sur la déconnexion.
 - `admin-api.js` : `deleteRule` → `DELETE /notification-rules/:id` après confirmation (règle non enregistrée : retrait local).
 - `Sidebar Console.dc.html` : icône « Déconnexion » au survol de l'avatar (prop d'événement `onLogout`).
+
+## Vue « Notifications et alertes » (proposition 1a, 29/09/2026)
+
+- `Notifications et alertes.dc.html` : ajouté tel que livré. Aucune modification.
+- `Console Admin.dc.html` : la page `notifs` intègre le composant par `<dc-import>` et masque l'en-tête générique. Retirés : l'ancien écran (liste, éditeur, aperçu, historique), ses données de démonstration (`RULES0`, `HIST0`, `SAMPLE`) et ses méthodes (`rule`, `ntExtra`, `edR`, `reach`, `toggleRule`, `saveRule`, `deleteRule`, `newRule`). Ajoutés : les rappels `nrSave`, `nrToggle`, `nrCreate`, `nrDelete` et `nrTest`, vides en démonstration, où le composant simule seul. Le lien « règle budgétaire » de la vue des coûts ouvre la page.
+- `admin-api.js` : chargements `nrRules`, `nrHist` et `nrCounts` ; rappels branchés sur `/notifications/rules…` ; écritures en file ; remontage de la vue après un refus. Retirés : `toRule`, `fromRule`, `toHist` et les constantes `FREQ`, `CHANNEL` et `KIND`.

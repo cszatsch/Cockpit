@@ -128,9 +128,6 @@ export const PROFILE = { ADMIN: 'admin', PMO: 'pmo', RESPONSABLE: 'resp', LECTEU
 export const STATUS = { ACTIVE: 'actif', INVITED: 'invité', SUSPENDED: 'suspendu' };
 export const SEV = { INFO: 'info', SENSITIVE: 'sensible', CRITICAL: 'critique' };
 export const PROV_ST = { OK: 'ok', ERROR: 'err', UNTESTED: 'new' };
-export const FREQ = { IMMEDIATE: 'imm', DAILY: 'quot', WEEKLY: 'hebdo', CUSTOM: 'perso' };
-export const CHANNEL = { APP: 'app', EMAIL: 'mail' };
-export const KIND = { ALERT: 'alerte', NOTIFICATION: 'notif' };
 export const SCOPE = { OFF: 'off', ALL: 'global', PROJECTS: 'projet' };
 export const LIB_ST = { ACTIVE: 'actif', PREPARATION: 'prep', CLOSED: 'clos' };
 const inv = o => Object.fromEntries(Object.entries(o).map(([k, v]) => [v, k]));
@@ -193,16 +190,6 @@ export const toSnap = (s, ix) => ({ id: s.id, t: D(s.takenAt), k: s.kind === 'MA
 /** Planification d'un projet → `sched` `{ on, fq, day, hour, keep }`. */
 export const toSched = s => ({ on: !!s.enabled, fq: s.frequency, day: s.day, hour: s.hour, keep: s.retention });
 export const fromSched = s => ({ enabled: !!s.on, frequency: s.fq, day: s.day, hour: s.hour, retention: s.keep });
-/** Règle → `{ id, k, n, tg, pj, model, prompt, sub, body, fq, day, hour, every, ch, on }`. */
-export const toRule = r => ({ id: r.id, k: KIND[r.kind] || 'notif', n: r.name, tg: [...r.targetProfiles], pj: [...r.projectIds], model: r.modelId, prompt: r.prompt, sub: r.subject, body: r.body,
-  fq: FREQ[r.frequency] || 'imm', day: r.day || undefined, hour: r.hour || undefined, every: r.everyDays || undefined, ch: r.channels.map(c => CHANNEL[c] || c), on: r.enabled, _platform: r.platform });
-export function fromRule(d) {
-  const fq = d.fq || 'imm';
-  return { kind: inv(KIND)[d.k] || 'NOTIFICATION', name: (d.n || '').trim(), targetProfiles: d.tg || [], projectIds: d._platform ? [] : d.pj || [], modelId: d.model, prompt: d.prompt || '', subject: d.sub || '', body: d.body || '',
-    frequency: inv(FREQ)[fq], day: fq === 'hebdo' ? d.day || 'lundi' : null, hour: fq === 'imm' ? null : d.hour || (fq === 'hebdo' ? '08:00' : '09:00'), everyDays: fq === 'perso' ? d.every || 3 : null, channels: (d.ch || []).map(c => inv(CHANNEL)[c] || c) };
-}
-/** Envoi → `{ id, r, t, ch, n, st }`. */
-export const toHist = h => ({ id: h.id, r: h.ruleId, t: D(h.at), ch: CHANNEL[h.channel] || 'app', n: h.recipientsCount, st: h.status === 'OK' ? 'ok' : 'err', err: h.error || '' });
 /** Module → `{ id, n, d, sc, pj:{CODE:Date}, g }`. */
 export const toMod = m => ({ id: m.id, n: m.name, d: m.description || '', sc: SCOPE[m.scope] || 'off', pj: Object.fromEntries(Object.entries(m.since || {}).map(([k, v]) => [k, D(v)])), g: D(m.globalSince) });
 const MOD_ORDER = ['bud', 'ben'];
@@ -242,7 +229,7 @@ export function bindConsole(c) {
   c._logout = () => { if (DEV) writeToken(null); return Auth.logout('admin'); };
   const set0 = c.setState.bind(c), orig = {};
   ['go', 'setUser', 'saveUser', 'removeUser', 'saveAdmin', 'removeAdmin', 'testKey', 'testAll', 'saveKey', 'saveProv', 'toggleModel', 'saveModel', 'saveFiche', 'saveAsg', 'setTh', 'doCapture',
-    'toggleRule', 'saveRule', 'newRule', 'setMod', 'approve', 'reject', 'saveMe', 'revoke', 'revokeAll', 'onPhoto', 'exportAudit', 'exportCsv', 'jevReply', 'mtd', 'thVals', 'renderVals', 'skSave', 'skToggle', 'skCreate', 'skDelete', 'psSave', 'psUpload', 'ntToggle', 'ntAct', 'ntUndo', 'ntReadAll', 'apTest', 'apCreate', 'apRotate', 'apToggle'].forEach(k => { orig[k] = c[k].bind(c); });
+    'setMod', 'approve', 'reject', 'saveMe', 'revoke', 'revokeAll', 'onPhoto', 'exportAudit', 'exportCsv', 'jevReply', 'mtd', 'thVals', 'renderVals', 'skSave', 'skToggle', 'skCreate', 'skDelete', 'psSave', 'psUpload', 'ntToggle', 'ntAct', 'ntUndo', 'ntReadAll', 'apTest', 'apCreate', 'apRotate', 'apToggle'].forEach(k => { orig[k] = c[k].bind(c); });
   const toast = (m, t, u) => c.toast(m, t, u), fail = e => { console.warn('[admin-api]', e); toast(errText(e), 'err'); };
   let meId = 'u1';
   const PROJ = () => Object.keys(c.state.snaps || {});
@@ -275,8 +262,10 @@ export function bindConsole(c) {
       return { snaps };
     },
     sched: async () => ({ sched: toSched(await get('/projects/' + c.state.sPj + '/snapshot-schedule')) }),
-    rules: async () => ({ rules: (await get('/notification-rules')).map(toRule).concat((c.state.rules || []).filter(r => r._new)) }),
-    hist: async () => ({ hist: (await get('/deliveries?limit=200')).map(toHist) }),
+    // Notifications et alertes : format Rule / History de la vue (NOTIFICATIONS ET ALERTES - specification.md § 2).
+    nrRules: async () => ({ nrRules: await get('/notifications/rules') }),
+    nrHist: async () => ({ nrHist: await get('/notifications/history?limit=200') }),
+    nrCounts: async () => ({ nrCounts: await get('/notifications/counts') }),
     mods: async () => ({ mods: sortMods((await get('/modules')).map(toMod)) }),
     reqs: async () => ({ reqs: (await get('/module-requests?status=PENDING')).map(toReq) }),
     prof: async () => { const me = await get('/me/profile'); meId = me.id; return { prof: toProf(me), pn: { crit: true, budget: true, req: true, hebdo: true, fail: false, ...(me.notifications || {}) }, photo: me.photoUrl || null }; },
@@ -289,7 +278,7 @@ export function bindConsole(c) {
   };
   const SECTION = {
     overview: ['accounts', 'providers', 'month', 'audit', 'reqs', 'snaps', 'models', 'asg', 'fns'], users: ['accounts'], admins: ['admins', 'audit', 'accounts'], providers: ['providers', 'models', 'asg', 'fns'],
-    assign: ['asg', 'models', 'providers', 'usage', 'fns'], conso: ['month', 'providers'], snaps: ['snaps', 'sched'], notifs: ['rules', 'hist', 'models'], modules: ['mods', 'reqs'],
+    assign: ['asg', 'models', 'providers', 'usage', 'fns'], conso: ['month', 'providers'], snaps: ['snaps', 'sched'], notifs: ['nrRules', 'nrHist', 'nrCounts', 'models', 'providers', 'projects'], modules: ['mods', 'reqs'],
     init: ['projects'], library: ['projects'], profil: ['prof', 'sess', 'audit'], skills: ['skills'], persona: ['persona'], apis: ['apis'],
   };
   async function load(keys) {
@@ -300,7 +289,7 @@ export function bindConsole(c) {
   }
 
   // ── Démarrage : squelette de chargement jusqu'à la réception des données du serveur ──
-  set0({ apiBoot: true, loading: true, nt: [] });
+  set0({ apiBoot: true, loading: true, nt: [], nrApi: true });
   (async () => {
     try {
       const ov = await get('/overview');
@@ -309,7 +298,7 @@ export function bindConsole(c) {
       if (typeof c.apiClock === 'function') c.apiClock(clock.server);
       // Échéances des clés API : même date du jour que le serveur (DEMO_TODAY compris).
       set0({ apiNow: String(ov.date).slice(0, 10) + 'T12:00:00' });
-      await load(['prof', 'accounts', 'admins', 'audit', 'providers', 'models', 'asg', 'usage', 'snaps', 'sched', 'rules', 'hist', 'mods', 'reqs', 'sess', 'projects', 'skills', 'persona', 'notifs', 'apis', 'fns']);
+      await load(['prof', 'accounts', 'admins', 'audit', 'providers', 'models', 'asg', 'usage', 'snaps', 'sched', 'nrRules', 'nrHist', 'nrCounts', 'mods', 'reqs', 'sess', 'projects', 'skills', 'persona', 'notifs', 'apis', 'fns']);
       set0({ apiBoot: false, loading: false });
     } catch (e) {
       fail(e);
@@ -584,37 +573,25 @@ export function bindConsole(c) {
     } catch (e) { clearInterval(c._ci); set0({ cap: null }); fail(e); }
   };
 
-  // ── Notifications ──
-  const ruleSaved = (oldId, r) => { const x = toRule(r); set0(s => ({ rules: s.rules.map(y => (y.id === oldId ? x : y)), nSel: s.nSel === oldId ? x.id : s.nSel, nd: s.nd && s.nd.id === oldId ? null : s.nd })); return x; };
-  c.newRule = () => { orig.newRule(); set0(s => ({ rules: s.rules.map((r, i) => (i === s.rules.length - 1 ? { ...r, _new: true } : r)) })); };
-  c.saveRule = async () => {
-    const S = c.state, d = S.nd; if (!d) return;
-    if (!d.n.trim()) return toast('Le nom de la règle est requis', 'err');
-    if (!d.tg.length) return toast('Choisissez au moins un profil destinataire', 'err');
-    if (!d.ch.length) return toast('Choisissez au moins un canal', 'err');
-    if (!d._platform && d.id !== 'n3' && !(d.pj || []).length) return toast('Choisissez au moins un projet', 'err');
-    if (!(d.prompt || '').trim()) return toast('Le prompt est requis', 'err');
-    const md = S.models.find(m => m.id === d.model); if (!md || !md.act) return toast('Choisissez un modèle actif', 'err');
-    try { ruleSaved(d.id, d._new ? await post('/notification-rules', { ...fromRule(d), enabled: !!d.on }) : await patch('/notification-rules/' + d.id, fromRule(d))); set0({ nd: null }); toast('Règle enregistrée'); touch(); } catch (e) { fail(e); }
-  };
-  // Suppression d’une règle : DELETE après confirmation (une règle pas encore enregistrée est seulement retirée de la liste).
-  c.deleteRule = gateAsk('deleteRule', r => (r._new ? Promise.resolve(null) : del('/notification-rules/' + r.id)).then(() => () => load(['hist']).catch(() => {})));
-  const enableRule = gateAsk('toggleRule', r => post('/notification-rules/' + r.id + '/enable').then(x => () => ruleSaved(r.id, x)));
-  c.toggleRule = r => {
-    if (!r || r._new) return orig.toggleRule(r);
-    if (!r.on) return enableRule(r);
-    post('/notification-rules/' + r.id + '/disable').then(x => {
-      ruleSaved(r.id, x); touch();
-      toast('« ' + r.n + ' » désactivée', 'ok', () => post('/notification-rules/' + r.id + '/enable').then(y => { ruleSaved(r.id, y); toast('Règle réactivée'); touch(); }).catch(fail));
-    }).catch(fail);
-  };
-  const testRule = async r => {
-    try {
-      const out = await post('/notification-rules/' + r.id + '/test'), ko = out.filter(d => d.status !== 'OK');
-      toast(ko.length ? 'Échec de l’envoi de test : ' + (ko[0].error || 'erreur') : 'Message de test envoyé à ' + c.state.prof.mail, ko.length ? 'err' : 'ok');
-      load(['hist']).catch(() => {}); touch();
-    } catch (e) { fail(e); }
-  };
+  // ── Notifications et alertes (Notifications et alertes.dc.html, NOTIFICATIONS ET ALERTES - specification.md § 4) ──
+  // Le composant met sa liste à jour lui-même (optimiste) et crée une règle sous son propre identifiant, repris par
+  // le serveur. Les écritures partent l'une après l'autre (une création est enregistrée avant la modification qui la
+  // suit) ; si le serveur en refuse une, la liste est relue et la vue remontée sur l'état réel.
+  let nrQ = Promise.resolve();
+  const NR = id => '/notifications/rules/' + encodeURIComponent(id);
+  const nrResync = () => load(['nrRules', 'nrHist']).catch(() => {}).then(() => { set0({ nrRemount: true }); setTimeout(() => set0({ nrRemount: false }), 60); });
+  const nrRun = (call, after, resync = true) => (nrQ = nrQ.then(call).then(r => { touch(); return after(r); }).catch(e => { fail(e); if (resync) nrResync(); }));
+  const nrReload = keys => () => load(keys).catch(() => {});
+  c.nrCreate = r => nrRun(() => post('/notifications/rules', r), nrReload(['nrRules']));
+  c.nrSave = r => nrRun(() => put(NR(r.id), r), nrReload(['nrRules']));
+  c.nrToggle = (id, on) => nrRun(() => patch(NR(id), { on }), nrReload(['nrRules']));
+  c.nrDelete = id => nrRun(() => del(NR(id)), nrReload(['nrRules', 'nrHist']));
+  // Test : le brouillon affiché est envoyé à l'administrateur connecté ; un refus ne touche pas au brouillon.
+  c.nrTest = r => nrRun(() => post(NR(r.id) + '/test', r), out => {
+    const ko = (out || []).filter(h => !h.ok);
+    if (ko.length) toast('Échec de l’envoi de test : ' + (ko[0].error || 'erreur'), 'err');
+    return load(['nrHist']).catch(() => {});
+  }, false);
 
   // ── Modules : `setMod` (portée, projets) est le point de passage de setScope, togProj et Jev ──
   c.setMod = (id, p) => {
@@ -689,7 +666,6 @@ export function bindConsole(c) {
     if (S.apiCodes) v.libCodes = S.apiCodes;
     v.onImported = p => { load(['projects']).catch(() => {}); toast(p.code + ' créé'); touch(); };
     if (v.pf) v.pf.pwd = pwd;
-    if (v.nt) { const r = c.rule(); v.nt.test = () => (r._new ? toast('Enregistrez la règle avant de l’essayer', 'err') : testRule(r)); }
     if (v.sn && v.sn.sel2) {
       const list = S.snaps[S.sPj] || [], sel = S.sSel.filter(id => list.some(s => s.id === id)).map(id => list.find(s => s.id === id)).sort((a, b) => a.t - b.t), key = sel[0].id + '|' + sel[1].id;
       if (!cmp[key]) { cmp[key] = 'pending'; get('/snapshots/compare?a=' + sel[0].id + '&b=' + sel[1].id).then(r => { cmp[key] = r; set0({ cmpTick: Date.now() }); }).catch(e => { delete cmp[key]; fail(e); }); }

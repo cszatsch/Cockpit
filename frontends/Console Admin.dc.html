@@ -421,74 +421,13 @@ a{color:#1d8f86}a:hover{color:#146b64}
       </div>
     </sc-if>
 
+    <!-- API : Notifications et alertes (Notifications et alertes.dc.html, NOTIFICATIONS ET ALERTES - specification.md § 4) ; en-tête générique masqué, le composant a le sien. -->
     <sc-if value="{{ isNotifs }}" hint-placeholder-val="{{ false }}">
-      <div style="display:flex;flex-direction:column;gap:16px;animation:rise-in .35s cubic-bezier(.2,.7,.2,1) both" data-screen-label="Notifications et alertes">
-        <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start">
-          <div style="flex:1 1 300px;max-width:100%;display:flex;flex-direction:column;gap:14px">
-            <div style="display:flex;flex-direction:column;gap:2px;padding:6px;border-radius:16px;background:#e9efee">
-              <div style="padding:8px 10px 4px;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#a8372c">Alertes</div>
-              <sc-for list="{{ nt.alerts }}" as="r" hint-placeholder-count="3"><div style="display:flex;align-items:center;gap:6px"><button onClick="{{ r.pick }}" aria-pressed="{{ r.on }}" style="{{ r.st }}" style-hover="background:rgba(255,255,255,.7)"><span style="font-size:13.5px;font-weight:700">{{ r.n }}</span><span style="font-size:12px;color:#43586a">{{ r.tgL }} · {{ r.chL }}</span><span style="{{ r.offSt }}">{{ r.stL }}</span></button><button role="switch" aria-checked="{{ r.sw.on }}" aria-label="{{ r.sw.label }}" onClick="{{ r.sw.toggle }}" style="{{ r.sw.st }};margin-right:8px"><span style="{{ r.sw.knob }}"></span></button></div></sc-for>
-              <div style="padding:14px 10px 4px;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#0b5c8a">Notifications</div>
-              <sc-for list="{{ nt.notifs }}" as="r" hint-placeholder-count="2"><div style="display:flex;align-items:center;gap:6px"><button onClick="{{ r.pick }}" aria-pressed="{{ r.on }}" style="{{ r.st }}" style-hover="background:rgba(255,255,255,.7)"><span style="font-size:13.5px;font-weight:700">{{ r.n }}</span><span style="font-size:12px;color:#43586a">{{ r.tgL }} · {{ r.chL }}</span><span style="{{ r.offSt }}">{{ r.stL }}</span></button><button role="switch" aria-checked="{{ r.sw.on }}" aria-label="{{ r.sw.label }}" onClick="{{ r.sw.toggle }}" style="{{ r.sw.st }};margin-right:8px"><span style="{{ r.sw.knob }}"></span></button></div></sc-for>
-              <button onClick="{{ nt.add }}" style="margin:6px;height:36px;border:1px dashed #b8c7c4;border-radius:10px;background:transparent;font-size:12.5px;font-weight:700;color:#43586a;cursor:pointer" style-hover="border-color:#10233a;color:#10233a">+ Nouvelle règle</button>
-            </div>
-          </div>
-          <div style="flex:2.2 1 520px;min-width:0;background:#fff;border:1px solid #e1e9e7;border-radius:18px;box-shadow:0 1px 2px rgba(16,35,58,.04)">
-            <div style="padding:20px 22px;display:flex;flex-direction:column;gap:20px">
-              <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px"><input value="{{ nt.r.n }}" onChange="{{ nt.setN }}" aria-label="Nom de la règle" style="flex:1 1 240px;min-width:0;height:40px;padding:0 10px;margin-left:-10px;border:1px solid transparent;border-radius:10px;font-size:20px;font-weight:800;font-style:italic;letter-spacing:-.02em;outline:none;background:transparent" style-hover="border-color:#e1e9e7" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.15)"><button onClick="{{ nt.togOn }}" style="height:34px;padding:0 14px;border:1px solid #d3dedb;border-radius:10px;background:#fff;font-size:12.5px;font-weight:700;cursor:pointer" style-hover="border-color:#10233a">{{ nt.onL }}</button></div>
-              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px">
-                <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#5c7280;white-space:nowrap">Type</span><div role="radiogroup" style="display:inline-flex;align-self:flex-start;gap:2px;padding:3px;border-radius:11px;background:#e5edeb"><sc-for list="{{ nt.kSeg }}" as="o" hint-placeholder-count="2"><button role="radio" aria-checked="{{ o.on }}" onClick="{{ o.pick }}" style="{{ o.st }}">{{ o.l }}</button></sc-for></div><span style="font-size:12px;color:#43586a;text-wrap:pretty">{{ nt.kHelp }}</span></div>
-                <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#5c7280;white-space:nowrap">Canal</span><div style="display:flex;flex-wrap:wrap;gap:6px"><sc-for list="{{ nt.ch }}" as="o" hint-placeholder-count="2"><button aria-pressed="{{ o.on }}" onClick="{{ o.pick }}" style="{{ o.st }}">{{ o.l }}</button></sc-for></div></div>
-              </div>
-              <div style="display:flex;flex-direction:column;gap:8px"><span style="display:flex;align-items:baseline;gap:10px"><span style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#5c7280;white-space:nowrap">Destinataires par profil</span><span style="font-size:12px;color:#1d8f86;font-weight:700">{{ nt.reach }}</span></span><div style="display:flex;flex-wrap:wrap;gap:6px"><sc-for list="{{ nt.tg }}" as="o" hint-placeholder-count="5"><button aria-pressed="{{ o.on }}" onClick="{{ o.pick }}" style="{{ o.st }}">{{ o.l }}</button></sc-for></div></div>
-              <div style="display:flex;flex-direction:column;gap:8px"><span style="display:flex;align-items:baseline;gap:10px"><span style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#5c7280;white-space:nowrap">Projets ciblés</span><span style="font-size:12px;color:#1d8f86;font-weight:700">{{ nt.pjL }}</span></span><sc-if value="{{ nt.pjNa }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:#5c7280">Règle de plateforme : elle ne dépend d’aucun projet.</span></sc-if><sc-if value="{{ nt.pjOn }}" hint-placeholder-val="{{ true }}"><div style="display:flex;flex-wrap:wrap;gap:6px"><sc-for list="{{ nt.pj }}" as="o" hint-placeholder-count="5"><button aria-pressed="{{ o.on }}" onClick="{{ o.pick }}" style="{{ o.st }}">{{ o.l }}</button></sc-for></div></sc-if></div>
-              <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#5c7280;white-space:nowrap">Fournisseur et modèle</span>
-                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px"><span style="{{ nt.mLogo }}"></span>{{ nt.mEl }}<span style="{{ nt.mPill }}">{{ nt.mStL }}</span><span style="font-size:12px;color:#5c7280">{{ nt.mCost }}</span></div>
-                <sc-if value="{{ nt.mWarn }}" hint-placeholder-val="{{ false }}"><span role="alert" style="font-size:12px;color:#a8372c;font-weight:600">{{ nt.mWarnL }}</span></sc-if>
-              </div>
-              <div style="display:flex;flex-direction:column;gap:8px"><span style="display:flex;align-items:baseline;justify-content:space-between;gap:10px"><span style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#5c7280;white-space:nowrap">Prompt envoyé au modèle</span><span style="font-size:11.5px;color:#8a9aa6;font-variant-numeric:tabular-nums;white-space:nowrap">{{ nt.pLen }}</span></span>
-                <textarea value="{{ nt.prompt }}" onChange="{{ nt.setPrompt }}" rows="5" aria-label="Prompt" style="width:100%;padding:12px 14px;border:1px solid #d3dedb;border-radius:12px;background:#fbfdfc;font-family:ui-monospace,Menlo,monospace;font-size:12.5px;line-height:1.55;color:#10233a;outline:none;resize:vertical" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.15);background:#fff"></textarea>
-                <span style="font-size:12px;color:#5c7280">Le modèle reçoit ce prompt avec les données du projet ciblé ; sa réponse s’insère dans le message à l’endroit de {reponse_llm}. Variables utilisables ici : toutes, sauf {reponse_llm}.</span>
-              </div>
-              <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#5c7280;white-space:nowrap">Fréquence d’envoi</span>
-                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px"><div role="radiogroup" style="display:inline-flex;flex-wrap:wrap;gap:2px;padding:3px;border-radius:11px;background:#e5edeb"><sc-for list="{{ nt.fqSeg }}" as="o" hint-placeholder-count="4"><button role="radio" aria-checked="{{ o.on }}" onClick="{{ o.pick }}" style="{{ o.st }}">{{ o.l }}</button></sc-for></div>
-                  <sc-if value="{{ nt.isImm }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:#43586a">Envoyée dès que l’événement se produit.</span></sc-if>
-                  <sc-if value="{{ nt.isH }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:8px;font-size:12px;color:#5c7280">le{{ nt.dayEl }}</span></sc-if>
-                  <sc-if value="{{ nt.isP }}" hint-placeholder-val="{{ false }}"><label style="display:inline-flex;align-items:center;gap:8px;font-size:12px;color:#5c7280">tous les<input type="number" min="1" max="30" value="{{ nt.r.every }}" onChange="{{ nt.setEvery }}" aria-label="Intervalle en jours" style="width:60px;height:34px;padding:0 8px;border:1px solid #d3dedb;border-radius:8px;font-size:12.5px;font-weight:700;outline:none">jours</label></sc-if>
-                  <sc-if value="{{ nt.hasHour }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:8px;font-size:12px;color:#5c7280">à{{ nt.hourEl }}</span></sc-if>
-                </div>
-              </div>
-              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;padding-top:18px;border-top:1px solid #eef3f2">
-                <div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#5c7280;white-space:nowrap">Message</span>
-                  <input value="{{ nt.r.sub }}" onChange="{{ nt.setSub }}" placeholder="Objet" aria-label="Objet du message" style="height:38px;padding:0 12px;border:1px solid #d3dedb;border-radius:10px;font-size:13px;font-weight:600;outline:none;width:100%" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.15)">
-                  <textarea value="{{ nt.r.body }}" onChange="{{ nt.setBody }}" rows="5" placeholder="Corps du message" aria-label="Corps du message" style="padding:10px 12px;border:1px solid #d3dedb;border-radius:10px;font-size:13px;line-height:1.5;outline:none;width:100%;resize:vertical" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.15)"></textarea>
-                  <span style="font-size:11.5px;color:#5c7280;line-height:1.6">Variables : <code style="font-family:ui-monospace,Menlo,monospace;color:#10233a">{projet}</code> <code style="font-family:ui-monospace,Menlo,monospace;color:#10233a">{jalon}</code> <code style="font-family:ui-monospace,Menlo,monospace;color:#10233a">{date}</code> <code style="font-family:ui-monospace,Menlo,monospace;color:#10233a">{risque}</code> <code style="font-family:ui-monospace,Menlo,monospace;color:#10233a">{seuil}</code> <code style="font-family:ui-monospace,Menlo,monospace;color:#10233a">{document}</code> <code title="Texte généré par le modèle à partir du prompt ci-dessus" style="font-family:ui-monospace,Menlo,monospace;color:#146b64;background:#e6f4f2;padding:1px 5px;border-radius:5px;font-weight:700">{reponse_llm}</code> <span style="color:#8a9aa6">= réponse du modèle</span></span>
-                </div>
-                <div style="display:flex;flex-direction:column;gap:10px"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#5c7280;white-space:nowrap">Aperçu</span><span style="flex:1"></span><div role="tablist" style="display:inline-flex;gap:2px;padding:3px;border-radius:11px;background:#e5edeb"><sc-for list="{{ nt.pv }}" as="o" hint-placeholder-count="2"><button role="tab" aria-selected="{{ o.on }}" onClick="{{ o.pick }}" style="{{ o.st }}">{{ o.l }}</button></sc-for></div></div>
-                  <div style="border-radius:14px;background:#eef3f2;padding:14px;min-height:190px;display:flex;flex-direction:column;justify-content:center">
-                    <sc-if value="{{ nt.pvApp }}" hint-placeholder-val="{{ true }}"><div style="background:#fff;border-radius:12px;padding:14px;display:flex;gap:12px;box-shadow:0 10px 24px -14px rgba(16,35,58,.35)"><span style="{{ nt.pvAccent }}"></span><div style="min-width:0;display:flex;flex-direction:column;gap:5px"><div style="display:flex;align-items:center;gap:8px"><span style="{{ nt.pvKindSt }}">{{ nt.pvKind }}</span><span style="font-size:11px;color:#5c7280">Cockpit · à l’instant</span></div><div style="font-size:13.5px;font-weight:700;text-wrap:pretty">{{ nt.pSub }}</div><div style="font-size:12.5px;color:#43586a;text-wrap:pretty">{{ nt.pBody }}</div></div></div></sc-if>
-                    <sc-if value="{{ nt.pvMail }}" hint-placeholder-val="{{ false }}"><div style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 10px 24px -14px rgba(16,35,58,.35)"><div style="padding:10px 14px;border-bottom:1px solid #eef3f2;font-size:11.5px;color:#5c7280;display:flex;flex-direction:column;gap:2px"><span><strong style="color:#10233a">Cockpit</strong> · notifications@cockpit.onepoint.fr</span><span>À : {{ nt.pTo }}</span></div><div style="padding:14px"><div style="font-size:14px;font-weight:800;text-wrap:pretty">{{ nt.pSub }}</div><div style="width:40px;height:3px;border-radius:2px;background:#f7a41c;margin:10px 0"></div><div style="font-size:12.5px;color:#43586a;text-wrap:pretty">{{ nt.pBody }}</div><div style="margin-top:14px;display:inline-flex;height:30px;align-items:center;padding:0 12px;border-radius:8px;background:#10233a;color:#fff;font-size:12px;font-weight:700">Ouvrir dans le Cockpit</div></div></div></sc-if>
-                    <sc-if value="{{ nt.chWarn }}" hint-placeholder-val="{{ false }}"><div style="margin-top:10px;font-size:11.5px;font-weight:700;color:#8a5a12">Ce canal n’est pas activé pour cette règle.</div></sc-if>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:14px 22px;border-top:1px solid #eef3f2;background:#fbfdfc;border-radius:0 0 18px 18px">
-              <button onClick="{{ nt.test }}" style="height:36px;padding:0 14px;border:1px solid #d3dedb;border-radius:10px;background:#fff;font-size:12.5px;font-weight:600;cursor:pointer" style-hover="border-color:#10233a">M’envoyer un test</button>
-              <button onClick="{{ nt.del }}" aria-label="Supprimer la règle" style="height:36px;padding:0 14px;border:1px solid #f1c9c3;border-radius:10px;background:#fff;color:#a8372c;font-size:12.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px" style-hover="background:#fbe9e6;border-color:#a8372c"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16 M10 11v6 M14 11v6 M6 7l1 13h10l1-13 M9 7V4h6v3"></path></svg>Supprimer la règle</button>
-              <span style="flex:1"></span>
-              <sc-if value="{{ nt.clean }}" hint-placeholder-val="{{ true }}"><span style="font-size:12px;color:#5c7280">Aucune modification</span></sc-if>
-              <sc-if value="{{ nt.dirty }}" hint-placeholder-val="{{ false }}"><button onClick="{{ nt.revert }}" style="height:36px;padding:0 14px;border:0;border-radius:10px;background:transparent;font-size:12.5px;font-weight:600;cursor:pointer;color:#43586a" style-hover="background:#eef3f2">Annuler</button><button onClick="{{ nt.save }}" style="height:36px;padding:0 16px;border:0;border-radius:10px;background:linear-gradient(90deg,#f7a41c,#f0752b);color:#1a1200;font-size:12.5px;font-weight:700;cursor:pointer">Enregistrer</button></sc-if>
-            </div>
-          </div>
-        </div>
-        <div style="background:#fff;border:1px solid #e1e9e7;border-radius:18px;box-shadow:0 1px 2px rgba(16,35,58,.04);overflow:hidden">
-          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:14px 20px"><h2 style="margin:0;font-size:15px;font-weight:800">Historique des envois</h2><span style="flex:1"></span><div role="tablist" style="display:inline-flex;gap:2px;padding:3px;border-radius:11px;background:#e5edeb"><sc-for list="{{ nt.hScope }}" as="o" hint-placeholder-count="2"><button role="tab" aria-selected="{{ o.on }}" onClick="{{ o.pick }}" style="{{ o.st }}">{{ o.l }}</button></sc-for></div></div>
-          <div style="overflow-x:auto"><div style="min-width:680px">
-            <sc-for list="{{ nt.hist }}" as="h" hint-placeholder-count="4"><div style="display:grid;grid-template-columns:120px minmax(160px,1.4fr) 110px 120px minmax(160px,1fr);gap:14px;align-items:center;padding:11px 20px;border-top:1px solid #f1f5f4;font-size:12.5px"><span title="{{ h.exact }}" style="color:#43586a">{{ h.when }}</span><span style="font-weight:700">{{ h.rn }}</span><span style="color:#43586a">{{ h.chL }}</span><span style="color:#43586a">{{ h.n }}</span><span><span style="{{ h.pill }}"><span style="{{ h.dot }}"></span>{{ h.stL }}</span></span></div></sc-for>
-            <sc-if value="{{ nt.hEmpty }}" hint-placeholder-val="{{ false }}"><div style="padding:32px 20px;text-align:center;font-size:13px;color:#5c7280;border-top:1px solid #f1f5f4">Aucun envoi pour cette règle. Il apparaîtra ici après activation.</div></sc-if>
-          </div></div>
-        </div>
+      <div style="{{ skWrap }}" data-screen-label="Notifications et alertes">
+        <sc-if value="{{ nrMounted }}" hint-placeholder-val="{{ true }}">
+          <dc-import name="Notifications et alertes" rules="{{ nrRules }}" models="{{ nrModels }}" projects="{{ nrProjects }}" counts="{{ nrCounts }}" history="{{ nrHistory }}"
+            on-save="{{ nrSave }}" on-toggle="{{ nrToggle }}" on-create="{{ nrCreate }}" on-delete="{{ nrDelete }}" on-test="{{ nrTest }}" hint-size="100%,1600px"></dc-import>
+        </sc-if>
       </div>
     </sc-if>
 
@@ -1034,22 +973,6 @@ const EV = [
   [9, 'mod', 'Action', 'Recette des interfaces SI Achats', 'Avancement', '30 %', '55 %'], [9, 'del', 'Risque', 'Indisponibilité de la salle de formation'], [9, 'add', 'Action', 'Préparation du 20e COPIL'], [9, 'mod', 'Jalon', 'J07 · Répétition générale', 'Responsable', 'Karim Benali', 'Antoine Mercier']];
 const ENT = { 'Action': 'tâches', 'Jalon': 'jalons', 'Risque': 'risques', 'Livrable': 'livrables' };
 const BASE = { RISE: { 'Action': 138, 'Jalon': 12, 'Risque': 17, 'Livrable': 34 }, ATLAS: { 'Action': 96, 'Jalon': 9, 'Risque': 11, 'Livrable': 22 }, HORIZON: { 'Action': 54, 'Jalon': 6, 'Risque': 7, 'Livrable': 12 }, NOVA: { 'Action': 0, 'Jalon': 0, 'Risque': 0, 'Livrable': 0 } };
-const RULES0 = [
-  { id: 'n1', k: 'alerte', n: 'Jalon en retard', tg: ['resp', 'pmo'], fq: 'imm', ch: ['app', 'mail'], on: true, sub: 'Jalon en retard · {jalon}', body: 'Le jalon {jalon} du projet {projet} a dépassé sa date prévue du {date}. Ouvrez le planning pour réviser la trajectoire.' },
-  { id: 'n2', k: 'alerte', n: 'Risque critique ouvert', tg: ['resp', 'pmo'], fq: 'imm', ch: ['app', 'mail'], on: true, sub: 'Nouveau risque critique · {projet}', body: 'Le risque « {risque} » est devenu critique (probabilité × impact ≥ 20) sur {projet}. Un plan de traitement est attendu.' },
-  { id: 'n3', k: 'alerte', n: 'Seuil budgétaire IA atteint', tg: ['pmo'], fq: 'imm', ch: ['mail'], on: true, sub: 'Budget IA : seuil de {seuil} atteint', body: 'La consommation IA du mois atteint {seuil} du plafond fixé. Consultez la console pour ajuster les modèles ou le budget.' },
-  { id: 'n4', k: 'notif', n: 'Synthèse hebdomadaire du projet', tg: ['pmo', 'resp'], fq: 'hebdo', day: 'lundi', hour: '08:00', ch: ['app', 'mail'], on: true, sub: '{projet} · votre synthèse de la {semaine}', body: 'Avancement, jalons à venir et points d’attention de la semaine pour {projet}.' },
-  { id: 'n5', k: 'notif', n: 'Nouveau document analysé', tg: ['resp'], fq: 'quot', hour: '18:00', ch: ['app'], on: false, sub: 'Document analysé · {document}', body: 'Jev a extrait les décisions et actions de {document}. Vérifiez les éléments proposés avant intégration.' }];
-const PROMPTS = {
-  n1: 'Tu es l’assistant PMO du projet {projet}. Le jalon {jalon} a dépassé sa date prévue du {date}. Rédige une alerte de 3 phrases maximum : le constat, l’impact probable sur le planning et l’action attendue du responsable. Ton factuel, sans formule de politesse.',
-  n2: 'Tu es l’assistant PMO du projet {projet}. Le risque « {risque} » est devenu critique. Résume en 2 phrases pourquoi, puis propose une première action de traitement. Ne cite que des faits présents dans les données du projet.',
-  n3: 'Rédige une alerte courte pour l’administrateur : la consommation IA du mois atteint {seuil} du plafond. Indique la fonction qui consomme le plus et un levier d’économie chiffré.',
-  n4: 'Tu es l’assistant PMO du projet {projet}. Rédige la synthèse de la {semaine} en 5 puces : avancement, jalons des 15 prochains jours, risques critiques, décisions attendues, points d’attention. 120 mots maximum.',
-  n5: 'Le document {document} vient d’être analysé. Liste en puces les décisions, actions et risques extraits, chacun avec sa page source. Termine par : « À vérifier avant intégration ».' };
-const RDEF = { n1: ['RISE', 'ATLAS'], n2: ['RISE', 'ATLAS', 'HORIZON', 'NOVA'], n3: [], n4: ['RISE'], n5: ['RISE', 'HORIZON'] }, MDEF = { n1: 'haiku', n2: 'sonnet', n3: 'haiku', n4: 'sonnet', n5: 'mlarge' };
-RULES0.forEach(r => { r.prompt = PROMPTS[r.id] || ''; r.pj = RDEF[r.id] || ['RISE']; r.model = MDEF[r.id] || 'haiku'; });
-const SAMPLE = { projet: 'RISE', jalon: 'J06 · Go / No-Go Go-Live', date: '15 mars 2027', risque: 'Reprise & qualité des données au démarrage', seuil: '80 %', semaine: 'semaine 39', document: 'CR du 20e COPIL.pdf', reponse_llm: 'Le Go / No-Go Go-Live (J06) est prévu le 15 mars 2027 alors que la répétition générale n’est pas terminée. Sans décision sous 10 jours, le Go-Live du 1er avril glisse. Action attendue : confirmer la date au prochain COPIL.' };
-const HIST0 = [['n3', 125, 'mail', 3, 'ok'], ['n1', 300, 'app', 4, 'ok'], ['n1', 300, 'mail', 4, 'ok'], ['n2', 60 * 26, 'mail', 3, 'err'], ['n2', 60 * 26, 'app', 3, 'ok'], ['n4', 60 * 24 * 4 + 146, 'mail', 9, 'ok'], ['n4', 60 * 24 * 4 + 146, 'app', 9, 'ok'], ['n1', 60 * 24 * 6, 'mail', 4, 'ok'], ['n3', 60 * 24 * 9, 'mail', 3, 'ok'], ['n4', 60 * 24 * 11 + 146, 'mail', 9, 'ok']];
 const META = {
   overview: ['Supervision', 'Vue d’ensemble', ''],
   users: ['Accès', 'Utilisateurs', 'Invitez, activez et suspendez les comptes, et attribuez leur profil. Les chantiers des Responsables et des Lecteurs sont choisis par le PMO dans le Référentiel du Cockpit.'],
@@ -1113,8 +1036,6 @@ class Component extends DCLogic {
       asg, draft: JSON.parse(JSON.stringify(asg)), usage: genUsage(MODELS0, asg), cPer: 30, cDim: 'pv', cHov: null,
       th: [{ id: 'all', n: 'Budget mensuel global', lim: 1200, warn: 80, on: true }, { id: 'insights', n: 'Analyse des données et insights', lim: 800, warn: 80, on: true }, { id: 'docs', n: 'Documents', lim: 400, warn: 80, on: true }],
       sPj: 'RISE', snaps, sSel: ['r9', 'r10'], sched: { on: true, fq: 'Hebdomadaire', day: 'vendredi', hour: '04:00', keep: '12 mois' }, cap: null, sFilt: 'tous',
-      rules: RULES0.map(r => ({ ...r, tg: [...r.tg], ch: [...r.ch], pj: [...r.pj] })), nSel: 'n1', nd: null, pvCh: 'app', hAll: false,
-      hist: HIST0.map((h, i) => ({ id: 'h' + i, r: h[0], t: back(h[1]), ch: h[2], n: h[3], st: h[4] })),
       mods: [{ id: 'bud', n: 'Budget', d: 'Budget prévisionnel, consommé, reste à faire et arbitrages.', sc: 'projet', pj: { RISE: new Date(2026, 2, 12), ATLAS: new Date(2026, 5, 2) }, g: null },
         { id: 'ben', n: 'Suivi des bénéfices', d: 'Indicateurs de valeur, trajectoire des bénéfices et revues.', sc: 'off', pj: {}, g: null }],
       reqs: [{ id: 'q1', m: 'ben', who: 'Camille Rey', p: 'RISE', t: back(60 * 48 + 40) }],
@@ -1415,37 +1336,13 @@ class Component extends DCLogic {
   }
   togSel(id) { this.setState(s => { const a = s.sSel.filter(x => (s.snaps[s.sPj] || []).some(y => y.id === x)); if (a.includes(id)) return { sSel: a.filter(x => x !== id) }; return { sSel: a.length < 2 ? [...a, id] : [a[1], id] }; }); }
 
-  // ——— Notifications
-  rule() { const S = this.state; return S.nd || S.rules.find(r => r.id === S.nSel) || S.rules[0]; }
-  ntExtra(r) { const S = this.state, pj = r.pj || [], plat = r.id === 'n3', LOGO = { anthropic: './assets/logos/lh-anthropic.svg', openrouter: './assets/logos/lh-openrouter.webp', openai: './assets/logos/lh-openai.svg', mistral: './assets/logos/lh-mistral-color.svg', google: './assets/logos/lh-gemini-color.svg' };
-    const chip = on => 'height:32px;padding:0 12px;border-radius:9px;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap;' + (on ? 'border:0;background:#10233a;color:#fff' : 'border:1px solid #d3dedb;background:#fff;color:#43586a');
-    const all = PROJ.every(p => pj.includes(p)), m = S.models.find(x => x.id === r.model) || { n: 'Aucun modèle', pv: '', act: false, pin: 0, pout: 0, none: true }, pv = S.provs.find(p => p.id === m.pv) || {}, ok = pv.st === 'ok' && m.act;
-    const opts = [...(S.models.some(x => x.id === r.model) ? [] : [{ v: r.model || '', l: 'Choisir un LLM…' }]), ...S.provs.flatMap(p => S.models.filter(x => x.pv === p.id && (x.c || 'LLM') === 'LLM').map(x => ({ v: x.id, l: p.n + ' · ' + x.n + (x.act ? '' : ' (inactif)') + (p.st === 'err' ? ' · clé invalide' : '') })))];
-    return { pjNa: plat, pjOn: !plat, pjL: plat ? '' : all ? 'Tous les projets' : pj.length + ' projet' + (pj.length > 1 ? 's' : ''),
-      pj: [{ l: 'Tous', on: all, st: chip(all), pick: () => this.edR('pj', all ? [] : [...PROJ]) }, ...PROJ.map(p => { const on = pj.includes(p); return { l: p, on, st: chip(on && !all), pick: () => this.edR('pj', on ? pj.filter(x => x !== p) : [...pj, p]) }; })],
-      mEl: this.selEl(m.id, e => this.edR('model', e.target.value), opts, 'Modèle utilisé pour cette règle', 280),
-      mLogo: 'width:30px;height:30px;border-radius:9px;flex:none;background:#fff url("' + (LOGO[m.pv] || '') + '") center/16px no-repeat;box-shadow:0 0 0 1px #e1e9e7',
-      mStL: ok ? 'Disponible' : m.none ? 'Choisissez un LLM' : !m.act ? 'Modèle inactif' : 'Clé ' + (pv.n || '') + ' invalide', mPill: pill(ok ? 'ok' : 'err'), mCost: m.none ? 'Aucun modèle : la règle ne peut pas rédiger son message' : eur(m.pin, 2) + ' / ' + eur(m.pout, 2) + ' par M tokens',
-      mWarn: !ok, mWarnL: m.none ? 'Aucun modèle choisi (modèles réinitialisés) : la règle ne pourra pas s’envoyer.' : !m.act ? 'Ce modèle est désactivé : la règle ne pourra pas s’envoyer.' : 'La clé de ce fournisseur est invalide : la règle échouera tant qu’elle n’est pas remplacée.',
-      prompt: r.prompt || '', setPrompt: e => this.edR('prompt', e.target.value), pLen: (r.prompt || '').length + ' caractères' };
-  }
-  edR(k, v) { this.setState(s => ({ nd: { ...(s.nd || s.rules.find(r => r.id === s.nSel)), [k]: v } })); }
-  reach(r) { return this.state.users.filter(u => u.s === 'actif' && r.tg.includes(u.p)).length; }
-  toggleRule(r) {
-    if (r.on) { this.setState(s => ({ rules: s.rules.map(x => x.id === r.id ? { ...x, on: false } : x) })); this.log('Désactivation d’une règle de diffusion', r.n); this.toast('« ' + r.n + ' » désactivée', 'ok', () => { this.setState(s => ({ rules: s.rules.map(x => x.id === r.id ? { ...x, on: true } : x) })); this.toast('Règle réactivée'); }); return; }
-    const n = this.reach(r);
-    this.ask({ tone: r.k === 'alerte' ? 'warn' : 'neutral', title: 'Activer « ' + r.n + ' » ?', body: 'Elle sera envoyée à ' + n + ' utilisateur' + (n > 1 ? 's' : '') + ' (' + r.tg.map(t => PN[t]).join(', ') + ') ' + (r.ch.includes('mail') && r.ch.includes('app') ? 'dans l’application et par e-mail.' : r.ch.includes('mail') ? 'par e-mail.' : 'dans l’application.'), cta: 'Activer',
-      ok: () => { this.setState(s => ({ rules: s.rules.map(x => x.id === r.id ? { ...x, on: true } : x) })); this.log('Activation d’une règle de diffusion', r.n + ' · ' + n + ' destinataires'); this.toast('« ' + r.n + ' » est active'); } });
-  }
-  saveRule() { const d = this.state.nd; if (!d) return; if (!d.n.trim()) return this.toast('Le nom de la règle est requis', 'err'); if (!d.tg.length) return this.toast('Choisissez au moins un profil destinataire', 'err'); if (!d.ch.length) return this.toast('Choisissez au moins un canal', 'err'); if (d.id !== 'n3' && !(d.pj || []).length) return this.toast('Choisissez au moins un projet', 'err'); if (!(d.prompt || '').trim()) return this.toast('Le prompt est requis', 'err'); const md = this.state.models.find(m => m.id === d.model); if (!md || !md.act) return this.toast('Choisissez un modèle actif', 'err'); this.setState(s => ({ rules: s.rules.map(r => r.id === d.id ? d : r), nd: null })); this.log('Modification d’une règle de diffusion', d.n); this.toast('Règle enregistrée'); }
-  deleteRule(r) {
-    if (!r) return;
-    this.ask({ tone: 'danger', title: 'Supprimer « ' + r.n + ' » ?', body: (r.k === 'alerte' ? 'Cette alerte' : 'Cette notification') + ' ne sera plus envoyée. L’historique de ses envois est conservé. La suppression est définitive.', cta: 'Supprimer', ok: () => {
-      this.setState(s => { const rules = s.rules.filter(x => x.id !== r.id); return { rules, nSel: s.nSel === r.id ? (rules[0] || {}).id || null : s.nSel, nd: s.nd && s.nd.id === r.id ? null : s.nd }; });
-      this.log('Suppression d’une règle de notification', r.n, 'sensible'); this.toast('« ' + r.n + ' » supprimée');
-    } });
-  }
-  newRule() { const id = 'n' + Date.now(), r = { id, k: 'notif', n: 'Nouvelle notification', tg: ['resp'], fq: 'quot', hour: '09:00', ch: ['app'], on: false, sub: '{projet} · ', body: '', prompt: '', pj: ['RISE'], model: (this.state.models.find(m => m.act && (m.c || 'LLM') === 'LLM') || {}).id || '' }; this.setState(s => ({ rules: [...s.rules, r], nSel: id, nd: null })); }
+  // ——— Notifications et alertes : rappels du composant. En démonstration, le composant simule seul ;
+  // avec le serveur, admin-api.js les remplace (PUT, PATCH, POST, DELETE /notifications/rules…).
+  nrSave() {}
+  nrToggle() {}
+  nrCreate() {}
+  nrDelete() {}
+  nrTest() {}
 
   // ——— Modules
   setMod(id, patch) { this.setState(s => ({ mods: s.mods.map(m => m.id === id ? { ...m, ...patch } : m) })); }
@@ -1616,7 +1513,7 @@ class Component extends DCLogic {
       mob: mode === 'mob', scrim: mode === 'mob' && S.mnav, openNav: () => this.setState({ mnav: true }), closeNav: () => this.setState({ mnav: false }),
       padSt: `max-width:1320px;margin:0 auto;padding:${mode === 'mob' ? '20px 16px 96px' : mode === 'rail' ? '28px 28px 96px' : '32px 44px 96px'}`,
       topSt: `position:sticky;top:0;z-index:40;height:60px;display:flex;align-items:center;gap:12px;padding:0 ${mode === 'mob' ? 16 : mode === 'rail' ? 28 : 44}px;background:rgba(242,246,245,.82);backdrop-filter:saturate(1.4) blur(14px);-webkit-backdrop-filter:saturate(1.4) blur(14px);border-bottom:1px solid rgba(16,35,58,.06)`,
-      eyebrow: meta[0], title: meta[1], desc: meta[2], isOv: is('overview'), notOv: !is('overview') && !is('skills') && !is('persona') && !is('apis') && !is('journal'), loading: S.loading, ready: !S.loading,
+      eyebrow: meta[0], title: meta[1], desc: meta[2], isOv: is('overview'), notOv: !is('overview') && !is('skills') && !is('persona') && !is('apis') && !is('journal') && !is('notifs'), loading: S.loading, ready: !S.loading,
       healthL: errN ? errN + ' incident' + (errN > 1 ? 's' : '') : 'Opérationnelle', healthPill: pill(errN ? 'err' : 'ok'), healthDot: dot(errN ? 'err' : 'ok'), goOv: () => this.go('overview'),
       isUsers: is('users') && !S.loading, isAdmins: is('admins') && !S.loading, isRights: is('rights') && !S.loading, isProv: is('providers') && !S.loading, isAsg: is('assign') && !S.loading, isConso: is('conso') && !S.loading, isInit: is('init') && !S.loading, isLib: is('library') && !S.loading, isSnaps: is('snaps') && !S.loading, isNotifs: is('notifs') && !S.loading, isMods: is('modules') && !S.loading,
       isApis: is('apis') && !S.loading, isJournal: is('journal') && !S.loading,
@@ -1633,6 +1530,12 @@ class Component extends DCLogic {
       persona: S.persona || undefined, psSave: p => this.psSave(p), psUpload: f => this.psUpload(f),
       jevName: this.persona().identity.name || 'Jev', jevAria: (this.persona().identity.name || 'Jev') + ', assistant IA',
       skills: S.skills || undefined, skSave: sk => this.skSave(sk), skToggle: (id, on) => this.skToggle(id, on), skCreate: sk => this.skCreate(sk), skDelete: id => this.skDelete(id),
+      // Notifications et alertes : données du serveur (admin-api.js, format Rule du § 2) ; sans elles, démonstration du composant.
+      // Monté une fois les règles reçues (sinon la démonstration s'afficherait un instant) ; remonté après un refus du serveur.
+      nrMounted: !S.nrApi || (!!S.nrRules && !S.nrRemount), nrRules: S.nrRules || undefined, nrCounts: S.nrCounts || undefined, nrHistory: S.nrHist || undefined,
+      nrModels: S.nrApi ? S.models.filter(m => m.c === 'LLM' && m.act).map(m => ({ id: m.id, provider: (S.provs.find(p => p.id === m.pv) || {}).n || m.pv, name: m.n })) : undefined,
+      nrProjects: S.nrApi ? S.apiCodes || [] : undefined,
+      nrSave: r => this.nrSave(r), nrToggle: (id, on) => this.nrToggle(id, on), nrCreate: r => this.nrCreate(r), nrDelete: id => this.nrDelete(id), nrTest: r => this.nrTest(r),
       skWrap: `margin:${mode === 'mob' ? '-20px -16px 0' : mode === 'rail' ? '-28px -28px 0' : '-32px -44px 0'};animation:rise-in .35s cubic-bezier(.2,.7,.2,1) both`
     };
     // Overview
@@ -1766,7 +1669,7 @@ class Component extends DCLogic {
         read: hv ? DOW[dayDate(hv.d).getDay()] + ' ' + fD(dayDate(hv.d)) : P + ' derniers jours', readV: hv ? eur(hv.t, 2) : eur(tot), readS: hv ? series.map(s => ({ l: s.l, v: eur(hv.s[s.k] || 0, 2), sw: `width:8px;height:8px;border-radius:2px;background:${s.col}` })) : series.map(s => ({ l: s.l, v: eur(s.k === '_' ? items.filter(x => !top.includes(x[0])).reduce((a, x) => a + x[1].c, 0) : agg[s.k].c), sw: `width:8px;height:8px;border-radius:2px;background:${s.col}` })),
         x0: fD(dayDate(from)), x1: fD(dayDate(Math.round((from + 89) / 2))), x2: 'Aujourd’hui',
         table: items.map(([k, a]) => ({ l: nm(k), c: eur(a.c), sh: Math.round(a.c / tot * 100) + ' %', tin: mt(a.tin), tout: mt(a.tout), bar: `height:100%;border-radius:3px;width:${a.c / items[0][1].c * 100}%;background:${colOf(k)}` })), dimL: S.cDim === 'pv' ? 'Fournisseur' : S.cDim === 'm' ? 'Modèle' : 'Fonction',
-        th, exp: () => this.exportCsv(), goRule: () => this.go('notifs', () => this.setState({ nSel: 'n3', nd: null })), warnOpts: [50, 70, 80, 90].map(v => ({ v: String(v), l: v + ' %' }))
+        th, exp: () => this.exportCsv(), goRule: () => this.go('notifs'), warnOpts: [50, 70, 80, 90].map(v => ({ v: String(v), l: v + ' %' }))
       };
     }
     // Snapshots
@@ -1804,37 +1707,6 @@ class Component extends DCLogic {
       };
       vals.sn.sch.setFq = vals.sn.sch.set('fq'); vals.sn.sch.setDay = vals.sn.sch.set('day'); vals.sn.sch.setHour = vals.sn.sch.set('hour'); vals.sn.sch.setKeep = vals.sn.sch.set('keep');
       vals.sn.fqOpts = ['Quotidienne', 'Hebdomadaire', 'Mensuelle'].map(v => ({ v, l: v })); vals.sn.dayOpts = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'].map(v => ({ v, l: v })); vals.sn.hourOpts = ['00:00', '02:00', '04:00', '06:00', '20:00', '22:00'].map(v => ({ v, l: v })); vals.sn.keepOpts = ['3 mois', '6 mois', '12 mois', '24 mois'].map(v => ({ v, l: v }));
-    }
-    // Notifications
-    if (is('notifs')) {
-      const r = this.rule(), saved = S.rules.find(x => x.id === r.id), dirty = !!S.nd && JSON.stringify(S.nd) !== JSON.stringify(saved);
-      const fqL = x => x.fq === 'imm' ? 'Immédiate' : x.fq === 'quot' ? 'Quotidienne · ' + (x.hour || '09:00') : x.fq === 'hebdo' ? 'Hebdomadaire · ' + (x.day || 'lundi') + ' ' + (x.hour || '08:00') : 'Tous les ' + (x.every || 3) + ' jours · ' + (x.hour || '09:00');
-      // {date} : date du jour dans l'aperçu (lors d'un envoi : la date de l'événement, sinon la date du jour).
-      const tdy = nowD(), dateTdy = (tdy.getDate() === 1 ? '1er' : tdy.getDate()) + ' ' + MO[tdy.getMonth()] + ' ' + tdy.getFullYear();
-      const sub = s => (s || '').replace(/\{(\w+)\}/g, (m, k) => (k === 'date' ? dateTdy : SAMPLE[k]) || m);
-      const mk = x => ({ id: x.id, n: x.n, kL: x.k === 'alerte' ? 'Alerte' : 'Notification', kSt: pill(x.k === 'alerte' ? 'err' : 'info'), kDot: dot(x.k === 'alerte' ? 'err' : 'info'), tgL: x.tg.map(t => PN[t]).join(', '), fqL: fqL(x), chL: x.ch.map(c => c === 'app' ? 'Application' : 'E-mail').join(' + '), on: x.id === r.id, pick: () => this.setState({ nSel: x.id, nd: null }), sw: this.sw(x.on, () => this.toggleRule(x), (x.on ? 'Désactiver ' : 'Activer ') + x.n), st: `display:flex;flex-direction:column;gap:6px;width:100%;text-align:left;padding:14px 16px;border-radius:12px;cursor:pointer;transition:background .15s,border-color .15s;border:1px solid ${x.id === r.id ? '#10233a' : 'transparent'};background:${x.id === r.id ? '#fff' : 'transparent'}`, offSt: x.on ? 'font-size:11.5px;color:#5c7280' : 'font-size:11.5px;color:#8a5a12;font-weight:700', stL: x.on ? fqL(x) : 'Inactive · ' + fqL(x) });
-      const hl = S.hist.filter(h => S.hAll || h.r === r.id);
-      vals.nt = {
-        alerts: S.rules.filter(x => x.k === 'alerte').map(mk), notifs: S.rules.filter(x => x.k !== 'alerte').map(mk), add: () => this.newRule(),
-        ...this.ntExtra(r),
-        r: { n: r.n, sub: r.sub, body: r.body, every: r.every || 3, hour: r.hour || '09:00', day: r.day || 'lundi', isAlert: r.k === 'alerte', on: r.on },
-        setN: e => this.edR('n', e.target.value), setSub: e => this.edR('sub', e.target.value), setBody: e => this.edR('body', e.target.value), setEvery: e => this.edR('every', Math.max(1, parseInt(e.target.value) || 1)), setHour: e => this.edR('hour', e.target.value), setDay: e => this.edR('day', e.target.value),
-        kSeg: [['notif', 'Notification'], ['alerte', 'Alerte']].map(([k, l]) => ({ l, on: r.k === k, st: segSt(r.k === k), pick: () => this.edR('k', k) })),
-        kHelp: r.k === 'alerte' ? 'Signale un événement ou un seuil critique. Mise en avant dans le Cockpit, jamais regroupée.' : 'Informe sans urgence. Peut être regroupée dans un envoi périodique.',
-        fqSeg: [['imm', 'Immédiate'], ['quot', 'Quotidienne'], ['hebdo', 'Hebdomadaire'], ['perso', 'Personnalisée']].map(([k, l]) => ({ l, on: r.fq === k, st: segSt(r.fq === k), pick: () => this.edR('fq', k) })),
-        isImm: r.fq === 'imm', isQ: r.fq === 'quot', isH: r.fq === 'hebdo', isP: r.fq === 'perso', hasHour: r.fq !== 'imm',
-        tg: PROFS.map(p => { const on = r.tg.includes(p.id); return { l: p.n, on, st: chipSt(on), pick: () => this.edR('tg', on ? r.tg.filter(x => x !== p.id) : [...r.tg, p.id]) }; }),
-        ch: [['app', 'Dans l’application'], ['mail', 'E-mail']].map(([k, l]) => { const on = r.ch.includes(k); return { l, on, st: chipSt(on), pick: () => this.edR('ch', on ? r.ch.filter(x => x !== k) : [...r.ch, k]) }; }),
-        reach: this.reach(r) + ' destinataire' + (this.reach(r) > 1 ? 's' : '') + ' actif' + (this.reach(r) > 1 ? 's' : ''),
-        hourOpts: ['07:00', '08:00', '09:00', '12:00', '18:00'].map(v => ({ v, l: v })), dayOpts: ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi'].map(v => ({ v, l: v })),
-        pv: [['app', 'Application'], ['mail', 'E-mail']].map(([k, l]) => ({ l, on: S.pvCh === k, st: segSt(S.pvCh === k), pick: () => this.setState({ pvCh: k }) })), pvApp: S.pvCh === 'app', pvMail: S.pvCh === 'mail',
-        pSub: sub(r.sub) || 'Objet du message', pBody: sub(r.body) || 'Le corps du message s’affichera ici.', pTo: r.tg.map(t => PN[t]).join(', ') || 'Aucun destinataire',
-        pvAccent: `width:3px;align-self:stretch;border-radius:2px;background:${r.k === 'alerte' ? '#d94b4b' : '#0096d6'}`, pvKind: r.k === 'alerte' ? 'Alerte' : 'Notification', pvKindSt: pill(r.k === 'alerte' ? 'err' : 'info'),
-        chWarn: !r.ch.includes(S.pvCh), dirty, clean: !dirty, save: () => this.saveRule(), revert: () => this.setState({ nd: null }), del: () => this.deleteRule(r), test: () => this.toast('Message de test envoyé à julien.morel@example.com'), togOn: () => this.toggleRule(saved), onL: saved.on ? 'Désactiver' : 'Activer la règle', isOn: saved.on,
-        hScope: [['one', 'Cette règle'], ['all', 'Toutes les règles']].map(([k, l]) => ({ l, on: (k === 'all') === S.hAll, st: segSt((k === 'all') === S.hAll), pick: () => this.setState({ hAll: k === 'all' }) })),
-        hist: hl.map(h => { const rr = S.rules.find(x => x.id === h.r) || { n: '—' }; return { when: ago(h.t), exact: fDT(h.t), rn: rr.n, chL: h.ch === 'app' ? 'Application' : 'E-mail', n: h.n + ' destinataire' + (h.n > 1 ? 's' : ''), stL: h.st === 'ok' ? 'Distribué' : 'Échec partiel · 2 adresses rejetées', pill: pill(h.st === 'ok' ? 'ok' : 'err'), dot: dot(h.st === 'ok' ? 'ok' : 'err') }; }),
-        hEmpty: hl.length === 0, hSome: hl.length > 0
-      };
     }
     // Modules
     if (is('modules')) {
@@ -1925,7 +1797,6 @@ class Component extends DCLogic {
     if (vals.as) vals.as.cards.forEach(c => { c.pEl = SE(c.pSel, c.setP, c.pOpts, 'Modèle principal', '100%'); c.fEl = SE(c.fSel, c.setFb, c.fOpts, 'Modèle de secours', '100%'); });
     if (vals.co) vals.co.th.forEach(t => t.warnEl = SE(String(t.warn), t.setWarn, vals.co.warnOpts, 'Seuil d’alerte · ' + t.n));
     if (vals.sn) { const h = vals.sn.sch; h.fqEl = SE(h.fq, h.setFq, vals.sn.fqOpts, 'Fréquence'); h.dayEl = SE(h.day, h.setDay, vals.sn.dayOpts, 'Jour'); h.hourEl = SE(h.hour, h.setHour, vals.sn.hourOpts, 'Heure'); h.keepEl = SE(h.keep, h.setKeep, vals.sn.keepOpts, 'Conservation'); }
-    if (vals.nt) { vals.nt.hourEl = SE(vals.nt.r.hour, vals.nt.setHour, vals.nt.hourOpts, 'Heure d’envoi'); vals.nt.dayEl = SE(vals.nt.r.day, vals.nt.setDay, vals.nt.dayOpts, 'Jour d’envoi'); }
     if (vals.dl.isAdm) vals.dl.aEl = SE(S.form.u || '', vals.ff.u, vals.dl.aOpts, 'Utilisateur', '100%');
     if (vals.dl.mNew) vals.dl.pvEl = SE(S.form.pv || '', vals.ff.pv, vals.dl.pvOpts, 'Fournisseur', '100%');
     if (vals.dl.isProf) vals.dl.bEl = SE(S.form.base, vals.ff.base, vals.dl.bOpts, 'Profil de départ', '100%');

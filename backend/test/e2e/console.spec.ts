@@ -215,6 +215,69 @@ describe('Console Admin — critères d’acceptation (brief Console § 13)', ()
     });
   });
 
+  describe('7 bis. Notifications et alertes : vue (NOTIFICATIONS ET ALERTES - specification.md § 2 à § 4)', () => {
+    const blank = { id: 'r1727600000000', type: 'notification', title: 'Nouvelle règle', evt: '', profils: [], projets: ['*'], canaux: ['app'], freq: 'imm', at: '', on: false, model: null, prompt: '', subject: '', body: '' };
+
+    it('liste les règles au format Rule, les destinataires actifs par profil et l’historique ; réservé à l’Admin', async () => {
+      const c = await t.as(WHO.admin);
+      await (await t.as(WHO.pmo)).get(`${A}/notifications/rules`).expect(403);
+      const rules = (await c.get(`${A}/notifications/rules`).expect(200)).body;
+      expect(rules.find((r: any) => r.id === 'n1')).toEqual({
+        id: 'n1', type: 'alerte', title: 'Jalon en retard', evt: 'un jalon est en retard', profils: ['PMO', 'Responsable'], projets: ['RISE', 'ATLAS'], canaux: ['app', 'mail'],
+        freq: 'imm', at: '', on: true, model: 'haiku', prompt: expect.stringContaining('{jalon}'), subject: 'Jalon en retard · {jalon}', body: expect.stringContaining('{date}'),
+      });
+      expect(rules.find((r: any) => r.id === 'n3')).toMatchObject({ projets: ['*'], evt: 'le seuil budgétaire IA est atteint' });
+      expect(rules.find((r: any) => r.id === 'n5')).toMatchObject({ freq: 'day', at: '18:00', on: false });
+      const counts = (await c.get(`${A}/notifications/counts`).expect(200)).body;
+      expect(Object.keys(counts)).toEqual(['Admin', 'PMO', 'Responsable', 'Lecteur']);
+      expect(counts.Admin).toBeGreaterThan(0);
+      expect(counts.PMO).toBeGreaterThan(0);
+      const all = (await c.get(`${A}/notifications/history`).expect(200)).body;
+      expect(all.some((h: any) => h.rid === 'n2' && h.ok === false && h.c === 'E-mail')).toBe(true);
+      expect(all[0]).toEqual(expect.objectContaining({ rid: expect.any(String), w: expect.any(String), c: expect.any(String), d: expect.stringMatching(/destinataire/), ok: expect.any(Boolean) }));
+      const one = (await c.get(`${A}/notifications/history?rule=n1`).expect(200)).body;
+      expect(one.length).toBeGreaterThan(0);
+      expect(one.every((h: any) => h.rid === 'n1')).toBe(true);
+    });
+
+    it('création sous l’identifiant de la vue, brouillon incomplet accepté, enregistrement, activation, test, suppression', async () => {
+      const c = await t.as(WHO.admin);
+      const created = await c.post(`${A}/notifications/rules`, blank).expect(201);
+      expect(created.body).toMatchObject({ id: blank.id, title: 'Nouvelle règle', profils: [], model: null, projets: ['*'], evt: 'l’heure d’envoi arrive' });
+      await c.post(`${A}/notifications/rules`, blank).expect(409);
+      // Activer une règle bloquée est permis ; l'envoi de test, non (cas bloquants du § 3).
+      expect((await c.patch(`${A}/notifications/rules/${blank.id}`, { on: true }).expect(200)).body.on).toBe(true);
+      const blocked = await c.post(`${A}/notifications/rules/${blank.id}/test`, {}).expect(422);
+      expect(blocked.body.message).toMatch(/Aucun modèle choisi.*Aucun destinataire/);
+      // Contrôles d'enregistrement.
+      expect((await c.put(`${A}/notifications/rules/${blank.id}`, { ...blank, prompt: 'Réponds {reponse_llm}' }).expect(400)).body.fields.prompt).toBeDefined();
+      expect((await c.put(`${A}/notifications/rules/${blank.id}`, { ...blank, model: 'gflash' }).expect(400)).body.fields.model).toBeDefined();
+      expect((await c.put(`${A}/notifications/rules/${blank.id}`, { ...blank, canaux: [] }).expect(400)).body.fields.canaux).toBeDefined();
+      expect((await c.put(`${A}/notifications/rules/${blank.id}`, { ...blank, projets: ['ZZZ'] }).expect(400)).body.fields.projets).toBeDefined();
+      const saved = await c.put(`${A}/notifications/rules/${blank.id}`, { ...blank, title: 'Synthèse du vendredi', profils: ['Admin'], projets: ['RISE'], canaux: ['app', 'mail'], freq: 'week', at: 'vendredi 17:00', model: 'haiku', prompt: 'Résume {projet}.', subject: '{projet} · {date}', body: '{reponse_llm}' }).expect(200);
+      expect(saved.body).toMatchObject({ title: 'Synthèse du vendredi', freq: 'week', at: 'vendredi 17:00', model: 'haiku', on: false });
+      expect(await t.db.notificationRule.findUnique({ where: { id: blank.id } })).toMatchObject({ frequency: 'WEEKLY', day: 'vendredi', hour: '17:00', platform: false, projectIds: ['RISE'], targetProfiles: ['admin'], channels: ['APP', 'EMAIL'] });
+      // Test avec le brouillon affiché (non enregistré) : un envoi par canal, à l'administrateur seul.
+      const sent = await c.post(`${A}/notifications/rules/${blank.id}/test`, { ...saved.body, canaux: ['mail'] }).expect(200);
+      expect(sent.body).toEqual([expect.objectContaining({ rid: blank.id, c: 'E-mail', d: '1 destinataire', ok: true, w: 'à l’instant' })]);
+      expect((await c.get(`${A}/notifications/history?rule=${blank.id}`).expect(200)).body).toHaveLength(1);
+      await c.del(`${A}/notifications/rules/${blank.id}`).expect(204);
+      await c.put(`${A}/notifications/rules/${blank.id}`, blank).expect(404);
+      expect(await t.db.auditEntry.count({ where: { entityType: 'NotificationRule', entityId: blank.id } })).toBe(4);
+    });
+
+    it('une règle active mais sans destinataire n’envoie rien quand l’événement survient', async () => {
+      const c = await t.as(WHO.admin);
+      const n2 = (await c.get(`${A}/notifications/rules`).expect(200)).body.find((r: any) => r.id === 'n2');
+      await c.put(`${A}/notifications/rules/n2`, { ...n2, profils: [] }).expect(200);
+      const rise = await t.db.project.findFirst({ where: { code: 'RISE' } });
+      const risk = await t.db.risk.findFirst({ where: { projectId: rise!.id, status: { not: 'CLOSED' }, code: { not: 'R07' } }, orderBy: { code: 'asc' } });
+      await (await t.as(WHO.pmo)).patch(`/api/projects/RISE/risks/${risk!.code}`, { p: 5, i: 5 }).expect(200);
+      expect(await t.db.delivery.count({ where: { ruleId: 'n2', eventKey: { contains: risk!.id } } })).toBe(0);
+      await c.put(`${A}/notifications/rules/n2`, n2).expect(200);
+    });
+  });
+
   describe('8. Modules', () => {
     it('approuver une demande active le module sur le seul projet demandé', async () => {
       const c = await t.as(WHO.admin);

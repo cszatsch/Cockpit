@@ -7088,6 +7088,205 @@
         ]
       }
     },
+    "/api/admin/notifications/rules": {
+      "get": {
+        "operationId": "RulesController_uiList",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · notifications"
+        ]
+      },
+      "post": {
+        "operationId": "RulesController_uiCreate",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · notifications"
+        ]
+      }
+    },
+    "/api/admin/notifications/counts": {
+      "get": {
+        "operationId": "RulesController_uiCounts",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · notifications"
+        ]
+      }
+    },
+    "/api/admin/notifications/rules/{id}": {
+      "put": {
+        "operationId": "RulesController_uiSave",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · notifications"
+        ]
+      },
+      "patch": {
+        "operationId": "RulesController_uiToggle",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · notifications"
+        ]
+      },
+      "delete": {
+        "operationId": "RulesController_uiRemove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · notifications"
+        ]
+      }
+    },
+    "/api/admin/notifications/rules/{id}/test": {
+      "post": {
+        "operationId": "RulesController_uiTest",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · notifications"
+        ]
+      }
+    },
+    "/api/admin/notifications/history": {
+      "get": {
+        "operationId": "RulesController_uiHistory",
+        "parameters": [
+          {
+            "name": "rule",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · notifications"
+        ]
+      }
+    },
     "/api/admin/projects/{id}/snapshots": {
       "get": {
         "operationId": "DataController_listSnapshots",

@@ -11,6 +11,7 @@ import { UsageService } from './usage.service';
 import { riskScore, RISK_CRITICAL_MIN } from '../domain/rules';
 import { confirmedAtIso } from '../cockpit/views';
 import { frShort } from '../domain/dates';
+import { blockingErrors } from '../domain/notification-rules';
 
 /** Variables utilisables dans le prompt et le message (brief Console § 6.5). */
 export const RULE_VARIABLES = ['projet', 'jalon', 'date', 'risque', 'seuil', 'semaine', 'document'] as const;
@@ -111,6 +112,7 @@ export class NotificationsService implements OnModuleInit {
     const project = await this.prisma.project.findUnique({ where: { id: projectId } });
     if (!project) return;
     for (const rule of rules) {
+      if (blockingErrors(rule).length) continue;
       if (!rule.platform && !rule.projectIds.includes(project.code) && !rule.projectIds.includes(project.id)) continue;
       const ctx: RuleContext = { projet: project.code };
       if (trigger === 'RISK_CRITICAL') {
@@ -155,14 +157,17 @@ export class NotificationsService implements OnModuleInit {
     const scheduled = await this.prisma.notificationRule.findMany({ where: { enabled: true, trigger: 'SCHEDULE', frequency: { in: ['DAILY', 'WEEKLY', 'CUSTOM'] } } });
     const dayKey = this.today.today('Europe/Paris');
     for (const rule of scheduled) {
+      // Cas bloquants (aucun modèle, aucun destinataire) : la règle reste active mais n'envoie rien.
+      if (blockingErrors(rule).length) continue;
       if ((rule.hour ?? '08:00').slice(0, 2) !== hour.slice(0, 2)) continue;
       if (rule.frequency === 'WEEKLY' && (rule.day ?? 'lundi').toLowerCase() !== weekday) continue;
       if (rule.frequency === 'CUSTOM') {
         const last = await this.prisma.delivery.findFirst({ where: { ruleId: rule.id }, orderBy: { at: 'desc' } });
         if (last && now.getTime() - last.at.getTime() < (rule.everyDays ?? 3) * 86_400_000 - 3_600_000) continue;
       }
-      for (const code of rule.projectIds) {
-        const p = projects.find((x) => x.code === code || x.id === code);
+      // « Tous les projets » (règle de plateforme) : chaque projet ouvert.
+      const targets = rule.platform ? projects : rule.projectIds.map((code) => projects.find((x) => x.code === code || x.id === code));
+      for (const p of targets) {
         if (!p) continue;
         const week = `semaine ${isoWeek(new Date(`${dayKey}T12:00:00Z`))}`;
         await this.deliver(rule, p.id, { projet: p.code, semaine: week }, `${rule.id}|${p.id}|${dayKey}`);
@@ -181,7 +186,7 @@ export class NotificationsService implements OnModuleInit {
       const already = await this.prisma.budgetAlertFired.findUnique({ where: { thresholdId_month: { thresholdId: t.id, month } } });
       if (already) continue;
       await this.prisma.budgetAlertFired.create({ data: { thresholdId: t.id, month } });
-      if (rule) await this.deliver(rule, null, { seuil: `${t.warnPct} %` }, `${rule.id}|${t.id}|${month}`);
+      if (rule && !blockingErrors(rule).length) await this.deliver(rule, null, { seuil: `${t.warnPct} %` }, `${rule.id}|${t.id}|${month}`);
     }
   }
 }

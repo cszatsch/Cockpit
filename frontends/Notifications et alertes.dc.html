@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet"><style>
+html,body{margin:0;background:#f2f6f5;font-family:'Plus Jakarta Sans',sans-serif;color:#10233a;-webkit-font-smoothing:antialiased;font-size:13px}
+*{box-sizing:border-box}a{color:#1d8f86}a:hover{color:#146b64}button,input,textarea,select{font:inherit;color:inherit}
+button:focus-visible,select:focus-visible{outline:2px solid #1d8f86;outline-offset:2px}
+textarea::placeholder,input::placeholder{color:#8a9aa6}
+@keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes toastIn{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style></helmet>
+<div data-screen-label="Notifications et alertes" style="max-width:1440px;margin:0 auto;padding:52px 56px 72px;display:flex;flex-direction:column;gap:32px">
+  <div style="display:flex;flex-direction:column;gap:8px;animation:rise .45s cubic-bezier(.2,.7,.2,1) both">
+    <div style="font-size:11px;font-weight:800;letter-spacing:.16em;color:#1d8f86">PLATEFORME</div>
+    <div style="font-size:38px;font-weight:800;font-style:italic;letter-spacing:-.035em;line-height:1.05">Notifications et alertes</div>
+    <div style="font-size:14px;color:#43586a">Les notifications informent. Les alertes signalent un événement ou un seuil critique.</div>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start">
+    <nav aria-label="Règles" style="flex:1 1 280px;max-width:340px;display:flex;flex-direction:column;gap:22px;position:sticky;top:24px">
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <div style="display:flex;align-items:center;gap:8px;padding:0 16px 8px;font-size:10.5px;font-weight:800;letter-spacing:.16em;color:#c2473b">ALERTES<span style="flex:1;height:1px;background:#e1e9e7"></span></div>
+        <sc-for list="{{ alerts }}" as="r" hint-placeholder-count="3">
+          <div role="button" tabindex="0" onClick="{{ r.pick }}" aria-current="{{ r.sel }}" style="{{ r.row }}" style-hover="{{ r.hov }}">
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">
+              <span style="font-size:14px;font-weight:700;letter-spacing:-.005em">{{ r.t }}</span>
+              <span style="{{ r.metaSt }}">{{ r.meta }}</span>
+              <span style="{{ r.freqSt }}">{{ r.f }}</span>
+            </div>
+            <button type="button" role="switch" onClick="{{ r.flip }}" aria-checked="{{ r.on }}" aria-label="{{ r.aria }}" style="{{ r.tr }}"><span style="{{ r.kn }}"></span></button>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <div style="display:flex;align-items:center;gap:8px;padding:0 16px 8px;font-size:10.5px;font-weight:800;letter-spacing:.16em;color:#1d8f86">NOTIFICATIONS<span style="flex:1;height:1px;background:#e1e9e7"></span></div>
+        <sc-for list="{{ notifs }}" as="r" hint-placeholder-count="2">
+          <div role="button" tabindex="0" onClick="{{ r.pick }}" aria-current="{{ r.sel }}" style="{{ r.row }}" style-hover="{{ r.hov }}">
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">
+              <span style="font-size:14px;font-weight:700;letter-spacing:-.005em">{{ r.t }}</span>
+              <span style="{{ r.metaSt }}">{{ r.meta }}</span>
+              <span style="{{ r.freqSt }}">{{ r.f }}</span>
+            </div>
+            <button type="button" role="switch" onClick="{{ r.flip }}" aria-checked="{{ r.on }}" aria-label="{{ r.aria }}" style="{{ r.tr }}"><span style="{{ r.kn }}"></span></button>
+          </div>
+        </sc-for>
+      </div>
+      <button type="button" onClick="{{ create }}" style="height:44px;border-radius:12px;border:1px solid #d5e0dd;background:transparent;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;transition:background .15s" style-hover="background:#fff"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>Nouvelle règle</button>
+    </nav>
+
+    <div style="flex:1 1 580px;min-width:0;background:#fff;border-radius:22px;box-shadow:0 0 0 1px #e1e9e7,0 24px 50px -36px rgba(16,35,58,.4);overflow:hidden;animation:rise .5s .06s cubic-bezier(.2,.7,.2,1) both">
+      <div style="padding:30px 36px 26px;display:flex;flex-direction:column;gap:18px;border-bottom:1px solid #eef3f2">
+        <div style="display:flex;align-items:center;gap:12px">
+          <input value="{{ d.title }}" onChange="{{ setTitle }}" aria-label="Nom de la règle" style="flex:1;min-width:0;border:0;outline:0;background:transparent;padding:0;font-size:26px;font-weight:800;font-style:italic;letter-spacing:-.03em" />
+          <sc-if value="{{ inactive }}" hint-placeholder-val="{{ false }}"><span style="height:24px;padding:0 10px;border-radius:999px;background:#fdf1dc;color:#8a5a12;font-size:11.5px;font-weight:700;display:inline-flex;align-items:center">Inactive</span></sc-if>
+          <button type="button" onClick="{{ toggleActive }}" style="height:34px;padding:0 14px;border-radius:10px;border:1px solid #d5e0dd;background:#fff;font-size:12.5px;font-weight:700;cursor:pointer" style-hover="border-color:#10233a">{{ activeL }}</button>
+        </div>
+        <div style="font-size:19px;line-height:1.75;color:#5c7280;letter-spacing:-.01em;text-wrap:pretty;max-width:860px"><sc-for list="{{ sentence }}" as="s" hint-placeholder-count="12"><span style="{{ s.st }}">{{ s.x }}</span></sc-for></div>
+        <sc-for list="{{ errors }}" as="e" hint-placeholder-count="0">
+          <div role="alert" style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:12px;background:#fdf0ed;color:#a63a2f;font-size:13px;font-weight:600">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v5M12 16.5v.5"></path><circle cx="12" cy="12" r="9"></circle></svg><span style="flex:1">{{ e }}</span>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="display:flex;flex-direction:column;padding:0 36px">
+        <div style="display:flex;flex-wrap:wrap;gap:10px 24px;padding:22px 0;border-bottom:1px solid #eef3f2">
+          <div style="flex:0 0 220px;font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#5c7280;padding-top:12px">TYPE</div>
+          <div style="flex:1 1 380px;min-width:0;display:flex;align-items:center;gap:12px 18px;flex-wrap:wrap">
+            <div role="radiogroup" aria-label="Type" style="display:inline-flex;padding:3px;border-radius:11px;background:#eef3f2;gap:2px"><sc-for list="{{ types }}" as="o" hint-placeholder-count="2"><button type="button" role="radio" aria-checked="{{ o.on }}" onClick="{{ o.pick }}" style="{{ o.st }}"><sc-if value="{{ o.dot }}" hint-placeholder-val="{{ false }}"><span style="width:6px;height:6px;border-radius:50%;background:#e0604c"></span></sc-if>{{ o.l }}</button></sc-for></div>
+            <span style="font-size:12.5px;color:#5c7280;line-height:1.5;max-width:460px">{{ typeHelp }}</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px 24px;padding:22px 0;border-bottom:1px solid #eef3f2">
+          <div style="flex:0 0 220px;font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#5c7280;padding-top:11px">CANAL</div>
+          <div style="flex:1 1 380px;min-width:0;display:flex;gap:8px;flex-wrap:wrap"><sc-for list="{{ canaux }}" as="c" hint-placeholder-count="2"><button type="button" aria-pressed="{{ c.on }}" onClick="{{ c.flip }}" style="{{ c.st }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{ c.ic }}"></path></svg>{{ c.l }}</button></sc-for></div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px 24px;padding:22px 0;border-bottom:1px solid #eef3f2">
+          <div style="flex:0 0 220px;display:flex;flex-direction:column;gap:5px;padding-top:9px"><span style="font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#5c7280">DESTINATAIRES PAR PROFIL</span><span style="{{ recipSt }}">{{ recipL }}</span></div>
+          <div style="flex:1 1 380px;min-width:0;display:flex;gap:6px;flex-wrap:wrap;align-content:flex-start"><sc-for list="{{ profils }}" as="c" hint-placeholder-count="4"><button type="button" onClick="{{ c.flip }}" aria-pressed="{{ c.on }}" style="{{ c.st }}"><sc-if value="{{ c.on }}" hint-placeholder-val="{{ false }}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"></path></svg></sc-if>{{ c.l }}</button></sc-for></div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px 24px;padding:22px 0;border-bottom:1px solid #eef3f2">
+          <div style="flex:0 0 220px;display:flex;flex-direction:column;gap:5px;padding-top:9px"><span style="font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#5c7280">PROJETS CIBLÉS</span><span style="font-size:12.5px;font-weight:700;color:#1d8f86">{{ projL }}</span></div>
+          <div style="flex:1 1 380px;min-width:0;display:flex;gap:6px;flex-wrap:wrap;align-content:flex-start"><sc-for list="{{ projets }}" as="c" hint-placeholder-count="5"><button type="button" onClick="{{ c.flip }}" aria-pressed="{{ c.on }}" style="{{ c.st }}"><sc-if value="{{ c.on }}" hint-placeholder-val="{{ false }}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"></path></svg></sc-if>{{ c.l }}</button></sc-for></div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px 24px;padding:22px 0;border-bottom:1px solid #eef3f2">
+          <div style="flex:0 0 220px;font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#5c7280;padding-top:15px">FOURNISSEUR ET MODÈLE</div>
+          <div style="flex:1 1 380px;min-width:0;display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+              <label style="{{ mdl.box }}">
+                <span style="{{ mdl.logo }}">{{ mdl.ini }}</span>
+                <span style="{{ mdl.lblSt }}">{{ mdl.lbl }}</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10233a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg>
+                <select value="{{ mdl.val }}" onChange="{{ setModel }}" aria-label="Fournisseur et modèle" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%"><option value="">Choisir un LLM…</option><sc-for list="{{ models }}" as="m" hint-placeholder-count="3"><option value="{{ m.id }}">{{ m.l }}</option></sc-for></select>
+              </label>
+              <sc-if value="{{ mdl.none }}" hint-placeholder-val="{{ true }}"><span style="flex:none;white-space:nowrap;height:24px;padding:0 10px;border-radius:999px;background:#fdf0ed;color:#c2473b;font-size:11.5px;font-weight:700;display:inline-flex;align-items:center">Choisissez un LLM</span></sc-if>
+            </div>
+            <span style="font-size:12.5px;color:#5c7280">{{ mdl.help }}</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px 24px;padding:22px 0;border-bottom:1px solid #eef3f2">
+          <div style="flex:0 0 220px;display:flex;flex-direction:column;gap:5px;padding-top:14px"><span style="font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#5c7280">PROMPT ENVOYÉ AU MODÈLE</span><span style="font-size:12px;color:#8a9aa6;font-variant-numeric:tabular-nums">{{ promptL }}</span></div>
+          <div style="flex:1 1 380px;min-width:0;display:flex;flex-direction:column;gap:8px">
+            <textarea value="{{ d.prompt }}" onChange="{{ setPrompt }}" rows="4" aria-label="Prompt envoyé au modèle" style="resize:vertical;min-height:112px;border:0;outline:0;border-radius:14px;background:#f6f9f8;box-shadow:inset 0 0 0 1px #e1e9e7;padding:16px 18px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;line-height:1.75;color:#2a3f53;transition:box-shadow .15s" style-focus="box-shadow:inset 0 0 0 1.5px #1d8f86;background:#fff"></textarea>
+            <span style="font-size:12px;color:#5c7280;line-height:1.55">Le modèle reçoit ce prompt avec les données du projet ciblé ; sa réponse s’insère dans le message à l’endroit de {reponse_llm}. Variables utilisables ici : toutes, sauf {reponse_llm}.</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px 24px;padding:22px 0;border-bottom:1px solid #eef3f2">
+          <div style="flex:0 0 220px;font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#5c7280;padding-top:13px">FRÉQUENCE D’ENVOI</div>
+          <div style="flex:1 1 380px;min-width:0;display:flex;align-items:center;gap:12px 18px;flex-wrap:wrap">
+            <div role="radiogroup" aria-label="Fréquence d’envoi" style="max-width:100%;display:inline-flex;padding:3px;border-radius:11px;background:#eef3f2;gap:2px;flex-wrap:wrap"><sc-for list="{{ freqs }}" as="o" hint-placeholder-count="4"><button type="button" role="radio" aria-checked="{{ o.on }}" onClick="{{ o.pick }}" style="{{ o.st }}">{{ o.l }}</button></sc-for></div>
+            <span style="font-size:12.5px;color:#5c7280">{{ freqHelp }}</span>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:28px;padding:26px 0 30px">
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#5c7280;height:32px;display:flex;align-items:center">MESSAGE</div>
+            <input value="{{ d.subject }}" onChange="{{ setSubject }}" aria-label="Objet du message" style="height:44px;border:0;outline:0;border-radius:12px;box-shadow:inset 0 0 0 1px #d5e0dd;padding:0 14px;font-size:13.5px;font-weight:700;background:#fff;transition:box-shadow .15s" style-focus="box-shadow:inset 0 0 0 1.5px #1d8f86" />
+            <textarea value="{{ d.body }}" onChange="{{ setBody }}" rows="4" aria-label="Corps du message" style="resize:vertical;min-height:112px;border:0;outline:0;border-radius:12px;box-shadow:inset 0 0 0 1px #d5e0dd;padding:12px 14px;font-size:13.5px;line-height:1.6;color:#2a3f53;background:#fff;transition:box-shadow .15s" style-focus="box-shadow:inset 0 0 0 1.5px #1d8f86"></textarea>
+            <div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;font-size:12px;color:#5c7280">Variables :<sc-for list="{{ vars }}" as="v" hint-placeholder-count="7"><button type="button" onClick="{{ v.ins }}" title="Insérer dans le message" style="{{ v.st }}" style-hover="{{ v.hov }}">{{ v.l }}</button></sc-for>= réponse du modèle</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;align-items:center;justify-content:space-between;height:32px"><span style="font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#5c7280">APERÇU</span><div role="tablist" aria-label="Aperçu" style="display:inline-flex;padding:3px;border-radius:10px;background:#eef3f2;gap:2px"><sc-for list="{{ pvTabs }}" as="o" hint-placeholder-count="2"><button type="button" role="tab" aria-selected="{{ o.on }}" onClick="{{ o.pick }}" style="{{ o.st }}">{{ o.l }}</button></sc-for></div></div>
+            <div style="flex:1;min-height:180px;border-radius:16px;background:linear-gradient(160deg,#eef3f2,#e4ecea);padding:22px;display:flex;align-items:center">
+              <sc-if value="{{ pvApp }}" hint-placeholder-val="{{ true }}">
+                <div style="width:100%;background:#fff;border-radius:14px;box-shadow:0 12px 30px -16px rgba(16,35,58,.35);padding:16px 18px;display:flex;gap:12px">
+                  <span style="{{ pv.bar }}"></span>
+                  <div style="display:flex;flex-direction:column;gap:6px;min-width:0">
+                    <div style="display:flex;align-items:center;gap:8px;font-size:11.5px;color:#8a9aa6"><span style="{{ pv.badge }}">{{ pv.kind }}</span>Cockpit · à l’instant</div>
+                    <div style="font-size:14px;font-weight:800;letter-spacing:-.01em">{{ pv.subject }}</div>
+                    <div style="font-size:12.5px;line-height:1.55;color:#43586a;text-wrap:pretty">{{ pv.body }}</div>
+                  </div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ pvMail }}" hint-placeholder-val="{{ false }}">
+                <div style="width:100%;background:#fff;border-radius:14px;box-shadow:0 12px 30px -16px rgba(16,35,58,.35);overflow:hidden">
+                  <div style="padding:12px 18px;border-bottom:1px solid #eef3f2;display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:#8a9aa6"><span><b style="color:#43586a">RISE Cockpit</b> · notifications@rise.app</span><span>Objet : <b style="color:#10233a">{{ pv.subject }}</b></span></div>
+                  <div style="padding:16px 18px;display:flex;flex-direction:column;gap:12px"><div style="font-size:12.5px;line-height:1.6;color:#43586a;text-wrap:pretty">{{ pv.body }}</div><span style="align-self:flex-start;height:30px;padding:0 12px;border-radius:8px;background:#10233a;color:#fff;font-size:12px;font-weight:700;display:inline-flex;align-items:center">Ouvrir dans le Cockpit</span></div>
+                </div>
+              </sc-if>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;padding:16px 36px;background:#f8fbfa;border-top:1px solid #eef3f2;flex-wrap:wrap">
+        <button type="button" onClick="{{ test }}" disabled="{{ cantSend }}" style="{{ testSt }}" style-hover="{{ testHov }}">M’envoyer un test</button>
+        <button type="button" onClick="{{ del }}" style="{{ delSt }}" style-hover="background:#fdf0ed"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"></path></svg>{{ delL }}</button>
+        <span style="flex:1"></span>
+        <sc-if value="{{ clean }}" hint-placeholder-val="{{ true }}"><span style="white-space:nowrap;font-size:12px;color:#8a9aa6">Aucune modification</span></sc-if>
+        <sc-if value="{{ dirty }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="white-space:nowrap;display:inline-flex;align-items:center;gap:7px;font-size:12px;color:#8a5a12;font-weight:600"><span style="width:6px;height:6px;border-radius:50%;background:#d99a2b"></span>Modifications non enregistrées</span><button type="button" onClick="{{ revert }}" style="flex:none;white-space:nowrap;height:34px;padding:0 12px;border-radius:10px;border:0;background:transparent;font-size:12.5px;font-weight:700;color:#43586a;cursor:pointer" style-hover="background:#eef3f2">Annuler</button><button type="button" onClick="{{ save }}" style="flex:none;white-space:nowrap;height:34px;padding:0 16px;border-radius:10px;border:0;background:#1d8f86;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer" style-hover="background:#146b64">Enregistrer</button></div>
+        </sc-if>
+      </div>
+    </div>
+  </div>
+
+  <div style="background:#fff;border-radius:22px;box-shadow:0 0 0 1px #e1e9e7;overflow:hidden">
+    <div style="display:flex;align-items:center;padding:20px 28px">
+      <span style="font-size:15px;font-weight:800;letter-spacing:-.01em">Historique des envois</span><span style="flex:1"></span>
+      <div role="tablist" aria-label="Portée" style="display:inline-flex;padding:3px;border-radius:10px;background:#eef3f2;gap:2px"><sc-for list="{{ hTabs }}" as="o" hint-placeholder-count="2"><button type="button" role="tab" aria-selected="{{ o.on }}" onClick="{{ o.pick }}" style="{{ o.st }}">{{ o.l }}</button></sc-for></div>
+    </div>
+    <sc-for list="{{ hist }}" as="h" hint-placeholder-count="3">
+      <div style="display:grid;grid-template-columns:minmax(72px,140px) minmax(0,1fr) minmax(0,160px) minmax(0,160px) auto;gap:12px;align-items:center;padding:0 28px;min-height:52px;border-top:1px solid #f1f5f4;font-size:13px">
+        <span style="color:#8a9aa6;font-variant-numeric:tabular-nums">{{ h.w }}</span><span style="font-weight:700">{{ h.t }}</span><span style="color:#43586a">{{ h.c }}</span><span style="color:#43586a">{{ h.d }}</span>
+        <span style="{{ h.sSt }}"><span style="{{ h.dot }}"></span>{{ h.s }}</span>
+      </div>
+    </sc-for>
+    <sc-if value="{{ noHist }}" hint-placeholder-val="{{ false }}"><div style="padding:28px;border-top:1px solid #f1f5f4;font-size:13px;color:#8a9aa6">Aucun envoi pour cette règle.</div></sc-if>
+  </div>
+</div>
+<sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}"><div role="status" style="position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:50;height:42px;padding:0 18px;border-radius:12px;background:#10233a;color:#fff;font-size:13px;font-weight:600;display:flex;align-items:center;gap:10px;box-shadow:0 18px 40px -16px rgba(16,35,58,.6);animation:toastIn .25s cubic-bezier(.2,.7,.2,1) both"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3dd6c6" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"></path></svg>{{ toast }}</div></sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;rules&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{ id: string; type: 'alerte'|'notification'; title: string; evt: string; profils: string[]; projets: string[]; canaux: ('app'|'mail')[]; freq: 'imm'|'day'|'week'|'custom'; at: string; on: boolean; model: string|null; prompt: string; subject: string; body: string }[]&quot;},&quot;models&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{ id: string; provider: string; name: string }[]&quot;},&quot;projects&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string[]&quot;},&quot;counts&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Record&lt;string, number&gt;&quot;},&quot;history&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{ rid: string; w: string; c: string; d: string; ok: boolean }[]&quot;},&quot;onSave&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(rule) =&gt; void&quot;},&quot;onToggle&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(id: string, on: boolean) =&gt; void&quot;},&quot;onDelete&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(id: string) =&gt; void&quot;},&quot;onCreate&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(rule) =&gt; void&quot;},&quot;onTest&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(rule) =&gt; void&quot;}}">
+// ---- Données de démonstration (remplacées par les props en production) ----
+const PROFILS = ['Admin', 'PMO', 'Responsable', 'Lecteur'];
+const PROJETS = ['RISE', 'ATLAS', 'HORIZON', 'NOVA'];
+const COUNTS = { Admin: 2, PMO: 3, Responsable: 5, Lecteur: 6 };
+const MODELS = [
+  { id: 'mistral-large', provider: 'Mistral', name: 'Mistral Large' },
+  { id: 'gpt-4.1-mini', provider: 'OpenAI', name: 'GPT-4.1 mini' },
+  { id: 'claude-sonnet', provider: 'Anthropic', name: 'Claude Sonnet' }
+];
+const P1 = 'Tu es l’assistant PMO du projet {projet}. Le jalon {jalon} a dépassé sa date prévue du {date}. Rédige une alerte de 3 phrases maximum : le constat, l’impact probable sur le planning et l’action attendue du responsable. Ton factuel, sans formule de politesse.';
+const RULES = [
+  { id: 'r1', type: 'alerte', title: 'Jalon en retard', evt: 'un jalon est en retard', profils: ['Responsable', 'PMO'], projets: ['RISE', 'ATLAS'], canaux: ['app', 'mail'], freq: 'imm', at: '', on: true, model: null, prompt: P1, subject: 'Jalon en retard · {jalon}', body: 'Le jalon {jalon} du projet {projet} a dépassé sa date prévue du {date}. Ouvrez le planning pour réviser la trajectoire.' },
+  { id: 'r2', type: 'alerte', title: 'Risque critique ouvert', evt: 'un risque critique est ouvert', profils: ['Responsable', 'PMO'], projets: ['*'], canaux: ['app', 'mail'], freq: 'imm', at: '', on: true, model: 'mistral-large', prompt: 'Résume le risque {risque} du projet {projet} en 2 phrases : la cause et l’action attendue.', subject: 'Risque critique · {risque}', body: 'Un risque critique a été ouvert sur {projet} : {risque}. {reponse_llm}' },
+  { id: 'r3', type: 'alerte', title: 'Seuil budgétaire IA atteint', evt: 'le seuil budgétaire IA est atteint', profils: ['PMO'], projets: ['*'], canaux: ['mail'], freq: 'imm', at: '', on: true, model: 'gpt-4.1-mini', prompt: 'Explique en une phrase le dépassement du seuil {seuil} sur {projet}.', subject: 'Seuil budgétaire IA atteint · {seuil}', body: 'Le budget IA du projet {projet} a atteint {seuil}. {reponse_llm}' },
+  { id: 'r4', type: 'notification', title: 'Synthèse hebdomadaire du projet', evt: 'la synthèse hebdomadaire est prête', profils: ['PMO', 'Responsable'], projets: ['*'], canaux: ['app', 'mail'], freq: 'week', at: 'lundi 08:00', on: true, model: 'claude-sonnet', prompt: 'Rédige la synthèse de la semaine du projet {projet} : avancement, jalons, risques ouverts.', subject: 'Synthèse hebdomadaire · {projet}', body: '{reponse_llm}' },
+  { id: 'r5', type: 'notification', title: 'Nouveau document analysé', evt: 'un nouveau document est analysé', profils: ['Responsable'], projets: ['*'], canaux: ['app'], freq: 'day', at: '18:00', on: false, model: 'mistral-large', prompt: 'Résume le document {document} en 3 points.', subject: 'Document analysé · {document}', body: 'Le document {document} du projet {projet} a été analysé. {reponse_llm}' }
+];
+const HIST = [
+  { rid: 'r1', w: 'il y a 3 j', c: 'E-mail', d: '4 destinataires', ok: true },
+  { rid: 'r1', w: 'il y a 3 j', c: 'Application', d: '4 destinataires', ok: true },
+  { rid: 'r4', w: 'il y a 8 j', c: 'E-mail', d: '8 destinataires', ok: true },
+  { rid: 'r1', w: 'il y a 9 j', c: 'E-mail', d: '4 destinataires', ok: true },
+  { rid: 'r3', w: 'il y a 12 j', c: 'E-mail', d: '3 destinataires', ok: false }
+];
+const SAMPLE = { jalon: 'J06 · Go / No-Go Go-Live', projet: 'RISE', date: '29 sept. 2026', risque: 'R12 · Dépendance fournisseur', seuil: '80 %', document: 'CR comité 24-09.pdf', reponse_llm: '[réponse du modèle]' };
+const VARS = ['projet', 'jalon', 'date', 'risque', 'seuil', 'document', 'reponse_llm'];
+const FREQ = { imm: ['Immédiate', 'immédiatement', 'Envoyée dès que l’événement se produit.'], day: ['Quotidienne', 'chaque jour', 'Envoyée une fois par jour'], week: ['Hebdomadaire', 'chaque semaine', 'Envoyée une fois par semaine'], custom: ['Personnalisée', 'selon un calendrier personnalisé', 'Envoyée selon le calendrier défini'] };
+const CH = { app: ['Dans l’application', 'Application', 'M3 4h18v14H3z M8 21h8'], mail: ['E-mail', 'E-mail', 'M3 5h18v14H3z M4 7l8 6 8-6'] };
+const ERR_MODEL = 'Aucun modèle choisi (modèles réinitialisés) : la règle ne pourra pas s’envoyer.';
+const ERR_DEST = 'Aucun destinataire : la règle ne pourra pas s’envoyer.';
+
+const seg = (on, h = 32) => 'white-space:nowrap;height:' + h + 'px;padding:0 ' + (h > 30 ? 14 : 12) + 'px;border:0;border-radius:' + (h > 30 ? 9 : 8) + 'px;display:inline-flex;align-items:center;gap:7px;cursor:pointer;font-size:' + (h > 30 ? 13 : 12) + 'px;transition:background .15s,color .15s;' + (on ? 'background:#fff;font-weight:700;color:#10233a;box-shadow:0 1px 2px rgba(16,35,58,.12)' : 'background:transparent;font-weight:600;color:#5c7280');
+const chip = on => 'white-space:nowrap;height:32px;padding:0 14px;border-radius:999px;font-size:12.5px;display:inline-flex;align-items:center;gap:6px;cursor:pointer;transition:all .15s;' + (on ? 'border:1px solid #10233a;background:#10233a;color:#fff;font-weight:700' : 'border:1px solid #d5e0dd;background:#fff;color:#43586a;font-weight:600');
+const fill = (s, o) => (s || '').replace(/\{(\w+)\}/g, (m, k) => o[k] ?? m);
+const clone = o => JSON.parse(JSON.stringify(o));
+
+class Component extends DCLogic {
+  state = { rules: null, selId: null, draft: null, pv: 'app', hScope: 'rule', confirmDel: false, toast: '' };
+  rules() { return this.state.rules ?? (this.props.rules ?? RULES); }
+  sel() { const r = this.rules(); return r.find(x => x.id === this.state.selId) || r[0]; }
+  draft() { return this.state.draft ?? clone(this.sel()); }
+  models() { return this.props.models ?? MODELS; }
+  edit(patch) { this.setState({ draft: { ...this.draft(), ...patch }, confirmDel: false }); }
+  setRules(rules) { this.setState({ rules }); }
+  say(t) { clearTimeout(this._t); this.setState({ toast: t }); this._t = setTimeout(() => this.setState({ toast: '' }), 2600); }
+  componentWillUnmount() { clearTimeout(this._t); }
+  pick(id) {
+    if (this.state.draft && JSON.stringify(this.state.draft) !== JSON.stringify(this.sel()) && !window.confirm('Des modifications ne sont pas enregistrées. Les abandonner ?')) return;
+    this.setState({ selId: id, draft: null, confirmDel: false });
+  }
+  flipRule(id) {
+    const rules = this.rules().map(r => r.id === id ? { ...r, on: !r.on } : r), r = rules.find(x => x.id === id);
+    this.setRules(rules);
+    if (this.state.draft && this.state.draft.id === id) this.setState({ draft: { ...this.state.draft, on: r.on } });
+    this.props.onToggle?.(id, r.on);
+  }
+  errors(d) { const e = []; if (!d.model) e.push(ERR_MODEL); if (!d.profils.length) e.push(ERR_DEST); return e; }
+  renderVals() {
+    const S = this.state, rules = this.rules(), cur = this.sel(), d = this.draft(), counts = this.props.counts ?? COUNTS;
+    const models = this.models(), model = models.find(m => m.id === d.model);
+    const dirty = JSON.stringify(d) !== JSON.stringify(cur), errs = this.errors(d);
+    const freqL = r => FREQ[r.freq][0] + (r.at ? ' · ' + r.at : '');
+    const row = r => {
+      const sel = r.id === cur.id, on = r.on;
+      return {
+        t: r.title, sel, on, aria: (on ? 'Désactiver ' : 'Activer ') + r.title,
+        meta: r.profils.join(', ') + ' · ' + r.canaux.map(c => CH[c][1]).join(' + '),
+        f: (on ? '' : 'Inactive · ') + freqL(r),
+        pick: () => this.pick(r.id),
+        flip: e => { e.stopPropagation(); this.flipRule(r.id); },
+        row: 'display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:14px;cursor:pointer;outline:none;transition:background .2s,box-shadow .2s;' + (sel ? 'background:#10233a;color:#fff;box-shadow:0 14px 30px -18px rgba(16,35,58,.7)' : 'color:#10233a') + (on || sel ? '' : ';opacity:.62'),
+        hov: sel ? '' : 'background:#e8efed',
+        metaSt: 'font-size:12px;color:' + (sel ? 'rgba(223,232,238,.7)' : '#5c7280'),
+        freqSt: 'font-size:12px;font-weight:600;color:' + (!on ? (sel ? '#f5c46b' : '#8a5a12') : sel ? '#3dd6c6' : '#8a9aa6'),
+        tr: 'flex:none;position:relative;width:34px;height:20px;border-radius:10px;border:0;padding:0;cursor:pointer;transition:background .2s;background:' + (on ? (sel ? '#3dd6c6' : '#1d8f86') : (sel ? 'rgba(255,255,255,.22)' : '#d5e0dd')),
+        kn: 'position:absolute;top:2px;left:' + (on ? 16 : 2) + 'px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(16,35,58,.3);transition:left .2s cubic-bezier(.2,.7,.2,1)'
+      };
+    };
+    // Phrase de synthèse
+    const P = x => ({ x, st: '' }), T = x => ({ x, st: 'color:#10233a;font-weight:700;border-bottom:2px solid #9fd3cc' }), E = x => ({ x, st: 'color:#c2473b;font-weight:700;border-bottom:2px dashed #f07b67' });
+    const list = (arr, f) => arr.flatMap((v, i) => [...(i ? [P(i === arr.length - 1 ? ' et ' : ', ')] : []), f(v)]);
+    const proj = d.projets.includes('*') ? [T('tous les projets')] : d.projets.length ? list(d.projets, T) : [E('aucun projet')];
+    const chPhrase = d.canaux.length === 2 ? 'dans l’application et par e-mail' : d.canaux[0] === 'app' ? 'dans l’application' : 'par e-mail';
+    const sentence = [P('Quand '), { x: d.evt || 'l’événement se produit', st: 'color:#10233a;font-weight:700' }, P(', ' + (d.type === 'alerte' ? 'alerter ' : 'informer ')),
+      ...(d.profils.length ? list(d.profils, T) : [E('aucun destinataire')]), P(' sur '), ...proj, P(', '), T(FREQ[d.freq][1] + (d.at ? (d.freq === 'day' ? ' à ' : ', ') + d.at : '')), P(', '), T(chPhrase), P('. Message rédigé par '), model ? T(model.name) : E('aucun modèle'), P('.')];
+    const recips = d.profils.reduce((n, p) => n + (counts[p] || 0), 0);
+    const toggleIn = (arr, v) => arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v];
+    const allP = d.projets.includes('*');
+    const kind = d.type === 'alerte' ? 'Alerte' : 'Notification';
+    const hist = (this.props.history ?? HIST).filter(h => S.hScope === 'all' || h.rid === cur.id);
+    const titleOf = id => (rules.find(r => r.id === id) || {}).title || '';
+    const canSend = !errs.length && d.canaux.length;
+    return {
+      alerts: rules.filter(r => r.type === 'alerte').map(row), notifs: rules.filter(r => r.type !== 'alerte').map(row),
+      create: () => { const id = 'r' + Date.now(), r = { id, type: 'notification', title: 'Nouvelle règle', evt: '', profils: [], projets: ['*'], canaux: ['app'], freq: 'imm', at: '', on: false, model: null, prompt: '', subject: '', body: '' };
+        this.setState({ rules: [...rules, r], selId: id, draft: null }); this.props.onCreate?.(r); },
+      d, sentence, errors: errs, inactive: !d.on, activeL: d.on ? 'Désactiver' : 'Activer',
+      toggleActive: () => this.flipRule(cur.id),
+      setTitle: e => this.edit({ title: e.target.value }),
+      types: [['notification', 'Notification'], ['alerte', 'Alerte']].map(([k, l]) => ({ l, on: d.type === k, dot: k === 'alerte', pick: () => this.edit({ type: k }), st: seg(d.type === k) })),
+      typeHelp: d.type === 'alerte' ? 'Signale un événement ou un seuil critique. Mise en avant dans le Cockpit, jamais regroupée.' : 'Informe sans urgence. Peut être regroupée avec les autres notifications.',
+      canaux: ['app', 'mail'].map(k => { const on = d.canaux.includes(k);
+        return { l: CH[k][0], ic: CH[k][2], on, flip: () => { if (on && d.canaux.length === 1) return; this.edit({ canaux: toggleIn(d.canaux, k).sort() }); },
+          st: 'white-space:nowrap;height:34px;padding:0 14px 0 11px;border-radius:10px;display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:12.5px;cursor:pointer;transition:all .15s;' + (on ? 'border:1px solid #10233a;background:#10233a;color:#fff' : 'border:1px solid #d5e0dd;background:#fff;color:#5c7280') }; }),
+      profils: PROFILS.map(p => { const on = d.profils.includes(p); return { l: p, on, st: chip(on), flip: () => this.edit({ profils: toggleIn(d.profils, p) }) }; }),
+      recipL: recips ? recips + ' destinataire' + (recips > 1 ? 's' : '') + ' actif' + (recips > 1 ? 's' : '') : 'Aucun destinataire',
+      recipSt: 'font-size:12.5px;font-weight:700;color:' + (recips ? '#1d8f86' : '#c2473b'),
+      projets: [{ l: 'Tous', on: allP, st: chip(allP), flip: () => this.edit({ projets: allP ? [] : ['*'] }) }, ...(this.props.projects ?? PROJETS).map(p => { const on = !allP && d.projets.includes(p);
+        return { l: p, on, st: chip(on), flip: () => this.edit({ projets: toggleIn(d.projets.filter(x => x !== '*'), p) }) }; })],
+      projL: allP ? 'Tous les projets' : d.projets.length ? d.projets.length + ' projet' + (d.projets.length > 1 ? 's' : '') : 'Aucun projet',
+      models: models.map(m => ({ id: m.id, l: m.provider + ' · ' + m.name })),
+      setModel: e => this.edit({ model: e.target.value || null }),
+      mdl: { val: d.model || '', none: !model, ini: model ? model.provider[0] : '', lbl: model ? model.provider + ' · ' + model.name : 'Choisir un LLM…',
+        help: model ? 'Le modèle rédige {reponse_llm} à chaque envoi.' : 'Aucun modèle : la règle ne peut pas rédiger son message',
+        box: 'position:relative;width:380px;max-width:100%;height:44px;border-radius:12px;background:#fff;display:flex;align-items:center;gap:10px;padding:0 12px 0 8px;cursor:pointer;box-shadow:0 0 0 ' + (model ? '1px #d5e0dd' : '1.5px #f0a193'),
+        logo: 'flex:none;width:28px;height:28px;border-radius:8px;display:grid;place-items:center;font-size:12px;font-weight:800;' + (model ? 'background:#10233a;color:#fff' : 'border:1.5px dashed #d5e0dd'),
+        lblSt: 'flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13.5px;font-weight:' + (model ? 700 : 600) + ';color:' + (model ? '#10233a' : '#5c7280') },
+      setPrompt: e => this.edit({ prompt: e.target.value }), promptL: d.prompt.length + ' caractères',
+      freqs: Object.keys(FREQ).map(k => ({ l: FREQ[k][0], on: d.freq === k, pick: () => this.edit({ freq: k, at: k === 'imm' ? '' : d.at }), st: seg(d.freq === k) })),
+      freqHelp: FREQ[d.freq][2] + (d.at && d.freq !== 'imm' ? ' · ' + d.at + '.' : d.freq === 'imm' ? '' : '.'),
+      setSubject: e => this.edit({ subject: e.target.value }), setBody: e => this.edit({ body: e.target.value }),
+      vars: VARS.map(v => { const llm = v === 'reponse_llm';
+        return { l: '{' + v + '}', ins: () => this.edit({ body: (d.body ? d.body.replace(/\s*$/, ' ') : '') + '{' + v + '}' }),
+          st: 'border:0;cursor:pointer;font-family:\'IBM Plex Mono\',monospace;font-size:11.5px;padding:2px 6px;border-radius:6px;transition:background .15s;' + (llm ? 'background:#e6f4f2;color:#146b64' : 'background:#eef3f2;color:#2a3f53'), hov: 'background:#d5e0dd' }; }),
+      pvTabs: [['app', 'Application'], ['mail', 'E-mail']].map(([k, l]) => ({ l, on: S.pv === k, pick: () => this.setState({ pv: k }), st: seg(S.pv === k, 26) })),
+      pvApp: S.pv === 'app', pvMail: S.pv === 'mail',
+      pv: { kind, subject: fill(d.subject, SAMPLE) || 'Sans objet', body: fill(d.body, SAMPLE),
+        bar: 'width:3px;border-radius:2px;flex:none;background:' + (d.type === 'alerte' ? '#e0604c' : '#1d8f86'),
+        badge: 'height:20px;padding:0 8px;border-radius:999px;font-weight:700;display:inline-flex;align-items:center;' + (d.type === 'alerte' ? 'background:#fdf0ed;color:#c2473b' : 'background:#e6f4f2;color:#146b64') },
+      cantSend: !canSend,
+      testSt: 'flex:none;white-space:nowrap;height:36px;padding:0 16px;border-radius:10px;border:0;font-weight:700;font-size:12.5px;' + (canSend ? 'background:#10233a;color:#fff;cursor:pointer' : 'background:#e1e9e7;color:#8a9aa6;cursor:not-allowed'),
+      testHov: canSend ? 'background:#1d3654' : '',
+      test: () => { if (!canSend) return; this.props.onTest?.(d); this.say('Test envoyé sur votre compte'); },
+      delL: S.confirmDel ? 'Confirmer la suppression' : 'Supprimer la règle',
+      delSt: 'flex:none;white-space:nowrap;height:36px;padding:0 12px;border-radius:10px;font-weight:700;font-size:12.5px;display:inline-flex;align-items:center;gap:7px;cursor:pointer;color:#c2473b;' + (S.confirmDel ? 'border:1px solid #f0a193;background:#fdf0ed' : 'border:1px solid transparent;background:transparent'),
+      del: () => { if (!S.confirmDel) return this.setState({ confirmDel: true });
+        const rest = rules.filter(r => r.id !== cur.id); this.setState({ rules: rest, selId: rest[0]?.id, draft: null, confirmDel: false }); this.props.onDelete?.(cur.id); this.say('Règle supprimée'); },
+      dirty, clean: !dirty,
+      revert: () => this.setState({ draft: null }),
+      save: () => { this.setRules(rules.map(r => r.id === d.id ? clone(d) : r)); this.setState({ draft: null }); this.props.onSave?.(d); this.say('Règle enregistrée'); },
+      hTabs: [['rule', 'Cette règle'], ['all', 'Toutes les règles']].map(([k, l]) => ({ l, on: S.hScope === k, pick: () => this.setState({ hScope: k }), st: seg(S.hScope === k, 28) })),
+      hist: hist.map(h => ({ w: h.w, t: titleOf(h.rid), c: h.c, d: h.d, s: h.ok ? 'Distribué' : 'Échec',
+        sSt: 'justify-self:end;display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:' + (h.ok ? '#146b64' : '#c2473b'),
+        dot: 'width:6px;height:6px;border-radius:50%;background:' + (h.ok ? '#1d8f86' : '#e0604c') + ';box-shadow:0 0 0 3px ' + (h.ok ? '#e6f4f2' : '#fdf0ed') })),
+      noHist: !hist.length, hasToast: !!S.toast, toast: S.toast
+    };
+  }
+}
+</script>
+</body>
+</html>

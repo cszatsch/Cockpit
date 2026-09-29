@@ -60,6 +60,17 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 
 - **Suppression des règles, {date} du jour, déconnexion (29/09/2026)** : 2 tests dans `console.spec.ts` ({date} = date du jour dans l’aperçu et l’envoi de test ; suppression 204, liste, historique conservé, audit, 403 pour le PMO, 404 ensuite). `npm test` : 352 tests verts. Vérifié dans le navigateur : aperçu « RISE · 29 sept. 2026 », confirmation puis suppression d’une règle non enregistrée, icône de déconnexion visible au survol de l’avatar et masquée sinon.
 
+- **Vue « Notifications et alertes » (29/09/2026)** :
+  - Tests automatiques : 7 tests unitaires (`test/unit/notification-rules.spec.ts` : conversions, aller-retour, calendrier, cas bloquants, historique) et 3 tests e2e (`console.spec.ts` § 7 bis : format `Rule`, destinataires par profil, historique filtré, création sous l'identifiant de la vue, 409, contrôles d'enregistrement, activation d'une règle bloquée, test refusé puis accepté avec le brouillon, suppression, audit ; une règle sans destinataire n'envoie rien).
+  - Recette dans le navigateur, avec l'API et une base de démonstration :
+    - les 7 points du § 5 sont conformes ;
+    - le dernier canal ne peut pas être retiré ;
+    - changer de règle avec un brouillon demande une confirmation ;
+    - la suppression se fait en deux clics ;
+    - le serveur refuse `{reponse_llm}` dans le prompt, et la vue revient à l'état réel ;
+    - à 900 px de large, aucun débordement et aucun libellé de bouton sur deux lignes (33 boutons mesurés, y compris le pied en mode brouillon et « Confirmer la suppression »).
+  - Test navigateur Playwright adapté (message de confirmation du composant, envoi vérifié dans l'historique), mais non relancé.
+
 ## 3. Écarts connus
 
 ### 3.1 Écarts par rapport aux briefs
@@ -144,6 +155,14 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 - **Skills de Jev** : contrôlées dans le navigateur sur l'API (base locale) : Assistant › Skills ouvre la page (ligne active), création désactivée en mode Modifier conservée après rechargement, « Modifications non enregistrées », Annuler, Enregistrer conservé après rechargement, brouillon conservé au changement de skill (point ambre), Aperçu (`##`, `-`, `1.`), suppression en deux temps, aucune erreur. Retrait du prompt dès la réponse suivante : test e2e `skills.spec.ts` (Jev de la Console et du Cockpit). La passerelle LLM étant un bouchon, le prompt système n'influence pas encore le texte des réponses.
 - **Génération de rapports** : la fonction existe pour l'affectation, la vue réseau, la consommation et les plafonds, mais aucun écran du Cockpit ne l'appelle encore ; la bascule sur le secours en cas de réponse tronquée (`stop_reason = max_tokens`, spécification § 7) n'est pas faite, la passerelle LLM étant un bouchon.
 - **Dimensions et réindexation** : la dimension choisie est enregistrée et tracée, l'avertissement s'affiche, mais aucune réindexation n'est lancée (la vectorisation des documents n'est pas encore construite).
+
+### Vue « Notifications et alertes » : limites du composant livré (non modifié)
+
+- Le composant confirme « Règle enregistrée », « Règle supprimée » et « Test envoyé sur votre compte » sans attendre le serveur. En cas de refus, un second message donne l'erreur et la vue revient à l'état réel. La règle sélectionnée redevient alors la première de la liste, car le composant n'a pas de prop pour la sélection.
+- `{reponse_llm}` dans le prompt n'est signalé que par un rappel dans la vue ; c'est le serveur qui le refuse à l'enregistrement.
+- Le jour et l'heure d'envoi (`at`) ne sont pas modifiables dans la vue. Une règle passée en quotidienne, hebdomadaire ou personnalisée prend les valeurs par défaut. Le déclencheur n'est pas modifiable non plus (question ouverte n° 1).
+- Les fonctions de l'ancien écran sans équivalent dans la vue ne sont plus accessibles depuis la Console, mais les routes existent toujours : aperçu généré par le modèle, relance d'un envoi en échec, liste des destinataires d'un aperçu e-mail.
+- Base locale sans modèle d'IA depuis le 28/09/2026 : toutes les règles y affichent « aucun modèle » et la liste des modèles est vide, jusqu'à l'ajout d'un LLM actif.
 
 ## 4. Questions ouvertes
 

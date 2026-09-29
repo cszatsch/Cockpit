@@ -254,8 +254,14 @@ async function main() {
     await pa.waitForTimeout(800);
     await goMenu(pa, 'Notifications et alertes');
     await pa.getByRole('button', { name: 'M’envoyer un test' }).click();
-    await pa.waitForFunction(() => /Message de test envoyé|Échec de l’envoi de test/.test(document.body.innerText), null, { timeout: 15000 }).catch(() => {});
-    check('« M’envoyer un test » : envoi réel par le serveur', /Message de test envoyé à julien\.morel@example\.com/.test(await body()));
+    // Vue « Notifications et alertes » : le composant confirme ; l'envoi est vérifié dans l'historique du serveur.
+    const toastTest = /Test envoyé sur votre compte/.test(await body());
+    await pa.waitForTimeout(2000);
+    const sentNow = await pa.evaluate(async () => {
+      const h = await fetch('/api/admin/notifications/history?rule=n1', { headers: { Authorization: 'Bearer ' + localStorage.getItem('rise-admin-token') } }).then((r) => r.json());
+      return h.filter((x: any) => x.w === 'à l’instant' && x.ok && x.d === '1 destinataire').length;
+    });
+    check('« M’envoyer un test » : envoi réel par le serveur', toastTest && sentNow > 0 && !/Échec de l’envoi de test/.test(await body()), `${sentNow} envoi(s)`);
     check('aucune erreur JS pendant les modifications', errsA.length === 0, errsA.slice(0, 5).join(' | '));
     void toastText;
 
