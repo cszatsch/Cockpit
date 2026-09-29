@@ -276,3 +276,9 @@ Les captures sont écrites dans `OUT` (par défaut `<tmp>/rise-console-e2e`).
 - `Sidebar Console.dc.html` : remplacée par la v3 livrée ; `jevName` (nom de Jev tiré du Persona) réintégré.
 - `Console Admin.dc.html` : largeur de la sidebar dépliée 300 px (constante `SB_W`) dans la grille, le tiroir mobile (`min(300px, 86vw)`) et le décalage du tiroir de notifications.
 - `Notifications.dc.html` : bord gauche par défaut à 300 px.
+
+## Suppression des règles, {date} du jour, déconnexion depuis l'avatar (29/09/2026)
+
+- `Console Admin.dc.html` : bouton « Supprimer la règle » (pied de l'éditeur de règle) et méthode `deleteRule()` avec confirmation ; aperçu : {date} = date du jour ; `on-logout` de la sidebar branché sur la déconnexion.
+- `admin-api.js` : `deleteRule` → `DELETE /notification-rules/:id` après confirmation (règle non enregistrée : retrait local).
+- `Sidebar Console.dc.html` : icône « Déconnexion » au survol de l'avatar (prop d'événement `onLogout`).

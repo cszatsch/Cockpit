@@ -597,6 +597,8 @@ export function bindConsole(c) {
     const md = S.models.find(m => m.id === d.model); if (!md || !md.act) return toast('Choisissez un modèle actif', 'err');
     try { ruleSaved(d.id, d._new ? await post('/notification-rules', { ...fromRule(d), enabled: !!d.on }) : await patch('/notification-rules/' + d.id, fromRule(d))); set0({ nd: null }); toast('Règle enregistrée'); touch(); } catch (e) { fail(e); }
   };
+  // Suppression d’une règle : DELETE après confirmation (une règle pas encore enregistrée est seulement retirée de la liste).
+  c.deleteRule = gateAsk('deleteRule', r => (r._new ? Promise.resolve(null) : del('/notification-rules/' + r.id)).then(() => () => load(['hist']).catch(() => {})));
   const enableRule = gateAsk('toggleRule', r => post('/notification-rules/' + r.id + '/enable').then(x => () => ruleSaved(r.id, x)));
   c.toggleRule = r => {
     if (!r || r._new) return orig.toggleRule(r);

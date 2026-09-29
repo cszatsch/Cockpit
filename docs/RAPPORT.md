@@ -58,6 +58,8 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 
 - **Dictionnaire des données du Cockpit (29/09/2026)** : `test/e2e/dictionnaire-cockpit.spec.ts` (44 tests) : une vue par fiche et colonnes identiques pour les 33 vues, `projet_id` partout, une règle de droits par fiche, tables du dictionnaire conformes ; aucun chemin de stockage lisible ; vues fermées au rôle de lecture de Jev ; questions de référence égales au Cockpit (actions en retard, risques critiques sans plan, jalons non confirmés, compteurs du suivi des livrables, prochain COPIL, risques visibles du PMO). `npm test` : 350 tests verts. Dictionnaire chargé dans la base locale (31 fiches Console, 33 Cockpit).
 
+- **Suppression des règles, {date} du jour, déconnexion (29/09/2026)** : 2 tests dans `console.spec.ts` ({date} = date du jour dans l’aperçu et l’envoi de test ; suppression 204, liste, historique conservé, audit, 403 pour le PMO, 404 ensuite). `npm test` : 352 tests verts. Vérifié dans le navigateur : aperçu « RISE · 29 sept. 2026 », confirmation puis suppression d’une règle non enregistrée, icône de déconnexion visible au survol de l’avatar et masquée sinon.
+
 ## 3. Écarts connus
 
 ### 3.1 Écarts par rapport aux briefs

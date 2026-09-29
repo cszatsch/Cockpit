@@ -31,7 +31,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
   user="{{ sbUser }}" jev-on="{{ jvOn }}" jev-name="{{ jevName }}"
   notif-count="{{ ntUnread }}" notif-has-error="{{ ntHasErr }}" notif-open="{{ ntOpen }}" on-toggle-notifications="{{ ntToggle }}" cockpit-url="./RISE Cockpit.dc.html"
   on-navigate="{{ sbGo }}" on-toggle-jev="{{ toggleJev }}"
-  on-open-profile="{{ goProfil }}" on-toggle-collapse="{{ toggleRail }}" on-close="{{ closeNav }}"
+  on-open-profile="{{ goProfil }}" on-logout="{{ sbLogout }}" on-toggle-collapse="{{ toggleRail }}" on-close="{{ closeNav }}"
   hint-size="300px,100vh"></dc-import>
 </div>
 <sc-if value="{{ scrim }}" hint-placeholder-val="{{ false }}"><div onClick="{{ closeNav }}" style="position:fixed;inset:0;background:rgba(10,23,38,.45);z-index:55;animation:fade .2s both"></div></sc-if>
@@ -475,6 +475,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
             </div>
             <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:14px 22px;border-top:1px solid #eef3f2;background:#fbfdfc;border-radius:0 0 18px 18px">
               <button onClick="{{ nt.test }}" style="height:36px;padding:0 14px;border:1px solid #d3dedb;border-radius:10px;background:#fff;font-size:12.5px;font-weight:600;cursor:pointer" style-hover="border-color:#10233a">M’envoyer un test</button>
+              <button onClick="{{ nt.del }}" aria-label="Supprimer la règle" style="height:36px;padding:0 14px;border:1px solid #f1c9c3;border-radius:10px;background:#fff;color:#a8372c;font-size:12.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px" style-hover="background:#fbe9e6;border-color:#a8372c"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16 M10 11v6 M14 11v6 M6 7l1 13h10l1-13 M9 7V4h6v3"></path></svg>Supprimer la règle</button>
               <span style="flex:1"></span>
               <sc-if value="{{ nt.clean }}" hint-placeholder-val="{{ true }}"><span style="font-size:12px;color:#5c7280">Aucune modification</span></sc-if>
               <sc-if value="{{ nt.dirty }}" hint-placeholder-val="{{ false }}"><button onClick="{{ nt.revert }}" style="height:36px;padding:0 14px;border:0;border-radius:10px;background:transparent;font-size:12.5px;font-weight:600;cursor:pointer;color:#43586a" style-hover="background:#eef3f2">Annuler</button><button onClick="{{ nt.save }}" style="height:36px;padding:0 16px;border:0;border-radius:10px;background:linear-gradient(90deg,#f7a41c,#f0752b);color:#1a1200;font-size:12.5px;font-weight:700;cursor:pointer">Enregistrer</button></sc-if>
@@ -1437,6 +1438,13 @@ class Component extends DCLogic {
       ok: () => { this.setState(s => ({ rules: s.rules.map(x => x.id === r.id ? { ...x, on: true } : x) })); this.log('Activation d’une règle de diffusion', r.n + ' · ' + n + ' destinataires'); this.toast('« ' + r.n + ' » est active'); } });
   }
   saveRule() { const d = this.state.nd; if (!d) return; if (!d.n.trim()) return this.toast('Le nom de la règle est requis', 'err'); if (!d.tg.length) return this.toast('Choisissez au moins un profil destinataire', 'err'); if (!d.ch.length) return this.toast('Choisissez au moins un canal', 'err'); if (d.id !== 'n3' && !(d.pj || []).length) return this.toast('Choisissez au moins un projet', 'err'); if (!(d.prompt || '').trim()) return this.toast('Le prompt est requis', 'err'); const md = this.state.models.find(m => m.id === d.model); if (!md || !md.act) return this.toast('Choisissez un modèle actif', 'err'); this.setState(s => ({ rules: s.rules.map(r => r.id === d.id ? d : r), nd: null })); this.log('Modification d’une règle de diffusion', d.n); this.toast('Règle enregistrée'); }
+  deleteRule(r) {
+    if (!r) return;
+    this.ask({ tone: 'danger', title: 'Supprimer « ' + r.n + ' » ?', body: (r.k === 'alerte' ? 'Cette alerte' : 'Cette notification') + ' ne sera plus envoyée. L’historique de ses envois est conservé. La suppression est définitive.', cta: 'Supprimer', ok: () => {
+      this.setState(s => { const rules = s.rules.filter(x => x.id !== r.id); return { rules, nSel: s.nSel === r.id ? (rules[0] || {}).id || null : s.nSel, nd: s.nd && s.nd.id === r.id ? null : s.nd }; });
+      this.log('Suppression d’une règle de notification', r.n, 'sensible'); this.toast('« ' + r.n + ' » supprimée');
+    } });
+  }
   newRule() { const id = 'n' + Date.now(), r = { id, k: 'notif', n: 'Nouvelle notification', tg: ['resp'], fq: 'quot', hour: '09:00', ch: ['app'], on: false, sub: '{projet} · ', body: '', prompt: '', pj: ['RISE'], model: (this.state.models.find(m => m.act && (m.c || 'LLM') === 'LLM') || {}).id || '' }; this.setState(s => ({ rules: [...s.rules, r], nSel: id, nd: null })); }
 
   // ——— Modules
@@ -1602,6 +1610,8 @@ class Component extends DCLogic {
       jvWrap: mode === 'full' ? `position:sticky;top:0;height:100vh;overflow:hidden;min-width:0;z-index:30;opacity:${S.jev ? 1 : 0};transform:translateX(${S.jev ? 0 : 24}px);transition:opacity .3s ease,transform .4s cubic-bezier(.2,.7,.2,1);pointer-events:${S.jev ? 'auto' : 'none'}` : `position:fixed;top:0;right:0;bottom:0;width:min(400px,100%);z-index:70;box-shadow:-24px 0 60px -20px rgba(10,23,38,.35);transform:translateX(${S.jev ? 0 : 105}%);transition:transform .35s cubic-bezier(.2,.7,.2,1)`,
       toggleJev: () => this.toggleJev(), jvOn: S.jev,
       goProfil: () => this.go('profil'),
+      // Déconnexion depuis l'avatar de la sidebar (même action que Mon profil › Se déconnecter).
+      sbLogout: () => (this._logout ? this._logout() : this.toast('Vous êtes déconnecté')),
       isProfil: is('profil') && !S.loading,
       mob: mode === 'mob', scrim: mode === 'mob' && S.mnav, openNav: () => this.setState({ mnav: true }), closeNav: () => this.setState({ mnav: false }),
       padSt: `max-width:1320px;margin:0 auto;padding:${mode === 'mob' ? '20px 16px 96px' : mode === 'rail' ? '28px 28px 96px' : '32px 44px 96px'}`,
@@ -1799,7 +1809,9 @@ class Component extends DCLogic {
     if (is('notifs')) {
       const r = this.rule(), saved = S.rules.find(x => x.id === r.id), dirty = !!S.nd && JSON.stringify(S.nd) !== JSON.stringify(saved);
       const fqL = x => x.fq === 'imm' ? 'Immédiate' : x.fq === 'quot' ? 'Quotidienne · ' + (x.hour || '09:00') : x.fq === 'hebdo' ? 'Hebdomadaire · ' + (x.day || 'lundi') + ' ' + (x.hour || '08:00') : 'Tous les ' + (x.every || 3) + ' jours · ' + (x.hour || '09:00');
-      const sub = s => (s || '').replace(/\{(\w+)\}/g, (m, k) => SAMPLE[k] || m);
+      // {date} : date du jour dans l'aperçu (lors d'un envoi : la date de l'événement, sinon la date du jour).
+      const tdy = nowD(), dateTdy = (tdy.getDate() === 1 ? '1er' : tdy.getDate()) + ' ' + MO[tdy.getMonth()] + ' ' + tdy.getFullYear();
+      const sub = s => (s || '').replace(/\{(\w+)\}/g, (m, k) => (k === 'date' ? dateTdy : SAMPLE[k]) || m);
       const mk = x => ({ id: x.id, n: x.n, kL: x.k === 'alerte' ? 'Alerte' : 'Notification', kSt: pill(x.k === 'alerte' ? 'err' : 'info'), kDot: dot(x.k === 'alerte' ? 'err' : 'info'), tgL: x.tg.map(t => PN[t]).join(', '), fqL: fqL(x), chL: x.ch.map(c => c === 'app' ? 'Application' : 'E-mail').join(' + '), on: x.id === r.id, pick: () => this.setState({ nSel: x.id, nd: null }), sw: this.sw(x.on, () => this.toggleRule(x), (x.on ? 'Désactiver ' : 'Activer ') + x.n), st: `display:flex;flex-direction:column;gap:6px;width:100%;text-align:left;padding:14px 16px;border-radius:12px;cursor:pointer;transition:background .15s,border-color .15s;border:1px solid ${x.id === r.id ? '#10233a' : 'transparent'};background:${x.id === r.id ? '#fff' : 'transparent'}`, offSt: x.on ? 'font-size:11.5px;color:#5c7280' : 'font-size:11.5px;color:#8a5a12;font-weight:700', stL: x.on ? fqL(x) : 'Inactive · ' + fqL(x) });
       const hl = S.hist.filter(h => S.hAll || h.r === r.id);
       vals.nt = {
@@ -1818,7 +1830,7 @@ class Component extends DCLogic {
         pv: [['app', 'Application'], ['mail', 'E-mail']].map(([k, l]) => ({ l, on: S.pvCh === k, st: segSt(S.pvCh === k), pick: () => this.setState({ pvCh: k }) })), pvApp: S.pvCh === 'app', pvMail: S.pvCh === 'mail',
         pSub: sub(r.sub) || 'Objet du message', pBody: sub(r.body) || 'Le corps du message s’affichera ici.', pTo: r.tg.map(t => PN[t]).join(', ') || 'Aucun destinataire',
         pvAccent: `width:3px;align-self:stretch;border-radius:2px;background:${r.k === 'alerte' ? '#d94b4b' : '#0096d6'}`, pvKind: r.k === 'alerte' ? 'Alerte' : 'Notification', pvKindSt: pill(r.k === 'alerte' ? 'err' : 'info'),
-        chWarn: !r.ch.includes(S.pvCh), dirty, clean: !dirty, save: () => this.saveRule(), revert: () => this.setState({ nd: null }), test: () => this.toast('Message de test envoyé à julien.morel@example.com'), togOn: () => this.toggleRule(saved), onL: saved.on ? 'Désactiver' : 'Activer la règle', isOn: saved.on,
+        chWarn: !r.ch.includes(S.pvCh), dirty, clean: !dirty, save: () => this.saveRule(), revert: () => this.setState({ nd: null }), del: () => this.deleteRule(r), test: () => this.toast('Message de test envoyé à julien.morel@example.com'), togOn: () => this.toggleRule(saved), onL: saved.on ? 'Désactiver' : 'Activer la règle', isOn: saved.on,
         hScope: [['one', 'Cette règle'], ['all', 'Toutes les règles']].map(([k, l]) => ({ l, on: (k === 'all') === S.hAll, st: segSt((k === 'all') === S.hAll), pick: () => this.setState({ hAll: k === 'all' }) })),
         hist: hl.map(h => { const rr = S.rules.find(x => x.id === h.r) || { n: '—' }; return { when: ago(h.t), exact: fDT(h.t), rn: rr.n, chL: h.ch === 'app' ? 'Application' : 'E-mail', n: h.n + ' destinataire' + (h.n > 1 ? 's' : ''), stL: h.st === 'ok' ? 'Distribué' : 'Échec partiel · 2 adresses rejetées', pill: pill(h.st === 'ok' ? 'ok' : 'err'), dot: dot(h.st === 'ok' ? 'ok' : 'err') }; }),
         hEmpty: hl.length === 0, hSome: hl.length > 0

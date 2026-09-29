@@ -61,7 +61,9 @@ export class NotificationsService implements OnModuleInit {
   }
 
   /** Génère sujet et message (appel LLM réel, consommation tracée). */
-  async generate(rule: Pick<NotificationRule, 'modelId' | 'prompt' | 'subject' | 'body'>, ctx: RuleContext, projectId: string | null) {
+  async generate(rule: Pick<NotificationRule, 'modelId' | 'prompt' | 'subject' | 'body'>, ctx0: RuleContext, projectId: string | null) {
+    // {date} : la date de l'événement quand il en a une (date prévue d'un jalon…), sinon la date du jour.
+    const ctx: RuleContext = { ...ctx0, date: ctx0.date || frShort(this.today.today(), 0) };
     const prompt = fill(rule.prompt, ctx as Record<string, string>);
     const res = await this.llm.completeWithModel(rule.modelId, { functionId: 'insights', prompt, projectId, source: 'NOTIFICATION' });
     const vars = { ...ctx, [LLM_RESPONSE_VARIABLE]: res.text } as Record<string, string>;

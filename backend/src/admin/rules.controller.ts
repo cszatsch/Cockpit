@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { NotificationRule } from '@prisma/client';
 import { z } from 'zod';
@@ -140,6 +140,20 @@ export class RulesController {
     return this.view(row);
   }
 
+  /**
+   * Suppression d'une règle (notification ou alerte). L'historique de ses envois est conservé (traçabilité des
+   * messages envoyés et de leur coût) ; l'action est tracée au journal d'audit (sensible).
+   */
+  @Delete('notification-rules/:id')
+  @HttpCode(204)
+  async remove(@CurrentActor() actor: Actor, @Param('id') id: string) {
+    const cur = await this.one(id);
+    await this.prisma.$transaction(async (db) => {
+      await db.notificationRule.delete({ where: { id } });
+      await this.audit.action(db, adminCtx(actor), { action: 'Suppression d’une règle de notification', target: cur.name, severity: 'SENSITIVE', entityType: 'NotificationRule', entityId: id, details: { name: cur.name, kind: cur.kind, enabled: cur.enabled } });
+    });
+  }
+
   private async toggle(actor: Actor, id: string, enabled: boolean) {
     const cur = await this.one(id);
     if (enabled) await this.validate(cur);
@@ -169,7 +183,7 @@ export class RulesController {
   async preview(@Param('id') id: string, @Body() body: unknown) {
     const r = await this.one(id);
     const { sampleContext } = parse(z.object({ sampleContext: z.record(z.string()).default({}) }).strict(), body ?? {});
-    const ctx: RuleContext = { projet: 'RISE', jalon: 'J06 · Go / No-Go Go-Live', date: '15 mars 2027', risque: 'Reprise & qualité des données au démarrage', seuil: '80 %', semaine: 'semaine 39', document: 'CR du 20e COPIL.pdf', ...sampleContext };
+    const ctx: RuleContext = { projet: 'RISE', jalon: 'J06 · Go / No-Go Go-Live', risque: 'Reprise & qualité des données au démarrage', seuil: '80 %', semaine: 'semaine 39', document: 'CR du 20e COPIL.pdf', ...sampleContext };
     const project = await this.prisma.project.findFirst({ where: { code: ctx.projet } });
     return this.notifs.generate(r, ctx, project?.id ?? null);
   }
@@ -181,7 +195,7 @@ export class RulesController {
     const r = await this.one(id);
     const code = r.projectIds[0] ?? null;
     const project = code ? await this.prisma.project.findFirst({ where: { code } }) : null;
-    const out = await this.notifs.deliver(r, project?.id ?? null, { projet: project?.code ?? 'Plateforme', jalon: 'J06 · Go / No-Go Go-Live', date: '15 mars 2027', risque: 'Risque de test', seuil: '80 %', semaine: 'semaine de test', document: 'document de test' }, null, { accountIds: [actor.accountId] });
+    const out = await this.notifs.deliver(r, project?.id ?? null, { projet: project?.code ?? 'Plateforme', jalon: 'J06 · Go / No-Go Go-Live', risque: 'Risque de test', seuil: '80 %', semaine: 'semaine de test', document: 'document de test' }, null, { accountIds: [actor.accountId] });
     return out.map((d) => this.deliveryView(d));
   }
 

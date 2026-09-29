@@ -194,6 +194,25 @@ describe('Console Admin — critères d’acceptation (brief Console § 13)', ()
       const d = await t.db.delivery.findMany({ where: { ruleId: 'n2', eventKey: { contains: 'R07' } } });
       expect(d.length).toBe(2); // APP + EMAIL
     });
+    it('{date} vaut la date du jour dans l’aperçu et l’envoi de test (et non une date d’exemple figée)', async () => {
+      const c = await t.as(WHO.admin);
+      await c.patch(`${A}/notification-rules/n4`, { subject: '{projet} · {date}' }).expect(200);
+      const p = await c.post(`${A}/notification-rules/n4/preview`, {}).expect(200);
+      expect(p.body.subject).toBe('RISE · 26 sept. 2026'); // DEMO_TODAY des tests
+      const sent = await c.post(`${A}/notification-rules/n4/test`).expect(200);
+      expect(sent.body[0].subject).toBe('RISE · 26 sept. 2026');
+    });
+    it('supprimer une règle : 204, retirée de la liste, historique des envois conservé, trace d’audit ; réservé à l’Admin', async () => {
+      const c = await t.as(WHO.admin);
+      const sent = await t.db.delivery.count({ where: { ruleId: 'n4' } });
+      expect(sent).toBeGreaterThan(0);
+      await (await t.as(WHO.pmo)).del(`${A}/notification-rules/n4`).expect(403);
+      await c.del(`${A}/notification-rules/n4`).expect(204);
+      expect((await c.get(`${A}/notification-rules`).expect(200)).body.map((r: any) => r.id)).not.toContain('n4');
+      expect(await t.db.delivery.count({ where: { ruleId: 'n4' } })).toBe(sent);
+      expect(await t.db.auditEntry.findFirst({ where: { entityType: 'NotificationRule', entityId: 'n4', action: 'Suppression d’une règle de notification' } })).toMatchObject({ severity: 'SENSITIVE' });
+      await c.del(`${A}/notification-rules/n4`).expect(404);
+    });
   });
 
   describe('8. Modules', () => {
