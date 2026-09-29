@@ -458,3 +458,10 @@ Vérification des éléments de la vue d'ensemble face au serveur. Conformes : d
 
 - Vue d'ensemble, « À traiter » : item ambre « N compte(s) suspendu(s) : personne(s) réactivée(s) dans le référentiel » (`admin-api.js`, chargement `ov`, type `ACCOUNT_TO_REACTIVATE`).
 - Cloche : notification « Compte à réactiver : … » fournie par le serveur, sans changement de l'écran.
+
+## E-mail du référentiel (30/09/2026)
+
+- `Console Admin.dc.html`, fenêtre d'un utilisateur : sous « E-mail professionnel », encart ambré « E-MAIL DU RÉFÉRENTIEL » quand la fiche Personne liée porte une autre adresse (« Le référentiel indique … (compte : …). »), avec « Appliquer » (compte actif) ou « Appliquer et renvoyer l'invitation » (compte invité). Méthode `applyRefMail` (démonstration : remplace l'adresse localement).
+- Vue d'ensemble, « À traiter » : item ambré « N compte(s) : e-mail différent du référentiel ».
+- `admin-api.js` : `toUser` lit `emailReferentiel` (`refMail`) ; `applyRefMail` appelle `POST /accounts/:id/referential-email` et met à jour la fenêtre ouverte ; le chargement `ov` reprend `EMAIL_MISMATCH`.
+- Cloche : notification « E-mail différent du référentiel : … » fournie par le serveur.

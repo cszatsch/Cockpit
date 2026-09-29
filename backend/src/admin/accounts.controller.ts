@@ -107,6 +107,8 @@ export class AccountsController {
         profiles: PROFILE_ORDER.filter((p) => has[p]),
         admin: r.admin,
         habilitations,
+        // E-mail du référentiel quand il diffère de celui du compte (personne liée) : l'Administrateur l'applique.
+        emailReferentiel: (referential.get(a.id) ?? []).find((e) => e.emailEcart)?.email.trim().toLowerCase() ?? null,
         referentiel: (referential.get(a.id) ?? []).map(({ code, personne, active, responsable, rattachement, proposition, ecarts }) => ({ code, personne, active, responsable, rattachement, proposition, ecarts })),
         projectCodes: a.projects.map((p) => codes[p.projectId] ?? p.projectId),
         lastLoginAt: a.lastLoginAt,
@@ -257,6 +259,8 @@ export class AccountsController {
     await this.prisma.$transaction(async (db) => {
       const projects = input.projectCodes ? await this.resolveProjects(input.projectCodes) : a.projects.map((p) => ({ id: p.projectId }));
       await db.account.update({ where: { id }, data: { fullName: input.fullName, email: input.email, version: { increment: 1 } } });
+      // Nouvelle adresse : les liens déjà envoyés à l'ancienne (invitation, réinitialisation) ne servent plus.
+      if (input.email && input.email !== a.email) await db.passwordToken.updateMany({ where: { accountId: id, usedAt: null }, data: { usedAt: new Date() } });
       if (input.projectCodes) {
         await db.accountProject.deleteMany({ where: { accountId: id } });
         await db.accountProject.createMany({ data: projects.map((p) => ({ accountId: id, projectId: p.id })) });
@@ -284,6 +288,35 @@ export class AccountsController {
       });
     });
     return (await this.view([await this.one(id)]))[0];
+  }
+
+  /**
+   * Appliquer l'e-mail du référentiel (décision du 30/09/2026) : l'adresse est lue sur la personne liée au compte, jamais
+   * saisie. Les liens envoyés à l'ancienne adresse sont invalidés ; une invitation en attente est renvoyée à la nouvelle.
+   */
+  @Post('accounts/:id/referential-email')
+  @HttpCode(200)
+  async applyReferentialEmail(@CurrentActor() actor: Actor, @Param('id') id: string) {
+    const a = await this.one(id);
+    const person = a.personId ? await this.prisma.person.findUnique({ where: { id: a.personId } }) : null;
+    if (!person) throw conflict('NO_REFERENTIAL_PERSON', 'Ce compte n’est lié à aucune personne du référentiel');
+    const email = person.email.trim().toLowerCase();
+    if (!z.string().email().safeParse(email).success) throw conflict('INVALID_EMAIL', `L’e-mail du référentiel (${person.email}) n’est pas valide : faites-le corriger par le PMO`);
+    if (email === a.email.toLowerCase()) throw conflict('ALREADY_ALIGNED', 'L’e-mail du compte est déjà celui du référentiel');
+    if (await this.prisma.account.findUnique({ where: { email } })) throw conflict('DUPLICATE', `Un compte existe déjà pour ${email}`);
+    const now = this.today.now();
+    const invited = a.status === 'INVITED';
+    const raw = await this.prisma.$transaction(async (db) => {
+      await db.account.update({ where: { id }, data: { email, ...(invited ? { invitedAt: now, inviteExpiresAt: new Date(now.getTime() + INVITE_VALIDITY_DAYS * DAY) } : {}), version: { increment: 1 } } });
+      await db.passwordToken.updateMany({ where: { accountId: id, usedAt: null }, data: { usedAt: new Date() } });
+      await this.audit.action(db, adminCtx(actor), { action: 'E-mail repris du référentiel', target: a.fullName, severity: 'SENSITIVE', entityType: 'Account', entityId: id, details: { before: a.email, after: email, inviteResent: invited } });
+      if (!invited) return null;
+      const isAdmin = !!(await db.adminGrant.findUnique({ where: { accountId: id } }));
+      return this.creds.issueToken(db, { ...a, email }, 'INVITE', isAdmin ? 'ADMIN' : 'APP', INVITE_VALIDITY_DAYS * DAY);
+    });
+    let inviteError: string | null = null;
+    if (raw) await this.inviteMail({ ...a, email }, raw, true).catch((e) => { inviteError = (e as Error).message || 'envoi impossible'; });
+    return { ...(await this.view([await this.one(id)]))[0], inviteSent: raw ? !inviteError : null, inviteError };
   }
 
   /** Suspendre : ferme immédiatement toutes les sessions ; profils et données conservés (§ 7.1). */

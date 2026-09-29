@@ -14,6 +14,13 @@ export interface ReferentialEntry {
   personne: string;
   /** Personne active dans le référentiel (sinon : aucun droit proposé, accès à retirer). */
   active: boolean;
+  /** E-mail de la personne au référentiel. */
+  email: string;
+  /**
+   * Personne liée au compte (`personId`) dont l'e-mail diffère de celui du compte : e-mail à mettre à jour par
+   * l'Administrateur (jamais automatiquement : l'e-mail du compte est l'identifiant de connexion).
+   */
+  emailEcart: boolean;
   responsable: string[];
   rattachement: string[];
   proposition: Proposal;
@@ -69,7 +76,7 @@ export class ProfilesService {
           const own = owned.filter((w) => w.ownerId === p.id && w.projectId === p.projectId).map((w) => w.id);
           // Personne désactivée dans le référentiel : aucun droit proposé.
           const prop = p.active ? proposal(own, p.wsIds) : proposal([], []);
-          return { code: codes[p.projectId] ?? p.projectId, projectId: p.projectId, personId: p.id, personne: `${p.firstName} ${p.lastName}`.trim(), active: p.active, responsable: [...own].sort(), rattachement: [...p.wsIds].sort(), proposition: prop, ecarts: gaps(prop, rights.get(a.id)!.projects[p.projectId], !p.active) };
+          return { code: codes[p.projectId] ?? p.projectId, projectId: p.projectId, personId: p.id, personne: `${p.firstName} ${p.lastName}`.trim(), active: p.active, email: p.email, emailEcart: p.id === a.personId && p.email.trim().toLowerCase() !== a.email.toLowerCase(), responsable: [...own].sort(), rattachement: [...p.wsIds].sort(), proposition: prop, ecarts: gaps(prop, rights.get(a.id)!.projects[p.projectId], !p.active) };
         }),
       );
     }

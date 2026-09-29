@@ -113,7 +113,7 @@ export class InboxService implements OnModuleInit, OnModuleDestroy {
 
   async sync(): Promise<void> {
     const wanted: Wanted[] = [];
-    const prefixes = ['provider:', 'import:', 'snapshot:', 'budget:', 'invite:', 'module:', 'apicard:', 'access:', 'reactivate:'];
+    const prefixes = ['provider:', 'import:', 'snapshot:', 'budget:', 'invite:', 'module:', 'apicard:', 'access:', 'reactivate:', 'email:'];
 
     // Clés API refusées (dernier test en échec) : incident jusqu'à un test réussi.
     const [providers, models, asg] = await Promise.all([this.prisma.provider.findMany(), this.prisma.aiModel.findMany(), this.prisma.modelAssignment.findMany()]);
@@ -185,6 +185,21 @@ export class InboxService implements OnModuleInit, OnModuleDestroy {
           meta: { name: a.fullName, project: e.code },
         });
       }
+    }
+
+    // E-mail différent du référentiel (personne liée) : avertissement jusqu'à l'application de l'adresse (30/09/2026).
+    for (const a of live) {
+      const e = (ref.get(a.id) ?? []).find((x) => x.emailEcart);
+      if (!e) continue;
+      wanted.push({
+        key: `email:${a.id}`,
+        kind: 'WARN',
+        title: `E-mail différent du référentiel : ${a.fullName}`,
+        text: `Compte : ${a.email} · référentiel ${e.code} : ${e.email}. ${a.status === 'INVITED' ? 'L’invitation est partie à l’adresse du compte. ' : ''}Ouvrez le compte et appliquez l’e-mail du référentiel${a.status === 'INVITED' ? ' : l’invitation sera renvoyée à la nouvelle adresse' : ''}.`,
+        actLabel: 'Voir les utilisateurs',
+        target: 'users',
+        meta: { name: a.fullName, project: e.code },
+      });
     }
 
     // Compte à réactiver : personne réactivée dans le référentiel après la suspension de son compte. Avertissement

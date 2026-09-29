@@ -148,7 +148,7 @@ export function toUser(a, i = 0) {
   const hab = Object.fromEntries((a.habilitations || []).map(h => [h.code, { pmo: !!h.pmo, ws: Object.fromEntries([...(h.lecteur || []).map(w => [w, 'lec']), ...(h.responsable || []).map(w => [w, 'resp'])]) }]));
   // Référentiel du projet (personne liée) : proposition Responsable / Lecteur et chantiers de rattachement.
   const ref = Object.fromEntries((a.referentiel || []).map(r => [r.code, { personne: r.personne, active: r.active !== false, resp: r.proposition.responsable, lec: r.proposition.lecteur, att: r.rattachement, ecarts: r.ecarts }]));
-  return { id: a.id, n: a.fullName, e: a.email, p: PROFILE[a.profile] || null, profs: (a.profiles || []).map(p => PROFILE[p]).filter(Boolean), adm: !!a.admin, hab, ref, s, ll, inv: s === 'invité' ? Math.max(0, a.invitedDays || 0) : null,
+  return { id: a.id, n: a.fullName, e: a.email, refMail: a.emailReferentiel || null, p: PROFILE[a.profile] || null, profs: (a.profiles || []).map(p => PROFILE[p]).filter(Boolean), adm: !!a.admin, hab, ref, s, ll, inv: s === 'invité' ? Math.max(0, a.invitedDays || 0) : null,
     pr: [...(a.projectCodes || [])], lt: ll === 0 && last ? p2(last.getHours()) + ':' + p2(last.getMinutes()) : '', av: AV[i % AV.length], _v: a.version };
 }
 /** Administrateur → `{ u, lv:'admin', since }` (un seul niveau, brief § 5). */
@@ -285,6 +285,7 @@ export function bindConsole(c) {
       invReq.forEach(r => extra.push({ tone: 'info', t: 'Demande d’invitation du PMO', d: r.detail + '.', cta: 'Examiner', go: () => c.go('users') }));
       (ov.attention || []).filter(a => a.kind === 'REFERENTIAL_GAP').forEach(a => extra.push({ tone: 'warn', t: a.title, d: a.detail + '.', cta: 'Voir les utilisateurs', go: () => c.go('users') }));
       (ov.attention || []).filter(a => a.kind === 'ACCESS_TO_REMOVE').forEach(a => extra.push({ tone: 'err', t: a.title, d: a.detail + '.', cta: 'Voir les utilisateurs', go: () => c.go('users') }));
+      (ov.attention || []).filter(a => a.kind === 'EMAIL_MISMATCH').forEach(a => extra.push({ tone: 'warn', t: a.title, d: a.detail + '.', cta: 'Voir les utilisateurs', go: () => c.go('users') }));
       (ov.attention || []).filter(a => a.kind === 'ACCOUNT_TO_REACTIVATE').forEach(a => extra.push({ tone: 'warn', t: a.title, d: a.detail + '.', cta: 'Voir les utilisateurs', go: () => c.go('users') }));
       return { ovExtra: extra, ovSnap: { t: sn && sn.value ? D(sn.value) : null, p: code, next: sc && sc.prochaineCapture ? D(sc.prochaineCapture) : null } };
     },
@@ -518,6 +519,14 @@ export function bindConsole(c) {
       set0({ dlg: null, form: {} }); toast('Modifications enregistrées pour ' + f.n.trim()); touch();
       if (habCh) load(['admins', 'accounts']).catch(() => {});
     } catch (e) { onErr(e); }
+  };
+  // E-mail du référentiel : lu par le serveur sur la personne liée ; une invitation en attente part à la nouvelle adresse.
+  c.applyRefMail = async id => {
+    try {
+      const a = await post('/accounts/' + id + '/referential-email'), nu = userFrom(a);
+      repl('users', id, nu); set0(s => (s.dlg && s.dlg.id === id ? { form: { ...s.form, e: nu.e }, fe: { ...s.fe, e: '' } } : {}));
+      toast(a.inviteSent === false ? 'E-mail mis à jour, mais l’invitation n’a pas pu partir (' + (a.inviteError || 'serveur d’envoi indisponible') + ') : utilisez « Relancer ».' : a.inviteSent ? 'E-mail mis à jour : invitation renvoyée à ' + nu.e : 'E-mail mis à jour : ' + nu.e, a.inviteSent === false ? 'err' : undefined); touch();
+    } catch (e) { fail(e); }
   };
   c.removeUser = gateAsk('removeUser', u => del('/accounts/' + u.id));
 

@@ -142,6 +142,18 @@ export class ConsoleController implements OnModuleInit {
         ids: [...new Set(toRemove.map((x) => x.a.id))],
       });
     }
+    // E-mail corrigé au référentiel, compte encore à l'ancienne adresse : l'Administrateur l'applique (30/09/2026).
+    const mail = live.flatMap((a) => (ref.get(a.id) ?? []).filter((e) => e.emailEcart).map((e) => ({ a, e })));
+    if (mail.length) {
+      attention.push({
+        level: 'warn',
+        kind: 'EMAIL_MISMATCH',
+        title: `${mail.length} compte${mail.length > 1 ? 's' : ''} : e-mail différent du référentiel`,
+        detail: mail.slice(0, 3).map((x) => `${x.a.fullName} (compte : ${x.a.email} · référentiel : ${x.e.email})`).join(' · ') + (mail.length > 3 ? '…' : ''),
+        target: 'users',
+        ids: mail.map((x) => x.a.id),
+      });
+    }
     // Comptes suspendus dont la personne a été réactivée dans le référentiel après la suspension : à réactiver.
     const back = await this.profiles.toReactivate();
     if (back.length) {

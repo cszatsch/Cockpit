@@ -99,6 +99,28 @@ describe('Console — notifications de l’administrateur', () => {
     expect(bell.items.some((x: any) => /Demande d’invitation acceptée/.test(x.title))).toBe(true);
   });
 
+  it('invitation partie à une adresse erronée : l’e-mail corrigé au référentiel est appliqué, l’invitation renvoyée, l’ancien lien invalide', async () => {
+    const pmo = await t.as(WHO.pmo);
+    const person = await t.db.person.update({ where: { id: (await noAccount())[0].id }, data: { email: 'robin.test@gmaail.com' } });
+    await pmo.post(`${R}/invitation-requests`, { personId: person.id }).expect(201);
+    const n = (await admin.get(NT).expect(200)).body.items.find((i: any) => i.type === 'invite' && i.text.includes('robin.test@gmaail.com'));
+    await admin.post(`${NT}/${n.id}/decision`, { decision: 'accept' }).expect(200);
+    await inbox.finalizeDue(later());
+    const acc = await t.db.account.findFirstOrThrow({ where: { email: 'robin.test@gmaail.com' } });
+    const oldToken = await t.db.passwordToken.findFirstOrThrow({ where: { accountId: acc.id, usedAt: null } });
+
+    await pmo.patch(`${R}/persons/${person.id}`, { email: 'robin.test@gmail.com' }).expect(200);
+    expect((await admin.get(NT).expect(200)).body.items.find((i: any) => i.title === `E-mail différent du référentiel : ${acc.fullName}`)?.text).toContain('L’invitation est partie à l’adresse du compte');
+    const mails0 = mailer.outbox.length;
+    const r = (await admin.post(`/api/admin/accounts/${acc.id}/referential-email`).expect(200)).body;
+    expect(r).toMatchObject({ email: 'robin.test@gmail.com', status: 'INVITED', inviteSent: true });
+    const sent = mailer.outbox.slice(mails0);
+    expect(sent).toHaveLength(1);
+    expect(sent[0]).toMatchObject({ to: ['robin.test@gmail.com'], subject: 'Invitation à RISE Cockpit (relance)' });
+    expect((await t.db.passwordToken.findUniqueOrThrow({ where: { id: oldToken.id } })).usedAt).not.toBeNull(); // lien envoyé à gmaail.com : inutilisable
+    expect(await t.db.passwordToken.count({ where: { accountId: acc.id, usedAt: null } })).toBe(1);
+  });
+
   it('module : refuser prévient le demandeur ; la demande est close', async () => {
     const n = (await admin.get(NT).expect(200)).body.items.find((i: any) => i.type === 'module');
     const mails0 = mailer.outbox.length;

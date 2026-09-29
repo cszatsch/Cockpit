@@ -172,6 +172,34 @@ describe('Console Admin — critères d’acceptation (brief Console § 13)', ()
     });
   });
 
+  describe('2 quinquies. E-mail corrigé au référentiel : signalé, appliqué par l’Administrateur', () => {
+    it('écart signalé (« À traiter », cloche), jamais appliqué seul ; « Appliquer » reprend l’adresse du référentiel', async () => {
+      const c = await t.as(WHO.admin);
+      const pmo = await t.as(WHO.pmo);
+      const alert = async () => (await c.get(`${A}/overview`).expect(200)).body.attention.find((a: any) => a.kind === 'EMAIL_MISMATCH');
+      const bell = () => c.get(`${A}/notifications`).expect(200).then((r) => r.body.items.find((i: any) => i.title === 'E-mail différent du référentiel : Karim Benali'));
+      expect((await c.get(`${A}/accounts/u6`).expect(200)).body.emailReferentiel).toBeNull();
+      await c.post(`${A}/accounts/u6/referential-email`).expect(409);
+
+      await pmo.patch('/api/projects/RISE/persons/p06', { email: 'karim.benali@nouveau-domaine.fr' }).expect(200);
+      const u6 = (await c.get(`${A}/accounts/u6`).expect(200)).body;
+      expect(u6).toMatchObject({ email: 'karim.benali@example.com', emailReferentiel: 'karim.benali@nouveau-domaine.fr' }); // rien d'automatique
+      expect(await alert()).toMatchObject({ level: 'warn', ids: ['u6'], detail: 'Karim Benali (compte : karim.benali@example.com · référentiel : karim.benali@nouveau-domaine.fr)' });
+      expect(await bell()).toMatchObject({ type: 'warn', target: 'users' });
+
+      const r = (await c.post(`${A}/accounts/u6/referential-email`).expect(200)).body;
+      expect(r).toMatchObject({ email: 'karim.benali@nouveau-domaine.fr', emailReferentiel: null, inviteSent: null }); // compte actif : pas d'invitation
+      expect(await alert()).toBeUndefined();
+      expect(await bell()).toBeUndefined();
+      expect((await t.db.auditEntry.findFirst({ where: { entityId: 'u6', action: 'E-mail repris du référentiel' } }))?.severity).toBe('SENSITIVE');
+      expect((await c.post(`${A}/accounts/u6/referential-email`).expect(409)).body.code).toBe('ALREADY_ALIGNED');
+
+      // Remise en état.
+      await pmo.patch('/api/projects/RISE/persons/p06', { email: 'karim.benali@example.com' }).expect(200);
+      await c.post(`${A}/accounts/u6/referential-email`).expect(200);
+    });
+  });
+
   describe('2. Comptes', () => {
     it('inviter un e-mail déjà utilisé → 409 ; invitation valable 14 jours', async () => {
       const c = await t.as(WHO.admin);
