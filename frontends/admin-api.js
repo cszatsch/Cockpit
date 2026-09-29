@@ -290,7 +290,12 @@ export function bindConsole(c) {
     prof: async () => { const me = await get('/me/profile'); meId = me.id; return { prof: toProf(me), pn: { crit: true, budget: true, req: true, hebdo: true, fail: false, ...(me.notifications || {}) }, photo: me.photoUrl || null }; },
     sess: async () => ({ sess: (await get('/me/sessions')).map(toSess) }),
     projects: async () => ({ apiCodes: (await get('/projects')).map(p => p.code) }),
-    skills: async () => ({ skills: toSkills(await apiAbs('GET', SK)) }),
+    // Au-delà de SKILLS_REMOTE_THRESHOLD skills, l'écran passe en mode serveur (recherche, filtre, pagination).
+    skills: async () => {
+      const head = await apiAbs('GET', SK + '?page=1&par_page=' + SKILLS_PER_PAGE);
+      if (head.toutes > SKILLS_REMOTE_THRESHOLD) return { skills: [], skRemote: true };
+      return { skills: toSkills(await apiAbs('GET', SK)), skRemote: false };
+    },
     persona: async () => ({ persona: toPersona(await apiAbs('GET', PS)) }),
     notifs: async () => ({ nt: (await get('/notifications')).items.map(toNotif) }),
     // Registre des cartes API v3c : cartes au format Card (§ 5) et catalogue des widgets ; une suppression en attente
@@ -334,20 +339,27 @@ export function bindConsole(c) {
   const unmount0 = c.componentWillUnmount.bind(c);
   c.componentWillUnmount = () => { W.removeEventListener && W.removeEventListener('rise-admin:thresholds', onTh); unmount0(); };
 
-  // ── Skills de Jev (/api/assistant/skills, SKILLS - specification.md § 5) ──
-  // Une skill créée garde dans l'écran son identifiant provisoire `new-…`, relié à l'identifiant du serveur :
-  // la sélection et le brouillon du composant (indexés par identifiant) sont ainsi conservés.
+  // ── Skills de Jev (/api/assistant/skills, écran en tuiles) ──
+  // L'écran attend chaque appel (promesse) : succès, il garde son état (la liste n'est pas relue, ce qui remettrait sa
+  // sélection et sa page à zéro) ; échec, il revient à l'état précédent et affiche le motif. Une skill créée reçoit
+  // l'id du serveur ; un appel lancé avant (id provisoire `new-…`) attend cette création.
   const SK = '/api/assistant/skills', skAlias = {}, skPend = {};
+  const SKILLS_REMOTE_THRESHOLD = 200, SKILLS_PER_PAGE = 9, SK_FILTER = { all: 'toutes', on: 'actives', off: 'desactivees' };
   const toPersona = r => ({ identity: { name: r.identity.name, creature: r.identity.creature, style: r.identity.style, emoji: r.identity.emoji, avatar: r.identity.avatar, photo: r.identity.photo }, soul: r.soul });
-  const toSkills = list => { const back = Object.fromEntries(Object.entries(skAlias).map(([p, id]) => [id, p])); return list.map(s => ({ id: back[s.id] || s.id, n: s.n, t: s.t, on: s.on })); };
+  const toSkill = s => ({ id: s.id, n: s.n, t: s.t, on: s.on });
+  const toSkills = list => list.map(toSkill);
   const skId = async id => skPend[id] ? await skPend[id] : (skAlias[id] || id);
-  const skDone = () => { touch(); return load(['skills']); };
-  const skFail = e => { fail(e); load(['skills']).catch(() => {}); };
-  c.skCreate = sk => { skPend[sk.id] = apiAbs('POST', SK, { n: sk.n, t: sk.t, on: false }).then(r => { skAlias[sk.id] = r.id; delete skPend[sk.id]; return r.id; });
-    skPend[sk.id].then(() => { toast('Skill créée'); return skDone(); }).catch(e => { delete skPend[sk.id]; skFail(e); }); };
-  c.skSave = sk => skId(sk.id).then(id => apiAbs('PATCH', SK + '/' + id, { n: sk.n, t: sk.t })).then(() => { toast('Skill enregistrée'); return skDone(); }).catch(skFail);
-  c.skToggle = (id0, on) => skId(id0).then(id => apiAbs('PATCH', SK + '/' + id, { on })).then(() => { toast(on ? 'Skill activée' : 'Skill désactivée'); return skDone(); }).catch(skFail);
-  c.skDelete = id0 => skId(id0).then(id => apiAbs('DELETE', SK + '/' + id)).then(() => { toast('Skill supprimée'); return skDone(); }).catch(skFail);
+  const skErr = e => new Error(errText(e));
+  c.skCreate = sk => {
+    const p = apiAbs('POST', SK, { n: sk.n, t: sk.t, on: false }).then(r => { skAlias[sk.id] = r.id; delete skPend[sk.id]; touch(); return toSkill(r); });
+    skPend[sk.id] = p.then(r => r.id);
+    return p.catch(e => { delete skPend[sk.id]; throw skErr(e); });
+  };
+  c.skSave = sk => skId(sk.id).then(id => apiAbs('PUT', SK + '/' + id, { n: sk.n, t: sk.t })).then(r => { touch(); return toSkill(r); }, e => { throw skErr(e); });
+  c.skToggle = (id0, on) => skId(id0).then(id => apiAbs('PATCH', SK + '/' + id + '/active', { on })).then(r => { touch(); return toSkill(r); }, e => { throw skErr(e); });
+  c.skDelete = id0 => skId(id0).then(id => apiAbs('DELETE', SK + '/' + id)).then(() => { touch(); }, e => { throw skErr(e); });
+  const skQuery = ({ q, f, page, per }) => apiAbs('GET', SK + '?q=' + encodeURIComponent(q || '') + '&filtre=' + (SK_FILTER[f] || 'toutes') + '&page=' + (page + 1) + '&par_page=' + per)
+    .then(r => ({ items: toSkills(r.items), filtered: r.total, toutes: r.toutes, actives: r.actives }), e => { throw skErr(e); });
 
   // ── Persona de Jev (/api/assistant/persona, PERSONA - specification.md § 5) ──
   // L'image importée est envoyée dès son choix ; le composant la garde en aperçu (data URL) dans son brouillon :
@@ -688,6 +700,7 @@ export function bindConsole(c) {
       return v;
     }
     v.libImported = []; // la bibliothèque lit la liste du serveur
+    v.skQuery = S.skRemote ? skQuery : undefined; // Skills : mode serveur au-delà de SKILLS_REMOTE_THRESHOLD
     if (S.apiCodes) v.libCodes = S.apiCodes;
     v.onImported = p => { load(['projects']).catch(() => {}); toast(p.code + ' créé'); touch(); };
     if (v.pf) v.pf.pwd = pwd;

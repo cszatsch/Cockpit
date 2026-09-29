@@ -158,6 +158,22 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
   - Tuiles : 680 px de haut, côte à côte à 1 440 et à 900 px (grille de 741 px), aucune barre de défilement dans Identity.
   - Non vérifié dans le navigateur : la réponse de Jev après modification. La base de recette n'a pas de modèle d'IA (Jev indisponible) ; le test e2e `persona.spec.ts` le couvre (prompt : Identité, Personnalité, puis skills ; réponse suivante).
 
+- **Skills en tuiles (29/09/2026)** :
+  - Tests e2e (`skills.spec.ts`, `guidage.spec.ts`) :
+    - nouvelles routes ; numéro ajouté à un nom déjà pris à la création ;
+    - audit des cinq actions (avant, après) ;
+    - validations (nom obligatoire, 60, unique sans majuscules, 409 ; texte 20 000) ;
+    - liste paginée par le serveur (recherche sans accents, filtres, pages, totaux, page bornée).
+  - Recette navigateur (Console sur une base de recette, 37 puis 238 skills, 1 440 et 900 px) :
+    1. « 1–9 sur 37 », pages par numéros et flèches, ↓ / ↑ au clavier avec changement de page.
+    2. Recherche (« REDIGER » → « Rédiger un livrable »), filtre Désactivées, « Aucune skill ne correspond » puis « Réinitialiser les filtres ».
+    3. Interrupteur : 30 → 29 actives, jauge 81 % → 78 %, désactivée côté serveur ; échec simulé : interrupteur rétabli, « Serveur injoignable… ».
+    4. « Nouvelle skill » en fin de liste, page ouverte (« 37–38 sur 38 »), id du serveur ; la suivante devient « Nouvelle skill 2 ».
+    5. Annuler, Enregistrer (« Skill enregistrée »), nom pris (« Une skill s’appelle déjà « Analyser le projet » », point ambre gardé), Supprimer → « Confirmer la suppression » / « Garder ».
+    6. Texte de 400 lignes : aucune barre visible (édition et aperçu) ; barres de la Console rétablies hors de Skills.
+    Mode serveur (238 skills) : une requête par page, recherche ou filtre ; totaux du serveur ; clavier d'une page à l'autre ; création sur la dernière page.
+  - Non vérifié dans le navigateur : l'effet sur la réponse de Jev (base de recette sans modèle d'IA). Le test e2e `skills.spec.ts` le couvre : une skill désactivée disparaît du prompt dès la réponse suivante.
+
 ## 3. Écarts connus
 
 ### 3.1 Écarts par rapport aux briefs

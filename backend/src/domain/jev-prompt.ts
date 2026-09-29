@@ -99,6 +99,28 @@ export function skillLimits(v: { n?: string; t?: string }): Record<string, strin
   return e;
 }
 
+/** Liste paginée par le serveur (écran en tuiles) : 9 skills par page, 100 au plus par appel. */
+export const SKILL_PER_PAGE = 9;
+export const SKILL_PER_PAGE_MAX = 100;
+
+/** Minuscules sans accents : recherche et unicité des noms. */
+export const searchKey = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+/** Recherche de l'écran : le nom contient le texte saisi, sans tenir compte des accents ni des majuscules. */
+export const matchesSkillQuery = (n: string, q: string) => !q.trim() || searchKey(n).includes(searchKey(q.trim()));
+
+/**
+ * Nom libre pour une création : le nom demandé, sinon « nom 2 », « nom 3 »… (majuscules ignorées, comme la règle
+ * d'unicité). Tronqué pour que le numéro tienne dans les 60 caractères.
+ */
+export function uniqueSkillName(n: string, taken: string[]): string {
+  const used = new Set(taken.map((x) => x.toLocaleLowerCase('fr')));
+  if (!used.has(n.toLocaleLowerCase('fr'))) return n;
+  for (let i = 2; ; i++) {
+    const suffix = ' ' + i, c = n.slice(0, SKILL_NAME_MAX - suffix.length) + suffix;
+    if (!used.has(c.toLocaleLowerCase('fr'))) return c;
+  }
+}
+
 /** Skills de démonstration (livraison Skills), chargées comme données initiales. */
 export const DEMO_SKILLS: Array<{ id: string; n: string; on: boolean; t: string }> = [
   { id: 's1', n: 'Analyser le projet', on: true, t: "## Objectif\nAider à comprendre l’état réel du projet : santé, risques, jalons et évolutions.\n\n## Consignes\n- Toujours partir des données du projet et citer la source de chaque chiffre.\n- Distinguer les faits, les tendances et les hypothèses.\n- Pour un Go / No-Go, lister chaque critère avec son seuil et sa valeur.\n\n## Format\n1. Le constat en une phrase.\n2. Les trois points qui comptent le plus.\n3. La recommandation, si elle est demandée." },

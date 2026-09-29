@@ -8007,8 +8007,8 @@
       }
     },
     "/api/assistant/skills/{id}": {
-      "patch": {
-        "operationId": "SkillsController_update",
+      "put": {
+        "operationId": "SkillsController_save",
         "parameters": [
           {
             "name": "id",
@@ -8047,6 +8047,34 @@
         ],
         "responses": {
           "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · assistant"
+        ]
+      }
+    },
+    "/api/assistant/skills/{id}/active": {
+      "patch": {
+        "operationId": "SkillsController_active",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
             "description": ""
           }
         },

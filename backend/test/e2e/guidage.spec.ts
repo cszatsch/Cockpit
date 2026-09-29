@@ -28,9 +28,9 @@ describe('Console — Jev et la fonction guidage', () => {
     await t.db.skill.updateMany({ data: { on: false } });
     // La skill de guidage (active) et une autre skill active, qui ne doit jamais partir avec le guidage.
     await admin.post(SKILLS, { n: 'Guidage console', t: '## Objectif\nGuider l’administrateur.', on: false }).expect(201);
-    await admin.patch(`${SKILLS}/${(await skill('Guidage console')).id}`, { on: true }).expect(200);
+    await admin.patch(`${SKILLS}/${(await skill('Guidage console')).id}/active`, { on: true }).expect(200);
     await admin.post(SKILLS, { n: 'Insights', t: '## Objectif\nAnalyser le projet.', on: false }).expect(201);
-    await admin.patch(`${SKILLS}/${(await skill('Insights')).id}`, { on: true }).expect(200);
+    await admin.patch(`${SKILLS}/${(await skill('Insights')).id}/active`, { on: true }).expect(200);
   });
   beforeEach(async () => {
     spy = jest.spyOn(t.app.get(LlmService), 'complete');
@@ -88,21 +88,21 @@ describe('Console — Jev et la fonction guidage', () => {
 
     it('nom de la skill reconnu sans tenir compte de la casse (« Guidage Console »)', async () => {
       const s = await skill('Guidage console');
-      await admin.patch(`${SKILLS}/${s.id}`, { n: 'Guidage Console' }).expect(200);
+      await admin.put(`${SKILLS}/${s.id}`, { n: 'Guidage Console', t: s.t }).expect(200);
       await admin.post(JEV, { context: { section: 'users' }, text: 'Comment inviter un utilisateur ?' }).expect(200);
       expect(lastCall().system).toContain('## Skill : Guidage Console\n');
-      await admin.patch(`${SKILLS}/${s.id}`, { n: 'Guidage console' }).expect(200);
+      await admin.put(`${SKILLS}/${s.id}`, { n: 'Guidage console', t: s.t }).expect(200);
     });
 
     it('skill de guidage désactivée : Identité et Soul restent, aucune skill n’est envoyée', async () => {
       const s = await skill('Guidage console');
-      await admin.patch(`${SKILLS}/${s.id}`, { on: false }).expect(200);
+      await admin.patch(`${SKILLS}/${s.id}/active`, { on: false }).expect(200);
       await admin.post(JEV, { context: { section: 'users' }, text: 'Comment inviter un utilisateur ?' }).expect(200);
       const sys = lastCall().system;
       expect(sys).toContain('## Identité');
       expect(sys).toContain('## Personnalité');
       expect(sys).not.toContain('## Skill : ');
-      await admin.patch(`${SKILLS}/${s.id}`, { on: true }).expect(200);
+      await admin.patch(`${SKILLS}/${s.id}/active`, { on: true }).expect(200);
     });
   });
 

@@ -9,134 +9,206 @@
 <x-dc>
 <helmet><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700;1,800&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"><style>
 html,body{margin:0;background:#f2f6f5;font-family:'Plus Jakarta Sans',sans-serif;color:#10233a;-webkit-font-smoothing:antialiased;font-size:13px}
-*{box-sizing:border-box}a{color:#1d8f86}a:hover{color:#146b64}
-textarea,input{font:inherit;color:inherit}textarea:focus,input:focus{outline:none}
+*{box-sizing:border-box}[data-screen-label="Skills"],[data-screen-label="Skills"] *{scrollbar-width:none}[data-screen-label="Skills"]::-webkit-scrollbar,[data-screen-label="Skills"] *::-webkit-scrollbar{width:0;height:0;display:none}
+a{color:#1d8f86}a:hover{color:#146b64}
+textarea,input,button{font:inherit;color:inherit}textarea:focus,input:focus{outline:none}
 button:focus-visible,[role="button"]:focus-visible{outline:2px solid #1d8f86;outline-offset:2px}
 textarea::placeholder,input::placeholder{color:#a9b8c0}
 </style></helmet>
 
-<div data-screen-label="Skills" style="max-width:1160px;margin:0 auto;padding:32px 40px 40px;display:flex;flex-direction:column;gap:22px">
-  <div style="display:flex;align-items:flex-end;gap:20px">
-    <div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:800;letter-spacing:.16em;color:#1d8f86">ASSISTANT</div><h1 style="margin:4px 0 0;font-size:30px;font-weight:800;font-style:italic;letter-spacing:-.03em">Skills</h1><div style="font-size:13px;color:#43586a;margin-top:4px">Des consignes ajoutées au prompt de Jev. Une skill active s’applique à toutes ses réponses.</div></div>
-    <button type="button" onClick="{{ add }}" style="height:38px;padding:0 16px;border:0;border-radius:10px;background:#10233a;color:#fff;font:inherit;font-weight:700;display:inline-flex;align-items:center;gap:8px;cursor:pointer" style-hover="background:#1d3654"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>Nouvelle skill</button>
+<div data-screen-label="Skills" style="max-width:1200px;margin:0 auto;padding:32px clamp(18px,4vw,40px) 44px;display:flex;flex-direction:column;gap:24px">
+  <div style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px 20px">
+    <div style="flex:1 1 360px;min-width:0"><div style="font-size:11px;font-weight:800;letter-spacing:.16em;color:#1d8f86">ASSISTANT</div><h1 style="margin:4px 0 0;font-size:30px;font-weight:800;font-style:italic;letter-spacing:-.03em">Skills</h1><div style="font-size:13px;color:#43586a;margin-top:4px">Des consignes ajoutées au prompt de Jev. Une skill active s’applique à toutes ses réponses.</div></div>
+    <button type="button" onClick="{{ add }}" style="height:38px;padding:0 16px;border:0;border-radius:10px;background:#10233a;color:#fff;font-weight:700;display:inline-flex;align-items:center;gap:8px;cursor:pointer;white-space:nowrap;flex:none" style-hover="background:#1d3654"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>Nouvelle skill</button>
   </div>
 
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;align-items:start">
-    <div style="grid-column:span 1;max-width:320px;background:#fff;border:1px solid #e1e9e7;border-radius:18px;padding:8px;display:flex;flex-direction:column;gap:2px">
-      <div style="display:flex;justify-content:space-between;padding:8px 10px 6px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#5c7280"><span>{{ count }}</span><span>{{ onCount }}</span></div>
-      <sc-for list="{{ rows }}" as="r" hint-placeholder-count="5">
-        <div role="button" tabIndex="0" aria-current="{{ r.cur }}" onClick="{{ r.pick }}" onKeyDown="{{ r.key }}" style="{{ r.st }}" style-hover="background:#f5f8f7">
-          <div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:6px"><span style="{{ r.nSt }}">{{ r.n }}</span><sc-if value="{{ r.pending }}" hint-placeholder-val="{{ false }}"><span title="Modifications non enregistrées" style="width:6px;height:6px;border-radius:50%;flex:none;background:#f7a41c"></span></sc-if></div><div style="font-size:11.5px;color:#8a9aa6;margin-top:2px;font-variant-numeric:tabular-nums">{{ r.meta }}</div></div>
-          <button type="button" role="switch" aria-checked="{{ r.on }}" aria-label="{{ r.swL }}" onClick="{{ r.toggle }}" style="{{ r.sw }}"><span style="{{ r.knob }}"></span></button>
-        </div>
-      </sc-for>
-      <sc-if value="{{ none }}" hint-placeholder-val="{{ false }}"><div style="padding:18px 12px;font-size:12.5px;color:#8a9aa6;text-align:center">Aucune skill. Créez-en une.</div></sc-if>
-    </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:20px">
 
-    <sc-if value="{{ hasSel }}" hint-placeholder-val="{{ true }}">
-      <div style="grid-column:span 2;min-width:0;background:#fff;border:1px solid #e1e9e7;border-radius:18px;overflow:hidden;display:flex;flex-direction:column">
-        <div style="display:flex;align-items:center;gap:16px;padding:20px 24px 16px">
-          <input value="{{ n }}" onChange="{{ setN }}" aria-label="Nom de la skill" placeholder="Nom de la skill" maxLength="60" style="flex:1;min-width:0;border:0;border-bottom:1.5px solid transparent;padding:2px 0;font-size:22px;font-weight:800;letter-spacing:-.02em;background:transparent;transition:border-color .15s" style-focus="border-bottom-color:#10233a">
+    <section aria-label="Liste des skills" onKeyDown="{{ listKey }}" style="height:680px;min-width:0;background:#fff;border:1px solid #e1e9e7;border-radius:20px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 1px 2px rgba(16,35,58,.04)">
+      <div style="height:76px;flex:none;padding:0 22px;display:flex;align-items:center;gap:14px">
+        <span style="width:40px;height:40px;border-radius:12px;flex:none;display:grid;place-items:center;background:#10233a;color:#3dd6c6"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16 M4 12h16 M4 19h10"></path></svg></span>
+        <div style="flex:1;min-width:0;display:flex;align-items:baseline;gap:14px"><span style="display:flex;align-items:baseline;gap:6px"><span style="font-size:22px;font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums">{{ total }}</span><span style="font-size:12px;font-weight:700;color:#5c7280;white-space:nowrap">{{ totalL }}</span></span><span style="display:flex;align-items:baseline;gap:6px"><span style="font-size:22px;font-weight:800;letter-spacing:-.03em;color:#146b64;font-variant-numeric:tabular-nums">{{ act }}</span><span style="font-size:12px;font-weight:700;color:#5c7280;white-space:nowrap">{{ actL }}</span></span></div>
+        <span aria-hidden="true" style="width:72px;height:6px;border-radius:3px;background:#eef3f2;overflow:hidden;flex:none"><span style="{{ ratio }}"></span></span>
+      </div>
+      <div style="height:48px;flex:none;padding:0 16px 12px 22px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #eef3f2">
+        <label style="flex:1;min-width:0;height:34px;display:flex;align-items:center;gap:8px;padding:0 10px;border-radius:9px;background:#f3f7f6;cursor:text"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8a9aa6" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg><input value="{{ q }}" onChange="{{ setQ }}" placeholder="Rechercher" aria-label="Rechercher une skill" style="flex:1;min-width:0;border:0;background:transparent;font-size:12.5px;font-weight:500"><sc-if value="{{ hasQ }}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{ clearQ }}" aria-label="Effacer la recherche" style="width:18px;height:18px;border:0;border-radius:50%;background:#dfe7e5;color:#43586a;font-size:11px;line-height:1;cursor:pointer;display:grid;place-items:center;flex:none">×</button></sc-if></label>
+        <div role="tablist" aria-label="Filtre" style="display:inline-flex;gap:2px;padding:3px;border-radius:10px;background:#eef3f2;flex:none"><sc-for list="{{ filters }}" as="m" hint-placeholder-count="3"><button type="button" role="tab" aria-selected="{{ m.on }}" onClick="{{ m.pick }}" title="{{ m.tip }}" style="{{ m.st }}">{{ m.l }}</button></sc-for></div>
+      </div>
+      <div style="flex:1;min-height:0;overflow:hidden;padding:8px 10px;display:flex;flex-direction:column;gap:2px">
+        <sc-for list="{{ rows }}" as="r" hint-placeholder-count="9">
+          <div role="button" tabIndex="0" aria-current="{{ r.cur }}" onClick="{{ r.pick }}" style="{{ r.st }}" style-hover="background:#f5f8f7">
+            <span style="{{ r.dot }}"></span>
+            <div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:6px"><span style="{{ r.nSt }}">{{ r.n }}</span><sc-if value="{{ r.pending }}" hint-placeholder-val="{{ false }}"><span title="Modifications non enregistrées" style="width:6px;height:6px;border-radius:50%;flex:none;background:#f7a41c"></span></sc-if></div><div style="font-size:11.5px;color:#8a9aa6;margin-top:1px;font-variant-numeric:tabular-nums">{{ r.meta }}</div></div>
+            <button type="button" role="switch" aria-checked="{{ r.on }}" aria-label="{{ r.swL }}" onClick="{{ r.toggle }}" style="{{ r.sw }}"><span style="{{ r.knob }}"></span></button>
+          </div>
+        </sc-for>
+        <sc-if value="{{ noMatch }}" hint-placeholder-val="{{ false }}"><div style="margin:auto;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center"><span style="font-size:13.5px;font-weight:700">Aucune skill ne correspond</span><button type="button" onClick="{{ resetF }}" style="height:30px;padding:0 12px;border:1px solid #d3dedb;border-radius:9px;background:#fff;font-size:12px;font-weight:600;cursor:pointer" style-hover="border-color:#10233a">Réinitialiser les filtres</button></div></sc-if>
+        <sc-if value="{{ none }}" hint-placeholder-val="{{ false }}"><div style="margin:auto;font-size:12.5px;color:#8a9aa6;text-align:center">Aucune skill. Créez-en une.</div></sc-if>
+      </div>
+      <div style="height:58px;flex:none;display:flex;align-items:center;gap:10px;padding:0 14px 0 22px;border-top:1px solid #eef3f2;background:#fbfdfc">
+        <span style="font-size:11.5px;color:#8a9aa6;font-variant-numeric:tabular-nums;white-space:nowrap">{{ range }}</span>
+        <span style="flex:1"></span>
+        <sc-if value="{{ multi }}" hint-placeholder-val="{{ true }}">
+          <button type="button" onClick="{{ prev }}" disabled="{{ atFirst }}" aria-label="Page précédente" style="{{ prevSt }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"></path></svg></button>
+          <div style="display:flex;align-items:center;gap:4px"><sc-for list="{{ pages }}" as="p" hint-placeholder-count="5"><button type="button" onClick="{{ p.go }}" aria-label="{{ p.aria }}" aria-current="{{ p.cur }}" style="{{ p.st }}">{{ p.l }}</button></sc-for></div>
+          <button type="button" onClick="{{ next }}" disabled="{{ atLast }}" aria-label="Page suivante" style="{{ nextSt }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></button>
+        </sc-if>
+      </div>
+    </section>
+
+    <section aria-label="Éditeur de skill" style="height:680px;min-width:0;background:#fff;border:1px solid #e1e9e7;border-radius:20px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 1px 2px rgba(16,35,58,.04)">
+      <sc-if value="{{ hasSel }}" hint-placeholder-val="{{ true }}">
+        <div style="height:76px;flex:none;padding:0 22px;display:flex;align-items:center;gap:14px">
+          <span style="width:40px;height:40px;border-radius:12px;flex:none;display:grid;place-items:center;background:#10233a;color:#3dd6c6"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"></path></svg></span>
+          <input value="{{ n }}" onChange="{{ setN }}" aria-label="Nom de la skill" placeholder="Nom de la skill" maxLength="60" style="flex:1;min-width:0;border:0;border-bottom:1.5px solid transparent;padding:2px 0;font-size:19px;font-weight:800;letter-spacing:-.02em;background:transparent;text-overflow:ellipsis;transition:border-color .15s" style-focus="border-bottom-color:#10233a">
           <span style="{{ stateSt }}">{{ stateL }}</span>
           <button type="button" role="switch" aria-checked="{{ on }}" aria-label="Activer la skill" onClick="{{ toggle }}" style="{{ sw }}"><span style="{{ knob }}"></span></button>
         </div>
-        <div style="display:flex;align-items:center;gap:12px;padding:0 24px 14px;border-bottom:1px solid #eef3f2">
-          <div role="tablist" aria-label="Mode" style="display:inline-flex;gap:2px;padding:3px;border-radius:10px;background:#eef3f2"><sc-for list="{{ modes }}" as="m" hint-placeholder-count="2"><button type="button" role="tab" aria-selected="{{ m.on }}" onClick="{{ m.pick }}" style="{{ m.st }}">{{ m.l }}</button></sc-for></div>
+        <div style="height:48px;flex:none;padding:0 22px 12px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #eef3f2">
+          <div role="tablist" aria-label="Mode" style="display:inline-flex;gap:2px;padding:3px;border-radius:10px;background:#eef3f2;flex:none"><sc-for list="{{ modes }}" as="m" hint-placeholder-count="2"><button type="button" role="tab" aria-selected="{{ m.on }}" onClick="{{ m.pick }}" style="{{ m.st }}">{{ m.l }}</button></sc-for></div>
           <span style="flex:1"></span>
-          <span style="font-size:11.5px;color:#8a9aa6;font-variant-numeric:tabular-nums">{{ len }}</span>
+          <span style="font-size:11.5px;color:#8a9aa6;font-variant-numeric:tabular-nums;white-space:nowrap">{{ len }}</span>
         </div>
-        <sc-if value="{{ isEdit }}" hint-placeholder-val="{{ true }}">
-          <textarea value="{{ t }}" onChange="{{ setT }}" aria-label="Texte de la skill" placeholder="Écrivez les consignes que Jev doit suivre. Titres avec ##, listes avec - ou 1." style="display:block;width:100%;height:440px;resize:vertical;min-height:240px;border:0;padding:22px 24px;background:#fbfdfc;font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.75;color:#10233a"></textarea>
-        </sc-if>
-        <sc-if value="{{ isView }}" hint-placeholder-val="{{ false }}">
-          <div style="height:440px;overflow:auto;padding:22px 28px;display:flex;flex-direction:column;gap:6px">
-            <sc-for list="{{ blocks }}" as="b" hint-placeholder-count="0"><div style="{{ b.st }}"><sc-if value="{{ b.isLi }}" hint-placeholder-val="{{ false }}"><span style="width:5px;height:5px;border-radius:50%;background:#1d8f86;flex:none;margin-top:9px"></span></sc-if><sc-if value="{{ b.isOl }}" hint-placeholder-val="{{ false }}"><span style="flex:none;width:18px;font-weight:700;color:#1d8f86;font-variant-numeric:tabular-nums">{{ b.num }}</span></sc-if><span>{{ b.t }}</span></div></sc-for>
-            <sc-if value="{{ empty }}" hint-placeholder-val="{{ false }}"><div style="margin:auto;text-align:center;font-size:13px;color:#8a9aa6">Aucun texte pour l’instant.</div></sc-if>
-          </div>
-        </sc-if>
-        <div style="display:flex;align-items:center;gap:8px;padding:12px 16px 12px 20px;border-top:1px solid #eef3f2">
+        <div style="flex:1;min-height:0;position:relative;display:flex;flex-direction:column;background:#fbfdfc">
+          <sc-if value="{{ isEdit }}" hint-placeholder-val="{{ true }}"><textarea value="{{ t }}" onChange="{{ setT }}" aria-label="Texte de la skill" placeholder="Écrivez les consignes que Jev doit suivre. Titres avec ##, listes avec - ou 1." style="flex:1;min-height:0;display:block;width:100%;resize:none;border:0;padding:20px 22px 36px;background:transparent;font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.75;color:#10233a;scrollbar-width:none"></textarea></sc-if>
+          <sc-if value="{{ isView }}" hint-placeholder-val="{{ false }}"><div style="flex:1;min-height:0;overflow:auto;scrollbar-width:none;padding:20px 26px 36px;display:flex;flex-direction:column;gap:6px;background:#fff"><sc-for list="{{ blocks }}" as="b" hint-placeholder-count="0"><div style="{{ b.st }}"><sc-if value="{{ b.isLi }}" hint-placeholder-val="{{ false }}"><span style="width:5px;height:5px;border-radius:50%;background:#1d8f86;flex:none;margin-top:9px"></span></sc-if><sc-if value="{{ b.isOl }}" hint-placeholder-val="{{ false }}"><span style="flex:none;width:18px;font-weight:700;color:#1d8f86;font-variant-numeric:tabular-nums">{{ b.num }}</span></sc-if><span>{{ b.t }}</span></div></sc-for><sc-if value="{{ empty }}" hint-placeholder-val="{{ false }}"><div style="margin:auto;text-align:center;font-size:13px;color:#8a9aa6">Aucun texte pour l’instant.</div></sc-if></div></sc-if>
+          <span aria-hidden="true" style="{{ fade }}"></span>
+        </div>
+        <div style="height:58px;flex:none;display:flex;align-items:center;gap:8px;padding:0 16px 0 14px;border-top:1px solid #eef3f2;background:#fbfdfc">
           <button type="button" onClick="{{ del }}" style="{{ delSt }}" style-hover="background:#fbe4e1">{{ delL }}</button>
-          <sc-if value="{{ confirming }}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{ keep }}" style="height:34px;padding:0 10px;border:0;border-radius:9px;background:transparent;font:inherit;font-size:12.5px;font-weight:600;color:#5c7280;cursor:pointer">Garder</button></sc-if>
+          <sc-if value="{{ confirming }}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{ keep }}" style="height:34px;padding:0 10px;border:0;border-radius:9px;background:transparent;font-size:12.5px;font-weight:600;color:#5c7280;cursor:pointer;white-space:nowrap">Garder</button></sc-if>
           <span style="flex:1"></span>
-          <sc-if value="{{ dirty }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#8a5a12"><span style="width:6px;height:6px;border-radius:50%;background:#f7a41c"></span>Modifications non enregistrées</span></sc-if>
+          <sc-if value="{{ dirty }}" hint-placeholder-val="{{ false }}"><span title="Modifications non enregistrées" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#8a5a12;white-space:nowrap"><span style="width:6px;height:6px;border-radius:50%;background:#f7a41c"></span>Non enregistré</span></sc-if>
           <button type="button" onClick="{{ cancel }}" disabled="{{ clean }}" style="{{ cancelSt }}">Annuler</button>
           <button type="button" onClick="{{ save }}" disabled="{{ clean }}" style="{{ saveSt }}">Enregistrer</button>
         </div>
-      </div>
-    </sc-if>
+      </sc-if>
+      <sc-if value="{{ none }}" hint-placeholder-val="{{ false }}"><div style="margin:auto;font-size:13px;color:#8a9aa6">Sélectionnez ou créez une skill.</div></sc-if>
+    </section>
+
   </div>
 </div>
+
+<sc-if value="{{ ts.on }}" hint-placeholder-val="{{ false }}"><div role="status" style="position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:10px;padding:11px 16px;border-radius:13px;background:#10233a;color:#fff;font-size:13px;font-weight:600;box-shadow:0 18px 40px -16px rgba(16,35,58,.6);white-space:nowrap"><span style="width:7px;height:7px;border-radius:50%;background:#3dd6c6"></span>{{ ts.msg }}</div></sc-if>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;skills&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{ id: string; n: string; t: string; on: boolean }[]&quot;},&quot;onSave&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(skill: { id, n, t, on }) =&gt; void&quot;},&quot;onToggle&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(id: string, on: boolean) =&gt; void&quot;},&quot;onCreate&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(skill: { id, n, t, on }) =&gt; void&quot;},&quot;onDelete&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(id: string) =&gt; void&quot;}}">
-// Démonstration : remplacer par les skills du serveur via le prop `skills`.
-const DEMO = [
-  { id: 's1', n: 'Analyser le projet', on: true, t: "## Objectif\nAider à comprendre l’état réel du projet : santé, risques, jalons et évolutions.\n\n## Consignes\n- Toujours partir des données du projet et citer la source de chaque chiffre.\n- Distinguer les faits, les tendances et les hypothèses.\n- Pour un Go / No-Go, lister chaque critère avec son seuil et sa valeur.\n\n## Format\n1. Le constat en une phrase.\n2. Les trois points qui comptent le plus.\n3. La recommandation, si elle est demandée." },
-  { id: 's2', n: 'Rédiger un livrable', on: true, t: "## Objectif\nProduire des livrables prêts à relire : comptes rendus, rapports, ordres du jour, relances.\n\n## Consignes\n- Reprendre la structure du modèle de document du projet.\n- Chaque action a un porteur et une échéance.\n- Signaler une information manquante au lieu de la supposer.\n\n## Format\nUn brouillon, jamais diffusé sans relecture." },
-  { id: 's3', n: 'Mettre à jour les données', on: true, t: "## Objectif\nCréer, modifier ou supprimer des actions, risques et jalons à la demande.\n\n## Consignes\n- Toujours présenter la modification avant de l’appliquer.\n- Attendre la validation explicite de l’utilisateur.\n- Refuser une suppression groupée sans confirmation élément par élément." },
-  { id: 's4', n: 'Assister l’administration', on: false, t: "## Objectif\nAssister l’administrateur de la plateforme.\n\n## Consignes\n- Contrôler un fichier d’initialisation et lister les non-conformités.\n- Expliquer une panne IA et proposer le correctif." },
-  { id: 's5', n: 'Guider l’utilisateur', on: true, t: "## Objectif\nRépondre aux questions « comment faire » sur le Cockpit.\n\n## Consignes\n- Répondre en trois étapes au plus.\n- Terminer par le lien vers l’écran concerné." }
-];
+<script type="text/x-dc" data-dc-script data-props="{&quot;volume&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;7 skills&quot;,&quot;37 skills&quot;],&quot;default&quot;:&quot;37 skills&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Démo&quot;},&quot;skills&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{ id: string; n: string; t: string; on: boolean }[]&quot;},&quot;onSave&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(skill) =&gt; void&quot;},&quot;onToggle&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(id: string, on: boolean) =&gt; void&quot;},&quot;onCreate&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(skill) =&gt; void&quot;},&quot;onDelete&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(id: string) =&gt; void&quot;},&quot;onQuery&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(p: { q: string; f: string; page: number; per: number }) =&gt; Promise&lt;{ items: any[]; filtered: number; toutes: number; actives: number }&gt;&quot;}}">
+const mk = (n, obj, cs, fmt) => '## Objectif\n' + obj + '\n\n## Quand appliquer cette skill\n- La demande porte explicitement sur : ' + n.toLowerCase() + '.\n- L’utilisateur cite un projet, une période ou un livrable lié.\n\n## Consignes\n' + cs.map(c => '- ' + c).join('\n') + '\n\n## Format\n' + fmt.map((f, i) => (i + 1) + '. ' + f).join('\n');
+const C0 = ['Partir des données du projet et citer la source de chaque chiffre.', 'Distinguer les faits, les tendances et les hypothèses.', 'Signaler une information manquante au lieu de la supposer.'];
+const F0 = ['Le constat en une phrase.', 'Les points qui comptent le plus.', 'La recommandation, si elle est demandée.'];
+const BASE7 = [
+  ['Guidage console', 'Répondre juste et vite aux questions d’un administrateur sur la Console d’administration de RISE Cockpit : trouver l’information, expliquer ce qui s’affiche, diagnostiquer un problème et proposer l’action utile, sans jamais agir à sa place sans confirmation.'],
+  ['Insights', 'Faire ressortir les signaux faibles du portefeuille : dérives de planning, risques qui montent, jalons menacés.'],
+  ['Rapports', 'Produire des rapports prêts à diffuser à partir des données du projet.'],
+  ['Gestion des données', 'Créer, modifier ou supprimer des actions, risques et jalons à la demande, après validation.'],
+  ['Guidage Cockpit', 'Répondre aux questions « comment faire » sur le Cockpit, en trois étapes au plus.'],
+  ['Rédiger les slides PowerPoint', 'Transformer une analyse en slides claires, une idée par slide, dans la charte du projet.'],
+  ['Analyser un document', 'Lire un document joint, en extraire les décisions, actions et risques, et les rapprocher du projet.']];
+const EXTRA = ['Préparer un COPIL', 'Synthèse hebdomadaire', 'Analyse des risques', 'Suivi budgétaire', 'Planification des jalons', 'Relance des actions en retard', 'Compte rendu de réunion', 'Go / No-Go', 'Analyse d’écart planning', 'Tableau de bord PMO', 'Gestion du changement', 'Plan de communication', 'Revue des livrables', 'Préparer une démo', 'Onboarding d’un chef de projet', 'Recette et anomalies', 'Capacité des équipes', 'Dépendances inter-projets', 'Retour d’expérience', 'Rédiger un e-mail', 'Traduire un document', 'Glossaire projet', 'Contrôle qualité des données', 'Préparer un comité d’arbitrage', 'Suivi des bénéfices', 'Cartographie des parties prenantes', 'Plan de formation', 'Analyse de charge', 'Gestion des fournisseurs', 'Clôture de projet'];
+const build = vol => {
+  const a = BASE7.map(([n, o], i) => ({ id: 'b' + i, n, on: true, t: mk(n, o, i === 0 ? C0.concat(['Identifier la page concernée et son domaine.', 'Proposer l’action utile, puis attendre la confirmation.', 'Ne jamais afficher une clé API en clair.']) : C0, F0) }));
+  if (vol !== '7 skills') EXTRA.forEach((n, i) => a.push({ id: 'x' + i, n, on: i % 5 !== 3, t: mk(n, 'Assister l’équipe projet sur le sujet « ' + n + ' » avec des réponses sourcées et actionnables.', C0.slice(0, 1 + (i % 3)), F0.slice(0, 2 + (i % 2))) }));
+  return a;
+};
+const PER = 9;
 
 class Component extends DCLogic {
-  state = { list: null, sel: null, mode: 'edit', drafts: {}, confirm: false };
-  list() { return this.state.list ?? (this.props.skills ?? DEMO).map(s => ({ ...s })); }
-  componentDidUpdate(pp) { if (pp.skills !== this.props.skills && this.props.skills) this.setState({ list: null }); }
+  state = { list: null, sel: null, mode: 'edit', drafts: {}, confirm: false, q: '', f: 'all', page: 0, toast: '', rq: null };
+  // Console : au-delà d'environ 200 skills, `onQuery` fournit la page courante (recherche, filtre, pagination et
+  // totaux calculés par le serveur) ; sinon la liste complète `skills` est filtrée et paginée ici.
+  // (support.js ne transmet que les props précédentes : la recherche, le filtre et la page lus en dernier sont gardés ici.)
+  componentDidMount() { if (this.props.onQuery) { this._qk = this.qKey(); this.query(); } }
+  componentDidUpdate(pp) { if (pp.skills !== this.props.skills || pp.volume !== this.props.volume) this.setState({ list: null, sel: null, page: 0 });
+    if (!this.props.onQuery) return; const k = this.qKey(), prevQ = this._qk ? this._qk.split('\u0001')[0] : ''; if (k === this._qk) return;
+    this._qk = k; this.query(prevQ !== this.state.q ? 200 : 0); }
+  qKey() { const S = this.state; return [S.q, S.f, S.page].join('\u0001'); }
+  componentWillUnmount() { clearTimeout(this._t); clearTimeout(this._qt); }
+  remote() { return this.props.onQuery ? (this.state.rq || { items: [], filtered: 0, toutes: 0, actives: 0 }) : null; }
+  query(wait) { clearTimeout(this._qt); if (this._hold) return; this._qt = setTimeout(() => { const S = this.state, n = ++this._qn || (this._qn = 1);
+    this.props.onQuery({ q: S.q, f: S.f, page: S.page, per: PER }).then(r => { if (n !== this._qn) return; const last = this._selLast; this._selLast = false;
+      this.setState(st => ({ rq: r, list: null, sel: last && r.items.length ? r.items[r.items.length - 1].id : st.sel })); }, e => this.toast((e && e.message) || 'Chargement impossible.')); }, wait || 0); }
+  // Console : un appel qui renvoie une promesse est attendu ; en cas d'échec, l'écran revient à l'état précédent.
+  settle(r, ok, ko) { if (r && typeof r.then === 'function') r.then(ok, e => ko((e && e.message) || '')); else ok(); }
+  list() { return this.state.list ?? (this.remote() ? this.remote().items : (this.props.skills ?? build(this.props.volume))).map(s => ({ ...s })); }
   setList(l) { this.setState({ list: l }); }
-
-  sw(on, small) {
-    const w = small ? 32 : 36, h = small ? 18 : 20, k = h - 4;
+  toast(m) { clearTimeout(this._t); this.setState({ toast: m }); this._t = setTimeout(() => this.setState({ toast: '' }), 2400); }
+  sw(on, small) { const w = small ? 32 : 36, h = small ? 18 : 20, k = h - 4;
     return { sw: 'flex:none;position:relative;width:' + w + 'px;height:' + h + 'px;border:0;padding:0;border-radius:999px;cursor:pointer;transition:background .2s;background:' + (on ? '#1d8f86' : '#cfdcd9'),
-      knob: 'position:absolute;top:2px;left:' + (on ? w - k - 2 : 2) + 'px;width:' + k + 'px;height:' + k + 'px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.22);transition:left .2s cubic-bezier(.2,.7,.2,1)' };
-  }
+      knob: 'position:absolute;top:2px;left:' + (on ? w - k - 2 : 2) + 'px;width:' + k + 'px;height:' + k + 'px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.22);transition:left .2s cubic-bezier(.2,.7,.2,1)' }; }
   len(t) { const c = (t || '').length; return c.toLocaleString('fr-FR') + ' caractères · ≈ ' + Math.ceil(c / 4).toLocaleString('fr-FR') + ' tokens'; }
-  // Rendu de l’aperçu : ## titre, - puce, 1. étape, paragraphe
-  md(t) {
-    const out = []; (t || '').split('\n').forEach(raw => { const l = raw.trim(); if (!l) return; let m;
+  md(t) { const out = []; (t || '').split('\n').forEach(raw => { const l = raw.trim(); if (!l) return; let m;
       if (l.startsWith('## ')) out.push({ t: l.slice(3), st: 'font-size:14.5px;font-weight:800;letter-spacing:-.01em;margin-top:' + (out.length ? 14 : 0) + 'px;color:#10233a' });
       else if (l.startsWith('- ')) out.push({ t: l.slice(2), isLi: true, st: 'display:flex;gap:10px;font-size:13.5px;line-height:1.6;color:#2a3f53' });
       else if ((m = l.match(/^(\d+)\.\s+(.*)$/))) out.push({ t: m[2], num: m[1] + '.', isOl: true, st: 'display:flex;gap:6px;font-size:13.5px;line-height:1.6;color:#2a3f53' });
       else out.push({ t: l, st: 'font-size:13.5px;line-height:1.6;color:#2a3f53;text-wrap:pretty' }); });
-    return out.map(b => ({ isLi: false, isOl: false, num: '', ...b }));
-  }
-  flip(id) {
-    const l = this.list().map(s => s.id === id ? { ...s, on: !s.on } : s), s = l.find(x => x.id === id);
-    this.setList(l); this.props.onToggle?.(id, s.on);
-  }
-  add() {
-    const id = 'new-' + Date.now(), s = { id, n: 'Nouvelle skill', on: false, t: '' };
-    this.setState({ list: this.list().concat(s), sel: id, mode: 'edit', confirm: false }); this.props.onCreate?.(s);
-  }
+    return out.map(b => ({ isLi: false, isOl: false, num: '', ...b })); }
+  norm(s) { return (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+  filtered() { const S = this.state, q = this.norm(S.q.trim()); return this.list().filter(x => (S.f === 'all' || (S.f === 'on' ? x.on : !x.on)) && (!q || this.norm(x.n).includes(q))); }
+  pick(id) { if (this.remote()) return this.setState({ sel: id, confirm: false }); const f = this.filtered(), i = f.findIndex(x => x.id === id); this.setState({ sel: id, confirm: false, page: i >= 0 ? Math.floor(i / PER) : this.state.page }); }
+  flip(id) { const l = this.list().map(s => s.id === id ? { ...s, on: !s.on } : s), s = l.find(x => x.id === id); this.setList(l);
+    this.settle(this.props.onToggle?.(id, s.on), () => { this.toast(s.n + (s.on ? ' activée' : ' désactivée')); if (this.remote()) this.query(); },
+      m => { this.setList(this.list().map(x => x.id === id ? { ...x, on: !s.on } : x)); this.toast(m || (s.on ? 'Activation impossible.' : 'Désactivation impossible.')); }); }
+  // L'id définitif renvoyé par le serveur remplace l'id provisoire `new-…` (liste, sélection, brouillon), ainsi que le nom retenu.
+  adopt(tmp, r) { this.setState(st => { const l = (st.list ?? this.list()).map(x => x.id === tmp ? { ...x, id: r.id, n: r.n ?? x.n } : x), dr = { ...st.drafts };
+    if (dr[tmp]) { dr[r.id] = dr[tmp]; delete dr[tmp]; } return { list: l, drafts: dr, sel: st.sel === tmp ? r.id : st.sel }; }); }
+  add() { const R = this.remote(), id = 'new-' + Date.now(), s = { id, n: 'Nouvelle skill', on: false, t: '' }, l = this.list().concat(s);
+    if (R) this._hold = true; // la page de la nouvelle skill est relue après sa création
+    this.setState({ list: l, sel: id, mode: 'edit', confirm: false, q: '', f: 'all', page: Math.floor(((R ? R.toutes + 1 : l.length) - 1) / PER) });
+    this.settle(this.props.onCreate?.(s), r => { this._hold = false; if (r && r.id) this.adopt(id, r); if (R) this.query(); },
+      m => { this._hold = false; this.setState(st => ({ list: (st.list ?? this.list()).filter(x => x.id !== id), sel: st.sel === id ? null : st.sel })); this.toast(m || 'Création impossible.'); if (R) this.query(); }); }
 
   renderVals() {
-    const list = this.list(), S = this.state, s = list.find(x => x.id === S.sel) || list[0] || null;
+    const S = this.state, R = this.remote(), list = this.list(), fl = R ? list : this.filtered(), flN = R ? Math.max(R.filtered, fl.length) : fl.length, pages = Math.max(1, Math.ceil(flN / PER)), page = Math.min(S.page, pages - 1);
+    const s = list.find(x => x.id === S.sel) || fl[0] || list[0] || null, vis = R ? fl : fl.slice(page * PER, page * PER + PER), actN = R ? R.actives : list.filter(x => x.on).length, tot = R ? Math.max(R.toutes, list.length) : list.length;
+    const nav = (on) => 'width:30px;height:30px;border:0;border-radius:8px;display:grid;place-items:center;background:transparent;color:#10233a;transition:background .15s,opacity .15s;' + (on ? 'cursor:pointer;opacity:1' : 'cursor:default;opacity:.3');
+    const seg = on => 'height:28px;padding:0 10px;border:0;border-radius:8px;font-size:12px;cursor:pointer;white-space:nowrap;' + (on ? 'background:#fff;box-shadow:0 1px 2px rgba(16,35,58,.12);font-weight:700;color:#10233a' : 'background:transparent;font-weight:600;color:#5c7280');
+    const pl = []; for (let i = 0; i < pages; i++) { if (pages <= 7 || i === 0 || i === pages - 1 || Math.abs(i - page) <= 1) pl.push(i); else if (pl[pl.length - 1] !== -1) pl.push(-1); }
     const base = {
-      count: list.length + ' skill' + (list.length > 1 ? 's' : ''), onCount: list.filter(x => x.on).length + ' active' + (list.filter(x => x.on).length > 1 ? 's' : ''),
-      none: !list.length, hasSel: !!s, add: () => this.add(),
-      rows: list.map(x => { const sel = s && x.id === s.id, w = this.sw(x.on, true), pd = S.drafts[x.id], pending = !!pd && (pd.n !== x.n || pd.t !== x.t);
+      total: tot, totalL: tot > 1 ? 'skills' : 'skill', act: actN, actL: actN > 1 ? 'actives' : 'active',
+      ratio: 'display:block;height:100%;border-radius:3px;background:#1d8f86;transition:width .3s;width:' + (tot ? actN / tot * 100 : 0) + '%',
+      none: !tot && !(R && !S.rq), hasSel: !!s, add: () => this.add(), // mode serveur : pas d'état vide avant la première page
+      q: S.q, hasQ: !!S.q, setQ: e => this.setState({ q: e.target.value, page: 0 }), clearQ: () => this.setState({ q: '', page: 0 }),
+      filters: [['all', 'Toutes', tot], ['on', 'Actives', actN], ['off', 'Désactivées', tot - actN]].map(([k, l, c]) => ({ l, tip: c + ' skill(s)', on: S.f === k, pick: () => this.setState({ f: k, page: 0 }), st: seg(S.f === k) })),
+      noMatch: !!tot && !flN, resetF: () => this.setState({ q: '', f: 'all', page: 0 }),
+      rows: vis.map(x => { const sel = s && x.id === s.id, w = this.sw(x.on, true), pd = S.drafts[x.id], pending = !!pd && (pd.n !== x.n || pd.t !== x.t);
         return { n: x.n, on: x.on, cur: sel ? 'true' : undefined, pending, swL: (x.on ? 'Désactiver ' : 'Activer ') + x.n, ...w,
           meta: (x.on ? 'Active' : 'Désactivée') + ' · ' + (x.t || '').length.toLocaleString('fr-FR') + ' car.',
-          pick: () => this.setState({ sel: x.id, confirm: false }), key: e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this.setState({ sel: x.id, confirm: false }); } },
-          toggle: e => { e.stopPropagation(); this.flip(x.id); },
+          pick: () => this.pick(x.id), toggle: e => { e.stopPropagation(); this.flip(x.id); },
+          dot: 'width:3px;height:26px;border-radius:2px;flex:none;transition:background .15s;background:' + (sel ? '#10233a' : 'transparent'),
           nSt: 'font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:' + (x.on ? '#10233a' : '#8a9aa6'),
-          st: 'display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:11px;cursor:pointer;transition:background .15s;background:' + (sel ? '#eef4f2' : 'transparent') }; })
+          st: 'height:51px;flex:none;display:flex;align-items:center;gap:10px;padding:0 12px 0 6px;border-radius:11px;cursor:pointer;transition:background .15s;background:' + (sel ? '#eef4f2' : 'transparent') }; }),
+      range: flN ? (page * PER + 1) + '–' + Math.min(flN, page * PER + PER) + ' sur ' + flN : '0 skill', multi: pages > 1,
+      atFirst: page === 0, atLast: page >= pages - 1, prevSt: nav(page > 0), nextSt: nav(page < pages - 1),
+      prev: () => page > 0 && this.setState({ page: page - 1 }), next: () => page < pages - 1 && this.setState({ page: page + 1 }),
+      pages: pl.map((i, j) => i < 0 ? { l: '…', aria: 'Pages masquées', go: () => {}, st: 'width:18px;height:30px;border:0;background:transparent;color:#b8c7c4;font-size:12px;cursor:default' }
+        : { l: String(i + 1), aria: 'Page ' + (i + 1), cur: i === page ? 'page' : undefined, go: () => this.setState({ page: i }), st: 'min-width:30px;height:30px;padding:0 6px;border:0;border-radius:8px;font-size:12px;font-variant-numeric:tabular-nums;cursor:pointer;transition:background .15s;' + (i === page ? 'background:#10233a;color:#fff;font-weight:800' : 'background:transparent;color:#5c7280;font-weight:600') }),
+      listKey: e => { if (e.target.tagName === 'INPUT' || !fl.length || !['ArrowDown', 'ArrowUp'].includes(e.key)) return; e.preventDefault();
+        const i = Math.max(0, fl.findIndex(x => s && x.id === s.id)), k = i + (e.key === 'ArrowDown' ? 1 : -1);
+        if (R && k >= fl.length) { if (page < pages - 1) this.setState({ page: page + 1, sel: null }); return; }
+        if (R && k < 0) { if (page > 0) { this._selLast = true; this.setState({ page: page - 1, sel: null }); } return; }
+        const j = Math.min(fl.length - 1, Math.max(0, k)); this.pick(fl[j].id); },
+      ts: { on: !!S.toast, msg: S.toast }
     };
     if (!s) return base;
     const d = S.drafts[s.id] || { n: s.n, t: s.t }, dirty = d.n !== s.n || d.t !== s.t, w = this.sw(s.on);
     const setD = p => this.setState(st => ({ drafts: { ...st.drafts, [s.id]: { ...(st.drafts[s.id] || { n: s.n, t: s.t }), ...p } } }));
     const clearD = () => this.setState(st => { const dr = { ...st.drafts }; delete dr[s.id]; return { drafts: dr }; });
-    const btn = (on, dark) => 'height:34px;padding:0 14px;border-radius:9px;font:inherit;font-size:12.5px;font-weight:700;transition:opacity .15s;' + (dark ? 'border:0;background:#10233a;color:#fff;' : 'border:1px solid #cfdcd9;background:#fff;color:#10233a;') + (on ? 'cursor:pointer;opacity:1' : 'cursor:default;opacity:.4');
+    const btn = (on, dark) => 'height:34px;padding:0 14px;border-radius:9px;font-size:12.5px;font-weight:700;white-space:nowrap;transition:opacity .15s;' + (dark ? 'border:0;background:#10233a;color:#fff;' : 'border:1px solid #cfdcd9;background:#fff;color:#10233a;') + (on ? 'cursor:pointer;opacity:1' : 'cursor:default;opacity:.4');
     return { ...base,
-      n: d.n, t: d.t, on: s.on, ...w, stateL: s.on ? 'Active' : 'Désactivée', stateSt: 'font-size:12.5px;font-weight:700;color:' + (s.on ? '#146b64' : '#8a9aa6'),
+      n: d.n, t: d.t, on: s.on, ...w, stateL: s.on ? 'Active' : 'Désactivée', stateSt: 'font-size:12.5px;font-weight:700;white-space:nowrap;color:' + (s.on ? '#146b64' : '#8a9aa6'),
       toggle: () => this.flip(s.id), isEdit: S.mode === 'edit', isView: S.mode === 'view',
-      modes: [['edit', 'Modifier'], ['view', 'Aperçu']].map(([k, l]) => ({ l, on: S.mode === k, pick: () => this.setState({ mode: k }),
-        st: 'height:30px;padding:0 14px;border:0;border-radius:8px;font:inherit;font-size:12.5px;cursor:pointer;' + (S.mode === k ? 'background:#fff;box-shadow:0 1px 2px rgba(16,35,58,.12);font-weight:700;color:#10233a' : 'background:transparent;font-weight:600;color:#5c7280') })),
+      fade: 'position:absolute;left:0;right:0;bottom:0;height:40px;pointer-events:none;background:linear-gradient(180deg,rgba(251,253,252,0),' + (S.mode === 'view' ? '#fff' : '#fbfdfc') + ')',
+      modes: [['edit', 'Modifier'], ['view', 'Aperçu']].map(([k, l]) => ({ l, on: S.mode === k, pick: () => this.setState({ mode: k }), st: seg(S.mode === k) })),
       blocks: this.md(d.t), empty: !d.t.trim(), len: this.len(d.t), dirty, clean: !dirty,
       setN: e => setD({ n: e.target.value }), setT: e => setD({ t: e.target.value }),
-      save: () => { if (!dirty) return; const sk = { ...s, n: d.n.trim() || 'Sans nom', t: d.t }; this.setList(list.map(y => y.id === s.id ? sk : y)); clearD(); this.props.onSave?.(sk); },
+      save: () => { if (!dirty) return; const sk = { ...s, n: d.n.trim() || 'Sans nom', t: d.t }, draft = d; this.setList(list.map(y => y.id === s.id ? sk : y)); clearD();
+        this.settle(this.props.onSave?.(sk), r => { if (r && r.id) this.setList(this.list().map(y => y.id === sk.id || y.id === r.id ? { ...y, n: r.n, t: r.t } : y)); this.toast('Skill enregistrée'); if (R) this.query(); },
+          m => { this.setState(st => ({ list: (st.list ?? this.list()).map(y => y.id === sk.id ? { ...y, n: s.n, t: s.t } : y), drafts: { ...st.drafts, [sk.id]: draft } })); this.toast(m || 'Skill non enregistrée.'); }); },
       cancel: () => dirty && clearD(),
       confirming: S.confirm, delL: S.confirm ? 'Confirmer la suppression' : 'Supprimer',
-      delSt: 'height:34px;padding:0 10px;border:0;border-radius:9px;font:inherit;font-size:12.5px;font-weight:700;color:#a2352a;cursor:pointer;background:' + (S.confirm ? '#fbe4e1' : 'transparent'),
-      del: () => { if (!S.confirm) return this.setState({ confirm: true }); const l = list.filter(y => y.id !== s.id); clearD(); this.setState({ list: l, sel: (l[0] || {}).id || null, confirm: false }); this.props.onDelete?.(s.id); },
+      delSt: 'height:34px;padding:0 10px;border:0;border-radius:9px;font-size:12.5px;font-weight:700;white-space:nowrap;color:#a2352a;cursor:pointer;background:' + (S.confirm ? '#fbe4e1' : 'transparent'),
+      del: () => { if (!S.confirm) return this.setState({ confirm: true }); const at = list.findIndex(y => y.id === s.id), draft = S.drafts[s.id], l = list.filter(y => y.id !== s.id); clearD(); this.setState({ list: l, sel: null, confirm: false });
+        this.settle(this.props.onDelete?.(s.id), () => { this.toast('« ' + s.n + ' » supprimée'); if (R) this.query(); },
+          m => { this.setState(st => { const cur = (st.list ?? this.list()).slice(); cur.splice(Math.min(at, cur.length), 0, s); return { list: cur, sel: s.id, drafts: draft ? { ...st.drafts, [s.id]: draft } : st.drafts }; }); this.toast(m || 'Suppression impossible.'); }); },
       keep: () => this.setState({ confirm: false }),
       saveSt: btn(dirty, true), cancelSt: btn(dirty, false)
     };

@@ -433,7 +433,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
     <sc-if value="{{ isSkills }}" hint-placeholder-val="{{ false }}">
       <div style="{{ skWrap }}" data-screen-label="Skills">
         <dc-import name="Skills" skills="{{ skills }}" on-save="{{ skSave }}" on-toggle="{{ skToggle }}"
-          on-create="{{ skCreate }}" on-delete="{{ skDelete }}" hint-size="100%,720px"></dc-import>
+          on-create="{{ skCreate }}" on-delete="{{ skDelete }}" on-query="{{ skQuery }}" hint-size="100%,720px"></dc-import>
       </div>
     </sc-if>
     <sc-if value="{{ isProfil }}" hint-placeholder-val="{{ false }}">
@@ -1155,10 +1155,11 @@ class Component extends DCLogic {
   // (Console reliée au serveur : admin-api.js remplace psSave et psUpload par des promesses, attendues par l’écran.)
   persona() { return this.state.persona || PERSONA0; }
   // ——— Skills de Jev (démonstration : journal local ; API : admin-api.js)
-  skSave(sk) { this.log('Skill modifiée', sk.n, 'sensible'); this.toast('Skill enregistrée'); }
-  skToggle(id, on) { this.log(on ? 'Skill activée' : 'Skill désactivée', id, 'sensible'); this.toast(on ? 'Skill activée' : 'Skill désactivée'); }
+  // L’écran confirme lui-même chaque action (notification sombre) : pas de seconde notification ici.
+  skSave(sk) { this.log('Skill modifiée', sk.n, 'sensible'); }
+  skToggle(id, on) { this.log(on ? 'Skill activée' : 'Skill désactivée', id, 'sensible'); }
   skCreate(sk) { this.log('Skill créée', sk.n, 'sensible'); }
-  skDelete(id) { this.log('Skill supprimée', id, 'sensible'); this.toast('Skill supprimée'); }
+  skDelete(id) { this.log('Skill supprimée', id, 'sensible'); }
   saveMe() {
     const S = this.state, d = S.pd; if (!d) return;
     if (!d.first.trim() || !d.last.trim()) return this.toast('Le prénom et le nom sont requis', 'err');

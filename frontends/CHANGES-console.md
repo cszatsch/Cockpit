@@ -366,3 +366,14 @@ Les captures sont écrites dans `OUT` (par défaut `<tmp>/rise-console-e2e`).
   Sans promesse, comportement d'origine.
 - `admin-api.js` : `psSave` et `psUpload` renvoient des promesses (Persona enregistré, URL de l'image) ou des erreurs en français ; plus de notification de la Console (l'écran affiche les siennes).
 - `Console Admin.dc.html` : en démonstration, `psSave` ne notifie plus (l'écran confirme « Identity enregistré » / « Soul enregistré »). En-tête générique toujours masqué sur la page.
+
+## Skills : écran en tuiles (29/09/2026)
+
+- `Skills.dc.html` : version livrée (tuiles de 680 px, côte à côte dès 740 px), design et textes inchangés ; `support.js` identique à celui en place. Adaptations :
+  - les appels qui renvoient une promesse sont attendus (`settle`), avec retour à l'état précédent en cas d'échec ;
+  - l'id du serveur remplace l'id provisoire (`adopt`) ;
+  - prop supplémentaire `onQuery` : mode serveur au-delà de 200 skills (`remote`, `query` ; `support.js` ne transmettant que les props précédentes, la dernière recherche lue est gardée) ;
+  - règle qui masque les barres de défilement limitée à l'écran.
+  Sans promesse ni `onQuery`, comportement d'origine.
+- `admin-api.js` : routes `PUT /:id`, `PATCH /:id/active`, liste paginée `skQuery` ; les actions renvoient des promesses (erreurs en français) sans relire la liste ; `skRemote` au-delà de 200 skills.
+- `Console Admin.dc.html` : `on-query` transmis à l'écran ; en démonstration, plus de seconde notification (l'écran confirme lui-même).
