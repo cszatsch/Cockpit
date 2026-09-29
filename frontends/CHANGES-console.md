@@ -357,3 +357,12 @@ Les captures sont écrites dans `OUT` (par défaut `<tmp>/rise-console-e2e`).
   Sans serveur, la simulation d'origine reste.
 - `admin-api.js` : `bindSnapshots` remplace les données simulées (`SEED`, `EV`, `BASE`, `counts`, `diff`, `capture`, `nextCap`, restauration, planification) par les routes du serveur. La confirmation de restauration de la vue est gardée ; seul son bouton « Restaurer » appelle le serveur. `toSnap` lit le nouveau format de liste ; l'ancienne capture et l'ancienne comparaison de la Console sont retirées ; la vue d'ensemble relit la planification.
 - `Console Admin.dc.html` : la page Snapshots intègre la vue (`<dc-import name="Snapshots">`) à la place de l'ancienne section ; en-tête générique masqué (la vue a le sien, mêmes textes).
+
+## Persona : écran en tuiles (29/09/2026)
+
+- `Persona.dc.html` : remplacé par la version livrée (deux tuiles de 680 px, côte à côte dès 720 px), design et textes inchangés ; `support.js` identique à celui en place. Deux méthodes adaptées pour attendre le serveur quand les props renvoient une promesse :
+  - `commit` : la tuile n'est marquée enregistrée qu'après la réponse ; en cas d'échec, « Non enregistré » reste et la notification donne le motif ;
+  - `upload` : l'URL stockée remplace l'aperçu base64 ; refus : message sous l'avatar, image précédente rétablie.
+  Sans promesse, comportement d'origine.
+- `admin-api.js` : `psSave` et `psUpload` renvoient des promesses (Persona enregistré, URL de l'image) ou des erreurs en français ; plus de notification de la Console (l'écran affiche les siennes).
+- `Console Admin.dc.html` : en démonstration, `psSave` ne notifie plus (l'écran confirme « Identity enregistré » / « Soul enregistré »). En-tête générique toujours masqué sur la page.

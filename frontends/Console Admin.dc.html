@@ -1150,8 +1150,9 @@ class Component extends DCLogic {
   // ——— Profil
   pSet(k) { return e => { const v = e && e.target ? e.target.value : e; this.setState(s => ({ pd: { ...(s.pd || s.prof), [k]: v } })); }; }
   // ——— Persona de Jev (démonstration : état local ; API : admin-api.js)
-  psSave(p) { this.setState({ persona: p }); this.log('Persona modifié', p.identity.name, 'sensible'); this.toast('Persona enregistré'); }
+  psSave(p) { this.setState({ persona: p }); this.log('Persona modifié', p.identity.name, 'sensible'); /* l’écran confirme lui-même (« Identity enregistré ») */ }
   psUpload() { /* démonstration : l’image reste dans le brouillon du composant */ }
+  // (Console reliée au serveur : admin-api.js remplace psSave et psUpload par des promesses, attendues par l’écran.)
   persona() { return this.state.persona || PERSONA0; }
   // ——— Skills de Jev (démonstration : journal local ; API : admin-api.js)
   skSave(sk) { this.log('Skill modifiée', sk.n, 'sensible'); this.toast('Skill enregistrée'); }

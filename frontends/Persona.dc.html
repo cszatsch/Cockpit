@@ -10,78 +10,88 @@
 <helmet><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700;1,800&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"><style>
 html,body{margin:0;background:#f2f6f5;font-family:'Plus Jakarta Sans',sans-serif;color:#10233a;-webkit-font-smoothing:antialiased;font-size:13px}
 *{box-sizing:border-box}a{color:#1d8f86}a:hover{color:#146b64}
-textarea,input{font:inherit;color:inherit}textarea:focus,input:focus{outline:none}
-button:focus-visible,[role="button"]:focus-visible{outline:2px solid #1d8f86;outline-offset:2px}
+textarea,input,button{font:inherit;color:inherit}textarea:focus,input:focus{outline:none}
+button:focus-visible{outline:2px solid #1d8f86;outline-offset:2px}
 textarea::placeholder,input::placeholder{color:#a9b8c0}
 </style></helmet>
 
-<div data-screen-label="Persona" style="max-width:1160px;margin:0 auto;padding:32px 40px 40px;display:flex;flex-direction:column;gap:22px">
-  <div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:800;letter-spacing:.16em;color:#1d8f86">ASSISTANT</div><h1 style="margin:4px 0 0;font-size:30px;font-weight:800;font-style:italic;letter-spacing:-.03em">Persona</h1><div style="font-size:13px;color:#43586a;margin-top:4px">Qui est Jev, et comment il pense. Lu avant chaque réponse, avant les skills.</div></div>
+<div data-screen-label="Persona" style="max-width:1200px;margin:0 auto;padding:32px clamp(18px,4vw,40px) 44px;display:flex;flex-direction:column;gap:24px">
+  <div style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px 24px">
+    <div style="flex:1 1 360px;min-width:0"><div style="font-size:11px;font-weight:800;letter-spacing:.16em;color:#1d8f86">ASSISTANT</div><h1 style="margin:4px 0 0;font-size:30px;font-weight:800;font-style:italic;letter-spacing:-.03em">Persona</h1><div style="font-size:13px;color:#43586a;margin-top:4px">Qui est Jev, et comment il pense. Lu avant chaque réponse, avant les skills.</div></div>
+    <div style="display:flex;align-items:center;gap:10px;font-size:11.5px;color:#5c7280"><span>Ordre de lecture par Jev :</span><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:18px;height:18px;border-radius:6px;background:#10233a;color:#fff;font-size:10px;font-weight:800;display:grid;place-items:center">1</span><strong style="color:#10233a">Identity</strong></span><svg width="14" height="8" viewBox="0 0 14 8" fill="none" stroke="#b8c7c4" stroke-width="1.5" stroke-linecap="round"><path d="M1 4h11M9 1l3 3-3 3"></path></svg><span>puis</span><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:18px;height:18px;border-radius:6px;background:#10233a;color:#fff;font-size:10px;font-weight:800;display:grid;place-items:center">2</span><strong style="color:#10233a">Soul</strong></span><svg width="14" height="8" viewBox="0 0 14 8" fill="none" stroke="#b8c7c4" stroke-width="1.5" stroke-linecap="round"><path d="M1 4h11M9 1l3 3-3 3"></path></svg><span>puis les skills actives.</span></div>
+  </div>
 
-  <div style="display:grid;grid-template-columns:290px minmax(0,1fr);gap:20px;align-items:start">
-    <div style="background:#fff;border:1px solid #e1e9e7;border-radius:18px;padding:8px;display:flex;flex-direction:column;gap:2px">
-      <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="2">
-        <div role="button" tabIndex="0" onClick="{{ t.pick }}" onKeyDown="{{ t.key }}" aria-current="{{ t.cur }}" style="{{ t.st }}" style-hover="background:#f5f8f7">
-          <span style="{{ t.tile }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{ t.ic }}"></path></svg></span>
-          <div style="flex:1;min-width:0"><div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:13.5px;font-weight:800">{{ t.n }}</span><span style="font-size:11px;color:#8a9aa6">{{ t.k }}</span><sc-if value="{{ t.pending }}" hint-placeholder-val="{{ false }}"><span title="Modifications non enregistrées" style="width:6px;height:6px;border-radius:50%;background:#f7a41c;margin-left:auto;flex:none;align-self:center"></span></sc-if></div><div style="font-size:11.5px;color:#5c7280;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.sub }}</div></div>
-        </div>
-      </sc-for>
-      <div style="margin:8px 10px 6px;padding-top:12px;border-top:1px solid #eef3f2;font-size:11.5px;color:#5c7280;line-height:1.55">Ordre de lecture par Jev : <strong style="color:#10233a">Identity</strong>, puis <strong style="color:#10233a">Soul</strong>, puis les skills actives.</div>
-    </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:20px">
 
-    <div style="background:#fff;border:1px solid #e1e9e7;border-radius:18px;overflow:hidden;display:flex;flex-direction:column">
-      <sc-if value="{{ isId }}" hint-placeholder-val="{{ true }}">
-        <div style="padding:22px 24px 6px;display:flex;align-items:baseline;gap:10px"><span style="font-size:22px;font-weight:800;letter-spacing:-.02em">Identity</span><span style="font-size:12.5px;color:#5c7280">Ce que l’utilisateur voit de Jev.</span></div>
-        <div style="padding:14px 24px 24px;display:grid;grid-template-columns:168px minmax(0,1fr);gap:28px">
-          <div style="display:flex;flex-direction:column;align-items:center;gap:14px;padding-top:4px">
-            <span style="{{ avBig }}"><sc-if value="{{ noPhoto }}" hint-placeholder-val="{{ true }}"><svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="{{ avInk }}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"></path><path d="M19 17l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z"></path></svg></sc-if></span>
+    <section aria-label="Identity" style="height:680px;min-width:0;background:#fff;border:1px solid #e1e9e7;border-radius:20px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 1px 2px rgba(16,35,58,.04)">
+      <div style="height:76px;flex:none;padding:0 22px;display:flex;align-items:center;gap:14px">
+        <span style="width:40px;height:40px;border-radius:12px;flex:none;display:grid;place-items:center;background:#10233a;color:#3dd6c6"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M4 21a8 8 0 0 1 16 0"></path></svg></span>
+        <div style="flex:1;min-width:0"><div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:19px;font-weight:800;letter-spacing:-.02em">Identity</span><span style="font-size:11px;color:#8a9aa6;white-space:nowrap">en surface</span></div><div style="font-size:12px;color:#5c7280;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Ce que l’utilisateur voit de Jev.</div></div>
+      </div>
+      <div style="height:48px;flex:none;padding:0 22px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid #eef3f2"><span style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#8a9aa6;white-space:nowrap">Aperçu</span><span title="Aperçu dans le Cockpit" style="max-width:100%;height:32px;padding:0 12px 0 6px;border-radius:999px;background:#f3f7f6;display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:#43586a;min-width:0"><span style="{{ avMini }}"></span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ idSum }}</span></span></div>
+      <div style="flex:1;min-height:0;overflow:hidden;padding:18px 22px 20px;display:flex;flex-direction:column;justify-content:space-between;gap:14px">
+        <div style="display:flex;align-items:center;gap:20px;padding-bottom:16px;border-bottom:1px solid #f1f5f4">
+          <span style="{{ avBig }}"><sc-if value="{{ noPhoto }}" hint-placeholder-val="{{ true }}"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="{{ avInk }}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"></path><path d="M19 17l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z"></path></svg></sc-if></span>
+          <div style="display:flex;flex-direction:column;gap:10px;min-width:0">
+            <span style="font-size:12.5px;font-weight:700">Avatar</span>
             <div role="radiogroup" aria-label="Avatar" style="display:flex;gap:8px"><sc-for list="{{ avs }}" as="a" hint-placeholder-count="4"><button type="button" role="radio" onClick="{{ a.pick }}" aria-label="{{ a.l }}" aria-checked="{{ a.on }}" style="{{ a.st }}"></button></sc-for></div>
             <label style="font-size:12px;font-weight:700;color:#1d8f86;display:inline-flex;align-items:center;gap:6px;cursor:pointer"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4 M7 9l5-5 5 5 M5 20h14"></path></svg>Importer une image<input type="file" accept="image/png,image/jpeg,image/webp" onChange="{{ upload }}" style="display:none"></label>
-            <sc-if value="{{ upErr }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;font-weight:700;color:#a2352a;text-align:center">{{ upErrL }}</span></sc-if>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:16px">
-            <sc-for list="{{ fields }}" as="f" hint-placeholder-count="3">
-              <label style="display:flex;flex-direction:column;gap:6px"><span style="display:flex;justify-content:space-between;gap:10px;font-size:12.5px;font-weight:700;white-space:nowrap">{{ f.l }}<span style="font-weight:500;color:#8a9aa6;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ f.h }}</span></span><input value="{{ f.v }}" onChange="{{ f.set }}" maxLength="{{ f.max }}" placeholder="{{ f.ph }}" style="{{ f.inSt }}" style-focus="border-color:#10233a;box-shadow:0 0 0 4px rgba(16,35,58,.07)"><sc-if value="{{ f.hasErr }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;font-weight:700;color:#a2352a">{{ f.err }}</span></sc-if></label>
-            </sc-for>
-            <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12.5px;font-weight:700">Emoji</span><div role="radiogroup" aria-label="Emoji" style="display:flex;flex-wrap:wrap;gap:6px"><sc-for list="{{ ems }}" as="e" hint-placeholder-count="6"><button type="button" role="radio" onClick="{{ e.pick }}" aria-checked="{{ e.on }}" style="{{ e.st }}">{{ e.e }}</button></sc-for></div></div>
+            <sc-if value="{{ upErr }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;font-weight:700;color:#a2352a">{{ upErrL }}</span></sc-if>
           </div>
         </div>
-      </sc-if>
-      <sc-if value="{{ isSoul }}" hint-placeholder-val="{{ false }}">
-        <div style="padding:22px 24px 14px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #eef3f2"><span style="font-size:22px;font-weight:800;letter-spacing:-.02em">Soul</span><span style="font-size:12.5px;color:#5c7280">Sa personnalité, sa façon d’écrire, ses convictions.</span><span style="flex:1"></span>
-          <div role="tablist" aria-label="Mode" style="display:inline-flex;gap:2px;padding:3px;border-radius:10px;background:#eef3f2"><sc-for list="{{ modes }}" as="m" hint-placeholder-count="2"><button type="button" role="tab" aria-selected="{{ m.on }}" onClick="{{ m.pick }}" style="{{ m.st }}">{{ m.l }}</button></sc-for></div></div>
-        <sc-if value="{{ isEdit }}" hint-placeholder-val="{{ true }}"><textarea value="{{ soul }}" onChange="{{ setSoul }}" aria-label="Soul" maxLength="20000" placeholder="Décrivez la personnalité de Jev. Titres avec ##, listes avec -." style="display:block;width:100%;height:420px;min-height:240px;resize:vertical;border:0;padding:22px 24px;background:#fbfdfc;font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.75"></textarea></sc-if>
-        <sc-if value="{{ isView }}" hint-placeholder-val="{{ false }}"><div style="height:420px;overflow:auto;padding:22px 28px;display:flex;flex-direction:column;gap:6px"><sc-for list="{{ blocks }}" as="b" hint-placeholder-count="0"><div style="{{ b.st }}"><sc-if value="{{ b.isLi }}" hint-placeholder-val="{{ false }}"><span style="width:5px;height:5px;border-radius:50%;background:#1d8f86;flex:none;margin-top:9px"></span></sc-if><sc-if value="{{ b.isOl }}" hint-placeholder-val="{{ false }}"><span style="flex:none;width:18px;font-weight:700;color:#1d8f86">{{ b.num }}</span></sc-if><span>{{ b.t }}</span></div></sc-for><sc-if value="{{ soulEmpty }}" hint-placeholder-val="{{ false }}"><div style="margin:auto;font-size:13px;color:#8a9aa6">Aucun texte pour l’instant.</div></sc-if></div></sc-if>
-      </sc-if>
-      <div style="display:flex;align-items:center;gap:8px;padding:12px 16px 12px 24px;border-top:1px solid #eef3f2">
-        <span style="font-size:11.5px;color:#8a9aa6;font-variant-numeric:tabular-nums">{{ len }}</span>
-        <span style="flex:1"></span>
-        <sc-if value="{{ dirty }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#8a5a12"><span style="width:6px;height:6px;border-radius:50%;background:#f7a41c"></span>Modifications non enregistrées</span></sc-if>
-        <button type="button" onClick="{{ cancel }}" disabled="{{ clean }}" style="{{ cancelSt }}">Annuler</button>
-        <button type="button" onClick="{{ save }}" disabled="{{ clean }}" style="{{ saveSt }}">Enregistrer</button>
+        <sc-for list="{{ fields }}" as="f" hint-placeholder-count="3">
+          <label style="display:flex;flex-direction:column;gap:6px"><span style="display:flex;justify-content:space-between;gap:10px;font-size:12.5px;font-weight:700;white-space:nowrap">{{ f.l }}<span style="font-weight:500;color:#8a9aa6;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ f.h }}</span></span><input value="{{ f.v }}" onChange="{{ f.set }}" maxLength="{{ f.max }}" placeholder="{{ f.ph }}" style="{{ f.inSt }}" style-focus="border-color:#10233a;box-shadow:0 0 0 4px rgba(16,35,58,.07)"><sc-if value="{{ f.hasErr }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;font-weight:700;color:#a2352a">{{ f.err }}</span></sc-if></label>
+        </sc-for>
+        <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12.5px;font-weight:700">Emoji</span><div role="radiogroup" aria-label="Emoji" style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px"><sc-for list="{{ ems }}" as="e" hint-placeholder-count="6"><button type="button" role="radio" onClick="{{ e.pick }}" aria-checked="{{ e.on }}" style="{{ e.st }}">{{ e.e }}</button></sc-for></div></div>
       </div>
-    </div>
+      <div style="height:58px;flex:none;display:flex;align-items:center;gap:8px;padding:0 16px 0 22px;border-top:1px solid #eef3f2;background:#fbfdfc">
+        <span style="font-size:11.5px;color:#8a9aa6;font-variant-numeric:tabular-nums;white-space:nowrap">Identity · 5 champs</span>
+        <span style="flex:1"></span>
+        <sc-if value="{{ idDirty }}" hint-placeholder-val="{{ false }}"><span title="Modifications non enregistrées" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#8a5a12;white-space:nowrap"><span style="width:6px;height:6px;border-radius:50%;background:#f7a41c"></span>Non enregistré</span></sc-if>
+        <button type="button" onClick="{{ idCancel }}" disabled="{{ idNoCancel }}" style="{{ idCancelSt }}">Annuler</button>
+        <button type="button" onClick="{{ idSave }}" disabled="{{ idNoSave }}" style="{{ idSaveSt }}">Enregistrer</button>
+      </div>
+    </section>
+
+    <section aria-label="Soul" style="height:680px;min-width:0;background:#fff;border:1px solid #e1e9e7;border-radius:20px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 1px 2px rgba(16,35,58,.04)">
+      <div style="height:76px;flex:none;padding:0 22px;display:flex;align-items:center;gap:14px">
+        <span style="width:40px;height:40px;border-radius:12px;flex:none;display:grid;place-items:center;background:#10233a;color:#3dd6c6"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.5-7 10-7 10z"></path></svg></span>
+        <div style="flex:1;min-width:0"><div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:19px;font-weight:800;letter-spacing:-.02em">Soul</span><span style="font-size:11px;color:#8a9aa6;white-space:nowrap">en profondeur</span></div><div style="font-size:12px;color:#5c7280;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Sa personnalité, sa façon d’écrire, ses convictions.</div></div>
+      </div>
+      <div style="height:48px;flex:none;padding:0 22px 12px;display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid #eef3f2"><span style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#8a9aa6;white-space:nowrap">Mode</span><div role="tablist" aria-label="Mode" style="display:inline-flex;gap:2px;padding:3px;border-radius:10px;background:#eef3f2;flex:none"><sc-for list="{{ modes }}" as="m" hint-placeholder-count="2"><button type="button" role="tab" aria-selected="{{ m.on }}" onClick="{{ m.pick }}" style="{{ m.st }}">{{ m.l }}</button></sc-for></div></div>
+      <sc-if value="{{ isEdit }}" hint-placeholder-val="{{ true }}"><textarea value="{{ soul }}" onChange="{{ setSoul }}" aria-label="Soul" maxLength="20000" placeholder="Décrivez la personnalité de Jev. Titres avec ##, listes avec -." style="flex:1;min-height:0;display:block;width:100%;resize:none;border:0;padding:20px 22px;background:#fbfdfc;font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.75;color:#10233a"></textarea></sc-if>
+      <sc-if value="{{ isView }}" hint-placeholder-val="{{ false }}"><div style="flex:1;min-height:0;overflow:auto;padding:20px 26px;display:flex;flex-direction:column;gap:6px"><sc-for list="{{ blocks }}" as="b" hint-placeholder-count="0"><div style="{{ b.st }}"><sc-if value="{{ b.isLi }}" hint-placeholder-val="{{ false }}"><span style="width:5px;height:5px;border-radius:50%;background:#1d8f86;flex:none;margin-top:9px"></span></sc-if><sc-if value="{{ b.isOl }}" hint-placeholder-val="{{ false }}"><span style="flex:none;width:18px;font-weight:700;color:#1d8f86">{{ b.num }}</span></sc-if><span>{{ b.t }}</span></div></sc-for><sc-if value="{{ soulEmpty }}" hint-placeholder-val="{{ false }}"><div style="margin:auto;font-size:13px;color:#8a9aa6">Aucun texte pour l’instant.</div></sc-if></div></sc-if>
+      <div style="height:58px;flex:none;display:flex;align-items:center;gap:8px;padding:0 16px 0 22px;border-top:1px solid #eef3f2;background:#fbfdfc">
+        <span style="font-size:11.5px;color:#8a9aa6;font-variant-numeric:tabular-nums;white-space:nowrap">{{ len }}</span>
+        <span style="flex:1"></span>
+        <sc-if value="{{ soulDirty }}" hint-placeholder-val="{{ false }}"><span title="Modifications non enregistrées" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#8a5a12;white-space:nowrap"><span style="width:6px;height:6px;border-radius:50%;background:#f7a41c"></span>Non enregistré</span></sc-if>
+        <button type="button" onClick="{{ soulCancel }}" disabled="{{ soulNo }}" style="{{ soulCancelSt }}">Annuler</button>
+        <button type="button" onClick="{{ soulSave }}" disabled="{{ soulNo }}" style="{{ soulSaveSt }}">Enregistrer</button>
+      </div>
+    </section>
+
   </div>
 </div>
+
+<sc-if value="{{ ts.on }}" hint-placeholder-val="{{ false }}"><div role="status" style="position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:10px;padding:11px 16px;border-radius:13px;background:#10233a;color:#fff;font-size:13px;font-weight:600;box-shadow:0 18px 40px -16px rgba(16,35,58,.6)"><span style="width:7px;height:7px;border-radius:50%;background:#3dd6c6"></span>{{ ts.msg }}</div></sc-if>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;persona&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{ identity: { name: string; creature: string; style: string; emoji: string; avatar: 'nuit'|'ambre'|'lagon'|'encre'; photo: string | null }; soul: string }&quot;},&quot;onSave&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(persona) =&gt; void&quot;},&quot;onUploadAvatar&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(file: File) =&gt; void&quot;}}">
-// Démonstration : remplacer par le persona du serveur via le prop `persona`.
+<script type="text/x-dc" data-dc-script>
 const DEMO = {
-  identity: { name: 'Jev', creature: 'Copilote de projet', style: 'Direct, chaleureux, précis', emoji: '🧭', avatar: 'nuit', photo: null },
+  identity: { name: 'Jev', creature: 'Copilote de projet', style: 'Direct, chaleureux, précis', emoji: '✨', avatar: 'nuit', photo: null },
   soul: "## Qui je suis\nJe suis le copilote des équipes projet. Je lis les données avant de parler, et je dis ce que je vois, même quand ce n’est pas agréable.\n\n## Comment j’écris\n- Je tutoie et je vais droit au but.\n- Une idée par phrase ; les chiffres avant les adjectifs.\n- Je cite toujours mes sources.\n\n## Ce en quoi je crois\n- Un risque nommé tôt coûte moins cher qu’un risque découvert tard.\n- La décision appartient à l’humain : je l’éclaire, je ne la prends pas.\n- Mieux vaut « je ne sais pas » qu’une réponse inventée."
 };
-// Avatars prédéfinis : [id, libellé, dégradé, couleur du pictogramme]
 const AVS = [['nuit', 'Nuit et sarcelle', 'linear-gradient(135deg,#1d8f86,#0f2034)', '#f7a41c'], ['ambre', 'Ambre', 'linear-gradient(135deg,#f7a41c,#f0752b)', '#10233a'], ['lagon', 'Lagon', 'linear-gradient(135deg,#3dd6c6,#1d8f86)', '#fff'], ['encre', 'Encre', 'linear-gradient(135deg,#10233a,#2e5173)', '#3dd6c6']];
 const EMS = ['🧭', '✨', '🦉', '🛰️', '🐙', '🌱'];
 const FIELDS = [['name', 'Nom', 'Affiché dans le Cockpit', 30, 'Jev', true], ['creature', 'Créature', 'Ce qu’il incarne', 40, 'Copilote de projet', false], ['style', 'Style', 'Trois adjectifs au plus', 60, 'Direct, chaleureux, précis', false]];
 const clone = o => JSON.parse(JSON.stringify(o));
 
 class Component extends DCLogic {
-  state = { tab: 'identity', mode: 'edit', saved: null, cur: null, upErr: '' };
-  componentDidUpdate(pp) { if (pp.persona !== this.props.persona && this.props.persona) this.setState({ saved: null, cur: null }); }
+  state = { mode: 'edit', saved: null, cur: null, upErr: '', toast: '' };
+  componentWillUnmount() { clearTimeout(this._t); }
   saved() { return this.state.saved ?? clone(this.props.persona ?? DEMO); }
   cur() { return this.state.cur ?? this.saved(); }
   setCur(fn) { const c = clone(this.cur()); fn(c); this.setState({ cur: c, saved: this.saved() }); }
+  toast(m) { clearTimeout(this._t); this.setState({ toast: m }); this._t = setTimeout(() => this.setState({ toast: '' }), 2600); }
   md(t) {
     const out = []; (t || '').split('\n').forEach(r => { const l = r.trim(); if (!l) return; let m;
       if (l.startsWith('## ')) out.push({ t: l.slice(3), st: 'font-size:14.5px;font-weight:800;margin-top:' + (out.length ? 14 : 0) + 'px;color:#10233a' });
@@ -91,45 +101,60 @@ class Component extends DCLogic {
     return out.map(b => ({ isLi: false, isOl: false, num: '', ...b }));
   }
   len(t) { const c = (t || '').length; return c.toLocaleString('fr-FR') + ' caractères · ≈ ' + Math.ceil(c / 4).toLocaleString('fr-FR') + ' tokens'; }
-  btn(on, dark) { return 'height:34px;padding:0 14px;border-radius:9px;font:inherit;font-size:12.5px;font-weight:700;transition:opacity .15s;' + (dark ? 'border:0;background:#10233a;color:#fff;' : 'border:1px solid #cfdcd9;background:#fff;color:#10233a;') + (on ? 'cursor:pointer;opacity:1' : 'cursor:default;opacity:.4'); }
+  btn(on, dark) { return 'height:34px;padding:0 14px;border-radius:9px;font-size:12.5px;font-weight:700;white-space:nowrap;transition:opacity .15s;' + (dark ? 'border:0;background:#10233a;color:#fff;' : 'border:1px solid #cfdcd9;background:#fff;color:#10233a;') + (on ? 'cursor:pointer;opacity:1' : 'cursor:default;opacity:.4'); }
+  // Console : si `onUploadAvatar` renvoie une promesse, l'URL stockée remplace l'aperçu (data URL) ; refus : message sous
+  // l'avatar et image précédente rétablie.
   upload(e) {
     const f = e.target.files && e.target.files[0]; e.target.value = '';
     if (!f) return;
     if (f.size > 1024 * 1024) return this.setState({ upErr: 'Image trop lourde (1 Mo maximum).' });
-    const r = new FileReader(); r.onload = () => { this.setState({ upErr: '' }); this.setCur(c => { c.identity.photo = r.result; }); }; r.readAsDataURL(f);
-    this.props.onUploadAvatar?.(f);
+    const read = new Promise(ok => { const r = new FileReader(); r.onload = () => ok(r.result); r.readAsDataURL(f); });
+    read.then(data => { this.setState({ upErr: '' }); this.setCur(c => { c.identity.photo = data; }); });
+    const up = this.props.onUploadAvatar?.(f);
+    if (up && typeof up.then === 'function') Promise.all([read, up]).then(([data, url]) => { if (url && this.cur().identity.photo === data) this.setCur(c => { c.identity.photo = url; }); },
+      err => read.then(data => { this.setState({ upErr: (err && err.message) || 'Image refusée.' }); if (this.cur().identity.photo === data) this.setCur(c => { c.identity.photo = this.saved().identity.photo; }); }));
   }
+  // Console : si `onSave` renvoie une promesse, la tuile n'est marquée enregistrée qu'après la réponse du serveur ; en
+  // cas d'échec, la modification reste en attente (« Non enregistré ») et la notification donne le motif.
+  commit(part) { const sv = clone(this.saved()), c = this.cur(); if (part === 'identity') { sv.identity = clone(c.identity); sv.identity.name = sv.identity.name.trim(); } else sv.soul = c.soul;
+    const label = part === 'identity' ? 'Identity' : 'Soul';
+    const done = srv => { const base = srv && srv.identity ? clone(srv) : sv, rest = clone(this.cur()); rest[part] = clone(base[part]);
+      this.setState({ saved: base, cur: JSON.stringify(rest) === JSON.stringify(base) ? null : rest }); this.toast(label + ' enregistré'); };
+    if (this._busy) return;
+    const r = this.props.onSave?.(sv);
+    if (!r || typeof r.then !== 'function') return done(null);
+    this._busy = true; const slow = setTimeout(() => this.toast('Enregistrement en cours…'), 500);
+    r.then(srv => { clearTimeout(slow); this._busy = false; done(srv); }, err => { clearTimeout(slow); this._busy = false; this.toast((err && err.message) || label + ' non enregistré.'); }); }
+  revert(part) { const sv = this.saved(), c = clone(this.cur()); c[part] = clone(sv[part]); this.setState({ cur: JSON.stringify(c) === JSON.stringify(sv) ? null : c, upErr: part === 'identity' ? '' : this.state.upErr }); }
 
   renderVals() {
     const S = this.state, sv = this.saved(), c = this.cur(), i = c.identity;
-    const idDirty = JSON.stringify(c.identity) !== JSON.stringify(sv.identity), soulDirty = c.soul !== sv.soul, dirty = idDirty || soulDirty;
-    const nameErr = !String(i.name || '').trim(), canSave = dirty && !nameErr;
-    const av = AVS.find(a => a[0] === i.avatar) || AVS[0], heads = this.md(c.soul).filter(b => !b.isLi && !b.isOl && b.st.includes('800')).map(b => b.t);
-    const go = k => this.setState({ tab: k });
+    const idDirty = JSON.stringify(c.identity) !== JSON.stringify(sv.identity), soulDirty = c.soul !== sv.soul;
+    const nameErr = !String(i.name || '').trim(), idCan = idDirty && !nameErr;
+    const av = AVS.find(a => a[0] === i.avatar) || AVS[0], bg = i.photo ? 'url(' + i.photo + ') center/cover' : av[2];
     return {
-      tabs: [['identity', 'Identity', 'en surface', (i.emoji || '') + ' ' + (i.name || 'Sans nom') + (i.creature ? ' · ' + i.creature : ''), 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M4 21a8 8 0 0 1 16 0', idDirty],
-             ['soul', 'Soul', 'en profondeur', heads.join(' · ') || 'Aucun texte', 'M12 21s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.5-7 10-7 10z', soulDirty]]
-        .map(([k, n, kk, sub, ic, pend]) => ({ n, k: kk, sub, ic, pending: pend, cur: S.tab === k ? 'true' : undefined, pick: () => go(k), key: e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(k); } },
-          st: 'display:flex;align-items:center;gap:12px;padding:12px;border-radius:12px;cursor:pointer;transition:background .15s;background:' + (S.tab === k ? '#eef4f2' : 'transparent'),
-          tile: 'width:36px;height:36px;border-radius:10px;flex:none;display:grid;place-items:center;' + (S.tab === k ? 'background:#10233a;color:#3dd6c6' : 'background:#eef3f2;color:#43586a') })),
-      isId: S.tab === 'identity', isSoul: S.tab === 'soul', isEdit: S.mode === 'edit', isView: S.mode === 'view',
+      idSum: (i.emoji || '') + ' ' + (i.name || 'Sans nom') + (i.creature ? ' · ' + i.creature : ''),
+      avMini: 'width:22px;height:22px;border-radius:50%;flex:none;background:' + bg,
       noPhoto: !i.photo, avInk: av[3],
-      avBig: 'width:120px;height:120px;border-radius:50%;display:grid;place-items:center;background:' + (i.photo ? 'url(' + i.photo + ') center/cover' : av[2]) + ';box-shadow:0 0 0 5px #fff,0 0 0 6px #e1e9e7,0 18px 36px -14px rgba(16,35,58,.45)',
+      avBig: 'width:92px;height:92px;border-radius:50%;flex:none;display:grid;place-items:center;background:' + bg + ';box-shadow:0 0 0 4px #fff,0 0 0 5px #e1e9e7,0 14px 28px -12px rgba(16,35,58,.45)',
       avs: AVS.map(a => { const on = !i.photo && i.avatar === a[0]; return { l: 'Avatar ' + a[1], on, pick: () => this.setCur(x => { x.identity.avatar = a[0]; x.identity.photo = null; }),
         st: 'width:26px;height:26px;border-radius:50%;border:0;cursor:pointer;background:' + a[2] + ';box-shadow:' + (on ? '0 0 0 2px #fff,0 0 0 4px #10233a' : '0 0 0 1px rgba(16,35,58,.08)') }; }),
       upload: e => this.upload(e), upErr: !!S.upErr, upErrL: S.upErr,
       fields: FIELDS.map(([k, l, h, max, ph, req]) => { const err = req && !String(i[k] || '').trim();
         return { l, h, max, ph, v: i[k] || '', hasErr: err, err: 'Le nom est obligatoire.', set: e => { const v = e.target.value; this.setCur(x => { x.identity[k] = v; }); },
-          inSt: 'height:42px;border:1px solid ' + (err ? '#c2473b' : '#cfdcd9') + ';border-radius:10px;padding:0 14px;font-size:14px;font-weight:600;background:#fff;transition:border-color .15s,box-shadow .15s' }; }),
+          inSt: 'height:40px;border:1px solid ' + (err ? '#c2473b' : '#cfdcd9') + ';border-radius:10px;padding:0 14px;font-size:13.5px;font-weight:600;background:#fff;transition:border-color .15s,box-shadow .15s' }; }),
       ems: EMS.map(e => ({ e, on: i.emoji === e, pick: () => this.setCur(x => { x.identity.emoji = e; }),
-        st: 'width:40px;height:40px;border-radius:11px;border:0;cursor:pointer;font-size:19px;display:grid;place-items:center;transition:box-shadow .15s;' + (i.emoji === e ? 'background:#fff;box-shadow:0 0 0 1.5px #10233a,0 6px 14px -8px rgba(16,35,58,.4)' : 'background:#f1f5f4') })),
+        st: 'height:40px;border-radius:11px;border:0;cursor:pointer;font-size:19px;display:grid;place-items:center;transition:box-shadow .15s;' + (i.emoji === e ? 'background:#fff;box-shadow:0 0 0 1.5px #10233a,0 6px 14px -8px rgba(16,35,58,.4)' : 'background:#f1f5f4') })),
       soul: c.soul, soulEmpty: !c.soul.trim(), blocks: this.md(c.soul), setSoul: e => { const v = e.target.value; this.setCur(x => { x.soul = v; }); },
+      isEdit: S.mode === 'edit', isView: S.mode === 'view',
       modes: [['edit', 'Modifier'], ['view', 'Aperçu']].map(([k, l]) => ({ l, on: S.mode === k, pick: () => this.setState({ mode: k }),
-        st: 'height:30px;padding:0 14px;border:0;border-radius:8px;font:inherit;font-size:12.5px;cursor:pointer;' + (S.mode === k ? 'background:#fff;box-shadow:0 1px 2px rgba(16,35,58,.12);font-weight:700;color:#10233a' : 'background:transparent;font-weight:600;color:#5c7280') })),
-      len: S.tab === 'soul' ? this.len(c.soul) : 'Identity · 5 champs',
-      dirty, clean: !canSave, saveSt: this.btn(canSave, true), cancelSt: this.btn(dirty, false),
-      save: () => { if (!canSave) return; const p = clone(c); p.identity.name = p.identity.name.trim(); this.setState({ saved: p, cur: null }); this.props.onSave?.(p); },
-      cancel: () => dirty && this.setState({ cur: null, upErr: '' })
+        st: 'height:30px;padding:0 14px;border:0;border-radius:8px;font-size:12.5px;cursor:pointer;' + (S.mode === k ? 'background:#fff;box-shadow:0 1px 2px rgba(16,35,58,.12);font-weight:700;color:#10233a' : 'background:transparent;font-weight:600;color:#5c7280') })),
+      len: this.len(c.soul),
+      idDirty, soulDirty, idNoSave: !idCan, idNoCancel: !idDirty, soulNo: !soulDirty,
+      idSaveSt: this.btn(idCan, true), idCancelSt: this.btn(idDirty, false), soulSaveSt: this.btn(soulDirty, true), soulCancelSt: this.btn(soulDirty, false),
+      idSave: () => idCan && this.commit('identity'), idCancel: () => idDirty && this.revert('identity'),
+      soulSave: () => soulDirty && this.commit('soul'), soulCancel: () => soulDirty && this.revert('soul'),
+      ts: { on: !!S.toast, msg: S.toast }
     };
   }
 }

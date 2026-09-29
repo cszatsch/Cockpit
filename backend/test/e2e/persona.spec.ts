@@ -36,6 +36,21 @@ describe('Console — Persona de Jev', () => {
     expect(v[0]).toMatchObject({ version: 1, identity: { name: 'Jev', emoji: '🧭' } });
     const a = await t.db.auditEntry.findFirst({ where: { action: 'Persona modifié' }, orderBy: { at: 'desc' } });
     expect(a?.target).toContain('Nova · nom, emoji, soul');
+    expect(a).toMatchObject({ profileUsed: 'ADMIN', accountId: 'u1', newValue: { partie: 'Identity et Soul', avant: { identity: { name: 'Jev', emoji: '🧭' } }, apres: { identity: { name: 'Nova', emoji: '🦉' }, soul: '## Qui je suis\nUne autre âme.' } } });
+  });
+
+  it('écran en tuiles : chaque tuile s’enregistre seule, l’audit trace la partie modifiée (avant, après) ; limites', async () => {
+    const cur = (await admin.get(PS).expect(200)).body;
+    await admin.put(PS, { identity: { ...cur.identity, name: 'n'.repeat(31) }, soul: cur.soul }).expect(422);
+    await admin.put(PS, { identity: { ...cur.identity, creature: 'c'.repeat(41) }, soul: cur.soul }).expect(422);
+    await admin.put(PS, { identity: { ...cur.identity, name: 'n'.repeat(30), creature: 'c'.repeat(40), style: 's'.repeat(60) }, soul: cur.soul }).expect(200);
+    const idOnly = await t.db.auditEntry.findFirst({ where: { action: 'Persona modifié' }, orderBy: { at: 'desc' } });
+    expect(idOnly!.newValue).toEqual({ partie: 'Identity', avant: { identity: cur.identity }, apres: { identity: { ...cur.identity, name: 'n'.repeat(30), creature: 'c'.repeat(40), style: 's'.repeat(60) } }, version: cur.version + 1 });
+    await admin.put(PS, { identity: { ...cur.identity, name: 'n'.repeat(30), creature: 'c'.repeat(40), style: 's'.repeat(60) }, soul: 'y'.repeat(20_000) }).expect(200);
+    const soulOnly = await t.db.auditEntry.findFirst({ where: { action: 'Persona modifié' }, orderBy: { at: 'desc' } });
+    expect(soulOnly!.newValue).toMatchObject({ partie: 'Soul', avant: { soul: cur.soul }, apres: { soul: 'y'.repeat(20_000) } });
+    expect(soulOnly!.newValue).not.toHaveProperty('avant.identity');
+    await admin.put(PS, { identity: cur.identity, soul: cur.soul }).expect(200);
   });
 
   it('avatar importé : PNG, JPEG ou WebP, 1 Mo au plus ; URL lisible et enregistrable', async () => {

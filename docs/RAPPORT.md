@@ -145,6 +145,19 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
     6. 97 snapshots : défilement dans le cadre de 600 px, en-tête du mois en cours collé en haut, colonnes de même hauteur ; 900 px : colonnes l'une sous l'autre, sans défilement horizontal.
   - Écart de démonstration : les compteurs des snapshots de démonstration (141 tâches pour RISE) ne correspondent pas aux données amorcées. Une vraie capture de RISE compte 9 actions : ces snapshots ne sont pas comparables entre eux (refus explicite).
 
+- **Persona en tuiles (29/09/2026)** :
+  - Tests e2e (`persona.spec.ts`) : limites (Nom 30 / 31, Créature 40 / 41, Style 60, Soul 20 000) ; audit par partie (Identity seule, Soul seule, les deux), valeurs avant et après.
+  - Recette navigateur (Console sur une base de recette, 1 440 et 900 px) :
+    1. Au chargement : Persona du serveur dans les deux tuiles (nom, emoji, image, Soul) ; aperçu et sidebar à jour.
+    2. Identity enregistrée (« Nova », 🦉) sans toucher la Soul en attente ; puis Soul enregistrée, Identity intacte.
+    3. Nom vide : « Enregistrer » désactivé, « Le nom est obligatoire. ».
+    4. Image de plus de 1 Mo refusée ; faux PNG refusé par le serveur (« Format non accepté · PNG, JPEG ou WebP »), image précédente rétablie ; image valide stockée et relue depuis son URL (200).
+    5. Aperçu de Soul : titres `##`, listes `-` et `1.`.
+    6. Audit : trois « Persona modifié » (nom et emoji, Soul, image).
+  - Échec simulé (réseau coupé) : Soul reste « Non enregistré », texte gardé, notification « Serveur injoignable… » ; le second essai enregistre.
+  - Tuiles : 680 px de haut, côte à côte à 1 440 et à 900 px (grille de 741 px), aucune barre de défilement dans Identity.
+  - Non vérifié dans le navigateur : la réponse de Jev après modification. La base de recette n'a pas de modèle d'IA (Jev indisponible) ; le test e2e `persona.spec.ts` le couvre (prompt : Identité, Personnalité, puis skills ; réponse suivante).
+
 ## 3. Écarts connus
 
 ### 3.1 Écarts par rapport aux briefs

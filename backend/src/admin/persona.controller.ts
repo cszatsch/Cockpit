@@ -74,7 +74,18 @@ export class PersonaController {
         ...(['name', 'creature', 'style', 'emoji', 'avatar', 'photo'] as const).filter((k) => b.identity[k] !== i[k]).map((k) => ({ name: 'nom', creature: 'créature', style: 'style', emoji: 'emoji', avatar: 'avatar', photo: 'image' })[k]),
         ...(b.soul !== input.soul ? [`soul (${b.soul.length} → ${input.soul.length} car.)`] : []),
       ];
-      await this.audit.action(db, adminCtx(actor), { action: 'Persona modifié', target: `${p.name} · ${changed.join(', ') || 'aucun changement'} · version ${p.version}`, severity: 'SENSITIVE', entityType: 'Persona', entityId: 'jev' });
+      // Partie modifiée (Identity, Soul ou les deux) et ses valeurs avant / après ; l'image est tracée par son adresse.
+      const idChanged = JSON.stringify(b.identity) !== JSON.stringify(personaText(p).identity), soulChanged = b.soul !== input.soul;
+      const parts = [...(idChanged ? ['Identity'] : []), ...(soulChanged ? ['Soul'] : [])];
+      const pick = (x: PersonaText) => ({ ...(idChanged ? { identity: x.identity } : {}), ...(soulChanged ? { soul: x.soul } : {}) });
+      await this.audit.action(db, adminCtx(actor), {
+        action: 'Persona modifié',
+        target: `${p.name} · ${changed.join(', ') || 'aucun changement'} · version ${p.version}`,
+        severity: 'SENSITIVE',
+        entityType: 'Persona',
+        entityId: 'jev',
+        details: { partie: parts.join(' et ') || 'aucune', avant: pick(b), apres: pick(personaText(p)), version: p.version },
+      });
       return p;
     });
     return view(p);

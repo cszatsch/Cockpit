@@ -522,3 +522,15 @@ Livraison `Snapshots.dc.html` (« Intégration backend de la vue Snapshots »). 
 | Onglets | Projets de la plateforme, du plus ancien au plus récent, projets clos en dernier (en démonstration : RISE, ATLAS, HORIZON, NOVA, puis ORBIT). | `bindSnapshots` (`admin-api.js`) |
 | États | Chargement, comparaison et restauration de plus de 500 ms : notification sombre « … en cours… » ; erreurs : notification sombre en français. Pendant une comparaison, ni « Aucune différence » ni liste. La progression de la capture avance au pas de la simulation d'origine sans devancer le serveur. | `SN_SLOW`, `SN_TICK`, `SN_POLL` |
 | Propriété `volume` | Gardée dans le fichier (démonstration hors serveur), sans effet dans la Console. | — |
+
+## Persona : écran en tuiles branché sur le serveur (29/09/2026)
+
+Livraison « Persona tuiles » (`Persona.dc.html`) : deux tuiles de même taille (Identity, Soul) à la place des onglets. Les routes, les validations et l'injection dans le prompt de Jev existaient déjà (spécification PERSONA) ; elles sont gardées.
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Routes | Inchangées : `GET` / `PUT /api/assistant/persona` (Persona complet), `POST /api/assistant/persona/avatar` → `{ url }`. Le brief les nomme `/persona` et `/persona/avatar` : ce sont les mêmes, sous le préfixe existant. | `PersonaController` |
+| Validations | Déjà en place et vérifiées : Nom obligatoire, 30 caractères ; Créature 40 ; Style 60 ; Soul 20 000 ; image PNG, JPEG ou WebP (reconnue par sa signature), 1 Mo. | `PERSONA_NAME_MAX`, `PERSONA_CREATURE_MAX`, `PERSONA_STYLE_MAX`, `PERSONA_SOUL_MAX`, `PERSONA_PHOTO_MAX_BYTES` |
+| Audit | « Persona modifié » porte désormais la partie modifiée (`Identity`, `Soul` ou `Identity et Soul`) et ses valeurs avant et après (l'image par son adresse), en plus de l'administrateur, de la date et de la version. | `PersonaController.put` (`details`) |
+| Enregistrement | L'écran attend la réponse du serveur quand `onSave` renvoie une promesse. La tuile n'est marquée enregistrée qu'après la réponse ; en cas d'échec, la modification reste en attente (« Non enregistré ») et la notification sombre donne le motif. Un enregistrement lent (plus de 500 ms) affiche « Enregistrement en cours… ». Sans promesse (démonstration), comportement d'origine. | `commit()` de `Persona.dc.html`, `psSave` (`admin-api.js`) |
+| Image | L'image est envoyée dès son choix ; l'aperçu (data URL) est remplacé par l'URL stockée dès la réponse. Refus du serveur : motif sous l'avatar, image précédente rétablie. | `upload()` de `Persona.dc.html`, `psUpload` |

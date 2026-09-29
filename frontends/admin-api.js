@@ -354,15 +354,18 @@ export function bindConsole(c) {
   // à l'enregistrement, cet aperçu est remplacé par l'URL renvoyée par le serveur.
   const PS = '/api/assistant/persona';
   let psUp = null;
-  c.psUpload = file => { const fd = new FormData(); fd.append('file', file); psUp = apiAbs('POST', PS + '/avatar', fd).then(r => r.url); psUp.catch(e => { fail(e); }); };
+  // Écran en tuiles : l'écran attend les promesses (URL de l'image, Persona enregistré) et affiche lui-même les
+  // confirmations et les refus (notification sombre) ; en cas d'échec, sa modification reste en attente.
+  const psErr = e => new Error(errText(e));
+  c.psUpload = file => { const fd = new FormData(); fd.append('file', file); psUp = apiAbs('POST', PS + '/avatar', fd).then(r => r.url); return psUp.catch(e => { psUp = null; throw psErr(e); }); };
   c.psSave = async p => {
     const body = JSON.parse(JSON.stringify(p)), prev = (c.state.persona || {}).identity || {};
     if (body.identity.photo && body.identity.photo.startsWith('data:')) {
       const url = psUp ? await psUp.catch(() => null) : null;
-      if (url) body.identity.photo = url; else { body.identity.photo = prev.photo || null; toast('Image non enregistrée : le reste du Persona est enregistré', 'err'); }
+      body.identity.photo = url || prev.photo || null; // image refusée : le reste est enregistré avec l'image précédente
     }
-    try { const r = await apiAbs('PUT', PS, body); psUp = null; set0({ persona: toPersona(r) }); toast('Persona enregistré'); touch(); }
-    catch (e) { fail(e); load(['persona']).catch(() => {}); }
+    try { const r = await apiAbs('PUT', PS, body); psUp = null; const v = toPersona(r); set0({ persona: v }); touch(); return v; }
+    catch (e) { throw psErr(e); }
   };
 
   // ── Notifications de l'administrateur (/api/admin/notifications, NOTIFICATIONS - specification.md § 5) ──
