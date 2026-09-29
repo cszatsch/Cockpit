@@ -49,6 +49,12 @@ export function gaps(p: Proposal, actual: ProjectRightsLike | undefined): Gaps {
   };
 }
 
+/** Proposition en clair : « Responsable de C1 · Lecteur de C3 », ou « aucun chantier au référentiel : droits à compléter ». */
+export function proposalText(p: Proposal): string {
+  const parts = [p.responsable.length ? `Responsable de ${p.responsable.join(', ')}` : '', p.lecteur.length ? `Lecteur de ${p.lecteur.join(', ')}` : ''].filter(Boolean);
+  return parts.length ? parts.join(' · ') : 'aucun chantier au référentiel : droits à compléter';
+}
+
 export const gapCount = (g: Gaps) => g.responsableManquant.length + g.responsableEnTrop.length + g.lectureManquante.length;
 
 /** Écarts en une phrase : « RISE : Responsable de C6 non attribué ; lecture de C2 manquante ». */

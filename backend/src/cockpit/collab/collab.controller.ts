@@ -167,6 +167,29 @@ export class CollabController {
     });
   }
 
+  /**
+   * État du compte de chaque personne du projet, pour le Référentiel : `active`, `invited` (invitation envoyée, date),
+   * `suspended`, `pending` (demande transmise à l'Administrateur, date), `rejected` (dernière demande refusée) ou `none`.
+   */
+  @Get('account-states')
+  async accountStates(@CurrentActor() actor: Actor, @Param('projectId') p: string) {
+    const scope = await this.access.scope(actor, p);
+    if (!canWriteReferential(scope.access) && !scope.access.admin) throw forbidden();
+    const persons = await this.prisma.person.findMany({ where: { projectId: scope.project.id }, select: { id: true, email: true } });
+    const accounts = await this.prisma.account.findMany({ where: { OR: [{ personId: { in: persons.map((x) => x.id) } }, { email: { in: persons.map((x) => x.email.toLowerCase()), mode: 'insensitive' } }] } });
+    const requests = await this.prisma.invitationRequest.findMany({ where: { personId: { in: persons.map((x) => x.id) } }, orderBy: { createdAt: 'desc' } });
+    const out: Record<string, { state: string; at: string | null }> = {};
+    for (const x of persons) {
+      const a = accounts.find((c) => c.personId === x.id || c.email.toLowerCase() === x.email.toLowerCase());
+      const r = requests.find((q) => q.personId === x.id);
+      if (a) out[x.id] = a.status === 'ACTIVE' ? { state: 'active', at: a.lastLoginAt?.toISOString() ?? null } : a.status === 'INVITED' ? { state: 'invited', at: a.invitedAt?.toISOString() ?? null } : { state: 'suspended', at: null };
+      else if (r?.status === 'PENDING') out[x.id] = { state: 'pending', at: r.createdAt.toISOString() };
+      else if (r?.status === 'REJECTED') out[x.id] = { state: 'rejected', at: (r.decidedAt ?? r.createdAt).toISOString() };
+      else out[x.id] = { state: 'none', at: null };
+    }
+    return out;
+  }
+
   @Get('invitation-requests')
   async invitationRequests(@CurrentActor() actor: Actor, @Param('projectId') p: string) {
     const scope = await this.access.scope(actor, p);

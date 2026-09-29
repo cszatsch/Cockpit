@@ -152,3 +152,8 @@ Plus aucune clé `localStorage` n'est lue ou écrite par le fichier HTML. api.js
 - `RISE Cockpit.dc.html` : `prof()` calculait les droits de l'utilisateur connecté à partir des seules habilitations de sa personne du référentiel. Un compte sans personne (PMO attribué par la Console, comme le compte initial) n'avait donc aucun droit dans l'écran : pas d'onglet « Référentiel » dans Info projet, référentiel en lecture seule. Pour l'utilisateur connecté, l'écran utilise désormais ses droits effectifs calculés par le serveur (`GET /api/me` → `effective` : compte et personne réunis) ; le calcul par personne reste pour les autres personnes affichées.
 - `api.js` : `meAccess` (droits effectifs de `/me`) transmis à l'écran au chargement.
 - Carte de la barre latérale : initiales et profil principal de l'utilisateur connecté, au lieu de « RL » et « PMO projet » écrits en dur.
+
+## Référentiel › Personnes : invitation (29/09/2026)
+
+- `RISE Cockpit.dc.html` : état du compte de chaque personne lu sur le serveur (`psAccSrv`) : « Compte activé », « Invitation envoyée le JJ/MM par l'administrateur · en attente d'activation », « Demande d'invitation transmise à l'administrateur le JJ/MM ». Le bouton « Inviter à activer son compte » n'apparaît que pour une personne sans compte ; message « Demande d'invitation transmise à l'administrateur » ; un nouveau clic sur une demande en cours ne crée rien. Démonstration sans serveur inchangée.
+- `api.js` : chargement de `/account-states` ; après une demande, état relu sur le serveur ; message précis si la personne a déjà un compte.

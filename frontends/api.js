@@ -270,7 +270,7 @@ export function attach(comp) {
   // ── Chargement et hydratation ──
   async function load() {
     const opt = (p) => p.catch((e) => { console.warn('[api] chargement partiel', e); return null; });
-    const [B, project, tasks, comments, me, barometer, modules, invites] = await Promise.all([
+    const [B, project, tasks, comments, me, barometer, modules, invites, accStates] = await Promise.all([
       bootstrap(),
       opt(pget('/project')),
       opt(pget('/me/tasks')),
@@ -279,8 +279,9 @@ export function attach(comp) {
       opt(pget('/barometer')),
       opt(pget('/modules')),
       pget('/invitation-requests').catch(() => null), // réservé au PMO
+      pget('/account-states').catch(() => null), // état réel du compte de chaque personne (PMO)
     ]);
-    return { B, project, tasks, comments, me, barometer, modules, invites };
+    return { B, project, tasks, comments, me, barometer, modules, invites, accStates };
   }
 
   async function reload() {
@@ -301,6 +302,7 @@ export function attach(comp) {
       data: B, plan: B, templates: B.templates, tplHistory: B.tplHistory, kbDocs: [],
       // Droits effectifs de l'utilisateur connecté (serveur : habilitations du compte ET de sa personne du référentiel).
       meAccess: (L.me && L.me.effective) || null,
+      psAccSrv: L.accStates || null,
       ed: {}, actStatus: {}, sesEd: {}, sesAdded: [], refValues: {}, refDeleted: {}, bmEd: {}, bmAdd: {},
       phLots: hydratePhLots(B), txtEd: {}, critEd: {}, arbData: {}, lvTrack: {}, gbExtra: {}, gbMem: {}, gbAdded: [], added: {}, lvAdded: [], dlOwner: {},
       psAdded: [], psAcc: {}, roAdded: [], roTier: {}, tmAdded: [], wsAdded: [], spAdded: [], phAdded: [], waAdded: [], spDesc: {}, phDesc: {}, plAdd: {},
@@ -469,7 +471,11 @@ export function attach(comp) {
       });
       case 'roTier': return changedKeys(before, after).forEach((id) => { if (isServerRow('ROLE', id)) writePatch('PATCH', '/roles/' + enc(id), { tier: (after || {})[id] ?? null }); });
       case 'dlOwner': return changedKeys(before, after).forEach((id) => { if (isServerRow('DELIVERABLE', id) && (after || {})[id]) writePatch('PATCH', '/deliverables/' + enc(id), { ownerId: after[id] }); });
-      case 'psAcc': return changedKeys(before, after).forEach((id) => { if ((after || {})[id] === 'pending' && isServerRow('PERSON', id)) write('INVITE ' + id, () => ppost('/invitation-requests', { personId: id }).then((r) => { if (r && r.status === 'ALREADY_HAS_ACCOUNT') toast('Cette personne a déjà un compte (' + r.accountStatus + ')'); return r; })); });
+      case 'psAcc': return changedKeys(before, after).forEach((id) => { if ((after || {})[id] === 'pending' && isServerRow('PERSON', id)) write('INVITE ' + id, () => ppost('/invitation-requests', { personId: id }).then((r) => {
+        if (r && r.status === 'ALREADY_HAS_ACCOUNT') toast('Cette personne a déjà un compte' + (r.accountStatus === 'INVITED' ? ' : invitation en attente d’activation' : r.accountStatus === 'SUSPENDED' ? ' (suspendu)' : ' actif'));
+        // État réel relu après la demande : l'icône suit le serveur (et non l'état local).
+        pget('/account-states').then((m) => { const acc = { ...(comp.state.psAcc || {}) }; delete acc[id]; raw({ psAccSrv: m, psAcc: acc }); }).catch(() => {});
+        return r; })); });
       case 'modPh': return changedKeys(before, after).forEach((key) => { const v = (after || {})[key] || 0, v0 = (before || {})[key] || 0; if (v >= 1 && v0 < 1 && MODULE_OF[key]) write('MODULE ' + key, () => ppost('/module-requests', { moduleId: MODULE_OF[key] }), 0, { noReload: true }); });
       case 'spDesc': return changedKeys(before, after).forEach((id) => { if (isServerRow('SUBPHASE', id)) writePatch('PATCH', '/subphases/' + enc(id), { description: (after || {})[id] || null }); });
       case 'phDesc': return changedKeys(before, after).forEach((id) => { if (isServerRow('PHASE', id)) writePatch('PATCH', '/phases/' + enc(id), { description: (after || {})[id] || null }); });

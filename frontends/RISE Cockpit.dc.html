@@ -3766,7 +3766,9 @@ class Component extends DCLogic {
       const socOpts = [...new Set(((M.TEAM && M.TEAM.rows) || []).map(x => x.cells[0]).filter(Boolean))], teamOpts = [...new Set(((M.TEAM && M.TEAM.rows) || []).map(x => x.cells[1]).filter(Boolean))];
       const split = v => String(v || '').split(/\s*·\s*/).map(x => x.trim()).filter(Boolean);
       const dot = c => 'width:7px;height:7px;border-radius:50%;flex:none;background:' + c;
-      const ACC0 = { p01: 'active', p02: 'active', p03: 'active', p13: 'active', p06: 'pending', p07: 'pending' }, ACC = S.psAcc || {};
+      // État du compte de chaque personne : celui du serveur (psAccSrv) ; démonstration sans serveur : états d'exemple.
+      const SRV = S.psAccSrv, ACC0 = SRV ? {} : { p01: 'active', p02: 'active', p03: 'active', p13: 'active', p06: 'pending', p07: 'pending' }, ACC = S.psAcc || {};
+      const SRV_ACC = { active: 'active', suspended: 'active', invited: 'pending', pending: 'pending' }, dm = iso => { const d = new Date(iso); return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0'); };
       const put = (r, i, v) => { const d = [...r.cells]; if (d[i] === v) return; d[i] = v; this.setState(st => ({ refValues: { ...(st.refValues || {}), ['PERSON/' + r.id]: d } })); this.showToast('Enregistré — Personnes · ' + (d[0] || '')); };
       const txt = (r, i) => e => { const v = String(e.target.innerText || '').replace(/\s+/g, ' ').trim(); if (v !== r.cells[i]) put(r, i, v); };
       const pop = S.psPop || {}, grid = 'display:grid;grid-template-columns:minmax(0,1.45fr) 132px minmax(0,1.2fr) minmax(0,1.3fr) minmax(0,.95fr) 40px 34px 28px;gap:0 18px;align-items:center';
@@ -3775,7 +3777,7 @@ class Component extends DCLogic {
       const rowsF = team === 'all' ? all : all.filter(r => String(r.cells[2]).toLowerCase() === team);
       const box = on => 'width:16px;height:16px;border-radius:4px;flex:none;display:grid;place-items:center;font-size:10px;font-weight:800;color:#fff;' + (on ? 'background:#10233a;border:1px solid #10233a' : 'border:1.5px solid #cfd8d6');
       const multi = (r, i, src, k) => { const cur = split(r.cells[i]); return src.map(l => { const on = cur.includes(l); return { l, box: box(on), ck: on ? '✓' : '', dot: k === 'ws' ? dot(wc(l)) : 'display:none', pick: () => put(r, i, (on ? cur.filter(x => x !== l) : src.filter(x => cur.includes(x) || x === l)).join(' · ')) }; }); };
-      const psRows = rowsF.map(r => { const c = r.cells, on = String(c[7]).toLowerCase() !== 'non', acc = ACC[r.id] || ACC0[r.id] || 'none', fresh = !!ACC[r.id];
+      const psRows = rowsF.map(r => { const c = r.cells, on = String(c[7]).toLowerCase() !== 'non', srv = SRV ? SRV[r.id] : null, acc = ACC[r.id] || (srv ? SRV_ACC[srv.state] : ACC0[r.id]) || 'none', fresh = !!ACC[r.id];
         const w = (c[0] || '').replace(/^(M\.|Mme|Mlle|Dr)\s*/i, '').replace(/[·.]/g, ' ').trim().split(/\s+/).filter(Boolean), ini = (w.length === 1 ? w[0].slice(0, 3) : w.map(x => x[0]).join('').slice(0, 3)).toUpperCase() || '·';
         const roles = split(c[4]), ws = split(c[5]);
         const tRow = ((M.TEAM && M.TEAM.rows) || []).find(x => String(x.cells[1]).toLowerCase() === String(c[2] || '').toLowerCase());
@@ -3785,8 +3787,9 @@ class Component extends DCLogic {
           tDot: c[2] ? dot(tc(c[2])) : 'display:none', sw: 'position:relative;flex:none;width:32px;height:18px;border-radius:99px;cursor:pointer;transition:background .2s;background:' + (on ? '#1d8f86' : '#d7e1de'), knob: 'position:absolute;top:2px;left:' + (on ? 16 : 2) + 'px;width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(16,35,58,.25);transition:left .2s',
           actL: on ? 'Actif · cliquer pour désactiver' : 'Inactif · cliquer pour activer', toggle: () => put(r, 7, on ? 'non' : 'oui'),
           setN: txt(r, 0), setPos: txt(r, 3), setMail: txt(r, 6), setSoc: e => put(r, 1, e.target.value), setTeam: e => put(r, 2, e.target.value),
-          accA: acc === 'active', accP: acc === 'pending', accN: acc === 'none', accTip: 'Invitation envoyée ' + (fresh ? 'à l\'instant' : 'le 12/09') + ' · cliquer pour relancer',
-          invite: () => { this.setState(st => ({ psAcc: { ...(st.psAcc || {}), [r.id]: 'pending' } })); this.showToast((acc === 'pending' ? 'Invitation relancée — ' : 'Invitation envoyée — ') + (c[6] || c[0])); },
+          accA: acc === 'active', accP: acc === 'pending', accN: acc === 'none', accTip: ACC[r.id] === 'pending' && !(srv && srv.state === 'invited') ? 'Demande d’invitation transmise à l’administrateur' + (srv && srv.at ? ' le ' + dm(srv.at) : ' à l’instant') : srv && srv.state === 'invited' ? 'Invitation envoyée' + (srv.at ? ' le ' + dm(srv.at) : '') + ' par l’administrateur · en attente d’activation' : srv ? 'Demande d’invitation transmise à l’administrateur' + (srv.at ? ' le ' + dm(srv.at) : '') : 'Invitation envoyée ' + (fresh ? 'à l\'instant' : 'le 12/09') + ' · cliquer pour relancer',
+          invite: () => { if (SRV && acc === 'pending') return this.showToast((srv && srv.state === 'invited' ? 'Invitation déjà envoyée par l’administrateur — ' : 'Demande déjà transmise à l’administrateur — ') + (c[0] || c[6]));
+            this.setState(st => ({ psAcc: { ...(st.psAcc || {}), [r.id]: 'pending' } })); this.showToast(SRV ? 'Demande d’invitation transmise à l’administrateur — ' + (c[0] || c[6]) : (acc === 'pending' ? 'Invitation relancée — ' : 'Invitation envoyée — ') + (c[6] || c[0])); },
           roleOpen: () => this.setState({ psPop: { id: r.id, k: 'role' } }), wsOpen: () => this.setState({ psPop: { id: r.id, k: 'ws' } }),
           rolePop: pop.id === r.id && pop.k === 'role', wsPop: pop.id === r.id && pop.k === 'ws', rolePopT: 'Rôles sur le projet · plusieurs possibles', wsPopT: 'Chantiers · plusieurs possibles',
           roleOpts: pop.id === r.id && pop.k === 'role' ? multi(r, 4, ROL, 'role') : [], wsOpts: pop.id === r.id && pop.k === 'ws' ? multi(r, 5, WSL, 'ws') : [],

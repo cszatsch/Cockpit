@@ -70,6 +70,35 @@ describe('Console — notifications de l’administrateur', () => {
     expect((await admin.get(NT).expect(200)).body.items.find((i: any) => i.id === n.id)).toBeUndefined();
   });
 
+  it('invitation : état réel dans le Référentiel, droits proposés par le référentiel à l’acceptation, retour au PMO dans le Cockpit', async () => {
+    const pmo = await t.as(WHO.pmo);
+    const person = (await noAccount())[0];
+    const owned = (await t.db.workstream.findMany({ where: { projectId: 'RISE', ownerId: person.id } })).map((w) => w.id).sort();
+    const pr = await t.db.person.findUniqueOrThrow({ where: { id: person.id } });
+    const lec = pr.wsIds.filter((w) => !owned.includes(w)).sort();
+    const states = async () => (await pmo.get(`${R}/account-states`).expect(200)).body;
+    expect((await states())[person.id]).toEqual({ state: 'none', at: null });
+    expect((await states()).p01.state).toBe('active');
+    await (await t.as(WHO.respC5)).get(`${R}/account-states`).expect(403);
+
+    await pmo.post(`${R}/invitation-requests`, { personId: person.id }).expect(201);
+    expect((await states())[person.id]).toMatchObject({ state: 'pending', at: expect.any(String) });
+    const n = (await admin.get(NT).expect(200)).body.items.find((i: any) => i.type === 'invite' && i.meta.name === `${pr.firstName} ${pr.lastName}`.trim());
+    const droits = [owned.length ? `Responsable de ${owned.join(', ')}` : '', lec.length ? `Lecteur de ${lec.join(', ')}` : ''].filter(Boolean).join(' · ') || 'aucun chantier au référentiel : droits à compléter';
+    expect(n.text).toContain(droits);
+
+    await admin.post(`${NT}/${n.id}/decision`, { decision: 'accept' }).expect(200);
+    await inbox.finalizeDue(later());
+    expect((await states())[person.id]).toMatchObject({ state: 'invited', at: expect.any(String) });
+    const acc = await t.db.account.findFirstOrThrow({ where: { email: { equals: pr.email, mode: 'insensitive' } } });
+    const view = (await admin.get(`/api/admin/accounts/${acc.id}`).expect(200)).body;
+    expect(view.habilitations.find((h: any) => h.code === 'RISE')).toMatchObject({ pmo: false, responsable: owned, lecteur: lec });
+    expect(view.referentiel[0].ecarts).toEqual({ responsableManquant: [], responsableEnTrop: [], lectureManquante: [] });
+    // Retour au PMO : notification dans la cloche du Cockpit.
+    const bell = (await pmo.get('/api/me/notifications').expect(200)).body;
+    expect(bell.items.some((x: any) => /Demande d’invitation acceptée/.test(x.title))).toBe(true);
+  });
+
   it('module : refuser prévient le demandeur ; la demande est close', async () => {
     const n = (await admin.get(NT).expect(200)).body.items.find((i: any) => i.type === 'module');
     const mails0 = mailer.outbox.length;

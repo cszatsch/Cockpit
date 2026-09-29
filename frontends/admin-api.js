@@ -499,7 +499,9 @@ export function bindConsole(c) {
       try {
         const a = await post('/accounts', { fullName: f.n.trim(), email: f.e.trim(), habilitations: habBody(f) });
         const nu = toUser(a, S.users.length);
-        set0(s => ({ users: [nu, ...s.users], dlg: null, form: {} })); toast('Invitation envoyée à ' + nu.e); touch(); load(['admins']).catch(() => {});
+        set0(s => ({ users: [nu, ...s.users], dlg: null, form: {} }));
+        // Compte créé même si l'e-mail n'est pas parti : le dire, et proposer la relance (bouton « Relancer » de la liste).
+        toast(a.inviteSent === false ? 'Compte créé, mais l’e-mail d’invitation n’a pas pu partir (' + (a.inviteError || 'serveur d’envoi indisponible') + ') : utilisez « Relancer ».' : 'Invitation envoyée à ' + nu.e, a.inviteSent === false ? 'err' : undefined); touch(); load(['admins']).catch(() => {});
       } catch (e) { onErr(e); }
       return;
     }

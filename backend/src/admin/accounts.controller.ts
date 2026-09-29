@@ -12,6 +12,7 @@ import { badRequest, businessRule, conflict, inUse, notFound, Usage } from '../c
 import { techId } from '../core/ids';
 import { parse } from '../core/http';
 import { adminCtx, ProfilesService } from './profiles.service';
+import { proposal } from '../domain/habilitation-proposals';
 
 /** Validité d'une invitation (brief Console § 7.1). */
 export const INVITE_VALIDITY_DAYS = 14;
@@ -232,9 +233,17 @@ export class AccountsController {
       const raw = await this.creds.issueToken(db, a, 'INVITE', (hab ? hab.admin : input.profile === 'ADMIN') ? 'ADMIN' : 'APP', INVITE_VALIDITY_DAYS * DAY);
       return { a, raw };
     });
-    await this.inviteMail(created.a, created.raw, false);
+    // Le compte est créé même si l'e-mail ne part pas (serveur d'envoi indisponible) : la réponse le dit, et
+    // l'Administrateur relance l'invitation ; sinon la Console affichait une erreur et un nouvel essai tombait en doublon.
+    let inviteError: string | null = null;
+    try {
+      await this.inviteMail(created.a, created.raw, false);
+    } catch (e) {
+      inviteError = e instanceof Error ? e.message : String(e);
+      console.warn('[comptes] e-mail d’invitation non envoyé :', inviteError);
+    }
     const account = created.a;
-    return (await this.view([await this.one(account.id)]))[0];
+    return { ...(await this.view([await this.one(account.id)]))[0], inviteSent: !inviteError, inviteError };
   }
 
   @Patch('accounts/:id')
@@ -567,7 +576,15 @@ export class AccountsController {
     if (!r || r.status !== 'PENDING') throw notFound('Demande introuvable ou déjà traitée');
     const p = await this.prisma.person.findUniqueOrThrow({ where: { id: r.personId } });
     const project = await this.prisma.project.findUniqueOrThrow({ where: { id: r.projectId } });
-    const account = await this.createAccount(actor, { fullName: `${p.firstName} ${p.lastName}`.trim(), email: p.email.toLowerCase(), profile: 'LECTEUR', projectCodes: [project.code] }, true);
+    // Droits proposés par le référentiel (responsable de chantier → Responsable, chantiers de rattachement → Lecteur),
+    // appliqués à la création ; l'Administrateur peut les ajuster ensuite dans la fenêtre de l'utilisateur.
+    const owned = (await this.prisma.workstream.findMany({ where: { projectId: project.id, ownerId: p.id }, select: { id: true } })).map((w) => w.id);
+    const prop = proposal(owned, p.wsIds);
+    const account = await this.createAccount(
+      actor,
+      { fullName: `${p.firstName} ${p.lastName}`.trim(), email: p.email.toLowerCase(), habilitations: { admin: false, projects: [{ code: project.code, pmo: false, responsable: prop.responsable, lecteur: prop.lecteur }] } },
+      true,
+    );
     await this.prisma.invitationRequest.update({ where: { id }, data: { status: 'APPROVED', decidedAt: new Date(), decidedById: actor.accountId } });
     return account;
   }

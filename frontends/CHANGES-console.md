@@ -442,3 +442,7 @@ Vérification des éléments de la vue d'ensemble face au serveur. Conformes : d
   - « La saisie diffère du référentiel. » (encart ambré) ou « Conforme ».
 - Vue d'ensemble, « À traiter » : « N comptes : droits différents du référentiel », avec le détail par compte et « Voir les utilisateurs ».
 - `admin-api.js` : `toUser` lit `referentiel` ; le chargement `ov` reprend l'écart `REFERENTIAL_GAP` du serveur.
+
+## Invitation : e-mail non parti (29/09/2026)
+
+- `admin-api.js` : si l'e-mail d'invitation n'a pas pu partir, la Console le dit (« Compte créé, mais l'e-mail d'invitation n'a pas pu partir (…) : utilisez « Relancer » ») au lieu d'une erreur, et le compte apparaît dans la liste.

@@ -16,6 +16,7 @@ import { UsageService } from './usage.service';
 import { ApiCardsService } from './api-cards.service';
 import { daysLeft, expiryLevel, QUOTA_WARN_PCT } from '../domain/api-cards';
 import { widgetName } from '../domain/widgets';
+import { proposal, proposalText } from '../domain/habilitation-proposals';
 
 /** Délai d'annulation d'une décision (spécification NOTIFICATIONS § 3) : l'action ne s'exécute qu'ensuite. */
 export const DECISION_UNDO_MS = 10_000;
@@ -176,7 +177,10 @@ export class InboxService implements OnModuleInit, OnModuleDestroy {
       const name = `${p.firstName} ${p.lastName}`.trim();
       const by = requesters.find((a) => a.id === r.requestedById)?.fullName ?? 'un PMO';
       const code = projects.find((x) => x.id === r.projectId)?.code ?? r.projectId;
-      wanted.push({ key: `invite:${r.id}`, kind: 'INVITE', title: `Inviter ${name}`, text: `Demandé par ${by}, PMO ${code} · ${p.email} · profil Lecteur.`, meta: { name, by, project: code } });
+      // Droits qui seront appliqués à l'acceptation : ceux que propose le référentiel.
+      const owned = (await this.prisma.workstream.findMany({ where: { projectId: r.projectId, ownerId: p.id }, select: { id: true } })).map((w) => w.id);
+      const droits = proposalText(proposal(owned, p.wsIds));
+      wanted.push({ key: `invite:${r.id}`, kind: 'INVITE', title: `Inviter ${name}`, text: `Demandé par ${by}, PMO ${code} · ${p.email} · ${droits}.`, meta: { name, by, project: code, projectId: r.projectId } });
     }
     const modReqs = await this.prisma.moduleRequest.findMany({ where: { status: 'PENDING' } });
     const mods = await this.prisma.module.findMany({ where: { id: { in: modReqs.map((r) => r.moduleId) } } });
@@ -292,15 +296,16 @@ export class InboxService implements OnModuleInit, OnModuleDestroy {
       const reqId = n.key.slice(n.key.indexOf(':') + 1);
       try {
         if (n.kind === 'INVITE') {
-          if (n.decision === 'ACCEPT') await this.accounts.approveInvitation(actor, reqId);
+          let mailOk = true;
+          if (n.decision === 'ACCEPT') mailOk = (await this.accounts.approveInvitation(actor, reqId)).inviteSent !== false;
           else await this.accounts.rejectInvitation(actor, reqId);
           const r = await this.prisma.invitationRequest.findUnique({ where: { id: reqId } });
-          await this.tellRequester(r?.requestedById, `Demande d’invitation ${n.decision === 'ACCEPT' ? 'acceptée' : 'refusée'} : ${(n.meta as any)?.name ?? ''}`, n.decision === 'ACCEPT' ? `${(n.meta as any)?.name} a reçu son invitation à RISE Cockpit.` : `L’administrateur a refusé l’invitation de ${(n.meta as any)?.name}.`);
+          await this.tellRequester(r?.requestedById, r?.projectId ?? null, `Demande d’invitation ${n.decision === 'ACCEPT' ? 'acceptée' : 'refusée'} : ${(n.meta as any)?.name ?? ''}`, n.decision === 'ACCEPT' ? (mailOk ? `${(n.meta as any)?.name} a reçu son invitation à RISE Cockpit.` : `Le compte de ${(n.meta as any)?.name} est créé ; l’e-mail d’invitation n’a pas pu partir, l’administrateur va le relancer.`) : `L’administrateur a refusé l’invitation de ${(n.meta as any)?.name}.`);
         } else {
           if (n.decision === 'ACCEPT') await this.data.approve(actor, reqId);
           else await this.data.reject(actor, reqId);
           const r = await this.prisma.moduleRequest.findUnique({ where: { id: reqId } });
-          await this.tellRequester(r?.requestedById, `Demande de module ${n.decision === 'ACCEPT' ? 'acceptée' : 'refusée'} : ${n.title.replace(/^Activer /, '')}`, n.decision === 'ACCEPT' ? `Le module est activé pour le projet ${(n.meta as any)?.project}.` : `L’administrateur a refusé l’activation du module pour le projet ${(n.meta as any)?.project}.`);
+          await this.tellRequester(r?.requestedById, r?.projectId ?? null, `Demande de module ${n.decision === 'ACCEPT' ? 'acceptée' : 'refusée'} : ${n.title.replace(/^Activer /, '')}`, n.decision === 'ACCEPT' ? `Le module est activé pour le projet ${(n.meta as any)?.project}.` : `L’administrateur a refusé l’activation du module pour le projet ${(n.meta as any)?.project}.`);
         }
         done++;
       } catch (e) {
@@ -313,9 +318,13 @@ export class InboxService implements OnModuleInit, OnModuleDestroy {
   }
 
   /** Le demandeur est prévenu par e-mail, y compris en cas de refus. */
-  private async tellRequester(accountId: string | null | undefined, subject: string, text: string) {
+  /** Retour au demandeur (PMO) : notification dans le Cockpit (cloche) et e-mail. */
+  private async tellRequester(accountId: string | null | undefined, projectId: string | null, subject: string, text: string) {
     const a = accountId ? await this.prisma.account.findUnique({ where: { id: accountId } }) : null;
     if (!a) return;
-    await this.mailer.send({ to: [a.email], subject: `RISE Cockpit · ${subject}`, text: `Bonjour ${a.fullName},\n\n${text}\n\nL’équipe RISE Cockpit` });
+    await this.prisma.userNotification.create({ data: { accountId: a.id, projectId, kind: 'NOTIFICATION', title: subject, body: text } });
+    // E-mail en complément : son échec n'empêche pas la notification dans le Cockpit.
+    await this.mailer
+      .send({ to: [a.email], subject: `RISE Cockpit · ${subject}`, text: `Bonjour ${a.fullName},\n\n${text}\n\nL’équipe RISE Cockpit` }).catch((e) => console.warn('[notifications] e-mail au demandeur non envoyé :', e instanceof Error ? e.message : e));
   }
 }

@@ -2162,6 +2162,34 @@
         ]
       }
     },
+    "/api/projects/{projectId}/account-states": {
+      "get": {
+        "operationId": "CollabController_accountStates",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "cockpit · commentaires et historique"
+        ]
+      }
+    },
     "/api/projects/{projectId}/assistant/messages": {
       "post": {
         "operationId": "AssistantController_message",
