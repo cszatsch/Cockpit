@@ -395,3 +395,14 @@ Les captures sont écrites dans `OUT` (par défaut `<tmp>/rise-console-e2e`).
   - tableau de 2 colonnes → paires ; au-delà → fiches : code dans une colonne alignée, nom sur deux lignes au plus, statut en pastille (🟢 / 🟡 / 🔴 / 🟣 ou mot : Actif, En préparation, Clos…), période « 3 févr. 2025 → 30 juin 2027 » et autres colonnes en méta ;
   - question de relance finale plus discrète ; sources en étiquettes au pied de la réponse.
 - `Console Admin.dc.html` : bulle de Jev rendue par blocs (pleine largeur pour une réponse structurée) ; module chargé au montage, texte brut en attendant ; les messages d'erreur restent en texte brut.
+
+## Vue d'ensemble : données vérifiées et corrigées (29/09/2026)
+
+Vérification des éléments de la vue d'ensemble face au serveur. Conformes : date et heure (horloge du serveur), utilisateurs actifs et invitations (comptes), fournisseurs (statut du dernier test), actions sensibles récentes (journal d'audit). Corrections :
+
+- `Console Admin.dc.html` :
+  - **Coût IA** : les centimes sont affichés sous 100 € (« 0,41 € » au lieu de « 0 € »), et « < 1 % du budget » dès qu'une dépense existe (au lieu de « 0 % »).
+  - **Dernier snapshot** : valeurs du serveur (dernier snapshot de tous les projets, prochaine capture de son projet calculée par le serveur), au lieu d'un calcul local sur les seuls projets de démonstration et la planification de RISE ; « Aucun snapshot » et « planification suspendue » gérés.
+  - **« il y a… »** : durées écoulées complètes (4 j 16 h → « 4 j », et non « 5 j »), dans toute la Console.
+  - **À traiter** : reprend aussi les points que seul le serveur calcule (échecs d'envoi de notifications sur 7 jours, demandes d'invitation du PMO), jusque-là jamais affichés.
+- `admin-api.js` : chargement `ov` (`GET /overview` et planification du projet du dernier snapshot), au démarrage et à chaque retour sur la vue d'ensemble.

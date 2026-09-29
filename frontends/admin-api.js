@@ -272,6 +272,16 @@ export function bindConsole(c) {
       return { apiMonth: m, usage: toUsageRows(u.detail, from), th: toTh(m.thresholds) };
     },
     month: async () => { const m = await get('/usage/month'); return { apiMonth: m, th: toTh(m.thresholds) }; },
+    // Vue d'ensemble du serveur : dernier snapshot (tous projets) et prochaine capture de son projet ; points à traiter
+    // que la Console ne calcule pas elle-même (échecs d'envoi de notifications, demandes d'invitation du PMO).
+    ov: async () => {
+      const ov = await get('/overview'), sn = (ov.vitals || []).find(v => v.id === 'snapshot'), code = sn && sn.value ? String(sn.detail || '').split(' · ')[0] : null;
+      const sc = code ? await get('/projects/' + encodeURIComponent(code) + '/snapshot-schedule').catch(() => null) : null;
+      const fails = (ov.attention || []).filter(a => a.kind === 'DELIVERY_FAILED'), invReq = (ov.attention || []).filter(a => a.kind === 'INVITATION_REQUEST'), extra = [];
+      if (fails.length) extra.push({ tone: 'err', t: fails.length + ' échec' + (fails.length > 1 ? 's' : '') + ' d’envoi de notification sur 7 jours', d: fails.map(f => f.detail).slice(0, 2).join(' · ') + (fails.length > 2 ? '…' : '.'), cta: 'Voir l’historique', go: () => c.go('notifs') });
+      invReq.forEach(r => extra.push({ tone: 'info', t: 'Demande d’invitation du PMO', d: r.detail + '.', cta: 'Examiner', go: () => c.go('users') }));
+      return { ovExtra: extra, ovSnap: { t: sn && sn.value ? D(sn.value) : null, p: code, next: sc && sc.prochaineCapture ? D(sc.prochaineCapture) : null } };
+    },
     snaps: async () => {
       const codes = PROJ(), lists = await Promise.all(codes.map(p => get('/projects/' + p + '/snapshots')));
       const snaps = {}; codes.forEach((p, i) => { snaps[p] = lists[i].map(toSnap); });
@@ -304,7 +314,7 @@ export function bindConsole(c) {
       return { apiCards: cards, apCards: cards.filter(v => !apPend[v.id]).map(toCard), apWidgets: widgets, apChecked: lastCheck(cards) }; },
   };
   const SECTION = {
-    overview: ['accounts', 'providers', 'month', 'audit', 'reqs', 'snaps', 'sched', 'models', 'asg', 'fns'], users: ['accounts'], admins: ['admins', 'audit', 'accounts'], providers: ['providers', 'models', 'asg', 'fns'],
+    overview: ['accounts', 'providers', 'month', 'audit', 'reqs', 'snaps', 'sched', 'ov', 'models', 'asg', 'fns'], users: ['accounts'], admins: ['admins', 'audit', 'accounts'], providers: ['providers', 'models', 'asg', 'fns'],
     assign: ['asg', 'models', 'providers', 'usage', 'fns'], conso: ['month', 'providers'], snaps: [], notifs: ['nrRules', 'nrHist', 'nrCounts', 'nrSchedule', 'models', 'providers', 'projects'], modules: ['mods', 'reqs'],
     smtp: ['smtp'], init: ['projects'], library: ['projects'], profil: ['prof', 'sess', 'audit'], skills: ['skills'], persona: ['persona'], apis: ['apis'],
   };
@@ -325,7 +335,7 @@ export function bindConsole(c) {
       if (typeof c.apiClock === 'function') c.apiClock(clock.server);
       // Échéances des clés API : même date du jour que le serveur (DEMO_TODAY compris).
       set0({ apiNow: String(ov.date).slice(0, 10) + 'T12:00:00' });
-      await load(['prof', 'accounts', 'admins', 'audit', 'providers', 'models', 'asg', 'usage', 'snaps', 'sched', 'nrRules', 'nrHist', 'nrCounts', 'nrSchedule', 'smtp', 'mods', 'reqs', 'sess', 'projects', 'skills', 'persona', 'notifs', 'apis', 'fns']);
+      await load(['ov', 'prof', 'accounts', 'admins', 'audit', 'providers', 'models', 'asg', 'usage', 'snaps', 'sched', 'nrRules', 'nrHist', 'nrCounts', 'nrSchedule', 'smtp', 'mods', 'reqs', 'sess', 'projects', 'skills', 'persona', 'notifs', 'apis', 'fns']);
       set0({ apiBoot: false, loading: false });
     } catch (e) {
       fail(e);

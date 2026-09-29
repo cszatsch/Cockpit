@@ -20,6 +20,19 @@ describe('Console Admin — critères d’acceptation (brief Console § 13)', ()
       expect(ok.body.attention[0]).toMatchObject({ level: 'error', kind: 'PROVIDER_ERROR' });
       expect(ok.body.attention[0].detail).toMatch(/Documents · Synthèse tourne sur son modèle de secours/);
     });
+    it('vue d’ensemble : échecs d’envoi et demandes d’invitation du PMO décrits en clair (règle, canal, personne)', async () => {
+      const rule = await t.db.notificationRule.findFirstOrThrow();
+      const person = await t.db.person.findFirstOrThrow({ where: { projectId: 'RISE' } });
+      const d = await t.db.delivery.create({ data: { ruleId: rule.id, channel: 'EMAIL', recipientsCount: 1, status: 'ERROR', error: '535 authentification refusée', at: new Date('2026-09-25T08:00:00Z') } });
+      const r = await t.db.invitationRequest.create({ data: { projectId: 'RISE', personId: person.id, requestedById: 'p01' } });
+      const ov = (await (await t.as(WHO.admin)).get(`${A}/overview`).expect(200)).body;
+      expect(ov.attention).toEqual(expect.arrayContaining([
+        expect.objectContaining({ kind: 'DELIVERY_FAILED', detail: `${rule.name} · E-mail · 535 authentification refusée` }),
+        expect.objectContaining({ kind: 'INVITATION_REQUEST', detail: `${person.firstName} ${person.lastName} · RISE` }),
+      ]));
+      await t.db.delivery.delete({ where: { id: d.id } });
+      await t.db.invitationRequest.delete({ where: { id: r.id } });
+    });
     it('toute écriture crée une entrée d’audit avec profileUsed = ADMIN', async () => {
       const c = await t.as(WHO.admin);
       await c.post(`${A}/accounts/u31/resend-invite`).expect(200);

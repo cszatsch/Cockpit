@@ -116,10 +116,14 @@ export class ConsoleController implements OnModuleInit {
     for (const t of month.thresholds.filter((x) => x.status === 'EXCEEDED' || x.status === 'ALERT')) {
       attention.push({ level: t.status === 'EXCEEDED' || (t.limitEur && t.spent >= t.limitEur) ? 'error' : 'warn', kind: 'BUDGET', title: `${t.name} : ${t.pct} % du plafond`, detail: `${t.spent} € dépensés sur ${t.limitEur} € · projection ${t.projection} €`, target: 'conso', ids: [t.id] });
     }
-    for (const f of failures.slice(0, 5)) attention.push({ level: 'error', kind: 'DELIVERY_FAILED', title: 'Échec d’envoi de notification', detail: `${f.ruleId} · ${f.channel} · ${f.error ?? ''}`, target: 'notifs', ids: [f.id] });
+    // Libellés lisibles : nom de la règle, canal en français, nom de la personne (et non leurs identifiants).
+    const ruleNames = new Map((await this.prisma.notificationRule.findMany({ where: { id: { in: failures.slice(0, 5).map((f) => f.ruleId) } }, select: { id: true, name: true } })).map((r) => [r.id, r.name]));
+    const people = new Map((await this.prisma.person.findMany({ where: { id: { in: invitationRequests.map((r) => r.personId) } }, select: { id: true, projectId: true, firstName: true, lastName: true } })).map((p) => [`${p.projectId}|${p.id}`, `${p.firstName} ${p.lastName}`]));
+    const CHANNEL_FR: Record<string, string> = { APP: 'Dans l’application', EMAIL: 'E-mail' };
+    for (const f of failures.slice(0, 5)) attention.push({ level: 'error', kind: 'DELIVERY_FAILED', title: 'Échec d’envoi de notification', detail: [ruleNames.get(f.ruleId) ?? f.ruleId, CHANNEL_FR[f.channel] ?? f.channel, f.error].filter(Boolean).join(' · '), target: 'notifs', ids: [f.id] });
     if (invited.length) attention.push({ level: 'warn', kind: 'STALE_INVITES', title: `${invited.length} invitation(s) sans réponse depuis plus de ${INVITE_STALE_DAYS} jours`, detail: invited.map((a) => a.fullName).join(', '), target: 'users', ids: invited.map((a) => a.id) });
     for (const r of requests) attention.push({ level: 'info', kind: 'MODULE_REQUEST', title: `Demande d’activation : ${r.moduleId}`, detail: `${r.requestedBy} · ${r.projectId}`, target: 'modules', ids: [r.id] });
-    for (const r of invitationRequests) attention.push({ level: 'info', kind: 'INVITATION_REQUEST', title: 'Demande d’invitation du PMO', detail: `${r.personId} · ${r.projectId}`, target: 'users', ids: [r.id] });
+    for (const r of invitationRequests) attention.push({ level: 'info', kind: 'INVITATION_REQUEST', title: 'Demande d’invitation du PMO', detail: `${people.get(`${r.projectId}|${r.personId}`) ?? r.personId} · ${r.projectId}`, target: 'users', ids: [r.id] });
     const rank = { error: 0, warn: 1, info: 2 };
     attention.sort((a, b) => rank[a.level] - rank[b.level]);
     const count = (s: string) => accounts.find((x) => x.status === s)?._count ?? 0;

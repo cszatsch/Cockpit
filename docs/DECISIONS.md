@@ -562,3 +562,11 @@ Le panneau affichait le Markdown brut du modèle (`#`, `**`, tableaux en `|`). D
 | Rendu | Le Markdown simple devient des blocs typés (titre, sections, paragraphes, listes, paires, fiches, citation, code). Un tableau n'est jamais affiché tel quel dans ~420 px : 2 colonnes → paires ; au-delà → fiches (code aligné, nom, statut en pastille, période fusionnée, méta). Statuts reconnus par emoji ou par mot, en cinq tons (ok, vigilance, risque, info, neutre). | `formatJev`, `statusOf`, `frDate`, `TONES` (`frontends/jev-format.js`) |
 | Consignes au modèle | Le prompt du Jev de la Console décrit le format attendu : réponse d'abord, titre `##` seulement si utile, gras avec parcimonie, tableau (code, nom, trois colonnes au plus, dates JJ/MM/AAAA), synthèse en `**Libellé** : valeur (détail)`, pas de `#`, de séparateur ni d'emoji décoratif ou de statut, une seule relance. | `CONSOLE_FORMAT_RULES` (`src/domain/jev-prompt.ts`), après la page ouverte |
 | Cockpit | Le panneau Jev du Cockpit n'est pas modifié (ses réponses passent encore par le bouchon) ; le même module pourra y être branché. | — |
+
+## Vue d'ensemble de la Console : une seule source (29/09/2026)
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Dernier snapshot | Lu dans `GET /api/admin/overview` (tous projets) ; prochaine capture : `prochaineCapture` de la planification de son projet. | chargement `ov` (`admin-api.js`) |
+| À traiter | Points de la Console, plus ceux du serveur qu'elle ne calculait pas : échecs d'envoi (7 jours, regroupés), demandes d'invitation du PMO. Libellés en clair côté serveur : nom de la règle, canal (« E-mail », « Dans l’application »), nom de la personne. | `ConsoleController.overview`, `S.ovExtra` |
+| Montants et durées | Coût du mois en centimes sous 100 € ; « < 1 % » pour une dépense non nulle ; « il y a… » en durées complètes (arrondi inférieur). | `ago`, vue d'ensemble (`Console Admin.dc.html`) |

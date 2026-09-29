@@ -781,7 +781,8 @@ const p2 = n => String(n).padStart(2, '0');
 const fD = d => (d.getDate() === 1 ? '1er' : d.getDate()) + ' ' + MO[d.getMonth()] + (d.getFullYear() !== nowD().getFullYear() ? ' ' + d.getFullYear() : '');
 const fT = d => p2(d.getHours()) + ':' + p2(d.getMinutes());
 const fDT = d => fD(d) + ' · ' + fT(d);
-const ago = d => { const m = Math.max(0, Math.round((nowD() - d) / 60000)); if (m < 1) return 'à l’instant'; if (m < 60) return 'il y a ' + m + ' min'; const h = Math.round(m / 60); if (h < 24) return 'il y a ' + h + ' h'; const j = Math.round(h / 24); return j < 30 ? 'il y a ' + j + ' j' : 'le ' + fD(d); };
+// Durées écoulées complètes : 4 j 16 h → « il y a 4 j » (un arrondi annoncerait 5 j).
+const ago = d => { const m = Math.max(0, Math.floor((nowD() - d) / 60000)); if (m < 1) return 'à l’instant'; if (m < 60) return 'il y a ' + m + ' min'; const h = Math.floor(m / 60); if (h < 24) return 'il y a ' + h + ' h'; const j = Math.floor(h / 24); return j < 30 ? 'il y a ' + j + ' j' : 'le ' + fD(d); };
 const back = min => new Date(TODAY.getTime() - min * 60000);
 const eur = (v, dec = 0) => v.toLocaleString('fr-FR', { minimumFractionDigits: dec, maximumFractionDigits: dec }) + ' €';
 const mt = v => (v / 1e6).toLocaleString('fr-FR', { maximumFractionDigits: v < 1e7 ? 1 : 0 }) + ' M';
@@ -1370,6 +1371,7 @@ class Component extends DCLogic {
     if (stale.length) out.push({ tone: 'warn', t: stale.length + ' invitation' + (stale.length > 1 ? 's' : '') + ' sans réponse depuis plus de 7 jours', d: stale.map(u => u.n).join(', ') + '.', cta: 'Voir les invités', go: () => this.go('users', () => this.setState({ uSt: 'invité', uq: '', uPf: 'tous', uPj: 'tous' })) });
     S.reqs.forEach(q => { const m = S.mods.find(x => x.id === q.m); out.push({ tone: 'info', t: q.who + ' demande l’activation de « ' + m.n + ' »', d: 'Projet ' + q.p + ' · ' + ago(q.t) + '.', cta: 'Examiner', go: () => this.go('modules') }); });
     const np = Object.keys(S.pend).length; if (np) out.push({ tone: 'info', t: np + ' modification' + (np > 1 ? 's' : '') + ' de droits en attente', d: 'Elles ne sont pas encore appliquées.', cta: 'Vérifier', go: () => this.go('users') });
+    (S.ovExtra || []).forEach(a => out.push(a)); // vue d’ensemble du serveur : échecs d’envoi de notifications, demandes d’invitation du PMO
     const ord = { err: 0, warn: 1, info: 2 }; out.sort((a, b) => ord[a.tone] - ord[b.tone]);
     return out.map(a => ({ ...a, ic: `width:32px;height:32px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:14px;font-weight:800;background:${TONE[a.tone][0]};color:${TONE[a.tone][1]}`, g: a.tone === 'info' ? 'i' : '!', rail: `width:3px;align-self:stretch;border-radius:2px;background:${TONE[a.tone][2]}` }));
   }
@@ -1530,9 +1532,10 @@ class Component extends DCLogic {
         sub: att.length ? att.length + ' point' + (att.length > 1 ? 's' : '') + ' à traiter' + (errN ? ', dont ' + errN + ' critique' + (errN > 1 ? 's' : '') : '') + '. Le reste de la plateforme fonctionne normalement.' : 'Aucun point en attente. Les fournisseurs répondent, les budgets sont tenus.',
         vit: [
           { k: 'Utilisateurs actifs', v: String(act), s: 'sur ' + S.users.length + ' comptes · ' + invs + ' invitations en attente', go: () => this.go('users'), dot: dot('ok'), hasBar: false },
-          { k: 'Coût IA · ' + MO_L[nowD().getMonth()], v: eur(g.sp), s: g.pct + ' % du budget de ' + g.limL, go: () => this.go('conso'), dot: dot(g.tone), hasBar: true, bar: `height:100%;border-radius:2px;width:${Math.min(100, g.pct)}%;background:${g.tone === 'ok' ? '#3dd6c6' : g.tone === 'warn' ? '#f7a41c' : '#ff6b5e'}` },
+          { k: 'Coût IA · ' + MO_L[nowD().getMonth()], v: g.sp > 0 && g.sp < 100 ? eur(g.sp, 2) : eur(g.sp), s: (g.sp > 0 && g.pct < 1 ? '< 1' : g.pct) + ' % du budget de ' + g.limL, go: () => this.go('conso'), dot: dot(g.tone), hasBar: true, bar: `height:100%;border-radius:2px;width:${Math.min(100, g.pct)}%;background:${g.tone === 'ok' ? '#3dd6c6' : g.tone === 'warn' ? '#f7a41c' : '#ff6b5e'}` },
           { k: 'Fournisseurs IA', v: okP.length + ' / ' + S.provs.length, s: okP.length === S.provs.length ? 'Tous opérationnels' : S.provs.filter(p => p.st === 'err').map(p => p.n).join(', ') + ' hors service', go: () => this.go('providers'), dot: dot(okP.length === S.provs.length ? 'ok' : 'err'), hasBar: false },
-          { k: 'Dernier snapshot', v: ago(lastSnap.t).replace('il y a ', ''), s: Object.keys(S.snaps).find(p => S.snaps[p].includes(lastSnap)) + (S.sched && S.sched.on ? ' · prochain ' + DOW[nextCapture(S.sched).getDay()] + ' ' + fDT(nextCapture(S.sched)) : ''), go: () => this.go('snaps'), dot: dot('ok'), hasBar: false }],
+          S.ovSnap ? { k: 'Dernier snapshot', v: S.ovSnap.t ? ago(S.ovSnap.t).replace('il y a ', '') : '—', s: S.ovSnap.t ? S.ovSnap.p + (S.ovSnap.next ? ' · prochain ' + DOW[S.ovSnap.next.getDay()] + ' ' + fDT(S.ovSnap.next) : ' · planification suspendue') : 'Aucun snapshot', go: () => this.go('snaps'), dot: dot(S.ovSnap.t ? 'ok' : 'neu'), hasBar: false }
+            : { k: 'Dernier snapshot', v: ago(lastSnap.t).replace('il y a ', ''), s: Object.keys(S.snaps).find(p => S.snaps[p].includes(lastSnap)) + (S.sched && S.sched.on ? ' · prochain ' + DOW[nextCapture(S.sched).getDay()] + ' ' + fDT(nextCapture(S.sched)) : ''), go: () => this.go('snaps'), dot: dot('ok'), hasBar: false }],
         att, hasAtt: att.length > 0, noAtt: att.length === 0, attN: att.length,
         act: S.audit.filter(a => a.sev !== 'info').slice(0, 5).map(a => ({ ...a, when: ago(a.t), exact: fDT(a.t), pill: pill(a.sev === 'critique' ? 'err' : 'warn'), dot: dot(a.sev === 'critique' ? 'err' : 'warn'), sevL: a.sev === 'critique' ? 'Critique' : 'Sensible' })),
         goAudit: () => this.go('admins', () => this.setState({ adTab: 'audit' }))
