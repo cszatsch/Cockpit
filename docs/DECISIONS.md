@@ -617,3 +617,14 @@ Un PMO attribué par la Console sur son compte (sans personne du référentiel) 
 | Compte initial (`npm run init:admin`) | Installation | Administrateur + PMO de tous les projets. |
 | PMO | Cockpit | Aucune écriture d'habilitation. Il peut demander l'invitation d'une personne du référentiel (validée dans la Console). Changer le responsable d'un chantier dans le Référentiel ne modifie pas les habilitations. |
 | Tous | Cockpit | Lecture seule : les droits effectifs réunissent les habilitations du compte et de la personne ; le serveur contrôle chaque accès. |
+
+## Habilitations proposées par le référentiel : la Console propose, l'Administrateur décide (29/09/2026)
+
+Option 1 retenue par le commanditaire. Le PMO renseigne le référentiel dans le Cockpit ; la Console en tire une proposition ; seul l'Administrateur modifie les droits.
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Proposition | Pour un compte lié à une personne du référentiel (même e-mail ou `personId`), sur chaque projet : **Responsable** des chantiers dont la personne est responsable (fiche Chantier) ; **Lecteur** de ses autres chantiers de rattachement (fiche Personne). Pas de nouvel objet dans le référentiel. | `proposal` (`src/domain/habilitation-proposals.ts`), `ProfilesService.referential` |
+| Écarts | Responsable manquant (chantier dont la personne est responsable, sans droit), Responsable en trop (droit sur un chantier dont elle n'est plus responsable), lecture manquante (chantier de rattachement sans accès). Un PMO du projet n'a pas d'écart ; un Lecteur au-delà du référentiel n'en est pas un (ouverture volontaire de l'Administrateur). Comptes actifs et invités seulement. | `gaps`, `gapText` |
+| Console | Chaque compte expose `referentiel` (par projet : personne, chantiers dont elle est responsable, rattachements, proposition, écarts). Fenêtre d'un utilisateur : encart « Référentiel du projet » par projet rattaché, avec « Appliquer » (coche la proposition, ajustable avant d'enregistrer), « La saisie diffère du référentiel » ou « Conforme ». Vue d'ensemble : « À traiter » signale les comptes en écart (« Karim Benali (RISE : Responsable de C6 sans en être responsable) »). | `view()` (`accounts.controller.ts`), `REFERENTIAL_GAP` (`console.controller.ts`), `uDlgVals` (`Console Admin.dc.html`), `toUser`, chargement `ov` (`admin-api.js`) |
+| Ce qui ne change pas | Rien n'est appliqué automatiquement : un changement du PMO dans le référentiel ne modifie aucun droit, il crée un écart signalé. Les « chantiers de rattachement » ne donnent toujours aucun droit par eux-mêmes. | — |

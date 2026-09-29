@@ -146,7 +146,9 @@ export function toUser(a, i = 0) {
   const ll = s === 'invité' || a.lastLoginDays == null ? null : Math.max(0, a.lastLoginDays);
   // Profils multiples : tous les profils détenus, rôle d'administrateur et habilitations projet par projet.
   const hab = Object.fromEntries((a.habilitations || []).map(h => [h.code, { pmo: !!h.pmo, ws: Object.fromEntries([...(h.lecteur || []).map(w => [w, 'lec']), ...(h.responsable || []).map(w => [w, 'resp'])]) }]));
-  return { id: a.id, n: a.fullName, e: a.email, p: PROFILE[a.profile] || null, profs: (a.profiles || []).map(p => PROFILE[p]).filter(Boolean), adm: !!a.admin, hab, s, ll, inv: s === 'invité' ? Math.max(0, a.invitedDays || 0) : null,
+  // Référentiel du projet (personne liée) : proposition Responsable / Lecteur et chantiers de rattachement.
+  const ref = Object.fromEntries((a.referentiel || []).map(r => [r.code, { personne: r.personne, resp: r.proposition.responsable, lec: r.proposition.lecteur, att: r.rattachement, ecarts: r.ecarts }]));
+  return { id: a.id, n: a.fullName, e: a.email, p: PROFILE[a.profile] || null, profs: (a.profiles || []).map(p => PROFILE[p]).filter(Boolean), adm: !!a.admin, hab, ref, s, ll, inv: s === 'invité' ? Math.max(0, a.invitedDays || 0) : null,
     pr: [...(a.projectCodes || [])], lt: ll === 0 && last ? p2(last.getHours()) + ':' + p2(last.getMinutes()) : '', av: AV[i % AV.length], _v: a.version };
 }
 /** Administrateur → `{ u, lv:'admin', since }` (un seul niveau, brief § 5). */
@@ -281,6 +283,7 @@ export function bindConsole(c) {
       const fails = (ov.attention || []).filter(a => a.kind === 'DELIVERY_FAILED'), invReq = (ov.attention || []).filter(a => a.kind === 'INVITATION_REQUEST'), extra = [];
       if (fails.length) extra.push({ tone: 'err', t: fails.length + ' échec' + (fails.length > 1 ? 's' : '') + ' d’envoi de notification sur 7 jours', d: fails.map(f => f.detail).slice(0, 2).join(' · ') + (fails.length > 2 ? '…' : '.'), cta: 'Voir l’historique', go: () => c.go('notifs') });
       invReq.forEach(r => extra.push({ tone: 'info', t: 'Demande d’invitation du PMO', d: r.detail + '.', cta: 'Examiner', go: () => c.go('users') }));
+      (ov.attention || []).filter(a => a.kind === 'REFERENTIAL_GAP').forEach(a => extra.push({ tone: 'warn', t: a.title, d: a.detail + '.', cta: 'Voir les utilisateurs', go: () => c.go('users') }));
       return { ovExtra: extra, ovSnap: { t: sn && sn.value ? D(sn.value) : null, p: code, next: sc && sc.prochaineCapture ? D(sc.prochaineCapture) : null } };
     },
     snaps: async () => {

@@ -434,3 +434,11 @@ Vérification des éléments de la vue d'ensemble face au serveur. Conformes : d
   - contrôle avant envoi : au moins un projet ou le rôle d'administrateur, et sur chaque projet PMO ou au moins un chantier.
 - Liste des utilisateurs : le libellé de profil montre tous les profils détenus (« Admin · PMO ») ; les filtres et compteurs par profil comptent chaque compte dans chacun de ses profils.
 - `admin-api.js` : `toUser` lit `profiles`, `admin` et `habilitations` ; chargement `wsAll` (chantiers de chaque projet) ; `saveUser` envoie les habilitations (`POST /accounts` avec `habilitations`, `PUT /accounts/:id/habilitations`).
+
+## Utilisateurs : proposition du référentiel (29/09/2026)
+
+- `Console Admin.dc.html`, fenêtre d'un utilisateur lié à une personne du référentiel : pour chaque projet rattaché, encart « RÉFÉRENTIEL DU PROJET » (« Karim Benali : responsable de C5, C6 · rattaché à C5. ») avec :
+  - « Appliquer » : coche Responsable et Lecteur selon le référentiel, ajustable avant d'enregistrer ;
+  - « La saisie diffère du référentiel. » (encart ambré) ou « Conforme ».
+- Vue d'ensemble, « À traiter » : « N comptes : droits différents du référentiel », avec le détail par compte et « Voir les utilisateurs ».
+- `admin-api.js` : `toUser` lit `referentiel` ; le chargement `ov` reprend l'écart `REFERENTIAL_GAP` du serveur.

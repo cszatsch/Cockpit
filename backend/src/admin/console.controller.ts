@@ -15,6 +15,8 @@ import { parse } from '../core/http';
 import { adminCtx } from './profiles.service';
 import { UsageService } from './usage.service';
 import { INVITE_STALE_DAYS } from './accounts.controller';
+import { gapCount, gapText } from '../domain/habilitation-proposals';
+import { ProfilesService } from './profiles.service';
 
 /** Durée de conservation du journal d'audit (brief Console § 6.2). */
 export const AUDIT_RETENTION_MONTHS = 24;
@@ -35,6 +37,7 @@ export class ConsoleController implements OnModuleInit {
     private readonly today: TodayService,
     private readonly jevPrompt: JevPromptService,
     private readonly jevSql: JevSqlService,
+    private readonly profiles: ProfilesService,
   ) {}
 
   onModuleInit() {
@@ -123,6 +126,20 @@ export class ConsoleController implements OnModuleInit {
     for (const f of failures.slice(0, 5)) attention.push({ level: 'error', kind: 'DELIVERY_FAILED', title: 'Échec d’envoi de notification', detail: [ruleNames.get(f.ruleId) ?? f.ruleId, CHANNEL_FR[f.channel] ?? f.channel, f.error].filter(Boolean).join(' · '), target: 'notifs', ids: [f.id] });
     if (invited.length) attention.push({ level: 'warn', kind: 'STALE_INVITES', title: `${invited.length} invitation(s) sans réponse depuis plus de ${INVITE_STALE_DAYS} jours`, detail: invited.map((a) => a.fullName).join(', '), target: 'users', ids: invited.map((a) => a.id) });
     for (const r of requests) attention.push({ level: 'info', kind: 'MODULE_REQUEST', title: `Demande d’activation : ${r.moduleId}`, detail: `${r.requestedBy} · ${r.projectId}`, target: 'modules', ids: [r.id] });
+    // Écarts entre le référentiel (responsables de chantier, chantiers de rattachement) et les droits réels des comptes.
+    const live = await this.prisma.account.findMany({ where: { status: { in: ['ACTIVE', 'INVITED'] } } });
+    const ref = await this.profiles.referential(live);
+    const off = live.map((a) => ({ a, items: (ref.get(a.id) ?? []).filter((e) => gapCount(e.ecarts) > 0) })).filter((x) => x.items.length);
+    if (off.length) {
+      attention.push({
+        level: 'warn',
+        kind: 'REFERENTIAL_GAP',
+        title: `${off.length} compte${off.length > 1 ? 's' : ''} : droits différents du référentiel`,
+        detail: off.slice(0, 3).map((x) => `${x.a.fullName} (${x.items.map((e) => gapText(e.code, e.ecarts)).join(' · ')})`).join(' · ') + (off.length > 3 ? '…' : ''),
+        target: 'users',
+        ids: off.map((x) => x.a.id),
+      });
+    }
     for (const r of invitationRequests) attention.push({ level: 'info', kind: 'INVITATION_REQUEST', title: 'Demande d’invitation du PMO', detail: `${people.get(`${r.projectId}|${r.personId}`) ?? r.personId} · ${r.projectId}`, target: 'users', ids: [r.id] });
     const rank = { error: 0, warn: 1, info: 2 };
     attention.sort((a, b) => rank[a.level] - rank[b.level]);

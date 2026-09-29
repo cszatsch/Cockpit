@@ -83,6 +83,8 @@ export class AccountsController {
   /** `db` : la transaction en cours, pour que la vue « après » d'un audit lise bien les droits qui viennent d'être écrits. */
   private async view(accounts: Array<Account & { projects: { projectId: string }[] }>, db: Tx = this.prisma) {
     const rights = await this.profiles.rightsOf(accounts, db);
+    // Ce que dit le référentiel (option 1 du 29/09/2026 : la Console propose, l'Administrateur décide).
+    const referential = await this.profiles.referential(accounts, db);
     const now = this.today.now().getTime();
     const codes = Object.fromEntries((await db.project.findMany({ select: { id: true, code: true } })).map((p) => [p.id, p.code]));
     return accounts.map((a) => {
@@ -104,6 +106,7 @@ export class AccountsController {
         profiles: PROFILE_ORDER.filter((p) => has[p]),
         admin: r.admin,
         habilitations,
+        referentiel: (referential.get(a.id) ?? []).map(({ code, personne, responsable, rattachement, proposition, ecarts }) => ({ code, personne, responsable, rattachement, proposition, ecarts })),
         projectCodes: a.projects.map((p) => codes[p.projectId] ?? p.projectId),
         lastLoginAt: a.lastLoginAt,
         lastLoginDays: a.lastLoginAt ? Math.floor((now - a.lastLoginAt.getTime()) / DAY) : null,

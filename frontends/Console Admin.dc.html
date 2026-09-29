@@ -686,6 +686,14 @@ a{color:#1d8f86}a:hover{color:#146b64}
                     </div>
                     <sc-if value="{{ r.on }}" hint-placeholder-val="{{ false }}">
                       <div style="display:flex;flex-direction:column;gap:10px;padding:10px 0 2px 60px">
+                        <!-- Option 1 (29/09/2026) : le référentiel du projet propose, l'Administrateur décide. -->
+                        <sc-if value="{{ r.hasRef }}" hint-placeholder-val="{{ false }}">
+                          <div style="{{ r.refSt }}">
+                            <div style="flex:1;min-width:0"><div style="font-size:10.5px;font-weight:800;letter-spacing:.12em;color:#5c7280">RÉFÉRENTIEL DU PROJET</div><div style="font-size:12.5px;color:#10233a;line-height:1.45;margin-top:2px;text-wrap:pretty">{{ r.refTxt }}</div><sc-if value="{{ r.refDiff }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;color:#8a5a12;font-weight:600;margin-top:3px">{{ r.refDiffL }}</div></sc-if></div>
+                            <sc-if value="{{ r.refCan }}" hint-placeholder-val="{{ false }}"><button onClick="{{ r.refApply }}" title="Cocher Responsable et Lecteur selon le référentiel (ajustable avant d’enregistrer)" style="height:32px;padding:0 12px;border:0;border-radius:9px;background:#10233a;color:#fff;font:inherit;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;flex:none" style-hover="background:#1b3552">Appliquer</button></sc-if>
+                            <sc-if value="{{ r.refOk }}" hint-placeholder-val="{{ false }}"><span style="height:26px;padding:0 10px;border-radius:999px;background:#e6f3f2;color:#146b64;font-size:11.5px;font-weight:800;display:inline-flex;align-items:center;white-space:nowrap;flex:none">Conforme</span></sc-if>
+                          </div>
+                        </sc-if>
                         <div role="radiogroup" aria-label="{{ r.modeAria }}" style="display:inline-flex;align-self:flex-start;gap:2px;padding:3px;border-radius:10px;background:#eef3f2"><sc-for list="{{ r.modes }}" as="m" hint-placeholder-count="2"><button role="radio" aria-checked="{{ m.on }}" onClick="{{ m.pick }}" style="{{ m.st }}">{{ m.l }}</button></sc-for></div>
                         <sc-if value="{{ r.showWs }}" hint-placeholder-val="{{ false }}">
                           <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap"><sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="8"><button onClick="{{ c.cycle }}" title="{{ c.t }}" aria-label="{{ c.t }}" style="{{ c.st }}">{{ c.c }}</button></sc-for></div>
@@ -1422,7 +1430,14 @@ class Component extends DCLogic {
     const rows = PROJ.map((code, i) => { const on = pr.includes(code), h = hab[code] || { pmo: false, ws: {} }, wsl = this.wsList(code), vals = Object.values(h.ws || {}), nR = vals.filter(v => v === 'resp').length, nL = vals.filter(v => v === 'lec').length;
       const tog = () => this.setState(s => { const h2 = JSON.parse(JSON.stringify(s.form.hab || {})); if (!on && !h2[code]) h2[code] = { pmo: false, ws: {} }; return { form: { ...s.form, hab: h2, pr: on ? s.form.pr.filter(x => x !== code) : [...s.form.pr, code] }, fe: { ...s.fe, pr: '' } }; });
       const empty = !h.pmo && nR + nL === 0;
+      // Référentiel du projet (compte lié à une personne) : proposition Responsable / Lecteur, comparée à la saisie en cours.
+      const rf = u0 && u0.ref ? u0.ref[code] : null, cur = h.ws || {}, prop = rf ? Object.fromEntries([...rf.lec.map(w => [w, 'lec']), ...rf.resp.map(w => [w, 'resp'])]) : {};
+      const same = !!rf && !h.pmo && Object.keys(prop).length === Object.keys(cur).length && Object.keys(prop).every(w => cur[w] === prop[w]), hasProp = !!rf && (rf.resp.length + rf.lec.length) > 0;
+      const refTxt = rf ? rf.personne + ' : ' + ([rf.resp.length ? 'responsable de ' + rf.resp.join(', ') : '', rf.att.length ? 'rattaché à ' + rf.att.join(', ') : ''].filter(Boolean).join(' · ') || 'aucun chantier renseigné') + '.' : '';
       return { code, name: NM[code] || '', on, tog, aria: (on ? 'Retirer ' : 'Rattacher ') + code, modeAria: 'Profil sur ' + code,
+        hasRef: !!rf, refTxt, refCan: hasProp && !same && !h.pmo, refOk: same && hasProp, refDiff: hasProp && !same && !h.pmo, refDiffL: 'La saisie diffère du référentiel.',
+        refSt: 'display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:11px;' + (hasProp && !same && !h.pmo ? 'background:#fffaf1;box-shadow:inset 0 0 0 1px #f3dcae' : 'background:#f3f8f7'),
+        refApply: () => setHab(code, x => { x.pmo = false; x.ws = { ...prop }; }),
         modes: [['pmo', 'PMO'], ['ws', 'Chantiers']].map(([k, l]) => { const m = k === 'pmo' ? h.pmo : !h.pmo; return { l, on: m, st: seg(m), pick: () => setHab(code, x => { x.pmo = k === 'pmo'; }) }; }),
         showWs: on && !h.pmo && wsl.length > 0, showNote: on && (h.pmo || !wsl.length || empty),
         sum: !on ? 'Non rattaché' : h.pmo ? 'PMO · tous les chantiers' : nR + nL ? [nR && 'Responsable de ' + nR + ' chantier' + (nR > 1 ? 's' : ''), nL && 'Lecteur de ' + nL].filter(Boolean).join(' · ') : 'Aucun chantier',

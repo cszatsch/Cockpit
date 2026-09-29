@@ -4,6 +4,19 @@ import { PrismaService, Tx } from '../core/prisma.service';
 import { Actor } from '../core/auth/auth';
 import { WriteCtx } from '../core/audit.service';
 import { AUDIENCE_PRIORITY, AudienceProfile, ChantierScope, profileScope } from '../domain/notification-rules';
+import { Gaps, gaps, Proposal, proposal } from '../domain/habilitation-proposals';
+
+/** Entrée « référentiel » d'un compte sur un projet (voir `ProfilesService.referential`). */
+export interface ReferentialEntry {
+  code: string;
+  projectId: string;
+  personId: string;
+  personne: string;
+  responsable: string[];
+  rattachement: string[];
+  proposition: Proposal;
+  ecarts: Gaps;
+}
 
 export type ProfileCode = 'ADMIN' | 'PMO' | 'RESPONSABLE' | 'LECTEUR';
 const RANK: Record<ProfileCode, number> = { ADMIN: 4, PMO: 3, RESPONSABLE: 2, LECTEUR: 1 };
@@ -28,6 +41,34 @@ export function adminCtx(actor: Actor): WriteCtx {
 @Injectable()
 export class ProfilesService {
   constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * Ce que dit le référentiel pour chaque compte lié à une personne (par e-mail ou `personId`), projet par projet :
+   * chantiers dont elle est responsable, chantiers de rattachement, proposition d'habilitations et écarts avec les
+   * droits réels. Les comptes sans personne du référentiel n'ont pas d'entrée.
+   */
+  async referential(accounts: Account[], db: Tx = this.prisma): Promise<Map<string, ReferentialEntry[]>> {
+    const rights = await this.rightsOf(accounts, db);
+    const persons = await db.person.findMany({
+      where: { OR: [{ email: { in: accounts.map((a) => a.email.toLowerCase()), mode: 'insensitive' } }, { id: { in: accounts.map((a) => a.personId).filter(Boolean) as string[] } }] },
+      select: { id: true, projectId: true, email: true, firstName: true, lastName: true, wsIds: true },
+    });
+    const owned = await db.workstream.findMany({ where: { ownerId: { in: persons.map((p) => p.id) } }, select: { id: true, projectId: true, ownerId: true } });
+    const codes = Object.fromEntries((await db.project.findMany({ select: { id: true, code: true } })).map((p) => [p.id, p.code]));
+    const out = new Map<string, ReferentialEntry[]>();
+    for (const a of accounts) {
+      const mine = persons.filter((p) => p.id === a.personId || p.email.toLowerCase() === a.email.toLowerCase());
+      out.set(
+        a.id,
+        mine.map((p) => {
+          const own = owned.filter((w) => w.ownerId === p.id && w.projectId === p.projectId).map((w) => w.id);
+          const prop = proposal(own, p.wsIds);
+          return { code: codes[p.projectId] ?? p.projectId, projectId: p.projectId, personId: p.id, personne: `${p.firstName} ${p.lastName}`.trim(), responsable: prop.responsable, rattachement: [...p.wsIds].sort(), proposition: prop, ecarts: gaps(prop, rights.get(a.id)!.projects[p.projectId]) };
+        }),
+      );
+    }
+    return out;
+  }
 
   async rightsOf(accounts: Account[], db: Tx = this.prisma): Promise<Map<string, AccountRights>> {
     const grants = new Set((await db.adminGrant.findMany()).map((g) => g.accountId));

@@ -94,6 +94,35 @@ describe('Console Admin — critères d’acceptation (brief Console § 13)', ()
     });
   });
 
+  describe('2 ter. Habilitations proposées par le référentiel (la Console propose, l’Administrateur décide)', () => {
+    it('proposition, écart signalé dans « À traiter », application, puis changement de responsable par le PMO', async () => {
+      const c = await t.as(WHO.admin);
+      // Karim Benali (u6, personne p06) : responsable de C5 et C6 dans le référentiel ; on ne lui laisse que C5.
+      await c.put(`${A}/accounts/u6/habilitations`, { admin: false, projects: [{ code: 'RISE', responsable: ['C5'], lecteur: [] }] }).expect(200);
+      const k = (await c.get(`${A}/accounts/u6`).expect(200)).body;
+      expect(k.referentiel).toEqual([{ code: 'RISE', personne: 'Karim Benali', responsable: ['C5', 'C6'], rattachement: ['C5'], proposition: { responsable: ['C5', 'C6'], lecteur: [] }, ecarts: { responsableManquant: ['C6'], responsableEnTrop: [], lectureManquante: [] } }]);
+      const gap = () => c.get(`${A}/overview`).expect(200).then((r) => r.body.attention.find((a: any) => a.kind === 'REFERENTIAL_GAP'));
+      expect((await gap()).detail).toContain('Karim Benali (RISE : Responsable de C6 non attribué)');
+      expect((await gap()).ids).toContain('u6');
+
+      // L'Administrateur applique la proposition : plus d'écart pour ce compte. Rien n'a changé tant qu'il n'a pas enregistré.
+      await c.put(`${A}/accounts/u6/habilitations`, { admin: false, projects: [{ code: 'RISE', responsable: ['C5', 'C6'], lecteur: [] }] }).expect(200);
+      expect((await c.get(`${A}/accounts/u6`).expect(200)).body.referentiel[0].ecarts).toEqual({ responsableManquant: [], responsableEnTrop: [], lectureManquante: [] });
+      expect(((await gap())?.ids ?? []).includes('u6')).toBe(false);
+
+      // Le PMO confie C6 à Sophie Marchand (p07, compte u7) : les droits ne bougent pas, l'écart est signalé pour les deux.
+      await (await t.as(WHO.pmo)).patch('/api/projects/RISE/workstreams/C6', { ownerId: 'p07' }).expect(200);
+      expect((await c.get(`${A}/accounts/u6`).expect(200)).body.referentiel[0].ecarts.responsableEnTrop).toEqual(['C6']);
+      expect((await c.get(`${A}/accounts/u7`).expect(200)).body.referentiel[0].ecarts.responsableManquant).toEqual(['C6']);
+      expect((await gap()).ids).toEqual(expect.arrayContaining(['u6', 'u7']));
+      expect(await t.db.habilitation.count({ where: { projectId: 'RISE', personId: 'p06', profile: 'RESPONSABLE', wsId: 'C6' } })).toBe(1);
+
+      // Remise en état.
+      await (await t.as(WHO.pmo)).patch('/api/projects/RISE/workstreams/C6', { ownerId: 'p06' }).expect(200);
+      await c.put(`${A}/accounts/u6/habilitations`, { admin: false, projects: [{ code: 'RISE', responsable: ['C5', 'C6'], lecteur: [] }] }).expect(200);
+    });
+  });
+
   describe('2. Comptes', () => {
     it('inviter un e-mail déjà utilisé → 409 ; invitation valable 14 jours', async () => {
       const c = await t.as(WHO.admin);
