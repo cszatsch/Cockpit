@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { AccountsController } from './accounts.controller';
 import { AiController } from './ai.controller';
 import { RulesController } from './rules.controller';
+import { SmtpController } from './smtp.controller';
 import { DataController } from './data.controller';
 import { ConsoleController } from './console.controller';
 import { SkillsController } from './skills.controller';
@@ -19,7 +20,7 @@ import { SnapshotsService } from './snapshots.service';
 /** API de la Console Admin : `/api/admin/…`, réservée au profil ADMIN (RG1, RG7, RG16). */
 @Module({
   // Ordre significatif : routes fixes (`snapshots/compare`) avant routes paramétrées (`snapshots/:id`).
-  controllers: [ConsoleController, AccountsController, AiController, RulesController, DataController, SkillsController, PersonaController, InboxController, ApiCardsController, WidgetCatalogueController, WidgetProxyController, WidgetFeedsController, WidgetNewsController],
+  controllers: [ConsoleController, AccountsController, AiController, RulesController, SmtpController, DataController, SkillsController, PersonaController, InboxController, ApiCardsController, WidgetCatalogueController, WidgetProxyController, WidgetFeedsController, WidgetNewsController],
   // AccountsController et DataController servent aussi de fournisseurs : les décisions du tiroir de notifications
   // reprennent exactement le traitement des pages Utilisateurs et Modules.
   providers: [ProfilesService, UsageService, JevSqlService, NotificationsService, SnapshotsService, InboxService, ApiCardsService, AccountsController, DataController],

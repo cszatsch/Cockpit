@@ -1535,3 +1535,25 @@ model DictionnaireColonne {
   @@id([espace, tableNom, nom])
   @@map("dictionnaire_colonnes")
 }
+
+/// Serveur d'envoi SMTP (spécification SMTP) : une seule ligne (id « smtp »). Absente, les réglages viennent des
+/// variables d'environnement (SMTP_HOST…). Le mot de passe est chiffré (AES-256-GCM) et n'est jamais renvoyé.
+model SmtpSettings {
+  id                String    @id @default("smtp")
+  host              String
+  port              Int
+  /// Chiffrement : starttls, ssl ou none
+  enc               String
+  auth              Boolean   @default(true)
+  user              String    @default("")
+  passwordEncrypted String?   @map("password_encrypted")
+  fromAddress       String    @map("from_address")
+  /// Dernier test de connexion des réglages enregistrés : { ok, step, code, ms, at }
+  lastTest          Json?     @map("last_test")
+  lastOkAt          DateTime? @map("last_ok_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  updatedBy         String?   @map("updated_by")
+  version           Int       @default(1)
+
+  @@map("smtp_settings")
+}

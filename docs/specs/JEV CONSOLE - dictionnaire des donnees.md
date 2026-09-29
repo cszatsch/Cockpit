@@ -1,7 +1,7 @@
 # Jev de la Console — dictionnaire des données
 
 > Généré depuis `backend/src/domain/jev-dictionnaire.ts` (`npm run dictionnaire:doc`) : ne pas modifier à la main.
-> 31 vues en lecture seule du schéma `jev`, chargées dans `dictionnaire_tables` et `dictionnaire_colonnes`.
+> 32 vues en lecture seule du schéma `jev`, chargées dans `dictionnaire_tables` et `dictionnaire_colonnes`.
 > Heures en heure de Paris. Aucun secret (empreintes de mot de passe, sessions, clés API chiffrées, chemins de stockage).
 
 ## Sommaire
@@ -34,6 +34,7 @@
 - [`jev.imports_projet`](#imports_projet) — 9 colonnes
 - [`jev.cartes_api`](#cartes_api) — 15 colonnes
 - [`jev.appels_cartes_api`](#appels_cartes_api) — 6 colonnes
+- [`jev.serveur_smtp`](#serveur_smtp) — 11 colonnes
 - [`jev.skills`](#skills) — 7 colonnes
 - [`jev.persona`](#persona) — 8 colonnes
 - [`jev.versions_persona`](#versions_persona) — 4 colonnes
@@ -896,6 +897,35 @@ Un appel à une carte API : proxy des widgets, contrôle de santé (toutes les 1
 **Règles et précautions**
 
 - Appel réussi = code entre 1 et 399. Latence moyenne = moyenne de ms des appels réussis.
+
+## serveur_smtp
+
+Réglages du serveur d’envoi SMTP, utilisé pour tous les e-mails de la plateforme (canal E-mail des règles de notification, invitations, mots de passe). Une seule ligne ; aucune ligne tant que les réglages n’ont pas été enregistrés dans la Console (ils viennent alors de la configuration du serveur). Le mot de passe n’est jamais lisible. Écran : Plateforme › Serveur d’envoi SMTP.
+
+| Colonne | Type | Signification | Exemples, unités |
+|---|---|---|---|
+| `serveur` | texte | Nom du serveur SMTP | smtp.gmail.com |
+| `port` | entier | Port | 587 (STARTTLS), 465 (SSL/TLS), 25 (sans chiffrement) |
+| `chiffrement` | texte | Chiffrement | starttls = TLS / STARTTLS, ssl = SSL/TLS, none = aucun |
+| `authentification` | booléen | Authentification activée |  |
+| `identifiant` | texte | Identifiant de connexion |  |
+| `mdp_enregistre` | booléen | Un mot de passe est enregistré (sa valeur n’est jamais lisible) |  |
+| `expediteur` | texte | Adresse d’expédition (From) |  |
+| `dernier_test` | json | Dernier test de connexion des réglages enregistrés | {ok, step, code, ms, at} ; step = connect, tls, auth ou from (étape en échec) |
+| `dernier_test_reussi_le` | date-heure | Dernier test de connexion réussi |  |
+| `modifie_le` | date-heure | Dernière modification |  |
+| `modifie_par` | texte | Auteur de la dernière modification |  |
+
+**Usages**
+
+- Quel serveur envoie les e-mails ?
+- Le dernier test de connexion a-t-il réussi ?
+
+**Règles et précautions**
+
+- Aucune ligne : les réglages viennent de la configuration du serveur (variables d’environnement) et n’ont pas encore été enregistrés dans la Console.
+- Port attendu : 587 avec starttls, 465 avec ssl ; sans chiffrement, identifiant et mot de passe circulent en clair.
+- Avec Gmail, une adresse d’expédition différente de l’identifiant est remplacée par l’identifiant, sauf alias vérifié.
 
 ## skills
 

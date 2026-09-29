@@ -84,6 +84,20 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
   - Avec 100 cartes : 3 rangées de pastilles au plus par tag, légende exacte, colonnes de même hauteur.
   - Test navigateur Playwright non relancé ; il ne vise pas cet écran.
 
+- **Serveur d'envoi SMTP (29/09/2026)** :
+  - Tests automatiques : 5 tests unitaires (`test/unit/smtp.spec.ts` : ports, validation, classement des échecs, valeurs d'environnement, lecture des réponses) et 5 tests e2e (`test/e2e/smtp.spec.ts`, contre un faux serveur SMTP local) :
+    - lecture et droits, mot de passe chiffré, jamais renvoyé et conservé si vide ;
+    - vrai dialogue : succès, 535, 530, 553, ECONNREFUSED, hôte introuvable, serveur muet ;
+    - e-mail de test, et canal E-mail d'une règle de notification remis par ce serveur.
+  - Vrai serveur Gmail, avec un identifiant fictif : 535 à l'authentification (TLS 1.3 négocié), 530 STARTTLS exigé et « SSL routines: wrong version number » au chiffrement, « Greeting never received » (465 avec STARTTLS), 530 « Authentication Required » sans authentification.
+  - Recette navigateur (Console branchée sur l'API) :
+    - points 1, 3, 4, 5, 6 et 8 conformes contre Gmail ;
+    - points 2 et 7 (connexion validée, e-mail de test remis) contre un faux serveur local, faute du vrai mot de passe d'application, qui ne peut être saisi que par le commanditaire ;
+    - ports proposés (587 / 465 / 25), alerte « en clair » et « Chiffrer », test invalidé par une modification, envoi de l'e-mail de test impossible avant une connexion validée ;
+    - enregistrement : mot de passe chiffré en base et effacé du champ ; une notification envoyée par e-mail passe par ce serveur ;
+    - 900 px : ni débordement ni libellé de bouton sur deux lignes.
+  - Registre : carte API requise (2 tests e2e mis à jour), « EXP. CLÉ » sur une ligne dans sa colonne de 88 px.
+
 ## 3. Écarts connus
 
 ### 3.1 Écarts par rapport aux briefs
@@ -184,6 +198,11 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 - **100 cartes :** un tag de 36 cartes allonge la page à environ 3 000 px. Le panneau de détail suit la même hauteur, et son pied (Désactiver, Supprimer la carte) se retrouve en bas, loin de la carte sélectionnée. Un panneau collant ou une table à hauteur limitée l'éviterait, au prix d'une modification du design.
 - **Messages :** « Carte enregistrée », « Associée à … » et les autres sont affichés par le composant sans attendre le serveur. En cas de refus (par exemple un nom d'hôte introuvable, 422), un second message donne l'erreur et la liste est relue.
 - **Suppression :** fermer la page pendant les 5 s d'annulation abandonne la suppression.
+
+### Serveur d'envoi SMTP : à faire par le commanditaire
+
+- Saisir le mot de passe d'application Google dans Plateforme › Serveur d’envoi SMTP, puis tester et enregistrer (points 2 et 7 de la recette contre Gmail). Avant cela, régénérer le mot de passe d'application qui a circulé pendant la conception (spécification § 5).
+- Contrôle de santé des cartes API : un test toutes les 15 minutes, soit 96 appels par jour, consomme le quota gratuit des cartes d'actualités (GNews : 100 appels par jour). À arbitrer.
 
 ## 4. Questions ouvertes
 

@@ -302,3 +302,19 @@ Les captures sont écrites dans `OUT` (par défaut `<tmp>/rise-console-e2e`).
 - `Registre API.dc.html` : retiré (ancienne vue).
 - `Console Admin.dc.html` : la page `apis` intègre le nouveau composant ; montage une fois les cartes et le catalogue reçus. Rappels `apCreate`, `apSave`, `apToggle`, `apDelete`, `apRestore`, `apTest` et `apWidgetsSet`, vides en démonstration. Signal de la sidebar aligné sur les seuils de 60 jours et 80 %.
 - `admin-api.js` : adaptateur (`toCard`, `toResp`, `toDdmmyy`, `fromDdmmyy`, `lastCheck`), catalogue `GET /widgets`, écritures en file puis relecture, suppression différée de 5 s. La clé n'est envoyée que si elle a été saisie ; `key: null` quand « Sans clé » remplace une clé existante.
+
+## Serveur d'envoi SMTP (29/09/2026)
+
+- `Serveur SMTP.dc.html` : ajouté depuis la livraison ; seul le script est complété.
+  - Prop `settings` et rappels `onSave`, `onTest`, `onTestEmail`.
+  - Synchronisation avec les réglages du serveur (`syncSettings`), sans écraser un brouillon en cours.
+  - Mot de passe jamais reçu : il n'est exigé que si aucun n'est enregistré (`hasPass`) ; le compteur « n / 16 » ne s'affiche que pour un mot de passe saisi.
+  - Test réel (`runTest`, puis déroulé des étapes `play`), aide française d'après le code réel (`helpFor`) ; durée de connexion et version TLS mesurées ; dernier test daté ; e-mail de test avec sa durée réelle ; enregistrement confirmé après la réponse du serveur.
+  - Démonstration : adresse fictive à la place de l'adresse réelle ; mot de passe fictif d'origine.
+- `Sidebar Console.dc.html` : entrée « Serveur d’envoi SMTP » après « Notifications et alertes ».
+- `Console Admin.dc.html` : page `smtp` (en-tête générique masqué), `META` et suggestions de Jev, rappels `smSave`, `smTest` et `smTestEmail` (vides en démonstration).
+- `admin-api.js` : chargement `smtp`. Rappels vers `PUT /settings/smtp`, `POST /settings/smtp/test` et `POST /settings/smtp/test-email` ; le mot de passe n'est envoyé que s'il a été saisi.
+
+## Registre des cartes API : carte API requise, « Exp. Clé » (29/09/2026)
+
+- `Registre des cartes API.dc.html` : « Associer un widget » ne liste que les widgets à carte API requise (`needsCard`) ; en-tête « CLÉ » renommé « EXP. CLÉ ».

@@ -7287,6 +7287,80 @@
         ]
       }
     },
+    "/api/admin/settings/smtp": {
+      "get": {
+        "operationId": "SmtpController_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · serveur d’envoi SMTP"
+        ]
+      },
+      "put": {
+        "operationId": "SmtpController_put",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · serveur d’envoi SMTP"
+        ]
+      }
+    },
+    "/api/admin/settings/smtp/test": {
+      "post": {
+        "operationId": "SmtpController_test",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · serveur d’envoi SMTP"
+        ]
+      }
+    },
+    "/api/admin/settings/smtp/test-email": {
+      "post": {
+        "operationId": "SmtpController_testEmail",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · serveur d’envoi SMTP"
+        ]
+      }
+    },
     "/api/admin/projects/{id}/snapshots": {
       "get": {
         "operationId": "DataController_listSnapshots",

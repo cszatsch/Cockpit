@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"><style>
+html,body{margin:0;background:#f2f6f5;font-family:'Plus Jakarta Sans',sans-serif;color:#10233a;-webkit-font-smoothing:antialiased;font-size:13px}
+*{box-sizing:border-box}a{color:#1d8f86}a:hover{color:#146b64}button,input{font:inherit;color:inherit}
+button:focus-visible,input:focus-visible{outline:2px solid #1d8f86;outline-offset:2px}
+input::placeholder{color:#a3b1ba}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes flow{from{background-position:0 0}to{background-position:0 14px}}
+@keyframes toastIn{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style></helmet>
+<div data-screen-label="Serveur SMTP" style="max-width:1320px;margin:0 auto;padding:52px 48px 72px;display:flex;flex-direction:column;gap:30px">
+  <div style="display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap;animation:rise .45s cubic-bezier(.2,.7,.2,1) both">
+    <div style="display:flex;flex-direction:column;gap:8px;flex:1;min-width:280px">
+      <div style="font-size:11px;font-weight:800;letter-spacing:.16em;color:#1d8f86">PLATEFORME</div>
+      <div style="font-size:38px;font-weight:800;font-style:italic;letter-spacing:-.035em;line-height:1.05">Serveur d’envoi SMTP</div>
+      <div style="font-size:14px;color:#43586a">Le serveur qui envoie les e-mails d’alertes et de notifications aux utilisateurs.</div>
+    </div>
+    <span style="{{ headSt }}"><span style="{{ headDot }}"></span>{{ headL }}</span>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:stretch">
+    <form onSubmit="{{ save }}" style="flex:1 1 600px;min-width:0;background:#fff;border-radius:22px;box-shadow:0 0 0 1px #e1e9e7,0 24px 50px -36px rgba(16,35,58,.4);display:flex;flex-direction:column;animation:rise .5s .05s cubic-bezier(.2,.7,.2,1) both">
+      <div style="padding:8px 32px 0;display:flex;flex-direction:column">
+
+        <div style="display:flex;flex-wrap:wrap;gap:12px 28px;padding:26px 0;border-bottom:1px solid #eef3f2">
+          <div style="flex:0 0 160px;display:flex;flex-direction:column;gap:4px;padding-top:2px"><span style="font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#1d8f86">01 · SERVEUR</span><span style="font-size:12px;color:#8a9aa6;line-height:1.45">Où Cockpit se connecte</span></div>
+          <div style="flex:1 1 360px;min-width:0;display:flex;flex-direction:column;gap:18px">
+            <label style="display:flex;flex-direction:column;gap:8px"><span style="font-size:12.5px;font-weight:700">Serveur SMTP</span>
+              <span style="{{ hostBox }}"><input value="{{ f.host }}" onChange="{{ setHost }}" spellcheck="false" autocomplete="off" aria-label="Serveur SMTP" style="flex:1;min-width:0;height:100%;border:0;outline:0;background:transparent;padding:0 14px;font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:500" /><sc-if value="{{ isGmail }}" hint-placeholder-val="{{ true }}"><span style="flex:none;white-space:nowrap;margin-right:8px;height:26px;padding:0 10px;border-radius:8px;background:#eef3f2;color:#43586a;font-size:11.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px"><span style="width:6px;height:6px;border-radius:50%;background:#1d8f86"></span>Gmail détecté</span></sc-if></span>
+              <sc-if value="{{ hostErr }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:#c2473b">Saisissez un nom d’hôte, par exemple smtp.exemple.com.</span></sc-if>
+            </label>
+            <div style="display:flex;flex-wrap:wrap;gap:18px">
+              <div style="flex:1 1 240px;display:flex;flex-direction:column;gap:8px"><span style="font-size:12.5px;font-weight:700">Chiffrement</span>
+                <div role="radiogroup" aria-label="Chiffrement" style="display:grid;grid-template-columns:repeat(3,1fr);padding:3px;border-radius:11px;background:#eef3f2;gap:2px"><sc-for list="{{ encs }}" as="o" hint-placeholder-count="3"><button type="button" role="radio" aria-checked="{{ o.on }}" onClick="{{ o.pick }}" title="{{ o.tip }}" style="{{ o.st }}">{{ o.l }}</button></sc-for></div>
+              </div>
+              <label style="flex:0 1 150px;display:flex;flex-direction:column;gap:8px"><span style="font-size:12.5px;font-weight:700">Port</span>
+                <span style="{{ portBox }}"><input value="{{ f.port }}" onChange="{{ setPort }}" inputmode="numeric" aria-label="Port" style="width:64px;height:100%;border:0;outline:0;background:transparent;padding:0 0 0 14px;font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600" /><span style="font-size:11.5px;color:#8a9aa6;padding-right:12px;white-space:nowrap">{{ portHint }}</span></span>
+              </label>
+            </div>
+            <sc-for list="{{ warns }}" as="w" hint-placeholder-count="0"><div style="{{ w.st }}"><span style="{{ w.dot }}"></span><span style="flex:1">{{ w.l }}</span><sc-if value="{{ w.hasFix }}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{ w.fix }}" style="flex:none;height:26px;padding:0 10px;border-radius:7px;border:0;background:#fff;font-size:11.5px;font-weight:700;color:#10233a;cursor:pointer;box-shadow:0 0 0 1px rgba(16,35,58,.1)" style-hover="background:#10233a;color:#fff">{{ w.fixL }}</button></sc-if></div></sc-for>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-wrap:wrap;gap:12px 28px;padding:26px 0;border-bottom:1px solid #eef3f2">
+          <div style="flex:0 0 160px;display:flex;flex-direction:column;gap:4px;padding-top:2px"><span style="font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#1d8f86">02 · AUTHENTIFICATION</span><span style="font-size:12px;color:#8a9aa6;line-height:1.45">Qui se présente au serveur</span></div>
+          <div style="flex:1 1 360px;min-width:0;display:flex;flex-direction:column;gap:18px">
+            <div style="display:flex;align-items:center;gap:14px"><span style="flex:1;font-size:12.5px;font-weight:700">Authentification</span><span style="font-size:12.5px;font-weight:700;color:{{ authColor }}">{{ authL }}</span><button type="button" role="switch" aria-checked="{{ f.auth }}" aria-label="Authentification" onClick="{{ toggleAuth }}" style="{{ swTr }}"><span style="{{ swKn }}"></span></button></div>
+            <sc-if value="{{ f.auth }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex;flex-direction:column;gap:18px;animation:rise .2s both">
+                <label style="display:flex;flex-direction:column;gap:8px"><span style="font-size:12.5px;font-weight:700">Identifiant</span>
+                  <input value="{{ f.user }}" onChange="{{ setUser }}" autocomplete="username" spellcheck="false" aria-label="Identifiant" style="{{ userSt }}" style-focus="box-shadow:inset 0 0 0 1.5px #1d8f86" />
+                  <sc-if value="{{ userErr }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:#c2473b">Saisissez l’identifiant du compte d’envoi.</span></sc-if>
+                </label>
+                <label style="display:flex;flex-direction:column;gap:8px"><span style="display:flex;align-items:baseline;gap:8px"><span style="font-size:12.5px;font-weight:700">Mot de passe</span><sc-if value="{{ isGmail }}" hint-placeholder-val="{{ true }}"><span style="font-size:11.5px;color:#8a9aa6">mot de passe d’application Google</span></sc-if><span style="flex:1"></span><span style="{{ passCountSt }}">{{ passCount }}</span></span>
+                  <span style="{{ passBox }}"><input type="{{ passType }}" value="{{ f.pass }}" onChange="{{ setPass }}" autocomplete="current-password" spellcheck="false" aria-label="Mot de passe" style="flex:1;min-width:0;height:100%;border:0;outline:0;background:transparent;padding:0 8px 0 14px;font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:.06em" /><button type="button" onClick="{{ toggleShow }}" aria-label="{{ showL }}" title="{{ showL }}" style="flex:none;width:36px;height:36px;margin-right:4px;border-radius:9px;border:0;background:transparent;color:#5c7280;display:grid;place-items:center;cursor:pointer" style-hover="background:#eef3f2;color:#10233a"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{ eyeIc }}"></path></svg></button></span>
+                  <span style="font-size:12px;color:#8a9aa6;line-height:1.5">{{ passHelp }}</span>
+                </label>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-wrap:wrap;gap:12px 28px;padding:26px 0 30px">
+          <div style="flex:0 0 160px;display:flex;flex-direction:column;gap:4px;padding-top:2px"><span style="font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#1d8f86">03 · EXPÉDITEUR</span><span style="font-size:12px;color:#8a9aa6;line-height:1.45">Ce que voit le destinataire</span></div>
+          <div style="flex:1 1 360px;min-width:0;display:flex;flex-direction:column;gap:8px">
+            <label style="display:flex;flex-direction:column;gap:8px"><span style="display:flex;align-items:baseline;gap:8px"><span style="font-size:12.5px;font-weight:700">Adresse d’expédition (From)</span><span style="flex:1"></span><sc-if value="{{ canCopyUser }}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{ copyUser }}" style="border:0;background:transparent;padding:0;font-size:12px;font-weight:700;color:#1d8f86;cursor:pointer">Reprendre l’identifiant</button></sc-if><sc-if value="{{ sameAsUser }}" hint-placeholder-val="{{ true }}"><span style="font-size:11.5px;color:#8a9aa6">identique à l’identifiant</span></sc-if></span>
+              <input value="{{ f.from }}" onChange="{{ setFrom }}" spellcheck="false" aria-label="Adresse d’expédition" style="{{ fromSt }}" style-focus="box-shadow:inset 0 0 0 1.5px #1d8f86" />
+            </label>
+            <sc-if value="{{ fromErr }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:#c2473b">Saisissez une adresse e-mail valide.</span></sc-if>
+          </div>
+        </div>
+      </div>
+      <div style="flex:1"></div>
+      <div style="display:flex;align-items:center;gap:10px;padding:16px 32px;border-top:1px solid #eef3f2;background:#f8fbfa;border-radius:0 0 22px 22px;flex-wrap:wrap">
+        <span style="{{ stateSt }}"><span style="{{ stateDot }}"></span>{{ stateL }}</span>
+        <span style="flex:1"></span>
+        <sc-if value="{{ dirty }}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{ revert }}" style="height:38px;padding:0 14px;border-radius:10px;border:0;background:transparent;font-size:13px;font-weight:700;color:#43586a;cursor:pointer;white-space:nowrap" style-hover="background:#eef3f2">Annuler</button></sc-if>
+        <button type="submit" disabled="{{ cantSave }}" style="{{ saveSt }}" style-hover="{{ saveHov }}">Enregistrer</button>
+      </div>
+    </form>
+
+    <aside aria-label="Test de la connexion" style="flex:1 1 400px;max-width:460px;min-width:0;background:#10233a;color:#dfe8ee;border-radius:22px;box-shadow:0 30px 60px -30px rgba(10,23,39,.7);display:flex;flex-direction:column;overflow:hidden;animation:rise .5s .1s cubic-bezier(.2,.7,.2,1) both">
+      <div style="padding:26px 28px 6px;display:flex;align-items:center;gap:10px;background:radial-gradient(120% 90% at 100% 0%,rgba(61,214,198,.12),transparent 55%)">
+        <span style="font-size:10.5px;font-weight:800;letter-spacing:.16em;color:#8fa3b3">CHEMIN D’ENVOI</span><span style="flex:1"></span><span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#6f8596">{{ runWhen }}</span>
+      </div>
+      <div style="padding:14px 28px 4px;display:flex;flex-direction:column">
+        <sc-for list="{{ steps }}" as="s" hint-placeholder-count="4">
+          <div style="display:grid;grid-template-columns:32px minmax(0,1fr);column-gap:14px">
+            <div style="display:flex;flex-direction:column;align-items:center">
+              <span style="{{ s.node }}"><sc-if value="{{ s.isPend }}" hint-placeholder-val="{{ false }}"><span style="width:12px;height:12px;border-radius:50%;border:2px solid rgba(61,214,198,.25);border-top-color:#3dd6c6;animation:spin .7s linear infinite"></span></sc-if><sc-if value="{{ s.hasIc }}" hint-placeholder-val="{{ true }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{ s.ic }}"></path></svg></sc-if></span>
+              <sc-if value="{{ s.notLast }}" hint-placeholder-val="{{ true }}"><span style="{{ s.line }}"></span></sc-if>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:3px;padding:5px 0 20px;min-width:0">
+              <div style="display:flex;align-items:baseline;gap:10px"><span style="{{ s.kSt }}">{{ s.k }}</span><span style="flex:1"></span><span style="{{ s.rSt }}">{{ s.r }}</span></div>
+              <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8fa3b3;word-break:break-all">{{ s.v }}</span>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="padding:0 28px 22px;display:flex;flex-direction:column;gap:12px">
+        <sc-if value="{{ hasFail }}" hint-placeholder-val="{{ false }}"><div role="alert" style="padding:12px 14px;border-radius:12px;background:rgba(240,123,103,.12);box-shadow:inset 0 0 0 1px rgba(240,123,103,.28);display:flex;flex-direction:column;gap:4px"><span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#f5a393">{{ failCode }}</span><span style="font-size:12.5px;color:#fff;line-height:1.5">{{ failHelp }}</span></div></sc-if>
+        <button type="button" onClick="{{ runTest }}" disabled="{{ running }}" style="{{ testSt }}" style-hover="background:#5fe0d2"><sc-if value="{{ running }}" hint-placeholder-val="{{ false }}"><span style="width:12px;height:12px;border-radius:50%;border:2px solid rgba(10,23,39,.25);border-top-color:#0a1727;animation:spin .7s linear infinite"></span></sc-if>{{ testL }}</button>
+      </div>
+      <div style="height:1px;background:rgba(255,255,255,.08);margin:0 28px"></div>
+      <div style="padding:22px 28px;display:flex;flex-direction:column;gap:12px">
+        <span style="font-size:10.5px;font-weight:800;letter-spacing:.16em;color:#8fa3b3">E-MAIL DE TEST</span>
+        <div style="display:flex;gap:8px">
+          <input value="{{ testTo }}" onChange="{{ setTestTo }}" placeholder="adresse@exemple.fr" aria-label="Destinataire du test" spellcheck="false" style="flex:1;min-width:0;height:42px;border:0;outline:0;border-radius:11px;background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 1px rgba(255,255,255,.1);padding:0 14px;font-size:13px;color:#fff" style-focus="box-shadow:inset 0 0 0 1.5px #3dd6c6" />
+          <button type="button" onClick="{{ sendTest }}" disabled="{{ cantMail }}" style="{{ mailSt }}" style-hover="{{ mailHov }}"><sc-if value="{{ mailing }}" hint-placeholder-val="{{ false }}"><span style="width:11px;height:11px;border-radius:50%;border:2px solid rgba(255,255,255,.25);border-top-color:#fff;animation:spin .7s linear infinite"></span></sc-if>{{ mailL }}</button>
+        </div>
+        <span style="{{ mailNoteSt }}">{{ mailNote }}</span>
+        <div style="margin-top:6px;border-radius:14px;background:#fff;color:#10233a;padding:14px 16px;display:flex;gap:12px;box-shadow:0 20px 40px -20px rgba(0,0,0,.6)">
+          <span style="flex:none;width:34px;height:34px;border-radius:50%;background:#1d8f86;color:#fff;display:grid;place-items:center;font-weight:800;font-size:14px">{{ fromIni }}</span>
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+            <div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ fromShow }}</span><span style="flex:1"></span><span style="font-size:11px;color:#8a9aa6;white-space:nowrap">à l’instant</span></div>
+            <span style="font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Jalon en retard · J06 · Go / No-Go Go-Live</span>
+            <span style="font-size:12px;color:#5c7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Le jalon J06 · Go / No-Go Go-Live du projet RISE a dépassé sa date prévue…</span>
+          </div>
+        </div>
+        <span style="font-size:11.5px;color:#6f8596">Aperçu de l’expéditeur dans la boîte de réception d’un utilisateur.</span>
+      </div>
+    </aside>
+  </div>
+</div>
+<sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}"><div role="status" style="position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:50;height:44px;padding:0 18px;border-radius:12px;background:#10233a;color:#fff;font-size:13px;font-weight:600;display:flex;align-items:center;gap:10px;box-shadow:0 18px 40px -16px rgba(16,35,58,.6);animation:toastIn .25s cubic-bezier(.2,.7,.2,1) both;white-space:nowrap"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3dd6c6" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"></path></svg>{{ toast }}</div></sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;settings&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{ host: string; port: number; enc: string; auth: boolean; user: string; from: string; hasPassword: boolean; lastTest: object | null; lastOkAt: string | null }&quot;},&quot;onSave&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(draft) =&gt; Promise&lt;boolean&gt;&quot;},&quot;onTest&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(draft) =&gt; Promise&lt;{ ok: boolean; step: string | null; code: string; ms: number; connectMs: number | null; tls: string | null }&gt;&quot;},&quot;onTestEmail&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(to: string, draft) =&gt; Promise&lt;{ ok: boolean; ms: number }&gt;&quot;}}">
+// Console : réglages du serveur (prop `settings`, jamais le mot de passe : `hasPassword`) et rappels (onSave, onTest,
+// onTestEmail) exécutés côté serveur ; sans elles, démonstration ci-dessous (identifiant et mot de passe fictifs).
+const INIT = { host: 'smtp.gmail.com', port: '587', enc: 'starttls', auth: true, user: 'cockpit.demo@gmail.com', pass: 'abcd efgh ijkl mnop', from: 'cockpit.demo@gmail.com' };
+// Étape en échec renvoyée par le serveur → rang de l'étape ; réglages du serveur → formulaire (mot de passe jamais renvoyé).
+const STEP_AT = { connect: 0, tls: 1, auth: 2, from: 3 };
+const toForm = s => ({ host: s.host || '', port: String(s.port || ''), enc: s.enc || 'starttls', auth: !!s.auth, user: s.user || '', pass: '', from: s.from || '' });
+const whenFr = iso => { if (!iso) return '—'; const d = new Date(iso), p = n => String(n).padStart(2, '0'); return 'le ' + p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear() + ' à ' + p(d.getHours()) + ':' + p(d.getMinutes()); };
+const ENC = [['starttls', 'TLS / STARTTLS', '587', 'Connexion en clair, puis passage en TLS (port 587)'], ['ssl', 'SSL/TLS', '465', 'Connexion chiffrée dès l’ouverture (port 465)'], ['none', 'Aucun', '25', 'Aucun chiffrement : déconseillé']];
+const PORT_HINT = { '587': 'soumission', '465': 'implicite', '25': 'relais', '2525': 'alternatif' };
+const EMAIL = /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i, HOST = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i;
+const EYE = 'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z', EYE_OFF = 'M3 3l18 18 M10.6 5.1A10 10 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.2 M6.6 6.6C3.9 8.4 2 12 2 12s3.5 7 10 7a9.6 9.6 0 0 0 5.4-1.6 M9.9 9.9a3 3 0 0 0 4.2 4.2';
+const box = err => 'display:flex;align-items:center;height:46px;border-radius:12px;background:#fff;transition:box-shadow .15s;box-shadow:inset 0 0 0 ' + (err ? '1.5px #f0a193' : '1px #d5e0dd');
+const inp = err => 'height:46px;border:0;outline:0;border-radius:12px;background:#fff;padding:0 14px;font-family:\'IBM Plex Mono\',monospace;font-size:13px;font-weight:500;transition:box-shadow .15s;box-shadow:inset 0 0 0 ' + (err ? '1.5px #f0a193' : '1px #d5e0dd');
+
+class Component extends DCLogic {
+  state = { f: { ...INIT }, saved: { ...INIT }, show: false, run: null, running: false, testTo: INIT.from, mailing: false, mail: null, toast: '', lastOk: 'le 28/09/2026 à 18:04' };
+  componentDidMount() { this.syncSettings(); }
+  componentDidUpdate() { if (this._set !== this.props.settings) this.syncSettings(); }
+  syncSettings() { const st = this.props.settings; this._set = st; if (!st) return; const s = toForm(st), first = !this._synced; this._synced = true;
+    this.setState(S => ({ saved: s, ...(first || JSON.stringify(S.f) === JSON.stringify(S.saved) ? { f: s, run: null } : {}), ...(first ? { testTo: s.from } : {}), lastOk: whenFr(st.lastOkAt) })); }
+  hasPass() { return !!(this.props.settings && this.props.settings.hasPassword); }
+  // Aide en français d'après la réponse réelle du serveur (mêmes messages que la démonstration).
+  helpFor(r, f) { const c = r.code || '', gm = /(^|\.)gmail\.com$|googlemail/i.test(f.host.trim());
+    if (/ENOTFOUND|EAI_AGAIN/.test(c)) return 'Le nom du serveur est introuvable. Vérifiez l’orthographe.';
+    if (r.step === 'tls' && f.enc === 'starttls' && f.port === '465') return 'Le port 465 attend un chiffrement SSL/TLS dès la connexion. Choisissez SSL/TLS ou le port 587.';
+    if (r.step === 'tls' && f.enc === 'ssl' && f.port === '587') return 'Le port 587 attend STARTTLS. Choisissez TLS / STARTTLS ou le port 465.';
+    if (/Must issue a STARTTLS/i.test(c) && gm) return 'Gmail refuse les connexions non chiffrées.';
+    if (/^530\b.*Authentication Required/i.test(c) && gm) return 'Gmail exige une authentification.';
+    if (/^535\b/.test(c) && gm) return 'Gmail n’accepte que les mots de passe d’application (16 caractères), générés depuis la sécurité du compte Google.';
+    return ''; }
+  // Déroulé des étapes : les étapes réussies passent au vert l'une après l'autre, puis l'étape en échec.
+  play(o, n, ms) { (this._tm || []).forEach(clearTimeout); this._tm = [];
+    for (let i = 0; i <= n; i++) this._tm.push(setTimeout(() => {
+      const last = i === n;
+      this.setState(s => ({ run: { step: last ? (o ? i : 4) : i + 1, fail: last && o ? o : null, done: last }, running: !last, lastOk: last && !o ? 'à l’instant' : s.lastOk }));
+      if (last) this.say(o ? 'Échec de la connexion' : 'Connexion validée');
+    }, ms * (i + 1))); }
+  componentWillUnmount() { (this._tm || []).forEach(clearTimeout); clearTimeout(this._tt); clearTimeout(this._mt); }
+  say(t) { clearTimeout(this._tt); this.setState({ toast: t }); this._tt = setTimeout(() => this.setState({ toast: '' }), 2400); }
+  set(patch) { this.setState(s => ({ f: { ...s.f, ...patch }, run: null, mail: null })); }
+  errs(f) { return { host: !HOST.test(f.host.trim()), port: !(+f.port >= 1 && +f.port <= 65535 && /^\d+$/.test(f.port)), user: f.auth && !f.user.trim(), pass: f.auth && !f.pass.trim() && !this.hasPass(), from: !EMAIL.test(f.from.trim()) }; }
+  outcome(f) {
+    const gmail = /(^|\.)gmail\.com$|googlemail/i.test(f.host.trim());
+    if (!HOST.test(f.host.trim())) return { at: 0, code: 'getaddrinfo ENOTFOUND ' + (f.host.trim() || '—'), help: 'Le nom du serveur est introuvable. Vérifiez l’orthographe.' };
+    if (f.enc === 'starttls' && f.port === '465') return { at: 1, code: 'wrong version number', help: 'Le port 465 attend un chiffrement SSL/TLS dès la connexion. Choisissez SSL/TLS ou le port 587.' };
+    if (f.enc === 'ssl' && f.port === '587') return { at: 1, code: 'SSL routines: wrong version number', help: 'Le port 587 attend STARTTLS. Choisissez TLS / STARTTLS ou le port 465.' };
+    if (gmail && f.enc === 'none') return { at: 1, code: '530 5.7.0 Must issue a STARTTLS command first', help: 'Gmail refuse les connexions non chiffrées.' };
+    if (gmail && !f.auth) return { at: 2, code: '530 5.7.0 Authentication Required', help: 'Gmail exige une authentification.' };
+    if (f.auth && gmail && f.pass.replace(/\s/g, '').length !== 16) return { at: 2, code: '535 5.7.8 Username and Password not accepted', help: 'Gmail n’accepte que les mots de passe d’application (16 caractères), générés depuis la sécurité du compte Google.' };
+    return null;
+  }
+  runTest() {
+    if (this.state.running) return; (this._tm || []).forEach(clearTimeout); this._tm = [];
+    const f = this.state.f;
+    this.setState({ running: true, run: { step: 0, fail: null, done: false }, mail: null });
+    if (this.props.onTest) {
+      Promise.resolve(this.props.onTest(f)).then(r => {
+        if (!r || JSON.stringify(this.state.f) !== JSON.stringify(f)) return this.setState({ running: false, run: null });
+        this.real = r; const n = r.ok ? 3 : STEP_AT[r.step] ?? 0;
+        this.play(r.ok ? null : { at: n, code: r.code, help: this.helpFor(r, f) }, n, 260);
+      }, () => this.setState({ running: false, run: null }));
+      return;
+    }
+    const o = this.outcome(f), n = o ? o.at : 3;
+    this.play(o, n, 520);
+  }
+  renderVals() {
+    const S = this.state, f = S.f, e = this.errs(f), dirty = JSON.stringify(f) !== JSON.stringify(S.saved), anyErr = Object.values(e).some(Boolean);
+    const gmail = /(^|\.)gmail\.com$|googlemail/i.test(f.host.trim()), run = S.run, ok = run && run.done && !run.fail, pc = f.pass.replace(/\s/g, '').length;
+    const encL = (ENC.find(x => x[0] === f.enc) || ENC[0])[1];
+    const stepDefs = [['Connexion', f.host.trim() + ':' + f.port, 'Connecté · ' + (this.real && this.real.connectMs != null ? this.real.connectMs : 48) + ' ms'], ['Chiffrement', encL, f.enc === 'none' ? 'Non chiffré' : (this.real && this.real.tls) || 'TLS 1.3'], ['Authentification', f.auth ? f.user : 'Désactivée', f.auth ? 'Accepté' : 'Ignorée'], ['Expédition', 'MAIL FROM:<' + f.from.trim() + '>', 'Accepté']];
+    const steps = stepDefs.map(([k, v, okL], i) => {
+      const st = !run ? 'idle' : run.fail && run.fail.at === i ? 'fail' : i < run.step ? 'ok' : i === run.step && S.running ? 'pend' : 'idle';
+      const col = { idle: ['rgba(255,255,255,.06)', '#6f8596', 'inset 0 0 0 1.5px rgba(255,255,255,.14)'], pend: ['rgba(61,214,198,.08)', '#3dd6c6', 'inset 0 0 0 1.5px rgba(61,214,198,.4)'], ok: ['#3dd6c6', '#0a1727', 'none'], fail: ['#f07b67', '#0a1727', 'none'] }[st];
+      return { k, v, r: st === 'ok' ? okL : st === 'fail' ? 'Échec' : st === 'pend' ? 'En cours…' : '', isPend: st === 'pend', hasIc: st !== 'pend', notLast: i < 3,
+        ic: st === 'ok' ? 'M5 12l5 5 9-10' : st === 'fail' ? 'M7 7l10 10 M17 7L7 17' : 'M12 12h.01',
+        node: 'width:32px;height:32px;border-radius:50%;display:grid;place-items:center;flex:none;transition:all .25s;background:' + col[0] + ';color:' + col[1] + ';box-shadow:' + col[2],
+        line: 'flex:1;width:2px;min-height:18px;margin:4px 0;border-radius:1px;transition:background .3s;background:' + (st === 'ok' ? '#3dd6c6' : st === 'pend' ? 'repeating-linear-gradient(180deg,#3dd6c6 0 5px,transparent 5px 9px)' : 'rgba(255,255,255,.1)') + (st === 'pend' ? ';animation:flow .6s linear infinite' : ''),
+        kSt: 'font-size:14px;font-weight:700;color:' + (st === 'idle' ? '#dfe8ee' : st === 'fail' ? '#f5a393' : '#fff'),
+        rSt: 'font-size:11.5px;font-weight:700;white-space:nowrap;color:' + (st === 'fail' ? '#f5a393' : st === 'ok' ? '#3dd6c6' : '#8fa3b3') };
+    });
+    const warns = [];
+    const w = (l, tone, fixL, fix) => warns.push({ l, hasFix: !!fix, fixL: fixL || '', fix: fix || (() => {}),
+      st: 'display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:11px;font-size:12.5px;font-weight:600;line-height:1.45;animation:rise .2s both;' + (tone === 'err' ? 'background:#fdf0ed;color:#a63a2f' : 'background:#fdf1dc;color:#8a5a12'),
+      dot: 'width:6px;height:6px;border-radius:50%;flex:none;background:' + (tone === 'err' ? '#e0604c' : '#d99a2b') });
+    if (f.enc === 'starttls' && f.port === '465') w('Le port 465 attend SSL/TLS dès la connexion.', 'err', 'Passer au port 587', () => this.set({ port: '587' }));
+    else if (f.enc === 'ssl' && f.port === '587') w('Le port 587 attend TLS / STARTTLS.', 'err', 'Passer au port 465', () => this.set({ port: '465' }));
+    if (f.enc === 'none') w('Sans chiffrement, identifiant et mot de passe circulent en clair.', 'warn', 'Chiffrer', () => this.set({ enc: 'starttls', port: '587' }));
+    if (gmail && f.auth && f.from.trim() && f.user.trim() && f.from.trim().toLowerCase() !== f.user.trim().toLowerCase()) w('Gmail remplace l’expéditeur par l’identifiant, sauf si l’adresse est un alias vérifié du compte.', 'warn');
+    const headOk = !dirty && (ok || (!run && S.lastOk));
+    const canMail = ok && EMAIL.test(S.testTo.trim()) && !S.mailing;
+    const ini = (f.from.trim()[0] || '?').toUpperCase();
+    return {
+      f, isGmail: gmail,
+      headL: dirty ? 'Modifications non enregistrées' : run && run.fail ? 'Connexion en échec' : 'Configuré · dernier test ' + S.lastOk,
+      headSt: 'height:34px;padding:0 14px;border-radius:999px;font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;' + (dirty ? 'background:#fdf1dc;color:#8a5a12' : run && run.fail ? 'background:#fdf0ed;color:#a63a2f' : 'background:#e6f4f2;color:#146b64'),
+      headDot: 'width:7px;height:7px;border-radius:50%;background:' + (dirty ? '#d99a2b' : run && run.fail ? '#e0604c' : '#1d8f86'),
+      hostBox: box(e.host), hostErr: e.host, setHost: ev => this.set({ host: ev.target.value }),
+      encs: ENC.map(([k, l, port, tip]) => ({ l, tip, on: f.enc === k, pick: () => this.set({ enc: k, port: PORT_HINT[f.port] || !f.port ? port : f.port }),
+        st: 'white-space:nowrap;height:36px;padding:0 8px;border:0;border-radius:9px;cursor:pointer;font-size:12.5px;transition:all .15s;' + (f.enc === k ? 'background:#fff;font-weight:700;color:#10233a;box-shadow:0 1px 2px rgba(16,35,58,.12)' : 'background:transparent;font-weight:600;color:#5c7280') })),
+      portBox: box(e.port), setPort: ev => this.set({ port: ev.target.value.replace(/\D/g, '').slice(0, 5) }), portHint: PORT_HINT[f.port] || '',
+      warns,
+      toggleAuth: () => this.set({ auth: !f.auth }), authL: f.auth ? 'Oui' : 'Non', authColor: f.auth ? '#146b64' : '#8a9aa6',
+      swTr: 'flex:none;position:relative;width:40px;height:24px;border-radius:12px;border:0;padding:0;cursor:pointer;transition:background .2s;background:' + (f.auth ? '#1d8f86' : '#d5e0dd'),
+      swKn: 'position:absolute;top:3px;left:' + (f.auth ? 19 : 3) + 'px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(16,35,58,.3);transition:left .2s cubic-bezier(.2,.7,.2,1)',
+      userSt: inp(e.user), userErr: e.user, setUser: ev => this.set({ user: ev.target.value }),
+      passBox: box(e.pass), passType: S.show ? 'text' : 'password', setPass: ev => this.set({ pass: ev.target.value }),
+      toggleShow: () => this.setState(s => ({ show: !s.show })), showL: S.show ? 'Masquer le mot de passe' : 'Afficher le mot de passe', eyeIc: S.show ? EYE_OFF : EYE,
+      passCount: gmail && (pc || !this.hasPass()) ? pc + ' / 16' : '', passCountSt: 'font-family:\'IBM Plex Mono\',monospace;font-size:11.5px;font-weight:600;color:' + (pc === 16 ? '#1d8f86' : '#8a9aa6'),
+      passHelp: e.pass ? 'Le mot de passe est requis quand l’authentification est activée.' : 'Stocké chiffré côté serveur. Il ne sera plus affiché après l’enregistrement.',
+      canCopyUser: f.auth && !!f.user.trim() && f.from.trim() !== f.user.trim(), sameAsUser: f.auth && !!f.user.trim() && f.from.trim() === f.user.trim(),
+      copyUser: () => this.set({ from: f.user.trim() }),
+      fromSt: inp(e.from), fromErr: e.from, setFrom: ev => this.set({ from: ev.target.value }),
+      stateL: dirty ? (ok ? 'Connexion validée · prête à enregistrer' : 'Testez la connexion avant d’enregistrer') : 'Aucune modification',
+      stateSt: 'display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:' + (!dirty ? '#8a9aa6' : ok ? '#146b64' : '#8a5a12'),
+      stateDot: 'width:6px;height:6px;border-radius:50%;background:' + (!dirty ? '#b3c1c8' : ok ? '#1d8f86' : '#d99a2b'),
+      dirty, cantSave: !dirty || anyErr, revert: () => this.setState(s => ({ f: { ...s.saved }, run: null, mail: null })),
+      saveSt: 'white-space:nowrap;height:38px;padding:0 18px;border-radius:10px;border:0;font-size:13px;font-weight:700;transition:background .15s;' + (!dirty || anyErr ? 'background:#e1e9e7;color:#8a9aa6;cursor:not-allowed' : 'background:#10233a;color:#fff;cursor:pointer'),
+      saveHov: !dirty || anyErr ? '' : 'background:#1d3654',
+      save: ev => { ev.preventDefault(); if (!dirty || anyErr) return;
+        if (this.props.onSave) { Promise.resolve(this.props.onSave({ ...f })).then(st => { if (!st) return; const s = toForm(st); this.setState({ f: s, saved: s, show: false }); this.say('Réglages SMTP enregistrés'); }, () => {}); return; }
+        this.setState(s => ({ saved: { ...s.f } })); this.say('Réglages SMTP enregistrés'); },
+      runWhen: S.running ? 'test en cours' : run && run.done ? 'à l’instant' : '',
+      steps, running: S.running, hasFail: !!(run && run.fail), failCode: run && run.fail ? run.fail.code : '', failHelp: run && run.fail ? run.fail.help : '',
+      runTest: () => this.runTest(), testL: S.running ? 'Test en cours…' : run && run.done ? 'Relancer le test' : 'Tester la connexion',
+      testSt: 'height:44px;border-radius:12px;border:0;background:#3dd6c6;color:#0a1727;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;gap:9px;cursor:' + (S.running ? 'default;opacity:.8' : 'pointer'),
+      testTo: S.testTo, setTestTo: ev => this.setState({ testTo: ev.target.value, mail: null }),
+      cantMail: !canMail, mailing: S.mailing, mailL: S.mailing ? 'Envoi…' : 'Envoyer',
+      mailSt: 'flex:none;height:42px;padding:0 16px;border-radius:11px;border:0;font-weight:700;font-size:13px;display:flex;align-items:center;gap:8px;white-space:nowrap;transition:background .15s;' + (canMail || S.mailing ? 'background:rgba(255,255,255,.12);color:#fff;cursor:pointer' : 'background:rgba(255,255,255,.05);color:#6f8596;cursor:not-allowed'),
+      mailHov: canMail ? 'background:rgba(255,255,255,.2)' : '',
+      sendTest: () => { if (!canMail) return; this.setState({ mailing: true }); clearTimeout(this._mt);
+        if (this.props.onTestEmail) { const to = S.testTo.trim(); Promise.resolve(this.props.onTestEmail(to, f)).then(r => { this.setState({ mailing: false, ...(r && r.ok ? { mail: to, mailMs: r.ms } : {}) }); if (r && r.ok) this.say('E-mail de test envoyé'); }, () => this.setState({ mailing: false })); return; } this._mt = setTimeout(() => { this.setState({ mailing: false, mail: S.testTo.trim() }); this.say('E-mail de test envoyé'); }, 1100); },
+      mailNote: S.mail ? 'Remis à ' + S.mail + ' en ' + ((S.mailMs ?? 1100) / 1000).toFixed(1).replace('.', ',') + ' s. Vérifiez aussi le dossier indésirables.' : ok ? 'La connexion est validée : vous pouvez envoyer un e-mail réel.' : 'Disponible une fois la connexion validée.',
+      mailNoteSt: 'font-size:12px;line-height:1.5;color:' + (S.mail ? '#3dd6c6' : '#8fa3b3'),
+      fromIni: ini, fromShow: f.from.trim() || '—',
+      hasToast: !!S.toast, toast: S.toast
+    };
+  }
+}
+</script>
+</body>
+</html>

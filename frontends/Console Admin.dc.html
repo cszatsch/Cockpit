@@ -430,6 +430,14 @@ a{color:#1d8f86}a:hover{color:#146b64}
         </sc-if>
       </div>
     </sc-if>
+    <!-- API : Serveur d’envoi SMTP (Serveur SMTP.dc.html, SMTP - specification.md § 6) ; en-tête générique masqué, le composant a le sien. -->
+    <sc-if value="{{ isSmtp }}" hint-placeholder-val="{{ false }}">
+      <div style="{{ skWrap }}" data-screen-label="Serveur d’envoi SMTP">
+        <sc-if value="{{ smMounted }}" hint-placeholder-val="{{ true }}">
+          <dc-import name="Serveur SMTP" settings="{{ smSettings }}" on-save="{{ smSave }}" on-test="{{ smTest }}" on-test-email="{{ smTestEmail }}" hint-size="100%,1000px"></dc-import>
+        </sc-if>
+      </div>
+    </sc-if>
 
     <sc-if value="{{ isMods }}" hint-placeholder-val="{{ false }}">
       <div style="display:flex;flex-direction:column;gap:16px;animation:rise-in .35s cubic-bezier(.2,.7,.2,1) both" data-screen-label="Modules">
@@ -987,6 +995,7 @@ const META = {
   journal: ['Intelligence artificielle', 'Journal consommation et coûts', 'Tokens consommés et détail de chaque appel LLM.'],
   snaps: ['Projets', 'Snapshots', 'L’historique des données de chaque projet : capturer, comparer, restaurer.'],
   notifs: ['Plateforme', 'Notifications et alertes', 'Les notifications informent. Les alertes signalent un événement ou un seuil critique.'],
+  smtp: ['Plateforme', 'Serveur d’envoi SMTP', ''],
   apis: ['Plateforme', 'Registre des cartes API', 'Les services externes appelés par les widgets : endpoint, clé, quota, santé et échéance de la clé.'],
   modules: ['Plateforme', 'Modules', 'Activez les modules optionnels pour toute la plateforme ou projet par projet.'],
   init: ['Projets', 'Initialisation d’un projet', 'Importez le fichier Excel rempli par le PMO : contrôle de conformité, prévisualisation du référentiel, puis création du projet.'],
@@ -1006,6 +1015,7 @@ const JCHIPS = {
   journal: ['Combien de tokens ce mois-ci ?', 'Quel est l’appel le plus cher du mois ?'],
   snaps: ['Comment créer un snapshot ?', 'Qu’est-ce qui a changé depuis le 22 sept. ?'],
   notifs: ['Quelles alertes sont actives ?', 'Y a-t-il eu des échecs d’envoi ?'],
+  smtp: ['Quel serveur envoie les e-mails ?', 'Le dernier test de connexion a-t-il réussi ?'],
   modules: ['Comment activer un module sur un projet ?', 'Quels modules sont actifs ?'],
   profil: ['Quels sont mes droits ?', 'Mes sessions actives']
 };
@@ -1129,6 +1139,10 @@ class Component extends DCLogic {
   apRestore() {}
   apTest() {}
   apWidgetsSet() {}
+  // Serveur d’envoi SMTP : sans serveur, le composant simule seul ; admin-api.js remplace ces rappels.
+  smSave() {}
+  smTest() {}
+  smTestEmail() {}
   sbSignals(badge) {
     const S = this.state, st = FNS.map(f => this.fnState(f.id, S.asg[f.id]).tone), anyDown = st.includes('err'), anyFallback = st.includes('warn');
     return {
@@ -1519,10 +1533,13 @@ class Component extends DCLogic {
       mob: mode === 'mob', scrim: mode === 'mob' && S.mnav, openNav: () => this.setState({ mnav: true }), closeNav: () => this.setState({ mnav: false }),
       padSt: `max-width:1320px;margin:0 auto;padding:${mode === 'mob' ? '20px 16px 96px' : mode === 'rail' ? '28px 28px 96px' : '32px 44px 96px'}`,
       topSt: `position:sticky;top:0;z-index:40;height:60px;display:flex;align-items:center;gap:12px;padding:0 ${mode === 'mob' ? 16 : mode === 'rail' ? 28 : 44}px;background:rgba(242,246,245,.82);backdrop-filter:saturate(1.4) blur(14px);-webkit-backdrop-filter:saturate(1.4) blur(14px);border-bottom:1px solid rgba(16,35,58,.06)`,
-      eyebrow: meta[0], title: meta[1], desc: meta[2], isOv: is('overview'), notOv: !is('overview') && !is('skills') && !is('persona') && !is('apis') && !is('journal') && !is('notifs'), loading: S.loading, ready: !S.loading,
+      eyebrow: meta[0], title: meta[1], desc: meta[2], isOv: is('overview'), notOv: !is('overview') && !is('skills') && !is('persona') && !is('apis') && !is('journal') && !is('notifs') && !is('smtp'), loading: S.loading, ready: !S.loading,
       healthL: errN ? errN + ' incident' + (errN > 1 ? 's' : '') : 'Opérationnelle', healthPill: pill(errN ? 'err' : 'ok'), healthDot: dot(errN ? 'err' : 'ok'), goOv: () => this.go('overview'),
       isUsers: is('users') && !S.loading, isAdmins: is('admins') && !S.loading, isRights: is('rights') && !S.loading, isProv: is('providers') && !S.loading, isAsg: is('assign') && !S.loading, isConso: is('conso') && !S.loading, isInit: is('init') && !S.loading, isLib: is('library') && !S.loading, isSnaps: is('snaps') && !S.loading, isNotifs: is('notifs') && !S.loading, isMods: is('modules') && !S.loading,
-      isApis: is('apis') && !S.loading, isJournal: is('journal') && !S.loading,
+      isApis: is('apis') && !S.loading, isJournal: is('journal') && !S.loading, isSmtp: is('smtp') && !S.loading,
+      // Serveur d’envoi SMTP : réglages du serveur (admin-api.js, jamais le mot de passe) ; sans eux, démonstration du composant.
+      smMounted: !S.smApi || !!S.smSettings, smSettings: S.smSettings || undefined,
+      ...(S.smApi ? { smSave: d => this.smSave(d), smTest: d => this.smTest(d), smTestEmail: (to, d) => this.smTestEmail(to, d) } : {}),
       // Registre des cartes API : liste du serveur (admin-api.js) ; sans elle, le composant affiche sa démonstration et simule les appels.
       // Registre des cartes API v3c : cartes du serveur au format Card du § 5 (admin-api.js) ; sans elles, démonstration du composant.
       apMounted: !S.apApi || !!(S.apCards && S.apWidgets), apCards: S.apCards || undefined, apWidgets: S.apWidgets || undefined, apChecked: S.apChecked || undefined,

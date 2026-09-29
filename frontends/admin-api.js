@@ -282,6 +282,8 @@ export function bindConsole(c) {
     nrRules: async () => ({ nrRules: await get('/notifications/rules') }),
     nrHist: async () => ({ nrHist: await get('/notifications/history?limit=200') }),
     nrCounts: async () => ({ nrCounts: await get('/notifications/counts') }),
+    // Serveur d’envoi SMTP : réglages sans mot de passe (`hasPassword`).
+    smtp: async () => ({ smSettings: await get('/settings/smtp') }),
     mods: async () => ({ mods: sortMods((await get('/modules')).map(toMod)) }),
     reqs: async () => ({ reqs: (await get('/module-requests?status=PENDING')).map(toReq) }),
     prof: async () => { const me = await get('/me/profile'); meId = me.id; return { prof: toProf(me), pn: { crit: true, budget: true, req: true, hebdo: true, fail: false, ...(me.notifications || {}) }, photo: me.photoUrl || null }; },
@@ -298,7 +300,7 @@ export function bindConsole(c) {
   const SECTION = {
     overview: ['accounts', 'providers', 'month', 'audit', 'reqs', 'snaps', 'models', 'asg', 'fns'], users: ['accounts'], admins: ['admins', 'audit', 'accounts'], providers: ['providers', 'models', 'asg', 'fns'],
     assign: ['asg', 'models', 'providers', 'usage', 'fns'], conso: ['month', 'providers'], snaps: ['snaps', 'sched'], notifs: ['nrRules', 'nrHist', 'nrCounts', 'models', 'providers', 'projects'], modules: ['mods', 'reqs'],
-    init: ['projects'], library: ['projects'], profil: ['prof', 'sess', 'audit'], skills: ['skills'], persona: ['persona'], apis: ['apis'],
+    smtp: ['smtp'], init: ['projects'], library: ['projects'], profil: ['prof', 'sess', 'audit'], skills: ['skills'], persona: ['persona'], apis: ['apis'],
   };
   async function load(keys) {
     const parts = await Promise.all(keys.map(k => L[k]()));
@@ -308,7 +310,7 @@ export function bindConsole(c) {
   }
 
   // ── Démarrage : squelette de chargement jusqu'à la réception des données du serveur ──
-  set0({ apiBoot: true, loading: true, nt: [], nrApi: true, apApi: true });
+  set0({ apiBoot: true, loading: true, nt: [], nrApi: true, apApi: true, smApi: true });
   (async () => {
     try {
       const ov = await get('/overview');
@@ -317,7 +319,7 @@ export function bindConsole(c) {
       if (typeof c.apiClock === 'function') c.apiClock(clock.server);
       // Échéances des clés API : même date du jour que le serveur (DEMO_TODAY compris).
       set0({ apiNow: String(ov.date).slice(0, 10) + 'T12:00:00' });
-      await load(['prof', 'accounts', 'admins', 'audit', 'providers', 'models', 'asg', 'usage', 'snaps', 'sched', 'nrRules', 'nrHist', 'nrCounts', 'mods', 'reqs', 'sess', 'projects', 'skills', 'persona', 'notifs', 'apis', 'fns']);
+      await load(['prof', 'accounts', 'admins', 'audit', 'providers', 'models', 'asg', 'usage', 'snaps', 'sched', 'nrRules', 'nrHist', 'nrCounts', 'smtp', 'mods', 'reqs', 'sess', 'projects', 'skills', 'persona', 'notifs', 'apis', 'fns']);
       set0({ apiBoot: false, loading: false });
     } catch (e) {
       fail(e);
@@ -381,6 +383,13 @@ export function bindConsole(c) {
   };
   c.ntUndo = id => post('/notifications/' + id + '/undo').then(() => { toast('Décision annulée'); refreshNt(); touch(); }).catch(e => { fail(e); refreshNt(); });
   c.ntReadAll = () => post('/notifications/read-all').then(refreshNt).catch(fail);
+
+  // ── Serveur d’envoi SMTP (Serveur SMTP.dc.html, SMTP - specification.md § 6) ──
+  // Test et envoi s'exécutent côté serveur ; le mot de passe n'est envoyé que s'il a été saisi (vide : conservé).
+  const smBody = d => ({ host: d.host.trim(), port: Number(d.port), enc: d.enc, auth: !!d.auth, user: d.user.trim(), from: d.from.trim(), ...(d.pass && d.pass.trim() ? { password: d.pass } : {}) });
+  c.smSave = d => put('/settings/smtp', smBody(d)).then(st => { set0({ smSettings: st }); touch(); return st; }).catch(e => { fail(e); return null; });
+  c.smTest = d => post('/settings/smtp/test', smBody(d)).then(r => { touch(); load(['smtp']).catch(() => {}); return r; }).catch(e => { fail(e); return null; });
+  c.smTestEmail = (to, d) => post('/settings/smtp/test-email', { to, settings: smBody(d) }).then(r => { touch(); return r; }).catch(e => { fail(e); return null; });
 
   // ── Registre des cartes API v3c (Registre des cartes API.dc.html, REGISTRE API - specification.md § 6) ──
   // Le composant met sa liste à jour lui-même et confirme par ses propres messages ; les écritures partent l'une

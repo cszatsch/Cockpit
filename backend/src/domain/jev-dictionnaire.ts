@@ -640,6 +640,33 @@ export const DICTIONNAIRE: DictTable[] = [
     regles: ['Appel réussi = code entre 1 et 399. Latence moyenne = moyenne de ms des appels réussis.'],
   },
 
+  // ───────────── Serveur d'envoi SMTP ─────────────
+  {
+    nom: 'serveur_smtp',
+    source: 'smtp_settings t',
+    description: 'Réglages du serveur d’envoi SMTP, utilisé pour tous les e-mails de la plateforme (canal E-mail des règles de notification, invitations, mots de passe). Une seule ligne ; aucune ligne tant que les réglages n’ont pas été enregistrés dans la Console (ils viennent alors de la configuration du serveur). Le mot de passe n’est jamais lisible. Écran : Plateforme › Serveur d’envoi SMTP.',
+    colonnes: [
+      { nom: 'serveur', expr: 't.host', type: 'texte', signification: 'Nom du serveur SMTP', exemples: 'smtp.gmail.com' },
+      { nom: 'port', expr: 't.port', type: 'entier', signification: 'Port', exemples: '587 (STARTTLS), 465 (SSL/TLS), 25 (sans chiffrement)' },
+      { nom: 'chiffrement', expr: 't.enc', type: 'texte', signification: 'Chiffrement', exemples: 'starttls = TLS / STARTTLS, ssl = SSL/TLS, none = aucun' },
+      { nom: 'authentification', expr: 't.auth', type: 'booléen', signification: 'Authentification activée' },
+      { nom: 'identifiant', expr: 't."user"', type: 'texte', signification: 'Identifiant de connexion' },
+      { nom: 'mdp_enregistre', expr: 't.password_encrypted IS NOT NULL', type: 'booléen', signification: 'Un mot de passe est enregistré (sa valeur n’est jamais lisible)' },
+      { nom: 'expediteur', expr: 't.from_address', type: 'texte', signification: 'Adresse d’expédition (From)' },
+      { nom: 'dernier_test', expr: 't.last_test', type: 'json', signification: 'Dernier test de connexion des réglages enregistrés', exemples: '{ok, step, code, ms, at} ; step = connect, tls, auth ou from (étape en échec)' },
+      { nom: 'dernier_test_reussi_le', expr: P('last_ok_at'), type: 'date-heure', signification: 'Dernier test de connexion réussi' },
+      { nom: 'modifie_le', expr: P('updated_at'), type: 'date-heure', signification: 'Dernière modification' },
+      { nom: 'modifie_par', expr: 't.updated_by', type: 'texte', signification: 'Auteur de la dernière modification' },
+    ],
+    relations: [],
+    usages: ['Quel serveur envoie les e-mails ?', 'Le dernier test de connexion a-t-il réussi ?'],
+    regles: [
+      'Aucune ligne : les réglages viennent de la configuration du serveur (variables d’environnement) et n’ont pas encore été enregistrés dans la Console.',
+      'Port attendu : 587 avec starttls, 465 avec ssl ; sans chiffrement, identifiant et mot de passe circulent en clair.',
+      'Avec Gmail, une adresse d’expédition différente de l’identifiant est remplacée par l’identifiant, sauf alias vérifié.',
+    ],
+  },
+
   // ───────────── Assistant ─────────────
   {
     nom: 'skills',

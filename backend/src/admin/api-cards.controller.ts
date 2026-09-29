@@ -10,7 +10,7 @@ import { ApiError, businessRule, conflict, notFound } from '../core/errors';
 import { parse } from '../core/http';
 import { PrismaService } from '../core/prisma.service';
 import { API_CALL_TIMEOUT_MAX_MS, API_CARD_NAME_MAX, API_CARD_TAG_MAX, API_KEY_MIN_LENGTH, endpointError } from '../domain/api-cards';
-import { WIDGET_CATALOGUE, WIDGET_IDS, widgetName } from '../domain/widgets';
+import { API_WIDGET_IDS, WIDGET_CATALOGUE, WIDGET_IDS, widgetName } from '../domain/widgets';
 import { ApiCardsService } from './api-cards.service';
 import { FEED_ITEMS_DEFAULT, FEED_ITEMS_MAX, isFeed, mergeFeeds, parseFeed } from '../domain/rss';
 import { parseNews } from '../domain/news';
@@ -170,12 +170,14 @@ export class ApiCardsController {
     this.cards.forget(id);
   }
 
-  /** Associe ou dissocie des widgets (identifiants du catalogue ; liste complète). */
+  /** Associe ou dissocie des widgets (identifiants du catalogue ; liste complète) : seuls ceux qui requièrent une carte API. */
   @Put(':id/widgets')
   async widgets(@CurrentActor() actor: Actor, @Req() req: Request, @Param('id') id: string, @Body() body: unknown) {
     const { ids } = parse(Widgets, body);
     const unknown = ids.filter((w) => !WIDGET_IDS.has(w));
     if (unknown.length) throw businessRule('Widget inconnu', { ids: unknown.join(', ') });
+    const noApi = ids.filter((w) => !API_WIDGET_IDS.has(w));
+    if (noApi.length) throw businessRule('Ce widget n’est pas alimenté par une carte API', { ids: noApi.join(', ') });
     const before = await this.one(id);
     const next = [...new Set(ids)];
     const card = await this.prisma.$transaction(async (db) => {
