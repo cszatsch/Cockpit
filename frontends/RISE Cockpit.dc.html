@@ -51,8 +51,6 @@ a{color:#1d8f86}a:hover{color:#146b64}
     <div onClick="{{ goProfil }}" onMouseEnter="{{ profIn }}" onMouseLeave="{{ profOut }}" title="Mon profil" style="display:flex;align-items:center;gap:12px;height:54px;padding:0 12px;border-radius:13px;background:rgba(255,255,255,.07);position:relative;cursor:pointer;{{ footRow }}" style-hover="background:rgba(255,255,255,.12)"><span style="flex:none;width:30px;height:30px;border-radius:50%;background:#0096d6;color:#fff;font-weight:800;display:grid;place-items:center;font-size:12px">RL</span><div style="{{ navLabelStyle }}"><div style="font-weight:700;color:#fff;font-size:12.5px">{{ meName }}</div><div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#8fb0ab">PMO projet</div></div><sc-if value="{{ showLogout }}" hint-placeholder-val="{{ false }}"><span onClick="{{ logout }}" title="Déconnexion" aria-label="Déconnexion" style="margin-left:auto;flex:none;width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:#8fb0ab;cursor:pointer;transition:background .18s,color .18s" style-hover="color:#fff;background:rgba(255,255,255,.1)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h3.5A2.5 2.5 0 0 1 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5H14"></path><path d="M10 16.5 5.5 12 10 7.5"></path><path d="M5.5 12H15"></path></svg></span></sc-if></div>
   </div>
 </aside>
-<!-- Notifications de l'utilisateur (canal « Dans l'application » des règles) : tiroir ouvert par la cloche. -->
-<dc-import name="Notifications Cockpit" open="{{ ntOpen }}" left="{{ ntLeft }}" items="{{ ntItems }}" on-close="{{ ntClose }}" on-read="{{ ntRead }}" on-read-all="{{ ntReadAll }}" hint-size="0,0"></dc-import>
 
 <!-- ============ MAIN ============ -->
 <main style="min-width:0;position:relative">
@@ -1868,6 +1866,9 @@ a{color:#1d8f86}a:hover{color:#146b64}
 </sc-if>
 
 </div>
+<!-- Notifications de l'utilisateur (canal « Dans l'application » des règles) : tiroir ouvert par la cloche.
+     Hors de la grille du shell (le tiroir est en position fixe) : placé dedans, son enveloppe prenait la colonne du contenu. -->
+<dc-import name="Notifications Cockpit" open="{{ ntOpen }}" left="{{ ntLeft }}" items="{{ ntItems }}" on-close="{{ ntClose }}" on-read="{{ ntRead }}" on-read-all="{{ ntReadAll }}" hint-size="0,0"></dc-import>
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;reducedMotion&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Comportement&quot;},&quot;startSpace&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;today&quot;,&quot;options&quot;:[&quot;today&quot;,&quot;pilotage&quot;,&quot;comites&quot;,&quot;documents&quot;,&quot;equipe&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Comportement&quot;}}">
 class Component extends DCLogic {

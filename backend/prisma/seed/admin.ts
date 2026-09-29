@@ -134,7 +134,6 @@ export async function seedAdmin(db: PrismaClient): Promise<void> {
   const AUDIT0: Array<[string, string, string, keyof typeof SEV, number, string]> = [
     ['Système', 'Échec du test de clé API', 'Google · 401 clé révoquée', 'critique', 124, 'Provider'],
     ['Julien Morel', 'Attribution d’un profil global', 'Camille Rey · RISE · profil PMO attribué', 'sensible', 312, 'Account'],
-    ['Julien Morel', 'Création d’un snapshot manuel', 'RISE · Avant le 19e COPIL', 'info', 60 * 65 + 44, 'Snapshot'],
     ['Camille Rey', 'Demande d’activation de module', 'Suivi des bénéfices · RISE', 'info', 60 * 48 + 40, 'ModuleRequest'],
     ['Julien Morel', 'Suspension d’un utilisateur', 'Marc Delorme', 'sensible', 60 * 72 + 15, 'Account'],
     ['Julien Morel', 'Rotation de clé API', 'OpenAI', 'critique', 60 * 96 + 200, 'Provider'],
@@ -193,47 +192,7 @@ export async function seedAdmin(db: PrismaClient): Promise<void> {
     ],
   });
 
-  // ── Snapshots (SNAPS0) ; les écarts EV sont rattachés au snapshot où ils apparaissent ──
-  const SN = (m0: number, d: number, h: number, mi: number) => paris(2026, m0 + 1, d, h, mi);
-  const SNAPS: Record<string, Array<[string, Date, string?, string?]>> = {
-    RISE: [['r1', SN(6, 17, 4, 0)], ['r2', SN(6, 26, 18, 30), 'Après le 18e COPIL', 'Julien Morel'], ['r3', SN(7, 21, 4, 0)], ['r4', SN(7, 28, 4, 0)], ['r5', SN(8, 4, 4, 0)], ['r6', SN(8, 8, 11, 5), 'Replanification du Run 3', 'Julien Morel'], ['r7', SN(8, 11, 4, 0)], ['r8', SN(8, 18, 4, 0)], ['r9', SN(8, 22, 16, 40), 'Avant le 19e COPIL', 'Julien Morel'], ['r10', SN(8, 25, 4, 0)]],
-  };
-  const EV: Array<[number, string, string, string, string?, string?, string?]> = [
-    [1, 'mod', 'Jalon', 'J01 · Fin de la recette Finance', 'Date prévue', '12 sept. 2026', '19 sept. 2026'], [1, 'add', 'Risque', 'Disponibilité de l’équipe intégrateur'], [1, 'mod', 'Action', 'Spécifications des flux Achats', 'Avancement', '60 %', '100 %'],
-    [2, 'add', 'Action', 'Plan de conduite du changement'], [2, 'mod', 'Risque', 'Retard des flux Brand X', 'Probabilité', '3', '4'],
-    [3, 'add', 'Livrable', 'Dossier d’architecture v2'], [3, 'del', 'Livrable', 'Note de cadrage v0 (doublon)'], [3, 'mod', 'Action', 'Migration du référentiel fournisseurs', 'Avancement', '20 %', '40 %'],
-    [4, 'mod', 'Action', 'Recette des interfaces SI Achats', 'Responsable', 'Karim Benali', 'Élodie Faure'], [4, 'add', 'Action', 'Paramétrage des workflows de validation'],
-    [5, 'mod', 'Jalon', 'J06 · Go / No-Go Go-Live', 'Date prévue', '4 oct. 2026', '15 mars 2027'], [5, 'add', 'Risque', 'Charge du support en période de clôture'],
-    [6, 'mod', 'Action', 'Migration du référentiel fournisseurs', 'Date de fin', '30 sept.', '16 oct.'], [6, 'mod', 'Jalon', 'J08 · Go-Live Lot 1', 'Date prévue', '1er nov. 2026', '1er avr. 2027'], [6, 'del', 'Action', 'Atelier en doublon · cadrage du reporting'],
-    [7, 'mod', 'Action', 'Migration du référentiel fournisseurs', 'Avancement', '40 %', '65 %'], [7, 'add', 'Livrable', 'Plan de recette utilisateur'],
-    [8, 'mod', 'Risque', 'Disponibilité de l’équipe intégrateur', 'Statut', 'Ouvert', 'En mitigation'], [8, 'add', 'Action', 'Formation des key users'], [8, 'mod', 'Livrable', 'Dossier d’architecture v2', 'Statut', 'En rédaction', 'Validé'],
-    [9, 'mod', 'Action', 'Recette des interfaces SI Achats', 'Avancement', '30 %', '55 %'], [9, 'del', 'Risque', 'Indisponibilité de la salle de formation'], [9, 'add', 'Action', 'Préparation du 20e COPIL'], [9, 'mod', 'Jalon', 'J07 · Répétition générale', 'Responsable', 'Karim Benali', 'Antoine Mercier'],
-  ];
-  const BASE: Record<string, Record<string, number>> = {
-    RISE: { Action: 138, Jalon: 12, Risque: 17, Livrable: 34 },
-  };
-  for (const [project, list] of Object.entries(SNAPS)) {
-    const counts = { ...BASE[project] };
-    for (const [ix, [id, t, label, by]] of list.entries()) {
-      const changes = project === RISE_ID ? EV.filter((e) => e[0] === ix).map(([, op, entity, object, field, before, after]) => ({ op, entity, object, field: field ?? null, before: before ?? null, after: after ?? null })) : [];
-      // Effectifs de l'état capturé : ceux du premier snapshot, plus les ajouts et moins les suppressions depuis.
-      for (const c of changes) if (c.entity in counts) counts[c.entity] += c.op === 'add' ? 1 : c.op === 'del' ? -1 : 0;
-      await db.snapshot.create({
-        data: {
-          id,
-          projectId: project,
-          takenAt: t,
-          kind: label ? 'MANUAL' : 'AUTO',
-          label: label ?? null,
-          takenBy: by ?? null,
-          takenById: by ? 'u1' : null,
-          status: 'DONE',
-          // Snapshots de démonstration : pas de contenu capturé ; écarts connus avec le précédent.
-          stats: { counts: { ...counts }, demo: true, changesFromPrevious: changes } as Prisma.InputJsonValue,
-        },
-      });
-    }
-  }
+  // ── Snapshots : aucun snapshot factice depuis le 29/09/2026 (jeu d'essai r1-r10 : `seedDemoSnapshots`, tests seulement) ; planification de RISE ──
   for (const code of [RISE_ID]) {
     await db.snapshotSchedule.create({ data: { projectId: code, enabled: true, frequency: 'Hebdomadaire', day: 'vendredi', hour: '04:00', retention: '12 mois' } });
   }
@@ -324,6 +283,54 @@ export async function seedDemoLibrary(db: PrismaClient): Promise<void> {
   const scope: Record<string, string[]> = { n1: ['RISE', 'ATLAS'], n2: ['RISE', 'ATLAS', 'HORIZON', 'NOVA'], n5: ['RISE', 'HORIZON'] };
   for (const [id, projectIds] of Object.entries(scope)) await db.notificationRule.update({ where: { id }, data: { projectIds } });
   await db.auditEntry.create({ data: { at: back(60 * 24 * 21), accountId: 'u1', actorName: 'Julien Morel', personId: 'p02', profileUsed: 'ADMIN', origin: 'MANUAL', severity: 'CRITICAL', action: 'Export de snapshot', target: 'ATLAS · état du 3 août', entityType: 'Snapshot' } });
+}
+
+/**
+ * Snapshots factices de RISE (r1-r10, sans contenu capturé, écarts saisis à la main), retirés de l'amorçage le
+ * 29/09/2026 : tests seulement, avec la trace de création du snapshot manuel « Avant le 19e COPIL ».
+ */
+export async function seedDemoSnapshots(db: PrismaClient): Promise<void> {
+  const SN = (m0: number, d: number, h: number, mi: number) => paris(2026, m0 + 1, d, h, mi);
+  const SNAPS: Record<string, Array<[string, Date, string?, string?]>> = {
+    RISE: [['r1', SN(6, 17, 4, 0)], ['r2', SN(6, 26, 18, 30), 'Après le 18e COPIL', 'Julien Morel'], ['r3', SN(7, 21, 4, 0)], ['r4', SN(7, 28, 4, 0)], ['r5', SN(8, 4, 4, 0)], ['r6', SN(8, 8, 11, 5), 'Replanification du Run 3', 'Julien Morel'], ['r7', SN(8, 11, 4, 0)], ['r8', SN(8, 18, 4, 0)], ['r9', SN(8, 22, 16, 40), 'Avant le 19e COPIL', 'Julien Morel'], ['r10', SN(8, 25, 4, 0)]],
+  };
+  const EV: Array<[number, string, string, string, string?, string?, string?]> = [
+    [1, 'mod', 'Jalon', 'J01 · Fin de la recette Finance', 'Date prévue', '12 sept. 2026', '19 sept. 2026'], [1, 'add', 'Risque', 'Disponibilité de l’équipe intégrateur'], [1, 'mod', 'Action', 'Spécifications des flux Achats', 'Avancement', '60 %', '100 %'],
+    [2, 'add', 'Action', 'Plan de conduite du changement'], [2, 'mod', 'Risque', 'Retard des flux Brand X', 'Probabilité', '3', '4'],
+    [3, 'add', 'Livrable', 'Dossier d’architecture v2'], [3, 'del', 'Livrable', 'Note de cadrage v0 (doublon)'], [3, 'mod', 'Action', 'Migration du référentiel fournisseurs', 'Avancement', '20 %', '40 %'],
+    [4, 'mod', 'Action', 'Recette des interfaces SI Achats', 'Responsable', 'Karim Benali', 'Élodie Faure'], [4, 'add', 'Action', 'Paramétrage des workflows de validation'],
+    [5, 'mod', 'Jalon', 'J06 · Go / No-Go Go-Live', 'Date prévue', '4 oct. 2026', '15 mars 2027'], [5, 'add', 'Risque', 'Charge du support en période de clôture'],
+    [6, 'mod', 'Action', 'Migration du référentiel fournisseurs', 'Date de fin', '30 sept.', '16 oct.'], [6, 'mod', 'Jalon', 'J08 · Go-Live Lot 1', 'Date prévue', '1er nov. 2026', '1er avr. 2027'], [6, 'del', 'Action', 'Atelier en doublon · cadrage du reporting'],
+    [7, 'mod', 'Action', 'Migration du référentiel fournisseurs', 'Avancement', '40 %', '65 %'], [7, 'add', 'Livrable', 'Plan de recette utilisateur'],
+    [8, 'mod', 'Risque', 'Disponibilité de l’équipe intégrateur', 'Statut', 'Ouvert', 'En mitigation'], [8, 'add', 'Action', 'Formation des key users'], [8, 'mod', 'Livrable', 'Dossier d’architecture v2', 'Statut', 'En rédaction', 'Validé'],
+    [9, 'mod', 'Action', 'Recette des interfaces SI Achats', 'Avancement', '30 %', '55 %'], [9, 'del', 'Risque', 'Indisponibilité de la salle de formation'], [9, 'add', 'Action', 'Préparation du 20e COPIL'], [9, 'mod', 'Jalon', 'J07 · Répétition générale', 'Responsable', 'Karim Benali', 'Antoine Mercier'],
+  ];
+  const BASE: Record<string, Record<string, number>> = {
+    RISE: { Action: 138, Jalon: 12, Risque: 17, Livrable: 34 },
+  };
+  for (const [project, list] of Object.entries(SNAPS)) {
+    const counts = { ...BASE[project] };
+    for (const [ix, [id, t, label, by]] of list.entries()) {
+      const changes = project === RISE_ID ? EV.filter((e) => e[0] === ix).map(([, op, entity, object, field, before, after]) => ({ op, entity, object, field: field ?? null, before: before ?? null, after: after ?? null })) : [];
+      // Effectifs de l'état capturé : ceux du premier snapshot, plus les ajouts et moins les suppressions depuis.
+      for (const c of changes) if (c.entity in counts) counts[c.entity] += c.op === 'add' ? 1 : c.op === 'del' ? -1 : 0;
+      await db.snapshot.create({
+        data: {
+          id,
+          projectId: project,
+          takenAt: t,
+          kind: label ? 'MANUAL' : 'AUTO',
+          label: label ?? null,
+          takenBy: by ?? null,
+          takenById: by ? 'u1' : null,
+          status: 'DONE',
+          // Snapshots de démonstration : pas de contenu capturé ; écarts connus avec le précédent.
+          stats: { counts: { ...counts }, demo: true, changesFromPrevious: changes } as Prisma.InputJsonValue,
+        },
+      });
+    }
+  }
+  await db.auditEntry.create({ data: { at: back(60 * 65 + 44), accountId: 'u1', actorName: 'Julien Morel', personId: 'p02', profileUsed: 'ADMIN', origin: 'MANUAL', severity: 'INFO', action: 'Création d’un snapshot manuel', target: 'RISE · Avant le 19e COPIL', entityType: 'Snapshot' } });
 }
 
 /** Historique des envois de démonstration (10 envois, dont un échec) : tests seulement, depuis le 29/09/2026. */

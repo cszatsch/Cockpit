@@ -87,7 +87,7 @@ input::placeholder{color:#a3b1ba}
               <sc-if value="{{ c.noResp }}" hint-placeholder-val="{{ false }}"><div style="padding:22px 16px;font-size:12.5px;line-height:1.55;color:#8fa3b3;text-align:center">Aucun appel pour le moment. Lancez un test pour vérifier l’endpoint.</div></sc-if>
             </div>
             <div style="position:relative;display:flex;flex-direction:column;gap:10px">
-              <div style="display:flex;align-items:center"><span style="font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#5c7280">ALIMENTE</span><span style="flex:1"></span><span style="font-size:12px;color:#8a9aa6">{{ c.wCount }}</span></div>
+              <div style="display:flex;align-items:center"><span style="font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#5c7280">WIDGETS ALIMENTÉS</span><span style="flex:1"></span><span style="font-size:12px;color:#8a9aa6">{{ c.wCount }}</span></div>
               <div style="display:flex;flex-wrap:wrap;gap:6px">
                 <sc-for list="{{ c.widgets }}" as="w" hint-placeholder-count="1">
                   <span style="height:32px;padding:0 4px 0 5px;border-radius:10px;background:#f2f6f5;box-shadow:inset 0 0 0 1px #e1e9e7;display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;white-space:nowrap"><span style="width:22px;height:22px;border-radius:7px;background:#10233a;color:#fff;display:grid;place-items:center;font-size:11px">{{ w.g }}</span>{{ w.n }}<button type="button" onClick="{{ w.rm }}" aria-label="{{ w.rmL }}" title="Dissocier" style="width:22px;height:22px;border-radius:6px;border:0;background:transparent;color:#8a9aa6;display:grid;place-items:center;cursor:pointer" style-hover="background:#fdf0ed;color:#c2473b"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></span>
@@ -248,7 +248,7 @@ const mono = s => s.replace(/[^A-Za-zÀ-ÿ0-9 ]/g, ' ').split(/\s+/).filter(Bool
 const COPY = 'M9 9h10v10H9z M5 15V5h10', CHECK = 'M5 12l5 5 9-10';
 const EYE = 'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z', EYE_OFF = 'M3 3l18 18 M10.6 5.1A10 10 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.2 M6.6 6.6C3.9 8.4 2 12 2 12s3.5 7 10 7a9.6 9.6 0 0 0 5.4-1.6 M9.9 9.9a3 3 0 0 0 4.2 4.2';
 const G = 'minmax(0,1.1fr) minmax(0,1fr) 112px 64px 88px 100px';
-const COLS = [['n', 'CARTE'], ['ep', 'ENDPOINT'], ['lat', 'LATENCE 24 H'], ['q', 'QUOTA'], ['key', 'EXP. CLÉ'], ['w', 'ALIMENTE']];
+const COLS = [['n', 'CARTE'], ['ep', 'ENDPOINT'], ['lat', 'LATENCE 24 H'], ['q', 'QUOTA'], ['key', 'EXP. CLÉ'], ['w', 'WIDGETS ALIMENTÉS']];
 const SORT_L = { n: 'nom', ep: 'endpoint', lat: 'latence', q: 'quota', key: 'échéance de clé', w: 'widgets' };
 const DESC_FIRST = { lat: 1, q: 1, w: 1 };
 const seg = (on, h = 28) => 'white-space:nowrap;height:' + h + 'px;padding:0 12px;border:0;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:12.5px;transition:background .15s,color .15s;' + (on ? 'background:#fff;font-weight:700;color:#10233a;box-shadow:0 1px 2px rgba(16,35,58,.12)' : 'background:transparent;font-weight:600;color:#5c7280');

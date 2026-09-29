@@ -420,3 +420,8 @@ Vérification des éléments de la vue d'ensemble face au serveur. Conformes : d
 
 - `Console Admin.dc.html` : `PROJ` et les noms des projets (`PROJ_NAMES`) sont remplacés par ceux de la base dès qu'elle est lue (`apiProjects`, même mécanisme que `apiClock`) ; codes de la bibliothèque tirés de `PROJ`. Démonstration inchangée.
 - `admin-api.js` : chargement `projects` → `apiProjects` (du plus ancien au plus récent) ; chargement `snaps` sur les projets de la base (les projets de démonstration supprimés faisaient échouer le démarrage).
+
+## Registre : « WIDGETS ALIMENTÉS » ; Snapshots sans données factices (29/09/2026)
+
+- `Registre des cartes API.dc.html` : colonne « ALIMENTE » renommée « WIDGETS ALIMENTÉS » (en-tête du tableau et bloc de la fiche).
+- Snapshots : plus aucun snapshot factice en base ni à l'amorçage ; la vue affiche « Aucun snapshot pour ce projet » et la vue d'ensemble « Aucun snapshot » jusqu'à la première capture.

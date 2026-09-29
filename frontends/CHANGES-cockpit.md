@@ -142,3 +142,7 @@ Plus aucune clé `localStorage` n'est lue ou écrite par le fichier HTML. api.js
 ## Connexion Cockpit : nouvelle photo du volet gauche (29/09/2026)
 
 - `Authentification.dc.html` (surface `app`) : `assets/connexion-cockpit.webp` (1190 × 1322, 90 Ko) remplace `banner-aujourdhui.jpg` dans le volet gauche ; cadrage `32% 38%` (visage et cartes visibles, y compris dans le bandeau mobile) ; dégradés et textes inchangés. La fenêtre « session expirée » garde son image.
+
+## Correctif : contenu principal invisible (29/09/2026)
+
+- `RISE Cockpit.dc.html` : le tiroir `Notifications Cockpit` était importé à l'intérieur de la grille du shell ; son enveloppe occupait la colonne du contenu et poussait `<main>` dans une colonne de 0 px (écran vide, ou contenu écrasé dans la colonne de Jev quand il est ouvert). L'import est placé après la grille ; le tiroir, en position fixe, s'affiche à l'identique.

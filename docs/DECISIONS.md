@@ -581,3 +581,11 @@ Demande du commanditaire : supprimer les données des projets de démonstration,
 | Amorçage | `npm run db:seed` et `demarrer-rise -Reinitialiser` ne créent plus que RISE (comptes, snapshots, planification, règles). Les quatre projets restent disponibles pour les tests seulement (`seedDemoLibrary`, chargé par `test/helpers.ts`, comme `seedDemoAi`). | `DEMO_LIBRARY`, `seedDemoLibrary` (`prisma/seed/admin.ts`) |
 | Console | Avec le serveur, les listes de projets (rattachements, droits, modules, filtres, bibliothèque) viennent de la base (`apiProjects`) ; le chargement des snapshots lit les projets du serveur (un projet supprimé bloquait le démarrage de la Console : 404). En démonstration sans serveur, les données des écrans sont inchangées. | `apiProjects` (`Console Admin.dc.html`), chargements `projects` et `snaps` (`admin-api.js`) |
 | Jev | Exemples de code projet des dictionnaires de données : « RISE » seulement (rechargés en base, documentation régénérée). | `jev-dictionnaire.ts`, `jev-dictionnaire-cockpit.ts` |
+
+## Snapshots factices retirés ; colonne « WIDGETS ALIMENTÉS » ; Cockpit vierge corrigé (29/09/2026)
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Snapshots factices | Les 10 snapshots de démonstration de RISE (r1-r10 : sans contenu, écarts saisis à la main) sont supprimés de la base locale (sauvegarde : `rise-sauvegardes\rise-avant-suppression-snapshots-factices-20260929-212211.dump`) et de l'amorçage. La planification de RISE (réglage) est gardée. Pour les tests seulement : `seedDemoSnapshots` (avec la trace d'audit de création associée). La trace d'audit déjà en base reste (journal en ajout seul). | `seedDemoSnapshots` (`prisma/seed/admin.ts`) |
+| Registre des cartes API | Colonne « ALIMENTE » renommée « WIDGETS ALIMENTÉS » (tableau et fiche). | `COLS` (`Registre des cartes API.dc.html`) |
+| Cockpit vierge | **Cause** : le tiroir des notifications (`<dc-import name="Notifications Cockpit">`, ajouté le 29/09) était placé dans la grille du shell. Son enveloppe `sc-host` devenait une cellule de la grille, prenait la colonne du contenu, et `<main>` glissait dans la colonne suivante, large de 0 px (ou de 400 px quand Jev est ouvert). **Correction** : l'import est sorti de la grille (le tiroir est en position fixe), comme dans la Console. | `RISE Cockpit.dc.html` |
