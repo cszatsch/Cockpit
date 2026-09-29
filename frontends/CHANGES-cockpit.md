@@ -146,3 +146,9 @@ Plus aucune clé `localStorage` n'est lue ou écrite par le fichier HTML. api.js
 ## Correctif : contenu principal invisible (29/09/2026)
 
 - `RISE Cockpit.dc.html` : le tiroir `Notifications Cockpit` était importé à l'intérieur de la grille du shell ; son enveloppe occupait la colonne du contenu et poussait `<main>` dans une colonne de 0 px (écran vide, ou contenu écrasé dans la colonne de Jev quand il est ouvert). L'import est placé après la grille ; le tiroir, en position fixe, s'affiche à l'identique.
+
+## Correctif : droits de l'utilisateur connecté (onglet Référentiel) ; carte de la barre latérale (29/09/2026)
+
+- `RISE Cockpit.dc.html` : `prof()` calculait les droits de l'utilisateur connecté à partir des seules habilitations de sa personne du référentiel. Un compte sans personne (PMO attribué par la Console, comme le compte initial) n'avait donc aucun droit dans l'écran : pas d'onglet « Référentiel » dans Info projet, référentiel en lecture seule. Pour l'utilisateur connecté, l'écran utilise désormais ses droits effectifs calculés par le serveur (`GET /api/me` → `effective` : compte et personne réunis) ; le calcul par personne reste pour les autres personnes affichées.
+- `api.js` : `meAccess` (droits effectifs de `/me`) transmis à l'écran au chargement.
+- Carte de la barre latérale : initiales et profil principal de l'utilisateur connecté, au lieu de « RL » et « PMO projet » écrits en dur.

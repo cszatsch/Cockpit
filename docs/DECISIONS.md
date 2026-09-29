@@ -603,3 +603,7 @@ Arbitrages du commanditaire : **tout s'attribue depuis la Console** (revient sur
 | Correction | La vue « après » des audits de comptes lisait les droits hors de la transaction, donc l'état d'avant : elle lit désormais dans la transaction (touchait aussi l'audit de la modification classique d'un utilisateur). | `view(accounts, db)` |
 | Console | Fenêtre d'un utilisateur : interrupteur « Administrateur de la plateforme » (indépendant) à la place du choix unique « Profil » ; pour chaque projet rattaché, « PMO » ou « Chantiers », et chaque chantier se règle d'un clic (sans accès → Lecteur → Responsable). Liste : tous les profils du compte (« Admin · PMO »). | `uDlgVals`, `habOfUser`, `wsList`, `habErr`, `habProfs` (`Console Admin.dc.html`) ; `saveUser`, `toUser`, chargement `wsAll` (`admin-api.js`) |
 | Cockpit | Inchangé : il lit déjà les habilitations du compte et de sa personne, et les cumule par projet et par chantier. | `buildAccess` (`src/domain/rights.ts`) |
+
+## Cockpit : droits de l'utilisateur connecté lus sur le serveur (29/09/2026)
+
+Un PMO attribué par la Console sur son compte (sans personne du référentiel) n'avait pas l'onglet « Référentiel » : l'écran ne lisait que les habilitations de la personne. Règle : pour l'utilisateur connecté, l'écran suit les droits effectifs du serveur (`effective` de `GET /api/me`, qui réunit les habilitations du compte et de la personne) ; le serveur continue de contrôler chaque accès. Constantes : `meAccess` (`api.js`), `prof()` (`RISE Cockpit.dc.html`).

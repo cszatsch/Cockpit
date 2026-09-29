@@ -299,6 +299,8 @@ export function attach(comp) {
     ((L.project && L.project.sections) || []).forEach((s) => { byId[s.key] = s.value; });
     const st = {
       data: B, plan: B, templates: B.templates, tplHistory: B.tplHistory, kbDocs: [],
+      // Droits effectifs de l'utilisateur connecté (serveur : habilitations du compte ET de sa personne du référentiel).
+      meAccess: (L.me && L.me.effective) || null,
       ed: {}, actStatus: {}, sesEd: {}, sesAdded: [], refValues: {}, refDeleted: {}, bmEd: {}, bmAdd: {},
       phLots: hydratePhLots(B), txtEd: {}, critEd: {}, arbData: {}, lvTrack: {}, gbExtra: {}, gbMem: {}, gbAdded: [], added: {}, lvAdded: [], dlOwner: {},
       psAdded: [], psAcc: {}, roAdded: [], roTier: {}, tmAdded: [], wsAdded: [], spAdded: [], phAdded: [], waAdded: [], spDesc: {}, phDesc: {}, plAdd: {},
