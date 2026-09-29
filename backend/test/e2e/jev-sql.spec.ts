@@ -57,11 +57,11 @@ describe('Console — Jev interroge les données (Text-to-SQL)', () => {
   });
 
   it('le dictionnaire envoyé est celui des tables : une fiche désactivée n’est plus envoyée', async () => {
-    await t.db.dictionnaireTable.update({ where: { nom: 'sessions' }, data: { actif: false } });
+    await t.db.dictionnaireTable.update({ where: { espace_nom: { espace: 'console', nom: 'sessions' } }, data: { actif: false } });
     script('Réponse directe.');
     await admin.post(JEV, { context: { section: 'users' }, text: 'Bonjour' }).expect(200);
     expect(calls[0].system).not.toContain('### jev.sessions');
-    await t.db.dictionnaireTable.update({ where: { nom: 'sessions' }, data: { actif: true } });
+    await t.db.dictionnaireTable.update({ where: { espace_nom: { espace: 'console', nom: 'sessions' } }, data: { actif: true } });
   });
 
   it('question sans données : réponse directe, un seul appel, sans source', async () => {

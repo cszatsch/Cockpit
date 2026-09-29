@@ -37,8 +37,8 @@ export interface DictTable {
 export const JEV_SCHEMA = 'jev';
 
 /** Date-heure stockée en UTC → heure de Paris. */
-const P = (col: string) => `(t.${col} AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Paris'`;
-const q = (c: string) => `"${c}"`;
+export const P = (col: string) => `(t.${col} AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Paris'`;
+export const q = (c: string) => `"${c}"`;
 
 export const DICTIONNAIRE: DictTable[] = [
   // ───────────── Accès ─────────────
@@ -693,12 +693,12 @@ export const DICTIONNAIRE: DictTable[] = [
 ];
 
 /** Colonnes SQL d'une vue (nom de la colonne → expression). */
-export function viewSql(t: DictTable): string {
+export function viewSql(t: DictTable, schema = JEV_SCHEMA): string {
   const cols = t.colonnes.map((c) => `  ${c.expr} AS ${c.nom}`).join(',\n');
-  return `CREATE VIEW ${JEV_SCHEMA}.${t.nom} AS\nSELECT\n${cols}\nFROM ${t.source}${t.filtre ? `\nWHERE ${t.filtre}` : ''};`;
+  return `CREATE VIEW ${schema}.${t.nom} AS\nSELECT\n${cols}\nFROM ${t.source}${t.filtre ? `\nWHERE ${t.filtre}` : ''};`;
 }
 
 /** Schéma et vues en lecture seule (migration). */
 export function jevViewsSql(): string {
-  return [`CREATE SCHEMA IF NOT EXISTS ${JEV_SCHEMA};`, ...DICTIONNAIRE.map(viewSql)].join('\n\n');
+  return [`CREATE SCHEMA IF NOT EXISTS ${JEV_SCHEMA};`, ...DICTIONNAIRE.map((t) => viewSql(t))].join('\n\n');
 }

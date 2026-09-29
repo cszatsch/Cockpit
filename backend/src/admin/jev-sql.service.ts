@@ -36,7 +36,7 @@ export class JevSqlService {
 
   async ask(text: string, section: string): Promise<JevAnswer> {
     const base = await this.jevPrompt.consolePrompt(section);
-    const tables = await this.prisma.dictionnaireTable.findMany({ where: { actif: true }, include: { colonnes: { orderBy: { position: 'asc' } } }, orderBy: { position: 'asc' } });
+    const tables = await this.prisma.dictionnaireTable.findMany({ where: { espace: 'console', actif: true }, include: { colonnes: { orderBy: { position: 'asc' } } }, orderBy: { position: 'asc' } });
     const system = `${base}\n\n${sqlInstructions(renderDictionary(tables), this.today.today(), this.nowParis())}`;
     const calls: LlmResult[] = [];
     const call = async (prompt: string, sys: string) => {

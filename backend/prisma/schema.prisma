@@ -1494,14 +1494,16 @@ model ApiCardCall {
 /// Dictionnaire des données du Jev de la Console (Text-to-SQL) : une fiche par vue du schéma `jev`.
 /// Contenu chargé par `prisma/seed/dictionnaire.ts` depuis `src/domain/jev-dictionnaire.ts`.
 model DictionnaireTable {
-  /// Nom de la vue interrogeable, sans le schéma (`jev.<nom>`)
-  nom         String                @id
+  /// Espace décrit : console (schéma jev) ou cockpit (schéma jev_cockpit)
+  espace      String                @default("console")
+  /// Nom de la vue interrogeable, sans le schéma
+  nom         String
   description String
   /// Clés et jointures vers les autres vues, une par ligne
   relations   String                @default("")
   /// Questions auxquelles la vue répond, agrégations, filtres fréquents, un par ligne
   usages      String                @default("")
-  /// Règles de calcul et précautions (valeurs nulles, statuts, fuseau…), une par ligne
+  /// Règles de calcul et précautions (valeurs nulles, statuts, fuseau, droits…), une par ligne
   regles      String                @default("")
   /// Fiche envoyée au modèle
   actif       Boolean               @default(true)
@@ -1511,13 +1513,15 @@ model DictionnaireTable {
   modifiePar  String?               @map("modifie_par")
   colonnes    DictionnaireColonne[]
 
+  @@id([espace, nom])
   @@map("dictionnaire_tables")
 }
 
 /// Une colonne d'une vue du dictionnaire.
 model DictionnaireColonne {
+  espace         String            @default("console")
   tableNom       String            @map("table_nom")
-  table          DictionnaireTable @relation(fields: [tableNom], references: [nom], onDelete: Cascade)
+  table          DictionnaireTable @relation(fields: [espace, tableNom], references: [espace, nom], onDelete: Cascade)
   nom            String
   /// texte, entier, décimal, booléen, date, date-heure, json, liste de textes, liste d’entiers
   type           String
@@ -1526,6 +1530,6 @@ model DictionnaireColonne {
   exemplesUnites String?           @map("exemples_unites")
   position       Int               @default(0)
 
-  @@id([tableNom, nom])
+  @@id([espace, tableNom, nom])
   @@map("dictionnaire_colonnes")
 }

@@ -48,7 +48,7 @@ describe('Jev de la Console — dictionnaire des données', () => {
     });
 
     it('tables du dictionnaire chargées par l’amorçage, conformes au fichier source', async () => {
-      const tables = await t.db.dictionnaireTable.findMany({ include: { colonnes: { orderBy: { position: 'asc' } } }, orderBy: { position: 'asc' } });
+      const tables = await t.db.dictionnaireTable.findMany({ where: { espace: 'console' }, include: { colonnes: { orderBy: { position: 'asc' } } }, orderBy: { position: 'asc' } });
       expect(tables.map((x) => x.nom)).toEqual(DICTIONNAIRE.map((f) => f.nom));
       for (const [i, f] of DICTIONNAIRE.entries()) {
         expect(tables[i]).toMatchObject({ description: f.description, regles: f.regles.join('\n'), actif: true });

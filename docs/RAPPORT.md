@@ -56,6 +56,8 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 
 - **Sidebar Console v3 (29/09/2026)** : recette § 5 vérifiée dans le navigateur (API locale) : colonne de 300 px, Vue d’ensemble 46 px, pages 42 px, titres de domaine en capitales 11 px, aucun titre tronqué (« Journal consommation et coûts », « Initialisation d’un projet ») ; ouverture d’IA au clic (titre sarcelle, filet reliant ses pages) ; arrivée sur Snapshots depuis la Vue d’ensemble : Projets déplié, IA replié ; aucune barre ambre ; mode rail 72 px ; mode mobile (tiroir de 300 px, nom de Jev). Navigation au clavier non testée. `npm test` : 306 tests verts.
 
+- **Dictionnaire des données du Cockpit (29/09/2026)** : `test/e2e/dictionnaire-cockpit.spec.ts` (44 tests) : une vue par fiche et colonnes identiques pour les 33 vues, `projet_id` partout, une règle de droits par fiche, tables du dictionnaire conformes ; aucun chemin de stockage lisible ; vues fermées au rôle de lecture de Jev ; questions de référence égales au Cockpit (actions en retard, risques critiques sans plan, jalons non confirmés, compteurs du suivi des livrables, prochain COPIL, risques visibles du PMO). `npm test` : 350 tests verts. Dictionnaire chargé dans la base locale (31 fiches Console, 33 Cockpit).
+
 ## 3. Écarts connus
 
 ### 3.1 Écarts par rapport aux briefs
