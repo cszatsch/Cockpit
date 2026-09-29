@@ -282,6 +282,7 @@ export function bindConsole(c) {
     nrRules: async () => ({ nrRules: await get('/notifications/rules') }),
     nrHist: async () => ({ nrHist: await get('/notifications/history?limit=200') }),
     nrCounts: async () => ({ nrCounts: await get('/notifications/counts') }),
+    nrSchedule: async () => ({ nrSchedule: await get('/notifications/schedule') }),
     // Serveur d’envoi SMTP : réglages sans mot de passe (`hasPassword`).
     smtp: async () => ({ smSettings: await get('/settings/smtp') }),
     mods: async () => ({ mods: sortMods((await get('/modules')).map(toMod)) }),
@@ -299,7 +300,7 @@ export function bindConsole(c) {
   };
   const SECTION = {
     overview: ['accounts', 'providers', 'month', 'audit', 'reqs', 'snaps', 'models', 'asg', 'fns'], users: ['accounts'], admins: ['admins', 'audit', 'accounts'], providers: ['providers', 'models', 'asg', 'fns'],
-    assign: ['asg', 'models', 'providers', 'usage', 'fns'], conso: ['month', 'providers'], snaps: ['snaps', 'sched'], notifs: ['nrRules', 'nrHist', 'nrCounts', 'models', 'providers', 'projects'], modules: ['mods', 'reqs'],
+    assign: ['asg', 'models', 'providers', 'usage', 'fns'], conso: ['month', 'providers'], snaps: ['snaps', 'sched'], notifs: ['nrRules', 'nrHist', 'nrCounts', 'nrSchedule', 'models', 'providers', 'projects'], modules: ['mods', 'reqs'],
     smtp: ['smtp'], init: ['projects'], library: ['projects'], profil: ['prof', 'sess', 'audit'], skills: ['skills'], persona: ['persona'], apis: ['apis'],
   };
   async function load(keys) {
@@ -319,7 +320,7 @@ export function bindConsole(c) {
       if (typeof c.apiClock === 'function') c.apiClock(clock.server);
       // Échéances des clés API : même date du jour que le serveur (DEMO_TODAY compris).
       set0({ apiNow: String(ov.date).slice(0, 10) + 'T12:00:00' });
-      await load(['prof', 'accounts', 'admins', 'audit', 'providers', 'models', 'asg', 'usage', 'snaps', 'sched', 'nrRules', 'nrHist', 'nrCounts', 'smtp', 'mods', 'reqs', 'sess', 'projects', 'skills', 'persona', 'notifs', 'apis', 'fns']);
+      await load(['prof', 'accounts', 'admins', 'audit', 'providers', 'models', 'asg', 'usage', 'snaps', 'sched', 'nrRules', 'nrHist', 'nrCounts', 'nrSchedule', 'smtp', 'mods', 'reqs', 'sess', 'projects', 'skills', 'persona', 'notifs', 'apis', 'fns']);
       set0({ apiBoot: false, loading: false });
     } catch (e) {
       fail(e);

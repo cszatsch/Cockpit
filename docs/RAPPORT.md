@@ -98,6 +98,12 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
     - 900 px : ni débordement ni libellé de bouton sur deux lignes.
   - Registre : carte API requise (2 tests e2e mis à jour), « EXP. CLÉ » sur une ligne dans sa colonne de 88 px.
 
+- **Notifications et alertes, évolution (29/09/2026)** :
+  - Tests unitaires : calendrier (07:00, lundi), pas de 30 minutes, créneau d'un instant, variables retirées.
+  - Tests e2e : fréquence personnalisée refusée, heure hors pas refusée, variable retirée refusée, valeurs par défaut, route du calendrier.
+  - Migration vérifiée sur la base locale dans une transaction annulée avant application : réécriture des 4 règles concernées, retrait automatique testé sur des textes libres.
+  - Recette navigateur : trois fréquences, sélecteurs (48 créneaux), fuseau affiché, phrase de synthèse, enregistrement « jeudi 18:30 » ; à 900 px, ni débordement ni libellé sur deux lignes.
+
 ## 3. Écarts connus
 
 ### 3.1 Écarts par rapport aux briefs
@@ -203,6 +209,12 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 
 - Saisir le mot de passe d'application Google dans Plateforme › Serveur d’envoi SMTP, puis tester et enregistrer (points 2 et 7 de la recette contre Gmail). Avant cela, régénérer le mot de passe d'application qui a circulé pendant la conception (spécification § 5).
 - Contrôle de santé des cartes API : un test toutes les 15 minutes, soit 96 appels par jour, consomme le quota gratuit des cartes d'actualités (GNews : 100 appels par jour). À arbitrer.
+
+### Notifications et alertes : état technique (29/09/2026)
+
+- **E-mail (SMTP)** : partiel. Le canal E-mail passe par le serveur SMTP de la Console (vérifié avec un serveur local). Dans la base locale, rien ne part tant que : (1) le mot de passe d'application n'est pas saisi dans Serveur d’envoi SMTP ; (2) les règles n'ont pas de modèle (modèles réinitialisés le 28/09) : une règle sans modèle n'envoie rien, par aucun canal.
+- **Notifications internes (Cockpit)** : non implémenté. Le canal « Dans l'application » n'enregistre qu'une ligne d'historique ; le Cockpit n'a ni cloche, ni tiroir, ni compteur de non-lus pour ses utilisateurs. La cloche de la Console ne sert qu'aux alertes de l'administrateur (plateforme). Il faut concevoir cet écran du Cockpit.
+- **Modèle LLM** : partiel. Le prompt de la règle, complété des variables, est bien envoyé à la passerelle LLM avec le modèle choisi, et la consommation est comptée. Mais seule la fonction `guidage` (Jev de la Console) fait une génération réelle : ici, la réponse vient du bouchon. Aucune des étapes du guide console (dictionnaire, SQL, exécution, synthèse) n'existe pour les notifications. Les vues du Cockpit (`jev_cockpit`) sont fermées tant que le filtrage par droits n'existe pas.
 
 ## 4. Questions ouvertes
 

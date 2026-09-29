@@ -1,5 +1,8 @@
 import {
   atOf,
+  isSendTime,
+  removedVariablesIn,
+  sendSlot,
   blockingErrors,
   ERR_NO_MODEL,
   ERR_NO_RECIPIENT,
@@ -19,9 +22,9 @@ const row = (o: Partial<RuleRow> = {}): RuleRow => ({
   projectIds: ['RISE', 'ATLAS'],
   platform: false,
   modelId: 'haiku',
-  prompt: 'Rédige une alerte sur {jalon}.',
-  subject: 'Jalon en retard · {jalon}',
-  body: 'Le jalon {jalon} est en retard. {reponse_llm}',
+  prompt: 'Rédige une alerte sur le projet {projet}.',
+  subject: 'Jalon en retard · {projet}',
+  body: 'Un jalon de {projet} est en retard. {reponse_llm}',
   frequency: 'IMMEDIATE',
   day: null,
   hour: null,
@@ -48,9 +51,9 @@ describe('Notifications et alertes : adaptateur table ↔ vue (spécification §
       at: '',
       on: true,
       model: 'haiku',
-      prompt: 'Rédige une alerte sur {jalon}.',
-      subject: 'Jalon en retard · {jalon}',
-      body: 'Le jalon {jalon} est en retard. {reponse_llm}',
+      prompt: 'Rédige une alerte sur le projet {projet}.',
+      subject: 'Jalon en retard · {projet}',
+      body: 'Un jalon de {projet} est en retard. {reponse_llm}',
     });
   });
 
@@ -66,7 +69,7 @@ describe('Notifications et alertes : adaptateur table ↔ vue (spécification §
       row(),
       row({ kind: 'NOTIFICATION', frequency: 'WEEKLY', day: 'mardi', hour: '07:30', platform: true, projectIds: [], trigger: 'SCHEDULE', channels: ['APP'] }),
       row({ frequency: 'DAILY', hour: '18:00', targetProfiles: [] }),
-      row({ frequency: 'CUSTOM', everyDays: 5, hour: '10:00' }),
+      row({ frequency: 'DAILY', hour: '07:30' }),
     ]) {
       const u = toUiRule(r, llm);
       const back = fromUiRule(u);
@@ -82,15 +85,23 @@ describe('Notifications et alertes : adaptateur table ↔ vue (spécification §
     expect(p).toMatchObject({ platform: false, projectIds: ['RISE'], modelId: '', targetProfiles: ['admin', 'lec'] });
   });
 
-  it('lit et écrit le calendrier (champ at) avec des valeurs par défaut', () => {
-    expect(atOf({ frequency: 'WEEKLY', day: 'lundi', hour: '08:00', everyDays: null })).toBe('lundi 08:00');
-    expect(atOf({ frequency: 'DAILY', day: null, hour: '18:00', everyDays: null })).toBe('18:00');
-    expect(atOf({ frequency: 'CUSTOM', day: null, hour: null, everyDays: null })).toBe('tous les 3 jours à 09:00');
-    expect(parseAt('week', '')).toEqual({ day: 'lundi', hour: '08:00', everyDays: null });
+  it('lit et écrit le calendrier (champ at) avec des valeurs par défaut : 07:00, lundi', () => {
+    expect(atOf({ frequency: 'WEEKLY', day: 'mardi', hour: '08:30' })).toBe('mardi 08:30');
+    expect(atOf({ frequency: 'DAILY', day: null, hour: '18:00' })).toBe('18:00');
+    expect(atOf({ frequency: 'DAILY', day: null, hour: null })).toBe('07:00');
+    expect(atOf({ frequency: 'WEEKLY', day: null, hour: null })).toBe('lundi 07:00');
+    expect(parseAt('week', '')).toEqual({ day: 'lundi', hour: '07:00', everyDays: null });
     expect(parseAt('week', 'Vendredi 17h30')).toEqual({ day: 'vendredi', hour: '17:30', everyDays: null });
-    expect(parseAt('day', '')).toEqual({ day: null, hour: '09:00', everyDays: null });
-    expect(parseAt('custom', 'tous les 10 jours à 06:15')).toEqual({ day: null, hour: '06:15', everyDays: 10 });
+    expect(parseAt('day', '')).toEqual({ day: null, hour: '07:00', everyDays: null });
     expect(parseAt('imm', 'lundi 08:00')).toEqual({ day: null, hour: null, everyDays: null });
+  });
+
+  it('heures par pas de 30 minutes ; créneau d’un instant ; variables retirées', () => {
+    expect(['07:00', '07:30', '23:30'].map(isSendTime)).toEqual([true, true, true]);
+    expect(['07:15', '24:00', '', null].map(isSendTime)).toEqual([false, false, false, false]);
+    expect(['07:00', '07:29', '07:30', '07:59'].map(sendSlot)).toEqual(['07:00', '07:00', '07:30', '07:30']);
+    expect(removedVariablesIn('{jalon} · {projet} · {seuil}')).toEqual(['{jalon}', '{seuil}']);
+    expect(removedVariablesIn('{projet} · {date} · {reponse_llm}')).toEqual([]);
   });
 });
 

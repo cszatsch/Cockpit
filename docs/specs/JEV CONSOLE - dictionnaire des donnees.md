@@ -451,12 +451,12 @@ Règles de notification et d’alerte envoyées aux utilisateurs (application, e
 | `plateforme` | booléen | Règle de plateforme (hors projet) |  |
 | `modele_id` | texte | Modèle qui rédige le message → modeles_ia.id |  |
 | `consigne` | texte | Consigne donnée au modèle |  |
-| `objet` | texte | Objet du message (avec variables {jalon}, {projet}…) |  |
+| `objet` | texte | Objet du message (variables {projet}, {date}) |  |
 | `corps` | texte | Texte du message (modèle) |  |
-| `frequence` | texte | Fréquence | IMMEDIATE, DAILY, WEEKLY, CUSTOM |
+| `frequence` | texte | Fréquence | IMMEDIATE, DAILY, WEEKLY (la fréquence personnalisée CUSTOM a été retirée) |
 | `jour` | texte | Jour d’envoi (hebdomadaire) |  |
-| `heure` | texte | Heure d’envoi | 08:00 |
-| `tous_les_n_jours` | entier | Intervalle (fréquence CUSTOM) | en jours |
+| `heure` | texte | Heure d’envoi (heure de Paris, par pas de 30 minutes) | 07:00, 18:30 |
+| `tous_les_n_jours` | entier | Ancien intervalle de la fréquence personnalisée : toujours vide |  |
 | `canaux` | liste de textes | Canaux | APP = dans l’application, EMAIL |
 | `declencheur` | texte | Déclencheur | SCHEDULE, MILESTONE_LATE, RISK_CRITICAL, DOCUMENT_ANALYZED, BUDGET_THRESHOLD, MANUAL |
 | `active` | booléen | Règle active |  |

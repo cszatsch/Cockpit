@@ -318,3 +318,12 @@ Les captures sont écrites dans `OUT` (par défaut `<tmp>/rise-console-e2e`).
 ## Registre des cartes API : carte API requise, « Exp. Clé » (29/09/2026)
 
 - `Registre des cartes API.dc.html` : « Associer un widget » ne liste que les widgets à carte API requise (`needsCard`) ; en-tête « CLÉ » renommé « EXP. CLÉ ».
+
+## Notifications et alertes : fréquences, calendrier, variables (29/09/2026)
+
+- `Notifications et alertes.dc.html` :
+  - « Personnalisée » retirée ;
+  - en quotidienne et hebdomadaire, sélecteur d'heure (pas de 30 minutes) et, en hebdomadaire, sélecteur du jour ; fuseau affiché (prop `schedule`) ;
+  - variables limitées à {projet}, {date} et {reponse_llm} ;
+  - démonstration sans les variables retirées.
+- `Console Admin.dc.html` et `admin-api.js` : prop `schedule` chargée depuis `GET /notifications/schedule`.

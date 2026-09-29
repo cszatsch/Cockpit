@@ -224,7 +224,7 @@ describe('Console Admin — critères d’acceptation (brief Console § 13)', ()
       const rules = (await c.get(`${A}/notifications/rules`).expect(200)).body;
       expect(rules.find((r: any) => r.id === 'n1')).toEqual({
         id: 'n1', type: 'alerte', title: 'Jalon en retard', evt: 'un jalon est en retard', profils: ['PMO', 'Responsable'], projets: ['RISE', 'ATLAS'], canaux: ['app', 'mail'],
-        freq: 'imm', at: '', on: true, model: 'haiku', prompt: expect.stringContaining('{jalon}'), subject: 'Jalon en retard · {jalon}', body: expect.stringContaining('{date}'),
+        freq: 'imm', at: '', on: true, model: 'haiku', prompt: expect.stringContaining('Un jalon a dépassé'), subject: 'Jalon en retard · {projet}', body: expect.stringContaining('{date}'),
       });
       expect(rules.find((r: any) => r.id === 'n3')).toMatchObject({ projets: ['*'], evt: 'le seuil budgétaire IA est atteint' });
       expect(rules.find((r: any) => r.id === 'n5')).toMatchObject({ freq: 'day', at: '18:00', on: false });
@@ -245,6 +245,13 @@ describe('Console Admin — critères d’acceptation (brief Console § 13)', ()
       const created = await c.post(`${A}/notifications/rules`, blank).expect(201);
       expect(created.body).toMatchObject({ id: blank.id, title: 'Nouvelle règle', profils: [], model: null, projets: ['*'], evt: 'l’heure d’envoi arrive' });
       await c.post(`${A}/notifications/rules`, blank).expect(409);
+      // Fréquence « Personnalisée » retirée ; heure par pas de 30 minutes ; variables {jalon}, {risque}, {seuil}, {document} retirées.
+      await c.put(`${A}/notifications/rules/${blank.id}`, { ...blank, freq: 'custom' }).expect(400);
+      expect((await c.put(`${A}/notifications/rules/${blank.id}`, { ...blank, freq: 'day', at: '07:15' }).expect(400)).body.fields.at).toBeDefined();
+      expect((await c.put(`${A}/notifications/rules/${blank.id}`, { ...blank, subject: 'Retard · {jalon}', body: '{risque}' }).expect(400)).body.fields).toMatchObject({ subject: 'variable retirée : {jalon}', body: 'variable retirée : {risque}' });
+      expect((await c.put(`${A}/notifications/rules/${blank.id}`, { ...blank, freq: 'day', at: '' }).expect(200)).body).toMatchObject({ freq: 'day', at: '07:00' });
+      expect((await c.put(`${A}/notifications/rules/${blank.id}`, { ...blank, freq: 'week', at: '' }).expect(200)).body).toMatchObject({ freq: 'week', at: 'lundi 07:00' });
+      expect((await c.get(`${A}/notifications/schedule`).expect(200)).body).toMatchObject({ timezone: 'Europe/Paris', stepMinutes: 30, defaultHour: '07:00', defaultDay: 'lundi' });
       // Activer une règle bloquée est permis ; l'envoi de test, non (cas bloquants du § 3).
       expect((await c.patch(`${A}/notifications/rules/${blank.id}`, { on: true }).expect(200)).body.on).toBe(true);
       const blocked = await c.post(`${A}/notifications/rules/${blank.id}/test`, {}).expect(422);
@@ -254,16 +261,16 @@ describe('Console Admin — critères d’acceptation (brief Console § 13)', ()
       expect((await c.put(`${A}/notifications/rules/${blank.id}`, { ...blank, model: 'gflash' }).expect(400)).body.fields.model).toBeDefined();
       expect((await c.put(`${A}/notifications/rules/${blank.id}`, { ...blank, canaux: [] }).expect(400)).body.fields.canaux).toBeDefined();
       expect((await c.put(`${A}/notifications/rules/${blank.id}`, { ...blank, projets: ['ZZZ'] }).expect(400)).body.fields.projets).toBeDefined();
-      const saved = await c.put(`${A}/notifications/rules/${blank.id}`, { ...blank, title: 'Synthèse du vendredi', profils: ['Admin'], projets: ['RISE'], canaux: ['app', 'mail'], freq: 'week', at: 'vendredi 17:00', model: 'haiku', prompt: 'Résume {projet}.', subject: '{projet} · {date}', body: '{reponse_llm}' }).expect(200);
-      expect(saved.body).toMatchObject({ title: 'Synthèse du vendredi', freq: 'week', at: 'vendredi 17:00', model: 'haiku', on: false });
-      expect(await t.db.notificationRule.findUnique({ where: { id: blank.id } })).toMatchObject({ frequency: 'WEEKLY', day: 'vendredi', hour: '17:00', platform: false, projectIds: ['RISE'], targetProfiles: ['admin'], channels: ['APP', 'EMAIL'] });
+      const saved = await c.put(`${A}/notifications/rules/${blank.id}`, { ...blank, title: 'Synthèse du vendredi', profils: ['Admin'], projets: ['RISE'], canaux: ['app', 'mail'], freq: 'week', at: 'vendredi 17:30', model: 'haiku', prompt: 'Résume {projet}.', subject: '{projet} · {date}', body: '{reponse_llm}' }).expect(200);
+      expect(saved.body).toMatchObject({ title: 'Synthèse du vendredi', freq: 'week', at: 'vendredi 17:30', model: 'haiku', on: false });
+      expect(await t.db.notificationRule.findUnique({ where: { id: blank.id } })).toMatchObject({ frequency: 'WEEKLY', day: 'vendredi', hour: '17:30', platform: false, projectIds: ['RISE'], targetProfiles: ['admin'], channels: ['APP', 'EMAIL'] });
       // Test avec le brouillon affiché (non enregistré) : un envoi par canal, à l'administrateur seul.
       const sent = await c.post(`${A}/notifications/rules/${blank.id}/test`, { ...saved.body, canaux: ['mail'] }).expect(200);
       expect(sent.body).toEqual([expect.objectContaining({ rid: blank.id, c: 'E-mail', d: '1 destinataire', ok: true, w: 'à l’instant' })]);
       expect((await c.get(`${A}/notifications/history?rule=${blank.id}`).expect(200)).body).toHaveLength(1);
       await c.del(`${A}/notifications/rules/${blank.id}`).expect(204);
       await c.put(`${A}/notifications/rules/${blank.id}`, blank).expect(404);
-      expect(await t.db.auditEntry.count({ where: { entityType: 'NotificationRule', entityId: blank.id } })).toBe(4);
+      expect(await t.db.auditEntry.count({ where: { entityType: 'NotificationRule', entityId: blank.id } })).toBe(6);
     });
 
     it('une règle active mais sans destinataire n’envoie rien quand l’événement survient', async () => {

@@ -7088,6 +7088,25 @@
         ]
       }
     },
+    "/api/admin/notifications/schedule": {
+      "get": {
+        "operationId": "RulesController_schedule",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · notifications"
+        ]
+      }
+    },
     "/api/admin/notifications/rules": {
       "get": {
         "operationId": "RulesController_uiList",

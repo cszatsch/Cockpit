@@ -425,7 +425,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
     <sc-if value="{{ isNotifs }}" hint-placeholder-val="{{ false }}">
       <div style="{{ skWrap }}" data-screen-label="Notifications et alertes">
         <sc-if value="{{ nrMounted }}" hint-placeholder-val="{{ true }}">
-          <dc-import name="Notifications et alertes" rules="{{ nrRules }}" models="{{ nrModels }}" projects="{{ nrProjects }}" counts="{{ nrCounts }}" history="{{ nrHistory }}"
+          <dc-import name="Notifications et alertes" rules="{{ nrRules }}" models="{{ nrModels }}" projects="{{ nrProjects }}" counts="{{ nrCounts }}" history="{{ nrHistory }}" schedule="{{ nrSchedule }}"
             on-save="{{ nrSave }}" on-toggle="{{ nrToggle }}" on-create="{{ nrCreate }}" on-delete="{{ nrDelete }}" on-test="{{ nrTest }}" hint-size="100%,1600px"></dc-import>
         </sc-if>
       </div>
@@ -1557,7 +1557,7 @@ class Component extends DCLogic {
       skills: S.skills || undefined, skSave: sk => this.skSave(sk), skToggle: (id, on) => this.skToggle(id, on), skCreate: sk => this.skCreate(sk), skDelete: id => this.skDelete(id),
       // Notifications et alertes : données du serveur (admin-api.js, format Rule du § 2) ; sans elles, démonstration du composant.
       // Monté une fois les règles reçues (sinon la démonstration s'afficherait un instant) ; remonté après un refus du serveur.
-      nrMounted: !S.nrApi || (!!S.nrRules && !S.nrRemount), nrRules: S.nrRules || undefined, nrCounts: S.nrCounts || undefined, nrHistory: S.nrHist || undefined,
+      nrMounted: !S.nrApi || (!!S.nrRules && !S.nrRemount), nrRules: S.nrRules || undefined, nrCounts: S.nrCounts || undefined, nrHistory: S.nrHist || undefined, nrSchedule: S.nrSchedule || undefined,
       nrModels: S.nrApi ? S.models.filter(m => m.c === 'LLM' && m.act).map(m => ({ id: m.id, provider: (S.provs.find(p => p.id === m.pv) || {}).n || m.pv, name: m.n })) : undefined,
       nrProjects: S.nrApi ? S.apiCodes || [] : undefined,
       nrSave: r => this.nrSave(r), nrToggle: (id, on) => this.nrToggle(id, on), nrCreate: r => this.nrCreate(r), nrDelete: id => this.nrDelete(id), nrTest: r => this.nrTest(r),

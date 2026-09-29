@@ -5,7 +5,8 @@
  */
 
 export type UiProfile = 'Admin' | 'PMO' | 'Responsable' | 'Lecteur';
-export type UiFreq = 'imm' | 'day' | 'week' | 'custom';
+/** Fréquences de la vue ; « Personnalisée » est retirée depuis le 29/09/2026. */
+export type UiFreq = 'imm' | 'day' | 'week';
 export type UiChannel = 'app' | 'mail';
 
 /** Modèle `Rule` de la vue (§ 2). `projets: ['*']` = tous les projets. */
@@ -63,8 +64,9 @@ export interface RuleRow {
 export const PROFILE_LABELS: Record<string, UiProfile> = { admin: 'Admin', pmo: 'PMO', resp: 'Responsable', lec: 'Lecteur' };
 const PROFILE_CODES = Object.fromEntries(Object.entries(PROFILE_LABELS).map(([k, v]) => [v, k])) as Record<UiProfile, string>;
 
-const FREQ_TO_UI: Record<RuleRow['frequency'], UiFreq> = { IMMEDIATE: 'imm', DAILY: 'day', WEEKLY: 'week', CUSTOM: 'custom' };
-const FREQ_FROM_UI: Record<UiFreq, RuleRow['frequency']> = { imm: 'IMMEDIATE', day: 'DAILY', week: 'WEEKLY', custom: 'CUSTOM' };
+// CUSTOM (ancienne fréquence « Personnalisée ») n'existe plus en base (migration du 29/09/2026) ; présentée comme quotidienne par sécurité.
+const FREQ_TO_UI: Record<RuleRow['frequency'], UiFreq> = { IMMEDIATE: 'imm', DAILY: 'day', WEEKLY: 'week', CUSTOM: 'day' };
+const FREQ_FROM_UI: Record<UiFreq, RuleRow['frequency']> = { imm: 'IMMEDIATE', day: 'DAILY', week: 'WEEKLY' };
 
 /**
  * Événement déclencheur → fragment de la phrase de synthèse (« Quand un jalon est en retard, … »).
@@ -79,11 +81,31 @@ export const TRIGGER_EVT: Record<string, string> = {
   MANUAL: '',
 };
 
-/** Valeurs par défaut du calendrier (mêmes que l'ancien écran : hebdomadaire lundi 08:00, sinon 09:00, tous les 3 jours). */
+/** Calendrier d'envoi : quotidien à 07:00, hebdomadaire le lundi à 07:00 par défaut ; heures par pas de 30 minutes. */
 export const DEFAULT_WEEK_DAY = 'lundi';
-export const DEFAULT_WEEK_HOUR = '08:00';
-export const DEFAULT_HOUR = '09:00';
-export const DEFAULT_EVERY_DAYS = 3;
+export const DEFAULT_WEEK_HOUR = '07:00';
+export const DEFAULT_HOUR = '07:00';
+export const SEND_STEP_MINUTES = 30;
+/** Fuseau des heures d'envoi : celui de l'organisation (heure de Paris), affiché dans la vue. */
+export const NOTIFICATION_TIMEZONE = 'Europe/Paris';
+export const NOTIFICATION_TIMEZONE_LABEL = 'heure de Paris';
+
+/** Heure d'envoi valide : HH:MM par pas de 30 minutes. */
+export function isSendTime(h: string | null | undefined): boolean {
+  return !!h && /^([01]\d|2[0-3]):(00|30)$/.test(h);
+}
+
+/** Créneau de 30 minutes d'un instant, au format HH:MM (« 07:47 » → « 07:30 »). */
+export function sendSlot(hhmm: string): string {
+  return hhmm.slice(0, 3) + (Number(hhmm.slice(3, 5)) < 30 ? '00' : '30');
+}
+
+/** Variables retirées des messages le 29/09/2026 (refusées à l'enregistrement). */
+export const REMOVED_VARIABLES = ['jalon', 'risque', 'seuil', 'document'] as const;
+/** Variables retirées présentes dans un texte (« {jalon} »…). */
+export function removedVariablesIn(text: string): string[] {
+  return REMOVED_VARIABLES.filter((v) => text.includes(`{${v}}`)).map((v) => `{${v}}`);
+}
 
 export const WEEK_DAYS = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
 
@@ -91,12 +113,11 @@ export const WEEK_DAYS = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'sa
 export const ERR_NO_MODEL = 'Aucun modèle choisi (modèles réinitialisés) : la règle ne pourra pas s’envoyer.';
 export const ERR_NO_RECIPIENT = 'Aucun destinataire : la règle ne pourra pas s’envoyer.';
 
-/** Calendrier de la table → champ `at` de la vue (« lundi 08:00 », « 18:00 », « tous les 3 jours à 09:00 »). */
-export function atOf(r: Pick<RuleRow, 'frequency' | 'day' | 'hour' | 'everyDays'>): string {
+/** Calendrier de la table → champ `at` de la vue (« lundi 07:00 », « 18:00 »). */
+export function atOf(r: Pick<RuleRow, 'frequency' | 'day' | 'hour'>): string {
   const hour = r.hour ?? '';
-  if (r.frequency === 'DAILY') return hour || DEFAULT_HOUR;
+  if (r.frequency === 'DAILY' || r.frequency === 'CUSTOM') return hour || DEFAULT_HOUR;
   if (r.frequency === 'WEEKLY') return `${r.day || DEFAULT_WEEK_DAY} ${hour || DEFAULT_WEEK_HOUR}`;
-  if (r.frequency === 'CUSTOM') return `tous les ${r.everyDays || DEFAULT_EVERY_DAYS} jours à ${hour || DEFAULT_HOUR}`;
   return '';
 }
 
@@ -107,9 +128,7 @@ export function parseAt(freq: UiFreq, at: string): Pick<RuleRow, 'day' | 'hour' 
   const hour = hm ? `${hm[1]}:${hm[2]}` : null;
   if (freq === 'imm') return { day: null, hour: null, everyDays: null };
   if (freq === 'day') return { day: null, hour: hour ?? DEFAULT_HOUR, everyDays: null };
-  if (freq === 'week') return { day: WEEK_DAYS.find((d) => s.includes(d)) ?? DEFAULT_WEEK_DAY, hour: hour ?? DEFAULT_WEEK_HOUR, everyDays: null };
-  const n = /(\d{1,2})\s*j/.exec(s.replace(hm?.[0] ?? '', ''));
-  return { day: null, hour: hour ?? DEFAULT_HOUR, everyDays: n ? Math.min(90, Math.max(1, +n[1])) : DEFAULT_EVERY_DAYS };
+  return { day: WEEK_DAYS.find((d) => s.includes(d)) ?? DEFAULT_WEEK_DAY, hour: hour ?? DEFAULT_WEEK_HOUR, everyDays: null };
 }
 
 /**

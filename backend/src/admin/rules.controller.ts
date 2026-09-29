@@ -10,13 +10,13 @@ import { techId } from '../core/ids';
 import { parse } from '../core/http';
 import { TodayService } from '../core/today.service';
 import { adminCtx, ProfilesService } from './profiles.service';
-import { blockingErrors, fromUiRule, PROFILE_LABELS, RuleRow, toUiHistory, toUiRule, UiRule } from '../domain/notification-rules';
+import { blockingErrors, DEFAULT_HOUR, DEFAULT_WEEK_DAY, fromUiRule, isSendTime, NOTIFICATION_TIMEZONE, NOTIFICATION_TIMEZONE_LABEL, PROFILE_LABELS, removedVariablesIn, RuleRow, SEND_STEP_MINUTES, toUiHistory, toUiRule, UiRule, WEEK_DAYS } from '../domain/notification-rules';
 import { LLM_RESPONSE_VARIABLE, NotificationsService, RuleContext } from './notifications.service';
 
 const FREQ = z
   .string()
-  .transform((s) => ({ imm: 'IMMEDIATE', quot: 'DAILY', hebdo: 'WEEKLY', perso: 'CUSTOM' } as Record<string, string>)[s] ?? s.toUpperCase())
-  .pipe(z.enum(['IMMEDIATE', 'DAILY', 'WEEKLY', 'CUSTOM']));
+  .transform((s) => ({ imm: 'IMMEDIATE', quot: 'DAILY', hebdo: 'WEEKLY' } as Record<string, string>)[s] ?? s.toUpperCase())
+  .pipe(z.enum(['IMMEDIATE', 'DAILY', 'WEEKLY'])); // « Personnalisée » retirée le 29/09/2026
 const CHANNEL = z
   .string()
   .transform((s) => ({ app: 'APP', mail: 'EMAIL' } as Record<string, string>)[s] ?? s.toUpperCase())
@@ -40,8 +40,7 @@ const RuleBody = z
     body: z.string().max(4000),
     frequency: FREQ,
     day: z.string().max(20).nullable(),
-    hour: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).nullable(),
-    everyDays: z.number().int().min(1).max(90).nullable(),
+    hour: z.string().regex(/^([01]\d|2[0-3]):(00|30)$/, 'HH:MM par pas de 30 minutes').nullable(),
     channels: z.array(CHANNEL),
     trigger: z.enum(['SCHEDULE', 'MILESTONE_LATE', 'RISK_CRITICAL', 'DOCUMENT_ANALYZED', 'BUDGET_THRESHOLD', 'MANUAL']),
     enabled: z.boolean(),
@@ -59,7 +58,7 @@ const UiRuleBody = z
     profils: z.array(z.enum(['Admin', 'PMO', 'Responsable', 'Lecteur'])),
     projets: z.array(z.string().max(40)),
     canaux: z.array(z.enum(['app', 'mail'])),
-    freq: z.enum(['imm', 'day', 'week', 'custom']),
+    freq: z.enum(['imm', 'day', 'week']),
     at: z.string().max(60),
     on: z.boolean(),
     model: z.string().nullable(),
@@ -101,7 +100,7 @@ export class RulesController {
     else if (!model) fields.modelId = 'modèle inconnu';
     else if (!model.active) fields.modelId = 'modèle inactif';
     else if (model.category !== 'LLM') fields.modelId = 'un LLM est requis pour rédiger le message';
-    if (r.frequency === 'CUSTOM' && !r.everyDays) fields.everyDays = 'obligatoire pour une fréquence personnalisée';
+    for (const k of ['prompt', 'subject', 'body'] as const) { const v = removedVariablesIn(r[k]); if (v.length) fields[k] = `variable retirée : ${v.join(', ')}`; }
     if (r.projectIds.length) {
       const found = await this.prisma.project.count({ where: { code: { in: r.projectIds } } });
       if (found !== new Set(r.projectIds).size) fields.projectIds = 'projet inconnu';
@@ -132,7 +131,7 @@ export class RulesController {
       frequency: (i.frequency ?? (kind === 'ALERT' ? 'IMMEDIATE' : 'WEEKLY')) as NotificationRule['frequency'],
       day: i.day ?? null,
       hour: i.hour ?? null,
-      everyDays: i.everyDays ?? null,
+      everyDays: null,
       channels: (i.channels ?? ['APP']) as NotificationRule['channels'],
       // Déclencheur (ajout au brief) : manuel par défaut pour une alerte créée dans la console.
       trigger: (i.trigger ?? (kind === 'ALERT' ? 'MANUAL' : 'SCHEDULE')) as NotificationRule['trigger'],
@@ -268,6 +267,8 @@ export class RulesController {
     if (!r.channels.length) fields.canaux = 'au moins un canal';
     if (r.prompt.includes(`{${LLM_RESPONSE_VARIABLE}}`)) fields.prompt = `{${LLM_RESPONSE_VARIABLE}} n'est utilisable que dans le message`;
     if (r.modelId && !llm.has(r.modelId)) fields.model = 'LLM inconnu ou inactif';
+    if (r.frequency !== 'IMMEDIATE' && !isSendTime(r.hour)) fields.at = `heure HH:MM par pas de ${SEND_STEP_MINUTES} minutes`;
+    for (const k of ['prompt', 'subject', 'body'] as const) { const v = removedVariablesIn(r[k]); if (v.length) fields[k] = `variable retirée : ${v.join(', ')}`; }
     if (r.projectIds.length) {
       const found = await this.prisma.project.count({ where: { code: { in: r.projectIds } } });
       if (found !== r.projectIds.length) fields.projets = 'projet inconnu';
@@ -277,6 +278,12 @@ export class RulesController {
 
   private async uiView(r: NotificationRule, llm?: Set<string>) {
     return toUiRule(r as RuleRow, llm ?? (await this.llmIds()));
+  }
+
+  /** Calendrier d'envoi : fuseau de l'organisation, pas des heures, valeurs par défaut (affichés dans la vue). */
+  @Get('notifications/schedule')
+  schedule() {
+    return { timezone: NOTIFICATION_TIMEZONE, label: NOTIFICATION_TIMEZONE_LABEL, stepMinutes: SEND_STEP_MINUTES, defaultHour: DEFAULT_HOUR, defaultDay: DEFAULT_WEEK_DAY, days: WEEK_DAYS };
   }
 
   @Get('notifications/rules')

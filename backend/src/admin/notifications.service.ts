@@ -11,10 +11,11 @@ import { UsageService } from './usage.service';
 import { riskScore, RISK_CRITICAL_MIN } from '../domain/rules';
 import { confirmedAtIso } from '../cockpit/views';
 import { frShort } from '../domain/dates';
-import { blockingErrors } from '../domain/notification-rules';
+import { blockingErrors, DEFAULT_HOUR, DEFAULT_WEEK_DAY, NOTIFICATION_TIMEZONE, sendSlot } from '../domain/notification-rules';
 
 /** Variables utilisables dans le prompt et le message (brief Console § 6.5). */
-export const RULE_VARIABLES = ['projet', 'jalon', 'date', 'risque', 'seuil', 'semaine', 'document'] as const;
+/** Variables proposées dans la vue : projet, date (et reponse_llm dans le message) ; semaine reste lue pour les synthèses. */
+export const RULE_VARIABLES = ['projet', 'date', 'semaine'] as const;
 export const LLM_RESPONSE_VARIABLE = 'reponse_llm';
 
 export interface RuleContext {
@@ -57,7 +58,8 @@ export class NotificationsService implements OnModuleInit {
     });
     this.jobs.register('notifications.tick', () => this.tick());
     this.jobs.register('budget.check', () => this.checkBudget());
-    this.jobs.schedule('notifications.tick', '0 * * * *');
+    // Toutes les 30 minutes : les heures d'envoi se choisissent par pas de 30 minutes.
+    this.jobs.schedule('notifications.tick', '0,30 * * * *');
     this.jobs.schedule('budget.check', '5 * * * *');
   }
 
@@ -140,8 +142,9 @@ export class NotificationsService implements OnModuleInit {
    */
   async tick() {
     const now = this.today.now();
-    const hour = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(now);
-    const weekday = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', weekday: 'long' }).format(now).toLowerCase();
+    // Heure et jour dans le fuseau de l'organisation, affiché dans la vue ; créneau de 30 minutes.
+    const slot = sendSlot(new Intl.DateTimeFormat('fr-FR', { timeZone: NOTIFICATION_TIMEZONE, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(now));
+    const weekday = new Intl.DateTimeFormat('fr-FR', { timeZone: NOTIFICATION_TIMEZONE, weekday: 'long' }).format(now).toLowerCase();
     const projects = await this.prisma.project.findMany({ where: { status: { not: 'CLOSED' } } });
     for (const p of projects) {
       const today = this.today.today(p.timezone);
@@ -154,17 +157,13 @@ export class NotificationsService implements OnModuleInit {
         if (riskScore(r.p, r.i) >= RISK_CRITICAL_MIN) await this.fireTrigger('RISK_CRITICAL', p.id, r.id);
       }
     }
-    const scheduled = await this.prisma.notificationRule.findMany({ where: { enabled: true, trigger: 'SCHEDULE', frequency: { in: ['DAILY', 'WEEKLY', 'CUSTOM'] } } });
-    const dayKey = this.today.today('Europe/Paris');
+    const scheduled = await this.prisma.notificationRule.findMany({ where: { enabled: true, trigger: 'SCHEDULE', frequency: { in: ['DAILY', 'WEEKLY'] } } });
+    const dayKey = this.today.today(NOTIFICATION_TIMEZONE);
     for (const rule of scheduled) {
       // Cas bloquants (aucun modèle, aucun destinataire) : la règle reste active mais n'envoie rien.
       if (blockingErrors(rule).length) continue;
-      if ((rule.hour ?? '08:00').slice(0, 2) !== hour.slice(0, 2)) continue;
-      if (rule.frequency === 'WEEKLY' && (rule.day ?? 'lundi').toLowerCase() !== weekday) continue;
-      if (rule.frequency === 'CUSTOM') {
-        const last = await this.prisma.delivery.findFirst({ where: { ruleId: rule.id }, orderBy: { at: 'desc' } });
-        if (last && now.getTime() - last.at.getTime() < (rule.everyDays ?? 3) * 86_400_000 - 3_600_000) continue;
-      }
+      if (sendSlot(rule.hour ?? DEFAULT_HOUR) !== slot) continue;
+      if (rule.frequency === 'WEEKLY' && (rule.day ?? DEFAULT_WEEK_DAY).toLowerCase() !== weekday) continue;
       // « Tous les projets » (règle de plateforme) : chaque projet ouvert.
       const targets = rule.platform ? projects : rule.projectIds.map((code) => projects.find((x) => x.code === code || x.id === code));
       for (const p of targets) {
