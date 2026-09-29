@@ -227,6 +227,21 @@ export class LlmService {
     return this.run(modelId, input, false);
   }
 
+  /**
+   * Génération avec un modèle désigné et un prompt système (rédaction des notifications) : réelle quand le service
+   * est en ligne, bouchon hors ligne ; la consommation est tracée comme pour les autres appels.
+   */
+  async completeWithModelLive(modelId: string, input: { functionId: AiFunctionId; prompt: string; system?: string; projectId?: string | null; source: UsageSourceCode; maxWords?: number }): Promise<LlmResult> {
+    if (!(await this.modelAvailable(modelId))) throw new ApiError(503, 'AI_UNAVAILABLE', `Modèle ${modelId} inconnu, inactif, non LLM ou fournisseur en erreur`);
+    if (!this.client.live) return this.run(modelId, input, false);
+    try {
+      return await this.runLive(modelId, input, false);
+    } catch (e) {
+      if (e instanceof LlmCallError) throw new ApiError(503, 'AI_UNAVAILABLE', e.message);
+      throw e;
+    }
+  }
+
   private async run(modelId: string, input: { functionId: AiFunctionId; prompt: string; system?: string; projectId?: string | null; source: UsageSourceCode; maxWords?: number }, fallbackUsed: boolean): Promise<LlmResult> {
     const model = await this.prisma.aiModel.findUniqueOrThrow({ where: { id: modelId } });
     const t0 = Date.now();

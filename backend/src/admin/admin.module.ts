@@ -3,6 +3,7 @@ import { AccountsController } from './accounts.controller';
 import { AiController } from './ai.controller';
 import { RulesController } from './rules.controller';
 import { SmtpController } from './smtp.controller';
+import { NotificationWriterService } from './notification-writer.service';
 import { DataController } from './data.controller';
 import { ConsoleController } from './console.controller';
 import { SkillsController } from './skills.controller';
@@ -23,6 +24,6 @@ import { SnapshotsService } from './snapshots.service';
   controllers: [ConsoleController, AccountsController, AiController, RulesController, SmtpController, DataController, SkillsController, PersonaController, InboxController, ApiCardsController, WidgetCatalogueController, WidgetProxyController, WidgetFeedsController, WidgetNewsController],
   // AccountsController et DataController servent aussi de fournisseurs : les décisions du tiroir de notifications
   // reprennent exactement le traitement des pages Utilisateurs et Modules.
-  providers: [ProfilesService, UsageService, JevSqlService, NotificationsService, SnapshotsService, InboxService, ApiCardsService, AccountsController, DataController],
+  providers: [ProfilesService, UsageService, JevSqlService, NotificationWriterService, NotificationsService, SnapshotsService, InboxService, ApiCardsService, AccountsController, DataController],
 })
 export class AdminModule {}

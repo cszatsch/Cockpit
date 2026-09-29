@@ -59,3 +59,18 @@ describe('Jev de la Console — Text-to-SQL : règles', () => {
     expect(many).toMatchObject({ count: JEV_SQL_MAX_ROWS, truncated: true });
   });
 });
+
+import { cockpitRightsFilter, DICTIONNAIRE_COCKPIT } from '../../src/domain/jev-dictionnaire-cockpit';
+
+describe('Vues du Cockpit : filtre de droits (rôle jev_lecteur_cockpit)', () => {
+  const f = (n: string) => cockpitRightsFilter(DICTIONNAIRE_COCKPIT.find((t) => t.nom === n)!);
+  it('toutes les vues filtrent le projet ; les vues d’un chantier filtrent aussi les chantiers', () => {
+    for (const t of DICTIONNAIRE_COCKPIT) expect(cockpitRightsFilter(t)).toMatch(/^\(current_user <> 'jev_lecteur_cockpit' OR \(.+ = current_setting\('rise\.projet', true\)/);
+    expect(f('risques')).toContain(`t."wsId" = ANY(string_to_array(current_setting('rise.chantiers', true), ','))`);
+    expect(f('chantiers')).toContain('t.id = ANY(');
+    expect(f('livrables')).not.toContain('rise.chantiers');
+    expect(f('commentaires')).toContain(`current_setting('rise.chantiers', true) = '*'`);
+    expect(f('documents')).toContain(`t.conf::text <> 'RESTRICTED'`);
+    expect(f('projets')).toContain(`t.id = current_setting('rise.projet', true)`);
+  });
+});

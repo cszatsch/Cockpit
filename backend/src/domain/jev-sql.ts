@@ -63,11 +63,11 @@ export interface DictRow {
 }
 
 /** Dictionnaire mis en forme pour le modèle (fiches actives, lues en base à chaque question). */
-export function renderDictionary(tables: DictRow[]): string {
+export function renderDictionary(tables: DictRow[], schema = 'jev'): string {
   const lines = (s: string) => s.split('\n').map((x) => x.trim()).filter(Boolean);
   return tables
     .map((t) => {
-      const out = [`### jev.${t.nom}`, t.description, 'Colonnes :'];
+      const out = [`### ${schema}.${t.nom}`, t.description, 'Colonnes :'];
       for (const c of t.colonnes) out.push(`- ${c.nom} (${c.type}) : ${c.signification}${c.exemplesUnites ? ` [${c.exemplesUnites}]` : ''}`);
       if (lines(t.relations).length) out.push('Relations :', ...lines(t.relations).map((x) => `- ${x}`));
       if (lines(t.usages).length) out.push('Usages :', ...lines(t.usages).map((x) => `- ${x}`));
@@ -78,13 +78,32 @@ export function renderDictionary(tables: DictRow[]): string {
 }
 
 /** Consignes de l'étape « écrire la requête », ajoutées au prompt système de la Console. */
-export function sqlInstructions(dictionary: string, todayIso: string, nowParis: string): string {
+/** Variante des consignes : données de la Console (par défaut) ou du Cockpit (rédaction des notifications). */
+export interface SqlScope {
+  title: string;
+  schema: string;
+  /** Ce que couvrent les données (« comptes, modèles, coûts… »). */
+  topics: string;
+  /** Réponse directe (sans SQL) quand la demande n'exige pas de données. */
+  direct: string;
+  /** Précision de périmètre ajoutée aux consignes (droits). */
+  scope?: string;
+}
+export const CONSOLE_SQL_SCOPE: SqlScope = {
+  title: 'Données de la Console',
+  schema: 'jev',
+  topics: 'comptes, modèles, coûts, cartes, journal…',
+  direct: 'Si la question ne demande pas de données (comment faire, où trouver, que signifie), réponds directement à l’utilisateur, sans SQL.',
+};
+
+export function sqlInstructions(dictionary: string, todayIso: string, nowParis: string, v: SqlScope = CONSOLE_SQL_SCOPE): string {
   return [
-    '## Données de la Console',
+    `## ${v.title}`,
     'Tu peux lire les données de la plateforme au moyen d’une requête SQL (PostgreSQL) sur les vues en lecture seule décrites ci-dessous, et seulement celles-ci.',
-    '- Si la question porte sur des données de la plateforme (comptes, modèles, coûts, cartes, journal…), réponds UNIQUEMENT par une requête dans un bloc ```sql … ```, sans aucun autre texte.',
-    '- Si la question ne demande pas de données (comment faire, où trouver, que signifie), réponds directement à l’utilisateur, sans SQL.',
-    '- Une seule instruction SELECT (WITH permis), vues préfixées par jev. ; respecte les règles de chaque fiche (statuts, dates, calculs) ; noms de colonnes exactement comme dans les fiches.',
+    `- Si la question porte sur des données de la plateforme (${v.topics}), réponds UNIQUEMENT par une requête dans un bloc \`\`\`sql … \`\`\`, sans aucun autre texte.`,
+    `- ${v.direct}`,
+    `- Une seule instruction SELECT (WITH permis), vues préfixées par ${v.schema}. ; respecte les règles de chaque fiche (statuts, dates, calculs) ; noms de colonnes exactement comme dans les fiches.`,
+    ...(v.scope ? [`- ${v.scope}`] : []),
     `- Date du jour de la plateforme : ${todayIso}. Maintenant (heure de Paris) : ${nowParis}. Utilise ces valeurs écrites en toutes lettres dans la requête, jamais CURRENT_DATE, now() ni CURRENT_TIMESTAMP. Toutes les dates-heures des vues sont en heure de Paris.`,
     `- Limite-toi aux colonnes utiles ; ${JEV_SQL_MAX_ROWS} lignes au plus sont lues.`,
     '',

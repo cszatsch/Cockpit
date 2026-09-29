@@ -3,6 +3,7 @@ import { Account } from '@prisma/client';
 import { PrismaService, Tx } from '../core/prisma.service';
 import { Actor } from '../core/auth/auth';
 import { WriteCtx } from '../core/audit.service';
+import { AUDIENCE_PRIORITY, AudienceProfile, ChantierScope, profileScope } from '../domain/notification-rules';
 
 export type ProfileCode = 'ADMIN' | 'PMO' | 'RESPONSABLE' | 'LECTEUR';
 const RANK: Record<ProfileCode, number> = { ADMIN: 4, PMO: 3, RESPONSABLE: 2, LECTEUR: 1 };
@@ -58,6 +59,34 @@ export class ProfilesService {
   }
 
   /** Comptes actifs ayant l'un des profils ciblés sur un projet (destinataires des notifications, RG5/RG8). */
+  /**
+   * Destinataires regroupés par profil (un texte par profil) : chaque compte rejoint le profil ciblé le plus large
+   * qu'il détient (admin > pmo > resp > lec), et chaque groupe reçoit le périmètre commun à ses membres.
+   */
+  async audiences(profiles: string[], projectId: string | null): Promise<Array<{ profile: AudienceProfile; accounts: Account[]; chantiers: ChantierScope }>> {
+    const accounts = await this.prisma.account.findMany({ where: { status: 'ACTIVE' } });
+    const rights = await this.rightsOf(accounts);
+    const want = new Set(profiles);
+    const groups = new Map<AudienceProfile, Account[]>();
+    for (const a of accounts) {
+      const r = rights.get(a.id)!;
+      const projects = projectId ? [r.projects[projectId]].filter(Boolean) : Object.values(r.projects);
+      const has: Record<AudienceProfile, boolean> = {
+        admin: r.admin,
+        pmo: projects.some((p) => p.pmo),
+        resp: projects.some((p) => p.responsable.length > 0),
+        lec: projects.some((p) => p.lecteur.length > 0),
+      };
+      const p = AUDIENCE_PRIORITY.find((x) => want.has(x) && has[x]);
+      if (p) groups.set(p, [...(groups.get(p) ?? []), a]);
+    }
+    return AUDIENCE_PRIORITY.filter((p) => groups.has(p)).map((profile) => {
+      const members = groups.get(profile)!;
+      const chantiers = projectId ? profileScope(profile, members.map((a) => rights.get(a.id)!.projects[projectId])) : ('*' as const);
+      return { profile, accounts: members, chantiers };
+    });
+  }
+
   async recipients(profiles: string[], projectId: string | null): Promise<Account[]> {
     const accounts = await this.prisma.account.findMany({ where: { status: 'ACTIVE' } });
     const rights = await this.rightsOf(accounts);

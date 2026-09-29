@@ -11,7 +11,8 @@ import { UsageService } from './usage.service';
 import { riskScore, RISK_CRITICAL_MIN } from '../domain/rules';
 import { confirmedAtIso } from '../cockpit/views';
 import { frShort } from '../domain/dates';
-import { blockingErrors, DEFAULT_HOUR, DEFAULT_WEEK_DAY, NOTIFICATION_TIMEZONE, sendSlot } from '../domain/notification-rules';
+import { AUDIENCE_PRIORITY, AudienceProfile, blockingErrors, DEFAULT_HOUR, DEFAULT_WEEK_DAY, NOTIFICATION_TIMEZONE, sendSlot } from '../domain/notification-rules';
+import { Audience, NotificationWriterService } from './notification-writer.service';
 
 /** Variables utilisables dans le prompt et le message (brief Console § 6.5). */
 /** Variables proposées dans la vue : projet, date (et reponse_llm dans le message) ; semaine reste lue pour les synthèses. */
@@ -48,6 +49,7 @@ export class NotificationsService implements OnModuleInit {
     private readonly profiles: ProfilesService,
     private readonly usage: UsageService,
     private readonly today: TodayService,
+    private readonly writer: NotificationWriterService,
   ) {}
 
   onModuleInit() {
@@ -63,47 +65,66 @@ export class NotificationsService implements OnModuleInit {
     this.jobs.schedule('budget.check', '5 * * * *');
   }
 
-  /** Génère sujet et message (appel LLM réel, consommation tracée). */
-  async generate(rule: Pick<NotificationRule, 'modelId' | 'prompt' | 'subject' | 'body'>, ctx0: RuleContext, projectId: string | null) {
+  /**
+   * Génère sujet et message pour un profil destinataire : le modèle de la règle lit les données du projet sur le
+   * périmètre du profil (Text-to-SQL, `NotificationWriterService`) et rédige {reponse_llm} ; consommation tracée.
+   */
+  async generate(rule: Pick<NotificationRule, 'modelId' | 'prompt' | 'subject' | 'body' | 'kind'>, ctx0: RuleContext, projectId: string | null, audience: Audience = { profile: 'pmo', chantiers: '*' }) {
     // {date} : la date de l'événement quand il en a une (date prévue d'un jalon…), sinon la date du jour.
     const ctx: RuleContext = { ...ctx0, date: ctx0.date || frShort(this.today.today(), 0) };
     const prompt = fill(rule.prompt, ctx as Record<string, string>);
-    const res = await this.llm.completeWithModel(rule.modelId, { functionId: 'insights', prompt, projectId, source: 'NOTIFICATION' });
+    const project = projectId ? await this.prisma.project.findUnique({ where: { id: projectId }, select: { id: true, code: true } }) : null;
+    const t0 = Date.now();
+    const res = await this.writer.write(rule, prompt, project, audience);
     const vars = { ...ctx, [LLM_RESPONSE_VARIABLE]: res.text } as Record<string, string>;
-    return { subject: fill(rule.subject, vars), body: fill(rule.body, vars), llmResponse: res.text, tokens: res.tokensIn + res.tokensOut, costEur: res.costEur, ms: res.ms };
+    return { subject: fill(rule.subject, vars), body: fill(rule.body, vars), llmResponse: res.text, tokens: res.tokens, costEur: res.costEur, ms: Date.now() - t0, sources: res.sources };
   }
 
   /**
-   * Envoie une règle pour un projet (ou pour la plateforme). En cas de modèle inactif ou de clé invalide,
-   * l'échec est tracé dans l'historique (visible dans « À traiter »).
+   * Envoie une règle pour un projet (ou pour la plateforme) : un texte par profil destinataire (arbitrage du
+   * 29/09/2026), rédigé sur les données que tous les membres du profil peuvent lire. Canal « Dans l'application » :
+   * une notification par destinataire dans le Cockpit (cloche) ; canal E-mail : serveur SMTP de la Console.
+   * En cas de modèle inactif ou de clé invalide, l'échec est tracé dans l'historique (visible dans « À traiter »).
+   * `only` (« M'envoyer un test ») : le texte du premier profil destinataire, envoyé aux seuls comptes indiqués.
    */
   async deliver(rule: NotificationRule, projectId: string | null, ctx: RuleContext, eventKey: string | null, only?: { accountIds: string[] }) {
     if (eventKey && (await this.prisma.delivery.findFirst({ where: { ruleId: rule.id, eventKey } }))) return [];
-    const recipients = only ? await this.prisma.account.findMany({ where: { id: { in: only.accountIds } } }) : await this.profiles.recipients(rule.targetProfiles, projectId);
-    let gen: Awaited<ReturnType<NotificationsService['generate']>> | null = null;
-    let error: string | null = null;
-    try {
-      gen = await this.generate(rule, ctx, projectId);
-    } catch (e: any) {
-      error = e?.message ?? 'Génération impossible';
+    let groups = await this.profiles.audiences(rule.targetProfiles, projectId);
+    if (only) {
+      const first = groups[0] ?? { profile: (AUDIENCE_PRIORITY.find((p) => rule.targetProfiles.includes(p)) ?? 'pmo') as AudienceProfile, chantiers: '*' as const };
+      groups = [{ ...first, accounts: await this.prisma.account.findMany({ where: { id: { in: only.accountIds } } }) }];
     }
     const out = [];
-    for (const channel of rule.channels) {
-      let status: 'OK' | 'ERROR' = gen ? 'OK' : 'ERROR';
-      let err = error;
-      if (gen && channel === 'EMAIL') {
-        try {
-          await this.mailer.send({ to: recipients.map((r) => r.email), subject: gen.subject, text: gen.body });
-        } catch (e: any) {
-          status = 'ERROR';
-          err = `Envoi e-mail : ${e?.message ?? 'échec'}`;
-        }
+    for (const g of groups) {
+      const recipients = g.accounts;
+      let gen: Awaited<ReturnType<NotificationsService['generate']>> | null = null;
+      let error: string | null = null;
+      try {
+        gen = await this.generate(rule, ctx, projectId, { profile: g.profile, chantiers: g.chantiers });
+      } catch (e: any) {
+        error = e?.message ?? 'Génération impossible';
       }
-      out.push(
-        await this.prisma.delivery.create({
-          data: { ruleId: rule.id, channel, recipientsCount: recipients.length, status, error: err, costEur: channel === rule.channels[0] ? gen?.costEur ?? 0 : 0, tokens: channel === rule.channels[0] ? gen?.tokens ?? 0 : 0, projectId, subject: gen?.subject ?? null, body: gen?.body ?? null, eventKey, recipients: recipients.map((r) => r.id) },
-        }),
-      );
+      for (const channel of rule.channels) {
+        let status: 'OK' | 'ERROR' = gen ? 'OK' : 'ERROR';
+        let err = error;
+        if (gen && channel === 'EMAIL') {
+          try {
+            await this.mailer.send({ to: recipients.map((r) => r.email), subject: gen.subject, text: gen.body });
+          } catch (e: any) {
+            status = 'ERROR';
+            err = `Envoi e-mail : ${e?.message ?? 'échec'}`;
+          }
+        }
+        const first = channel === rule.channels[0];
+        const d = await this.prisma.delivery.create({
+          data: { ruleId: rule.id, channel, recipientsCount: recipients.length, status, error: err, costEur: first ? gen?.costEur ?? 0 : 0, tokens: first ? gen?.tokens ?? 0 : 0, projectId, subject: gen?.subject ?? null, body: gen?.body ?? null, eventKey, recipients: recipients.map((r) => r.id), profile: g.profile },
+        });
+        // Canal « Dans l'application » : notifications des destinataires dans le Cockpit (cloche, non lues).
+        if (gen && channel === 'APP' && recipients.length) {
+          await this.prisma.userNotification.createMany({ data: recipients.map((r) => ({ accountId: r.id, ruleId: rule.id, deliveryId: d.id, projectId, kind: rule.kind, title: gen!.subject, body: gen!.body })) });
+        }
+        out.push(d);
+      }
     }
     return out;
   }

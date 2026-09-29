@@ -1,6 +1,7 @@
 import {
   atOf,
   isSendTime,
+  profileScope,
   removedVariablesIn,
   sendSlot,
   blockingErrors,
@@ -123,5 +124,16 @@ describe('Notifications et alertes : cas bloquants (§ 3) et historique', () => 
     const h = toUiHistory({ id: 'd1', ruleId: 'n1', at: new Date('2026-09-26T10:00:00Z'), channel: 'EMAIL', recipientsCount: 4, status: 'ERROR', error: 'boom' }, now);
     expect(h).toEqual({ id: 'd1', rid: 'n1', w: 'il y a 3 j', c: 'E-mail', d: '4 destinataires', ok: false, at: '2026-09-26T10:00:00.000Z', error: 'boom' });
     expect(toUiHistory({ ...h, ruleId: 'n1', at: now, channel: 'APP', recipientsCount: 1, status: 'OK' }, now)).toMatchObject({ c: 'Application', d: '1 destinataire', ok: true });
+  });
+});
+
+describe('Notifications : périmètre d’un texte par profil (point 7)', () => {
+  it('PMO et administrateur : tout le projet ; Responsable : chantiers communs ; Lecteur : chantiers lisibles par tous', () => {
+    expect(profileScope('pmo', [])).toBe('*');
+    expect(profileScope('admin', [undefined])).toBe('*');
+    expect(profileScope('resp', [{ responsable: ['C1', 'C2'], lecteur: [] }, { responsable: ['C2', 'C3'], lecteur: ['C1'] }])).toEqual(['C2']);
+    expect(profileScope('resp', [{ responsable: ['C1'], lecteur: [] }, { responsable: ['C5'], lecteur: [] }])).toEqual([]);
+    expect(profileScope('lec', [{ responsable: [], lecteur: ['C3', 'C4'] }, { responsable: ['C4'], lecteur: ['C8'] }])).toEqual(['C4']);
+    expect(profileScope('resp', [])).toEqual([]);
   });
 });

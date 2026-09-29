@@ -132,3 +132,9 @@ Plus aucune clé `localStorage` n'est lue ou écrite par le fichier HTML. api.js
 ## Registre des cartes API v3c : identifiants de widgets (29/09/2026)
 
 - `api.js` : l'en-tête `X-RISE-Widget` porte l'identifiant du catalogue des widgets (`meteo`, `news`) au lieu des libellés « Météo · ville » et « Actualités ». Aucun effet visible.
+
+## Notifications internes (29/09/2026)
+
+- `RISE Cockpit.dc.html` : cloche « Notifications » dans le pied de la barre latérale, au-dessus de Jev, avec le nombre de non lues (pastille sur l'icône en mode replié) ; tiroir `Notifications Cockpit.dc.html` le long de la barre ; méthodes `ntToggle`, `ntRead` et `ntReadAll`.
+- `Notifications Cockpit.dc.html` : nouveau composant (tiroir, onglets, lecture au clic, « Tout lire », Échap), démonstration intégrée sans API.
+- `api.js` : chargement des notifications au démarrage, toutes les 60 s et au retour sur l'onglet ; `ntLoad`, `ntRead` et `ntReadAll`, avec mise à jour immédiate du compteur.

@@ -1309,6 +1309,8 @@ model Delivery {
   subject         String?
   body            String?
   /// Clé de dédoublonnage d'un événement (ex. « n1|RISE|J03 ») : un seul envoi par événement.
+  /// Profil destinataire de l'envoi (un texte par profil, droits du profil) : admin, pmo, resp, lec
+  profile         String?
   eventKey        String?
   recipients      String[]       @default([])
 
@@ -1556,4 +1558,22 @@ model SmtpSettings {
   version           Int       @default(1)
 
   @@map("smtp_settings")
+}
+
+/// Notification d'un utilisateur du Cockpit (canal « Dans l'application » d'une règle) : cloche et tiroir du Cockpit.
+model UserNotification {
+  id         String    @id @default(cuid())
+  accountId  String    @map("account_id")
+  ruleId     String?   @map("rule_id")
+  deliveryId String?   @map("delivery_id")
+  projectId  String?   @map("project_id")
+  /// ALERT ou NOTIFICATION
+  kind       String
+  title      String
+  body       String
+  createdAt  DateTime  @default(now()) @map("created_at")
+  readAt     DateTime? @map("read_at")
+
+  @@index([accountId, createdAt])
+  @@map("user_notifications")
 }

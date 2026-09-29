@@ -192,7 +192,9 @@ describe('Console Admin — critères d’acceptation (brief Console § 13)', ()
     it('un risque qui devient critique déclenche l’alerte n2 (une seule fois)', async () => {
       await (await t.as(WHO.pmo)).patch('/api/projects/RISE/risks/R07', { i: 5 }).expect(200);
       const d = await t.db.delivery.findMany({ where: { ruleId: 'n2', eventKey: { contains: 'R07' } } });
-      expect(d.length).toBe(2); // APP + EMAIL
+      // Un texte par profil destinataire (Responsable, PMO), chacun sur les deux canaux (APP + EMAIL).
+      expect(d.length).toBe(4);
+      expect(new Set(d.map((x) => x.profile))).toEqual(new Set(['pmo', 'resp']));
     });
     it('{date} vaut la date du jour dans l’aperçu et l’envoi de test (et non une date d’exemple figée)', async () => {
       const c = await t.as(WHO.admin);

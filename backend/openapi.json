@@ -229,6 +229,81 @@
         ]
       }
     },
+    "/api/me/notifications": {
+      "get": {
+        "operationId": "MyNotificationsController_list",
+        "parameters": [
+          {
+            "name": "unreadOnly",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "cockpit · mes notifications"
+        ]
+      }
+    },
+    "/api/me/notifications/{id}/read": {
+      "post": {
+        "operationId": "MyNotificationsController_read",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "cockpit · mes notifications"
+        ]
+      }
+    },
+    "/api/me/notifications/read-all": {
+      "post": {
+        "operationId": "MyNotificationsController_readAll",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "cockpit · mes notifications"
+        ]
+      }
+    },
     "/api/projects/{projectId}/project": {
       "get": {
         "operationId": "ProjectController_get",

@@ -829,9 +829,23 @@ export function attach(comp) {
     });
   start();
 
+  // ── Notifications de l'utilisateur (cloche) : au démarrage, toutes les 60 s et au retour sur l'onglet ──
+  const NT_POLL_MS = 60_000;
+  const ntLoad = () => get('/me/notifications').then((r) => raw({ ntItems: r.items, ntUnread: r.unread })).catch((e) => console.warn('[api] notifications', e));
+  ntLoad();
+  comp._ntTimer = setInterval(ntLoad, NT_POLL_MS);
+  const ntVisible = () => { if (!document.hidden) ntLoad(); };
+  document.addEventListener('visibilitychange', ntVisible);
+  const unmount0 = comp.componentWillUnmount ? comp.componentWillUnmount.bind(comp) : null;
+  comp.componentWillUnmount = () => { clearInterval(comp._ntTimer); document.removeEventListener('visibilitychange', ntVisible); if (unmount0) unmount0(); };
+  const ntMark = (id) => raw((st) => ({ ntItems: (st.ntItems || []).map((x) => (id === null || x.id === id ? { ...x, read: true } : x)), ntUnread: id === null ? 0 : Math.max(0, (st.ntUnread || 0) - ((st.ntItems || []).some((x) => x.id === id && !x.read) ? 1 : 0)) }));
+
   // ── Appels directs (remplacent les blocs SIMULÉ) ──
   const api = {
     request, get, post, patch, put, del, projectId, errorText, reload: () => reload(),
+    ntLoad,
+    ntRead: (id) => { ntMark(id); post('/me/notifications/' + encodeURIComponent(id) + '/read').catch((e) => { console.warn('[api]', e); ntLoad(); }); },
+    ntReadAll: () => { ntMark(null); post('/me/notifications/read-all').catch((e) => { console.warn('[api]', e); ntLoad(); }); },
     state: S,
 
     /** Météo et actualités (proxy serveur ; 503 hors ligne : l'écran affiche son état d'erreur). */

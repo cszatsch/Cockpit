@@ -6,13 +6,18 @@
  * présentation (ContentBlock, ProjectSection, fiche d'arbitrage, composants de template), tâches privées (Task,
  * TaskOverride), tables de la Console et de l'authentification.
  * Droits (RG5 / RG8) : chaque vue porte `projet_id`, et `chantier_id` quand l'objet appartient à un chantier ; la règle
- * de lecture est écrite dans chaque fiche. Ces vues ne sont ouvertes à aucun rôle de lecture tant que le filtrage
- * par droits de l'utilisateur n'est pas en place.
+ * de lecture est écrite dans chaque fiche. Seul le rôle `jev_lecteur_cockpit` peut les lire, et il ne voit que le
+ * périmètre posé par le serveur pour la requête (`rise.projet`, `rise.chantiers`) : voir `cockpitViewSql()`.
  * Dates : les dates métier sont du texte AAAA-MM-JJ ; les horodatages sont convertis en heure de Paris.
  */
 import { DictTable, P, q } from './jev-dictionnaire';
 
 export const JEV_COCKPIT_SCHEMA = 'jev_cockpit';
+/** Rôle de lecture des vues du Cockpit (rédaction des notifications) ; distinct de celui du Jev de la Console. */
+export const JEV_COCKPIT_ROLE = 'jev_lecteur_cockpit';
+/** Paramètres de session posés par le serveur avant chaque requête : projet, et chantiers lisibles (« * » : tous). */
+export const SCOPE_PROJET = 'rise.projet';
+export const SCOPE_CHANTIERS = 'rise.chantiers';
 
 const DROITS_PROJET = 'Droits : visible de tout utilisateur habilité sur le projet (projet_id).';
 const DROITS_CHANTIER = 'Droits : le PMO voit tout le projet ; un Responsable ou un Lecteur ne voit que les lignes dont chantier_id fait partie de ses chantiers (habilitations).';
@@ -714,3 +719,30 @@ export const DICTIONNAIRE_COCKPIT: DictTable[] = [
     regles: ['Profil affiché = le plus fort : PMO > RESPONSABLE > LECTEUR. Le directeur de programme du projet a aussi accès.', DROITS_PROJET],
   },
 ];
+
+/**
+ * Filtre de droits d'une vue, appliqué au seul rôle `jev_lecteur_cockpit` (le compte de l'application voit tout) :
+ * projet = `rise.projet` ; lignes d'un chantier : `rise.chantiers` = « * » (PMO, administrateur) ou chantier de la
+ * liste ; sans chantier (null) : réservé à « * » (comme `canReadWs`). Exceptions tirées des fiches : livrables
+ * visibles de tout le projet ; documents RESTRICTED et commentaires réservés à « * ». Paramètre absent : rien.
+ */
+export function cockpitRightsFilter(t: DictTable): string {
+  const col = (n: string) => t.colonnes.find((c) => c.nom === n)?.expr;
+  const all = `current_setting('${SCOPE_CHANTIERS}', true) = '*'`;
+  const inList = (e: string) => `(${all} OR ${e} = ANY(string_to_array(current_setting('${SCOPE_CHANTIERS}', true), ',')))`;
+  const proj = t.nom === 'projets' ? col('id')! : col('projet_id')!;
+  const cond = [`${proj} = current_setting('${SCOPE_PROJET}', true)`];
+  if (t.nom === 'chantiers') cond.push(inList(col('id')!));
+  else if (t.nom === 'documents') cond.push(`(${all} OR t.conf::text <> 'RESTRICTED')`);
+  else if (t.nom === 'liens_documents') cond.push(`(${all} OR d.conf::text <> 'RESTRICTED')`);
+  else if (t.nom === 'commentaires') cond.push(all);
+  else if (t.nom !== 'livrables' && col('chantier_id')) cond.push(inList(col('chantier_id')!));
+  return `(current_user <> '${JEV_COCKPIT_ROLE}' OR (${cond.join(' AND ')}))`;
+}
+
+/** Vue du Cockpit avec son filtre de droits (migration `…_jev_cockpit_droits`). */
+export function cockpitViewSql(t: DictTable): string {
+  const cols = t.colonnes.map((c) => `  ${c.expr} AS ${c.nom}`).join(',\n');
+  const where = [t.filtre, cockpitRightsFilter(t)].filter(Boolean).join(' AND ');
+  return `CREATE OR REPLACE VIEW ${JEV_COCKPIT_SCHEMA}.${t.nom} AS\nSELECT\n${cols}\nFROM ${t.source}\nWHERE ${where};`;
+}

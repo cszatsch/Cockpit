@@ -104,6 +104,15 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
   - Migration vérifiée sur la base locale dans une transaction annulée avant application : réécriture des 4 règles concernées, retrait automatique testé sur des textes libres.
   - Recette navigateur : trois fréquences, sélecteurs (48 créneaux), fuseau affiché, phrase de synthèse, enregistrement « jeudi 18:30 » ; à 900 px, ni débordement ni libellé sur deux lignes.
 
+- **Notifications du Cockpit et rédaction à partir des données (29/09/2026)** :
+  - Tests unitaires : périmètre par profil ; filtre de droits de chaque vue du Cockpit.
+  - Tests e2e (`test/e2e/notifications-cockpit.spec.ts`) :
+    - vues filtrées pour le rôle dédié : projet, chantiers, lignes sans chantier, livrables, documents restreints, commentaires, refus des vues de la Console et des tables ;
+    - rédaction par profil avec un modèle simulé : dictionnaire et périmètre dans le prompt, requête exécutée sur le périmètre de chaque profil, texte propre à chaque profil ;
+    - une notification par destinataire, routes du Cockpit (non lues, lecture, tout lire, isolement entre utilisateurs), test réservé au testeur.
+  - Test de l'alerte n2 mis à jour : 4 envois, soit 2 profils × 2 canaux.
+  - Recette navigateur : un risque devenu critique produit la notification du PMO ; cloche « 1 non lue », tiroir le long de la barre latérale, lecture au clic, compteur remis à zéro, Échap.
+
 ## 3. Écarts connus
 
 ### 3.1 Écarts par rapport aux briefs
@@ -213,8 +222,14 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 ### Notifications et alertes : état technique (29/09/2026)
 
 - **E-mail (SMTP)** : partiel. Le canal E-mail passe par le serveur SMTP de la Console (vérifié avec un serveur local). Dans la base locale, rien ne part tant que : (1) le mot de passe d'application n'est pas saisi dans Serveur d’envoi SMTP ; (2) les règles n'ont pas de modèle (modèles réinitialisés le 28/09) : une règle sans modèle n'envoie rien, par aucun canal.
-- **Notifications internes (Cockpit)** : non implémenté. Le canal « Dans l'application » n'enregistre qu'une ligne d'historique ; le Cockpit n'a ni cloche, ni tiroir, ni compteur de non-lus pour ses utilisateurs. La cloche de la Console ne sert qu'aux alertes de l'administrateur (plateforme). Il faut concevoir cet écran du Cockpit.
-- **Modèle LLM** : partiel. Le prompt de la règle, complété des variables, est bien envoyé à la passerelle LLM avec le modèle choisi, et la consommation est comptée. Mais seule la fonction `guidage` (Jev de la Console) fait une génération réelle : ici, la réponse vient du bouchon. Aucune des étapes du guide console (dictionnaire, SQL, exécution, synthèse) n'existe pour les notifications. Les vues du Cockpit (`jev_cockpit`) sont fermées tant que le filtrage par droits n'existe pas.
+- **Notifications internes (Cockpit)** : fait le 29/09/2026 (voir DECISIONS). Ancien constat : Le canal « Dans l'application » n'enregistre qu'une ligne d'historique ; le Cockpit n'a ni cloche, ni tiroir, ni compteur de non-lus pour ses utilisateurs. La cloche de la Console ne sert qu'aux alertes de l'administrateur (plateforme). Il faut concevoir cet écran du Cockpit.
+- **Modèle LLM** : fait le 29/09/2026 (Text-to-SQL par profil, génération réelle en ligne). Ancien constat : Le prompt de la règle, complété des variables, est bien envoyé à la passerelle LLM avec le modèle choisi, et la consommation est comptée. Mais seule la fonction `guidage` (Jev de la Console) fait une génération réelle : ici, la réponse vient du bouchon. Aucune des étapes du guide console (dictionnaire, SQL, exécution, synthèse) n'existe pour les notifications. Les vues du Cockpit (`jev_cockpit`) sont fermées tant que le filtrage par droits n'existe pas.
+
+### Rédaction des alertes à partir des données : points d'attention
+
+- **Coût** : chaque profil destinataire déclenche 2 ou 3 appels au modèle (requête, correction éventuelle, rédaction), à chaque envoi et pour chaque projet ciblé.
+- **Responsables** : un texte par profil ne porte que sur les chantiers communs à tous les Responsables destinataires. Avec des Responsables de chantiers différents, le texte ne contient que les données du projet hors chantiers. Un texte par destinataire lèverait cette limite, à un coût plus élevé.
+- **Règles de plateforme** (seuil budgétaire) : rédigées sans données, car les données de la Console ne sont pas dans le périmètre des vues du Cockpit.
 
 ## 4. Questions ouvertes
 

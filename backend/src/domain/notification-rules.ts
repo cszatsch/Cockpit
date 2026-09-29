@@ -212,3 +212,21 @@ export function toUiHistory(
     error: d.error,
   };
 }
+
+/** Profil destinataire (codes de la table), du plus large au plus restreint. */
+export type AudienceProfile = 'admin' | 'pmo' | 'resp' | 'lec';
+export const AUDIENCE_PRIORITY: AudienceProfile[] = ['admin', 'pmo', 'resp', 'lec'];
+/** Chantiers lisibles par un groupe de destinataires : « * » (tous) ou liste d'identifiants. */
+export type ChantierScope = '*' | string[];
+
+/**
+ * Périmètre d'un texte rédigé pour un profil (arbitrage du 29/09/2026 : un texte par profil) : ce que tous les
+ * membres du profil peuvent lire sur le projet. Administrateur et PMO : tout le projet ; Responsable : chantiers
+ * communs à tous les Responsables destinataires ; Lecteur : chantiers lisibles par tous (responsable ou lecteur).
+ */
+export function profileScope(profile: AudienceProfile, members: Array<{ responsable: string[]; lecteur: string[] } | undefined>): ChantierScope {
+  if (profile === 'admin' || profile === 'pmo') return '*';
+  if (!members.length) return [];
+  const sets = members.map((m) => new Set(profile === 'resp' ? m?.responsable ?? [] : [...(m?.responsable ?? []), ...(m?.lecteur ?? [])]));
+  return [...sets[0]].filter((ws) => sets.every((s) => s.has(ws))).sort();
+}

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><style>
+html,body{margin:0;background:#f2f6f5;font-family:'Plus Jakarta Sans',sans-serif;color:#10233a;-webkit-font-smoothing:antialiased;font-size:13px}
+*{box-sizing:border-box}
+button:focus-visible,[role=button]:focus-visible{outline:2px solid #1d8f86;outline-offset:2px}
+@keyframes ncIn{from{transform:translateX(-16px);opacity:0}to{transform:none;opacity:1}}
+@keyframes ncFade{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style></helmet>
+
+<sc-if value="{{ open }}" hint-placeholder-val="{{ true }}">
+<div data-screen-label="Notifications du Cockpit">
+  <div onClick="{{ close }}" style="{{ scrimSt }}"></div>
+  <div role="dialog" aria-modal="true" aria-labelledby="nc-title" style="{{ panelSt }}">
+    <div style="display:flex;align-items:center;gap:10px;padding:18px 20px 12px">
+      <span id="nc-title" style="font-size:16px;font-weight:800;letter-spacing:-.01em">Notifications</span>
+      <sc-if value="{{ hasUnread }}" hint-placeholder-val="{{ true }}"><span style="font-size:12px;color:#5c7280;white-space:nowrap">{{ unreadL }}</span></sc-if>
+      <span style="flex:1"></span>
+      <button type="button" onClick="{{ readAll }}" disabled="{{ noUnread }}" style="{{ readAllSt }}" style-hover="background:#e6f4f2">Tout lire</button>
+      <button type="button" onClick="{{ close }}" aria-label="Fermer" style="width:28px;height:28px;border:0;border-radius:8px;background:transparent;color:#5c7280;display:grid;place-items:center;cursor:pointer" style-hover="background:#eef3f2"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+    </div>
+    <div role="tablist" aria-label="Filtre" style="display:flex;gap:4px;padding:0 20px 12px"><sc-for list="{{ tabs }}" as="t" hint-placeholder-count="3"><button type="button" role="tab" onClick="{{ t.pick }}" aria-selected="{{ t.on }}" style="{{ t.st }}">{{ t.l }}<span style="font-size:11px;font-weight:700;opacity:.7">{{ t.c }}</span></button></sc-for></div>
+    <div style="flex:1;min-height:0;overflow:auto;border-top:1px solid #eef3f2;padding:6px 0 10px">
+      <sc-for list="{{ items }}" as="it" hint-placeholder-count="4">
+        <div role="button" tabindex="0" onClick="{{ it.pick }}" onKeyDown="{{ it.key }}" aria-expanded="{{ it.openL }}" style="{{ it.rowSt }}" style-hover="background:#f6f9f8">
+          <span style="{{ it.tile }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="{{ it.ic }}"></path></svg></span>
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
+            <div style="display:flex;align-items:baseline;gap:8px"><span style="{{ it.tSt }}">{{ it.t }}</span><span style="margin-left:auto;font-size:11px;color:#8a9aa6;white-space:nowrap">{{ it.when }}</span></div>
+            <div style="{{ it.bSt }}">{{ it.b }}</div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:4px"><span style="{{ it.kSt }}">{{ it.kL }}</span><sc-if value="{{ it.hasP }}" hint-placeholder-val="{{ true }}"><span style="height:20px;padding:0 8px;border-radius:999px;background:#eef3f2;color:#43586a;font-size:11px;font-weight:700;display:inline-flex;align-items:center">{{ it.p }}</span></sc-if></div>
+          </div>
+          <sc-if value="{{ it.unread }}" hint-placeholder-val="{{ false }}"><span aria-label="Non lue" style="{{ it.dot }}"></span></sc-if>
+        </div>
+      </sc-for>
+      <sc-if value="{{ empty }}" hint-placeholder-val="{{ false }}"><div style="padding:48px 20px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px"><span style="width:44px;height:44px;border-radius:50%;background:#e6f4f2;color:#1d8f86;display:grid;place-items:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"></path></svg></span><span style="font-weight:700">{{ emptyT }}</span><span style="font-size:12px;color:#5c7280">{{ emptyS }}</span></div></sc-if>
+    </div>
+  </div>
+</div>
+</sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;open&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;boolean&quot;},&quot;left&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;number&quot;},&quot;items&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{ id: string; kind: 'alerte'|'notification'; title: string; body: string; project: string|null; at: string; read: boolean }[]&quot;},&quot;now&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;onClose&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;onRead&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(id: string) =&gt; void&quot;},&quot;onReadAll&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;}}">
+// Notifications de l'utilisateur dans le Cockpit (canal « Dans l'application » des règles de la Console) :
+// tiroir ouvert par la cloche de la barre latérale ; un clic déplie la notification et la marque comme lue.
+const back = min => new Date(Date.now() - min * 60000).toISOString();
+const DEMO = [
+  { id: 'd1', kind: 'alerte', title: 'Jalon en retard · RISE', body: 'Un jalon du projet RISE a dépassé sa date prévue du 26 sept. 2026. Deux livrables du chantier Finance dépendent de ce jalon : prévoir une revue de trajectoire au prochain COPIL.', project: 'RISE', at: back(12), read: false },
+  { id: 'd2', kind: 'notification', title: 'RISE · votre synthèse de la semaine 40', body: 'Avancement global 62 % (+3 pts). 3 jalons dans les 15 prochains jours, 2 risques critiques ouverts, 1 décision attendue.', project: 'RISE', at: back(60 * 26), read: false },
+  { id: 'd3', kind: 'alerte', title: 'Nouveau risque critique · RISE', body: 'Un risque est devenu critique sur RISE : reprise des données au démarrage. Un plan de traitement est attendu.', project: 'RISE', at: back(60 * 24 * 3), read: true }
+];
+const IC = { alerte: 'M12 8v5M12 16.5v.5M10.3 3.9L2.5 17.5A2 2 0 0 0 4.2 20.5h15.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z', notification: 'M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8M10 20a2 2 0 0 0 4 0' };
+const TILE = { alerte: ['#fdf0ed', '#c2473b'], notification: ['#e6f4f2', '#146b64'] };
+const rel = (iso, now) => { const m = Math.max(0, Math.round((now - new Date(iso).getTime()) / 60000)); if (m < 1) return 'à l’instant'; if (m < 60) return 'il y a ' + m + ' min'; const h = Math.round(m / 60); if (h < 24) return 'il y a ' + h + ' h'; const d = Math.round(h / 24); return d === 1 ? 'hier' : 'il y a ' + d + ' j'; };
+const tabSt = on => 'height:30px;padding:0 10px;border:0;border-radius:8px;display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:12.5px;cursor:pointer;' + (on ? 'background:#10233a;color:#fff;font-weight:700' : 'background:#eef3f2;color:#43586a;font-weight:600');
+
+class Component extends DCLogic {
+  state = { tab: 'all', openId: null, readLocal: {} };
+  componentDidMount() { this._esc = e => { if (e.key === 'Escape' && this.props.open) this.props.onClose?.(); }; document.addEventListener('keydown', this._esc); }
+  componentWillUnmount() { document.removeEventListener('keydown', this._esc); }
+  list() { const S = this.state; return (this.props.items ?? DEMO).map(i => ({ ...i, read: i.read || !!S.readLocal[i.id] })); }
+  read(id) { this.setState(s => ({ readLocal: { ...s.readLocal, [id]: true } })); this.props.onRead?.(id); }
+  renderVals() {
+    const S = this.state, all = this.list(), now = this.props.now ? new Date(this.props.now).getTime() : Date.now(), left = this.props.left ?? 272;
+    const unread = all.filter(i => !i.read).length;
+    const shown = S.tab === 'unread' ? all.filter(i => !i.read) : S.tab === 'alertes' ? all.filter(i => i.kind === 'alerte') : all;
+    return {
+      open: this.props.open ?? true, close: () => this.props.onClose?.(),
+      hasUnread: unread > 0, unreadL: unread + ' non lue' + (unread > 1 ? 's' : ''), noUnread: !unread,
+      readAll: () => { if (!unread) return; this.setState({ readLocal: Object.fromEntries(all.map(i => [i.id, true])) }); this.props.onReadAll?.(); },
+      readAllSt: 'height:28px;padding:0 8px;border:0;border-radius:8px;background:transparent;font:inherit;font-size:12px;font-weight:700;color:#1d8f86;cursor:' + (unread ? 'pointer' : 'default;opacity:.4'),
+      tabs: [['all', 'Toutes', all.length], ['unread', 'Non lues', unread], ['alertes', 'Alertes', all.filter(i => i.kind === 'alerte').length]].map(([k, l, c]) => ({ l, c: String(c), on: S.tab === k, pick: () => this.setState({ tab: k }), st: tabSt(S.tab === k) })),
+      items: shown.map(i => { const T = TILE[i.kind] || TILE.notification, open = S.openId === i.id;
+        const pick = () => { this.setState({ openId: open ? null : i.id }); if (!i.read) this.read(i.id); };
+        return { t: i.title, b: i.body, when: rel(i.at, now), p: i.project || '', hasP: !!i.project, unread: !i.read, ic: IC[i.kind] || IC.notification, openL: open ? 'true' : 'false',
+          kL: i.kind === 'alerte' ? 'Alerte' : 'Notification', pick, key: e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } },
+          kSt: 'height:20px;padding:0 8px;border-radius:999px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;background:' + T[0] + ';color:' + T[1],
+          tile: 'width:34px;height:34px;border-radius:10px;flex:none;display:grid;place-items:center;background:' + T[0] + ';color:' + T[1],
+          tSt: 'font-size:13px;font-weight:' + (i.read ? 600 : 800) + ';color:#10233a;min-width:0;' + (open ? '' : 'white-space:nowrap;overflow:hidden;text-overflow:ellipsis'),
+          bSt: 'font-size:12px;color:#5c7280;line-height:1.5;text-wrap:pretty;white-space:pre-line;' + (open ? '' : 'display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden'),
+          dot: 'width:8px;height:8px;border-radius:50%;flex:none;margin-top:6px;background:' + (i.kind === 'alerte' ? '#f07b67' : '#1d8f86'),
+          rowSt: 'display:flex;gap:12px;padding:12px 20px;cursor:pointer;outline:none;transition:background .2s;' + (!i.read ? 'background:linear-gradient(90deg,rgba(29,143,134,.05),transparent 70%)' : '') }; }),
+      empty: !shown.length, emptyT: S.tab === 'unread' ? 'Tout est lu' : 'Aucune notification', emptyS: 'Les alertes et notifications de vos projets apparaîtront ici.',
+      scrimSt: 'position:fixed;top:0;bottom:0;right:0;left:' + left + 'px;z-index:70;background:rgba(10,23,39,.28);animation:ncFade .2s both',
+      panelSt: 'position:fixed;top:0;bottom:0;left:' + left + 'px;z-index:71;width:min(440px,calc(100vw - ' + left + 'px));display:flex;flex-direction:column;background:#fff;box-shadow:24px 0 60px -30px rgba(10,23,39,.6);animation:ncIn .24s cubic-bezier(.2,.7,.2,1) both'
+    };
+  }
+}
+</script>
+</body>
+</html>

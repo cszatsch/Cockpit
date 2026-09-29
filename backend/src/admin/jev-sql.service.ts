@@ -7,6 +7,8 @@ import {
   ANSWER_INSTRUCTIONS, extractSql, formatRows, JEV_SQL_MAX_ROWS, JEV_SQL_RETRIES, JEV_SQL_ROLE, JEV_SQL_TIMEOUT_MS,
   renderDictionary, sqlError, sqlInstructions, viewsUsed,
 } from '../domain/jev-sql';
+import { JEV_COCKPIT_ROLE, JEV_COCKPIT_SCHEMA, SCOPE_CHANTIERS, SCOPE_PROJET } from '../domain/jev-dictionnaire-cockpit';
+import { ChantierScope } from '../domain/notification-rules';
 
 export interface JevAnswer {
   reply: string;
@@ -100,13 +102,35 @@ export class JevSqlService {
     );
   }
 
+  /**
+   * Exécution d'une requête sur les vues du Cockpit (rédaction des notifications) : même bornage que la Console,
+   * rôle `jev_lecteur_cockpit`, et périmètre posé par le serveur avant de changer de rôle — projet, chantiers
+   * lisibles (« * » : tous). Les vues filtrent sur ces paramètres ; la requête ne peut pas les modifier.
+   */
+  async executeCockpit(sql: string, projectId: string, chantiers: ChantierScope): Promise<Array<Record<string, unknown>>> {
+    const body = sql.trim().replace(/;\s*$/, '');
+    const lit = (v: string) => `'${v.replace(/'/g, "''")}'`;
+    return this.prisma.$transaction(
+      async (tx) => {
+        await tx.$executeRawUnsafe('SET TRANSACTION READ ONLY');
+        await tx.$executeRawUnsafe(`SET LOCAL ${SCOPE_PROJET} = ${lit(projectId)}`);
+        await tx.$executeRawUnsafe(`SET LOCAL ${SCOPE_CHANTIERS} = ${lit(chantiers === '*' ? '*' : chantiers.join(','))}`);
+        await tx.$executeRawUnsafe(`SET LOCAL ROLE ${JEV_COCKPIT_ROLE}`);
+        await tx.$executeRawUnsafe(`SET LOCAL statement_timeout = ${JEV_SQL_TIMEOUT_MS}`);
+        await tx.$executeRawUnsafe(`SET LOCAL search_path = ${JEV_COCKPIT_SCHEMA}`);
+        return tx.$queryRawUnsafe<Array<Record<string, unknown>>>(`SELECT * FROM (\n${body}\n) AS jev_requete LIMIT ${JEV_SQL_MAX_ROWS + 1}`);
+      },
+      { timeout: JEV_SQL_TIMEOUT_MS + 5000 },
+    );
+  }
+
   private nowParis(): string {
     return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Paris', dateStyle: 'short', timeStyle: 'medium' }).format(this.today.now());
   }
 }
 
 /** Message de PostgreSQL sans l'enveloppe de Prisma (renvoyé au modèle pour correction). */
-function dbMessage(e: unknown): string {
+export function dbMessage(e: unknown): string {
   const any = e as { meta?: { message?: string }; message?: string };
   const raw = any?.meta?.message ?? any?.message ?? 'erreur inconnue';
   const m = raw.match(/Message: `([\s\S]*?)`/);
