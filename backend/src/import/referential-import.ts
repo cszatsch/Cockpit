@@ -499,6 +499,12 @@ export interface CommitTarget {
   createProject: boolean;
   /** Préfixe des identifiants techniques (code projet) pour éviter les collisions entre projets. */
   idPrefix: string;
+  /**
+   * Avancement (écran « Initialisation d'un projet », § 4) : phase 1 à 5 et part faite de la phase (0 à 1).
+   * Phases, dans l'ordre d'écriture : projet ; lots et phases ; chantiers et jalons ; personnes et habilitations ;
+   * instances de pilotage. Aucune clé étrangère ne vise les personnes ni les équipes : l'ordre est libre.
+   */
+  progress?: (phase: number, fraction: number) => void | Promise<void>;
 }
 
 export async function commitPlan(db: Tx, plan: ImportPlan, target: CommitTarget, audit: AuditService, ctx: WriteCtx): Promise<Record<string, number>> {
@@ -513,6 +519,7 @@ export async function commitPlan(db: Tx, plan: ImportPlan, target: CommitTarget,
   const wsId: Record<string, string> = {};
   const bodyId: Record<string, string> = {};
 
+  if (target.progress) await target.progress(1, 0);
   if (target.createProject) {
     const clientCode = plan.client.name.slice(0, 40);
     const client = (await db.client.findUnique({ where: { code: clientCode } })) ?? (await db.client.create({ data: { id: id('client', 1), code: clientCode, name: plan.client.name, description: plan.client.sector, status: IMPORT_DEFAULTS.clientStatus } }));
@@ -533,38 +540,28 @@ export async function commitPlan(db: Tx, plan: ImportPlan, target: CommitTarget,
       },
     });
   }
-  let n = 0;
-  for (const t of plan.teams) {
-    teamId[t.key] = id('t', ++n);
-    await db.team.create({ data: { id: teamId[t.key], projectId: P, name: t.name, description: t.description } });
-  }
-  for (const r of plan.roles) {
-    roleId[r.key] = id('ro', r.order + 1);
-    await db.projectRole.create({ data: { id: roleId[r.key], projectId: P, label: r.label, description: r.description, order: r.order } });
-  }
-  for (const [i, p] of plan.persons.entries()) {
-    personId[p.key] = id('p', i + 1);
-    await db.person.create({ data: { id: personId[p.key], projectId: P, firstName: p.firstName, lastName: p.lastName, email: p.email, teamId: teamId[p.team], title: p.title, active: p.active, order: i } });
-  }
-  for (const [i, a] of plan.assignments.entries()) {
-    await db.assignment.create({ data: { id: id('as', i + 1), projectId: P, personId: personId[a.person], roleId: roleId[a.role], startDate: a.startDate, endDate: a.endDate } });
-  }
-  await db.project.update({
-    where: { id: P },
-    data: {
-      programDirectorId: personId[plan.project.programDirector] ?? null,
-      sponsorId: plan.project.sponsor ? personId[plan.project.sponsor] : null,
-      editorTeamId: plan.project.editorTeam ? teamId[plan.project.editorTeam] : null,
-      integratorTeamId: plan.project.integratorTeam ? teamId[plan.project.integratorTeam] : null,
-    },
-  });
-  for (const w of plan.waves) {
-    waveId[w.key] = id('w', w.seq);
-    await db.wave.create({ data: { id: waveId[w.key], projectId: P, seq: w.seq, name: w.name, startDate: w.startDate, endDate: w.endDate, status: w.status as any, ownerId: w.owner ? personId[w.owner] : null } });
-  }
+  if (target.progress) await target.progress(1, 1);
+  // Identifiants techniques calculés d'avance : chaque phase peut viser des objets écrits dans une autre.
+  plan.teams.forEach((t, k) => { teamId[t.key] = id('t', k + 1); });
+  plan.roles.forEach((r) => { roleId[r.key] = id('ro', r.order + 1); });
+  plan.persons.forEach((p, k) => { personId[p.key] = id('p', k + 1); });
+  plan.waves.forEach((w) => { waveId[w.key] = id('w', w.seq); });
+  plan.phases.forEach((p) => { phaseId[p.key] = id('P', p.seq); });
+  plan.subphases.forEach((sp) => { spId[sp.key] = id('SP', sp.code); });
+  plan.workstreams.forEach((w) => { wsId[w.key] = id('C', w.seq); });
+  plan.bodies.forEach((b, k) => { bodyId[b.key] = id('g', k + 1); });
+  const tick = async (phase: number, done: number, total: number) => { if (target.progress) await target.progress(phase, total ? done / total : 1); };
   const director = personId[plan.project.programDirector] ?? null;
+
+  // Phase 2 : lots, phases, sous-phases.
+  const n2 = plan.waves.length + plan.phases.length + plan.subphases.length;
+  let d2 = 0;
+  await tick(2, 0, n2);
+  for (const w of plan.waves) {
+    await db.wave.create({ data: { id: waveId[w.key], projectId: P, seq: w.seq, name: w.name, startDate: w.startDate, endDate: w.endDate, status: w.status as any, ownerId: w.owner ? personId[w.owner] : null } });
+    await tick(2, ++d2, n2);
+  }
   for (const p of plan.phases) {
-    phaseId[p.key] = id('P', p.seq);
     await db.phase.create({
       data: {
         id: phaseId[p.key],
@@ -582,13 +579,18 @@ export async function commitPlan(db: Tx, plan: ImportPlan, target: CommitTarget,
         waves: { create: [{ waveId: waveId[p.wave] }] },
       },
     });
+    await tick(2, ++d2, n2);
   }
-  for (const s of plan.subphases) {
-    spId[s.key] = id('SP', s.code);
-    await db.subphase.create({ data: { id: spId[s.key], projectId: P, phaseId: phaseId[s.phase], code: s.code, name: s.name, description: s.description, startDate: s.startDate, endDate: s.endDate, status: s.status as any, progressPct: IMPORT_DEFAULTS.progressPct } });
+  for (const sp of plan.subphases) {
+    await db.subphase.create({ data: { id: spId[sp.key], projectId: P, phaseId: phaseId[sp.phase], code: sp.code, name: sp.name, description: sp.description, startDate: sp.startDate, endDate: sp.endDate, status: sp.status as any, progressPct: IMPORT_DEFAULTS.progressPct } });
+    await tick(2, ++d2, n2);
   }
+
+  // Phase 3 : chantiers, jalons, livrables.
+  const n3 = plan.workstreams.length + plan.milestones.length + plan.deliverables.length;
+  let d3 = 0;
+  await tick(3, 0, n3);
   for (const w of plan.workstreams) {
-    wsId[w.key] = id('C', w.seq);
     await db.workstream.create({
       data: {
         id: wsId[w.key],
@@ -604,15 +606,7 @@ export async function commitPlan(db: Tx, plan: ImportPlan, target: CommitTarget,
         waves: w.wave ? { create: [{ waveId: waveId[w.wave] }] } : undefined,
       },
     });
-    // § 10 : les habilitations RESPONSABLE se déduisent des responsables de chantier.
-    await db.habilitation.create({ data: { id: id('hab', `R${w.seq}`), projectId: P, personId: personId[w.owner], profile: 'RESPONSABLE', wsId: wsId[w.key] } });
-  }
-  for (const [i, b] of plan.bodies.entries()) {
-    bodyId[b.key] = id('g', i + 1);
-    await db.governanceBody.create({ data: { id: bodyId[b.key], projectId: P, name: b.name, shortName: b.shortName, color: b.color, frequency: b.frequency as any, level: (b.level as any) ?? null, description: b.description, order: i } });
-  }
-  for (const [i, m] of plan.members.entries()) {
-    await db.bodyMember.create({ data: { bodyId: bodyId[m.body], personId: personId[m.person], role: m.role as any, order: i } });
+    await tick(3, ++d3, n3);
   }
   for (const m of plan.milestones) {
     await db.milestone.create({
@@ -631,9 +625,60 @@ export async function commitPlan(db: Tx, plan: ImportPlan, target: CommitTarget,
         confirmedAt: new Date(),
       },
     });
+    await tick(3, ++d3, n3);
   }
-  for (const [i, d] of plan.deliverables.entries()) {
-    await db.deliverable.create({ data: { id: id('l', i + 1), projectId: P, name: d.name, subphaseId: spId[d.subphase], workstreamId: d.ws ? wsId[d.ws] : null, ownerId: personId[d.owner], start: d.start, due: d.due, prog: IMPORT_DEFAULTS.progressPct, order: i } });
+  for (const [k, dl] of plan.deliverables.entries()) {
+    await db.deliverable.create({ data: { id: id('l', k + 1), projectId: P, name: dl.name, subphaseId: spId[dl.subphase], workstreamId: dl.ws ? wsId[dl.ws] : null, ownerId: personId[dl.owner], start: dl.start, due: dl.due, prog: IMPORT_DEFAULTS.progressPct, order: k } });
+    await tick(3, ++d3, n3);
+  }
+
+  // Phase 4 : équipes, rôles, personnes, affectations, habilitations ; liens du projet vers ses personnes et équipes.
+  const n4 = plan.teams.length + plan.roles.length + plan.persons.length + plan.assignments.length + plan.workstreams.length + 1;
+  let d4 = 0;
+  await tick(4, 0, n4);
+  for (const t of plan.teams) {
+    await db.team.create({ data: { id: teamId[t.key], projectId: P, name: t.name, description: t.description } });
+    await tick(4, ++d4, n4);
+  }
+  for (const r of plan.roles) {
+    await db.projectRole.create({ data: { id: roleId[r.key], projectId: P, label: r.label, description: r.description, order: r.order } });
+    await tick(4, ++d4, n4);
+  }
+  for (const [k, p] of plan.persons.entries()) {
+    await db.person.create({ data: { id: personId[p.key], projectId: P, firstName: p.firstName, lastName: p.lastName, email: p.email, teamId: teamId[p.team], title: p.title, active: p.active, order: k } });
+    await tick(4, ++d4, n4);
+  }
+  for (const [k, a] of plan.assignments.entries()) {
+    await db.assignment.create({ data: { id: id('as', k + 1), projectId: P, personId: personId[a.person], roleId: roleId[a.role], startDate: a.startDate, endDate: a.endDate } });
+    await tick(4, ++d4, n4);
+  }
+  for (const w of plan.workstreams) {
+    // § 10 : les habilitations RESPONSABLE se déduisent des responsables de chantier.
+    await db.habilitation.create({ data: { id: id('hab', `R${w.seq}`), projectId: P, personId: personId[w.owner], profile: 'RESPONSABLE', wsId: wsId[w.key] } });
+    await tick(4, ++d4, n4);
+  }
+  await db.project.update({
+    where: { id: P },
+    data: {
+      programDirectorId: director,
+      sponsorId: plan.project.sponsor ? personId[plan.project.sponsor] : null,
+      editorTeamId: plan.project.editorTeam ? teamId[plan.project.editorTeam] : null,
+      integratorTeamId: plan.project.integratorTeam ? teamId[plan.project.integratorTeam] : null,
+    },
+  });
+  await tick(4, ++d4, n4);
+
+  // Phase 5 : instances de pilotage et leurs membres.
+  const n5 = plan.bodies.length + plan.members.length;
+  let d5 = 0;
+  await tick(5, 0, n5);
+  for (const [k, b] of plan.bodies.entries()) {
+    await db.governanceBody.create({ data: { id: bodyId[b.key], projectId: P, name: b.name, shortName: b.shortName, color: b.color, frequency: b.frequency as any, level: (b.level as any) ?? null, description: b.description, order: k } });
+    await tick(5, ++d5, n5);
+  }
+  for (const [k, m] of plan.members.entries()) {
+    await db.bodyMember.create({ data: { bodyId: bodyId[m.body], personId: personId[m.person], role: m.role as any, order: k } });
+    await tick(5, ++d5, n5);
   }
   const created = {
     teams: plan.teams.length,

@@ -836,81 +836,74 @@ export function bindConso(c) {
 
 // ───────────────────────────── Initialisation d'un projet ─────────────────────────────
 
-const SHEETS = { '01 Équipes': 'Équipes', '02 Rôles': 'Rôles', '03 Personnes': 'Personnes', '04 Affectations': 'Affectations', '05 Projet': 'Projet', '06 Lots': 'Lots', '07 Phases': 'Phases', '08 Sous-phases': 'Sous-phases', '09 Chantiers': 'Chantiers', '10 Instances': 'Instances', '11 Membres': 'Membres', '12 Jalons': 'Jalons', '13 Livrables': 'Livrables' };
-const ST_FR = { PREPARATION: 'Préparation', ACTIVE: 'Actif', CLOSED: 'Clos', PLANNED: 'Prévu', IN_PROGRESS: 'En cours', DONE: 'Terminé' };
+/** Chaîne AAAA-MM-JJ → date locale (l'écran compare des `Date` pour l'affichage et le planning). */
+const isoDay = v => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) ? dayOf(v) : v);
 
 /**
- * Envoie le fichier au serveur (`POST /project-imports`, multipart), lit la prévisualisation
- * (`GET /project-imports/{id}/preview?tab=`) et la met au format lu par l'écran (`parseXlsx()` d'origine).
- * Rien n'est créé à cette étape (contrôle seul, § 9.10).
+ * Contrôle du fichier par le serveur (`POST /projects/import/validate`, multipart) : la réponse est déjà au format
+ * lu par l'écran (`{ project, sheets, issues, missing }` et les 5 contrôles) ; les dates deviennent des `Date`.
+ * Rien n'est créé à cette étape ; le fichier reste côté serveur jusqu'à la création ou à la réinitialisation.
  */
-export async function importXlsx(file) {
+export async function validateXlsx(file) {
   const fd = new FormData(); fd.append('file', file, file.name);
-  const imp = await api('POST', '/project-imports', fd), rep = imp.report || {};
-  const out = { file: imp.fileName, size: Math.round(file.size / 1024) + ' Ko', project: [], sheets: {}, issues: [], missing: [], importId: imp.importId, status: imp.status, report: rep };
-  for (const i of rep.issues || []) {
-    const m = /^Onglet « (.+) » manquant$/.exec(i.message);
-    if (m) { out.missing.push(m[1]); continue; }
-    if (/^Le code .+ existe déjà$/.test(i.message)) continue; // signalé par l'écran à partir de la bibliothèque du serveur
-    out.issues.push({ lvl: i.level === 'ERROR' ? 'err' : 'warn', sheet: SHEETS[i.sheet] || i.sheet, row: i.row || '', msg: i.message });
-  }
-  if (!rep.project) return out; // fichier illisible ou onglets manquants : pas de prévisualisation
-  const T = {}, tabs = ['project', 'teams', 'roles', 'persons', 'assignments', 'waves', 'phases', 'subphases', 'workstreams', 'bodies', 'members', 'milestones', 'deliverables'];
-  (await Promise.all(tabs.map(t => api('GET', '/project-imports/' + imp.importId + '/preview?tab=' + t)))).forEach(r => { T[r.tab] = r.data; });
-  const P = T.project, per = {}, team = {}, role = {}, wave = {}, ph = {}, sp = {}, ws = {}, body = {};
-  T.persons.forEach(p => { per[p.key] = (p.firstName + ' ' + p.lastName).trim(); });
-  T.teams.forEach(t => { team[t.key] = t.name; }); T.roles.forEach(r => { role[r.key] = r.label; });
-  T.waves.forEach(w => { wave[w.key] = 'Lot ' + w.seq; }); T.phases.forEach(p => { ph[p.key] = p.seq + ' · ' + p.name; });
-  T.subphases.forEach(s => { sp[s.key] = s.code + ' · ' + s.name; }); T.workstreams.forEach(w => { ws[w.key] = w.name; }); T.bodies.forEach(b => { body[b.key] = b.name; });
-  const k = (map, key) => (key == null ? '' : map[key] || key), dt = dayOf;
-  out.project = [['Nom du client', P.client && P.client.name, 1], ['Secteur d’activité', P.client && P.client.sector], ['Pays', P.country, 1], ['Code projet', P.code, 1], ['Nom du projet', P.name, 1], ['Objectifs', P.objective],
-    ['Éditeur de la solution', k(team, P.editorTeam)], ['Intégrateur', k(team, P.integratorTeam)], ['Date de démarrage', dt(P.startDate), 1], ['Date de fin cible', dt(P.targetEndDate), 1], ['Fuseau horaire', P.timezone, 1],
-    ['Statut', ST_FR[P.status] || P.status], ['Directeur de programme', k(per, P.programDirector), 1], ['Sponsor', k(per, P.sponsor)]].map(([l, v, r]) => ({ l, v: v == null ? '' : v, r: !!r }));
-  const g = (heads, rows) => ({ heads, rows });
-  out.sheets = {
-    'Équipes': g([['Nom', 'r'], ['Description', 'o'], ['Personnes', 'c']], T.teams.map(t => [t.name, t.description || '', T.persons.filter(p => p.team === t.key).length])),
-    'Rôles': g([['Libellé', 'r'], ['Description', 'o']], T.roles.map(r => [r.label, r.description || ''])),
-    'Personnes': g([['Nom complet', 'r'], ['Email', 'r'], ['Équipe', 'r'], ['Fonction', 'o']], T.persons.map(p => [per[p.key], p.email, k(team, p.team), p.title || ''])),
-    'Affectations': g([['Personne', 'r'], ['Rôle', 'r'], ['Début', 'r'], ['Fin', 'o']], T.assignments.map(a => [k(per, a.person), k(role, a.role), dt(a.startDate), dt(a.endDate) || ''])),
-    'Lots': g([['N°', 'r'], ['Périmètre', 'r'], ['Début', 'r'], ['Fin', 'r'], ['Statut', 'o']], T.waves.map(w => [w.seq, w.name, dt(w.startDate), dt(w.endDate), ST_FR[w.status] || w.status || ''])),
-    'Phases': g([['N°', 'r'], ['Nom', 'r'], ['Lot', 'r'], ['Début', 'r'], ['Fin', 'r']], T.phases.map(p => [p.seq, p.name, k(wave, p.wave), dt(p.startDate), dt(p.endDate)])),
-    'Sous-phases': g([['Phase', 'r'], ['N°', 'r'], ['Nom', 'r'], ['Début', 'o'], ['Fin', 'o']], T.subphases.map(s => [k(ph, s.phase), s.code, s.name, dt(s.startDate) || '', dt(s.endDate) || ''])),
-    'Chantiers': g([['Code', 'c'], ['Nom', 'r'], ['Responsable', 'r'], ['Lot', 'o']], T.workstreams.map(w => [w.code, w.name, k(per, w.owner), k(wave, w.wave)])),
-    'Instances': g([['Nom', 'r'], ['Nom court', 'r'], ['Couleur', 'r'], ['Fréquence', 'r']], T.bodies.map(b => [b.name, b.shortName, b.color, b.frequency])),
-    'Membres': g([['Instance', 'r'], ['Personne', 'r'], ['Rôle', 'o']], T.members.map(m => [k(body, m.body), k(per, m.person), m.role || ''])),
-    'Jalons': g([['Code', 'c'], ['Libellé', 'r'], ['Phase', 'r'], ['Chantier', 'o'], ['Date prévue', 'r']], T.milestones.map(m => [m.code, m.n, k(ph, m.phase), k(ws, m.ws), dt(m.iso)])),
-    'Livrables': g([['Nom', 'r'], ['Sous-phase', 'r'], ['Responsable', 'r'], ['Échéance', 'r']], T.deliverables.map(d => [d.name, k(sp, d.subphase), k(per, d.owner), dt(d.due)])),
-  };
-  return out;
+  const r = await api('POST', '/projects/import/validate', fd);
+  const sheets = {};
+  for (const [k, s] of Object.entries(r.sheets || {})) sheets[k] = { heads: s.heads, rows: s.rows.map(row => row.map(isoDay)) };
+  return { file: r.file, size: r.size, project: (r.project || []).map(p => ({ ...p, v: isoDay(p.v) })), sheets, issues: r.issues || [], missing: r.missing || [], importId: r.jobId, checks: r.checks, ok: r.ok };
 }
 
+/** Pas de progression affichée pendant la création : 2 % toutes les 60 ms, comme la simulation d'origine. */
+const INIT_STEP = 2, INIT_TICK = 60, INIT_POLL = 250;
+
 /**
- * `ProjetInit` : lecture du fichier par le serveur (plus de SheetJS), création transactionnelle par
- * `POST /project-imports/{id}/commit` avec progression réelle (terminée à la réponse du serveur).
+ * `ProjetInit` : contrôle et création par le serveur (spécification Initialisation projet § 5). La création suit
+ * l'avancement réel (`GET /projects/import/{jobId}`) sans jamais le devancer ; chaque phase reste visible.
+ * « Réinitialiser la session » (et le retour à l'étape 1) oublie aussi le fichier côté serveur.
+ * « Charger l'exemple » (ORION) garde la simulation d'origine (arbitrage du 29/09/2026).
  */
 export function bindInit(c) {
   if (isDemo() || c.__api) return;
   c.__api = true;
-  const rv0 = c.renderVals.bind(c), set0 = c.setState.bind(c);
+  const rv0 = c.renderVals.bind(c), set0 = c.setState.bind(c), restart0 = c.restart.bind(c);
+  const forget = d => { if (d && d.importId) api('DELETE', '/projects/import/' + encodeURIComponent(d.importId)).catch(e => console.warn('[admin-api]', e)); };
+  c.restart = () => { forget(c.state.data); restart0(); };
   c.file = async f => {
     if (!f) return; if (!/\.xlsx$/i.test(f.name)) return set0({ upErr: 'Format attendu : .xlsx' });
     set0({ upErr: '', busyRead: true });
-    try { const d = await importXlsx(f); set0({ busyRead: false }); c.load(d); } catch (e) { set0({ upErr: 'Lecture impossible : ' + errText(e), busyRead: false }); }
+    try {
+      const prev = c.state.data, d = await validateXlsx(f);
+      forget(prev); // « Importer le fichier corrigé » : l'ancien fichier est oublié côté serveur
+      set0({ busyRead: false }); c.load(d);
+    } catch (e) { set0({ upErr: 'Lecture impossible : ' + errText(e), busyRead: false }); }
   };
   c.renderVals = () => {
     const v = rv0(), d = c.state.data;
-    if (!d || !d.importId) return v; // exemple de démonstration : validation simulée d'origine
+    if (!d || !d.importId) return v; // exemple de démonstration : création simulée d'origine
     v.doImport = async () => {
-      const pv = l => (d.project.find(p => p.l === l) || {}).v, cnt = k => ((d.sheets[k] || {}).rows || []).length, code = String(pv('Code projet') || '').trim();
+      const pv = l => (d.project.find(p => p.l === l) || {}).v, cnt = k => ((d.sheets[k] || {}).rows || []).length;
+      let target = 0, done = null;
       set0({ step: 'done', prog: 0 }); clearInterval(c._pv);
-      c._pv = setInterval(() => { const p = c.state.prog; if (p < 90) set0({ prog: Math.min(90, p + 4) }); }, 70);
+      c._pv = setInterval(() => {
+        const p = c.state.prog;
+        if (p < target) set0({ prog: Math.min(target, p + INIT_STEP) });
+        else if (done && p >= 100) { clearInterval(c._pv); const r = done; done = null; r(); }
+      }, INIT_TICK);
       try {
-        const r = await api('POST', '/project-imports/' + d.importId + '/commit');
-        clearInterval(c._pv); set0({ prog: 100 });
-        c.props.onImported && c.props.onImported({ code: r.code, name: pv('Nom du projet') || code, client: pv('Nom du client') || '', start: pv('Date de démarrage'), end: pv('Date de fin cible'), dir: pv('Directeur de programme') || '', counts: { lots: cnt('Lots'), phases: cnt('Phases'), chantiers: cnt('Chantiers'), jalons: cnt('Jalons'), personnes: cnt('Personnes') }, file: d.file, projectId: r.projectId });
+        await api('POST', '/projects/import/commit', { jobId: d.importId });
+        for (;;) {
+          const j = await api('GET', '/projects/import/' + encodeURIComponent(d.importId));
+          target = Math.max(target, j.percent || 0);
+          if (j.status === 'done') { target = 100; break; }
+          if (j.status === 'failed') throw new ApiError(500, { message: j.error || 'Création impossible : rien n’a été créé' });
+          await new Promise(r => setTimeout(r, INIT_POLL));
+        }
+        const code = String(pv('Code projet') || '').trim();
+        done = () => c.props.onImported && c.props.onImported({ code, name: pv('Nom du projet') || code, client: pv('Nom du client') || '', start: pv('Date de démarrage'), end: pv('Date de fin cible'), dir: pv('Directeur de programme') || '',
+          counts: { lots: cnt('Lots'), phases: cnt('Phases'), chantiers: cnt('Chantiers'), jalons: cnt('Jalons'), personnes: cnt('Personnes') }, file: d.file });
       } catch (e) {
         clearInterval(c._pv);
-        set0({ step: 'chk', chk: 5, data: { ...d, issues: [{ lvl: 'err', sheet: 'Projet', row: '', msg: errText(e) }, ...d.issues] } });
+        // Refus du serveur (409 code déjà pris, 422 fichier plus conforme, échec de la transaction) : retour au contrôle.
+        set0({ step: 'chk', prog: 0, t: 999, data: { ...d, issues: [{ lvl: 'err', sheet: 'Projet', row: '', msg: errText(e) }, ...d.issues] } });
       }
     };
     return v;

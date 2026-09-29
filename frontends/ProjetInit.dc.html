@@ -7,90 +7,202 @@
 </head>
 <body>
 <x-dc>
-<helmet><style>@keyframes grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}</style></helmet>
-<div style="display:flex;flex-direction:column;gap:18px" data-screen-label="Initialisation d’un projet">
-  <div style="display:flex;align-items:center;gap:0;background:#fff;border-radius:16px;box-shadow:0 0 0 1px #e1e9e7;padding:6px">
-    <sc-for list="{{ steps }}" as="s" hint-placeholder-count="4"><div style="{{ s.st }}"><span style="{{ s.dot }}">{{ s.g }}</span><span style="display:flex;flex-direction:column;min-width:0"><span style="font-weight:800;font-size:13px;white-space:nowrap">{{ s.l }}</span><span style="font-size:11.5px;color:#8a9aa6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ s.d }}</span></span></div></sc-for>
-  </div>
+<helmet><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700;1,800&amp;display=swap" rel="stylesheet"><style>
+html,body{margin:0;background:#f2f6f5;font-family:'Plus Jakarta Sans',sans-serif;color:#10233a;-webkit-font-smoothing:antialiased;font-size:13px;line-height:1.45}
+*{box-sizing:border-box}button{font-family:inherit;color:inherit}
+a{color:#1d8f86}a:hover{color:#146b64}
+@keyframes grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes pop{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.08);opacity:1}100%{transform:scale(1)}}
+</style></helmet>
+<div style="display:flex;flex-direction:column;gap:16px" data-screen-label="Initialisation d’un projet">
+
+  <nav aria-label="Étapes de l’initialisation" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;background:#fff;border-radius:16px;box-shadow:0 0 0 1px #e1e9e7,0 1px 2px rgba(16,35,58,.04);padding:14px 16px 16px">
+    <sc-for list="{{ steps }}" as="s" hint-placeholder-count="4">
+      <button onClick="{{ s.go }}" disabled="{{ s.dis }}" aria-current="{{ s.cur }}" title="{{ s.tip }}" style="{{ s.st }}" style-hover="{{ s.hov }}">
+        <span style="display:block;height:3px;border-radius:3px;background:#e4ecea;overflow:hidden"><span style="{{ s.fill }}"></span></span>
+        <span style="display:flex;align-items:center;gap:10px;min-width:0">
+          <span style="{{ s.dot }}">{{ s.g }}</span>
+          <span style="display:flex;flex-direction:column;min-width:0;text-align:left"><span style="{{ s.lSt }}">{{ s.l }}</span><span style="font-size:11.5px;color:#8a9aa6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ s.d }}</span></span>
+        </span>
+      </button>
+    </sc-for>
+  </nav>
 
   <sc-if value="{{ isUp }}" hint-placeholder-val="{{ true }}">
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;align-items:stretch">
+    <div style="display:grid;grid-template-columns:minmax(0,1.65fr) minmax(280px,1fr);gap:16px;align-items:stretch;animation:rise .35s ease both">
       <label onDragOver="{{ drag }}" onDragLeave="{{ undrag }}" onDrop="{{ drop }}" style="{{ zoneSt }}">
         <input type="file" accept=".xlsx" onChange="{{ pick }}" style="display:none">
-        <span style="width:64px;height:64px;border-radius:20px;background:#fff;box-shadow:0 0 0 1px #d7e2df,0 12px 26px -16px rgba(16,35,58,.4);display:grid;place-items:center"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#1d8f86" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z M14 3v5h5 M9 13l3 3 3-3 M12 16V10"></path></svg></span>
-        <span style="font-size:17px;font-weight:800;letter-spacing:-.01em">{{ zoneT }}</span>
-        <span style="font-size:12.5px;color:#5c7280">Fichier « Référentiel … initialisation.xlsx » rempli par le PMO · 13 onglets</span>
-        <span style="height:36px;padding:0 16px;border-radius:10px;background:#10233a;color:#fff;font-weight:700;display:inline-flex;align-items:center;margin-top:4px;white-space:nowrap">Choisir un fichier</span>
-        <sc-if value="{{ upErr }}" hint-placeholder-val="{{ false }}"><span role="alert" style="font-size:12.5px;color:#a8372c;font-weight:700">{{ upErrL }}</span></sc-if>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:40px 28px 28px;text-align:center">
+          <span style="{{ tileSt }}">
+            <sc-if value="{{ reading }}" hint-placeholder-val="{{ false }}"><span style="width:26px;height:26px;border-radius:50%;border:2.5px solid #d7e5e2;border-top-color:#1d8f86;animation:spin .7s linear infinite"></span></sc-if>
+            <sc-if value="{{ notReading }}" hint-placeholder-val="{{ true }}"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#1d8f86" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z M14 3v5h5 M9 13l3 3 3-3 M12 16V10"></path></svg></sc-if>
+          </span>
+          <span style="font-size:20px;font-weight:800;letter-spacing:-.02em;margin-top:4px">{{ zoneT }}</span>
+          <span style="font-size:12.5px;color:#5c7280;max-width:440px;text-wrap:pretty">Fichier « Référentiel … initialisation.xlsx » rempli par le PMO · 13 onglets</span>
+          <span style="height:40px;padding:0 20px;border-radius:11px;background:#10233a;color:#fff;font-weight:700;font-size:13px;display:inline-flex;align-items:center;gap:9px;margin-top:6px;white-space:nowrap;box-shadow:0 8px 18px -10px rgba(16,35,58,.7)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4 M7 9l5-5 5 5 M5 20h14"></path></svg>Choisir un fichier</span>
+          <sc-if value="{{ upErr }}" hint-placeholder-val="{{ false }}"><span role="alert" style="display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px;border-radius:9px;background:#fdf1ef;font-size:12.5px;color:#a2352a;font-weight:700">{{ upErrL }}</span></sc-if>
+        </div>
+        <div style="border-top:1px solid #e4ecea;background:rgba(255,255,255,.7);padding:12px 16px 14px;display:flex;flex-direction:column;gap:9px">
+          <span style="font-size:10.5px;font-weight:800;letter-spacing:.12em;color:#8a9aa6">ONGLETS ATTENDUS</span>
+          <div style="display:flex;flex-wrap:wrap;gap:5px">
+            <sc-for list="{{ sheets0 }}" as="c" hint-placeholder-count="13"><span style="height:24px;padding:0 8px;border-radius:6px;background:#fff;box-shadow:0 0 0 1px #e1e9e7;display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:#43586a;white-space:nowrap"><span style="color:#a3b1b9;font-variant-numeric:tabular-nums;font-weight:700">{{ c.n }}</span>{{ c.l }}</span></sc-for>
+          </div>
+        </div>
       </label>
-      <div style="display:flex;flex-direction:column;gap:12px">
-        <div style="background:#fff;border-radius:16px;box-shadow:0 0 0 1px #e1e9e7;padding:18px;display:flex;flex-direction:column;gap:10px"><span style="font-weight:800">Pas encore de fichier ?</span><span style="font-size:12.5px;color:#5c7280;line-height:1.5">Téléchargez le modèle, faites-le remplir par le PMO pendant la préparation du projet, puis importez-le ici.</span><a href="./Referentiel RISE - initialisation.xlsx" download style="align-self:flex-start;height:34px;padding:0 14px;border-radius:10px;border:1px solid #d3dedb;background:#fff;font-weight:700;color:#10233a;text-decoration:none;display:inline-flex;align-items:center;gap:8px;white-space:nowrap">↓ Modèle Excel</a></div>
-        <!-- API : carte « Charger l’exemple » affichée en mode démonstration seulement -->
-        <sc-if value="{{ demoOn }}" hint-placeholder-val="{{ true }}"><div style="background:#fff;border-radius:16px;box-shadow:0 0 0 1px #e1e9e7;padding:18px;display:flex;flex-direction:column;gap:10px"><span style="font-weight:800">Découvrir avec un exemple</span><span style="font-size:12.5px;color:#5c7280;line-height:1.5">Un projet fictif complet (ORION) pour parcourir le contrôle et la prévisualisation.</span><button onClick="{{ demo }}" style="align-self:flex-start;height:34px;padding:0 14px;border-radius:10px;border:0;background:#e6f4f2;color:#146b64;font:inherit;font-weight:700;cursor:pointer">Charger l’exemple</button></div></sc-if>
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div style="flex:1;background:#fff;border-radius:18px;box-shadow:0 0 0 1px #e1e9e7;padding:22px;display:flex;flex-direction:column;gap:10px">
+          <span style="width:34px;height:34px;border-radius:10px;background:#eef3f2;display:grid;place-items:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#43586a" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z M4 9h16 M4 14h16 M9 4v16"></path></svg></span>
+          <span style="font-weight:800;font-size:14px;margin-top:2px">Pas encore de fichier ?</span>
+          <span style="font-size:12.5px;color:#5c7280;line-height:1.55;text-wrap:pretty">Téléchargez le modèle, faites-le remplir par le PMO pendant la préparation du projet, puis importez-le ici.</span>
+          <a href="./Referentiel RISE - initialisation.xlsx" download="download" style="margin-top:auto;align-self:flex-start;height:36px;padding:0 14px;border-radius:10px;border:1px solid #d3dedb;background:#fff;font-weight:700;font-size:12.5px;color:#10233a;text-decoration:none;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:border-color .15s,background .15s" style-hover="border-color:#10233a;background:#f7faf9;color:#10233a"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12 M7 11l5 5 5-5 M5 20h14"></path></svg>Modèle Excel</a>
+        </div>
+        <div style="flex:1;position:relative;overflow:hidden;background:#10233a;border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:10px;color:#fff">
+          <span style="position:absolute;right:-60px;top:-60px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(61,214,198,.22),transparent 70%)"></span>
+          <span style="position:relative;display:inline-flex;align-self:flex-start;align-items:center;height:22px;padding:0 9px;border-radius:6px;background:rgba(255,255,255,.1);font-size:10.5px;font-weight:800;letter-spacing:.12em;color:#9fe7de">ORION</span>
+          <span style="position:relative;font-weight:800;font-size:14px;margin-top:2px">Découvrir avec un exemple</span>
+          <span style="position:relative;font-size:12.5px;color:#b9cad5;line-height:1.55;text-wrap:pretty">Un projet fictif complet (ORION) pour parcourir le contrôle et la prévisualisation.</span>
+          <button onClick="{{ demo }}" style="position:relative;margin-top:auto;align-self:flex-start;height:36px;padding:0 14px;border-radius:10px;border:0;background:#fff;color:#10233a;font-size:12.5px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:transform .15s,background .15s" style-hover="background:#e6f7f5;transform:translateX(2px)">Charger l’exemple<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14 M13 6l6 6-6 6"></path></svg></button>
+        </div>
       </div>
     </div>
   </sc-if>
 
   <sc-if value="{{ isChk }}" hint-placeholder-val="{{ false }}">
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;align-items:start">
-      <div style="background:#fff;border-radius:18px;box-shadow:0 0 0 1px #e1e9e7;padding:8px 22px">
-        <sc-for list="{{ checks }}" as="c" hint-placeholder-count="5">
-          <div style="{{ c.row }}"><span style="{{ c.ic }}">{{ c.g }}</span><div style="flex:1;min-width:0"><div style="font-weight:700">{{ c.l }}</div><div style="font-size:12px;color:#5c7280">{{ c.d }}</div></div><span style="{{ c.nSt }}">{{ c.n }}</span></div>
-        </sc-for>
+    <div style="display:grid;grid-template-columns:minmax(0,1.65fr) minmax(280px,1fr);gap:16px;align-items:start;animation:rise .35s ease both">
+      <div style="background:#fff;border-radius:18px;box-shadow:0 0 0 1px #e1e9e7;overflow:hidden">
+        <div style="padding:18px 22px 16px;display:flex;flex-direction:column;gap:12px;border-bottom:1px solid #eef3f2">
+          <div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:15px;font-weight:800;letter-spacing:-.01em">Contrôle de conformité</span><span style="flex:1"></span><span style="font-size:12px;font-weight:700;color:#5c7280;font-variant-numeric:tabular-nums">{{ chkL }}</span></div>
+          <span style="display:block;height:4px;border-radius:4px;background:#eef3f2;overflow:hidden"><span style="{{ chkBar }}"></span></span>
+        </div>
+        <div style="padding:16px 22px 6px">
+          <sc-for list="{{ checks }}" as="c" hint-placeholder-count="5">
+            <div style="{{ c.row }}">
+              <span style="display:flex;flex-direction:column;align-items:center">
+                <span style="{{ c.ic }}"><sc-if value="{{ c.isOk }}" hint-placeholder-val="{{ false }}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="animation:pop .3s ease both"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></sc-if>{{ c.g }}</span>
+                <span style="{{ c.line }}"></span>
+              </span>
+              <div style="min-width:0;padding:4px 0 20px"><div style="{{ c.lSt }}">{{ c.l }}</div><div style="font-size:12px;color:#5c7280;margin-top:2px">{{ c.d }}</div></div>
+              <sc-if value="{{ c.hasN }}" hint-placeholder-val="{{ false }}"><span style="{{ c.nSt }}">{{ c.n }}</span></sc-if>
+            </div>
+          </sc-for>
+        </div>
         <sc-if value="{{ hasIssues }}" hint-placeholder-val="{{ false }}">
-          <div style="padding:6px 0 14px;display:flex;flex-direction:column;gap:6px">
+          <div style="border-top:1px solid #eef3f2;padding:14px 22px 18px;display:flex;flex-direction:column;gap:8px;animation:rise .3s ease both">
+            <span style="font-size:10.5px;font-weight:800;letter-spacing:.12em;color:#8a9aa6">{{ issuesL }}</span>
             <sc-for list="{{ issues }}" as="i" hint-placeholder-count="2"><div style="{{ i.st }}"><span style="{{ i.tag }}">{{ i.tagL }}</span><span style="display:flex;flex-direction:column;gap:2px;min-width:0;flex:1"><span style="font-weight:700">{{ i.where }}</span><span style="color:#43586a">{{ i.msg }}</span></span></div></sc-for>
           </div>
         </sc-if>
       </div>
-      <div style="display:flex;flex-direction:column;gap:12px">
-        <div style="background:#fff;border-radius:18px;box-shadow:0 0 0 1px #e1e9e7;padding:18px;display:flex;flex-direction:column;gap:6px"><span style="font-size:11px;font-weight:800;letter-spacing:.1em;color:#8a9aa6">FICHIER</span><span style="font-weight:800;word-break:break-all">{{ fileN }}</span><span style="font-size:12px;color:#5c7280">{{ fileD }}</span></div>
-        <div style="{{ verdict.box }}"><span style="{{ verdict.t }}">{{ verdict.l }}</span><span style="font-size:12.5px;line-height:1.5;color:#43586a">{{ verdict.d }}</span>
-          <div style="display:flex;gap:8px;flex-wrap:wrap"><button onClick="{{ restart }}" style="height:36px;padding:0 14px;border-radius:10px;border:1px solid #d3dedb;background:#fff;font:inherit;font-weight:700;cursor:pointer;white-space:nowrap">Importer un autre fichier</button><sc-if value="{{ verdict.ok }}" hint-placeholder-val="{{ false }}"><button onClick="{{ toPrev }}" style="height:36px;padding:0 16px;border-radius:10px;border:0;background:#10233a;color:#fff;font:inherit;font-weight:700;cursor:pointer;white-space:nowrap">Prévisualiser →</button></sc-if></div>
+      <div style="display:flex;flex-direction:column;gap:16px;position:sticky;top:12px">
+        <div style="background:#fff;border-radius:18px;box-shadow:0 0 0 1px #e1e9e7;padding:20px;display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <span style="width:38px;height:38px;border-radius:11px;flex:none;background:#e6f4f2;display:grid;place-items:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1d8f86" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z M14 3v5h5 M9 13h6 M9 17h6"></path></svg></span>
+            <div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-size:10.5px;font-weight:800;letter-spacing:.12em;color:#8a9aa6">FICHIER</span><span style="font-weight:800;word-break:break-word;line-height:1.35">{{ fileN }}</span><span style="font-size:12px;color:#5c7280">{{ fileD }}</span></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:baseline"><span style="font-size:10.5px;font-weight:800;letter-spacing:.12em;color:#8a9aa6">ONGLETS</span><span style="flex:1"></span><span style="font-size:11.5px;font-weight:700;color:#5c7280;font-variant-numeric:tabular-nums;white-space:nowrap">{{ sheetsL }}</span></div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:5px">
+              <sc-for list="{{ sheets }}" as="c" hint-placeholder-count="13"><span title="{{ c.tip }}" style="{{ c.st }}"><span style="{{ c.dot }}"></span><span style="overflow:hidden;text-overflow:ellipsis">{{ c.l }}</span></span></sc-for>
+            </div>
+          </div>
+        </div>
+        <div style="{{ verdict.box }}">
+          <span style="{{ verdict.t }}">{{ verdict.l }}</span>
+          <span style="font-size:12.5px;line-height:1.55;color:#43586a;text-wrap:pretty">{{ verdict.d }}</span>
+          <sc-if value="{{ verdict.ko }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:2px;animation:rise .3s ease both">
+              <label style="height:38px;padding:0 16px;border-radius:10px;background:#10233a;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:8px;box-shadow:0 8px 18px -10px rgba(16,35,58,.7);transition:background .15s" style-hover="background:#17405a"><input type="file" accept=".xlsx" onChange="{{ pick }}" style="display:none"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4 M7 9l5-5 5 5 M5 20h14"></path></svg>Importer le fichier corrigé</label>
+            </div>
+            <sc-if value="{{ upErr }}" hint-placeholder-val="{{ false }}"><span role="alert" style="font-size:12px;color:#a2352a;font-weight:700">{{ upErrL }}</span></sc-if>
+          </sc-if>
+          <div style="{{ verdict.okRow }}">
+            <button onClick="{{ restart }}" style="height:38px;padding:0 14px;border-radius:10px;border:1px solid #d3dedb;background:#fff;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap;transition:border-color .15s" style-hover="border-color:#10233a">Importer un autre fichier</button>
+            <sc-if value="{{ verdict.ok }}" hint-placeholder-val="{{ false }}"><button onClick="{{ toPrev }}" style="height:38px;padding:0 16px;border-radius:10px;border:0;background:#10233a;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:8px;animation:rise .3s ease both;box-shadow:0 8px 18px -10px rgba(16,35,58,.7)" style-hover="background:#17405a">Prévisualiser<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14 M13 6l6 6-6 6"></path></svg></button></sc-if>
+          </div>
+          <div style="margin-top:6px;padding-top:12px;border-top:1px solid rgba(16,35,58,.08);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <button onClick="{{ restart }}" style="height:32px;padding:0 10px 0 8px;margin-left:-8px;border-radius:8px;border:0;background:transparent;font-size:12.5px;font-weight:700;color:#43586a;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:7px;transition:background .15s,color .15s" style-hover="background:rgba(16,35,58,.06);color:#10233a"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 12a8.5 8.5 0 1 0 2.5-6 M3 4v4h4"></path></svg>Réinitialiser la session</button>
+            <span style="font-size:11.5px;color:#8a9aa6">Retour à l’étape 1 · le fichier chargé est oublié</span>
+          </div>
         </div>
       </div>
     </div>
   </sc-if>
 
   <sc-if value="{{ isPrev }}" hint-placeholder-val="{{ false }}">
-    <div style="display:flex;flex-direction:column;gap:14px">
-      <div style="background:linear-gradient(120deg,#10233a,#17405a);border-radius:20px;padding:22px 26px;color:#fff;display:flex;align-items:center;gap:22px;flex-wrap:wrap">
-        <span style="width:54px;height:54px;border-radius:16px;background:rgba(255,255,255,.12);display:grid;place-items:center;font-weight:800;font-size:15px;letter-spacing:.04em;flex:none">{{ pj.code }}</span>
-        <div style="flex:1;min-width:220px"><div style="font-size:20px;font-weight:800;letter-spacing:-.02em">{{ pj.name }}</div><div style="font-size:12.5px;color:#b9cad5;margin-top:3px">{{ pj.sub }}</div></div>
-        <div style="display:flex;gap:22px"><sc-for list="{{ pj.kpis }}" as="k" hint-placeholder-count="4"><div style="text-align:right"><div style="font-size:22px;font-weight:800">{{ k.v }}</div><div style="font-size:11px;color:#9fb3c1;font-weight:700;white-space:nowrap">{{ k.l }}</div></div></sc-for></div>
+    <div style="display:flex;flex-direction:column;gap:16px;animation:rise .35s ease both">
+      <div style="position:relative;overflow:hidden;background:#10233a;border-radius:20px;padding:24px 28px;color:#fff;display:flex;align-items:center;gap:22px;flex-wrap:wrap">
+        <span style="position:absolute;inset:0;background:radial-gradient(600px 200px at 85% -20%,rgba(61,214,198,.18),transparent 70%)"></span>
+        <span style="position:relative;width:58px;height:58px;border-radius:16px;background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 1px rgba(255,255,255,.14);display:grid;place-items:center;font-weight:800;font-size:13px;letter-spacing:.06em;flex:none;color:#9fe7de">{{ pj.code }}</span>
+        <div style="position:relative;flex:1;min-width:220px"><div style="font-size:21px;font-weight:800;letter-spacing:-.02em">{{ pj.name }}</div><div style="font-size:12.5px;color:#b9cad5;margin-top:4px">{{ pj.sub }}</div></div>
+        <div style="position:relative;display:flex">
+          <sc-for list="{{ pj.kpis }}" as="k" hint-placeholder-count="4"><div style="padding:0 18px;border-left:1px solid rgba(255,255,255,.12);display:flex;flex-direction:column;align-items:flex-end"><span style="font-size:24px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.02em;line-height:1.1">{{ k.v }}</span><span style="font-size:11px;color:#9fb3c1;font-weight:700;white-space:nowrap">{{ k.l }}</span></div></sc-for>
+        </div>
       </div>
-      <div style="display:grid;grid-template-columns:220px minmax(0,1fr);gap:14px;align-items:start">
+      <div style="display:grid;grid-template-columns:220px minmax(0,1fr);gap:16px;align-items:start">
         <div style="background:#fff;border-radius:16px;box-shadow:0 0 0 1px #e1e9e7;padding:8px;display:flex;flex-direction:column;gap:2px;position:sticky;top:12px">
-          <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="10"><button onClick="{{ t.pick }}" style="{{ t.st }}"><span style="flex:1;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.l }}</span><span style="{{ t.nSt }}">{{ t.n }}</span></button></sc-for>
+          <div style="padding:8px 10px 8px;display:flex;align-items:baseline"><span style="font-size:10.5px;font-weight:800;letter-spacing:.12em;color:#8a9aa6">RÉFÉRENTIEL</span><span style="flex:1"></span><span style="font-size:11px;font-weight:700;color:#8a9aa6;font-variant-numeric:tabular-nums;white-space:nowrap">{{ visL }}</span></div>
+          <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="10"><button onClick="{{ t.pick }}" style="{{ t.st }}" style-hover="{{ t.hov }}"><span style="{{ t.mark }}"></span><span style="flex:1;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.l }}</span><span style="{{ t.nSt }}">{{ t.n }}</span></button></sc-for>
         </div>
         <div style="background:#fff;border-radius:16px;box-shadow:0 0 0 1px #e1e9e7;overflow:hidden">
-          <div style="padding:16px 20px;border-bottom:1px solid #eef3f2;display:flex;align-items:baseline;gap:10px"><span style="font-size:16px;font-weight:800;white-space:nowrap">{{ view.t }}</span><span style="font-size:12px;color:#8a9aa6">{{ view.d }}</span></div>
+          <div style="padding:16px 20px;border-bottom:1px solid #eef3f2;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap"><span style="font-size:16px;font-weight:800;letter-spacing:-.01em;white-space:nowrap">{{ view.t }}</span><span style="font-size:12px;color:#8a9aa6">{{ view.d }}</span></div>
           <sc-if value="{{ view.isPlan }}" hint-placeholder-val="{{ false }}">
-            <div style="padding:16px 20px 20px;display:flex;flex-direction:column;gap:8px">
+            <div style="padding:16px 20px 20px;display:flex;flex-direction:column;gap:6px">
               <div style="position:relative;height:18px;margin-left:190px"><sc-for list="{{ view.years }}" as="y" hint-placeholder-count="3"><span style="{{ y.st }}">{{ y.l }}</span></sc-for></div>
               <sc-for list="{{ view.bars }}" as="b" hint-placeholder-count="6"><div style="display:grid;grid-template-columns:180px minmax(0,1fr);gap:10px;align-items:center;height:30px"><span style="{{ b.lSt }}">{{ b.l }}</span><div style="position:relative;height:100%;border-radius:6px;background:#f5f8f7"><div style="{{ b.st }}" title="{{ b.t }}"></div></div></div></sc-for>
             </div>
           </sc-if>
           <sc-if value="{{ view.isForm }}" hint-placeholder-val="{{ false }}">
-            <div style="padding:6px 20px 16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:0 24px"><sc-for list="{{ view.fields }}" as="f" hint-placeholder-count="8"><div style="display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid #f1f5f4"><span style="color:#5c7280;flex:none;white-space:nowrap">{{ f.l }}</span><span style="font-weight:700;text-align:right;min-width:0">{{ f.v }}</span></div></sc-for></div>
+            <div style="padding:6px 20px 16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:0 28px"><sc-for list="{{ view.fields }}" as="f" hint-placeholder-count="8"><div style="display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #f1f5f4"><span style="color:#5c7280;flex:none;white-space:nowrap">{{ f.l }}</span><span style="font-weight:700;text-align:right;min-width:0;text-wrap:pretty">{{ f.v }}</span></div></sc-for></div>
           </sc-if>
           <sc-if value="{{ view.isGrid }}" hint-placeholder-val="{{ true }}">
             <div style="overflow-x:auto"><div style="{{ view.minW }}">
               <div style="{{ view.gridHead }}"><sc-for list="{{ view.heads }}" as="h" hint-placeholder-count="5"><span style="{{ h.st }}">{{ h.l }}</span></sc-for></div>
-              <sc-for list="{{ view.rows }}" as="r" hint-placeholder-count="6"><div style="{{ view.gridRow }}"><sc-for list="{{ r.c }}" as="c" hint-placeholder-count="5"><span style="{{ c.st }}">{{ c.v }}</span></sc-for></div></sc-for>
+              <sc-for list="{{ view.rows }}" as="r" hint-placeholder-count="6"><div style="{{ view.gridRow }}" style-hover="background:#fafcfb"><sc-for list="{{ r.c }}" as="c" hint-placeholder-count="5"><span style="{{ c.st }}">{{ c.v }}</span></sc-for></div></sc-for>
               <sc-if value="{{ view.more }}" hint-placeholder-val="{{ false }}"><div style="padding:10px 20px;font-size:12px;color:#8a9aa6">{{ view.moreL }}</div></sc-if>
             </div></div>
           </sc-if>
         </div>
       </div>
-      <div style="display:flex;align-items:center;gap:10px;padding:14px 18px;border-radius:16px;background:#fff;box-shadow:0 0 0 1px #e1e9e7"><span style="flex:1;font-size:12.5px;color:#43586a">{{ confirmL }}</span><button onClick="{{ back }}" style="height:38px;padding:0 14px;border-radius:10px;border:1px solid #d3dedb;background:#fff;font:inherit;font-weight:700;cursor:pointer;white-space:nowrap">← Contrôle</button><button onClick="{{ doImport }}" style="height:38px;padding:0 18px;border-radius:10px;border:0;background:linear-gradient(90deg,#f7a41c,#f0752b);font:inherit;font-weight:800;cursor:pointer;white-space:nowrap">Valider l’importation</button></div>
+      <div style="position:sticky;bottom:12px;z-index:2;display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:14px 16px 14px 20px;border-radius:16px;background:rgba(255,255,255,.94);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 0 0 1px #e1e9e7,0 18px 40px -24px rgba(16,35,58,.45)">
+        <span style="width:8px;height:8px;border-radius:50%;background:#f0a13a;box-shadow:0 0 0 4px rgba(240,161,58,.16);flex:none"></span>
+        <span style="flex:1;min-width:260px;font-size:12.5px;color:#43586a;line-height:1.5;text-wrap:pretty">{{ confirmL }}</span>
+        <button onClick="{{ back }}" style="height:40px;padding:0 14px;border-radius:10px;border:1px solid #d3dedb;background:#fff;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:7px;transition:border-color .15s" style-hover="border-color:#10233a"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5 M11 6l-6 6 6 6"></path></svg>Contrôle</button>
+        <button onClick="{{ doImport }}" style="height:40px;padding:0 18px;border-radius:10px;border:0;background:linear-gradient(90deg,#f7a41c,#f0752b);color:#10233a;font-size:13px;font-weight:800;cursor:pointer;white-space:nowrap;box-shadow:0 10px 22px -12px rgba(240,117,43,.9);transition:filter .15s,transform .15s" style-hover="filter:brightness(1.05);transform:translateY(-1px)">Valider l’importation</button>
+      </div>
     </div>
   </sc-if>
 
   <sc-if value="{{ isDone }}" hint-placeholder-val="{{ false }}">
-    <div style="background:#fff;border-radius:20px;box-shadow:0 0 0 1px #e1e9e7;padding:44px 30px;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center">
-      <sc-if value="{{ busy }}" hint-placeholder-val="{{ false }}"><span style="width:280px;height:6px;border-radius:3px;background:#eef3f2;overflow:hidden"><span style="{{ barSt }}"></span></span><span style="font-weight:700;color:#43586a">{{ busyL }}</span></sc-if>
-      <sc-if value="{{ ok }}" hint-placeholder-val="{{ false }}"><span style="width:64px;height:64px;border-radius:50%;background:#e6f4f2;display:grid;place-items:center;color:#1d8f86;font-size:28px;font-weight:800">✓</span><span style="font-size:20px;font-weight:800;letter-spacing:-.02em">{{ doneT }}</span><span style="font-size:13px;color:#5c7280;max-width:520px;line-height:1.5">{{ doneD }}</span><div style="display:flex;gap:8px;margin-top:6px"><button onClick="{{ restart }}" style="height:38px;padding:0 14px;border-radius:10px;border:1px solid #d3dedb;background:#fff;font:inherit;font-weight:700;cursor:pointer">Importer un autre projet</button><button onClick="{{ openLib }}" style="height:38px;padding:0 16px;border-radius:10px;border:0;background:#10233a;color:#fff;font:inherit;font-weight:700;cursor:pointer">Ouvrir la bibliothèque →</button></div></sc-if>
+    <div style="background:#fff;border-radius:20px;box-shadow:0 0 0 1px #e1e9e7;padding:34px 34px 30px;display:flex;flex-direction:column;gap:30px;animation:rise .35s ease both">
+      <sc-if value="{{ busy }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;align-items:flex-end;gap:22px;flex-wrap:wrap">
+          <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:10.5px;font-weight:800;letter-spacing:.12em;color:#8a9aa6">IMPORTATION EN COURS</span><span style="font-size:48px;font-weight:800;letter-spacing:-.04em;line-height:1;font-variant-numeric:tabular-nums">{{ pct }}</span></div>
+          <div style="display:flex;flex-direction:column;gap:3px;padding-bottom:5px;min-width:0"><span style="font-weight:800;font-size:14px">{{ busyL }}</span><span style="font-size:12.5px;color:#5c7280">{{ busyD }}</span></div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ ok }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap">
+          <span style="width:56px;height:56px;border-radius:50%;flex:none;background:#1d8f86;display:grid;place-items:center;box-shadow:0 0 0 8px #e6f4f2;animation:pop .45s ease both"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span>
+          <div style="flex:1;min-width:280px;display:flex;flex-direction:column;gap:8px">
+            <span style="font-size:21px;font-weight:800;letter-spacing:-.02em">{{ doneT }}</span>
+            <span style="font-size:13px;color:#5c7280;max-width:620px;line-height:1.55;text-wrap:pretty">{{ doneD }}</span>
+            <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+              <button onClick="{{ restart }}" style="height:40px;padding:0 14px;border-radius:10px;border:1px solid #d3dedb;background:#fff;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap;transition:border-color .15s" style-hover="border-color:#10233a">Importer un autre projet</button>
+              <button onClick="{{ openLib }}" style="height:40px;padding:0 16px;border-radius:10px;border:0;background:#10233a;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:8px;box-shadow:0 8px 18px -10px rgba(16,35,58,.7)" style-hover="background:#17405a">Ouvrir la bibliothèque<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14 M13 6l6 6-6 6"></path></svg></button>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+      <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px">
+        <sc-for list="{{ phases }}" as="p" hint-placeholder-count="5">
+          <div style="display:flex;flex-direction:column;gap:10px;min-width:0">
+            <span style="display:block;height:3px;border-radius:3px;background:#e4ecea;overflow:hidden"><span style="{{ p.fill }}"></span></span>
+            <span style="display:flex;align-items:center;gap:8px;min-width:0"><span style="{{ p.dot }}"></span><span style="{{ p.lSt }}">{{ p.l }}</span></span>
+          </div>
+        </sc-for>
+      </div>
     </div>
   </sc-if>
 </div>
@@ -131,52 +243,85 @@ async function parseXlsx(file) {
     out.sheets[key] = { heads: cols.filter(c => c.t !== 'x' && c.h).map(c => [c.h, c.t]), rows: rows.map(rw => rw.filter((v, j) => cols[j].t !== 'x' && cols[j].h)) }; });
   return out;
 }
+// Simulation du contrôle : 13 ticks de lecture des onglets, puis 6 ticks par contrôle suivant.
+const TK = 85, T_SHEETS = 13, T_CHECK = 6, T_END = T_SHEETS + 4 * T_CHECK;
+const PHASES = [['Création du projet', 'Fiche, client, dates et fuseau'], ['Lots et phases', 'Découpage et planning'], ['Chantiers et jalons', 'Périmètres et échéances'], ['Personnes et habilitations', 'Équipes, rôles et affectations'], ['Instances de pilotage', 'Comités et membres']];
 class Component extends DCLogic {
-  state = { step: 'up', data: null, drag: false, upErr: '', chk: 0, tab: 'Projet', prog: 0 };
-  // API : lecture du fichier et création du projet par /api/admin/project-imports (admin-api.js) ; rien en mode démonstration.
-  componentDidMount() { import('./admin-api.js').then(m => m.bindInit(this)).catch(e => console.warn('admin-api', e)); }
+  state = { step: 'up', data: null, drag: false, upErr: '', t: 0, tab: 'Projet', vis: { Projet: 1 }, prog: 0 };
+  // Console : contrôle et création par le serveur (admin-api.js, routes /admin/projects/import/…) ; sans serveur, simulation d'origine.
+  componentDidMount() { import('./admin-api.js').then(m => m.bindInit(this)).catch(() => {}); }
   componentWillUnmount() { clearInterval(this._iv); clearInterval(this._pv); }
-  load(d) { clearInterval(this._iv); this.setState({ data: d, step: 'chk', chk: 0, tab: 'Projet', upErr: '' }); this._iv = setInterval(() => { const n = this.state.chk + 1; this.setState({ chk: n }); if (n >= 5) clearInterval(this._iv); }, 380); }
+  load(d) { clearInterval(this._iv); this.setState({ data: d, step: 'chk', t: 0, tab: 'Projet', vis: { Projet: 1 }, upErr: '', busyRead: false }); this._iv = setInterval(() => { const n = this.state.t + 1; this.setState({ t: n }); if (n >= T_END) clearInterval(this._iv); }, TK); }
   async file(f) { if (!f) return; if (!/\.xlsx$/i.test(f.name)) return this.setState({ upErr: 'Format attendu : .xlsx' }); this.setState({ upErr: '', busyRead: true }); try { this.load(await parseXlsx(f)); } catch (e) { this.setState({ upErr: 'Lecture impossible : ' + (e.message || 'fichier illisible'), busyRead: false }); } }
+  restart() { clearInterval(this._iv); clearInterval(this._pv); this.setState({ step: 'up', data: null, busyRead: false, t: 0, prog: 0 }); }
   renderVals() {
     const S = this.state, d = S.data, fmt = v => v instanceof Date ? v.toLocaleDateString('fr-FR') : v === '' || v == null ? '—' : String(v);
-    const ORDER = ['up', 'chk', 'prev', 'done'], si = ORDER.indexOf(S.step);
-    const steps = [['Importer', 'le fichier Excel'], ['Contrôler', 'la conformité'], ['Prévisualiser', 'le référentiel'], ['Valider', 'et publier']].map(([l, dd], i) => ({ l, d: dd, g: i < si ? '✓' : String(i + 1),
-      st: 'flex:1;min-width:0;display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;transition:background .2s;' + (i === si ? 'background:#f1f6f5' : ''),
-      dot: 'width:30px;height:30px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:800;font-size:12.5px;' + (i < si ? 'background:#1d8f86;color:#fff' : i === si ? 'background:#10233a;color:#fff' : 'background:#eef3f2;color:#8a9aa6') }));
+    const ORDER = ['up', 'chk', 'prev', 'done'], si = ORDER.indexOf(S.step), okDone = S.step === 'done' && S.prog >= 100;
+    const chk = S.t < T_SHEETS ? 0 : Math.min(5, 1 + Math.floor((S.t - T_SHEETS) / T_CHECK));
+    const TABS = ['Projet', 'Planning', ...SH.map(s => s[1]).filter(k => k !== 'Projet')], nVis = Object.keys(S.vis).length;
+    const curPct = [S.busyRead ? 30 : 0, S.t / T_END * 100, nVis / TABS.length * 100, S.prog][si];
+    const steps = [['Importer', 'le fichier Excel'], ['Contrôler', 'la conformité'], ['Prévisualiser', 'le référentiel'], ['Valider', 'et publier']].map(([l, dd], i) => {
+      const done = i < si || okDone, cur = i === si && !okDone, can = i < si && S.step !== 'done';
+      return { l, d: dd, g: done ? '✓' : String(i + 1), cur: cur ? 'step' : undefined, dis: !can, tip: can ? 'Revenir à « ' + l + ' »' : '',
+        go: () => { if (!can) return; if (i === 0) this.restart(); else if (i === 1) this.setState({ step: 'chk' }); else this.setState({ step: 'prev' }); },
+        st: 'display:flex;flex-direction:column;gap:12px;min-width:0;padding:0;border:0;background:transparent;text-align:left;border-radius:10px;transition:opacity .2s;cursor:' + (can ? 'pointer' : 'default'),
+        hov: can ? 'opacity:.72' : '',
+        fill: 'display:block;height:100%;border-radius:3px;transition:width .3s ease,background .3s;width:' + (done ? 100 : cur ? Math.max(6, curPct) : 0) + '%;background:' + (done ? '#1d8f86' : '#10233a'),
+        lSt: 'font-weight:800;font-size:13px;white-space:nowrap;color:' + (done || cur ? '#10233a' : '#8a9aa6'),
+        dot: 'width:24px;height:24px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:800;font-size:11px;transition:background .25s,box-shadow .25s;' + (done ? 'background:#e6f4f2;color:#146b64' : cur ? 'background:#10233a;color:#fff;box-shadow:0 0 0 4px rgba(16,35,58,.08)' : 'background:#fff;color:#8a9aa6;box-shadow:inset 0 0 0 1.5px #dbe4e2') }; });
     const v = { steps, isUp: S.step === 'up', isChk: S.step === 'chk', isPrev: S.step === 'prev', isDone: S.step === 'done',
+      reading: !!S.busyRead, notReading: !S.busyRead,
+      sheets0: SH.map(([n, l]) => ({ n: n.slice(0, 2), l })),
       zoneT: S.busyRead ? 'Lecture du fichier…' : S.drag ? 'Déposez le fichier ici' : 'Glissez le fichier Excel ici',
-      zoneSt: 'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:280px;border-radius:20px;cursor:pointer;text-align:center;padding:24px;transition:background .2s,box-shadow .2s;' + (S.drag ? 'background:#e6f4f2;box-shadow:inset 0 0 0 2px #1d8f86' : 'background:#fbfdfc;box-shadow:inset 0 0 0 2px #cfdcd9;background-image:repeating-linear-gradient(0deg,transparent 0 0)'),
+      zoneSt: 'display:flex;flex-direction:column;min-height:340px;border-radius:20px;cursor:pointer;overflow:hidden;transition:background-color .2s,border-color .2s;background-image:radial-gradient(' + (S.drag ? '#b8dcd6' : '#dde7e4') + ' 1px,transparent 1.2px);background-size:18px 18px;' + (S.drag ? 'background-color:#eaf6f4;border:1.5px solid #1d8f86' : 'background-color:#fbfdfc;border:1.5px dashed #c7d6d2'),
+      tileSt: 'width:68px;height:68px;border-radius:20px;background:#fff;display:grid;place-items:center;transition:transform .25s cubic-bezier(.2,.7,.2,1),box-shadow .25s;' + (S.drag ? 'transform:translateY(-4px) scale(1.05);box-shadow:0 0 0 1px #1d8f86,0 18px 30px -16px rgba(29,143,134,.6)' : 'box-shadow:0 0 0 1px #d7e2df,0 14px 28px -18px rgba(16,35,58,.45)'),
       drag: e => { e.preventDefault(); if (!S.drag) this.setState({ drag: true }); }, undrag: () => this.setState({ drag: false }), drop: e => { e.preventDefault(); this.setState({ drag: false }); this.file(e.dataTransfer.files[0]); },
-      pick: e => this.file(e.target.files[0]), demo: () => this.load(demoData()),
-      // API : « Charger l’exemple » n’est proposé qu’en mode démonstration (?demo=1 ou window.RISE_DEMO = true).
-      demoOn: typeof window !== 'undefined' && (window.RISE_DEMO === true || /[?&]demo=1\b/.test(window.location.search)), upErr: !!S.upErr, upErrL: S.upErr, restart: () => this.setState({ step: 'up', data: null, busyRead: false }),
-      checks: [], issues: [], hasIssues: false, fileN: '', fileD: '', verdict: {}, tabs: [], view: { heads: [], rows: [], fields: [], bars: [], years: [] }, pj: { kpis: [] } };
+      pick: e => { this.file(e.target.files[0]); e.target.value = ''; }, demo: () => this.load(demoData()), upErr: !!S.upErr, upErrL: S.upErr, restart: () => this.restart(),
+      checks: [], issues: [], hasIssues: false, fileN: '', fileD: '', sheets: [], verdict: {}, tabs: [], view: { heads: [], rows: [], fields: [], bars: [], years: [] }, pj: { kpis: [] }, phases: [] };
     if (!d) return v;
     const cnt = k => ((d.sheets[k] || {}).rows || []).length, errs = d.issues.filter(i => i.lvl === 'err'), warns = d.issues.filter(i => i.lvl === 'warn');
     const code = String((d.project.find(p => /Code projet/.test(p.l)) || {}).v || '').trim(), dup = (this.props.existingCodes || ['RISE', 'ATLAS', 'HORIZON', 'NOVA']).includes(code.toUpperCase());
-    const lvl = n => n === 0 ? 'ok' : 'err';
-    const C = [['Structure du fichier', d.missing.length ? 'Onglets manquants : ' + d.missing.join(', ') : '13 onglets reconnus', d.missing.length ? d.missing.length : '13 / 13', lvl(d.missing.length)],
-      ['Fiche projet', code ? 'Code ' + code + (dup ? ' · déjà utilisé dans la bibliothèque' : ' · disponible') : 'Code projet absent', dup || !code ? '1' : '✓', dup || !code ? 'err' : 'ok'],
-      ['Champs obligatoires', errs.filter(i => /obligatoire/.test(i.msg)).length ? 'Des champs obligatoires sont vides' : 'Tous les champs obligatoires sont renseignés', errs.filter(i => /obligatoire/.test(i.msg)).length || '✓', lvl(errs.filter(i => /obligatoire/.test(i.msg)).length)],
-      ['Contrôles de cohérence', errs.filter(i => !/obligatoire/.test(i.msg)).length ? 'Incohérences signalées par le fichier' : 'Aucune incohérence bloquante', errs.filter(i => !/obligatoire/.test(i.msg)).length || '✓', lvl(errs.filter(i => !/obligatoire/.test(i.msg)).length)],
-      ['Avertissements', warns.length ? 'À vérifier, sans bloquer l’import' : 'Aucun', warns.length || '✓', warns.length ? 'warn' : 'ok']];
-    const T = { ok: ['#e6f4f2', '#146b64', '✓'], err: ['#fbe4e1', '#a2352a', '!'], warn: ['#fff1dc', '#9a5a0c', '!'], wait: ['#eef3f2', '#8a9aa6', '…'] };
-    v.checks = C.map(([l, dd, n, t], i) => { const done = i < S.chk, tt = done ? t : 'wait'; return { l, d: done ? dd : 'Vérification…', n: done ? String(n) : '', g: T[tt][2], ic: 'width:28px;height:28px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:800;font-size:12px;transition:background .3s;background:' + T[tt][0] + ';color:' + T[tt][1], nSt: 'font-weight:800;font-variant-numeric:tabular-nums;color:' + T[tt][1], row: 'display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid #f1f5f4;opacity:' + (done || i === S.chk ? 1 : .45) + ';transition:opacity .3s' }; });
+    const lit = Math.min(T_SHEETS, S.t), nMiss = d.missing.length;
+    const oblig = errs.filter(i => /obligatoire/.test(i.msg)).length, coh = errs.filter(i => !/obligatoire/.test(i.msg)).length, pl = (n, w) => n + ' ' + w + (n > 1 ? 's' : '');
+    const C = [['Structure du fichier', nMiss ? 'Onglets manquants : ' + d.missing.join(', ') : '13 onglets reconnus', (13 - nMiss) + ' / 13', nMiss ? 'err' : 'ok', 'Lecture des onglets… ' + lit + ' / 13'],
+      ['Fiche projet', code ? 'Code ' + code + (dup ? ' · déjà utilisé dans la bibliothèque' : ' · disponible') : 'Code projet absent', dup || !code ? '1 erreur' : 'Conforme', dup || !code ? 'err' : 'ok', 'Vérification du code projet…'],
+      ['Champs obligatoires', oblig ? 'Des champs obligatoires sont vides' : 'Tous les champs obligatoires sont renseignés', oblig ? pl(oblig, 'erreur') : 'Conforme', oblig ? 'err' : 'ok', 'Parcours des champs obligatoires…'],
+      ['Contrôles de cohérence', coh ? 'Incohérences signalées par le fichier' : 'Aucune incohérence bloquante', coh ? pl(coh, 'erreur') : 'Conforme', coh ? 'err' : 'ok', 'Croisement des références entre onglets…'],
+      ['Avertissements', warns.length ? 'À vérifier, sans bloquer l’import' : 'Aucun', warns.length ? warns.length + ' à vérifier' : 'Aucun', warns.length ? 'warn' : 'ok', 'Recherche des points d’attention…']];
+    const T = { ok: ['#1d8f86', '#fff', '', '#e6f4f2', '#146b64'], err: ['#c2473b', '#fff', '!', '#fbe4e1', '#a2352a'], warn: ['#c77d14', '#fff', '!', '#fff1dc', '#9a5a0c'] };
+    v.checks = C.map(([l, dd, n, t, run], i) => { const done = i < chk, running = i === chk && chk < 5, P = T[t];
+      return { l, d: done ? dd : running ? run : 'En attente', n, hasN: done, isOk: done && t === 'ok', g: done ? P[2] : running ? '' : String(i + 1),
+        lSt: 'font-weight:700;font-size:13px;color:' + (done || running ? '#10233a' : '#8a9aa6'),
+        ic: 'width:28px;height:28px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:800;font-size:12px;transition:background .25s;' + (done ? 'background:' + P[0] + ';color:' + P[1] : running ? 'border:2px solid #e4ecea;border-top-color:#10233a;animation:spin .7s linear infinite' : 'background:#fff;color:#9aa9b2;box-shadow:inset 0 0 0 1.5px #dbe4e2'),
+        line: 'width:2px;flex:1;min-height:14px;margin:4px 0;border-radius:2px;transition:background .3s;' + (i === 4 ? 'opacity:0' : 'background:' + (done ? '#1d8f86' : '#e4ecea')),
+        nSt: 'align-self:flex-start;margin-top:4px;height:24px;padding:0 9px;border-radius:999px;display:inline-flex;align-items:center;font-size:11.5px;font-weight:800;white-space:nowrap;font-variant-numeric:tabular-nums;animation:rise .25s ease both;background:' + P[3] + ';color:' + P[4],
+        row: 'display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:14px;transition:opacity .3s;opacity:' + (done || running ? 1 : .55) }; });
+    v.chkL = chk >= 5 ? '5 / 5 contrôles' : (chk + 1) + ' / 5 · en cours';
+    v.chkBar = 'display:block;height:100%;border-radius:4px;transition:width ' + TK + 'ms linear;width:' + (S.t / T_END * 100) + '%;background:' + (chk >= 5 ? '#1d8f86' : '#10233a');
+    v.sheets = SH.map(([sn, l], i) => { const miss = d.missing.includes(sn), on = i < lit, s = !on ? 'wait' : miss ? 'err' : 'ok';
+      return { l, tip: sn + (on ? (miss ? ' · absent' : ' · ' + (l === 'Projet' ? d.project.length + ' champs' : pl(cnt(l), 'ligne'))) : ''),
+        st: 'height:26px;padding:0 8px;border-radius:7px;display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;white-space:nowrap;min-width:0;transition:background .2s,color .2s;' + (s === 'ok' ? 'background:#f0f8f6;color:#146b64' : s === 'err' ? 'background:#fdf1ef;color:#a2352a' : 'background:#f5f8f7;color:#a3b1b9'),
+        dot: 'width:6px;height:6px;border-radius:50%;flex:none;transition:background .2s;background:' + (s === 'ok' ? '#1d8f86' : s === 'err' ? '#c2473b' : '#d3dedb') }; });
+    v.sheetsL = lit < 13 ? lit + ' / 13 lus' : (13 - nMiss) + ' / 13 reconnus';
     const allErr = [...(dup ? [{ lvl: 'err', sheet: 'Projet', row: '', msg: 'Le code ' + code + ' existe déjà : choisissez un autre code.' }] : []), ...(!code ? [{ lvl: 'err', sheet: 'Projet', row: '', msg: 'Le code projet est obligatoire.' }] : []), ...d.missing.map(m => ({ lvl: 'err', sheet: m, row: '', msg: 'Onglet absent du fichier.' })), ...d.issues];
-    const shown = S.chk >= 5;
-    v.hasIssues = shown && allErr.length > 0; v.issues = allErr.slice(0, 12).map(i => ({ where: i.sheet + (i.row ? ' · ligne ' + i.row : ''), msg: i.msg, tagL: i.lvl === 'err' ? 'Erreur' : 'À vérifier', tag: 'height:20px;padding:0 7px;border-radius:999px;font-size:10.5px;font-weight:800;display:inline-flex;align-items:center;flex:none;' + (i.lvl === 'err' ? 'background:#fbe4e1;color:#a2352a' : 'background:#fff1dc;color:#9a5a0c'), st: 'display:flex;align-items:flex-start;gap:10px;font-size:12.5px;padding:8px 10px;border-radius:10px;background:' + (i.lvl === 'err' ? '#fff8f6' : '#fffaf1') }));
+    const shown = chk >= 5;
+    v.hasIssues = shown && allErr.length > 0; v.issuesL = 'DÉTAIL · ' + pl(allErr.length, 'point');
+    v.issues = allErr.slice(0, 12).map(i => ({ where: i.sheet + (i.row ? ' · ligne ' + i.row : ''), msg: i.msg, tagL: i.lvl === 'err' ? 'Erreur' : 'À vérifier', tag: 'height:20px;padding:0 7px;border-radius:999px;font-size:10.5px;font-weight:800;display:inline-flex;align-items:center;flex:none;margin-top:1px;' + (i.lvl === 'err' ? 'background:#fbe4e1;color:#a2352a' : 'background:#fff1dc;color:#9a5a0c'), st: 'display:flex;align-items:flex-start;gap:10px;font-size:12.5px;padding:10px 12px;border-radius:10px;background:' + (i.lvl === 'err' ? '#fff8f6' : '#fffaf1') }));
     const nErr = allErr.filter(i => i.lvl === 'err').length, okImp = shown && nErr === 0;
-    v.fileN = d.file; v.fileD = d.size + ' · ' + Object.keys(d.sheets).reduce((a, k) => a + cnt(k), 0) + ' lignes lues';
-    v.verdict = { ok: okImp, l: !shown ? 'Contrôle en cours…' : nErr ? nErr + ' erreur' + (nErr > 1 ? 's' : '') + ' à corriger' : 'Fichier conforme', d: !shown ? 'Le fichier est vérifié onglet par onglet.' : nErr ? 'Corrigez le fichier Excel puis importez-le de nouveau. Rien n’a été créé.' : (warns.length ? warns.length + ' avertissement' + (warns.length > 1 ? 's' : '') + ' à relire. ' : '') + 'Prévisualisez le référentiel avant de valider.',
-      t: 'font-size:16px;font-weight:800;color:' + (!shown ? '#43586a' : nErr ? '#a2352a' : '#146b64'), box: 'border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:10px;transition:background .3s;' + (!shown ? 'background:#fff;box-shadow:0 0 0 1px #e1e9e7' : nErr ? 'background:#fff8f6;box-shadow:0 0 0 1px #f0cfc9' : 'background:#eef8f6;box-shadow:0 0 0 1px #bfe3de') };
+    v.fileN = d.file; v.fileD = d.size + ' · ' + (lit < 13 ? 'lecture en cours…' : Object.keys(d.sheets).reduce((a, k) => a + cnt(k), 0) + ' lignes lues');
+    v.verdict = { ok: okImp, ko: shown && nErr > 0, okRow: shown && nErr > 0 ? 'display:none' : 'display:flex;gap:8px;flex-wrap:wrap;margin-top:2px', l: !shown ? 'Contrôle en cours…' : nErr ? pl(nErr, 'erreur') + ' à corriger' : 'Fichier conforme', d: !shown ? 'Le fichier est vérifié onglet par onglet.' : nErr ? 'Corrigez le fichier Excel puis importez-le de nouveau. Rien n’a été créé.' : (warns.length ? pl(warns.length, 'avertissement') + ' à relire. ' : '') + 'Prévisualisez le référentiel avant de valider.',
+      t: 'font-size:16px;font-weight:800;letter-spacing:-.01em;color:' + (!shown ? '#43586a' : nErr ? '#a2352a' : '#146b64'), box: 'border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:8px;transition:background .3s,box-shadow .3s;' + (!shown ? 'background:#fff;box-shadow:0 0 0 1px #e1e9e7' : nErr ? 'background:#fff8f6;box-shadow:0 0 0 1px #f0cfc9' : 'background:#eef8f6;box-shadow:0 0 0 1px #bfe3de') };
     v.toPrev = () => this.setState({ step: 'prev' });
-    // preview
     const pv = l => (d.project.find(p => p.l === l) || {}).v, name = pv('Nom du projet') || code;
     v.pj = { code: code.slice(0, 5), name, sub: [pv('Nom du client'), fmt(pv('Date de démarrage')) + ' → ' + fmt(pv('Date de fin cible')), pv('Directeur de programme') && 'Direction : ' + pv('Directeur de programme')].filter(Boolean).join(' · '),
       kpis: [['Lots', cnt('Lots')], ['Phases', cnt('Phases')], ['Chantiers', cnt('Chantiers')], ['Personnes', cnt('Personnes')]].map(([l, n]) => ({ l, v: n })) };
-    const TABS = ['Projet', 'Planning', ...SH.map(s => s[1]).filter(k => k !== 'Projet')];
-    v.tabs = TABS.map(k => { const on = S.tab === k, n = k === 'Projet' ? '' : k === 'Planning' ? cnt('Phases') + cnt('Sous-phases') : cnt(k); return { l: k === 'Planning' ? 'Planning (phases)' : k, n: String(n), on, pick: () => this.setState({ tab: k }), st: 'display:flex;align-items:center;gap:8px;height:34px;padding:0 10px;border-radius:9px;border:0;font:inherit;font-size:12.5px;font-weight:' + (on ? 800 : 600) + ';cursor:pointer;' + (on ? 'background:#10233a;color:#fff' : 'background:transparent;color:#10233a'), nSt: 'font-size:11.5px;font-weight:700;color:' + (on ? '#9fb3c1' : '#8a9aa6') }; });
+    v.visL = nVis + ' / ' + TABS.length + ' vus';
+    v.tabs = TABS.map(k => { const on = S.tab === k, seen = !!S.vis[k], n = k === 'Projet' ? '' : k === 'Planning' ? cnt('Phases') + cnt('Sous-phases') : cnt(k);
+      return { l: k === 'Planning' ? 'Planning (phases)' : k, n: String(n), pick: () => this.setState(s => ({ tab: k, vis: { ...s.vis, [k]: 1 } })),
+        st: 'display:flex;align-items:center;gap:9px;height:34px;padding:0 10px;border-radius:9px;border:0;font-size:12.5px;font-weight:' + (on ? 800 : 600) + ';cursor:pointer;transition:background .15s;' + (on ? 'background:#10233a;color:#fff' : 'background:transparent;color:#10233a'),
+        hov: on ? '' : 'background:#f1f6f5',
+        mark: 'width:6px;height:6px;border-radius:50%;flex:none;transition:background .2s;background:' + (on ? '#3dd6c6' : seen ? '#1d8f86' : '#dbe4e2'),
+        nSt: 'font-size:11.5px;font-weight:700;font-variant-numeric:tabular-nums;color:' + (on ? '#9fb3c1' : '#8a9aa6') }; });
     if (S.tab === 'Projet') v.view = { t: 'Fiche projet', d: 'Onglet 05 Projet', isForm: true, fields: d.project.map(p => ({ l: p.l, v: fmt(p.v) })), heads: [], rows: [], bars: [], years: [] };
     else if (S.tab === 'Planning') { const ph = (d.sheets['Phases'] || { rows: [] }).rows, sp = (d.sheets['Sous-phases'] || { rows: [] }).rows, hp = (d.sheets['Phases'] || { heads: [] }).heads.map(h => h[0]), hs = (d.sheets['Sous-phases'] || { heads: [] }).heads.map(h => h[0]);
       const gi = (hh, n) => hh.findIndex(h => h === n), items = []; ph.forEach(r => { items.push({ l: r[gi(hp, 'N°')] + ' · ' + r[gi(hp, 'Nom')], a: r[gi(hp, 'Début')], b: r[gi(hp, 'Fin')], ph: true }); sp.filter(s => String(s[gi(hs, 'Phase')] || '').startsWith(String(r[gi(hp, 'N°')]) + ' ')).forEach(s => items.push({ l: s[gi(hs, 'N°')] + ' ' + s[gi(hs, 'Nom')], a: s[gi(hs, 'Début')], b: s[gi(hs, 'Fin')] })); });
@@ -186,17 +331,20 @@ class Component extends DCLogic {
         bars: items.slice(0, 22).map((it, i) => ({ l: it.l, t: fmt(it.a) + ' → ' + fmt(it.b), lSt: 'font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;' + (it.ph ? 'font-weight:800' : 'color:#43586a;padding-left:12px'),
           st: it.a instanceof Date && it.b instanceof Date ? 'position:absolute;top:' + (it.ph ? 4 : 8) + 'px;bottom:' + (it.ph ? 4 : 8) + 'px;border-radius:5px;left:' + X(it.a) + '%;width:' + Math.max(.8, X(it.b) - X(it.a)) + '%;background:' + (it.ph ? '#10233a' : '#1d8f86') + ';opacity:' + (it.ph ? 1 : .75) + ';transform-origin:left;animation:grow .7s ' + (i * .03) + 's cubic-bezier(.2,.7,.2,1) both' : 'display:none' })) }; }
     else { const s = d.sheets[S.tab] || { heads: [], rows: [] }, n = s.heads.length, tpl = 'grid-template-columns:' + s.heads.map((h, i) => i === 0 ? 'minmax(160px,1.4fr)' : 'minmax(110px,1fr)').join(' ') + ';gap:14px;padding:11px 20px';
-      v.view = { t: S.tab, d: s.rows.length + ' ligne' + (s.rows.length > 1 ? 's' : '') + ' · onglet ' + (SH.find(x => x[1] === S.tab) || [''])[0], isGrid: true, minW: 'min-width:' + Math.max(560, n * 130) + 'px', fields: [], bars: [], years: [],
-        gridHead: 'display:grid;' + tpl + ';border-bottom:1px solid #eef3f2;background:#fafcfb', gridRow: 'display:grid;' + tpl + ';border-bottom:1px solid #f4f7f6;align-items:center',
+      v.view = { t: S.tab, d: pl(s.rows.length, 'ligne') + ' · onglet ' + (SH.find(x => x[1] === S.tab) || [''])[0], isGrid: true, minW: 'min-width:' + Math.max(560, n * 130) + 'px', fields: [], bars: [], years: [],
+        gridHead: 'display:grid;' + tpl + ';border-bottom:1px solid #eef3f2;background:#fafcfb', gridRow: 'display:grid;' + tpl + ';border-bottom:1px solid #f4f7f6;align-items:center;transition:background .12s',
         heads: s.heads.map(([h, t]) => ({ l: h + (t === 'r' ? ' *' : ''), st: 'font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;color:' + (t === 'c' ? '#1d8f86' : '#8a9aa6') })),
         rows: s.rows.slice(0, 40).map(r => ({ c: r.map((x, j) => ({ v: fmt(x), st: 'min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;' + (j === 0 ? 'font-weight:700' : 'color:#43586a') + (x === '' || x == null ? ';color:#c3cdd2' : '') })) })),
         more: s.rows.length > 40, moreL: '+ ' + (s.rows.length - 40) + ' lignes' }; }
     v.confirmL = 'Valider crée le projet ' + code + ' avec ' + ['Lots', 'Phases', 'Sous-phases', 'Chantiers', 'Jalons', 'Personnes'].map(k => cnt(k) + ' ' + k.toLowerCase()).join(', ') + '. Il rejoint la bibliothèque des projets, au statut Préparation.';
     v.back = () => this.setState({ step: 'chk' });
-    v.doImport = () => { this.setState({ step: 'done', prog: 0 }); clearInterval(this._pv); this._pv = setInterval(() => { const p = Math.min(100, this.state.prog + 7); this.setState({ prog: p }); if (p >= 100) { clearInterval(this._pv); this.props.onImported && this.props.onImported({ code, name, client: pv('Nom du client') || '', start: pv('Date de démarrage'), end: pv('Date de fin cible'), dir: pv('Directeur de programme') || '', counts: { lots: cnt('Lots'), phases: cnt('Phases'), chantiers: cnt('Chantiers'), jalons: cnt('Jalons'), personnes: cnt('Personnes') }, file: d.file }); } }, 70); };
-    const ph = ['Création du projet', 'Lots et phases', 'Chantiers et jalons', 'Personnes et habilitations', 'Instances de pilotage'];
-    v.busy = S.step === 'done' && S.prog < 100; v.ok = S.step === 'done' && S.prog >= 100; v.busyL = ph[Math.min(4, Math.floor(S.prog / 20))] + '…';
-    v.barSt = 'display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,#1d8f86,#46b3a8);transition:width .07s linear;width:' + S.prog + '%';
+    v.doImport = () => { this.setState({ step: 'done', prog: 0 }); clearInterval(this._pv); this._pv = setInterval(() => { const p = Math.min(100, this.state.prog + 2); this.setState({ prog: p }); if (p >= 100) { clearInterval(this._pv); this.props.onImported && this.props.onImported({ code, name, client: pv('Nom du client') || '', start: pv('Date de démarrage'), end: pv('Date de fin cible'), dir: pv('Directeur de programme') || '', counts: { lots: cnt('Lots'), phases: cnt('Phases'), chantiers: cnt('Chantiers'), jalons: cnt('Jalons'), personnes: cnt('Personnes') }, file: d.file }); } }, 60); };
+    const pi = Math.min(4, Math.floor(S.prog / 20));
+    v.busy = S.step === 'done' && S.prog < 100; v.ok = okDone; v.pct = S.prog + ' %'; v.busyL = PHASES[pi][0] + '…'; v.busyD = PHASES[pi][1] + ' · étape ' + (pi + 1) + ' sur 5';
+    v.phases = PHASES.map(([l], i) => { const done = okDone || i < pi, run = !done && i === pi;
+      return { l, fill: 'display:block;height:100%;border-radius:3px;transition:width 60ms linear,background .3s;width:' + (done ? 100 : run ? (S.prog - i * 20) / 20 * 100 : 0) + '%;background:' + (done ? '#1d8f86' : '#10233a'),
+        dot: 'width:8px;height:8px;border-radius:50%;flex:none;transition:background .25s,box-shadow .25s;' + (done ? 'background:#1d8f86' : run ? 'background:#10233a;box-shadow:0 0 0 4px rgba(16,35,58,.1)' : 'background:#dbe4e2'),
+        lSt: 'font-size:12px;font-weight:' + (run ? 800 : 700) + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:' + (done || run ? '#10233a' : '#9aa9b2') }; });
     v.doneT = code + ' a rejoint la bibliothèque des projets'; v.doneD = name + ' est créé au statut Préparation. Le journal d’audit trace l’importation (' + d.file + '). Le PMO peut maintenant compléter le référentiel dans le Cockpit.';
     v.openLib = () => this.props.onOpenLib && this.props.onOpenLib();
     return v;

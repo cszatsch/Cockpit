@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Param, Patch, Post, Put, Query, Res, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Put, Query, Res, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
@@ -12,7 +12,8 @@ import { TodayService } from '../core/today.service';
 import { badRequest, businessRule, conflict, notFound } from '../core/errors';
 import { parse } from '../core/http';
 import { ImportService } from '../import/import.service';
-import { commitPlan, ImportPlan } from '../import/referential-import';
+import { commitPlan } from '../import/referential-import';
+import { creationPercent, screenChecks, toScreen } from '../import/import-screen';
 import type { UploadedBlob } from '../import/import.controller';
 import { MAX_IMPORT_BYTES } from '../import/import.controller';
 import { adminCtx } from './profiles.service';
@@ -230,37 +231,39 @@ export class DataController {
     return list.sort((a, b) => Number(b.isNew) - Number(a.isNew));
   }
 
-  // ───────────── Initialisation d'un projet (import Excel) ─────────────
+  // ───────────── Initialisation d'un projet (import Excel, spécification Initialisation projet § 5) ─────────────
 
-  private importView(i: any) {
-    return { importId: i.id, fileName: i.fileName, uploadedBy: i.uploadedBy, uploadedAt: i.uploadedAt, status: i.status, projectId: i.projectId, report: i.report };
+  /** Avancement des créations en cours ou récentes (processus unique : l'état vit en mémoire). */
+  private importJobs = new Map<string, { status: 'running' | 'done' | 'failed'; phase: number; percent: number; result?: { projectId: string; code: string }; error?: string }>();
+
+  /** Contrôle complet d'un fichier (serveur, fait foi) : vue de l'écran, 5 contrôles, code déjà pris. */
+  private async control(buffer: Buffer) {
+    const res = await this.imports.check(buffer);
+    const code = res.plan?.project.code ?? null;
+    const duplicate = !!code && !!(await this.prisma.project.findUnique({ where: { code } }));
+    const screen = toScreen(res.plan, res.issues);
+    const checks = screenChecks(code, duplicate, screen.missing, screen.issues);
+    const errors = checks.filter((c) => c.status === 'err').length;
+    return { res, code, duplicate, screen, checks, ok: errors === 0 };
   }
 
-  /** Contrôle seul : rien n'est créé (§ 9.10). */
-  @Post('project-imports')
+  /**
+   * Étape 2 « Contrôler » : envoi du fichier (multipart, champ `file`), contrôle complet, rien n'est créé. Le fichier
+   * est gardé en fichier temporaire jusqu'à la création ou à « Réinitialiser la session » (`DELETE`).
+   * → `{ jobId, file, size, ok, checks[5], project, sheets, issues, missing }`.
+   */
+  @Post('projects/import/validate')
+  @HttpCode(200)
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_IMPORT_BYTES } }))
-  async upload(@CurrentActor() actor: Actor, @UploadedFile() file: UploadedBlob | undefined) {
+  async importValidate(@CurrentActor() actor: Actor, @UploadedFile() file: UploadedBlob | undefined) {
     if (!file) throw badRequest('Fichier manquant', { file: 'fichier .xlsx attendu (champ « file »)' });
-    if (!/\.xlsx$/i.test(file.originalname)) throw badRequest('Format non accepté', { file: '.xlsx attendu' });
-    const res = await this.imports.check(file.buffer);
-    const issues = res.issues.map((i) => ({ level: i.level, sheet: i.sheet, row: i.row, column: i.column ?? null, message: i.message, source: i.source }));
-    if (res.plan?.project.code && (await this.prisma.project.findUnique({ where: { code: res.plan.project.code } }))) {
-      issues.unshift({ level: 'ERROR', sheet: '05 Projet', row: null, column: 'D', message: `Le code ${res.plan.project.code} existe déjà`, source: 'SERVER' });
-    }
-    const errors = issues.filter((i) => i.level === 'ERROR').length;
+    if (!/\.xlsx$/i.test(file.originalname)) throw badRequest('Format attendu : .xlsx', { file: '.xlsx attendu' });
+    const c = await this.control(file.buffer);
     const key = await this.storage.put('imports', file.buffer, '.xlsx');
-    const report = {
-      ok: errors === 0,
-      errors,
-      warnings: issues.length - errors,
-      issues,
-      checks: res.checks,
-      counts: res.counts,
-      project: res.plan ? { code: res.plan.project.code, name: res.plan.project.name, client: res.plan.client.name, startDate: res.plan.project.startDate, endDate: res.plan.project.targetEndDate, director: res.plan.project.programDirector } : null,
-    };
-    const row = await this.prisma.projectImport.create({ data: { fileName: file.originalname, fileKey: key, uploadedBy: actor.fullName, status: errors ? 'REJECTED' : 'CHECKED', report: report as Prisma.InputJsonValue, parsed: (res.plan ?? undefined) as Prisma.InputJsonValue | undefined } });
-    return this.importView(row);
+    const report = { ok: c.ok, checks: c.checks, issues: c.res.issues, counts: c.res.counts, code: c.code };
+    const row = await this.prisma.projectImport.create({ data: { fileName: file.originalname, fileKey: key, uploadedBy: actor.fullName, status: c.ok ? 'CHECKED' : 'REJECTED', report: report as unknown as Prisma.InputJsonValue, parsed: (c.res.plan ?? undefined) as Prisma.InputJsonValue | undefined } });
+    return { jobId: row.id, file: file.originalname, size: `${Math.round(file.size / 1024)} Ko`, ok: c.ok, checks: c.checks, ...c.screen };
   }
 
   private async importRow(id: string) {
@@ -269,62 +272,69 @@ export class DataController {
     return i;
   }
 
-  @Get('project-imports/:id/report')
-  async report(@Param('id') id: string) {
-    return this.importView(await this.importRow(id));
-  }
-
-  /** Prévisualisation onglet par onglet et planning (phases, sous-phases). */
-  @Get('project-imports/:id/preview')
-  async preview(@Param('id') id: string, @Query('tab') tab?: string) {
-    const i = await this.importRow(id);
-    const plan = i.parsed as unknown as ImportPlan | null;
-    if (!plan) throw businessRule('Fichier illisible : aucune prévisualisation possible', { id: 'import rejeté' });
-    const tabs: Record<string, unknown> = {
-      project: { client: plan.client, ...plan.project },
-      teams: plan.teams,
-      roles: plan.roles,
-      persons: plan.persons,
-      assignments: plan.assignments,
-      waves: plan.waves,
-      phases: plan.phases,
-      subphases: plan.subphases,
-      workstreams: plan.workstreams,
-      bodies: plan.bodies,
-      members: plan.members,
-      milestones: plan.milestones,
-      deliverables: plan.deliverables,
-      planning: { phases: plan.phases.map((p) => ({ key: p.key, code: p.code, name: p.name, startDate: p.startDate, endDate: p.endDate })), subphases: plan.subphases.map((s) => ({ key: s.key, phase: s.phase, code: s.code, name: s.name, startDate: s.startDate, endDate: s.endDate })) },
-    };
-    if (tab) {
-      if (!(tab in tabs)) throw badRequest('Onglet inconnu', { tab: Object.keys(tabs).join(', ') });
-      return { tab, data: tabs[tab] };
-    }
-    return tabs;
-  }
-
-  /** Création transactionnelle du projet et de tout son référentiel (statut PREPARATION). */
-  @Post('project-imports/:id/commit')
-  @HttpCode(200)
-  async commit(@CurrentActor() actor: Actor, @Param('id') id: string) {
-    const i = await this.importRow(id);
+  /**
+   * Étape 4 « Valider » : nouveau contrôle complet du fichier gardé (409 si le code existe déjà, 422 s'il n'est plus
+   * conforme), puis création tout ou rien dans une transaction, projet au statut PREPARATION, trace d'audit
+   * « Initialisation d'un projet » (sensible). La création se suit par `GET projects/import/{jobId}`.
+   */
+  @Post('projects/import/commit')
+  @HttpCode(202)
+  async importCommit(@CurrentActor() actor: Actor, @Body() body: unknown) {
+    const { jobId } = parse(z.object({ jobId: z.string().min(1) }).strict(), body);
+    const i = await this.importRow(jobId);
+    if (this.importJobs.get(jobId)?.status === 'running') throw conflict('IN_PROGRESS', 'Création déjà en cours');
     if (i.status === 'IMPORTED') throw conflict('ALREADY_IMPORTED', 'Cet import a déjà été validé');
-    if (i.status !== 'CHECKED' || !i.parsed) throw businessRule('Import bloqué : le fichier comporte des erreurs', { id: 'corrigez le fichier puis rechargez-le' });
-    const plan = i.parsed as unknown as ImportPlan;
-    if (await this.prisma.project.findUnique({ where: { code: plan.project.code } })) throw conflict('DUPLICATE', `Le code ${plan.project.code} existe déjà`);
+    const buffer = await this.storage.get(i.fileKey);
+    if (!buffer) throw businessRule('Fichier temporaire introuvable : importez de nouveau le fichier', { jobId: 'session expirée' });
+    const c = await this.control(buffer);
+    if (c.duplicate) throw conflict('DUPLICATE', `Le code ${c.code} existe déjà`);
+    if (!c.ok || !c.res.plan) throw businessRule('Le fichier n’est plus conforme : aucune création', { file: c.checks.filter((k) => k.status === 'err').map((k) => `${k.label} : ${k.detail}`).join(' ; ') });
+    const plan = c.res.plan;
     const projectId = plan.project.code;
-    await this.prisma.$transaction(
+    const job: { status: 'running' | 'done' | 'failed'; phase: number; percent: number; result?: { projectId: string; code: string }; error?: string } = { status: 'running', phase: 1, percent: 0 };
+    this.importJobs.set(jobId, job);
+    const run = this.prisma.$transaction(
       async (db) => {
         // Exception à la lecture seule de l'Admin : l'initialisation relève du paramétrage de la plateforme (§ 8).
-        await commitPlan(db, plan, { projectId, createProject: true, idPrefix: plan.project.code }, this.audit, adminCtx(actor));
+        await commitPlan(db, plan, { projectId, createProject: true, idPrefix: plan.project.code, progress: (phase, fraction) => { job.phase = phase; job.percent = creationPercent(phase, fraction); } }, this.audit, adminCtx(actor));
         await db.snapshotSchedule.create({ data: { projectId } });
-        await db.projectImport.update({ where: { id }, data: { status: 'IMPORTED', projectId } });
+        await db.projectImport.update({ where: { id: jobId }, data: { status: 'IMPORTED', projectId } });
         await db.accountProject.upsert({ where: { accountId_projectId: { accountId: actor.accountId, projectId } }, create: { accountId: actor.accountId, projectId }, update: {} });
-        // Modules actifs pour tous : les nouveaux projets en bénéficient automatiquement (§ 7.7).
         await this.audit.action(db, adminCtx(actor), { action: 'Initialisation d’un projet', target: `${plan.project.code} · ${i.fileName}`, severity: 'SENSITIVE', entityType: 'Project', entityId: projectId });
       },
       { timeout: 60_000 },
     );
-    return { projectId, code: plan.project.code };
+    run.then(
+      async () => {
+        Object.assign(job, { status: 'done', phase: 5, percent: 100, result: { projectId, code: plan.project.code } });
+        await this.storage.remove(i.fileKey).catch(() => undefined);
+      },
+      (e: any) => Object.assign(job, { status: 'failed', error: e?.message ?? 'Création impossible' }),
+    );
+    return { jobId, status: job.status, phase: job.phase, percent: job.percent };
   }
+
+  /** Avancement de la création : `{ jobId, status, phase: 1..5, percent, result?, error? }`. */
+  @Get('projects/import/:jobId')
+  async importJob(@Param('jobId') jobId: string) {
+    const job = this.importJobs.get(jobId);
+    if (job) return { jobId, ...job };
+    const i = await this.importRow(jobId);
+    if (i.status === 'IMPORTED') return { jobId, status: 'done', phase: 5, percent: 100, result: { projectId: i.projectId, code: i.projectId } };
+    return { jobId, status: i.status === 'CHECKED' ? 'checked' : 'rejected', phase: 0, percent: 0 };
+  }
+
+  /** « Réinitialiser la session » : oubli du fichier côté serveur (fichier temporaire supprimé). */
+  @Delete('projects/import/:jobId')
+  @HttpCode(204)
+  async importForget(@Param('jobId') jobId: string) {
+    const i = await this.prisma.projectImport.findUnique({ where: { id: jobId } });
+    if (!i) return;
+    if (this.importJobs.get(jobId)?.status === 'running') throw conflict('IN_PROGRESS', 'Création en cours : la session ne peut pas être réinitialisée');
+    await this.storage.remove(i.fileKey).catch(() => undefined);
+    // Un import déjà validé reste tracé ; sinon la session est oubliée.
+    if (i.status !== 'IMPORTED') await this.prisma.projectImport.delete({ where: { id: jobId } });
+    this.importJobs.delete(jobId);
+  }
+
 }

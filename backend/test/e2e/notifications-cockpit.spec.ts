@@ -82,7 +82,7 @@ describe('Notifications du Cockpit et rédaction à partir des données', () => 
       expect(calls[0].system).toMatch(/tout le projet/);
       expect(exec.mock.calls.map((c) => c[2])).toEqual(['*', respGroup.chantiers]);
       const all = (await sql<{ n: number }>(`SELECT count(*)::int AS n FROM "Risk" WHERE "projectId" = '${RISE}'`))[0].n;
-      const respCount = respGroup.chantiers.length ? (await sql<{ n: number }>(`SELECT count(*)::int AS n FROM "Risk" WHERE "projectId" = '${RISE}' AND "wsId" = ANY(ARRAY[${respGroup.chantiers.map((w: string) => `'${w}'`).join(',')}]::text[])`))[0].n : 0;
+      const respCount = respGroup.chantiers.length ? (await sql<{ n: number }>(`SELECT count(*)::int AS n FROM "Risk" WHERE "projectId" = '${RISE}' AND "wsId" = ANY(ARRAY[${(respGroup.chantiers as string[]).map((w: string) => `'${w}'`).join(',')}]::text[])`))[0].n : 0;
       expect(out[0].body).toBe(`Risques ouverts : ${all}.`);
       expect(out[1].body).toBe(`Risques ouverts : ${respCount}.`);
       // Une notification par destinataire, avec le texte de son profil.

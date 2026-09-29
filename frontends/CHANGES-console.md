@@ -327,3 +327,13 @@ Les captures sont écrites dans `OUT` (par défaut `<tmp>/rise-console-e2e`).
   - variables limitées à {projet}, {date} et {reponse_llm} ;
   - démonstration sans les variables retirées.
 - `Console Admin.dc.html` et `admin-api.js` : prop `schedule` chargée depuis `GET /notifications/schedule`.
+
+## Initialisation d'un projet : nouvelle version de l'écran (29/09/2026)
+
+- `ProjetInit.dc.html` : remplacé par la version livrée. Une seule ligne ajoutée : `componentDidMount` charge `admin-api.js` (`bindInit`). La carte « Charger l'exemple » n'est plus limitée au mode démonstration (arbitrage : exemple simulé).
+- `admin-api.js` :
+  - `validateXlsx` : `POST /projects/import/validate`, dates converties en `Date` ;
+  - `bindInit` : contrôle par le serveur ; création suivie par `GET /projects/import/{jobId}` sans jamais devancer le serveur ; en cas de refus (409, 422, échec), retour au contrôle avec le motif ;
+  - « Réinitialiser la session » et « Importer le fichier corrigé » oublient l'ancien fichier côté serveur (`DELETE`) ;
+  - `importXlsx` retiré.
+- `Referentiel RISE - initialisation.xlsx` : liste Sous-phase des jalons dépendante de la phase choisie (validation de la colonne E de « 12 Jalons », reste du classeur intact).

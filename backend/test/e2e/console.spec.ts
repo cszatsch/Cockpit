@@ -1,6 +1,7 @@
 import request from 'supertest';
 import { setup, TestCtx, WHO } from '../helpers';
 import { buildWorkbook, validAtlas } from '../fixtures/excel';
+import { StorageService } from '../../src/core/storage.service';
 
 const A = '/api/admin';
 
@@ -299,44 +300,83 @@ describe('Console Admin — critères d’acceptation (brief Console § 13)', ()
     });
   });
 
-  describe('9. Import d’un projet', () => {
+  describe('9. Import d’un projet (Initialisation projet § 5)', () => {
     let adminToken = '';
     beforeAll(async () => {
       adminToken = await t.token(WHO.admin);
     });
-    const upload = (buf: Buffer) => request(t.app.getHttpServer()).post(`${A}/project-imports`).set('Authorization', `Bearer ${adminToken}`).attach('file', buf, 'init.xlsx');
+    const upload = (buf: Buffer, name = 'init.xlsx') => request(t.app.getHttpServer()).post(`${A}/projects/import/validate`).set('Authorization', `Bearer ${adminToken}`).attach('file', buf, name);
+    /** Attend la fin de la création ; renvoie les états successifs lus (phase, pourcentage). */
+    const follow = async (jobId: string) => {
+      const c = await t.as(WHO.admin), seen: any[] = [];
+      for (let k = 0; k < 200; k++) {
+        const j = (await c.get(`${A}/projects/import/${jobId}`).expect(200)).body;
+        seen.push(j);
+        if (j.status !== 'running') return seen;
+        await new Promise((r) => setTimeout(r, 20));
+      }
+      throw new Error('création trop longue');
+    };
 
-    it('onglet manquant → rapport en erreur, rien créé ; code existant → erreur', async () => {
-      const r = await upload(await buildWorkbook({ dropSheets: ['03 Personnes'] })).expect(201);
-      expect(r.body.status).toBe('REJECTED');
-      expect(r.body.report.issues[0]).toMatchObject({ level: 'ERROR', sheet: '03 Personnes' });
-      await (await t.as(WHO.admin)).post(`${A}/project-imports/${r.body.importId}/commit`).expect(422);
-      const dup = await upload(await buildWorkbook(validAtlas('RISE'))).expect(201);
-      expect(dup.body.report.issues[0].message).toBe('Le code RISE existe déjà');
+    it('réservé à l’Admin ; format .xlsx ; onglet manquant → non conforme, 422 au commit ; code existant → contrôle « Fiche projet » en erreur', async () => {
+      const pmo = await t.token(WHO.pmo);
+      await request(t.app.getHttpServer()).post(`${A}/projects/import/validate`).set('Authorization', `Bearer ${pmo}`).attach('file', await buildWorkbook(validAtlas('ORION')), 'init.xlsx').expect(403);
+      expect((await upload(Buffer.from('texte'), 'notes.csv').expect(400)).body.message).toBe('Format attendu : .xlsx');
+      const r = await upload(await buildWorkbook({ dropSheets: ['03 Personnes'] })).expect(200);
+      expect(r.body).toMatchObject({ ok: false, missing: ['03 Personnes'] });
+      expect(r.body.checks.map((c: any) => [c.id, c.status])).toEqual([['structure', 'err'], ['project', expect.any(String)], ['required', expect.any(String)], ['consistency', expect.any(String)], ['warnings', expect.any(String)]]);
+      await (await t.as(WHO.admin)).post(`${A}/projects/import/commit`, { jobId: r.body.jobId }).expect(422);
+      const dup = await upload(await buildWorkbook(validAtlas('RISE'))).expect(200);
+      expect(dup.body.ok).toBe(false);
+      expect(dup.body.checks[1]).toMatchObject({ id: 'project', status: 'err', detail: 'Code RISE · déjà utilisé dans la bibliothèque' });
+      await (await t.as(WHO.admin)).post(`${A}/projects/import/commit`, { jobId: dup.body.jobId }).expect(409);
     });
-    it('fichier conforme : commit crée le projet au statut PREPARATION, visible dans GET /projects', async () => {
-      const r = await upload(await buildWorkbook(validAtlas('ORION'))).expect(201);
-      expect(r.body.status).toBe('CHECKED');
+
+    it('fichier conforme : vue de l’écran, 5 contrôles ; création en 5 phases, projet PREPARATION, audit ; fichier temporaire supprimé', async () => {
+      const r = await upload(await buildWorkbook(validAtlas('ORION'))).expect(200);
+      expect(r.body).toMatchObject({ ok: true, file: 'init.xlsx', missing: [] });
+      expect(r.body.checks.map((c: any) => c.status)).toEqual(['ok', 'ok', 'ok', 'ok', expect.stringMatching(/ok|warn/)]);
+      expect(r.body.project.find((p: any) => p.l === 'Code projet')).toEqual({ l: 'Code projet', v: 'ORION', r: true });
+      expect(r.body.sheets['Phases'].rows).toHaveLength(2);
+      expect(r.body.sheets['Phases'].rows[0][3]).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      const row = await t.db.projectImport.findUniqueOrThrow({ where: { id: r.body.jobId } });
       const c = await t.as(WHO.admin);
-      const pv = await c.get(`${A}/project-imports/${r.body.importId}/preview?tab=planning`).expect(200);
-      expect(pv.body.data.phases).toHaveLength(2);
-      const done = await c.post(`${A}/project-imports/${r.body.importId}/commit`).expect(200);
-      expect(done.body).toEqual({ projectId: 'ORION', code: 'ORION' });
+      const start = await c.post(`${A}/projects/import/commit`, { jobId: r.body.jobId }).expect(202);
+      expect(start.body).toMatchObject({ jobId: r.body.jobId, status: 'running' });
+      const seen = await follow(r.body.jobId);
+      const last = seen[seen.length - 1];
+      expect(last).toMatchObject({ status: 'done', phase: 5, percent: 100, result: { projectId: 'ORION', code: 'ORION' } });
+      // Phases dans l'ordre, pourcentages croissants.
+      const phases = seen.map((x) => x.phase), pct = seen.map((x) => x.percent);
+      expect([...phases].sort((a, b) => a - b)).toEqual(phases);
+      expect([...pct].sort((a, b) => a - b)).toEqual(pct);
       const lib = await c.get(`${A}/projects`).expect(200);
       expect(lib.body[0]).toMatchObject({ code: 'ORION', status: 'PREPARATION', isNew: true, counts: { waves: 1, phases: 2, workstreams: 1, persons: 3 } });
       const audit = await t.db.auditEntry.findFirst({ where: { action: 'Initialisation d’un projet' } });
-      expect(audit).toMatchObject({ severity: 'SENSITIVE', target: 'ORION · init.xlsx' });
-      await c.post(`${A}/project-imports/${r.body.importId}/commit`).expect(409);
+      expect(audit).toMatchObject({ severity: 'SENSITIVE', target: 'ORION · init.xlsx', profileUsed: 'ADMIN' });
+      expect(await t.app.get(StorageService).get(row.fileKey)).toBeNull();
+      await c.post(`${A}/projects/import/commit`, { jobId: r.body.jobId }).expect(409);
     });
-    it('une erreur pendant le commit annule tout', async () => {
-      const r = await upload(await buildWorkbook(validAtlas('VEGA'))).expect(201);
+
+    it('une erreur pendant la création annule tout ; « Réinitialiser la session » oublie le fichier côté serveur', async () => {
+      const r = await upload(await buildWorkbook(validAtlas('VEGA'))).expect(200);
       // Collision provoquée : une équipe au même identifiant technique existe déjà.
       await t.db.client.upsert({ where: { code: 'AMC Corp' }, create: { id: 'c1', code: 'AMC Corp', name: 'AMC Corp' }, update: {} });
       await t.db.project.create({ data: { id: 'TMP', clientId: 'c1', code: 'TMP', name: 'tmp', startDate: '2026-01-01', targetEndDate: '2026-12-31' } });
       await t.db.team.create({ data: { id: 'VEGA-t-2', projectId: 'TMP', name: 'x' } });
-      await (await t.as(WHO.admin)).post(`${A}/project-imports/${r.body.importId}/commit`).expect(409);
+      await (await t.as(WHO.admin)).post(`${A}/projects/import/commit`, { jobId: r.body.jobId }).expect(202);
+      const seen = await follow(r.body.jobId);
+      expect(seen[seen.length - 1]).toMatchObject({ status: 'failed' });
       expect(await t.db.project.findUnique({ where: { code: 'VEGA' } })).toBeNull();
       expect(await t.db.person.count({ where: { projectId: 'VEGA' } })).toBe(0);
+      // Session oubliée : fichier temporaire supprimé, import effacé.
+      const again = await upload(await buildWorkbook(validAtlas('LYRA'))).expect(200);
+      const key = (await t.db.projectImport.findUniqueOrThrow({ where: { id: again.body.jobId } })).fileKey;
+      expect(await t.app.get(StorageService).get(key)).not.toBeNull();
+      await (await t.as(WHO.admin)).del(`${A}/projects/import/${again.body.jobId}`).expect(204);
+      expect(await t.app.get(StorageService).get(key)).toBeNull();
+      expect(await t.db.projectImport.findUnique({ where: { id: again.body.jobId } })).toBeNull();
+      await (await t.as(WHO.admin)).post(`${A}/projects/import/commit`, { jobId: again.body.jobId }).expect(404);
     });
   });
 });

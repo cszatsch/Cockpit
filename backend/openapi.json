@@ -7822,39 +7822,11 @@
         ]
       }
     },
-    "/api/admin/project-imports": {
+    "/api/admin/projects/import/validate": {
       "post": {
-        "operationId": "DataController_upload",
+        "operationId": "DataController_importValidate",
         "parameters": [],
         "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "console · données et diffusion"
-        ]
-      }
-    },
-    "/api/admin/project-imports/{id}/report": {
-      "get": {
-        "operationId": "DataController_report",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
           "200": {
             "description": ""
           }
@@ -7869,48 +7841,31 @@
         ]
       }
     },
-    "/api/admin/project-imports/{id}/preview": {
-      "get": {
-        "operationId": "DataController_preview",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "tab",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "console · données et diffusion"
-        ]
-      }
-    },
-    "/api/admin/project-imports/{id}/commit": {
+    "/api/admin/projects/import/commit": {
       "post": {
-        "operationId": "DataController_commit",
+        "operationId": "DataController_importCommit",
+        "parameters": [],
+        "responses": {
+          "202": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · données et diffusion"
+        ]
+      }
+    },
+    "/api/admin/projects/import/{jobId}": {
+      "get": {
+        "operationId": "DataController_importJob",
         "parameters": [
           {
-            "name": "id",
+            "name": "jobId",
             "required": true,
             "in": "path",
             "schema": {
@@ -7920,6 +7875,32 @@
         ],
         "responses": {
           "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · données et diffusion"
+        ]
+      },
+      "delete": {
+        "operationId": "DataController_importForget",
+        "parameters": [
+          {
+            "name": "jobId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
             "description": ""
           }
         },

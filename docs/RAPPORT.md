@@ -113,6 +113,21 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
   - Test de l'alerte n2 mis à jour : 4 envois, soit 2 profils × 2 canaux.
   - Recette navigateur : un risque devenu critique produit la notification du PMO ; cloche « 1 non lue », tiroir le long de la barre latérale, lecture au clic, compteur remis à zéro, Échap.
 
+- **Initialisation d'un projet (29/09/2026)** :
+  - Tests e2e (`console.spec.ts` § 9) :
+    - 403 hors Admin, format .xlsx, onglet manquant (422 au commit), code existant (contrôle « Fiche projet » en erreur, 409) ;
+    - création : phases et pourcentages croissants, PREPARATION, audit, fichier temporaire supprimé, 409 au second commit ;
+    - échec pendant la transaction (rien créé), « Réinitialiser la session » (fichier et import oubliés).
+  - Tests unitaires : `test/unit/import-screen.spec.ts`.
+  - Recette navigateur (§ 6), Console branchée sur une base de recette :
+    1. « Charger l'exemple » : 13 onglets allumés un à un, 5 contrôles, 2 avertissements, « Fichier conforme ».
+    2. « exemple rempli » (vrai contrôle du serveur) : chaque contrôle affiché en cours à son tour, « 22 erreurs à corriger », pas de Prévisualiser, « Importer le fichier corrigé » et « Réinitialiser la session » présents.
+    3. Réinitialisation depuis l'étape 2 : retour à l'étape 1, aucun fichier côté navigateur, `DELETE` envoyé, import et fichier temporaire supprimés côté serveur.
+    4. Fichier .txt : « Format attendu : .xlsx », aucun appel.
+    5. Prévisualisation d'un fichier ORION conforme : « 1 / 14 vus » à « 6 / 14 vus », stepper de 7 % à 43 %.
+    6. « Valider l'importation » : phases 1 à 5 dans l'ordre (0 → 100 %), confirmation, « Ouvrir la bibliothèque » ; projet PREPARATION et audit sensible, profil ADMIN.
+  - Liste dépendante du modèle Excel non vérifiée dans Excel même : relue par ExcelJS et par le serveur.
+
 ## 3. Écarts connus
 
 ### 3.1 Écarts par rapport aux briefs
