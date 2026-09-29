@@ -465,3 +465,13 @@ Vérification des éléments de la vue d'ensemble face au serveur. Conformes : d
 - Vue d'ensemble, « À traiter » : item ambré « N compte(s) : e-mail différent du référentiel ».
 - `admin-api.js` : `toUser` lit `emailReferentiel` (`refMail`) ; `applyRefMail` appelle `POST /accounts/:id/referential-email` et met à jour la fenêtre ouverte ; le chargement `ov` reprend `EMAIL_MISMATCH`.
 - Cloche : notification « E-mail différent du référentiel : … » fournie par le serveur.
+
+## Bibliothèque des projets : version 1c, Liste et fiche (30/09/2026)
+
+- `ProjetsBiblio.dc.html` remplacé par la maquette `Projets 1c.dc.html` (visuel et textes repris tels quels) : en-tête propre (PROJETS, titre, sous-titre, « Initialiser un projet »), tuile Liste (filtres avec compteurs, recherche, 7 projets par page, pagination) et tuile Fiche, toutes deux de 660 px, l'une sous l'autre sous environ 900 px.
+- Écarts à la maquette, nécessaires à l'intégration :
+  - données : prop `projects` si fournie, sinon liste du serveur (`bindBiblio`, `GET /api/admin/projects`, date du serveur) ; le jeu de démonstration (`jeu`) n'est pas repris ;
+  - pendant le chargement, ni « Aucun projet ne correspond. » ni « Sélectionnez un projet. » ;
+  - « Ouvrir » et Entrée mènent au Cockpit du projet (`./RISE Cockpit.dc.html?project=CODE`) ; la maquette n'ouvrait par Entrée qu'avec un `onOpen` ;
+  - styles globaux de la maquette (liens, champs, focus) limités à l'écran pour ne pas modifier le reste de la Console.
+- `Console Admin.dc.html` : l'en-tête de page de la Console est masqué sur cette page (l'écran porte le sien, comme Snapshots) ; hauteur réservée 900 px.

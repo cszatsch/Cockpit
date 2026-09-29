@@ -7,68 +7,116 @@
 </head>
 <body>
 <x-dc>
-<div style="display:flex;flex-direction:column;gap:16px" data-screen-label="Bibliothèque des projets">
-  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-    <div role="tablist" aria-label="Statut" style="display:inline-flex;gap:2px;padding:3px;border-radius:11px;background:#e5edeb"><sc-for list="{{ seg }}" as="o" hint-placeholder-count="4"><button role="tab" aria-selected="{{ o.on }}" onClick="{{ o.pick }}" style="{{ o.st }}">{{ o.l }}<span style="font-size:11px;font-weight:700;color:#8a9aa6">{{ o.n }}</span></button></sc-for></div>
-    <span style="flex:1"></span>
-    <input value="{{ q }}" onChange="{{ setQ }}" placeholder="Code, nom ou client" aria-label="Rechercher un projet" style="height:36px;width:240px;padding:0 12px;border:1px solid #d3dedb;border-radius:10px;background:#fff;font:inherit;font-size:12.5px;outline:none" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.15)">
-    <button onClick="{{ newP }}" style="height:36px;padding:0 16px;border:0;border-radius:10px;background:linear-gradient(90deg,#f7a41c,#f0752b);font:inherit;font-size:12.5px;font-weight:800;cursor:pointer;white-space:nowrap">+ Initialiser un projet</button>
-  </div>
-  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px">
-    <sc-for list="{{ cards }}" as="p" hint-placeholder-count="4">
-      <div style="{{ p.card }}">
-        <div style="display:flex;align-items:flex-start;gap:12px">
-          <span style="{{ p.badge }}">{{ p.code }}</span>
-          <div style="flex:1;min-width:0"><div style="font-weight:800;font-size:14.5px;line-height:1.3">{{ p.name }}</div><div style="font-size:12px;color:#5c7280;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.client }}</div></div>
-          <span style="{{ p.pill }}">{{ p.stL }}</span>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:6px">
-          <div style="display:flex;justify-content:space-between;font-size:12px;color:#5c7280"><span style="white-space:nowrap">{{ p.phase }}</span><span style="white-space:nowrap">{{ p.dates }}</span></div>
-          <div style="position:relative;height:6px;border-radius:3px;background:#eef3f2;overflow:hidden"><div style="{{ p.bar }}"></div><div style="{{ p.today }}"></div></div>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px"><sc-for list="{{ p.kpis }}" as="k" hint-placeholder-count="4"><div style="display:flex;flex-direction:column;gap:1px"><span style="font-size:16px;font-weight:800;font-variant-numeric:tabular-nums">{{ k.v }}</span><span style="font-size:11px;color:#8a9aa6;white-space:nowrap">{{ k.l }}</span></div></sc-for></div>
-        <div style="display:flex;align-items:center;gap:8px;border-top:1px solid #f1f5f4;padding-top:12px;font-size:12px;color:#5c7280">
-          <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.foot }}</span>
-          <sc-if value="{{ p.isNew }}" hint-placeholder-val="{{ false }}"><span style="height:20px;padding:0 7px;border-radius:999px;background:#fff1dc;color:#9a5a0c;font-size:10.5px;font-weight:800;display:inline-flex;align-items:center">Nouveau</span></sc-if>
-          <!-- API : lien « Ouvrir » vers le Cockpit du projet (?project=CODE) -->
-          <a href="{{ p.href }}" style="height:30px;padding:0 11px;border-radius:9px;background:#10233a;color:#fff;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;white-space:nowrap">Ouvrir</a>
-        </div>
+<helmet><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700;1,800&amp;display=swap" rel="stylesheet"><style>
+html,body{margin:0;background:#f2f6f5;font-family:'Plus Jakarta Sans',sans-serif;color:#10233a;-webkit-font-smoothing:antialiased;font-size:13px}
+[data-screen-label="Bibliothèque des projets"]{font-family:'Plus Jakarta Sans',sans-serif;color:#10233a;-webkit-font-smoothing:antialiased;font-size:13px}
+[data-screen-label="Bibliothèque des projets"] *{box-sizing:border-box}
+[data-screen-label="Bibliothèque des projets"] a{color:#1d8f86;text-decoration:none}[data-screen-label="Bibliothèque des projets"] a:hover{color:#146b64}
+[data-screen-label="Bibliothèque des projets"] input,[data-screen-label="Bibliothèque des projets"] button{font:inherit;color:inherit}[data-screen-label="Bibliothèque des projets"] input:focus{outline:none}
+[data-screen-label="Bibliothèque des projets"] button:focus-visible,[data-screen-label="Bibliothèque des projets"] a:focus-visible,[data-screen-label="Bibliothèque des projets"] [role="button"]:focus-visible{outline:2px solid #1d8f86;outline-offset:2px}
+[data-screen-label="Bibliothèque des projets"] input::placeholder{color:#a3b3bb}
+</style></helmet>
+
+<div data-screen-label="Bibliothèque des projets" style="max-width:1200px;margin:0 auto;padding:40px clamp(18px,4vw,40px) 56px;display:flex;flex-direction:column;gap:28px">
+  <header style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:16px 24px">
+    <div style="flex:1 1 360px;min-width:0"><div style="font-size:11px;font-weight:800;letter-spacing:.18em;color:#1d8f86">PROJETS</div><h1 style="margin:6px 0 0;font-size:34px;line-height:1.05;font-weight:800;font-style:italic;letter-spacing:-.035em">Bibliothèque des projets</h1><div style="font-size:13.5px;color:#43586a;margin-top:8px">Tous les projets de la plateforme, leur état et leur référentiel.</div></div>
+    <button type="button" onClick="{{ newP }}" style="height:42px;padding:0 18px 0 12px;border:0;border-radius:12px;background:linear-gradient(90deg,#f7a41c,#f0752b);color:#10233a;font-size:13px;font-weight:800;display:inline-flex;align-items:center;gap:9px;cursor:pointer;white-space:nowrap;flex:none;box-shadow:0 10px 24px -14px rgba(240,117,43,.8),inset 0 1px 0 rgba(255,255,255,.35);transition:transform .15s" style-hover="transform:translateY(-1px)"><span style="width:22px;height:22px;border-radius:7px;background:rgba(16,35,58,.12);display:grid;place-items:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></span>Initialiser un projet</button>
+  </header>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr));gap:20px">
+    <section aria-label="Liste des projets" onKeyDown="{{ listKey }}" style="height:660px;min-width:0;background:#fff;border:1px solid #e1e9e7;border-radius:20px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 1px 2px rgba(16,35,58,.04)">
+      <div style="height:112px;flex:none;padding:14px 16px;display:flex;flex-direction:column;justify-content:center;gap:10px;border-bottom:1px solid #eef3f2">
+        <div role="tablist" aria-label="Statut" style="display:flex;gap:2px;padding:3px;border-radius:11px;background:#eef3f2"><sc-for list="{{ seg }}" as="o" hint-placeholder-count="4"><button type="button" role="tab" aria-selected="{{ o.on }}" onClick="{{ o.pick }}" style="{{ o.st }}">{{ o.l }}<span style="{{ o.nSt }}">{{ o.n }}</span></button></sc-for></div>
+        <label style="width:100%;flex:none;min-width:0;height:36px;display:flex;align-items:center;gap:8px;padding:0 8px 0 11px;border-radius:10px;background:#f3f7f6;cursor:text" style-focus-within="box-shadow:0 0 0 2px #1d8f86"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8a9aa6" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg><input value="{{ q }}" onChange="{{ setQ }}" onKeyDown="{{ qKey }}" placeholder="Code, nom ou client" aria-label="Rechercher un projet" style="flex:1;min-width:0;border:0;background:transparent;font-size:12.5px;font-weight:500"><sc-if value="{{ hasQ }}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{ clearQ }}" aria-label="Effacer la recherche" style="width:20px;height:20px;border:0;border-radius:6px;background:#e3ebe9;color:#43586a;font-size:12px;line-height:1;cursor:pointer;display:grid;place-items:center;flex:none">×</button></sc-if></label>
       </div>
-    </sc-for>
+      <div style="flex:1;min-height:0;overflow:hidden;padding:8px;display:flex;flex-direction:column;gap:2px">
+        <sc-for list="{{ rows }}" as="r" hint-placeholder-count="1">
+          <div role="button" tabIndex="0" aria-current="{{ r.cur }}" onClick="{{ r.pick }}" style="{{ r.st }}" style-hover="background:#f5f8f7">
+            <span style="{{ r.badge }}">{{ r.code }}</span>
+            <div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:6px;min-width:0"><span style="font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</span><sc-if value="{{ r.isNew }}" hint-placeholder-val="{{ false }}"><span style="height:18px;padding:0 6px;border-radius:999px;background:#fff1dc;color:#9a5a0c;font-size:10px;font-weight:800;display:inline-flex;align-items:center;flex:none">Nouveau</span></sc-if></div><div style="font-size:11.5px;color:#5c7280;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.client }}</div></div>
+            <div style="width:74px;flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:5px"><span style="font-size:11.5px;font-weight:800;font-variant-numeric:tabular-nums;color:#43586a">{{ r.pct }}</span><span style="width:74px;height:4px;border-radius:2px;background:#edf2f1;overflow:hidden"><span style="{{ r.mini }}"></span></span></div>
+            <span title="{{ r.stL }}" aria-label="{{ r.stL }}" style="{{ r.dot }}"></span>
+          </div>
+        </sc-for>
+        <sc-if value="{{ noMatch }}" hint-placeholder-val="{{ false }}"><div style="margin:auto;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center"><span style="font-size:13.5px;font-weight:700">Aucun projet ne correspond.</span><button type="button" onClick="{{ reset }}" style="height:30px;padding:0 12px;border:1px solid #d3dedb;border-radius:9px;background:#fff;font-size:12px;font-weight:600;cursor:pointer" style-hover="border-color:#10233a">Réinitialiser les filtres</button></div></sc-if>
+      </div>
+      <div style="height:52px;flex:none;padding:0 12px 0 18px;display:flex;align-items:center;gap:8px;border-top:1px solid #eef3f2;background:#fbfdfc">
+        <span style="font-size:11.5px;color:#8a9aa6;font-variant-numeric:tabular-nums">{{ range }}</span><span style="flex:1"></span>
+        <sc-if value="{{ multi }}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{ prev }}" disabled="{{ atFirst }}" aria-label="Page précédente" style="{{ prevSt }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"></path></svg></button><span style="font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;min-width:44px;text-align:center">{{ pageL }}</span><button type="button" onClick="{{ next }}" disabled="{{ atLast }}" aria-label="Page suivante" style="{{ nextSt }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></button></sc-if>
+      </div>
+    </section>
+
+    <section aria-label="Fiche projet" style="height:660px;min-width:0;background:#fff;border:1px solid #e1e9e7;border-radius:20px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 1px 2px rgba(16,35,58,.04)">
+      <sc-if value="{{ has }}" hint-placeholder-val="{{ true }}">
+        <div style="height:68px;flex:none;padding:0 22px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #eef3f2"><span style="{{ d.pill }}"><span style="{{ d.pillDot }}"></span>{{ d.stL }}</span><span style="flex:1"></span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8a9aa6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M4 8h3l2-3h6l2 3h3v11H4z"></path><circle cx="12" cy="13" r="3.5"></circle></svg><span style="{{ d.footSt }}">{{ d.foot }}</span></div>
+        <div style="flex:1;min-height:0;padding:28px 28px 0;display:flex;flex-direction:column">
+          <div style="display:flex;align-items:center;gap:16px"><span style="{{ d.badge }}">{{ d.code }}</span><div style="min-width:0"><div style="font-size:21px;line-height:1.2;font-weight:800;letter-spacing:-.02em;text-wrap:pretty;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">{{ d.name }}</div><div style="font-size:13px;color:#5c7280;margin-top:4px">{{ d.client }}</div></div></div>
+          <div style="margin-top:36px;display:flex;align-items:flex-end;gap:12px"><div style="flex:1;min-width:0"><div style="font-size:10.5px;font-weight:800;letter-spacing:.12em;color:#8a9aa6">PHASE EN COURS</div><div style="font-size:16px;font-weight:800;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ d.phase }}</div></div><div style="text-align:right;flex:none"><div style="font-size:30px;line-height:1;font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums">{{ d.pct }}</div><div style="font-size:11px;color:#8a9aa6;margin-top:4px">du calendrier écoulé</div></div></div>
+          <div style="margin-top:14px;position:relative;height:10px;border-radius:5px;background:#edf2f1"><div style="{{ d.bar }}"></div><sc-for list="{{ d.ticks }}" as="t" hint-placeholder-count="0"><span style="{{ t }}"></span></sc-for><sc-if value="{{ d.showToday }}" hint-placeholder-val="{{ false }}"><span title="Aujourd’hui" style="{{ d.today }}"></span></sc-if></div>
+          <div style="margin-top:8px;display:flex;justify-content:space-between;font-size:12px;color:#5c7280;font-variant-numeric:tabular-nums"><span>{{ d.from }}</span><span>{{ d.to }}</span></div>
+          <div style="margin-top:32px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid #eef3f2;border-bottom:1px solid #eef3f2"><sc-for list="{{ d.kpis }}" as="k" hint-placeholder-count="4"><div style="{{ k.st }}"><span style="font-size:28px;line-height:1;font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums">{{ k.v }}</span><span style="font-size:12px;color:#5c7280">{{ k.l }}</span></div></sc-for></div>
+        </div>
+        <div style="height:76px;flex:none;padding:0 22px;display:flex;align-items:center;justify-content:flex-end;border-top:1px solid #eef3f2;background:#fbfdfc"><a href="{{ d.href }}" onClick="{{ d.open }}" style="height:42px;padding:0 16px 0 20px;border-radius:12px;background:#10233a;color:#fff;font-size:13.5px;font-weight:700;display:inline-flex;align-items:center;gap:10px;transition:background .15s" style-hover="background:#1d3654;color:#fff">Ouvrir<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#3dd6c6" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></a></div>
+      </sc-if>
+      <sc-if value="{{ none }}" hint-placeholder-val="{{ false }}"><div style="margin:auto;color:#8a9aa6">Sélectionnez un projet.</div></sc-if>
+    </section>
   </div>
-  <sc-if value="{{ empty }}" hint-placeholder-val="{{ false }}"><div style="padding:48px;text-align:center;color:#5c7280">Aucun projet ne correspond.</div></sc-if>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;1100px&quot;,&quot;height&quot;:&quot;720px&quot;},&quot;imported&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;any[]&quot;},&quot;onNew&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;()=&gt;void&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;1200px&quot;,&quot;height&quot;:&quot;900px&quot;},&quot;projects&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{code,name,client,st:'actif'|'prep'|'clos',phase,start:Date,end:Date,k:[number,number,number,number],snap,health:'ok'|'warn'|'neu'}[]&quot;},&quot;imported&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;any[]&quot;},&quot;today&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Date&quot;},&quot;openHref&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;onOpen&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(p)=&gt;void&quot;},&quot;onNew&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;()=&gt;void&quot;}}">
 class Component extends DCLogic {
-  state = { st: 'tous', q: '' };
-  // API : liste des projets lue sur /api/admin/projects (admin-api.js, dans state.api) ; rien en mode démonstration.
-  componentDidMount() { import('./admin-api.js').then(m => m.bindBiblio(this)).catch(e => console.warn('admin-api', e)); }
+  state = { st: 'tous', q: '', sel: 0, page: 0 };
+  // API : liste des projets lue sur /api/admin/projects (admin-api.js → bindBiblio, dans state.api) ; aucune donnée de démonstration.
+  componentDidMount() { if (!Array.isArray(this.props.projects)) import('./admin-api.js').then(m => m.bindBiblio(this)).catch(e => console.warn('admin-api', e)); }
+  // « Ouvrir » : Cockpit du projet choisi (?project=CODE).
+  href(p) { return (this.props.openHref ?? './RISE Cockpit.dc.html') + '?project=' + encodeURIComponent(p.code); }
+  open(p) { if (this.props.onOpen) this.props.onOpen(p); else window.location.href = this.href(p); }
   renderVals() {
-    const S = this.state, D = (y, m, d) => new Date(y, m - 1, d), today = S.apiToday || D(2026, 9, 26); // démonstration : 26/09/2026 ; API : date du serveur (bindBiblio)
-    const base = this.state.api || [ // API : cartes du serveur, sinon projets de démonstration
-      { code: 'RISE', name: 'RISE — Implémentation Brand X + CRM', client: 'AMC Corp', st: 'actif', phase: 'Deploy · Recette utilisateur', start: D(2023, 6, 1), end: D(2028, 6, 30), k: [4, 6, 8, 38], snap: 'snapshot hier 04:00', health: 'warn' },
-      { code: 'ATLAS', name: 'ATLAS — Refonte finance groupe', client: 'AMC Corp · Direction financière', st: 'actif', phase: 'Realize · Paramétrage', start: D(2025, 2, 3), end: D(2027, 6, 30), k: [2, 5, 6, 24], snap: 'snapshot du 18 sept.', health: 'ok' },
-      { code: 'HORIZON', name: 'HORIZON — Portail fournisseurs', client: 'AMC Corp · Achats', st: 'actif', phase: 'Explore · Ateliers', start: D(2026, 3, 2), end: D(2027, 12, 17), k: [1, 5, 4, 15], snap: 'snapshot du 18 sept.', health: 'ok' },
-      { code: 'NOVA', name: 'NOVA — Data platform', client: 'AMC Corp · DSI', st: 'prep', phase: 'Préparation', start: D(2026, 11, 2), end: D(2028, 3, 31), k: [1, 4, 3, 9], snap: 'aucun snapshot', health: 'neu' },
-      { code: 'ORBIT', name: 'ORBIT — Migration messagerie', client: 'AMC Corp · IT', st: 'clos', phase: 'Clos le 30 juin 2025', start: D(2024, 1, 8), end: D(2025, 6, 30), k: [1, 4, 3, 11], snap: 'archivé', health: 'neu' }];
+    const S = this.state, today = this.props.today instanceof Date ? this.props.today : S.apiToday || new Date(), PER = 7; // API : date du serveur
+    const src = Array.isArray(this.props.projects) ? this.props.projects : S.api || [], loaded = Array.isArray(this.props.projects) || !!S.api;
     const imp = (this.props.imported || []).map(p => ({ code: p.code, name: p.name, client: p.client, st: 'prep', phase: 'Préparation · importé', start: p.start instanceof Date ? p.start : null, end: p.end instanceof Date ? p.end : null, k: [p.counts.lots, p.counts.phases, p.counts.chantiers, p.counts.personnes], snap: 'importé depuis ' + p.file, health: 'neu', isNew: true }));
-    const all = [...imp, ...base], cnt = k => all.filter(p => k === 'tous' || p.st === k).length, q = S.q.trim().toLowerCase();
-    const SL = { actif: ['Actif', '#e6f4f2', '#146b64'], prep: ['Préparation', '#fff1dc', '#9a5a0c'], clos: ['Clos', '#eef2f1', '#5c7280'] };
+    const all = [...imp, ...src], q = S.q.trim().toLowerCase(), cnt = k => all.filter(p => k === 'tous' || p.st === k).length;
+    const SL = { actif: ['Actif', '#e6f4f2', '#146b64', '#1d8f86'], prep: ['En préparation', '#fff1dc', '#9a5a0c', '#f0a24a'], clos: ['Clos', '#eef2f1', '#5c7280', '#a9b7bf'] };
+    const HC = { ok: '#1d8f86', warn: '#e89a2c', neu: '#b3c0c7' };
+    const fmt = d => d ? d.toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }).replace('.', '') : '—';
     const list = all.filter(p => (S.st === 'tous' || p.st === S.st) && (!q || (p.code + ' ' + p.name + ' ' + p.client).toLowerCase().includes(q)));
-    const HC = { ok: '#1d8f86', warn: '#e39a2d', neu: '#8a9aa6' }, fmt = d => d ? d.toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }) : '—';
+    const pages = Math.max(1, Math.ceil(list.length / PER)), sel = Math.min(S.sel, Math.max(0, list.length - 1)), pg = Math.min(Math.floor(sel / PER), pages - 1, S.page);
+    const badge = (p, w, r, f) => 'width:' + w + 'px;height:' + w + 'px;border-radius:' + r + 'px;display:grid;place-items:center;flex:none;font-size:' + (p.code.length > 5 ? f - 2.5 : p.code.length > 4 ? f - 1.5 : f) + 'px;font-weight:800;letter-spacing:.04em;overflow:hidden;color:' + (p.isNew && p.st !== 'clos' ? '#10233a' : '#fff') + ';background:' + (p.st === 'clos' ? '#b3c0c7' : p.isNew ? 'linear-gradient(135deg,#f7a41c,#f0752b)' : 'linear-gradient(160deg,#1a3350,#10233a)') + ';box-shadow:inset 0 1px 0 rgba(255,255,255,.12)';
+    const en = p => { const ok = p.start && p.end, span = ok ? p.end - p.start : 1, pr = ok ? Math.max(0, Math.min(1, (today - p.start) / span)) : 0; return { pr, ok, col: p.st === 'clos' ? HC.neu : HC[p.health] || HC.neu, s: SL[p.st] }; };
+    const go = i => this.setState({ sel: i, page: Math.floor(i / PER) });
+    const nav = dis => 'width:30px;height:30px;border-radius:9px;border:1px solid #e1e9e7;background:#fff;color:#10233a;display:grid;place-items:center;' + (dis ? 'opacity:.35;cursor:default' : 'cursor:pointer');
+    const d = list[sel];
+    let det = {};
+    if (d) { const e = en(d), ticks = [];
+      if (e.ok) for (let y = d.start.getFullYear() + 1; y <= d.end.getFullYear(); y++) { const x = (new Date(y, 0, 1) - d.start) / (d.end - d.start); if (x > .02 && x < .98) ticks.push('position:absolute;top:1px;bottom:1px;width:2px;margin-left:-1px;border-radius:1px;left:' + (x * 100).toFixed(2) + '%;background:' + (x <= e.pr ? 'rgba(255,255,255,.55)' : '#dbe4e2')); }
+      det = { code: d.code, name: d.name, client: d.client, phase: d.phase, stL: e.s[0], foot: d.snap, from: fmt(d.start), to: fmt(d.end), ticks, pct: e.ok ? Math.round(e.pr * 100) + ' %' : '—', showToday: e.ok && e.pr > 0 && e.pr < 1,
+        href: this.href(d), open: ev => { if (this.props.onOpen) { ev.preventDefault(); this.props.onOpen(d); } },
+        badge: badge(d, 60, 17, 13),
+        pill: 'height:24px;padding:0 10px 0 8px;border-radius:999px;font-size:11.5px;font-weight:800;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;flex:none;background:' + e.s[1] + ';color:' + e.s[2],
+        pillDot: 'width:6px;height:6px;border-radius:50%;background:' + e.s[3] + (d.st === 'actif' ? ';box-shadow:0 0 0 3px rgba(29,143,134,.18)' : ''),
+        footSt: 'font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;color:' + (d.snap === 'aucun snapshot' ? '#8a9aa6' : '#43586a'),
+        bar: 'position:absolute;left:0;top:0;bottom:0;border-radius:inherit;width:' + (e.pr * 100).toFixed(2) + '%;background:' + e.col,
+        today: 'position:absolute;top:-5px;width:3px;height:20px;margin-left:-1.5px;border-radius:2px;background:#10233a;box-shadow:0 0 0 2px #fff;left:' + (e.pr * 100).toFixed(2) + '%',
+        kpis: [['Lots', d.k[0]], ['Phases', d.k[1]], ['Chantiers', d.k[2]], ['Personnes', d.k[3]]].map(([l, v], j) => ({ l, v, st: 'padding:22px 0 20px ' + (j ? '20px' : '0') + ';display:flex;flex-direction:column;gap:8px;min-width:0;' + (j ? 'box-shadow:inset 1px 0 0 #eef3f2' : '') })) }; }
     return {
-      seg: [['tous', 'Tous'], ['actif', 'Actifs'], ['prep', 'En préparation'], ['clos', 'Clos']].map(([k, l]) => { const on = S.st === k; return { l, n: cnt(k), on, pick: () => this.setState({ st: k }), st: 'height:32px;padding:0 12px;border-radius:9px;border:0;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;' + (on ? 'background:#fff;color:#10233a;box-shadow:0 1px 2px rgba(16,35,58,.12)' : 'background:transparent;color:#5c7280') }; }),
-      q: S.q, setQ: e => this.setState({ q: e.target.value }), newP: () => this.props.onNew && this.props.onNew(), empty: !list.length,
-      cards: list.map((p, i) => { const pr = p.start && p.end ? Math.max(0, Math.min(1, (today - p.start) / (p.end - p.start))) : 0;
-        // API : href, lien « Ouvrir » vers le Cockpit du projet choisi.
-        return { code: p.code, name: p.name, client: p.client, stL: SL[p.st][0], isNew: !!p.isNew, href: './RISE Cockpit.dc.html?project=' + encodeURIComponent(p.code), phase: p.phase, dates: fmt(p.start) + ' → ' + fmt(p.end), foot: p.snap,
-          kpis: [['Lots', p.k[0]], ['Phases', p.k[1]], ['Chantiers', p.k[2]], ['Personnes', p.k[3]]].map(([l, v]) => ({ l, v })),
-          pill: 'height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:800;display:inline-flex;align-items:center;white-space:nowrap;flex:none;background:' + SL[p.st][1] + ';color:' + SL[p.st][2],
-          badge: 'min-width:50px;height:44px;padding:0 8px;border-radius:13px;display:grid;place-items:center;font-size:11.5px;font-weight:800;letter-spacing:.05em;flex:none;color:#fff;background:' + (p.st === 'clos' ? '#a9b7bf' : p.isNew ? 'linear-gradient(135deg,#f7a41c,#f0752b)' : '#10233a'),
-          bar: 'position:absolute;left:0;top:0;bottom:0;border-radius:3px;width:' + (pr * 100).toFixed(1) + '%;background:' + HC[p.health],
-          today: 'display:none',
-          card: 'background:#fff;border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:14px;animation:rise-in .4s ' + (i * .05) + 's cubic-bezier(.2,.7,.2,1) both;box-shadow:0 0 0 ' + (p.isNew ? '1.5px #f3c47d,0 14px 30px -20px rgba(240,120,40,.5)' : '1px #e1e9e7') + (p.st === 'clos' ? ';opacity:.7' : '') }; })
+      seg: [['tous', 'Tous'], ['actif', 'Actifs'], ['prep', 'En préparation'], ['clos', 'Clos']].map(([k, l]) => { const on = S.st === k, n = cnt(k);
+        return { l, n, on, pick: () => this.setState({ st: k, sel: 0, page: 0 }),
+          nSt: 'min-width:20px;height:18px;padding:0 5px;border-radius:6px;font-size:11px;font-weight:800;font-variant-numeric:tabular-nums;display:grid;place-items:center;' + (on ? 'background:#10233a;color:#fff' : 'background:rgba(16,35,58,.06);color:' + (n ? '#5c7280' : '#a9b7bf')),
+          st: 'flex:1;justify-content:center;height:30px;padding:0 6px 0 10px;gap:6px;font-size:12px;border-radius:9px;border:0;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;white-space:nowrap;transition:background .15s,color .15s;' + (on ? 'background:#fff;color:#10233a;box-shadow:0 1px 2px rgba(16,35,58,.1),0 4px 10px -6px rgba(16,35,58,.18)' : 'background:transparent;color:' + (n ? '#43586a' : '#8a9aa6')) }; }),
+      q: S.q, hasQ: !!S.q, setQ: e => this.setState({ q: e.target.value, sel: 0, page: 0 }), clearQ: () => this.setState({ q: '', sel: 0, page: 0 }),
+      qKey: e => { if (e.key === 'Escape') this.setState({ q: '', sel: 0, page: 0 }); },
+      reset: () => this.setState({ q: '', st: 'tous', sel: 0, page: 0 }),
+      newP: () => this.props.onNew && this.props.onNew(),
+      listKey: e => { if (!list.length || e.target.tagName === 'INPUT') return; if (e.key === 'ArrowDown') { e.preventDefault(); go(Math.min(list.length - 1, sel + 1)); } if (e.key === 'ArrowUp') { e.preventDefault(); go(Math.max(0, sel - 1)); } if (e.key === 'Enter' && d) { e.preventDefault(); this.open(d); } },
+      noMatch: loaded && !list.length, has: !!d, none: loaded && !d, d: det,
+      multi: pages > 1, pageL: (pg + 1) + ' / ' + pages, atFirst: pg === 0, atLast: pg === pages - 1, prevSt: nav(pg === 0), nextSt: nav(pg === pages - 1),
+      prev: () => pg > 0 && go((pg - 1) * PER), next: () => pg < pages - 1 && go((pg + 1) * PER),
+      range: list.length ? (pg * PER + 1) + '–' + Math.min(list.length, (pg + 1) * PER) + ' sur ' + list.length + ' projet' + (list.length > 1 ? 's' : '') : '0 projet',
+      rows: list.slice(pg * PER, pg * PER + PER).map((p, j) => { const i = pg * PER + j, on = i === sel, e = en(p);
+        return { code: p.code, name: p.name, client: p.client, isNew: !!p.isNew, stL: e.s[0], pct: e.ok ? Math.round(e.pr * 100) + ' %' : '—', cur: on ? 'true' : 'false', pick: () => go(i), badge: badge(p, 40, 12, 10),
+          mini: 'display:block;height:100%;border-radius:2px;width:' + (e.pr * 100).toFixed(1) + '%;background:' + e.col,
+          dot: 'width:8px;height:8px;border-radius:50%;flex:none;background:' + e.s[3],
+          st: 'height:62px;flex:none;padding:0 12px;border-radius:12px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:background .15s;' + (on ? 'background:#f0f6f5;box-shadow:inset 0 0 0 1px #d5e6e2' : 'background:transparent') + (p.st === 'clos' ? ';opacity:.7' : '') }; })
     };
   }
 }
