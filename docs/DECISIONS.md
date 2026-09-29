@@ -637,3 +637,15 @@ Option 1 retenue par le commanditaire. Le PMO renseigne le référentiel dans le
 | Droits à l'acceptation | L'acceptation applique la proposition du référentiel (Responsable des chantiers dont la personne est responsable, Lecteur de ses autres chantiers de rattachement), au lieu d'un compte sans droit annoncé « profil Lecteur ». La demande côté Administrateur l'indique : « … · Responsable de C2 · Lecteur de C3 » (ou « aucun chantier au référentiel : droits à compléter »). | `approveInvitation` (`accounts.controller.ts`), `proposalText`, texte `INVITE` (`inbox.service.ts`) |
 | Retour au PMO | Acceptation ou refus : notification dans la cloche du Cockpit du demandeur, en plus de l'e-mail. | `tellRequester` (`inbox.service.ts`) |
 | E-mail indisponible | Un e-mail d'invitation qui ne part pas n'annule plus rien : le compte est créé (réponse `inviteSent: false`, `inviteError`), la Console le dit (« utilisez Relancer ») ; la notification au PMO le dit aussi ; l'e-mail au demandeur est facultatif. Avant, la Console affichait « Erreur interne », un nouvel essai tombait en doublon et le PMO n'était pas prévenu. | `createAccount`, `tellRequester` |
+
+## Personne désactivée dans le référentiel : accès à retirer, signalé dans « À traiter » et la cloche, sans e-mail (29/09/2026)
+
+Choix du commanditaire : le Cockpit ne coupe aucun droit ; la Console signale, l'Administrateur décide.
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Règle | Personne inactive (`Person.active = false`) : aucune habilitation proposée ; tout accès encore ouvert sur le projet (PMO, Responsable, Lecteur) est un écart « accès à retirer ». Sans accès restant, rien n'est signalé. | `gaps(…, inactive)` → `accesARetirer`, `gapText` (`src/domain/habilitation-proposals.ts`), `ProfilesService.referential` |
+| Vue d'ensemble | « À traiter », niveau erreur (rouge) : « N accès à retirer : personne(s) désactivée(s) dans le référentiel », détail « Karim Benali (RISE : désactivé dans le référentiel, accès encore ouvert (Responsable de C5, C6)) ». Séparé des écarts ordinaires (ambre). | `ACCESS_TO_REMOVE` (`console.controller.ts`), chargement `ov` (`admin-api.js`) |
+| Cloche de la Console | Une notification ERR par compte et par projet (clé `access:{compte}:{projet}`), « Accès à retirer : Karim Benali », action « Voir les utilisateurs » ; aucun e-mail. Réconciliée à chaque lecture : elle se ferme d'elle-même quand l'accès est retiré, le compte suspendu, ou la personne réactivée. | `sync()` (`inbox.service.ts`) |
+| Fenêtre de l'utilisateur | Encart du référentiel en rouge « Accès encore ouvert : à retirer. », bouton « Retirer l'accès » (détache le projet, effectif à l'enregistrement). Pour couper tout accès d'un compte sans autre projet : le suspendre depuis la liste (message d'erreur explicite). | `uDlgVals`, `habErr` (`Console Admin.dc.html`) |
+| Comptes concernés | Actifs et invités ; un compte suspendu n'a plus d'accès, il n'est pas signalé. | filtre `status in ACTIVE, INVITED` |

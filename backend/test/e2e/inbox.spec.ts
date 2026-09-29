@@ -93,7 +93,7 @@ describe('Console — notifications de l’administrateur', () => {
     const acc = await t.db.account.findFirstOrThrow({ where: { email: { equals: pr.email, mode: 'insensitive' } } });
     const view = (await admin.get(`/api/admin/accounts/${acc.id}`).expect(200)).body;
     expect(view.habilitations.find((h: any) => h.code === 'RISE')).toMatchObject({ pmo: false, responsable: owned, lecteur: lec });
-    expect(view.referentiel[0].ecarts).toEqual({ responsableManquant: [], responsableEnTrop: [], lectureManquante: [] });
+    expect(view.referentiel[0].ecarts).toEqual({ responsableManquant: [], responsableEnTrop: [], lectureManquante: [], accesARetirer: [] });
     // Retour au PMO : notification dans la cloche du Cockpit.
     const bell = (await pmo.get('/api/me/notifications').expect(200)).body;
     expect(bell.items.some((x: any) => /Demande d’invitation acceptée/.test(x.title))).toBe(true);

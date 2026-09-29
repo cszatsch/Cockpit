@@ -12,6 +12,8 @@ export interface ReferentialEntry {
   projectId: string;
   personId: string;
   personne: string;
+  /** Personne active dans le référentiel (sinon : aucun droit proposé, accès à retirer). */
+  active: boolean;
   responsable: string[];
   rattachement: string[];
   proposition: Proposal;
@@ -51,7 +53,7 @@ export class ProfilesService {
     const rights = await this.rightsOf(accounts, db);
     const persons = await db.person.findMany({
       where: { OR: [{ email: { in: accounts.map((a) => a.email.toLowerCase()), mode: 'insensitive' } }, { id: { in: accounts.map((a) => a.personId).filter(Boolean) as string[] } }] },
-      select: { id: true, projectId: true, email: true, firstName: true, lastName: true, wsIds: true },
+      select: { id: true, projectId: true, email: true, firstName: true, lastName: true, wsIds: true, active: true },
     });
     const owned = await db.workstream.findMany({ where: { ownerId: { in: persons.map((p) => p.id) } }, select: { id: true, projectId: true, ownerId: true } });
     const codes = Object.fromEntries((await db.project.findMany({ select: { id: true, code: true } })).map((p) => [p.id, p.code]));
@@ -62,8 +64,9 @@ export class ProfilesService {
         a.id,
         mine.map((p) => {
           const own = owned.filter((w) => w.ownerId === p.id && w.projectId === p.projectId).map((w) => w.id);
-          const prop = proposal(own, p.wsIds);
-          return { code: codes[p.projectId] ?? p.projectId, projectId: p.projectId, personId: p.id, personne: `${p.firstName} ${p.lastName}`.trim(), responsable: prop.responsable, rattachement: [...p.wsIds].sort(), proposition: prop, ecarts: gaps(prop, rights.get(a.id)!.projects[p.projectId]) };
+          // Personne désactivée dans le référentiel : aucun droit proposé.
+          const prop = p.active ? proposal(own, p.wsIds) : proposal([], []);
+          return { code: codes[p.projectId] ?? p.projectId, projectId: p.projectId, personId: p.id, personne: `${p.firstName} ${p.lastName}`.trim(), active: p.active, responsable: [...own].sort(), rattachement: [...p.wsIds].sort(), proposition: prop, ecarts: gaps(prop, rights.get(a.id)!.projects[p.projectId], !p.active) };
         }),
       );
     }

@@ -690,7 +690,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
                         <sc-if value="{{ r.hasRef }}" hint-placeholder-val="{{ false }}">
                           <div style="{{ r.refSt }}">
                             <div style="flex:1;min-width:0"><div style="font-size:10.5px;font-weight:800;letter-spacing:.12em;color:#5c7280">RÉFÉRENTIEL DU PROJET</div><div style="font-size:12.5px;color:#10233a;line-height:1.45;margin-top:2px;text-wrap:pretty">{{ r.refTxt }}</div><sc-if value="{{ r.refDiff }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;color:#8a5a12;font-weight:600;margin-top:3px">{{ r.refDiffL }}</div></sc-if></div>
-                            <sc-if value="{{ r.refCan }}" hint-placeholder-val="{{ false }}"><button onClick="{{ r.refApply }}" title="Cocher Responsable et Lecteur selon le référentiel (ajustable avant d’enregistrer)" style="height:32px;padding:0 12px;border:0;border-radius:9px;background:#10233a;color:#fff;font:inherit;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;flex:none" style-hover="background:#1b3552">Appliquer</button></sc-if>
+                            <sc-if value="{{ r.refCan }}" hint-placeholder-val="{{ false }}"><button onClick="{{ r.refApply }}" title="{{ r.refBtnT }}" style="{{ r.refBtnSt }}">{{ r.refBtn }}</button></sc-if>
                             <sc-if value="{{ r.refOk }}" hint-placeholder-val="{{ false }}"><span style="height:26px;padding:0 10px;border-radius:999px;background:#e6f3f2;color:#146b64;font-size:11.5px;font-weight:800;display:inline-flex;align-items:center;white-space:nowrap;flex:none">Conforme</span></sc-if>
                           </div>
                         </sc-if>
@@ -1209,7 +1209,7 @@ class Component extends DCLogic {
   /** Chantiers d'un projet : ceux du serveur (apiWs), sinon ceux du référentiel de démonstration pour RISE. */
   wsList(code) { const S = this.state; if (S.apiWs) return S.apiWs[code] || []; return code === 'RISE' ? ((S.rd && S.rd.model && S.rd.model.WORKSTREAM.rows) || []).map(w => ({ id: w.id, n: w.cells[1] })) : []; }
   /** Contrôle des habilitations saisies : au moins un accès ; chaque projet rattaché a PMO ou au moins un chantier. */
-  habErr(f) { const pr = f.pr || []; if (!pr.length && !f.adm) return 'Rattachez au moins un projet, ou cochez Administrateur de la plateforme.';
+  habErr(f) { const pr = f.pr || []; if (!pr.length && !f.adm) return 'Rattachez au moins un projet, ou cochez Administrateur de la plateforme. Pour couper tout accès, suspendez le compte depuis la liste.';
     const bad = pr.filter(code => { const h = (f.hab || {})[code] || {}; return !h.pmo && !Object.keys(h.ws || {}).length; }); return bad.length ? bad.join(', ') + ' : choisissez PMO ou au moins un chantier.' : ''; }
   saveUser() {
     const S = this.state, f = S.form, fe = {}, id = S.dlg.id;
@@ -1433,11 +1433,15 @@ class Component extends DCLogic {
       // Référentiel du projet (compte lié à une personne) : proposition Responsable / Lecteur, comparée à la saisie en cours.
       const rf = u0 && u0.ref ? u0.ref[code] : null, cur = h.ws || {}, prop = rf ? Object.fromEntries([...rf.lec.map(w => [w, 'lec']), ...rf.resp.map(w => [w, 'resp'])]) : {};
       const same = !!rf && !h.pmo && Object.keys(prop).length === Object.keys(cur).length && Object.keys(prop).every(w => cur[w] === prop[w]), hasProp = !!rf && (rf.resp.length + rf.lec.length) > 0;
-      const refTxt = rf ? rf.personne + ' : ' + ([rf.resp.length ? 'responsable de ' + rf.resp.join(', ') : '', rf.att.length ? 'rattaché à ' + rf.att.join(', ') : ''].filter(Boolean).join(' · ') || 'aucun chantier renseigné') + '.' : '';
+      // Personne désactivée dans le référentiel : aucun accès proposé ; le projet rattaché est un accès à retirer.
+      const off = !!rf && rf.active === false;
+      const refTxt = !rf ? '' : off ? rf.personne + ' est désactivé(e) dans le référentiel : aucun accès proposé sur ' + code + '.' : rf.personne + ' : ' + ([rf.resp.length ? 'responsable de ' + rf.resp.join(', ') : '', rf.att.length ? 'rattaché à ' + rf.att.join(', ') : ''].filter(Boolean).join(' · ') || 'aucun chantier renseigné') + '.';
       return { code, name: NM[code] || '', on, tog, aria: (on ? 'Retirer ' : 'Rattacher ') + code, modeAria: 'Profil sur ' + code,
-        hasRef: !!rf, refTxt, refCan: hasProp && !same && !h.pmo, refOk: same && hasProp, refDiff: hasProp && !same && !h.pmo, refDiffL: 'La saisie diffère du référentiel.',
-        refSt: 'display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:11px;' + (hasProp && !same && !h.pmo ? 'background:#fffaf1;box-shadow:inset 0 0 0 1px #f3dcae' : 'background:#f3f8f7'),
-        refApply: () => setHab(code, x => { x.pmo = false; x.ws = { ...prop }; }),
+        hasRef: !!rf, refTxt, refCan: off || (hasProp && !same && !h.pmo), refOk: !off && same && hasProp, refDiff: off || (hasProp && !same && !h.pmo), refDiffL: off ? 'Accès encore ouvert : à retirer.' : 'La saisie diffère du référentiel.',
+        refSt: 'display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:11px;' + (off ? 'background:#fdecec;box-shadow:inset 0 0 0 1px #f0c9c9' : hasProp && !same && !h.pmo ? 'background:#fffaf1;box-shadow:inset 0 0 0 1px #f3dcae' : 'background:#f3f8f7'),
+        refBtn: off ? 'Retirer l’accès' : 'Appliquer', refBtnT: off ? 'Détacher ' + code + ' de ce compte (effectif à l’enregistrement)' : 'Cocher Responsable et Lecteur selon le référentiel (ajustable avant d’enregistrer)',
+        refBtnSt: 'height:32px;padding:0 12px;border:0;border-radius:9px;color:#fff;font:inherit;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;flex:none;background:' + (off ? '#b23b3b' : '#10233a'),
+        refApply: off ? () => this.setState(s => ({ form: { ...s.form, pr: s.form.pr.filter(x => x !== code) }, fe: { ...s.fe, pr: '' } })) : () => setHab(code, x => { x.pmo = false; x.ws = { ...prop }; }),
         modes: [['pmo', 'PMO'], ['ws', 'Chantiers']].map(([k, l]) => { const m = k === 'pmo' ? h.pmo : !h.pmo; return { l, on: m, st: seg(m), pick: () => setHab(code, x => { x.pmo = k === 'pmo'; }) }; }),
         showWs: on && !h.pmo && wsl.length > 0, showNote: on && (h.pmo || !wsl.length || empty),
         sum: !on ? 'Non rattaché' : h.pmo ? 'PMO · tous les chantiers' : nR + nL ? [nR && 'Responsable de ' + nR + ' chantier' + (nR > 1 ? 's' : ''), nL && 'Lecteur de ' + nL].filter(Boolean).join(' · ') : 'Aucun chantier',

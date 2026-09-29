@@ -129,7 +129,19 @@ export class ConsoleController implements OnModuleInit {
     // Écarts entre le référentiel (responsables de chantier, chantiers de rattachement) et les droits réels des comptes.
     const live = await this.prisma.account.findMany({ where: { status: { in: ['ACTIVE', 'INVITED'] } } });
     const ref = await this.profiles.referential(live);
-    const off = live.map((a) => ({ a, items: (ref.get(a.id) ?? []).filter((e) => gapCount(e.ecarts) > 0) })).filter((x) => x.items.length);
+    const off = live.map((a) => ({ a, items: (ref.get(a.id) ?? []).filter((e) => gapCount(e.ecarts) > 0 && !e.ecarts.accesARetirer.length) })).filter((x) => x.items.length);
+    // Personnes désactivées dans le référentiel dont le compte (actif ou invité) garde un accès : à retirer.
+    const toRemove = live.flatMap((a) => (ref.get(a.id) ?? []).filter((e) => e.ecarts.accesARetirer.length).map((e) => ({ a, e })));
+    if (toRemove.length) {
+      attention.push({
+        level: 'error',
+        kind: 'ACCESS_TO_REMOVE',
+        title: `${toRemove.length} accès à retirer : personne${toRemove.length > 1 ? 's' : ''} désactivée${toRemove.length > 1 ? 's' : ''} dans le référentiel`,
+        detail: toRemove.slice(0, 3).map((x) => `${x.a.fullName} (${gapText(x.e.code, x.e.ecarts)})`).join(' · ') + (toRemove.length > 3 ? '…' : ''),
+        target: 'users',
+        ids: [...new Set(toRemove.map((x) => x.a.id))],
+      });
+    }
     if (off.length) {
       attention.push({
         level: 'warn',

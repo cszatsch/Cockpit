@@ -107,7 +107,7 @@ export class AccountsController {
         profiles: PROFILE_ORDER.filter((p) => has[p]),
         admin: r.admin,
         habilitations,
-        referentiel: (referential.get(a.id) ?? []).map(({ code, personne, responsable, rattachement, proposition, ecarts }) => ({ code, personne, responsable, rattachement, proposition, ecarts })),
+        referentiel: (referential.get(a.id) ?? []).map(({ code, personne, active, responsable, rattachement, proposition, ecarts }) => ({ code, personne, active, responsable, rattachement, proposition, ecarts })),
         projectCodes: a.projects.map((p) => codes[p.projectId] ?? p.projectId),
         lastLoginAt: a.lastLoginAt,
         lastLoginDays: a.lastLoginAt ? Math.floor((now - a.lastLoginAt.getTime()) / DAY) : null,

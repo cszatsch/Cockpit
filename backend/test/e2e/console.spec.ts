@@ -2,6 +2,7 @@ import request from 'supertest';
 import { setup, TestCtx, WHO } from '../helpers';
 import { buildWorkbook, validAtlas } from '../fixtures/excel';
 import { StorageService } from '../../src/core/storage.service';
+import { MailerService } from '../../src/core/mailer.service';
 
 const A = '/api/admin';
 
@@ -100,14 +101,14 @@ describe('Console Admin — critères d’acceptation (brief Console § 13)', ()
       // Karim Benali (u6, personne p06) : responsable de C5 et C6 dans le référentiel ; on ne lui laisse que C5.
       await c.put(`${A}/accounts/u6/habilitations`, { admin: false, projects: [{ code: 'RISE', responsable: ['C5'], lecteur: [] }] }).expect(200);
       const k = (await c.get(`${A}/accounts/u6`).expect(200)).body;
-      expect(k.referentiel).toEqual([{ code: 'RISE', personne: 'Karim Benali', responsable: ['C5', 'C6'], rattachement: ['C5'], proposition: { responsable: ['C5', 'C6'], lecteur: [] }, ecarts: { responsableManquant: ['C6'], responsableEnTrop: [], lectureManquante: [] } }]);
+      expect(k.referentiel).toEqual([{ code: 'RISE', personne: 'Karim Benali', active: true, responsable: ['C5', 'C6'], rattachement: ['C5'], proposition: { responsable: ['C5', 'C6'], lecteur: [] }, ecarts: { responsableManquant: ['C6'], responsableEnTrop: [], lectureManquante: [], accesARetirer: [] } }]);
       const gap = () => c.get(`${A}/overview`).expect(200).then((r) => r.body.attention.find((a: any) => a.kind === 'REFERENTIAL_GAP'));
       expect((await gap()).detail).toContain('Karim Benali (RISE : Responsable de C6 non attribué)');
       expect((await gap()).ids).toContain('u6');
 
       // L'Administrateur applique la proposition : plus d'écart pour ce compte. Rien n'a changé tant qu'il n'a pas enregistré.
       await c.put(`${A}/accounts/u6/habilitations`, { admin: false, projects: [{ code: 'RISE', responsable: ['C5', 'C6'], lecteur: [] }] }).expect(200);
-      expect((await c.get(`${A}/accounts/u6`).expect(200)).body.referentiel[0].ecarts).toEqual({ responsableManquant: [], responsableEnTrop: [], lectureManquante: [] });
+      expect((await c.get(`${A}/accounts/u6`).expect(200)).body.referentiel[0].ecarts).toEqual({ responsableManquant: [], responsableEnTrop: [], lectureManquante: [], accesARetirer: [] });
       expect(((await gap())?.ids ?? []).includes('u6')).toBe(false);
 
       // Le PMO confie C6 à Sophie Marchand (p07, compte u7) : les droits ne bougent pas, l'écart est signalé pour les deux.
@@ -119,6 +120,33 @@ describe('Console Admin — critères d’acceptation (brief Console § 13)', ()
 
       // Remise en état.
       await (await t.as(WHO.pmo)).patch('/api/projects/RISE/workstreams/C6', { ownerId: 'p06' }).expect(200);
+      await c.put(`${A}/accounts/u6/habilitations`, { admin: false, projects: [{ code: 'RISE', responsable: ['C5', 'C6'], lecteur: [] }] }).expect(200);
+    });
+  });
+
+  describe('2 quater. Personne désactivée dans le référentiel : accès à retirer', () => {
+    it('signalée dans « À traiter » et dans la cloche (sans e-mail) ; l’alerte se ferme au retrait des droits', async () => {
+      const c = await t.as(WHO.admin);
+      const mailer = t.app.get(MailerService) as any;
+      const mails0 = (mailer.outbox ?? []).length;
+      // Le PMO désactive Karim Benali (p06, compte u6 : Responsable de C5 et C6).
+      await (await t.as(WHO.pmo)).patch('/api/projects/RISE/persons/p06', { active: false }).expect(200);
+      const k = (await c.get(`${A}/accounts/u6`).expect(200)).body.referentiel[0];
+      expect(k).toMatchObject({ active: false, proposition: { responsable: [], lecteur: [] }, ecarts: { accesARetirer: ['Responsable de C5, C6'] } });
+      const ov = (await c.get(`${A}/overview`).expect(200)).body.attention;
+      expect(ov.find((a: any) => a.kind === 'ACCESS_TO_REMOVE')).toMatchObject({ level: 'error', ids: ['u6'], detail: 'Karim Benali (RISE : désactivé dans le référentiel, accès encore ouvert (Responsable de C5, C6))' });
+      expect((ov.find((a: any) => a.kind === 'REFERENTIAL_GAP')?.ids ?? []).includes('u6')).toBe(false);
+      const bell = () => c.get(`${A}/notifications`).expect(200).then((r) => r.body.items.find((i: any) => i.title === 'Accès à retirer : Karim Benali'));
+      expect(await bell()).toMatchObject({ type: 'err', target: 'users', text: expect.stringContaining('Désactivé dans le référentiel RISE, compte actif avec Responsable de C5, C6') });
+      expect((mailer.outbox ?? []).length).toBe(mails0); // aucun e-mail
+
+      // L'Administrateur retire l'accès (RISE détaché) : plus d'alerte, ni dans « À traiter » ni dans la cloche.
+      await c.put(`${A}/accounts/u6/habilitations`, { admin: false, projects: [] }).expect(200);
+      expect((await c.get(`${A}/overview`).expect(200)).body.attention.find((a: any) => a.kind === 'ACCESS_TO_REMOVE')).toBeUndefined();
+      expect(await bell()).toBeUndefined();
+
+      // Remise en état.
+      await (await t.as(WHO.pmo)).patch('/api/projects/RISE/persons/p06', { active: true }).expect(200);
       await c.put(`${A}/accounts/u6/habilitations`, { admin: false, projects: [{ code: 'RISE', responsable: ['C5', 'C6'], lecteur: [] }] }).expect(200);
     });
   });

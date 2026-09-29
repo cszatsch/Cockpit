@@ -17,6 +17,7 @@ import { ApiCardsService } from './api-cards.service';
 import { daysLeft, expiryLevel, QUOTA_WARN_PCT } from '../domain/api-cards';
 import { widgetName } from '../domain/widgets';
 import { proposal, proposalText } from '../domain/habilitation-proposals';
+import { ProfilesService } from './profiles.service';
 
 /** Délai d'annulation d'une décision (spécification NOTIFICATIONS § 3) : l'action ne s'exécute qu'ensuite. */
 export const DECISION_UNDO_MS = 10_000;
@@ -58,6 +59,7 @@ export class InboxService implements OnModuleInit, OnModuleDestroy {
     private readonly accounts: AccountsController,
     private readonly data: DataController,
     private readonly apiCards: ApiCardsService,
+    private readonly profiles: ProfilesService,
   ) {}
 
   onModuleInit() {
@@ -111,7 +113,7 @@ export class InboxService implements OnModuleInit, OnModuleDestroy {
 
   async sync(): Promise<void> {
     const wanted: Wanted[] = [];
-    const prefixes = ['provider:', 'import:', 'snapshot:', 'budget:', 'invite:', 'module:', 'apicard:'];
+    const prefixes = ['provider:', 'import:', 'snapshot:', 'budget:', 'invite:', 'module:', 'apicard:', 'access:'];
 
     // Clés API refusées (dernier test en échec) : incident jusqu'à un test réussi.
     const [providers, models, asg] = await Promise.all([this.prisma.provider.findMany(), this.prisma.aiModel.findMany(), this.prisma.modelAssignment.findMany()]);
@@ -165,6 +167,24 @@ export class InboxService implements OnModuleInit, OnModuleDestroy {
         target: 'conso',
         level: t.status,
       });
+    }
+
+    // Accès à retirer : personne désactivée dans le référentiel dont le compte (actif ou invité) garde des droits sur le
+    // projet. Incident jusqu'au retrait des droits sur ce projet ou à la suspension du compte (décision du 29/09/2026).
+    const live = await this.prisma.account.findMany({ where: { status: { in: ['ACTIVE', 'INVITED'] } } });
+    const ref = await this.profiles.referential(live);
+    for (const a of live) {
+      for (const e of (ref.get(a.id) ?? []).filter((x) => x.ecarts.accesARetirer.length)) {
+        wanted.push({
+          key: `access:${a.id}:${e.projectId}`,
+          kind: 'ERR',
+          title: `Accès à retirer : ${a.fullName}`,
+          text: `Désactivé dans le référentiel ${e.code}, compte ${a.status === 'ACTIVE' ? 'actif' : 'invité'} avec ${e.ecarts.accesARetirer.join(' · ')}. Retirez ses droits sur ${e.code} ou suspendez le compte.`,
+          actLabel: 'Voir les utilisateurs',
+          target: 'users',
+          meta: { name: a.fullName, project: e.code },
+        });
+      }
     }
 
     // Demandes d'invitation (PMO) et d'activation de module en attente.

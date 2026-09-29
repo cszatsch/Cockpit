@@ -446,3 +446,10 @@ Vérification des éléments de la vue d'ensemble face au serveur. Conformes : d
 ## Invitation : e-mail non parti (29/09/2026)
 
 - `admin-api.js` : si l'e-mail d'invitation n'a pas pu partir, la Console le dit (« Compte créé, mais l'e-mail d'invitation n'a pas pu partir (…) : utilisez « Relancer » ») au lieu d'une erreur, et le compte apparaît dans la liste.
+
+## Personne désactivée dans le référentiel : accès à retirer (29/09/2026)
+
+- `Console Admin.dc.html`, fenêtre d'un utilisateur : si la personne du référentiel est désactivée, l'encart passe en rouge (« … est désactivé(e) dans le référentiel : aucun accès proposé sur RISE. », « Accès encore ouvert : à retirer. ») et le bouton devient « Retirer l'accès » (détache le projet). Le message « Rattachez au moins un projet… » ajoute « Pour couper tout accès, suspendez le compte depuis la liste. »
+- Vue d'ensemble, « À traiter » : item rouge « N accès à retirer : personne(s) désactivée(s) dans le référentiel ».
+- `admin-api.js` : `toUser` lit `referentiel[].active` ; le chargement `ov` reprend `ACCESS_TO_REMOVE` (ton erreur).
+- Cloche : notification « Accès à retirer : … » fournie par le serveur, sans changement de l'écran.
