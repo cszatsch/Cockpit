@@ -193,17 +193,13 @@ async function main() {
     await goMenu(pa, 'Notifications et alertes');
     await pa.getByRole('switch', { name: 'Désactiver Synthèse hebdomadaire du projet' }).click();
     await settle(pa, 800);
-    // d) snapshot sans libellé → 400 affiché ; puis snapshot libellé
+    // d) snapshot libellé (vue Snapshots.dc.html : sans libellé, la vue envoie « Capture manuelle ») ; progression suivie
     await goMenu(pa, 'Snapshots');
     await pa.getByRole('button', { name: 'Créer un snapshot' }).first().click();
-    await pa.getByRole('button', { name: 'Capturer maintenant' }).click();
-    await pa.waitForTimeout(900);
-    const t400 = await pa.evaluate(() => document.body.innerText);
-    check('snapshot manuel sans libellé refusé (400 affiché)', /libellé obligatoire/.test(t400));
-    await pa.getByRole('button', { name: 'Créer un snapshot' }).first().click();
     await pa.getByPlaceholder('Ex. Avant le 20e COPIL').fill('Test e2e navigateur');
-    await pa.getByRole('button', { name: 'Capturer maintenant' }).click();
-    await pa.waitForFunction(() => document.body.innerText.includes('Test e2e navigateur'), null, { timeout: 20000 }).catch(() => {});
+    await pa.getByRole('button', { name: 'Lancer la capture' }).click();
+    await pa.waitForFunction(() => document.body.innerText.includes('Snapshot « Test e2e navigateur » créé sur RISE'), null, { timeout: 20000 }).catch(() => {});
+    check('snapshot manuel capturé par le serveur, ajouté à la liste', (await pa.evaluate(() => document.body.innerText)).includes('Test e2e navigateur'));
     await settle(pa, 600);
     // e) planification : changer l'heure (par projet)
     // f) importer un projet (ORION) : contrôle, prévisualisation, validation

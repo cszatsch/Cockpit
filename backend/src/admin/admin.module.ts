@@ -20,7 +20,6 @@ import { SnapshotsService } from './snapshots.service';
 
 /** API de la Console Admin : `/api/admin/…`, réservée au profil ADMIN (RG1, RG7, RG16). */
 @Module({
-  // Ordre significatif : routes fixes (`snapshots/compare`) avant routes paramétrées (`snapshots/:id`).
   controllers: [ConsoleController, AccountsController, AiController, RulesController, SmtpController, DataController, SkillsController, PersonaController, InboxController, ApiCardsController, WidgetCatalogueController, WidgetProxyController, WidgetFeedsController, WidgetNewsController],
   // AccountsController et DataController servent aussi de fournisseurs : les décisions du tiroir de notifications
   // reprennent exactement le traitement des pages Utilisateurs et Modules.

@@ -140,32 +140,106 @@ describe('Console Admin — critères d’acceptation (brief Console § 13)', ()
     });
   });
 
-  describe('6. Snapshots', () => {
-    it('snapshot manuel sans libellé → 400 ; avec libellé : capturé', async () => {
+  describe('6. Snapshots (vue Snapshots.dc.html)', () => {
+    /** Capture `{ libelle }` : 202 et un job, suivi jusqu'à la fin ; renvoie le snapshot créé. */
+    const capture = async (c: any, libelle: string) => {
+      const r = await c.post(`${A}/projects/RISE/snapshots`, { libelle }).expect(202);
+      expect(r.body).toMatchObject({ jobId: expect.any(String), statut: 'en_cours', progression: 0 });
+      for (let i = 0; i < 100; i++) {
+        const j = await c.get(`${A}/snapshot-jobs/${r.body.jobId}`).expect(200);
+        expect(j.body.progression).toBeGreaterThanOrEqual(0);
+        if (j.body.statut === 'termine') {
+          expect(j.body.progression).toBe(100);
+          return j.body.snapshot;
+        }
+        expect(j.body.statut).toBe('en_cours');
+        await new Promise((ok) => setTimeout(ok, 20));
+      }
+      throw new Error('capture non terminée');
+    };
+
+    it('liste : date ISO, type auto | man, libellé, auteur, compteurs (démonstration : effectifs de chaque état)', async () => {
+      const c = await t.as(WHO.admin);
+      const l = await c.get(`${A}/projects/RISE/snapshots`).expect(200);
+      expect(l.body[0]).toEqual({ id: 'r1', date: expect.stringMatching(/^2026-07-17T02:00:00/), type: 'auto', libelle: '', auteur: '', compteurs: { taches: 138, jalons: 12, risques: 17, livrables: 34 } });
+      expect(l.body.find((s: any) => s.id === 'r9')).toMatchObject({ type: 'man', libelle: 'Avant le 19e COPIL', auteur: 'Julien Morel', compteurs: { taches: 140, jalons: 12, risques: 19, livrables: 35 } });
+      expect((await c.get(`${A}/projects/NOVA/snapshots`).expect(200)).body).toEqual([]);
+    });
+
+    it('capture : libellé obligatoire (400), job suivi jusqu’à 100 %, trace dans l’audit', async () => {
       const c = await t.as(WHO.admin);
       await c.post(`${A}/projects/RISE/snapshots`, {}).expect(400);
-      const s = await c.post(`${A}/projects/RISE/snapshots`, { label: 'Avant import' }).expect(201);
-      expect(s.body).toMatchObject({ kind: 'MANUAL', status: 'DONE', hasContent: true });
+      await c.post(`${A}/projects/RISE/snapshots`, { label: 'Ancien format' }).expect(400);
+      const s = await capture(c, 'Avant import');
+      expect(s).toMatchObject({ type: 'man', libelle: 'Avant import', auteur: expect.any(String), compteurs: { taches: expect.any(Number), risques: expect.any(Number) } });
+      const a = await t.db.auditEntry.findFirst({ where: { entityType: 'Snapshot', entityId: s.id } });
+      expect(a).toMatchObject({ action: 'Création d’un snapshot manuel', profileUsed: 'ADMIN', accountId: 'u1', projectId: 'RISE' });
+      await c.get(`${A}/snapshot-jobs/inconnu`).expect(404);
+    });
+
+    it('diff : champs et valeurs en clair ; démonstration consolidée (première valeur → dernière valeur)', async () => {
+      const c = await t.as(WHO.admin);
+      const s = await capture(c, 'Avant diff');
+      await (await t.as(WHO.pmo)).patch('/api/projects/RISE/risks/R07', { p: 4 }).expect(200);
       await (await t.as(WHO.pmo)).patch('/api/projects/RISE/risks/R07', { p: 5 }).expect(200);
       await (await t.as(WHO.pmo)).post('/api/projects/RISE/risks', { n: 'Nouveau', p: 1, i: 1, owner: 'p01', wsId: 'C8' }).expect(201);
-      const s2 = await c.post(`${A}/projects/RISE/snapshots`, { label: 'Après' }).expect(201);
-      const cmp = await c.get(`${A}/snapshots/compare?a=${s.body.id}&b=${s2.body.id}`).expect(200);
-      expect(cmp.body.changes).toEqual(expect.arrayContaining([expect.objectContaining({ op: 'mod', entity: 'Risque', field: 'p', before: 3, after: 5 }), expect.objectContaining({ op: 'add', entity: 'Risque' })]));
-      const demo = await c.get(`${A}/snapshots/compare?a=r1&b=r9`).expect(200);
-      expect(demo.body.summary).toMatchObject({ add: expect.any(Number), mod: expect.any(Number), del: expect.any(Number) });
-      expect(demo.body.summary.del).toBeGreaterThan(0);
+      const s2 = await capture(c, 'Après diff');
+      const d = await c.get(`${A}/snapshots/${s2.id}/diff/${s.id}`).expect(200); // ordre indifférent : A est le plus ancien
+      expect(d.body).toEqual(expect.arrayContaining([{ type: 'mod', entite: 'Risque', nom: expect.stringMatching(/^R07 · /), champ: 'Probabilité', avant: '3', apres: '5' }, { type: 'add', entite: 'Risque', nom: expect.stringMatching(/Nouveau$/) }]));
+      expect(d.body.filter((x: any) => x.type === 'mod' && x.entite === 'Risque')).toHaveLength(1);
+
+      const demo = (await c.get(`${A}/snapshots/r1/diff/r10`).expect(200)).body;
+      expect(demo.filter((x: any) => x.nom === 'Migration du référentiel fournisseurs' && x.champ === 'Avancement')).toEqual([{ type: 'mod', entite: 'Action', nom: 'Migration du référentiel fournisseurs', champ: 'Avancement', avant: '20 %', apres: '65 %' }]);
+      // Ajouté puis modifié : reste un ajout.
+      expect(demo.filter((x: any) => x.nom === 'Dossier d’architecture v2')).toEqual([{ type: 'add', entite: 'Livrable', nom: 'Dossier d’architecture v2' }]);
+      expect({ add: demo.filter((x: any) => x.type === 'add').length, mod: demo.filter((x: any) => x.type === 'mod').length, del: demo.filter((x: any) => x.type === 'del').length }).toEqual({ add: 8, mod: 10, del: 3 });
+      await c.get(`${A}/snapshots/r1/diff/a1`).expect(404); // projets différents
+      const mixed = await c.get(`${A}/snapshots/r10/diff/${s.id}`).expect(409); // démonstration face à une vraie capture
+      expect(mixed.body.message).toMatch(/snapshot de démonstration/);
     });
-    it('planification par projet : fréquence mensuelle acceptée (option de la console)', async () => {
+
+    it('restauration : sauvegarde de sécurité d’abord, état rétabli (liaisons comprises), audit critique ; démonstration refusée', async () => {
       const c = await t.as(WHO.admin);
-      const r = await c.put(`${A}/projects/ATLAS/snapshot-schedule`, { enabled: true, frequency: 'Mensuelle', hour: '02:00', retention: '6 mois' }).expect(200);
-      expect(r.body).toMatchObject({ projectId: 'ATLAS', frequency: 'Mensuelle', hour: '02:00', retention: '6 mois' });
+      await (await t.as(WHO.pmo)).post(`${A}/snapshots/r9/restore`).expect(403);
+      const demo = await c.post(`${A}/snapshots/r9/restore`).expect(409);
+      expect(demo.body).toMatchObject({ code: 'SNAPSHOT_SANS_CONTENU', message: 'Ce snapshot de démonstration ne contient pas de données : restauration impossible' });
+      await c.post(`${A}/snapshots/inconnu/restore`).expect(404);
+
+      const links = () => t.db.workstreamPhase.count({ where: { ws: { projectId: 'RISE' } } });
+      const before = { risks: await t.db.risk.count({ where: { projectId: 'RISE' } }), p: (await t.db.risk.findUniqueOrThrow({ where: { id: 'R07' } })).p, links: await links() };
+      const s = await capture(c, 'Point de restauration');
+      await (await t.as(WHO.pmo)).patch('/api/projects/RISE/risks/R07', { p: 1 }).expect(200);
+      await (await t.as(WHO.pmo)).post('/api/projects/RISE/risks', { n: 'À effacer', p: 1, i: 1, owner: 'p01', wsId: 'C8' }).expect(201);
+
+      const r = await c.post(`${A}/snapshots/${s.id}/restore`).expect(200);
+      expect(r.body.restaure).toMatchObject({ id: s.id });
+      expect(r.body.securite).toMatchObject({ type: 'man', libelle: 'Sécurité avant restauration', auteur: 'Système' });
+      expect({ risks: await t.db.risk.count({ where: { projectId: 'RISE' } }), p: (await t.db.risk.findUniqueOrThrow({ where: { id: 'R07' } })).p, links: await links() }).toEqual(before);
+      // La sauvegarde contient l'état d'avant la restauration : on peut revenir en arrière.
+      const back = (await c.get(`${A}/snapshots/${s.id}/diff/${r.body.securite.id}`).expect(200)).body;
+      expect(back).toEqual(expect.arrayContaining([expect.objectContaining({ type: 'add', entite: 'Risque', nom: expect.stringMatching(/À effacer$/) }), expect.objectContaining({ type: 'mod', champ: 'Probabilité', apres: '1' })]));
+      const a = await t.db.auditEntry.findFirst({ where: { action: 'Restauration d’un snapshot' }, orderBy: { at: 'desc' } });
+      expect(a).toMatchObject({ severity: 'CRITICAL', profileUsed: 'ADMIN', accountId: 'u1', projectId: 'RISE', entityId: s.id });
+      expect(a!.newValue).toMatchObject({ projet: 'RISE', snapshot: s.id, securite: r.body.securite.id });
+    });
+
+    it('planification : prochaine capture calculée par le serveur, chaque modification tracée (avant, après)', async () => {
+      const c = await t.as(WHO.admin);
+      // Maintenant : samedi 26 sept. 2026, 10 h 24 à Paris.
+      const w = await c.put(`${A}/projects/ATLAS/snapshot-schedule`, { enabled: true, frequency: 'Hebdomadaire', day: 'Vendredi', hour: '04:00' }).expect(200);
+      expect(w.body).toMatchObject({ projectId: 'ATLAS', day: 'vendredi', prochaineCapture: '2026-10-02T02:00:00.000Z', maintenant: '2026-09-26T08:24:00.000Z' });
+      const m = await c.put(`${A}/projects/ATLAS/snapshot-schedule`, { frequency: 'Mensuelle', hour: '02:00', retention: '6 mois' }).expect(200);
+      expect(m.body).toMatchObject({ frequency: 'Mensuelle', hour: '02:00', retention: '6 mois', prochaineCapture: '2026-10-01T00:00:00.000Z' });
+      const q = await c.put(`${A}/projects/ATLAS/snapshot-schedule`, { frequency: 'Quotidienne', hour: '22:00' }).expect(200);
+      expect(q.body.prochaineCapture).toBe('2026-09-26T20:00:00.000Z');
+      const off = await c.put(`${A}/projects/ATLAS/snapshot-schedule`, { enabled: false }).expect(200);
+      expect(off.body.prochaineCapture).toBeNull();
+      expect((await c.get(`${A}/projects/ATLAS/snapshot-schedule`).expect(200)).body).toMatchObject({ enabled: false, frequency: 'Quotidienne', prochaineCapture: null });
       await c.put(`${A}/projects/ATLAS/snapshot-schedule`, { frequency: 'Annuelle' }).expect(400);
-    });
-    it('aucune route de restauration n’existe', async () => {
-      const c = await t.as(WHO.admin);
-      await c.post(`${A}/snapshots/r9/restore`).expect(404);
-      const doc = await t.http().get('/api/docs/openapi.json').expect(200);
-      expect(Object.keys(doc.body.paths).some((p) => /restor/i.test(p))).toBe(false);
+      await c.put(`${A}/projects/ATLAS/snapshot-schedule`, { day: 'jeudredi' }).expect(400);
+      const audit = await t.db.auditEntry.findMany({ where: { entityType: 'SnapshotSchedule', entityId: 'ATLAS' }, orderBy: { at: 'asc' } });
+      expect(audit.slice(-4).map((x) => x.action)).toEqual(['Modification de la planification des snapshots', 'Modification de la planification des snapshots', 'Modification de la planification des snapshots', 'Désactivation des snapshots planifiés']);
+      expect(audit[audit.length - 1]).toMatchObject({ profileUsed: 'ADMIN', accountId: 'u1', projectId: 'ATLAS', newValue: { projet: 'ATLAS', avant: { enabled: true, frequency: 'Quotidienne', hour: '22:00' }, apres: { enabled: false } } });
     });
   });
 

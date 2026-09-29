@@ -347,3 +347,13 @@ Les captures sont écrites dans `OUT` (par défaut `<tmp>/rise-console-e2e`).
     - au survol d'un fichier, l'éventail s'ouvre, la feuille du dessus se soulève et son en-tête passe en sarcelle ;
     - pendant la lecture, l'indicateur de chargement tourne sur la feuille du dessus.
   - textes, bouton, message d'erreur et bandeau « Onglets attendus » inchangés.
+
+## Snapshots : vue livrée branchée sur le serveur (29/09/2026)
+
+- `Snapshots.dc.html` : nouvelle vue livrée, design et textes inchangés ; `support.js` identique à celui en place. Trois points d'accroche :
+  - `componentDidMount` charge `admin-api.js` (`bindSnapshots`) ;
+  - onglets : `this.projects` (projets du serveur) à la place de la liste fixe ;
+  - date du jour : `this.now()` (heure du serveur) à la place de `nowD()`, figée au 29 sept.
+  Sans serveur, la simulation d'origine reste.
+- `admin-api.js` : `bindSnapshots` remplace les données simulées (`SEED`, `EV`, `BASE`, `counts`, `diff`, `capture`, `nextCap`, restauration, planification) par les routes du serveur. La confirmation de restauration de la vue est gardée ; seul son bouton « Restaurer » appelle le serveur. `toSnap` lit le nouveau format de liste ; l'ancienne capture et l'ancienne comparaison de la Console sont retirées ; la vue d'ensemble relit la planification.
+- `Console Admin.dc.html` : la page Snapshots intègre la vue (`<dc-import name="Snapshots">`) à la place de l'ancienne section ; en-tête générique masqué (la vue a le sien, mêmes textes).

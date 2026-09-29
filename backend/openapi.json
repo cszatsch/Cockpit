@@ -7495,7 +7495,35 @@
           }
         ],
         "responses": {
-          "201": {
+          "202": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · données et diffusion"
+        ]
+      }
+    },
+    "/api/admin/snapshot-jobs/{jobId}": {
+      "get": {
+        "operationId": "DataController_captureJob",
+        "parameters": [
+          {
+            "name": "jobId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
             "description": ""
           }
         },
@@ -7563,14 +7591,14 @@
         ]
       }
     },
-    "/api/admin/snapshots/compare": {
+    "/api/admin/snapshots/{a}/diff/{b}": {
       "get": {
-        "operationId": "DataController_compare",
+        "operationId": "DataController_diff",
         "parameters": [
           {
             "name": "a",
             "required": true,
-            "in": "query",
+            "in": "path",
             "schema": {
               "type": "string"
             }
@@ -7578,7 +7606,35 @@
           {
             "name": "b",
             "required": true,
-            "in": "query",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · données et diffusion"
+        ]
+      }
+    },
+    "/api/admin/snapshots/{id}/restore": {
+      "post": {
+        "operationId": "DataController_restore",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
             "schema": {
               "type": "string"
             }

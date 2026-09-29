@@ -18,6 +18,7 @@ import type { UploadedBlob } from '../import/import.controller';
 import { MAX_IMPORT_BYTES } from '../import/import.controller';
 import { adminCtx } from './profiles.service';
 import { SnapshotsService } from './snapshots.service';
+import { counters, nextSnapshotRun } from '../domain/snapshots';
 
 /** Nombre de jours pendant lesquels un projet importé porte le badge « Nouveau ». */
 export const NEW_PROJECT_DAYS = 7;
@@ -44,61 +45,108 @@ export class DataController {
     return p;
   }
 
-  // ───────────── Snapshots ─────────────
+  // ───────────── Snapshots (vue Snapshots.dc.html) ─────────────
 
-  private snapView(s: any) {
-    return { id: s.id, projectId: s.projectId, takenAt: s.takenAt, kind: s.kind, label: s.label, takenBy: s.takenBy, status: s.status, stats: s.stats ? { counts: (s.stats as any).counts ?? null, demo: !!(s.stats as any).demo } : null, hasContent: !!s.storageKey };
+  /** Snapshot → élément de la vue : `{ id, date, type: auto|man, libelle, auteur, compteurs }`. */
+  private snapItem(s: any) {
+    return { id: s.id, date: s.takenAt.toISOString(), type: s.kind === 'MANUAL' ? 'man' : 'auto', libelle: s.label ?? '', auteur: s.takenBy ?? '', compteurs: counters((s.stats as any)?.counts) };
   }
 
+  /** Snapshots terminés du projet, du plus ancien au plus récent. */
   @Get('projects/:id/snapshots')
   async listSnapshots(@Param('id') id: string) {
     const p = await this.project(id);
-    return (await this.prisma.snapshot.findMany({ where: { projectId: p.id }, orderBy: { takenAt: 'asc' } })).map((s) => this.snapView(s));
+    return (await this.prisma.snapshot.findMany({ where: { projectId: p.id, status: 'DONE' }, orderBy: { takenAt: 'asc' } })).map((s) => this.snapItem(s));
   }
 
-  /** Snapshot manuel : libellé obligatoire (400), capture asynchrone (statut consultable). */
+  /** Snapshot manuel `{ libelle }` : 202 et un job ; la capture se suit par `GET /snapshot-jobs/{jobId}`. */
   @Post('projects/:id/snapshots')
+  @HttpCode(202)
   async capture(@CurrentActor() actor: Actor, @Param('id') id: string, @Body() body: unknown) {
     const p = await this.project(id);
-    const { label } = parse(z.object({ label: z.string().trim().min(1, 'libellé obligatoire').max(120) }).strict(), body);
+    const { libelle } = parse(z.object({ libelle: z.string().trim().min(1, 'libellé obligatoire').max(120) }).strict(), body);
     const s = await this.prisma.$transaction(async (db) => {
-      const s = await db.snapshot.create({ data: { projectId: p.id, kind: 'MANUAL', label, takenById: actor.accountId, takenBy: actor.fullName, status: 'RUNNING' } });
-      await this.audit.action(db, adminCtx(actor), { action: 'Création d’un snapshot manuel', target: `${p.code} · ${label}`, severity: 'INFO', entityType: 'Snapshot', entityId: s.id });
+      const s = await db.snapshot.create({ data: { projectId: p.id, kind: 'MANUAL', label: libelle, takenById: actor.accountId, takenBy: actor.fullName, status: 'RUNNING' } });
+      await this.audit.action(db, { ...adminCtx(actor), projectId: p.id }, { action: 'Création d’un snapshot manuel', target: `${p.code} · ${libelle}`, severity: 'INFO', entityType: 'Snapshot', entityId: s.id, details: { projet: p.code, libelle } });
       return s;
     });
-    await this.jobs.enqueue('snapshot.capture', { snapshotId: s.id });
-    return this.snapView(await this.prisma.snapshot.findUniqueOrThrow({ where: { id: s.id } }));
+    this.snapshots.startCapture(s.id);
+    return { jobId: s.id, statut: 'en_cours', progression: 0 };
+  }
+
+  /** Avancement réel d'une capture : `{ statut: en_cours|termine|echec, progression, snapshot?, erreur? }`. */
+  @Get('snapshot-jobs/:jobId')
+  async captureJob(@Param('jobId') jobId: string) {
+    const j = await this.snapshots.job(jobId);
+    if (!j) throw notFound('Capture introuvable');
+    return { jobId, statut: j.statut, progression: j.progression, ...(j.statut === 'termine' ? { snapshot: this.snapItem(j.snapshot) } : {}), ...(j.statut === 'echec' ? { erreur: j.erreur } : {}) };
+  }
+
+  /** Planification et prochaine capture, calculée par le serveur (heure de Paris), ou `null` si suspendue. */
+  private schedView(row: { projectId: string; enabled: boolean; frequency: string; day: string; hour: string; retention: string }) {
+    const now = this.today.now();
+    const next = nextSnapshotRun(row, now);
+    return { projectId: row.projectId, enabled: row.enabled, frequency: row.frequency, day: row.day.toLowerCase(), hour: row.hour, retention: row.retention, prochaineCapture: next ? next.toISOString() : null, maintenant: now.toISOString() };
   }
 
   @Get('projects/:id/snapshot-schedule')
   async schedule(@Param('id') id: string) {
     const p = await this.project(id);
-    return (await this.prisma.snapshotSchedule.findUnique({ where: { projectId: p.id } })) ?? { projectId: p.id, enabled: false, frequency: 'Hebdomadaire', day: 'vendredi', hour: '04:00', retention: '12 mois' };
+    return this.schedView((await this.prisma.snapshotSchedule.findUnique({ where: { projectId: p.id } })) ?? { projectId: p.id, enabled: false, frequency: 'Hebdomadaire', day: 'vendredi', hour: '04:00', retention: '12 mois' });
   }
 
+  /** Chaque modification est tracée : administrateur, date, projet, valeurs avant et après. */
   @Put('projects/:id/snapshot-schedule')
   async putSchedule(@CurrentActor() actor: Actor, @Param('id') id: string, @Body() body: unknown) {
     const p = await this.project(id);
     const input = parse(
-      z.object({ enabled: z.boolean(), frequency: z.enum(['Quotidienne', 'Hebdomadaire', 'Mensuelle']), day: z.string().min(3).max(12), hour: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/), retention: z.string().regex(/^\d+\s*(mois|jours?|ans?|semaines?)$/i, 'ex. « 12 mois »') }).partial().strict(),
-      body,
+      z
+        .object({
+          enabled: z.boolean(),
+          frequency: z.enum(['Quotidienne', 'Hebdomadaire', 'Mensuelle']),
+          day: z.enum(['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche']),
+          hour: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+          retention: z.string().regex(/^\d+\s*(mois|jours?|ans?|semaines?)$/i, 'ex. « 12 mois »'),
+        })
+        .partial()
+        .strict(),
+      typeof body === 'object' && body && typeof (body as any).day === 'string' ? { ...(body as object), day: (body as any).day.toLowerCase() } : body,
     );
     const before = await this.prisma.snapshotSchedule.findUnique({ where: { projectId: p.id } });
     const row = await this.prisma.$transaction(async (db) => {
       const row = await db.snapshotSchedule.upsert({ where: { projectId: p.id }, create: { projectId: p.id, ...input }, update: input });
       const toggled = input.enabled !== undefined && input.enabled !== before?.enabled;
-      await this.audit.action(db, adminCtx(actor), { action: toggled ? (input.enabled ? 'Activation des snapshots planifiés' : 'Désactivation des snapshots planifiés') : 'Modification de la planification des snapshots', target: p.code, severity: toggled ? 'SENSITIVE' : 'INFO', entityType: 'SnapshotSchedule', entityId: p.id, details: input });
+      const pick = (r: any) => (r ? { enabled: r.enabled, frequency: r.frequency, day: r.day, hour: r.hour, retention: r.retention } : null);
+      await this.audit.action(db, { ...adminCtx(actor), projectId: p.id }, {
+        action: toggled ? (input.enabled ? 'Activation des snapshots planifiés' : 'Désactivation des snapshots planifiés') : 'Modification de la planification des snapshots',
+        target: p.code,
+        severity: toggled ? 'SENSITIVE' : 'INFO',
+        entityType: 'SnapshotSchedule',
+        entityId: p.id,
+        details: { projet: p.code, avant: pick(before), apres: pick(row) },
+      });
       return row;
     });
-    return row;
+    return this.schedView(row);
   }
 
-  @Get('snapshots/compare')
-  async compare(@Query('a') a?: string, @Query('b') b?: string) {
-    if (!a || !b) throw badRequest('Snapshots à comparer manquants', { a: 'obligatoire', b: 'obligatoire' });
-    const r = await this.snapshots.compare(a, b);
+  /** Écarts de A (le plus ancien des deux) à B, consolidés : `[{ type, entite, nom, champ?, avant?, apres? }]`. */
+  @Get('snapshots/:a/diff/:b')
+  async diff(@Param('a') a: string, @Param('b') b: string) {
+    const r = await this.snapshots.diff(a, b);
     if (!r) throw notFound('Snapshots introuvables ou de projets différents');
     return r;
+  }
+
+  /**
+   * Restauration (critique) : le serveur crée d'abord « Sécurité avant restauration », puis restaure, tout ou rien.
+   * 409 pour un snapshot de démonstration (sans données).
+   */
+  @Post('snapshots/:id/restore')
+  @HttpCode(200)
+  async restore(@CurrentActor() actor: Actor, @Param('id') id: string) {
+    const r = await this.snapshots.restore(id, adminCtx(actor));
+    return { restaure: this.snapItem(r.restored), securite: this.snapItem(r.safety) };
   }
 
   /** Export d'un snapshot (JSON). Action critique tracée. */
@@ -114,12 +162,11 @@ export class DataController {
     res.end(JSON.stringify({ snapshot: { id: s.id, projectId: s.projectId, takenAt: s.takenAt, kind: s.kind, label: s.label }, ...content }, null, 2));
   }
 
-  /** Déclarée après `snapshots/compare` : l'ordre des routes est significatif. */
   @Get('snapshots/:id')
   async snapshot(@Param('id') id: string) {
     const s = await this.prisma.snapshot.findUnique({ where: { id } });
     if (!s) throw notFound('Snapshot introuvable');
-    return this.snapView(s);
+    return { ...this.snapItem(s), statut: s.status };
   }
 
   // ───────────── Modules ─────────────

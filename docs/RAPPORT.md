@@ -128,6 +128,23 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
     6. « Valider l'importation » : phases 1 à 5 dans l'ordre (0 → 100 %), confirmation, « Ouvrir la bibliothèque » ; projet PREPARATION et audit sensible, profil ADMIN.
   - Liste dépendante du modèle Excel non vérifiée dans Excel même : relue par ExcelJS et par le serveur.
 
+- **Snapshots, vue branchée sur le serveur (29/09/2026)** :
+  - Tests e2e (`console.spec.ts` § 6) :
+    - liste au format de la vue ;
+    - capture : libellé obligatoire, job suivi jusqu'à 100 %, audit ;
+    - diff : champs en clair, consolidation, 409 entre démonstration et capture réelle ;
+    - restauration : 403 hors Admin, 409 en démonstration, sauvegarde de sécurité, état rétabli (liaisons comprises), audit critique ;
+    - planification : prochaine capture (hebdomadaire, mensuelle, quotidienne, suspendue), audit avant / après.
+  - Tests unitaires : `test/unit/snapshots.spec.ts` (consolidation, valeurs, compteurs, prochaine capture, changement d'heure).
+  - Recette navigateur (Console sur une base de recette) :
+    1. Changement de projet : liste rechargée, deux plus récents présélectionnés (ATLAS a2 → a3, RISE r9 → r10) ; NOVA : « Aucun snapshot pour ce projet ».
+    2. Capture : progression 0 → 100 % suivie sur le serveur, puis snapshot ajouté (frise et liste), comparé au précédent, notification « Snapshot « … » créé sur RISE ».
+    3. Planification : prochaine capture et repère mis à jour (quotidienne mer. 30 sept., mensuelle jeu. 1er oct., hebdomadaire ven. 2 oct.) ; désactivée : sélecteurs grisés, repère retiré.
+    4. r1 → r10 : 8 ajouts, 10 modifications, 3 suppressions, identiques au diff du serveur ; filtres ; « Avancement 20 % → 65 % » consolidé.
+    5. Restauration : sauvegarde « Sécurité avant restauration · Système », R07 rétabli, « Voir la sauvegarde », audit critique ; démonstration refusée avec le message.
+    6. 97 snapshots : défilement dans le cadre de 600 px, en-tête du mois en cours collé en haut, colonnes de même hauteur ; 900 px : colonnes l'une sous l'autre, sans défilement horizontal.
+  - Écart de démonstration : les compteurs des snapshots de démonstration (141 tâches pour RISE) ne correspondent pas aux données amorcées. Une vraie capture de RISE compte 9 actions : ces snapshots ne sont pas comparables entre eux (refus explicite).
+
 ## 3. Écarts connus
 
 ### 3.1 Écarts par rapport aux briefs

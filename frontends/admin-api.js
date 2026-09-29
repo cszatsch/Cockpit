@@ -185,8 +185,8 @@ export const relWhen = (iso, now = Date.now()) => {
 };
 /** Notification du serveur → élément du tiroir (`Notifications.dc.html`) ; `pending` : demande encore à traiter. */
 export const toNotif = n => ({ id: n.id, type: n.type, title: n.title, text: n.text, note: n.note, when: relWhen(n.createdAt), unread: n.unread, actLabel: n.actLabel, meta: n.meta, target: n.target, pending: n.pending });
-/** Snapshot → `{ id, t, k, lab, by, ix }`. */
-export const toSnap = (s, ix) => ({ id: s.id, t: D(s.takenAt), k: s.kind === 'MANUAL' ? 'man' : 'auto', lab: s.label || '', by: s.takenBy || '', ix });
+/** Snapshot du serveur (`{ id, date, type, libelle, auteur, compteurs }`) → `{ id, t, k, lab, by, ix, cnt }`. */
+export const toSnap = (s, ix) => ({ id: s.id, t: D(s.date), k: s.type, lab: s.libelle || '', by: s.auteur || '', ix, cnt: s.compteurs });
 /** Planification d'un projet → `sched` `{ on, fq, day, hour, keep }`. */
 export const toSched = s => ({ on: !!s.enabled, fq: s.frequency, day: s.day, hour: s.hour, keep: s.retention });
 export const fromSched = s => ({ enabled: !!s.on, frequency: s.fq, day: s.day, hour: s.hour, retention: s.keep });
@@ -274,7 +274,7 @@ export function bindConsole(c) {
     month: async () => { const m = await get('/usage/month'); return { apiMonth: m, th: toTh(m.thresholds) }; },
     snaps: async () => {
       const codes = PROJ(), lists = await Promise.all(codes.map(p => get('/projects/' + p + '/snapshots')));
-      const snaps = {}; codes.forEach((p, i) => { snaps[p] = lists[i].filter(s => s.status === 'DONE').map(toSnap); });
+      const snaps = {}; codes.forEach((p, i) => { snaps[p] = lists[i].map(toSnap); });
       return { snaps };
     },
     sched: async () => ({ sched: toSched(await get('/projects/' + c.state.sPj + '/snapshot-schedule')) }),
@@ -299,8 +299,8 @@ export function bindConsole(c) {
       return { apiCards: cards, apCards: cards.filter(v => !apPend[v.id]).map(toCard), apWidgets: widgets, apChecked: lastCheck(cards) }; },
   };
   const SECTION = {
-    overview: ['accounts', 'providers', 'month', 'audit', 'reqs', 'snaps', 'models', 'asg', 'fns'], users: ['accounts'], admins: ['admins', 'audit', 'accounts'], providers: ['providers', 'models', 'asg', 'fns'],
-    assign: ['asg', 'models', 'providers', 'usage', 'fns'], conso: ['month', 'providers'], snaps: ['snaps', 'sched'], notifs: ['nrRules', 'nrHist', 'nrCounts', 'nrSchedule', 'models', 'providers', 'projects'], modules: ['mods', 'reqs'],
+    overview: ['accounts', 'providers', 'month', 'audit', 'reqs', 'snaps', 'sched', 'models', 'asg', 'fns'], users: ['accounts'], admins: ['admins', 'audit', 'accounts'], providers: ['providers', 'models', 'asg', 'fns'],
+    assign: ['asg', 'models', 'providers', 'usage', 'fns'], conso: ['month', 'providers'], snaps: [], notifs: ['nrRules', 'nrHist', 'nrCounts', 'nrSchedule', 'models', 'providers', 'projects'], modules: ['mods', 'reqs'],
     smtp: ['smtp'], init: ['projects'], library: ['projects'], profil: ['prof', 'sess', 'audit'], skills: ['skills'], persona: ['persona'], apis: ['apis'],
   };
   async function load(keys) {
@@ -598,22 +598,6 @@ export function bindConsole(c) {
     try { const b = await download('/usage/export.csv?from=' + from + '&to=' + to, 'consommation-ia-' + c.state.cPer + 'j.csv'); const n = (await b.text()).split('\n').length - 1; toast('Export CSV téléchargé · ' + n + ' lignes'); touch(); } catch (e) { fail(e); }
   };
 
-  // ── Snapshots : capture réelle, progression suivie jusqu'à l'état DONE du serveur ──
-  c.doCapture = async (p, lab, done) => {
-    clearInterval(c._ci); set0({ cap: { p, pct: 4 } });
-    // Progression indicative tant que la capture est en cours côté serveur (jamais 100 % avant la fin réelle).
-    c._ci = setInterval(() => { const cp = c.state.cap; if (cp) set0({ cap: { ...cp, pct: cp.pct + (92 - cp.pct) * 0.12 } }); }, 160);
-    try {
-      let s = await post('/projects/' + p + '/snapshots', { label: lab });
-      for (let i = 0; s.status === 'RUNNING' && i < 150; i++) { await new Promise(r => setTimeout(r, 400)); s = await get('/snapshots/' + s.id); }
-      if (s.status !== 'DONE') throw new Error('capture non terminée (' + s.status + ')');
-      clearInterval(c._ci);
-      const x = toSnap(s, (c.state.snaps[p] || []).length);
-      set0(st => ({ cap: null, snaps: { ...st.snaps, [p]: [...(st.snaps[p] || []), x] } }));
-      toast('Snapshot de ' + p + ' créé'); touch(); done && done(x.t);
-    } catch (e) { clearInterval(c._ci); set0({ cap: null }); fail(e); }
-  };
-
   // ── Notifications et alertes (Notifications et alertes.dc.html, NOTIFICATIONS ET ALERTES - specification.md § 4) ──
   // Le composant met sa liste à jour lui-même (optimiste) et crée une règle sous son propre identifiant, repris par
   // le serveur. Les écritures partent l'une après l'autre (une création est enregistrée avant la modification qui la
@@ -693,10 +677,7 @@ export function bindConsole(c) {
     return [];
   };
 
-  // ── Rendu : squelette au démarrage, comparaison de snapshots par le serveur, actions en ligne ──
-  const cmp = {};
-  const TN = { add: ['#e6f3f2', '#0f5f5a', '+'], mod: ['#e6f1f8', '#0b5c8a', '~'], del: ['#fdecec', '#a8372c', '−'] };
-  const val = v => (v == null ? '' : typeof v === 'object' ? JSON.stringify(v) : String(v));
+  // ── Rendu : squelette au démarrage, actions en ligne ──
   c.renderVals = () => {
     const S = c.state, v = orig.renderVals();
     if (S.apiBoot) {
@@ -707,17 +688,6 @@ export function bindConsole(c) {
     if (S.apiCodes) v.libCodes = S.apiCodes;
     v.onImported = p => { load(['projects']).catch(() => {}); toast(p.code + ' créé'); touch(); };
     if (v.pf) v.pf.pwd = pwd;
-    if (v.sn && v.sn.sel2) {
-      const list = S.snaps[S.sPj] || [], sel = S.sSel.filter(id => list.some(s => s.id === id)).map(id => list.find(s => s.id === id)).sort((a, b) => a.t - b.t), key = sel[0].id + '|' + sel[1].id;
-      if (!cmp[key]) { cmp[key] = 'pending'; get('/snapshots/compare?a=' + sel[0].id + '&b=' + sel[1].id).then(r => { cmp[key] = r; set0({ cmpTick: Date.now() }); }).catch(e => { delete cmp[key]; fail(e); }); }
-      const r = cmp[key];
-      if (r && r !== 'pending') {
-        const diff = r.changes.map(x => ({ k: x.op, e: x.entity, n: x.object, f: x.field || '', a: val(x.before), b: val(x.after) })), df = diff.filter(x => S.sFilt === 'tous' || x.k === S.sFilt);
-        v.sn.dsum = v.sn.dsum.map((s, i) => ({ ...s, v: r.summary[['add', 'mod', 'del'][i]] }));
-        v.sn.diff = df.map(x => ({ ...x, g: TN[x.k][2], gSt: `width:22px;height:22px;border-radius:6px;flex:none;display:grid;place-items:center;font-size:13px;font-weight:800;background:${TN[x.k][0]};color:${TN[x.k][1]}`, hasF: !!x.f, nSt: x.k === 'del' ? 'font-size:13px;font-weight:600;color:#5c7280;text-decoration:line-through;text-decoration-color:rgba(168,55,44,.5)' : 'font-size:13px;font-weight:600;color:#10233a' }));
-        Object.assign(v.sn, { dEmpty: diff.length === 0, dSome: df.length > 0, fEmpty: diff.length > 0 && df.length === 0, total: diff.length });
-      }
-    }
     return v;
   };
   c.forceUpdate();
@@ -908,6 +878,133 @@ export function bindInit(c) {
     };
     return v;
   };
+  c.forceUpdate();
+}
+
+// ───────────────────────────── Snapshots (Snapshots.dc.html) ─────────────────────────────
+
+const SN_MO = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+/** « 22 sept. · 16:40 » (même format que la vue). */
+const snDT = t => (t.getDate() === 1 ? '1er' : t.getDate()) + ' ' + SN_MO[t.getMonth()] + ' · ' + String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0');
+/** Snapshot du serveur → modèle de la vue ; `ix` porte l'identifiant, lu par `counts()` pour trouver les compteurs. */
+const toViewSnap = s => ({ id: s.id, t: new Date(s.date), k: s.type, lab: s.libelle || '', by: s.auteur || '', ix: s.id, cnt: s.compteurs || {} });
+/** Planification du serveur → `sched` de la vue, avec la prochaine capture calculée par le serveur. */
+const toViewSched = r => ({ on: !!r.enabled, fq: r.frequency, day: r.day, hour: r.hour, keep: r.retention, next: r.prochaineCapture ? new Date(r.prochaineCapture) : null });
+const SCHED_KEYS = { Fréquence: ['fq', 'frequency'], Jour: ['day', 'day'], Heure: ['hour', 'hour'], Conservation: ['keep', 'retention'] };
+/** Progression affichée de la capture : pas de la simulation d'origine (8 à 22 points toutes les 170 ms), sans devancer le serveur. */
+const SN_TICK = 170, SN_POLL = 250, SN_SLOW = 500;
+
+/**
+ * `Snapshots.dc.html` : données, capture, comparaison, restauration et planification par le serveur (routes
+ * `/projects/{code}/snapshots`, `/snapshot-jobs/{id}`, `/snapshots/{a}/diff/{b}`, `/snapshots/{id}/restore`,
+ * `/projects/{code}/snapshot-schedule`). Onglets : projets de la plateforme. Chargements lents et erreurs :
+ * notification sombre de la vue. Le design, les textes et la confirmation de restauration restent ceux de la vue.
+ */
+export function bindSnapshots(c) {
+  if (isDemo() || c.__api) return;
+  c.__api = true;
+  const set0 = c.setState.bind(c), rv0 = c.renderVals.bind(c), restore0 = c.restore.bind(c);
+  const enc = encodeURIComponent, sleep = ms => new Promise(r => setTimeout(r, ms));
+  const diffs = {}, scheds = {};
+  let offset = 0, loading = true;
+  const say = m => c.toast(m), fail = (pre, e) => c.toast(pre + errText(e));
+  /** Notification « … en cours » seulement si l'attente dure (au-delà de `SN_SLOW`). */
+  const slow = (m, p) => { const tm = setTimeout(() => say(m), SN_SLOW); return p.finally(() => { clearTimeout(tm); if (c.state.toast && c.state.toast.msg === m) set0({ toast: null }); }); };
+
+  c.projects = [];
+  c.now = () => new Date(Date.now() + offset);
+  set0({ snaps: {}, sel: [] });
+  const loadList = async p => { const l = await api('GET', '/projects/' + enc(p) + '/snapshots'); set0(s => ({ snaps: { ...s.snaps, [p]: l.map(toViewSnap) } })); };
+  const keepSched = (p, r) => { scheds[p] = r; offset = new Date(r.maintenant).getTime() - Date.now(); if (c.state.pj === p) set0({ sched: toViewSched(r) }); };
+  const loadSched = async p => keepSched(p, await api('GET', '/projects/' + enc(p) + '/snapshot-schedule'));
+
+  c.counts = (p, id) => { const s = (c.state.snaps[p] || []).find(x => x.id === id), k = (s && s.cnt) || {}; return { Action: k.taches || 0, Jalon: k.jalons || 0, Risque: k.risques || 0, Livrable: k.livrables || 0 }; };
+  c.nextCap = () => { const S = c.state.sched; return S && S.on && S.next ? S.next : null; };
+  // Comparaison : lue une fois par paire A → B (les snapshots ne changent pas), le temps de la réponse sans « Aucune différence ».
+  c.diff = (a, b) => {
+    const key = a.id + '|' + b.id;
+    if (!(key in diffs)) {
+      diffs[key] = 'pending';
+      slow('Comparaison en cours…', api('GET', '/snapshots/' + enc(a.id) + '/diff/' + enc(b.id)))
+        .then(r => { diffs[key] = r.map(x => ({ k: x.type, e: x.entite, n: x.nom, f: x.champ || '', a: x.avant || '', b: x.apres || '' })); c.forceUpdate(); })
+        .catch(e => { diffs[key] = 'err'; fail('Comparaison impossible : ', e); c.forceUpdate(); });
+    }
+    return Array.isArray(diffs[key]) ? diffs[key] : [];
+  };
+  c.pickPj = p => {
+    set0({ pj: p, filt: 'tous', sel: [], ...(scheds[p] ? { sched: toViewSched(scheds[p]) } : {}) });
+    Promise.all([loadList(p), loadSched(p)]).then(() => { if (c.state.pj === p) set0({ sel: c.lastTwo() }); }).catch(e => fail('Chargement impossible : ', e));
+  };
+  c.capture = async lab => {
+    const p = c.state.pj;
+    clearInterval(c._ci);
+    set0({ dlg: null, lab: '', cap: { p, pct: 0, lab } });
+    let target = 0;
+    c._ci = setInterval(() => { const cp = c.state.cap; if (!cp) return clearInterval(c._ci); if (cp.pct < target) set0({ cap: { ...cp, pct: Math.min(target, cp.pct + 8 + Math.random() * 14) } }); }, SN_TICK);
+    try {
+      const { jobId } = await api('POST', '/projects/' + enc(p) + '/snapshots', { libelle: lab });
+      let j;
+      for (;;) {
+        j = await api('GET', '/snapshot-jobs/' + enc(jobId));
+        target = Math.max(target, j.progression || 0);
+        if (j.statut === 'termine') break;
+        if (j.statut === 'echec') throw new ApiError(500, { message: j.erreur || 'La capture a échoué' });
+        await sleep(SN_POLL);
+      }
+      while (c.state.cap && c.state.cap.pct < 100) await sleep(SN_TICK / 2); // la barre finit sa course avant l'ajout
+      clearInterval(c._ci);
+      await loadList(p);
+      const asc = [...(c.state.snaps[p] || [])].sort((a, b) => a.t - b.t), i = asc.findIndex(s => s.id === j.snapshot.id), prev = i > 0 ? asc[i - 1] : null;
+      set0(s => ({ cap: null, sel: s.pj === p ? (prev ? [prev.id, j.snapshot.id] : [j.snapshot.id]) : s.sel, filt: 'tous' }));
+      say('Snapshot « ' + lab + ' » créé sur ' + p);
+    } catch (e) { clearInterval(c._ci); set0({ cap: null }); fail('Capture impossible : ', e); }
+  };
+  // Restauration : la confirmation de la vue est gardée telle quelle ; seul son bouton « Restaurer » appelle le serveur.
+  const doRestore = async s => {
+    const p = c.state.pj;
+    set0({ dlg: null });
+    try {
+      const r = await slow('Restauration en cours…', api('POST', '/snapshots/' + enc(s.id) + '/restore'));
+      await loadList(p);
+      const id = r.securite.id;
+      c.toast(p + ' restauré à l’état du ' + snDT(s.t), () => set0({ sel: [id], toast: null }), 'Voir la sauvegarde');
+    } catch (e) { c.toast(e instanceof ApiError && e.status === 409 ? errText(e) : 'Restauration impossible : ' + errText(e)); }
+  };
+  c.restore = s => {
+    const own = Object.prototype.hasOwnProperty.call(c, 'setState'), prevSet = c.setState;
+    c.setState = (u, cb) => set0(u && u.dlg && u.dlg.type === 'restore' ? { ...u, dlg: { ...u.dlg, ok: () => doRestore(s) } } : u, cb);
+    try { restore0(s); } finally { if (own) c.setState = prevSet; else delete c.setState; }
+  };
+  // Planification : enregistrée à chaque changement ; la prochaine capture et son repère viennent de la réponse.
+  const saveSched = (patch, local, okMsg) => {
+    const p = c.state.pj, prev = c.state.sched;
+    set0({ sched: { ...prev, ...local } });
+    api('PUT', '/projects/' + enc(p) + '/snapshot-schedule', patch)
+      .then(r => { keepSched(p, r); say(okMsg); })
+      .catch(e => { if (c.state.pj === p) set0({ sched: prev }); fail('Planification non enregistrée : ', e); });
+  };
+  c.renderVals = () => {
+    const v = rv0(), S = c.state;
+    v.sch.toggle = () => { const on = !S.sched.on; saveSched({ enabled: on }, { on }, on ? 'Planification activée' : 'Planification suspendue'); };
+    v.sch.sel = v.sch.sel.map(x => { const [k, f] = SCHED_KEYS[x.aria] || []; return k ? { ...x, set: e => { const val = e.target.value; saveSched({ [f]: val }, { [k]: val }, 'Planification mise à jour'); } } : x; });
+    if (loading) Object.assign(v, { empty: false, n: '' });
+    if (v.sel2) {
+      const list = S.snaps[S.pj] || [], sel = S.sel.map(id => list.find(s => s.id === id)).filter(Boolean).sort((a, b) => a.t - b.t), d = sel.length === 2 && diffs[sel[0].id + '|' + sel[1].id];
+      if (!Array.isArray(d)) Object.assign(v, { dEmpty: false, fEmpty: false, dSome: false }); // réponse attendue (ou en erreur)
+    }
+    return v;
+  };
+
+  slow('Chargement des snapshots…', (async () => {
+    // Onglets : du plus ancien projet au plus récent (la bibliothèque les donne à l'inverse), projets clos en dernier.
+    const ps = (await api('GET', '/projects')).slice().reverse();
+    c.projects = [...ps.filter(x => x.status !== 'CLOSED'), ...ps.filter(x => x.status === 'CLOSED')].map(x => x.code);
+    const pj = c.projects.includes(c.state.pj) ? c.state.pj : c.projects[0];
+    await Promise.all([...c.projects.map(loadList), pj ? loadSched(pj) : null]);
+    loading = false;
+    set0({ pj, filt: 'tous', ...(pj && scheds[pj] ? { sched: toViewSched(scheds[pj]) } : {}) });
+    set0({ sel: c.lastTwo() });
+  })()).catch(e => { loading = false; fail('Chargement impossible : ', e); c.forceUpdate(); });
   c.forceUpdate();
 }
 

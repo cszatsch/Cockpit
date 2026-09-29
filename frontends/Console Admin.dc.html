@@ -367,57 +367,9 @@ a{color:#1d8f86}a:hover{color:#146b64}
     </sc-if>
 
     <sc-if value="{{ isSnaps }}" hint-placeholder-val="{{ false }}">
-      <div style="display:flex;flex-direction:column;gap:16px;animation:rise-in .35s cubic-bezier(.2,.7,.2,1) both" data-screen-label="Snapshots">
-        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px">
-          <div role="tablist" aria-label="Projet" style="display:inline-flex;flex-wrap:wrap;gap:2px;padding:3px;border-radius:11px;background:#e5edeb"><sc-for list="{{ sn.pj }}" as="o" hint-placeholder-count="4"><button role="tab" aria-selected="{{ o.on }}" onClick="{{ o.pick }}" style="{{ o.st }}">{{ o.l }}<span style="font-size:11px;font-weight:700;color:#8a9aa6">{{ o.c }}</span></button></sc-for></div>
-          <span style="flex:1"></span>
-          <button onClick="{{ sn.create }}" style="height:36px;padding:0 16px;border:0;border-radius:10px;background:linear-gradient(90deg,#f7a41c,#f0752b);color:#1a1200;font-size:12.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;box-shadow:0 6px 16px -8px rgba(240,120,40,.7);transition:transform .15s" style-hover="transform:translateY(-1px)" style-active="transform:scale(.98)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="3.5"></circle><path d="M4 8h3l2-3h6l2 3h3v11H4z"></path></svg>Créer un snapshot</button>
-        </div>
-        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px 18px;padding:14px 18px;border-radius:14px;background:#e9efee">
-          <button role="switch" aria-checked="{{ sn.sch.sw.on }}" aria-label="{{ sn.sch.sw.label }}" onClick="{{ sn.sch.sw.toggle }}" style="{{ sn.sch.sw.st }}"><span style="{{ sn.sch.sw.knob }}"></span></button>
-          <div style="display:flex;flex-direction:column;min-width:180px"><span style="font-size:13px;font-weight:700">Planification automatique</span><span style="font-size:12px;color:#43586a">{{ sn.sch.next }}</span></div>
-          <span style="flex:1"></span>
-          <sc-if value="{{ sn.sch.on }}" hint-placeholder-val="{{ true }}"><div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px">{{ sn.sch.fqEl }}<sc-if value="{{ sn.sch.isW }}" hint-placeholder-val="{{ true }}">{{ sn.sch.dayEl }}</sc-if>{{ sn.sch.hourEl }}<span style="font-size:12px;color:#5c7280">Conservation</span>{{ sn.sch.keepEl }}</div></sc-if>
-        </div>
-        <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start">
-          <div style="flex:1 1 360px;min-width:0;background:#fff;border:1px solid #e1e9e7;border-radius:18px;box-shadow:0 1px 2px rgba(16,35,58,.04);padding:16px 12px 12px">
-            <div style="display:flex;align-items:baseline;gap:8px;padding:0 8px 10px"><h2 style="margin:0;font-size:15px;font-weight:800">Chronologie</h2><span style="font-size:12px;color:#5c7280">{{ sn.n }} snapshot(s) · sélectionnez-en deux pour comparer</span></div>
-            <sc-if value="{{ sn.cap }}" hint-placeholder-val="{{ false }}"><div role="status" style="margin:0 4px 10px;padding:12px 14px;border-radius:12px;background:#e6f3f2;display:flex;flex-direction:column;gap:8px"><div style="display:flex;justify-content:space-between;font-size:12.5px;font-weight:700;color:#0f5f5a"><span>Capture en cours…</span><span style="font-variant-numeric:tabular-nums">{{ sn.capPct }}</span></div><div style="height:5px;border-radius:3px;background:rgba(29,143,134,.18);overflow:hidden"><div style="{{ sn.capBar }}"></div></div></div></sc-if>
-            <sc-for list="{{ sn.items }}" as="s" hint-placeholder-count="6">
-              <div style="{{ s.rowSt }}">
-                <span style="{{ s.line }}"></span>
-                <span style="display:flex;justify-content:center"><span style="{{ s.node }}"></span></span>
-                <div style="min-width:0;display:flex;flex-direction:column;gap:3px">
-                  <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px"><span style="font-size:13.5px;font-weight:800;white-space:nowrap">{{ s.date }}</span><span style="font-size:12px;color:#5c7280;font-family:ui-monospace,Menlo,monospace">{{ s.time }}</span><span style="{{ s.kSt }}">{{ s.kL }}</span><sc-if value="{{ s.latest }}" hint-placeholder-val="{{ false }}"><span style="font-size:11px;font-weight:700;color:#1d8f86">Le plus récent</span></sc-if></div>
-                  <div style="font-size:12.5px;color:#10233a">{{ s.lab }} <span style="color:#5c7280">· {{ s.by }}</span></div>
-                  <div style="font-size:11.5px;color:#5c7280">{{ s.stats }}</div>
-                </div>
-                <div style="display:flex;align-items:center;gap:4px">
-                  <button onClick="{{ s.tog }}" aria-pressed="{{ s.sel }}" aria-label="{{ s.selAria }}" title="{{ s.selAria }}" style="{{ s.selSt }}">{{ s.letter }}</button>
-                  
-                </div>
-              </div>
-            </sc-for>
-            <sc-if value="{{ sn.empty }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding:44px 20px;text-align:center"><span style="width:44px;height:44px;border-radius:14px;background:#eef3f2;display:grid;place-items:center;color:#5c7280"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7v5l3 2 M3.5 12a8.5 8.5 0 1 0 2.5-6 M3 4v4h4"></path></svg></span><div style="font-size:14.5px;font-weight:700">Aucun snapshot pour ce projet</div><div style="font-size:12.5px;color:#5c7280;max-width:300px">Le premier snapshot planifié aura lieu à la prochaine échéance. Vous pouvez aussi en créer un maintenant.</div><button onClick="{{ sn.create }}" style="margin-top:4px;height:34px;padding:0 14px;border:1px solid #d3dedb;border-radius:10px;background:#fff;font-size:12.5px;font-weight:600;cursor:pointer" style-hover="border-color:#10233a">Créer le premier snapshot</button></div></sc-if>
-          </div>
-          <div style="flex:1.3 1 420px;min-width:0;background:#fff;border:1px solid #e1e9e7;border-radius:18px;box-shadow:0 1px 2px rgba(16,35,58,.04);padding:20px;position:sticky;top:76px">
-            <sc-if value="{{ sn.sel0 }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:10px 4px"><h2 style="margin:0;font-size:15px;font-weight:800">Comparer deux états</h2><div style="font-size:12.5px;color:#43586a;max-width:420px">Sélectionnez deux snapshots dans la chronologie (A puis B) pour voir précisément les ajouts, modifications et suppressions.</div><sc-if value="{{ sn.canCmpLast }}" hint-placeholder-val="{{ true }}"><button onClick="{{ sn.cmpLast }}" style="margin-top:6px;height:34px;padding:0 14px;border:1px solid #d3dedb;border-radius:10px;background:#fff;font-size:12.5px;font-weight:600;cursor:pointer" style-hover="border-color:#10233a">Comparer les deux plus récents</button></sc-if></div></sc-if>
-            <sc-if value="{{ sn.sel1 }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-direction:column;gap:12px"><div><div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#5c7280">Snapshot A</div><div style="font-size:16px;font-weight:800;margin-top:2px">{{ sn.one.l }}</div></div><div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px"><sc-for list="{{ sn.one.stats }}" as="x" hint-placeholder-count="4"><div style="padding:10px 12px;border-radius:10px;background:#f3f7f6"><div style="font-size:18px;font-weight:800">{{ x.v }}</div><div style="font-size:11.5px;color:#5c7280">{{ x.k }}</div></div></sc-for></div><div style="font-size:12.5px;color:#5c7280">Sélectionnez un second snapshot pour lancer la comparaison.</div></div></sc-if>
-            <sc-if value="{{ sn.sel2 }}" hint-placeholder-val="{{ false }}">
-              <div style="display:flex;flex-direction:column;gap:14px">
-                <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px">
-                  <div style="display:flex;align-items:center;gap:8px;min-width:0"><span style="width:22px;height:22px;border-radius:6px;background:#10233a;color:#fff;font-size:11px;font-weight:800;display:grid;place-items:center">A</span><span style="display:flex;flex-direction:column"><span style="font-size:13px;font-weight:700">{{ sn.A.l }}</span><span style="font-size:11.5px;color:#5c7280">{{ sn.A.lab }}</span></span></div>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9fb3bd" stroke-width="2.2" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>
-                  <div style="display:flex;align-items:center;gap:8px;min-width:0"><span style="width:22px;height:22px;border-radius:6px;background:#10233a;color:#fff;font-size:11px;font-weight:800;display:grid;place-items:center">B</span><span style="display:flex;flex-direction:column"><span style="font-size:13px;font-weight:700">{{ sn.B.l }}</span><span style="font-size:11.5px;color:#5c7280">{{ sn.B.lab }}</span></span></div>
-                </div>
-                <div style="display:flex;flex-wrap:wrap;gap:8px"><sc-for list="{{ sn.dsum }}" as="d" hint-placeholder-count="3"><button onClick="{{ d.pick }}" aria-pressed="{{ d.on }}" style="{{ d.st }}"><span style="{{ d.gSt }}">{{ d.g }} {{ d.v }}</span><span style="font-size:11.5px;font-weight:600;color:#43586a">{{ d.l }}</span></button></sc-for></div>
-                <sc-if value="{{ sn.dSome }}" hint-placeholder-val="{{ true }}"><div style="display:flex;flex-direction:column;border:1px solid #eef3f2;border-radius:12px;max-height:420px;overflow-y:auto"><sc-for list="{{ sn.diff }}" as="x" hint-placeholder-count="6"><div style="display:flex;gap:12px;align-items:flex-start;padding:11px 14px;border-top:1px solid #f1f5f4"><span style="{{ x.gSt }}">{{ x.g }}</span><div style="min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#5c7280">{{ x.e }}</span><span style="{{ x.nSt }}">{{ x.n }}</span><sc-if value="{{ x.hasF }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:#43586a;display:flex;flex-wrap:wrap;align-items:center;gap:6px">{{ x.f }} :<span style="color:#5c7280;text-decoration:line-through">{{ x.a }}</span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#5c7280" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg><strong style="color:#10233a">{{ x.b }}</strong></span></sc-if></div></div></sc-for></div></sc-if>
-                <sc-if value="{{ sn.dEmpty }}" hint-placeholder-val="{{ false }}"><div style="padding:24px 16px;border-radius:12px;background:#f3f7f6;text-align:center;font-size:13px;color:#43586a"><strong style="color:#10233a">Aucune différence.</strong> Les données sont identiques entre ces deux états.</div></sc-if>
-                <sc-if value="{{ sn.fEmpty }}" hint-placeholder-val="{{ false }}"><div style="padding:20px 16px;border-radius:12px;background:#f3f7f6;text-align:center;font-size:13px;color:#43586a">Aucun changement de ce type.</div></sc-if>
-              </div>
-            </sc-if>
-          </div>
-        </div>
+      <!-- API : /projects/{code}/snapshots, /snapshot-jobs, /snapshots/{a}/diff/{b}, /restore, /snapshot-schedule (Snapshots.dc.html, admin-api.js → bindSnapshots). -->
+      <div data-screen-label="Snapshots" style="animation:rise-in .35s cubic-bezier(.2,.7,.2,1) both">
+        <dc-import name="Snapshots" hint-size="100%,1300px"></dc-import>
       </div>
     </sc-if>
 
@@ -1533,7 +1485,7 @@ class Component extends DCLogic {
       mob: mode === 'mob', scrim: mode === 'mob' && S.mnav, openNav: () => this.setState({ mnav: true }), closeNav: () => this.setState({ mnav: false }),
       padSt: `max-width:1320px;margin:0 auto;padding:${mode === 'mob' ? '20px 16px 96px' : mode === 'rail' ? '28px 28px 96px' : '32px 44px 96px'}`,
       topSt: `position:sticky;top:0;z-index:40;height:60px;display:flex;align-items:center;gap:12px;padding:0 ${mode === 'mob' ? 16 : mode === 'rail' ? 28 : 44}px;background:rgba(242,246,245,.82);backdrop-filter:saturate(1.4) blur(14px);-webkit-backdrop-filter:saturate(1.4) blur(14px);border-bottom:1px solid rgba(16,35,58,.06)`,
-      eyebrow: meta[0], title: meta[1], desc: meta[2], isOv: is('overview'), notOv: !is('overview') && !is('skills') && !is('persona') && !is('apis') && !is('journal') && !is('notifs') && !is('smtp'), loading: S.loading, ready: !S.loading,
+      eyebrow: meta[0], title: meta[1], desc: meta[2], isOv: is('overview'), notOv: !is('overview') && !is('skills') && !is('persona') && !is('apis') && !is('journal') && !is('notifs') && !is('smtp') && !is('snaps'), loading: S.loading, ready: !S.loading,
       healthL: errN ? errN + ' incident' + (errN > 1 ? 's' : '') : 'Opérationnelle', healthPill: pill(errN ? 'err' : 'ok'), healthDot: dot(errN ? 'err' : 'ok'), goOv: () => this.go('overview'),
       isUsers: is('users') && !S.loading, isAdmins: is('admins') && !S.loading, isRights: is('rights') && !S.loading, isProv: is('providers') && !S.loading, isAsg: is('assign') && !S.loading, isConso: is('conso') && !S.loading, isInit: is('init') && !S.loading, isLib: is('library') && !S.loading, isSnaps: is('snaps') && !S.loading, isNotifs: is('notifs') && !S.loading, isMods: is('modules') && !S.loading,
       isApis: is('apis') && !S.loading, isJournal: is('journal') && !S.loading, isSmtp: is('smtp') && !S.loading,

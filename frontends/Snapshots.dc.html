@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700;1,800&amp;display=swap" rel="stylesheet"><style>
+html,body{margin:0;background:#f2f6f5;font-family:'Plus Jakarta Sans',sans-serif;color:#10233a;-webkit-font-smoothing:antialiased;font-size:13px;line-height:1.45}
+*{box-sizing:border-box}button,input,select{font-family:inherit;color:inherit;line-height:1.35}
+a{color:#1d8f86}a:hover{color:#146b64}
+:focus-visible{outline:2px solid #1d8f86;outline-offset:2px;border-radius:6px}
+@keyframes sn-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes sn-pop{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+</style></helmet>
+<div style="max-width:1240px;margin:0 auto;padding:40px clamp(18px,4vw,44px) 56px;display:flex;flex-direction:column;gap:22px" data-screen-label="Snapshots 1a">
+  <div style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:16px">
+    <div style="display:flex;flex-direction:column;gap:4px;min-width:0"><span style="font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:800;color:#1d8f86">Projets</span><h1 style="margin:0;font-size:30px;font-weight:800;font-style:italic;letter-spacing:-.03em">Snapshots</h1><span style="font-size:13px;color:#43586a">L’historique des données de chaque projet : capturer, comparer, restaurer.</span></div>
+    <span style="flex:1"></span>
+    <button onClick="{{ openCreate }}" disabled="{{ capBusy }}" style="height:40px;padding:0 18px 0 14px;border:0;border-radius:12px;background:linear-gradient(90deg,#f7a41c,#f0752b);color:#1a1200;font-size:13px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:9px;white-space:nowrap;flex:none;box-shadow:0 1px 0 rgba(255,255,255,.35) inset,0 10px 22px -12px rgba(240,120,40,.9);transition:transform .15s,opacity .15s" style-hover="transform:translateY(-1px)" style-active="transform:scale(.98)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="3.5"></circle><path d="M4 8h3l2-3h6l2 3h3v11H4z"></path></svg>Créer un snapshot</button>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;padding-bottom:16px;border-bottom:1px solid #dfe7e5">
+    <div role="tablist" aria-label="Projet" style="display:flex;gap:22px"><sc-for list="{{ pj }}" as="o" hint-placeholder-count="4"><button role="tab" aria-selected="{{ o.on }}" onClick="{{ o.pick }}" style="{{ o.st }}" style-hover="color:#10233a">{{ o.l }}<span style="font-size:11px;font-weight:600;color:#8a9aa6;font-variant-numeric:tabular-nums">{{ o.c }}</span></button></sc-for></div>
+    <span style="flex:1"></span>
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;font-size:12.5px;color:#43586a">
+      <button role="switch" aria-checked="{{ sch.on }}" aria-label="Planification automatique" onClick="{{ sch.toggle }}" style="{{ sch.sw }}"><span style="{{ sch.knob }}"></span></button>
+      <strong style="color:#10233a;font-weight:700;margin-right:4px">Planification automatique</strong>
+      <sc-for list="{{ sch.sel }}" as="x" hint-placeholder-count="4"><sc-if value="{{ x.show }}" hint-placeholder-val="{{ true }}"><span style="display:inline-flex;align-items:center;gap:6px"><sc-if value="{{ x.hasK }}" hint-placeholder-val="{{ false }}"><span style="color:#8a9aa6;margin-left:6px">{{ x.k }}</span></sc-if><span style="position:relative;display:inline-flex"><select value="{{ x.v }}" onChange="{{ x.set }}" disabled="{{ sch.off }}" aria-label="{{ x.aria }}" style="{{ sch.selSt }}"><sc-for list="{{ x.opts }}" as="o" hint-placeholder-count="3"><option value="{{ o }}">{{ o }}</option></sc-for></select><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#8a9aa6" stroke-width="3" style="position:absolute;right:9px;top:50%;margin-top:-4.5px;pointer-events:none"><path d="M6 9l6 6 6-6"></path></svg></span></span></sc-if></sc-for>
+    </div>
+  </div>
+
+  <div style="background:#fff;border-radius:18px;border:1px solid #e1e9e7;padding:18px clamp(16px,2.4vw,28px) 16px;display:flex;flex-direction:column;gap:6px">
+    <div style="display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 12px"><span style="font-size:14px;font-weight:800">Chronologie <span style="font-weight:600;color:#8a9aa6;font-variant-numeric:tabular-nums">{{ n }}</span></span><span style="font-size:12px;color:#5c7280">snapshot(s) · sélectionnez-en deux pour comparer</span></div>
+    <div style="position:relative;height:108px;margin:0 8px">
+      <span style="position:absolute;left:-8px;right:-8px;top:58px;height:1px;background:#dfe7e5"></span>
+      <sc-for list="{{ months }}" as="m" hint-placeholder-count="3"><span style="{{ m.st }}"><span style="width:1px;height:8px;background:#cbd7d4"></span><span style="font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;color:#8a9aa6">{{ m.l }}</span></span></sc-for>
+      <span style="{{ band }}"></span>
+      <span title="Aujourd’hui" style="{{ today }}"><span style="font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:800;color:#8a9aa6;white-space:nowrap">Auj.</span><span style="width:1px;flex:1;background:repeating-linear-gradient(180deg,#b8c7c4 0 3px,transparent 3px 6px)"></span></span>
+      <sc-for list="{{ items }}" as="s" hint-placeholder-count="10"><button onClick="{{ s.railTog }}" title="{{ s.tip }}" aria-label="{{ s.tip }}" aria-pressed="{{ s.sel }}" style="{{ s.railSt }}"><sc-if value="{{ s.sel }}" hint-placeholder-val="{{ false }}"><span style="{{ s.flag }}">{{ s.letter }}</span></sc-if><span style="{{ s.mark }}"></span></button></sc-for>
+      <sc-if value="{{ sch.on }}" hint-placeholder-val="{{ true }}"><span title="{{ sch.next }}" style="{{ nextSt }}"><span style="font-size:10.5px;font-weight:700;color:#1d8f86;white-space:nowrap;line-height:14px">{{ nextShort }}</span><span style="width:11px;height:11px;border-radius:50%;border:1.5px dashed #1d8f86;background:#fff"></span></span></sc-if>
+      <sc-if value="{{ empty }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;left:0;right:0;top:22px;text-align:center;font-size:12px;color:#8a9aa6">Aucun snapshot sur la période</span></sc-if>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px 18px;font-size:11.5px;color:#5c7280"><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;border:2px solid #9fb3bd;background:#fff"></span>Planifié</span><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:50%;background:#e39a26"></span>Manuel</span><span style="display:inline-flex;align-items:center;gap:6px"><span style="{{ sch.legDot }}"></span>{{ sch.next }}</span></div>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:stretch">
+    <div style="flex:1 1 380px;min-width:0;height:600px;display:flex;flex-direction:column;background:#fff;border-radius:18px;border:1px solid #e1e9e7;overflow:hidden">
+      <sc-if value="{{ cap }}" hint-placeholder-val="{{ false }}"><div role="status" style="margin:10px 10px 0;padding:12px 14px;border-radius:12px;background:#e6f3f2;display:flex;flex-direction:column;gap:8px;animation:sn-in .25s both"><div style="display:flex;justify-content:space-between;gap:10px;font-size:12.5px;font-weight:700;color:#0f5f5a"><span>Capture en cours… <span style="font-weight:600;color:#43586a">{{ capLab }}</span></span><span style="font-variant-numeric:tabular-nums">{{ capPct }}</span></div><div style="height:4px;border-radius:2px;background:rgba(29,143,134,.18);overflow:hidden"><div style="{{ capBar }}"></div></div></div></sc-if>
+      <div ref="{{ listRef }}" style="{{ listSt }}"><sc-for list="{{ rows }}" as="s" hint-placeholder-count="10"><sc-if value="{{ s.isH }}" hint-placeholder-val="{{ false }}"><div style="position:sticky;top:0;z-index:2;display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:12px 12px 8px;margin:0 -8px;padding-left:20px;padding-right:20px;background:rgba(255,255,255,.94);backdrop-filter:blur(6px);box-shadow:0 1px 0 #f1f5f4"><span style="font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:800;color:#43586a">{{ s.hl }}</span><span style="font-size:11px;font-weight:600;color:#8a9aa6;font-variant-numeric:tabular-nums">{{ s.hc }}</span></div></sc-if><sc-if value="{{ s.isR }}" hint-placeholder-val="{{ true }}"><div data-sid="{{ s.id }}" onClick="{{ s.tog }}" style="{{ s.row }}" style-hover="background:#f7faf9">
+        <span style="font-size:12.5px;font-weight:800;white-space:nowrap">{{ s.d }}</span>
+        <span style="font-size:11.5px;color:#8a9aa6;font-family:ui-monospace,Menlo,monospace">{{ s.t }}</span>
+        <span style="min-width:0;display:flex;flex-direction:column"><span style="font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span style="{{ s.kDot }}"></span>{{ s.lab }} <span style="color:#8a9aa6">· {{ s.by }}</span></span><span style="font-size:11px;color:#8a9aa6">{{ s.stats }}</span></span>
+        <span style="display:flex;align-items:center;gap:4px"><sc-if value="{{ s.latest }}" hint-placeholder-val="{{ false }}"><span style="font-size:10.5px;font-weight:700;color:#1d8f86;white-space:nowrap;margin-right:4px">Le plus récent</span></sc-if><button onClick="{{ s.rest }}" title="Restaurer cet état" aria-label="{{ s.restAria }}" style="width:26px;height:26px;border:0;border-radius:8px;background:transparent;color:#b8c7c4;display:grid;place-items:center;cursor:pointer;transition:all .15s" style-hover="background:#eef3f2;color:#10233a"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 12a8.5 8.5 0 1 0 2.5-6 M3 4v4h4"></path></svg></button></span>
+        <button onClick="{{ s.tog }}" aria-pressed="{{ s.sel }}" aria-label="{{ s.selAria }}" title="{{ s.selAria }}" style="{{ s.slot }}" style-hover="box-shadow:inset 0 0 0 1.5px #10233a">{{ s.letter }}</button>
+      </div></sc-if></sc-for></div>
+      <sc-if value="{{ empty }}" hint-placeholder-val="{{ false }}"><div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:48px 20px;text-align:center"><span style="width:44px;height:44px;border-radius:14px;background:#e6edeb;display:grid;place-items:center;color:#5c7280"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7v5l3 2 M3.5 12a8.5 8.5 0 1 0 2.5-6 M3 4v4h4"></path></svg></span><div style="font-size:14.5px;font-weight:700">Aucun snapshot pour ce projet</div><div style="font-size:12.5px;color:#5c7280;max-width:300px;text-wrap:pretty">Le premier snapshot planifié aura lieu à la prochaine échéance. Vous pouvez aussi en créer un maintenant.</div><button onClick="{{ openCreate }}" style="margin-top:4px;height:34px;padding:0 14px;border:1px solid #d3dedb;border-radius:10px;background:#fff;font-size:12.5px;font-weight:600;cursor:pointer" style-hover="border-color:#10233a">Créer le premier snapshot</button></div></sc-if>
+    </div>
+
+    <div style="flex:1.25 1 440px;min-width:0;height:600px;display:flex;flex-direction:column;background:#fff;border-radius:18px;border:1px solid #e1e9e7;overflow:hidden;box-shadow:0 18px 40px -30px rgba(16,35,58,.3)">
+      <sc-if value="{{ sel0 }}" hint-placeholder-val="{{ false }}"><div style="flex:1;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:10px;padding:28px 32px;animation:sn-in .25s both"><div style="display:flex;gap:6px;margin-bottom:6px"><span style="width:28px;height:28px;border-radius:8px;box-shadow:inset 0 0 0 1.5px #d3dedb;display:grid;place-items:center;font-size:11.5px;font-weight:800;color:#8a9aa6">A</span><span style="width:28px;height:28px;border-radius:8px;box-shadow:inset 0 0 0 1.5px #d3dedb;display:grid;place-items:center;font-size:11.5px;font-weight:800;color:#8a9aa6">B</span></div><h2 style="margin:0;font-size:17px;font-weight:800;letter-spacing:-.01em">Comparer deux états</h2><div style="font-size:13px;line-height:1.5;color:#43586a;max-width:420px;text-wrap:pretty">Sélectionnez deux snapshots dans la chronologie (A puis B) pour voir précisément les ajouts, modifications et suppressions.</div><sc-if value="{{ canLast }}" hint-placeholder-val="{{ true }}"><button onClick="{{ cmpLast }}" style="margin-top:6px;height:36px;padding:0 16px;border:0;border-radius:10px;background:#10233a;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer" style-hover="background:#1b3552">Comparer les deux plus récents</button></sc-if></div></sc-if>
+      <sc-if value="{{ sel1 }}" hint-placeholder-val="{{ false }}"><div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:16px;padding:22px 24px;animation:sn-in .25s both"><div style="display:flex;align-items:center;gap:12px"><span style="width:28px;height:28px;border-radius:8px;box-shadow:inset 0 0 0 1.5px #10233a;display:grid;place-items:center;font-size:11.5px;font-weight:800">A</span><div style="display:flex;flex-direction:column;flex:1;min-width:0"><span style="font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#5c7280">Snapshot A</span><span style="font-size:16px;font-weight:800">{{ one.l }}</span></div><button onClick="{{ clearSel }}" style="height:30px;padding:0 10px;border:0;border-radius:8px;background:transparent;font-size:12px;font-weight:600;color:#5c7280;cursor:pointer" style-hover="background:#f3f7f6;color:#10233a">Effacer</button></div><div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid #eef3f2;border-radius:14px;overflow:hidden"><sc-for list="{{ one.stats }}" as="x" hint-placeholder-count="4"><div style="padding:14px 16px;box-shadow:-1px 0 0 #eef3f2"><div style="font-size:24px;font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums">{{ x.v }}</div><div style="font-size:11.5px;color:#5c7280">{{ x.k }}</div></div></sc-for></div><div style="display:flex;align-items:center;gap:10px;font-size:12.5px;color:#5c7280"><span style="width:24px;height:24px;border-radius:7px;box-shadow:inset 0 0 0 1.5px #d3dedb;display:grid;place-items:center;font-size:11px;font-weight:800;color:#8a9aa6;flex:none">B</span>Sélectionnez un second snapshot pour lancer la comparaison.</div></div></sc-if>
+      <sc-if value="{{ sel2 }}" hint-placeholder-val="{{ false }}"><div style="flex:1;min-height:0;display:flex;flex-direction:column;animation:sn-in .25s both">
+        <div style="display:grid;grid-template-columns:minmax(0,auto) minmax(60px,1fr) minmax(0,auto);align-items:center;gap:14px;padding:18px 22px;border-bottom:1px solid #eef3f2">
+          <span style="display:flex;align-items:center;gap:10px;min-width:0"><span style="width:26px;height:26px;border-radius:8px;flex:none;box-shadow:inset 0 0 0 1.5px #10233a;display:grid;place-items:center;font-size:11.5px;font-weight:800">A</span><span style="display:flex;flex-direction:column;min-width:0"><strong style="font-size:13.5px;white-space:nowrap">{{ A.l }}</strong><span style="font-size:11.5px;color:#5c7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ A.lab }}</span></span></span>
+          <span style="display:flex;flex-direction:column;align-items:center;gap:3px"><span style="font-size:10.5px;font-weight:700;color:#1d8f86;white-space:nowrap;font-variant-numeric:tabular-nums">{{ gap }}</span><span style="display:flex;align-items:center;width:100%"><span style="flex:1;height:1.5px;background:linear-gradient(90deg,#10233a,#1d8f86)"></span><svg width="7" height="9" viewBox="0 0 8 10"><path d="M0 0l8 5-8 5z" fill="#1d8f86"></path></svg></span></span>
+          <span style="display:flex;align-items:center;gap:10px;min-width:0;justify-content:flex-end"><span style="display:flex;flex-direction:column;text-align:right;min-width:0"><strong style="font-size:13.5px;white-space:nowrap">{{ B.l }}</strong><span style="font-size:11.5px;color:#5c7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ B.lab }}</span></span><span style="width:26px;height:26px;border-radius:8px;flex:none;background:#10233a;color:#fff;display:grid;place-items:center;font-size:11.5px;font-weight:800">B</span></span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr))"><sc-for list="{{ sums }}" as="d" hint-placeholder-count="3"><button onClick="{{ d.pick }}" aria-pressed="{{ d.on }}" disabled="{{ d.dis }}" style="{{ d.st }}" style-hover="background:#f7faf9"><span style="{{ d.num }}">{{ d.g }}{{ d.v }}</span><span style="font-size:11.5px;font-weight:600;color:#43586a">{{ d.l }}</span></button></sc-for></div>
+        <div aria-hidden="true" style="display:flex;gap:2px;height:3px;background:#eef3f2"><sc-for list="{{ bar }}" as="b" hint-placeholder-count="3"><span style="{{ b.st }}"></span></sc-for></div>
+        <sc-if value="{{ dSome }}" hint-placeholder-val="{{ true }}"><div style="flex:1;min-height:0;display:flex;flex-direction:column;padding:6px 8px 10px;overflow-y:auto;scrollbar-width:thin"><sc-for list="{{ diff }}" as="x" hint-placeholder-count="4"><div style="display:grid;grid-template-columns:22px minmax(0,1fr);gap:14px;padding:12px 14px;border-radius:12px;transition:background .15s" style-hover="background:#f7faf9"><span style="{{ x.g }}">{{ x.gl }}</span><span style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="{{ x.eSt }}">{{ x.e }}</span><span style="{{ x.nSt }}">{{ x.n }}</span><sc-if value="{{ x.hasF }}" hint-placeholder-val="{{ false }}"><span style="margin-top:3px;font-size:12px;color:#5c7280;display:flex;align-items:center;gap:8px;flex-wrap:wrap">{{ x.f }} <span style="color:#8a9aa6;text-decoration:line-through">{{ x.a }}</span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#1d8f86" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg><strong style="color:#10233a">{{ x.b }}</strong></span></sc-if></span></div></sc-for></div></sc-if>
+        <sc-if value="{{ dEmpty }}" hint-placeholder-val="{{ false }}"><div style="margin:16px 22px 22px;padding:24px 16px;border-radius:14px;background:#f3f7f6;text-align:center;font-size:13px;color:#43586a"><strong style="color:#10233a">Aucune différence.</strong> Les données sont identiques entre ces deux états.</div></sc-if>
+        <sc-if value="{{ fEmpty }}" hint-placeholder-val="{{ false }}"><div style="margin:16px 22px 22px;padding:22px 16px;border-radius:14px;background:#f3f7f6;text-align:center;font-size:13px;color:#43586a">Aucun changement de ce type.</div></sc-if>
+        <div style="margin-top:auto;display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:12px 22px 16px;border-top:1px solid #eef3f2"><button onClick="{{ swap }}" style="height:32px;padding:0 12px;border:1px solid #e1e9e7;border-radius:9px;background:#fff;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:7px;white-space:nowrap" style-hover="border-color:#10233a"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16 M3 8l4-4 4 4 M17 20V4 M21 16l-4 4-4-4"></path></svg>Remonter d’un cran</button><button onClick="{{ clearSel }}" style="height:32px;padding:0 12px;border:0;border-radius:9px;background:transparent;font-size:12px;font-weight:600;color:#5c7280;cursor:pointer;white-space:nowrap" style-hover="background:#f3f7f6;color:#10233a">Effacer la sélection</button><span style="flex:1"></span><button onClick="{{ restA }}" style="height:32px;padding:0 12px;border:0;border-radius:9px;background:transparent;font-size:12px;font-weight:700;color:#a8372c;cursor:pointer;display:inline-flex;align-items:center;gap:7px;white-space:nowrap" style-hover="background:#fdecec"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 12a8.5 8.5 0 1 0 2.5-6 M3 4v4h4"></path></svg>Restaurer l’état A</button></div>
+      </div></sc-if>
+    </div>
+  </div>
+</div>
+
+<sc-if value="{{ dlg.on }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ dlg.close }}" style="position:fixed;inset:0;z-index:50;background:rgba(16,35,58,.32);backdrop-filter:blur(3px);display:grid;place-items:center;padding:20px">
+    <div onClick="{{ stop }}" role="dialog" aria-modal="true" aria-label="{{ dlg.title }}" style="width:100%;max-width:440px;background:#fff;border-radius:20px;box-shadow:0 30px 70px -20px rgba(16,35,58,.45);padding:24px 26px 22px;display:flex;flex-direction:column;gap:16px;animation:sn-pop .22s cubic-bezier(.2,.7,.2,1) both">
+      <div style="display:flex;gap:14px;align-items:flex-start"><span style="{{ dlg.ic }}"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{ dlg.icon }}"></path></svg></span><div style="min-width:0"><h2 style="margin:0;font-size:17px;font-weight:800;letter-spacing:-.01em;text-wrap:pretty">{{ dlg.title }}</h2><p style="margin:6px 0 0;font-size:12.5px;line-height:1.55;color:#43586a;text-wrap:pretty">{{ dlg.body }}</p></div></div>
+      <sc-if value="{{ dlg.isCreate }}" hint-placeholder-val="{{ false }}"><label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700;color:#43586a">Libellé<input autoFocus="{{ true }}" value="{{ lab }}" onChange="{{ setLab }}" onKeyDown="{{ labKey }}" placeholder="Ex. Avant le 20e COPIL" maxLength="60" style="height:40px;padding:0 12px;border:1px solid #d3dedb;border-radius:10px;font-size:13.5px;font-weight:500;color:#10233a;outline:none;background:#fff" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.15)"></label></sc-if>
+      <div style="display:flex;justify-content:flex-end;gap:8px"><button onClick="{{ dlg.close }}" style="height:38px;padding:0 16px;border:1px solid #d3dedb;border-radius:10px;background:#fff;font-size:13px;font-weight:600;cursor:pointer" style-hover="border-color:#10233a">Annuler</button><button onClick="{{ dlg.ok }}" style="{{ dlg.okSt }}">{{ dlg.okL }}</button></div>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ ts.on }}" hint-placeholder-val="{{ false }}">
+  <div role="status" style="position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:12px;padding:11px 12px 11px 16px;border-radius:13px;background:#10233a;color:#fff;font-size:13px;font-weight:600;box-shadow:0 18px 40px -16px rgba(16,35,58,.6);animation:sn-pop .22s both;max-width:calc(100vw - 32px)"><span style="width:7px;height:7px;border-radius:50%;background:#3dd6c6;flex:none"></span><span>{{ ts.msg }}</span><sc-if value="{{ ts.hasAct }}" hint-placeholder-val="{{ false }}"><button onClick="{{ ts.act }}" style="height:28px;padding:0 10px;border:0;border-radius:8px;background:rgba(255,255,255,.12);color:#fff;font-size:12px;font-weight:700;cursor:pointer" style-hover="background:rgba(255,255,255,.2)">{{ ts.actL }}</button></sc-if></div>
+</sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;volume&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Réel&quot;,&quot;90 snapshots&quot;],&quot;default&quot;:&quot;Réel&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Démo&quot;}}">
+const D = (m, d, h, mi) => new Date(2026, m, d, h, mi);
+const DOW = ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'], DOWL = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+const MO = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+const PROJ = ['RISE', 'ATLAS', 'HORIZON', 'NOVA'];
+const MOL = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+const SEED = {
+  RISE: [['r1', D(6, 17, 4, 0)], ['r2', D(6, 26, 18, 30), 'Après le 18e COPIL', 'Julien Morel'], ['r3', D(7, 21, 4, 0)], ['r4', D(7, 28, 4, 0)], ['r5', D(8, 4, 4, 0)], ['r6', D(8, 8, 11, 5), 'Replanification du Run 3', 'Julien Morel'], ['r7', D(8, 11, 4, 0)], ['r8', D(8, 18, 4, 0)], ['r9', D(8, 22, 16, 40), 'Avant le 19e COPIL', 'Julien Morel'], ['r10', D(8, 25, 4, 0)]],
+  ATLAS: [['a1', D(7, 3, 9, 0), 'Avant la migration du lot 2', 'Julien Morel'], ['a2', D(8, 11, 4, 0)], ['a3', D(8, 18, 4, 0)]],
+  HORIZON: [['h1', D(8, 11, 4, 0)], ['h2', D(8, 18, 4, 0)]], NOVA: []
+};
+const EV = [
+  [1, 'mod', 'Jalon', 'J01 · Fin de la recette Finance', 'Date prévue', '12 sept. 2026', '19 sept. 2026'], [1, 'add', 'Risque', 'Disponibilité de l’équipe intégrateur'], [1, 'mod', 'Action', 'Spécifications des flux Achats', 'Avancement', '60 %', '100 %'],
+  [2, 'add', 'Action', 'Plan de conduite du changement'], [2, 'mod', 'Risque', 'Retard des flux Brand X', 'Probabilité', '3', '4'],
+  [3, 'add', 'Livrable', 'Dossier d’architecture v2'], [3, 'del', 'Livrable', 'Note de cadrage v0 (doublon)'], [3, 'mod', 'Action', 'Migration du référentiel fournisseurs', 'Avancement', '20 %', '40 %'],
+  [4, 'mod', 'Action', 'Recette des interfaces SI Achats', 'Responsable', 'Karim Benali', 'Élodie Faure'], [4, 'add', 'Action', 'Paramétrage des workflows de validation'],
+  [5, 'mod', 'Jalon', 'J06 · Go / No-Go Go-Live', 'Date prévue', '4 oct. 2026', '15 mars 2027'], [5, 'add', 'Risque', 'Charge du support en période de clôture'],
+  [6, 'mod', 'Action', 'Migration du référentiel fournisseurs', 'Date de fin', '30 sept.', '16 oct.'], [6, 'mod', 'Jalon', 'J08 · Go-Live Lot 1', 'Date prévue', '1er nov. 2026', '1er avr. 2027'], [6, 'del', 'Action', 'Atelier en doublon · cadrage du reporting'],
+  [7, 'mod', 'Action', 'Migration du référentiel fournisseurs', 'Avancement', '40 %', '65 %'], [7, 'add', 'Livrable', 'Plan de recette utilisateur'],
+  [8, 'mod', 'Risque', 'Disponibilité de l’équipe intégrateur', 'Statut', 'Ouvert', 'En mitigation'], [8, 'add', 'Action', 'Formation des key users'], [8, 'mod', 'Livrable', 'Dossier d’architecture v2', 'Statut', 'En rédaction', 'Validé'],
+  [9, 'mod', 'Action', 'Recette des interfaces SI Achats', 'Avancement', '30 %', '55 %'], [9, 'del', 'Risque', 'Indisponibilité de la salle de formation'], [9, 'add', 'Action', 'Préparation du 20e COPIL'], [9, 'mod', 'Jalon', 'J07 · Répétition générale', 'Responsable', 'Karim Benali', 'Antoine Mercier']];
+const ENT = { Action: 'tâches', Jalon: 'jalons', Risque: 'risques', Livrable: 'livrables' };
+const BASE = { RISE: { Action: 138, Jalon: 12, Risque: 17, Livrable: 34 }, ATLAS: { Action: 96, Jalon: 9, Risque: 11, Livrable: 22 }, HORIZON: { Action: 54, Jalon: 6, Risque: 7, Livrable: 12 }, NOVA: { Action: 0, Jalon: 0, Risque: 0, Livrable: 0 } };
+const TN = { add: ['#e6f3f2', '#0f5f5a', '#1d8f86', '+', 'Ajouts'], mod: ['#e6f1f8', '#0b5c8a', '#2f86c0', '~', 'Modifications'], del: ['#fdecec', '#a8372c', '#d94b4b', '−', 'Suppressions'] };
+const p2 = n => String(n).padStart(2, '0');
+const fT = t => p2(t.getHours()) + ':' + p2(t.getMinutes());
+const fD = t => DOW[t.getDay()] + ' ' + (t.getDate() === 1 ? '1er' : t.getDate()) + ' ' + MO[t.getMonth()];
+const fDT = t => (t.getDate() === 1 ? '1er' : t.getDate()) + ' ' + MO[t.getMonth()] + ' · ' + fT(t);
+const build = vol => { const snaps = {}; PROJ.forEach(k => snaps[k] = SEED[k].map((s, i) => ({ id: s[0], t: s[1], k: s[2] ? 'man' : 'auto', lab: s[2] || '', by: s[3] || '', ix: i })));
+  if (vol === '90 snapshots') { const seed = snaps.RISE, days = new Set(seed.map(s => s.t.toDateString())), gen = [];
+    for (let d = 0; gen.length + seed.length < 90; d++) { const t = new Date(2026, 8, 28 - d, 4, 0); if (days.has(t.toDateString())) continue; const ix = Math.max(0, seed.filter(s => s.t <= t).length - 1); gen.push({ id: 'g' + d, t, k: 'auto', lab: '', by: '', ix }); }
+    snaps.RISE = [...seed, ...gen].sort((a, b) => a.t - b.t); }
+  return snaps; };
+const nowD = () => { const n = new Date(); return new Date(2026, 8, 29, n.getHours(), n.getMinutes()); };
+
+class Component extends DCLogic {
+  constructor(p) {
+    super(p);
+    const snaps = build(p.volume);
+    this.listRef = React.createRef();
+    this.state = { pj: 'RISE', snaps, sel: ['r9', 'r10'], filt: 'tous', sched: { on: true, fq: 'Hebdomadaire', day: 'vendredi', hour: '04:00', keep: '12 mois' }, dlg: null, lab: '', cap: null, toast: null };
+  }
+  componentDidUpdate(prev) { if (prev.volume !== this.props.volume) this.setState({ snaps: build(this.props.volume), pj: 'RISE', filt: 'tous' }, () => this.setState({ sel: this.lastTwo() })); }
+  scrollTo(id) { const c = this.listRef.current, r = c && c.querySelector('[data-sid="' + id + '"]'); if (r) c.scrollTo({ top: Math.max(0, r.offsetTop - 64), behavior: 'smooth' }); }
+  // Console : données, capture, comparaison, restauration et planification par le serveur (admin-api.js → bindSnapshots) ;
+  // sans serveur, simulation d'origine.
+  componentDidMount() { this._key = e => { if (e.key === 'Escape' && this.state.dlg) this.setState({ dlg: null }); }; window.addEventListener('keydown', this._key); import('./admin-api.js').then(m => m.bindSnapshots(this)).catch(() => {}); }
+  componentWillUnmount() { window.removeEventListener('keydown', this._key); clearInterval(this._ci); clearTimeout(this._tt); }
+  toast(msg, act, actL) { clearTimeout(this._tt); this.setState({ toast: { msg, act, actL } }); this._tt = setTimeout(() => this.setState({ toast: null }), 4200); }
+  list() { return this.state.snaps[this.state.pj] || []; }
+  counts(p, ix) { const c = { ...BASE[p] }; if (p === 'RISE') EV.forEach(e => { if (e[0] <= Math.min(ix, 9)) { if (e[1] === 'add') c[e[2]]++; if (e[1] === 'del') c[e[2]]--; } }); return c; }
+  diff(a, b) {
+    if (this.state.pj !== 'RISE') return [];
+    const out = [], idx = {};
+    EV.filter(e => e[0] > a.ix && e[0] <= Math.min(b.ix, 9)).forEach(e => {
+      const key = e[2] + '|' + e[3] + '|' + (e[4] || '');
+      if (e[1] === 'mod' && idx[key] != null) { out[idx[key]].b = e[6]; return; }
+      idx[key] = out.length; out.push({ k: e[1], e: e[2], n: e[3], f: e[4] || '', a: e[5] || '', b: e[6] || '' });
+    });
+    return out.filter(x => !(x.k === 'mod' && x.a === x.b));
+  }
+  togSel(id) { this.setState(s => { const a = s.sel; if (a.includes(id)) return { sel: a.filter(x => x !== id) }; return { sel: a.length < 2 ? [...a, id] : [a[1], id], filt: 'tous' }; }); }
+  lastTwo() { return [...this.list()].sort((a, b) => a.t - b.t).slice(-2).map(s => s.id); }
+  pickPj(p) { this.setState({ pj: p, filt: 'tous' }, () => this.setState({ sel: this.lastTwo() })); }
+  nextCap() {
+    const S = this.state.sched; if (!S.on) return null;
+    const n = nowD(), [H, M] = S.hour.split(':').map(Number); let d = new Date(2026, 8, 29, H, M);
+    if (S.fq === 'Quotidienne') { if (d <= n) d.setDate(d.getDate() + 1); }
+    else if (S.fq === 'Hebdomadaire') { const w = DOWL.indexOf(S.day); d.setDate(d.getDate() + ((w - d.getDay() + 7) % 7)); if (d <= n) d.setDate(d.getDate() + 7); }
+    else d = new Date(2026, 9, 1, H, M);
+    return d;
+  }
+  capture(lab) {
+    const p = this.state.pj; clearInterval(this._ci);
+    this.setState({ dlg: null, lab: '', cap: { p, pct: 0, lab } });
+    this._ci = setInterval(() => {
+      const c = this.state.cap; if (!c) return clearInterval(this._ci);
+      const pct = Math.min(100, c.pct + 8 + Math.random() * 14);
+      if (pct < 100) return this.setState({ cap: { ...c, pct } });
+      clearInterval(this._ci);
+      const id = 's' + Date.now();
+      this.setState(s => { const L = s.snaps[p], ix = L.length ? Math.max(...L.map(x => x.ix)) : 0, prev = [...L].sort((a, b) => a.t - b.t).slice(-1)[0];
+        return { cap: null, snaps: { ...s.snaps, [p]: [...L, { id, t: nowD(), k: 'man', lab, by: 'Julien Morel', ix }] }, sel: s.pj === p ? (prev ? [prev.id, id] : [id]) : s.sel, filt: 'tous' }; });
+      this.toast('Snapshot « ' + lab + ' » créé sur ' + p);
+    }, 170);
+  }
+  restore(s) {
+    const p = this.state.pj;
+    this.setState({ dlg: { type: 'restore', title: 'Restaurer ' + p + ' à l’état du ' + fDT(s.t) + ' ?', body: 'Les données actuelles du projet seront remplacées. Un snapshot de sécurité de l’état actuel est créé automatiquement avant la restauration.',
+      ok: () => { const id = 's' + Date.now();
+        this.setState(st => { const L = st.snaps[p], cur = Math.max(...L.map(x => x.ix)); return { dlg: null, snaps: { ...st.snaps, [p]: [...L, { id, t: nowD(), k: 'man', lab: 'Sécurité avant restauration', by: 'Système', ix: cur }] } }; });
+        this.toast(p + ' restauré à l’état du ' + fDT(s.t), () => this.setState({ sel: [id], toast: null }), 'Voir la sauvegarde'); } } });
+  }
+  renderVals() {
+    const S = this.state, list = this.list(), asc = [...list].sort((a, b) => a.t - b.t), desc = [...asc].reverse();
+    const sel = S.sel.filter(id => list.some(s => s.id === id)), selS = sel.map(id => list.find(s => s.id === id)).sort((a, b) => a.t - b.t);
+    const A = selS.length === 2 ? selS[0] : null, B = selS.length === 2 ? selS[1] : null, next = this.nextCap(), now = this.now ? this.now() : nowD();
+    const t0 = new Date((asc[0] ? asc[0].t : new Date(2026, 7, 20)).getTime() - 5 * 864e5), t1 = new Date(Math.max(now, next || 0, asc.length ? asc[asc.length - 1].t : 0) + 5 * 864e5), span = t1 - t0;
+    const pos = t => Math.max(0, Math.min(100, (t - t0) / span * 100)).toFixed(2);
+    const statsOf = s => { const c = this.counts(S.pj, s.ix); return Object.keys(ENT).map(k => ({ v: c[k], k: ENT[k] })); };
+    const dense = list.length > 40;
+    const items = desc.map((s, i) => {
+      const si = selS.indexOf(s), letter = si < 0 ? '' : selS.length === 2 ? (si === 0 ? 'A' : 'B') : 'A', sel = si >= 0, man = s.k === 'man', inR = A && s.t > A.t && s.t < B.t;
+      const lab = s.lab || 'Capture planifiée', by = s.by || 'Système', st = statsOf(s);
+      return { id: s.id, d: fD(s.t), t: fT(s.t), lab, by, latest: i === 0, sel, letter, stats: st.map(x => x.v + ' ' + x.k).join(' · '),
+        tip: fD(s.t) + ' · ' + fT(s.t) + ' — ' + lab, selAria: sel ? 'Retirer de la comparaison' : 'Ajouter à la comparaison', restAria: 'Restaurer l’état du ' + fDT(s.t),
+        tog: e => { if (e) e.stopPropagation(); this.togSel(s.id); }, rest: e => { if (e) e.stopPropagation(); this.restore(s); },
+        railTog: e => { if (e) e.stopPropagation(); this.togSel(s.id); this.scrollTo(s.id); },
+        railSt: `position:absolute;left:${pos(s.t)}%;top:0;height:100%;transform:translateX(-50%);border:0;background:transparent;padding:0 ${dense ? 1 : 4}px ${sel ? 43 : dense ? 46.5 : 45}px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px;z-index:${sel ? 3 : 2}`,
+        flag: `width:22px;height:22px;border-radius:7px;display:grid;place-items:center;font-size:11px;font-weight:800;animation:sn-in .2s both;${letter === 'B' ? 'background:#10233a;color:#fff' : 'background:#fff;color:#10233a;box-shadow:inset 0 0 0 1.5px #10233a'}`,
+        mark: `border-radius:50%;box-sizing:border-box;transition:all .18s;${sel ? 'width:13px;height:13px;background:#10233a;box-shadow:0 0 0 4px rgba(16,35,58,.1)' : man ? `width:${dense ? 8 : 11}px;height:${dense ? 8 : 11}px;background:#e39a26` : `width:${dense ? 6 : 9}px;height:${dense ? 6 : 9}px;background:#fff;border:${dense ? 1.5 : 2}px solid ` + (inR ? '#1d8f86' : '#9fb3bd')}`,
+        row: `display:grid;grid-template-columns:104px 40px minmax(0,1fr) auto 26px;align-items:center;gap:10px;padding:10px 10px 10px 12px;border-radius:12px;cursor:pointer;transition:background .15s,box-shadow .15s;animation:sn-in .25s both;background:${sel ? '#f5f9f8' : inR ? 'rgba(29,143,134,.035)' : 'transparent'};box-shadow:${sel ? 'inset 0 0 0 1px #d8e3e0' : 'none'}`,
+        kDot: `display:inline-block;width:6px;height:6px;border-radius:50%;margin:0 7px 1px 0;vertical-align:middle;background:${man ? '#e39a26' : '#b8c7c4'}`,
+        slot: `width:26px;height:26px;border:0;border-radius:8px;display:grid;place-items:center;font-size:11px;font-weight:800;cursor:pointer;transition:all .15s;${letter === 'B' ? 'background:#10233a;color:#fff' : letter === 'A' ? 'background:#fff;color:#10233a;box-shadow:inset 0 0 0 1.5px #10233a' : 'background:transparent;color:#10233a;box-shadow:inset 0 0 0 1.5px #d8e3e0'}` };
+    });
+    const months = []; for (let m = new Date(t0.getFullYear(), t0.getMonth() + 1, 1); m < t1; m = new Date(m.getFullYear(), m.getMonth() + 1, 1)) months.push({ l: MO[m.getMonth()], st: `position:absolute;left:${pos(m)}%;top:59px;display:flex;flex-direction:column;align-items:flex-start;gap:6px` });
+    const diff = A ? this.diff(A, B) : [], cnt = k => diff.filter(x => x.k === k).length;
+    const df = diff.filter(x => S.filt === 'tous' || x.k === S.filt).map(x => ({ ...x, hasF: !!x.f, gl: TN[x.k][3],
+      g: `width:22px;height:22px;border-radius:7px;display:grid;place-items:center;font-size:13px;font-weight:800;background:${TN[x.k][0]};color:${TN[x.k][1]}`,
+      eSt: `font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:800;color:${TN[x.k][1]}`,
+      nSt: x.k === 'del' ? 'font-size:13.5px;font-weight:600;color:#8a9aa6;text-decoration:line-through;text-decoration-color:rgba(168,55,44,.5)' : 'font-size:13.5px;font-weight:650;color:#10233a' }));
+    const gap = A ? (() => { const ms = B.t - A.t, d = Math.floor(ms / 864e5), h = Math.floor((ms % 864e5) / 36e5), mi = Math.round((ms % 36e5) / 6e4); return d ? d + ' j ' + h + ' h' : h ? h + ' h ' + p2(mi) : mi + ' min'; })() : '';
+    const Sc = S.sched, setS = k => e => { const v = e.target.value; this.setState(s => ({ sched: { ...s.sched, [k]: v } }), () => this.toast('Planification mise à jour')); };
+    const nextL = next ? 'Prochaine capture : ' + DOWL[next.getDay()] + ' ' + (next.getDate() === 1 ? '1er' : next.getDate()) + ' ' + MO[next.getMonth()] + ' à ' + Sc.hour : 'Aucune capture automatique programmée';
+    const D0 = S.dlg, capBusy = !!S.cap;
+    const vals = {
+      pj: (this.projects || PROJ).map(p => { const on = S.pj === p; return { l: p, c: (S.snaps[p] || []).length, on, pick: () => this.pickPj(p),
+        st: `border:0;background:transparent;display:inline-flex;align-items:baseline;gap:6px;padding:6px 0;font-size:13px;letter-spacing:.04em;cursor:pointer;transition:color .15s,box-shadow .2s;font-weight:${on ? 800 : 600};color:${on ? '#10233a' : '#5c7280'};box-shadow:${on ? 'inset 0 -2px 0 #10233a' : 'inset 0 -2px 0 transparent'}` }; }),
+      sch: { on: Sc.on, off: !Sc.on, next: nextL,
+        toggle: () => { const on = !Sc.on; this.setState(s => ({ sched: { ...s.sched, on } })); this.toast(on ? 'Planification activée' : 'Planification suspendue'); },
+        sw: `width:32px;height:19px;border-radius:999px;border:0;padding:0;position:relative;cursor:pointer;flex:none;transition:background .2s;background:${Sc.on ? '#1d8f86' : '#cbd7d4'}`,
+        knob: `position:absolute;top:2.5px;left:${Sc.on ? 15.5 : 2.5}px;width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:left .2s`,
+        selSt: `height:30px;padding:0 26px 0 10px;border:1px solid #dfe7e5;border-radius:9px;background:#fff;appearance:none;-webkit-appearance:none;font-size:12.5px;font-weight:600;color:#10233a;cursor:${Sc.on ? 'pointer' : 'not-allowed'};opacity:${Sc.on ? 1 : .45};transition:opacity .2s`,
+        legDot: `width:9px;height:9px;border-radius:50%;border:1.5px dashed ${Sc.on ? '#1d8f86' : '#b8c7c4'}`,
+        sel: [['fq', '', 'Fréquence', ['Quotidienne', 'Hebdomadaire', 'Mensuelle'], true], ['day', '', 'Jour', DOWL.slice(1).concat('dimanche'), Sc.fq === 'Hebdomadaire'], ['hour', '', 'Heure', ['00:00', '02:00', '04:00', '06:00', '20:00', '22:00'], true], ['keep', 'Conservation', 'Conservation', ['3 mois', '6 mois', '12 mois', '24 mois'], true]].map(([k, lb, aria, opts, show]) => ({ k: lb, hasK: !!lb, aria, opts, show, v: Sc[k], set: setS(k) })) },
+      n: list.length, empty: list.length === 0, items, months, listRef: this.listRef,
+      listSt: `flex:1;min-height:0;overflow-y:auto;position:relative;padding:0 8px 10px;scrollbar-width:thin;display:${list.length ? 'block' : 'none'}`,
+      rows: (() => { const out = [], mc = {}; items.forEach(x => { const t = desc.find(s => s.id === x.id).t, k = t.getFullYear() * 12 + t.getMonth(); mc[k] = (mc[k] || 0) + 1; });
+        let last = null; items.forEach(x => { const t = desc.find(s => s.id === x.id).t, k = t.getFullYear() * 12 + t.getMonth(); if (k !== last) { out.push({ isH: true, isR: false, id: 'h' + k, hl: MOL[t.getMonth()] + ' ' + t.getFullYear(), hc: mc[k] + ' snapshot' + (mc[k] > 1 ? 's' : '') }); last = k; } out.push({ ...x, isH: false, isR: true }); }); return out; })(),
+      band: A ? `position:absolute;left:${pos(A.t)}%;width:${(pos(B.t) - pos(A.t)).toFixed(2)}%;top:49px;height:19px;border-radius:10px;background:linear-gradient(90deg,rgba(16,35,58,.09),rgba(29,143,134,.22));transition:all .3s` : 'display:none',
+      today: `position:absolute;left:${pos(now)}%;top:6px;bottom:24px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:3px;pointer-events:none`,
+      nextSt: next ? `position:absolute;left:${pos(next)}%;top:30px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:9px` : 'display:none',
+      nextShort: next ? (next.getDate() === 1 ? '1er' : next.getDate()) + ' ' + MO[next.getMonth()] : '',
+      cap: !!S.cap && S.cap.p === S.pj, capBusy, capLab: S.cap ? S.cap.lab : '', capPct: S.cap ? Math.round(S.cap.pct) + ' %' : '', capBar: S.cap ? `height:100%;border-radius:2px;background:#1d8f86;width:${S.cap.pct}%;transition:width .17s linear` : '',
+      sel0: selS.length === 0, sel1: selS.length === 1, sel2: !!A, canLast: list.length >= 2,
+      one: selS.length === 1 ? { l: fD(selS[0].t) + ' · ' + fT(selS[0].t), stats: statsOf(selS[0]) } : { l: '', stats: [] },
+      A: A ? { l: fDT(A.t), lab: A.lab || 'Capture planifiée' } : {}, B: B ? { l: fDT(B.t), lab: B.lab || 'Capture planifiée' } : {}, gap,
+      sums: ['add', 'mod', 'del'].map(k => { const on = S.filt === k, v = cnt(k); return { g: TN[k][3], v, l: TN[k][4], on, dis: v === 0, pick: () => this.setState({ filt: on ? 'tous' : k }),
+        st: `border:0;padding:16px 22px 14px;cursor:${v ? 'pointer' : 'default'};text-align:left;display:flex;flex-direction:column;gap:2px;box-shadow:-1px 0 0 #eef3f2${on ? `,inset 0 -2px 0 ${TN[k][2]}` : ''};background:${on ? '#f7faf9' : '#fff'};opacity:${!v ? .4 : S.filt === 'tous' || on ? 1 : .5};transition:all .2s`,
+        num: `font-size:26px;font-weight:800;letter-spacing:-.04em;line-height:1.05;font-variant-numeric:tabular-nums;color:${TN[k][1]}` }; }),
+      bar: ['add', 'mod', 'del'].filter(k => cnt(k)).map(k => ({ st: `flex:${cnt(k)} 1 0;background:${TN[k][2]};opacity:${S.filt === 'tous' || S.filt === k ? 1 : .2};transition:opacity .2s` })),
+      diff: df, dSome: df.length > 0, dEmpty: !!A && diff.length === 0, fEmpty: !!A && diff.length > 0 && df.length === 0,
+      cmpLast: () => this.setState({ sel: this.lastTwo(), filt: 'tous' }), clearSel: () => this.setState({ sel: [], filt: 'tous' }),
+      swap: () => { if (!A) return; const i = asc.indexOf(A); if (i > 0) this.setState({ sel: [asc[i - 1].id, B.id], filt: 'tous' }); else this.toast('A est déjà le plus ancien snapshot'); },
+      restA: () => A && this.restore(A),
+      openCreate: () => { if (S.cap) return; this.setState({ dlg: { type: 'create' }, lab: '' }); },
+      lab: S.lab, setLab: e => this.setState({ lab: e.target.value }), labKey: e => { if (e.key === 'Enter') this.capture((S.lab || '').trim() || 'Capture manuelle'); },
+      stop: e => e.stopPropagation(),
+      ts: S.toast ? { on: true, msg: S.toast.msg, hasAct: !!S.toast.act, act: S.toast.act, actL: S.toast.actL || '' } : { on: false }
+    };
+    const danger = D0 && D0.type === 'restore';
+    vals.dlg = D0 ? { on: true, isCreate: D0.type === 'create', close: () => this.setState({ dlg: null }),
+      title: D0.type === 'create' ? 'Créer un snapshot de ' + S.pj : D0.title,
+      body: D0.type === 'create' ? 'Capture l’état complet du projet : tâches, jalons, risques, livrables et leurs attributs.' : D0.body,
+      icon: danger ? 'M3.5 12a8.5 8.5 0 1 0 2.5-6 M3 4v4h4' : 'M4 8h3l2-3h6l2 3h3v11H4z M12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z',
+      ic: `width:40px;height:40px;border-radius:12px;flex:none;display:grid;place-items:center;background:${danger ? '#fdecec' : '#e6f3f2'};color:${danger ? '#c2473b' : '#1d8f86'}`,
+      okL: danger ? 'Restaurer' : 'Lancer la capture',
+      ok: danger ? D0.ok : () => this.capture((S.lab || '').trim() || 'Capture manuelle'),
+      okSt: `height:38px;padding:0 18px;border:0;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;background:${danger ? '#c2473b' : '#10233a'}` } : { on: false };
+    return vals;
+  }
+}
+</script>
+</body>
+</html>

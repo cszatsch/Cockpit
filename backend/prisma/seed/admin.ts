@@ -246,8 +246,11 @@ export async function seedAdmin(db: PrismaClient): Promise<void> {
     HORIZON: { Action: 54, Jalon: 6, Risque: 7, Livrable: 12 },
   };
   for (const [project, list] of Object.entries(SNAPS)) {
+    const counts = { ...BASE[project] };
     for (const [ix, [id, t, label, by]] of list.entries()) {
       const changes = project === RISE_ID ? EV.filter((e) => e[0] === ix).map(([, op, entity, object, field, before, after]) => ({ op, entity, object, field: field ?? null, before: before ?? null, after: after ?? null })) : [];
+      // Effectifs de l'état capturé : ceux du premier snapshot, plus les ajouts et moins les suppressions depuis.
+      for (const c of changes) if (c.entity in counts) counts[c.entity] += c.op === 'add' ? 1 : c.op === 'del' ? -1 : 0;
       await db.snapshot.create({
         data: {
           id,
@@ -259,7 +262,7 @@ export async function seedAdmin(db: PrismaClient): Promise<void> {
           takenById: by ? 'u1' : null,
           status: 'DONE',
           // Snapshots de démonstration : pas de contenu capturé ; écarts connus avec le précédent.
-          stats: { counts: BASE[project], demo: true, changesFromPrevious: changes } as Prisma.InputJsonValue,
+          stats: { counts: { ...counts }, demo: true, changesFromPrevious: changes } as Prisma.InputJsonValue,
         },
       });
     }
