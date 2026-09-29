@@ -288,3 +288,17 @@ Les captures sont écrites dans `OUT` (par défaut `<tmp>/rise-console-e2e`).
 - `Notifications et alertes.dc.html` : ajouté tel que livré. Aucune modification.
 - `Console Admin.dc.html` : la page `notifs` intègre le composant par `<dc-import>` et masque l'en-tête générique. Retirés : l'ancien écran (liste, éditeur, aperçu, historique), ses données de démonstration (`RULES0`, `HIST0`, `SAMPLE`) et ses méthodes (`rule`, `ntExtra`, `edR`, `reach`, `toggleRule`, `saveRule`, `deleteRule`, `newRule`). Ajoutés : les rappels `nrSave`, `nrToggle`, `nrCreate`, `nrDelete` et `nrTest`, vides en démonstration, où le composant simule seul. Le lien « règle budgétaire » de la vue des coûts ouvre la page.
 - `admin-api.js` : chargements `nrRules`, `nrHist` et `nrCounts` ; rappels branchés sur `/notifications/rules…` ; écritures en file ; remontage de la vue après un refus. Retirés : `toRule`, `fromRule`, `toHist` et les constantes `FREQ`, `CHANNEL` et `KIND`.
+
+## Registre des cartes API v3c (29/09/2026)
+
+- `Registre des cartes API.dc.html` : ajouté depuis la livraison. Seul le script est complété ; balisage, styles et textes inchangés.
+  - Props : `cards` (modèle Card du § 5, avec `last4` et `series` en plus), `widgets` (catalogue), `now`, `checked`.
+  - Rappels : `onCreate`, `onSave`, `onToggle`, `onDelete`, `onRestore`, `onTest`, `onWidgets`.
+  - Liste du serveur reprise à chaque rechargement (`syncCards`, les tags ajoutés à la volée sont conservés).
+  - Catalogue et suggestions pris dans `widgets` (`wl`, `wid`, `sug`) ; date du jour du serveur (`NOW`).
+  - Test réel par `onTest` ; 4 derniers caractères de la clé (`last4`) au lieu de « 7f3a » ; « dernière vérification » calculée.
+  - Corps de réponse XML reconnu à son premier caractère ; mini-courbe tracée sur la série horaire réelle quand elle existe.
+  - Sans props, la démonstration d'origine reste intacte.
+- `Registre API.dc.html` : retiré (ancienne vue).
+- `Console Admin.dc.html` : la page `apis` intègre le nouveau composant ; montage une fois les cartes et le catalogue reçus. Rappels `apCreate`, `apSave`, `apToggle`, `apDelete`, `apRestore`, `apTest` et `apWidgetsSet`, vides en démonstration. Signal de la sidebar aligné sur les seuils de 60 jours et 80 %.
+- `admin-api.js` : adaptateur (`toCard`, `toResp`, `toDdmmyy`, `fromDdmmyy`, `lastCheck`), catalogue `GET /widgets`, écritures en file puis relecture, suppression différée de 5 s. La clé n'est envoyée que si elle a été saisie ; `key: null` quand « Sans clé » remplace une clé existante.

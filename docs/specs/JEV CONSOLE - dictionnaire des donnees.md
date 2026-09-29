@@ -850,7 +850,7 @@ Cartes du Registre des cartes API : services externes des widgets (météo, traf
 | `quota_jour` | entier | Quota journalier d’appels (null : pas de quota) |  |
 | `delai_ms` | entier | Délai d’appel propre à la carte | en millisecondes ; null = 8 000 |
 | `flux_rss` | booléen | Flux RSS ou Atom (pas d’API JSON) |  |
-| `widgets` | liste de textes | Widgets du Cockpit qui utilisent la carte |  |
+| `widgets` | liste de textes | Widgets du Cockpit alimentés par la carte : identifiants du catalogue des widgets (news = Actualité, meteo = Météo, trafic = Trafic, ai = L’essentiel par Jev, ech = Échéances…) |  |
 | `dernier_test` | json | Dernier test manuel | {code, ms, at, body} |
 | `modifiee_le` | date-heure | Dernière modification |  |
 
@@ -866,7 +866,7 @@ Cartes du Registre des cartes API : services externes des widgets (météo, traf
 
 **Règles et précautions**
 
-- État affiché, dans cet ordre : carte désactivée → « Désactivée » ; erreur_controle non null → en erreur ; cle_expire_le dépassée → « Clé expirée » (erreur) ; cle_expire_le dans 30 jours ou moins → avertissement ; appels du jour ≥ 85 % de quota_jour → avertissement ; sinon opérationnelle.
+- État affiché, dans cet ordre : carte désactivée → « Désactivée » ; erreur_controle non null → en erreur ; cle_expire_le dépassée → « Clé expirée » (erreur) ; cle_expire_le dans moins de 60 jours → avertissement (« À surveiller ») ; appels du jour ≥ 80 % de quota_jour → avertissement ; sinon opérationnelle. Le registre de la Console distingue en plus « Lente » (latence médiane sur 24 h ≥ 300 ms) et « Non vérifiée » (aucun test).
 - Appels du jour = nombre de lignes de appels_cartes_api de la carte depuis minuit (heure de Paris) jusqu’à maintenant, toutes origines confondues.
 - Échéance de la clé signalée à 30, 7 et 1 jour.
 

@@ -5,16 +5,20 @@
  */
 import { isIP } from 'net';
 
-export const API_CARD_CATEGORIES = ['Météo', 'Trafic', 'Actualités', 'Environnement', 'Mobilité', 'Calendrier', 'Finance', 'Autre'] as const;
+/** Tags usuels (ordre d'affichage du registre) ; un tag nouveau peut être créé à la volée (REGISTRE API v3c § 4). */
+export const API_CARD_CATEGORIES = ['Actualités', 'Finance', 'Météo', 'Trafic', 'Environnement', 'Calendrier', 'Entreprises', 'Mobilité', 'Autre'] as const;
 export type ApiCardCategory = (typeof API_CARD_CATEGORIES)[number];
+export const API_CARD_TAG_MAX = 40;
 
 export const API_CARD_NAME_MAX = 60;
 export const API_KEY_MIN_LENGTH = 8;
-/** Échéance proche de la clé : avertissement à 30 jours ; notifications à J-30, J-7 et J-1. */
-export const KEY_EXPIRY_SOON_DAYS = 30;
+/** Échéance proche de la clé : « À surveiller » sous 60 jours (REGISTRE API v3c § 2) ; notifications à J-30, J-7 et J-1. */
+export const KEY_EXPIRY_SOON_DAYS = 60;
 export const KEY_EXPIRY_NOTICE_DAYS = [30, 7, 1] as const;
-/** Quota journalier : avertissement à partir de 85 %. */
-export const QUOTA_WARN_PCT = 85;
+/** Quota journalier : « À surveiller » à partir de 80 % (REGISTRE API v3c § 2). */
+export const QUOTA_WARN_PCT = 80;
+/** Latence médiane sur 24 h à partir de laquelle une carte est « Lente » (REGISTRE API v3c § 2). */
+export const SLOW_LATENCY_MS = 300;
 /** Délai d'un appel sortant (test, contrôle de santé, proxy). */
 export const API_CALL_TIMEOUT_MS = 8000;
 /** Délai propre à une carte (service lent) : 60 s au plus. */
@@ -89,7 +93,7 @@ export interface CardState {
 
 /**
  * État d'une carte, dans l'ordre de la spécification (§ 6) : désactivée → erreur du dernier contrôle →
- * clé expirée → clé expirant sous 30 jours → quota ≥ 85 % → opérationnelle.
+ * clé expirée → clé expirant sous 60 jours → quota ≥ 80 % → opérationnelle.
  */
 export function cardStatus(c: CardState, todayIso: string): { status: 'ok' | 'warn' | 'err'; note?: string } {
   const d = daysLeft(c.keyExpiresAt, todayIso);
@@ -97,7 +101,7 @@ export function cardStatus(c: CardState, todayIso: string): { status: 'ok' | 'wa
   if (!c.enabled) return { status: 'ok', note: 'Désactivée' };
   if (c.checkError) return { status: 'err', note: c.checkError };
   if (d != null && d < 0) return { status: 'err', note: 'Clé expirée' };
-  if (d != null && d <= KEY_EXPIRY_SOON_DAYS) return { status: 'warn', note: `Clé expire dans ${d} j` };
+  if (d != null && d < KEY_EXPIRY_SOON_DAYS) return { status: 'warn', note: `Clé expire dans ${d} j` };
   if (q != null && q >= QUOTA_WARN_PCT) return { status: 'warn', note: `Quota à ${q} %` };
   return { status: 'ok' };
 }
@@ -140,4 +144,12 @@ export function latency24h(calls: Array<{ at: Date; code: number; ms: number | n
 export function redactKey(text: string, key: string | null): string {
   if (!key) return text;
   return text.split(key).join('••••' + key.slice(-4)).split(encodeURIComponent(key)).join('••••' + key.slice(-4));
+}
+
+/** Latence médiane (ms) des appels réussis ; null sans appel réussi. */
+export function latencyMedian(calls: Array<{ code: number; ms: number | null }>): number | null {
+  const v = calls.filter((c) => c.code > 0 && c.code < 400 && c.ms != null).map((c) => c.ms!).sort((a, b) => a - b);
+  if (!v.length) return null;
+  const m = v.length >> 1;
+  return v.length % 2 ? v[m] : Math.round((v[m - 1] + v[m]) / 2);
 }

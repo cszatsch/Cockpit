@@ -90,12 +90,12 @@ describe('Console — registre des cartes API', () => {
 
     upstream = () => ({ status: 200, body: '{"temp":18}' });
     const n0 = seen.length;
-    const p1 = await pmo.get('/api/widgets/proxy/openweather?lat=48.8').set('X-RISE-Widget', 'Météo du site').expect(200);
+    const p1 = await pmo.get('/api/widgets/proxy/openweather?lat=48.8').set('X-RISE-Widget', 'Météo · ville').expect(200);
     expect(p1.body).toEqual({ temp: 18 });
     await pmo.get('/api/widgets/proxy/openweather?lat=48.8').expect(200); // cache : pas de nouvel appel
     expect(seen.length).toBe(n0 + 1);
     expect(seen.at(-1)!.url).toContain('lat=48.8');
-    expect((await t.db.apiCard.findUniqueOrThrow({ where: { id: 'openweather' } })).widgets).toContain('Météo du site');
+    expect((await t.db.apiCard.findUniqueOrThrow({ where: { id: 'openweather' } })).widgets).toEqual(['meteo']); // ancien libellé du Cockpit → identifiant du catalogue
     // Quota de 4 appels par jour : déjà 2 tests + 1 appel du proxy ; le 4e passe, le 5e est refusé.
     await pmo.get('/api/widgets/proxy/openweather?lat=1').expect(200);
     await pmo.get('/api/widgets/proxy/openweather?lat=2').expect(429);
@@ -187,11 +187,46 @@ describe('Console — registre des cartes API', () => {
     await pmo.get('/api/widgets/news?category=sport').expect(422);
   });
 
-  it('suppression refusée tant qu’un widget consomme la carte ; aucune réponse de la console ne contient une clé', async () => {
-    expect((await admin.del(`${AC}/openweather`).expect(409)).body.code).toBe('IN_USE');
+  it('v3c : catalogue des widgets, association, tag libre, clé dans le PATCH, endpoint modifié, latence médiane', async () => {
+    const cat = (await admin.get('/api/admin/widgets').expect(200)).body;
+    expect(cat).toHaveLength(22);
+    expect(cat.find((w: any) => w.id === 'news')).toEqual({ id: 'news', g: '◉', n: 'Actualité', cat: 'Contexte', tags: ['Actualités'] });
+    await (await t.as(WHO.pmo)).get('/api/admin/widgets').expect(403);
+    // Tag créé à la volée.
+    const c = await admin.post(AC, { name: 'Pappers', category: 'Entreprises', endpoint: 'https://api.pappers.fr/v2/entreprise', key: 'cle-pappers-0001', keyExpiresAt: '2027-01-31' }).expect(201);
+    expect(c.body).toMatchObject({ id: 'pappers', category: 'Entreprises', keyLast4: '0001', latencyMedian24h: null, lastTest: null });
+    expect((await admin.post(AC, { name: 'X', category: '', endpoint: 'https://api.exemple.fr/x' }).expect(400)).body.fields.category).toBeDefined();
+    // Associer / dissocier.
+    expect((await admin.put(`${AC}/pappers/widgets`, { ids: ['ai', 'news', 'ai'] }).expect(200)).body.widgets).toEqual(['ai', 'news']);
+    expect((await admin.put(`${AC}/pappers/widgets`, { ids: ['inconnu'] }).expect(422)).body.fields.ids).toBe('inconnu');
+    expect((await admin.put(`${AC}/pappers/widgets`, { ids: ['ai'] }).expect(200)).body.widgets).toEqual(['ai']);
+    expect((await t.db.auditEntry.findFirst({ where: { action: 'Widgets alimentés par une carte API' }, orderBy: { at: 'desc' } }))!.target).toBe('Pappers · dissociée de Actualité');
+    // Test en 401, puis nouvelle clé dans le PATCH : l'erreur est levée, seuls les 4 derniers caractères reviennent.
+    upstream = () => ({ status: 401, body: '{"error":"invalid_api_key"}' });
+    expect((await admin.post(`${AC}/pappers/test`).expect(200)).body.code).toBe(401);
+    expect((await admin.get(AC).expect(200)).body.find((x: any) => x.id === 'pappers')).toMatchObject({ status: 'err', statusNote: 'Clé refusée · 401' });
+    const k = await admin.patch(`${AC}/pappers`, { key: 'NOUVELLE-cle-pappers-9C4D' }).expect(200);
+    expect(k.body).toMatchObject({ keyLast4: '9C4D', status: 'ok' });
+    expect(JSON.stringify(k.body)).not.toContain('NOUVELLE-cle-pappers');
+    upstream = () => ({ status: 200, body: '{"ok":true}' });
+    expect((await admin.post(`${AC}/pappers/test`).expect(200)).body.code).toBe(200);
+    const v1 = (await admin.get(AC).expect(200)).body.find((x: any) => x.id === 'pappers');
+    expect(v1.latencyMedian24h).toEqual(expect.any(Number));
+    expect(v1.lastTest).toMatchObject({ code: 200 });
+    // Endpoint modifié : latence et dernière réponse effacées.
+    const ep = await admin.patch(`${AC}/pappers`, { endpoint: 'https://api.pappers.fr/v2/recherche' }).expect(200);
+    expect(ep.body).toMatchObject({ latencyMs: null, latencyMedian24h: null, lastTest: null });
+    // Retrait de la clé.
+    expect((await admin.patch(`${AC}/pappers`, { key: null }).expect(200)).body).toMatchObject({ keyLast4: null, keyExpiresAt: null });
+    expect(await t.db.auditEntry.count({ where: { action: 'Rotation de la clé d’une carte API', target: { contains: '••••9C4D' } } })).toBe(1);
+  });
+
+  it('suppression, même d’une carte qui alimente un widget (widgets cités dans la trace) ; aucune réponse de la console ne contient une clé', async () => {
+    await admin.del(`${AC}/openweather`).expect(204);
+    expect((await t.db.auditEntry.findFirst({ where: { action: 'Suppression d’une carte API', entityId: 'openweather' } }))!.target).toBe('OpenWeather · widgets impactés : Météo · <ville>');
     await admin.post(AC, { name: 'Libre', category: 'Autre', endpoint: 'https://api.exemple.fr/v1', key: 'cle-libre-0000' }).expect(201);
     await admin.del(`${AC}/libre`).expect(204);
-    expect(await t.db.auditEntry.count({ where: { action: 'Suppression d’une carte API' } })).toBe(1);
+    expect(await t.db.auditEntry.count({ where: { action: 'Suppression d’une carte API' } })).toBe(2);
     const all = [await admin.get(AC), await admin.get('/api/admin/notifications'), await admin.get('/api/admin/audit')];
     for (const r of all) for (const k of [KEY, 'NOUVELLE-cle-7B21', 'news-key-51B2', 'cle-libre-0000']) expect(JSON.stringify(r.body)).not.toContain(k);
   });

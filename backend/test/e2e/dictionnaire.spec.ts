@@ -170,8 +170,8 @@ describe('Jev de la Console — dictionnaire des données', () => {
       const list = Array.isArray(cards) ? cards : cards.cards ?? cards.items;
       const q = list.find((c: any) => c.id === 'c-quota');
       expect(n).toBe(q.quotaUsed);
-      // Règle d'état : ≥ 85 % du quota → avertissement ; clé expirée → erreur.
-      expect(q.status).toBe(n / 10 >= 0.85 ? 'warn' : 'ok');
+      // Règle d'état : ≥ 80 % du quota → avertissement ; clé expirée → erreur.
+      expect(q.status).toBe(n / 10 >= 0.8 ? 'warn' : 'ok');
       const [e] = await sql(`SELECT cle_expire_le < ${TODAY} AS expiree FROM jev.cartes_api WHERE id = 'c-exp'`);
       expect(e.expiree).toBe(true);
       expect(list.find((c: any) => c.id === 'c-exp')).toMatchObject({ status: 'err', statusNote: 'Clé expirée' });

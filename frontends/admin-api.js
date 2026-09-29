@@ -190,6 +190,21 @@ export const toSnap = (s, ix) => ({ id: s.id, t: D(s.takenAt), k: s.kind === 'MA
 /** Planification d'un projet → `sched` `{ on, fq, day, hour, keep }`. */
 export const toSched = s => ({ on: !!s.enabled, fq: s.frequency, day: s.day, hour: s.hour, keep: s.retention });
 export const fromSched = s => ({ enabled: !!s.on, frequency: s.fq, day: s.day, hour: s.hour, retention: s.keep });
+/** Registre des cartes API v3c : carte du serveur → modèle `Card` (§ 5). Jamais la clé, seulement ses 4 derniers caractères. */
+const HTTP_TXT = { 200: 'OK', 201: 'Created', 204: 'No Content', 301: 'Moved Permanently', 302: 'Found', 304: 'Not Modified', 307: 'Temporary Redirect', 308: 'Permanent Redirect', 400: 'Bad Request', 401: 'Unauthorized', 402: 'Payment Required', 403: 'Forbidden', 404: 'Not Found', 408: 'Request Timeout', 410: 'Gone', 422: 'Unprocessable Entity', 429: 'Too Many Requests', 500: 'Internal Server Error', 502: 'Bad Gateway', 503: 'Service Unavailable', 504: 'Gateway Timeout' };
+export const toDdmmyy = iso => (iso ? iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(2, 4) : null);
+export const fromDdmmyy = k => { const m = /^(\d{2})\/(\d{2})\/(\d{2})$/.exec(k || ''); return m ? '20' + m[3] + '-' + m[2] + '-' + m[1] : null; };
+/** Dernier test → `resp` ; serveur injoignable (code 0) : 504 si le délai est dépassé, sinon 502 (réponse d'une passerelle). */
+export const toResp = (t, note) => {
+  if (!t) return null;
+  const code = t.code || (/Délai/.test(note || '') ? 504 : 502), lines = String(t.body || '').split('\n');
+  return { code, txt: HTTP_TXT[code] || (t.code ? 'HTTP ' + code : note || 'Injoignable'), ms: t.ms ?? 0, when: relWhen(t.at), body: lines.length > 40 ? [...lines.slice(0, 40), '…'] : lines };
+};
+export const toCard = v => ({ id: v.id, n: v.name, tag: v.category, ep: v.endpoint.replace(/^https:\/\//, ''), lat: v.latencyMedian24h ?? null, series: v.latency24h || null,
+  q: v.quotaLimit ? Math.round(((v.quotaUsed || 0) / v.quotaLimit) * 100) : null, hasKey: !!v.keyLast4, key: toDdmmyy(v.keyExpiresAt), last4: v.keyLast4 || null,
+  w: [...(v.widgets || [])], fmt: v.feed ? 'xml' : 'json', resp: toResp(v.lastTest, v.statusNote), off: !v.enabled });
+/** « dernière vérification … » : le test le plus récent des cartes. */
+export const lastCheck = cards => { const t = cards.map(v => v.lastTest && v.lastTest.at).filter(Boolean).sort().pop(); return t ? relWhen(t) : 'à venir'; };
 /** Module → `{ id, n, d, sc, pj:{CODE:Date}, g }`. */
 export const toMod = m => ({ id: m.id, n: m.name, d: m.description || '', sc: SCOPE[m.scope] || 'off', pj: Object.fromEntries(Object.entries(m.since || {}).map(([k, v]) => [k, D(v)])), g: D(m.globalSince) });
 const MOD_ORDER = ['bud', 'ben'];
@@ -229,7 +244,7 @@ export function bindConsole(c) {
   c._logout = () => { if (DEV) writeToken(null); return Auth.logout('admin'); };
   const set0 = c.setState.bind(c), orig = {};
   ['go', 'setUser', 'saveUser', 'removeUser', 'saveAdmin', 'removeAdmin', 'testKey', 'testAll', 'saveKey', 'saveProv', 'toggleModel', 'saveModel', 'saveFiche', 'saveAsg', 'setTh', 'doCapture',
-    'setMod', 'approve', 'reject', 'saveMe', 'revoke', 'revokeAll', 'onPhoto', 'exportAudit', 'exportCsv', 'jevReply', 'mtd', 'thVals', 'renderVals', 'skSave', 'skToggle', 'skCreate', 'skDelete', 'psSave', 'psUpload', 'ntToggle', 'ntAct', 'ntUndo', 'ntReadAll', 'apTest', 'apCreate', 'apRotate', 'apToggle'].forEach(k => { orig[k] = c[k].bind(c); });
+    'setMod', 'approve', 'reject', 'saveMe', 'revoke', 'revokeAll', 'onPhoto', 'exportAudit', 'exportCsv', 'jevReply', 'mtd', 'thVals', 'renderVals', 'skSave', 'skToggle', 'skCreate', 'skDelete', 'psSave', 'psUpload', 'ntToggle', 'ntAct', 'ntUndo', 'ntReadAll', 'apTest', 'apCreate', 'apSave', 'apToggle', 'apDelete', 'apRestore', 'apWidgetsSet'].forEach(k => { orig[k] = c[k].bind(c); });
   const toast = (m, t, u) => c.toast(m, t, u), fail = e => { console.warn('[admin-api]', e); toast(errText(e), 'err'); };
   let meId = 'u1';
   const PROJ = () => Object.keys(c.state.snaps || {});
@@ -241,6 +256,7 @@ export function bindConsole(c) {
   const touch = () => { clearTimeout(tAudit); tAudit = setTimeout(() => load(['audit']).catch(() => {}), 350); };
 
   // ── Chargements (GET) ──
+  const apPend = {}; // suppressions de cartes API en attente (identifiant → minuterie)
   const L = {
     accounts: async () => { const r = await get('/accounts'); return { users: r.items.map(toUser) }; },
     admins: async () => ({ admins: (await get('/admins')).map(toAdmin) }),
@@ -274,7 +290,10 @@ export function bindConsole(c) {
     skills: async () => ({ skills: toSkills(await apiAbs('GET', SK)) }),
     persona: async () => ({ persona: toPersona(await apiAbs('GET', PS)) }),
     notifs: async () => ({ nt: (await get('/notifications')).items.map(toNotif) }),
-    apis: async () => ({ apiCards: await get('/api-cards') }),
+    // Registre des cartes API v3c : cartes au format Card (§ 5) et catalogue des widgets ; une suppression en attente
+    // (délai d'annulation de 5 s) reste masquée.
+    apis: async () => { const [cards, widgets] = await Promise.all([get('/api-cards'), get('/widgets')]);
+      return { apiCards: cards, apCards: cards.filter(v => !apPend[v.id]).map(toCard), apWidgets: widgets, apChecked: lastCheck(cards) }; },
   };
   const SECTION = {
     overview: ['accounts', 'providers', 'month', 'audit', 'reqs', 'snaps', 'models', 'asg', 'fns'], users: ['accounts'], admins: ['admins', 'audit', 'accounts'], providers: ['providers', 'models', 'asg', 'fns'],
@@ -289,7 +308,7 @@ export function bindConsole(c) {
   }
 
   // ── Démarrage : squelette de chargement jusqu'à la réception des données du serveur ──
-  set0({ apiBoot: true, loading: true, nt: [], nrApi: true });
+  set0({ apiBoot: true, loading: true, nt: [], nrApi: true, apApi: true });
   (async () => {
     try {
       const ov = await get('/overview');
@@ -363,15 +382,27 @@ export function bindConsole(c) {
   c.ntUndo = id => post('/notifications/' + id + '/undo').then(() => { toast('Décision annulée'); refreshNt(); touch(); }).catch(e => { fail(e); refreshNt(); });
   c.ntReadAll = () => post('/notifications/read-all').then(refreshNt).catch(fail);
 
-  // ── Registre des cartes API (/api/admin/api-cards, REGISTRE API - specification.md § 4 et § 7) ──
-  // Mise à jour locale optimiste dans le composant ; la liste du serveur est rechargée après chaque appel
-  // (et rétablit l'état réel en cas de refus). Les notifications suivent (état, échéance, quota).
-  const apDone = () => { load(['apis']).catch(() => {}); refreshNt(); touch(); };
-  const apFail = e => { fail(e); apDone(); };
-  c.apTest = id => post('/api-cards/' + encodeURIComponent(id) + '/test').then(r => { apDone(); return r; });
-  c.apCreate = card => post('/api-cards', { name: card.name, category: card.category, endpoint: card.endpoint, key: card.key || null, keyExpiresAt: card.keyExpiresAt || null, quotaLimit: card.quotaLimit || null }).then(() => { toast('Carte ajoutée'); apDone(); }).catch(apFail);
-  c.apRotate = (id, key, exp) => put('/api-cards/' + encodeURIComponent(id) + '/key', exp ? { key, keyExpiresAt: exp } : { key }).then(() => { toast('Clé remplacée'); apDone(); }).catch(apFail);
-  c.apToggle = (id, on) => patch('/api-cards/' + encodeURIComponent(id), { enabled: on }).then(() => { toast(on ? 'Carte réactivée' : 'Carte désactivée'); apDone(); }).catch(apFail);
+  // ── Registre des cartes API v3c (Registre des cartes API.dc.html, REGISTRE API - specification.md § 6) ──
+  // Le composant met sa liste à jour lui-même et confirme par ses propres messages ; les écritures partent l'une
+  // après l'autre, puis la liste du serveur est relue (elle rétablit l'état réel en cas de refus, message d'erreur
+  // à l'appui). La clé n'est envoyée que si elle a été saisie ; le serveur n'en renvoie que les 4 derniers caractères.
+  let apQ = Promise.resolve();
+  const AC = id => '/api-cards/' + encodeURIComponent(id);
+  const apReload = () => { refreshNt(); return load(['apis']).catch(() => {}); };
+  const apRun = call => (apQ = apQ.then(call).then(r => { touch(); return apReload().then(() => r); }).catch(e => { fail(e); apReload(); return null; }));
+  const expIso = card => (card.hasKey ? fromDdmmyy(card.key) : null);
+  c.apCreate = (card, key) => apRun(() => post('/api-cards', { name: card.n, category: card.tag, endpoint: 'https://' + card.ep, key: key || null, keyExpiresAt: expIso(card) })).then(r => r && r.id);
+  c.apSave = (id, card, key) => {
+    const before = (c.state.apiCards || []).find(x => x.id === id) || {}, body = { name: card.n, category: card.tag, endpoint: 'https://' + card.ep, keyExpiresAt: expIso(card) };
+    if (key) body.key = key; else if (!card.hasKey && before.keyLast4) body.key = null;
+    return apRun(() => patch(AC(id), body));
+  };
+  c.apToggle = (id, off) => apRun(() => patch(AC(id), { enabled: !off }));
+  c.apWidgetsSet = (id, ids) => apRun(() => put(AC(id) + '/widgets', { ids }));
+  // Suppression : envoyée au serveur à la fin des 5 s pendant lesquelles le message propose « Annuler ».
+  c.apDelete = id => { clearTimeout(apPend[id]); apPend[id] = setTimeout(() => apRun(() => del(AC(id))).then(() => { delete apPend[id]; }), 5000); };
+  c.apRestore = id => { clearTimeout(apPend[id]); delete apPend[id]; };
+  c.apTest = id => post(AC(id) + '/test').then(r => { touch(); apReload(); return { resp: toResp({ code: r.code, ms: r.ms, at: new Date().toISOString(), body: r.body }, r.code ? '' : 'Injoignable'), lat: null }; }).catch(e => { fail(e); return null; });
 
   // Ouverture d'un menu : rechargement de la section en arrière-plan.
   c.go = (sec, then) => { orig.go(sec, then); if (!c.state.apiBoot && SECTION[sec]) load(SECTION[sec]).catch(fail); };

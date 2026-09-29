@@ -14,14 +14,16 @@ describe('Registre des cartes API : règles (spécification REGISTRE API)', () =
     expect(isPrivateAddress('8.8.8.8')).toBe(false);
   });
 
-  it('état : désactivée → erreur → clé expirée → échéance ≤ 30 j → quota ≥ 85 % → opérationnelle', () => {
+  it('état : désactivée → erreur → clé expirée → échéance < 60 j → quota ≥ 80 % → opérationnelle', () => {
     const base = { enabled: true, checkError: null, keyExpiresAt: '2027-06-01', quotaUsed: 10, quotaLimit: 100 };
     const today = '2026-09-26';
     expect(cardStatus({ ...base, enabled: false, checkError: 'Clé refusée · 401' }, today).note).toBe('Désactivée');
     expect(cardStatus({ ...base, checkError: 'Clé refusée · 401', keyExpiresAt: '2026-01-01' }, today)).toEqual({ status: 'err', note: 'Clé refusée · 401' });
     expect(cardStatus({ ...base, keyExpiresAt: '2026-09-25' }, today)).toEqual({ status: 'err', note: 'Clé expirée' });
-    expect(cardStatus({ ...base, keyExpiresAt: '2026-10-26', quotaUsed: 99 }, today)).toEqual({ status: 'warn', note: 'Clé expire dans 30 j' });
-    expect(cardStatus({ ...base, quotaUsed: 85 }, today)).toEqual({ status: 'warn', note: 'Quota à 85 %' });
+    expect(cardStatus({ ...base, keyExpiresAt: '2026-11-24', quotaUsed: 99 }, today)).toEqual({ status: 'warn', note: 'Clé expire dans 59 j' });
+    expect(cardStatus({ ...base, keyExpiresAt: '2026-11-25' }, today)).toEqual({ status: 'ok' });
+    expect(cardStatus({ ...base, quotaUsed: 80 }, today)).toEqual({ status: 'warn', note: 'Quota à 80 %' });
+    expect(cardStatus({ ...base, quotaUsed: 79 }, today)).toEqual({ status: 'ok' });
     expect(cardStatus(base, today)).toEqual({ status: 'ok' });
   });
 

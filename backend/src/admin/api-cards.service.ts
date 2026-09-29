@@ -18,6 +18,7 @@ import {
   KEY_HEADER,
   KEY_PLACEHOLDER,
   latency24h,
+  latencyMedian,
   PROXY_CACHE_FAST_MS,
   PROXY_CACHE_MS,
   PROXY_FAST_CATEGORIES,
@@ -28,6 +29,7 @@ import {
   redactKey,
   TEST_BODY_MAX,
 } from '../domain/api-cards';
+import { widgetId } from '../domain/widgets';
 
 /** Contrôle de santé des cartes actives : toutes les 15 minutes (spécification § 6). */
 export const API_HEALTH_CRON = '*/15 * * * *';
@@ -85,6 +87,11 @@ export class ApiCardsService implements OnModuleInit {
       throw new ApiError(422, 'UNKNOWN_HOST', `Nom d’hôte introuvable : ${host}`);
     }
     if (!ips.length || ips.some(isPrivateAddress)) throw new ApiError(422, 'PRIVATE_HOST', 'Adresse privée ou locale interdite');
+  }
+
+  /** Instant courant du serveur (DEMO_NOW compris). */
+  now(): Date {
+    return this.today.now();
   }
 
   /** Appel réel de l'endpoint d'une carte, avec les paramètres transmis par le widget. */
@@ -167,6 +174,8 @@ export class ApiCardsService implements OnModuleInit {
         statusNote: st.note,
         latencyMs: c.latencyMs,
         latency24h: latency24h(calls.filter((x) => x.cardId === c.id), now),
+        // Latence médiane 24 h (REGISTRE API v3c § 5) : appels postérieurs au dernier changement d'endpoint.
+        latencyMedian24h: latencyMedian(calls.filter((x) => x.cardId === c.id && (!c.endpointSince || x.at > c.endpointSince))),
         quotaUsed,
         quotaLimit: c.quotaLimit,
         timeoutMs: c.timeoutMs ?? API_CALL_TIMEOUT_MS,
@@ -201,7 +210,9 @@ export class ApiCardsService implements OnModuleInit {
     const pending = this.inflight.get(cacheKey);
     if (pending) return pending;
     if (card.quotaLimit && (view.quotaUsed ?? 0) >= card.quotaLimit) throw new ApiError(429, 'QUOTA_EXCEEDED', `Quota journalier de « ${card.name} » atteint (${card.quotaLimit} appels)`);
-    if (widget && !card.widgets.includes(widget)) await this.prisma.apiCard.update({ where: { id: card.id }, data: { widgets: { push: widget } } });
+    // Widget déclaré par le Cockpit (identifiant du catalogue) : associé à la carte à son premier appel.
+    const wid = widgetId(widget);
+    if (wid && !card.widgets.includes(wid)) await this.prisma.apiCard.update({ where: { id: card.id }, data: { widgets: { push: wid } } });
     const run = (async () => {
       const r = await this.call(card, query, 'PROXY', widget);
       const redirect = r.code >= 300 && r.code < 400, failed = !r.code || redirect || r.code >= 500 || r.code === 429;

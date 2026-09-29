@@ -73,6 +73,17 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 
 - **Historique des envois sans données factices (29/09/2026)** : jeu d’essai déplacé dans `seedDemoDeliveries()`, chargé par les tests seulement ; 10 envois factices supprimés de la base locale (7 envois réels conservés). `npm test` : 362 tests verts.
 
+- **Registre des cartes API v3c (29/09/2026)** :
+  - Tests automatiques : 3 tests unitaires (`test/unit/widgets.spec.ts` : catalogue identique à celui du Cockpit, identifiants, latence médiane). Les seuils de `api-cards.spec.ts` passent à 60 jours et 80 %. 1 test e2e (`api-cards.spec.ts`) : catalogue, tag libre, association (422 si le widget est inconnu), clé dans le `PATCH` (4 derniers caractères seulement), endpoint modifié, latence médiane, retrait de la clé. La suppression d'une carte liée à un widget est désormais permise, avec les widgets cités dans la trace.
+  - Recette navigateur, composant seul (démonstration) : les 7 points du § 7 sont conformes.
+  - Recette navigateur, Console branchée sur l'API (base de recette avec les 29 cartes de démonstration côté serveur) : mêmes états (21 opérationnelles, 3 lentes, 3 à surveiller, 2 en erreur, 13 sans widget). Points 1, 2, 4, 5, 6 et 7 conformes (requêtes vérifiées : `PUT …/widgets`, `DELETE` 5 s après la confirmation et aucun en cas d'annulation, `POST`, `PATCH { enabled }`).
+  - Point 3 avec l'API : le `PATCH` porte la clé saisie et le serveur ne renvoie que « A1B2 » ; le test appelle réellement Pappers, qui refuse une clé fictive (401). Le 200 OK n'est vérifiable qu'avec une vraie clé ; en démonstration, il est conforme.
+  - Endpoint modifié : latence « — », dernière réponse effacée, pastille « Non vérifiée ».
+  - Côte à côte (1680 px), les colonnes ont la même hauteur (746 px) et le pied du panneau est ancré en bas.
+  - À 900 px : aucun libellé de bouton sur deux lignes (47 à 69 boutons, en vue, modification, confirmation, nouvelle carte et liste des widgets) et aucun défilement de la page.
+  - Avec 100 cartes : 3 rangées de pastilles au plus par tag, légende exacte, colonnes de même hauteur.
+  - Test navigateur Playwright non relancé ; il ne vise pas cet écran.
+
 ## 3. Écarts connus
 
 ### 3.1 Écarts par rapport aux briefs
@@ -165,6 +176,14 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 - Le jour et l'heure d'envoi (`at`) ne sont pas modifiables dans la vue. Une règle passée en quotidienne, hebdomadaire ou personnalisée prend les valeurs par défaut. Le déclencheur n'est pas modifiable non plus (question ouverte n° 1).
 - Les fonctions de l'ancien écran sans équivalent dans la vue ne sont plus accessibles depuis la Console, mais les routes existent toujours : aperçu généré par le modèle, relance d'un envoi en échec, liste des destinataires d'un aperçu e-mail.
 - Base locale sans modèle d'IA depuis le 28/09/2026 : toutes les règles y affichent « aucun modèle » et la liste des modèles est vide, jusqu'à l'ajout d'un LLM actif.
+
+### Registre des cartes API v3c : points d'attention (design non modifié)
+
+- **Largeur :** les deux colonnes demandent 1 124 px (720 + 24 + 380). Dans la Console, avec la sidebar dépliée (300 px), le panneau de détail passe sous la table en dessous d'une fenêtre d'environ 1 560 px de large (à 1 440 px, il est dessous). Avec la sidebar en rail, il reste à côté dès 1 440 px.
+- **900 px :** la page ne déborde pas, mais le tableau (680 px au moins) défile horizontalement dans sa carte : les colonnes Clé et Alimente se trouvent au-delà du bord visible.
+- **100 cartes :** un tag de 36 cartes allonge la page à environ 3 000 px. Le panneau de détail suit la même hauteur, et son pied (Désactiver, Supprimer la carte) se retrouve en bas, loin de la carte sélectionnée. Un panneau collant ou une table à hauteur limitée l'éviterait, au prix d'une modification du design.
+- **Messages :** « Carte enregistrée », « Associée à … » et les autres sont affichés par le composant sans attendre le serveur. En cas de refus (par exemple un nom d'hôte introuvable, 422), un second message donne l'erreur et la liste est relue.
+- **Suppression :** fermer la page pendant les 5 s d'annulation abandonne la suppression.
 
 ## 4. Questions ouvertes
 

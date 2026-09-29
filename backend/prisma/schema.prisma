@@ -1451,28 +1451,30 @@ model Notification {
 /// Service externe appelé par les widgets (spécification REGISTRE API § 3). La clé est chiffrée
 /// (AES-256-GCM, clé maître SECRETS_KEY) et ne quitte jamais le serveur : seuls ses 4 derniers caractères sont exposés.
 model ApiCard {
-  id           String    @id
-  name         String
-  category     String
-  endpoint     String
-  keyEncrypted String?   @map("key_encrypted")
-  keyLast4     String?   @map("key_last4")
-  keyExpiresAt DateTime? @map("key_expires_at") @db.Date
-  enabled      Boolean   @default(true)
+  id            String    @id
+  name          String
+  category      String
+  endpoint      String
+  keyEncrypted  String?   @map("key_encrypted")
+  keyLast4      String?   @map("key_last4")
+  keyExpiresAt  DateTime? @map("key_expires_at") @db.Date
+  enabled       Boolean   @default(true)
   /// Échec du dernier contrôle (« Clé refusée · 401 ») ; null si le dernier appel a réussi.
-  checkError   String?   @map("check_error")
-  latencyMs    Int?      @map("latency_ms")
-  quotaLimit   Int?      @map("quota_limit")
+  checkError    String?   @map("check_error")
+  latencyMs     Int?      @map("latency_ms")
+  quotaLimit    Int?      @map("quota_limit")
   /// Délai d'un appel pour cette carte (ms) ; null = délai par défaut (8 s). Service lent : GDELT (45 s).
-  timeoutMs    Int?      @map("timeout_ms")
+  timeoutMs     Int?      @map("timeout_ms")
   /// Flux d'actualités RSS ou Atom (reconnu à la première réponse) : lu par /api/widgets/feeds.
-  feed         Boolean   @default(false)
-  widgets      String[]  @default([])
-  lastTest     Json?     @map("last_test")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
-  updatedBy    String?   @map("updated_by")
-  version      Int       @default(1)
+  feed          Boolean   @default(false)
+  widgets       String[]  @default([])
+  /// Date du dernier changement d'endpoint : la latence médiane ne compte que les appels postérieurs.
+  endpointSince DateTime? @map("endpoint_since")
+  lastTest      Json?     @map("last_test")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  updatedBy     String?   @map("updated_by")
+  version       Int       @default(1)
 
   @@map("api_cards")
 }

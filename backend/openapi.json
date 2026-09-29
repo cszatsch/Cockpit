@@ -8233,6 +8233,53 @@
         ]
       }
     },
+    "/api/admin/api-cards/{id}/widgets": {
+      "put": {
+        "operationId": "ApiCardsController_widgets",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · registre des cartes API"
+        ]
+      }
+    },
+    "/api/admin/widgets": {
+      "get": {
+        "operationId": "WidgetCatalogueController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · registre des cartes API"
+        ]
+      }
+    },
     "/api/widgets/proxy/{cardId}": {
       "get": {
         "operationId": "WidgetProxyController_proxy",

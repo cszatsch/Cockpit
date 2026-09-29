@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"><style>
+html,body{margin:0;background:#f2f6f5;font-family:'Plus Jakarta Sans',sans-serif;color:#10233a;-webkit-font-smoothing:antialiased;font-size:13px}
+*{box-sizing:border-box}a{color:#1d8f86}a:hover{color:#146b64}button,input{font:inherit;color:inherit}
+button:focus-visible,input:focus-visible{outline:2px solid #1d8f86;outline-offset:2px}
+input::placeholder{color:#a3b1ba}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes toastIn{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style></helmet>
+<div data-screen-label="Registre des cartes API" style="max-width:1400px;margin:0 auto;padding:48px 48px 72px;display:flex;flex-direction:column;gap:24px">
+  <div style="display:flex;align-items:flex-end;gap:20px;flex-wrap:wrap;animation:rise .45s cubic-bezier(.2,.7,.2,1) both">
+    <div style="display:flex;flex-direction:column;gap:8px;flex:1;min-width:280px">
+      <div style="font-size:11px;font-weight:800;letter-spacing:.16em;color:#1d8f86">PLATEFORME</div>
+      <div style="font-size:36px;font-weight:800;font-style:italic;letter-spacing:-.035em;line-height:1.05">Registre des cartes API</div>
+      <div style="font-size:14px;color:#43586a">{{ subtitle }}</div>
+    </div>
+    <button type="button" onClick="{{ startNew }}" style="height:42px;padding:0 18px 0 14px;border-radius:12px;border:0;background:#10233a;color:#fff;font-weight:700;font-size:13px;display:flex;align-items:center;gap:8px;cursor:pointer;white-space:nowrap" style-hover="background:#1d3654"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>Nouvelle carte</button>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:stretch"><div style="flex:1 1 720px;min-width:0;display:flex;flex-direction:column;gap:24px">
+  <div style="background:#fff;border-radius:22px;box-shadow:0 0 0 1px #e1e9e7,0 24px 50px -36px rgba(16,35,58,.4);padding:18px 20px 14px;display:flex;flex-direction:column;gap:4px;animation:rise .5s .04s cubic-bezier(.2,.7,.2,1) both">
+    <div style="display:flex;align-items:center;gap:6px;padding:0 4px 10px;flex-wrap:wrap">
+      <span style="font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#5c7280;margin-right:auto">ÉTAT DU REGISTRE</span>
+      <sc-for list="{{ legend }}" as="l" hint-placeholder-count="6"><button type="button" aria-pressed="{{ l.on }}" onClick="{{ l.pick }}" title="{{ l.tip }}" style="{{ l.bst }}" style-hover="{{ l.hov }}"><span style="{{ l.st }}"></span>{{ l.l }}<span style="{{ l.cSt }}">{{ l.c }}</span></button></sc-for>
+    </div>
+    <sc-for list="{{ mRows }}" as="t" hint-placeholder-count="7">
+      <div role="button" tabindex="0" onClick="{{ t.pick }}" aria-pressed="{{ t.on }}" style="{{ t.st }}" style-hover="{{ t.hov }}">
+        <span style="width:150px;flex:none;display:flex;align-items:baseline;gap:8px"><span style="{{ t.lSt }}">{{ t.l }}</span><span style="font-size:11.5px;color:#8a9aa6;font-variant-numeric:tabular-nums">{{ t.c }}</span></span>
+        <div style="flex:1;display:flex;flex-wrap:wrap;gap:6px"><sc-for list="{{ t.cells }}" as="x" hint-placeholder-count="4"><button type="button" title="{{ x.t }}" aria-label="{{ x.t }}" onClick="{{ x.pick }}" style="{{ x.st }}" style-hover="{{ x.hov }}">{{ x.m }}</button></sc-for></div>
+      </div>
+    </sc-for>
+  </div>
+
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;background:#fff;border-radius:22px;box-shadow:0 0 0 1px #e1e9e7;padding:8px 8px 12px;animation:rise .5s .08s cubic-bezier(.2,.7,.2,1) both">
+      <div style="display:flex;align-items:baseline;gap:10px;padding:14px 16px 4px"><span style="font-size:16px;font-weight:800;letter-spacing:-.01em">{{ tagTitle }}</span><span style="font-size:12px;color:#8a9aa6">{{ tagCount }}</span><span style="flex:1"></span><span style="font-size:12px;color:#8a9aa6">{{ sortL }}</span></div>
+      <div style="overflow-x:auto"><div style="min-width:680px">
+        <div role="row" style="display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) 112px 64px 88px 100px;gap:14px;padding:12px 16px 8px">
+          <sc-for list="{{ cols }}" as="h" hint-placeholder-count="6"><button type="button" role="columnheader" aria-sort="{{ h.aria }}" onClick="{{ h.pick }}" style="{{ h.st }}" style-hover="color:#10233a">{{ h.l }}<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="{{ h.icSt }}"><path d="{{ h.ic }}"></path></svg></button></sc-for>
+        </div>
+        <sc-for list="{{ rows }}" as="r" hint-placeholder-count="6">
+          <div role="row" onClick="{{ r.pick }}" aria-selected="{{ r.sel }}" style="{{ r.row }}" style-hover="{{ r.hov }}">
+            <div style="display:flex;align-items:center;gap:10px;min-width:0"><span style="{{ r.dot }}"></span><span style="{{ r.nSt }}">{{ r.n }}</span></div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0"><span style="color:#2a3f53">{{ r.host }}</span><span style="color:#8a9aa6">{{ r.path }}</span></div>
+            <div style="display:flex;align-items:center;gap:8px"><svg width="46" height="16" viewBox="0 0 46 16" style="flex:none;overflow:visible"><path d="{{ r.sp }}" fill="none" stroke="{{ r.spc }}" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"></path></svg><span style="{{ r.latSt }}">{{ r.latL }}</span></div>
+            <span style="{{ r.qSt }}">{{ r.qL }}</span>
+            <span style="{{ r.kSt }}">{{ r.kL }}</span>
+            <span style="{{ r.wSt }}">{{ r.wL }}</span>
+          </div>
+        </sc-for>
+        <button type="button" onClick="{{ startNew }}" style="margin:6px 8px 0;width:calc(100% - 16px);height:44px;border-radius:12px;border:1px dashed #d5e0dd;background:transparent;font-size:12.5px;font-weight:700;color:#5c7280;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px" style-hover="border-color:#1d8f86;color:#146b64"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>Ajouter une carte à {{ tagTitle }}</button>
+      </div></div>
+    </div>
+    </div>
+
+    <aside aria-label="Détail de la carte" style="flex:1 1 380px;max-width:440px;min-width:0;background:#fff;border-radius:22px;box-shadow:0 0 0 1px #e1e9e7,0 24px 50px -36px rgba(16,35,58,.4);overflow:hidden;display:flex;flex-direction:column;animation:rise .5s .12s cubic-bezier(.2,.7,.2,1) both">
+      <sc-if value="{{ isView }}" hint-placeholder-val="{{ true }}">
+        <div style="flex:1;display:flex;flex-direction:column;animation:fadeIn .2s both">
+          <div style="padding:24px 26px 18px;display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;align-items:center;gap:8px"><span style="font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#5c7280">{{ c.tagU }}</span><span style="flex:1"></span><span style="{{ c.stSt }}"><span style="{{ c.stDot }}"></span>{{ c.stL }}</span></div>
+            <div style="display:flex;align-items:center;gap:10px"><span style="flex:1;min-width:0;font-size:24px;font-weight:800;font-style:italic;letter-spacing:-.03em;line-height:1.15;text-wrap:pretty">{{ c.n }}</span><button type="button" onClick="{{ startEdit }}" style="flex:none;height:32px;padding:0 12px 0 10px;border-radius:9px;border:1px solid #d5e0dd;background:#fff;font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:7px;cursor:pointer" style-hover="border-color:#10233a"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z M13.5 6.5l4 4"></path></svg>Modifier</button></div>
+          </div>
+          <div style="padding:0 26px 22px;display:flex;flex-direction:column;gap:18px">
+            <sc-for list="{{ c.notes }}" as="x" hint-placeholder-count="0"><div style="{{ x.st }}"><span style="{{ x.dot }}"></span>{{ x.l }}</div></sc-for>
+            <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#5c7280">ENDPOINT</span>
+              <div style="display:flex;align-items:center;gap:8px;min-height:42px;padding:8px 8px 8px 14px;border-radius:11px;background:#f6f9f8;box-shadow:inset 0 0 0 1px #e1e9e7"><span style="flex:1;min-width:0;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#2a3f53;word-break:break-all;line-height:1.5">{{ c.url }}</span><button type="button" onClick="{{ copy }}" aria-label="Copier l’endpoint" title="Copier" style="flex:none;width:28px;height:28px;border-radius:8px;border:0;background:transparent;color:#5c7280;display:grid;place-items:center;cursor:pointer" style-hover="background:#e6f4f2;color:#146b64"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{ copyIc }}"></path></svg></button></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#5c7280">CLÉ API</span>
+              <div style="display:flex;align-items:center;gap:10px;height:42px;padding:0 14px;border-radius:11px;background:#f6f9f8;box-shadow:inset 0 0 0 1px #e1e9e7"><span style="{{ c.keySt }}">{{ c.keyL }}</span><sc-if value="{{ c.hasExp }}" hint-placeholder-val="{{ false }}"><span style="{{ c.expSt }}">expire le {{ c.key }}</span></sc-if></div>
+            </div>
+            <button type="button" onClick="{{ test }}" disabled="{{ c.off }}" style="{{ c.testSt }}" style-hover="{{ c.testHov }}"><sc-if value="{{ c.testing }}" hint-placeholder-val="{{ false }}"><span style="width:12px;height:12px;border-radius:50%;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;animation:spin .7s linear infinite"></span></sc-if><sc-if value="{{ c.idle }}" hint-placeholder-val="{{ true }}"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4l14 8-14 8z"></path></svg></sc-if>{{ c.testL }}</button>
+            <div style="border-radius:14px;background:#0f1f33;overflow:hidden;box-shadow:0 14px 30px -20px rgba(10,23,39,.8)">
+              <sc-if value="{{ c.hasResp }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex;align-items:center;gap:10px;height:40px;padding:0 16px;border-bottom:1px solid rgba(255,255,255,.07);font-family:'IBM Plex Mono',monospace;font-size:12px"><span style="{{ c.codeSt }}">{{ c.code }}</span><span style="color:#8fa3b3">{{ c.ms }}</span><span style="flex:1"></span><span style="color:#6f8596">{{ c.when }}</span></div>
+                <div style="max-height:220px;overflow:auto;padding:14px 16px 16px;font-family:'IBM Plex Mono',monospace;font-size:12px;line-height:1.75;scrollbar-width:thin;scrollbar-color:#2c4258 transparent"><sc-for list="{{ c.lines }}" as="l" hint-placeholder-count="6"><div style="white-space:pre-wrap;word-break:break-word;min-height:1.75em"><sc-for list="{{ l.t }}" as="t" hint-placeholder-count="2"><span style="{{ t.st }}">{{ t.x }}</span></sc-for></div></sc-for></div>
+              </sc-if>
+              <sc-if value="{{ c.noResp }}" hint-placeholder-val="{{ false }}"><div style="padding:22px 16px;font-size:12.5px;line-height:1.55;color:#8fa3b3;text-align:center">Aucun appel pour le moment. Lancez un test pour vérifier l’endpoint.</div></sc-if>
+            </div>
+            <div style="position:relative;display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;align-items:center"><span style="font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#5c7280">ALIMENTE</span><span style="flex:1"></span><span style="font-size:12px;color:#8a9aa6">{{ c.wCount }}</span></div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px">
+                <sc-for list="{{ c.widgets }}" as="w" hint-placeholder-count="1">
+                  <span style="height:32px;padding:0 4px 0 5px;border-radius:10px;background:#f2f6f5;box-shadow:inset 0 0 0 1px #e1e9e7;display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;white-space:nowrap"><span style="width:22px;height:22px;border-radius:7px;background:#10233a;color:#fff;display:grid;place-items:center;font-size:11px">{{ w.g }}</span>{{ w.n }}<button type="button" onClick="{{ w.rm }}" aria-label="{{ w.rmL }}" title="Dissocier" style="width:22px;height:22px;border-radius:6px;border:0;background:transparent;color:#8a9aa6;display:grid;place-items:center;cursor:pointer" style-hover="background:#fdf0ed;color:#c2473b"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></span>
+                </sc-for>
+                <button type="button" ref="{{ pickBtnRef }}" onClick="{{ togglePick }}" aria-expanded="{{ pickOpen }}" style="{{ pickBtnSt }}" style-hover="border-color:#1d8f86;color:#146b64"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>Associer un widget</button>
+              </div>
+              <sc-if value="{{ c.noW }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:#8a5a12;line-height:1.5">Cette carte n’alimente aucun widget : ses données ne s’affichent nulle part dans le Cockpit.</span></sc-if>
+              <sc-if value="{{ pickOpen }}" hint-placeholder-val="{{ false }}">
+                <div ref="{{ pickPopRef }}" style="position:absolute;left:0;right:0;bottom:calc(100% + 10px);z-index:30;border-radius:14px;background:#fff;box-shadow:0 0 0 1px #d5e0dd,0 18px 36px -20px rgba(16,35,58,.45);overflow:hidden;animation:rise .18s both">
+                  <div style="display:flex;align-items:center;gap:8px;padding:0 12px;height:42px;border-bottom:1px solid #eef3f2"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8a9aa6" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"></circle><path d="M20 20l-4-4"></path></svg><input value="{{ q }}" onChange="{{ setQ }}" placeholder="Rechercher un widget" aria-label="Rechercher un widget" style="flex:1;min-width:0;border:0;outline:0;background:transparent;font-size:13px" /></div>
+                  <div style="max-height:264px;overflow:auto;padding:6px;scrollbar-width:thin">
+                    <sc-for list="{{ pickGroups }}" as="pg" hint-placeholder-count="2">
+                      <div style="padding:10px 8px 4px;font-size:10px;font-weight:800;letter-spacing:.14em;color:#8a9aa6">{{ pg.l }}</div>
+                      <sc-for list="{{ pg.items }}" as="it" hint-placeholder-count="3">
+                        <button type="button" role="menuitemcheckbox" aria-checked="{{ it.on }}" onClick="{{ it.flip }}" style="width:100%;display:flex;align-items:center;gap:10px;padding:7px 8px;border:0;border-radius:9px;background:transparent;text-align:left;cursor:pointer" style-hover="background:#f2f6f5">
+                          <span style="{{ it.gSt }}">{{ it.g }}</span>
+                          <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px"><span style="font-size:13px;font-weight:700">{{ it.n }}</span><span style="font-size:11.5px;color:#8a9aa6">{{ it.cat }}</span></span>
+                          <span style="{{ it.box }}"><sc-if value="{{ it.on }}" hint-placeholder-val="{{ false }}"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"></path></svg></sc-if></span>
+                        </button>
+                      </sc-for>
+                    </sc-for>
+                    <sc-if value="{{ pickEmpty }}" hint-placeholder-val="{{ false }}"><div style="padding:18px 8px;font-size:12.5px;color:#8a9aa6;text-align:center">Aucun widget ne correspond.</div></sc-if>
+                  </div>
+                </div>
+              </sc-if>
+            </div>
+          </div>
+          <div style="flex:1"></div>
+          <sc-if value="{{ notDel }}" hint-placeholder-val="{{ true }}">
+            <div style="padding:14px 26px;border-top:1px solid #eef3f2;display:flex;align-items:center;gap:6px">
+              <button type="button" onClick="{{ toggleOff }}" style="height:32px;padding:0 10px;margin-left:-10px;border-radius:9px;border:0;background:transparent;font-size:12.5px;font-weight:700;color:#5c7280;cursor:pointer;display:flex;align-items:center;gap:7px" style-hover="background:#eef3f2;color:#10233a"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="{{ c.offIc }}"></path></svg>{{ c.offL }}</button>
+              <span style="flex:1"></span>
+              <button type="button" onClick="{{ askDel }}" style="height:32px;padding:0 10px;margin-right:-10px;border-radius:9px;border:0;background:transparent;font-size:12.5px;font-weight:700;color:#c2473b;display:flex;align-items:center;gap:7px;cursor:pointer" style-hover="background:#fdf0ed"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"></path></svg>Supprimer la carte</button>
+            </div>
+          </sc-if>
+          <sc-if value="{{ isDel }}" hint-placeholder-val="{{ false }}">
+            <div role="alertdialog" aria-label="Confirmer la suppression" style="padding:18px 26px 20px;border-top:1px solid #f3d6d0;background:#fdf6f4;display:flex;flex-direction:column;gap:12px;animation:rise .18s both">
+              <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:14px;font-weight:800;color:#a63a2f">Supprimer {{ c.n }} ?</span><span style="font-size:12.5px;line-height:1.55;color:#43586a;text-wrap:pretty">{{ delImpact }}</span></div>
+              <div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" onClick="{{ cancelDel }}" style="height:36px;padding:0 14px;border-radius:10px;border:1px solid #d5e0dd;background:#fff;font-size:12.5px;font-weight:700;cursor:pointer" style-hover="border-color:#10233a">Annuler</button><button type="button" onClick="{{ doDel }}" style="height:36px;padding:0 14px;border-radius:10px;border:0;background:#c2473b;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap" style-hover="background:#a63a2f">Supprimer définitivement</button></div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isEdit }}" hint-placeholder-val="{{ false }}">
+        <form onSubmit="{{ save }}" style="flex:1;display:flex;flex-direction:column;animation:fadeIn .2s both">
+          <div style="padding:24px 26px 18px;display:flex;flex-direction:column;gap:6px;border-bottom:1px solid #eef3f2">
+            <span style="font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#1d8f86">{{ ed.eyebrow }}</span>
+            <span style="font-size:24px;font-weight:800;font-style:italic;letter-spacing:-.03em;line-height:1.15">{{ ed.title }}</span>
+          </div>
+          <div style="padding:22px 26px;display:flex;flex-direction:column;gap:20px">
+            <label style="display:flex;flex-direction:column;gap:8px"><span style="font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#5c7280">NOM DE LA CARTE</span>
+              <input value="{{ d.n }}" onChange="{{ setN }}" placeholder="Ex. Reuters · Monde" style="{{ ed.nSt }}" style-focus="box-shadow:inset 0 0 0 1.5px #1d8f86" />
+              <sc-if value="{{ ed.nErr }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:#c2473b">Donnez un nom à la carte.</span></sc-if>
+            </label>
+            <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#5c7280">TAG</span>
+              <div role="radiogroup" aria-label="Tag" style="display:flex;flex-wrap:wrap;gap:6px">
+                <sc-for list="{{ ed.tags }}" as="t" hint-placeholder-count="7"><button type="button" role="radio" aria-checked="{{ t.on }}" onClick="{{ t.pick }}" style="{{ t.st }}">{{ t.l }}</button></sc-for>
+                <sc-if value="{{ ed.notAdding }}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{ startTag }}" style="height:32px;padding:0 12px;border-radius:999px;border:1px dashed #c9d6d3;background:transparent;font-size:12.5px;font-weight:700;color:#5c7280;cursor:pointer;white-space:nowrap" style-hover="border-color:#1d8f86;color:#146b64">+ Nouveau tag</button></sc-if>
+                <sc-if value="{{ ed.adding }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;height:32px;border-radius:999px;box-shadow:inset 0 0 0 1.5px #1d8f86;padding:0 4px 0 12px;gap:4px"><input value="{{ tagIn }}" onChange="{{ setTagIn }}" onKeyDown="{{ tagKey }}" placeholder="Nom du tag" aria-label="Nouveau tag" style="width:110px;border:0;outline:0;background:transparent;font-size:12.5px;font-weight:600" /><button type="button" onClick="{{ addTag }}" style="height:24px;padding:0 10px;border-radius:999px;border:0;background:#1d8f86;color:#fff;font-size:11.5px;font-weight:700;cursor:pointer">Ajouter</button></span></sc-if>
+              </div>
+            </div>
+            <label style="display:flex;flex-direction:column;gap:8px"><span style="font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#5c7280">ENDPOINT</span>
+              <span style="{{ ed.epBox }}"><span style="padding-left:14px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#8a9aa6">https://</span><input value="{{ d.ep }}" onChange="{{ setEp }}" placeholder="api.exemple.com/v1/ressource" spellcheck="false" style="flex:1;min-width:0;height:100%;border:0;outline:0;background:transparent;padding:0 14px 0 2px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#10233a" /></span>
+              <sc-if value="{{ ed.epErr }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:#c2473b">Saisissez une adresse valide, sans espace : domaine puis chemin.</span></sc-if>
+              <sc-if value="{{ ed.epChanged }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:#8a5a12">L’endpoint change : la latence et la dernière réponse seront remesurées.</span></sc-if>
+            </label>
+            <div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#5c7280">CLÉ API</span>
+              <div role="radiogroup" aria-label="Clé API" style="display:grid;grid-template-columns:1fr 1fr;padding:3px;border-radius:11px;background:#eef3f2;gap:2px"><sc-for list="{{ ed.keyModes }}" as="k" hint-placeholder-count="2"><button type="button" role="radio" aria-checked="{{ k.on }}" onClick="{{ k.pick }}" style="{{ k.st }}">{{ k.l }}</button></sc-for></div>
+              <sc-if value="{{ ed.needKey }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-direction:column;gap:10px;animation:rise .18s both">
+                  <span style="display:flex;align-items:center;height:44px;border-radius:12px;background:#fff;box-shadow:inset 0 0 0 1px #d5e0dd"><input type="{{ ed.keyType }}" value="{{ d.keyVal }}" onChange="{{ setKey }}" placeholder="{{ ed.keyPh }}" aria-label="Clé API" autocomplete="off" spellcheck="false" style="flex:1;min-width:0;height:100%;border:0;outline:0;background:transparent;padding:0 8px 0 14px;font-family:'IBM Plex Mono',monospace;font-size:12px" /><button type="button" onClick="{{ toggleShow }}" aria-label="{{ ed.showL }}" style="width:36px;height:36px;margin-right:4px;border-radius:9px;border:0;background:transparent;color:#5c7280;display:grid;place-items:center;cursor:pointer" style-hover="background:#eef3f2"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{ ed.eyeIc }}"></path></svg></button></span>
+                  <sc-if value="{{ ed.keyErr }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:#c2473b">Collez la clé fournie par le service.</span></sc-if>
+                  <label style="display:flex;align-items:center;gap:12px"><span style="font-size:12.5px;color:#43586a;font-weight:600;white-space:nowrap">Expire le</span><input value="{{ d.exp }}" onChange="{{ setExp }}" placeholder="jj/mm/aa" aria-label="Date d’expiration" style="{{ ed.expSt }}" style-focus="box-shadow:inset 0 0 0 1.5px #1d8f86" /><span style="font-size:12px;color:#8a9aa6">{{ ed.expHelp }}</span></label>
+                </div>
+              </sc-if>
+            </div>
+          </div>
+          <div style="flex:1"></div>
+          <div style="padding:14px 26px;border-top:1px solid #eef3f2;background:#f8fbfa;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="font-size:12px;color:#8a9aa6">{{ ed.state }}</span>
+            <span style="flex:1"></span>
+            <button type="button" onClick="{{ cancelEdit }}" style="height:36px;padding:0 14px;border-radius:10px;border:0;background:transparent;font-size:12.5px;font-weight:700;color:#43586a;cursor:pointer;white-space:nowrap" style-hover="background:#eef3f2">Annuler</button>
+            <button type="submit" disabled="{{ ed.cantSave }}" style="{{ ed.saveSt }}">{{ ed.saveL }}</button>
+          </div>
+        </form>
+      </sc-if>
+    </aside>
+  </div>
+</div>
+<sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}"><div role="status" style="position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:50;height:44px;padding:0 8px 0 16px;border-radius:12px;background:#10233a;color:#fff;font-size:13px;font-weight:600;display:flex;align-items:center;gap:12px;box-shadow:0 18px 40px -16px rgba(16,35,58,.6);animation:toastIn .25s cubic-bezier(.2,.7,.2,1) both;white-space:nowrap"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3dd6c6" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"></path></svg>{{ toast }}<sc-if value="{{ canUndo }}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{ undo }}" style="height:30px;padding:0 10px;border-radius:8px;border:0;background:rgba(255,255,255,.1);color:#3dd6c6;font-weight:700;font-size:12.5px;cursor:pointer" style-hover="background:rgba(255,255,255,.18)">Annuler</button></sc-if><sc-if value="{{ noUndo }}" hint-placeholder-val="{{ true }}"><span style="width:8px"></span></sc-if></div></sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;cards&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Card[]&quot;},&quot;widgets&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{ id: string; g: string; n: string; cat: string; tags: string[] }[]&quot;},&quot;now&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;checked&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;onCreate&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(card, key) =&gt; Promise&lt;string&gt;&quot;},&quot;onSave&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(id, card, key) =&gt; void&quot;},&quot;onToggle&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(id: string, off: boolean) =&gt; void&quot;},&quot;onDelete&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(id: string) =&gt; void&quot;},&quot;onRestore&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(id: string) =&gt; void&quot;},&quot;onTest&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(id: string) =&gt; Promise&lt;{ resp, lat }&gt;&quot;},&quot;onWidgets&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(id: string, ids: string[]) =&gt; void&quot;}}">
+// Console : données du serveur (props `cards`, `widgets`, `now`, `checked`, modèle Card du § 5, adaptées par admin-api.js)
+// et rappels (onCreate, onSave, onToggle, onDelete, onRestore, onTest, onWidgets) ; sans elles, démonstration ci-dessous.
+// [nom, tag, endpoint, latence, quota %, clé (null = sans clé, '' = sans échéance, 'jj/mm/aa'), widgets, format, réponse d’erreur]
+const RAW = [
+  ['BBC News', 'Actualités', 'feeds.bbci.co.uk/news/rss.xml', 58, null, null, ['news'], 'xml'],
+  ['Finnhub', 'Finance', 'finnhub.io/api/v1/news?category=general', 185, null, '28/02/27', []],
+  ['GNews', 'Actualités', 'gnews.io/api/v4/top-headlines?lang=fr', 374, 41, '28/02/27', ['news']],
+  ['L’Équipe', 'Actualités', 'dwh.lequipe.fr/api/edito/rss', 144, null, null, ['news'], 'xml'],
+  ['Le Monde', 'Actualités', 'www.lemonde.fr/rss/une.xml', 75, null, null, ['news', 'ai'], 'xml'],
+  ['NewsData.io', 'Actualités', 'newsdata.io/api/1/latest?country=fr', 375, 21, '28/02/27', []],
+  ['Open-Meteo · géocodage', 'Météo', 'geocoding-api.open-meteo.com/v1/search?name=Paris', 136, null, null, ['meteo']],
+  ['Open-Meteo · prévisions', 'Météo', 'api.open-meteo.com/v1/forecast?latitude=48.85', 113, null, null, ['meteo']],
+  ['TomTom Traffic', 'Trafic', 'api.tomtom.com/traffic/services/4/flowSegmentData', 114, 2, '31/12/26', ['trafic']],
+  ['Reuters · Monde', 'Actualités', 'www.reutersagency.com/feed/?best-topics=world', 212, null, null, ['news'], 'xml'],
+  ['AFP · Dépêches', 'Actualités', 'api.afp.com/v1/api/search', 298, null, '15/11/26', ['news', 'ai']],
+  ['France Info', 'Actualités', 'www.francetvinfo.fr/titres.rss', 96, null, null, ['news'], 'xml'],
+  ['The Guardian', 'Actualités', 'content.guardianapis.com/search?section=world', 241, 6, '30/06/27', []],
+  ['Alpha Vantage', 'Finance', 'www.alphavantage.co/query?function=NEWS_SENTIMENT', 512, 88, '31/03/27', []],
+  ['Frankfurter · BCE', 'Finance', 'api.frankfurter.app/latest?from=EUR', 64, null, null, []],
+  ['CoinGecko', 'Finance', 'api.coingecko.com/api/v3/simple/price', 188, 12, null, []],
+  ['Les Échos · Marchés', 'Finance', 'services.lesechos.fr/rss/les-echos-marches.xml', 131, null, null, ['ai'], 'xml'],
+  ['Météo-France', 'Météo', 'webservice.meteofrance.com/forecast', 167, null, '12/10/26', ['meteo']],
+  ['OpenWeather', 'Météo', 'api.openweathermap.org/data/3.0/onecall', 142, 34, '28/02/27', []],
+  ['OpenAQ', 'Environnement', 'api.openaq.org/v3/locations', 322, null, '', []],
+  ['Vigicrues', 'Environnement', 'www.vigicrues.gouv.fr/services/1/InfoVigiCru.jsonld', null, null, null, ['meteo'], 'json', { code: 503, txt: 'Service Unavailable', ms: 30012, when: 'il y a 2 h', body: ['{', '  "error": "service_unavailable",', '  "message": "Upstream timeout"', '}'] }],
+  ['Géorisques', 'Environnement', 'georisques.gouv.fr/api/v1/gaspar/risques', 276, null, null, []],
+  ['SNCF · Perturbations', 'Trafic', 'api.sncf.com/v1/coverage/sncf/disruptions', 233, 9, '31/12/26', ['trafic']],
+  ['IDFM · Prim', 'Trafic', 'prim.iledefrance-mobilites.fr/marketplace/general-message', 181, null, '31/12/26', ['trafic']],
+  ['HERE Traffic', 'Trafic', 'data.traffic.hereapi.com/v7/flow', 158, 57, '30/04/27', []],
+  ['Nager.Date · jours fériés', 'Calendrier', 'date.nager.at/api/v3/PublicHolidays/2026/FR', 88, null, null, ['ech']],
+  ['Calendrier scolaire', 'Calendrier', 'data.education.gouv.fr/api/records/1.0/search', 119, null, null, []],
+  ['Sirene · INSEE', 'Entreprises', 'api.insee.fr/entreprises/sirene/V3.11/siret', 264, 18, '30/09/27', []],
+  ['Pappers', 'Entreprises', 'api.pappers.fr/v2/entreprise', null, 73, '31/01/27', [], 'json', { code: 401, txt: 'Unauthorized', ms: 38, when: 'le 28/09/2026', body: ['{', '  "error": "invalid_api_key",', '  "message": "API key revoked"', '}'] }]
+];
+const TAGS = ['Actualités', 'Finance', 'Météo', 'Trafic', 'Environnement', 'Calendrier', 'Entreprises'];
+const WIDGETS = [
+  ['news', '◉', 'Actualité', 'Contexte'], ['meteo', '☀', 'Météo · <ville>', 'Contexte'], ['trafic', '⇅', 'Trafic · <ville>', 'Contexte'], ['ai', '✦', 'L’essentiel, par Jev', 'Synthèse'],
+  ['ech', '⧗', 'Échéances des 15 prochains jours', 'Planning'], ['golive', 'J', 'Compte à rebours Go-Live', 'Planning'], ['av', '%', 'Avancement vs référence', 'Planning'], ['jal', '◆', 'Prochains jalons', 'Jalons'],
+  ['crit', '▤', 'Chemin critique', 'Planning'], ['ch', '≡', 'Météo des chantiers', 'Chantiers'], ['risk', '!', 'Risques critiques', 'Risques'], ['rtrend', '↗', 'Tendance des risques', 'Risques'],
+  ['pb', '⚑', 'Problèmes ouverts', 'Risques'], ['dec', '⊙', 'Décisions en attente', 'Décisions'], ['arb', '⚖', 'Fiches d’arbitrage', 'Décisions'], ['copil', '▣', 'Prochain COPIL', 'Comités'],
+  ['act', '✓', 'Actions en retard', 'Actions'], ['mine', '◎', 'Mes tâches', 'Personnel'], ['liv', '▢', 'Livrables sous 30 jours', 'Livrables'], ['baro', '♡', 'Baromètre des équipes', 'Équipes'],
+  ['inc', '≠', 'Incohérences à traiter', 'Qualité'], ['docs', '▤', 'Documents récents', 'Documents']
+].map(([id, g, n, cat]) => ({ id, g, n, cat }));
+const WID = Object.fromEntries(WIDGETS.map(w => [w.id, w]));
+const SUGGEST = { 'Actualités': ['news', 'ai'], 'Finance': ['ai'], 'Météo': ['meteo'], 'Trafic': ['trafic'], 'Environnement': ['meteo', 'ai'], 'Calendrier': ['ech'], 'Entreprises': ['ai'] };
+let NOW = new Date(2026, 8, 29);
+const parseD = k => { const m = /^(\d{2})\/(\d{2})\/(\d{2})$/.exec(k || ''); return m ? new Date(2000 + +m[3], +m[2] - 1, +m[1]) : null; };
+const days = k => { const t = parseD(k); return t ? Math.round((t - NOW) / 864e5) : null; };
+const rnd = s => { let h = 0; for (const ch of s) h = (h * 31 + ch.charCodeAt(0)) | 0; return () => { h = (h * 1103515245 + 12345) | 0; return ((h >>> 8) & 0xffff) / 0xffff; }; };
+const series = c => { if (c.series && c.series.some(v => v != null)) return c.series.map(v => v ?? c.lat); const r = rnd(c.n); return Array.from({ length: 24 }, () => c.lat * (0.78 + 0.34 * r() + (r() > 0.9 ? 0.5 : 0))); };
+const spark = (v, w, h, p = 2) => { const mn = Math.min(...v), mx = Math.max(...v), sx = w / (v.length - 1); return v.map((y, i) => (i ? 'L' : 'M') + (i * sx).toFixed(1) + ' ' + (p + (h - 2 * p) * (1 - (y - mn) / (mx - mn || 1))).toFixed(1)).join(' '); };
+const xml = c => ['<?xml version="1.0" encoding="UTF-8"?>', '<rss version="2.0">', '  <channel>', '    <title><![CDATA[' + c.n + ']]></title>', '    <link>https://' + c.ep.split('/')[0] + '/</link>', '    <item>', '      <title><![CDATA[…]]></title>', '      <pubDate>Tue, 29 Sep 2026 08:12:00 GMT</pubDate>', '    </item>', '  </channel>', '</rss>'];
+const json = c => c.tag === 'Météo' ? ['{', '  "latitude": 48.85,', '  "longitude": 2.35,', '  "current": {', '    "time": "2026-09-29T08:00",', '    "temperature_2m": 17.4', '  }', '}']
+  : c.tag === 'Trafic' ? ['{', '  "flowSegmentData": {', '    "currentSpeed": 38,', '    "freeFlowSpeed": 52,', '    "confidence": 0.97', '  }', '}']
+  : ['{', '  "status": "ok",', '  "source": "' + c.n + '",', '  "totalResults": 20,', '  "items": [', '    { "title": "…", "date": "2026-09-29T08:12:00Z" }', '  ]', '}'];
+const tok = (lines, fmt) => lines.map(l => ({ t: (fmt === 'xml'
+  ? l.split(/(<!\[CDATA\[|\]\]>|<[^>]+>)/).filter(s => s !== '').map(x => ({ x, st: 'color:' + (/^<!\[|^\]\]>/.test(x) ? '#6f8596' : x[0] === '<' ? '#3dd6c6' : '#dfe8ee') }))
+  : l.split(/("[^"]*"\s*:|"[^"]*")/).filter(s => s !== '').map(x => ({ x, st: 'color:' + (/:\s*$/.test(x) && x[0] === '"' ? '#3dd6c6' : x[0] === '"' ? '#f5c46b' : '#dfe8ee') }))) }));
+const LV = { ok: ['#1d8f86', '#e6f4f2', '#146b64', 'Opérationnelle'], slow: ['#d99a2b', '#fdf1dc', '#8a5a12', 'Lente'], warn: ['#e0604c', '#fdf0ed', '#a63a2f', 'À surveiller'], err: ['#c2473b', '#c2473b', '#fff', 'En erreur'], off: ['#b3c1c8', '#eef3f2', '#8a9aa6', 'Désactivée'], new: ['#b3c1c8', '#fff', '#5c7280', 'Non vérifiée'] };
+const TIPS = { ok: 'Dernier appel réussi', slow: 'Latence médiane de 300 ms ou plus', warn: 'Clé qui expire sous 60 jours ou quota du jour à 80 % et plus', err: 'Dernier appel en échec', off: 'Carte désactivée', noW: 'N’alimente aucun widget' };
+const mono = s => s.replace(/[^A-Za-zÀ-ÿ0-9 ]/g, ' ').split(/\s+/).filter(Boolean).slice(0, 2).map(x => x[0]).join('').toUpperCase();
+const COPY = 'M9 9h10v10H9z M5 15V5h10', CHECK = 'M5 12l5 5 9-10';
+const EYE = 'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z', EYE_OFF = 'M3 3l18 18 M10.6 5.1A10 10 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.2 M6.6 6.6C3.9 8.4 2 12 2 12s3.5 7 10 7a9.6 9.6 0 0 0 5.4-1.6 M9.9 9.9a3 3 0 0 0 4.2 4.2';
+const G = 'minmax(0,1.1fr) minmax(0,1fr) 112px 64px 88px 100px';
+const COLS = [['n', 'CARTE'], ['ep', 'ENDPOINT'], ['lat', 'LATENCE 24 H'], ['q', 'QUOTA'], ['key', 'CLÉ'], ['w', 'ALIMENTE']];
+const SORT_L = { n: 'nom', ep: 'endpoint', lat: 'latence', q: 'quota', key: 'échéance de clé', w: 'widgets' };
+const DESC_FIRST = { lat: 1, q: 1, w: 1 };
+const seg = (on, h = 28) => 'white-space:nowrap;height:' + h + 'px;padding:0 12px;border:0;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:12.5px;transition:background .15s,color .15s;' + (on ? 'background:#fff;font-weight:700;color:#10233a;box-shadow:0 1px 2px rgba(16,35,58,.12)' : 'background:transparent;font-weight:600;color:#5c7280');
+const inputSt = err => 'height:44px;border:0;outline:0;border-radius:12px;background:#fff;padding:0 14px;font-size:13.5px;font-weight:600;transition:box-shadow .15s;box-shadow:inset 0 0 0 ' + (err ? '1.5px #f0a193' : '1px #d5e0dd');
+const INIT = RAW.map(([n, tag, ep, lat, q, key, w, fmt, err], i) => ({ id: 'c' + i, n, tag, ep, lat, q, hasKey: key !== null, key: key || null, w, fmt: fmt || 'json',
+  resp: err || { code: 200, txt: 'OK', ms: lat, when: 'il y a 15 min' }, off: false, isNew: false, fix: false }));
+const level = c => { if (c.off) return 'off'; if (!c.resp) return 'new'; if (c.resp.code >= 400) return 'err'; const d = days(c.key);
+  if ((c.hasKey && d != null && d < 60) || (c.q != null && c.q >= 80)) return 'warn'; if (c.lat >= 300) return 'slow'; return 'ok'; };
+
+class Component extends DCLogic {
+  state = { cards: INIT, tags: TAGS, tag: 'Entreprises', sel: 'c28', lf: null, sort: { k: null, dir: 1 }, mode: 'view', draft: null, orig: null, touched: false, adding: false, tagIn: '', showKey: false,
+    pickOpen: false, q: '', testing: false, copied: false, toast: '', undo: null };
+  pickBtnRef = React.createRef(); pickPopRef = React.createRef();
+  wl() { return this.props.widgets || WIDGETS; }
+  wid() { const l = this.wl(); if (this._wl !== l) { this._wl = l; this._wid = Object.fromEntries(l.map(w => [w.id, w])); } return this._wid; }
+  sug(tag) { return this.props.widgets ? this.props.widgets.filter(w => (w.tags || []).includes(tag)).map(w => w.id) : SUGGEST[tag] || []; }
+  // Liste du serveur : remplace la liste affichée à chaque rechargement (tags ajoutés à la volée conservés).
+  syncCards(first) { const cards = this.props.cards; if (!cards) return; const S = this.state, known = [...TAGS, ...S.tags];
+    const tags = [...new Set([...cards.map(c => c.tag), ...(first ? [] : S.tags)])].sort((a, b) => ((known.indexOf(a) + 1 || 99) - (known.indexOf(b) + 1 || 99)) || a.localeCompare(b));
+    const tag = first || !tags.includes(S.tag) ? (tags.find(t => cards.some(c => c.tag === t)) || tags[0] || S.tag) : S.tag;
+    const sel = !first && cards.some(c => c.id === S.sel) ? S.sel : (cards.find(c => c.tag === tag) || cards[0] || {}).id;
+    this.setState({ cards, tags, tag, sel }); }
+  componentDidUpdate(prev) { if (prev.cards !== this.props.cards) this.syncCards(false); }
+  componentDidMount() {
+    this._out = e => { if (!this.state.pickOpen) return; const t = e.target, b = this.pickBtnRef.current, p = this.pickPopRef.current;
+      if ((b && b.contains(t)) || (p && p.contains(t))) return; this.setState({ pickOpen: false, q: '' }); };
+    this._esc = e => { if (e.key !== 'Escape') return; if (this.state.pickOpen) this.setState({ pickOpen: false, q: '' }); else if (this.state.mode === 'del') this.setState({ mode: 'view' }); };
+    document.addEventListener('pointerdown', this._out, true); document.addEventListener('keydown', this._esc);
+    this.syncCards(true);
+  }
+  componentWillUnmount() { ['_t', '_c', '_tt'].forEach(k => clearTimeout(this[k])); document.removeEventListener('pointerdown', this._out, true); document.removeEventListener('keydown', this._esc); }
+  say(toast, undo = null) { clearTimeout(this._tt); this.setState({ toast, undo }); this._tt = setTimeout(() => this.setState({ toast: '', undo: null }), undo ? 5000 : 2400); }
+  patch(id, f) { this.setState(s => ({ cards: s.cards.map(c => c.id === id ? { ...c, ...f(c) } : c) })); }
+  cur() { const s = this.state; return s.cards.find(c => c.id === s.sel) || s.cards[0]; }
+  select(c) { if (this.state.mode === 'edit' || this.state.mode === 'new') { if (!window.confirm('Abandonner les modifications en cours ?')) return; }
+    this.setState({ sel: c.id, tag: c.tag, mode: 'view', draft: null, pickOpen: false, q: '' }); }
+  sortVal(c, k) { return k === 'n' ? c.n.toLowerCase() : k === 'ep' ? c.ep : k === 'lat' ? (level(c) === 'err' ? null : c.lat) : k === 'q' ? c.q : k === 'key' ? (c.hasKey ? (parseD(c.key)?.getTime() ?? 9e15) : null) : c.w.length; }
+  sorted(list) { const { k, dir } = this.state.sort; if (!k) return list;
+    return [...list].sort((a, b) => { const x = this.sortVal(a, k), y = this.sortVal(b, k); if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1; return (x < y ? -1 : x > y ? 1 : 0) * dir; }); }
+  openEdit(isNew) { const c = this.cur();
+    const d = isNew ? { n: '', tag: this.state.tag, ep: '', keyMode: 'none', keyVal: '', exp: '' } : { n: c.n, tag: c.tag, ep: c.ep, keyMode: c.hasKey ? 'key' : 'none', keyVal: '', exp: c.key || '' };
+    this.setState({ mode: isNew ? 'new' : 'edit', draft: d, orig: { ...d }, touched: false, adding: false, tagIn: '', showKey: false, pickOpen: false }); }
+  errs(d) { const cur = this.cur(), isNew = this.state.mode === 'new';
+    return { n: !d.n.trim(), ep: !/^[^\s/]+\.[a-z]{2,}(\/\S*)?$/i.test(d.ep.trim().replace(/^https?:\/\//, '')),
+      key: d.keyMode === 'key' && !d.keyVal.trim() && (isNew || !cur.hasKey), exp: d.keyMode === 'key' && !!d.exp && !parseD(d.exp) }; }
+  renderVals() {
+    if (this.props.now) NOW = new Date(this.props.now);
+    const WID = this.wid(), WL = this.wl();
+    const S = this.state, cards = S.cards, cur = this.cur(), lvC = level(cur);
+    // Matrice
+    const counts = {}; cards.forEach(c => { const l = level(c); counts[l] = (counts[l] || 0) + 1; if (!c.w.length) counts.noW = (counts.noW || 0) + 1; });
+    const hit = c => !S.lf || (S.lf === 'noW' ? !c.w.length : level(c) === S.lf);
+    const legend = ['ok', 'slow', 'warn', 'err', 'off', 'noW'].filter(k => k === 'ok' || counts[k]).map(k => { const on = S.lf === k, L = LV[k] || LV.ok;
+      return { l: k === 'noW' ? 'Sans widget' : L[3], c: String(counts[k] || 0), on, tip: TIPS[k], pick: () => this.setState(s => ({ lf: s.lf === k ? null : k })),
+        bst: 'height:30px;padding:0 10px 0 8px;border-radius:999px;border:0;cursor:pointer;display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;white-space:nowrap;transition:all .15s;' + (on ? 'background:#10233a;color:#fff' : 'background:transparent;color:#43586a'),
+        hov: on ? '' : 'background:#f2f6f5',
+        cSt: 'font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;color:' + (on ? 'rgba(255,255,255,.7)' : '#8a9aa6'),
+        st: 'width:12px;height:12px;border-radius:4px;flex:none;' + (k === 'noW' ? 'background:#e6f4f2;background-image:repeating-linear-gradient(135deg,transparent 0 3px,rgba(255,255,255,.85) 3px 5px);box-shadow:inset 0 0 0 1.5px rgba(29,143,134,.35)' : 'background:' + L[1] + ';box-shadow:inset 0 0 0 1.5px ' + L[0]) }; });
+    const mRows = S.tags.map(t => { const all = cards.filter(c => c.tag === t), on = S.tag === t;
+      return { l: t, c: String(all.length), on, pick: () => { if (S.mode === 'view' || S.mode === 'del') this.setState({ tag: t }); },
+        st: 'display:flex;align-items:center;gap:16px;min-height:46px;padding:5px 12px;border-radius:12px;cursor:pointer;transition:background .15s;' + (on ? 'background:#f2f6f5' : ''), hov: on ? '' : 'background:#f8fbfa',
+        lSt: 'font-size:13.5px;font-weight:' + (on ? 800 : 600) + ';color:' + (on ? '#10233a' : '#43586a'),
+        cells: all.map(c => { const lv = level(c), L = LV[lv], sel = c.id === cur.id, dim = !hit(c);
+          return { m: mono(c.n), t: c.n + ' · ' + L[3] + (lv === 'err' ? '' : c.lat ? ' · ' + c.lat + ' ms' : ''), pick: e => { e.stopPropagation(); this.select(c); },
+            hov: sel ? '' : 'transform:translateY(-1px);box-shadow:0 0 0 2px #fff,0 0 0 3.5px ' + L[0],
+            st: 'width:36px;height:36px;border-radius:10px;border:0;cursor:pointer;display:grid;place-items:center;font-size:10.5px;font-weight:800;letter-spacing:.02em;transition:transform .15s,box-shadow .15s,opacity .2s;opacity:' + (dim ? .22 : 1) + ';' +
+              (sel ? 'background:#10233a;color:#fff;box-shadow:0 0 0 2px #fff,0 0 0 4px #10233a'
+                : 'background:' + L[1] + ';color:' + L[2] + (lv === 'new' ? ';box-shadow:inset 0 0 0 1.5px #b3c1c8' : '') + (!c.w.length && lv !== 'err' ? ';box-shadow:inset 0 0 0 1.5px ' + L[0] + '55;background-image:repeating-linear-gradient(135deg,transparent 0 5px,rgba(255,255,255,.75) 5px 7px)' : '')) }; }) }; });
+    // Table du tag
+    const list = this.sorted(cards.filter(c => c.tag === S.tag));
+    const rows = list.map(c => { const lv = level(c), L = LV[lv], sel = c.id === cur.id, i = c.ep.indexOf('/'), meas = lv !== 'err' && lv !== 'new' && c.lat != null, d = days(c.key), keySoon = c.hasKey && d != null && d < 60, ws = c.w.map(id => WID[id]).filter(Boolean);
+      return { n: c.n, sel, host: i < 0 ? c.ep : c.ep.slice(0, i), path: i < 0 ? '' : c.ep.slice(i), pick: () => this.select(c),
+        nSt: 'font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;' + (lv === 'off' ? 'color:#8a9aa6' : ''),
+        dot: 'width:8px;height:8px;border-radius:50%;flex:none;' + (lv === 'new' ? 'background:#fff;box-shadow:inset 0 0 0 1.5px #b3c1c8' : 'background:' + L[0] + (lv === 'err' ? ';box-shadow:0 0 0 3px #fdf0ed' : '')),
+        sp: meas ? spark(series(c), 46, 16) : 'M0 8 L46 8', spc: !meas ? (lv === 'err' ? '#f0a193' : '#d5e0dd') : c.lat >= 300 ? '#d99a2b' : '#1d8f86',
+        latL: lv === 'err' ? String(c.resp.code) : meas ? c.lat + ' ms' : '—',
+        latSt: 'font-family:\'IBM Plex Mono\',monospace;font-size:12px;font-weight:600;white-space:nowrap;color:' + (lv === 'err' ? '#c2473b' : '#10233a'),
+        qL: c.q == null ? '—' : c.q + ' %', qSt: 'font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap;' + (c.q == null ? 'color:#b3c1c8' : c.q >= 80 ? 'color:#c2473b;font-weight:800' : 'color:#10233a;font-weight:700'),
+        kL: !c.hasKey ? 'Sans clé' : c.key || 'Sans échéance',
+        kSt: 'font-family:\'IBM Plex Mono\',monospace;font-size:12px;white-space:nowrap;text-align:right;' + (!c.hasKey ? 'color:#8a9aa6' : keySoon ? 'color:#c2473b;font-weight:700' : 'color:#10233a;font-weight:600'),
+        wL: ws.length ? ws.map(w => w.g).join(' ') : 'Aucun', wSt: 'text-align:right;white-space:nowrap;' + (ws.length ? 'font-size:13px;letter-spacing:.2em;color:#10233a' : 'font-size:11.5px;font-weight:600;color:#8a5a12'),
+        row: 'display:grid;grid-template-columns:' + G + ';gap:14px;align-items:center;min-height:52px;padding:8px 16px;border-radius:12px;cursor:pointer;transition:background .15s,box-shadow .15s;' + (sel ? 'background:#f2f6f5;box-shadow:inset 0 0 0 1px #d5e0dd' : ''),
+        hov: sel ? '' : 'background:#f8fbfa' }; });
+    const cols = COLS.map(([k, l], i) => { const on = S.sort.k === k, first = DESC_FIRST[k] ? -1 : 1;
+      return { l, aria: on ? (S.sort.dir > 0 ? 'ascending' : 'descending') : 'none',
+        pick: () => this.setState(s => ({ sort: s.sort.k !== k ? { k, dir: first } : s.sort.dir === first ? { k, dir: -first } : { k: null, dir: 1 } })),
+        ic: on ? (S.sort.dir > 0 ? 'M12 19V5 M6 11l6-6 6 6' : 'M12 5v14 M6 13l6 6 6-6') : 'M8 9l4-4 4 4 M8 15l4 4 4-4', icSt: 'flex:none;opacity:' + (on ? 1 : .35),
+        st: 'border:0;background:transparent;padding:0;cursor:pointer;display:flex;align-items:center;gap:6px;font-size:10.5px;font-weight:800;letter-spacing:.14em;white-space:nowrap;transition:color .15s;' + (i >= 4 ? 'justify-content:flex-end;' : '') + (i === 0 ? 'padding-left:18px;' : '') + 'color:' + (on ? '#10233a' : '#8a9aa6') }; });
+    // Détail
+    const L = LV[lvC], ws = cur.w.map(id => WID[id]).filter(Boolean), dK = days(cur.key), notes = [];
+    if (lvC === 'err') notes.push([cur.resp.code === 401 ? 'La clé API est refusée : remplacez-la depuis « Modifier ».' : 'Le service ne répond pas. Les widgets associés affichent leur dernière valeur connue.', '#fdf0ed', '#a63a2f', '#c2473b']);
+    if (cur.hasKey && dK != null && dK < 60 && lvC !== 'off') notes.push(['Clé expire dans ' + dK + ' j', '#fdf0ed', '#a63a2f', '#e0604c']);
+    if (cur.q != null && cur.q >= 80 && lvC !== 'off') notes.push(['Quota du jour à ' + cur.q + ' %', '#fdf0ed', '#a63a2f', '#e0604c']);
+    if (lvC === 'slow') notes.push(['Latence médiane au-dessus de 300 ms', '#fdf1dc', '#8a5a12', '#d99a2b']);
+    if (lvC === 'off') notes.push(['Carte désactivée : aucun appel n’est effectué, les widgets associés ne sont plus mis à jour.', '#eef3f2', '#43586a', '#b3c1c8']);
+    const r = cur.resp, q = S.q.trim().toLowerCase(), sug = this.sug(cur.tag);
+    const item = w => { const on = cur.w.includes(w.id);
+      return { g: w.g, n: w.n, cat: w.cat, on, flip: () => { const nw = on ? cur.w.filter(x => x !== w.id) : [...cur.w, w.id]; this.patch(cur.id, () => ({ w: nw })); this.props.onWidgets?.(cur.id, nw); this.say(on ? 'Dissociée de ' + w.n : 'Associée à ' + w.n); },
+        gSt: 'flex:none;width:28px;height:28px;border-radius:8px;display:grid;place-items:center;font-size:12px;' + (on ? 'background:#10233a;color:#fff' : 'background:#eef3f2;color:#43586a'),
+        box: 'flex:none;width:18px;height:18px;border-radius:6px;display:grid;place-items:center;transition:all .15s;' + (on ? 'background:#1d8f86' : 'box-shadow:inset 0 0 0 1.5px #c9d6d3') }; };
+    const match = w => !q || (w.n + ' ' + w.cat).toLowerCase().includes(q);
+    const pickGroups = [{ l: 'SUGGÉRÉS POUR ' + cur.tag.toUpperCase(), items: WL.filter(w => sug.includes(w.id) && match(w)).map(item) }, { l: 'AUTRES WIDGETS', items: WL.filter(w => !sug.includes(w.id) && match(w)).map(item) }].filter(g => g.items.length);
+    // Édition
+    const d = S.draft, isEdit = S.mode === 'edit' || S.mode === 'new';
+    let ed = {};
+    if (isEdit) { const e = this.errs(d), show = S.touched, changed = JSON.stringify(d) !== JSON.stringify(S.orig), bad = e.n || e.ep || e.key || e.exp, isNew = S.mode === 'new';
+      ed = { eyebrow: isNew ? 'NOUVELLE CARTE' : 'MODIFIER LA CARTE', title: d.n.trim() || (isNew ? 'Sans nom' : cur.n),
+        nErr: show && e.n, nSt: inputSt(show && e.n), epErr: show && e.ep, epChanged: !isNew && d.ep.trim() !== cur.ep && !e.ep,
+        epBox: 'display:flex;align-items:center;height:44px;border-radius:12px;background:#fff;transition:box-shadow .15s;box-shadow:inset 0 0 0 ' + (show && e.ep ? '1.5px #f0a193' : '1px #d5e0dd'),
+        tags: S.tags.map(t => ({ l: t, on: d.tag === t, pick: () => this.setState({ draft: { ...d, tag: t } }),
+          st: 'white-space:nowrap;height:32px;padding:0 14px;border-radius:999px;font-size:12.5px;cursor:pointer;transition:all .15s;' + (d.tag === t ? 'border:1px solid #10233a;background:#10233a;color:#fff;font-weight:700' : 'border:1px solid #d5e0dd;background:#fff;color:#43586a;font-weight:600') })),
+        adding: S.adding, notAdding: !S.adding,
+        keyModes: [['none', 'Sans clé'], ['key', 'Clé requise']].map(([k, l]) => ({ l, on: d.keyMode === k, pick: () => this.setState({ draft: { ...d, keyMode: k } }), st: seg(d.keyMode === k, 34) })),
+        needKey: d.keyMode === 'key', keyErr: show && e.key, keyType: S.showKey ? 'text' : 'password', showL: S.showKey ? 'Masquer la clé' : 'Afficher la clé', eyeIc: S.showKey ? EYE_OFF : EYE,
+        keyPh: !isNew && cur.hasKey ? (lvC === 'err' && r.code === 401 ? 'Collez la nouvelle clé' : '•••• ' + (cur.last4 || '7f3a') + ' · laisser vide pour conserver') : 'Collez la clé API',
+        expSt: inputSt(e.exp).replace('height:44px', 'height:38px;width:110px;font-family:\'IBM Plex Mono\',monospace;font-size:12.5px'),
+        expHelp: e.exp ? 'Format jj/mm/aa' : parseD(d.exp) ? 'dans ' + days(d.exp) + ' j' : 'Facultatif',
+        state: isNew ? 'L’expiration est facultative' : changed ? 'Modifications non enregistrées' : 'Aucune modification',
+        cantSave: !changed && !isNew, saveL: isNew ? 'Créer la carte' : 'Enregistrer',
+        saveSt: 'white-space:nowrap;height:36px;padding:0 16px;border-radius:10px;border:0;font-size:12.5px;font-weight:700;' + (!changed && !isNew ? 'background:#e1e9e7;color:#8a9aa6;cursor:not-allowed' : 'background:#1d8f86;color:#fff;cursor:pointer') + (bad && show ? ';opacity:.55' : '') };
+    }
+    const upd = f => e => this.setState({ draft: { ...S.draft, [f]: e.target.value } });
+    const addTag = () => { const t = S.tagIn.trim(); if (!t) return this.setState({ adding: false });
+      const ex = S.tags.find(x => x.toLowerCase() === t.toLowerCase()); this.setState({ tags: ex ? S.tags : [...S.tags, t], draft: { ...S.draft, tag: ex || t }, adding: false, tagIn: '' }); };
+    const tagN = cards.filter(c => c.tag === S.tag).length, off = lvC === 'off';
+    return {
+      subtitle: cards.length + ' carte' + (cards.length > 1 ? 's' : '') + ' · ' + S.tags.length + ' tags · dernière vérification ' + (this.props.checked || 'il y a 15 min'),
+      legend, mRows, rows, cols, noRows: !rows.length,
+      tagTitle: S.tag, tagCount: tagN + ' carte' + (tagN > 1 ? 's' : ''),
+      sortL: S.sort.k ? 'Tri : ' + SORT_L[S.sort.k] + (S.sort.dir > 0 ? ', croissant' : ', décroissant') : '',
+      isView: S.mode === 'view' || S.mode === 'del', isDel: S.mode === 'del', notDel: S.mode !== 'del', isEdit,
+      c: { n: cur.n, tagU: cur.tag.toUpperCase(), url: 'https://' + cur.ep, key: cur.key || '', hasExp: cur.hasKey && !!cur.key, off,
+        stL: L[3], stSt: 'height:24px;padding:0 10px;border-radius:999px;font-size:11.5px;font-weight:700;display:inline-flex;align-items:center;gap:7px;white-space:nowrap;background:' + (lvC === 'err' ? '#fdf0ed' : L[1]) + ';color:' + (lvC === 'err' ? '#c2473b' : L[2]) + (lvC === 'new' ? ';box-shadow:inset 0 0 0 1px #d5e0dd' : ''),
+        stDot: 'width:6px;height:6px;border-radius:50%;background:' + L[0],
+        notes: notes.map(([l, bg, fg, dot]) => ({ l, st: 'display:flex;align-items:flex-start;gap:9px;padding:10px 12px;border-radius:10px;font-size:12.5px;font-weight:600;line-height:1.5;margin-top:-6px;background:' + bg + ';color:' + fg, dot: 'width:6px;height:6px;border-radius:50%;flex:none;margin-top:6px;background:' + dot })),
+        keyL: cur.hasKey ? '•••• •••• •••• ' + (cur.last4 || '7f3a') : 'Aucune clé requise', keySt: 'font-family:\'IBM Plex Mono\',monospace;font-size:12px;letter-spacing:.04em;color:' + (cur.hasKey ? (lvC === 'err' && r.code === 401 ? '#c2473b;text-decoration:line-through' : '#10233a') : '#5c7280'),
+        expSt: 'margin-left:auto;font-size:11.5px;white-space:nowrap;color:' + (dK != null && dK < 60 ? '#c2473b;font-weight:700' : '#5c7280'),
+        testing: S.testing, idle: !S.testing, testL: S.testing ? 'Appel en cours…' : 'Tester l’appel',
+        testSt: 'height:42px;border-radius:11px;border:0;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;gap:9px;' + (off ? 'background:#e1e9e7;color:#8a9aa6;cursor:not-allowed' : 'background:#10233a;color:#fff;cursor:pointer'), testHov: off ? '' : 'background:#1d3654',
+        hasResp: !!r, noResp: !r, code: r ? r.code + ' ' + r.txt : '', ms: r ? r.ms + ' ms' : '', when: r ? r.when : '',
+        codeSt: 'font-weight:600;color:' + (r && r.code >= 400 ? '#f07b67' : '#3dd6c6'),
+        lines: r ? tok(r.body || (cur.fmt === 'xml' ? xml(cur) : json(cur)), r.body ? (/^\s*</.test(r.body[0] || '') ? 'xml' : 'json') : cur.fmt) : [],
+        widgets: ws.map(w => ({ g: w.g, n: w.n, rmL: 'Dissocier ' + w.n, rm: () => { const nw = cur.w.filter(x => x !== w.id); this.patch(cur.id, () => ({ w: nw })); this.props.onWidgets?.(cur.id, nw); this.say('Dissociée de ' + w.n); } })),
+        wCount: ws.length ? ws.length + ' widget' + (ws.length > 1 ? 's' : '') : '', noW: !ws.length,
+        offL: off ? 'Réactiver' : 'Désactiver', offIc: off ? 'M6 4l14 8-14 8z' : 'M8 5v14 M16 5v14' },
+      pickBtnRef: this.pickBtnRef, pickPopRef: this.pickPopRef, pickOpen: S.pickOpen, togglePick: () => this.setState(s => ({ pickOpen: !s.pickOpen, q: '' })),
+      pickBtnSt: 'height:32px;padding:0 12px;border-radius:10px;font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;gap:7px;cursor:pointer;white-space:nowrap;transition:all .15s;' + (S.pickOpen ? 'border:1px solid #1d8f86;background:#e6f4f2;color:#146b64' : 'border:1px dashed #c9d6d3;background:transparent;color:#43586a'),
+      q: S.q, setQ: e => this.setState({ q: e.target.value }), pickGroups, pickEmpty: !pickGroups.length,
+      test: () => { if (S.testing || off) return;
+        if (this.props.onTest) { const id = cur.id; this.setState({ testing: true });
+          Promise.resolve(this.props.onTest(id)).then(r => { this.setState({ testing: false }); if (!r) return;
+            this.patch(id, () => ({ resp: r.resp, ...(r.lat != null ? { lat: r.lat } : {}) }));
+            this.say(r.resp.code >= 400 ? 'Échec : ' + r.resp.code + ' ' + r.resp.txt : 'Appel réussi'); }, () => this.setState({ testing: false }));
+          return; }
+        const id = cur.id, fail = !!(cur.resp && cur.resp.code >= 400 && !cur.fix); this.setState({ testing: true }); clearTimeout(this._t);
+        this._t = setTimeout(() => { this.setState({ testing: false });
+          this.patch(id, c => { if (c.resp && c.resp.code >= 400 && !c.fix) return { resp: { ...c.resp, when: 'à l’instant' } };
+            const lat = c.lat ?? (120 + Math.round(Math.random() * 180)); return { lat, fix: false, isNew: false, resp: { code: 200, txt: 'OK', ms: lat, when: 'à l’instant' } }; });
+          this.say(fail ? 'Échec : ' + cur.resp.code + ' ' + cur.resp.txt : 'Appel réussi'); }, 750); },
+      copy: () => { navigator.clipboard?.writeText('https://' + cur.ep).catch(() => {}); this.setState({ copied: true }); clearTimeout(this._c); this._c = setTimeout(() => this.setState({ copied: false }), 1400); },
+      copyIc: S.copied ? CHECK : COPY,
+      toggleOff: () => { this.patch(cur.id, c => ({ off: !c.off })); this.props.onToggle?.(cur.id, !off); this.say(off ? cur.n + ' réactivée' : cur.n + ' désactivée'); },
+      startEdit: () => this.openEdit(false), startNew: () => this.openEdit(true),
+      askDel: () => this.setState({ mode: 'del', pickOpen: false }), cancelDel: () => this.setState({ mode: 'view' }),
+      delImpact: ws.length ? (ws.length === 1 ? '1 widget ne sera plus alimenté : ' : ws.length + ' widgets ne seront plus alimentés : ') + ws.map(w => w.n).join(', ') + '.' : 'Cette carte n’alimente aucun widget : la suppression est sans effet sur le Cockpit.',
+      doDel: () => { const idx = cards.findIndex(c => c.id === cur.id), rest = cards.filter(c => c.id !== cur.id), gone = cur, sameTag = rest.filter(c => c.tag === gone.tag);
+        this.setState({ cards: rest, sel: (sameTag[0] || rest[0] || {}).id, mode: 'view' }); this.props.onDelete?.(gone.id);
+        this.say(gone.n + ' supprimée', () => this.props.onRestore?.(gone.id) || this.setState(s => { const a = [...s.cards]; a.splice(idx, 0, gone); return { cards: a, sel: gone.id, tag: gone.tag, toast: '', undo: null }; })); },
+      d: d || {}, ed,
+      setN: upd('n'), setEp: upd('ep'), setKey: upd('keyVal'), setExp: upd('exp'),
+      startTag: () => this.setState({ adding: true, tagIn: '' }), tagIn: S.tagIn, setTagIn: e => this.setState({ tagIn: e.target.value }), addTag,
+      tagKey: e => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } if (e.key === 'Escape') this.setState({ adding: false }); },
+      toggleShow: () => this.setState(s => ({ showKey: !s.showKey })),
+      cancelEdit: () => this.setState({ mode: 'view', draft: null }),
+      save: e => { e.preventDefault(); const e2 = this.errs(d); if (e2.n || e2.ep || e2.key || e2.exp) return this.setState({ touched: true });
+        const ep = d.ep.trim().replace(/^https?:\/\//, ''), hasKey = d.keyMode === 'key', key = hasKey ? (d.exp.trim() || null) : null;
+        if (S.mode === 'new') { const id = 'n' + Date.now(), secret = hasKey ? d.keyVal.trim() : null;
+          if (this.props.onCreate) Promise.resolve(this.props.onCreate({ n: d.n.trim(), tag: d.tag, ep, hasKey, key }, secret)).then(sid => { const go = n => { if (!sid) return; if (this.state.cards.some(c => c.id === sid)) this.setState({ sel: sid }); else if (n) setTimeout(() => go(n - 1), 100); }; go(20); }, () => {});
+          this.setState(s => ({ cards: [...s.cards, { id, n: d.n.trim(), tag: d.tag, ep, lat: null, q: null, hasKey, key, w: [], fmt: 'json', resp: null, off: false, isNew: true, fix: false }], sel: id, tag: d.tag, mode: 'view', draft: null })); this.say('Carte créée · lancez un test pour la vérifier'); }
+        else { const epCh = ep !== cur.ep, keyCh = !!d.keyVal.trim() || hasKey !== cur.hasKey;
+          this.patch(cur.id, c => ({ n: d.n.trim(), tag: d.tag, ep, hasKey, key, fix: c.fix || epCh || keyCh, ...(epCh ? { lat: null, resp: null } : {}) }));
+          this.props.onSave?.(cur.id, { n: d.n.trim(), tag: d.tag, ep, hasKey, key }, d.keyVal.trim() || undefined);
+          this.setState({ mode: 'view', draft: null, tag: d.tag }); this.say(keyCh && lvC === 'err' ? 'Carte enregistrée · testez l’appel avec la nouvelle clé' : 'Carte enregistrée'); } },
+      hasToast: !!S.toast, toast: S.toast, canUndo: !!S.undo, noUndo: !S.undo, undo: () => S.undo && S.undo()
+    };
+  }
+}
+</script>
+</body>
+</html>

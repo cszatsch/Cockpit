@@ -1,90 +1,65 @@
-# Registre des cartes API — spécification
+# Registre des cartes API · spécification (version 3c)
 
-Page de la Console d'administration (domaine **Plateforme**) qui recense les services externes appelés par les widgets : endpoint, clé, quota, santé, échéance de la clé.
+Route : `/plateforme/cartes-api`. Libellé sidebar : « Registre des cartes API » (domaine Plateforme).
 
-## 1. Fichiers
+## 1. Structure
+Deux colonnes de même hauteur (bords haut et bas alignés) :
+- **Gauche**
+  1. **État du registre** : une ligne par tag, une pastille de 36 px par carte (initiales). Couleur = état. Hachures = carte qui n'alimente aucun widget. Clic sur une ligne = affiche ce tag ; clic sur une pastille = sélectionne la carte.
+  2. **Légende filtrante** : Opérationnelle, Lente, À surveiller, En erreur, Désactivée, Sans widget, avec compteurs. Clic = atténue les autres pastilles (opacité 0,22). Nouveau clic = retire le filtre.
+  3. **Table du tag sélectionné** : Carte, Endpoint, Latence 24 h, Quota, Clé, Alimente. Toutes les colonnes sont triables. Ligne « Ajouter une carte à <tag> » en bas.
+- **Droite** : panneau de détail. Il occupe toute la hauteur, avec le pied de page ancré en bas.
 
-| Fichier | Rôle |
-|---|---|
-| `Sidebar Console.dc.html` | Sidebar existante + entrée `apis` « Registre des cartes API » dans Plateforme (entre Modules et Notifications). |
-| `Registre API.dc.html` | Page centrale : tableau + panneau détail / test / remplacement de clé / création. |
-| `support.js` | Runtime des composants, à placer à côté des deux fichiers. |
-
-## 2. Sidebar
-
-- Nouvel identifiant de page : `apis`. `onNavigate('apis')` doit afficher `Registre API.dc.html`.
-- Signal : `signals.apis = { dot: 'err' }` si au moins une carte est en erreur ou a une clé expirée ; `{ dot: 'warn' }` si une clé expire dans ≤ 30 j ou un quota ≥ 85 % ; sinon absent.
-- Rien d'autre ne change (cloche, Cockpit, modes full / rail / mob identiques).
-
-## 3. Modèle de données
-
-```ts
-type ApiCard = {
-  id: string;
-  name: string;              // « OpenWeather »
-  category: 'Météo'|'Trafic'|'Actualités'|'Environnement'|'Mobilité'|'Calendrier'|'Finance'|'Autre';
-  endpoint: string;          // URL https complète
-  keyLast4: string | null;   // null = API sans clé
-  keyExpiresAt: string | null; // 'YYYY-MM-DD'
-  enabled: boolean;
-  status: 'ok' | 'warn' | 'err'; // calculé côté serveur par le dernier contrôle
-  statusNote?: string;       // « Clé refusée · 401 »
-  latencyMs: number | null;  // dernier appel réussi
-  latency24h: (number|null)[]; // 24 valeurs horaires, null = échec
-  quotaUsed: number | null;  // appels du jour
-  quotaLimit: number | null; // null = sans quota
-  widgets: string[];         // noms des widgets qui consomment la carte
-  lastTest: { code: number; ms: number | null; at: string; body: string } | null; // body tronqué à 2 Ko
-};
-```
-
-Table `api_cards` : colonnes ci-dessus + `key_encrypted` (AES-256-GCM, clé maître en variable d'environnement / KMS), `created_at`, `updated_at`, `updated_by`. Table `api_card_calls` (horodatage, card_id, code, ms) pour latence et quota.
-
-**Règle absolue : la clé en clair ne quitte jamais le serveur.** Aucune route ne la renvoie. Les widgets passent par le proxy serveur (§5).
-
-## 4. Routes (admin uniquement)
-
-| Méthode | Route | Corps / retour |
+## 2. États d'une carte (ordre de priorité)
+| État | Règle | Couleur |
 |---|---|---|
-| GET | `/api/admin/api-cards` | `ApiCard[]` |
-| POST | `/api/admin/api-cards` | `{ name, category, endpoint, key?, keyExpiresAt?, quotaLimit? }` → `ApiCard` |
-| PATCH | `/api/admin/api-cards/:id` | `{ enabled }` ou champs éditables → `ApiCard` |
-| PUT | `/api/admin/api-cards/:id/key` | `{ key, keyExpiresAt? }` → `ApiCard` (rotation) |
-| POST | `/api/admin/api-cards/:id/test` | → `{ code, ms, body }` ; appel réel côté serveur, timeout 8 s |
-| DELETE | `/api/admin/api-cards/:id` | refusé (409) si `widgets.length > 0` |
+| Désactivée | `off = true` | gris `#b3c1c8` |
+| Non vérifiée | aucune réponse (`resp = null`) | contour gris |
+| En erreur | dernier code HTTP ≥ 400 | rouge plein `#c2473b` |
+| À surveiller | clé expirant sous 60 j **ou** quota ≥ 80 % | `#e0604c` |
+| Lente | latence médiane ≥ 300 ms | ambre `#d99a2b` |
+| Opérationnelle | sinon | sarcelle `#1d8f86` |
 
-Validation : `name` 1–60 car. ; `endpoint` doit commencer par `https://`, hôte non privé (bloquer localhost, 10.x, 172.16–31.x, 192.168.x, 169.254.x — protection SSRF) ; `key` ≥ 8 car. ; `quotaLimit` entier > 0.
+## 3. Tri
+Un clic trie, un deuxième inverse le sens, un troisième retire le tri. Latence, Quota et Alimente trient d'abord par ordre décroissant, les autres colonnes par ordre croissant. Les valeurs vides (« — », « Sans clé », carte en erreur) sont toujours placées en fin de liste.
 
-## 5. Proxy widgets
+## 4. Panneau de détail
+- **Vue** : tag, pastille d'état, nom, **Modifier**. Notes d'alerte contextuelles (401 → « La clé API est refusée… », 503, clé bientôt expirée, quota, lenteur, désactivée). Endpoint (copier), Clé API (barrée si 401, date d'expiration en rouge sous 60 j), **Tester l'appel**, console de réponse (code, durée, date, corps JSON ou XML coloré).
+- **Alimente** : widgets associés (× pour dissocier) et « Associer un widget ». La liste s'ouvre **en surimpression au-dessus du bouton** : le panneau ne s'allonge pas. Elle comprend une recherche, puis « Suggérés pour <tag> » et « Autres widgets » (catalogue des 22 widgets). Elle se ferme au clic extérieur ou avec Échap.
+- **Pied** : Désactiver / Réactiver, **Supprimer la carte**. La suppression se confirme dans un encart qui liste les widgets impactés. Un toast propose ensuite « Annuler » pendant 5 s.
+- **Modifier / Nouvelle carte** : nom, tag (existant ou nouveau, créé à la volée), endpoint (préfixe `https://`, validé), clé (Sans clé / Clé requise, champ masqué avec bouton afficher, expiration `jj/mm/aa` facultative). Changer l'endpoint efface la latence et la dernière réponse. Une nouvelle clé sur une carte en 401 permet au test suivant de réussir.
 
-`GET /api/widgets/proxy/:cardId?…` : le serveur ajoute la clé, applique le quota (429 au-delà), met en cache 5 min (météo, trafic : 2 min), journalise dans `api_card_calls`. Si la carte est désactivée ou en erreur, le widget reçoit 503 et affiche son mode dégradé.
-
-## 6. Contrôle de santé
-
-Tâche planifiée toutes les 15 min par carte active : appel de test → met à jour `status`, `statusNote`, `latencyMs`, `latency24h`, `lastTest`. Règles d'affichage (dans l'ordre) : désactivée → erreur serveur → clé expirée → clé expirant ≤ 30 j (warn) → quota ≥ 85 % (warn) → ok.
-
-Notifications (drawer existant, catégorie Incidents) : passage en `err`, clé à J-30 / J-7 / J-1, quota ≥ 85 %.
-
-## 7. Branchement du composant
-
-```html
-<dc-import name="Registre API" cards="{{ cards }}" on-test="{{ test }}" on-create="{{ create }}" on-rotate-key="{{ rotate }}" on-toggle="{{ toggle }}" hint-size="100%,760px"></dc-import>
+## 5. Modèle de données
+```ts
+Card = {
+  id: string; n: string; tag: string; ep: string;      // ep sans https://
+  lat: number | null; q: number | null;                // latence médiane 24 h, quota jour %
+  hasKey: boolean; key: string | null;                 // expiration jj/mm/aa
+  w: string[];                                         // ids de widgets (catalogue WIDGETS)
+  fmt: 'json' | 'xml';
+  resp: { code: number; txt: string; ms: number; when: string; body?: string[] } | null;
+  off: boolean;
+}
 ```
 
-- `cards` : résultat de GET. Sans ce prop, le composant affiche la démo.
-- `onTest(id)` doit renvoyer une Promise `{ code, ms, body }`.
-- `onCreate`, `onRotateKey`, `onToggle` : appeler la route puis recharger `cards`. La mise à jour locale est optimiste.
-- `now` (facultatif, ISO) : date de référence pour les échéances ; par défaut la date du jour.
+## 6. API proposée
+| Action | Route |
+|---|---|
+| Liste | `GET /api-cards` |
+| Créer | `POST /api-cards` |
+| Modifier | `PATCH /api-cards/:id` (la clé n'est envoyée que si elle a été saisie) |
+| Supprimer | `DELETE /api-cards/:id` |
+| Activer / désactiver | `PATCH /api-cards/:id { off }` |
+| Tester | `POST /api-cards/:id/test` → `resp` |
+| Associer / dissocier | `PUT /api-cards/:id/widgets { ids: string[] }` |
 
-## 8. Audit
+La clé API n'est jamais renvoyée au frontend, seulement ses 4 derniers caractères.
 
-Tracer dans le journal d'audit : création, rotation de clé (sans la clé, seulement `keyLast4` ancien → nouveau), activation / désactivation, suppression, test manuel. Champs : `actor`, `action`, `card_id`, `at`, `ip`.
-
-## 9. Recette
-
-1. La sidebar affiche « Registre des cartes API » sous Plateforme, avec un point corail quand une carte est en erreur.
-2. Le tableau liste toutes les cartes ; la carte en erreur est sélectionnée par défaut.
-3. « Tester l'appel » affiche code, durée et réponse ; une erreur passe la ligne en corail.
-4. « Remplacer la clé » : la clé saisie n'apparaît jamais en clair après enregistrement ; seuls les 4 derniers caractères.
-5. Une URL en `http://` ou vers une IP privée est refusée.
-6. Aucune réponse réseau de la console ne contient une clé en clair (vérifier dans l'onglet Réseau).
+## 7. Recette
+1. Cliquer sur la légende « En erreur » : seules Vigicrues et Pappers restent nettes.
+2. Trier la table Actualités par latence : GNews et NewsData.io en tête, puis décroissant.
+3. Pappers : Modifier → coller une clé → Enregistrer → Tester : 200 OK, la pastille passe au vert.
+4. Ouvrir « Associer un widget » : le panneau garde sa hauteur. Un clic à l'extérieur ferme la liste.
+5. Supprimer une carte liée à un widget : l'encart cite le widget. « Annuler » dans le toast restaure la carte.
+6. Nouvelle carte avec un tag créé à la volée : une nouvelle ligne apparaît dans l'état du registre, avec une pastille « Non vérifiée ».
+7. Désactiver une carte : pastille grise, bouton de test inactif, « Réactiver » disponible.

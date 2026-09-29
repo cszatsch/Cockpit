@@ -15,6 +15,7 @@ import { adminCtx } from './profiles.service';
 import { UsageService } from './usage.service';
 import { ApiCardsService } from './api-cards.service';
 import { daysLeft, expiryLevel, QUOTA_WARN_PCT } from '../domain/api-cards';
+import { widgetName } from '../domain/widgets';
 
 /** Délai d'annulation d'une décision (spécification NOTIFICATIONS § 3) : l'action ne s'exécute qu'ensuite. */
 export const DECISION_UNDO_MS = 10_000;
@@ -189,7 +190,7 @@ export class InboxService implements OnModuleInit, OnModuleDestroy {
     for (const c of (await this.apiCards.views()).filter((x) => x.enabled)) {
       const base = { actLabel: 'Voir la carte', target: 'apis' };
       if (c.status === 'err' && c.statusNote !== 'Clé expirée') {
-        wanted.push({ key: `apicard:${c.id}:err`, kind: 'ERR', title: `Carte API ${c.name} en erreur`, text: `${c.statusNote}. Les widgets ${c.widgets.join(', ') || 'concernés'} passent en mode dégradé.`, ...base });
+        wanted.push({ key: `apicard:${c.id}:err`, kind: 'ERR', title: `Carte API ${c.name} en erreur`, text: `${c.statusNote}. Les widgets ${c.widgets.map(widgetName).join(', ') || 'concernés'} passent en mode dégradé.`, ...base });
       }
       const d = daysLeft(c.keyExpiresAt, this.usage.todayIso());
       const lvl = c.keyLast4 ? expiryLevel(d) : null;

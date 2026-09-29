@@ -128,3 +128,7 @@ Plus aucune clé `localStorage` n'est lue ou écrite par le fichier HTML. api.js
 ## Date réelle du jour (29/09/2026)
 
 - `RISE Cockpit.dc.html` : aides `thisYear()`, `nextSession()`, `sessionLabel()`, `frShortIso()`. Plus de dates figées : compte à rebours du Go-Live (prévision du bootstrap), prochain COPIL et échéances des 15 jours (séances planifiées), compte à rebours de la fiche d'arbitrage (prochaine séance), mini-Gantt du chemin critique (éléments critiques du planning), références de planning (bootstrap), raccourcis d'échéance du formulaire de tâche (calculés), année en cours au lieu de 2026 ; date du jour du projet (`fToday()`) au lieu de l'horloge du navigateur pour ces calculs.
+
+## Registre des cartes API v3c : identifiants de widgets (29/09/2026)
+
+- `api.js` : l'en-tête `X-RISE-Widget` porte l'identifiant du catalogue des widgets (`meteo`, `news`) au lieu des libellés « Météo · ville » et « Actualités ». Aucun effet visible.
