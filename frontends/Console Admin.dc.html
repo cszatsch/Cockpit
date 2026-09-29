@@ -32,7 +32,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
   notif-count="{{ ntUnread }}" notif-has-error="{{ ntHasErr }}" notif-open="{{ ntOpen }}" on-toggle-notifications="{{ ntToggle }}" cockpit-url="./RISE Cockpit.dc.html"
   on-navigate="{{ sbGo }}" on-toggle-jev="{{ toggleJev }}"
   on-open-profile="{{ goProfil }}" on-toggle-collapse="{{ toggleRail }}" on-close="{{ closeNav }}"
-  hint-size="252px,100vh"></dc-import>
+  hint-size="300px,100vh"></dc-import>
 </div>
 <sc-if value="{{ scrim }}" hint-placeholder-val="{{ false }}"><div onClick="{{ closeNav }}" style="position:fixed;inset:0;background:rgba(10,23,38,.45);z-index:55;animation:fade .2s both"></div></sc-if>
 
@@ -869,6 +869,8 @@ let TODAY = new Date(2026, 8, 26, 10, 24), BOOT = Date.now();
 const nowD = () => new Date(TODAY.getTime() + (Date.now() - BOOT));
 const MO_L = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
 const DOW_L = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+// Largeur de la sidebar dépliée (Sidebar Console v3 : 300 px ; mode rail : 72 px).
+const SB_W = 300;
 const MO = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
 const DOW = ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'];
 const p2 = n => String(n).padStart(2, '0');
@@ -1591,12 +1593,12 @@ class Component extends DCLogic {
     const badge = { users: S.users.filter(u => u.s === 'invité' && u.inv > 7).length ? ['warn', S.users.filter(u => u.s === 'invité' && u.inv > 7).length] : null, providers: S.provs.filter(p => p.st === 'err').length ? ['err', S.provs.filter(p => p.st === 'err').length] : null, conso: th.some(t => t.on && t.pct >= t.warn) ? ['warn', th.filter(t => t.on && t.pct >= t.warn).length] : null, modules: S.reqs.length ? ['info', S.reqs.length] : null, rights: Object.keys(S.pend).length ? ['pend', Object.keys(S.pend).length] : null };
     const meta = META[S.sec], errN = att.filter(a => a.tone === 'err').length;
     const vals = {
-      shellSt: `display:grid;grid-template-columns:${mode === 'full' ? '252px' : mode === 'rail' ? '72px' : '0px'} minmax(0,1fr) ${S.jev && mode === 'full' ? '400px' : '0px'};min-height:100vh;transition:grid-template-columns .4s cubic-bezier(.2,.7,.2,1)`,
+      shellSt: `display:grid;grid-template-columns:${mode === 'full' ? SB_W + 'px' : mode === 'rail' ? '72px' : '0px'} minmax(0,1fr) ${S.jev && mode === 'full' ? '400px' : '0px'};min-height:100vh;transition:grid-template-columns .4s cubic-bezier(.2,.7,.2,1)`,
       // Sidebar Console : mode, page active, signaux (pastilles existantes, fournisseurs, fonctions IA), profil et rappels.
       sbMode: mode === 'rail' ? 'rail' : mode === 'mob' ? 'mob' : 'full', sec: S.sec, sbGo: id => this.go(id), toggleRail: () => this.toggleNav(),
       sbUser: { name: S.prof.first + ' ' + S.prof.last, role: 'Administrateur', photo: S.photo || undefined, ini: S.photo ? '' : undefined },
       sbSignals: this.sbSignals(badge),
-      sbWrap: mode === 'mob' ? `position:fixed;top:0;left:0;bottom:0;width:252px;z-index:60;transform:translateX(${S.mnav ? 0 : -105}%);transition:transform .32s cubic-bezier(.2,.7,.2,1);box-shadow:${S.mnav ? '24px 0 60px -20px rgba(0,0,0,.5)' : 'none'}` : 'position:sticky;top:0;align-self:start;height:100vh;min-width:0;z-index:60',
+      sbWrap: mode === 'mob' ? `position:fixed;top:0;left:0;bottom:0;width:min(${SB_W}px, 86vw);z-index:60;transform:translateX(${S.mnav ? 0 : -105}%);transition:transform .32s cubic-bezier(.2,.7,.2,1);box-shadow:${S.mnav ? '24px 0 60px -20px rgba(0,0,0,.5)' : 'none'}` : 'position:sticky;top:0;align-self:start;height:100vh;min-width:0;z-index:60',
       jvWrap: mode === 'full' ? `position:sticky;top:0;height:100vh;overflow:hidden;min-width:0;z-index:30;opacity:${S.jev ? 1 : 0};transform:translateX(${S.jev ? 0 : 24}px);transition:opacity .3s ease,transform .4s cubic-bezier(.2,.7,.2,1);pointer-events:${S.jev ? 'auto' : 'none'}` : `position:fixed;top:0;right:0;bottom:0;width:min(400px,100%);z-index:70;box-shadow:-24px 0 60px -20px rgba(10,23,38,.35);transform:translateX(${S.jev ? 0 : 105}%);transition:transform .35s cubic-bezier(.2,.7,.2,1)`,
       toggleJev: () => this.toggleJev(), jvOn: S.jev,
       goProfil: () => this.go('profil'),
@@ -1615,7 +1617,7 @@ class Component extends DCLogic {
       // Skills : liste du serveur (admin-api.js) ; démonstration intégrée au composant sinon. Le composant apporte ses propres marges.
       // Notifications : cloche (non lues et non traitées, corail si un incident non lu) et tiroir le long de la sidebar.
       ...(() => { const live = (S.nt || []).filter(n => n.unread && (n.pending !== false || n.type === 'err' || n.type === 'warn'));
-        return { ntUnread: live.length, ntHasErr: live.some(n => n.type === 'err'), ntOpen: !!S.ntOpen, ntItems: S.nt || [], ntLeft: mode === 'rail' ? 72 : mode === 'mob' ? 0 : 252,
+        return { ntUnread: live.length, ntHasErr: live.some(n => n.type === 'err'), ntOpen: !!S.ntOpen, ntItems: S.nt || [], ntLeft: mode === 'rail' ? 72 : mode === 'mob' ? 0 : SB_W,
           ntToggle: () => this.ntToggle(), ntClose: () => this.ntClose(), ntAct: (id, a) => this.ntAct(id, a), ntUndo: id => this.ntUndo(id), ntReadAll: () => this.ntReadAll() }; })(),
       // Persona : Identity + Soul ; le nom de Jev (sidebar, panneau) vient d’identity.name.
       persona: S.persona || undefined, psSave: p => this.psSave(p), psUpload: f => this.psUpload(f),

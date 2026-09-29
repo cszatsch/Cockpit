@@ -270,3 +270,9 @@ Les captures sont écrites dans `OUT` (par défaut `<tmp>/rise-console-e2e`).
 - `ConsoCouts.dc.html` : mois en cours déduit des données (plus de `getMonth() === 8`, de 30 jours ni de « sept. » en dur).
 - `ProjetsBiblio.dc.html` : avancement à la date du serveur (`apiToday`).
 - `admin-api.js` : appel de `apiClock()`, titre du mois de la répartition, `apiToday` de la bibliothèque.
+
+## Sidebar Console v3 (29/09/2026)
+
+- `Sidebar Console.dc.html` : remplacée par la v3 livrée ; `jevName` (nom de Jev tiré du Persona) réintégré.
+- `Console Admin.dc.html` : largeur de la sidebar dépliée 300 px (constante `SB_W`) dans la grille, le tiroir mobile (`min(300px, 86vw)`) et le décalage du tiroir de notifications.
+- `Notifications.dc.html` : bord gauche par défaut à 300 px.

@@ -379,3 +379,12 @@ Demande du commanditaire : deux écrans de connexion distincts (application, adm
 | Cockpit | Date du jour du bootstrap (`fToday()`) partout : compte à rebours du Go-Live (prévision `forecast.goliveIso`, sinon jalon J08), prochain COPIL et échéances des 15 jours (séances planifiées), compte à rebours de la fiche d'arbitrage complète (prochaine séance), mini-Gantt du chemin critique (éléments critiques du planning et leurs dates), références de planning (v en vigueur et précédente, du bootstrap), raccourcis d'échéance du formulaire de tâche (veille du prochain COPIL, fin de semaine, semaine suivante), année en cours au lieu de 2026. | `nextSession()`, `sessionLabel()`, `thisYear()`, `frShortIso()` |
 | Serveur | Dates des documents : année omise si c'est l'année en cours (et non 2026). | `bootstrap.service.ts` |
 | Hors périmètre | Textes d'exemple du jeu de démonstration (contenu de la fiche D-007, profil de démonstration) : ce sont des données, pas la date du jour. | — |
+
+## Sidebar Console v3 (29/09/2026)
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Composant | `Sidebar Console.dc.html` remplacé par la livraison v3 (accordéon aéré, 300 px dépliée, titres complets, pastille ambre sur filet sarcelle, plus de barre ambre). Seule adaptation : le nom de Jev tiré du Persona (`jevName`), absent de la livraison, est réintégré (bouton, libellé accessible, info-bulle). | `Sidebar Console.dc.html` |
+| Mise en page | Largeur réservée à la sidebar dépliée : 300 px (grille de la Console, tiroir mobile borné à 86 % de l'écran, bord gauche du tiroir de notifications). Mode rail inchangé (72 px). | `SB_W = 300` (`Console Admin.dc.html`), `Notifications.dc.html` |
+| Libellés | `META` déjà à jour : « Vue générale des coûts » (`conso`), « Journal consommation et coûts » (`journal`). | — |
+| Signaux | Format conforme `{ pageId: { dot: 'err' \| 'warn' } \| { b: n } }`, calculé par la Console à partir des données du serveur : `users` (demandes d'invitation en attente, `/notifications`), `providers` (clé refusée, `/providers`), `assign` (fonction indisponible ou sur secours, `/assignments`), `apis` (carte en erreur, clé expirée ou proche de l'échéance, quota ≥ 85 %, `/api-cards`). Mêmes pages que la démonstration de la livraison. | `sbSignals()` |

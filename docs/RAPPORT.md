@@ -54,6 +54,8 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 
 - **Date réelle du jour (29/09/2026)** : `npm test` 306 tests verts (les tests gardent leur date figée). Vérifié dans le navigateur (instance de test, `.env` sans date de démonstration) : Console « Mardi 29 septembre 2026 », prochain snapshot « ven. 2 oct. 04:00 », Vue générale des coûts et journal au mois en cours (25 appels, dont ceux du 29/09) ; Cockpit « Mardi 29 septembre 2026 », Go-Live J-184 (1er avr. 2027), prochain COPIL « 26 oct. · Comité de pilotage n°21 · 14:00 ». Les tests navigateur de comparaison au pixel avec les frontends d’origine (`test/browser`) n’ont pas été relancés : les dates affichées diffèrent désormais par construction.
 
+- **Sidebar Console v3 (29/09/2026)** : recette § 5 vérifiée dans le navigateur (API locale) : colonne de 300 px, Vue d’ensemble 46 px, pages 42 px, titres de domaine en capitales 11 px, aucun titre tronqué (« Journal consommation et coûts », « Initialisation d’un projet ») ; ouverture d’IA au clic (titre sarcelle, filet reliant ses pages) ; arrivée sur Snapshots depuis la Vue d’ensemble : Projets déplié, IA replié ; aucune barre ambre ; mode rail 72 px ; mode mobile (tiroir de 300 px, nom de Jev). Navigation au clavier non testée. `npm test` : 306 tests verts.
+
 ## 3. Écarts connus
 
 ### 3.1 Écarts par rapport aux briefs

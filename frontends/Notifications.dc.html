@@ -108,7 +108,7 @@ class Component extends DCLogic {
           return { l, go: () => this.act(i, a), hov: a[1] ? 'background:#1d3654' : 'border-color:#10233a',
             st: 'height:30px;padding:0 12px;border-radius:9px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;' + (a[1] ? 'border:0;background:#10233a;color:#fff' : 'border:1px solid #cfdcd9;background:#fff;color:#10233a') }; }) }; };
     const groups = [['Incidents et alertes', i => !isReq(i.type)], ['Demandes à traiter', i => isReq(i.type)]].map(([l, f]) => ({ l, items: vis.filter(f).map(map) })).filter(g => g.items.length);
-    const left = this.props.left ?? 252, n = unread.length;
+    const left = this.props.left ?? 300, n = unread.length;
     return {
       open: this.isOpen(), close: () => this.close(), hasN: n > 0, nL: n + ' non lue' + (n > 1 ? 's' : ''), noUnread: !n,
       readAll: () => { if (!n) return; this.setState(s => ({ read: { ...s.read, ...Object.fromEntries(all.map(i => [i.id, true])) } })); this.props.onReadAll?.(); },
