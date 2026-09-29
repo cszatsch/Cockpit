@@ -142,6 +142,18 @@ export class ConsoleController implements OnModuleInit {
         ids: [...new Set(toRemove.map((x) => x.a.id))],
       });
     }
+    // Comptes suspendus dont la personne a été réactivée dans le référentiel après la suspension : à réactiver.
+    const back = await this.profiles.toReactivate();
+    if (back.length) {
+      attention.push({
+        level: 'warn',
+        kind: 'ACCOUNT_TO_REACTIVATE',
+        title: `${back.length} compte${back.length > 1 ? 's' : ''} suspendu${back.length > 1 ? 's' : ''} : personne${back.length > 1 ? 's' : ''} réactivée${back.length > 1 ? 's' : ''} dans le référentiel`,
+        detail: back.slice(0, 3).map((x) => `${x.account.fullName} (${x.entry.code} : réactivé(e) dans le référentiel après la suspension du compte)`).join(' · ') + (back.length > 3 ? '…' : ''),
+        target: 'users',
+        ids: [...new Set(back.map((x) => x.account.id))],
+      });
+    }
     if (off.length) {
       attention.push({
         level: 'warn',

@@ -20,7 +20,10 @@ export interface ReferentialEntry {
   ecarts: Gaps;
 }
 
-export type ProfileCode = 'ADMIN' | 'PMO' | 'RESPONSABLE' | 'LECTEUR';
+/** Libellé d'audit de la suspension d'un compte (`AccountsController.suspend`). */
+export const SUSPENSION_ACTION = 'Suspension d’un utilisateur';
+
+export type ProfileCode ='ADMIN' | 'PMO' | 'RESPONSABLE' | 'LECTEUR';
 const RANK: Record<ProfileCode, number> = { ADMIN: 4, PMO: 3, RESPONSABLE: 2, LECTEUR: 1 };
 
 export interface AccountRights {
@@ -71,6 +74,26 @@ export class ProfilesService {
       );
     }
     return out;
+  }
+
+  /**
+   * Comptes suspendus dont la personne a été réactivée dans le référentiel APRÈS la suspension : compte à réactiver
+   * (ou personne à désactiver de nouveau). Dates lues dans le journal d'audit ; une suspension voulue d'une personne
+   * restée active (aucune réactivation postérieure) n'est pas signalée.
+   */
+  async toReactivate(db: Tx = this.prisma): Promise<Array<{ account: Account; entry: ReferentialEntry }>> {
+    const suspended = await db.account.findMany({ where: { status: 'SUSPENDED' } });
+    if (!suspended.length) return [];
+    const ref = await this.referential(suspended, db);
+    const candidates = suspended.flatMap((account) => (ref.get(account.id) ?? []).filter((e) => e.active).map((entry) => ({ account, entry })));
+    if (!candidates.length) return [];
+    const suspensions = await db.auditEntry.groupBy({ by: ['entityId'], where: { entityType: 'Account', action: SUSPENSION_ACTION, entityId: { in: candidates.map((c) => c.account.id) } }, _max: { at: true } });
+    const reactivations = await db.auditEntry.findMany({ where: { entityType: 'PERSON', field: 'active', entityId: { in: candidates.map((c) => c.entry.personId) } }, select: { entityId: true, at: true, newValue: true } });
+    const suspendedAt = new Map(suspensions.map((s) => [s.entityId, s._max.at]));
+    return candidates.filter(({ account, entry }) => {
+      const since = suspendedAt.get(account.id);
+      return !!since && reactivations.some((r) => r.entityId === entry.personId && r.newValue === true && r.at > since);
+    });
   }
 
   async rightsOf(accounts: Account[], db: Tx = this.prisma): Promise<Map<string, AccountRights>> {

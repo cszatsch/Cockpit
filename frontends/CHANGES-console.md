@@ -453,3 +453,8 @@ Vérification des éléments de la vue d'ensemble face au serveur. Conformes : d
 - Vue d'ensemble, « À traiter » : item rouge « N accès à retirer : personne(s) désactivée(s) dans le référentiel ».
 - `admin-api.js` : `toUser` lit `referentiel[].active` ; le chargement `ov` reprend `ACCESS_TO_REMOVE` (ton erreur).
 - Cloche : notification « Accès à retirer : … » fournie par le serveur, sans changement de l'écran.
+
+## Compte à réactiver (30/09/2026)
+
+- Vue d'ensemble, « À traiter » : item ambre « N compte(s) suspendu(s) : personne(s) réactivée(s) dans le référentiel » (`admin-api.js`, chargement `ov`, type `ACCOUNT_TO_REACTIVATE`).
+- Cloche : notification « Compte à réactiver : … » fournie par le serveur, sans changement de l'écran.

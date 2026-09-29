@@ -11,7 +11,7 @@ import { TodayService } from '../core/today.service';
 import { badRequest, businessRule, conflict, inUse, notFound, Usage } from '../core/errors';
 import { techId } from '../core/ids';
 import { parse } from '../core/http';
-import { adminCtx, ProfilesService } from './profiles.service';
+import { adminCtx, ProfilesService, SUSPENSION_ACTION } from './profiles.service';
 import { proposal } from '../domain/habilitation-proposals';
 
 /** Validité d'une invitation (brief Console § 7.1). */
@@ -296,7 +296,7 @@ export class AccountsController {
     await this.prisma.$transaction(async (db) => {
       await db.account.update({ where: { id }, data: { status: 'SUSPENDED', version: { increment: 1 } } });
       const closed = await db.authSession.updateMany({ where: { accountId: id, revokedAt: null }, data: { revokedAt: new Date() } });
-      await this.audit.action(db, adminCtx(actor), { action: 'Suspension d’un utilisateur', target: a.fullName, severity: 'SENSITIVE', entityType: 'Account', entityId: id, details: { sessionsClosed: closed.count } });
+      await this.audit.action(db, adminCtx(actor), { action: SUSPENSION_ACTION, target: a.fullName, severity: 'SENSITIVE', entityType: 'Account', entityId: id, details: { sessionsClosed: closed.count } });
     });
     return (await this.view([await this.one(id)]))[0];
   }

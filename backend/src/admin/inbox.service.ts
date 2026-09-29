@@ -113,7 +113,7 @@ export class InboxService implements OnModuleInit, OnModuleDestroy {
 
   async sync(): Promise<void> {
     const wanted: Wanted[] = [];
-    const prefixes = ['provider:', 'import:', 'snapshot:', 'budget:', 'invite:', 'module:', 'apicard:', 'access:'];
+    const prefixes = ['provider:', 'import:', 'snapshot:', 'budget:', 'invite:', 'module:', 'apicard:', 'access:', 'reactivate:'];
 
     // Clés API refusées (dernier test en échec) : incident jusqu'à un test réussi.
     const [providers, models, asg] = await Promise.all([this.prisma.provider.findMany(), this.prisma.aiModel.findMany(), this.prisma.modelAssignment.findMany()]);
@@ -185,6 +185,20 @@ export class InboxService implements OnModuleInit, OnModuleDestroy {
           meta: { name: a.fullName, project: e.code },
         });
       }
+    }
+
+    // Compte à réactiver : personne réactivée dans le référentiel après la suspension de son compte. Avertissement
+    // jusqu'à la réactivation du compte ou une nouvelle désactivation de la personne (décision du 30/09/2026).
+    for (const { account: a, entry: e } of await this.profiles.toReactivate()) {
+      wanted.push({
+        key: `reactivate:${a.id}:${e.projectId}`,
+        kind: 'WARN',
+        title: `Compte à réactiver : ${a.fullName}`,
+        text: `Réactivé(e) dans le référentiel ${e.code} après la suspension de son compte. Réactivez le compte depuis la liste des utilisateurs, ou demandez au PMO de la désactiver de nouveau.`,
+        actLabel: 'Voir les utilisateurs',
+        target: 'users',
+        meta: { name: a.fullName, project: e.code },
+      });
     }
 
     // Demandes d'invitation (PMO) et d'activation de module en attente.

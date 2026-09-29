@@ -149,6 +149,27 @@ describe('Console Admin — critères d’acceptation (brief Console § 13)', ()
       await (await t.as(WHO.pmo)).patch('/api/projects/RISE/persons/p06', { active: true }).expect(200);
       await c.put(`${A}/accounts/u6/habilitations`, { admin: false, projects: [{ code: 'RISE', responsable: ['C5', 'C6'], lecteur: [] }] }).expect(200);
     });
+
+    it('réactivée après la suspension de son compte : « compte à réactiver » dans « À traiter » et la cloche, jusqu’à la réactivation', async () => {
+      const c = await t.as(WHO.admin);
+      const pmo = await t.as(WHO.pmo);
+      const alert = async () => (await c.get(`${A}/overview`).expect(200)).body.attention.find((a: any) => a.kind === 'ACCOUNT_TO_REACTIVATE');
+      const bell = () => c.get(`${A}/notifications`).expect(200).then((r) => r.body.items.find((i: any) => i.title === 'Compte à réactiver : Karim Benali'));
+      // Marc Delorme (u11) : compte suspendu, personne restée active sans réactivation postérieure → rien à signaler.
+      expect(await alert()).toBeUndefined();
+
+      await pmo.patch('/api/projects/RISE/persons/p06', { active: false }).expect(200);
+      await c.post(`${A}/accounts/u6/suspend`).expect(200);
+      expect(await alert()).toBeUndefined(); // suspendu et désactivé : cohérent
+      await pmo.patch('/api/projects/RISE/persons/p06', { active: true }).expect(200);
+      expect(await alert()).toMatchObject({ level: 'warn', ids: ['u6'], detail: 'Karim Benali (RISE : réactivé(e) dans le référentiel après la suspension du compte)' });
+      expect(await bell()).toMatchObject({ type: 'warn', target: 'users', text: expect.stringContaining('Réactivé(e) dans le référentiel RISE après la suspension de son compte') });
+
+      // L'Administrateur réactive le compte : l'alerte se ferme.
+      await c.post(`${A}/accounts/u6/reactivate`).expect(200);
+      expect(await alert()).toBeUndefined();
+      expect(await bell()).toBeUndefined();
+    });
   });
 
   describe('2. Comptes', () => {

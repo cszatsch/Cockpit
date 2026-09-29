@@ -649,3 +649,13 @@ Choix du commanditaire : le Cockpit ne coupe aucun droit ; la Console signale, l
 | Cloche de la Console | Une notification ERR par compte et par projet (clé `access:{compte}:{projet}`), « Accès à retirer : Karim Benali », action « Voir les utilisateurs » ; aucun e-mail. Réconciliée à chaque lecture : elle se ferme d'elle-même quand l'accès est retiré, le compte suspendu, ou la personne réactivée. | `sync()` (`inbox.service.ts`) |
 | Fenêtre de l'utilisateur | Encart du référentiel en rouge « Accès encore ouvert : à retirer. », bouton « Retirer l'accès » (détache le projet, effectif à l'enregistrement). Pour couper tout accès d'un compte sans autre projet : le suspendre depuis la liste (message d'erreur explicite). | `uDlgVals`, `habErr` (`Console Admin.dc.html`) |
 | Comptes concernés | Actifs et invités ; un compte suspendu n'a plus d'accès, il n'est pas signalé. | filtre `status in ACTIVE, INVITED` |
+
+## Personne réactivée dans le référentiel après la suspension de son compte : compte à réactiver (30/09/2026)
+
+Correction signalée par le commanditaire : désactiver une personne (alerte), suspendre son compte, puis la réactiver dans le référentiel ne produisait aucune alerte.
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Règle | Compte suspendu, personne du référentiel active, **et** réactivée (audit `PERSON`, champ `active` passé à vrai) après la dernière suspension du compte (audit « Suspension d'un utilisateur »). Un compte suspendu volontairement dont la personne est restée active, sans réactivation postérieure (ex. Marc Delorme dans la démonstration), n'est pas signalé : sans cette condition de date, toute suspension d'une personne encore au référentiel créerait une alerte permanente. | `ProfilesService.toReactivate`, `SUSPENSION_ACTION` |
+| Signal | « À traiter », niveau avertissement (ambre) : « N compte(s) suspendu(s) : personne(s) réactivée(s) dans le référentiel ». Cloche de la Console : WARN « Compte à réactiver : Nathalie Roux » (clé `reactivate:{compte}:{projet}`), action « Voir les utilisateurs ». Sans e-mail, comme l'accès à retirer. | `ACCOUNT_TO_REACTIVATE` (`console.controller.ts`, chargement `ov` d'`admin-api.js`), `sync()` (`inbox.service.ts`) |
+| Fin de l'alerte | Réactivation du compte par l'Administrateur, ou nouvelle désactivation de la personne par le PMO. | réconciliation de la cloche |

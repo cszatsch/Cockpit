@@ -285,6 +285,7 @@ export function bindConsole(c) {
       invReq.forEach(r => extra.push({ tone: 'info', t: 'Demande d’invitation du PMO', d: r.detail + '.', cta: 'Examiner', go: () => c.go('users') }));
       (ov.attention || []).filter(a => a.kind === 'REFERENTIAL_GAP').forEach(a => extra.push({ tone: 'warn', t: a.title, d: a.detail + '.', cta: 'Voir les utilisateurs', go: () => c.go('users') }));
       (ov.attention || []).filter(a => a.kind === 'ACCESS_TO_REMOVE').forEach(a => extra.push({ tone: 'err', t: a.title, d: a.detail + '.', cta: 'Voir les utilisateurs', go: () => c.go('users') }));
+      (ov.attention || []).filter(a => a.kind === 'ACCOUNT_TO_REACTIVATE').forEach(a => extra.push({ tone: 'warn', t: a.title, d: a.detail + '.', cta: 'Voir les utilisateurs', go: () => c.go('users') }));
       return { ovExtra: extra, ovSnap: { t: sn && sn.value ? D(sn.value) : null, p: code, next: sc && sc.prochaineCapture ? D(sc.prochaineCapture) : null } };
     },
     snaps: async () => {
