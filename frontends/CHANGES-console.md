@@ -381,3 +381,7 @@ Les captures sont écrites dans `OUT` (par défaut `<tmp>/rise-console-e2e`).
 ## Connexion Console : photo du volet gauche (29/09/2026)
 
 - `Authentification.dc.html` (surface `admin`) : photo `assets/connexion-console.webp` (aviron vu du ciel, 1190 × 1322, 126 Ko) sous un dégradé bleu nuit qui garde le logo et le titre lisibles ; cadrage `72% 46%` (bateau visible, y compris dans le bandeau mobile de 196 px) ; même animation d'entrée que la photo du Cockpit ; quadrillage et arc conservés.
+
+## Snapshots : barres de défilement masquées (29/09/2026)
+
+- `Snapshots.dc.html` : demande du commanditaire. La liste et le panneau de comparaison passent de `scrollbar-width:thin` à `none`, et une règle limitée à l'écran (`[data-screen-label="Snapshots 1a"]`) masque aussi les barres dans Safari. Le défilement (molette, clavier, tactile) et les en-têtes de mois collants sont inchangés.
