@@ -552,3 +552,13 @@ Livraison « Skills tuiles » (`Skills.dc.html`) : liste paginée (9 par page) e
 ## Écrans de connexion : photos du volet gauche (29/09/2026)
 
 Photos fournies par le commanditaire, en WebP (1190 × 1322 px, 90 et 126 Ko) : `frontends/assets/connexion-console.webp` (Console) et `connexion-cockpit.webp` (Cockpit), dans `Authentification.dc.html`. Posées sous les dégradés existants (lisibilité du texte blanc), cadrées pour le volet (proche du carré) et pour le bandeau mobile. Leur résolution suffit jusqu'à un écran de 1920 px ; au-delà, sur écran haute densité, une version d'environ 1800 × 2000 px serait plus nette.
+
+## Jev de la Console : mise en forme des réponses (29/09/2026)
+
+Le panneau affichait le Markdown brut du modèle (`#`, `**`, tableaux en `|`). Deux leviers :
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Rendu | Le Markdown simple devient des blocs typés (titre, sections, paragraphes, listes, paires, fiches, citation, code). Un tableau n'est jamais affiché tel quel dans ~420 px : 2 colonnes → paires ; au-delà → fiches (code aligné, nom, statut en pastille, période fusionnée, méta). Statuts reconnus par emoji ou par mot, en cinq tons (ok, vigilance, risque, info, neutre). | `formatJev`, `statusOf`, `frDate`, `TONES` (`frontends/jev-format.js`) |
+| Consignes au modèle | Le prompt du Jev de la Console décrit le format attendu : réponse d'abord, titre `##` seulement si utile, gras avec parcimonie, tableau (code, nom, trois colonnes au plus, dates JJ/MM/AAAA), synthèse en `**Libellé** : valeur (détail)`, pas de `#`, de séparateur ni d'emoji décoratif ou de statut, une seule relance. | `CONSOLE_FORMAT_RULES` (`src/domain/jev-prompt.ts`), après la page ouverte |
+| Cockpit | Le panneau Jev du Cockpit n'est pas modifié (ses réponses passent encore par le bouchon) ; le même module pourra y être branché. | — |

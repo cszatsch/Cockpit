@@ -385,3 +385,13 @@ Les captures sont écrites dans `OUT` (par défaut `<tmp>/rise-console-e2e`).
 ## Snapshots : barres de défilement masquées (29/09/2026)
 
 - `Snapshots.dc.html` : demande du commanditaire. La liste et le panneau de comparaison passent de `scrollbar-width:thin` à `none`, et une règle limitée à l'écran (`[data-screen-label="Snapshots 1a"]`) masque aussi les barres dans Safari. Le défilement (molette, clavier, tactile) et les en-têtes de mois collants sont inchangés.
+
+## Jev : mise en forme des réponses (29/09/2026)
+
+- Nouveau module `jev-format.js` : le Markdown du modèle devient des blocs typés, rendus par les gabarits du panneau (aucun HTML injecté) :
+  - titre en tête de réponse (emoji décoratifs retirés), puis étiquettes de section ;
+  - paragraphes (gras, code), listes à puces et numérotées, encadré de citation, bloc de code ;
+  - lignes « **Libellé** : valeur (détail) » → paires libellé / valeur alignées, le détail en second plan ;
+  - tableau de 2 colonnes → paires ; au-delà → fiches : code dans une colonne alignée, nom sur deux lignes au plus, statut en pastille (🟢 / 🟡 / 🔴 / 🟣 ou mot : Actif, En préparation, Clos…), période « 3 févr. 2025 → 30 juin 2027 » et autres colonnes en méta ;
+  - question de relance finale plus discrète ; sources en étiquettes au pied de la réponse.
+- `Console Admin.dc.html` : bulle de Jev rendue par blocs (pleine largeur pour une réponse structurée) ; module chargé au montage, texte brut en attendant ; les messages d'erreur restent en texte brut.

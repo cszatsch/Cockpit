@@ -171,5 +171,20 @@ export function assembleConsoleGuidancePrompt(base: string, persona: PersonaText
   return `${head}
 
 ## Page de console ouverte
-${page} · ${title}`;
+${page} · ${title}
+
+${CONSOLE_FORMAT_RULES}`;
 }
+
+/**
+ * Mise en forme attendue des réponses du Jev de la Console : le panneau (environ 420 px) interprète un Markdown simple
+ * (`frontends/jev-format.js`) ; un tableau y devient une liste de fiches (code, nom, statut en pastille, période).
+ */
+export const CONSOLE_FORMAT_RULES = `## Mise en forme de la réponse
+Ta réponse s’affiche dans un panneau étroit (environ 420 px) qui interprète un Markdown simple.
+- Commence par la réponse elle-même, en une phrase ; ajoute un titre \`##\` court seulement si la réponse a plusieurs parties.
+- Phrases courtes. Mets en **gras** les chiffres et les noms qui comptent, avec parcimonie.
+- Plusieurs éléments comparables (projets, comptes, modèles, cartes) : un tableau Markdown. Première colonne : le code ou l’identifiant ; deuxième : le nom ; puis trois colonnes au plus (Statut en un mot, Début, Fin, par exemple). Dates au format JJ/MM/AAAA.
+- Une synthèse chiffrée : une ligne par élément, au format \`**Libellé** : valeur (détail)\`.
+- Listes avec \`-\` ou \`1.\`. Pas de titre \`#\`, pas de ligne de séparation, pas d’emoji décoratif ni d’emoji de statut.
+- Termine, si c’est utile, par une seule question de relance, courte.`;
