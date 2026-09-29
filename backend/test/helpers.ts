@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import request from 'supertest';
 import { createApp } from '../src/app.factory';
 import { runSeed } from '../prisma/seed';
-import { seedDemoAi, seedDemoDeliveries } from '../prisma/seed/admin';
+import { seedDemoAi, seedDemoDeliveries, seedDemoLibrary } from '../prisma/seed/admin';
 import { ProviderKeyTester } from '../src/core/provider-key-tester';
 
 /** Application de test sur une base amorçée avec le jeu de démonstration. */
@@ -28,6 +28,8 @@ export interface Client {
 export async function setup(): Promise<TestCtx> {
   const db = new PrismaClient();
   await runSeed(db);
+  // Projets de démonstration ATLAS, HORIZON, NOVA et ORBIT (retirés de l'amorçage le 29/09/2026).
+  await seedDemoLibrary(db);
   // Jeu d'essai des modèles d'IA (l'amorçage n'en crée plus depuis le 28/09/2026).
   await seedDemoAi(db);
   // Historique des envois de démonstration (l'amorçage n'en crée plus depuis le 29/09/2026).

@@ -570,3 +570,14 @@ Le panneau affichait le Markdown brut du modèle (`#`, `**`, tableaux en `|`). D
 | Dernier snapshot | Lu dans `GET /api/admin/overview` (tous projets) ; prochaine capture : `prochaineCapture` de la planification de son projet. | chargement `ov` (`admin-api.js`) |
 | À traiter | Points de la Console, plus ceux du serveur qu'elle ne calculait pas : échecs d'envoi (7 jours, regroupés), demandes d'invitation du PMO. Libellés en clair côté serveur : nom de la règle, canal (« E-mail », « Dans l’application »), nom de la personne. | `ConsoleController.overview`, `S.ovExtra` |
 | Montants et durées | Coût du mois en centimes sous 100 € ; « < 1 % » pour une dépense non nulle ; « il y a… » en durées complètes (arrondi inférieur). | `ago`, vue d'ensemble (`Console Admin.dc.html`) |
+
+## Projets de démonstration : seul RISE est gardé (29/09/2026)
+
+Demande du commanditaire : supprimer les données des projets de démonstration, sauf RISE (conservé intégralement).
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Base locale | ATLAS, HORIZON, NOVA et ORBIT supprimés en une transaction : fiches et affichage de bibliothèque (4), rattachements de comptes (9), habilitations (6), snapshots (5, sans fichier), planifications (4), mention dans les règles n1, n2 et n5. RISE vérifié identique avant / après (46 contrôles). Conservés : client AMC Corp (partagé avec RISE), comptes (tous rattachés aussi à RISE), journal d'audit (ajout seul). Sauvegarde préalable : `%USERPROFILE%\rise-sauvegardes\rise-avant-suppression-projets-demo-20260929-203401.dump` (restauration : `pg_restore -h localhost -p 5433 -U rise -d rise --clean`). | — |
+| Amorçage | `npm run db:seed` et `demarrer-rise -Reinitialiser` ne créent plus que RISE (comptes, snapshots, planification, règles). Les quatre projets restent disponibles pour les tests seulement (`seedDemoLibrary`, chargé par `test/helpers.ts`, comme `seedDemoAi`). | `DEMO_LIBRARY`, `seedDemoLibrary` (`prisma/seed/admin.ts`) |
+| Console | Avec le serveur, les listes de projets (rattachements, droits, modules, filtres, bibliothèque) viennent de la base (`apiProjects`) ; le chargement des snapshots lit les projets du serveur (un projet supprimé bloquait le démarrage de la Console : 404). En démonstration sans serveur, les données des écrans sont inchangées. | `apiProjects` (`Console Admin.dc.html`), chargements `projects` et `snaps` (`admin-api.js`) |
+| Jev | Exemples de code projet des dictionnaires de données : « RISE » seulement (rechargés en base, documentation régénérée). | `jev-dictionnaire.ts`, `jev-dictionnaire-cockpit.ts` |

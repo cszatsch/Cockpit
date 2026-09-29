@@ -15,8 +15,8 @@ const back = (min: number) => new Date(DEMO_NOW.getTime() - min * 60_000);
 const paris = (y: number, m1: number, d: number, h = 0, mi = 0) => new Date(Date.UTC(y, m1 - 1, d, h - 2, mi));
 
 const USERS: Array<[string, string, string, string, string, number, string, string?]> = [
-  ['u1', 'Julien Morel', 'julien.morel@example.com', 'admin', 'actif', 0, 'RISE ATLAS HORIZON NOVA', '09:12'],
-  ['u2', 'Robin Lefèvre', 'robin.lefevre@example.com', 'pmo', 'actif', 0, 'RISE ATLAS', '08:47'],
+  ['u1', 'Julien Morel', 'julien.morel@example.com', 'admin', 'actif', 0, 'RISE', '09:12'],
+  ['u2', 'Robin Lefèvre', 'robin.lefevre@example.com', 'pmo', 'actif', 0, 'RISE', '08:47'],
   ['u3', 'Laurent Garnier', 'laurent.garnier@example.com', 'resp', 'actif', 14, 'RISE'],
   ['u4', 'Philippe Aubert', 'philippe.aubert@example.com', 'lec', 'actif', 21, 'RISE'],
   ['u5', 'Nathalie Roux', 'nathalie.roux@example.com', 'lec', 'actif', 5, 'RISE'],
@@ -27,7 +27,7 @@ const USERS: Array<[string, string, string, string, string, number, string, stri
   ['u10', 'Isabelle Perrin', 'isabelle.perrin@example.com', 'resp', 'actif', 17, 'RISE'],
   ['u11', 'Marc Delorme', 'marc.delorme@example.com', 'lec', 'suspendu', 41, 'RISE'],
   ['u12', 'Antoine Mercier', 'antoine.mercier@example.com', 'lec', 'invité', 8, 'RISE'],
-  ['u13', 'Camille Rey', 'camille.rey@example.com', 'pmo', 'actif', 0, 'RISE ATLAS', '10:02'],
+  ['u13', 'Camille Rey', 'camille.rey@example.com', 'pmo', 'actif', 0, 'RISE', '10:02'],
   ['u14', 'Olivier Chevalier', 'olivier.chevalier@example.com', 'lec', 'actif', 22, 'RISE'],
   ['u15', 'Léa Fontaine', 'lea.fontaine@example.com', 'lec', 'actif', 0, 'RISE', '07:40'],
   ['u16', 'Vincent Lambert', 'vincent.lambert@example.com', 'lec', 'actif', 13, 'RISE'],
@@ -58,13 +58,7 @@ const USERS: Array<[string, string, string, string, string, number, string, stri
 const STATUS = { actif: 'ACTIVE', invité: 'INVITED', suspendu: 'SUSPENDED' } as const;
 const SEV = { info: 'INFO', sensible: 'SENSITIVE', critique: 'CRITICAL' } as const;
 
-/** Projets de la bibliothèque autres que RISE (brief Console § 12 : sans chantiers ni habilitations réels). */
-export const OTHER_PROJECTS = [
-  { code: 'ATLAS', name: 'ATLAS — Refonte finance groupe', client: 'AMC Corp · Direction financière', status: 'ACTIVE', phase: 'Realize · Paramétrage', start: '2025-02-03', end: '2027-06-30', counts: [2, 5, 6, 24], health: 'ok', created: '2025-01-20' },
-  { code: 'HORIZON', name: 'HORIZON — Portail fournisseurs', client: 'AMC Corp · Achats', status: 'ACTIVE', phase: 'Explore · Ateliers', start: '2026-03-02', end: '2027-12-17', counts: [1, 5, 4, 15], health: 'ok', created: '2026-02-10' },
-  { code: 'NOVA', name: 'NOVA — Data platform', client: 'AMC Corp · DSI', status: 'PREPARATION', phase: 'Préparation', start: '2026-11-02', end: '2028-03-31', counts: [1, 4, 3, 9], health: 'neu', created: '2026-09-01' },
-  { code: 'ORBIT', name: 'ORBIT — Migration messagerie', client: 'AMC Corp · IT', status: 'CLOSED', phase: 'Clos le 30 juin 2025', start: '2024-01-08', end: '2025-06-30', counts: [1, 4, 3, 11], health: 'neu', created: '2023-12-01' },
-] as const;
+// Projets de démonstration ATLAS, HORIZON, NOVA et ORBIT retirés le 29/09/2026 : l'amorçage ne crée plus que RISE.
 
 export async function seedAdmin(db: PrismaClient): Promise<void> {
   // ── Skills de Jev : les cinq skills de démonstration (mêmes données initiales que la migration 20261003000000_skills_jev) ──
@@ -86,28 +80,6 @@ export async function seedAdmin(db: PrismaClient): Promise<void> {
   });
   // ── Persona de Jev : valeur initiale (même donnée que la migration 20261004000000_persona_jev) ──
   await db.persona.create({ data: { id: 'jev', ...DEMO_PERSONA.identity, soul: DEMO_PERSONA.soul, updatedBy: 'Données initiales' } });
-  // ── Projets de la bibliothèque (hors RISE) ──
-  for (const p of OTHER_PROJECTS) {
-    await db.project.create({
-      data: {
-        id: p.code,
-        clientId: 'c1',
-        code: p.code,
-        name: p.name,
-        startDate: p.start,
-        targetEndDate: p.end,
-        status: p.status,
-        createdAt: new Date(`${p.created}T08:00:00Z`),
-        contentBlocks: {
-          create: {
-            key: 'project.display',
-            // Valeurs d'affichage de la démonstration : aucun référentiel n'existe pour ces projets.
-            data: { client: p.client, phase: p.phase, health: p.health, demoCounts: { waves: p.counts[0], phases: p.counts[1], workstreams: p.counts[2], persons: p.counts[3] } },
-          },
-        },
-      },
-    });
-  }
   await db.contentBlock.upsert({
     where: { projectId_key: { projectId: RISE_ID, key: 'library.display' } },
     create: { projectId: RISE_ID, key: 'library.display', data: { phase: 'Deploy · Recette utilisateur', health: 'warn' } },
@@ -169,7 +141,6 @@ export async function seedAdmin(db: PrismaClient): Promise<void> {
     ['Julien Morel', 'Invitation d’un utilisateur', 'Antoine Mercier · Lecteur', 'info', 60 * 24 * 9, 'Account'],
     ['Julien Morel', 'Changement de modèle principal', 'Analyse de documents → Gemini 2.5 Pro', 'sensible', 60 * 24 * 12, 'ModelAssignment'],
     ['Julien Morel', 'Attribution d’un profil global', 'Robin Lefèvre · RISE · PMO', 'sensible', 60 * 24 * 18, 'Account'],
-    ['Julien Morel', 'Export de snapshot', 'ATLAS · état du 3 août', 'critique', 60 * 24 * 21, 'Snapshot'],
   ];
   for (const [who, action, target, sev, min, entityType] of AUDIT0) {
     const acc = who === 'Julien Morel' ? 'u1' : who === 'Camille Rey' ? 'u13' : null;
@@ -226,8 +197,6 @@ export async function seedAdmin(db: PrismaClient): Promise<void> {
   const SN = (m0: number, d: number, h: number, mi: number) => paris(2026, m0 + 1, d, h, mi);
   const SNAPS: Record<string, Array<[string, Date, string?, string?]>> = {
     RISE: [['r1', SN(6, 17, 4, 0)], ['r2', SN(6, 26, 18, 30), 'Après le 18e COPIL', 'Julien Morel'], ['r3', SN(7, 21, 4, 0)], ['r4', SN(7, 28, 4, 0)], ['r5', SN(8, 4, 4, 0)], ['r6', SN(8, 8, 11, 5), 'Replanification du Run 3', 'Julien Morel'], ['r7', SN(8, 11, 4, 0)], ['r8', SN(8, 18, 4, 0)], ['r9', SN(8, 22, 16, 40), 'Avant le 19e COPIL', 'Julien Morel'], ['r10', SN(8, 25, 4, 0)]],
-    ATLAS: [['a1', SN(7, 3, 9, 0), 'Avant la migration du lot 2', 'Julien Morel'], ['a2', SN(8, 11, 4, 0)], ['a3', SN(8, 18, 4, 0)]],
-    HORIZON: [['h1', SN(8, 11, 4, 0)], ['h2', SN(8, 18, 4, 0)]],
   };
   const EV: Array<[number, string, string, string, string?, string?, string?]> = [
     [1, 'mod', 'Jalon', 'J01 · Fin de la recette Finance', 'Date prévue', '12 sept. 2026', '19 sept. 2026'], [1, 'add', 'Risque', 'Disponibilité de l’équipe intégrateur'], [1, 'mod', 'Action', 'Spécifications des flux Achats', 'Avancement', '60 %', '100 %'],
@@ -242,8 +211,6 @@ export async function seedAdmin(db: PrismaClient): Promise<void> {
   ];
   const BASE: Record<string, Record<string, number>> = {
     RISE: { Action: 138, Jalon: 12, Risque: 17, Livrable: 34 },
-    ATLAS: { Action: 96, Jalon: 9, Risque: 11, Livrable: 22 },
-    HORIZON: { Action: 54, Jalon: 6, Risque: 7, Livrable: 12 },
   };
   for (const [project, list] of Object.entries(SNAPS)) {
     const counts = { ...BASE[project] };
@@ -267,8 +234,8 @@ export async function seedAdmin(db: PrismaClient): Promise<void> {
       });
     }
   }
-  for (const code of [RISE_ID, ...OTHER_PROJECTS.map((p) => p.code)]) {
-    await db.snapshotSchedule.create({ data: { projectId: code, enabled: code !== 'ORBIT', frequency: 'Hebdomadaire', day: 'vendredi', hour: '04:00', retention: '12 mois' } });
+  for (const code of [RISE_ID]) {
+    await db.snapshotSchedule.create({ data: { projectId: code, enabled: true, frequency: 'Hebdomadaire', day: 'vendredi', hour: '04:00', retention: '12 mois' } });
   }
 
   // ── Notifications ──
@@ -280,11 +247,11 @@ export async function seedAdmin(db: PrismaClient): Promise<void> {
     n5: 'Un nouveau document de {projet} vient d’être analysé. Liste en puces les décisions, actions et risques extraits, chacun avec sa page source. Termine par : « À vérifier avant intégration ».',
   };
   const RULES = [
-    { id: 'n1', kind: 'ALERT', name: 'Jalon en retard', tg: ['resp', 'pmo'], fq: 'IMMEDIATE', ch: ['APP', 'EMAIL'], on: true, sub: 'Jalon en retard · {projet}', body: 'Un jalon du projet {projet} a dépassé sa date prévue du {date}. Ouvrez le planning pour réviser la trajectoire.', pj: ['RISE', 'ATLAS'], model: 'haiku' },
-    { id: 'n2', kind: 'ALERT', name: 'Risque critique ouvert', tg: ['resp', 'pmo'], fq: 'IMMEDIATE', ch: ['APP', 'EMAIL'], on: true, sub: 'Nouveau risque critique · {projet}', body: 'Un risque est devenu critique (probabilité × impact ≥ 20) sur {projet}. Un plan de traitement est attendu.', pj: ['RISE', 'ATLAS', 'HORIZON', 'NOVA'], model: 'sonnet' },
+    { id: 'n1', kind: 'ALERT', name: 'Jalon en retard', tg: ['resp', 'pmo'], fq: 'IMMEDIATE', ch: ['APP', 'EMAIL'], on: true, sub: 'Jalon en retard · {projet}', body: 'Un jalon du projet {projet} a dépassé sa date prévue du {date}. Ouvrez le planning pour réviser la trajectoire.', pj: ['RISE'], model: 'haiku' },
+    { id: 'n2', kind: 'ALERT', name: 'Risque critique ouvert', tg: ['resp', 'pmo'], fq: 'IMMEDIATE', ch: ['APP', 'EMAIL'], on: true, sub: 'Nouveau risque critique · {projet}', body: 'Un risque est devenu critique (probabilité × impact ≥ 20) sur {projet}. Un plan de traitement est attendu.', pj: ['RISE'], model: 'sonnet' },
     { id: 'n3', kind: 'ALERT', name: 'Seuil budgétaire IA atteint', tg: ['pmo'], fq: 'IMMEDIATE', ch: ['EMAIL'], on: true, sub: 'Budget IA : seuil d’alerte atteint', body: 'La consommation IA du mois a atteint le seuil d’alerte du plafond fixé. Consultez la console pour ajuster les modèles ou le budget.', pj: [], model: 'haiku', platform: true },
     { id: 'n4', kind: 'NOTIFICATION', name: 'Synthèse hebdomadaire du projet', tg: ['pmo', 'resp'], fq: 'WEEKLY', day: 'lundi', hour: '07:00', ch: ['APP', 'EMAIL'], on: true, sub: '{projet} · votre synthèse de la {semaine}', body: 'Avancement, jalons à venir et points d’attention de la semaine pour {projet}.', pj: ['RISE'], model: 'sonnet' },
-    { id: 'n5', kind: 'NOTIFICATION', name: 'Nouveau document analysé', tg: ['resp'], fq: 'DAILY', hour: '18:00', ch: ['APP'], on: false, sub: 'Document analysé · {projet}', body: 'Jev a extrait les décisions et actions d’un nouveau document de {projet}. Vérifiez les éléments proposés avant intégration.', pj: ['RISE', 'HORIZON'], model: 'mlarge' },
+    { id: 'n5', kind: 'NOTIFICATION', name: 'Nouveau document analysé', tg: ['resp'], fq: 'DAILY', hour: '18:00', ch: ['APP'], on: false, sub: 'Document analysé · {projet}', body: 'Jev a extrait les décisions et actions d’un nouveau document de {projet}. Vérifiez les éléments proposés avant intégration.', pj: ['RISE'], model: 'mlarge' },
   ] as const;
   for (const r of RULES) {
     await db.notificationRule.create({
@@ -314,6 +281,49 @@ export async function seedAdmin(db: PrismaClient): Promise<void> {
   await db.module.create({ data: { id: 'bud', name: 'Budget', description: 'Budget prévisionnel, consommé, reste à faire et arbitrages.', scope: 'OFF' } });
   await db.module.create({ data: { id: 'ben', name: 'Suivi des bénéfices', description: 'Indicateurs de valeur, trajectoire des bénéfices et revues.', scope: 'OFF' } });
   await db.moduleRequest.create({ data: { id: 'q1', moduleId: 'ben', projectId: RISE_ID, requestedById: 'u13', requestedBy: 'Camille Rey', at: back(60 * 48 + 40) } });
+}
+
+/**
+ * Projets de démonstration ATLAS, HORIZON, NOVA et ORBIT (bibliothèque sans référentiel), retirés de l'amorçage le
+ * 29/09/2026 : tests seulement. Recrée leur état d'avant : fiches et affichage, rattachements (u1, u2, u13), profils PMO,
+ * snapshots a1-a3 et h1-h2, planifications, périmètre des règles n1, n2 et n5, export tracé d'un snapshot d'ATLAS.
+ */
+export const DEMO_LIBRARY = [
+  { code: 'ATLAS', name: 'ATLAS — Refonte finance groupe', client: 'AMC Corp · Direction financière', status: 'ACTIVE', phase: 'Realize · Paramétrage', start: '2025-02-03', end: '2027-06-30', counts: [2, 5, 6, 24], health: 'ok', created: '2025-01-20' },
+  { code: 'HORIZON', name: 'HORIZON — Portail fournisseurs', client: 'AMC Corp · Achats', status: 'ACTIVE', phase: 'Explore · Ateliers', start: '2026-03-02', end: '2027-12-17', counts: [1, 5, 4, 15], health: 'ok', created: '2026-02-10' },
+  { code: 'NOVA', name: 'NOVA — Data platform', client: 'AMC Corp · DSI', status: 'PREPARATION', phase: 'Préparation', start: '2026-11-02', end: '2028-03-31', counts: [1, 4, 3, 9], health: 'neu', created: '2026-09-01' },
+  { code: 'ORBIT', name: 'ORBIT — Migration messagerie', client: 'AMC Corp · IT', status: 'CLOSED', phase: 'Clos le 30 juin 2025', start: '2024-01-08', end: '2025-06-30', counts: [1, 4, 3, 11], health: 'neu', created: '2023-12-01' },
+] as const;
+
+export async function seedDemoLibrary(db: PrismaClient): Promise<void> {
+  for (const p of DEMO_LIBRARY) {
+    await db.project.create({
+      data: {
+        id: p.code, clientId: 'c1', code: p.code, name: p.name, startDate: p.start, targetEndDate: p.end, status: p.status, createdAt: new Date(`${p.created}T08:00:00Z`),
+        contentBlocks: { create: { key: 'project.display', data: { client: p.client, phase: p.phase, health: p.health, demoCounts: { waves: p.counts[0], phases: p.counts[1], workstreams: p.counts[2], persons: p.counts[3] } } } },
+      },
+    });
+  }
+  const links: Array<[string, string[]]> = [['u1', ['ATLAS', 'HORIZON', 'NOVA']], ['u2', ['ATLAS']], ['u13', ['ATLAS']]];
+  for (const [accountId, codes] of links) {
+    await db.accountProject.createMany({ data: codes.map((projectId) => ({ accountId, projectId })) });
+    if (accountId !== 'u1') for (const code of codes) await db.habilitation.create({ data: { id: `hab-${accountId}-${code}`, projectId: code, accountId, profile: 'PMO' } });
+  }
+  const SN = (m0: number, d: number, h: number, mi: number) => paris(2026, m0 + 1, d, h, mi);
+  const SNAPS: Record<string, Array<[string, Date, string?, string?]>> = {
+    ATLAS: [['a1', SN(7, 3, 9, 0), 'Avant la migration du lot 2', 'Julien Morel'], ['a2', SN(8, 11, 4, 0)], ['a3', SN(8, 18, 4, 0)]],
+    HORIZON: [['h1', SN(8, 11, 4, 0)], ['h2', SN(8, 18, 4, 0)]],
+  };
+  const COUNTS: Record<string, Record<string, number>> = { ATLAS: { Action: 96, Jalon: 9, Risque: 11, Livrable: 22 }, HORIZON: { Action: 54, Jalon: 6, Risque: 7, Livrable: 12 } };
+  for (const [project, list] of Object.entries(SNAPS)) {
+    for (const [id, t, label, by] of list) {
+      await db.snapshot.create({ data: { id, projectId: project, takenAt: t, kind: label ? 'MANUAL' : 'AUTO', label: label ?? null, takenBy: by ?? null, takenById: by ? 'u1' : null, status: 'DONE', stats: { counts: COUNTS[project], demo: true, changesFromPrevious: [] } as Prisma.InputJsonValue } });
+    }
+  }
+  for (const p of DEMO_LIBRARY) await db.snapshotSchedule.create({ data: { projectId: p.code, enabled: p.code !== 'ORBIT', frequency: 'Hebdomadaire', day: 'vendredi', hour: '04:00', retention: '12 mois' } });
+  const scope: Record<string, string[]> = { n1: ['RISE', 'ATLAS'], n2: ['RISE', 'ATLAS', 'HORIZON', 'NOVA'], n5: ['RISE', 'HORIZON'] };
+  for (const [id, projectIds] of Object.entries(scope)) await db.notificationRule.update({ where: { id }, data: { projectIds } });
+  await db.auditEntry.create({ data: { at: back(60 * 24 * 21), accountId: 'u1', actorName: 'Julien Morel', personId: 'p02', profileUsed: 'ADMIN', origin: 'MANUAL', severity: 'CRITICAL', action: 'Export de snapshot', target: 'ATLAS · état du 3 août', entityType: 'Snapshot' } });
 }
 
 /** Historique des envois de démonstration (10 envois, dont un échec) : tests seulement, depuis le 29/09/2026. */

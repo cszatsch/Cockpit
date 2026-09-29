@@ -35,7 +35,7 @@ export const DICTIONNAIRE_COCKPIT: DictTable[] = [
     description: 'Projets pilotés dans le Cockpit : identité, client, dates, statut, date de mise en service (Go-Live) prévue, appréciation manuelle de santé. Écrans : Info projet, Aujourd’hui, Pilotage.',
     colonnes: [
       { nom: 'id', expr: 't.id', type: 'texte', signification: 'Identifiant du projet (= projet_id des autres vues)' },
-      { nom: 'code', expr: 't.code', type: 'texte', signification: 'Code du projet', exemples: 'RISE, ATLAS' },
+      { nom: 'code', expr: 't.code', type: 'texte', signification: 'Code du projet', exemples: 'RISE' },
       { nom: 'nom', expr: 't.name', type: 'texte', signification: 'Nom du projet' },
       { nom: 'client', expr: 'c.name', type: 'texte', signification: 'Nom du client' },
       { nom: 'objectif', expr: 't.objective', type: 'texte', signification: 'Objectif du projet' },

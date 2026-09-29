@@ -544,7 +544,7 @@ Projets de la plateforme (Bibliothèque des projets) : code, nom, client, dates,
 | Colonne | Type | Signification | Exemples, unités |
 |---|---|---|---|
 | `id` | texte | Identifiant du projet |  |
-| `code` | texte | Code du projet (unique, affiché partout) | RISE, ATLAS, HORIZON, ORION |
+| `code` | texte | Code du projet (unique, affiché partout) | RISE |
 | `nom` | texte | Nom du projet |  |
 | `client_id` | texte | Client → clients.id |  |
 | `client_nom` | texte | Nom du client |  |

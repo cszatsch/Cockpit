@@ -794,7 +794,9 @@ const pill = t => `display:inline-flex;align-items:center;gap:6px;height:22px;pa
 const dot = t => `width:6px;height:6px;border-radius:50%;flex:none;background:${TONE[t][2]}`;
 const segSt = on => `height:30px;padding:0 12px;border:0;border-radius:8px;font-size:12.5px;font-weight:${on ? 700 : 600};cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;transition:background .15s,color .15s,box-shadow .15s;background:${on ? '#fff' : 'transparent'};color:${on ? '#10233a' : '#5c7280'};box-shadow:${on ? '0 1px 2px rgba(16,35,58,.14)' : 'none'}`;
 const chipSt = on => `height:30px;padding:0 12px;border-radius:999px;font-size:12px;font-weight:${on ? 700 : 600};cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;transition:all .15s;border:1px solid ${on ? '#10233a' : '#d3dedb'};background:${on ? '#10233a' : '#fff'};color:${on ? '#fff' : '#43586a'}`;
-const PROJ = ['RISE', 'ATLAS', 'HORIZON', 'NOVA'];
+// Projets de la plateforme : démonstration ci-dessous ; reliée au serveur, la Console les remplace par ceux de la base (apiProjects).
+let PROJ = ['RISE', 'ATLAS', 'HORIZON', 'NOVA'];
+let PROJ_NAMES = { RISE: 'Implémentation Brand X + CRM', ATLAS: 'Refonte finance groupe', HORIZON: 'Portail fournisseurs', NOVA: 'Data platform', ORBIT: 'Migration messagerie' };
 const LV = [{ l: 'Aucun', s: '—' }, { l: 'Lecture', s: 'L' }, { l: 'Modification', s: 'M' }, { l: 'Validation', s: 'V' }, { l: 'Administration', s: 'A' }];
 const MODS = [
   { id: 'auj', n: 'Aujourd’hui', f: [['tdb', 'Tableau de bord'], ['ecarts', 'Écarts et qualité']] },
@@ -1136,6 +1138,8 @@ class Component extends DCLogic {
   }
   /** Mode API : l'horloge de la Console suit celle du serveur (date réelle, ou DEMO_NOW s'il est défini). */
   apiClock(ms) { TODAY = new Date(ms); BOOT = Date.now(); this.forceUpdate && this.forceUpdate(); }
+  /** Projets de la base (du plus ancien au plus récent) : rattachements, droits, modules, filtres. */
+  apiProjects(list) { PROJ = list.map(p => p.code); PROJ_NAMES = Object.fromEntries(list.map(p => [p.code, p.name])); this.forceUpdate && this.forceUpdate(); }
   jevAsk(text, fn) {
     text = (text || '').trim(); if (!text || this.state.jThink) return;
     this.jPush({ t: 'user', text }); this.setState({ jIn: '', jThink: true }); clearTimeout(this._jt);
@@ -1393,7 +1397,7 @@ class Component extends DCLogic {
         chip: 'height:32px;padding:0 12px;border-radius:10px;border:0;font:inherit;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;' + (on ? 'background:#10233a;color:#fff' : 'background:#fff;color:#10233a;box-shadow:inset 0 0 0 1px #d7e2df'), pick: () => this.setState({ uPf: on ? 'tous' : p.id }) }; }) }; }
   uDlgVals() { const S = this.state, D = S.dlg, f = S.form || {}; if (!D || D.type !== 'user') return { prof: [], rows: [] };
     const u0 = D.id ? this.uById(D.id) : null, u = { ...(u0 || { id: null, s: 'invité', av: '#1d8f86', pr: [] }), n: f.n || '', e: f.e || '', p: f.p || 'lec' }, hb = u0 ? this.habOf({ ...u0, e: u0.e }) : null, glob = u.p === 'admin' || u.p === 'pmo';
-    const FC = { admin: '#3b7dd8', pmo: '#1d8f86', resp: '#10233a', lec: '#8a9aa6' }, NM = { RISE: 'Implémentation Brand X + CRM', ATLAS: 'Refonte finance groupe', HORIZON: 'Portail fournisseurs', NOVA: 'Data platform' };
+    const FC = { admin: '#3b7dd8', pmo: '#1d8f86', resp: '#10233a', lec: '#8a9aa6' }, NM = PROJ_NAMES;
     const PD = { admin: 'Gère les comptes et consulte le journal d’audit. Lecture seule sur les données métier, sur tous les chantiers.', pmo: 'Tous les droits sur le référentiel et le transactionnel, sur tous les chantiers des projets rattachés.', resp: 'Gère le transactionnel des chantiers dont il est responsable. Les chantiers sont choisis par le PMO.', lec: 'Consulte le transactionnel des chantiers qui lui sont ouverts. Les chantiers sont choisis par le PMO.' };
     const WS = ((S.rd && S.rd.model && S.rd.model.WORKSTREAM.rows) || []).map(w => ({ id: w.id, n: w.cells[1] })), pr = f.pr || [];
     const rows = PROJ.map((code, i) => { const on = pr.includes(code), resp = code === 'RISE' && hb ? hb.resp : [], lec = code === 'RISE' && hb ? hb.lec : [], hasWs = resp.length + lec.length > 0;
@@ -1414,7 +1418,7 @@ class Component extends DCLogic {
       prof: PROFS.map(p => { const on = u.p === p.id; return { n: p.n, on, pick: () => this.setState(s => ({ form: { ...s.form, p: p.id } })), dot: 'width:8px;height:8px;border-radius:50%;flex:none;background:' + FC[p.id], st: 'height:40px;border-radius:10px;border:0;font:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .2s,box-shadow .2s,color .2s;' + (on ? 'background:#fff;color:#10233a;box-shadow:0 1px 3px rgba(16,35,58,.14),0 0 0 1.5px #10233a' : 'background:transparent;color:#5c7280') }; }),
       profD: PD[u.p] || '', prN: pr.length + ' projet' + (pr.length > 1 ? 's' : '') + ' sur ' + PROJ.length, rows, summary };
   }
-  prGroups(u, prs) { const hb = this.habOf(u), glob = u.p === 'admin' || u.p === 'pmo', NM = { RISE: 'Implémentation Brand X + CRM', ATLAS: 'Refonte finance groupe', HORIZON: 'Portail fournisseurs', NOVA: 'Data platform', ORBIT: 'Migration messagerie' };
+  prGroups(u, prs) { const hb = this.habOf(u), glob = u.p === 'admin' || u.p === 'pmo', NM = PROJ_NAMES;
     return (prs || []).map(code => { const ws = !glob && code === 'RISE' && hb ? [...hb.resp.map(w => this.usChip(w, 'r', hb.WS)), ...hb.lec.map(w => this.usChip(w, 'l', hb.WS))] : [];
       const note = glob || !ws.length; return { code, sub: NM[code] || '', ws, note,
         noteL: glob ? (u.p === 'admin' ? 'Lecture seule sur tous les chantiers.' : 'Tous les droits sur tous les chantiers.') : code === 'RISE' ? 'Aucun chantier : le PMO doit en attribuer un dans le Référentiel.' : 'Aucun chantier attribué pour l’instant dans le Référentiel de ' + code + '.',
@@ -1614,7 +1618,7 @@ class Component extends DCLogic {
     vals.mn = { on: !!mn, st: mn ? `position:fixed;left:${mn.x}px;top:${mn.y}px;z-index:90;width:236px;background:#fff;border-radius:14px;padding:6px;box-shadow:0 24px 48px -16px rgba(16,35,58,.35),0 0 0 1px rgba(16,35,58,.08);animation:pop .16s cubic-bezier(.2,.7,.2,1) both` : '', label: mn ? mn.label : '', note: mn ? mn.note : '',
       opts: mn ? LV.map((o, k) => { const cur = (S.pend[mn.key] ? S.pend[mn.key].v : mn.cur) === k; return { l: o.l, s: o.s, cur, st: `display:flex;align-items:center;gap:10px;width:100%;height:34px;padding:0 10px;border:0;border-radius:8px;background:${cur ? '#eef3f2' : 'transparent'};font-size:12.5px;font-weight:${cur ? 700 : 500};color:${k === 4 ? '#a8372c' : '#10233a'};cursor:pointer;text-align:left`, pick: () => this.setLv(mn.key, k, mn.cur, mn.label) }; }) : [] };
     vals.consoMtd = mtd.all; vals.consoGoogleOk = (S.provs.find(p => p.id === 'google') || {}).st === 'ok'; vals.consoFixKey = () => this.go('providers', () => this.openKey('google'));
-    vals.libImported = S.libImp || []; vals.libCodes = ['RISE', 'ATLAS', 'HORIZON', 'NOVA', 'ORBIT', ...(S.libImp || []).map(p => p.code)]; vals.openLib = () => this.go('library'); vals.openInit = () => this.go('init');
+    vals.libImported = S.libImp || []; vals.libCodes = [...PROJ, ...(S.libImp || []).map(p => p.code)]; vals.openLib = () => this.go('library'); vals.openInit = () => this.go('init');
     vals.onImported = p => { this.setState(s => ({ libImp: [p, ...(s.libImp || [])] })); this.log('Initialisation d’un projet', p.code + ' · ' + p.file, 'sensible'); this.toast(p.code + ' créé'); };
     vals.dlW = S.dlg && S.dlg.type === 'user' ? '680px' : '540px';
     vals.du = this.uDlgVals();

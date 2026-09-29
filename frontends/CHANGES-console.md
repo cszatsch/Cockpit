@@ -415,3 +415,8 @@ Vérification des éléments de la vue d'ensemble face au serveur. Conformes : d
   - euros entiers au-delà de 100 € ou pour un montant rond (« 1 200 € ») ;
   - le reste sous le plafond est toujours exact (« 1 199,53 € », jamais arrondi vers le haut).
   Les parts et progressions non nulles inférieures à 1 % s'affichent « < 1 % » au lieu de « 0 % ». Les données et les calculs sont inchangés.
+
+## Projets de la base, et non de la démonstration (29/09/2026)
+
+- `Console Admin.dc.html` : `PROJ` et les noms des projets (`PROJ_NAMES`) sont remplacés par ceux de la base dès qu'elle est lue (`apiProjects`, même mécanisme que `apiClock`) ; codes de la bibliothèque tirés de `PROJ`. Démonstration inchangée.
+- `admin-api.js` : chargement `projects` → `apiProjects` (du plus ancien au plus récent) ; chargement `snaps` sur les projets de la base (les projets de démonstration supprimés faisaient échouer le démarrage).

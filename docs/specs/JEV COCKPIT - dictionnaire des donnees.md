@@ -47,7 +47,7 @@ Projets pilotés dans le Cockpit : identité, client, dates, statut, date de mis
 | Colonne | Type | Signification | Exemples, unités |
 |---|---|---|---|
 | `id` | texte | Identifiant du projet (= projet_id des autres vues) |  |
-| `code` | texte | Code du projet | RISE, ATLAS |
+| `code` | texte | Code du projet | RISE |
 | `nom` | texte | Nom du projet |  |
 | `client` | texte | Nom du client |  |
 | `objectif` | texte | Objectif du projet |  |

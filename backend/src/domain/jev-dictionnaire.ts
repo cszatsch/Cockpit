@@ -409,7 +409,7 @@ export const DICTIONNAIRE: DictTable[] = [
     description: 'Projets de la plateforme (Bibliothèque des projets) : code, nom, client, dates, statut.',
     colonnes: [
       { nom: 'id', expr: 't.id', type: 'texte', signification: 'Identifiant du projet' },
-      { nom: 'code', expr: 't.code', type: 'texte', signification: 'Code du projet (unique, affiché partout)', exemples: 'RISE, ATLAS, HORIZON, ORION' },
+      { nom: 'code', expr: 't.code', type: 'texte', signification: 'Code du projet (unique, affiché partout)', exemples: 'RISE' },
       { nom: 'nom', expr: 't.name', type: 'texte', signification: 'Nom du projet' },
       { nom: 'client_id', expr: `t.${q('clientId')}`, type: 'texte', signification: 'Client → clients.id' },
       { nom: 'client_nom', expr: 'c.name', type: 'texte', signification: 'Nom du client' },

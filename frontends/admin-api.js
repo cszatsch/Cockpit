@@ -247,7 +247,6 @@ export function bindConsole(c) {
     'setMod', 'approve', 'reject', 'saveMe', 'revoke', 'revokeAll', 'onPhoto', 'exportAudit', 'exportCsv', 'jevReply', 'mtd', 'thVals', 'renderVals', 'skSave', 'skToggle', 'skCreate', 'skDelete', 'psSave', 'psUpload', 'ntToggle', 'ntAct', 'ntUndo', 'ntReadAll', 'apTest', 'apCreate', 'apSave', 'apToggle', 'apDelete', 'apRestore', 'apWidgetsSet'].forEach(k => { orig[k] = c[k].bind(c); });
   const toast = (m, t, u) => c.toast(m, t, u), fail = e => { console.warn('[admin-api]', e); toast(errText(e), 'err'); };
   let meId = 'u1';
-  const PROJ = () => Object.keys(c.state.snaps || {});
 
   // Le serveur écrit le journal d'audit : l'écriture locale est neutralisée, le journal est relu.
   c.log = () => {};
@@ -283,7 +282,8 @@ export function bindConsole(c) {
       return { ovExtra: extra, ovSnap: { t: sn && sn.value ? D(sn.value) : null, p: code, next: sc && sc.prochaineCapture ? D(sc.prochaineCapture) : null } };
     },
     snaps: async () => {
-      const codes = PROJ(), lists = await Promise.all(codes.map(p => get('/projects/' + p + '/snapshots')));
+      // Projets de la base (et non ceux de la démonstration : un projet supprimé ferait échouer le démarrage).
+      const codes = (await get('/projects')).map(p => p.code), lists = await Promise.all(codes.map(p => get('/projects/' + encodeURIComponent(p) + '/snapshots')));
       const snaps = {}; codes.forEach((p, i) => { snaps[p] = lists[i].map(toSnap); });
       return { snaps };
     },
@@ -299,7 +299,12 @@ export function bindConsole(c) {
     reqs: async () => ({ reqs: (await get('/module-requests?status=PENDING')).map(toReq) }),
     prof: async () => { const me = await get('/me/profile'); meId = me.id; return { prof: toProf(me), pn: { crit: true, budget: true, req: true, hebdo: true, fail: false, ...(me.notifications || {}) }, photo: me.photoUrl || null }; },
     sess: async () => ({ sess: (await get('/me/sessions')).map(toSess) }),
-    projects: async () => ({ apiCodes: (await get('/projects')).map(p => p.code) }),
+    projects: async () => {
+      const ps = await get('/projects');
+      // Listes de projets de la Console (rattachements, droits, modules) : ceux de la base, du plus ancien au plus récent.
+      if (typeof c.apiProjects === 'function') c.apiProjects(ps.slice().reverse().map(p => ({ code: p.code, name: String(p.name || '').replace(/^\S+\s+—\s+/, '') })));
+      return { apiCodes: ps.map(p => p.code) };
+    },
     // Au-delà de SKILLS_REMOTE_THRESHOLD skills, l'écran passe en mode serveur (recherche, filtre, pagination).
     skills: async () => {
       const head = await apiAbs('GET', SK + '?page=1&par_page=' + SKILLS_PER_PAGE);
