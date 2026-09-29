@@ -422,3 +422,9 @@ Livraison `Notifications et alertes.dc.html` et `docs/specs/NOTIFICATIONS ET ALE
 | Test | « M'envoyer un test » envoie le brouillon affiché, même s'il n'est pas enregistré, à l'administrateur connecté, sur les canaux choisis. | `uiTest()` |
 | Données | `models` : les LLM actifs, sous la forme « fournisseur · nom ». `projects` : les codes des projets. `counts` : les comptes actifs ayant le profil sur au moins un projet (Admin : les administrateurs). `history` : les 200 derniers envois de toutes les règles, filtrés par le composant (« Cette règle » / « Toutes les règles ») ; « il y a … » est calculé à l'heure du serveur. | `uiCounts()`, `toUiHistory()` |
 | Planification sur « Tous » | Une notification planifiée qui vise tous les projets part pour chaque projet ouvert. Auparavant, seuls les projets listés recevaient un envoi. | `NotificationsService.tick()` |
+
+## Historique des envois sans données factices (29/09/2026)
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Amorçage | L'amorçage ne crée plus d'envois de notification. Les 10 envois de démonstration (15 au 26/09, dont un échec) ne servent plus qu'aux tests. Ils ont été supprimés de la base locale. Les 7 envois produits par le moteur le 27/09 (risques critiques R01 à R03 et seuil budgétaire) sont conservés. | `seedDemoDeliveries()` (`prisma/seed/admin.ts`, chargé par `test/helpers.ts`) |

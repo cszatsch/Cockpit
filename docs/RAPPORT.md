@@ -71,6 +71,8 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
     - à 900 px de large, aucun débordement et aucun libellé de bouton sur deux lignes (33 boutons mesurés, y compris le pied en mode brouillon et « Confirmer la suppression »).
   - Test navigateur Playwright adapté (message de confirmation du composant, envoi vérifié dans l'historique), mais non relancé.
 
+- **Historique des envois sans données factices (29/09/2026)** : jeu d’essai déplacé dans `seedDemoDeliveries()`, chargé par les tests seulement ; 10 envois factices supprimés de la base locale (7 envois réels conservés). `npm test` : 362 tests verts.
+
 ## 3. Écarts connus
 
 ### 3.1 Écarts par rapport aux briefs

@@ -305,6 +305,16 @@ export async function seedAdmin(db: PrismaClient): Promise<void> {
       },
     });
   }
+  // Historique des envois : vide ; le jeu d'essai (`seedDemoDeliveries`) n'est chargé que par les tests.
+
+  // ── Modules (Q10 : Budget inactif partout) et demandes ──
+  await db.module.create({ data: { id: 'bud', name: 'Budget', description: 'Budget prévisionnel, consommé, reste à faire et arbitrages.', scope: 'OFF' } });
+  await db.module.create({ data: { id: 'ben', name: 'Suivi des bénéfices', description: 'Indicateurs de valeur, trajectoire des bénéfices et revues.', scope: 'OFF' } });
+  await db.moduleRequest.create({ data: { id: 'q1', moduleId: 'ben', projectId: RISE_ID, requestedById: 'u13', requestedBy: 'Camille Rey', at: back(60 * 48 + 40) } });
+}
+
+/** Historique des envois de démonstration (10 envois, dont un échec) : tests seulement, depuis le 29/09/2026. */
+export async function seedDemoDeliveries(db: PrismaClient): Promise<void> {
   const HIST: Array<[string, number, 'APP' | 'EMAIL', number, 'OK' | 'ERROR']> = [
     ['n3', 125, 'EMAIL', 3, 'OK'], ['n1', 300, 'APP', 4, 'OK'], ['n1', 300, 'EMAIL', 4, 'OK'], ['n2', 60 * 26, 'EMAIL', 3, 'ERROR'], ['n2', 60 * 26, 'APP', 3, 'OK'],
     ['n4', 60 * 24 * 4 + 146, 'EMAIL', 9, 'OK'], ['n4', 60 * 24 * 4 + 146, 'APP', 9, 'OK'], ['n1', 60 * 24 * 6, 'EMAIL', 4, 'OK'], ['n3', 60 * 24 * 9, 'EMAIL', 3, 'OK'], ['n4', 60 * 24 * 11 + 146, 'EMAIL', 9, 'OK'],
@@ -314,11 +324,6 @@ export async function seedAdmin(db: PrismaClient): Promise<void> {
       data: { ruleId, at: back(min), channel, recipientsCount: n, status, error: status === 'ERROR' ? '2 adresses rejetées par le serveur de messagerie' : null, projectId: ruleId === 'n3' ? null : RISE_ID },
     });
   }
-
-  // ── Modules (Q10 : Budget inactif partout) et demandes ──
-  await db.module.create({ data: { id: 'bud', name: 'Budget', description: 'Budget prévisionnel, consommé, reste à faire et arbitrages.', scope: 'OFF' } });
-  await db.module.create({ data: { id: 'ben', name: 'Suivi des bénéfices', description: 'Indicateurs de valeur, trajectoire des bénéfices et revues.', scope: 'OFF' } });
-  await db.moduleRequest.create({ data: { id: 'q1', moduleId: 'ben', projectId: RISE_ID, requestedById: 'u13', requestedBy: 'Camille Rey', at: back(60 * 48 + 40) } });
 }
 
 /**
