@@ -228,3 +228,14 @@ Météo et Trafic inchangés. Pour tous les autres (`Widget.dc.html`, préparati
 - Chemin critique : tâches terminées, en cours, à venir distinguées ; repère « Aujourd'hui » en pointillé, étiqueté sur l'axe.
 - L'essentiel, par Jev : titre fort, points en deux colonnes (rubrique colorée, texte), signature « ✦ Jev · à jour », ligne des sources sur une ligne.
 - Thème sombre : nouvelles couleurs converties (`dbDarkView`).
+
+## Widgets d'Aujourd'hui : une forme propre à chaque liste (01/10/2026)
+
+Les widgets en liste reçoivent chacun une visualisation adaptée à leur donnée (`w.viz` et `w.vz` préparés dans `dbCatalog()`, blocs `isTimeline`, `isStrip`, `isFeed`, `isDocs`, `isRiskmap`, `isHero` dans `Widget.dc.html`). La liste générique ne sert plus qu'en repli :
+- Prochains jalons : frise chronologique partant d'aujourd'hui, losanges placés à leur date, légendes réparties et reliées (date, nom, « à l'heure » ou « +N j de glissement ») ; méta « prochain dans N j ».
+- Échéances des 15 prochains jours : ruban de 15 jours (aujourd'hui en pastille, week-ends atténués), un symbole par échéance (● comité, ◆ jalon, ■ arbitrage), les deux prochaines journées en clair ; légende en méta.
+- Actualité : titre principal à la une, cinq titres suivants ; source colorée, heure relative ; chaque titre ouvre l'article (`url` conservée par `api.js`).
+- Documents récents : tranche colorée par format, titre sur deux lignes, type · version · date.
+- Risques critiques : matrice probabilité × impact (zones teintées, pastilles comptées, détail au survol), puis les quatre plus exposés.
+- Décisions en attente, Actions en retard, Problèmes ouverts, Incohérences : chiffre en tête puis liste priorisée (échéance ou ancienneté ; initiales du porteur et jours de retard ; histogramme des sévérités ; blocages et avertissements).
+- Thème sombre : couleur de fond `--wbg` pour les contours des repères.

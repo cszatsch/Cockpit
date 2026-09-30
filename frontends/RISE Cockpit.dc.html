@@ -3096,6 +3096,67 @@ class Component extends DCLogic {
       { id: 'news', name: 'Actualité', cat: 'Contexte', size: [2, 2], type: 'list', g: '◉', fmt: 'Liste de titres', q: 'Quels sont les faits marquants de l’actualité ?', data: 'Cartes d’actualité du Registre (GNews, NewsData.io, flux RSS), titres récents', rows: (EX.news || []).slice(0, 6).map(x => ({ a: x.src, aS: tag('#eef1f6', '#10233a'), t: x.t, r: x.d, rS: rt('#8a9aa6') })).concat(EX.news ? [] : [{ a: '…', aS: tag('#f1f5f4', '#8a9aa6'), t: EX.newsErr ? 'Actualité indisponible (connexion requise)' : 'Chargement des titres…', r: '', rS: rt('#8a9aa6') }]) },
     ];
     const ICO = { Synthèse: ['#10233a', '#fff'], Planning: ['#e6f3f2', '#0f5f5a'], Jalons: ['#fff3dc', '#8a5a12'], Chantiers: ['#e6f3f2', '#0f5f5a'], Risques: ['#fbecea', '#c2473b'], Décisions: ['#eef1f6', '#10233a'], Comités: ['#eef1f6', '#10233a'], Actions: ['#f1f5f4', '#43586a'], Personnel: ['#f1f5f4', '#43586a'], Livrables: ['#fff3dc', '#8a5a12'], Équipes: ['#e6f3f2', '#0f5f5a'], Qualité: ['#fbecea', '#c2473b'], Documents: ['#eef1f6', '#10233a'], Contexte: ['#e6f3f2', '#0f5f5a'] };
+    // ── Visualisations propres à chaque widget (refonte 01/10/2026) : chaque liste devient une forme lisible d'un coup d'œil. ──
+    const pName = id => ((d.people || []).find(p => p.id === id) || {}).name || '';
+    const ini = n => String(n || '').split(/[\s-]+/).filter(Boolean).map(x => x[0]).join('').slice(0, 2).toUpperCase() || '·';
+    const daysBetween = (a, b) => Math.round((dIso(b) - dIso(a)) / 864e5);
+    const WD = ['D', 'L', 'M', 'M', 'J', 'V', 'S'], MOS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+    const frD = iso => { const x = dIso(iso); return (x.getDate() === 1 ? '1er' : x.getDate()) + ' ' + MOS[x.getMonth()]; };
+    const VIZ = {};
+    // Prochains jalons : frise du jour au dernier jalon ; repères à la bonne date, légendes réparties et reliées.
+    (() => { const L = ms.slice(0, 3); if (!L.length) return; const end = dIso(L[L.length - 1].iso), span = Math.max(1, (end - T) / 864e5);
+      const xs = L.map(m => 3 + Math.max(0, daysBetween(tIso, m.iso)) / span * 94);
+      VIZ.jal = { viz: 'timeline', meta: 'prochain dans ' + Math.max(0, daysBetween(tIso, L[0].iso)) + ' j', tl: {
+        marks: L.map((m, i) => { const c = m.gap > 0 ? '#d4574a' : '#1d8f86'; return { st: 'position:absolute;top:8px;left:' + xs[i].toFixed(2) + '%;width:9px;height:9px;margin-left:-4.5px;transform:rotate(45deg);border-radius:2px;background:' + c + ';box-shadow:0 0 0 3px var(--wbg,#fff)' }; }),
+        leads: L.map((m, i) => { const cx = (i + .5) / L.length * 100; return { d: 'M' + xs[i].toFixed(2) + ' 0 C' + xs[i].toFixed(2) + ' 9 ' + cx.toFixed(2) + ' 6 ' + cx.toFixed(2) + ' 16' }; }),
+        cols: L.map(m => ({ date: frD(m.iso), n: m.n, st: m.gap > 0 ? '+' + m.gap + ' j de glissement' : 'à l’heure', stS: 'font-size:10.5px;font-weight:800;color:' + (m.gap > 0 ? '#d4574a' : '#1d8f86') })),
+        colsS: 'display:grid;grid-template-columns:repeat(' + L.length + ',minmax(0,1fr));gap:16px' } };
+    })();
+    // Échéances : ruban des 15 jours ; un symbole par échéance (comité, jalon, arbitrage) ; les deux prochaines en clair.
+    (() => { const t1 = new Date(T.getTime() + 14 * 864e5).toISOString().slice(0, 10), K = { Comité: ['●', 'var(--wi,#10233a)'], Jalon: ['◆', '#e39a2d'], Arbitrage: ['■', '#d4574a'] };
+      const EV = (d.milestones || []).filter(m => m.iso >= tIso && m.iso <= t1).map(m => ({ iso: m.iso, k: 'Jalon', t: short(m.n) }))
+        .concat((d.arbitrations || []).filter(x => x.ddIso && x.ddIso >= tIso && x.ddIso <= t1 && !/Arbitrée|Annulée/.test(x.st)).map(x => ({ iso: x.ddIso, k: 'Arbitrage', t: short(x.t) })),
+          this.sessionList().filter(x => x.status === 'PLANNED' && x.dateIso >= tIso && x.dateIso <= t1).map(x => ({ iso: x.dateIso, k: 'Comité', t: this.sessionLabel(x) })));
+      const days = Array.from({ length: 15 }, (_, i) => { const x = new Date(T.getTime() + i * 864e5), iso = x.toISOString().slice(0, 10), ev = EV.filter(e => e.iso === iso), we = x.getDay() === 0 || x.getDay() === 6;
+        return { wd: WD[x.getDay()], dn: String(x.getDate()), dnS: 'width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:12.5px;font-weight:' + (i === 0 ? 800 : 700) + ';font-variant-numeric:tabular-nums;' + (i === 0 ? 'background:var(--wi,#10233a);color:var(--wbg,#fff)' : 'color:' + (we ? 'var(--wm,#a3b0b9)' : 'var(--wi,#10233a)')),
+          evs: ev.slice(0, 3).map(e => ({ g: K[e.k][0], st: 'font-size:' + (e.k === 'Comité' ? 10 : 9) + 'px;line-height:1;color:' + K[e.k][1] })), cS: 'display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 0 2px;border-radius:9px;' + (ev.length ? 'background:var(--wt,#f2f6f5)' : '') }; });
+      const byDay = [...new Set(EV.map(e => e.iso))].sort().slice(0, 2).map(iso => ({ day: iso === tIso ? 'Aujourd’hui' : frD(iso), t: EV.filter(e => e.iso === iso).map(e => e.t).join(' · ') }));
+      const types = Object.keys(K).filter(k => EV.some(e => e.k === k));
+      VIZ.ech = { viz: 'strip', meta: types.map(k => K[k][0] + ' ' + k + (EV.filter(e => e.k === k).length > 1 ? 's' : '')).join('   '), sp: { days, next: byDay, none: !EV.length } };
+    })();
+    // Actualité : une à la une, puis les suivantes ; source en couleur, article ouvert au clic.
+    (() => { const N = EX.news || []; if (!N.length) return; const PAL = ['#c2473b', '#1d6fa5', '#8a5a12', '#1d8f86', '#6d4fa3'], srcC = s => PAL[[...String(s)].reduce((a, ch) => a + ch.charCodeAt(0), 0) % PAL.length];
+      const rel = it => { if (!it.iso) return it.d || ''; const m = Math.round((Date.now() - new Date(it.iso)) / 6e4); return m < 1 ? 'à l’instant' : m < 60 ? 'il y a ' + m + ' min' : m < 24 * 60 ? 'il y a ' + Math.round(m / 60) + ' h' : it.d; };
+      const item = it => ({ t: it.t, src: it.src, when: rel(it), href: it.url || '#', go: e => { if (!it.url) e.preventDefault(); e.stopPropagation(); }, dotS: 'width:6px;height:6px;border-radius:50%;flex:none;background:' + srcC(it.src), srcS: 'font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:' + srcC(it.src) + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis' });
+      VIZ.news = { viz: 'feed', fd: { lead: item(N[0]), rest: N.slice(1, 6).map(item) } };
+    })();
+    // Documents récents : tranche colorée par format, titre sur deux lignes, type · version · date.
+    (() => { const F = { PDF: '#b23a2e', PPTX: '#c2560f', XLSX: '#1f7a4a', DOCX: '#2c5aa0' };
+      VIZ.docs = { viz: 'docs', meta: (d.documents || []).length ? (d.documents || []).length + ' au total' : '', dc: { none: !(d.documents || []).length, items: (d.documents || []).slice(0, 5).map(x => ({ n: x.n, fmt: x.mime || '', fmtS: 'font-size:9px;font-weight:800;letter-spacing:.08em;color:' + (F[x.mime] || '#5c7280'), barS: 'width:3px;align-self:stretch;border-radius:2px;flex:none;background:' + (F[x.mime] || '#9fb3bd'), meta: [x.type, x.v, x.date].filter(Boolean).join(' · ') })) } };
+    })();
+    // Risques critiques : matrice probabilité × impact, puis les plus exposés.
+    (() => { const R = (d.risks || []).filter(r => r.status !== 'CLOSED'), zone = sc => sc >= 15 ? ['rgba(212,87,74,.16)', '#d4574a'] : sc >= 8 ? ['rgba(227,154,45,.15)', '#e39a2d'] : ['rgba(29,143,134,.08)', '#1d8f86'];
+      const cells = []; for (let p = 5; p >= 1; p--) for (let i = 1; i <= 5; i++) { const here = R.filter(r => r.p === p && r.i === i), [bg, c] = zone(p * i);
+        cells.push({ n: here.length > 1 ? String(here.length) : '', tip: here.map(r => r.id + ' · ' + r.n).join('\n'), st: 'position:relative;border-radius:4px;background:' + bg, dotS: here.length ? 'position:absolute;inset:0;margin:auto;width:' + (here.length > 1 ? 15 : 9) + 'px;height:' + (here.length > 1 ? 15 : 9) + 'px;border-radius:50%;background:' + c + ';box-shadow:0 0 0 2px var(--wbg,#fff);display:grid;place-items:center;font-size:9px;font-weight:800;color:#fff' : 'display:none' }); }
+      VIZ.risk = { viz: 'riskmap', meta: R.length + ' ouverts', rm: { cells, rows: R.slice().sort((a, b) => b.p * b.i - a.p * a.i).slice(0, 4).map(r => { const [, c] = zone(r.p * r.i); return { sc: String(r.p * r.i), scS: 'width:24px;height:20px;border-radius:6px;display:grid;place-items:center;font-size:11px;font-weight:800;font-variant-numeric:tabular-nums;color:#fff;background:' + c, t: short(r.n), id: r.id }; }) } };
+    })();
+    // Chiffre en tête puis liste priorisée : décisions, actions en retard, problèmes, incohérences.
+    const hero = (n, l, sub, rows, o = {}) => ({ viz: 'hero', h: { n: String(n), l, sub, rows, hasSub: !!sub, nS: 'font-size:' + (o.small ? 38 : 46) + 'px;font-weight:800;font-style:italic;letter-spacing:-.045em;line-height:.9;font-variant-numeric:tabular-nums;color:' + (o.c || 'var(--wi,#10233a)'), wide: !!o.wide, tall: !o.wide, n2: o.n2 != null ? String(o.n2) : '', l2: o.l2 || '', has2: o.n2 != null, n2S: 'font-size:24px;font-weight:800;font-style:italic;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums;color:' + (o.c2 || '#e39a2d'), pips: o.pips || [], hasPips: !!(o.pips && o.pips.length), empty: !rows.length, emptyT: o.emptyT || 'Rien à signaler' } });
+    const hRow = (o) => ({ key: o.key || '', hasKey: !!o.key, keyS: 'font-size:10.5px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap;color:' + (o.keyC || 'var(--wm,#8a9aa6)'), av: o.av || '', hasAv: !!o.av, t: o.t, m: o.m || '', mS: 'font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;color:' + (o.mC || 'var(--wm,#8a9aa6)'), barS: o.bar ? 'width:3px;align-self:stretch;border-radius:2px;flex:none;background:' + o.bar : 'display:none' });
+    (() => { const P = (d.decisions || []).filter(x => !['ARBITRATED', 'SUPERSEDED', 'CANCELLED'].includes(x.status)), age = x => x.crIso ? Math.max(0, daysBetween(x.crIso.slice(0, 10), tIso)) : null, old = P.map(age).filter(v => v != null);
+      VIZ.dec = hero(P.length, P.length > 1 ? 'décisions à trancher' : 'décision à trancher', '', P.slice(0, 3).map(x => { const a = age(x), late = x.ddIso && x.ddIso < tIso; return hRow({ key: x.id, keyC: 'var(--wi,#10233a)', t: x.t || x.n || '', m: x.ddIso ? (late ? 'échue le ' : 'avant le ') + frD(x.ddIso) : a != null ? a + ' j' : '', mC: late ? '#d4574a' : undefined }); }), { wide: true });
+    })();
+    (() => { const A = (d.actions || []).filter(a => a.late), lateBy = a => a.dueIso ? Math.max(0, daysBetween(a.dueIso, tIso)) : 0, S = A.slice().sort((a, b) => lateBy(b) - lateBy(a));
+      VIZ.act = hero(A.length, A.length > 1 ? 'en retard' : 'en retard', '', S.slice(0, 2).map(a => hRow({ av: ini(pName(a.owner)), t: a.n, m: '−' + lateBy(a) + ' j', mC: '#d4574a' })), { small: true, c: A.length ? '#d4574a' : undefined, emptyT: 'Aucune action en retard' });
+    })();
+    (() => { const I = (d.issues || []).filter(x => !/RESOLVED|CLOSED/.test(x.status || '')), S = I.slice().sort((a, b) => b.sev - a.sev), cnt = s => I.filter(x => x.sev === s).length, mx = Math.max(1, ...[1, 2, 3, 4, 5].map(cnt));
+      VIZ.pb = hero(I.length, I.length > 1 ? 'ouverts' : 'ouvert', '', S.slice(0, 2).map(x => hRow({ key: 'S' + x.sev, keyC: x.sev >= 4 ? '#d4574a' : x.sev >= 3 ? '#e39a2d' : 'var(--wm,#8a9aa6)', t: short(x.n) })), { small: true, emptyT: 'Aucun problème ouvert',
+        pips: [1, 2, 3, 4, 5].map(sv => ({ st: 'width:6px;border-radius:2px;height:' + Math.max(3, Math.round(cnt(sv) / mx * 22)) + 'px;background:' + (cnt(sv) ? (sv >= 4 ? '#d4574a' : sv >= 3 ? '#e39a2d' : '#9fb3bd') : 'var(--wt,#e6edeb)'), tip: 'S' + sv + ' : ' + cnt(sv) })) });
+    })();
+    (() => { const X = d.anomalies || [], B = X.filter(x => x.level === 'Blocage'), Wn = X.filter(x => x.level !== 'Blocage');
+      VIZ.inc = hero(B.length, B.length > 1 ? 'blocages' : 'blocage', '', X.slice(0, 3).map(x => hRow({ bar: x.level === 'Blocage' ? '#d4574a' : '#e39a2d', t: x.text, m: x.action || '', mC: '#1d8f86' })), { wide: true, c: B.length ? '#d4574a' : undefined, n2: Wn.length, l2: Wn.length > 1 ? 'avertissements' : 'avertissement', emptyT: 'Aucune incohérence' });
+    })();
+    W.forEach(w => { if (VIZ[w.id]) { w.viz = VIZ[w.id].viz; w.vz = VIZ[w.id]; } });
     W.forEach(w => { const [bg, c] = ICO[w.cat] || ['#f1f5f4', '#43586a']; w.ico = 'width:30px;height:30px;border-radius:9px;display:grid;place-items:center;flex:none;font-size:13px;font-weight:800;background:' + bg + ';color:' + c; w.badge = w.size[0] + ' × ' + w.size[1];
       // Refonte des widgets (01/10/2026) : chiffres en italique fort, étiquettes discrètes, filets fins ; la couleur ne
       // porte qu'un statut. Météo et Trafic inchangés.
@@ -3108,8 +3169,8 @@ class Component extends DCLogic {
           rS: (r.rS || '').replace('font-size:11.5px;font-weight:700', 'font-size:11px;font-weight:700'),
           rowS: 'display:grid;grid-template-columns:' + (listDot ? '6px ' : '') + keyW + 'px minmax(0,1fr) auto;gap:12px;align-items:center;padding:' + (i ? tallP : '4px') + ' 0 ' + tallP + ';' + (i ? 'border-top:1px solid var(--wln,#eef3f2)' : '') }; }) : rows0;
       const kv = k0 ? String(k0.v) : '', ring = k0 && k0.ring && k0.ring.v != null ? k0.ring : null, C = 263.89;
-      w.view = { id: w.id, name: w.name, isSun: w.type === 'sun', sn: w.sn || {}, isRoute: w.type === 'route', rt: w.rt || {}, isKpi: w.type === 'kpi', isList: w.type === 'list', isBars: w.type === 'bars', isSpark: w.type === 'spark', isGantt: w.type === 'gantt', isAi: w.type === 'ai', rows, listDot, listEmpty: w.type === 'list' && !rows.length, s: w.s || {}, g: w.g2 || {},
-        hasMeta: w.type === 'ai' || w.type === 'bars', meta: w.type === 'ai' ? '✦ Jev · ' + ((w.ai || {}).at || '') : w.type === 'bars' ? 'réel · ▏référence' : '',
+      w.view = { id: w.id, name: w.name, isSun: w.type === 'sun', sn: w.sn || {}, isRoute: w.type === 'route', rt: w.rt || {}, isKpi: w.type === 'kpi', isList: w.type === 'list' && !w.viz, isTimeline: w.viz === 'timeline', isStrip: w.viz === 'strip', isFeed: w.viz === 'feed', isDocs: w.viz === 'docs', isRiskmap: w.viz === 'riskmap', isHero: w.viz === 'hero', vz: w.vz || {}, isBars: w.type === 'bars', isSpark: w.type === 'spark', isGantt: w.type === 'gantt', isAi: w.type === 'ai', rows, listDot, listEmpty: w.type === 'list' && !w.viz && !rows.length, s: w.s || {}, g: w.g2 || {},
+        hasMeta: w.type === 'ai' || w.type === 'bars' || !!(w.vz && w.vz.meta), meta: w.type === 'ai' ? '✦ Jev · ' + ((w.ai || {}).at || '') : w.type === 'bars' ? 'réel · ▏référence' : (w.vz && w.vz.meta) || '',
         metaS: w.type === 'ai' ? 'font-size:10px;font-weight:800;letter-spacing:.04em;color:#1d8f86;background:rgba(29,143,134,.1);border-radius:999px;padding:3px 9px;white-space:nowrap' : 'font-size:10px;font-weight:700;color:var(--wm,#8a9aa6);white-space:nowrap',
         ai: w.ai ? { ...w.ai, pts: (w.ai.pts || []).map((p, i) => { const c = colorOf(String(p.dot).replace('background:', 'color:'));
           return { ...p, kS: 'font-size:9.5px;font-weight:800;letter-spacing:.09em;line-height:1.35;text-transform:uppercase;color:' + c + ';padding-top:2px', rowS: 'display:grid;grid-template-columns:96px minmax(0,1fr);gap:14px;align-items:baseline;padding:7px 0;' + (i ? 'border-top:1px solid var(--wln,#eef3f2)' : 'padding-top:0') }; }) } : { pts: [] },
@@ -3122,7 +3183,7 @@ class Component extends DCLogic {
   DB0 = { cells: [], lib: [], cats: [] };
   DB_INV0 = { trafic: true, meteo: true, golive: true, av: true };
   dbDarkView(v) { const f = s => typeof s === 'string' ? s.split('#10233a').join('#ffffff').split('#5c7280').join('#b8c7cf').split('#1d8f86').join('#5fc2b8').split('#c2473b').join('#f2a39b').split('#8a5a12').join('#f7c56b').split('#8a9aa6').join('#8fa3b0') : s, fo = o => { if (!o) return o; const r = {}; Object.keys(o).forEach(k => { r[k] = /S$|bar|ref|today|dot/.test(k) ? f(o[k]) : o[k]; }); return r; };
-    return { ...v, vars: '--wi:#ffffff;--wh:#9fdcd4;--wl:#b8c7cf;--wb:#c9d6dd;--wm:#8fa3b0;--wt:rgba(255,255,255,.1);--wln:rgba(255,255,255,.08)', k: fo(v.k), g: fo(v.g), rows: (v.rows || []).map(r => { const o = fo(r); if (r.aS) o.aS = r.aS; return o; }), ai: v.ai ? { ...v.ai, pts: (v.ai.pts || []).map(p => ({ ...p, dot: f(p.dot), kS: f(p.kS) })) } : v.ai, s: v.s ? { ...v.s, dotS: String(v.s.dotS || '').replace('#fff', '#10233a') } : v.s }; }
+    return { ...v, vars: '--wi:#ffffff;--wh:#9fdcd4;--wl:#b8c7cf;--wb:#c9d6dd;--wm:#8fa3b0;--wt:rgba(255,255,255,.1);--wln:rgba(255,255,255,.08);--wbg:#10233a', k: fo(v.k), g: fo(v.g), rows: (v.rows || []).map(r => { const o = fo(r); if (r.aS) o.aS = r.aS; return o; }), ai: v.ai ? { ...v.ai, pts: (v.ai.pts || []).map(p => ({ ...p, dot: f(p.dot), kS: f(p.kS) })) } : v.ai, s: v.s ? { ...v.s, dotS: String(v.s.dotS || '').replace('#fff', '#10233a') } : v.s }; }
   dbVals() {
     const W = this.dbCatalog(), S = this.state; if (!W) return this.DB0;
     const byId = Object.fromEntries(W.map(w => [w.id, w])), L = (S.dbL || ['ai', 'golive', 'av', 'copil', 'arb', 'dec', 'rtrend', 'baro', 'inc', 'meteo', 'trafic']).filter(id => byId[id]), edit = !!S.dbEdit;

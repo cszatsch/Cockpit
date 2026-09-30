@@ -913,8 +913,8 @@ export function attach(comp) {
       // Actualités agrégées du registre (GNews, NewsData.io, flux RSS Le Monde, L'Équipe, BBC… : cartes actives) ;
       // la date ISO est remise au format AAAAMMJJTHHMMSS (heure locale) attendu par la tuile.
       get('/widgets/news?limit=6', { headers: { 'X-RISE-Widget': 'news' } })
-        .then((r) => ({ articles: (r.items || []).map((i) => { const d = i.date ? new Date(i.date) : null; return { t: i.title, src: i.source, d: d ? d.getFullYear() + pad2(d.getMonth() + 1) + pad2(d.getDate()) + 'T' + pad2(d.getHours()) + pad2(d.getMinutes()) + '00' : '' }; }) }))
-        .then((j) => { const A = (j.articles || []).filter((a) => a.t).slice(0, 6).map((a) => { const s = String(a.d || ''); return { t: a.t, src: String(a.src || '').replace(/^www\./, '').split('.')[0], d: s.length >= 12 ? s.slice(9, 11) + ':' + s.slice(11, 13) : '' }; }); if (!A.length) throw 0; up({ news: A }); })
+        .then((r) => ({ articles: (r.items || []).map((i) => { const d = i.date ? new Date(i.date) : null; return { t: i.title, src: i.source, url: i.url || '', iso: i.date || '', d: d ? d.getFullYear() + pad2(d.getMonth() + 1) + pad2(d.getDate()) + 'T' + pad2(d.getHours()) + pad2(d.getMinutes()) + '00' : '' }; }) }))
+        .then((j) => { const A = (j.articles || []).filter((a) => a.t).slice(0, 6).map((a) => { const s = String(a.d || ''); return { t: a.t, url: a.url || '', iso: a.iso || '', src: String(a.src || '').replace(/^www\./, '').split('.')[0], d: s.length >= 12 ? s.slice(9, 11) + ':' + s.slice(11, 13) : '' }; }); if (!A.length) throw 0; up({ news: A }); })
         .catch(() => { up({ newsErr: true }); setTimeout(() => { comp._dbExtOn = false; }, 60000); });
     },
 
