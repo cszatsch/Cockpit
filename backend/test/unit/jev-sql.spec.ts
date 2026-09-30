@@ -1,10 +1,21 @@
-import { extractSql, formatRows, JEV_SQL_MAX_ROWS, renderDictionary, sqlError, sqlInstructions, viewsUsed } from '../../src/domain/jev-sql';
+import { extractSql, formatRows, JEV_SQL_MAX_ROWS, looksLikeSql, renderDictionary, sqlCut, sqlError, sqlInstructions, viewsUsed } from '../../src/domain/jev-sql';
 
 describe('Jev de la Console — Text-to-SQL : règles', () => {
   it('extrait la requête du bloc ```sql``` ; sans bloc, réponse directe', () => {
     expect(extractSql('```sql\nSELECT nom FROM jev.modeles_ia\n```')).toBe('SELECT nom FROM jev.modeles_ia');
     expect(extractSql('Voici :\n```SQL\nSELECT 1;\n```\nfin')).toBe('SELECT 1;');
     expect(extractSql('Ouvrez « Utilisateurs », puis « Inviter ».')).toBeNull();
+  });
+
+  it('réponse coupée (bloc sql jamais refermé) ou requête nue : reconnue, jamais montrée telle quelle', () => {
+    const cut = 'Bonjour,\nVoici l’analyse.\n\n```sql\nWITH r AS (\n  SELECT code FROM jev_cockpit.risques';
+    expect(extractSql(cut)).toBeNull();
+    expect(sqlCut(cut)).toBe(true);
+    expect(looksLikeSql(cut)).toBe(true);
+    expect(sqlCut('```sql\nSELECT 1\n```')).toBe(false);
+    expect(looksLikeSql('SELECT code FROM jev_cockpit.risques')).toBe(true);
+    expect(looksLikeSql('Avec 3 risques critiques, la semaine est tendue.')).toBe(false);
+    expect(sqlCut('Ouvrez « Utilisateurs ».')).toBe(false);
   });
 
   it.each([

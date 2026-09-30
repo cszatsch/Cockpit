@@ -21,6 +21,22 @@ export function extractSql(text: string): string | null {
   return m ? m[1].trim() : null;
 }
 
+/**
+ * Bloc ```sql ouvert mais jamais refermé : la réponse a été coupée par la limite de sortie du modèle
+ * (`LIVE_MAX_OUTPUT_TOKENS`). Correction du 30/09/2026 : une telle réponse n'est jamais montrée ni envoyée telle quelle.
+ */
+export function sqlCut(text: string): boolean {
+  return /```\s*sql/i.test(text) && extractSql(text) === null;
+}
+
+/** Réponse qui contient ou commence une requête (bloc sql, ou texte qui débute par SELECT / WITH) : jamais montrée telle quelle. */
+export function looksLikeSql(text: string): boolean {
+  return /```\s*sql/i.test(text) || /^\s*(select|with)\b/i.test(text);
+}
+
+/** Motif transmis au modèle pour qu'il réécrive une requête coupée. */
+export const SQL_CUT_REASON = 'requête coupée car trop longue : écris une requête nettement plus courte (une seule instruction SELECT, colonnes utiles seulement), sans aucun texte autour';
+
 const FORBIDDEN = /\b(insert|update|delete|merge|drop|alter|create|grant|revoke|truncate|copy|call|do|execute|vacuum|analyze|lock|comment|refresh|listen|notify|prepare|reindex|cluster|security|set_config|pg_sleep|dblink|lo_import|lo_export|query_to_xml\w*|cursor_to_xml\w*)\b/i;
 
 /**
@@ -105,7 +121,7 @@ export function sqlInstructions(dictionary: string, todayIso: string | null, now
   return [
     `## ${v.title}`,
     'Tu peux lire les données de la plateforme au moyen d’une requête SQL (PostgreSQL) sur les vues en lecture seule décrites ci-dessous, et seulement celles-ci.',
-    `- Si la question porte sur des données de la plateforme (${v.topics}), réponds UNIQUEMENT par une requête dans un bloc \`\`\`sql … \`\`\`, sans aucun autre texte.`,
+    `- Si la question porte sur des données de la plateforme (${v.topics}), réponds UNIQUEMENT par une requête courte dans un bloc \`\`\`sql … \`\`\`, sans aucun autre texte (ni salutation, ni explication).`,
     `- ${v.direct}`,
     `- Une seule instruction SELECT (WITH permis), vues préfixées par ${v.schema}. ; respecte les règles de chaque fiche (statuts, dates, calculs) ; noms de colonnes exactement comme dans les fiches.`,
     ...(v.scope ? [`- ${v.scope}`] : []),

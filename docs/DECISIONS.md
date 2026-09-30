@@ -771,3 +771,10 @@ Demande du commanditaire : « l’utilisateur ne peut plus avoir que des notific
 | API | `/api/admin/notifications/rules` : le modèle `Rule` perd `type` et `evt`, `freq` vaut `day` ou `week` (400 sinon) ; `/api/admin/notification-rules` perd `kind` et `trigger` ; `/api/me/notifications` perd `kind`. Rédaction : le prompt système parle toujours « d’une notification ». | `rules.controller.ts`, `notification-rules.ts`, `my-notifications.controller.ts`, `notification-writer.service.ts` |
 | Écrans | Console : entrée de menu, titre et sous-titre « Notifications » (le fichier garde son nom `Notifications et alertes.dc.html`) ; plus de section ALERTES ni de ligne TYPE ; phrase de synthèse « Informer … » ; nouvelle règle quotidienne à l'heure par défaut. Cockpit : plus d'onglet « Alertes » ni de style d'alerte dans le tiroir. | `CHANGES-console.md`, `CHANGES-cockpit.md` |
 | Dictionnaire | Vue `jev.regles_notification` recréée sans `type` ni `declencheur`. | `jev-dictionnaire.ts` |
+
+## Notifications : jamais de requête SQL dans le message envoyé (correction du 30/09/2026)
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Constat | Une notification « Analyse des risques » a reçu une requête SQL au lieu d'un texte rédigé. Cause : le modèle a précédé sa requête d'un « Bonjour… » et l'a écrite trop longue ; la réponse a été coupée à la limite de sortie (1 024 jetons, atteinte exactement). Le bloc sql n'étant pas refermé, il n'était pas reconnu comme requête et la réponse brute partait comme contenu. | `LIVE_MAX_OUTPUT_TOKENS` |
+| Correction | Une réponse avec un bloc sql non refermé est reconnue comme coupée : le modèle est relancé une fois avec le motif « requête coupée car trop longue : écris une requête nettement plus courte ». Une réponse qui contient ou commence une requête n'est jamais envoyée : à défaut de résultats, texte de repli sans SQL. La consigne demande une requête courte, sans salutation ni explication. Même garde pour le Jev de la Console. | `sqlCut`, `looksLikeSql`, `SQL_CUT_REASON` (`src/domain/jev-sql.ts`), `NO_DATA_TEXT` (`notification-writer.service.ts`), `JevSqlService` |

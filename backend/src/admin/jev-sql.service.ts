@@ -6,7 +6,7 @@ import { TodayService } from '../core/today.service';
 import type { JevMemory } from './jev-memory.service';
 import {
   ANSWER_INSTRUCTIONS, extractSql, formatRows, JEV_SQL_MAX_ROWS, JEV_SQL_RETRIES, JEV_SQL_ROLE, JEV_SQL_TIMEOUT_MS,
-  renderDictionary, requestContext, sqlError, sqlInstructions, viewsUsed,
+  looksLikeSql, renderDictionary, requestContext, SQL_CUT_REASON, sqlCut, sqlError, sqlInstructions, viewsUsed,
 } from '../domain/jev-sql';
 import { JEV_COCKPIT_ROLE, JEV_COCKPIT_SCHEMA, SCOPE_CHANTIERS, SCOPE_PROJET } from '../domain/jev-dictionnaire-cockpit';
 import { ChantierScope } from '../domain/notification-rules';
@@ -58,13 +58,15 @@ export class JevSqlService {
     // 1. Réponse directe, ou requête.
     const first = await call(text, system);
     let sql = extractSql(first.text);
-    if (sql === null) return { reply: first.text, sources: [], ai: ai(), sql: null };
+    // Requête coupée ou mal balisée (correction du 30/09/2026) : jamais montrée telle quelle, elle est réécrite.
+    let cut = sqlCut(first.text);
+    if (sql === null && !looksLikeSql(first.text)) return { reply: first.text, sources: [], ai: ai(), sql: null };
 
     // 2. Contrôle et exécution, une correction au plus.
     let rows: Array<Record<string, unknown>> | null = null;
     let why = '';
     for (let attempt = 0; ; attempt++) {
-      why = sql ? sqlError(sql) ?? '' : 'aucune requête dans la réponse';
+      why = cut ? SQL_CUT_REASON : sql ? sqlError(sql) ?? '' : 'aucune requête dans la réponse';
       if (!why) {
         try {
           rows = await this.executeReadOnly(sql!);
@@ -76,6 +78,7 @@ export class JevSqlService {
       if (attempt >= JEV_SQL_RETRIES) break;
       const fix = await call(`${text}\n\n## Requête à corriger\n\`\`\`sql\n${sql ?? ''}\n\`\`\`\nMotif du refus ou de l’échec : ${why}\nRéponds uniquement par la requête corrigée, dans un bloc \`\`\`sql\`\`\`.`, system);
       sql = extractSql(fix.text);
+      cut = sqlCut(fix.text);
     }
     if (!rows) {
       return { reply: `Je n’ai pas pu lire les données de la plateforme pour répondre (${why}). Reformulez la question, ou consultez directement l’écran concerné de la Console.`, sources: [], ai: ai(), sql };

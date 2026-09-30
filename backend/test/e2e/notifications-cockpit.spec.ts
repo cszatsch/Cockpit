@@ -117,5 +117,24 @@ describe('Notifications du Cockpit et rédaction à partir des données', () => 
       expect(await t.db.userNotification.count()).toBe(n0 + 1);
       expect(await t.db.userNotification.findFirst({ where: { accountId: 'u1' }, orderBy: { createdAt: 'desc' } })).toMatchObject({ body: expect.stringMatching(/^Risques ouverts/) });
     });
+
+    it('requête coupée par la limite de sortie : réécrite puis exécutée ; jamais de SQL dans une notification (30/09/2026)', async () => {
+      const svc = t.app.get(NotificationsService);
+      const rule = await t.db.notificationRule.findUniqueOrThrow({ where: { id: 'n4' } });
+      const r = (text: string) => ({ text, modelId: rule.modelId, providerId: 'anthropic', tokensIn: 100, tokensOut: 1024, costEur: 0.001, fallbackUsed: false, ms: 5 });
+      const cut = 'Bonjour,\nVoici l’analyse.\n\n```sql\nWITH r AS (\n  SELECT code FROM jev_cockpit.risques';
+      // 1. Première réponse coupée, correction correcte : le contenu est rédigé à partir des résultats.
+      calls.length = 0;
+      spy.mockImplementationOnce(async () => r(cut));
+      const [ok] = await svc.deliver({ ...rule, channels: ['APP'], body: '{reponse_llm}' }, RISE, { projet: 'RISE' }, 'test|coupee', { accountIds: ['u1'] });
+      expect(ok.body).toMatch(/^Risques ouverts : \d+\.$/);
+      // `calls` ne note que les appels simulés par défaut : le premier est la demande de correction.
+      expect(calls[0].prompt).toMatch(/requête coupée car trop longue/);
+      // 2. Le modèle ne rend que du SQL, même après correction : texte de repli, sans SQL.
+      spy.mockImplementation(async () => r(cut));
+      const [ko] = await svc.deliver({ ...rule, channels: ['APP'], body: '{reponse_llm}' }, RISE, { projet: 'RISE' }, 'test|coupee2', { accountIds: ['u1'] });
+      expect(ko.body).not.toMatch(/```|SELECT|WITH/i);
+      expect(ko.body).toMatch(/consultez le détail dans le Cockpit/);
+    });
   });
 });

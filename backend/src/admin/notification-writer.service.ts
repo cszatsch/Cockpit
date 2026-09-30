@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../core/prisma.service';
 import { LlmResult, LlmService } from '../core/llm.service';
 import { TodayService } from '../core/today.service';
-import { extractSql, formatRows, JEV_SQL_MAX_ROWS, JEV_SQL_RETRIES, renderDictionary, sqlError, sqlInstructions, viewsUsed } from '../domain/jev-sql';
+import { extractSql, formatRows, JEV_SQL_MAX_ROWS, JEV_SQL_RETRIES, looksLikeSql, renderDictionary, SQL_CUT_REASON, sqlCut, sqlError, sqlInstructions, viewsUsed } from '../domain/jev-sql';
 import { JEV_COCKPIT_SCHEMA } from '../domain/jev-dictionnaire-cockpit';
 import { AudienceProfile, ChantierScope } from '../domain/notification-rules';
 import { dbMessage, JevSqlService } from './jev-sql.service';
@@ -34,6 +34,8 @@ export const NOTIFICATION_ANSWER_INSTRUCTIONS = [
 ].join('\n');
 
 /** Consigne jointe à l'envoi précédent (mémoire de la rédaction). */
+/** Texte envoyé si le modèle ne produit qu'une requête au lieu d'un contenu rédigé (jamais de SQL dans une notification). */
+export const NO_DATA_TEXT = 'Les données du projet n’ont pas pu être analysées pour cet envoi : consultez le détail dans le Cockpit.';
 export const PREVIOUS_SEND_INSTRUCTIONS = 'Compare avec les données actuelles : dis d’abord ce qui a changé depuis cet envoi (écarts, nouveautés, points réglés, avec la date de l’envoi précédent), sans répéter à l’identique ce qui n’a pas changé. N’annonce aucune évolution que les données ne montrent pas ; si rien n’a changé, dis-le en une phrase.';
 
 /**
@@ -103,13 +105,15 @@ export class NotificationWriterService {
     })}`;
     const first = await call(prompt, system);
     let sql = extractSql(first.text);
-    if (sql === null) return out(first.text);
+    // Requête coupée ou mal balisée (correction du 30/09/2026) : jamais envoyée telle quelle, elle est réécrite.
+    let cut = sqlCut(first.text);
+    if (sql === null && !looksLikeSql(first.text)) return out(first.text);
 
     // 4. Exécution sur le périmètre des destinataires, une correction au plus.
     let rows: Array<Record<string, unknown>> | null = null;
     let why = '';
     for (let attempt = 0; ; attempt++) {
-      why = sql ? sqlError(sql) ?? '' : 'aucune requête dans la réponse';
+      why = cut ? SQL_CUT_REASON : sql ? sqlError(sql) ?? '' : 'aucune requête dans la réponse';
       if (!why) {
         try {
           rows = await this.jevSql.executeCockpit(sql!, project.id, audience.chantiers);
@@ -121,10 +125,11 @@ export class NotificationWriterService {
       if (attempt >= JEV_SQL_RETRIES) break;
       const fix = await call(`${prompt}\n\n## Requête à corriger\n\`\`\`sql\n${sql ?? ''}\n\`\`\`\nMotif du refus ou de l’échec : ${why}\nRéponds uniquement par la requête corrigée, dans un bloc \`\`\`sql\`\`\`.`, system);
       sql = extractSql(fix.text);
+      cut = sqlCut(fix.text);
     }
     if (!rows) {
       const plain = await call(prompt, `${base}\nLes données du projet n’ont pas pu être lues (${why}) : rédige sans aucun chiffre ni fait précis, et signale que le détail est à consulter dans le Cockpit.`);
-      return out(plain.text, [], sql);
+      return out(looksLikeSql(plain.text) ? NO_DATA_TEXT : plain.text, [], sql);
     }
 
     // 5. Rédaction à partir des résultats.
@@ -133,7 +138,7 @@ export class NotificationWriterService {
     const res = formatRows(rows);
     const head = `## Résultats de la requête (${res.count} ligne(s)${res.truncated ? `, tronqués aux ${JEV_SQL_MAX_ROWS} premières` : ''})`;
     const answer = await call(`${prompt}\n\n${head}\n${res.text}`, `${base}\n\n${NOTIFICATION_ANSWER_INSTRUCTIONS}`, `## Dictionnaire des vues consultées\n${renderDictionary(used, JEV_COCKPIT_SCHEMA)}`);
-    return out(answer.text, sources, sql);
+    return out(looksLikeSql(answer.text) ? NO_DATA_TEXT : answer.text, sources, sql);
   }
 
   private nowParis(): string {
