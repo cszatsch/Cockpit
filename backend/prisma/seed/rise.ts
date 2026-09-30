@@ -8,6 +8,7 @@ import { codeFromLabel, normKey, PLAN_STATUS_FR, WAVE_STATUS_FR, WS_STATUS_FR } 
  * Les ids historiques du jeu (p01, C1, J01, R01, D-007…) sont conservés.
  */
 
+import { loadDemo } from './source';
 export const RISE_ID = 'RISE';
 /** Q2 : chantier transverse par défaut des actions sans source. */
 export const DEFAULT_TRANSVERSAL_WS_CODE = 'C8';
@@ -508,45 +509,9 @@ export async function seedRise(db: PrismaClient, rise: J, plan: J): Promise<void
     });
   }
 
-  // ── Documents (liens typés quand ils se résolvent) ──
-  for (const [i, d] of rise.documents.entries()) {
-    const dateIso = parseFrLabel(d.date) ?? parseFrLabel(d.date, 2026)!;
-    const links: Array<{ entityType: string; entityId: string }> = [];
-    const txt = String(d.linked || '');
-    const typeMap: Record<string, string> = { RISK: 'RISK', ISSUE: 'ISSUE', MILESTONE: 'MILESTONE', DECISION: 'DECISION' };
-    for (const part of txt.split(' · ')) {
-      const m = /^(RISK|ISSUE|MILESTONE|DECISION)\s+(.+)$/.exec(part.trim());
-      if (m) {
-        const ids = m[2].split(/\s*(?:→|·)\s*/);
-        if (ids.length === 2 && txt.includes('→')) {
-          // « R01 → R07 » : plage des risques existants
-          for (const r of rise.risks) if (r.id >= ids[0] && r.id <= ids[1]) links.push({ entityType: 'RISK', entityId: r.id });
-        } else for (const id of ids) links.push({ entityType: typeMap[m[1]], entityId: id.trim() });
-      } else if (/^[JRPD]/.test(part.trim())) {
-        const id = part.trim();
-        const t = sourceTypeOf(id);
-        if (t) links.push({ entityType: t, entityId: id });
-      }
-    }
-    const mime = { PPTX: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', PDF: 'application/pdf', DOCX: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }[d.mime as string] ?? d.mime;
-    await db.document.create({
-      data: {
-        id: `doc${i + 1}`,
-        projectId: RISE_ID,
-        n: d.n,
-        type: d.type,
-        dateIso,
-        v: d.v,
-        conf: normKey(d.conf) === 'restreint' ? 'RESTRICTED' : 'INTERNAL',
-        src: normKey(d.src) === 'genere' ? 'GENERATED' : 'UPLOADED',
-        ext: d.ext,
-        mime,
-        pages: d.pages ?? null,
-        linkedLabel: links.length ? null : txt || null,
-        links: { create: dedupe(links) },
-      },
-    });
-  }
+  // Base de connaissance : vide. Les 8 documents factices (sans fichier) ne sont chargés que par les tests,
+  // `seedDemoDocuments()` (décision du 30/09/2026).
+
 
   // ── Baromètre ──
   const bm = rise.barometre;
@@ -658,4 +623,50 @@ export const TEMPLATE_HISTORY = [
  */
 function d007Arbitration() {
   return { question: null, options: [], criteria: [], recommendation: null, texts: {} };
+}
+
+/**
+ * Documents factices de la Base de connaissance (8 fiches sans fichier, liens typés quand ils se résolvent) : retirés
+ * de l'amorçage le 30/09/2026, chargés seulement par les tests (`test/helpers.ts`).
+ */
+export async function seedDemoDocuments(db: PrismaClient): Promise<void> {
+  const { rise } = await loadDemo();
+  for (const [i, d] of rise.documents.entries()) {
+    const dateIso = parseFrLabel(d.date) ?? parseFrLabel(d.date, 2026)!;
+    const links: Array<{ entityType: string; entityId: string }> = [];
+    const txt = String(d.linked || '');
+    const typeMap: Record<string, string> = { RISK: 'RISK', ISSUE: 'ISSUE', MILESTONE: 'MILESTONE', DECISION: 'DECISION' };
+    for (const part of txt.split(' · ')) {
+      const m = /^(RISK|ISSUE|MILESTONE|DECISION)\s+(.+)$/.exec(part.trim());
+      if (m) {
+        const ids = m[2].split(/\s*(?:→|·)\s*/);
+        if (ids.length === 2 && txt.includes('→')) {
+          // « R01 → R07 » : plage des risques existants
+          for (const r of rise.risks) if (r.id >= ids[0] && r.id <= ids[1]) links.push({ entityType: 'RISK', entityId: r.id });
+        } else for (const id of ids) links.push({ entityType: typeMap[m[1]], entityId: id.trim() });
+      } else if (/^[JRPD]/.test(part.trim())) {
+        const id = part.trim();
+        const t = sourceTypeOf(id);
+        if (t) links.push({ entityType: t, entityId: id });
+      }
+    }
+    const mime = { PPTX: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', PDF: 'application/pdf', DOCX: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }[d.mime as string] ?? d.mime;
+    await db.document.create({
+      data: {
+        id: `doc${i + 1}`,
+        projectId: RISE_ID,
+        n: d.n,
+        type: d.type,
+        dateIso,
+        v: d.v,
+        conf: normKey(d.conf) === 'restreint' ? 'RESTRICTED' : 'INTERNAL',
+        src: normKey(d.src) === 'genere' ? 'GENERATED' : 'UPLOADED',
+        ext: d.ext,
+        mime,
+        pages: d.pages ?? null,
+        linkedLabel: links.length ? null : txt || null,
+        links: { create: dedupe(links) },
+      },
+    });
+  }
 }

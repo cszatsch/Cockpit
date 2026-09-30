@@ -878,3 +878,7 @@ Brief du commanditaire « Cockpit, dépôt et vectorisation de documents dans la
 | Droits | Dépôt : PMO et Responsables. Suppression et remplacement : PMO, ou auteur du dépôt. Document Restreint : visible du PMO, de l'administrateur et de son auteur (liste, bootstrap, fiche, recherche) — le bootstrap les envoyait jusqu'ici à tous les profils. Historique : PMO. | `KbService.canDelete`, `visible` |
 | Historique | `document_events`, en ajout seul (trigger SQL) : dépôt, refus, remplacement, indexation, échec, suppression, avec date, auteur, document, statut et détail ; plus le journal d'audit. | `GET /api/projects/:id/documents/history` |
 | Recherche | `GET /api/projects/:id/documents/search?q=` : question vectorisée avec le modèle de la fonction Vectorisation ; seuls les extraits de ce modèle et de cette dimension, des documents indexés et visibles, sont comparés ; résultat : document, repère, similarité, extrait. Prête pour le Jev du Cockpit (lot suivant). | `KbService.search`, `KB_SEARCH_MAX` |
+
+## Cockpit : documents factices retirés de la Base de connaissance (30/09/2026)
+
+Demande du commanditaire : supprimer les documents factices. Les 8 fiches de démonstration (sans fichier ni auteur de dépôt) sont supprimées de la base locale, avec leurs liens, et ne sont plus créées par l'amorçage : `seedDemoDocuments()` (`prisma/seed/rise.ts`) ne les charge que pour les tests, comme `seedDemoAi()`. Écran : message « Aucun document pour l'instant » quand la base est vide. Le mode démonstration hors API du frontend (`rise-data.js`) garde ses exemples.
