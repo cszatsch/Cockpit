@@ -96,19 +96,46 @@
     </div>
   </sc-if>
   <sc-if value="{{ w.isFeed }}" hint-placeholder-val="{{ false }}">
-    <div style="flex:1;min-height:0;display:flex;flex-direction:column">
-      <a href="{{ w.vz.fd.lead.href }}" target="_blank" rel="noopener" onClick="{{ w.vz.fd.lead.go }}" style="display:flex;flex-direction:column;gap:7px;padding:2px 0 16px;text-decoration:none;color:inherit;border-bottom:1px solid var(--wln,#eef2f1)" style-hover="opacity:.82">
-        <span style="display:flex;align-items:center;gap:7px;min-width:0"><span style="{{ w.vz.fd.lead.dotS }}"></span><span style="{{ w.vz.fd.lead.srcS }}">{{ w.vz.fd.lead.src }}</span><span style="font-size:10.5px;color:var(--wm,#8a9aa6);white-space:nowrap">· {{ w.vz.fd.lead.when }}</span></span>
-        <span style="font-size:19px;line-height:1.28;font-weight:800;letter-spacing:-.022em;color:var(--wi,#10233a);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;text-wrap:balance">{{ w.vz.fd.lead.t }}</span>
+    <div style="flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:28px;padding-top:4px">
+      <a href="{{ w.vz.fd.lead.href }}" target="_blank" rel="noopener" onClick="{{ w.vz.fd.lead.go }}" style="display:flex;flex-direction:column;gap:12px;min-width:0;text-decoration:none;color:inherit" style-hover="opacity:.86">
+        <span style="{{ w.vz.fd.lead.ruleS }}"></span>
+        <span style="display:flex;align-items:baseline;gap:8px;min-width:0"><span style="{{ w.vz.fd.lead.srcS }}">{{ w.vz.fd.lead.src }}</span><span style="font-size:10.5px;font-weight:600;color:var(--wm,#8a9aa6);white-space:nowrap">{{ w.vz.fd.lead.whenL }}</span></span>
+        <span style="font-size:23px;line-height:1.22;font-weight:800;letter-spacing:-.028em;color:var(--wi,#10233a);display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden;text-wrap:balance">{{ w.vz.fd.lead.t }}</span>
+        <span style="flex:1"></span>
+        <span style="{{ w.vz.fd.lead.goS }}">Lire l’article ↗</span>
       </a>
-      <div style="flex:1;min-height:0;display:flex;flex-direction:column;justify-content:space-around">
+      <div style="position:relative;min-width:0;display:flex;flex-direction:column;justify-content:space-between;padding:2px 0 2px 64px">
+        <span style="position:absolute;left:52px;top:8px;bottom:8px;width:1px;background:var(--wln,#e3eae8)"></span>
         <sc-for list="{{ w.vz.fd.rest }}" as="it" hint-placeholder-count="5">
-          <a href="{{ it.href }}" target="_blank" rel="noopener" onClick="{{ it.go }}" title="{{ it.t }}" style="display:grid;grid-template-columns:6px 78px minmax(0,1fr) auto;gap:10px;align-items:center;text-decoration:none;color:inherit;padding:2px 0" style-hover="opacity:.72">
-            <span style="{{ it.dotS }}"></span><span style="{{ it.srcS }}">{{ it.src }}</span>
-            <span style="font-size:12.5px;font-weight:600;letter-spacing:-.005em;color:var(--wi,#10233a);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">{{ it.t }}</span>
-            <span style="font-size:10.5px;color:var(--wm,#8a9aa6);white-space:nowrap;font-variant-numeric:tabular-nums">{{ it.when }}</span>
+          <a href="{{ it.href }}" target="_blank" rel="noopener" onClick="{{ it.go }}" title="{{ it.t }}" style="position:relative;display:flex;flex-direction:column;gap:3px;min-width:0;text-decoration:none;color:inherit" style-hover="opacity:.7">
+            <span style="position:absolute;left:-64px;top:1px;width:42px;text-align:right;font-size:10.5px;font-weight:700;color:var(--wm,#8a9aa6);white-space:nowrap;font-variant-numeric:tabular-nums">{{ it.when }}</span>
+            <span style="position:absolute;left:-12px;top:0;bottom:0"><span style="{{ it.dotS }}"></span></span>
+            <span style="{{ it.srcS }}">{{ it.src }}</span>
+            <span style="font-size:12.5px;line-height:1.38;font-weight:600;letter-spacing:-.005em;color:var(--wi,#10233a);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">{{ it.t }}</span>
           </a>
         </sc-for>
+      </div>
+    </div>
+  </sc-if>
+  <sc-if value="{{ w.isQueue }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;min-height:0;display:flex;align-items:center;gap:20px">
+      <div style="flex:none;width:104px;display:flex;flex-direction:column;gap:7px">
+        <span style="font-size:48px;font-weight:800;font-style:italic;letter-spacing:-.05em;line-height:.86;font-variant-numeric:tabular-nums;color:var(--wi,#10233a)">{{ w.vz.qu.n }}</span>
+        <span style="font-size:12px;font-weight:700;line-height:1.3;color:var(--wl,#5c7280)">{{ w.vz.qu.l }}</span>
+      </div>
+      <span style="flex:none;width:1px;align-self:stretch;margin:6px 0;background:var(--wln,#e8eeec)"></span>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:11px">
+        <div style="display:grid;grid-template-columns:38px minmax(0,1fr) 52px 32px;gap:12px;align-items:center;margin-bottom:-3px"><span></span><span></span><span style="grid-column:3 / span 2;text-align:right;font-size:8.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--wm,#a3b0b9)">En attente</span></div>
+        <sc-for list="{{ w.vz.qu.rows }}" as="r" hint-placeholder-count="3">
+          <div style="display:grid;grid-template-columns:38px minmax(0,1fr) 52px 32px;gap:12px;align-items:center">
+            <span style="font-size:10.5px;font-weight:800;letter-spacing:.02em;color:var(--wm,#8a9aa6);font-variant-numeric:tabular-nums;white-space:nowrap">{{ r.id }}</span>
+            <span title="{{ r.t }}" style="font-size:12.5px;font-weight:600;letter-spacing:-.005em;color:var(--wi,#10233a);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">{{ r.t }}</span>
+            <span style="position:relative;display:block;height:4px;border-radius:2px;background:var(--wt,#eef3f2)"><span style="{{ r.fillS }}"></span></span>
+            <span style="{{ r.ageS }}">{{ r.age }}</span>
+          </div>
+        </sc-for>
+        <sc-if value="{{ w.vz.qu.hasMore }}" hint-placeholder-val="{{ false }}"><span style="padding-left:50px;font-size:10.5px;font-weight:600;color:var(--wm,#8a9aa6)">{{ w.vz.qu.more }}</span></sc-if>
+        <sc-if value="{{ w.vz.qu.none }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;font-weight:600;color:#1d8f86">Aucune décision en attente</span></sc-if>
       </div>
     </div>
   </sc-if>

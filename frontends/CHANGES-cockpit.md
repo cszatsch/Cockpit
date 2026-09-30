@@ -239,3 +239,8 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 - Risques critiques : matrice probabilité × impact (zones teintées, pastilles comptées, détail au survol), puis les quatre plus exposés.
 - Décisions en attente, Actions en retard, Problèmes ouverts, Incohérences : chiffre en tête puis liste priorisée (échéance ou ancienneté ; initiales du porteur et jours de retard ; histogramme des sévérités ; blocages et avertissements).
 - Thème sombre : couleur de fond `--wbg` pour les contours des repères.
+
+## Décisions en attente et Actualité : nouvelle mise en forme (01/10/2026)
+
+- Décisions en attente : file d'attente — les trois plus anciennes d'abord, jauge d'attente relative à la plus ancienne, colorée à partir de 14 jours (ambre, `DEC_WAIT_WATCH`) et 30 jours (rouge, `DEC_WAIT_ALERT`) ; « + N plus récentes » ; méta « prochaine instance aujourd'hui / demain / le … » (prochaine séance planifiée des instances concernées).
+- Actualité : une éditoriale en deux colonnes — à gauche le titre principal (filet et source en couleur, « il y a … », « Lire l'article ↗ »), à droite le fil des cinq suivants sur un rail horodaté (source, titre sur deux lignes).
