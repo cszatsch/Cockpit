@@ -216,3 +216,15 @@ Plus aucune clé `localStorage` n'est lue ou écrite par le fichier HTML. api.js
 
 - `RISE Cockpit.dc.html` : le widget Actualité affiche les 6 titres les plus récents (au lieu de 3) ; sa taille passe de 2 × 1 à 2 × 2 pour que les six lignes tiennent sans être coupées (une tuile 2 × 1 n'en contient que 3 ou 4).
 - `api.js` : 6 titres demandés à `GET /api/widgets/news` et conservés.
+
+## Widgets d'Aujourd'hui : refonte visuelle (01/10/2026)
+
+Météo et Trafic inchangés. Pour tous les autres (`Widget.dc.html`, préparation `w.view` dans `RISE Cockpit.dc.html`) :
+- Langage commun : grands chiffres en italique gras (style des chiffres de la maison), étiquettes en petites capitales plus serrées, filets fins au lieu de cadres ; la couleur ne porte qu'un statut (bleu nuit neutre, sarcelle en avance, ambre en léger retard, rouge en décrochage).
+- KPI : taille du chiffre adaptée à sa longueur ; anneau pour « Avancement vs référence » (réel en arc, prévu en repère, écart au centre) et « Livrables » (part livrée) ; barre segmentée avec légende pour « Fiches d'arbitrage » ; « dans N j » pour le prochain COPIL.
+- Listes : clé alignée en colonne (score, code, date, source) colorée selon le statut, pastille de gravité seulement quand elle informe, une ligne par élément, lignes plus aérées dans les tuiles hautes, état « Rien à signaler » ; « Risques critiques » affiche jusqu'à 8 risques.
+- Courbes : aire en dégradé, dernier point marqué d'un halo, série plate centrée.
+- Météo des chantiers : couleur de chaque barre selon l'écart à la référence (le signal d'origine n'était pas reconnu : tout était en bleu nuit), repère de référence, légende « réel · référence ».
+- Chemin critique : tâches terminées, en cours, à venir distinguées ; repère « Aujourd'hui » en pointillé, étiqueté sur l'axe.
+- L'essentiel, par Jev : titre fort, points en deux colonnes (rubrique colorée, texte), signature « ✦ Jev · à jour », ligne des sources sur une ligne.
+- Thème sombre : nouvelles couleurs converties (`dbDarkView`).

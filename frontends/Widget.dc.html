@@ -8,10 +8,10 @@
 <body>
 <x-dc>
 <div style="height:100%;display:flex;flex-direction:column;gap:10px;padding:16px 18px;box-sizing:border-box;font-family:'Plus Jakarta Sans',sans-serif;color:var(--wi,#10233a);min-width:0;{{ w.vars }}">
-  <div style="display:flex;align-items:center;gap:8px;min-width:0;padding-right:18px">
-    <span style="font-size:10.5px;letter-spacing:.12em;line-height:1.35;text-transform:uppercase;font-weight:700;color:var(--wh,#5c7280);min-width:0;padding-right:44px">{{ w.name }}</span>
+  <div style="display:flex;align-items:center;gap:10px;min-width:0;padding-right:22px">
+    <span style="font-size:10px;letter-spacing:.11em;line-height:1.35;text-transform:uppercase;font-weight:800;color:var(--wh,#5c7280);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ w.name }}</span>
     <span style="flex:1"></span>
-    <sc-if value="{{ w.isAi }}" hint-placeholder-val="{{ false }}"><span style="font-size:10px;font-weight:700;color:#1d8f86;background:#e6f3f2;border-radius:5px;padding:2px 6px;white-space:nowrap">IA · {{ w.ai.at }}</span></sc-if>
+    <sc-if value="{{ w.hasMeta }}" hint-placeholder-val="{{ false }}"><span style="{{ w.metaS }}">{{ w.meta }}</span></sc-if>
   </div>
   <sc-if value="{{ w.isSun }}" hint-placeholder-val="{{ false }}">
     <div style="position:absolute;inset:0;overflow:hidden;border-radius:inherit;{{ w.thBg }}"><div style="position:absolute;inset:0;padding:16px 18px;color:#fff;{{ w.thF }}">
@@ -34,61 +34,75 @@
     </div></div>
   </sc-if>
   <sc-if value="{{ w.isKpi }}" hint-placeholder-val="{{ false }}">
-    <div style="display:flex;flex-direction:column;gap:6px;flex:1;justify-content:flex-end">
-      <div style="display:flex;align-items:baseline;gap:6px"><span style="{{ w.k.vS }}">{{ w.k.v }}</span><span style="font-size:13px;font-weight:600;color:var(--wl,#5c7280)">{{ w.k.u }}</span></div>
-      <span style="font-size:12px;color:var(--wl,#5c7280);line-height:1.4">{{ w.k.sub }}</span>
-      <sc-if value="{{ w.k.hasBar }}" hint-placeholder-val="{{ false }}"><span style="position:relative;height:4px;border-radius:2px;background:var(--wt,#e6edeb);overflow:visible;display:block;margin-top:4px"><span style="{{ w.k.bar }}"></span><span style="{{ w.k.ref }}"></span></span></sc-if>
+    <div style="flex:1;min-height:0;display:flex;align-items:flex-end;gap:16px">
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:baseline;gap:8px;min-width:0"><span style="{{ w.k.vS }}">{{ w.k.v }}</span><span style="font-size:12.5px;font-weight:700;color:var(--wl,#5c7280);white-space:nowrap">{{ w.k.u }}</span></div>
+        <sc-if value="{{ w.k.hasSegs }}" hint-placeholder-val="{{ false }}"><div style="display:flex;gap:3px;height:5px;margin-top:2px"><sc-for list="{{ w.k.segs }}" as="g" hint-placeholder-count="2"><span style="{{ g.st }}"></span></sc-for></div><div style="display:flex;gap:14px;flex-wrap:wrap"><sc-for list="{{ w.k.segs }}" as="g" hint-placeholder-count="2"><span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--wl,#5c7280);white-space:nowrap"><span style="{{ g.dotS }}"></span><b style="font-weight:800;color:var(--wi,#10233a);font-variant-numeric:tabular-nums">{{ g.n }}</b>{{ g.l }}</span></sc-for></div></sc-if>
+        <sc-if value="{{ w.k.hasSub }}" hint-placeholder-val="{{ true }}"><span style="font-size:11.5px;line-height:1.45;color:var(--wl,#5c7280);text-wrap:pretty">{{ w.k.sub }}</span></sc-if>
+        <sc-if value="{{ w.k.hasBar }}" hint-placeholder-val="{{ false }}"><span style="position:relative;display:block;height:5px;border-radius:3px;background:var(--wt,#eef3f2);margin-top:4px"><span style="{{ w.k.bar }}"></span><span style="{{ w.k.ref }}"></span></span></sc-if>
+      </div>
+      <sc-if value="{{ w.k.hasRing }}" hint-placeholder-val="{{ false }}"><div style="position:relative;width:84px;height:84px;flex:none;margin-bottom:-2px">
+        <svg viewBox="0 0 100 100" width="84" height="84" style="display:block;overflow:visible"><circle cx="50" cy="50" r="42" fill="none" stroke="var(--wt,#eef3f2)" stroke-width="7"></circle><circle cx="50" cy="50" r="42" fill="none" stroke="{{ w.k.ringS }}" stroke-width="7" stroke-linecap="round" stroke-dasharray="{{ w.k.ringDash }}" transform="rotate(-90 50 50)"></circle><sc-if value="{{ w.k.hasRingRef }}" hint-placeholder-val="{{ false }}"><line x1="50" y1="2" x2="50" y2="15" stroke="var(--wi,#10233a)" stroke-width="2.4" stroke-linecap="round" transform="{{ w.k.ringRot }}"></line></sc-if></svg>
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1"><span style="font-size:17px;font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums;color:var(--wi,#10233a)">{{ w.k.ringLbl }}</span><span style="margin-top:3px;font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--wm,#8a9aa6)">{{ w.k.ringCap }}</span></div>
+      </div></sc-if>
     </div>
   </sc-if>
   <sc-if value="{{ w.isList }}" hint-placeholder-val="{{ false }}">
-    <div style="display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden">
+    <div style="flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column">
       <sc-for list="{{ w.rows }}" as="r" hint-placeholder-count="3">
-        <div style="display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:baseline;padding:7px 0;border-top:1px solid var(--wln,#f0f4f3)">
-          <span style="{{ r.aS }}">{{ r.a }}</span>
-          <span style="font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.t }}</span>
+        <div style="{{ r.rowS }}">
+          <sc-if value="{{ w.listDot }}" hint-placeholder-val="{{ false }}"><span style="{{ r.dS }}"></span></sc-if>
+          <span style="{{ r.kS }}">{{ r.a }}</span>
+          <span title="{{ r.t }}" style="font-size:12.5px;font-weight:600;letter-spacing:-.005em;color:var(--wi,#10233a);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">{{ r.t }}</span>
           <span style="{{ r.rS }}">{{ r.r }}</span>
         </div>
       </sc-for>
+      <sc-if value="{{ w.listEmpty }}" hint-placeholder-val="{{ false }}"><div style="margin:auto;display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--wm,#8a9aa6)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg><span style="font-size:12px;font-weight:600">Rien à signaler</span></div></sc-if>
     </div>
   </sc-if>
   <sc-if value="{{ w.isBars }}" hint-placeholder-val="{{ false }}">
-    <div style="display:flex;flex-direction:column;gap:9px;flex:1;justify-content:center">
+    <div style="flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:13px">
       <sc-for list="{{ w.rows }}" as="r" hint-placeholder-count="4">
-        <div style="display:grid;grid-template-columns:118px minmax(0,1fr) 38px;gap:10px;align-items:center">
-          <span style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.t }}</span>
-          <span style="position:relative;height:6px;border-radius:3px;background:var(--wt,#eef3f2);display:block"><span style="{{ r.bar }}"></span><span style="{{ r.ref }}"></span></span>
+        <div style="display:grid;grid-template-columns:minmax(0,132px) minmax(0,1fr) 44px;gap:14px;align-items:center">
+          <span style="font-size:12px;font-weight:600;color:var(--wi,#10233a);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.t }}</span>
+          <span style="position:relative;display:block;height:5px;border-radius:3px;background:var(--wt,#eef3f2)"><span style="{{ r.bar }}"></span><span style="{{ r.ref }}"></span></span>
           <span style="{{ r.vS }}">{{ r.v }}</span>
         </div>
       </sc-for>
     </div>
   </sc-if>
   <sc-if value="{{ w.isSpark }}" hint-placeholder-val="{{ false }}">
-    <div style="display:flex;flex-direction:column;gap:6px;flex:1;justify-content:flex-end">
-      <div style="display:flex;align-items:baseline;gap:6px"><span style="font-size:30px;font-weight:800;letter-spacing:-.03em">{{ w.s.v }}</span><span style="font-size:12px;color:var(--wl,#5c7280)">{{ w.s.u }}</span></div>
-      <svg viewBox="0 0 200 44" preserveAspectRatio="none" style="width:100%;height:44px;overflow:visible"><path d="{{ w.s.area }}" fill="{{ w.s.fill }}"></path><path d="{{ w.s.line }}" fill="none" stroke="{{ w.s.c }}" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"></path></svg>
-      <span style="font-size:11px;color:var(--wm,#8a9aa6)">{{ w.s.sub }}</span>
+    <div style="flex:1;min-height:0;display:flex;flex-direction:column;justify-content:flex-end;gap:8px">
+      <div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:38px;font-weight:800;font-style:italic;letter-spacing:-.045em;line-height:.95;font-variant-numeric:tabular-nums;color:var(--wi,#10233a)">{{ w.s.v }}</span><span style="font-size:12.5px;font-weight:700;color:var(--wl,#5c7280)">{{ w.s.u }}</span></div>
+      <div style="position:relative;height:40px">
+        <svg viewBox="0 0 200 44" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%;overflow:visible"><defs><linearGradient id="{{ w.s.gid }}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{{ w.s.c }}" stop-opacity=".22"></stop><stop offset="1" stop-color="{{ w.s.c }}" stop-opacity="0"></stop></linearGradient></defs><path d="{{ w.s.area }}" fill="{{ w.s.gfill }}"></path><path d="{{ w.s.line }}" fill="none" stroke="{{ w.s.c }}" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"></path></svg>
+        <span style="{{ w.s.haloS }}"></span><span style="{{ w.s.dotS }}"></span>
+      </div>
+      <span style="font-size:11px;color:var(--wm,#8a9aa6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ w.s.sub }}</span>
     </div>
   </sc-if>
   <sc-if value="{{ w.isGantt }}" hint-placeholder-val="{{ false }}">
-    <div style="position:relative;display:flex;flex-direction:column;gap:8px;flex:1;justify-content:center">
-      <span style="{{ w.g.today }}"></span>
+    <div style="position:relative;flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:10px">
+      <span style="{{ w.g.lineS }}"></span><span style="{{ w.g.tagS }}">Aujourd’hui</span>
       <sc-for list="{{ w.rows }}" as="r" hint-placeholder-count="4">
         <div style="display:grid;grid-template-columns:130px minmax(0,1fr);gap:10px;align-items:center">
-          <span style="font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.t }}</span>
-          <span style="position:relative;height:10px;display:block"><span style="{{ r.bar }}"></span></span>
+          <span style="font-size:11.5px;font-weight:600;color:var(--wi,#10233a);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.t }}</span>
+          <span style="position:relative;height:8px;display:block;border-radius:4px;background:var(--wt,#f2f6f5)"><span style="{{ r.bar }}"></span></span>
         </div>
       </sc-for>
-      <div style="display:grid;grid-template-columns:130px minmax(0,1fr);gap:10px"><span></span><span style="display:flex;justify-content:space-between;font-size:10px;color:var(--wm,#a3b0b9)"><span>{{ w.g.a }}</span><span>{{ w.g.b }}</span></span></div>
+      <div style="display:grid;grid-template-columns:130px minmax(0,1fr);gap:10px"><span></span><span style="display:flex;justify-content:space-between;font-size:10px;font-weight:600;color:var(--wm,#a3b0b9);font-variant-numeric:tabular-nums"><span>{{ w.g.a }}</span><span>{{ w.g.b }}</span></span></div>
     </div>
   </sc-if>
   <sc-if value="{{ w.isAi }}" hint-placeholder-val="{{ false }}">
-    <div style="display:flex;flex-direction:column;gap:10px;flex:1;min-height:0">
-      <span style="font-size:15px;font-weight:700;line-height:1.4;letter-spacing:-.01em;text-wrap:pretty">{{ w.ai.head }}</span>
-      <sc-for list="{{ w.ai.pts }}" as="p" hint-placeholder-count="4">
-        <div style="display:grid;grid-template-columns:8px minmax(0,1fr);gap:10px;align-items:baseline"><span style="{{ p.dot }}"></span><span style="font-size:12.5px;line-height:1.5;color:var(--wb,#3d5465);text-wrap:pretty"><b style="color:var(--wi,#10233a);font-weight:700">{{ p.k }}</b> {{ p.t }}</span></div>
-      </sc-for>
+    <div style="position:relative;display:flex;flex-direction:column;gap:12px;flex:1;min-height:0;overflow:hidden">
+      <span style="position:relative;font-size:16px;font-weight:800;line-height:1.35;letter-spacing:-.02em;color:var(--wi,#10233a);text-wrap:balance">{{ w.ai.head }}</span>
+      <div style="position:relative;display:flex;flex-direction:column">
+        <sc-for list="{{ w.ai.pts }}" as="p" hint-placeholder-count="4">
+          <div style="{{ p.rowS }}"><span style="{{ p.kS }}">{{ p.k }}</span><span style="font-size:12.5px;line-height:1.5;color:var(--wb,#3d5465);text-wrap:pretty;min-width:0">{{ p.t }}</span></div>
+        </sc-for>
+      </div>
       <span style="flex:1"></span>
-      <span style="font-size:10.5px;color:var(--wm,#8a9aa6)">{{ w.ai.src }}</span>
+      <span style="position:relative;display:flex;align-items:center;gap:6px;font-size:10.5px;color:var(--wm,#8a9aa6);min-width:0"><span style="color:#1d8f86;font-size:11px;flex:none">✦</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ w.ai.src }}</span></span>
     </div>
   </sc-if>
 </div>
