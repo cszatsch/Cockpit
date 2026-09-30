@@ -366,6 +366,60 @@
         ]
       }
     },
+    "/api/projects/{projectId}/project/info": {
+      "get": {
+        "operationId": "ProjectController_info",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "cockpit · projet"
+        ]
+      },
+      "put": {
+        "operationId": "ProjectController_putInfo",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "cockpit · projet"
+        ]
+      }
+    },
     "/api/projects/{projectId}/project/sections/{key}": {
       "patch": {
         "operationId": "ProjectController_patchSection",

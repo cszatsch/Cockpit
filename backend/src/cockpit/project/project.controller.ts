@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Headers, Param, Patch } from '@nestjs/common';
+import { Body, Controller, Get, Headers, Param, Patch, Put } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
@@ -11,6 +11,7 @@ import { badRequest, forbidden } from '../../core/errors';
 import { checkIfMatch, parse } from '../../core/http';
 import { canSeeReferentialTab, canWriteReferential } from '../../domain/rights';
 import { assignmentActive } from '../../domain/rules';
+import { PROJECT_INFO_BLOCK, ProjectInfoSchema, projectInfoOf } from '../../domain/project-info';
 import { isoDate, optIsoDate, optText, text } from '../referential/schemas';
 
 const ProjectPatch = z
@@ -129,6 +130,34 @@ export class ProjectController {
       await this.audit.record(tx, { actor, projectId: scope.project.id, profileUsed: 'PMO' }, { entityType: 'PROJECT', entityId: scope.project.id, before, after: after, target: scope.project.code });
     });
     return this.view(scope);
+  }
+
+  /** Objet « Info projet » (contexte client et périmètre, onglet Fiche projet) : lecture, pour tout profil du projet. */
+  @Get('project/info')
+  async info(@CurrentActor() actor: Actor, @Param('projectId') projectId: string) {
+    const scope = await this.access.scope(actor, projectId);
+    const b = await this.prisma.contentBlock.findUnique({ where: { projectId_key: { projectId: scope.project.id, key: PROJECT_INFO_BLOCK } } });
+    return projectInfoOf(b?.data);
+  }
+
+  /**
+   * Objet « Info projet » : remplace ses huit rubriques (PMO) ; les autres clés du bloc `referential` sont conservées.
+   * Audit : une ligne par rubrique modifiée.
+   */
+  @Put('project/info')
+  async putInfo(@CurrentActor() actor: Actor, @Param('projectId') projectId: string, @Body() body: unknown) {
+    const scope = await this.access.scope(actor, projectId);
+    if (!canWriteReferential(scope.access)) throw forbidden('L’objet Info projet est modifiable par le PMO uniquement');
+    const input = parse(ProjectInfoSchema, body);
+    return this.prisma.$transaction(async (tx) => {
+      const where = { projectId_key: { projectId: scope.project.id, key: PROJECT_INFO_BLOCK } };
+      const cur = await tx.contentBlock.findUnique({ where });
+      const before = projectInfoOf(cur?.data);
+      const data = { ...((cur?.data as object) ?? {}), ...input } as Prisma.InputJsonValue;
+      await tx.contentBlock.upsert({ where, create: { projectId: scope.project.id, key: PROJECT_INFO_BLOCK, data }, update: { data, version: { increment: 1 } } });
+      await this.audit.record(tx, { actor, projectId: scope.project.id, profileUsed: 'PMO' }, { entityType: 'PROJECT_INFO', entityId: scope.project.id, before, after: input, target: `${scope.project.code} · Info projet` });
+      return input;
+    });
   }
 
   /** Section libre de la fiche projet (brief § 6.1 `ProjectSection`). */

@@ -1,12 +1,13 @@
 # Cockpit — dictionnaire des données
 
 > Généré depuis `backend/src/domain/jev-dictionnaire-cockpit.ts` (`npm run dictionnaire:doc`) : ne pas modifier à la main.
-> 33 vues en lecture seule du schéma `jev_cockpit`, chargées dans `dictionnaire_tables` et `dictionnaire_colonnes`.
+> 34 vues en lecture seule du schéma `jev_cockpit`, chargées dans `dictionnaire_tables` et `dictionnaire_colonnes`.
 > Dates métier en texte AAAA-MM-JJ, horodatages en heure de Paris. Chaque vue porte projet_id (et chantier_id) pour le filtrage par droits ; aucun rôle de lecture n’y a accès tant que ce filtrage n’est pas en place.
 
 ## Sommaire
 
 - [`jev_cockpit.projets`](#projets) — 19 colonnes
+- [`jev_cockpit.infos_projet`](#infos_projet) — 7 colonnes
 - [`jev_cockpit.references_planning`](#references_planning) — 8 colonnes
 - [`jev_cockpit.lots`](#lots) — 10 colonnes
 - [`jev_cockpit.phases`](#phases) — 15 colonnes
@@ -84,6 +85,36 @@ Projets pilotés dans le Cockpit : identité, client, dates, statut, date de mis
 - Aucune météo n’est calculée : la santé affichée est seulement l’appréciation manuelle (sante_manuelle).
 - Les dates sont du texte AAAA-MM-JJ : comparer comme du texte, ou convertir avec ::date pour calculer un écart en jours.
 - Droits : visible de tout utilisateur habilité sur le projet (projet_id). Le directeur de programme a accès au projet.
+
+## infos_projet
+
+Objet « Info projet » du Référentiel : contexte client et périmètre du projet (client, marques du groupe, programme en une phrase, enjeux stratégiques, périmètres fonctionnel, applicatif, géographique et juridique), une ligne par élément. Écrans : Info projet › Fiche projet, Référentiel › Info projet.
+
+| Colonne | Type | Signification | Exemples, unités |
+|---|---|---|---|
+| `id` | texte | Identifiant de la ligne (projet:rubrique:rang) |  |
+| `projet_id` | texte | Projet → projets.id |  |
+| `rubrique` | texte | Rubrique de l’objet | Le client, Marques du groupe, Programme en une phrase, Enjeux stratégiques, Périmètre fonctionnel, Périmètre applicatif, Périmètre géographique, Périmètre juridique |
+| `ordre_rubrique` | entier | Rang de la rubrique (1 à 8, ordre ci-dessus) |  |
+| `ordre` | entier | Rang de l’élément dans sa rubrique (à partir de 1) |  |
+| `libelle` | texte | Libellé (Le client, périmètres fonctionnel et applicatif) ; null pour les rubriques en liste | Raison sociale, Siège, Finance |
+| `valeur` | texte | Valeur de l’élément (texte, marque, enjeu, pays, entité…) |  |
+
+**Relations**
+
+- infos_projet.projet_id = projets.id
+
+**Usages**
+
+- Quels sont les enjeux stratégiques du projet ?
+- Quel est le périmètre géographique (pays) ou juridique (entités) ?
+- Quelles marques du groupe sont concernées ?
+
+**Règles et précautions**
+
+- Ordre d’affichage = ordre_rubrique puis ordre. Nombre de pays = nombre de lignes de la rubrique « Périmètre géographique » ; nombre d’entités = celles de « Périmètre juridique ».
+- Le programme en une phrase est une seule ligne ; les rubriques en liste n’ont pas de libellé.
+- Droits : visible de tout utilisateur habilité sur le projet (projet_id).
 
 ## references_planning
 

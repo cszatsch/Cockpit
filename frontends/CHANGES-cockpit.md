@@ -157,3 +157,9 @@ Plus aucune clé `localStorage` n'est lue ou écrite par le fichier HTML. api.js
 
 - `RISE Cockpit.dc.html` : état du compte de chaque personne lu sur le serveur (`psAccSrv`) : « Compte activé », « Invitation envoyée le JJ/MM par l'administrateur · en attente d'activation », « Demande d'invitation transmise à l'administrateur le JJ/MM ». Le bouton « Inviter à activer son compte » n'apparaît que pour une personne sans compte ; message « Demande d'invitation transmise à l'administrateur » ; un nouveau clic sur une demande en cours ne crée rien. Démonstration sans serveur inchangée.
 - `api.js` : chargement de `/account-states` ; après une demande, état relu sur le serveur ; message précis si la personne a déjà un compte.
+
+## Objet « Info projet » et Fiche projet (30/09/2026)
+
+- Référentiel, « Objets du modèle » : nouvel objet « Info projet » après « Projet » (rubrique · libellé · valeur, une ligne par élément ; rubrique en liste de choix ; « + » pour ajouter ; suppression par ligne). Méthodes `ipRub`, `ipRows`, `projectInfo`.
+- Fiche projet : blocs lus dans l'objet au lieu du texte écrit en dur (programme en une phrase, enjeux stratégiques, pays et entités avec leurs compteurs, nom du client de l'en-tête « Le client — … ») ; rendu inchangé. « Marques du groupe » et « Le programme en une phrase » sont permutés.
+- `api.js` : magasin `ipAdded` ; `onProjectInfo` envoie `PUT /project/info` quand une ligne de l'objet change.

@@ -184,7 +184,7 @@ const frShort = (iso, year) => { if (!iso) return ''; const [y, m, d] = iso.spli
 /** Magasins persistants observés dans l'état du composant. */
 const STORES = ['ed', 'actStatus', 'sesEd', 'sesAdded', 'refValues', 'refDeleted', 'bmEd', 'bmAdd', 'phLots', 'txtEd', 'critEd', 'arbData', 'lvTrack',
   'mineArch', 'mineTitles', 'mineDetails', 'mineDue', 'mineCta', 'newTasks', 'gbExtra', 'gbMem', 'gbAdded', 'added', 'lvAdded', 'dlOwner', 'psAdded', 'psAcc',
-  'roAdded', 'roTier', 'tmAdded', 'wsAdded', 'spAdded', 'phAdded', 'waAdded', 'spDesc', 'phDesc', 'plAdd', 'templates', 'tplHistory', 'cmts', 'modPh',
+  'roAdded', 'roTier', 'tmAdded', 'wsAdded', 'ipAdded', 'spAdded', 'phAdded', 'waAdded', 'spDesc', 'phDesc', 'plAdd', 'templates', 'tplHistory', 'cmts', 'modPh',
   ...SECTION_STORES, ...Object.keys(PREF_OF)];
 
 /** Délai d'anti-rebond du rechargement après écriture (ms). */
@@ -305,7 +305,7 @@ export function attach(comp) {
       psAccSrv: L.accStates || null,
       ed: {}, actStatus: {}, sesEd: {}, sesAdded: [], refValues: {}, refDeleted: {}, bmEd: {}, bmAdd: {},
       phLots: hydratePhLots(B), txtEd: {}, critEd: {}, arbData: {}, lvTrack: {}, gbExtra: {}, gbMem: {}, gbAdded: [], added: {}, lvAdded: [], dlOwner: {},
-      psAdded: [], psAcc: {}, roAdded: [], roTier: {}, tmAdded: [], wsAdded: [], spAdded: [], phAdded: [], waAdded: [], spDesc: {}, phDesc: {}, plAdd: {},
+      psAdded: [], psAcc: {}, roAdded: [], roTier: {}, tmAdded: [], wsAdded: [], ipAdded: [], spAdded: [], phAdded: [], waAdded: [], spDesc: {}, phDesc: {}, plAdd: {},
       newTasks: [], mineArch: {}, mineTitles: {}, mineDetails: {}, mineDue: {}, mineCta: {}, cmts: {}, modPh: {},
     };
     SECTION_STORES.forEach((k) => { const v = byId['ui.' + k]; st[k] = v && typeof v === 'object' ? v : {}; });
@@ -435,8 +435,24 @@ export function attach(comp) {
   const changedKeys = (a, b) => { a = a || {}; b = b || {}; return [...new Set([...Object.keys(a), ...Object.keys(b)])].filter((k) => !same(a[k], b[k])); };
   const newItems = (a, b) => { const ids = new Set((a || []).map((x) => x && x.id)); return (b || []).filter((x) => x && !ids.has(x.id)); };
 
+  /**
+   * « Info projet » : `PUT /project/info` avec l'objet reconstitué par l'écran (`projectInfo()`), seulement s'il diffère
+   * de celui du serveur (une ligne ajoutée et encore vide n'est pas envoyée, et n'est donc pas effacée par le rechargement).
+   */
+  function onProjectInfo() {
+    const norm = (o) => JSON.stringify(o);
+    const R = (S.B && S.B.referential) || {}, arr = (x) => (Array.isArray(x) ? x : []);
+    const server = { identity: arr(R.identity).map((p) => [String(p[0] || ''), String(p[1] || '')]).filter((p) => p[1].trim()), brands: arr(R.brands).map(String).filter((x) => x.trim()), pitch: typeof R.pitch === 'string' ? R.pitch : '', stakes: arr(R.stakes).map(String).filter((x) => x.trim()),
+      scope: arr(R.scope).map((p) => [String(p[0] || ''), String(p[1] || '')]).filter((p) => p[1].trim()), systems: arr(R.systems).map((p) => [String(p[0] || ''), String(p[1] || '')]).filter((p) => p[1].trim()), geo: arr(R.geo).map(String).filter((x) => x.trim()), legal: arr(R.legal).map(String).filter((x) => x.trim()) };
+    if (norm(comp.projectInfo()) === norm(server)) return;
+    write('PUT project/info', () => request('PUT', P('/project/info'), comp.projectInfo()), 250);
+  }
+
   // ── Traduction des changements en appels API ──
   function onChange(k, before, after) {
+    // Objet « Info projet » : ses lignes (refValues, refDeleted, ipAdded) reconstituent l'objet complet, envoyé en une fois.
+    if (k === 'ipAdded' || ((k === 'refValues' || k === 'refDeleted') && changedKeys(before, after).some((x) => x.startsWith('PROJECT_INFO/')))) onProjectInfo();
+    if (k === 'ipAdded') return;
     if (SECTION_STORES.includes(k)) return writePatch('PATCH', '/project/sections/ui.' + k, { value: after || {} }, TYPING_DEBOUNCE_MS, { noReload: true });
     if (PREF_OF[k]) {
       const f = PREF_OF[k];

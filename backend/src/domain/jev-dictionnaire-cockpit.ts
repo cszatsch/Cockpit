@@ -3,7 +3,7 @@
  * schéma `jev_cockpit`, sur le modèle du dictionnaire de la Console (`jev-dictionnaire.ts`, mêmes types).
  *
  * Périmètre : ce que le Cockpit lit et affiche, projet par projet. Exclus : chemins de stockage, images, JSON de
- * présentation (ContentBlock, ProjectSection, fiche d'arbitrage, composants de template), tâches privées (Task,
+ * présentation (ContentBlock — sauf l'objet « Info projet », vue infos_projet —, ProjectSection, fiche d'arbitrage, composants de template), tâches privées (Task,
  * TaskOverride), tables de la Console et de l'authentification.
  * Droits (RG5 / RG8) : chaque vue porte `projet_id`, et `chantier_id` quand l'objet appartient à un chantier ; la règle
  * de lecture est écrite dans chaque fiche. Seul le rôle `jev_lecteur_cockpit` peut les lire, et il ne voit que le
@@ -62,6 +62,34 @@ export const DICTIONNAIRE_COCKPIT: DictTable[] = [
       'Aucune météo n’est calculée : la santé affichée est seulement l’appréciation manuelle (sante_manuelle).',
       DATES_TEXTE,
       DROITS_PROJET + ' Le directeur de programme a accès au projet.',
+    ],
+  },
+  {
+    nom: 'infos_projet',
+    // Objet « Info projet » (30/09/2026) : rubriques du bloc `referential` (ContentBlock), une ligne par élément.
+    source: `(SELECT b.${q('projectId')} AS project_id, r.rubrique, r.ordre_rubrique, e.ord AS ordre,
+      CASE WHEN r.kv THEN e.el->>0 END AS libelle, CASE WHEN r.kv THEN e.el->>1 ELSE e.el#>>'{}' END AS valeur
+    FROM ${q('ContentBlock')} b
+    CROSS JOIN LATERAL (VALUES ('Le client', 1, 'identity', true), ('Marques du groupe', 2, 'brands', false), ('Programme en une phrase', 3, 'pitch', false), ('Enjeux stratégiques', 4, 'stakes', false),
+      ('Périmètre fonctionnel', 5, 'scope', true), ('Périmètre applicatif', 6, 'systems', true), ('Périmètre géographique', 7, 'geo', false), ('Périmètre juridique', 8, 'legal', false)) r(rubrique, ordre_rubrique, cle, kv)
+    CROSS JOIN LATERAL jsonb_array_elements(CASE jsonb_typeof(b.data::jsonb -> r.cle) WHEN 'array' THEN b.data::jsonb -> r.cle WHEN 'string' THEN jsonb_build_array(b.data::jsonb -> r.cle) ELSE '[]'::jsonb END) WITH ORDINALITY e(el, ord)
+    WHERE b.key = 'referential' AND coalesce(CASE WHEN r.kv THEN e.el->>1 ELSE e.el#>>'{}' END, '') <> '') t`,
+    description: 'Objet « Info projet » du Référentiel : contexte client et périmètre du projet (client, marques du groupe, programme en une phrase, enjeux stratégiques, périmètres fonctionnel, applicatif, géographique et juridique), une ligne par élément. Écrans : Info projet › Fiche projet, Référentiel › Info projet.',
+    colonnes: [
+      { nom: 'id', expr: `t.project_id || ':' || t.ordre_rubrique || ':' || t.ordre`, type: 'texte', signification: 'Identifiant de la ligne (projet:rubrique:rang)' },
+      { nom: 'projet_id', expr: 't.project_id', type: 'texte', signification: 'Projet → projets.id' },
+      { nom: 'rubrique', expr: 't.rubrique', type: 'texte', signification: 'Rubrique de l’objet', exemples: 'Le client, Marques du groupe, Programme en une phrase, Enjeux stratégiques, Périmètre fonctionnel, Périmètre applicatif, Périmètre géographique, Périmètre juridique' },
+      { nom: 'ordre_rubrique', expr: 't.ordre_rubrique', type: 'entier', signification: 'Rang de la rubrique (1 à 8, ordre ci-dessus)' },
+      { nom: 'ordre', expr: 't.ordre', type: 'entier', signification: 'Rang de l’élément dans sa rubrique (à partir de 1)' },
+      { nom: 'libelle', expr: 't.libelle', type: 'texte', signification: 'Libellé (Le client, périmètres fonctionnel et applicatif) ; null pour les rubriques en liste', exemples: 'Raison sociale, Siège, Finance' },
+      { nom: 'valeur', expr: 't.valeur', type: 'texte', signification: 'Valeur de l’élément (texte, marque, enjeu, pays, entité…)' },
+    ],
+    relations: ['infos_projet.projet_id = projets.id'],
+    usages: ['Quels sont les enjeux stratégiques du projet ?', 'Quel est le périmètre géographique (pays) ou juridique (entités) ?', 'Quelles marques du groupe sont concernées ?'],
+    regles: [
+      'Ordre d’affichage = ordre_rubrique puis ordre. Nombre de pays = nombre de lignes de la rubrique « Périmètre géographique » ; nombre d’entités = celles de « Périmètre juridique ».',
+      'Le programme en une phrase est une seule ligne ; les rubriques en liste n’ont pas de libellé.',
+      DROITS_PROJET,
     ],
   },
   {
