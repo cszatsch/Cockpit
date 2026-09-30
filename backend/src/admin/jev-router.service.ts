@@ -3,7 +3,7 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../core/prisma.service';
 import { TodayService } from '../core/today.service';
 import { ApiCardsService } from './api-cards.service';
-import { buildRouterRequest, JEV_ROUTER_CARD, parseRouterResponse, RouteDecision, RouterPromptVersion, RouterResponseError, RouterTurn, ROUTER_PROMPT_VERSION } from '../domain/jev-router';
+import { buildRouterRequest, JEV_ROUTER_CARD, parseRouterResponse, RouteDecision, RouterApp, RouterPromptVersion, RouterResponseError, RouterTurn, ROUTER_PROMPT_VERSION } from '../domain/jev-router';
 
 export interface RoutedQuestion extends RouteDecision {
   /** OK, ou motif du repli : NOT_CONFIGURED, TIMEOUT, ERROR, INVALID. */
@@ -32,7 +32,7 @@ export class JevRouterService {
     return process.env.JEV_ROUTER_CARD || JEV_ROUTER_CARD;
   }
 
-  async classify(question: string, ctx: { history?: RouterTurn[]; page?: string | null; accountId?: string | null; conversationId?: string | null; version?: RouterPromptVersion; source?: 'LIVE' | 'EVAL'; record?: boolean } = {}): Promise<RoutedQuestion> {
+  async classify(question: string, ctx: { history?: RouterTurn[]; page?: string | null; accountId?: string | null; conversationId?: string | null; version?: RouterPromptVersion; source?: 'LIVE' | 'EVAL'; record?: boolean; app?: RouterApp } = {}): Promise<RoutedQuestion> {
     const version = ctx.version ?? ROUTER_PROMPT_VERSION;
     const card = await this.prisma.apiCard.findUnique({ where: { id: this.cardId() } });
     let model: string | null = null;
@@ -47,7 +47,7 @@ export class JevRouterService {
       }
       if (!model) out = fallback('NOT_CONFIGURED', 'Le corps de la carte JEV doit indiquer le modèle (« model »)', null);
       else {
-        const body = JSON.stringify(buildRouterRequest(question, { model, history: ctx.history, page: ctx.page, version }));
+        const body = JSON.stringify(buildRouterRequest(question, { model, history: ctx.history, page: ctx.page, version, app: ctx.app }));
         const r = await this.apiCards.call({ ...card, body }, {}, 'JEV');
         if (r.code === 0) out = fallback(r.failure === 'timeout' ? 'TIMEOUT' : 'ERROR', r.failure === 'timeout' ? 'Délai dépassé' : `Service injoignable : ${r.body.slice(0, 200)}`, r.ms);
         else if (r.code < 200 || r.code >= 300) out = fallback('ERROR', `HTTP ${r.code} : ${r.body.slice(0, 200)}`, r.ms);
@@ -65,7 +65,7 @@ export class JevRouterService {
         data: {
           at: this.today.now(), accountId: ctx.accountId ?? null, conversationId: ctx.conversationId ?? null, question: question.slice(0, 2000),
           type: out.type, choice: out.choice, confidence: out.status === 'OK' ? out.confiance : null, probabilities: out.status === 'OK' ? (out.probabilities as Prisma.InputJsonValue) : Prisma.DbNull,
-          latencyMs: out.latencyMs, status: out.status, error: out.error, promptVersion: version, model, source: ctx.source ?? 'LIVE',
+          latencyMs: out.latencyMs, status: out.status, error: out.error, promptVersion: ctx.app === 'cockpit' ? 'cockpit-v1' : version, model, source: ctx.source ?? 'LIVE',
         },
       }).catch((e) => console.warn('[jev-router] trace non enregistrée :', e instanceof Error ? e.message : e));
     }

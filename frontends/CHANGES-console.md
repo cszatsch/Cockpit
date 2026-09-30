@@ -536,3 +536,9 @@ Vérification des éléments de la vue d'ensemble face au serveur. Conformes : d
 ## Jev : icône « Effacer tous les messages » (30/09/2026)
 
 - `Console Admin.dc.html` : le bouton d'en-tête du panneau de Jev (auparavant crayon « Nouvelle conversation ») prend l'icône fournie `jev-effacer-4a.svg` (bulle barrée d'une croix), libellé « Effacer tous les messages ». Même action : les messages affichés sont effacés et une nouvelle conversation est ouverte côté serveur (sinon ils reviendraient au rechargement) ; désactivé tant que l'utilisateur n'a rien écrit.
+
+## Guide utilisateur Console et Cockpit (30/09/2026)
+
+- `Guide utilisateur.dc.html` : remplacé par la maquette validée « Guide utilisateur Console Cockpit » (sélecteur Console | Cockpit, guide, traçabilité et réglages de Jev par application). Seule adaptation : `idx.model` / `idx.dims` (renvoyés par le serveur) remplacent, s'ils sont présents, le modèle écrit en dur dans la ligne d'indexation (« Qwen3 Embedding 8B (1536 dim.) »), afin que la ligne reste juste si le modèle de vectorisation change. `support.js` du projet conservé (plus récent que celui de l'export).
+- `Console Admin.dc.html` : props `guides` (toujours passées, tableaux vides par défaut : jamais les données de démonstration), `current-user`, `can-replace`, `on-download(app, version)`, `on-replace(app, file)`, `on-save-settings(app, settings)`.
+- `admin-api.js` : chargement `GET /guides` ; téléchargement `GET /guides/:app/file`, dépôt `POST /guides/:app`, réglages `PUT /guides/:app/settings`, puis relecture de `guides` ; suivi de l'indexation toutes les 1,2 s jusqu'à « Indexé » (notification de réussite ou d'échec) ; le motif du serveur (fichier refusé, réglage hors limites) s'affiche en notification, le composant gardant ses messages.

@@ -9,16 +9,21 @@
 <x-dc>
 <helmet><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700;1,800&amp;display=swap" rel="stylesheet"><style>
 html,body{margin:0;background:#f2f6f5;font-family:'Plus Jakarta Sans',sans-serif;color:#10233a;-webkit-font-smoothing:antialiased;font-size:13px}
-[data-screen-label="Guide utilisateur"]{font-family:'Plus Jakarta Sans',sans-serif;color:#10233a;-webkit-font-smoothing:antialiased;font-size:13px}
-[data-screen-label="Guide utilisateur"] *{box-sizing:border-box}
-[data-screen-label="Guide utilisateur"] a{color:#1d8f86;text-decoration:none}[data-screen-label="Guide utilisateur"] a:hover{color:#146b64}
-[data-screen-label="Guide utilisateur"] button,[data-screen-label="Guide utilisateur"] input{font:inherit;color:inherit}
-[data-screen-label="Guide utilisateur"] .gd-rag-grid{grid-template-columns:repeat(3,minmax(0,1fr))}@media (max-width:760px){[data-screen-label="Guide utilisateur"] .gd-rag-grid{grid-template-columns:1fr}}
-[data-screen-label="Guide utilisateur"] button:focus-visible,[data-screen-label="Guide utilisateur"] label:focus-within{outline:2px solid #1d8f86;outline-offset:2px}
+*{box-sizing:border-box}
+a{color:#1d8f86;text-decoration:none}a:hover{color:#146b64}
+button,input{font:inherit;color:inherit}
+button:focus-visible,label:focus-within,input:focus-visible{outline:2px solid #1d8f86;outline-offset:2px}
 </style></helmet>
 
 <div data-screen-label="Guide utilisateur" style="max-width:1200px;margin:0 auto;padding:40px clamp(18px,4vw,40px) 56px;display:flex;flex-direction:column;gap:28px">
-  <header><div style="font-size:11px;font-weight:800;letter-spacing:.18em;color:#1d8f86">CONSOLE</div><h1 style="margin:6px 0 0;font-size:34px;line-height:1.05;font-weight:800;font-style:italic;letter-spacing:-.035em">Guide utilisateur</h1><div style="font-size:13.5px;color:#43586a;margin-top:8px">Fonctionnalités, fonctionnement et règles appliquées dans la Console.</div></header>
+  <header style="display:flex;align-items:flex-end;gap:24px;flex-wrap:wrap">
+    <div style="flex:1;min-width:280px"><div style="font-size:11px;font-weight:800;letter-spacing:.18em;color:#1d8f86">CONSOLE</div><h1 style="margin:6px 0 0;font-size:34px;line-height:1.05;font-weight:800;font-style:italic;letter-spacing:-.035em">Guide utilisateur</h1><div style="font-size:13.5px;color:#43586a;margin-top:8px">{{ subtitle }}</div></div>
+    <div role="tablist" aria-label="Application" onKeyDown="{{ tabKey }}" style="display:flex;gap:4px;padding:4px;border-radius:14px;background:#fff;border:1px solid #e1e9e7;box-shadow:0 1px 2px rgba(16,35,58,.04)">
+      <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="2">
+        <button type="button" role="tab" aria-selected="{{ t.sel }}" tabIndex="{{ t.ti }}" onClick="{{ t.go }}" style="{{ t.st }}"><span style="{{ t.dot }}"></span><span style="font-size:13px;font-weight:800">{{ t.n }}</span><span style="{{ t.metaSt }}">{{ t.meta }}</span></button>
+      </sc-for>
+    </div>
+  </header>
 
   <section style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr));border-radius:22px;overflow:hidden;background:#fff;border:1px solid #e1e9e7;box-shadow:0 1px 2px rgba(16,35,58,.04),0 30px 60px -44px rgba(16,35,58,.5)">
     <div aria-label="Document" style="height:640px;min-width:0;background:radial-gradient(120% 80% at 30% 20%,#1c3858,#10233a 70%);color:#fff;padding:36px 40px 40px;display:flex;flex-direction:column">
@@ -27,7 +32,7 @@ html,body{margin:0;background:#f2f6f5;font-family:'Plus Jakarta Sans',sans-serif
         <div style="position:relative;width:176px;height:234px;margin-left:-24px">
           <sc-for list="{{ ghosts }}" as="g" hint-placeholder-count="0"><div title="Version {{ g.v }} · remplacée" style="{{ g.st }}"></div></sc-for>
           <div style="{{ sheetSt }}">
-            <div style="font-size:9px;font-weight:800;letter-spacing:.2em;color:#1d8f86">RISE <span style="color:#8a9aa6">CONSOLE</span></div><span style="flex:1"></span>
+            <div style="font-size:9px;font-weight:800;letter-spacing:.2em;color:#1d8f86">RISE <span style="color:#8a9aa6">{{ sheetApp }}</span></div><span style="flex:1"></span>
             <span style="width:20px;height:3px;border-radius:2px;background:linear-gradient(90deg,#f7a41c,#f0752b)"></span>
             <div style="font-size:17px;line-height:1.1;font-weight:800;font-style:italic;letter-spacing:-.02em;color:#10233a;margin-top:9px">Guide utilisateur</div>
             <div style="font-size:10px;color:#5c7280;margin-top:5px;font-weight:600">{{ sheetV }}</div>
@@ -36,28 +41,28 @@ html,body{margin:0;background:#f2f6f5;font-family:'Plus Jakarta Sans',sans-serif
       </div>
       <sc-if value="{{ has }}" hint-placeholder-val="{{ true }}"><div style="display:flex;align-items:flex-end;gap:14px"><span style="font-size:13px;color:#9fb3c4;font-weight:600;padding-bottom:9px">Version</span><span style="font-size:60px;line-height:.9;font-weight:800;font-style:italic;letter-spacing:-.045em;font-variant-numeric:tabular-nums">{{ cur.v }}</span></div></sc-if>
       <sc-if value="{{ none }}" hint-placeholder-val="{{ false }}"><div style="font-size:22px;font-weight:800;letter-spacing:-.02em">Aucun guide publié</div></sc-if>
-      <div style="font-size:12.5px;color:#9fb3c4;margin-top:12px;min-height:18px">{{ curLine }}</div>
-      <sc-if value="{{ ix.ready }}" hint-placeholder-val="{{ false }}"><div style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12px;color:#9fb3c4;font-variant-numeric:tabular-nums"><span style="width:6px;height:6px;border-radius:50%;background:#3dd6c6;box-shadow:0 0 0 3px rgba(61,214,198,.16);flex:none"></span><span style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ ix.readyL }}</span></div></sc-if>
-      <sc-if value="{{ ix.busy }}" hint-placeholder-val="{{ false }}"><div role="status" style="margin-top:12px;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)"><div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:10.5px;font-weight:800;letter-spacing:.16em;color:#3dd6c6">INDEXATION EN COURS</span><span style="flex:1"></span><span style="font-size:12px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums">{{ ix.pct }}</span></div><div style="font-size:12px;color:#dbe6ee;margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ ix.stepL }}</div><div style="height:3px;border-radius:2px;background:rgba(255,255,255,.12);margin-top:9px;overflow:hidden"><div style="{{ ix.barSt }}"></div></div></div></sc-if>
-      <sc-if value="{{ ix.failed }}" hint-placeholder-val="{{ false }}"><div role="alert" style="display:flex;gap:8px;margin-top:10px;font-size:12px;line-height:1.45;color:#f7c07a"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:1px"><path d="M12 8v5M12 16.5v.5"></path><circle cx="12" cy="12" r="9"></circle></svg><span style="min-width:0">{{ ix.failL }}</span></div></sc-if>
+      <div style="font-size:12.5px;color:#9fb3c4;margin-top:12px;min-height:18px;line-height:1.5">{{ curLine }}</div>
+      <div style="font-size:12.5px;color:#9fb3c4;margin-top:6px;min-height:18px;display:flex;align-items:center;gap:8px"><sc-if value="{{ has }}" hint-placeholder-val="{{ true }}"><span style="{{ idxDot }}"></span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ idxLine }}</span></sc-if></div>
       <div style="display:flex;gap:10px;margin-top:26px">
-        <button type="button" onClick="{{ dl }}" disabled="{{ dlDis }}" style="{{ dlSt }}" style-hover="transform:translateY(-1px)"><sc-if value="{{ flash }}" hint-placeholder-val="{{ false }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></sc-if><sc-if value="{{ idle }}" hint-placeholder-val="{{ true }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"></path></svg></sc-if>{{ dlL }}</button>
-        <sc-if value="{{ canReplace }}" hint-placeholder-val="{{ true }}"><label title="{{ repT }}" aria-label="{{ repT }}" aria-disabled="{{ repDis }}" style="{{ repSt }}" style-hover="{{ repHov }}"><input type="file" accept="application/pdf,.pdf" onChange="{{ rep }}" disabled="{{ repDis }}" style="position:absolute;width:1px;height:1px;opacity:0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3M18 3v4h-4M6 21v-4h4"></path></svg></label></sc-if>
+        <sc-if value="{{ has }}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{ dl }}" disabled="{{ dlDis }}" style="{{ dlSt }}" style-hover="transform:translateY(-1px)"><sc-if value="{{ flash }}" hint-placeholder-val="{{ false }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></sc-if><sc-if value="{{ idle }}" hint-placeholder-val="{{ true }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"></path></svg></sc-if>{{ dlL }}</button></sc-if>
+        <sc-if value="{{ firstUp }}" hint-placeholder-val="{{ false }}"><label style="flex:1;min-width:0;height:48px;border-radius:13px;background:linear-gradient(90deg,#f7a41c,#f0752b);color:#10233a;font-size:14px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;gap:10px;white-space:nowrap;cursor:pointer;position:relative;box-shadow:0 12px 28px -14px rgba(240,117,43,.9),inset 0 1px 0 rgba(255,255,255,.35);transition:transform .15s" style-hover="transform:translateY(-1px)"><input type="file" accept="application/pdf,.pdf" onChange="{{ rep }}" style="position:absolute;width:1px;height:1px;opacity:0"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V9M7 14l5-5 5 5M5 4h14"></path></svg>Déposer le guide</label></sc-if>
+        <sc-if value="{{ noGuideRO }}" hint-placeholder-val="{{ false }}"><button type="button" disabled="{{ true }}" style="flex:1;height:48px;border:0;border-radius:13px;background:rgba(255,255,255,.08);color:#9fb3c4;font-size:14px;font-weight:800;cursor:default">Télécharger le guide</button></sc-if>
+        <sc-if value="{{ canReplaceBtn }}" hint-placeholder-val="{{ true }}"><label title="Remplacer le guide (le nouveau PDF remplace la version en vigueur)" aria-label="Remplacer le guide" style="width:48px;height:48px;flex:none;border:1px solid rgba(255,255,255,.18);border-radius:13px;display:grid;place-items:center;cursor:pointer;color:#dbe6ee;position:relative;transition:border-color .15s" style-hover="border-color:rgba(255,255,255,.5)"><input type="file" accept="application/pdf,.pdf" onChange="{{ rep }}" style="position:absolute;width:1px;height:1px;opacity:0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3M18 3v4h-4M6 21v-4h4"></path></svg></label></sc-if>
       </div>
       <sc-if value="{{ hasErr }}" hint-placeholder-val="{{ false }}"><div role="alert" style="font-size:12px;color:#f7a41c;margin-top:10px;font-weight:600">{{ err }}</div></sc-if>
     </div>
 
     <div aria-label="Traçabilité" style="height:640px;min-width:0;display:flex;flex-direction:column">
-      <div style="height:72px;flex:none;padding:0 28px;display:flex;align-items:center;gap:18px;border-bottom:1px solid #eef3f2"><div style="flex:1;min-width:0"><div style="font-size:14.5px;font-weight:800">Traçabilité</div><div style="font-size:11.5px;color:#8a9aa6;margin-top:2px">Téléchargements, dépôts et remplacements</div></div><div style="text-align:right"><div style="font-size:18px;line-height:1;font-weight:800;font-variant-numeric:tabular-nums">{{ total }}</div><div style="font-size:11px;color:#8a9aa6;margin-top:4px">{{ totalL }}</div></div><div style="text-align:right;padding-left:18px;box-shadow:inset 1px 0 0 #eef3f2"><div style="font-size:18px;line-height:1;font-weight:800;font-variant-numeric:tabular-nums">{{ people }}</div><div style="font-size:11px;color:#8a9aa6;margin-top:4px">{{ peopleL }}</div></div></div>
+      <div style="height:72px;flex:none;padding:0 28px;display:flex;align-items:center;gap:18px;border-bottom:1px solid #eef3f2"><div style="flex:1;min-width:0"><div style="font-size:14.5px;font-weight:800">Traçabilité</div><div style="font-size:11.5px;color:#8a9aa6;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Téléchargements, dépôts et remplacements</div></div><div style="text-align:right"><div style="font-size:18px;line-height:1;font-weight:800;font-variant-numeric:tabular-nums">{{ total }}</div><div style="font-size:11px;color:#8a9aa6;margin-top:4px">{{ totalL }}</div></div><div style="text-align:right;padding-left:18px;box-shadow:inset 1px 0 0 #eef3f2"><div style="font-size:18px;line-height:1;font-weight:800;font-variant-numeric:tabular-nums">{{ people }}</div><div style="font-size:11px;color:#8a9aa6;margin-top:4px">{{ peopleL }}</div></div></div>
       <div style="flex:1;min-height:0;overflow:hidden;padding:8px 0;display:flex;flex-direction:column">
-        <sc-for list="{{ rows }}" as="r" hint-placeholder-count="8">
+        <sc-for list="{{ rows }}" as="r" hint-placeholder-count="2">
           <div style="{{ r.st }}">
             <span style="{{ r.line }}"></span><span style="{{ r.node }}"></span>
             <div style="flex:1;min-width:0"><div style="{{ r.tSt }}">{{ r.t }}</div><div style="font-size:11.5px;color:#5c7280;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.sub }}</div></div>
             <div style="width:92px;flex:none;text-align:right"><div style="font-size:12.5px;font-weight:700">{{ r.day }}</div><div style="font-size:11.5px;color:#8a9aa6;margin-top:2px;font-variant-numeric:tabular-nums">{{ r.hm }}</div></div>
           </div>
         </sc-for>
-        <sc-if value="{{ empty }}" hint-placeholder-val="{{ false }}"><div style="margin:auto;text-align:center;max-width:280px"><div style="font-size:13.5px;font-weight:700">Aucun événement pour l’instant.</div><div style="font-size:12px;color:#8a9aa6;margin-top:6px;line-height:1.5">Chaque téléchargement, dépôt et remplacement du guide sera tracé ici.</div></div></sc-if>
+        <sc-if value="{{ empty }}" hint-placeholder-val="{{ false }}"><div style="margin:auto;text-align:center;max-width:280px"><div style="font-size:13.5px;font-weight:700">Aucun événement pour l’instant.</div><div style="font-size:12px;color:#8a9aa6;margin-top:6px;line-height:1.5">{{ emptyL }}</div></div></sc-if>
       </div>
       <div style="height:68px;flex:none;padding:0 16px 0 28px;display:flex;align-items:center;gap:8px;border-top:1px solid #eef3f2;background:#fbfdfc">
         <span style="font-size:11.5px;color:#8a9aa6;font-variant-numeric:tabular-nums">{{ pg.range }}</span><span style="flex:1"></span>
@@ -66,165 +71,144 @@ html,body{margin:0;background:#f2f6f5;font-family:'Plus Jakarta Sans',sans-serif
     </div>
   </section>
 
-  <sc-if value="{{ rag.show }}" hint-placeholder-val="{{ true }}">
-  <section aria-label="Recherche de Jev dans le guide" style="border-radius:22px;background:#fff;border:1px solid #e1e9e7;box-shadow:0 1px 2px rgba(16,35,58,.04);padding:26px 28px 24px">
-    <div style="display:flex;align-items:flex-start;gap:18px;flex-wrap:wrap">
-      <div style="flex:1;min-width:240px"><div style="font-size:14.5px;font-weight:800">Recherche de Jev dans le guide</div><div style="font-size:12px;color:#5c7280;margin-top:4px;line-height:1.5;max-width:640px">Quand une question porte sur l’utilisation de la Console, Jev cherche les passages les plus proches dans le guide, garde ceux qui dépassent le seuil, les reclasse, puis rédige sa réponse à partir des seuls extraits retenus.</div></div>
-      <div style="font-size:11.5px;color:#8a9aa6;text-align:right;padding-top:2px">{{ rag.meta }}</div>
-    </div>
-    <div class="gd-rag-grid" style="display:grid;gap:14px 16px;margin-top:20px">
-      <sc-for list="{{ rag.fields }}" as="f" hint-placeholder-count="6">
-        <label style="display:flex;flex-direction:column;gap:6px;min-width:0">
-          <span style="font-size:11px;font-weight:800;letter-spacing:.04em;color:#43586a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ f.label }}</span>
-          <span style="{{ f.boxSt }}"><input value="{{ f.value }}" onChange="{{ f.set }}" inputmode="decimal" aria-label="{{ f.label }}" style="flex:1;min-width:0;height:100%;border:0;outline:0;background:transparent;padding:0 0 0 12px;font-size:14px;font-weight:700;font-variant-numeric:tabular-nums"><span style="padding:0 12px 0 6px;font-size:11.5px;color:#8a9aa6;font-weight:600">{{ f.unit }}</span></span>
-          <span style="{{ f.hintSt }}">{{ f.hint }}</span>
+  <section aria-label="Recherche de Jev dans le guide" style="background:#fff;border:1px solid #e1e9e7;border-radius:22px;padding:32px 36px 32px;display:flex;flex-direction:column;gap:24px;box-shadow:0 1px 2px rgba(16,35,58,.04)">
+    <div style="display:flex;align-items:flex-start;gap:24px"><div style="flex:1;min-width:0"><div style="font-size:16px;font-weight:800">{{ jevTitle }}</div><div style="font-size:13px;color:#43586a;margin-top:6px;line-height:1.55;max-width:760px;text-wrap:pretty">{{ jevDesc }}</div></div><span style="{{ setStateSt }}">{{ setStateL }}</span></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr));gap:20px 20px">
+      <sc-for list="{{ fields }}" as="f" hint-placeholder-count="6">
+        <label style="display:flex;flex-direction:column;gap:8px;min-width:0">
+          <span style="font-size:12.5px;font-weight:800">{{ f.label }}</span>
+          <span style="position:relative;display:block"><input type="text" inputMode="decimal" value="{{ f.val }}" onChange="{{ f.on }}" aria-invalid="{{ f.bad }}" style="{{ f.inSt }}"><span style="position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:12.5px;color:#8a9aa6;pointer-events:none">{{ f.unit }}</span></span>
+          <span style="{{ f.helpSt }}">{{ f.help }}</span>
         </label>
       </sc-for>
     </div>
-    <div style="display:flex;align-items:center;gap:10px;margin-top:18px;flex-wrap:wrap">
-      <sc-if value="{{ rag.hasMsg }}" hint-placeholder-val="{{ false }}"><span role="status" style="{{ rag.msgSt }}">{{ rag.msg }}</span></sc-if>
-      <span style="flex:1"></span>
-      <button type="button" onClick="{{ rag.reset }}" disabled="{{ rag.atDefaults }}" style="{{ rag.resetSt }}">Valeurs par défaut</button>
-      <button type="button" onClick="{{ rag.save }}" disabled="{{ rag.saveDis }}" style="{{ rag.saveSt }}">{{ rag.saveL }}</button>
+    <div style="display:flex;justify-content:flex-end;gap:12px">
+      <button type="button" onClick="{{ resetDef }}" disabled="{{ defDis }}" style="{{ defSt }}">Valeurs par défaut</button>
+      <button type="button" onClick="{{ save }}" disabled="{{ saveDis }}" style="{{ saveSt }}">{{ saveL }}</button>
     </div>
   </section>
-  </sc-if>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;jeu&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;0&quot;,&quot;1&quot;,&quot;30&quot;],&quot;default&quot;:&quot;30&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Démo&quot;},&quot;versions&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{v:string,at:Date|string,by:string,size:number,url?:string,fileName?:string}[]&quot;},&quot;downloads&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{user:string,role?:string,at:Date|string,version:string}[]&quot;},&quot;currentUser&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{name:string,role?:string}&quot;},&quot;canReplace&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;boolean&quot;},&quot;today&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Date&quot;},&quot;onDownload&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(version)=&gt;Promise&lt;void&gt;&quot;},&quot;onReplace&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(file:File)=&gt;Promise&lt;void&gt;&quot;},&quot;status&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{current:{v:string,pages:number,chunks:number,model:string|null,dims:number|null,indexed:boolean}|null,indexing:{fileName:string,step:number,steps:number,stepLabel:string,progress:number}|null,lastFailure:{at:string,fileName:string,error:string}|null}&quot;},&quot;uploads&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{at:string,by:string,fileName:string,status:string,error:string|null,model:string|null}[]&quot;},&quot;ragSettings&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{searchK:number,keepK:number,minSimilarity:number,embedTimeoutMs:number,rerankTimeoutMs:number,llmTimeoutMs:number,updatedAt:string|null,updatedBy:string|null,defaults:object}|null&quot;},&quot;onSaveRag&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(v:object)=&gt;Promise&lt;object&gt;&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;guides&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{console:Guide,cockpit:Guide}  // Guide = {versions:{v,at,by,size,url?,fileName?}[], downloads:{user,role?,at,version}[], index?:{status:'run'|'ok',pages,chunks}, settings?:{k,keep,thr,tv,tr,tw}}&quot;},&quot;currentUser&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{name:string,role?:string}&quot;},&quot;canReplace&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;boolean&quot;},&quot;onDownload&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(app,version)=&gt;Promise&lt;void&gt;&quot;},&quot;onReplace&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(app,file:File)=&gt;Promise&lt;void&gt;&quot;},&quot;onSaveSettings&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(app,settings)=&gt;Promise&lt;void&gt;&quot;}}">
+const APPS = [{ k: 'console', n: 'Console', sheet: 'CONSOLE', de: 'de la Console', le: 'la Console', dans: 'dans la Console' }, { k: 'cockpit', n: 'Cockpit', sheet: 'COCKPIT', de: 'du Cockpit', le: 'le Cockpit', dans: 'dans le Cockpit' }];
+const DEF = { k: 8, keep: 4, thr: 0.58, tv: 10, tr: 8, tw: 30 };
+const FIELDS = [['k', 'Extraits recherchés', 'extraits', 'Les plus proches dans le guide (1 à 30)', 1, 30, 1], ['keep', 'Extraits conservés', 'extraits', 'Après le reclassement (1 à 10)', 1, 10, 1], ['thr', 'Seuil de similarité', '', 'Écarte les passages éloignés (0 à 0,95)', 0, 0.95, 0], ['tv', 'Délai · vectorisation', 's', 'Question transformée en vecteur', 1, 60, 1], ['tr', 'Délai · reclassement', 's', 'Au-delà, ordre de la recherche', 1, 60, 1], ['tw', 'Délai · rédaction', 's', 'Réponse du modèle', 5, 120, 1]];
+const MODEL = 'Qwen3 Embedding 8B', DIMS = 1536;
 class Component extends DCLogic {
-  state = { page: 0, flash: false, busy: false, err: '', lv: null, ld: null, rd: null, rBusy: false, rMsg: '', rOk: false, rErr: null };
-  componentWillUnmount() { clearTimeout(this._t); }
+  state = { app: 'console', page: {}, flash: false, busy: false, err: '', loc: null, edit: {}, saved: {}, savedFlash: false };
+  componentWillUnmount() { clearTimeout(this._t); clearTimeout(this._s); clearTimeout(this._i); }
   demo() {
-    const N = new Date(), d = x => new Date(N - x * 864e5), me = { name: 'Élodie Martin', role: 'Administratrice' };
-    const vers = [{ v: '3.2', at: d(18.3), by: me.name, size: 4.8e6 }, { v: '3.1', at: d(62.4), by: me.name, size: 4.3e6 }, { v: '3.0', at: d(121.2), by: 'Marc Lefèvre', size: 3.9e6 }];
-    const P = [['Claire Morel', 'Cheffe de projet'], ['Julien Bernard', 'Consultant fonctionnel'], ['Sofia Haddad', 'Référente métier'], ['Marc Lefèvre', 'Directeur de programme'], ['Inès Garnier', 'PMO'], ['Thomas Roux', 'Architecte solution'], ['Léa Fontaine', 'Consultante'], ['Karim Benali', 'Responsable recette'], ['Nadia Perrin', 'Contrôleuse de gestion'], ['Hugo Marchand', 'Développeur'], ['Camille Duval', 'Référente métier'], ['Antoine Girard', 'Sponsor']];
-    const n = +(this.props.jeu ?? '30'), dls = [];
-    for (let i = 0; i < n; i++) { const p = P[(i * 5) % 12], at = new Date(N - (n === 1 ? 1.1 : i * 2.4 + .06) * 864e5 - ((i * 37) % 300) * 6e4); dls.push({ user: p[0], role: p[1], at, version: (vers.find(x => x.at <= at) || vers[vers.length - 1]).v }); }
-    return { vers: n ? vers : [vers[0]], dls, me };
-  }
-  // Réglages de la recherche de Jev dans le guide (décision du 30/09/2026) : délais saisis en secondes, stockés en ms.
-  ragVals() {
-    const S = this.state, P = this.props;
-    const DEF = { searchK: 8, keepK: 4, minSimilarity: 0.58, embedTimeoutMs: 10000, rerankTimeoutMs: 8000, llmTimeoutMs: 30000 };
-    const live = P.ragSettings !== undefined, src = P.ragSettings || (live ? null : DEF);
-    if (!src) return { show: false, fields: [] };
-    const def = src.defaults || DEF;
-    const F = [
-      ['searchK', 'Extraits recherchés', 'extraits', 'Les plus proches dans le guide (1 à 30)', 1],
-      ['keepK', 'Extraits conservés', 'extraits', 'Après le reclassement (1 à 10)', 1],
-      ['minSimilarity', 'Seuil de similarité', '', 'Écarte les passages éloignés (0 à 0,95)', 1],
-      ['embedTimeoutMs', 'Délai · vectorisation', 's', 'Question transformée en vecteur', 1000],
-      ['rerankTimeoutMs', 'Délai · reclassement', 's', 'Au-delà, ordre de la recherche', 1000],
-      ['llmTimeoutMs', 'Délai · rédaction', 's', 'Réponse du modèle', 1000],
-    ];
-    const show = (k, v, div) => String(div > 1 ? v / div : v).replace('.', ',');
-    const draft = S.rd || Object.fromEntries(F.map(([k, , , , d]) => [k, show(k, src[k], d)]));
-    const num = x => Number(String(x).trim().replace(',', '.'));
-    const values = Object.fromEntries(F.map(([k, , , , d]) => [k, d > 1 ? Math.round(num(draft[k]) * d) : num(draft[k])]));
-    const dirty = F.some(([k]) => values[k] !== src[k]);
-    const atDefaults = F.every(([k]) => values[k] === def[k]);
-    const errs = S.rErr || {};
-    const fields = F.map(([k, label, unit, hint, d]) => ({
-      label, unit, value: draft[k], hint: errs[k] ? 'Valeur attendue : ' + errs[k] : hint,
-      set: e => this.setState({ rd: { ...draft, [k]: e.target.value }, rMsg: '', rErr: null }),
-      hintSt: 'font-size:11px;line-height:1.4;color:' + (errs[k] ? '#a2352a' : '#8a9aa6'),
-      boxSt: 'height:42px;display:flex;align-items:center;border-radius:11px;background:#f6f9f8;box-shadow:inset 0 0 0 1px ' + (errs[k] ? '#e3a59d' : '#e1e9e7'),
-    }));
-    const d = src.updatedAt ? new Date(src.updatedAt) : null;
-    const meta = d ? 'Modifié le ' + d.toLocaleDateString('fr-FR') + ' à ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) + (src.updatedBy ? ' par ' + src.updatedBy : '') : 'Valeurs par défaut';
-    const save = async () => {
-      if (!dirty || S.rBusy) return;
-      if (!live || !P.onSaveRag) return this.setState({ rMsg: 'Réglages enregistrés', rOk: true, rd: null });
-      this.setState({ rBusy: true, rMsg: '', rErr: null });
-      try { await P.onSaveRag(values); this.setState({ rBusy: false, rd: null, rMsg: 'Réglages enregistrés', rOk: true }); }
-      catch (e) { this.setState({ rBusy: false, rOk: false, rErr: (e && e.fields) || null, rMsg: (e && e.message) || 'L’enregistrement a échoué. Réessayez.' }); }
-    };
-    const btn = (on, primary) => 'height:40px;padding:0 18px;border-radius:11px;font-size:13px;font-weight:800;white-space:nowrap;transition:opacity .15s;' + (primary ? 'border:0;background:#10233a;color:#fff;' : 'border:1px solid #e1e9e7;background:#fff;color:#10233a;') + (on ? 'cursor:pointer' : 'cursor:default;opacity:.4');
-    return {
-      show: true, fields, meta,
-      hasMsg: !!S.rMsg, msg: S.rMsg, msgSt: 'font-size:12px;font-weight:700;color:' + (S.rOk ? '#1d8f86' : '#a2352a'),
-      atDefaults, reset: () => this.setState({ rd: Object.fromEntries(F.map(([k, , , , dv]) => [k, show(k, def[k], dv)])), rMsg: '', rErr: null }), resetSt: btn(!atDefaults, false),
-      save, saveDis: !dirty || S.rBusy, saveSt: btn(dirty && !S.rBusy, true), saveL: S.rBusy ? 'Enregistrement…' : 'Enregistrer',
-    };
+    const N = new Date(), t = m => new Date(N - m * 6e4), me = { name: 'Cédric Schmitz', role: 'Administrateur' };
+    return { me, g: {
+      console: { versions: [{ v: '1.0', at: t(1), by: me.name, size: 1.5e6 }], downloads: [{ user: me.name, role: me.role, at: t(0), version: '1.0' }], index: { status: 'ok', pages: 47, chunks: 101 } },
+      cockpit: { versions: [], downloads: [], index: null } } };
   }
   renderVals() {
-    const S = this.state, P = this.props, PER = 8, live = Array.isArray(P.versions) || Array.isArray(P.downloads), dm = live ? null : (this._dm || (this._dm = this.demo()));
-    const N = P.today instanceof Date ? P.today : new Date();
-    const toD = x => x instanceof Date ? x : new Date(x);
-    const vers = (S.lv || (live ? P.versions || [] : dm.vers)).map(v => ({ ...v, at: toD(v.at) })).sort((a, b) => b.at - a.at);
-    const dls = (S.ld || (live ? P.downloads || [] : dm.dls)).map(e => ({ ...e, at: toD(e.at) })).sort((a, b) => b.at - a.at);
-    const me = P.currentUser || (dm ? dm.me : { name: '—', role: '' }), cur = vers[0], prev = vers[1];
-    const canReplace = P.canReplace ?? !live;
+    const S = this.state, P = this.props, app = S.app, A = APPS.find(a => a.k === app), PER = 8;
+    const live = !!P.guides, dm = live ? null : (this._dm || (this._dm = this.demo()));
+    const G = k => (S.loc && S.loc[k]) || (live ? P.guides[k] : dm.g[k]) || { versions: [], downloads: [] };
+    const me = P.currentUser || (dm ? dm.me : { name: '—', role: '' }), canReplace = P.canReplace ?? !live;
+    const N = new Date(), toD = x => x instanceof Date ? x : new Date(x);
+    const norm = g => ({ ...g, vers: (g.versions || []).map(v => ({ ...v, at: toD(v.at) })).sort((a, b) => b.at - a.at), dls: (g.downloads || []).map(e => ({ ...e, at: toD(e.at) })).sort((a, b) => b.at - a.at) });
+    const g = norm(G(app)), vers = g.vers, dls = g.dls, cur = vers[0], prev = vers[1], idx = g.index;
     const M = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
     const same = (a, b) => a.toDateString() === b.toDateString(), dd = d => d.getDate() === 1 ? '1er' : d.getDate();
     const day = d => same(d, N) ? 'Aujourd’hui' : same(d, new Date(N - 864e5)) ? 'Hier' : dd(d) + ' ' + M[d.getMonth()] + (d.getFullYear() !== N.getFullYear() ? ' ' + d.getFullYear() : '');
     const full = d => dd(d) + ' ' + M[d.getMonth()] + ' ' + d.getFullYear();
     const hm = d => String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
     const mo = b => b >= 1e6 ? (b / 1e6).toFixed(1).replace('.', ',') + ' Mo' : Math.max(1, Math.round(b / 1e3)) + ' Ko';
-    // Dépôts refusés ou en échec (historique serveur, décision du 30/09/2026) : dans la frise, en rouge.
-    const fails = (P.uploads || []).filter(u => u.status === 'FAILED').map(u => ({ k: 'f', ...u, at: toD(u.at) }));
-    const ev = [...dls.map(e => ({ k: 'd', ...e })), ...vers.map((v, i) => ({ k: 'v', ...v, i })), ...fails].sort((a, b) => b.at - a.at);
-    // État de l'index : indexation en cours (étape, avancement), guide indexé (pages, extraits, modèle), dernier refus.
-    const St = P.status || {}, busyIx = !!St.indexing, nf = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '\u202f');
-    const ix = { busy: busyIx, ready: !busyIx && !!(St.current && St.current.indexed), failed: !busyIx && !!St.lastFailure,
-      readyL: St.current ? 'Indexé · ' + St.current.pages + ' pages · ' + St.current.chunks + ' extraits' + (St.current.model ? ' · ' + St.current.model + (St.current.dims ? ' (' + nf(St.current.dims) + ' dim.)' : '') : '') : '',
-      stepL: busyIx ? 'Étape ' + St.indexing.step + ' sur ' + St.indexing.steps + ' · ' + St.indexing.stepLabel + ' · ' + St.indexing.fileName : '',
-      pct: busyIx ? St.indexing.progress + ' %' : '',
-      barSt: 'height:3px;border-radius:2px;background:linear-gradient(90deg,#3dd6c6,#1d8f86);transition:width .4s;width:' + (busyIx ? Math.max(4, St.indexing.progress) : 0) + '%',
-      failL: St.lastFailure ? 'Dernier dépôt non publié (' + St.lastFailure.fileName + ') : ' + St.lastFailure.error : '' };
-    const pages = Math.max(1, Math.ceil(ev.length / PER)), p = Math.min(S.page, pages - 1);
+    const upd = (k, fn) => this.setState(s => { const base = (s.loc && s.loc[k]) || G(k); return { loc: { ...(s.loc || {}), [k]: fn(base) } }; });
+    const fail = m => { this.setState({ err: m, busy: false }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ err: '' }), 4000); };
+    const page = S.page[app] || 0, setPage = n => this.setState(s => ({ page: { ...s.page, [app]: n } }));
+    const ev = [...dls.map(e => ({ k: 'd', ...e })), ...vers.map((v, i) => ({ k: 'v', ...v, i }))].sort((a, b) => b.at - a.at);
+    const pages = Math.max(1, Math.ceil(ev.length / PER)), p = Math.min(page, pages - 1);
     const nav = dis => 'width:30px;height:30px;border-radius:9px;border:1px solid #e1e9e7;background:#fff;color:#10233a;display:grid;place-items:center;' + (dis ? 'opacity:.35;cursor:default' : 'cursor:pointer');
     const uniq = new Set(dls.map(e => e.user)).size, total = dls.length;
-    const fail = m => { this.setState({ err: m, busy: false }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ err: '' }), 4000); };
+
     const dl = async () => {
       if (!cur || S.busy) return;
-      const rec = { user: me.name, role: me.role, at: new Date(), version: cur.v };
       this.setState({ busy: true, err: '' });
       try {
-        if (P.onDownload) await P.onDownload(cur);
-        else if (cur.url) { const a = document.createElement('a'); a.href = cur.url; a.download = cur.fileName || ('Guide utilisateur Console v' + cur.v + '.pdf'); document.body.appendChild(a); a.click(); a.remove(); }
-        if (!live) this.setState(s => ({ ld: [rec, ...(s.ld || dm.dls)] }));
-        this.setState({ busy: false, flash: true, page: 0 }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ flash: false }), 1800);
+        if (P.onDownload) await P.onDownload(app, cur);
+        else if (cur.url) { const a = document.createElement('a'); a.href = cur.url; a.download = cur.fileName || ('Guide utilisateur ' + A.n + ' v' + cur.v + '.pdf'); document.body.appendChild(a); a.click(); a.remove(); }
+        if (!live) upd(app, b => ({ ...b, downloads: [{ user: me.name, role: me.role, at: new Date(), version: cur.v }, ...(b.downloads || [])] }));
+        this.setState({ busy: false, flash: true }); setPage(0); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ flash: false }), 1800);
       } catch (e) { fail('Le téléchargement a échoué. Réessayez.'); }
     };
     const rep = async e => {
       const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return;
       if (!(f.type === 'application/pdf' || /\.pdf$/i.test(f.name))) return fail('Seuls les fichiers PDF sont acceptés.');
-      if (P.onReplace) { this.setState({ busy: true, err: '' }); try { await P.onReplace(f); this.setState({ busy: false, page: 0 }); } catch (x) { fail((x && x.message) || 'Le remplacement a échoué. Réessayez.'); } return; }
-      const [a, b] = (cur ? cur.v : '0.0').split('.').map(Number);
-      this.setState(s => ({ lv: [{ v: a + '.' + ((b || 0) + 1), at: new Date(), by: me.name, size: f.size, url: URL.createObjectURL(f), fileName: f.name }, ...(s.lv || dm.vers)], page: 0, err: '' }));
+      if (P.onReplace) { this.setState({ busy: true, err: '' }); try { await P.onReplace(app, f); this.setState({ busy: false }); setPage(0); } catch (x) { fail('Le dépôt a échoué. Réessayez.'); } return; }
+      const nv = cur ? (([a, b]) => a + '.' + ((b || 0) + 1))(cur.v.split('.').map(Number)) : '1.0', k = app;
+      upd(k, b => ({ ...b, versions: [{ v: nv, at: new Date(), by: me.name, size: f.size, url: URL.createObjectURL(f), fileName: f.name }, ...(b.versions || [])], index: { status: 'run' } }));
+      this.setState({ err: '' }); setPage(0);
+      clearTimeout(this._i); this._i = setTimeout(() => { const pg = Math.max(1, Math.round(f.size / 32e3)); upd(k, b => ({ ...b, index: { status: 'ok', pages: pg, chunks: Math.round(pg * 2.15) } })); }, 2600);
     };
-    const rag = this.ragVals();
+
+    const savedV = { ...DEF, ...((live ? P.guides[app] && P.guides[app].settings : null) || {}), ...(S.saved[app] || {}) };
+    const fmt = (k, v) => k === 'thr' ? String(v).replace('.', ',') : String(v);
+    const edit = S.edit[app] || Object.fromEntries(FIELDS.map(([k]) => [k, fmt(k, savedV[k])]));
+    const num = s => { const n = parseFloat(String(s).replace(',', '.')); return isFinite(n) ? n : NaN; };
+    const vals = Object.fromEntries(FIELDS.map(([k]) => [k, num(edit[k])]));
+    const bad = {}; FIELDS.forEach(([k, , , , mn, mx, int]) => { const v = vals[k]; bad[k] = !(v >= mn && v <= mx) || (int && !Number.isInteger(v)); });
+    if (!bad.keep && !bad.k && vals.keep > vals.k) bad.keep = 'gt';
+    const anyBad = Object.values(bad).some(Boolean);
+    const dirty = FIELDS.some(([k]) => vals[k] !== savedV[k]), isDef = FIELDS.every(([k]) => vals[k] === DEF[k]), savedIsDef = FIELDS.every(([k]) => savedV[k] === DEF[k]);
+    const setEdit = (k, v) => this.setState(s => ({ edit: { ...s.edit, [app]: { ...edit, [k]: v } }, savedFlash: false }));
+    const save = async () => {
+      if (!dirty || anyBad) return; const v = { ...vals };
+      try { if (P.onSaveSettings) await P.onSaveSettings(app, v); this.setState(s => ({ saved: { ...s.saved, [app]: v }, edit: { ...s.edit, [app]: undefined }, savedFlash: true })); clearTimeout(this._s); this._s = setTimeout(() => this.setState({ savedFlash: false }), 2000); }
+      catch (e) { fail('L’enregistrement a échoué. Réessayez.'); }
+    };
+    const setStateL = S.savedFlash ? 'Enregistré' : dirty ? 'Modifié, non enregistré' : savedIsDef ? 'Valeurs par défaut' : 'Réglages personnalisés';
+    const btn = (on, primary) => 'height:44px;padding:0 22px;border-radius:12px;font-size:14px;font-weight:800;transition:background .15s,color .15s;' + (primary ? 'border:0;color:#fff;background:' + (on ? '#1d8f86' : '#a9b6bd') : 'background:#fff;border:1px solid ' + (on ? '#cfdcd9' : '#eef3f2') + ';color:' + (on ? '#10233a' : '#a9b6bd')) + ';cursor:' + (on ? 'pointer' : 'default');
+
+    const tabs = APPS.map((a, i) => { const ga = norm(G(a.k)), c = ga.vers[0], sel = a.k === app;
+      return { n: a.n, sel, ti: sel ? 0 : -1, meta: c ? 'v' + c.v : 'Aucun guide', go: () => this.setState({ app: a.k, err: '', flash: false, savedFlash: false }),
+        st: 'height:40px;padding:0 14px 0 12px;border:0;border-radius:10px;display:inline-flex;align-items:center;gap:8px;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s;' + (sel ? 'background:#10233a;color:#fff' : 'background:transparent;color:#43586a'),
+        dot: 'width:7px;height:7px;border-radius:50%;flex:none;background:' + (c ? (sel ? '#3dd6c6' : '#1d8f86') : (sel ? 'rgba(255,255,255,.3)' : '#c3ced4')),
+        metaSt: 'font-size:11.5px;font-weight:600;font-variant-numeric:tabular-nums;color:' + (sel ? '#9fb3c4' : '#8a9aa6') }; });
+    const tabKey = e => { if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return; const i = APPS.findIndex(a => a.k === app), n = APPS[(i + (e.key === 'ArrowRight' ? 1 : APPS.length - 1)) % APPS.length]; this.setState({ app: n.k, err: '' }); const bs = e.currentTarget.querySelectorAll('[role=tab]'); setTimeout(() => bs[APPS.indexOf(n)] && bs[APPS.indexOf(n)].focus(), 0); };
+
+    const idxRun = idx && idx.status === 'run';
     return {
-      rag,
-      has: !!cur, none: !cur, stateL: cur ? 'EN VIGUEUR' : 'GUIDE UTILISATEUR',
+      subtitle: 'Fonctionnalités, fonctionnement et règles appliquées ' + A.dans + '.', tabs, tabKey,
+      has: !!cur, none: !cur, stateL: cur ? 'EN VIGUEUR' : 'GUIDE ' + A.sheet, sheetApp: A.sheet,
       cur: cur ? { v: cur.v, size: mo(cur.size || 0) } : { v: '', size: '' },
       sheetV: cur ? 'Version ' + cur.v : 'En attente',
       sheetSt: 'position:absolute;inset:0;border-radius:10px;padding:18px 18px 20px;display:flex;flex-direction:column;box-shadow:0 30px 50px -24px rgba(0,0,0,.7);background:#fff' + (cur ? '' : ';opacity:.35'),
-      curLine: cur ? 'Publiée le ' + full(cur.at) + (cur.by ? ' par ' + cur.by : '') + (prev ? ' · remplace la v' + prev.v : '') : (canReplace ? 'Déposez le premier guide au format PDF.' : 'Le guide sera disponible dès sa publication.'),
-      ghosts: vers.slice(1, 3).map((v, k) => ({ v: v.v, k })).reverse().map(g => ({ v: g.v, st: 'position:absolute;inset:0;border-radius:10px;border:1px solid rgba(255,255,255,' + (g.k ? .08 : .14) + ');background:rgba(255,255,255,' + (g.k ? .03 : .07) + ');transform:translate(' + (g.k + 1) * 16 + 'px,' + -(g.k + 1) * 14 + 'px)' })),
+      curLine: cur ? 'Publiée le ' + full(cur.at) + (cur.by ? ' par ' + cur.by : '') + (prev ? ' · remplace la v' + prev.v : '') : (canReplace ? 'Déposez le premier guide au format PDF. Jev l’indexera pour répondre aux questions sur ' + A.le + '.' : 'Le guide sera disponible dès sa publication.'),
+      idxDot: 'width:7px;height:7px;border-radius:50%;flex:none;background:' + (idxRun ? '#f7a41c' : '#3dd6c6') + ';box-shadow:0 0 0 3px ' + (idxRun ? 'rgba(247,164,28,.2)' : 'rgba(61,214,198,.18)'),
+      idxLine: !idx ? 'Non indexé' : idxRun ? 'Indexation en cours · ' + (idx.model || MODEL) : 'Indexé · ' + idx.pages + ' pages · ' + idx.chunks + ' extraits · ' + (idx.model || MODEL) + ' (' + (idx.dims || DIMS) + ' dim.)',
+      ghosts: vers.slice(1, 3).map((v, k) => ({ v: v.v, k })).reverse().map(x => ({ v: x.v, st: 'position:absolute;inset:0;border-radius:10px;border:1px solid rgba(255,255,255,' + (x.k ? .08 : .14) + ');background:rgba(255,255,255,' + (x.k ? .03 : .07) + ');transform:translate(' + (x.k + 1) * 16 + 'px,' + -(x.k + 1) * 14 + 'px)' })),
       flash: S.flash, idle: !S.flash, dlDis: !cur || S.busy, dl,
       dlL: S.flash ? 'Téléchargement lancé' : S.busy ? 'Préparation…' : 'Télécharger le guide',
       dlSt: 'flex:1;min-width:0;height:48px;border:0;border-radius:13px;background:linear-gradient(90deg,#f7a41c,#f0752b);color:#10233a;font-size:14px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;gap:10px;white-space:nowrap;box-shadow:0 12px 28px -14px rgba(240,117,43,.9),inset 0 1px 0 rgba(255,255,255,.35);transition:transform .15s,opacity .15s;' + (cur && !S.busy ? 'cursor:pointer' : 'cursor:default;opacity:.4'),
-      canReplace, rep, ix, repDis: busyIx || S.busy,
-      repT: busyIx ? 'Indexation en cours : attendez la fin avant un nouveau dépôt' : cur ? 'Remplacer le guide (PDF, 10 Mo au plus ; indexé avant de remplacer la version en vigueur)' : 'Déposer le guide (PDF, 10 Mo au plus)',
-      repSt: 'width:48px;height:48px;flex:none;border:1px solid rgba(255,255,255,.18);border-radius:13px;display:grid;place-items:center;color:#dbe6ee;position:relative;transition:border-color .15s,opacity .15s;' + (busyIx || S.busy ? 'opacity:.35;cursor:default;pointer-events:none' : 'cursor:pointer'),
-      repHov: busyIx || S.busy ? '' : 'border-color:rgba(255,255,255,.5)',
+      firstUp: !cur && canReplace, noGuideRO: !cur && !canReplace, canReplaceBtn: !!cur && canReplace, rep,
       hasErr: !!S.err, err: S.err,
       total, totalL: total > 1 ? 'téléchargements' : 'téléchargement', people: uniq, peopleL: uniq > 1 ? 'personnes' : 'personne',
-      empty: !ev.length,
+      empty: !ev.length, emptyL: 'Chaque dépôt, remplacement et téléchargement du guide ' + A.de + ' sera tracé ici.',
       pg: { multi: pages > 1, lbl: (p + 1) + ' / ' + pages, atFirst: p === 0, atLast: p === pages - 1, pSt: nav(p === 0), nSt: nav(p === pages - 1),
-        prev: () => p > 0 && this.setState({ page: p - 1 }), next: () => p < pages - 1 && this.setState({ page: p + 1 }),
+        prev: () => p > 0 && setPage(p - 1), next: () => p < pages - 1 && setPage(p + 1),
         range: ev.length ? (p * PER + 1) + '–' + Math.min(ev.length, (p + 1) * PER) + ' sur ' + ev.length + ' événement' + (ev.length > 1 ? 's' : '') : '0 événement' },
-      rows: ev.slice(p * PER, p * PER + PER).map((e, j) => { const gi = p * PER + j, isV = e.k === 'v', isF = e.k === 'f', first = gi === 0, lastRow = gi === ev.length - 1;
+      rows: ev.slice(p * PER, p * PER + PER).map((e, j) => { const gi = p * PER + j, isV = e.k === 'v', first = gi === 0, lastRow = gi === ev.length - 1;
         return { day: day(e.at), hm: hm(e.at),
-          t: isV ? 'Version ' + e.v + ' publiée' : isF ? 'Dépôt non publié · ' + e.fileName : e.user,
-          sub: isV ? (e.by ? 'par ' + e.by + ' · ' : '') + mo(e.size || 0) + (e.model ? ' · ' + e.model : '') + (e.i ? ' · remplacée' : ' · en vigueur') : isF ? (e.by ? e.by + ' · ' : '') + (e.error || '') : (e.role ? e.role + ' · ' : '') + 'v' + e.version,
-          tSt: 'font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:' + (isV ? '#9a5a0c' : isF ? '#a2352a' : '#10233a'),
+          t: isV ? 'Version ' + e.v + ' publiée' : e.user, sub: isV ? (e.by ? 'par ' + e.by + ' · ' : '') + mo(e.size || 0) + ' · ' + MODEL + (e.i ? ' · remplacée' : ' · en vigueur') : (e.role ? e.role + ' · ' : '') + 'v' + e.version,
+          tSt: 'font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:' + (isV ? '#9a5a0c' : '#10233a'),
           st: 'height:56px;flex:none;position:relative;padding:0 28px 0 58px;display:flex;align-items:center;gap:12px;' + (isV ? 'background:linear-gradient(90deg,#fff8ec,rgba(255,248,236,0))' : ''),
           line: 'position:absolute;left:36px;width:1px;background:#e1e9e7;top:' + (first ? '50%' : '0') + ';bottom:' + (lastRow ? '50%' : '0'),
-          node: 'position:absolute;top:50%;' + (isV ? 'left:31px;width:11px;height:11px;margin-top:-5.5px;border-radius:2px;transform:rotate(45deg);background:linear-gradient(135deg,#f7a41c,#f0752b);box-shadow:0 0 0 3px #fff' : 'left:32px;width:9px;height:9px;margin-top:-4.5px;border-radius:50%;box-shadow:0 0 0 3px #fff;background:' + (isF ? '#c2473b' : cur && e.version === cur.v ? '#1d8f86' : '#c3ced4')) }; })
+          node: 'position:absolute;top:50%;' + (isV ? 'left:31px;width:11px;height:11px;margin-top:-5.5px;border-radius:2px;transform:rotate(45deg);background:linear-gradient(135deg,#f7a41c,#f0752b);box-shadow:0 0 0 3px #fff' : 'left:32px;width:9px;height:9px;margin-top:-4.5px;border-radius:50%;box-shadow:0 0 0 3px #fff;background:' + (cur && e.version === cur.v ? '#1d8f86' : '#c3ced4')) }; }),
+      jevTitle: 'Recherche de Jev dans le guide ' + A.de,
+      jevDesc: 'Quand une question porte sur l’utilisation ' + A.de + ', Jev cherche les passages les plus proches dans le guide, garde ceux qui dépassent le seuil, les reclasse, puis rédige sa réponse à partir des seuls extraits retenus.' + (cur ? '' : ' Tant qu’aucun guide n’est publié, Jev ne répond pas aux questions sur ' + A.le + '.'),
+      setStateL, setStateSt: 'flex:none;font-size:12.5px;font-weight:600;white-space:nowrap;padding-top:2px;color:' + (S.savedFlash ? '#1d8f86' : dirty ? '#b86e0a' : '#8a9aa6'),
+      fields: FIELDS.map(([k, label, unit, help]) => { const b = bad[k];
+        return { label, unit, val: edit[k], bad: !!b, on: e => setEdit(k, e.target.value),
+          help: b === 'gt' ? 'Ne peut dépasser les extraits recherchés' : help,
+          helpSt: 'font-size:12px;line-height:1.4;color:' + (b ? '#c9503c' : '#8a9aa6'),
+          inSt: 'width:100%;height:52px;border-radius:12px;padding:0 ' + (unit ? '78px' : '16px') + ' 0 16px;font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;background:#f5f8f7;outline:none;transition:border-color .15s,background .15s;border:1px solid ' + (b ? '#e0604b' : '#e1e9e7') }; }),
+      resetDef: () => this.setState(s => ({ edit: { ...s.edit, [app]: Object.fromEntries(FIELDS.map(([k]) => [k, fmt(k, DEF[k])])) } })),
+      defDis: isDef, defSt: btn(!isDef, false),
+      save, saveDis: !dirty || anyBad, saveSt: btn(dirty && !anyBad, true), saveL: S.savedFlash ? 'Enregistré' : 'Enregistrer'
     };
   }
 }

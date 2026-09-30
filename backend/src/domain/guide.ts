@@ -14,6 +14,7 @@ export const GUIDE_TOO_BIG = 'Fichier trop lourd (10 Mo maximum).';
 export const GUIDE_SCANNED = 'Ce PDF ne contient pas de texte (document scanné) : déposez un PDF exporté depuis un traitement de texte.';
 export const GUIDE_NO_TEXT = 'Aucun texte exploitable dans ce PDF.';
 export const GUIDE_BUSY = 'Indexation en cours : attendez la fin avant un nouveau dépôt.';
+export const GUIDE_UNKNOWN_APP = 'Application inconnue : console ou cockpit.';
 export const GUIDE_INTERRUPTED = 'Indexation interrompue : le serveur a redémarré pendant le traitement. Déposez le guide de nouveau.';
 
 /** Étapes du traitement d'un dépôt (affichées pendant l'indexation). */
@@ -31,7 +32,17 @@ export function nextGuideVersion(latest: string | null | undefined): string {
   return `${Number.isFinite(major) ? major : 1}.${(Number.isFinite(minor) ? minor : 0) + 1}`;
 }
 
+/** Applications ayant chacune leur guide (décision du 30/09/2026, maquette « Guide utilisateur Console Cockpit »). */
+export const GUIDE_APPS = ['console', 'cockpit'] as const;
+export type GuideApp = (typeof GUIDE_APPS)[number];
+export const isGuideApp = (x: string): x is GuideApp => (GUIDE_APPS as readonly string[]).includes(x);
+/** Libellés accordés à l'application (« le guide de la Console », « du Cockpit »). */
+export const GUIDE_APP_LABELS: Record<GuideApp, { name: string; of: string; the: string }> = {
+  console: { name: 'Console', of: 'de la Console', the: 'la Console' },
+  cockpit: { name: 'Cockpit', of: 'du Cockpit', the: 'le Cockpit' },
+};
+
 /** Nom du fichier servi (ASCII : en-tête Content-Disposition lisible partout). */
-export function guideFileName(v: string): string {
-  return `Guide utilisateur Console v${v}.pdf`;
+export function guideFileName(v: string, app: GuideApp = 'console'): string {
+  return `Guide utilisateur ${GUIDE_APP_LABELS[app].name} v${v}.pdf`;
 }

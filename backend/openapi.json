@@ -6183,42 +6183,6 @@
         ]
       }
     },
-    "/api/admin/assistant/rag-settings": {
-      "get": {
-        "operationId": "ConsoleController_ragSettings",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "console · supervision et compte"
-        ]
-      },
-      "put": {
-        "operationId": "ConsoleController_putRagSettings",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "console · supervision et compte"
-        ]
-      }
-    },
     "/api/admin/assistant/conversations/current": {
       "get": {
         "operationId": "ConsoleController_jevCurrent",
@@ -6257,9 +6221,9 @@
         ]
       }
     },
-    "/api/admin/guide/versions": {
+    "/api/admin/guides": {
       "get": {
-        "operationId": "GuideController_versions",
+        "operationId": "GuideController_all",
         "parameters": [],
         "responses": {
           "200": {
@@ -6276,10 +6240,19 @@
         ]
       }
     },
-    "/api/admin/guide/downloads": {
+    "/api/admin/guides/{app}": {
       "get": {
-        "operationId": "GuideController_downloads",
-        "parameters": [],
+        "operationId": "GuideController_one",
+        "parameters": [
+          {
+            "name": "app",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": ""
@@ -6293,71 +6266,77 @@
         "tags": [
           "console · guide utilisateur"
         ]
-      }
-    },
-    "/api/admin/guide/status": {
-      "get": {
-        "operationId": "GuideController_status",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "console · guide utilisateur"
-        ]
-      }
-    },
-    "/api/admin/guide/uploads": {
-      "get": {
-        "operationId": "GuideController_uploads",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "console · guide utilisateur"
-        ]
-      }
-    },
-    "/api/admin/guide/file": {
-      "get": {
-        "operationId": "GuideController_file",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "console · guide utilisateur"
-        ]
-      }
-    },
-    "/api/admin/guide": {
+      },
       "post": {
         "operationId": "GuideController_replace",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "app",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "202": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · guide utilisateur"
+        ]
+      }
+    },
+    "/api/admin/guides/{app}/file": {
+      "get": {
+        "operationId": "GuideController_file",
+        "parameters": [
+          {
+            "name": "app",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · guide utilisateur"
+        ]
+      }
+    },
+    "/api/admin/guides/{app}/settings": {
+      "put": {
+        "operationId": "GuideController_settings",
+        "parameters": [
+          {
+            "name": "app",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
             "description": ""
           }
         },

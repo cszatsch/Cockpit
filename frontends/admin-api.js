@@ -306,7 +306,7 @@ export function bindConsole(c) {
     // Serveur d’envoi SMTP : réglages sans mot de passe (`hasPassword`).
     smtp: async () => ({ smSettings: await get('/settings/smtp') }),
     // Guide utilisateur : versions et journal des téléchargements, toujours fournis (même vides : pas de démonstration).
-    guide: async () => { const [v, d, s, u, r] = await Promise.all([get('/guide/versions'), get('/guide/downloads'), get('/guide/status'), get('/guide/uploads'), get('/assistant/rag-settings').catch(() => null)]); setTimeout(() => gdWatch(s), 0); return { gdVers: v || [], gdDls: d || [], gdStatus: s || null, gdUps: u || [], gdRag: r }; },
+    guide: async () => { const g = await get('/guides'); setTimeout(() => gdWatch(g), 0); return { gdGuides: g }; },
     mods: async () => ({ mods: sortMods((await get('/modules')).map(toMod)) }),
     reqs: async () => ({ reqs: (await get('/module-requests?status=PENDING')).map(toReq) }),
     prof: async () => { const me = await get('/me/profile'); meId = me.id; return { prof: toProf(me), pn: { crit: true, budget: true, req: true, hebdo: true, fail: false, ...(me.notifications || {}) }, photo: me.photoUrl || null }; },
@@ -346,7 +346,7 @@ export function bindConsole(c) {
 
   // ── Démarrage : squelette de chargement jusqu'à la réception des données du serveur ──
   // Guide utilisateur : listes vides dès le départ (jamais les données de démonstration du composant).
-  set0({ apiBoot: true, loading: true, nt: [], nrApi: true, apApi: true, smApi: true, gdVers: [], gdDls: [], gdStatus: null, gdUps: [] });
+  set0({ apiBoot: true, loading: true, nt: [], nrApi: true, apApi: true, smApi: true, gdGuides: { console: { versions: [], downloads: [], index: null }, cockpit: { versions: [], downloads: [], index: null } } });
   (async () => {
     try {
       const ov = await get('/overview');
@@ -437,21 +437,24 @@ export function bindConsole(c) {
   // Test et envoi s'exécutent côté serveur ; le mot de passe n'est envoyé que s'il a été saisi (vide : conservé).
   const smBody = d => ({ host: d.host.trim(), port: Number(d.port), enc: d.enc, auth: !!d.auth, user: d.user.trim(), from: d.from.trim(), ...(d.pass && d.pass.trim() ? { password: d.pass } : {}) });
   c.smSave = d => put('/settings/smtp', smBody(d)).then(st => { set0({ smSettings: st }); touch(); return st; }).catch(e => { fail(e); return null; });
-  // Guide utilisateur : le serveur trace le téléchargement (qui, quand, quelle version) puis envoie le PDF ; après
-  // chaque action, versions et téléchargements sont relus. Les erreurs remontent au composant (messages de la maquette).
-  c.gdDownload = v => download('/guide/file', 'Guide utilisateur Console v' + v.v + '.pdf').finally(() => load(['guide']).catch(() => {}));
-  // Dépôt (décision du 30/09/2026) : réponse immédiate (202), puis indexation suivie toutes les 1,2 s jusqu'à la
-  // publication ou à l'échec ; le guide en vigueur reste téléchargeable pendant ce temps.
-  c.gdReplace = file => { const fd = new FormData(); fd.append('file', file, file.name); return post('/guide', fd).then(() => { touch(); return load(['guide']); }); };
-  // Réglages de la recherche de Jev dans le guide (décision du 30/09/2026) : les erreurs (champs) remontent au composant.
-  c.gdSaveRag = v => put('/assistant/rag-settings', v).then(r => { set0({ gdRag: r }); touch(); return r; });
-  let gdTimer = null;
-  const gdWatch = st => {
-    if (st && st.indexing) { if (!gdTimer) gdTimer = setInterval(() => load(['guide']).catch(() => {}), GD_POLL_MS); return; }
-    if (!gdTimer) return;
-    clearInterval(gdTimer); gdTimer = null; touch();
-    if (st && st.lastFailure) toast('Guide non publié : ' + st.lastFailure.error);
-    else if (st && st.current) toast('Guide v' + st.current.v + ' publié · ' + st.current.chunks + ' extraits indexés');
+  // Guide utilisateur Console et Cockpit (décision du 30/09/2026), une application à la fois (`app` : console | cockpit).
+  // Téléchargement : le serveur trace (qui, quand, quelle application, quelle version) PUIS envoie le PDF ; après chaque
+  // appel, `guides` est relu. Les erreurs remontent au composant (messages de la maquette) ; le motif du serveur
+  // (fichier refusé, réglage hors limites) est affiché en plus dans une notification.
+  const GD_NAME = { console: 'Console', cockpit: 'Cockpit' };
+  const gdFail = e => { toast(errText(e)); throw e; };
+  c.gdDownload = (app, v) => download('/guides/' + app + '/file', 'Guide utilisateur ' + GD_NAME[app] + ' v' + v.v + '.pdf').catch(gdFail).finally(() => load(['guide']).catch(() => {}));
+  // Dépôt : réponse immédiate (202, nouvelle version en vigueur), puis indexation suivie toutes les 1,2 s jusqu'à « Indexé ».
+  c.gdReplace = (app, file) => { const fd = new FormData(); fd.append('file', file, file.name); return post('/guides/' + app, fd).then(() => { touch(); return load(['guide']); }).catch(gdFail); };
+  c.gdSaveSettings = (app, s) => put('/guides/' + app + '/settings', s).then(() => { touch(); return load(['guide']); }).catch(gdFail);
+  let gdTimer = null, gdSeen = {};
+  const gdWatch = g => {
+    const run = ['console', 'cockpit'].filter(a => g && g[a] && g[a].index && g[a].index.status === 'run');
+    // Fin d'une indexation suivie : message de réussite, ou d'échec (version en vigueur non indexée).
+    for (const a of Object.keys(gdSeen)) if (!run.includes(a)) { const x = g && g[a]; toast(x && x.index ? 'Guide ' + GD_NAME[a] + ' indexé · ' + x.index.chunks + ' extraits' : 'Guide ' + GD_NAME[a] + ' non indexé' + (x && x.lastError ? ' : ' + x.lastError : '')); delete gdSeen[a]; }
+    run.forEach(a => { gdSeen[a] = true; });
+    if (run.length) { if (!gdTimer) gdTimer = setInterval(() => load(['guide']).catch(() => {}), GD_POLL_MS); return; }
+    if (gdTimer) { clearInterval(gdTimer); gdTimer = null; touch(); }
   };
   const unmountGd = c.componentWillUnmount.bind(c);
   c.componentWillUnmount = () => { clearInterval(gdTimer); unmountGd(); };

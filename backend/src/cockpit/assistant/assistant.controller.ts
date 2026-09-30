@@ -14,6 +14,8 @@ import { canReadWs } from '../../domain/rights';
 import { parseFrLabel } from '../../domain/dates';
 import { ACTIONS, DECISIONS, ISSUES, RISKS, TransactionalService, TxEntity } from '../pilotage/transactional';
 import type { UploadedBlob } from '../../import/import.controller';
+import { JevRouterService } from '../../admin/jev-router.service';
+import { GuideAnswerService } from '../../admin/guide-answer.service';
 
 /** Jev ne modifie jamais le Référentiel, les Comités et rapports, ni la Base de connaissance (§ 7.14). */
 export const JEV_WRITABLE: Record<string, TxEntity> = { RISK: RISKS, ISSUE: ISSUES, ACTION: ACTIONS, DECISION: DECISIONS };
@@ -52,6 +54,8 @@ export class AssistantController {
     private readonly llm: LlmService,
     private readonly storage: StorageService,
     private readonly jev: JevPromptService,
+    private readonly router: JevRouterService,
+    private readonly guide: GuideAnswerService,
   ) {}
 
   private entityOf(code: string): { type: string; def: TxEntity } | null {
@@ -67,6 +71,13 @@ export class AssistantController {
   async message(@CurrentActor() actor: Actor, @Param('projectId') p: string, @Body() body: unknown) {
     const scope = await this.access.scope(actor, p);
     const input = parse(Message, body);
+    // Question d'usage (aiguillage par l'API de JEV, périmètre du Cockpit) : réponse à partir du seul guide du Cockpit,
+    // avec ses réglages ; sans guide publié, Jev le dit sans appeler de modèle (décision du 30/09/2026).
+    const route = await this.router.classify(input.text, { app: 'cockpit', page: [input.context.space, input.context.tab].filter(Boolean).join(' › '), accountId: actor.accountId });
+    if (route.status === 'OK' && route.type === 'USAGE') {
+      const g = await this.guide.answer('cockpit', input.text, { system: await this.jev.systemPrompt(), projectId: scope.project.id });
+      return { reply: g.reply, sources: g.sources.map((label) => ({ entityType: 'GUIDE', id: 'cockpit', label })), proposedChanges: [], model: g.modelId ? { id: g.modelId, fallbackUsed: g.fallbackUsed } : null, route: 'USAGE', guide: g.status };
+    }
     const readOnly = READ_ONLY_SPACES.includes(input.context.space) || READ_ONLY_TABS.includes(input.context.tab ?? '');
     const codes = [...new Set(input.text.match(/\b(A-\d+|R\d{2,}|P\d{2,}|D-\d{3}|J\d{2,})\b/gi) ?? [])].map((c) => c.toUpperCase());
     const sources: Array<{ entityType: string; id: string; label: string }> = [];

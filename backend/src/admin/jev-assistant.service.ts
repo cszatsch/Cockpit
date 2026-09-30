@@ -65,7 +65,8 @@ export class JevAssistantService {
     const previous = mem.history.filter((h) => h.role === 'user').map((h) => ({ question: h.content }));
     const route = await this.router.classify(text, { history: previous, page: CONSOLE_PAGE_TITLES[section] ?? section, accountId, conversationId: conv.id });
     const classificationId = (await this.prisma.jevClassification.findFirst({ where: { conversationId: conv.id }, orderBy: { at: 'desc' }, select: { id: true } }))?.id ?? null;
-    const s = await this.search.settings();
+    // Guide et réglages de la Console seulement (questions posées depuis la Console).
+    const s = await this.search.settings('console');
     let out: Outcome;
     try {
       if (route.status !== 'OK') {
@@ -108,7 +109,7 @@ export class JevAssistantService {
     const q = reformulated ?? text;
     let found;
     try {
-      found = await this.search.search(q, s);
+      found = await this.search.search('console', q, s);
     } catch (e: any) {
       const c = await this.clarify(text, section, mem, e?.reason ?? 'INDISPONIBLE', s);
       return { ...c, reformulated, log: { ...c.log, rerankFallback: null, timings: { ...timings, ...c.log?.timings } } };

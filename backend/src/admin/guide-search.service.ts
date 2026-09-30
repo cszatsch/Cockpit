@@ -3,6 +3,7 @@ import { PrismaService } from '../core/prisma.service';
 import { LlmService } from '../core/llm.service';
 import { vectorLiteral, HNSW_HALFVEC_MAX_DIMS, HNSW_VECTOR_MAX_DIMS } from '../domain/guide-index';
 import { GuideExtract, pagesOf, queryForEmbedding, RagSettings, RAG_DEFAULTS } from '../domain/jev-rag';
+import type { GuideApp } from '../domain/guide';
 
 /** Résultat d'une recherche dans le guide, avec tout ce que le journal technique doit tracer. */
 export interface GuideSearch {
@@ -32,17 +33,20 @@ export class GuideSearchService {
     private readonly llm: LlmService,
   ) {}
 
-  /** Réglages en vigueur (Console), valeurs par défaut sinon. */
-  async settings(): Promise<RagSettings> {
-    const r = await this.prisma.jevRagSettings.findUnique({ where: { id: 'default' } });
+  /** Réglages en vigueur de l'application, valeurs par défaut sinon. */
+  async settings(app: GuideApp): Promise<RagSettings> {
+    const r = await this.prisma.jevRagSettings.findUnique({ where: { id: app } });
     return r ? { searchK: r.searchK, keepK: r.keepK, minSimilarity: r.minSimilarity, embedTimeoutMs: r.embedTimeoutMs, rerankTimeoutMs: r.rerankTimeoutMs, llmTimeoutMs: r.llmTimeoutMs } : { ...RAG_DEFAULTS };
   }
 
-  async search(question: string, s: RagSettings): Promise<GuideSearch> {
+  /**
+   * Recherche dans le guide d'une seule application. Sans guide publié : GUIDE_NON_INDEXE (Jev ne répond pas). Index
+   * utilisé : le dernier dépôt indexé de l'application (pendant une réindexation, ou après son échec, l'ancien).
+   */
+  async search(app: GuideApp, question: string, s: RagSettings): Promise<GuideSearch> {
     const out: GuideSearch = { empty: null, extracts: [], candidates: [], embedModel: null, reranker: null, rerankFallback: null, timings: {} };
-    // Index du guide en vigueur : modèle et dimension de sa vectorisation.
-    const cur = await this.prisma.guideVersion.findFirst({ orderBy: { seq: 'desc' } });
-    const up = cur?.uploadId ? await this.prisma.guideUpload.findUnique({ where: { id: cur.uploadId } }) : null;
+    const cur = await this.prisma.guideVersion.findFirst({ where: { app }, orderBy: { seq: 'desc' } });
+    const up = cur ? await this.prisma.guideUpload.findFirst({ where: { app, status: 'SUCCESS' }, orderBy: [{ at: 'desc' }, { id: 'desc' }] }) : null;
     if (!up?.embeddingModel || !up.embeddingDims || !(await this.prisma.guideChunk.count({ where: { uploadId: up.id } }))) return { ...out, empty: 'GUIDE_NON_INDEXE' };
     const dims = up.embeddingDims;
     out.embedModel = up.embeddingName ?? up.embeddingModel;

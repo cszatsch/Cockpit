@@ -385,7 +385,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
     <!-- API : Guide utilisateur (Guide utilisateur.dc.html, 30/09/2026) : versions et téléchargements toujours passés, même vides ; en-tête générique masqué, le composant a le sien. -->
     <sc-if value="{{ isGuide }}" hint-placeholder-val="{{ false }}">
       <div style="{{ skWrap }}" data-screen-label="Guide utilisateur (Console)">
-        <dc-import name="Guide utilisateur" versions="{{ gdVers }}" downloads="{{ gdDls }}" status="{{ gdStatus }}" uploads="{{ gdUps }}" current-user="{{ gdMe }}" can-replace="{{ gdCan }}" today="{{ gdToday }}" on-download="{{ gdDownload }}" on-replace="{{ gdReplace }}" rag-settings="{{ gdRag }}" on-save-rag="{{ gdSaveRag }}" hint-size="100%,1180px"></dc-import>
+        <dc-import name="Guide utilisateur" guides="{{ gdGuides }}" current-user="{{ gdMe }}" can-replace="{{ gdCan }}" on-download="{{ gdDownload }}" on-replace="{{ gdReplace }}" on-save-settings="{{ gdSaveSettings }}" hint-size="100%,1240px"></dc-import>
       </div>
     </sc-if>
     <!-- API : Serveur d’envoi SMTP (Serveur SMTP.dc.html, SMTP - specification.md § 6) ; en-tête générique masqué, le composant a le sien. -->
@@ -1566,9 +1566,12 @@ class Component extends DCLogic {
       // Serveur d’envoi SMTP : réglages du serveur (admin-api.js, jamais le mot de passe) ; sans eux, démonstration du composant.
       smMounted: !S.smApi || !!S.smSettings, smSettings: S.smSettings || undefined,
       // Guide utilisateur : démonstration sans serveur (props absentes) ; avec le serveur, listes toujours fournies (admin-api.js).
-      gdVers: S.gdVers, gdDls: S.gdDls, gdStatus: S.gdStatus || null, gdUps: S.gdUps || [], gdMe: { name: S.prof.first + ' ' + S.prof.last, role: 'Administrateur' }, gdCan: true, gdToday: TODAY,
-      gdDownload: v => this.gdDownload ? this.gdDownload(v) : Promise.resolve(), gdReplace: f => this.gdReplace ? this.gdReplace(f) : Promise.reject(new Error('démonstration')),
-      gdRag: S.gdRag || null, gdSaveRag: v => this.gdSaveRag ? this.gdSaveRag(v) : Promise.resolve(v),
+      // Guide utilisateur Console et Cockpit (30/09/2026) : `guides` toujours passé (tableaux vides par défaut), sinon le
+      // composant afficherait ses données de démonstration.
+      gdGuides: S.gdGuides || { console: { versions: [], downloads: [], index: null }, cockpit: { versions: [], downloads: [], index: null } },
+      gdMe: { name: S.prof.first + ' ' + S.prof.last, role: 'Administrateur' }, gdCan: true,
+      gdDownload: (app, v) => this.gdDownload ? this.gdDownload(app, v) : Promise.resolve(), gdReplace: (app, f) => this.gdReplace ? this.gdReplace(app, f) : Promise.reject(new Error('démonstration')),
+      gdSaveSettings: (app, s) => this.gdSaveSettings ? this.gdSaveSettings(app, s) : Promise.resolve(s),
       ...(S.smApi ? { smSave: d => this.smSave(d), smTest: d => this.smTest(d), smTestEmail: (to, d) => this.smTestEmail(to, d) } : {}),
       // Registre des cartes API : liste du serveur (admin-api.js) ; sans elle, le composant affiche sa démonstration et simule les appels.
       // Registre des cartes API v3c : cartes du serveur au format Card du § 5 (admin-api.js) ; sans elles, démonstration du composant.

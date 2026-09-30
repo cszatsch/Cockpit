@@ -17,9 +17,11 @@ import { DocumentsController } from './documents/documents.controller';
 import { KbService } from './documents/kb.service';
 import { CollabController } from './collab/collab.controller';
 import { AssistantController } from './assistant/assistant.controller';
+import { AdminModule } from '../admin/admin.module';
 
 /** API du Cockpit : `/api/me`, `/api/projects/{projectId}/…`. */
 @Module({
+  imports: [AdminModule],
   // Ordre significatif : les routes fixes (ex. deliverables/tracking) avant les routes paramétrées (deliverables/:id).
   controllers: [MeController, MyNotificationsController, ProjectController, BootstrapController, PilotageController, TodayController, CommitteesController, DocumentsController, CollabController, AssistantController, ...REFERENTIAL_CONTROLLERS, ...TX_CONTROLLERS],
   providers: [ReferentialService, UsagesService, TransactionalService, AnomaliesService, BootstrapService, KbService],

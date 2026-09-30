@@ -1713,10 +1713,12 @@ model NotificationOccurrence {
 /// seule téléchargeable. Les versions remplacées restent dans l'historique ; leur fichier n'est plus servi.
 model GuideVersion {
   id         String   @id @default(cuid())
+  /// Application du guide : console ou cockpit (décision du 30/09/2026) ; aucune donnée partagée entre les deux.
+  app        String   @default("console")
   /// Ordre de publication (indépendant de l'horloge) : la plus grande valeur est la version en vigueur.
   seq        Int      @default(autoincrement())
-  /// Numéro « majeur.mineur », incrément mineur automatique à chaque dépôt (3.2 → 3.3).
-  v          String   @unique
+  /// Numéro « majeur.mineur », incrément mineur automatique à chaque dépôt (3.2 → 3.3), propre à l'application.
+  v          String
   at         DateTime
   accountId  String?  @map("account_id")
   by         String
@@ -1729,6 +1731,7 @@ model GuideVersion {
   pages      Int?
   chunks     Int?
 
+  @@unique([app, v])
   @@map("guide_versions")
 }
 
@@ -1743,6 +1746,7 @@ enum GuideUploadStatus {
 /// si le modèle est supprimé ensuite.
 model GuideUpload {
   id             String            @id @default(cuid())
+  app            String            @default("console")
   at             DateTime
   accountId      String?           @map("account_id")
   by             String
@@ -1792,6 +1796,7 @@ model GuideChunk {
 /// suppression, trigger SQL).
 model GuideDownload {
   id        String   @id @default(cuid())
+  app       String   @default("console")
   accountId String?  @map("account_id")
   user      String
   role      String?
@@ -1830,7 +1835,8 @@ model JevClassification {
 /// Réglages de la recherche de Jev dans le guide utilisateur (RAG, décision du 30/09/2026) : une seule ligne
 /// (`id = default`), modifiable depuis la Console ; valeurs par défaut du code si la ligne n'existe pas.
 model JevRagSettings {
-  id              String   @id @default("default")
+  /// Application : console ou cockpit (une ligne chacune).
+  id              String   @id
   /// Extraits recherchés dans pgvector, puis gardés après reclassement.
   searchK         Int      @map("search_k")
   keepK           Int      @map("keep_k")

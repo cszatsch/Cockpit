@@ -2,8 +2,6 @@ import { Body, Controller, Delete, Get, HttpCode, OnModuleInit, Param, Patch, Po
 import { JevPromptService } from '../core/jev-prompt.service';
 import { JevSqlService } from './jev-sql.service';
 import { JevAssistantService } from './jev-assistant.service';
-import { GuideSearchService } from './guide-search.service';
-import { RAG_DEFAULTS, RAG_LIMITS, ragSettingsErrors } from '../domain/jev-rag';
 import { JevMemoryService } from './jev-memory.service';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
@@ -44,7 +42,6 @@ export class ConsoleController implements OnModuleInit {
     private readonly profiles: ProfilesService,
     private readonly jevMemory: JevMemoryService,
     private readonly jevAssistant: JevAssistantService,
-    private readonly guideSearch: GuideSearchService,
   ) {}
 
   onModuleInit() {
@@ -299,27 +296,6 @@ export class ConsoleController implements OnModuleInit {
     // Aiguillage puis traitement (décision du 30/09/2026) : données, guide utilisateur ou clarification ; mémoire commune.
     const res = await this.jevAssistant.answer(actor.accountId, input.text, input.context.section, input.conversationId);
     return { ...res, actions: [] };
-  }
-
-  /** Réglages de la recherche de Jev dans le guide utilisateur (valeurs par défaut si rien n'est enregistré). */
-  @Get('assistant/rag-settings')
-  async ragSettings() {
-    const row = await this.prisma.jevRagSettings.findUnique({ where: { id: 'default' }, select: { updatedAt: true, updatedBy: true } });
-    return { ...(await this.guideSearch.settings()), updatedAt: row?.updatedAt ?? null, updatedBy: row?.updatedBy ?? null, defaults: RAG_DEFAULTS, limits: RAG_LIMITS };
-  }
-
-  @Put('assistant/rag-settings')
-  async putRagSettings(@CurrentActor() actor: Actor, @Body() body: unknown) {
-    const n = z.number();
-    const input = parse(z.object({ searchK: n, keepK: n, minSimilarity: n, embedTimeoutMs: n, rerankTimeoutMs: n, llmTimeoutMs: n }).strict(), body);
-    const errs = ragSettingsErrors(input);
-    if (Object.keys(errs).length) throw badRequest('Réglages invalides', errs);
-    const before = await this.guideSearch.settings();
-    await this.prisma.$transaction(async (db) => {
-      await db.jevRagSettings.upsert({ where: { id: 'default' }, create: { id: 'default', ...input, updatedBy: actor.fullName }, update: { ...input, updatedBy: actor.fullName } });
-      await this.audit.action(db, adminCtx(actor), { action: 'Modification des réglages de recherche de Jev', target: 'Recherche dans le guide utilisateur', severity: 'SENSITIVE', entityType: 'JevRagSettings', entityId: 'default', details: { avant: before, apres: input } });
-    });
-    return this.ragSettings();
   }
 
   /** Conversation en cours du compte avec Jev (reprise après un rechargement de la page) ; `id` null s'il n'y en a pas. */

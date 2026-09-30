@@ -70,3 +70,31 @@ export function guidePdf(tag = 'A'): Buffer {
     ]),
   ]);
 }
+
+/** Guide de test du Cockpit : titres et contenu propres au Cockpit (jamais présents dans le guide de la Console). */
+export function cockpitGuidePdf(tag = 'A'): Buffer {
+  const lines = (blocks: Array<[number, string] | string>): FixtureLine[] => {
+    let y = 780;
+    return blocks.map((b) => (typeof b === 'string' ? (y -= 14.4, { text: b, size: 9.6, y }) : (y -= b[0] * 1.8 + 6, { text: b[1], size: b[0], y })));
+  };
+  return makePdf([
+    [{ text: `Guide utilisateur du Cockpit ${tag}`, size: 28, y: 600 }, { text: 'Version de test du guide du Cockpit.', size: 9.6, y: 560 }],
+    lines([
+      [20, '1. Pilotage du projet'],
+      [14, '1.1 Créer une action de pilotage'],
+      'Dans l’espace Pilotage, ouvrez l’onglet Actions puis cliquez sur Nouvelle action.',
+      'Renseignez le titre, le porteur, le chantier et l’échéance de l’action de pilotage.',
+      `L’action apparaît aussitôt dans le tableau des actions du chantier ${tag}.`,
+      [14, '1.2 Jalons non confirmés'],
+      'Un jalon est signalé non confirmé quand son porteur ne l’a pas revu depuis plus de sept jours.',
+      'Le signal disparaît dès que le porteur confirme la date prévue du jalon.',
+    ]),
+    lines([
+      [20, '2. Base de connaissance'],
+      [14, '2.1 Déposer un document'],
+      'Cliquez sur Déposer un document, choisissez le fichier, puis le type et la confidentialité.',
+      'Jev résume le document et l’indexe ; le résumé s’affiche avec l’icône Vue du tableau.',
+      'Un document restreint reste visible du PMO et de son auteur seulement.',
+    ]),
+  ]);
+}

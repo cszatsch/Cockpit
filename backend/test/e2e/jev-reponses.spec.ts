@@ -33,10 +33,10 @@ describe('Console — réponses de Jev (guide, données, clarification)', () => 
     t.app.get(ApiCardsService).fetchImpl = (async () => new Response(JSON.stringify({ model: 'jev-1.13.0', answers: { [ROUTER_QUESTION_ID]: { type: 'choice', choice: next, confidence: 0.95, probabilities: { [next]: 0.95 } } } }), { status: 200, headers: { 'content-type': 'application/json' } })) as any;
     // Guide indexé (vectorisation simulée).
     const token = await t.token(WHO.admin);
-    await request(t.app.getHttpServer()).post(`${A}/guide`).set('Authorization', `Bearer ${token}`).attach('file', guidePdf('A'), { filename: 'Guide.pdf', contentType: 'application/pdf' }).expect(202);
+    await request(t.app.getHttpServer()).post(`${A}/guides/console`).set('Authorization', `Bearer ${token}`).attach('file', guidePdf('A'), { filename: 'Guide.pdf', contentType: 'application/pdf' }).expect(202);
     await t.app.get(GuideIndexService).idle();
     // Seuil à 0 : la similarité des vecteurs simulés n'a pas de sens ; le seuil est testé à part.
-    await admin.put(`${A}/assistant/rag-settings`, { ...RAG_DEFAULTS, minSimilarity: 0 }).expect(200);
+    await admin.put(`${A}/guides/console/settings`, { k: 8, keep: 4, thr: 0, tv: 10, tr: 8, tw: 30 }).expect(200);
   });
   afterAll(() => t.close());
 
@@ -47,16 +47,10 @@ describe('Console — réponses de Jev (guide, données, clarification)', () => 
   // Date figée dans les tests : le journal est retrouvé par conversation (et question).
   const lastLog = (conversationId: string, question?: string) => t.db.jevAnswerLog.findFirst({ where: { conversationId, ...(question ? { question } : {}) } });
 
-  it('réglages : valeurs par défaut, bornes contrôlées, enregistrement tracé au journal d’audit', async () => {
-    const r = (await admin.get(`${A}/assistant/rag-settings`).expect(200)).body;
-    expect(r).toMatchObject({ searchK: 8, keepK: 4, minSimilarity: 0, defaults: RAG_DEFAULTS });
-    const bad = await admin.put(`${A}/assistant/rag-settings`, { ...RAG_DEFAULTS, searchK: 3, keepK: 5, rerankTimeoutMs: 1500.5 }).expect(400);
-    expect(bad.body.fields).toMatchObject({ keepK: expect.any(String), rerankTimeoutMs: 'nombre entier attendu' });
-    await admin.put(`${A}/assistant/rag-settings`, { ...RAG_DEFAULTS, minSimilarity: 2 }).expect(400);
-    await admin.put(`${A}/assistant/rag-settings`, { ...RAG_DEFAULTS, autre: 1 }).expect(400);
-    const pmo = await t.as(WHO.pmo);
-    await pmo.put(`${A}/assistant/rag-settings`, RAG_DEFAULTS).expect(403);
-    expect(await t.db.auditEntry.count({ where: { action: 'Modification des réglages de recherche de Jev' } })).toBe(1);
+  it('réglages de la Console : seuil enregistré, les réglages du Cockpit restent par défaut (tests détaillés : guide.spec)', async () => {
+    const r = (await admin.get(`${A}/guides/console`).expect(200)).body;
+    expect(r.settings).toEqual({ k: 8, keep: 4, thr: 0, tv: 10, tr: 8, tw: 30 });
+    expect((await admin.get(`${A}/guides/cockpit`).expect(200)).body.settings).toEqual({ k: 8, keep: 4, thr: 0.58, tv: 10, tr: 8, tw: 30 });
   });
 
   it('USAGE : extraits du guide reclassés, rédaction par la fonction Synthèse (règles en cache, extraits ensuite), sources section et page', async () => {
@@ -104,7 +98,7 @@ describe('Console — réponses de Jev (guide, données, clarification)', () => 
   });
 
   it('aucun extrait au-dessus du seuil : pas de rédaction à vide, clarification (motif tracé)', async () => {
-    await admin.put(`${A}/assistant/rag-settings`, { ...RAG_DEFAULTS, minSimilarity: 0.95 }).expect(200);
+    await admin.put(`${A}/guides/console/settings`, { k: 8, keep: 4, thr: 0.95, tv: 10, tr: 8, tw: 30 }).expect(200);
     const spy = jest.spyOn(llm, 'complete');
     const rr = jest.spyOn(llm, 'rerankTexts');
     const r = await ask('usage', 'Comment changer la couleur du logo ?');
@@ -115,7 +109,7 @@ describe('Console — réponses de Jev (guide, données, clarification)', () => 
     expect(rr).not.toHaveBeenCalled();
     spy.mockRestore(); rr.mockRestore();
     expect(await lastLog(r.body.conversationId)).toMatchObject({ treatment: 'CLARIFICATION', reason: 'AUCUN_EXTRAIT', extracts: { kept: [], candidates: expect.any(Array) } });
-    await admin.put(`${A}/assistant/rag-settings`, { ...RAG_DEFAULTS, minSimilarity: 0 }).expect(200);
+    await admin.put(`${A}/guides/console/settings`, { k: 8, keep: 4, thr: 0, tv: 10, tr: 8, tw: 30 }).expect(200);
   });
 
   it('conversation : suite après USAGE (reformulée), suite après DONNÉES (« Et le mois dernier ? »), changement de type ; mémoire commune', async () => {
