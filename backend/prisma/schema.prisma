@@ -1291,9 +1291,15 @@ model NotificationRule {
   channels       Channel[]
   trigger        RuleTrigger   @default(SCHEDULE)
   enabled        Boolean       @default(false)
+  /// Prochain envoi d'une règle planifiée (heure de Paris), calculé à l'enregistrement et après chaque envoi ; null sinon.
+  nextRunAt      DateTime?
+  /// Fréquence, jour et heure qui ont servi à calculer nextRunAt : s'ils changent, il est recalculé.
+  scheduleKey    String?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
   version        Int           @default(1)
+
+  @@index([enabled, nextRunAt])
 }
 
 model Delivery {

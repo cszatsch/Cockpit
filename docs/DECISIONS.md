@@ -713,3 +713,15 @@ Analyse et comparaison : `docs/ANALYSE - memoire conversationnelle de Jev (Conso
 | Conservation | Conversation supprimée 30 jours après le dernier échange (tâche `jev.purge`, 03:25). | `JEV_CONVERSATION_RETENTION_DAYS` |
 | Console | Bouton « Nouvelle conversation » dans l'en-tête du panneau Jev ; conversation en cours reprise après un rechargement ; changer de page ne coupe pas le fil. | `jevNew`, `jevResume` (`admin-api.js`) |
 | Données | Vue `jev.infos_projet` ajoutée au dictionnaire de la Console (même source que celle du Cockpit) : sans elle, « Quel est le périmètre fonctionnel du projet ? » restait sans réponse, même avec la mémoire. | `INFOS_PROJET_SOURCE` (`src/domain/project-info.ts`), migration `20261020000000_memoire_jev` |
+
+## Planification des notifications : prochain envoi stocké, rattrapage, vérification quotidienne (30/09/2026)
+
+Remplace la tâche `notifications.tick` (toutes les 30 minutes, comparaison de l'heure courante avec l'heure de chaque règle), qui perdait tout envoi prévu pendant un arrêt de la plateforme et revoyait tous les jalons et risques 48 fois par jour.
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Prochain envoi | Stocké sur chaque règle planifiée (quotidienne, hebdomadaire ; « personnalisée » comme quotidienne), calculé en heure de Paris (changements d'heure compris) à l'enregistrement, à l'activation et après chaque envoi ; recalculé seulement si la fréquence, le jour, l'heure ou l'activation changent. Le calcul ne modifie ni la date de modification ni la version de la règle. | `nextRunAt`, `scheduleKey`, `nextSendAt`, `scheduleKey()` (`src/domain/notification-rules.ts`), `syncSchedules` |
+| Vérification | Chaque minute, une requête sur l'index (`enabled`, `nextRunAt`) : les règles dont le prochain envoi est passé. Le prochain envoi est avancé avant l'envoi. Les heures restent choisies par pas de 30 minutes dans la vue. | `notifications.due` (`* * * * *`), `runDue` |
+| Rattrapage | Un envoi manqué (plateforme arrêtée) part au redémarrage s'il est du jour même (heure de Paris) ; sinon il est abandonné et tracé en échec « Non envoyé : la plateforme était arrêtée… », visible dans « À traiter ». Un envoi par règle, projet et jour au plus (`eventKey`). | `CATCH_UP_SAME_DAY` |
+| Jalons et risques | Vérifiés une fois par jour à 7 h : un jalon ne devient en retard qu'au changement de date ; modifier sa date vaut confirmation (§ 7.2), une modification ne le met donc jamais en retard. Un risque critique est notifié à son enregistrement (événement) ; le passage de 7 h n'est qu'un filet de sécurité. Un événement déjà notifié ne l'est pas deux fois. | `notifications.daily` (`DAILY_CHECK_CRON`), `dailyCheck` |
+| Tâches retirées | Les planifications pg-boss absentes du code sont supprimées au démarrage (ex. `notifications.tick`). | `JobsService.onApplicationBootstrap` |

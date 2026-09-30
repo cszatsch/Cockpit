@@ -1,4 +1,7 @@
 import {
+  nextSendAt,
+  parisDay,
+  scheduleKey,
   atOf,
   isSendTime,
   profileScope,
@@ -135,5 +138,34 @@ describe('Notifications : périmètre d’un texte par profil (point 7)', () => 
     expect(profileScope('resp', [{ responsable: ['C1'], lecteur: [] }, { responsable: ['C5'], lecteur: [] }])).toEqual([]);
     expect(profileScope('lec', [{ responsable: [], lecteur: ['C3', 'C4'] }, { responsable: ['C4'], lecteur: ['C8'] }])).toEqual(['C4']);
     expect(profileScope('resp', [])).toEqual([]);
+  });
+});
+
+describe('Planification : prochain envoi (heure de Paris)', () => {
+  const r = (frequency: string, hour: string | null, day: string | null = null, enabled = true, trigger = 'SCHEDULE') => ({ enabled, trigger, frequency, hour, day });
+  // 26/09/2026 à 10 h 24 à Paris (UTC+2) : un samedi.
+  const now = new Date('2026-09-26T08:24:00Z');
+  it('quotidienne : aujourd’hui si l’heure n’est pas passée, sinon demain', () => {
+    expect(nextSendAt(r('DAILY', '18:00'), now)!.toISOString()).toBe('2026-09-26T16:00:00.000Z');
+    expect(nextSendAt(r('DAILY', '07:00'), now)!.toISOString()).toBe('2026-09-27T05:00:00.000Z');
+    // Strictement après : à 7 h 00 pile, l'envoi suivant est le lendemain.
+    expect(nextSendAt(r('DAILY', '07:00'), new Date('2026-09-27T05:00:00Z'))!.toISOString()).toBe('2026-09-28T05:00:00.000Z');
+  });
+  it('hebdomadaire : le prochain jour indiqué ; « personnalisée » comme quotidienne', () => {
+    expect(nextSendAt(r('WEEKLY', '07:00', 'lundi'), now)!.toISOString()).toBe('2026-09-28T05:00:00.000Z');
+    expect(nextSendAt(r('WEEKLY', '12:30', 'samedi'), now)!.toISOString()).toBe('2026-09-26T10:30:00.000Z');
+    expect(nextSendAt(r('WEEKLY', '09:00', 'samedi'), now)!.toISOString()).toBe('2026-10-03T07:00:00.000Z');
+    expect(nextSendAt(r('CUSTOM', '18:00'), now)!.toISOString()).toBe('2026-09-26T16:00:00.000Z');
+  });
+  it('changement d’heure : 7 h 00 à Paris le 25/10/2026 (heure d’hiver) = 6 h 00 UTC', () => {
+    expect(nextSendAt(r('DAILY', '07:00'), new Date('2026-10-24T12:00:00Z'))!.toISOString()).toBe('2026-10-25T06:00:00.000Z');
+    expect(parisDay(new Date('2026-10-24T22:30:00Z'))).toBe('2026-10-25');
+  });
+  it('règle inactive, immédiate ou d’événement : pas d’envoi planifié', () => {
+    expect(nextSendAt(r('DAILY', '07:00', null, false), now)).toBeNull();
+    expect(nextSendAt(r('IMMEDIATE', null), now)).toBeNull();
+    expect(nextSendAt(r('DAILY', '18:00', null, true, 'DOCUMENT_ANALYZED'), now)).toBeNull();
+    expect(scheduleKey(r('DAILY', '07:00', null, false))).toBe('off');
+    expect(scheduleKey(r('WEEKLY', '07:00', 'Lundi'))).toBe('WEEKLY|lundi|07:00');
   });
 });

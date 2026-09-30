@@ -40,6 +40,8 @@ export class JobsService implements OnApplicationBootstrap, OnModuleDestroy {
       });
     }
     for (const s of this.schedules) await this.boss.schedule(s.name, s.cron, s.data, { tz: 'Europe/Paris' });
+    // Planifications retirées du code (ex. « notifications.tick », remplacée le 30/09/2026) : supprimées de la base.
+    for (const s of await this.boss.getSchedules()) if (!this.schedules.some((x) => x.name === s.name)) await this.boss.unschedule(s.name);
   }
 
   async onModuleDestroy() {

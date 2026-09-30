@@ -100,6 +100,62 @@ export function sendSlot(hhmm: string): string {
   return hhmm.slice(0, 3) + (Number(hhmm.slice(3, 5)) < 30 ? '00' : '30');
 }
 
+// ───────────── Planification des envois (décision du 30/09/2026) ─────────────
+
+/** Heure de la vérification quotidienne des jalons en retard et des risques critiques (heure de Paris). */
+export const DAILY_CHECK_CRON = '0 7 * * *';
+/** Rattrapage : un envoi manqué (plateforme arrêtée) part au redémarrage le jour même ; au-delà, il est abandonné. */
+export const CATCH_UP_SAME_DAY = true;
+
+/** Parties de date et d'heure d'un instant dans le fuseau de l'organisation. */
+function parisParts(d: Date) {
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone: NOTIFICATION_TIMEZONE, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(d).map((x) => [x.type, x.value]));
+  return { y: +p.year, m: +p.month, d: +p.day, h: +p.hour, min: +p.minute };
+}
+
+/** Jour (AAAA-MM-JJ) d'un instant, heure de Paris. */
+export function parisDay(d: Date): string {
+  const p = parisParts(d);
+  return `${p.y}-${String(p.m).padStart(2, '0')}-${String(p.d).padStart(2, '0')}`;
+}
+
+/** Instant correspondant à une date et une heure de Paris (changements d'heure compris). */
+export function parisTime(y: number, m: number, d: number, h: number, min: number): Date {
+  const want = Date.UTC(y, m - 1, d, h, min);
+  let t = want;
+  for (let i = 0; i < 2; i++) {
+    const p = parisParts(new Date(t));
+    t += want - Date.UTC(p.y, p.m - 1, p.d, p.h, p.min);
+  }
+  return new Date(t);
+}
+
+/** Règle planifiée dont l'envoi suit une heure (quotidienne, hebdomadaire ; « personnalisée » : comme quotidienne). */
+export function isTimedRule(r: { enabled: boolean; trigger: string; frequency: string }): boolean {
+  return r.enabled && r.trigger === 'SCHEDULE' && ['DAILY', 'WEEKLY', 'CUSTOM'].includes(r.frequency);
+}
+
+/** Ce qui détermine le prochain envoi : s'il change (règle modifiée), la date du prochain envoi est recalculée. */
+export function scheduleKey(r: { enabled: boolean; trigger: string; frequency: string; day: string | null; hour: string | null }): string {
+  return isTimedRule(r) ? [r.frequency, r.frequency === 'WEEKLY' ? (r.day ?? DEFAULT_WEEK_DAY).toLowerCase() : '', r.hour ?? (r.frequency === 'WEEKLY' ? DEFAULT_WEEK_HOUR : DEFAULT_HOUR)].join('|') : 'off';
+}
+
+/** Prochain envoi d'une règle, strictement après `from` (heure de Paris) ; null si la règle ne suit pas une heure. */
+export function nextSendAt(r: { enabled: boolean; trigger: string; frequency: string; day: string | null; hour: string | null }, from: Date): Date | null {
+  if (!isTimedRule(r)) return null;
+  const weekly = r.frequency === 'WEEKLY';
+  const [hh, mm] = (r.hour ?? (weekly ? DEFAULT_WEEK_HOUR : DEFAULT_HOUR)).split(':').map(Number);
+  const target = WEEK_DAYS.indexOf((r.day ?? DEFAULT_WEEK_DAY).toLowerCase());
+  const p = parisParts(from);
+  for (let k = 0; k <= 8; k++) {
+    const day = new Date(Date.UTC(p.y, p.m - 1, p.d + k));
+    if (weekly && (day.getUTCDay() + 6) % 7 !== target) continue;
+    const t = parisTime(day.getUTCFullYear(), day.getUTCMonth() + 1, day.getUTCDate(), hh, mm);
+    if (t.getTime() > from.getTime()) return t;
+  }
+  return null;
+}
+
 /** Variables retirées des messages le 29/09/2026 (refusées à l'enregistrement). */
 export const REMOVED_VARIABLES = ['jalon', 'risque', 'seuil', 'document'] as const;
 /** Variables retirées présentes dans un texte (« {jalon} »…). */

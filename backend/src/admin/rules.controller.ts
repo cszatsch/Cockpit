@@ -87,7 +87,7 @@ export class RulesController {
   }
 
   /** Règles d'enregistrement (§ 7.6) : 400 si nom vide, aucun profil, aucun canal, aucun projet (hors plateforme), prompt vide, modèle inactif. */
-  private async validate(r: Omit<NotificationRule, 'createdAt' | 'updatedAt' | 'version'>) {
+  private async validate(r: Omit<NotificationRule, 'createdAt' | 'updatedAt' | 'version' | 'nextRunAt' | 'scheduleKey'>) {
     const fields: Record<string, string> = {};
     if (!r.name.trim()) fields.name = 'obligatoire';
     if (!r.targetProfiles.length) fields.targetProfiles = 'au moins un profil';
@@ -143,6 +143,7 @@ export class RulesController {
       await this.audit.action(db, adminCtx(actor), { action: 'Création d’une règle de notification', target: row.name, severity: 'INFO', entityType: 'NotificationRule', entityId: row.id });
       return row;
     });
+    await this.notifs.syncSchedules([row.id]); // prochain envoi recalculé dès l'enregistrement
     return this.view(row);
   }
 
@@ -164,6 +165,7 @@ export class RulesController {
       await this.audit.action(db, adminCtx(actor), { action: 'Modification d’une règle de notification', target: row.name, severity: 'INFO', entityType: 'NotificationRule', entityId: id });
       return row;
     });
+    await this.notifs.syncSchedules([row.id]); // prochain envoi recalculé dès l'enregistrement
     return this.view(row);
   }
 
@@ -189,6 +191,7 @@ export class RulesController {
       await this.audit.action(db, adminCtx(actor), { action: enabled ? 'Activation d’une règle' : 'Désactivation d’une règle', target: row.name, severity: 'INFO', entityType: 'NotificationRule', entityId: id });
       return row;
     });
+    await this.notifs.syncSchedules([row.id]); // prochain envoi recalculé dès l'enregistrement
     return this.view(row);
   }
 
@@ -317,6 +320,7 @@ export class RulesController {
       await this.audit.action(db, adminCtx(actor), { action: 'Création d’une règle de notification', target: row.name, severity: 'INFO', entityType: 'NotificationRule', entityId: row.id });
       return row;
     });
+    await this.notifs.syncSchedules([row.id]); // prochain envoi recalculé dès l'enregistrement
     return this.uiView(row, llm);
   }
 
@@ -333,6 +337,7 @@ export class RulesController {
       await this.audit.action(db, adminCtx(actor), { action: 'Modification d’une règle de notification', target: row.name, severity: 'INFO', entityType: 'NotificationRule', entityId: id });
       return row;
     });
+    await this.notifs.syncSchedules([row.id]); // prochain envoi recalculé dès l'enregistrement
     return this.uiView(row, llm);
   }
 
@@ -346,6 +351,7 @@ export class RulesController {
       await this.audit.action(db, adminCtx(actor), { action: on ? 'Activation d’une règle' : 'Désactivation d’une règle', target: row.name, severity: 'INFO', entityType: 'NotificationRule', entityId: id });
       return row;
     });
+    await this.notifs.syncSchedules([row.id]); // prochain envoi recalculé dès l'enregistrement
     return this.uiView(row);
   }
 
