@@ -685,3 +685,15 @@ Demande du commanditaire : un objet « Info projet », juste après « Projet »
 | Écran Référentiel | Tableau « rubrique · libellé · valeur », une ligne par élément ; rubrique en liste de choix ; libellé verrouillé (« — ») pour les rubriques en liste ; « + » ajoute un enjeu à compléter ; suppression par ligne. L'écran reconstitue l'objet et l'envoie en une fois, seulement s'il diffère de celui du serveur (une ligne ajoutée encore vide n'est pas envoyée). | `ipRub`, `ipRows`, `projectInfo` (`RISE Cockpit.dc.html`), `onProjectInfo` (`api.js`) |
 | Fiche projet | Lit l'objet (`projectInfo()`), y compris les compteurs « N pays » et « N entités » et le nom du client de l'en-tête ; même rendu qu'avant. « Marques du groupe » avant « Le programme en une phrase ». | `IPJ` (`renderVals`) |
 | Dictionnaire | Vue `jev_cockpit.infos_projet` : une ligne par élément (rubrique, rangs, libellé, valeur), filtrée par projet. | `DICTIONNAIRE_COCKPIT`, migration `20261018000000_info_projet` |
+
+## Registre des cartes API : clé « Bearer » et appels POST, carte JEV (TypeSafe) (30/09/2026)
+
+Demande du commanditaire : une carte « JEV », tag « Stratégie », pour l'API TypeSafe (documentation https://docs.typesafe.ai/introduction). Cette API attend `POST https://api.typesafe.ai/v1/systemone`, un corps JSON (`state`, `model`, `questions`) et `Authorization: Bearer <clé>`, que le registre ne savait pas envoyer (GET seulement, clé dans l'URL ou `X-Api-Key`). Option retenue : étendre le registre.
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Envoi de la clé | `HEADER` (en-tête `X-Api-Key`, défaut, comportement antérieur) ou `BEARER` (`Authorization: Bearer <clé>`) ; le marqueur `{key}` de l'endpoint reste prioritaire. | `API_AUTH_MODES`, `ApiCard.authMode` |
+| Méthode | `GET` (défaut, widgets) ou `POST` avec un corps JSON (objet ou tableau, 4 Ko au plus, `Content-Type: application/json`), envoyé à chaque test, contrôle de santé et appel du proxy. Corps invalide ou absent en POST : 422 (`fields.body`). Repasser en GET efface le corps. | `API_METHODS`, `API_BODY_MAX`, `bodyError`, `ApiCard.method` / `body` |
+| Contrôle de santé | Une carte en POST (appel facturé par le service) n'est re-testée automatiquement qu'une fois par 24 h, ou tant qu'elle est en erreur ; les cartes GET gardent la règle existante (toutes les 15 min, sauf appel réussi dans l'heure). | `HEALTH_POST_INTERVAL_MS` (`ApiCardsService.healthCheck`) |
+| Écran | Formulaire de carte : « ENVOI DE LA CLÉ » (En-tête X-Api-Key / Authorization: Bearer) sous la clé ; bloc « REQUÊTE » (GET / POST · corps JSON) avec la zone du corps. | `Registre des cartes API.dc.html`, `toCard`, `apCreate`, `apSave` (`admin-api.js`) |
+| Carte JEV | Créée depuis la Console : tag « Stratégie » (tag libre), endpoint `https://api.typesafe.ai/v1/systemone`, POST, corps de contrôle `jev-latest` avec une question Noul, envoi Bearer. **Désactivée et sans clé** : la clé fournie par le commanditaire n'est pas saisie par l'assistant (secret d'un service externe) ; il la colle lui-même (« Clé requise »), puis réactive et teste la carte. | carte `jev` |

@@ -39,6 +39,25 @@ export const HEALTH_SKIP_IF_OK_MS = 60 * 60_000;
 /** Emplacement de la clé dans l'endpoint ; sans ce marqueur, la clé part dans l'en-tête `X-Api-Key`. */
 export const KEY_PLACEHOLDER = '{key}';
 export const KEY_HEADER = 'X-Api-Key';
+/** Envoi de la clé (30/09/2026) : en-tête `X-Api-Key` (ou marqueur `{key}`), ou `Authorization: Bearer <clé>`. */
+export const API_AUTH_MODES = ['HEADER', 'BEARER'] as const;
+/** Méthode des appels : GET (widgets), ou POST avec un corps JSON (service de décision, ex. TypeSafe « JEV »). */
+export const API_METHODS = ['GET', 'POST'] as const;
+export const API_BODY_MAX = 4096;
+/** Carte en POST : appel payant à chaque test ; le contrôle de santé automatique ne la re-teste qu'une fois par 24 h (sauf en erreur). */
+export const HEALTH_POST_INTERVAL_MS = 24 * 3_600_000;
+
+/** Corps d'un appel POST : JSON valide (objet ou tableau), 4 Ko au plus ; message d'erreur, sinon null. */
+export function bodyError(body: string | null | undefined): string | null {
+  if (body == null || body.trim() === '') return 'Corps JSON obligatoire pour un appel POST';
+  if (body.length > API_BODY_MAX) return `${API_BODY_MAX} caractères au plus`;
+  try {
+    const v = JSON.parse(body);
+    return v && typeof v === 'object' ? null : 'Objet ou tableau JSON attendu';
+  } catch {
+    return 'JSON invalide';
+  }
+}
 
 /** Adresse IP privée, locale ou réservée (IPv4, IPv6, IPv4 mappée en IPv6) : interdite (SSRF). */
 export function isPrivateAddress(ip: string): boolean {

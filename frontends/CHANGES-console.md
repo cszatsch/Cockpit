@@ -475,3 +475,11 @@ Vérification des éléments de la vue d'ensemble face au serveur. Conformes : d
   - « Ouvrir » et Entrée mènent au Cockpit du projet (`./RISE Cockpit.dc.html?project=CODE`) ; la maquette n'ouvrait par Entrée qu'avec un `onOpen` ;
   - styles globaux de la maquette (liens, champs, focus) limités à l'écran pour ne pas modifier le reste de la Console.
 - `Console Admin.dc.html` : l'en-tête de page de la Console est masqué sur cette page (l'écran porte le sien, comme Snapshots) ; hauteur réservée 900 px.
+
+## Registre des cartes API : envoi Bearer et appels POST (30/09/2026)
+
+- `Registre des cartes API.dc.html`, formulaire de carte :
+  - sous la clé, « ENVOI DE LA CLÉ » : En-tête X-Api-Key / Authorization: Bearer, avec une aide (« Envoyée dans l’en-tête … », ou « La clé remplace {key} dans l’endpoint. ») ;
+  - nouveau bloc « REQUÊTE » : GET / POST · corps JSON ; en POST, zone du corps JSON (contrôlée : « JSON invalide », « Saisissez le corps JSON de l’appel ») et aide sur le contrôle de santé espacé de 24 h.
+- Nécessaire pour la carte JEV (API TypeSafe : POST, `Authorization: Bearer`), que le registre ne pouvait pas appeler.
+- `admin-api.js` : `toCard` lit `authMode`, `method`, `body` ; `apCreate` et `apSave` les envoient.

@@ -162,6 +162,18 @@ input::placeholder{color:#a3b1ba}
                   <span style="display:flex;align-items:center;height:44px;border-radius:12px;background:#fff;box-shadow:inset 0 0 0 1px #d5e0dd"><input type="{{ ed.keyType }}" value="{{ d.keyVal }}" onChange="{{ setKey }}" placeholder="{{ ed.keyPh }}" aria-label="Clé API" autocomplete="off" spellcheck="false" style="flex:1;min-width:0;height:100%;border:0;outline:0;background:transparent;padding:0 8px 0 14px;font-family:'IBM Plex Mono',monospace;font-size:12px" /><button type="button" onClick="{{ toggleShow }}" aria-label="{{ ed.showL }}" style="width:36px;height:36px;margin-right:4px;border-radius:9px;border:0;background:transparent;color:#5c7280;display:grid;place-items:center;cursor:pointer" style-hover="background:#eef3f2"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{ ed.eyeIc }}"></path></svg></button></span>
                   <sc-if value="{{ ed.keyErr }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:#c2473b">Collez la clé fournie par le service.</span></sc-if>
                   <label style="display:flex;align-items:center;gap:12px"><span style="font-size:12.5px;color:#43586a;font-weight:600;white-space:nowrap">Expire le</span><input value="{{ d.exp }}" onChange="{{ setExp }}" placeholder="jj/mm/aa" aria-label="Date d’expiration" style="{{ ed.expSt }}" style-focus="box-shadow:inset 0 0 0 1.5px #1d8f86" /><span style="font-size:12px;color:#8a9aa6">{{ ed.expHelp }}</span></label>
+                  <!-- Envoi de la clé (30/09/2026) : en-tête X-Api-Key ou Authorization: Bearer ; le marqueur {key} de l'endpoint reste prioritaire. -->
+                  <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#5c7280">ENVOI DE LA CLÉ</span><div role="radiogroup" aria-label="Envoi de la clé" style="display:grid;grid-template-columns:1fr 1fr;padding:3px;border-radius:11px;background:#eef3f2;gap:2px"><sc-for list="{{ ed.authModes }}" as="k" hint-placeholder-count="2"><button type="button" role="radio" aria-checked="{{ k.on }}" onClick="{{ k.pick }}" style="{{ k.st }}">{{ k.l }}</button></sc-for></div><span style="font-size:12px;color:#8a9aa6">{{ ed.authHelp }}</span></div>
+                </div>
+              </sc-if>
+            </div>
+            <!-- Requête (30/09/2026) : GET pour les widgets, POST avec un corps JSON pour un service qui l'exige (ex. TypeSafe). -->
+            <div style="display:flex;flex-direction:column;gap:10px"><span style="font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#5c7280">REQUÊTE</span>
+              <div role="radiogroup" aria-label="Méthode" style="display:grid;grid-template-columns:1fr 1fr;padding:3px;border-radius:11px;background:#eef3f2;gap:2px"><sc-for list="{{ ed.methods }}" as="k" hint-placeholder-count="2"><button type="button" role="radio" aria-checked="{{ k.on }}" onClick="{{ k.pick }}" style="{{ k.st }}">{{ k.l }}</button></sc-for></div>
+              <sc-if value="{{ ed.isPost }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-direction:column;gap:8px;animation:rise .18s both">
+                  <textarea value="{{ d.body }}" onChange="{{ setBody }}" placeholder="{ &quot;question&quot;: &quot;…&quot; }" aria-label="Corps JSON" spellcheck="false" rows="7" style="{{ ed.bodySt }}"></textarea>
+                  <span style="{{ ed.bodyHelpSt }}">{{ ed.bodyHelp }}</span>
                 </div>
               </sc-if>
             </div>
@@ -251,6 +263,8 @@ const G = 'minmax(0,1.1fr) minmax(0,1fr) 112px 64px 88px 100px';
 const COLS = [['n', 'CARTE'], ['ep', 'ENDPOINT'], ['lat', 'LATENCE 24 H'], ['q', 'QUOTA'], ['key', 'EXP. CLÉ'], ['w', 'WIDGETS ALIMENTÉS']];
 const SORT_L = { n: 'nom', ep: 'endpoint', lat: 'latence', q: 'quota', key: 'échéance de clé', w: 'widgets' };
 const DESC_FIRST = { lat: 1, q: 1, w: 1 };
+/** Corps d'un appel POST : JSON (objet ou tableau) ; message d'erreur, sinon ''. */
+const bodyErr = b => { if (!String(b || '').trim()) return 'Saisissez le corps JSON de l’appel'; try { const v = JSON.parse(b); return v && typeof v === 'object' ? '' : 'Objet ou tableau JSON attendu'; } catch (x) { return 'JSON invalide'; } };
 const seg = (on, h = 28) => 'white-space:nowrap;height:' + h + 'px;padding:0 12px;border:0;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:12.5px;transition:background .15s,color .15s;' + (on ? 'background:#fff;font-weight:700;color:#10233a;box-shadow:0 1px 2px rgba(16,35,58,.12)' : 'background:transparent;font-weight:600;color:#5c7280');
 const inputSt = err => 'height:44px;border:0;outline:0;border-radius:12px;background:#fff;padding:0 14px;font-size:13.5px;font-weight:600;transition:box-shadow .15s;box-shadow:inset 0 0 0 ' + (err ? '1.5px #f0a193' : '1px #d5e0dd');
 const INIT = RAW.map(([n, tag, ep, lat, q, key, w, fmt, err], i) => ({ id: 'c' + i, n, tag, ep, lat, q, hasKey: key !== null, key: key || null, w, fmt: fmt || 'json',
@@ -289,11 +303,11 @@ class Component extends DCLogic {
   sorted(list) { const { k, dir } = this.state.sort; if (!k) return list;
     return [...list].sort((a, b) => { const x = this.sortVal(a, k), y = this.sortVal(b, k); if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1; return (x < y ? -1 : x > y ? 1 : 0) * dir; }); }
   openEdit(isNew) { const c = this.cur();
-    const d = isNew ? { n: '', tag: this.state.tag, ep: '', keyMode: 'none', keyVal: '', exp: '' } : { n: c.n, tag: c.tag, ep: c.ep, keyMode: c.hasKey ? 'key' : 'none', keyVal: '', exp: c.key || '' };
+    const d = isNew ? { n: '', tag: this.state.tag, ep: '', keyMode: 'none', keyVal: '', exp: '', auth: 'HEADER', method: 'GET', body: '' } : { n: c.n, tag: c.tag, ep: c.ep, keyMode: c.hasKey ? 'key' : 'none', keyVal: '', exp: c.key || '', auth: c.auth || 'HEADER', method: c.method || 'GET', body: c.body || '' };
     this.setState({ mode: isNew ? 'new' : 'edit', draft: d, orig: { ...d }, touched: false, adding: false, tagIn: '', showKey: false, pickOpen: false }); }
   errs(d) { const cur = this.cur(), isNew = this.state.mode === 'new';
     return { n: !d.n.trim(), ep: !/^[^\s/]+\.[a-z]{2,}(\/\S*)?$/i.test(d.ep.trim().replace(/^https?:\/\//, '')),
-      key: d.keyMode === 'key' && !d.keyVal.trim() && (isNew || !cur.hasKey), exp: d.keyMode === 'key' && !!d.exp && !parseD(d.exp) }; }
+      key: d.keyMode === 'key' && !d.keyVal.trim() && (isNew || !cur.hasKey), exp: d.keyMode === 'key' && !!d.exp && !parseD(d.exp), body: d.method === 'POST' ? bodyErr(d.body) : '' }; }
   renderVals() {
     if (this.props.now) NOW = new Date(this.props.now);
     const WID = this.wid(), WL = this.wl();
@@ -354,7 +368,7 @@ class Component extends DCLogic {
     // Édition
     const d = S.draft, isEdit = S.mode === 'edit' || S.mode === 'new';
     let ed = {};
-    if (isEdit) { const e = this.errs(d), show = S.touched, changed = JSON.stringify(d) !== JSON.stringify(S.orig), bad = e.n || e.ep || e.key || e.exp, isNew = S.mode === 'new';
+    if (isEdit) { const e = this.errs(d), show = S.touched, changed = JSON.stringify(d) !== JSON.stringify(S.orig), bad = e.n || e.ep || e.key || e.exp || e.body, isNew = S.mode === 'new';
       ed = { eyebrow: isNew ? 'NOUVELLE CARTE' : 'MODIFIER LA CARTE', title: d.n.trim() || (isNew ? 'Sans nom' : cur.n),
         nErr: show && e.n, nSt: inputSt(show && e.n), epErr: show && e.ep, epChanged: !isNew && d.ep.trim() !== cur.ep && !e.ep,
         epBox: 'display:flex;align-items:center;height:44px;border-radius:12px;background:#fff;transition:box-shadow .15s;box-shadow:inset 0 0 0 ' + (show && e.ep ? '1.5px #f0a193' : '1px #d5e0dd'),
@@ -362,6 +376,12 @@ class Component extends DCLogic {
           st: 'white-space:nowrap;height:32px;padding:0 14px;border-radius:999px;font-size:12.5px;cursor:pointer;transition:all .15s;' + (d.tag === t ? 'border:1px solid #10233a;background:#10233a;color:#fff;font-weight:700' : 'border:1px solid #d5e0dd;background:#fff;color:#43586a;font-weight:600') })),
         adding: S.adding, notAdding: !S.adding,
         keyModes: [['none', 'Sans clé'], ['key', 'Clé requise']].map(([k, l]) => ({ l, on: d.keyMode === k, pick: () => this.setState({ draft: { ...d, keyMode: k } }), st: seg(d.keyMode === k, 34) })),
+        authModes: [['HEADER', 'En-tête X-Api-Key'], ['BEARER', 'Authorization: Bearer']].map(([k, l]) => ({ l, on: d.auth === k, pick: () => this.setState({ draft: { ...d, auth: k } }), st: seg(d.auth === k, 34) })),
+        authHelp: d.ep.includes('{key}') ? 'La clé remplace {key} dans l’endpoint.' : d.auth === 'BEARER' ? 'Envoyée dans l’en-tête Authorization: Bearer <clé>.' : 'Envoyée dans l’en-tête X-Api-Key.',
+        methods: [['GET', 'GET'], ['POST', 'POST · corps JSON']].map(([k, l]) => ({ l, on: d.method === k, pick: () => this.setState({ draft: { ...d, method: k } }), st: seg(d.method === k, 34) })),
+        isPost: d.method === 'POST',
+        bodySt: 'width:100%;min-height:130px;resize:vertical;border:0;outline:0;border-radius:12px;padding:12px 14px;font-family:\'IBM Plex Mono\',monospace;font-size:11.5px;line-height:1.5;color:#10233a;background:#fff;box-shadow:inset 0 0 0 ' + (show && e.body ? '1.5px #f0a193' : '1px #d5e0dd'),
+        bodyHelp: e.body && (show || d.body.trim()) ? e.body + '.' : 'Envoyé à chaque test et contrôle de santé (une fois par 24 h pour un appel POST).', bodyHelpSt: 'font-size:12px;color:' + (e.body && (show || d.body.trim()) ? '#c2473b' : '#8a9aa6'),
         needKey: d.keyMode === 'key', keyErr: show && e.key, keyType: S.showKey ? 'text' : 'password', showL: S.showKey ? 'Masquer la clé' : 'Afficher la clé', eyeIc: S.showKey ? EYE_OFF : EYE,
         keyPh: !isNew && cur.hasKey ? (lvC === 'err' && r.code === 401 ? 'Collez la nouvelle clé' : '•••• ' + (cur.last4 || '7f3a') + ' · laisser vide pour conserver') : 'Collez la clé API',
         expSt: inputSt(e.exp).replace('height:44px', 'height:38px;width:110px;font-family:\'IBM Plex Mono\',monospace;font-size:12.5px'),
@@ -418,19 +438,19 @@ class Component extends DCLogic {
         this.setState({ cards: rest, sel: (sameTag[0] || rest[0] || {}).id, mode: 'view' }); this.props.onDelete?.(gone.id);
         this.say(gone.n + ' supprimée', () => this.props.onRestore?.(gone.id) || this.setState(s => { const a = [...s.cards]; a.splice(idx, 0, gone); return { cards: a, sel: gone.id, tag: gone.tag, toast: '', undo: null }; })); },
       d: d || {}, ed,
-      setN: upd('n'), setEp: upd('ep'), setKey: upd('keyVal'), setExp: upd('exp'),
+      setN: upd('n'), setEp: upd('ep'), setKey: upd('keyVal'), setExp: upd('exp'), setBody: upd('body'),
       startTag: () => this.setState({ adding: true, tagIn: '' }), tagIn: S.tagIn, setTagIn: e => this.setState({ tagIn: e.target.value }), addTag,
       tagKey: e => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } if (e.key === 'Escape') this.setState({ adding: false }); },
       toggleShow: () => this.setState(s => ({ showKey: !s.showKey })),
       cancelEdit: () => this.setState({ mode: 'view', draft: null }),
-      save: e => { e.preventDefault(); const e2 = this.errs(d); if (e2.n || e2.ep || e2.key || e2.exp) return this.setState({ touched: true });
-        const ep = d.ep.trim().replace(/^https?:\/\//, ''), hasKey = d.keyMode === 'key', key = hasKey ? (d.exp.trim() || null) : null;
+      save: e => { e.preventDefault(); const e2 = this.errs(d); if (e2.n || e2.ep || e2.key || e2.exp || e2.body) return this.setState({ touched: true });
+        const ep = d.ep.trim().replace(/^https?:\/\//, ''), hasKey = d.keyMode === 'key', key = hasKey ? (d.exp.trim() || null) : null, req = { auth: d.auth || 'HEADER', method: d.method || 'GET', body: d.method === 'POST' ? d.body.trim() : '' };
         if (S.mode === 'new') { const id = 'n' + Date.now(), secret = hasKey ? d.keyVal.trim() : null;
-          if (this.props.onCreate) Promise.resolve(this.props.onCreate({ n: d.n.trim(), tag: d.tag, ep, hasKey, key }, secret)).then(sid => { const go = n => { if (!sid) return; if (this.state.cards.some(c => c.id === sid)) this.setState({ sel: sid }); else if (n) setTimeout(() => go(n - 1), 100); }; go(20); }, () => {});
-          this.setState(s => ({ cards: [...s.cards, { id, n: d.n.trim(), tag: d.tag, ep, lat: null, q: null, hasKey, key, w: [], fmt: 'json', resp: null, off: false, isNew: true, fix: false }], sel: id, tag: d.tag, mode: 'view', draft: null })); this.say('Carte créée · lancez un test pour la vérifier'); }
-        else { const epCh = ep !== cur.ep, keyCh = !!d.keyVal.trim() || hasKey !== cur.hasKey;
-          this.patch(cur.id, c => ({ n: d.n.trim(), tag: d.tag, ep, hasKey, key, fix: c.fix || epCh || keyCh, ...(epCh ? { lat: null, resp: null } : {}) }));
-          this.props.onSave?.(cur.id, { n: d.n.trim(), tag: d.tag, ep, hasKey, key }, d.keyVal.trim() || undefined);
+          if (this.props.onCreate) Promise.resolve(this.props.onCreate({ n: d.n.trim(), tag: d.tag, ep, hasKey, key, ...req }, secret)).then(sid => { const go = n => { if (!sid) return; if (this.state.cards.some(c => c.id === sid)) this.setState({ sel: sid }); else if (n) setTimeout(() => go(n - 1), 100); }; go(20); }, () => {});
+          this.setState(s => ({ cards: [...s.cards, { id, n: d.n.trim(), tag: d.tag, ep, ...req, lat: null, q: null, hasKey, key, w: [], fmt: 'json', resp: null, off: false, isNew: true, fix: false }], sel: id, tag: d.tag, mode: 'view', draft: null })); this.say('Carte créée · lancez un test pour la vérifier'); }
+        else { const epCh = ep !== cur.ep || req.method !== (cur.method || 'GET') || req.body !== (cur.body || ''), keyCh = !!d.keyVal.trim() || hasKey !== cur.hasKey;
+          this.patch(cur.id, c => ({ n: d.n.trim(), tag: d.tag, ep, ...req, hasKey, key, fix: c.fix || epCh || keyCh, ...(epCh ? { lat: null, resp: null } : {}) }));
+          this.props.onSave?.(cur.id, { n: d.n.trim(), tag: d.tag, ep, hasKey, key, ...req }, d.keyVal.trim() || undefined);
           this.setState({ mode: 'view', draft: null, tag: d.tag }); this.say(keyCh && lvC === 'err' ? 'Carte enregistrée · testez l’appel avec la nouvelle clé' : 'Carte enregistrée'); } },
       hasToast: !!S.toast, toast: S.toast, canUndo: !!S.undo, noUndo: !S.undo, undo: () => S.undo && S.undo()
     };

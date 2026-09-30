@@ -206,7 +206,7 @@ export const toResp = (t, note) => {
 };
 export const toCard = v => ({ id: v.id, n: v.name, tag: v.category, ep: v.endpoint.replace(/^https:\/\//, ''), lat: v.latencyMedian24h ?? null, series: v.latency24h || null,
   q: v.quotaLimit ? Math.round(((v.quotaUsed || 0) / v.quotaLimit) * 100) : null, hasKey: !!v.keyLast4, key: toDdmmyy(v.keyExpiresAt), last4: v.keyLast4 || null,
-  w: [...(v.widgets || [])], fmt: v.feed ? 'xml' : 'json', resp: toResp(v.lastTest, v.statusNote), off: !v.enabled });
+  w: [...(v.widgets || [])], auth: v.authMode || 'HEADER', method: v.method || 'GET', body: v.body || '', fmt: v.feed ? 'xml' : 'json', resp: toResp(v.lastTest, v.statusNote), off: !v.enabled });
 /** « dernière vérification … » : le test le plus récent des cartes. */
 export const lastCheck = cards => { const t = cards.map(v => v.lastTest && v.lastTest.at).filter(Boolean).sort().pop(); return t ? relWhen(t) : 'à venir'; };
 /** Module → `{ id, n, d, sc, pj:{CODE:Date}, g }`. */
@@ -441,9 +441,9 @@ export function bindConsole(c) {
   const apReload = () => { refreshNt(); return load(['apis']).catch(() => {}); };
   const apRun = call => (apQ = apQ.then(call).then(r => { touch(); return apReload().then(() => r); }).catch(e => { fail(e); apReload(); return null; }));
   const expIso = card => (card.hasKey ? fromDdmmyy(card.key) : null);
-  c.apCreate = (card, key) => apRun(() => post('/api-cards', { name: card.n, category: card.tag, endpoint: 'https://' + card.ep, key: key || null, keyExpiresAt: expIso(card) })).then(r => r && r.id);
+  c.apCreate = (card, key) => apRun(() => post('/api-cards', { name: card.n, category: card.tag, endpoint: 'https://' + card.ep, key: key || null, keyExpiresAt: expIso(card), authMode: card.auth || 'HEADER', method: card.method || 'GET', body: card.method === 'POST' ? card.body : null })).then(r => r && r.id);
   c.apSave = (id, card, key) => {
-    const before = (c.state.apiCards || []).find(x => x.id === id) || {}, body = { name: card.n, category: card.tag, endpoint: 'https://' + card.ep, keyExpiresAt: expIso(card) };
+    const before = (c.state.apiCards || []).find(x => x.id === id) || {}, body = { name: card.n, category: card.tag, endpoint: 'https://' + card.ep, keyExpiresAt: expIso(card), authMode: card.auth || 'HEADER', method: card.method || 'GET', body: card.method === 'POST' ? card.body : null };
     if (key) body.key = key; else if (!card.hasKey && before.keyLast4) body.key = null;
     return apRun(() => patch(AC(id), body));
   };

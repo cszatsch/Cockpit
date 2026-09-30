@@ -9,7 +9,7 @@ import { encryptSecret } from '../core/crypto';
 import { ApiError, businessRule, conflict, notFound } from '../core/errors';
 import { parse } from '../core/http';
 import { PrismaService } from '../core/prisma.service';
-import { API_CALL_TIMEOUT_MAX_MS, API_CARD_NAME_MAX, API_CARD_TAG_MAX, API_KEY_MIN_LENGTH, endpointError } from '../domain/api-cards';
+import { API_AUTH_MODES, API_CALL_TIMEOUT_MAX_MS, API_CARD_NAME_MAX, API_CARD_TAG_MAX, API_KEY_MIN_LENGTH, API_METHODS, bodyError, endpointError } from '../domain/api-cards';
 import { API_WIDGET_IDS, WIDGET_CATALOGUE, WIDGET_IDS, widgetName } from '../domain/widgets';
 import { ApiCardsService } from './api-cards.service';
 import { FEED_ITEMS_DEFAULT, FEED_ITEMS_MAX, isFeed, mergeFeeds, parseFeed } from '../domain/rss';
@@ -27,6 +27,9 @@ const Create = z
     key: z.string().nullable().optional(),
     keyExpiresAt: isoDate.nullable().optional(),
     quotaLimit: z.number().nullable().optional(),
+    authMode: z.enum(API_AUTH_MODES).optional(),
+    method: z.enum(API_METHODS).optional(),
+    body: z.string().nullable().optional(),
   })
   .strict();
 const Update = z
@@ -41,6 +44,9 @@ const Update = z
     quotaLimit: z.number().nullable().optional(),
     /** Délai d'appel propre à la carte (service lent), 1 à 60 s ; null = délai par défaut (8 s). */
     timeoutMs: z.number().int().min(1000).max(API_CALL_TIMEOUT_MAX_MS).nullable().optional(),
+    authMode: z.enum(API_AUTH_MODES).optional(),
+    method: z.enum(API_METHODS).optional(),
+    body: z.string().nullable().optional(),
   })
   .strict();
 const Rotate = z.object({ key: z.string(), keyExpiresAt: isoDate.nullable().optional() }).strict();
@@ -73,12 +79,12 @@ export class ApiCardsController {
   async create(@CurrentActor() actor: Actor, @Req() req: Request, @Body() body: unknown) {
     const input = parse(Create, body);
     const name = input.name.trim(), key = input.key?.trim() || null;
-    await this.check({ name, endpoint: input.endpoint, key, quotaLimit: input.quotaLimit });
+    await this.check({ name, endpoint: input.endpoint, key, quotaLimit: input.quotaLimit, method: input.method ?? 'GET', body: input.body });
     let id = slug(name);
     for (let n = 2; await this.prisma.apiCard.findUnique({ where: { id } }); n++) id = `${slug(name)}-${n}`;
     const card = await this.prisma.$transaction(async (db) => {
       const c = await db.apiCard.create({
-        data: { id, name, category: input.category, endpoint: input.endpoint, keyEncrypted: key ? encryptSecret(key) : null, keyLast4: key ? key.slice(-4) : null, keyExpiresAt: input.keyExpiresAt ? new Date(input.keyExpiresAt) : null, quotaLimit: input.quotaLimit ?? null, updatedBy: actor.fullName },
+        data: { id, name, category: input.category, endpoint: input.endpoint, keyEncrypted: key ? encryptSecret(key) : null, keyLast4: key ? key.slice(-4) : null, keyExpiresAt: input.keyExpiresAt ? new Date(input.keyExpiresAt) : null, quotaLimit: input.quotaLimit ?? null, authMode: input.authMode ?? 'HEADER', method: input.method ?? 'GET', body: input.method === 'POST' ? input.body!.trim() : null, updatedBy: actor.fullName },
       });
       await this.trace(db, actor, req, 'Création d’une carte API', `${c.name} · ${c.category}${c.keyLast4 ? ` · clé ••••${c.keyLast4}` : ' · sans clé'}`, c.id);
       return c;
@@ -92,7 +98,8 @@ export class ApiCardsController {
     const input = parse(Update, body);
     const before = await this.one(id);
     const key = input.key === undefined ? undefined : input.key?.trim() || null;
-    await this.check({ name: input.name?.trim(), endpoint: input.endpoint, key, quotaLimit: input.quotaLimit });
+    const method = input.method ?? before.method;
+    await this.check({ name: input.name?.trim(), endpoint: input.endpoint, key, quotaLimit: input.quotaLimit, method, body: input.body !== undefined || input.method !== undefined ? (input.body !== undefined ? input.body : before.body) : undefined });
     const epChanged = input.endpoint !== undefined && input.endpoint !== before.endpoint;
     const card = await this.prisma.$transaction(async (db) => {
       const c = await db.apiCard.update({
@@ -105,6 +112,9 @@ export class ApiCardsController {
           keyExpiresAt: input.keyExpiresAt === undefined ? undefined : input.keyExpiresAt ? new Date(input.keyExpiresAt) : null,
           quotaLimit: input.quotaLimit,
           timeoutMs: input.timeoutMs,
+          authMode: input.authMode,
+          method: input.method,
+          body: method === 'GET' ? (input.method !== undefined ? null : undefined) : input.body !== undefined ? input.body?.trim() || null : undefined,
           // Clé : nouvelle (chiffrée, 4 derniers caractères) ou retirée ; jamais renvoyée ni tracée en clair.
           ...(key === undefined ? {} : key ? { keyEncrypted: encryptSecret(key), keyLast4: key.slice(-4) } : { keyEncrypted: null, keyLast4: null, keyExpiresAt: null }),
           // Endpoint modifié : latence, dernière réponse et erreur du dernier contrôle ne valent plus (v3c § 4).
@@ -115,7 +125,7 @@ export class ApiCardsController {
         },
       });
       if (input.enabled !== undefined && input.enabled !== before.enabled) await this.trace(db, actor, req, input.enabled ? 'Activation d’une carte API' : 'Désactivation d’une carte API', c.name, id);
-      const fields = (['name', 'category', 'endpoint', 'quotaLimit', 'timeoutMs'] as const).filter((k) => input[k] !== undefined && input[k] !== (before as any)[k]);
+      const fields = (['name', 'category', 'endpoint', 'quotaLimit', 'timeoutMs', 'authMode', 'method', 'body'] as const).filter((k) => input[k] !== undefined && input[k] !== (before as any)[k]);
       if (input.keyExpiresAt !== undefined) fields.push('keyExpiresAt' as any);
       if (fields.length) await this.trace(db, actor, req, 'Modification d’une carte API', `${c.name} · ${fields.join(', ')}`, id);
       if (key) await this.trace(db, actor, req, 'Rotation de la clé d’une carte API', `${c.name} · ••••${before.keyLast4 ?? '—'} → ••••${c.keyLast4}`, id);
@@ -196,8 +206,12 @@ export class ApiCardsController {
   }
 
   /** Validation (§ 4) : nom 1–60, https, hôte public (SSRF, y compris après résolution DNS), clé ≥ 8, quota entier > 0. */
-  private async check(v: { name?: string; endpoint?: string; key?: string | null; quotaLimit?: number | null }) {
+  private async check(v: { name?: string; endpoint?: string; key?: string | null; quotaLimit?: number | null; method?: string; body?: string | null }) {
     const e: Record<string, string> = {};
+    if (v.method === 'POST' && v.body !== undefined) {
+      const err = bodyError(v.body);
+      if (err) e.body = err;
+    }
     if (v.name !== undefined && (v.name.length < 1 || v.name.length > API_CARD_NAME_MAX)) e.name = `1 à ${API_CARD_NAME_MAX} caractères`;
     if (v.endpoint !== undefined) {
       const err = endpointError(v.endpoint);

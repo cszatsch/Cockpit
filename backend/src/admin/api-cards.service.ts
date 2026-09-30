@@ -17,6 +17,7 @@ import {
   isPrivateHostname,
   KEY_HEADER,
   KEY_PLACEHOLDER,
+  HEALTH_POST_INTERVAL_MS,
   latency24h,
   latencyMedian,
   PROXY_CACHE_FAST_MS,
@@ -101,13 +102,19 @@ export class ApiCardsService implements OnModuleInit {
     // Paramètres de l'endpoint = valeurs par défaut (utilisées par le contrôle de santé) ; ceux du widget les remplacent.
     for (const [k, v] of Object.entries(query)) url.searchParams.set(k, v);
     const headers: Record<string, string> = { 'User-Agent': 'RISE-Cockpit/1.0', Accept: 'application/json, */*' };
-    if (key && !card.endpoint.includes(KEY_PLACEHOLDER)) headers[KEY_HEADER] = key;
+    // Clé : marqueur {key} de l'endpoint, sinon Authorization: Bearer (BEARER) ou en-tête X-Api-Key (HEADER).
+    if (key && !card.endpoint.includes(KEY_PLACEHOLDER)) {
+      if (card.authMode === 'BEARER') headers.Authorization = `Bearer ${key}`;
+      else headers[KEY_HEADER] = key;
+    }
+    const post = card.method === 'POST';
+    if (post) headers['Content-Type'] = 'application/json';
     const t0 = Date.now();
     let r: CallResult;
     try {
       await this.assertPublicHost(url.hostname);
       const timeout = card.timeoutMs ?? API_CALL_TIMEOUT_MS;
-      const res = await this.fetchImpl(url.toString(), { headers, redirect: 'manual', signal: AbortSignal.timeout(timeout), connectTimeoutMs: timeout } as RequestInit);
+      const res = await this.fetchImpl(url.toString(), { method: post ? 'POST' : 'GET', ...(post ? { body: card.body ?? '{}' } : {}), headers, redirect: 'manual', signal: AbortSignal.timeout(timeout), connectTimeoutMs: timeout } as RequestInit);
       const text = await res.text();
       r = { code: res.status, ms: Date.now() - t0, body: redactKey(text, key), contentType: res.headers.get('content-type') || 'application/json' };
     } catch (e: any) {
@@ -138,7 +145,9 @@ export class ApiCardsService implements OnModuleInit {
     const since = new Date(this.today.now().getTime() - HEALTH_SKIP_IF_OK_MS);
     const recent = await this.prisma.apiCardCall.findMany({ where: { at: { gte: since }, source: 'PROXY', code: { gte: 200, lt: 300 } }, select: { cardId: true }, distinct: ['cardId'] });
     const skip = new Set(recent.map((r) => r.cardId));
-    const todo = cards.filter((c) => !skip.has(c.id) || c.checkError);
+    // Carte en POST (appel facturé par le service) : re-testée une fois par 24 h, ou tant qu'elle est en erreur.
+    const postDue = (c: ApiCard) => c.checkError || !(c.lastTest as any)?.at || this.today.now().getTime() - new Date((c.lastTest as any).at).getTime() >= HEALTH_POST_INTERVAL_MS;
+    const todo = cards.filter((c) => (c.method === 'POST' ? postDue(c) : !skip.has(c.id) || c.checkError));
     for (const c of todo) await this.test(c, 'HEALTH').catch((e) => console.error('[api-cards]', c.id, e));
     return todo.length;
   }
@@ -179,6 +188,9 @@ export class ApiCardsService implements OnModuleInit {
         quotaUsed,
         quotaLimit: c.quotaLimit,
         timeoutMs: c.timeoutMs ?? API_CALL_TIMEOUT_MS,
+        authMode: c.authMode,
+        method: c.method,
+        body: c.body,
         feed: c.feed,
         widgets: c.widgets,
         lastTest: (c.lastTest as { code: number; ms: number | null; at: string; body: string } | null) ?? null,

@@ -11,7 +11,7 @@ describe('Console — registre des cartes API', () => {
   let t: TestCtx;
   let admin: Client;
   let svc: ApiCardsService;
-  const seen: Array<{ url: string; headers: Record<string, string> }> = [];
+  const seen: Array<{ url: string; headers: Record<string, string>; method?: string; body?: string }> = [];
   let upstream: (url: string) => { status: number; body: string } = () => ({ status: 200, body: '{"ok":true}' });
 
   beforeAll(async () => {
@@ -22,7 +22,7 @@ describe('Console — registre des cartes API', () => {
     // Résolution DNS simulée : « rebond.exemple.fr » pointe vers une adresse privée.
     svc.lookupImpl = async (host) => (host === 'rebond.exemple.fr' ? ['10.0.0.8'] : ['93.184.216.34']);
     svc.fetchImpl = (async (url: any, init: any) => {
-      seen.push({ url: String(url), headers: init?.headers ?? {} });
+      seen.push({ url: String(url), headers: init?.headers ?? {}, method: init?.method, body: init?.body });
       const r = upstream(String(url));
       return new Response(r.body, { status: r.status, headers: { 'Content-Type': 'application/json' } });
     }) as typeof fetch;
@@ -222,6 +222,26 @@ describe('Console — registre des cartes API', () => {
     // Retrait de la clé.
     expect((await admin.patch(`${AC}/pappers`, { key: null }).expect(200)).body).toMatchObject({ keyLast4: null, keyExpiresAt: null });
     expect(await t.db.auditEntry.count({ where: { action: 'Rotation de la clé d’une carte API', target: { contains: '••••9C4D' } } })).toBe(1);
+  });
+
+  it('clé en Authorization: Bearer, appel POST avec corps JSON (service TypeSafe) ; contrôle de santé espacé de 24 h', async () => {
+    const body = JSON.stringify({ state: 'Test', model: 'jev-latest', questions: { ok: { type: 'noul', instructions: 'Le texte est-il un test ?' } } });
+    const base = { name: 'JEV test', category: 'Stratégie', endpoint: 'https://api.typesafe.ai/v1/systemone', key: 'apikey_test_bearer_0000', authMode: 'BEARER', method: 'POST' };
+    expect((await admin.post(AC, { ...base, body: '{ pas du json' }).expect(422)).body.fields.body).toBe('JSON invalide');
+    expect((await admin.post(AC, { ...base, body: null }).expect(422)).body.fields.body).toMatch(/obligatoire/);
+    const c = (await admin.post(AC, { ...base, body }).expect(201)).body;
+    expect(c).toMatchObject({ authMode: 'BEARER', method: 'POST', body, category: 'Stratégie', keyLast4: '0000' });
+    seen.length = 0;
+    await admin.post(`${AC}/${c.id}/test`).expect(200);
+    expect(seen[0]).toMatchObject({ url: 'https://api.typesafe.ai/v1/systemone', method: 'POST', body });
+    expect(seen[0].headers).toMatchObject({ Authorization: 'Bearer apikey_test_bearer_0000', 'Content-Type': 'application/json' });
+    expect(seen[0].headers['X-Api-Key']).toBeUndefined();
+    // Testée à l'instant : le contrôle de santé ne la rappelle pas (appel facturé) ; en GET, elle redevient une carte ordinaire.
+    seen.length = 0;
+    await svc.healthCheck();
+    expect(seen.some((x) => x.url.includes('typesafe'))).toBe(false);
+    const g = (await admin.patch(`${AC}/${c.id}`, { method: 'GET' }).expect(200)).body;
+    expect(g).toMatchObject({ method: 'GET', body: null });
   });
 
   it('suppression, même d’une carte qui alimente un widget (widgets cités dans la trace) ; aucune réponse de la console ne contient une clé', async () => {
