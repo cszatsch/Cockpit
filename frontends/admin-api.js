@@ -303,6 +303,8 @@ export function bindConsole(c) {
     nrSchedule: async () => ({ nrSchedule: await get('/notifications/schedule') }),
     // Serveur d’envoi SMTP : réglages sans mot de passe (`hasPassword`).
     smtp: async () => ({ smSettings: await get('/settings/smtp') }),
+    // Guide utilisateur : versions et journal des téléchargements, toujours fournis (même vides : pas de démonstration).
+    guide: async () => { const [v, d] = await Promise.all([get('/guide/versions'), get('/guide/downloads')]); return { gdVers: v || [], gdDls: d || [] }; },
     mods: async () => ({ mods: sortMods((await get('/modules')).map(toMod)) }),
     reqs: async () => ({ reqs: (await get('/module-requests?status=PENDING')).map(toReq) }),
     prof: async () => { const me = await get('/me/profile'); meId = me.id; return { prof: toProf(me), pn: { crit: true, budget: true, req: true, hebdo: true, fail: false, ...(me.notifications || {}) }, photo: me.photoUrl || null }; },
@@ -331,7 +333,7 @@ export function bindConsole(c) {
   const SECTION = {
     overview: ['accounts', 'providers', 'month', 'audit', 'reqs', 'snaps', 'sched', 'ov', 'models', 'asg', 'fns'], users: ['accounts', 'wsAll'], admins: ['admins', 'audit', 'accounts'], providers: ['providers', 'models', 'asg', 'fns'],
     assign: ['asg', 'models', 'providers', 'usage', 'fns'], conso: ['month', 'providers'], snaps: [], notifs: ['nrRules', 'nrHist', 'nrCounts', 'nrSchedule', 'models', 'providers', 'projects'], modules: ['mods', 'reqs'],
-    smtp: ['smtp'], init: ['projects'], library: ['projects'], profil: ['prof', 'sess', 'audit'], skills: ['skills'], persona: ['persona'], apis: ['apis'],
+    smtp: ['smtp'], guide: ['guide'], init: ['projects'], library: ['projects'], profil: ['prof', 'sess', 'audit'], skills: ['skills'], persona: ['persona'], apis: ['apis'],
   };
   async function load(keys) {
     const parts = await Promise.all(keys.map(k => L[k]()));
@@ -341,7 +343,8 @@ export function bindConsole(c) {
   }
 
   // ── Démarrage : squelette de chargement jusqu'à la réception des données du serveur ──
-  set0({ apiBoot: true, loading: true, nt: [], nrApi: true, apApi: true, smApi: true });
+  // Guide utilisateur : listes vides dès le départ (jamais les données de démonstration du composant).
+  set0({ apiBoot: true, loading: true, nt: [], nrApi: true, apApi: true, smApi: true, gdVers: [], gdDls: [] });
   (async () => {
     try {
       const ov = await get('/overview');
@@ -350,7 +353,7 @@ export function bindConsole(c) {
       if (typeof c.apiClock === 'function') c.apiClock(clock.server);
       // Échéances des clés API : même date du jour que le serveur (DEMO_TODAY compris).
       set0({ apiNow: String(ov.date).slice(0, 10) + 'T12:00:00' });
-      await load(['ov', 'wsAll', 'prof', 'accounts', 'admins', 'audit', 'providers', 'models', 'asg', 'usage', 'snaps', 'sched', 'nrRules', 'nrHist', 'nrCounts', 'nrSchedule', 'smtp', 'mods', 'reqs', 'sess', 'projects', 'skills', 'persona', 'notifs', 'apis', 'fns']);
+      await load(['ov', 'wsAll', 'prof', 'accounts', 'admins', 'audit', 'providers', 'models', 'asg', 'usage', 'snaps', 'sched', 'nrRules', 'nrHist', 'nrCounts', 'nrSchedule', 'smtp', 'guide', 'mods', 'reqs', 'sess', 'projects', 'skills', 'persona', 'notifs', 'apis', 'fns']);
       set0({ apiBoot: false, loading: false });
       jevResume();
     } catch (e) {
@@ -430,6 +433,10 @@ export function bindConsole(c) {
   // Test et envoi s'exécutent côté serveur ; le mot de passe n'est envoyé que s'il a été saisi (vide : conservé).
   const smBody = d => ({ host: d.host.trim(), port: Number(d.port), enc: d.enc, auth: !!d.auth, user: d.user.trim(), from: d.from.trim(), ...(d.pass && d.pass.trim() ? { password: d.pass } : {}) });
   c.smSave = d => put('/settings/smtp', smBody(d)).then(st => { set0({ smSettings: st }); touch(); return st; }).catch(e => { fail(e); return null; });
+  // Guide utilisateur : le serveur trace le téléchargement (qui, quand, quelle version) puis envoie le PDF ; après
+  // chaque action, versions et téléchargements sont relus. Les erreurs remontent au composant (messages de la maquette).
+  c.gdDownload = v => download('/guide/file', 'Guide utilisateur Console v' + v.v + '.pdf').finally(() => load(['guide']).catch(() => {}));
+  c.gdReplace = file => { const fd = new FormData(); fd.append('file', file, file.name); return post('/guide', fd).then(() => { touch(); return load(['guide']); }); };
   c.smTest = d => post('/settings/smtp/test', smBody(d)).then(r => { touch(); load(['smtp']).catch(() => {}); return r; }).catch(e => { fail(e); return null; });
   c.smTestEmail = (to, d) => post('/settings/smtp/test-email', { to, settings: smBody(d) }).then(r => { touch(); return r; }).catch(e => { fail(e); return null; });
 

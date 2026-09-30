@@ -15,13 +15,14 @@ import { ApiCardsService } from './api-cards.service';
 import { ProfilesService } from './profiles.service';
 import { UsageService } from './usage.service';
 import { JevSqlService } from './jev-sql.service';
+import { GuideController } from './guide.controller';
 import { JevMemoryService } from './jev-memory.service';
 import { NotificationsService } from './notifications.service';
 import { SnapshotsService } from './snapshots.service';
 
 /** API de la Console Admin : `/api/admin/…`, réservée au profil ADMIN (RG1, RG7, RG16). */
 @Module({
-  controllers: [ConsoleController, AccountsController, AiController, RulesController, SmtpController, DataController, SkillsController, PersonaController, InboxController, ApiCardsController, WidgetCatalogueController, WidgetProxyController, WidgetFeedsController, WidgetNewsController],
+  controllers: [ConsoleController, GuideController, AccountsController, AiController, RulesController, SmtpController, DataController, SkillsController, PersonaController, InboxController, ApiCardsController, WidgetCatalogueController, WidgetProxyController, WidgetFeedsController, WidgetNewsController],
   // AccountsController et DataController servent aussi de fournisseurs : les décisions du tiroir de notifications
   // reprennent exactement le traitement des pages Utilisateurs et Modules.
   providers: [ProfilesService, UsageService, JevSqlService, JevMemoryService, NotificationWriterService, NotificationsService, SnapshotsService, InboxService, ApiCardsService, AccountsController, DataController],

@@ -740,3 +740,15 @@ Demande du commanditaire, trois points validés : un seul abandon par règle et 
 | Ordre et débit | Envois à l'heure (moins de 5 minutes de retard) : tous, aussitôt ; rattrapages : du plus ancien au plus récent, 10 par minute au plus, la suite aux minutes suivantes. | `ON_TIME_TOLERANCE_MS`, `CATCH_UP_PER_MINUTE` |
 | Traçabilité | Chaque envoi planifié porte son mode (`ON_TIME`, `CATCH_UP`, `REPLACED`, `MISSED`) et son heure prévue ; l'historique affiche « Rattrapé · prévu mar. 29/09 09:00, envoyé mer. 30/09 10:12 », « Remplacé… », « Abandonné… ». L'heure réelle d'un envoi suit l'horloge de la plateforme. | `Delivery.mode`, `Delivery.scheduledAt`, `toUiHistory` |
 | Règle désactivée, supprimée ou incomplète avant l'envoi | Occurrences en attente annulées (`CANCELLED`), rien ne part. | `processQueue` |
+
+## Guide utilisateur de la Console (30/09/2026)
+
+Maquette validée « Guide utilisateur 1c » (Filigrane), intégrée dans la section Plateforme après « Serveur d’envoi SMTP ».
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Versions | Une ligne par dépôt (`v`, date, auteur, taille, nom du fichier) ; la plus récente (ordre de publication `seq`, indépendant de l'horloge) est en vigueur. Numéro calculé par le serveur : incrément mineur (3.2 → 3.3, 3.9 → 3.10), 1.0 pour le premier. Les versions remplacées restent dans l'historique ; leur fichier est conservé mais n'est plus servi. | `guide_versions`, `nextGuideVersion` (`src/domain/guide.ts`) |
+| Dépôt | Réservé aux administrateurs (la Console l'est) ; PDF reconnu à sa signature `%PDF-` (et non au nom ou au type déclaré), 50 Mo au plus ; sinon 422 « Seuls les fichiers PDF sont acceptés. ». Publication tracée dans le journal d'audit (sensible). | `GUIDE_MAX_BYTES`, `isPdf`, `GUIDE_PDF_ONLY` |
+| Téléchargement | Seule la version en vigueur est servie. Le serveur vérifie que le fichier existe, enregistre la trace (compte, nom, rôle « Administrateur », horodatage du serveur, version), puis envoie le PDF (« Guide utilisateur Console vX.Y.pdf »). Sans guide : 404, aucune trace. | `GET /api/admin/guide/file` |
+| Traçabilité | Journal des téléchargements en ajout seul : une trace ne se modifie ni ne se supprime (trigger SQL ; le vidage de l'amorçage, par TRUNCATE, n'est pas concerné). | `guide_downloads`, migration `20261023000000_guide_utilisateur` |
+| Écran | Composant repris de la maquette (styles de page limités à l'écran) ; versions et téléchargements toujours fournis par la Console, même vides dès le démarrage (jamais les données de démonstration) ; après chaque téléchargement ou remplacement, les deux listes sont relues. Messages de la maquette conservés pour un fichier refusé ou un échec. | `Guide utilisateur.dc.html`, `gdDownload`, `gdReplace` (`admin-api.js`) |

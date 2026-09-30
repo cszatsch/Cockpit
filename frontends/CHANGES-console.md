@@ -492,3 +492,10 @@ Vérification des éléments de la vue d'ensemble face au serveur. Conformes : d
 ## Notifications et alertes : historique des envois planifiés (30/09/2026)
 
 - `Notifications et alertes.dc.html`, « Historique des envois » : statut selon le mode de l'envoi planifié, « Rattrapé » (ambre), « Remplacé » (gris), « Abandonné » (rouge), en plus de « Distribué » et « Échec » ; sous le nom de la règle, une ligne grise avec l'heure prévue et l'heure réelle (champ `note` du serveur). Les envois sur événement s'affichent comme avant.
+
+## Guide utilisateur (30/09/2026)
+
+- Nouvel écran `Guide utilisateur.dc.html`, repris de la maquette « Guide utilisateur 1c » : textes, couleurs et mise en page inchangés ; seules les règles de style de page (`a`, `button`, `input`, focus) sont limitées à l'écran pour ne pas modifier le reste de la Console.
+- `Sidebar Console.dc.html` : entrée « Guide utilisateur » dans Plateforme, après « Serveur d’envoi SMTP ».
+- `Console Admin.dc.html` : page `guide` (en-tête générique masqué, le composant a le sien) ; props `versions`, `downloads`, `current-user`, `can-replace`, `today` (horloge du serveur), `on-download`, `on-replace`.
+- `admin-api.js` : chargement `guide` (`/guide/versions`, `/guide/downloads`), listes vides dès le démarrage ; `gdDownload` (téléchargement tracé par le serveur) et `gdReplace` (dépôt), suivis d'un rechargement.

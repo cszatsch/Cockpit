@@ -6064,6 +6064,82 @@
         ]
       }
     },
+    "/api/admin/guide/versions": {
+      "get": {
+        "operationId": "GuideController_versions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · guide utilisateur"
+        ]
+      }
+    },
+    "/api/admin/guide/downloads": {
+      "get": {
+        "operationId": "GuideController_downloads",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · guide utilisateur"
+        ]
+      }
+    },
+    "/api/admin/guide/file": {
+      "get": {
+        "operationId": "GuideController_file",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · guide utilisateur"
+        ]
+      }
+    },
+    "/api/admin/guide": {
+      "post": {
+        "operationId": "GuideController_replace",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · guide utilisateur"
+        ]
+      }
+    },
     "/api/admin/accounts": {
       "get": {
         "operationId": "AccountsController_list",

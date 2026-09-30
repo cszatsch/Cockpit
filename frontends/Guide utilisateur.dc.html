@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700;1,800&amp;display=swap" rel="stylesheet"><style>
+html,body{margin:0;background:#f2f6f5;font-family:'Plus Jakarta Sans',sans-serif;color:#10233a;-webkit-font-smoothing:antialiased;font-size:13px}
+[data-screen-label="Guide utilisateur"]{font-family:'Plus Jakarta Sans',sans-serif;color:#10233a;-webkit-font-smoothing:antialiased;font-size:13px}
+[data-screen-label="Guide utilisateur"] *{box-sizing:border-box}
+[data-screen-label="Guide utilisateur"] a{color:#1d8f86;text-decoration:none}[data-screen-label="Guide utilisateur"] a:hover{color:#146b64}
+[data-screen-label="Guide utilisateur"] button,[data-screen-label="Guide utilisateur"] input{font:inherit;color:inherit}
+[data-screen-label="Guide utilisateur"] button:focus-visible,[data-screen-label="Guide utilisateur"] label:focus-within{outline:2px solid #1d8f86;outline-offset:2px}
+</style></helmet>
+
+<div data-screen-label="Guide utilisateur" style="max-width:1200px;margin:0 auto;padding:40px clamp(18px,4vw,40px) 56px;display:flex;flex-direction:column;gap:28px">
+  <header><div style="font-size:11px;font-weight:800;letter-spacing:.18em;color:#1d8f86">CONSOLE</div><h1 style="margin:6px 0 0;font-size:34px;line-height:1.05;font-weight:800;font-style:italic;letter-spacing:-.035em">Guide utilisateur</h1><div style="font-size:13.5px;color:#43586a;margin-top:8px">Fonctionnalités, fonctionnement et règles appliquées dans la Console.</div></header>
+
+  <section style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr));border-radius:22px;overflow:hidden;background:#fff;border:1px solid #e1e9e7;box-shadow:0 1px 2px rgba(16,35,58,.04),0 30px 60px -44px rgba(16,35,58,.5)">
+    <div aria-label="Document" style="height:640px;min-width:0;background:radial-gradient(120% 80% at 30% 20%,#1c3858,#10233a 70%);color:#fff;padding:36px 40px 40px;display:flex;flex-direction:column">
+      <div style="display:flex;align-items:center;gap:10px"><span style="font-size:10.5px;font-weight:800;letter-spacing:.18em;color:#3dd6c6">{{ stateL }}</span><span style="flex:1"></span><sc-if value="{{ has }}" hint-placeholder-val="{{ true }}"><span style="font-size:12px;color:#9fb3c4;font-weight:600;font-variant-numeric:tabular-nums">PDF · {{ cur.size }}</span></sc-if></div>
+      <div style="flex:1;display:grid;place-items:center">
+        <div style="position:relative;width:176px;height:234px;margin-left:-24px">
+          <sc-for list="{{ ghosts }}" as="g" hint-placeholder-count="0"><div title="Version {{ g.v }} · remplacée" style="{{ g.st }}"></div></sc-for>
+          <div style="{{ sheetSt }}">
+            <div style="font-size:9px;font-weight:800;letter-spacing:.2em;color:#1d8f86">RISE <span style="color:#8a9aa6">CONSOLE</span></div><span style="flex:1"></span>
+            <span style="width:20px;height:3px;border-radius:2px;background:linear-gradient(90deg,#f7a41c,#f0752b)"></span>
+            <div style="font-size:17px;line-height:1.1;font-weight:800;font-style:italic;letter-spacing:-.02em;color:#10233a;margin-top:9px">Guide utilisateur</div>
+            <div style="font-size:10px;color:#5c7280;margin-top:5px;font-weight:600">{{ sheetV }}</div>
+          </div>
+        </div>
+      </div>
+      <sc-if value="{{ has }}" hint-placeholder-val="{{ true }}"><div style="display:flex;align-items:flex-end;gap:14px"><span style="font-size:13px;color:#9fb3c4;font-weight:600;padding-bottom:9px">Version</span><span style="font-size:60px;line-height:.9;font-weight:800;font-style:italic;letter-spacing:-.045em;font-variant-numeric:tabular-nums">{{ cur.v }}</span></div></sc-if>
+      <sc-if value="{{ none }}" hint-placeholder-val="{{ false }}"><div style="font-size:22px;font-weight:800;letter-spacing:-.02em">Aucun guide publié</div></sc-if>
+      <div style="font-size:12.5px;color:#9fb3c4;margin-top:12px;min-height:18px">{{ curLine }}</div>
+      <div style="display:flex;gap:10px;margin-top:26px">
+        <button type="button" onClick="{{ dl }}" disabled="{{ dlDis }}" style="{{ dlSt }}" style-hover="transform:translateY(-1px)"><sc-if value="{{ flash }}" hint-placeholder-val="{{ false }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></sc-if><sc-if value="{{ idle }}" hint-placeholder-val="{{ true }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"></path></svg></sc-if>{{ dlL }}</button>
+        <sc-if value="{{ canReplace }}" hint-placeholder-val="{{ true }}"><label title="{{ repT }}" aria-label="{{ repT }}" style="width:48px;height:48px;flex:none;border:1px solid rgba(255,255,255,.18);border-radius:13px;display:grid;place-items:center;cursor:pointer;color:#dbe6ee;position:relative;transition:border-color .15s" style-hover="border-color:rgba(255,255,255,.5)"><input type="file" accept="application/pdf,.pdf" onChange="{{ rep }}" style="position:absolute;width:1px;height:1px;opacity:0"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 0 1 14-5.3M20 12a8 8 0 0 1-14 5.3M18 3v4h-4M6 21v-4h4"></path></svg></label></sc-if>
+      </div>
+      <sc-if value="{{ hasErr }}" hint-placeholder-val="{{ false }}"><div role="alert" style="font-size:12px;color:#f7a41c;margin-top:10px;font-weight:600">{{ err }}</div></sc-if>
+    </div>
+
+    <div aria-label="Traçabilité" style="height:640px;min-width:0;display:flex;flex-direction:column">
+      <div style="height:72px;flex:none;padding:0 28px;display:flex;align-items:center;gap:18px;border-bottom:1px solid #eef3f2"><div style="flex:1;min-width:0"><div style="font-size:14.5px;font-weight:800">Traçabilité</div><div style="font-size:11.5px;color:#8a9aa6;margin-top:2px">Téléchargements et remplacements</div></div><div style="text-align:right"><div style="font-size:18px;line-height:1;font-weight:800;font-variant-numeric:tabular-nums">{{ total }}</div><div style="font-size:11px;color:#8a9aa6;margin-top:4px">{{ totalL }}</div></div><div style="text-align:right;padding-left:18px;box-shadow:inset 1px 0 0 #eef3f2"><div style="font-size:18px;line-height:1;font-weight:800;font-variant-numeric:tabular-nums">{{ people }}</div><div style="font-size:11px;color:#8a9aa6;margin-top:4px">{{ peopleL }}</div></div></div>
+      <div style="flex:1;min-height:0;overflow:hidden;padding:8px 0;display:flex;flex-direction:column">
+        <sc-for list="{{ rows }}" as="r" hint-placeholder-count="8">
+          <div style="{{ r.st }}">
+            <span style="{{ r.line }}"></span><span style="{{ r.node }}"></span>
+            <div style="flex:1;min-width:0"><div style="{{ r.tSt }}">{{ r.t }}</div><div style="font-size:11.5px;color:#5c7280;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.sub }}</div></div>
+            <div style="width:92px;flex:none;text-align:right"><div style="font-size:12.5px;font-weight:700">{{ r.day }}</div><div style="font-size:11.5px;color:#8a9aa6;margin-top:2px;font-variant-numeric:tabular-nums">{{ r.hm }}</div></div>
+          </div>
+        </sc-for>
+        <sc-if value="{{ empty }}" hint-placeholder-val="{{ false }}"><div style="margin:auto;text-align:center;max-width:280px"><div style="font-size:13.5px;font-weight:700">Aucun événement pour l’instant.</div><div style="font-size:12px;color:#8a9aa6;margin-top:6px;line-height:1.5">Chaque téléchargement et chaque remplacement du guide sera tracé ici.</div></div></sc-if>
+      </div>
+      <div style="height:68px;flex:none;padding:0 16px 0 28px;display:flex;align-items:center;gap:8px;border-top:1px solid #eef3f2;background:#fbfdfc">
+        <span style="font-size:11.5px;color:#8a9aa6;font-variant-numeric:tabular-nums">{{ pg.range }}</span><span style="flex:1"></span>
+        <sc-if value="{{ pg.multi }}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{ pg.prev }}" disabled="{{ pg.atFirst }}" aria-label="Page précédente" style="{{ pg.pSt }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"></path></svg></button><span style="font-size:12px;font-weight:700;min-width:44px;text-align:center;font-variant-numeric:tabular-nums">{{ pg.lbl }}</span><button type="button" onClick="{{ pg.next }}" disabled="{{ pg.atLast }}" aria-label="Page suivante" style="{{ pg.nSt }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></button></sc-if>
+      </div>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;jeu&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;0&quot;,&quot;1&quot;,&quot;30&quot;],&quot;default&quot;:&quot;30&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Démo&quot;},&quot;versions&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{v:string,at:Date|string,by:string,size:number,url?:string,fileName?:string}[]&quot;},&quot;downloads&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{user:string,role?:string,at:Date|string,version:string}[]&quot;},&quot;currentUser&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{name:string,role?:string}&quot;},&quot;canReplace&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;boolean&quot;},&quot;today&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Date&quot;},&quot;onDownload&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(version)=&gt;Promise&lt;void&gt;&quot;},&quot;onReplace&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(file:File)=&gt;Promise&lt;void&gt;&quot;}}">
+class Component extends DCLogic {
+  state = { page: 0, flash: false, busy: false, err: '', lv: null, ld: null };
+  componentWillUnmount() { clearTimeout(this._t); }
+  demo() {
+    const N = new Date(), d = x => new Date(N - x * 864e5), me = { name: 'Élodie Martin', role: 'Administratrice' };
+    const vers = [{ v: '3.2', at: d(18.3), by: me.name, size: 4.8e6 }, { v: '3.1', at: d(62.4), by: me.name, size: 4.3e6 }, { v: '3.0', at: d(121.2), by: 'Marc Lefèvre', size: 3.9e6 }];
+    const P = [['Claire Morel', 'Cheffe de projet'], ['Julien Bernard', 'Consultant fonctionnel'], ['Sofia Haddad', 'Référente métier'], ['Marc Lefèvre', 'Directeur de programme'], ['Inès Garnier', 'PMO'], ['Thomas Roux', 'Architecte solution'], ['Léa Fontaine', 'Consultante'], ['Karim Benali', 'Responsable recette'], ['Nadia Perrin', 'Contrôleuse de gestion'], ['Hugo Marchand', 'Développeur'], ['Camille Duval', 'Référente métier'], ['Antoine Girard', 'Sponsor']];
+    const n = +(this.props.jeu ?? '30'), dls = [];
+    for (let i = 0; i < n; i++) { const p = P[(i * 5) % 12], at = new Date(N - (n === 1 ? 1.1 : i * 2.4 + .06) * 864e5 - ((i * 37) % 300) * 6e4); dls.push({ user: p[0], role: p[1], at, version: (vers.find(x => x.at <= at) || vers[vers.length - 1]).v }); }
+    return { vers: n ? vers : [vers[0]], dls, me };
+  }
+  renderVals() {
+    const S = this.state, P = this.props, PER = 8, live = Array.isArray(P.versions) || Array.isArray(P.downloads), dm = live ? null : (this._dm || (this._dm = this.demo()));
+    const N = P.today instanceof Date ? P.today : new Date();
+    const toD = x => x instanceof Date ? x : new Date(x);
+    const vers = (S.lv || (live ? P.versions || [] : dm.vers)).map(v => ({ ...v, at: toD(v.at) })).sort((a, b) => b.at - a.at);
+    const dls = (S.ld || (live ? P.downloads || [] : dm.dls)).map(e => ({ ...e, at: toD(e.at) })).sort((a, b) => b.at - a.at);
+    const me = P.currentUser || (dm ? dm.me : { name: '—', role: '' }), cur = vers[0], prev = vers[1];
+    const canReplace = P.canReplace ?? !live;
+    const M = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+    const same = (a, b) => a.toDateString() === b.toDateString(), dd = d => d.getDate() === 1 ? '1er' : d.getDate();
+    const day = d => same(d, N) ? 'Aujourd’hui' : same(d, new Date(N - 864e5)) ? 'Hier' : dd(d) + ' ' + M[d.getMonth()] + (d.getFullYear() !== N.getFullYear() ? ' ' + d.getFullYear() : '');
+    const full = d => dd(d) + ' ' + M[d.getMonth()] + ' ' + d.getFullYear();
+    const hm = d => String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    const mo = b => b >= 1e6 ? (b / 1e6).toFixed(1).replace('.', ',') + ' Mo' : Math.max(1, Math.round(b / 1e3)) + ' Ko';
+    const ev = [...dls.map(e => ({ k: 'd', ...e })), ...vers.map((v, i) => ({ k: 'v', ...v, i }))].sort((a, b) => b.at - a.at);
+    const pages = Math.max(1, Math.ceil(ev.length / PER)), p = Math.min(S.page, pages - 1);
+    const nav = dis => 'width:30px;height:30px;border-radius:9px;border:1px solid #e1e9e7;background:#fff;color:#10233a;display:grid;place-items:center;' + (dis ? 'opacity:.35;cursor:default' : 'cursor:pointer');
+    const uniq = new Set(dls.map(e => e.user)).size, total = dls.length;
+    const fail = m => { this.setState({ err: m, busy: false }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ err: '' }), 4000); };
+    const dl = async () => {
+      if (!cur || S.busy) return;
+      const rec = { user: me.name, role: me.role, at: new Date(), version: cur.v };
+      this.setState({ busy: true, err: '' });
+      try {
+        if (P.onDownload) await P.onDownload(cur);
+        else if (cur.url) { const a = document.createElement('a'); a.href = cur.url; a.download = cur.fileName || ('Guide utilisateur Console v' + cur.v + '.pdf'); document.body.appendChild(a); a.click(); a.remove(); }
+        if (!live) this.setState(s => ({ ld: [rec, ...(s.ld || dm.dls)] }));
+        this.setState({ busy: false, flash: true, page: 0 }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ flash: false }), 1800);
+      } catch (e) { fail('Le téléchargement a échoué. Réessayez.'); }
+    };
+    const rep = async e => {
+      const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return;
+      if (!(f.type === 'application/pdf' || /\.pdf$/i.test(f.name))) return fail('Seuls les fichiers PDF sont acceptés.');
+      if (P.onReplace) { this.setState({ busy: true, err: '' }); try { await P.onReplace(f); this.setState({ busy: false, page: 0 }); } catch (x) { fail('Le remplacement a échoué. Réessayez.'); } return; }
+      const [a, b] = (cur ? cur.v : '0.0').split('.').map(Number);
+      this.setState(s => ({ lv: [{ v: a + '.' + ((b || 0) + 1), at: new Date(), by: me.name, size: f.size, url: URL.createObjectURL(f), fileName: f.name }, ...(s.lv || dm.vers)], page: 0, err: '' }));
+    };
+    return {
+      has: !!cur, none: !cur, stateL: cur ? 'EN VIGUEUR' : 'GUIDE UTILISATEUR',
+      cur: cur ? { v: cur.v, size: mo(cur.size || 0) } : { v: '', size: '' },
+      sheetV: cur ? 'Version ' + cur.v : 'En attente',
+      sheetSt: 'position:absolute;inset:0;border-radius:10px;padding:18px 18px 20px;display:flex;flex-direction:column;box-shadow:0 30px 50px -24px rgba(0,0,0,.7);background:#fff' + (cur ? '' : ';opacity:.35'),
+      curLine: cur ? 'Publiée le ' + full(cur.at) + (cur.by ? ' par ' + cur.by : '') + (prev ? ' · remplace la v' + prev.v : '') : (canReplace ? 'Déposez le premier guide au format PDF.' : 'Le guide sera disponible dès sa publication.'),
+      ghosts: vers.slice(1, 3).map((v, k) => ({ v: v.v, k })).reverse().map(g => ({ v: g.v, st: 'position:absolute;inset:0;border-radius:10px;border:1px solid rgba(255,255,255,' + (g.k ? .08 : .14) + ');background:rgba(255,255,255,' + (g.k ? .03 : .07) + ');transform:translate(' + (g.k + 1) * 16 + 'px,' + -(g.k + 1) * 14 + 'px)' })),
+      flash: S.flash, idle: !S.flash, dlDis: !cur || S.busy, dl,
+      dlL: S.flash ? 'Téléchargement lancé' : S.busy ? 'Préparation…' : 'Télécharger le guide',
+      dlSt: 'flex:1;min-width:0;height:48px;border:0;border-radius:13px;background:linear-gradient(90deg,#f7a41c,#f0752b);color:#10233a;font-size:14px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;gap:10px;white-space:nowrap;box-shadow:0 12px 28px -14px rgba(240,117,43,.9),inset 0 1px 0 rgba(255,255,255,.35);transition:transform .15s,opacity .15s;' + (cur && !S.busy ? 'cursor:pointer' : 'cursor:default;opacity:.4'),
+      canReplace, rep, repT: cur ? 'Remplacer le guide (le nouveau PDF remplace la version en vigueur)' : 'Déposer le guide (PDF)',
+      hasErr: !!S.err, err: S.err,
+      total, totalL: total > 1 ? 'téléchargements' : 'téléchargement', people: uniq, peopleL: uniq > 1 ? 'personnes' : 'personne',
+      empty: !ev.length,
+      pg: { multi: pages > 1, lbl: (p + 1) + ' / ' + pages, atFirst: p === 0, atLast: p === pages - 1, pSt: nav(p === 0), nSt: nav(p === pages - 1),
+        prev: () => p > 0 && this.setState({ page: p - 1 }), next: () => p < pages - 1 && this.setState({ page: p + 1 }),
+        range: ev.length ? (p * PER + 1) + '–' + Math.min(ev.length, (p + 1) * PER) + ' sur ' + ev.length + ' événement' + (ev.length > 1 ? 's' : '') : '0 événement' },
+      rows: ev.slice(p * PER, p * PER + PER).map((e, j) => { const gi = p * PER + j, isV = e.k === 'v', first = gi === 0, lastRow = gi === ev.length - 1;
+        return { day: day(e.at), hm: hm(e.at),
+          t: isV ? 'Version ' + e.v + ' publiée' : e.user, sub: isV ? (e.by ? 'par ' + e.by + ' · ' : '') + mo(e.size || 0) + (e.i ? ' · remplacée' : ' · en vigueur') : (e.role ? e.role + ' · ' : '') + 'v' + e.version,
+          tSt: 'font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:' + (isV ? '#9a5a0c' : '#10233a'),
+          st: 'height:56px;flex:none;position:relative;padding:0 28px 0 58px;display:flex;align-items:center;gap:12px;' + (isV ? 'background:linear-gradient(90deg,#fff8ec,rgba(255,248,236,0))' : ''),
+          line: 'position:absolute;left:36px;width:1px;background:#e1e9e7;top:' + (first ? '50%' : '0') + ';bottom:' + (lastRow ? '50%' : '0'),
+          node: 'position:absolute;top:50%;' + (isV ? 'left:31px;width:11px;height:11px;margin-top:-5.5px;border-radius:2px;transform:rotate(45deg);background:linear-gradient(135deg,#f7a41c,#f0752b);box-shadow:0 0 0 3px #fff' : 'left:32px;width:9px;height:9px;margin-top:-4.5px;border-radius:50%;box-shadow:0 0 0 3px #fff;background:' + (cur && e.version === cur.v ? '#1d8f86' : '#c3ced4')) }; })
+    };
+  }
+}
+</script>
+</body>
+</html>

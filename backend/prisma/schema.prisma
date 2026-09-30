@@ -1651,3 +1651,35 @@ model NotificationOccurrence {
   @@index([status, scheduledAt])
   @@map("notification_occurrences")
 }
+
+/// Guide utilisateur de la Console (décision du 30/09/2026) : une version par dépôt ; la plus récente est en vigueur,
+/// seule téléchargeable. Les versions remplacées restent dans l'historique ; leur fichier n'est plus servi.
+model GuideVersion {
+  id         String   @id @default(cuid())
+  /// Ordre de publication (indépendant de l'horloge) : la plus grande valeur est la version en vigueur.
+  seq        Int      @default(autoincrement())
+  /// Numéro « majeur.mineur », incrément mineur automatique à chaque dépôt (3.2 → 3.3).
+  v          String   @unique
+  at         DateTime
+  accountId  String?  @map("account_id")
+  by         String
+  size       Int
+  fileName   String   @map("file_name")
+  storageKey String   @map("storage_key")
+
+  @@map("guide_versions")
+}
+
+/// Téléchargement du guide, tracé par le serveur avant l'envoi du fichier : journal en ajout seul (ni modification ni
+/// suppression, trigger SQL).
+model GuideDownload {
+  id        String   @id @default(cuid())
+  accountId String?  @map("account_id")
+  user      String
+  role      String?
+  at        DateTime
+  version   String
+
+  @@index([at])
+  @@map("guide_downloads")
+}
