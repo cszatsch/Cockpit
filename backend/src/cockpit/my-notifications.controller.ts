@@ -1,4 +1,4 @@
-import { Controller, Get, HttpCode, Param, Post, Query } from '@nestjs/common';
+import { Controller, Delete, Get, HttpCode, Param, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Actor, CurrentActor } from '../core/auth/auth';
 import { notFound } from '../core/errors';
@@ -43,5 +43,15 @@ export class MyNotificationsController {
   @HttpCode(204)
   async readAll(@CurrentActor() actor: Actor) {
     await this.prisma.userNotification.updateMany({ where: { accountId: actor.accountId, readAt: null }, data: { readAt: new Date() } });
+  }
+
+  /**
+   * Effacer toutes mes notifications (30/09/2026) : suppression définitive des seules notifications du compte connecté.
+   * L'historique des envois de la Console (Delivery) n'est pas touché.
+   */
+  @Delete()
+  @HttpCode(204)
+  async clearAll(@CurrentActor() actor: Actor) {
+    await this.prisma.userNotification.deleteMany({ where: { accountId: actor.accountId } });
   }
 }

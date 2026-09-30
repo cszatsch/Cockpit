@@ -1868,7 +1868,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
 </div>
 <!-- Notifications de l'utilisateur (canal « Dans l'application » des règles) : tiroir ouvert par la cloche.
      Hors de la grille du shell (le tiroir est en position fixe) : placé dedans, son enveloppe prenait la colonne du contenu. -->
-<dc-import name="Notifications Cockpit" open="{{ ntOpen }}" left="{{ ntLeft }}" items="{{ ntItems }}" on-close="{{ ntClose }}" on-read="{{ ntRead }}" on-read-all="{{ ntReadAll }}" hint-size="0,0"></dc-import>
+<dc-import name="Notifications Cockpit" open="{{ ntOpen }}" left="{{ ntLeft }}" items="{{ ntItems }}" on-close="{{ ntClose }}" on-read="{{ ntRead }}" on-read-all="{{ ntReadAll }}" on-clear-all="{{ ntClearAll }}" hint-size="0,0"></dc-import>
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;reducedMotion&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Comportement&quot;},&quot;startSpace&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;today&quot;,&quot;options&quot;:[&quot;today&quot;,&quot;pilotage&quot;,&quot;comites&quot;,&quot;documents&quot;,&quot;equipe&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Comportement&quot;}}">
 class Component extends DCLogic {
@@ -2146,6 +2146,7 @@ class Component extends DCLogic {
   ntToggle() { const open = !this.state.ntOpen; this.setState({ ntOpen: open }); if (open && this._api) this._api.ntLoad(); }
   ntRead(id) { if (this._api) this._api.ntRead(id); else this.setState(s => ({ ntDemoRead: { ...(s.ntDemoRead || {}), [id]: true } })); }
   ntReadAll() { if (this._api) this._api.ntReadAll(); else this.setState({ ntDemoRead: { d1: true, d2: true, d3: true } }); }
+  ntClearAll() { if (this._api) this._api.ntClearAll(); else this.setState({ ntItems: [], ntUnread: 0 }); }
   // API : dépôt réel, POST /documents (multipart) ; extraction asynchrone côté serveur.
   pickFile() {
     if (!this._fi) { const i = document.createElement('input'); i.type = 'file'; i.multiple = true; i.accept = '.pdf,.docx,.pptx,.xlsx,.msg,.eml'; i.style.display = 'none'; document.body.appendChild(i);
@@ -3372,7 +3373,7 @@ class Component extends DCLogic {
         return { ntHas: n > 0, ntCount: n > 99 ? '99+' : String(n), ntSub: n ? n + ' non lue' + (n > 1 ? 's' : '') : 'Tout est lu', ntAria: 'Notifications' + (n ? ', ' + n + ' non lue' + (n > 1 ? 's' : '') : ''),
           ntBadge: 'position:absolute;top:-7px;left:9px;min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:#f07b67;color:#fff;font-size:9.5px;font-weight:800;display:grid;place-items:center;box-shadow:0 0 0 2px #0f2c2c;line-height:1',
           ntOpen: !!S.ntOpen, ntLeft: S.sideOpen ? 272 : 68, ntItems: S.ntItems || undefined,
-          ntToggle: () => this.ntToggle(), ntClose: () => this.setState({ ntOpen: false }), ntRead: id => this.ntRead(id), ntReadAll: () => this.ntReadAll() }; })(),
+          ntToggle: () => this.ntToggle(), ntClose: () => this.setState({ ntOpen: false }), ntRead: id => this.ntRead(id), ntReadAll: () => this.ntReadAll(), ntClearAll: () => this.ntClearAll() }; })(),
       sideOpen: S.sideOpen, sideClosed: !S.sideOpen, toggleSide: () => this.setState({ sideOpen: !S.sideOpen }), asideStyle: `background:linear-gradient(180deg,#0f2c2c 0%,#0a1f20 100%);color:#d5e6e2;display:flex;flex-direction:column;padding:26px ${S.sideOpen ? '18px' : '12px'} 22px;position:sticky;top:0;height:100vh;min-height:680px;box-sizing:border-box;overflow:hidden`, navLabelStyle: S.sideOpen ? '' : 'display:none', navGap: S.sideOpen ? 'display:flex;align-items:center;justify-content:space-between;padding:0 6px' : 'display:flex;align-items:center;justify-content:center;padding:0', footRow: S.sideOpen ? '' : 'justify-content:center;padding-left:0;padding-right:0',
       showLogout: S.sideOpen && !!S.profHover, profIn: () => this.setState({ profHover: true }), profOut: () => this.setState({ profHover: false }),
       assistantOpen: S.assistant, toggleAssistant: () => this.setState({ assistant: !S.assistant, taskForm: false }), toast: S.toast, mineCount: 4,

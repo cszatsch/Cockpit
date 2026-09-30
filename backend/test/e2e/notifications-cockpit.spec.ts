@@ -108,6 +108,13 @@ describe('Notifications du Cockpit et rédaction à partir des données', () => 
       await lec.post(`/api/me/notifications/${id}/read`).expect(404);
       await pmo.post('/api/me/notifications/read-all').expect(204);
       expect((await pmo.get('/api/me/notifications?unreadOnly=true').expect(200)).body).toEqual({ unread: 0, items: [] });
+      // Effacer tout (30/09/2026) : mes notifications seulement ; celles des autres et l'historique des envois restent.
+      const othersBefore = await t.db.userNotification.count({ where: { accountId: { not: me.items.length ? (await t.db.userNotification.findUniqueOrThrow({ where: { id } })).accountId : '' } } });
+      const deliveries = await t.db.delivery.count();
+      await pmo.del('/api/me/notifications').expect(204);
+      expect((await pmo.get('/api/me/notifications').expect(200)).body).toEqual({ unread: 0, items: [] });
+      expect(await t.db.userNotification.count()).toBe(othersBefore);
+      expect(await t.db.delivery.count()).toBe(deliveries);
     });
 
     it('« M’envoyer un test » : texte du premier profil destinataire, remis au seul testeur', async () => {

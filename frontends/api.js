@@ -870,6 +870,8 @@ export function attach(comp) {
     ntLoad,
     ntRead: (id) => { ntMark(id); post('/me/notifications/' + encodeURIComponent(id) + '/read').catch((e) => { console.warn('[api]', e); ntLoad(); }); },
     ntReadAll: () => { ntMark(null); post('/me/notifications/read-all').catch((e) => { console.warn('[api]', e); ntLoad(); }); },
+    // Effacer toutes mes notifications (définitif, après le délai d'annulation du tiroir) ; en cas d'échec, la liste est relue.
+    ntClearAll: () => { raw({ ntItems: [], ntUnread: 0 }); del('/me/notifications').catch((e) => { console.warn('[api]', e); ntLoad(); }); },
     state: S,
 
     /** Météo et actualités (proxy serveur ; 503 hors ligne : l'écran affiche son état d'erreur). */

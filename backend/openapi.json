@@ -255,6 +255,23 @@
         "tags": [
           "cockpit · mes notifications"
         ]
+      },
+      "delete": {
+        "operationId": "MyNotificationsController_clearAll",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "cockpit · mes notifications"
+        ]
       }
     },
     "/api/me/notifications/{id}/read": {

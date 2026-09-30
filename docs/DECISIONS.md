@@ -786,3 +786,10 @@ Demande du commanditaire : « l’utilisateur ne peut plus avoir que des notific
 | Rédaction | Markdown léger demandé au modèle : phrase d'essentiel, 2 ou 3 rubriques « ## », puces commençant par le chiffre clé, étapes « 1. », gras rare ; ni titre « # », ni tableau, ni formule de politesse (la formule éventuelle vient du message de la règle). Remplace « texte brut, sans Markdown ». | `NOTIFICATION_ANSWER_INSTRUCTIONS` (`notification-writer.service.ts`) |
 | Cockpit | Le tiroir lit ce Markdown en blocs (rubriques, chiffres clés, puces, étapes) ; aucun HTML n'est interprété (texte seulement). | `parseBody`, `summaryOf` (`Notifications Cockpit.dc.html`) |
 | E-mail | Texte propre : rubriques en majuscules, puces « • », gras retiré, titres « # » omis. | `mailText` (`src/domain/notification-rules.ts`) |
+
+## Cockpit : effacer toutes ses notifications (30/09/2026)
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Portée | Supprime définitivement les seules notifications du compte connecté ; l'historique des envois de la Console (`Delivery`) et les notifications des autres comptes restent. Pas d'entrée d'audit (données personnelles de lecture). | `DELETE /api/me/notifications` (`MyNotificationsController.clearAll`) |
+| Filet de sécurité | Annulation possible pendant 5 s avant l'appel au serveur. | `CLEAR_UNDO_MS` (`Notifications Cockpit.dc.html`) |

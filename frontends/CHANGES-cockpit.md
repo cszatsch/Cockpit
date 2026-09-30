@@ -175,3 +175,9 @@ Plus aucune clé `localStorage` n'est lue ou écrite par le fichier HTML. api.js
   - liste : pastille de tuile et étiquette « Notification » retirées (un seul type) ; point de non-lecture discret ; titre, puis « PROJET · date » ; résumé de deux lignes tiré du premier paragraphe utile (salutations et annonces « Veuillez trouver… » écartées) ;
   - lecture (notification dépliée) : carte blanche ; salutation en retrait ; première phrase utile mise en avant ; rubriques « ## » en petites capitales avec un filet sarcelle ; liste dont chaque élément commence par un chiffre (2 à 6 éléments) rendue en rangée de chiffres clés (valeur, libellé, précision entre parenthèses ; valeur en rouge si le libellé parle de critique, retard, dépassement ou échec) ; puces sarcelle ; étapes numérotées en pastilles ; gras conservé ; titres « # » omis (redondants avec l'objet) ;
   - données de démonstration : une notification structurée ajoutée.
+
+## Tiroir des notifications : effacer toutes les notifications (30/09/2026)
+
+- `Notifications Cockpit.dc.html` : icône « Effacer toutes les notifications » (fournie par le commanditaire, liste qui s'estompe barrée d'une croix) entre « Tout lire » et la fermeture ; inactive sans notification ; survol rouge. Un clic vide la liste et affiche le bandeau « N notifications effacées » avec « Annuler » et une jauge de 5 s ; l'effacement définitif part à la fin du délai (ou à la fermeture de l'écran). Nouvelle prop `onClearAll`.
+- `RISE Cockpit.dc.html` : `on-clear-all` relié à `ntClearAll` (démonstration : liste vidée localement).
+- `api.js` : `ntClearAll` appelle `DELETE /api/me/notifications` ; en cas d'échec, la liste est relue.
