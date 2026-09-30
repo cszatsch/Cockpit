@@ -185,3 +185,11 @@ Plus aucune clé `localStorage` n'est lue ou écrite par le fichier HTML. api.js
 ## Jev : icône « Effacer tous les messages » (30/09/2026)
 
 - `RISE Cockpit.dc.html` : bouton ajouté dans l'en-tête du panneau de Jev, à gauche de la croix de fermeture, avec l'icône fournie `jev-effacer-4a.svg`. Il efface les messages affichés et ramène au message d'accueil de Jev (avec ses suggestions) ; saisie, pièces jointes et proposition en attente sont abandonnées. Désactivé tant qu'il n'y a que le message d'accueil. Aucun appel à l'API : les échanges du Cockpit ne sont pas conservés côté serveur.
+
+## Base de connaissance : dépôt, résumé, suppression (30/09/2026)
+
+- « Déposer un document » ouvre une fenêtre : nom de chaque fichier (modifiable), type (Référence, Support de comité, Compte rendu, Contractuel, Livrable), confidentialité (Interne / Restreint, avec la portée affichée). Formats proposés : PDF, Word, PowerPoint, Excel.
+- Doublon de nom : fenêtre « Ce document existe déjà » (version et auteur) : Remplacer (version suivante), Garder les deux, Annuler ; Remplacer n'est proposé qu'au PMO et à l'auteur du dépôt.
+- Tableau : « Déposé par … le … » sous le nom ; colonne Extraction · indexation avec l'avancement (« En cours · 45 % »), l'échec et son motif (« En échec · … »), la précision d'une extraction partielle ; icône Supprimer (PMO et auteur du dépôt) avec confirmation ; colonne Actions élargie ; badge Excel en vert.
+- Icône « Vue » : le faux aperçu (lignes grises, versions inventées) est remplacé par le résumé du document : description en deux phrases, résumé mis en forme, avancement ou motif d'échec, nombre d'extraits et modèle d'indexation, Télécharger et Supprimer.
+- `api.js` : `uploadDocuments(items, { type, conf })` (un fichier après l'autre, choix du doublon), `docDetail`, `deleteDoc` ; relecture toutes les 2,5 s tant qu'un document est en cours de traitement (`KB_POLL_MS`) ; `ApiError.body` garde le corps de l'erreur.

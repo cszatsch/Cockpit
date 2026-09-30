@@ -683,7 +683,7 @@ export const DICTIONNAIRE_COCKPIT: DictTable[] = [
       { nom: 'version', expr: 't.v', type: 'texte', signification: 'Version', exemples: 'v1, v2' },
       { nom: 'confidentialite', expr: 't.conf::text', type: 'texte', signification: 'Confidentialité', exemples: 'INTERNAL = interne, RESTRICTED = restreint' },
       { nom: 'origine', expr: 't.src::text', type: 'texte', signification: 'Origine', exemples: 'UPLOADED = déposé, GENERATED = généré' },
-      { nom: 'extraction', expr: 't.ext::text', type: 'texte', signification: 'État de l’extraction du texte', exemples: 'PENDING = en attente, SUCCEEDED = extrait et indexé, PARTIAL = partiel, UNSUPPORTED = non exploitable' },
+      { nom: 'extraction', expr: 't.ext::text', type: 'texte', signification: 'État de l’extraction du texte', exemples: 'PENDING = traitement en cours, SUCCEEDED = extrait et indexé, PARTIAL = partiel, UNSUPPORTED = non exploitable, FAILED = traitement en échec' },
       { nom: 'pages', expr: 't.pages', type: 'entier', signification: 'Nombre de pages' },
       { nom: 'taille_octets', expr: `t.${q('sizeBytes')}`, type: 'entier', signification: 'Taille', exemples: 'en octets' },
       { nom: 'objets_lies', expr: `t.${q('linkedLabel')}`, type: 'texte', signification: 'Objets liés (libellé)' },

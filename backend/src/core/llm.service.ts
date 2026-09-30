@@ -242,19 +242,19 @@ export class LlmService {
    * sur erreur passagère (429, 5xx, délai). Réelle en ligne, vecteurs de démonstration déterministes hors ligne.
    * Une ligne de consommation par lot (fonction Documents · Vectorisation).
    */
-  async embedTexts(texts: string[], source: UsageSourceCode, onBatch?: (done: number, total: number) => Promise<void> | void): Promise<{ modelId: string; modelName: string; dims: number; vectors: number[][] }> {
+  async embedTexts(texts: string[], source: UsageSourceCode, onBatch?: (done: number, total: number) => Promise<void> | void, projectId?: string | null): Promise<{ modelId: string; modelName: string; dims: number; vectors: number[][] }> {
     const { modelId } = await this.route('doc_vec');
     const asg = await this.prisma.modelAssignment.findUnique({ where: { functionId: 'doc_vec' } });
     const model = await this.prisma.aiModel.findUniqueOrThrow({ where: { id: modelId } });
     const wanted = asg?.primaryDimension ?? model.defaultDimension ?? (model.dimensions.length === 1 ? model.dimensions[0] : null);
-    return this.embedWithModel(model.id, wanted, texts, source, { onBatch });
+    return this.embedWithModel(model.id, wanted, texts, source, { onBatch, projectId });
   }
 
   /**
    * Vectorisation par un modèle désigné et une dimension (recherche dans le guide : le modèle et la dimension de
    * l'index, jamais un autre). Le modèle doit être disponible (actif, fournisseur au statut OK).
    */
-  async embedWithModel(modelId: string, wanted: number | null, texts: string[], source: UsageSourceCode, opts: { onBatch?: (done: number, total: number) => Promise<void> | void; timeoutMs?: number } = {}): Promise<{ modelId: string; modelName: string; dims: number; vectors: number[][] }> {
+  async embedWithModel(modelId: string, wanted: number | null, texts: string[], source: UsageSourceCode, opts: { onBatch?: (done: number, total: number) => Promise<void> | void; timeoutMs?: number; projectId?: string | null } = {}): Promise<{ modelId: string; modelName: string; dims: number; vectors: number[][] }> {
     const onBatch = opts.onBatch;
     if (!(await this.modelAvailable(modelId, 'EMBEDDING'))) throw new ApiError(503, 'AI_UNAVAILABLE', `Modèle de vectorisation ${modelId} inactif, supprimé ou clé de son fournisseur refusée`);
     const model = await this.prisma.aiModel.findUniqueOrThrow({ where: { id: modelId } });
@@ -288,7 +288,7 @@ export class LlmService {
         vectors.push(x);
       }
       const tokens = out.tokens ?? batch.reduce((n, t) => n + Math.max(1, Math.ceil(t.length / 4)), 0);
-      await this.record(model, 'doc_vec', { tokensIn: tokens, tokensOut: 0, requests: 0 }, false, { source }, Date.now() - t0);
+      await this.record(model, 'doc_vec', { tokensIn: tokens, tokensOut: 0, requests: 0 }, false, { source, projectId: opts.projectId ?? null }, Date.now() - t0);
       await onBatch?.(Math.min(i + batch.length, texts.length), texts.length);
     }
     return { modelId: model.id, modelName: model.name, dims, vectors };

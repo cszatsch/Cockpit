@@ -49,6 +49,8 @@ export class ApiError extends Error {
     this.code = (body && body.code) || 'HTTP_' + status;
     this.fields = (body && body.fields) || null;
     this.usages = (body && body.usages) || null;
+    // Corps complet (ex. doublon de la Base de connaissance : `existing`).
+    this.body = body || null;
   }
 }
 
@@ -187,6 +189,8 @@ const STORES = ['ed', 'actStatus', 'sesEd', 'sesAdded', 'refValues', 'refDeleted
   'roAdded', 'roTier', 'tmAdded', 'wsAdded', 'ipAdded', 'spAdded', 'phAdded', 'waAdded', 'spDesc', 'phDesc', 'plAdd', 'templates', 'tplHistory', 'cmts', 'modPh',
   ...SECTION_STORES, ...Object.keys(PREF_OF)];
 
+/** Relecture pendant le traitement d'un document de la Base de connaissance (avancement, fin). */
+const KB_POLL_MS = 2500;
 /** Délai d'anti-rebond du rechargement après écriture (ms). */
 const RELOAD_DEBOUNCE_MS = 400;
 /** Délai de regroupement des saisies continues (frappe dans un champ lieu, heure, %…) (ms). */
@@ -294,6 +298,9 @@ export function attach(comp) {
 
   function hydrate(L) {
     const B = prepare(L.B);
+    // Base de connaissance : documents en cours de traitement → relecture régulière jusqu'à la fin (avancement, statut).
+    clearTimeout(S.kbTimer);
+    if (((L.B && L.B.documents) || []).some((d) => d.ext === 'PENDING')) S.kbTimer = setTimeout(() => reload(), KB_POLL_MS);
     S.B = B;
     S.extra = L;
     const byId = {};
@@ -912,14 +919,49 @@ export function attach(comp) {
       } catch (e) { toast(errorText(e)); }
     },
 
-    /** Dépôt : `POST /documents` (multipart), extraction asynchrone côté serveur. */
-    async uploadDocuments(files) {
-      const list = [...(files || [])]; if (!list.length) return;
-      toast(list.length === 1 ? 'Document déposé — ' + list[0].name + ' · extraction en file d\'attente' : list.length + ' documents déposés · extraction en file d\'attente');
-      try {
-        for (const f of list) { const fd = new FormData(); fd.append('file', f, f.name); await ppost('/documents', fd); }
-        scheduleReload();
-      } catch (e) { toast(errorText(e)); }
+    /**
+     * Dépôt dans la Base de connaissance (30/09/2026) : `POST /documents` (multipart : fichier, nom, type,
+     * confidentialité), un fichier après l'autre. Doublon de nom (409 DUPLICATE_NAME) : l'utilisateur choisit
+     * Remplacer (`replaceId`) ou Garder les deux (`keepBoth`) ; contenu identique ou fichier refusé : message du serveur.
+     * `items` : fichiers (File) ou `{ file, n }` ; le traitement (résumé, index) se poursuit côté serveur.
+     */
+    async uploadDocuments(items, opts = {}) {
+      const list = [...(items || [])].map((x) => (x instanceof File ? { file: x, n: x.name.replace(/\.[^.]+$/, '') } : x));
+      if (!list.length) return;
+      let ok = 0;
+      for (const it of list) {
+        const send = (extra = {}) => {
+          const fd = new FormData();
+          fd.append('file', it.file, it.file.name);
+          if (it.n) fd.append('n', it.n);
+          if (opts.type) fd.append('type', opts.type);
+          if (opts.conf) fd.append('conf', opts.conf);
+          for (const [k, v] of Object.entries(extra)) fd.append(k, v);
+          return ppost('/documents', fd);
+        };
+        try {
+          await send();
+          ok++;
+        } catch (e) {
+          if (e instanceof ApiError && e.code === 'DUPLICATE_NAME' && e.body && e.body.existing) {
+            const choice = await comp.kbAskDuplicate(it.n || it.file.name, e.body.existing);
+            if (choice === 'cancel') continue;
+            try { await send(choice === 'replace' ? { replaceId: e.body.existing.id } : { keepBoth: 'true' }); ok++; } catch (e2) { toast(errorText(e2)); }
+          } else toast((it.n || it.file.name) + ' — ' + errorText(e));
+        }
+      }
+      if (ok) toast(ok === 1 ? 'Document déposé · résumé et indexation en cours' : ok + ' documents déposés · résumé et indexation en cours');
+      scheduleReload();
+    },
+
+    /** Résumé d'un document (fenêtre « Vue ») : `GET /documents/{id}`. */
+    async docDetail(id) {
+      try { const d = await pget('/documents/' + enc(id)); comp.setState({ pvDetail: d }); } catch (e) { toast(errorText(e)); comp.setState({ pvDetail: { id, summary: null } }); }
+    },
+
+    /** Suppression : `DELETE /documents/{id}` (fichier, résumé et index). */
+    async deleteDoc(d) {
+      try { await pdel('/documents/' + enc(d.id)); toast('Document supprimé — ' + d.n); scheduleReload(); } catch (e) { toast(errorText(e)); }
     },
 
     /** Jev : `POST /assistant/messages` ; les propositions arrivent en récapitulatif « À valider ». */

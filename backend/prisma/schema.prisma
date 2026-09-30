@@ -156,6 +156,8 @@ enum ExtractionStatus {
   SUCCEEDED
   PARTIAL
   UNSUPPORTED
+  /// Traitement en échec (extraction, résumé ou vectorisation) : aucune donnée partielle gardée, motif dans `error`.
+  FAILED
 }
 
 enum TaskStatus {
@@ -890,7 +892,83 @@ model Document {
   updatedAt   DateTime         @updatedAt
   version     Int              @default(1)
 
-  links DocumentLink[]
+  // Base de connaissance (décisions du 30/09/2026) : dépôt, traitement, résumé et index.
+  /// Format réel (PDF, DOCX, PPTX, XLSX) et nom du fichier déposé.
+  format         String?
+  fileName       String?   @map("file_name")
+  /// Auteur et date du dépôt.
+  uploadedById   String?   @map("uploaded_by_id")
+  uploadedBy     String?   @map("uploaded_by")
+  uploadedAt     DateTime? @map("uploaded_at")
+  /// Empreinte SHA-256 du contenu (doublons).
+  contentHash    String?   @map("content_hash")
+  /// Résumé (affiché par « Vue ») et description en deux phrases (métadonnée de chaque extrait).
+  summary        String?
+  description    String?
+  /// Motif d'échec, ou précision d'une extraction partielle.
+  error          String?
+  extNote        String?   @map("ext_note")
+  /// Avancement du traitement (0 à 100) et étape.
+  progress       Int?
+  stepLabel      String?   @map("step_label")
+  chunkCount     Int?      @map("chunk_count")
+  embeddingModel String?   @map("embedding_model")
+  embeddingName  String?   @map("embedding_name")
+  embeddingDims  Int?      @map("embedding_dims")
+  /// Remplacement : document remplacé une fois celui-ci indexé.
+  replacesId     String?   @map("replaces_id")
+
+  links  DocumentLink[]
+  chunks KbChunk[]
+
+  @@index([projectId, contentHash])
+}
+
+/// Extrait vectorisé d'un document de la Base de connaissance (pgvector, index HNSW partiel par dimension).
+model KbChunk {
+  id         String                @id
+  documentId String                @map("document_id")
+  projectId  String                @map("project_id")
+  position   Int
+  section    String
+  heading    String
+  pageStart  Int?                  @map("page_start")
+  pageEnd    Int?                  @map("page_end")
+  slide      Int?
+  sheet      String?
+  rowStart   Int?                  @map("row_start")
+  rowEnd     Int?                  @map("row_end")
+  content    String
+  /// Métadonnées : document, date de dépôt, description, et section / page, diapositive ou onglet.
+  metadata   Json
+  tokens     Int
+  dims       Int
+  model      String
+  embedding  Unsupported("vector")
+  document   Document              @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+  @@index([projectId])
+  @@map("kb_chunks")
+}
+
+/// Historique de la Base de connaissance : dépôts, refus, remplacements, indexations, échecs, suppressions
+/// (journal en ajout seul, trigger SQL).
+model DocumentEvent {
+  id           String   @id
+  at           DateTime
+  projectId    String   @map("project_id")
+  documentId   String?  @map("document_id")
+  documentName String   @map("document_name")
+  accountId    String?  @map("account_id")
+  by           String
+  /// DEPOT, REFUS, REMPLACEMENT, INDEXE, ECHEC, SUPPRESSION
+  action       String
+  status       String
+  detail       String?
+
+  @@index([projectId, at])
+  @@map("document_events")
 }
 
 model DocumentLink {

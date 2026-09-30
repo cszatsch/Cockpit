@@ -154,26 +154,35 @@ function leftMargin(xs: number[]): number | null {
 
 interface Piece { text: string; page: number; pageEnd: number; tokens: number }
 
+/** Tailles de découpage (jetons estimés) : cible, maximum, minimum, chevauchement. */
+export interface ChunkSizes { target: number; max: number; min: number; overlap: number }
+export const DEFAULT_CHUNK_SIZES: ChunkSizes = { target: CHUNK_TARGET_TOKENS, max: CHUNK_MAX_TOKENS, min: CHUNK_MIN_TOKENS, overlap: CHUNK_OVERLAP_TOKENS };
+
+/** Texte coupé entre phrases en morceaux d'au plus la taille cible (Base de connaissance : diapositives, lignes). */
+export function splitText(text: string, z: ChunkSizes = DEFAULT_CHUNK_SIZES): string[] {
+  return splitLong({ text, page: 0, pageEnd: 0, tokens: estimateTokens(text) }, z).map((p) => p.text);
+}
+
 /** Coupe un texte trop long entre phrases (jamais au milieu d'une phrase), en morceaux d'au plus la taille cible. */
-function splitLong(p: Piece): Piece[] {
-  if (p.tokens <= CHUNK_MAX_TOKENS) return [p];
+function splitLong(p: Piece, z: ChunkSizes): Piece[] {
+  if (p.tokens <= z.max) return [p];
   const sentences = p.text.split(/(?<=[.!?;:])\s+/);
   const out: Piece[] = [];
   let cur = '';
   for (const s of sentences) {
-    if (cur && estimateTokens(cur + ' ' + s) > CHUNK_TARGET_TOKENS) { out.push({ ...p, text: cur, tokens: estimateTokens(cur) }); cur = s; }
+    if (cur && estimateTokens(cur + ' ' + s) > z.target) { out.push({ ...p, text: cur, tokens: estimateTokens(cur) }); cur = s; }
     else cur = cur ? cur + ' ' + s : s;
   }
   if (cur) out.push({ ...p, text: cur, tokens: estimateTokens(cur) });
   // Phrase unique plus longue que le maximum : coupe au mot.
-  return out.flatMap((x) => (x.tokens <= CHUNK_MAX_TOKENS ? [x] : hardSplit(x)));
+  return out.flatMap((x) => (x.tokens <= z.max ? [x] : hardSplit(x, z)));
 }
 
-function hardSplit(p: Piece): Piece[] {
+function hardSplit(p: Piece, z: ChunkSizes): Piece[] {
   const words = p.text.split(' '), out: Piece[] = [];
   let cur = '';
   for (const w of words) {
-    if (cur && estimateTokens(cur + ' ' + w) > CHUNK_TARGET_TOKENS) { out.push({ ...p, text: cur, tokens: estimateTokens(cur) }); cur = w; }
+    if (cur && estimateTokens(cur + ' ' + w) > z.target) { out.push({ ...p, text: cur, tokens: estimateTokens(cur) }); cur = w; }
     else cur = cur ? cur + ' ' + w : w;
   }
   if (cur) out.push({ ...p, text: cur, tokens: estimateTokens(cur) });
@@ -181,24 +190,24 @@ function hardSplit(p: Piece): Piece[] {
 }
 
 /** Chevauchement : fin du chunk précédent (dernière pièce, ou ses dernières phrases) d'environ 50 jetons. */
-function overlapOf(prev: Piece[]): Piece | null {
+function overlapOf(prev: Piece[], z: ChunkSizes): Piece | null {
   const last = prev[prev.length - 1];
   if (!last) return null;
-  if (last.tokens <= CHUNK_OVERLAP_TOKENS * 2) return last;
+  if (last.tokens <= z.overlap * 2) return last;
   const sentences = last.text.split(/(?<=[.!?;:])\s+/);
   let tail = '';
   for (let i = sentences.length - 1; i >= 0; i--) {
     const next = tail ? sentences[i] + ' ' + tail : sentences[i];
-    if (tail && estimateTokens(next) > CHUNK_OVERLAP_TOKENS) break;
+    if (tail && estimateTokens(next) > z.overlap) break;
     tail = next;
   }
-  return estimateTokens(tail) <= CHUNK_OVERLAP_TOKENS * 2 ? { ...last, text: tail, tokens: estimateTokens(tail) } : null;
+  return estimateTokens(tail) <= z.overlap * 2 ? { ...last, text: tail, tokens: estimateTokens(tail) } : null;
 }
 
 interface Section { path: string[]; level: number; pieces: Piece[] }
 
 /** Découpe par section. `title` : titre du document, en tête de chaque chemin. */
-export function chunkBlocks(blocks: GuideBlock[], title = 'Guide utilisateur'): GuideChunk[] {
+export function chunkBlocks(blocks: GuideBlock[], title = 'Guide utilisateur', z: ChunkSizes = DEFAULT_CHUNK_SIZES): GuideChunk[] {
   // 1. Sections : le contenu qui suit chaque titre, jusqu'au titre suivant.
   const sections: Section[] = [];
   const stack: string[] = [];
@@ -212,7 +221,7 @@ export function chunkBlocks(blocks: GuideBlock[], title = 'Guide utilisateur'): 
       cur = { path: stack.filter(Boolean), level: b.level, pieces: [] };
     } else {
       const text = b.kind === 'item' ? `${'  '.repeat(Math.max(0, (b.depth ?? 1) - 1))}- ${b.text}` : b.text;
-      cur.pieces.push(...splitLong({ text, page: b.page, pageEnd: b.pageEnd, tokens: estimateTokens(text) }));
+      cur.pieces.push(...splitLong({ text, page: b.page, pageEnd: b.pageEnd, tokens: estimateTokens(text) }, z));
     }
   }
   if (cur.pieces.length) sections.push(cur);
@@ -223,7 +232,7 @@ export function chunkBlocks(blocks: GuideBlock[], title = 'Guide utilisateur'): 
     const s = sections[i], next = sections[i + 1];
     const size = s.pieces.reduce((n, p) => n + p.tokens, 0);
     const sameParent = next && s.path.length >= 2 && next.path.length >= 2 && s.path[0] === next.path[0] && s.path[1] === next.path[1];
-    if (next && size < CHUNK_MIN_TOKENS && sameParent) {
+    if (next && size < z.min && sameParent) {
       const head = s.path.length > 2 ? s.path[s.path.length - 1] : '';
       const carried = head ? [{ text: head, page: s.pieces[0].page, pageEnd: s.pieces[0].page, tokens: estimateTokens(head) }, ...s.pieces] : s.pieces;
       next.pieces = [...carried, ...next.pieces];
@@ -242,9 +251,9 @@ export function chunkBlocks(blocks: GuideBlock[], title = 'Guide utilisateur'): 
   for (const s of merged) {
     let buf: Piece[] = [], size = 0, fresh = 0;
     for (const p of s.pieces) {
-      if (fresh && size + p.tokens > CHUNK_TARGET_TOKENS && size >= CHUNK_MIN_TOKENS) {
+      if (fresh && size + p.tokens > z.target && size >= z.min) {
         emit(s, buf);
-        const o = overlapOf(buf);
+        const o = overlapOf(buf, z);
         buf = o ? [o] : []; size = o ? o.tokens : 0; fresh = 0;
       }
       buf.push(p); size += p.tokens; fresh++;
@@ -252,7 +261,7 @@ export function chunkBlocks(blocks: GuideBlock[], title = 'Guide utilisateur'): 
     if (!fresh) continue;
     // Reste trop court d'une section coupée : rattaché au chunk précédent de la même section s'il reste sous le maximum.
     const rest = buf.slice(buf.length - fresh), restSize = rest.reduce((n, p) => n + p.tokens, 0), last = chunks[chunks.length - 1];
-    if (restSize < CHUNK_MIN_TOKENS && last && last.heading === (s.path[s.path.length - 1] ?? title) && last.path.length === s.path.length + 1 && last.tokens + restSize <= CHUNK_MAX_TOKENS) {
+    if (restSize < z.min && last && last.heading === (s.path[s.path.length - 1] ?? title) && last.path.length === s.path.length + 1 && last.tokens + restSize <= z.max) {
       last.content += '\n' + rest.map((p) => p.text).join('\n');
       last.tokens = estimateTokens(last.content);
       last.pageEnd = Math.max(last.pageEnd, ...rest.map((p) => p.pageEnd));
@@ -301,8 +310,9 @@ export const vectorLiteral = (v: number[]) => `[${v.map((x) => (Number.isFinite(
 /** Index HNSW : type `vector` jusqu'à 2 000 dimensions, `halfvec` jusqu'à 4 000 ; au-delà, pas d'index (recherche exacte). */
 export const HNSW_VECTOR_MAX_DIMS = 2000;
 export const HNSW_HALFVEC_MAX_DIMS = 4000;
-export function hnswIndexSql(dims: number): string | null {
+/** `table` : guide_chunks (guide de la Console) ou kb_chunks (Base de connaissance du Cockpit). */
+export function hnswIndexSql(dims: number, table: 'guide_chunks' | 'kb_chunks' = 'guide_chunks'): string | null {
   if (!Number.isInteger(dims) || dims < 1 || dims > HNSW_HALFVEC_MAX_DIMS) return null;
   const type = dims <= HNSW_VECTOR_MAX_DIMS ? 'vector' : 'halfvec';
-  return `CREATE INDEX IF NOT EXISTS guide_chunks_hnsw_${dims} ON guide_chunks USING hnsw ((embedding::${type}(${dims})) ${type}_cosine_ops) WITH (m = 16, ef_construction = 64) WHERE dims = ${dims}`;
+  return `CREATE INDEX IF NOT EXISTS ${table}_hnsw_${dims} ON ${table} USING hnsw ((embedding::${type}(${dims})) ${type}_cosine_ops) WITH (m = 16, ef_construction = 64) WHERE dims = ${dims}`;
 }

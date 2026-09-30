@@ -37,6 +37,7 @@ export class StorageService {
   }
 
   async remove(key: string): Promise<void> {
-    await fs.rm(this.resolve(key), { force: true });
+    // Windows : un fichier juste écrit peut être verrouillé un instant (antivirus) ; nouvelles tentatives.
+    await fs.rm(this.resolve(key), { force: true, maxRetries: 5, retryDelay: 100 });
   }
 }

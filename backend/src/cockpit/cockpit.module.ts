@@ -14,6 +14,7 @@ import { CommitteesController } from './committees/committees.controller';
 import { BootstrapController } from './bootstrap/bootstrap.controller';
 import { BootstrapService } from './bootstrap/bootstrap.service';
 import { DocumentsController } from './documents/documents.controller';
+import { KbService } from './documents/kb.service';
 import { CollabController } from './collab/collab.controller';
 import { AssistantController } from './assistant/assistant.controller';
 
@@ -21,7 +22,7 @@ import { AssistantController } from './assistant/assistant.controller';
 @Module({
   // Ordre significatif : les routes fixes (ex. deliverables/tracking) avant les routes paramétrées (deliverables/:id).
   controllers: [MeController, MyNotificationsController, ProjectController, BootstrapController, PilotageController, TodayController, CommitteesController, DocumentsController, CollabController, AssistantController, ...REFERENTIAL_CONTROLLERS, ...TX_CONTROLLERS],
-  providers: [ReferentialService, UsagesService, TransactionalService, AnomaliesService, BootstrapService],
+  providers: [ReferentialService, UsagesService, TransactionalService, AnomaliesService, BootstrapService, KbService],
   exports: [ReferentialService, UsagesService, TransactionalService, AnomaliesService],
 })
 export class CockpitModule {}

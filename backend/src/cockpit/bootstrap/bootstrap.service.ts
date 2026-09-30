@@ -224,7 +224,8 @@ export class BootstrapService {
     const anomalies = (await this.anomalies.compute(scope)).map((a) => ({ level: a.level === 'RISK' ? 'Blocage' : 'Avertissement', text: a.text, owner: a.owner, action: a.action, target: a.target, kind: a.kind, entityType: a.entityType, entityId: a.entityId }));
 
     // ── documents ──
-    const docsOut = documents.map((d) => ({
+    // Documents Restreints : PMO, administrateur et auteur du dépôt seulement (même règle que la liste, KbService.visible).
+    const docsOut = documents.filter((d) => d.conf !== 'RESTRICTED' || scope.access.pmo || scope.access.admin || (!!d.uploadedById && d.uploadedById === actor.accountId)).map((d) => ({
       id: d.id,
       n: d.n,
       type: d.type,
@@ -240,6 +241,16 @@ export class BootstrapService {
       links: d.links.map((l) => ({ entityType: l.entityType, entityId: l.entityId })),
       hasFile: !!d.fileKey,
       version: d.version,
+      // Base de connaissance (30/09/2026) : auteur et date du dépôt, traitement (avancement, motif d'échec, précision).
+      format: d.format,
+      by: d.uploadedBy,
+      uploadedAt: d.uploadedAt,
+      progress: d.progress,
+      step: d.stepLabel,
+      error: d.error,
+      extNote: d.extNote,
+      chunks: d.chunkCount,
+      canDelete: scope.access.pmo || scope.access.admin || (!!d.uploadedById && d.uploadedById === actor.accountId && (scope.access.pmo || scope.access.responsable.length > 0)),
     }));
 
     // ── baromètre ──

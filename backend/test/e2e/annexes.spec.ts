@@ -1,6 +1,7 @@
 import request from 'supertest';
 import { setup, TestCtx, WHO } from '../helpers';
 import { renderPdf } from '../../src/core/pdf';
+import { KbService } from '../../src/cockpit/documents/kb.service';
 
 const R = '/api/projects/RISE';
 
@@ -14,20 +15,20 @@ describe('Étape 10 — documents, commentaires, historique, Jev, services exter
   it('dépôt d’un document : formats acceptés, extraction asynchrone, téléchargement', async () => {
     const token = await t.token(WHO.pmo);
     const http = () => request(t.app.getHttpServer());
-    await http().post(`${R}/documents`).set('Authorization', `Bearer ${token}`).attach('file', Buffer.from('x'), 'virus.exe').expect(400);
+    await http().post(`${R}/documents`).set('Authorization', `Bearer ${token}`).attach('file', Buffer.from('x'), 'virus.exe').expect(422);
     const pdf = renderPdf('CR du COPIL', ['ligne 1', 'ligne 2']);
     const up = await http().post(`${R}/documents`).set('Authorization', `Bearer ${token}`).field('type', 'Compte rendu').attach('file', pdf, 'CR COPIL 20.pdf').expect(201);
     expect(up.body).toMatchObject({ n: 'CR COPIL 20', type: 'Compte rendu', src: 'UPLOADED', ext: 'PENDING', conf: 'INTERNAL' });
-    // Tâches exécutées immédiatement en test : l'extraction est terminée.
+    // Résumé et vectorisation en tâche de fond (Base de connaissance, 30/09/2026) : attendus ici.
+    await t.app.get(KbService).idle();
     const doc = await t.db.document.findUnique({ where: { id: up.body.id } });
     expect(doc).toMatchObject({ ext: 'SUCCEEDED', pages: 1 });
     const dl = await http().get(`${R}/documents/${up.body.id}/file`).set('Authorization', `Bearer ${token}`).expect(200);
     expect(dl.body.slice(0, 5).toString()).toBe('%PDF-');
-    // Chaîne Documents : une ligne de consommation par étape (vectorisation, reclassement à la requête, synthèse).
+    // Chaîne Documents à l'indexation : synthèse (résumé) et vectorisation ; le reclassement sert à la recherche.
     const recent = { at: { gte: new Date(Date.now() - 60_000) } };
     const steps = await t.db.usageRecord.findMany({ where: { ...recent, functionId: { in: ['doc_vec', 'doc_rrk', 'doc_syn'] } } });
-    expect(steps.map((u) => u.functionId).sort()).toEqual(['doc_rrk', 'doc_syn', 'doc_vec']);
-    expect(steps.find((u) => u.functionId === 'doc_rrk')).toMatchObject({ requests: 1, tokensIn: 0, costEur: 1.85 / 1000 });
+    expect([...new Set(steps.map((u) => u.functionId))].sort()).toEqual(['doc_syn', 'doc_vec']);
     expect(steps.find((u) => u.functionId === 'doc_vec')!.tokensOut).toBe(0);
     const links = await (await t.as(WHO.pmo)).put(`${R}/documents/${up.body.id}/links`, { links: [{ entityType: 'RISK', entityId: 'R01' }] }).expect(200);
     expect(links.body.links).toEqual([{ entityType: 'RISK', entityId: 'R01' }]);

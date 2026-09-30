@@ -53,7 +53,7 @@ describe('Console — aiguillage des questions de Jev', () => {
     expect(llm.mock.calls[0][0].system).toContain(CLARIFY_RULES);
     llm.mockRestore();
     expect(sent[0]).toMatchObject({ url: 'https://api.typesafe.test/v1/systemone', auth: 'Bearer cle-de-test-typesafe', body: { model: 'jev-latest', state: { latest_question: 'Quelle est la capitale de l’Australie ?', open_page: 'Utilisateurs' } } });
-    expect(await t.db.jevClassification.findFirst({ orderBy: { at: 'desc' } })).toMatchObject({ status: 'OK', type: 'HORS_SUJET', confidence: 0.97, promptVersion: 'v2', model: 'jev-latest', source: 'LIVE', accountId: expect.any(String), conversationId: r.body.conversationId });
+    expect(await t.db.jevClassification.findFirst({ where: { conversationId: r.body.conversationId } })).toMatchObject({ status: 'OK', type: 'HORS_SUJET', confidence: 0.97, promptVersion: 'v2', model: 'jev-latest', source: 'LIVE', accountId: expect.any(String), conversationId: r.body.conversationId });
     expect(await t.db.apiCardCall.count({ where: { cardId: 'jev', source: 'JEV' } })).toBe(1);
   });
 
@@ -76,18 +76,20 @@ describe('Console — aiguillage des questions de Jev', () => {
   });
 
   it('erreurs de l’API : délai dépassé, HTTP 500, réponse illisible, carte désactivée → repli (traitement complet), motif tracé', async () => {
-    const last = () => t.db.jevClassification.findFirst({ orderBy: { at: 'desc' } });
+    // Date figée dans les tests : la classification est retrouvée par sa conversation (une par question ici).
+    const last = async (r: { body: { conversationId: string } }) => t.db.jevClassification.findFirst({ where: { conversationId: r.body.conversationId } });
     reply = 'timeout';
-    expect((await ask('Qui est PMO ?')).body.route).toBe('AMBIGU');
-    expect(await last()).toMatchObject({ status: 'TIMEOUT' });
+    let r = await ask('Qui est PMO ?');
+    expect(r.body.route).toBe('AMBIGU');
+    expect(await last(r)).toMatchObject({ status: 'TIMEOUT' });
     reply = { status: 500, body: { error: 'panne' } };
-    await ask('Qui est PMO ?');
-    expect(await last()).toMatchObject({ status: 'ERROR', error: expect.stringContaining('HTTP 500') });
+    r = await ask('Qui est PMO ?');
+    expect(await last(r)).toMatchObject({ status: 'ERROR', error: expect.stringContaining('HTTP 500') });
     reply = { status: 200, body: { answers: {} } };
-    await ask('Qui est PMO ?');
-    expect(await last()).toMatchObject({ status: 'INVALID' });
+    r = await ask('Qui est PMO ?');
+    expect(await last(r)).toMatchObject({ status: 'INVALID' });
     await t.db.apiCard.update({ where: { id: 'jev' }, data: { enabled: false } });
-    await ask('Qui est PMO ?');
-    expect(await last()).toMatchObject({ status: 'NOT_CONFIGURED', error: 'Carte JEV désactivée' });
+    r = await ask('Qui est PMO ?');
+    expect(await last(r)).toMatchObject({ status: 'NOT_CONFIGURED', error: 'Carte JEV désactivée' });
   });
 });
