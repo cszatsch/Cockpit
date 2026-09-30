@@ -1,7 +1,7 @@
 # Jev de la Console — dictionnaire des données
 
 > Généré depuis `backend/src/domain/jev-dictionnaire.ts` (`npm run dictionnaire:doc`) : ne pas modifier à la main.
-> 33 vues en lecture seule du schéma `jev`, chargées dans `dictionnaire_tables` et `dictionnaire_colonnes`.
+> 34 vues en lecture seule du schéma `jev`, chargées dans `dictionnaire_tables` et `dictionnaire_colonnes`.
 > Heures en heure de Paris. Aucun secret (empreintes de mot de passe, sessions, clés API chiffrées, chemins de stockage).
 
 ## Sommaire
@@ -17,6 +17,7 @@
 - [`jev.modeles_ia`](#modeles_ia) — 16 colonnes
 - [`jev.affectations_ia`](#affectations_ia) — 6 colonnes
 - [`jev.consommation_ia`](#consommation_ia) — 15 colonnes
+- [`jev.budget_ia`](#budget_ia) — 13 colonnes
 - [`jev.plafonds_budget_ia`](#plafonds_budget_ia) — 4 colonnes
 - [`jev.regles_notification`](#regles_notification) — 15 colonnes
 - [`jev.envois_notification`](#envois_notification) — 11 colonnes
@@ -401,9 +402,10 @@ Une ligne par appel à un modèle d’IA : fonction, modèle, jetons, coût, bas
 
 **Usages**
 
-- Dépense du mois, par jour, par fonction, par modèle, par fournisseur ou par projet.
+- Dépense par jour, par modèle, par fournisseur ou par projet, sur une période donnée.
 - Jetons consommés.
 - Part des appels servis par le secours.
+- Pour le budget du mois (dépense, projection, plafonds, statut), lire budget_ia.
 
 **Règles et précautions**
 
@@ -412,6 +414,44 @@ Une ligne par appel à un modèle d’IA : fonction, modèle, jetons, coût, bas
 - Ligne budgétaire : doc_vec, doc_rrk et doc_syn forment la ligne « docs » (Documents) ; les autres fonctions sont leur propre ligne.
 - Les jours sont des jours civils de Paris : grouper par date (date::date), les dates étant déjà en heure de Paris.
 - Le coût d’un appel est calculé avec les tarifs figés au moment de l’appel (prix_entree_eur_million, prix_sortie_eur_million), pas avec le catalogue actuel : ne pas le recalculer depuis modeles_ia.
+
+## budget_ia
+
+Budget IA du mois, déjà calculé exactement comme l’écran IA › Vue générale des coûts : une ligne pour le budget global et une par ligne budgétaire (même sans plafond), avec dépense du mois, rythme des 7 derniers jours, projection de fin de mois, plafond, seuil d’alerte, pourcentage atteint et statut.
+
+| Colonne | Type | Signification | Exemples, unités |
+|---|---|---|---|
+| `ligne` | texte | Ligne budgétaire | all = budget global (toutes fonctions) ; insights, crud, rapports, guidage, docs |
+| `libelle` | texte | Libellé affiché à l’écran | Budget global, Insights, Gestion des données, Rapports, Guidage console, Documents |
+| `ordre` | entier | Ordre d’affichage à l’écran (0 = budget global) |  |
+| `date_jour` | date | Date du jour de la plateforme (heure de Paris) utilisée pour le calcul |  |
+| `depense_mois_eur` | décimal | Dépense du 1er du mois à la date du jour incluse | en euros |
+| `rythme_7j_eur_jour` | décimal | Dépense moyenne par jour sur les 7 derniers jours (date du jour incluse) | en euros par jour |
+| `jours_restants` | entier | Jours restants jusqu’à la fin du mois (date du jour exclue) |  |
+| `projection_fin_mois_eur` | décimal | Dépense projetée à la fin du mois au rythme des 7 derniers jours | en euros |
+| `plafond_eur` | décimal | Plafond mensuel | en euros ; null = sans plafond |
+| `seuil_alerte_pct` | entier | Seuil d’alerte en % du plafond |  |
+| `plafond_actif` | booléen | Plafond surveillé |  |
+| `pourcentage_atteint` | décimal | Dépense du mois ÷ plafond × 100 | null sans plafond |
+| `statut` | texte | Statut affiché à l’écran | SOUS_LE_PLAFOND = Sous le plafond, ALERTE = Alerte, DEPASSEMENT = Dépassement (projection au-delà du plafond), SANS_PLAFOND = Sans plafond |
+
+**Relations**
+
+- budget_ia.ligne = plafonds_budget_ia.id
+- budget_ia.ligne = ligne budgétaire de consommation_ia.fonction (doc_vec, doc_rrk, doc_syn → docs)
+
+**Usages**
+
+- Où en est le budget IA ?
+- Dépense du mois, projection de fin de mois, par ligne budgétaire ou au global.
+- Quel plafond est atteint, en alerte ou dépassé ?
+
+**Règles et précautions**
+
+- Pour toute question sur le budget, la dépense du mois, la projection ou les plafonds : lire cette vue telle quelle, sans rien recalculer. Elle donne les mêmes chiffres que l’écran.
+- Le total du mois est la ligne « all » : ne pas l’obtenir en additionnant les autres lignes.
+- Toutes les lignes budgétaires sont présentes, avec ou sans plafond : une ligne SANS_PLAFOND a quand même une dépense.
+- Trier par ordre pour présenter les lignes comme l’écran.
 
 ## plafonds_budget_ia
 
@@ -430,8 +470,8 @@ Plafonds de dépense IA mensuels (global et par ligne budgétaire) et leur seuil
 
 **Usages**
 
-- Où en est-on du budget IA ?
-- Quel plafond est atteint ou dépassé ?
+- Réglage des plafonds et des seuils d’alerte.
+- Pour savoir où en est le budget (dépense, projection, statut), lire budget_ia.
 
 **Règles et précautions**
 

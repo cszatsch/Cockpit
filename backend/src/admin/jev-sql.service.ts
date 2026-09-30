@@ -108,6 +108,9 @@ export class JevSqlService {
     return this.prisma.$transaction(
       async (tx) => {
         await tx.$executeRawUnsafe('SET TRANSACTION READ ONLY');
+        // Date du jour de la plateforme pour les vues calculées (budget_ia), comme les écrans ; posée avant le
+        // changement de rôle (set_config est retiré à jev_lecteur).
+        await tx.$queryRawUnsafe(`SELECT set_config('rise.jour', $1, true)`, this.today.today());
         await tx.$executeRawUnsafe(`SET LOCAL ROLE ${JEV_SQL_ROLE}`);
         await tx.$executeRawUnsafe(`SET LOCAL statement_timeout = ${JEV_SQL_TIMEOUT_MS}`);
         await tx.$executeRawUnsafe('SET LOCAL search_path = jev');

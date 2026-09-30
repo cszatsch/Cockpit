@@ -31,7 +31,7 @@ interface Outcome {
   treatment: string;
   reason?: ClarifyReason | null;
   reformulated?: string | null;
-  log?: Partial<{ extracts: unknown; reranker: string | null; rerankFallback: string | null; model: string | null; timings: Record<string, number | undefined> }>;
+  log?: Partial<{ extracts: unknown; reranker: string | null; rerankFallback: string | null; model: string | null; sql: string | null; timings: Record<string, number | undefined> }>;
 }
 
 /**
@@ -70,10 +70,10 @@ export class JevAssistantService {
     try {
       if (route.status !== 'OK') {
         const r = await this.jevSql.ask(text, section, mem, 'AMBIGU');
-        out = { reply: r.reply, sources: r.sources, ai: r.ai, treatment: 'COMPLET', log: { model: r.ai?.modelId ?? null } };
+        out = { reply: r.reply, sources: r.sources, ai: r.ai, treatment: 'COMPLET', log: { model: r.ai?.modelId ?? null, sql: r.sql } };
       } else if (route.type === 'DONNEES') {
         const r = await this.jevSql.ask(text, section, mem, 'DONNEES');
-        out = { reply: r.reply, sources: r.sources, ai: r.ai, treatment: 'DONNEES', log: { model: r.ai?.modelId ?? null } };
+        out = { reply: r.reply, sources: r.sources, ai: r.ai, treatment: 'DONNEES', log: { model: r.ai?.modelId ?? null, sql: r.sql } };
       } else if (route.type === 'USAGE') {
         out = await this.fromGuide(text, section, mem, s);
       } else {
@@ -88,7 +88,7 @@ export class JevAssistantService {
     await this.memory.record(conv, text, out.reply, out.sources, { route: route.type, reformulated: out.reformulated ?? null });
     await this.writeLog({
       accountId, conversationId: conv.id, classificationId, question: text, reformulated: out.reformulated ?? null, route: route.type, treatment: out.treatment, reason: out.reason ?? null,
-      extracts: out.log?.extracts ?? null, reranker: out.log?.reranker ?? null, rerankFallback: out.log?.rerankFallback ?? null, model: out.log?.model ?? out.ai?.modelId ?? null,
+      extracts: out.log?.extracts ?? null, reranker: out.log?.reranker ?? null, rerankFallback: out.log?.rerankFallback ?? null, model: out.log?.model ?? out.ai?.modelId ?? null, sql: out.log?.sql ?? null,
       timings: { classifyMs: route.latencyMs ?? undefined, ...(out.log?.timings ?? {}) }, totalMs: Date.now() - t0,
     });
     return { reply: out.reply, sources: out.sources, ai: out.ai, conversationId: conv.id, route: route.type, treatment: out.treatment };
@@ -146,12 +146,12 @@ export class JevAssistantService {
     return { reply: r.text, sources: [], ai: { functionId: 'guidage', modelId: r.modelId, fallbackUsed: r.fallbackUsed }, treatment: 'CLARIFICATION', reason, log: { model: r.modelId, timings: { answerMs: Date.now() - t0 } } };
   }
 
-  private async writeLog(d: { accountId: string; conversationId: string; classificationId: string | null; question: string; reformulated?: string | null; route: string; treatment: string; reason?: string | null; extracts?: unknown; reranker?: string | null; rerankFallback?: string | null; model?: string | null; timings?: Record<string, number | undefined>; totalMs: number; error?: string | null }) {
+  private async writeLog(d: { accountId: string; conversationId: string; classificationId: string | null; question: string; reformulated?: string | null; route: string; treatment: string; reason?: string | null; extracts?: unknown; reranker?: string | null; rerankFallback?: string | null; model?: string | null; sql?: string | null; timings?: Record<string, number | undefined>; totalMs: number; error?: string | null }) {
     await this.prisma.jevAnswerLog.create({
       data: {
         at: this.today.now(), accountId: d.accountId, conversationId: d.conversationId, classificationId: d.classificationId, question: d.question.slice(0, 2000), reformulated: d.reformulated ?? null,
         route: d.route, treatment: d.treatment, reason: d.reason ?? null, extracts: (d.extracts ?? Prisma.DbNull) as Prisma.InputJsonValue, reranker: d.reranker ?? null, rerankFallback: d.rerankFallback ?? null,
-        model: d.model ?? null, timings: (d.timings ?? Prisma.DbNull) as Prisma.InputJsonValue, totalMs: d.totalMs, error: d.error ?? null,
+        model: d.model ?? null, sql: d.sql?.slice(0, 20000) ?? null, timings: (d.timings ?? Prisma.DbNull) as Prisma.InputJsonValue, totalMs: d.totalMs, error: d.error ?? null,
       },
     }).catch((e) => console.warn('[jev] journal non enregistré :', e instanceof Error ? e.message : e));
   }

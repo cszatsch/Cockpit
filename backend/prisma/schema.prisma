@@ -1789,6 +1789,8 @@ model JevAnswerLog {
   model            String?
   timings          Json?
   totalMs          Int?     @map("total_ms")
+  /// Requête SQL exécutée (traitement DONNÉES), pour l'analyse.
+  sql              String?
   error            String?
 
   @@index([at])

@@ -41,6 +41,50 @@ export const JEV_SCHEMA = 'jev';
 export const P = (col: string) => `(t.${col} AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Paris'`;
 export const q = (c: string) => `"${c}"`;
 
+/**
+ * Lignes budgétaires de l'écran Vue générale des coûts (spécification IA § 2), dans l'ordre de l'écran : identifiant,
+ * libellé, fonctions regroupées. Vérifié contre `AI_FUNCTIONS` / `AI_BUDGET_LINES` par un test unitaire.
+ */
+export const BUDGET_IA_LIGNES: Array<{ id: string; libelle: string; fonctions: string[] }> = [
+  { id: 'insights', libelle: 'Insights', fonctions: ['insights'] },
+  { id: 'crud', libelle: 'Gestion des données', fonctions: ['crud'] },
+  { id: 'rapports', libelle: 'Rapports', fonctions: ['rapports'] },
+  { id: 'guidage', libelle: 'Guidage console', fonctions: ['guidage'] },
+  { id: 'docs', libelle: 'Documents', fonctions: ['doc_vec', 'doc_rrk', 'doc_syn'] },
+];
+/** Seuil d'alerte d'une ligne sans plafond enregistré (`DEFAULT_WARN_PCT` de l'écran). */
+export const BUDGET_IA_SEUIL_DEFAUT = 80;
+/** Fenêtre du rythme de la projection (`PROJECTION_WINDOW_DAYS` de l'écran). */
+export const BUDGET_IA_FENETRE_JOURS = 7;
+
+/**
+ * Budget IA du mois (décision du 30/09/2026) : mêmes calculs que `UsageService.month()` / `thresholds()`, pour que Jev
+ * lise les chiffres de l'écran au lieu de les recalculer. Date du jour : paramètre `rise.jour` posé par le serveur
+ * (date de la plateforme), sinon la date de Paris.
+ */
+export const BUDGET_IA_SOURCE = `(
+  WITH j AS (
+    SELECT COALESCE(NULLIF(current_setting('rise.jour', true), '')::date, (now() AT TIME ZONE 'Europe/Paris')::date) AS jour
+  ), b AS (
+    SELECT jour, date_trunc('month', jour)::date AS debut, ((date_trunc('month', jour) + interval '1 month - 1 day')::date - jour) AS restants FROM j
+  ), lignes(ligne, libelle, ordre) AS (
+    VALUES ('all', 'Budget global', 0), ${BUDGET_IA_LIGNES.map((l, i) => `('${l.id}', '${l.libelle}', ${i + 1})`).join(', ')}
+  ), u AS (
+    SELECT CASE ${BUDGET_IA_LIGNES.filter((l) => l.fonctions.join() !== l.id).map((l) => `WHEN r."functionId" IN (${l.fonctions.map((f) => `'${f}'`).join(', ')}) THEN '${l.id}'`).join(' ')} ELSE r."functionId" END AS ligne,
+      r."costEur" AS cout, ((r.at AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Paris')::date AS jour
+    FROM "UsageRecord" r, b
+    WHERE r.at >= (LEAST(b.debut, b.jour - ${BUDGET_IA_FENETRE_JOURS - 1})::timestamp AT TIME ZONE 'Europe/Paris')
+  ), c AS (
+    SELECT l.ligne, l.libelle, l.ordre, b.jour, b.restants,
+      COALESCE(sum(u.cout) FILTER (WHERE u.jour BETWEEN b.debut AND b.jour), 0) AS depense,
+      COALESCE(sum(u.cout) FILTER (WHERE u.jour BETWEEN b.jour - ${BUDGET_IA_FENETRE_JOURS - 1} AND b.jour), 0) / ${BUDGET_IA_FENETRE_JOURS}.0 AS rythme
+    FROM lignes l CROSS JOIN b LEFT JOIN u ON (l.ligne = 'all' OR u.ligne = l.ligne)
+    GROUP BY l.ligne, l.libelle, l.ordre, b.jour, b.restants
+  )
+  SELECT c.*, p."limitEur" AS plafond, COALESCE(p."warnPct", ${BUDGET_IA_SEUIL_DEFAUT}) AS seuil, COALESCE(p.enabled, false) AS actif
+  FROM c LEFT JOIN "BudgetThreshold" p ON p.id = c.ligne
+) t`;
+
 export const DICTIONNAIRE: DictTable[] = [
   // ───────────── Accès ─────────────
   {
@@ -302,13 +346,41 @@ export const DICTIONNAIRE: DictTable[] = [
       { nom: 'duree_ms', expr: `t.${q('durationMs')}`, type: 'entier', signification: 'Latence totale de l’appel', exemples: 'en millisecondes ; null si non mesurée' },
     ],
     relations: ['consommation_ia.modele_id = modeles_ia.id', 'consommation_ia.fournisseur_id = fournisseurs_ia.id', 'consommation_ia.fonction = affectations_ia.fonction', 'consommation_ia.projet_id = projets.id'],
-    usages: ['Dépense du mois, par jour, par fonction, par modèle, par fournisseur ou par projet.', 'Jetons consommés.', 'Part des appels servis par le secours.'],
+    usages: ['Dépense par jour, par modèle, par fournisseur ou par projet, sur une période donnée.', 'Jetons consommés.', 'Part des appels servis par le secours.', 'Pour le budget du mois (dépense, projection, plafonds, statut), lire budget_ia.'],
     regles: [
       'Dépense du mois = somme de cout_eur pour les dates du 1er du mois de la date du jour jusqu’à la date du jour incluse. Arrondir à 2 décimales.',
       'Projection de fin de mois = dépense du mois + (dépense des 7 derniers jours, date du jour incluse, ÷ 7) × nombre de jours restants jusqu’à la fin du mois (date du jour exclue).',
       'Ligne budgétaire : doc_vec, doc_rrk et doc_syn forment la ligne « docs » (Documents) ; les autres fonctions sont leur propre ligne.',
       'Les jours sont des jours civils de Paris : grouper par date (date::date), les dates étant déjà en heure de Paris.',
       'Le coût d’un appel est calculé avec les tarifs figés au moment de l’appel (prix_entree_eur_million, prix_sortie_eur_million), pas avec le catalogue actuel : ne pas le recalculer depuis modeles_ia.',
+    ],
+  },
+  {
+    nom: 'budget_ia',
+    source: BUDGET_IA_SOURCE,
+    description: 'Budget IA du mois, déjà calculé exactement comme l’écran IA › Vue générale des coûts : une ligne pour le budget global et une par ligne budgétaire (même sans plafond), avec dépense du mois, rythme des 7 derniers jours, projection de fin de mois, plafond, seuil d’alerte, pourcentage atteint et statut.',
+    colonnes: [
+      { nom: 'ligne', expr: 't.ligne', type: 'texte', signification: 'Ligne budgétaire', exemples: 'all = budget global (toutes fonctions) ; insights, crud, rapports, guidage, docs' },
+      { nom: 'libelle', expr: 't.libelle', type: 'texte', signification: 'Libellé affiché à l’écran', exemples: 'Budget global, Insights, Gestion des données, Rapports, Guidage console, Documents' },
+      { nom: 'ordre', expr: 't.ordre', type: 'entier', signification: 'Ordre d’affichage à l’écran (0 = budget global)' },
+      { nom: 'date_jour', expr: 't.jour', type: 'date', signification: 'Date du jour de la plateforme (heure de Paris) utilisée pour le calcul' },
+      { nom: 'depense_mois_eur', expr: 'round(t.depense::numeric, 2)', type: 'décimal', signification: 'Dépense du 1er du mois à la date du jour incluse', exemples: 'en euros' },
+      { nom: 'rythme_7j_eur_jour', expr: 'round(t.rythme::numeric, 2)', type: 'décimal', signification: 'Dépense moyenne par jour sur les 7 derniers jours (date du jour incluse)', exemples: 'en euros par jour' },
+      { nom: 'jours_restants', expr: 't.restants', type: 'entier', signification: 'Jours restants jusqu’à la fin du mois (date du jour exclue)' },
+      { nom: 'projection_fin_mois_eur', expr: 'round((t.depense + t.rythme * t.restants)::numeric, 2)', type: 'décimal', signification: 'Dépense projetée à la fin du mois au rythme des 7 derniers jours', exemples: 'en euros' },
+      { nom: 'plafond_eur', expr: 't.plafond', type: 'décimal', signification: 'Plafond mensuel', exemples: 'en euros ; null = sans plafond' },
+      { nom: 'seuil_alerte_pct', expr: 't.seuil', type: 'entier', signification: 'Seuil d’alerte en % du plafond' },
+      { nom: 'plafond_actif', expr: 't.actif', type: 'booléen', signification: 'Plafond surveillé' },
+      { nom: 'pourcentage_atteint', expr: 'CASE WHEN t.plafond > 0 THEN round((t.depense / t.plafond * 100)::numeric, 1) END', type: 'décimal', signification: 'Dépense du mois ÷ plafond × 100', exemples: 'null sans plafond' },
+      { nom: 'statut', expr: "CASE WHEN NOT t.actif OR t.plafond IS NULL OR t.plafond = 0 THEN 'SANS_PLAFOND' WHEN t.depense + t.rythme * t.restants > t.plafond THEN 'DEPASSEMENT' WHEN t.depense >= t.plafond * t.seuil / 100.0 THEN 'ALERTE' ELSE 'SOUS_LE_PLAFOND' END", type: 'texte', signification: 'Statut affiché à l’écran', exemples: 'SOUS_LE_PLAFOND = Sous le plafond, ALERTE = Alerte, DEPASSEMENT = Dépassement (projection au-delà du plafond), SANS_PLAFOND = Sans plafond' },
+    ],
+    relations: ['budget_ia.ligne = plafonds_budget_ia.id', 'budget_ia.ligne = ligne budgétaire de consommation_ia.fonction (doc_vec, doc_rrk, doc_syn → docs)'],
+    usages: ['Où en est le budget IA ?', 'Dépense du mois, projection de fin de mois, par ligne budgétaire ou au global.', 'Quel plafond est atteint, en alerte ou dépassé ?'],
+    regles: [
+      'Pour toute question sur le budget, la dépense du mois, la projection ou les plafonds : lire cette vue telle quelle, sans rien recalculer. Elle donne les mêmes chiffres que l’écran.',
+      'Le total du mois est la ligne « all » : ne pas l’obtenir en additionnant les autres lignes.',
+      'Toutes les lignes budgétaires sont présentes, avec ou sans plafond : une ligne SANS_PLAFOND a quand même une dépense.',
+      'Trier par ordre pour présenter les lignes comme l’écran.',
     ],
   },
   {
@@ -322,7 +394,7 @@ export const DICTIONNAIRE: DictTable[] = [
       { nom: 'actif', expr: 't.enabled', type: 'booléen', signification: 'Plafond surveillé' },
     ],
     relations: ['plafonds_budget_ia.id = ligne budgétaire de consommation_ia.fonction (doc_vec, doc_rrk, doc_syn → docs ; « all » = toutes les fonctions)'],
-    usages: ['Où en est-on du budget IA ?', 'Quel plafond est atteint ou dépassé ?'],
+    usages: ['Réglage des plafonds et des seuils d’alerte.', 'Pour savoir où en est le budget (dépense, projection, statut), lire budget_ia.'],
     regles: [
       'Statut d’un plafond, calculé avec la dépense et la projection du mois de sa ligne (voir consommation_ia) : pas de plafond si inactif ou plafond_eur null ; DÉPASSEMENT si la projection de fin de mois dépasse le plafond ; ALERTE si la dépense atteint plafond × seuil_alerte_pct / 100 ; sinon sous le plafond.',
       'Pourcentage affiché = dépense du mois ÷ plafond × 100, arrondi.',

@@ -1,5 +1,7 @@
 import { setup, TestCtx, Client, WHO } from '../helpers';
-import { DICTIONNAIRE, JEV_SCHEMA } from '../../src/domain/jev-dictionnaire';
+import { BUDGET_IA_LIGNES, DICTIONNAIRE, JEV_SCHEMA } from '../../src/domain/jev-dictionnaire';
+import { AI_BUDGET_LINES, AI_FUNCTIONS } from '../../src/core/llm.service';
+import { JevSqlService } from '../../src/admin/jev-sql.service';
 import { encryptSecret } from '../../src/core/crypto';
 
 /**
@@ -138,6 +140,29 @@ describe('Jev de la Console — dictionnaire des données', () => {
       const [p] = await sql(`SELECT plafond_eur, seuil_alerte_pct, actif FROM jev.plafonds_budget_ia WHERE id = 'all'`);
       const expected = !p || !p.actif || !p.plafond_eur ? 'NO_LIMIT' : month.projection > p.plafond_eur ? 'EXCEEDED' : month.spent >= (p.plafond_eur * p.seuil_alerte_pct) / 100 ? 'ALERT' : 'UNDER';
       expect(month.thresholds.find((x: any) => x.id === 'all').status).toBe(expected);
+    });
+
+    it('budget_ia : mêmes lignes et mêmes chiffres que l’écran Vue générale des coûts (lue sous le rôle de Jev)', async () => {
+      // Lignes budgétaires de la vue = celles de l'écran, avec les mêmes fonctions.
+      expect(BUDGET_IA_LIGNES.map((l) => l.id)).toEqual(AI_BUDGET_LINES.map((l) => l.id));
+      for (const l of BUDGET_IA_LIGNES) expect(l.fonctions.sort()).toEqual(AI_FUNCTIONS.filter((f) => f.budgetLine === l.id).map((f) => f.id).sort());
+      // Un plafond sur une ligne, et une ligne sans plafond avec de la dépense (cas de la question « Où en est le budget IA ? »).
+      await t.db.budgetThreshold.upsert({ where: { id: 'docs' }, create: { id: 'docs', limitEur: 0.01, warnPct: 50, enabled: true }, update: { limitEur: 0.01, warnPct: 50, enabled: true } });
+      const month = (await admin.get('/api/admin/usage/month').expect(200)).body;
+      const rows = await t.app.get(JevSqlService).executeReadOnly('SELECT * FROM budget_ia ORDER BY ordre');
+      expect(rows.map((r) => r.ligne)).toEqual(['all', ...AI_BUDGET_LINES.map((l) => l.id)]);
+      expect(String(rows[0].date_jour instanceof Date ? (rows[0].date_jour as Date).toISOString().slice(0, 10) : rows[0].date_jour)).toBe(process.env.DEMO_TODAY);
+      const label = { UNDER: 'SOUS_LE_PLAFOND', ALERT: 'ALERTE', EXCEEDED: 'DEPASSEMENT', NO_LIMIT: 'SANS_PLAFOND' } as Record<string, string>;
+      for (const th of month.thresholds) {
+        const r = rows.find((x) => x.ligne === th.id)!;
+        expect([th.id, Number(r.depense_mois_eur)]).toEqual([th.id, th.spent]);
+        expect([th.id, Number(r.projection_fin_mois_eur)]).toEqual([th.id, th.projection]);
+        expect([th.id, r.statut]).toEqual([th.id, label[th.status]]);
+        expect([th.id, r.pourcentage_atteint === null ? null : Number(r.pourcentage_atteint)]).toEqual([th.id, th.pct]);
+      }
+      expect(Number(rows[0].depense_mois_eur)).toBe(month.spent);
+      expect(Number(rows[0].rythme_7j_eur_jour)).toBe(month.rate7d);
+      expect(rows.some((r) => r.statut === 'SANS_PLAFOND' && Number(r.depense_mois_eur) > 0)).toBe(true);
     });
 
     it('état des fonctions IA (principal, secours, indisponible)', async () => {

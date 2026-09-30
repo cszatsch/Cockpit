@@ -848,3 +848,14 @@ Demande du commanditaire : « Implémentation de l'aiguillage de JEV (DONNÉES, 
 | Seuil par défaut | **0,58**, calibré sur le guide réel (Qwen3 Embedding 8B, 1 536 dim.) avec les 50 questions : meilleure similarité des questions d'usage 0,66 à 0,87, des questions hors sujet 0,51 à 0,52 ; les questions de données atteignent 0,61 à 0,82 (elles ne passent pas par la recherche). Le seuil écarte le hors-sujet sans perdre de question d'usage. | `RAG_DEFAULTS.minSimilarity` |
 | Journal technique | Une ligne par question : type détecté, traitement, motif, question reformulée, extraits (8 candidats avec similarité, retenus avec score du reclassement), reclasseur ou repli, modèle, temps par étape, total, erreur ; lien avec la classification. | `jev_answer_logs`, migration `20261028000000_jev_recherche_guide` |
 | Évaluation | `npm run jev:reponses` rejoue les 50 questions de bout en bout (historique rejoué dans la même conversation) ; critères : USAGE → au moins une source dans les sections attendues (annotées avant tout appel, `test/fixtures/jev-reponses.json`) ; DONNÉES → requête exécutée ; AMBIGU / HORS SUJET → clarification. Sortie Excel pour la relecture. | `scripts/jev-reponses.ts` |
+
+## Jev de la Console : budget IA lu tel que l'écran l'affiche (30/09/2026)
+
+Constat du commanditaire : à « Où en est le budget IA ? », Jev annonçait 0,33 € au lieu de 1,05 € (Vue générale des coûts). Cause : le modèle recalculait le budget en SQL à partir des règles du dictionnaire et se trompait différemment à chaque fois (ligne Guidage console, sans plafond, écartée par la jointure ; projection de fin de mois mal calculée lors d'un second essai).
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Vue calculée | Nouvelle vue `jev.budget_ia` : une ligne « all » (budget global) et une par ligne budgétaire, même sans plafond ; dépense du mois, rythme des 7 derniers jours, jours restants, projection, plafond, seuil, pourcentage, statut (SOUS_LE_PLAFOND, ALERTE, DEPASSEMENT, SANS_PLAFOND). Mêmes formules que `UsageService.month()` / `thresholds()` ; la fiche du dictionnaire demande de la lire sans rien recalculer. `consommation_ia` et `plafonds_budget_ia` y renvoient pour le budget. | `BUDGET_IA_SOURCE`, `BUDGET_IA_LIGNES`, `BUDGET_IA_SEUIL_DEFAUT`, `BUDGET_IA_FENETRE_JOURS` (`jev-dictionnaire.ts`) ; migration `20261029000000_jev_budget_ia` |
+| Date du jour | Paramètre de session `rise.jour` posé par le serveur (date de la plateforme, `TodayService`) avant le passage au rôle `jev_lecteur` ; à défaut, date de Paris. | `JevSqlService.executeReadOnly` |
+| Garde-fou | Test : lignes de la vue = lignes budgétaires de l'écran (mêmes fonctions), et chiffres, statuts et pourcentages identiques à `GET /api/admin/usage/month`, lus sous le rôle de Jev. | `test/e2e/dictionnaire.spec.ts` |
+| Traçabilité | La requête SQL de chaque réponse DONNÉES est gardée au journal technique. | `jev_answer_logs.sql` |
