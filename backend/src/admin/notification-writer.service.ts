@@ -52,9 +52,9 @@ export class NotificationWriterService {
     private readonly today: TodayService,
   ) {}
 
-  base(kind: string, audience: Audience, projectCode: string | null): string {
+  base(audience: Audience, projectCode: string | null): string {
     return [
-      `Tu rédiges le contenu ${kind === 'ALERT' ? 'd’une alerte' : 'd’une notification'} de la plateforme RISE (pilotage de projets de transformation), envoyée aux utilisateurs de profil ${PROFILE_NAME[audience.profile]}${projectCode ? ` du projet ${projectCode}` : ''}.`,
+      `Tu rédiges le contenu d’une notification de la plateforme RISE (pilotage de projets de transformation), envoyée aux utilisateurs de profil ${PROFILE_NAME[audience.profile]}${projectCode ? ` du projet ${projectCode}` : ''}.`,
       'Méthode : 1. analyse la consigne ; 2. repère dans le dictionnaire des données les vues et colonnes utiles ; 3. écris la requête SQL ; le serveur l’exécute et te renvoie les résultats ; 4. rédige le contenu à partir des résultats.',
       'Le contenu est inséré tel quel dans le message envoyé : texte brut, en français, sans titre ni Markdown ni formule de politesse.',
     ].join('\n');
@@ -71,7 +71,7 @@ export class NotificationWriterService {
    * changé depuis au lieu de répéter le même texte. Il part, avec la date et l'heure, dans la partie variable du prompt ;
    * la partie stable est marquée pour le cache.
    */
-  async write(rule: { modelId: string; kind: string }, prompt: string, project: { id: string; code: string } | null, audience: Audience, previous?: { at: Date; text: string } | null): Promise<WrittenText> {
+  async write(rule: { modelId: string }, prompt: string, project: { id: string; code: string } | null, audience: Audience, previous?: { at: Date; text: string } | null): Promise<WrittenText> {
     const calls: LlmResult[] = [];
     const tail = [
       `## Contexte de l’envoi\nDate du jour de la plateforme : ${this.today.today()}. Maintenant (heure de Paris) : ${this.nowParis()}.`,
@@ -89,7 +89,7 @@ export class NotificationWriterService {
       sources,
       sql,
     });
-    const base = this.base(rule.kind, audience, project?.code ?? null);
+    const base = this.base(audience, project?.code ?? null);
     if (!project) return out((await call(prompt, `${base}\nAucune donnée de projet n’est lisible pour cette règle de plateforme : rédige à partir de la consigne seule.`)).text);
 
     // 1-3. Analyse, dictionnaire, requête (ou réponse directe si la consigne ne demande pas de données).

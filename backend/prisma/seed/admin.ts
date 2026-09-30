@@ -197,30 +197,23 @@ export async function seedAdmin(db: PrismaClient): Promise<void> {
     await db.snapshotSchedule.create({ data: { projectId: code, enabled: true, frequency: 'Hebdomadaire', day: 'vendredi', hour: '04:00', retention: '12 mois' } });
   }
 
-  // ── Notifications ──
+  // ── Notifications (sans alertes depuis le 30/09/2026 : règles n1 à n3 retirées, toutes les règles partent à heure fixe) ──
   const PROMPTS: Record<string, string> = {
-    n1: 'Tu es l’assistant PMO du projet {projet}. Un jalon a dépassé sa date prévue du {date}. Rédige une alerte de 3 phrases maximum : le constat, l’impact probable sur le planning et l’action attendue du responsable. Ton factuel, sans formule de politesse.',
-    n2: 'Tu es l’assistant PMO du projet {projet}. Un risque est devenu critique. Résume en 2 phrases pourquoi, puis propose une première action de traitement. Ne cite que des faits présents dans les données du projet.',
-    n3: 'Rédige une alerte courte pour l’administrateur : la consommation IA du mois a atteint le seuil d’alerte du plafond. Indique la fonction qui consomme le plus et un levier d’économie chiffré.',
     n4: 'Tu es l’assistant PMO du projet {projet}. Rédige la synthèse de la {semaine} en 5 puces : avancement, jalons des 15 prochains jours, risques critiques, décisions attendues, points d’attention. 120 mots maximum.',
     n5: 'Un nouveau document de {projet} vient d’être analysé. Liste en puces les décisions, actions et risques extraits, chacun avec sa page source. Termine par : « À vérifier avant intégration ».',
   };
   const RULES = [
-    { id: 'n1', kind: 'ALERT', name: 'Jalon en retard', tg: ['resp', 'pmo'], fq: 'IMMEDIATE', ch: ['APP', 'EMAIL'], on: true, sub: 'Jalon en retard · {projet}', body: 'Un jalon du projet {projet} a dépassé sa date prévue du {date}. Ouvrez le planning pour réviser la trajectoire.', pj: ['RISE'], model: 'haiku' },
-    { id: 'n2', kind: 'ALERT', name: 'Risque critique ouvert', tg: ['resp', 'pmo'], fq: 'IMMEDIATE', ch: ['APP', 'EMAIL'], on: true, sub: 'Nouveau risque critique · {projet}', body: 'Un risque est devenu critique (probabilité × impact ≥ 20) sur {projet}. Un plan de traitement est attendu.', pj: ['RISE'], model: 'sonnet' },
-    { id: 'n3', kind: 'ALERT', name: 'Seuil budgétaire IA atteint', tg: ['pmo'], fq: 'IMMEDIATE', ch: ['EMAIL'], on: true, sub: 'Budget IA : seuil d’alerte atteint', body: 'La consommation IA du mois a atteint le seuil d’alerte du plafond fixé. Consultez la console pour ajuster les modèles ou le budget.', pj: [], model: 'haiku', platform: true },
-    { id: 'n4', kind: 'NOTIFICATION', name: 'Synthèse hebdomadaire du projet', tg: ['pmo', 'resp'], fq: 'WEEKLY', day: 'lundi', hour: '07:00', ch: ['APP', 'EMAIL'], on: true, sub: '{projet} · votre synthèse de la {semaine}', body: 'Avancement, jalons à venir et points d’attention de la semaine pour {projet}.', pj: ['RISE'], model: 'sonnet' },
-    { id: 'n5', kind: 'NOTIFICATION', name: 'Nouveau document analysé', tg: ['resp'], fq: 'DAILY', hour: '18:00', ch: ['APP'], on: false, sub: 'Document analysé · {projet}', body: 'Jev a extrait les décisions et actions d’un nouveau document de {projet}. Vérifiez les éléments proposés avant intégration.', pj: ['RISE'], model: 'mlarge' },
+    { id: 'n4', name: 'Synthèse hebdomadaire du projet', tg: ['pmo', 'resp'], fq: 'WEEKLY', day: 'lundi', hour: '07:00', ch: ['APP', 'EMAIL'], on: true, sub: '{projet} · votre synthèse de la {semaine}', body: 'Avancement, jalons à venir et points d’attention de la semaine pour {projet}.', pj: ['RISE'], model: 'sonnet' },
+    { id: 'n5', name: 'Nouveau document analysé', tg: ['resp'], fq: 'DAILY', hour: '18:00', ch: ['APP'], on: false, sub: 'Document analysé · {projet}', body: 'Jev a extrait les décisions et actions d’un nouveau document de {projet}. Vérifiez les éléments proposés avant intégration.', pj: ['RISE'], model: 'mlarge' },
   ] as const;
   for (const r of RULES) {
     await db.notificationRule.create({
       data: {
         id: r.id,
-        kind: r.kind,
         name: r.name,
         targetProfiles: [...r.tg],
         projectIds: [...r.pj],
-        platform: 'platform' in r ? r.platform : false,
+        platform: false,
         modelId: r.model,
         prompt: PROMPTS[r.id],
         subject: r.sub,
@@ -229,7 +222,6 @@ export async function seedAdmin(db: PrismaClient): Promise<void> {
         day: 'day' in r ? r.day : null,
         hour: 'hour' in r ? r.hour : null,
         channels: [...r.ch],
-        trigger: ({ n1: 'MILESTONE_LATE', n2: 'RISK_CRITICAL', n3: 'BUDGET_THRESHOLD', n4: 'SCHEDULE', n5: 'DOCUMENT_ANALYZED' } as const)[r.id],
         enabled: r.on,
       },
     });
@@ -245,7 +237,7 @@ export async function seedAdmin(db: PrismaClient): Promise<void> {
 /**
  * Projets de démonstration ATLAS, HORIZON, NOVA et ORBIT (bibliothèque sans référentiel), retirés de l'amorçage le
  * 29/09/2026 : tests seulement. Recrée leur état d'avant : fiches et affichage, rattachements (u1, u2, u13), profils PMO,
- * snapshots a1-a3 et h1-h2, planifications, périmètre des règles n1, n2 et n5, export tracé d'un snapshot d'ATLAS.
+ * snapshots a1-a3 et h1-h2, planifications, périmètre de la règle n5, export tracé d'un snapshot d'ATLAS.
  */
 export const DEMO_LIBRARY = [
   { code: 'ATLAS', name: 'ATLAS — Refonte finance groupe', client: 'AMC Corp · Direction financière', status: 'ACTIVE', phase: 'Realize · Paramétrage', start: '2025-02-03', end: '2027-06-30', counts: [2, 5, 6, 24], health: 'ok', created: '2025-01-20' },
@@ -280,7 +272,7 @@ export async function seedDemoLibrary(db: PrismaClient): Promise<void> {
     }
   }
   for (const p of DEMO_LIBRARY) await db.snapshotSchedule.create({ data: { projectId: p.code, enabled: p.code !== 'ORBIT', frequency: 'Hebdomadaire', day: 'vendredi', hour: '04:00', retention: '12 mois' } });
-  const scope: Record<string, string[]> = { n1: ['RISE', 'ATLAS'], n2: ['RISE', 'ATLAS', 'HORIZON', 'NOVA'], n5: ['RISE', 'HORIZON'] };
+  const scope: Record<string, string[]> = { n5: ['RISE', 'HORIZON'] };
   for (const [id, projectIds] of Object.entries(scope)) await db.notificationRule.update({ where: { id }, data: { projectIds } });
   await db.auditEntry.create({ data: { at: back(60 * 24 * 21), accountId: 'u1', actorName: 'Julien Morel', personId: 'p02', profileUsed: 'ADMIN', origin: 'MANUAL', severity: 'CRITICAL', action: 'Export de snapshot', target: 'ATLAS · état du 3 août', entityType: 'Snapshot' } });
 }
@@ -333,7 +325,10 @@ export async function seedDemoSnapshots(db: PrismaClient): Promise<void> {
   await db.auditEntry.create({ data: { at: back(60 * 65 + 44), accountId: 'u1', actorName: 'Julien Morel', personId: 'p02', profileUsed: 'ADMIN', origin: 'MANUAL', severity: 'INFO', action: 'Création d’un snapshot manuel', target: 'RISE · Avant le 19e COPIL', entityType: 'Snapshot' } });
 }
 
-/** Historique des envois de démonstration (10 envois, dont un échec) : tests seulement, depuis le 29/09/2026. */
+/**
+ * Historique des envois de démonstration (10 envois, dont un échec) : tests seulement, depuis le 29/09/2026. Les envois
+ * de n1 à n3 (alertes supprimées le 30/09/2026) restent : historique d'une règle supprimée.
+ */
 export async function seedDemoDeliveries(db: PrismaClient): Promise<void> {
   const HIST: Array<[string, number, 'APP' | 'EMAIL', number, 'OK' | 'ERROR']> = [
     ['n3', 125, 'EMAIL', 3, 'OK'], ['n1', 300, 'APP', 4, 'OK'], ['n1', 300, 'EMAIL', 4, 'OK'], ['n2', 60 * 26, 'EMAIL', 3, 'ERROR'], ['n2', 60 * 26, 'APP', 3, 'OK'],

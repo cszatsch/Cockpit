@@ -140,7 +140,6 @@ describe('Console — serveur d’envoi SMTP (spécification SMTP § 5 à § 7)'
     const n1 = srv.received.length;
     const sent = await admin.post('/api/admin/notification-rules/n4/test').expect(200);
     expect(sent.body.find((d: any) => d.channel === 'EMAIL')).toMatchObject({ status: 'OK' });
-    // (l'appel au modèle peut aussi déclencher l'alerte budgétaire n3, envoyée par le même serveur)
     expect(srv.received.slice(n1).some((m) => m.to.includes('julien.morel@example.com'))).toBe(true);
   });
 });

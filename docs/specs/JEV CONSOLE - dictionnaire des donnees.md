@@ -18,7 +18,7 @@
 - [`jev.affectations_ia`](#affectations_ia) — 6 colonnes
 - [`jev.consommation_ia`](#consommation_ia) — 15 colonnes
 - [`jev.plafonds_budget_ia`](#plafonds_budget_ia) — 4 colonnes
-- [`jev.regles_notification`](#regles_notification) — 17 colonnes
+- [`jev.regles_notification`](#regles_notification) — 15 colonnes
 - [`jev.envois_notification`](#envois_notification) — 11 colonnes
 - [`jev.notifications_admin`](#notifications_admin) — 14 colonnes
 - [`jev.projets`](#projets) — 12 colonnes
@@ -440,12 +440,11 @@ Plafonds de dépense IA mensuels (global et par ligne budgétaire) et leur seuil
 
 ## regles_notification
 
-Règles de notification et d’alerte envoyées aux utilisateurs (application, e-mail) : cible, fréquence, déclencheur, modèle de rédaction. Écran : Plateforme › Notifications et alertes.
+Règles de notification envoyées aux utilisateurs (application, e-mail) à heure fixe : cible, fréquence, modèle de rédaction. Écran : Plateforme › Notifications.
 
 | Colonne | Type | Signification | Exemples, unités |
 |---|---|---|---|
 | `id` | texte | Identifiant de la règle | n1, n3 |
-| `type` | texte | Type | NOTIFICATION, ALERT |
 | `nom` | texte | Nom de la règle | Jalon en retard |
 | `profils_cibles` | liste de textes | Profils destinataires | admin, pmo, resp (Responsable), lec (Lecteur) |
 | `projets` | liste de textes | Codes des projets concernés (vide : aucun projet précis) |  |
@@ -454,12 +453,11 @@ Règles de notification et d’alerte envoyées aux utilisateurs (application, e
 | `consigne` | texte | Consigne donnée au modèle |  |
 | `objet` | texte | Objet du message (variables {projet}, {date}) |  |
 | `corps` | texte | Texte du message (modèle) |  |
-| `frequence` | texte | Fréquence | IMMEDIATE, DAILY, WEEKLY (la fréquence personnalisée CUSTOM a été retirée) |
+| `frequence` | texte | Fréquence | DAILY, WEEKLY (les fréquences IMMEDIATE et CUSTOM ont été retirées) |
 | `jour` | texte | Jour d’envoi (hebdomadaire) |  |
 | `heure` | texte | Heure d’envoi (heure de Paris, par pas de 30 minutes) | 07:00, 18:30 |
 | `tous_les_n_jours` | entier | Ancien intervalle de la fréquence personnalisée : toujours vide |  |
 | `canaux` | liste de textes | Canaux | APP = dans l’application, EMAIL |
-| `declencheur` | texte | Déclencheur | SCHEDULE, MILESTONE_LATE, RISK_CRITICAL, DOCUMENT_ANALYZED, BUDGET_THRESHOLD, MANUAL |
 | `active` | booléen | Règle active |  |
 
 **Relations**
@@ -469,7 +467,7 @@ Règles de notification et d’alerte envoyées aux utilisateurs (application, e
 
 **Usages**
 
-- Quelles alertes sont actives ?
+- Quelles notifications sont actives ?
 - Qui reçoit telle notification, et quand ?
 
 **Règles et précautions**
@@ -478,7 +476,7 @@ Règles de notification et d’alerte envoyées aux utilisateurs (application, e
 
 ## envois_notification
 
-Historique des envois de notifications : règle, canal, nombre de destinataires, succès ou échec, coût. Écran : Notifications et alertes › Historique ; Vue d’ensemble (échecs d’envoi).
+Historique des envois de notifications : règle, canal, nombre de destinataires, succès ou échec, coût. Écran : Notifications › Historique ; Vue d’ensemble (échecs d’envoi).
 
 | Colonne | Type | Signification | Exemples, unités |
 |---|---|---|---|

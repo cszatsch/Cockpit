@@ -33,7 +33,7 @@ const PAGE = 'Console%20Admin.dc.html';
 
 const MENUS: Array<[string, string]> = [
   ['overview', 'Vue d’ensemble'], ['users', 'Utilisateurs'], ['admins', 'Administrateurs'], ['providers', 'Fournisseurs et modèles'], ['assign', 'Affectation des modèles'],
-  ['conso', 'Consommation et coûts'], ['snaps', 'Snapshots'], ['notifs', 'Notifications et alertes'], ['modules', 'Modules'], ['init', 'Initialisation d’un projet'],
+  ['conso', 'Consommation et coûts'], ['snaps', 'Snapshots'], ['notifs', 'Notifications'], ['modules', 'Modules'], ['init', 'Initialisation d’un projet'],
   ['library', 'Bibliothèque des projets'], ['profil', 'Mon profil'],
 ];
 
@@ -86,7 +86,7 @@ const dcErrors = (page: Page) => page.evaluate(() => Array.from(document.querySe
 async function goMenu(page: Page, label: string) {
   // « Mon profil » s'ouvre par la carte de l'administrateur connecté, en bas de la navigation.
   // Sidebar Console : les pages sont rangées par domaine (accordéon) ; on déplie le domaine s'il est replié.
-  const DOM: Record<string, string> = { Utilisateurs: 'Accès', Administrateurs: 'Accès', 'Fournisseurs et modèles': 'IA', 'Affectation des modèles': 'IA', 'Consommation et coûts': 'IA', Persona: 'Assistant', Skills: 'Assistant', 'Bibliothèque des projets': 'Projets', 'Initialisation d’un projet': 'Projets', Snapshots: 'Projets', Modules: 'Plateforme', 'Notifications et alertes': 'Plateforme' };
+  const DOM: Record<string, string> = { Utilisateurs: 'Accès', Administrateurs: 'Accès', 'Fournisseurs et modèles': 'IA', 'Affectation des modèles': 'IA', 'Consommation et coûts': 'IA', Persona: 'Assistant', Skills: 'Assistant', 'Bibliothèque des projets': 'Projets', 'Initialisation d’un projet': 'Projets', Snapshots: 'Projets', Modules: 'Plateforme', 'Notifications': 'Plateforme' };
   if (label === 'Mon profil') await page.locator('aside button[aria-label="Mon profil"]').click();
   else {
     const dom = DOM[label];
@@ -190,7 +190,7 @@ async function main() {
     await pa.getByRole('button', { name: 'Enregistrer les plafonds' }).click();
     await settle(pa, 800);
     // c) désactiver une règle
-    await goMenu(pa, 'Notifications et alertes');
+    await goMenu(pa, 'Notifications');
     await pa.getByRole('switch', { name: 'Désactiver Synthèse hebdomadaire du projet' }).click();
     await settle(pa, 800);
     // d) snapshot libellé (vue Snapshots.dc.html : sans libellé, la vue envoie « Capture manuelle ») ; progression suivie
@@ -248,13 +248,13 @@ async function main() {
     await pa.getByRole('tab', { name: 'Notifications' }).click().catch(() => pa.getByText('Notifications', { exact: true }).last().click());
     await pa.getByRole('switch', { name: 'Échecs d’envoi de notifications' }).click().catch(() => pa.getByRole('button', { name: 'Échecs d’envoi de notifications' }).click());
     await pa.waitForTimeout(800);
-    await goMenu(pa, 'Notifications et alertes');
+    await goMenu(pa, 'Notifications');
     await pa.getByRole('button', { name: 'M’envoyer un test' }).click();
-    // Vue « Notifications et alertes » : le composant confirme ; l'envoi est vérifié dans l'historique du serveur.
+    // Vue « Notifications » : le composant confirme ; l'envoi est vérifié dans l'historique du serveur.
     const toastTest = /Test envoyé sur votre compte/.test(await body());
     await pa.waitForTimeout(2000);
     const sentNow = await pa.evaluate(async () => {
-      const h = await fetch('/api/admin/notifications/history?rule=n1', { headers: { Authorization: 'Bearer ' + localStorage.getItem('rise-admin-token') } }).then((r) => r.json());
+      const h = await fetch('/api/admin/notifications/history?rule=n4', { headers: { Authorization: 'Bearer ' + localStorage.getItem('rise-admin-token') } }).then((r) => r.json());
       return h.filter((x: any) => x.w === 'à l’instant' && x.ok && x.d === '1 destinataire').length;
     });
     check('« M’envoyer un test » : envoi réel par le serveur', toastTest && sentNow > 0 && !/Échec de l’envoi de test/.test(await body()), `${sentNow} envoi(s)`);
@@ -269,7 +269,7 @@ async function main() {
     await goMenu(pa, 'Consommation et coûts');
     await pa.waitForTimeout(800);
     check('après rechargement : plafond global à 1 500 €', (await pa.getByRole('textbox', { name: 'Plafond Budget global' }).inputValue()) === '1500');
-    await goMenu(pa, 'Notifications et alertes');
+    await goMenu(pa, 'Notifications');
     check('après rechargement : « Synthèse hebdomadaire du projet » désactivée', (await pa.getByRole('switch', { name: 'Activer Synthèse hebdomadaire du projet' }).count()) === 1);
     await goMenu(pa, 'Snapshots');
     check('après rechargement : snapshot « Test e2e navigateur » présent', (await pa.evaluate(() => document.body.innerText)).includes('Test e2e navigateur'));

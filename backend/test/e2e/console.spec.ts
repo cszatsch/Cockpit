@@ -284,16 +284,12 @@ describe('Console Admin — critères d’acceptation (brief Console § 13)', ()
       const all = m.thresholds.find((x: any) => x.id === 'all');
       expect(all.status).toBe(all.projection > 1200 ? 'EXCEEDED' : all.spent >= 960 ? 'ALERT' : 'UNDER');
     });
-    it('franchir 80 % déclenche la règle budgétaire une seule fois', async () => {
+    it('franchir 80 % n’envoie plus de notification (alertes retirées le 30/09/2026)', async () => {
       const c = await t.as(WHO.admin);
       await c.put(`${A}/budget-thresholds/crud`, { limitEur: 1, warnPct: 80, enabled: true }).expect(200);
-      // Un appel LLM (Jev) déclenche le contrôle.
+      const before = await t.db.delivery.count();
       await (await t.as(WHO.pmo)).post('/api/projects/RISE/assistant/messages', { context: { space: 'today' }, text: 'Bonjour' }).expect(200);
-      await (await t.as(WHO.pmo)).post('/api/projects/RISE/assistant/messages', { context: { space: 'today' }, text: 'Encore' }).expect(200);
-      const fired = await t.db.budgetAlertFired.findMany({ where: { thresholdId: 'crud' } });
-      expect(fired).toHaveLength(1);
-      const sent = await t.db.delivery.findMany({ where: { ruleId: 'n3', eventKey: { contains: '|crud|' } } });
-      expect(sent.length).toBe(1);
+      expect(await t.db.delivery.count()).toBe(before);
     });
     it('une ligne par ligne budgétaire, même sans plafond enregistré (Rapports, Guidage console)', async () => {
       const c = await t.as(WHO.admin);
@@ -436,13 +432,6 @@ describe('Console Admin — critères d’acceptation (brief Console § 13)', ()
       expect(sent.body[0]).toMatchObject({ status: 'OK', recipientsCount: 1 });
       expect(await t.db.usageRecord.count({ where: { source: 'NOTIFICATION' } })).toBe(before + 1);
     });
-    it('un risque qui devient critique déclenche l’alerte n2 (une seule fois)', async () => {
-      await (await t.as(WHO.pmo)).patch('/api/projects/RISE/risks/R07', { i: 5 }).expect(200);
-      const d = await t.db.delivery.findMany({ where: { ruleId: 'n2', eventKey: { contains: 'R07' } } });
-      // Un texte par profil destinataire (Responsable, PMO), chacun sur les deux canaux (APP + EMAIL).
-      expect(d.length).toBe(4);
-      expect(new Set(d.map((x) => x.profile))).toEqual(new Set(['pmo', 'resp']));
-    });
     it('{date} vaut la date du jour dans l’aperçu et l’envoi de test (et non une date d’exemple figée)', async () => {
       const c = await t.as(WHO.admin);
       await c.patch(`${A}/notification-rules/n4`, { subject: '{projet} · {date}' }).expect(200);
@@ -464,18 +453,18 @@ describe('Console Admin — critères d’acceptation (brief Console § 13)', ()
     });
   });
 
-  describe('7 bis. Notifications et alertes : vue (NOTIFICATIONS ET ALERTES - specification.md § 2 à § 4)', () => {
-    const blank = { id: 'r1727600000000', type: 'notification', title: 'Nouvelle règle', evt: '', profils: [], projets: ['*'], canaux: ['app'], freq: 'imm', at: '', on: false, model: null, prompt: '', subject: '', body: '' };
+  describe('7 bis. Notifications : vue (NOTIFICATIONS ET ALERTES - specification.md § 2 à § 4)', () => {
+    const blank = { id: 'r1727600000000', title: 'Nouvelle règle', profils: [], projets: ['*'], canaux: ['app'], freq: 'day', at: '07:00', on: false, model: null, prompt: '', subject: '', body: '' };
 
     it('liste les règles au format Rule, les destinataires actifs par profil et l’historique ; réservé à l’Admin', async () => {
       const c = await t.as(WHO.admin);
       await (await t.as(WHO.pmo)).get(`${A}/notifications/rules`).expect(403);
       const rules = (await c.get(`${A}/notifications/rules`).expect(200)).body;
-      expect(rules.find((r: any) => r.id === 'n1')).toEqual({
-        id: 'n1', type: 'alerte', title: 'Jalon en retard', evt: 'un jalon est en retard', profils: ['PMO', 'Responsable'], projets: ['RISE', 'ATLAS'], canaux: ['app', 'mail'],
-        freq: 'imm', at: '', on: true, model: 'haiku', prompt: expect.stringContaining('Un jalon a dépassé'), subject: 'Jalon en retard · {projet}', body: expect.stringContaining('{date}'),
-      });
-      expect(rules.find((r: any) => r.id === 'n3')).toMatchObject({ projets: ['*'], evt: 'le seuil budgétaire IA est atteint' });
+      // Plus d'alertes (30/09/2026) : ni type, ni événement ; les règles n1 à n3 n'existent plus.
+      expect(rules.map((r: any) => r.id)).toEqual(expect.not.arrayContaining(['n1', 'n2', 'n3']));
+      const n5 = rules.find((r: any) => r.id === 'n5');
+      expect(Object.keys(n5).sort()).toEqual(['at', 'body', 'canaux', 'freq', 'id', 'model', 'on', 'profils', 'projets', 'prompt', 'subject', 'title']);
+      expect(n5).toMatchObject({ title: 'Nouveau document analysé', profils: ['Responsable'], projets: ['RISE', 'HORIZON'], canaux: ['app'] });
       expect(rules.find((r: any) => r.id === 'n5')).toMatchObject({ freq: 'day', at: '18:00', on: false });
       const counts = (await c.get(`${A}/notifications/counts`).expect(200)).body;
       expect(Object.keys(counts)).toEqual(['Admin', 'PMO', 'Responsable', 'Lecteur']);
@@ -484,6 +473,7 @@ describe('Console Admin — critères d’acceptation (brief Console § 13)', ()
       const all = (await c.get(`${A}/notifications/history`).expect(200)).body;
       expect(all.some((h: any) => h.rid === 'n2' && h.ok === false && h.c === 'E-mail')).toBe(true);
       expect(all[0]).toEqual(expect.objectContaining({ rid: expect.any(String), w: expect.any(String), c: expect.any(String), d: expect.stringMatching(/destinataire/), ok: expect.any(Boolean) }));
+      // L'historique d'une règle supprimée reste consultable.
       const one = (await c.get(`${A}/notifications/history?rule=n1`).expect(200)).body;
       expect(one.length).toBeGreaterThan(0);
       expect(one.every((h: any) => h.rid === 'n1')).toBe(true);
@@ -492,10 +482,13 @@ describe('Console Admin — critères d’acceptation (brief Console § 13)', ()
     it('création sous l’identifiant de la vue, brouillon incomplet accepté, enregistrement, activation, test, suppression', async () => {
       const c = await t.as(WHO.admin);
       const created = await c.post(`${A}/notifications/rules`, blank).expect(201);
-      expect(created.body).toMatchObject({ id: blank.id, title: 'Nouvelle règle', profils: [], model: null, projets: ['*'], evt: 'l’heure d’envoi arrive' });
+      expect(created.body).toMatchObject({ id: blank.id, title: 'Nouvelle règle', profils: [], model: null, projets: ['*'], freq: 'day', at: '07:00' });
       await c.post(`${A}/notifications/rules`, blank).expect(409);
       // Fréquence « Personnalisée » retirée ; heure par pas de 30 minutes ; variables {jalon}, {risque}, {seuil}, {document} retirées.
       await c.put(`${A}/notifications/rules/${blank.id}`, { ...blank, freq: 'custom' }).expect(400);
+      // « Immédiate », le type et l'événement n'existent plus (30/09/2026).
+      await c.put(`${A}/notifications/rules/${blank.id}`, { ...blank, freq: 'imm' }).expect(400);
+      await c.put(`${A}/notifications/rules/${blank.id}`, { ...blank, type: 'alerte' }).expect(400);
       expect((await c.put(`${A}/notifications/rules/${blank.id}`, { ...blank, freq: 'day', at: '07:15' }).expect(400)).body.fields.at).toBeDefined();
       expect((await c.put(`${A}/notifications/rules/${blank.id}`, { ...blank, subject: 'Retard · {jalon}', body: '{risque}' }).expect(400)).body.fields).toMatchObject({ subject: 'variable retirée : {jalon}', body: 'variable retirée : {risque}' });
       expect((await c.put(`${A}/notifications/rules/${blank.id}`, { ...blank, freq: 'day', at: '' }).expect(200)).body).toMatchObject({ freq: 'day', at: '07:00' });
@@ -522,16 +515,6 @@ describe('Console Admin — critères d’acceptation (brief Console § 13)', ()
       expect(await t.db.auditEntry.count({ where: { entityType: 'NotificationRule', entityId: blank.id } })).toBe(6);
     });
 
-    it('une règle active mais sans destinataire n’envoie rien quand l’événement survient', async () => {
-      const c = await t.as(WHO.admin);
-      const n2 = (await c.get(`${A}/notifications/rules`).expect(200)).body.find((r: any) => r.id === 'n2');
-      await c.put(`${A}/notifications/rules/n2`, { ...n2, profils: [] }).expect(200);
-      const rise = await t.db.project.findFirst({ where: { code: 'RISE' } });
-      const risk = await t.db.risk.findFirst({ where: { projectId: rise!.id, status: { not: 'CLOSED' }, code: { not: 'R07' } }, orderBy: { code: 'asc' } });
-      await (await t.as(WHO.pmo)).patch(`/api/projects/RISE/risks/${risk!.code}`, { p: 5, i: 5 }).expect(200);
-      expect(await t.db.delivery.count({ where: { ruleId: 'n2', eventKey: { contains: risk!.id } } })).toBe(0);
-      await c.put(`${A}/notifications/rules/n2`, n2).expect(200);
-    });
   });
 
   describe('8. Modules', () => {

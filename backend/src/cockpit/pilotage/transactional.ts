@@ -11,8 +11,6 @@ import { nextCode, readableId } from '../../core/ids';
 import { canReadWs, canWriteWs, profileUsedFor, visibleWorkstreams } from '../../domain/rights';
 import { actionView, decisionView, issueView, riskView } from '../views';
 import { UsagesService } from '../referential/usages.service';
-import { EventBus } from '../../core/events';
-import { riskScore, RISK_CRITICAL_MIN } from '../../domain/rules';
 import { id, isoDate, optIsoDate, optText, text } from '../referential/schemas';
 
 export interface TxCtx {
@@ -257,15 +255,7 @@ export class TransactionalService {
     readonly audit: AuditService,
     readonly todaySvc: TodayService,
     private readonly usagesSvc: UsagesService,
-    private readonly events: EventBus,
   ) {}
-
-  /** Un risque qui devient critique (p × i ≥ 20) déclenche l'alerte correspondante (Console § 10.5). */
-  private async emitRisk(before: any | null, after: any) {
-    if (riskScore(after.p, after.i) >= RISK_CRITICAL_MIN && after.status !== 'CLOSED' && (!before || riskScore(before.p, before.i) < RISK_CRITICAL_MIN)) {
-      await this.events.emit({ type: 'risk.critical', projectId: after.projectId, riskId: after.id });
-    }
-  }
 
   today(scope: ProjectScope) {
     return this.todaySvc.today(scope.project.timezone);
@@ -332,7 +322,6 @@ export class TransactionalService {
       await this.audit.record(tx, this.wctx(actor, scope, row.wsId, origin), { entityType: def.entityType, entityId: row.id, before: null, after: view, wsId: row.wsId, target: def.label(row) });
       return { row, result: withWarnings(view, warnings) };
     });
-    if (def.entityType === 'RISK') await this.emitRisk(null, out.row);
     return out.result;
   }
 
@@ -357,7 +346,6 @@ export class TransactionalService {
       }
       return { existing, row, result: withWarnings(view, warnings) };
     });
-    if (def.entityType === 'RISK') await this.emitRisk(out.existing, out.row);
     return out.result;
   }
 

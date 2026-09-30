@@ -133,20 +133,11 @@ describe('Notifications — planification, rattrapage et mémoire', () => {
     expect(await svc.previousSend('d1', RISE, first.profile!)).toBeNull();
   });
 
-  it('jalon en retard : signalé par la vérification quotidienne, une seule fois ; modifier sa date vaut confirmation (jamais en retard)', async () => {
-    const lateRule = await t.db.notificationRule.findFirstOrThrow({ where: { trigger: 'MILESTONE_LATE' } });
-    const m = await t.db.milestone.findFirstOrThrow({ where: { projectId: RISE, iso: { lt: '2026-09-26' } }, orderBy: { iso: 'asc' } });
-    const key = `${lateRule.id}|${RISE}|${m.id}`;
-    await t.db.milestone.update({ where: { id: m.id }, data: { confirmedAt: null } });
-    await t.db.delivery.deleteMany({ where: { eventKey: key } });
-    await svc.dailyCheck();
-    const count = await t.db.delivery.count({ where: { eventKey: key } });
-    expect(count).toBeGreaterThan(0);
-    await svc.dailyCheck();
-    expect(await t.db.delivery.count({ where: { eventKey: key } })).toBe(count);
-    const f = await t.db.milestone.findFirstOrThrow({ where: { projectId: RISE, iso: { gt: '2026-09-26' } }, orderBy: { iso: 'asc' } });
-    await (await t.as(WHO.pmo)).patch(`/api/projects/RISE/milestones/${f.id}`, { iso: '2026-09-21' }).expect(200);
-    await svc.dailyCheck();
-    expect(await t.db.delivery.count({ where: { eventKey: `${lateRule.id}|${RISE}|${f.id}` } })).toBe(0);
+  it('plus d’alertes (30/09/2026) : un risque devenu critique ou un jalon en retard n’envoie rien hors de l’heure prévue', async () => {
+    const before = await t.db.delivery.count();
+    const r = await t.db.risk.findFirstOrThrow({ where: { projectId: RISE, status: { not: 'CLOSED' } } });
+    await (await t.as(WHO.pmo)).patch(`/api/projects/RISE/risks/${r.id}`, { p: 5, i: 5 }).expect(200);
+    expect(await t.db.delivery.count()).toBe(before);
+    expect(await t.db.notificationRule.count({ where: { frequency: { notIn: ['DAILY', 'WEEKLY'] } } })).toBe(0);
   });
 });

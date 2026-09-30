@@ -10,7 +10,6 @@ import { StorageService } from '../../core/storage.service';
 import { TodayService } from '../../core/today.service';
 import { JobsService } from '../../core/jobs.service';
 import { LlmService } from '../../core/llm.service';
-import { EventBus } from '../../core/events';
 import { badRequest, forbidden, notFound } from '../../core/errors';
 import { techId } from '../../core/ids';
 import { parse } from '../../core/http';
@@ -49,7 +48,6 @@ export class DocumentsController implements OnModuleInit {
     private readonly today: TodayService,
     private readonly jobs: JobsService,
     private readonly llm: LlmService,
-    private readonly events: EventBus,
   ) {}
 
   onModuleInit() {
@@ -114,7 +112,6 @@ export class DocumentsController implements OnModuleInit {
       ext = 'UNSUPPORTED';
     }
     await this.prisma.document.update({ where: { id: d.id }, data: { ext, pages, version: { increment: 1 } } });
-    if (ext !== 'UNSUPPORTED') await this.events.emit({ type: 'document.analyzed', projectId: d.projectId, documentId: d.id });
   }
 
   @Get(':id/file')

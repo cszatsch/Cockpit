@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from './prisma.service';
-import { EventBus } from './events';
 import { ApiError } from './errors';
 import { decryptSecret } from './crypto';
 import { KeyTestResult, ProviderKeyTester } from './provider-key-tester';
@@ -111,7 +110,7 @@ export const LIVE_MAX_OUTPUT_TOKENS = 1024;
  */
 @Injectable()
 export class LlmService {
-  constructor(private readonly prisma: PrismaService, private readonly events: EventBus, private readonly keys: ProviderKeyTester, private readonly client: LlmClient) {}
+  constructor(private readonly prisma: PrismaService, private readonly keys: ProviderKeyTester, private readonly client: LlmClient) {}
 
   /**
    * Modèle disponible : actif, de la catégorie attendue (LLM par défaut : Embedding et Reranking ne génèrent
@@ -225,7 +224,6 @@ export class LlmService {
         priceIn: price.in ?? null, priceOut: price.out ?? null, pricePer1k: price.per1k ?? null, durationMs: durationMs ?? null,
       },
     });
-    await this.events.emit({ type: 'usage.recorded', costEur, functionId, at });
     return costEur;
   }
 

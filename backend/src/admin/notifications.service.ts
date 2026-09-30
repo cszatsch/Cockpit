@@ -3,18 +3,12 @@ import { NotificationRule } from '@prisma/client';
 import { PrismaService } from '../core/prisma.service';
 import { LlmService } from '../core/llm.service';
 import { MailerService } from '../core/mailer.service';
-import { EventBus } from '../core/events';
 import { JobsService } from '../core/jobs.service';
 import { TodayService } from '../core/today.service';
 import { ProfilesService } from './profiles.service';
-import { UsageService } from './usage.service';
-import { riskScore, RISK_CRITICAL_MIN } from '../domain/rules';
-import { confirmedAtIso } from '../cockpit/views';
 import { frShort } from '../domain/dates';
 
-/** Jalon en retard : date prévue passée et non confirmé depuis. */
-const isLate = (m: { iso: string; confirmedAt: Date | null }, today: string) => m.iso < today && !(m.confirmedAt && confirmedAtIso(m.confirmedAt)! >= m.iso);
-import { AUDIENCE_PRIORITY, AudienceProfile, blockingErrors, CATCH_UP_PER_MINUTE, catchUpDeadline, DAILY_CHECK_CRON, nextSendAt, NOTIFICATION_MEMORY_DAYS, occurrencesUntil, ON_TIME_TOLERANCE_MS, parisDay, scheduleKey, sendTimeFr } from '../domain/notification-rules';
+import { AUDIENCE_PRIORITY, AudienceProfile, blockingErrors, CATCH_UP_PER_MINUTE, catchUpDeadline, nextSendAt, NOTIFICATION_MEMORY_DAYS, occurrencesUntil, ON_TIME_TOLERANCE_MS, parisDay, scheduleKey, sendTimeFr } from '../domain/notification-rules';
 import { Audience, NotificationWriterService } from './notification-writer.service';
 
 /** Variables utilisables dans le prompt et le message (brief Console § 6.5). */
@@ -24,12 +18,8 @@ export const LLM_RESPONSE_VARIABLE = 'reponse_llm';
 
 export interface RuleContext {
   projet?: string;
-  jalon?: string;
   date?: string;
-  risque?: string;
-  seuil?: string;
   semaine?: string;
-  document?: string;
 }
 
 export function fill(template: string, ctx: Record<string, string | undefined>): string {
@@ -39,7 +29,8 @@ export function fill(template: string, ctx: Record<string, string | undefined>):
 /**
  * Génération et envoi des notifications (brief Console § 7.6, § 10.5) : prompt construit avec les données,
  * appel au modèle de la règle (source NOTIFICATION), réponse insérée à la place de {reponse_llm},
- * envoi par canal aux comptes actifs ciblés, trace dans `Delivery` (un seul envoi par événement).
+ * envoi par canal aux comptes actifs ciblés, trace dans `Delivery` (un seul envoi par heure prévue). Depuis le 30/09/2026,
+ * il n'y a plus d'alertes : aucune règle ne part sur un événement, toutes partent à heure fixe.
  */
 @Injectable()
 export class NotificationsService implements OnModuleInit {
@@ -47,36 +38,25 @@ export class NotificationsService implements OnModuleInit {
     private readonly prisma: PrismaService,
     private readonly llm: LlmService,
     private readonly mailer: MailerService,
-    private readonly events: EventBus,
     private readonly jobs: JobsService,
     private readonly profiles: ProfilesService,
-    private readonly usage: UsageService,
     private readonly today: TodayService,
     private readonly writer: NotificationWriterService,
   ) {}
 
   onModuleInit() {
-    this.events.on(async (e) => {
-      if (e.type === 'usage.recorded') await this.checkBudget();
-      if (e.type === 'risk.critical') await this.fireTrigger('RISK_CRITICAL', e.projectId, e.riskId);
-      if (e.type === 'document.analyzed') await this.fireTrigger('DOCUMENT_ANALYZED', e.projectId, e.documentId);
-    });
     this.jobs.register('notifications.due', () => this.runDue());
-    this.jobs.register('notifications.daily', () => this.dailyCheck());
-    this.jobs.register('budget.check', () => this.checkBudget());
     // Chaque minute : les règles dont le prochain envoi est passé (une requête sur l'index) ; au démarrage, le
     // premier passage rattrape un envoi manqué le jour même.
     this.jobs.schedule('notifications.due', '* * * * *');
-    this.jobs.schedule('notifications.daily', DAILY_CHECK_CRON);
-    this.jobs.schedule('budget.check', '5 * * * *');
   }
 
   /**
    * Génère sujet et message pour un profil destinataire : le modèle de la règle lit les données du projet sur le
    * périmètre du profil (Text-to-SQL, `NotificationWriterService`) et rédige {reponse_llm} ; consommation tracée.
    */
-  async generate(rule: Pick<NotificationRule, 'modelId' | 'prompt' | 'subject' | 'body' | 'kind'> & { id?: string }, ctx0: RuleContext, projectId: string | null, audience: Audience = { profile: 'pmo', chantiers: '*' }, withMemory = false) {
-    // {date} : la date de l'événement quand il en a une (date prévue d'un jalon…), sinon la date du jour.
+  async generate(rule: Pick<NotificationRule, 'modelId' | 'prompt' | 'subject' | 'body'> & { id?: string }, ctx0: RuleContext, projectId: string | null, audience: Audience = { profile: 'pmo', chantiers: '*' }, withMemory = false) {
+    // {date} : la date du jour.
     const ctx: RuleContext = { ...ctx0, date: ctx0.date || frShort(this.today.today(), 0) };
     const prompt = fill(rule.prompt, ctx as Record<string, string>);
     const project = projectId ? await this.prisma.project.findUnique({ where: { id: projectId }, select: { id: true, code: true } }) : null;
@@ -136,7 +116,7 @@ export class NotificationsService implements OnModuleInit {
         });
         // Canal « Dans l'application » : notifications des destinataires dans le Cockpit (cloche, non lues).
         if (gen && channel === 'APP' && recipients.length) {
-          await this.prisma.userNotification.createMany({ data: recipients.map((r) => ({ accountId: r.id, ruleId: rule.id, deliveryId: d.id, projectId, kind: rule.kind, title: gen!.subject, body: gen!.body })) });
+          await this.prisma.userNotification.createMany({ data: recipients.map((r) => ({ accountId: r.id, ruleId: rule.id, deliveryId: d.id, projectId, title: gen!.subject, body: gen!.body })) });
         }
         out.push(d);
       }
@@ -144,38 +124,6 @@ export class NotificationsService implements OnModuleInit {
     return out;
   }
 
-  /** Déclenchement par un événement du Cockpit (alerte : jamais regroupée, envoi immédiat). */
-  async fireTrigger(trigger: 'RISK_CRITICAL' | 'DOCUMENT_ANALYZED' | 'MILESTONE_LATE', projectId: string, entityId: string) {
-    const rules = await this.prisma.notificationRule.findMany({ where: { trigger, enabled: true } });
-    const project = await this.prisma.project.findUnique({ where: { id: projectId } });
-    if (!project) return;
-    for (const rule of rules) {
-      if (blockingErrors(rule).length) continue;
-      if (!rule.platform && !rule.projectIds.includes(project.code) && !rule.projectIds.includes(project.id)) continue;
-      const ctx: RuleContext = { projet: project.code };
-      if (trigger === 'RISK_CRITICAL') {
-        const r = await this.prisma.risk.findUnique({ where: { id: entityId } });
-        if (!r) continue;
-        ctx.risque = r.n;
-      } else if (trigger === 'DOCUMENT_ANALYZED') {
-        const d = await this.prisma.document.findUnique({ where: { id: entityId } });
-        if (!d) continue;
-        ctx.document = d.n;
-      } else {
-        const m = await this.prisma.milestone.findUnique({ where: { id: entityId } });
-        if (!m) continue;
-        ctx.jalon = `${m.code} · ${m.n}`;
-        ctx.date = frShort(m.iso, 0);
-      }
-      // Une alerte part immédiatement ; une notification suit sa fréquence (traitée par `tick`).
-      if (rule.frequency === 'IMMEDIATE' || rule.kind === 'ALERT') await this.deliver(rule, project.id, ctx, `${rule.id}|${project.id}|${entityId}`);
-    }
-  }
-
-  /**
-   * Tâche horaire : jalons en retard (iso < aujourd'hui et non confirmés, § 9.11 Cockpit), risques critiques,
-   * notifications planifiées (quotidiennes, hebdomadaires, personnalisées) à l'heure prévue.
-   */
   /**
    * Prochain envoi des règles planifiées (décision du 30/09/2026) : recalculé quand la fréquence, le jour, l'heure ou
    * l'activation changent (`scheduleKey`). Écrit sans toucher à la date de modification ni à la version de la règle.
@@ -277,39 +225,6 @@ export class NotificationsService implements OnModuleInit {
     });
   }
 
-  /**
-   * Vérification quotidienne (`DAILY_CHECK_CRON`, 7 h) : un jalon ne devient en retard qu'au changement de date (le
-   * modifier vaut confirmation, § 7.2 : une modification ne le met jamais en retard) ; un
-   * risque critique est déjà signalé à son enregistrement (événement), ce passage n'est qu'un filet de sécurité.
-   * Un événement déjà notifié ne l'est pas deux fois.
-   */
-  async dailyCheck() {
-    for (const p of await this.prisma.project.findMany({ where: { status: { not: 'CLOSED' } } })) {
-      const today = this.today.today(p.timezone);
-      for (const m of await this.prisma.milestone.findMany({ where: { projectId: p.id, iso: { lt: today } } })) {
-        if (!isLate(m, today)) continue;
-        await this.fireTrigger('MILESTONE_LATE', p.id, m.id);
-      }
-      for (const r of await this.prisma.risk.findMany({ where: { projectId: p.id, status: { not: 'CLOSED' } } })) {
-        if (riskScore(r.p, r.i) >= RISK_CRITICAL_MIN) await this.fireTrigger('RISK_CRITICAL', p.id, r.id);
-      }
-    }
-  }
-
-  /** § 7.4 / § 10.3 : franchir `warnPct` déclenche la règle budgétaire une seule fois par seuil et par mois. */
-  async checkBudget() {
-    const rule = await this.prisma.notificationRule.findFirst({ where: { trigger: 'BUDGET_THRESHOLD', enabled: true } });
-    const month = this.usage.todayIso().slice(0, 7);
-    const thresholds = await this.usage.thresholds();
-    for (const t of thresholds) {
-      if (!t.enabled || !t.limitEur) continue;
-      if (t.spent < (t.limitEur * t.warnPct) / 100) continue;
-      const already = await this.prisma.budgetAlertFired.findUnique({ where: { thresholdId_month: { thresholdId: t.id, month } } });
-      if (already) continue;
-      await this.prisma.budgetAlertFired.create({ data: { thresholdId: t.id, month } });
-      if (rule && !blockingErrors(rule).length) await this.deliver(rule, null, { seuil: `${t.warnPct} %` }, `${rule.id}|${t.id}|${month}`);
-    }
-  }
 }
 
 function isoWeek(d: Date): number {

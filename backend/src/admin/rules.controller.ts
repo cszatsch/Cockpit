@@ -15,21 +15,16 @@ import { LLM_RESPONSE_VARIABLE, NotificationsService, RuleContext } from './noti
 
 const FREQ = z
   .string()
-  .transform((s) => ({ imm: 'IMMEDIATE', quot: 'DAILY', hebdo: 'WEEKLY' } as Record<string, string>)[s] ?? s.toUpperCase())
-  .pipe(z.enum(['IMMEDIATE', 'DAILY', 'WEEKLY'])); // « Personnalisée » retirée le 29/09/2026
+  .transform((s) => ({ quot: 'DAILY', hebdo: 'WEEKLY' } as Record<string, string>)[s] ?? s.toUpperCase())
+  .pipe(z.enum(['DAILY', 'WEEKLY'])); // « Personnalisée » retirée le 29/09/2026, « Immédiate » le 30/09/2026
 const CHANNEL = z
   .string()
   .transform((s) => ({ app: 'APP', mail: 'EMAIL' } as Record<string, string>)[s] ?? s.toUpperCase())
   .pipe(z.enum(['APP', 'EMAIL']));
-const KIND = z
-  .string()
-  .transform((s) => ({ alerte: 'ALERT', notif: 'NOTIFICATION' } as Record<string, string>)[s] ?? s.toUpperCase())
-  .pipe(z.enum(['NOTIFICATION', 'ALERT']));
 const TARGET = z.enum(['admin', 'pmo', 'resp', 'lec']);
 
 const RuleBody = z
   .object({
-    kind: KIND,
     name: z.string().trim().max(120),
     targetProfiles: z.array(TARGET),
     projectIds: z.array(z.string()),
@@ -42,23 +37,20 @@ const RuleBody = z
     day: z.string().max(20).nullable(),
     hour: z.string().regex(/^([01]\d|2[0-3]):(00|30)$/, 'HH:MM par pas de 30 minutes').nullable(),
     channels: z.array(CHANNEL),
-    trigger: z.enum(['SCHEDULE', 'MILESTONE_LATE', 'RISK_CRITICAL', 'DOCUMENT_ANALYZED', 'BUDGET_THRESHOLD', 'MANUAL']),
     enabled: z.boolean(),
   })
   .partial()
   .strict();
 
-/** Modèle `Rule` de la vue « Notifications et alertes » (spécification NOTIFICATIONS ET ALERTES § 2). */
+/** Modèle `Rule` de la vue « Notifications » (spécification NOTIFICATIONS ET ALERTES § 2, sans les alertes depuis le 30/09/2026). */
 const UiRuleBody = z
   .object({
     id: z.string().regex(/^[A-Za-z0-9_-]{1,64}$/, 'identifiant invalide').optional(),
-    type: z.enum(['alerte', 'notification']),
     title: z.string().max(120),
-    evt: z.string().max(200).optional(),
     profils: z.array(z.enum(['Admin', 'PMO', 'Responsable', 'Lecteur'])),
     projets: z.array(z.string().max(40)),
     canaux: z.array(z.enum(['app', 'mail'])),
-    freq: z.enum(['imm', 'day', 'week']),
+    freq: z.enum(['day', 'week']),
     at: z.string().max(60),
     on: z.boolean(),
     model: z.string().nullable(),
@@ -68,7 +60,7 @@ const UiRuleBody = z
   })
   .strict();
 
-/** Règles de notification et d'alerte, aperçu, test, historique des envois (brief Console § 9.8). */
+/** Règles de notification, aperçu, test, historique des envois (brief Console § 9.8). */
 @ApiTags('console · notifications')
 @ApiBearerAuth()
 @AdminOnly()
@@ -83,7 +75,7 @@ export class RulesController {
   ) {}
 
   view(r: NotificationRule) {
-    return { id: r.id, kind: r.kind, name: r.name, targetProfiles: r.targetProfiles, projectIds: r.projectIds, platform: r.platform, modelId: r.modelId, prompt: r.prompt, subject: r.subject, body: r.body, frequency: r.frequency, day: r.day, hour: r.hour, everyDays: r.everyDays, channels: r.channels, trigger: r.trigger, enabled: r.enabled, version: r.version };
+    return { id: r.id, name: r.name, targetProfiles: r.targetProfiles, projectIds: r.projectIds, platform: r.platform, modelId: r.modelId, prompt: r.prompt, subject: r.subject, body: r.body, frequency: r.frequency, day: r.day, hour: r.hour, everyDays: r.everyDays, channels: r.channels, enabled: r.enabled, version: r.version };
   }
 
   /** Règles d'enregistrement (§ 7.6) : 400 si nom vide, aucun profil, aucun canal, aucun projet (hors plateforme), prompt vide, modèle inactif. */
@@ -116,10 +108,8 @@ export class RulesController {
   @Post('notification-rules')
   async create(@CurrentActor() actor: Actor, @Body() body: unknown) {
     const i = parse(RuleBody, body);
-    const kind = (i.kind ?? 'NOTIFICATION') as NotificationRule['kind'];
     const r = {
       id: techId('n'),
-      kind,
       name: i.name ?? '',
       targetProfiles: i.targetProfiles ?? [],
       projectIds: (i.projectIds ?? []).map((c) => c.toUpperCase()),
@@ -128,13 +118,11 @@ export class RulesController {
       prompt: i.prompt ?? '',
       subject: i.subject ?? '',
       body: i.body ?? '',
-      frequency: (i.frequency ?? (kind === 'ALERT' ? 'IMMEDIATE' : 'WEEKLY')) as NotificationRule['frequency'],
+      frequency: (i.frequency ?? 'WEEKLY') as NotificationRule['frequency'],
       day: i.day ?? null,
       hour: i.hour ?? null,
       everyDays: null,
       channels: (i.channels ?? ['APP']) as NotificationRule['channels'],
-      // Déclencheur (ajout au brief) : manuel par défaut pour une alerte créée dans la console.
-      trigger: (i.trigger ?? (kind === 'ALERT' ? 'MANUAL' : 'SCHEDULE')) as NotificationRule['trigger'],
       enabled: i.enabled ?? false,
     };
     await this.validate(r);
@@ -170,7 +158,7 @@ export class RulesController {
   }
 
   /**
-   * Suppression d'une règle (notification ou alerte). L'historique de ses envois est conservé (traçabilité des
+   * Suppression d'une règle. L'historique de ses envois est conservé (traçabilité des
    * messages envoyés et de leur coût) ; l'action est tracée au journal d'audit (sensible).
    */
   @Delete('notification-rules/:id')
@@ -179,7 +167,7 @@ export class RulesController {
     const cur = await this.one(id);
     await this.prisma.$transaction(async (db) => {
       await db.notificationRule.delete({ where: { id } });
-      await this.audit.action(db, adminCtx(actor), { action: 'Suppression d’une règle de notification', target: cur.name, severity: 'SENSITIVE', entityType: 'NotificationRule', entityId: id, details: { name: cur.name, kind: cur.kind, enabled: cur.enabled } });
+      await this.audit.action(db, adminCtx(actor), { action: 'Suppression d’une règle de notification', target: cur.name, severity: 'SENSITIVE', entityType: 'NotificationRule', entityId: id, details: { name: cur.name, enabled: cur.enabled } });
     });
   }
 
@@ -213,7 +201,7 @@ export class RulesController {
   async preview(@Param('id') id: string, @Body() body: unknown) {
     const r = await this.one(id);
     const { sampleContext } = parse(z.object({ sampleContext: z.record(z.string()).default({}) }).strict(), body ?? {});
-    const ctx: RuleContext = { projet: 'RISE', jalon: 'J06 · Go / No-Go Go-Live', risque: 'Reprise & qualité des données au démarrage', seuil: '80 %', semaine: 'semaine 39', document: 'CR du 20e COPIL.pdf', ...sampleContext };
+    const ctx: RuleContext = { projet: 'RISE', semaine: 'semaine 39', ...sampleContext };
     const project = await this.prisma.project.findFirst({ where: { code: ctx.projet } });
     return this.notifs.generate(r, ctx, project?.id ?? null);
   }
@@ -225,7 +213,7 @@ export class RulesController {
     const r = await this.one(id);
     const code = r.projectIds[0] ?? null;
     const project = code ? await this.prisma.project.findFirst({ where: { code } }) : null;
-    const out = await this.notifs.deliver(r, project?.id ?? null, { projet: project?.code ?? 'Plateforme', jalon: 'J06 · Go / No-Go Go-Live', risque: 'Risque de test', seuil: '80 %', semaine: 'semaine de test', document: 'document de test' }, null, { accountIds: [actor.accountId] });
+    const out = await this.notifs.deliver(r, project?.id ?? null, { projet: project?.code ?? 'Plateforme', semaine: 'semaine de test' }, null, { accountIds: [actor.accountId] });
     return out.map((d) => this.deliveryView(d));
   }
 
@@ -252,7 +240,7 @@ export class RulesController {
     return out.map((x) => this.deliveryView(x));
   }
 
-  // ── Vue « Notifications et alertes » (NOTIFICATIONS ET ALERTES - specification.md § 4) : modèle `Rule` du § 2 ──
+  // ── Vue « Notifications » (NOTIFICATIONS ET ALERTES - specification.md § 4) : modèle `Rule` du § 2 ──
 
   /** LLM actifs : seuls modèles proposés et acceptés pour rédiger un message. */
   private async llmIds() {
@@ -264,13 +252,13 @@ export class RulesController {
    * s'il est choisi, projets connus. Aucun modèle ou aucun destinataire n'empêche pas d'enregistrer : ce sont les cas
    * bloquants du § 3, qui empêchent seulement l'envoi.
    */
-  private async validateUi(r: Omit<RuleRow, 'id' | 'trigger'>, llm: Set<string>) {
+  private async validateUi(r: Omit<RuleRow, 'id'>, llm: Set<string>) {
     const fields: Record<string, string> = {};
     if (!r.name) fields.title = 'obligatoire';
     if (!r.channels.length) fields.canaux = 'au moins un canal';
     if (r.prompt.includes(`{${LLM_RESPONSE_VARIABLE}}`)) fields.prompt = `{${LLM_RESPONSE_VARIABLE}} n'est utilisable que dans le message`;
     if (r.modelId && !llm.has(r.modelId)) fields.model = 'LLM inconnu ou inactif';
-    if (r.frequency !== 'IMMEDIATE' && !isSendTime(r.hour)) fields.at = `heure HH:MM par pas de ${SEND_STEP_MINUTES} minutes`;
+    if (!isSendTime(r.hour)) fields.at = `heure HH:MM par pas de ${SEND_STEP_MINUTES} minutes`;
     for (const k of ['prompt', 'subject', 'body'] as const) { const v = removedVariablesIn(r[k]); if (v.length) fields[k] = `variable retirée : ${v.join(', ')}`; }
     if (r.projectIds.length) {
       const found = await this.prisma.project.count({ where: { code: { in: r.projectIds } } });
@@ -305,7 +293,7 @@ export class RulesController {
 
   /**
    * Création depuis la vue. L'identifiant choisi par la vue est repris (la vue garde la règle sous cet identifiant
-   * jusqu'au rechargement) ; 409 s'il existe déjà. Déclencheur : manuel pour une alerte, planifié pour une notification.
+   * jusqu'au rechargement) ; 409 s'il existe déjà.
    */
   @Post('notifications/rules')
   async uiCreate(@CurrentActor() actor: Actor, @Body() body: unknown) {
@@ -316,7 +304,7 @@ export class RulesController {
     const data = fromUiRule(u as UiRule);
     await this.validateUi(data, llm);
     const row = await this.prisma.$transaction(async (db) => {
-      const row = await db.notificationRule.create({ data: { id, ...data, trigger: data.kind === 'ALERT' ? 'MANUAL' : 'SCHEDULE' } });
+      const row = await db.notificationRule.create({ data: { id, ...data } });
       await this.audit.action(db, adminCtx(actor), { action: 'Création d’une règle de notification', target: row.name, severity: 'INFO', entityType: 'NotificationRule', entityId: row.id });
       return row;
     });
@@ -381,7 +369,7 @@ export class RulesController {
     if (errs.length) throw businessRule(errs.join(' '), { rule: 'envoi bloqué' });
     const code = rule.platform ? null : rule.projectIds[0] ?? null;
     const project = code ? await this.prisma.project.findFirst({ where: { code } }) : null;
-    const out = await this.notifs.deliver(rule, project?.id ?? null, { projet: project?.code ?? 'Plateforme', jalon: 'J06 · Go / No-Go Go-Live', risque: 'Risque de test', seuil: '80 %', semaine: 'semaine de test', document: 'document de test' }, null, { accountIds: [actor.accountId] });
+    const out = await this.notifs.deliver(rule, project?.id ?? null, { projet: project?.code ?? 'Plateforme', semaine: 'semaine de test' }, null, { accountIds: [actor.accountId] });
     const now = this.today.now();
     return out.map((d) => toUiHistory(d, now));
   }

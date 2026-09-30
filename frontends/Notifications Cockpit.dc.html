@@ -46,17 +46,18 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid #1d8f86;outli
 </div>
 </sc-if>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;open&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;boolean&quot;},&quot;left&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;number&quot;},&quot;items&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{ id: string; kind: 'alerte'|'notification'; title: string; body: string; project: string|null; at: string; read: boolean }[]&quot;},&quot;now&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;onClose&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;onRead&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(id: string) =&gt; void&quot;},&quot;onReadAll&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;open&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;boolean&quot;},&quot;left&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;number&quot;},&quot;items&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{ id: string; title: string; body: string; project: string|null; at: string; read: boolean }[]&quot;},&quot;now&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;onClose&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;onRead&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(id: string) =&gt; void&quot;},&quot;onReadAll&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;}}">
 // Notifications de l'utilisateur dans le Cockpit (canal « Dans l'application » des règles de la Console) :
 // tiroir ouvert par la cloche de la barre latérale ; un clic déplie la notification et la marque comme lue.
 const back = min => new Date(Date.now() - min * 60000).toISOString();
 const DEMO = [
-  { id: 'd1', kind: 'alerte', title: 'Jalon en retard · RISE', body: 'Un jalon du projet RISE a dépassé sa date prévue du 26 sept. 2026. Deux livrables du chantier Finance dépendent de ce jalon : prévoir une revue de trajectoire au prochain COPIL.', project: 'RISE', at: back(12), read: false },
-  { id: 'd2', kind: 'notification', title: 'RISE · votre synthèse de la semaine 40', body: 'Avancement global 62 % (+3 pts). 3 jalons dans les 15 prochains jours, 2 risques critiques ouverts, 1 décision attendue.', project: 'RISE', at: back(60 * 26), read: false },
-  { id: 'd3', kind: 'alerte', title: 'Nouveau risque critique · RISE', body: 'Un risque est devenu critique sur RISE : reprise des données au démarrage. Un plan de traitement est attendu.', project: 'RISE', at: back(60 * 24 * 3), read: true }
+  { id: 'd1', title: 'RISE · actions de la semaine', body: 'Quatre actions du chantier Finance arrivent à échéance d’ici vendredi, dont deux sans avancement depuis dix jours : prévoir un point avec leurs responsables.', project: 'RISE', at: back(12), read: false },
+  { id: 'd2', title: 'RISE · votre synthèse de la semaine 40', body: 'Avancement global 62 % (+3 pts). 3 jalons dans les 15 prochains jours, 2 risques critiques ouverts, 1 décision attendue.', project: 'RISE', at: back(60 * 26), read: false },
+  { id: 'd3', title: 'RISE · votre synthèse de la semaine 39', body: 'Avancement global 59 % (+2 pts). 2 jalons dans les 15 prochains jours, 1 risque critique ouvert.', project: 'RISE', at: back(60 * 24 * 7), read: true }
 ];
-const IC = { alerte: 'M12 8v5M12 16.5v.5M10.3 3.9L2.5 17.5A2 2 0 0 0 4.2 20.5h15.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z', notification: 'M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8M10 20a2 2 0 0 0 4 0' };
-const TILE = { alerte: ['#fdf0ed', '#c2473b'], notification: ['#e6f4f2', '#146b64'] };
+// Plus d’alertes depuis le 30/09/2026 : un seul type, la notification.
+const IC = 'M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8M10 20a2 2 0 0 0 4 0';
+const TILE = ['#e6f4f2', '#146b64'];
 const rel = (iso, now) => { const m = Math.max(0, Math.round((now - new Date(iso).getTime()) / 60000)); if (m < 1) return 'à l’instant'; if (m < 60) return 'il y a ' + m + ' min'; const h = Math.round(m / 60); if (h < 24) return 'il y a ' + h + ' h'; const d = Math.round(h / 24); return d === 1 ? 'hier' : 'il y a ' + d + ' j'; };
 const tabSt = on => 'height:30px;padding:0 10px;border:0;border-radius:8px;display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:12.5px;cursor:pointer;' + (on ? 'background:#10233a;color:#fff;font-weight:700' : 'background:#eef3f2;color:#43586a;font-weight:600');
 
@@ -69,24 +70,24 @@ class Component extends DCLogic {
   renderVals() {
     const S = this.state, all = this.list(), now = this.props.now ? new Date(this.props.now).getTime() : Date.now(), left = this.props.left ?? 272;
     const unread = all.filter(i => !i.read).length;
-    const shown = S.tab === 'unread' ? all.filter(i => !i.read) : S.tab === 'alertes' ? all.filter(i => i.kind === 'alerte') : all;
+    const shown = S.tab === 'unread' ? all.filter(i => !i.read) : all;
     return {
       open: this.props.open ?? true, close: () => this.props.onClose?.(),
       hasUnread: unread > 0, unreadL: unread + ' non lue' + (unread > 1 ? 's' : ''), noUnread: !unread,
       readAll: () => { if (!unread) return; this.setState({ readLocal: Object.fromEntries(all.map(i => [i.id, true])) }); this.props.onReadAll?.(); },
       readAllSt: 'height:28px;padding:0 8px;border:0;border-radius:8px;background:transparent;font:inherit;font-size:12px;font-weight:700;color:#1d8f86;cursor:' + (unread ? 'pointer' : 'default;opacity:.4'),
-      tabs: [['all', 'Toutes', all.length], ['unread', 'Non lues', unread], ['alertes', 'Alertes', all.filter(i => i.kind === 'alerte').length]].map(([k, l, c]) => ({ l, c: String(c), on: S.tab === k, pick: () => this.setState({ tab: k }), st: tabSt(S.tab === k) })),
-      items: shown.map(i => { const T = TILE[i.kind] || TILE.notification, open = S.openId === i.id;
+      tabs: [['all', 'Toutes', all.length], ['unread', 'Non lues', unread]].map(([k, l, c]) => ({ l, c: String(c), on: S.tab === k, pick: () => this.setState({ tab: k }), st: tabSt(S.tab === k) })),
+      items: shown.map(i => { const T = TILE, open = S.openId === i.id;
         const pick = () => { this.setState({ openId: open ? null : i.id }); if (!i.read) this.read(i.id); };
-        return { t: i.title, b: i.body, when: rel(i.at, now), p: i.project || '', hasP: !!i.project, unread: !i.read, ic: IC[i.kind] || IC.notification, openL: open ? 'true' : 'false',
-          kL: i.kind === 'alerte' ? 'Alerte' : 'Notification', pick, key: e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } },
+        return { t: i.title, b: i.body, when: rel(i.at, now), p: i.project || '', hasP: !!i.project, unread: !i.read, ic: IC, openL: open ? 'true' : 'false',
+          kL: 'Notification', pick, key: e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } },
           kSt: 'height:20px;padding:0 8px;border-radius:999px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;background:' + T[0] + ';color:' + T[1],
           tile: 'width:34px;height:34px;border-radius:10px;flex:none;display:grid;place-items:center;background:' + T[0] + ';color:' + T[1],
           tSt: 'font-size:13px;font-weight:' + (i.read ? 600 : 800) + ';color:#10233a;min-width:0;' + (open ? '' : 'white-space:nowrap;overflow:hidden;text-overflow:ellipsis'),
           bSt: 'font-size:12px;color:#5c7280;line-height:1.5;text-wrap:pretty;white-space:pre-line;' + (open ? '' : 'display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden'),
-          dot: 'width:8px;height:8px;border-radius:50%;flex:none;margin-top:6px;background:' + (i.kind === 'alerte' ? '#f07b67' : '#1d8f86'),
+          dot: 'width:8px;height:8px;border-radius:50%;flex:none;margin-top:6px;background:#1d8f86',
           rowSt: 'display:flex;gap:12px;padding:12px 20px;cursor:pointer;outline:none;transition:background .2s;' + (!i.read ? 'background:linear-gradient(90deg,rgba(29,143,134,.05),transparent 70%)' : '') }; }),
-      empty: !shown.length, emptyT: S.tab === 'unread' ? 'Tout est lu' : 'Aucune notification', emptyS: 'Les alertes et notifications de vos projets apparaîtront ici.',
+      empty: !shown.length, emptyT: S.tab === 'unread' ? 'Tout est lu' : 'Aucune notification', emptyS: 'Les notifications de vos projets apparaîtront ici.',
       scrimSt: 'position:fixed;top:0;bottom:0;right:0;left:' + left + 'px;z-index:70;background:rgba(10,23,39,.28);animation:ncFade .2s both',
       panelSt: 'position:fixed;top:0;bottom:0;left:' + left + 'px;z-index:71;width:min(440px,calc(100vw - ' + left + 'px));display:flex;flex-direction:column;background:#fff;box-shadow:24px 0 60px -30px rgba(10,23,39,.6);animation:ncIn .24s cubic-bezier(.2,.7,.2,1) both'
     };

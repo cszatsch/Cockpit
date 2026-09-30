@@ -22,44 +22,40 @@ import {
 
 const row = (o: Partial<RuleRow> = {}): RuleRow => ({
   id: 'n1',
-  kind: 'ALERT',
-  name: 'Jalon en retard',
+  name: 'Synthèse des jalons',
   targetProfiles: ['resp', 'pmo'],
   projectIds: ['RISE', 'ATLAS'],
   platform: false,
   modelId: 'haiku',
-  prompt: 'Rédige une alerte sur le projet {projet}.',
-  subject: 'Jalon en retard · {projet}',
-  body: 'Un jalon de {projet} est en retard. {reponse_llm}',
-  frequency: 'IMMEDIATE',
+  prompt: 'Rédige la synthèse des jalons du projet {projet}.',
+  subject: 'Jalons · {projet}',
+  body: 'Jalons de {projet}. {reponse_llm}',
+  frequency: 'DAILY',
   day: null,
-  hour: null,
+  hour: '08:00',
   everyDays: null,
   channels: ['EMAIL', 'APP'],
-  trigger: 'MILESTONE_LATE',
   enabled: true,
   ...o,
 });
 
-describe('Notifications et alertes : adaptateur table ↔ vue (spécification § 2)', () => {
+describe('Notifications : adaptateur table ↔ vue (spécification § 2)', () => {
   const llm = new Set(['haiku']);
 
   it('convertit une règle de la table vers le modèle Rule de la vue', () => {
     expect(toUiRule(row(), llm)).toEqual({
       id: 'n1',
-      type: 'alerte',
-      title: 'Jalon en retard',
-      evt: 'un jalon est en retard',
+      title: 'Synthèse des jalons',
       profils: ['PMO', 'Responsable'],
       projets: ['RISE', 'ATLAS'],
       canaux: ['app', 'mail'],
-      freq: 'imm',
-      at: '',
+      freq: 'day',
+      at: '08:00',
       on: true,
       model: 'haiku',
-      prompt: 'Rédige une alerte sur le projet {projet}.',
-      subject: 'Jalon en retard · {projet}',
-      body: 'Un jalon de {projet} est en retard. {reponse_llm}',
+      prompt: 'Rédige la synthèse des jalons du projet {projet}.',
+      subject: 'Jalons · {projet}',
+      body: 'Jalons de {projet}. {reponse_llm}',
     });
   });
 
@@ -73,13 +69,13 @@ describe('Notifications et alertes : adaptateur table ↔ vue (spécification §
   it('fait l’aller-retour vue → table → vue sans perte', () => {
     for (const r of [
       row(),
-      row({ kind: 'NOTIFICATION', frequency: 'WEEKLY', day: 'mardi', hour: '07:30', platform: true, projectIds: [], trigger: 'SCHEDULE', channels: ['APP'] }),
+      row({ frequency: 'WEEKLY', day: 'mardi', hour: '07:30', platform: true, projectIds: [], channels: ['APP'] }),
       row({ frequency: 'DAILY', hour: '18:00', targetProfiles: [] }),
       row({ frequency: 'DAILY', hour: '07:30' }),
     ]) {
       const u = toUiRule(r, llm);
       const back = fromUiRule(u);
-      expect(toUiRule({ ...back, id: r.id, trigger: r.trigger }, llm)).toEqual(u);
+      expect(toUiRule({ ...back, id: r.id }, llm)).toEqual(u);
     }
   });
 
@@ -99,7 +95,6 @@ describe('Notifications et alertes : adaptateur table ↔ vue (spécification §
     expect(parseAt('week', '')).toEqual({ day: 'lundi', hour: '07:00', everyDays: null });
     expect(parseAt('week', 'Vendredi 17h30')).toEqual({ day: 'vendredi', hour: '17:30', everyDays: null });
     expect(parseAt('day', '')).toEqual({ day: null, hour: '07:00', everyDays: null });
-    expect(parseAt('imm', 'lundi 08:00')).toEqual({ day: null, hour: null, everyDays: null });
   });
 
   it('heures par pas de 30 minutes ; créneau d’un instant ; variables retirées', () => {
@@ -111,7 +106,7 @@ describe('Notifications et alertes : adaptateur table ↔ vue (spécification §
   });
 });
 
-describe('Notifications et alertes : cas bloquants (§ 3) et historique', () => {
+describe('Notifications : cas bloquants (§ 3) et historique', () => {
   it('bloque l’envoi sans modèle ou sans destinataire', () => {
     expect(blockingErrors(row())).toEqual([]);
     expect(blockingErrors(row({ modelId: '' }))).toEqual([ERR_NO_MODEL]);
@@ -146,7 +141,7 @@ describe('Notifications : périmètre d’un texte par profil (point 7)', () => 
 });
 
 describe('Planification : prochain envoi (heure de Paris)', () => {
-  const r = (frequency: string, hour: string | null, day: string | null = null, enabled = true, trigger = 'SCHEDULE') => ({ enabled, trigger, frequency, hour, day });
+  const r = (frequency: string, hour: string | null, day: string | null = null, enabled = true) => ({ enabled, frequency, hour, day });
   // 26/09/2026 à 10 h 24 à Paris (UTC+2) : un samedi.
   const now = new Date('2026-09-26T08:24:00Z');
   it('quotidienne : aujourd’hui si l’heure n’est pas passée, sinon demain', () => {
@@ -165,10 +160,8 @@ describe('Planification : prochain envoi (heure de Paris)', () => {
     expect(nextSendAt(r('DAILY', '07:00'), new Date('2026-10-24T12:00:00Z'))!.toISOString()).toBe('2026-10-25T06:00:00.000Z');
     expect(parisDay(new Date('2026-10-24T22:30:00Z'))).toBe('2026-10-25');
   });
-  it('règle inactive, immédiate ou d’événement : pas d’envoi planifié', () => {
+  it('règle inactive : pas d’envoi planifié', () => {
     expect(nextSendAt(r('DAILY', '07:00', null, false), now)).toBeNull();
-    expect(nextSendAt(r('IMMEDIATE', null), now)).toBeNull();
-    expect(nextSendAt(r('DAILY', '18:00', null, true, 'DOCUMENT_ANALYZED'), now)).toBeNull();
     expect(scheduleKey(r('DAILY', '07:00', null, false))).toBe('off');
     expect(scheduleKey(r('WEEKLY', '07:00', 'Lundi'))).toBe('WEEKLY|lundi|07:00');
   });
@@ -182,7 +175,7 @@ describe('Rattrapage : limite et occurrences manquées', () => {
     expect(catchUpDeadline(new Date('2026-09-29T07:00:00Z'), 'America/New_York').toISOString()).toBe('2026-10-01T03:59:59.999Z');
   });
   it('occurrences manquées d’une règle quotidienne, de la première échéance jusqu’à maintenant', () => {
-    const r = { enabled: true, trigger: 'SCHEDULE', frequency: 'DAILY', day: null, hour: '09:00' };
+    const r = { enabled: true, frequency: 'DAILY', day: null, hour: '09:00' };
     const occ = occurrencesUntil(r, new Date('2026-09-29T07:00:00Z'), new Date('2026-10-01T08:00:00Z'));
     expect(occ.map((d) => d.toISOString())).toEqual(['2026-09-29T07:00:00.000Z', '2026-09-30T07:00:00.000Z', '2026-10-01T07:00:00.000Z']);
   });

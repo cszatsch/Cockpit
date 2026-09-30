@@ -16,28 +16,15 @@ textarea::placeholder,input::placeholder{color:#8a9aa6}
 @keyframes toastIn{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style></helmet>
-<div data-screen-label="Notifications et alertes" style="max-width:1440px;margin:0 auto;padding:52px 56px 72px;display:flex;flex-direction:column;gap:32px">
+<div data-screen-label="Notifications" style="max-width:1440px;margin:0 auto;padding:52px 56px 72px;display:flex;flex-direction:column;gap:32px">
   <div style="display:flex;flex-direction:column;gap:8px;animation:rise .45s cubic-bezier(.2,.7,.2,1) both">
     <div style="font-size:11px;font-weight:800;letter-spacing:.16em;color:#1d8f86">PLATEFORME</div>
-    <div style="font-size:38px;font-weight:800;font-style:italic;letter-spacing:-.035em;line-height:1.05">Notifications et alertes</div>
-    <div style="font-size:14px;color:#43586a">Les notifications informent. Les alertes signalent un événement ou un seuil critique.</div>
+    <div style="font-size:38px;font-weight:800;font-style:italic;letter-spacing:-.035em;line-height:1.05">Notifications</div>
+    <div style="font-size:14px;color:#43586a">Les notifications informent les utilisateurs chaque jour ou chaque semaine, à l’heure prévue.</div>
   </div>
 
   <div style="display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start">
     <nav aria-label="Règles" style="flex:1 1 280px;max-width:340px;display:flex;flex-direction:column;gap:22px;position:sticky;top:24px">
-      <div style="display:flex;flex-direction:column;gap:4px">
-        <div style="display:flex;align-items:center;gap:8px;padding:0 16px 8px;font-size:10.5px;font-weight:800;letter-spacing:.16em;color:#c2473b">ALERTES<span style="flex:1;height:1px;background:#e1e9e7"></span></div>
-        <sc-for list="{{ alerts }}" as="r" hint-placeholder-count="3">
-          <div role="button" tabindex="0" onClick="{{ r.pick }}" aria-current="{{ r.sel }}" style="{{ r.row }}" style-hover="{{ r.hov }}">
-            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">
-              <span style="font-size:14px;font-weight:700;letter-spacing:-.005em">{{ r.t }}</span>
-              <span style="{{ r.metaSt }}">{{ r.meta }}</span>
-              <span style="{{ r.freqSt }}">{{ r.f }}</span>
-            </div>
-            <button type="button" role="switch" onClick="{{ r.flip }}" aria-checked="{{ r.on }}" aria-label="{{ r.aria }}" style="{{ r.tr }}"><span style="{{ r.kn }}"></span></button>
-          </div>
-        </sc-for>
-      </div>
       <div style="display:flex;flex-direction:column;gap:4px">
         <div style="display:flex;align-items:center;gap:8px;padding:0 16px 8px;font-size:10.5px;font-weight:800;letter-spacing:.16em;color:#1d8f86">NOTIFICATIONS<span style="flex:1;height:1px;background:#e1e9e7"></span></div>
         <sc-for list="{{ notifs }}" as="r" hint-placeholder-count="2">
@@ -70,13 +57,6 @@ textarea::placeholder,input::placeholder{color:#8a9aa6}
       </div>
 
       <div style="display:flex;flex-direction:column;padding:0 36px">
-        <div style="display:flex;flex-wrap:wrap;gap:10px 24px;padding:22px 0;border-bottom:1px solid #eef3f2">
-          <div style="flex:0 0 220px;font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#5c7280;padding-top:12px">TYPE</div>
-          <div style="flex:1 1 380px;min-width:0;display:flex;align-items:center;gap:12px 18px;flex-wrap:wrap">
-            <div role="radiogroup" aria-label="Type" style="display:inline-flex;padding:3px;border-radius:11px;background:#eef3f2;gap:2px"><sc-for list="{{ types }}" as="o" hint-placeholder-count="2"><button type="button" role="radio" aria-checked="{{ o.on }}" onClick="{{ o.pick }}" style="{{ o.st }}"><sc-if value="{{ o.dot }}" hint-placeholder-val="{{ false }}"><span style="width:6px;height:6px;border-radius:50%;background:#e0604c"></span></sc-if>{{ o.l }}</button></sc-for></div>
-            <span style="font-size:12.5px;color:#5c7280;line-height:1.5;max-width:460px">{{ typeHelp }}</span>
-          </div>
-        </div>
         <div style="display:flex;flex-wrap:wrap;gap:10px 24px;padding:22px 0;border-bottom:1px solid #eef3f2">
           <div style="flex:0 0 220px;font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#5c7280;padding-top:11px">CANAL</div>
           <div style="flex:1 1 380px;min-width:0;display:flex;gap:8px;flex-wrap:wrap"><sc-for list="{{ canaux }}" as="c" hint-placeholder-count="2"><button type="button" aria-pressed="{{ c.on }}" onClick="{{ c.flip }}" style="{{ c.st }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="{{ c.ic }}"></path></svg>{{ c.l }}</button></sc-for></div>
@@ -185,7 +165,7 @@ textarea::placeholder,input::placeholder{color:#8a9aa6}
 </div>
 <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}"><div role="status" style="position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:50;height:42px;padding:0 18px;border-radius:12px;background:#10233a;color:#fff;font-size:13px;font-weight:600;display:flex;align-items:center;gap:10px;box-shadow:0 18px 40px -16px rgba(16,35,58,.6);animation:toastIn .25s cubic-bezier(.2,.7,.2,1) both"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3dd6c6" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"></path></svg>{{ toast }}</div></sc-if>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;rules&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{ id: string; type: 'alerte'|'notification'; title: string; evt: string; profils: string[]; projets: string[]; canaux: ('app'|'mail')[]; freq: 'imm'|'day'|'week'; at: string; on: boolean; model: string|null; prompt: string; subject: string; body: string }[]&quot;},&quot;models&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{ id: string; provider: string; name: string }[]&quot;},&quot;projects&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string[]&quot;},&quot;counts&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Record&lt;string, number&gt;&quot;},&quot;schedule&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{ timezone: string; label: string; stepMinutes: number; defaultHour: string; defaultDay: string; days: string[] }&quot;},&quot;history&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{ rid: string; w: string; c: string; d: string; ok: boolean }[]&quot;},&quot;onSave&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(rule) =&gt; void&quot;},&quot;onToggle&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(id: string, on: boolean) =&gt; void&quot;},&quot;onDelete&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(id: string) =&gt; void&quot;},&quot;onCreate&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(rule) =&gt; void&quot;},&quot;onTest&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(rule) =&gt; void&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;rules&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{ id: string; title: string; profils: string[]; projets: string[]; canaux: ('app'|'mail')[]; freq: 'day'|'week'; at: string; on: boolean; model: string|null; prompt: string; subject: string; body: string }[]&quot;},&quot;models&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{ id: string; provider: string; name: string }[]&quot;},&quot;projects&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string[]&quot;},&quot;counts&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Record&lt;string, number&gt;&quot;},&quot;schedule&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{ timezone: string; label: string; stepMinutes: number; defaultHour: string; defaultDay: string; days: string[] }&quot;},&quot;history&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{ rid: string; w: string; c: string; d: string; ok: boolean }[]&quot;},&quot;onSave&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(rule) =&gt; void&quot;},&quot;onToggle&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(id: string, on: boolean) =&gt; void&quot;},&quot;onDelete&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(id: string) =&gt; void&quot;},&quot;onCreate&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(rule) =&gt; void&quot;},&quot;onTest&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(rule) =&gt; void&quot;}}">
 // ---- Données de démonstration (remplacées par les props en production) ----
 const PROFILS = ['Admin', 'PMO', 'Responsable', 'Lecteur'];
 const PROJETS = ['RISE', 'ATLAS', 'HORIZON', 'NOVA'];
@@ -195,25 +175,21 @@ const MODELS = [
   { id: 'gpt-4.1-mini', provider: 'OpenAI', name: 'GPT-4.1 mini' },
   { id: 'claude-sonnet', provider: 'Anthropic', name: 'Claude Sonnet' }
 ];
-const P1 = 'Tu es l’assistant PMO du projet {projet}. Un jalon a dépassé sa date prévue du {date}. Rédige une alerte de 3 phrases maximum : le constat, l’impact probable sur le planning et l’action attendue du responsable. Ton factuel, sans formule de politesse.';
 const RULES = [
-  { id: 'r1', type: 'alerte', title: 'Jalon en retard', evt: 'un jalon est en retard', profils: ['Responsable', 'PMO'], projets: ['RISE', 'ATLAS'], canaux: ['app', 'mail'], freq: 'imm', at: '', on: true, model: null, prompt: P1, subject: 'Jalon en retard · {projet}', body: 'Un jalon du projet {projet} a dépassé sa date prévue du {date}. Ouvrez le planning pour réviser la trajectoire.' },
-  { id: 'r2', type: 'alerte', title: 'Risque critique ouvert', evt: 'un risque critique est ouvert', profils: ['Responsable', 'PMO'], projets: ['*'], canaux: ['app', 'mail'], freq: 'imm', at: '', on: true, model: 'mistral-large', prompt: 'Résume le nouveau risque critique du projet {projet} en 2 phrases : la cause et l’action attendue.', subject: 'Risque critique · {projet}', body: 'Un risque critique a été ouvert sur {projet}. {reponse_llm}' },
-  { id: 'r3', type: 'alerte', title: 'Seuil budgétaire IA atteint', evt: 'le seuil budgétaire IA est atteint', profils: ['PMO'], projets: ['*'], canaux: ['mail'], freq: 'imm', at: '', on: true, model: 'gpt-4.1-mini', prompt: 'Explique en une phrase le dépassement du seuil d’alerte sur {projet}.', subject: 'Seuil budgétaire IA atteint · {projet}', body: 'Le budget IA du projet {projet} a atteint le seuil d’alerte. {reponse_llm}' },
-  { id: 'r4', type: 'notification', title: 'Synthèse hebdomadaire du projet', evt: 'la synthèse hebdomadaire est prête', profils: ['PMO', 'Responsable'], projets: ['*'], canaux: ['app', 'mail'], freq: 'week', at: 'lundi 07:00', on: true, model: 'claude-sonnet', prompt: 'Rédige la synthèse de la semaine du projet {projet} : avancement, jalons, risques ouverts.', subject: 'Synthèse hebdomadaire · {projet}', body: '{reponse_llm}' },
-  { id: 'r5', type: 'notification', title: 'Nouveau document analysé', evt: 'un nouveau document est analysé', profils: ['Responsable'], projets: ['*'], canaux: ['app'], freq: 'day', at: '18:00', on: false, model: 'mistral-large', prompt: 'Résume le nouveau document du projet {projet} en 3 points.', subject: 'Document analysé · {projet}', body: 'Un nouveau document du projet {projet} a été analysé. {reponse_llm}' }
+  { id: 'r4', title: 'Synthèse hebdomadaire du projet', profils: ['PMO', 'Responsable'], projets: ['*'], canaux: ['app', 'mail'], freq: 'week', at: 'lundi 07:00', on: true, model: 'claude-sonnet', prompt: 'Rédige la synthèse de la semaine du projet {projet} : avancement, jalons, risques ouverts.', subject: 'Synthèse hebdomadaire · {projet}', body: '{reponse_llm}' },
+  { id: 'r5', title: 'Point quotidien des actions', profils: ['Responsable'], projets: ['*'], canaux: ['app'], freq: 'day', at: '18:00', on: false, model: 'mistral-large', prompt: 'Liste les actions du projet {projet} arrivant à échéance cette semaine, en 3 points.', subject: 'Actions de la semaine · {projet}', body: '{reponse_llm}' }
 ];
 const HIST = [
-  { rid: 'r1', w: 'il y a 3 j', c: 'E-mail', d: '4 destinataires', ok: true },
-  { rid: 'r1', w: 'il y a 3 j', c: 'Application', d: '4 destinataires', ok: true },
-  { rid: 'r4', w: 'il y a 8 j', c: 'E-mail', d: '8 destinataires', ok: true },
-  { rid: 'r1', w: 'il y a 9 j', c: 'E-mail', d: '4 destinataires', ok: true },
-  { rid: 'r3', w: 'il y a 12 j', c: 'E-mail', d: '3 destinataires', ok: false }
+  { rid: 'r4', w: 'il y a 3 j', c: 'E-mail', d: '8 destinataires', ok: true },
+  { rid: 'r4', w: 'il y a 3 j', c: 'Application', d: '8 destinataires', ok: true },
+  { rid: 'r5', w: 'il y a 8 j', c: 'Application', d: '5 destinataires', ok: true },
+  { rid: 'r4', w: 'il y a 10 j', c: 'E-mail', d: '8 destinataires', ok: false }
 ];
-const SAMPLE = { jalon: 'J06 · Go / No-Go Go-Live', projet: 'RISE', date: '29 sept. 2026', risque: 'R12 · Dépendance fournisseur', seuil: '80 %', document: 'CR comité 24-09.pdf', reponse_llm: '[réponse du modèle]' };
+const SAMPLE = { projet: 'RISE', date: '29 sept. 2026', reponse_llm: '[réponse du modèle]' };
 // Variables des messages : {jalon}, {risque}, {seuil} et {document} retirées le 29/09/2026.
 const VARS = ['projet', 'date', 'reponse_llm'];
-const FREQ = { imm: ['Immédiate', 'immédiatement', 'Envoyée dès que l’événement se produit.'], day: ['Quotidienne', 'chaque jour', 'Envoyée une fois par jour'], week: ['Hebdomadaire', 'chaque semaine', 'Envoyée une fois par semaine'] };
+// Fréquence « Immédiate » retirée le 30/09/2026 (plus d’alertes) : toutes les règles partent à heure fixe.
+const FREQ = { day: ['Quotidienne', 'chaque jour', 'Envoyée une fois par jour'], week: ['Hebdomadaire', 'chaque semaine', 'Envoyée une fois par semaine'] };
 const DAYS = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
 const SCHED0 = { timezone: 'Europe/Paris', label: 'heure de Paris', stepMinutes: 30, defaultHour: '07:00', defaultDay: 'lundi', days: DAYS };
 const hoursOf = step => Array.from({ length: 1440 / step }, (_, i) => String(Math.floor(i * step / 60)).padStart(2, '0') + ':' + String(i * step % 60).padStart(2, '0'));
@@ -278,24 +254,21 @@ class Component extends DCLogic {
     const list = (arr, f) => arr.flatMap((v, i) => [...(i ? [P(i === arr.length - 1 ? ' et ' : ', ')] : []), f(v)]);
     const proj = d.projets.includes('*') ? [T('tous les projets')] : d.projets.length ? list(d.projets, T) : [E('aucun projet')];
     const chPhrase = d.canaux.length === 2 ? 'dans l’application et par e-mail' : d.canaux[0] === 'app' ? 'dans l’application' : 'par e-mail';
-    const sentence = [P('Quand '), { x: d.evt || 'l’événement se produit', st: 'color:#10233a;font-weight:700' }, P(', ' + (d.type === 'alerte' ? 'alerter ' : 'informer ')),
+    const sentence = [P('Informer '),
       ...(d.profils.length ? list(d.profils, T) : [E('aucun destinataire')]), P(' sur '), ...proj, P(', '), T(FREQ[d.freq][1] + (d.at ? (d.freq === 'day' ? ' à ' : ', ') + d.at : '')), P(', '), T(chPhrase), P('. Message rédigé par '), model ? T(model.name) : E('aucun modèle'), P('.')];
     const recips = d.profils.reduce((n, p) => n + (counts[p] || 0), 0);
     const toggleIn = (arr, v) => arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v];
     const allP = d.projets.includes('*');
-    const kind = d.type === 'alerte' ? 'Alerte' : 'Notification';
     const hist = (this.props.history ?? HIST).filter(h => S.hScope === 'all' || h.rid === cur.id);
-    const titleOf = id => (rules.find(r => r.id === id) || {}).title || '';
+    const titleOf = id => (rules.find(r => r.id === id) || {}).title || 'Règle supprimée';
     const canSend = !errs.length && d.canaux.length;
     return {
-      alerts: rules.filter(r => r.type === 'alerte').map(row), notifs: rules.filter(r => r.type !== 'alerte').map(row),
-      create: () => { const id = 'r' + Date.now(), r = { id, type: 'notification', title: 'Nouvelle règle', evt: '', profils: [], projets: ['*'], canaux: ['app'], freq: 'imm', at: '', on: false, model: null, prompt: '', subject: '', body: '' };
+      notifs: rules.map(row),
+      create: () => { const id = 'r' + Date.now(), r = { id, title: 'Nouvelle règle', profils: [], projets: ['*'], canaux: ['app'], freq: 'day', at: sch.defaultHour, on: false, model: null, prompt: '', subject: '', body: '' };
         this.setState({ rules: [...rules, r], selId: id, draft: null }); this.props.onCreate?.(r); },
       d, sentence, errors: errs, inactive: !d.on, activeL: d.on ? 'Désactiver' : 'Activer',
       toggleActive: () => this.flipRule(cur.id),
       setTitle: e => this.edit({ title: e.target.value }),
-      types: [['notification', 'Notification'], ['alerte', 'Alerte']].map(([k, l]) => ({ l, on: d.type === k, dot: k === 'alerte', pick: () => this.edit({ type: k }), st: seg(d.type === k) })),
-      typeHelp: d.type === 'alerte' ? 'Signale un événement ou un seuil critique. Mise en avant dans le Cockpit, jamais regroupée.' : 'Informe sans urgence. Peut être regroupée avec les autres notifications.',
       canaux: ['app', 'mail'].map(k => { const on = d.canaux.includes(k);
         return { l: CH[k][0], ic: CH[k][2], on, flip: () => { if (on && d.canaux.length === 1) return; this.edit({ canaux: toggleIn(d.canaux, k).sort() }); },
           st: 'white-space:nowrap;height:34px;padding:0 14px 0 11px;border-radius:10px;display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:12.5px;cursor:pointer;transition:all .15s;' + (on ? 'border:1px solid #10233a;background:#10233a;color:#fff' : 'border:1px solid #d5e0dd;background:#fff;color:#5c7280') }; }),
@@ -314,24 +287,24 @@ class Component extends DCLogic {
         lblSt: 'flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13.5px;font-weight:' + (model ? 700 : 600) + ';color:' + (model ? '#10233a' : '#5c7280') },
       setPrompt: e => this.edit({ prompt: e.target.value }), promptL: d.prompt.length + ' caractères',
       freqs: Object.keys(FREQ).map(k => ({ l: FREQ[k][0], on: d.freq === k, st: seg(d.freq === k),
-        pick: () => { const p = atParts(d.at), h = p.hour || sch.defaultHour; this.edit({ freq: k, at: k === 'imm' ? '' : k === 'day' ? h : (p.day || sch.defaultDay) + ' ' + h }); } })),
+        pick: () => { const p = atParts(d.at), h = p.hour || sch.defaultHour; this.edit({ freq: k, at: k === 'day' ? h : (p.day || sch.defaultDay) + ' ' + h }); } })),
       // Calendrier : jour (hebdomadaire) et heure par pas de 30 minutes, dans le fuseau de l'organisation.
-      hasAt: d.freq !== 'imm', isWeek: d.freq === 'week',
+      hasAt: true, isWeek: d.freq === 'week',
       daySel: { val: atP.day || sch.defaultDay, lbl: cap(atP.day || sch.defaultDay), box: selBox(false), lblSt: selLbl(false),
         opts: (sch.days || DAYS).map(v => ({ v, l: cap(v) })), set: e => this.edit({ at: e.target.value + ' ' + (atP.hour || sch.defaultHour) }) },
       hourSel: { val: atP.hour || sch.defaultHour, lbl: atP.hour || sch.defaultHour, box: selBox(true), lblSt: selLbl(true),
         opts: hoursOf(sch.stepMinutes || 30).map(v => ({ v, l: v })), set: e => this.edit({ at: d.freq === 'week' ? (atP.day || sch.defaultDay) + ' ' + e.target.value : e.target.value }) },
       tzL: 'Fuseau : ' + sch.timezone + ' (' + sch.label + ')',
-      freqHelp: FREQ[d.freq][2] + (d.at && d.freq !== 'imm' ? ' · ' + d.at + '.' : d.freq === 'imm' ? '' : '.'),
+      freqHelp: FREQ[d.freq][2] + (d.at ? ' · ' + d.at + '.' : '.'),
       setSubject: e => this.edit({ subject: e.target.value }), setBody: e => this.edit({ body: e.target.value }),
       vars: VARS.map(v => { const llm = v === 'reponse_llm';
         return { l: '{' + v + '}', ins: () => this.edit({ body: (d.body ? d.body.replace(/\s*$/, ' ') : '') + '{' + v + '}' }),
           st: 'border:0;cursor:pointer;font-family:\'IBM Plex Mono\',monospace;font-size:11.5px;padding:2px 6px;border-radius:6px;transition:background .15s;' + (llm ? 'background:#e6f4f2;color:#146b64' : 'background:#eef3f2;color:#2a3f53'), hov: 'background:#d5e0dd' }; }),
       pvTabs: [['app', 'Application'], ['mail', 'E-mail']].map(([k, l]) => ({ l, on: S.pv === k, pick: () => this.setState({ pv: k }), st: seg(S.pv === k, 26) })),
       pvApp: S.pv === 'app', pvMail: S.pv === 'mail',
-      pv: { kind, subject: fill(d.subject, SAMPLE) || 'Sans objet', body: fill(d.body, SAMPLE),
-        bar: 'width:3px;border-radius:2px;flex:none;background:' + (d.type === 'alerte' ? '#e0604c' : '#1d8f86'),
-        badge: 'height:20px;padding:0 8px;border-radius:999px;font-weight:700;display:inline-flex;align-items:center;' + (d.type === 'alerte' ? 'background:#fdf0ed;color:#c2473b' : 'background:#e6f4f2;color:#146b64') },
+      pv: { kind: 'Notification', subject: fill(d.subject, SAMPLE) || 'Sans objet', body: fill(d.body, SAMPLE),
+        bar: 'width:3px;border-radius:2px;flex:none;background:#1d8f86',
+        badge: 'height:20px;padding:0 8px;border-radius:999px;font-weight:700;display:inline-flex;align-items:center;background:#e6f4f2;color:#146b64' },
       cantSend: !canSend,
       testSt: 'flex:none;white-space:nowrap;height:36px;padding:0 16px;border-radius:10px;border:0;font-weight:700;font-size:12.5px;' + (canSend ? 'background:#10233a;color:#fff;cursor:pointer' : 'background:#e1e9e7;color:#8a9aa6;cursor:not-allowed'),
       testHov: canSend ? 'background:#1d3654' : '',

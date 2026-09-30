@@ -67,7 +67,7 @@ describe('Notifications du Cockpit et rédaction à partir des données', () => 
 
     it('un texte par profil, sur les données que tous ses membres peuvent lire ; notifications « Dans l’application »', async () => {
       const svc = t.app.get(NotificationsService);
-      const rule = await t.db.notificationRule.update({ where: { id: 'n2' }, data: { body: '{reponse_llm}', channels: ['APP'] } });
+      const rule = await t.db.notificationRule.update({ where: { id: 'n4' }, data: { body: '{reponse_llm}', channels: ['APP'] } });
       const groups = await t.app.get(NotificationsService)['profiles'].audiences(rule.targetProfiles, RISE);
       expect(groups.map((g: any) => g.profile)).toEqual(['pmo', 'resp']);
       const pmoGroup = groups[0], respGroup = groups[1];
@@ -86,10 +86,10 @@ describe('Notifications du Cockpit et rédaction à partir des données', () => 
       expect(out[0].body).toBe(`Risques ouverts : ${all}.`);
       expect(out[1].body).toBe(`Risques ouverts : ${respCount}.`);
       // Une notification par destinataire, avec le texte de son profil.
-      const notes = await t.db.userNotification.findMany({ where: { ruleId: 'n2' } });
+      const notes = await t.db.userNotification.findMany({ where: { ruleId: 'n4' } });
       expect(notes.length).toBe(pmoGroup.accounts.length + respGroup.accounts.length);
       const pmoAccount = pmoGroup.accounts[0].id;
-      expect(notes.find((n) => n.accountId === pmoAccount)).toMatchObject({ kind: 'ALERT', body: `Risques ouverts : ${all}.`, projectId: RISE, readAt: null });
+      expect(notes.find((n) => n.accountId === pmoAccount)).toMatchObject({ body: `Risques ouverts : ${all}.`, projectId: RISE, readAt: null });
       exec.mockRestore();
     });
 
@@ -97,7 +97,7 @@ describe('Notifications du Cockpit et rédaction à partir des données', () => 
       const pmo = await t.as(WHO.pmo);
       const me = (await pmo.get('/api/me/notifications').expect(200)).body;
       expect(me.unread).toBeGreaterThan(0);
-      expect(me.items[0]).toMatchObject({ kind: 'alerte', project: 'RISE', read: false, title: expect.any(String), body: expect.stringMatching(/^Risques ouverts/) });
+      expect(me.items[0]).toMatchObject({ project: 'RISE', read: false, title: expect.any(String), body: expect.stringMatching(/^Risques ouverts/) });
       const id = me.items[0].id;
       await pmo.post(`/api/me/notifications/${id}/read`).expect(204);
       expect((await pmo.get('/api/me/notifications').expect(200)).body.unread).toBe(me.unread - 1);
@@ -112,7 +112,7 @@ describe('Notifications du Cockpit et rédaction à partir des données', () => 
 
     it('« M’envoyer un test » : texte du premier profil destinataire, remis au seul testeur', async () => {
       const n0 = await t.db.userNotification.count();
-      const sent = (await admin.post(`${A}/notification-rules/n2/test`).expect(200)).body;
+      const sent = (await admin.post(`${A}/notification-rules/n4/test`).expect(200)).body;
       expect(sent).toEqual([expect.objectContaining({ channel: 'APP', status: 'OK', recipientsCount: 1 })]);
       expect(await t.db.userNotification.count()).toBe(n0 + 1);
       expect(await t.db.userNotification.findFirst({ where: { accountId: 'u1' }, orderBy: { createdAt: 'desc' } })).toMatchObject({ body: expect.stringMatching(/^Risques ouverts/) });

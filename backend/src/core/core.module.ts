@@ -10,7 +10,6 @@ import { AuditService } from './audit.service';
 import { TodayService } from './today.service';
 import { config } from './config';
 import { StorageService } from './storage.service';
-import { EventBus } from './events';
 import { LlmService } from './llm.service';
 import { JobsService } from './jobs.service';
 import { MailerService } from './mailer.service';
@@ -31,7 +30,7 @@ import { LlmClient } from './llm-client';
     }),
   ],
   controllers: [AuthController],
-  providers: [{ provide: APP_GUARD, useClass: AuthGuard }, AccessService, AuditService, TodayService, StorageService, EventBus, LlmService, JevPromptService, JobsService, MailerService, SmtpService, SessionService, CredentialsService, ProviderKeyTester, LlmClient],
-  exports: [AccessService, AuditService, TodayService, StorageService, EventBus, LlmService, JevPromptService, JobsService, MailerService, SmtpService, SessionService, CredentialsService, ProviderKeyTester, LlmClient],
+  providers: [{ provide: APP_GUARD, useClass: AuthGuard }, AccessService, AuditService, TodayService, StorageService, LlmService, JevPromptService, JobsService, MailerService, SmtpService, SessionService, CredentialsService, ProviderKeyTester, LlmClient],
+  exports: [AccessService, AuditService, TodayService, StorageService, LlmService, JevPromptService, JobsService, MailerService, SmtpService, SessionService, CredentialsService, ProviderKeyTester, LlmClient],
 })
 export class CoreModule {}

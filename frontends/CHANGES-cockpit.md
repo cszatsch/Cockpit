@@ -163,3 +163,7 @@ Plus aucune clé `localStorage` n'est lue ou écrite par le fichier HTML. api.js
 - Référentiel, « Objets du modèle » : nouvel objet « Info projet » après « Projet » (rubrique · libellé · valeur, une ligne par élément ; rubrique en liste de choix ; « + » pour ajouter ; suppression par ligne). Méthodes `ipRub`, `ipRows`, `projectInfo`.
 - Fiche projet : blocs lus dans l'objet au lieu du texte écrit en dur (programme en une phrase, enjeux stratégiques, pays et entités avec leurs compteurs, nom du client de l'en-tête « Le client — … ») ; rendu inchangé. « Marques du groupe » et « Le programme en une phrase » sont permutés.
 - `api.js` : magasin `ipAdded` ; `onProjectInfo` envoie `PUT /project/info` quand une ligne de l'objet change.
+
+## Tiroir des notifications : retrait des alertes (30/09/2026)
+
+- `Notifications Cockpit.dc.html` : onglet « Alertes » supprimé (restent « Toutes » et « Non lues ») ; icône, pastille et libellé toujours ceux d’une notification ; texte d’état vide « Les notifications de vos projets apparaîtront ici. » ; données de démonstration sans alertes. Prop `items` : champ `kind` retiré.

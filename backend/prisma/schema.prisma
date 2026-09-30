@@ -219,23 +219,7 @@ enum SnapshotStatus {
   FAILED
 }
 
-enum RuleKind {
-  NOTIFICATION
-  ALERT
-}
-
-/// Déclencheur d'une règle (absent du brief : ajouté pour relier une règle à son événement).
-enum RuleTrigger {
-  SCHEDULE
-  MILESTONE_LATE
-  RISK_CRITICAL
-  DOCUMENT_ANALYZED
-  BUDGET_THRESHOLD
-  MANUAL
-}
-
 enum RuleFrequency {
-  IMMEDIATE
   DAILY
   WEEKLY
   CUSTOM
@@ -1244,14 +1228,6 @@ model BudgetThreshold {
   version   Int      @default(1)
 }
 
-model BudgetAlertFired {
-  thresholdId String
-  month       String
-  firedAt     DateTime @default(now())
-
-  @@id([thresholdId, month])
-}
-
 model Snapshot {
   id         String         @id @default(cuid())
   projectId  String
@@ -1277,7 +1253,6 @@ model SnapshotSchedule {
 
 model NotificationRule {
   id             String        @id
-  kind           RuleKind
   name           String
   targetProfiles String[]
   projectIds     String[]
@@ -1291,7 +1266,6 @@ model NotificationRule {
   hour           String?
   everyDays      Int?
   channels       Channel[]
-  trigger        RuleTrigger   @default(SCHEDULE)
   enabled        Boolean       @default(false)
   /// Prochain envoi d'une règle planifiée (heure de Paris), calculé à l'enregistrement et après chaque envoi ; null sinon.
   nextRunAt      DateTime?
@@ -1587,8 +1561,6 @@ model UserNotification {
   ruleId     String?   @map("rule_id")
   deliveryId String?   @map("delivery_id")
   projectId  String?   @map("project_id")
-  /// ALERT ou NOTIFICATION
-  kind       String
   title      String
   body       String
   createdAt  DateTime  @default(now()) @map("created_at")

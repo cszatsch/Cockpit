@@ -505,3 +505,11 @@ Vérification des éléments de la vue d'ensemble face au serveur. Conformes : d
 - Constat : « Enregistrer » réinitialisait le formulaire et la règle n'apparaissait pas avec son nouveau contenu. Cause : l'enregistrement était optimiste (« Règle enregistrée » et brouillon vidé avant la réponse du serveur) ; en cas d'échec (serveur injoignable pendant un redémarrage, session expirée, saisie refusée), `admin-api.js` relisait les règles et remontait la vue (`nrResync`) : la saisie était perdue et la sélection revenait à la première règle (« Jalon en retard »).
 - `Notifications et alertes.dc.html`, `save` : « Règle enregistrée » seulement après l'accord du serveur ; en cas d'échec, la liste et la saisie sont rétablies, la règle reste sélectionnée, et le message « Enregistrement impossible : vos modifications sont conservées. Réessayez. » s'affiche (nouveau texte).
 - `admin-api.js`, `nrSave` : la promesse échoue sans recharger ni remonter la vue ; le motif du serveur reste affiché (toast) ; en cas de succès, la liste est relue.
+
+## Notifications : retrait des alertes (30/09/2026)
+
+- Décision du commanditaire : il ne reste que des notifications, envoyées à heure fixe (quotidienne ou hebdomadaire).
+- `Notifications et alertes.dc.html` (nom de fichier inchangé) : titre « Notifications », sous-titre « Les notifications informent les utilisateurs chaque jour ou chaque semaine, à l’heure prévue. » ; section ALERTES de la liste et ligne TYPE du formulaire supprimées ; fréquence « Immédiate » supprimée (le calendrier est toujours affiché) ; phrase de synthèse « Informer {profils} sur {projets}, … » (au lieu de « Quand {événement}, alerter / informer … ») ; aperçu toujours au style notification ; nouvelle règle quotidienne à l’heure par défaut ; historique d’une règle supprimée affiché sous « Règle supprimée » ; données de démonstration sans alertes. Props : `type` et `evt` retirés du modèle `Rule`, `freq` vaut `day` ou `week`.
+- `Sidebar Console.dc.html` : entrée « Notifications » (au lieu de « Notifications et alertes »).
+- `Console Admin.dc.html` : en-tête (META) et suggestions de Jev de la page `notifs` ; libellé de permission « Notifications et modules ».
+- `Serveur SMTP.dc.html` : sous-titre « Le serveur qui envoie les e-mails de notifications aux utilisateurs. »

@@ -19,7 +19,7 @@ async function main(): Promise<number> {
       return 0;
     }
     const r = await resetAiModels(db);
-    console.log(`Réinitialisation faite : ${r.models} modèle(s), ${r.assignments} affectation(s), ${r.usageRecords} ligne(s) de consommation et ${r.budgetAlerts} alerte(s) budgétaire(s) supprimés.`);
+    console.log(`Réinitialisation faite : ${r.models} modèle(s), ${r.assignments} affectation(s), ${r.usageRecords} ligne(s) de consommation supprimés.`);
     return 0;
   } finally {
     await db.$disconnect();

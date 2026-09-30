@@ -28,7 +28,7 @@ export class MyNotificationsController {
     const codes = new Map((await this.prisma.project.findMany({ where: { id: { in: [...new Set(rows.map((r) => r.projectId).filter((x): x is string => !!x))] } }, select: { id: true, code: true } })).map((p) => [p.id, p.code]));
     return {
       unread,
-      items: rows.map((r) => ({ id: r.id, kind: r.kind === 'ALERT' ? 'alerte' : 'notification', title: r.title, body: r.body, project: r.projectId ? codes.get(r.projectId) ?? null : null, at: r.createdAt.toISOString(), read: !!r.readAt })),
+      items: rows.map((r) => ({ id: r.id, title: r.title, body: r.body, project: r.projectId ? codes.get(r.projectId) ?? null : null, at: r.createdAt.toISOString(), read: !!r.readAt })),
     };
   }
 

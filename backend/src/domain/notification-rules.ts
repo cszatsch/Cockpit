@@ -1,20 +1,19 @@
 /**
- * Règles de notification et d'alerte : conversion entre la table `NotificationRule` et le modèle `Rule` de la vue
- * « Notifications et alertes » (spécification NOTIFICATIONS ET ALERTES § 2), cas bloquants (§ 3), historique.
+ * Règles de notification : conversion entre la table `NotificationRule` et le modèle `Rule` de la vue « Notifications »
+ * (spécification NOTIFICATIONS ET ALERTES § 2), cas bloquants (§ 3), historique. Depuis le 30/09/2026, il n'y a plus
+ * d'alertes : toutes les règles sont des notifications envoyées à heure fixe (quotidienne ou hebdomadaire).
  * Règles pures, sans base.
  */
 
 export type UiProfile = 'Admin' | 'PMO' | 'Responsable' | 'Lecteur';
-/** Fréquences de la vue ; « Personnalisée » est retirée depuis le 29/09/2026. */
-export type UiFreq = 'imm' | 'day' | 'week';
+/** Fréquences de la vue ; « Personnalisée » est retirée depuis le 29/09/2026, « Immédiate » depuis le 30/09/2026. */
+export type UiFreq = 'day' | 'week';
 export type UiChannel = 'app' | 'mail';
 
 /** Modèle `Rule` de la vue (§ 2). `projets: ['*']` = tous les projets. */
 export interface UiRule {
   id: string;
-  type: 'alerte' | 'notification';
   title: string;
-  evt: string;
   profils: UiProfile[];
   projets: string[];
   canaux: UiChannel[];
@@ -48,7 +47,6 @@ export interface UiHistory {
 /** Colonnes de la table utiles à la conversion. */
 export interface RuleRow {
   id: string;
-  kind: 'NOTIFICATION' | 'ALERT';
   name: string;
   targetProfiles: string[];
   projectIds: string[];
@@ -57,12 +55,11 @@ export interface RuleRow {
   prompt: string;
   subject: string;
   body: string;
-  frequency: 'IMMEDIATE' | 'DAILY' | 'WEEKLY' | 'CUSTOM';
+  frequency: 'DAILY' | 'WEEKLY' | 'CUSTOM';
   day: string | null;
   hour: string | null;
   everyDays: number | null;
   channels: ('APP' | 'EMAIL')[];
-  trigger: string;
   enabled: boolean;
 }
 
@@ -71,21 +68,8 @@ export const PROFILE_LABELS: Record<string, UiProfile> = { admin: 'Admin', pmo: 
 const PROFILE_CODES = Object.fromEntries(Object.entries(PROFILE_LABELS).map(([k, v]) => [v, k])) as Record<UiProfile, string>;
 
 // CUSTOM (ancienne fréquence « Personnalisée ») n'existe plus en base (migration du 29/09/2026) ; présentée comme quotidienne par sécurité.
-const FREQ_TO_UI: Record<RuleRow['frequency'], UiFreq> = { IMMEDIATE: 'imm', DAILY: 'day', WEEKLY: 'week', CUSTOM: 'day' };
-const FREQ_FROM_UI: Record<UiFreq, RuleRow['frequency']> = { imm: 'IMMEDIATE', day: 'DAILY', week: 'WEEKLY' };
-
-/**
- * Événement déclencheur → fragment de la phrase de synthèse (« Quand un jalon est en retard, … »).
- * Le déclencheur n'est pas modifiable dans la vue ; une règle manuelle n'a pas de fragment (« l'événement se produit »).
- */
-export const TRIGGER_EVT: Record<string, string> = {
-  MILESTONE_LATE: 'un jalon est en retard',
-  RISK_CRITICAL: 'un risque critique est ouvert',
-  DOCUMENT_ANALYZED: 'un nouveau document est analysé',
-  BUDGET_THRESHOLD: 'le seuil budgétaire IA est atteint',
-  SCHEDULE: 'l’heure d’envoi arrive',
-  MANUAL: '',
-};
+const FREQ_TO_UI: Record<RuleRow['frequency'], UiFreq> = { DAILY: 'day', WEEKLY: 'week', CUSTOM: 'day' };
+const FREQ_FROM_UI: Record<UiFreq, RuleRow['frequency']> = { day: 'DAILY', week: 'WEEKLY' };
 
 /** Calendrier d'envoi : quotidien à 07:00, hebdomadaire le lundi à 07:00 par défaut ; heures par pas de 30 minutes. */
 export const DEFAULT_WEEK_DAY = 'lundi';
@@ -108,8 +92,6 @@ export function sendSlot(hhmm: string): string {
 
 // ───────────── Planification des envois (décision du 30/09/2026) ─────────────
 
-/** Heure de la vérification quotidienne des jalons en retard et des risques critiques (heure de Paris). */
-export const DAILY_CHECK_CRON = '0 7 * * *';
 /**
  * Rattrapage (décision du 30/09/2026) : un envoi manqué (plateforme arrêtée) part au redémarrage jusqu'au lendemain
  * du jour prévu, 23:59, dans le fuseau du projet ; au-delà, il est abandonné (échec dans « À traiter »). Plusieurs
@@ -160,7 +142,7 @@ export function catchUpDeadline(scheduledAt: Date, projectTz: string): Date {
 }
 
 /** Occurrences d'une règle entre `first` (incluse) et `now` (incluse), dans l'ordre chronologique. */
-export function occurrencesUntil(r: { enabled: boolean; trigger: string; frequency: string; day: string | null; hour: string | null }, first: Date, now: Date): Date[] {
+export function occurrencesUntil(r: { enabled: boolean; frequency: string; day: string | null; hour: string | null }, first: Date, now: Date): Date[] {
   const out: Date[] = [];
   for (let t: Date | null = first; t && t.getTime() <= now.getTime() && out.length < MAX_MISSED_OCCURRENCES; t = nextSendAt(r, t)) out.push(t);
   return out;
@@ -173,17 +155,17 @@ export function sendTimeFr(d: Date): string {
 }
 
 /** Règle planifiée dont l'envoi suit une heure (quotidienne, hebdomadaire ; « personnalisée » : comme quotidienne). */
-export function isTimedRule(r: { enabled: boolean; trigger: string; frequency: string }): boolean {
-  return r.enabled && r.trigger === 'SCHEDULE' && ['DAILY', 'WEEKLY', 'CUSTOM'].includes(r.frequency);
+export function isTimedRule(r: { enabled: boolean; frequency: string }): boolean {
+  return r.enabled && ['DAILY', 'WEEKLY', 'CUSTOM'].includes(r.frequency);
 }
 
 /** Ce qui détermine le prochain envoi : s'il change (règle modifiée), la date du prochain envoi est recalculée. */
-export function scheduleKey(r: { enabled: boolean; trigger: string; frequency: string; day: string | null; hour: string | null }): string {
+export function scheduleKey(r: { enabled: boolean; frequency: string; day: string | null; hour: string | null }): string {
   return isTimedRule(r) ? [r.frequency, r.frequency === 'WEEKLY' ? (r.day ?? DEFAULT_WEEK_DAY).toLowerCase() : '', r.hour ?? (r.frequency === 'WEEKLY' ? DEFAULT_WEEK_HOUR : DEFAULT_HOUR)].join('|') : 'off';
 }
 
 /** Prochain envoi d'une règle, strictement après `from` (heure de Paris) ; null si la règle ne suit pas une heure. */
-export function nextSendAt(r: { enabled: boolean; trigger: string; frequency: string; day: string | null; hour: string | null }, from: Date): Date | null {
+export function nextSendAt(r: { enabled: boolean; frequency: string; day: string | null; hour: string | null }, from: Date): Date | null {
   if (!isTimedRule(r)) return null;
   const weekly = r.frequency === 'WEEKLY';
   const [hh, mm] = (r.hour ?? (weekly ? DEFAULT_WEEK_HOUR : DEFAULT_HOUR)).split(':').map(Number);
@@ -215,8 +197,7 @@ export const ERR_NO_RECIPIENT = 'Aucun destinataire : la règle ne pourra pas s�
 export function atOf(r: Pick<RuleRow, 'frequency' | 'day' | 'hour'>): string {
   const hour = r.hour ?? '';
   if (r.frequency === 'DAILY' || r.frequency === 'CUSTOM') return hour || DEFAULT_HOUR;
-  if (r.frequency === 'WEEKLY') return `${r.day || DEFAULT_WEEK_DAY} ${hour || DEFAULT_WEEK_HOUR}`;
-  return '';
+  return `${r.day || DEFAULT_WEEK_DAY} ${hour || DEFAULT_WEEK_HOUR}`;
 }
 
 /** Champ `at` de la vue → calendrier de la table ; ce qui manque prend la valeur par défaut. */
@@ -224,7 +205,6 @@ export function parseAt(freq: UiFreq, at: string): Pick<RuleRow, 'day' | 'hour' 
   const s = (at || '').toLowerCase();
   const hm = /([01]\d|2[0-3])[:h]([0-5]\d)/.exec(s);
   const hour = hm ? `${hm[1]}:${hm[2]}` : null;
-  if (freq === 'imm') return { day: null, hour: null, everyDays: null };
   if (freq === 'day') return { day: null, hour: hour ?? DEFAULT_HOUR, everyDays: null };
   return { day: WEEK_DAYS.find((d) => s.includes(d)) ?? DEFAULT_WEEK_DAY, hour: hour ?? DEFAULT_WEEK_HOUR, everyDays: null };
 }
@@ -236,9 +216,7 @@ export function parseAt(freq: UiFreq, at: string): Pick<RuleRow, 'day' | 'hour' 
 export function toUiRule(r: RuleRow, llmIds: ReadonlySet<string>): UiRule {
   return {
     id: r.id,
-    type: r.kind === 'ALERT' ? 'alerte' : 'notification',
     title: r.name,
-    evt: TRIGGER_EVT[r.trigger] ?? '',
     profils: Object.keys(PROFILE_LABELS).filter((k) => r.targetProfiles.includes(k)).map((k) => PROFILE_LABELS[k]),
     projets: r.platform ? ['*'] : [...r.projectIds],
     canaux: (['APP', 'EMAIL'] as const).filter((c) => r.channels.includes(c)).map((c) => (c === 'APP' ? 'app' : 'mail')),
@@ -252,11 +230,10 @@ export function toUiRule(r: RuleRow, llmIds: ReadonlySet<string>): UiRule {
   };
 }
 
-/** `Rule` de la vue → colonnes de la table (le déclencheur et l'identifiant ne sont pas concernés). */
-export function fromUiRule(u: Omit<UiRule, 'id' | 'evt'>): Omit<RuleRow, 'id' | 'trigger'> {
+/** `Rule` de la vue → colonnes de la table (l'identifiant n'est pas concerné). */
+export function fromUiRule(u: Omit<UiRule, 'id'>): Omit<RuleRow, 'id'> {
   const all = u.projets.includes('*');
   return {
-    kind: u.type === 'alerte' ? 'ALERT' : 'NOTIFICATION',
     name: u.title.trim(),
     targetProfiles: [...new Set(u.profils)].map((p) => PROFILE_CODES[p]),
     projectIds: all ? [] : [...new Set(u.projets.map((c) => c.toUpperCase()))],
@@ -274,7 +251,7 @@ export function fromUiRule(u: Omit<UiRule, 'id' | 'evt'>): Omit<RuleRow, 'id' | 
 
 /**
  * Cas bloquants (§ 3) : aucun modèle, ou aucun destinataire. Une règle bloquée peut être enregistrée et activée,
- * mais rien n'est envoyé (ni événement, ni planification, ni test).
+ * mais rien n'est envoyé (ni planification, ni test).
  */
 export function blockingErrors(r: Pick<RuleRow, 'modelId' | 'targetProfiles'>, llmIds?: ReadonlySet<string>): string[] {
   const e: string[] = [];

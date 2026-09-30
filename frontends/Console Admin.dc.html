@@ -375,7 +375,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
 
     <!-- API : Notifications et alertes (Notifications et alertes.dc.html, NOTIFICATIONS ET ALERTES - specification.md § 4) ; en-tête générique masqué, le composant a le sien. -->
     <sc-if value="{{ isNotifs }}" hint-placeholder-val="{{ false }}">
-      <div style="{{ skWrap }}" data-screen-label="Notifications et alertes">
+      <div style="{{ skWrap }}" data-screen-label="Notifications">
         <sc-if value="{{ nrMounted }}" hint-placeholder-val="{{ true }}">
           <dc-import name="Notifications et alertes" rules="{{ nrRules }}" models="{{ nrModels }}" projects="{{ nrProjects }}" counts="{{ nrCounts }}" history="{{ nrHistory }}" schedule="{{ nrSchedule }}"
             on-save="{{ nrSave }}" on-toggle="{{ nrToggle }}" on-create="{{ nrCreate }}" on-delete="{{ nrDelete }}" on-test="{{ nrTest }}" hint-size="100%,1600px"></dc-import>
@@ -979,7 +979,7 @@ const META = {
   conso: ['IA', 'Vue générale des coûts', 'Tokens et dépenses par fournisseur, modèle et fonction, avec seuils d’alerte.'],
   journal: ['Intelligence artificielle', 'Journal consommation et coûts', 'Tokens consommés et détail de chaque appel LLM.'],
   snaps: ['Projets', 'Snapshots', 'L’historique des données de chaque projet : capturer, comparer, restaurer.'],
-  notifs: ['Plateforme', 'Notifications et alertes', 'Les notifications informent. Les alertes signalent un événement ou un seuil critique.'],
+  notifs: ['Plateforme', 'Notifications', 'Les notifications informent les utilisateurs chaque jour ou chaque semaine, à l’heure prévue.'],
   smtp: ['Plateforme', 'Serveur d’envoi SMTP', ''],
   guide: ['Plateforme', 'Guide utilisateur', 'Fonctionnalités, fonctionnement et règles appliquées dans la Console.'],
   apis: ['Plateforme', 'Registre des cartes API', 'Les services externes appelés par les widgets : endpoint, clé, quota, santé et échéance de la clé.'],
@@ -1000,7 +1000,7 @@ const JCHIPS = {
   conso: ['Où en est le budget IA ?', 'Comment réduire les coûts ?'],
   journal: ['Combien de tokens ce mois-ci ?', 'Quel est l’appel le plus cher du mois ?'],
   snaps: ['Comment créer un snapshot ?', 'Qu’est-ce qui a changé depuis le 22 sept. ?'],
-  notifs: ['Quelles alertes sont actives ?', 'Y a-t-il eu des échecs d’envoi ?'],
+  notifs: ['Quelles notifications sont actives ?', 'Y a-t-il eu des échecs d’envoi ?'],
   smtp: ['Quel serveur envoie les e-mails ?', 'Le dernier test de connexion a-t-il réussi ?'],
   guide: ['Où trouver le guide utilisateur ?', 'Qui a téléchargé le guide ?'],
   modules: ['Comment activer un module sur un projet ?', 'Quels modules sont actifs ?'],
@@ -1817,7 +1817,7 @@ class Component extends DCLogic {
         countryEl: this.selEl(P.country, this.pSet('country'), ['France', 'Belgique', 'Suisse', 'Luxembourg', 'Allemagne', 'Espagne', 'Italie', 'Royaume-Uni', 'Canada', 'Maroc'].map(v => ({ v, l: v })), 'Pays de résidence', '100%'),
         langEl: this.selEl(P.lang, this.pSet('lang'), ['Français', 'English', 'Deutsch', 'Español', 'Italiano'].map(v => ({ v, l: v })), 'Langue', '100%'),
         tzEl: this.selEl(P.tz, this.pSet('tz'), ['Europe/Paris (UTC+2)', 'Europe/London (UTC+1)', 'America/Montreal (UTC−4)', 'Africa/Casablanca (UTC+1)', 'Asia/Singapore (UTC+8)'].map(v => ({ v, l: v })), 'Fuseau horaire', '100%'),
-        perms: ['Utilisateurs, invitations et suspensions', 'Administrateurs de la plateforme', 'Droits, profils types et habilitations', 'Fournisseurs LLM et clés API', 'Affectation des modèles et budgets IA', 'Snapshots et restaurations', 'Notifications, alertes et modules'],
+        perms: ['Utilisateurs, invitations et suspensions', 'Administrateurs de la plateforme', 'Droits, profils types et habilitations', 'Fournisseurs LLM et clés API', 'Affectation des modèles et budgets IA', 'Snapshots et restaurations', 'Notifications et modules'],
         projs: PROJ.map((p, i) => ({ p: p + ' — AMC Corp', role: i === 0 ? 'PMO programme · AMOA' : 'PMO de portefeuille', aff: ['01/03/2024 → 31/12/2026', '15/09/2024 → 30/06/2027', '02/01/2025 → 31/03/2027', '01/07/2026 → 31/12/2027'][i] })),
         mineN: mine.length, mineCrit: mine.filter(a => a.sev === 'critique').length, goMine: () => this.go('admins', () => this.setState({ adTab: 'audit', aq: 'Julien Morel', aSev: 'tous' })),
         notifs: [['crit', 'Alertes critiques de la plateforme (clé API, fournisseur indisponible)', 'E-mail et application · obligatoire pour les administrateurs', true], ['budget', 'Dépassement d’un seuil budgétaire IA', 'E-mail', false], ['req', 'Demandes d’activation de module', 'Application', false], ['hebdo', 'Synthèse hebdomadaire de l’administration', 'E-mail · lundi 08:00', false], ['fail', 'Échecs d’envoi de notifications', 'Application', false]].map(([k, l, d, lock]) => ({ l, d, lock, sw: this.sw(S.pn[k], () => { if (lock) return this.toast('Cette alerte ne peut pas être désactivée pour un administrateur', 'err'); this.setState(s => ({ pn: { ...s.pn, [k]: !s.pn[k] } })); this.toast(S.pn[k] ? 'Notification désactivée' : 'Notification activée'); }, l) })),
