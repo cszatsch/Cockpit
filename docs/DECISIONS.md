@@ -918,3 +918,19 @@ Constat : la tuile Trafic affichait des valeurs écrites dans le code (« 34 min
 | Lieux | Départ : ville du profil (Paris par défaut) ; arrivée : ville du projet (Référentiel) ; géocodage par la carte `open-meteo-geocodage` (déjà utilisée par la météo) ; aller et retour calculés, bouton ⇅ pour inverser. | `api.js` |
 | Variables de chemin | Un endpoint peut porter `{nom=défaut}` dans son chemin (pas dans l'hôte ni les paramètres) : valeur transmise par le widget, sinon la valeur par défaut (contrôle de santé) ; caractères limités à `A-Z a-z 0-9 . , : ; _ + -`, jamais « .. » (400 sinon) ; contrôlé à l'enregistrement. | `PATH_VAR`, `PATH_VALUE`, `fillEndpoint`, `endpointError` |
 | Échec | Carte désactivée, en erreur, quota atteint ou itinéraire introuvable : « — » et « Trafic indisponible » ; pendant le calcul : « … » et « Calcul du trajet… » ; retard nul : « Trafic fluide ». Plus aucune valeur inventée. | `RISE Cockpit.dc.html` |
+
+## Cockpit : widgets d'Aujourd'hui sans valeur de démonstration (01/10/2026)
+
+Demande du commanditaire : vérifier que les widgets affichent de vraies valeurs. Carte `tomtom-traffic` supprimée du Registre (plus utilisée). Valeurs écrites dans le code remplacées par des calculs sur les données :
+
+| Widget | Avant | Désormais | Lieu |
+|---|---|---|---|
+| L'essentiel, par Jev | heure « ce matin · 08:00 », titre « Go-Live reporté… », point Avancement et « 7 modules · 42 éléments » écrits en dur | heure de mise à jour ; titre : Go-Live (date, J-n) et avancement ; phase en cours et écart ; décompte réel des éléments. Les autres points étaient déjà calculés. | `dbCatalog` |
+| Avancement vs référence | 72 % / 81 % | moyenne des lignes du suivi d'avancement (% réel, % prévu à date), écart et couleur selon l'écart | `dbCatalog` |
+| Mes tâches | 4 tâches, 2 validations | liste « Mes tâches » (hors archivées) : nombre, validations à donner, retards | `dbCatalog` |
+| Livrables sous 30 jours | 3, 1 en retard, 74 % | livrables du Référentiel : non livrés dus sous 30 jours, en retard, part livrée | `dbCatalog` |
+| Tendance des risques | bloc figé (8 semaines inventées) ; total et critiques absents | calculée par le serveur depuis le registre (création) et le journal d'audit (clôture) ; série à partir du premier risque ; aucune courbe inventée | `riskTrend` (`domain/risk-trend.ts`), bootstrap |
+| Baromètre | courbe [1, 2] inventée sans relevé | « — » et « Aucun relevé » | `dbCatalog` |
+| Actualité | source indiquée « GDELT » | cartes d'actualité du Registre | `dbCatalog` |
+
+Déjà réels : Go-Live, Prochain COPIL, Fiches d'arbitrage, Décisions, Incohérences, Jalons, Chemin critique, Météo des chantiers, Risques critiques, Problèmes, Actions en retard, Échéances, Documents récents, Météo, Trafic. Limite : la criticité passée d'un risque n'est pas historisée (valeurs actuelles de probabilité et d'impact).

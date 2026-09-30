@@ -3,6 +3,7 @@ import { PrismaService } from '../../core/prisma.service';
 import { ProjectScope } from '../../core/access.service';
 import { Actor } from '../../core/auth/auth';
 import { TodayService } from '../../core/today.service';
+import { riskTrend } from '../../domain/risk-trend';
 import { formatRefDate, frShort, isoInTimezone, Precision } from '../../domain/dates';
 import {
   ACTION_STATUS_FR,
@@ -223,6 +224,12 @@ export class BootstrapService {
     // ── anomalies (forme du frontend) ──
     const anomalies = (await this.anomalies.compute(scope)).map((a) => ({ level: a.level === 'RISK' ? 'Blocage' : 'Avertissement', text: a.text, owner: a.owner, action: a.action, target: a.target, kind: a.kind, entityType: a.entityType, entityId: a.entityId }));
 
+    // ── tendance des risques : registre + dates de clôture du journal d'audit ──
+    const closures = await this.prisma.auditEntry.findMany({ where: { projectId: pid, entityType: 'RISK', field: 'status' }, orderBy: { at: 'asc' }, select: { entityId: true, newValue: true, at: true } });
+    const closedAt = new Map<string, Date>();
+    for (const c of closures) if (c.entityId && c.newValue === 'CLOSED') closedAt.set(c.entityId, c.at);
+    const riskStats = riskTrend(risks, closedAt, today);
+
     // ── documents ──
     // Documents Restreints : PMO, administrateur et auteur du dépôt seulement (même règle que la liste, KbService.visible).
     const docsOut = documents.filter((d) => d.conf !== 'RESTRICTED' || scope.access.pmo || scope.access.admin || (!!d.uploadedById && d.uploadedById === actor.accountId)).map((d) => ({
@@ -440,7 +447,8 @@ export class BootstrapService {
       volets: block('volets') ?? [],
       milestones: msOut,
       risks: risksOut,
-      riskStats: block('riskStats') ?? { weeks: [], labels: [] },
+      // Tendance des risques calculée depuis le registre et le journal d'audit (01/10/2026), plus le bloc de démonstration.
+      riskStats,
       issues: issuesOut,
       actions: actionsOut,
       decisions: decisionsOut,

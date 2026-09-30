@@ -207,3 +207,7 @@ Plus aucune clé `localStorage` n'est lue ou écrite par le fichier HTML. api.js
 
 - `api.js` : géocodage de la ville du profil et de la ville du projet (carte `open-meteo-geocodage`), puis aller et retour par la carte `tomtom-routing` (proxy, en-tête `X-RISE-Widget: trafic`).
 - `RISE Cockpit.dc.html` : la tuile Trafic affiche la durée réelle (« 50 min », « 1 h 05 ») et le retard (« +1 min », « Trafic fluide ») ; « Calcul du trajet… » pendant l'appel ; « Trafic indisponible » en cas d'échec, au lieu des valeurs d'exemple écrites dans le code.
+
+## Widgets d'Aujourd'hui : valeurs réelles (01/10/2026)
+
+- `RISE Cockpit.dc.html` (`dbCatalog`) : « L'essentiel, par Jev » (heure, titre, avancement, décompte), « Avancement vs référence », « Mes tâches », « Livrables sous 30 jours » calculés à partir des données ; « Tendance des risques » et « Baromètre » sans courbe inventée quand l'historique manque ; libellé de la source des actualités corrigé ; barres de la page Risques protégées contre une semaine sans risque ouvert.
