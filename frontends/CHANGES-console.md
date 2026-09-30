@@ -532,3 +532,7 @@ Vérification des éléments de la vue d'ensemble face au serveur. Conformes : d
 - `Console Admin.dc.html` : `rag-settings` et `on-save-rag` passés au composant ; hauteur indicative portée à 1 180 px.
 - `admin-api.js` : chargement `guide` étendu (`GET /assistant/rag-settings`) ; `gdSaveRag` (`PUT /assistant/rag-settings`), erreurs par champ renvoyées au composant ; sources « Guide · section · p. N » jointes par un saut de ligne.
 - `jev-format.js` : puces de sources séparées sur le saut de ligne quand il est présent (les titres de section du guide contiennent des virgules), sinon sur `, ; ·` comme avant.
+
+## Jev : icône « Effacer tous les messages » (30/09/2026)
+
+- `Console Admin.dc.html` : le bouton d'en-tête du panneau de Jev (auparavant crayon « Nouvelle conversation ») prend l'icône fournie `jev-effacer-4a.svg` (bulle barrée d'une croix), libellé « Effacer tous les messages ». Même action : les messages affichés sont effacés et une nouvelle conversation est ouverte côté serveur (sinon ils reviendraient au rechargement) ; désactivé tant que l'utilisateur n'a rien écrit.

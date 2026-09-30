@@ -181,3 +181,7 @@ Plus aucune clé `localStorage` n'est lue ou écrite par le fichier HTML. api.js
 - `Notifications Cockpit.dc.html` : icône « Effacer toutes les notifications » (fournie par le commanditaire, liste qui s'estompe barrée d'une croix) entre « Tout lire » et la fermeture ; inactive sans notification ; survol rouge. Un clic vide la liste et affiche le bandeau « N notifications effacées » avec « Annuler » et une jauge de 5 s ; l'effacement définitif part à la fin du délai (ou à la fermeture de l'écran). Nouvelle prop `onClearAll`.
 - `RISE Cockpit.dc.html` : `on-clear-all` relié à `ntClearAll` (démonstration : liste vidée localement).
 - `api.js` : `ntClearAll` appelle `DELETE /api/me/notifications` ; en cas d'échec, la liste est relue.
+
+## Jev : icône « Effacer tous les messages » (30/09/2026)
+
+- `RISE Cockpit.dc.html` : bouton ajouté dans l'en-tête du panneau de Jev, à gauche de la croix de fermeture, avec l'icône fournie `jev-effacer-4a.svg`. Il efface les messages affichés et ramène au message d'accueil de Jev (avec ses suggestions) ; saisie, pièces jointes et proposition en attente sont abandonnées. Désactivé tant qu'il n'y a que le message d'accueil. Aucun appel à l'API : les échanges du Cockpit ne sont pas conservés côté serveur.
