@@ -82,7 +82,7 @@ export class InboxService implements OnModuleInit, OnModuleDestroy {
     await this.sync();
     const now = Date.now();
     const rows = await this.prisma.notification.findMany({
-      where: { OR: [{ status: 'OPEN' }, { status: 'DECIDED', undoUntil: { gt: new Date(now) } }] },
+      where: { OR: [{ status: 'OPEN', clearedAt: null }, { status: 'DECIDED', undoUntil: { gt: new Date(now) } }] },
       orderBy: { createdAt: 'desc' },
     });
     const items = rows.map((n) => this.view(n));
@@ -269,24 +269,24 @@ export class InboxService implements OnModuleInit, OnModuleDestroy {
       const cur = existing.find((e) => e.key === w.key);
       const data = { kind: w.kind, title: w.title, text: w.text, note: w.note ?? null, actLabel: w.actLabel ?? null, target: w.target ?? null, meta: (w.meta ?? Prisma.DbNull) as Prisma.InputJsonValue, level: w.level ?? null };
       if (!cur) await this.prisma.notification.create({ data: { key: w.key, ...data } });
-      else if (cur.status === 'RESOLVED' || (cur.status === 'DONE' && w.kind !== 'INVITE' && w.kind !== 'MODULE')) await this.prisma.notification.update({ where: { id: cur.id }, data: { ...data, status: 'OPEN', readAt: null, createdAt: new Date(), resolvedAt: null, decision: null, decidedAt: null, undoUntil: null } });
+      else if (cur.status === 'RESOLVED' || (cur.status === 'DONE' && w.kind !== 'INVITE' && w.kind !== 'MODULE')) await this.prisma.notification.update({ where: { id: cur.id }, data: { ...data, status: 'OPEN', readAt: null, createdAt: new Date(), resolvedAt: null, decision: null, decidedAt: null, undoUntil: null, clearedAt: null } });
       else if (cur.status === 'OPEN' && (cur.title !== w.title || cur.text !== w.text || cur.level !== data.level)) {
-        // Une aggravation (ex. alerte → dépassement) la remet en « non lue ».
-        await this.prisma.notification.update({ where: { id: cur.id }, data: { ...data, ...(cur.level !== data.level ? { readAt: null } : {}) } });
+        // Une aggravation (ex. alerte → dépassement) la remet en « non lue », et la réaffiche si elle avait été effacée.
+        await this.prisma.notification.update({ where: { id: cur.id }, data: { ...data, ...(cur.level !== data.level ? { readAt: null, clearedAt: null } : {}) } });
       }
     }
     const gone = existing.filter((e) => e.status === 'OPEN' && !wanted.some((w) => w.key === e.key));
-    if (gone.length) await this.prisma.notification.updateMany({ where: { id: { in: gone.map((g) => g.id) } }, data: { status: 'RESOLVED', resolvedAt: new Date() } });
+    if (gone.length) await this.prisma.notification.updateMany({ where: { id: { in: gone.map((g) => g.id) } }, data: { status: 'RESOLVED', resolvedAt: new Date(), clearedAt: null } });
   }
 
   /** Erreur technique : un incident par route, fermé à la réussite suivante de la même route. */
   private async techError(key: string, message: string) {
     const data = { kind: 'ERR' as const, title: 'Erreur technique', text: `${key} : ${message.slice(0, 300)}`, actLabel: 'Voir le journal', target: 'admins' };
-    await this.prisma.notification.upsert({ where: { key: `tech:${key}` }, create: { key: `tech:${key}`, ...data }, update: { ...data, status: 'OPEN', readAt: null, resolvedAt: null } });
+    await this.prisma.notification.upsert({ where: { key: `tech:${key}` }, create: { key: `tech:${key}`, ...data }, update: { ...data, status: 'OPEN', readAt: null, resolvedAt: null, clearedAt: null } });
   }
 
   private async resolve(key: string) {
-    await this.prisma.notification.updateMany({ where: { key, status: 'OPEN' }, data: { status: 'RESOLVED', resolvedAt: new Date() } });
+    await this.prisma.notification.updateMany({ where: { key, status: 'OPEN' }, data: { status: 'RESOLVED', resolvedAt: new Date(), clearedAt: null } });
   }
 
   // ───────────── Lecture, décisions et annulation ─────────────
@@ -299,6 +299,20 @@ export class InboxService implements OnModuleInit, OnModuleDestroy {
     await this.sync();
     const r = await this.prisma.notification.updateMany({ where: { status: 'OPEN', readAt: null }, data: { readAt: new Date() } });
     return { read: r.count };
+  }
+
+  /**
+   * « Effacer toutes les notifications » (décision du 30/09/2026) : les incidents et alertes affichés sont masqués pour
+   * tous les administrateurs (le tiroir est commun), jusqu'à ce que leur cause disparaisse puis revienne, ou s'aggrave.
+   * Les demandes en attente (invitation, module) ne sont jamais effacées : elles attendent une décision.
+   */
+  async clearAll(actor: Actor) {
+    await this.sync();
+    const now = new Date();
+    const r = await this.prisma.notification.updateMany({ where: { status: 'OPEN', clearedAt: null, kind: { in: ['ERR', 'WARN'] } }, data: { clearedAt: now, readAt: now } });
+    if (r.count) await this.audit.action(this.prisma, adminCtx(actor), { action: 'Notifications effacées', target: `${r.count} notification(s) du tiroir de la console`, severity: 'INFO', entityType: 'Notification', details: { count: r.count } });
+    const kept = await this.prisma.notification.count({ where: { status: 'OPEN', kind: { in: ['INVITE', 'MODULE'] } } });
+    return { cleared: r.count, keptRequests: kept };
   }
 
   /** Décision sur une demande : enregistrée tout de suite, exécutée après le délai d'annulation. */

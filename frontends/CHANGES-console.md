@@ -513,3 +513,9 @@ Vérification des éléments de la vue d'ensemble face au serveur. Conformes : d
 - `Sidebar Console.dc.html` : entrée « Notifications » (au lieu de « Notifications et alertes »).
 - `Console Admin.dc.html` : en-tête (META) et suggestions de Jev de la page `notifs` ; libellé de permission « Notifications et modules ».
 - `Serveur SMTP.dc.html` : sous-titre « Le serveur qui envoie les e-mails de notifications aux utilisateurs. »
+
+## Tiroir des notifications : effacer toutes les notifications (30/09/2026)
+
+- `Notifications.dc.html` : icône « Effacer toutes les notifications » (fournie par le commanditaire) entre « Tout lire » et la fermeture ; inactive s'il n'y a ni incident ni alerte ; survol rouge. Un clic masque les incidents et alertes, affiche « N notifications effacées » (et « Les demandes à traiter restent affichées. » s'il y en a) avec « Annuler » et une jauge de 5 s ; l'effacement part à la fin du délai. Les demandes (invitation, module) ne sont jamais effacées. Nouvelle prop `onClearAll`.
+- `Console Admin.dc.html` : `on-clear-all` relié à `ntClearAll` (démonstration : seules les demandes restent).
+- `admin-api.js` : `ntClearAll` appelle `DELETE /api/admin/notifications`, puis relit le tiroir.

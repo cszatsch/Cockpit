@@ -144,6 +144,28 @@ describe('Console — notifications de l’administrateur', () => {
     expect(after.items.find((i: any) => i.type === 'invite' && i.pending)).toBeTruthy();
   });
 
+  it('effacer toutes les notifications : incidents et alertes masqués tant que la cause dure, demandes gardées ; réaffichés si la cause revient', async () => {
+    await t.db.provider.update({ where: { id: 'google' }, data: { status: 'ERROR', lastError: '401 · Clé refusée' } });
+    const before = (await admin.get(NT).expect(200)).body;
+    const incidents = before.items.filter((i: any) => i.type === 'err' || i.type === 'warn');
+    expect(incidents.length).toBeGreaterThan(0);
+    await (await t.as(WHO.pmo)).del(NT).expect(403);
+    const r = (await admin.del(NT).expect(200)).body;
+    expect(r).toEqual({ cleared: incidents.length, keptRequests: before.items.filter((i: any) => (i.type === 'invite' || i.type === 'module') && i.pending).length });
+    // Relectures (réconciliation) : la cause dure, la notification reste effacée ; les demandes restent.
+    for (let k = 0; k < 2; k++) {
+      const after = (await admin.get(NT).expect(200)).body;
+      expect(after.items.filter((i: any) => i.type === 'err' || i.type === 'warn')).toEqual([]);
+      expect(after.items.filter((i: any) => i.type === 'invite' || i.type === 'module').length).toBe(before.items.filter((i: any) => i.type === 'invite' || i.type === 'module').length);
+    }
+    expect(await t.db.auditEntry.findFirst({ where: { action: 'Notifications effacées' } })).toMatchObject({ severity: 'INFO' });
+    // La cause disparaît puis revient : la notification réapparaît, non lue.
+    await t.db.provider.update({ where: { id: 'google' }, data: { status: 'OK', lastError: null } });
+    await admin.get(NT).expect(200);
+    await t.db.provider.update({ where: { id: 'google' }, data: { status: 'ERROR', lastError: '401 · Clé refusée' } });
+    expect((await admin.get(NT).expect(200)).body.items.find((i: any) => i.title === 'Clé API Google refusée')).toMatchObject({ unread: true });
+  });
+
   it('erreur technique : incident à l’échec d’une route, fermé à sa réussite suivante', async () => {
     techErrors.open.add('GET /api/admin/notifications');
     techErrors.onError?.('GET /api/admin/notifications', 'panne simulée');

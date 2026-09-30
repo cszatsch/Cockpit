@@ -793,3 +793,11 @@ Demande du commanditaire : « l’utilisateur ne peut plus avoir que des notific
 |---|---|---|
 | Portée | Supprime définitivement les seules notifications du compte connecté ; l'historique des envois de la Console (`Delivery`) et les notifications des autres comptes restent. Pas d'entrée d'audit (données personnelles de lecture). | `DELETE /api/me/notifications` (`MyNotificationsController.clearAll`) |
 | Filet de sécurité | Annulation possible pendant 5 s avant l'appel au serveur. | `CLEAR_UNDO_MS` (`Notifications Cockpit.dc.html`) |
+
+## Console : effacer toutes les notifications du tiroir (30/09/2026)
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Portée | Incidents et alertes seulement ; les demandes en attente (invitation, module) restent, car elles attendent une décision. Le tiroir étant commun, l'effacement vaut pour tous les administrateurs (comme l'état « lu »). Tracé au journal d'audit (Info, « Notifications effacées »). | `DELETE /api/admin/notifications` (`InboxService.clearAll`) |
+| Durée | Une notification effacée reste masquée tant que sa cause dure (la réconciliation ne la rouvre pas) ; elle réapparaît, non lue, si la cause disparaît puis revient, ou si elle s'aggrave (changement de niveau), ou pour une nouvelle erreur technique. « À traiter » et les signaux du menu ne sont pas concernés : ils suivent toujours l'état réel. | `Notification.clearedAt`, migration `20261025000000_notifications_admin_effacees` |
+| Filet de sécurité | Annulation possible pendant 5 s avant l'appel au serveur. | `CLEAR_UNDO_MS` (`Notifications.dc.html`) |

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Param, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
 import { AdminOnly, Actor, CurrentActor } from '../core/auth/auth';
@@ -23,6 +23,13 @@ export class InboxController {
   @HttpCode(200)
   readAll() {
     return this.inbox.readAll();
+  }
+
+  /** Efface les incidents et alertes du tiroir (les demandes en attente restent). `{ cleared, keptRequests }`. */
+  @Delete()
+  @HttpCode(200)
+  clearAll(@CurrentActor() actor: Actor) {
+    return this.inbox.clearAll(actor);
   }
 
   @Post(':id/read')

@@ -8512,6 +8512,23 @@
         "tags": [
           "console · notifications"
         ]
+      },
+      "delete": {
+        "operationId": "InboxController_clearAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · notifications"
+        ]
       }
     },
     "/api/admin/notifications/read-all": {

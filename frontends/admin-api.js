@@ -428,6 +428,8 @@ export function bindConsole(c) {
   };
   c.ntUndo = id => post('/notifications/' + id + '/undo').then(() => { toast('Décision annulée'); refreshNt(); touch(); }).catch(e => { fail(e); refreshNt(); });
   c.ntReadAll = () => post('/notifications/read-all').then(refreshNt).catch(fail);
+  // Effacer (après le délai d'annulation du tiroir) : incidents et alertes masqués pour tous les administrateurs.
+  c.ntClearAll = () => del('/notifications').then(() => { refreshNt(); touch(); }).catch(e => { fail(e); refreshNt(); });
 
   // ── Serveur d’envoi SMTP (Serveur SMTP.dc.html, SMTP - specification.md § 6) ──
   // Test et envoi s'exécutent côté serveur ; le mot de passe n'est envoyé que s'il a été saisi (vide : conservé).

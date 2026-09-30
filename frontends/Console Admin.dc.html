@@ -541,7 +541,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
 </div>
 <!-- API : tiroir des notifications de l’administrateur (Notifications.dc.html, NOTIFICATIONS - specification.md § 6). -->
 <dc-import name="Notifications" open="{{ ntOpen }}" left="{{ ntLeft }}" items="{{ ntItems }}"
-  on-close="{{ ntClose }}" on-action="{{ ntAct }}" on-undo="{{ ntUndo }}" on-read-all="{{ ntReadAll }}" hint-size="0,0"></dc-import>
+  on-close="{{ ntClose }}" on-action="{{ ntAct }}" on-undo="{{ ntUndo }}" on-read-all="{{ ntReadAll }}" on-clear-all="{{ ntClearAll }}" hint-size="0,0"></dc-import>
 </div>
 
 <sc-if value="{{ pend.on }}" hint-placeholder-val="{{ false }}">
@@ -1115,6 +1115,8 @@ class Component extends DCLogic {
   }
   ntUndo(id) { clearTimeout((this._ntT || {})[id]); this.setState(s => ({ nt: s.nt.map(x => x.id === id ? { ...x, pending: true } : x) })); this.log('Décision annulée', id, 'sensible'); }
   ntReadAll() { this.setState(s => ({ nt: s.nt.map(x => ({ ...x, unread: false })) })); }
+  // Démonstration : incidents et alertes retirés du tiroir ; les demandes restent.
+  ntClearAll() { this.setState(s => ({ nt: s.nt.filter(x => x.type === 'invite' || x.type === 'module') })); }
   // ——— Registre des cartes API (démonstration : journal local ; API : admin-api.js)
   apiSignal() {
     const S = this.state, list = (S.apiCards || APIS0).filter(c => c.enabled), today = nowD();
@@ -1577,7 +1579,7 @@ class Component extends DCLogic {
       // Notifications : cloche (non lues et non traitées, corail si un incident non lu) et tiroir le long de la sidebar.
       ...(() => { const live = (S.nt || []).filter(n => n.unread && (n.pending !== false || n.type === 'err' || n.type === 'warn'));
         return { ntUnread: live.length, ntHasErr: live.some(n => n.type === 'err'), ntOpen: !!S.ntOpen, ntItems: S.nt || [], ntLeft: mode === 'rail' ? 72 : mode === 'mob' ? 0 : SB_W,
-          ntToggle: () => this.ntToggle(), ntClose: () => this.ntClose(), ntAct: (id, a) => this.ntAct(id, a), ntUndo: id => this.ntUndo(id), ntReadAll: () => this.ntReadAll() }; })(),
+          ntToggle: () => this.ntToggle(), ntClose: () => this.ntClose(), ntAct: (id, a) => this.ntAct(id, a), ntUndo: id => this.ntUndo(id), ntReadAll: () => this.ntReadAll(), ntClearAll: () => this.ntClearAll() }; })(),
       // Persona : Identity + Soul ; le nom de Jev (sidebar, panneau) vient d’identity.name.
       persona: S.persona || undefined, psSave: p => this.psSave(p), psUpload: f => this.psUpload(f),
       jevName: this.persona().identity.name || 'Jev', jevAria: (this.persona().identity.name || 'Jev') + ', assistant IA',

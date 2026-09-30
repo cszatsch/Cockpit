@@ -1432,6 +1432,9 @@ model Notification {
   undoUntil   DateTime?
   doneAt      DateTime?
   resolvedAt  DateTime?
+  /// Effacée du tiroir par un administrateur (« Effacer toutes les notifications ») : masquée tant que sa cause dure ;
+  /// réaffichée si la cause disparaît puis revient, ou si elle s'aggrave.
+  clearedAt   DateTime?
 
   @@index([status])
 }
