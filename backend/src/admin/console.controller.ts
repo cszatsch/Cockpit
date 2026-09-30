@@ -1,6 +1,9 @@
 import { Body, Controller, Delete, Get, HttpCode, OnModuleInit, Param, Patch, Post, Query, Res } from '@nestjs/common';
 import { JevPromptService } from '../core/jev-prompt.service';
 import { JevSqlService } from './jev-sql.service';
+import { JevRouterService } from './jev-router.service';
+import { OFF_TOPIC_REPLY } from '../domain/jev-router';
+import { CONSOLE_PAGE_TITLES } from '../domain/jev-prompt';
 import { JevMemoryService } from './jev-memory.service';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
@@ -40,6 +43,7 @@ export class ConsoleController implements OnModuleInit {
     private readonly jevSql: JevSqlService,
     private readonly profiles: ProfilesService,
     private readonly jevMemory: JevMemoryService,
+    private readonly jevRouter: JevRouterService,
   ) {}
 
   onModuleInit() {
@@ -293,10 +297,19 @@ export class ConsoleController implements OnModuleInit {
     const input = parse(z.object({ context: z.object({ section: z.string().max(40) }).strict(), text: z.string().trim().min(1).max(2000), conversationId: z.string().max(40).nullable().optional() }).strict(), body);
     // Mémoire (décision du 30/09/2026) : conversation du compte, sinon nouvelle ; derniers échanges et résumé envoyés au modèle.
     const conv = input.conversationId ? await this.jevMemory.own(actor.accountId, input.conversationId) : await this.jevMemory.start(actor.accountId);
+    const memory = await this.jevMemory.memory(conv);
+    // Aiguillage (décision du 30/09/2026) : type de la question (usage, données, ambigu, hors sujet), questions
+    // précédentes de la conversation comprises (questions de suite) ; repli sur le traitement complet.
+    const previous = memory.history.filter((h) => h.role === 'user').map((h) => ({ question: h.content }));
+    const route = await this.jevRouter.classify(input.text, { history: previous, page: CONSOLE_PAGE_TITLES[input.context.section] ?? input.context.section, accountId: actor.accountId, conversationId: conv.id });
+    if (route.type === 'HORS_SUJET') {
+      await this.jevMemory.record(conv, input.text, OFF_TOPIC_REPLY, []);
+      return { reply: OFF_TOPIC_REPLY, sources: [], actions: [], ai: { functionId: 'guidage', modelId: 'aiguillage', fallbackUsed: false }, conversationId: conv.id, route: route.type };
+    }
     try {
-      const res = await this.jevSql.ask(input.text, input.context.section, await this.jevMemory.memory(conv));
+      const res = await this.jevSql.ask(input.text, input.context.section, memory, route.type);
       await this.jevMemory.record(conv, input.text, res.reply, res.sources);
-      return { reply: res.reply, sources: res.sources, actions: [], ai: res.ai, conversationId: conv.id };
+      return { reply: res.reply, sources: res.sources, actions: [], ai: res.ai, conversationId: conv.id, route: route.type };
     } catch (e: any) {
       const why = String(e?.response?.message ?? e?.message ?? 'modèles indisponibles');
       // Sans réponse du modèle, l'échange n'est pas gardé : il ne pèserait pas sur la suite de la conversation.

@@ -1,0 +1,2558 @@
+{
+ "version": "v3",
+ "date": "2026-09-30T14:12:53.798Z",
+ "passages": 3,
+ "seuil": 0.5,
+ "obs": [
+  {
+   "id": "U01",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 300,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0,
+    "usage": 1,
+    "hors_sujet": 0,
+    "mixte": 0
+   },
+   "justification": "usage retenu (confiance 1.00 ; besoins : fonctionnement 0.95, données 0.11) — usage 100 % · données 0 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U02",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 271,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "donnees": 0,
+    "usage": 1,
+    "mixte": 0
+   },
+   "justification": "usage retenu (confiance 1.00 ; besoins : fonctionnement 0.93, données 0.08) — usage 100 % · données 0 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U03",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 307,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "usage": 1,
+    "donnees": 0,
+    "mixte": 0
+   },
+   "justification": "usage retenu (confiance 1.00 ; besoins : fonctionnement 0.95, données 0.09) — usage 100 % · données 0 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U04",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.99,
+   "ms": 223,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0.99,
+    "donnees": 0.01,
+    "hors_sujet": 0,
+    "mixte": 0
+   },
+   "justification": "usage retenu (confiance 0.99 ; besoins : fonctionnement 0.92, données 0.19) — usage 99 % · données 1 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U05",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.99,
+   "ms": 209,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0,
+    "mixte": 0,
+    "usage": 1,
+    "hors_sujet": 0
+   },
+   "justification": "usage retenu (confiance 0.99 ; besoins : fonctionnement 0.97, données 0.13) — usage 100 % · données 0 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U06",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 256,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 1,
+    "mixte": 0,
+    "hors_sujet": 0,
+    "donnees": 0
+   },
+   "justification": "usage retenu (confiance 1.00 ; besoins : fonctionnement 0.97, données 0.14) — usage 100 % · données 0 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U07",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.98,
+   "ms": 241,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0,
+    "mixte": 0.01,
+    "usage": 0.99,
+    "hors_sujet": 0
+   },
+   "justification": "usage retenu (confiance 0.98 ; besoins : fonctionnement 0.94, données 0.18) — usage 99 % · données 0 % · mixte 1 % · hors sujet 0 %"
+  },
+  {
+   "id": "U08",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.64,
+   "ms": 231,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0.06,
+    "hors_sujet": 0,
+    "mixte": 0.21,
+    "usage": 0.73
+   },
+   "justification": "usage retenu (confiance 0.64 ; besoins : fonctionnement 0.88, données 0.37) — usage 73 % · données 6 % · mixte 21 % · hors sujet 0 %"
+  },
+  {
+   "id": "U09",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 201,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "usage": 1,
+    "hors_sujet": 0,
+    "donnees": 0
+   },
+   "justification": "usage retenu (confiance 1.00 ; besoins : fonctionnement 0.94, données 0.06) — usage 100 % · données 0 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U10",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 230,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0,
+    "hors_sujet": 0,
+    "mixte": 0,
+    "usage": 1
+   },
+   "justification": "usage retenu (confiance 1.00 ; besoins : fonctionnement 0.93, données 0.09) — usage 100 % · données 0 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U11",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 221,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 1,
+    "mixte": 0,
+    "hors_sujet": 0,
+    "donnees": 0
+   },
+   "justification": "usage retenu (confiance 1.00 ; besoins : fonctionnement 0.91, données 0.10) — usage 100 % · données 0 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U12",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 242,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "mixte": 0,
+    "usage": 1,
+    "donnees": 0
+   },
+   "justification": "usage retenu (confiance 1.00 ; besoins : fonctionnement 0.95, données 0.09) — usage 100 % · données 0 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U13",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.95,
+   "ms": 229,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "donnees": 0.04,
+    "mixte": 0,
+    "usage": 0.96
+   },
+   "justification": "usage retenu (confiance 0.95 ; besoins : fonctionnement 0.90, données 0.47) — usage 96 % · données 4 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U14",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.99,
+   "ms": 249,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0.01,
+    "hors_sujet": 0,
+    "mixte": 0,
+    "usage": 0.99
+   },
+   "justification": "usage retenu (confiance 0.99 ; besoins : fonctionnement 0.94, données 0.17) — usage 99 % · données 1 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U15",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 227,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "donnees": 0,
+    "usage": 1,
+    "mixte": 0
+   },
+   "justification": "usage retenu (confiance 1.00 ; besoins : fonctionnement 0.95, données 0.07) — usage 100 % · données 0 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U16",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.99,
+   "ms": 234,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0,
+    "mixte": 0,
+    "usage": 1,
+    "hors_sujet": 0
+   },
+   "justification": "usage retenu (confiance 0.99 ; besoins : fonctionnement 0.93, données 0.19) — usage 100 % · données 0 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U17",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 247,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "mixte": 0,
+    "usage": 1,
+    "donnees": 0
+   },
+   "justification": "usage retenu (confiance 1.00 ; besoins : fonctionnement 0.98, données 0.08) — usage 100 % · données 0 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U18",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.98,
+   "ms": 231,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0.01,
+    "hors_sujet": 0,
+    "mixte": 0,
+    "usage": 0.99
+   },
+   "justification": "usage retenu (confiance 0.98 ; besoins : fonctionnement 0.93, données 0.16) — usage 99 % · données 1 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U19",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 272,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0,
+    "usage": 1,
+    "hors_sujet": 0,
+    "mixte": 0
+   },
+   "justification": "usage retenu (confiance 1.00 ; besoins : fonctionnement 0.93, données 0.13) — usage 100 % · données 0 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U20",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.98,
+   "ms": 268,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "donnees": 0.01,
+    "usage": 0.99,
+    "hors_sujet": 0
+   },
+   "justification": "usage retenu (confiance 0.98 ; besoins : fonctionnement 0.91, données 0.26) — usage 99 % · données 1 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D01",
+   "passage": 1,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 247,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "donnees": 1,
+    "usage": 0,
+    "hors_sujet": 0
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.11, données 0.94) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D02",
+   "passage": 1,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 0.99,
+   "ms": 260,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0.01,
+    "donnees": 0.99,
+    "usage": 0,
+    "hors_sujet": 0
+   },
+   "justification": "données retenu (confiance 0.99 ; besoins : fonctionnement 0.58, données 0.94) — usage 0 % · données 99 % · mixte 1 % · hors sujet 0 %"
+  },
+  {
+   "id": "D03",
+   "passage": 1,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 311,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "usage": 0,
+    "donnees": 1,
+    "mixte": 0
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.11, données 0.94) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D04",
+   "passage": 1,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 0.78,
+   "ms": 251,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0.84,
+    "hors_sujet": 0,
+    "usage": 0.12,
+    "mixte": 0.04
+   },
+   "justification": "données retenu (confiance 0.78 ; besoins : fonctionnement 0.45, données 0.68) — usage 12 % · données 84 % · mixte 4 % · hors sujet 0 %"
+  },
+  {
+   "id": "D05",
+   "passage": 1,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 225,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "donnees": 1,
+    "mixte": 0,
+    "usage": 0
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.52, données 0.95) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D06",
+   "passage": 1,
+   "type": "AMBIGU",
+   "choice": "donnees",
+   "confiance": 0.85,
+   "ms": 244,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "donnees": 0.89,
+    "mixte": 0.03,
+    "usage": 0.08
+   },
+   "justification": "données retenu (fonctionnement et données demandés tous deux ; besoins : fonctionnement 0.86, données 0.77) — usage 8 % · données 89 % · mixte 3 % · hors sujet 0 %"
+  },
+  {
+   "id": "D07",
+   "passage": 1,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 0.99,
+   "ms": 278,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0,
+    "mixte": 0.01,
+    "donnees": 0.99,
+    "hors_sujet": 0
+   },
+   "justification": "données retenu (confiance 0.99 ; besoins : fonctionnement 0.14, données 0.88) — usage 0 % · données 99 % · mixte 1 % · hors sujet 0 %"
+  },
+  {
+   "id": "D08",
+   "passage": 1,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 239,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "usage": 0,
+    "hors_sujet": 0,
+    "donnees": 1
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.13, données 0.94) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D09",
+   "passage": 1,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 228,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "donnees": 1,
+    "usage": 0,
+    "mixte": 0
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.17, données 0.92) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D10",
+   "passage": 1,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 244,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0,
+    "hors_sujet": 0,
+    "donnees": 1,
+    "mixte": 0
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.27, données 0.94) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D11",
+   "passage": 1,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 263,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "donnees": 1,
+    "usage": 0,
+    "hors_sujet": 0
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.42, données 0.91) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D12",
+   "passage": 1,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 264,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "usage": 0,
+    "donnees": 1,
+    "mixte": 0
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.11, données 0.95) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D13",
+   "passage": 1,
+   "type": "AMBIGU",
+   "choice": "donnees",
+   "confiance": 0.98,
+   "ms": 215,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0.01,
+    "usage": 0.01,
+    "hors_sujet": 0,
+    "donnees": 0.98
+   },
+   "justification": "données retenu (fonctionnement et données demandés tous deux ; besoins : fonctionnement 0.89, données 0.89) — usage 1 % · données 98 % · mixte 1 % · hors sujet 0 %"
+  },
+  {
+   "id": "D14",
+   "passage": 1,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 0.99,
+   "ms": 232,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "usage": 0,
+    "hors_sujet": 0,
+    "donnees": 1
+   },
+   "justification": "données retenu (confiance 0.99 ; besoins : fonctionnement 0.54, données 0.92) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D15",
+   "passage": 1,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 216,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "mixte": 0,
+    "donnees": 1,
+    "usage": 0
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.20, données 0.94) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D16",
+   "passage": 1,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 250,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "donnees": 1,
+    "mixte": 0,
+    "usage": 0
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.26, données 0.94) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D17",
+   "passage": 1,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 0.99,
+   "ms": 220,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0,
+    "mixte": 0.01,
+    "donnees": 0.99,
+    "hors_sujet": 0
+   },
+   "justification": "données retenu (confiance 0.99 ; besoins : fonctionnement 0.11, données 0.90) — usage 0 % · données 99 % · mixte 1 % · hors sujet 0 %"
+  },
+  {
+   "id": "D18",
+   "passage": 1,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 229,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "donnees": 1,
+    "usage": 0,
+    "mixte": 0
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.32, données 0.93) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D19",
+   "passage": 1,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 227,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 1,
+    "mixte": 0,
+    "hors_sujet": 0,
+    "usage": 0
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.45, données 0.92) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D20",
+   "passage": 1,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 337,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0,
+    "hors_sujet": 0,
+    "mixte": 0,
+    "donnees": 1
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.19, données 0.93) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "P01",
+   "passage": 1,
+   "type": "AMBIGU",
+   "choice": "mixte",
+   "confiance": 0.58,
+   "ms": 235,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0.19,
+    "mixte": 0.69,
+    "donnees": 0.12,
+    "hors_sujet": 0
+   },
+   "justification": "mixte retenu (confiance 0.58 ; besoins : fonctionnement 0.86, données 0.60) — usage 19 % · données 12 % · mixte 69 % · hors sujet 0 %"
+  },
+  {
+   "id": "P02",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.7,
+   "ms": 222,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "mixte": 0.21,
+    "usage": 0.77,
+    "donnees": 0.02
+   },
+   "justification": "usage retenu (confiance 0.70 ; besoins : fonctionnement 0.96, données 0.29) — usage 77 % · données 2 % · mixte 21 % · hors sujet 0 %"
+  },
+  {
+   "id": "P03",
+   "passage": 1,
+   "type": "AMBIGU",
+   "choice": "mixte",
+   "confiance": 0.42,
+   "ms": 212,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0.28,
+    "hors_sujet": 0.02,
+    "usage": 0.13,
+    "mixte": 0.57
+   },
+   "justification": "mixte retenu (confiance 0.42 ; besoins : fonctionnement 0.47, données 0.38) — usage 13 % · données 28 % · mixte 57 % · hors sujet 2 %"
+  },
+  {
+   "id": "P04",
+   "passage": 1,
+   "type": "HORS_SUJET",
+   "choice": "hors_sujet",
+   "confiance": 1,
+   "ms": 263,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 1,
+    "usage": 0,
+    "donnees": 0,
+    "mixte": 0
+   },
+   "justification": "hors sujet retenu (confiance 1.00 ; besoins : fonctionnement 0.02, données 0.03) — usage 0 % · données 0 % · mixte 0 % · hors sujet 100 %"
+  },
+  {
+   "id": "P05",
+   "passage": 1,
+   "type": "HORS_SUJET",
+   "choice": "hors_sujet",
+   "confiance": 1,
+   "ms": 247,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 1,
+    "usage": 0,
+    "donnees": 0,
+    "mixte": 0
+   },
+   "justification": "hors sujet retenu (confiance 1.00 ; besoins : fonctionnement 0.02, données 0.02) — usage 0 % · données 0 % · mixte 0 % · hors sujet 100 %"
+  },
+  {
+   "id": "P06",
+   "passage": 1,
+   "type": "AMBIGU",
+   "choice": "mixte",
+   "confiance": 0.5,
+   "ms": 223,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0.63,
+    "usage": 0.31,
+    "donnees": 0.06,
+    "hors_sujet": 0
+   },
+   "justification": "mixte retenu (confiance 0.50 ; besoins : fonctionnement 0.81, données 0.51) — usage 31 % · données 6 % · mixte 63 % · hors sujet 0 %"
+  },
+  {
+   "id": "P07",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.99,
+   "ms": 228,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0.01,
+    "usage": 0.99,
+    "hors_sujet": 0,
+    "donnees": 0
+   },
+   "justification": "usage retenu (confiance 0.99 ; besoins : fonctionnement 0.96, données 0.10) — usage 99 % · données 0 % · mixte 1 % · hors sujet 0 %"
+  },
+  {
+   "id": "P08",
+   "passage": 1,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 233,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 1,
+    "mixte": 0,
+    "usage": 0,
+    "hors_sujet": 0
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.15, données 0.95) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "P09",
+   "passage": 1,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 258,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 1,
+    "hors_sujet": 0,
+    "usage": 0,
+    "mixte": 0
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.10, données 0.86) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "P10",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.97,
+   "ms": 229,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0,
+    "hors_sujet": 0,
+    "mixte": 0.02,
+    "usage": 0.98
+   },
+   "justification": "usage retenu (confiance 0.97 ; besoins : fonctionnement 0.88, données 0.15) — usage 98 % · données 0 % · mixte 2 % · hors sujet 0 %"
+  },
+  {
+   "id": "U01",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 241,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "donnees": 0,
+    "usage": 1,
+    "hors_sujet": 0
+   },
+   "justification": "usage retenu (confiance 1.00 ; besoins : fonctionnement 0.95, données 0.11) — usage 100 % · données 0 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U02",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 257,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 1,
+    "hors_sujet": 0,
+    "donnees": 0,
+    "mixte": 0
+   },
+   "justification": "usage retenu (confiance 1.00 ; besoins : fonctionnement 0.93, données 0.07) — usage 100 % · données 0 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U03",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 232,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0,
+    "hors_sujet": 0,
+    "mixte": 0,
+    "usage": 1
+   },
+   "justification": "usage retenu (confiance 1.00 ; besoins : fonctionnement 0.95, données 0.09) — usage 100 % · données 0 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U04",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.98,
+   "ms": 219,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0.99,
+    "mixte": 0,
+    "hors_sujet": 0,
+    "donnees": 0.01
+   },
+   "justification": "usage retenu (confiance 0.98 ; besoins : fonctionnement 0.92, données 0.18) — usage 99 % · données 1 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U05",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 236,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 1,
+    "mixte": 0,
+    "donnees": 0,
+    "hors_sujet": 0
+   },
+   "justification": "usage retenu (confiance 1.00 ; besoins : fonctionnement 0.97, données 0.13) — usage 100 % · données 0 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U06",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 264,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 1,
+    "hors_sujet": 0,
+    "donnees": 0,
+    "mixte": 0
+   },
+   "justification": "usage retenu (confiance 1.00 ; besoins : fonctionnement 0.97, données 0.14) — usage 100 % · données 0 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U07",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.97,
+   "ms": 254,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0.02,
+    "donnees": 0,
+    "usage": 0.98,
+    "hors_sujet": 0
+   },
+   "justification": "usage retenu (confiance 0.97 ; besoins : fonctionnement 0.94, données 0.17) — usage 98 % · données 0 % · mixte 2 % · hors sujet 0 %"
+  },
+  {
+   "id": "U08",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.62,
+   "ms": 285,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "donnees": 0.06,
+    "mixte": 0.23,
+    "usage": 0.71
+   },
+   "justification": "usage retenu (confiance 0.62 ; besoins : fonctionnement 0.88, données 0.35) — usage 71 % · données 6 % · mixte 23 % · hors sujet 0 %"
+  },
+  {
+   "id": "U09",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 255,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0,
+    "hors_sujet": 0,
+    "usage": 1,
+    "mixte": 0
+   },
+   "justification": "usage retenu (confiance 1.00 ; besoins : fonctionnement 0.94, données 0.06) — usage 100 % · données 0 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U10",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 249,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0,
+    "hors_sujet": 0,
+    "usage": 1,
+    "mixte": 0
+   },
+   "justification": "usage retenu (confiance 1.00 ; besoins : fonctionnement 0.94, données 0.09) — usage 100 % · données 0 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U11",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 248,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0,
+    "usage": 1,
+    "hors_sujet": 0,
+    "mixte": 0
+   },
+   "justification": "usage retenu (confiance 1.00 ; besoins : fonctionnement 0.90, données 0.10) — usage 100 % · données 0 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U12",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.99,
+   "ms": 222,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "mixte": 0,
+    "usage": 1,
+    "donnees": 0
+   },
+   "justification": "usage retenu (confiance 0.99 ; besoins : fonctionnement 0.94, données 0.09) — usage 100 % · données 0 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U13",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.93,
+   "ms": 252,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "mixte": 0,
+    "donnees": 0.05,
+    "usage": 0.95
+   },
+   "justification": "usage retenu (confiance 0.93 ; besoins : fonctionnement 0.91, données 0.43) — usage 95 % · données 5 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U14",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.98,
+   "ms": 241,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0.99,
+    "donnees": 0.01,
+    "mixte": 0,
+    "hors_sujet": 0
+   },
+   "justification": "usage retenu (confiance 0.98 ; besoins : fonctionnement 0.94, données 0.18) — usage 99 % · données 1 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U15",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 266,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0,
+    "hors_sujet": 0,
+    "mixte": 0,
+    "usage": 1
+   },
+   "justification": "usage retenu (confiance 1.00 ; besoins : fonctionnement 0.95, données 0.07) — usage 100 % · données 0 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U16",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.99,
+   "ms": 212,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 1,
+    "donnees": 0,
+    "mixte": 0,
+    "hors_sujet": 0
+   },
+   "justification": "usage retenu (confiance 0.99 ; besoins : fonctionnement 0.92, données 0.19) — usage 100 % · données 0 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U17",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 250,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "donnees": 0,
+    "mixte": 0,
+    "usage": 1
+   },
+   "justification": "usage retenu (confiance 1.00 ; besoins : fonctionnement 0.98, données 0.08) — usage 100 % · données 0 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U18",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.97,
+   "ms": 257,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0.98,
+    "mixte": 0,
+    "hors_sujet": 0,
+    "donnees": 0.02
+   },
+   "justification": "usage retenu (confiance 0.97 ; besoins : fonctionnement 0.92, données 0.19) — usage 98 % · données 2 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U19",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 225,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 1,
+    "donnees": 0,
+    "mixte": 0,
+    "hors_sujet": 0
+   },
+   "justification": "usage retenu (confiance 1.00 ; besoins : fonctionnement 0.93, données 0.14) — usage 100 % · données 0 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U20",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.99,
+   "ms": 263,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "usage": 0.99,
+    "hors_sujet": 0,
+    "donnees": 0.01
+   },
+   "justification": "usage retenu (confiance 0.99 ; besoins : fonctionnement 0.91, données 0.25) — usage 99 % · données 1 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D01",
+   "passage": 2,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 227,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0,
+    "mixte": 0,
+    "donnees": 1,
+    "hors_sujet": 0
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.11, données 0.94) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D02",
+   "passage": 2,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 0.99,
+   "ms": 271,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0.01,
+    "usage": 0,
+    "hors_sujet": 0,
+    "donnees": 0.99
+   },
+   "justification": "données retenu (confiance 0.99 ; besoins : fonctionnement 0.58, données 0.93) — usage 0 % · données 99 % · mixte 1 % · hors sujet 0 %"
+  },
+  {
+   "id": "D03",
+   "passage": 2,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 237,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0,
+    "donnees": 1,
+    "hors_sujet": 0,
+    "mixte": 0
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.11, données 0.93) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D04",
+   "passage": 2,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 0.83,
+   "ms": 227,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0.88,
+    "usage": 0.08,
+    "mixte": 0.04,
+    "hors_sujet": 0
+   },
+   "justification": "données retenu (confiance 0.83 ; besoins : fonctionnement 0.46, données 0.73) — usage 8 % · données 88 % · mixte 4 % · hors sujet 0 %"
+  },
+  {
+   "id": "D05",
+   "passage": 2,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 250,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "donnees": 1,
+    "mixte": 0,
+    "usage": 0
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.52, données 0.95) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D06",
+   "passage": 2,
+   "type": "AMBIGU",
+   "choice": "donnees",
+   "confiance": 0.81,
+   "ms": 243,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0.12,
+    "hors_sujet": 0,
+    "donnees": 0.86,
+    "mixte": 0.02
+   },
+   "justification": "données retenu (fonctionnement et données demandés tous deux ; besoins : fonctionnement 0.81, données 0.76) — usage 12 % · données 86 % · mixte 2 % · hors sujet 0 %"
+  },
+  {
+   "id": "D07",
+   "passage": 2,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 0.99,
+   "ms": 246,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "usage": 0,
+    "mixte": 0.01,
+    "donnees": 0.99
+   },
+   "justification": "données retenu (confiance 0.99 ; besoins : fonctionnement 0.14, données 0.89) — usage 0 % · données 99 % · mixte 1 % · hors sujet 0 %"
+  },
+  {
+   "id": "D08",
+   "passage": 2,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 282,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 1,
+    "usage": 0,
+    "mixte": 0,
+    "hors_sujet": 0
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.12, données 0.95) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D09",
+   "passage": 2,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 261,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "usage": 0,
+    "donnees": 1,
+    "mixte": 0
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.15, données 0.93) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D10",
+   "passage": 2,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 238,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "mixte": 0,
+    "usage": 0,
+    "donnees": 1
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.22, données 0.94) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D11",
+   "passage": 2,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 268,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 1,
+    "hors_sujet": 0,
+    "usage": 0,
+    "mixte": 0
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.43, données 0.91) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D12",
+   "passage": 2,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 245,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 1,
+    "hors_sujet": 0,
+    "mixte": 0,
+    "usage": 0
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.13, données 0.95) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D13",
+   "passage": 2,
+   "type": "AMBIGU",
+   "choice": "donnees",
+   "confiance": 0.98,
+   "ms": 226,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0.01,
+    "mixte": 0.01,
+    "hors_sujet": 0,
+    "donnees": 0.98
+   },
+   "justification": "données retenu (fonctionnement et données demandés tous deux ; besoins : fonctionnement 0.87, données 0.89) — usage 1 % · données 98 % · mixte 1 % · hors sujet 0 %"
+  },
+  {
+   "id": "D14",
+   "passage": 2,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 0.99,
+   "ms": 289,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "mixte": 0,
+    "usage": 0,
+    "donnees": 1
+   },
+   "justification": "données retenu (confiance 0.99 ; besoins : fonctionnement 0.55, données 0.92) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D15",
+   "passage": 2,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 221,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "usage": 0,
+    "hors_sujet": 0,
+    "donnees": 1
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.21, données 0.93) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D16",
+   "passage": 2,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 240,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 1,
+    "hors_sujet": 0,
+    "usage": 0,
+    "mixte": 0
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.26, données 0.94) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D17",
+   "passage": 2,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 0.99,
+   "ms": 254,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "mixte": 0,
+    "usage": 0,
+    "donnees": 1
+   },
+   "justification": "données retenu (confiance 0.99 ; besoins : fonctionnement 0.10, données 0.89) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D18",
+   "passage": 2,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 226,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "donnees": 1,
+    "usage": 0,
+    "hors_sujet": 0
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.29, données 0.93) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D19",
+   "passage": 2,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 220,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "donnees": 1,
+    "usage": 0,
+    "hors_sujet": 0
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.45, données 0.92) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D20",
+   "passage": 2,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 234,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 1,
+    "hors_sujet": 0,
+    "usage": 0,
+    "mixte": 0
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.19, données 0.92) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "P01",
+   "passage": 2,
+   "type": "AMBIGU",
+   "choice": "mixte",
+   "confiance": 0.57,
+   "ms": 239,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0.13,
+    "hors_sujet": 0,
+    "mixte": 0.68,
+    "usage": 0.19
+   },
+   "justification": "mixte retenu (confiance 0.57 ; besoins : fonctionnement 0.85, données 0.60) — usage 19 % · données 13 % · mixte 68 % · hors sujet 0 %"
+  },
+  {
+   "id": "P02",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.81,
+   "ms": 230,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0.13,
+    "usage": 0.86,
+    "hors_sujet": 0,
+    "donnees": 0.01
+   },
+   "justification": "usage retenu (confiance 0.81 ; besoins : fonctionnement 0.96, données 0.28) — usage 86 % · données 1 % · mixte 13 % · hors sujet 0 %"
+  },
+  {
+   "id": "P03",
+   "passage": 2,
+   "type": "AMBIGU",
+   "choice": "mixte",
+   "confiance": 0.4,
+   "ms": 262,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0.55,
+    "donnees": 0.29,
+    "usage": 0.13,
+    "hors_sujet": 0.03
+   },
+   "justification": "mixte retenu (confiance 0.40 ; besoins : fonctionnement 0.45, données 0.39) — usage 13 % · données 29 % · mixte 55 % · hors sujet 3 %"
+  },
+  {
+   "id": "P04",
+   "passage": 2,
+   "type": "HORS_SUJET",
+   "choice": "hors_sujet",
+   "confiance": 1,
+   "ms": 227,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "usage": 0,
+    "hors_sujet": 1,
+    "donnees": 0
+   },
+   "justification": "hors sujet retenu (confiance 1.00 ; besoins : fonctionnement 0.02, données 0.02) — usage 0 % · données 0 % · mixte 0 % · hors sujet 100 %"
+  },
+  {
+   "id": "P05",
+   "passage": 2,
+   "type": "HORS_SUJET",
+   "choice": "hors_sujet",
+   "confiance": 1,
+   "ms": 246,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0,
+    "mixte": 0,
+    "donnees": 0,
+    "hors_sujet": 1
+   },
+   "justification": "hors sujet retenu (confiance 1.00 ; besoins : fonctionnement 0.02, données 0.02) — usage 0 % · données 0 % · mixte 0 % · hors sujet 100 %"
+  },
+  {
+   "id": "P06",
+   "passage": 2,
+   "type": "AMBIGU",
+   "choice": "mixte",
+   "confiance": 0.49,
+   "ms": 238,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0.32,
+    "mixte": 0.61,
+    "hors_sujet": 0,
+    "donnees": 0.07
+   },
+   "justification": "mixte retenu (confiance 0.49 ; besoins : fonctionnement 0.82, données 0.47) — usage 32 % · données 7 % · mixte 61 % · hors sujet 0 %"
+  },
+  {
+   "id": "P07",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.99,
+   "ms": 241,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0.01,
+    "usage": 0.99,
+    "hors_sujet": 0,
+    "donnees": 0
+   },
+   "justification": "usage retenu (confiance 0.99 ; besoins : fonctionnement 0.96, données 0.11) — usage 99 % · données 0 % · mixte 1 % · hors sujet 0 %"
+  },
+  {
+   "id": "P08",
+   "passage": 2,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 233,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "usage": 0,
+    "hors_sujet": 0,
+    "donnees": 1
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.14, données 0.94) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "P09",
+   "passage": 2,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 205,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0,
+    "hors_sujet": 0,
+    "donnees": 1,
+    "mixte": 0
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.09, données 0.88) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "P10",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.96,
+   "ms": 271,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0.03,
+    "usage": 0.97,
+    "hors_sujet": 0,
+    "donnees": 0
+   },
+   "justification": "usage retenu (confiance 0.96 ; besoins : fonctionnement 0.88, données 0.14) — usage 97 % · données 0 % · mixte 3 % · hors sujet 0 %"
+  },
+  {
+   "id": "U01",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 269,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "usage": 1,
+    "hors_sujet": 0,
+    "donnees": 0
+   },
+   "justification": "usage retenu (confiance 1.00 ; besoins : fonctionnement 0.95, données 0.10) — usage 100 % · données 0 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U02",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 240,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 1,
+    "mixte": 0,
+    "hors_sujet": 0,
+    "donnees": 0
+   },
+   "justification": "usage retenu (confiance 1.00 ; besoins : fonctionnement 0.93, données 0.08) — usage 100 % · données 0 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U03",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 228,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "donnees": 0,
+    "usage": 1,
+    "hors_sujet": 0
+   },
+   "justification": "usage retenu (confiance 1.00 ; besoins : fonctionnement 0.95, données 0.09) — usage 100 % · données 0 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U04",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.99,
+   "ms": 238,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0.99,
+    "hors_sujet": 0,
+    "mixte": 0,
+    "donnees": 0.01
+   },
+   "justification": "usage retenu (confiance 0.99 ; besoins : fonctionnement 0.92, données 0.21) — usage 99 % · données 1 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U05",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 231,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 1,
+    "hors_sujet": 0,
+    "donnees": 0,
+    "mixte": 0
+   },
+   "justification": "usage retenu (confiance 1.00 ; besoins : fonctionnement 0.96, données 0.15) — usage 100 % · données 0 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U06",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 225,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0,
+    "usage": 1,
+    "hors_sujet": 0,
+    "mixte": 0
+   },
+   "justification": "usage retenu (confiance 1.00 ; besoins : fonctionnement 0.97, données 0.14) — usage 100 % · données 0 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U07",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.97,
+   "ms": 237,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0.02,
+    "donnees": 0,
+    "usage": 0.98,
+    "hors_sujet": 0
+   },
+   "justification": "usage retenu (confiance 0.97 ; besoins : fonctionnement 0.93, données 0.16) — usage 98 % · données 0 % · mixte 2 % · hors sujet 0 %"
+  },
+  {
+   "id": "U08",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.61,
+   "ms": 235,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "usage": 0.71,
+    "donnees": 0.05,
+    "mixte": 0.24
+   },
+   "justification": "usage retenu (confiance 0.61 ; besoins : fonctionnement 0.88, données 0.35) — usage 71 % · données 5 % · mixte 24 % · hors sujet 0 %"
+  },
+  {
+   "id": "U09",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 239,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "mixte": 0,
+    "usage": 1,
+    "donnees": 0
+   },
+   "justification": "usage retenu (confiance 1.00 ; besoins : fonctionnement 0.93, données 0.06) — usage 100 % · données 0 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U10",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 259,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "usage": 1,
+    "donnees": 0,
+    "hors_sujet": 0
+   },
+   "justification": "usage retenu (confiance 1.00 ; besoins : fonctionnement 0.94, données 0.09) — usage 100 % · données 0 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U11",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 240,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 1,
+    "mixte": 0,
+    "donnees": 0,
+    "hors_sujet": 0
+   },
+   "justification": "usage retenu (confiance 1.00 ; besoins : fonctionnement 0.91, données 0.10) — usage 100 % · données 0 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U12",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.99,
+   "ms": 243,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "usage": 1,
+    "hors_sujet": 0,
+    "donnees": 0
+   },
+   "justification": "usage retenu (confiance 0.99 ; besoins : fonctionnement 0.94, données 0.09) — usage 100 % · données 0 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U13",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.95,
+   "ms": 242,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0.04,
+    "mixte": 0,
+    "usage": 0.96,
+    "hors_sujet": 0
+   },
+   "justification": "usage retenu (confiance 0.95 ; besoins : fonctionnement 0.90, données 0.45) — usage 96 % · données 4 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U14",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.97,
+   "ms": 239,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "usage": 0.98,
+    "donnees": 0.02,
+    "hors_sujet": 0
+   },
+   "justification": "usage retenu (confiance 0.97 ; besoins : fonctionnement 0.93, données 0.18) — usage 98 % · données 2 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U15",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 267,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0,
+    "mixte": 0,
+    "usage": 1,
+    "hors_sujet": 0
+   },
+   "justification": "usage retenu (confiance 1.00 ; besoins : fonctionnement 0.94, données 0.07) — usage 100 % · données 0 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U16",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.99,
+   "ms": 222,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "donnees": 0,
+    "usage": 1,
+    "mixte": 0
+   },
+   "justification": "usage retenu (confiance 0.99 ; besoins : fonctionnement 0.92, données 0.18) — usage 100 % · données 0 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U17",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 224,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "donnees": 0,
+    "mixte": 0,
+    "usage": 1
+   },
+   "justification": "usage retenu (confiance 1.00 ; besoins : fonctionnement 0.98, données 0.07) — usage 100 % · données 0 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U18",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.98,
+   "ms": 219,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "mixte": 0,
+    "donnees": 0.02,
+    "usage": 0.98
+   },
+   "justification": "usage retenu (confiance 0.98 ; besoins : fonctionnement 0.93, données 0.17) — usage 98 % · données 2 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U19",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 246,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "usage": 1,
+    "hors_sujet": 0,
+    "donnees": 0
+   },
+   "justification": "usage retenu (confiance 1.00 ; besoins : fonctionnement 0.94, données 0.13) — usage 100 % · données 0 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "U20",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.98,
+   "ms": 240,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "usage": 0.99,
+    "donnees": 0.01,
+    "mixte": 0
+   },
+   "justification": "usage retenu (confiance 0.98 ; besoins : fonctionnement 0.91, données 0.25) — usage 99 % · données 1 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D01",
+   "passage": 3,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 301,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 1,
+    "usage": 0,
+    "mixte": 0,
+    "hors_sujet": 0
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.11, données 0.95) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D02",
+   "passage": 3,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 0.99,
+   "ms": 260,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0,
+    "mixte": 0.01,
+    "donnees": 0.99,
+    "hors_sujet": 0
+   },
+   "justification": "données retenu (confiance 0.99 ; besoins : fonctionnement 0.59, données 0.93) — usage 0 % · données 99 % · mixte 1 % · hors sujet 0 %"
+  },
+  {
+   "id": "D03",
+   "passage": 3,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 255,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 1,
+    "usage": 0,
+    "hors_sujet": 0,
+    "mixte": 0
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.11, données 0.93) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D04",
+   "passage": 3,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 0.89,
+   "ms": 237,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0.92,
+    "hors_sujet": 0,
+    "mixte": 0.03,
+    "usage": 0.05
+   },
+   "justification": "données retenu (confiance 0.89 ; besoins : fonctionnement 0.40, données 0.78) — usage 5 % · données 92 % · mixte 3 % · hors sujet 0 %"
+  },
+  {
+   "id": "D05",
+   "passage": 3,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 243,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "donnees": 1,
+    "usage": 0,
+    "hors_sujet": 0
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.53, données 0.94) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D06",
+   "passage": 3,
+   "type": "AMBIGU",
+   "choice": "donnees",
+   "confiance": 0.81,
+   "ms": 236,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "usage": 0.11,
+    "donnees": 0.87,
+    "mixte": 0.02
+   },
+   "justification": "données retenu (fonctionnement et données demandés tous deux ; besoins : fonctionnement 0.84, données 0.77) — usage 11 % · données 87 % · mixte 2 % · hors sujet 0 %"
+  },
+  {
+   "id": "D07",
+   "passage": 3,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 0.99,
+   "ms": 220,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0,
+    "donnees": 1,
+    "hors_sujet": 0,
+    "mixte": 0
+   },
+   "justification": "données retenu (confiance 0.99 ; besoins : fonctionnement 0.15, données 0.88) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D08",
+   "passage": 3,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 267,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "usage": 0,
+    "hors_sujet": 0,
+    "donnees": 1
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.13, données 0.95) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D09",
+   "passage": 3,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 230,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 1,
+    "mixte": 0,
+    "hors_sujet": 0,
+    "usage": 0
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.14, données 0.92) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D10",
+   "passage": 3,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 225,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0,
+    "mixte": 0,
+    "donnees": 1,
+    "hors_sujet": 0
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.22, données 0.94) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D11",
+   "passage": 3,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 211,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0,
+    "donnees": 1,
+    "mixte": 0,
+    "hors_sujet": 0
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.43, données 0.91) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D12",
+   "passage": 3,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 210,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "usage": 0,
+    "hors_sujet": 0,
+    "donnees": 1
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.11, données 0.95) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D13",
+   "passage": 3,
+   "type": "AMBIGU",
+   "choice": "donnees",
+   "confiance": 0.98,
+   "ms": 229,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0.98,
+    "usage": 0.01,
+    "hors_sujet": 0,
+    "mixte": 0.01
+   },
+   "justification": "données retenu (fonctionnement et données demandés tous deux ; besoins : fonctionnement 0.89, données 0.89) — usage 1 % · données 98 % · mixte 1 % · hors sujet 0 %"
+  },
+  {
+   "id": "D14",
+   "passage": 3,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 274,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0,
+    "donnees": 1,
+    "mixte": 0,
+    "hors_sujet": 0
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.54, données 0.92) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D15",
+   "passage": 3,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 260,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 1,
+    "hors_sujet": 0,
+    "mixte": 0,
+    "usage": 0
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.20, données 0.93) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D16",
+   "passage": 3,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 245,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "usage": 0,
+    "donnees": 1,
+    "hors_sujet": 0
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.27, données 0.93) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D17",
+   "passage": 3,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 0.99,
+   "ms": 236,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "donnees": 1,
+    "hors_sujet": 0,
+    "usage": 0
+   },
+   "justification": "données retenu (confiance 0.99 ; besoins : fonctionnement 0.11, données 0.89) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D18",
+   "passage": 3,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 230,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "usage": 0,
+    "mixte": 0,
+    "donnees": 1
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.31, données 0.93) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D19",
+   "passage": 3,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 259,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "usage": 0,
+    "hors_sujet": 0,
+    "donnees": 1
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.41, données 0.92) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "D20",
+   "passage": 3,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 254,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "donnees": 1,
+    "usage": 0,
+    "hors_sujet": 0
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.18, données 0.92) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "P01",
+   "passage": 3,
+   "type": "AMBIGU",
+   "choice": "mixte",
+   "confiance": 0.66,
+   "ms": 235,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "donnees": 0.14,
+    "usage": 0.12,
+    "mixte": 0.74
+   },
+   "justification": "mixte retenu (confiance 0.66 ; besoins : fonctionnement 0.84, données 0.63) — usage 12 % · données 14 % · mixte 74 % · hors sujet 0 %"
+  },
+  {
+   "id": "P02",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.75,
+   "ms": 236,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0.17,
+    "usage": 0.81,
+    "hors_sujet": 0,
+    "donnees": 0.02
+   },
+   "justification": "usage retenu (confiance 0.75 ; besoins : fonctionnement 0.96, données 0.29) — usage 81 % · données 2 % · mixte 17 % · hors sujet 0 %"
+  },
+  {
+   "id": "P03",
+   "passage": 3,
+   "type": "AMBIGU",
+   "choice": "mixte",
+   "confiance": 0.38,
+   "ms": 245,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0.54,
+    "usage": 0.12,
+    "donnees": 0.32,
+    "hors_sujet": 0.02
+   },
+   "justification": "mixte retenu (confiance 0.38 ; besoins : fonctionnement 0.45, données 0.40) — usage 12 % · données 32 % · mixte 54 % · hors sujet 2 %"
+  },
+  {
+   "id": "P04",
+   "passage": 3,
+   "type": "HORS_SUJET",
+   "choice": "hors_sujet",
+   "confiance": 1,
+   "ms": 236,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0,
+    "mixte": 0,
+    "hors_sujet": 1,
+    "donnees": 0
+   },
+   "justification": "hors sujet retenu (confiance 1.00 ; besoins : fonctionnement 0.02, données 0.03) — usage 0 % · données 0 % · mixte 0 % · hors sujet 100 %"
+  },
+  {
+   "id": "P05",
+   "passage": 3,
+   "type": "HORS_SUJET",
+   "choice": "hors_sujet",
+   "confiance": 1,
+   "ms": 250,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0,
+    "hors_sujet": 1,
+    "mixte": 0,
+    "usage": 0
+   },
+   "justification": "hors sujet retenu (confiance 1.00 ; besoins : fonctionnement 0.02, données 0.02) — usage 0 % · données 0 % · mixte 0 % · hors sujet 100 %"
+  },
+  {
+   "id": "P06",
+   "passage": 3,
+   "type": "AMBIGU",
+   "choice": "mixte",
+   "confiance": 0.43,
+   "ms": 242,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0.09,
+    "usage": 0.34,
+    "mixte": 0.57,
+    "hors_sujet": 0
+   },
+   "justification": "mixte retenu (confiance 0.43 ; besoins : fonctionnement 0.81, données 0.51) — usage 34 % · données 9 % · mixte 57 % · hors sujet 0 %"
+  },
+  {
+   "id": "P07",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.99,
+   "ms": 251,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0,
+    "hors_sujet": 0,
+    "usage": 1,
+    "mixte": 0
+   },
+   "justification": "usage retenu (confiance 0.99 ; besoins : fonctionnement 0.96, données 0.11) — usage 100 % · données 0 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "P08",
+   "passage": 3,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 258,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0,
+    "mixte": 0,
+    "donnees": 1,
+    "hors_sujet": 0
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.15, données 0.95) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "P09",
+   "passage": 3,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 631,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "usage": 0,
+    "donnees": 1,
+    "mixte": 0
+   },
+   "justification": "données retenu (confiance 1.00 ; besoins : fonctionnement 0.09, données 0.86) — usage 0 % · données 100 % · mixte 0 % · hors sujet 0 %"
+  },
+  {
+   "id": "P10",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.96,
+   "ms": 284,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "usage": 0.98,
+    "donnees": 0,
+    "mixte": 0.02
+   },
+   "justification": "usage retenu (confiance 0.96 ; besoins : fonctionnement 0.88, données 0.13) — usage 98 % · données 0 % · mixte 2 % · hors sujet 0 %"
+  }
+ ]
+}

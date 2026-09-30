@@ -35,7 +35,7 @@ import { widgetId } from '../domain/widgets';
 /** Contrôle de santé des cartes actives : toutes les 15 minutes (spécification § 6). */
 export const API_HEALTH_CRON = '*/15 * * * *';
 
-export type CallSource = 'PROXY' | 'HEALTH' | 'TEST';
+export type CallSource = 'PROXY' | 'HEALTH' | 'TEST' | 'JEV';
 export interface CallResult {
   code: number;
   ms: number | null;

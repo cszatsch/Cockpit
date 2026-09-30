@@ -17,6 +17,7 @@ import { UsageService } from './usage.service';
 import { JevSqlService } from './jev-sql.service';
 import { GuideController } from './guide.controller';
 import { GuideIndexService } from './guide-index.service';
+import { JevRouterService } from './jev-router.service';
 import { JevMemoryService } from './jev-memory.service';
 import { NotificationsService } from './notifications.service';
 import { SnapshotsService } from './snapshots.service';
@@ -26,6 +27,6 @@ import { SnapshotsService } from './snapshots.service';
   controllers: [ConsoleController, GuideController, AccountsController, AiController, RulesController, SmtpController, DataController, SkillsController, PersonaController, InboxController, ApiCardsController, WidgetCatalogueController, WidgetProxyController, WidgetFeedsController, WidgetNewsController],
   // AccountsController et DataController servent aussi de fournisseurs : les décisions du tiroir de notifications
   // reprennent exactement le traitement des pages Utilisateurs et Modules.
-  providers: [GuideIndexService, ProfilesService, UsageService, JevSqlService, JevMemoryService, NotificationWriterService, NotificationsService, SnapshotsService, InboxService, ApiCardsService, AccountsController, DataController],
+  providers: [GuideIndexService, JevRouterService, ProfilesService, UsageService, JevSqlService, JevMemoryService, NotificationWriterService, NotificationsService, SnapshotsService, InboxService, ApiCardsService, AccountsController, DataController],
 })
 export class AdminModule {}

@@ -1720,3 +1720,28 @@ model GuideDownload {
   @@index([at])
   @@map("guide_downloads")
 }
+
+/// Classification d'une question posée à Jev (aiguillage, décision du 30/09/2026) : une ligne par question, pour
+/// analyser les erreurs. `status` : OK, ou motif du repli (ERROR, TIMEOUT, INVALID, NOT_CONFIGURED).
+model JevClassification {
+  id             String   @id @default(cuid())
+  at             DateTime
+  accountId      String?  @map("account_id")
+  conversationId String?  @map("conversation_id")
+  question       String
+  /// Type retenu (USAGE, DONNEES, AMBIGU, HORS_SUJET) ; en repli, AMBIGU.
+  type           String
+  choice         String?
+  confidence     Float?
+  probabilities  Json?
+  latencyMs      Int?     @map("latency_ms")
+  status         String
+  error          String?
+  promptVersion  String   @map("prompt_version")
+  model          String?
+  /// LIVE (question réelle) ou EVAL (jeu de test).
+  source         String   @default("LIVE")
+
+  @@index([at])
+  @@map("jev_classifications")
+}

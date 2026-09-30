@@ -1,0 +1,2408 @@
+{
+ "version": "v2",
+ "date": "2026-09-30T14:11:21.004Z",
+ "passages": 3,
+ "seuil": 0.5,
+ "obs": [
+  {
+   "id": "U01",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 309,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0,
+    "hors_sujet": 0,
+    "mixte": 0,
+    "usage": 1
+   }
+  },
+  {
+   "id": "U02",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 254,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0,
+    "mixte": 0,
+    "usage": 1,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "U03",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 219,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 1,
+    "mixte": 0,
+    "donnees": 0,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "U04",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.99,
+   "ms": 257,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "usage": 0.99,
+    "mixte": 0,
+    "donnees": 0.01
+   }
+  },
+  {
+   "id": "U05",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 226,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "donnees": 0,
+    "usage": 1,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "U06",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 241,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 1,
+    "mixte": 0,
+    "donnees": 0,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "U07",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.98,
+   "ms": 263,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "donnees": 0,
+    "usage": 0.99,
+    "mixte": 0.01
+   }
+  },
+  {
+   "id": "U08",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.68,
+   "ms": 225,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "mixte": 0.2,
+    "usage": 0.76,
+    "donnees": 0.04
+   }
+  },
+  {
+   "id": "U09",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 216,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 1,
+    "donnees": 0,
+    "mixte": 0,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "U10",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 231,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 1,
+    "hors_sujet": 0,
+    "mixte": 0,
+    "donnees": 0
+   }
+  },
+  {
+   "id": "U11",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 390,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "donnees": 0,
+    "mixte": 0,
+    "usage": 1
+   }
+  },
+  {
+   "id": "U12",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.99,
+   "ms": 229,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0,
+    "usage": 1,
+    "mixte": 0,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "U13",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.97,
+   "ms": 219,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0.98,
+    "hors_sujet": 0,
+    "mixte": 0,
+    "donnees": 0.02
+   }
+  },
+  {
+   "id": "U14",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.98,
+   "ms": 222,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0.99,
+    "donnees": 0.01,
+    "mixte": 0,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "U15",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 232,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "usage": 1,
+    "hors_sujet": 0,
+    "donnees": 0
+   }
+  },
+  {
+   "id": "U16",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.99,
+   "ms": 374,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0.99,
+    "mixte": 0,
+    "hors_sujet": 0,
+    "donnees": 0.01
+   }
+  },
+  {
+   "id": "U17",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 299,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "donnees": 0,
+    "mixte": 0,
+    "usage": 1
+   }
+  },
+  {
+   "id": "U18",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.98,
+   "ms": 230,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0.98,
+    "donnees": 0.02,
+    "mixte": 0,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "U19",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 295,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "usage": 1,
+    "mixte": 0,
+    "donnees": 0
+   }
+  },
+  {
+   "id": "U20",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.99,
+   "ms": 290,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0.99,
+    "hors_sujet": 0,
+    "mixte": 0,
+    "donnees": 0.01
+   }
+  },
+  {
+   "id": "D01",
+   "passage": 1,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 238,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0,
+    "mixte": 0,
+    "donnees": 1,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "D02",
+   "passage": 1,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 0.99,
+   "ms": 205,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0.99,
+    "hors_sujet": 0,
+    "mixte": 0.01,
+    "usage": 0
+   }
+  },
+  {
+   "id": "D03",
+   "passage": 1,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 249,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 1,
+    "hors_sujet": 0,
+    "usage": 0,
+    "mixte": 0
+   }
+  },
+  {
+   "id": "D04",
+   "passage": 1,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 0.84,
+   "ms": 207,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0.07,
+    "mixte": 0.04,
+    "donnees": 0.89,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "D05",
+   "passage": 1,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 221,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "mixte": 0,
+    "usage": 0,
+    "donnees": 1
+   }
+  },
+  {
+   "id": "D06",
+   "passage": 1,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 0.81,
+   "ms": 217,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0.11,
+    "mixte": 0.03,
+    "donnees": 0.86,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "D07",
+   "passage": 1,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 0.99,
+   "ms": 217,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "usage": 0,
+    "donnees": 1,
+    "mixte": 0
+   }
+  },
+  {
+   "id": "D08",
+   "passage": 1,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 266,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "mixte": 0,
+    "usage": 0,
+    "donnees": 1
+   }
+  },
+  {
+   "id": "D09",
+   "passage": 1,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 218,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "donnees": 1,
+    "usage": 0,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "D10",
+   "passage": 1,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 217,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "usage": 0,
+    "hors_sujet": 0,
+    "donnees": 1
+   }
+  },
+  {
+   "id": "D11",
+   "passage": 1,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 267,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "donnees": 1,
+    "usage": 0,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "D12",
+   "passage": 1,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 266,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "donnees": 1,
+    "usage": 0,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "D13",
+   "passage": 1,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 0.98,
+   "ms": 225,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "donnees": 0.98,
+    "mixte": 0.01,
+    "usage": 0.01
+   }
+  },
+  {
+   "id": "D14",
+   "passage": 1,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 0.99,
+   "ms": 265,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "usage": 0,
+    "mixte": 0,
+    "donnees": 1
+   }
+  },
+  {
+   "id": "D15",
+   "passage": 1,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 204,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "donnees": 1,
+    "usage": 0,
+    "mixte": 0
+   }
+  },
+  {
+   "id": "D16",
+   "passage": 1,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 220,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "donnees": 1,
+    "usage": 0,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "D17",
+   "passage": 1,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 0.99,
+   "ms": 250,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 1,
+    "hors_sujet": 0,
+    "mixte": 0,
+    "usage": 0
+   }
+  },
+  {
+   "id": "D18",
+   "passage": 1,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 250,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "hors_sujet": 0,
+    "usage": 0,
+    "donnees": 1
+   }
+  },
+  {
+   "id": "D19",
+   "passage": 1,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 223,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 1,
+    "usage": 0,
+    "mixte": 0,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "D20",
+   "passage": 1,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 251,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "usage": 0,
+    "donnees": 1,
+    "mixte": 0
+   }
+  },
+  {
+   "id": "P01",
+   "passage": 1,
+   "type": "AMBIGU",
+   "choice": "mixte",
+   "confiance": 0.64,
+   "ms": 215,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0.16,
+    "mixte": 0.73,
+    "hors_sujet": 0,
+    "donnees": 0.11
+   }
+  },
+  {
+   "id": "P02",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.78,
+   "ms": 260,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "mixte": 0.15,
+    "usage": 0.84,
+    "donnees": 0.01
+   }
+  },
+  {
+   "id": "P03",
+   "passage": 1,
+   "type": "AMBIGU",
+   "choice": "mixte",
+   "confiance": 0.38,
+   "ms": 240,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0.12,
+    "donnees": 0.32,
+    "hors_sujet": 0.02,
+    "mixte": 0.54
+   }
+  },
+  {
+   "id": "P04",
+   "passage": 1,
+   "type": "HORS_SUJET",
+   "choice": "hors_sujet",
+   "confiance": 1,
+   "ms": 278,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "usage": 0,
+    "donnees": 0,
+    "hors_sujet": 1
+   }
+  },
+  {
+   "id": "P05",
+   "passage": 1,
+   "type": "HORS_SUJET",
+   "choice": "hors_sujet",
+   "confiance": 1,
+   "ms": 246,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0,
+    "hors_sujet": 1,
+    "mixte": 0,
+    "usage": 0
+   }
+  },
+  {
+   "id": "P06",
+   "passage": 1,
+   "type": "AMBIGU",
+   "choice": "mixte",
+   "confiance": 0.48,
+   "ms": 226,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0.3,
+    "mixte": 0.61,
+    "donnees": 0.09,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "P07",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.99,
+   "ms": 378,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0.01,
+    "donnees": 0,
+    "usage": 0.99,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "P08",
+   "passage": 1,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 236,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0,
+    "hors_sujet": 0,
+    "donnees": 1,
+    "mixte": 0
+   }
+  },
+  {
+   "id": "P09",
+   "passage": 1,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 215,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "donnees": 1,
+    "usage": 0,
+    "mixte": 0
+   }
+  },
+  {
+   "id": "P10",
+   "passage": 1,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.96,
+   "ms": 236,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0,
+    "mixte": 0.03,
+    "hors_sujet": 0,
+    "usage": 0.97
+   }
+  },
+  {
+   "id": "U01",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 230,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 1,
+    "donnees": 0,
+    "mixte": 0,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "U02",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 220,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "donnees": 0,
+    "mixte": 0,
+    "usage": 1
+   }
+  },
+  {
+   "id": "U03",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 235,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "usage": 1,
+    "hors_sujet": 0,
+    "donnees": 0
+   }
+  },
+  {
+   "id": "U04",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.99,
+   "ms": 259,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0.99,
+    "mixte": 0,
+    "donnees": 0.01,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "U05",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 263,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "usage": 1,
+    "donnees": 0,
+    "mixte": 0
+   }
+  },
+  {
+   "id": "U06",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 233,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "usage": 1,
+    "donnees": 0,
+    "mixte": 0
+   }
+  },
+  {
+   "id": "U07",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.97,
+   "ms": 221,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "mixte": 0.02,
+    "usage": 0.98,
+    "donnees": 0
+   }
+  },
+  {
+   "id": "U08",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.64,
+   "ms": 225,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0.05,
+    "hors_sujet": 0,
+    "usage": 0.73,
+    "mixte": 0.22
+   }
+  },
+  {
+   "id": "U09",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 242,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0,
+    "usage": 1,
+    "mixte": 0,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "U10",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 223,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 1,
+    "mixte": 0,
+    "donnees": 0,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "U11",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 244,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "donnees": 0,
+    "hors_sujet": 0,
+    "usage": 1
+   }
+  },
+  {
+   "id": "U12",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.99,
+   "ms": 237,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 1,
+    "hors_sujet": 0,
+    "donnees": 0,
+    "mixte": 0
+   }
+  },
+  {
+   "id": "U13",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.96,
+   "ms": 222,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "donnees": 0.03,
+    "usage": 0.97,
+    "mixte": 0
+   }
+  },
+  {
+   "id": "U14",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.99,
+   "ms": 234,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0.99,
+    "hors_sujet": 0,
+    "donnees": 0.01,
+    "mixte": 0
+   }
+  },
+  {
+   "id": "U15",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 263,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 1,
+    "donnees": 0,
+    "hors_sujet": 0,
+    "mixte": 0
+   }
+  },
+  {
+   "id": "U16",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.99,
+   "ms": 211,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0,
+    "hors_sujet": 0,
+    "mixte": 0,
+    "usage": 1
+   }
+  },
+  {
+   "id": "U17",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 228,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "usage": 1,
+    "donnees": 0,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "U18",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.97,
+   "ms": 223,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "donnees": 0.02,
+    "mixte": 0,
+    "usage": 0.98
+   }
+  },
+  {
+   "id": "U19",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.99,
+   "ms": 235,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0,
+    "mixte": 0,
+    "usage": 1,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "U20",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.99,
+   "ms": 253,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0.99,
+    "mixte": 0,
+    "hors_sujet": 0,
+    "donnees": 0.01
+   }
+  },
+  {
+   "id": "D01",
+   "passage": 2,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 211,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0,
+    "hors_sujet": 0,
+    "mixte": 0,
+    "donnees": 1
+   }
+  },
+  {
+   "id": "D02",
+   "passage": 2,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 0.99,
+   "ms": 230,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "mixte": 0.01,
+    "donnees": 0.99,
+    "usage": 0
+   }
+  },
+  {
+   "id": "D03",
+   "passage": 2,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 285,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 1,
+    "hors_sujet": 0,
+    "mixte": 0,
+    "usage": 0
+   }
+  },
+  {
+   "id": "D04",
+   "passage": 2,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 0.92,
+   "ms": 239,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0.02,
+    "hors_sujet": 0,
+    "mixte": 0.03,
+    "donnees": 0.95
+   }
+  },
+  {
+   "id": "D05",
+   "passage": 2,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 245,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 1,
+    "hors_sujet": 0,
+    "mixte": 0,
+    "usage": 0
+   }
+  },
+  {
+   "id": "D06",
+   "passage": 2,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 0.8,
+   "ms": 233,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0.02,
+    "usage": 0.13,
+    "hors_sujet": 0,
+    "donnees": 0.85
+   }
+  },
+  {
+   "id": "D07",
+   "passage": 2,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 0.99,
+   "ms": 242,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0,
+    "mixte": 0.01,
+    "donnees": 0.99,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "D08",
+   "passage": 2,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 253,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "donnees": 1,
+    "usage": 0,
+    "mixte": 0
+   }
+  },
+  {
+   "id": "D09",
+   "passage": 2,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 244,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "usage": 0,
+    "donnees": 1,
+    "mixte": 0
+   }
+  },
+  {
+   "id": "D10",
+   "passage": 2,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 297,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 1,
+    "mixte": 0,
+    "usage": 0,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "D11",
+   "passage": 2,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 245,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 1,
+    "hors_sujet": 0,
+    "mixte": 0,
+    "usage": 0
+   }
+  },
+  {
+   "id": "D12",
+   "passage": 2,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 273,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0,
+    "hors_sujet": 0,
+    "mixte": 0,
+    "donnees": 1
+   }
+  },
+  {
+   "id": "D13",
+   "passage": 2,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 0.98,
+   "ms": 227,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0.01,
+    "usage": 0.01,
+    "donnees": 0.98,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "D14",
+   "passage": 2,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 246,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "donnees": 1,
+    "usage": 0,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "D15",
+   "passage": 2,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 215,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 1,
+    "hors_sujet": 0,
+    "mixte": 0,
+    "usage": 0
+   }
+  },
+  {
+   "id": "D16",
+   "passage": 2,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 254,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 1,
+    "mixte": 0,
+    "usage": 0,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "D17",
+   "passage": 2,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 0.99,
+   "ms": 279,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "donnees": 1,
+    "usage": 0,
+    "mixte": 0
+   }
+  },
+  {
+   "id": "D18",
+   "passage": 2,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 220,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 1,
+    "hors_sujet": 0,
+    "usage": 0,
+    "mixte": 0
+   }
+  },
+  {
+   "id": "D19",
+   "passage": 2,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 492,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "usage": 0,
+    "donnees": 1,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "D20",
+   "passage": 2,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 252,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "donnees": 1,
+    "usage": 0,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "P01",
+   "passage": 2,
+   "type": "AMBIGU",
+   "choice": "mixte",
+   "confiance": 0.61,
+   "ms": 262,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "donnees": 0.11,
+    "usage": 0.18,
+    "mixte": 0.71
+   }
+  },
+  {
+   "id": "P02",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.66,
+   "ms": 222,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "mixte": 0.22,
+    "usage": 0.75,
+    "donnees": 0.03
+   }
+  },
+  {
+   "id": "P03",
+   "passage": 2,
+   "type": "AMBIGU",
+   "choice": "mixte",
+   "confiance": 0.42,
+   "ms": 209,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0.13,
+    "mixte": 0.57,
+    "donnees": 0.28,
+    "hors_sujet": 0.02
+   }
+  },
+  {
+   "id": "P04",
+   "passage": 2,
+   "type": "HORS_SUJET",
+   "choice": "hors_sujet",
+   "confiance": 1,
+   "ms": 244,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 1,
+    "donnees": 0,
+    "mixte": 0,
+    "usage": 0
+   }
+  },
+  {
+   "id": "P05",
+   "passage": 2,
+   "type": "HORS_SUJET",
+   "choice": "hors_sujet",
+   "confiance": 1,
+   "ms": 245,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0,
+    "hors_sujet": 1,
+    "donnees": 0,
+    "mixte": 0
+   }
+  },
+  {
+   "id": "P06",
+   "passage": 2,
+   "type": "AMBIGU",
+   "choice": "mixte",
+   "confiance": 0.44,
+   "ms": 291,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0.58,
+    "hors_sujet": 0,
+    "usage": 0.36,
+    "donnees": 0.06
+   }
+  },
+  {
+   "id": "P07",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.99,
+   "ms": 228,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0.01,
+    "usage": 0.99,
+    "hors_sujet": 0,
+    "donnees": 0
+   }
+  },
+  {
+   "id": "P08",
+   "passage": 2,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 236,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "mixte": 0,
+    "donnees": 1,
+    "usage": 0
+   }
+  },
+  {
+   "id": "P09",
+   "passage": 2,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 259,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0,
+    "donnees": 1,
+    "mixte": 0,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "P10",
+   "passage": 2,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.96,
+   "ms": 260,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0.97,
+    "hors_sujet": 0,
+    "mixte": 0.03,
+    "donnees": 0
+   }
+  },
+  {
+   "id": "U01",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 247,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "usage": 1,
+    "donnees": 0,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "U02",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 252,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "usage": 1,
+    "donnees": 0,
+    "mixte": 0
+   }
+  },
+  {
+   "id": "U03",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 249,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0,
+    "hors_sujet": 0,
+    "mixte": 0,
+    "usage": 1
+   }
+  },
+  {
+   "id": "U04",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.99,
+   "ms": 244,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "mixte": 0,
+    "donnees": 0.01,
+    "usage": 0.99
+   }
+  },
+  {
+   "id": "U05",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 216,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0,
+    "mixte": 0,
+    "hors_sujet": 0,
+    "usage": 1
+   }
+  },
+  {
+   "id": "U06",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 241,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "usage": 1,
+    "donnees": 0,
+    "mixte": 0
+   }
+  },
+  {
+   "id": "U07",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.97,
+   "ms": 232,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0,
+    "hors_sujet": 0,
+    "mixte": 0.02,
+    "usage": 0.98
+   }
+  },
+  {
+   "id": "U08",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.63,
+   "ms": 215,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "mixte": 0.24,
+    "donnees": 0.04,
+    "usage": 0.72
+   }
+  },
+  {
+   "id": "U09",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 234,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0,
+    "usage": 1,
+    "mixte": 0,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "U10",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 241,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 1,
+    "hors_sujet": 0,
+    "donnees": 0,
+    "mixte": 0
+   }
+  },
+  {
+   "id": "U11",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 226,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "donnees": 0,
+    "mixte": 0,
+    "usage": 1
+   }
+  },
+  {
+   "id": "U12",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 267,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0,
+    "hors_sujet": 0,
+    "usage": 1,
+    "mixte": 0
+   }
+  },
+  {
+   "id": "U13",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.95,
+   "ms": 239,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0.04,
+    "usage": 0.96,
+    "hors_sujet": 0,
+    "mixte": 0
+   }
+  },
+  {
+   "id": "U14",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.99,
+   "ms": 251,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0.99,
+    "mixte": 0,
+    "donnees": 0.01,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "U15",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 217,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0,
+    "hors_sujet": 0,
+    "usage": 1,
+    "mixte": 0
+   }
+  },
+  {
+   "id": "U16",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.99,
+   "ms": 215,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0,
+    "mixte": 0,
+    "usage": 1,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "U17",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 1,
+   "ms": 238,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0,
+    "usage": 1,
+    "mixte": 0,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "U18",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.98,
+   "ms": 253,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "usage": 0.98,
+    "hors_sujet": 0,
+    "donnees": 0.02
+   }
+  },
+  {
+   "id": "U19",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.99,
+   "ms": 258,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 1,
+    "mixte": 0,
+    "donnees": 0,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "U20",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.99,
+   "ms": 311,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0.99,
+    "hors_sujet": 0,
+    "mixte": 0,
+    "donnees": 0.01
+   }
+  },
+  {
+   "id": "D01",
+   "passage": 3,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 250,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0,
+    "mixte": 0,
+    "donnees": 1,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "D02",
+   "passage": 3,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 0.99,
+   "ms": 231,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0.99,
+    "hors_sujet": 0,
+    "usage": 0,
+    "mixte": 0.01
+   }
+  },
+  {
+   "id": "D03",
+   "passage": 3,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 243,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "mixte": 0,
+    "usage": 0,
+    "donnees": 1
+   }
+  },
+  {
+   "id": "D04",
+   "passage": 3,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 0.82,
+   "ms": 218,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0.09,
+    "donnees": 0.87,
+    "hors_sujet": 0,
+    "mixte": 0.04
+   }
+  },
+  {
+   "id": "D05",
+   "passage": 3,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 251,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "donnees": 1,
+    "usage": 0,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "D06",
+   "passage": 3,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 0.86,
+   "ms": 213,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0.9,
+    "mixte": 0.02,
+    "hors_sujet": 0,
+    "usage": 0.08
+   }
+  },
+  {
+   "id": "D07",
+   "passage": 3,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 0.99,
+   "ms": 245,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0.01,
+    "donnees": 0.99,
+    "usage": 0,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "D08",
+   "passage": 3,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 228,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0,
+    "donnees": 1,
+    "mixte": 0,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "D09",
+   "passage": 3,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 255,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "usage": 0,
+    "hors_sujet": 0,
+    "donnees": 1
+   }
+  },
+  {
+   "id": "D10",
+   "passage": 3,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 228,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "usage": 0,
+    "mixte": 0,
+    "donnees": 1
+   }
+  },
+  {
+   "id": "D11",
+   "passage": 3,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 430,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "donnees": 1,
+    "usage": 0,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "D12",
+   "passage": 3,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 264,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "mixte": 0,
+    "donnees": 1,
+    "usage": 0
+   }
+  },
+  {
+   "id": "D13",
+   "passage": 3,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 0.98,
+   "ms": 256,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0.01,
+    "mixte": 0.01,
+    "hors_sujet": 0,
+    "donnees": 0.98
+   }
+  },
+  {
+   "id": "D14",
+   "passage": 3,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 0.99,
+   "ms": 219,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "donnees": 1,
+    "usage": 0,
+    "mixte": 0
+   }
+  },
+  {
+   "id": "D15",
+   "passage": 3,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 235,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "donnees": 1,
+    "mixte": 0,
+    "usage": 0
+   }
+  },
+  {
+   "id": "D16",
+   "passage": 3,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 264,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "usage": 0,
+    "donnees": 1,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "D17",
+   "passage": 3,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 0.99,
+   "ms": 256,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0,
+    "hors_sujet": 0,
+    "donnees": 0.99,
+    "mixte": 0.01
+   }
+  },
+  {
+   "id": "D18",
+   "passage": 3,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 262,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "donnees": 1,
+    "usage": 0,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "D19",
+   "passage": 3,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 252,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 1,
+    "mixte": 0,
+    "hors_sujet": 0,
+    "usage": 0
+   }
+  },
+  {
+   "id": "D20",
+   "passage": 3,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 239,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "mixte": 0,
+    "usage": 0,
+    "hors_sujet": 0,
+    "donnees": 1
+   }
+  },
+  {
+   "id": "P01",
+   "passage": 3,
+   "type": "AMBIGU",
+   "choice": "mixte",
+   "confiance": 0.63,
+   "ms": 265,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0.16,
+    "hors_sujet": 0,
+    "mixte": 0.73,
+    "donnees": 0.11
+   }
+  },
+  {
+   "id": "P02",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.69,
+   "ms": 242,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0.77,
+    "hors_sujet": 0,
+    "donnees": 0.02,
+    "mixte": 0.21
+   }
+  },
+  {
+   "id": "P03",
+   "passage": 3,
+   "type": "AMBIGU",
+   "choice": "mixte",
+   "confiance": 0.4,
+   "ms": 248,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0.02,
+    "donnees": 0.27,
+    "usage": 0.16,
+    "mixte": 0.55
+   }
+  },
+  {
+   "id": "P04",
+   "passage": 3,
+   "type": "HORS_SUJET",
+   "choice": "hors_sujet",
+   "confiance": 1,
+   "ms": 223,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 1,
+    "donnees": 0,
+    "usage": 0,
+    "mixte": 0
+   }
+  },
+  {
+   "id": "P05",
+   "passage": 3,
+   "type": "HORS_SUJET",
+   "choice": "hors_sujet",
+   "confiance": 1,
+   "ms": 217,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 0,
+    "mixte": 0,
+    "usage": 0,
+    "hors_sujet": 1
+   }
+  },
+  {
+   "id": "P06",
+   "passage": 3,
+   "type": "AMBIGU",
+   "choice": "mixte",
+   "confiance": 0.53,
+   "ms": 274,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0.29,
+    "mixte": 0.65,
+    "donnees": 0.06,
+    "hors_sujet": 0
+   }
+  },
+  {
+   "id": "P07",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.99,
+   "ms": 242,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "hors_sujet": 0,
+    "mixte": 0.01,
+    "donnees": 0,
+    "usage": 0.99
+   }
+  },
+  {
+   "id": "P08",
+   "passage": 3,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 225,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0,
+    "donnees": 1,
+    "hors_sujet": 0,
+    "mixte": 0
+   }
+  },
+  {
+   "id": "P09",
+   "passage": 3,
+   "type": "DONNEES",
+   "choice": "donnees",
+   "confiance": 1,
+   "ms": 236,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "donnees": 1,
+    "mixte": 0,
+    "hors_sujet": 0,
+    "usage": 0
+   }
+  },
+  {
+   "id": "P10",
+   "passage": 3,
+   "type": "USAGE",
+   "choice": "usage",
+   "confiance": 0.97,
+   "ms": 245,
+   "status": "OK",
+   "error": null,
+   "probabilities": {
+    "usage": 0.98,
+    "mixte": 0.02,
+    "donnees": 0,
+    "hors_sujet": 0
+   }
+  }
+ ]
+}

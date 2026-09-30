@@ -4,12 +4,18 @@ import { LlmResult, LlmService } from '../core/llm.service';
 import { JevPromptService } from '../core/jev-prompt.service';
 import { TodayService } from '../core/today.service';
 import type { JevMemory } from './jev-memory.service';
+import type { RouteType } from '../domain/jev-router';
 import {
   ANSWER_INSTRUCTIONS, extractSql, formatRows, JEV_SQL_MAX_ROWS, JEV_SQL_RETRIES, JEV_SQL_ROLE, JEV_SQL_TIMEOUT_MS,
   looksLikeSql, renderDictionary, requestContext, SQL_CUT_REASON, sqlCut, sqlError, sqlInstructions, viewsUsed,
 } from '../domain/jev-sql';
 import { JEV_COCKPIT_ROLE, JEV_COCKPIT_SCHEMA, SCOPE_CHANTIERS, SCOPE_PROJET } from '../domain/jev-dictionnaire-cockpit';
 import { ChantierScope } from '../domain/notification-rules';
+
+/** Question d'usage : réponse sur le fonctionnement, sans lire les données (le guide utilisateur viendra ensuite). */
+export const USAGE_INSTRUCTIONS = '## Question sur le fonctionnement de la Console\nLa question porte sur l’utilisation ou le fonctionnement de la Console : explique où aller, comment faire et quelles règles s’appliquent. Ne cite aucune donnée chiffrée de la plateforme ; si la réponse dépend des données actuelles, dis-le et propose de poser la question sur les données.';
+/** Question de données : la réponse passe par une requête sur les vues. */
+export const DATA_HINT = 'La question porte sur les données de la plateforme : réponds par une requête SQL.';
 
 export interface JevAnswer {
   reply: string;
@@ -42,10 +48,16 @@ export class JevSqlService {
    * chaque appel. Prompt système en deux parties : stable (Identité, Soul, skill, mise en forme, dictionnaire), mise en
    * cache ; variable (page ouverte, date et heure, résumé), envoyée après.
    */
-  async ask(text: string, section: string, memory?: JevMemory): Promise<JevAnswer> {
+  async ask(text: string, section: string, memory?: JevMemory, route: RouteType = 'AMBIGU'): Promise<JevAnswer> {
     const parts = await this.jevPrompt.consolePromptParts(section);
+    // Aiguillage (décision du 30/09/2026) : une question d'USAGE ne lit pas les données (pas de dictionnaire, pas de
+    // requête) ; une question de DONNÉES passe par la requête ; AMBIGU (mixte, vague ou repli) garde les deux.
+    if (route === 'USAGE') {
+      const r = await this.llm.complete({ functionId: 'guidage', prompt: text, system: `${parts.stable}\n\n${USAGE_INSTRUCTIONS}`, systemTail: requestContext(parts.page, this.today.today(), this.nowParis(), memory?.summary), history: memory?.history, cache: true, source: 'COCKPIT' });
+      return { reply: r.text, sources: [], ai: { functionId: 'guidage', modelId: r.modelId, fallbackUsed: r.fallbackUsed }, sql: null };
+    }
     const tables = await this.prisma.dictionnaireTable.findMany({ where: { espace: 'console', actif: true }, include: { colonnes: { orderBy: { position: 'asc' } } }, orderBy: { position: 'asc' } });
-    const system = `${parts.stable}\n\n${sqlInstructions(renderDictionary(tables), null, null)}`;
+    const system = `${parts.stable}\n\n${sqlInstructions(renderDictionary(tables), null, null)}${route === 'DONNEES' ? `\n\n${DATA_HINT}` : ''}`;
     const context = requestContext(parts.page, this.today.today(), this.nowParis(), memory?.summary);
     const calls: LlmResult[] = [];
     const call = async (prompt: string, sys: string, tail = context) => {
