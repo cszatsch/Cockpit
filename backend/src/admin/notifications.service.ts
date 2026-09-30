@@ -14,7 +14,7 @@ import { frShort } from '../domain/dates';
 
 /** Jalon en retard : date prévue passée et non confirmé depuis. */
 const isLate = (m: { iso: string; confirmedAt: Date | null }, today: string) => m.iso < today && !(m.confirmedAt && confirmedAtIso(m.confirmedAt)! >= m.iso);
-import { AUDIENCE_PRIORITY, AudienceProfile, blockingErrors, CATCH_UP_SAME_DAY, DAILY_CHECK_CRON, nextSendAt, parisDay, scheduleKey } from '../domain/notification-rules';
+import { AUDIENCE_PRIORITY, AudienceProfile, blockingErrors, CATCH_UP_PER_MINUTE, catchUpDeadline, DAILY_CHECK_CRON, nextSendAt, NOTIFICATION_MEMORY_DAYS, occurrencesUntil, ON_TIME_TOLERANCE_MS, parisDay, scheduleKey, sendTimeFr } from '../domain/notification-rules';
 import { Audience, NotificationWriterService } from './notification-writer.service';
 
 /** Variables utilisables dans le prompt et le message (brief Console § 6.5). */
@@ -75,15 +75,24 @@ export class NotificationsService implements OnModuleInit {
    * Génère sujet et message pour un profil destinataire : le modèle de la règle lit les données du projet sur le
    * périmètre du profil (Text-to-SQL, `NotificationWriterService`) et rédige {reponse_llm} ; consommation tracée.
    */
-  async generate(rule: Pick<NotificationRule, 'modelId' | 'prompt' | 'subject' | 'body' | 'kind'>, ctx0: RuleContext, projectId: string | null, audience: Audience = { profile: 'pmo', chantiers: '*' }) {
+  async generate(rule: Pick<NotificationRule, 'modelId' | 'prompt' | 'subject' | 'body' | 'kind'> & { id?: string }, ctx0: RuleContext, projectId: string | null, audience: Audience = { profile: 'pmo', chantiers: '*' }, withMemory = false) {
     // {date} : la date de l'événement quand il en a une (date prévue d'un jalon…), sinon la date du jour.
     const ctx: RuleContext = { ...ctx0, date: ctx0.date || frShort(this.today.today(), 0) };
     const prompt = fill(rule.prompt, ctx as Record<string, string>);
     const project = projectId ? await this.prisma.project.findUnique({ where: { id: projectId }, select: { id: true, code: true } }) : null;
     const t0 = Date.now();
-    const res = await this.writer.write(rule, prompt, project, audience);
+    // Mémoire (décision du 30/09/2026) : le dernier envoi réussi de la règle, pour le même projet et le même profil.
+    const previous = withMemory && rule.id ? await this.previousSend(rule.id, projectId, audience.profile) : null;
+    const res = await this.writer.write(rule, prompt, project, audience, previous);
     const vars = { ...ctx, [LLM_RESPONSE_VARIABLE]: res.text } as Record<string, string>;
     return { subject: fill(rule.subject, vars), body: fill(rule.body, vars), llmResponse: res.text, tokens: res.tokens, costEur: res.costEur, ms: Date.now() - t0, sources: res.sources };
+  }
+
+  /** Dernier envoi réussi (texte rédigé) de moins de `NOTIFICATION_MEMORY_DAYS` jours, ou null. */
+  async previousSend(ruleId: string, projectId: string | null, profile: string): Promise<{ at: Date; text: string } | null> {
+    const since = new Date(this.today.now().getTime() - NOTIFICATION_MEMORY_DAYS * 86_400_000);
+    const d = await this.prisma.delivery.findFirst({ where: { ruleId, projectId, profile, status: 'OK', llmResponse: { not: null }, at: { gte: since } }, orderBy: { at: 'desc' } });
+    return d ? { at: d.at, text: d.llmResponse! } : null;
   }
 
   /**
@@ -93,7 +102,7 @@ export class NotificationsService implements OnModuleInit {
    * En cas de modèle inactif ou de clé invalide, l'échec est tracé dans l'historique (visible dans « À traiter »).
    * `only` (« M'envoyer un test ») : le texte du premier profil destinataire, envoyé aux seuls comptes indiqués.
    */
-  async deliver(rule: NotificationRule, projectId: string | null, ctx: RuleContext, eventKey: string | null, only?: { accountIds: string[] }) {
+  async deliver(rule: NotificationRule, projectId: string | null, ctx: RuleContext, eventKey: string | null, only?: { accountIds: string[] }, planned?: { scheduledAt: Date; mode: string }) {
     if (eventKey && (await this.prisma.delivery.findFirst({ where: { ruleId: rule.id, eventKey } }))) return [];
     let groups = await this.profiles.audiences(rule.targetProfiles, projectId);
     if (only) {
@@ -106,7 +115,7 @@ export class NotificationsService implements OnModuleInit {
       let gen: Awaited<ReturnType<NotificationsService['generate']>> | null = null;
       let error: string | null = null;
       try {
-        gen = await this.generate(rule, ctx, projectId, { profile: g.profile, chantiers: g.chantiers });
+        gen = await this.generate(rule, ctx, projectId, { profile: g.profile, chantiers: g.chantiers }, !only);
       } catch (e: any) {
         error = e?.message ?? 'Génération impossible';
       }
@@ -123,7 +132,7 @@ export class NotificationsService implements OnModuleInit {
         }
         const first = channel === rule.channels[0];
         const d = await this.prisma.delivery.create({
-          data: { ruleId: rule.id, channel, recipientsCount: recipients.length, status, error: err, costEur: first ? gen?.costEur ?? 0 : 0, tokens: first ? gen?.tokens ?? 0 : 0, projectId, subject: gen?.subject ?? null, body: gen?.body ?? null, eventKey, recipients: recipients.map((r) => r.id), profile: g.profile },
+          data: { ruleId: rule.id, at: this.today.now(), channel, recipientsCount: recipients.length, status, error: err, costEur: first ? gen?.costEur ?? 0 : 0, tokens: first ? gen?.tokens ?? 0 : 0, projectId, subject: gen?.subject ?? null, body: gen?.body ?? null, llmResponse: first ? gen?.llmResponse ?? null : null, scheduledAt: planned?.scheduledAt ?? null, mode: planned?.mode ?? null, eventKey, recipients: recipients.map((r) => r.id), profile: g.profile },
         });
         // Canal « Dans l'application » : notifications des destinataires dans le Cockpit (cloche, non lues).
         if (gen && channel === 'APP' && recipients.length) {
@@ -186,37 +195,86 @@ export class NotificationsService implements OnModuleInit {
   }
 
   /**
-   * Vérification de chaque minute : une seule requête sur l'index (règles actives dont le prochain envoi est passé).
-   * Rattrapage : un envoi manqué pendant un arrêt de la plateforme part au redémarrage le jour même
-   * (`CATCH_UP_SAME_DAY`) ; au-delà, il est abandonné et tracé en échec (« À traiter »). Un envoi par règle, projet
-   * et jour au plus (`eventKey`).
+   * Vérification de chaque minute (décision du 30/09/2026) :
+   * 1. les règles dont le prochain envoi est passé (une requête sur l'index) déposent leurs occurrences échues dans la
+   *    file des envois (`NotificationOccurrence`, unique par règle, projet et heure prévue : jamais deux fois) ;
+   * 2. la file est traitée : par règle et projet, seule l'occurrence la plus récente part si elle est encore dans la
+   *    limite de rattrapage (lendemain du jour prévu, 23:59, fuseau du projet), les autres sont « remplacées » ; si la
+   *    limite est dépassée, elle est « abandonnée » (échec dans « À traiter »). Envois à l'heure : tous ; rattrapages :
+   *    du plus ancien au plus récent, `CATCH_UP_PER_MINUTE` par minute au plus.
    */
   async runDue() {
     await this.syncSchedules();
     const now = this.today.now();
     const due = await this.prisma.notificationRule.findMany({ where: { enabled: true, nextRunAt: { lte: now } } });
-    if (!due.length) return;
-    const projects = await this.prisma.project.findMany({ where: { status: { not: 'CLOSED' } } });
-    for (const rule of due) {
-      const at = rule.nextRunAt!, day = parisDay(at);
-      // Prochain envoi posé avant l'envoi : une vérification qui se chevauche ne renvoie pas la même échéance.
-      await this.setNextRun(rule, nextSendAt(rule, now));
-      // Cas bloquants (aucun modèle, aucun destinataire) : la règle reste active mais n'envoie rien.
-      if (blockingErrors(rule).length) continue;
-      if (CATCH_UP_SAME_DAY && day !== parisDay(now)) {
-        const eventKey = `${rule.id}|manque|${day}`;
-        if (!(await this.prisma.delivery.findFirst({ where: { ruleId: rule.id, eventKey } }))) {
-          await this.prisma.delivery.create({ data: { ruleId: rule.id, at: now, channel: rule.channels[0] ?? 'APP', recipientsCount: 0, status: 'ERROR', eventKey, error: `Non envoyé : la plateforme était arrêtée à l’heure prévue (${frShort(day, 0)} ${rule.hour ?? ''}) et n’a redémarré qu’un autre jour` } });
-        }
-        continue;
-      }
-      // « Tous les projets » (règle de plateforme) : chaque projet ouvert.
-      const targets = rule.platform ? projects : rule.projectIds.map((code) => projects.find((x) => x.code === code || x.id === code));
-      for (const p of targets) {
-        if (!p) continue;
-        await this.deliver(rule, p.id, { projet: p.code, semaine: `semaine ${isoWeek(new Date(`${day}T12:00:00Z`))}` }, `${rule.id}|${p.id}|${day}`);
+    if (due.length) {
+      const projects = await this.prisma.project.findMany({ where: { status: { not: 'CLOSED' } } });
+      for (const rule of due) {
+        const occs = occurrencesUntil(rule, rule.nextRunAt!, now);
+        // Prochain envoi posé avant tout : une vérification qui se chevauche ne reprend pas les mêmes échéances.
+        await this.setNextRun(rule, nextSendAt(rule, now));
+        // Cas bloquants (aucun modèle, aucun destinataire) : la règle reste active mais n'envoie rien.
+        if (blockingErrors(rule).length) continue;
+        // « Tous les projets » (règle de plateforme) : chaque projet ouvert.
+        const targets = (rule.platform ? projects : rule.projectIds.map((code) => projects.find((x) => x.code === code || x.id === code))).filter((p): p is (typeof projects)[number] => !!p);
+        const rows = targets.flatMap((p) => occs.map((at) => ({ ruleId: rule.id, projectId: p.id, scheduledAt: at, deadline: catchUpDeadline(at, p.timezone), status: 'QUEUED' })));
+        if (rows.length) await this.prisma.notificationOccurrence.createMany({ data: rows, skipDuplicates: true });
       }
     }
+    await this.processQueue(now);
+  }
+
+  /** Traitement de la file des envois planifiés (voir `runDue`). */
+  async processQueue(now = this.today.now()) {
+    const queued = await this.prisma.notificationOccurrence.findMany({ where: { status: 'QUEUED' }, orderBy: { scheduledAt: 'asc' } });
+    if (!queued.length) return;
+    const rules = new Map((await this.prisma.notificationRule.findMany({ where: { id: { in: [...new Set(queued.map((o) => o.ruleId))] } } })).map((r) => [r.id, r]));
+    const groups = new Map<string, typeof queued>();
+    for (const o of queued) groups.set(`${o.ruleId}|${o.projectId}`, [...(groups.get(`${o.ruleId}|${o.projectId}`) ?? []), o]);
+    const sendable: typeof queued = [];
+    for (const list of groups.values()) {
+      const rule = rules.get(list[0].ruleId);
+      // Règle supprimée, désactivée ou incomplète entre-temps : rien ne part.
+      if (!rule || !rule.enabled || blockingErrors(rule).length) {
+        await this.prisma.notificationOccurrence.updateMany({ where: { id: { in: list.map((o) => o.id) }, status: 'QUEUED' }, data: { status: 'CANCELLED', doneAt: now } });
+        continue;
+      }
+      const latest = list[list.length - 1];
+      for (const o of list.slice(0, -1)) await this.close(rule, o, 'REPLACED', now, latest.scheduledAt);
+      if (latest.deadline.getTime() < now.getTime()) await this.close(rule, latest, 'MISSED', now);
+      else sendable.push(latest);
+    }
+    const onTime = sendable.filter((o) => now.getTime() - o.scheduledAt.getTime() <= ON_TIME_TOLERANCE_MS);
+    const catchUps = sendable.filter((o) => !onTime.includes(o)).slice(0, CATCH_UP_PER_MINUTE);
+    for (const o of [...onTime, ...catchUps].sort((x, y) => x.scheduledAt.getTime() - y.scheduledAt.getTime())) {
+      const mode = onTime.includes(o) ? 'ON_TIME' : 'CATCH_UP';
+      // Prise de l'occurrence : si un autre passage l'a déjà prise, elle n'est pas envoyée deux fois.
+      const claimed = await this.prisma.notificationOccurrence.updateMany({ where: { id: o.id, status: 'QUEUED' }, data: { status: 'SENDING', mode } });
+      if (!claimed.count) continue;
+      const rule = rules.get(o.ruleId)!;
+      const project = await this.prisma.project.findUnique({ where: { id: o.projectId } });
+      if (project) {
+        const day = parisDay(o.scheduledAt);
+        await this.deliver(rule, project.id, { projet: project.code, semaine: `semaine ${isoWeek(new Date(`${day}T12:00:00Z`))}` }, `${rule.id}|${project.id}|${o.scheduledAt.toISOString()}`, undefined, { scheduledAt: o.scheduledAt, mode });
+      }
+      await this.prisma.notificationOccurrence.update({ where: { id: o.id }, data: { status: 'SENT', doneAt: this.today.now() } });
+    }
+  }
+
+  /** Occurrence remplacée ou abandonnée : tracée dans l'historique (abandon : en échec, donc dans « À traiter »). */
+  private async close(rule: NotificationRule, o: { id: string; projectId: string; scheduledAt: Date; deadline: Date }, status: 'REPLACED' | 'MISSED', now: Date, by?: Date) {
+    const done = await this.prisma.notificationOccurrence.updateMany({ where: { id: o.id, status: 'QUEUED' }, data: { status, doneAt: now } });
+    if (!done.count) return;
+    await this.prisma.delivery.create({
+      data: {
+        ruleId: rule.id, at: now, channel: rule.channels[0] ?? 'APP', recipientsCount: 0, projectId: o.projectId, scheduledAt: o.scheduledAt, mode: status,
+        eventKey: `${rule.id}|${o.projectId}|${o.scheduledAt.toISOString()}|${status}`,
+        status: status === 'REPLACED' ? 'SKIPPED' : 'ERROR',
+        error: status === 'REPLACED'
+          ? `Remplacé par l’envoi prévu ${sendTimeFr(by!)} (un seul rattrapage par règle et par projet)`
+          : `Non envoyé : la plateforme était arrêtée à l’heure prévue (${sendTimeFr(o.scheduledAt)}) et n’a redémarré qu’après la limite de rattrapage (${sendTimeFr(o.deadline)})`,
+      },
+    });
   }
 
   /**

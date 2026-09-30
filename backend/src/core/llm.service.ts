@@ -239,7 +239,7 @@ export class LlmService {
    * Génération avec un modèle désigné et un prompt système (rédaction des notifications) : réelle quand le service
    * est en ligne, bouchon hors ligne ; la consommation est tracée comme pour les autres appels.
    */
-  async completeWithModelLive(modelId: string, input: { functionId: AiFunctionId; prompt: string; system?: string; projectId?: string | null; source: UsageSourceCode; maxWords?: number }): Promise<LlmResult> {
+  async completeWithModelLive(modelId: string, input: { functionId: AiFunctionId; prompt: string; system?: string; systemTail?: string; cache?: boolean; projectId?: string | null; source: UsageSourceCode; maxWords?: number }): Promise<LlmResult> {
     if (!(await this.modelAvailable(modelId))) throw new ApiError(503, 'AI_UNAVAILABLE', `Modèle ${modelId} inconnu, inactif, non LLM ou fournisseur en erreur`);
     if (!this.client.live) return this.run(modelId, input, false);
     try {

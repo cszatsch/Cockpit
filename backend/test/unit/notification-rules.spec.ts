@@ -1,4 +1,6 @@
 import {
+  catchUpDeadline,
+  occurrencesUntil,
   nextSendAt,
   parisDay,
   scheduleKey,
@@ -125,8 +127,10 @@ describe('Notifications et alertes : cas bloquants (§ 3) et historique', () => 
     expect(relativeFr(new Date('2026-09-28T08:00:00Z'), now)).toBe('hier');
     expect(relativeFr(new Date('2026-09-26T10:00:00Z'), now)).toBe('il y a 3 j');
     const h = toUiHistory({ id: 'd1', ruleId: 'n1', at: new Date('2026-09-26T10:00:00Z'), channel: 'EMAIL', recipientsCount: 4, status: 'ERROR', error: 'boom' }, now);
-    expect(h).toEqual({ id: 'd1', rid: 'n1', w: 'il y a 3 j', c: 'E-mail', d: '4 destinataires', ok: false, at: '2026-09-26T10:00:00.000Z', error: 'boom' });
+    expect(h).toEqual({ id: 'd1', rid: 'n1', w: 'il y a 3 j', c: 'E-mail', d: '4 destinataires', ok: false, at: '2026-09-26T10:00:00.000Z', error: 'boom', mode: null, planned: null, note: '' });
     expect(toUiHistory({ ...h, ruleId: 'n1', at: now, channel: 'APP', recipientsCount: 1, status: 'OK' }, now)).toMatchObject({ c: 'Application', d: '1 destinataire', ok: true });
+    // Envoi planifié rattrapé : heure prévue et heure réelle (heure de Paris).
+    expect(toUiHistory({ ...h, ruleId: 'n1', at: new Date('2026-09-30T08:12:00Z'), channel: 'APP', recipientsCount: 3, status: 'OK', mode: 'CATCH_UP', scheduledAt: new Date('2026-09-29T07:00:00Z') }, now).note).toBe('Rattrapé · prévu mar. 29/09 09:00, envoyé mer. 30/09 10:12');
   });
 });
 
@@ -167,5 +171,19 @@ describe('Planification : prochain envoi (heure de Paris)', () => {
     expect(nextSendAt(r('DAILY', '18:00', null, true, 'DOCUMENT_ANALYZED'), now)).toBeNull();
     expect(scheduleKey(r('DAILY', '07:00', null, false))).toBe('off');
     expect(scheduleKey(r('WEEKLY', '07:00', 'Lundi'))).toBe('WEEKLY|lundi|07:00');
+  });
+});
+
+describe('Rattrapage : limite et occurrences manquées', () => {
+  it('limite : lendemain du jour prévu, 23:59:59, dans le fuseau du projet', () => {
+    // Mardi 29/09, 9 h 00 à Paris → mercredi 30/09 23:59:59 à Paris.
+    expect(catchUpDeadline(new Date('2026-09-29T07:00:00Z'), 'Europe/Paris').toISOString()).toBe('2026-09-30T21:59:59.999Z');
+    // Même instant, projet à New York (3 h 00 le 29/09 là-bas) → 30/09 23:59:59 à New York.
+    expect(catchUpDeadline(new Date('2026-09-29T07:00:00Z'), 'America/New_York').toISOString()).toBe('2026-10-01T03:59:59.999Z');
+  });
+  it('occurrences manquées d’une règle quotidienne, de la première échéance jusqu’à maintenant', () => {
+    const r = { enabled: true, trigger: 'SCHEDULE', frequency: 'DAILY', day: null, hour: '09:00' };
+    const occ = occurrencesUntil(r, new Date('2026-09-29T07:00:00Z'), new Date('2026-10-01T08:00:00Z'));
+    expect(occ.map((d) => d.toISOString())).toEqual(['2026-09-29T07:00:00.000Z', '2026-09-30T07:00:00.000Z', '2026-10-01T07:00:00.000Z']);
   });
 });

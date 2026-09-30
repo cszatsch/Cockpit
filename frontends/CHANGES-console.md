@@ -488,3 +488,7 @@ Vérification des éléments de la vue d'ensemble face au serveur. Conformes : d
 
 - `Console Admin.dc.html`, en-tête du panneau Jev : bouton « Nouvelle conversation » (icône crayon, avant « Fermer Jev »), désactivé tant qu'aucune question n'a été posée ; méthode `jevNew` (démonstration : l'échange affiché est effacé, puis l'accueil de Jev).
 - `admin-api.js` : chaque question part avec `conversationId` (le serveur y joint les échanges précédents) ; au démarrage, la conversation en cours est réaffichée (`GET /assistant/conversations/current`) ; « Nouvelle conversation » ouvre une conversation neuve (`POST /assistant/conversations`).
+
+## Notifications et alertes : historique des envois planifiés (30/09/2026)
+
+- `Notifications et alertes.dc.html`, « Historique des envois » : statut selon le mode de l'envoi planifié, « Rattrapé » (ambre), « Remplacé » (gris), « Abandonné » (rouge), en plus de « Distribué » et « Échec » ; sous le nom de la règle, une ligne grise avec l'heure prévue et l'heure réelle (champ `note` du serveur). Les envois sur événement s'affichent comme avant.

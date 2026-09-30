@@ -249,6 +249,8 @@ enum Channel {
 enum DeliveryStatus {
   OK
   ERROR
+  /// Envoi planifié remplacé par une occurrence plus récente (rattrapage) : rien n'est parti.
+  SKIPPED
 }
 
 enum ModuleScope {
@@ -1319,6 +1321,11 @@ model Delivery {
   /// Profil destinataire de l'envoi (un texte par profil, droits du profil) : admin, pmo, resp, lec
   profile         String?
   eventKey        String?
+  /// Envoi planifié : heure prévue, et mode ON_TIME (à l'heure), CATCH_UP (rattrapé), REPLACED (remplacé), MISSED (abandonné).
+  scheduledAt     DateTime?
+  mode            String?
+  /// Texte rédigé par le modèle ({reponse_llm}) : mémoire de la rédaction de l'envoi suivant.
+  llmResponse     String?
   recipients      String[]       @default([])
 
   @@index([ruleId, eventKey])
@@ -1622,4 +1629,25 @@ model JevMessage {
 
   @@index([conversationId, seq])
   @@map("jev_messages")
+}
+
+/// Occurrence d'un envoi planifié (règle × projet × heure prévue) : mémoire des envois (décision du 30/09/2026). Unique :
+/// une occurrence n'est enregistrée, donc envoyée, qu'une fois, même après plusieurs redémarrages.
+model NotificationOccurrence {
+  id          String    @id @default(cuid())
+  ruleId      String    @map("rule_id")
+  projectId   String    @map("project_id")
+  scheduledAt DateTime  @map("scheduled_at")
+  /// Limite de rattrapage : lendemain du jour prévu, 23:59, fuseau du projet.
+  deadline    DateTime
+  /// QUEUED (à envoyer), SENDING (en cours), SENT, REPLACED, MISSED, CANCELLED (règle désactivée ou supprimée).
+  status      String
+  /// ON_TIME ou CATCH_UP, fixé à l'envoi.
+  mode        String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  doneAt      DateTime? @map("done_at")
+
+  @@unique([ruleId, projectId, scheduledAt])
+  @@index([status, scheduledAt])
+  @@map("notification_occurrences")
 }

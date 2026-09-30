@@ -37,6 +37,12 @@ export interface UiHistory {
   ok: boolean;
   at: string;
   error: string | null;
+  /** Envoi planifié : ON_TIME, CATCH_UP (rattrapé), REPLACED (remplacé), MISSED (abandonné) ; null sinon. */
+  mode: string | null;
+  /** Heure prévue (ISO) d'un envoi planifié. */
+  planned: string | null;
+  /** Ligne d'explication affichée sous le nom de la règle (« Rattrapé · prévu mar. 29/09 09:00, envoyé mer. 30/09 10:12 »). */
+  note: string;
 }
 
 /** Colonnes de la table utiles à la conversion. */
@@ -104,30 +110,66 @@ export function sendSlot(hhmm: string): string {
 
 /** Heure de la vérification quotidienne des jalons en retard et des risques critiques (heure de Paris). */
 export const DAILY_CHECK_CRON = '0 7 * * *';
-/** Rattrapage : un envoi manqué (plateforme arrêtée) part au redémarrage le jour même ; au-delà, il est abandonné. */
-export const CATCH_UP_SAME_DAY = true;
+/**
+ * Rattrapage (décision du 30/09/2026) : un envoi manqué (plateforme arrêtée) part au redémarrage jusqu'au lendemain
+ * du jour prévu, 23:59, dans le fuseau du projet ; au-delà, il est abandonné (échec dans « À traiter »). Plusieurs
+ * occurrences manquées d'une même règle pour un projet : seule la plus récente part, les autres sont « remplacées ».
+ */
+export const CATCH_UP_EXTRA_DAYS = 1;
+/** Rattrapages envoyés par minute au plus (du plus ancien au plus récent), pour ne pas saturer les canaux. */
+export const CATCH_UP_PER_MINUTE = 10;
+/** Envoi « à l'heure » : parti moins de 5 minutes après l'heure prévue ; au-delà, « rattrapé ». */
+export const ON_TIME_TOLERANCE_MS = 5 * 60_000;
+/** Mémoire de la rédaction : le dernier envoi de la règle (même projet, même profil) s'il date de moins de 35 jours. */
+export const NOTIFICATION_MEMORY_DAYS = 35;
+/** Occurrences comptées au plus au rattrapage d'une règle (arrêt très long). */
+const MAX_MISSED_OCCURRENCES = 1000;
 
-/** Parties de date et d'heure d'un instant dans le fuseau de l'organisation. */
-function parisParts(d: Date) {
-  const p = Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone: NOTIFICATION_TIMEZONE, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(d).map((x) => [x.type, x.value]));
+/** Parties de date et d'heure d'un instant dans un fuseau (par défaut celui de l'organisation). */
+function zonedParts(d: Date, tz = NOTIFICATION_TIMEZONE) {
+  const p = Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(d).map((x) => [x.type, x.value]));
   return { y: +p.year, m: +p.month, d: +p.day, h: +p.hour, min: +p.minute };
 }
 
-/** Jour (AAAA-MM-JJ) d'un instant, heure de Paris. */
-export function parisDay(d: Date): string {
-  const p = parisParts(d);
+/** Jour (AAAA-MM-JJ) d'un instant dans un fuseau (par défaut heure de Paris). */
+export function parisDay(d: Date, tz = NOTIFICATION_TIMEZONE): string {
+  const p = zonedParts(d, tz);
   return `${p.y}-${String(p.m).padStart(2, '0')}-${String(p.d).padStart(2, '0')}`;
 }
 
-/** Instant correspondant à une date et une heure de Paris (changements d'heure compris). */
-export function parisTime(y: number, m: number, d: number, h: number, min: number): Date {
+/** Instant correspondant à une date et une heure d'un fuseau (changements d'heure compris). */
+export function zonedTime(tz: string, y: number, m: number, d: number, h: number, min: number): Date {
   const want = Date.UTC(y, m - 1, d, h, min);
   let t = want;
   for (let i = 0; i < 2; i++) {
-    const p = parisParts(new Date(t));
+    const p = zonedParts(new Date(t), tz);
     t += want - Date.UTC(p.y, p.m - 1, p.d, p.h, p.min);
   }
   return new Date(t);
+}
+
+export function parisTime(y: number, m: number, d: number, h: number, min: number): Date {
+  return zonedTime(NOTIFICATION_TIMEZONE, y, m, d, h, min);
+}
+
+/** Limite de rattrapage d'un envoi prévu : lendemain du jour prévu, 23:59:59, dans le fuseau du projet. */
+export function catchUpDeadline(scheduledAt: Date, projectTz: string): Date {
+  const p = zonedParts(scheduledAt, projectTz);
+  const day = new Date(Date.UTC(p.y, p.m - 1, p.d + CATCH_UP_EXTRA_DAYS));
+  return new Date(zonedTime(projectTz, day.getUTCFullYear(), day.getUTCMonth() + 1, day.getUTCDate(), 23, 59).getTime() + 59_999);
+}
+
+/** Occurrences d'une règle entre `first` (incluse) et `now` (incluse), dans l'ordre chronologique. */
+export function occurrencesUntil(r: { enabled: boolean; trigger: string; frequency: string; day: string | null; hour: string | null }, first: Date, now: Date): Date[] {
+  const out: Date[] = [];
+  for (let t: Date | null = first; t && t.getTime() <= now.getTime() && out.length < MAX_MISSED_OCCURRENCES; t = nextSendAt(r, t)) out.push(t);
+  return out;
+}
+
+/** Heure lisible d'un envoi (historique) : « mar. 29/09 09:00 », heure de Paris. */
+export function sendTimeFr(d: Date): string {
+  const f = new Intl.DateTimeFormat('fr-FR', { timeZone: NOTIFICATION_TIMEZONE, weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(d);
+  return f.replace(/\s+(\d{2}:\d{2})$/, ' $1');
 }
 
 /** Règle planifiée dont l'envoi suit une heure (quotidienne, hebdomadaire ; « personnalisée » : comme quotidienne). */
@@ -146,7 +188,7 @@ export function nextSendAt(r: { enabled: boolean; trigger: string; frequency: st
   const weekly = r.frequency === 'WEEKLY';
   const [hh, mm] = (r.hour ?? (weekly ? DEFAULT_WEEK_HOUR : DEFAULT_HOUR)).split(':').map(Number);
   const target = WEEK_DAYS.indexOf((r.day ?? DEFAULT_WEEK_DAY).toLowerCase());
-  const p = parisParts(from);
+  const p = zonedParts(from);
   for (let k = 0; k <= 8; k++) {
     const day = new Date(Date.UTC(p.y, p.m - 1, p.d + k));
     if (weekly && (day.getUTCDay() + 6) % 7 !== target) continue;
@@ -254,9 +296,17 @@ export function relativeFr(at: Date, now: Date): string {
 
 /** Envoi (`Delivery`) → ligne d'historique de la vue. */
 export function toUiHistory(
-  d: { id: string; ruleId: string; at: Date; channel: 'APP' | 'EMAIL'; recipientsCount: number; status: string; error: string | null },
+  d: { id: string; ruleId: string; at: Date; channel: 'APP' | 'EMAIL'; recipientsCount: number; status: string; error: string | null; mode?: string | null; scheduledAt?: Date | null },
   now: Date,
 ): UiHistory {
+  // Mode : envoi planifié à l'heure, rattrapé, remplacé ou abandonné ; null pour un envoi sur événement ou un test.
+  const mode = d.mode ?? null, planned = d.scheduledAt ? sendTimeFr(d.scheduledAt) : '';
+  const note =
+    mode === 'CATCH_UP' ? `Rattrapé · prévu ${planned}, envoyé ${sendTimeFr(d.at)}`
+    : mode === 'ON_TIME' ? `À l’heure · prévu ${planned}, envoyé ${sendTimeFr(d.at)}`
+    : mode === 'REPLACED' ? `Remplacé par un envoi plus récent · prévu ${planned}`
+    : mode === 'MISSED' ? `Abandonné · prévu ${planned}, plateforme arrêtée au-delà de la limite de rattrapage`
+    : '';
   return {
     id: d.id,
     rid: d.ruleId,
@@ -266,6 +316,9 @@ export function toUiHistory(
     ok: d.status === 'OK',
     at: d.at.toISOString(),
     error: d.error,
+    mode,
+    planned: d.scheduledAt ? d.scheduledAt.toISOString() : null,
+    note,
   };
 }
 

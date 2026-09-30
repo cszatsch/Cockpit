@@ -176,7 +176,7 @@ textarea::placeholder,input::placeholder{color:#8a9aa6}
     </div>
     <sc-for list="{{ hist }}" as="h" hint-placeholder-count="3">
       <div style="display:grid;grid-template-columns:minmax(72px,140px) minmax(0,1fr) minmax(0,160px) minmax(0,160px) auto;gap:12px;align-items:center;padding:0 28px;min-height:52px;border-top:1px solid #f1f5f4;font-size:13px">
-        <span style="color:#8a9aa6;font-variant-numeric:tabular-nums">{{ h.w }}</span><span style="font-weight:700">{{ h.t }}</span><span style="color:#43586a">{{ h.c }}</span><span style="color:#43586a">{{ h.d }}</span>
+        <span style="color:#8a9aa6;font-variant-numeric:tabular-nums">{{ h.w }}</span><span style="min-width:0;display:flex;flex-direction:column;gap:2px;padding:8px 0"><span style="font-weight:700">{{ h.t }}</span><sc-if value="{{ h.hasNote }}" hint-placeholder-val="{{ false }}"><span style="font-size:11.5px;color:#8a9aa6;font-variant-numeric:tabular-nums">{{ h.note }}</span></sc-if></span><span style="color:#43586a">{{ h.c }}</span><span style="color:#43586a">{{ h.d }}</span>
         <span style="{{ h.sSt }}"><span style="{{ h.dot }}"></span>{{ h.s }}</span>
       </div>
     </sc-for>
@@ -344,9 +344,11 @@ class Component extends DCLogic {
       revert: () => this.setState({ draft: null }),
       save: () => { this.setRules(rules.map(r => r.id === d.id ? clone(d) : r)); this.setState({ draft: null }); this.props.onSave?.(d); this.say('Règle enregistrée'); },
       hTabs: [['rule', 'Cette règle'], ['all', 'Toutes les règles']].map(([k, l]) => ({ l, on: S.hScope === k, pick: () => this.setState({ hScope: k }), st: seg(S.hScope === k, 28) })),
-      hist: hist.map(h => ({ w: h.w, t: titleOf(h.rid), c: h.c, d: h.d, s: h.ok ? 'Distribué' : 'Échec',
-        sSt: 'justify-self:end;display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:' + (h.ok ? '#146b64' : '#c2473b'),
-        dot: 'width:6px;height:6px;border-radius:50%;background:' + (h.ok ? '#1d8f86' : '#e0604c') + ';box-shadow:0 0 0 3px ' + (h.ok ? '#e6f4f2' : '#fdf0ed') })),
+      // Envoi planifié (30/09/2026) : rattrapé (ambre), remplacé (gris), abandonné (rouge) ; heure prévue et heure réelle en note.
+      hist: hist.map(h => { const tone = h.mode === 'REPLACED' ? ['Remplacé', '#5c7280', '#a9b7bf', '#eef2f1'] : h.mode === 'MISSED' ? ['Abandonné', '#c2473b', '#e0604c', '#fdf0ed'] : !h.ok ? ['Échec', '#c2473b', '#e0604c', '#fdf0ed'] : h.mode === 'CATCH_UP' ? ['Rattrapé', '#9a5a0c', '#e89a2c', '#fff1dc'] : ['Distribué', '#146b64', '#1d8f86', '#e6f4f2'];
+        return { w: h.w, t: titleOf(h.rid), c: h.c, d: h.d, s: tone[0], note: h.note || '', hasNote: !!h.note,
+          sSt: 'justify-self:end;display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:' + tone[1],
+          dot: 'width:6px;height:6px;border-radius:50%;background:' + tone[2] + ';box-shadow:0 0 0 3px ' + tone[3] }; }),
       noHist: !hist.length, hasToast: !!S.toast, toast: S.toast
     };
   }

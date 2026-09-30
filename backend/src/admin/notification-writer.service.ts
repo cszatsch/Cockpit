@@ -33,6 +33,9 @@ export const NOTIFICATION_ANSWER_INSTRUCTIONS = [
   '- Respecte la longueur et le ton demandés par la consigne. Texte brut, sans titre, sans Markdown, sans formule de politesse.',
 ].join('\n');
 
+/** Consigne jointe à l'envoi précédent (mémoire de la rédaction). */
+export const PREVIOUS_SEND_INSTRUCTIONS = 'Compare avec les données actuelles : dis d’abord ce qui a changé depuis cet envoi (écarts, nouveautés, points réglés, avec la date de l’envoi précédent), sans répéter à l’identique ce qui n’a pas changé. N’annonce aucune évolution que les données ne montrent pas ; si rien n’a changé, dis-le en une phrase.';
+
 /**
  * Rédaction du contenu d'une alerte ou d'une notification par le modèle de la règle (évolution du 29/09/2026),
  * selon les étapes du guide console : 1. le modèle analyse la consigne ; 2. il repère dans le dictionnaire des données
@@ -63,10 +66,19 @@ export class NotificationWriterService {
     return `Périmètre des destinataires : les chantiers ${a.chantiers.join(', ')} (chantier_id) ; les lignes des autres chantiers sont absentes des vues.`;
   }
 
-  async write(rule: { modelId: string; kind: string }, prompt: string, project: { id: string; code: string } | null, audience: Audience): Promise<WrittenText> {
+  /**
+   * `previous` : dernier envoi de la règle au même profil (mémoire, décision du 30/09/2026) ; le modèle dit ce qui a
+   * changé depuis au lieu de répéter le même texte. Il part, avec la date et l'heure, dans la partie variable du prompt ;
+   * la partie stable est marquée pour le cache.
+   */
+  async write(rule: { modelId: string; kind: string }, prompt: string, project: { id: string; code: string } | null, audience: Audience, previous?: { at: Date; text: string } | null): Promise<WrittenText> {
     const calls: LlmResult[] = [];
-    const call = async (p: string, system: string) => {
-      const r = await this.llm.completeWithModelLive(rule.modelId, { functionId: 'insights', prompt: p, system, projectId: project?.id ?? null, source: 'NOTIFICATION', maxWords: 150 });
+    const tail = [
+      `## Contexte de l’envoi\nDate du jour de la plateforme : ${this.today.today()}. Maintenant (heure de Paris) : ${this.nowParis()}.`,
+      ...(previous ? [`## Envoi précédent de cette notification (${new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', dateStyle: 'long' }).format(previous.at)})\n${previous.text}\n\n${PREVIOUS_SEND_INSTRUCTIONS}`] : []),
+    ].join('\n\n');
+    const call = async (p: string, system: string, extra = '') => {
+      const r = await this.llm.completeWithModelLive(rule.modelId, { functionId: 'insights', prompt: p, system, systemTail: extra ? `${tail}\n\n${extra}` : tail, cache: true, projectId: project?.id ?? null, source: 'NOTIFICATION', maxWords: 150 });
       calls.push(r);
       return r;
     };
@@ -82,7 +94,7 @@ export class NotificationWriterService {
 
     // 1-3. Analyse, dictionnaire, requête (ou réponse directe si la consigne ne demande pas de données).
     const tables = await this.prisma.dictionnaireTable.findMany({ where: { espace: 'cockpit', actif: true }, include: { colonnes: { orderBy: { position: 'asc' } } }, orderBy: { position: 'asc' } });
-    const system = `${base}\n\n${sqlInstructions(renderDictionary(tables, JEV_COCKPIT_SCHEMA), this.today.today(), this.nowParis(), {
+    const system = `${base}\n\n${sqlInstructions(renderDictionary(tables, JEV_COCKPIT_SCHEMA), null, null, {
       title: 'Données du Cockpit',
       schema: JEV_COCKPIT_SCHEMA,
       topics: 'planning, chantiers, jalons, livrables, risques, actions, décisions, comités, équipes…',
@@ -120,7 +132,7 @@ export class NotificationWriterService {
     const used = tables.filter((t) => sources.includes(t.nom));
     const res = formatRows(rows);
     const head = `## Résultats de la requête (${res.count} ligne(s)${res.truncated ? `, tronqués aux ${JEV_SQL_MAX_ROWS} premières` : ''})`;
-    const answer = await call(`${prompt}\n\n${head}\n${res.text}`, `${base}\n\n${NOTIFICATION_ANSWER_INSTRUCTIONS}\n\n## Dictionnaire des vues consultées\n${renderDictionary(used, JEV_COCKPIT_SCHEMA)}`);
+    const answer = await call(`${prompt}\n\n${head}\n${res.text}`, `${base}\n\n${NOTIFICATION_ANSWER_INSTRUCTIONS}`, `## Dictionnaire des vues consultées\n${renderDictionary(used, JEV_COCKPIT_SCHEMA)}`);
     return out(answer.text, sources, sql);
   }
 
