@@ -202,3 +202,8 @@ Plus aucune clé `localStorage` n'est lue ou écrite par le fichier HTML. api.js
 
 - `RISE Cockpit.dc.html` : fenêtre du résumé redessinée — en-tête épuré (format en étiquette discrète, type · version · confidentialité, titre, auteur et date du dépôt), « En bref » (description en deux phrases, filet d'accent), chiffres clés (jusqu'à 4, taille commune sans troncature), rubriques en deux colonnes « titre | points » (une colonne quand la place manque), états chargement (chatoiement), traitement en cours (avancement) et échec (motif) ; pied discret (état de l'index, « Supprimer » en lien, « Télécharger ») ; défilement fin avec fondu en bas. Animation `kb-shimmer`.
 - Le résumé est désormais un objet structuré (`description`, `figures`, `sections`) renvoyé par `GET /documents/:id`.
+
+## Tuile Trafic alimentée par le Registre des cartes API (01/10/2026)
+
+- `api.js` : géocodage de la ville du profil et de la ville du projet (carte `open-meteo-geocodage`), puis aller et retour par la carte `tomtom-routing` (proxy, en-tête `X-RISE-Widget: trafic`).
+- `RISE Cockpit.dc.html` : la tuile Trafic affiche la durée réelle (« 50 min », « 1 h 05 ») et le retard (« +1 min », « Trafic fluide ») ; « Calcul du trajet… » pendant l'appel ; « Trafic indisponible » en cas d'échec, au lieu des valeurs d'exemple écrites dans le code.

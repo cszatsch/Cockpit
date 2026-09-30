@@ -1,4 +1,4 @@
-import { cardStatus, daysLeft, endpointError, expiryLevel, failureNote, isPrivateAddress, latency24h, redactKey } from '../../src/domain/api-cards';
+import { cardStatus, daysLeft, endpointError, expiryLevel, failureNote, fillEndpoint, isPrivateAddress, latency24h, redactKey } from '../../src/domain/api-cards';
 
 describe('Registre des cartes API : règles (spécification REGISTRE API)', () => {
   it('SSRF : https obligatoire, adresses privées et locales refusées', () => {
@@ -42,5 +42,16 @@ describe('Registre des cartes API : règles (spécification REGISTRE API)', () =
     expect(l[23]).toBe(150);
     expect(l[22]).toBeNull();
     expect(redactKey('{"url":"https://x?appid=SECRET-123456"}', 'SECRET-123456')).toBe('{"url":"https://x?appid=••••3456"}');
+  });
+
+  it('variables de chemin : remplies par le widget ou par défaut, retirées des paramètres, valeurs sûres seulement', () => {
+    const e = 'https://api.tomtom.com/routing/1/calculateRoute/{route=1,2:3,4}/json?traffic=true&key={key}';
+    expect(endpointError(e)).toBeNull();
+    expect(fillEndpoint(e, {})).toEqual({ endpoint: 'https://api.tomtom.com/routing/1/calculateRoute/1,2:3,4/json?traffic=true&key={key}', query: {}, error: null });
+    expect(fillEndpoint(e, { route: '48.8,2.3:48.6,2.4', travelMode: 'car' })).toEqual({ endpoint: 'https://api.tomtom.com/routing/1/calculateRoute/48.8,2.3:48.6,2.4/json?traffic=true&key={key}', query: { travelMode: 'car' }, error: null });
+    for (const bad of ['a/b', '..', '1,2:3,4?x', 'x#y', 'a b']) expect(fillEndpoint(e, { route: bad }).error).toMatch(/refusée/);
+    expect(endpointError('https://{h=exemple.fr}/x')).toMatch(/chemin seulement/);
+    expect(endpointError('https://exemple.fr/x?a={a=1}')).toMatch(/chemin seulement/);
+    expect(endpointError('https://exemple.fr/{a}/x')).toMatch(/valeur par défaut/);
   });
 });

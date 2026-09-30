@@ -253,4 +253,30 @@ describe('Console — registre des cartes API', () => {
     const all = [await admin.get(AC), await admin.get('/api/admin/notifications'), await admin.get('/api/admin/audit')];
     for (const r of all) for (const k of [KEY, 'NOUVELLE-cle-7B21', 'news-key-51B2', 'cle-libre-0000']) expect(JSON.stringify(r.body)).not.toContain(k);
   });
+
+  it('variables de chemin (itinéraire TomTom) : valeur du widget dans le chemin, défaut pour le contrôle, valeurs et emplacements contrôlés', async () => {
+    const base = { name: 'TomTom · Itinéraire', category: 'Trafic', key: 'CLE-tomtom-routing-42', quotaLimit: 100 };
+    // Variable dans l'hôte, dans les paramètres, sans défaut ou avec un défaut dangereux : refusées.
+    for (const endpoint of ['https://{hote=api.tomtom.com}/x', 'https://api.tomtom.com/x?route={route=1,2:3,4}', 'https://api.tomtom.com/routing/{route}/json', 'https://api.tomtom.com/routing/{route=a/../b}/json']) {
+      expect(Object.keys((await admin.post(AC, { ...base, endpoint }).expect(422)).body.fields)).toContain('endpoint');
+    }
+    const c = await admin.post(AC, { ...base, endpoint: 'https://api.tomtom.com/routing/1/calculateRoute/{route=48.8566,2.3522:48.6833,2.3833}/json?traffic=true&key={key}' }).expect(201);
+    upstream = () => ({ status: 200, body: JSON.stringify({ routes: [{ summary: { travelTimeInSeconds: 2040, trafficDelayInSeconds: 480 } }] }) });
+    const pmo = await t.as(WHO.pmo);
+    seen.length = 0;
+    const r = await pmo.get(`/api/widgets/proxy/${c.body.id}?route=48.85,2.35:48.68,2.38&travelMode=car`).set('X-RISE-Widget', 'trafic').expect(200);
+    expect(JSON.parse(r.text).routes[0].summary.travelTimeInSeconds).toBe(2040);
+    const u = new URL(seen[0].url);
+    expect(u.pathname).toBe('/routing/1/calculateRoute/48.85,2.35:48.68,2.38/json');
+    expect(Object.fromEntries(u.searchParams)).toEqual({ traffic: 'true', key: 'CLE-tomtom-routing-42', travelMode: 'car' });
+    expect((await t.db.apiCard.findUniqueOrThrow({ where: { id: c.body.id } })).widgets).toContain('trafic');
+    // Valeur qui tenterait de sortir du chemin : refusée, aucun appel.
+    seen.length = 0;
+    await pmo.get(`/api/widgets/proxy/${c.body.id}?route=${encodeURIComponent('../../traffic/x')}`).expect(400);
+    await pmo.get(`/api/widgets/proxy/${c.body.id}?route=${encodeURIComponent('1,2:3,4?x=1')}`).expect(400);
+    expect(seen).toHaveLength(0);
+    // Contrôle de santé : valeur par défaut.
+    await admin.post(`${AC}/${c.body.id}/test`, {}).expect(200);
+    expect(new URL(seen[seen.length - 1].url).pathname).toBe('/routing/1/calculateRoute/48.8566,2.3522:48.6833,2.3833/json');
+  });
 });

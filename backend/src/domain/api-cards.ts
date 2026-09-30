@@ -81,11 +81,41 @@ export function isPrivateHostname(host: string): boolean {
   return h === 'localhost' || h.endsWith('.localhost') || h.endsWith('.local') || h.endsWith('.internal') || isPrivateAddress(h);
 }
 
+/**
+ * Variables de chemin (30/09/2026, itinéraire TomTom) : `{nom=défaut}` dans le CHEMIN de l'endpoint, remplacé par le
+ * paramètre `nom` transmis par le widget (sinon la valeur par défaut, utilisée par le contrôle de santé). Valeurs
+ * limitées à des caractères sans risque : ni « / », ni « ? », ni « # », ni « .. » (le chemin et l'hôte ne changent pas).
+ */
+export const PATH_VAR = /\{([a-z][a-z0-9_]*)=([^{}]*)\}/gi;
+export const PATH_VALUE = /^[A-Za-z0-9.,:;_+-]{1,500}$/;
+
+/** Endpoint rempli : variables de chemin remplacées, paramètres correspondants retirés de la requête. */
+export function fillEndpoint(endpoint: string, query: Record<string, string>): { endpoint: string; query: Record<string, string>; error: string | null } {
+  const rest = { ...query };
+  let error: string | null = null;
+  const out = endpoint.replace(PATH_VAR, (_m, name: string, def: string) => {
+    const v = rest[name] ?? def;
+    delete rest[name];
+    if (!PATH_VALUE.test(v) || v.includes('..')) error = `Valeur refusée pour « ${name} »`;
+    return encodeURIComponent(v).replace(/%2C/gi, ',').replace(/%3A/gi, ':').replace(/%3B/gi, ';');
+  });
+  return { endpoint: out, query: rest, error };
+}
+
 /** Contrôle d'un endpoint (sans résolution DNS, faite à part) : message d'erreur ou null. */
 export function endpointError(endpoint: string): string | null {
   let u: URL;
+  // Variables de chemin : seulement après l'hôte et avant les paramètres, valeur par défaut valide.
+  const firstVar = endpoint.search(/\{(?!key\})/i);
+  if (firstVar >= 0) {
+    const hostEnd = endpoint.indexOf('/', endpoint.indexOf('://') + 3), q = endpoint.indexOf('?');
+    if (hostEnd < 0 || firstVar < hostEnd || (q >= 0 && [...endpoint.matchAll(PATH_VAR)].some((m) => m.index! > q))) return 'Variables « {nom=défaut} » autorisées dans le chemin seulement';
+    const f = fillEndpoint(endpoint, {});
+    if (f.error) return f.error;
+    if (/\{(?!key\})/i.test(f.endpoint)) return 'Variable de chemin sans valeur par défaut : écrire {nom=défaut}';
+  }
   try {
-    u = new URL(endpoint.replace(KEY_PLACEHOLDER, 'CLE'));
+    u = new URL(fillEndpoint(endpoint, {}).endpoint.replace(KEY_PLACEHOLDER, 'CLE'));
   } catch {
     return 'URL invalide';
   }

@@ -67,8 +67,9 @@ describe('Console — Journal des appels', () => {
   });
 
   it('usage/daily : un point par jour, jours vides inclus', async () => {
-    const days = (await admin.get(`${A}/usage/daily?from=2026-10-01&to=2026-10-05`).expect(200)).body;
-    expect(days).toEqual(['2026-10-01', '2026-10-02', '2026-10-03', '2026-10-04', '2026-10-05'].map((date) => ({ date, tokensIn: 0, tokensOut: 0, costIn: 0, costOut: 0, calls: 0 })));
+    // Période sans appel quelle que soit l'horloge réelle (certains appels des tests portent la date réelle).
+    const days = (await admin.get(`${A}/usage/daily?from=2030-01-01&to=2030-01-05`).expect(200)).body;
+    expect(days).toEqual(['2030-01-01', '2030-01-02', '2030-01-03', '2030-01-04', '2030-01-05'].map((date) => ({ date, tokensIn: 0, tokensOut: 0, costIn: 0, costOut: 0, calls: 0 })));
     const month = (await admin.get(`${A}/usage/daily`).expect(200)).body;
     expect(month[0].date).toBe('2026-09-01');
     expect(month[month.length - 1].date).toBe(process.env.DEMO_TODAY);

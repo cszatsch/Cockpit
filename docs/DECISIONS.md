@@ -907,3 +907,14 @@ Constat du commanditaire sur un PowerPoint déposé : mise en forme médiocre. C
 | Lecture tolérante | Réponse ou résumé stocké relus sans jamais afficher de JSON brut : retours à la ligne bruts échappés, ancien format (`resume` Markdown) converti en rubriques, JSON coupé réduit à ses éléments complets (dernier point ramené à sa dernière phrase entière, initiales comprises), texte libre en rubriques. Les résumés déjà stockés sont réparés à la lecture. | `readSummary`, `escapeControlsInStrings`, `markdownSections` |
 | Nouveau traitement | `POST /api/projects/:id/documents/:id/reprocess` (PMO, auteur) : résumé et vecteurs refaits depuis le fichier stocké, tracé (« RETRAITEMENT »). Appliqué au document « ECF Projet SAP – Kick off 240207 ». | `KbService.reprocess` |
 | Fenêtre « Vue » | En-tête (format discret, type, version, confidentialité, titre, dépôt) ; « En bref » (description, filet d'accent) ; chiffres clés sans cadre, taille commune d'après la valeur la plus longue ; rubriques « titre | points » ; pied discret (état de l'index, Supprimer en lien, Télécharger) ; états chargement, en cours, échec ; mise en page adaptative en CSS (grille auto-fit, rubriques qui passent sur une colonne). | `RISE Cockpit.dc.html` |
+
+## Cockpit : tuile Trafic alimentée par le Registre des cartes API (01/10/2026)
+
+Constat : la tuile Trafic affichait des valeurs écrites dans le code (« 34 min », « +8 min »), la carte `tomtom-traffic` du Registre (flowSegmentData : vitesse sur un tronçon) n'étant ni reliée ni adaptée.
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Service | Nouvelle carte « TomTom · Itinéraire » (`tomtom-routing`, catégorie Trafic, cache 2 min) : TomTom Routing `calculateRoute` avec trafic ; durée (`travelTimeInSeconds`) et retard (`trafficDelayInSeconds`). Clé TomTom existante réutilisée (copiée chiffrée, jamais exposée). La carte `tomtom-traffic` n'est plus utilisée par aucun widget. | Registre ; `api.js` (`dbExtLoad`) |
+| Lieux | Départ : ville du profil (Paris par défaut) ; arrivée : ville du projet (Référentiel) ; géocodage par la carte `open-meteo-geocodage` (déjà utilisée par la météo) ; aller et retour calculés, bouton ⇅ pour inverser. | `api.js` |
+| Variables de chemin | Un endpoint peut porter `{nom=défaut}` dans son chemin (pas dans l'hôte ni les paramètres) : valeur transmise par le widget, sinon la valeur par défaut (contrôle de santé) ; caractères limités à `A-Z a-z 0-9 . , : ; _ + -`, jamais « .. » (400 sinon) ; contrôlé à l'enregistrement. | `PATH_VAR`, `PATH_VALUE`, `fillEndpoint`, `endpointError` |
+| Échec | Carte désactivée, en erreur, quota atteint ou itinéraire introuvable : « — » et « Trafic indisponible » ; pendant le calcul : « … » et « Calcul du trajet… » ; retard nul : « Trafic fluide ». Plus aucune valeur inventée. | `RISE Cockpit.dc.html` |

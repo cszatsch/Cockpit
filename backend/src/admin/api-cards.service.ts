@@ -17,6 +17,7 @@ import {
   isPrivateHostname,
   KEY_HEADER,
   KEY_PLACEHOLDER,
+  fillEndpoint,
   HEALTH_POST_INTERVAL_MS,
   latency24h,
   latencyMedian,
@@ -98,9 +99,12 @@ export class ApiCardsService implements OnModuleInit {
   /** Appel réel de l'endpoint d'une carte, avec les paramètres transmis par le widget. */
   async call(card: ApiCard, query: Record<string, string> = {}, source: CallSource, widget?: string | null): Promise<CallResult> {
     const key = card.keyEncrypted ? decryptSecret(card.keyEncrypted) : null;
-    const url = new URL(key ? card.endpoint.split(KEY_PLACEHOLDER).join(encodeURIComponent(key)) : card.endpoint.split(KEY_PLACEHOLDER).join(''));
+    // Variables de chemin (« {route=…} ») remplies par le widget, sinon leur valeur par défaut ; valeur refusée → 400.
+    const filled = fillEndpoint(card.endpoint, query);
+    if (filled.error) throw new ApiError(400, 'VALIDATION_ERROR', filled.error);
+    const url = new URL(key ? filled.endpoint.split(KEY_PLACEHOLDER).join(encodeURIComponent(key)) : filled.endpoint.split(KEY_PLACEHOLDER).join(''));
     // Paramètres de l'endpoint = valeurs par défaut (utilisées par le contrôle de santé) ; ceux du widget les remplacent.
-    for (const [k, v] of Object.entries(query)) url.searchParams.set(k, v);
+    for (const [k, v] of Object.entries(filled.query)) url.searchParams.set(k, v);
     const headers: Record<string, string> = { 'User-Agent': 'RISE-Cockpit/1.0', Accept: 'application/json, */*' };
     // Clé : marqueur {key} de l'endpoint, sinon Authorization: Bearer (BEARER) ou en-tête X-Api-Key (HEADER).
     if (key && !card.endpoint.includes(KEY_PLACEHOLDER)) {

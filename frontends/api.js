@@ -899,6 +899,17 @@ export function attach(comp) {
             .then((f) => ({ temperature: f.current ? f.current.temperature_2m : null, weatherCode: f.current ? f.current.weather_code : null, min: f.daily ? f.daily.temperature_2m_min[0] : null, max: f.daily ? f.daily.temperature_2m_max[0] : null, sunrise: f.daily ? f.daily.sunrise[0] : null, sunset: f.daily ? f.daily.sunset[0] : null, fetchedAt: new Date().toISOString() })); })
         .then((w) => { if (w.temperature == null) throw 0; const now = new Date(w.fetchedAt || Date.now()); up({ wx: { t: Math.round(w.temperature), lbl: WMO(w.weatherCode), max: Math.round(w.max), min: Math.round(w.min), rise: w.sunrise || '', set: w.sunset || '', now: now.getFullYear() + '-' + pad2(now.getMonth() + 1) + '-' + pad2(now.getDate()) + 'T' + pad2(now.getHours()) + ':' + pad2(now.getMinutes()) } }); })
         .catch(() => up({ wxErr: true }));
+      // Trafic (30/09/2026) : domicile (ville du profil) et site du projet géocodés par la carte « open-meteo-geocodage »,
+      // puis durée avec trafic et retard, aller et retour, par la carte « tomtom-routing » (TomTom Routing). Carte
+      // désactivée, en erreur ou sans itinéraire : la tuile affiche « Trafic indisponible », jamais de valeur inventée.
+      const home = ((comp.state.dbExt || {}).home ?? comp.state.profCity ?? 'Paris') || 'Paris';
+      const geoOf = (name) => PX('open-meteo-geocodage', { name, count: 1, language: 'fr', format: 'json' }, 'trafic').then((r) => { const g = r && r.results && r.results[0]; if (!g) throw 0; return g; });
+      const leg = (a, b) => PX('tomtom-routing', { route: a.latitude + ',' + a.longitude + ':' + b.latitude + ',' + b.longitude, traffic: 'true', travelMode: 'car' }, 'trafic')
+        .then((r) => { const s = r && r.routes && r.routes[0] && r.routes[0].summary; if (!s || !s.travelTimeInSeconds) throw 0; return { min: Math.max(1, Math.round(s.travelTimeInSeconds / 60)), delay: Math.max(0, Math.round((s.trafficDelayInSeconds || 0) / 60)) }; });
+      Promise.all([geoOf(home), geoOf(city)])
+        .then(([h, c]) => Promise.all([leg(h, c), leg(c, h)]))
+        .then(([go, back]) => up({ tr: { home, go, back }, trErr: false }))
+        .catch(() => up({ trErr: true }));
       // Actualités agrégées du registre (GNews, NewsData.io, flux RSS Le Monde, L'Équipe, BBC… : cartes actives) ;
       // la date ISO est remise au format AAAAMMJJTHHMMSS (heure locale) attendu par la tuile.
       get('/widgets/news?limit=5', { headers: { 'X-RISE-Widget': 'news' } })
