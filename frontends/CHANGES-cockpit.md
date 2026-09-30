@@ -211,3 +211,8 @@ Plus aucune clé `localStorage` n'est lue ou écrite par le fichier HTML. api.js
 ## Widgets d'Aujourd'hui : valeurs réelles (01/10/2026)
 
 - `RISE Cockpit.dc.html` (`dbCatalog`) : « L'essentiel, par Jev » (heure, titre, avancement, décompte), « Avancement vs référence », « Mes tâches », « Livrables sous 30 jours » calculés à partir des données ; « Tendance des risques » et « Baromètre » sans courbe inventée quand l'historique manque ; libellé de la source des actualités corrigé ; barres de la page Risques protégées contre une semaine sans risque ouvert.
+
+## Widget Actualité : six titres (01/10/2026)
+
+- `RISE Cockpit.dc.html` : le widget Actualité affiche les 6 titres les plus récents (au lieu de 3) ; sa taille passe de 2 × 1 à 2 × 2 pour que les six lignes tiennent sans être coupées (une tuile 2 × 1 n'en contient que 3 ou 4).
+- `api.js` : 6 titres demandés à `GET /api/widgets/news` et conservés.
