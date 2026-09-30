@@ -6043,6 +6043,42 @@
         ]
       }
     },
+    "/api/admin/assistant/rag-settings": {
+      "get": {
+        "operationId": "ConsoleController_ragSettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · supervision et compte"
+        ]
+      },
+      "put": {
+        "operationId": "ConsoleController_putRagSettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · supervision et compte"
+        ]
+      }
+    },
     "/api/admin/assistant/conversations/current": {
       "get": {
         "operationId": "ConsoleController_jevCurrent",

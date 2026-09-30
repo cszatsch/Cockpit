@@ -19,6 +19,7 @@
     "dictionnaire:charger": "ts-node --transpile-only prisma/seed/dictionnaire.ts",
     "dictionnaire:doc": "ts-node --transpile-only scripts/dictionnaire-doc.ts",
     "jev:aiguillage": "ts-node --transpile-only scripts/jev-aiguillage.ts",
+    "jev:reponses": "ts-node --transpile-only scripts/jev-reponses.ts",
     "openapi": "ts-node --transpile-only scripts/export-openapi.ts",
     "lint": "tsc --noEmit -p tsconfig.json",
     "test": "jest --runInBand",

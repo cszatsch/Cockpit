@@ -1599,8 +1599,11 @@ model JevMessage {
   conversation   JevConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   role           String
   text           String
-  /// Vues du dictionnaire consultées pour la réponse.
+  /// Sources de la réponse : vues du dictionnaire (DONNÉES) ou sections et pages du guide (USAGE).
   sources        String[]        @default([])
+  /// Type de la question (aiguillage : USAGE, DONNEES, AMBIGU, HORS_SUJET) et question reformulée (questions de suite).
+  route          String?
+  reformulated   String?
   createdAt      DateTime        @default(now()) @map("created_at")
 
   @@index([conversationId, seq])
@@ -1744,4 +1747,50 @@ model JevClassification {
 
   @@index([at])
   @@map("jev_classifications")
+}
+
+/// Réglages de la recherche de Jev dans le guide utilisateur (RAG, décision du 30/09/2026) : une seule ligne
+/// (`id = default`), modifiable depuis la Console ; valeurs par défaut du code si la ligne n'existe pas.
+model JevRagSettings {
+  id              String   @id @default("default")
+  /// Extraits recherchés dans pgvector, puis gardés après reclassement.
+  searchK         Int      @map("search_k")
+  keepK           Int      @map("keep_k")
+  /// Similarité cosinus minimale d'un extrait (0 à 1).
+  minSimilarity   Float    @map("min_similarity")
+  /// Délais d'expiration (ms) : vectorisation de la question, reclassement, rédaction.
+  embedTimeoutMs  Int      @map("embed_timeout_ms")
+  rerankTimeoutMs Int      @map("rerank_timeout_ms")
+  llmTimeoutMs    Int      @map("llm_timeout_ms")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  updatedBy       String?  @map("updated_by")
+
+  @@map("jev_rag_settings")
+}
+
+/// Journal technique d'une réponse de Jev (décision du 30/09/2026) : type, traitement, extraits retenus et scores,
+/// reclassement utilisé ou repli, modèles appelés, temps par étape, erreurs. Les données brutes ne vont pas en mémoire.
+model JevAnswerLog {
+  id               String   @id @default(cuid())
+  at               DateTime
+  accountId        String?  @map("account_id")
+  conversationId   String?  @map("conversation_id")
+  classificationId String?  @map("classification_id")
+  question         String
+  reformulated     String?
+  route            String
+  /// DONNEES, GUIDE (recherche dans le guide), CLARIFICATION.
+  treatment        String
+  /// Motif du passage en clarification (AMBIGU, HORS_SUJET, AUCUN_EXTRAIT, GUIDE_NON_INDEXE, INDISPONIBLE).
+  reason           String?
+  extracts         Json?
+  reranker         String?
+  rerankFallback   String?  @map("rerank_fallback")
+  model            String?
+  timings          Json?
+  totalMs          Int?     @map("total_ms")
+  error            String?
+
+  @@index([at])
+  @@map("jev_answer_logs")
 }

@@ -1,9 +1,9 @@
-import { Body, Controller, Delete, Get, HttpCode, OnModuleInit, Param, Patch, Post, Query, Res } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, OnModuleInit, Param, Patch, Post, Put, Query, Res } from '@nestjs/common';
 import { JevPromptService } from '../core/jev-prompt.service';
 import { JevSqlService } from './jev-sql.service';
-import { JevRouterService } from './jev-router.service';
-import { OFF_TOPIC_REPLY } from '../domain/jev-router';
-import { CONSOLE_PAGE_TITLES } from '../domain/jev-prompt';
+import { JevAssistantService } from './jev-assistant.service';
+import { GuideSearchService } from './guide-search.service';
+import { RAG_DEFAULTS, RAG_LIMITS, ragSettingsErrors } from '../domain/jev-rag';
 import { JevMemoryService } from './jev-memory.service';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
@@ -14,7 +14,7 @@ import { PrismaService } from '../core/prisma.service';
 import { JobsService } from '../core/jobs.service';
 import { TodayService } from '../core/today.service';
 import { LlmService, aiFunctionLabel } from '../core/llm.service';
-import { conflict, notFound } from '../core/errors';
+import { badRequest, conflict, notFound } from '../core/errors';
 import { parse } from '../core/http';
 import { adminCtx } from './profiles.service';
 import { UsageService } from './usage.service';
@@ -43,7 +43,8 @@ export class ConsoleController implements OnModuleInit {
     private readonly jevSql: JevSqlService,
     private readonly profiles: ProfilesService,
     private readonly jevMemory: JevMemoryService,
-    private readonly jevRouter: JevRouterService,
+    private readonly jevAssistant: JevAssistantService,
+    private readonly guideSearch: GuideSearchService,
   ) {}
 
   onModuleInit() {
@@ -295,26 +296,30 @@ export class ConsoleController implements OnModuleInit {
   @HttpCode(200)
   async jev(@CurrentActor() actor: Actor, @Body() body: unknown) {
     const input = parse(z.object({ context: z.object({ section: z.string().max(40) }).strict(), text: z.string().trim().min(1).max(2000), conversationId: z.string().max(40).nullable().optional() }).strict(), body);
-    // Mémoire (décision du 30/09/2026) : conversation du compte, sinon nouvelle ; derniers échanges et résumé envoyés au modèle.
-    const conv = input.conversationId ? await this.jevMemory.own(actor.accountId, input.conversationId) : await this.jevMemory.start(actor.accountId);
-    const memory = await this.jevMemory.memory(conv);
-    // Aiguillage (décision du 30/09/2026) : type de la question (usage, données, ambigu, hors sujet), questions
-    // précédentes de la conversation comprises (questions de suite) ; repli sur le traitement complet.
-    const previous = memory.history.filter((h) => h.role === 'user').map((h) => ({ question: h.content }));
-    const route = await this.jevRouter.classify(input.text, { history: previous, page: CONSOLE_PAGE_TITLES[input.context.section] ?? input.context.section, accountId: actor.accountId, conversationId: conv.id });
-    if (route.type === 'HORS_SUJET') {
-      await this.jevMemory.record(conv, input.text, OFF_TOPIC_REPLY, []);
-      return { reply: OFF_TOPIC_REPLY, sources: [], actions: [], ai: { functionId: 'guidage', modelId: 'aiguillage', fallbackUsed: false }, conversationId: conv.id, route: route.type };
-    }
-    try {
-      const res = await this.jevSql.ask(input.text, input.context.section, memory, route.type);
-      await this.jevMemory.record(conv, input.text, res.reply, res.sources);
-      return { reply: res.reply, sources: res.sources, actions: [], ai: res.ai, conversationId: conv.id, route: route.type };
-    } catch (e: any) {
-      const why = String(e?.response?.message ?? e?.message ?? 'modèles indisponibles');
-      // Sans réponse du modèle, l'échange n'est pas gardé : il ne pèserait pas sur la suite de la conversation.
-      return { reply: `Je ne peux pas répondre pour l’instant : ${why}`, sources: [], actions: [], ai: null, unavailable: why, conversationId: conv.id };
-    }
+    // Aiguillage puis traitement (décision du 30/09/2026) : données, guide utilisateur ou clarification ; mémoire commune.
+    const res = await this.jevAssistant.answer(actor.accountId, input.text, input.context.section, input.conversationId);
+    return { ...res, actions: [] };
+  }
+
+  /** Réglages de la recherche de Jev dans le guide utilisateur (valeurs par défaut si rien n'est enregistré). */
+  @Get('assistant/rag-settings')
+  async ragSettings() {
+    const row = await this.prisma.jevRagSettings.findUnique({ where: { id: 'default' }, select: { updatedAt: true, updatedBy: true } });
+    return { ...(await this.guideSearch.settings()), updatedAt: row?.updatedAt ?? null, updatedBy: row?.updatedBy ?? null, defaults: RAG_DEFAULTS, limits: RAG_LIMITS };
+  }
+
+  @Put('assistant/rag-settings')
+  async putRagSettings(@CurrentActor() actor: Actor, @Body() body: unknown) {
+    const n = z.number();
+    const input = parse(z.object({ searchK: n, keepK: n, minSimilarity: n, embedTimeoutMs: n, rerankTimeoutMs: n, llmTimeoutMs: n }).strict(), body);
+    const errs = ragSettingsErrors(input);
+    if (Object.keys(errs).length) throw badRequest('Réglages invalides', errs);
+    const before = await this.guideSearch.settings();
+    await this.prisma.$transaction(async (db) => {
+      await db.jevRagSettings.upsert({ where: { id: 'default' }, create: { id: 'default', ...input, updatedBy: actor.fullName }, update: { ...input, updatedBy: actor.fullName } });
+      await this.audit.action(db, adminCtx(actor), { action: 'Modification des réglages de recherche de Jev', target: 'Recherche dans le guide utilisateur', severity: 'SENSITIVE', entityType: 'JevRagSettings', entityId: 'default', details: { avant: before, apres: input } });
+    });
+    return this.ragSettings();
   }
 
   /** Conversation en cours du compte avec Jev (reprise après un rechargement de la page) ; `id` null s'il n'y en a pas. */

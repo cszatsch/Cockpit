@@ -27,6 +27,8 @@ export interface LiveCall {
   cache?: boolean;
   prompt: string;
   maxTokens: number;
+  /** Délai de l'appel (ms) ; défaut `LLM_CALL_TIMEOUT_MS`. */
+  timeoutMs?: number;
 }
 
 export interface LiveResult {
@@ -52,6 +54,26 @@ export interface EmbedCall {
   inputs: string[];
   /** Dimension demandée au fournisseur (modèles « Matryoshka ») ; absente : dimension native. */
   dimensions?: number | null;
+  /** Délai de l'appel (ms) ; défaut `EMBED_CALL_TIMEOUT_MS`. */
+  timeoutMs?: number;
+}
+
+/** Reclassement (reranking) : documents classés par pertinence pour une question. */
+export interface RerankCall {
+  providerId: string;
+  providerName: string;
+  model: string;
+  key: string;
+  query: string;
+  documents: string[];
+  topN: number;
+  timeoutMs?: number;
+}
+
+export interface RerankResult {
+  /** Index du document dans la liste envoyée et score de pertinence, du plus pertinent au moins pertinent. */
+  results: Array<{ index: number; score: number }>;
+  tokens: number | null;
 }
 
 export interface EmbedResult {
@@ -106,7 +128,7 @@ export class LlmClient {
         : c.system;
       const j = await this.post('Anthropic', 'https://api.anthropic.com/v1/messages', { 'x-api-key': c.key, 'anthropic-version': '2023-06-01' }, {
         model: c.model, max_tokens: c.maxTokens, system, messages: [...(c.history ?? []), { role: 'user', content: c.prompt }],
-      }, c.key);
+      }, c.key, c.timeoutMs);
       const text = (j?.content ?? []).filter((b: any) => b?.type === 'text').map((b: any) => b.text).join('').trim();
       const u = j?.usage ?? {}, read = num(u.cache_read_input_tokens), write = num(u.cache_creation_input_tokens);
       return { ...this.result('Anthropic', text, typeof u.input_tokens === 'number' ? u.input_tokens + read + write : undefined, u.output_tokens), cacheRead: read, cacheWrite: write };
@@ -117,7 +139,7 @@ export class LlmClient {
         systemInstruction: { parts: [{ text: c.system }, ...(c.systemTail ? [{ text: c.systemTail }] : [])] },
         contents: [...(c.history ?? []).map((h) => ({ role: h.role === 'assistant' ? 'model' : 'user', parts: [{ text: h.content }] })), { role: 'user', parts: [{ text: c.prompt }] }],
         generationConfig: { maxOutputTokens: c.maxTokens },
-      }, c.key);
+      }, c.key, c.timeoutMs);
       const text = (j?.candidates?.[0]?.content?.parts ?? []).map((x: any) => x?.text ?? '').join('').trim();
       return { ...this.result('Google Gemini', text, j?.usageMetadata?.promptTokenCount, j?.usageMetadata?.candidatesTokenCount), cacheRead: num(j?.usageMetadata?.cachedContentTokenCount), cacheWrite: 0 };
     }
@@ -125,7 +147,7 @@ export class LlmClient {
       // Partie stable, historique, puis partie variable : le préfixe (système + historique) profite du cache automatique.
       model: c.model, [p.maxField]: c.maxTokens,
       messages: [{ role: 'system', content: c.system }, ...(c.history ?? []), ...(c.systemTail ? [{ role: 'system', content: c.systemTail }] : []), { role: 'user', content: c.prompt }],
-    }, c.key);
+    }, c.key, c.timeoutMs);
     const text = String(j?.choices?.[0]?.message?.content ?? '').trim();
     return { ...this.result(p.label, text, j?.usage?.prompt_tokens, j?.usage?.completion_tokens), cacheRead: num(j?.usage?.prompt_tokens_details?.cached_tokens), cacheWrite: 0 };
   }
@@ -144,18 +166,34 @@ export class LlmClient {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(c.model)}:batchEmbedContents`;
       const j = await this.post('Google Gemini', url, { 'x-goog-api-key': c.key }, {
         requests: c.inputs.map((text) => ({ model: `models/${c.model}`, content: { parts: [{ text }] }, taskType: 'RETRIEVAL_DOCUMENT', ...(c.dimensions ? { outputDimensionality: c.dimensions } : {}) })),
-      }, c.key, EMBED_CALL_TIMEOUT_MS);
+      }, c.key, c.timeoutMs ?? EMBED_CALL_TIMEOUT_MS);
       vectors = (j?.embeddings ?? []).map((e: any) => e?.values);
     } else {
       const j = await this.post(p.label, `${p.base}/embeddings`, { Authorization: `Bearer ${c.key}` }, {
         model: c.model, input: c.inputs, encoding_format: 'float', ...(c.dimensions ? { dimensions: c.dimensions } : {}),
-      }, c.key, EMBED_CALL_TIMEOUT_MS);
+      }, c.key, c.timeoutMs ?? EMBED_CALL_TIMEOUT_MS);
       vectors = [...(j?.data ?? [])].sort((a: any, b: any) => (a?.index ?? 0) - (b?.index ?? 0)).map((d: any) => d?.embedding);
       tokens = typeof j?.usage?.prompt_tokens === 'number' ? j.usage.prompt_tokens : typeof j?.usage?.total_tokens === 'number' ? j.usage.total_tokens : null;
     }
     const label = p.kind === 'gemini' ? 'Google Gemini' : p.label;
     if (vectors.length !== c.inputs.length || !vectors.every((v) => Array.isArray(v) && v.length > 0 && v.every((x) => typeof x === 'number'))) throw new LlmCallError(`${label} : réponse d’embedding illisible`);
     return { vectors: vectors as number[][], tokens };
+  }
+
+  /**
+   * Reclassement réel (décision du 30/09/2026) : API compatibles OpenAI qui exposent `/rerank` (OpenRouter : modèles
+   * Voyage rerank). Réponse au format `results` (ou `data`) : index du document et `relevance_score`.
+   */
+  async rerank(c: RerankCall): Promise<RerankResult> {
+    const p = protocolFor(c.providerId, c.providerName);
+    if (!p || p.kind !== 'openai') throw new LlmCallError(`Reclassement impossible : fournisseur ${c.providerName || c.providerId} non pris en charge`);
+    const j = await this.post(p.label, `${p.base}/rerank`, { Authorization: `Bearer ${c.key}` }, { model: c.model, query: c.query, documents: c.documents, top_n: c.topN }, c.key, c.timeoutMs ?? EMBED_CALL_TIMEOUT_MS);
+    const list: any[] = Array.isArray(j?.results) ? j.results : Array.isArray(j?.data) ? j.data : [];
+    const results = list.map((r) => ({ index: Number(r?.index), score: Number(r?.relevance_score ?? r?.score) })).filter((r) => Number.isInteger(r.index) && r.index >= 0 && r.index < c.documents.length && Number.isFinite(r.score));
+    if (!results.length) throw new LlmCallError(`${p.label} : réponse de reclassement illisible`);
+    results.sort((a, b) => b.score - a.score);
+    const u = j?.usage ?? {};
+    return { results, tokens: typeof u.total_tokens === 'number' ? u.total_tokens : typeof u.prompt_tokens === 'number' ? u.prompt_tokens : null };
   }
 
   private result(label: string, text: string, tin: unknown, tout: unknown): LiveResult {

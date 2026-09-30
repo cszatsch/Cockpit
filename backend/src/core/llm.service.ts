@@ -99,7 +99,7 @@ export const budgetLineOf = (functionId: string) => aiFunction(functionId)?.budg
  * Fonctions dont la génération est réelle (décision du 28/09/2026) : le Jev de la Console (`guidage`).
  * Les autres fonctions gardent le bouchon ; hors ligne (tests), toutes le gardent.
  */
-export const LIVE_FUNCTIONS: readonly AiFunctionId[] = ['guidage'];
+export const LIVE_FUNCTIONS: readonly AiFunctionId[] = ['guidage', 'doc_syn'];
 /** Vectorisation : textes par appel, reprises sur erreur passagère et attentes entre reprises. */
 export const EMBED_BATCH_SIZE = 32;
 export const EMBED_RETRIES = 2;
@@ -137,7 +137,7 @@ export class LlmService {
    * Fonction en direct (`LIVE_FUNCTIONS`) : vraie génération chez le fournisseur ; si le principal échoue
    * à l'appel (délai, erreur du fournisseur), le secours prend la demande ; si les deux échouent, 503.
    */
-  async complete(input: { functionId: AiFunctionId; prompt: string; system?: string; systemTail?: string; history?: ChatTurn[]; cache?: boolean; projectId?: string | null; source: UsageSourceCode; maxWords?: number }): Promise<LlmResult> {
+  async complete(input: { functionId: AiFunctionId; prompt: string; system?: string; systemTail?: string; history?: ChatTurn[]; cache?: boolean; projectId?: string | null; source: UsageSourceCode; maxWords?: number; timeoutMs?: number }): Promise<LlmResult> {
     const route = await this.route(input.functionId);
     if (!(LIVE_FUNCTIONS.includes(input.functionId) && this.client.live)) return this.run(route.modelId, input, route.fallback);
     const fn = aiFunction(input.functionId);
@@ -158,7 +158,7 @@ export class LlmService {
   }
 
   /** Vraie génération : clé du fournisseur déchiffrée le temps de l'appel, jetons comptés par le fournisseur. */
-  private async runLive(modelId: string, input: { functionId: AiFunctionId; prompt: string; system?: string; systemTail?: string; history?: ChatTurn[]; cache?: boolean; projectId?: string | null; source: UsageSourceCode }, fallbackUsed: boolean): Promise<LlmResult> {
+  private async runLive(modelId: string, input: { functionId: AiFunctionId; prompt: string; system?: string; systemTail?: string; history?: ChatTurn[]; cache?: boolean; projectId?: string | null; source: UsageSourceCode; timeoutMs?: number }, fallbackUsed: boolean): Promise<LlmResult> {
     const model = await this.prisma.aiModel.findUniqueOrThrow({ where: { id: modelId } });
     const provider = await this.prisma.provider.findUniqueOrThrow({ where: { id: model.providerId } });
     if (!provider.keyCipher) throw new LlmCallError(`${provider.name} : aucune clé enregistrée`);
@@ -171,7 +171,7 @@ export class LlmService {
     const t0 = Date.now();
     const out = await this.client.generate({
       providerId: provider.id, providerName: provider.name, model: model.providerModelId || model.id, key,
-      system: input.system ?? '', systemTail: input.systemTail, history: input.history, cache: input.cache, prompt: input.prompt, maxTokens: Math.min(LIVE_MAX_OUTPUT_TOKENS, model.maxOutputTokens ?? LIVE_MAX_OUTPUT_TOKENS),
+      system: input.system ?? '', systemTail: input.systemTail, history: input.history, cache: input.cache, prompt: input.prompt, maxTokens: Math.min(LIVE_MAX_OUTPUT_TOKENS, model.maxOutputTokens ?? LIVE_MAX_OUTPUT_TOKENS), timeoutMs: input.timeoutMs,
     });
     const tokensIn = out.tokensIn ?? Math.max(1, Math.ceil(inputChars(input) / 4));
     const tokensOut = out.tokensOut ?? Math.max(1, Math.ceil(out.text.length / 4));
@@ -246,8 +246,19 @@ export class LlmService {
     const { modelId } = await this.route('doc_vec');
     const asg = await this.prisma.modelAssignment.findUnique({ where: { functionId: 'doc_vec' } });
     const model = await this.prisma.aiModel.findUniqueOrThrow({ where: { id: modelId } });
-    const provider = await this.prisma.provider.findUniqueOrThrow({ where: { id: model.providerId } });
     const wanted = asg?.primaryDimension ?? model.defaultDimension ?? (model.dimensions.length === 1 ? model.dimensions[0] : null);
+    return this.embedWithModel(model.id, wanted, texts, source, { onBatch });
+  }
+
+  /**
+   * Vectorisation par un modèle désigné et une dimension (recherche dans le guide : le modèle et la dimension de
+   * l'index, jamais un autre). Le modèle doit être disponible (actif, fournisseur au statut OK).
+   */
+  async embedWithModel(modelId: string, wanted: number | null, texts: string[], source: UsageSourceCode, opts: { onBatch?: (done: number, total: number) => Promise<void> | void; timeoutMs?: number } = {}): Promise<{ modelId: string; modelName: string; dims: number; vectors: number[][] }> {
+    const onBatch = opts.onBatch;
+    if (!(await this.modelAvailable(modelId, 'EMBEDDING'))) throw new ApiError(503, 'AI_UNAVAILABLE', `Modèle de vectorisation ${modelId} inactif, supprimé ou clé de son fournisseur refusée`);
+    const model = await this.prisma.aiModel.findUniqueOrThrow({ where: { id: modelId } });
+    const provider = await this.prisma.provider.findUniqueOrThrow({ where: { id: model.providerId } });
     let key = '';
     if (this.client.live) {
       if (!provider.keyCipher) throw new ApiError(503, 'AI_UNAVAILABLE', `${provider.name} : aucune clé enregistrée`);
@@ -264,7 +275,7 @@ export class LlmService {
       const t0 = Date.now();
       let out: { vectors: number[][]; tokens: number | null };
       if (this.client.live) {
-        out = await this.withRetry(() => this.client.embed({ providerId: provider.id, providerName: provider.name, model: model.providerModelId || model.id, key, inputs: batch, dimensions: model.dimensions.length > 1 ? wanted : null }));
+        out = await this.withRetry(() => this.client.embed({ providerId: provider.id, providerName: provider.name, model: model.providerModelId || model.id, key, inputs: batch, dimensions: model.dimensions.length > 1 ? wanted : null, timeoutMs: opts.timeoutMs }));
       } else {
         out = { vectors: batch.map((t) => hashEmbedding(t, wanted ?? 256)), tokens: null };
       }
@@ -281,6 +292,47 @@ export class LlmService {
       await onBatch?.(Math.min(i + batch.length, texts.length), texts.length);
     }
     return { modelId: model.id, modelName: model.name, dims, vectors };
+  }
+
+  /**
+   * Reclassement par le modèle de la fonction Reclassement (principal, sinon secours si le principal échoue à l'appel).
+   * Réel en ligne ; hors ligne, score déterministe (mots communs). Une ligne de consommation par appel (1 requête).
+   */
+  async rerankTexts(query: string, documents: string[], topN: number, source: UsageSourceCode, timeoutMs?: number): Promise<{ modelId: string; modelName: string; fallbackUsed: boolean; results: Array<{ index: number; score: number }> }> {
+    const route = await this.route('doc_rrk');
+    const asg = await this.prisma.modelAssignment.findUnique({ where: { functionId: 'doc_rrk' } });
+    const attempt = async (modelId: string, fallbackUsed: boolean) => {
+      const model = await this.prisma.aiModel.findUniqueOrThrow({ where: { id: modelId } });
+      const provider = await this.prisma.provider.findUniqueOrThrow({ where: { id: model.providerId } });
+      const t0 = Date.now();
+      let out: { results: Array<{ index: number; score: number }>; tokens: number | null };
+      if (this.client.live) {
+        if (!provider.keyCipher) throw new LlmCallError(`${provider.name} : aucune clé enregistrée`);
+        let key: string;
+        try {
+          key = decryptSecret(provider.keyCipher);
+        } catch {
+          throw new LlmCallError(`${provider.name} : clé illisible`);
+        }
+        out = await this.client.rerank({ providerId: provider.id, providerName: provider.name, model: model.providerModelId || model.id, key, query, documents, topN, timeoutMs });
+      } else {
+        out = { results: overlapRank(query, documents).slice(0, topN), tokens: null };
+      }
+      const tokens = out.tokens ?? Math.max(1, Math.ceil((query.length + documents.join(' ').length) / 4));
+      await this.record(model, 'doc_rrk', { tokensIn: model.priceUnit === 'REQUESTS' ? 0 : tokens, tokensOut: 0, requests: 1 }, fallbackUsed, { source }, Date.now() - t0);
+      return { modelId: model.id, modelName: model.name, fallbackUsed, results: out.results.slice(0, topN) };
+    };
+    try {
+      return await attempt(route.modelId, route.fallback);
+    } catch (e) {
+      if (!(e instanceof LlmCallError)) throw e;
+      if (route.fallback || !(await this.modelAvailable(asg?.fallbackModelId, 'RERANKING'))) throw new ApiError(503, 'AI_UNAVAILABLE', `Reclassement indisponible : ${e.message}`);
+      try {
+        return await attempt(asg!.fallbackModelId!, true);
+      } catch (e2) {
+        throw new ApiError(503, 'AI_UNAVAILABLE', `Reclassement indisponible : ${e.message} ; secours : ${e2 instanceof Error ? e2.message : e2}`);
+      }
+    }
   }
 
   /** Reprise d'un appel sur erreur passagère (429, 5xx, délai, réseau) : `EMBED_RETRIES` fois, attente croissante. */
@@ -352,4 +404,11 @@ export class LlmService {
     }
     return this.keys.test(provider.id, provider.name, key);
   }
+}
+
+/** Reclassement de démonstration (hors ligne, tests) : part des mots de la question présents dans chaque document. */
+function overlapRank(query: string, documents: string[]): Array<{ index: number; score: number }> {
+  const words = (t: string) => new Set(t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').match(/[a-z0-9]{3,}/g) ?? []);
+  const q = words(query);
+  return documents.map((d, index) => { const w = words(d); let n = 0; for (const x of q) if (w.has(x)) n++; return { index, score: q.size ? n / q.size : 0 }; }).sort((a, b) => b.score - a.score || a.index - b.index);
 }

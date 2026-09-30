@@ -306,7 +306,7 @@ export function bindConsole(c) {
     // Serveur d’envoi SMTP : réglages sans mot de passe (`hasPassword`).
     smtp: async () => ({ smSettings: await get('/settings/smtp') }),
     // Guide utilisateur : versions et journal des téléchargements, toujours fournis (même vides : pas de démonstration).
-    guide: async () => { const [v, d, s, u] = await Promise.all([get('/guide/versions'), get('/guide/downloads'), get('/guide/status'), get('/guide/uploads')]); setTimeout(() => gdWatch(s), 0); return { gdVers: v || [], gdDls: d || [], gdStatus: s || null, gdUps: u || [] }; },
+    guide: async () => { const [v, d, s, u, r] = await Promise.all([get('/guide/versions'), get('/guide/downloads'), get('/guide/status'), get('/guide/uploads'), get('/assistant/rag-settings').catch(() => null)]); setTimeout(() => gdWatch(s), 0); return { gdVers: v || [], gdDls: d || [], gdStatus: s || null, gdUps: u || [], gdRag: r }; },
     mods: async () => ({ mods: sortMods((await get('/modules')).map(toMod)) }),
     reqs: async () => ({ reqs: (await get('/module-requests?status=PENDING')).map(toReq) }),
     prof: async () => { const me = await get('/me/profile'); meId = me.id; return { prof: toProf(me), pn: { crit: true, budget: true, req: true, hebdo: true, fail: false, ...(me.notifications || {}) }, photo: me.photoUrl || null }; },
@@ -443,6 +443,8 @@ export function bindConsole(c) {
   // Dépôt (décision du 30/09/2026) : réponse immédiate (202), puis indexation suivie toutes les 1,2 s jusqu'à la
   // publication ou à l'échec ; le guide en vigueur reste téléchargeable pendant ce temps.
   c.gdReplace = file => { const fd = new FormData(); fd.append('file', file, file.name); return post('/guide', fd).then(() => { touch(); return load(['guide']); }); };
+  // Réglages de la recherche de Jev dans le guide (décision du 30/09/2026) : les erreurs (champs) remontent au composant.
+  c.gdSaveRag = v => put('/assistant/rag-settings', v).then(r => { set0({ gdRag: r }); touch(); return r; });
   let gdTimer = null;
   const gdWatch = st => {
     if (st && st.indexing) { if (!gdTimer) gdTimer = setInterval(() => load(['guide']).catch(() => {}), GD_POLL_MS); return; }
@@ -742,7 +744,8 @@ export function bindConsole(c) {
   // ── Jev : chaque question part au serveur, qui répond par les modèles de la fonction guidage (Identité, Soul,
   // skill « Guidage console », page ouverte). Aucun moteur de mots-clés : la réponse du modèle est affichée telle quelle. ──
   // Vue consultée → libellé des sources affiché sous la réponse (« modeles_ia » → « modèles IA »).
-  const srcLabel = v => v.replace(/_/g, ' ').replace(/\bia\b/, 'IA').replace(/\bapi\b/, 'API').replace(/\bmodeles\b/, 'modèles').replace(/\bregles\b/, 'règles');
+  // Sources du guide (« Guide · section · p. N ») : gardées telles quelles ; vues du dictionnaire : libellé lisible.
+  const srcLabel = v => /^Guide · /.test(v) ? v : v.replace(/_/g, ' ').replace(/\bia\b/, 'IA').replace(/\bapi\b/, 'API').replace(/\bmodeles\b/, 'modèles').replace(/\bregles\b/, 'règles');
   let jevConv = null;
   // « Nouvelle conversation » : conversation neuve côté serveur, puis l'écran repart de l'accueil de Jev.
   c.jevNew = () => post('/assistant/conversations').then(r => { jevConv = r.id; orig.jevNew(); }).catch(fail);
@@ -751,13 +754,13 @@ export function bindConsole(c) {
     if (!r || !r.id) return;
     jevConv = r.id;
     if (c.state.jm.length) return;
-    set0({ jm: r.messages.map((m, i) => ({ id: 'h' + i, t: m.role === 'user' ? 'user' : 'jev', text: m.text, src: m.role === 'user' ? undefined : (m.sources || []).map(srcLabel).join(', ') || undefined })), jCtx: c.state.sec });
+    set0({ jm: r.messages.map((m, i) => ({ id: 'h' + i, t: m.role === 'user' ? 'user' : 'jev', text: m.text, src: m.role === 'user' ? undefined : (m.sources || []).map(srcLabel).join(String.fromCharCode(10)) || undefined })), jCtx: c.state.sec });
   }).catch(() => {});
   c.jevReply = text => {
     Promise.resolve().then(() => c.setState({ jThink: true }));
     // Mémoire (30/09/2026) : la question part avec l'identifiant de la conversation ; le serveur y joint les échanges précédents.
     post('/assistant/messages', { context: { section: c.state.sec }, text, conversationId: jevConv })
-      .then(r => { if (r.conversationId) jevConv = r.conversationId; c.setState({ jThink: false }); c.jPush({ t: 'jev', text: r.reply, err: !r.ai, src: (r.sources || []).map(srcLabel).join(', ') || undefined }); })
+      .then(r => { if (r.conversationId) jevConv = r.conversationId; c.setState({ jThink: false }); c.jPush({ t: 'jev', text: r.reply, err: !r.ai, src: (r.sources || []).map(srcLabel).join(String.fromCharCode(10)) || undefined }); })
       .catch(e => { c.setState({ jThink: false }); c.jPush({ t: 'jev', text: 'Jev n’a pas pu répondre : ' + ((e && e.message) || 'erreur du serveur') + '.', err: true }); });
     return [];
   };

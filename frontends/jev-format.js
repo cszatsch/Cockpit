@@ -174,4 +174,8 @@ export function formatJev(text) {
 }
 
 /** Sources de la réponse (« projets, audit ») → étiquettes. */
-export const sourceChips = s => String(s || '').split(/\s*[,;·]\s*/).map(x => x.trim()).filter(Boolean);
+// Sources séparées par des retours à la ligne (une étiquette par source, virgules et « · » gardés : « Guide · section · p. N ») ;
+// ancien format (virgules) accepté.
+export const sourceChips = s => (String(s || '').includes(SRC_SEP) ? String(s).split(SRC_SEP) : String(s || '').split(/\s*[,;·]\s*/)).map(x => x.trim()).filter(Boolean);
+/** Séparateur des sources (retour à la ligne). */
+export const SRC_SEP = String.fromCharCode(10);

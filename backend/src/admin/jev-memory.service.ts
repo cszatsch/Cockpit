@@ -89,10 +89,11 @@ export class JevMemoryService {
   }
 
   /** Enregistre un échange, puis met à jour le résumé si des échanges sortent de la fenêtre (après la réponse). */
-  async record(c: JevConversation, question: string, reply: string, sources: string[]): Promise<void> {
+  // Mémoire commune aux trois traitements (décision du 30/09/2026) : question, réponse, sources, type et reformulation.
+  async record(c: JevConversation, question: string, reply: string, sources: string[], meta: { route?: string | null; reformulated?: string | null } = {}): Promise<void> {
     await this.prisma.$transaction([
-      this.prisma.jevMessage.create({ data: { conversationId: c.id, role: 'user', text: question } }),
-      this.prisma.jevMessage.create({ data: { conversationId: c.id, role: 'assistant', text: reply, sources } }),
+      this.prisma.jevMessage.create({ data: { conversationId: c.id, role: 'user', text: question, route: meta.route ?? null, reformulated: meta.reformulated ?? null } }),
+      this.prisma.jevMessage.create({ data: { conversationId: c.id, role: 'assistant', text: reply, sources, route: meta.route ?? null } }),
       this.prisma.jevConversation.update({ where: { id: c.id }, data: { updatedAt: this.today.now() } }),
     ]);
     this.pending = this.summarize(c.id).catch((e) => console.warn('[jev-memory] résumé', e?.message ?? e));

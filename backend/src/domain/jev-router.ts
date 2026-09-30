@@ -30,9 +30,6 @@ export const ROUTER_HISTORY_TURNS = 3;
 /** Identifiant de la question dans la requête (choisi par nous, jamais vu par le modèle). */
 export const ROUTER_QUESTION_ID = 'type_question';
 
-/** Réponse polie hors périmètre (sans appel au modèle de rédaction). */
-export const OFF_TOPIC_REPLY = 'Je réponds aux questions sur la Console d’administration RISE : son fonctionnement (où trouver un réglage, comment faire, quelles règles s’appliquent) et ses données (comptes, droits, IA et coûts, projets, snapshots, notifications, modules, cartes API). Votre question sort de ce périmètre : pouvez-vous la reformuler en lien avec la Console ?';
-
 const CHOICE_TO_TYPE: Record<RouterChoice, RouteType> = { usage: 'USAGE', donnees: 'DONNEES', mixte: 'AMBIGU', hors_sujet: 'HORS_SUJET' };
 const LABEL: Record<RouterChoice, string> = { usage: 'usage', donnees: 'données', mixte: 'mixte', hors_sujet: 'hors sujet' };
 
