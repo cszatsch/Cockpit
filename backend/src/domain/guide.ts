@@ -2,12 +2,22 @@
  * Guide utilisateur de la Console (décision du 30/09/2026, maquette « Guide utilisateur 1c ») : règles pures.
  */
 
-/** Taille maximale d'un guide déposé. */
-export const GUIDE_MAX_BYTES = 50 * 1024 * 1024;
+/** Taille maximale d'un guide déposé (décision du 30/09/2026 : 10 Mo). */
+export const GUIDE_MAX_BYTES = 10 * 1024 * 1024;
+/** Limite technique de réception : au-delà de `GUIDE_MAX_BYTES`, le refus est expliqué et tracé jusqu'à ce seuil. */
+export const GUIDE_UPLOAD_HARD_LIMIT = 3 * GUIDE_MAX_BYTES;
 /** Premier numéro, quand aucun guide n'a encore été publié. */
 export const GUIDE_FIRST_VERSION = '1.0';
 /** Message de la maquette pour un fichier refusé. */
 export const GUIDE_PDF_ONLY = 'Seuls les fichiers PDF sont acceptés.';
+export const GUIDE_TOO_BIG = 'Fichier trop lourd (10 Mo maximum).';
+export const GUIDE_SCANNED = 'Ce PDF ne contient pas de texte (document scanné) : déposez un PDF exporté depuis un traitement de texte.';
+export const GUIDE_NO_TEXT = 'Aucun texte exploitable dans ce PDF.';
+export const GUIDE_BUSY = 'Indexation en cours : attendez la fin avant un nouveau dépôt.';
+export const GUIDE_INTERRUPTED = 'Indexation interrompue : le serveur a redémarré pendant le traitement. Déposez le guide de nouveau.';
+
+/** Étapes du traitement d'un dépôt (affichées pendant l'indexation). */
+export const GUIDE_STEPS = ['Lecture du PDF', 'Structure du document', 'Découpage en extraits', 'Vectorisation', 'Enregistrement'] as const;
 
 /** Un PDF se reconnaît à sa signature « %PDF- » (et non à son nom ou au type déclaré par le navigateur). */
 export function isPdf(buf: Buffer): boolean {

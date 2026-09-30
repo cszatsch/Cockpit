@@ -6119,6 +6119,44 @@
         ]
       }
     },
+    "/api/admin/guide/status": {
+      "get": {
+        "operationId": "GuideController_status",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · guide utilisateur"
+        ]
+      }
+    },
+    "/api/admin/guide/uploads": {
+      "get": {
+        "operationId": "GuideController_uploads",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · guide utilisateur"
+        ]
+      }
+    },
     "/api/admin/guide/file": {
       "get": {
         "operationId": "GuideController_file",
@@ -6143,7 +6181,7 @@
         "operationId": "GuideController_replace",
         "parameters": [],
         "responses": {
-          "201": {
+          "202": {
             "description": ""
           }
         },

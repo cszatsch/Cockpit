@@ -206,6 +206,7 @@ enum UsageSource {
   JEV
   NOTIFICATION
   IMPORT
+  GUIDE
 }
 
 enum SnapshotKind {
@@ -1640,9 +1641,70 @@ model GuideVersion {
   by         String
   size       Int
   fileName   String   @map("file_name")
+  /// Fichier de la version ; vide une fois la version remplacée (un seul guide conservé, décision du 30/09/2026).
   storageKey String   @map("storage_key")
+  /// Dépôt qui a produit cette version (indexation réussie).
+  uploadId   String?  @map("upload_id")
+  pages      Int?
+  chunks     Int?
 
   @@map("guide_versions")
+}
+
+enum GuideUploadStatus {
+  INDEXING
+  SUCCESS
+  FAILED
+}
+
+/// Historique des dépôts du guide (décision du 30/09/2026) : un par dépôt, réussi ou non. Un seul dépôt INDEXING à la
+/// fois (index unique partiel, migration). Le modèle d'embedding est conservé (id et nom) : l'historique reste lisible
+/// si le modèle est supprimé ensuite.
+model GuideUpload {
+  id             String            @id @default(cuid())
+  at             DateTime
+  accountId      String?           @map("account_id")
+  by             String
+  fileName       String            @map("file_name")
+  size           Int
+  pages          Int?
+  chunks         Int?
+  status         GuideUploadStatus
+  /// Étape en cours (1 à 5) et son libellé ; avancement en pourcentage.
+  step           Int               @default(0)
+  stepLabel      String?           @map("step_label")
+  progress       Int               @default(0)
+  error          String?
+  /// Version attribuée en cas de succès.
+  version        String?
+  storageKey     String?           @map("storage_key")
+  embeddingModel String?           @map("embedding_model")
+  embeddingName  String?           @map("embedding_name")
+  embeddingDims  Int?              @map("embedding_dims")
+  finishedAt     DateTime?         @map("finished_at")
+  extracts       GuideChunk[]
+
+  @@index([at])
+  @@map("guide_uploads")
+}
+
+/// Extrait indexé du guide (chunk) et son vecteur (pgvector, dimension variable ; index HNSW partiel par dimension).
+model GuideChunk {
+  id          String                @id @default(cuid())
+  uploadId    String                @map("upload_id")
+  position    Int
+  sectionPath String                @map("section_path")
+  heading     String
+  pageStart   Int                   @map("page_start")
+  pageEnd     Int                   @map("page_end")
+  content     String
+  tokens      Int
+  dims        Int
+  embedding   Unsupported("vector")
+  upload      GuideUpload           @relation(fields: [uploadId], references: [id], onDelete: Cascade)
+
+  @@index([uploadId])
+  @@map("guide_chunks")
 }
 
 /// Téléchargement du guide, tracé par le serveur avant l'envoi du fichier : journal en ajout seul (ni modification ni

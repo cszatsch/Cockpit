@@ -10,9 +10,10 @@ import { CACHE_READ_FACTOR, CACHE_WRITE_FACTOR, ChatTurn, LlmCallError, LlmClien
 const inputChars = (i: { prompt: string; system?: string; systemTail?: string; history?: ChatTurn[] }) =>
   (i.system ? i.system.length + 2 : 0) + (i.systemTail ? i.systemTail.length + 2 : 0) + (i.history ?? []).reduce((n, h) => n + h.content.length + 2, 0) + i.prompt.length;
 import { costOf, ModelCategory, priceOf } from '../domain/ai-pricing';
+import { hashEmbedding, normalize } from '../domain/guide-index';
 
 export type AiFunctionId = 'insights' | 'crud' | 'rapports' | 'guidage' | 'doc_vec' | 'doc_rrk' | 'doc_syn';
-export type UsageSourceCode = 'COCKPIT' | 'JEV' | 'NOTIFICATION' | 'IMPORT';
+export type UsageSourceCode = 'COCKPIT' | 'JEV' | 'NOTIFICATION' | 'IMPORT' | 'GUIDE';
 
 export interface LlmResult {
   text: string;
@@ -47,6 +48,8 @@ export interface AiFunctionDef {
   scope?: 'cockpit' | 'console';
   /** Estimation mensuelle (M tokens en entrée et en sortie, questions par mois) utilisée tant que la fonction n'a pas de volume sur 30 jours. */
   est?: { in: number; out: number; req: number };
+  /** Pas de modèle de secours (Vectorisation, décision du 30/09/2026) : un autre modèle imposerait de revectoriser. */
+  noFallback?: boolean;
 }
 
 /** Longueur du plus long rapport attendu (tokens), hypothèse de la spécification IA § 7 avant toute mesure. */
@@ -63,7 +66,7 @@ export const AI_FUNCTIONS: AiFunctionDef[] = [
   { id: 'crud', name: 'Création, modification et suppression des données', short: 'Gestion des données', description: 'Prépare les modifications demandées à Jev, l’assistant du Cockpit ; l’utilisateur les valide avant enregistrement.', category: 'LLM', budgetLine: 'crud' },
   { id: 'rapports', name: 'Génération de rapports', short: 'Rapports', description: 'Rédige les rapports de comité, hebdomadaires et de phase.', category: 'LLM', budgetLine: 'rapports', isNew: true, needOut: REPORTS_NEED_OUT_DEFAULT },
   { id: 'guidage', name: 'Guider l’utilisateur sur la console', short: 'Guidage console', description: 'Répond aux administrateurs : où se trouve un réglage, comment le configurer, quoi corriger.', category: 'LLM', budgetLine: 'guidage', isNew: true, scope: 'console', est: GUIDAGE_ESTIMATE },
-  { id: 'doc_vec', name: 'Vectorisation', short: 'Vectorisation', description: 'Découpe le texte extrait en passages et les transforme en vecteurs pour la recherche sémantique.', category: 'EMBEDDING', group: 'documents', step: 1, budgetLine: 'docs' },
+  { id: 'doc_vec', name: 'Vectorisation', short: 'Vectorisation', description: 'Découpe le texte extrait en passages et les transforme en vecteurs pour la recherche sémantique.', category: 'EMBEDDING', group: 'documents', step: 1, budgetLine: 'docs', noFallback: true },
   { id: 'doc_rrk', name: 'Reclassement', short: 'Reclassement', description: 'Réordonne les passages trouvés selon leur pertinence réelle par rapport à la question posée.', category: 'RERANKING', group: 'documents', step: 2, budgetLine: 'docs' },
   { id: 'doc_syn', name: 'Synthèse', short: 'Synthèse', description: 'Rédige une réponse claire à partir des passages retenus : décisions, actions, risques.', category: 'LLM', group: 'documents', step: 3, budgetLine: 'docs' },
 ];
@@ -97,6 +100,11 @@ export const budgetLineOf = (functionId: string) => aiFunction(functionId)?.budg
  * Les autres fonctions gardent le bouchon ; hors ligne (tests), toutes le gardent.
  */
 export const LIVE_FUNCTIONS: readonly AiFunctionId[] = ['guidage'];
+/** Vectorisation : textes par appel, reprises sur erreur passagère et attentes entre reprises. */
+export const EMBED_BATCH_SIZE = 32;
+export const EMBED_RETRIES = 2;
+export const EMBED_RETRY_DELAYS_MS = [1000, 3000];
+
 /** Longueur maximale d'une réponse générée en direct (jetons), bornée par celle du modèle. */
 export const LIVE_MAX_OUTPUT_TOKENS = 1024;
 
@@ -183,6 +191,7 @@ export class LlmService {
     const asg = await this.prisma.modelAssignment.findUnique({ where: { functionId } });
     if (!asg) throw new ApiError(503, 'AI_UNAVAILABLE', `${label} indisponible : aucun modèle affecté`);
     if (await this.modelAvailable(asg.primaryModelId, category)) return { modelId: asg.primaryModelId, fallback: false };
+    if (fn?.noFallback) throw new ApiError(503, 'AI_UNAVAILABLE', `${label} indisponible : le modèle affecté est inactif ou la clé de son fournisseur est refusée`);
     if (await this.modelAvailable(asg.fallbackModelId, category)) return { modelId: asg.fallbackModelId!, fallback: true };
     throw new ApiError(503, 'AI_UNAVAILABLE', `${label} indisponible : ni le modèle principal ni le secours ne répondent`);
   }
@@ -225,6 +234,67 @@ export class LlmService {
       },
     });
     return costEur;
+  }
+
+  /**
+   * Vectorisation de textes par le modèle de la fonction Vectorisation (guide utilisateur, décision du 30/09/2026) :
+   * modèle principal seulement (pas de secours), dimension de l'affectation, lots de `EMBED_BATCH_SIZE` textes, reprise
+   * sur erreur passagère (429, 5xx, délai). Réelle en ligne, vecteurs de démonstration déterministes hors ligne.
+   * Une ligne de consommation par lot (fonction Documents · Vectorisation).
+   */
+  async embedTexts(texts: string[], source: UsageSourceCode, onBatch?: (done: number, total: number) => Promise<void> | void): Promise<{ modelId: string; modelName: string; dims: number; vectors: number[][] }> {
+    const { modelId } = await this.route('doc_vec');
+    const asg = await this.prisma.modelAssignment.findUnique({ where: { functionId: 'doc_vec' } });
+    const model = await this.prisma.aiModel.findUniqueOrThrow({ where: { id: modelId } });
+    const provider = await this.prisma.provider.findUniqueOrThrow({ where: { id: model.providerId } });
+    const wanted = asg?.primaryDimension ?? model.defaultDimension ?? (model.dimensions.length === 1 ? model.dimensions[0] : null);
+    let key = '';
+    if (this.client.live) {
+      if (!provider.keyCipher) throw new ApiError(503, 'AI_UNAVAILABLE', `${provider.name} : aucune clé enregistrée`);
+      try {
+        key = decryptSecret(provider.keyCipher);
+      } catch {
+        throw new ApiError(503, 'AI_UNAVAILABLE', `${provider.name} : clé illisible`);
+      }
+    }
+    const vectors: number[][] = [];
+    let dims = wanted ?? 0;
+    for (let i = 0; i < texts.length; i += EMBED_BATCH_SIZE) {
+      const batch = texts.slice(i, i + EMBED_BATCH_SIZE);
+      const t0 = Date.now();
+      let out: { vectors: number[][]; tokens: number | null };
+      if (this.client.live) {
+        out = await this.withRetry(() => this.client.embed({ providerId: provider.id, providerName: provider.name, model: model.providerModelId || model.id, key, inputs: batch, dimensions: model.dimensions.length > 1 ? wanted : null }));
+      } else {
+        out = { vectors: batch.map((t) => hashEmbedding(t, wanted ?? 256)), tokens: null };
+      }
+      // Dimension attendue : un modèle « Matryoshka » peut renvoyer plus long ; la troncature est alors renormalisée.
+      for (const v of out.vectors) {
+        let x = v;
+        if (!dims) dims = v.length;
+        if (x.length > dims && model.dimensions.length > 1) x = normalize(x.slice(0, dims));
+        if (x.length !== dims) throw new ApiError(502, 'AI_BAD_RESPONSE', `${model.name} a renvoyé des vecteurs de ${x.length} dimensions au lieu de ${dims}`);
+        vectors.push(x);
+      }
+      const tokens = out.tokens ?? batch.reduce((n, t) => n + Math.max(1, Math.ceil(t.length / 4)), 0);
+      await this.record(model, 'doc_vec', { tokensIn: tokens, tokensOut: 0, requests: 0 }, false, { source }, Date.now() - t0);
+      await onBatch?.(Math.min(i + batch.length, texts.length), texts.length);
+    }
+    return { modelId: model.id, modelName: model.name, dims, vectors };
+  }
+
+  /** Reprise d'un appel sur erreur passagère (429, 5xx, délai, réseau) : `EMBED_RETRIES` fois, attente croissante. */
+  private async withRetry<T>(fn: () => Promise<T>): Promise<T> {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await fn();
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : '';
+        const transient = e instanceof LlmCallError && /· (408|409|425|429|5\d\d)|délai|injoignable/.test(msg);
+        if (!transient || attempt >= EMBED_RETRIES) throw e instanceof LlmCallError ? new ApiError(503, 'AI_UNAVAILABLE', `Vectorisation impossible : ${msg}`) : e;
+        await new Promise((r) => setTimeout(r, EMBED_RETRY_DELAYS_MS[attempt] ?? 3000));
+      }
+    }
   }
 
   /** Appel direct d'un modèle (règles de notification : modèle propre à la règle). */

@@ -118,10 +118,11 @@ class Component extends DCLogic {
     const base = { lab: slot === 'p' ? 'P' : 'S', cut: false, plus: false, nameSt: 'flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;color:#fff' };
     const row = op => 'display:flex;align-items:center;gap:10px;opacity:' + op;
     if (!m) {
-      const urgent = r.st === 'down' && slot === 'f';
+      // Vectorisation : pas de secours (décision du 30/09/2026), la voie S n'invite pas à en ajouter un.
+      const urgent = r.st === 'down' && slot === 'f' && fn.cat !== 'embedding';
       return { ...base, hasLogo: false, plus: urgent, rowSt: row(urgent ? 1 : .55), labSt: lab('#7f97a8'), lineSt: line('border-top:2px dotted #3b5264'),
         chipSt: chip('transparent', urgent ? 'inset 0 0 0 1px rgba(240,123,103,.55)' : 'inset 0 0 0 1px rgba(255,255,255,.1)') + ';color:' + (urgent ? '#f5a193' : '#8ea4b3'),
-        name: urgent ? 'Aucun secours · en ajouter un' : slot === 'f' ? 'Aucun secours' : 'Aucun modèle', nameSt: base.nameSt.replace('font-weight:600;color:#fff', 'font-weight:700;color:' + (urgent ? '#f5a193' : '#8ea4b3')), tag: '', tagSt: tag('#8ea4b3'),
+        name: urgent ? 'Aucun secours · en ajouter un' : slot === 'f' ? (fn.cat === 'embedding' ? 'Sans secours (revectorisation)' : 'Aucun secours') : 'Aucun modèle', nameSt: base.nameSt.replace('font-weight:600;color:#fff', 'font-weight:700;color:' + (urgent ? '#f5a193' : '#8ea4b3')), tag: '', tagSt: tag('#8ea4b3'),
         aria: 'Choisir un modèle ' + (slot === 'p' ? 'principal' : 'de secours') + ' pour ' + fn.n, open: () => P.onAddFallback?.(fn.id, slot) };
     }
     const pv = D.prov(provs, m.pv), ok = D.usable(m, provs), open = () => P.onOpenModel?.(m.id), aria = 'Ouvrir la fiche ' + m.n, L = this.logo(pv);

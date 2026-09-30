@@ -447,6 +447,7 @@ export class AiController implements OnModuleInit {
       if (!pm) throw badRequest('Modèle inconnu', { [`${fn}.primary`]: 'introuvable' });
       if (!pm.active) throw businessRule('Le modèle principal doit être actif', { [`${fn}.primary`]: `${pm.name} est inactif` });
       if (pm.category !== cat) throw businessRule(`Cette fonction n’accepte qu’un modèle ${MODEL_CATEGORY_LABEL[cat]}`, { [`${fn}.primary`]: `${pm.name} est un modèle ${MODEL_CATEGORY_LABEL[pm.category]}` });
+      if (v.fallback && aiFunction(fn)!.noFallback) throw businessRule('La vectorisation n’accepte pas de modèle de secours : changer de modèle impose de revectoriser les documents', { [`${fn}.fallback`]: 'non autorisé' });
       if (v.fallback) {
         const fm = models.find((m) => m.id === v.fallback);
         if (!fm) throw badRequest('Modèle inconnu', { [`${fn}.fallback`]: 'introuvable' });

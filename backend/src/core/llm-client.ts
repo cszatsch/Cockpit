@@ -43,6 +43,26 @@ export interface LiveResult {
 export const CACHE_READ_FACTOR = 0.1;
 export const CACHE_WRITE_FACTOR = 1.25;
 
+/** Appel d'embedding (vectorisation) : une liste de textes, une dimension demandée si le modèle en propose plusieurs. */
+export interface EmbedCall {
+  providerId: string;
+  providerName: string;
+  model: string;
+  key: string;
+  inputs: string[];
+  /** Dimension demandée au fournisseur (modèles « Matryoshka ») ; absente : dimension native. */
+  dimensions?: number | null;
+}
+
+export interface EmbedResult {
+  vectors: number[][];
+  /** Jetons comptés par le fournisseur ; null s'il ne les renvoie pas (estimation alors). */
+  tokens: number | null;
+}
+
+/** Délai maximal d'un appel d'embedding (un lot de textes). */
+export const EMBED_CALL_TIMEOUT_MS = 60_000;
+
 /** Échec d'une génération réelle : message sans jamais la clé. */
 export class LlmCallError extends Error {}
 
@@ -110,18 +130,46 @@ export class LlmClient {
     return { ...this.result(p.label, text, j?.usage?.prompt_tokens, j?.usage?.completion_tokens), cacheRead: num(j?.usage?.prompt_tokens_details?.cached_tokens), cacheWrite: 0 };
   }
 
+  /**
+   * Vectorisation réelle (décision du 30/09/2026) : API compatibles OpenAI (`/embeddings` : OpenRouter, OpenAI,
+   * Mistral…) et Google Gemini (`batchEmbedContents`). Anthropic ne propose pas d'embedding.
+   */
+  async embed(c: EmbedCall): Promise<EmbedResult> {
+    const p = protocolFor(c.providerId, c.providerName);
+    if (!p) throw new LlmCallError(`Vectorisation impossible : fournisseur ${c.providerName || c.providerId} non pris en charge`);
+    if (p.kind === 'anthropic') throw new LlmCallError('Anthropic ne propose pas de modèle d’embedding');
+    let vectors: unknown[];
+    let tokens: number | null = null;
+    if (p.kind === 'gemini') {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(c.model)}:batchEmbedContents`;
+      const j = await this.post('Google Gemini', url, { 'x-goog-api-key': c.key }, {
+        requests: c.inputs.map((text) => ({ model: `models/${c.model}`, content: { parts: [{ text }] }, taskType: 'RETRIEVAL_DOCUMENT', ...(c.dimensions ? { outputDimensionality: c.dimensions } : {}) })),
+      }, c.key, EMBED_CALL_TIMEOUT_MS);
+      vectors = (j?.embeddings ?? []).map((e: any) => e?.values);
+    } else {
+      const j = await this.post(p.label, `${p.base}/embeddings`, { Authorization: `Bearer ${c.key}` }, {
+        model: c.model, input: c.inputs, encoding_format: 'float', ...(c.dimensions ? { dimensions: c.dimensions } : {}),
+      }, c.key, EMBED_CALL_TIMEOUT_MS);
+      vectors = [...(j?.data ?? [])].sort((a: any, b: any) => (a?.index ?? 0) - (b?.index ?? 0)).map((d: any) => d?.embedding);
+      tokens = typeof j?.usage?.prompt_tokens === 'number' ? j.usage.prompt_tokens : typeof j?.usage?.total_tokens === 'number' ? j.usage.total_tokens : null;
+    }
+    const label = p.kind === 'gemini' ? 'Google Gemini' : p.label;
+    if (vectors.length !== c.inputs.length || !vectors.every((v) => Array.isArray(v) && v.length > 0 && v.every((x) => typeof x === 'number'))) throw new LlmCallError(`${label} : réponse d’embedding illisible`);
+    return { vectors: vectors as number[][], tokens };
+  }
+
   private result(label: string, text: string, tin: unknown, tout: unknown): LiveResult {
     if (!text) throw new LlmCallError(`${label} : réponse vide`);
     return { text, tokensIn: typeof tin === 'number' ? tin : null, tokensOut: typeof tout === 'number' ? tout : null };
   }
 
-  private async post(label: string, url: string, headers: Record<string, string>, body: unknown, key: string): Promise<any> {
+  private async post(label: string, url: string, headers: Record<string, string>, body: unknown, key: string, timeoutMs = LLM_CALL_TIMEOUT_MS): Promise<any> {
     let res: Response;
     try {
-      res = await this.fetchImpl(url, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...headers }, body: JSON.stringify(body), signal: AbortSignal.timeout(LLM_CALL_TIMEOUT_MS) });
+      res = await this.fetchImpl(url, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...headers }, body: JSON.stringify(body), signal: AbortSignal.timeout(timeoutMs) });
     } catch (e: any) {
       const timeout = e?.name === 'TimeoutError' || e?.name === 'AbortError';
-      throw new LlmCallError(timeout ? `${label} : délai de ${LLM_CALL_TIMEOUT_MS / 1000} s dépassé` : `${label} injoignable`);
+      throw new LlmCallError(timeout ? `${label} : délai de ${timeoutMs / 1000} s dépassé` : `${label} injoignable`);
     }
     const raw = await res.text().catch(() => '');
     if (!res.ok) {

@@ -68,7 +68,8 @@ select:focus-visible,button:focus-visible{outline:2px solid #1d8f86;outline-offs
               <div style="display:flex;flex-direction:column;gap:6px">
                 <div style="position:relative"><span aria-hidden="true" style="position:absolute;left:11px;top:12px;width:10px;height:10px;border-radius:50%;background:#f0752b;pointer-events:none"></span>{{ s.p.el }}</div>
                 <sc-if value="{{ s.hasDim }}" hint-placeholder-val="{{ false }}"><div style="position:relative;padding-left:22px"><span aria-hidden="true" style="position:absolute;left:8px;top:0;width:9px;height:17px;border-left:1.5px solid #cfdcd9;border-bottom:1.5px solid #cfdcd9;border-bottom-left-radius:6px;pointer-events:none"></span>{{ s.dim }}</div></sc-if>
-                <div style="position:relative"><span aria-hidden="true" style="position:absolute;left:11px;top:12px;width:10px;height:10px;border-radius:50%;border:2px solid #10233a;pointer-events:none"></span>{{ s.f.el }}</div>
+                <sc-if value="{{ s.hasF }}" hint-placeholder-val="{{ true }}"><div style="position:relative"><span aria-hidden="true" style="position:absolute;left:11px;top:12px;width:10px;height:10px;border-radius:50%;border:2px solid #10233a;pointer-events:none"></span>{{ s.f.el }}</div></sc-if>
+                <sc-if value="{{ s.noF }}" hint-placeholder-val="{{ false }}"><div style="display:flex;gap:7px;align-items:flex-start;padding:2px 2px 0;font-size:11.5px;line-height:1.45;color:#5c7280;text-wrap:pretty"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:2px"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5M12 8v.5"></path></svg><span>Pas de modèle de secours : un autre modèle imposerait de revectoriser tous les documents.</span></div></sc-if>
               </div>
               <sc-if value="{{ s.reindex }}" hint-placeholder-val="{{ false }}"><div role="alert" style="display:flex;gap:8px;padding:9px 10px;border-radius:10px;background:#fdf1dc;border:1px solid #f3d193;font-size:11.5px;line-height:1.45;color:#6b4510;text-wrap:pretty"><span aria-hidden="true" style="flex:none">⚠️</span><span style="flex:1;min-width:0">{{ s.reindexL }}</span></div></sc-if>
               <sc-if value="{{ s.hasMsg }}" hint-placeholder-val="{{ false }}"><div style="{{ s.msgSt }}"><sc-if value="{{ s.wait }}" hint-placeholder-val="{{ false }}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" style="flex:none"><path d="M12 4v10 M7 10l5 5 5-5 M5 20h14"></path></svg></sc-if><span style="flex:1;min-width:0">{{ s.msg }}</span></div></sc-if>
@@ -149,6 +150,11 @@ class Component extends DCLogic {
     const D = window.RISE_IA, pvP = r.p && D.prov(provs, r.p.pv);
     const fix = () => { const alt = D.catModels(models, fn.cat).filter(m => m.id !== a.p && D.usable(m, provs) && D.fitsOut(fn, m)).sort((x, y) => D.cost(fn, x) - D.cost(fn, y))[0]; return alt; };
     if (r.st === 'blocked') return { msg: 'Attend l’étape ' + r.blockedBy.step + ' · ' + r.blockedBy.n, tone: 'wait' };
+    if (fn.cat === 'embedding') {
+      if (!D.catModels(models, fn.cat).length) return { msg: 'Aucun modèle ' + D.CAT[fn.cat].l + ' actif : ajoutez-en un dans Fournisseurs et modèles.', tone: 'down' };
+      if (r.st === 'down') return { msg: 'Modèle indisponible : ' + (inGroup ? 'les étapes suivantes sont suspendues.' : 'la fonction est à l’arrêt.'), tone: 'down' };
+      return { msg: '', tone: 'muted' };
+    }
     if (!D.catModels(models, fn.cat).length) return { msg: 'Aucun modèle ' + D.CAT[fn.cat].l + ' actif : ajoutez-en un dans Fournisseurs et modèles.', tone: 'down' };
     if (r.st === 'fallback') return { msg: (pvP ? pvP.n + ' refuse la clé : ' : 'Principal indisponible : ') + r.s.n + ' répond à la place.', tone: 'fallback' };
     if (r.st === 'down') { const alt = fix(); return { msg: r.s ? 'Principal et secours indisponibles.' : inGroup ? 'Aucun secours : les étapes suivantes sont suspendues.' : 'Aucun secours : la fonction est à l’arrêt.', tone: 'down', alt, fixL: alt ? 'Secours : ' + alt.n + ' · ' + D.eur(D.cost(fn, alt)) : '' }; }
@@ -223,7 +229,8 @@ class Component extends DCLogic {
           const a = draft[f.id] || {}, r = R[f.id], ad = this.advise(f, a, r, models, provs, true);
           return { n: f.n, d: f.d, cat: D.CAT[f.cat].l.toUpperCase(), cardSt: card(r.st),
             tagSt: "font-family:'JetBrains Mono',monospace;font-size:10px;padding:3px 6px;border-radius:5px;" + (r.st === 'down' ? 'background:#f6e6e3;color:#8f2c23' : 'background:#eef3f2;color:#43586a'),
-            p: this.sel(f, 'p', a, models, provs), f: this.sel(f, 'f', a, models, provs), ...this.dimSel(f, a, models),
+            // Vectorisation sans secours (décision du 30/09/2026) : un autre modèle imposerait de revectoriser.
+            p: this.sel(f, 'p', a, models, provs), f: this.sel(f, 'f', a, models, provs), hasF: f.cat !== 'embedding', noF: f.cat === 'embedding', ...this.dimSel(f, a, models),
             // Changement de modèle d'embedding ou de dimension : les documents devront être réindexés.
             reindex: f.cat === 'embedding' && D.reindex(saved[f.id], a, models), reindexL: D.REINDEX_WARNING,
             hasMsg: !!ad.msg, msg: ad.msg, wait: ad.tone === 'wait', msgSt: this.msgSt(ad.tone), hasFix: !!ad.alt, fixL: ad.fixL, fix: ad.alt ? setF(f.id, ad.alt.id) : null,

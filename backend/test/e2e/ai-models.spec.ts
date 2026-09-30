@@ -98,8 +98,10 @@ describe('Console — modèles d’IA', () => {
     expect(put.body.fields['doc_vec.primary']).toContain('LLM');
     const fb = await admin.put('/api/admin/assignments', { insights: { primary: 'sonnet', fallback: 'te3large' } }).expect(422);
     expect(fb.body.fields['insights.fallback']).toContain('Embedding');
-    const ok = await admin.put('/api/admin/assignments', { doc_vec: { primary: 'mistral-embed', fallback: 'te3large' } }).expect(200);
-    expect(ok.body.find((a: any) => a.functionId === 'doc_vec')).toMatchObject({ primary: 'mistral-embed', fallback: 'te3large', state: 'NOMINAL', category: 'EMBEDDING', step: 1 });
+    // Vectorisation sans secours (décision du 30/09/2026) : un autre modèle imposerait de revectoriser.
+    await admin.put('/api/admin/assignments', { doc_vec: { primary: 'mistral-embed', fallback: 'te3large' } }).expect(422);
+    const ok = await admin.put('/api/admin/assignments', { doc_vec: { primary: 'mistral-embed', fallback: null } }).expect(200);
+    expect(ok.body.find((a: any) => a.functionId === 'doc_vec')).toMatchObject({ primary: 'mistral-embed', fallback: null, state: 'NOMINAL', category: 'EMBEDDING', step: 1 });
     expect(await t.db.auditEntry.findFirst({ where: { action: 'Changement de modèle principal', target: 'Documents · étape 1 · Vectorisation → Mistral Embed' } })).toBeTruthy();
     // Un modèle affecté ne peut pas changer de catégorie ; un modèle libre le peut (tracé).
     expect((await admin.patch('/api/admin/models/sonnet', { category: 'RERANKING' }).expect(409)).body.code).toBe('MODEL_IN_USE');
