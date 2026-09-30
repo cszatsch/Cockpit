@@ -248,7 +248,7 @@ export function bindConsole(c) {
   c._logout = () => { if (DEV) writeToken(null); return Auth.logout('admin'); };
   const set0 = c.setState.bind(c), orig = {};
   ['go', 'setUser', 'saveUser', 'removeUser', 'saveAdmin', 'removeAdmin', 'testKey', 'testAll', 'saveKey', 'saveProv', 'toggleModel', 'saveModel', 'saveFiche', 'saveAsg', 'setTh', 'doCapture',
-    'setMod', 'approve', 'reject', 'saveMe', 'revoke', 'revokeAll', 'onPhoto', 'exportAudit', 'exportCsv', 'jevReply', 'mtd', 'thVals', 'renderVals', 'skSave', 'skToggle', 'skCreate', 'skDelete', 'psSave', 'psUpload', 'ntToggle', 'ntAct', 'ntUndo', 'ntReadAll', 'apTest', 'apCreate', 'apSave', 'apToggle', 'apDelete', 'apRestore', 'apWidgetsSet'].forEach(k => { orig[k] = c[k].bind(c); });
+    'setMod', 'approve', 'reject', 'saveMe', 'revoke', 'revokeAll', 'onPhoto', 'exportAudit', 'exportCsv', 'jevReply', 'jevNew', 'mtd', 'thVals', 'renderVals', 'skSave', 'skToggle', 'skCreate', 'skDelete', 'psSave', 'psUpload', 'ntToggle', 'ntAct', 'ntUndo', 'ntReadAll', 'apTest', 'apCreate', 'apSave', 'apToggle', 'apDelete', 'apRestore', 'apWidgetsSet'].forEach(k => { orig[k] = c[k].bind(c); });
   const toast = (m, t, u) => c.toast(m, t, u), fail = e => { console.warn('[admin-api]', e); toast(errText(e), 'err'); };
   let meId = 'u1';
 
@@ -352,6 +352,7 @@ export function bindConsole(c) {
       set0({ apiNow: String(ov.date).slice(0, 10) + 'T12:00:00' });
       await load(['ov', 'wsAll', 'prof', 'accounts', 'admins', 'audit', 'providers', 'models', 'asg', 'usage', 'snaps', 'sched', 'nrRules', 'nrHist', 'nrCounts', 'nrSchedule', 'smtp', 'mods', 'reqs', 'sess', 'projects', 'skills', 'persona', 'notifs', 'apis', 'fns']);
       set0({ apiBoot: false, loading: false });
+      jevResume();
     } catch (e) {
       fail(e);
       if (e instanceof ApiError && e.status === 403) return; // Réservé à l'Admin : masquage complet (squelette seul).
@@ -717,10 +718,21 @@ export function bindConsole(c) {
   // skill « Guidage console », page ouverte). Aucun moteur de mots-clés : la réponse du modèle est affichée telle quelle. ──
   // Vue consultée → libellé des sources affiché sous la réponse (« modeles_ia » → « modèles IA »).
   const srcLabel = v => v.replace(/_/g, ' ').replace(/\bia\b/, 'IA').replace(/\bapi\b/, 'API').replace(/\bmodeles\b/, 'modèles').replace(/\bregles\b/, 'règles');
+  let jevConv = null;
+  // « Nouvelle conversation » : conversation neuve côté serveur, puis l'écran repart de l'accueil de Jev.
+  c.jevNew = () => post('/assistant/conversations').then(r => { jevConv = r.id; orig.jevNew(); }).catch(fail);
+  // Reprise après un rechargement : la conversation en cours est réaffichée (le fil continue).
+  const jevResume = () => get('/assistant/conversations/current').then(r => {
+    if (!r || !r.id) return;
+    jevConv = r.id;
+    if (c.state.jm.length) return;
+    set0({ jm: r.messages.map((m, i) => ({ id: 'h' + i, t: m.role === 'user' ? 'user' : 'jev', text: m.text, src: m.role === 'user' ? undefined : (m.sources || []).map(srcLabel).join(', ') || undefined })), jCtx: c.state.sec });
+  }).catch(() => {});
   c.jevReply = text => {
     Promise.resolve().then(() => c.setState({ jThink: true }));
-    post('/assistant/messages', { context: { section: c.state.sec }, text })
-      .then(r => { c.setState({ jThink: false }); c.jPush({ t: 'jev', text: r.reply, err: !r.ai, src: (r.sources || []).map(srcLabel).join(', ') || undefined }); })
+    // Mémoire (30/09/2026) : la question part avec l'identifiant de la conversation ; le serveur y joint les échanges précédents.
+    post('/assistant/messages', { context: { section: c.state.sec }, text, conversationId: jevConv })
+      .then(r => { if (r.conversationId) jevConv = r.conversationId; c.setState({ jThink: false }); c.jPush({ t: 'jev', text: r.reply, err: !r.ai, src: (r.sources || []).map(srcLabel).join(', ') || undefined }); })
       .catch(e => { c.setState({ jThink: false }); c.jPush({ t: 'jev', text: 'Jev n’a pas pu répondre : ' + ((e && e.message) || 'erreur du serveur') + '.', err: true }); });
     return [];
   };

@@ -17,7 +17,7 @@ describe('Console — Jev et la fonction guidage', () => {
   let t: TestCtx;
   let admin: Client;
   let spy: jest.SpyInstance;
-  const lastCall = () => spy.mock.calls.at(-1)![0] as { functionId: string; prompt: string; system: string };
+  const lastCall = () => spy.mock.calls.at(-1)![0] as { functionId: string; prompt: string; system: string; systemTail: string };
   const skill = async (n: string) => (await admin.get(SKILLS).expect(200)).body.find((s: any) => s.n === n);
   const lastUsage = () => t.db.usageRecord.findFirstOrThrow({ where: { functionId: 'guidage' }, orderBy: { at: 'desc' } });
 
@@ -59,12 +59,15 @@ describe('Console — Jev et la fonction guidage', () => {
   });
 
   describe('prompt système : Identité, Soul, skill « Guidage console », page ouverte', () => {
-    it('ordre : prompt de base → Identité → Personnalité → skill de guidage → page ; aucune autre skill', async () => {
+    it('ordre : prompt de base → Identité → Personnalité → skill de guidage ; page ouverte dans la partie variable ; aucune autre skill', async () => {
       const r = await admin.post(JEV, { context: { section: 'apis' }, text: 'Où règle-t-on le quota d’une carte ?' }).expect(200);
       const call = lastCall();
       expect(call.functionId).toBe('guidage');
       const sys = call.system;
-      const idx = ['## Identité', '## Personnalité', '## Skill : Guidage console', '## Page de console ouverte\napis · Registre des cartes API'].map((x) => sys.indexOf(x));
+      // Partie variable (après la partie stable mise en cache) : page ouverte, date et heure.
+      expect(call.systemTail).toContain('Page de console ouverte : apis · Registre des cartes API');
+      expect(sys).not.toContain('Page de console ouverte');
+      const idx = ['## Identité', '## Personnalité', '## Skill : Guidage console', '## Mise en forme de la réponse'].map((x) => sys.indexOf(x));
       expect(sys.startsWith(JEV_SYSTEM_PROMPT)).toBe(true);
       expect(idx.every((i) => i > 0)).toBe(true);
       expect([...idx].sort((x, y) => x - y)).toEqual(idx);
@@ -209,10 +212,11 @@ describe('Console — Jev et la fonction guidage', () => {
       expect(q.url).toBe('https://api.anthropic.com/v1/messages');
       expect(q.headers['x-api-key']).toBe('sk-ant-test-0000000000000000AbCd');
       expect(q.body.model).toBe('haiku');
-      expect(q.body.system).toBe(lastCall().system);
-      expect(q.body.system).toContain('## Identité');
-      expect(q.body.system).toContain('## Personnalité');
-      expect(q.body.system).toContain('## Skill : Guidage console');
+      // Partie stable marquée pour le cache, partie variable ensuite.
+      expect(q.body.system).toEqual([{ type: 'text', text: lastCall().system, cache_control: { type: 'ephemeral' } }, { type: 'text', text: lastCall().systemTail }]);
+      expect(q.body.system[0].text).toContain('## Identité');
+      expect(q.body.system[0].text).toContain('## Personnalité');
+      expect(q.body.system[0].text).toContain('## Skill : Guidage console');
       expect(q.body.messages).toEqual([{ role: 'user', content: 'Où règle-t-on le quota d’une carte ?' }]);
       expect(q.body.max_tokens).toBe(1024);
       expect(await lastUsage()).toMatchObject({ modelId: 'haiku', tokensIn: 1234, tokensOut: 56, fallbackUsed: false });
@@ -233,10 +237,30 @@ describe('Console — Jev et la fonction guidage', () => {
       expect(reqs.map((x) => x.url)).toEqual(['https://api.anthropic.com/v1/messages', 'https://api.openai.com/v1/chat/completions']);
       const o = reqs[1];
       expect(o.headers.Authorization).toBe('Bearer sk-proj-test-000000000000000WxYz');
-      expect(o.body.messages[0]).toEqual({ role: 'system', content: reqs[0].body.system });
-      expect(o.body.messages[1]).toEqual({ role: 'user', content: 'Que montre cette page ?' });
+      expect(o.body.messages[0]).toEqual({ role: 'system', content: reqs[0].body.system[0].text });
+      expect(o.body.messages[1]).toEqual({ role: 'system', content: reqs[0].body.system[1].text });
+      expect(o.body.messages[2]).toEqual({ role: 'user', content: 'Que montre cette page ?' });
       expect(o.body.max_completion_tokens).toBe(1024);
       expect(await lastUsage()).toMatchObject({ modelId: 'gpt5mini', tokensIn: 900, tokensOut: 20, fallbackUsed: true });
+    });
+
+    it('mémoire : le 2e message part avec le 1er échange, chez le principal comme chez le secours ; jetons du cache facturés au tarif du cache', async () => {
+      const cached = { status: 200, json: { content: [{ type: 'text', text: 'RISE est le projet de transformation d’AMC Corp.' }], usage: { input_tokens: 1000, cache_read_input_tokens: 9000, cache_creation_input_tokens: 0, output_tokens: 50 } } };
+      live(() => cached);
+      const a = (await admin.post(JEV, { context: { section: 'overview' }, text: 'Parle-moi du projet RISE.' }).expect(200)).body;
+      // Jetons envoyés : 10 000 ; facturés : 1 000 + 9 000 × 0,1 = 1 900 (cache lu à 0,1 × le prix d'entrée).
+      const u = await lastUsage();
+      expect(u.tokensIn).toBe(10000);
+      expect(Number(u.costEur)).toBeCloseTo((1900 * Number(u.priceIn) + 50 * Number(u.priceOut)) / 1e6, 6);
+
+      live((r) => (r.url.includes('anthropic') ? { status: 529, json: { error: { message: 'Overloaded' } } } : { status: 200, json: { choices: [{ message: { content: 'Il couvre la finance et les achats.' } }], usage: { prompt_tokens: 900, completion_tokens: 20 } } }));
+      await admin.post(JEV, { context: { section: 'overview' }, text: 'Et son périmètre ?', conversationId: a.conversationId }).expect(200);
+      const past = [{ role: 'user', content: 'Parle-moi du projet RISE.' }, { role: 'assistant', content: 'RISE est le projet de transformation d’AMC Corp.' }];
+      expect(reqs[0].body.messages).toEqual([...past, { role: 'user', content: 'Et son périmètre ?' }]);
+      // Secours : partie stable, historique, partie variable, question.
+      expect(reqs[1].body.messages.slice(1, 3)).toEqual(past);
+      expect(reqs[1].body.messages[3].role).toBe('system');
+      expect(reqs[1].body.messages[4]).toEqual({ role: 'user', content: 'Et son périmètre ?' });
     });
 
     it('principal et secours échouent : motif affiché, sans la clé, sans consommation', async () => {

@@ -483,3 +483,8 @@ Vérification des éléments de la vue d'ensemble face au serveur. Conformes : d
   - nouveau bloc « REQUÊTE » : GET / POST · corps JSON ; en POST, zone du corps JSON (contrôlée : « JSON invalide », « Saisissez le corps JSON de l’appel ») et aide sur le contrôle de santé espacé de 24 h.
 - Nécessaire pour la carte JEV (API TypeSafe : POST, `Authorization: Bearer`), que le registre ne pouvait pas appeler.
 - `admin-api.js` : `toCard` lit `authMode`, `method`, `body` ; `apCreate` et `apSave` les envoient.
+
+## Jev : mémoire de la conversation (30/09/2026)
+
+- `Console Admin.dc.html`, en-tête du panneau Jev : bouton « Nouvelle conversation » (icône crayon, avant « Fermer Jev »), désactivé tant qu'aucune question n'a été posée ; méthode `jevNew` (démonstration : l'échange affiché est effacé, puis l'accueil de Jev).
+- `admin-api.js` : chaque question part avec `conversationId` (le serveur y joint les échanges précédents) ; au démarrage, la conversation en cours est réaffichée (`GET /assistant/conversations/current`) ; « Nouvelle conversation » ouvre une conversation neuve (`POST /assistant/conversations`).

@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, HttpCode, OnModuleInit, Param, Patch, Post, Query, Res } from '@nestjs/common';
 import { JevPromptService } from '../core/jev-prompt.service';
 import { JevSqlService } from './jev-sql.service';
+import { JevMemoryService } from './jev-memory.service';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
@@ -38,11 +39,15 @@ export class ConsoleController implements OnModuleInit {
     private readonly jevPrompt: JevPromptService,
     private readonly jevSql: JevSqlService,
     private readonly profiles: ProfilesService,
+    private readonly jevMemory: JevMemoryService,
   ) {}
 
   onModuleInit() {
     this.jobs.register('audit.purge', () => this.purgeAudit().then(() => undefined));
     this.jobs.schedule('audit.purge', '15 3 * * *');
+    // Conversations avec Jev sans échange depuis JEV_CONVERSATION_RETENTION_DAYS jours : supprimées chaque nuit.
+    this.jobs.register('jev.purge', () => this.jevMemory.purge().then(() => undefined));
+    this.jobs.schedule('jev.purge', '25 3 * * *');
   }
 
   /** Purge de conservation (24 mois) : seule suppression autorisée par le trigger du journal. */
@@ -284,15 +289,32 @@ export class ConsoleController implements OnModuleInit {
    */
   @Post('assistant/messages')
   @HttpCode(200)
-  async jev(@Body() body: unknown) {
-    const input = parse(z.object({ context: z.object({ section: z.string().max(40) }).strict(), text: z.string().trim().min(1).max(2000) }).strict(), body);
+  async jev(@CurrentActor() actor: Actor, @Body() body: unknown) {
+    const input = parse(z.object({ context: z.object({ section: z.string().max(40) }).strict(), text: z.string().trim().min(1).max(2000), conversationId: z.string().max(40).nullable().optional() }).strict(), body);
+    // Mémoire (décision du 30/09/2026) : conversation du compte, sinon nouvelle ; derniers échanges et résumé envoyés au modèle.
+    const conv = input.conversationId ? await this.jevMemory.own(actor.accountId, input.conversationId) : await this.jevMemory.start(actor.accountId);
     try {
-      const res = await this.jevSql.ask(input.text, input.context.section);
-      return { reply: res.reply, sources: res.sources, actions: [], ai: res.ai };
+      const res = await this.jevSql.ask(input.text, input.context.section, await this.jevMemory.memory(conv));
+      await this.jevMemory.record(conv, input.text, res.reply, res.sources);
+      return { reply: res.reply, sources: res.sources, actions: [], ai: res.ai, conversationId: conv.id };
     } catch (e: any) {
       const why = String(e?.response?.message ?? e?.message ?? 'modèles indisponibles');
-      return { reply: `Je ne peux pas répondre pour l’instant : ${why}`, sources: [], actions: [], ai: null, unavailable: why };
+      // Sans réponse du modèle, l'échange n'est pas gardé : il ne pèserait pas sur la suite de la conversation.
+      return { reply: `Je ne peux pas répondre pour l’instant : ${why}`, sources: [], actions: [], ai: null, unavailable: why, conversationId: conv.id };
     }
+  }
+
+  /** Conversation en cours du compte avec Jev (reprise après un rechargement de la page) ; `id` null s'il n'y en a pas. */
+  @Get('assistant/conversations/current')
+  jevCurrent(@CurrentActor() actor: Actor) {
+    return this.jevMemory.current(actor.accountId);
+  }
+
+  /** « Nouvelle conversation » : Jev repart sans mémoire des échanges précédents. */
+  @Post('assistant/conversations')
+  async jevNew(@CurrentActor() actor: Actor) {
+    const c = await this.jevMemory.start(actor.accountId);
+    return { id: c.id, messages: [] };
   }
 
 }

@@ -11,6 +11,7 @@
  * Dates : les dates métier sont du texte AAAA-MM-JJ ; les horodatages sont convertis en heure de Paris.
  */
 import { DictTable, P, q } from './jev-dictionnaire';
+import { INFOS_PROJET_SOURCE } from './project-info';
 
 export const JEV_COCKPIT_SCHEMA = 'jev_cockpit';
 /** Rôle de lecture des vues du Cockpit (rédaction des notifications) ; distinct de celui du Jev de la Console. */
@@ -67,13 +68,7 @@ export const DICTIONNAIRE_COCKPIT: DictTable[] = [
   {
     nom: 'infos_projet',
     // Objet « Info projet » (30/09/2026) : rubriques du bloc `referential` (ContentBlock), une ligne par élément.
-    source: `(SELECT b.${q('projectId')} AS project_id, r.rubrique, r.ordre_rubrique, e.ord AS ordre,
-      CASE WHEN r.kv THEN e.el->>0 END AS libelle, CASE WHEN r.kv THEN e.el->>1 ELSE e.el#>>'{}' END AS valeur
-    FROM ${q('ContentBlock')} b
-    CROSS JOIN LATERAL (VALUES ('Le client', 1, 'identity', true), ('Marques du groupe', 2, 'brands', false), ('Programme en une phrase', 3, 'pitch', false), ('Enjeux stratégiques', 4, 'stakes', false),
-      ('Périmètre fonctionnel', 5, 'scope', true), ('Périmètre applicatif', 6, 'systems', true), ('Périmètre géographique', 7, 'geo', false), ('Périmètre juridique', 8, 'legal', false)) r(rubrique, ordre_rubrique, cle, kv)
-    CROSS JOIN LATERAL jsonb_array_elements(CASE jsonb_typeof(b.data::jsonb -> r.cle) WHEN 'array' THEN b.data::jsonb -> r.cle WHEN 'string' THEN jsonb_build_array(b.data::jsonb -> r.cle) ELSE '[]'::jsonb END) WITH ORDINALITY e(el, ord)
-    WHERE b.key = 'referential' AND coalesce(CASE WHEN r.kv THEN e.el->>1 ELSE e.el#>>'{}' END, '') <> '') t`,
+    source: INFOS_PROJET_SOURCE,
     description: 'Objet « Info projet » du Référentiel : contexte client et périmètre du projet (client, marques du groupe, programme en une phrase, enjeux stratégiques, périmètres fonctionnel, applicatif, géographique et juridique), une ligne par élément. Écrans : Info projet › Fiche projet, Référentiel › Info projet.',
     colonnes: [
       { nom: 'id', expr: `t.project_id || ':' || t.ordre_rubrique || ':' || t.ordre`, type: 'texte', signification: 'Identifiant de la ligne (projet:rubrique:rang)' },

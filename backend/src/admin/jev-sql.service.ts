@@ -3,9 +3,10 @@ import { PrismaService } from '../core/prisma.service';
 import { LlmResult, LlmService } from '../core/llm.service';
 import { JevPromptService } from '../core/jev-prompt.service';
 import { TodayService } from '../core/today.service';
+import type { JevMemory } from './jev-memory.service';
 import {
   ANSWER_INSTRUCTIONS, extractSql, formatRows, JEV_SQL_MAX_ROWS, JEV_SQL_RETRIES, JEV_SQL_ROLE, JEV_SQL_TIMEOUT_MS,
-  renderDictionary, sqlError, sqlInstructions, viewsUsed,
+  renderDictionary, requestContext, sqlError, sqlInstructions, viewsUsed,
 } from '../domain/jev-sql';
 import { JEV_COCKPIT_ROLE, JEV_COCKPIT_SCHEMA, SCOPE_CHANTIERS, SCOPE_PROJET } from '../domain/jev-dictionnaire-cockpit';
 import { ChantierScope } from '../domain/notification-rules';
@@ -36,13 +37,19 @@ export class JevSqlService {
     private readonly today: TodayService,
   ) {}
 
-  async ask(text: string, section: string): Promise<JevAnswer> {
-    const base = await this.jevPrompt.consolePrompt(section);
+  /**
+   * `memory` : derniers échanges et résumé de la conversation (mémoire de Jev, décision du 30/09/2026), envoyés avec
+   * chaque appel. Prompt système en deux parties : stable (Identité, Soul, skill, mise en forme, dictionnaire), mise en
+   * cache ; variable (page ouverte, date et heure, résumé), envoyée après.
+   */
+  async ask(text: string, section: string, memory?: JevMemory): Promise<JevAnswer> {
+    const parts = await this.jevPrompt.consolePromptParts(section);
     const tables = await this.prisma.dictionnaireTable.findMany({ where: { espace: 'console', actif: true }, include: { colonnes: { orderBy: { position: 'asc' } } }, orderBy: { position: 'asc' } });
-    const system = `${base}\n\n${sqlInstructions(renderDictionary(tables), this.today.today(), this.nowParis())}`;
+    const system = `${parts.stable}\n\n${sqlInstructions(renderDictionary(tables), null, null)}`;
+    const context = requestContext(parts.page, this.today.today(), this.nowParis(), memory?.summary);
     const calls: LlmResult[] = [];
-    const call = async (prompt: string, sys: string) => {
-      const r = await this.llm.complete({ functionId: 'guidage', prompt, system: sys, source: 'COCKPIT' });
+    const call = async (prompt: string, sys: string, tail = context) => {
+      const r = await this.llm.complete({ functionId: 'guidage', prompt, system: sys, systemTail: tail, history: memory?.history, cache: true, source: 'COCKPIT' });
       calls.push(r);
       return r;
     };
@@ -78,9 +85,9 @@ export class JevSqlService {
     const sources = viewsUsed(sql!, tables.map((t) => t.nom));
     const used = tables.filter((t) => sources.includes(t.nom));
     const res = formatRows(rows);
-    const answerSystem = `${base}\n\n${ANSWER_INSTRUCTIONS}\n\n## Dictionnaire des vues consultées\n${renderDictionary(used)}`;
+    const answerSystem = `${parts.stable}\n\n${ANSWER_INSTRUCTIONS}`;
     const head = `## Résultats de la requête (${res.count} ligne(s)${res.truncated ? `, tronqués aux ${JEV_SQL_MAX_ROWS} premières` : ''})`;
-    const answer = await call(`${text}\n\n${head}\n${res.text}`, answerSystem);
+    const answer = await call(`${text}\n\n${head}\n${res.text}`, answerSystem, `${context}\n\n## Dictionnaire des vues consultées\n${renderDictionary(used)}`);
     return { reply: answer.text, sources, ai: ai(), sql };
   }
 

@@ -6026,6 +6026,44 @@
         ]
       }
     },
+    "/api/admin/assistant/conversations/current": {
+      "get": {
+        "operationId": "ConsoleController_jevCurrent",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · supervision et compte"
+        ]
+      }
+    },
+    "/api/admin/assistant/conversations": {
+      "post": {
+        "operationId": "ConsoleController_jevNew",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · supervision et compte"
+        ]
+      }
+    },
     "/api/admin/accounts": {
       "get": {
         "operationId": "AccountsController_list",

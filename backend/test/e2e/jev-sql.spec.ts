@@ -3,7 +3,7 @@ import { LlmService } from '../../src/core/llm.service';
 import { JevSqlService } from '../../src/admin/jev-sql.service';
 
 const JEV = '/api/admin/assistant/messages';
-type Call = { functionId: string; prompt: string; system: string };
+type Call = { functionId: string; prompt: string; system: string; systemTail: string };
 
 /**
  * Jev de la Console, interrogation des données en langage naturel (Text-to-SQL) :
@@ -44,7 +44,10 @@ describe('Console — Jev interroge les données (Text-to-SQL)', () => {
     const [c1, c2] = calls;
     expect(c1.functionId).toBe('guidage');
     expect(c1.prompt).toBe(q);
-    for (const s of ['## Identité', '## Personnalité', '## Skill : Guidage console', '## Page de console ouverte\nproviders', '## Données de la Console', '## Dictionnaire des données', '### jev.modeles_ia', '### jev.comptes', 'Date du jour de la plateforme : 2026-09-26.']) expect(c1.system).toContain(s);
+    for (const s of ['## Identité', '## Personnalité', '## Skill : Guidage console', '## Données de la Console', '## Dictionnaire des données', '### jev.modeles_ia', '### jev.comptes']) expect(c1.system).toContain(s);
+    // Page ouverte, date et heure : partie variable, après la partie stable mise en cache.
+    for (const s of ['Page de console ouverte : providers', 'Date du jour de la plateforme : 2026-09-26.']) expect(c1.systemTail).toContain(s);
+    expect(c1.system).not.toContain('2026-09-26');
     // 3. Répondre : résultats réels, fiche de la seule vue consultée.
     const names = (await t.db.aiModel.findMany({ where: { providerId: 'anthropic', category: 'LLM' }, orderBy: { name: 'asc' } })).map((m) => m.name);
     expect(names.length).toBeGreaterThan(0);
@@ -52,8 +55,8 @@ describe('Console — Jev interroge les données (Text-to-SQL)', () => {
     expect(c2.prompt).toContain(JSON.stringify(names.map((nom) => ({ nom }))));
     expect(c2.system).toContain('## Réponse à partir des données');
     expect(c2.system).toContain('## Skill : Guidage console');
-    expect(c2.system).toContain('### jev.modeles_ia');
-    expect(c2.system).not.toContain('### jev.comptes');
+    expect(c2.systemTail).toContain('### jev.modeles_ia');
+    expect(c2.systemTail).not.toContain('### jev.comptes');
   });
 
   it('le dictionnaire envoyé est celui des tables : une fiche désactivée n’est plus envoyée', async () => {

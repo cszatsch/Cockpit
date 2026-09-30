@@ -164,6 +164,17 @@ export function pickGuidanceSkill<T extends SkillText>(skills: T[]): T | null {
  * Prompt du guidage console (spécification IA § 8), dans cet ordre : contexte système, persona (Identité,
  * Personnalité), skill de guidage si elle est active, puis la page de console ouverte (identifiant et titre).
  */
+/**
+ * Prompt de la Console en deux parties (mémoire de Jev, décision du 30/09/2026) : `stable` (base, Identité,
+ * Personnalité, skill « Guidage console », mise en forme), identique d'un appel à l'autre et mise en cache ; `page`
+ * (page ouverte), envoyée dans la partie variable.
+ */
+export function consoleGuidanceParts(base: string, persona: PersonaText | null, skills: SkillText[], page: string): { stable: string; page: string } {
+  const skill = pickGuidanceSkill(skills);
+  const head = assembleJevPrompt(base, persona, skill ? [{ ...skill, position: 0 }] : []);
+  return { stable: `${head}\n\n${CONSOLE_FORMAT_RULES}`, page: `Page de console ouverte : ${page} · ${CONSOLE_PAGE_TITLES[page] ?? page}` };
+}
+
 export function assembleConsoleGuidancePrompt(base: string, persona: PersonaText | null, skills: SkillText[], page: string): string {
   const skill = pickGuidanceSkill(skills);
   const head = assembleJevPrompt(base, persona, skill ? [{ ...skill, position: 0 }] : []);

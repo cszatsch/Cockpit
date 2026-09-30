@@ -19,6 +19,19 @@ export const PROJECT_INFO_RUBRIQUES = [
   { key: 'legal', label: 'Périmètre juridique', kv: false },
 ] as const;
 
+/**
+ * Vue « infos_projet » des dictionnaires de la Console et du Cockpit : rubriques du bloc `referential`, une ligne par
+ * élément (colonnes project_id, rubrique, ordre_rubrique, ordre, libelle, valeur).
+ */
+const q = (c: string) => `"${c}"`;
+export const INFOS_PROJET_SOURCE = `(SELECT b.${q('projectId')} AS project_id, r.rubrique, r.ordre_rubrique, e.ord AS ordre,
+      CASE WHEN r.kv THEN e.el->>0 END AS libelle, CASE WHEN r.kv THEN e.el->>1 ELSE e.el#>>'{}' END AS valeur
+    FROM ${q('ContentBlock')} b
+    CROSS JOIN LATERAL (VALUES ('Le client', 1, 'identity', true), ('Marques du groupe', 2, 'brands', false), ('Programme en une phrase', 3, 'pitch', false), ('Enjeux stratégiques', 4, 'stakes', false),
+      ('Périmètre fonctionnel', 5, 'scope', true), ('Périmètre applicatif', 6, 'systems', true), ('Périmètre géographique', 7, 'geo', false), ('Périmètre juridique', 8, 'legal', false)) r(rubrique, ordre_rubrique, cle, kv)
+    CROSS JOIN LATERAL jsonb_array_elements(CASE jsonb_typeof(b.data::jsonb -> r.cle) WHEN 'array' THEN b.data::jsonb -> r.cle WHEN 'string' THEN jsonb_build_array(b.data::jsonb -> r.cle) ELSE '[]'::jsonb END) WITH ORDINALITY e(el, ord)
+    WHERE b.key = 'referential' AND coalesce(CASE WHEN r.kv THEN e.el->>1 ELSE e.el#>>'{}' END, '') <> '') t`;
+
 export const PROJECT_INFO_ITEMS_MAX = 60;
 export const PROJECT_INFO_LABEL_MAX = 120;
 export const PROJECT_INFO_VALUE_MAX = 2000;

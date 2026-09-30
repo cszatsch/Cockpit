@@ -1,7 +1,7 @@
 # Jev de la Console — dictionnaire des données
 
 > Généré depuis `backend/src/domain/jev-dictionnaire.ts` (`npm run dictionnaire:doc`) : ne pas modifier à la main.
-> 32 vues en lecture seule du schéma `jev`, chargées dans `dictionnaire_tables` et `dictionnaire_colonnes`.
+> 33 vues en lecture seule du schéma `jev`, chargées dans `dictionnaire_tables` et `dictionnaire_colonnes`.
 > Heures en heure de Paris. Aucun secret (empreintes de mot de passe, sessions, clés API chiffrées, chemins de stockage).
 
 ## Sommaire
@@ -23,6 +23,7 @@
 - [`jev.notifications_admin`](#notifications_admin) — 14 colonnes
 - [`jev.projets`](#projets) — 12 colonnes
 - [`jev.clients`](#clients) — 4 colonnes
+- [`jev.infos_projet`](#infos_projet) — 7 colonnes
 - [`jev.chantiers`](#chantiers) — 8 colonnes
 - [`jev.personnes`](#personnes) — 7 colonnes
 - [`jev.phases`](#phases) — 9 colonnes
@@ -589,6 +590,35 @@ Clients pour lesquels les projets sont menés (nom affiché dans la Bibliothèqu
 **Usages**
 
 - Projets d’un client.
+
+## infos_projet
+
+Objet « Info projet » du Référentiel de chaque projet : client, marques du groupe, programme en une phrase, enjeux stratégiques, périmètres fonctionnel, applicatif, géographique et juridique ; une ligne par élément. Écrans du Cockpit : Info projet › Fiche projet, Référentiel › Info projet.
+
+| Colonne | Type | Signification | Exemples, unités |
+|---|---|---|---|
+| `id` | texte | Identifiant de la ligne (projet:rubrique:rang) |  |
+| `projet_id` | texte | Projet → projets.id |  |
+| `rubrique` | texte | Rubrique | Le client, Marques du groupe, Programme en une phrase, Enjeux stratégiques, Périmètre fonctionnel, Périmètre applicatif, Périmètre géographique, Périmètre juridique |
+| `ordre_rubrique` | entier | Rang de la rubrique (1 à 8, ordre ci-dessus) |  |
+| `ordre` | entier | Rang de l’élément dans sa rubrique (à partir de 1) |  |
+| `libelle` | texte | Libellé (Le client, périmètres fonctionnel et applicatif) ; null pour les rubriques en liste | Raison sociale, Siège, Finance |
+| `valeur` | texte | Valeur (texte, marque, enjeu, pays, entité…) |  |
+
+**Relations**
+
+- infos_projet.projet_id = projets.id
+
+**Usages**
+
+- Quel est le périmètre fonctionnel du projet RISE ?
+- Quels sont les enjeux stratégiques d’un projet ?
+- Dans quels pays le projet est-il déployé ?
+
+**Règles et précautions**
+
+- Filtrer par projet avec projets.code ; ordre d’affichage = ordre_rubrique puis ordre.
+- Nombre de pays = lignes de « Périmètre géographique » ; nombre d’entités = lignes de « Périmètre juridique ».
 
 ## chantiers
 

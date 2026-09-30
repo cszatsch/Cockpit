@@ -10,6 +10,7 @@
  * (empreintes de mot de passe, jetons et identifiants de session, clés API chiffrées, chemins de stockage).
  * Heures : converties en heure de Paris (fuseau de la plateforme), sans fuseau.
  */
+import { INFOS_PROJET_SOURCE } from './project-info';
 
 export interface DictColumn {
   nom: string;
@@ -438,6 +439,23 @@ export const DICTIONNAIRE: DictTable[] = [
     relations: ['clients.id = projets.client_id'],
     usages: ['Projets d’un client.'],
     regles: [],
+  },
+  {
+    nom: 'infos_projet',
+    source: INFOS_PROJET_SOURCE,
+    description: 'Objet « Info projet » du Référentiel de chaque projet : client, marques du groupe, programme en une phrase, enjeux stratégiques, périmètres fonctionnel, applicatif, géographique et juridique ; une ligne par élément. Écrans du Cockpit : Info projet › Fiche projet, Référentiel › Info projet.',
+    colonnes: [
+      { nom: 'id', expr: `t.project_id || ':' || t.ordre_rubrique || ':' || t.ordre`, type: 'texte', signification: 'Identifiant de la ligne (projet:rubrique:rang)' },
+      { nom: 'projet_id', expr: 't.project_id', type: 'texte', signification: 'Projet → projets.id' },
+      { nom: 'rubrique', expr: 't.rubrique', type: 'texte', signification: 'Rubrique', exemples: 'Le client, Marques du groupe, Programme en une phrase, Enjeux stratégiques, Périmètre fonctionnel, Périmètre applicatif, Périmètre géographique, Périmètre juridique' },
+      { nom: 'ordre_rubrique', expr: 't.ordre_rubrique', type: 'entier', signification: 'Rang de la rubrique (1 à 8, ordre ci-dessus)' },
+      { nom: 'ordre', expr: 't.ordre', type: 'entier', signification: 'Rang de l’élément dans sa rubrique (à partir de 1)' },
+      { nom: 'libelle', expr: 't.libelle', type: 'texte', signification: 'Libellé (Le client, périmètres fonctionnel et applicatif) ; null pour les rubriques en liste', exemples: 'Raison sociale, Siège, Finance' },
+      { nom: 'valeur', expr: 't.valeur', type: 'texte', signification: 'Valeur (texte, marque, enjeu, pays, entité…)' },
+    ],
+    relations: ['infos_projet.projet_id = projets.id'],
+    usages: ['Quel est le périmètre fonctionnel du projet RISE ?', 'Quels sont les enjeux stratégiques d’un projet ?', 'Dans quels pays le projet est-il déployé ?'],
+    regles: ['Filtrer par projet avec projets.code ; ordre d’affichage = ordre_rubrique puis ordre.', 'Nombre de pays = lignes de « Périmètre géographique » ; nombre d’entités = lignes de « Périmètre juridique ».'],
   },
   {
     nom: 'chantiers',

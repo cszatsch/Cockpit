@@ -5,7 +5,11 @@ import { EventBus } from './events';
 import { ApiError } from './errors';
 import { decryptSecret } from './crypto';
 import { KeyTestResult, ProviderKeyTester } from './provider-key-tester';
-import { LlmCallError, LlmClient } from './llm-client';
+import { CACHE_READ_FACTOR, CACHE_WRITE_FACTOR, ChatTurn, LlmCallError, LlmClient } from './llm-client';
+
+/** Caractères envoyés au modèle (prompt système, partie variable, historique, question) : estimation des jetons (~4 caractères). */
+const inputChars = (i: { prompt: string; system?: string; systemTail?: string; history?: ChatTurn[] }) =>
+  (i.system ? i.system.length + 2 : 0) + (i.systemTail ? i.systemTail.length + 2 : 0) + (i.history ?? []).reduce((n, h) => n + h.content.length + 2, 0) + i.prompt.length;
 import { costOf, ModelCategory, priceOf } from '../domain/ai-pricing';
 
 export type AiFunctionId = 'insights' | 'crud' | 'rapports' | 'guidage' | 'doc_vec' | 'doc_rrk' | 'doc_syn';
@@ -126,7 +130,7 @@ export class LlmService {
    * Fonction en direct (`LIVE_FUNCTIONS`) : vraie génération chez le fournisseur ; si le principal échoue
    * à l'appel (délai, erreur du fournisseur), le secours prend la demande ; si les deux échouent, 503.
    */
-  async complete(input: { functionId: AiFunctionId; prompt: string; system?: string; projectId?: string | null; source: UsageSourceCode; maxWords?: number }): Promise<LlmResult> {
+  async complete(input: { functionId: AiFunctionId; prompt: string; system?: string; systemTail?: string; history?: ChatTurn[]; cache?: boolean; projectId?: string | null; source: UsageSourceCode; maxWords?: number }): Promise<LlmResult> {
     const route = await this.route(input.functionId);
     if (!(LIVE_FUNCTIONS.includes(input.functionId) && this.client.live)) return this.run(route.modelId, input, route.fallback);
     const fn = aiFunction(input.functionId);
@@ -147,7 +151,7 @@ export class LlmService {
   }
 
   /** Vraie génération : clé du fournisseur déchiffrée le temps de l'appel, jetons comptés par le fournisseur. */
-  private async runLive(modelId: string, input: { functionId: AiFunctionId; prompt: string; system?: string; projectId?: string | null; source: UsageSourceCode }, fallbackUsed: boolean): Promise<LlmResult> {
+  private async runLive(modelId: string, input: { functionId: AiFunctionId; prompt: string; system?: string; systemTail?: string; history?: ChatTurn[]; cache?: boolean; projectId?: string | null; source: UsageSourceCode }, fallbackUsed: boolean): Promise<LlmResult> {
     const model = await this.prisma.aiModel.findUniqueOrThrow({ where: { id: modelId } });
     const provider = await this.prisma.provider.findUniqueOrThrow({ where: { id: model.providerId } });
     if (!provider.keyCipher) throw new LlmCallError(`${provider.name} : aucune clé enregistrée`);
@@ -160,12 +164,15 @@ export class LlmService {
     const t0 = Date.now();
     const out = await this.client.generate({
       providerId: provider.id, providerName: provider.name, model: model.providerModelId || model.id, key,
-      system: input.system ?? '', prompt: input.prompt, maxTokens: Math.min(LIVE_MAX_OUTPUT_TOKENS, model.maxOutputTokens ?? LIVE_MAX_OUTPUT_TOKENS),
+      system: input.system ?? '', systemTail: input.systemTail, history: input.history, cache: input.cache, prompt: input.prompt, maxTokens: Math.min(LIVE_MAX_OUTPUT_TOKENS, model.maxOutputTokens ?? LIVE_MAX_OUTPUT_TOKENS),
     });
-    const tokensIn = out.tokensIn ?? Math.max(1, Math.ceil(((input.system ? input.system.length + 2 : 0) + input.prompt.length) / 4));
+    const tokensIn = out.tokensIn ?? Math.max(1, Math.ceil(inputChars(input) / 4));
     const tokensOut = out.tokensOut ?? Math.max(1, Math.ceil(out.text.length / 4));
     const ms = Date.now() - t0;
-    const costEur = await this.record(model, input.functionId, { tokensIn, tokensOut, requests: 0 }, fallbackUsed, input, ms);
+    // Jetons lus ou écrits dans le cache : comptés en entrée, facturés au tarif du cache.
+    const read = out.cacheRead ?? 0, write = out.cacheWrite ?? 0;
+    const billedIn = Math.max(0, tokensIn - read - write) + read * CACHE_READ_FACTOR + write * CACHE_WRITE_FACTOR;
+    const costEur = await this.record(model, input.functionId, { tokensIn, tokensOut, requests: 0 }, fallbackUsed, input, ms, billedIn);
     return { text: out.text, modelId: model.id, providerId: model.providerId, tokensIn, tokensOut, costEur, fallbackUsed, ms };
   }
 
@@ -206,8 +213,9 @@ export class LlmService {
    * identifiant de requête `req_…`, tarifs du modèle figés sur la ligne (un changement de tarif au catalogue ne
    * modifie pas les appels passés), latence. Le contenu des prompts et des réponses n'est jamais enregistré.
    */
-  private async record(model: Parameters<typeof costOf>[0] & { id: string; providerId: string }, functionId: AiFunctionId, v: { tokensIn: number; tokensOut: number; requests: number }, fallbackUsed: boolean, input: { projectId?: string | null; source: UsageSourceCode }, durationMs?: number) {
-    const costEur = costOf(model, v);
+  private async record(model: Parameters<typeof costOf>[0] & { id: string; providerId: string }, functionId: AiFunctionId, v: { tokensIn: number; tokensOut: number; requests: number }, fallbackUsed: boolean, input: { projectId?: string | null; source: UsageSourceCode }, durationMs?: number, billedIn?: number) {
+    // Jetons d'entrée facturés : moins que les jetons envoyés quand une partie est lue dans le cache.
+    const costEur = costOf(model, billedIn === undefined ? v : { ...v, tokensIn: billedIn });
     const price = priceOf(model);
     const at = new Date();
     await this.prisma.usageRecord.create({
@@ -242,12 +250,12 @@ export class LlmService {
     }
   }
 
-  private async run(modelId: string, input: { functionId: AiFunctionId; prompt: string; system?: string; projectId?: string | null; source: UsageSourceCode; maxWords?: number }, fallbackUsed: boolean): Promise<LlmResult> {
+  private async run(modelId: string, input: { functionId: AiFunctionId; prompt: string; system?: string; systemTail?: string; history?: ChatTurn[]; projectId?: string | null; source: UsageSourceCode; maxWords?: number }, fallbackUsed: boolean): Promise<LlmResult> {
     const model = await this.prisma.aiModel.findUniqueOrThrow({ where: { id: modelId } });
     const t0 = Date.now();
     const text = this.generate(input.prompt, input.maxWords ?? 60);
-    // Le prompt système (Jev : base, Persona, skills actives) est envoyé avec la demande : il compte en entrée.
-    const tokensIn = Math.max(1, Math.ceil(((input.system ? input.system.length + 2 : 0) + input.prompt.length) / 4));
+    // Le prompt système (Jev : base, Persona, skills actives) et l'historique sont envoyés avec la demande : ils comptent en entrée.
+    const tokensIn = Math.max(1, Math.ceil(inputChars(input) / 4));
     const tokensOut = Math.max(1, Math.ceil(text.length / 4));
     const ms = Date.now() - t0;
     const costEur = await this.record(model, input.functionId, { tokensIn, tokensOut, requests: 0 }, fallbackUsed, input, ms);

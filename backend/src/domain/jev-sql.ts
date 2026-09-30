@@ -96,7 +96,12 @@ export const CONSOLE_SQL_SCOPE: SqlScope = {
   direct: 'Si la question ne demande pas de données (comment faire, où trouver, que signifie), réponds directement à l’utilisateur, sans SQL.',
 };
 
-export function sqlInstructions(dictionary: string, todayIso: string, nowParis: string, v: SqlScope = CONSOLE_SQL_SCOPE): string {
+/**
+ * Consignes de lecture des données. `todayIso` / `nowParis` à null : la date et l'heure ne sont pas écrites ici mais
+ * dans le « Contexte de la demande » (`requestContext`), placé après : la partie stable reste identique d'un appel à
+ * l'autre et peut être mise en cache (mémoire de Jev, décision du 30/09/2026).
+ */
+export function sqlInstructions(dictionary: string, todayIso: string | null, nowParis: string | null, v: SqlScope = CONSOLE_SQL_SCOPE): string {
   return [
     `## ${v.title}`,
     'Tu peux lire les données de la plateforme au moyen d’une requête SQL (PostgreSQL) sur les vues en lecture seule décrites ci-dessous, et seulement celles-ci.',
@@ -104,11 +109,24 @@ export function sqlInstructions(dictionary: string, todayIso: string, nowParis: 
     `- ${v.direct}`,
     `- Une seule instruction SELECT (WITH permis), vues préfixées par ${v.schema}. ; respecte les règles de chaque fiche (statuts, dates, calculs) ; noms de colonnes exactement comme dans les fiches.`,
     ...(v.scope ? [`- ${v.scope}`] : []),
-    `- Date du jour de la plateforme : ${todayIso}. Maintenant (heure de Paris) : ${nowParis}. Utilise ces valeurs écrites en toutes lettres dans la requête, jamais CURRENT_DATE, now() ni CURRENT_TIMESTAMP. Toutes les dates-heures des vues sont en heure de Paris.`,
+    `- ${todayIso === null ? 'Date du jour de la plateforme et heure de Paris : voir « Contexte de la demande »' : `Date du jour de la plateforme : ${todayIso}. Maintenant (heure de Paris) : ${nowParis}`}. Utilise ces valeurs écrites en toutes lettres dans la requête, jamais CURRENT_DATE, now() ni CURRENT_TIMESTAMP. Toutes les dates-heures des vues sont en heure de Paris.`,
     `- Limite-toi aux colonnes utiles ; ${JEV_SQL_MAX_ROWS} lignes au plus sont lues.`,
     '',
     '## Dictionnaire des données',
     dictionary,
+  ].join('\n');
+}
+
+/**
+ * Partie variable du prompt système de Jev (après la partie stable mise en cache) : page ouverte, date et heure, et
+ * résumé des échanges plus anciens de la conversation.
+ */
+export function requestContext(page: string, todayIso: string, nowParis: string, summary?: string | null): string {
+  return [
+    '## Contexte de la demande',
+    page,
+    `Date du jour de la plateforme : ${todayIso}. Maintenant (heure de Paris) : ${nowParis}.`,
+    ...(summary ? ['', '## Résumé des échanges précédents de la conversation', summary] : []),
   ].join('\n');
 }
 

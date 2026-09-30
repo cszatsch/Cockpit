@@ -1024,9 +1024,10 @@ model Account {
   updatedAt          DateTime      @updatedAt
   version            Int           @default(1)
 
-  projects       AccountProject[]
-  sessions       AuthSession[]
-  passwordTokens PasswordToken[]
+  projects         AccountProject[]
+  sessions         AuthSession[]
+  passwordTokens   PasswordToken[]
+  jevConversations JevConversation[]
 }
 
 model AccountProject {
@@ -1582,4 +1583,37 @@ model UserNotification {
 
   @@index([accountId, createdAt])
   @@map("user_notifications")
+}
+
+/// Conversation d'un administrateur avec le Jev de la Console (mémoire, décision du 30/09/2026) : propre au compte,
+/// supprimée au bout de JEV_CONVERSATION_RETENTION_DAYS jours sans échange.
+model JevConversation {
+  id              String       @id
+  accountId       String       @map("account_id")
+  account         Account      @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  /// Résumé des échanges sortis de la fenêtre envoyée au modèle.
+  summary         String?
+  /// Nombre de messages (les plus anciens) déjà repris dans le résumé.
+  summarizedCount Int          @default(0) @map("summarized_count")
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+  messages        JevMessage[]
+
+  @@index([accountId, updatedAt])
+  @@map("jev_conversations")
+}
+
+/// Message d'une conversation avec Jev : question de l'administrateur (user) ou réponse de Jev (assistant).
+model JevMessage {
+  seq            Int             @id @default(autoincrement())
+  conversationId String          @map("conversation_id")
+  conversation   JevConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           String
+  text           String
+  /// Vues du dictionnaire consultées pour la réponse.
+  sources        String[]        @default([])
+  createdAt      DateTime        @default(now()) @map("created_at")
+
+  @@index([conversationId, seq])
+  @@map("jev_messages")
 }

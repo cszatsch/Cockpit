@@ -1,6 +1,6 @@
 # Mémoire conversationnelle de Jev dans la Console — analyse et recommandation
 
-*30/09/2026 · à valider avant implémentation*
+*30/09/2026 · étape 1 validée et réalisée le 30/09/2026 (voir `docs/DECISIONS.md`) ; étape 2 à évaluer*
 
 ## 1. Existant : pourquoi Jev perd le fil
 

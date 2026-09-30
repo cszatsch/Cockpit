@@ -4,6 +4,12 @@ import { config } from './config';
 /** Délai maximal d'une génération réelle (fonctions « en direct »). */
 export const LLM_CALL_TIMEOUT_MS = 30_000;
 
+/** Tour précédent d'une conversation (mémoire de Jev, décision du 30/09/2026). */
+export interface ChatTurn {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 export interface LiveCall {
   /** Fournisseur (identifiant et nom : reconnaissance du protocole, comme le test des clés). */
   providerId: string;
@@ -11,7 +17,14 @@ export interface LiveCall {
   /** Identifiant du modèle chez le fournisseur (`AiModel.providerModelId`, sinon `AiModel.id`). */
   model: string;
   key: string;
+  /** Partie stable du prompt système (mise en cache chez Anthropic quand `cache` est vrai). */
   system: string;
+  /** Partie variable du prompt système (page ouverte, date et heure, résumé), envoyée après la partie stable. */
+  systemTail?: string;
+  /** Tours précédents de la conversation, du plus ancien au plus récent. */
+  history?: ChatTurn[];
+  /** Marque la partie stable pour le cache de prompt (Anthropic ; automatique chez OpenAI et Gemini). */
+  cache?: boolean;
   prompt: string;
   maxTokens: number;
 }
@@ -21,7 +34,14 @@ export interface LiveResult {
   /** Jetons comptés par le fournisseur ; null s'il ne les renvoie pas (estimation alors). */
   tokensIn: number | null;
   tokensOut: number | null;
+  /** Jetons d'entrée lus dans le cache (facturés à `CACHE_READ_FACTOR`) et écrits dans le cache (`CACHE_WRITE_FACTOR`), compris dans `tokensIn`. */
+  cacheRead?: number;
+  cacheWrite?: number;
 }
+
+/** Cache de prompt : lecture facturée 0,1 × le prix d'entrée, écriture 1,25 × (cache de 5 min d'Anthropic ; OpenAI : lecture seule). */
+export const CACHE_READ_FACTOR = 0.1;
+export const CACHE_WRITE_FACTOR = 1.25;
 
 /** Échec d'une génération réelle : message sans jamais la clé. */
 export class LlmCallError extends Error {}
@@ -38,6 +58,8 @@ const PROTOCOLS: Array<{ match: RegExp; p: Protocol }> = [
   { match: /deepseek/, p: { kind: 'openai', base: 'https://api.deepseek.com', label: 'DeepSeek', maxField: 'max_tokens' } },
   { match: /(^|[^a-z])xai([^a-z]|$)|x-ai|grok/, p: { kind: 'openai', base: 'https://api.x.ai/v1', label: 'xAI', maxField: 'max_tokens' } },
 ];
+
+const num = (x: unknown) => (typeof x === 'number' && x > 0 ? x : 0);
 
 export function protocolFor(providerId: string, providerName = ''): Protocol | null {
   const hay = `${providerId} ${providerName}`.toLowerCase();
@@ -58,25 +80,34 @@ export class LlmClient {
     const p = protocolFor(c.providerId, c.providerName);
     if (!p) throw new LlmCallError(`Génération impossible : fournisseur ${c.providerName || c.providerId} non pris en charge`);
     if (p.kind === 'anthropic') {
+      // Partie stable en premier bloc, marquée pour le cache ; partie variable ensuite (elle n'invalide pas le cache).
+      const system = c.cache || c.systemTail
+        ? [{ type: 'text', text: c.system, ...(c.cache ? { cache_control: { type: 'ephemeral' } } : {}) }, ...(c.systemTail ? [{ type: 'text', text: c.systemTail }] : [])]
+        : c.system;
       const j = await this.post('Anthropic', 'https://api.anthropic.com/v1/messages', { 'x-api-key': c.key, 'anthropic-version': '2023-06-01' }, {
-        model: c.model, max_tokens: c.maxTokens, system: c.system, messages: [{ role: 'user', content: c.prompt }],
+        model: c.model, max_tokens: c.maxTokens, system, messages: [...(c.history ?? []), { role: 'user', content: c.prompt }],
       }, c.key);
       const text = (j?.content ?? []).filter((b: any) => b?.type === 'text').map((b: any) => b.text).join('').trim();
-      return this.result('Anthropic', text, j?.usage?.input_tokens, j?.usage?.output_tokens);
+      const u = j?.usage ?? {}, read = num(u.cache_read_input_tokens), write = num(u.cache_creation_input_tokens);
+      return { ...this.result('Anthropic', text, typeof u.input_tokens === 'number' ? u.input_tokens + read + write : undefined, u.output_tokens), cacheRead: read, cacheWrite: write };
     }
     if (p.kind === 'gemini') {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(c.model)}:generateContent`;
       const j = await this.post('Google Gemini', url, { 'x-goog-api-key': c.key }, {
-        systemInstruction: { parts: [{ text: c.system }] }, contents: [{ role: 'user', parts: [{ text: c.prompt }] }], generationConfig: { maxOutputTokens: c.maxTokens },
+        systemInstruction: { parts: [{ text: c.system }, ...(c.systemTail ? [{ text: c.systemTail }] : [])] },
+        contents: [...(c.history ?? []).map((h) => ({ role: h.role === 'assistant' ? 'model' : 'user', parts: [{ text: h.content }] })), { role: 'user', parts: [{ text: c.prompt }] }],
+        generationConfig: { maxOutputTokens: c.maxTokens },
       }, c.key);
       const text = (j?.candidates?.[0]?.content?.parts ?? []).map((x: any) => x?.text ?? '').join('').trim();
-      return this.result('Google Gemini', text, j?.usageMetadata?.promptTokenCount, j?.usageMetadata?.candidatesTokenCount);
+      return { ...this.result('Google Gemini', text, j?.usageMetadata?.promptTokenCount, j?.usageMetadata?.candidatesTokenCount), cacheRead: num(j?.usageMetadata?.cachedContentTokenCount), cacheWrite: 0 };
     }
     const j = await this.post(p.label, `${p.base}/chat/completions`, { Authorization: `Bearer ${c.key}` }, {
-      model: c.model, [p.maxField]: c.maxTokens, messages: [{ role: 'system', content: c.system }, { role: 'user', content: c.prompt }],
+      // Partie stable, historique, puis partie variable : le préfixe (système + historique) profite du cache automatique.
+      model: c.model, [p.maxField]: c.maxTokens,
+      messages: [{ role: 'system', content: c.system }, ...(c.history ?? []), ...(c.systemTail ? [{ role: 'system', content: c.systemTail }] : []), { role: 'user', content: c.prompt }],
     }, c.key);
     const text = String(j?.choices?.[0]?.message?.content ?? '').trim();
-    return this.result(p.label, text, j?.usage?.prompt_tokens, j?.usage?.completion_tokens);
+    return { ...this.result(p.label, text, j?.usage?.prompt_tokens, j?.usage?.completion_tokens), cacheRead: num(j?.usage?.prompt_tokens_details?.cached_tokens), cacheWrite: 0 };
   }
 
   private result(label: string, text: string, tin: unknown, tout: unknown): LiveResult {

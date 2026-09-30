@@ -507,6 +507,8 @@ a{color:#1d8f86}a:hover{color:#146b64}
     <div style="display:flex;align-items:flex-start;gap:12px;padding:22px 22px 18px;border-bottom:1px solid #eef3f1">
       <span aria-hidden="true" style="{{ jv.avSt }}">{{ jv.avTx }}</span>
       <div style="flex:1;min-width:0"><div style="font-weight:800;font-size:18px;letter-spacing:-.02em;line-height:1.1">{{ jv.name }}<sc-if value="{{ jv.hasEmoji }}" hint-placeholder-val="{{ true }}"><span style="margin-left:6px;font-weight:400">{{ jv.emoji }}</span></sc-if></div><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px"><span style="padding:2px 8px;border-radius:6px;background:#eef3f2;font-size:11px;font-weight:700;color:#43586a;max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Contexte : {{ jv.ctx }}</span><span style="padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap;background:#e6f3f2;color:#0f5f5a">Explication et guidage</span></div></div>
+      <!-- Mémoire de Jev (30/09/2026) : repartir sans l'historique de la conversation. -->
+      <button onClick="{{ jv.reset }}" disabled="{{ jv.noReset }}" aria-label="Nouvelle conversation" title="Nouvelle conversation : Jev oublie les échanges précédents" style="{{ jv.resetSt }}" style-hover="background:#f3f7f6;color:#10233a"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg></button>
       <button onClick="{{ jv.close }}" aria-label="Fermer Jev" style="width:28px;height:28px;border-radius:8px;border:0;background:transparent;display:grid;place-items:center;cursor:pointer;color:#5c7280;flex:none" style-hover="background:#f3f7f6"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
     </div>
     <div ref="{{ jv.ref }}" data-jev-body="1" aria-live="polite" style="flex:1;overflow:auto;padding:20px 22px;display:flex;flex-direction:column;gap:12px;background:#fbfdfc">
@@ -1083,6 +1085,8 @@ class Component extends DCLogic {
   jPush(...ms) { this.setState(s => ({ jm: [...s.jm, ...ms.filter(Boolean).map(m => ({ id: 'm' + Math.random().toString(36).slice(2, 9), ...m }))] }), () => this.jScroll()); }
   jScroll() { const f = () => { const el = this._jb.current || document.querySelector('[data-jev-body]'); if (el) el.scrollTop = el.scrollHeight; }; requestAnimationFrame(f); setTimeout(f, 120); setTimeout(f, 420); }
   jUpd(id, p) { this.setState(s => ({ jm: s.jm.map(m => m.id === id ? { ...m, ...p } : m) })); }
+  // Nouvelle conversation (démonstration : l'échange affiché est effacé ; API : admin-api.js ouvre une conversation neuve).
+  jevNew() { const sec = this.state.sec; this.setState({ jm: [], jCtx: sec, jIn: '' }); this.jPush(...this.jGreet(sec)); }
   jGreet(sec) {
     const t = sec === 'overview' ? 'Bonjour ' + this.state.prof.first + '. Je peux expliquer la console, un chiffre ou une règle, et vous guider pas à pas. Je n’agis pas à votre place : je vous indique où faire chaque action.' : 'Que souhaitez-vous faire dans « ' + META[sec][1] + ' » ? Je peux expliquer ce qui s’affiche et vous guider.';
     return [{ t: 'jev', text: t }, { t: 'chips', chips: (JCHIPS[sec] || JCHIPS.overview).map(q => ({ label: q })) }];
@@ -1765,6 +1769,8 @@ class Component extends DCLogic {
       name: jid.name || 'Jev', emoji: jid.emoji || '', hasEmoji: !!jid.emoji && !!jid.photo, avTx: jid.photo ? '' : (jid.emoji || (jid.name || 'J').slice(0, 1)),
       avSt: `width:34px;height:34px;border-radius:50%;color:#fff;font-weight:800;font-size:${jid.photo || !jid.emoji ? 15 : 17}px;display:grid;place-items:center;flex:none;background:${jid.photo ? `url(${jid.photo}) center/cover` : PERSONA_AV[jid.avatar] || PERSONA_AV.nuit}`,
       ctx: META[S.sec][1], think: S.jThink, inp: S.jIn, setIn: e => this.setState({ jIn: e.target.value }), key: e => { if (e.key === 'Enter') this.jevAsk(S.jIn); }, send: () => this.jevAsk(S.jIn), close: () => this.setState({ jev: false }), ref: this._jb,
+      reset: () => this.jevNew(), noReset: S.jThink || !S.jm.some(m => m.t === 'user'),
+      resetSt: 'width:28px;height:28px;border-radius:8px;border:0;background:transparent;display:grid;place-items:center;flex:none;color:#5c7280;' + (S.jThink || !S.jm.some(m => m.t === 'user') ? 'opacity:.35;cursor:default' : 'cursor:pointer'),
       sendSt: `width:42px;height:42px;border-radius:50%;border:0;color:#fff;display:grid;place-items:center;cursor:pointer;flex:none;transition:background .15s,opacity .15s;background:#1d8f86;opacity:${S.jIn.trim() && !S.jThink ? 1 : .45}`,
       msgs: S.jm.map((m, i) => {
         const last = i === S.jm.length - 1, o = { isUser: m.t === 'user', isJev: m.t === 'jev', isRedir: m.t === 'redir', hasChips: m.t === 'chips' && last && !S.jThink && m.chips.length > 0, isRecap: m.t === 'recap', isConfirm: m.t === 'confirm', isCtx: m.t === 'ctx', text: m.text || '', src: m.src || '', hasSrc: !!m.src };
