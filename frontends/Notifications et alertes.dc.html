@@ -342,7 +342,10 @@ class Component extends DCLogic {
         const rest = rules.filter(r => r.id !== cur.id); this.setState({ rules: rest, selId: rest[0]?.id, draft: null, confirmDel: false }); this.props.onDelete?.(cur.id); this.say('Règle supprimée'); },
       dirty, clean: !dirty,
       revert: () => this.setState({ draft: null }),
-      save: () => { this.setRules(rules.map(r => r.id === d.id ? clone(d) : r)); this.setState({ draft: null }); this.props.onSave?.(d); this.say('Règle enregistrée'); },
+      // Enregistrement (correction du 30/09/2026) : « Règle enregistrée » seulement après l’accord du serveur ; en cas d’échec,
+      // la saisie et la liste sont rétablies (rien n’est perdu) et l’utilisateur peut réessayer.
+      save: () => { const before = rules, dd = clone(d); this.setRules(rules.map(r => r.id === dd.id ? clone(dd) : r)); this.setState({ draft: null });
+        Promise.resolve(this.props.onSave?.(dd)).then(() => this.say('Règle enregistrée'), () => { this.setState({ rules: before, draft: dd, selId: dd.id }); this.say('Enregistrement impossible : vos modifications sont conservées. Réessayez.'); }); },
       hTabs: [['rule', 'Cette règle'], ['all', 'Toutes les règles']].map(([k, l]) => ({ l, on: S.hScope === k, pick: () => this.setState({ hScope: k }), st: seg(S.hScope === k, 28) })),
       // Envoi planifié (30/09/2026) : rattrapé (ambre), remplacé (gris), abandonné (rouge) ; heure prévue et heure réelle en note.
       hist: hist.map(h => { const tone = h.mode === 'REPLACED' ? ['Remplacé', '#5c7280', '#a9b7bf', '#eef2f1'] : h.mode === 'MISSED' ? ['Abandonné', '#c2473b', '#e0604c', '#fdf0ed'] : !h.ok ? ['Échec', '#c2473b', '#e0604c', '#fdf0ed'] : h.mode === 'CATCH_UP' ? ['Rattrapé', '#9a5a0c', '#e89a2c', '#fff1dc'] : ['Distribué', '#146b64', '#1d8f86', '#e6f4f2'];

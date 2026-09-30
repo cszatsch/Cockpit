@@ -499,3 +499,9 @@ Vérification des éléments de la vue d'ensemble face au serveur. Conformes : d
 - `Sidebar Console.dc.html` : entrée « Guide utilisateur » dans Plateforme, après « Serveur d’envoi SMTP ».
 - `Console Admin.dc.html` : page `guide` (en-tête générique masqué, le composant a le sien) ; props `versions`, `downloads`, `current-user`, `can-replace`, `today` (horloge du serveur), `on-download`, `on-replace`.
 - `admin-api.js` : chargement `guide` (`/guide/versions`, `/guide/downloads`), listes vides dès le démarrage ; `gdDownload` (téléchargement tracé par le serveur) et `gdReplace` (dépôt), suivis d'un rechargement.
+
+## Notifications et alertes : enregistrement qui efface la saisie (correction du 30/09/2026)
+
+- Constat : « Enregistrer » réinitialisait le formulaire et la règle n'apparaissait pas avec son nouveau contenu. Cause : l'enregistrement était optimiste (« Règle enregistrée » et brouillon vidé avant la réponse du serveur) ; en cas d'échec (serveur injoignable pendant un redémarrage, session expirée, saisie refusée), `admin-api.js` relisait les règles et remontait la vue (`nrResync`) : la saisie était perdue et la sélection revenait à la première règle (« Jalon en retard »).
+- `Notifications et alertes.dc.html`, `save` : « Règle enregistrée » seulement après l'accord du serveur ; en cas d'échec, la liste et la saisie sont rétablies, la règle reste sélectionnée, et le message « Enregistrement impossible : vos modifications sont conservées. Réessayez. » s'affiche (nouveau texte).
+- `admin-api.js`, `nrSave` : la promesse échoue sans recharger ni remonter la vue ; le motif du serveur reste affiché (toast) ; en cas de succès, la liste est relue.

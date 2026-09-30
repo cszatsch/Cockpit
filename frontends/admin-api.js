@@ -664,7 +664,9 @@ export function bindConsole(c) {
   const nrRun = (call, after, resync = true) => (nrQ = nrQ.then(call).then(r => { touch(); return after(r); }).catch(e => { fail(e); if (resync) nrResync(); }));
   const nrReload = keys => () => load(keys).catch(() => {});
   c.nrCreate = r => nrRun(() => post('/notifications/rules', r), nrReload(['nrRules']));
-  c.nrSave = r => nrRun(() => put(NR(r.id), r), nrReload(['nrRules']));
+  // Enregistrement : la promesse échoue en cas de refus ou de panne, sans recharger ni remonter la vue (la saisie reste
+  // à l'écran, voir `save` de la vue) ; le motif est affiché. En cas de succès, la liste est relue.
+  c.nrSave = r => { const p = nrQ.then(() => put(NR(r.id), r)); nrQ = p.catch(() => {}); return p.then(res => { touch(); nrReload(['nrRules'])(); return res; }, e => { fail(e); throw e; }); };
   c.nrToggle = (id, on) => nrRun(() => patch(NR(id), { on }), nrReload(['nrRules']));
   c.nrDelete = id => nrRun(() => del(NR(id)), nrReload(['nrRules', 'nrHist']));
   // Test : le brouillon affiché est envoyé à l'administrateur connecté ; un refus ne touche pas au brouillon.

@@ -752,3 +752,10 @@ Maquette validée « Guide utilisateur 1c » (Filigrane), intégrée dans la sec
 | Téléchargement | Seule la version en vigueur est servie. Le serveur vérifie que le fichier existe, enregistre la trace (compte, nom, rôle « Administrateur », horodatage du serveur, version), puis envoie le PDF (« Guide utilisateur Console vX.Y.pdf »). Sans guide : 404, aucune trace. | `GET /api/admin/guide/file` |
 | Traçabilité | Journal des téléchargements en ajout seul : une trace ne se modifie ni ne se supprime (trigger SQL ; le vidage de l'amorçage, par TRUNCATE, n'est pas concerné). | `guide_downloads`, migration `20261023000000_guide_utilisateur` |
 | Écran | Composant repris de la maquette (styles de page limités à l'écran) ; versions et téléchargements toujours fournis par la Console, même vides dès le démarrage (jamais les données de démonstration) ; après chaque téléchargement ou remplacement, les deux listes sont relues. Messages de la maquette conservés pour un fichier refusé ou un échec. | `Guide utilisateur.dc.html`, `gdDownload`, `gdReplace` (`admin-api.js`) |
+
+## Notifications et alertes : un échec d'enregistrement ne perd plus la saisie (30/09/2026)
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Cause | Enregistrement optimiste + remontage de la vue en cas d'échec (`nrResync`) : toute erreur (serveur injoignable, session expirée, refus) effaçait la saisie. Reproduit en simulant un serveur injoignable ; la règle de l'utilisateur (`r1790755658776`) était restée à sa version de création (aucune modification reçue par le serveur). | — |
+| Correction | La vue garde le brouillon jusqu'à la réponse du serveur ; échec : saisie et liste rétablies, message « Enregistrement impossible : vos modifications sont conservées. Réessayez. », motif du serveur en toast ; pas de remontage. Les autres actions (création, activation, suppression) gardent leur comportement. | `save` (`Notifications et alertes.dc.html`), `nrSave` (`admin-api.js`) |
