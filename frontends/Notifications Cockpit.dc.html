@@ -28,16 +28,27 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid #1d8f86;outli
       <button type="button" onClick="{{ close }}" aria-label="Fermer" style="width:28px;height:28px;border:0;border-radius:8px;background:transparent;color:#5c7280;display:grid;place-items:center;cursor:pointer" style-hover="background:#eef3f2"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
     </div>
     <div role="tablist" aria-label="Filtre" style="display:flex;gap:4px;padding:0 20px 12px"><sc-for list="{{ tabs }}" as="t" hint-placeholder-count="3"><button type="button" role="tab" onClick="{{ t.pick }}" aria-selected="{{ t.on }}" style="{{ t.st }}">{{ t.l }}<span style="font-size:11px;font-weight:700;opacity:.7">{{ t.c }}</span></button></sc-for></div>
-    <div style="flex:1;min-height:0;overflow:auto;border-top:1px solid #eef3f2;padding:6px 0 10px">
+    <div style="flex:1;min-height:0;overflow:auto;border-top:1px solid #eef3f2;padding:8px 0 14px;background:#fbfcfc">
       <sc-for list="{{ items }}" as="it" hint-placeholder-count="4">
-        <div role="button" tabindex="0" onClick="{{ it.pick }}" onKeyDown="{{ it.key }}" aria-expanded="{{ it.openL }}" style="{{ it.rowSt }}" style-hover="background:#f6f9f8">
-          <span style="{{ it.tile }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="{{ it.ic }}"></path></svg></span>
-          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px">
-            <div style="display:flex;align-items:baseline;gap:8px"><span style="{{ it.tSt }}">{{ it.t }}</span><span style="margin-left:auto;font-size:11px;color:#8a9aa6;white-space:nowrap">{{ it.when }}</span></div>
-            <div style="{{ it.bSt }}">{{ it.b }}</div>
-            <div style="display:flex;align-items:center;gap:6px;margin-top:4px"><span style="{{ it.kSt }}">{{ it.kL }}</span><sc-if value="{{ it.hasP }}" hint-placeholder-val="{{ true }}"><span style="height:20px;padding:0 8px;border-radius:999px;background:#eef3f2;color:#43586a;font-size:11px;font-weight:700;display:inline-flex;align-items:center">{{ it.p }}</span></sc-if></div>
+        <div style="{{ it.wrapSt }}">
+          <div role="button" tabindex="0" onClick="{{ it.pick }}" onKeyDown="{{ it.key }}" aria-expanded="{{ it.openL }}" style="{{ it.rowSt }}" style-hover="{{ it.hov }}">
+            <span aria-hidden="true" style="{{ it.dot }}"></span><sc-if value="{{ it.unread }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Non lue.</span></sc-if>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">
+              <div style="display:flex;align-items:baseline;gap:10px"><span style="{{ it.tSt }}">{{ it.t }}</span><svg aria-hidden="true" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#8a9aa6" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="{{ it.chevSt }}"><path d="M6 9l6 6 6-6"></path></svg></div>
+              <div style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:#8a9aa6;font-variant-numeric:tabular-nums"><sc-if value="{{ it.hasP }}" hint-placeholder-val="{{ true }}"><span style="font-weight:700;color:#43586a;letter-spacing:.02em">{{ it.p }}</span><span style="width:3px;height:3px;border-radius:50%;background:#c3cfcc"></span></sc-if><span>{{ it.when }}</span></div>
+              <sc-if value="{{ it.closed }}" hint-placeholder-val="{{ true }}"><div style="font-size:12.5px;line-height:1.55;color:#5c7280;text-wrap:pretty;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:2px">{{ it.sum }}</div></sc-if>
+            </div>
           </div>
-          <sc-if value="{{ it.unread }}" hint-placeholder-val="{{ false }}"><span aria-label="Non lue" style="{{ it.dot }}"></span></sc-if>
+          <sc-if value="{{ it.open }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:0 22px 20px 30px;display:flex;flex-direction:column;animation:ncFade .22s both">
+              <sc-for list="{{ it.blocks }}" as="b" hint-placeholder-count="4">
+                <sc-if value="{{ b.isH }}" hint-placeholder-val="{{ false }}"><div style="{{ b.st }}"><span style="width:10px;height:2px;border-radius:1px;background:#1d8f86;flex:none"></span>{{ b.x }}</div></sc-if>
+                <sc-if value="{{ b.isP }}" hint-placeholder-val="{{ true }}"><p style="{{ b.st }}"><sc-for list="{{ b.segs }}" as="g" hint-placeholder-count="1"><span style="{{ g.st }}">{{ g.x }}</span></sc-for></p></sc-if>
+                <sc-if value="{{ b.isKpi }}" hint-placeholder-val="{{ false }}"><div style="{{ b.st }}"><sc-for list="{{ b.items }}" as="k" hint-placeholder-count="3"><div style="{{ k.st }}"><span style="{{ k.vSt }}">{{ k.v }}</span><span style="font-size:11.5px;font-weight:600;line-height:1.35;color:#2a3f53;text-wrap:balance">{{ k.l }}</span><sc-if value="{{ k.hasD }}" hint-placeholder-val="{{ false }}"><span style="font-size:10.5px;line-height:1.35;color:#8a9aa6">{{ k.d }}</span></sc-if></div></sc-for></div></sc-if>
+                <sc-if value="{{ b.isList }}" hint-placeholder-val="{{ false }}"><div style="{{ b.st }}"><sc-for list="{{ b.items }}" as="li" hint-placeholder-count="3"><div style="display:flex;gap:10px;align-items:flex-start"><span style="{{ li.mk }}">{{ li.n }}</span><span style="flex:1;min-width:0;font-size:13px;line-height:1.55;color:#2a3f53;text-wrap:pretty"><sc-for list="{{ li.segs }}" as="g" hint-placeholder-count="1"><span style="{{ g.st }}">{{ g.x }}</span></sc-for></span></div></sc-for></div></sc-if>
+              </sc-for>
+            </div>
+          </sc-if>
         </div>
       </sc-for>
       <sc-if value="{{ empty }}" hint-placeholder-val="{{ false }}"><div style="padding:48px 20px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px"><span style="width:44px;height:44px;border-radius:50%;background:#e6f4f2;color:#1d8f86;display:grid;place-items:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"></path></svg></span><span style="font-weight:700">{{ emptyT }}</span><span style="font-size:12px;color:#5c7280">{{ emptyS }}</span></div></sc-if>
@@ -51,13 +62,53 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid #1d8f86;outli
 // tiroir ouvert par la cloche de la barre latérale ; un clic déplie la notification et la marque comme lue.
 const back = min => new Date(Date.now() - min * 60000).toISOString();
 const DEMO = [
+  { id: 'd0', title: 'Analyse des risques RISE, au 30 sept. 2026', body: 'Bonjour,\nVeuillez trouver ci-dessous une analyse des risques du projet.\n\n6 risques ouverts, dont 3 critiques : la situation demande un arbitrage rapide.\n\n## État des risques\n- 3 risques critiques (criticité ≥ 20)\n- 3 risques élevés (criticité 12 à 19)\n- 1 risque critique sans plan de mitigation\n\n## Actions attendues\n1. Documenter le plan de mitigation du **risque critique orphelin**\n2. Arbitrer les 3 décisions liées aux risques critiques\n3. Vérifier que chaque risque critique a un responsable actif', project: 'RISE', at: back(3), read: false },
   { id: 'd1', title: 'RISE · actions de la semaine', body: 'Quatre actions du chantier Finance arrivent à échéance d’ici vendredi, dont deux sans avancement depuis dix jours : prévoir un point avec leurs responsables.', project: 'RISE', at: back(12), read: false },
   { id: 'd2', title: 'RISE · votre synthèse de la semaine 40', body: 'Avancement global 62 % (+3 pts). 3 jalons dans les 15 prochains jours, 2 risques critiques ouverts, 1 décision attendue.', project: 'RISE', at: back(60 * 26), read: false },
   { id: 'd3', title: 'RISE · votre synthèse de la semaine 39', body: 'Avancement global 59 % (+2 pts). 2 jalons dans les 15 prochains jours, 1 risque critique ouvert.', project: 'RISE', at: back(60 * 24 * 7), read: true }
 ];
 // Plus d’alertes depuis le 30/09/2026 : un seul type, la notification.
-const IC = 'M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8M10 20a2 2 0 0 0 4 0';
-const TILE = ['#e6f4f2', '#146b64'];
+// Mise en forme (30/09/2026) : le texte rédigé par le modèle suit un Markdown léger (« ## » rubrique, « - » puce,
+// « 1. » étape, **gras**). Il est lu ici en blocs ; une liste dont chaque élément commence par un chiffre devient
+// une rangée de chiffres clés. Les titres « # » (redondants avec le titre de la notification) sont omis.
+const B = x => ({ x, st: 'font-weight:700;color:#10233a' }), T = x => ({ x, st: '' });
+const segsOf = t => String(t).replace(/`([^`]*)`/g, '$1').replace(/(^|[^*])\*([^*\s][^*]*?)\*(?!\*)/g, '$1$2').split(/\*\*(.+?)\*\*/).map((p, i) => (i % 2 ? B(p) : T(p))).filter(g => g.x);
+const plain = t => segsOf(t).map(g => g.x).join('');
+const KPI = /^(?:\*\*)?([+−-]?\d[\d\s.,]*\s?(?:%|€|k€|pts?)?)(?:\*\*)?\s+(.+)$/;
+function parseBody(text) {
+  const blocks = []; let para = null, list = null;
+  const flush = () => { para = null; list = null; };
+  for (const raw of String(text || '').replace(/\r/g, '').split('\n')) {
+    const l = raw.trim();
+    if (!l) { flush(); continue; }
+    let m;
+    if ((m = /^(#{1,6})\s+(.*)$/.exec(l))) { flush(); if (m[1].length > 1) blocks.push({ k: 'h', x: plain(m[2]).replace(/\s*:$/, '') }); continue; }
+    if ((m = /^[-*•]\s+(.*)$/.exec(l)) || (m = /^(\d+)[.)]\s+(.*)$/.exec(l))) {
+      const ord = m.length === 3, body = ord ? m[2] : m[1];
+      if (!list || list.ord !== ord) { para = null; list = { k: 'list', ord, items: [] }; blocks.push(list); }
+      list.items.push(body); continue;
+    }
+    if (/^([-*_])\1{2,}$/.test(l)) { flush(); continue; }
+    list = null;
+    if (!para) { para = { k: 'p', lines: [] }; blocks.push(para); }
+    para.lines.push(l);
+  }
+  // Liste de chiffres (2 à 6 éléments commençant tous par une valeur) → chiffres clés.
+  return blocks.map(b => {
+    if (b.k !== 'list' || b.ord || b.items.length < 2 || b.items.length > 6) return b;
+    const kp = b.items.map(i => KPI.exec(plain(i)));
+    if (!kp.every(Boolean)) return b;
+    return { k: 'kpi', items: kp.map(m => { const d = /^(.*?)\s*\(([^)]*)\)\s*$/.exec(m[2]); return { v: m[1].trim(), l: d ? d[1] : m[2], d: d ? d[2] : '' }; }) };
+  });
+}
+// Résumé de la liste repliée : premier paragraphe utile (salutations et annonces écartées).
+const GREET = /^(bonjour|bonsoir|madame|monsieur|cher|chère|hello|veuillez|voici|ci-dessous|vous trouverez)\b/i;
+const summaryOf = blocks => {
+  const ps = blocks.filter(b => b.k === 'p').map(b => plain(b.lines.join(' ')));
+  const txt = ps.find(p => !GREET.test(p) && p.length > 24) || ps[0] || blocks.map(b => b.x || '').find(Boolean) || '';
+  return txt.replace(/\s*:$/, '.');
+};
+const RISK = /critique|bloquant|retard|dépass|échec|urgent/i;
 const rel = (iso, now) => { const m = Math.max(0, Math.round((now - new Date(iso).getTime()) / 60000)); if (m < 1) return 'à l’instant'; if (m < 60) return 'il y a ' + m + ' min'; const h = Math.round(m / 60); if (h < 24) return 'il y a ' + h + ' h'; const d = Math.round(h / 24); return d === 1 ? 'hier' : 'il y a ' + d + ' j'; };
 const tabSt = on => 'height:30px;padding:0 10px;border:0;border-radius:8px;display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:12.5px;cursor:pointer;' + (on ? 'background:#10233a;color:#fff;font-weight:700' : 'background:#eef3f2;color:#43586a;font-weight:600');
 
@@ -77,16 +128,30 @@ class Component extends DCLogic {
       readAll: () => { if (!unread) return; this.setState({ readLocal: Object.fromEntries(all.map(i => [i.id, true])) }); this.props.onReadAll?.(); },
       readAllSt: 'height:28px;padding:0 8px;border:0;border-radius:8px;background:transparent;font:inherit;font-size:12px;font-weight:700;color:#1d8f86;cursor:' + (unread ? 'pointer' : 'default;opacity:.4'),
       tabs: [['all', 'Toutes', all.length], ['unread', 'Non lues', unread]].map(([k, l, c]) => ({ l, c: String(c), on: S.tab === k, pick: () => this.setState({ tab: k }), st: tabSt(S.tab === k) })),
-      items: shown.map(i => { const T = TILE, open = S.openId === i.id;
+      items: shown.map(i => { const open = S.openId === i.id, parsed = parseBody(i.body), unreadI = !i.read;
         const pick = () => { this.setState({ openId: open ? null : i.id }); if (!i.read) this.read(i.id); };
-        return { t: i.title, b: i.body, when: rel(i.at, now), p: i.project || '', hasP: !!i.project, unread: !i.read, ic: IC, openL: open ? 'true' : 'false',
-          kL: 'Notification', pick, key: e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } },
-          kSt: 'height:20px;padding:0 8px;border-radius:999px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;background:' + T[0] + ';color:' + T[1],
-          tile: 'width:34px;height:34px;border-radius:10px;flex:none;display:grid;place-items:center;background:' + T[0] + ';color:' + T[1],
-          tSt: 'font-size:13px;font-weight:' + (i.read ? 600 : 800) + ';color:#10233a;min-width:0;' + (open ? '' : 'white-space:nowrap;overflow:hidden;text-overflow:ellipsis'),
-          bSt: 'font-size:12px;color:#5c7280;line-height:1.5;text-wrap:pretty;white-space:pre-line;' + (open ? '' : 'display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden'),
-          dot: 'width:8px;height:8px;border-radius:50%;flex:none;margin-top:6px;background:#1d8f86',
-          rowSt: 'display:flex;gap:12px;padding:12px 20px;cursor:pointer;outline:none;transition:background .2s;' + (!i.read ? 'background:linear-gradient(90deg,rgba(29,143,134,.05),transparent 70%)' : '') }; }),
+        let first = true, lead = false;
+        const blocks = parsed.map(b => { const top = first ? 0 : null; first = false;
+          if (b.k === 'h') return { isH: true, x: b.x, st: 'display:flex;align-items:center;gap:8px;margin:' + (top === 0 ? 4 : 20) + 'px 0 8px;font-size:10.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#5c7280' };
+          if (b.k === 'kpi') return { isKpi: true, st: 'display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px;margin:' + (top === 0 ? 2 : 8) + 'px 0 6px',
+            items: b.items.map(k => ({ v: k.v, l: k.l, d: k.d, hasD: !!k.d, vSt: 'font-size:22px;font-weight:800;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums;color:' + (RISK.test(k.l) && !/^0(?![\d.,])/.test(k.v) ? '#c2473b' : '#10233a'),
+              st: 'display:flex;flex-direction:column;gap:5px;padding:12px 12px 11px;border-radius:12px;background:#f6f9f8;box-shadow:inset 0 0 0 1px #e8efed' })) };
+          if (b.k === 'list') return { isList: true, st: 'display:flex;flex-direction:column;gap:7px;margin:' + (top === 0 ? 0 : 4) + 'px 0 6px',
+            items: b.items.map((t, n) => ({ n: b.ord ? String(n + 1) : '', segs: segsOf(t),
+              mk: b.ord ? 'flex:none;width:18px;height:18px;margin-top:1px;border-radius:50%;background:#10233a;color:#fff;font-size:10px;font-weight:800;display:grid;place-items:center;font-variant-numeric:tabular-nums'
+                        : 'flex:none;width:5px;height:5px;margin:8px 6px 0 6px;border-radius:50%;background:#1d8f86' })) };
+          // Salutation en retrait ; premier paragraphe utile mis en avant (l'essentiel).
+          const greet = GREET.test(plain(b.lines[0])), isLead = !greet && !lead; if (isLead) lead = true;
+          return { isP: true, segs: segsOf(b.lines.join('\n')), st: 'margin:' + (top === 0 ? 0 : 6) + 'px 0 ' + (isLead ? 10 : 6) + 'px;white-space:pre-line;text-wrap:pretty;line-height:1.6;' + (greet ? 'font-size:12.5px;color:#8a9aa6' : isLead ? 'font-size:14px;font-weight:600;letter-spacing:-.005em;color:#10233a' : 'font-size:13px;color:#2a3f53') };
+        });
+        return { t: i.title, sum: summaryOf(parsed), blocks, open, closed: !open, when: rel(i.at, now), p: i.project || '', hasP: !!i.project, unread: unreadI, openL: open ? 'true' : 'false',
+          pick, key: e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } },
+          tSt: 'flex:1;min-width:0;font-size:13.5px;line-height:1.35;letter-spacing:-.005em;font-weight:' + (unreadI ? 800 : 650) + ';color:#10233a;' + (open ? 'text-wrap:balance' : 'white-space:nowrap;overflow:hidden;text-overflow:ellipsis'),
+          chevSt: 'flex:none;transition:transform .2s;transform:rotate(' + (open ? 180 : 0) + 'deg)',
+          dot: 'flex:none;width:6px;height:6px;margin-top:7px;border-radius:50%;background:' + (unreadI ? '#1d8f86' : 'transparent') + ';box-shadow:' + (unreadI ? '0 0 0 3px rgba(29,143,134,.14)' : 'none'),
+          wrapSt: 'position:relative;margin:2px 10px;border-radius:14px;transition:background .2s,box-shadow .2s;' + (open ? 'background:#fff;box-shadow:0 0 0 1px #e1e9e7,0 18px 36px -28px rgba(16,35,58,.45)' : ''),
+          rowSt: 'display:flex;gap:12px;padding:13px 16px 13px 12px;border-radius:14px;cursor:pointer;outline:none;transition:background .2s',
+          hov: open ? '' : 'background:#f6f9f8' }; }),
       empty: !shown.length, emptyT: S.tab === 'unread' ? 'Tout est lu' : 'Aucune notification', emptyS: 'Les notifications de vos projets apparaîtront ici.',
       scrimSt: 'position:fixed;top:0;bottom:0;right:0;left:' + left + 'px;z-index:70;background:rgba(10,23,39,.28);animation:ncFade .2s both',
       panelSt: 'position:fixed;top:0;bottom:0;left:' + left + 'px;z-index:71;width:min(440px,calc(100vw - ' + left + 'px));display:flex;flex-direction:column;background:#fff;box-shadow:24px 0 60px -30px rgba(10,23,39,.6);animation:ncIn .24s cubic-bezier(.2,.7,.2,1) both'

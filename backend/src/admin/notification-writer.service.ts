@@ -24,13 +24,19 @@ export interface WrittenText {
 
 const PROFILE_NAME: Record<AudienceProfile, string> = { admin: 'Administrateur', pmo: 'PMO', resp: 'Responsable', lec: 'Lecteur' };
 
-/** Consignes de la rédaction d'une alerte à partir des résultats (texte inséré dans le message à la place de {reponse_llm}). */
+/**
+ * Consignes de la rédaction d'une notification à partir des résultats (texte inséré dans le message à la place de
+ * {reponse_llm}). Mise en forme (30/09/2026) : Markdown léger que le tiroir du Cockpit met en page (rubriques, chiffres
+ * clés, étapes) et que l'e-mail reçoit en texte propre (`mailText`).
+ */
 export const NOTIFICATION_ANSWER_INSTRUCTIONS = [
   '## Rédaction à partir des données',
   'La consigne a été traduite en requête SQL, exécutée sur les données du projet que les destinataires ont le droit de lire. Rédige le contenu à partir des résultats, et d’eux seuls :',
   '- N’invente aucune valeur. Si les résultats sont vides, dis simplement qu’aucune donnée ne correspond. S’ils sont tronqués, dis-le.',
   '- Traduis les codes d’après le dictionnaire (DONE = terminé…) ; ne montre pas la requête SQL.',
-  '- Respecte la longueur et le ton demandés par la consigne. Texte brut, sans titre, sans Markdown, sans formule de politesse.',
+  '- Respecte la longueur et le ton demandés par la consigne ; sois bref et précis, chaque phrase apporte une information.',
+  '- Mise en forme : commence par une phrase qui donne l’essentiel. Puis, si utile, 2 ou 3 rubriques introduites par « ## » suivi d’un titre court. Dans une liste de constats, fais commencer chaque puce « - » par le chiffre clé (ex. « - 3 risques critiques (criticité ≥ 20) »). Pour des actions, liste numérotée « 1. ». **Gras** pour un ou deux éléments décisifs au plus.',
+  '- Pas de titre « # » (le message a déjà un objet), pas de tableau, pas de formule de politesse.',
 ].join('\n');
 
 /** Consigne jointe à l'envoi précédent (mémoire de la rédaction). */

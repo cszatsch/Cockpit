@@ -8,7 +8,7 @@ import { TodayService } from '../core/today.service';
 import { ProfilesService } from './profiles.service';
 import { frShort } from '../domain/dates';
 
-import { AUDIENCE_PRIORITY, AudienceProfile, blockingErrors, CATCH_UP_PER_MINUTE, catchUpDeadline, nextSendAt, NOTIFICATION_MEMORY_DAYS, occurrencesUntil, ON_TIME_TOLERANCE_MS, parisDay, scheduleKey, sendTimeFr } from '../domain/notification-rules';
+import { AUDIENCE_PRIORITY, AudienceProfile, blockingErrors, CATCH_UP_PER_MINUTE, catchUpDeadline, nextSendAt, NOTIFICATION_MEMORY_DAYS, mailText, occurrencesUntil, ON_TIME_TOLERANCE_MS, parisDay, scheduleKey, sendTimeFr } from '../domain/notification-rules';
 import { Audience, NotificationWriterService } from './notification-writer.service';
 
 /** Variables utilisables dans le prompt et le message (brief Console § 6.5). */
@@ -104,7 +104,7 @@ export class NotificationsService implements OnModuleInit {
         let err = error;
         if (gen && channel === 'EMAIL') {
           try {
-            await this.mailer.send({ to: recipients.map((r) => r.email), subject: gen.subject, text: gen.body });
+            await this.mailer.send({ to: recipients.map((r) => r.email), subject: gen.subject, text: mailText(gen.body) });
           } catch (e: any) {
             status = 'ERROR';
             err = `Envoi e-mail : ${e?.message ?? 'échec'}`;

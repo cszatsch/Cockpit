@@ -167,3 +167,11 @@ Plus aucune clé `localStorage` n'est lue ou écrite par le fichier HTML. api.js
 ## Tiroir des notifications : retrait des alertes (30/09/2026)
 
 - `Notifications Cockpit.dc.html` : onglet « Alertes » supprimé (restent « Toutes » et « Non lues ») ; icône, pastille et libellé toujours ceux d’une notification ; texte d’état vide « Les notifications de vos projets apparaîtront ici. » ; données de démonstration sans alertes. Prop `items` : champ `kind` retiré.
+
+## Tiroir des notifications : mise en forme du contenu (30/09/2026)
+
+- Constat : le texte rédigé par le modèle (rubriques « ## », puces, **gras**) s'affichait brut, en un bloc gris uniforme.
+- `Notifications Cockpit.dc.html` :
+  - liste : pastille de tuile et étiquette « Notification » retirées (un seul type) ; point de non-lecture discret ; titre, puis « PROJET · date » ; résumé de deux lignes tiré du premier paragraphe utile (salutations et annonces « Veuillez trouver… » écartées) ;
+  - lecture (notification dépliée) : carte blanche ; salutation en retrait ; première phrase utile mise en avant ; rubriques « ## » en petites capitales avec un filet sarcelle ; liste dont chaque élément commence par un chiffre (2 à 6 éléments) rendue en rangée de chiffres clés (valeur, libellé, précision entre parenthèses ; valeur en rouge si le libellé parle de critique, retard, dépassement ou échec) ; puces sarcelle ; étapes numérotées en pastilles ; gras conservé ; titres « # » omis (redondants avec l'objet) ;
+  - données de démonstration : une notification structurée ajoutée.

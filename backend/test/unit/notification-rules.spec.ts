@@ -6,6 +6,7 @@ import {
   scheduleKey,
   atOf,
   isSendTime,
+  mailText,
   profileScope,
   removedVariablesIn,
   sendSlot,
@@ -178,5 +179,13 @@ describe('Rattrapage : limite et occurrences manquées', () => {
     const r = { enabled: true, frequency: 'DAILY', day: null, hour: '09:00' };
     const occ = occurrencesUntil(r, new Date('2026-09-29T07:00:00Z'), new Date('2026-10-01T08:00:00Z'));
     expect(occ.map((d) => d.toISOString())).toEqual(['2026-09-29T07:00:00.000Z', '2026-09-30T07:00:00.000Z', '2026-10-01T07:00:00.000Z']);
+  });
+});
+
+describe('E-mail : texte propre à partir du Markdown léger (30/09/2026)', () => {
+  it('rubriques en majuscules, puces « • », gras retiré, titre « # » omis', () => {
+    const md = '# Synthèse RISE\nBonjour,\n6 risques ouverts, dont **3 critiques**.\n\n## État des risques :\n- 3 risques critiques\n* 3 risques élevés\n\n## Actions\n1. Arbitrer la *décision* D12';
+    expect(mailText(md)).toBe('Bonjour,\n6 risques ouverts, dont 3 critiques.\n\nÉTAT DES RISQUES\n• 3 risques critiques\n• 3 risques élevés\n\nACTIONS\n1. Arbitrer la décision D12');
+    expect(mailText('Texte simple.')).toBe('Texte simple.');
   });
 });

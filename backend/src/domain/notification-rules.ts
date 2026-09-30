@@ -260,6 +260,30 @@ export function blockingErrors(r: Pick<RuleRow, 'modelId' | 'targetProfiles'>, l
   return e;
 }
 
+/**
+ * Texte de l'e-mail (30/09/2026) : le Markdown léger du contenu rédigé devient un texte propre. Rubriques en
+ * majuscules précédées d'une ligne vide, puces « • », gras et italiques retirés ; titres « # » omis.
+ */
+export function mailText(md: string): string {
+  const out: string[] = [];
+  for (const raw of md.replace(/\r/g, '').split('\n')) {
+    const l = raw.trim();
+    const h = /^(#{1,6})\s+(.*)$/.exec(l);
+    if (h) {
+      if (h[1].length > 1) out.push('', stripInline(h[2]).replace(/\s*:$/, '').toUpperCase());
+      continue;
+    }
+    if (/^([-*_])\1{2,}$/.test(l)) continue;
+    const b = /^[-*•]\s+(.*)$/.exec(l);
+    out.push(b ? `• ${stripInline(b[1])}` : stripInline(raw.trimEnd()));
+  }
+  return out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+function stripInline(t: string): string {
+  return t.replace(/\*\*(.+?)\*\*/g, '$1').replace(/(^|[^*])\*([^*\s][^*]*?)\*(?!\*)/g, '$1$2').replace(/`([^`]*)`/g, '$1');
+}
+
 /** Date relative d'un envoi : « à l'instant », « il y a 12 min », « il y a 3 h », « hier », « il y a 3 j ». */
 export function relativeFr(at: Date, now: Date): string {
   const min = Math.max(0, Math.floor((now.getTime() - at.getTime()) / 60_000));

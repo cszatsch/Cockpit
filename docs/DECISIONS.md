@@ -778,3 +778,11 @@ Demande du commanditaire : « l’utilisateur ne peut plus avoir que des notific
 |---|---|---|
 | Constat | Une notification « Analyse des risques » a reçu une requête SQL au lieu d'un texte rédigé. Cause : le modèle a précédé sa requête d'un « Bonjour… » et l'a écrite trop longue ; la réponse a été coupée à la limite de sortie (1 024 jetons, atteinte exactement). Le bloc sql n'étant pas refermé, il n'était pas reconnu comme requête et la réponse brute partait comme contenu. | `LIVE_MAX_OUTPUT_TOKENS` |
 | Correction | Une réponse avec un bloc sql non refermé est reconnue comme coupée : le modèle est relancé une fois avec le motif « requête coupée car trop longue : écris une requête nettement plus courte ». Une réponse qui contient ou commence une requête n'est jamais envoyée : à défaut de résultats, texte de repli sans SQL. La consigne demande une requête courte, sans salutation ni explication. Même garde pour le Jev de la Console. | `sqlCut`, `looksLikeSql`, `SQL_CUT_REASON` (`src/domain/jev-sql.ts`), `NO_DATA_TEXT` (`notification-writer.service.ts`), `JevSqlService` |
+
+## Notifications : mise en forme du contenu (30/09/2026)
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Rédaction | Markdown léger demandé au modèle : phrase d'essentiel, 2 ou 3 rubriques « ## », puces commençant par le chiffre clé, étapes « 1. », gras rare ; ni titre « # », ni tableau, ni formule de politesse (la formule éventuelle vient du message de la règle). Remplace « texte brut, sans Markdown ». | `NOTIFICATION_ANSWER_INSTRUCTIONS` (`notification-writer.service.ts`) |
+| Cockpit | Le tiroir lit ce Markdown en blocs (rubriques, chiffres clés, puces, étapes) ; aucun HTML n'est interprété (texte seulement). | `parseBody`, `summaryOf` (`Notifications Cockpit.dc.html`) |
+| E-mail | Texte propre : rubriques en majuscules, puces « • », gras retiré, titres « # » omis. | `mailText` (`src/domain/notification-rules.ts`) |
