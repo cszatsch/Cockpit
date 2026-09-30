@@ -15,7 +15,7 @@ import { hnswIndexSql, HNSW_HALFVEC_MAX_DIMS, HNSW_VECTOR_MAX_DIMS, toBlocks, ve
 import { canWriteTools } from '../../domain/rights';
 import {
   chunkLocation, chunkMetadata, detectFormat, docxChunks, KbChunk, KbDocMeta, KbFormat, kbDuplicateContent, kbDuplicateName, kbEmbeddingText, KB_INTERRUPTED,
-  KB_NO_TEXT, KB_SCANNED, KB_SUMMARY_SYSTEM, kbSizes, parseSummary, pdfChunks, pdfTextState, pptxChunks, summaryPrompt, xlsxChunks,
+  KB_NO_TEXT, KB_SCANNED, KB_SUMMARY_MAX_TOKENS, KB_SUMMARY_SYSTEM, kbSizes, parseSummary, pdfChunks, pdfTextState, pptxChunks, summaryPrompt, xlsxChunks,
 } from '../../domain/kb-documents';
 
 /** Refus d'un fichier à l'extraction (scanné, sans texte). */
@@ -176,7 +176,7 @@ export class KbService implements OnModuleInit {
     try {
       // 1. Résumé et description (fonction Synthèse).
       const { prompt } = summaryPrompt(j.name, j.type, j.format, j.chunks);
-      const r = await this.llm.complete({ functionId: 'doc_syn', source: 'COCKPIT', projectId: j.projectId, system: KB_SUMMARY_SYSTEM, prompt, timeoutMs: SUMMARY_TIMEOUT_MS });
+      const r = await this.llm.complete({ functionId: 'doc_syn', source: 'COCKPIT', projectId: j.projectId, system: KB_SUMMARY_SYSTEM, prompt, timeoutMs: SUMMARY_TIMEOUT_MS, maxTokens: KB_SUMMARY_MAX_TOKENS });
       const { description, summary } = parseSummary(r.text, j.chunks.map((c) => c.content).join(' ').slice(0, 2000));
       await step(25, 'Vectorisation des extraits');
       // 2. Extraits enrichis (nom, date de dépôt, description, repère) puis vectorisés.
@@ -229,6 +229,25 @@ export class KbService implements OnModuleInit {
     await this.prisma.kbChunk.deleteMany({ where: { documentId: id } });
     const d = await this.prisma.document.update({ where: { id }, data: { ext: 'FAILED', error: message, summary: null, description: null, chunkCount: null, progress: null, stepLabel: null, replacesId: null, version: { increment: 1 } } });
     await this.event(d.projectId, actor, { documentId: id, documentName: d.n, action: 'ECHEC', status: 'ECHEC', detail: message });
+  }
+
+  /**
+   * Nouveau traitement d'un document déjà déposé (résumé et vecteurs refaits à partir du fichier stocké), par exemple
+   * après une évolution du résumé ou un échec : le document repasse « en cours », ses extraits sont remplacés.
+   */
+  async reprocess(scope: ProjectScope, actor: Actor, id: string) {
+    const d = await this.prisma.document.findFirst({ where: { id, projectId: scope.project.id } });
+    if (!d || !this.visible(scope, actor, d)) throw notFound();
+    if (!this.canDelete(scope, actor, d)) throw forbidden('Réservé au PMO et à l’auteur du dépôt');
+    if (d.ext === 'PENDING') throw conflict('PROCESSING', 'Le document est déjà en cours de traitement.');
+    const buf = d.fileKey ? await this.storage.get(d.fileKey) : null;
+    if (!buf || !d.format) throw notFound('Fichier du document introuvable');
+    const extracted = await this.extract(buf, d.format as KbFormat, d.n, kbSizes(await this.embeddingContext()));
+    await this.prisma.document.update({ where: { id }, data: { ext: 'PENDING', progress: 5, stepLabel: 'Résumé du document', error: null, pages: extracted.pages ?? d.pages, version: { increment: 1 } } });
+    await this.event(scope.project.id, actor, { documentId: id, documentName: d.n, action: 'RETRAITEMENT', status: 'EN_COURS', detail: `${d.format} · ${extracted.chunks.length} extraits` });
+    const job = { id, projectId: scope.project.id, name: d.n, type: d.type, format: d.format as KbFormat, depositedAt: (d.uploadedAt ?? d.createdAt).toISOString().slice(0, 10), chunks: extracted.chunks, note: extracted.note, replacesId: null, actor };
+    this.queue = this.queue.then(() => this.index(job)).catch(() => undefined);
+    return this.prisma.document.findUniqueOrThrow({ where: { id }, include: { links: true } });
   }
 
   // ───────────── Suppression ─────────────

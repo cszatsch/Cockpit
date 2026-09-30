@@ -2,7 +2,7 @@ import { readDocx, readPptx, readXlsx, tableLines } from '../../src/core/office-
 import { renderPdf } from '../../src/core/pdf';
 import {
   chunkLocation, chunkMetadata, detectFormat, docxChunks, KB_EMPTY, KB_FORMAT_REFUSED, KB_MAX_BYTES, KB_PROTECTED, KB_SUMMARY_INPUT_CHARS, KB_TOO_BIG, kbEmbeddingText, kbMismatch, kbOldFormat,
-  kbSizes, parseSummary, pptxChunks, summaryPrompt, twoSentences, xlsxChunks,
+  kbSizes, parseSummary, pptxChunks, readSummary, escapeControlsInStrings, summaryPrompt, twoSentences, xlsxChunks,
 } from '../../src/domain/kb-documents';
 import { DEFAULT_CHUNK_SIZES } from '../../src/domain/guide-index';
 import { makeDocx, makePptx, makeXlsx, protectedOffice } from '../office-fixture';
@@ -96,9 +96,30 @@ describe('Base de connaissance — règles', () => {
     expect(small.overlap).toBeLessThan(small.target);
   });
 
-  it('résumé : JSON du modèle (description en deux phrases, résumé) ; réponse non conforme → repli ; texte borné', () => {
-    expect(parseSummary('```json\n{"description": "Un. Deux. Trois.", "resume": "- Point clé"}\n```', 'x')).toEqual({ description: 'Un. Deux.', summary: '- Point clé' });
-    expect(parseSummary('Synthèse libre.', 'Texte du document. Suite du texte. Fin.')).toEqual({ description: 'Texte du document. Suite du texte.', summary: 'Synthèse libre.' });
+  it('résumé structuré : description, chiffres clés, rubriques ; bornes ; jamais de JSON brut', () => {
+    const raw = '```json\n' + JSON.stringify({ description: 'Un. Deux. Trois.', chiffres: [{ valeur: '3,0 Md€', libelle: 'CA visé en 2028' }, { valeur: '', libelle: 'vide' }], rubriques: [{ titre: 'Contexte', points: ['Point **clé**.'] }, { titre: 'Vide', points: [] }] }) + '\n```';
+    const p = parseSummary(raw, 'x');
+    expect(p.description).toBe('Un. Deux.');
+    expect(JSON.parse(p.summary)).toEqual({ description: 'Un. Deux.', figures: [{ value: '3,0 Md€', label: 'CA visé en 2028' }], sections: [{ title: 'Contexte', points: ['Point **clé**.'] }] });
+    expect(readSummary(p.summary)).toEqual(JSON.parse(p.summary));
+    const many = readSummary(JSON.stringify({ description: 'A.', chiffres: Array.from({ length: 9 }, (_, i) => ({ valeur: String(i), libelle: 'x' })), rubriques: Array.from({ length: 9 }, (_, i) => ({ titre: 'T' + i, points: ['a', 'b', 'c', 'd', 'e'] })) }))!;
+    expect([many.figures.length, many.sections.length, many.sections[0].points.length]).toEqual([4, 5, 4]);
+  });
+
+  it('résumé : réponse coupée ou invalide récupérée (retours à la ligne bruts, ancien format « resume »), dernier point inachevé écarté', () => {
+    // Ancien format, coupé en cours de route, avec des retours à la ligne bruts dans la chaîne (JSON invalide).
+    const cut = '{"description": "Support du lancement. Il sert de référence.", "resume": "## Contexte\\nLancement du projet **SAP**.\n\n## Organisation\nÉquipe de 70 personnes. Rôles clés : Sponsors (A. Louet, C. Le';
+    expect(readSummary(cut)).toEqual({ description: 'Support du lancement. Il sert de référence.', figures: [], sections: [{ title: 'Contexte', points: ['Lancement du projet **SAP**.'] }, { title: 'Organisation', points: ['Équipe de 70 personnes.'] }] });
+    // Nouveau format coupé : seuls les éléments complets sont gardés.
+    const cut2 = '{"description": "Un. Deux.", "chiffres": [{"valeur": "418", "libelle": "vendeurs"}], "rubriques": [{"titre": "Enjeux", "points": ["A.", "B."]}, {"titre": "Planning", "points": ["Lot 1 en 20';
+    expect(readSummary(cut2)).toEqual({ description: 'Un. Deux.', figures: [{ value: '418', label: 'vendeurs' }], sections: [{ title: 'Enjeux', points: ['A.', 'B.'] }] });
+    // Texte libre : rubriques Markdown ; réponse vide : description tirée du document.
+    expect(readSummary('Synthèse libre.')).toEqual({ description: '', figures: [], sections: [{ title: 'Points clés', points: ['Synthèse libre.'] }] });
+    expect(parseSummary('', 'Texte du document. Suite du texte. Fin.').description).toBe('Texte du document. Suite du texte.');
+    expect(escapeControlsInStrings('{"a": "x\ny"}\n')).toBe('{"a": "x\\ny"}\n');
+  });
+
+  it('résumé : texte envoyé au modèle borné', () => {
     expect(twoSentences('Sans point final')).toBe('Sans point final');
     const big = Array.from({ length: 200 }, (_, i) => ({ position: i, section: 'S', heading: 'S', content: 'x'.repeat(1000), pageStart: 1, pageEnd: 1, slide: null, sheet: null, rowStart: null, rowEnd: null, tokens: 250 }));
     const r = summaryPrompt('Doc', 'Livrable', 'PDF', big);

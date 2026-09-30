@@ -11,7 +11,7 @@ import { badRequest, forbidden, notFound } from '../../core/errors';
 import { parse } from '../../core/http';
 import { canWriteTools } from '../../domain/rights';
 import type { UploadedBlob } from '../../import/import.controller';
-import { KB_FORMATS, KB_MAX_BYTES } from '../../domain/kb-documents';
+import { KB_FORMATS, KB_MAX_BYTES, readSummary } from '../../domain/kb-documents';
 import { KbService } from './kb.service';
 
 /** Taille maximale : règle de la Base de connaissance (`domain/kb-documents.ts`, décision du 30/09/2026). */
@@ -95,7 +95,17 @@ export class DocumentsController {
     const scope = await this.access.scope(actor, p);
     const d = await this.prisma.document.findFirst({ where: { id, projectId: scope.project.id }, include: { links: true } });
     if (!d || !this.kb.visible(scope, actor, d)) throw notFound();
-    return { ...this.view(d), summary: d.summary, description: d.description, embeddingModel: d.embeddingName, embeddingDims: d.embeddingDims, canDelete: this.kb.canDelete(scope, actor, d) };
+    // Résumé structuré (lecture tolérante : ancien format ou réponse coupée réparés, jamais de JSON brut).
+    const summary = readSummary(d.summary);
+    return { ...this.view(d), summary, description: summary?.description || d.description, embeddingModel: d.embeddingName, embeddingDims: d.embeddingDims, canDelete: this.kb.canDelete(scope, actor, d) };
+  }
+
+  /** Nouveau traitement (résumé et vecteurs refaits à partir du fichier) : PMO, ou auteur du dépôt. */
+  @Post(':id/reprocess')
+  @HttpCode(202)
+  async reprocess(@CurrentActor() actor: Actor, @Param('projectId') p: string, @Param('id') id: string) {
+    const scope = await this.access.scope(actor, p);
+    return this.view(await this.kb.reprocess(scope, actor, id));
   }
 
   /** Suppression : fichier, résumé et tous les vecteurs (PMO, ou auteur du dépôt). */

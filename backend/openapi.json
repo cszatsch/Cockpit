@@ -2033,6 +2033,42 @@
         ]
       }
     },
+    "/api/projects/{projectId}/documents/{id}/reprocess": {
+      "post": {
+        "operationId": "DocumentsController_reprocess",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "cockpit · documents"
+        ]
+      }
+    },
     "/api/projects/{projectId}/documents/{id}/file": {
       "get": {
         "operationId": "DocumentsController_file",

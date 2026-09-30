@@ -177,13 +177,29 @@ export function kbEmbeddingText(m: KbDocMeta, c: KbChunk): string {
 
 /** Texte envoyé pour le résumé : le début du document jusqu'à cette taille (≈ 15 000 jetons). */
 export const KB_SUMMARY_INPUT_CHARS = 60_000;
+/** Plafond de la réponse du modèle (le format borné tient en ~700 jetons ; marge contre toute coupure). */
+export const KB_SUMMARY_MAX_TOKENS = 2048;
+/** Bornes du résumé structuré (affichage sans surcharge). */
+export const KB_SUMMARY_LIMITS = { figures: 4, sections: 5, points: 4 } as const;
+
+/**
+ * Résumé structuré (décision du 30/09/2026, refonte de la fenêtre « Vue ») : une description en deux phrases, jusqu'à
+ * 4 chiffres clés présents dans le texte, 3 à 5 rubriques de points courts. Stocké en JSON dans `Document.summary`.
+ */
+export interface KbSummary {
+  description: string;
+  figures: Array<{ value: string; label: string }>;
+  sections: Array<{ title: string; points: string[] }>;
+}
 
 export const KB_SUMMARY_SYSTEM = [
-  'Tu résumes un document déposé dans la base de connaissance d’un projet de transformation.',
-  'Réponds uniquement par un objet JSON, sans texte autour : {"description": "…", "resume": "…"}.',
-  '- description : exactement deux phrases, qui disent de quoi parle le document et à quoi il sert dans le projet.',
-  '- resume : 120 à 250 mots en Markdown simple (courts paragraphes ou puces) : objet, points clés, décisions, dates, chiffres, responsables quand ils figurent dans le texte.',
-  '- Pas de phrase de conclusion qui reformule ce qui précède ; ne mentionne pas le format du fichier.',
+  'Tu résumes un document déposé dans la base de connaissance d’un projet de transformation, pour une lecture en quelques secondes.',
+  'Réponds uniquement par un objet JSON valide, sans texte autour et sans bloc de code :',
+  '{"description": "…", "chiffres": [{"valeur": "…", "libelle": "…"}], "rubriques": [{"titre": "…", "points": ["…"]}]}',
+  '- description : exactement deux phrases, 45 mots au plus : de quoi parle le document et à quoi il sert dans le projet.',
+  '- chiffres : 0 à 4 chiffres clés présents tels quels dans le texte (montant, effectif, durée, date clé) ; valeur courte (« 3,0 Md€ », « 418 », « 2024–2026 »), libellé de 2 à 6 mots.',
+  '- rubriques : 3 à 5 rubriques (titre de 1 à 4 mots : Contexte, Enjeux, Périmètre, Planning, Organisation, Décisions…), chacune 1 à 4 points de 25 mots au plus ; **gras** pour un nom propre ou une décision, avec parcimonie.',
+  '- 300 mots au total au plus. Pas de conclusion qui reformule ; ne mentionne pas le format du fichier.',
   '- N’invente rien : uniquement ce que contient le texte. En français.',
 ].join('\n');
 
@@ -203,19 +219,104 @@ export function twoSentences(s: string): string {
   return parts.slice(0, 2).join('').trim().slice(0, 600);
 }
 
-/** Réponse du modèle → description (deux phrases) et résumé ; réponse non conforme : texte brut, description tirée du texte. */
-export function parseSummary(raw: string, fallbackText: string): { description: string; summary: string } {
-  const m = /\{[\s\S]*\}/.exec(raw);
-  if (m) {
-    try {
-      const j = JSON.parse(m[0]);
-      const summary = typeof j.resume === 'string' ? j.resume.trim() : '';
-      const description = typeof j.description === 'string' && j.description.trim() ? twoSentences(j.description) : twoSentences(summary || fallbackText);
-      if (summary) return { description, summary: summary.slice(0, 6000) };
-    } catch { /* réponse non JSON : repli */ }
+const clip = (s: unknown, n: number) => String(s ?? '').replace(/\s+/g, ' ').trim().slice(0, n);
+/** Texte borné sans couper un mot : fin de la dernière phrase complète, sinon dernier mot suivi de « … ». */
+const clipText = (s: unknown, n: number) => {
+  const t = String(s ?? '').replace(/\s+/g, ' ').trim();
+  if (t.length <= n) return t;
+  const cut = t.slice(0, n), end = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('! '), cut.lastIndexOf('? '));
+  return end > n * 0.5 ? cut.slice(0, end + 1) : cut.slice(0, cut.lastIndexOf(' ')).replace(/[,;:\s]+$/, '') + '…';
+};
+/** Chaînes JSON complètes trouvées après une clé (réponse coupée : seules les valeurs entières sont gardées). */
+const jsonStrings = (src: string) => [...src.matchAll(/"((?:[^"\\]|\\.)*)"/g)].map((m) => { try { return JSON.parse(`"${m[1]}"`) as string; } catch { return m[1]; } });
+/** Retours à la ligne et tabulations bruts écrits par le modèle dans une chaîne JSON (invalide) : échappés. */
+export function escapeControlsInStrings(src: string): string {
+  const BS = '\\', NL = '\n', CR = '\r', TAB = '\t';
+  let out = '', inStr = false, esc = false;
+  for (const ch of src) {
+    if (inStr) {
+      if (esc) esc = false;
+      else if (ch === BS) esc = true;
+      else if (ch === '"') inStr = false;
+      else if (ch === NL) { out += BS + 'n'; continue; }
+      else if (ch === CR) continue;
+      else if (ch === TAB) { out += BS + 't'; continue; }
+    } else if (ch === '"') inStr = true;
+    out += ch;
   }
-  const summary = raw.trim().slice(0, 6000);
-  return { description: twoSentences(fallbackText || summary), summary };
+  return out;
+}
+/** Valeur d'une chaîne JSON (contenu entre guillemets), échappements compris. */
+const unescape = (v: string) => { try { return JSON.parse('"' + escapeControlsInStrings('"' + v).slice(1) + '"') as string; } catch { return v.split('\\n').join('\n'); } };
+
+/** Rubriques tirées d'un texte Markdown (ancien format « resume ») : « ## Titre », puces, paragraphes. */
+export function markdownSections(md: string, cut = false): KbSummary['sections'] {
+  const out: KbSummary['sections'] = [];
+  let cur: KbSummary['sections'][number] | null = null;
+  const lines = md.split('\n').map((l) => l.trim()).filter(Boolean);
+  // Réponse coupée : la dernière ligne, inachevée, est ramenée à sa dernière phrase complète (écartée s'il n'y en a pas).
+  if (cut && lines.length && !/[.!?»)]$/.test(lines[lines.length - 1])) {
+    const last = lines.pop()!;
+    // Fin de phrase : ponctuation suivie d'un espace, sauf après une initiale (« C. Le »).
+    let end = -1;
+    for (const m of last.matchAll(/[.!?»](?=\s)/g)) if (!/(^|[\s(])\p{Lu}$/u.test(last.slice(0, m.index))) end = m.index!;
+    const kept = end >= 0 ? last.slice(0, end + 1) : '';
+    if (kept.replace(/^[-*•#\s]+/, '').length > 20) lines.push(kept);
+  }
+  for (const l of lines) {
+    const h = /^#{1,4}\s+(.+)$/.exec(l) ?? /^\*\*([^*]{1,60})\*\*\s*:?$/.exec(l);
+    if (h) { cur = { title: clip(h[1], 60), points: [] }; out.push(cur); continue; }
+    if (!cur) { cur = { title: 'Points clés', points: [] }; out.push(cur); }
+    cur.points.push(clipText(l.replace(/^[-*•]\s+/, ''), 420));
+  }
+  return out.filter((x) => x.points.length);
+}
+
+/** Normalise un résumé structuré (bornes, textes nettoyés). */
+function normalizeSummary(x: { description?: unknown; figures?: unknown; sections?: unknown }): KbSummary {
+  const figures = (Array.isArray(x.figures) ? x.figures : []).map((f: any) => ({ value: clip(f?.value ?? f?.valeur, 24), label: clip(f?.label ?? f?.libelle, 60) })).filter((f) => f.value && f.label).slice(0, KB_SUMMARY_LIMITS.figures);
+  const sections = (Array.isArray(x.sections) ? x.sections : []).map((r: any) => ({ title: clip(r?.title ?? r?.titre, 60), points: (Array.isArray(r?.points) ? r.points : []).map((p: unknown) => clipText(p, 420)).filter(Boolean).slice(0, KB_SUMMARY_LIMITS.points) })).filter((r) => r.title && r.points.length).slice(0, KB_SUMMARY_LIMITS.sections);
+  return { description: twoSentences(clip(x.description, 800)), figures, sections };
+}
+
+/**
+ * Lecture tolérante d'une réponse du modèle ou d'un résumé stocké : JSON structuré, JSON de l'ancien format
+ * (`resume` en Markdown), JSON coupé (seuls les éléments complets sont gardés), ou texte libre (rubriques Markdown).
+ * Jamais de JSON brut à l'affichage.
+ */
+export function readSummary(raw: string | null | undefined): KbSummary | null {
+  const t = escapeControlsInStrings(String(raw ?? '').trim().replace(/^```(?:json)?\s*|\s*```$/g, ''));
+  if (!t) return null;
+  const start = t.indexOf('{');
+  if (start >= 0) {
+    const body = t.slice(start);
+    try {
+      const j = JSON.parse(body.slice(0, body.lastIndexOf('}') + 1));
+      if (typeof j.resume === 'string') return normalizeSummary({ description: j.description, sections: markdownSections(j.resume) });
+      return normalizeSummary({ description: j.description, figures: j.chiffres ?? j.figures, sections: j.rubriques ?? j.sections });
+    } catch { /* JSON coupé : récupération ci-dessous */ }
+    const desc = /"description"\s*:\s*"((?:[^"\\]|\\.)*)"/.exec(body);
+    const resume = /"resume"\s*:\s*"((?:[^"\\]|\\.)*)/.exec(body);
+    if (resume) return normalizeSummary({ description: desc ? unescape(desc[1]) : '', sections: markdownSections(unescape(resume[1].replace(/\\$/, '')), true) });
+    const figures = [...body.matchAll(/\{\s*"valeur"\s*:\s*"((?:[^"\\]|\\.)*)"\s*,\s*"libelle"\s*:\s*"((?:[^"\\]|\\.)*)"\s*\}/g)].map((m) => ({ value: unescape(m[1]), label: unescape(m[2]) }));
+    const sections = [...body.matchAll(/\{\s*"titre"\s*:\s*"((?:[^"\\]|\\.)*)"\s*,\s*"points"\s*:\s*\[((?:\s*"(?:[^"\\]|\\.)*"\s*,?)*)\s*\]\s*\}/g)].map((m) => ({ title: unescape(m[1]), points: jsonStrings(m[2]) }));
+    if (desc || figures.length || sections.length) return normalizeSummary({ description: desc ? unescape(desc[1]) : '', figures, sections });
+  }
+  return normalizeSummary({ description: '', sections: markdownSections(t) });
+}
+
+/**
+ * Réponse du modèle → description (deux phrases) et résumé structuré (JSON stocké). Sans description exploitable, elle
+ * est tirée du résumé ; sans rien d'exploitable, les deux premières phrases du document.
+ */
+export function parseSummary(raw: string, fallbackText: string): { description: string; summary: string } {
+  const s = readSummary(raw);
+  if (!s || (!s.description && !s.sections.length)) {
+    const text = twoSentences(fallbackText);
+    return { description: text, summary: JSON.stringify({ description: text, figures: [], sections: [] }) };
+  }
+  const description = s.description || twoSentences(s.sections.flatMap((x) => x.points).join(' ')) || twoSentences(fallbackText);
+  return { description, summary: JSON.stringify({ ...s, description }) };
 }
 
 // ───────────── PDF : couche texte ─────────────

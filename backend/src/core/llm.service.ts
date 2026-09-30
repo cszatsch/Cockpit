@@ -137,7 +137,7 @@ export class LlmService {
    * Fonction en direct (`LIVE_FUNCTIONS`) : vraie génération chez le fournisseur ; si le principal échoue
    * à l'appel (délai, erreur du fournisseur), le secours prend la demande ; si les deux échouent, 503.
    */
-  async complete(input: { functionId: AiFunctionId; prompt: string; system?: string; systemTail?: string; history?: ChatTurn[]; cache?: boolean; projectId?: string | null; source: UsageSourceCode; maxWords?: number; timeoutMs?: number }): Promise<LlmResult> {
+  async complete(input: { functionId: AiFunctionId; prompt: string; system?: string; systemTail?: string; history?: ChatTurn[]; cache?: boolean; projectId?: string | null; source: UsageSourceCode; maxWords?: number; timeoutMs?: number; maxTokens?: number }): Promise<LlmResult> {
     const route = await this.route(input.functionId);
     if (!(LIVE_FUNCTIONS.includes(input.functionId) && this.client.live)) return this.run(route.modelId, input, route.fallback);
     const fn = aiFunction(input.functionId);
@@ -158,7 +158,7 @@ export class LlmService {
   }
 
   /** Vraie génération : clé du fournisseur déchiffrée le temps de l'appel, jetons comptés par le fournisseur. */
-  private async runLive(modelId: string, input: { functionId: AiFunctionId; prompt: string; system?: string; systemTail?: string; history?: ChatTurn[]; cache?: boolean; projectId?: string | null; source: UsageSourceCode; timeoutMs?: number }, fallbackUsed: boolean): Promise<LlmResult> {
+  private async runLive(modelId: string, input: { functionId: AiFunctionId; prompt: string; system?: string; systemTail?: string; history?: ChatTurn[]; cache?: boolean; projectId?: string | null; source: UsageSourceCode; timeoutMs?: number; maxTokens?: number }, fallbackUsed: boolean): Promise<LlmResult> {
     const model = await this.prisma.aiModel.findUniqueOrThrow({ where: { id: modelId } });
     const provider = await this.prisma.provider.findUniqueOrThrow({ where: { id: model.providerId } });
     if (!provider.keyCipher) throw new LlmCallError(`${provider.name} : aucune clé enregistrée`);
@@ -171,7 +171,7 @@ export class LlmService {
     const t0 = Date.now();
     const out = await this.client.generate({
       providerId: provider.id, providerName: provider.name, model: model.providerModelId || model.id, key,
-      system: input.system ?? '', systemTail: input.systemTail, history: input.history, cache: input.cache, prompt: input.prompt, maxTokens: Math.min(LIVE_MAX_OUTPUT_TOKENS, model.maxOutputTokens ?? LIVE_MAX_OUTPUT_TOKENS), timeoutMs: input.timeoutMs,
+      system: input.system ?? '', systemTail: input.systemTail, history: input.history, cache: input.cache, prompt: input.prompt, maxTokens: Math.min(input.maxTokens ?? LIVE_MAX_OUTPUT_TOKENS, model.maxOutputTokens ?? Number.MAX_SAFE_INTEGER), timeoutMs: input.timeoutMs,
     });
     const tokensIn = out.tokensIn ?? Math.max(1, Math.ceil(inputChars(input) / 4));
     const tokensOut = out.tokensOut ?? Math.max(1, Math.ceil(out.text.length / 4));

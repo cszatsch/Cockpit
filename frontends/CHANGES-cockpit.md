@@ -197,3 +197,8 @@ Plus aucune clé `localStorage` n'est lue ou écrite par le fichier HTML. api.js
 ## Base de connaissance vide (30/09/2026)
 
 - `RISE Cockpit.dc.html` : sous le tableau, « Aucun document pour l'instant » et une invitation à déposer (ou « Aucun document de ce type » quand un filtre est actif), les documents factices n'étant plus amorcés.
+
+## Base de connaissance : fenêtre « Vue » refondue (30/09/2026)
+
+- `RISE Cockpit.dc.html` : fenêtre du résumé redessinée — en-tête épuré (format en étiquette discrète, type · version · confidentialité, titre, auteur et date du dépôt), « En bref » (description en deux phrases, filet d'accent), chiffres clés (jusqu'à 4, taille commune sans troncature), rubriques en deux colonnes « titre | points » (une colonne quand la place manque), états chargement (chatoiement), traitement en cours (avancement) et échec (motif) ; pied discret (état de l'index, « Supprimer » en lien, « Télécharger ») ; défilement fin avec fondu en bas. Animation `kb-shimmer`.
+- Le résumé est désormais un objet structuré (`description`, `figures`, `sections`) renvoyé par `GET /documents/:id`.

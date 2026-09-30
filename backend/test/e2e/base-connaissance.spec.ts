@@ -48,7 +48,7 @@ describe('Cockpit — Base de connaissance', () => {
       expect(up.body).toMatchObject({ n: name.replace(/\.[^.]+$/, ''), ext: 'PENDING', format, type: 'Référence', uploadedBy: expect.any(String), progress: 5 });
       await kb.idle();
       const d = (await pmo.get(`/${up.body.id}`).expect(200)).body;
-      expect(d).toMatchObject({ ext: 'SUCCEEDED', progress: 100, error: null, summary: expect.any(String), description: expect.any(String), chunkCount: expect.any(Number), embeddingModel: expect.any(String) });
+      expect(d).toMatchObject({ ext: 'SUCCEEDED', progress: 100, error: null, summary: { description: expect.any(String), figures: expect.any(Array), sections: expect.any(Array) }, description: expect.any(String), chunkCount: expect.any(Number), embeddingModel: expect.any(String) });
       const chunks = await chunksOf(up.body.id);
       expect(chunks.length).toBe(d.chunkCount);
       expect(await vectorsOf(up.body.id)).toBe(chunks.length);
@@ -142,6 +142,23 @@ describe('Cockpit — Base de connaissance', () => {
     // Un document en échec ne bloque pas un nouveau dépôt du même fichier.
     await pmo.up(await makeXlsx([{ name: 'Risques', rows: [['Code', 'Libellé'], ['R01', 'Bascule des données']] }]), 'Registre des risques.xlsx', { keepBoth: 'true' }).expect(201);
     await kb.idle();
+  });
+
+  it('nouveau traitement : résumé et vecteurs refaits depuis le fichier stocké ; réservé au PMO et à l’auteur ; tracé', async () => {
+    const pmo = as(pmoToken);
+    const up = (await pmo.up(await makePptx([{ title: 'Lancement', lines: ['Kick-off du projet le 8 février'] }]), 'Kick-off.pptx').expect(201)).body;
+    await kb.idle();
+    const before = (await t.db.kbChunk.findMany({ where: { documentId: up.id } })).map((c) => c.id);
+    const other = await t.token(WHO.respC1);
+    await http().post(`${R}/documents/${up.id}/reprocess`).set('Authorization', `Bearer ${other}`).expect(403);
+    const r = await http().post(`${R}/documents/${up.id}/reprocess`).set('Authorization', `Bearer ${pmoToken}`).expect(202);
+    expect(r.body).toMatchObject({ ext: 'PENDING' });
+    await kb.idle();
+    const after = await t.db.kbChunk.findMany({ where: { documentId: up.id } });
+    expect(after.length).toBe(before.length);
+    expect(after.some((c) => before.includes(c.id))).toBe(false);
+    expect((await pmo.get(`/${up.id}`).expect(200)).body).toMatchObject({ ext: 'SUCCEEDED', summary: expect.objectContaining({ sections: expect.any(Array) }) });
+    expect((await pmo.get('/history').expect(200)).body.some((e: any) => e.documentId === up.id && e.action === 'RETRAITEMENT')).toBe(true);
   });
 
   it('suppression : fichier, résumé et tous les vecteurs ; réservée au PMO et à l’auteur du dépôt ; tracée', async () => {
