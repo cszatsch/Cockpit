@@ -3183,6 +3183,24 @@ class Component extends DCLogic {
     (() => { const X = d.anomalies || [], B = X.filter(x => x.level === 'Blocage'), Wn = X.filter(x => x.level !== 'Blocage');
       VIZ.inc = hero(B.length, B.length > 1 ? 'blocages' : 'blocage', '', X.slice(0, 3).map(x => hRow({ bar: x.level === 'Blocage' ? '#d4574a' : '#e39a2d', t: x.text, m: x.action || '', mC: '#1d8f86' })), { wide: true, c: B.length ? '#d4574a' : undefined, n2: Wn.length, l2: Wn.length > 1 ? 'avertissements' : 'avertissement', emptyT: 'Aucune incohérence' });
     })();
+    // Compte à rebours Go-Live : J-N, semaines et jours ouvrés restants ; frise du lancement au Go-Live (phases en repères, temps écoulé, aujourd'hui).
+    (() => { if (!glIso) return; const PH = (d.phases || []).filter(p => p.start).sort((a, b) => a.start.localeCompare(b.start)), s0 = PH.length ? PH[0].start : tIso, a = dIso(s0), b = dIso(glIso), span = Math.max(1, b - a), pos = x => Math.max(0, Math.min(100, (dIso(x) - a) / span * 100));
+      let wd = 0; for (let x = new Date(T.getTime() + 864e5); x <= b; x = new Date(x.getTime() + 864e5)) if (x.getDay() % 6) wd++;
+      const el = pos(tIso), mo = x => { const z = dIso(x); return MOS[z.getMonth()] + ' ' + z.getFullYear(); };
+      VIZ.golive = { viz: 'countdown', cd: { v: dGL >= 0 ? 'J-' + dGL : 'J+' + (-dGL), wk: dGL >= 0 ? Math.round(dGL / 7) + ' semaines' : 'Go-Live passé', wd: dGL >= 0 ? wd + ' jours ouvrés' : '', a: Math.round(el) + ' % écoulé depuis ' + mo(s0), b: this.frShortIso(glIso),
+        fillS: 'position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--wi,#10233a);opacity:.85;width:' + el.toFixed(2) + '%',
+        nowS: 'position:absolute;top:50%;width:11px;height:11px;margin:-5.5px 0 0 -5.5px;border-radius:50%;background:var(--wbg,#fff);box-shadow:inset 0 0 0 3px var(--wi,#10233a);left:' + el.toFixed(2) + '%',
+        ticks: PH.slice(1).map(p => ({ tip: 'Phase ' + p.n + ' · ' + frD(p.start), st: 'position:absolute;top:0;bottom:0;width:2px;margin-left:-1px;background:var(--wbg,#fff);left:' + pos(p.start).toFixed(2) + '%' })) } };
+    })();
+    // Météo des chantiers : pictogramme météo selon l'écart au prévu (WS_GAP_WATCH), barre du réel en encre, retard hachuré jusqu'au prévu, écart en clair.
+    (() => { const WS_GAP_WATCH = -10, kind = g => g >= 0 ? 'sun' : g > WS_GAP_WATCH ? 'cloud' : 'rain';
+      VIZ.ch = { viz: 'weather', meta: 'écart au prévu', wx: { rows: wss.map(w => { const g = w.v - w.ref, col = gapC(g), k = kind(g), lo = Math.min(w.v, w.ref), hi = Math.max(w.v, w.ref);
+        return { t: String(w.n).replace(/^\d+ · /, ''), tip: [w.detail, 'réel ' + w.v + ' % · prévu ' + w.ref + ' %'].filter(Boolean).join(' · '), sun: k === 'sun', cloud: k === 'cloud', rain: k === 'rain', icS: 'display:block;color:' + col, v: w.v + ' %', gap: g ? (g > 0 ? '+' : '−') + Math.abs(g) + ' pts' : 'au prévu',
+          gapS: 'font-size:12.5px;font-weight:800;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;color:' + (g ? col : '#1d8f86'),
+          fillS: 'position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--wi,#10233a);opacity:.85;width:' + w.v + '%',
+          zoneS: g < 0 ? 'position:absolute;top:0;bottom:0;border-radius:0 3px 3px 0;left:' + lo + '%;width:' + (hi - lo) + '%;background:repeating-linear-gradient(135deg,' + col + ' 0 2px,rgba(0,0,0,0) 2px 4px)' : 'display:none',
+          refS: 'position:absolute;top:-4px;bottom:-4px;width:2px;margin-left:-1px;border-radius:1px;background:' + (g < 0 ? col : 'var(--wi,#10233a)') + ';left:' + w.ref + '%' }; }) } };
+    })();
     W.forEach(w => { if (VIZ[w.id]) { w.viz = VIZ[w.id].viz; w.vz = VIZ[w.id]; } });
     W.forEach(w => { const [bg, c] = ICO[w.cat] || ['#f1f5f4', '#43586a']; w.ico = 'width:30px;height:30px;border-radius:9px;display:grid;place-items:center;flex:none;font-size:13px;font-weight:800;background:' + bg + ';color:' + c; w.badge = w.size[0] + ' × ' + w.size[1];
       // Refonte des widgets (01/10/2026) : chiffres en italique fort, étiquettes discrètes, filets fins ; la couleur ne
@@ -3196,8 +3214,8 @@ class Component extends DCLogic {
           rS: (r.rS || '').replace('font-size:11.5px;font-weight:700', 'font-size:11px;font-weight:700'),
           rowS: 'display:grid;grid-template-columns:' + (listDot ? '6px ' : '') + keyW + 'px minmax(0,1fr) auto;gap:12px;align-items:center;padding:' + (i ? tallP : '4px') + ' 0 ' + tallP + ';' + (i ? 'border-top:1px solid var(--wln,#eef3f2)' : '') }; }) : rows0;
       const kv = k0 ? String(k0.v) : '', ring = k0 && k0.ring && k0.ring.v != null ? k0.ring : null, C = 263.89;
-      w.view = { id: w.id, name: w.name, isSun: w.type === 'sun', sn: w.sn || {}, isRoute: w.type === 'route', rt: w.rt || {}, isKpi: w.type === 'kpi' && !w.viz, isList: w.type === 'list' && !w.viz, isTimeline: w.viz === 'timeline', isStrip: w.viz === 'strip', isFeed: w.viz === 'feed', isDocs: w.viz === 'docs', isRiskmap: w.viz === 'riskmap', isHero: w.viz === 'hero', isQueue: w.viz === 'queue', isLate: w.viz === 'late', isCal: w.viz === 'cal', isTasks: w.viz === 'tasks', vz: w.vz || {}, isBars: w.type === 'bars', isSpark: w.type === 'spark', isGantt: w.type === 'gantt', isAi: w.type === 'ai', rows, listDot, listEmpty: w.type === 'list' && !w.viz && !rows.length, s: w.s || {}, g: w.g2 || {},
-        hasMeta: w.type === 'ai' || w.type === 'bars' || !!(w.vz && w.vz.meta), meta: w.type === 'ai' ? '✦ Jev · ' + ((w.ai || {}).at || '') : w.type === 'bars' ? 'réel · ▏référence' : (w.vz && w.vz.meta) || '',
+      w.view = { id: w.id, name: w.name, isSun: w.type === 'sun', sn: w.sn || {}, isRoute: w.type === 'route', rt: w.rt || {}, isKpi: w.type === 'kpi' && !w.viz, isList: w.type === 'list' && !w.viz, isTimeline: w.viz === 'timeline', isStrip: w.viz === 'strip', isFeed: w.viz === 'feed', isDocs: w.viz === 'docs', isRiskmap: w.viz === 'riskmap', isHero: w.viz === 'hero', isQueue: w.viz === 'queue', isLate: w.viz === 'late', isCal: w.viz === 'cal', isTasks: w.viz === 'tasks', isCountdown: w.viz === 'countdown', isWeather: w.viz === 'weather', vz: w.vz || {}, isBars: w.type === 'bars' && !w.viz, isSpark: w.type === 'spark', isGantt: w.type === 'gantt', isAi: w.type === 'ai', rows, listDot, listEmpty: w.type === 'list' && !w.viz && !rows.length, s: w.s || {}, g: w.g2 || {},
+        hasMeta: w.type === 'ai' || !!(w.vz && w.vz.meta) || w.type === 'bars', meta: w.type === 'ai' ? '✦ Jev · ' + ((w.ai || {}).at || '') : (w.vz && w.vz.meta) || (w.type === 'bars' ? 'réel · ▏référence' : ''),
         metaS: w.type === 'ai' ? 'font-size:10px;font-weight:800;letter-spacing:.04em;color:#1d8f86;background:rgba(29,143,134,.1);border-radius:999px;padding:3px 9px;white-space:nowrap' : 'font-size:10px;font-weight:700;color:var(--wm,#8a9aa6);white-space:nowrap',
         ai: w.ai ? { ...w.ai, pts: (w.ai.pts || []).map((p, i) => { const c = colorOf(String(p.dot).replace('background:', 'color:'));
           const segs = String(p.t).split(/((?:[+−-])?\d+(?:[.,]\d+)?\s?(?:%|pts|j)(?![\wà-ü])|^\d+|\b[RDAJP]-?\d{2,3}\b)/).map((x, k) => ({ x, s: k % 2 ? 'font-weight:800;color:var(--wi,#10233a)' : '' })).filter(g => g.x);

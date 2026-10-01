@@ -251,6 +251,31 @@
       </sc-if>
     </div>
   </sc-if>
+  <sc-if value="{{ w.isCountdown }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;min-height:0;display:flex;flex-direction:column;justify-content:space-between;gap:12px">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px;min-width:0">
+        <span style="font-size:46px;font-weight:800;font-style:italic;letter-spacing:-.05em;line-height:.86;font-variant-numeric:tabular-nums;color:var(--wi,#10233a);white-space:nowrap">{{ w.vz.cd.v }}</span>
+        <span style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;padding-bottom:1px;min-width:0"><span style="font-size:12px;font-weight:800;color:var(--wi,#10233a);white-space:nowrap">{{ w.vz.cd.wk }}</span><span style="font-size:10.5px;font-weight:600;color:var(--wm,#8a9aa6);white-space:nowrap">{{ w.vz.cd.wd }}</span></span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:7px">
+        <span style="position:relative;display:block;height:6px;border-radius:3px;background:var(--wt,#eef3f2)"><span style="{{ w.vz.cd.fillS }}"></span><sc-for list="{{ w.vz.cd.ticks }}" as="k" hint-placeholder-count="4"><span title="{{ k.tip }}" style="{{ k.st }}"></span></sc-for><span style="{{ w.vz.cd.nowS }}"></span></span>
+        <span style="display:flex;justify-content:space-between;gap:10px;font-size:10px;font-weight:700;color:var(--wm,#8a9aa6);white-space:nowrap"><span style="min-width:0;overflow:hidden;text-overflow:ellipsis">{{ w.vz.cd.a }}</span><span style="flex:none;color:var(--wi,#10233a)">{{ w.vz.cd.b }}</span></span>
+      </div>
+    </div>
+  </sc-if>
+  <sc-if value="{{ w.isWeather }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:14px">
+      <sc-for list="{{ w.vz.wx.rows }}" as="r" hint-placeholder-count="4">
+        <div title="{{ r.tip }}" style="display:grid;grid-template-columns:18px minmax(0,150px) minmax(0,1fr) 62px 36px;gap:12px;align-items:center">
+          <span style="display:grid;place-items:center"><sc-if value="{{ r.sun }}" hint-placeholder-val="{{ true }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="{{ r.icS }}"><circle cx="12" cy="12" r="4.2" fill="currentColor" fill-opacity=".18"></circle><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"></path></svg></sc-if><sc-if value="{{ r.cloud }}" hint-placeholder-val="{{ false }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="{{ r.icS }}"><path d="M8.5 5.2V4M4.6 6.6l-.8-.8M3.4 10.5H2.2M12.4 6.6l.8-.8"></path><path d="M5.6 11.6a3.2 3.2 0 0 1 5.9-2.6"></path><path d="M8.5 20h9a3.5 3.5 0 0 0 .4-7 5 5 0 0 0-9.6.6A3.2 3.2 0 0 0 8.5 20z" fill="currentColor" fill-opacity=".18"></path></svg></sc-if><sc-if value="{{ r.rain }}" hint-placeholder-val="{{ false }}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="{{ r.icS }}"><path d="M7.5 15h10a3.8 3.8 0 0 0 .4-7.6 5.5 5.5 0 0 0-10.6.7A3.5 3.5 0 0 0 7.5 15z" fill="currentColor" fill-opacity=".18"></path><path d="M9 18l-1 2.5M13 18l-1 2.5M17 18l-1 2.5"></path></svg></sc-if></span>
+          <span style="font-size:12.5px;font-weight:600;color:var(--wi,#10233a);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.t }}</span>
+          <span style="position:relative;display:block;height:6px;border-radius:3px;background:var(--wt,#eef3f2)"><span style="{{ r.fillS }}"></span><span style="{{ r.zoneS }}"></span><span style="{{ r.refS }}"></span></span>
+          <span style="{{ r.gapS }}">{{ r.gap }}</span>
+          <span style="font-size:11px;font-weight:600;text-align:right;color:var(--wm,#8a9aa6);font-variant-numeric:tabular-nums;white-space:nowrap">{{ r.v }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </sc-if>
   <sc-if value="{{ w.isBars }}" hint-placeholder-val="{{ false }}">
     <div style="flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:13px">
       <sc-for list="{{ w.rows }}" as="r" hint-placeholder-count="4">

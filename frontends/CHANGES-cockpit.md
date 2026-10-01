@@ -254,3 +254,8 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 - Mes tâches : nombre, validations et retards, deux prochaines tâches ; état « Rien à faire aujourd'hui » avec coche.
 - Échéances des 15 prochains jours : ruban sans cases — jours chargés en encre, jours vides effacés, semaines séparées par un filet ; symboles repris devant chaque échéance de la liste.
 - Documents récents : icône de fichier teintée par format, pages dans les métadonnées, composition de la base par format et total en pied.
+
+## Compte à rebours Go-Live et Météo des chantiers : nouvelle mise en forme (01/10/2026)
+
+- Compte à rebours Go-Live : J-N en grand, semaines et jours ouvrés restants ; frise du lancement (début de la première phase) au Go-Live, temps écoulé en encre, débuts de phase en repères (détail au survol), aujourd'hui marqué ; « N % écoulé depuis … ».
+- Météo des chantiers : pictogramme météo par chantier selon l'écart au prévu (soleil à l'heure, éclaircie au-dessus de −10 pts, pluie au-delà ; `WS_GAP_WATCH`), barre du réel en encre, retard hachuré jusqu'au prévu, écart en points en clair, réel en second ; détail du chantier (scénarios) au survol.
