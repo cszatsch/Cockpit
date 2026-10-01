@@ -132,7 +132,8 @@ export class LlmClient {
       }, c.key, c.timeoutMs);
       const text = (j?.content ?? []).filter((b: any) => b?.type === 'text').map((b: any) => b.text).join('').trim();
       const u = j?.usage ?? {}, read = num(u.cache_read_input_tokens), write = num(u.cache_creation_input_tokens);
-      return { ...this.result('Anthropic', text, typeof u.input_tokens === 'number' ? u.input_tokens + read + write : undefined, u.output_tokens), cacheRead: read, cacheWrite: write };
+      const why = `arrêt : ${j?.stop_reason ?? 'inconnu'} · blocs : ${(j?.content ?? []).map((b: any) => b?.type).join(', ') || 'aucun'}`;
+      return { ...this.result('Anthropic', text, typeof u.input_tokens === 'number' ? u.input_tokens + read + write : undefined, u.output_tokens, why), cacheRead: read, cacheWrite: write };
     }
     if (p.kind === 'gemini') {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(c.model)}:generateContent`;
@@ -197,8 +198,8 @@ export class LlmClient {
     return { results, tokens: typeof u.total_tokens === 'number' ? u.total_tokens : typeof u.prompt_tokens === 'number' ? u.prompt_tokens : null };
   }
 
-  private result(label: string, text: string, tin: unknown, tout: unknown): LiveResult {
-    if (!text) throw new LlmCallError(`${label} : réponse vide`);
+  private result(label: string, text: string, tin: unknown, tout: unknown, why?: string): LiveResult {
+    if (!text) throw new LlmCallError(`${label} : réponse vide${why ? ` (${why})` : ''}`);
     return { text, tokensIn: typeof tin === 'number' ? tin : null, tokensOut: typeof tout === 'number' ? tout : null };
   }
 

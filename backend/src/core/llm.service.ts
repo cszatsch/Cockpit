@@ -4,6 +4,7 @@ import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from './prisma.service';
 import { ApiError } from './errors';
 import { decryptSecret } from './crypto';
+import { techErrors } from './tech-errors';
 import { KeyTestResult, ProviderKeyTester } from './provider-key-tester';
 import { CACHE_READ_FACTOR, CACHE_WRITE_FACTOR, ChatTurn, LlmCallError, LlmClient } from './llm-client';
 
@@ -102,6 +103,22 @@ export const budgetLineOf = (functionId: string) => aiFunction(functionId)?.budg
  */
 // Insights en génération réelle depuis le 01/10/2026 (Jev du Cockpit, cas 1 ; arbitrage du commanditaire).
 export const LIVE_FUNCTIONS: readonly AiFunctionId[] = ['guidage', 'doc_syn', 'insights', 'crud'];
+
+/**
+ * Incident « IA » remonté aux notifications de la Console (01/10/2026) : un par fonction, ouvert dès que le modèle
+ * principal échoue (secours utilisé ou fonction indisponible), fermé à la réussite suivante du modèle principal.
+ * Les erreurs métier (`ApiError`) ne passent pas par le filtre des erreurs techniques : sans cela, aucune trace à la Console.
+ */
+export const aiIncidentKey = (functionId: string) => `IA · fonction ${aiFunction(functionId)?.short ?? functionId}`;
+function aiIncident(functionId: string, message: string) {
+  const key = aiIncidentKey(functionId);
+  techErrors.open.add(key);
+  techErrors.onError?.(key, message);
+}
+function aiRecovered(functionId: string) {
+  const key = aiIncidentKey(functionId);
+  if (techErrors.open.delete(key)) techErrors.onRecovered?.(key);
+}
 /** Vectorisation : textes par appel, reprises sur erreur passagère et attentes entre reprises. */
 export const EMBED_BATCH_SIZE = 32;
 export const EMBED_RETRIES = 2;
@@ -154,15 +171,23 @@ export class LlmService {
     const fn = aiFunction(input.functionId);
     const label = `Fonction ${fn?.short ?? input.functionId}`;
     try {
-      return await this.runLive(route.modelId, input, route.fallback);
+      const r = await this.runLive(route.modelId, input, route.fallback);
+      if (!route.fallback) aiRecovered(input.functionId);
+      return r;
     } catch (e) {
       if (!(e instanceof LlmCallError)) throw e;
       const asg = await this.prisma.modelAssignment.findUnique({ where: { functionId: input.functionId } });
-      if (route.fallback || !(await this.modelAvailable(asg?.fallbackModelId, fn?.category ?? 'LLM'))) throw new ApiError(503, 'AI_UNAVAILABLE', `${label} indisponible : ${e.message}`);
+      if (route.fallback || !(await this.modelAvailable(asg?.fallbackModelId, fn?.category ?? 'LLM'))) {
+        aiIncident(input.functionId, `${label} indisponible : ${e.message}`);
+        throw new ApiError(503, 'AI_UNAVAILABLE', `${label} indisponible : ${e.message}`);
+      }
       try {
-        return await this.runLive(asg!.fallbackModelId!, input, true);
+        const r = await this.runLive(asg!.fallbackModelId!, input, true);
+        aiIncident(input.functionId, `modèle principal en échec (${e.message}) ; réponse fournie par le modèle de secours`);
+        return r;
       } catch (e2) {
         if (!(e2 instanceof LlmCallError)) throw e2;
+        aiIncident(input.functionId, `${label} indisponible : ${e.message} ; secours : ${e2.message}`);
         throw new ApiError(503, 'AI_UNAVAILABLE', `${label} indisponible : ${e.message} ; secours : ${e2.message}`);
       }
     }
@@ -355,13 +380,21 @@ export class LlmService {
       return { modelId: model.id, modelName: model.name, fallbackUsed, results: out.results.slice(0, topN) };
     };
     try {
-      return await attempt(route.modelId, route.fallback);
+      const r = await attempt(route.modelId, route.fallback);
+      if (!route.fallback) aiRecovered('doc_rrk');
+      return r;
     } catch (e) {
       if (!(e instanceof LlmCallError)) throw e;
-      if (route.fallback || !(await this.modelAvailable(asg?.fallbackModelId, 'RERANKING'))) throw new ApiError(503, 'AI_UNAVAILABLE', `Reclassement indisponible : ${e.message}`);
+      if (route.fallback || !(await this.modelAvailable(asg?.fallbackModelId, 'RERANKING'))) {
+        aiIncident('doc_rrk', `Reclassement indisponible : ${e.message}`);
+        throw new ApiError(503, 'AI_UNAVAILABLE', `Reclassement indisponible : ${e.message}`);
+      }
       try {
-        return await attempt(asg!.fallbackModelId!, true);
+        const r = await attempt(asg!.fallbackModelId!, true);
+        aiIncident('doc_rrk', `modèle principal en échec (${e.message}) ; reclassement fourni par le modèle de secours`);
+        return r;
       } catch (e2) {
+        aiIncident('doc_rrk', `Reclassement indisponible : ${e.message} ; secours : ${e2 instanceof Error ? e2.message : e2}`);
         throw new ApiError(503, 'AI_UNAVAILABLE', `Reclassement indisponible : ${e.message} ; secours : ${e2 instanceof Error ? e2.message : e2}`);
       }
     }

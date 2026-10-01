@@ -1,5 +1,5 @@
 import { setup, TestCtx, Client, WHO } from '../helpers';
-import { LlmService } from '../../src/core/llm.service';
+import { aiIncidentKey, LlmService } from '../../src/core/llm.service';
 import { LlmClient } from '../../src/core/llm-client';
 import { encryptSecret } from '../../src/core/crypto';
 import { JEV_SYSTEM_PROMPT } from '../../src/domain/jev-prompt';
@@ -274,6 +274,24 @@ describe('Console — Jev et la fonction guidage', () => {
       expect(JSON.stringify(r.body)).not.toContain('0000000000000000AbCd');
       expect(JSON.stringify(r.body)).not.toContain('000000000000000WxYz');
       expect(await t.db.usageRecord.count({ where: { functionId: 'guidage' } })).toBe(before);
+    });
+
+    it('incident « IA » à la Console : ouvert quand le principal échoue (secours ou indisponible), fermé à sa réussite suivante', async () => {
+      const key = `tech:${aiIncidentKey('guidage')}`;
+      const incident = async () => { await new Promise((r) => setTimeout(r, 100)); return t.db.notification.findUnique({ where: { key } }); };
+      // Réponse vide : motif d'arrêt et blocs reçus dans le message.
+      live((r) => (r.url.includes('anthropic') ? { status: 200, json: { stop_reason: 'max_tokens', content: [{ type: 'thinking', thinking: '…' }], usage: { input_tokens: 10, output_tokens: 300 } } } : { status: 200, json: { choices: [{ message: { content: 'Réponse du secours.' } }], usage: { prompt_tokens: 900, completion_tokens: 20 } } }));
+      await admin.post(JEV, { context: { section: 'overview' }, text: 'Que montre cette page ?' }).expect(200);
+      expect(await incident()).toMatchObject({ kind: 'ERR', status: 'OPEN', text: expect.stringContaining('Anthropic : réponse vide (arrêt : max_tokens · blocs : thinking)') });
+      expect((await incident())!.text).toContain('modèle de secours');
+      // Principal et secours en échec : l'incident décrit l'indisponibilité.
+      live(() => ({ status: 503, json: { error: { message: 'Overloaded' } } }));
+      await admin.post(JEV, { context: { section: 'overview' }, text: 'Que montre cette page ?' }).expect(200);
+      expect((await incident())!.text).toMatch(/indisponible : Anthropic · 503.*secours : OpenAI · 503/);
+      // Le principal répond de nouveau : incident fermé.
+      live(() => anthropicOk);
+      await admin.post(JEV, { context: { section: 'overview' }, text: 'Que montre cette page ?' }).expect(200);
+      expect(await incident()).toMatchObject({ status: 'RESOLVED' });
     });
 
     it('les autres fonctions gardent le bouchon (aucun appel sortant)', async () => {
