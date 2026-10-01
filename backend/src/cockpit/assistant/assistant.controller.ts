@@ -1,6 +1,7 @@
 import { span, traced, traceMeta } from '../../core/trace';
 import { Body, Controller, HttpCode, Param, Post, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { JevPromptService } from '../../core/jev-prompt.service';
+import { stripMarkdownLinks } from '../../domain/jev-prompt';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
@@ -94,7 +95,8 @@ export class AssistantController {
         return { conv, mem: await this.memory.memory(conv) };
       });
       traceMeta('conversation', conv.id);
-      const out = await this.answer(scope, actor, conv, input, mem.history);
+      const raw = await this.answer(scope, actor, conv, input, mem.history);
+      const out = { ...raw, reply: stripMarkdownLinks(raw.reply) };
       traceMeta('cas', out.route);
       await span('enregistrement de l’échange dans la mémoire (base)', () => this.memory.record(conv, input.text, out.reply, out.sources.map((x) => x.label), { route: out.route }));
       return { ...out, conversationId: conv.id };

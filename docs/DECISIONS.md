@@ -1046,3 +1046,10 @@ Cause : la vectorisation de la question par le modèle de l'index du guide (qwen
 | Constat | Question sur la Base de connaissance (cas 4a) : Claude Sonnet 5 (fonction Synthèse) répond 200 sans aucun bloc de texte, puis le secours Google Gemini répond 503 (surcharge, après 10 s). L'erreur levée est une erreur métier (`ApiError` 503) : le filtre des erreurs techniques l'ignore, rien n'arrive à la Console | `ApiExceptionFilter`, `LlmService.complete` |
 | Signalement | Un incident « Erreur technique » par fonction d'IA (« IA · fonction Synthèse »…), ouvert dès que le modèle principal échoue — secours utilisé (mode dégradé) ou fonction indisponible —, fermé à la réussite suivante du modèle principal ; génération et reclassement | `aiIncidentKey`, `techErrors` (`backend/src/core/llm.service.ts`) |
 | Réponse vide | Le message d'erreur précise le motif d'arrêt et les types de blocs reçus (« réponse vide (arrêt : max_tokens · blocs : thinking) ») : la cause sera identifiable au prochain cas (non reproduite en trois essais avec le même prompt et le même catalogue) | `LlmClient.result` |
+
+## Jev du Cockpit : vouvoiement et liens (01/10/2026)
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Vouvoiement | Constat : réponses du guide au « tu », car la Persona dit « Je tutoie » et les règles du guide demandaient « le registre de l'utilisateur ». Le Cockpit vouvoie toujours, même contre la Persona ou une question au « tu » ; règles du guide du Cockpit : « en vouvoyant l'utilisateur » (la Console garde le registre de l'utilisateur) | `COCKPIT_REGISTER_RULE` (`jev-prompt.ts`), `guideAnswerRules('cockpit')` (`jev-rag.ts`) |
+| Liens | Constat : la skill « Guidage Cockpit » demande de « terminer par le lien vers l'écran », le panneau n'en ouvre aucun et le modèle inventait « cockpit://… ». Consigne : aucun lien, l'écran désigné par son chemin en gras ; filet de sécurité : tout lien Markdown d'une réponse devient son libellé en gras | `COCKPIT_LINK_RULE`, `stripMarkdownLinks` (`AssistantController.message`) |

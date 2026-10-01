@@ -122,7 +122,8 @@ export const guideAnswerRules = (app: 'console' | 'cockpit' = 'console') => [
   '- Ne termine pas par une ligne ou une liste « Sources » : les sources s’affichent déjà sous la réponse.',
   '- Si les extraits ne permettent pas de répondre, dis-le clairement : « Le guide utilisateur ne précise pas… », puis indique ce qui s’en approche le plus, sans rien inventer.',
   '- Reprends les libellés exacts des boutons et des pages entre guillemets, et les étapes dans l’ordre.',
-  '- Réponds en français, au registre de l’utilisateur, sans formule de politesse.',
+  // Cockpit : vouvoiement imposé (le ton de l'utilisateur et la Persona n'y changent rien, 01/10/2026).
+  app === 'cockpit' ? '- Réponds en français, en vouvoyant l’utilisateur, sans formule de politesse.' : '- Réponds en français, au registre de l’utilisateur, sans formule de politesse.',
 ].join('\n');
 export const GUIDE_ANSWER_RULES = guideAnswerRules('console');
 

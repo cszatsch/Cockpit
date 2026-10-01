@@ -183,11 +183,19 @@ export function cockpitCaseParts(base: string, persona: PersonaText | null, skil
   const on = skills.filter((s) => s.on), k = skillName ? skillKey(skillName) : null;
   const skill = k ? on.find((s) => skillKey(s.n) === k) ?? on.find((s) => skillKey(s.n).startsWith(k)) ?? null : null;
   const head = assembleJevPrompt(base, persona, skill ? [{ ...skill, position: 0 }] : []);
-  return { stable: `${head}\n\n${CONSOLE_FORMAT_RULES}\n- ${COCKPIT_REGISTER_RULE}`, page, skill: skill ? skill.n : null };
+  return { stable: `${head}\n\n${CONSOLE_FORMAT_RULES}\n- ${COCKPIT_REGISTER_RULE}\n- ${COCKPIT_LINK_RULE}`, page, skill: skill ? skill.n : null };
 }
 
-/** Registre du Cockpit : l'application vouvoie ses utilisateurs (écrans, messages, guide). */
-export const COCKPIT_REGISTER_RULE = 'Vouvoie toujours l’utilisateur, comme le reste de l’application.';
+/**
+ * Registre du Cockpit : l'application vouvoie ses utilisateurs (écrans, messages, guide). La règle l'emporte sur la
+ * Persona (« Je tutoie… », 01/10/2026) et sur le ton de la question.
+ */
+export const COCKPIT_REGISTER_RULE = 'Vouvoie toujours l’utilisateur, comme le reste de l’application, même si ta Persona indique le tutoiement ou si l’utilisateur te tutoie.';
+/** Le panneau de Jev du Cockpit n'ouvre aucun écran : pas de lien (le modèle inventait des adresses « cockpit:// »). */
+export const COCKPIT_LINK_RULE = 'N’écris aucun lien ni aucune adresse : le panneau ne peut pas ouvrir d’écran. Désigne l’écran par son chemin en gras, par exemple **Pilotage › Risques et problèmes**.';
+
+/** Filet de sécurité : un lien Markdown restant devient son libellé en gras (« [Info projet](cockpit://…) » → « **Info projet** »). */
+export const stripMarkdownLinks = (s: string) => s.replace(/\[([^\]\n]+)\]\([^)\s]*\)/g, (_m, label: string) => (/^\*\*.*\*\*$/.test(label) ? label : `**${label}**`));
 
 export function assembleConsoleGuidancePrompt(base: string, persona: PersonaText | null, skills: SkillText[], page: string): string {
   const skill = pickGuidanceSkill(skills);
