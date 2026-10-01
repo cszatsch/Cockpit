@@ -25,6 +25,8 @@ describe('Jev — guide de l’application d’où vient la question', () => {
   let admin: Client;
   let pmo: Client;
   let next: string;
+  let nextConf = 0.95;
+  let nextWrite: number | null = null;
   let sent: any[];
   let token: string;
 
@@ -40,7 +42,7 @@ describe('Jev — guide de l’application d’où vient la question', () => {
       sent.push(req);
       // Cockpit : question « cas_usage » (5 cas) ; Console : question « type_question ».
       const qid = req.questions[COCKPIT_Q_CASE] ? COCKPIT_Q_CASE : ROUTER_QUESTION_ID;
-      return new Response(JSON.stringify({ model: 'jev-1.13.0', answers: { [qid]: { type: 'choice', choice: next, confidence: 0.95, probabilities: { [next]: 0.95 } } } }), { status: 200, headers: { 'content-type': 'application/json' } });
+      return new Response(JSON.stringify({ model: 'jev-1.13.0', answers: { [qid]: { type: 'choice', choice: next, confidence: nextConf, probabilities: { [next]: nextConf } }, ...(nextWrite === null ? {} : { demande_ecriture: { type: 'noul', noul: nextWrite } }) } }), { status: 200, headers: { 'content-type': 'application/json' } });
     }) as any;
   });
   afterAll(() => t.close());
@@ -67,7 +69,11 @@ describe('Jev — guide de l’application d’où vient la question', () => {
     expect(r.body).toMatchObject({ reply: guideMissingReply('cockpit'), sources: [] });
   });
 
-  it('question depuis le Cockpit : uniquement le guide du Cockpit, avec les réglages du Cockpit ; rédaction par la Synthèse', async () => {
+  it('question depuis le Cockpit : uniquement le guide du Cockpit, avec les réglages du Cockpit ; rédaction par le Guidage, skill « Guidage Cockpit » seule', async () => {
+    await t.db.skill.createMany({ data: [
+      { n: 'Guidage Cockpit', t: '## Objectif\nGuider l’utilisateur du Cockpit.', on: true, position: 90, updatedBy: 'Test' },
+      { n: 'Insights', t: '## Objectif\nAnalyser les données.', on: true, position: 91, updatedBy: 'Test' },
+    ] });
     await deposit('cockpit', cockpitGuidePdf('A'));
     // Réglages propres au Cockpit (seuil à 0 : similarités des vecteurs simulés ; 2 extraits conservés).
     await admin.put(`${A}/guides/cockpit/settings`, { k: 8, keep: 2, thr: 0, tv: 10, tr: 8, tw: 30 }).expect(200);
@@ -82,9 +88,13 @@ describe('Jev — guide de l’application d’où vient la question', () => {
       expect(s.label).not.toMatch(CONSOLE_HEADINGS);
     }
     expect(rr.mock.calls[0][2]).toBe(2);
-    const call = llm.mock.calls.find((c) => c[0].functionId === 'doc_syn')![0];
+    const call = llm.mock.calls.find((c) => c[0].functionId === 'guidage')![0];
+    expect(llm.mock.calls.some((c) => c[0].functionId === 'doc_syn')).toBe(false);
     expect(call.system).toContain(guideAnswerRules('cockpit'));
-    expect(call.systemTail).toMatch(/## Extraits du guide utilisateur/);
+    expect(call.system).toContain('## Skill : Guidage Cockpit');
+    expect(call.system).not.toContain('## Skill : Insights');
+    expect(call.cache).toBe(true);
+    expect(call.systemTail).toMatch(/Écran ouvert du Cockpit : pilotage › actions[\s\S]*## Extraits du guide utilisateur/);
     expect(call.systemTail).not.toMatch(CONSOLE_HEADINGS);
     llm.mockRestore(); rr.mockRestore();
   });
@@ -102,5 +112,52 @@ describe('Jev — guide de l’application d’où vient la question', () => {
     const r = await askCockpit('Quels risques sont critiques ?', 'donnees');
     expect(r.body.route).toBe('1');
     expect((r.body.sources || []).every((s: any) => s.entityType !== 'GUIDE')).toBe(true);
+  });
+
+  describe('cas 5 — clarification par le modèle Guidage', () => {
+    afterEach(() => { nextConf = 0.95; nextWrite = null; });
+    const clarify = async (text: string) => {
+      const llm = jest.spyOn(t.app.get(LlmService), 'complete');
+      const r = await pmo.post(C, { context: { space: 'pilotage', tab: 'risques' }, text }).expect(200);
+      const call = llm.mock.calls.find((c) => c[0].functionId === 'guidage')?.[0];
+      llm.mockRestore();
+      return { body: r.body, call };
+    };
+
+    it('question ambiguë : demande de précision rédigée par Guidage, sans proposition ni source, modèle tracé', async () => {
+      next = 'clarification';
+      const { body, call } = await clarify('planning ?');
+      expect(body).toMatchObject({ route: '5', reason: 'AMBIGU', sources: [], proposedChanges: [] });
+      expect(typeof body.reply).toBe('string');
+      expect(call!.prompt).toMatch(/^Génère une réponse à cette demande qui nécessite une clarification de l’utilisateur :\nplanning \?/);
+      expect(call!.system).toMatch(/## Demander une précision/);
+      expect(call!.cache).toBe(true);
+      expect(call!.systemTail).toMatch(/Écran ouvert du Cockpit : pilotage › risques/);
+      const trace = await t.db.jevClassification.findFirst({ where: { app: 'cockpit', question: 'planning ?' }, orderBy: { at: 'desc' } });
+      expect(trace).toMatchObject({ type: '5', choice: 'clarification' });
+    });
+
+    it('hors sujet : rappel du périmètre', async () => {
+      next = 'hors_sujet';
+      const { body, call } = await clarify('Quelle est la capitale du Pérou ?');
+      expect(body).toMatchObject({ route: '5', reason: 'HORS_SUJET' });
+      expect(call!.prompt).toMatch(/sans rapport avec le Cockpit/);
+    });
+
+    it('écriture incertaine (sous le seuil d’écriture) : confirmation demandée, aucune proposition enregistrée', async () => {
+      next = 'modification'; nextConf = 0.7; nextWrite = 0.9;
+      const before = await t.db.assistantChange.count();
+      const { body, call } = await clarify('Note que la décision D-005 est arbitrée.');
+      expect(body).toMatchObject({ route: '5', reason: 'ECRITURE', proposedChanges: [] });
+      expect(call!.prompt).toMatch(/confirmer ce qu’il veut enregistrer/);
+      expect(await t.db.assistantChange.count()).toBe(before);
+    });
+
+    it('confiance insuffisante : la piste probable est donnée au modèle', async () => {
+      next = 'donnees_et_documents'; nextConf = 0.3;
+      const { body, call } = await clarify('les jalons du kick off ?');
+      expect(body).toMatchObject({ route: '5', reason: 'CONFIANCE' });
+      expect(call!.prompt).toMatch(/données \+ documents/);
+    });
   });
 });

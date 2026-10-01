@@ -119,6 +119,7 @@ export const guideAnswerRules = (app: 'console' | 'cockpit' = 'console') => [
   `La question porte sur l’utilisation ou le fonctionnement ${app === 'cockpit' ? 'du Cockpit' : 'de la Console'}. Des extraits du guide utilisateur sont fournis dans la section « Extraits du guide utilisateur ».`,
   '- Réponds uniquement à partir de ces extraits : n’ajoute aucune règle, aucun délai, aucun libellé ni aucune étape qui n’y figure pas.',
   '- Cite tes sources dans le texte, sous la forme (section, p. N), par exemple (3.18.4 Planification et règle de rattrapage, p. 31).',
+  '- Ne termine pas par une ligne ou une liste « Sources » : les sources s’affichent déjà sous la réponse.',
   '- Si les extraits ne permettent pas de répondre, dis-le clairement : « Le guide utilisateur ne précise pas… », puis indique ce qui s’en approche le plus, sans rien inventer.',
   '- Reprends les libellés exacts des boutons et des pages entre guillemets, et les étapes dans l’ordre.',
   '- Réponds en français, au registre de l’utilisateur, sans formule de politesse.',

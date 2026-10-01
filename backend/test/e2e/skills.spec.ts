@@ -1,6 +1,6 @@
 import { setup, TestCtx, Client, WHO } from '../helpers';
-import { LlmService } from '../../src/core/llm.service';
 import { JEV_SYSTEM_PROMPT } from '../../src/domain/jev-prompt';
+import { JevPromptService } from '../../src/core/jev-prompt.service';
 
 const SK = '/api/assistant/skills';
 
@@ -81,15 +81,9 @@ describe('Console — skills de Jev', () => {
   });
 
   it('prompt de Jev : skills actives après le prompt de base, dans l’ordre ; une skill désactivée disparaît dès la réponse suivante', async () => {
-    const llm = t.app.get(LlmService);
-    const spy = jest.spyOn(llm, 'complete');
-    // Jev du Cockpit : toutes les skills actives (le Jev de la Console n'envoie que la skill de guidage, voir guidage.spec.ts).
-    const pmo = await t.as(WHO.pmo);
-    const ask = async () => {
-      spy.mockClear();
-      await pmo.post('/api/projects/RISE/assistant/messages', { context: { space: 'pilotage', tab: 'actions' }, text: 'Bonjour Jev' }).expect(200);
-      return spy.mock.calls[0][0].system!;
-    };
+    // Prompt complet de Jev (toutes les skills actives). Le Jev du Cockpit n'envoie que la skill du cas d'usage
+    // (jev-cockpit-guide.spec.ts), celui de la Console que la skill de guidage (guidage.spec.ts).
+    const ask = () => t.app.get(JevPromptService).systemPrompt();
     let sys = await ask();
     expect(sys.startsWith(JEV_SYSTEM_PROMPT)).toBe(true);
     expect(sys).toContain('## Skill : Analyser le projet\n## Objectif\n');
@@ -101,6 +95,5 @@ describe('Console — skills de Jev', () => {
     sys = await ask();
     expect(sys).not.toContain('Guider l’utilisateur');
 
-    spy.mockRestore();
   });
 });

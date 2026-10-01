@@ -259,3 +259,9 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 
 - Compte à rebours Go-Live : J-N en grand, semaines et jours ouvrés restants ; frise du lancement (début de la première phase) au Go-Live, temps écoulé en encre, débuts de phase en repères (détail au survol), aujourd'hui marqué ; « N % écoulé depuis … ».
 - Météo des chantiers : pictogramme météo par chantier selon l'écart au prévu (soleil à l'heure, éclaircie au-dessus de −10 pts, pluie au-delà ; `WS_GAP_WATCH`), barre du réel en encre, retard hachuré jusqu'au prévu, écart en points en clair, réel en second ; détail du chantier (scénarios) au survol.
+
+## Jev : réponses mises en forme, attente visible (01/10/2026)
+
+- Les réponses de Jev sont mises en forme comme dans la Console (`jev-format.js` : titres, listes, paires libellé / valeur, tableaux en fiches, pastilles de statut) ; les sources s'affichent en étiquettes sous la réponse (une ligne « Sources : … » écrite par le modèle est retirée) ; les messages d'erreur sont signalés (`err`).
+- Indicateur « Jev réfléchit » (trois points) pendant l'appel au serveur (`jevThink`).
+- `jev-format.js` : une liste numérotée dont les étapes sont séparées par des lignes vides (ou suivies de lignes en retrait) reste une seule liste et garde la numérotation du modèle (avant : « 1. » à chaque étape). S'applique aussi à la Console.

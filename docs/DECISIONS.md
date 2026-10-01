@@ -952,3 +952,16 @@ Brief « Aiguillage des questions dans l'assistant JEV (application Cockpit) ».
 | Banc d'essai | 110 questions, cas attendus fixés avant les appels, 3 passages ; rapport `docs/RAPPORT - aiguillage de Jev (Cockpit).md` | `npm run jev:aiguillage-cockpit`, `test/fixtures/jev-routage-cockpit.json` |
 | Ancien aiguillage du Cockpit | Les 4 classes `cockpit-v1` (usage, données, mixte, hors sujet) sont retirées ; la Console garde les siennes | `jev-router.ts` |
 | Branchement provisoire | En attendant les étapes suivantes : cas 2 → guide du Cockpit (inchangé) ; autres cas → traitement existant (bouchon et propositions) ; le cas retenu est renvoyé dans la réponse (`route`) | `AssistantController.message` |
+
+## Jev du Cockpit : cas 2 (guide) et cas 5 (clarification) (01/10/2026)
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Cas 2 — modèle | Rédaction par le modèle de la fonction Guidage (« Guidage Console / Cockpit »), et non plus par la Synthèse | `COCKPIT_CASE_ROUTE['2']`, `GuideAnswerService.answer({ functionId })` |
+| Cas 2 — prompt | Partie stable (mise en cache) : base, Identité, Personnalité, **la seule skill « Guidage Cockpit »**, mise en forme, vouvoiement ; partie variable : écran ouvert, date, puis « Extraits du guide utilisateur » (section, pages) | `cockpitCaseParts`, `JevPromptService.cockpitParts` |
+| Cas 2 — recherche | Inchangée : 8 extraits, seuil de similarité, reclassement (fonction Reclassement) puis 4 gardés, 4 premiers si le reclassement est indisponible ; sans extrait au-dessus du seuil, message fixe sans appel au modèle (« Je n’ai pas trouvé cette information dans le guide utilisateur du Cockpit… ») | `GuideSearchService`, `guideNoExtractReply` |
+| Cas 5 — clarification | Rédigée par le modèle Guidage (proposition du brief), sans skill ; consignes : ce que Jev sait faire dans le Cockpit, ce qui manque, 2 ou 3 reformulations ou choix, rien d’inventé, aucune modification annoncée ; demande ouverte par la phrase du brief | `COCKPIT_CLARIFY_RULES`, `cockpitClarifyPrompt` (`backend/src/domain/jev-cockpit-answers.ts`) |
+| Cas 5 — motifs | AMBIGU (option clarification), HORS_SUJET, CONFIANCE (sous le seuil, piste probable donnée au modèle), ECRITURE (modification incertaine : confirmation demandée), INDISPONIBLE (aiguillage en échec) ; motif renvoyé (`reason`) | `clarifyReasonOf` |
+| Registre | Le Jev du Cockpit vouvoie toujours (comme l’application), quel que soit le Persona | `COCKPIT_REGISTER_RULE` |
+| Sources | Le modèle ne termine plus par une ligne « Sources » (consigne) ; l’écran retire une telle ligne si elle apparaît, les sources s’affichant en étiquettes | `guideAnswerRules`, `jevRich` (`RISE Cockpit.dc.html`) |
+| Journal | Modèle de la réponse ajouté à la trace de l’aiguillage | `JevRouterService.noteAnswerModel` |

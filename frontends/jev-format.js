@@ -125,7 +125,19 @@ export function parse(text) {
     }
     if (kvRe.test(t)) { const items = []; while (i < L.length && kvRe.test(L[i].trim())) { const [, k, v] = kvRe.exec(L[i].trim()); items.push({ k: stripEmoji(k), v: runs(v) }); i++; } out.push({ type: 'kv', items }); continue; }
     if (/^[-*•]\s+/.test(t)) { const items = []; while (i < L.length && /^\s*[-*•]\s+/.test(L[i])) items.push(runs(L[i++].trim().replace(/^[-*•]\s+/, ''))); out.push({ type: 'ul', items }); continue; }
-    if (/^\d+[.)]\s+/.test(t)) { const items = []; while (i < L.length && /^\s*\d+[.)]\s+/.test(L[i])) items.push(runs(L[i++].trim().replace(/^\d+[.)]\s+/, ''))); out.push({ type: 'ol', items }); continue; }
+    // Liste numérotée : étapes séparées par des lignes vides et lignes de suite en retrait réunies dans la même liste ;
+    // la numérotation du modèle est conservée (« 1. … 2. … 3. »).
+    if (/^\d+[.)]\s+/.test(t)) {
+      const items = [], olRe = /^\s*(\d+)[.)]\s+(.*)$/, nextFull = (k) => { while (k < L.length && !L[k].trim()) k++; return k; };
+      while (i < L.length) {
+        const mm = olRe.exec(L[i]);
+        if (mm) { items.push({ n: +mm[1], text: mm[2].trim() }); i++; continue; }
+        if (!L[i].trim()) { const k = nextFull(i); if (k < L.length && (olRe.test(L[k]) || (/^\s{2,}\S/.test(L[k]) && !/^\s*[-*•]\s+/.test(L[k])))) { i = k; continue; } break; }
+        if (/^\s{2,}\S/.test(L[i]) && !/^\s*[-*•]\s+/.test(L[i]) && items.length) { items[items.length - 1].text += ' ' + L[i].trim(); i++; continue; }
+        break;
+      }
+      out.push({ type: 'ol', items: items.map((x) => runs(x.text)), nums: items.map((x) => x.n) }); continue;
+    }
     if (t.startsWith('>')) { const q = []; while (i < L.length && L[i].trim().startsWith('>')) q.push(L[i++].trim().replace(/^>\s?/, '')); out.push({ type: 'quote', runs: runs(q.join(' ')) }); continue; }
     out.push({ type: 'p', raw: t, runs: runs(t) }); i++;
   }
@@ -152,7 +164,7 @@ export function formatJev(text) {
       return { ...F, isP: true, runs: b.runs, st: follow ? `margin:4px 0 0;padding-top:12px;border-top:1px solid ${LINE};font-size:12.5px;line-height:1.55;color:${MUTED};text-wrap:pretty`
         : `margin:0;font-size:13px;line-height:1.6;color:${BODY};text-wrap:pretty` };
     }
-    if (b.type === 'ul' || b.type === 'ol') return { ...(b.type === 'ul' ? { ...F, isUl: true } : { ...F, isOl: true }), items: b.items.map((r, k) => ({ runs: r, n: (k + 1) + '.',
+    if (b.type === 'ul' || b.type === 'ol') return { ...(b.type === 'ul' ? { ...F, isUl: true } : { ...F, isOl: true }), items: b.items.map((r, k) => ({ runs: r, n: ((b.nums && b.nums[k]) || k + 1) + '.',
       mk: b.type === 'ul' ? `flex:none;width:5px;height:5px;margin-top:8px;border-radius:50%;background:${TEAL}` : `flex:none;min-width:16px;font-size:12px;line-height:1.6;font-weight:700;color:${TEAL};font-variant-numeric:tabular-nums` })),
       st: 'display:flex;flex-direction:column;gap:6px', li: `display:flex;gap:10px;font-size:13px;line-height:1.6;color:${BODY};text-wrap:pretty` };
     if (b.type === 'kv') return { ...F, isKv: true, st: `display:flex;flex-direction:column;border-top:1px solid ${LINE}`,

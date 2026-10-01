@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Persona } from '@prisma/client';
 import { PrismaService } from './prisma.service';
-import { assembleConsoleGuidancePrompt, assembleJevPrompt, consoleGuidanceParts, JEV_SYSTEM_PROMPT, PersonaText } from '../domain/jev-prompt';
+import { assembleConsoleGuidancePrompt, assembleJevPrompt, cockpitCaseParts, consoleGuidanceParts, JEV_SYSTEM_PROMPT, PersonaText } from '../domain/jev-prompt';
 
 /** Ligne `Persona` → forme de l'écran et du prompt (`{ identity, soul }`). */
 export const personaText = (p: Persona): PersonaText => ({
@@ -34,6 +34,15 @@ export class JevPromptService {
       this.prisma.skill.findMany({ where: { on: true }, orderBy: { position: 'asc' } }),
     ]);
     return consoleGuidanceParts(JEV_SYSTEM_PROMPT, persona ? personaText(persona) : null, skills, page);
+  }
+
+  /** Prompt du Jev du Cockpit pour un cas d'usage : la seule skill du cas, et l'écran ouvert (partie variable). */
+  async cockpitParts(skillName: string | null, page: string): Promise<{ stable: string; page: string; skill: string | null }> {
+    const [persona, skills] = await Promise.all([
+      this.prisma.persona.findUnique({ where: { id: 'jev' } }),
+      this.prisma.skill.findMany({ where: { on: true }, orderBy: { position: 'asc' } }),
+    ]);
+    return cockpitCaseParts(JEV_SYSTEM_PROMPT, persona ? personaText(persona) : null, skills, skillName, page);
   }
 
   async consolePrompt(page: string): Promise<string> {

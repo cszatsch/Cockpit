@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { LlmService } from '../core/llm.service';
+import { AiFunctionId, LlmService } from '../core/llm.service';
 import { GUIDE_APP_LABELS, GuideApp } from '../domain/guide';
 import { guideAnswerRules, guideExtractsBlock, guideSources } from '../domain/jev-rag';
 import { GuideSearchService } from './guide-search.service';
@@ -31,7 +31,11 @@ export class GuideAnswerService {
     private readonly llm: LlmService,
   ) {}
 
-  async answer(app: GuideApp, question: string, opts: { system: string; projectId?: string | null }): Promise<GuideAnswer> {
+  /**
+   * `functionId` : modèle de rédaction (Cockpit : Guidage, brief du 01/10/2026 ; par défaut Synthèse) ; `context` :
+   * contexte de la demande (écran, date), placé avant les extraits dans la partie variable du prompt.
+   */
+  async answer(app: GuideApp, question: string, opts: { system: string; projectId?: string | null; functionId?: AiFunctionId; context?: string | null }): Promise<GuideAnswer> {
     const s = await this.search.settings(app);
     let found;
     try {
@@ -43,8 +47,8 @@ export class GuideAnswerService {
     if (found.empty === 'GUIDE_NON_INDEXE') return { status: 'NO_GUIDE', reply: guideMissingReply(app), sources: [], modelId: null, fallbackUsed: false };
     if (found.empty || !found.extracts.length) return { status: 'NO_EXTRACT', reply: guideNoExtractReply(app), sources: [], modelId: null, fallbackUsed: false };
     const r = await this.llm.complete({
-      functionId: 'doc_syn', source: 'JEV', cache: true, timeoutMs: s.llmTimeoutMs, projectId: opts.projectId ?? null,
-      system: `${opts.system}\n\n${guideAnswerRules(app)}`, systemTail: guideExtractsBlock(found.extracts), prompt: question,
+      functionId: opts.functionId ?? 'doc_syn', source: 'JEV', cache: true, timeoutMs: s.llmTimeoutMs, projectId: opts.projectId ?? null,
+      system: `${opts.system}\n\n${guideAnswerRules(app)}`, systemTail: [opts.context, guideExtractsBlock(found.extracts)].filter(Boolean).join('\n\n'), prompt: question,
     });
     return { status: 'ANSWERED', reply: r.text, sources: guideSources(found.extracts), modelId: r.modelId, fallbackUsed: r.fallbackUsed };
   }

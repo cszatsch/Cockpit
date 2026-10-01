@@ -16,6 +16,10 @@ import { ACTIONS, DECISIONS, ISSUES, RISKS, TransactionalService, TxEntity } fro
 import type { UploadedBlob } from '../../import/import.controller';
 import { JevRouterService } from '../../admin/jev-router.service';
 import { GuideAnswerService } from '../../admin/guide-answer.service';
+import { TodayService } from '../../core/today.service';
+import { COCKPIT_CASE_ROUTE, COCKPIT_CHOICE_TO_CASE } from '../../domain/jev-router-cockpit';
+import { clarifyReasonOf, COCKPIT_CLARIFY_RULES, cockpitClarifyPrompt, cockpitPageLabel, nowParisLabel } from '../../domain/jev-cockpit-answers';
+import { requestContext } from '../../domain/jev-sql';
 
 /** Jev ne modifie jamais le Référentiel, les Comités et rapports, ni la Base de connaissance (§ 7.14). */
 export const JEV_WRITABLE: Record<string, TxEntity> = { RISK: RISKS, ISSUE: ISSUES, ACTION: ACTIONS, DECISION: DECISIONS };
@@ -56,6 +60,7 @@ export class AssistantController {
     private readonly jev: JevPromptService,
     private readonly router: JevRouterService,
     private readonly guide: GuideAnswerService,
+    private readonly today: TodayService,
   ) {}
 
   private entityOf(code: string): { type: string; def: TxEntity } | null {
@@ -71,14 +76,31 @@ export class AssistantController {
   async message(@CurrentActor() actor: Actor, @Param('projectId') p: string, @Body() body: unknown) {
     const scope = await this.access.scope(actor, p);
     const input = parse(Message, body);
-    // Question d'usage (aiguillage par l'API de JEV, périmètre du Cockpit) : réponse à partir du seul guide du Cockpit,
-    // avec ses réglages ; sans guide publié, Jev le dit sans appeler de modèle (décision du 30/09/2026).
     // Aiguillage en 5 cas d'usage (brief du 01/10/2026) ; chaque décision est journalisée (jev_classifications).
     const route = await this.router.classifyCockpit(input.text, { page: [input.context.space, input.context.tab].filter(Boolean).join(' › '), accountId: actor.accountId });
+    const context = requestContext(cockpitPageLabel(input.context.space, input.context.tab), this.today.today(), nowParisLabel(this.today.now()));
+    // Cas 2 — guide utilisateur du Cockpit : recherche (8 extraits, seuil, reclassement, 4 gardés), rédaction par le
+    // modèle de la fonction Guidage avec la seule skill « Guidage Cockpit » (partie stable en cache) ; extraits, section
+    // et page dans la partie variable. Sans extrait au-dessus du seuil, Jev le dit sans appeler de modèle.
     if (route.cas === '2') {
-      const g = await this.guide.answer('cockpit', input.text, { system: await this.jev.systemPrompt(), projectId: scope.project.id });
+      const { functionId, skill } = COCKPIT_CASE_ROUTE['2'];
+      const parts = await this.jev.cockpitParts(skill, context);
+      const g = await this.guide.answer('cockpit', input.text, { system: parts.stable, context: parts.page, functionId, projectId: scope.project.id });
       await this.router.noteAnswerModel(route.traceId, g.modelId ?? null);
-      return { reply: g.reply, sources: g.sources.map((label) => ({ entityType: 'GUIDE', id: 'cockpit', label })), proposedChanges: [], model: g.modelId ? { id: g.modelId, fallbackUsed: g.fallbackUsed } : null, route: route.cas, guide: g.status };
+      return { reply: g.reply, route: route.cas, sources: g.sources.map((label) => ({ entityType: 'GUIDE', id: 'cockpit', label })), proposedChanges: [], model: g.modelId ? { id: g.modelId, fallbackUsed: g.fallbackUsed } : null, guide: g.status };
+    }
+    // Cas 5 — clarification : demande de précision rédigée par le modèle de la fonction Guidage (proposition du brief),
+    // selon le motif (ambigu, hors sujet, confiance insuffisante, écriture incertaine, aiguillage indisponible).
+    if (route.cas === '5') {
+      const reason = clarifyReasonOf(route);
+      const probable = route.choice ? COCKPIT_CHOICE_TO_CASE[route.choice] : null;
+      const parts = await this.jev.cockpitParts(COCKPIT_CASE_ROUTE['5'].skill, context);
+      const r = await this.llm.complete({
+        functionId: COCKPIT_CASE_ROUTE['5'].functionId, source: 'JEV', cache: true, projectId: scope.project.id,
+        system: `${parts.stable}\n\n${COCKPIT_CLARIFY_RULES}`, systemTail: parts.page, prompt: cockpitClarifyPrompt(input.text, reason, probable),
+      });
+      await this.router.noteAnswerModel(route.traceId, r.modelId ?? null);
+      return { reply: r.text, route: route.cas, reason, sources: [], proposedChanges: [], model: { id: r.modelId, fallbackUsed: r.fallbackUsed } };
     }
     const readOnly = READ_ONLY_SPACES.includes(input.context.space) || READ_ONLY_TABS.includes(input.context.tab ?? '');
     const codes = [...new Set(input.text.match(/\b(A-\d+|R\d{2,}|P\d{2,}|D-\d{3}|J\d{2,})\b/gi) ?? [])].map((c) => c.toUpperCase());

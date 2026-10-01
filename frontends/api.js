@@ -982,13 +982,13 @@ export function attach(comp) {
       try {
         const r = await ppost('/assistant/messages', { context, text: (J.row && J.kind === 'ligne' && !/\b(A-\d+|R\d{2,}|P\d{2,}|D-\d{3}|J\d{2,})\b/i.test(text) ? String(J.row).split(' · ')[0] + ' · ' : '') + text, fileIds });
         // Sources du guide du Cockpit (« Guide · section · p. N ») regroupées : « Guide utilisateur · section · p. N ; … ».
-        const guide = (r.sources || []).filter((s) => s.entityType === 'GUIDE').map((s) => String(s.label).replace(/^Guide · /, ''));
-        const src = guide.length ? 'Guide utilisateur · ' + guide.join(' ; ') : (r.sources || []).map((s) => s.label).join(' · ');
+        // Sources en étiquettes (jev-format.js, séparateur : saut de ligne) : « Guide · section · p. N » → « section · p. N ».
+        const src = (r.sources || []).map((s) => (s.entityType === 'GUIDE' ? String(s.label).replace(/^Guide · /, '') : s.label)).join('\n');
         const msgs = [{ t: 'jev', text: r.reply, src }];
         if ((r.proposedChanges || []).length) msgs.push({ t: 'recap', title: r.proposedChanges.length + (r.proposedChanges.length > 1 ? ' modifications proposées' : ' modification proposée'), st: 'proposed', changeIds: r.proposedChanges.map((c) => c.id), items: r.proposedChanges.map((c) => [c.entityId || 'Nouveau', '', c.summary]) });
-        comp.setState((s) => ({ jevMsgs: (s.jevMsgs || []).concat(msgs) }));
+        comp.setState((s) => ({ jevMsgs: (s.jevMsgs || []).concat(msgs), jevThink: false }));
       } catch (e) {
-        comp.setState((s) => ({ jevMsgs: (s.jevMsgs || []).concat([{ t: 'jev', text: errorText(e) }]) }));
+        comp.setState((s) => ({ jevMsgs: (s.jevMsgs || []).concat([{ t: 'jev', text: errorText(e), err: true }]), jevThink: false }));
       }
       comp.jevScroll();
     },

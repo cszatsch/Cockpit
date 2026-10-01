@@ -2,6 +2,7 @@ import request from 'supertest';
 import { setup, TestCtx, WHO } from '../helpers';
 import { renderPdf } from '../../src/core/pdf';
 import { KbService } from '../../src/cockpit/documents/kb.service';
+import { JevRouterService } from '../../src/admin/jev-router.service';
 
 const R = '/api/projects/RISE';
 
@@ -72,6 +73,8 @@ describe('Étape 10 — documents, commentaires, historique, Jev, services exter
   });
 
   it('Jev propose, l’utilisateur valide ; origine JEV ; jamais sur le Référentiel', async () => {
+    // Aiguillage simulé : demande de modification (cas 3) ; le traitement des propositions est celui de l'assistant.
+    const route = jest.spyOn(t.app.get(JevRouterService), 'classifyCockpit').mockResolvedValue({ cas: '3', confiance: 0.95, choice: 'modification', probabilities: {}, ecriture: 0.95, multi: false, multiScore: null, downgrade: null, justification: '', status: 'OK', latencyMs: 1, error: null, traceId: null });
     const c = await t.as(WHO.respC5);
     const m = await c.post(`${R}/assistant/messages`, { context: { space: 'pilotage', tab: 'actions' }, text: 'Passe A-41 en terminée' }).expect(200);
     expect(m.body.proposedChanges).toHaveLength(1);
@@ -89,6 +92,7 @@ describe('Étape 10 — documents, commentaires, historique, Jev, services exter
     const ref = await (await t.as(WHO.pmo)).post(`${R}/assistant/messages`, { context: { space: 'projet', tab: 'referentiel' }, text: 'Passe A-47 en terminée' }).expect(200);
     expect(ref.body.proposedChanges).toHaveLength(0);
     expect(ref.body.reply).toMatch(/ne modifie ni le Référentiel/);
+    route.mockRestore();
   });
 
   it('demande d’activation de module (Cockpit) et demande d’invitation (Q8 bis)', async () => {

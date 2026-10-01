@@ -175,6 +175,20 @@ export function consoleGuidanceParts(base: string, persona: PersonaText | null, 
   return { stable: `${head}\n\n${CONSOLE_FORMAT_RULES}`, page: `Page de console ouverte : ${page} · ${CONSOLE_PAGE_TITLES[page] ?? page}` };
 }
 
+/**
+ * Prompt du Jev du Cockpit pour un cas d'usage (brief du 01/10/2026) : `stable` (base, Identité, Personnalité, la seule
+ * skill du cas si elle est active, mise en forme), mise en cache ; `page` (écran ouvert), partie variable.
+ */
+export function cockpitCaseParts(base: string, persona: PersonaText | null, skills: SkillText[], skillName: string | null, page: string): { stable: string; page: string; skill: string | null } {
+  const on = skills.filter((s) => s.on), k = skillName ? skillKey(skillName) : null;
+  const skill = k ? on.find((s) => skillKey(s.n) === k) ?? on.find((s) => skillKey(s.n).startsWith(k)) ?? null : null;
+  const head = assembleJevPrompt(base, persona, skill ? [{ ...skill, position: 0 }] : []);
+  return { stable: `${head}\n\n${CONSOLE_FORMAT_RULES}\n- ${COCKPIT_REGISTER_RULE}`, page, skill: skill ? skill.n : null };
+}
+
+/** Registre du Cockpit : l'application vouvoie ses utilisateurs (écrans, messages, guide). */
+export const COCKPIT_REGISTER_RULE = 'Vouvoie toujours l’utilisateur, comme le reste de l’application.';
+
 export function assembleConsoleGuidancePrompt(base: string, persona: PersonaText | null, skills: SkillText[], page: string): string {
   const skill = pickGuidanceSkill(skills);
   const head = assembleJevPrompt(base, persona, skill ? [{ ...skill, position: 0 }] : []);
