@@ -22,6 +22,11 @@ html,body{margin:0;background:#f2f6f5;font-family:'Plus Jakarta Sans',sans-serif
     <div style="font-size:14px;color:#43586a">Tokens consommés et détail de chaque appel LLM : date, fonction, fournisseur, modèle, tokens et coût.</div>
   </div>
 
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;animation:rise .5s .04s cubic-bezier(.2,.7,.2,1) both">
+    <span style="flex:1"></span>
+    <div role="tablist" aria-label="Période" style="display:inline-flex;gap:2px;padding:3px;border-radius:11px;background:#e3ebe9"><sc-for list="{{ pers }}" as="x" hint-placeholder-count="5"><button role="tab" aria-selected="{{ x.on }}" onClick="{{ x.pick }}" style="{{ x.st }}">{{ x.l }}</button></sc-for></div>
+  </div>
+
   <div style="background:#fff;border-radius:20px;box-shadow:0 0 0 1px #e1e9e7,0 18px 40px -30px rgba(16,35,58,.35);padding:24px 28px 18px;display:flex;flex-direction:column;gap:18px;animation:rise .5s .08s cubic-bezier(.2,.7,.2,1) both">
     <div style="display:flex;align-items:flex-end;gap:44px;flex-wrap:wrap">
       <div><div style="font-size:12px;font-weight:700;color:#5c7280">{{ a.lbl }}</div><div style="font-size:42px;font-weight:800;letter-spacing:-.04em;line-height:1.05;font-variant-numeric:tabular-nums;white-space:nowrap">{{ a.tot }}<span style="font-size:18px;letter-spacing:-.01em;color:#8a9aa6;margin-left:6px">{{ a.unit }}</span></div></div>
@@ -89,6 +94,9 @@ const e3 = v => nf(v, 3) + ' €', e2 = v => nf(v, 2) + ' €';
 const eAgg = v => v >= 100 ? fint(v) : nf(v, 2);
 const p2 = n => String(n).padStart(2, '0');
 const PAGE = 10;
+// Périodes du sélecteur (01/10/2026), se terminant aujourd'hui : id, libellé, période du titre, période du pied du journal.
+const PER = [['d', 'Jour', 'aujourd’hui', 'aujourd’hui'], ['7', '7 jours', '7 derniers jours', 'ces 7 derniers jours'], ['1m', '1 mois', '30 derniers jours', 'ces 30 derniers jours'], ['3m', '3 mois', '3 derniers mois', 'ces 3 derniers mois'], ['6m', '6 mois', '6 derniers mois', 'ces 6 derniers mois']];
+const PERB = Object.fromEntries(PER.map(x => [x[0], x]));
 
 function build() {
   let s = 20260929; const r = () => (s = (s * 16807) % 2147483647) / 2147483647;
@@ -120,7 +128,7 @@ const dayOf = iso => new Date(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice
 /** Séries de /usage/daily (une par ligne budgétaire) → une ligne par jour, par fonction : appels, jetons, coûts. */
 function toMonth(series) {
   const ref = series[FK[0]] || [];
-  return ref.map((p, i) => { const row = { d: dayOf(p.date).getDate(), dt: dayOf(p.date) };
+  return ref.map((p, i) => { const row = { d: dayOf(p.date).getDate(), dt: dayOf(p.date), h: p.hour ?? null };
     FK.forEach(k => { const x = (series[k] || [])[i] || { calls: 0, tokensIn: 0, tokensOut: 0, costIn: 0, costOut: 0 }; row[k] = { n: x.calls, i: x.tokensIn, o: x.tokensOut, ci: x.costIn, co: x.costOut, c: x.costIn + x.costOut }; });
     return row; });
 }
@@ -134,7 +142,7 @@ function calcOf(c) {
 }
 
 class Component extends DCLogic {
-  state = { met: 'tok', fn: null, hov: null, open: 'first', n: PAGE, toast: null, tick: 0 };
+  state = { met: 'tok', fn: null, per: '1m', hov: null, open: 'first', n: PAGE, toast: null, tick: 0 };
   componentDidMount() {
     import('./admin-api.js').then(m => {
       if (m.isDemo()) { this._demo = true; return this.forceUpdate(); }
@@ -144,18 +152,18 @@ class Component extends DCLogic {
   /** Données réelles (vides tant qu'elles ne sont pas chargées) ; données fictives de build() en mode démonstration seulement. */
   data() {
     if (this._demo) return this._dDemo || (this._dDemo = build());
-    return this._d || { calls: [], month: [], maxTT: 1, total: 0, period: 'ce mois' };
+    return this._d || { calls: [], month: [], maxTT: 1, total: 0, period: PERB[this.state.per][3] };
   }
   /** Graphique (toutes les lignes budgétaires) et première page du journal du filtre courant. */
   async load() {
     try {
       if (!this._api) throw new Error('Journal indisponible : rechargez la page');
-      const A = this._api, fn = this.state.fn;
-      const [series, page] = await Promise.all([this._series || Promise.all(FK.map(k => A.daily(k))).then(l => Object.fromEntries(FK.map((k, i) => [k, l[i]]))), A.calls({ fn, limit: PAGE })]);
-      if (fn !== this.state.fn) return; // filtre changé pendant le chargement
+      const A = this._api, fn = this.state.fn, per = this.state.per, range = A.range(per);
+      const [series, page] = await Promise.all([this._series || Promise.all(FK.map(k => A.daily(k, range, per === 'd'))).then(l => Object.fromEntries(FK.map((k, i) => [k, l[i]]))), A.calls({ fn, limit: PAGE, range })]);
+      if (fn !== this.state.fn || per !== this.state.per) return; // filtre ou période changés pendant le chargement
       this._series = series;
       const calls = page.items.map(toCall);
-      this._d = { calls, month: toMonth(series), maxTT: Math.max(1, ...calls.map(c => c.tt)), total: page.total, next: page.nextCursor, period: 'ce mois' };
+      this._d = { calls, month: toMonth(series), maxTT: Math.max(1, ...calls.map(c => c.tt)), total: page.total, next: page.nextCursor, period: PERB[per][3], range };
       this.setState(s => ({ tick: s.tick + 1, open: 'first' }));
     } catch (e) { this._d = null; this.setState(s => ({ tick: s.tick + 1 })); this.toast(this._errText ? this._errText(e) : 'Chargement impossible'); }
   }
@@ -164,12 +172,17 @@ class Component extends DCLogic {
     const D = this._d, fn = this.state.fn;
     if (!D || !D.next) return this.setState({ n: this.state.n + PAGE });
     try {
-      const page = await this._api.calls({ fn, cursor: D.next, limit: PAGE });
-      if (fn !== this.state.fn) return;
+      const page = await this._api.calls({ fn, cursor: D.next, limit: PAGE, range: D.range });
+      if (fn !== this.state.fn || D !== this._d) return;
       const calls = [...D.calls, ...page.items.map(toCall)];
       this._d = { ...D, calls, next: page.nextCursor, total: page.total, maxTT: Math.max(1, ...calls.map(c => c.tt)) };
       this.setState(s => ({ n: s.n + PAGE, tick: s.tick + 1 }));
     } catch (e) { this.toast(this._errText ? this._errText(e) : 'Chargement impossible'); }
+  }
+  /** Période du sélecteur : graphique et journal rechargés (démonstration : libellés seuls). */
+  pickPer(p) {
+    if (p === this.state.per) return;
+    this.setState({ per: p, hov: null, n: PAGE, open: null }, () => { if (this._api) { this._series = null; this._d = this._d && { ...this._d, calls: [], month: [], total: 0, next: null, period: PERB[p][3] }; this.load(); } });
   }
   pickFn(k) {
     this.setState({ fn: k, hov: null, n: PAGE, open: null }, () => { if (this._api) { this._d = this._d && { ...this._d, calls: [], total: 0, next: null }; this.load(); } });
@@ -179,8 +192,9 @@ class Component extends DCLogic {
   renderVals() {
     const S = this.state, e = React.createElement, D = this.data();
     const keys = S.fn ? [S.fn] : FK, col = S.fn ? FN[S.fn].c : '#1d8f86', sum = (d, f) => keys.reduce((a, k) => a + d[k][f], 0);
-    const dv = D.month.map(d => ({ d: d.d, dt: d.dt, i: sum(d, 'i'), o: sum(d, 'o'), n: sum(d, 'n'), c: sum(d, 'c'), ci: sum(d, 'ci'), co: sum(d, 'co') }));
-    const mo = dv.length ? dv[0].dt.getMonth() : new Date().getMonth(), MO = MOIS[mo];
+    const dv = D.month.map(d => ({ d: d.d, dt: d.dt, h: d.h, i: sum(d, 'i'), o: sum(d, 'o'), n: sum(d, 'n'), c: sum(d, 'c'), ci: sum(d, 'ci'), co: sum(d, 'co') }));
+    // Libellé d'un point : heure (Jour) ou jour et mois ; P : période du sélecteur.
+    const lab = d => d.h != null ? d.h + ' h' : d.d + ' ' + MOIS[(d.dt || new Date()).getMonth()], P = PERB[S.per];
     const EUR = S.met === 'eur', vI = d => EUR ? d.ci : d.i, vO = d => EUR ? d.co : d.o, fv = v => EUR ? eAgg(v) + ' €' : fk(v);
     const tI = dv.reduce((a, d) => a + vI(d), 0), tO = dv.reduce((a, d) => a + vO(d), 0), tN = dv.reduce((a, d) => a + d.n, 0), pin = tI + tO ? Math.round(tI / (tI + tO) * 100) : 0;
     const W = 1100, H = 190, L = 56, R = 4, iw = W - L - R, bw = iw / Math.max(1, dv.length), maxI = Math.max(0, ...dv.map(vI)), maxO = Math.max(0, ...dv.map(vO)), sc = maxI + maxO ? 150 / (maxI + maxO) : 0, AX = Math.max(22, maxI * sc + 8);
@@ -193,11 +207,12 @@ class Component extends DCLogic {
       e('line', { key: 'ax', x1: L, x2: W - R, y1: AX + .5, y2: AX + .5, stroke: '#d9e3e0' })];
     dv.forEach((d, i) => {
       const x = L + i * bw + bw * .2, w = bw * .6, hi = vI(d) * sc, ho = vO(d) * sc, op = S.hov == null || S.hov === i ? 1 : .3;
-      kids.push(e('rect', { key: K + 'i' + i, x, y: AX - hi, width: w, height: hi, rx: 2, fill: col, opacity: op, style: { transformOrigin: '0 ' + AX + 'px', transformBox: 'view-box', animation: 'growY .6s ' + (i * .015).toFixed(3) + 's cubic-bezier(.2,.7,.2,1) both', transition: 'opacity .15s' } }));
-      kids.push(e('rect', { key: K + 'o' + i, x, y: AX + 2, width: w, height: ho, rx: 1.5, fill: '#10233a', opacity: op, style: { transformOrigin: '0 ' + (AX + 2) + 'px', transformBox: 'view-box', animation: 'growY .6s ' + (.2 + i * .015).toFixed(3) + 's cubic-bezier(.2,.7,.2,1) both', transition: 'opacity .15s' } }));
+      kids.push(e('rect', { key: K + 'i' + i, x, y: AX - hi, width: w, height: hi, rx: 2, fill: col, opacity: op, style: { transformOrigin: '0 ' + AX + 'px', transformBox: 'view-box', animation: 'growY .6s ' + (i / Math.max(1, dv.length) * .45).toFixed(3) + 's cubic-bezier(.2,.7,.2,1) both', transition: 'opacity .15s' } }));
+      kids.push(e('rect', { key: K + 'o' + i, x, y: AX + 2, width: w, height: ho, rx: 1.5, fill: '#10233a', opacity: op, style: { transformOrigin: '0 ' + (AX + 2) + 'px', transformBox: 'view-box', animation: 'growY .6s ' + (.2 + i / Math.max(1, dv.length) * .45).toFixed(3) + 's cubic-bezier(.2,.7,.2,1) both', transition: 'opacity .15s' } }));
       kids.push(e('rect', { key: 'h' + i, x: L + i * bw, y: 0, width: bw, height: H - 18, fill: 'transparent', onMouseEnter: () => this.setState({ hov: i }) }));
     });
-    [0, 7, 14, 21, 28].filter(i => i < dv.length).forEach(i => kids.push(e('text', { key: 'x' + i, x: L + i * bw + bw / 2, y: H - 2, textAnchor: 'middle', fontSize: 11, fill: '#a3b1ba', fontFamily: F0 }, (i + 1) + ' ' + MO)));
+    const step = dv.length > 31 ? Math.ceil(dv.length / 6) : dv.length > 24 ? 7 : 6;
+    dv.forEach((d, i) => { if (i % step === 0) kids.push(e('text', { key: 'x' + i, x: L + i * bw + bw / 2, y: H - 2, textAnchor: 'middle', fontSize: 11, fill: '#a3b1ba', fontFamily: F0 }, lab(d))); });
     const svg = e('svg', { width: '100%', viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': 'Tokens ou coûts par jour, entrée au-dessus de l’axe, sortie en dessous', style: { display: 'block', overflow: 'visible' }, onMouseLeave: () => this.setState({ hov: null }) }, kids);
     // Moyenne sur les jours ouvrés (lundi à vendredi) de la période.
     const wd = dv.filter(d => d.dt.getDay() % 6 !== 0), pk = dv.reduce((a, d) => vI(d) + vO(d) > vI(a) + vO(a) ? d : a, dv[0] || { d: 1, i: 0, o: 0, ci: 0, co: 0 }), hv = S.hov != null ? dv[S.hov] : null;
@@ -206,12 +221,12 @@ class Component extends DCLogic {
         st: 'height:30px;padding:0 11px;border-radius:999px;border:0;cursor:pointer;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:7px;white-space:nowrap;transition:background .15s,color .15s;' + (on ? 'background:#10233a;color:#fff' : 'background:#f1f5f4;color:#43586a') }; });
     const log = D.calls.filter(c => !S.fn || c.f === S.fn), total = this._api ? D.total : log.length, open = S.open === 'first' ? (log[0] && log[0].id) : S.open;
     const shown = Math.min(S.n, log.length);
-    const a = { lbl: (S.fn ? FN[S.fn].n : EUR ? 'Coût' : 'Tokens') + ' · depuis le 1er ' + MO, tot: EUR ? eAgg(tI + tO) : fk(tI + tO), unit: EUR ? '€' : 'tokens', tin: fv(tI), tout: fv(tO), pin: pin + ' %', pout: (tI + tO ? 100 - pin : 0) + ' %', calls: fint(tN), chips, svg,
+    const a = { lbl: (S.fn ? FN[S.fn].n : EUR ? 'Coût' : 'Tokens') + ' · ' + P[2], tot: EUR ? eAgg(tI + tO) : fk(tI + tO), unit: EUR ? '€' : 'tokens', tin: fv(tI), tout: fv(tO), pin: pin + ' %', pout: (tI + tO ? 100 - pin : 0) + ' %', calls: fint(tN), chips, svg,
       mets: [['tok', 'Tokens'], ['eur', 'Coûts']].map(([k, l]) => ({ l, on: S.met === k, pick: () => this.setState({ met: k, hov: null }), st: 'height:28px;padding:0 12px;border-radius:8px;border:0;cursor:pointer;font-size:12px;font-weight:700;white-space:nowrap;transition:background .2s,color .2s;' + (S.met === k ? 'background:#fff;color:#10233a;box-shadow:0 1px 2px rgba(16,35,58,.12)' : 'background:transparent;color:#5c7280') })),
       inBar: 'border-radius:3px;transition:width .4s cubic-bezier(.2,.7,.2,1);background:' + col + ';width:' + pin + '%', inDot: 'width:8px;height:8px;border-radius:2px;background:' + col,
-      rdT: hv ? DWL[hv.dt.getDay()] + ' ' + hv.d + ' ' + MO : MOIS_L[mo],
+      rdT: hv ? (hv.h != null ? hv.h + ' h' : DWL[hv.dt.getDay()] + ' ' + lab(hv)) : dv.length ? (S.per === 'd' ? DWL[dv[0].dt.getDay()] + ' ' + lab({ ...dv[0], h: null }) : lab(dv[0]) + ' → ' + lab(dv[dv.length - 1])) : MOIS_L[new Date().getMonth()],
       rdD: hv ? (EUR ? 'Entrée ' + e2(hv.ci) + ' · sortie ' + e2(hv.co) + ' · ' + fk(hv.i + hv.o) + ' tokens · ' + fint(hv.n) + ' appels' : 'Entrée ' + fk(hv.i) + ' · sortie ' + fk(hv.o) + ' · ' + fint(hv.n) + ' appels · ' + e2(hv.c))
-        : 'Moyenne ' + fv(wd.length ? wd.reduce((x, d) => x + vI(d) + vO(d), 0) / wd.length : 0) + ' par jour ouvré · pic le ' + pk.d + ' ' + MO + ' avec ' + fv(vI(pk) + vO(pk)) + (EUR && tI + tO ? ' · la sortie pèse ' + Math.round(tO / (tI + tO) * 100) + ' % du coût pour ' + Math.round(dv.reduce((x, d) => x + d.o, 0) / Math.max(1, dv.reduce((x, d) => x + d.i + d.o, 0)) * 100) + ' % des tokens' : ''),
+        : (S.per === 'd' ? 'Pic à ' + lab(pk) + ' avec ' : 'Moyenne ' + fv(wd.length ? wd.reduce((x, d) => x + vI(d) + vO(d), 0) / wd.length : 0) + ' par jour ouvré · pic le ' + lab(pk) + ' avec ') + fv(vI(pk) + vO(pk)) + (EUR && tI + tO ? ' · la sortie pèse ' + Math.round(tO / (tI + tO) * 100) + ' % du coût pour ' + Math.round(dv.reduce((x, d) => x + d.o, 0) / Math.max(1, dv.reduce((x, d) => x + d.i + d.o, 0)) * 100) + ' % des tokens' : ''),
       logSub: 'Chaque appel LLM, du plus récent au plus ancien' + (S.fn ? ' · ' + FN[S.fn].n : ''),
       rows: log.slice(0, S.n).map(c => { const Fc = FN[c.f] || { n: c.f, c: '#8a9aa6' }, P = PV[c.pv] || { n: c.pvn || c.pv, logo: '' }, isO = open === c.id;
         return { id: c.id, time: p2(c.dt.getHours()) + ':' + p2(c.dt.getMinutes()), date: c.dt.getDate() + ' ' + MOIS[c.dt.getMonth()], fn: Fc.n, model: c.mn, pv: c.pvn || P.n, fb: c.fb, open: isO,
@@ -222,8 +237,11 @@ class Component extends DCLogic {
           barBox: 'height:4px;border-radius:2px;overflow:hidden;display:flex;gap:1px;width:' + Math.max(2, c.tt / D.maxTT * 100).toFixed(1) + '%',
           barIn: 'background:' + Fc.c + ';width:' + (c.tt ? c.ti / c.tt * 100 : 0).toFixed(1) + '%', toggle: () => this.setState({ open: isO ? null : c.id }) }; }),
       foot: total ? shown + ' appels affichés sur ' + fint(total) + ' ' + D.period : 'Aucun appel sur la période', more: shown < total, showMore: () => this._api ? this.more() : this.setState({ n: S.n + PAGE }) };
-    const exportCsv = () => this._api ? this._api.csv(S.fn).then(() => this.toast('Export CSV préparé · ' + fint(total) + ' appels')).catch(e => this.toast(this._errText ? this._errText(e) : 'Export impossible')) : this.toast('Export CSV préparé · ' + log.length + ' appels');
-    return { a, toast: { on: !!S.toast, t: S.toast || '' }, exportCsv };
+    const exportCsv = () => this._api ? this._api.csv(S.fn, D.range).then(() => this.toast('Export CSV préparé · ' + fint(total) + ' appels')).catch(e => this.toast(this._errText ? this._errText(e) : 'Export impossible')) : this.toast('Export CSV préparé · ' + log.length + ' appels');
+    // Sélecteur de période : mêmes styles que l'écran « Analyse des temps de réponse ».
+    const pers = PER.map(([id, l]) => ({ l, on: S.per === id, pick: () => this.pickPer(id),
+      st: 'height:30px;padding:0 13px;white-space:nowrap;flex:none;border:0;border-radius:8px;font-size:12.5px;font-weight:700;cursor:pointer;transition:background .15s,color .15s;' + (S.per === id ? 'background:#10233a;color:#fff' : 'background:transparent;color:#5c7280') }));
+    return { a, pers, toast: { on: !!S.toast, t: S.toast || '' }, exportCsv };
   }
 }
 </script>

@@ -531,11 +531,13 @@ export class AiController implements OnModuleInit {
     return { from, to, fn: q.fn as JournalFn | undefined, provider: q.provider || undefined };
   }
 
-  /** Un point par jour, jours vides inclus : jetons et coût d'entrée et de sortie, appels. */
+  /** Un point par jour, jours vides inclus : jetons et coût d'entrée et de sortie, appels ; `by=hour` : par heure d'une journée. */
   @Get('usage/daily')
   daily(@Query() q: Record<string, string>) {
     const j = this.journalQuery(q);
-    return this.usage.daily(j.from, j.to, j.fn);
+    if (q.by !== undefined && q.by !== 'hour') throw badRequest('Découpage invalide', { by: 'hour' });
+    if (q.by === 'hour' && j.from !== j.to) throw badRequest('Découpage par heure : une seule journée', { by: 'from = to attendu' });
+    return this.usage.daily(j.from, j.to, j.fn, q.by === 'hour');
   }
 
   /** Journal : du plus récent au plus ancien, pagination par curseur (`nextCursor`), `total` du filtre. */

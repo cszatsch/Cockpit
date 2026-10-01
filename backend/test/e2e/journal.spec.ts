@@ -75,6 +75,20 @@ describe('Console — Journal des appels', () => {
     expect(month[month.length - 1].date).toBe(process.env.DEMO_TODAY);
   });
 
+  it('usage/daily par heure (sélecteur « Jour ») : 24 points, appels placés à leur heure de Paris ; une seule journée', async () => {
+    const at = new Date('2030-01-02T09:30:00Z'); // 10 h 30 à Paris
+    const m = await t.db.aiModel.findFirstOrThrow({ where: { category: 'LLM' } });
+    await t.db.usageRecord.create({ data: { id: 'req_heure0000001', at, functionId: 'guidage', modelId: m.id, providerId: m.providerId, tokensIn: 100, tokensOut: 10, requests: 0, costEur: 0.001, fallbackUsed: false, source: 'COCKPIT' } as any });
+    const hours = (await admin.get(`${A}/usage/daily?from=2030-01-02&to=2030-01-02&by=hour`).expect(200)).body;
+    expect(hours).toHaveLength(24);
+    expect(hours.map((h: any) => h.hour)).toEqual(Array.from({ length: 24 }, (_, h) => h));
+    expect(hours[10]).toMatchObject({ date: '2030-01-02', hour: 10, calls: 1, tokensIn: 100, tokensOut: 10 });
+    expect(hours.reduce((a: number, h: any) => a + h.calls, 0)).toBe(1);
+    await admin.get(`${A}/usage/daily?from=2030-01-01&to=2030-01-02&by=hour`).expect(400);
+    await admin.get(`${A}/usage/daily?from=2030-01-02&to=2030-01-02&by=week`).expect(400);
+    await t.db.usageRecord.delete({ where: { id: 'req_heure0000001' } });
+  });
+
   it('recette 2 : coûts entrée + sortie = dépense de « Vue générale des coûts » ; jetons et appels = consommation', async () => {
     const days = (await admin.get(`${A}/usage/daily`).expect(200)).body;
     const month = (await admin.get(`${A}/usage/month`).expect(200)).body;

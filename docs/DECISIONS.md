@@ -1079,3 +1079,11 @@ Spécification `docs/specs/TEMPS - specification.md` (écran 1c « Cascade »). 
 | Libellé (01/10/2026) | L'écran s'intitule « Analyse des temps de réponse » (au lieu de « … de traitement », spécification) : titre, sidebar, `META`, page de Jev ; fichier `Analyse des temps de réponse.dc.html` ; identifiant `latency` et routes inchangés | `CONSOLE_PAGE_TITLES.latency` |
 | Cache de l'écran | Vidé à chaque ouverture de la page (la journée en cours évolue) | `latReset` (`admin-api.js`) |
 | Écran | Démonstration seulement sans `fetchData` (écran seul, Console en `?demo=1`) ; chargement : la période précédente reste affichée, « Chargement… » au premier affichage | `frontends/CHANGES-console.md` |
+
+## Journal consommation et coûts : sélecteur de période (01/10/2026)
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Périodes | Jour, 7 jours, 1 mois (30 jours), 3 mois (91), 6 mois (183), se terminant aujourd'hui, jours civils de Paris (comme l'Analyse des temps de réponse) ; défaut « 1 mois » (le mois en cours, du 1er à aujourd'hui, n'est plus proposé) | `PER` (`Journal des appels.dc.html`), `journalApi.range` |
+| Jour | Graphique par heure de la journée (heure de Paris) : `GET /api/admin/usage/daily?from=J&to=J&by=hour` (24 points, `hour`), refusé (400) sur plus d'une journée | `UsageService.daily(…, byHour)` |
+| Graphique | 3 et 6 mois : une barre par jour (91 et 183) ; pas de regroupement par semaine | — |

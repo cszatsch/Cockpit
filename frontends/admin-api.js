@@ -1166,10 +1166,15 @@ export function bindBiblio(c) {
  * Les dates d'un appel sont en UTC (`at`) ; le composant les affiche dans le fuseau du navigateur (celui de la plateforme).
  */
 export const journalApi = {
-  /** Un point par jour du mois en cours (jours vides inclus), pour une ligne budgétaire. */
-  daily: fn => get('/usage/daily' + (fn ? '?fn=' + encodeURIComponent(fn) : '')),
+  /**
+   * Période du sélecteur (01/10/2026) : Jour, 7 jours, 1 mois (30 j), 3 mois (91 j), 6 mois (183 j), se terminant
+   * aujourd'hui (horloge du serveur, heure de Paris) → `{ from, to }`.
+   */
+  range: p => { const to = parisIso(now()); return { from: isoAdd(to, -(({ d: 1, 7: 7, '1m': 30, '3m': 91, '6m': 183 })[p] || 30) + 1), to }; },
+  /** Un point par jour de la période (jours vides inclus), pour une ligne budgétaire ; `byHour` : par heure (Jour). */
+  daily: (fn, r, byHour) => get('/usage/daily?' + [fn && 'fn=' + encodeURIComponent(fn), r && 'from=' + r.from, r && 'to=' + r.to, byHour && 'by=hour'].filter(Boolean).join('&')),
   /** Page du journal, du plus récent au plus ancien ; `cursor` : `nextCursor` de la page précédente. */
-  calls: ({ fn, cursor, limit } = {}) => get('/usage/calls?' + [fn && 'fn=' + encodeURIComponent(fn), cursor && 'cursor=' + encodeURIComponent(cursor), 'limit=' + (limit || 10)].filter(Boolean).join('&')),
-  /** Export CSV du filtre courant (UTF-8 avec BOM, « ; », virgule décimale). */
-  csv: fn => download('/usage/calls.csv' + (fn ? '?fn=' + encodeURIComponent(fn) : ''), 'journal-appels.csv'),
+  calls: ({ fn, cursor, limit, range: r } = {}) => get('/usage/calls?' + [fn && 'fn=' + encodeURIComponent(fn), r && 'from=' + r.from, r && 'to=' + r.to, cursor && 'cursor=' + encodeURIComponent(cursor), 'limit=' + (limit || 10)].filter(Boolean).join('&')),
+  /** Export CSV du filtre et de la période (UTF-8 avec BOM, « ; », virgule décimale). */
+  csv: (fn, r) => download('/usage/calls.csv?' + [fn && 'fn=' + encodeURIComponent(fn), r && 'from=' + r.from, r && 'to=' + r.to].filter(Boolean).join('&'), 'journal-appels.csv'),
 };

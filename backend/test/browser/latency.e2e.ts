@@ -2,25 +2,30 @@
 /**
  * Vérification navigateur de l'écran « Analyse des temps de réponse » (spécification TEMPS § 4) branché sur l'API.
  *
- * Usage (application démarrée, `npm run build` préalable, AUTH_DEV=true, migrations appliquées) :
+ * Usage (application démarrée, `npm run build` préalable, AUTH_DEV=true) :
  *   cd backend && npx ts-node --transpile-only test/browser/latency.e2e.ts
- * Variables : CONSOLE_URL (défaut http://localhost:3000), DATABASE_URL (défaut postgresql://rise@localhost:5433/rise).
+ * Variable : CONSOLE_URL (défaut http://localhost:3000).
  *
- * Le jeu de mesures de test (identifiants `req_fx…`, 183 jours se terminant la veille du serveur, sauf un jour laissé
- * vide) est inséré dans la base de l'application, puis retiré à la fin.
+ * Rien n'est écrit dans la base de l'application (01/10/2026 : les mesures de test s'y voyaient) : les appels de
+ * l'écran à `/api/ai/latency` sont interceptés dans le navigateur et servis à partir du jeu de mesures de test
+ * (183 jours se terminant au dernier jour des périodes, un jour laissé vide), calculés par les règles du serveur.
  */
-import { PrismaClient } from '@prisma/client';
 import { chromium, Browser, Page } from 'playwright';
 import { newPage } from './harness';
 import { addDays } from '../../src/domain/dates';
 import { parisDay } from '../../src/domain/notification-rules';
 import { latencyFixture } from '../fixtures/latency';
-import { LATENCY_END_OFFSET_DAYS } from '../../src/domain/latency';
+import { buildLatencyReport, buildLatencySeries, isLatencyPeriod, LATENCY_END_OFFSET_DAYS, latencyInstants, latencyRange, TimingRow } from '../../src/domain/latency';
 
 const API = process.env.CONSOLE_URL || 'http://localhost:3000';
-const DB = process.env.DATABASE_URL || 'postgresql://rise@localhost:5433/rise';
-let haikuName = 'Claude Haiku 4.5';
-const EMPTY_BACK = 10; // jour sans mesure (période Jour, 10 jours avant la veille)
+const haikuName = 'Claude Haiku 4.5';
+const EMPTY_BACK = 10; // jour sans mesure (période Jour, 10 jours avant le dernier jour)
+/** Noms et fournisseurs des modèles du jeu de mesures (champ `models` du rapport). */
+const MODELS: Record<string, { name: string; provider: string; service?: boolean }> = {
+  haiku: { name: 'Claude Haiku 4.5', provider: 'Anthropic' }, sonnet: { name: 'Claude Sonnet 5', provider: 'Anthropic' }, te3large: { name: 'Qwen3 Embedding 8B', provider: 'OpenRouter' },
+  rerank35: { name: 'Voyage rerank-2.5', provider: 'OpenRouter' }, gpt5: { name: 'GPT-6 Luna', provider: 'OpenAI' }, mlarge: { name: 'Mistral Medium 3.5', provider: 'Mistral AI' },
+  svc: { name: 'Service RISE', provider: 'Traitement interne', service: true },
+};
 
 const results: Array<{ step: string; ok: boolean; detail?: string }> = [];
 const check = (step: string, ok: boolean, detail = '') => { results.push({ step, ok, detail }); console.log(`${ok ? '✔' : '✘'} ${step}${detail ? ' — ' + detail : ''}`); };
@@ -53,7 +58,6 @@ const read = (page: Page) => page.evaluate(() => {
 });
 
 async function main() {
-  const db = new PrismaClient({ datasources: { db: { url: DB } } });
   const browser = await launch();
   const errors: string[] = [];
   try {
@@ -61,17 +65,23 @@ async function main() {
     const ov = await (await fetch(`${API}/api/auth/dev-login`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ accountId: 'u1' }) })).json();
     const token = ov.accessToken ?? ov.token;
     const date = (await (await fetch(`${API}/api/admin/overview`, { headers: { Authorization: `Bearer ${token}` } })).json()).date as string;
-    const yesterday = addDays(String(date).slice(0, 10), -LATENCY_END_OFFSET_DAYS); // dernier jour des périodes
-    await db.stepTiming.deleteMany({ where: { requestId: { startsWith: 'req_fx' } } });
-    const empty = addDays(yesterday, -EMPTY_BACK);
-    // Modèles du jeu d'essai remplacés par ceux du catalogue de l'application quand ils existent (noms affichés).
-    const known = new Set((await db.aiModel.findMany({ select: { id: true } })).map((m) => m.id));
-    const MAP: Record<string, string> = { haiku: 'claude-haiku-4-5', sonnet: 'claude-sonnet-5', te3large: 'qwen3-embedding-8b', rerank35: 'voyage-rerank-2-5', gpt5: 'gpt-6-luna', mlarge: 'mistral-medium-3-5' };
-    haikuName = known.has(MAP.haiku) ? 'Claude Haiku 4.5' : 'haiku';
-    const rows = latencyFixture(yesterday, 183).filter((r) => parisDay(r.startedAt) !== empty).map((r) => ({ ...r, model: known.has(MAP[r.model]) ? MAP[r.model] : r.model }));
-    for (let i = 0; i < rows.length; i += 5000) await db.stepTiming.createMany({ data: rows.slice(i, i + 5000) });
+    const end = addDays(String(date).slice(0, 10), -LATENCY_END_OFFSET_DAYS); // dernier jour des périodes
+    const empty = addDays(end, -EMPTY_BACK);
+    const rows = latencyFixture(end, 183).filter((r) => parisDay(r.startedAt) !== empty) as TimingRow[];
 
     const page = await newPage(browser, { errors });
+    // API des temps de réponse servie dans le navigateur (mêmes règles que le serveur) : aucune écriture en base.
+    await page.route(/\/api\/ai\/latency(\/series)?\?/, (route) => {
+      const u = new URL(route.request().url()), q = Object.fromEntries(u.searchParams);
+      const period = isLatencyPeriod(q.period) ? q.period : '7';
+      const r = latencyRange(period, period === 'd' ? q.day || null : null, end);
+      if ('error' in r) return route.fulfill({ status: 400, json: { code: 'BAD_REQUEST', message: r.error } });
+      const at = latencyInstants(r.from, r.to), mine = rows.filter((x) => x.startedAt >= at.gte && x.startedAt < at.lt);
+      const json = u.pathname.endsWith('/series')
+        ? buildLatencySeries(mine, period, r.from, r.to, q.axis === 'mod' ? 'mod' : 'cat', q.id)
+        : { ...buildLatencyReport(mine, period, r.from, r.to), models: MODELS };
+      return route.fulfill({ status: 200, json });
+    });
     await page.goto(`${API}/Console%20Admin.dc.html?as=u1`, { waitUntil: 'load' });
     await page.waitForSelector('text=Vue d’ensemble', { timeout: 30000 });
     // Sidebar : groupe IA déplié (après le chargement initial de la Console), puis l'entrée.
@@ -152,8 +162,6 @@ async function main() {
     const real = errors.filter((e) => !/Failed to load resource: net::ERR_FAILED/.test(e));
     check('aucune erreur dans la console du navigateur', real.length === 0, real.slice(0, 3).join(' | '));
   } finally {
-    await db.stepTiming.deleteMany({ where: { requestId: { startsWith: 'req_fx' } } });
-    await db.$disconnect();
     await browser.close();
   }
   const ko = results.filter((r) => !r.ok);

@@ -208,17 +208,22 @@ export class UsageService {
     };
   }
 
-  /** Un point par jour de la période (jours vides inclus) : jetons, coût entrée / sortie, appels (§ 4). */
-  async daily(fromIso: string, toIso: string, fn?: JournalFn) {
+  /**
+   * Un point par jour de la période (jours vides inclus) : jetons, coût entrée / sortie, appels (§ 4). `byHour` (période
+   * Jour du sélecteur, 01/10/2026) : un point par heure de la journée (heure de Paris), `hour` de 0 à 23.
+   */
+  async daily(fromIso: string, toIso: string, fn?: JournalFn, byHour = false) {
     const [rows, models] = await Promise.all([
       this.prisma.usageRecord.findMany({ where: this.journalWhere(fromIso, toIso, fn), select: { at: true, modelId: true, tokensIn: true, tokensOut: true, requests: true, costEur: true, priceIn: true, priceOut: true, pricePer1k: true } }),
       this.prisma.aiModel.findMany({ select: { id: true, priceInPerMTok: true } }),
     ]);
     const catalogIn = new Map(models.map((m) => [m.id, m.priceInPerMTok]));
-    const days = new Map<string, { date: string; tokensIn: number; tokensOut: number; costIn: number; costOut: number; calls: number }>();
-    for (let d = fromIso; d <= toIso; d = addDays(d, 1)) days.set(d, { date: d, tokensIn: 0, tokensOut: 0, costIn: 0, costOut: 0, calls: 0 });
+    const days = new Map<string, { date: string; hour?: number; tokensIn: number; tokensOut: number; costIn: number; costOut: number; calls: number }>();
+    const hourOf = new Intl.DateTimeFormat('en-GB', { timeZone: PLATFORM_TIMEZONE, hour: '2-digit', hourCycle: 'h23' });
+    if (byHour) for (let h = 0; h < 24; h++) days.set(String(h), { date: fromIso, hour: h, tokensIn: 0, tokensOut: 0, costIn: 0, costOut: 0, calls: 0 });
+    else for (let d = fromIso; d <= toIso; d = addDays(d, 1)) days.set(d, { date: d, tokensIn: 0, tokensOut: 0, costIn: 0, costOut: 0, calls: 0 });
     for (const r of rows) {
-      const e = days.get(this.day(r.at));
+      const e = days.get(byHour ? String(Number(hourOf.format(r.at))) : this.day(r.at));
       if (!e) continue;
       const c = splitCost(r, catalogIn.get(r.modelId));
       e.tokensIn += r.tokensIn;

@@ -568,3 +568,14 @@ Vérification des éléments de la vue d'ensemble face au serveur. Conformes : d
 ## « Analyse des temps de réponse » (01/10/2026)
 
 - À la demande du commanditaire, l'écran IA › « Analyse des temps de traitement » s'intitule « Analyse des temps de réponse » : titre de l'écran, entrée de la sidebar, `META.latency`, libellé de page de Jev. Fichier renommé `Analyse des temps de réponse.dc.html` (`<dc-import>` de la Console). Identifiant de page (`latency`), routes et spécification (`docs/specs/TEMPS - specification.md`) inchangés.
+
+## Journal consommation et coûts : sélecteur de période (01/10/2026)
+
+À la demande du commanditaire : sélecteur « Jour · 7 jours · 1 mois · 3 mois · 6 mois », identique à celui de l'écran « Analyse des temps de réponse » (mêmes styles), sur une ligne à droite, sous l'en-tête.
+
+- `Journal des appels.dc.html` : état `per` (défaut « 1 mois », 30 derniers jours, au lieu du mois en cours) ; graphique, totaux, filtre et journal rechargés pour la période ; titre « Tokens · 30 derniers jours » (au lieu de « depuis le 1er … ») ; bandeau « 2 sept. → 1 oct. » ; Jour : barres par heure, « Pic à 13 h » ; axe des dates étiqueté selon la longueur de la période ; animation des barres bornée à 0,45 s quel que soit leur nombre ; pied « … sur ces 30 derniers jours ». Démonstration (`?demo=1`) : libellés seuls, données inchangées.
+- `admin-api.js` (`journalApi`) : `range(période)` (se termine aujourd'hui, horloge du serveur, heure de Paris), `daily(fn, range, parHeure)`, `calls({ …, range })`, `csv(fn, range)`.
+
+## Analyse des temps de réponse : test navigateur sans écriture en base (01/10/2026)
+
+- `backend/test/browser/latency.e2e.ts` : les mesures de test ne sont plus insérées dans la base de l'application (elles s'affichaient dans l'écran pendant les essais) ; les appels de l'écran à `/api/ai/latency` sont interceptés et servis à partir du jeu de mesures, calculés par les règles du serveur.
