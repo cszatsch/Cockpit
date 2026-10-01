@@ -278,7 +278,7 @@ describe('Console — Jev et la fonction guidage', () => {
 
     it('les autres fonctions gardent le bouchon (aucun appel sortant)', async () => {
       live(() => anthropicOk);
-      await t.app.get(LlmService).complete({ functionId: 'crud', prompt: 'Bonjour', source: 'COCKPIT' });
+      await t.app.get(LlmService).complete({ functionId: 'rapports', prompt: 'Bonjour', source: 'COCKPIT' });
       expect(reqs).toHaveLength(0);
     });
   });

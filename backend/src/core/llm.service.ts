@@ -100,7 +100,7 @@ export const budgetLineOf = (functionId: string) => aiFunction(functionId)?.budg
  * Les autres fonctions gardent le bouchon ; hors ligne (tests), toutes le gardent.
  */
 // Insights en génération réelle depuis le 01/10/2026 (Jev du Cockpit, cas 1 ; arbitrage du commanditaire).
-export const LIVE_FUNCTIONS: readonly AiFunctionId[] = ['guidage', 'doc_syn', 'insights'];
+export const LIVE_FUNCTIONS: readonly AiFunctionId[] = ['guidage', 'doc_syn', 'insights', 'crud'];
 /** Vectorisation : textes par appel, reprises sur erreur passagère et attentes entre reprises. */
 export const EMBED_BATCH_SIZE = 32;
 export const EMBED_RETRIES = 2;

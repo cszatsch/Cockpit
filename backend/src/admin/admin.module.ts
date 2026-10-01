@@ -33,6 +33,6 @@ import { SnapshotsService } from './snapshots.service';
   // reprennent exactement le traitement des pages Utilisateurs et Modules.
   providers: [GuideIndexService, JevRouterService, JevAssistantService, GuideSearchService, GuideAnswerService, ProfilesService, UsageService, JevSqlService, JevCockpitInsightService, JevMemoryService, NotificationWriterService, NotificationsService, SnapshotsService, InboxService, ApiCardsService, AccountsController, DataController],
   // Jev du Cockpit : aiguillage et réponses à partir du guide du Cockpit (décision du 30/09/2026).
-  exports: [JevRouterService, GuideAnswerService, JevCockpitInsightService],
+  exports: [JevRouterService, GuideAnswerService, JevCockpitInsightService, JevMemoryService],
 })
 export class AdminModule {}

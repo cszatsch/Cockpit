@@ -1662,11 +1662,17 @@ model JevConversation {
   summary         String?
   /// Nombre de messages (les plus anciens) déjà repris dans le résumé.
   summarizedCount Int          @default(0) @map("summarized_count")
+  /// Application (console, cockpit) et projet (Cockpit) de la conversation (décision du 01/10/2026).
+  app             String       @default("console")
+  projectId       String?      @map("project_id")
+  /// Cockpit, cas 3 : modification en cours de préparation (opérations résolues, question posée), ou null.
+  draft           Json?
   createdAt       DateTime     @default(now()) @map("created_at")
   updatedAt       DateTime     @updatedAt @map("updated_at")
   messages        JevMessage[]
 
   @@index([accountId, updatedAt])
+  @@index([accountId, app, projectId, updatedAt])
   @@map("jev_conversations")
 }
 

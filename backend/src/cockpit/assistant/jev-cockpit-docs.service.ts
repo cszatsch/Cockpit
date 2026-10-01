@@ -5,6 +5,7 @@ import { LlmResult, LlmService } from '../../core/llm.service';
 import { JevPromptService } from '../../core/jev-prompt.service';
 import { PrismaService } from '../../core/prisma.service';
 import { TodayService } from '../../core/today.service';
+import { ChatTurn } from '../../core/llm-client';
 import { requestContext } from '../../domain/jev-sql';
 import { COCKPIT_CASE_ROUTE } from '../../domain/jev-router-cockpit';
 import {
@@ -49,7 +50,7 @@ export class JevCockpitDocsService {
     private readonly insight: JevCockpitInsightService,
   ) {}
 
-  async answer(scope: ProjectScope, actor: Actor, question: string, opts: { page: string; withData: boolean }): Promise<DocsAnswer> {
+  async answer(scope: ProjectScope, actor: Actor, question: string, opts: { page: string; withData: boolean; history?: ChatTurn[] }): Promise<DocsAnswer> {
     const { functionId, skill } = COCKPIT_CASE_ROUTE[opts.withData ? '4b' : '4a'];
     const calls: LlmResult[] = [];
     const done = (status: DocsAnswer['status'], reply: string, sources: DocsAnswer['sources'] = [], documents: string[] = [], insight?: InsightAnswer): DocsAnswer => ({
@@ -57,7 +58,7 @@ export class JevCockpitDocsService {
     });
 
     // 4b : la partie « données » d'abord (cas 1, droits de l'utilisateur).
-    const data = opts.withData ? await this.insight.ask(question, { project: scope.project, access: scope.access, page: opts.page, queryHint: DOC_DATA_QUERY_HINT, extraRules: DOC_DATA_ANSWER_HINT }) : null;
+    const data = opts.withData ? await this.insight.ask(question, { project: scope.project, access: scope.access, page: opts.page, queryHint: DOC_DATA_QUERY_HINT, extraRules: DOC_DATA_ANSWER_HINT, history: opts.history }) : null;
     const dataSources = (data?.sources ?? []).map((label) => ({ entityType: 'DATA' as const, id: label, label }));
 
     // 1. Identification des documents visés.
@@ -65,7 +66,7 @@ export class JevCockpitDocsService {
     if (!docs.length) return data ? done('EMPTY', `${data.reply}\n\n${DOC_EMPTY_REPLY}`, dataSources, [], data) : done('EMPTY', DOC_EMPTY_REPLY);
     const sessions = await this.heldSessions(scope.project.id);
     const idCall = await this.llm.complete({
-      functionId, source: 'JEV', cache: true, projectId: scope.project.id, maxTokens: 300,
+      functionId, source: 'JEV', cache: true, projectId: scope.project.id, maxTokens: 300, history: opts.history,
       system: DOC_IDENTIFY_SYSTEM, systemTail: docCatalogText(docs, sessions, this.today.today()), prompt: question,
     });
     calls.push(idCall);
@@ -102,7 +103,7 @@ export class JevCockpitDocsService {
     ].join('\n\n');
     const r = await this.llm.complete({
       functionId, source: 'JEV', cache: true, projectId: scope.project.id,
-      system: `${parts.stable}\n\n${data ? DOC_DATA_ANSWER_RULES : DOC_ANSWER_RULES}`, systemTail: tail, prompt: question,
+      system: `${parts.stable}\n\n${data ? DOC_DATA_ANSWER_RULES : DOC_ANSWER_RULES}`, systemTail: tail, prompt: question, history: opts.history,
     });
     calls.push(r);
     const seen = new Set<string>();

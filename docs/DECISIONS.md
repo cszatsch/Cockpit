@@ -992,3 +992,21 @@ Brief « Aiguillage des questions dans l'assistant JEV (application Cockpit) ».
 | Sans document | Aucun document consultable ou aucun extrait pertinent : message fixe, sans modèle, rien d'inventé | `DOC_EMPTY_REPLY`, `DOC_NOT_FOUND_REPLY` |
 | Confidentialité | Documents restreints : seulement pour le PMO, l'administrateur et l'auteur du dépôt, au catalogue comme à la recherche | `KbService.visibleIndexed`, `searchChunks` |
 | Données (cas 1) | La réponse ne cite plus les noms techniques des vues ou des colonnes | `COCKPIT_INSIGHT_ANSWER_RULES` |
+
+## Jev du Cockpit : cas 3, modification des données (01/10/2026)
+
+Arbitrages du commanditaire : suivi seulement (risques, problèmes, actions, décisions) ; description, impacts et actions de mitigation d'un risque rangés dans le plan, actions proposées comme actions liées ; mémoire comme la Console.
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Partage des rôles | Le modèle de la fonction Gestion des données (skill « Gestion des données ») **extrait** la demande (objet, opération, champs tels que dits, en JSON) ; le **serveur** résout chaque valeur, pose les questions, contrôle les droits et propose le récapitulatif | `WRITE_EXTRACT_RULES`, `parseExtraction`, `JevCockpitWriteService` |
+| Résolution | Personnes, chantiers, instances : correspondance exacte puis partielle ; échelles 1-5 (« Élevée » → 4 ; « moyen à élevé » → choix 3 ou 4), priorité de décision, statuts, dates (AAAA-MM-JJ, JJ/MM/AAAA, JJ/MM) ; « moi » = l'utilisateur | `scaleCandidates`, `prio4Candidates`, `enumValue`, `parseDate`, `matchNamed` |
+| Questions à choix | Une à la fois, au plus 6 choix plus « Annuler la demande » ; réponse par pastille (structurée, sans modèle) ou libre (nouvelle extraction avec la modification en cours) ; 8 questions au plus par demande | `WRITE_MAX_OPTIONS`, `WRITE_MAX_QUESTIONS`, `WRITE_CANCEL_LABEL` |
+| Droits | Chantier proposé parmi ceux où l'utilisateur peut écrire (un seul : retenu d'office) ; objet visé hors périmètre : « introuvable dans votre périmètre » ; non modifiable : refus explicite ; fiche arbitrée : lecture seule | `canWriteWs`, `JevCockpitWriteService.resolveOp` |
+| Récapitulatif | Propositions « À valider » : valeurs telles qu'elles seront écrites (avant → après pour une modification) ; contrôle préalable par le schéma de l'API métier ; rien n'est écrit | `AssistantChange`, `WRITE_RECAP_REPLY` |
+| Confirmation | Écriture par le service métier (`TransactionalService` : droits, règles, historique d'origine JEV) ; **suppression** : code de l'objet à retaper (`confirmCode`), sinon refus ; lien vers l'enregistrement (écran du Pilotage) | `AssistantController.confirm` |
+| Actions liées | Création d'un risque : chaque action de mitigation devient une proposition d'action liée (même chantier, porteur du risque par défaut), validée après le risque (sinon refus « Validez d'abord le risque ») | `sourceRef` |
+| Mémoire | Conversation par utilisateur et par projet (`jev_conversations.app`, `project_id`), modification en cours (`draft`) ; 10 derniers échanges et résumé transmis aux modèles des cas 1, 3, 4 et 5 ; questions précédentes transmises à l'aiguillage ; nouvelle conversation à la réouverture du panneau et sur « Effacer tous les messages » | migration `20261102000000_jev_cockpit_memoire`, `JevMemoryService` |
+| Génération réelle | Gestion des données (`crud`) passe en génération réelle | `LIVE_FUNCTIONS` |
+| Propositions par mots-clés | Le service bouchon (« crée une action : », statuts, reports par expressions régulières) est retiré | `AssistantController` |
+| Mémoire de la Console | Ordre déterministe de la conversation en cours (date de création en second critère) : test instable corrigé | `JevMemoryService.current` |

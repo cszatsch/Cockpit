@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { JevConversation } from '@prisma/client';
+import { JevConversation, Prisma } from '@prisma/client';
 import { PrismaService } from '../core/prisma.service';
 import { LlmService } from '../core/llm.service';
 import { ChatTurn } from '../core/llm-client';
@@ -25,14 +25,17 @@ export const JEV_SUMMARY_MAX_WORDS = 180;
 /** Conversation supprimée après ce nombre de jours sans échange. */
 export const JEV_CONVERSATION_RETENTION_DAYS = 30;
 
+/** Application de la conversation. */
+export type JevApp = 'console' | 'cockpit';
+
 export interface JevMemory {
   history: ChatTurn[];
   summary: string | null;
 }
 
 const SUMMARY_SYSTEM = [
-  'Tu tiens la mémoire d’une conversation entre un administrateur de la plateforme RISE et l’assistant Jev.',
-  'Mets à jour le résumé avec les nouveaux échanges : sujet et objets en cours (projet, compte, modèle, carte…, avec leur code ou leur nom exact), faits établis, chiffres utiles, questions restées ouvertes.',
+  'Tu tiens la mémoire d’une conversation entre un utilisateur de la plateforme RISE (administrateur dans la Console, membre d’un projet dans le Cockpit) et l’assistant Jev.',
+  'Mets à jour le résumé avec les nouveaux échanges : sujet et objets en cours (projet, compte, modèle, carte, risque, action…, avec leur code ou leur nom exact), faits établis, chiffres utiles, questions restées ouvertes.',
   `Écris en français, en ${JEV_SUMMARY_MAX_WORDS} mots au plus, en phrases courtes ou en liste. N’invente rien ; garde les noms et les codes tels quels ; pas de formule de politesse.`,
 ].join('\n');
 
@@ -57,21 +60,22 @@ export class JevMemoryService {
   }
 
   /** Nouvelle conversation (« Nouvelle conversation », ou première question). */
-  async start(accountId: string): Promise<JevConversation> {
+  async start(accountId: string, app: JevApp = 'console', projectId: string | null = null): Promise<JevConversation> {
     await this.purge();
-    return this.prisma.jevConversation.create({ data: { id: techId('jc'), accountId } });
+    return this.prisma.jevConversation.create({ data: { id: techId('jc'), accountId, app, projectId } });
   }
 
   /** Conversation de ce compte (404 pour celle d'un autre compte, ou supprimée). */
-  async own(accountId: string, id: string): Promise<JevConversation> {
-    const c = await this.prisma.jevConversation.findFirst({ where: { id, accountId, updatedAt: { gte: this.cutoff() } } });
+  async own(accountId: string, id: string, app: JevApp = 'console', projectId: string | null = null): Promise<JevConversation> {
+    const c = await this.prisma.jevConversation.findFirst({ where: { id, accountId, app, ...(app === 'cockpit' ? { projectId } : {}), updatedAt: { gte: this.cutoff() } } });
     if (!c) throw notFound('Conversation introuvable');
     return c;
   }
 
   /** Conversation en cours du compte (la plus récente), avec ses messages ; null s'il n'y en a pas. */
   async current(accountId: string) {
-    const c = await this.prisma.jevConversation.findFirst({ where: { accountId, updatedAt: { gte: this.cutoff() } }, orderBy: { updatedAt: 'desc' } });
+    // Ordre déterministe : à date de mise à jour égale (date figée des essais), la plus récemment créée.
+    const c = await this.prisma.jevConversation.findFirst({ where: { accountId, app: 'console', updatedAt: { gte: this.cutoff() } }, orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }] });
     if (!c) return { id: null, messages: [] };
     const messages = await this.prisma.jevMessage.findMany({ where: { conversationId: c.id }, orderBy: { seq: 'asc' } });
     return { id: c.id, messages: messages.map((m) => ({ role: m.role, text: m.text, sources: m.sources, at: m.createdAt })) };
@@ -86,6 +90,17 @@ export class JevMemoryService {
     let turns = pairs(msgs).slice(-JEV_HISTORY_TURNS);
     while (turns.length && chars(turns) > JEV_HISTORY_MAX_CHARS) turns = turns.slice(1);
     return { history: turns.flat(), summary: c.summary };
+  }
+
+  /** Cockpit, cas 3 : modification en cours de préparation (null pour l'effacer). */
+  async setDraft(id: string, draft: unknown | null): Promise<void> {
+    await this.prisma.jevConversation.update({ where: { id }, data: { draft: draft === null ? Prisma.DbNull : (draft as Prisma.InputJsonValue) } });
+  }
+
+  /** Dernières questions de la conversation (aiguillage des questions de suite), avec leur cas. */
+  async lastQuestions(id: string, n: number): Promise<Array<{ question: string; route: string | null }>> {
+    const rows = await this.prisma.jevMessage.findMany({ where: { conversationId: id, role: 'user' }, orderBy: { seq: 'desc' }, take: n });
+    return rows.reverse().map((m) => ({ question: m.text, route: m.route }));
   }
 
   /** Enregistre un échange, puis met à jour le résumé si des échanges sortent de la fenêtre (après la réponse). */
@@ -106,7 +121,7 @@ export class JevMemoryService {
     const turns = pairs(msgs);
     if (turns.length <= JEV_HISTORY_TURNS + JEV_SUMMARY_BATCH_TURNS - 1) return;
     const fold = turns.slice(0, turns.length - JEV_HISTORY_TURNS);
-    const text = fold.map(([q, a]) => `Administrateur : ${q.content}\nJev : ${a.content}`).join('\n\n');
+    const text = fold.map(([q, a]) => `Utilisateur : ${q.content}\nJev : ${a.content}`).join('\n\n');
     const r = await this.llm.complete({
       functionId: 'guidage',
       source: 'JEV',

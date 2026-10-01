@@ -265,3 +265,11 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 - Les réponses de Jev sont mises en forme comme dans la Console (`jev-format.js` : titres, listes, paires libellé / valeur, tableaux en fiches, pastilles de statut) ; les sources s'affichent en étiquettes sous la réponse (une ligne « Sources : … » écrite par le modèle est retirée) ; les messages d'erreur sont signalés (`err`).
 - Indicateur « Jev réfléchit » (trois points) pendant l'appel au serveur (`jevThink`).
 - `jev-format.js` : une liste numérotée dont les étapes sont séparées par des lignes vides (ou suivies de lignes en retrait) reste une seule liste et garde la numérotation du modèle (avant : « 1. » à chaque étape). S'applique aussi à la Console.
+
+## Jev : modifications des données en conversation (01/10/2026)
+
+- Conversation suivie par le serveur (`conversationId`) ; nouvelle conversation à l'ouverture du panneau et sur « Effacer tous les messages » (`jevReset`).
+- Questions à choix de Jev : pastilles qui envoient une réponse structurée (`jevSendAnswer`), dont « Annuler la demande ».
+- Récapitulatifs « À valider » : une ligne par champ (avant → après pour une modification) ; actions liées dans un second récapitulatif, à valider après le risque ; suppression : champ « Retapez R06 pour confirmer » et bouton rouge « Supprimer définitivement », actif seulement quand le code est juste.
+- Après validation : message « Enregistré : R07. » avec un bouton qui ouvre l'écran du Pilotage concerné.
+- « Annuler » après enregistrement (qui ne défaisait rien) n'apparaît plus avec le serveur ; les cartes ne sont plus tronquées dans le panneau (`flex:none`).

@@ -976,16 +976,31 @@ export function attach(comp) {
     },
 
     /** Jev : `POST /assistant/messages` ; les propositions arrivent en récapitulatif « À valider ». */
-    async jevSend(text, J) {
+    /**
+     * Jev : `POST /assistant/messages` dans la conversation en cours (mémoire, cas 3 : modification en préparation) ;
+     * `extra.answer` : réponse à une question à choix. Les choix arrivent en pastilles ; les propositions en
+     * récapitulatifs « À valider » (modification principale, puis actions liées à valider après).
+     */
+    async jevSend(text, J, extra = {}) {
       const context = { space: J.space || comp.state.space, ...(J.tab || comp.state.tab ? { tab: J.tab || comp.state.tab } : {}), ...(J.block ? { block: String(J.block).slice(0, 80) } : {}), ...(J.id ? { rowId: String(J.id).slice(0, 80) } : {}) };
       const fileIds = (comp._jevFileIds || []).splice(0);
       try {
-        const r = await ppost('/assistant/messages', { context, text: (J.row && J.kind === 'ligne' && !/\b(A-\d+|R\d{2,}|P\d{2,}|D-\d{3}|J\d{2,})\b/i.test(text) ? String(J.row).split(' · ')[0] + ' · ' : '') + text, fileIds });
-        // Sources du guide du Cockpit (« Guide · section · p. N ») regroupées : « Guide utilisateur · section · p. N ; … ».
+        const r = await ppost('/assistant/messages', { context, text: (!extra.answer && J.row && J.kind === 'ligne' && !/\b(A-\d+|R\d{2,}|P\d{2,}|D-\d{3}|J\d{2,})\b/i.test(text) ? String(J.row).split(' · ')[0] + ' · ' : '') + text, fileIds, ...(comp._jevConv ? { conversationId: comp._jevConv } : {}), ...(extra.answer ? { answer: extra.answer } : {}) });
+        comp._jevConv = r.conversationId || comp._jevConv;
         // Sources en étiquettes (jev-format.js, séparateur : saut de ligne) : « Guide · section · p. N » → « section · p. N ».
         const src = (r.sources || []).map((s) => (s.entityType === 'GUIDE' ? String(s.label).replace(/^Guide · /, '') : s.label)).join('\n');
-        const msgs = [{ t: 'jev', text: r.reply, src }];
-        if ((r.proposedChanges || []).length) msgs.push({ t: 'recap', title: r.proposedChanges.length + (r.proposedChanges.length > 1 ? ' modifications proposées' : ' modification proposée'), st: 'proposed', changeIds: r.proposedChanges.map((c) => c.id), items: r.proposedChanges.map((c) => [c.entityId || 'Nouveau', '', c.summary]) });
+        const msgs = [{ t: 'jev', text: r.reply, src, chips: (r.choices || []).map((c) => ({ label: c.label, answer: c.answer })) }];
+        const pc = r.proposedChanges || [];
+        for (const group of ['main', 'linked']) {
+          const g = pc.filter((c) => (c.group || 'main') === group);
+          if (!g.length) continue;
+          const items = g.flatMap((c) => [...(g.length > 1 || group === 'linked' ? [[c.title || c.summary, '', '']] : []), ...(c.rows || [[c.entityId || 'Nouveau', '', c.summary]]).map((x) => (Array.isArray(x) ? x : [x.t, x.a || '', x.b]))]);
+          const del = g.find((c) => c.confirmCode);
+          msgs.push({
+            t: 'recap', st: 'proposed', changeIds: g.map((c) => c.id), items, confirmCode: del ? del.confirmCode : null, code: '',
+            title: group === 'linked' ? g.length + (g.length > 1 ? ' actions liées proposées' : ' action liée proposée') + ' · à valider après le risque' : g.length > 1 ? g.length + ' modifications proposées' : g[0].title || '1 modification proposée',
+          });
+        }
         comp.setState((s) => ({ jevMsgs: (s.jevMsgs || []).concat(msgs), jevThink: false }));
       } catch (e) {
         comp.setState((s) => ({ jevMsgs: (s.jevMsgs || []).concat([{ t: 'jev', text: errorText(e), err: true }]), jevThink: false }));
@@ -997,11 +1012,25 @@ export function attach(comp) {
     async jevDecide(m, verb) {
       const ids = (m && m.changeIds) || [];
       try {
-        for (const id of ids) await ppost('/assistant/changes/' + enc(id) + '/' + verb);
-        if (ids.length && verb === 'confirm') scheduleReload();
+        const links = [];
+        for (const id of ids) {
+          // Suppression : confirmation renforcée, le code retapé par l'utilisateur est vérifié par le serveur.
+          const r = await ppost('/assistant/changes/' + enc(id) + '/' + verb, verb === 'confirm' && m.confirmCode ? { confirmCode: m.code || '' } : {});
+          if (r && r.link) links.push(r.link);
+        }
+        if (ids.length && verb === 'confirm') {
+          scheduleReload();
+          // Lien vers chaque enregistrement créé ou modifié (écran du Pilotage).
+          const msgs = links.map((l) => ({ t: 'jev', text: 'Enregistré : ' + l.code + '.', link: l }));
+          if (m.confirmCode) msgs.push({ t: 'jev', text: 'Supprimé : ' + m.confirmCode + '.' });
+          if (msgs.length) { comp.setState((s) => ({ jevMsgs: (s.jevMsgs || []).concat(msgs) })); comp.jevScroll(); }
+        }
         return true;
       } catch (e) { toast(errorText(e)); scheduleReload(); return false; }
     },
+
+    /** Nouvelle conversation (réouverture du panneau, « Effacer tous les messages ») : la mémoire de Jev repart de zéro. */
+    jevReset() { comp._jevConv = null; },
 
     /** Pièce jointe de Jev : `POST /assistant/files` ; la progression suit l'envoi réel. */
     jevAttach(files) {

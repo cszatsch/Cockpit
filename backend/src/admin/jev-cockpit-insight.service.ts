@@ -3,6 +3,7 @@ import { PrismaService } from '../core/prisma.service';
 import { AiFunctionId, LlmResult, LlmService } from '../core/llm.service';
 import { JevPromptService } from '../core/jev-prompt.service';
 import { TodayService } from '../core/today.service';
+import { ChatTurn } from '../core/llm-client';
 import { extractSql, formatRows, JEV_SQL_MAX_ROWS, JEV_SQL_RETRIES, looksLikeSql, renderDictionary, requestContext, SQL_CUT_REASON, sqlCut, sqlError, sqlInstructions, viewsUsed } from '../domain/jev-sql';
 import { JEV_COCKPIT_SCHEMA } from '../domain/jev-dictionnaire-cockpit';
 import { ProjectAccess, visibleWorkstreams } from '../domain/rights';
@@ -42,7 +43,7 @@ export class JevCockpitInsightService {
   ) {}
 
   /** `queryHint` / `extraRules` : consignes ajoutées aux étapes « requête » et « réponse » (4b : état actuel seulement). */
-  async ask(text: string, opts: { project: { id: string; code: string }; access: ProjectAccess; page: string; functionId?: AiFunctionId; skill?: string | null; queryHint?: string; extraRules?: string }): Promise<InsightAnswer> {
+  async ask(text: string, opts: { project: { id: string; code: string }; access: ProjectAccess; page: string; functionId?: AiFunctionId; skill?: string | null; queryHint?: string; extraRules?: string; history?: ChatTurn[] }): Promise<InsightAnswer> {
     const functionId = opts.functionId ?? 'insights';
     const parts = await this.jevPrompt.cockpitParts(opts.skill === undefined ? 'Insights' : opts.skill, opts.page);
     const tables = await this.prisma.dictionnaireTable.findMany({ where: { espace: 'cockpit', actif: true }, include: { colonnes: { orderBy: { position: 'asc' } } }, orderBy: { position: 'asc' } });
@@ -58,7 +59,7 @@ export class JevCockpitInsightService {
     const context = requestContext(parts.page, this.today.today(), nowParisLabel(this.today.now()));
     const calls: LlmResult[] = [];
     const call = async (prompt: string, sys: string, tail = context) => {
-      const r = await this.llm.complete({ functionId, prompt, system: sys, systemTail: tail, cache: true, projectId: opts.project.id, source: 'JEV' });
+      const r = await this.llm.complete({ functionId, prompt, system: sys, systemTail: tail, cache: true, projectId: opts.project.id, source: 'JEV', history: opts.history });
       calls.push(r);
       return r;
     };

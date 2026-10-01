@@ -3,6 +3,7 @@ import { setup, TestCtx, WHO } from '../helpers';
 import { renderPdf } from '../../src/core/pdf';
 import { KbService } from '../../src/cockpit/documents/kb.service';
 import { JevRouterService } from '../../src/admin/jev-router.service';
+import { LlmService } from '../../src/core/llm.service';
 
 const R = '/api/projects/RISE';
 
@@ -72,26 +73,32 @@ describe('Étape 10 — documents, commentaires, historique, Jev, services exter
     await c.get(`${R}/audit`).expect(400);
   });
 
-  it('Jev propose, l’utilisateur valide ; origine JEV ; jamais sur le Référentiel', async () => {
-    // Aiguillage simulé : demande de modification (cas 3) ; le traitement des propositions est celui de l'assistant.
+  it('Jev propose, l’utilisateur valide ; origine JEV ; mêmes droits qu’une saisie manuelle', async () => {
+    // Aiguillage simulé : demande de modification (cas 3) ; extraction simulée (modèle Gestion des données).
     const route = jest.spyOn(t.app.get(JevRouterService), 'classifyCockpit').mockResolvedValue({ cas: '3', confiance: 0.95, choice: 'modification', probabilities: {}, ecriture: 0.95, multi: false, multiScore: null, downgrade: null, justification: '', status: 'OK', latencyMs: 1, error: null, traceId: null });
+    const llm = t.app.get(LlmService), real = llm.complete.bind(llm);
+    const extract = (code: string) => JSON.stringify({ operations: [{ objet: 'ACTION', operation: 'UPDATE', code, champs: { status: 'terminée' } }] });
+    let next = extract('A-41');
+    const spy = jest.spyOn(llm, 'complete').mockImplementation(async (input: any) => ({ ...(await real(input)), text: next }));
     const c = await t.as(WHO.respC5);
     const m = await c.post(`${R}/assistant/messages`, { context: { space: 'pilotage', tab: 'actions' }, text: 'Passe A-41 en terminée' }).expect(200);
+    expect(m.body).toMatchObject({ route: '3', write: 'RECAP' });
     expect(m.body.proposedChanges).toHaveLength(1);
-    expect(m.body.proposedChanges[0]).toMatchObject({ entityType: 'ACTION', entityId: 'A-41', patch: { status: 'DONE' } });
+    expect(m.body.proposedChanges[0]).toMatchObject({ entityType: 'ACTION', entityId: 'A-41', op: 'UPDATE', patch: { status: 'DONE' }, rows: [{ t: 'Statut', a: 'En cours', b: 'Terminée' }] });
     // Rien n'est enregistré avant validation.
     expect((await t.db.action.findUnique({ where: { id: 'A-41' } }))!.status).toBe('IN_PROGRESS');
     const ok = await c.post(`${R}/assistant/changes/${m.body.proposedChanges[0].id}/confirm`).expect(200);
     expect(ok.body.result.status).toBe('DONE');
+    expect(ok.body.link).toMatchObject({ space: 'pilotage', tab: 'actions', code: 'A-41' });
     const a = await t.db.auditEntry.findFirst({ where: { entityType: 'ACTION', entityId: 'A-41', field: 'status' } });
     expect(a!.origin).toBe('JEV');
     await c.post(`${R}/assistant/changes/${m.body.proposedChanges[0].id}/reject`).expect(409);
-    // Mêmes droits qu'une saisie manuelle : A-42 (C1) hors de ses chantiers.
+    // Mêmes droits qu'une saisie manuelle : A-42 (C1) hors de ses chantiers, refus sans proposition.
+    next = extract('A-42');
     const m2 = await c.post(`${R}/assistant/messages`, { context: { space: 'pilotage', tab: 'actions' }, text: 'Passe A-42 en terminée' }).expect(200);
-    expect(m2.body.proposedChanges).toHaveLength(0);
-    const ref = await (await t.as(WHO.pmo)).post(`${R}/assistant/messages`, { context: { space: 'projet', tab: 'referentiel' }, text: 'Passe A-47 en terminée' }).expect(200);
-    expect(ref.body.proposedChanges).toHaveLength(0);
-    expect(ref.body.reply).toMatch(/ne modifie ni le Référentiel/);
+    expect(m2.body).toMatchObject({ write: 'REFUSED', proposedChanges: [] });
+    expect(m2.body.reply).toMatch(/Rien n’a été enregistré/);
+    spy.mockRestore();
     route.mockRestore();
   });
 
