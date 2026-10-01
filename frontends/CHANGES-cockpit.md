@@ -285,3 +285,8 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 
 - Sources d'une réponse repliées par défaut : « SOURCES » et leur nombre, avec un chevron ; un clic les déplie ou les replie (par réponse).
 - Fermer puis rouvrir le panneau ne vide plus la conversation (correction) : elle n'est remise à zéro que par un redémarrage de l'application ou par « Effacer tous les messages » ; le contexte du panneau suit l'écran ouvert, et une demande précise (date d'une ligne) s'ajoute à la suite.
+
+## Pilotage : icônes « Demander à Jev » retirées (01/10/2026)
+
+- Les 14 icônes « Demander à Jev » des écrans du Pilotage (en-têtes des blocs de Planning, Jalons, Livrables, Risques et problèmes, Actions, Décisions et fiche d'arbitrage, Baromètre, Comités, Mes tâches, et points du graphique du Baromètre) sont retirées. Jev reste accessible par son bouton de la barre latérale.
+- « Saisir sans Jev » (formulaires de création) reste disponible : il s'affiche désormais aussi dans le panneau de Jev ouvert depuis la barre latérale sur un écran du Pilotage (Planning : ligne d'avancement).
