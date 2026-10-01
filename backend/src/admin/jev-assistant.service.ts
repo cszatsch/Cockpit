@@ -1,3 +1,4 @@
+import { latencyCategory, latencyKind, latencyUnserved, measuredPrompt, recordRoute } from '../core/latency';
 import { span, traced, traceMeta } from '../core/trace';
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
@@ -60,7 +61,7 @@ export class JevAssistantService {
   ) {}
 
   async answer(accountId: string, text: string, section: string, conversationId?: string | null): Promise<JevReply> {
-    return traced('Jev Console', () => this.answerTraced(accountId, text, section, conversationId), { page: section, question: text.slice(0, 120) });
+    return measuredPrompt(() => traced('Jev Console', () => this.answerTraced(accountId, text, section, conversationId), { page: section, question: text.slice(0, 120) }));
   }
 
   private async answerTraced(accountId: string, text: string, section: string, conversationId?: string | null): Promise<JevReply> {
@@ -68,8 +69,12 @@ export class JevAssistantService {
     const conv = conversationId ? await this.memory.own(accountId, conversationId) : await this.memory.start(accountId);
     const mem = await this.memory.memory(conv);
     const previous = mem.history.filter((h) => h.role === 'user').map((h) => ({ question: h.content }));
+    const routeStart = new Date();
     const route = await span('aiguillage (API JEV)', async (d) => { const r = await this.router.classify(text, { history: previous, page: CONSOLE_PAGE_TITLES[section] ?? section, accountId, conversationId: conv.id }); Object.assign(d, { type: r.type, confiance: r.confiance, statut: r.status }); return r; });
     traceMeta('type', route.type);
+    recordRoute(routeStart, route);
+    // Temps de traitement : seules les questions d'usage et de données sont comptées (choix du 01/10/2026).
+    if (route.status === 'OK') latencyCategory(route.type === 'USAGE' ? 'guide_console' : route.type === 'DONNEES' ? 'data_console' : null);
     const classificationId = (await this.prisma.jevClassification.findFirst({ where: { conversationId: conv.id }, orderBy: { at: 'desc' }, select: { id: true } }))?.id ?? null;
     // Guide et réglages de la Console seulement (questions posées depuis la Console).
     const s = await this.search.settings('console');
@@ -88,6 +93,7 @@ export class JevAssistantService {
       }
     } catch (e: any) {
       const why = String(e?.response?.message ?? e?.message ?? 'modèles indisponibles');
+      latencyUnserved(e);
       await this.writeLog({ accountId, conversationId: conv.id, classificationId, question: text, route: route.type, treatment: 'ERREUR', totalMs: Date.now() - t0, error: why.slice(0, 1000) });
       // Sans réponse, l'échange n'est pas gardé en mémoire : il ne pèserait pas sur la suite.
       return { reply: `Je ne peux pas répondre pour l’instant : ${why}`, sources: [], ai: null, unavailable: why, conversationId: conv.id, route: route.type, treatment: 'ERREUR' };
@@ -107,7 +113,7 @@ export class JevAssistantService {
     let reformulated: string | null = null;
     if (mem.history.some((h) => h.role === 'user')) {
       const t0 = Date.now();
-      const r = await this.llm.complete({ functionId: 'guidage', source: 'JEV', system: REFORMULATE_SYSTEM, prompt: `Dernière question : ${text}`, history: mem.history, timeoutMs: s.llmTimeoutMs, maxWords: 60 });
+      const r = await latencyKind('qry', () => this.llm.complete({ functionId: 'guidage', source: 'JEV', system: REFORMULATE_SYSTEM, prompt: `Dernière question : ${text}`, history: mem.history, timeoutMs: s.llmTimeoutMs, maxWords: 60 }));
       reformulated = cleanReformulation(r.text, text);
       timings.reformulateMs = Date.now() - t0;
       if (reformulated === text) reformulated = null;

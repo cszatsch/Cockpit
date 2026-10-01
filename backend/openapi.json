@@ -2465,6 +2465,34 @@
         ]
       }
     },
+    "/api/projects/{projectId}/assistant/conversations": {
+      "post": {
+        "operationId": "AssistantController_newConversation",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "cockpit · assistant Jev"
+        ]
+      }
+    },
     "/api/projects/{projectId}/assistant/changes/{id}/confirm": {
       "post": {
         "operationId": "AssistantController_confirm",
@@ -9147,6 +9175,44 @@
         ],
         "tags": [
           "widgets · flux d’actualités"
+        ]
+      }
+    },
+    "/api/ai/latency": {
+      "get": {
+        "operationId": "LatencyController_report",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · temps de traitement"
+        ]
+      }
+    },
+    "/api/ai/latency/series": {
+      "get": {
+        "operationId": "LatencyController_series",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · temps de traitement"
         ]
       }
     }

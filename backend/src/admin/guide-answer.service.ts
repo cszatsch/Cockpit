@@ -13,6 +13,8 @@ export interface GuideAnswer {
   sources: string[];
   modelId: string | null;
   fallbackUsed: boolean;
+  /** UNAVAILABLE : motif (temps de traitement : prompt non servi). */
+  error?: string;
 }
 
 /** Messages sans appel au modèle (règle : sans guide publié, Jev ne répond pas aux questions sur l'application). */
@@ -43,7 +45,7 @@ export class GuideAnswerService {
       found = await span('recherche dans le guide', async (d) => { const f = await this.search.search(app, question, s); Object.assign(d, { extraits_retenus: f.extracts.length, vide: f.empty }); return f; });
     } catch (e) {
       console.warn(`[jev] recherche dans le guide ${GUIDE_APP_LABELS[app].of} indisponible : ${e instanceof Error ? e.message : e}`);
-      return { status: 'UNAVAILABLE', reply: guideUnavailableReply(app), sources: [], modelId: null, fallbackUsed: false };
+      return { status: 'UNAVAILABLE', reply: guideUnavailableReply(app), sources: [], modelId: null, fallbackUsed: false, error: e instanceof Error ? e.message : String(e) };
     }
     if (found.empty === 'GUIDE_NON_INDEXE') return { status: 'NO_GUIDE', reply: guideMissingReply(app), sources: [], modelId: null, fallbackUsed: false };
     if (found.empty || !found.extracts.length) return { status: 'NO_EXTRACT', reply: guideNoExtractReply(app), sources: [], modelId: null, fallbackUsed: false };

@@ -1053,3 +1053,26 @@ Cause : la vectorisation de la question par le modèle de l'index du guide (qwen
 |---|---|---|
 | Vouvoiement | Constat : réponses du guide au « tu », car la Persona dit « Je tutoie » et les règles du guide demandaient « le registre de l'utilisateur ». Le Cockpit vouvoie toujours, même contre la Persona ou une question au « tu » ; règles du guide du Cockpit : « en vouvoyant l'utilisateur » (la Console garde le registre de l'utilisateur) | `COCKPIT_REGISTER_RULE` (`jev-prompt.ts`), `guideAnswerRules('cockpit')` (`jev-rag.ts`) |
 | Liens | Constat : la skill « Guidage Cockpit » demande de « terminer par le lien vers l'écran », le panneau n'en ouvre aucun et le modèle inventait « cockpit://… ». Consigne : aucun lien, l'écran désigné par son chemin en gras ; filet de sécurité : tout lien Markdown d'une réponse devient son libellé en gras | `COCKPIT_LINK_RULE`, `stripMarkdownLinks` (`AssistantController.message`) |
+
+## Analyse des temps de traitement (01/10/2026)
+
+Spécification `docs/specs/TEMPS - specification.md` (écran 1c « Cascade »). Arbitrages du commanditaire (01/10/2026) et choix sur les points non précisés :
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Prompts hors catégorie | Clarifications (cas 5 du Cockpit, AMBIGU de la Console), hors sujet et aiguillage en échec (la catégorie se décide à l'aiguillage) : non comptés. Réponses par boutons du cas 3 (sans modèle) : non comptées | `latencyCategory(null)` |
+| Routage | L'API TypeSafe de la carte « JEV » est présentée comme un modèle « JEV · TypeSafe » (vue Par modèle), en erreur quand la classification échoue | `LATENCY_ROUTER_MODEL`, `recordRoute`, `LATENCY_PSEUDO_MODELS` |
+| Cas 3 | Chaque message tapé est un prompt « Actualisation Cockpit » (Routage, Formulation = extraction des champs) ; le clic « Confirmer » est un prompt distinct, avec la seule étape Exécution (écriture en base) ; une confirmation refusée avant l'écriture n'est pas comptée | `AssistantController.confirm` |
+| Correspondance des étapes | Formulation (`qry`) : requête SQL (cas 1, données Console) et ses corrections, reformulation d'une question de suite (Console), identification des documents (cas 4), extraction des champs (cas 3) ; Exécution (`exe`, « svc ») : SQL en lecture, écriture en base ; Génération (`gen`) : rédaction. Premier appel « requête » qui répond directement : requalifié en Génération. Cas 4b : catégorie « Base de connaissance », toutes ses étapes | `latencyKind`, `relabelLastStep` |
+| Reprises | Les essais d'une même vectorisation (`EMBED_RETRIES`) forment une ligne ; la seconde tentative de la recherche dans le guide est un second appel, donc une seconde ligne (la première en erreur) | `LlmService.embedWithModel` |
+| Secours | Principal en échec : sa ligne en erreur (durée jusqu'à l'échec), puis une ligne `fallback` ; part des appels = nombre de lignes | `timedStep` |
+| Réponse non servie | Exception, ou réponse « indisponible » (guide indisponible, lecture SQL impossible, erreur de la Console) : `e2e` en erreur, prompt compté, exclu du bout en bout | `latencyUnserved` |
+| Bout en bout | De la réception de la requête au retour du contrôleur (pas de diffusion par jetons) ; mesuré, jamais calculé | `measuredPrompt` |
+| Écriture | Après la réponse (`setImmediate`), par lot ; un échec d'écriture est journalisé sans effet sur la réponse | `latencySinks`, `LatencyService` |
+| Ordre des étapes | Médiane du début de la première occurrence de chaque étape dans son prompt (l'ordre réel varie : identification avant vectorisation au cas 4) | `buildLatencyReport` |
+| Médiane | Percentile 50 exact (moyenne des deux valeurs centrales, arrondie à la ms) ; pas de t-digest (volumes actuels) ; la vue Par modèle est agrégée par l'écran (médiane pondérée), sa courbe par le serveur (médiane exacte) | `median` |
+| Périodes | Jours civils de Paris ; Jour = 24 créneaux horaires ; 1 mois = 30 jours ; 3 mois = 91 jours (13 semaines), 6 mois = 183 jours (27 semaines, la première incomplète, étiquetée au début de la période) ; semaines se terminant la veille ; `day` ignoré hors période Jour ; refus au-delà de 182 jours ou après la veille (400) | `LATENCY_PERIODS`, `LATENCY_MAX_DAYS_BACK`, `seriesSlots` |
+| Courbe | Créneau sans prompt : `med`, `min`, `max` à `null` (courbe interrompue) ; erreurs : étapes en erreur de la catégorie, ou appels en erreur du modèle | `buildLatencySeries` |
+| API | Chemin de la spécification `/api/ai/latency` (et non `/api/admin/…`), réservé aux administrateurs (`@AdminOnly`) ; le rapport ajoute `models` (nom et fournisseur des modèles cités, « Service RISE » pour `svc`) : l'écran ne connaît pas le catalogue | `LatencyController`, `LatencyService.report` |
+| Conservation | 190 jours, purge chaque nuit (tâche `latency.purge`, 03:40) | `LATENCY_RETENTION_DAYS` |
+| Écran | Démonstration seulement sans `fetchData` (écran seul, Console en `?demo=1`) ; chargement : la période précédente reste affichée, « Chargement… » au premier affichage | `frontends/CHANGES-console.md` |

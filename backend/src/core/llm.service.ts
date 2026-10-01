@@ -5,6 +5,7 @@ import { PrismaService } from './prisma.service';
 import { ApiError } from './errors';
 import { decryptSecret } from './crypto';
 import { techErrors } from './tech-errors';
+import { currentLatencyKind, timedStep } from './latency';
 import { KeyTestResult, ProviderKeyTester } from './provider-key-tester';
 import { CACHE_READ_FACTOR, CACHE_WRITE_FACTOR, ChatTurn, LlmCallError, LlmClient } from './llm-client';
 
@@ -167,11 +168,14 @@ export class LlmService {
 
   private async completeUntraced(input: { functionId: AiFunctionId; prompt: string; system?: string; systemTail?: string; history?: ChatTurn[]; cache?: boolean; projectId?: string | null; source: UsageSourceCode; maxWords?: number; timeoutMs?: number; maxTokens?: number }): Promise<LlmResult> {
     const route = await span('choix du modèle (affectation, base)', () => this.route(input.functionId));
-    if (!(LIVE_FUNCTIONS.includes(input.functionId) && this.client.live)) return this.run(route.modelId, input, route.fallback);
+    // Temps de traitement (TEMPS § 3) : une ligne par appel, principal ou secours, à l'étape fixée par l'appelant.
+    const kind = currentLatencyKind();
+    const timed = <T>(modelId: string, fallback: boolean, fn: () => Promise<T>) => timedStep(kind, modelId, fallback ? 'fallback' : 'primary', fn);
+    if (!(LIVE_FUNCTIONS.includes(input.functionId) && this.client.live)) return timed(route.modelId, route.fallback, () => this.run(route.modelId, input, route.fallback));
     const fn = aiFunction(input.functionId);
     const label = `Fonction ${fn?.short ?? input.functionId}`;
     try {
-      const r = await this.runLive(route.modelId, input, route.fallback);
+      const r = await timed(route.modelId, route.fallback, () => this.runLive(route.modelId, input, route.fallback));
       if (!route.fallback) aiRecovered(input.functionId);
       return r;
     } catch (e) {
@@ -182,7 +186,7 @@ export class LlmService {
         throw new ApiError(503, 'AI_UNAVAILABLE', `${label} indisponible : ${e.message}`);
       }
       try {
-        const r = await this.runLive(asg!.fallbackModelId!, input, true);
+        const r = await timed(asg!.fallbackModelId!, true, () => this.runLive(asg!.fallbackModelId!, input, true));
         aiIncident(input.functionId, `modèle principal en échec (${e.message}) ; réponse fournie par le modèle de secours`);
         return r;
       } catch (e2) {
@@ -291,7 +295,8 @@ export class LlmService {
    * l'index, jamais un autre). Le modèle doit être disponible (actif, fournisseur au statut OK).
    */
   async embedWithModel(modelId: string, wanted: number | null, texts: string[], source: UsageSourceCode, opts: { onBatch?: (done: number, total: number) => Promise<void> | void; timeoutMs?: number; projectId?: string | null } = {}): Promise<{ modelId: string; modelName: string; dims: number; vectors: number[][] }> {
-    return span(`vectorisation (${texts.length} texte${texts.length > 1 ? 's' : ''})`, (d) => this.embedTimed(modelId, wanted, texts, source, opts, d), { modele: modelId, delai_max_ms: opts.timeoutMs ?? null });
+    // Temps de traitement : une ligne « vec » par vectorisation (reprises comprises), dans un prompt mesuré seulement.
+    return timedStep('vec', modelId, 'primary', () => span(`vectorisation (${texts.length} texte${texts.length > 1 ? 's' : ''})`, (d) => this.embedTimed(modelId, wanted, texts, source, opts, d), { modele: modelId, delai_max_ms: opts.timeoutMs ?? null }));
   }
 
   private async embedTimed(modelId: string, wanted: number | null, texts: string[], source: UsageSourceCode, opts: { onBatch?: (done: number, total: number) => Promise<void> | void; timeoutMs?: number; projectId?: string | null }, d: Record<string, unknown>): Promise<{ modelId: string; modelName: string; dims: number; vectors: number[][] }> {
@@ -358,7 +363,8 @@ export class LlmService {
   private async rerankUntraced(query: string, documents: string[], topN: number, source: UsageSourceCode, timeoutMs?: number): Promise<{ modelId: string; modelName: string; fallbackUsed: boolean; results: Array<{ index: number; score: number }> }> {
     const route = await this.route('doc_rrk');
     const asg = await this.prisma.modelAssignment.findUnique({ where: { functionId: 'doc_rrk' } });
-    const attempt = async (modelId: string, fallbackUsed: boolean) => {
+    const attempt = (modelId: string, fallbackUsed: boolean) => timedStep('rrk', modelId, fallbackUsed ? 'fallback' : 'primary', () => attemptUntimed(modelId, fallbackUsed));
+    const attemptUntimed = async (modelId: string, fallbackUsed: boolean) => {
       const model = await this.prisma.aiModel.findUniqueOrThrow({ where: { id: modelId } });
       const provider = await this.prisma.provider.findUniqueOrThrow({ where: { id: model.providerId } });
       const t0 = Date.now();

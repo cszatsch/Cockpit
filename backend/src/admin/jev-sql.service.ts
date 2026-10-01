@@ -1,3 +1,4 @@
+import { LATENCY_SERVICE_MODEL, latencyKind, LatencyStep, latencyUnserved, relabelLastStep, timedStep } from '../core/latency';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../core/prisma.service';
 import { LlmResult, LlmService } from '../core/llm.service';
@@ -53,19 +54,22 @@ export class JevSqlService {
     const system = `${parts.stable}\n\n${sqlInstructions(renderDictionary(tables), null, null)}${route === 'DONNEES' ? `\n\n${DATA_HINT}` : ''}`;
     const context = requestContext(parts.page, this.today.today(), this.nowParis(), memory?.summary);
     const calls: LlmResult[] = [];
-    const call = async (prompt: string, sys: string, tail = context) => {
-      const r = await this.llm.complete({ functionId: 'guidage', prompt, system: sys, systemTail: tail, history: memory?.history, cache: true, source: 'COCKPIT' });
+    const call = async (prompt: string, sys: string, tail = context, kind: LatencyStep = 'gen') => {
+      const r = await latencyKind(kind, () => this.llm.complete({ functionId: 'guidage', prompt, system: sys, systemTail: tail, history: memory?.history, cache: true, source: 'COCKPIT' }));
       calls.push(r);
       return r;
     };
     const ai = () => ({ functionId: 'guidage' as const, modelId: calls[calls.length - 1].modelId, fallbackUsed: calls.some((c) => c.fallbackUsed) });
 
     // 1. Réponse directe, ou requête.
-    const first = await call(text, system);
+    const first = await call(text, system, context, 'qry');
     let sql = extractSql(first.text);
     // Requête coupée ou mal balisée (correction du 30/09/2026) : jamais montrée telle quelle, elle est réécrite.
     let cut = sqlCut(first.text);
-    if (sql === null && !looksLikeSql(first.text)) return { reply: first.text, sources: [], ai: ai(), sql: null };
+    if (sql === null && !looksLikeSql(first.text)) {
+      relabelLastStep('qry', 'gen');
+      return { reply: first.text, sources: [], ai: ai(), sql: null };
+    }
 
     // 2. Contrôle et exécution, une correction au plus.
     let rows: Array<Record<string, unknown>> | null = null;
@@ -74,18 +78,19 @@ export class JevSqlService {
       why = cut ? SQL_CUT_REASON : sql ? sqlError(sql) ?? '' : 'aucune requête dans la réponse';
       if (!why) {
         try {
-          rows = await this.executeReadOnly(sql!);
+          rows = await timedStep('exe', LATENCY_SERVICE_MODEL, 'primary', () => this.executeReadOnly(sql!));
           break;
         } catch (e) {
           why = dbMessage(e);
         }
       }
       if (attempt >= JEV_SQL_RETRIES) break;
-      const fix = await call(`${text}\n\n## Requête à corriger\n\`\`\`sql\n${sql ?? ''}\n\`\`\`\nMotif du refus ou de l’échec : ${why}\nRéponds uniquement par la requête corrigée, dans un bloc \`\`\`sql\`\`\`.`, system);
+      const fix = await call(`${text}\n\n## Requête à corriger\n\`\`\`sql\n${sql ?? ''}\n\`\`\`\nMotif du refus ou de l’échec : ${why}\nRéponds uniquement par la requête corrigée, dans un bloc \`\`\`sql\`\`\`.`, system, context, 'qry');
       sql = extractSql(fix.text);
       cut = sqlCut(fix.text);
     }
     if (!rows) {
+      latencyUnserved(why);
       return { reply: `Je n’ai pas pu lire les données de la plateforme pour répondre (${why}). Reformulez la question, ou consultez directement l’écran concerné de la Console.`, sources: [], ai: ai(), sql };
     }
 

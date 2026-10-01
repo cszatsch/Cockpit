@@ -1,3 +1,4 @@
+import { LATENCY_SERVICE_MODEL, latencyKind, LatencyStep, relabelLastStep, timedStep } from '../core/latency';
 import { span } from '../core/trace';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../core/prisma.service';
@@ -22,6 +23,8 @@ export interface InsightAnswer {
   rows: number | null;
   modelId: string | null;
   fallbackUsed: boolean;
+  /** FAILED : motif (temps de traitement : prompt non servi). */
+  error?: string;
 }
 
 /**
@@ -59,8 +62,8 @@ export class JevCockpitInsightService {
     })}\n\n${COCKPIT_INSIGHT_DATA_HINT}${opts.queryHint ? `\n${opts.queryHint}` : ''}`;
     const context = requestContext(parts.page, this.today.today(), nowParisLabel(this.today.now()));
     const calls: LlmResult[] = [];
-    const call = async (prompt: string, sys: string, tail = context) => {
-      const r = await this.llm.complete({ functionId, prompt, system: sys, systemTail: tail, cache: true, projectId: opts.project.id, source: 'JEV', history: opts.history });
+    const call = async (prompt: string, sys: string, tail = context, kind: LatencyStep = 'gen') => {
+      const r = await latencyKind(kind, () => this.llm.complete({ functionId, prompt, system: sys, systemTail: tail, cache: true, projectId: opts.project.id, source: 'JEV', history: opts.history }));
       calls.push(r);
       return r;
     };
@@ -69,10 +72,14 @@ export class JevCockpitInsightService {
     });
 
     // 1. Requête, ou réponse directe.
-    const first = await call(text, system);
+    const first = await call(text, system, context, 'qry');
     let sql = extractSql(first.text);
     let cut = sqlCut(first.text);
-    if (sql === null && !looksLikeSql(first.text)) return done('DIRECT', first.text);
+    if (sql === null && !looksLikeSql(first.text)) {
+      // Réponse directe, sans requête : l'appel était une génération.
+      relabelLastStep('qry', 'gen');
+      return done('DIRECT', first.text);
+    }
 
     // 2. Contrôle et exécution sur le périmètre de l'utilisateur, une correction au plus.
     let rows: Array<Record<string, unknown>> | null = null;
@@ -81,18 +88,18 @@ export class JevCockpitInsightService {
       why = cut ? SQL_CUT_REASON : sql ? sqlError(sql) ?? '' : 'aucune requête dans la réponse';
       if (!why) {
         try {
-          rows = await span(`requête SQL en lecture seule (tentative ${attempt + 1}, base)`, async (d) => { const r = await this.jevSql.executeCockpit(sql!, opts.project.id, chantiers); d.lignes = r.length; return r; });
+          rows = await span(`requête SQL en lecture seule (tentative ${attempt + 1}, base)`, async (d) => { const r = await timedStep('exe', LATENCY_SERVICE_MODEL, 'primary', () => this.jevSql.executeCockpit(sql!, opts.project.id, chantiers)); d.lignes = r.length; return r; });
           break;
         } catch (e) {
           why = dbMessage(e);
         }
       }
       if (attempt >= JEV_SQL_RETRIES) break;
-      const fix = await call(`${text}\n\n## Requête à corriger\n\`\`\`sql\n${sql ?? ''}\n\`\`\`\nMotif du refus ou de l’échec : ${why}\nRéponds uniquement par la requête corrigée, dans un bloc \`\`\`sql\`\`\`.`, system);
+      const fix = await call(`${text}\n\n## Requête à corriger\n\`\`\`sql\n${sql ?? ''}\n\`\`\`\nMotif du refus ou de l’échec : ${why}\nRéponds uniquement par la requête corrigée, dans un bloc \`\`\`sql\`\`\`.`, system, context, 'qry');
       sql = extractSql(fix.text);
       cut = sqlCut(fix.text);
     }
-    if (!rows) return done('FAILED', insightUnavailableReply(why), [], sql);
+    if (!rows) return { ...done('FAILED', insightUnavailableReply(why), [], sql), error: why };
 
     // 3. Réponse à partir des résultats, et d'eux seuls.
     const views = viewsUsed(sql!.replace(new RegExp(`${JEV_COCKPIT_SCHEMA}\\s*\\.`, 'gi'), ''), tables.map((t) => t.nom));

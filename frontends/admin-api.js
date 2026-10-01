@@ -224,6 +224,9 @@ export const fromProf = d => ({ firstName: d.first.trim(), lastName: d.last.trim
 // Horloge de référence : l'instant du serveur (`DEMO_NOW` en démonstration) + temps écoulé.
 let clock = { server: Date.now(), local: Date.now() };
 const now = () => new Date(clock.server + (Date.now() - clock.local));
+/** Date civile (AAAA-MM-JJ) d'un instant à Paris ; décalage d'une date de `n` jours. */
+const parisIso = d => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+const isoAdd = (iso, n) => new Date(Date.parse(iso + 'T00:00:00Z') + n * 86_400_000).toISOString().slice(0, 10);
 function ago(d) {
   const m = Math.max(0, Math.round((now() - d) / 60000)); if (m < 1) return 'à l’instant'; if (m < 60) return 'il y a ' + m + ' min';
   const h = Math.round(m / 60); if (h < 24) return 'il y a ' + h + ' h'; return 'il y a ' + Math.round(h / 24) + ' j';
@@ -484,7 +487,28 @@ export function bindConsole(c) {
   c.apTest = id => post(AC(id) + '/test').then(r => { touch(); apReload(); return { resp: toResp({ code: r.code, ms: r.ms, at: new Date().toISOString(), body: r.body }, r.code ? '' : 'Injoignable'), lat: null }; }).catch(e => { fail(e); return null; });
 
   // Ouverture d'un menu : rechargement de la section en arrière-plan.
-  c.go = (sec, then) => { orig.go(sec, then); if (!c.state.apiBoot && SECTION[sec]) load(SECTION[sec]).catch(fail); };
+  c.go = (sec, then) => { orig.go(sec, then); if (sec === 'latency') latRetry(); if (!c.state.apiBoot && SECTION[sec]) load(SECTION[sec]).catch(fail); };
+
+  // ── Analyse des temps de traitement (spécification TEMPS § 3) : props fetchData / fetchSeries de l'écran ──
+  // Réponse en cache par période et jour (veille du serveur, `dayOffset` jours avant pour la période Jour) ; `null` tant
+  // que la requête est en cours, puis la Console se redessine. Échec : message, nouvel essai à la prochaine ouverture.
+  const LAT = { data: {}, pending: {}, failed: new Set() };
+  const latRetry = () => { LAT.failed.forEach(k => delete LAT.pending[k]); LAT.failed.clear(); };
+  const latDay = (p, off) => { const y = isoAdd(parisIso(now()), -1); return p === 'd' ? isoAdd(y, -(off || 0)) : y; };
+  const latGet = (k, path) => {
+    if (k in LAT.data) return LAT.data[k];
+    if (!LAT.pending[k]) {
+      LAT.pending[k] = apiAbs('GET', path)
+        .then(r => { LAT.data[k] = r; set0({ latTick: Date.now() }); })
+        .catch(e => { LAT.failed.add(k); fail(e); });
+    }
+    return null;
+  };
+  c.latFetch = (p, off) => { const day = latDay(p, off); return latGet(p + '|' + day, '/api/ai/latency?period=' + p + (p === 'd' ? '&day=' + day : '')); };
+  c.latSeries = (p, off, axis, id) => {
+    const day = latDay(p, off);
+    return latGet(['s', p, day, axis, id].join('|'), '/api/ai/latency/series?period=' + p + (p === 'd' ? '&day=' + day : '') + '&axis=' + axis + '&id=' + encodeURIComponent(id));
+  };
 
   // Observateur d'état : planification des snapshots (par projet, Q10), préférences de notification.
   c.setState = (u, cb) => {

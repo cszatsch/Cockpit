@@ -1,3 +1,4 @@
+import { latencyKind } from '../../core/latency';
 import { Injectable } from '@nestjs/common';
 import { JevConversation, Prisma } from '@prisma/client';
 import { Actor } from '../../core/auth/auth';
@@ -68,7 +69,7 @@ export class JevCockpitWriteService {
       ...(cited.length ? ['## Enregistrements cités (valeurs actuelles)', ...cited] : []),
       ...(draft ? ['## Modification en cours', JSON.stringify(draft.ops.map((o) => ({ objet: o.entity, operation: o.op, code: o.code ?? null, champs: o.raw, actions_liees: o.linked ?? [] })))] : []),
     ].join('\n');
-    const r = await this.llm.complete({ functionId, source: 'JEV', cache: true, projectId: scope.project.id, maxTokens: 1500, system: `${parts.stable}\n\n${WRITE_EXTRACT_RULES}`, systemTail: tail, prompt: text, history: opts.history });
+    const r = await latencyKind('qry', () => this.llm.complete({ functionId, source: 'JEV', cache: true, projectId: scope.project.id, maxTokens: 1500, system: `${parts.stable}\n\n${WRITE_EXTRACT_RULES}`, systemTail: tail, prompt: text, history: opts.history }));
     const ops = parseExtraction(r.text);
     const meta = { modelId: r.modelId, fallbackUsed: r.fallbackUsed };
     if (!ops.length) return { ...this.empty('NOTHING', WRITE_NOTHING_REPLY), ...meta };

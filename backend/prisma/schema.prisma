@@ -1899,16 +1899,39 @@ model JevAnswerLog {
 /// Trace d’une question posée à Jev (01/10/2026) : étapes chronométrées, imbriquées, de la question à la réponse
 /// (`src/core/trace.ts`). Conservée 30 jours ; lue par `npm run jev:traces`.
 model JevTrace {
-  id       String   @id
-  at       DateTime
+  id      String   @id
+  at      DateTime
   /// « Jev Cockpit », « Jev Console ».
-  label    String
-  totalMs  Int      @map("total_ms")
+  label   String
+  totalMs Int      @map("total_ms")
   /// Projet, question (début), cas d’usage, conversation, erreur éventuelle.
-  meta     Json
+  meta    Json
   /// Étapes : { i, depth, parent, name, at, ms, detail?, error? }.
-  spans    Json
+  spans   Json
 
   @@index([at])
   @@map("jev_traces")
+}
+
+/// Temps de traitement de Jev (spécification TEMPS § 3, 01/10/2026) : une ligne par étape exécutée d'un prompt
+/// (route, vec, rrk, qry, exe, gen) et une ligne `e2e` par prompt, mesurée directement. Conservées 190 jours.
+model StepTiming {
+  id           BigInt   @id @default(autoincrement())
+  requestId    String   @map("request_id")
+  /// guide_cockpit, guide_console, data_cockpit, data_console, update_cockpit, kb_document.
+  category     String
+  /// route, vec, rrk, qry, exe, gen ou e2e.
+  step         String
+  /// Identifiant du modèle d'IA, « jev-typesafe » (aiguillage) ou « svc » (traitement interne).
+  model        String
+  /// primary ou fallback.
+  role         String
+  startedAt    DateTime @map("started_at")
+  endedAt      DateTime @map("ended_at")
+  durationMs   Int      @map("duration_ms")
+  errorType    String?  @map("error_type")
+  errorMessage String?  @map("error_message")
+
+  @@index([startedAt])
+  @@map("step_timings")
 }

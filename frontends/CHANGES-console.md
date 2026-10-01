@@ -546,3 +546,16 @@ Vérification des éléments de la vue d'ensemble face au serveur. Conformes : d
 ## Affectation des modèles : libellé « Guidage Console / Cockpit » (01/10/2026)
 
 - La carte de la fonction `guidage` s'intitule « Guidage Console / Cockpit » dans la vue Affectation des modèles (`SHORT_OF`), à la demande du commanditaire. Le nom court de la fonction (`short`, serveur) reste « Guidage console » dans les autres vues (Vue réseau IA, coûts, journal) et dans les messages d'erreur.
+
+## Analyse des temps de traitement (01/10/2026)
+
+Écran livré (« Livraison Temps de traitement », maquette 1c « Cascade », `docs/specs/TEMPS - specification.md`) ; mise en page, couleurs, typographie et libellés inchangés.
+
+- `Analyse des temps de traitement.dc.html` (nouveau) : écran livré, logique seule adaptée :
+  - données des props `fetchData` / `fetchSeries` ; démonstration (`demo()`, `demoSeries()`) seulement sans `fetchData` (écran ouvert seul, ou Console en `?demo=1`) ;
+  - pendant le chargement (`null`), la période précédente reste affichée ; au tout premier affichage, zones vides et titre « Chargement… » (seul libellé ajouté) ;
+  - noms et fournisseurs des modèles lus dans `models` du rapport (identifiants du catalogue de la Console), `MOD` ne servant plus qu'à la démonstration ; modèles de la vue Par modèle triés par nombre d'appels ; sélection par défaut : le modèle nommé « Claude Sonnet 5 », sinon le premier ;
+  - courbe : un créneau sans prompt (`med: null`) interrompt la bande et la médiane au lieu de tomber à zéro ; un créneau en erreur sans prompt servi place son disque sur l'axe.
+- `Sidebar Console.dc.html` : entrée IA › « Analyse des temps de traitement » (id `latency`), après « Journal consommation et coûts ». La sidebar livrée, antérieure, n'a pas remplacé la nôtre (nom de Jev, déconnexion, SMTP, Guide).
+- `Console Admin.dc.html` : `META.latency` ; écran monté quand `S.sec === 'latency'` (`isLatency`), sans l'en-tête de la Console (l'écran a le sien, comme le Journal) ; props `fetch-data` / `fetch-series` = `latFetch` / `latSeries` (absentes en démonstration).
+- `admin-api.js` : `latFetch(period, dayOffset)` et `latSeries(period, dayOffset, axis, id)` → `GET /api/ai/latency` et `/api/ai/latency/series` ; jour calculé sur l'horloge du serveur (veille, à Paris) ; réponses en cache par période et jour (`null` pendant la requête, puis la Console se redessine) ; échec : message, nouvel essai à la prochaine ouverture de la page.

@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800&amp;display=swap" rel="stylesheet"><style>
+html,body{margin:0;background:#f2f6f5;font-family:'Plus Jakarta Sans',sans-serif;color:#10233a;-webkit-font-smoothing:antialiased;font-size:13px}
+*{box-sizing:border-box}a{color:#1d8f86}a:hover{color:#146b64}button{font:inherit;color:inherit}
+button:focus-visible{outline:2px solid #1d8f86;outline-offset:2px}
+@keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style></helmet>
+<div data-screen-label="Analyse des temps de traitement" style="max-width:1240px;margin:0 auto;padding:40px 36px 80px;display:flex;flex-direction:column;gap:22px">
+  <div style="display:flex;flex-direction:column;gap:6px;animation:rise .45s cubic-bezier(.2,.7,.2,1) both">
+    <div style="font-size:11px;font-weight:800;letter-spacing:.16em;color:#1d8f86">IA</div>
+    <div style="font-size:34px;font-weight:800;font-style:italic;letter-spacing:-.03em">Analyse des temps de traitement</div>
+    <div style="font-size:14px;color:#43586a">Durée de traitement des prompts, de bout en bout et par étape, par catégorie de prompt ou par modèle.</div>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;animation:rise .5s .05s cubic-bezier(.2,.7,.2,1) both">
+    <div role="tablist" aria-label="Axe d’analyse" style="display:inline-flex;gap:2px;padding:3px;border-radius:12px;background:#e3ebe9"><sc-for list="{{ c.axes }}" as="x" hint-placeholder-count="2"><button role="tab" aria-selected="{{ x.on }}" onClick="{{ x.pick }}" style="{{ x.st }}">{{ x.l }}</button></sc-for></div>
+    <div style="display:flex;align-items:center;gap:10px;margin-left:10px;font-size:12.5px;color:#5c7280;font-variant-numeric:tabular-nums"><b style="color:#10233a">{{ c.range }}</b><span>·</span><span>{{ c.vol }}</span><sc-if value="{{ c.hasErr }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px 0 6px;border-radius:999px;background:#fdeeea;color:#b8432f;font-size:11px;font-weight:800"><span style="width:6px;height:6px;border-radius:50%;background:#f07b67"></span>{{ c.errL }}</span></sc-if></div>
+    <span style="flex:1"></span>
+    <sc-if value="{{ c.isDay }}" hint-placeholder-val="{{ false }}"><div style="display:inline-flex;align-items:center;height:36px;padding:3px;border-radius:11px;background:#fff;box-shadow:0 0 0 1px #e1e9e7"><button onClick="{{ c.prev }}" aria-label="Jour précédent" style="{{ c.prevSt }}" style-hover="background:#f1f5f4"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"></path></svg></button><span style="min-width:124px;text-align:center;font-weight:700;font-size:12.5px">{{ c.dayL }}</span><button onClick="{{ c.next }}" aria-label="Jour suivant" style="{{ c.nextSt }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></button></div></sc-if>
+    <div role="tablist" aria-label="Période" style="display:inline-flex;gap:2px;padding:3px;border-radius:11px;background:#e3ebe9"><sc-for list="{{ c.pers }}" as="x" hint-placeholder-count="5"><button role="tab" aria-selected="{{ x.on }}" onClick="{{ x.pick }}" style="{{ x.st }}">{{ x.l }}</button></sc-for></div>
+  </div>
+
+  <div role="radiogroup" aria-label="{{ c.tileL }}" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;animation:rise .5s .1s cubic-bezier(.2,.7,.2,1) both">
+    <sc-for list="{{ tiles }}" as="t" hint-placeholder-count="6">
+      <button role="radio" onClick="{{ t.pick }}" aria-checked="{{ t.on }}" title="{{ t.f }}" style="{{ t.st }}">
+        <div style="display:flex;align-items:flex-start;gap:6px;min-height:34px"><span style="{{ t.lSt }}">{{ t.l }}</span><sc-if value="{{ t.hasErr }}" hint-placeholder-val="{{ false }}"><span aria-label="{{ t.errA }}" style="margin-left:auto;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#f07b67;color:#fff;font-size:10px;font-weight:800;display:grid;place-items:center;flex:none">{{ t.errN }}</span></sc-if></div>
+        <div style="font-size:26px;font-weight:800;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums">{{ t.med }}</div>
+        <div style="{{ t.rgSt }}">{{ t.rg }}</div>
+      </button>
+    </sc-for>
+  </div>
+
+  <div style="background:#fff;border-radius:20px;box-shadow:0 0 0 1px #e1e9e7,0 18px 40px -30px rgba(16,35,58,.35);padding:24px 28px 20px;animation:rise .5s .15s cubic-bezier(.2,.7,.2,1) both">
+    <div style="display:flex;align-items:flex-end;gap:16px;padding-bottom:18px;flex-wrap:wrap">
+      <div style="flex:1;min-width:240px"><div style="font-size:17px;font-weight:800;letter-spacing:-.01em;text-wrap:pretty">{{ title }}</div><div style="font-size:12.5px;color:#8a9aa6;margin-top:3px;font-variant-numeric:tabular-nums">{{ meta }}</div></div>
+      <div style="display:flex;align-items:center;gap:18px;font-size:11.5px;color:#8a9aa6"><span style="display:flex;align-items:center;gap:7px"><span style="width:22px;height:10px;border-radius:3px;background:#1d8f86"></span>Médiane</span><span style="display:flex;align-items:center;gap:7px"><span style="width:26px;height:8px;border-left:1.5px solid #9fb3bf;border-right:1.5px solid #9fb3bf;background:linear-gradient(#9fb3bf,#9fb3bf) center/100% 1.5px no-repeat"></span>Min – max</span><span style="display:flex;align-items:center;gap:7px"><span style="width:6px;height:6px;border-radius:50%;background:#f07b67;box-shadow:0 0 0 3px #fdeeea"></span>Erreur sur l’étape</span></div>
+    </div>
+    <div style="overflow-x:auto"><div style="min-width:760px">
+      <div style="display:grid;grid-template-columns:250px minmax(0,1fr) 150px;gap:24px;align-items:end;padding-bottom:6px"><span></span><div style="position:relative;height:14px"><sc-for list="{{ ticks }}" as="k" hint-placeholder-count="5"><span style="{{ k.st }}">{{ k.l }}</span></sc-for></div><span style="font-size:11px;font-weight:800;letter-spacing:.12em;color:#8a9aa6;text-align:right">MÉDIANE · MIN – MAX</span></div>
+      <sc-for list="{{ rows }}" as="r" hint-placeholder-count="5">
+        <sc-if value="{{ r.hasHd }}" hint-placeholder-val="{{ false }}"><div style="padding:14px 0 6px;font-size:11px;font-weight:800;letter-spacing:.12em;color:#8a9aa6;border-top:1px solid #eef3f2">{{ r.hd }}</div></sc-if>
+        <div style="{{ r.rowSt }}">
+          <div style="display:flex;align-items:center;gap:10px;min-width:0"><span style="{{ r.dotSt }}"></span><div style="min-width:0;flex:1"><div style="{{ r.nSt }}">{{ r.n }}</div><div title="{{ r.sub }}" style="font-size:11.5px;color:#8a9aa6;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.sub }}</div></div><sc-if value="{{ r.hasErr }}" hint-placeholder-val="{{ false }}"><span title="{{ r.errT }}" aria-label="{{ r.errT }}" style="display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px 0 6px;border-radius:999px;background:#fdeeea;color:#b8432f;font-size:11px;font-weight:800;flex:none"><span style="width:6px;height:6px;border-radius:50%;background:#f07b67"></span>{{ r.errN }}</span></sc-if></div>
+          <div style="position:relative;height:100%;min-height:46px"><sc-for list="{{ ticks }}" as="k" hint-placeholder-count="5"><span style="{{ k.gl }}"></span></sc-for><span style="{{ r.guide }}"></span><span style="{{ r.wh }}"></span><span style="{{ r.bar }}"></span></div>
+          <div style="text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap"><span style="{{ r.medSt }}">{{ r.med }}</span><span style="font-size:11.5px;color:#8a9aa6;margin-left:8px">{{ r.rg }}</span></div>
+        </div>
+      </sc-for>
+    </div></div>
+  </div>
+
+  <div style="background:#fff;border-radius:20px;box-shadow:0 0 0 1px #e1e9e7,0 18px 40px -30px rgba(16,35,58,.35);padding:22px 28px 18px;display:flex;flex-direction:column;gap:12px;animation:rise .5s .2s cubic-bezier(.2,.7,.2,1) both">
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap"><div style="flex:1;min-width:200px"><div style="font-size:15px;font-weight:800">Évolution sur la période</div><div style="font-size:12.5px;color:#8a9aa6;margin-top:2px">{{ trendSub }}</div></div><div style="display:flex;align-items:center;gap:18px;font-size:11.5px;color:#8a9aa6"><span style="display:flex;align-items:center;gap:7px"><span style="width:20px;height:2px;border-radius:1px;background:#1d8f86"></span>Médiane</span><span style="display:flex;align-items:center;gap:7px"><span style="width:20px;height:10px;border-radius:2px;background:rgba(29,143,134,.12)"></span>Min – max</span><span style="display:flex;align-items:center;gap:7px"><span style="width:9px;height:9px;border-radius:50%;background:#f07b67;box-shadow:0 0 0 2px #fff,0 0 0 3px #fbd5cc"></span>Erreur</span></div></div>
+    <div>{{ svg }}</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;defaultAxis&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;cat&quot;,&quot;mod&quot;],&quot;default&quot;:&quot;cat&quot;,&quot;tsType&quot;:&quot;'cat' | 'mod'&quot;},&quot;defaultPeriod&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;d&quot;,&quot;7&quot;,&quot;1m&quot;,&quot;3m&quot;,&quot;6m&quot;],&quot;default&quot;:&quot;7&quot;,&quot;tsType&quot;:&quot;'d' | '7' | '1m' | '3m' | '6m'&quot;},&quot;fetchData&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(period: string, dayOffset: number) =&gt; LatencyReport | null&quot;},&quot;fetchSeries&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(period: string, dayOffset: number, axis: 'cat' | 'mod', id: string) =&gt; SeriesPoint[] | null&quot;}}">
+// Analyse des temps de traitement (proposition 1c « Cascade »).
+// Données : props `fetchData(period, dayOffset)` et `fetchSeries(…)` branchées par la Console (admin-api.js → GET /api/ai/latency,
+// voir TEMPS - specification.md §3) ; `null` pendant le chargement : la période précédente reste affichée. Démonstration (demo())
+// seulement sans `fetchData` : écran ouvert seul, ou Console en mode démonstration (?demo=1).
+// Noms des modèles : `models` du rapport (identifiants du catalogue de la Console) ; MOD ne sert qu'à la démonstration.
+const PER = [{ id: 'd', l: 'Jour', days: 1 }, { id: '7', l: '7 jours', days: 7 }, { id: '1m', l: '1 mois', days: 30 }, { id: '3m', l: '3 mois', days: 91 }, { id: '6m', l: '6 mois', days: 183 }];
+const STEPS = { route: { n: 'Routage', c: '#9aaebb' }, vec: { n: 'Vectorisation', c: '#6b97dc' }, rrk: { n: 'Reclassement', c: '#a184db' }, qry: { n: 'Formulation de la requête', c: '#dda24a' }, exe: { n: 'Exécution', c: '#7d93a6' }, gen: { n: 'Génération', c: '#1d8f86' } };
+const SK = ['route', 'vec', 'rrk', 'qry', 'exe', 'gen'];
+const MOD = { h45: { n: 'Claude Haiku 4.5', pv: 'Anthropic' }, qwen: { n: 'Qwen3 Embedding 8B', pv: 'Alibaba Cloud' }, rr35: { n: 'Rerank 3.5', pv: 'Cohere' }, g6: { n: 'GPT-6 Luna', pv: 'OpenAI' }, s5: { n: 'Claude Sonnet 5', pv: 'Anthropic' }, ml2: { n: 'Mistral Large 2', pv: 'Mistral AI' }, svc: { n: 'Service RISE', pv: 'Traitement interne', svc: 1 } };
+const MK = ['h45', 'qwen', 'rr35', 'g6', 's5', 'ml2'];
+// Catégories : [étape, [[modèle, part des appels, médiane démo ms]], taux d’erreur démo, type d’erreur démo]
+const CATS = [
+  { id: 'guide_cockpit', sh: 'Guide Cockpit', f: 'Guide d’utilisation de Cockpit', v: 38, st: [['route', [['h45', 1, 360]]], ['vec', [['qwen', 1, 130]]], ['rrk', [['rr35', 1, 220]]], ['gen', [['s5', .95, 2700], ['ml2', .05, 3300]], .004, 'Réponse tronquée']] },
+  { id: 'guide_console', sh: 'Guide Console', f: 'Guide d’utilisation de la Console', v: 26, st: [['route', [['h45', 1, 340]]], ['vec', [['qwen', 1, 120]]], ['rrk', [['rr35', 1, 200]]], ['gen', [['h45', 1, 1500]]]] },
+  { id: 'data_cockpit', sh: 'Données Cockpit', f: 'Demande d’information sur les données d’un projet Cockpit', v: 52, st: [['route', [['h45', 1, 380]]], ['qry', [['g6', 1, 950]], .006, 'Requête invalide'], ['exe', [['svc', 1, 280]]], ['gen', [['s5', .96, 2900], ['ml2', .04, 3500]]]] },
+  { id: 'data_console', sh: 'Données Console', f: 'Demande d’information sur les données dans la Console', v: 21, st: [['route', [['h45', 1, 370]]], ['qry', [['g6', 1, 820]]], ['exe', [['svc', 1, 210]]], ['gen', [['s5', 1, 2500]]]] },
+  { id: 'update_cockpit', sh: 'Actualisation Cockpit', f: 'Demande d’actualisation des données de Cockpit (Création, modification, Suppression)', v: 17, st: [['route', [['h45', 1, 390]]], ['qry', [['g6', 1, 1100]]], ['exe', [['svc', 1, 640]], .018, 'Conflit de version'], ['gen', [['g6', 1, 900]]]] },
+  { id: 'kb_document', sh: 'Base de connaissance', f: 'Appel aux informations sur un document dans la base de connaissance', v: 29, st: [['route', [['h45', 1, 360]]], ['vec', [['qwen', 1, 260]]], ['rrk', [['rr35', 1, 340]], .014, 'Délai dépassé (5 s)'], ['gen', [['s5', .93, 4300], ['ml2', .07, 5200]], .003, 'Réponse tronquée']] }
+];
+const CB = Object.fromEntries(CATS.map(c => [c.id, c]));
+const MO = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+const DW = ['Dim.', 'Lun.', 'Mar.', 'Mer.', 'Jeu.', 'Ven.', 'Sam.'];
+const NB = '\u202f';
+const nf = (v, d) => v.toLocaleString('fr-FR', { minimumFractionDigits: d, maximumFractionDigits: d });
+const fint = n => Math.round(n).toLocaleString('fr-FR');
+const fms = ms => ms < 1000 ? Math.round(ms / 10) * 10 + NB + 'ms' : ms < 10000 ? nf(ms / 1000, 1) + NB + 's' : nf(ms / 1000, 0) + NB + 's';
+const fnum = ms => ms < 10000 ? nf(ms / 1000, 1) : nf(ms / 1000, 0);
+const frg = (a, b) => b < 1000 ? Math.round(a / 10) * 10 + ' – ' + Math.round(b / 10) * 10 + NB + 'ms' : a < 1000 ? fms(a) + ' – ' + fms(b) : fnum(a) + ' – ' + fnum(b) + NB + 's';
+const p2 = n => String(n).padStart(2, '0');
+const fdate = d => d.getDate() + ' ' + MO[d.getMonth()];
+const pl = (n, w) => fint(n) + ' ' + w + (n > 1 ? 's' : '');
+const pct = v => Math.round(v * 100) + NB + '%';
+const hexA = (h, a) => { const n = parseInt(h.slice(1), 16); return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')'; };
+const niceCeil = x => { const k = Math.pow(10, Math.floor(Math.log10(x))); for (const m of [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10]) if (m * k >= x) return m * k; return 10 * k; };
+const niceStep = x => { const k = Math.pow(10, Math.floor(Math.log10(x))); for (const m of [1, 2, 2.5, 5, 10]) if (m * k >= x) return m * k; return 10 * k; };
+const dot = (c, hollow) => 'width:8px;height:8px;border-radius:50%;flex:none;' + (hollow ? 'box-shadow:inset 0 0 0 1.5px ' + c : 'background:' + c);
+const ERRT = (n, k) => pl(n, 'erreur') + (k ? ' · ' + k : '');
+function rng(seed) { let s = seed % 2147483647 || 1; return () => (s = s * 16807 % 2147483647) / 2147483647; }
+function hash(t) { let h = 2166136261; for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619); } return Math.abs(h) % 2147483646 + 1; }
+const agg = l => { const n = l.reduce((a, x) => a + x.n, 0); return { n, med: l.reduce((a, x) => a + x.med * x.n, 0) / n, min: Math.min(...l.map(x => x.min)), max: Math.max(...l.map(x => x.max)), err: l.reduce((a, x) => a + x.err, 0) }; };
+const today = () => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), d.getDate()); };
+const addD = (d, k) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + k);
+
+// Jeu de démonstration au format de l’API (GET /api/ai/latency)
+function demo(pid, off) {
+  const P = PER.find(p => p.id === pid), R = rng(hash(pid + '|' + off)), end = addD(today(), -1 - (pid === 'd' ? off : 0));
+  const dw = end.getDay(), wf = pid === 'd' ? (dw % 6 === 0 ? .3 : 1) : .8;
+  const drift = { d: 1, '7': 1, '1m': 1.02, '3m': 1.04, '6m': 1.07 }[pid], tail = { d: .7, '7': .85 }[pid] || 1;
+  const categories = CATS.map(c => {
+    const n = Math.max(3, Math.round(c.v * P.days * wf * (.88 + R() * .24)));
+    const steps = c.st.map(([sid, mods, er, ek]) => {
+      const models = mods.map(([m, sh, b], i) => { const med = b * (.9 + R() * .2) * drift; return { model: m, role: i ? 'fallback' : 'primary', count: Math.max(1, Math.round(n * sh)), med, min: med * (.38 + R() * .14), max: med * (2.2 + R() * 1.6) * tail, errors: [] }; });
+      const err = er ? Math.floor(n * er * (.6 + R() * .9) + R() * .9) : 0;
+      if (err) models[0].errors.push({ type: ek, count: err, lastAt: addD(end, -Math.floor(R() * Math.min(P.days, 6))).toISOString().slice(0, 10) + 'T' + p2(8 + Math.floor(R() * 10)) + ':' + p2(Math.floor(R() * 60)) + ':00' });
+      return { step: sid, models };
+    });
+    const sm = steps.map(s => ({ med: s.models.reduce((a, x) => a + x.med * x.count, 0) / s.models.reduce((a, x) => a + x.count, 0), min: Math.min(...s.models.map(x => x.min)), max: Math.max(...s.models.map(x => x.max)) }));
+    const smin = sm.reduce((a, s) => a + s.min, 0);
+    const e2e = { med: sm.reduce((a, s) => a + s.med, 0), min: smin * 1.12, max: Math.max(...sm.map(s => s.max + smin - s.min)) * (1.04 + R() * .12) };
+    return { category: c.id, count: n, e2e, steps };
+  });
+  return { period: pid, from: addD(end, -P.days + 1).toISOString().slice(0, 10), to: end.toISOString().slice(0, 10), categories };
+}
+function demoSeries(pid, off, base, key) {
+  const P = PER.find(x => x.id === pid), R = rng(hash('s|' + pid + '|' + off + '|' + key)), end = addD(today(), -1 - (pid === 'd' ? off : 0)), pts = [];
+  if (pid === 'd') for (let h = 7; h <= 20; h++) pts.push({ l: h + ' h' });
+  else if (pid === '7' || pid === '1m') for (let i = P.days - 1; i >= 0; i--) { const d = addD(end, -i); pts.push({ l: pid === '7' ? DW[d.getDay()].toLowerCase() + ' ' + d.getDate() : fdate(d) }); }
+  else { const w = Math.ceil(P.days / 7); for (let i = w - 1; i >= 0; i--) pts.push({ l: fdate(addD(end, -i * 7 - 6)) }); }
+  pts.forEach(q => { q.med = base.med * (.86 + R() * .28); q.min = Math.min(q.med * .8, base.min * (.85 + R() * .3)); q.max = Math.max(q.med * 1.4, base.max * (.5 + R() * .5)); q.err = 0; });
+  for (let k = 0; k < base.err; k++) pts[Math.floor(R() * pts.length)].err++;
+  return pts;
+}
+
+// Normalisation de la réponse API vers le modèle d’affichage
+function normalize(raw, pid, off) {
+  const errs = [], mods = { ...MOD };
+  Object.entries(raw.models || {}).forEach(([id, m]) => { mods[id] = { n: m.name, pv: m.provider || '', svc: m.service ? 1 : 0 }; });
+  const cats = raw.categories.filter(c => CB[c.category]).map(c => {
+    const steps = c.steps.map(s => {
+      const ms = s.models.map(m => { const e = (m.errors || []).reduce((a, x) => a + x.count, 0); (m.errors || []).forEach(x => { const d = new Date(x.lastAt); errs.push({ c: c.category, s: s.step, m: m.model, k: x.type, n: x.count, last: fdate(d) + ', ' + d.getHours() + ' h ' + p2(d.getMinutes()) }); }); return { m: m.model, fb: m.role === 'fallback', n: m.count, med: m.med, min: m.min, max: m.max, err: e }; });
+      const tot = ms.reduce((a, x) => a + x.n, 0); ms.forEach(x => x.sh = x.n / tot);
+      return { id: s.step, ms, n: tot, ...agg(ms) };
+    });
+    return { id: c.category, n: c.count, steps, med: c.e2e.med, min: c.e2e.min, max: c.e2e.max, err: steps.reduce((a, s) => a + s.err, 0) };
+  });
+  const ent = {};
+  cats.forEach(c => c.steps.forEach(s => s.ms.forEach(x => { if (!(mods[x.m] || {}).svc) (ent[x.m] = ent[x.m] || []).push({ c: c.id, s: s.id, ...x }); })));
+  // Modèles : ceux de la démonstration dans leur ordre, puis les autres du plus sollicité au moins sollicité.
+  const calls = m => ent[m].reduce((a, x) => a + x.n, 0), rank = m => MK.indexOf(m) < 0 ? MK.length : MK.indexOf(m);
+  const models = Object.keys(ent).sort((a, b) => rank(a) - rank(b) || calls(b) - calls(a)).map(m => {
+    const E = ent[m], byCat = {}, bySt = {};
+    CATS.forEach(c => { const l = E.filter(e => e.c === c.id); if (l.length) byCat[c.id] = { ...agg(l), E: l }; });
+    SK.forEach(s => { const l = E.filter(e => e.s === s); if (l.length) bySt[s] = agg(l); });
+    return { id: m, ...agg(E), E, byCat, bySt };
+  });
+  const from = new Date(raw.from + 'T00:00:00'), to = new Date(raw.to + 'T00:00:00'), dw = to.getDay();
+  return { cats, models, errs, mods, total: cats.reduce((a, c) => a + c.n, 0), terr: errs.reduce((a, e) => a + e.n, 0),
+    range: pid === 'd' ? DW[dw] + ' ' + to.getDate() + ' ' + MO[to.getMonth()] + ' ' + to.getFullYear() : fdate(from) + ' → ' + fdate(to) + ' ' + to.getFullYear(),
+    dayL: DW[dw] + ' ' + fdate(to) + (off === 0 ? ' · hier' : '') };
+}
+
+class Component extends DCLogic {
+  state = { ax: null, p: null, off: 0, sel: null };
+  _cache = {};
+
+  // Rapport normalisé de la période ; null pendant le chargement (rien n'est mis en cache tant que les données n'y sont pas).
+  data(p, off) {
+    const k = p + '|' + off; if (this._cache[k]) return this._cache[k];
+    if (!this.props.fetchData) return (this._cache[k] = normalize(demo(p, off), p, off));
+    const raw = this.props.fetchData(p, off);
+    return raw && raw.categories ? (this._cache[k] = normalize(raw, p, off)) : null;
+  }
+  componentDidUpdate(pp) { if (pp.fetchData !== this.props.fetchData) this._cache = {}; }
+
+  renderVals() {
+    const P = this.props, S = this.state, ax = S.ax ?? P.defaultAxis ?? 'cat', p = S.p ?? P.defaultPeriod ?? '7', off = S.off, isCat = ax === 'cat';
+    // Chargement : la période précédente reste affichée ; au premier affichage, zones vides et « Chargement… ».
+    let D = this.data(p, off);
+    const first = !D && !this._last;
+    if (D) this._last = D; else D = this._last || { cats: [], models: [], errs: [], mods: {}, total: 0, terr: 0, range: '', dayL: '' };
+    const md = id => D.mods[id] || { n: id, pv: '' };
+    const set = o => { this.setState(o); };
+    const c = {
+      axes: [['cat', 'Par catégorie de prompt'], ['mod', 'Par modèle']].map(([id, l]) => ({ l, on: ax === id, pick: () => set({ ax: id, sel: null }),
+        st: 'height:34px;padding:0 16px;white-space:nowrap;flex:none;border:0;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;transition:background .15s,color .15s,box-shadow .15s;' + (ax === id ? 'background:#fff;color:#10233a;box-shadow:0 1px 2px rgba(16,35,58,.14)' : 'background:transparent;color:#5c7280') })),
+      pers: PER.map(x => ({ l: x.l, on: p === x.id, pick: () => set({ p: x.id }),
+        st: 'height:30px;padding:0 13px;white-space:nowrap;flex:none;border:0;border-radius:8px;font-size:12.5px;font-weight:700;cursor:pointer;transition:background .15s,color .15s;' + (p === x.id ? 'background:#10233a;color:#fff' : 'background:transparent;color:#5c7280') })),
+      isDay: p === 'd', dayL: D.dayL,
+      prev: () => off < 182 && set({ off: off + 1 }), next: () => off > 0 && set({ off: off - 1 }),
+      prevSt: 'width:30px;height:30px;border:0;border-radius:8px;background:transparent;display:grid;place-items:center;' + (off < 182 ? 'cursor:pointer' : 'opacity:.3;cursor:default'),
+      nextSt: 'width:30px;height:30px;border:0;border-radius:8px;background:transparent;display:grid;place-items:center;' + (off > 0 ? 'cursor:pointer' : 'opacity:.3;cursor:default'),
+      range: D.range, vol: first ? '' : pl(D.total, 'prompt') + ' traité' + (D.total > 1 ? 's' : ''), hasErr: D.terr > 0, errL: pl(D.terr, 'erreur'),
+      tileL: isCat ? 'Catégorie de prompt' : 'Modèle'
+    };
+    const items = isCat ? D.cats : D.models;
+    // Sélection par défaut : Base de connaissance, ou Claude Sonnet 5 (par son nom : les identifiants viennent du catalogue).
+    const id = S.sel ?? (isCat ? 'kb_document' : ((items.find(x => /sonnet 5\b/i.test(md(x.id).n)) || {}).id || 's5')), it = items.find(x => x.id === id) || items[0];
+    if (!it) return { c, tiles: [], rows: [], ticks: [], title: first ? 'Chargement…' : 'Aucun traitement sur la période', meta: '', trendSub: '', svg: null };
+    const tiles = items.map(x => { const on = x.id === it.id;
+      return { on, pick: () => set({ sel: x.id }), l: isCat ? CB[x.id].sh : md(x.id).n, f: isCat ? CB[x.id].f : md(x.id).pv, med: fms(x.med), rg: frg(x.min, x.max),
+        hasErr: x.err > 0, errN: String(x.err), errA: pl(x.err, 'erreur'),
+        st: 'display:flex;flex-direction:column;gap:8px;padding:14px 16px 15px;border:0;border-radius:16px;text-align:left;cursor:pointer;transition:background .2s,color .2s,box-shadow .2s;' + (on ? 'background:#10233a;color:#fff;box-shadow:0 18px 30px -18px rgba(16,35,58,.7)' : 'background:#fff;color:#10233a;box-shadow:0 0 0 1px #e1e9e7'),
+        lSt: 'font-size:12.5px;font-weight:700;line-height:1.35;color:' + (on ? '#cfe0e6' : '#43586a'), rgSt: 'font-size:11.5px;font-variant-numeric:tabular-nums;color:' + (on ? '#8fa9bb' : '#8a9aa6') }; });
+    const errFor = f => D.errs.filter(f), kinds = l => [...new Set(l.map(x => x.k))].join(' · ');
+    let Dm; const rows = [];
+    const lin = v => Math.min(100, v / Dm * 100);
+    const row = o => {
+      const a = lin(o.s + o.min), b = lin(o.s + o.max), over = o.s + o.max > Dm, A = hexA(o.col, .45), h = o.end ? 14 : 12;
+      return { hasHd: !!o.hd, hd: o.hd || '', n: o.n, sub: o.sub || '', hasErr: o.err > 0, errN: String(o.err), errT: ERRT(o.err, o.k), med: fms(o.med), rg: frg(o.min, o.max),
+        dotSt: o.end ? 'width:8px;height:8px;border-radius:2px;flex:none;background:#10233a' : dot(o.col),
+        nSt: 'font-size:13px;font-weight:' + (o.end ? 800 : 700) + ';line-height:1.3',
+        medSt: 'font-size:' + (o.end ? 15 : 13.5) + 'px;font-weight:' + (o.end ? 800 : 700),
+        rowSt: 'display:grid;grid-template-columns:250px minmax(0,1fr) 150px;gap:24px;align-items:center;min-height:46px' + (o.end ? ';border-top:1px solid #e1e9e7;margin-top:6px' : ''),
+        guide: o.s > 0 ? 'position:absolute;top:0;bottom:0;left:' + lin(o.s).toFixed(2) + '%;border-left:1px dashed #cfdcd9' : 'display:none',
+        bar: 'position:absolute;top:50%;height:' + h + 'px;margin-top:-' + h / 2 + 'px;left:' + lin(o.s).toFixed(2) + '%;width:' + Math.max(.4, lin(o.med)).toFixed(2) + '%;border-radius:3px;transition:left .35s cubic-bezier(.2,.7,.2,1),width .35s cubic-bezier(.2,.7,.2,1);background:' + o.col + (o.err ? ';box-shadow:0 0 0 2px #fff,0 0 0 3.5px #f07b67' : ''),
+        wh: 'position:absolute;top:50%;height:10px;margin-top:-5px;left:' + a.toFixed(2) + '%;width:' + Math.max(.3, b - a).toFixed(2) + '%;border-left:1.5px solid ' + A + ';' + (over ? 'background:linear-gradient(90deg,' + A + ' 75%,transparent) center/100% 1.5px no-repeat' : 'border-right:1.5px solid ' + A + ';background:linear-gradient(' + A + ',' + A + ') center/100% 1.5px no-repeat') };
+    };
+    if (isCat) {
+      Dm = niceCeil(it.med * 1.6); let cum = 0;
+      it.steps.forEach(s => { const e = errFor(x => x.c === it.id && x.s === s.id), M0 = md(s.ms[0].m);
+        const sub = s.ms.length > 1 ? M0.n + ' · secours ' + s.ms.slice(1).map(x => md(x.m).n + ' (' + pct(x.sh) + ')').join(', ') : M0.n + (M0.pv ? ' · ' + M0.pv : '');
+        rows.push(row({ n: (STEPS[s.id] || { n: s.id }).n, sub, col: (STEPS[s.id] || { c: '#9aaebb' }).c, s: cum, med: s.med, min: s.min, max: s.max, err: s.err, k: kinds(e) })); cum += s.med; });
+      rows.push(row({ end: 1, n: 'Bout en bout', sub: pl(it.n, 'prompt'), col: '#10233a', s: 0, med: it.med, min: it.min, max: it.max, err: 0 }));
+    } else {
+      Dm = niceCeil(Math.max(it.med, ...Object.values(it.byCat).map(b => b.med)) * 1.9);
+      rows.push(row({ n: 'Ensemble des appels', sub: pl(it.n, 'appel'), col: '#10233a', s: 0, med: it.med, min: it.min, max: it.max, err: it.err, k: kinds(errFor(x => x.m === it.id)) }));
+      let first = true;
+      CATS.forEach(cc => { const b = it.byCat[cc.id]; if (!b) return;
+        rows.push(row({ hd: first ? 'PAR CATÉGORIE DE PROMPT' : '', n: cc.f, sub: b.E.map(x => STEPS[x.s].n + (x.fb ? ' (secours)' : '')).join(' · ') + ' · ' + pl(b.n, 'appel'), col: '#4a6a80', s: 0, med: b.med, min: b.min, max: b.max, err: b.err, k: kinds(errFor(x => x.m === it.id && x.c === cc.id)) })); first = false; });
+      first = true;
+      SK.forEach(sk => { const b = it.bySt[sk]; if (!b) return;
+        rows.push(row({ hd: first ? 'PAR ÉTAPE' : '', n: STEPS[sk].n, sub: pl(b.n, 'appel'), col: STEPS[sk].c, s: 0, med: b.med, min: b.min, max: b.max, err: b.err, k: kinds(errFor(x => x.m === it.id && x.s === sk)) })); first = false; });
+    }
+    const stp = niceStep(Dm / 5), ticks = [];
+    for (let v = 0; v <= Dm + 1; v += stp) ticks.push({ l: v === 0 ? '0' : fms(v), st: 'position:absolute;top:0;left:' + lin(v).toFixed(2) + '%;transform:translateX(' + (v === 0 ? '0' : v + stp > Dm + 1 ? '-100%' : '-50%') + ');font-size:11px;font-weight:600;color:#8a9aa6;white-space:nowrap;font-variant-numeric:tabular-nums',
+      gl: 'position:absolute;top:0;bottom:0;width:1px;left:' + lin(v).toFixed(2) + '%;background:#f1f5f4' });
+    // Courbe : démonstration sans fetchData ; sinon celle de l'API, la précédente restant affichée pendant le chargement.
+    let pts;
+    if (!P.fetchData) pts = demoSeries(p, off, it, ax + it.id);
+    else { pts = P.fetchSeries ? P.fetchSeries(p, off, ax, it.id) : null; if (pts) this._pts = pts; else pts = this._pts || []; }
+    return { c, tiles, rows, ticks,
+      title: isCat ? CB[it.id].f : md(it.id).n + (md(it.id).pv ? ' · ' + md(it.id).pv : ''),
+      meta: (isCat ? pl(it.n, 'prompt') + ' · ' + it.steps.length + ' étapes en séquence' : pl(it.n, 'appel')) + (it.err ? ' · ' + pl(it.err, 'erreur') : ''),
+      trendSub: (isCat ? 'Bout en bout' : 'Ensemble des appels') + ' · ' + (p === 'd' ? 'par heure' : p === '7' || p === '1m' ? 'par jour' : 'par semaine'),
+      svg: this.trend(pts) };
+  }
+
+  trend(pts) {
+    const e = React.createElement, W = 1128, H = 196, L = 52, Rr = 10, T = 16, B = 28, iw = W - L - Rr, ih = H - T - B, n = pts.length;
+    if (!n) return null;
+    // Créneau sans prompt (med null, API) : ni bande ni médiane, la courbe s'interrompt.
+    const has = q => q.med != null, full = pts.filter(has);
+    const ym = full.length ? niceCeil(Math.max(...full.map(q => q.max)) * 1.04) : 1000;
+    const X = i => L + (n === 1 ? iw / 2 : i * iw / (n - 1)), Y = v => T + ih - v / ym * ih, k = [];
+    for (let j = 0; j <= 4; j++) { const v = ym * j / 4; k.push(e('line', { key: 'g' + j, x1: L, x2: W - Rr, y1: Y(v), y2: Y(v), stroke: j ? '#f1f5f4' : '#dfe7e5' }), e('text', { key: 't' + j, x: L - 10, y: Y(v) + 4, textAnchor: 'end', fontSize: 11, fill: '#8a9aa6', fontWeight: 600 }, j ? fms(v) : '0')); }
+    const runs = []; pts.forEach((q, i) => { if (!has(q)) return; const r = runs[runs.length - 1]; if (r && r[r.length - 1] === i - 1) r.push(i); else runs.push([i]); });
+    runs.forEach((r, ri) => {
+      const top = r.map(i => X(i).toFixed(1) + ',' + Y(pts[i].max).toFixed(1)), bot = r.map(i => X(i).toFixed(1) + ',' + Y(pts[i].min).toFixed(1)).reverse();
+      k.push(e('path', { key: 'band' + ri, d: 'M' + top.join(' L') + ' L' + bot.join(' L') + 'Z', fill: 'rgba(29,143,134,.1)' }));
+      k.push(e('path', { key: 'med' + ri, d: 'M' + r.map(i => X(i).toFixed(1) + ',' + Y(pts[i].med).toFixed(1)).join(' L'), fill: 'none', stroke: '#1d8f86', strokeWidth: 2, strokeLinejoin: 'round', strokeLinecap: 'round' }));
+    });
+    const every = Math.ceil(n / 9);
+    pts.forEach((q, i) => {
+      if (n <= 31 && !q.err && has(q)) k.push(e('circle', { key: 'p' + i, cx: X(i), cy: Y(q.med), r: 2.6, fill: '#fff', stroke: '#1d8f86', strokeWidth: 1.6 }, e('title', null, q.l + ' · médiane ' + fms(q.med) + ' · ' + frg(q.min, q.max))));
+      if (i % every === 0 || i === n - 1) k.push(e('text', { key: 'x' + i, x: X(i), y: H - 6, textAnchor: i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle', fontSize: 11, fill: '#8a9aa6', fontWeight: 600 }, q.l));
+    });
+    // Point en erreur sans prompt servi dans le créneau : disque sur l'axe.
+    pts.forEach((q, i) => { if (!q.err) return; const y = has(q) ? Y(q.med) : T + ih;
+      if (has(q)) k.push(e('line', { key: 'el' + i, x1: X(i), x2: X(i), y1: y + 6, y2: T + ih, stroke: '#f07b67', strokeOpacity: .45, strokeDasharray: '2 3' }));
+      k.push(e('circle', { key: 'ec' + i, cx: X(i), cy: y, r: 5, fill: '#f07b67', stroke: '#fff', strokeWidth: 2 }, e('title', null, q.l + ' · ' + pl(q.err, 'erreur') + (has(q) ? ' · médiane ' + fms(q.med) : ''))));
+      if (q.err > 1) k.push(e('text', { key: 'et' + i, x: X(i), y: y - 10, textAnchor: 'middle', fontSize: 10.5, fontWeight: 800, fill: '#b8432f' }, '×' + q.err)); });
+    return e('svg', { viewBox: '0 0 ' + W + ' ' + H, width: '100%', role: 'img', 'aria-label': 'Évolution de la durée médiane sur la période', style: { display: 'block', fontFamily: 'inherit', overflow: 'visible' } }, k);
+  }
+}
+</script>
+</body>
+</html>

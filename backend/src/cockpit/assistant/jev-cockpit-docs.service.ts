@@ -1,3 +1,4 @@
+import { latencyKind } from '../../core/latency';
 import { span } from '../../core/trace';
 import { Injectable } from '@nestjs/common';
 import { Actor } from '../../core/auth/auth';
@@ -66,10 +67,10 @@ export class JevCockpitDocsService {
     const docs = await this.kb.visibleIndexed(scope, actor);
     if (!docs.length) return data ? done('EMPTY', `${data.reply}\n\n${DOC_EMPTY_REPLY}`, dataSources, [], data) : done('EMPTY', DOC_EMPTY_REPLY);
     const sessions = await this.heldSessions(scope.project.id);
-    const idCall = await this.llm.complete({
+    const idCall = await latencyKind('qry', () => this.llm.complete({
       functionId, source: 'JEV', cache: true, projectId: scope.project.id, maxTokens: 300, history: opts.history,
       system: DOC_IDENTIFY_SYSTEM, systemTail: docCatalogText(docs, sessions, this.today.today()), prompt: question,
-    });
+    }));
     calls.push(idCall);
     const ident = parseDocIdentification(idCall.text, docs.map((d) => d.id), question);
 
