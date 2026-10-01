@@ -28,6 +28,8 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 7. Branchement des deux frontends, README, vérification dans le navigateur.
 8. Authentification (spécification AUTH, 28/09/2026) : écrans `/connexion` et `/console/connexion`, mots de passe Argon2id, blocage temporaire, sessions par cookie avec CSRF et expiration après inactivité, mot de passe oublié par lien à usage unique, invitations par lien, compte initial.
 
+- **Jev du Cockpit, aiguillage en 5 cas d'usage (01/10/2026)** : classification par l'API de la carte JEV (question à 7 options + « demande d'écriture » + « plusieurs demandes »), garde-fou d'écriture, journalisation complète ; banc de 110 questions : 98,8 % de bonne classification sur 3 passages, 0 % de lecture classée en modification (`docs/RAPPORT - aiguillage de Jev (Cockpit).md`). Traitements des cas 1, 3, 4 et 5 : étapes suivantes.
+
 ## 2. Tests
 
 | Suite | Contenu | Résultat |

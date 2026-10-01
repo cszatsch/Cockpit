@@ -1827,8 +1827,17 @@ model JevClassification {
   model          String?
   /// LIVE (question réelle) ou EVAL (jeu de test).
   source         String   @default("LIVE")
+  /// Application d'où vient la question (console, cockpit). Dans le Cockpit, `type` porte le cas d'usage (1, 2, 3, 4a, 4b, 5).
+  app            String   @default("console")
+  /// Cockpit : probabilités des questions oui / non « demande d'écriture » et « plusieurs demandes ».
+  writeScore     Float?   @map("write_score")
+  multiScore     Float?   @map("multi_score")
+  multi          Boolean?
+  /// Cockpit : modèle d'IA qui a rédigé la réponse (fonction du cas), renseigné après la réponse.
+  answerModel    String?  @map("answer_model")
 
   @@index([at])
+  @@index([app, at])
   @@map("jev_classifications")
 }
 

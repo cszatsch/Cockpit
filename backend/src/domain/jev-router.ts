@@ -95,47 +95,16 @@ export const ROUTER_MIXED_NOUL_MIN = 0.6;
 /** Version en service (choisie d'après le rapport de test). */
 export const ROUTER_PROMPT_VERSION: RouterPromptVersion = 'v2';
 
-/** Périmètre du Cockpit (Jev du Cockpit, décision du 30/09/2026). */
-const COCKPIT_SCOPE = 'RISE Cockpit, application de pilotage d’un projet de transformation pour les équipes projet (PMO, responsables et lecteurs de chantier) : Aujourd’hui (synthèse, tâches), Pilotage (planning, jalons, risques, problèmes, actions, décisions, livrables, budget, baromètre des équipes), Comités et rapports (instances, séances, rapports générés), Base de connaissance (documents), Info projet et référentiel, notifications, assistant Jev.';
-
-/**
- * Consignes du Cockpit : mêmes critères que la v2 de la Console, rapportés à l'application Cockpit et à ses données de
- * projet ; exemples propres au Cockpit. Non mesurées sur un jeu de test à ce jour.
- */
-export const ROUTER_PROMPT_COCKPIT = {
-  instructions: 'Does answering the latest question require explaining how the RISE Cockpit application works, reading the project’s current records, both, or neither? Use previous questions to interpret a short follow-up.',
-  criteria: {
-    usage: {
-      covers: 'How the Cockpit works or how to use it: steps to do something, where a page or setting is, what a screen, field, indicator or status means, fixed rules of the product. The answer would be the same for any project, whatever its current records.',
-      not_for: 'Questions about who, which, how many or what state for the current risks, actions, milestones, decisions, documents or people of this project.',
-      examples: ['Comment créer une action depuis le pilotage ?', 'Que signifie un jalon non confirmé ?', 'Où déposer un compte rendu ?'],
-    },
-    donnees: {
-      covers: 'The answer must be read from the project’s current records: count, list, find or check risks, issues, actions, decisions, milestones, deliverables, budget, committees, documents, team members.',
-      not_for: 'How-to questions or explanations of a feature.',
-      examples: ['Quels risques sont critiques ?', 'Quand a lieu le prochain comité ?', 'Qui porte l’action A-12 ?'],
-    },
-    mixte: {
-      covers: 'The question needs both an explanation of how the Cockpit works AND a check of current records, or it is too short or vague to tell which one is asked.',
-      examples: ['Pourquoi cette action apparaît-elle en retard ?', 'jalons ?'],
-    },
-    hors_sujet: {
-      covers: 'Unrelated to the RISE Cockpit or the project: general knowledge, creative writing, chit-chat, other software.',
-      examples: ['Quelle est la météo à Lyon ?', 'Écris-moi une chanson'],
-    },
-  },
-} as const;
-export type RouterApp = 'console' | 'cockpit';
+// Cockpit : aiguillage en 5 cas d'usage, voir `jev-router-cockpit.ts` (brief du 01/10/2026).
 
 /** Corps de la requête TypeSafe (POST /v1/systemone). `model` vient de la carte du Registre. */
-export function buildRouterRequest(question: string, opts: { model: string; history?: RouterTurn[]; page?: string | null; version?: RouterPromptVersion; app?: RouterApp }) {
-  const cockpit = opts.app === 'cockpit';
-  const p: { instructions: string; criteria: unknown; nouls?: Record<string, string> } = cockpit ? ROUTER_PROMPT_COCKPIT : ROUTER_PROMPTS[opts.version ?? ROUTER_PROMPT_VERSION];
+export function buildRouterRequest(question: string, opts: { model: string; history?: RouterTurn[]; page?: string | null; version?: RouterPromptVersion }) {
+  const p: { instructions: string; criteria: unknown; nouls?: Record<string, string> } = ROUTER_PROMPTS[opts.version ?? ROUTER_PROMPT_VERSION];
   const history = (opts.history ?? []).slice(-ROUTER_HISTORY_TURNS);
   return {
     model: opts.model,
     state: {
-      assistant_scope: cockpit ? COCKPIT_SCOPE : CONSOLE_SCOPE,
+      assistant_scope: CONSOLE_SCOPE,
       ...(opts.page ? { open_page: opts.page } : {}),
       ...(history.length ? { previous_questions: history.map((h) => h.question) } : {}),
       latest_question: question,

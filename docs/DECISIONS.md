@@ -934,3 +934,21 @@ Demande du commanditaire : vérifier que les widgets affichent de vraies valeurs
 | Actualité | source indiquée « GDELT » | cartes d'actualité du Registre | `dbCatalog` |
 
 Déjà réels : Go-Live, Prochain COPIL, Fiches d'arbitrage, Décisions, Incohérences, Jalons, Chemin critique, Météo des chantiers, Risques critiques, Problèmes, Actions en retard, Échéances, Documents récents, Météo, Trafic. Limite : la criticité passée d'un risque n'est pas historisée (valeurs actuelles de probabilité et d'impact).
+
+## Jev du Cockpit : aiguillage en 5 cas d'usage (01/10/2026)
+
+Brief « Aiguillage des questions dans l'assistant JEV (application Cockpit) ». Arbitrages du commanditaire du 01/10/2026 : modification limitée d'abord au suivi (risques, problèmes, actions, décisions) ; description, impacts et actions de mitigation d'un risque rangés dans le plan de mitigation, les actions proposées comme actions liées ; mémoire de conversation comme la Console ; essais et génération réelle d'Insights et de Gestion des données acceptés. Ordre de réalisation : aiguillage et banc (fait), puis cas 2 et 5, cas 1, cas 4, cas 3.
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Cas et moyens | 1 Insight (fonction Insights, skill « Insights ») ; 2 Guide (Guidage, « Guidage Cockpit ») ; 3 Modification (Gestion des données, « Gestion des données ») ; 4a / 4b Documents (Documents / Synthèse, « Analyser un document ») ; 5 Clarification (Guidage, proposition du brief retenue) | `COCKPIT_CASE_ROUTE`, `backend/src/domain/jev-router-cockpit.ts` |
+| Requête TypeSafe | Une question « choice » à 7 options (`donnees`, `guide`, `modification`, `document`, `donnees_et_documents`, `clarification`, `hors_sujet`) et deux questions oui / non (« demande d'écriture », « plusieurs demandes ») dans le même appel | `buildCockpitRouterRequest` |
+| Consignes | En anglais, structurées (couvre / exclut / exemples) ; version en service `cockpit-v3` (98,8 % sur 330 classifications) | `COCKPIT_ROUTER_PROMPTS`, `COCKPIT_ROUTER_VERSION` |
+| Seuil général | 0,45 (calé sur le banc : aucune bonne réponse perdue entre 0,30 et 0,45) ; en deçà, clarification | `COCKPIT_ROUTER_MIN_CONFIDENCE` |
+| Garde-fou d'écriture | Cas 3 seulement si confiance ≥ 0,75 **et** « demande d'écriture » ≥ 0,5 ; sinon clarification. Objectif du brief tenu : 0 % de lecture classée en modification | `COCKPIT_ROUTER_WRITE_MIN_CONFIDENCE`, `COCKPIT_ROUTER_WRITE_NOUL_MIN` |
+| Plusieurs demandes | Signalé au-delà de 0,6 ; le cas retenu est celui de la première demande (traitement des suivantes : étapes suivantes) | `COCKPIT_ROUTER_MULTI_NOUL_MIN` |
+| Repli | Carte absente, désactivée ou sans clé, délai, erreur, réponse illisible : cas 5, motif tracé | `JevRouterService.classifyCockpit` |
+| Journalisation | `jev_classifications` : application (`app`), question, cas (`type`), option, confiance, probabilités, questions oui / non (`write_score`, `multi_score`, `multi`), modèle d'aiguillage, durée, version des consignes, modèle de la réponse (`answer_model`) | migration `20261101000000_jev_aiguillage_cockpit` |
+| Banc d'essai | 110 questions, cas attendus fixés avant les appels, 3 passages ; rapport `docs/RAPPORT - aiguillage de Jev (Cockpit).md` | `npm run jev:aiguillage-cockpit`, `test/fixtures/jev-routage-cockpit.json` |
+| Ancien aiguillage du Cockpit | Les 4 classes `cockpit-v1` (usage, données, mixte, hors sujet) sont retirées ; la Console garde les siennes | `jev-router.ts` |
+| Branchement provisoire | En attendant les étapes suivantes : cas 2 → guide du Cockpit (inchangé) ; autres cas → traitement existant (bouchon et propositions) ; le cas retenu est renvoyé dans la réponse (`route`) | `AssistantController.message` |

@@ -73,10 +73,12 @@ export class AssistantController {
     const input = parse(Message, body);
     // Question d'usage (aiguillage par l'API de JEV, périmètre du Cockpit) : réponse à partir du seul guide du Cockpit,
     // avec ses réglages ; sans guide publié, Jev le dit sans appeler de modèle (décision du 30/09/2026).
-    const route = await this.router.classify(input.text, { app: 'cockpit', page: [input.context.space, input.context.tab].filter(Boolean).join(' › '), accountId: actor.accountId });
-    if (route.status === 'OK' && route.type === 'USAGE') {
+    // Aiguillage en 5 cas d'usage (brief du 01/10/2026) ; chaque décision est journalisée (jev_classifications).
+    const route = await this.router.classifyCockpit(input.text, { page: [input.context.space, input.context.tab].filter(Boolean).join(' › '), accountId: actor.accountId });
+    if (route.cas === '2') {
       const g = await this.guide.answer('cockpit', input.text, { system: await this.jev.systemPrompt(), projectId: scope.project.id });
-      return { reply: g.reply, sources: g.sources.map((label) => ({ entityType: 'GUIDE', id: 'cockpit', label })), proposedChanges: [], model: g.modelId ? { id: g.modelId, fallbackUsed: g.fallbackUsed } : null, route: 'USAGE', guide: g.status };
+      await this.router.noteAnswerModel(route.traceId, g.modelId ?? null);
+      return { reply: g.reply, sources: g.sources.map((label) => ({ entityType: 'GUIDE', id: 'cockpit', label })), proposedChanges: [], model: g.modelId ? { id: g.modelId, fallbackUsed: g.fallbackUsed } : null, route: route.cas, guide: g.status };
     }
     const readOnly = READ_ONLY_SPACES.includes(input.context.space) || READ_ONLY_TABS.includes(input.context.tab ?? '');
     const codes = [...new Set(input.text.match(/\b(A-\d+|R\d{2,}|P\d{2,}|D-\d{3}|J\d{2,})\b/gi) ?? [])].map((c) => c.toUpperCase());
@@ -111,8 +113,10 @@ export class AssistantController {
       : created.length
         ? `Voici ${created.length > 1 ? 'les modifications que je propose' : 'la modification que je propose'}. Rien n'est enregistré avant votre validation (« Valider et enregistrer » ou « Refuser »).`
         : llm.text;
+    await this.router.noteAnswerModel(route.traceId, llm.modelId ?? null);
     return {
       reply,
+      route: route.cas,
       sources,
       proposedChanges: created.map((c) => ({ id: c.id, entityType: c.entityType, entityId: c.entityId, op: c.op, patch: c.patch, summary: c.summary, status: c.status })),
       model: { id: llm.modelId, fallbackUsed: llm.fallbackUsed },
