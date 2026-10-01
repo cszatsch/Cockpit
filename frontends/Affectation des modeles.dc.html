@@ -187,10 +187,12 @@ class Component extends DCLogic {
     const R = D.states(fns, draft, models, provs), L = { ok: 'Opérationnel', fallback: 'Secours en service', down: 'Indisponible', blocked: 'Suspendue' };
     const setF = (id, v) => () => this.pick(id, 'f', v);
 
+    // Libellé propre à cette vue (01/10/2026) : la fonction Guidage sert le Jev de la Console et celui du Cockpit.
+    const SHORT_OF = { guidage: 'Guidage Console / Cockpit' };
     const solo = fns.filter(f => !f.group).map(f => {
       const a = draft[f.id] || {}, r = R[f.id], ad = this.advise(f, a, r, models, provs, false), c = D.cost(f, r.p);
       const est = D.isEst(f);
-      return { n: f.sh || f.n, full: f.n, vol: this.vol(f), stL: L[r.st], hasEst: est, est: est ? 'estimé sur ' + D.nf(f.est.req || 0, 0) + ' questions / mois' : '', ...this.pill(r.st), p: this.sel(f, 'p', a, models, provs), f: this.sel(f, 'f', a, models, provs),
+      return { n: SHORT_OF[f.id] || f.sh || f.n, full: f.n, vol: this.vol(f), stL: L[r.st], hasEst: est, est: est ? 'estimé sur ' + D.nf(f.est.req || 0, 0) + ' questions / mois' : '', ...this.pill(r.st), p: this.sel(f, 'p', a, models, provs), f: this.sel(f, 'f', a, models, provs),
         hasMsg: !!ad.msg, msg: ad.msg, msgSt: this.msgSt(ad.tone), hasFix: !!ad.alt, fixL: ad.fixL, fix: ad.alt ? setF(f.id, ad.alt.id) : null,
         cost: (est ? '≈ ' : '') + D.eur(c), hasAlt: r.st === 'fallback', alt: D.eur(D.cost(f, r.s)) + ' sur secours',
         isNew: !!f.isNew, hasGauge: !!f.needOut, g: f.needOut ? this.gauge(f, r) : {} };
