@@ -489,7 +489,7 @@ export function bindConsole(c) {
   // Ouverture d'un menu : rechargement de la section en arrière-plan.
   c.go = (sec, then) => { if (sec === 'latency') latReset(); orig.go(sec, then); if (!c.state.apiBoot && SECTION[sec]) load(SECTION[sec]).catch(fail); };
 
-  // ── Analyse des temps de traitement (spécification TEMPS § 3) : props fetchData / fetchSeries de l'écran ──
+  // ── Analyse des temps de réponse (spécification TEMPS § 3) : props fetchData / fetchSeries de l'écran ──
   // Réponse en cache par période et jour (dernier jour = aujourd'hui pour le serveur, `dayOffset` jours avant pour la
   // période Jour ; LATENCY_END_OFFSET_DAYS côté serveur) ; `null` tant
   // que la requête est en cours, puis la Console se redessine. Cache vidé à chaque ouverture de la page (la journée en cours

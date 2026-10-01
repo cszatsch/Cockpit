@@ -1,6 +1,6 @@
 /// <reference lib="dom" />
 /**
- * Vérification navigateur de l'écran « Analyse des temps de traitement » (spécification TEMPS § 4) branché sur l'API.
+ * Vérification navigateur de l'écran « Analyse des temps de réponse » (spécification TEMPS § 4) branché sur l'API.
  *
  * Usage (application démarrée, `npm run build` préalable, AUTH_DEV=true, migrations appliquées) :
  *   cd backend && npx ts-node --transpile-only test/browser/latency.e2e.ts
@@ -31,7 +31,7 @@ async function launch(): Promise<Browser> {
 
 /** État visible de l'écran : vignettes, lignes de la cascade (nom, pastille, barre), totaux, courbe. */
 const read = (page: Page) => page.evaluate(() => {
-  const root = document.querySelector('[data-screen-label="Analyse des temps de traitement"]') as HTMLElement;
+  const root = document.querySelector('[data-screen-label="Analyse des temps de réponse"]') as HTMLElement;
   const txt = (e: Element | null) => (e?.textContent ?? '').replace(/\s+/g, ' ').trim();
   const tiles = Array.from(root.querySelectorAll('button[role="radio"]')).map((b) => ({ text: txt(b), on: b.getAttribute('aria-checked') === 'true' }));
   const bars = Array.from(root.querySelectorAll('span')).filter((s) => (s as HTMLElement).style.transition.includes('left')) as HTMLElement[];
@@ -80,18 +80,22 @@ async function main() {
       await page.click('button[aria-label="IA"]');
       await page.waitForTimeout(1000);
     }
-    await page.locator('#sb-ia').getByText('Analyse des temps de traitement', { exact: true }).click();
-    await page.waitForSelector('[data-screen-label="Analyse des temps de traitement"] button[role="radio"]', { timeout: 20000 });
+    await page.locator('#sb-ia').getByText('Analyse des temps de réponse', { exact: true }).click();
+    await page.waitForSelector('[data-screen-label="Analyse des temps de réponse"] button[role="radio"]', { timeout: 20000 });
     await page.waitForFunction(() => !document.body.textContent!.includes('Chargement…'), null, { timeout: 20000 });
     await page.waitForTimeout(500);
 
     // 1. 7 jours, par catégorie : 6 vignettes ; Base de connaissance sélectionnée ; 4 étapes + Bout en bout.
     let s = await read(page);
     const kbTile = s.tiles.find((x) => x.on);
-    check('1. 6 vignettes, Base de connaissance sélectionnée, 4 étapes et Bout en bout', s.tiles.length === 6 && !!kbTile?.text.startsWith('Base de connaissance') && s.rows.length === 5 && s.rows[4].name === 'Bout en bout', JSON.stringify(s.rows.map((r) => r.name)));
+    // Les vraies mesures de la base (questions posées à Jev) peuvent ajouter des étapes (Formulation de la requête) :
+    // les 4 étapes du jeu de mesures doivent figurer dans l'ordre, et Bout en bout en dernier.
+    const names = s.rows.map((r) => r.name), want = ['Routage', 'Vectorisation', 'Reclassement', 'Génération'];
+    const inOrder = want.every((n, i) => names.indexOf(n) >= 0 && (i === 0 || names.indexOf(n) > names.indexOf(want[i - 1])));
+    check('1. 6 vignettes, Base de connaissance sélectionnée, 4 étapes et Bout en bout', s.tiles.length === 6 && !!kbTile?.text.startsWith('Base de connaissance') && inOrder && names[names.length - 1] === 'Bout en bout', JSON.stringify(names));
 
     // 2. Chaque barre commence à la fin de la précédente.
-    const gaps = s.rows.slice(1, 4).map((r, i) => Math.abs(r.left - (s.rows[i].left + s.rows[i].width)));
+    const gaps = s.rows.slice(1, -1).map((r, i) => Math.abs(r.left - (s.rows[i].left + s.rows[i].width)));
     check('2. barres en cascade (début = fin de la précédente)', gaps.every((g) => g < 0.02), gaps.map((g) => g.toFixed(3)).join(' '));
 
     // 3. Reclassement : liseré et pastille corail, type « Délai dépassé (5 s) » en infobulle.
@@ -101,10 +105,10 @@ async function main() {
     // Changement de période : vignettes, cascade, courbe et totaux mis à jour.
     const before = s;
     await page.getByRole('tab', { name: '1 mois', exact: true }).click();
-    await page.waitForFunction((b) => { const t = document.querySelector('[data-screen-label="Analyse des temps de traitement"] button[role="radio"]'); return !!t && t.textContent !== b; }, before.tiles[0].text, { timeout: 15000 }).catch(() => {});
+    await page.waitForFunction((b) => { const t = document.querySelector('[data-screen-label="Analyse des temps de réponse"] button[role="radio"]'); return !!t && t.textContent !== b; }, before.tiles[0].text, { timeout: 15000 }).catch(() => {});
     await page.waitForTimeout(800);
     s = await read(page);
-    check('période → toutes les zones changent (vignettes, cascade, courbe, totaux)', s.tiles[0].text !== before.tiles[0].text && s.rows[4].value !== before.rows[4].value && s.svgSig !== before.svgSig && s.band !== before.band && s.points === 29, `${before.band} → ${s.band} ; ${s.points} points (30 jours, dont 1 sans mesure)`);
+    check('période → toutes les zones changent (vignettes, cascade, courbe, totaux)', s.tiles[0].text !== before.tiles[0].text && JSON.stringify(s.rows.map((r) => [r.value, r.pill])) !== JSON.stringify(before.rows.map((r) => [r.value, r.pill])) && s.svgSig !== before.svgSig && s.band !== before.band && s.points === 29, `${before.band} → ${s.band} ; ${s.points} points (30 jours, dont 1 sans mesure) ; vignette ${before.tiles[0].text} → ${s.tiles[0].text} ; bout en bout ${before.rows[before.rows.length - 1].value} → ${s.rows[s.rows.length - 1].value} ; courbe ${before.svgSig !== s.svgSig}`);
 
     // 4. Jour : « suivant » désactivé sur la veille ; « précédent » change la date et les valeurs.
     await page.getByRole('tab', { name: 'Jour', exact: true }).click();
@@ -113,7 +117,7 @@ async function main() {
     await page.getByRole('button', { name: 'Jour précédent' }).click();
     await page.waitForTimeout(1200);
     const d1 = await read(page);
-    check('4. Jour : suivant désactivé sur le dernier jour (aujourd’hui) ; précédent change la date et les valeurs', d0.nextOff === true && d0.day.includes(LATENCY_END_OFFSET_DAYS ? 'hier' : 'aujourd’hui') && d1.day !== d0.day && d1.nextOff === false && d1.rows[4]?.value !== d0.rows[4]?.value, `${d0.day} → ${d1.day}`);
+    check('4. Jour : suivant désactivé sur le dernier jour (aujourd’hui) ; précédent change la date et les valeurs', d0.nextOff === true && d0.day.includes(LATENCY_END_OFFSET_DAYS ? 'hier' : 'aujourd’hui') && d1.day !== d0.day && d1.nextOff === false && d1.rows[d1.rows.length - 1]?.value !== d0.rows[d0.rows.length - 1]?.value, `${d0.day} → ${d1.day}`);
 
     // 7. Jour sans traitement : « Aucun traitement sur la période », sans erreur.
     for (let i = 1; i < EMPTY_BACK; i++) { await page.getByRole('button', { name: 'Jour précédent' }).click(); await page.waitForTimeout(150); }
@@ -135,10 +139,12 @@ async function main() {
     // 6. 3 et 6 mois : 13 et 27 points par semaine, points d'erreur à leur semaine.
     await page.getByRole('tab', { name: 'Par catégorie de prompt' }).click();
     await page.getByRole('tab', { name: '3 mois', exact: true }).click();
-    await page.waitForTimeout(1500);
+    await page.waitForFunction(() => document.querySelectorAll('[data-screen-label="Analyse des temps de réponse"] svg[role="img"] circle').length >= 13, null, { timeout: 20000 }).catch(() => {});
+    await page.waitForTimeout(500);
     const m3 = await read(page);
     await page.getByRole('tab', { name: '6 mois', exact: true }).click();
-    await page.waitForTimeout(1500);
+    await page.waitForFunction(() => document.querySelectorAll('[data-screen-label="Analyse des temps de réponse"] svg[role="img"] circle').length > 20, null, { timeout: 20000 }).catch(() => {});
+    await page.waitForTimeout(500);
     const m6 = await read(page);
     check('6. 3 et 6 mois : 13 et 27 points, erreurs placées', m3.points === 13 && m6.points === 27 && m3.errDots > 0 && m6.errDots > 0, `${m3.points} / ${m6.points} points, ${m3.errDots} / ${m6.errDots} en erreur`);
 

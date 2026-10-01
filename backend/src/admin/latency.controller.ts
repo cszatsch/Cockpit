@@ -6,10 +6,10 @@ import { isLatencyPeriod, LatencyPeriod } from '../domain/latency';
 import { LatencyService } from './latency.service';
 
 /**
- * Analyse des temps de traitement (spécification TEMPS § 3) : écran IA › « Analyse des temps de traitement » de la
+ * Analyse des temps de réponse (spécification TEMPS § 3) : écran IA › « Analyse des temps de réponse » de la
  * Console. Chemin de la spécification (`/api/ai/latency`) ; réservé aux administrateurs de la Console (403 sinon).
  */
-@ApiTags('console · temps de traitement')
+@ApiTags('console · temps de réponse')
 @ApiBearerAuth()
 @AdminOnly()
 @Controller('api/ai/latency')

@@ -12,10 +12,10 @@ const JEV = '/api/admin/assistant/messages';
 const Y = '2026-09-26'; // dernier jour des périodes : DEMO_TODAY (LATENCY_END_OFFSET_DAYS = 0)
 
 /**
- * Analyse des temps de traitement (spécification TEMPS) : API, droits, purge, et mesures prises sur les vrais
+ * Analyse des temps de réponse (spécification TEMPS) : API, droits, purge, et mesures prises sur les vrais
  * traitements de Jev (aiguillage, formulation, exécution, génération, secours, réponse non servie).
  */
-describe('Analyse des temps de traitement', () => {
+describe('Analyse des temps de réponse', () => {
   let t: TestCtx;
   let admin: Client;
   let pmo: Client;

@@ -2,7 +2,7 @@ import { addDays, daysBetween, isIsoDate } from './dates';
 import { parisDay, parisTime } from './notification-rules';
 
 /**
- * Analyse des temps de traitement (spécification TEMPS, 01/10/2026) : règles pures du rapport et de la courbe
+ * Analyse des temps de réponse (spécification TEMPS, 01/10/2026) : règles pures du rapport et de la courbe
  * d'évolution, calculées sur les lignes `StepTiming` (une par étape exécutée, une `e2e` par prompt).
  */
 

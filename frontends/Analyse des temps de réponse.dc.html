@@ -14,10 +14,10 @@ button:focus-visible{outline:2px solid #1d8f86;outline-offset:2px}
 @keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style></helmet>
-<div data-screen-label="Analyse des temps de traitement" style="max-width:1240px;margin:0 auto;padding:40px 36px 80px;display:flex;flex-direction:column;gap:22px">
+<div data-screen-label="Analyse des temps de réponse" style="max-width:1240px;margin:0 auto;padding:40px 36px 80px;display:flex;flex-direction:column;gap:22px">
   <div style="display:flex;flex-direction:column;gap:6px;animation:rise .45s cubic-bezier(.2,.7,.2,1) both">
     <div style="font-size:11px;font-weight:800;letter-spacing:.16em;color:#1d8f86">IA</div>
-    <div style="font-size:34px;font-weight:800;font-style:italic;letter-spacing:-.03em">Analyse des temps de traitement</div>
+    <div style="font-size:34px;font-weight:800;font-style:italic;letter-spacing:-.03em">Analyse des temps de réponse</div>
     <div style="font-size:14px;color:#43586a">Durée de traitement des prompts, de bout en bout et par étape, par catégorie de prompt ou par modèle.</div>
   </div>
 
@@ -64,7 +64,7 @@ button:focus-visible{outline:2px solid #1d8f86;outline-offset:2px}
 </div>
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;defaultAxis&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;cat&quot;,&quot;mod&quot;],&quot;default&quot;:&quot;cat&quot;,&quot;tsType&quot;:&quot;'cat' | 'mod'&quot;},&quot;defaultPeriod&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;d&quot;,&quot;7&quot;,&quot;1m&quot;,&quot;3m&quot;,&quot;6m&quot;],&quot;default&quot;:&quot;7&quot;,&quot;tsType&quot;:&quot;'d' | '7' | '1m' | '3m' | '6m'&quot;},&quot;fetchData&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(period: string, dayOffset: number) =&gt; LatencyReport | null&quot;},&quot;fetchSeries&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(period: string, dayOffset: number, axis: 'cat' | 'mod', id: string) =&gt; SeriesPoint[] | null&quot;}}">
-// Analyse des temps de traitement (proposition 1c « Cascade »).
+// Analyse des temps de réponse (proposition 1c « Cascade »).
 // Données : props `fetchData(period, dayOffset)` et `fetchSeries(…)` branchées par la Console (admin-api.js → GET /api/ai/latency,
 // voir TEMPS - specification.md §3) ; `null` pendant le chargement : la période précédente reste affichée. Démonstration (demo())
 // seulement sans `fetchData` : écran ouvert seul, ou Console en mode démonstration (?demo=1).

@@ -564,3 +564,7 @@ Vérification des éléments de la vue d'ensemble face au serveur. Conformes : d
 
 - `Analyse des temps de traitement.dc.html` : la vue Jour s'ouvre sur aujourd'hui en données réelles (« · aujourd'hui » au lieu de « · hier », la démonstration garde la veille) : un prompt traité est visible aussitôt (`LATENCY_END_OFFSET_DAYS`, `docs/DECISIONS.md`).
 - `admin-api.js` : dernier jour = aujourd'hui à Paris (horloge du serveur) ; cache des rapports et des courbes vidé à chaque ouverture de la page.
+
+## « Analyse des temps de réponse » (01/10/2026)
+
+- À la demande du commanditaire, l'écran IA › « Analyse des temps de traitement » s'intitule « Analyse des temps de réponse » : titre de l'écran, entrée de la sidebar, `META.latency`, libellé de page de Jev. Fichier renommé `Analyse des temps de réponse.dc.html` (`<dc-import>` de la Console). Identifiant de page (`latency`), routes et spécification (`docs/specs/TEMPS - specification.md`) inchangés.

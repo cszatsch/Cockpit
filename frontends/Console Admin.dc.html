@@ -359,9 +359,9 @@ a{color:#1d8f86}a:hover{color:#146b64}
       </div>
     </sc-if>
     <sc-if value="{{ isLatency }}" hint-placeholder-val="{{ false }}">
-      <!-- API : GET /api/ai/latency et /api/ai/latency/series (Analyse des temps de traitement.dc.html, admin-api.js → latFetch, latSeries). -->
-      <div data-screen-label="Analyse des temps de traitement" style="animation:rise-in .35s cubic-bezier(.2,.7,.2,1) both">
-        <dc-import name="Analyse des temps de traitement" fetch-data="{{ latFetch }}" fetch-series="{{ latSeries }}" hint-size="100%,1300px"></dc-import>
+      <!-- API : GET /api/ai/latency et /api/ai/latency/series (Analyse des temps de réponse.dc.html, admin-api.js → latFetch, latSeries). -->
+      <div data-screen-label="Analyse des temps de réponse" style="animation:rise-in .35s cubic-bezier(.2,.7,.2,1) both">
+        <dc-import name="Analyse des temps de réponse" fetch-data="{{ latFetch }}" fetch-series="{{ latSeries }}" hint-size="100%,1300px"></dc-import>
       </div>
     </sc-if>
 
@@ -984,7 +984,7 @@ const META = {
   assign: ['IA', 'Affectation des modèles', 'Un modèle principal et un modèle de secours pour chaque fonction IA du Cockpit.'],
   conso: ['IA', 'Vue générale des coûts', 'Tokens et dépenses par fournisseur, modèle et fonction, avec seuils d’alerte.'],
   journal: ['Intelligence artificielle', 'Journal consommation et coûts', 'Tokens consommés et détail de chaque appel LLM.'],
-  latency: ['IA', 'Analyse des temps de traitement', 'Durée de traitement des prompts, de bout en bout et par étape, par catégorie de prompt ou par modèle.'],
+  latency: ['IA', 'Analyse des temps de réponse', 'Durée de traitement des prompts, de bout en bout et par étape, par catégorie de prompt ou par modèle.'],
   snaps: ['Projets', 'Snapshots', 'L’historique des données de chaque projet : capturer, comparer, restaurer.'],
   notifs: ['Plateforme', 'Notifications', 'Les notifications informent les utilisateurs chaque jour ou chaque semaine, à l’heure prévue.'],
   smtp: ['Plateforme', 'Serveur d’envoi SMTP', ''],
