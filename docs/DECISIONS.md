@@ -1020,3 +1020,12 @@ Demande du commanditaire : toute notification, quelle qu'elle soit, compte moins
 | Longueur | Moins de 100 mots pour le message complet (gabarit compris) ; le contenu rédigé dispose de ce que le gabarit laisse (30 mots au moins) ; consigne impérative à chaque appel ; contenu trop long réécrit une fois par le modèle, puis coupé proprement (lignes entières, rubrique orpheline retirée, « … » si une phrase seule dépasse) | `NOTIFICATION_MAX_WORDS`, `NOTIFICATION_MIN_CONTENT_WORDS`, `wordCount`, `fitWords`, `lengthRule`, `shortenPrompt` |
 | Structure | L'essentiel en une phrase ; 2 à 4 chiffres clés ; « ## À surveiller » (3 lignes au plus, code en gras d'abord) ; « ## À faire » (2 actions au plus) ; interdits : tableau, salutation, phrase d'annonce, répétition | `NOTIFICATION_STRUCTURE` |
 | Consigne de base | Le contenu est en Markdown léger (la consigne disait encore « texte brut, sans Markdown », en contradiction avec la mise en page) | `NotificationWriterService.base` |
+
+## Jev : recherche dans le guide « momentanément indisponible » (01/10/2026)
+
+Cause : la vectorisation de la question par le modèle de l'index du guide (qwen3-embedding-8b) a une latence très variable (0,4 s à 34 s relevés dans le journal des appels) ; la recherche abandonnait au premier dépassement du délai (réglage « tv », 10 s), sans nouvelle tentative. L'échec, rattrapé par Jev en réponse polie, ne produisait aucune erreur technique : la Console ne signalait rien (et un appel abandonné n'est pas inscrit au journal des appels).
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Seconde tentative | En cas d'échec de la vectorisation de la question, une seconde tentative avec un délai d'au moins 25 s (le double du réglage s'il est plus grand) ; pas de modèle de secours (seul le modèle de l'index peut interroger ses vecteurs) | `GUIDE_EMBED_RETRY_TIMEOUT_MS`, `GuideSearchService.search` |
+| Signalement | Échec persistant : incident « Erreur technique » dans la cloche de la Console (« JEV Cockpit · recherche dans le guide », modèle et motif), fermé à la recherche réussie suivante (mécanisme des erreurs techniques existant) | `techErrors` |

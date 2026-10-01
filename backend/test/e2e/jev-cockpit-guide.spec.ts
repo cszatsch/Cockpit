@@ -114,6 +114,35 @@ describe('Jev — guide de l’application d’où vient la question', () => {
     expect((r.body.sources || []).every((s: any) => s.entityType !== 'GUIDE')).toBe(true);
   });
 
+  it('vectorisation lente ou en panne : seconde tentative ; échec persistant → incident à la Console, fermé au succès suivant', async () => {
+    const llm = t.app.get(LlmService);
+    const real = llm.embedWithModel.bind(llm);
+    const timeouts: number[] = [];
+    let fail = 1;
+    const spy = jest.spyOn(llm, 'embedWithModel').mockImplementation(async (...args: any[]) => {
+      timeouts.push(args[4]?.timeoutMs);
+      if (fail-- > 0) throw new Error('Délai dépassé');
+      return (real as any)(...args);
+    });
+    // Une défaillance : rattrapée par la seconde tentative, avec un délai plus long.
+    let r = await askCockpit('Comment créer une action de pilotage ?');
+    expect(r.body).toMatchObject({ route: '2', guide: 'ANSWERED' });
+    expect(timeouts[1]).toBeGreaterThanOrEqual(25_000);
+    // Deux défaillances : réponse « indisponible » et incident dans les notifications de l'administrateur.
+    fail = 2;
+    r = await askCockpit('Comment créer une action de pilotage ?');
+    expect(r.body).toMatchObject({ route: '2', guide: 'UNAVAILABLE' });
+    const key = 'tech:JEV Cockpit · recherche dans le guide';
+    await new Promise((res) => setTimeout(res, 50));
+    expect(await t.db.notification.findUnique({ where: { key } })).toMatchObject({ kind: 'ERR', status: 'OPEN', text: expect.stringMatching(/vectorisation de la question impossible/) });
+    // Recherche réussie : incident fermé.
+    fail = 0;
+    await askCockpit('Comment créer une action de pilotage ?');
+    await new Promise((res) => setTimeout(res, 50));
+    expect((await t.db.notification.findUnique({ where: { key } }))!.status).toBe('RESOLVED');
+    spy.mockRestore();
+  });
+
   describe('cas 5 — clarification par le modèle Guidage', () => {
     afterEach(() => { nextConf = 0.95; nextWrite = null; });
     const clarify = async (text: string) => {

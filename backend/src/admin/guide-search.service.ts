@@ -3,7 +3,11 @@ import { PrismaService } from '../core/prisma.service';
 import { LlmService } from '../core/llm.service';
 import { vectorLiteral, HNSW_HALFVEC_MAX_DIMS, HNSW_VECTOR_MAX_DIMS } from '../domain/guide-index';
 import { GuideExtract, pagesOf, queryForEmbedding, RagSettings, RAG_DEFAULTS } from '../domain/jev-rag';
-import type { GuideApp } from '../domain/guide';
+import { GUIDE_APP_LABELS, GuideApp } from '../domain/guide';
+import { techErrors } from '../core/tech-errors';
+
+/** Délai minimal de la seconde tentative de vectorisation de la question (latence très variable du fournisseur). */
+export const GUIDE_EMBED_RETRY_TIMEOUT_MS = 25_000;
 
 /** Résultat d'une recherche dans le guide, avec tout ce que le journal technique doit tracer. */
 export interface GuideSearch {
@@ -53,13 +57,25 @@ export class GuideSearchService {
 
     let t0 = Date.now();
     let vector: number[];
+    const text = [queryForEmbedding(`${up.embeddingModel} ${up.embeddingName ?? ''}`, question)];
+    const incident = `JEV ${GUIDE_APP_LABELS[app].name} · recherche dans le guide`;
     try {
-      const e = await this.llm.embedWithModel(up.embeddingModel, dims, [queryForEmbedding(`${up.embeddingModel} ${up.embeddingName ?? ''}`, question)], 'JEV', { timeoutMs: s.embedTimeoutMs });
-      vector = e.vectors[0];
-    } catch (e) {
-      // Modèle de l'index indisponible : aucun autre modèle ne peut interroger ces vecteurs.
-      throw Object.assign(new Error(`Vectorisation de la question impossible : ${e instanceof Error ? e.message : e}`), { reason: 'GUIDE_NON_INDEXE' as const });
+      vector = (await this.llm.embedWithModel(up.embeddingModel, dims, text, 'JEV', { timeoutMs: s.embedTimeoutMs })).vectors[0];
+    } catch (first) {
+      // Latence très variable du modèle de vectorisation (de 0,4 s à plus de 30 s constatés le 01/10/2026) : une
+      // seconde tentative, avec un délai plus long, avant de renoncer.
+      try {
+        vector = (await this.llm.embedWithModel(up.embeddingModel, dims, text, 'JEV', { timeoutMs: Math.max(2 * s.embedTimeoutMs, GUIDE_EMBED_RETRY_TIMEOUT_MS) })).vectors[0];
+      } catch (e) {
+        // Modèle de l'index indisponible : aucun autre modèle ne peut interroger ces vecteurs. Incident dans les
+        // notifications de l'administrateur (fermé à la recherche réussie suivante).
+        const msg = `vectorisation de la question impossible (${up.embeddingName ?? up.embeddingModel}) : ${e instanceof Error ? e.message : e}`;
+        techErrors.open.add(incident);
+        techErrors.onError?.(incident, msg);
+        throw Object.assign(new Error(`Vectorisation de la question impossible : ${e instanceof Error ? e.message : e}`), { reason: 'GUIDE_NON_INDEXE' as const });
+      }
     }
+    if (techErrors.open.delete(incident)) techErrors.onRecovered?.(incident);
     out.timings.embedMs = Date.now() - t0;
 
     // Même expression que l'index HNSW (partiel sur la dimension) pour qu'il serve à la recherche.
