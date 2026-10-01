@@ -559,3 +559,8 @@ Vérification des éléments de la vue d'ensemble face au serveur. Conformes : d
 - `Sidebar Console.dc.html` : entrée IA › « Analyse des temps de traitement » (id `latency`), après « Journal consommation et coûts ». La sidebar livrée, antérieure, n'a pas remplacé la nôtre (nom de Jev, déconnexion, SMTP, Guide).
 - `Console Admin.dc.html` : `META.latency` ; écran monté quand `S.sec === 'latency'` (`isLatency`), sans l'en-tête de la Console (l'écran a le sien, comme le Journal) ; props `fetch-data` / `fetch-series` = `latFetch` / `latSeries` (absentes en démonstration).
 - `admin-api.js` : `latFetch(period, dayOffset)` et `latSeries(period, dayOffset, axis, id)` → `GET /api/ai/latency` et `/api/ai/latency/series` ; jour calculé sur l'horloge du serveur (veille, à Paris) ; réponses en cache par période et jour (`null` pendant la requête, puis la Console se redessine) ; échec : message, nouvel essai à la prochaine ouverture de la page.
+
+## Analyse des temps de traitement : journée en cours (01/10/2026)
+
+- `Analyse des temps de traitement.dc.html` : la vue Jour s'ouvre sur aujourd'hui en données réelles (« · aujourd'hui » au lieu de « · hier », la démonstration garde la veille) : un prompt traité est visible aussitôt (`LATENCY_END_OFFSET_DAYS`, `docs/DECISIONS.md`).
+- `admin-api.js` : dernier jour = aujourd'hui à Paris (horloge du serveur) ; cache des rapports et des courbes vidé à chaque ouverture de la page.

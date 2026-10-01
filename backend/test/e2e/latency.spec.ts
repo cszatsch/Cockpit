@@ -9,7 +9,7 @@ import { FIXTURE_TIMEOUT, latencyFixture } from '../fixtures/latency';
 
 const L = '/api/ai/latency';
 const JEV = '/api/admin/assistant/messages';
-const Y = '2026-09-25'; // veille de DEMO_TODAY
+const Y = '2026-09-26'; // dernier jour des périodes : DEMO_TODAY (LATENCY_END_OFFSET_DAYS = 0)
 
 /**
  * Analyse des temps de traitement (spécification TEMPS) : API, droits, purge, et mesures prises sur les vrais
@@ -39,23 +39,23 @@ describe('Analyse des temps de traitement', () => {
       await pmo.get(`${L}/series?period=7&axis=cat&id=kb_document`).expect(403);
     });
 
-    it('paramètres contrôlés : période, jour (veille au plus tard, 182 jours avant au plus), axe', async () => {
+    it('paramètres contrôlés : période, jour (aujourd’hui au plus tard, 182 jours avant au plus), axe', async () => {
       await admin.get(`${L}?period=2w`).expect(400);
-      await admin.get(`${L}?period=d&day=2026-09-26`).expect(400);
-      await admin.get(`${L}?period=d&day=2026-03-26`).expect(400);
-      await admin.get(`${L}?period=d&day=2026-03-27`).expect(200);
+      await admin.get(`${L}?period=d&day=2026-09-27`).expect(400);
+      await admin.get(`${L}?period=d&day=2026-03-27`).expect(400);
+      await admin.get(`${L}?period=d&day=2026-03-28`).expect(200);
       await admin.get(`${L}/series?period=7&axis=x&id=kb_document`).expect(400);
     });
 
     it('période sans prompt : aucune catégorie (écran « Aucun traitement sur la période »)', async () => {
       const r = (await admin.get(`${L}?period=7`).expect(200)).body;
-      expect(r).toEqual({ period: '7', from: '2026-09-19', to: Y, categories: [], models: {} });
+      expect(r).toEqual({ period: '7', from: '2026-09-20', to: Y, categories: [], models: {} });
     });
 
     it('recette 1 à 3 : 7 jours, 6 catégories ; Base de connaissance en 4 étapes dans l’ordre ; erreurs du reclassement', async () => {
       await load(10);
       const r = (await admin.get(`${L}?period=7`).expect(200)).body;
-      expect(r).toMatchObject({ period: '7', from: '2026-09-19', to: Y });
+      expect(r).toMatchObject({ period: '7', from: '2026-09-20', to: Y });
       expect(r.categories).toHaveLength(6);
       const kb = r.categories.find((c: any) => c.category === 'kb_document');
       expect(kb.count).toBe(14); // 2 prompts par jour, 7 jours (les 3 jours plus anciens sont hors période)
@@ -69,11 +69,11 @@ describe('Analyse des temps de traitement', () => {
       expect(r.models.svc).toEqual({ name: 'Service RISE', provider: 'Traitement interne', service: true });
     });
 
-    it('recette 4 : Jour — veille par défaut ; le jour précédent change la date et les valeurs', async () => {
+    it('recette 4 : Jour — aujourd’hui par défaut ; le jour précédent change la date et les valeurs', async () => {
       await load(3);
       const a = (await admin.get(`${L}?period=d`).expect(200)).body;
-      const b = (await admin.get(`${L}?period=d&day=2026-09-24`).expect(200)).body;
-      expect([a.from, a.to, b.from, b.to]).toEqual([Y, Y, '2026-09-24', '2026-09-24']);
+      const b = (await admin.get(`${L}?period=d&day=2026-09-25`).expect(200)).body;
+      expect([a.from, a.to, b.from, b.to]).toEqual([Y, Y, '2026-09-25', '2026-09-25']);
       expect(a.categories[0].count).toBe(2);
       expect(a.categories[0].e2e).not.toEqual(b.categories[0].e2e);
       const s = (await admin.get(`${L}/series?period=d&axis=cat&id=kb_document`).expect(200)).body;
@@ -95,7 +95,7 @@ describe('Analyse des temps de traitement', () => {
       const s6 = (await admin.get(`${L}/series?period=6m&axis=cat&id=kb_document`).expect(200)).body;
       expect(s3).toHaveLength(13);
       expect(s6).toHaveLength(27);
-      // Reclassement en erreur un jour sur trois (jours 0, 3, 6… avant la veille) : semaine la plus récente = jours 0 à 6.
+      // Reclassement en erreur un jour sur trois (jours 0, 3, 6… avant le dernier jour) : semaine la plus récente = jours 0 à 6.
       expect(s3[12].err).toBe(3);
       expect(s3[11].err).toBe(2); // jours 9 et 12
       expect(s6.reduce((a: number, p: any) => a + p.err, 0)).toBe(61);

@@ -162,7 +162,8 @@ function normalize(raw, pid, off) {
   const from = new Date(raw.from + 'T00:00:00'), to = new Date(raw.to + 'T00:00:00'), dw = to.getDay();
   return { cats, models, errs, mods, total: cats.reduce((a, c) => a + c.n, 0), terr: errs.reduce((a, e) => a + e.n, 0),
     range: pid === 'd' ? DW[dw] + ' ' + to.getDate() + ' ' + MO[to.getMonth()] + ' ' + to.getFullYear() : fdate(from) + ' → ' + fdate(to) + ' ' + to.getFullYear(),
-    dayL: DW[dw] + ' ' + fdate(to) + (off === 0 ? ' · hier' : '') };
+    // Dernier jour : aujourd'hui en données réelles (journée en cours, décision du 01/10/2026), la veille en démonstration.
+    dayL: DW[dw] + ' ' + fdate(to) + (off === 0 ? (raw.models ? ' · aujourd’hui' : ' · hier') : '') };
 }
 
 class Component extends DCLogic {

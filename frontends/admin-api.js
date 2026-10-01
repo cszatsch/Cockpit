@@ -487,14 +487,16 @@ export function bindConsole(c) {
   c.apTest = id => post(AC(id) + '/test').then(r => { touch(); apReload(); return { resp: toResp({ code: r.code, ms: r.ms, at: new Date().toISOString(), body: r.body }, r.code ? '' : 'Injoignable'), lat: null }; }).catch(e => { fail(e); return null; });
 
   // Ouverture d'un menu : rechargement de la section en arrière-plan.
-  c.go = (sec, then) => { orig.go(sec, then); if (sec === 'latency') latRetry(); if (!c.state.apiBoot && SECTION[sec]) load(SECTION[sec]).catch(fail); };
+  c.go = (sec, then) => { if (sec === 'latency') latReset(); orig.go(sec, then); if (!c.state.apiBoot && SECTION[sec]) load(SECTION[sec]).catch(fail); };
 
   // ── Analyse des temps de traitement (spécification TEMPS § 3) : props fetchData / fetchSeries de l'écran ──
-  // Réponse en cache par période et jour (veille du serveur, `dayOffset` jours avant pour la période Jour) ; `null` tant
-  // que la requête est en cours, puis la Console se redessine. Échec : message, nouvel essai à la prochaine ouverture.
+  // Réponse en cache par période et jour (dernier jour = aujourd'hui pour le serveur, `dayOffset` jours avant pour la
+  // période Jour ; LATENCY_END_OFFSET_DAYS côté serveur) ; `null` tant
+  // que la requête est en cours, puis la Console se redessine. Cache vidé à chaque ouverture de la page (la journée en cours
+  // évolue) ; échec : message, nouvel essai à la prochaine ouverture.
   const LAT = { data: {}, pending: {}, failed: new Set() };
-  const latRetry = () => { LAT.failed.forEach(k => delete LAT.pending[k]); LAT.failed.clear(); };
-  const latDay = (p, off) => { const y = isoAdd(parisIso(now()), -1); return p === 'd' ? isoAdd(y, -(off || 0)) : y; };
+  const latReset = () => { LAT.data = {}; LAT.pending = {}; LAT.failed.clear(); };
+  const latDay = (p, off) => { const y = parisIso(now()); return p === 'd' ? isoAdd(y, -(off || 0)) : y; };
   const latGet = (k, path) => {
     if (k in LAT.data) return LAT.data[k];
     if (!LAT.pending[k]) {

@@ -15,6 +15,7 @@ import { newPage } from './harness';
 import { addDays } from '../../src/domain/dates';
 import { parisDay } from '../../src/domain/notification-rules';
 import { latencyFixture } from '../fixtures/latency';
+import { LATENCY_END_OFFSET_DAYS } from '../../src/domain/latency';
 
 const API = process.env.CONSOLE_URL || 'http://localhost:3000';
 const DB = process.env.DATABASE_URL || 'postgresql://rise@localhost:5433/rise';
@@ -60,7 +61,7 @@ async function main() {
     const ov = await (await fetch(`${API}/api/auth/dev-login`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ accountId: 'u1' }) })).json();
     const token = ov.accessToken ?? ov.token;
     const date = (await (await fetch(`${API}/api/admin/overview`, { headers: { Authorization: `Bearer ${token}` } })).json()).date as string;
-    const yesterday = addDays(String(date).slice(0, 10), -1);
+    const yesterday = addDays(String(date).slice(0, 10), -LATENCY_END_OFFSET_DAYS); // dernier jour des périodes
     await db.stepTiming.deleteMany({ where: { requestId: { startsWith: 'req_fx' } } });
     const empty = addDays(yesterday, -EMPTY_BACK);
     // Modèles du jeu d'essai remplacés par ceux du catalogue de l'application quand ils existent (noms affichés).
@@ -112,7 +113,7 @@ async function main() {
     await page.getByRole('button', { name: 'Jour précédent' }).click();
     await page.waitForTimeout(1200);
     const d1 = await read(page);
-    check('4. Jour : suivant désactivé sur la veille ; précédent change la date et les valeurs', d0.nextOff === true && d0.day.includes('hier') && d1.day !== d0.day && d1.nextOff === false && d1.rows[4]?.value !== d0.rows[4]?.value, `${d0.day} → ${d1.day}`);
+    check('4. Jour : suivant désactivé sur le dernier jour (aujourd’hui) ; précédent change la date et les valeurs', d0.nextOff === true && d0.day.includes(LATENCY_END_OFFSET_DAYS ? 'hier' : 'aujourd’hui') && d1.day !== d0.day && d1.nextOff === false && d1.rows[4]?.value !== d0.rows[4]?.value, `${d0.day} → ${d1.day}`);
 
     // 7. Jour sans traitement : « Aucun traitement sur la période », sans erreur.
     for (let i = 1; i < EMPTY_BACK; i++) { await page.getByRole('button', { name: 'Jour précédent' }).click(); await page.waitForTimeout(150); }

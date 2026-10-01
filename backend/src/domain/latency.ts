@@ -6,10 +6,15 @@ import { parisDay, parisTime } from './notification-rules';
  * d'évolution, calculées sur les lignes `StepTiming` (une par étape exécutée, une `e2e` par prompt).
  */
 
-/** Périodes (jours) : se terminent la veille ; 3 et 6 mois en 13 et 27 semaines. */
+/**
+ * Dernier jour des périodes : 0 = aujourd'hui, journée en cours comprise (décision du 01/10/2026 : un prompt doit être
+ * visible dès qu'il est traité) ; 1 = la veille, règle de la spécification (données consolidées).
+ */
+export const LATENCY_END_OFFSET_DAYS = 0;
+/** Périodes (jours) : se terminent au dernier jour (`LATENCY_END_OFFSET_DAYS`) ; 3 et 6 mois en 13 et 27 semaines. */
 export const LATENCY_PERIODS = { d: 1, '7': 7, '1m': 30, '3m': 91, '6m': 183 } as const;
 export type LatencyPeriod = keyof typeof LATENCY_PERIODS;
-/** Jour consulté : jusqu'à 182 jours avant la veille. */
+/** Jour consulté : jusqu'à 182 jours avant le dernier jour. */
 export const LATENCY_MAX_DAYS_BACK = 182;
 /** Conservation des lignes brutes (jours). */
 export const LATENCY_RETENTION_DAYS = 190;
@@ -39,17 +44,17 @@ export interface SeriesPoint { l: string; med: number | null; min: number | null
 
 export const isLatencyPeriod = (p: unknown): p is LatencyPeriod => typeof p === 'string' && p in LATENCY_PERIODS;
 
-/** Bornes incluses de la période ; `day` (période Jour) entre la veille et 182 jours avant. */
-export function latencyRange(period: LatencyPeriod, day: string | null, yesterday: string): { from: string; to: string } | { error: string } {
+/** Bornes incluses de la période ; `day` (période Jour) entre le dernier jour `end` et 182 jours avant. */
+export function latencyRange(period: LatencyPeriod, day: string | null, end: string): { from: string; to: string } | { error: string } {
   if (period === 'd') {
-    const to = day ?? yesterday;
+    const to = day ?? end;
     if (!isIsoDate(to)) return { error: 'day : date attendue au format AAAA-MM-JJ' };
-    const back = daysBetween(to, yesterday);
-    if (back < 0) return { error: 'day : la journée la plus récente est la veille' };
-    if (back > LATENCY_MAX_DAYS_BACK) return { error: `day : ${LATENCY_MAX_DAYS_BACK} jours au plus avant la veille` };
+    const back = daysBetween(to, end);
+    if (back < 0) return { error: `day : la journée la plus récente est le ${end}` };
+    if (back > LATENCY_MAX_DAYS_BACK) return { error: `day : ${LATENCY_MAX_DAYS_BACK} jours au plus avant le ${end}` };
     return { from: to, to };
   }
-  return { from: addDays(yesterday, -(LATENCY_PERIODS[period] - 1)), to: yesterday };
+  return { from: addDays(end, -(LATENCY_PERIODS[period] - 1)), to: end };
 }
 
 /** Instants de début (inclus) et de fin (exclue) de la période, jours civils de Paris. */
@@ -124,7 +129,7 @@ const dayOf = (iso: string) => new Date(iso + 'T00:00:00Z');
 const fdate = (iso: string) => { const d = dayOf(iso); return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`; };
 const parisHour = (d: Date) => Number(new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Paris', hour: '2-digit', hourCycle: 'h23' }).format(d));
 
-/** Créneaux de la courbe : par heure (Jour), par jour (7 jours, 1 mois), par semaine se terminant la veille (3 et 6 mois). */
+/** Créneaux de la courbe : par heure (Jour), par jour (7 jours, 1 mois), par semaine se terminant le dernier jour (3 et 6 mois). */
 export function seriesSlots(period: LatencyPeriod, from: string, to: string): { labels: string[]; slotOf: (d: Date) => number } {
   if (period === 'd') return { labels: Array.from({ length: 24 }, (_, h) => `${h} h`), slotOf: (d) => (parisDay(d) === from ? parisHour(d) : -1) };
   const n = daysBetween(from, to) + 1;

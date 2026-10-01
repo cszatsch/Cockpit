@@ -6,7 +6,7 @@ import { badRequest } from '../core/errors';
 import { LATENCY_ROUTER_MODEL, LATENCY_SERVICE_MODEL, latencySinks, StepTimingRow } from '../core/latency';
 import { addDays } from '../domain/dates';
 import {
-  buildLatencyReport, buildLatencySeries, LATENCY_RETENTION_DAYS, LatencyPeriod, latencyInstants, latencyRange, LatencyReportBody, SeriesPoint, TimingRow,
+  buildLatencyReport, buildLatencySeries, LATENCY_END_OFFSET_DAYS, LATENCY_RETENTION_DAYS, LatencyPeriod, latencyInstants, latencyRange, LatencyReportBody, SeriesPoint, TimingRow,
 } from '../domain/latency';
 
 /** Nom et fournisseur des « modèles » qui ne sont pas des modèles d'IA du catalogue. */
@@ -49,7 +49,7 @@ export class LatencyService implements OnModuleInit, OnModuleDestroy {
   }
 
   private range(period: LatencyPeriod, day: string | null) {
-    const r = latencyRange(period, day, addDays(this.today.today(), -1));
+    const r = latencyRange(period, day, addDays(this.today.today(), -LATENCY_END_OFFSET_DAYS));
     if ('error' in r) throw badRequest(r.error, { day: r.error });
     return r;
   }
