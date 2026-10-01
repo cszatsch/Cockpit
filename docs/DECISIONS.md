@@ -1087,3 +1087,10 @@ Spécification `docs/specs/TEMPS - specification.md` (écran 1c « Cascade »). 
 | Périodes | Jour, 7 jours, 1 mois (30 jours), 3 mois (91), 6 mois (183), se terminant aujourd'hui, jours civils de Paris (comme l'Analyse des temps de réponse) ; défaut « 1 mois » (le mois en cours, du 1er à aujourd'hui, n'est plus proposé) | `PER` (`Journal des appels.dc.html`), `journalApi.range` |
 | Jour | Graphique par heure de la journée (heure de Paris) : `GET /api/admin/usage/daily?from=J&to=J&by=hour` (24 points, `hour`), refusé (400) sur plus d'une journée | `UsageService.daily(…, byHour)` |
 | Graphique | 3 et 6 mois : une barre par jour (91 et 183) ; pas de regroupement par semaine | — |
+
+## Réponse vide de Claude Sonnet 5 : réflexion coupée (01/10/2026)
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Cause | Claude Sonnet 5 réfléchit par défaut (sans paramètre `thinking`) et la réflexion consomme `max_tokens` : sur un appel court (identification des documents, 300 jetons ; requête SQL), réponse sans texte, motif enregistré « réponse vide (arrêt : max_tokens · blocs : thinking) », puis secours (Gemini) ou échec | — |
+| Correction | Sonnet 5 et Opus 5 : `thinking: { type: "disabled" }` (réponses courtes de Jev ; vérifié en réel : 0 jeton de réflexion, réponse complète en 1,5 à 1,9 s). Modèles où la réflexion ne se coupe pas (Opus 5.5, Sonnet 5.5, Fable, Mythos : `disabled` refusé) : au moins 4 096 jetons de sortie. Autres modèles (Haiku 4.5…) : inchangés | `anthropicThinking`, `ANTHROPIC_THINKING_MIN_TOKENS` (`backend/src/core/llm-client.ts`) |

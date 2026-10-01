@@ -89,6 +89,22 @@ export const EMBED_CALL_TIMEOUT_MS = 60_000;
 /** Échec d'une génération réelle : message sans jamais la clé. */
 export class LlmCallError extends Error {}
 
+/**
+ * Réflexion (thinking) des modèles Anthropic (correction du 01/10/2026) : Claude Sonnet 5 et Claude Opus 5 réfléchissent
+ * par défaut, et la réflexion consomme `max_tokens` — sur un appel court (identification des documents, 300 jetons),
+ * réponse vide « arrêt : max_tokens · blocs : thinking ». Ces modèles l'acceptent coupée : elle l'est (réponses courtes,
+ * latence en moins). Ceux qui réfléchissent toujours (Opus 5.5, Sonnet 5.5, Fable, Mythos : `disabled` refusé, 400)
+ * gardent au moins `ANTHROPIC_THINKING_MIN_TOKENS` jetons de sortie. Les autres (Haiku 4.5…) : inchangés.
+ */
+export const ANTHROPIC_THINKING_MIN_TOKENS = 4096;
+const THINKING_DISABLABLE = /^claude-(sonnet-5|opus-5)(-\d{8})?$/;
+const THINKING_ALWAYS_ON = /^claude-(opus-5-5|sonnet-5-5|fable|mythos)/;
+export function anthropicThinking(model: string, maxTokens: number): { max_tokens: number; thinking?: { type: 'disabled' } } {
+  if (THINKING_DISABLABLE.test(model)) return { max_tokens: maxTokens, thinking: { type: 'disabled' } };
+  if (THINKING_ALWAYS_ON.test(model)) return { max_tokens: Math.max(maxTokens, ANTHROPIC_THINKING_MIN_TOKENS) };
+  return { max_tokens: maxTokens };
+}
+
 type Protocol = { kind: 'anthropic' } | { kind: 'gemini' } | { kind: 'openai'; base: string; label: string; maxField: 'max_tokens' | 'max_completion_tokens' };
 
 const PROTOCOLS: Array<{ match: RegExp; p: Protocol }> = [
@@ -128,7 +144,7 @@ export class LlmClient {
         ? [{ type: 'text', text: c.system, ...(c.cache ? { cache_control: { type: 'ephemeral' } } : {}) }, ...(c.systemTail ? [{ type: 'text', text: c.systemTail }] : [])]
         : c.system;
       const j = await this.post('Anthropic', 'https://api.anthropic.com/v1/messages', { 'x-api-key': c.key, 'anthropic-version': '2023-06-01' }, {
-        model: c.model, max_tokens: c.maxTokens, system, messages: [...(c.history ?? []), { role: 'user', content: c.prompt }],
+        model: c.model, ...anthropicThinking(c.model, c.maxTokens), system, messages: [...(c.history ?? []), { role: 'user', content: c.prompt }],
       }, c.key, c.timeoutMs);
       const text = (j?.content ?? []).filter((b: any) => b?.type === 'text').map((b: any) => b.text).join('').trim();
       const u = j?.usage ?? {}, read = num(u.cache_read_input_tokens), write = num(u.cache_creation_input_tokens);
