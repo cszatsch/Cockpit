@@ -41,7 +41,8 @@ export class JevCockpitInsightService {
     private readonly today: TodayService,
   ) {}
 
-  async ask(text: string, opts: { project: { id: string; code: string }; access: ProjectAccess; page: string; functionId?: AiFunctionId; skill?: string | null; extraRules?: string }): Promise<InsightAnswer> {
+  /** `queryHint` / `extraRules` : consignes ajoutées aux étapes « requête » et « réponse » (4b : état actuel seulement). */
+  async ask(text: string, opts: { project: { id: string; code: string }; access: ProjectAccess; page: string; functionId?: AiFunctionId; skill?: string | null; queryHint?: string; extraRules?: string }): Promise<InsightAnswer> {
     const functionId = opts.functionId ?? 'insights';
     const parts = await this.jevPrompt.cockpitParts(opts.skill === undefined ? 'Insights' : opts.skill, opts.page);
     const tables = await this.prisma.dictionnaireTable.findMany({ where: { espace: 'cockpit', actif: true }, include: { colonnes: { orderBy: { position: 'asc' } } }, orderBy: { position: 'asc' } });
@@ -53,7 +54,7 @@ export class JevCockpitInsightService {
       topics: 'planning, chantiers, jalons, livrables, risques, problèmes, actions, décisions, comités, équipes, baromètre…',
       direct: 'Si la question ne demande aucune donnée du projet, réponds directement, sans SQL.',
       scope: `Les vues ne contiennent que le projet ${opts.project.code}. ${cockpitScopeLine(chantiers)}`,
-    })}\n\n${COCKPIT_INSIGHT_DATA_HINT}`;
+    })}\n\n${COCKPIT_INSIGHT_DATA_HINT}${opts.queryHint ? `\n${opts.queryHint}` : ''}`;
     const context = requestContext(parts.page, this.today.today(), nowParisLabel(this.today.now()));
     const calls: LlmResult[] = [];
     const call = async (prompt: string, sys: string, tail = context) => {

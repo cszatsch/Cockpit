@@ -979,3 +979,16 @@ Brief « Aiguillage des questions dans l'assistant JEV (application Cockpit) ».
 | Provisoire 4b | Traité par le cas 1 (données), le modèle dit qu’il ne lit pas encore les documents | `COCKPIT_DOCS_PENDING_RULE` |
 | Provisoire 4a | Réponse fixe sans modèle : la lecture des documents arrive | `COCKPIT_DOCS_PENDING_REPLY` |
 | Provisoire 3 | Propositions existantes ; sans modification identifiée, réponse fixe (plus de texte générique du modèle) | `COCKPIT_WRITE_UNCLEAR_REPLY` |
+
+## Jev du Cockpit : cas 4, documents de la Base de connaissance (01/10/2026)
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Identification (4a, 4b) | Le modèle Documents / Synthèse reçoit le catalogue des documents indexés **visibles de l'utilisateur** (identifiant, nom, type, date, version, description) et les séances de comité tenues ; il renvoie en JSON les documents visés (3 au plus) et une requête de recherche ; identifiants inconnus ignorés, repli sur la question | `DOC_IDENTIFY_SYSTEM`, `parseDocIdentification`, `DOC_MAX_IDENTIFIED`, `DOC_SESSIONS_MAX` |
+| Recherche | Vectorisation de la requête, 10 extraits les plus proches, limités aux documents visés (sans seuil) ou, sans document visé, dans toute la base avec un seuil de similarité ; reclassement (fonction Reclassement), 5 gardés ; reclassement indisponible : les 5 premiers | `DOC_SEARCH_K`, `DOC_KEEP`, `DOC_MIN_SIMILARITY`, `KbService.searchChunks` |
+| Réponse 4a | Modèle Documents / Synthèse, skill « Analyser un document » seule ; partie variable : séances tenues, documents visés (description, plan des diapositives ou sections), extraits ; consignes : seuls ces éléments, document et repère cités, séance précise vérifiée (« le dernier COPIL » dont le support manque est signalé) | `DOC_ANSWER_RULES`, `docOverviewBlock`, `KbService.outline`, `DOC_OUTLINE_MAX` |
+| Réponse 4b | Données d'abord (cas 1, droits de l'utilisateur, état actuel seulement), puis documents ; réponse en deux parties « D'après les données du projet » / « D'après les documents », écarts signalés | `DOC_DATA_QUERY_HINT`, `DOC_DATA_ANSWER_HINT`, `DOC_DATA_ANSWER_RULES` |
+| Sources | Document et repère (« Nom · Diapositive 4 », « Nom · p. 12 »), plus les vues consultées en 4b | `docSourceLabel` |
+| Sans document | Aucun document consultable ou aucun extrait pertinent : message fixe, sans modèle, rien d'inventé | `DOC_EMPTY_REPLY`, `DOC_NOT_FOUND_REPLY` |
+| Confidentialité | Documents restreints : seulement pour le PMO, l'administrateur et l'auteur du dépôt, au catalogue comme à la recherche | `KbService.visibleIndexed`, `searchChunks` |
+| Données (cas 1) | La réponse ne cite plus les noms techniques des vues ou des colonnes | `COCKPIT_INSIGHT_ANSWER_RULES` |

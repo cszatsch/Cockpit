@@ -3,7 +3,6 @@ import { encryptSecret } from '../../src/core/crypto';
 import { ApiCardsService } from '../../src/admin/api-cards.service';
 import { LlmService } from '../../src/core/llm.service';
 import { COCKPIT_Q_CASE } from '../../src/domain/jev-router-cockpit';
-import { COCKPIT_DOCS_PENDING_REPLY } from '../../src/domain/jev-cockpit-answers';
 
 const C = '/api/projects/RISE/assistant/messages';
 
@@ -81,20 +80,5 @@ describe('Jev du Cockpit — cas 1 : données du projet', () => {
     const r = await (await t.as(WHO.pmo)).post(C, { context: { space: 'today' }, text: 'Bonjour' }).expect(200);
     expect(r.body).toMatchObject({ route: '1', insight: 'DIRECT', reply: 'Bonjour, je peux répondre sur les données du projet.' });
     spy.mockRestore();
-  });
-
-  it('cas 4b (provisoire) : données seules, consigne de le signaler ; cas 4a : réponse fixe sans modèle', async () => {
-    next = 'donnees_et_documents';
-    const spy = scripted('```sql\nSELECT code FROM jev_cockpit.jalons\n```', 'Réponse.');
-    const r = await (await t.as(WHO.pmo)).post(C, { context: { space: 'pilotage' }, text: 'Le Go-Live annoncé au kick-off est-il tenu ?' }).expect(200);
-    expect(r.body.route).toBe('4b');
-    expect((spy.mock.calls[1][0] as any).system).toMatch(/Tu ne peux pas encore lire les documents/);
-    spy.mockRestore();
-    next = 'document';
-    const llm = jest.spyOn(t.app.get(LlmService), 'complete');
-    const d = await (await t.as(WHO.pmo)).post(C, { context: { space: 'documents' }, text: 'Résume le support du dernier COPIL' }).expect(200);
-    expect(d.body).toMatchObject({ route: '4a', reply: COCKPIT_DOCS_PENDING_REPLY });
-    expect(llm).not.toHaveBeenCalled();
-    llm.mockRestore();
   });
 });

@@ -18,8 +18,9 @@ import { JevRouterService } from '../../admin/jev-router.service';
 import { GuideAnswerService } from '../../admin/guide-answer.service';
 import { TodayService } from '../../core/today.service';
 import { COCKPIT_CASE_ROUTE, COCKPIT_CHOICE_TO_CASE } from '../../domain/jev-router-cockpit';
-import { clarifyReasonOf, COCKPIT_CLARIFY_RULES, COCKPIT_DOCS_PENDING_REPLY, COCKPIT_DOCS_PENDING_RULE, COCKPIT_WRITE_UNCLEAR_REPLY, cockpitClarifyPrompt, cockpitPageLabel, nowParisLabel } from '../../domain/jev-cockpit-answers';
+import { clarifyReasonOf, COCKPIT_CLARIFY_RULES, COCKPIT_WRITE_UNCLEAR_REPLY, cockpitClarifyPrompt, cockpitPageLabel, nowParisLabel } from '../../domain/jev-cockpit-answers';
 import { JevCockpitInsightService } from '../../admin/jev-cockpit-insight.service';
+import { JevCockpitDocsService } from './jev-cockpit-docs.service';
 import { requestContext } from '../../domain/jev-sql';
 
 /** Jev ne modifie jamais le Référentiel, les Comités et rapports, ni la Base de connaissance (§ 7.14). */
@@ -63,6 +64,7 @@ export class AssistantController {
     private readonly guide: GuideAnswerService,
     private readonly today: TodayService,
     private readonly insight: JevCockpitInsightService,
+    private readonly docs: JevCockpitDocsService,
   ) {}
 
   private entityOf(code: string): { type: string; def: TxEntity } | null {
@@ -106,22 +108,22 @@ export class AssistantController {
     }
     // Cas 1 — données du projet : requête SQL écrite par le modèle Insights (skill « Insights »), exécutée en lecture
     // seule sur les vues jev_cockpit filtrées par les droits de l'utilisateur, puis réponse à partir des résultats.
-    // 4b (données + documents) : en attendant la lecture des documents (étape suivante), la partie « données » seule,
-    // signalée comme telle.
-    if (route.cas === '1' || route.cas === '4b') {
+    if (route.cas === '1') {
       const { functionId, skill } = COCKPIT_CASE_ROUTE['1'];
-      const a = await this.insight.ask(input.text, {
-        project: scope.project, access: scope.access, page: cockpitPageLabel(input.context.space, input.context.tab), functionId, skill,
-        extraRules: route.cas === '4b' ? COCKPIT_DOCS_PENDING_RULE : undefined,
-      });
+      const a = await this.insight.ask(input.text, { project: scope.project, access: scope.access, page: cockpitPageLabel(input.context.space, input.context.tab), functionId, skill });
       await this.router.noteAnswerModel(route.traceId, a.modelId);
       return {
         reply: a.reply, route: route.cas, insight: a.status, sources: a.sources.map((label) => ({ entityType: 'DATA', id: label, label })),
         proposedChanges: [], model: a.modelId ? { id: a.modelId, fallbackUsed: a.fallbackUsed } : null,
       };
     }
-    // Cas 4a — documents : la lecture des documents par Jev est l'étape suivante ; réponse fixe, sans modèle.
-    if (route.cas === '4a') return { reply: COCKPIT_DOCS_PENDING_REPLY, route: route.cas, sources: [], proposedChanges: [], model: null };
+    // Cas 4 — documents de la Base de connaissance : identification des documents visés, recherche, reclassement,
+    // réponse par le modèle Documents / Synthèse (skill « Analyser un document ») ; 4b : données du projet d'abord.
+    if (route.cas === '4a' || route.cas === '4b') {
+      const a = await this.docs.answer(scope, actor, input.text, { page: cockpitPageLabel(input.context.space, input.context.tab), withData: route.cas === '4b' });
+      await this.router.noteAnswerModel(route.traceId, a.modelId);
+      return { reply: a.reply, route: route.cas, docs: a.status, insight: a.insight, sources: a.sources, proposedChanges: [], model: a.modelId ? { id: a.modelId, fallbackUsed: a.fallbackUsed } : null };
+    }
     // Cas 3 — modification : propositions existantes (étape à venir : objet, contrôles, questions à choix, confirmation).
     const readOnly =READ_ONLY_SPACES.includes(input.context.space) || READ_ONLY_TABS.includes(input.context.tab ?? '');
     const codes = [...new Set(input.text.match(/\b(A-\d+|R\d{2,}|P\d{2,}|D-\d{3}|J\d{2,})\b/gi) ?? [])].map((c) => c.toUpperCase());

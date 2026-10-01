@@ -287,26 +287,63 @@ export class KbService implements OnModuleInit {
    * la fonction Vectorisation ; seuls les extraits vectorisés avec ce modèle et cette dimension sont comparés.
    */
   async search(scope: ProjectScope, actor: Actor, question: string, k = 8) {
+    const found = await this.searchChunks(scope, actor, question, { k });
+    return { model: found.model, results: found.results.map(({ content, heading, ...r }) => ({ ...r, excerpt: content.slice(0, 400) })) };
+  }
+
+  /**
+   * Recherche des extraits les plus proches d'une question (Jev du Cockpit, cas 4, et route de recherche) : documents
+   * visibles de l'utilisateur, éventuellement limités à `documentIds` ; texte complet de chaque extrait.
+   */
+  async searchChunks(scope: ProjectScope, actor: Actor, question: string, opts: { k: number; documentIds?: string[] }) {
     const emb = await this.llm.embedTexts([question], 'COCKPIT', undefined, scope.project.id);
     const dims = emb.dims;
     const type = dims <= HNSW_VECTOR_MAX_DIMS ? 'vector' : dims <= HNSW_HALFVEC_MAX_DIMS ? 'halfvec' : 'vector';
     const expr = `c.embedding::${type}(${dims})`;
     const seeAll = scope.access.pmo || scope.access.admin;
-    const rows = await this.prisma.$queryRawUnsafe<Array<{ id: string; document_id: string; n: string; section: string; heading: string; page_start: number | null; page_end: number | null; slide: number | null; sheet: string | null; row_start: number | null; row_end: number | null; content: string; sim: number }>>(
-      `SELECT c.id, c.document_id, d.n, c.section, c.heading, c.page_start, c.page_end, c.slide, c.sheet, c.row_start, c.row_end, c.content, 1 - (${expr} <=> $1::${type}(${dims})) AS sim
+    const params: unknown[] = [vectorLiteral(emb.vectors[0]), scope.project.id, emb.modelId, Math.min(Math.max(1, opts.k), KB_SEARCH_MAX)];
+    const p = (v: unknown) => { params.push(v); return `$${params.length}`; };
+    const visible = seeAll ? 'true' : `d.conf = 'INTERNAL' OR d.uploaded_by_id = ${p(actor.accountId)}`;
+    const only = opts.documentIds?.length ? `AND c.document_id = ANY(${p(opts.documentIds)}::text[])` : '';
+    const rows = await this.prisma.$queryRawUnsafe<Array<{ id: string; document_id: string; n: string; date_iso: string; section: string; heading: string; page_start: number | null; page_end: number | null; slide: number | null; sheet: string | null; row_start: number | null; row_end: number | null; content: string; sim: number }>>(
+      `SELECT c.id, c.document_id, d.n, d."dateIso" AS date_iso, c.section, c.heading, c.page_start, c.page_end, c.slide, c.sheet, c.row_start, c.row_end, c.content, 1 - (${expr} <=> $1::${type}(${dims})) AS sim
        FROM kb_chunks c JOIN "Document" d ON d.id = c.document_id
        WHERE c.project_id = $2 AND c.dims = ${dims} AND c.model = $3 AND d.ext IN ('SUCCEEDED', 'PARTIAL')
-         AND (${seeAll ? 'true' : `d.conf = 'INTERNAL' OR d.uploaded_by_id = $5`})
+         AND (${visible}) ${only}
        ORDER BY ${expr} <=> $1::${type}(${dims}) LIMIT $4`,
-      vectorLiteral(emb.vectors[0]), scope.project.id, emb.modelId, Math.min(Math.max(1, k), KB_SEARCH_MAX), ...(seeAll ? [] : [actor.accountId]),
+      ...params,
     );
     return {
       model: emb.modelName,
       results: rows.map((r) => {
         const c = { position: 0, section: r.section, heading: r.heading, content: r.content, pageStart: r.page_start, pageEnd: r.page_end, slide: r.slide, sheet: r.sheet, rowStart: r.row_start, rowEnd: r.row_end, tokens: 0 };
-        return { documentId: r.document_id, document: r.n, location: chunkLocation(c), page: r.page_start, slide: r.slide, sheet: r.sheet, similarity: Math.round(Number(r.sim) * 1000) / 1000, excerpt: r.content.slice(0, 400) };
+        return { documentId: r.document_id, document: r.n, dateIso: r.date_iso, location: chunkLocation(c), heading: r.heading, page: r.page_start, slide: r.slide, sheet: r.sheet, similarity: Math.round(Number(r.sim) * 1000) / 1000, content: r.content };
       }),
     };
+  }
+
+  /** Documents indexés visibles de l'utilisateur (catalogue donné à Jev pour identifier les documents visés). */
+  async visibleIndexed(scope: ProjectScope, actor: Actor) {
+    const seeAll = scope.access.pmo || scope.access.admin;
+    return this.prisma.document.findMany({
+      where: { projectId: scope.project.id, ext: { in: ['SUCCEEDED', 'PARTIAL'] }, ...(seeAll ? {} : { OR: [{ conf: 'INTERNAL' }, { uploadedById: actor.accountId }] }) },
+      select: { id: true, n: true, type: true, dateIso: true, v: true, format: true, pages: true, description: true, summary: true, uploadedAt: true },
+      orderBy: [{ dateIso: 'desc' }, { uploadedAt: 'desc' }],
+    });
+  }
+
+  /** Plan d'un document : titres de ses extraits dans l'ordre (sections, diapositives, onglets), sans doublon. */
+  async outline(documentId: string, max = 80): Promise<string[]> {
+    const rows = await this.prisma.$queryRawUnsafe<Array<{ section: string; heading: string; slide: number | null; page_start: number | null }>>(
+      `SELECT section, heading, slide, page_start FROM kb_chunks WHERE document_id = $1 ORDER BY position`, documentId,
+    );
+    const out: string[] = [];
+    for (const r of rows) {
+      const t = r.slide != null ? `Diapositive ${r.slide} · ${r.heading || r.section}` : `${r.section}${r.page_start != null ? ` (p. ${r.page_start})` : ''}`;
+      if (!out.includes(t)) out.push(t);
+      if (out.length >= max) break;
+    }
+    return out;
   }
 
   // ───────────── Outils ─────────────
