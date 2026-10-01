@@ -1,3 +1,4 @@
+import { note, span } from './trace';
 import { Injectable } from '@nestjs/common';
 import { config } from './config';
 
@@ -201,15 +202,36 @@ export class LlmClient {
     return { text, tokensIn: typeof tin === 'number' ? tin : null, tokensOut: typeof tout === 'number' ? tout : null };
   }
 
-  private async post(label: string, url: string, headers: Record<string, string>, body: unknown, key: string, timeoutMs = LLM_CALL_TIMEOUT_MS): Promise<any> {
+  private post(label: string, url: string, headers: Record<string, string>, body: unknown, key: string, timeoutMs = LLM_CALL_TIMEOUT_MS): Promise<any> {
+    const path = (() => { try { return new URL(url).pathname.replace(/\/models\/[^/:]+/, '/models/…'); } catch { return url; } })();
+    return span(`HTTP POST ${label} ${path}`, (d) => this.postTimed(label, url, headers, body, key, timeoutMs, d), { delai_max_ms: timeoutMs });
+  }
+
+  /**
+   * Appel chronométré (traces de Jev, 01/10/2026) : préparation, envoi jusqu'aux en-têtes de la réponse (connexion,
+   * envoi, traitement chez le fournisseur, premier octet), lecture du corps, analyse ; statut, taille et en-têtes de
+   * temps du fournisseur relevés dans la trace.
+   */
+  private async postTimed(label: string, url: string, headers: Record<string, string>, body: unknown, key: string, timeoutMs: number, d: Record<string, unknown>): Promise<any> {
+    let t = performance.now();
+    const payload = JSON.stringify(body);
+    d.requete_octets = payload.length;
     let res: Response;
     try {
-      res = await this.fetchImpl(url, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...headers }, body: JSON.stringify(body), signal: AbortSignal.timeout(timeoutMs) });
+      res = await this.fetchImpl(url, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json', ...headers }, body: payload, signal: AbortSignal.timeout(timeoutMs) });
     } catch (e: any) {
       const timeout = e?.name === 'TimeoutError' || e?.name === 'AbortError';
+      note('attente des en-têtes (connexion + envoi + traitement fournisseur + 1er octet)', { issue: timeout ? 'délai dépassé' : 'injoignable', cause: String(e?.cause?.code ?? e?.cause?.message ?? e?.message ?? '').slice(0, 160) }, Math.round(performance.now() - t));
       throw new LlmCallError(timeout ? `${label} : délai de ${timeoutMs / 1000} s dépassé` : `${label} injoignable`);
     }
+    const ttfb = Math.round(performance.now() - t);
+    d.statut = res.status;
+    const timing: Record<string, string> = {};
+    res.headers?.forEach?.((v, k) => { if (/(processing|timing|request-id|x-request|generation|provider|cf-ray|x-cache|^age$|^via$|^server$)/i.test(k)) timing[k] = String(v).slice(0, 120); });
+    note('attente des en-têtes (connexion + envoi + traitement fournisseur + 1er octet)', Object.keys(timing).length ? { entetes_fournisseur: timing } : undefined, ttfb);
+    t = performance.now();
     const raw = await res.text().catch(() => '');
+    note('lecture du corps de la réponse', { octets: raw.length }, Math.round(performance.now() - t));
     if (!res.ok) {
       let msg = '';
       try {
@@ -223,7 +245,10 @@ export class LlmClient {
       throw new LlmCallError(`${label} · ${res.status}${msg ? ` : ${msg.slice(0, 160)}` : ''}`);
     }
     try {
-      return JSON.parse(raw);
+      t = performance.now();
+      const j = JSON.parse(raw);
+      note('analyse JSON', undefined, Math.round(performance.now() - t));
+      return j;
     } catch {
       throw new LlmCallError(`${label} : réponse illisible`);
     }

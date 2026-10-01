@@ -1895,3 +1895,20 @@ model JevAnswerLog {
   @@index([at])
   @@map("jev_answer_logs")
 }
+
+/// Trace d’une question posée à Jev (01/10/2026) : étapes chronométrées, imbriquées, de la question à la réponse
+/// (`src/core/trace.ts`). Conservée 30 jours ; lue par `npm run jev:traces`.
+model JevTrace {
+  id       String   @id
+  at       DateTime
+  /// « Jev Cockpit », « Jev Console ».
+  label    String
+  totalMs  Int      @map("total_ms")
+  /// Projet, question (début), cas d’usage, conversation, erreur éventuelle.
+  meta     Json
+  /// Étapes : { i, depth, parent, name, at, ms, detail?, error? }.
+  spans    Json
+
+  @@index([at])
+  @@map("jev_traces")
+}

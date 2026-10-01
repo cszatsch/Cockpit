@@ -1,3 +1,4 @@
+import { note, span } from './trace';
 import { Injectable } from '@nestjs/common';
 import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from './prisma.service';
@@ -139,7 +140,16 @@ export class LlmService {
    * à l'appel (délai, erreur du fournisseur), le secours prend la demande ; si les deux échouent, 503.
    */
   async complete(input: { functionId: AiFunctionId; prompt: string; system?: string; systemTail?: string; history?: ChatTurn[]; cache?: boolean; projectId?: string | null; source: UsageSourceCode; maxWords?: number; timeoutMs?: number; maxTokens?: number }): Promise<LlmResult> {
-    const route = await this.route(input.functionId);
+    return span(`génération · fonction ${input.functionId}`, async (d) => {
+      d.caracteres_prompt = (input.system?.length ?? 0) + (input.systemTail?.length ?? 0) + input.prompt.length + (input.history ?? []).reduce((n, h) => n + h.content.length, 0);
+      const r = await this.completeUntraced(input);
+      Object.assign(d, { modele: r.modelId, secours: r.fallbackUsed, jetons_entree: r.tokensIn, jetons_sortie: r.tokensOut });
+      return r;
+    });
+  }
+
+  private async completeUntraced(input: { functionId: AiFunctionId; prompt: string; system?: string; systemTail?: string; history?: ChatTurn[]; cache?: boolean; projectId?: string | null; source: UsageSourceCode; maxWords?: number; timeoutMs?: number; maxTokens?: number }): Promise<LlmResult> {
+    const route = await span('choix du modèle (affectation, base)', () => this.route(input.functionId));
     if (!(LIVE_FUNCTIONS.includes(input.functionId) && this.client.live)) return this.run(route.modelId, input, route.fallback);
     const fn = aiFunction(input.functionId);
     const label = `Fonction ${fn?.short ?? input.functionId}`;
@@ -256,15 +266,27 @@ export class LlmService {
    * l'index, jamais un autre). Le modèle doit être disponible (actif, fournisseur au statut OK).
    */
   async embedWithModel(modelId: string, wanted: number | null, texts: string[], source: UsageSourceCode, opts: { onBatch?: (done: number, total: number) => Promise<void> | void; timeoutMs?: number; projectId?: string | null } = {}): Promise<{ modelId: string; modelName: string; dims: number; vectors: number[][] }> {
+    return span(`vectorisation (${texts.length} texte${texts.length > 1 ? 's' : ''})`, (d) => this.embedTimed(modelId, wanted, texts, source, opts, d), { modele: modelId, delai_max_ms: opts.timeoutMs ?? null });
+  }
+
+  private async embedTimed(modelId: string, wanted: number | null, texts: string[], source: UsageSourceCode, opts: { onBatch?: (done: number, total: number) => Promise<void> | void; timeoutMs?: number; projectId?: string | null }, d: Record<string, unknown>): Promise<{ modelId: string; modelName: string; dims: number; vectors: number[][] }> {
     const onBatch = opts.onBatch;
-    if (!(await this.modelAvailable(modelId, 'EMBEDDING'))) throw new ApiError(503, 'AI_UNAVAILABLE', `Modèle de vectorisation ${modelId} inactif, supprimé ou clé de son fournisseur refusée`);
-    const model = await this.prisma.aiModel.findUniqueOrThrow({ where: { id: modelId } });
-    const provider = await this.prisma.provider.findUniqueOrThrow({ where: { id: model.providerId } });
+    const { model, provider } = await span('lecture du modèle et du fournisseur (base)', async () => {
+      if (!(await this.modelAvailable(modelId, 'EMBEDDING'))) throw new ApiError(503, 'AI_UNAVAILABLE', `Modèle de vectorisation ${modelId} inactif, supprimé ou clé de son fournisseur refusée`);
+      const model = await this.prisma.aiModel.findUniqueOrThrow({ where: { id: modelId } });
+      const provider = await this.prisma.provider.findUniqueOrThrow({ where: { id: model.providerId } });
+      return { model, provider };
+    });
+    d.modele = model.name;
+    d.fournisseur = provider.name;
+    d.caracteres = texts.reduce((n, t) => n + t.length, 0);
     let key = '';
     if (this.client.live) {
       if (!provider.keyCipher) throw new ApiError(503, 'AI_UNAVAILABLE', `${provider.name} : aucune clé enregistrée`);
       try {
+        const t = performance.now();
         key = decryptSecret(provider.keyCipher);
+        note('déchiffrement de la clé', undefined, Math.round(performance.now() - t));
       } catch {
         throw new ApiError(503, 'AI_UNAVAILABLE', `${provider.name} : clé illisible`);
       }
@@ -289,7 +311,8 @@ export class LlmService {
         vectors.push(x);
       }
       const tokens = out.tokens ?? batch.reduce((n, t) => n + Math.max(1, Math.ceil(t.length / 4)), 0);
-      await this.record(model, 'doc_vec', { tokensIn: tokens, tokensOut: 0, requests: 0 }, false, { source, projectId: opts.projectId ?? null }, Date.now() - t0);
+      d.jetons = tokens;
+      await span('enregistrement de la consommation (base)', () => this.record(model, 'doc_vec', { tokensIn: tokens, tokensOut: 0, requests: 0 }, false, { source, projectId: opts.projectId ?? null }, Date.now() - t0));
       await onBatch?.(Math.min(i + batch.length, texts.length), texts.length);
     }
     return { modelId: model.id, modelName: model.name, dims, vectors };
@@ -300,6 +323,14 @@ export class LlmService {
    * Réel en ligne ; hors ligne, score déterministe (mots communs). Une ligne de consommation par appel (1 requête).
    */
   async rerankTexts(query: string, documents: string[], topN: number, source: UsageSourceCode, timeoutMs?: number): Promise<{ modelId: string; modelName: string; fallbackUsed: boolean; results: Array<{ index: number; score: number }> }> {
+    return span(`reclassement (${documents.length} extraits → ${topN})`, async (d) => {
+      const r = await this.rerankUntraced(query, documents, topN, source, timeoutMs);
+      Object.assign(d, { modele: r.modelName, secours: r.fallbackUsed });
+      return r;
+    });
+  }
+
+  private async rerankUntraced(query: string, documents: string[], topN: number, source: UsageSourceCode, timeoutMs?: number): Promise<{ modelId: string; modelName: string; fallbackUsed: boolean; results: Array<{ index: number; score: number }> }> {
     const route = await this.route('doc_rrk');
     const asg = await this.prisma.modelAssignment.findUnique({ where: { functionId: 'doc_rrk' } });
     const attempt = async (modelId: string, fallbackUsed: boolean) => {
@@ -340,12 +371,13 @@ export class LlmService {
   private async withRetry<T>(fn: () => Promise<T>): Promise<T> {
     for (let attempt = 0; ; attempt++) {
       try {
-        return await fn();
+        return await span(`tentative ${attempt + 1} / ${EMBED_RETRIES + 1}`, () => fn());
       } catch (e) {
         const msg = e instanceof Error ? e.message : '';
         const transient = e instanceof LlmCallError && /· (408|409|425|429|5\d\d)|délai|injoignable/.test(msg);
         if (!transient || attempt >= EMBED_RETRIES) throw e instanceof LlmCallError ? new ApiError(503, 'AI_UNAVAILABLE', `Vectorisation impossible : ${msg}`) : e;
-        await new Promise((r) => setTimeout(r, EMBED_RETRY_DELAYS_MS[attempt] ?? 3000));
+        const wait = EMBED_RETRY_DELAYS_MS[attempt] ?? 3000;
+        await span('attente avant nouvelle tentative', () => new Promise((r) => setTimeout(r, wait)), { attente_ms: wait, motif: msg.slice(0, 160) });
       }
     }
   }

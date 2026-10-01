@@ -1,3 +1,4 @@
+import { span, traced, traceMeta } from '../core/trace';
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { JevPromptService } from '../core/jev-prompt.service';
@@ -59,11 +60,16 @@ export class JevAssistantService {
   ) {}
 
   async answer(accountId: string, text: string, section: string, conversationId?: string | null): Promise<JevReply> {
+    return traced('Jev Console', () => this.answerTraced(accountId, text, section, conversationId), { page: section, question: text.slice(0, 120) });
+  }
+
+  private async answerTraced(accountId: string, text: string, section: string, conversationId?: string | null): Promise<JevReply> {
     const t0 = Date.now();
     const conv = conversationId ? await this.memory.own(accountId, conversationId) : await this.memory.start(accountId);
     const mem = await this.memory.memory(conv);
     const previous = mem.history.filter((h) => h.role === 'user').map((h) => ({ question: h.content }));
-    const route = await this.router.classify(text, { history: previous, page: CONSOLE_PAGE_TITLES[section] ?? section, accountId, conversationId: conv.id });
+    const route = await span('aiguillage (API JEV)', async (d) => { const r = await this.router.classify(text, { history: previous, page: CONSOLE_PAGE_TITLES[section] ?? section, accountId, conversationId: conv.id }); Object.assign(d, { type: r.type, confiance: r.confiance, statut: r.status }); return r; });
+    traceMeta('type', route.type);
     const classificationId = (await this.prisma.jevClassification.findFirst({ where: { conversationId: conv.id }, orderBy: { at: 'desc' }, select: { id: true } }))?.id ?? null;
     // Guide et réglages de la Console seulement (questions posées depuis la Console).
     const s = await this.search.settings('console');

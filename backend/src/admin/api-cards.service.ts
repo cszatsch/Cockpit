@@ -1,3 +1,4 @@
+import { span } from '../core/trace';
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { lookup } from 'dns/promises';
 import { Agent, fetch as undiciFetch } from 'undici';
@@ -98,6 +99,10 @@ export class ApiCardsService implements OnModuleInit {
 
   /** Appel réel de l'endpoint d'une carte, avec les paramètres transmis par le widget. */
   async call(card: ApiCard, query: Record<string, string> = {}, source: CallSource, widget?: string | null): Promise<CallResult> {
+    return span(`HTTP ${card.method ?? 'GET'} carte « ${card.name} »`, async (d) => { const r = await this.callUntraced(card, query, source, widget); Object.assign(d, { statut: r.code, duree_mesuree_ms: r.ms, echec: r.failure ?? null }); return r; });
+  }
+
+  private async callUntraced(card: ApiCard, query: Record<string, string> = {}, source: CallSource, widget?: string | null): Promise<CallResult> {
     const key = card.keyEncrypted ? decryptSecret(card.keyEncrypted) : null;
     // Variables de chemin (« {route=…} ») remplies par le widget, sinon leur valeur par défaut ; valeur refusée → 400.
     const filled = fillEndpoint(card.endpoint, query);

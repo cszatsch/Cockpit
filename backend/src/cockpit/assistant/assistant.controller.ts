@@ -1,3 +1,4 @@
+import { span, traced, traceMeta } from '../../core/trace';
 import { Body, Controller, HttpCode, Param, Post, UploadedFile, UseInterceptors } from '@nestjs/common';
 import { JevPromptService } from '../../core/jev-prompt.service';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -78,16 +79,26 @@ export class AssistantController {
   @Post('messages')
   @HttpCode(200)
   async message(@CurrentActor() actor: Actor, @Param('projectId') p: string, @Body() body: unknown) {
-    const scope = await this.access.scope(actor, p);
-    const input = parse(Message, body);
-    // Conversation (mémoire, une par utilisateur et par projet) : celle de l'écran, sinon une nouvelle.
-    const conv = input.conversationId
-      ? await this.memory.own(actor.accountId, input.conversationId, 'cockpit', scope.project.id)
-      : await this.memory.start(actor.accountId, 'cockpit', scope.project.id);
-    const mem = await this.memory.memory(conv);
-    const out = await this.answer(scope, actor, conv, input, mem.history);
-    await this.memory.record(conv, input.text, out.reply, out.sources.map((x) => x.label), { route: out.route });
-    return { ...out, conversationId: conv.id };
+    // Trace de la question (01/10/2026) : chaque étape chronométrée, de la question à la réponse (journal du serveur,
+    // table jev_traces, `npm run jev:traces`).
+    return traced('Jev Cockpit', async () => {
+      const scope = await span('projet et droits (base)', () => this.access.scope(actor, p));
+      const input = parse(Message, body);
+      traceMeta('projet', scope.project.code);
+      traceMeta('question', input.text.slice(0, 120));
+      // Conversation (mémoire, une par utilisateur et par projet) : celle de l'écran, sinon une nouvelle.
+      const { conv, mem } = await span('conversation et mémoire (base)', async () => {
+        const conv = input.conversationId
+          ? await this.memory.own(actor.accountId, input.conversationId, 'cockpit', scope.project.id)
+          : await this.memory.start(actor.accountId, 'cockpit', scope.project.id);
+        return { conv, mem: await this.memory.memory(conv) };
+      });
+      traceMeta('conversation', conv.id);
+      const out = await this.answer(scope, actor, conv, input, mem.history);
+      traceMeta('cas', out.route);
+      await span('enregistrement de l’échange dans la mémoire (base)', () => this.memory.record(conv, input.text, out.reply, out.sources.map((x) => x.label), { route: out.route }));
+      return { ...out, conversationId: conv.id };
+    });
   }
 
   private async answer(scope: ProjectScope, actor: Actor, conv: JevConversation, input: z.infer<typeof Message>, history: ChatTurn[]): Promise<JevReply> {
@@ -99,11 +110,15 @@ export class AssistantController {
     }
     // Aiguillage en 5 cas d'usage (brief du 01/10/2026), questions précédentes comprises ; chaque décision est journalisée.
     const previous = await this.memory.lastQuestions(conv.id, 3);
-    const route = await this.router.classifyCockpit(input.text, { page: [input.context.space, input.context.tab].filter(Boolean).join(' › '), accountId: actor.accountId, conversationId: conv.id, history: previous.map((q) => ({ question: q.question, cas: (q.route as any) ?? null })) });
+    const route = await span('aiguillage (API JEV)', async (d) => {
+      const r = await this.router.classifyCockpit(input.text, { page: [input.context.space, input.context.tab].filter(Boolean).join(' › '), accountId: actor.accountId, conversationId: conv.id, history: previous.map((q) => ({ question: q.question, cas: (q.route as any) ?? null })) });
+      Object.assign(d, { cas: r.cas, confiance: r.confiance, statut: r.status, latence_api_ms: r.latencyMs });
+      return r;
+    });
     // Modification en cours : une réponse libre la complète ou la corrige (cas 3 ou clarification).
     const pending = !!conv.draft;
     if (route.cas === '3' || (pending && route.cas === '5')) {
-      const w = await this.write.handle(scope, actor, conv, input.text, { page, history });
+      const w = await span('cas 3 · modification des données', () => this.write.handle(scope, actor, conv, input.text, { page, history }));
       await this.router.noteAnswerModel(route.traceId, w.modelId);
       return this.writeReply(w, '3');
     }
@@ -114,7 +129,7 @@ export class AssistantController {
     if (route.cas === '2') {
       const { functionId, skill } = COCKPIT_CASE_ROUTE['2'];
       const parts = await this.jev.cockpitParts(skill, context);
-      const g = await this.guide.answer('cockpit', input.text, { system: parts.stable, context: parts.page, functionId, projectId: scope.project.id });
+      const g = await span('cas 2 · réponse depuis le guide', () => this.guide.answer('cockpit', input.text, { system: parts.stable, context: parts.page, functionId, projectId: scope.project.id }));
       await this.router.noteAnswerModel(route.traceId, g.modelId ?? null);
       return { reply: g.reply, route: route.cas, sources: g.sources.map((label) => ({ entityType: 'GUIDE', id: 'cockpit', label })), proposedChanges: [], model: g.modelId ? { id: g.modelId, fallbackUsed: g.fallbackUsed } : null, guide: g.status };
     }
@@ -135,13 +150,13 @@ export class AssistantController {
     // seule sur les vues jev_cockpit filtrées par les droits de l'utilisateur, puis réponse à partir des résultats.
     if (route.cas === '1') {
       const { functionId, skill } = COCKPIT_CASE_ROUTE['1'];
-      const a = await this.insight.ask(input.text, { project: scope.project, access: scope.access, page, functionId, skill, history });
+      const a = await span('cas 1 · données du projet', () => this.insight.ask(input.text, { project: scope.project, access: scope.access, page, functionId, skill, history }));
       await this.router.noteAnswerModel(route.traceId, a.modelId);
       return { reply: a.reply, route: route.cas, insight: a.status, sources: a.sources.map((label) => ({ entityType: 'DATA', id: label, label })), proposedChanges: [], model: a.modelId ? { id: a.modelId, fallbackUsed: a.fallbackUsed } : null };
     }
     // Cas 4 — documents de la Base de connaissance : identification des documents visés, recherche, reclassement,
     // réponse par le modèle Documents / Synthèse (skill « Analyser un document ») ; 4b : données du projet d'abord.
-    const a = await this.docs.answer(scope, actor, input.text, { page, withData: route.cas === '4b', history });
+    const a = await span(`cas ${route.cas} · documents`, () => this.docs.answer(scope, actor, input.text, { page, withData: route.cas === '4b', history }));
     await this.router.noteAnswerModel(route.traceId, a.modelId);
     return { reply: a.reply, route: route.cas, docs: a.status, insight: a.insight, sources: a.sources, proposedChanges: [], model: a.modelId ? { id: a.modelId, fallbackUsed: a.fallbackUsed } : null };
   }

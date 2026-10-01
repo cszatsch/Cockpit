@@ -52,6 +52,13 @@ describe('Jev du Cockpit — cas 1 : données du projet', () => {
     expect(rows.length).toBe(await t.db.risk.count({ where: { projectId: 'RISE' } }));
     expect(a.system).toMatch(/## Réponse à partir des données du projet/);
     spy.mockRestore();
+    // Trace de la question : étapes de la question à la réponse, enregistrée (jev_traces).
+    await new Promise((r) => setTimeout(r, 50));
+    const tr = await t.db.jevTrace.findFirst({ where: { label: 'Jev Cockpit' }, orderBy: { at: 'desc' } });
+    const names = (tr!.spans as any[]).map((x) => x.name);
+    expect(tr!.meta).toMatchObject({ projet: 'RISE', cas: '1' });
+    for (const n of ['projet et droits (base)', 'conversation et mémoire (base)', 'aiguillage (API JEV)', 'cas 1 · données du projet', 'génération · fonction insights', 'requête SQL en lecture seule (tentative 1, base)', 'enregistrement de l’échange dans la mémoire (base)']) expect(names).toContain(n);
+    expect(names.some((n) => /^HTTP POST carte « JEV »/.test(n))).toBe(true);
   });
 
   it('Responsable : la même requête ne lit que ses chantiers (filtre posé par le serveur)', async () => {

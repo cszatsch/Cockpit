@@ -1,3 +1,4 @@
+import { span } from '../core/trace';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../core/prisma.service';
 import { AiFunctionId, LlmResult, LlmService } from '../core/llm.service';
@@ -80,7 +81,7 @@ export class JevCockpitInsightService {
       why = cut ? SQL_CUT_REASON : sql ? sqlError(sql) ?? '' : 'aucune requête dans la réponse';
       if (!why) {
         try {
-          rows = await this.jevSql.executeCockpit(sql!, opts.project.id, chantiers);
+          rows = await span(`requête SQL en lecture seule (tentative ${attempt + 1}, base)`, async (d) => { const r = await this.jevSql.executeCockpit(sql!, opts.project.id, chantiers); d.lignes = r.length; return r; });
           break;
         } catch (e) {
           why = dbMessage(e);

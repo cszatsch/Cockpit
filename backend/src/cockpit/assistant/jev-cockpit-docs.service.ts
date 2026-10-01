@@ -1,3 +1,4 @@
+import { span } from '../../core/trace';
 import { Injectable } from '@nestjs/common';
 import { Actor } from '../../core/auth/auth';
 import { ProjectScope } from '../../core/access.service';
@@ -73,7 +74,7 @@ export class JevCockpitDocsService {
     const ident = parseDocIdentification(idCall.text, docs.map((d) => d.id), question);
 
     // 2. Recherche et reclassement.
-    const found = await this.kb.searchChunks(scope, actor, ident.query, { k: DOC_SEARCH_K, documentIds: ident.ids });
+    const found = await span('recherche dans la Base de connaissance', async (d) => { const f = await this.kb.searchChunks(scope, actor, ident.query, { k: DOC_SEARCH_K, documentIds: ident.ids }); Object.assign(d, { documents_vises: ident.ids.length, extraits: f.results.length }); return f; });
     let candidates = found.results.filter((r) => ident.ids.length || r.similarity >= DOC_MIN_SIMILARITY);
     if (candidates.length > DOC_KEEP) {
       try {

@@ -1,3 +1,4 @@
+import { JevTraceService } from './jev-trace.service';
 import { Body, Controller, Delete, Get, HttpCode, OnModuleInit, Param, Patch, Post, Put, Query, Res } from '@nestjs/common';
 import { JevPromptService } from '../core/jev-prompt.service';
 import { JevSqlService } from './jev-sql.service';
@@ -41,6 +42,7 @@ export class ConsoleController implements OnModuleInit {
     private readonly jevSql: JevSqlService,
     private readonly profiles: ProfilesService,
     private readonly jevMemory: JevMemoryService,
+    private readonly jevTraces: JevTraceService,
     private readonly jevAssistant: JevAssistantService,
   ) {}
 
@@ -48,7 +50,7 @@ export class ConsoleController implements OnModuleInit {
     this.jobs.register('audit.purge', () => this.purgeAudit().then(() => undefined));
     this.jobs.schedule('audit.purge', '15 3 * * *');
     // Conversations avec Jev sans échange depuis JEV_CONVERSATION_RETENTION_DAYS jours : supprimées chaque nuit.
-    this.jobs.register('jev.purge', () => this.jevMemory.purge().then(() => undefined));
+    this.jobs.register('jev.purge', () => Promise.all([this.jevMemory.purge(), this.jevTraces.purge(new Date())]).then(() => undefined));
     this.jobs.schedule('jev.purge', '25 3 * * *');
   }
 

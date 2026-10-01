@@ -1029,3 +1029,12 @@ Cause : la vectorisation de la question par le modèle de l'index du guide (qwen
 |---|---|---|
 | Seconde tentative | En cas d'échec de la vectorisation de la question, une seconde tentative avec un délai d'au moins 25 s (le double du réglage s'il est plus grand) ; pas de modèle de secours (seul le modèle de l'index peut interroger ses vecteurs) | `GUIDE_EMBED_RETRY_TIMEOUT_MS`, `GuideSearchService.search` |
 | Signalement | Échec persistant : incident « Erreur technique » dans la cloche de la Console (« JEV Cockpit · recherche dans le guide », modèle et motif), fermé à la recherche réussie suivante (mécanisme des erreurs techniques existant) | `techErrors` |
+
+## Traces de Jev : décomposition chronométrée de chaque question (01/10/2026)
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Traceur | Une trace par question (Jev du Cockpit et de la Console) ; étapes imbriquées, début et durée, détails ; contexte asynchrone (AsyncLocalStorage), sans paramètre à transmettre ; hors trace, sans effet | `traced`, `span`, `note`, `traceMeta` (`backend/src/core/trace.ts`) |
+| Étapes relevées | Projet et droits, conversation et mémoire, aiguillage (appel HTTP de la carte JEV), cas d'usage ; guide : réglages, index, vectorisation (modèle, fournisseur, tentatives, attentes entre tentatives), recherche vectorielle, reclassement ; génération (choix du modèle, appel) ; requêtes SQL du cas 1 ; recherche dans la Base de connaissance ; enregistrement de la consommation et de l'échange | services de Jev, `LlmService`, `ApiCardsService.call` |
+| Appels HTTP | Pour chaque appel aux fournisseurs : taille de la requête, attente des en-têtes (connexion + envoi + traitement + premier octet), lecture du corps, analyse JSON, statut, en-têtes de temps du fournisseur ; connexions neuves notées avec leur durée (DNS + TCP + TLS, canaux de diagnostic d'undici) | `LlmClient.postTimed` |
+| Sorties | Journal du serveur (arborescence lisible, hors essais automatiques) ; table `jev_traces` (30 jours, purge par `jev.purge`) ; lecture : `npm run jev:traces -- --dernieres 5 --min 10000 --etape vectorisation` (résumé moyenne, médiane, maximum d'une étape) | `JevTraceService`, `scripts/jev-traces.ts`, migration `20261103000000_jev_traces` |

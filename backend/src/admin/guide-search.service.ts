@@ -1,3 +1,4 @@
+import { span } from '../core/trace';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../core/prisma.service';
 import { LlmService } from '../core/llm.service';
@@ -49,9 +50,14 @@ export class GuideSearchService {
    */
   async search(app: GuideApp, question: string, s: RagSettings): Promise<GuideSearch> {
     const out: GuideSearch = { empty: null, extracts: [], candidates: [], embedModel: null, reranker: null, rerankFallback: null, timings: {} };
-    const cur = await this.prisma.guideVersion.findFirst({ where: { app }, orderBy: { seq: 'desc' } });
-    const up = cur ? await this.prisma.guideUpload.findFirst({ where: { app, status: 'SUCCESS' }, orderBy: [{ at: 'desc' }, { id: 'desc' }] }) : null;
-    if (!up?.embeddingModel || !up.embeddingDims || !(await this.prisma.guideChunk.count({ where: { uploadId: up.id } }))) return { ...out, empty: 'GUIDE_NON_INDEXE' };
+    const up = await span('lecture de l’index du guide (base)', async (d) => {
+      const cur = await this.prisma.guideVersion.findFirst({ where: { app }, orderBy: { seq: 'desc' } });
+      const u = cur ? await this.prisma.guideUpload.findFirst({ where: { app, status: 'SUCCESS' }, orderBy: [{ at: 'desc' }, { id: 'desc' }] }) : null;
+      const n = u ? await this.prisma.guideChunk.count({ where: { uploadId: u.id } }) : 0;
+      Object.assign(d, { version: cur?.v ?? null, extraits: n, modele: u?.embeddingName ?? null, dimensions: u?.embeddingDims ?? null });
+      return n ? u : null;
+    });
+    if (!up?.embeddingModel || !up.embeddingDims) return { ...out, empty: 'GUIDE_NON_INDEXE' };
     const dims = up.embeddingDims;
     out.embedModel = up.embeddingName ?? up.embeddingModel;
 
@@ -82,10 +88,14 @@ export class GuideSearchService {
     t0 = Date.now();
     const type = dims <= HNSW_VECTOR_MAX_DIMS ? 'vector' : dims <= HNSW_HALFVEC_MAX_DIMS ? 'halfvec' : 'vector';
     const expr = `embedding::${type}(${dims})`;
-    const rows = await this.prisma.$queryRawUnsafe<Array<{ id: string; section_path: string; heading: string; page_start: number; page_end: number; content: string; sim: number }>>(
+    const rows = await span('recherche vectorielle (pgvector, base)', async (d) => {
+      const r = await this.prisma.$queryRawUnsafe<Array<{ id: string; section_path: string; heading: string; page_start: number; page_end: number; content: string; sim: number }>>(
       `SELECT id, section_path, heading, page_start, page_end, content, 1 - (${expr} <=> $1::${type}(${dims})) AS sim FROM guide_chunks WHERE dims = ${dims} AND upload_id = $2 ORDER BY ${expr} <=> $1::${type}(${dims}) LIMIT $3`,
       vectorLiteral(vector), up.id, s.searchK,
     );
+      d.resultats = r.length;
+      return r;
+    });
     out.timings.searchMs = Date.now() - t0;
     const found: GuideExtract[] = rows.map((r) => ({ id: r.id, sectionPath: r.section_path, heading: r.heading, pageStart: r.page_start, pageEnd: r.page_end, content: r.content, similarity: Math.round(Number(r.sim) * 1000) / 1000 }));
     out.candidates = found.map((x) => ({ id: x.id, heading: x.heading, pages: pagesOf(x), similarity: x.similarity }));

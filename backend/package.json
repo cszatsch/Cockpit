@@ -20,6 +20,7 @@
     "dictionnaire:doc": "ts-node --transpile-only scripts/dictionnaire-doc.ts",
     "jev:aiguillage": "ts-node --transpile-only scripts/jev-aiguillage.ts",
     "jev:aiguillage-cockpit": "ts-node --transpile-only scripts/jev-aiguillage-cockpit.ts",
+    "jev:traces": "ts-node --transpile-only scripts/jev-traces.ts",
     "jev:reponses": "ts-node --transpile-only scripts/jev-reponses.ts",
     "openapi": "ts-node --transpile-only scripts/export-openapi.ts",
     "lint": "tsc --noEmit -p tsconfig.json",

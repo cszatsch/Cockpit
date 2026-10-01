@@ -1,3 +1,4 @@
+import { span } from '../core/trace';
 import { Injectable } from '@nestjs/common';
 import { AiFunctionId, LlmService } from '../core/llm.service';
 import { GUIDE_APP_LABELS, GuideApp } from '../domain/guide';
@@ -36,10 +37,10 @@ export class GuideAnswerService {
    * contexte de la demande (écran, date), placé avant les extraits dans la partie variable du prompt.
    */
   async answer(app: GuideApp, question: string, opts: { system: string; projectId?: string | null; functionId?: AiFunctionId; context?: string | null }): Promise<GuideAnswer> {
-    const s = await this.search.settings(app);
+    const s = await span('réglages de la recherche (base)', () => this.search.settings(app));
     let found;
     try {
-      found = await this.search.search(app, question, s);
+      found = await span('recherche dans le guide', async (d) => { const f = await this.search.search(app, question, s); Object.assign(d, { extraits_retenus: f.extracts.length, vide: f.empty }); return f; });
     } catch (e) {
       console.warn(`[jev] recherche dans le guide ${GUIDE_APP_LABELS[app].of} indisponible : ${e instanceof Error ? e.message : e}`);
       return { status: 'UNAVAILABLE', reply: guideUnavailableReply(app), sources: [], modelId: null, fallbackUsed: false };
