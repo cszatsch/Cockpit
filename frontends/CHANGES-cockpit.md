@@ -244,3 +244,13 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 
 - Décisions en attente : file d'attente — les trois plus anciennes d'abord, jauge d'attente relative à la plus ancienne, colorée à partir de 14 jours (ambre, `DEC_WAIT_WATCH`) et 30 jours (rouge, `DEC_WAIT_ALERT`) ; « + N plus récentes » ; méta « prochaine instance aujourd'hui / demain / le … » (prochaine séance planifiée des instances concernées).
 - Actualité : une éditoriale en deux colonnes — à gauche le titre principal (filet et source en couleur, « il y a … », « Lire l'article ↗ »), à droite le fil des cinq suivants sur un rail horodaté (source, titre sur deux lignes).
+
+## Sept widgets d'Aujourd'hui : nouvelle mise en forme (01/10/2026)
+
+- L'essentiel, par Jev : trois chiffres en tête (compte à rebours du Go-Live, avancement réel, écart au prévu coloré) ; rubriques à pastille d'état et libellé neutre, chiffres et identifiants clés en gras ; « Retards » en sarcelle quand aucun jalon ne glisse (il était toujours rouge), « Décisions » compte toutes les décisions en attente (il en comptait au plus 3) ; mention « cliquez un point » retirée (les points ne sont pas cliquables).
+- Prochains jalons : ligne de métro — aujourd'hui, puis chaque jalon ; le nombre de jours jusqu'à l'étape suivante est écrit sur chaque segment (les repères proportionnels se chevauchaient).
+- Actions en retard : chiffre en tête « sur N actions ouvertes », les deux plus en retard avec une jauge proportionnelle au plus long retard.
+- Prochain COPIL : page de calendrier (mois, jour, jour de la semaine), « dans N j », instance, heure et lieu, état du support (rapport rattaché à la séance : publié, en préparation ou à préparer, en rouge à moins de 7 jours).
+- Mes tâches : nombre, validations et retards, deux prochaines tâches ; état « Rien à faire aujourd'hui » avec coche.
+- Échéances des 15 prochains jours : ruban sans cases — jours chargés en encre, jours vides effacés, semaines séparées par un filet ; symboles repris devant chaque échéance de la liste.
+- Documents récents : icône de fichier teintée par format, pages dans les métadonnées, composition de la base par format et total en pied.
