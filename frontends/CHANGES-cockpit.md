@@ -280,3 +280,8 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 - Notification dépliée : l'essentiel en titre avec un liseré de gravité (rouge, ambre, sarcelle) ; chiffres clés en grands chiffres sans cadre, séparés par des filets, en rouge s'ils signalent un risque ; rubriques en petites capitales avec leur nombre ; lignes « À surveiller » : code en pastille colorée selon l'état décrit, puis le constat ; « À faire » : actions en cases à cocher.
 - Salutations et phrases d'annonce, sans information, ne sont plus affichées ; les tableaux (anciens envois) deviennent des lignes « code · constat ».
 - Notification repliée : l'essentiel sur deux lignes, puis les chiffres clés en une ligne.
+
+## Jev : sources pliables, conversation conservée à la réouverture (01/10/2026)
+
+- Sources d'une réponse repliées par défaut : « SOURCES » et leur nombre, avec un chevron ; un clic les déplie ou les replie (par réponse).
+- Fermer puis rouvrir le panneau ne vide plus la conversation (correction) : elle n'est remise à zéro que par un redémarrage de l'application ou par « Effacer tous les messages » ; le contexte du panneau suit l'écran ouvert, et une demande précise (date d'une ligne) s'ajoute à la suite.
