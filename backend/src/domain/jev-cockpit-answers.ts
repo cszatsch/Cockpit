@@ -60,3 +60,41 @@ export const cockpitPageLabel = (space: string, tab?: string | null) => `Écran 
 
 /** Maintenant, heure de Paris (contexte de la demande). */
 export const nowParisLabel = (d: Date) => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Paris', dateStyle: 'short', timeStyle: 'medium' }).format(d);
+
+// ───────────── Cas 1 : Insight sur les données du projet ─────────────
+
+/** Consigne ajoutée à l'étape « requête » : la question vient de l'aiguillage (cas 1, données). */
+export const COCKPIT_INSIGHT_DATA_HINT = 'La question porte sur les données du projet (aiguillage) : réponds par une requête SQL sur les vues ci-dessus.';
+
+/** Périmètre de lecture de l'utilisateur, tel que les vues l'appliquent (projet, chantiers lisibles). */
+export function cockpitScopeLine(chantiers: '*' | string[]): string {
+  if (chantiers === '*') return 'L’utilisateur voit tout le projet (tous les chantiers).';
+  if (!chantiers.length) return 'L’utilisateur n’a accès à aucun chantier : seules les données du projet non rattachées à un chantier sont lisibles.';
+  return `L’utilisateur ne voit que les chantiers ${chantiers.join(', ')} (chantier_id) ; les lignes des autres chantiers sont absentes des vues. Ne laisse jamais entendre que tu vois tout le projet.`;
+}
+
+/** Consignes de l'étape « rédiger la réponse » (cas 1). */
+export const COCKPIT_INSIGHT_ANSWER_RULES = [
+  '## Réponse à partir des données du projet',
+  'La question a été traduite en requête SQL, exécutée sur les données du projet que l’utilisateur a le droit de voir. Réponds à partir des résultats fournis, et d’eux seuls :',
+  '- N’invente aucune valeur, aucun code, aucune date. Si les résultats sont vides, dis qu’aucune donnée ne correspond dans ton périmètre. S’ils sont tronqués, dis-le.',
+  '- Commence par la réponse elle-même (le chiffre, la date, la liste), puis les éléments utiles, hiérarchisés : ce qui menace le prochain jalon d’abord.',
+  '- Cite les codes des objets (R03, A-41, D-005, J07) ; traduis les statuts et les codes d’après le dictionnaire ; ne montre pas la requête SQL.',
+  '- Si le périmètre de l’utilisateur est limité à certains chantiers, précise que la réponse porte sur ces chantiers.',
+  '- Tu n’agis pas : n’annonce aucune modification ; indique, si c’est utile, l’écran du Cockpit où agir (Pilotage › Risques, par exemple).',
+].join('\n');
+
+/** Lecture impossible (requête refusée deux fois ou en échec) : jamais de réponse inventée. */
+export const insightUnavailableReply = (why: string) => `Je n’ai pas pu lire les données du projet pour répondre (${why}). Reformulez la question, ou consultez directement l’écran concerné du Cockpit.`;
+
+/** Source affichée sous la réponse : la vue consultée, en clair. */
+export const insightSourceLabel = (view: string) => `Données · ${view.replace(/_/g, ' ')}`;
+
+// ───────────── Réponses provisoires (étapes à venir) ─────────────
+
+/** Cas 4b en attendant la lecture des documents : réponse par les données seules, signalée comme telle. */
+export const COCKPIT_DOCS_PENDING_RULE = 'La question demande aussi ce que disent des documents (support de comité, compte rendu…). Tu ne peux pas encore lire les documents de la Base de connaissance : réponds sur la partie « données » seulement, et termine par une phrase qui le dit clairement.';
+/** Cas 4a en attendant la lecture des documents : réponse fixe, sans appel au modèle. */
+export const COCKPIT_DOCS_PENDING_REPLY = 'Je ne sais pas encore lire le contenu des documents de la Base de connaissance (supports de comité, comptes rendus…) : cette capacité arrive prochainement. En attendant, ouvrez le document depuis la Base de connaissance, où son résumé est disponible.';
+/** Cas 3 sans modification identifiée (en attendant le traitement complet des modifications). */
+export const COCKPIT_WRITE_UNCLEAR_REPLY = 'Je n’ai pas identifié de modification précise à proposer. Indiquez l’objet (par exemple A-41 ou R03) et le changement voulu (statut, échéance…), ou créez une action avec « crée une action : … ».';

@@ -965,3 +965,17 @@ Brief « Aiguillage des questions dans l'assistant JEV (application Cockpit) ».
 | Registre | Le Jev du Cockpit vouvoie toujours (comme l’application), quel que soit le Persona | `COCKPIT_REGISTER_RULE` |
 | Sources | Le modèle ne termine plus par une ligne « Sources » (consigne) ; l’écran retire une telle ligne si elle apparaît, les sources s’affichant en étiquettes | `guideAnswerRules`, `jevRich` (`RISE Cockpit.dc.html`) |
 | Journal | Modèle de la réponse ajouté à la trace de l’aiguillage | `JevRouterService.noteAnswerModel` |
+
+## Jev du Cockpit : cas 1, données du projet (01/10/2026)
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Mécanisme | Celui du Jev de la Console : 1. le modèle écrit une requête SQL (ou répond directement) ; 2. contrôle puis exécution en lecture seule ; une correction au plus ; 3. rédaction à partir des seuls résultats ; vues consultées = sources (« Données · risques ») | `JevCockpitInsightService` (`backend/src/admin/jev-cockpit-insight.service.ts`) |
+| Modèle et skill | Fonction Insights, skill « Insights » seule (partie stable du prompt en cache) | `COCKPIT_CASE_ROUTE['1']` |
+| Génération réelle | Insights passe en génération réelle (arbitrage du 01/10/2026) | `LIVE_FUNCTIONS` (`llm.service.ts`) |
+| Habilitations | Exécution sous le rôle `jev_lecteur_cockpit`, transaction en lecture seule ; projet et chantiers lisibles posés par le serveur avant le changement de rôle (PMO, administrateur : tous ; Responsable, Lecteur : leurs chantiers) ; les vues filtrent, la requête ne peut pas élargir le périmètre ; le périmètre est aussi rappelé au modèle | `JevSqlService.executeCockpit`, `visibleWorkstreams`, `cockpitScopeLine` |
+| Rédaction | Réponse d’abord, codes cités, statuts traduits, aucune valeur inventée ; résultats vides : « aucune donnée dans votre périmètre » ; périmètre limité signalé ; aucune modification annoncée | `COCKPIT_INSIGHT_ANSWER_RULES` |
+| Échec | Requête refusée ou en échec deux fois : message fixe, sans valeur inventée | `insightUnavailableReply` |
+| Provisoire 4b | Traité par le cas 1 (données), le modèle dit qu’il ne lit pas encore les documents | `COCKPIT_DOCS_PENDING_RULE` |
+| Provisoire 4a | Réponse fixe sans modèle : la lecture des documents arrive | `COCKPIT_DOCS_PENDING_REPLY` |
+| Provisoire 3 | Propositions existantes ; sans modification identifiée, réponse fixe (plus de texte générique du modèle) | `COCKPIT_WRITE_UNCLEAR_REPLY` |

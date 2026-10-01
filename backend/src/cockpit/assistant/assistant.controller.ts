@@ -18,7 +18,8 @@ import { JevRouterService } from '../../admin/jev-router.service';
 import { GuideAnswerService } from '../../admin/guide-answer.service';
 import { TodayService } from '../../core/today.service';
 import { COCKPIT_CASE_ROUTE, COCKPIT_CHOICE_TO_CASE } from '../../domain/jev-router-cockpit';
-import { clarifyReasonOf, COCKPIT_CLARIFY_RULES, cockpitClarifyPrompt, cockpitPageLabel, nowParisLabel } from '../../domain/jev-cockpit-answers';
+import { clarifyReasonOf, COCKPIT_CLARIFY_RULES, COCKPIT_DOCS_PENDING_REPLY, COCKPIT_DOCS_PENDING_RULE, COCKPIT_WRITE_UNCLEAR_REPLY, cockpitClarifyPrompt, cockpitPageLabel, nowParisLabel } from '../../domain/jev-cockpit-answers';
+import { JevCockpitInsightService } from '../../admin/jev-cockpit-insight.service';
 import { requestContext } from '../../domain/jev-sql';
 
 /** Jev ne modifie jamais le Référentiel, les Comités et rapports, ni la Base de connaissance (§ 7.14). */
@@ -61,6 +62,7 @@ export class AssistantController {
     private readonly router: JevRouterService,
     private readonly guide: GuideAnswerService,
     private readonly today: TodayService,
+    private readonly insight: JevCockpitInsightService,
   ) {}
 
   private entityOf(code: string): { type: string; def: TxEntity } | null {
@@ -102,7 +104,26 @@ export class AssistantController {
       await this.router.noteAnswerModel(route.traceId, r.modelId ?? null);
       return { reply: r.text, route: route.cas, reason, sources: [], proposedChanges: [], model: { id: r.modelId, fallbackUsed: r.fallbackUsed } };
     }
-    const readOnly = READ_ONLY_SPACES.includes(input.context.space) || READ_ONLY_TABS.includes(input.context.tab ?? '');
+    // Cas 1 — données du projet : requête SQL écrite par le modèle Insights (skill « Insights »), exécutée en lecture
+    // seule sur les vues jev_cockpit filtrées par les droits de l'utilisateur, puis réponse à partir des résultats.
+    // 4b (données + documents) : en attendant la lecture des documents (étape suivante), la partie « données » seule,
+    // signalée comme telle.
+    if (route.cas === '1' || route.cas === '4b') {
+      const { functionId, skill } = COCKPIT_CASE_ROUTE['1'];
+      const a = await this.insight.ask(input.text, {
+        project: scope.project, access: scope.access, page: cockpitPageLabel(input.context.space, input.context.tab), functionId, skill,
+        extraRules: route.cas === '4b' ? COCKPIT_DOCS_PENDING_RULE : undefined,
+      });
+      await this.router.noteAnswerModel(route.traceId, a.modelId);
+      return {
+        reply: a.reply, route: route.cas, insight: a.status, sources: a.sources.map((label) => ({ entityType: 'DATA', id: label, label })),
+        proposedChanges: [], model: a.modelId ? { id: a.modelId, fallbackUsed: a.fallbackUsed } : null,
+      };
+    }
+    // Cas 4a — documents : la lecture des documents par Jev est l'étape suivante ; réponse fixe, sans modèle.
+    if (route.cas === '4a') return { reply: COCKPIT_DOCS_PENDING_REPLY, route: route.cas, sources: [], proposedChanges: [], model: null };
+    // Cas 3 — modification : propositions existantes (étape à venir : objet, contrôles, questions à choix, confirmation).
+    const readOnly =READ_ONLY_SPACES.includes(input.context.space) || READ_ONLY_TABS.includes(input.context.tab ?? '');
     const codes = [...new Set(input.text.match(/\b(A-\d+|R\d{2,}|P\d{2,}|D-\d{3}|J\d{2,})\b/gi) ?? [])].map((c) => c.toUpperCase());
     const sources: Array<{ entityType: string; id: string; label: string }> = [];
     for (const c of codes) {
@@ -121,7 +142,7 @@ export class AssistantController {
     }
 
     const proposals = readOnly ? [] : await this.propose(scope, input.text, sources);
-    const llm = await this.llm.complete({ functionId: proposals.length ? 'crud' : 'insights', prompt: `[${input.context.space}/${input.context.tab ?? ''}] ${input.text}`, system: await this.jev.systemPrompt(), projectId: scope.project.id, source: 'JEV' });
+    const llm = proposals.length ? await this.llm.complete({ functionId: 'crud', prompt: `[${input.context.space}/${input.context.tab ?? ''}] ${input.text}`, system: await this.jev.systemPrompt(), projectId: scope.project.id, source: 'JEV' }) : null;
     const created = [];
     for (const pr of proposals) {
       created.push(
@@ -134,14 +155,14 @@ export class AssistantController {
       ? 'Je peux expliquer cet écran, mais je ne modifie ni le Référentiel, ni les Comités et rapports, ni la Base de connaissance.'
       : created.length
         ? `Voici ${created.length > 1 ? 'les modifications que je propose' : 'la modification que je propose'}. Rien n'est enregistré avant votre validation (« Valider et enregistrer » ou « Refuser »).`
-        : llm.text;
-    await this.router.noteAnswerModel(route.traceId, llm.modelId ?? null);
+        : COCKPIT_WRITE_UNCLEAR_REPLY;
+    await this.router.noteAnswerModel(route.traceId, llm?.modelId ?? null);
     return {
       reply,
       route: route.cas,
       sources,
       proposedChanges: created.map((c) => ({ id: c.id, entityType: c.entityType, entityId: c.entityId, op: c.op, patch: c.patch, summary: c.summary, status: c.status })),
-      model: { id: llm.modelId, fallbackUsed: llm.fallbackUsed },
+      model: llm ? { id: llm.modelId, fallbackUsed: llm.fallbackUsed } : null,
     };
   }
 
