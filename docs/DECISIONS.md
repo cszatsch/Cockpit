@@ -1010,3 +1010,13 @@ Arbitrages du commanditaire : suivi seulement (risques, problèmes, actions, dé
 | Génération réelle | Gestion des données (`crud`) passe en génération réelle | `LIVE_FUNCTIONS` |
 | Propositions par mots-clés | Le service bouchon (« crée une action : », statuts, reports par expressions régulières) est retiré | `AssistantController` |
 | Mémoire de la Console | Ordre déterministe de la conversation en cours (date de création en second critère) : test instable corrigé | `JevMemoryService.current` |
+
+## Notifications : moins de 100 mots, structure brève (01/10/2026)
+
+Demande du commanditaire : toute notification, quelle qu'elle soit, compte moins de 100 mots ; mise en forme refondue.
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Longueur | Moins de 100 mots pour le message complet (gabarit compris) ; le contenu rédigé dispose de ce que le gabarit laisse (30 mots au moins) ; consigne impérative à chaque appel ; contenu trop long réécrit une fois par le modèle, puis coupé proprement (lignes entières, rubrique orpheline retirée, « … » si une phrase seule dépasse) | `NOTIFICATION_MAX_WORDS`, `NOTIFICATION_MIN_CONTENT_WORDS`, `wordCount`, `fitWords`, `lengthRule`, `shortenPrompt` |
+| Structure | L'essentiel en une phrase ; 2 à 4 chiffres clés ; « ## À surveiller » (3 lignes au plus, code en gras d'abord) ; « ## À faire » (2 actions au plus) ; interdits : tableau, salutation, phrase d'annonce, répétition | `NOTIFICATION_STRUCTURE` |
+| Consigne de base | Le contenu est en Markdown léger (la consigne disait encore « texte brut, sans Markdown », en contradiction avec la mise en page) | `NotificationWriterService.base` |

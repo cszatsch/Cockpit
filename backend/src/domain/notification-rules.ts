@@ -340,3 +340,38 @@ export function profileScope(profile: AudienceProfile, members: Array<{ responsa
   const sets = members.map((m) => new Set(profile === 'resp' ? m?.responsable ?? [] : [...(m?.responsable ?? []), ...(m?.lecteur ?? [])]));
   return [...sets[0]].filter((ws) => sets.every((s) => s.has(ws))).sort();
 }
+
+// ───────────── Longueur des notifications (01/10/2026) ─────────────
+
+/** Toute notification (message complet, gabarit compris) compte moins de 100 mots (demande du commanditaire). */
+export const NOTIFICATION_MAX_WORDS = 100;
+/** Mots laissés au contenu rédigé au minimum, quel que soit le gabarit. */
+export const NOTIFICATION_MIN_CONTENT_WORDS = 30;
+
+/** Mots d'un texte en Markdown léger (marques de mise en forme, puces, numéros et ponctuation seule exclus). */
+export function wordCount(md: string): number {
+  return stripInline(String(md || ''))
+    .replace(/^\s*(#{1,6}|[-*•]|\d+[.)])\s+/gm, ' ')
+    .replace(/\|/g, ' ')
+    .split(/\s+/)
+    .filter((w) => /[\p{L}\p{N}]/u.test(w)).length;
+}
+
+/**
+ * Coupe un texte à `max` mots au plus sans couper une ligne : les lignes entières sont gardées dans l'ordre tant
+ * qu'elles tiennent ; une phrase seule trop longue est coupée au dernier mot et terminée par « … ».
+ */
+export function fitWords(md: string, max: number): string {
+  const lines = String(md || '').replace(/\r/g, '').split('\n');
+  const out: string[] = [];
+  let n = 0;
+  for (const l of lines) {
+    const w = wordCount(l);
+    if (n + w <= max) { out.push(l); n += w; continue; }
+    if (!out.some((x) => x.trim())) out.push(l.split(/\s+/).slice(0, Math.max(1, max)).join(' ') + '…');
+    break;
+  }
+  // Une rubrique « ## » restée sans contenu en fin de texte est retirée.
+  while (out.length && (/^\s*#{1,6}\s/.test(out[out.length - 1]) || !out[out.length - 1].trim())) out.pop();
+  return out.join('\n');
+}

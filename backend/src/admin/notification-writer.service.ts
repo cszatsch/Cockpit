@@ -4,7 +4,7 @@ import { LlmResult, LlmService } from '../core/llm.service';
 import { TodayService } from '../core/today.service';
 import { extractSql, formatRows, JEV_SQL_MAX_ROWS, JEV_SQL_RETRIES, looksLikeSql, renderDictionary, SQL_CUT_REASON, sqlCut, sqlError, sqlInstructions, viewsUsed } from '../domain/jev-sql';
 import { JEV_COCKPIT_SCHEMA } from '../domain/jev-dictionnaire-cockpit';
-import { AudienceProfile, ChantierScope } from '../domain/notification-rules';
+import { AudienceProfile, ChantierScope, fitWords, NOTIFICATION_MAX_WORDS, wordCount } from '../domain/notification-rules';
 import { dbMessage, JevSqlService } from './jev-sql.service';
 
 /** Destinataires d'un texte : un profil et les chantiers lisibles par tous ses membres. */
@@ -24,6 +24,16 @@ export interface WrittenText {
 
 const PROFILE_NAME: Record<AudienceProfile, string> = { admin: 'Administrateur', pmo: 'PMO', resp: 'Responsable', lec: 'Lecteur' };
 
+/** Structure d'une notification (01/10/2026) : brève, lisible d'un coup d'œil, mise en page par le tiroir du Cockpit. */
+export const NOTIFICATION_STRUCTURE = [
+  '- Structure, dans cet ordre, en ne gardant que ce qui est utile :',
+  '  1. une seule phrase qui donne l’essentiel (le constat et ce qu’il implique) ;',
+  '  2. 2 à 4 chiffres clés, une puce chacun, le chiffre d’abord : « - 3 risques critiques » ;',
+  '  3. « ## À surveiller » puis au plus 3 puces, chacune commençant par le code en gras : « - **R03** sans plan de mitigation, échéance dépassée » ;',
+  '  4. « ## À faire » puis au plus 2 actions numérotées « 1. », à l’infinitif.',
+  '- Interdits : tableau, titre « # », salutation, formule de politesse, phrase d’annonce (« Voici… », « Veuillez trouver… »), répétition d’un chiffre déjà donné.',
+].join('\n');
+
 /**
  * Consignes de la rédaction d'une notification à partir des résultats (texte inséré dans le message à la place de
  * {reponse_llm}). Mise en forme (30/09/2026) : Markdown léger que le tiroir du Cockpit met en page (rubriques, chiffres
@@ -34,10 +44,15 @@ export const NOTIFICATION_ANSWER_INSTRUCTIONS = [
   'La consigne a été traduite en requête SQL, exécutée sur les données du projet que les destinataires ont le droit de lire. Rédige le contenu à partir des résultats, et d’eux seuls :',
   '- N’invente aucune valeur. Si les résultats sont vides, dis simplement qu’aucune donnée ne correspond. S’ils sont tronqués, dis-le.',
   '- Traduis les codes d’après le dictionnaire (DONE = terminé…) ; ne montre pas la requête SQL.',
-  '- Respecte la longueur et le ton demandés par la consigne ; sois bref et précis, chaque phrase apporte une information.',
-  '- Mise en forme : commence par une phrase qui donne l’essentiel. Puis, si utile, 2 ou 3 rubriques introduites par « ## » suivi d’un titre court. Dans une liste de constats, fais commencer chaque puce « - » par le chiffre clé (ex. « - 3 risques critiques (criticité ≥ 20) »). Pour des actions, liste numérotée « 1. ». **Gras** pour un ou deux éléments décisifs au plus.',
-  '- Pas de titre « # » (le message a déjà un objet), pas de tableau, pas de formule de politesse.',
+  '- Respecte le ton demandé par la consigne ; la longueur maximale prime sur la consigne. Chaque mot apporte une information.',
+  NOTIFICATION_STRUCTURE,
 ].join('\n');
+
+
+/** Consigne de longueur (impérative), ajoutée à chaque appel de rédaction. */
+export const lengthRule = (maxWords: number) => `LONGUEUR IMPÉRATIVE : ${maxWords} mots au plus pour tout le contenu. Au-delà, le texte est coupé : écris court.`;
+/** Réécriture d'un contenu trop long (une fois, avant la coupe). */
+export const shortenPrompt = (text: string, maxWords: number) => `Ce contenu de notification compte ${wordCount(text)} mots : réécris-le en ${maxWords} mots au plus, en gardant la même structure et les faits les plus importants (ce qui demande une action d’abord). Réponds uniquement par le contenu réécrit.\n\n${text}`;
 
 /** Consigne jointe à l'envoi précédent (mémoire de la rédaction). */
 /** Texte envoyé si le modèle ne produit qu'une requête au lieu d'un contenu rédigé (jamais de SQL dans une notification). */
@@ -64,8 +79,16 @@ export class NotificationWriterService {
     return [
       `Tu rédiges le contenu d’une notification de la plateforme RISE (pilotage de projets de transformation), envoyée aux utilisateurs de profil ${PROFILE_NAME[audience.profile]}${projectCode ? ` du projet ${projectCode}` : ''}.`,
       'Méthode : 1. analyse la consigne ; 2. repère dans le dictionnaire des données les vues et colonnes utiles ; 3. écris la requête SQL ; le serveur l’exécute et te renvoie les résultats ; 4. rédige le contenu à partir des résultats.',
-      'Le contenu est inséré tel quel dans le message envoyé : texte brut, en français, sans titre ni Markdown ni formule de politesse.',
+      'Le contenu est inséré tel quel dans le message envoyé : en français, en Markdown léger (structure ci-dessous), sans titre « # » ni formule de politesse.',
+      NOTIFICATION_STRUCTURE,
     ].join('\n');
+  }
+
+  /** Contenu trop long : une réécriture par le modèle ; le dépassement restant est coupé à la sortie (`fitWords`). */
+  private async shorten(text: string, maxWords: number, call: (p: string, system: string) => Promise<LlmResult>, base: string): Promise<string> {
+    if (wordCount(text) <= maxWords) return text;
+    const r = await call(shortenPrompt(text, maxWords), `${base}\n\n${NOTIFICATION_STRUCTURE}`);
+    return looksLikeSql(r.text) || !r.text.trim() ? text : r.text;
   }
 
   scopeLine(a: Audience): string {
@@ -79,26 +102,26 @@ export class NotificationWriterService {
    * changé depuis au lieu de répéter le même texte. Il part, avec la date et l'heure, dans la partie variable du prompt ;
    * la partie stable est marquée pour le cache.
    */
-  async write(rule: { modelId: string }, prompt: string, project: { id: string; code: string } | null, audience: Audience, previous?: { at: Date; text: string } | null): Promise<WrittenText> {
+  async write(rule: { modelId: string }, prompt: string, project: { id: string; code: string } | null, audience: Audience, previous?: { at: Date; text: string } | null, maxWords = NOTIFICATION_MAX_WORDS - 1): Promise<WrittenText> {
     const calls: LlmResult[] = [];
     const tail = [
       `## Contexte de l’envoi\nDate du jour de la plateforme : ${this.today.today()}. Maintenant (heure de Paris) : ${this.nowParis()}.`,
       ...(previous ? [`## Envoi précédent de cette notification (${new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', dateStyle: 'long' }).format(previous.at)})\n${previous.text}\n\n${PREVIOUS_SEND_INSTRUCTIONS}`] : []),
     ].join('\n\n');
     const call = async (p: string, system: string, extra = '') => {
-      const r = await this.llm.completeWithModelLive(rule.modelId, { functionId: 'insights', prompt: p, system, systemTail: extra ? `${tail}\n\n${extra}` : tail, cache: true, projectId: project?.id ?? null, source: 'NOTIFICATION', maxWords: 150 });
+      const r = await this.llm.completeWithModelLive(rule.modelId, { functionId: 'insights', prompt: p, system: `${system}\n\n${lengthRule(maxWords)}`, systemTail: extra ? `${tail}\n\n${extra}` : tail, cache: true, projectId: project?.id ?? null, source: 'NOTIFICATION', maxWords });
       calls.push(r);
       return r;
     };
     const out = (text: string, sources: string[] = [], sql: string | null = null): WrittenText => ({
-      text: text.trim(),
+      text: fitWords(text.trim(), maxWords),
       tokens: calls.reduce((n, c) => n + c.tokensIn + c.tokensOut, 0),
       costEur: calls.reduce((n, c) => n + c.costEur, 0),
       sources,
       sql,
     });
     const base = this.base(audience, project?.code ?? null);
-    if (!project) return out((await call(prompt, `${base}\nAucune donnée de projet n’est lisible pour cette règle de plateforme : rédige à partir de la consigne seule.`)).text);
+    if (!project) return out(await this.shorten((await call(prompt, `${base}\nAucune donnée de projet n’est lisible pour cette règle de plateforme : rédige à partir de la consigne seule.`)).text, maxWords, call, base));
 
     // 1-3. Analyse, dictionnaire, requête (ou réponse directe si la consigne ne demande pas de données).
     const tables = await this.prisma.dictionnaireTable.findMany({ where: { espace: 'cockpit', actif: true }, include: { colonnes: { orderBy: { position: 'asc' } } }, orderBy: { position: 'asc' } });
@@ -113,7 +136,7 @@ export class NotificationWriterService {
     let sql = extractSql(first.text);
     // Requête coupée ou mal balisée (correction du 30/09/2026) : jamais envoyée telle quelle, elle est réécrite.
     let cut = sqlCut(first.text);
-    if (sql === null && !looksLikeSql(first.text)) return out(first.text);
+    if (sql === null && !looksLikeSql(first.text)) return out(await this.shorten(first.text, maxWords, call, base));
 
     // 4. Exécution sur le périmètre des destinataires, une correction au plus.
     let rows: Array<Record<string, unknown>> | null = null;
@@ -144,7 +167,7 @@ export class NotificationWriterService {
     const res = formatRows(rows);
     const head = `## Résultats de la requête (${res.count} ligne(s)${res.truncated ? `, tronqués aux ${JEV_SQL_MAX_ROWS} premières` : ''})`;
     const answer = await call(`${prompt}\n\n${head}\n${res.text}`, `${base}\n\n${NOTIFICATION_ANSWER_INSTRUCTIONS}`, `## Dictionnaire des vues consultées\n${renderDictionary(used, JEV_COCKPIT_SCHEMA)}`);
-    return out(looksLikeSql(answer.text) ? NO_DATA_TEXT : answer.text, sources, sql);
+    return out(looksLikeSql(answer.text) ? NO_DATA_TEXT : await this.shorten(answer.text, maxWords, call, base), sources, sql);
   }
 
   private nowParis(): string {

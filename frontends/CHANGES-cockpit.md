@@ -273,3 +273,10 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 - Récapitulatifs « À valider » : une ligne par champ (avant → après pour une modification) ; actions liées dans un second récapitulatif, à valider après le risque ; suppression : champ « Retapez R06 pour confirmer » et bouton rouge « Supprimer définitivement », actif seulement quand le code est juste.
 - Après validation : message « Enregistré : R07. » avec un bouton qui ouvre l'écran du Pilotage concerné.
 - « Annuler » après enregistrement (qui ne défaisait rien) n'apparaît plus avec le serveur ; les cartes ne sont plus tronquées dans le panneau (`flex:none`).
+
+## Notifications : nouvelle mise en page (01/10/2026)
+
+`Notifications Cockpit.dc.html` :
+- Notification dépliée : l'essentiel en titre avec un liseré de gravité (rouge, ambre, sarcelle) ; chiffres clés en grands chiffres sans cadre, séparés par des filets, en rouge s'ils signalent un risque ; rubriques en petites capitales avec leur nombre ; lignes « À surveiller » : code en pastille colorée selon l'état décrit, puis le constat ; « À faire » : actions en cases à cocher.
+- Salutations et phrases d'annonce, sans information, ne sont plus affichées ; les tableaux (anciens envois) deviennent des lignes « code · constat ».
+- Notification repliée : l'essentiel sur deux lignes, puis les chiffres clés en une ligne.

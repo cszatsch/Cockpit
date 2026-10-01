@@ -39,15 +39,19 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid #1d8f86;outli
               <div style="display:flex;align-items:baseline;gap:10px"><span style="{{ it.tSt }}">{{ it.t }}</span><svg aria-hidden="true" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#8a9aa6" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="{{ it.chevSt }}"><path d="M6 9l6 6 6-6"></path></svg></div>
               <div style="display:flex;align-items:center;gap:6px;font-size:11.5px;color:#8a9aa6;font-variant-numeric:tabular-nums"><sc-if value="{{ it.hasP }}" hint-placeholder-val="{{ true }}"><span style="font-weight:700;color:#43586a;letter-spacing:.02em">{{ it.p }}</span><span style="width:3px;height:3px;border-radius:50%;background:#c3cfcc"></span></sc-if><span>{{ it.when }}</span></div>
               <sc-if value="{{ it.closed }}" hint-placeholder-val="{{ true }}"><div style="font-size:12.5px;line-height:1.55;color:#5c7280;text-wrap:pretty;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-top:2px">{{ it.sum }}</div></sc-if>
+              <sc-if value="{{ it.hasPeek }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:2px"><sc-for list="{{ it.peek }}" as="k" hint-placeholder-count="2"><span style="font-size:11.5px;color:#8a9aa6;white-space:nowrap"><b style="{{ k.vSt }}">{{ k.v }}</b> {{ k.l }}</span></sc-for></div></sc-if>
             </div>
           </div>
           <sc-if value="{{ it.open }}" hint-placeholder-val="{{ false }}">
-            <div style="padding:0 22px 20px 30px;display:flex;flex-direction:column;animation:ncFade .22s both">
+            <div style="padding:2px 22px 20px 30px;display:flex;flex-direction:column;animation:ncFade .22s both">
               <sc-for list="{{ it.blocks }}" as="b" hint-placeholder-count="4">
-                <sc-if value="{{ b.isH }}" hint-placeholder-val="{{ false }}"><div style="{{ b.st }}"><span style="width:10px;height:2px;border-radius:1px;background:#1d8f86;flex:none"></span>{{ b.x }}</div></sc-if>
-                <sc-if value="{{ b.isP }}" hint-placeholder-val="{{ true }}"><p style="{{ b.st }}"><sc-for list="{{ b.segs }}" as="g" hint-placeholder-count="1"><span style="{{ g.st }}">{{ g.x }}</span></sc-for></p></sc-if>
-                <sc-if value="{{ b.isKpi }}" hint-placeholder-val="{{ false }}"><div style="{{ b.st }}"><sc-for list="{{ b.items }}" as="k" hint-placeholder-count="3"><div style="{{ k.st }}"><span style="{{ k.vSt }}">{{ k.v }}</span><span style="font-size:11.5px;font-weight:600;line-height:1.35;color:#2a3f53;text-wrap:balance">{{ k.l }}</span><sc-if value="{{ k.hasD }}" hint-placeholder-val="{{ false }}"><span style="font-size:10.5px;line-height:1.35;color:#8a9aa6">{{ k.d }}</span></sc-if></div></sc-for></div></sc-if>
-                <sc-if value="{{ b.isList }}" hint-placeholder-val="{{ false }}"><div style="{{ b.st }}"><sc-for list="{{ b.items }}" as="li" hint-placeholder-count="3"><div style="display:flex;gap:10px;align-items:flex-start"><span style="{{ li.mk }}">{{ li.n }}</span><span style="flex:1;min-width:0;font-size:13px;line-height:1.55;color:#2a3f53;text-wrap:pretty"><sc-for list="{{ li.segs }}" as="g" hint-placeholder-count="1"><span style="{{ g.st }}">{{ g.x }}</span></sc-for></span></div></sc-for></div></sc-if>
+                <sc-if value="{{ b.isLead }}" hint-placeholder-val="{{ true }}"><p style="{{ b.st }}"><sc-for list="{{ b.segs }}" as="g" hint-placeholder-count="1"><span style="{{ g.st }}">{{ g.x }}</span></sc-for></p></sc-if>
+                <sc-if value="{{ b.isP }}" hint-placeholder-val="{{ false }}"><p style="{{ b.st }}"><sc-for list="{{ b.segs }}" as="g" hint-placeholder-count="1"><span style="{{ g.st }}">{{ g.x }}</span></sc-for></p></sc-if>
+                <sc-if value="{{ b.isH }}" hint-placeholder-val="{{ false }}"><div style="{{ b.st }}"><span>{{ b.x }}</span><sc-if value="{{ b.hasN }}" hint-placeholder-val="{{ false }}"><span style="font-variant-numeric:tabular-nums;color:#b4c0c7">{{ b.n }}</span></sc-if><span style="flex:1;height:1px;background:#eef3f2"></span></div></sc-if>
+                <sc-if value="{{ b.isKpi }}" hint-placeholder-val="{{ false }}"><div style="{{ b.st }}"><sc-for list="{{ b.items }}" as="k" hint-placeholder-count="3"><div style="{{ k.st }}"><span style="{{ k.vSt }}">{{ k.v }}</span><span style="font-size:11px;font-weight:600;line-height:1.35;color:#5c7280;text-wrap:balance">{{ k.l }}</span></div></sc-for></div></sc-if>
+                <sc-if value="{{ b.isWatch }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-direction:column"><sc-for list="{{ b.items }}" as="w" hint-placeholder-count="3"><div style="{{ w.rowSt }}"><span style="{{ w.codeSt }}">{{ w.code }}</span><span style="flex:1;min-width:0;font-size:12.5px;line-height:1.5;color:#2a3f53;text-wrap:pretty"><sc-for list="{{ w.segs }}" as="g" hint-placeholder-count="1"><span style="{{ g.st }}">{{ g.x }}</span></sc-for></span></div></sc-for></div></sc-if>
+                <sc-if value="{{ b.isTodo }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-direction:column;gap:9px;margin:2px 0 4px"><sc-for list="{{ b.items }}" as="li" hint-placeholder-count="2"><div style="display:flex;gap:11px;align-items:flex-start"><span aria-hidden="true" style="flex:none;width:15px;height:15px;margin-top:2px;border-radius:50%;box-shadow:inset 0 0 0 1.5px #1d8f86"></span><span style="flex:1;min-width:0;font-size:13px;line-height:1.5;font-weight:600;color:#10233a;text-wrap:pretty"><sc-for list="{{ li.segs }}" as="g" hint-placeholder-count="1"><span style="{{ g.st }}">{{ g.x }}</span></sc-for></span></div></sc-for></div></sc-if>
+                <sc-if value="{{ b.isList }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-direction:column;gap:6px;margin:2px 0 6px"><sc-for list="{{ b.items }}" as="li" hint-placeholder-count="3"><div style="display:flex;gap:10px;align-items:flex-start"><span aria-hidden="true" style="flex:none;width:4px;height:4px;margin:9px 4px 0 5px;border-radius:50%;background:#9fb3bd"></span><span style="flex:1;min-width:0;font-size:12.5px;line-height:1.55;color:#2a3f53;text-wrap:pretty"><sc-for list="{{ li.segs }}" as="g" hint-placeholder-count="1"><span style="{{ g.st }}">{{ g.x }}</span></sc-for></span></div></sc-for></div></sc-if>
               </sc-for>
             </div>
           </sc-if>
@@ -65,26 +69,42 @@ button:focus-visible,[role=button]:focus-visible{outline:2px solid #1d8f86;outli
 // tiroir ouvert par la cloche de la barre latérale ; un clic déplie la notification et la marque comme lue.
 const back = min => new Date(Date.now() - min * 60000).toISOString();
 const DEMO = [
-  { id: 'd0', title: 'Analyse des risques RISE, au 30 sept. 2026', body: 'Bonjour,\nVeuillez trouver ci-dessous une analyse des risques du projet.\n\n6 risques ouverts, dont 3 critiques : la situation demande un arbitrage rapide.\n\n## État des risques\n- 3 risques critiques (criticité ≥ 20)\n- 3 risques élevés (criticité 12 à 19)\n- 1 risque critique sans plan de mitigation\n\n## Actions attendues\n1. Documenter le plan de mitigation du **risque critique orphelin**\n2. Arbitrer les 3 décisions liées aux risques critiques\n3. Vérifier que chaque risque critique a un responsable actif', project: 'RISE', at: back(3), read: false },
+  { id: 'd0', title: 'Analyse des risques RISE, au 30 sept. 2026', body: 'Trois risques critiques restent sans décision de couverture : un arbitrage est attendu au prochain COPIL.\n- 3 risques critiques\n- 1 sans plan de mitigation\n- 2 décisions à arbitrer\n## À surveiller\n- **R03** solution CRM incomplète : aucun plan, échéance dépassée\n- **R01** reprise des données en mitigation, fin du Run 3 le 14/10\n- **R02** interfaces : périmètre instable, à arbitrer\n## À faire\n1. Documenter le plan de mitigation de R03\n2. Inscrire R02 à l’ordre du jour du COPIL', project: 'RISE', at: back(3), read: false },
   { id: 'd1', title: 'RISE · actions de la semaine', body: 'Quatre actions du chantier Finance arrivent à échéance d’ici vendredi, dont deux sans avancement depuis dix jours : prévoir un point avec leurs responsables.', project: 'RISE', at: back(12), read: false },
   { id: 'd2', title: 'RISE · votre synthèse de la semaine 40', body: 'Avancement global 62 % (+3 pts). 3 jalons dans les 15 prochains jours, 2 risques critiques ouverts, 1 décision attendue.', project: 'RISE', at: back(60 * 26), read: false },
   { id: 'd3', title: 'RISE · votre synthèse de la semaine 39', body: 'Avancement global 59 % (+2 pts). 2 jalons dans les 15 prochains jours, 1 risque critique ouvert.', project: 'RISE', at: back(60 * 24 * 7), read: true }
 ];
 // Plus d’alertes depuis le 30/09/2026 : un seul type, la notification.
-// Mise en forme (30/09/2026) : le texte rédigé par le modèle suit un Markdown léger (« ## » rubrique, « - » puce,
-// « 1. » étape, **gras**). Il est lu ici en blocs ; une liste dont chaque élément commence par un chiffre devient
-// une rangée de chiffres clés. Les titres « # » (redondants avec le titre de la notification) sont omis.
+// Mise en forme (refonte du 01/10/2026) : le texte rédigé suit une structure brève (essentiel, chiffres clés,
+// « ## À surveiller » avec un code par ligne, « ## À faire » numéroté) ; il est lu en blocs et mis en page :
+// l'essentiel en titre avec un liseré de gravité, les chiffres clés sans cadre, les codes en pastilles colorées selon
+// l'état décrit, les actions en cases à cocher. Salutations et phrases d'annonce, sans information, sont omises.
+// Les tableaux (anciens envois) deviennent des lignes « code · texte ».
 const B = x => ({ x, st: 'font-weight:700;color:#10233a' }), T = x => ({ x, st: '' });
 const segsOf = t => String(t).replace(/`([^`]*)`/g, '$1').replace(/(^|[^*])\*([^*\s][^*]*?)\*(?!\*)/g, '$1$2').split(/\*\*(.+?)\*\*/).map((p, i) => (i % 2 ? B(p) : T(p))).filter(g => g.x);
 const plain = t => segsOf(t).map(g => g.x).join('');
-const KPI = /^(?:\*\*)?([+−-]?\d[\d\s.,]*\s?(?:%|€|k€|pts?)?)(?:\*\*)?\s+(.+)$/;
+const KPI = /^(?:\*\*)?([+−-]?\d[\d\s.,]*\s?(?:%|€|k€|pts?|j)?)(?:\*\*)?\s+(.+)$/;
+const CODE = /^\*{0,2}((?:[A-Z]{1,3}-?\d{1,4})|J\d{2,})\*{0,2}\s*(?:[:–—-]\s*|·\s*)?(.*)$/;
+const GREET = /^(bonjour|bonsoir|madame|monsieur|cher|chère|hello|veuillez|voici|ci-dessous|vous trouverez|cordialement|bonne journée)\b/i;
+const RISK = /critique|bloquant|bloqué|retard|dépass|échec|échu|urgent|orphelin|sans plan|aucun plan|pas de couverture|non couvert|ko\b/i;
+const WATCH = /mitigation|vigilance|surveill|en cours|à arbitrer|attente|glisse|tension/i;
+const TONE = { risk: ['#c2473b', '#fbecea'], watch: ['#a86d0e', '#fdf3e1'], ok: ['#146b64', '#e6f4f2'], neutral: ['#43586a', '#eef2f4'] };
+const toneOf = t => (RISK.test(t) ? 'risk' : WATCH.test(t) ? 'watch' : 'neutral');
+const cells = l => l.replace(/^\|/, '').replace(/\|$/, '').split('|').map(c => c.trim());
+
 function parseBody(text) {
-  const blocks = []; let para = null, list = null;
-  const flush = () => { para = null; list = null; };
+  const blocks = []; let para = null, list = null, table = null;
+  const flush = () => { para = null; list = null; table = null; };
   for (const raw of String(text || '').replace(/\r/g, '').split('\n')) {
     const l = raw.trim();
     if (!l) { flush(); continue; }
     let m;
+    if (l.startsWith('|')) {
+      if (/^\|?[\s:|-]+\|?$/.test(l)) continue;
+      if (!table) { para = null; list = null; table = { k: 'table', rows: [] }; blocks.push(table); }
+      table.rows.push(cells(l)); continue;
+    }
+    table = null;
     if ((m = /^(#{1,6})\s+(.*)$/.exec(l))) { flush(); if (m[1].length > 1) blocks.push({ k: 'h', x: plain(m[2]).replace(/\s*:$/, '') }); continue; }
     if ((m = /^[-*•]\s+(.*)$/.exec(l)) || (m = /^(\d+)[.)]\s+(.*)$/.exec(l))) {
       const ord = m.length === 3, body = ord ? m[2] : m[1];
@@ -96,22 +116,30 @@ function parseBody(text) {
     if (!para) { para = { k: 'p', lines: [] }; blocks.push(para); }
     para.lines.push(l);
   }
-  // Liste de chiffres (2 à 6 éléments commençant tous par une valeur) → chiffres clés.
-  return blocks.map(b => {
-    if (b.k !== 'list' || b.ord || b.items.length < 2 || b.items.length > 6) return b;
-    const kp = b.items.map(i => KPI.exec(plain(i)));
-    if (!kp.every(Boolean)) return b;
-    return { k: 'kpi', items: kp.map(m => { const d = /^(.*?)\s*\(([^)]*)\)\s*$/.exec(m[2]); return { v: m[1].trim(), l: d ? d[1] : m[2], d: d ? d[2] : '' }; }) };
-  });
+  const out = [];
+  let section = '';
+  for (const b of blocks) {
+    if (b.k === 'h') { section = b.x; out.push(b); continue; }
+    if (b.k === 'p') { const t = plain(b.lines.join(' ')); if (!GREET.test(t)) out.push(b); continue; }
+    if (b.k === 'table') {
+      // En-tête écarté ; chaque ligne : code (première cellule) et cellules suivantes.
+      const rows = b.rows.filter((r, i) => !(i === 0 && !CODE.test(r[0])));
+      out.push({ k: 'watch', items: rows.map(r => ({ code: plain(r[0]), text: r.slice(1).filter(Boolean).join(' · ') })) });
+      continue;
+    }
+    // Liste : chiffres clés (2 à 6 éléments commençant tous par une valeur), lignes codées, actions ou puces.
+    const kp = !b.ord && b.items.length >= 2 && b.items.length <= 6 ? b.items.map(i => KPI.exec(plain(i))) : [];
+    if (kp.length && kp.every(Boolean)) { out.push({ k: 'kpi', items: kp.map(m => ({ v: m[1].trim(), l: m[2].replace(/\s*\(([^)]*)\)\s*$/, '') })) }); continue; }
+    const codes = b.items.map(i => CODE.exec(i.trim()));
+    if (codes.every(Boolean)) { out.push({ k: 'watch', items: codes.map(c => ({ code: c[1], text: c[2] })) }); continue; }
+    if (b.ord || /^(à faire|actions?( attendues| à mener)?|prochaines étapes|recommandations?)$/i.test(section)) { out.push({ k: 'todo', items: b.items }); continue; }
+    out.push(b);
+  }
+  return out;
 }
-// Résumé de la liste repliée : premier paragraphe utile (salutations et annonces écartées).
-const GREET = /^(bonjour|bonsoir|madame|monsieur|cher|chère|hello|veuillez|voici|ci-dessous|vous trouverez)\b/i;
-const summaryOf = blocks => {
-  const ps = blocks.filter(b => b.k === 'p').map(b => plain(b.lines.join(' ')));
-  const txt = ps.find(p => !GREET.test(p) && p.length > 24) || ps[0] || blocks.map(b => b.x || '').find(Boolean) || '';
-  return txt.replace(/\s*:$/, '.');
-};
-const RISK = /critique|bloquant|retard|dépass|échec|urgent/i;
+// Résumé replié : l'essentiel (premier paragraphe utile).
+const summaryOf = blocks => { const p = blocks.find(b => b.k === 'p'); return p ? plain(p.lines.join(' ')).replace(/\s*:$/, '.') : ''; };
+const RED = '#c2473b', INK = '#10233a';
 const rel = (iso, now) => { const m = Math.max(0, Math.round((now - new Date(iso).getTime()) / 60000)); if (m < 1) return 'à l’instant'; if (m < 60) return 'il y a ' + m + ' min'; const h = Math.round(m / 60); if (h < 24) return 'il y a ' + h + ' h'; const d = Math.round(h / 24); return d === 1 ? 'hier' : 'il y a ' + d + ' j'; };
 const CLEAR_UNDO_MS = 5000;
 const tabSt = on => 'height:30px;padding:0 10px;border:0;border-radius:8px;display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:12.5px;cursor:pointer;' + (on ? 'background:#10233a;color:#fff;font-weight:700' : 'background:#eef3f2;color:#43586a;font-weight:600');
@@ -142,21 +170,26 @@ class Component extends DCLogic {
       tabs: [['all', 'Toutes', all.length], ['unread', 'Non lues', unread]].map(([k, l, c]) => ({ l, c: String(c), on: S.tab === k, pick: () => this.setState({ tab: k }), st: tabSt(S.tab === k) })),
       items: shown.map(i => { const open = S.openId === i.id, parsed = parseBody(i.body), unreadI = !i.read;
         const pick = () => { this.setState({ openId: open ? null : i.id }); if (!i.read) this.read(i.id); };
-        let first = true, lead = false;
-        const blocks = parsed.map(b => { const top = first ? 0 : null; first = false;
-          if (b.k === 'h') return { isH: true, x: b.x, st: 'display:flex;align-items:center;gap:8px;margin:' + (top === 0 ? 4 : 20) + 'px 0 8px;font-size:10.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#5c7280' };
-          if (b.k === 'kpi') return { isKpi: true, st: 'display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px;margin:' + (top === 0 ? 2 : 8) + 'px 0 6px',
-            items: b.items.map(k => ({ v: k.v, l: k.l, d: k.d, hasD: !!k.d, vSt: 'font-size:22px;font-weight:800;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums;color:' + (RISK.test(k.l) && !/^0(?![\d.,])/.test(k.v) ? '#c2473b' : '#10233a'),
-              st: 'display:flex;flex-direction:column;gap:5px;padding:12px 12px 11px;border-radius:12px;background:#f6f9f8;box-shadow:inset 0 0 0 1px #e8efed' })) };
-          if (b.k === 'list') return { isList: true, st: 'display:flex;flex-direction:column;gap:7px;margin:' + (top === 0 ? 0 : 4) + 'px 0 6px',
-            items: b.items.map((t, n) => ({ n: b.ord ? String(n + 1) : '', segs: segsOf(t),
-              mk: b.ord ? 'flex:none;width:18px;height:18px;margin-top:1px;border-radius:50%;background:#10233a;color:#fff;font-size:10px;font-weight:800;display:grid;place-items:center;font-variant-numeric:tabular-nums'
-                        : 'flex:none;width:5px;height:5px;margin:8px 6px 0 6px;border-radius:50%;background:#1d8f86' })) };
-          // Salutation en retrait ; premier paragraphe utile mis en avant (l'essentiel).
-          const greet = GREET.test(plain(b.lines[0])), isLead = !greet && !lead; if (isLead) lead = true;
-          return { isP: true, segs: segsOf(b.lines.join('\n')), st: 'margin:' + (top === 0 ? 0 : 6) + 'px 0 ' + (isLead ? 10 : 6) + 'px;white-space:pre-line;text-wrap:pretty;line-height:1.6;' + (greet ? 'font-size:12.5px;color:#8a9aa6' : isLead ? 'font-size:14px;font-weight:600;letter-spacing:-.005em;color:#10233a' : 'font-size:13px;color:#2a3f53') };
+        const tone = RISK.test(plain(i.body)) ? 'risk' : WATCH.test(plain(i.body)) ? 'watch' : 'ok';
+        let lead = false, first = true;
+        const blocks = parsed.map(b => { const top = first; first = false;
+          if (b.k === 'h') { const nxt = parsed[parsed.indexOf(b) + 1], n = nxt && nxt.items ? nxt.items.length : 0;
+            return { isH: true, x: b.x, n: String(n), hasN: n > 1, st: 'display:flex;align-items:center;gap:8px;margin:' + (top ? 2 : 18) + 'px 0 8px;font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#8a9aa6' }; }
+          if (b.k === 'kpi') return { isKpi: true, st: 'display:grid;grid-template-columns:repeat(' + Math.min(b.items.length, 4) + ',minmax(0,1fr));margin:' + (top ? 2 : 6) + 'px 0 8px',
+            items: b.items.map((k, n) => ({ v: k.v, l: k.l, vSt: 'font-size:24px;font-weight:800;font-style:italic;letter-spacing:-.04em;line-height:1.05;font-variant-numeric:tabular-nums;color:' + (RISK.test(k.l) && !/^0(?![\d.,])/.test(k.v) ? RED : INK),
+              st: 'display:flex;flex-direction:column;gap:4px;min-width:0;padding:2px 12px 2px ' + (n ? 12 : 0) + 'px;' + (n ? 'box-shadow:inset 1px 0 0 #e8efed' : '') })) };
+          if (b.k === 'watch') return { isWatch: true, items: b.items.map((w, n) => { const [fg, bg] = TONE[toneOf(w.text)];
+            return { code: w.code, segs: segsOf(w.text), rowSt: 'display:flex;gap:10px;align-items:baseline;padding:8px 0;' + (n ? 'border-top:1px solid #f0f4f3' : 'padding-top:2px'),
+              codeSt: 'flex:none;min-width:38px;text-align:center;padding:2px 7px;border-radius:6px;font-size:10.5px;font-weight:800;letter-spacing:.02em;font-variant-numeric:tabular-nums;color:' + fg + ';background:' + bg }; }) };
+          if (b.k === 'todo') return { isTodo: true, items: b.items.map(t => ({ segs: segsOf(t) })) };
+          if (b.k === 'list') return { isList: true, items: b.items.map(t => ({ segs: segsOf(t) })) };
+          // L'essentiel : premier paragraphe, en titre, liseré de la gravité du message.
+          if (!lead) { lead = true;
+            return { isLead: true, segs: segsOf(b.lines.join(' ')), st: 'margin:0 0 14px;padding:1px 0 1px 12px;font-size:14.5px;font-weight:700;line-height:1.45;letter-spacing:-.01em;color:#10233a;text-wrap:pretty;box-shadow:inset 3px 0 0 ' + TONE[tone][0] }; }
+          return { isP: true, segs: segsOf(b.lines.join('\n')), st: 'margin:4px 0 8px;white-space:pre-line;text-wrap:pretty;font-size:12.5px;line-height:1.6;color:#43586a' };
         });
-        return { t: i.title, sum: summaryOf(parsed), blocks, open, closed: !open, when: rel(i.at, now), p: i.project || '', hasP: !!i.project, unread: unreadI, openL: open ? 'true' : 'false',
+        const kpis = (parsed.find(b => b.k === 'kpi') || { items: [] }).items.slice(0, 3);
+        return { t: i.title, sum: summaryOf(parsed), blocks, peek: kpis.map(k => ({ v: k.v, l: k.l, vSt: 'font-weight:800;color:' + (RISK.test(k.l) && !/^0(?![\d.,])/.test(k.v) ? RED : '#43586a') })), hasPeek: !open && kpis.length > 0, open, closed: !open, when: rel(i.at, now), p: i.project || '', hasP: !!i.project, unread: unreadI, openL: open ? 'true' : 'false',
           pick, key: e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } },
           tSt: 'flex:1;min-width:0;font-size:13.5px;line-height:1.35;letter-spacing:-.005em;font-weight:' + (unreadI ? 800 : 650) + ';color:#10233a;' + (open ? 'text-wrap:balance' : 'white-space:nowrap;overflow:hidden;text-overflow:ellipsis'),
           chevSt: 'flex:none;transition:transform .2s;transform:rotate(' + (open ? 180 : 0) + 'deg)',

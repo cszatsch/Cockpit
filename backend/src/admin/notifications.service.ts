@@ -8,6 +8,7 @@ import { TodayService } from '../core/today.service';
 import { ProfilesService } from './profiles.service';
 import { frShort } from '../domain/dates';
 
+import { NOTIFICATION_MAX_WORDS, NOTIFICATION_MIN_CONTENT_WORDS, wordCount } from '../domain/notification-rules';
 import { AUDIENCE_PRIORITY, AudienceProfile, blockingErrors, CATCH_UP_PER_MINUTE, catchUpDeadline, nextSendAt, NOTIFICATION_MEMORY_DAYS, mailText, occurrencesUntil, ON_TIME_TOLERANCE_MS, parisDay, scheduleKey, sendTimeFr } from '../domain/notification-rules';
 import { Audience, NotificationWriterService } from './notification-writer.service';
 
@@ -63,7 +64,10 @@ export class NotificationsService implements OnModuleInit {
     const t0 = Date.now();
     // Mémoire (décision du 30/09/2026) : le dernier envoi réussi de la règle, pour le même projet et le même profil.
     const previous = withMemory && rule.id ? await this.previousSend(rule.id, projectId, audience.profile) : null;
-    const res = await this.writer.write(rule, prompt, project, audience, previous);
+    // Moins de 100 mots pour tout le message (01/10/2026) : le contenu rédigé dispose de ce que le gabarit laisse.
+    const frame = wordCount(fill(rule.body, { ...ctx, [LLM_RESPONSE_VARIABLE]: '' } as Record<string, string>));
+    const budget = Math.max(NOTIFICATION_MIN_CONTENT_WORDS, NOTIFICATION_MAX_WORDS - 1 - frame);
+    const res = await this.writer.write(rule, prompt, project, audience, previous, budget);
     const vars = { ...ctx, [LLM_RESPONSE_VARIABLE]: res.text } as Record<string, string>;
     return { subject: fill(rule.subject, vars), body: fill(rule.body, vars), llmResponse: res.text, tokens: res.tokens, costEur: res.costEur, ms: Date.now() - t0, sources: res.sources };
   }
