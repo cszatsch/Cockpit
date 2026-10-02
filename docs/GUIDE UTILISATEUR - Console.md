@@ -173,7 +173,7 @@ L'écran montre ces règles et une jauge de solidité. Le bouton reste inactif t
 | Domaine | Pages |
 |---|---|
 | Accès | Utilisateurs, Administrateurs |
-| IA | Fournisseurs et modèles, Affectation des modèles, Vue générale des coûts, Journal consommation et coûts |
+| IA | Fournisseurs et modèles, Consommation et coûts, Analyse des temps de réponse |
 | Assistant | Persona, Skills |
 | Projets | Bibliothèque des projets, Initialisation d'un projet, Snapshots |
 | Plateforme | Modules, Registre des cartes API, Notifications, Serveur d'envoi SMTP, Guide utilisateur |
@@ -218,7 +218,7 @@ L'écran montre ces règles et une jauge de solidité. Le bouton reste inactif t
 | Indicateur | Contenu | Page ouverte |
 |---|---|---|
 | Utilisateurs actifs | Comptes actifs, nombre total de comptes, invitations en attente | Utilisateurs |
-| Coût IA du mois | Dépense du mois et part du budget consommée | Vue générale des coûts |
+| Coût IA du mois | Dépense du mois et part du budget consommée | Consommation et coûts |
 | Fournisseurs IA | Fournisseurs opérationnels sur le total, ou noms de ceux hors service | Fournisseurs et modèles |
 | Dernier snapshot | Ancienneté, projet, prochaine capture prévue ou « planification suspendue » | Snapshots |
 
@@ -705,27 +705,26 @@ La Console compare chaque compte à la personne correspondante du référentiel.
 
 **Exemple.** La clé Google est refusée : Gemini, principal de la Synthèse des documents, devient indisponible. Claude Sonnet, son secours, répond à sa place et la carte affiche « Secours en service ». Vous remplacez la clé Google : après un test réussi, Gemini répond de nouveau.
 
-## 3.8 Vue générale des coûts
+## 3.8 Consommation et coûts
 
-**À quoi sert la page.** Suivre la dépense d'IA du mois, anticiper la fin de mois et fixer des plafonds.
+**À quoi sert la page.** Suivre la dépense d'IA du mois, anticiper la fin de mois, fixer des plafonds et voir le détail de chaque appel à un modèle.
 
-> [Capture] Vue générale des coûts : courbe, indicateurs, tableau des plafonds.
+> [Capture] Consommation et coûts : bandeau du budget et graphique, tuiles des fonctions, journal des appels.
 
 **Utilisation**
 
-1. Choisissez la période : **7 j**, **Ce mois** ou **90 j**.
-2. Pour « Ce mois », lisez :
-   - la dépense depuis le 1er ;
-   - la **projection de fin de mois** ;
-   - le plafond ;
-   - le rythme des 7 derniers jours ;
-   - la comparaison avec le mois précédent à la même date.
-3. Dans le tableau, cliquez sur une ligne (Budget global, Insights, Rapports, Guidage console, Documents, Gestion des données) pour isoler sa courbe.
-4. Pour fixer un plafond :
-   1. Saisissez le montant en euros entiers.
-   2. Réglez le seuil d'alerte avec « − » et « + ».
-   3. Cliquez sur **Enregistrer les plafonds**.
-5. **Exporter en CSV** télécharge la consommation détaillée de la période.
+1. Choisissez la période : **Jour**, **7 j**, **Ce mois**, **30 j**, **3 mois** ou **6 mois**. Elle s'applique au graphique Tokens et Coûts, aux compteurs et au journal. Le budget reste celui du mois en cours.
+2. Dans le bandeau, lisez :
+   - la **projection de fin de mois** et la note « Reste … sous le plafond » ou « Dépassement projeté de … » ;
+   - la dépense depuis le 1er et le plafond global ;
+   - le rythme des 7 derniers jours, la dépense du mois précédent à la même date, les jetons du mois.
+3. Choisissez la lecture du graphique :
+   - **Budget** : dépense cumulée, plafond, seuil d'alerte et projection ;
+   - **Tokens** : jetons d'entrée au-dessus, de sortie en dessous ;
+   - **Coûts** : dépense par jour (par heure pour **Jour**).
+4. Cliquez sur une tuile (Insights, Rapports, Guidage console, Documents, Gestion des données) pour filtrer le graphique, les compteurs et le journal. Un second clic, ou « × », retire le filtre.
+5. Pour fixer un plafond, saisissez le montant dans la tuile, ou dans « Budget global ». Réglez le seuil d'alerte avec « − » et « + ». L'enregistrement est immédiat.
+6. **Exporter en CSV** télécharge exactement le journal affiché (période et fonction).
 
 **Règles**
 
@@ -733,41 +732,36 @@ La Console compare chaque compte à la personne correspondante du référentiel.
 - **Rythme** : dépense des 7 derniers jours, divisée par 7.
 - **Projection** : dépense du mois + rythme × jours restants.
 - **Seuil d'alerte** : de 50 à 100 %, par pas de 5 ; 80 % par défaut.
-- **Statut d'une ligne** :
+- **Statut d'une ligne**, calculé sur la projection :
   - **Sans plafond** : aucun plafond, ou plafond désactivé ;
-  - **Dépassement** : la **projection** de fin de mois dépasse le plafond ;
-  - **Alerte** : la dépense atteint le seuil d'alerte ;
+  - **Dépassement projeté** : la projection atteint ou dépasse le plafond ;
+  - **Alerte projetée** : la projection dépasse le seuil d'alerte ;
   - **Sous le plafond** sinon.
-- Une journée est dite « sur secours » si plus de la moitié de son coût vient d'un modèle de secours.
+- **Moyenne par jour ouvré** : du lundi au vendredi ; le pic est le jour (ou l'heure) le plus élevé.
 - **Un plafond ne bloque rien.** Les appels continuent au-delà. Le plafond sert à alerter : cloche, « À traiter » et signal du menu.
-- Les modifications de plafond sont tracées (Sensible).
+- Les modifications de plafond et de seuil sont tracées (Sensible).
 
-**Exemple.** Le plafond global est de 1 200 €, avec une alerte à 80 %. Le 20 du mois, la dépense atteint 980 € : la ligne passe en « Alerte » et la cloche affiche « Budget IA à 82 % ». Si la projection de fin de mois dépasse 1 200 €, le statut devient « Dépassement ».
+**Exemple.** Le plafond global est de 100 €, avec une alerte à 80 %. Au 2 du mois, 0,88 € sont dépensés au rythme de 0,31 € par jour : la projection est de 9,74 €, la note indique « Reste 90,26 € sous le plafond ». Si le plafond passe à 9 €, la note devient « Dépassement projeté de 0,74 € » et le statut « Dépassement projeté ».
 
-## 3.9 Journal consommation et coûts
+## 3.9 Journal des appels
 
-**À quoi sert la page.** Voir le détail de chaque appel à un modèle : date, fonction, fournisseur, modèle, jetons, coût.
-
-> [Capture] Journal : graphique par jour et tableau des appels.
+**À quoi il sert.** Voir le détail de chaque appel à un modèle, en bas de la page Consommation et coûts : date et heure, fonction, fournisseur et modèle, jetons (entrée → sortie, total), coût.
 
 **Utilisation**
 
-1. Filtrez par fonction.
-2. Choisissez l'unité **Tokens** ou **Coûts**.
-3. Survolez le graphique pour le détail d'un jour.
-4. Dépliez une ligne pour voir :
+1. Le journal suit la période et la fonction choisies en haut de la page.
+2. Faites défiler : les appels suivants se chargent d'eux-mêmes.
+3. Cliquez sur une ligne pour voir :
    - l'identifiant de la requête ;
    - la durée ;
-   - le calcul du coût ;
-   - le passage éventuel sur le secours.
-5. **Afficher 10 de plus** charge la suite. **CSV** exporte les appels du mois.
+   - le calcul du coût, dont le résultat est le coût de la ligne.
 
 **Règles**
 
-- Le tarif est enregistré sur chaque appel au moment de l'appel. Un changement de tarif ne modifie pas le passé.
+- **Coût d'un appel** : jetons d'entrée × prix d'entrée par million + jetons de sortie × prix de sortie par million, au tarif en vigueur au moment de l'appel, enregistré avec l'appel. Un changement de tarif ne modifie pas le passé.
 - Le texte des questions et des réponses n'est pas conservé.
 - Les données de consommation n'ont pas de durée de conservation limitée. Elles ne disparaissent que si les modèles d'IA sont réinitialisés.
-- **Mise en cache des instructions.** Pour Jev et les notifications, une partie des instructions envoyées au modèle est mise en cache chez le fournisseur. Les jetons relus depuis ce cache coûtent 10 % du prix normal ; leur première écriture coûte 125 %. Le coût enregistré tient compte de cette remise. Le nombre de jetons affiché compte, lui, tous les jetons envoyés.
+- **Mise en cache des instructions.** Pour Jev et les notifications, une partie des instructions envoyées au modèle est mise en cache chez le fournisseur. Les jetons relus depuis ce cache coûtent 10 % du prix normal ; leur première écriture coûte 125 %. Le calcul affiché le détaille (jetons lus et écrits en cache, jetons facturés) ; le nombre de jetons affiché compte, lui, tous les jetons envoyés.
 
 ## 3.10 Jev, l'assistant de la Console
 
@@ -1335,7 +1329,7 @@ Si la plateforme n'avait redémarré que le vendredi, l'envoi du mercredi aurait
 | Fournisseurs et clés d'IA | Fournisseurs et modèles | Autorisent l'appel aux modèles. Une clé en erreur rend ses modèles indisponibles |
 | Modèles et tarifs | Fournisseurs et modèles | Définissent les modèles utilisables et le calcul des coûts |
 | Affectation principal / secours | Affectation des modèles | Choisit le modèle de chaque fonction, dès la requête suivante |
-| Plafonds et seuils d'alerte | Vue générale des coûts | Déclenchent les alertes budgétaires, sans bloquer les appels |
+| Plafonds et seuils d'alerte | Consommation et coûts | Déclenchent les alertes budgétaires, sans bloquer les appels |
 | Persona | Persona | Nom, avatar et personnalité de Jev |
 | Skills | Skills | Consignes de Jev |
 | Planification des snapshots | Snapshots | Captures automatiques et durée de conservation, par projet |
@@ -1528,8 +1522,8 @@ Ces points viennent de la lecture du code. Ils décrivent un écart entre le cod
 **IA et coûts**
 
 16. **Désactivation d'un modèle** : la confirmation annonce une bascule sur le secours, mais le serveur refuse de désactiver un modèle principal.
-17. **Bandeau de la Vue générale des coûts** : un bandeau « Clé Google révoquée » au texte figé s'affiche dès que le fournisseur Google n'est pas testé.
-18. **Journal des appels** : la formule du « Calcul du coût » ne tombe pas juste quand le cache a servi.
+17. **Bandeau « Clé Google révoquée »** : corrigé, l'écran qui l'affichait a été remplacé par Consommation et coûts.
+18. **Journal des appels** : corrigé, le calcul du coût tombe juste, cache compris.
 19. **Consommation des notifications** : elle est rangée sous la fonction Insights.
 20. **Fournisseur sans clé** : il passe en erreur au test automatique et génère une alerte critique (cas d'OpenRouter créé par le catalogue).
 21. **Seuil d'alerte** : il ne peut pas être désactivé depuis l'écran, alors que le serveur le permet.

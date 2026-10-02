@@ -373,7 +373,7 @@ Modèle principal et modèle de secours de chaque fonction IA. Écran : IA › F
 
 ## consommation_ia
 
-Une ligne par appel à un modèle d’IA : fonction, modèle, jetons, coût, bascule sur le secours. Écran : IA › Vue générale des coûts ; Vue d’ensemble « Dépense IA du mois ».
+Une ligne par appel à un modèle d’IA : fonction, modèle, jetons, coût, bascule sur le secours. Écran : IA › Consommation et coûts ; Vue d’ensemble « Dépense IA du mois ».
 
 | Colonne | Type | Signification | Exemples, unités |
 |---|---|---|---|
@@ -388,7 +388,7 @@ Une ligne par appel à un modèle d’IA : fonction, modèle, jetons, coût, bas
 | `cout_eur` | décimal | Coût de l’appel au tarif du moment | en euros |
 | `secours_utilise` | booléen | L’appel a été servi par le modèle de secours |  |
 | `origine` | texte | Origine de l’appel | COCKPIT, JEV, NOTIFICATION, IMPORT |
-| `requete_id` | texte | Identifiant de la requête (Journal consommation et coûts) | req_4f9a1c02b7 |
+| `requete_id` | texte | Identifiant de la requête (journal de Consommation et coûts) | req_4f9a1c02b7 |
 | `prix_entree_eur_million` | décimal | Tarif d’entrée du modèle au moment de l’appel, figé | € par million de jetons ; null pour les appels antérieurs au journal |
 | `prix_sortie_eur_million` | décimal | Tarif de sortie du modèle au moment de l’appel, figé | € par million de jetons |
 | `duree_ms` | entier | Latence totale de l’appel | en millisecondes ; null si non mesurée |
@@ -417,7 +417,7 @@ Une ligne par appel à un modèle d’IA : fonction, modèle, jetons, coût, bas
 
 ## budget_ia
 
-Budget IA du mois, déjà calculé exactement comme l’écran IA › Vue générale des coûts : une ligne pour le budget global et une par ligne budgétaire (même sans plafond), avec dépense du mois, rythme des 7 derniers jours, projection de fin de mois, plafond, seuil d’alerte, pourcentage atteint et statut.
+Budget IA du mois, déjà calculé exactement comme l’écran IA › Consommation et coûts : une ligne pour le budget global et une par ligne budgétaire (même sans plafond), avec dépense du mois, rythme des 7 derniers jours, projection de fin de mois, plafond, seuil d’alerte, pourcentage atteint et statut.
 
 | Colonne | Type | Signification | Exemples, unités |
 |---|---|---|---|
@@ -433,7 +433,7 @@ Budget IA du mois, déjà calculé exactement comme l’écran IA › Vue géné
 | `seuil_alerte_pct` | entier | Seuil d’alerte en % du plafond |  |
 | `plafond_actif` | booléen | Plafond surveillé |  |
 | `pourcentage_atteint` | décimal | Dépense du mois ÷ plafond × 100 | null sans plafond |
-| `statut` | texte | Statut affiché à l’écran | SOUS_LE_PLAFOND = Sous le plafond, ALERTE = Alerte, DEPASSEMENT = Dépassement (projection au-delà du plafond), SANS_PLAFOND = Sans plafond |
+| `statut` | texte | Statut affiché à l’écran | SOUS_LE_PLAFOND = Sous le plafond, ALERTE = Alerte projetée (projection au-delà du seuil d’alerte), DEPASSEMENT = Dépassement projeté (projection au moins égale au plafond), SANS_PLAFOND = Sans plafond |
 
 **Relations**
 
@@ -455,7 +455,7 @@ Budget IA du mois, déjà calculé exactement comme l’écran IA › Vue géné
 
 ## plafonds_budget_ia
 
-Plafonds de dépense IA mensuels (global et par ligne budgétaire) et leur seuil d’alerte. Écran : IA › Vue générale des coûts.
+Plafonds de dépense IA mensuels (global et par ligne budgétaire) et leur seuil d’alerte. Écran : IA › Consommation et coûts.
 
 | Colonne | Type | Signification | Exemples, unités |
 |---|---|---|---|

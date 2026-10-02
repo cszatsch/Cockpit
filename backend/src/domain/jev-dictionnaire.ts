@@ -42,7 +42,7 @@ export const P = (col: string) => `(t.${col} AT TIME ZONE 'UTC') AT TIME ZONE 'E
 export const q = (c: string) => `"${c}"`;
 
 /**
- * Lignes budgétaires de l'écran Vue générale des coûts (spécification IA § 2), dans l'ordre de l'écran : identifiant,
+ * Lignes budgétaires de l'écran Consommation et coûts (spécification IA § 2), dans l'ordre de l'écran : identifiant,
  * libellé, fonctions regroupées. Vérifié contre `AI_FUNCTIONS` / `AI_BUDGET_LINES` par un test unitaire.
  */
 export const BUDGET_IA_LIGNES: Array<{ id: string; libelle: string; fonctions: string[] }> = [
@@ -327,7 +327,7 @@ export const DICTIONNAIRE: DictTable[] = [
   {
     nom: 'consommation_ia',
     source: '"UsageRecord" t',
-    description: 'Une ligne par appel à un modèle d’IA : fonction, modèle, jetons, coût, bascule sur le secours. Écran : IA › Vue générale des coûts ; Vue d’ensemble « Dépense IA du mois ».',
+    description: 'Une ligne par appel à un modèle d’IA : fonction, modèle, jetons, coût, bascule sur le secours. Écran : IA › Consommation et coûts ; Vue d’ensemble « Dépense IA du mois ».',
     colonnes: [
       { nom: 'date', expr: P('at'), type: 'date-heure', signification: 'Moment de l’appel' },
       { nom: 'fonction', expr: `t.${q('functionId')}`, type: 'texte', signification: 'Fonction IA appelée (voir affectations_ia.fonction)' },
@@ -340,7 +340,7 @@ export const DICTIONNAIRE: DictTable[] = [
       { nom: 'cout_eur', expr: `t.${q('costEur')}`, type: 'décimal', signification: 'Coût de l’appel au tarif du moment', exemples: 'en euros' },
       { nom: 'secours_utilise', expr: `t.${q('fallbackUsed')}`, type: 'booléen', signification: 'L’appel a été servi par le modèle de secours' },
       { nom: 'origine', expr: 't.source::text', type: 'texte', signification: 'Origine de l’appel', exemples: 'COCKPIT, JEV, NOTIFICATION, IMPORT' },
-      { nom: 'requete_id', expr: 't.id', type: 'texte', signification: 'Identifiant de la requête (Journal consommation et coûts)', exemples: 'req_4f9a1c02b7' },
+      { nom: 'requete_id', expr: 't.id', type: 'texte', signification: 'Identifiant de la requête (journal de Consommation et coûts)', exemples: 'req_4f9a1c02b7' },
       { nom: 'prix_entree_eur_million', expr: `t.${q('priceIn')}`, type: 'décimal', signification: 'Tarif d’entrée du modèle au moment de l’appel, figé', exemples: '€ par million de jetons ; null pour les appels antérieurs au journal' },
       { nom: 'prix_sortie_eur_million', expr: `t.${q('priceOut')}`, type: 'décimal', signification: 'Tarif de sortie du modèle au moment de l’appel, figé', exemples: '€ par million de jetons' },
       { nom: 'duree_ms', expr: `t.${q('durationMs')}`, type: 'entier', signification: 'Latence totale de l’appel', exemples: 'en millisecondes ; null si non mesurée' },
@@ -358,7 +358,7 @@ export const DICTIONNAIRE: DictTable[] = [
   {
     nom: 'budget_ia',
     source: BUDGET_IA_SOURCE,
-    description: 'Budget IA du mois, déjà calculé exactement comme l’écran IA › Vue générale des coûts : une ligne pour le budget global et une par ligne budgétaire (même sans plafond), avec dépense du mois, rythme des 7 derniers jours, projection de fin de mois, plafond, seuil d’alerte, pourcentage atteint et statut.',
+    description: 'Budget IA du mois, déjà calculé exactement comme l’écran IA › Consommation et coûts : une ligne pour le budget global et une par ligne budgétaire (même sans plafond), avec dépense du mois, rythme des 7 derniers jours, projection de fin de mois, plafond, seuil d’alerte, pourcentage atteint et statut.',
     colonnes: [
       { nom: 'ligne', expr: 't.ligne', type: 'texte', signification: 'Ligne budgétaire', exemples: 'all = budget global (toutes fonctions) ; insights, crud, rapports, guidage, docs' },
       { nom: 'libelle', expr: 't.libelle', type: 'texte', signification: 'Libellé affiché à l’écran', exemples: 'Budget global, Insights, Gestion des données, Rapports, Guidage console, Documents' },
@@ -372,7 +372,7 @@ export const DICTIONNAIRE: DictTable[] = [
       { nom: 'seuil_alerte_pct', expr: 't.seuil', type: 'entier', signification: 'Seuil d’alerte en % du plafond' },
       { nom: 'plafond_actif', expr: 't.actif', type: 'booléen', signification: 'Plafond surveillé' },
       { nom: 'pourcentage_atteint', expr: 'CASE WHEN t.plafond > 0 THEN round((t.depense / t.plafond * 100)::numeric, 1) END', type: 'décimal', signification: 'Dépense du mois ÷ plafond × 100', exemples: 'null sans plafond' },
-      { nom: 'statut', expr: "CASE WHEN NOT t.actif OR t.plafond IS NULL OR t.plafond = 0 THEN 'SANS_PLAFOND' WHEN t.depense + t.rythme * t.restants > t.plafond THEN 'DEPASSEMENT' WHEN t.depense >= t.plafond * t.seuil / 100.0 THEN 'ALERTE' ELSE 'SOUS_LE_PLAFOND' END", type: 'texte', signification: 'Statut affiché à l’écran', exemples: 'SOUS_LE_PLAFOND = Sous le plafond, ALERTE = Alerte, DEPASSEMENT = Dépassement (projection au-delà du plafond), SANS_PLAFOND = Sans plafond' },
+      { nom: 'statut', expr: "CASE WHEN NOT t.actif OR t.plafond IS NULL OR t.plafond = 0 THEN 'SANS_PLAFOND' WHEN t.depense + t.rythme * t.restants >= t.plafond THEN 'DEPASSEMENT' WHEN t.depense + t.rythme * t.restants > t.plafond * t.seuil / 100.0 THEN 'ALERTE' ELSE 'SOUS_LE_PLAFOND' END", type: 'texte', signification: 'Statut affiché à l’écran', exemples: 'SOUS_LE_PLAFOND = Sous le plafond, ALERTE = Alerte projetée (projection au-delà du seuil d’alerte), DEPASSEMENT = Dépassement projeté (projection au moins égale au plafond), SANS_PLAFOND = Sans plafond' },
     ],
     relations: ['budget_ia.ligne = plafonds_budget_ia.id', 'budget_ia.ligne = ligne budgétaire de consommation_ia.fonction (doc_vec, doc_rrk, doc_syn → docs)'],
     usages: ['Où en est le budget IA ?', 'Dépense du mois, projection de fin de mois, par ligne budgétaire ou au global.', 'Quel plafond est atteint, en alerte ou dépassé ?'],
@@ -386,7 +386,7 @@ export const DICTIONNAIRE: DictTable[] = [
   {
     nom: 'plafonds_budget_ia',
     source: '"BudgetThreshold" t',
-    description: 'Plafonds de dépense IA mensuels (global et par ligne budgétaire) et leur seuil d’alerte. Écran : IA › Vue générale des coûts.',
+    description: 'Plafonds de dépense IA mensuels (global et par ligne budgétaire) et leur seuil d’alerte. Écran : IA › Consommation et coûts.',
     colonnes: [
       { nom: 'id', expr: 't.id', type: 'texte', signification: 'Plafond', exemples: 'all = global ; insights, crud, rapports, guidage, docs = par ligne budgétaire' },
       { nom: 'plafond_eur', expr: `t.${q('limitEur')}`, type: 'décimal', signification: 'Plafond mensuel', exemples: 'en euros ; null = pas de plafond' },

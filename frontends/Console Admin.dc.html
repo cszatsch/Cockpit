@@ -321,14 +321,10 @@ a{color:#1d8f86}a:hover{color:#146b64}
       </div>
     </sc-if>
     <sc-if value="{{ isConso }}" hint-placeholder-val="{{ false }}">
-      <div data-screen-label="Vue générale des coûts" style="animation:rise-in .35s cubic-bezier(.2,.7,.2,1) both">
-        <dc-import name="ConsoCouts" mtd-ref="{{ consoMtd }}" google-ok="{{ consoGoogleOk }}" on-fix-key="{{ consoFixKey }}" hint-size="100%,1200px"></dc-import>
-      </div>
-    </sc-if>
-    <sc-if value="{{ isJournal }}" hint-placeholder-val="{{ false }}">
-      <!-- API : GET /usage/daily et /usage/calls (Journal des appels.dc.html, admin-api.js → journalApi). -->
-      <div data-screen-label="Journal consommation et coûts" style="animation:rise-in .35s cubic-bezier(.2,.7,.2,1) both">
-        <dc-import name="Journal des appels" hint-size="100%,1400px"></dc-import>
+      <!-- API : /usage/month, /usage/daily, /usage/calls, /usage/calls.csv, /budget-thresholds (Consommation et couts.dc.html, admin-api.js → consoApi).
+           Pas d'animation à transformation maintenue : elle ferait de ce bloc le repère des éléments position:fixed (toast). -->
+      <div data-screen-label="Consommation et coûts" style="animation:fade .35s ease-out both">
+        <dc-import name="Consommation et couts" hint-size="100%,2000px"></dc-import>
       </div>
     </sc-if>
     <sc-if value="{{ isLatency }}" hint-placeholder-val="{{ false }}">
@@ -871,8 +867,7 @@ const META = {
   admins: ['Accès', 'Administrateurs', 'Qui administre la plateforme, et la trace de chaque action sensible.'],
   rights: ['Accès', 'Droits et habilitations', 'Trois niveaux : projet, module, fonction. Les profils types évitent de configurer chaque utilisateur un par un.'],
   providers: ['IA', 'Fournisseurs et modèles', 'Clés API, tests de connexion et catalogue des modèles avec leur coût.'],
-  conso: ['IA', 'Vue générale des coûts', 'Tokens et dépenses par fournisseur, modèle et fonction, avec seuils d’alerte.'],
-  journal: ['Intelligence artificielle', 'Journal consommation et coûts', 'Tokens consommés et détail de chaque appel LLM.'],
+  conso: ['IA', 'Consommation et coûts', 'Tokens et dépenses par fonction, fournisseur et modèle, seuils d’alerte et détail de chaque appel LLM.'],
   latency: ['IA', 'Analyse des temps de réponse', 'Durée de traitement des prompts, de bout en bout et par étape, par catégorie de prompt ou par modèle.'],
   snaps: ['Projets', 'Snapshots', 'L’historique des données de chaque projet : capturer, comparer, restaurer.'],
   notifs: ['Plateforme', 'Notifications', 'Les notifications informent les utilisateurs chaque jour ou chaque semaine, à l’heure prévue.'],
@@ -892,8 +887,7 @@ const JCHIPS = {
   admins: ['Qui est administrateur ?', 'Résume le journal d’audit'],
   rights: ['Quels sont les droits de Thomas Girard ?', 'Qui est PMO sur RISE ?'],
   providers: ['Comment tester les clés API ?', 'Pourquoi la clé Google est invalide ?', 'Quelle fonction tourne sur son secours ?'],
-  conso: ['Où en est le budget IA ?', 'Comment réduire les coûts ?'],
-  journal: ['Combien de tokens ce mois-ci ?', 'Quel est l’appel le plus cher du mois ?'],
+  conso: ['Où en est le budget IA ?', 'Quel est l’appel le plus cher du mois ?'],
   snaps: ['Comment créer un snapshot ?', 'Qu’est-ce qui a changé depuis le 22 sept. ?'],
   notifs: ['Quelles notifications sont actives ?', 'Y a-t-il eu des échecs d’envoi ?'],
   smtp: ['Quel serveur envoie les e-mails ?', 'Le dernier test de connexion a-t-il réussi ?'],
@@ -928,7 +922,7 @@ class Component extends DCLogic {
       adTab: 'admins', aq: '', aSev: 'tous', audit: AUDIT0.map((a, i) => ({ id: 'a' + i, who: a[0], a: a[1], tg: a[2], sev: a[3], t: back(a[4]) })),
       rTab: 'matrice', rView: 'user', rUser: 'u7', rProj: 'RISE', ov: { 'u7|RISE|pil': 3, 'u7|RISE|pil.risk': 1 }, pend: {}, menu: null, exp: { pil: true }, rProf: 'pmo', profs: PROFS.map(p => ({ ...p, lv: { ...p.lv } })),
       provs: PROV0.map(p => ({ ...p, t: back(p.ago) })), models: MODELS0.map(m => ({ ...m })), navC: null,
-      asg, usage: genUsage(MODELS0, asg), cPer: 30, cDim: 'pv', cHov: null,
+      asg, usage: genUsage(MODELS0, asg),
       th: [{ id: 'all', n: 'Budget mensuel global', lim: 1200, warn: 80, on: true }, { id: 'insights', n: 'Analyse des données et insights', lim: 800, warn: 80, on: true }, { id: 'docs', n: 'Documents', lim: 400, warn: 80, on: true }],
       sPj: 'RISE', snaps, sSel: ['r9', 'r10'], sched: { on: true, fq: 'Hebdomadaire', day: 'vendredi', hour: '04:00', keep: '12 mois' }, cap: null, sFilt: 'tous',
       mods: [{ id: 'bud', n: 'Budget', d: 'Budget prévisionnel, consommé, reste à faire et arbitrages.', sc: 'projet', pj: { RISE: new Date(2026, 2, 12), ATLAS: new Date(2026, 5, 2) }, g: null },
@@ -978,6 +972,8 @@ class Component extends DCLogic {
   go(sec, then) {
     // Ancienne page « Affectation des modèles » (supprimée le 02/10/2026) : section de « Fournisseurs et modèles ».
     if (sec === 'assign') return this.goAsg(then);
+    // Ancienne page « Journal consommation et coûts » (fusionnée le 02/10/2026) : « Consommation et coûts ».
+    if (sec === 'journal') sec = 'conso';
     const first = !this.state.seen[sec];
     this.setState(s => ({ sec, mnav: false, menu: null, loading: first, seen: { ...s.seen, [sec]: 1 } }));
     try { window.scrollTo({ top: 0 }); } catch (e) { }
@@ -1163,12 +1159,6 @@ class Component extends DCLogic {
   saveProf() { const f = this.state.form; if (!f.n || f.n.trim().length < 2) return this.setState({ fe: { n: 'Donnez un nom au profil.' } }); const base = this.state.profs.find(p => p.id === f.base) || this.state.profs[4]; const id = 'pf' + Date.now(); const lv = {}; MODS.forEach(m => lv[m.id] = this.profLv(base.id, m.id)); this.setState(s => ({ profs: [...s.profs, { id, n: f.n.trim(), d: (f.d || '').trim() || 'Profil personnalisé.', lv }], rProf: id, dlg: null, form: {} })); this.log('Création d’un profil type', f.n.trim() + ' (à partir de ' + base.n + ')', 'sensible'); this.toast('Profil « ' + f.n.trim() + ' » créé'); }
 
   // ——— Consommation
-  exportCsv() {
-    const S = this.state, from = 90 - S.cPer, M = Object.fromEntries(S.models.map(m => [m.id, m.n])), PV = Object.fromEntries(S.provs.map(p => [p.id, p.n])), F = Object.fromEntries(FNS.map(f => [f.id, f.sh]));
-    const L = ['Date;Fournisseur;Modèle;Fonction;Tokens entrée;Tokens sortie;Coût (€)'];
-    S.usage.filter(r => r.d >= from).forEach(r => { const d = dayDate(r.d); L.push([d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()), PV[r.pv] || r.pv, M[r.m] || r.m, F[r.fn], Math.round(r.tin), Math.round(r.tout), r.c.toFixed(2).replace('.', ',')].join(';')); });
-    csvDl('consommation-ia-' + S.cPer + 'j.csv', L); this.log('Export de la consommation IA', S.cPer + ' derniers jours'); this.toast('Export CSV téléchargé · ' + (L.length - 1) + ' lignes');
-  }
   setTh(id, patch, logIt) { this.setState(s => ({ th: s.th.map(t => t.id === id ? { ...t, ...patch } : t) })); if (logIt) { const t = this.state.th.find(x => x.id === id); this.log('Modification d’un seuil budgétaire', t.n + ' · ' + logIt, 'sensible'); this.toast('Seuil mis à jour'); } }
 
   // ——— Snapshots
@@ -1324,7 +1314,7 @@ class Component extends DCLogic {
   renderVals() {
     const S = this.state, mode = this.navMode(), is = k => S.sec === k;
     this._v30 = null;
-    const att = this.attention(), th = this.thVals(), mtd = this.mtd();
+    const att = this.attention(), th = this.thVals();
     const badge = { users: S.users.filter(u => u.s === 'invité' && u.inv > 7).length ? ['warn', S.users.filter(u => u.s === 'invité' && u.inv > 7).length] : null, providers: S.provs.filter(p => p.st === 'err').length ? ['err', S.provs.filter(p => p.st === 'err').length] : null, conso: th.some(t => t.on && t.pct >= t.warn) ? ['warn', th.filter(t => t.on && t.pct >= t.warn).length] : null, modules: S.reqs.length ? ['info', S.reqs.length] : null, rights: Object.keys(S.pend).length ? ['pend', Object.keys(S.pend).length] : null };
     const meta = META[S.sec], errN = att.filter(a => a.tone === 'err').length;
     const vals = {
@@ -1343,10 +1333,10 @@ class Component extends DCLogic {
       mob: mode === 'mob', scrim: mode === 'mob' && S.mnav, openNav: () => this.setState({ mnav: true }), closeNav: () => this.setState({ mnav: false }),
       padSt: `max-width:1320px;margin:0 auto;padding:${mode === 'mob' ? '20px 16px 96px' : mode === 'rail' ? '28px 28px 96px' : '32px 44px 96px'}`,
       topSt: `position:sticky;top:0;z-index:40;height:60px;display:flex;align-items:center;gap:12px;padding:0 ${mode === 'mob' ? 16 : mode === 'rail' ? 28 : 44}px;background:rgba(242,246,245,.82);backdrop-filter:saturate(1.4) blur(14px);-webkit-backdrop-filter:saturate(1.4) blur(14px);border-bottom:1px solid rgba(16,35,58,.06)`,
-      eyebrow: meta[0], title: meta[1], desc: meta[2], isOv: is('overview'), notOv: !is('overview') && !is('skills') && !is('persona') && !is('apis') && !is('journal') && !is('latency') && !is('providers') && !is('notifs') && !is('smtp') && !is('guide') && !is('snaps') && !is('library'), loading: S.loading, ready: !S.loading,
+      eyebrow: meta[0], title: meta[1], desc: meta[2], isOv: is('overview'), notOv: !is('overview') && !is('skills') && !is('persona') && !is('apis') && !is('conso') && !is('latency') && !is('providers') && !is('notifs') && !is('smtp') && !is('guide') && !is('snaps') && !is('library'), loading: S.loading, ready: !S.loading,
       healthL: errN ? errN + ' incident' + (errN > 1 ? 's' : '') : 'Opérationnelle', healthPill: pill(errN ? 'err' : 'ok'), healthDot: dot(errN ? 'err' : 'ok'), goOv: () => this.go('overview'),
       isUsers: is('users') && !S.loading, isAdmins: is('admins') && !S.loading, isRights: is('rights') && !S.loading, isProv: is('providers') && !S.loading, isConso: is('conso') && !S.loading, isInit: is('init') && !S.loading, isLib: is('library') && !S.loading, isSnaps: is('snaps') && !S.loading, isNotifs: is('notifs') && !S.loading, isMods: is('modules') && !S.loading,
-      isApis: is('apis') && !S.loading, isJournal: is('journal') && !S.loading, isLatency: is('latency') && !S.loading,
+      isApis: is('apis') && !S.loading, isLatency: is('latency') && !S.loading,
       // Fournisseurs et modèles : données brutes de l'API et actions, branchées par admin-api.js (démonstration sans elles).
       fmData: S.fpData || null, fmApi: this.fmApi || null, fpKey: S.fpKey || null,
       // Temps de traitement : rappels branchés par admin-api.js (absents en démonstration : l'écran affiche alors ses données fictives).
@@ -1475,40 +1465,10 @@ class Component extends DCLogic {
     const mn = S.menu;
     vals.mn = { on: !!mn, st: mn ? `position:fixed;left:${mn.x}px;top:${mn.y}px;z-index:90;width:236px;background:#fff;border-radius:14px;padding:6px;box-shadow:0 24px 48px -16px rgba(16,35,58,.35),0 0 0 1px rgba(16,35,58,.08);animation:pop .16s cubic-bezier(.2,.7,.2,1) both` : '', label: mn ? mn.label : '', note: mn ? mn.note : '',
       opts: mn ? LV.map((o, k) => { const cur = (S.pend[mn.key] ? S.pend[mn.key].v : mn.cur) === k; return { l: o.l, s: o.s, cur, st: `display:flex;align-items:center;gap:10px;width:100%;height:34px;padding:0 10px;border:0;border-radius:8px;background:${cur ? '#eef3f2' : 'transparent'};font-size:12.5px;font-weight:${cur ? 700 : 500};color:${k === 4 ? '#a8372c' : '#10233a'};cursor:pointer;text-align:left`, pick: () => this.setLv(mn.key, k, mn.cur, mn.label) }; }) : [] };
-    vals.consoMtd = mtd.all; vals.consoGoogleOk = (S.provs.find(p => p.id === 'google') || {}).st === 'ok'; vals.consoFixKey = () => this.goKey('google');
     vals.libImported = S.libImp || []; vals.libCodes = [...PROJ, ...(S.libImp || []).map(p => p.code)]; vals.openLib = () => this.go('library'); vals.openInit = () => this.go('init');
     vals.onImported = p => { this.setState(s => ({ libImp: [p, ...(s.libImp || [])] })); this.log('Initialisation d’un projet', p.code + ' · ' + p.file, 'sensible'); this.toast(p.code + ' créé'); };
     vals.dlW = S.dlg && S.dlg.type === 'user' ? '680px' : '540px';
     vals.du = this.uDlgVals();
-    // Conso
-    if (is('conso')) {
-      const P = S.cPer, from = 90 - P, M = Object.fromEntries(S.models.map(m => [m.id, m.n])), PV = Object.fromEntries(S.provs.map(p => [p.id, p.n])), F = Object.fromEntries(FNS.map(f => [f.id, f.sh]));
-      const key = r => S.cDim === 'pv' ? r.pv : S.cDim === 'm' ? r.m : r.fn, nm = k => S.cDim === 'pv' ? (PV[k] || k) : S.cDim === 'm' ? (M[k] || k) : F[k];
-      const rows = S.usage.filter(r => r.d >= from), agg = {}; let tot = 0, tin = 0, tout = 0;
-      rows.forEach(r => { const k = key(r); agg[k] = agg[k] || { c: 0, tin: 0, tout: 0 }; agg[k].c += r.c; agg[k].tin += r.tin; agg[k].tout += r.tout; tot += r.c; tin += r.tin; tout += r.tout; });
-      const items = Object.entries(agg).sort((a, b) => b[1].c - a[1].c), SER = ['#10233a', '#1d8f86', '#6fa8a1', '#a9c3c6', '#d5e0de'];
-      const top = items.length > 5 ? items.slice(0, 4).map(x => x[0]) : items.map(x => x[0]), colOf = k => { const i = top.indexOf(k); return i < 0 ? SER[4] : SER[i]; };
-      const series = [...top.map(k => ({ k, l: nm(k), col: SER[top.indexOf(k)] })), ...(items.length > 5 ? [{ k: '_', l: 'Autres', col: SER[4] }] : [])];
-      const days = []; for (let d = from; d < 90; d++) days.push({ d, t: 0, s: {} });
-      rows.forEach(r => { const x = days[r.d - from], k = top.includes(key(r)) ? key(r) : '_'; x.t += r.c; x.s[k] = (x.s[k] || 0) + r.c; });
-      const mx = Math.max(...days.map(x => x.t)) * 1.1, daily = S.th[0].lim / 30, hv = S.cHov != null && days[S.cHov] ? days[S.cHov] : null;
-      const prev = from - P >= 0 ? S.usage.filter(r => r.d >= from - P && r.d < from).reduce((a, r) => a + r.c, 0) : null, dp = prev ? Math.round((tot - prev) / prev * 100) : null;
-      vals.co = {
-        per: [[7, '7 jours'], [30, '30 jours'], [90, '90 jours']].map(([k, l]) => ({ l, on: P === k, st: segSt(P === k), pick: () => this.setState({ cPer: k, cHov: null }) })),
-        dim: [['pv', 'Fournisseur'], ['m', 'Modèle'], ['fn', 'Fonction']].map(([k, l]) => ({ l, on: S.cDim === k, st: segSt(S.cDim === k), pick: () => this.setState({ cDim: k }) })),
-        kpi: [{ k: 'Coût sur la période', v: eur(tot), s: dp == null ? 'Pas de période précédente comparable' : (dp >= 0 ? '+' : '−') + Math.abs(dp) + ' % par rapport aux ' + P + ' jours précédents', sSt: `font-size:12px;font-weight:600;color:${dp == null ? '#5c7280' : dp > 10 ? '#8a5a12' : '#5c7280'}` },
-          { k: 'Tokens en entrée', v: mt(tin), s: 'Coût moyen ' + eur(tot / (tin + tout) * 1e6, 2) + ' / M tokens', sSt: 'font-size:12px;font-weight:600;color:#5c7280' },
-          { k: 'Tokens en sortie', v: mt(tout), s: Math.round(tout / (tin + tout) * 100) + ' % du volume, ' + Math.round(rows.reduce((a, r) => { const m = S.models.find(x => x.id === r.m); return a + r.tout * m.pout / 1e6; }, 0) / tot * 100) + ' % du coût', sSt: 'font-size:12px;font-weight:600;color:#5c7280' },
-          { k: 'Projection ' + MO_L[nowD().getMonth()], v: th[0].projL, s: th[0].over ? 'Dépasserait le budget de ' + eur(th[0].proj - th[0].lim) : 'Dans le budget de ' + th[0].limL, sSt: `font-size:12px;font-weight:700;color:${th[0].over ? '#a8372c' : '#0f5f5a'}` }],
-        series, bars: days.map((x, i) => ({ col: 'flex:1 1 0;min-width:0;height:100%;display:flex;flex-direction:column;justify-content:flex-end;cursor:crosshair', st: `height:${x.t / mx * 100}%;display:flex;flex-direction:column-reverse;border-radius:${P > 40 ? 2 : 4}px ${P > 40 ? 2 : 4}px 0 0;overflow:hidden;transition:opacity .15s,height .5s cubic-bezier(.2,.7,.2,1);opacity:${hv && S.cHov !== i ? .35 : 1}`, segs: series.map(s => ({ st: `flex:none;height:${x.t ? (x.s[s.k] || 0) / x.t * 100 : 0}%;background:${s.col}` })), enter: () => this.setState({ cHov: i }) })),
-        gap: P > 40 ? '2px' : P > 10 ? '4px' : '10px', leave: () => this.setState({ cHov: null }),
-        budLine: `position:absolute;left:0;right:0;bottom:${daily / mx * 100}%;border-top:1.5px dashed #c2473b;pointer-events:none`, budL: 'Rythme du budget · ' + eur(daily) + ' / jour',
-        read: hv ? DOW[dayDate(hv.d).getDay()] + ' ' + fD(dayDate(hv.d)) : P + ' derniers jours', readV: hv ? eur(hv.t, 2) : eur(tot), readS: hv ? series.map(s => ({ l: s.l, v: eur(hv.s[s.k] || 0, 2), sw: `width:8px;height:8px;border-radius:2px;background:${s.col}` })) : series.map(s => ({ l: s.l, v: eur(s.k === '_' ? items.filter(x => !top.includes(x[0])).reduce((a, x) => a + x[1].c, 0) : agg[s.k].c), sw: `width:8px;height:8px;border-radius:2px;background:${s.col}` })),
-        x0: fD(dayDate(from)), x1: fD(dayDate(Math.round((from + 89) / 2))), x2: 'Aujourd’hui',
-        table: items.map(([k, a]) => ({ l: nm(k), c: eur(a.c), sh: Math.round(a.c / tot * 100) + ' %', tin: mt(a.tin), tout: mt(a.tout), bar: `height:100%;border-radius:3px;width:${a.c / items[0][1].c * 100}%;background:${colOf(k)}` })), dimL: S.cDim === 'pv' ? 'Fournisseur' : S.cDim === 'm' ? 'Modèle' : 'Fonction',
-        th, exp: () => this.exportCsv(), goRule: () => this.go('notifs'), warnOpts: [50, 70, 80, 90].map(v => ({ v: String(v), l: v + ' %' }))
-      };
-    }
     // Snapshots
     if (is('snaps')) {
       const list = S.snaps[S.sPj] || [], sel = S.sSel.filter(id => list.some(s => s.id === id)), byIx = [...list].sort((a, b) => a.t - b.t), cnt = {};
@@ -1635,7 +1595,6 @@ class Component extends DCLogic {
     const SE = (v, on, o, a, w) => this.selEl(v, on, o, a, w);
     if (vals.us) { vals.us.pfEl = SE(S.uPf, vals.us.setPf, [{ v: 'tous', l: 'Tous les profils' }, ...vals.us.pfOpts], 'Filtrer par profil'); vals.us.pjEl = SE(S.uPj, vals.us.setPj, [{ v: 'tous', l: 'Tous les projets' }, ...vals.us.pjOpts], 'Filtrer par projet'); }
     if (vals.rt) { vals.rt.uEl = SE(vals.rt.uSel, vals.rt.setU, vals.rt.uOpts, 'Utilisateur', '100%'); vals.rt.pEl = SE(vals.rt.pSel, vals.rt.setP, vals.rt.pOpts, 'Projet'); }
-    if (vals.co) vals.co.th.forEach(t => t.warnEl = SE(String(t.warn), t.setWarn, vals.co.warnOpts, 'Seuil d’alerte · ' + t.n));
     if (vals.sn) { const h = vals.sn.sch; h.fqEl = SE(h.fq, h.setFq, vals.sn.fqOpts, 'Fréquence'); h.dayEl = SE(h.day, h.setDay, vals.sn.dayOpts, 'Jour'); h.hourEl = SE(h.hour, h.setHour, vals.sn.hourOpts, 'Heure'); h.keepEl = SE(h.keep, h.setKeep, vals.sn.keepOpts, 'Conservation'); }
     if (vals.dl.isAdm) vals.dl.aEl = SE(S.form.u || '', vals.ff.u, vals.dl.aOpts, 'Utilisateur', '100%');
     if (vals.dl.isProf) vals.dl.bEl = SE(S.form.base, vals.ff.base, vals.dl.bOpts, 'Profil de départ', '100%');

@@ -1119,3 +1119,20 @@ Spécification `docs/specs/FOURNISSEURS - specification.md`. Arbitrages du comma
 | États | Ceux du serveur (`NOMINAL`, `FALLBACK`, `UNAVAILABLE`, `BLOCKED`) : clé du fournisseur, modèle actif, chaîne Documents ; bascule sur le secours automatique au routage (clé du principal en erreur) | `functionState`, `chainStates`, `LlmService.route` |
 | Clés | Chiffrées (AES-256-GCM), jamais renvoyées (préfixe et 4 derniers caractères), testées à l'ajout et au remplacement (appel léger au fournisseur, horodaté), l'ancienne cesse d'être utilisée dès l'enregistrement ; journal d'audit sans valeur | `ProviderKeyTester`, `keyFingerprint` |
 | Vue réseau | Retirée de la page : ses informations (fournisseur → fonctions, secours en service) figurent dans l'affectation et la colonne « Utilisé par » ; indicateur de temps de réponse des clés retiré (demande) | — |
+
+## Consommation et coûts : fusion de la Vue générale des coûts et du Journal (02/10/2026)
+
+Spécification `docs/specs/CONSO - specification.md` (maquette `Consommation et couts.dc.html`). Choix techniques :
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Navigation | Une entrée IA « Consommation et coûts » (page `conso`) ; l'ancienne page `journal` redirige vers `conso` ; écrans `ConsoCouts.dc.html` et `Journal des appels.dc.html` supprimés, liaison `bindConso` et export de la Console retirés | `go` (`Console Admin.dc.html`), `consoApi` (`admin-api.js`) |
+| API | Routes existantes gardées sous `/api/admin` (`/usage/month`, `/usage/daily`, `/usage/calls`, `/usage/calls.csv`, `PUT /budget-thresholds/:id`) : agrégation côté serveur, réservées à l'administrateur, modification de plafond auditée (Sensible) | `AiController`, `UsageService` |
+| Période | Jour (barres par heure), 7 j, Ce mois (depuis le 1er), 30 j, 3 mois = 90 j, 6 mois = 180 j (maquette), jusqu'à aujourd'hui (date du serveur) ; le budget reste le mois civil | `PER` (écran) |
+| Statut | Sur la projection : projection ≥ plafond → `EXCEEDED` (Dépassement projeté) ; projection > plafond × seuil → `ALERT` (Alerte projetée) ; sinon `UNDER` ; sans plafond ou plafond désactivé → `NO_LIMIT` (« Sans plafond »). Auparavant l'alerte venait de la dépense. Même règle dans la vue `jev.budget_ia` de Jev (migration `20261105000000_conso_fusion`) ; la notification budgétaire existante (cloche `budget:`, « À traiter ») suit ce statut | `UsageService.status`, fiche `budget_ia` (`jev-dictionnaire.ts`) |
+| Projection | Inchangée : dépense du mois + rythme des 7 derniers jours × jours restants | `UsageService.month` |
+| Coût d'un appel | Jetons lus et écrits en cache enregistrés avec l'appel (`cacheReadTokens`, `cacheWriteTokens`) ; jetons facturés = autres jetons + lus × 0,1 + écrits × 1,25 ; pour un appel antérieur, déduits du coût stocké : le calcul affiché retombe exactement sur le coût de la ligne (écarts 0,031 € / 0,024 € corrigés) | `billedInOf`, `CACHE_READ_FACTOR`, `CACHE_WRITE_FACTOR` |
+| Données du bandeau et des tuiles | `/usage/month` ajoute `tokensMonth`, `dailyCumul` (dépense cumulée par jour) et, par ligne budgétaire, `models` (modèles principaux affectés à ses étapes) | `MonthView` |
+| Performance | Index `UsageRecord (functionId, at)` en plus de `(at)` ; journal par curseur, 30 appels par page, chargés au défilement | migration `20261105000000_conso_fusion`, `PAGE` (écran) |
+| Lisibilité | Tuiles 5 de front, 3 + 2 quand la page fait moins de 900 px (requête de conteneur : la barre latérale réduit la largeur) ; colonnes fluides du journal ; libellés et modèles passent à la ligne plutôt que d'être tronqués | `[data-conso-tiles]`, `[data-conso-row]` |
+| Plafond désactivé | Affiché « Sans plafond » ; saisir un plafond le réactive (`enabled: true`) | `setCap` (écran) |

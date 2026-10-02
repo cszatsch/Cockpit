@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800&amp;display=swap" rel="stylesheet"><style>
+html,body{margin:0;background:#f2f6f5;font-family:'Plus Jakarta Sans',sans-serif;color:#10233a;-webkit-font-smoothing:antialiased;font-size:13px}
+*{box-sizing:border-box}a{color:#1d8f86}a:hover{color:#146b64}button,input{font:inherit;color:inherit}
+button:focus-visible,input:focus-visible{outline:2px solid #1d8f86;outline-offset:2px}
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}input[type=number]{-moz-appearance:textfield}
+@keyframes pop{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
+@media (max-width:1000px){[data-screen-label="Consommation et coûts"]{padding:28px 18px 60px!important}}
+[data-conso-tiles]{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+@container conso (max-width:900px){[data-conso-tiles]{grid-template-columns:repeat(3,minmax(0,1fr))}}
+[data-conso-row]{grid-template-columns:max-content minmax(120px,.9fr) minmax(150px,1.4fr) minmax(96px,.7fr) minmax(90px,.9fr) 72px;gap:16px;padding:12px 24px}
+@container conso (max-width:900px){[data-conso-row]{grid-template-columns:max-content minmax(100px,.9fr) minmax(110px,1.4fr) minmax(88px,.7fr) minmax(56px,.6fr) 66px;gap:10px;padding:12px 16px}}
+@container conso (max-width:620px){[data-conso-tiles]{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style></helmet>
+<div data-screen-label="Consommation et coûts" style="max-width:1240px;margin:0 auto;padding:40px 32px 80px;display:flex;flex-direction:column;gap:28px;container:conso/inline-size">
+  <div style="display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap">
+    <div style="flex:1;display:flex;flex-direction:column;gap:6px;min-width:280px">
+      <div style="font-size:11px;font-weight:800;letter-spacing:.16em;color:#1d8f86">IA</div>
+      <div style="font-size:34px;font-weight:800;font-style:italic;letter-spacing:-.03em;line-height:1.1">Consommation et coûts</div>
+      <div style="font-size:14px;color:#43586a;text-wrap:pretty">Tokens et dépenses par fonction, fournisseur et modèle, seuils d’alerte et détail de chaque appel LLM.</div>
+    </div>
+    <div role="tablist" aria-label="Période" style="display:inline-flex;gap:2px;padding:3px;border-radius:11px;background:#e3ebe9;flex-wrap:wrap"><sc-for list="{{ periods }}" as="p" hint-placeholder-count="6"><button role="tab" aria-selected="{{ p.on }}" onClick="{{ p.pick }}" style="{{ p.st }}">{{ p.l }}</button></sc-for></div>
+    <button onClick="{{ exportCsv }}" style="height:36px;padding:0 14px;border:0;border-radius:11px;background:#fff;box-shadow:0 0 0 1px #dfe7e5;font-weight:700;font-size:12.5px;display:inline-flex;align-items:center;gap:8px;cursor:pointer;white-space:nowrap" style-hover="background:#f7faf9"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"></path></svg>Exporter en CSV</button>
+  </div>
+
+  <div style="background:radial-gradient(900px 340px at 18% -10%,rgba(63,209,193,.1),transparent 60%),#0e2135;border-radius:24px;color:#e8f0f3;box-shadow:0 30px 60px -42px rgba(14,33,53,.75);overflow:hidden">
+    <div style="display:flex;flex-wrap:wrap">
+      <div style="flex:1 1 230px;max-width:100%;padding:28px 24px 24px;display:flex;flex-direction:column;gap:22px;box-shadow:1px 0 0 rgba(255,255,255,.07)">
+        <div style="display:flex;flex-direction:column;gap:8px"><span style="font-size:10.5px;font-weight:800;letter-spacing:.16em;color:#3fd1c1">PROJECTION FIN DE MOIS</span><span style="font-size:56px;font-weight:800;font-style:italic;letter-spacing:-.05em;line-height:.95;color:#fff;font-variant-numeric:tabular-nums;white-space:nowrap">{{ g.projL }}</span></div>
+        <span style="{{ g.noteSt }}">{{ g.note }}</span>
+        <div style="display:flex;gap:28px;flex-wrap:wrap">
+          <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:11px;color:#7f95a6;white-space:nowrap">{{ g.spentLbl }}</span><span style="font-size:22px;font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums;white-space:nowrap">{{ g.spentL }}</span></div>
+          <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:11px;color:#7f95a6">Plafond</span><span style="font-size:22px;font-weight:800;letter-spacing:-.03em;color:#9fb3c2;font-variant-numeric:tabular-nums;white-space:nowrap">{{ g.plL }}</span></div>
+        </div>
+        <span style="flex:1"></span>
+        <div style="display:flex;flex-direction:column;gap:6px;font-size:11.5px;color:#7f95a6;font-variant-numeric:tabular-nums;padding-top:16px;box-shadow:0 -1px 0 rgba(255,255,255,.07)"><span>Rythme des 7 derniers jours <b style="color:#e8f0f3;white-space:nowrap">{{ g.rateL }}</b></span><span>{{ g.prevLbl }} <b style="color:#e8f0f3;white-space:nowrap">{{ g.prevL }}</b></span><span>Tokens ce mois <b style="color:#e8f0f3;white-space:nowrap">{{ g.tokMonthL }}</b></span></div>
+      </div>
+      <div style="flex:999 1 420px;min-width:0;padding:22px 24px 18px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span style="font-size:12px;color:#9fb3c2;text-wrap:pretty">{{ head }}</span>
+          <span style="flex:1"></span>
+          <div role="tablist" aria-label="Lecture du graphique" style="display:inline-flex;gap:2px;padding:3px;border-radius:10px;background:rgba(255,255,255,.06)"><sc-for list="{{ modes }}" as="m" hint-placeholder-count="3"><button role="tab" aria-selected="{{ m.on }}" onClick="{{ m.pick }}" style="{{ m.st }}">{{ m.l }}</button></sc-for></div>
+        </div>
+        <div style="width:100%;min-width:0">{{ chart }}</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:14px 36px;flex-wrap:wrap;padding:16px 28px;box-shadow:0 -1px 0 rgba(255,255,255,.07);background:rgba(255,255,255,.02)">
+      <span style="display:flex;align-items:baseline;gap:8px;white-space:nowrap"><span style="font-size:11px;color:#7f95a6">Tokens · {{ periodL }}</span><b style="font-size:17px;font-variant-numeric:tabular-nums">{{ k.tok }}</b></span>
+      <span style="display:flex;align-items:center;gap:10px;font-size:11.5px;color:#7f95a6;font-variant-numeric:tabular-nums;white-space:nowrap"><span style="display:flex;width:120px;height:5px;border-radius:3px;overflow:hidden;gap:2px"><span style="{{ k.inBar }}"></span><span style="{{ k.outBar }}"></span></span><span style="white-space:nowrap"><b style="color:#e8f0f3">Entrée</b> {{ k.inL }} · {{ k.inPctL }}</span><span style="white-space:nowrap"><b style="color:#e8f0f3">Sortie</b> {{ k.outL }} · {{ k.outPctL }}</span></span>
+      <span style="display:flex;align-items:baseline;gap:8px;white-space:nowrap"><span style="font-size:11px;color:#7f95a6">Appels</span><b style="font-size:17px;font-variant-numeric:tabular-nums">{{ k.calls }}</b></span>
+      <span style="flex:1"></span>
+      <sc-if value="{{ hasFn }}" hint-placeholder-val="{{ false }}"><button onClick="{{ clearFn }}" style="height:26px;padding:0 10px;border:0;border-radius:999px;background:rgba(255,255,255,.08);color:#e8f0f3;font-size:11.5px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px" style-hover="background:rgba(255,255,255,.14)"><span style="{{ fnDot }}"></span>{{ fnL }} ×</button></sc-if>
+    </div>
+  </div>
+
+  <div data-conso-tiles="">
+    <sc-for list="{{ tiles }}" as="r" hint-placeholder-count="5">
+      <div role="button" tabIndex="0" aria-pressed="{{ r.on }}" onClick="{{ r.pick }}" style="{{ r.cardSt }}">
+        <div style="display:flex;align-items:center;gap:7px"><span style="{{ r.dotSt }}"></span><span style="font-size:13px;font-weight:800;line-height:1.25">{{ r.n }}</span></div>
+        <span style="font-size:11px;line-height:1.4;color:#8a9aa6;margin-top:-8px;text-wrap:pretty">{{ r.model }}</span>
+        <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:2px 8px"><span style="font-size:24px;font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums;white-space:nowrap">{{ r.spentL }}</span><span style="font-size:11px;color:#8a9aa6;font-variant-numeric:tabular-nums;white-space:nowrap">{{ r.shareL }}</span></div>
+        <div style="display:flex;flex-direction:column;gap:6px"><div style="position:relative;height:6px;border-radius:3px;background:#eef3f2"><span style="{{ r.projSt }}"></span><span style="{{ r.curSt }}"></span><span style="{{ r.alSt }}"></span></div><span style="font-size:10.5px;color:#8a9aa6;font-variant-numeric:tabular-nums">{{ r.pctL }}</span></div>
+        <span style="{{ r.stSt }}">{{ r.stL }}</span>
+        <div onClick="{{ stop }}" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;padding-top:12px;border-top:1px solid #edf2f1;cursor:default">
+          <span style="display:flex;align-items:center;gap:4px"><input type="number" min="0" value="{{ r.pl }}" onChange="{{ r.setPl }}" aria-label="Plafond" style="width:56px;height:30px;padding:0 7px;border:1px solid #d5dfdd;border-radius:8px;text-align:right;font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums;outline:none" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.14)"></input><span style="color:#8a9aa6;font-size:11.5px">€</span></span>
+          <span style="display:flex;align-items:center;gap:2px"><button onClick="{{ r.alDn }}" aria-label="Baisser l’alerte" style="width:22px;height:22px;border:0;border-radius:6px;background:#f1f5f4;cursor:pointer;font-weight:800;font-size:12px;color:#43586a" style-hover="background:#e3ebe9">−</button><span style="width:38px;text-align:center;font-size:11.5px;font-weight:800;color:#a8670f;font-variant-numeric:tabular-nums">{{ r.alL }}</span><button onClick="{{ r.alUp }}" aria-label="Monter l’alerte" style="width:22px;height:22px;border:0;border-radius:6px;background:#f1f5f4;cursor:pointer;font-weight:800;font-size:12px;color:#43586a" style-hover="background:#e3ebe9">+</button></span>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:-10px;font-size:11.5px;color:#6b7f8c">
+    <span style="white-space:nowrap">Budget global : plafond</span>
+    <span style="display:flex;align-items:center;gap:4px"><input type="number" min="0" value="{{ g.pl }}" onChange="{{ g.setPl }}" aria-label="Plafond global" style="width:64px;height:28px;padding:0 7px;border:1px solid #d5dfdd;border-radius:8px;text-align:right;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;outline:none;background:#fff" style-focus="border-color:#1d8f86"></input>€</span>
+    <span style="white-space:nowrap">· alerte</span>
+    <span style="display:flex;align-items:center;gap:2px"><button onClick="{{ g.alDn }}" aria-label="Baisser l’alerte globale" style="width:22px;height:22px;border:0;border-radius:6px;background:#e3ebe9;cursor:pointer;font-weight:800;font-size:12px;color:#43586a">−</button><span style="width:38px;text-align:center;font-weight:800;color:#a8670f;font-variant-numeric:tabular-nums">{{ g.alL }}</span><button onClick="{{ g.alUp }}" aria-label="Monter l’alerte globale" style="width:22px;height:22px;border:0;border-radius:6px;background:#e3ebe9;cursor:pointer;font-weight:800;font-size:12px;color:#43586a">+</button></span>
+    <span style="{{ g.stSt }}">{{ g.stL }}</span>
+    <span style="flex:1"></span>
+    <span style="color:#8a9aa6;white-space:nowrap">Cliquez une fonction pour filtrer le graphique et le journal.</span>
+  </div>
+
+  <div style="background:#fff;border-radius:20px;box-shadow:0 0 0 1px #e1e9e7,0 18px 40px -32px rgba(16,35,58,.35);overflow:hidden">
+    <div style="display:flex;align-items:baseline;gap:10px;padding:20px 24px 14px;flex-wrap:wrap"><span style="font-size:17px;font-weight:800;letter-spacing:-.01em;white-space:nowrap">Journal des appels</span><span style="font-size:12.5px;color:#8a9aa6">Chaque appel LLM, du plus récent au plus ancien</span><span style="flex:1"></span><span style="font-size:11.5px;color:#a6b4bd;font-variant-numeric:tabular-nums;white-space:nowrap">{{ jCount }}</span></div>
+    <div><div>
+      <sc-for list="{{ j }}" as="x" hint-placeholder-count="8">
+        <div style="border-top:1px solid #f0f4f3">
+          <button data-conso-row="" onClick="{{ x.tog }}" aria-expanded="{{ x.open }}" style="width:100%;display:grid;border:0;background:none;cursor:pointer;text-align:left;align-items:center;font-variant-numeric:tabular-nums" style-hover="background:#fafcfb">
+            <span style="font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#5c7280;white-space:nowrap">{{ x.d }} · {{ x.t }}</span>
+            <span style="display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;white-space:nowrap"><span style="{{ x.dotSt }}"></span>{{ x.fn }}</span>
+            <span style="display:flex;align-items:center;gap:8px;min-width:0"><span style="{{ x.pgSt }}">{{ x.pg }}</span><span style="display:flex;flex-direction:column;gap:1px;min-width:0"><span style="font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ x.m }}</span><span style="font-size:11px;color:#a6b4bd;white-space:nowrap">{{ x.pv }}</span></span></span>
+            <span style="font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#8a9aa6;text-align:right;white-space:nowrap">{{ x.ioL }}</span>
+            <span style="display:flex;align-items:center;gap:8px"><span style="flex:1;display:flex;height:3px;border-radius:2px;background:#eef3f2;overflow:hidden"><span style="{{ x.inSt }}"></span><span style="{{ x.outSt }}"></span></span><b style="font-size:12px;width:46px;text-align:right">{{ x.totL }}</b></span>
+            <b style="text-align:right;font-family:ui-monospace,Menlo,monospace;font-size:12.5px;white-space:nowrap">{{ x.cost }}</b>
+          </button>
+          <sc-if value="{{ x.open }}" hint-placeholder-val="{{ false }}">
+            <div style="margin:0 24px 14px;padding:12px 16px;border-radius:12px;background:#0e2135;color:#cfe0ea;display:flex;gap:28px;flex-wrap:wrap;font-family:ui-monospace,Menlo,monospace;font-size:12px">
+              <span><span style="color:#6f879a">requête </span>{{ x.req }}</span><span><span style="color:#6f879a">durée </span>{{ x.dur }}</span><span><span style="color:#6f879a">coût </span><span style="color:#3fd1c1">{{ x.calc }}</span></span>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+      <sc-if value="{{ jMore }}" hint-placeholder-val="{{ false }}"><div id="conso-journal-end" style="padding:16px 24px;border-top:1px solid #f0f4f3;color:#a6b4bd;font-size:12px;text-align:center">Chargement des appels suivants…</div></sc-if>
+      <sc-if value="{{ jEmpty }}" hint-placeholder-val="{{ false }}"><div style="padding:28px 24px;border-top:1px solid #f0f4f3;color:#8a9aa6;font-size:12.5px">Aucun appel sur cette période pour cette fonction.</div></sc-if>
+    </div></div>
+  </div>
+</div>
+<sc-if value="{{ toast.open }}" hint-placeholder-val="{{ false }}"><div style="position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:80;display:flex;align-items:center;gap:10px;padding:11px 16px 11px 13px;border-radius:13px;background:#0e2135;color:#e8f0f3;font-size:12.5px;font-weight:600;box-shadow:0 20px 40px -16px rgba(14,33,53,.6);animation:pop .2s ease-out both"><span style="width:7px;height:7px;border-radius:50%;background:#3fd1c1;box-shadow:0 0 0 3px rgba(63,209,193,.2)"></span>{{ toast.msg }}</div></sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+// Consommation et coûts (livraison du 02/10/2026, CONSO - specification.md) : fusion de « Vue générale des coûts » et du
+// « Journal consommation et coûts ». Données : admin-api.js (consoApi) — GET /usage/month (budget du mois civil, plafonds),
+// /usage/daily (activité de la période), /usage/calls (journal paginé), /usage/calls.csv (export), PUT /budget-thresholds.
+// Démonstration (demo()) seulement hors Console ou en ?demo=1.
+const LINES = [
+  { id: 'insights', n: 'Insights', c: '#1d8f86' },
+  { id: 'rapports', n: 'Rapports', c: '#8b5cf6' },
+  { id: 'guidage', n: 'Guidage console', c: '#e0457b' },
+  { id: 'docs', n: 'Documents', c: '#e8962e' },
+  { id: 'crud', n: 'Gestion des données', c: '#3b7ddd' }
+];
+const LB = Object.fromEntries(LINES.map(l => [l.id, l]));
+const PER = [['jour', 'Jour', 1, 'aujourd’hui'], ['7j', '7 j', 7, '7 derniers jours'], ['mois', 'Ce mois', 0, 'ce mois'], ['30j', '30 j', 30, '30 derniers jours'], ['3m', '3 mois', 90, '3 derniers mois'], ['6m', '6 mois', 180, '6 derniers mois']];
+const MOIS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+const MOIS_L = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+const PVC = { anthropic: ['A', '#c4693f'], openai: ['O', '#10233a'], mistral: ['M', '#d9761c'], google: ['G', '#3a6fd8'], openrouter: ['R', '#6152cc'], cohere: ['C', '#2f8f6a'] };
+const PAGE = 30;
+const isoAdd = (iso, n) => new Date(Date.parse(iso + 'T00:00:00Z') + n * 864e5).toISOString().slice(0, 10);
+const dOf = iso => new Date(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10), 12);
+const fr = (v, d) => v.toFixed(d).replace('.', ',');
+const eur = v => (v === 0 ? '0' : fr(v, 2)) + ' €';
+const e3 = v => fr(v, 3) + ' €';
+const num = v => Math.round(v).toLocaleString('fr-FR');
+const tok = n => n >= 1e6 ? fr(n / 1e6, 1) + ' M' : n >= 1e3 ? Math.round(n / 1e3) + ' k' : String(Math.round(n));
+const price = v => v == null ? '—' : v.toLocaleString('fr-FR', { maximumFractionDigits: 4 });
+
+/** Démonstration (maquette) au format de l'API. */
+function demo() {
+  const today = '2026-10-02', monthStart = '2026-10-01', monthEnd = '2026-10-31';
+  const days = []; for (let i = 179; i >= 0; i--) days.push(isoAdd(today, -i));
+  const v = { '2026-09-27': .20, '2026-09-28': .22, '2026-09-30': 1.80, '2026-10-01': .71, '2026-10-02': .07 };
+  const daily = days.map(d => ({ date: d, tokensIn: Math.round((v[d] || 0) * 1e6 * .98), tokensOut: Math.round((v[d] || 0) * 1e6 * .02), costIn: (v[d] || 0) * 1.1, costOut: (v[d] || 0) * .03, calls: Math.round((v[d] || 0) * 150) }));
+  const fnSpent = { insights: .56, rapports: 0, guidage: .13, docs: .18, crud: .01 }, fnProj = { insights: 3.5, rapports: 0, guidage: 4.0, docs: 2.14, crud: .10 };
+  const models = { insights: ['Claude Sonnet 5'], rapports: ['Claude Sonnet 5'], guidage: ['Claude Haiku 4.5'], docs: ['Claude Sonnet 5', 'Voyage rerank-2.5', 'Qwen3 Embedding 8B'], crud: ['GPT-6 Luna'] };
+  const cap = { all: 100, insights: 50, rapports: 10, guidage: 5, docs: 10, crud: 10 };
+  const month = { today, monthStart, monthEnd, spent: .88, projection: 9.74, rate7d: .31, sameDateLastMonth: 0, tokensMonth: 780000, dailyCumul: [{ date: '2026-10-01', spent: .80 }, { date: '2026-10-02', spent: .88 }],
+    byFunction: LINES.map(l => ({ functionId: l.id, spent: fnSpent[l.id], models: models[l.id] })),
+    thresholds: [{ id: 'all', limitEur: cap.all, warnPct: 80, spent: .88, projection: 9.74 }].concat(LINES.map(l => ({ id: l.id, limitEur: cap[l.id], warnPct: 80, spent: fnSpent[l.id], projection: fnProj[l.id] }))) };
+  const J = [['2026-10-01T19:59:00Z', 'docs', 'Claude Sonnet 5', 'anthropic', 'Anthropic', 11625, 835, 1.75, 8.77, 7900], ['2026-10-01T19:57:00Z', 'insights', 'Claude Sonnet 5', 'anthropic', 'Anthropic', 10328, 334, 1.75, 8.77, 6400], ['2026-10-01T19:52:00Z', 'guidage', 'Claude Haiku 4.5', 'anthropic', 'Anthropic', 3980, 230, .88, 4.38, 1800]]
+    .map((a, i) => ({ id: 'req_demo' + i, at: a[0], fn: a[1], modelName: a[2], provider: a[3], providerName: a[4], tokensIn: a[5], tokensOut: a[6], priceIn: a[7], priceOut: a[8], durationMs: a[9], billedIn: a[5], cacheRead: 0, cacheWrite: 0, requests: 0, costEur: (a[5] * a[7] + a[6] * a[8]) / 1e6 }));
+  return { month, daily, J };
+}
+
+class Component extends DCLogic {
+  state = { fn: 'all', mode: 'budget', exp: null, period: '30j', toast: null, tick: 0, edit: {} };
+  measure = w => { w = Math.round(w); if (w > 0 && Math.abs(w - (this.state.chartW || 0)) > 2) this.setState({ chartW: w }); };
+  chartRef = el => {
+    if (!el || el === this._el) return;
+    this._el = el; this._ro && this._ro.disconnect();
+    requestAnimationFrame(() => this.measure(el.getBoundingClientRect().width));
+    if (window.ResizeObserver) { this._ro = new ResizeObserver(([e]) => this.measure(e.contentRect.width)); this._ro.observe(el); }
+  };
+  componentDidMount() {
+    import('./admin-api.js').then(m => {
+      if (m.isDemo()) return this.useDemo();
+      this._api = m.consoApi; this._errText = m.errText; this.loadMonth().then(() => this.loadPeriod()); // période calée sur la date du serveur
+    }).catch(e => { console.warn('admin-api', e); this.useDemo(); }); // écran ouvert seul : démonstration
+  }
+  componentDidUpdate() { this.watchEnd(); }
+  componentWillUnmount() { clearTimeout(this._tt); this._ro && this._ro.disconnect(); this._io && this._io.disconnect(); Object.values(this._save || {}).forEach(clearTimeout); }
+  useDemo() { const d = demo(); this._demo = d; this._m = d.month; this._daily = d.daily; this._calls = { items: d.J, next: null, total: d.J.length }; this.setState(s => ({ tick: s.tick + 1 })); }
+  toast(msg) { clearTimeout(this._tt); this.setState({ toast: msg }); this._tt = setTimeout(() => this.setState({ toast: null }), 2600); }
+  err(e) { this.toast(this._errText ? this._errText(e) : 'Action impossible'); }
+  /** Bornes de la période (jours de Paris, jusqu'à aujourd'hui) ; « Ce mois » : depuis le 1er. */
+  range(p) { const M = this._m; const today = M ? M.today : new Date().toISOString().slice(0, 10); const P = PER.find(x => x[0] === p); return { from: p === 'mois' ? (M ? M.monthStart : today.slice(0, 8) + '01') : isoAdd(today, -(P[2] - 1)), to: today }; }
+  async loadMonth() { try { this._m = await this._api.month(); this.setState(s => ({ tick: s.tick + 1 })); } catch (e) { this.err(e); } }
+  /** Activité et journal de la période et de la fonction courantes (la réponse la plus récente gagne). */
+  async loadPeriod() {
+    if (!this._api) return;
+    const S = this.state, key = S.period + '|' + S.fn, r = this.range(S.period), fn = S.fn === 'all' ? null : S.fn;
+    this._key = key; this._calls = null; this._loadingMore = false;
+    try {
+      const [daily, page] = await Promise.all([this._api.daily(fn, r, S.period === 'jour'), this._api.calls({ fn, range: r, limit: PAGE })]);
+      if (this._key !== key) return;
+      this._daily = daily; this._calls = { items: page.items, next: page.nextCursor, total: page.total };
+      this.setState(s => ({ tick: s.tick + 1 }));
+    } catch (e) { this.err(e); }
+  }
+  /** Pagination au défilement : page suivante quand la fin du journal devient visible. */
+  async more() {
+    const C = this._calls, S = this.state; if (!this._api || !C || !C.next || this._loadingMore) return;
+    this._loadingMore = true; const key = this._key;
+    try {
+      const page = await this._api.calls({ fn: S.fn === 'all' ? null : S.fn, range: this.range(S.period), limit: PAGE, cursor: C.next });
+      if (this._key !== key) return;
+      this._calls = { items: C.items.concat(page.items), next: page.nextCursor, total: page.total };
+      this.setState(s => ({ tick: s.tick + 1 }));
+    } catch (e) { this.err(e); } finally { this._loadingMore = false; }
+  }
+  watchEnd() {
+    const el = document.getElementById('conso-journal-end');
+    if (!el || el === this._endEl || !window.IntersectionObserver) return;
+    this._endEl = el; this._io && this._io.disconnect();
+    this._io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) this.more(); }, { rootMargin: '300px' });
+    this._io.observe(el);
+  }
+  setPeriod(p) { this.setState({ period: p, exp: null }, () => this.loadPeriod()); }
+  setFn(id) { this.setState({ fn: id, exp: null }, () => this.loadPeriod()); }
+  /** Plafond ou seuil d'une ligne (« all » : budget global) : affiché aussitôt, enregistré (plafond : après la saisie). */
+  setCap(id, patch, delay) {
+    const t = (this._m && this._m.thresholds.find(x => x.id === id)) || {};
+    const cur = { limitEur: t.enabled === false ? null : t.limitEur, warnPct: t.warnPct || 80, ...(this.state.edit[id] || {}), ...patch };
+    this.setState(s => ({ edit: { ...s.edit, [id]: cur } }));
+    if (!this._api) return;
+    this._save = this._save || {}; clearTimeout(this._save[id]);
+    this._save[id] = setTimeout(async () => {
+      try {
+        await this._api.saveThreshold(id, { limitEur: cur.limitEur || null, warnPct: cur.warnPct, enabled: true });
+        await this.loadMonth();
+        this.setState(s => { const e = { ...s.edit }; delete e[id]; return { edit: e }; });
+        this.toast(id === 'all' ? 'Budget global enregistré' : `${(LB[id] || {}).n} : plafond et alerte enregistrés`);
+      } catch (e) { this.err(e); }
+    }, delay || 0);
+  }
+
+  renderVals() {
+    const st = this.state, h = React.createElement, M = this._m;
+    const per = PER.find(p => p[0] === st.period), r = this.range(st.period);
+    // Plafond désactivé = sans plafond (statut NO_LIMIT du serveur) ; saisie en cours prioritaire jusqu'à l'enregistrement.
+    const thr = id => { const t = (M && M.thresholds.find(x => x.id === id)) || { limitEur: null, warnPct: 80, spent: 0, projection: 0 }; return { ...t, limitEur: t.enabled === false ? null : t.limitEur, ...(st.edit[id] || {}) }; };
+    const statusOf = (proj, cap, al) => { if (!cap) return ['Sans plafond', '#5c7280', '#eef3f2']; const p = proj / cap * 100; return p >= 100 ? ['Dépassement projeté', '#c2492f', '#fdeeea'] : p > al ? ['Alerte projetée', '#a8670f', '#fdf3e1'] : ['Sous le plafond', '#1d8f86', '#e4f4f1']; };
+    const pillSt = s => `display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:800;white-space:nowrap;color:${s[1]};background:${s[2]};align-self:flex-start`;
+    const setPl = id => e => { const v = parseFloat(String(e.target.value).replace(',', '.')); this.setCap(id, { limitEur: v > 0 ? v : null }, 700); };
+    const alStep = (id, d) => () => { const t = thr(id); this.setCap(id, { warnPct: Math.min(100, Math.max(50, (t.warnPct || 80) + d)) }); };
+    const hatch = c => `repeating-linear-gradient(-45deg,${c}66 0 3px,${c}22 3px 6px)`;
+    const periods = PER.map(p => { const on = p[0] === st.period; return { l: p[1], on, pick: () => this.setPeriod(p[0]), st: `height:30px;padding:0 12px;border:0;border-radius:9px;font-size:12.5px;font-weight:${on ? 800 : 600};cursor:pointer;background:${on ? '#fff' : 'transparent'};color:${on ? '#10233a' : '#5c7280'};box-shadow:${on ? '0 1px 2px rgba(16,35,58,.08)' : 'none'};white-space:nowrap;transition:background .15s` }; });
+
+    // Budget global (toujours le mois civil en cours).
+    const G = thr('all'), pl = G.limitEur, al = G.warnPct || 80, spent = M ? M.spent : 0, proj = M ? M.projection : 0, gs = statusOf(proj, pl, al), rest = (pl || 0) - proj;
+    const today = M ? dOf(M.today) : new Date(), mo = today.getMonth(), prev = new Date(today.getFullYear(), mo - 1, 1);
+    const g = {
+      projL: eur(proj), spentL: eur(spent), plL: pl ? `${pl.toLocaleString('fr-FR')} €` : '—', pl: pl == null ? '' : pl, alL: al + ' %', setPl: setPl('all'), alDn: alStep('all', -5), alUp: alStep('all', 5), stL: gs[0], stSt: pillSt(gs),
+      spentLbl: `Dépensé depuis le 1er ${MOIS[mo]}`, rateL: `${eur(M ? M.rate7d : 0)} / jour`, prevLbl: `${MOIS_L[prev.getMonth()]}, même date`, prevL: eur(M ? M.sameDateLastMonth : 0), tokMonthL: tok(M ? M.tokensMonth : 0),
+      note: !pl ? 'Aucun plafond global : fixez-le sous les fonctions.' : rest >= 0 ? `Reste ${eur(rest)} sous le plafond en fin de mois.` : `Dépassement projeté de ${eur(-rest)} en fin de mois.`,
+      noteSt: `align-self:flex-start;display:inline-flex;align-items:center;min-height:28px;padding:6px 12px;border-radius:12px;line-height:1.35;font-size:11.5px;font-weight:700;color:${gs[1] === '#1d8f86' ? '#3fd1c1' : gs[1] === '#a8670f' ? '#f0c06a' : gs[1] === '#c2492f' ? '#ff9d8a' : '#9fb3c2'};background:rgba(255,255,255,.06)`
+    };
+
+    // Graphique, à la largeur réelle de son conteneur.
+    const W = Math.max(360, Math.round(st.chartW || 830)), H = Math.max(240, Math.min(340, Math.round(W * .42))), ink = '#e8f0f3', mut = '#5d7387', grid = 'rgba(255,255,255,.07)', teal = '#3fd1c1', amb = '#e3a43b';
+    const svg = els => h('div', { ref: this.chartRef, style: { width: '100%', minWidth: 0 } }, h('svg', { viewBox: `0 0 ${W} ${H}`, width: '100%', role: 'img', style: { display: 'block', overflow: 'visible', fontFamily: "'Plus Jakarta Sans', sans-serif" } }, ...els));
+    const dl = d => `${d.getDate()} ${MOIS[d.getMonth()]}`;
+    const cumul = () => {
+      const L = 40, B = 26, T = 22, pw = W - L - 12, ph = H - B - T;
+      const nDays = M ? dOf(M.monthEnd).getDate() : 31, dToday = today.getDate(), cum = (M && M.dailyCumul) || [];
+      const top = Math.max(pl || 0, proj, spent, .01) * 1.04, P = pl || top / 1.04, x = d => L + (d - 1) / Math.max(1, nDays - 1) * pw, y = v => T + ph - v / top * ph;
+      const els = [];
+      for (let i = 0; i <= 5; i++) { const v = P / 5 * i; els.push(h('line', { key: 'g' + i, x1: L, x2: W, y1: y(v), y2: y(v), stroke: grid })); els.push(h('text', { key: 'gt' + i, x: L - 10, y: y(v) + 4, textAnchor: 'end', fontSize: 11, fill: mut, fontWeight: 600 }, P >= 10 ? Math.round(v) : fr(v, 1))); }
+      if (pl) {
+        els.push(h('line', { key: 'pl', x1: L, x2: W, y1: y(pl), y2: y(pl), stroke: ink, strokeWidth: 1.6 }));
+        els.push(h('text', { key: 'plt', x: L + 8, y: y(pl) - 8, fontSize: 12.5, fontWeight: 800, fill: ink }, `Plafond ${pl.toLocaleString('fr-FR')} €`));
+        els.push(h('line', { key: 'al', x1: L, x2: W, y1: y(pl * al / 100), y2: y(pl * al / 100), stroke: amb, strokeDasharray: '3 5', strokeWidth: 1.3 }));
+        els.push(h('text', { key: 'alt', x: L + 8, y: y(pl * al / 100) - 8, fontSize: 12.5, fontWeight: 800, fill: '#f0c06a' }, `Alerte ${al} % · ${Math.round(pl * al / 100)} €`));
+      }
+      const pts = [[1, 0]].concat(cum.map(c => [dOf(c.date).getDate(), c.spent]));
+      if (pts.length > 1) {
+        els.push(h('path', { key: 'area', d: `M${x(1)} ${y(0)} ` + pts.map(p => `L${x(p[0])} ${y(p[1])}`).join(' ') + ` L${x(dToday)} ${y(0)} Z`, fill: teal, opacity: .14 }));
+        els.push(h('path', { key: 'act', d: pts.map((p, i) => `${i ? 'L' : 'M'}${x(p[0])} ${y(p[1])}`).join(' '), fill: 'none', stroke: teal, strokeWidth: 3, strokeLinecap: 'round', strokeLinejoin: 'round' }));
+      }
+      els.push(h('path', { key: 'pj', d: `M${x(dToday)} ${y(spent)} L${x(nDays)} ${y(proj)}`, fill: 'none', stroke: amb, strokeWidth: 2.2, strokeDasharray: '2 6', strokeLinecap: 'round' }));
+      els.push(h('circle', { key: 'pje', cx: x(nDays), cy: y(proj), r: 4, fill: amb, stroke: '#0e2135', strokeWidth: 2 }));
+      els.push(h('text', { key: 'pjt', x: x(nDays) - 6, y: y(proj) - 10, textAnchor: 'end', fontSize: 12, fontWeight: 800, fill: '#f0c06a' }, `${eur(proj)} au ${nDays} ${MOIS[mo]}`));
+      els.push(h('circle', { key: 'now', cx: x(dToday), cy: y(spent), r: 6, fill: '#0e2135', stroke: teal, strokeWidth: 3 }));
+      els.push(h('text', { key: 'nowt', x: x(dToday) + 10, y: y(spent) - 10, textAnchor: dToday > nDays * .7 ? 'end' : 'start', dx: dToday > nDays * .7 ? -20 : 0, fontSize: 12, fontWeight: 800, fill: teal }, `${eur(spent)} aujourd’hui`));
+      [1, 8, 15, 22, 29].filter(d => d <= nDays).forEach(d => els.push(h('text', { key: 'x' + d, x: x(d), y: H - 4, textAnchor: 'middle', fontSize: 11, fill: mut, fontWeight: 600 }, `${d} ${MOIS[mo]}`)));
+      return svg(els);
+    };
+    // Activité de la période (barres quotidiennes, ou horaires pour « Jour »).
+    const daily = this._daily || [], hourly = st.period === 'jour';
+    const lab = p => p.hour != null ? `${p.hour} h` : dl(dOf(p.date));
+    const nice = m => { const k = Math.pow(10, Math.floor(Math.log10(m))); for (const f of [1, 2, 2.5, 5, 10]) if (f * k >= m * 1.08) return f * k; return 10 * k; };
+    const fsel = st.fn === 'all' ? null : LB[st.fn];
+    const bars = mode => {
+      const L = 48, B = 26, T = 16, pw = W - L - 10, ph = H - B - T - 16, n = Math.max(1, daily.length);
+      const vin = daily.map(d => mode === 'tokens' ? d.tokensIn : d.costIn + d.costOut), vout = daily.map(d => mode === 'tokens' ? d.tokensOut : 0);
+      const mx = nice(Math.max(...vin, mode === 'tokens' ? 1 : .0001)), y = v => T + ph - v / mx * ph, base = T + ph;
+      const fmt = v => mode === 'tokens' ? tok(v) : fr(v, v < .1 ? 3 : 2) + ' €';
+      const color = fsel ? fsel.c : teal, els = [];
+      [mx / 2, mx].forEach((t, i) => { els.push(h('line', { key: 'g' + i, x1: L, x2: W, y1: y(t), y2: y(t), stroke: grid })); els.push(h('text', { key: 't' + i, x: L - 8, y: y(t) + 4, textAnchor: 'end', fontSize: 11, fill: mut, fontWeight: 600 }, fmt(t))); });
+      els.push(h('line', { key: 'base', x1: L, x2: W, y1: base, y2: base, stroke: 'rgba(255,255,255,.14)' }));
+      const bw = pw / n, w = Math.max(n > 60 ? 2 : 4, Math.min(48, bw * .58));
+      let pk = 0; vin.forEach((v, i) => { if (v + vout[i] > vin[pk] + vout[pk]) pk = i; });
+      vin.forEach((v, i) => {
+        const cx = L + bw * i + bw / 2;
+        if (v <= 0 && !vout[i]) { if (n <= 31) els.push(h('circle', { key: 'z' + i, cx, cy: base, r: 1.3, fill: mut })); return; }
+        const hh = Math.max(2, v / mx * ph);
+        els.push(h('rect', { key: 'b' + i, x: cx - w / 2, y: base - hh, width: w, height: hh, rx: Math.min(3, w / 2), fill: color }, h('title', null, `${lab(daily[i])} · ${fmt(v)}${mode === 'tokens' ? ' en entrée · ' + tok(vout[i]) + ' en sortie' : ''}`)));
+        if (mode === 'tokens' && vout[i]) els.push(h('rect', { key: 's' + i, x: cx - w / 2, y: base + 2, width: w, height: Math.max(2, vout[i] / mx * ph), rx: 1, fill: ink, opacity: .85 }));
+        if (i === pk) els.push(h('text', { key: 'pk', x: cx, y: base - hh - 7, textAnchor: 'middle', fontSize: 11.5, fontWeight: 800, fill: ink }, fmt(v)));
+      });
+      const step = Math.max(1, Math.round(n / 5));
+      for (let i = 0; i < n; i += step) if (daily[i]) els.push(h('text', { key: 'x' + i, x: L + bw * i + bw / 2, y: H - 4, textAnchor: 'middle', fontSize: 11, fill: mut, fontWeight: 600 }, lab(daily[i])));
+      if (mode === 'tokens') { els.push(h('text', { key: 'le', x: 0, y: base - 4, fontSize: 10.5, fill: mut, fontWeight: 700 }, 'Entrée')); els.push(h('text', { key: 'ls', x: 0, y: base + 13, fontSize: 10.5, fill: mut, fontWeight: 700 }, 'Sortie')); }
+      return svg(els);
+    };
+    // Compteurs et en-tête de la période.
+    const sumIn = daily.reduce((a, d) => a + d.tokensIn, 0), sumOut = daily.reduce((a, d) => a + d.tokensOut, 0), sumCost = daily.reduce((a, d) => a + d.costIn + d.costOut, 0), sumCalls = daily.reduce((a, d) => a + d.calls, 0);
+    let workDays = 0; for (let d = r.from; d <= r.to; d = isoAdd(d, 1)) { const wd = dOf(d).getDay(); if (wd && wd < 6) workDays++; }
+    workDays = Math.max(1, workDays);
+    let pkI = 0; daily.forEach((d, i) => { const v = st.mode === 'couts' ? d.costIn + d.costOut : d.tokensIn + d.tokensOut, pv = st.mode === 'couts' ? daily[pkI].costIn + daily[pkI].costOut : daily[pkI].tokensIn + daily[pkI].tokensOut; if (v > pv) pkI = i; });
+    const pkD = daily[pkI], range = `${dl(dOf(r.from))} — ${dl(dOf(r.to))}`;
+    const ann = !pkD ? '' : st.mode === 'tokens'
+      ? `Moyenne ${tok((sumIn + sumOut) / workDays)} par jour ouvré · pic ${hourly ? 'à' : 'le'} ${lab(pkD)} avec ${tok(pkD.tokensIn + pkD.tokensOut)}`
+      : `Moyenne ${fr(sumCost / workDays, 2)} € par jour ouvré · pic ${hourly ? 'à' : 'le'} ${lab(pkD)} avec ${fr(pkD.costIn + pkD.costOut, 2)} €`;
+    const modes = [['budget', 'Budget'], ['tokens', 'Tokens'], ['couts', 'Coûts']].map(([k, l]) => { const on = st.mode === k; return { l, on, pick: () => this.setState({ mode: k }), st: `height:28px;padding:0 12px;border:0;border-radius:8px;font-size:12px;font-weight:${on ? 800 : 600};cursor:pointer;background:${on ? 'rgba(255,255,255,.12)' : 'transparent'};color:${on ? '#fff' : '#9fb3c2'};transition:background .15s` }; });
+    const tt = sumIn + sumOut, inPct = tt ? Math.round(sumIn / tt * 100) : 0;
+
+    // Tuiles fonctions (budget du mois).
+    const byF = Object.fromEntries(((M && M.byFunction) || []).map(x => [x.functionId, x]));
+    const tiles = LINES.map(x => {
+      const t = thr(x.id), F = byF[x.id] || { spent: 0, models: [] }, P = t.limitEur, A = t.warnPct || 80, cur = P ? F.spent / P * 100 : 0, pj = P ? (t.projection || 0) / P * 100 : 0, s = statusOf(t.projection || 0, P, A), on = st.fn === x.id;
+      return {
+        n: x.n, model: (F.models || []).join(' · ') || '—', pl: P == null ? '' : P, on, spentL: eur(F.spent), shareL: `${spent ? Math.round(F.spent / spent * 100) : 0} % du mois`,
+        pctL: P ? `${Math.round(cur)} % → ${Math.round(pj)} % fin de mois` : `Projection ${eur(t.projection || 0)} fin de mois`,
+        stL: s[0], stSt: pillSt(s), alL: A + ' %', setPl: setPl(x.id), alDn: alStep(x.id, -5), alUp: alStep(x.id, 5),
+        dotSt: `width:8px;height:8px;border-radius:3px;background:${x.c};flex:none`,
+        curSt: `position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:${x.c};width:${Math.min(100, Math.max(cur ? 1.5 : 0, cur))}%`,
+        projSt: `position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:${hatch(x.c)};width:${Math.min(100, pj)}%;transition:width .3s`,
+        alSt: `position:absolute;top:-4px;bottom:-4px;width:2px;border-radius:1px;background:#10233a;left:calc(${A}% - 1px);transition:left .2s`,
+        pick: () => this.setFn(st.fn === x.id ? 'all' : x.id),
+        cardSt: `background:#fff;border-radius:18px;padding:18px 14px 14px;display:flex;flex-direction:column;gap:14px;cursor:pointer;outline:none;min-width:0;transition:box-shadow .2s,transform .2s;box-shadow:0 0 0 ${on ? '2px ' + x.c : '1px #e1e9e7'},0 18px 40px -32px rgba(16,35,58,.35);transform:${on ? 'translateY(-2px)' : 'none'}`
+      };
+    });
+
+    // Journal des appels (période et fonction), du plus récent au plus ancien ; détail : requête, durée, calcul du coût.
+    const C = this._calls || { items: [], next: null, total: 0 }, items = (this._demo ? C.items.filter(x => st.fn === 'all' || x.fn === st.fn) : C.items);
+    const maxT = Math.max(1, ...items.map(x => x.tokensIn + x.tokensOut));
+    const calcOf = x => {
+      const cost = e3(x.costEur);
+      if (x.pricePer1k != null && x.priceIn == null) return `${num(x.requests)} requête${x.requests > 1 ? 's' : ''} × ${price(x.pricePer1k)} € / 1 000 = ${cost}`;
+      if (x.priceIn == null) return `Tarif non enregistré (appel antérieur au journal) · ${cost}`;
+      const billed = x.billedIn == null ? x.tokensIn : x.billedIn, out = x.tokensOut ? ` + ${num(x.tokensOut)} × ${price(x.priceOut)} €/M` : '';
+      if (Math.round(billed) === x.tokensIn) return `${num(x.tokensIn)} × ${price(x.priceIn)} €/M${out} = ${cost}`;
+      const cache = x.cacheRead || x.cacheWrite ? ` (dont ${[x.cacheRead ? num(x.cacheRead) + ' lus en cache à 10 %' : '', x.cacheWrite ? num(x.cacheWrite) + ' écrits en cache à 125 %' : ''].filter(Boolean).join(', ')})` : ' (cache)';
+      return `${num(x.tokensIn)} jetons${cache} = ${num(billed)} facturés × ${price(x.priceIn)} €/M${out} = ${cost}`;
+    };
+    const j = items.map(x => {
+      const L = LB[x.fn] || { n: x.fn, c: '#8a9aa6' }, open = st.exp === x.id, at = new Date(x.at), pv = PVC[x.provider] || [String(x.providerName || '?')[0].toUpperCase(), '#5c7280'];
+      return {
+        t: `${String(at.getHours()).padStart(2, '0')}:${String(at.getMinutes()).padStart(2, '0')}`, d: dl(at), fn: L.n, m: x.modelName, pv: x.providerName, pg: pv[0], cost: e3(x.costEur), req: x.id, dur: x.durationMs == null ? '—' : fr(x.durationMs / 1000, 1) + ' s', calc: calcOf(x), open,
+        totL: num(x.tokensIn + x.tokensOut), ioL: `${num(x.tokensIn)} → ${num(x.tokensOut)}`,
+        dotSt: `width:7px;height:7px;border-radius:50%;background:${L.c};flex:none`,
+        pgSt: `width:22px;height:22px;border-radius:7px;background:${pv[1]}16;color:${pv[1]};font-size:10px;font-weight:800;display:grid;place-items:center;flex:none`,
+        inSt: `height:100%;background:${L.c};width:${x.tokensIn / maxT * 100}%`, outSt: `height:100%;background:#10233a;width:${Math.max(x.tokensOut ? .8 : 0, x.tokensOut / maxT * 100)}%`,
+        tog: () => this.setState(s => ({ exp: s.exp === x.id ? null : x.id }))
+      };
+    });
+    const total = this._demo ? items.length : C.total;
+    // Export : exactement le journal affiché (période et fonction), généré par le serveur (« ; », UTF-8 avec BOM).
+    const exportCsv = () => {
+      if (!this._api) return this.toast(`${items.length} appel${items.length > 1 ? 's' : ''} exporté${items.length > 1 ? 's' : ''} en CSV.`);
+      this._api.csv(st.fn === 'all' ? null : st.fn, r).then(() => this.toast(`${num(total)} appel${total > 1 ? 's' : ''} exporté${total > 1 ? 's' : ''} en CSV.`)).catch(e => this.err(e));
+    };
+    const f = fsel || { n: 'Toutes fonctions', c: teal };
+    return {
+      periods, g, modes, chart: st.mode === 'budget' ? cumul() : bars(st.mode),
+      head: st.mode === 'budget' ? `${MOIS_L[mo]} · dépense cumulée, plafond et projection` : `${range}${ann ? ' · ' + ann : ''}`,
+      periodL: per[3], k: { tok: tok(tt), inL: tok(sumIn), outL: tok(sumOut), calls: num(sumCalls), inPctL: inPct + ' %', outPctL: (tt ? 100 - inPct : 0) + ' %', inBar: `flex:${inPct || 1};background:#3fd1c1`, outBar: `flex:${tt ? 100 - inPct : 1};min-width:3px;background:#e8f0f3` },
+      hasFn: st.fn !== 'all', fnL: f.n, fnDot: `width:7px;height:7px;border-radius:50%;background:${f.c}`, clearFn: () => this.setFn('all'),
+      tiles, j, jEmpty: !j.length && !!this._calls, jMore: !!C.next, jCount: `${num(total)} appel${total > 1 ? 's' : ''} · ${per[3]}`, exportCsv, stop: e => e.stopPropagation(),
+      toast: { open: !!st.toast, msg: st.toast || '' }
+    };
+  }
+}
+</script>
+</body>
+</html>

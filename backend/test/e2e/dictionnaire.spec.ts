@@ -123,7 +123,7 @@ describe('Jev de la Console — dictionnaire des données', () => {
       expect(v.detail).toBe(s ? `${s.projet_id} · ${s.type}` : 'aucun');
     });
 
-    it('dépense du mois et projection de fin de mois (Vue générale des coûts)', async () => {
+    it('dépense du mois et projection de fin de mois (Consommation et coûts)', async () => {
       const month = (await admin.get('/api/admin/usage/month').expect(200)).body;
       const [r] = await sql(`
         WITH d AS (SELECT ${TODAY} AS j),
@@ -138,11 +138,11 @@ describe('Jev de la Console — dictionnaire des données', () => {
     it('statut du plafond global', async () => {
       const month = (await admin.get('/api/admin/usage/month').expect(200)).body;
       const [p] = await sql(`SELECT plafond_eur, seuil_alerte_pct, actif FROM jev.plafonds_budget_ia WHERE id = 'all'`);
-      const expected = !p || !p.actif || !p.plafond_eur ? 'NO_LIMIT' : month.projection > p.plafond_eur ? 'EXCEEDED' : month.spent >= (p.plafond_eur * p.seuil_alerte_pct) / 100 ? 'ALERT' : 'UNDER';
+      const proj = month.projection, expected = !p || !p.actif || !p.plafond_eur ? 'NO_LIMIT' : proj >= p.plafond_eur ? 'EXCEEDED' : proj > (p.plafond_eur * p.seuil_alerte_pct) / 100 ? 'ALERT' : 'UNDER';
       expect(month.thresholds.find((x: any) => x.id === 'all').status).toBe(expected);
     });
 
-    it('budget_ia : mêmes lignes et mêmes chiffres que l’écran Vue générale des coûts (lue sous le rôle de Jev)', async () => {
+    it('budget_ia : mêmes lignes et mêmes chiffres que l’écran Consommation et coûts (lue sous le rôle de Jev)', async () => {
       // Lignes budgétaires de la vue = celles de l'écran, avec les mêmes fonctions.
       expect(BUDGET_IA_LIGNES.map((l) => l.id)).toEqual(AI_BUDGET_LINES.map((l) => l.id));
       for (const l of BUDGET_IA_LIGNES) expect(l.fonctions.sort()).toEqual(AI_FUNCTIONS.filter((f) => f.budgetLine === l.id).map((f) => f.id).sort());

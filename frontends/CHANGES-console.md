@@ -617,3 +617,11 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
 ## Anciens écrans IA supprimés (02/10/2026)
 
 - Supprimés à la demande du commanditaire, plus utilisés nulle part depuis la nouvelle vue « Fournisseurs et modèles » : `Fiche modele.dc.html`, `Vue reseau IA.dc.html`, `Affectation des modeles.dc.html`, `ia-data.js`.
+
+## Consommation et coûts : vue fusionnée (02/10/2026)
+
+- `Consommation et couts.dc.html` (nouveau) : maquette livrée reproduite ; valeurs figées de la maquette remplacées par les données (bandeau : dépensé depuis le 1er, rythme, même date du mois précédent, jetons du mois ; compteurs : parts entrée / sortie) ; données lues par `consoApi` (démonstration seulement en `?demo=1` ou écran ouvert seul) ; journal chargé au défilement (repère `conso-journal-end`) ; grille des tuiles et colonnes du journal en CSS (requête de conteneur, 3 + 2 sous 900 px) ; nom de fonction et modèles à la ligne au lieu d'être tronqués ; police de repli `sans-serif` dans le graphique.
+- `admin-api.js` : `consoApi` (`month`, `saveThreshold`, `daily`, `calls`, `csv`) remplace `journalApi` ; `bindConso` et la surcharge `exportCsv` de la Console retirés ; un plafond enregistré relit la vue d'ensemble (`rise-admin:thresholds`).
+- `Console Admin.dc.html` : page `conso` montée en fondu (pas de transformation maintenue) ; page `journal` retirée et redirigée vers `conso` ; titres et suggestions de Jev ; ancien calcul de démonstration de la Vue générale des coûts, export et props de `ConsoCouts` retirés.
+- `Sidebar Console.dc.html` : IA › « Consommation et coûts » remplace « Vue générale des coûts » et « Journal consommation et coûts ».
+- Supprimés : `ConsoCouts.dc.html`, `Journal des appels.dc.html`.

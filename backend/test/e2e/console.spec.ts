@@ -282,7 +282,7 @@ describe('Console Admin — critères d’acceptation (brief Console § 13)', ()
       expect(m.projection).toBeCloseTo(m.spent + m.rate7d * 4, 0);
       if (m.crossDate) expect(m.crossDate >= '2026-09-26').toBe(true);
       const all = m.thresholds.find((x: any) => x.id === 'all');
-      expect(all.status).toBe(all.projection > 1200 ? 'EXCEEDED' : all.spent >= 960 ? 'ALERT' : 'UNDER');
+      expect(all.status).toBe(all.projection >= 1200 ? 'EXCEEDED' : all.projection > 960 ? 'ALERT' : 'UNDER'); // statut sur la projection (02/10/2026)
     });
     it('franchir 80 % n’envoie plus de notification (alertes retirées le 30/09/2026)', async () => {
       const c = await t.as(WHO.admin);

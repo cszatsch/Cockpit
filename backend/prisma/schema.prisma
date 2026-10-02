@@ -1293,9 +1293,14 @@ model UsageRecord {
   pricePer1k   Float?
   /// Latence totale de l'appel (ms) ; null si non mesurée
   durationMs   Int?
+  /// Jetons d'entrée lus et écrits dans le cache du fournisseur (compris dans tokensIn), facturés au tarif du cache
+  /// (lecture 10 %, écriture 125 % du prix d'entrée) : le calcul affiché du coût retombe exactement sur costEur.
+  cacheReadTokens  Int     @default(0)
+  cacheWriteTokens Int     @default(0)
 
   @@index([at])
   @@index([providerId, at])
+  @@index([functionId, at])
 }
 
 model BudgetThreshold {

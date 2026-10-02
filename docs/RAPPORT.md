@@ -294,6 +294,13 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 - **Responsables** : un texte par profil ne porte que sur les chantiers communs à tous les Responsables destinataires. Avec des Responsables de chantiers différents, le texte ne contient que les données du projet hors chantiers. Un texte par destinataire lèverait cette limite, à un coût plus élevé.
 - **Règles de plateforme** (seuil budgétaire) : rédigées sans données, car les données de la Console ne sont pas dans le périmètre des vues du Cockpit.
 
+### Consommation et coûts (02/10/2026)
+
+- **Réalisé** : vue unique IA › « Consommation et coûts » (fusion de la Vue générale des coûts et du Journal), maquette reproduite avec les données réelles ; statut sur la projection ; jetons de cache enregistrés avec chaque appel, calcul affiché exact ; index par fonction et date.
+- **Tests** : `test/e2e/conso.spec.ts` (statut, bandeau, modèles des lignes, calcul exact cache compris et appels antérieurs, export, audit, accès administrateur) ; recette navigateur `test/browser/conso.e2e.ts` : 14/14 (points 1 à 7 de la spécification, pagination au défilement, menu, 900 et 1 440 px), données interceptées, rien d'écrit en base.
+- **Écart** : statut d'alerte calculé sur la projection et non plus sur la dépense : une ligne peut passer en « Alerte projetée » dès le début du mois si le rythme est élevé ; la vue `jev.budget_ia` de Jev suit la même règle.
+- **Skill « Guidage console »** : le texte versionné (`docs/skills/Guidage console.md`) nomme la nouvelle vue ; la skill en base est à mettre à jour depuis Assistant › Skills (ou par l'API), comme le guide publié (sections 3.8 et 3.9 réécrites dans `docs/GUIDE UTILISATEUR - Console.md`, à republier depuis Plateforme › Guide utilisateur).
+
 ## 4. Questions ouvertes
 
 1. **Déclencheur des règles de notification** : faut-il ajouter un sélecteur de déclencheur dans la console ? Aujourd'hui, une règle créée depuis l'écran reçoit un déclencheur par défaut : « planifié » pour une notification, « manuel » pour une alerte.

@@ -219,7 +219,7 @@ export class LlmService {
     // Jetons lus ou écrits dans le cache : comptés en entrée, facturés au tarif du cache.
     const read = out.cacheRead ?? 0, write = out.cacheWrite ?? 0;
     const billedIn = Math.max(0, tokensIn - read - write) + read * CACHE_READ_FACTOR + write * CACHE_WRITE_FACTOR;
-    const costEur = await this.record(model, input.functionId, { tokensIn, tokensOut, requests: 0 }, fallbackUsed, input, ms, billedIn);
+    const costEur = await this.record(model, input.functionId, { tokensIn, tokensOut, requests: 0 }, fallbackUsed, input, ms, billedIn, { read, write });
     return { text: out.text, modelId: model.id, providerId: model.providerId, tokensIn, tokensOut, costEur, fallbackUsed, ms };
   }
 
@@ -261,7 +261,7 @@ export class LlmService {
    * identifiant de requête `req_…`, tarifs du modèle figés sur la ligne (un changement de tarif au catalogue ne
    * modifie pas les appels passés), latence. Le contenu des prompts et des réponses n'est jamais enregistré.
    */
-  private async record(model: Parameters<typeof costOf>[0] & { id: string; providerId: string }, functionId: AiFunctionId, v: { tokensIn: number; tokensOut: number; requests: number }, fallbackUsed: boolean, input: { projectId?: string | null; source: UsageSourceCode }, durationMs?: number, billedIn?: number) {
+  private async record(model: Parameters<typeof costOf>[0] & { id: string; providerId: string }, functionId: AiFunctionId, v: { tokensIn: number; tokensOut: number; requests: number }, fallbackUsed: boolean, input: { projectId?: string | null; source: UsageSourceCode }, durationMs?: number, billedIn?: number, cache?: { read: number; write: number }) {
     // Jetons d'entrée facturés : moins que les jetons envoyés quand une partie est lue dans le cache.
     const costEur = costOf(model, billedIn === undefined ? v : { ...v, tokensIn: billedIn });
     const price = priceOf(model);
@@ -271,6 +271,7 @@ export class LlmService {
         id: `req_${randomBytes(6).toString('hex')}`, at, projectId: input.projectId ?? null, functionId, modelId: model.id, providerId: model.providerId,
         tokensIn: v.tokensIn, tokensOut: v.tokensOut, requests: v.requests, costEur, fallbackUsed, source: input.source,
         priceIn: price.in ?? null, priceOut: price.out ?? null, pricePer1k: price.per1k ?? null, durationMs: durationMs ?? null,
+        cacheReadTokens: cache?.read ?? 0, cacheWriteTokens: cache?.write ?? 0,
       },
     });
     return costEur;

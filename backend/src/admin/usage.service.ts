@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../core/prisma.service';
 import { TodayService } from '../core/today.service';
-import { LlmService, AI_BUDGET_LINES, budgetLineOf } from '../core/llm.service';
+import { LlmService, AI_BUDGET_LINES, AI_FUNCTIONS, budgetLineOf } from '../core/llm.service';
+import { CACHE_READ_FACTOR, CACHE_WRITE_FACTOR } from '../core/llm-client';
 import { ModelCategory } from '../domain/ai-pricing';
 import { addDays, daysBetween, isoInTimezone, lastDayOfMonth } from '../domain/dates';
 import { csvFile, csvNum, encodeCursor, JournalFn, splitCost, stepsOf } from '../domain/journal';
@@ -39,7 +40,11 @@ export interface MonthView {
   rate7d: number;
   crossDate: string | null;
   sameDateLastMonth: number;
-  byFunction: Array<{ functionId: string; spent: number; tokensIn: number; tokensOut: number; fallbackCost: number }>;
+  byFunction: Array<{ functionId: string; spent: number; tokensIn: number; tokensOut: number; fallbackCost: number; models: string[] }>;
+  /** Jetons du mois (entrée + sortie), toutes fonctions. */
+  tokensMonth: number;
+  /** Dépense cumulée de chaque jour du mois écoulé (graphique Budget). */
+  dailyCumul: Array<{ date: string; spent: number }>;
   fallbackDays: string[];
   thresholds: ThresholdView[];
 }
@@ -113,6 +118,15 @@ export class UsageService {
       return { functionId: f.id, spent: fr.reduce((a, r) => a + r.costEur, 0), tokensIn: fr.reduce((a, r) => a + r.tokensIn, 0), tokensOut: fr.reduce((a, r) => a + r.tokensOut, 0), fallbackCost: fr.filter((r) => r.fallbackUsed).reduce((a, r) => a + r.costEur, 0) };
     });
     const fallbackDays = [...new Set(rows.filter((r) => r.fallbackUsed).map((r) => this.day(r.at)))].sort();
+    // Modèles de chaque ligne budgétaire : principal affecté de chacune de ses étapes (Documents : 3).
+    const [asg, models] = await Promise.all([this.prisma.modelAssignment.findMany(), this.prisma.aiModel.findMany({ select: { id: true, name: true } })]);
+    const modelsOf = (line: string) => [...new Set(AI_FUNCTIONS.filter((f) => budgetLineOf(f.id) === line).map((f) => asg.find((a) => a.functionId === f.id)?.primaryModelId).filter(Boolean).map((id) => models.find((m) => m.id === id)?.name ?? id!))];
+    // Dépense cumulée jour par jour depuis le 1er (graphique Budget).
+    const perDay = new Map<string, number>();
+    for (const r of rows) perDay.set(this.day(r.at), (perDay.get(this.day(r.at)) ?? 0) + r.costEur);
+    const dailyCumul: Array<{ date: string; spent: number }> = [];
+    let cum = 0;
+    for (let d = monthStart; d <= today; d = addDays(d, 1)) { cum += perDay.get(d) ?? 0; dailyCumul.push({ date: d, spent: round2(cum) }); }
     return {
       today,
       monthStart,
@@ -122,17 +136,23 @@ export class UsageService {
       rate7d: round2(rate7d),
       crossDate,
       sameDateLastMonth: round2(prevRows.reduce((a, r) => a + r.costEur, 0)),
-      byFunction: byFunction.map((x) => ({ ...x, spent: round2(x.spent), fallbackCost: round2(x.fallbackCost) })),
+      byFunction: byFunction.map((x) => ({ ...x, spent: round2(x.spent), fallbackCost: round2(x.fallbackCost), models: modelsOf(x.functionId) })),
+      tokensMonth: rows.reduce((a, r) => a + r.tokensIn + r.tokensOut, 0),
+      dailyCumul,
       fallbackDays,
       thresholds: await this.thresholds(spent, projection, byFunction, rate7d, remaining),
     };
   }
 
-  /** Statut d'un plafond (§ 7.4) : Dépassement si projection > plafond, Alerte si dépense ≥ seuil, sinon Sous le plafond. */
+  /**
+   * Statut d'un plafond (vue Consommation et coûts, 02/10/2026) : projection fin de mois ≥ plafond → Dépassement projeté ;
+   * projection au-delà du seuil d'alerte → Alerte projetée ; sinon Sous le plafond. `spent` n'intervient plus (gardé pour la signature).
+   */
   static status(limit: number | null, warnPct: number, spent: number, projection: number): ThresholdStatus {
+    void spent;
     if (!limit) return 'NO_LIMIT';
-    if (projection > limit) return 'EXCEEDED';
-    if (spent >= (limit * warnPct) / 100) return 'ALERT';
+    if (projection >= limit) return 'EXCEEDED';
+    if (projection > (limit * warnPct) / 100) return 'ALERT';
     return 'UNDER';
   }
 
@@ -271,8 +291,22 @@ export class UsageService {
       provider: r.providerId, providerName: pn.get(r.providerId) ?? r.providerId, model: r.modelId, modelName: mn.get(r.modelId) ?? r.modelId,
       fallback: r.fallbackUsed, tokensIn: r.tokensIn, tokensOut: r.tokensOut, requests: r.requests,
       priceIn: r.priceIn, priceOut: r.priceOut, pricePer1k: r.pricePer1k, costEur: round6(r.costEur), durationMs: r.durationMs, source: r.source,
+      cacheRead: r.cacheReadTokens, cacheWrite: r.cacheWriteTokens, billedIn: billedInOf(r),
     }));
   }
+}
+
+/**
+ * Jetons d'entrée facturés d'un appel (calcul affiché du coût, 02/10/2026) : jetons lus en cache à 10 %, écrits à 125 %,
+ * les autres au tarif plein ; pour un appel antérieur à l'enregistrement du cache, déduits du coût stocké (le calcul
+ * affiché retombe alors exactement sur le coût de la ligne). Null sans tarif au jeton.
+ */
+export function billedInOf(r: Pick<UsageRecord, 'tokensIn' | 'tokensOut' | 'costEur' | 'priceIn' | 'priceOut' | 'cacheReadTokens' | 'cacheWriteTokens'>): number | null {
+  if (r.priceIn == null) return null;
+  if (r.cacheReadTokens || r.cacheWriteTokens) return Math.max(0, r.tokensIn - r.cacheReadTokens - r.cacheWriteTokens) + r.cacheReadTokens * CACHE_READ_FACTOR + r.cacheWriteTokens * CACHE_WRITE_FACTOR;
+  if (!r.priceIn) return r.tokensIn;
+  const derived = ((r.costEur - (r.tokensOut * (r.priceOut ?? 0)) / 1e6) * 1e6) / r.priceIn;
+  return Math.abs(derived - r.tokensIn) < 0.5 ? r.tokensIn : Math.max(0, derived);
 }
 
 /** Libellés des lignes budgétaires dans le journal et son export. */

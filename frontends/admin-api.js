@@ -1,10 +1,10 @@
 // admin-api.js — branchement de la Console d'administration RISE sur l'API `/api/admin` (brief Console § 11).
 //
 // Module ES chargé par `import('./admin-api.js')` depuis les quatre écrans de la console
-// (Console Admin, ConsoCouts, ProjetInit, ProjetsBiblio). Il regroupe :
+// (Console Admin, Consommation et couts, ProjetInit, ProjetsBiblio…). Il regroupe :
 //   1. les appels HTTP (jeton, gestion d'erreur au format `{ code, message, fields?, usages? }`) ;
 //   2. les adaptateurs entre les formats de l'API et les structures attendues par les écrans ;
-//   3. les fonctions `bindConsole`, `bindConso`, `bindInit`, `bindBiblio`, qui remplacent sur l'instance
+//   3. les fonctions `bindConsole`, `bindInit`, `bindBiblio`, qui remplacent sur l'instance
 //      (monkey-patch) les méthodes et les données de démonstration des écrans, sans toucher au design.
 //
 // Mode démonstration : `?demo=1` dans l'URL, ou `window.RISE_DEMO = true` avant le chargement de la page.
@@ -248,7 +248,7 @@ export function bindConsole(c) {
   c._logout = () => { if (DEV) writeToken(null); return Auth.logout('admin'); };
   const set0 = c.setState.bind(c), orig = {};
   ['go', 'setUser', 'saveUser', 'removeUser', 'saveAdmin', 'removeAdmin', 'setTh', 'doCapture',
-    'setMod', 'approve', 'reject', 'saveMe', 'revoke', 'revokeAll', 'onPhoto', 'exportAudit', 'exportCsv', 'jevReply', 'jevNew', 'mtd', 'thVals', 'renderVals', 'skSave', 'skToggle', 'skCreate', 'skDelete', 'psSave', 'psUpload', 'ntToggle', 'ntAct', 'ntUndo', 'ntReadAll', 'apTest', 'apCreate', 'apSave', 'apToggle', 'apDelete', 'apRestore', 'apWidgetsSet'].forEach(k => { orig[k] = c[k].bind(c); });
+    'setMod', 'approve', 'reject', 'saveMe', 'revoke', 'revokeAll', 'onPhoto', 'exportAudit', 'jevReply', 'jevNew', 'mtd', 'thVals', 'renderVals', 'skSave', 'skToggle', 'skCreate', 'skDelete', 'psSave', 'psUpload', 'ntToggle', 'ntAct', 'ntUndo', 'ntReadAll', 'apTest', 'apCreate', 'apSave', 'apToggle', 'apDelete', 'apRestore', 'apWidgetsSet'].forEach(k => { orig[k] = c[k].bind(c); });
   const toast = (m, t, u) => c.toast(m, t, u), fail = e => { console.warn('[admin-api]', e); toast(errText(e), 'err'); };
   let meId = 'u1';
 
@@ -635,10 +635,6 @@ export function bindConsole(c) {
     const t = c.state.th.find(x => x.id === id);
     put('/budget-thresholds/' + id, { limitEur: t.lim, warnPct: t.warn, enabled: t.on }).then(() => { load(['month']).catch(() => {}); touch(); W.dispatchEvent && W.dispatchEvent(new CustomEvent('rise-admin:thresholds-console')); }).catch(e => { fail(e); load(['month']).catch(() => {}); });
   };
-  c.exportCsv = async () => {
-    const m = c.state.apiMonth, to = (m && m.today) || isoOf(now()), from = addDays(to, -(c.state.cPer - 1));
-    try { const b = await download('/usage/export.csv?from=' + from + '&to=' + to, 'consommation-ia-' + c.state.cPer + 'j.csv'); const n = (await b.text()).split('\n').length - 1; toast('Export CSV téléchargé · ' + n + ' lignes'); touch(); } catch (e) { fail(e); }
-  };
 
   // ── Notifications et alertes (Notifications et alertes.dc.html, NOTIFICATIONS ET ALERTES - specification.md § 4) ──
   // Le composant met sa liste à jour lui-même (optimiste) et crée une règle sous son propre identifiant, repris par
@@ -745,118 +741,6 @@ export function bindConsole(c) {
     if (S.apiCodes) v.libCodes = S.apiCodes;
     v.onImported = p => { load(['projects']).catch(() => {}); toast(p.code + ' créé'); touch(); };
     if (v.pf) v.pf.pwd = pwd;
-    return v;
-  };
-  c.forceUpdate();
-}
-
-// ───────────────────────────── Consommation et coûts ─────────────────────────────
-
-const LOGO = { anthropic: './assets/logos/lh-anthropic.svg', openrouter: './assets/logos/lh-openrouter.webp', google: './assets/logos/lh-gemini-color.svg', openai: './assets/logos/lh-openai.svg', mistral: './assets/logos/lh-mistral-color.svg' };
-/** Part du coût d'une journée payée au modèle de secours au-delà de laquelle la journée est « sur secours ». */
-export const FALLBACK_DAY_SHARE = 0.5;
-
-/**
- * `ConsoCouts` : `data()` lit `GET /usage/month` et `GET /usage?from&to&groupBy=day` (détail jour × fonction × modèle) ;
- * les plafonds viennent de `/budget-thresholds` (une seule source, brief § 12).
- */
-export function bindConso(c) {
-  if (isDemo() || c.__api) return;
-  c.__api = true;
-  const set0 = c.setState.bind(c), rv0 = c.renderVals.bind(c), data0 = c.data.bind(c);
-  // Lignes budgétaires, dans l'ordre de l'écran (serveur : AI_BUDGET_LINES ; Documents = « docs », pour ses trois étapes).
-  const FN = ['insights', 'rapports', 'guidage', 'docs', 'crud'], zero = () => Object.fromEntries(FN.map(k => [k, 0]));
-  let cache = null, thSrv = [];
-  const fail = e => { console.warn('[admin-api]', e); c.toast(errText(e)); };
-
-  async function load() {
-    const [m, list, asg, models, provs] = await Promise.all([get('/usage/month'), get('/budget-thresholds'), get('/assignments'), get('/models'), get('/providers')]);
-    const from = addDays(m.today, -89), u = await get('/usage?from=' + from + '&to=' + m.today + '&groupBy=day');
-    const byDay = {};
-    for (const r of u.detail) {
-      const d = (byDay[r.day] = byDay[r.day] || { ...zero(), fbc: 0, m: {}, pv: {}, tok: zero(), mt: {}, pt: {} });
-      if (!FN.includes(r.functionId)) continue;
-      const t = r.tokensIn + r.tokensOut;
-      d[r.functionId] += r.costEur; d.tok[r.functionId] += t; if (r.fallbackUsed) d.fbc += r.costEur;
-      d.m[r.modelId] = (d.m[r.modelId] || 0) + r.costEur; d.mt[r.modelId] = (d.mt[r.modelId] || 0) + t;
-      d.pv[r.providerId] = (d.pv[r.providerId] || 0) + r.costEur; d.pt[r.providerId] = (d.pt[r.providerId] || 0) + t;
-    }
-    // Projection des jours restants : rythme des 7 derniers jours, par fonction (même règle que le serveur, § 7.4).
-    const last7 = Array.from({ length: 7 }, (_, i) => byDay[addDays(m.today, -i)]).filter(Boolean), rate = {};
-    FN.forEach(k => { rate[k] = last7.reduce((a, d) => a + d[k], 0) / 7; });
-    const days = [];
-    for (let iso = from; iso <= m.monthEnd; iso = addDays(iso, 1)) {
-      const fut = iso > m.today, d = byDay[iso], x = { dt: dayOf(iso), fut };
-      FN.forEach(k => { x[k] = fut ? rate[k] : d ? d[k] : 0; });
-      x.t = FN.reduce((a, k) => a + x[k], 0);
-      x.fb = !fut && !!d && x.t > 0 && d.fbc / x.t > FALLBACK_DAY_SHARE;
-      x._d = d || null;
-      days.push(x);
-    }
-    cache = { days, g: null, r: null, m, asg, models, provs };
-    thSrv = list;
-    const th = {}; ['all', ...FN].forEach(k => { const t = list.find(x => x.id === k); th[k] = { lim: t && t.limitEur != null ? t.limitEur : '', warn: t ? t.warnPct : 80 }; });
-    set0({ th, th0: JSON.parse(JSON.stringify(th)), apiTick: Date.now() });
-    c.count();
-  }
-  load().catch(fail);
-  const onTh = () => load().catch(() => {});
-  W.addEventListener && W.addEventListener('rise-admin:thresholds-console', onTh);
-  const um0 = c.componentWillUnmount.bind(c);
-  c.componentWillUnmount = () => { W.removeEventListener && W.removeEventListener('rise-admin:thresholds-console', onTh); um0(); };
-
-  // Données de démonstration remplacées ; tant que la réponse n'est pas arrivée, série nulle.
-  c.data = () => {
-    if (cache) return cache;
-    if (!c._zero) { const z = data0(); c._zero = { ...z, days: z.days.map(d => ({ ...d, ...Object.fromEntries(FN.map(k => [k, 1e-6])), t: FN.length * 1e-6, fb: false })) }; }
-    return c._zero;
-  };
-
-  const thSave = async () => {
-    const S = c.state, ch = Object.keys(S.th).filter(k => JSON.stringify(S.th[k]) !== JSON.stringify((S.th0 || {})[k]));
-    try {
-      for (const k of ch) {
-        const t = S.th[k], lim = +t.lim || null, cur = thSrv.find(x => x.id === k);
-        await put('/budget-thresholds/' + k, { limitEur: lim, warnPct: t.warn, enabled: lim ? (cur && cur.limitEur != null ? cur.enabled : true) : false });
-      }
-      set0({ th0: JSON.parse(JSON.stringify(S.th)) }); c.toast('Seuils enregistrés');
-      W.dispatchEvent && W.dispatchEvent(new CustomEvent('rise-admin:thresholds'));
-      load().catch(() => {});
-    } catch (e) { fail(e); }
-  };
-
-  // Même précision que l'écran : centimes sous 100 €, « < 1 % » pour une part non nulle.
-  const eur = v => { const a = Math.abs(v || 0); if (!a) return '0 €'; if (a < 0.005) return '< 0,01 €'; const dec = a < 100 && Math.abs(a - Math.round(a)) >= 0.005 ? 2 : 0; return v.toLocaleString('fr-FR', { minimumFractionDigits: dec, maximumFractionDigits: dec }) + ' €'; }, pc = x => (x > 0 && x < 0.005 ? '< 1' : String(Math.round(x * 100))), mtok = t => Math.max(1, Math.round(t / 1e6));
-  c.renderVals = () => {
-    const v = rv0(); if (!cache) return v;
-    const S = c.state, { days, asg, models, provs } = cache, allPast = days.filter(d => !d.fut), past = allPast.filter(d => d.dt.getMonth() === days[days.length - 1].dt.getMonth());
-    const last = S.per === '7' ? allPast.slice(-7) : S.per === '90' ? allPast.slice(-90) : past;
-    const sumOf = (arr, pick) => arr.reduce((a, d) => a + (d._d ? pick(d._d) : 0), 0);
-    // Modèle réellement servi par fonction (principal, ou secours si le principal est indisponible).
-    const M = id => models.find(m => m.id === id) || { name: id, providerId: '' };
-    const served = k => { const a = asg.find(x => x.functionId === (k === 'docs' ? 'doc_syn' : k)) || {}; const fb = a.state === 'FALLBACK'; return { m: M(fb ? a.fallback : a.primary), fb }; };
-    const FNI = FN;
-    (v.fns || []).forEach((f, i) => { const s = served(FNI[i]); f.model = s.m.name + (s.fb ? ' · secours' : ''); f.logo = 'width:16px;height:16px;flex:none;background:url("' + (LOGO[s.m.providerId] || '') + '") center/contain no-repeat'; });
-    (v.rows || []).forEach((r, i) => { if (!i) return; const s = served(['all', ...FN][i]); r.sub = (s.fb ? 'Secours · ' : '') + s.m.name; r.logo = 'width:14px;height:14px;flex:none;background:url("' + (LOGO[s.m.providerId] || '') + '") center/contain no-repeat'; });
-    // Tokens réels.
-    if (S.per === 'mois' && v.kpi && v.kpi.facts[2]) { v.kpi.facts[2].v = mtok(sumOf(past, d => (S.fn ? d.tok[S.fn] : FN.reduce((a, k) => a + d.tok[k], 0)))) + ' M'; v.kpi.factL = v.kpi.facts.map(f => f.l + ' ' + f.v).join(' · '); }
-    // Répartition par modèle et par fournisseur : mesurée, et non plus déduite de l'affectation.
-    if (v.rep) {
-      const FNN = { insights: ['Insights', '#1d8f86'], rapports: ['Rapports', '#8e5bd0'], guidage: ['Guidage console', '#d0578a'], docs: ['Documents', '#e39a2d'], crud: ['Gestion des données', '#3b7dd8'] };
-      const src = S.dim === 'fn' ? FNI.map(k => ({ id: k, n: FNN[k][0], logo: null, col: FNN[k][1], v: last.reduce((a, d) => a + d[k], 0), tok: sumOf(last, d => d.tok[k]) }))
-        : S.dim === 'm' ? models.map(m => ({ id: m.id, n: m.name, logo: m.providerId, v: sumOf(last, d => d.m[m.id] || 0), tok: sumOf(last, d => d.mt[m.id] || 0) })).filter(r => r.v > 0)
-          : provs.map(p => ({ id: p.id, n: p.name, logo: p.id, v: sumOf(last, d => d.pv[p.id] || 0), tok: sumOf(last, d => d.pt[p.id] || 0) }));
-      const rs = src.sort((a, b) => b.v - a.v), mx = (rs[0] && rs[0].v) || 1, tt = rs.reduce((a, r) => a + r.v, 0) || 1;
-      v.rep.sub = (S.per === 'mois' ? (m => m.charAt(0).toUpperCase() + m.slice(1))(dayOf(cache.m.monthStart).toLocaleDateString('fr-FR', { month: 'long' })) : S.per === '7' ? '7 derniers jours' : '90 derniers jours') + ' · ' + eur(tt);
-      v.rep.rows = rs.map((r, i) => ({ n: r.n, v: eur(r.v), sh: pc(r.v / tt) + ' %', tok: r.v ? '≈ ' + mtok(r.tok) + ' M tokens' : 'non utilisé',
-        ic: r.logo ? 'width:28px;height:28px;border-radius:8px;background:#fff url("' + (LOGO[r.logo] || '') + '") center/16px no-repeat;box-shadow:0 0 0 1px #e1e9e7' + (r.v ? '' : ';opacity:.45') : 'width:28px;height:28px;border-radius:8px;background:' + r.col + '1f;box-shadow:inset 0 0 0 1.5px ' + r.col,
-        bar: 'height:100%;border-radius:3px;transform-origin:left;animation:grow .8s ' + (i * .07) + 's cubic-bezier(.2,.7,.2,1) both;background:' + (r.col || (r.logo === 'google' ? '#8e75b2' : '#1d8f86')) + ';width:' + (r.v / mx * 100).toFixed(1) + '%', key: S.anim }));
-    }
-    v.thSave = thSave;
-    v.exportCsv = async () => {
-      const to = cache.m.today, from = S.per === 'mois' ? cache.m.monthStart : addDays(to, -(last.length - 1));
-      try { await download('/usage/export.csv?from=' + from + '&to=' + to, 'consommation-ia.csv'); c.toast('Export CSV préparé · ' + last.length + ' jours'); } catch (e) { fail(e); }
-    };
     return v;
   };
   c.forceUpdate();
@@ -1098,22 +982,23 @@ export function bindBiblio(c) {
   })();
 }
 
-// ───────────────────────────── Journal des appels ─────────────────────────────
+// ───────────────────────────── Consommation et coûts ─────────────────────────────
 
 /**
- * Journal des appels (spécification JOURNAL § 4) : routes lues par `Journal des appels.dc.html`.
- * Les dates d'un appel sont en UTC (`at`) ; le composant les affiche dans le fuseau du navigateur (celui de la plateforme).
+ * Consommation et coûts (CONSO - specification.md, 02/10/2026 ; fusion de la Vue générale des coûts et du Journal) :
+ * routes lues par `Consommation et couts.dc.html`. Le budget est toujours celui du mois civil en cours (`month`) ;
+ * la période choisie (`{ from, to }`, jours de Paris calculés par l'écran) ne pilote que l'activité et le journal.
+ * Les dates d'un appel sont en UTC (`at`) ; l'écran les affiche dans le fuseau du navigateur.
  */
-export const journalApi = {
-  /**
-   * Période du sélecteur (01/10/2026) : Jour, 7 jours, 1 mois (30 j), 3 mois (91 j), 6 mois (183 j), se terminant
-   * aujourd'hui (horloge du serveur, heure de Paris) → `{ from, to }`.
-   */
-  range: p => { const to = parisIso(now()); return { from: isoAdd(to, -(({ d: 1, 7: 7, '1m': 30, '3m': 91, '6m': 183 })[p] || 30) + 1), to }; },
+export const consoApi = {
+  /** Budget du mois : dépense, projection, rythme, cumul par jour, lignes budgétaires (modèles) et plafonds. */
+  month: () => get('/usage/month'),
+  /** Plafond (null : sans plafond) et seuil d'alerte (50 à 100 %, pas de 5) d'une ligne ou du budget global (`all`) ; audité. */
+  saveThreshold: (id, body) => put('/budget-thresholds/' + encodeURIComponent(id), body).then(r => { W.dispatchEvent && W.dispatchEvent(new CustomEvent('rise-admin:thresholds')); return r; }), // vue d'ensemble relue
   /** Un point par jour de la période (jours vides inclus), pour une ligne budgétaire ; `byHour` : par heure (Jour). */
   daily: (fn, r, byHour) => get('/usage/daily?' + [fn && 'fn=' + encodeURIComponent(fn), r && 'from=' + r.from, r && 'to=' + r.to, byHour && 'by=hour'].filter(Boolean).join('&')),
   /** Page du journal, du plus récent au plus ancien ; `cursor` : `nextCursor` de la page précédente. */
-  calls: ({ fn, cursor, limit, range: r } = {}) => get('/usage/calls?' + [fn && 'fn=' + encodeURIComponent(fn), r && 'from=' + r.from, r && 'to=' + r.to, cursor && 'cursor=' + encodeURIComponent(cursor), 'limit=' + (limit || 10)].filter(Boolean).join('&')),
-  /** Export CSV du filtre et de la période (UTF-8 avec BOM, « ; », virgule décimale). */
-  csv: (fn, r) => download('/usage/calls.csv?' + [fn && 'fn=' + encodeURIComponent(fn), r && 'from=' + r.from, r && 'to=' + r.to].filter(Boolean).join('&'), 'journal-appels.csv'),
+  calls: ({ fn, cursor, limit, range: r } = {}) => get('/usage/calls?' + [fn && 'fn=' + encodeURIComponent(fn), r && 'from=' + r.from, r && 'to=' + r.to, cursor && 'cursor=' + encodeURIComponent(cursor), 'limit=' + (limit || 30)].filter(Boolean).join('&')),
+  /** Export CSV du journal affiché (période et fonction ; UTF-8 avec BOM, « ; », virgule décimale). */
+  csv: (fn, r) => download('/usage/calls.csv?' + [fn && 'fn=' + encodeURIComponent(fn), r && 'from=' + r.from, r && 'to=' + r.to].filter(Boolean).join('&'), 'consommation-appels.csv'),
 };

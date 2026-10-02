@@ -185,10 +185,10 @@ async function main() {
     await settle(pa, 800);
     // b) changer un plafond (Consommation et coûts)
     await goMenu(pa, 'Consommation et coûts');
-    const lim = pa.getByRole('textbox', { name: 'Plafond Budget global' });
+    // Vue fusionnée (02/10/2026) : le plafond s'enregistre seul, peu après la saisie.
+    const lim = pa.getByRole('spinbutton', { name: 'Plafond global' });
     await lim.fill('1500');
-    await pa.getByRole('button', { name: 'Enregistrer les plafonds' }).click();
-    await settle(pa, 800);
+    await settle(pa, 1800);
     // c) désactiver une règle
     await goMenu(pa, 'Notifications');
     await pa.getByRole('switch', { name: 'Désactiver Synthèse hebdomadaire du projet' }).click();
@@ -268,7 +268,7 @@ async function main() {
     check('après rechargement : Léa Fontaine est suspendue (bouton « Réactiver »)', (await pa.getByRole('button', { name: 'Réactiver Léa Fontaine' }).count()) > 0 && (await pa.getByRole('button', { name: 'Suspendre Léa Fontaine' }).count()) === 0);
     await goMenu(pa, 'Consommation et coûts');
     await pa.waitForTimeout(800);
-    check('après rechargement : plafond global à 1 500 €', (await pa.getByRole('textbox', { name: 'Plafond Budget global' }).inputValue()) === '1500');
+    check('après rechargement : plafond global à 1 500 €', (await pa.getByRole('spinbutton', { name: 'Plafond global' }).inputValue()) === '1500');
     await goMenu(pa, 'Notifications');
     check('après rechargement : « Synthèse hebdomadaire du projet » désactivée', (await pa.getByRole('switch', { name: 'Activer Synthèse hebdomadaire du projet' }).count()) === 1);
     await goMenu(pa, 'Snapshots');
