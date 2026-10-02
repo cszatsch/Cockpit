@@ -1980,3 +1980,25 @@ model ReportFormatFile {
   @@index([projectId])
   @@map("report_format_files")
 }
+
+/// Version publiée d'un template de rapport (03/10/2026) : PowerPoint de référence (structure figée, design, zones
+/// variables) et manifeste des zones ; toute modification de structure crée une nouvelle version.
+model ReportTemplateVersion {
+  id         String   @id
+  templateId String
+  projectId  String
+  seq        Int
+  label      String
+  fileKey    String
+  /// TemplateManifest (`core/report-template.ts`)
+  manifest   Json
+  /// Structure publiée : composants, sections, format (instantané)
+  structure  Json
+  pages      Int
+  createdBy  String?
+  createdAt  DateTime @default(now())
+
+  @@unique([templateId, seq])
+  @@index([projectId])
+  @@map("report_template_versions")
+}

@@ -748,11 +748,19 @@ export function attach(comp) {
   }
 
   // ── Comités : templates et journal de génération ──
+  /** Template côté serveur : identifiant `T-…`, sinon recherche par nom et version (attente de 10 s au plus après la publication). */
+  async function tplServer(t) {
+    const find = () => (S.B.templates || []).find((x) => x.id === t.id) || (/^T-/.test(String(t.id)) ? t : null) || (S.B.templates || []).find((x) => x.name === t.name && String(x.version) === String(t.version));
+    let srv = find();
+    for (let i = 0; !srv && i < 20; i++) { await new Promise((r) => setTimeout(r, 500)); srv = find(); }
+    return srv;
+  }
   function tplBody(t) {
     const comps = (t.comps || []).map((c) => {
       const scope = TPL_SCOPE[c.kind] || 'PROJECT';
       const targetId = c.targetId || (scope === 'WAVE' ? waveId(c.target) : scope === 'PHASE' ? phaseId(c.target) : scope === 'WORKSTREAM' ? wsId(c.target) : null);
-      return { id: c.id, scope, ...(scope !== 'PROJECT' ? { targetId } : {}) };
+      // Étape 4 : période, indicateurs, ouverture d'une section (page intercalaire) et son titre.
+      return { id: c.id, scope, ...(scope !== 'PROJECT' ? { targetId } : {}), ...(c.period ? { period: c.period } : {}), ...(c.indicators ? { indicators: c.indicators } : {}), ...(c.newSection ? { newSection: true, ...(c.sectionTitle ? { sectionTitle: c.sectionTitle } : {}) } : {}) };
     });
     // Format du rapport (étape B, 02/10/2026) : les 4 pages modèles { fileId, slide } ; absent = présentation par défaut.
     const fmt = t.format && ['cover', 'divider', 'standard', 'closing'].every((k) => t.format[k] && t.format[k].fileId && !String(t.format[k].fileId).startsWith('local'))
@@ -968,18 +976,33 @@ export function attach(comp) {
     fmtCheck(sel) { return ppost('/report-formats/check', sel); },
     /** Fichier retiré du brouillon (refusé par le serveur s'il sert à un template enregistré : sans conséquence). */
     fmtDelete(fileId) { return pdel('/report-formats/' + enc(fileId)).catch(() => null); },
-    /** PowerPoint du template avec les données du jour : `GET /report-templates/{id}/pptx`. */
+    /** Catalogue des composants (nature, indicateurs, périodes) : `GET /report-components`. */
+    tplComponents() { return pget('/report-components'); },
+    /** Aperçu du rapport complet (brouillon) : `POST /report-templates/preview` → diapositives et anomalies. */
+    tplPreview(t) {
+      const b = tplBody(t);
+      return ppost('/report-templates/preview', { name: b.name, version: b.version, bodyId: b.bodyId, components: b.components, ...(b.format ? { format: b.format } : {}) });
+    },
+    /** Vignette d'une diapositive de l'aperçu (SVG) en URL d'objet, à libérer par l'écran. */
+    async tplPreviewSlide(id, n) {
+      const r = await pget('/report-previews/' + enc(id) + '/slides/' + n, { raw: true });
+      return URL.createObjectURL(await r.blob());
+    },
+    /** Contrôle des données avant génération : `GET /report-templates/{id}/check` → `{ version, issues }`. */
+    async tplCheck(t) {
+      const srv = await tplServer(t);
+      if (!srv) { toast('Template en cours d’enregistrement : réessayez dans un instant'); return null; }
+      try { return await pget('/report-templates/' + enc(srv.id) + '/check'); } catch (e) { toast(errorText(e)); return null; }
+    },
+    /** PowerPoint d'une publication (template de la version en vigueur, valeurs du jour) : `GET /report-templates/{id}/pptx`. */
     async tplPptx(t) {
-      // Identifiant serveur (`T-…`, attribué à la création) ; sinon template local pas encore relu : recherche par nom et version.
-      const find = () => (S.B.templates || []).find((x) => x.id === t.id) || (/^T-/.test(String(t.id)) ? t : null) || (S.B.templates || []).find((x) => x.name === t.name && String(x.version) === String(t.version));
-      // Template tout juste publié : on attend son enregistrement (10 s au plus).
-      let srv = find();
-      for (let i = 0; !srv && i < 20; i++) { await new Promise((r) => setTimeout(r, 500)); srv = find(); }
+      const srv = await tplServer(t);
       if (!srv) return toast('Template en cours d’enregistrement : réessayez dans un instant');
       try {
         const r = await pget('/report-templates/' + enc(srv.id) + '/pptx', { raw: true });
         const blob = await r.blob(), url = URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.href = url; a.download = (t.name + ' v' + t.version).replace(/[\\/:*?"<>|]+/g, '_') + '.pptx'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+        const cd = r.headers.get('Content-Disposition') || '', fn = /filename="([^"]+)"/.exec(cd);
+        const a = document.createElement('a'); a.href = url; a.download = fn ? decodeURIComponent(fn[1]) : (t.name + ' v' + t.version).replace(/[\\/:*?"<>|]+/g, '_') + '.pptx'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
       } catch (e) { toast(errorText(e)); }
     },
 

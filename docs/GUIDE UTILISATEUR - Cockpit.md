@@ -663,7 +663,7 @@ Le bouton orange **Mettre à jour mes tâches** de la barre latérale ouvre dire
 - Un template désactivé ne se génère plus : « Template inactif ».
 - La génération est tracée et inscrite à l'historique.
 
-Le téléchargement enregistre sur votre poste un fichier PowerPoint (.pptx) construit avec les données du jour, au format du template : couverture, une page intercalaire et des pages standard par section, page de clôture. Un template sans format utilise la présentation par défaut de RISE.
+Le téléchargement contrôle d'abord les données (voir « Contrôle avant génération » en 3.15.2), puis enregistre sur votre poste le PowerPoint du template rempli avec les données du jour : couverture, une page intercalaire par section, une page par composant, page de clôture. Un template sans format utilise la présentation par défaut de RISE.
 
 ### 3.15.2 Créer un template
 
@@ -678,10 +678,19 @@ Le bouton **Créer un template** du bandeau ouvre un assistant en six étapes.
    - Messages d'erreur (en rouge, la page n'est pas retenue) : « Format non pris en charge », « Ancien format PowerPoint (.ppt) », « Le contenu ne correspond pas à l'extension », « Fichier PowerPoint illisible ou endommagé », « Ce fichier est protégé par un mot de passe », « Image trop petite », et, si les dimensions diffèrent entre les pages PowerPoint, « Les 4 pages doivent avoir le même format ».
    - Alertes (en orange, la page est retenue) : « Police introuvable » (police ni standard d'Office, ni incorporée au fichier : à installer sur les postes, ou à incorporer), zone de titre, de contenu ou de pagination absente, extraction partielle d'un PDF ou d'une image.
    - Sans les 4 pages : « Chargez les 4 pages modèles (N manquantes). ».
-3. **Composants** : choisissez parmi Synthèse de situation, Planning, Jalons, Risques et problèmes, Actions, Décisions, Baromètre du projet, Tableau de bord, Budget. Chaque composant devient une section. Sans composant : « Sélectionnez au moins un composant. ».
-4. **Ordre et données** : pour chaque section, le périmètre (Projet entier, Vague, Phase ou Chantier) et sa cible ; boutons Monter / Descendre.
-5. **Prévisualisation** : « N pages estimées · N sections », et les vignettes des 4 pages modèles.
-6. **Publication** : le récapitulatif indique le format (ex. « 16:9 · 33,87 × 19,05 cm · Charte.pptx ») ; **Valider et publier**. Le template devient actif, rejoint la Bibliothèque et devient sélectionnable dans « Générer un rapport ». Toast : « Template publié · {nom} v{version} — actif dans {comité} ».
+3. **Composants** : choisissez parmi Synthèse de situation, Planning, Jalons, Risques et problèmes, Actions, Décisions, Baromètre du projet, Tableau de bord, Budget. Chaque carte indique la nature du composant (Tableau, Graphique, Indicateurs, Indicateurs et texte…). Chaque composant devient une page du rapport. Sans composant : « Sélectionnez au moins un composant. ».
+4. **Ordre, sections et données** :
+   - **Ordre** : boutons Monter / Descendre.
+   - **Sections** : le premier composant ouvre la section 1 ; **+ Nouvelle section à partir d'ici** fait commencer une nouvelle section (une page intercalaire) au composant choisi, **Rattacher à la section précédente** l'annule. Le titre de la section est modifiable (par défaut : le nom du premier composant).
+   - **Données** : pour chaque composant, le périmètre (Projet entier, Vague, Phase ou Chantier) et sa cible, la **période** (mois en cours, trimestre en cours, 3 ou 6 derniers mois, 30 ou 90 prochains jours, sans filtre ; les composants qui donnent la situation du jour n'en ont pas) et les **indicateurs** : colonnes d'un tableau, séries d'un graphique ou indicateurs chiffrés (au moins un ; quatre indicateurs chiffrés au plus par page). La période est recalculée à chaque publication.
+5. **Prévisualisation** : le rapport complet est construit avec le format de l'étape 2 et les données du jour : couverture, intercalaires, une page par composant, clôture, en vignettes. L'encadré **Contrôle des données** liste les anomalies : en orange, une donnée manquante ou incohérente (ex. « Budget : budget du programme non connu », « Jalons : date de référence manquante »), en rouge une anomalie bloquante (ex. périmètre qui n'existe plus). Revenez aux étapes précédentes pour corriger le design, les composants, l'ordre ou les données : l'aperçu se reconstruit à votre retour.
+6. **Publication** : le récapitulatif indique le format, les sections, le nombre exact de pages et le contrôle des données. **Valider et publier** génère le **PowerPoint de référence** du template (version 1) : structure figée, design de l'étape 2 et zones de données. Le template devient actif, rejoint la Bibliothèque et devient sélectionnable dans « Générer un rapport ». La publication est impossible tant qu'une anomalie bloquante subsiste. Toast : « Template publié · {nom} v{version} — PowerPoint de référence généré, actif dans {comité} ».
+
+**Publications suivantes.** Chaque rapport généré rouvre le PowerPoint de référence et n'en change que les valeurs : textes, chiffres, lignes des tableaux, données des graphiques (graphiques PowerPoint natifs, modifiables), date et périodes. La mise en page et le design ne bougent pas. Un tableau garde sa hauteur de ligne : un texte trop long est abrégé « … », et au-delà du nombre de lignes que la page peut contenir, la dernière ligne indique « … et N autres ».
+
+**Contrôle avant génération.** Avant chaque génération, Cockpit contrôle les données. S'il y a des points d'attention, une fenêtre les liste : **Générer quand même** ou **Annuler**. S'il y a une anomalie bloquante, la génération est impossible (**Fermer**).
+
+**Versions.** Le template publié est enregistré et versionné. Toute modification de sa structure ou de son design (nom, comité, composants, format) publie une nouvelle version (1.0 → 1.1) ; activer ou désactiver le template n'en crée pas. Les versions précédentes restent conservées.
 
 Une section limitée à une vague, une phase ou un chantier doit avoir sa cible : « Composant incomplet ».
 

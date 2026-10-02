@@ -1,0 +1,341 @@
+import JSZip from 'jszip';
+import ExcelJS from 'exceljs';
+import { Box, builtInFormat, DEFAULT_SIZE, estimatedZones, FormatAnalysis, PageKind, SlideAnalysis, TextStyle } from '../domain/report-format';
+import { COMPONENTS, DASHBOARD_SERIES, fieldName, indicatorsOf, KPI_MAX, Section } from '../domain/report-components';
+import { relsPath, resolvePath } from './ooxml';
+import { contrastOn } from './report-format-read';
+import { Assembler, Fill, fillPptxSlide, maxId, PageSource, readRels, RelRow, relsXml, relTarget, runProps, setText, Src, syntheticSlide, textBox, tokens, XML_DECL, xmlEsc } from './report-format-write';
+
+/**
+ * Template PowerPoint d'un rapport de comité (étapes 4 à 6 de « Créer un template », 03/10/2026).
+ *
+ * Composition (une fois, à la publication) : couverture, une page intercalaire par section, une page standard par
+ * composant, clôture, copiées des pages modèles ; sur chaque page standard, les éléments du composant (indicateurs,
+ * tableau, graphique natif, texte) sont posés dans la zone de contenu, avec la charte extraite. Chaque zone variable
+ * porte un nom stable `rise:{id}` (ex. `rise:c02.table`) et figure au manifeste avec sa source de données.
+ *
+ * Remplissage (à chaque publication) : le template est rouvert, seules les valeurs changent : texte des zones, lignes
+ * des tableaux (nombre variable, style conservé), données des graphiques (cache et classeur incorporé).
+ */
+
+export interface TemplateField {
+  id: string;
+  kind: 'text' | 'table' | 'chart';
+  /** Partie de la diapositive dans le paquet (ex. `ppt/slides/slide3.xml`). */
+  slide: string;
+  component?: string;
+  columns?: string[];
+  capacity?: number;
+  rowH?: number;
+  rowTpl?: [string, string];
+  /** Largeur des colonnes (EMU) et taille du texte (pt) : une cellule tient sur une ligne. */
+  widths?: number[];
+  size?: number;
+  chart?: string;
+  chartType?: 'bar' | 'line';
+  series?: string[];
+}
+export interface TemplatePage { slide: string; kind: PageKind; section?: number; component?: string }
+export interface TemplateManifest { schema: 1; pages: TemplatePage[]; fields: TemplateField[] }
+export interface ComposeInput { title: string; sections: Section[]; tokens: Record<string, string> }
+export interface FillData {
+  text: Record<string, string[]>;
+  tables: Record<string, string[][]>;
+  charts: Record<string, { categories: string[]; series: Array<{ name: string; values: Array<number | null> }> }>;
+}
+
+/** Zone variable absente du template (fichier modifié à la main ou endommagé). */
+export class TemplateFieldMissing extends Error {
+  constructor(readonly field: string) { super(`Zone « ${field} » introuvable dans le template`); }
+}
+
+const CHART_CT = 'application/vnd.openxmlformats-officedocument.drawingml.chart+xml';
+const XLSX_CT = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+const C_NS = 'http://schemas.openxmlformats.org/drawingml/2006/chart';
+
+// ───────────── Charte des éléments posés ─────────────
+
+export interface Design { primary: string; secondary: string; text: string; muted: string; light: string; font: string; size: number; caption: TextStyle }
+const mix = (hex: string, other: string, k: number) => [0, 2, 4].map((i) => Math.round(parseInt(hex.slice(i, i + 2), 16) * (1 - k) + parseInt(other.slice(i, i + 2), 16) * k).toString(16).padStart(2, '0')).join('').toUpperCase();
+/** Couleur « neutre » (gris, quasi noir ou blanc) : saturation faible ou luminosité extrême. */
+export const neutral = (hex: string) => {
+  const v = [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255), mx = Math.max(...v), mn = Math.min(...v), l = (mx + mn) / 2;
+  const sat = mx === mn ? 0 : (mx - mn) / (1 - Math.abs(2 * l - 1));
+  return sat < 0.25 || l < 0.06 || l > 0.96;
+};
+
+/**
+ * Couleurs et police des éléments posés : couleurs réellement utilisées par les pages modèles (page standard d'abord,
+ * puis couverture et intercalaire), sinon accents du thème ; texte et police du corps de la page standard.
+ */
+export function designOf(a: FormatAnalysis, s: SlideAnalysis, others: SlideAnalysis[] = []): Design {
+  const used = [...s.palette, ...others.flatMap((o) => o.palette)].filter((c, i, all) => all.indexOf(c) === i && !neutral(c));
+  // Palette = couleurs utilisées puis thème : on ne garde que la partie « utilisée » (avant les accents du thème).
+  const themeColors = new Set(Object.values(a.theme?.colors ?? {}));
+  const brand = used.filter((c) => !themeColors.has(c) || [s, ...others].some((x) => x.elements.some((e) => e.fill?.color === c) || x.background.color === c || x.zones.some((z) => z.style.color === c)));
+  const primary = brand[0] ?? a.theme?.colors.accent1 ?? '1D8F86';
+  const secondary = brand.find((c) => c !== primary) ?? (a.theme?.colors.accent2 !== primary ? a.theme?.colors.accent2 : undefined) ?? 'F7A41C';
+  const text = s.typography.body?.color ?? s.typography.title?.color ?? '1F2124';
+  const font = s.typography.body?.font ?? a.theme?.minor ?? 'Calibri';
+  const size = Math.min(14, Math.max(10, s.typography.body?.size ?? 12));
+  return { primary, secondary, text, muted: mix(text, 'FFFFFF', 0.35), light: mix(primary, 'FFFFFF', 0.9), font, size, caption: { font, size: Math.max(9, size - 2), bold: false, italic: false, color: mix(text, 'FFFFFF', 0.35) } };
+}
+
+// ───────────── Éléments : indicateurs, tableau, graphique ─────────────
+
+const rect = (id: number, name: string, b: Box, fill: string, geom = 'rect') =>
+  `<p:sp><p:nvSpPr><p:cNvPr id="${id}" name="${xmlEsc(name)}"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="${b.x}" y="${b.y}"/><a:ext cx="${b.w}" cy="${b.h}"/></a:xfrm><a:prstGeom prst="${geom}"><a:avLst/></a:prstGeom><a:solidFill><a:srgbClr val="${fill}"/></a:solidFill><a:ln><a:noFill/></a:ln></p:spPr></p:sp>`;
+
+/** Tuiles d'indicateurs : fond clair, valeur (zone variable) et libellé fixe. */
+function kpiTiles(next: () => number, key: string, area: Box, items: Array<{ id: string; label: string }>, d: Design): string {
+  const n = items.length, gap = Math.round(area.w * 0.02), tw = Math.floor((area.w - gap * (n - 1)) / n);
+  return items.map((it, i) => {
+    const b = { x: area.x + i * (tw + gap), y: area.y, w: tw, h: area.h };
+    const pad = Math.round(b.h * 0.12);
+    const value = { x: b.x + pad, y: b.y + pad, w: b.w - 2 * pad, h: Math.round(b.h * 0.5) };
+    const label = { x: b.x + pad, y: value.y + value.h, w: b.w - 2 * pad, h: b.h - value.h - 2 * pad };
+    return rect(next(), `Tuile ${it.label}`, b, d.light, 'roundRect')
+      + textBox(next(), fieldName(`${key}.kpi.${it.id}`), value, { font: d.font, size: Math.min(28, Math.max(16, Math.round(b.h / 12700 / 3))), bold: true, italic: false, color: d.primary }, ['—'], { anchor: 'b' })
+      + textBox(next(), `Libellé ${it.label}`, label, { font: d.font, size: Math.max(9, d.size - 1), bold: false, italic: false, color: d.text }, [it.label]);
+  }).join('');
+}
+
+const COL_WEIGHT: Record<string, number> = { name: 3.2, code: 0.9, status: 1.2, owner: 1.5, phase: 1.4, body: 1.2, start: 1.3, end: 1.3, date: 1.3, baseline: 1.3, due: 1.3, progress: 1.2, slip: 0.9 };
+const cellXml = (text: string, st: { fill: string; color: string; bold: boolean; size: number; font: string; line: string }) =>
+  `<a:tc><a:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r>${runProps({ font: st.font, size: st.size, bold: st.bold, italic: false, color: st.color })}<a:t>${text}</a:t></a:r></a:p></a:txBody><a:tcPr marL="68580" marR="68580" marT="34290" marB="34290" anchor="ctr"><a:lnL w="0"><a:noFill/></a:lnL><a:lnR w="0"><a:noFill/></a:lnR><a:lnT w="0"><a:noFill/></a:lnT><a:lnB w="6350"><a:solidFill><a:srgbClr val="${st.line}"/></a:solidFill></a:lnB><a:solidFill><a:srgbClr val="${st.fill}"/></a:solidFill></a:tcPr></a:tc>`;
+/** Marqueur de cellule des gabarits de ligne (stockés au manifeste, en JSON). */
+const CELL = '{{cellule}}';
+
+/** Tableau natif : en-tête aux couleurs de la charte, lignes alternées ; gabarits de ligne gardés au manifeste. */
+function tableFrame(id: number, name: string, area: Box, columns: Array<{ id: string; label: string }>, d: Design) {
+  const rowH = Math.round(d.size * 2.1 * 12700);
+  const capacity = Math.max(3, Math.floor(area.h / rowH) - 1);
+  const weights = columns.map((c) => COL_WEIGHT[c.id] ?? 1), sum = weights.reduce((a, b) => a + b, 0);
+  const widths = weights.map((w) => Math.floor((area.w * w) / sum));
+  const base = { font: d.font, size: d.size, line: mix(d.text, 'FFFFFF', 0.8) };
+  const header = `<a:tr h="${rowH}">${columns.map((c) => cellXml(xmlEsc(c.label), { ...base, fill: d.primary, color: contrastOn(d.primary), bold: true })).join('')}</a:tr>`;
+  const row = (fill: string) => `<a:tr h="${rowH}">${columns.map(() => cellXml(CELL, { ...base, fill, color: d.text, bold: false })).join('')}</a:tr>`;
+  const rowTpl: [string, string] = [row('FFFFFF'), row(d.light)];
+  const xml = `<p:graphicFrame><p:nvGraphicFramePr><p:cNvPr id="${id}" name="${xmlEsc(name)}"/><p:cNvGraphicFramePr><a:graphicFrameLocks noGrp="1"/></p:cNvGraphicFramePr><p:nvPr/></p:nvGraphicFramePr><p:xfrm><a:off x="${area.x}" y="${area.y}"/><a:ext cx="${area.w}" cy="${rowH}"/></p:xfrm><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/table"><a:tbl><a:tblPr firstRow="1" bandRow="1"/><a:tblGrid>${widths.map((w) => `<a:gridCol w="${w}"/>`).join('')}</a:tblGrid>${header}</a:tbl></a:graphicData></a:graphic></p:graphicFrame>`;
+  return { xml, rowH, capacity, rowTpl, widths };
+}
+
+const colLetter = (i: number) => String.fromCharCode(66 + i);
+const catXml = (cats: string[]) => `<c:cat><c:strRef><c:f>Sheet1!$A$2:$A$${cats.length + 1}</c:f><c:strCache><c:ptCount val="${cats.length}"/>${cats.map((c, i) => `<c:pt idx="${i}"><c:v>${xmlEsc(c)}</c:v></c:pt>`).join('')}</c:strCache></c:strRef></c:cat>`;
+const valXml = (i: number, vals: Array<number | null>) => `<c:val><c:numRef><c:f>Sheet1!$${colLetter(i)}$2:$${colLetter(i)}$${vals.length + 1}</c:f><c:numCache><c:formatCode>General</c:formatCode><c:ptCount val="${vals.length}"/>${vals.map((v, k) => (v === null || v === undefined || Number.isNaN(v) ? '' : `<c:pt idx="${k}"><c:v>${v}</c:v></c:pt>`)).join('')}</c:numCache></c:numRef></c:val>`;
+
+/** Graphique natif PowerPoint (histogramme groupé ou courbes), données dans un classeur incorporé. */
+function chartXml(type: 'bar' | 'line', series: string[], d: Design): string {
+  const colors = [d.primary, d.secondary, mix(d.text, 'FFFFFF', 0.4), mix(d.primary, '000000', 0.3)];
+  const txPr = (sz: number) => `<c:txPr><a:bodyPr/><a:lstStyle/><a:p><a:pPr><a:defRPr sz="${sz}"><a:solidFill><a:srgbClr val="${d.text}"/></a:solidFill><a:latin typeface="${xmlEsc(d.font)}"/></a:defRPr></a:pPr><a:endParaRPr lang="fr-FR"/></a:p></c:txPr>`;
+  const ser = series.map((name, i) => {
+    const tx = `<c:tx><c:strRef><c:f>Sheet1!$${colLetter(i)}$1</c:f><c:strCache><c:ptCount val="1"/><c:pt idx="0"><c:v>${xmlEsc(name)}</c:v></c:pt></c:strCache></c:strRef></c:tx>`;
+    const c = colors[i % colors.length];
+    return type === 'bar'
+      ? `<c:ser><c:idx val="${i}"/><c:order val="${i}"/>${tx}<c:spPr><a:solidFill><a:srgbClr val="${c}"/></a:solidFill></c:spPr><c:invertIfNegative val="0"/>${catXml(['—'])}${valXml(i, [0])}</c:ser>`
+      : `<c:ser><c:idx val="${i}"/><c:order val="${i}"/>${tx}<c:spPr><a:ln w="28575" cap="rnd"><a:solidFill><a:srgbClr val="${c}"/></a:solidFill><a:round/></a:ln></c:spPr><c:marker><c:symbol val="circle"/><c:size val="6"/><c:spPr><a:solidFill><a:srgbClr val="${c}"/></a:solidFill><a:ln><a:noFill/></a:ln></c:spPr></c:marker>${catXml(['—'])}${valXml(i, [0])}<c:smooth val="0"/></c:ser>`;
+  }).join('');
+  const plot = type === 'bar'
+    ? `<c:barChart><c:barDir val="col"/><c:grouping val="clustered"/><c:varyColors val="0"/>${ser}<c:dLbls><c:showLegendKey val="0"/><c:showVal val="1"/><c:showCatName val="0"/><c:showSerName val="0"/><c:showPercent val="0"/><c:showBubbleSize val="0"/></c:dLbls><c:gapWidth val="80"/><c:overlap val="-10"/><c:axId val="50010001"/><c:axId val="50010002"/></c:barChart>`
+    : `<c:lineChart><c:grouping val="standard"/><c:varyColors val="0"/>${ser}<c:marker val="1"/><c:axId val="50010001"/><c:axId val="50010002"/></c:lineChart>`;
+  const grid = mix(d.text, 'FFFFFF', 0.88);
+  return `${XML_DECL}<c:chartSpace xmlns:c="${C_NS}" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><c:date1904 val="0"/><c:lang val="fr-FR"/><c:roundedCorners val="0"/><c:chart><c:autoTitleDeleted val="1"/><c:plotArea><c:layout/>${plot}<c:catAx><c:axId val="50010001"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="b"/><c:numFmt formatCode="General" sourceLinked="0"/><c:majorTickMark val="none"/><c:minorTickMark val="none"/><c:tickLblPos val="nextTo"/><c:spPr><a:ln w="9525"><a:solidFill><a:srgbClr val="${grid}"/></a:solidFill></a:ln></c:spPr>${txPr(1000)}<c:crossAx val="50010002"/><c:crosses val="autoZero"/><c:auto val="1"/><c:lblAlgn val="ctr"/><c:lblOffset val="100"/><c:noMultiLvlLbl val="0"/></c:catAx><c:valAx><c:axId val="50010002"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:delete val="0"/><c:axPos val="l"/><c:majorGridlines><c:spPr><a:ln w="9525"><a:solidFill><a:srgbClr val="${grid}"/></a:solidFill></a:ln></c:spPr></c:majorGridlines><c:numFmt formatCode="General" sourceLinked="1"/><c:majorTickMark val="none"/><c:minorTickMark val="none"/><c:tickLblPos val="nextTo"/><c:spPr><a:ln><a:noFill/></a:ln></c:spPr>${txPr(1000)}<c:crossAx val="50010001"/><c:crosses val="autoZero"/><c:crossBetween val="between"/></c:valAx><c:spPr><a:noFill/><a:ln><a:noFill/></a:ln></c:spPr></c:plotArea><c:legend><c:legendPos val="b"/><c:overlay val="0"/>${txPr(1000)}</c:legend><c:plotVisOnly val="1"/><c:dispBlanksAs val="gap"/></c:chart><c:spPr><a:noFill/><a:ln><a:noFill/></a:ln></c:spPr>${txPr(1100)}<c:externalData r:id="rId1"><c:autoUpdate val="0"/></c:externalData></c:chartSpace>`;
+}
+
+/** Classeur incorporé du graphique : catégories en colonne A, une colonne par série (Feuil « Sheet1 »). */
+export async function chartWorkbook(categories: string[], series: Array<{ name: string; values: Array<number | null> }>): Promise<Buffer> {
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet('Sheet1');
+  ws.addRow(['', ...series.map((s) => s.name)]);
+  categories.forEach((c, i) => ws.addRow([c, ...series.map((s) => s.values[i] ?? null)]));
+  return Buffer.from(await wb.xlsx.writeBuffer());
+}
+
+// ───────────── Composition ─────────────
+
+/** Zone de contenu de la page standard : zone de texte de la page modèle, sinon proportions usuelles. */
+function contentArea(s: SlideAnalysis, kind: PageSource['kind'], size: { cx: number; cy: number }): Box {
+  const z = s.zones.find((x) => x.role === 'body') ?? s.zones.find((x) => x.role === 'chart' || x.role === 'table');
+  if (z) return { ...z.box };
+  const title = s.zones.find((x) => x.role === 'title');
+  const est = estimatedZones('standard', size).find((x) => x.role === 'body')!.box;
+  if (title && kind === 'PPTX') { const y = title.box.y + title.box.h + Math.round(size.cy * 0.03); return { x: title.box.x, y, w: Math.max(title.box.w, est.w), h: Math.max(size.cy * 0.3, size.cy * 0.9 - y) }; }
+  return est;
+}
+
+/** Construit le template : pages copiées des modèles, éléments des composants posés, zones variables nommées. */
+export async function composeTemplate(pages: Record<PageKind, PageSource> | null, input: ComposeInput): Promise<{ buf: Buffer; manifest: TemplateManifest }> {
+  const def = builtInFormat();
+  const src: Record<PageKind, PageSource> = pages ?? (Object.fromEntries((['cover', 'divider', 'standard', 'closing'] as PageKind[]).map((k, i) => [k, { fileId: 'builtin', kind: 'PDF', buf: null, analysis: def.analysis, slide: i + 1 }])) as Record<PageKind, PageSource>);
+  const baseRef = (['cover', 'standard', 'divider', 'closing'] as PageKind[]).map((k) => src[k]).find((p) => p.kind === 'PPTX' && p.buf);
+  const size = baseRef?.analysis.size ?? src.cover.analysis.size ?? DEFAULT_SIZE;
+  const asm = new Assembler();
+  await asm.init(baseRef?.fileId ?? null, baseRef?.buf ?? null, size);
+  const cache = new Map<string, Src>();
+  const blank = await asm.blankLayout();
+  const imageMedia = new Map<string, string>();
+  const manifest: TemplateManifest = { schema: 1, pages: [], fields: [] };
+  let page = 0;
+
+  /** Page copiée du modèle ; `extra` ajoute des éléments (et leurs relations) avant l'écriture. */
+  const emit = async (kind: PageKind, f: Omit<Fill, 'page' | 'date'>, meta: Omit<TemplatePage, 'slide' | 'kind'> = {}, extra?: (xml: string, rels: RelRow[]) => Promise<string>) => {
+    page++;
+    const p = src[kind];
+    const s = p.analysis.slides[p.slide - 1];
+    const fill: Fill = { ...f, date: input.tokens.date ?? '', page, names: { date: fieldName('report.date'), ...(f.names ?? {}) } };
+    let xml: string, rels: RelRow[];
+    if (p.kind === 'PPTX' && p.buf) {
+      const sp = await asm.source(p.fileId, p.buf, cache);
+      const t = await asm.templateSlide(sp, p.slide);
+      xml = fillPptxSlide(t.xml, kind, s, fill, size);
+      rels = t.rels;
+    } else {
+      rels = [{ id: 'rId1', type: 'slideLayout', target: blank, external: false }];
+      let bgRid: string | null = null;
+      if (p.kind === 'IMAGE' && p.buf) {
+        if (!imageMedia.has(p.fileId)) imageMedia.set(p.fileId, asm.addMedia(p.buf, p.buf[0] === 0x89 ? 'png' : 'jpeg'));
+        rels.push({ id: 'rId2', type: 'image', target: imageMedia.get(p.fileId)!, external: false });
+        bgRid = 'rId2';
+      }
+      xml = syntheticSlide(kind, s, fill, size, bgRid);
+    }
+    xml = tokens(xml, { ...input.tokens, section: f.title ?? '', page: String(page) });
+    if (extra) xml = await extra(xml, rels);
+    const path = asm.addSlide(xml, rels);
+    manifest.pages.push({ slide: path, kind, ...meta });
+    return path;
+  };
+
+  await emit('cover', { title: input.title, subtitle: '—', names: { subtitle: fieldName('report.subtitle') } });
+  const stdSrc = src.standard, std = stdSrc.analysis.slides[stdSrc.slide - 1];
+  const d = designOf(stdSrc.analysis, std, (['cover', 'divider'] as PageKind[]).map((k) => src[k].analysis.slides[src[k].slide - 1]));
+  for (const [si, sec] of input.sections.entries()) {
+    await emit('divider', { title: `${String(si + 1).padStart(2, '0')} · ${sec.title}`, subtitle: sec.components.map((c) => COMPONENTS[c.id].label).join(' · ') }, { section: si });
+    for (const c of sec.components) {
+      const cdef = COMPONENTS[c.id];
+      const inds = indicatorsOf(c).map((id) => cdef.indicators.find((x) => x.id === id)!);
+      const fields: TemplateField[] = [];
+      const path = await emit('standard', { title: cdef.label, dropBody: true }, { section: si, component: c.key }, async (xml, rels) => {
+        let id = maxId(xml) + 1;
+        const next = () => id++;
+        const area = contentArea(std, stdSrc.kind, size);
+        const capH = Math.round(Math.min(area.h * 0.12, d.caption.size! * 2.2 * 12700));
+        const add: string[] = [textBox(next(), fieldName(`${c.key}.caption`), { ...area, h: capH }, d.caption, ['—'])];
+        fields.push({ id: `${c.key}.caption`, kind: 'text', slide: '', component: c.key });
+        const gap = Math.round(size.cy * 0.02);
+        let r: Box = { x: area.x, y: area.y + capH + gap / 2, w: area.w, h: area.h - capH - gap / 2 };
+        const kpis = cdef.parts.includes('kpi') ? inds.filter((x) => !(c.id === 'dashboard' && DASHBOARD_SERIES.includes(x.id))).slice(0, KPI_MAX) : [];
+        const second = cdef.parts.find((x) => x !== 'kpi');
+        const series = c.id === 'dashboard' ? inds.filter((x) => DASHBOARD_SERIES.includes(x.id)) : inds;
+        const hasSecond = !!second && (second !== 'chart' || series.length > 0);
+        if (kpis.length) {
+          const kh = hasSecond ? Math.round(Math.min(r.h * 0.3, size.cy * 0.17)) : Math.round(Math.min(r.h, size.cy * 0.2));
+          add.push(kpiTiles(next, c.key, { ...r, h: kh }, kpis, d));
+          kpis.forEach((k) => fields.push({ id: `${c.key}.kpi.${k.id}`, kind: 'text', slide: '', component: c.key }));
+          r = { ...r, y: r.y + kh + gap, h: r.h - kh - gap };
+        }
+        if (second === 'text') {
+          add.push(textBox(next(), fieldName(`${c.key}.text`), r, { font: d.font, size: d.size, bold: false, italic: false, color: d.text }, ['—']));
+          fields.push({ id: `${c.key}.text`, kind: 'text', slide: '', component: c.key });
+        } else if (second === 'table') {
+          const t = tableFrame(next(), fieldName(`${c.key}.table`), r, inds, d);
+          add.push(t.xml);
+          fields.push({ id: `${c.key}.table`, kind: 'table', slide: '', component: c.key, columns: inds.map((x) => x.id), capacity: t.capacity, rowH: t.rowH, rowTpl: t.rowTpl, widths: t.widths, size: d.size });
+        } else if (second === 'chart' && series.length) {
+          const type = cdef.chart ?? 'bar';
+          const chartPath = asm.addPart('ppt/charts', 'chart', 'xml', chartXml(type, series.map((x) => x.label), d), CHART_CT);
+          const emb = asm.addPart('ppt/embeddings', 'Microsoft_Excel_Worksheet', 'xlsx', await chartWorkbook(['—'], series.map((x) => ({ name: x.label, values: [0] }))), XLSX_CT, true);
+          asm.zip.file(relsPath(chartPath), relsXml([{ id: 'rId1', type: 'package', target: relTarget(chartPath, emb), external: false }]));
+          const rid = `rId${Math.max(0, ...rels.map((x) => Number(x.id.replace(/\D/g, '')) || 0)) + 1}`;
+          rels.push({ id: rid, type: 'chart', target: chartPath, external: false });
+          add.push(`<p:graphicFrame><p:nvGraphicFramePr><p:cNvPr id="${next()}" name="${fieldName(`${c.key}.chart`)}"/><p:cNvGraphicFramePr/><p:nvPr/></p:nvGraphicFramePr><p:xfrm><a:off x="${r.x}" y="${r.y}"/><a:ext cx="${r.w}" cy="${r.h}"/></p:xfrm><a:graphic><a:graphicData uri="${C_NS}"><c:chart xmlns:c="${C_NS}" r:id="${rid}"/></a:graphicData></a:graphic></p:graphicFrame>`);
+          fields.push({ id: `${c.key}.chart`, kind: 'chart', slide: '', component: c.key, chart: chartPath, chartType: type, series: series.map((x) => x.id) });
+        }
+        return xml.replace(/<\/p:spTree>/, `${add.join('')}</p:spTree>`);
+      });
+      fields.forEach((f) => manifest.fields.push({ ...f, slide: path }));
+    }
+  }
+  await emit('closing', {});
+  // Zones communes, selon les zones des pages modèles : sous-titre de la couverture, date (chaque page qui en a une).
+  const buf = await asm.finish();
+  const z = await JSZip.loadAsync(buf);
+  const common: TemplateField[] = [];
+  for (const pg of manifest.pages) {
+    const xml = await z.file(pg.slide)!.async('string');
+    for (const id of ['report.subtitle', 'report.date']) if (xml.includes(`name="${fieldName(id)}"`)) common.push({ id, kind: 'text', slide: pg.slide });
+  }
+  manifest.fields.unshift(...common);
+  return { buf, manifest };
+}
+
+// ───────────── Remplissage ─────────────
+
+const each = (xml: string, re: RegExp, name: string, fn: (block: string) => string) => {
+  let found = false;
+  const out = xml.replace(re, (b) => (b.includes(`name="${name}"`) ? ((found = true), fn(b)) : b));
+  return { out, found };
+};
+const SP = /<p:sp(?:\s[^>]*)?>(?:(?!<\/p:sp>)[\s\S])*?<\/p:sp>/g;
+const FRAME = /<p:graphicFrame(?:\s[^>]*)?>[\s\S]*?<\/p:graphicFrame>/g;
+
+/** Lignes d'un tableau remplacées (gabarits alternés), hauteur du cadre ajustée ; en-tête et colonnes inchangés. */
+function fillTable(frame: string, f: TemplateField, rows: string[][]): string {
+  const tpl = f.rowTpl!;
+  // Une ligne par cellule (hauteur fixe : la page garde sa structure) ; texte trop long abrégé « … ».
+  const fit = (v: string, j: number) => { const n = f.widths && f.size ? Math.max(4, Math.floor((f.widths[j] - 137160) / (f.size * 0.5 * 12700))) : 200; return v.length > n ? v.slice(0, n - 1).trimEnd() + '…' : v; };
+  const body = rows.slice(0, f.capacity).map((r, i) => tpl[i % 2].split(CELL).reduce((acc, part, j) => (j ? acc + xmlEsc(fit(String(r[j - 1] ?? ''), j - 1)) + part : part), '')).join('');
+  const header = /<a:tr\b[^>]*>[\s\S]*?<\/a:tr>/.exec(frame)![0];
+  const out = frame.replace(/(<a:tblGrid>[\s\S]*?<\/a:tblGrid>)[\s\S]*?(<\/a:tbl>)/, `$1${header}${body}$2`);
+  return out.replace(/(<p:xfrm>[\s\S]*?<a:ext cx="\d+" cy=")\d+(")/, `$1${f.rowH! * (1 + Math.min(rows.length, f.capacity!))}$2`);
+}
+
+/** Données d'un graphique natif : catégories et valeurs de chaque série (cache), classeur incorporé régénéré. */
+export function fillChartXml(xml: string, categories: string[], series: Array<{ values: Array<number | null> }>): string {
+  let i = 0;
+  return xml.replace(/<c:ser>[\s\S]*?<\/c:ser>/g, (ser) => {
+    const s = series[i] ?? { values: categories.map(() => null) };
+    const out = ser.replace(/<c:cat>[\s\S]*?<\/c:cat>/, catXml(categories)).replace(/<c:val>[\s\S]*?<\/c:val>/, valXml(i, s.values));
+    i++;
+    return out;
+  });
+}
+
+/** Publication : le template est rouvert et seules les valeurs des zones variables changent. */
+export async function fillTemplate(buf: Buffer, manifest: TemplateManifest, data: FillData): Promise<Buffer> {
+  const z = await JSZip.loadAsync(buf);
+  const slides = new Map<string, string>();
+  const get = async (p: string) => { if (!slides.has(p)) { const f = z.file(p); if (!f) throw new TemplateFieldMissing(p); slides.set(p, await f.async('string')); } return slides.get(p)!; };
+  for (const f of manifest.fields) {
+    const xml = await get(f.slide);
+    const name = fieldName(f.id);
+    let r: { out: string; found: boolean };
+    if (f.kind === 'text') {
+      const lines = data.text[f.id];
+      if (!lines) continue;
+      r = each(xml, SP, name, (sp) => setText(sp, lines.length ? lines : ['']));
+    } else if (f.kind === 'table') {
+      const rows = data.tables[f.id];
+      if (!rows) continue;
+      r = each(xml, FRAME, name, (fr) => fillTable(fr, f, rows));
+    } else {
+      const c = data.charts[f.id];
+      if (!c) continue;
+      let rid: string | null = null;
+      r = each(xml, FRAME, name, (fr) => { rid = /<c:chart\b[^>]*r:id="([^"]+)"/.exec(fr)?.[1] ?? null; return fr; });
+      if (r.found) {
+        const rel = (await readRels(z, f.slide)).find((x) => x.id === rid);
+        const chartPath = rel ? resolvePath(f.slide, rel.target) : f.chart!;
+        const cf = z.file(chartPath);
+        if (!cf) throw new TemplateFieldMissing(f.id);
+        z.file(chartPath, fillChartXml(await cf.async('string'), c.categories, c.series));
+        const pkg = (await readRels(z, chartPath)).find((x) => x.type === 'package');
+        if (pkg) z.file(resolvePath(chartPath, pkg.target), await chartWorkbook(c.categories, c.series));
+      }
+    }
+    if (!r.found) throw new TemplateFieldMissing(f.id);
+    slides.set(f.slide, r.out);
+  }
+  for (const [p, xml] of slides) z.file(p, xml);
+  return z.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE', mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' });
+}

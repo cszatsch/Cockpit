@@ -18,8 +18,6 @@ export const FORMAT_MAX_BYTES = 25 * 1024 * 1024;
 export const IMAGE_MIN_WIDTH_PX = 960;
 /** Nombre maximal de diapositives (ou pages) analysées dans un fichier. */
 export const FORMAT_MAX_SLIDES = 200;
-/** Lignes de contenu par page standard ; au-delà, la section continue sur une page « (suite) ». */
-export const LINES_PER_SLIDE = 12;
 
 /** Unités OOXML. */
 export const EMU_PER_PT = 12700;
@@ -48,6 +46,10 @@ export interface FixedElement {
   text?: string;
   style?: TextStyle;
   origin: 'master' | 'layout' | 'slide';
+  /** Tableau : texte des cellules et mise en forme par ligne (aperçu). */
+  table?: { rows: string[][]; widths: number[]; heights: number[]; fills: Array<string | null>; colors: Array<string | null>; size: number | null; font: string | null };
+  /** Graphique natif : type et données (aperçu). */
+  chart?: { type: 'bar' | 'line'; categories: string[]; series: Array<{ name: string; values: Array<number | null>; color: string | null }> };
 }
 export type ZoneRole = 'title' | 'subtitle' | 'body' | 'chart' | 'table' | 'picture' | 'date' | 'pageNumber' | 'footer';
 export interface Zone { role: ZoneRole; box: Box; style: TextStyle; text?: string; origin: 'master' | 'layout' | 'slide'; /** Placeholder PowerPoint (type, index) : le générateur y écrit le contenu. */ ph?: { type: string; idx: string | null } }
@@ -259,12 +261,61 @@ function textSvg(text: string, box: Box, st: TextStyle, anchorMiddle = false): s
     .join('')}</text>`;
 }
 
+const clip = (s: string, w: number, size: number) => { const n = Math.max(2, Math.floor(w / (size * 0.55))); return s.length > n ? s.slice(0, n - 1) + '…' : s; };
+
+/** Tableau de l'aperçu : cellules à leurs dimensions, fond et couleur de texte de chaque ligne. */
+function tableSvg(t: NonNullable<FixedElement['table']>, x: number, y: number, w: number): string {
+  const total = t.widths.reduce((a, b) => a + b, 0) || 1;
+  const ws = t.widths.map((v) => (v / total) * w);
+  const size = (t.size ?? 11) * (96 / 72);
+  let cy = y;
+  return t.rows.map((r, i) => {
+    const h = px(t.heights[i] || 280000);
+    let cx = x;
+    const cells = r.map((txt, j) => {
+      const cw = ws[j] ?? 0;
+      const out = `<text x="${(cx + 4).toFixed(1)}" y="${(cy + h / 2 + size * 0.35).toFixed(1)}" font-family="${xmlEsc(t.font ?? 'Calibri')}, sans-serif" font-size="${size.toFixed(1)}"${i === 0 ? ' font-weight="700"' : ''} fill="#${t.colors[i] ?? '1F2124'}">${xmlEsc(clip(txt, cw - 8, size))}</text>`;
+      cx += cw;
+      return out;
+    }).join('');
+    const row = `<rect x="${x}" y="${cy.toFixed(1)}" width="${w}" height="${h}" fill="${t.fills[i] ? '#' + t.fills[i] : 'none'}"/><line x1="${x}" y1="${(cy + h).toFixed(1)}" x2="${x + w}" y2="${(cy + h).toFixed(1)}" stroke="#d9e2e0" stroke-width=".8"/>${cells}`;
+    cy += h;
+    return row;
+  }).join('');
+}
+
+/** Graphique de l'aperçu : histogramme groupé ou courbes, axes et légende simplifiés. */
+function chartSvg(ch: NonNullable<FixedElement['chart']>, x: number, y: number, w: number, h: number): string {
+  const vals = ch.series.flatMap((s) => s.values).filter((v): v is number => v !== null);
+  const max = Math.max(1, ...vals), n = Math.max(1, ch.categories.length);
+  const L = x + w * 0.06, B = y + h * 0.82, T = y + h * 0.04, R = x + w * 0.98, pw = R - L, ph = B - T;
+  const out: string[] = [];
+  for (let g = 0; g <= 4; g++) { const gy = B - (ph * g) / 4; out.push(`<line x1="${L.toFixed(1)}" y1="${gy.toFixed(1)}" x2="${R.toFixed(1)}" y2="${gy.toFixed(1)}" stroke="#e3e9e7" stroke-width=".8"/><text x="${(L - 4).toFixed(1)}" y="${(gy + 3).toFixed(1)}" font-size="9" text-anchor="end" fill="#6b7a86" font-family="sans-serif">${Math.round((max * g) / 4)}</text>`); }
+  const colors = ch.series.map((s, i) => '#' + (s.color ?? ['1D8F86', 'F7A41C', '43586A'][i % 3]));
+  const slot = pw / n;
+  ch.series.forEach((s, si) => {
+    if (ch.type === 'bar') {
+      const bw = (slot * 0.7) / ch.series.length;
+      s.values.forEach((v, i) => { if (v === null) return; const bh = (ph * v) / max; out.push(`<rect x="${(L + i * slot + slot * 0.15 + si * bw).toFixed(1)}" y="${(B - bh).toFixed(1)}" width="${(bw * 0.92).toFixed(1)}" height="${bh.toFixed(1)}" fill="${colors[si]}"/>`); });
+    } else {
+      const pts = s.values.map((v, i) => (v === null ? null : `${(L + i * slot + slot / 2).toFixed(1)},${(B - (ph * v) / max).toFixed(1)}`)).filter(Boolean);
+      out.push(`<polyline points="${pts.join(' ')}" fill="none" stroke="${colors[si]}" stroke-width="2.5"/>`);
+      pts.forEach((p) => { const [px_, py] = p!.split(','); out.push(`<circle cx="${px_}" cy="${py}" r="3" fill="${colors[si]}"/>`); });
+    }
+  });
+  ch.categories.forEach((c, i) => out.push(`<text x="${(L + i * slot + slot / 2).toFixed(1)}" y="${(B + 12).toFixed(1)}" font-size="9" text-anchor="middle" fill="#6b7a86" font-family="sans-serif">${xmlEsc(clip(c, slot, 9))}</text>`));
+  let lx = L;
+  ch.series.forEach((s, i) => { out.push(`<rect x="${lx.toFixed(1)}" y="${(y + h * 0.93).toFixed(1)}" width="8" height="8" fill="${colors[i]}"/><text x="${(lx + 12).toFixed(1)}" y="${(y + h * 0.93 + 8).toFixed(1)}" font-size="10" fill="#43586a" font-family="sans-serif">${xmlEsc(s.name)}</text>`); lx += 24 + s.name.length * 5.5; });
+  return out.join('');
+}
+
 /**
  * Aperçu d'une page modèle reconstitué à partir de l'extraction : fond, éléments fixes à leur position exacte, puis
  * zones de contenu en pointillés (texte d'exemple s'il y en a). Montre ce que le générateur reprendra.
+ * `final` : diapositive d'un rapport généré (zones dessinées par leur seul texte).
  * `images` : chemin du média → URI `data:` (null si le format n'est pas affichable, ex. EMF).
  */
-export function previewSvg(a: FormatAnalysis, s: SlideAnalysis, images: (path: string) => string | null): string {
+export function previewSvg(a: FormatAnalysis, s: SlideAnalysis, images: (path: string) => string | null, opts: { final?: boolean } = {}): string {
   const W = px(a.size.cx), H = px(a.size.cy);
   const defs: string[] = [];
   const body: string[] = [];
@@ -278,6 +329,8 @@ export function previewSvg(a: FormatAnalysis, s: SlideAnalysis, images: (path: s
       return;
     }
     if (e.kind === 'line') { body.push(`<line x1="${x}" y1="${y}" x2="${x + w}" y2="${y + h}" stroke="#${e.line ?? '000000'}" stroke-width="1.5"${rot}/>`); return; }
+    if (e.kind === 'table' && e.table?.rows.length) { body.push(tableSvg(e.table, x, y, w)); return; }
+    if (e.kind === 'chart' && e.chart?.series.length) { body.push(chartSvg(e.chart, x, y, w, h)); return; }
     if (e.kind === 'table' || e.kind === 'chart') { body.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#f3f7f6" stroke="#b9c9c5"${rot}/>`); return; }
     const fill = fillAttr(e.fill, defs, 'f' + i, images);
     const stroke = e.line ? ` stroke="#${e.line}"` : '';
@@ -290,6 +343,8 @@ export function previewSvg(a: FormatAnalysis, s: SlideAnalysis, images: (path: s
   });
   for (const z of s.zones) {
     const b = z.box;
+    // Rapport généré : seul le texte réel des zones de la diapositive est dessiné (ni cadre, ni invite de la disposition).
+    if (opts.final) { if (z.origin === 'slide' && z.text?.trim()) body.push(textSvg(z.text, b, { ...z.style, size: z.style.size ?? 18 }, z.role === 'pageNumber')); continue; }
     body.push(`<rect x="${px(b.x)}" y="${px(b.y)}" width="${px(b.w)}" height="${px(b.h)}" fill="none" stroke="#1d8f86" stroke-width="1.5" stroke-dasharray="6 4" opacity=".75"/>`);
     const st = { ...z.style, size: z.style.size ?? (z.role === 'title' ? 32 : z.role === 'body' ? 16 : 11) };
     body.push(textSvg(z.text?.trim() ? z.text : ZONE_TEXT[z.role], b, st, ['pageNumber'].includes(z.role)));
@@ -329,27 +384,4 @@ export function builtInFormat(): { analysis: FormatAnalysis; pages: Record<PageK
   };
   pages.closing.zones[0].text = 'Merci';
   return { analysis: { kind: 'PDF', size, theme: null, guides: { x: [], y: [] }, embeddedFonts: [], slides: Object.values(pages), warnings: [] }, pages };
-}
-
-/** Lignes par page standard : hauteur de la zone de texte divisée par l'interligne (12 par défaut, entre 4 et 16). */
-export function linesPerPage(zone: Zone | undefined): number {
-  if (!zone) return LINES_PER_SLIDE;
-  const size = zone.style.size ?? 16;
-  const n = Math.floor(zone.box.h / (size * 1.35 * EMU_PER_PT));
-  return Math.max(4, Math.min(16, n));
-}
-/** Découpe des lignes d'une section en pages, en tenant compte des lignes longues (retour à la ligne estimé). */
-export function paginate(lines: string[], zone: Zone | undefined): string[][] {
-  const per = linesPerPage(zone);
-  const size = zone?.style.size ?? 16;
-  const chars = zone ? Math.max(20, Math.floor(zone.box.w / (size * 0.5 * EMU_PER_PT))) : 90;
-  const pages: string[][] = [];
-  let cur: string[] = [], used = 0;
-  for (const l of lines) {
-    const h = Math.max(1, Math.ceil(l.length / chars));
-    if (cur.length && used + h > per) { pages.push(cur); cur = []; used = 0; }
-    cur.push(l); used += h;
-  }
-  if (cur.length || !pages.length) pages.push(cur);
-  return pages;
 }

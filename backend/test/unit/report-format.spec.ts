@@ -1,11 +1,10 @@
 import JSZip from 'jszip';
 import {
-  builtInFormat, elementRole, estimatedZones, FormatAnalysis, formatErrors, isStandardFont, linesPerPage, pageSummary, pageWarnings, paginate, previewSvg, ratioLabel, sameSize, sizeLabel, SlideAnalysis, Zone,
+  builtInFormat, elementRole, estimatedZones, FormatAnalysis, formatErrors, isStandardFont, pageSummary, pageWarnings, previewSvg, ratioLabel, sameSize, sizeLabel, SlideAnalysis,
 } from '../../src/domain/report-format';
 import { colorOf, parseXml, relsPath, resolvePath } from '../../src/core/ooxml';
 import { analyzeImage, analyzePptx, contrastOn, formatKindOf, pdfFont } from '../../src/core/report-format-read';
-import { buildReportPptx } from '../../src/core/report-format-write';
-import { makeFormatPptx, makePng, pptxIntegrity } from '../format-fixture';
+import { makeFormatPptx, makePng } from '../format-fixture';
 
 /** Format du rapport (étape B de « Créer un template », 02/10/2026) : règles, lecture et génération sans base. */
 describe('Format du rapport — règles', () => {
@@ -52,16 +51,6 @@ describe('Format du rapport — règles', () => {
     expect(Object.keys(e)).toEqual(['closing']);
     expect(e.closing).toMatch(/dimensions 4:3 · 25,40 × 19,05 cm différentes de la page de couverture \(16:9/);
     expect(formatErrors({ cover: { fileId: 'A', slide: 1 }, divider: { fileId: 'A', slide: 2 }, standard: { fileId: 'A', slide: 3 }, closing: { fileId: 'A', slide: 4 } }, files)).toEqual({});
-  });
-
-  it('pagination des sections : lignes par page d’après la hauteur de la zone, lignes longues comptées', () => {
-    const body: Zone = { role: 'body', box: { x: 0, y: 0, w: 10000000, h: 12 * 16 * 1.35 * 12700 }, style: { font: null, size: 16, bold: false, italic: false, color: null }, origin: 'slide' };
-    expect(linesPerPage(body)).toBe(12);
-    expect(linesPerPage(undefined)).toBe(12);
-    expect(linesPerPage({ ...body, box: { ...body.box, h: 100 } })).toBe(4);
-    expect(paginate(Array.from({ length: 30 }, (_, i) => `L${i}`), body).map((p) => p.length)).toEqual([12, 12, 6]);
-    expect(paginate(['x'.repeat(500), 'a'], body).length).toBe(1);
-    expect(paginate([], body)).toEqual([[]]);
   });
 
   it('zones estimées (image) : titre centré sur la couverture, titre et texte sur la page standard', () => {
@@ -149,77 +138,5 @@ describe('Format du rapport — lecture des fichiers', () => {
     const z = new JSZip();
     z.file('ppt/presentation.xml', '<p:presentation xmlns:p="p"><p:sldIdLst/></p:presentation>');
     await expect(analyzePptx(await z.generateAsync({ type: 'nodebuffer' }))).rejects.toThrow('aucune diapositive');
-  });
-});
-
-describe('Format du rapport — génération du PowerPoint', () => {
-  const content = { title: 'Support COPIL', subtitle: 'Comité de pilotage · RISE', date: '26 septembre 2026', project: 'RISE', committee: 'Comité de pilotage', sections: [
-    { title: 'Jalons', scope: 'Projet entier', lines: Array.from({ length: 20 }, (_, i) => `J${i + 1} · jalon & <${i}>`) },
-    { title: 'Risques et problèmes', scope: 'Lot 1', lines: [] },
-  ] };
-  const slides = async (buf: Buffer) => {
-    const z = await JSZip.loadAsync(buf);
-    const pres = await z.file('ppt/presentation.xml')!.async('string');
-    const rels = await z.file('ppt/_rels/presentation.xml.rels')!.async('string');
-    const out: string[] = [];
-    for (const m of pres.matchAll(/<p:sldId\b[^>]*r:id="([^"]+)"/g)) {
-      const t = new RegExp(`Id="${m[1]}"[^>]*Target="([^"]+)"`).exec(rels)?.[1] ?? new RegExp(`Target="([^"]+)"[^>]*Id="${m[1]}"`).exec(rels)![1];
-      out.push(await z.file(resolvePath('ppt/presentation.xml', t))!.async('string'));
-    }
-    return { z, out };
-  };
-
-  it('pages copiées du modèle : couverture, intercalaire et pages standard par section, clôture ; texte remplacé', async () => {
-    const buf = await makeFormatPptx();
-    const a = await analyzePptx(buf);
-    const src = (n: number) => ({ fileId: 'A', kind: 'PPTX' as const, buf, analysis: a, slide: n });
-    const out = await buildReportPptx({ cover: src(1), divider: src(2), standard: src(3), closing: src(4) }, content);
-    expect(await pptxIntegrity(out)).toEqual([]);
-    const { z, out: xs } = await slides(out);
-    // Couverture, intercalaire 1, 2 pages standard (20 lignes), intercalaire 2, 1 page standard, clôture.
-    expect(xs.length).toBe(7);
-    expect(xs[0]).toContain('<a:t>Support COPIL</a:t>');
-    expect(xs[0]).toContain('<a:t>Comité de pilotage · RISE</a:t>');
-    expect(xs[0]).not.toContain('Titre du rapport');
-    expect(xs[0]).toContain('<a:srgbClr val="10233A"/>'); // fond de la couverture
-    expect(xs[1]).toContain('<a:t>01 · Jalons</a:t>');
-    expect(xs[1]).toContain('<a:t>Projet entier</a:t>');
-    expect(xs[2]).toContain('<a:t>J1 · jalon &amp; &lt;0&gt;</a:t>');
-    expect(xs[3]).toContain('<a:t>Jalons (suite)</a:t>');
-    expect(xs[2]).not.toContain('Exemple'); // tableau d'exemple retiré des pages standard
-    expect(xs[2]).toMatch(/type="slidenum">[\s\S]*?<a:t>3<\/a:t>/); // numéro de page réel
-    expect(xs[2]).toContain('ACME · Confidentiel'); // pied de page conservé
-    expect(xs[5]).toContain('Aucune donnée à présenter pour ce périmètre.');
-    expect(xs[6]).toContain('<a:t>Merci</a:t>');
-    expect(z.file('ppt/media/logo.png')).toBeTruthy();
-    expect(Object.keys(z.files).filter((f) => /^ppt\/slideMasters\/[^/]+\.xml$/.test(f))).toHaveLength(1);
-  });
-
-  it('pages venant de deux fichiers : masque, disposition, thème, médias et police incorporée importés', async () => {
-    const a = await makeFormatPptx(), b = await makeFormatPptx({ accent: 'C0392B', font: 'Lato', embedFont: true });
-    const [an, bn] = [await analyzePptx(a), await analyzePptx(b)];
-    const out = await buildReportPptx({ cover: { fileId: 'A', kind: 'PPTX', buf: a, analysis: an, slide: 1 }, divider: { fileId: 'B', kind: 'PPTX', buf: b, analysis: bn, slide: 2 }, standard: { fileId: 'A', kind: 'PPTX', buf: a, analysis: an, slide: 3 }, closing: { fileId: 'B', kind: 'PPTX', buf: b, analysis: bn, slide: 4 } }, { ...content, sections: [content.sections[1]] });
-    expect(await pptxIntegrity(out)).toEqual([]);
-    const { z, out: xs } = await slides(out);
-    expect(xs.length).toBe(4);
-    expect(xs[1]).toContain('<a:srgbClr val="C0392B"/>');
-    expect(Object.keys(z.files).filter((f) => /^ppt\/slideMasters\/[^/]+\.xml$/.test(f))).toHaveLength(2);
-    expect(Object.keys(z.files).filter((f) => /^ppt\/theme\/[^/]+\.xml$/.test(f))).toHaveLength(2);
-    const pres = await z.file('ppt/presentation.xml')!.async('string');
-    expect(pres).toContain('<p:font typeface="Lato"/>');
-  });
-
-  it('pages reconstruites (image, présentation par défaut) : fond, textes et numéro de page', async () => {
-    const img = makePng(1280, 720, '10233A');
-    const ia = analyzeImage(img);
-    const def = await buildReportPptx(null, content);
-    expect(await pptxIntegrity(def)).toEqual([]);
-    const withImg = await buildReportPptx({ cover: { fileId: 'I', kind: 'IMAGE', buf: img, analysis: ia, slide: 1 }, divider: { fileId: 'I', kind: 'IMAGE', buf: img, analysis: ia, slide: 1 }, standard: { fileId: 'I', kind: 'IMAGE', buf: img, analysis: ia, slide: 1 }, closing: { fileId: 'I', kind: 'IMAGE', buf: img, analysis: ia, slide: 1 } }, content);
-    expect(await pptxIntegrity(withImg)).toEqual([]);
-    const { z, out: xs } = await slides(withImg);
-    expect(xs[0]).toMatch(/<a:blipFill[^>]*><a:blip r:embed="rId2"\/>/);
-    expect(xs[0]).toContain('<a:t>Support COPIL</a:t>');
-    expect(xs[2]).toMatch(/type="slidenum">[\s\S]*?<a:t>3<\/a:t>/);
-    expect(Object.keys(z.files).filter((f) => f.startsWith('ppt/media/') && !z.files[f].dir)).toHaveLength(1); // une seule copie de l'image
   });
 });

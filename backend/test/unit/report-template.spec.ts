@@ -1,0 +1,147 @@
+import JSZip from 'jszip';
+import ExcelJS from 'exceljs';
+import { analyzeImage, analyzePptx } from '../../src/core/report-format-read';
+import { composeTemplate, fillChartXml, FillData, fillTemplate, TemplateFieldMissing, TemplateManifest } from '../../src/core/report-template';
+import { COMPONENT_IDS, ComponentConfig, configErrors, fieldName, indicatorsOf, pagesOf, periodOf, periodRange, sectionsOf } from '../../src/domain/report-components';
+import { makeFormatPptx, makePng, pptxIntegrity } from '../format-fixture';
+
+/** Étapes 3 à 6 de « Créer un template » (03/10/2026) : catalogue, périodes, sections, template et publications. */
+describe('Template de rapport — règles', () => {
+  it('périodes recalculées à chaque publication à partir de la date du jour', () => {
+    expect(periodRange('month', '2026-09-26')).toMatchObject({ start: '2026-09-01', end: '2026-09-30', label: '1 sept. 2026 → 30 sept. 2026' });
+    expect(periodRange('quarter', '2026-11-03')).toMatchObject({ start: '2026-10-01', end: '2026-12-31' });
+    expect(periodRange('last6', '2026-09-26')).toMatchObject({ start: '2026-04-01', end: '2026-09-30' });
+    expect(periodRange('next30', '2026-09-26')).toMatchObject({ start: '2026-09-26', end: '2026-10-26' });
+    expect(periodRange('all', '2026-09-26')).toEqual({ start: null, end: null, label: 'toutes dates' });
+  });
+
+  it('sections : le premier composant et chaque composant marqué ouvrent une page intercalaire', () => {
+    const comps: ComponentConfig[] = [{ id: 'synthese', scope: 'PROJECT' }, { id: 'jalons', scope: 'PROJECT' }, { id: 'barometre', scope: 'PROJECT', newSection: true, sectionTitle: 'Climat' }, { id: 'risques', scope: 'PROJECT' }];
+    const s = sectionsOf(comps);
+    expect(s.map((x) => [x.title, x.components.map((c) => c.key)])).toEqual([['Synthèse de situation', ['c01', 'c02']], ['Climat', ['c03', 'c04']]]);
+    expect(pagesOf(comps)).toBe(2 + 2 + 4);
+    expect(pagesOf([])).toBe(2);
+  });
+
+  it('indicateurs et période : défauts du composant, ordre du catalogue, période seulement si le composant en a une', () => {
+    expect(indicatorsOf({ id: 'jalons', scope: 'PROJECT' })).toEqual(['code', 'name', 'date', 'baseline', 'slip']);
+    expect(indicatorsOf({ id: 'jalons', scope: 'PROJECT', indicators: ['slip', 'code'] })).toEqual(['code', 'slip']);
+    expect(periodOf({ id: 'jalons', scope: 'PROJECT' })).toBe('next90');
+    expect(periodOf({ id: 'planning', scope: 'PROJECT', period: 'month' })).toBe('all');
+    expect(configErrors([{ id: 'jalons', scope: 'PROJECT', indicators: ['inconnu'] }])).toEqual({ 'components.0': 'Jalons : indicateur inconnu (inconnu)' });
+    expect(configErrors([{ id: 'jalons', scope: 'PROJECT', indicators: [] }])).toEqual({ 'components.0': 'Jalons : choisissez au moins un indicateur' });
+    expect(configErrors([{ id: 'synthese', scope: 'PROJECT', indicators: ['status', 'golive', 'risks_open', 'risks_critical', 'actions_late'] }])).toEqual({ 'components.0': 'Synthèse de situation : 4 indicateurs au plus sur une page' });
+    expect(fieldName('c02.table')).toBe('rise:c02.table');
+  });
+
+  it('graphique : cache des catégories et des valeurs réécrit, valeur manquante laissée vide', () => {
+    const xml = '<c:barChart><c:ser><c:idx val="0"/><c:cat><c:strRef><c:f>x</c:f></c:strRef></c:cat><c:val><c:numRef><c:f>y</c:f></c:numRef></c:val></c:ser></c:barChart>';
+    const out = fillChartXml(xml, ['avr.', 'mai'], [{ values: [3.5, null] }]);
+    expect(out).toContain('<c:f>Sheet1!$A$2:$A$3</c:f><c:strCache><c:ptCount val="2"/><c:pt idx="0"><c:v>avr.</c:v></c:pt><c:pt idx="1"><c:v>mai</c:v></c:pt>');
+    expect(out).toContain('<c:f>Sheet1!$B$2:$B$3</c:f><c:numCache><c:formatCode>General</c:formatCode><c:ptCount val="2"/><c:pt idx="0"><c:v>3.5</c:v></c:pt></c:numCache>');
+  });
+});
+
+describe('Template de rapport — composition et publications', () => {
+  const all = COMPONENT_IDS.map((id, i) => ({ id, scope: 'PROJECT' as const, newSection: i === 4 }));
+  const tokens = { titre: 'Support COPIL', date: '26 sept. 2026', projet: 'RISE', comite: 'COPIL' };
+  const values = (m: TemplateManifest, rows: number, v = '12'): FillData => {
+    const d: FillData = { text: {}, tables: {}, charts: {} };
+    for (const f of m.fields) {
+      if (f.kind === 'text') d.text[f.id] = [`${f.id} = ${v}`];
+      if (f.kind === 'table') d.tables[f.id] = Array.from({ length: rows }, (_, i) => f.columns!.map((c) => `${c}-${i + 1}-${v}`));
+      if (f.kind === 'chart') d.charts[f.id] = { categories: ['avr.', 'mai', 'juin'], series: f.series!.map((s) => ({ name: s, values: [1, 2, Number(v)] })) };
+    }
+    return d;
+  };
+  const shapes = async (buf: Buffer) => {
+    const z = await JSZip.loadAsync(buf);
+    const files = Object.keys(z.files).filter((f) => /^ppt\/slides\/slide\d+\.xml$/.test(f)).sort((x, y) => Number(/\d+/.exec(x)![0]) - Number(/\d+/.exec(y)![0]));
+    return { z, files, names: await Promise.all(files.map(async (f) => [...(await z.file(f)!.async('string')).matchAll(/<p:cNvPr\b[^>]*\bname="([^"]*)"/g)].map((x) => x[1]).join('|'))) };
+  };
+
+  it('structure figée : couverture, intercalaires, une page par composant, clôture ; zones variables nommées et au manifeste', async () => {
+    const buf = await makeFormatPptx();
+    const a = await analyzePptx(buf);
+    const src = (n: number) => ({ fileId: 'A', kind: 'PPTX' as const, buf, analysis: a, slide: n });
+    const { buf: tpl, manifest } = await composeTemplate({ cover: src(1), divider: src(2), standard: src(3), closing: src(4) }, { title: 'Support COPIL', sections: sectionsOf(all), tokens });
+    expect(await pptxIntegrity(tpl)).toEqual([]);
+    expect(manifest.pages.map((p) => p.kind)).toEqual(['cover', 'divider', 'standard', 'standard', 'standard', 'standard', 'divider', 'standard', 'standard', 'standard', 'standard', 'standard', 'closing']);
+    expect(manifest.pages.length).toBe(pagesOf(all));
+    const ids = manifest.fields.map((f) => f.id);
+    expect(ids).toEqual(expect.arrayContaining(['report.subtitle', 'c01.caption', 'c01.kpi.status', 'c01.text', 'c02.table', 'c07.chart', 'c08.kpi.risks_open', 'c08.chart', 'c09.kpi.committed']));
+    expect(new Set(ids.map((id, i) => `${id}@${manifest.fields[i].slide}`)).size).toBe(ids.length); // identifiants uniques par page
+    const { names } = await shapes(tpl);
+    const { files } = await shapes(tpl);
+    for (const f of manifest.fields) expect(names[files.indexOf(f.slide)]).toContain(fieldName(f.id));
+    const z = await JSZip.loadAsync(tpl);
+    // Graphiques natifs : partie graphique + classeur incorporé ; tableaux natifs (a:tbl).
+    expect(Object.keys(z.files).filter((f) => /^ppt\/charts\/chart\d+\.xml$/.test(f))).toHaveLength(2);
+    expect(Object.keys(z.files).filter((f) => /^ppt\/embeddings\/.+\.xlsx$/.test(f))).toHaveLength(2);
+    expect(await z.file(manifest.fields.find((f) => f.id === 'c02.table')!.slide)!.async('string')).toContain('<a:tbl>');
+  });
+
+  it('publication : seules les valeurs changent (pages, formes, design identiques) ; lignes de tableau variables au style conservé', async () => {
+    const buf = await makeFormatPptx();
+    const a = await analyzePptx(buf);
+    const src = (n: number) => ({ fileId: 'A', kind: 'PPTX' as const, buf, analysis: a, slide: n });
+    const { buf: tpl, manifest } = await composeTemplate({ cover: src(1), divider: src(2), standard: src(3), closing: src(4) }, { title: 'Support COPIL', sections: sectionsOf(all), tokens });
+    const p1 = await fillTemplate(tpl, manifest, values(manifest, 6, '12'));
+    const p2 = await fillTemplate(p1, manifest, values(manifest, 2, '47'));
+    for (const b of [p1, p2]) expect(await pptxIntegrity(b)).toEqual([]);
+    const [s0, s1, s2] = [await shapes(tpl), await shapes(p1), await shapes(p2)];
+    expect(s1.files).toEqual(s0.files);
+    expect(s2.names).toEqual(s0.names); // mêmes formes, mêmes noms, même ordre
+    const tbl = manifest.fields.find((f) => f.id === 'c02.table')!;
+    const t1 = await s1.z.file(tbl.slide)!.async('string'), t2 = await s2.z.file(tbl.slide)!.async('string');
+    expect((t1.match(/<a:tr\b/g) ?? []).length).toBe(7);
+    expect((t2.match(/<a:tr\b/g) ?? []).length).toBe(3);
+    expect(t2).toContain('<a:t>code-2-47</a:t>');
+    expect(t2).not.toContain('12</a:t>');
+    // Style : en-tête et lignes alternées identiques au gabarit (couleurs des cellules).
+    const fills = (x: string) => [...x.matchAll(/<a:tcPr[\s\S]*?<a:srgbClr val="([0-9A-F]{6})"\/><\/a:solidFill><\/a:tcPr>/g)].map((m) => m[1]);
+    expect(new Set(fills(t2))).toEqual(new Set(fills(t1)));
+    // Texte des zones et données du graphique (cache et classeur incorporé).
+    const chart = manifest.fields.find((f) => f.id === 'c07.chart')!;
+    expect(await s2.z.file(chart.chart!)!.async('string')).toContain('<c:pt idx="2"><c:v>47</c:v></c:pt>');
+    const rels = await s2.z.file(chart.chart!.replace('charts/', 'charts/_rels/') + '.rels')!.async('string');
+    const emb = /Target="\.\.\/embeddings\/([^"]+)"/.exec(rels)![1];
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(await s2.z.file(`ppt/embeddings/${emb}`)!.async('nodebuffer') as any);
+    expect(wb.getWorksheet('Sheet1')!.getRow(4).values).toEqual([undefined, 'juin', 47]);
+    expect(await s2.z.file(manifest.fields.find((f) => f.id === 'c01.caption')!.slide)!.async('string')).toContain('<a:t>c01.caption = 47</a:t>');
+    // Masques, médias et thème inchangés.
+    const parts = (z: JSZip) => Object.keys(z.files).filter((f) => /^ppt\/(slideMasters|slideLayouts|media|theme)\//.test(f)).sort();
+    expect(parts(s2.z)).toEqual(parts(s0.z));
+  });
+
+  it('tableau : texte trop long abrégé sur une ligne ; lignes au-delà de la capacité non écrites', async () => {
+    const { buf: tpl, manifest } = await composeTemplate(null, { title: 'T', sections: sectionsOf([{ id: 'risques', scope: 'PROJECT' }]), tokens });
+    const f = manifest.fields.find((x) => x.id === 'c01.table')!;
+    const d: FillData = { text: {}, tables: { 'c01.table': Array.from({ length: f.capacity! + 5 }, (_, i) => f.columns!.map((c) => (c === 'name' ? 'x'.repeat(400) : `${c}${i}`))) }, charts: {} };
+    const out = await fillTemplate(tpl, manifest, d);
+    const xml = await (await JSZip.loadAsync(out)).file(f.slide)!.async('string');
+    expect((xml.match(/<a:tr\b/g) ?? []).length).toBe(f.capacity! + 1);
+    expect(xml).toMatch(/x{10,}…<\/a:t>/);
+    expect(xml).not.toContain('x'.repeat(400));
+  });
+
+  it('zone variable absente (template modifié à la main) : erreur explicite', async () => {
+    const { buf: tpl, manifest } = await composeTemplate(null, { title: 'T', sections: sectionsOf([{ id: 'jalons', scope: 'PROJECT' }]), tokens });
+    const z = await JSZip.loadAsync(tpl);
+    const f = manifest.fields.find((x) => x.id === 'c01.table')!;
+    z.file(f.slide, (await z.file(f.slide)!.async('string')).replace('name="rise:c01.table"', 'name="Tableau"'));
+    const broken = await z.generateAsync({ type: 'nodebuffer' });
+    await expect(fillTemplate(broken, manifest, values(manifest, 1))).rejects.toThrow(TemplateFieldMissing);
+  });
+
+  it('présentation par défaut et page image : template intègre', async () => {
+    const def = await composeTemplate(null, { title: 'T', sections: sectionsOf(all), tokens });
+    expect(await pptxIntegrity(await fillTemplate(def.buf, def.manifest, values(def.manifest, 3)))).toEqual([]);
+    const img = makePng(1280, 720, '10233A'), ia = analyzeImage(img);
+    const s = { fileId: 'I', kind: 'IMAGE' as const, buf: img, analysis: ia, slide: 1 };
+    const im = await composeTemplate({ cover: s, divider: s, standard: s, closing: s }, { title: 'T', sections: sectionsOf(all.slice(0, 3)), tokens });
+    expect(await pptxIntegrity(await fillTemplate(im.buf, im.manifest, values(im.manifest, 3)))).toEqual([]);
+    expect(im.manifest.fields.map((f) => f.id)).toEqual(expect.arrayContaining(['report.subtitle', 'report.date', 'c02.table']));
+  });
+});

@@ -103,6 +103,7 @@ export class BootstrapService {
       this.prisma.adminGrant.findMany(),
       this.prisma.account.findMany({ where: { personId: { not: null } }, select: { id: true, personId: true } }),
     ]);
+    const tplVersions = await this.prisma.reportTemplateVersion.findMany({ where: P, orderBy: { seq: 'desc' }, select: { templateId: true, seq: true } });
 
     const block = (k: string) => blocks.find((b) => b.key === k)?.data as any;
     const personName = Object.fromEntries(persons.map((p) => [p.id, `${p.firstName} ${p.lastName}`.trim()]));
@@ -475,7 +476,7 @@ export class BootstrapService {
         name: t.name,
         author: t.authorLabel ?? '',
         version: t.version,
-        comps: (t.components as any[]).map((c) => ({ id: c.id, kind: { PROJECT: 'Projet', WAVE: 'Vague', PHASE: 'Phase', WORKSTREAM: 'Chantier' }[c.scope as string], ...(c.targetId ? { target: c.scope === 'WAVE' ? `Lot ${waves.find((w) => w.id === c.targetId)?.seq ?? ''}` : c.scope === 'PHASE' ? phaseById[c.targetId]?.name : wsName(c.targetId), targetId: c.targetId } : {}) })),
+        comps: (t.components as any[]).map((c) => ({ id: c.id, ...(c.period ? { period: c.period } : {}), ...(c.indicators ? { indicators: c.indicators } : {}), ...(c.newSection ? { newSection: true } : {}), ...(c.sectionTitle ? { sectionTitle: c.sectionTitle } : {}), kind: { PROJECT: 'Projet', WAVE: 'Vague', PHASE: 'Phase', WORKSTREAM: 'Chantier' }[c.scope as string], ...(c.targetId ? { target: c.scope === 'WAVE' ? `Lot ${waves.find((w) => w.id === c.targetId)?.seq ?? ''}` : c.scope === 'PHASE' ? phaseById[c.targetId]?.name : wsName(c.targetId), targetId: c.targetId } : {}) })),
         pages: t.pages,
         published: frLong(t.publishedAt),
         committee: bodies.find((b) => b.id === t.bodyId)?.name ?? '',
@@ -483,6 +484,7 @@ export class BootstrapService {
         active: t.active,
         desc: t.description,
         format: formatRefs(t.format),
+        publishedVersion: tplVersions.find((v) => v.templateId === t.id)?.seq ?? null,
         rowVersion: t.rowVersion,
       })),
       tplHistory,

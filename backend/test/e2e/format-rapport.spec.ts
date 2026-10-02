@@ -111,9 +111,10 @@ describe('Cockpit — Format du rapport', () => {
     const xml = await Promise.all(slides.sort((x, y) => Number(x.match(/\d+/)![0]) - Number(y.match(/\d+/)![0])).map((f) => z.file(f)!.async('string')));
     expect(xml[0]).toContain('<a:t>Support COPIL charté</a:t>');
     expect(xml.some((x) => x.includes('<a:t>01 · Jalons</a:t>'))).toBe(true);
-    expect(xml.some((x) => x.includes('<a:t>02 · Risques et problèmes</a:t>'))).toBe(true);
-    const milestone = await t.db.milestone.findFirst({ where: { projectId: 'RISE' }, orderBy: { iso: 'asc' } });
-    expect(xml.some((x) => x.includes(`${milestone!.code} · ${milestone!.iso}`))).toBe(true);
+    // Une seule section (aucun composant n'en ouvre une autre) : une intercalaire, puis une page par composant.
+    expect(xml.some((x) => x.includes('<a:t>02 · '))).toBe(false);
+    const risk = (await t.db.risk.findMany({ where: { projectId: 'RISE', status: { not: 'CLOSED' } } })).sort((a, b) => b.p * b.i - a.p * a.i)[0];
+    expect(xml.some((x) => x.includes(`<a:t>${risk.code}</a:t>`))).toBe(true);
     // Clôture importée de l'autre fichier : deuxième masque et police incorporée.
     expect(Object.keys(z.files).filter((f) => /^ppt\/slideMasters\/[^/]+\.xml$/.test(f))).toHaveLength(2);
     expect(await z.file('ppt/presentation.xml')!.async('string')).toContain('<p:font typeface="Lato"/>');

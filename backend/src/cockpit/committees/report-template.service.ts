@@ -1,0 +1,327 @@
+import { Injectable } from '@nestjs/common';
+import { randomBytes } from 'crypto';
+import { ProjectScope } from '../../core/access.service';
+import { PrismaService, Tx } from '../../core/prisma.service';
+import { StorageService } from '../../core/storage.service';
+import { TodayService } from '../../core/today.service';
+import { ApiErrorWithBody, notFound } from '../../core/errors';
+import { techId } from '../../core/ids';
+import { OoxmlPackage } from '../../core/ooxml';
+import { analyzePptx, mediaDataUri } from '../../core/report-format-read';
+import { PageSource } from '../../core/report-format-write';
+import { composeTemplate, FillData, fillTemplate, TemplateFieldMissing, TemplateManifest } from '../../core/report-template';
+import { FormatAnalysis, PAGE_KINDS, PageKind, previewSvg } from '../../domain/report-format';
+import {
+  COMPONENTS, ComponentConfig, ComponentData, ComponentValues, DASHBOARD_SERIES, frDay, indicatorsOf, inPeriod, Issue, KPI_MAX, pagesOf, periodOf, periodRange, sectionsOf,
+} from '../../domain/report-components';
+
+const STATUS: Record<string, string> = { OPEN: 'Ouvert', IN_PROGRESS: 'En cours', BLOCKED: 'Bloquée', DONE: 'Terminé', CLOSED: 'Clos', PLANNED: 'Prévu', PREPARATION: 'En préparation', ACTIVE: 'Actif', MITIGATING: 'En traitement', DRAFT: 'Brouillon', IN_REVIEW: 'En revue', TO_ARBITRATE: 'À arbitrer', ARBITRATED: 'Arbitrée', CANCELLED: 'Annulée', SUPERSEDED: 'Remplacée' };
+const PRIO: Record<string, string> = { HIGH: 'Haute', MEDIUM: 'Moyenne', LOW: 'Basse' };
+const st = (s: string | null | undefined) => (s ? STATUS[s] ?? s : '—');
+const day = (s: string | null | undefined) => (s ? frDay(s) : '—');
+const daysBetween = (a: string, b: string) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86400000);
+const list = (codes: string[], max = 5) => codes.slice(0, max).join(', ') + (codes.length > max ? `… (+${codes.length - max})` : '');
+/** Durée de vie d'un aperçu en mémoire (étape Prévisualisation). */
+export const PREVIEW_TTL_MS = 15 * 60 * 1000;
+const PREVIEW_MAX = 20;
+
+/** Template tel que stocké (colonnes utiles). */
+export interface TemplateRow { id: string; projectId: string; name: string; version: string; bodyId: string | null; components: any; format: any }
+/** Structure d'un rapport (brouillon ou template) : titre, comité, composants, format. */
+export interface Draft { name: string; version: string; bodyId: string | null; components: ComponentConfig[]; format: any }
+
+/**
+ * Templates de rapport (étapes 4 à 6 de « Créer un template », 03/10/2026) : données de chaque composant sur son
+ * périmètre et sa période, anomalies signalées avant la génération, versions publiées (PowerPoint de référence),
+ * publications (valeurs remplacées dans le template), aperçu du rapport complet.
+ */
+@Injectable()
+export class ReportTemplateService {
+  private previews = new Map<string, { at: number; projectId: string; buf: Buffer; analysis: Promise<FormatAnalysis> }>();
+  constructor(private readonly prisma: PrismaService, private readonly storage: StorageService, private readonly todaySvc: TodayService) {}
+
+  // ───────────── Données ─────────────
+
+  private async scopeLabel(c: ComponentConfig): Promise<string | null> {
+    if (c.scope === 'PROJECT') return 'Projet entier';
+    if (!c.targetId) return null;
+    if (c.scope === 'WAVE') { const w = await this.prisma.wave.findUnique({ where: { id: c.targetId } }); return w ? `Lot ${w.seq}` : null; }
+    if (c.scope === 'PHASE') { const p = await this.prisma.phase.findUnique({ where: { id: c.targetId } }); return p ? `Phase · ${p.name}` : null; }
+    const w = await this.prisma.workstream.findUnique({ where: { id: c.targetId } });
+    return w ? `Chantier · ${w.name}` : null;
+  }
+
+  /** Valeurs d'un composant et anomalies (données manquantes ou incohérentes). */
+  async componentValues(scope: ProjectScope, c: ComponentConfig & { key: string }, today: string): Promise<ComponentValues> {
+    const def = COMPONENTS[c.id];
+    const issues: Issue[] = [];
+    const warn = (message: string) => issues.push({ severity: 'warning', component: c.key, message: `${def.label} : ${message}` });
+    const P = { projectId: scope.project.id };
+    const label = await this.scopeLabel(c);
+    const period = periodRange(periodOf(c), today);
+    const caption = [label ?? '—', def.periodic && period.start ? period.label : null].filter(Boolean).join(' · ');
+    if (!label) {
+      issues.push({ severity: 'error', component: c.key, message: `${def.label} : le périmètre ciblé (${c.scope === 'WAVE' ? 'lot' : c.scope === 'PHASE' ? 'phase' : 'chantier'}) n'existe plus. Modifiez le template et publiez une nouvelle version.` });
+      return { key: c.key, caption, parts: [], issues };
+    }
+    const t = c.scope !== 'PROJECT' ? c.targetId! : null;
+    const ws = c.scope === 'WORKSTREAM' ? { wsId: t! } : {};
+    const inds = indicatorsOf(c);
+    const people = new Map((await this.prisma.person.findMany({ where: P, select: { id: true, firstName: true, lastName: true } })).map((p) => [p.id, `${p.firstName} ${p.lastName}`]));
+    const name = (id: string | null | undefined) => (id ? people.get(id) ?? '—' : '—');
+    const table = (cols: string[], rows: Array<Record<string, string>>): ComponentData => ({ part: 'table', columns: cols, rows: rows.map((r) => cols.map((k) => r[k] ?? '—')) });
+    const kpi = (items: Array<{ id: string; value: string }>): ComponentData => ({ part: 'kpi', items: items.map((x) => ({ ...x, label: def.indicators.find((i) => i.id === x.id)!.label })) });
+    const parts: ComponentData[] = [];
+
+    const milestoneWhere = { ...P, ...(c.scope === 'PHASE' ? { phaseId: t! } : c.scope === 'WAVE' ? { waveId: t! } : c.scope === 'WORKSTREAM' ? { wsId: t! } : {}) };
+    const openRisks = () => this.prisma.risk.findMany({ where: { ...P, ...ws, status: { not: 'CLOSED' } } });
+    const openActions = () => this.prisma.action.findMany({ where: { ...P, ...ws, status: { not: 'DONE' } }, orderBy: { order: 'asc' } });
+    const pendingDecisions = () => this.prisma.decision.findMany({ where: { ...P, ...ws, status: { in: ['DRAFT', 'IN_REVIEW', 'TO_ARBITRATE'] } }, orderBy: { code: 'asc' } });
+    const phases = () => this.prisma.phase.findMany({ where: { ...P, ...(c.scope === 'PHASE' ? { id: t! } : c.scope === 'WAVE' ? { waves: { some: { waveId: t! } } } : {}) }, orderBy: { seq: 'asc' } });
+
+    switch (c.id) {
+      case 'synthese': {
+        const [risks, actions, decisions, ms] = await Promise.all([openRisks(), openActions(), pendingDecisions(), this.prisma.milestone.findMany({ where: milestoneWhere, orderBy: { iso: 'asc' } })]);
+        const msP = ms.filter((m) => inPeriod(m.iso, period));
+        const critical = risks.filter((r) => r.p * r.i >= 20).sort((a, b) => b.p * b.i - a.p * a.i);
+        const late = actions.filter((a) => a.dueIso && a.dueIso < today);
+        if (inds.includes('golive') && !scope.project.forecastGoliveIso) warn('date de go-live prévue non renseignée (projet).');
+        const values: Record<string, string> = { status: st(scope.project.status), golive: day(scope.project.forecastGoliveIso), risks_open: String(risks.length), risks_critical: String(critical.length), actions_late: String(late.length), decisions_pending: String(decisions.length), milestones_period: String(msP.length) };
+        parts.push(kpi(inds.slice(0, KPI_MAX).map((id) => ({ id, value: values[id] }))));
+        const lines = [
+          ...msP.slice(0, 3).map((m) => `Jalon ${m.code} · ${m.n} · ${day(m.iso)}`),
+          ...critical.slice(0, 2).map((r) => `Risque ${r.code} (criticité ${r.p * r.i}) · ${r.n}`),
+          ...decisions.filter((d) => d.status === 'TO_ARBITRATE').slice(0, 2).map((d) => `Décision ${d.code} à arbitrer · ${d.t}`),
+          ...late.slice(0, 2).map((a) => `Action ${a.code} en retard (${day(a.dueIso)}) · ${a.n}`),
+        ];
+        parts.push({ part: 'text', lines: lines.length ? lines.map((l) => `• ${l}`) : ['Aucun fait marquant sur la période.'] });
+        if (!lines.length) warn('aucun fait marquant sur la période.');
+        break;
+      }
+      case 'planning': {
+        const ph = await phases();
+        const bad = ph.filter((p) => p.endDate < p.startDate).map((p) => p.code);
+        if (bad.length) warn(`fin avant le début pour ${list(bad)} (données incohérentes).`);
+        const over = ph.filter((p) => p.progressPct < 0 || p.progressPct > 100).map((p) => p.code);
+        if (over.length) warn(`avancement hors de 0 à 100 % pour ${list(over)}.`);
+        if (!ph.length) warn('aucune phase sur le périmètre.');
+        parts.push(table(inds, ph.map((p) => ({ code: p.code, name: p.name, start: day(p.startDate), end: day(p.endDate), progress: `${p.progressPct} %`, status: st(p.status) }))));
+        break;
+      }
+      case 'jalons': {
+        const ms = (await this.prisma.milestone.findMany({ where: milestoneWhere, orderBy: { iso: 'asc' } })).filter((m) => inPeriod(m.iso, period));
+        const phaseNames = new Map((await this.prisma.phase.findMany({ where: P, select: { id: true, name: true } })).map((p) => [p.id, p.name]));
+        if (!ms.length) warn('aucun jalon sur la période.');
+        const noBase = ms.filter((m) => !m.baselineIso).map((m) => m.code);
+        if (noBase.length) warn(`date de référence manquante pour ${list(noBase)}.`);
+        parts.push(table(inds, ms.map((m) => ({ code: m.code, name: m.n, date: day(m.iso), baseline: day(m.baselineIso), slip: m.baselineIso ? String(daysBetween(m.baselineIso, m.iso)) : '—', phase: phaseNames.get(m.phaseId) ?? '—' }))));
+        break;
+      }
+      case 'risques': {
+        const rs = (await openRisks()).sort((a, b) => b.p * b.i - a.p * a.i || a.code.localeCompare(b.code));
+        const bad = rs.filter((r) => r.p < 1 || r.p > 5 || r.i < 1 || r.i > 5).map((r) => r.code);
+        if (bad.length) warn(`probabilité ou impact hors de l'échelle 1 à 5 pour ${list(bad)}.`);
+        if (!rs.length) warn('aucun risque ouvert sur le périmètre.');
+        parts.push(table(inds, rs.map((r) => ({ code: r.code, name: r.n, score: String(r.p * r.i), p: String(r.p), i: String(r.i), owner: name(r.ownerId), due: day(r.dueIso), status: st(r.status) }))));
+        break;
+      }
+      case 'actions': {
+        const as = (await openActions()).filter((a) => !period.start || inPeriod(a.dueIso, period) || (!!a.dueIso && a.dueIso < period.start));
+        const noDue = as.filter((a) => !a.dueIso).map((a) => a.code);
+        if (noDue.length) warn(`échéance manquante pour ${list(noDue)}.`);
+        if (!as.length) warn('aucune action ouverte sur la période.');
+        parts.push(table(inds, as.map((a) => ({ code: a.code, name: a.n, owner: name(a.ownerId), due: day(a.dueIso), status: st(a.status), prio: PRIO[a.prio] ?? a.prio }))));
+        break;
+      }
+      case 'decisions': {
+        const bodies = new Map((await this.prisma.governanceBody.findMany({ where: P, select: { id: true, shortName: true } })).map((b) => [b.id, b.shortName]));
+        const ds = (await this.prisma.decision.findMany({ where: { ...P, ...ws }, orderBy: { code: 'asc' } })).filter((d) => inPeriod(d.crIso, period));
+        if (!ds.length) warn('aucune décision sur la période.');
+        parts.push(table(inds, ds.map((d) => ({ code: d.code, name: d.t, status: st(d.status), date: day(d.crIso), body: bodies.get(d.bodyId) ?? '—' }))));
+        break;
+      }
+      case 'barometre': {
+        const sv = (await this.prisma.barometerSurvey.findMany({ where: P, orderBy: { month: 'asc' } })).filter((s) => !period.start || (s.month >= period.start.slice(0, 7) && s.month <= period.end!.slice(0, 7)));
+        if (!sv.length) warn('aucune enquête sur la période.');
+        const noScore = sv.filter((s) => s.overallScore === null).map((s) => s.label);
+        if (noScore.length && inds.includes('score')) warn(`score manquant pour ${list(noScore)}.`);
+        const series = inds.map((id) => ({ name: def.indicators.find((i) => i.id === id)!.label, values: sv.map((s) => (id === 'score' ? s.overallScore : s.respondents)) }));
+        parts.push({ part: 'chart', categories: sv.map((s) => s.label), series });
+        break;
+      }
+      case 'dashboard': {
+        const [ph, risks, actions, ms] = await Promise.all([phases(), openRisks(), openActions(), this.prisma.milestone.findMany({ where: milestoneWhere })]);
+        const values: Record<string, string> = { risks_open: String(risks.length), actions_open: String(actions.length), milestones_late: String(ms.filter((m) => m.baselineIso && m.iso > m.baselineIso).length) };
+        const k = inds.filter((x) => !DASHBOARD_SERIES.includes(x)).slice(0, KPI_MAX);
+        if (k.length) parts.push(kpi(k.map((id) => ({ id, value: values[id] }))));
+        const planned = (p: (typeof ph)[number]) => p.plannedPctOverride ?? (today <= p.startDate ? 0 : today >= p.endDate ? 100 : Math.round((daysBetween(p.startDate, today) / Math.max(1, daysBetween(p.startDate, p.endDate))) * 100));
+        const series = inds.filter((x) => DASHBOARD_SERIES.includes(x));
+        if (series.length) {
+          if (!ph.length) warn('aucune phase pour le graphique d’avancement.');
+          parts.push({ part: 'chart', categories: ph.map((p) => p.name), series: series.map((id) => ({ name: def.indicators.find((i) => i.id === id)!.label, values: ph.map((p) => (id === 'progress' ? p.progressPct : planned(p))) })) });
+        }
+        break;
+      }
+      case 'budget': {
+        const [periods, prog] = await Promise.all([this.prisma.missionPeriod.findMany({ where: P }), this.prisma.programBudget.findUnique({ where: { projectId: scope.project.id } })]);
+        // Montants des périodes de mission en milliers (k€), comme l'écran Budget.
+        const eur = (n: number) => `${Math.round(n).toLocaleString('fr-FR').replace(/ /g, ' ')} k${scope.project.currency === 'EUR' ? '€' : scope.project.currency}`;
+        if (!periods.length) warn('aucune donnée budgétaire (périodes de mission) pour le projet ; les indicateurs afficheront « — ».');
+        if (prog && !prog.known) warn(`budget du programme non connu${prog.reason ? ` (${prog.reason})` : ''}.`);
+        const committed = periods.reduce((a, p) => a + p.amoa + p.sub, 0), consumed = periods.filter((p) => p.status === 'INVOICED').reduce((a, p) => a + p.amoa + p.sub, 0);
+        const values: Record<string, string> = periods.length ? { committed: eur(committed), consumed: eur(consumed), remaining: eur(committed - consumed) } : { committed: '—', consumed: '—', remaining: '—' };
+        parts.push(kpi(inds.slice(0, KPI_MAX).map((id) => ({ id, value: values[id] }))));
+        break;
+      }
+    }
+    return { key: c.key, caption, parts, issues };
+  }
+
+  /** Valeurs de tout le rapport, zones du template remplies, anomalies (dont lignes au-delà de la capacité d'un tableau). */
+  async reportData(scope: ProjectScope, d: Draft, manifest: TemplateManifest | null): Promise<{ data: FillData; issues: Issue[] }> {
+    const today = this.todaySvc.today(scope.project.timezone);
+    const body = d.bodyId ? await this.prisma.governanceBody.findUnique({ where: { id: d.bodyId } }) : null;
+    const project = scope.project.name.startsWith(scope.project.code) ? scope.project.name : `${scope.project.code} — ${scope.project.name}`;
+    const data: FillData = { text: { 'report.subtitle': [[body?.name, project, `v${d.version}`].filter(Boolean).join(' · ')], 'report.date': [frDay(today)] }, tables: {}, charts: {} };
+    const issues: Issue[] = [];
+    for (const sec of sectionsOf(d.components)) {
+      for (const c of sec.components) {
+        const v = await this.componentValues(scope, c, today);
+        issues.push(...v.issues);
+        data.text[`${c.key}.caption`] = [v.caption];
+        for (const p of v.parts) {
+          if (p.part === 'text') data.text[`${c.key}.text`] = p.lines;
+          if (p.part === 'kpi') for (const it of p.items) data.text[`${c.key}.kpi.${it.id}`] = [it.value];
+          if (p.part === 'chart') data.charts[`${c.key}.chart`] = { categories: p.categories, series: p.series };
+          if (p.part === 'table') {
+            const cap = manifest?.fields.find((f) => f.id === `${c.key}.table`)?.capacity ?? p.rows.length;
+            let rows = p.rows;
+            if (rows.length > cap) {
+              issues.push({ severity: 'warning', component: c.key, message: `${COMPONENTS[c.id].label} : ${rows.length} lignes, le tableau en affiche ${cap} ; les ${rows.length - cap + 1} dernières sont résumées sur la dernière ligne.` });
+              rows = [...rows.slice(0, cap - 1), [`… et ${rows.length - cap + 1} autres`, ...p.columns.slice(1).map(() => '')]];
+            }
+            if (!rows.length) rows = [['Aucune donnée', ...p.columns.slice(1).map(() => '')]];
+            data.tables[`${c.key}.table`] = rows;
+          }
+        }
+      }
+    }
+    return { data, issues };
+  }
+
+  // ───────────── Format et composition ─────────────
+
+  /** Pages modèles du format (fichiers chargés) ; null : présentation par défaut. */
+  async pageSources(format: any): Promise<Record<PageKind, PageSource> | null> {
+    if (!format?.pages) return null;
+    const out = {} as Record<PageKind, PageSource>;
+    const bufs = new Map<string, Buffer | null>();
+    for (const k of PAGE_KINDS) {
+      const p = format.pages[k];
+      const f = await this.prisma.reportFormatFile.findUnique({ where: { id: p.fileId } });
+      if (!f) throw notFound(`Format du rapport : fichier de la page « ${k} » introuvable`);
+      if (!bufs.has(f.id)) bufs.set(f.id, await this.storage.get(f.fileKey));
+      const analysis = { ...(f.analysis as unknown as FormatAnalysis) };
+      analysis.slides = analysis.slides.map((s, i) => (i === p.slide - 1 && p.analysis ? p.analysis : s));
+      out[k] = { fileId: f.id, kind: f.kind as any, buf: bufs.get(f.id) ?? null, analysis, slide: p.slide };
+    }
+    return out;
+  }
+
+  /** Compose le template puis le remplit avec les valeurs du jour. */
+  async build(scope: ProjectScope, d: Draft) {
+    const body = d.bodyId ? await this.prisma.governanceBody.findUnique({ where: { id: d.bodyId } }) : null;
+    const today = this.todaySvc.today(scope.project.timezone);
+    const { buf, manifest } = await composeTemplate(await this.pageSources(d.format), {
+      title: d.name, sections: sectionsOf(d.components),
+      tokens: { titre: d.name, date: frDay(today), projet: scope.project.name, comite: body?.name ?? '', 'comité': body?.name ?? '' },
+    });
+    const { data, issues } = await this.reportData(scope, d, manifest);
+    return { buf: await fillTemplate(buf, manifest, data), manifest, issues };
+  }
+
+  // ───────────── Versions ─────────────
+
+  private draftOf(t: TemplateRow): Draft {
+    return { name: t.name, version: t.version, bodyId: t.bodyId, components: t.components as ComponentConfig[], format: t.format };
+  }
+
+  /** Nouvelle version publiée : PowerPoint de référence enregistré avec son manifeste et sa structure. */
+  async publish(scope: ProjectScope, t: TemplateRow, by: string | null, db: Tx | PrismaService = this.prisma) {
+    const d = this.draftOf(t);
+    const { buf, manifest } = await this.build(scope, d);
+    const last = await db.reportTemplateVersion.findFirst({ where: { templateId: t.id }, orderBy: { seq: 'desc' } });
+    const key = await this.storage.put(`report-templates/${scope.project.id}`, buf, '.pptx');
+    return db.reportTemplateVersion.create({
+      data: { id: techId('TV'), templateId: t.id, projectId: scope.project.id, seq: (last?.seq ?? 0) + 1, label: t.version, fileKey: key, manifest: manifest as any, structure: { components: d.components, format: d.format, name: d.name, bodyId: d.bodyId } as any, pages: manifest.pages.length, createdBy: by },
+    });
+  }
+
+  /** Version en vigueur ; un template antérieur aux versions est publié à sa première utilisation. */
+  async current(scope: ProjectScope, t: TemplateRow, by: string | null) {
+    return (await this.prisma.reportTemplateVersion.findFirst({ where: { templateId: t.id }, orderBy: { seq: 'desc' } })) ?? this.publish(scope, t, by);
+  }
+
+  versionView(v: any) {
+    return { seq: v.seq, label: v.label, pages: v.pages, fields: (v.manifest as TemplateManifest).fields.length, createdAt: v.createdAt, createdBy: v.createdBy };
+  }
+
+  /** Anomalies avant publication : données (version en vigueur) et intégrité du template. */
+  async check(scope: ProjectScope, t: TemplateRow, by: string | null) {
+    const v = await this.current(scope, t, by);
+    const s = v.structure as any;
+    const { issues } = await this.reportData(scope, { ...this.draftOf(t), components: s.components, bodyId: s.bodyId ?? t.bodyId }, v.manifest as unknown as TemplateManifest);
+    if (!(await this.storage.get(v.fileKey))) issues.unshift({ severity: 'error', message: `Le fichier du template v${v.label} est introuvable : publiez une nouvelle version.` });
+    return { version: this.versionView(v), issues, errors: issues.filter((i) => i.severity === 'error').length, warnings: issues.filter((i) => i.severity === 'warning').length };
+  }
+
+  /**
+   * Publication d'un rapport : le template de la version en vigueur est rouvert et seules les valeurs changent.
+   * Anomalie bloquante (périmètre disparu, template endommagé) : 422 avec la liste des anomalies.
+   */
+  async generate(scope: ProjectScope, t: TemplateRow, by: string | null): Promise<{ buf: Buffer; version: any; issues: Issue[] }> {
+    const v = await this.current(scope, t, by);
+    const s = v.structure as any;
+    const manifest = v.manifest as unknown as TemplateManifest;
+    const { data, issues } = await this.reportData(scope, { ...this.draftOf(t), components: s.components, bodyId: s.bodyId ?? t.bodyId }, manifest);
+    const file = await this.storage.get(v.fileKey);
+    if (!file) issues.unshift({ severity: 'error', message: `Le fichier du template v${v.label} est introuvable : publiez une nouvelle version.` });
+    const errors = issues.filter((i) => i.severity === 'error');
+    if (errors.length) throw new ApiErrorWithBody(422, { code: 'REPORT_DATA_INVALID', message: errors[0].message, issues });
+    try {
+      return { buf: await fillTemplate(file!, manifest, data), version: this.versionView(v), issues };
+    } catch (e) {
+      if (e instanceof TemplateFieldMissing) throw new ApiErrorWithBody(422, { code: 'TEMPLATE_DAMAGED', message: `${e.message} : publiez une nouvelle version du template.`, issues: [{ severity: 'error', message: e.message }] });
+      throw e;
+    }
+  }
+
+  // ───────────── Aperçu (étape Prévisualisation) ─────────────
+
+  /** Rapport complet construit en mémoire avec le format et les données du jour ; diapositives servies une à une. */
+  async preview(scope: ProjectScope, d: Draft) {
+    const now = Date.now();
+    for (const [k, p] of this.previews) if (now - p.at > PREVIEW_TTL_MS || this.previews.size > PREVIEW_MAX) this.previews.delete(k);
+    const { buf, manifest, issues } = await this.build(scope, d);
+    const id = randomBytes(10).toString('hex');
+    this.previews.set(id, { at: now, projectId: scope.project.id, buf, analysis: analyzePptx(buf) });
+    const comps = new Map(sectionsOf(d.components).flatMap((s) => s.components).map((c) => [c.key, COMPONENTS[c.id].label]));
+    const sections = sectionsOf(d.components);
+    return {
+      id, pages: manifest.pages.length, expectedPages: pagesOf(d.components), issues,
+      slides: manifest.pages.map((p, i) => ({ n: i + 1, kind: p.kind, label: p.kind === 'cover' ? 'Couverture' : p.kind === 'closing' ? 'Clôture' : p.kind === 'divider' ? `Intercalaire · ${sections[p.section!].title}` : comps.get(p.component!) ?? 'Page' })),
+    };
+  }
+
+  async previewSlide(scope: ProjectScope, id: string, n: number): Promise<string> {
+    const p = this.previews.get(id);
+    if (!p || p.projectId !== scope.project.id) throw notFound('Aperçu expiré : relancez la prévisualisation');
+    const a = await p.analysis;
+    const s = a.slides[n - 1];
+    if (!s) throw notFound(`Diapositive ${n} introuvable`);
+    const pkg = await OoxmlPackage.load(p.buf);
+    const uris = new Map<string, string | null>();
+    for (const m of [s.background.image, ...s.elements.map((e) => e.image ?? e.fill?.image)]) if (m && !uris.has(m)) uris.set(m, await mediaDataUri(pkg, m));
+    return previewSvg(a, s, (m) => uris.get(m) ?? null, { final: true });
+  }
+}

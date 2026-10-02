@@ -3,7 +3,7 @@ import {
   FORMAT_PPTX_UNREADABLE, FORMAT_PROTECTED, FORMAT_REFUSED, FormatAnalysis, FormatFileKind, FormatReadError, IMAGE_MIN_WIDTH_PX, SlideAnalysis, TextStyle, Typography, Zone, ZoneRole,
   elementRole, formatMismatch, imageTooSmall, marginsOf, paletteOf,
 } from '../domain/report-format';
-import { attr, child, ColorCtx, colorOf, findAll, kids, OoxmlPackage, path, tagOf, textOf, XNode } from './ooxml';
+import { attr, child, ColorCtx, colorOf, find, findAll, kids, OoxmlPackage, path, tagOf, textOf, XNode } from './ooxml';
 
 /**
  * Analyse des pages modèles du Format du rapport : PowerPoint (lecture complète du masque, de la disposition et de la
@@ -130,6 +130,44 @@ function lineOf(spPr: XNode | null, style: XNode | null, c: Ctx): string | null 
   return ref && attr(ref, 'idx') !== '0' ? colorOf(ref, c.color)?.color ?? null : null;
 }
 
+/** Contenu d'un tableau (aperçu) : texte des cellules, largeurs, hauteurs, couleur de fond et de texte par ligne. */
+function tableOf(tbl: XNode | null, c: Ctx): NonNullable<FixedElement['table']> | undefined {
+  if (!tbl) return undefined;
+  const widths = kids(child(tbl, 'a:tblGrid')).map((g) => num(attr(g, 'w')));
+  const trs = kids(tbl).filter((k) => tagOf(k) === 'a:tr');
+  const first = (tr: XNode) => kids(tr).find((k) => tagOf(k) === 'a:tc');
+  return {
+    widths,
+    heights: trs.map((r) => num(attr(r, 'h'))),
+    rows: trs.map((r) => kids(r).filter((k) => tagOf(k) === 'a:tc').map((tc) => textOf(child(tc, 'a:txBody')))),
+    fills: trs.map((r) => colorOf(child(child(first(r), 'a:tcPr'), 'a:solidFill'), c.color)?.color ?? null),
+    colors: trs.map((r) => rprStyle(find(first(r), 'a:rPr'), c).color ?? null),
+    size: rprStyle(find(trs[1] ?? trs[0], 'a:rPr'), c).size ?? null,
+    font: rprStyle(find(trs[0], 'a:rPr'), c).font ?? null,
+  };
+}
+
+/** Données d'un graphique natif (aperçu) : type, catégories, séries (valeurs du cache, couleur). */
+async function chartOf(pkg: OoxmlPackage, p: string, c: Ctx): Promise<FixedElement['chart'] | null> {
+  const x = await pkg.xml(p);
+  const plot = find(x, 'c:plotArea');
+  const typeNode = kids(plot).find((k) => /^c:(bar|line|area|pie|doughnut)Chart$/.test(tagOf(k)));
+  if (!typeNode) return null;
+  const pts = (n: XNode | null) => findAll(n, 'c:pt').map((pt) => ({ i: num(attr(pt, 'idx')), v: kids(child(pt, 'c:v')).map((t) => t['#text'] ?? '').join('') }));
+  const sers = kids(typeNode).filter((k) => tagOf(k) === 'c:ser');
+  const cats = sers[0] ? pts(child(sers[0], 'c:cat')) : [];
+  const n = Math.max(cats.length ? Math.max(...cats.map((q) => q.i)) + 1 : 0, ...sers.map((s) => { const v = pts(child(s, 'c:val')); return v.length ? Math.max(...v.map((q) => q.i)) + 1 : 0; }));
+  return {
+    type: tagOf(typeNode) === 'c:lineChart' ? 'line' : 'bar',
+    categories: Array.from({ length: n }, (_, i) => cats.find((q) => q.i === i)?.v ?? ''),
+    series: sers.map((s) => {
+      const v = pts(child(s, 'c:val'));
+      const sp = child(s, 'c:spPr');
+      return { name: pts(child(s, 'c:tx')).map((q) => q.v).join(''), values: Array.from({ length: n }, (_, i) => { const q = v.find((y) => y.i === i); return q && q.v !== '' ? Number(q.v) : null; }), color: colorOf(child(sp, 'a:solidFill'), c.color)?.color ?? colorOf(child(child(sp, 'a:ln'), 'a:solidFill'), c.color)?.color ?? null };
+    }),
+  };
+}
+
 /** Fond d'une partie (`p:bg`) : propriétés explicites, ou référence au style de fond du thème. */
 async function backgroundOf(p: Part, c: Ctx): Promise<Fill | null> {
   const bg = path(p.doc, 'p:cSld', 'p:bg');
@@ -223,7 +261,10 @@ async function walk(tree: XNode | null, p: Part, c: Ctx, tr: Tr, out: { elements
       if (ph) { out.phs.push({ ph, xf, node: n }); continue; }
       if (!xf) continue;
       const kind = uri.includes('table') ? 'table' : 'chart';
-      out.elements.push({ kind, role: kind, name: attr(child(nv, 'p:cNvPr'), 'name') ?? '', box: apply(tr, boxOf(xf)), origin: p.origin });
+      const el: FixedElement = { kind, role: kind, name: attr(child(nv, 'p:cNvPr'), 'name') ?? '', box: apply(tr, boxOf(xf)), origin: p.origin };
+      if (kind === 'table') el.table = tableOf(find(n, 'a:tbl'), c);
+      else { const rid = attr(find(n, 'c:chart'), 'r:id'); const cp = rid ? await c.pkg.target(p.path, rid) : null; if (cp) el.chart = (await chartOf(c.pkg, cp, c)) ?? undefined; }
+      out.elements.push(el);
     }
   }
 }

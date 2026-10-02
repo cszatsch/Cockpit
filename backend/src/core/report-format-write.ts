@@ -1,39 +1,37 @@
 import JSZip from 'jszip';
 import {
-  Box, builtInFormat, DEFAULT_SIZE, estimatedZones, FixedElement, FormatAnalysis, FormatFileKind, PageKind, paginate, SlideAnalysis, TextStyle, Zone, ZoneRole,
+  Box, builtInFormat, DEFAULT_SIZE, estimatedZones, FixedElement, FormatAnalysis, FormatFileKind, PageKind, SlideAnalysis, TextStyle, Zone, ZoneRole,
 } from '../domain/report-format';
 import { attr, kids, parseXml, relsPath, resolvePath, tagOf } from './ooxml';
 
 /**
- * Générateur PowerPoint du Format du rapport : chaque diapositive du rapport est la copie de sa page modèle
- * (couverture, intercalaire par section, pages standard, clôture), avec son masque, sa disposition, son thème, ses
- * médias et ses polices incorporées ; seul le texte des zones de contenu change. Une page venue d'un PDF ou d'une image
- * est reconstruite à partir de l'extraction (fond, aplats, zones de texte).
+ * Assemblage des paquets PowerPoint du Format du rapport : chaque diapositive est la copie de sa page modèle
+ * (couverture, intercalaire, standard, clôture), avec son masque, sa disposition, son thème, ses médias et ses polices
+ * incorporées ; seul le texte des zones change. Une page venue d'un PDF ou d'une image est reconstruite à partir de
+ * l'extraction (fond, aplats, zones de texte). La composition du template est dans `report-template.ts`.
  */
 
-export interface ReportSection { title: string; scope: string; lines: string[] }
-export interface ReportContent { title: string; subtitle: string; date: string; project: string; committee: string; sections: ReportSection[] }
 export interface PageSource { fileId: string; kind: FormatFileKind; buf: Buffer | null; analysis: FormatAnalysis; slide: number }
 
-const NS = 'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"';
+export const NS = 'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"';
 const REL = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
 const CT_BASE = 'application/vnd.openxmlformats-officedocument.presentationml';
 const CT = { slide: `${CT_BASE}.slide+xml`, layout: `${CT_BASE}.slideLayout+xml`, master: `${CT_BASE}.slideMaster+xml`, pres: `${CT_BASE}.presentation.main+xml`, theme: 'application/vnd.openxmlformats-officedocument.theme+xml', presProps: `${CT_BASE}.presProps+xml`, viewProps: `${CT_BASE}.viewProps+xml`, tableStyles: `${CT_BASE}.tableStyles+xml` };
 const IMG_CT: Record<string, string> = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', bmp: 'image/bmp', tif: 'image/tiff', tiff: 'image/tiff', emf: 'image/x-emf', wmf: 'image/x-wmf', svg: 'image/svg+xml', fntdata: 'application/x-fontdata' };
 
 export const xmlEsc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-const XML_DECL = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
+export const XML_DECL = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
 
-interface RelRow { id: string; type: string; target: string; external: boolean }
-const relsXml = (rows: RelRow[]) => `${XML_DECL}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${rows.map((r) => `<Relationship Id="${r.id}" Type="${r.type.includes('/') ? r.type : `${REL}/${r.type}`}" Target="${xmlEsc(r.target)}"${r.external ? ' TargetMode="External"' : ''}/>`).join('')}</Relationships>`;
+export interface RelRow { id: string; type: string; target: string; external: boolean }
+export const relsXml = (rows: RelRow[]) => `${XML_DECL}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${rows.map((r) => `<Relationship Id="${r.id}" Type="${r.type.includes('/') ? r.type : `${REL}/${r.type}`}" Target="${xmlEsc(r.target)}"${r.external ? ' TargetMode="External"' : ''}/>`).join('')}</Relationships>`;
 /** Cible relative d'une partie vue depuis une autre : `ppt/slides/slide1.xml` → `../media/image1.png`. */
-function relTarget(from: string, to: string): string {
+export function relTarget(from: string, to: string): string {
   const a = from.split('/').slice(0, -1), b = to.split('/');
   let i = 0;
   while (i < a.length && i < b.length - 1 && a[i] === b[i]) i++;
   return [...a.slice(i).map(() => '..'), ...b.slice(i)].join('/');
 }
-async function readRels(zip: JSZip, part: string): Promise<RelRow[]> {
+export async function readRels(zip: JSZip, part: string): Promise<RelRow[]> {
   const f = zip.file(relsPath(part));
   if (!f) return [];
   const x = parseXml(await f.async('string'));
@@ -41,9 +39,9 @@ async function readRels(zip: JSZip, part: string): Promise<RelRow[]> {
 }
 
 /** Paquet source (fichier PowerPoint chargé) et parties déjà importées depuis lui. */
-interface Src { key: string; zip: JSZip; ct: string; slides: string[]; map: Map<string, string> }
+export interface Src { key: string; zip: JSZip; ct: string; slides: string[]; map: Map<string, string> }
 
-class Assembler {
+export class Assembler {
   zip!: JSZip;
   private ct = '';
   private pres = '';
@@ -262,7 +260,16 @@ class Assembler {
     return p;
   }
 
-  addSlide(xml: string, rels: RelRow[]) {
+  /** Partie ajoutée telle quelle (graphique, classeur incorporé…) avec son type de contenu. */
+  addPart(dir: string, stem: string, ext: string, data: string | Buffer, type: string, isDefault = false): string {
+    const p = this.unique(dir, stem, ext);
+    this.zip.file(p, data);
+    if (isDefault) this.addDefault(ext, type);
+    else this.addCt(p, type);
+    return p;
+  }
+
+  addSlide(xml: string, rels: RelRow[]): string {
     this.slideCount++;
     const p = this.unique('ppt/slides', 'slide', 'xml');
     // Relations inutilisées retirées (ex. graphique d'exemple supprimé de la page standard).
@@ -273,6 +280,7 @@ class Assembler {
     const rid = this.nextRid(this.presRels);
     this.presRels.push({ id: rid, type: 'slide', target: relTarget('ppt/presentation.xml', p), external: false });
     this.pres = this.pres.replace('</p:sldIdLst>', `<p:sldId id="${255 + this.slideCount}" r:id="${rid}"/></p:sldIdLst>`);
+    return p;
   }
 
   async finish(): Promise<Buffer> {
@@ -314,7 +322,7 @@ function paragraphs(txBody: string | null, lines: string[], field?: 'slidenum'):
   return lines.map((l) => (field ? `<a:p>${pPr}<a:fld id="{B6F15528-21DE-4FAA-801E-634DDDAF4B2B}" type="slidenum">${rPr}<a:t>${xmlEsc(l)}</a:t></a:fld>${end}</a:p>` : l ? `<a:p>${pPr}<a:r>${rPr}<a:t>${xmlEsc(l)}</a:t></a:r></a:p>` : `<a:p>${pPr}${end}</a:p>`)).join('');
 }
 /** Remplace le texte d'une forme (placeholder) en gardant ses propriétés de zone et de liste. */
-function setText(sp: string, lines: string[], field?: 'slidenum'): string {
+export function setText(sp: string, lines: string[], field?: 'slidenum'): string {
   const tx = firstMatch(sp, /<p:txBody>[\s\S]*?<\/p:txBody>/);
   if (field && tx && /<a:fld\b[^>]*type="slidenum"/.test(tx)) return sp.replace(/(<a:fld\b[^>]*type="slidenum"[^>]*>[\s\S]*?<a:t>)[\s\S]*?(<\/a:t>)/, `$1${xmlEsc(lines[0] ?? '')}$2`);
   if (!tx) return sp.replace('</p:sp>', `<p:txBody><a:bodyPr/><a:lstStyle/>${paragraphs(null, lines, field)}</p:txBody></p:sp>`);
@@ -322,9 +330,9 @@ function setText(sp: string, lines: string[], field?: 'slidenum'): string {
   const lst = firstMatch(tx, /<a:lstStyle\/>|<a:lstStyle>[\s\S]*?<\/a:lstStyle>/) ?? '<a:lstStyle/>';
   return sp.replace(tx, `<p:txBody>${bodyPr}${lst}${paragraphs(tx, lines.length ? lines : [''], field)}</p:txBody>`);
 }
-const runProps = (s: TextStyle) => `<a:rPr lang="fr-FR"${s.size ? ` sz="${Math.round(s.size * 100)}"` : ''} b="${s.bold ? 1 : 0}"${s.italic ? ' i="1"' : ''} dirty="0">${s.color ? `<a:solidFill><a:srgbClr val="${s.color}"/></a:solidFill>` : ''}${s.font ? `<a:latin typeface="${xmlEsc(s.font)}"/><a:cs typeface="${xmlEsc(s.font)}"/>` : ''}</a:rPr>`;
+export const runProps = (s: TextStyle) => `<a:rPr lang="fr-FR"${s.size ? ` sz="${Math.round(s.size * 100)}"` : ''} b="${s.bold ? 1 : 0}"${s.italic ? ' i="1"' : ''} dirty="0">${s.color ? `<a:solidFill><a:srgbClr val="${s.color}"/></a:solidFill>` : ''}${s.font ? `<a:latin typeface="${xmlEsc(s.font)}"/><a:cs typeface="${xmlEsc(s.font)}"/>` : ''}</a:rPr>`;
 /** Zone de texte libre à une position exacte (zone sans placeholder, ou page reconstruite). */
-function textBox(id: number, name: string, b: Box, s: TextStyle, lines: string[], opts: { field?: boolean; align?: 'l' | 'ctr' | 'r'; anchor?: 't' | 'ctr' | 'b' } = {}): string {
+export function textBox(id: number, name: string, b: Box, s: TextStyle, lines: string[], opts: { field?: boolean; align?: 'l' | 'ctr' | 'r'; anchor?: 't' | 'ctr' | 'b' } = {}): string {
   const rPr = runProps(s);
   const pPr = opts.align && opts.align !== 'l' ? `<a:pPr algn="${opts.align}"/>` : '';
   const paras = (lines.length ? lines : ['']).map((l) => (opts.field ? `<a:p>${pPr}<a:fld id="{B6F15528-21DE-4FAA-801E-634DDDAF4B2B}" type="slidenum">${rPr}<a:t>${xmlEsc(l)}</a:t></a:fld></a:p>` : `<a:p>${pPr}<a:r>${rPr}<a:t>${xmlEsc(l)}</a:t></a:r></a:p>`)).join('');
@@ -334,19 +342,24 @@ function phShape(id: number, ph: { type: string; idx: string | null }, lines: st
   const t = ph.type === 'body' && ph.idx ? '' : ` type="${ph.type}"`;
   return `<p:sp><p:nvSpPr><p:cNvPr id="${id}" name="${ph.type} ${id}"/><p:cNvSpPr><a:spLocks noGrp="1"/></p:cNvSpPr><p:nvPr><p:ph${t}${ph.idx ? ` idx="${ph.idx}"` : ''}/></p:nvPr></p:nvSpPr><p:spPr/><p:txBody><a:bodyPr/><a:lstStyle/>${lines.map((l) => `<a:p><a:r><a:rPr lang="fr-FR" dirty="0"/><a:t>${xmlEsc(l)}</a:t></a:r></a:p>`).join('')}</p:txBody></p:sp>`;
 }
-const maxId = (xml: string) => Math.max(1, ...[...xml.matchAll(/<p:cNvPr\b[^>]*\bid="(\d+)"/g)].map((m) => Number(m[1])));
+export const maxId = (xml: string) => Math.max(1, ...[...xml.matchAll(/<p:cNvPr\b[^>]*\bid="(\d+)"/g)].map((m) => Number(m[1])));
 
-interface Fill { title?: string; subtitle?: string; body?: string[]; date: string; page: number }
+/**
+ * Texte d'une page : titre, sous-titre, texte ; `names` renomme les zones remplies (zones variables du template,
+ * ex. `rise:report.date`) ; `dropBody` retire les zones de texte de la page standard (le contenu y est posé ensuite).
+ */
+export interface Fill { title?: string; subtitle?: string; body?: string[]; date: string; page: number; names?: Partial<Record<'subtitle' | 'date' | 'body', string>>; dropBody?: boolean }
+/** Nom (attribut `name` du premier `p:cNvPr`) d'une forme. */
+export const nameShape = (sp: string, name: string | undefined) => (name ? sp.replace(/(<p:cNvPr\b[^>]*\bname=")[^"]*(")/, `$1${xmlEsc(name)}$2`) : sp);
 const ROLE_OF: Record<string, ZoneRole> = { title: 'title', ctrTitle: 'title', subTitle: 'subtitle', body: 'body', obj: 'body', dt: 'date', sldNum: 'pageNumber', ftr: 'footer', pic: 'picture', chart: 'chart', tbl: 'table' };
 
-/** Mots-clés remplacés partout dans le texte des pages modèles. */
-function tokens(xml: string, c: ReportContent, f: Fill): string {
-  const v: Record<string, string> = { titre: c.title, 'sous-titre': c.subtitle, date: f.date, projet: c.project, comite: c.committee, 'comité': c.committee, section: f.title ?? '', page: String(f.page) };
+/** Mots-clés remplacés partout dans le texte des pages modèles ({{titre}}, {{date}}, {{projet}}, {{comite}}…). */
+export function tokens(xml: string, v: Record<string, string>): string {
   return xml.replace(/\{\{\s*([a-zàéèêô-]+)\s*\}\}/gi, (m, k) => (k.toLowerCase() in v ? xmlEsc(v[k.toLowerCase()]) : m));
 }
 
 /** Contenu écrit dans une page copiée d'un PowerPoint : placeholders remplis, zones manquantes ajoutées. */
-function fillPptxSlide(xml: string, kind: PageKind, s: SlideAnalysis, f: Fill, size: { cx: number; cy: number }): string {
+export function fillPptxSlide(xml: string, kind: PageKind, s: SlideAnalysis, f: Fill, size: { cx: number; cy: number }): string {
   const done = new Set<ZoneRole>();
   let subtitleUsed = false, bodyUsed = false;
   xml = xml.replace(/<p:sp(?:\s[^>]*)?>[\s\S]*?<\/p:sp>/g, (sp) => {
@@ -355,13 +368,14 @@ function fillPptxSlide(xml: string, kind: PageKind, s: SlideAnalysis, f: Fill, s
     const type = /type="([^"]+)"/.exec(ph[1])?.[1] ?? 'body';
     const role = ROLE_OF[type] ?? 'body';
     const hasText = /<a:t>[^<]*\S[^<]*<\/a:t>/.test(sp);
-    if (role === 'date') return setText(sp, [f.date]);
+    if (role === 'date') return nameShape(setText(sp, [f.date]), f.names?.date);
     if (role === 'pageNumber') return setText(sp, [String(f.page)], 'slidenum');
     if (role === 'footer' || kind === 'closing') return sp;
     if (role === 'title' && f.title !== undefined) { done.add('title'); return setText(sp, [f.title]); }
-    if (role === 'subtitle' && f.subtitle !== undefined && !subtitleUsed) { subtitleUsed = true; done.add('subtitle'); return setText(sp, [f.subtitle]); }
-    if (role === 'body' && f.body && !bodyUsed) { bodyUsed = true; done.add('body'); return setText(sp, f.body); }
-    if (role === 'body' && !f.body && f.subtitle !== undefined && !subtitleUsed) { subtitleUsed = true; done.add('subtitle'); return setText(sp, [f.subtitle]); }
+    if (f.dropBody && ['body', 'chart', 'table', 'picture', 'subtitle'].includes(role)) return '';
+    if (role === 'subtitle' && f.subtitle !== undefined && !subtitleUsed) { subtitleUsed = true; done.add('subtitle'); return nameShape(setText(sp, [f.subtitle]), f.names?.subtitle); }
+    if (role === 'body' && f.body && !bodyUsed) { bodyUsed = true; done.add('body'); return nameShape(setText(sp, f.body), f.names?.body); }
+    if (role === 'body' && !f.body && f.subtitle !== undefined && !subtitleUsed) { subtitleUsed = true; done.add('subtitle'); return nameShape(setText(sp, [f.subtitle]), f.names?.subtitle); }
     // Zone non utilisée : retirée si elle est vide (sinon « Cliquez pour ajouter… » resterait visible en édition).
     return hasText ? sp : '';
   });
@@ -373,11 +387,12 @@ function fillPptxSlide(xml: string, kind: PageKind, s: SlideAnalysis, f: Fill, s
   const fallback = estimatedZones(kind, size, s.typography.title?.color ?? '1F2124', s.typography.title?.font ?? 'Calibri');
   const place = (r: ZoneRole, lines: string[]) => {
     const z = zone(r);
-    if (z?.ph && z.origin !== 'slide') { add.push(phShape(id++, z.ph, lines)); return; }
+    const name = r === 'subtitle' ? f.names?.subtitle : r === 'body' ? f.names?.body : undefined;
+    if (z?.ph && z.origin !== 'slide') { add.push(nameShape(phShape(id++, z.ph, lines), name)); return; }
     const est = fallback.find((x) => x.role === r) ?? fallback[0];
     const typo = r === 'title' ? s.typography.title : r === 'body' ? s.typography.body : s.typography.subtitle;
     const style = { ...est.style, ...Object.fromEntries(Object.entries(typo ?? {}).filter(([, v]) => v !== null)) } as TextStyle;
-    add.push(textBox(id++, r === 'title' ? 'Titre' : r === 'body' ? 'Texte' : 'Sous-titre', z?.box ?? est.box, style, lines));
+    add.push(textBox(id++, name ?? (r === 'title' ? 'Titre' : r === 'body' ? 'Texte' : 'Sous-titre'), z?.box ?? est.box, style, lines));
   };
   if (f.title !== undefined && !done.has('title')) place('title', [f.title]);
   if (f.body && !done.has('body')) place('body', f.body);
@@ -386,7 +401,7 @@ function fillPptxSlide(xml: string, kind: PageKind, s: SlideAnalysis, f: Fill, s
 }
 
 /** Page reconstruite (PDF, image, présentation par défaut) : fond, aplats, textes fixes et zones remplies. */
-function syntheticSlide(kind: PageKind, s: SlideAnalysis, f: Fill, size: { cx: number; cy: number }, bgImageRid: string | null): string {
+export function syntheticSlide(kind: PageKind, s: SlideAnalysis, f: Fill, size: { cx: number; cy: number }, bgImageRid: string | null): string {
   let id = 2;
   const shapes: string[] = [];
   const bg = s.background;
@@ -408,65 +423,16 @@ function syntheticSlide(kind: PageKind, s: SlideAnalysis, f: Fill, size: { cx: n
     let field = false;
     if (z.role === 'title') lines = kind === 'closing' ? (z.text ? z.text.split('\n') : null) : f.title !== undefined ? [f.title] : null;
     else if (z.role === 'subtitle') lines = f.subtitle !== undefined ? [f.subtitle] : null;
+    else if (z.role === 'body' && f.dropBody) lines = null;
     else if (z.role === 'body') lines = f.body ?? (kind === 'closing' && z.text ? z.text.split('\n') : f.subtitle !== undefined && !zones.some((x) => x.role === 'subtitle') ? [f.subtitle] : null);
     else if (z.role === 'date') lines = [f.date];
     else if (z.role === 'pageNumber') { lines = [String(f.page)]; field = true; }
     else if (z.role === 'footer') lines = z.text ? [z.text] : null;
     if (!lines) continue;
-    shapes.push(textBox(id++, z.role, z.box, style, lines, { field, align: z.role === 'pageNumber' ? 'r' : 'l', anchor: z.role === 'title' && kind !== 'standard' ? 'b' : 't' }));
+    const name = z.role === 'date' ? f.names?.date : z.role === 'subtitle' || (z.role === 'body' && !f.body) ? f.names?.subtitle : z.role === 'body' ? f.names?.body : undefined;
+    shapes.push(textBox(id++, name ?? z.role, z.box, style, lines, { field, align: z.role === 'pageNumber' ? 'r' : 'l', anchor: z.role === 'title' && kind !== 'standard' ? 'b' : 't' }));
   }
   return `${XML_DECL}<p:sld ${NS} showMasterSp="0"><p:cSld><p:bg><p:bgPr>${bgXml}<a:effectLst/></p:bgPr></p:bg><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>${shapes.join('')}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>`;
-}
-
-/**
- * Rapport PowerPoint : couverture, puis pour chaque section une page intercalaire et ses pages standard (découpées
- * selon la hauteur de la zone de texte), puis la page de clôture. `pages` null : présentation par défaut.
- */
-export async function buildReportPptx(pages: Record<PageKind, PageSource> | null, content: ReportContent): Promise<Buffer> {
-  const def = builtInFormat();
-  const src: Record<PageKind, PageSource> = pages ?? (Object.fromEntries((['cover', 'divider', 'standard', 'closing'] as PageKind[]).map((k, i) => [k, { fileId: 'builtin', kind: 'PDF', buf: null, analysis: def.analysis, slide: i + 1 }])) as Record<PageKind, PageSource>);
-  const order: PageKind[] = ['cover', 'standard', 'divider', 'closing'];
-  const baseRef = order.map((k) => src[k]).find((p) => p.kind === 'PPTX' && p.buf);
-  const size = baseRef?.analysis.size ?? src.cover.analysis.size ?? DEFAULT_SIZE;
-  const asm = new Assembler();
-  await asm.init(baseRef?.fileId ?? null, baseRef?.buf ?? null, size);
-  const cache = new Map<string, Src>();
-  const blank = await asm.blankLayout();
-  const imageMedia = new Map<string, string>();
-  let page = 0;
-
-  const emit = async (kind: PageKind, f: Omit<Fill, 'page' | 'date'>) => {
-    page++;
-    const p = src[kind];
-    const s = p.analysis.slides[p.slide - 1];
-    const fill: Fill = { ...f, date: content.date, page };
-    if (p.kind === 'PPTX' && p.buf) {
-      const sp = await asm.source(p.fileId, p.buf, cache);
-      const t = await asm.templateSlide(sp, p.slide);
-      asm.addSlide(tokens(fillPptxSlide(t.xml, kind, s, fill, size), content, fill), t.rels);
-      return;
-    }
-    const rels: RelRow[] = [{ id: 'rId1', type: 'slideLayout', target: blank, external: false }];
-    let bgRid: string | null = null;
-    if (p.kind === 'IMAGE' && p.buf) {
-      if (!imageMedia.has(p.fileId)) imageMedia.set(p.fileId, asm.addMedia(p.buf, p.buf[0] === 0x89 ? 'png' : 'jpeg'));
-      rels.push({ id: 'rId2', type: 'image', target: imageMedia.get(p.fileId)!, external: false });
-      bgRid = 'rId2';
-    }
-    asm.addSlide(tokens(syntheticSlide(kind, s, fill, size, bgRid), content, fill), rels);
-  };
-
-  await emit('cover', { title: content.title, subtitle: content.subtitle });
-  const std = src.standard.analysis.slides[src.standard.slide - 1];
-  const bodyZone = std.zones.find((z) => z.role === 'body') ?? (src.standard.kind === 'PPTX' ? undefined : estimatedZones('standard', size).find((z) => z.role === 'body'));
-  for (const [i, sec] of content.sections.entries()) {
-    const label = `${String(i + 1).padStart(2, '0')} · ${sec.title}`;
-    await emit('divider', { title: label, subtitle: sec.scope });
-    const chunks = paginate(sec.lines.length ? sec.lines : ['Aucune donnée à présenter pour ce périmètre.'], bodyZone);
-    for (const [j, lines] of chunks.entries()) await emit('standard', { title: j ? `${sec.title} (suite)` : sec.title, body: lines });
-  }
-  await emit('closing', {});
-  return asm.finish();
 }
 
 // ───────────── Paquet minimal (présentation par défaut, pages sans PowerPoint) ─────────────

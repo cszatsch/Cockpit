@@ -74,20 +74,42 @@ async function main() {
     check('   remplacement : la clôture reprend la diapositive 4', (await page.evaluate(() => (window as any).__riseCockpit.state.tplDraft.fmt.pages.closing.slide)) === 4);
     await page.waitForFunction(() => { const c = (window as any).__riseCockpit.state; return c.tplFmtCheck && c.tplFmtCheck.complete && c.tplFmtCheck.key === JSON.stringify(c.tplDraft.fmt.pages); }, null, { timeout: 15000 });
 
+    // Étape 3 : composants (nature affichée).
     await page.getByText('Suivant ›').click();
-    await page.waitForTimeout(400);
-    await page.evaluate(() => { const c = (window as any).__riseCockpit; c.setState({ tplDraft: { ...c.state.tplDraft, comps: [{ id: 'jalons', kind: 'Projet', target: '' }] } }); });
+    await page.waitForTimeout(600);
+    await page.evaluate(() => { const c = (window as any).__riseCockpit; c.setState({ tplDraft: { ...c.state.tplDraft, comps: ['synthese', 'risques', 'barometre', 'jalons'].map((id) => ({ id, kind: 'Projet', target: '' })) } }); });
     await page.waitForTimeout(300);
-    await page.getByText('Suivant ›').click(); await page.waitForTimeout(300);
-    await page.getByText('Suivant ›').click(); await page.waitForTimeout(800);
-    check('4. prévisualisation : vignettes des 4 pages modèles', (await page.evaluate(() => document.body.innerText.includes('FORMAT DU RAPPORT') || document.body.innerText.includes('Format du rapport'))) && (await page.evaluate(() => document.querySelectorAll('[role=img][style*="blob:"]').length)) >= 4);
+    check('4. composants : nature affichée (Tableau, Graphique, Indicateurs et texte)', (await text(page, /GRAPHIQUE/)) !== '' && (await text(page, /INDICATEURS ET TEXTE/)) !== '' && (await text(page, /TABLEAU/)) !== '');
+    // Étape 4 : sections, période, indicateurs.
+    await page.getByText('Suivant ›').click();
+    await page.waitForTimeout(500);
+    await page.getByText("+ Nouvelle section à partir d'ici").nth(1).click(); // le baromètre ouvre la section 2
+    await page.waitForTimeout(300);
+    await page.locator('input[placeholder^="Titre de la section"]').nth(1).fill('Climat et pilotage');
+    await page.locator('input[placeholder^="Titre de la section"]').nth(1).dispatchEvent('change');
+    await page.getByText('Probabilité', { exact: true }).click(); // colonne ajoutée au tableau des risques
+    await page.waitForTimeout(300);
+    const comps = await page.evaluate(() => (window as any).__riseCockpit.state.tplDraft.comps);
+    check('5. ordre et données : 2 sections, colonne ajoutée', (await text(page, /2 sections/)) !== '' && comps[2].newSection === true && (comps[1].indicators || []).includes('p'), JSON.stringify(comps.map((c: any) => [c.id, c.newSection, c.indicators])));
+    // Étape 5 : aperçu complet construit par le serveur.
+    await page.getByText('Suivant ›').click();
+    await page.waitForFunction(() => { const c = (window as any).__riseCockpit.state; return c.tplPrev && c.tplPrev.slides && Object.keys(c.tplPrevImgs || {}).length === c.tplPrev.slides.length; }, null, { timeout: 90000 }).catch(() => {});
+    const pv = await page.evaluate(() => (window as any).__riseCockpit.state.tplPrev);
+    check('6. prévisualisation : 2 + 2 sections + 4 pages, vignettes du rapport au format', !!pv && pv.pages === 8 && (await page.evaluate(() => document.querySelectorAll('[role=img][style*="blob:"]').length)) === 8, pv && JSON.stringify(pv.slides.map((x: any) => x.label)));
+    check('   contrôle des données affiché', (await text(page, /CONTRÔLE DES DONNÉES|Contrôle des données/)) !== '');
     await page.getByText('Suivant ›').click(); await page.waitForTimeout(500);
-    check('   récapitulatif : format 16:9 et nom du fichier', (await text(page, /16:9 · 33,87 × 19,05 cm · Charte ACME\.pptx/)) !== '');
+    check('   récapitulatif : format, sections et pages exactes', (await text(page, /16:9 · 33,87 × 19,05 cm · Charte ACME\.pptx/)) !== '' && (await text(page, /Synthèse de situation · Climat et pilotage/)) !== '');
     await page.getByText('Valider et publier').click();
     await page.waitForFunction((n) => ((window as any).__riseCockpit.state.templates || []).some((t: any) => t.name === n && /^T-/.test(t.id) && t.format && String(t.format.cover.fileId).startsWith('RF')), NAME, { timeout: 30000 }).catch(() => {});
     const saved = await page.evaluate((n) => ((window as any).__riseCockpit.state.templates || []).find((t: any) => t.name === n), NAME);
-    check('5. template publié avec son format (serveur)', !!saved && !!saved.format && saved.format.closing.slide === 4, JSON.stringify(saved && saved.format));
+    check('7. template publié avec son format et sa version 1 (serveur)', !!saved && !!saved.format && saved.format.closing.slide === 4 && saved.publishedVersion === 1, JSON.stringify(saved && saved.format));
 
+    // Génération : contrôle des données d'abord ; anomalies → fenêtre de confirmation.
+    await page.evaluate((n) => { const c = (window as any).__riseCockpit; c.setState({ tab: 'generer', tplSel: c.state.templates.find((t: any) => t.name === n).id }); }, NAME);
+    await page.waitForTimeout(600);
+    await page.evaluate(() => (window as any).__riseCockpit.setState({}));
+    const checkRes = await page.evaluate(async (n) => { const c = (window as any).__riseCockpit; return c._api.tplCheck(c.state.templates.find((t: any) => t.name === n)); }, NAME);
+    check('8. contrôle avant génération : version 1, anomalies listées', !!checkRes && checkRes.version.seq === 1 && Array.isArray(checkRes.issues), JSON.stringify(checkRes && checkRes.issues.map((i: any) => i.message)));
     const dl = page.waitForEvent('download', { timeout: 30000 });
     const toasts = await page.evaluate(async (n) => { const c = (window as any).__riseCockpit; const seen: string[] = []; const orig = c.showToast.bind(c); c.showToast = (m: string) => { seen.push(m); orig(m); }; await c._api.tplPptx(c.state.templates.find((t: any) => t.name === n)); c.showToast = orig; return seen; }, NAME);
     if (toasts.length) console.log('   messages :', toasts.join(' | '));
@@ -96,13 +118,13 @@ async function main() {
     const buf = fs.readFileSync(file);
     const z = await JSZip.loadAsync(buf);
     const cover = await z.file('ppt/slides/slide1.xml')!.async('string');
-    check('6. PowerPoint téléchargé : paquet intègre, titre sur la couverture', (await pptxIntegrity(buf)).length === 0 && cover.includes(`<a:t>${NAME}</a:t>`));
+    check('9. publication téléchargée : paquet intègre, titre sur la couverture', (await pptxIntegrity(buf)).length === 0 && cover.includes(`<a:t>${NAME}</a:t>`));
 
     // Nettoyage : template de recette supprimé.
     if (saved) await page.evaluate(async (id) => { const c = (window as any).__riseCockpit; c.setState((s: any) => ({ templates: s.templates.filter((t: any) => t.id !== id) })); }, saved.id);
     await page.waitForTimeout(2500);
     const left = errors.filter((e) => !/Expected|never resolved|cannot be parsed|conform|Failed to load resource/.test(e));
-    check('7. aucune erreur JavaScript', left.length === 0, left.slice(0, 3).join(' | '));
+    check('10. aucune erreur JavaScript', left.length === 0, left.slice(0, 3).join(' | '));
   } finally {
     await browser.close();
   }

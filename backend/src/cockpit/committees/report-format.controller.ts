@@ -2,7 +2,7 @@ import { Body, Controller, Delete, Get, HttpCode, Param, Post, Res, UploadedFile
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
-import { AccessService } from '../../core/access.service';
+import { AccessService, ProjectScope } from '../../core/access.service';
 import { Actor, CurrentActor } from '../../core/auth/auth';
 import { AuditService } from '../../core/audit.service';
 import { PrismaService } from '../../core/prisma.service';
@@ -15,9 +15,20 @@ import { canWriteTools } from '../../domain/rights';
 import { FORMAT_MAX_BYTES, FORMAT_TOO_BIG, FormatReadError, PAGE_KINDS } from '../../domain/report-format';
 import type { UploadedBlob } from '../../import/import.controller';
 import { ReportFormatService } from './report-format.service';
+import { ReportTemplateService } from './report-template.service';
+import { COMPONENTS, configErrors, KPI_MAX, PERIODS } from '../../domain/report-components';
 
 const Ref = z.object({ fileId: z.string().min(1), slide: z.number().int().min(1) }).strict();
 export const FormatSelectionSchema = z.object(Object.fromEntries(PAGE_KINDS.map((k) => [k, Ref.nullable().optional()])) as Record<(typeof PAGE_KINDS)[number], z.ZodOptional<z.ZodNullable<typeof Ref>>>).strict();
+
+/** Brouillon de template pour l'aperçu (mêmes champs que la création). */
+const PreviewSchema = z.object({
+  name: z.string().trim().min(1).max(200),
+  version: z.string().trim().min(1).max(20).default('1.0'),
+  bodyId: z.string().nullable().optional(),
+  components: z.array(z.object({ id: z.enum(['synthese', 'planning', 'jalons', 'risques', 'actions', 'decisions', 'barometre', 'dashboard', 'budget']), scope: z.enum(['PROJECT', 'WAVE', 'PHASE', 'WORKSTREAM']), targetId: z.string().nullable().optional(), period: z.enum(['all', 'month', 'quarter', 'last3', 'last6', 'next30', 'next90']).optional(), indicators: z.array(z.string()).max(10).optional(), newSection: z.boolean().optional(), sectionTitle: z.string().max(120).nullable().optional() }).strict()).min(1, 'au moins un composant'),
+  format: FormatSelectionSchema.nullable().optional(),
+}).strict();
 
 /** Format du rapport (étape B de « Créer un template », 02/10/2026) : pages modèles, contrôles, aperçus, PowerPoint. */
 @ApiTags('cockpit · comités')
@@ -30,6 +41,7 @@ export class ReportFormatController {
     private readonly audit: AuditService,
     private readonly storage: StorageService,
     private readonly formats: ReportFormatService,
+    private readonly reports: ReportTemplateService,
   ) {}
 
   /**
@@ -100,14 +112,84 @@ export class ReportFormatController {
     return out;
   }
 
-  /** PowerPoint du template avec les données du jour (format du template, ou présentation par défaut). */
+  /**
+   * Anomalies avant publication (données manquantes ou incohérentes, template endommagé), sur la version en vigueur.
+   * Un template antérieur aux versions est publié (version 1) à sa première utilisation.
+   */
+  @Get('report-templates/:id/check')
+  async templateCheck(@CurrentActor() actor: Actor, @Param('projectId') p: string, @Param('id') id: string) {
+    const scope = await this.access.scope(actor, p);
+    return this.reports.check(scope, await this.template(scope, id), scope.access.personId ?? actor.accountId);
+  }
+
+  /**
+   * Publication d'un rapport : le PowerPoint de la version en vigueur, valeurs remplacées par celles du jour.
+   * Anomalie bloquante : 422 `REPORT_DATA_INVALID` (ou `TEMPLATE_DAMAGED`) avec `issues`.
+   */
   @Get('report-templates/:id/pptx')
   async pptx(@CurrentActor() actor: Actor, @Param('projectId') p: string, @Param('id') id: string, @Res() res: any) {
     const scope = await this.access.scope(actor, p);
+    const t = await this.template(scope, id);
+    const out = await this.reports.generate(scope, t, scope.access.personId ?? actor.accountId);
+    this.send(res, out.buf, `${t.name} v${out.version.label}`);
+  }
+
+  /** Versions publiées du template (la plus récente en premier). */
+  @Get('report-templates/:id/versions')
+  async versions(@CurrentActor() actor: Actor, @Param('projectId') p: string, @Param('id') id: string) {
+    const scope = await this.access.scope(actor, p);
+    await this.template(scope, id);
+    return (await this.prisma.reportTemplateVersion.findMany({ where: { templateId: id }, orderBy: { seq: 'desc' } })).map((v) => this.reports.versionView(v));
+  }
+
+  /** PowerPoint de référence d'une version, tel que publié. */
+  @Get('report-templates/:id/versions/:seq/file')
+  async versionFile(@CurrentActor() actor: Actor, @Param('projectId') p: string, @Param('id') id: string, @Param('seq') seq: string, @Res() res: any) {
+    const scope = await this.access.scope(actor, p);
+    const t = await this.template(scope, id);
+    const v = await this.prisma.reportTemplateVersion.findUnique({ where: { templateId_seq: { templateId: id, seq: Number(seq) || 0 } } });
+    const buf = v ? await this.storage.get(v.fileKey) : null;
+    if (!v || !buf) throw notFound('Version introuvable');
+    this.send(res, buf, `${t.name} v${v.label} (template)`);
+  }
+
+  /** Catalogue des composants (nature, indicateurs proposés, période par défaut) et des périodes (étapes 3 et 4). */
+  @Get('report-components')
+  async components(@CurrentActor() actor: Actor, @Param('projectId') p: string) {
+    await this.access.scope(actor, p);
+    return { components: Object.values(COMPONENTS).map((c) => ({ id: c.id, label: c.label, nature: c.nature, parts: c.parts, indicators: c.indicators, defaults: c.defaults, periodic: c.periodic, defaultPeriod: c.defaultPeriod, kpiMax: c.parts.includes('kpi') ? KPI_MAX : null })), periods: PERIODS };
+  }
+
+  /** Aperçu du rapport complet (étape Prévisualisation) : construit en mémoire, diapositives servies une à une. */
+  @Post('report-templates/preview')
+  @HttpCode(200)
+  async templatePreview(@CurrentActor() actor: Actor, @Param('projectId') p: string, @Body() body: unknown) {
+    const scope = await this.access.scope(actor, p);
+    if (!canWriteTools(scope.access)) throw forbidden('Templates : profil non Lecteur (PMO, Responsable)');
+    const d = parse(PreviewSchema, body);
+    const cfg = configErrors(d.components as any);
+    if (Object.keys(cfg).length) throw badRequest('Composants invalides', cfg);
+    const format = d.format ? await this.prisma.$transaction((db) => this.formats.formatForTemplate(scope, d.format!, db)) : null;
+    return this.reports.preview(scope, { name: d.name, version: d.version, bodyId: d.bodyId ?? null, components: d.components as any, format });
+  }
+
+  @Get('report-previews/:id/slides/:n')
+  async previewSlide(@CurrentActor() actor: Actor, @Param('projectId') p: string, @Param('id') id: string, @Param('n') n: string, @Res() res: any) {
+    const scope = await this.access.scope(actor, p);
+    const svg = await this.reports.previewSlide(scope, id, Number(n) || 0);
+    res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
+    res.setHeader('Cache-Control', 'private, max-age=900');
+    res.end(svg);
+  }
+
+  private async template(scope: ProjectScope, id: string) {
     const t = await this.prisma.reportTemplate.findFirst({ where: { id, projectId: scope.project.id } });
     if (!t) throw notFound('Template introuvable');
-    const buf = await this.formats.generate(scope, t);
-    const name = `${t.name} v${t.version}`.replace(/[^\p{L}\p{N} ._-]+/gu, '_');
+    return t as any;
+  }
+
+  private send(res: any, buf: Buffer, base: string) {
+    const name = base.replace(/[^\p{L}\p{N} ()._-]+/gu, '_');
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
     res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(name)}.pptx"; filename*=UTF-8''${encodeURIComponent(name)}.pptx`);
     res.end(buf);

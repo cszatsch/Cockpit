@@ -20,6 +20,7 @@ import { DocumentsController } from './documents/documents.controller';
 import { KbService } from './documents/kb.service';
 import { ReportFormatController } from './committees/report-format.controller';
 import { ReportFormatService } from './committees/report-format.service';
+import { ReportTemplateService } from './committees/report-template.service';
 import { CollabController } from './collab/collab.controller';
 import { AssistantController } from './assistant/assistant.controller';
 import { AdminModule } from '../admin/admin.module';
@@ -29,7 +30,7 @@ import { AdminModule } from '../admin/admin.module';
   imports: [AdminModule],
   // Ordre significatif : les routes fixes (ex. deliverables/tracking) avant les routes paramétrées (deliverables/:id).
   controllers: [MeController, MyNotificationsController, ProjectController, BootstrapController, PilotageController, TodayController, CommitteesController, ReportFormatController, DocumentsController, CollabController, AssistantController, ...REFERENTIAL_CONTROLLERS, ...TX_CONTROLLERS],
-  providers: [ReferentialService, UsagesService, TransactionalService, AnomaliesService, BootstrapService, KbService, ReportFormatService, JevCockpitDocsService, JevCockpitWriteService, TodayGreetingService],
+  providers: [ReferentialService, UsagesService, TransactionalService, AnomaliesService, BootstrapService, KbService, ReportFormatService, ReportTemplateService, JevCockpitDocsService, JevCockpitWriteService, TodayGreetingService],
   exports: [ReferentialService, UsagesService, TransactionalService, AnomaliesService],
 })
 export class CockpitModule {}

@@ -21,6 +21,8 @@ import { isoDate } from '../referential/schemas';
 import { FormatSelectionSchema } from './report-format.controller';
 import { ReportFormatService } from './report-format.service';
 import { formatRefs } from '../../domain/report-format';
+import { configErrors, pagesOf } from '../../domain/report-components';
+import { ReportTemplateService } from './report-template.service';
 
 const time = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'heure HH:MM attendue');
 
@@ -33,7 +35,18 @@ const SessionPatch = z
   .strict();
 
 const COMPONENTS = ['synthese', 'planning', 'jalons', 'risques', 'decisions', 'actions', 'barometre', 'dashboard', 'budget'] as const;
-const Component = z.object({ id: z.enum(COMPONENTS), scope: z.enum(['PROJECT', 'WAVE', 'PHASE', 'WORKSTREAM']), targetId: z.string().nullable().optional() }).strict();
+/** Composant (étape 4) : périmètre, période, indicateurs, ouverture d'une section (page intercalaire). */
+const Component = z
+  .object({
+    id: z.enum(COMPONENTS),
+    scope: z.enum(['PROJECT', 'WAVE', 'PHASE', 'WORKSTREAM']),
+    targetId: z.string().nullable().optional(),
+    period: z.enum(['all', 'month', 'quarter', 'last3', 'last6', 'next30', 'next90']).optional(),
+    indicators: z.array(z.string().min(1)).max(10).optional(),
+    newSection: z.boolean().optional(),
+    sectionTitle: z.string().max(120).nullable().optional(),
+  })
+  .strict();
 const TemplateCreate = z
   .object({
     name: z.string().trim().min(1, 'obligatoire').max(200),
@@ -48,8 +61,10 @@ const TemplateCreate = z
   })
   .strict();
 
-/** Poids de pagination des composants (frontend `PW`) : pages = 1 + somme. */
-const PAGE_WEIGHT: Record<string, number> = { synthese: 2, planning: 3, jalons: 2, risques: 3, decisions: 2, actions: 2, barometre: 2, dashboard: 2, budget: 2 };
+/** Étiquette de la version suivante : 1.0 → 1.1, 2.9 → 2.10 ; autre forme : « .1 » ajouté. */
+export const nextLabel = (v: string) => { const m = /^(.*?)(\d+)$/.exec(v.trim()); return m && v.includes('.') ? `${m[1]}${Number(m[2]) + 1}` : `${v.trim()}.1`; };
+/** Champs dont la modification change la structure ou le design : nouvelle version publiée. */
+const STRUCTURAL = ['name', 'bodyId', 'components', 'format'] as const;
 
 /** Comités : séances, templates et rapports (brief § 9.6). */
 @ApiTags('cockpit · comités')
@@ -64,6 +79,7 @@ export class CommitteesController {
     private readonly storage: StorageService,
     private readonly usages: UsagesService,
     private readonly formats: ReportFormatService,
+    private readonly tplReports: ReportTemplateService,
   ) {}
 
   private profile(scope: ProjectScope) {
@@ -206,16 +222,17 @@ export class CommitteesController {
 
   // ───────────── Templates ─────────────
 
-  private templateView(t: any) {
-    return { id: t.id, name: t.name, bodyId: t.bodyId, authorId: t.authorId, authorLabel: t.authorLabel, version: t.version, description: t.description, components: t.components, pages: t.pages, publishedAt: t.publishedAt, active: t.active, format: formatRefs(t.format), rowVersion: t.rowVersion };
+  private templateView(t: any, v?: any) {
+    return { id: t.id, name: t.name, bodyId: t.bodyId, authorId: t.authorId, authorLabel: t.authorLabel, version: t.version, description: t.description, components: t.components, pages: t.pages, publishedAt: t.publishedAt, active: t.active, format: formatRefs(t.format), ...(v ? { publishedVersion: this.tplReports.versionView(v) } : {}), rowVersion: t.rowVersion };
   }
 
   @Get('report-templates')
   async templates(@CurrentActor() actor: Actor, @Param('projectId') p: string) {
     const scope = await this.access.scope(actor, p);
     const rows = await this.prisma.reportTemplate.findMany({ where: { projectId: scope.project.id }, orderBy: [{ order: 'asc' }, { createdAt: 'asc' }] });
+    const versions = await this.prisma.reportTemplateVersion.findMany({ where: { projectId: scope.project.id }, orderBy: { seq: 'desc' } });
     const history = await this.prisma.contentBlock.findUnique({ where: { projectId_key: { projectId: scope.project.id, key: 'templates.history' } } });
-    return { templates: rows.map((t) => this.templateView(t)), history: history?.data ?? [] };
+    return { templates: rows.map((t) => this.templateView(t, versions.find((v) => v.templateId === t.id))), history: history?.data ?? [] };
   }
 
   private async validateComponents(db: Tx, projectId: string, comps: Array<{ scope: string; targetId?: string | null }>) {
@@ -232,6 +249,8 @@ export class CommitteesController {
     const scope = await this.access.scope(actor, p);
     if (!canWriteTools(scope.access)) throw forbidden('Templates : profil non Lecteur (PMO, Responsable)');
     const input = parse(TemplateCreate, body);
+    const cfg = configErrors(input.components as any);
+    if (Object.keys(cfg).length) throw badRequest('Composants invalides', cfg);
     return this.prisma.$transaction(async (db) => {
       if (input.bodyId && !(await db.governanceBody.findFirst({ where: { id: input.bodyId, projectId: scope.project.id } }))) throw badRequest('Référence invalide', { bodyId: 'instance introuvable' });
       await this.validateComponents(db, scope.project.id, input.components);
@@ -248,15 +267,17 @@ export class CommitteesController {
           description: input.description,
           components: input.components as any,
           format: input.format ? ((await this.formats.formatForTemplate(scope, input.format, db)) as any) : undefined,
-          pages: 1 + input.components.reduce((a, c) => a + (PAGE_WEIGHT[c.id] ?? 2), 0),
+          pages: pagesOf(input.components as any),
           publishedAt: this.todaySvc.today(scope.project.timezone),
           active: input.active ?? true,
           order: -1,
         },
       });
-      await this.audit.record(db, { actor, projectId: scope.project.id, profileUsed: scope.access.pmo ? 'PMO' : 'RESPONSABLE' }, { entityType: 'REPORT_TEMPLATE', entityId: row.id, before: null, after: this.templateView(row), target: row.name });
-      return this.templateView(row);
-    });
+      // Publication : le PowerPoint de référence (version 1) est généré et enregistré.
+      const v = await this.tplReports.publish(scope, row as any, scope.access.personId ?? actor.accountId, db);
+      await this.audit.record(db, { actor, projectId: scope.project.id, profileUsed: scope.access.pmo ? 'PMO' : 'RESPONSABLE' }, { entityType: 'REPORT_TEMPLATE', entityId: row.id, before: null, after: this.templateView(row, v), target: row.name });
+      return this.templateView(row, v);
+    }, { timeout: 120000 });
   }
 
   @Patch('report-templates/:id')
@@ -264,17 +285,24 @@ export class CommitteesController {
     const scope = await this.access.scope(actor, p);
     if (!canWriteTools(scope.access)) throw forbidden();
     const input = parse(TemplateCreate.partial().strict(), body);
+    if (input.components) { const cfg = configErrors(input.components as any); if (Object.keys(cfg).length) throw badRequest('Composants invalides', cfg); }
     return this.prisma.$transaction(async (db) => {
       const t = await db.reportTemplate.findFirst({ where: { id, projectId: scope.project.id } });
       if (!t) throw notFound();
       if (input.components) await this.validateComponents(db, scope.project.id, input.components);
       const data: any = { ...input, rowVersion: { increment: 1 } };
       if (input.format !== undefined) data.format = input.format ? await this.formats.formatForTemplate(scope, input.format, db) : Prisma.DbNull;
-      if (input.components) data.pages = 1 + input.components.reduce((a, c) => a + (PAGE_WEIGHT[c.id] ?? 2), 0);
-      const row = await db.reportTemplate.update({ where: { id }, data });
-      await this.audit.record(db, { actor, projectId: scope.project.id, profileUsed: scope.access.pmo ? 'PMO' : 'RESPONSABLE' }, { entityType: 'REPORT_TEMPLATE', entityId: id, before: this.templateView(t), after: this.templateView(row), target: row.name });
-      return this.templateView(row);
-    });
+      if (input.components) data.pages = pagesOf(input.components as any);
+      // Toute modification de structure ou de design passe par une nouvelle version publiée.
+      const refs = (f: any) => JSON.stringify(formatRefs(f));
+      const changed = STRUCTURAL.some((k) => input[k] !== undefined && (k === 'format' ? refs(data.format === Prisma.DbNull ? null : data.format) !== refs(t.format) : JSON.stringify(input[k]) !== JSON.stringify((t as any)[k])));
+      if (changed && input.version === undefined) data.version = nextLabel(t.version);
+      let row = await db.reportTemplate.update({ where: { id }, data });
+      const v = changed ? await this.tplReports.publish(scope, row as any, scope.access.personId ?? actor.accountId, db) : await db.reportTemplateVersion.findFirst({ where: { templateId: id }, orderBy: { seq: 'desc' } });
+      if (changed) row = await db.reportTemplate.update({ where: { id }, data: { publishedAt: this.todaySvc.today(scope.project.timezone) } });
+      await this.audit.record(db, { actor, projectId: scope.project.id, profileUsed: scope.access.pmo ? 'PMO' : 'RESPONSABLE' }, { entityType: 'REPORT_TEMPLATE', entityId: id, before: this.templateView(t), after: this.templateView(row, v), target: row.name });
+      return this.templateView(row, v);
+    }, { timeout: 120000 });
   }
 
   @Patch('report-templates/:id/active')
@@ -294,6 +322,7 @@ export class CommitteesController {
       if (!t) throw notFound();
       const u = await this.usages.usages(db, scope.project.id, 'REPORT_TEMPLATE', id);
       if (u.length) throw inUse(u);
+      await db.reportTemplateVersion.deleteMany({ where: { templateId: id } });
       await db.reportTemplate.delete({ where: { id } });
       await this.audit.record(db, { actor, projectId: scope.project.id, profileUsed: scope.access.pmo ? 'PMO' : 'RESPONSABLE' }, { entityType: 'REPORT_TEMPLATE', entityId: id, before: this.templateView(t), after: null, target: t.name });
     });
