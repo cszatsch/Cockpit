@@ -223,9 +223,14 @@ Le bouton reste grisé tant qu'une règle manque ou que la confirmation diffère
 
 **Le bandeau d'accueil**
 
-- La date du jour, le titre « Aujourd'hui » et un message personnalisé :
-  - « Bonjour {prénom}, prêt pour le COPIL de demain ? Il vous reste {n} validations à donner, et {n} tâches au total. » ;
-  - la formule s'adapte : « le COPIL d'aujourd'hui », « le COPIL du {date} », ou « Bonjour {prénom}. » sans séance à venir.
+- La date du jour, le titre « Aujourd'hui » et un **message d'accueil rédigé par Jev**, une fois par jour, avec le ton de sa personnalité. Il met en avant la priorité du jour, par ordre d'importance :
+  - le COPIL d'aujourd'hui ou de demain ;
+  - vos actions en retard ;
+  - les décisions qui attendent votre arbitrage ;
+  - les risques critiques qui ont changé depuis hier ;
+  - le prochain COPIL, vos échéances de la semaine, les jalons de la semaine, les actions terminées hier.
+- Jev n'utilise que les données de vos chantiers, et aucun chiffre qui n'y figure pas. Le message est rédigé à la première ouverture de la journée, puis reste le même jusqu'au lendemain.
+- En attendant le message de Jev, ou s'il n'est pas disponible (module désactivé par l'administrateur, modèle d'IA indisponible), un message calculé s'affiche : « Bonjour {prénom}, {la priorité du jour}. », par exemple « Bonjour Cédric, 1 décision attend votre arbitrage avant le COPIL du 26 oct. »
 - Le bouton **Personnaliser** (voir 3.3).
 
 **La grille**

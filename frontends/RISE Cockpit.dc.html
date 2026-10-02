@@ -1996,7 +1996,7 @@ class Component extends DCLogic {
   }
   componentWillUnmount() { document.removeEventListener('mouseover', this._tOver); document.removeEventListener('mouseout', this._tOut); document.removeEventListener('mousedown', this._tHide, true); window.removeEventListener('scroll', this._tHide, true); document.removeEventListener('dragstart', this._tHide, true); if (this._tip) this._tip.remove(); document.removeEventListener('mouseover', this._pOver); document.removeEventListener('mouseout', this._pOut); document.removeEventListener('click', this._pClick, true); document.removeEventListener('dblclick', this._pDblc, true); window.removeEventListener('keydown', this._onKey); document.removeEventListener('pointerdown', this._outside, true); if (this._rm) this._rm.remove(); }
   // API : météo et actualités par le proxy des cartes API GET /api/widgets/proxy/{open-meteo-geocodage | open-meteo} et actualités agrégées GET /api/widgets/news (503 hors ligne : état d'erreur de la tuile).
-  dbExtLoad() { if (this._api) this._api.dbExtLoad(); }
+  dbExtLoad() { if (this._api) { this._api.dbExtLoad(); this._api.greetLoad(); } } // API : message d'accueil de Jev, GET /today/greeting
   dbLoad() { this._dbLoaded = true; } // API : disposition et thème du tableau de bord lus dans GET /api/me (préférences), hydratés par api.js
   profFileRef = React.createRef();
   componentDidUpdate() { if (this._cmQ) this._cmQ(); /* API : photo, prénom et ville du profil lus dans GET /api/me (préférences), hydratés par api.js */ this.dbLoad(); this.dbExtLoad(); this.applyMotion(); this.applyProjEdits(); this.friseInit(); this.lvPlanInit(); }
@@ -2158,9 +2158,16 @@ class Component extends DCLogic {
     const D = this.mergedData(), me = this.me(), first = this.meFirst(); if (!D) return 'Bonjour ' + first + '.';
     const today = this.tdIso(), ses = this.sessionList().filter(x => x.bodyId === 'g1' && x.status === 'PLANNED' && x.dateIso >= today).sort((a, b) => a.dateIso.localeCompare(b.dateIso))[0];
     const val = (D.decisions || []).filter(x => x.status === 'TO_ARBITRATE').length, tasks = (D.actions || []).filter(x => x.owner === me.personId && x.status !== 'DONE' && (this.state.actStatus || {})[x.id] !== 'Terminée').length;
-    const dd = ses ? this.tdDays(ses.dateIso) : null, when = dd == null ? '' : dd === 0 ? 'le COPIL d’aujourd’hui' : dd === 1 ? 'le COPIL de demain' : 'le COPIL du ' + this.tdFr(ses.dateIso);
-    const pl = (n, s) => n + ' ' + s + (n > 1 ? 's' : '');
-    return 'Bonjour ' + first + (when ? ', prêt pour ' + when + ' ?' : '.') + ' Il vous reste ' + pl(val, 'validation') + ' à donner, et ' + pl(tasks, 'tâche') + ' au total.';
+    const dd = ses ? this.tdDays(ses.dateIso) : null;
+    // Message d'accueil (02/10/2026) : celui de Jev, lu par api.js (GET /today/greeting) ; en attendant, une seule priorité,
+    // sans compteur à zéro ni « prêt » (mêmes règles que le serveur, src/domain/today-greeting.ts).
+    const G = this.state.tdGreet; if (G && G.text && G.day === today) return G.text;
+    const pl = (n, s) => n + ' ' + s + (n > 1 ? 's' : ''), h = new Date().getHours(), hi = (h >= 18 ? 'Bonsoir ' : h < 12 && new Date(today + 'T12:00:00').getDay() === 1 ? 'Bonne semaine ' : 'Bonjour ') + first, dec = n => pl(n, 'décision') + (n > 1 ? ' attendent' : ' attend');
+    const fr = ses ? this.tdFr(ses.dateIso) : '';
+    if (dd != null && dd <= 1) return hi + ', le COPIL a lieu ' + (dd ? 'demain' : 'aujourd’hui') + (val ? ' : ' + dec(val) + ' encore votre arbitrage.' : '.');
+    if (val) return hi + ', ' + dec(val) + ' votre arbitrage' + (ses ? ' avant le COPIL du ' + fr : '') + (/\.$/.test(fr) && ses ? '' : '.');
+    if (tasks) return hi + ', ' + pl(tasks, 'tâche') + ' en cours' + (ses ? ' ; prochain COPIL le ' + fr : '') + (/\.$/.test(fr) && ses ? '' : '.');
+    return hi + ', rien d’urgent aujourd’hui' + (ses ? ' : le prochain COPIL a lieu le ' + fr + (/\.$/.test(fr) ? '' : '.') : '.');
   }
   todayTimeline(D, h) {
     const today = this.tdIso(), PN = {}; (D.model.PERSON.rows || []).forEach(r => { PN[r.id] = r.cells[0]; }); const nm = id => PN[id] || '—';

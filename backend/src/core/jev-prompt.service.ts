@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Persona } from '@prisma/client';
 import { PrismaService } from './prisma.service';
-import { assembleConsoleGuidancePrompt, assembleJevPrompt, cockpitCaseParts, consoleGuidanceParts, JEV_SYSTEM_PROMPT, PersonaText } from '../domain/jev-prompt';
+import { assembleConsoleGuidancePrompt, assembleJevPrompt, COCKPIT_REGISTER_RULE, cockpitCaseParts, consoleGuidanceParts, JEV_SYSTEM_PROMPT, PersonaText } from '../domain/jev-prompt';
+import { GREETING_RULES } from '../domain/today-greeting';
 
 /** Ligne `Persona` → forme de l'écran et du prompt (`{ identity, soul }`). */
 export const personaText = (p: Persona): PersonaText => ({
@@ -43,6 +44,15 @@ export class JevPromptService {
       this.prisma.skill.findMany({ where: { on: true }, orderBy: { position: 'asc' } }),
     ]);
     return cockpitCaseParts(JEV_SYSTEM_PROMPT, persona ? personaText(persona) : null, skills, skillName, page);
+  }
+
+  /**
+   * Message d'accueil de l'écran Aujourd'hui (02/10/2026) : base, Identité et Personnalité (le ton vient du Soul), sans
+   * skill, puis les consignes du message et le vouvoiement du Cockpit.
+   */
+  async greetingSystem(): Promise<string> {
+    const persona = await this.prisma.persona.findUnique({ where: { id: 'jev' } });
+    return [assembleJevPrompt(JEV_SYSTEM_PROMPT, persona ? personaText(persona) : null, []), GREETING_RULES].join('\n\n') + `\n- ${COCKPIT_REGISTER_RULE}`;
   }
 
   async consolePrompt(page: string): Promise<string> {

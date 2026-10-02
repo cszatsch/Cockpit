@@ -1307,6 +1307,34 @@
         ]
       }
     },
+    "/api/projects/{projectId}/today/greeting": {
+      "get": {
+        "operationId": "TodayController_greeting",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "cockpit · aujourd’hui et tâches"
+        ]
+      }
+    },
     "/api/projects/{projectId}/today": {
       "get": {
         "operationId": "TodayController_today",

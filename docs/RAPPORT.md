@@ -301,6 +301,12 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 - **Écart** : statut d'alerte calculé sur la projection et non plus sur la dépense : une ligne peut passer en « Alerte projetée » dès le début du mois si le rythme est élevé ; la vue `jev.budget_ia` de Jev suit la même règle.
 - **Skill « Guidage console »** : le texte versionné (`docs/skills/Guidage console.md`) nomme la nouvelle vue ; la skill en base est à mettre à jour depuis Assistant › Skills (ou par l'API), comme le guide publié (sections 3.8 et 3.9 réécrites dans `docs/GUIDE UTILISATEUR - Console.md`, à republier depuis Plateforme › Guide utilisateur).
 
+### Message d'accueil de Jev (02/10/2026)
+
+- **Réalisé** : message de l'écran Aujourd'hui rédigé par Jev une fois par jour (ton du Soul, vouvoiement), à partir de faits filtrés par droits, contrôlé avant d'être gardé ; message par règles en repli (sans « prêt » ni compteur à zéro) ; module « Message d'accueil de Jev » dans Console › Modules.
+- **Tests** : `test/unit/today-greeting.spec.ts` (faits, règles, contrôle), `test/e2e/accueil.spec.ts` (hors ligne, génération unique par jour, refus, échec, module désactivé, droits, consommation Insights, purge) ; navigateur `test/browser/accueil.e2e.ts` 5/5 (message de Jev affiché, un seul appel, repli en cas d'échec, module listé dans la Console). Essai réel sur la base locale : message rédigé en 3,5 s par Claude Sonnet 5.
+- **Points d'attention** : la première ouverture de la journée attend la rédaction (quelques secondes) avant de remplacer le message par règles ; le message de repli de l'écran compte toutes les décisions à arbitrer du projet, celui du serveur seulement celles de la personne (affiché tant que la route n'a pas répondu) ; un titre long (risque, action) est recopié tel quel.
+
 ## 4. Questions ouvertes
 
 1. **Déclencheur des règles de notification** : faut-il ajouter un sélecteur de déclencheur dans la console ? Aujourd'hui, une règle créée depuis l'écran reçoit un déclencheur par défaut : « planifié » pour une notification, « manuel » pour une alerte.

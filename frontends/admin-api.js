@@ -208,7 +208,7 @@ export const toCard = v => ({ id: v.id, n: v.name, tag: v.category, ep: v.endpoi
 export const lastCheck = cards => { const t = cards.map(v => v.lastTest && v.lastTest.at).filter(Boolean).sort().pop(); return t ? relWhen(t) : 'à venir'; };
 /** Module → `{ id, n, d, sc, pj:{CODE:Date}, g }`. */
 export const toMod = m => ({ id: m.id, n: m.name, d: m.description || '', sc: SCOPE[m.scope] || 'off', pj: Object.fromEntries(Object.entries(m.since || {}).map(([k, v]) => [k, D(v)])), g: D(m.globalSince) });
-const MOD_ORDER = ['bud', 'ben'];
+const MOD_ORDER = ['bud', 'ben', 'jev_accueil']; // message d'accueil de Jev (02/10/2026) en dernier
 const sortMods = l => [...l].sort((a, b) => (MOD_ORDER.indexOf(a.id) + 1 || 99) - (MOD_ORDER.indexOf(b.id) + 1 || 99));
 /** Demande d'activation → `{ id, m, who, p, t }`. */
 export const toReq = r => ({ id: r.id, m: r.moduleId, who: r.requestedBy, p: r.projectCode || r.projectId, t: D(r.at) });

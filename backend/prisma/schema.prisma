@@ -1940,3 +1940,23 @@ model StepTiming {
   @@index([startedAt])
   @@map("step_timings")
 }
+
+/// Message d'accueil de l'écran Aujourd'hui rédigé par Jev (02/10/2026) : une seule génération par compte, projet et
+/// jour (fuseau du projet), réussie ou non ; `status` JEV (texte gardé), REFUSE (contrôle de la réponse) ou ECHEC
+/// (modèle indisponible) ; dans ces deux cas, l'écran garde le message calculé par règles. Purge à 30 jours.
+model TodayGreeting {
+  id            String   @id @default(cuid())
+  accountId     String
+  projectId     String
+  day           String
+  status        String
+  text          String?
+  reason        String?
+  modelId       String?
+  promptVersion String
+  createdAt     DateTime @default(now())
+
+  @@unique([accountId, projectId, day])
+  @@index([createdAt])
+  @@map("today_greetings")
+}

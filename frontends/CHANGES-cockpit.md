@@ -290,3 +290,8 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 
 - Les 14 icônes « Demander à Jev » des écrans du Pilotage (en-têtes des blocs de Planning, Jalons, Livrables, Risques et problèmes, Actions, Décisions et fiche d'arbitrage, Baromètre, Comités, Mes tâches, et points du graphique du Baromètre) sont retirées. Jev reste accessible par son bouton de la barre latérale.
 - « Saisir sans Jev » (formulaires de création) reste disponible : il s'affiche désormais aussi dans le panneau de Jev ouvert depuis la barre latérale sur un écran du Pilotage (Planning : ligne d'avancement).
+
+## Aujourd'hui : message d'accueil de Jev (02/10/2026)
+
+- `api.js` : `greetLoad` lit `GET /today/greeting` à l'ouverture de l'écran Aujourd'hui et au changement de jour (état `tdGreet`) ; après un échec, nouvel essai au plus une fois par minute.
+- `RISE Cockpit.dc.html` : `todayMsg` affiche le message de Jev du jour ; en attendant ou à défaut, le message par règles (salutation selon le moment, une seule priorité, sans « prêt » ni compteur à zéro) ; `dbExtLoad` appelle aussi `greetLoad`. Design inchangé.

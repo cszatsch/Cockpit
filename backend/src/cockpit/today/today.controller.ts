@@ -10,15 +10,17 @@ import { TodayService } from '../../core/today.service';
 import { badRequest, notFound } from '../../core/errors';
 import { techId } from '../../core/ids';
 import { parse } from '../../core/http';
-import { addDays, daysBetween, frShort } from '../../domain/dates';
+import { addDays, daysBetween } from '../../domain/dates';
 import { actionLate, confirmedDays, countdown, FRESHNESS_ALERT_DAYS, FRESHNESS_WATCH_DAYS, riskScore, RISK_CRITICAL_MIN } from '../../domain/rules';
 import { canReadWs, visibleWorkstreams } from '../../domain/rights';
 import { AnomaliesService } from '../pilotage/anomalies.service';
 import { confirmedAtIso } from '../views';
 import { optIsoDate } from '../referential/schemas';
+import { ruleGreeting, WELCOME_BODY_SHORT_NAME } from '../../domain/today-greeting';
+import { TodayGreetingService } from './today-greeting.service';
 
-/** Nom court de l'instance dont la prochaine séance est annoncée dans le message d'accueil. */
-export const WELCOME_BODY_SHORT_NAME = 'COPIL';
+/** Nom court de l'instance dont la prochaine séance est annoncée dans le message d'accueil (règle partagée). */
+export { WELCOME_BODY_SHORT_NAME };
 /** Horizon des jalons dans « Mes tâches » (§ 7.12). */
 export const MY_MILESTONES_HORIZON_DAYS = 45;
 /** Fenêtre de l'échéancier de l'écran Aujourd'hui (frontend `todayTimeline`). */
@@ -68,6 +70,7 @@ export class TodayController {
     private readonly todaySvc: TodayService,
     private readonly anomalies: AnomaliesService,
     private readonly audit: AuditService,
+    private readonly greetings: TodayGreetingService,
   ) {}
 
   private personOrAccount(actor: Actor, scope: ProjectScope) {
@@ -174,6 +177,15 @@ export class TodayController {
     });
   }
 
+  /**
+   * Message d'accueil de l'écran Aujourd'hui (02/10/2026) : celui de Jev, généré une fois par jour et contrôlé, ou le
+   * message par règles (`source: 'regles'` et motif : module désactivé, hors ligne, réponse refusée, modèle indisponible).
+   */
+  @Get('today/greeting')
+  async greeting(@CurrentActor() actor: Actor, @Param('projectId') p: string) {
+    return this.greetings.greeting(actor, await this.access.scope(actor, p));
+  }
+
   /** Écran Aujourd'hui (§ 7.13 ; règles de `todayMsg`, `todayTimeline`, `todayStale`). */
   @Get('today')
   async today(@CurrentActor() actor: Actor, @Param('projectId') p: string) {
@@ -193,9 +205,8 @@ export class TodayController {
     const tasksCount = tasks.filter((t) => t.status !== 'DONE').length;
     const firstName = (await this.prisma.userPreferences.findUnique({ where: { accountId: actor.accountId } }))?.firstName ?? (me ? (await this.prisma.person.findUnique({ where: { id: me } }))?.firstName : actor.fullName.split(' ')[0]);
     const nextCommittee = next && body ? { sessionId: next.id, bodyId: body.id, shortName: body.shortName, number: next.number, dateIso: next.dateIso, time: next.time, place: next.place, inDays: daysBetween(today, next.dateIso) } : null;
-    const when = nextCommittee ? (nextCommittee.inDays === 0 ? `le ${body!.shortName} d’aujourd’hui` : nextCommittee.inDays === 1 ? `le ${body!.shortName} de demain` : `le ${body!.shortName} du ${frShort(next!.dateIso, +next!.dateIso.slice(0, 4))}`) : '';
-    const pl = (n: number, s: string) => `${n} ${s}${n > 1 ? 's' : ''}`;
-    const message = `Bonjour ${firstName}${when ? `, prêt pour ${when} ?` : '.'} Il vous reste ${pl(validations, 'validation')} à donner, et ${pl(tasksCount, 'tâche')} au total.`;
+    // Message calculé par règles (repli du message de Jev, 02/10/2026) : une seule priorité, sans compteur à zéro.
+    const message = ruleGreeting(await this.greetings.facts(actor, scope));
 
     // Échéancier : de J-7 à J+45, 10 éléments au plus.
     const lo = addDays(today, -TIMELINE_PAST_DAYS);

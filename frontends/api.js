@@ -881,6 +881,23 @@ export function attach(comp) {
     ntClearAll: () => { raw({ ntItems: [], ntUnread: 0 }); del('/me/notifications').catch((e) => { console.warn('[api]', e); ntLoad(); }); },
     state: S,
 
+    /**
+     * Message d'accueil de « Aujourd'hui » (02/10/2026) : `GET /today/greeting`, rédigé par Jev une fois par jour (ou
+     * message par règles du serveur). Lu à l'ouverture de l'écran, puis au changement de jour ; en attendant ou en cas
+     * d'échec, l'écran garde son propre message (`todayMsg`).
+     */
+    greetLoad() {
+      if (comp.state.space !== 'today' || comp._greetBusy) return;
+      const day = comp.tdIso(), g = comp.state.tdGreet;
+      if (g && g.day === day && g.pid === projectId) return;
+      if (comp._greetFail && comp._greetFail > Date.now()) return;
+      comp._greetBusy = true;
+      pget('/today/greeting')
+        .then((r) => { comp._greetFail = 0; raw({ tdGreet: { text: r.text, source: r.source, day: r.day || day, pid: projectId } }); })
+        .catch((e) => { console.warn('[api] message d’accueil', e); comp._greetFail = Date.now() + 60_000; })
+        .finally(() => { comp._greetBusy = false; });
+    },
+
     /** Météo et actualités (proxy serveur ; 503 hors ligne : l'écran affiche son état d'erreur). */
     dbExtLoad() {
       if (comp._dbExtOn || comp.state.space !== 'today') return;

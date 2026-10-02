@@ -625,3 +625,8 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
 - `Console Admin.dc.html` : page `conso` montée en fondu (pas de transformation maintenue) ; page `journal` retirée et redirigée vers `conso` ; titres et suggestions de Jev ; ancien calcul de démonstration de la Vue générale des coûts, export et props de `ConsoCouts` retirés.
 - `Sidebar Console.dc.html` : IA › « Consommation et coûts » remplace « Vue générale des coûts » et « Journal consommation et coûts ».
 - Supprimés : `ConsoCouts.dc.html`, `Journal des appels.dc.html`.
+
+## Modules : message d'accueil de Jev (02/10/2026)
+
+- `admin-api.js` : `MOD_ORDER` range le module `jev_accueil` après Budget et Suivi des bénéfices.
+- `Console Admin.dc.html` : module « Message d’accueil de Jev » ajouté au jeu de démonstration (actif partout). Rien d'autre : la page Modules affiche les modules lus par l'API.

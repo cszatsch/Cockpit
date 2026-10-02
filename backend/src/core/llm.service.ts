@@ -157,6 +157,11 @@ export class LlmService {
    * Fonction en direct (`LIVE_FUNCTIONS`) : vraie génération chez le fournisseur ; si le principal échoue
    * à l'appel (délai, erreur du fournisseur), le secours prend la demande ; si les deux échouent, 503.
    */
+  /** Génération réelle pour cette fonction (sinon bouchon : hors ligne, ou fonction hors `LIVE_FUNCTIONS`). */
+  isLive(functionId: AiFunctionId): boolean {
+    return LIVE_FUNCTIONS.includes(functionId) && this.client.live;
+  }
+
   async complete(input: { functionId: AiFunctionId; prompt: string; system?: string; systemTail?: string; history?: ChatTurn[]; cache?: boolean; projectId?: string | null; source: UsageSourceCode; maxWords?: number; timeoutMs?: number; maxTokens?: number }): Promise<LlmResult> {
     return span(`génération · fonction ${input.functionId}`, async (d) => {
       d.caracteres_prompt = (input.system?.length ?? 0) + (input.systemTail?.length ?? 0) + input.prompt.length + (input.history ?? []).reduce((n, h) => n + h.content.length, 0);

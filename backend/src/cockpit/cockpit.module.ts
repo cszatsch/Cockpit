@@ -12,6 +12,7 @@ import { TX_CONTROLLERS } from './pilotage/transactional.controllers';
 import { PilotageController } from './pilotage/pilotage.controller';
 import { AnomaliesService } from './pilotage/anomalies.service';
 import { TodayController } from './today/today.controller';
+import { TodayGreetingService } from './today/today-greeting.service';
 import { CommitteesController } from './committees/committees.controller';
 import { BootstrapController } from './bootstrap/bootstrap.controller';
 import { BootstrapService } from './bootstrap/bootstrap.service';
@@ -26,7 +27,7 @@ import { AdminModule } from '../admin/admin.module';
   imports: [AdminModule],
   // Ordre significatif : les routes fixes (ex. deliverables/tracking) avant les routes paramétrées (deliverables/:id).
   controllers: [MeController, MyNotificationsController, ProjectController, BootstrapController, PilotageController, TodayController, CommitteesController, DocumentsController, CollabController, AssistantController, ...REFERENTIAL_CONTROLLERS, ...TX_CONTROLLERS],
-  providers: [ReferentialService, UsagesService, TransactionalService, AnomaliesService, BootstrapService, KbService, JevCockpitDocsService, JevCockpitWriteService],
+  providers: [ReferentialService, UsagesService, TransactionalService, AnomaliesService, BootstrapService, KbService, JevCockpitDocsService, JevCockpitWriteService, TodayGreetingService],
   exports: [ReferentialService, UsagesService, TransactionalService, AnomaliesService],
 })
 export class CockpitModule {}

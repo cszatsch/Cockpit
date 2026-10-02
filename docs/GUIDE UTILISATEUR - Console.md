@@ -1026,7 +1026,7 @@ La liste affiche, pour chaque snapshot, les nombres de tâches, jalons, risques 
 
 ## 3.16 Modules
 
-**À quoi sert la page.** Activer les fonctions optionnelles du Cockpit, pour toute la plateforme ou projet par projet. Deux modules existent : **Budget** et **Suivi des bénéfices**.
+**À quoi sert la page.** Activer les fonctions optionnelles du Cockpit, pour toute la plateforme ou projet par projet. Trois modules existent : **Budget**, **Suivi des bénéfices** et **Message d'accueil de Jev**.
 
 > [Capture] Page Modules : carte d'un module et bandeau de demande.
 
@@ -1043,7 +1043,8 @@ La liste affiche, pour chaque snapshot, les nombres de tâches, jalons, risques 
 - Un utilisateur du Cockpit voit un module désactivé comme verrouillé, et peut en demander l'activation. Une même demande en attente n'est pas dupliquée.
 - Approuver une demande active le module sur le seul projet demandé.
 - Toutes les modifications sont tracées (Sensible).
-- Aujourd'hui, seul le module **Budget** change quelque chose dans le Cockpit : sans lui, la saisie du budget est refusée.
+- Le module **Budget** : sans lui, la saisie du budget est refusée.
+- Le module **Message d'accueil de Jev** (actif sur tous les projets par défaut) : Jev rédige chaque jour le message de l'écran Aujourd'hui de chaque utilisateur ; désactivé, le message est calculé par règles. Sa consommation s'inscrit sur la ligne Insights de Consommation et coûts.
 
 ## 3.17 Registre des cartes API
 

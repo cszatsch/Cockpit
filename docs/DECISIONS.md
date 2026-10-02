@@ -1136,3 +1136,18 @@ Spécification `docs/specs/CONSO - specification.md` (maquette `Consommation et 
 | Performance | Index `UsageRecord (functionId, at)` en plus de `(at)` ; journal par curseur, 30 appels par page, chargés au défilement | migration `20261105000000_conso_fusion`, `PAGE` (écran) |
 | Lisibilité | Tuiles 5 de front, 3 + 2 quand la page fait moins de 900 px (requête de conteneur : la barre latérale réduit la largeur) ; colonnes fluides du journal ; libellés et modèles passent à la ligne plutôt que d'être tronqués | `[data-conso-tiles]`, `[data-conso-row]` |
 | Plafond désactivé | Affiché « Sans plafond » ; saisir un plafond le réactive (`enabled: true`) | `setCap` (écran) |
+
+## Message d'accueil de Jev, écran Aujourd'hui du Cockpit (02/10/2026)
+
+Arbitrages du commanditaire (02/10/2026) : alternative 4 (message rédigé par Jev) ; consommation sur la ligne Insights (aucune nouvelle ligne) ; une génération par jour ; interrupteur dans Console › Modules ; ton donné par le Soul de la Persona.
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Faits | Rassemblés par le serveur, limités aux chantiers visibles : prochain COPIL (sinon premier comité stratégique), décisions à arbitrer par la personne, ses actions en retard et à échéance dans 7 jours, risques critiques ouverts (score ≥ 20) et ceux modifiés depuis 24 h, jalons à 7 jours, ses actions terminées la veille ; classés par priorité, 6 au plus envoyés | `rankedFacts`, `GREETING_MAX_FACTS`, `TodayGreetingService.facts` |
+| Rédaction | Fonction `insights` (ligne Insights), source `COCKPIT` ; prompt : base, Identité et Personnalité (Soul) sans skill, consignes du message, vouvoiement du Cockpit (le registre l'emporte sur le Soul, décision du 01/10/2026) ; 45 mots demandés, délai 20 s | `GREETING_RULES`, `JevPromptService.greetingSystem`, `GREETING_MAX_WORDS`, `GREETING_TIMEOUT_MS` |
+| Contrôle | Texte brut sur une ligne (Markdown et guillemets retirés), 240 caractères au plus, sans lien, sans tutoiement, chaque nombre présent dans les faits ; sinon refusé (motif tracé) | `checkGreeting`, `GREETING_MAX_CHARS` |
+| Une génération par jour | Une ligne `today_greetings` par compte, projet et jour (fuseau du projet), réussie (`JEV`), refusée (`REFUSE`) ou en échec (`ECHEC`) : pas de nouvel essai le même jour ; deux ouvertures simultanées, un seul appel ; purge à 30 jours (`today-greeting.purge`, 3 h 50) | `GREETING_PURGE_DAYS`, `GREETING_PROMPT_VERSION` |
+| Repli | Message par règles : salutation selon le moment (Bonsoir après 18 h, « Bonne semaine » le lundi matin) et une seule priorité, sans compteur à zéro ni accord (« prêt » retiré) ; servi aussi par `GET /today` (`message`) et affiché par l'écran tant que le message de Jev n'est pas arrivé | `ruleGreeting`, `todayMsg` (écran) |
+| Hors ligne | Pas de génération si la fonction est sur le bouchon : jamais de texte de bouchon à l'écran, rien d'enregistré | `LlmService.isLive` |
+| Interrupteur | Module `jev_accueil` « Message d'accueil de Jev » (Console › Modules), actif sur tous les projets à sa création (migration `20261106000000_jev_accueil`) ; désactivé (ou par projet) : message par règles, modification auditée (Sensible) | `GREETING_MODULE_ID`, `TodayGreetingService.enabled` |
+| API | `GET /api/projects/:id/today/greeting` → `{ text, source: 'jev' \| 'regles', reason, day }` ; l'écran l'appelle à l'ouverture d'Aujourd'hui et au changement de jour, nouvel essai au plus une fois par minute après un échec | `greetLoad` (`api.js`) |

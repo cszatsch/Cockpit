@@ -196,7 +196,9 @@ describe('Étapes 4-8 — jalons, pilotage, comités, habilitations, Aujourd’h
       expect(r.body.today).toBe('2026-09-26');
       expect(r.body.nextCommittee).toMatchObject({ number: 21, dateIso: '2026-10-26' });
       expect(r.body.countdown.label).toBe('J-187');
-      expect(r.body.message).toMatch(/^Bonjour Philippe, prêt pour le COPIL du 26 oct\. \?/);
+      // Message par règles (02/10/2026) : une seule priorité, ni « prêt » ni compteur à zéro.
+      expect(r.body.message).toMatch(/^(Bonjour|Bonne semaine|Bonsoir) Philippe, /);
+      expect(r.body.message).not.toMatch(/prêt| 0 /);
       const pmo = await (await t.as(WHO.pmo)).get(`${R}/today`).expect(200);
       expect(pmo.body.timeline.length).toBeLessThanOrEqual(10);
       const kinds = pmo.body.anomalies.map((a: any) => a.kind);
