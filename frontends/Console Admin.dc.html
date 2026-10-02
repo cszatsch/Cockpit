@@ -4,8 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script src="./support.js"></script>
-<!-- API : règles partagées des écrans IA (coût, états, ancienneté) : ia-data.js (window.RISE_IA). -->
-<script src="./ia-data.js"></script>
 </head>
 <body>
 <x-dc>
@@ -316,8 +314,10 @@ a{color:#1d8f86}a:hover{color:#146b64}
     <sc-if value="{{ isProv }}" hint-placeholder-val="{{ false }}">
       <!-- API : fournisseurs et clés, affectation des modèles (Documents en 3 étapes), catalogue (Fournisseurs et modeles.dc.html, 02/10/2026 ;
            admin-api.js → données `fm`, actions `fmApi`). -->
-      <div data-screen-label="Fournisseurs et modèles" style="animation:rise-in .35s cubic-bezier(.2,.7,.2,1) both">
-        <dc-import name="Fournisseurs et modeles" data="{{ fmData }}" api="{{ fmApi }}" hint-size="100%,2200px"></dc-import>
+      <!-- Fondu sans transform : une animation de transform maintenue (fill-mode both) fait de ce conteneur le repère des
+           fenêtres position:fixed de l'écran, centrées alors sur la page entière et non sur la fenêtre du navigateur. -->
+      <div data-screen-label="Fournisseurs et modèles" style="animation:fade .35s ease-out both">
+        <dc-import name="Fournisseurs et modeles" data="{{ fmData }}" api="{{ fmApi }}" focus-key="{{ fpKey }}" hint-size="100%,2200px"></dc-import>
       </div>
     </sc-if>
     <sc-if value="{{ isConso }}" hint-placeholder-val="{{ false }}">
@@ -540,70 +540,6 @@ a{color:#1d8f86}a:hover{color:#146b64}
   </div>
 </sc-if>
 
-<sc-if value="{{ fc.on }}" hint-placeholder-val="{{ false }}">
-          <div onClick="{{ fc.close }}" style="position:fixed;inset:0;z-index:70;background:rgba(10,23,39,.28);animation:fade .2s both"></div>
-          <aside role="dialog" aria-label="{{ fc.title }}" style="position:fixed;top:0;right:0;bottom:0;z-index:71;width:min(440px,100vw);background:#fff;box-shadow:-24px 0 60px -20px rgba(16,35,58,.35);display:flex;flex-direction:column;animation:rise-in .28s cubic-bezier(.2,.7,.2,1) both">
-            <div style="padding:22px 24px 18px;border-bottom:1px solid #eef3f2;display:flex;gap:14px;align-items:flex-start">
-              <div style="width:48px;height:48px;border-radius:14px;background:#fff;box-shadow:0 0 0 1px #e1e9e7,0 6px 14px -8px rgba(16,35,58,.35);display:grid;place-items:center;flex:none"><span role="img" aria-label="{{ fc.pvN }}" style="{{ fc.logoSt }}"></span></div>
-              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px">
-                <span style="font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#1d8f86">{{ fc.kind }}</span>
-                <span style="font-size:20px;font-weight:800;letter-spacing:-.02em;line-height:1.15">{{ fc.title }}</span>
-                <span style="{{ fc.pill }}"><span style="{{ fc.dot }}"></span>{{ fc.stL }}</span>
-              </div>
-              <button onClick="{{ fc.close }}" aria-label="Fermer" style="width:34px;height:34px;border-radius:10px;border:0;background:#f1f6f5;cursor:pointer;display:grid;place-items:center;flex:none" style-hover="background:#e5edeb"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10233a" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
-            </div>
-            <div style="flex:1;overflow-y:auto;padding:20px 24px 24px;display:flex;flex-direction:column;gap:22px">
-
-              <sc-if value="{{ fc.isProv }}" hint-placeholder-val="{{ false }}">
-                <sc-if value="{{ fc.isErr }}" hint-placeholder-val="{{ false }}"><div role="alert" style="padding:12px 14px;border-radius:12px;background:#fdf1ef;color:#8f2c23;font-size:12.5px;line-height:1.5;display:flex;flex-direction:column;gap:4px"><b style="font-family:ui-monospace,Menlo,monospace;font-size:12px">{{ fc.err }}</b><span>{{ fc.impact }}</span></div></sc-if>
-                <div style="display:flex;flex-direction:column;gap:10px">
-                  <span style="font-size:11px;font-weight:800;letter-spacing:.1em;color:#8a9aa6">CLÉ API</span>
-                  <div style="display:flex;align-items:center;gap:10px;height:42px;padding:0 14px;border-radius:11px;background:#f3f7f6"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5c7280" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><rect x="5" y="10.5" width="14" height="9.5" rx="2.2"></rect><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"></path></svg><span style="font-family:ui-monospace,Menlo,monospace;font-size:12.5px;letter-spacing:.02em;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ fc.mask }}</span></div>
-                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-                    <div style="padding:12px 14px;border-radius:11px;box-shadow:inset 0 0 0 1px #e6eeec;display:flex;flex-direction:column;gap:3px"><span style="font-size:11px;color:#8a9aa6;font-weight:700">Temps de réponse</span><span style="font-size:18px;font-weight:800;letter-spacing:-.02em">{{ fc.latL }}</span></div>
-                    <div style="padding:12px 14px;border-radius:11px;box-shadow:inset 0 0 0 1px #e6eeec;display:flex;flex-direction:column;gap:3px"><span style="font-size:11px;color:#8a9aa6;font-weight:700">Dernier test</span><span style="font-size:13.5px;font-weight:700;padding-top:3px">{{ fc.when }}</span></div>
-                  </div>
-                  <div style="display:flex;gap:8px"><button onClick="{{ fc.test }}" disabled="{{ fc.testing }}" style="height:36px;padding:0 14px;border:1px solid #d3dedb;border-radius:10px;background:#fff;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap" style-hover="border-color:#10233a">{{ fc.testL }}</button><button onClick="{{ fc.repl }}" style="{{ fc.replSt }}">Remplacer la clé</button></div>
-                </div>
-                <div style="display:flex;flex-direction:column;gap:8px">
-                  <span style="font-size:11px;font-weight:800;letter-spacing:.1em;color:#8a9aa6">MODÈLES · {{ fc.modN }}</span>
-                  <sc-for list="{{ fc.models }}" as="m" hint-placeholder-count="2">
-                    <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:11px;box-shadow:inset 0 0 0 1px #e6eeec">
-                      <button onClick="{{ m.open }}" style="flex:1;min-width:0;border:0;background:transparent;padding:0;text-align:left;cursor:pointer;font:inherit;display:flex;flex-direction:column;gap:2px" style-hover="color:#1d8f86"><span style="font-weight:700;font-size:13px">{{ m.n }}</span><span style="font-size:11.5px;color:#8a9aa6">{{ m.meta }}</span></button>
-                      <button onClick="{{ m.sw.toggle }}" aria-label="{{ m.sw.label }}" style="{{ m.sw.st }}"><span style="{{ m.sw.knob }}"></span></button>
-                    </div>
-                  </sc-for>
-                </div>
-              </sc-if>
-
-              <sc-if value="{{ fc.isModel }}" hint-placeholder-val="{{ false }}">
-                <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-radius:12px;background:#f3f7f6"><div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:13px;font-weight:700">Modèle actif</span><span style="font-size:11.5px;color:#5c7280">{{ fc.actHelp }}</span></div><button onClick="{{ fc.sw.toggle }}" aria-label="{{ fc.sw.label }}" style="{{ fc.sw.st }}"><span style="{{ fc.sw.knob }}"></span></button></div>
-                <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700;color:#43586a">Nom<input value="{{ fc.f.n }}" onChange="{{ fc.set.n }}" style="height:40px;padding:0 12px;border:1px solid #d3dedb;border-radius:10px;font:inherit;font-size:13px;font-weight:600;outline:none;color:#10233a" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.15)"><sc-if value="{{ fc.fe.n }}" hint-placeholder-val="{{ false }}"><span role="alert" style="font-size:12px;font-weight:600;color:#a8372c">{{ fc.fe.n }}</span></sc-if></label>
-                <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700;color:#43586a">Description<textarea rows="2" value="{{ fc.f.d }}" onChange="{{ fc.set.d }}" style="padding:10px 12px;border:1px solid #d3dedb;border-radius:10px;font:inherit;font-size:13px;font-weight:500;outline:none;color:#10233a;resize:vertical" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.15)"></textarea></label>
-                <div style="display:flex;flex-direction:column;gap:6px"><span id="fc-mcat" style="font-size:12px;font-weight:700;color:#43586a">Catégorie</span><div role="radiogroup" aria-labelledby="fc-mcat" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px"><sc-for list="{{ fc.cOpts }}" as="o" hint-placeholder-count="3"><button type="button" role="radio" aria-checked="{{ o.on }}" onClick="{{ o.pick }}" style="{{ o.st }}"><span style="font-size:13px;font-weight:700">{{ o.l }}</span><span style="font-size:11px;font-weight:500;color:#5c7280;line-height:1.3">{{ o.d }}</span></button></sc-for></div></div>
-                <div style="display:flex;flex-direction:column;gap:8px">
-                  <span style="font-size:11px;font-weight:800;letter-spacing:.1em;color:#8a9aa6">TARIF · € PAR MILLION DE TOKENS</span>
-                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-                    <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700;color:#43586a">Entrée<input inputMode="decimal" value="{{ fc.f.pin }}" onChange="{{ fc.set.pin }}" style="height:40px;padding:0 12px;border:1px solid #d3dedb;border-radius:10px;font:inherit;font-size:14px;font-weight:700;outline:none;color:#10233a;font-variant-numeric:tabular-nums" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.15)"><sc-if value="{{ fc.fe.pin }}" hint-placeholder-val="{{ false }}"><span role="alert" style="font-size:12px;font-weight:600;color:#a8372c">{{ fc.fe.pin }}</span></sc-if></label>
-                    <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700;color:#43586a">Sortie<input inputMode="decimal" value="{{ fc.f.pout }}" onChange="{{ fc.set.pout }}" style="height:40px;padding:0 12px;border:1px solid #d3dedb;border-radius:10px;font:inherit;font-size:14px;font-weight:700;outline:none;color:#10233a;font-variant-numeric:tabular-nums" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.15)"><sc-if value="{{ fc.fe.pout }}" hint-placeholder-val="{{ false }}"><span role="alert" style="font-size:12px;font-weight:600;color:#a8372c">{{ fc.fe.pout }}</span></sc-if></label>
-                  </div>
-                </div>
-                <div style="display:flex;flex-direction:column;gap:8px">
-                  <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:11px;font-weight:800;letter-spacing:.1em;color:#8a9aa6">UTILISÉ PAR</span><span style="font-size:12px;color:#5c7280">{{ fc.costL }}</span></div>
-                  <sc-for list="{{ fc.uses }}" as="u" hint-placeholder-count="0">
-                    <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:11px;box-shadow:inset 0 0 0 1px #e6eeec"><span style="{{ u.st }}">{{ u.role }}</span><span style="flex:1;font-weight:700;font-size:13px">{{ u.n }}</span><span style="font-size:12px;color:#5c7280;font-variant-numeric:tabular-nums">{{ u.c }}</span></div>
-                  </sc-for>
-                  <sc-if value="{{ fc.noUse }}" hint-placeholder-val="{{ false }}"><span style="font-size:12.5px;color:#8a9aa6">Aucune fonction du Cockpit n’utilise ce modèle.</span></sc-if>
-                  <button onClick="{{ fc.goAsg }}" style="align-self:flex-start;border:0;background:transparent;padding:0;font:inherit;font-size:12.5px;font-weight:700;color:#1d8f86;cursor:pointer">Modifier l’affectation →</button>
-                </div>
-                <button onClick="{{ fc.openPv }}" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:11px;border:0;background:#f3f7f6;font:inherit;cursor:pointer;text-align:left" style-hover="background:#e9f0ee"><span style="font-size:12px;color:#5c7280">Fournisseur</span><span style="flex:1;font-weight:700;font-size:13px">{{ fc.pvN }}</span><span style="{{ fc.pvPill }}">{{ fc.pvStL }}</span></button>
-              </sc-if>
-            </div>
-            <sc-if value="{{ fc.isModel }}" hint-placeholder-val="{{ false }}">
-              <div style="padding:14px 24px 18px;border-top:1px solid #eef3f2;display:flex;align-items:center;gap:10px"><span style="flex:1;font-size:12px;color:#8a9aa6">{{ fc.dirtyL }}</span><button onClick="{{ fc.close }}" style="height:38px;padding:0 16px;border:1px solid #d3dedb;border-radius:10px;background:#fff;font:inherit;font-weight:700;cursor:pointer">Annuler</button><button onClick="{{ fc.save }}" disabled="{{ fc.clean }}" style="{{ fc.saveSt }}">Enregistrer</button></div>
-            </sc-if>
-          </aside>
-        </sc-if>
 <sc-if value="{{ uc.on }}" hint-placeholder-val="{{ false }}">
   <div onClick="{{ uc.close }}" style="position:fixed;inset:0;z-index:70;background:rgba(10,23,39,.22);animation:fade .25s both"></div>
   <aside role="dialog" aria-label="Fiche de {{ uc.n }}" style="position:fixed;top:0;right:0;bottom:0;z-index:71;width:min(420px,100vw);background:#fff;box-shadow:-24px 0 60px -20px rgba(16,35,58,.35);display:flex;flex-direction:column;animation:slide-in .38s cubic-bezier(.2,.8,.2,1) both">
@@ -706,22 +642,6 @@ a{color:#1d8f86}a:hover{color:#146b64}
         </div>
       </sc-if>
 
-      <sc-if value="{{ dl.isKey }}" hint-placeholder-val="{{ false }}">
-        <div style="padding:24px 26px 22px;display:flex;flex-direction:column;gap:16px">
-          <div style="display:flex;gap:14px;align-items:flex-start"><span style="width:40px;height:40px;border-radius:12px;flex:none;display:grid;place-items:center;background:#fdecec;color:#c2473b"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="9.5" rx="2.2"></rect><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"></path></svg></span><div><h2 style="margin:2px 0 0;font-size:18px;font-weight:800;letter-spacing:-.015em">{{ dl.kTitle }}</h2><p style="margin:6px 0 0;font-size:12.5px;color:#43586a;text-wrap:pretty">L’ancienne clé cesse d’être utilisée dès l’enregistrement. La nouvelle est chiffrée et ne sera plus jamais affichée en clair.</p></div></div>
-          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:#f3f7f6;font-size:12px;color:#5c7280">Clé actuelle<span style="font-family:ui-monospace,Menlo,monospace;color:#10233a;text-decoration:line-through">{{ dl.kMask }}</span></div>
-          <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700;color:#43586a">Nouvelle clé API<input autoFocus="{{ true }}" type="password" value="{{ form.k }}" onChange="{{ ff.k }}" autoComplete="new-password" spellCheck="false" placeholder="Collez la clé fournie par le fournisseur" style="height:40px;padding:0 12px;border:1px solid #d3dedb;border-radius:10px;font-size:13px;font-weight:500;outline:none;font-family:ui-monospace,Menlo,monospace;color:#10233a" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.15)"><sc-if value="{{ fe.k }}" hint-placeholder-val="{{ false }}"><span role="alert" style="font-size:12px;font-weight:600;color:#a8372c">{{ fe.k }}</span></sc-if></label>
-          <div style="display:flex;justify-content:flex-end;gap:8px"><button onClick="{{ dl.cancel }}" style="height:38px;padding:0 16px;border:1px solid #d3dedb;border-radius:10px;background:#fff;font-size:13px;font-weight:600;cursor:pointer" style-hover="border-color:#10233a">Annuler</button><button onClick="{{ dl.saveKey }}" style="height:38px;padding:0 18px;border:0;border-radius:10px;background:#c2473b;color:#fff;font-size:13px;font-weight:700;cursor:pointer" style-hover="background:#a8372c">Remplacer et tester</button></div>
-        </div>
-      </sc-if>
-      <sc-if value="{{ dl.isProv }}" hint-placeholder-val="{{ false }}">
-        <div style="padding:24px 26px 22px;display:flex;flex-direction:column;gap:16px">
-          <div><h2 style="margin:0;font-size:19px;font-weight:800;letter-spacing:-.015em">Ajouter un fournisseur</h2><p style="margin:6px 0 0;font-size:12.5px;color:#43586a">La clé est testée dès l’enregistrement. Elle restera masquée.</p></div>
-          <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700;color:#43586a">Nom du fournisseur<input autoFocus="{{ true }}" value="{{ form.n }}" onChange="{{ ff.n }}" placeholder="Ex. Cohere" style="height:40px;padding:0 12px;border:1px solid #d3dedb;border-radius:10px;font-size:13px;font-weight:500;outline:none;color:#10233a" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.15)"><sc-if value="{{ fe.n }}" hint-placeholder-val="{{ false }}"><span role="alert" style="font-size:12px;font-weight:600;color:#a8372c">{{ fe.n }}</span></sc-if></label>
-          <label style="display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700;color:#43586a">Clé API<input type="password" value="{{ form.k }}" onChange="{{ ff.k }}" autoComplete="new-password" spellCheck="false" style="height:40px;padding:0 12px;border:1px solid #d3dedb;border-radius:10px;font-size:13px;outline:none;font-family:ui-monospace,Menlo,monospace;color:#10233a" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.15)"><sc-if value="{{ fe.k }}" hint-placeholder-val="{{ false }}"><span role="alert" style="font-size:12px;font-weight:600;color:#a8372c">{{ fe.k }}</span></sc-if></label>
-          <div style="display:flex;justify-content:flex-end;gap:8px"><button onClick="{{ dl.cancel }}" style="height:38px;padding:0 16px;border:1px solid #d3dedb;border-radius:10px;background:#fff;font-size:13px;font-weight:600;cursor:pointer" style-hover="border-color:#10233a">Annuler</button><button onClick="{{ dl.saveProv }}" style="height:38px;padding:0 18px;border:0;border-radius:10px;background:#10233a;color:#fff;font-size:13px;font-weight:700;cursor:pointer" style-hover="background:#1d3654">Ajouter et tester</button></div>
-        </div>
-      </sc-if>
       <sc-if value="{{ dl.isAdm }}" hint-placeholder-val="{{ false }}">
         <div style="padding:24px 26px 22px;display:flex;flex-direction:column;gap:16px">
           <div style="display:flex;gap:14px;align-items:flex-start"><span style="width:40px;height:40px;border-radius:12px;flex:none;display:grid;place-items:center;background:#fdecec;color:#c2473b"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"></path></svg></span><div><h2 style="margin:2px 0 0;font-size:18px;font-weight:800;letter-spacing:-.015em">Ajouter un administrateur</h2><p style="margin:6px 0 0;font-size:12.5px;color:#43586a">Action critique, tracée dans le journal d’audit. La personne est prévenue par e-mail.</p></div></div>
@@ -758,8 +678,6 @@ a{color:#1d8f86}a:hover{color:#146b64}
   </div>
 </sc-if>
 
-<!-- API : ajout et modification d’un modèle (Fiche modele.dc.html) : champs selon la catégorie. -->
-<sc-if value="{{ fm.on }}" hint-placeholder-val="{{ false }}"><dc-import name="Fiche modele" demo="{{ false }}" model="{{ fm.model }}" providers="{{ ia.provs }}" models="{{ ia.models }}" functions="{{ ia.fns }}" groups="{{ ia.groups }}" on-submit="{{ fm.submit }}" on-close="{{ fm.close }}" on-delete="{{ fm.del }}" hint-size="100%,100%"></dc-import></sc-if>
 <sc-if value="{{ ts.on }}" hint-placeholder-val="{{ false }}">
   <div role="status" aria-live="polite" style="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:95;max-width:calc(100% - 32px);background:#10233a;color:#fff;padding:11px 12px 11px 16px;border-radius:13px;font-weight:600;font-size:13px;display:flex;align-items:center;gap:12px;box-shadow:0 20px 50px -20px rgba(16,35,58,.7);animation:rise-in .28s cubic-bezier(.2,.7,.2,1) both">
     <sc-if value="{{ ts.isOk }}" hint-placeholder-val="{{ true }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3dd6c6" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M5 12.5l4.5 4.5L19 7"></path></svg></sc-if>
@@ -907,7 +825,6 @@ const FNS = [
 const FN_GROUPS = { documents: { n: 'Documents', d: 'Le texte extrait suit la ligne de gauche à droite. Une étape à l’arrêt suspend la suite.' } };
 const fnLabel = f => f.group ? FN_GROUPS[f.group].n + ' · ' + f.sh : f.sh;
 // Embedding : changer de modèle ou de dimension oblige à réindexer les documents (spécification IA, dimensions).
-const REINDEX_WARNING = "Changer de modèle d'embedding oblige à réindexer tous les documents. Chaque modèle a son propre espace vectoriel : les vecteurs de deux modèles différents ne sont pas compatibles, même s'ils ont la même dimension. Sans réindexation, la recherche renverra des résultats faux ou incohérents.";
 function genUsage(models, asg) {
   const r = rng(11), P = Object.fromEntries(models.map(m => [m.id, m])), rows = [];
   for (let d = 0; d < 90; d++) {
@@ -1010,8 +927,8 @@ class Component extends DCLogic {
       admins: [{ u: 'u1', lv: 'admin', since: new Date(2025, 0, 14) }],
       adTab: 'admins', aq: '', aSev: 'tous', audit: AUDIT0.map((a, i) => ({ id: 'a' + i, who: a[0], a: a[1], tg: a[2], sev: a[3], t: back(a[4]) })),
       rTab: 'matrice', rView: 'user', rUser: 'u7', rProj: 'RISE', ov: { 'u7|RISE|pil': 3, 'u7|RISE|pil.risk': 1 }, pend: {}, menu: null, exp: { pil: true }, rProf: 'pmo', profs: PROFS.map(p => ({ ...p, lv: { ...p.lv } })),
-      provs: PROV0.map(p => ({ ...p, t: back(p.ago) })), models: MODELS0.map(m => ({ ...m })), pvF: 'tous', mSort: { k: 'n', d: 1 }, navC: null,
-      asg, draft: JSON.parse(JSON.stringify(asg)), usage: genUsage(MODELS0, asg), cPer: 30, cDim: 'pv', cHov: null,
+      provs: PROV0.map(p => ({ ...p, t: back(p.ago) })), models: MODELS0.map(m => ({ ...m })), navC: null,
+      asg, usage: genUsage(MODELS0, asg), cPer: 30, cDim: 'pv', cHov: null,
       th: [{ id: 'all', n: 'Budget mensuel global', lim: 1200, warn: 80, on: true }, { id: 'insights', n: 'Analyse des données et insights', lim: 800, warn: 80, on: true }, { id: 'docs', n: 'Documents', lim: 400, warn: 80, on: true }],
       sPj: 'RISE', snaps, sSel: ['r9', 'r10'], sched: { on: true, fq: 'Hebdomadaire', day: 'vendredi', hour: '04:00', keep: '12 mois' }, cap: null, sFilt: 'tous',
       mods: [{ id: 'bud', n: 'Budget', d: 'Budget prévisionnel, consommé, reste à faire et arbitrages.', sc: 'projet', pj: { RISE: new Date(2026, 2, 12), ATLAS: new Date(2026, 5, 2) }, g: null },
@@ -1120,6 +1037,8 @@ class Component extends DCLogic {
   goAsg(then) {
     this.go('providers', () => { then && then(); setTimeout(() => { try { document.getElementById('ia-affectation')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { } }, 80); });
   }
+  /** « Remplacer la clé » d'un fournisseur : page Fournisseurs et modèles, fenêtre de remplacement de l'écran (prop `focusKey`). */
+  goKey(id) { this.go('providers', () => this.setState({ fpKey: { id, at: Date.now() } })); }
   sbSignals(badge) {
     const S = this.state, st = FNS.map(f => this.fnState(f.id, S.asg[f.id]).tone), anyDown = st.includes('err'), anyFallback = st.includes('warn');
     return {
@@ -1132,23 +1051,6 @@ class Component extends DCLogic {
   navMode() { const S = this.state; if (S.vw < 760) return 'mob'; if (S.navC === true) return 'rail'; if (S.navC === false) return 'full'; return S.vw >= 1180 ? 'full' : 'rail'; }
   navSave(p) { try { const cur = JSON.parse(localStorage.getItem('rise-console-nav') || '{}'); localStorage.setItem('rise-console-nav', JSON.stringify({ ...cur, ...p })); } catch (e) { /* stockage indisponible */ } }
   toggleNav() { const c = this.navMode() === 'full'; this.setState({ navC: c }); this.navSave({ navC: c }); }
-  // ——— Liste des modèles : tri par colonne (clic : croissant, puis décroissant)
-  sortModels(list) {
-    const S = this.state, { k, d } = S.mSort, pvN = m => ((S.provs.find(p => p.id === m.pv) || {}).n || m.pv || '').toLowerCase();
-    const inP = m => m.unit === 'REQUESTS' ? m.per1k : m.pin, use = m => this.usedBy(m.id);
-    const key = { n: m => m.n.toLowerCase(), pv: pvN, in: inP, out: m => m.unit === 'REQUESTS' ? null : m.pout, use: m => use(m).length ? use(m).length * 100 - (use(m)[0].role === 'principal' ? 0 : 1) : null, act: m => m.act ? 1 : 0 }[k];
-    return list.slice().sort((a, b) => { const x = key(a), y = key(b); if (x == null && y == null) return a.n.localeCompare(b.n, 'fr'); if (x == null) return 1; if (y == null) return -1; const c = typeof x === 'string' ? x.localeCompare(y, 'fr') : x - y; return c ? c * d : a.n.localeCompare(b.n, 'fr'); });
-  }
-  sortCols() {
-    const S = this.state, { k, d } = S.mSort;
-    return [['n', 'Modèle', 'left'], ['pv', 'Fournisseur', 'left'], ['in', 'Entrée', 'right'], ['out', 'Sortie', 'right'], ['use', 'Utilisé par', 'left'], ['act', 'Actif', 'left']].map(([id, l, al]) => {
-      const on = k === id;
-      return { l, ic: on ? (d === 1 ? '▲' : '▼') : '↕', aria: on ? (d === 1 ? 'ascending' : 'descending') : 'none', tip: 'Trier par ' + l.toLowerCase(),
-        pick: () => this.setState(s => ({ mSort: { k: id, d: s.mSort.k === id ? -s.mSort.d : 1 } })),
-        st: 'display:flex;align-items:center;gap:5px;justify-content:' + (al === 'right' ? 'flex-end' : 'flex-start') + ';border:0;background:transparent;padding:0;font:inherit;letter-spacing:inherit;text-transform:inherit;font-weight:700;cursor:pointer;white-space:nowrap;color:' + (on ? '#10233a' : '#5c7280'),
-        icSt: 'font-size:9px;letter-spacing:0;color:' + (on ? '#1d8f86' : '#b3c2c7') };
-    });
-  }
   toggleJev() {
     const S = this.state; if (S.jev) return this.setState({ jev: false });
     const add = !S.jm.length ? this.jGreet(S.sec) : S.jCtx !== S.sec ? [{ t: 'ctx', text: META[S.sec][1] }, ...this.jGreet(S.sec)] : [];
@@ -1260,71 +1162,6 @@ class Component extends DCLogic {
   }
   saveProf() { const f = this.state.form; if (!f.n || f.n.trim().length < 2) return this.setState({ fe: { n: 'Donnez un nom au profil.' } }); const base = this.state.profs.find(p => p.id === f.base) || this.state.profs[4]; const id = 'pf' + Date.now(); const lv = {}; MODS.forEach(m => lv[m.id] = this.profLv(base.id, m.id)); this.setState(s => ({ profs: [...s.profs, { id, n: f.n.trim(), d: (f.d || '').trim() || 'Profil personnalisé.', lv }], rProf: id, dlg: null, form: {} })); this.log('Création d’un profil type', f.n.trim() + ' (à partir de ' + base.n + ')', 'sensible'); this.toast('Profil « ' + f.n.trim() + ' » créé'); }
 
-  // ——— Fournisseurs
-  setProv(id, patch) { this.setState(s => ({ provs: s.provs.map(p => p.id === id ? { ...p, ...patch } : p) })); }
-  testKey(id, silent) {
-    this.setProv(id, { testing: true });
-    setTimeout(() => { const p = this.state.provs.find(x => x.id === id); if (!p) return; const ok = !p.bad, lat = ok ? Math.round(240 + Math.random() * 380) : null;
-      this.setProv(id, { testing: false, st: ok ? 'ok' : 'err', lat, t: nowD(), err: ok ? '' : (p.err || '401 · Clé refusée par le fournisseur.') });
-      if (!ok) this.log('Échec du test de clé API', p.n, 'critique');
-      if (!silent) this.toast(ok ? p.n + ' répond en ' + lat + ' ms' : p.n + ' refuse la clé : ' + (p.err || '401').split('.')[0], ok ? 'ok' : 'err'); }, 900 + Math.random() * 700);
-  }
-  testAll() { const ps = this.state.provs; ps.forEach(p => this.testKey(p.id, true)); setTimeout(() => { const ok = this.state.provs.filter(p => p.st === 'ok').length; this.toast(ok + ' clé' + (ok > 1 ? 's' : '') + ' valide' + (ok > 1 ? 's' : '') + ' sur ' + ps.length, ok === ps.length ? 'ok' : 'err'); }, 1750); }
-  openKey(id) { this.setState({ dlg: { type: 'key', id }, form: { k: '' }, fe: {} }); }
-  saveKey() { const S = this.state, k = (S.form.k || '').trim(), id = S.dlg.id; if (k.length < 20) return this.setState({ fe: { k: 'La clé semble incomplète (20 caractères minimum).' } }); const p = S.provs.find(x => x.id === id); this.setProv(id, { l4: k.slice(-4), pre: k.startsWith('sk-ant-') ? 'sk-ant-' : k.startsWith('sk-proj-') ? 'sk-proj-' : k.startsWith('AIza') ? 'AIza' : k.startsWith('sk-') ? 'sk-' : '', bad: false, st: 'new', err: '' }); this.setState({ dlg: null, form: {} }); this.log('Rotation de clé API', p.n, 'critique'); this.toast('Nouvelle clé ' + p.n + ' enregistrée · test en cours'); setTimeout(() => this.testKey(id), 200); }
-  saveProv() { const f = this.state.form, fe = {}; if (!f.n || f.n.trim().length < 2) fe.n = 'Indiquez le nom du fournisseur.'; if ((f.k || '').trim().length < 20) fe.k = 'La clé semble incomplète (20 caractères minimum).'; if (Object.keys(fe).length) return this.setState({ fe }); const id = 'pv' + Date.now(), k = f.k.trim(); this.setState(s => ({ provs: [...s.provs, { id, n: f.n.trim(), pre: '', l4: k.slice(-4), st: 'new', lat: null, t: nowD() }], dlg: null, form: {} })); this.log('Ajout d’un fournisseur LLM', f.n.trim(), 'critique'); setTimeout(() => this.testKey(id), 200); }
-  // API : fiche modèle (Fiche modele.dc.html). S.fm = { model } ; model null = ajout.
-  openModel(m) { this.setState({ fm: { model: m ? this.iaModel(m) : null } }); }
-  openModelId(id) { const m = this.state.models.find(x => x.id === id); if (m) this.openModel(m); }
-  // Enregistrement local (démonstration) ; branché sur POST / PATCH /api/admin/models par admin-api.js. Renvoie true si la fiche peut se fermer.
-  saveIaModel(im) { const m = this.fromIa(im); if (!im.id) { m.id = 'm' + Date.now(); this.setState(s => ({ models: [...s.models, m], fm: null })); this.log('Ajout d’un modèle', m.n, 'sensible'); this.toast('Modèle ajouté'); } else { this.setState(s => ({ models: s.models.map(x => x.id === m.id ? { ...x, ...m, act: x.act } : x), fm: null })); this.toast('Modèle mis à jour'); } return true; }
-  // Adaptateurs Console ⇄ écrans IA (ia-data.js) : catégories en minuscules, tarif { unit, in, out, per1k }.
-  iaModel(m) { const c = m.c || 'LLM', rq = m.unit === 'REQUESTS'; return { id: m.id, pv: m.pv, n: m.n, d: m.d || '', cat: c.toLowerCase(), rel: m.rel || '', maxOut: c === 'LLM' ? m.maxOut || null : undefined, apiId: m.apiId || '', ctx: m.ctx || null, dims: c === 'EMBEDDING' ? m.dims || [] : undefined, dim: c === 'EMBEDDING' ? m.dim || null : undefined, price: rq ? { unit: 'requests', per1k: m.per1k } : c === 'LLM' ? { unit: 'tokens', in: m.pin, out: m.pout } : { unit: 'tokens', in: m.pin }, act: m.act }; }
-  fromIa(im) { const p = im.price || {}, rq = p.unit === 'requests'; return { id: im.id || null, pv: im.pv, n: im.n, d: im.d || '', c: String(im.cat || 'llm').toUpperCase(), rel: im.rel || '', maxOut: im.maxOut || null, apiId: im.apiId || '', ctx: im.ctx || null, dims: im.dims || [], dim: im.dim || null, unit: rq ? 'REQUESTS' : 'TOKENS', pin: rq ? null : p.in ?? null, pout: p.out ?? null, per1k: rq ? p.per1k : null, act: im.act !== false }; }
-  iaVals() {
-    const S = this.state, LOGO = { anthropic: './assets/logos/lh-anthropic.svg', openrouter: './assets/logos/lh-openrouter.webp', openai: './assets/logos/lh-openai.svg', mistral: './assets/logos/lh-mistral-color.svg', google: './assets/logos/lh-gemini-color.svg' }, v = this.vol30();
-    const provs = S.provs.map(p => ({ id: p.id, n: p.n, st: p.st === 'ok' ? 'ok' : 'err', lat: p.lat, err: p.st === 'ok' ? null : p.err || (p.st === 'new' ? 'Clé jamais testée' : 'Clé invalide'), logo: LOGO[p.id], mono: p.id === 'anthropic' || p.id === 'openai', ini: p.n.slice(0, 2) }));
-    const fns = FNS.map(f => { const x = v[f.id] || { tin: 0, tout: 0, req: 0 }; const need = (S.aiNeed || {})[f.id] ?? f.needOut; return { id: f.id, n: f.n, sh: f.sh, d: f.d, cat: f.cat.toLowerCase(), group: f.group, step: f.step, isNew: !!f.isNew, needOut: need || undefined, scope: f.scope || 'cockpit', est: f.est, vol: f.est && !this.aiHistory(f.id, x) ? null : f.cat === 'RERANKING' ? { req: x.req } : f.cat === 'EMBEDDING' ? { in: x.tin / 1e6 } : { in: x.tin / 1e6, out: x.tout / 1e6 } }; });
-    return { provs, models: S.models.map(m => this.iaModel(m)), fns, groups: FN_GROUPS, asg: S.asg,
-      openModel: id => this.openModelId(id), openProv: id => this.openFiche('prov', id), testKey: id => this.testKey(id), replKey: id => this.openKey(id), addFallback: () => this.goAsg(),
-      saveAsg: d => { this.setState({ draft: JSON.parse(JSON.stringify(d)) }); this.saveAsg(); } };
-  }
-  // Fonction estimée (guidage) : historique réel sur 30 jours, selon le serveur (`vol` non nul) ou, en démonstration, un volume non nul.
-  aiHistory(id, x) { const H = this.state.aiHist; return H ? !!H[id] : !!(x && (x.tin || x.tout || x.req)); }
-  // Ancienneté (date de sortie) : badge « À surveiller » (12 à 24 mois) ou « Ancien » (> 24 mois).
-  ageOf(m) { const a = m.rel && window.RISE_IA ? window.RISE_IA.age(m.rel) : null, show = !!a && a.tier !== 'recent'; return { ageOn: show, ageL: show ? a.tierL + ' · ' + a.l : '', ageT: m.rel ? 'Sorti le ' + m.rel.split('-').reverse().join('/') : '', ageSt: 'flex:none;display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:6px;font-size:10.5px;font-weight:700;' + (a && a.tier === 'old' ? 'background:#fbe4e1;color:#a2352a' : 'background:#fdf1dc;color:#8a5a12') }; }
-  usedBy(mid) { const A = this.state.asg, r = []; FNS.forEach(f => { if (A[f.id].p === mid) r.push({ fn: f, role: 'principal' }); if (A[f.id].f === mid) r.push({ fn: f, role: 'secours' }); }); return r; }
-  toggleModel(m) {
-    if (!m.act) { this.setState(s => ({ models: s.models.map(x => x.id === m.id ? { ...x, act: true } : x) })); this.log('Activation d’un modèle', m.n, 'sensible'); this.toast(m.n + ' est disponible pour l’affectation'); return; }
-    const use = this.usedBy(m.id);
-    this.ask({ tone: use.length ? 'danger' : 'warn', title: 'Désactiver ' + m.n + ' ?', body: use.length ? 'Ce modèle est affecté à des fonctions du Cockpit. Elles basculeront automatiquement sur leur modèle de secours, s’il existe.' : 'Le modèle ne pourra plus être choisi pour une fonction.', items: use.map(u => ({ l: u.fn.sh, a: 'Modèle ' + u.role, b: u.role === 'principal' ? 'Secours activé' : 'Sans secours' })), cta: 'Désactiver le modèle',
-      ok: () => { this.setState(s => ({ models: s.models.map(x => x.id === m.id ? { ...x, act: false } : x) })); this.log('Désactivation d’un modèle', m.n, 'sensible'); this.toast(m.n + ' désactivé'); } });
-  }
-  openModelOld(m) { this.setState({ dlg: { type: 'model', id: m.id }, form: { n: m.n, d: m.d, c: m.c || 'LLM', pin: String(m.pin).replace('.', ','), pout: String(m.pout).replace('.', ',') }, fe: {} }); }
-  // API : « Ajouter un modèle » (POST /api/admin/models, admin-api.js) ; catégorie LLM par défaut.
-  newModel() { this.openModel(null); }
-  // Catégories d'un modèle : seuls les LLM servent les fonctions du Cockpit et les notifications.
-  catOpts(cur, pick) { return [['LLM', 'LLM', 'Génère du texte'], ['EMBEDDING', 'Embedding', 'Vectorise des textes'], ['RERANKING', 'Reranking', 'Reclasse des résultats']].map(([k, l, d]) => { const on = (cur || 'LLM') === k; return { l, d, on, pick: () => pick(k), st: `display:flex;flex-direction:column;gap:2px;text-align:left;padding:9px 11px;border-radius:10px;cursor:pointer;font:inherit;color:#10233a;border:1px solid ${on ? '#10233a' : '#dbe4e2'};background:${on ? '#f5f8f7' : '#fff'};box-shadow:${on ? 'inset 0 0 0 1px #10233a' : 'none'}` }; }); }
-  delModel(id) { const m = this.state.models.find(x => x.id === id); if (!m) return; if (this.usedBy(id).length) return this.toast(m.n + ' est affecté : changez d’abord l’affectation', 'err'); this.ask({ tone: 'warn', title: 'Supprimer « ' + m.n + ' » ?', body: 'Le modèle disparaît de la liste et de l’affectation. S’il a déjà servi, désactivez-le plutôt : son historique de consommation reste lisible.', cta: 'Supprimer', ok: () => { this.setState(s => ({ models: s.models.filter(x => x.id !== id), fiche: null, fm: null })); this.log('Suppression d’un modèle', m.n, 'sensible'); this.toast('Modèle supprimé'); } }); }
-  saveModel() { const S = this.state, f = S.form, fe = {}, num = v => parseFloat(String(v).replace(',', '.')); if (!f.n || !f.n.trim()) fe.n = 'Nom requis.'; if (!(num(f.pin) >= 0)) fe.pin = 'Montant invalide.'; if (!(num(f.pout) >= 0)) fe.pout = 'Montant invalide.'; if (!S.dlg.id && !f.pv) fe.pv = 'Choisissez un fournisseur.'; if (Object.keys(fe).length) return this.setState({ fe }); if (!S.dlg.id) { const id = 'm' + Date.now(); this.setState(s => ({ models: [...s.models, { id, pv: f.pv, n: f.n.trim(), d: f.d || '', c: f.c || 'LLM', pin: num(f.pin), pout: num(f.pout), act: true }], dlg: null, form: {} })); this.log('Ajout d’un modèle', f.n.trim(), 'sensible'); return this.toast('Modèle ajouté'); } const m = S.models.find(x => x.id === S.dlg.id); this.setState(s => ({ models: s.models.map(x => x.id === m.id ? { ...x, n: f.n.trim(), d: f.d, c: f.c || 'LLM', pin: num(f.pin), pout: num(f.pout) } : x), dlg: null, form: {} })); if (num(f.pin) !== m.pin || num(f.pout) !== m.pout) this.log('Modification du tarif d’un modèle', m.n + ' · ' + eur(num(f.pin), 2) + ' / ' + eur(num(f.pout), 2), 'sensible'); this.toast('Modèle mis à jour'); }
-
-  // ——— Affectation
-  // API : volume réel des 30 derniers jours par fonction (GET /functions, admin-api.js) ; démonstration : tiré de la consommation générée.
-  vol30() { if (this._v30) return this._v30; if (this.state.aiVol) return this._v30 = this.state.aiVol; const v = {}; FNS.forEach(f => v[f.id] = { tin: 0, tout: 0, req: 0 }); this.state.usage.forEach(r => { const f = r.d >= 60 && (CONSO.find(c => c.id === r.fn) || {}).fn; if (f) { v[f].tin += r.tin; v[f].tout += r.tout; } }); v.doc_vec.tin = v.doc_syn.tin; v.doc_rrk.req = Math.round(v.doc_syn.tin / 57000); return this._v30 = v; }
-  // Coût mensuel estimé : tokens × € / M, ou requêtes / 1 000 × € / 1 000 requêtes (spécification IA § 3).
-  est(fid, mid) { const m = this.state.models.find(x => x.id === mid); if (!m) return 0; const v = this.vol30()[fid] || { tin: 0, tout: 0, req: 0 }; if (m.unit === 'REQUESTS') return (v.req || 0) / 1000 * (m.per1k || 0); return (v.tin * (m.pin || 0) + v.tout * (m.pout || 0)) / 1e6; }
-  saveAsg() {
-    const S = this.state, M = id => (S.models.find(m => m.id === id) || { n: 'Aucun' }).n, items = [];
-    const dimOf = a => { const m = S.models.find(x => x.id === a.p); return m && m.c === 'EMBEDDING' ? (+a.d || m.dim || null) : null; }, dl = v => v ? v + ' dimensions' : '—';
-    let reindex = false;
-    FNS.forEach(f => { const a = S.asg[f.id] || {}, b = S.draft[f.id] || {}; if ((a.p || '') !== (b.p || '')) items.push({ l: fnLabel(f) + ' · principal', a: M(a.p), b: M(b.p) }); if ((a.f || '') !== (b.f || '')) items.push({ l: fnLabel(f) + ' · secours', a: M(a.f), b: M(b.f) });
-      if (f.cat === 'EMBEDDING' && dimOf(a) !== dimOf(b)) items.push({ l: fnLabel(f) + ' · dimensions', a: dl(dimOf(a)), b: dl(dimOf(b)) });
-      if (f.cat === 'EMBEDDING' && a.p && (a.p !== b.p || dimOf(a) !== dimOf(b))) reindex = true; });
-    const tot = x => FNS.reduce((s, f) => s + this.est(f.id, (x[f.id] || {}).p), 0);
-    this.ask({ tone: 'warn', title: 'Changer l’affectation des modèles ?', body: 'Les nouveaux modèles répondent dès la prochaine requête. Estimation mensuelle : ' + eur(tot(S.asg)) + ' → ' + eur(tot(S.draft)) + '.' + (reindex ? '\n\n⚠️ ' + REINDEX_WARNING : ''), items, cta: 'Enregistrer l’affectation',
-      ok: () => { const d = JSON.parse(JSON.stringify(S.draft)); this.setState({ asg: d }); items.forEach(i => this.log('Changement d’affectation de modèle', i.l + ' · ' + i.a + ' → ' + i.b, 'sensible')); this.toast('Affectation enregistrée'); } });
-  }
-
   // ——— Consommation
   exportCsv() {
     const S = this.state, from = 90 - S.cPer, M = Object.fromEntries(S.models.map(m => [m.id, m.n])), PV = Object.fromEntries(S.provs.map(p => [p.id, p.n])), F = Object.fromEntries(FNS.map(f => [f.id, f.sh]));
@@ -1383,7 +1220,6 @@ class Component extends DCLogic {
     });
   }
   sw(on, fn, label) { return { on, label, toggle: fn, st: `width:36px;height:20px;border-radius:999px;border:0;padding:0;position:relative;cursor:pointer;flex:none;transition:background .2s;background:${on ? '#1d8f86' : '#c3d0cd'}`, knob: `position:absolute;top:2px;left:${on ? 18 : 2}px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(16,35,58,.25);transition:left .22s cubic-bezier(.2,.7,.2,1)` }; }
-  provLabel(p) { return p.testing ? ['neu', 'Test en cours'] : p.st === 'ok' ? ['ok', 'Opérationnelle'] : p.st === 'err' ? ['err', 'Clé invalide'] : ['neu', 'Non testée']; }
   fnState(fid, a) {
     const S = this.state, M = id => S.models.find(m => m.id === id), P = id => S.provs.find(p => p.id === id), cat = (FNS.find(f => f.id === fid) || { cat: 'LLM' }).cat;
     a = a || {};
@@ -1396,7 +1232,7 @@ class Component extends DCLogic {
   attention() {
     const S = this.state, out = [], th = this.thVals();
     S.provs.filter(p => p.st === 'err').forEach(p => { const hit = FNS.filter(f => { const m = S.models.find(x => x.id === (S.asg[f.id] || {}).p); return m && m.pv === p.id; }); const fb = hit.map(f => (S.models.find(m => m.id === S.asg[f.id].f) || {}).n).filter(Boolean);
-      out.push({ tone: 'err', t: 'Clé API ' + p.n + ' invalide depuis ' + ago(p.t).replace('il y a ', ''), d: hit.length ? '« ' + hit.map(f => f.group ? fnLabel(f) : f.n).join(', ') + ' » tourne sur son modèle de secours' + (fb.length ? ' (' + fb.join(', ') + ')' : '') + '.' : (p.err || ''), cta: 'Remplacer la clé', go: () => this.go('providers', () => this.openKey(p.id)) }); });
+      out.push({ tone: 'err', t: 'Clé API ' + p.n + ' invalide depuis ' + ago(p.t).replace('il y a ', ''), d: hit.length ? '« ' + hit.map(f => f.group ? fnLabel(f) : f.n).join(', ') + ' » tourne sur son modèle de secours' + (fb.length ? ' (' + fb.join(', ') + ')' : '') + '.' : (p.err || ''), cta: 'Remplacer la clé', go: () => this.goKey(p.id) }); });
     th.filter(t => t.on && t.pct >= t.warn).forEach(t => out.push({ tone: t.pct >= 100 ? 'err' : 'warn', t: (t.id === 'all' ? 'Budget IA' : t.n) + ' à ' + t.pct + ' % du plafond mensuel', d: t.spL + ' sur ' + t.limL + (t.over ? ' · au rythme actuel, ' + t.projL + ' fin ' + MO_L[nowD().getMonth()] + '.' : '.'), cta: 'Voir la consommation', go: () => this.go('conso') }));
     const stale = S.users.filter(u => u.s === 'invité' && u.inv > 7);
     if (stale.length) out.push({ tone: 'warn', t: stale.length + ' invitation' + (stale.length > 1 ? 's' : '') + ' sans réponse depuis plus de 7 jours', d: stale.map(u => u.n).join(', ') + '.', cta: 'Voir les invités', go: () => this.go('users', () => this.setState({ uSt: 'invité', uq: '', uPf: 'tous', uPj: 'tous' })) });
@@ -1485,42 +1321,6 @@ class Component extends DCLogic {
       edit: () => this.openUser(u), hasA: !!a, aL: a ? a[0] : '', a: a ? a[1] : null, aSt: 'height:38px;padding:0 14px;border-radius:10px;border:0;font:inherit;font-weight:700;font-size:12.5px;cursor:pointer;white-space:nowrap;' + (a && a[2] ? 'background:#fbe4e1;color:#a2352a' : 'background:#e6f4f2;color:#146b64'),
       log: () => this.setState({ ucId: null }, () => this.go('admins', () => this.setState({ adTab: 'audit', aq: u.n, aSev: 'tous' }))) };
   }
-  openFiche(k, id) { if (k === 'model') return this.openModelId(id); const m = k === 'model' ? this.state.models.find(x => x.id === id) : null; this.setState({ fiche: { k, id }, fF: m ? { n: m.n, d: m.d || '', c: m.c || 'LLM', pin: String(m.pin).replace('.', ','), pout: String(m.pout).replace('.', ',') } : {}, fFe: {} }); }
-  saveFiche() { const S = this.state, f = S.fF, fe = {}, num = v => parseFloat(String(v).replace(',', '.')), m = S.models.find(x => x.id === S.fiche.id);
-    if (!f.n || !f.n.trim()) fe.n = 'Nom requis.'; if (!(num(f.pin) >= 0)) fe.pin = 'Montant invalide.'; if (!(num(f.pout) >= 0)) fe.pout = 'Montant invalide.';
-    if (Object.keys(fe).length) return this.setState({ fFe: fe });
-    this.setState(s => ({ models: s.models.map(x => x.id === m.id ? { ...x, n: f.n.trim(), d: f.d, c: f.c || 'LLM', pin: num(f.pin), pout: num(f.pout) } : x), fFe: {} }));
-    if (num(f.pin) !== m.pin || num(f.pout) !== m.pout) this.log('Modification du tarif d’un modèle', m.n + ' · ' + eur(num(f.pin), 2) + ' / ' + eur(num(f.pout), 2), 'sensible'); else this.log('Modification d’un modèle', f.n.trim(), 'info');
-    this.toast('Modèle enregistré'); }
-  ficheVals() {
-    const S = this.state, F = S.fiche; if (!F || S.sec !== 'providers') return { on: false };
-    const LOGO = { anthropic: './assets/logos/lh-anthropic.svg', openrouter: './assets/logos/lh-openrouter.webp', openai: './assets/logos/lh-openai.svg', mistral: './assets/logos/lh-mistral-color.svg', google: './assets/logos/lh-gemini-color.svg' };
-    const P = { ok: ['#e6f4f2', '#146b64', '#1d8f86'], err: ['#fbe4e1', '#a2352a', '#c2473b'], neu: ['#eef2f1', '#43586a', '#8a9aa6'] };
-    const pillOf = t => 'align-self:flex-start;display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;font-size:11.5px;font-weight:700;white-space:nowrap;background:' + P[t][0] + ';color:' + P[t][1];
-    const dotOf = t => 'width:7px;height:7px;border-radius:50%;background:' + P[t][2];
-    const logoSt = id => 'display:block;width:26px;height:26px;background:' + (LOGO[id] ? 'url("' + LOGO[id] + '") center/contain no-repeat' : '#10233a;border-radius:6px');
-    const close = () => this.setState({ fiche: null }), mById = id => S.models.find(m => m.id === id), okPv = id => { const p = S.provs.find(x => x.id === id); return !!p && p.st === 'ok'; };
-    if (F.k === 'prov') { const p = S.provs.find(x => x.id === F.id); if (!p) return { on: false }; const [t, l] = this.provLabel(p), ms = S.models.filter(m => m.pv === p.id), act = ms.filter(m => m.act).length;
-      const hit = FNS.filter(f => (mById(S.asg[f.id].p) || {}).pv === p.id);
-      return { on: true, close, isProv: true, isModel: false, kind: 'FOURNISSEUR', title: p.n, pvN: p.n, logoSt: logoSt(p.id), pill: pillOf(t), dot: dotOf(t), stL: l, isErr: p.st === 'err' && !p.testing, err: p.err || '',
-        impact: hit.length ? '« ' + hit.map(f => f.sh).join(', ') + ' » ' + (hit.length > 1 ? 'tournent' : 'tourne') + ' sur ' + (hit.length > 1 ? 'leur' : 'son') + ' modèle de secours.' : 'Aucune fonction n’utilise ce fournisseur en principal.',
-        mask: (p.pre || '') + '••••••••••••' + p.l4, latL: p.lat ? p.lat + ' ms' : '—', when: p.testing ? 'En cours…' : p.st === 'new' ? 'Jamais testée' : ago(p.t), testing: !!p.testing, testL: p.testing ? 'Test en cours…' : 'Tester la clé', test: () => this.testKey(p.id), repl: () => this.openKey(p.id),
-        replSt: 'height:36px;padding:0 14px;border-radius:10px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap;' + (p.st === 'err' ? 'border:0;background:#c2473b;color:#fff' : 'border:1px solid #d3dedb;background:#fff;color:#10233a'),
-        modN: act + ' actif' + (act > 1 ? 's' : '') + ' sur ' + ms.length,
-        models: ms.map(m => { const u = this.usedBy(m.id); return { n: m.n, meta: eur(m.pin, 2) + ' / ' + eur(m.pout, 2) + (u.length ? ' · ' + u.map(x => x.fn.sh + ' (' + x.role + ')').join(', ') : ''), open: () => this.openFiche('model', m.id), sw: this.sw(m.act, () => this.toggleModel(m), (m.act ? 'Désactiver ' : 'Activer ') + m.n) }; }) };
-    }
-    const m = mById(F.id); if (!m) return { on: false }; const p = S.provs.find(x => x.id === m.pv) || { n: m.pv }, f = S.fF || {}, fe = S.fFe || {}, u = this.usedBy(m.id), [pt, pl] = p.st ? this.provLabel(p) : ['neu', '—'];
-    const num = v => parseFloat(String(v).replace(',', '.')), clean = f.n === m.n && (f.d || '') === (m.d || '') && (f.c || 'LLM') === (m.c || 'LLM') && num(f.pin) === m.pin && num(f.pout) === m.pout;
-    const live = m.act && okPv(m.pv), tot = u.reduce((a, x) => a + this.est(x.fn.id, m.id), 0);
-    const set = k => e => this.setState({ fF: { ...S.fF, [k]: e.target.value } });
-    return { on: true, close, isProv: false, isModel: true, kind: 'MODÈLE · ' + p.n.toUpperCase(), title: m.n, pvN: p.n, logoSt: logoSt(m.pv), pill: pillOf(!m.act ? 'neu' : live ? 'ok' : 'err'), dot: dotOf(!m.act ? 'neu' : live ? 'ok' : 'err'), stL: !m.act ? 'Inactif' : live ? 'Disponible' : 'Indisponible · clé ' + p.n + ' invalide',
-      sw: this.sw(m.act, () => this.toggleModel(m), (m.act ? 'Désactiver ' : 'Activer ') + m.n), actHelp: m.act ? 'Proposé dans l’affectation des modèles.' : 'Masqué dans l’affectation des modèles.',
-      f, fe, set: { n: set('n'), d: set('d'), pin: set('pin'), pout: set('pout') }, cOpts: this.catOpts(f.c, k => this.setState(s => ({ fF: { ...s.fF, c: k } }))),
-      uses: u.map(x => ({ n: x.fn.sh, role: x.role === 'principal' ? 'Principal' : 'Secours', c: '≈ ' + eur(this.est(x.fn.id, m.id)) + ' / mois', st: x.role === 'principal' ? 'height:22px;padding:0 8px;border-radius:6px;font-size:11px;font-weight:700;background:#10233a;color:#fff;display:inline-flex;align-items:center' : 'height:22px;padding:0 8px;border-radius:6px;font-size:11px;font-weight:700;box-shadow:inset 0 0 0 1px #cfdad7;color:#43586a;display:inline-flex;align-items:center' })),
-      noUse: !u.length, costL: u.length ? 'coût estimé si 100 % du volume : ' + eur(tot) + ' / mois' : '', goAsg: () => this.setState({ fiche: null }, () => this.goAsg()), openPv: () => this.openFiche('prov', m.pv), pvPill: pillOf(pt).replace('align-self:flex-start;', ''), pvStL: pl,
-      clean, dirtyL: clean ? 'Aucune modification' : 'Modifications non enregistrées', save: () => this.saveFiche(),
-      saveSt: 'height:38px;padding:0 18px;border:0;border-radius:10px;background:#10233a;color:#fff;font:inherit;font-weight:700;cursor:pointer;opacity:' + (clean ? .35 : 1) };
-  }
   renderVals() {
     const S = this.state, mode = this.navMode(), is = k => S.sec === k;
     this._v30 = null;
@@ -1548,7 +1348,7 @@ class Component extends DCLogic {
       isUsers: is('users') && !S.loading, isAdmins: is('admins') && !S.loading, isRights: is('rights') && !S.loading, isProv: is('providers') && !S.loading, isConso: is('conso') && !S.loading, isInit: is('init') && !S.loading, isLib: is('library') && !S.loading, isSnaps: is('snaps') && !S.loading, isNotifs: is('notifs') && !S.loading, isMods: is('modules') && !S.loading,
       isApis: is('apis') && !S.loading, isJournal: is('journal') && !S.loading, isLatency: is('latency') && !S.loading,
       // Fournisseurs et modèles : données brutes de l'API et actions, branchées par admin-api.js (démonstration sans elles).
-      fmData: S.fpData || null, fmApi: this.fmApi || null,
+      fmData: S.fpData || null, fmApi: this.fmApi || null, fpKey: S.fpKey || null,
       // Temps de traitement : rappels branchés par admin-api.js (absents en démonstration : l'écran affiche alors ses données fictives).
       latFetch: this.latFetch || null, latSeries: this.latSeries || null, isSmtp: is('smtp') && !S.loading, isGuide: is('guide') && !S.loading,
       // Serveur d’envoi SMTP : réglages du serveur (admin-api.js, jamais le mot de passe) ; sans eux, démonstration du composant.
@@ -1675,21 +1475,11 @@ class Component extends DCLogic {
     const mn = S.menu;
     vals.mn = { on: !!mn, st: mn ? `position:fixed;left:${mn.x}px;top:${mn.y}px;z-index:90;width:236px;background:#fff;border-radius:14px;padding:6px;box-shadow:0 24px 48px -16px rgba(16,35,58,.35),0 0 0 1px rgba(16,35,58,.08);animation:pop .16s cubic-bezier(.2,.7,.2,1) both` : '', label: mn ? mn.label : '', note: mn ? mn.note : '',
       opts: mn ? LV.map((o, k) => { const cur = (S.pend[mn.key] ? S.pend[mn.key].v : mn.cur) === k; return { l: o.l, s: o.s, cur, st: `display:flex;align-items:center;gap:10px;width:100%;height:34px;padding:0 10px;border:0;border-radius:8px;background:${cur ? '#eef3f2' : 'transparent'};font-size:12.5px;font-weight:${cur ? 700 : 500};color:${k === 4 ? '#a8372c' : '#10233a'};cursor:pointer;text-align:left`, pick: () => this.setLv(mn.key, k, mn.cur, mn.label) }; }) : [] };
-    vals.consoMtd = mtd.all; vals.consoGoogleOk = (S.provs.find(p => p.id === 'google') || {}).st === 'ok'; vals.consoFixKey = () => this.go('providers', () => this.openKey('google'));
+    vals.consoMtd = mtd.all; vals.consoGoogleOk = (S.provs.find(p => p.id === 'google') || {}).st === 'ok'; vals.consoFixKey = () => this.goKey('google');
     vals.libImported = S.libImp || []; vals.libCodes = [...PROJ, ...(S.libImp || []).map(p => p.code)]; vals.openLib = () => this.go('library'); vals.openInit = () => this.go('init');
     vals.onImported = p => { this.setState(s => ({ libImp: [p, ...(s.libImp || [])] })); this.log('Initialisation d’un projet', p.code + ' · ' + p.file, 'sensible'); this.toast(p.code + ' créé'); };
     vals.dlW = S.dlg && S.dlg.type === 'user' ? '680px' : '540px';
     vals.du = this.uDlgVals();
-    vals.fc = this.ficheVals();
-    // Providers
-    if (is('providers')) {
-      const pvs = S.provs.map(p => { const [t, l] = this.provLabel(p), nm = S.models.filter(m => m.pv === p.id).length; return { ...p, mask: (p.pre || '') + '••••••••••••' + p.l4, pill: pill(t), dot: dot(t), stL: l, testing: !!p.testing, notTesting: !p.testing, isErr: p.st === 'err' && !p.testing, latL: p.lat ? p.lat + ' ms' : '—', latSt: `font-size:22px;font-weight:800;letter-spacing:-.02em;color:${!p.lat ? '#8a9aa6' : p.lat > 800 ? '#8a5a12' : '#10233a'}`, when: p.testing ? 'Test en cours…' : p.st === 'new' ? 'Jamais testée' : 'Testée ' + ago(p.t), nm: nm + ' modèle' + (nm > 1 ? 's' : ''), test: () => this.testKey(p.id), repl: () => this.openKey(p.id) }; });
-      const ml = this.sortModels(S.models.filter(m => S.pvF === 'tous' || m.pv === S.pvF));
-      vals.pv = { list: pvs, sortCols: this.sortCols(), testAll: () => this.testAll(), add: () => this.setState({ dlg: { type: 'prov' }, form: { n: '', k: '' }, fe: {} }), addModel: () => this.newModel(), noModels: !ml.length,
-        flt: [['tous', 'Tous'], ...S.provs.map(p => [p.id, p.n])].map(([k, l]) => ({ l, on: S.pvF === k, st: segSt(S.pvF === k), pick: () => this.setState({ pvF: k }) })),
-        models: ml.map(m => { const use = this.usedBy(m.id), pv = S.provs.find(p => p.id === m.pv); return { ...m, pvN: pv ? pv.n : m.pv, pinL: m.unit === 'REQUESTS' ? eur(m.per1k || 0, 2) + ' / 1 000 req.' : eur(m.pin || 0, 2), poutL: m.pout != null && m.unit !== 'REQUESTS' ? eur(m.pout, 2) : '—', ...this.ageOf(m), use: use.map(x => ({ l: x.fn.sh + ' · ' + x.role, st: x.role === 'principal' ? 'display:inline-flex;height:22px;align-items:center;padding:0 8px;border-radius:6px;font-size:11px;font-weight:700;background:#10233a;color:#fff;white-space:nowrap' : 'display:inline-flex;height:22px;align-items:center;padding:0 8px;border-radius:6px;font-size:11px;font-weight:700;border:1px solid #cfdad7;color:#43586a;white-space:nowrap' })), noUse: !use.length, catL: { EMBEDDING: 'Embedding', RERANKING: 'Reranking' }[m.c] || 'LLM', catSt: 'flex:none;display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:6px;font-size:10.5px;font-weight:700;letter-spacing:.02em;' + ((m.c || 'LLM') === 'LLM' ? 'background:#e6f3f2;color:#0f5f5a' : 'background:#eef0f6;color:#3b4a7a'), sw: this.sw(m.act, () => this.toggleModel(m), (m.act ? 'Désactiver ' : 'Activer ') + m.n), edit: () => this.openModel(m), rowSt: `display:grid;grid-template-columns:minmax(240px,2.2fr) 110px 104px 104px minmax(180px,1.6fr) 64px 44px;align-items:center;gap:16px;padding:14px 20px;border-top:1px solid #eef3f2;opacity:${m.act ? 1 : .6};transition:opacity .2s` }; }) };
-    }
-    // Assign
     // Conso
     if (is('conso')) {
       const P = S.cPer, from = 90 - P, M = Object.fromEntries(S.models.map(m => [m.id, m.n])), PV = Object.fromEntries(S.provs.map(p => [p.id, p.n])), F = Object.fromEntries(FNS.map(f => [f.id, f.sh]));
@@ -1823,7 +1613,7 @@ class Component extends DCLogic {
     const D = S.dlg;
     if (D) {
       const tone = D.tone || 'neutral', TC = { danger: ['#fdecec', '#c2473b'], warn: ['#fff3dc', '#c06f1f'], neutral: ['#e6f3f2', '#1d8f86'] }[tone];
-      vals.dl = { on: true, isC: D.type === 'confirm', isUser: D.type === 'user', isKey: D.type === 'key', isProv: D.type === 'prov', isAdm: D.type === 'admin', isSnap: D.type === 'snap', isModel: D.type === 'model', isProf: D.type === 'prof',
+      vals.dl = { on: true, isC: D.type === 'confirm', isUser: D.type === 'user', isAdm: D.type === 'admin', isSnap: D.type === 'snap', isModel: D.type === 'model', isProf: D.type === 'prof',
         title: D.title || '', body: D.body || '', items: D.items || [], hasItems: !!(D.items && D.items.length), req: D.req || '', hasReq: !!D.req, dt: S.dt, setDt: e => this.setState({ dt: e.target.value }), cta: D.cta || 'Confirmer',
         reqOk: !D.req || S.dt.trim() === D.req, ic: `width:40px;height:40px;border-radius:12px;flex:none;display:grid;place-items:center;background:${TC[0]};color:${TC[1]}`, g: tone === 'neutral' ? '✓' : '!',
         ctaSt: `height:38px;padding:0 18px;border:0;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:background .15s,opacity .15s;${tone === 'danger' ? 'background:#c2473b;color:#fff' : 'background:#10233a;color:#fff'};opacity:${!D.req || S.dt.trim() === D.req ? 1 : .35};cursor:${!D.req || S.dt.trim() === D.req ? 'pointer' : 'not-allowed'}`,
@@ -1832,15 +1622,11 @@ class Component extends DCLogic {
       if (D.type === 'user') Object.assign(vals.dl, { uTitle: D.id ? 'Modifier ' + (this.uById(D.id) || {}).n : 'Inviter un utilisateur', uCta: D.id ? 'Enregistrer' : 'Envoyer l’invitation', uIntro: D.id ? '' : 'Un e-mail d’invitation valable 14 jours lui permettra de créer son mot de passe.', hasIntro: !D.id,
         pOpts: PROFS.map(p => ({ n: p.n, d: p.d, on: f.p === p.id, st: `display:flex;flex-direction:column;gap:2px;text-align:left;padding:10px 12px;border-radius:10px;cursor:pointer;transition:all .15s;border:1px solid ${f.p === p.id ? '#10233a' : '#dbe4e2'};background:${f.p === p.id ? '#f5f8f7' : '#fff'};box-shadow:${f.p === p.id ? 'inset 0 0 0 1px #10233a' : 'none'}`, pick: () => this.setState(s => ({ form: { ...s.form, p: p.id } })) })),
         prOpts: PROJ.map(p => { const on = (f.pr || []).includes(p); return { l: p, on, st: chipSt(on), pick: () => this.setState(s => ({ form: { ...s.form, pr: on ? s.form.pr.filter(x => x !== p) : [...s.form.pr, p] }, fe: { ...s.fe, pr: '' } })) }; }), save: () => this.saveUser(), ...(() => { const u0 = D.id ? this.uById(D.id) : null, g = u0 ? this.prGroups({ ...u0, p: f.p || u0.p }, f.pr || []) : (f.pr || []).map(code => ({ code, ws: [], note: true, noteL: 'Chantiers à attribuer par le PMO après l’invitation.' })); return { hasGr: g.length > 0, groups: g }; })() });
-      if (D.type === 'key' || D.type === 'model') { const p = D.type === 'key' ? S.provs.find(x => x.id === D.id) : null; Object.assign(vals.dl, { kTitle: p ? 'Remplacer la clé ' + p.n : '', kMask: p ? (p.pre || '') + '••••••••••••' + p.l4 : '', saveKey: () => this.saveKey(), mTitle: D.type === 'model' ? (D.id ? 'Modifier ' + (S.models.find(m => m.id === D.id) || {}).n : 'Ajouter un modèle') : '', saveModel: () => this.saveModel() }); }
-      if (D.type === 'model') Object.assign(vals.dl, { mNew: !D.id, mCanDel: !!D.id, mCta: D.id ? 'Enregistrer' : 'Ajouter le modèle', delModel: () => this.delModel(D.id), cOpts: this.catOpts(f.c, k => this.setState(s => ({ form: { ...s.form, c: k } }))),
-        pvOpts: [{ v: '', l: 'Choisir un fournisseur…' }, ...S.provs.map(p => ({ v: p.id, l: p.n + (p.st === 'err' ? ' · clé invalide' : '') }))] });
-      if (D.type === 'prov') vals.dl.saveProv = () => this.saveProv();
       if (D.type === 'admin') Object.assign(vals.dl, { aOpts: [{ v: '', l: 'Choisir un utilisateur actif…' }, ...S.users.filter(u => u.s === 'actif' && !S.admins.some(a => a.u === u.id)).map(u => ({ v: u.id, l: u.n + ' · ' + PN[u.p] }))], lvOpts: [['admin', 'Administrateur', 'Tous les droits de la plateforme d’administration.']].map(([k, l, d]) => ({ l, d, on: f.lv === k, st: `display:flex;flex-direction:column;gap:2px;text-align:left;padding:12px 14px;border-radius:10px;cursor:pointer;border:1px solid ${f.lv === k ? '#10233a' : '#dbe4e2'};background:${f.lv === k ? '#f5f8f7' : '#fff'};box-shadow:${f.lv === k ? 'inset 0 0 0 1px #10233a' : 'none'}`, pick: () => this.setState(s => ({ form: { ...s.form, lv: k } })) })), saveAdm: () => this.saveAdmin(), admOk: !!f.u, admSt: `height:38px;padding:0 18px;border:0;border-radius:10px;font-size:13px;font-weight:700;display:inline-flex;align-items:center;background:#c2473b;color:#fff;cursor:${f.u ? 'pointer' : 'not-allowed'};opacity:${f.u ? 1 : .35}` });
       if (D.type === 'snap') Object.assign(vals.dl, { sTitle: 'Créer un snapshot de ' + S.sPj, sHelp: 'Capture l’état complet du projet : tâches, jalons, risques, livrables et leurs attributs.', doCap: () => this.capture() });
       if (D.type === 'prof') Object.assign(vals.dl, { bOpts: S.profs.map(p => ({ v: p.id, l: 'Partir de « ' + p.n + ' »' })), saveProf: () => this.saveProf() });
     } else vals.dl = { on: false };
-    vals.form = S.form; vals.fe = S.fe; vals.ff = {}; ['n', 'e', 'k', 'd', 'pin', 'pout', 'lab', 'u', 'base', 'pv'].forEach(k => vals.ff[k] = this.setF(k));
+    vals.form = S.form; vals.fe = S.fe; vals.ff = {}; ['n', 'e', 'd', 'lab', 'u', 'base'].forEach(k => vals.ff[k] = this.setF(k));
     vals.stop = e => e.stopPropagation();
     // Palette
     // Toast
@@ -1849,15 +1635,10 @@ class Component extends DCLogic {
     const SE = (v, on, o, a, w) => this.selEl(v, on, o, a, w);
     if (vals.us) { vals.us.pfEl = SE(S.uPf, vals.us.setPf, [{ v: 'tous', l: 'Tous les profils' }, ...vals.us.pfOpts], 'Filtrer par profil'); vals.us.pjEl = SE(S.uPj, vals.us.setPj, [{ v: 'tous', l: 'Tous les projets' }, ...vals.us.pjOpts], 'Filtrer par projet'); }
     if (vals.rt) { vals.rt.uEl = SE(vals.rt.uSel, vals.rt.setU, vals.rt.uOpts, 'Utilisateur', '100%'); vals.rt.pEl = SE(vals.rt.pSel, vals.rt.setP, vals.rt.pOpts, 'Projet'); }
-    if (vals.as) vals.as.cards.forEach(c => { c.pEl = SE(c.pSel, c.setP, c.pOpts, 'Modèle principal', '100%'); c.fEl = SE(c.fSel, c.setFb, c.fOpts, 'Modèle de secours', '100%'); });
     if (vals.co) vals.co.th.forEach(t => t.warnEl = SE(String(t.warn), t.setWarn, vals.co.warnOpts, 'Seuil d’alerte · ' + t.n));
     if (vals.sn) { const h = vals.sn.sch; h.fqEl = SE(h.fq, h.setFq, vals.sn.fqOpts, 'Fréquence'); h.dayEl = SE(h.day, h.setDay, vals.sn.dayOpts, 'Jour'); h.hourEl = SE(h.hour, h.setHour, vals.sn.hourOpts, 'Heure'); h.keepEl = SE(h.keep, h.setKeep, vals.sn.keepOpts, 'Conservation'); }
     if (vals.dl.isAdm) vals.dl.aEl = SE(S.form.u || '', vals.ff.u, vals.dl.aOpts, 'Utilisateur', '100%');
-    if (vals.dl.mNew) vals.dl.pvEl = SE(S.form.pv || '', vals.ff.pv, vals.dl.pvOpts, 'Fournisseur', '100%');
     if (vals.dl.isProf) vals.dl.bEl = SE(S.form.base, vals.ff.base, vals.dl.bOpts, 'Profil de départ', '100%');
-    // API : données des écrans IA (vue réseau, affectation, fiche modèle).
-    vals.ia = this.iaVals();
-    vals.fm = { on: !!S.fm, model: S.fm ? S.fm.model : null, submit: m => this.saveIaModel(m), close: () => this.setState({ fm: null }), del: id => { this.setState({ fm: null }); this.delModel(id); } };
     return vals;
   }
   selEl(value, onChange, opts, aria, w) {

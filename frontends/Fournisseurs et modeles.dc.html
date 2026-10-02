@@ -345,7 +345,7 @@ input::placeholder{color:#a6b4bd}
   <div style="position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:80;display:flex;align-items:center;gap:10px;max-width:min(560px,calc(100vw - 32px));padding:11px 16px 11px 13px;border-radius:13px;background:#0e2135;color:#e8f0f3;font-size:12.5px;font-weight:600;box-shadow:0 20px 40px -16px rgba(14,33,53,.6);animation:pop .2s ease-out both"><span style="{{ toast.dot }}"></span>{{ toast.msg }}</div>
 </sc-if>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;invalid&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Aucun&quot;,&quot;Anthropic&quot;,&quot;OpenAI&quot;,&quot;Mistral AI&quot;,&quot;Google&quot;,&quot;OpenRouter&quot;],&quot;default&quot;:&quot;Aucun&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Démo&quot;},&quot;data&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{ providers: any[]; models: any[]; functions: any[]; assignments: any[] } | null&quot;},&quot;api&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Record<string, (...a: any[]) => Promise<any>> | null&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;invalid&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Aucun&quot;,&quot;Anthropic&quot;,&quot;OpenAI&quot;,&quot;Mistral AI&quot;,&quot;Google&quot;,&quot;OpenRouter&quot;],&quot;default&quot;:&quot;Aucun&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Démo&quot;},&quot;data&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{ providers: any[]; models: any[]; functions: any[]; assignments: any[] } | null&quot;},&quot;focusKey&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{ id: string; at: number } | null&quot;},&quot;api&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Record<string, (...a: any[]) => Promise<any>> | null&quot;}}">
 // Fournisseurs et modèles (livraison « Fournisseurs et modèles », FOURNISSEURS - specification.md).
 // Données réelles : props `data` (GET /providers, /models, /functions, /assignments) et `api` (actions) fournies par la Console
 // (admin-api.js) ; chaque action appelle l'API puis la Console recharge `data`. Sans `data` (écran ouvert seul, Console en
@@ -397,6 +397,11 @@ class Component extends DCLogic {
     return { providers, models, assign, menu: null, modal: null, toast: null, docs: true, fa: 'all', sk: 'n', sd: 1, dims: 1536, dimsOpen: false, testing: {}, busy: false };
   }
   componentWillUnmount() { (this._t || []).forEach(clearTimeout); clearTimeout(this._tt); }
+  // « Remplacer la clé » demandé depuis une autre page de la Console (vue d'ensemble, Vue générale des coûts) :
+  // prop `focusKey` { id, at } → fenêtre de remplacement de ce fournisseur, une fois par demande.
+  componentDidMount() { this.focusKey(); }
+  componentDidUpdate() { this.focusKey(); }
+  focusKey() { const f = this.props.focusKey; if (!f || f.at === this._fk) return; this._fk = f.at; this.setState({ modal: { kind: 'key', pid: f.id, val: '' }, menu: null }); }
   later(fn, ms) { (this._t = this._t || []).push(setTimeout(fn, ms)); }
   toast(msg, tone) { clearTimeout(this._tt); this.setState({ toast: { msg, tone: tone || 'ok' } }); this._tt = setTimeout(() => this.setState({ toast: null }), 3000); }
   /** Mode réel : écran branché par la Console (`api`) ; données vides tant qu'elles se chargent (jamais la démonstration). */

@@ -161,16 +161,11 @@ export const toProv = p => ({ id: p.id, n: p.name, pre: p.keyPrefix || '', l4: p
 /** Modèle → `{ id, pv, n, d, c, rel, maxOut, apiId, ctx, dims, dim, unit, pin, pout, per1k, act }` (tarif selon l'unité : € / M tokens ou € / 1 000 requêtes). */
 export const toModel = m => { const pr = m.price || { unit: 'TOKENS', in: m.priceIn, out: m.priceOut, per1k: null }; return { id: m.id, pv: m.providerId, n: m.name, d: m.description || '', c: m.category || 'LLM', rel: m.releaseDate || '', maxOut: m.maxOutputTokens || null,
   apiId: m.providerModelId || '', ctx: m.contextTokens || null, dims: m.dimensions || [], dim: m.defaultDimension || null, unit: pr.unit, pin: pr.in, pout: pr.out, per1k: pr.per1k, act: m.active }; };
-/** Modèle des écrans IA (`ia-data.js`, catégorie en minuscules) → corps de `POST` / `PATCH /models`. */
-export const fromIaModel = im => { const p = im.price || {}, rq = p.unit === 'requests'; return { name: im.n, description: im.d || '', category: String(im.cat || 'llm').toUpperCase(), releaseDate: im.rel || null, maxOutputTokens: im.cat === 'llm' ? im.maxOut || null : null,
-  providerModelId: im.apiId || null, contextTokens: im.ctx || null, dimensions: im.cat === 'embedding' ? im.dims || [] : [], defaultDimension: im.cat === 'embedding' ? im.dim || null : null, price: rq ? { unit: 'REQUESTS', per1k: p.per1k } : { unit: 'TOKENS', in: p.in, out: im.cat === 'llm' ? p.out : null } }; };
 /** Volumes 30 jours par fonction (`GET /functions`) → `{ fnId: { tin, tout, req } }` en tokens et requêtes. */
 export const toVol = r => Object.fromEntries(r.functions.map(f => [f.id, { tin: f.volume30d.tokensIn, tout: f.volume30d.tokensOut, req: f.volume30d.requests }]));
 /** Affectations → `{ insights:{p,f}, crud:{p,f}, docs:{p,f} }`. */
 // Embedding : `d` = dimension des vecteurs du principal (chaîne, comme la valeur d'un <select>).
 export const toAsg = list => Object.fromEntries(list.map(a => [a.functionId, a.dimension ? { p: a.primary || '', f: a.fallback || '', d: String(a.dimension) } : { p: a.primary || '', f: a.fallback || '' }]));
-/** Affectation → corps de `PUT /assignments` ; une fonction sans modèle principal n'est pas envoyée (aucun LLM choisi). */
-export const fromAsg = asg => Object.fromEntries(Object.entries(asg).filter(([, v]) => v.p).map(([k, v]) => [k, v.d ? { primary: v.p, fallback: v.f || null, dimension: +v.d } : { primary: v.p, fallback: v.f || null }]));
 /** Détail jour × fonction × modèle → lignes `{ d, fn, m, pv, tin, tout, c }` de `genUsage()` (d = 0…89, 89 = aujourd'hui). */
 export const toUsageRows = (detail, from) => (detail || []).map(r => ({ d: daysBetween(from, r.day), fn: r.functionId, m: r.modelId, pv: r.providerId, tin: r.tokensIn, tout: r.tokensOut, c: r.costEur, fb: r.fallbackUsed }));
 /** Plafonds → `th[]` de la console `{ id, n, lim, warn, on }` (seulement ceux qui ont un plafond). */
@@ -252,7 +247,7 @@ export function bindConsole(c) {
   if (!DEV) Auth.startSessionGuard('admin');
   c._logout = () => { if (DEV) writeToken(null); return Auth.logout('admin'); };
   const set0 = c.setState.bind(c), orig = {};
-  ['go', 'setUser', 'saveUser', 'removeUser', 'saveAdmin', 'removeAdmin', 'testKey', 'testAll', 'saveKey', 'saveProv', 'toggleModel', 'saveModel', 'saveFiche', 'saveAsg', 'setTh', 'doCapture',
+  ['go', 'setUser', 'saveUser', 'removeUser', 'saveAdmin', 'removeAdmin', 'setTh', 'doCapture',
     'setMod', 'approve', 'reject', 'saveMe', 'revoke', 'revokeAll', 'onPhoto', 'exportAudit', 'exportCsv', 'jevReply', 'jevNew', 'mtd', 'thVals', 'renderVals', 'skSave', 'skToggle', 'skCreate', 'skDelete', 'psSave', 'psUpload', 'ntToggle', 'ntAct', 'ntUndo', 'ntReadAll', 'apTest', 'apCreate', 'apSave', 'apToggle', 'apDelete', 'apRestore', 'apWidgetsSet'].forEach(k => { orig[k] = c[k].bind(c); });
   const toast = (m, t, u) => c.toast(m, t, u), fail = e => { console.warn('[admin-api]', e); toast(errText(e), 'err'); };
   let meId = 'u1';
@@ -276,7 +271,7 @@ export function bindConsole(c) {
     // Volume et sortie requise (Génération de rapports : plus long rendu mesuré sur 30 jours) par fonction.
     // Volume, sortie requise et historique (vol non nul : l'estimation d'une fonction nouvelle n'est plus utilisée).
     fns: async () => { const r = await get('/functions'); return { aiVol: toVol(r), aiNeed: Object.fromEntries(r.functions.filter(f => f.needOut).map(f => [f.id, f.needOut])), aiHist: Object.fromEntries(r.functions.map(f => [f.id, f.vol !== null])) }; },
-    asg: async () => { const asg = toAsg(await get('/assignments')), S = c.state, clean = !S.draft || JSON.stringify(S.asg) === JSON.stringify(S.draft); return clean ? { asg, draft: JSON.parse(JSON.stringify(asg)) } : { asg }; },
+    asg: async () => ({ asg: toAsg(await get('/assignments')) }),
     usage: async () => {
       const m = await get('/usage/month'), from = addDays(m.today, -89), u = await get('/usage?from=' + from + '&to=' + m.today + '&groupBy=day');
       return { apiMonth: m, usage: toUsageRows(u.detail, from), th: toTh(m.thresholds) };
@@ -614,78 +609,6 @@ export function bindConsole(c) {
     if (S.aq && S.aq.trim()) q.set('q', S.aq.trim());
     try { await download('/audit/export.csv' + (q.toString() ? '?' + q : ''), 'journal-audit.csv'); toast('Journal d’audit exporté'); touch(); } catch (e) { fail(e); }
   };
-
-  // ── Fournisseurs et modèles : la clé saisie part au serveur et n'est jamais conservée dans l'état ──
-  const provTested = (p, silent) => { const x = toProv(p); repl('provs', x.id, x); if (!silent) toast(x.st === 'ok' ? x.n + ' répond en ' + x.lat + ' ms' : /^\d{3} /.test(x.err) ? x.n + ' refuse la clé (' + x.err.slice(0, 3) + ')' : x.n + ' : ' + (x.err || 'test impossible'), x.st === 'ok' ? 'ok' : 'err'); return x; };
-  c.testKey = async (id, silent) => {
-    c.setProv(id, { testing: true });
-    try { const p = await post('/providers/' + id + '/test'); provTested(p, silent); touch(); } catch (e) { c.setProv(id, { testing: false }); fail(e); }
-  };
-  c.testAll = async () => {
-    const n = c.state.provs.length; set0(s => ({ provs: s.provs.map(p => ({ ...p, testing: true })) }));
-    try {
-      const ps = (await post('/providers/test-all')).map(toProv); set0({ provs: ps });
-      const ok = ps.filter(p => p.st === 'ok').length; toast(ok + ' clé' + (ok > 1 ? 's' : '') + ' valide' + (ok > 1 ? 's' : '') + ' sur ' + n, ok === n ? 'ok' : 'err'); touch();
-    } catch (e) { set0(s => ({ provs: s.provs.map(p => ({ ...p, testing: false })) })); fail(e); }
-  };
-  c.saveKey = async () => {
-    const S = c.state, k = (S.form.k || '').trim(), id = S.dlg.id;
-    if (k.length < 20) return c.setState({ fe: { k: 'La clé semble incomplète (20 caractères minimum).' } });
-    const p = S.provs.find(x => x.id === id);
-    set0({ dlg: null, form: {} }); // la saisie est effacée immédiatement
-    c.setProv(id, { testing: true }); toast('Nouvelle clé ' + p.n + ' enregistrée · test en cours');
-    try { provTested(await put('/providers/' + id + '/key', { apiKey: k }), false); touch(); load(['asg']).catch(() => {}); } catch (e) { c.setProv(id, { testing: false }); fail(e); }
-  };
-  c.saveProv = async () => {
-    const f = c.state.form, fe = {};
-    if (!f.n || f.n.trim().length < 2) fe.n = 'Indiquez le nom du fournisseur.';
-    if ((f.k || '').trim().length < 20) fe.k = 'La clé semble incomplète (20 caractères minimum).';
-    if (Object.keys(fe).length) return c.setState({ fe });
-    const name = f.n.trim(), k = f.k.trim(); set0({ dlg: null, form: {} });
-    try { const r = await post('/providers', { name, apiKey: k }); set0(s => ({ provs: [...s.provs, toProv(r)] })); provTested(r, false); touch(); }
-    catch (e) { if (e instanceof ApiError && e.code === 'DUPLICATE') set0({ dlg: { type: 'prov' }, form: { n: name, k: '' }, fe: { n: e.message } }); else fail(e); }
-  };
-  const modelSaved = m => { const x = toModel(m); repl('models', x.id, x); return x; };
-  const toggleOff = gateAsk('toggleModel', m => patch('/models/' + m.id, { active: false }).then(r => () => { modelSaved(r); load(['asg']).catch(() => {}); }));
-  c.toggleModel = m => {
-    if (m.act) return toggleOff(m);
-    patch('/models/' + m.id, { active: true }).then(r => { modelSaved(r); toast(m.n + ' est disponible pour l’affectation'); touch(); }).catch(fail);
-  };
-  const num = v => parseFloat(String(v).replace(',', '.'));
-  // Création (POST /models) ou modification (PATCH /models/{id}), catégorie comprise.
-  c.saveModel = async () => {
-    const S = c.state, f = S.form, fe = {}, isNew = !S.dlg.id;
-    if (isNew && !f.pv) fe.pv = 'Choisissez un fournisseur.';
-    if (!f.n || !f.n.trim()) fe.n = 'Nom requis.'; if (!(num(f.pin) >= 0)) fe.pin = 'Montant invalide.'; if (!(num(f.pout) >= 0)) fe.pout = 'Montant invalide.';
-    if (Object.keys(fe).length) return c.setState({ fe });
-    const body = { name: f.n.trim(), description: f.d || '', category: f.c || 'LLM', priceIn: num(f.pin), priceOut: num(f.pout) };
-    try {
-      if (isNew) { const m = toModel(await post('/models', { providerId: f.pv, ...body })); set0(st => ({ models: [...st.models, m], dlg: null, form: {} })); toast(m.n + ' ajouté'); }
-      else { modelSaved(await patch('/models/' + S.dlg.id, body)); set0({ dlg: null, form: {} }); toast('Modèle mis à jour'); }
-      touch();
-    } catch (e) { fail(e); }
-  };
-  // Suppression après la confirmation de l'écran ; refusée par le serveur si le modèle a servi (409 IN_USE).
-  // Fiche modèle (Fiche modele.dc.html) : POST /models (ajout) ou PATCH /models/{id} ; la fiche reste ouverte en cas de refus.
-  c.saveIaModel = async im => {
-    const body = fromIaModel(im);
-    try {
-      if (!im.id) { const m = toModel(await post('/models', { providerId: im.pv, ...body })); set0(st => ({ models: [...st.models, m], fm: null })); toast(m.n + ' ajouté'); }
-      else { const m = toModel(await patch('/models/' + im.id, body)); repl('models', m.id, m); set0({ fm: null }); toast('Modèle mis à jour'); }
-      touch(); load(['asg', 'fns']).catch(() => {});
-      return true;
-    } catch (e) { fail(e); return false; }
-  };
-  c.delModel = gateAsk('delModel', id => del('/models/' + id).then(() => () => load(['models', 'asg']).catch(() => {})));
-  c.saveFiche = async () => {
-    const S = c.state, f = S.fF, fe = {};
-    if (!f.n || !f.n.trim()) fe.n = 'Nom requis.'; if (!(num(f.pin) >= 0)) fe.pin = 'Montant invalide.'; if (!(num(f.pout) >= 0)) fe.pout = 'Montant invalide.';
-    if (Object.keys(fe).length) return c.setState({ fFe: fe });
-    try { modelSaved(await patch('/models/' + S.fiche.id, { name: f.n.trim(), description: f.d || '', category: f.c || 'LLM', priceIn: num(f.pin), priceOut: num(f.pout) })); set0({ fFe: {} }); toast('Modèle enregistré'); touch(); } catch (e) { fail(e); }
-  };
-
-  // ── Affectation ──
-  c.saveAsg = gateAsk('saveAsg', () => put('/assignments', fromAsg(c.state.draft)).then(list => () => { const asg = toAsg(list); set0({ asg, draft: JSON.parse(JSON.stringify(asg)) }); }));
 
   // ── Consommation : dépense et projection du serveur (une seule source) ──
   c.mtd = () => {

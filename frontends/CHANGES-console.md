@@ -602,3 +602,14 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
   - erreurs du serveur (409, 422…) affichées dans les toasts de l'écran ; la fenêtre reste ouverte en cas d'échec.
 - `Console Admin.dc.html` : page `providers` = `<dc-import name="Fournisseurs et modeles">` (props `data` = `fpData`, `api` = `fmApi`), sans l'en-tête de la Console (l'écran a le sien). L'ancienne page (bandeau, vue réseau, liste, section Affectation) est retirée du gabarit ; les fenêtres de la Console (clé, fournisseur, fiche modèle) restent pour les autres accès.
 - `admin-api.js` : chargeur `fm` (état `fpData` ; `fm` désigne déjà la fiche modèle de la Console) ; actions `fmApi` (`testKey`, `testAll`, `replaceKey`, `addProvider`, `saveAssignment`, `setActive`, `saveModel`, `deleteModel`) : appel de l'API, puis relecture de l'écran et de l'état de la Console (pastilles, vue d'ensemble) ; message d'erreur lisible (`errText`).
+
+## Fournisseurs et modèles : fenêtres centrées (02/10/2026)
+
+- `Console Admin.dc.html` : le conteneur de la page `providers` est animé en fondu (`fade`) et non plus par `rise-in` : une animation de `transform` maintenue (`fill-mode: both`) en faisait le repère des fenêtres `position:fixed` de l'écran, centrées alors sur toute la hauteur de la page (fenêtre « Modifier le modèle » hors de l'écran après défilement jusqu'au catalogue).
+
+## Ancien code de la page Fournisseurs et modèles retiré (02/10/2026)
+
+- `Console Admin.dc.html` : retirés, devenus inutiles avec la nouvelle vue : panneau de fiche fournisseur / modèle (`fc`, `ficheVals`, `openFiche`, `saveFiche`), fenêtres « Remplacer la clé » et « Ajouter un fournisseur » de la Console (`dl.isKey`, `dl.isProv`), fiche modèle `Fiche modele.dc.html` (`fm`, `openModel`, `saveIaModel`, adaptateurs `iaModel` / `fromIa`, `iaVals`), méthodes de l'ancienne page (tests de clés, modèles, tri et filtre de la liste, affectation et brouillon `draft`, estimations `vol30` / `est`, `usedBy`, `provLabel`, `catOpts`, `ageOf`), valeurs `pv`, `ia`, `fm`, `fc`, état `pvF` / `mSort` / `draft`, `REINDEX_WARNING`, chargement de `ia-data.js`.
+- « Remplacer la clé » de la vue d'ensemble et « Réparer la clé Google » de « Vue générale des coûts » : page Fournisseurs et modèles, fenêtre de remplacement de l'écran (`goKey`, prop `focusKey` de `Fournisseurs et modeles.dc.html`).
+- `admin-api.js` : surcharges de l'ancienne page retirées (`testKey`, `testAll`, `saveKey`, `saveProv`, `toggleModel`, `saveModel`, `saveIaModel`, `delModel`, `saveFiche`, `saveAsg`, `provTested`, `modelSaved`, `fromIaModel`, `fromAsg`) ; chargeur `asg` sans brouillon. Les chargeurs `providers`, `models`, `asg`, `fns` restent (vue d'ensemble, pastilles de la sidebar, Vue générale des coûts).
+- Ne sont plus utilisés par la Console : `Fiche modele.dc.html`, `Vue reseau IA.dc.html`, `Affectation des modeles.dc.html`, `ia-data.js` (conservés comme maquettes).
