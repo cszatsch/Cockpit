@@ -69,7 +69,7 @@ describe('Console — modèles d’IA', () => {
     await admin.put('/api/admin/assignments', { crud: { primary: 'haiku', dimension: 1024 } }).expect(400);
     a = (await admin.put('/api/admin/assignments', { doc_vec: { primary: 'te3large', dimension: 1024 } }).expect(200)).body.find((x: any) => x.functionId === 'doc_vec');
     expect(a.dimension).toBe(1024);
-    const re = await t.db.auditEntry.findFirst({ where: { action: 'Réindexation des documents requise' } });
+    const re = await t.db.auditEntry.findFirst({ where: { action: 'Revectorisation des documents planifiée' } });
     expect(re).toMatchObject({ severity: 'CRITICAL', target: expect.stringContaining('1024 dimensions') });
     // Une dimension affectée ne peut pas être retirée du modèle.
     expect((await admin.patch('/api/admin/models/te3large', { dimensions: [3072, 512] }).expect(409)).body.code).toBe('DIMENSION_IN_USE');

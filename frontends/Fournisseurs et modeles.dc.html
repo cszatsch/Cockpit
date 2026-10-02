@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800&amp;display=swap" rel="stylesheet"><style>
+html,body{margin:0;background:#f2f6f5;font-family:'Plus Jakarta Sans',sans-serif;color:#10233a;-webkit-font-smoothing:antialiased;font-size:13px}
+*{box-sizing:border-box}a{color:#1d8f86}a:hover{color:#146b64}button,input,select,textarea{font:inherit;color:inherit}
+button:focus-visible{outline:2px solid #1d8f86;outline-offset:2px}
+input::placeholder{color:#a6b4bd}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pop{from{opacity:0;transform:translateY(8px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style></helmet>
+<div data-screen-label="Fournisseurs et modèles" style="max-width:1240px;margin:0 auto;padding:40px 32px 80px;display:flex;flex-direction:column;gap:40px">
+  <div style="display:flex;flex-direction:column;gap:6px">
+    <div style="font-size:11px;font-weight:800;letter-spacing:.16em;color:#1d8f86">IA</div>
+    <div style="font-size:34px;font-weight:800;font-style:italic;letter-spacing:-.03em;line-height:1.1">Fournisseurs et modèles</div>
+    <div style="font-size:14px;color:#43586a">Clés API, tests de connexion et catalogue des modèles avec leur coût.</div>
+  </div>
+
+  <div style="background:radial-gradient(900px 300px at 20% -20%,rgba(63,209,193,.09),transparent 60%),#0e2135;border-radius:22px;color:#e8f0f3;box-shadow:0 30px 60px -42px rgba(14,33,53,.75);overflow:hidden">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:20px 24px 18px">
+      <span style="font-size:16px;font-weight:800;letter-spacing:-.01em;color:#fff">Fournisseurs</span>
+      <span style="font-size:12px;color:#7f95a6;font-variant-numeric:tabular-nums">{{ band.okL }}</span>
+      <sc-if value="{{ band.hasBad }}" hint-placeholder-val="{{ false }}"><span style="display:flex;align-items:center;gap:6px;height:22px;padding:0 9px;border-radius:999px;background:rgba(240,123,103,.14);color:#ff9d8a;font-size:11px;font-weight:800"><span style="width:5px;height:5px;border-radius:50%;background:#f07b67"></span>{{ band.badL }}</span></sc-if>
+      <span style="flex:1"></span>
+      <button onClick="{{ testAll }}" disabled="{{ band.busy }}" style="height:34px;padding:0 13px;border:0;border-radius:10px;background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 1px rgba(255,255,255,.1);color:#e8f0f3;font-weight:700;font-size:12.5px;display:inline-flex;align-items:center;gap:8px;cursor:pointer;white-space:nowrap" style-hover="background:rgba(255,255,255,.1)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-8 4 16 3-8h4"></path></svg>Tester toutes les clés</button>
+      <button onClick="{{ openProv }}" style="height:34px;padding:0 14px;border:0;border-radius:10px;background:#3fd1c1;color:#0e2135;font-weight:800;font-size:12.5px;display:inline-flex;align-items:center;gap:8px;cursor:pointer;white-space:nowrap" style-hover="background:#62dccf"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>Ajouter un fournisseur</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));border-top:1px solid rgba(255,255,255,.07)">
+      <sc-for list="{{ provs }}" as="p" hint-placeholder-count="5">
+        <div style="{{ p.cellSt }}">
+          <div style="display:flex;align-items:center;gap:11px">
+            <span style="{{ p.pgSt }}">{{ p.g }}</span>
+            <div style="display:flex;flex-direction:column;gap:3px;min-width:0">
+              <span style="font-size:14px;font-weight:800;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.n }}</span>
+              <span title="{{ p.at }}" style="{{ p.stSt }}"><sc-if value="{{ p.testing }}" hint-placeholder-val="{{ false }}"><span style="width:9px;height:9px;border-radius:50%;border:1.5px solid rgba(63,209,193,.3);border-top-color:#3fd1c1;animation:spin .7s linear infinite"></span></sc-if><sc-if value="{{ p.idle }}" hint-placeholder-val="{{ true }}"><span style="{{ p.dotSt }}"></span></sc-if>{{ p.stL }}</span>
+            </div>
+          </div>
+          <span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#6f879a;letter-spacing:.02em">{{ p.keyL }}</span>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button onClick="{{ p.test }}" disabled="{{ p.testing }}" style="height:28px;padding:0 10px;border:0;border-radius:8px;background:rgba(255,255,255,.06);color:#cfe0ea;font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap" style-hover="background:rgba(255,255,255,.11);color:#fff">Tester</button>
+            <button onClick="{{ p.replace }}" style="height:28px;padding:0 10px;border:0;border-radius:8px;background:rgba(255,255,255,.06);color:#cfe0ea;font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap" style-hover="background:rgba(255,255,255,.11);color:#fff">Remplacer la clé</button>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div id="ia-affectation" style="font-size:17px;font-weight:800;letter-spacing:-.01em;scroll-margin-top:24px">Affectation des modèles</div>
+    <div style="background:#fff;border-radius:20px;box-shadow:0 0 0 1px #e1e9e7,0 18px 40px -32px rgba(16,35,58,.35)">
+      <div style="display:grid;grid-template-columns:minmax(160px,.85fr) minmax(0,1.3fr) minmax(0,1.3fr) minmax(96px,.5fr);gap:16px;padding:15px 24px;border-bottom:1px solid #edf2f1;font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#8a9aa6"><span>FONCTION</span><span>PRINCIPAL</span><span>SECOURS</span><span style="text-align:right">COÛT MENSUEL ESTIMÉ</span></div>
+      <sc-for list="{{ fns }}" as="f" hint-placeholder-count="4">
+        <div style="display:grid;grid-template-columns:minmax(160px,.85fr) minmax(0,1.3fr) minmax(0,1.3fr) minmax(96px,.5fr);gap:10px 16px;padding:18px 24px;border-bottom:1px solid #edf2f1;align-items:center">
+          <div>
+            <div style="display:flex;align-items:center;gap:8px"><span style="font-size:14.5px;font-weight:800;letter-spacing:-.01em;line-height:1.25">{{ f.n }}</span><sc-if value="{{ f.nouveau }}" hint-placeholder-val="{{ false }}"><span style="font-size:9px;font-weight:800;letter-spacing:.12em;color:#1d8f86;padding:3px 6px;border-radius:5px;box-shadow:inset 0 0 0 1px #a8dbd4">NOUVEAU</span></sc-if></div>
+            <div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px 7px;margin-top:6px;font-size:11.5px;color:#8a9aa6"><span style="{{ f.stSt }}"><span style="{{ f.stDot }}"></span>{{ f.stL }}</span><span>·</span><span style="font-variant-numeric:tabular-nums">{{ f.vol }}</span></div>
+          </div>
+          <div style="position:relative;min-width:0">
+            <button onClick="{{ f.p.toggle }}" style="{{ f.p.st }}">
+              <span style="{{ f.p.pgSt }}">{{ f.p.pg }}</span>
+              <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="{{ f.p.nSt }}">{{ f.p.n }}</span><span style="{{ f.p.labSt }}"><span style="{{ f.p.dotSt }}"></span>{{ f.p.lab }}</span></span>
+              <span style="{{ f.p.costSt }}">{{ f.p.cost }}</span>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#8a9aa6" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg>
+            </button>
+            <sc-if value="{{ f.p.open }}" hint-placeholder-val="{{ false }}">
+              <div onClick="{{ closeMenu }}" style="position:fixed;inset:0;z-index:40"></div>
+              <div style="position:absolute;top:54px;left:0;width:max(100%,320px);z-index:41;background:#fff;border-radius:14px;box-shadow:0 0 0 1px #e1e9e7,0 24px 48px -16px rgba(16,35,58,.3);padding:6px;max-height:320px;overflow:auto;animation:pop .16s ease-out both">
+                <div style="padding:8px 10px 6px;font-size:10px;font-weight:800;letter-spacing:.14em;color:#8a9aa6">{{ f.p.optsT }}</div>
+                <sc-for list="{{ f.p.opts }}" as="o" hint-placeholder-count="4"><button onClick="{{ o.pick }}" style="{{ o.st }}" style-hover="background:#f4f8f7"><span style="{{ o.pgSt }}">{{ o.pg }}</span><span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px"><span style="font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ o.n }}</span><span style="{{ o.subSt }}">{{ o.sub }}</span></span><span style="font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap">{{ o.cost }}</span><span style="{{ o.chkSt }}">✓</span></button></sc-for>
+              </div>
+            </sc-if>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;min-width:0">
+            <div style="position:relative;min-width:0">
+              <button onClick="{{ f.s.toggle }}" style="{{ f.s.st }}">
+                <span style="{{ f.s.pgSt }}">{{ f.s.pg }}</span>
+                <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="{{ f.s.nSt }}">{{ f.s.n }}</span><span style="{{ f.s.labSt }}"><span style="{{ f.s.dotSt }}"></span>{{ f.s.lab }}</span></span>
+                <span style="{{ f.s.costSt }}">{{ f.s.cost }}</span>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#8a9aa6" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg>
+              </button>
+              <sc-if value="{{ f.s.open }}" hint-placeholder-val="{{ false }}">
+                <div onClick="{{ closeMenu }}" style="position:fixed;inset:0;z-index:40"></div>
+                <div style="position:absolute;top:54px;left:0;width:max(100%,320px);z-index:41;background:#fff;border-radius:14px;box-shadow:0 0 0 1px #e1e9e7,0 24px 48px -16px rgba(16,35,58,.3);padding:6px;max-height:320px;overflow:auto;animation:pop .16s ease-out both">
+                  <div style="padding:8px 10px 6px;font-size:10px;font-weight:800;letter-spacing:.14em;color:#8a9aa6">{{ f.s.optsT }}</div>
+                  <sc-for list="{{ f.s.opts }}" as="o" hint-placeholder-count="4"><button onClick="{{ o.pick }}" style="{{ o.st }}" style-hover="background:#f4f8f7"><span style="{{ o.pgSt }}">{{ o.pg }}</span><span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px"><span style="font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ o.n }}</span><span style="{{ o.subSt }}">{{ o.sub }}</span></span><span style="font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap">{{ o.cost }}</span><span style="{{ o.chkSt }}">✓</span></button></sc-for>
+                </div>
+              </sc-if>
+            </div>
+            <span style="font-size:11px;color:#8a9aa6;padding-left:2px;font-variant-numeric:tabular-nums">Si le secours prend le relais : {{ f.relay }}</span>
+          </div>
+          <div style="text-align:right"><div style="font-size:21px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums">{{ f.costL }}</div><div style="height:3px;border-radius:2px;background:#edf2f1;margin-top:9px;display:flex;justify-content:flex-end;overflow:hidden"><div style="{{ f.shareSt }}"></div></div></div>
+          <sc-if value="{{ f.isR }}" hint-placeholder-val="{{ false }}">
+            <div style="grid-column:2 / 4;display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:22px;padding:11px 14px;border-radius:12px;background:#f6f9f8">
+              <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:10px;font-weight:800;letter-spacing:.14em;color:#8a9aa6">SORTIE MAXIMALE</span><span style="font-size:11.5px;color:#5c7280">Rendu le plus long · sortie requise ≈ <b style="color:#10233a;font-variant-numeric:tabular-nums;white-space:nowrap">{{ f.needL }}</b></span></div>
+              <div style="position:relative;display:flex;flex-direction:column;gap:6px">
+                <div style="display:flex;align-items:center;gap:8px"><span style="width:8px;font-size:10px;font-weight:800;color:#8a9aa6">P</span><div style="flex:1;height:4px;border-radius:2px;background:#e3ebe9;overflow:hidden"><div style="{{ f.g.pSt }}"></div></div><span style="{{ f.g.pLSt }}">{{ f.g.pL }}</span></div>
+                <div style="display:flex;align-items:center;gap:8px"><span style="width:8px;font-size:10px;font-weight:800;color:#8a9aa6">S</span><div style="flex:1;height:4px;border-radius:2px;background:#e3ebe9;overflow:hidden"><div style="{{ f.g.sSt }}"></div></div><span style="{{ f.g.sLSt }}">{{ f.g.sL }}</span></div>
+                <div style="{{ f.g.markSt }}"></div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+
+      <div style="padding:20px 24px 8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span style="font-size:14.5px;font-weight:800;letter-spacing:-.01em">Documents</span><span style="font-size:11.5px;color:#8a9aa6">3 étapes en série · le texte extrait suit la ligne de haut en bas. Une étape à l’arrêt suspend la suite.</span>
+        <span style="flex:1"></span>
+        <span style="{{ docSt.st }}"><span style="{{ docSt.dot }}"></span>{{ docSt.l }}</span>
+        <button onClick="{{ toggleDocs }}" style="display:flex;align-items:center;gap:5px;border:0;background:none;padding:4px 6px;border-radius:7px;cursor:pointer;font-size:11.5px;font-weight:700;color:#5c7280" style-hover="background:#f1f5f4">{{ docsL }}<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="{{ docsChev }}"><path d="M6 15l6-6 6 6"></path></svg></button>
+      </div>
+      <sc-if value="{{ docsOpen }}" hint-placeholder-val="{{ true }}">
+        <div style="position:relative;padding-bottom:6px">
+          <div style="position:absolute;left:36px;top:24px;bottom:34px;width:2px;background:#bfe3df"></div>
+          <div style="display:flex;align-items:center;gap:14px;padding:12px 24px 10px 32px;position:relative"><span style="width:10px;height:10px;border-radius:50%;background:#fff;box-shadow:inset 0 0 0 2px #1d8f86,0 0 0 4px #fff"></span><span style="font-size:12.5px;font-weight:800">Texte extrait</span><span style="font-size:11.5px;color:#8a9aa6;font-variant-numeric:tabular-nums">{{ textVol }}</span></div>
+          <sc-for list="{{ docs }}" as="f" hint-placeholder-count="3">
+            <div style="display:grid;grid-template-columns:minmax(160px,.85fr) minmax(0,1.3fr) minmax(0,1.3fr) minmax(96px,.5fr);gap:10px 16px;padding:16px 24px;align-items:start;position:relative">
+              <div style="display:flex;gap:12px">
+                <span style="{{ f.numSt }}">{{ f.k }}</span>
+                <div style="min-width:0"><div style="display:flex;align-items:center;gap:7px;height:26px"><span style="font-size:13.5px;font-weight:800">{{ f.n }}</span><span style="font-family:ui-monospace,Menlo,monospace;font-size:9.5px;letter-spacing:.06em;color:#5c7280;background:#eef3f2;padding:2px 5px;border-radius:4px">{{ f.t }}</span></div><div style="font-size:11.5px;line-height:1.5;color:#6b7f8c;text-wrap:pretty;margin-top:2px">{{ f.d }}</div><sc-if value="{{ f.notOk }}" hint-placeholder-val="{{ false }}"><div style="{{ f.stSt }}"><span style="{{ f.stDot }}"></span>{{ f.stL }}</div></sc-if></div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px;min-width:0">
+                <div style="position:relative;min-width:0">
+                  <button onClick="{{ f.p.toggle }}" style="{{ f.p.st }}">
+                    <span style="{{ f.p.pgSt }}">{{ f.p.pg }}</span>
+                    <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="{{ f.p.nSt }}">{{ f.p.n }}</span><span style="{{ f.p.labSt }}"><span style="{{ f.p.dotSt }}"></span>{{ f.p.lab }}</span></span>
+                    <span style="{{ f.p.costSt }}">{{ f.p.cost }}</span>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#8a9aa6" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg>
+                  </button>
+                  <sc-if value="{{ f.p.open }}" hint-placeholder-val="{{ false }}">
+                    <div onClick="{{ closeMenu }}" style="position:fixed;inset:0;z-index:40"></div>
+                    <div style="position:absolute;top:54px;left:0;width:max(100%,320px);z-index:41;background:#fff;border-radius:14px;box-shadow:0 0 0 1px #e1e9e7,0 24px 48px -16px rgba(16,35,58,.3);padding:6px;max-height:320px;overflow:auto;animation:pop .16s ease-out both">
+                      <div style="padding:8px 10px 6px;font-size:10px;font-weight:800;letter-spacing:.14em;color:#8a9aa6">{{ f.p.optsT }}</div>
+                      <sc-for list="{{ f.p.opts }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.pick }}" style="{{ o.st }}" style-hover="background:#f4f8f7"><span style="{{ o.pgSt }}">{{ o.pg }}</span><span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px"><span style="font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ o.n }}</span><span style="{{ o.subSt }}">{{ o.sub }}</span></span><span style="font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap">{{ o.cost }}</span><span style="{{ o.chkSt }}">✓</span></button></sc-for>
+                    </div>
+                  </sc-if>
+                </div>
+                <sc-if value="{{ f.hasDims }}" hint-placeholder-val="{{ false }}">
+                  <div style="position:relative;margin-left:16px">
+                    <button onClick="{{ toggleDims }}" style="display:flex;align-items:center;gap:8px;width:100%;height:32px;padding:0 12px;border:0;border-radius:9px;background:#f6f9f8;cursor:pointer;font-size:12px;font-weight:700;color:#43586a" style-hover="background:#eef3f2"><span style="width:8px;height:10px;border-left:1.5px solid #c3d0ce;border-bottom:1.5px solid #c3d0ce;border-bottom-left-radius:3px;margin-top:-8px"></span><span style="flex:1;text-align:left;font-variant-numeric:tabular-nums">{{ dims }}</span><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#8a9aa6" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></button>
+                    <sc-if value="{{ dimsOpen }}" hint-placeholder-val="{{ false }}">
+                      <div onClick="{{ toggleDims }}" style="position:fixed;inset:0;z-index:40"></div>
+                      <div style="position:absolute;top:38px;left:0;width:max(100%,260px);z-index:41;background:#fff;border-radius:12px;box-shadow:0 0 0 1px #e1e9e7,0 24px 48px -16px rgba(16,35,58,.3);padding:6px;animation:pop .16s ease-out both">
+                        <sc-for list="{{ dimOpts }}" as="o" hint-placeholder-count="4"><button onClick="{{ o.pick }}" style="{{ o.st }}" style-hover="background:#f4f8f7"><span style="flex:1;text-align:left">{{ o.l }}</span><span style="{{ o.chkSt }}">✓</span></button></sc-for>
+                        <div style="padding:8px 10px 4px;font-size:10.5px;line-height:1.45;color:#8a9aa6;border-top:1px solid #f0f4f3;margin-top:4px">Changer de dimension impose de revectoriser tous les documents.</div>
+                      </div>
+                    </sc-if>
+                  </div>
+                </sc-if>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px;min-width:0">
+                <sc-if value="{{ f.hasS }}" hint-placeholder-val="{{ true }}">
+                  <div style="position:relative;min-width:0">
+                    <button onClick="{{ f.s.toggle }}" style="{{ f.s.st }}">
+                      <span style="{{ f.s.pgSt }}">{{ f.s.pg }}</span>
+                      <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="{{ f.s.nSt }}">{{ f.s.n }}</span><span style="{{ f.s.labSt }}"><span style="{{ f.s.dotSt }}"></span>{{ f.s.lab }}</span></span>
+                      <span style="{{ f.s.costSt }}">{{ f.s.cost }}</span>
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#8a9aa6" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg>
+                    </button>
+                    <sc-if value="{{ f.s.open }}" hint-placeholder-val="{{ false }}">
+                      <div onClick="{{ closeMenu }}" style="position:fixed;inset:0;z-index:40"></div>
+                      <div style="position:absolute;top:54px;left:0;width:max(100%,320px);z-index:41;background:#fff;border-radius:14px;box-shadow:0 0 0 1px #e1e9e7,0 24px 48px -16px rgba(16,35,58,.3);padding:6px;max-height:320px;overflow:auto;animation:pop .16s ease-out both">
+                        <div style="padding:8px 10px 6px;font-size:10px;font-weight:800;letter-spacing:.14em;color:#8a9aa6">{{ f.s.optsT }}</div>
+                        <sc-for list="{{ f.s.opts }}" as="o" hint-placeholder-count="2"><button onClick="{{ o.pick }}" style="{{ o.st }}" style-hover="background:#f4f8f7"><span style="{{ o.pgSt }}">{{ o.pg }}</span><span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px"><span style="font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ o.n }}</span><span style="{{ o.subSt }}">{{ o.sub }}</span></span><span style="font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap">{{ o.cost }}</span><span style="{{ o.chkSt }}">✓</span></button></sc-for>
+                      </div>
+                    </sc-if>
+                  </div>
+                  <span style="font-size:11px;color:#8a9aa6;padding-left:2px;font-variant-numeric:tabular-nums">Si le secours prend le relais : {{ f.relay }}</span>
+                </sc-if>
+                <sc-if value="{{ f.noSecours }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;gap:9px;padding:10px 12px;border:1px dashed #d8e1df;border-radius:12px;font-size:11.5px;line-height:1.45;color:#8a9aa6;text-wrap:pretty"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"></circle><path d="M5.6 5.6l12.8 12.8"></path></svg><span>Pas de modèle de secours : un autre modèle imposerait de revectoriser tous les documents.</span></div>
+                </sc-if>
+              </div>
+              <div style="text-align:right;padding-top:8px"><div style="font-size:21px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums">{{ f.costL }}</div><div style="font-size:11px;color:#8a9aa6;margin-top:4px;font-variant-numeric:tabular-nums">{{ f.unit }}</div></div>
+            </div>
+          </sc-for>
+          <div style="display:grid;grid-template-columns:minmax(160px,.85fr) minmax(0,2.6fr) minmax(96px,.5fr);gap:16px;padding:10px 24px 14px 32px;align-items:center;position:relative">
+            <div style="display:flex;align-items:center;gap:14px"><span style="width:10px;height:10px;border-radius:50%;background:#1d8f86;box-shadow:0 0 0 4px #fff"></span><span style="font-size:12.5px;font-weight:800">Réponse</span></div>
+            <span></span>
+            <div style="text-align:right"><div style="font-size:10px;font-weight:800;letter-spacing:.14em;color:#8a9aa6">TOTAL CHAÎNE</div><div style="font-size:15px;font-weight:800;margin-top:3px;font-variant-numeric:tabular-nums">{{ docsTotal }} <span style="font-size:11px;font-weight:600;color:#8a9aa6">par mois</span></div></div>
+          </div>
+        </div>
+      </sc-if>
+      <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:16px 24px;border-top:1px solid #edf2f1;background:#fafcfb;border-radius:0 0 20px 20px;font-size:11px;color:#6b7f8c">
+        <span style="display:flex;align-items:center;gap:7px"><span style="width:18px;border-top:2px solid #1d8f86"></span>Modèle principal</span>
+        <span style="display:flex;align-items:center;gap:7px"><span style="width:18px;border-top:2px dashed #9fb3bf"></span>Secours</span>
+        <span style="display:flex;align-items:center;gap:7px"><span style="width:18px;border-top:2px solid #f07b67"></span>Coupé : clé invalide</span>
+        <span style="display:flex;align-items:center;gap:7px"><span style="width:18px;border-top:2px solid #e3a43b"></span>Secours en service</span>
+        <span style="display:flex;align-items:center;gap:7px"><span style="width:18px;border-top:1px solid #b9c7c5"></span>Suspendu en amont</span>
+        <span style="display:flex;align-items:center;gap:6px"><b style="color:#10233a">64k</b>Max output tokens</span>
+        <span style="flex:1"></span>
+        <span style="font-size:11px;color:#8a9aa6">Estimations calculées sur le volume réel des 30 derniers jours et le tarif actuel de chaque modèle.</span>
+        <span style="display:flex;align-items:baseline;gap:8px;padding-left:16px;border-left:1px solid #e1e9e7"><span style="font-size:10px;font-weight:800;letter-spacing:.14em;color:#8a9aa6">TOTAL</span><b style="font-size:15px;color:#10233a;font-variant-numeric:tabular-nums">{{ total }}</b><span>/ mois</span></span>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <div style="font-size:17px;font-weight:800;letter-spacing:-.01em">Modèles</div><span style="font-size:12.5px;color:#8a9aa6">Coûts en euros par million de tokens</span>
+      <span style="flex:1"></span>
+      <div role="tablist" style="display:inline-flex;gap:2px;padding:3px;border-radius:12px;background:#e3ebe9;flex-wrap:wrap"><sc-for list="{{ filt }}" as="x" hint-placeholder-count="6"><button role="tab" onClick="{{ x.pick }}" style="{{ x.st }}">{{ x.l }}</button></sc-for></div>
+      <button onClick="{{ newModel }}" style="height:36px;padding:0 15px;border:0;border-radius:11px;background:#10233a;color:#fff;font-weight:700;font-size:12.5px;display:inline-flex;align-items:center;gap:8px;cursor:pointer" style-hover="background:#1b3450"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>Ajouter un modèle</button>
+    </div>
+    <div style="background:#fff;border-radius:20px;box-shadow:0 0 0 1px #e1e9e7,0 18px 40px -32px rgba(16,35,58,.35);overflow:hidden">
+      <div style="display:grid;grid-template-columns:minmax(0,2.3fr) 128px 80px 80px minmax(0,1.9fr) 48px 32px;gap:20px;padding:0 24px;height:46px;align-items:center;border-bottom:1px solid #edf2f1">
+        <sc-for list="{{ cols }}" as="c" hint-placeholder-count="6"><button onClick="{{ c.pick }}" style="{{ c.st }}">{{ c.l }}<span style="{{ c.arSt }}">{{ c.ar }}</span></button></sc-for><span></span>
+      </div>
+      <sc-for list="{{ rows }}" as="m" hint-placeholder-count="15">
+        <div style="{{ m.rowSt }}" style-hover="background:#fafcfb">
+          <div style="min-width:0"><div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap"><button onClick="{{ m.edit }}" style="border:0;background:none;padding:0;cursor:pointer;font-size:13.5px;font-weight:800;text-align:left" style-hover="color:#1d8f86">{{ m.n }}</button><span style="{{ m.tSt }}">{{ m.t }}</span><sc-if value="{{ m.hasF }}" hint-placeholder-val="{{ false }}"><span style="{{ m.fSt }}">{{ m.fL }}</span></sc-if></div><div style="font-size:11.5px;color:#7d909c;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ m.d }}</div></div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:#43586a;min-width:0"><span style="{{ m.pgSt }}">{{ m.pg }}</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ m.prov }}</span></div>
+          <div style="text-align:right;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums">{{ m.inL }}</div>
+          <div style="{{ m.outSt }}">{{ m.outL }}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px"><sc-for list="{{ m.uses }}" as="u" hint-placeholder-count="1"><span style="{{ u.st }}">{{ u.l }}</span></sc-for><sc-if value="{{ m.noU }}" hint-placeholder-val="{{ false }}"><span style="color:#c3d0ce">—</span></sc-if></div>
+          <button role="switch" aria-checked="{{ m.on }}" aria-label="Actif" onClick="{{ m.toggle }}" style="{{ m.tgSt }}"><span style="{{ m.knSt }}"></span></button>
+          <button aria-label="Modifier" onClick="{{ m.edit }}" style="width:30px;height:30px;border:0;border-radius:8px;background:none;color:#8a9aa6;cursor:pointer;display:grid;place-items:center" style-hover="background:#f1f5f4;color:#10233a"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4z"></path></svg></button>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</div>
+
+<sc-if value="{{ mdl.open }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeModal }}" style="position:fixed;inset:0;z-index:60;background:rgba(14,33,53,.5);backdrop-filter:blur(3px);display:grid;place-items:center;padding:24px;animation:fade .18s ease-out both">
+    <div onClick="{{ stop }}" style="width:min(820px,100%);max-height:calc(100vh - 48px);display:flex;flex-wrap:wrap;background:#fff;border-radius:22px;overflow:auto;box-shadow:0 40px 80px -30px rgba(14,33,53,.55);animation:pop .22s cubic-bezier(.2,.7,.2,1) both">
+      <div style="flex:1 1 440px;min-width:0;padding:26px 28px 22px;display:flex;flex-direction:column;gap:16px">
+        <div style="font-size:19px;font-weight:800;letter-spacing:-.02em">{{ mdl.title }}</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <span style="font-size:12px;font-weight:700">Que fait ce modèle ?</span>
+          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">
+            <button onClick="{{ mdl.setLLM }}" style="{{ mdl.tLLM }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"></path></svg><span style="font-size:13px;font-weight:800">LLM</span><span style="font-size:11px;color:#8a9aa6;font-weight:500">Génère du texte</span></button>
+            <button onClick="{{ mdl.setEmb }}" style="{{ mdl.tEmb }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="6" cy="17" r="2"></circle><circle cx="12" cy="9" r="2"></circle><circle cx="18" cy="14" r="2"></circle><circle cx="17" cy="5" r="1.5"></circle></svg><span style="font-size:13px;font-weight:800">Embedding</span><span style="font-size:11px;color:#8a9aa6;font-weight:500">Vectorise des textes</span></button>
+            <button onClick="{{ mdl.setRer }}" style="{{ mdl.tRer }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4v16M3 17l3 3 3-3M12 6h9M12 12h7M12 18h4"></path></svg><span style="font-size:13px;font-weight:800">Reranking</span><span style="font-size:11px;color:#8a9aa6;font-weight:500">Reclasse des résultats</span></button>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px">
+          <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:700">Fournisseur</span><select value="{{ mdl.f.p }}" onChange="{{ mdl.on.p }}" style="height:38px;padding:0 10px;border:1px solid #d5dfdd;border-radius:10px;background:#fff;font-size:13px;outline:none" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.14)"><sc-for list="{{ provOpts }}" as="o" hint-placeholder-count="5"><option value="{{ o.id }}">{{ o.n }}</option></sc-for></select></label>
+          <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:700">Nom</span><input value="{{ mdl.f.n }}" onChange="{{ mdl.on.n }}" placeholder="Ex. Claude Sonnet 5" style="height:38px;padding:0 12px;border:1px solid #d5dfdd;border-radius:10px;font-size:13px;outline:none" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.14)"></input></label>
+          <label style="grid-column:1 / 3;display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:700">Description</span><input value="{{ mdl.f.d }}" onChange="{{ mdl.on.d }}" placeholder="À quoi sert ce modèle, en une phrase" style="height:38px;padding:0 12px;border:1px solid #d5dfdd;border-radius:10px;font-size:13px;outline:none" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.14)"></input></label>
+          <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:700">Identifiant chez le fournisseur</span><input value="{{ mdl.f.ident }}" onChange="{{ mdl.on.ident }}" placeholder="ex. claude-sonnet-5" style="height:38px;padding:0 12px;border:1px solid #d5dfdd;border-radius:10px;font-size:13px;font-family:ui-monospace,Menlo,monospace;outline:none" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.14)"></input><span style="font-size:11px;color:#8a9aa6">Nom du modèle dans l’API du fournisseur</span></label>
+          <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:700">Longueur de contexte</span><input value="{{ mdl.f.ctx }}" onChange="{{ mdl.on.ctx }}" placeholder="ex. 32 768" inputMode="numeric" style="height:38px;padding:0 12px;border:1px solid #d5dfdd;border-radius:10px;font-size:13px;outline:none" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.14)"></input><span style="font-size:11px;color:#8a9aa6">Tokens (facultatif)</span></label>
+          <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:700">Date de sortie</span><input type="date" value="{{ mdl.f.date }}" onChange="{{ mdl.on.date }}" style="height:38px;padding:0 12px;border:1px solid #d5dfdd;border-radius:10px;font-size:13px;outline:none" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.14)"></input><sc-if value="{{ mdl.hasAge }}" hint-placeholder-val="{{ false }}"><span style="{{ mdl.ageSt }}"><span style="{{ mdl.ageDot }}"></span>{{ mdl.ageL }}</span></sc-if></label>
+          <sc-if value="{{ mdl.isLLM }}" hint-placeholder-val="{{ true }}"><label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:700">Max output tokens</span><input value="{{ mdl.f.maxOut }}" onChange="{{ mdl.on.maxOut }}" placeholder="ex. 64 000" inputMode="numeric" style="height:38px;padding:0 12px;border:1px solid #d5dfdd;border-radius:10px;font-size:13px;outline:none;font-variant-numeric:tabular-nums" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.14)"></input><span style="font-size:11px;color:#8a9aa6">Longueur maximale d’une réponse</span></label></sc-if>
+          <sc-if value="{{ mdl.isEmb }}" hint-placeholder-val="{{ false }}"><label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:700">Dimensions acceptées</span><input value="{{ mdl.f.dims }}" onChange="{{ mdl.on.dims }}" placeholder="ex. 1024, 1536, 4096" inputMode="numeric" style="height:38px;padding:0 12px;border:1px solid #d5dfdd;border-radius:10px;font-size:13px;outline:none;font-variant-numeric:tabular-nums" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.14)"></input><span style="font-size:11px;color:#8a9aa6">Tailles de vecteur, séparées par des virgules</span></label><label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:700">Dimension par défaut</span><select value="{{ mdl.f.defDim }}" onChange="{{ mdl.on.defDim }}" style="height:38px;padding:0 10px;border:1px solid #d5dfdd;border-radius:10px;background:#fff;font-size:13px;outline:none" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.14)"><sc-for list="{{ mdl.dimOpts }}" as="o" hint-placeholder-count="3"><option value="{{ o.v }}">{{ o.l }}</option></sc-for></select><span style="font-size:11px;color:#8a9aa6">Proposée à l’affectation de la Vectorisation</span></label></sc-if>
+        </div>
+        <div style="padding:16px;border-radius:14px;background:#f6f9f8;display:flex;flex-direction:column;gap:12px">
+          <span style="font-size:12px;font-weight:800">Tarification</span>
+          <div style="display:flex;gap:16px;flex-wrap:wrap">
+            <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:11.5px;font-weight:700;color:#43586a">Entrée</span><span style="display:flex;align-items:center;gap:8px"><input value="{{ mdl.f.i }}" onChange="{{ mdl.on.i }}" inputMode="decimal" placeholder="0,00" style="width:120px;height:38px;padding:0 12px;border:1px solid #d5dfdd;border-radius:10px;background:#fff;font-size:13px;outline:none;font-variant-numeric:tabular-nums" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.14)"></input><span style="font-size:12px;color:#8a9aa6">€ / M tokens</span></span></label>
+            <sc-if value="{{ mdl.isLLM }}" hint-placeholder-val="{{ true }}"><label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:11.5px;font-weight:700;color:#43586a">Sortie</span><span style="display:flex;align-items:center;gap:8px"><input value="{{ mdl.f.o }}" onChange="{{ mdl.on.o }}" inputMode="decimal" placeholder="0,00" style="width:120px;height:38px;padding:0 12px;border:1px solid #d5dfdd;border-radius:10px;background:#fff;font-size:13px;outline:none;font-variant-numeric:tabular-nums" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.14)"></input><span style="font-size:12px;color:#8a9aa6">€ / M tokens</span></span></label></sc-if>
+          </div>
+        </div>
+        <div style="font-size:11px;line-height:1.5;color:#8a9aa6">Un changement de tarif met à jour les estimations de l’affectation. L’historique de consommation n’est pas recalculé.</div>
+        <sc-if value="{{ mdl.showDelNote }}" hint-placeholder-val="{{ false }}"><div style="{{ mdl.delNoteSt }}">{{ mdl.delNote }}</div></sc-if>
+        <div style="display:flex;align-items:center;gap:8px;padding-top:4px">
+          <sc-if value="{{ mdl.isEdit }}" hint-placeholder-val="{{ true }}"><button onClick="{{ mdl.del }}" disabled="{{ mdl.delDisabled }}" style="{{ mdl.delSt }}">{{ mdl.delL }}</button></sc-if>
+          <span style="flex:1"></span>
+          <button onClick="{{ closeModal }}" style="height:36px;padding:0 14px;border:0;border-radius:10px;background:#fff;box-shadow:inset 0 0 0 1px #d5dfdd;font-weight:700;font-size:12.5px;cursor:pointer" style-hover="background:#f6f9f8">Annuler</button>
+          <button onClick="{{ mdl.save }}" disabled="{{ mdl.invalid }}" style="{{ mdl.saveSt }}">{{ mdl.saveL }}</button>
+        </div>
+      </div>
+      <div style="flex:1 1 280px;min-width:0;background:#f4f8f7;box-shadow:-1px 0 0 #e6edeb;padding:26px 22px;display:flex;flex-direction:column;gap:18px">
+        <div style="font-size:10.5px;font-weight:800;letter-spacing:.16em;color:#1d8f86">APERÇU EN DIRECT</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <span style="font-size:10px;font-weight:800;letter-spacing:.14em;color:#8a9aa6">PROPOSÉ POUR</span>
+          <sc-for list="{{ mdl.prev }}" as="x" hint-placeholder-count="5">
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#fff;border-radius:12px;box-shadow:0 0 0 1px #e1e9e7">
+              <span style="{{ x.icSt }}">{{ x.ic }}</span>
+              <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px"><span style="font-size:12px;font-weight:700;line-height:1.3">{{ x.l }}</span><span style="font-size:10.5px;color:#8a9aa6">{{ x.sub }}</span></span>
+              <span style="font-size:12px;font-weight:800;font-variant-numeric:tabular-nums">{{ x.cost }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="height:1px;background:#e1e9e7"></div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:10px;font-weight:800;letter-spacing:.14em;color:#8a9aa6">COÛT SUR LE VOLUME ACTUEL</span>
+          <div style="display:flex;align-items:baseline;gap:6px"><span style="font-size:30px;font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums">{{ mdl.sum }}</span><span style="font-size:12px;color:#8a9aa6;font-weight:600">/ mois</span></div>
+          <span style="font-size:11px;line-height:1.45;color:#8a9aa6">{{ mdl.sumNote }}</span>
+        </div>
+        <div style="height:1px;background:#e1e9e7"></div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:10px;font-weight:800;letter-spacing:.14em;color:#8a9aa6">CONTINUITÉ</span>
+          <span style="font-size:12px;line-height:1.5;color:#43586a;text-wrap:pretty">{{ mdl.cont }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ pv.open }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeModal }}" style="position:fixed;inset:0;z-index:60;background:rgba(14,33,53,.5);backdrop-filter:blur(3px);display:grid;place-items:center;padding:24px;animation:fade .18s ease-out both">
+    <div onClick="{{ stop }}" style="width:min(440px,100%);background:#fff;border-radius:20px;padding:24px 24px 20px;display:flex;flex-direction:column;gap:16px;box-shadow:0 40px 80px -30px rgba(14,33,53,.55);animation:pop .22s cubic-bezier(.2,.7,.2,1) both">
+      <div style="display:flex;flex-direction:column;gap:5px"><span style="font-size:18px;font-weight:800;letter-spacing:-.02em">Ajouter un fournisseur</span><span style="font-size:12.5px;color:#5c7280">La clé est testée dès l’enregistrement. Elle restera masquée.</span></div>
+      <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:700">Nom du fournisseur</span><input autoFocus="{{ true }}" value="{{ pv.name }}" onChange="{{ pv.onName }}" placeholder="Ex. Cohere" style="height:40px;padding:0 12px;border:1px solid #d5dfdd;border-radius:10px;font-size:13px;outline:none" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.14)"></input></label>
+      <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:700">Clé API</span><input type="password" value="{{ pv.key }}" onChange="{{ pv.onKey }}" placeholder="Collez la clé fournie par le fournisseur" autoComplete="off" style="height:40px;padding:0 12px;border:1px solid #d5dfdd;border-radius:10px;font-size:13px;font-family:ui-monospace,Menlo,monospace;outline:none" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.14)"></input></label>
+      <div style="display:flex;justify-content:flex-end;gap:8px;padding-top:2px">
+        <button onClick="{{ closeModal }}" style="height:36px;padding:0 14px;border:0;border-radius:10px;background:#fff;box-shadow:inset 0 0 0 1px #d5dfdd;font-weight:700;font-size:12.5px;cursor:pointer" style-hover="background:#f6f9f8">Annuler</button>
+        <button onClick="{{ pv.submit }}" disabled="{{ pv.invalid }}" style="{{ pv.btnSt }}">Ajouter et tester</button>
+      </div>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ ky.open }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeModal }}" style="position:fixed;inset:0;z-index:60;background:rgba(14,33,53,.5);backdrop-filter:blur(3px);display:grid;place-items:center;padding:24px;animation:fade .18s ease-out both">
+    <div onClick="{{ stop }}" style="width:min(460px,100%);background:#fff;border-radius:20px;padding:24px 24px 20px;display:flex;flex-direction:column;gap:16px;box-shadow:0 40px 80px -30px rgba(14,33,53,.55);animation:pop .22s cubic-bezier(.2,.7,.2,1) both">
+      <div style="display:flex;gap:14px;align-items:flex-start">
+        <span style="width:38px;height:38px;border-radius:11px;background:#fdeeea;color:#c2492f;display:grid;place-items:center;flex:none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg></span>
+        <div style="display:flex;flex-direction:column;gap:5px"><span style="font-size:18px;font-weight:800;letter-spacing:-.02em">Remplacer la clé {{ ky.n }}</span><span style="font-size:12.5px;line-height:1.5;color:#5c7280">L’ancienne clé cesse d’être utilisée dès l’enregistrement. La nouvelle est chiffrée et ne sera plus jamais affichée en clair.</span></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;background:#f4f8f7"><span style="font-size:11.5px;color:#8a9aa6">Clé actuelle</span><span style="font-family:ui-monospace,Menlo,monospace;font-size:12px;color:#8a9aa6;text-decoration:line-through">{{ ky.cur }}</span></div>
+      <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:700">Nouvelle clé API</span><input autoFocus="{{ true }}" type="password" value="{{ ky.val }}" onChange="{{ ky.onVal }}" placeholder="Collez la clé fournie par le fournisseur" autoComplete="off" style="height:40px;padding:0 12px;border:1px solid #d5dfdd;border-radius:10px;font-size:13px;font-family:ui-monospace,Menlo,monospace;outline:none" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.14)"></input></label>
+      <div style="display:flex;justify-content:flex-end;gap:8px;padding-top:2px">
+        <button onClick="{{ closeModal }}" style="height:36px;padding:0 14px;border:0;border-radius:10px;background:#fff;box-shadow:inset 0 0 0 1px #d5dfdd;font-weight:700;font-size:12.5px;cursor:pointer" style-hover="background:#f6f9f8">Annuler</button>
+        <button onClick="{{ ky.submit }}" disabled="{{ ky.invalid }}" style="{{ ky.btnSt }}">Remplacer et tester</button>
+      </div>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ rv.open }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeModal }}" style="position:fixed;inset:0;z-index:60;background:rgba(14,33,53,.5);backdrop-filter:blur(3px);display:grid;place-items:center;padding:24px;animation:fade .18s ease-out both">
+    <div onClick="{{ stop }}" style="width:min(460px,100%);background:#fff;border-radius:20px;padding:24px 24px 20px;display:flex;flex-direction:column;gap:16px;box-shadow:0 40px 80px -30px rgba(14,33,53,.55);animation:pop .22s cubic-bezier(.2,.7,.2,1) both">
+      <div style="display:flex;gap:14px;align-items:flex-start">
+        <span style="width:38px;height:38px;border-radius:11px;background:#fdf3e1;color:#a8670f;display:grid;place-items:center;flex:none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"></path><path d="M21 3v5h-5"></path></svg></span>
+        <div style="display:flex;flex-direction:column;gap:5px"><span style="font-size:18px;font-weight:800;letter-spacing:-.02em">Revectoriser tous les documents ?</span><span style="font-size:12.5px;line-height:1.5;color:#5c7280">Vous allez {{ rv.what }}. {{ rv.text }}</span></div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;padding-top:2px">
+        <button onClick="{{ closeModal }}" style="height:36px;padding:0 14px;border:0;border-radius:10px;background:#fff;box-shadow:inset 0 0 0 1px #d5dfdd;font-weight:700;font-size:12.5px;cursor:pointer" style-hover="background:#f6f9f8">Annuler</button>
+        <button onClick="{{ rv.submit }}" disabled="{{ rv.busy }}" style="{{ rv.btnSt }}">Changer et revectoriser</button>
+      </div>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ toast.open }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:80;display:flex;align-items:center;gap:10px;max-width:min(560px,calc(100vw - 32px));padding:11px 16px 11px 13px;border-radius:13px;background:#0e2135;color:#e8f0f3;font-size:12.5px;font-weight:600;box-shadow:0 20px 40px -16px rgba(14,33,53,.6);animation:pop .2s ease-out both"><span style="{{ toast.dot }}"></span>{{ toast.msg }}</div>
+</sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;invalid&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Aucun&quot;,&quot;Anthropic&quot;,&quot;OpenAI&quot;,&quot;Mistral AI&quot;,&quot;Google&quot;,&quot;OpenRouter&quot;],&quot;default&quot;:&quot;Aucun&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Démo&quot;},&quot;data&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{ providers: any[]; models: any[]; functions: any[]; assignments: any[] } | null&quot;},&quot;api&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Record<string, (...a: any[]) => Promise<any>> | null&quot;}}">
+// Fournisseurs et modèles (livraison « Fournisseurs et modèles », FOURNISSEURS - specification.md).
+// Données réelles : props `data` (GET /providers, /models, /functions, /assignments) et `api` (actions) fournies par la Console
+// (admin-api.js) ; chaque action appelle l'API puis la Console recharge `data`. Sans `data` (écran ouvert seul, Console en
+// ?demo=1) : démonstration de la maquette, simulée localement (init(), coefficients K).
+// Identifiants des fonctions : ceux de la maquette (insights, data, rapports, guidage, vec, rerank, synth) ↔ serveur (FID).
+const FID = { insights: 'insights', data: 'crud', rapports: 'rapports', guidage: 'guidage', vec: 'doc_vec', rerank: 'doc_rrk', synth: 'doc_syn' };
+const CAT = { LLM: 'LLM', EMBEDDING: 'Embedding', RERANKING: 'Reranking' }, CATU = { LLM: 'LLM', Embedding: 'EMBEDDING', Reranking: 'RERANKING' };
+// Couleurs des monogrammes : celles de la maquette pour les fournisseurs connus, sinon une couleur de la palette.
+const PCOL = { anthropic: ['#c4693f', '#f0a07f'], openai: ['#10233a', '#d5e2ea'], mistral: ['#d9761c', '#ffb066'], google: ['#3a6fd8', '#8fb1ff'], openrouter: ['#6152cc', '#b3a8ff'], cohere: ['#2f8f6a', '#7fe0b8'] };
+// Monogramme : l'initiale, sauf OpenRouter (« R », comme la maquette, pour le distinguer d'OpenAI).
+const PGLYPH = { openrouter: 'R' };
+const PAL = [['#2f8f6a', '#7fe0b8'], ['#b0457a', '#ff9ccb'], ['#8a6d1d', '#f0cf6f'], ['#2c7da0', '#8fd3f0']];
+const colOf = (id, i) => PCOL[id] || PAL[[...String(id)].reduce((a, c) => a + c.charCodeAt(0), i || 0) % PAL.length];
+const STATE = { NOMINAL: 'ok', FALLBACK: 'fb', UNAVAILABLE: 'down', BLOCKED: 'susp' };
+const nf1 = v => v.toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const errMsg = e => (e && (e.message || e.msg)) || 'Action impossible';
+const testedAt = iso => { if (!iso) return 'Jamais testée'; const d = new Date(iso); return 'Testée le ' + d.toLocaleDateString('fr-FR') + ' à ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }); };
+
+class Component extends DCLogic {
+  state = this.init();
+  init() {
+    const pv = (id, n, g, c, dk, pre, k) => ({ id, n, g, c, dk, pre, k, bad: false, testing: false });
+    const providers = [
+      pv('anthropic', 'Anthropic', 'A', '#c4693f', '#f0a07f', 'sk-ant-', '3f2a'),
+      pv('openai', 'OpenAI', 'O', '#10233a', '#d5e2ea', 'sk-', '91cd'),
+      pv('mistral', 'Mistral AI', 'M', '#d9761c', '#ffb066', '', '7b04'),
+      pv('google', 'Google', 'G', '#3a6fd8', '#8fb1ff', 'AIza', 'e5d1'),
+      pv('openrouter', 'OpenRouter', 'R', '#6152cc', '#b3a8ff', 'sk-or-', '8edb')
+    ];
+    const md = (id, n, t, p, i, o, date, ident, maxOut, d) => ({ id, n, t, p, i, o, date, ident, ctx: '', maxOut, d, on: true, dims: t === 'Embedding' ? [1024, 1536, 2048, 4096] : [], defDim: t === 'Embedding' ? 1024 : null });
+    const models = [
+      md('bge', 'BAAI bge-m3', 'Embedding', 'openrouter', .01, null, '2024-02-01', 'baai/bge-m3', null, 'Embedding multilingue produisant des vecteurs denses de 1 024 dimensions.'),
+      md('haiku', 'Claude Haiku 4.5', 'LLM', 'anthropic', .88, 4.38, '2025-10-15', 'claude-haiku-4-5', 64000, 'Le plus rapide et le moins cher : tâches simples, faible latence…'),
+      md('opus', 'Claude Opus 5.5', 'LLM', 'anthropic', 3.51, 17.54, '2026-08-01', 'claude-opus-5-5', 128000, 'Code agentique de longue durée et travail intellectuel ; modèle…'),
+      md('sonnet', 'Claude Sonnet 5', 'LLM', 'anthropic', 1.7539, 8.7696, '2026-06-30', 'claude-sonnet-5', 128000, 'Meilleur compromis vitesse et intelligence ; remplace Sonnet 4.6.'),
+      md('flashlite', 'Gemini 3.5 Flash-Lite', 'LLM', 'google', .26, 2.19, '2026-03-01', 'gemini-3.5-flash-lite', 64000, 'Multimodal, faible latence et bas coût : sous-agents, analyse de…'),
+      md('flash', 'Gemini 3.8 Flash', 'LLM', 'google', .66, 3.29, '2026-07-01', 'gemini-3.8-flash', 64000, 'Flash le plus avancé : génie logiciel sur tâches longues, agents…'),
+      md('astra', 'GPT-6 Astra', 'LLM', 'openai', 8.77, 43.85, '2026-05-01', 'gpt-6-astra', 128000, 'Le plus performant d’OpenAI : raisonnement complexe, code…'),
+      md('luna', 'GPT-6 Luna', 'LLM', 'openai', .09, .44, '2026-05-01', 'gpt-6-luna', 32000, 'Le plus efficace de la famille : tâches ciblées à fort volume.'),
+      md('sol', 'GPT-6 Sol', 'LLM', 'openai', 1.75, 8.77, '2026-05-01', 'gpt-6-sol', 128000, 'Code complexe et flux agentiques, pour un coût inférieur à Astra.'),
+      md('ministral', 'Ministral 3 14B', 'LLM', 'mistral', .18, .18, '2025-12-01', 'ministral-3-14b', 32000, 'Le plus grand Ministral 3 (texte et vision), pour les tâches simples…'),
+      md('medium', 'Mistral Medium 3.5', 'LLM', 'mistral', 1.32, 6.58, '2026-02-01', 'mistral-medium-3.5', 64000, 'Modèle phare multimodal (128 Md de paramètres, poids ouverts)…'),
+      md('small', 'Mistral Small 4', 'LLM', 'mistral', .13, .53, '2026-04-01', 'mistral-small-4', 32000, 'Modèle hybride économique (MoE) réunissant instruction, raisonnement…'),
+      md('qwen', 'Qwen3 Embedding 8B', 'Embedding', 'openrouter', .01, null, '2025-07-01', 'qwen/qwen3-embedding-8b', null, 'Embedding multilingue pour textes longs : recherche de textes…'),
+      md('voyage', 'Voyage rerank-2.5', 'Reranking', 'openrouter', .04, null, '2025-09-01', 'voyage/rerank-2.5', null, 'Reranker de qualité (VoyageAI by MongoDB) : environ 7,9 % de mieux…'),
+      md('voyagelite', 'Voyage rerank-2.5-lite', 'Reranking', 'openrouter', .02, null, '2025-09-01', 'voyage/rerank-2.5-lite', null, 'Version rapide et économique de rerank-2.5 (VoyageAI by MongoDB).')
+    ];
+    const assign = { insights: { p: 'sonnet', s: 'flash' }, data: { p: 'luna', s: 'flashlite' }, rapports: { p: 'sonnet', s: 'opus' }, guidage: { p: 'haiku', s: 'luna' }, vec: { p: 'qwen', s: null }, rerank: { p: 'voyage', s: 'voyagelite' }, synth: { p: 'sonnet', s: 'flash' } };
+    return { providers, models, assign, menu: null, modal: null, toast: null, docs: true, fa: 'all', sk: 'n', sd: 1, dims: 1536, dimsOpen: false, testing: {}, busy: false };
+  }
+  componentWillUnmount() { (this._t || []).forEach(clearTimeout); clearTimeout(this._tt); }
+  later(fn, ms) { (this._t = this._t || []).push(setTimeout(fn, ms)); }
+  toast(msg, tone) { clearTimeout(this._tt); this.setState({ toast: { msg, tone: tone || 'ok' } }); this._tt = setTimeout(() => this.setState({ toast: null }), 3000); }
+  /** Mode réel : écran branché par la Console (`api`) ; données vides tant qu'elles se chargent (jamais la démonstration). */
+  real() { return !!this.props.api; }
+  isBad(p) { if (!p) return false; if (this.real()) return p.bad; const sim = this.props.invalid; return !!(p.bad || (sim && sim !== 'Aucun' && sim === p.n)); }
+
+  /** Données au format de la maquette : réelles (props) ou de démonstration (état). */
+  data() {
+    const st = this.state;
+    if (!this.real()) {
+      return { providers: st.providers.map(p => ({ ...p, testing: p.testing || !!st.testing[p.id] })), models: st.models, assign: st.assign, dims: st.dims, fn: null, states: null };
+    }
+    const D = this.props.data || { providers: [], models: [], functions: [], assignments: [] };
+    const providers = (D.providers || []).map((p, i) => { const c = colOf(p.id, i); return { id: p.id, n: p.name, g: PGLYPH[p.id] || (p.name || '?').trim()[0].toUpperCase(), c: c[0], dk: c[1], pre: p.keyPrefix || '', k: p.keyLast4 || '', bad: p.status === 'ERROR' || !p.hasKey, testing: !!st.testing[p.id], at: p.lastTestedAt }; });
+    const models = (D.models || []).map(m => ({ id: m.id, n: m.name, t: CAT[m.category] || m.category, p: m.providerId, i: m.price && m.price.unit === 'REQUESTS' ? m.price.per1k : m.priceIn, o: m.category === 'LLM' ? m.priceOut : null, unit: (m.price && m.price.unit) || 'TOKENS', date: m.releaseDate || '', ident: m.providerModelId || '', ctx: m.contextTokens ? String(m.contextTokens) : '', maxOut: m.maxOutputTokens, d: m.description || '', on: m.active, dims: m.dimensions || [], defDim: m.defaultDimension }));
+    const assign = {}, states = {}, fn = {};
+    Object.entries(FID).forEach(([k, sid]) => {
+      const a = (D.assignments || []).find(x => x.functionId === sid) || {};
+      assign[k] = { p: a.primary || null, s: a.fallback || null };
+      states[k] = STATE[a.state] || 'down';
+      fn[k] = (D.functions || []).find(x => x.id === sid) || {};
+    });
+    const vec = (D.assignments || []).find(x => x.functionId === 'doc_vec') || {};
+    return { providers, models, assign, dims: vec.dimension || null, fn, states };
+  }
+
+  /** Test d'une ou de toutes les clés ; résultat en toast (« Connecté » / « Clé invalide »). */
+  test(ids) {
+    const D = this.data();
+    this.setState(s => ({ testing: { ...s.testing, ...Object.fromEntries(ids.map(i => [i, true])) } }));
+    const done = list => {
+      this.setState(s => { const t = { ...s.testing }; ids.forEach(i => delete t[i]); return { testing: t }; });
+      const ps = list.filter(p => ids.includes(p.id)), bad = ps.filter(p => p.bad);
+      if (ps.length === 1) this.toast(bad.length ? `${ps[0].n} : clé invalide. Les routes concernées basculent sur leur secours.` : `${ps[0].n} : connexion réussie.`, bad.length ? 'err' : 'ok');
+      else this.toast(bad.length ? `${ps.length - bad.length} clés valides · ${bad.length} invalide${bad.length > 1 ? 's' : ''}` : `${ps.length} clés testées · toutes valides`, bad.length ? 'err' : 'ok');
+    };
+    if (!this.real()) return this.later(() => done(this.state.providers.map(p => ({ id: p.id, n: p.n, bad: this.isBad(p) }))), 1300);
+    const A = this.props.api, all = ids.length > 1 && ids.length === D.providers.length;
+    (all ? A.testAll() : Promise.all(ids.map(i => A.testKey(i))).then(r => r.flat()))
+      .then(list => done((list || []).map(p => ({ id: p.id, n: p.name, bad: p.status === 'ERROR' || !p.hasKey }))))
+      .catch(e => { this.setState(s => { const t = { ...s.testing }; ids.forEach(i => delete t[i]); return { testing: t }; }); this.toast(errMsg(e), 'err'); });
+  }
+
+  /** Affectation d'une fonction (mode réel : PUT /assignments, puis rechargement par la Console). */
+  assign(fid, patch, okMsg) {
+    if (!this.real()) {
+      if (patch.dimension != null) this.setState({ dims: patch.dimension });
+      else this.setState(s => ({ assign: { ...s.assign, [fid]: { ...s.assign[fid], ...patch } } }));
+      if (okMsg) this.toast(okMsg, patch.dimension != null ? 'warn' : 'ok');
+      return Promise.resolve();
+    }
+    const D = this.data(), a = D.assign[fid];
+    const body = { primary: patch.p !== undefined ? patch.p : a.p, fallback: patch.s !== undefined ? patch.s : a.s };
+    if (fid === 'vec') body.dimension = patch.dimension != null ? patch.dimension : patch.p !== undefined && patch.p !== a.p ? null : D.dims;
+    this.setState({ busy: true });
+    return this.props.api.saveAssignment(FID[fid], body)
+      .then(() => { this.setState({ busy: false }); if (okMsg) this.toast(okMsg, fid === 'vec' && (patch.dimension != null || patch.p !== undefined) ? 'warn' : 'ok'); })
+      .catch(e => { this.setState({ busy: false }); this.toast(errMsg(e), 'err'); });
+  }
+
+  renderVals() {
+    const st = this.state, D = this.data(), REAL = this.real();
+    const P = Object.fromEntries(D.providers.map(p => [p.id, p]));
+    const byId = Object.fromEntries(D.models.map(m => [m.id, m]));
+    const r2 = v => Math.round(v * 100) / 100;
+    const eur = v => v == null ? '—' : r2(v).toFixed(2).replace('.', ',') + ' €';
+    const num = s => { const v = parseFloat(String(s).replace(/\s/g, '').replace(',', '.')); return isNaN(v) ? null : v; };
+    const mono = (pid, sz, dark) => { const p = P[pid] || { c: '#8a9aa6', dk: '#cfe0ea', g: '?' }; return `width:${sz}px;height:${sz}px;border-radius:${Math.round(sz * .3)}px;background:${dark ? 'rgba(255,255,255,.07)' : p.c + '16'};color:${dark ? p.dk : p.c};font-size:${Math.round(sz * .45)}px;font-weight:800;display:grid;place-items:center;flex:none`; };
+    const bad = pid => this.isBad(P[pid]);
+    // Coût mensuel estimé : volume réel des 30 derniers jours de la fonction × tarif courant du modèle (entrée et sortie,
+    // ou requêtes pour un tarif à la requête) ; démonstration : coefficients K de la maquette.
+    const K = { insights: .98 / 10.52, data: .09 / 10.52, rapports: 0, guidage: 1.55 / 5.26, vec: 0, rerank: 0, synth: .83 / 10.52 };
+    const vol = fid => (REAL && D.fn[fid] && D.fn[fid].volume30d) || { tokensIn: 0, tokensOut: 0, requests: 0 };
+    const costOf = (fid, i, o, unit) => {
+      if (!REAL) return K[fid] * ((i || 0) + (o || 0));
+      const v = vol(fid);
+      return unit === 'REQUESTS' ? v.requests / 1000 * (i || 0) : (v.tokensIn * (i || 0) + v.tokensOut * (o || 0)) / 1e6;
+    };
+    const cost = (fid, m) => m ? costOf(fid, m.i, m.o, m.unit) : 0;
+    const volL = (fid, sep) => { if (!REAL) return ({ insights: '0,5 M tokens', data: '0,0 M tokens', rapports: '0,0 M tokens', guidage: '1,7 M tokens', vec: '0,1 M tokens' })[fid] + sep + '30 j'; const v = vol(fid); return nf1((v.tokensIn + v.tokensOut) / 1e6) + ' M tokens' + sep + '30 j'; };
+    const isNew = (fid, def) => REAL ? !!(D.fn[fid] && D.fn[fid].isNew) : def;
+    const FN = [
+      { id: 'insights', n: 'Insights', long: 'Analyse des données et Insights', t: 'LLM' },
+      { id: 'data', n: 'Gestion des données', long: 'Création, modification et suppression des données', t: 'LLM' },
+      { id: 'rapports', n: 'Rapports', long: 'Génération de rapports', nouveau: isNew('rapports', true), t: 'LLM', isR: true },
+      { id: 'guidage', n: 'Guidage console / Cockpit', short: 'Guidage console', long: 'Guider l’utilisateur sur la console', nouveau: isNew('guidage', true), t: 'LLM' }
+    ];
+    const ST = [
+      { id: 'vec', k: 1, n: 'Vectorisation', t: 'Embedding', tag: 'EMBEDDING', d: 'Découpe le texte extrait en passages et les transforme en vecteurs pour la recherche sémantique.', unit: m => `${eur(m.i).replace(' €', '')} € / M entrée` },
+      { id: 'rerank', k: 2, n: 'Reclassement', t: 'Reranking', tag: 'RERANKING', d: 'Réordonne les passages trouvés selon leur pertinence réelle par rapport à la question posée.', unit: m => m.unit === 'REQUESTS' ? `${eur(m.i).replace(' €', '')} € / 1 000 requêtes` : `${eur(m.i).replace(' €', '')} € / M entrée` },
+      { id: 'synth', k: 3, n: 'Synthèse', t: 'LLM', tag: 'LLM', d: 'Rédige une réponse claire à partir des passages retenus : décisions, actions, risques.', unit: m => `${eur(m.i).replace(' €', '').replace(',00', '')} – ${eur(m.o).replace(' €', '')} € / M` }
+    ];
+    const label = id => { const f = FN.find(x => x.id === id) || ST.find(x => x.id === id); return f.short || f.n; };
+    const uses = {};
+    Object.entries(D.assign).forEach(([fid, a]) => { if (a.p) (uses[a.p] = uses[a.p] || []).push({ fid, r: 'principal' }); if (a.s) (uses[a.s] = uses[a.s] || []).push({ fid, r: 'secours' }); });
+    const order = ['insights', 'data', 'rapports', 'guidage', 'vec', 'rerank', 'synth'];
+    Object.values(uses).forEach(u => u.sort((a, b) => (a.r === 'principal' ? 0 : 1) - (b.r === 'principal' ? 0 : 1) || order.indexOf(a.fid) - order.indexOf(b.fid)));
+    const NONE = { id: null, n: 'Aucun modèle', p: null, i: null, o: null, on: false };
+
+    // États de route : ceux du serveur en mode réel (clé, modèle actif, chaîne Documents), sinon calculés sur les clés.
+    const route = (fid, upstreamDown) => {
+      const a = D.assign[fid], pm = byId[a.p] || NONE, sm = a.s ? byId[a.s] || null : null;
+      const pCut = !pm.id || bad(pm.p) || (REAL && !pm.on), sCut = !sm || bad(sm.p) || (REAL && !sm.on);
+      const s = REAL ? D.states[fid] : upstreamDown ? 'susp' : !pCut ? 'ok' : !sCut ? 'fb' : 'down';
+      return { a, pm, sm, pCut, sCut, s };
+    };
+    const stInfo = {
+      ok: ['Opérationnel', '#1d8f86'], fb: ['Secours en service', '#b07610'], down: ['À l’arrêt', '#c2492f'], susp: ['Suspendu en amont', '#8a9aa6']
+    };
+    const pill = (s, fem) => {
+      const [l, c] = stInfo[s];
+      return { stL: s === 'ok' && fem ? 'Opérationnelle' : l, stSt: `display:flex;align-items:center;gap:5px;font-weight:700;color:${c};white-space:nowrap`, stDot: `width:5px;height:5px;border-radius:50%;background:${c};flex:none` };
+    };
+    const chipBase = 'display:flex;align-items:center;gap:10px;width:100%;height:48px;padding:0 12px 0 10px;border-radius:12px;cursor:pointer;text-align:left;min-width:0;transition:box-shadow .15s,background .15s,opacity .2s;';
+    const chip = (fid, role, m, mode, need, other) => {
+      const v = {
+        pOk: ['border:0;background:#f1faf8;box-shadow:inset 0 0 0 1px #b6e0da', 'répond', '#1d8f86', 'background:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.16)', '#10233a'],
+        cut: ['border:0;background:#fff5f2;box-shadow:inset 0 0 0 1px #f2b3a6', 'coupé · clé invalide', '#c2492f', 'background:#f07b67', '#8a9aa6'],
+        ready: ['border:1px dashed #c6d3d1;background:#fff', 'prêt', '#8a9aa6', 'display:none', '#43586a'],
+        serv: ['border:0;background:#fff8ec;box-shadow:inset 0 0 0 1px #efc677', 'en service · répond', '#b07610', 'background:#e3a43b;box-shadow:0 0 0 3px rgba(227,164,59,.2)', '#10233a'],
+        susp: ['border:1px solid #e6edeb;background:#fafcfb;opacity:.55', 'suspendu en amont', '#8a9aa6', 'display:none', '#8a9aa6']
+      }[mode];
+      const open = !!(st.menu && st.menu.fid === fid && st.menu.role === role);
+      const opts = D.models.filter(x => x.t === need && x.on && x.id !== other).sort((a, b) => cost(fid, a) - cost(fid, b) || a.n.localeCompare(b.n)).map(x => {
+        const cur = x.id === m.id, xb = bad(x.p);
+        return {
+          n: x.n, pg: (P[x.p] || {}).g, pgSt: mono(x.p, 24), cost: eur(cost(fid, x)), sub: xb ? `${(P[x.p] || {}).n} · clé invalide` : (P[x.p] || {}).n,
+          subSt: `font-size:10.5px;color:${xb ? '#c2492f' : '#8a9aa6'}`,
+          chkSt: `width:14px;color:#1d8f86;font-weight:800;visibility:${cur ? 'visible' : 'hidden'}`,
+          st: `display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;border:0;border-radius:10px;cursor:pointer;text-align:left;background:${cur ? '#f1faf8' : 'transparent'}`,
+          pick: () => {
+            this.setState({ menu: null });
+            if (cur) return;
+            const patch = role === 'principal' ? { p: x.id } : { s: x.id }, msg = `${label(fid)} : ${x.n} en ${role}.`;
+            // Vectorisation : un autre modèle impose de revectoriser tous les documents ; confirmation d'abord.
+            if (fid === 'vec' && role === 'principal') return this.setState({ modal: { kind: 'revec', fid, patch, msg: `Vectorisation : ${x.n}. Revectorisation des documents planifiée.`, what: `passer la Vectorisation sur ${x.n}` } });
+            this.assign(fid, patch, msg);
+          }
+        };
+      });
+      return {
+        n: m.n, pg: (P[m.p] || {}).g, pgSt: mono(m.p, 24), cost: eur(cost(fid, m)), lab: v[1], open, opts, optsT: `MODÈLES ${need.toUpperCase()} ACTIFS · COÛT ESTIMÉ`,
+        st: chipBase + v[0] + (open ? ';box-shadow:inset 0 0 0 1.5px #1d8f86' : ''),
+        nSt: `font-size:13px;font-weight:${role === 'principal' ? 800 : 700};color:${v[4]};white-space:nowrap;overflow:hidden;text-overflow:ellipsis`,
+        labSt: `display:flex;align-items:center;gap:5px;white-space:nowrap;overflow:hidden;font-size:10.5px;font-weight:700;color:${v[2]}`, dotSt: `width:5px;height:5px;border-radius:50%;flex:none;${v[3]}`,
+        costSt: `white-space:nowrap;font-size:13px;font-weight:${role === 'principal' ? 800 : 700};color:${v[4] === '#8a9aa6' ? '#8a9aa6' : role === 'principal' ? '#10233a' : '#43586a'};font-variant-numeric:tabular-nums`,
+        toggle: () => this.setState({ menu: open ? null : { fid, role }, dimsOpen: false })
+      };
+    };
+    const modes = r => ({ p: r.s === 'susp' ? 'susp' : r.pCut ? 'cut' : 'pOk', s: r.s === 'susp' ? 'susp' : r.s === 'fb' ? 'serv' : (r.sm && r.sCut) ? 'cut' : 'ready' });
+    const live = r => r.s === 'ok' ? r.pm : r.s === 'fb' ? r.sm : null;
+    let total = 0;
+    const kfmt = v => v ? Math.round(v / 1000) + 'k' : '—';
+    const need = REAL ? ((D.fn.rapports && D.fn.rapports.needOut) || 38000) : 38000;
+    const fnsRaw = FN.map(f => {
+      const r = route(f.id), md = modes(r), c = cost(f.id, live(r)); total += c;
+      const g = f.isR ? (() => {
+        const bar = (m) => { const mo = m && m.maxOut; const ok = mo && mo >= need; return [`height:100%;width:${Math.min(100, (mo || 0) / 128000 * 100)}%;border-radius:2px;background:${ok ? '#1d8f86' : '#f07b67'}`, `width:32px;text-align:right;font-size:10.5px;font-weight:800;color:${ok ? '#1d8f86' : '#c2492f'}`, kfmt(mo)]; };
+        const p = bar(r.pm), s = bar(r.sm);
+        return { pSt: p[0], pLSt: p[1], pL: p[2], sSt: s[0], sLSt: s[1], sL: s[2], markSt: `position:absolute;top:-5px;bottom:-5px;left:calc(16px + (100% - 56px) * ${Math.min(1, need / 128000).toFixed(3)});width:2px;border-radius:1px;background:#10233a` };
+      })() : {};
+      return { id: f.id, n: f.n, nouveau: !!f.nouveau, vol: volL(f.id, ' · '), ...pill(r.s), p: chip(f.id, 'principal', r.pm, md.p, 'LLM', r.a.s), s: chip(f.id, 'secours', r.sm || NONE, md.s, 'LLM', r.a.p), relay: `≈ ${eur(cost(f.id, r.sm))} / mois`, cost: c, costL: eur(c), isR: !!f.isR, needL: need.toLocaleString('fr-FR'), g };
+    });
+    let up = false, docsCost = 0, worst = 'ok';
+    const docs = ST.map(s => {
+      const r = route(s.id, up), md = modes(r), c = cost(s.id, live(r)); docsCost += c;
+      if (r.s === 'down') up = true;
+      if (r.s !== 'ok' && worst === 'ok') worst = r.s;
+      if (r.s === 'down') worst = 'down';
+      const numC = r.s === 'ok' ? '#1d8f86' : r.s === 'fb' ? '#e3a43b' : r.s === 'down' ? '#f07b67' : '#c3d0ce';
+      return {
+        k: s.k, n: s.n, t: s.tag, d: s.d, ...pill(r.s, true), notOk: r.s !== 'ok', p: chip(s.id, 'principal', r.pm, md.p, s.t, r.a.s), hasS: !!r.sm, noSecours: !r.sm,
+        s: r.sm ? chip(s.id, 'secours', r.sm, md.s, s.t, r.a.p) : {}, relay: r.sm ? `≈ ${eur(cost(s.id, r.sm))} / mois` : '', hasDims: s.id === 'vec', unit: s.unit(r.pm), costL: eur(c),
+        numSt: `width:26px;height:26px;border-radius:50%;background:${numC};color:#fff;font-size:12px;font-weight:800;display:grid;place-items:center;flex:none;box-shadow:0 0 0 4px #fff;transition:background .2s`
+      };
+    });
+    docs.forEach(d => { if (d.notOk) d.stSt += ';margin-top:6px;font-size:11px'; });
+    total += docsCost;
+    const fns = fnsRaw.map(f => ({ ...f, shareSt: `height:100%;width:${total ? f.cost / total * 100 : 0}%;background:#1d8f86;border-radius:2px;transition:width .3s` }));
+    const dp = pill(worst === 'susp' ? 'down' : worst, true);
+    const docSt = { l: worst === 'ok' ? 'Opérationnelle' : worst === 'fb' ? 'Secours en service' : 'À l’arrêt', st: `display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;color:${stInfo[worst === 'susp' ? 'down' : worst][1]}`, dot: dp.stDot };
+
+    // Bandeau Fournisseurs (sans indicateur de temps de réponse) ; horodatage du dernier test en infobulle.
+    const nBad = D.providers.filter(p => !p.testing && this.isBad(p)).length, nOk = D.providers.length - nBad;
+    const provs = D.providers.map(p => {
+      const b = !p.testing && this.isBad(p);
+      return {
+        n: p.n, g: p.g, pgSt: mono(p.id, 34, true), testing: p.testing, idle: !p.testing, at: REAL ? testedAt(p.at) : '',
+        stL: p.testing ? 'Test en cours…' : b ? 'Clé invalide' : 'Connecté',
+        stSt: `display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;color:${p.testing ? '#9fb3c2' : b ? '#ff9d8a' : '#3fd1c1'}`,
+        dotSt: `width:6px;height:6px;border-radius:50%;background:${b ? '#f07b67' : '#3fd1c1'};box-shadow:0 0 0 3px ${b ? 'rgba(240,123,103,.2)' : 'rgba(63,209,193,.18)'}`,
+        keyL: `${p.pre}••••••••${p.k}`,
+        cellSt: `padding:18px 20px;display:flex;flex-direction:column;gap:13px;box-shadow:-1px 0 0 rgba(255,255,255,.07),0 -1px 0 rgba(255,255,255,.07);transition:background .25s;background:${b ? 'rgba(240,123,103,.07)' : 'transparent'}`,
+        test: () => this.test([p.id]),
+        replace: () => this.setState({ modal: { kind: 'key', pid: p.id, val: '' }, menu: null })
+      };
+    });
+    const band = { okL: `${nOk} connecté${nOk > 1 ? 's' : ''}`, hasBad: nBad > 0, badL: `${nBad} clé${nBad > 1 ? 's' : ''} invalide${nBad > 1 ? 's' : ''}`, busy: D.providers.some(p => p.testing) };
+
+    // Catalogue
+    const now = new Date();
+    const ageM = d => { if (!d) return null; const x = new Date(d + 'T00:00:00'); if (isNaN(x)) return null; let m = (now.getFullYear() - x.getFullYear()) * 12 + now.getMonth() - x.getMonth(); if (now.getDate() < x.getDate()) m--; return Math.max(0, m); };
+    const tagBase = 'height:19px;padding:0 7px;border-radius:6px;font-size:10px;font-weight:800;display:inline-flex;align-items:center;white-space:nowrap;';
+    const typeSt = { LLM: 'background:#e4f4f1;color:#1d8f86', Embedding: 'background:#ecebfb;color:#5b4fc4', Reranking: 'background:#e8eefb;color:#3f63b8' };
+    const chipP = 'height:22px;padding:0 9px;border-radius:7px;background:#10233a;color:#fff;font-size:10.5px;font-weight:700;display:inline-flex;align-items:center;white-space:nowrap';
+    const chipS = 'height:22px;padding:0 9px;border-radius:7px;background:#fff;color:#43586a;box-shadow:inset 0 0 0 1px #cfdad8;font-size:10.5px;font-weight:600;display:inline-flex;align-items:center;white-space:nowrap';
+    const keyVal = { n: m => m.n, prov: m => (P[m.p] || {}).n || '', i: m => m.i, o: m => m.o == null ? -1 : m.o, u: m => (uses[m.id] || []).length, on: m => m.on ? 1 : 0 };
+    const rows = D.models.filter(m => st.fa === 'all' || m.p === st.fa).slice().sort((a, b) => { const x = keyVal[st.sk](a), y = keyVal[st.sk](b); return (typeof x === 'string' ? x.localeCompare(y) : x - y) * st.sd || a.n.localeCompare(b.n); }).map(m => {
+      const am = ageM(m.date), u = uses[m.id] || [];
+      const flag = am == null || am < 12 ? null : am < 24 ? ['À surveiller · ' + am + ' mois', 'background:#fdf3e1;color:#a8670f'] : ['Ancien · ' + am + ' mois', 'background:#fdeeea;color:#b8432f'];
+      return {
+        n: m.n, d: m.d, t: m.t, tSt: tagBase + typeSt[m.t], hasF: !!flag, fL: flag ? flag[0] : '', fSt: flag ? tagBase + flag[1] : '',
+        prov: (P[m.p] || {}).n, pg: (P[m.p] || {}).g, pgSt: mono(m.p, 20), inL: eur(m.i), outL: eur(m.o),
+        outSt: `text-align:right;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;color:${m.o == null ? '#c3d0ce' : '#10233a'}`,
+        uses: u.map(x => ({ l: `${label(x.fid)} · ${x.r}`, st: x.r === 'principal' ? chipP : chipS })), noU: !u.length, on: m.on,
+        rowSt: `display:grid;grid-template-columns:minmax(0,2.3fr) 128px 80px 80px minmax(0,1.9fr) 48px 32px;gap:20px;padding:13px 24px;align-items:center;border-bottom:1px solid #f0f4f3;transition:opacity .2s;opacity:${m.on ? 1 : .5}`,
+        toggle: () => {
+          if (m.on && u.length) { this.toast(`${m.n} est affecté (${u.map(x => label(x.fid)).join(', ')}). Réaffectez-le avant de le désactiver.`, 'warn'); return; }
+          if (!REAL) { this.setState(s => ({ models: s.models.map(x => x.id === m.id ? { ...x, on: !x.on } : x) })); this.toast(`${m.n} ${m.on ? 'désactivé' : 'activé'}.`); return; }
+          this.props.api.setActive(m.id, !m.on).then(() => this.toast(`${m.n} ${m.on ? 'désactivé' : 'activé'}.`)).catch(e => this.toast(errMsg(e), 'warn'));
+        },
+        tgSt: `width:32px;height:18px;border:0;border-radius:9px;padding:2px;cursor:pointer;display:flex;align-items:center;transition:background .2s;background:${m.on ? '#1d8f86' : '#cdd8d6'};flex:none`,
+        knSt: `width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(16,35,58,.25);transition:transform .2s cubic-bezier(.3,.7,.2,1);transform:translateX(${m.on ? 14 : 0}px)`,
+        edit: () => this.setState({ menu: null, modal: { kind: 'model', mode: 'edit', id: m.id, confirm: false, saving: false, f: { t: m.t, p: m.p, n: m.n, d: m.d, ident: m.ident, ctx: m.ctx || '', date: m.date || '', maxOut: m.maxOut ? String(m.maxOut) : '', i: m.i == null ? '' : String(m.i).replace('.', ','), o: m.o == null ? '' : String(m.o).replace('.', ','), dims: (m.dims || []).join(', '), defDim: m.defDim != null ? String(m.defDim) : '' } } })
+      };
+    });
+    const cols = [['n', 'Modèle', 0], ['prov', 'Fournisseur', 0], ['i', 'Entrée', 1], ['o', 'Sortie', 1], ['u', 'Utilisé par', 0], ['on', 'Actif', 0]].map(([k, l, r]) => {
+      const act = st.sk === k;
+      return { l, ar: act ? (st.sd > 0 ? '↑' : '↓') : '↕', arSt: `color:${act ? '#1d8f86' : '#c3d0ce'};font-size:11px`, pick: () => this.setState(s => ({ sk: k, sd: s.sk === k ? -s.sd : 1 })),
+        st: `display:flex;align-items:center;gap:5px;justify-content:${r ? 'flex-end' : 'flex-start'};border:0;background:none;padding:0;cursor:pointer;font-size:10.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:${act ? '#10233a' : '#8a9aa6'}` };
+    });
+    const filt = [{ id: 'all', n: 'Tous' }].concat(D.providers).map(x => {
+      const on = st.fa === x.id;
+      return { l: x.n, pick: () => this.setState({ fa: x.id }), st: `height:30px;padding:0 13px;border:0;border-radius:9px;font-size:12.5px;font-weight:${on ? 800 : 600};cursor:pointer;background:${on ? '#fff' : 'transparent'};color:${on ? '#10233a' : '#5c7280'};box-shadow:${on ? '0 1px 2px rgba(16,35,58,.08),0 0 0 1px #e1e9e7' : 'none'};transition:background .15s` };
+    });
+    // Dimensions de la Vectorisation : celles que le modèle affecté accepte (confirmation : revectorisation).
+    const vecModel = byId[D.assign.vec && D.assign.vec.p] || null;
+    const dimList = (vecModel && vecModel.dims && vecModel.dims.length ? vecModel.dims : D.dims ? [D.dims] : []).slice().sort((a, b) => a - b);
+    const dimL = d => d ? `${d} dimensions` : '—';
+    const dimOpts = dimList.map(d => ({ l: dimL(d), chkSt: `color:#1d8f86;font-weight:800;visibility:${D.dims === d ? 'visible' : 'hidden'}`, st: `display:flex;align-items:center;width:100%;padding:8px 10px;border:0;border-radius:9px;cursor:pointer;font-size:12.5px;font-weight:700;background:${D.dims === d ? '#f1faf8' : 'transparent'}`,
+      pick: () => { this.setState({ dimsOpen: false }); if (D.dims === d) return; this.setState({ modal: { kind: 'revec', fid: 'vec', patch: { dimension: d }, msg: `Vectorisation : ${dimL(d)}. Revectorisation des documents planifiée.`, what: `passer la Vectorisation à ${dimL(d)}` } }); } }));
+
+    // Fenêtres
+    const M = st.modal || {};
+    const btnPrimary = dis => `height:36px;padding:0 15px;border:0;border-radius:10px;background:${dis ? '#b7c3c9' : '#10233a'};color:#fff;font-weight:700;font-size:12.5px;cursor:${dis ? 'not-allowed' : 'pointer'};transition:background .15s`;
+    const setM = patch => this.setState(s => ({ modal: { ...s.modal, ...patch } }));
+    const fail = e => { setM({ saving: false }); this.toast(errMsg(e), 'err'); };
+    let mdl = { open: false };
+    if (M.kind === 'model') {
+      const f = M.f, setF = k => e => { const v = e.target.value; this.setState(s => ({ modal: { ...s.modal, confirm: false, f: { ...s.modal.f, [k]: v } } })); };
+      const isLLM = f.t === 'LLM', isEmb = f.t === 'Embedding', fi = num(f.i), fo = isLLM ? num(f.o) : null;
+      const dimsArr = String(f.dims || '').split(/[\s,;]+/).map(x => parseInt(x, 10)).filter(x => Number.isInteger(x) && x > 0);
+      const defDim = num(f.defDim);
+      const targets = FN.filter(x => x.t === f.t).map(x => ({ id: x.id, l: x.long, sub: 'Fonction du Cockpit', ic: '', fn: true })).concat(ST.filter(x => x.t === f.t).map(x => ({ id: x.id, l: x.n, sub: `Documents · étape ${x.k} sur 3`, ic: String(x.k) })));
+      let sum = 0;
+      const unit = M.id && byId[M.id] ? byId[M.id].unit : 'TOKENS';
+      const prev = targets.map(x => { const c = costOf(x.id, fi, fo, unit); sum += c; return { l: x.l, sub: x.sub, ic: x.ic, cost: eur(c), icSt: `width:20px;height:20px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:10px;font-weight:800;color:#fff;background:#10233a;${x.fn ? 'box-shadow:inset 0 0 0 6px #10233a,inset 0 0 0 20px #fff' : ''}` }; });
+      const others = D.models.filter(x => x.t === f.t && x.on && x.id !== M.id).length;
+      const am = ageM(f.date);
+      const ageK = am == null ? null : am < 12 ? ['récent', '#1d8f86', '#e4f4f1'] : am < 24 ? ['à surveiller', '#a8670f', '#fdf3e1'] : ['ancien', '#b8432f', '#fdeeea'];
+      const u = M.id ? (uses[M.id] || []) : [];
+      // Obligatoires : nom, identifiant, tarifs ; à la création (règles du serveur), date de sortie, max output tokens
+      // (LLM) et dimensions (Embedding).
+      const creating = M.mode !== 'edit';
+      const invalid = !f.n.trim() || !f.ident.trim() || fi == null || (isLLM && fo == null) || (REAL && creating && (!f.date || (isLLM && num(f.maxOut) == null) || (isEmb && !dimsArr.length)));
+      const tCard = on => `display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:12px;border:0;border-radius:12px;cursor:pointer;text-align:left;transition:box-shadow .15s,background .15s;background:${on ? '#f6f9f8' : '#fff'};box-shadow:inset 0 0 0 ${on ? '1.5px #10233a' : '1px #dfe7e5'};color:#10233a`;
+      const setT = t => () => this.setState(s => ({ modal: { ...s.modal, f: { ...s.modal.f, t } } }));
+      const close = () => this.setState({ modal: null });
+      mdl = {
+        open: true, isEdit: M.mode === 'edit', title: M.mode === 'edit' ? 'Modifier le modèle' : 'Ajouter un modèle', f, isLLM, isEmb,
+        on: Object.fromEntries(['p', 'n', 'd', 'ident', 'ctx', 'date', 'maxOut', 'i', 'o', 'dims', 'defDim'].map(k => [k, setF(k)])),
+        dimOpts: [{ v: '', l: '—' }].concat(dimsArr.map(d => ({ v: String(d), l: dimL(d) }))),
+        tLLM: tCard(f.t === 'LLM'), tEmb: tCard(f.t === 'Embedding'), tRer: tCard(f.t === 'Reranking'), setLLM: setT('LLM'), setEmb: setT('Embedding'), setRer: setT('Reranking'),
+        hasAge: !!ageK, ageL: ageK ? `${am} mois · ${ageK[0]}` : '', ageSt: ageK ? `align-self:flex-start;display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:999px;font-size:10.5px;font-weight:800;color:${ageK[1]};background:${ageK[2]}` : '', ageDot: ageK ? `width:5px;height:5px;border-radius:50%;background:${ageK[1]}` : '',
+        prev, sum: eur(sum), sumNote: targets.length > 1 ? `Somme des ${targets.length} fonctions ${f.t}, volume des 30 derniers jours.` : `Fonction ${f.t} unique, volume des 30 derniers jours.`,
+        cont: f.t === 'Embedding' ? 'Pas de secours possible pour la vectorisation : un autre modèle imposerait de revectoriser tous les documents.' : others ? `${others} autre${others > 1 ? 's' : ''} modèle${others > 1 ? 's' : ''} ${f.t} actif${others > 1 ? 's' : ''} ${others > 1 ? 'peuvent' : 'peut'} servir de secours.` : `Aucun autre modèle ${f.t} actif : pas de secours possible.`,
+        invalid: invalid || !!M.saving, saveL: M.mode === 'edit' ? 'Enregistrer' : 'Ajouter', saveSt: btnPrimary(invalid || !!M.saving),
+        delDisabled: u.length > 0 || !!M.saving, delL: M.confirm ? 'Confirmer la suppression' : 'Supprimer',
+        delSt: `height:36px;padding:0 14px;border:0;border-radius:10px;font-weight:700;font-size:12.5px;cursor:${u.length ? 'not-allowed' : 'pointer'};transition:all .15s;${M.confirm ? 'background:#c2492f;color:#fff' : `background:#fff;color:${u.length ? '#d9a59a' : '#c2492f'};box-shadow:inset 0 0 0 1px ${u.length ? '#f3d6cf' : '#efb3a6'}`}`,
+        showDelNote: u.length > 0 && M.mode === 'edit', delNote: `Affecté à ${u.map(x => `${label(x.fid)} (${x.r})`).join(', ')}. Réaffectez-le avant de le supprimer.`, delNoteSt: 'font-size:11.5px;line-height:1.45;color:#a8670f;background:#fdf3e1;padding:9px 12px;border-radius:10px',
+        del: () => {
+          if (u.length) return;
+          if (!M.confirm) { setM({ confirm: true }); return; }
+          const n = byId[M.id].n;
+          if (!REAL) { this.setState(s => ({ modal: null, models: s.models.filter(x => x.id !== M.id) })); this.toast(`${n} supprimé du catalogue.`); return; }
+          setM({ saving: true });
+          this.props.api.deleteModel(M.id).then(() => { close(); this.toast(`${n} supprimé du catalogue.`); }).catch(fail);
+        },
+        save: () => {
+          if (invalid || M.saving) return;
+          const data = { t: f.t, p: f.p, n: f.n.trim(), d: f.d.trim(), ident: f.ident.trim(), ctx: f.ctx, date: f.date, maxOut: isLLM ? num(f.maxOut) : null, i: fi, o: fo, dims: isEmb ? dimsArr : [], defDim: isEmb ? (defDim != null && dimsArr.includes(defDim) ? defDim : dimsArr[0] || null) : null };
+          const okMsg = M.mode === 'edit' ? `${data.n} enregistré. Estimations mises à jour.` : `${data.n} ajouté au catalogue.`;
+          if (!REAL) {
+            if (M.mode === 'edit') this.setState(s => ({ modal: null, models: s.models.map(x => x.id === M.id ? { ...x, ...data } : x) }));
+            else this.setState(s => ({ modal: null, models: s.models.concat([{ id: 'm' + Date.now(), on: true, ...data }]) }));
+            this.toast(okMsg); return;
+          }
+          const ctx = num(data.ctx);
+          const body = { name: data.n, description: data.d, category: CATU[data.t], providerModelId: data.ident, contextTokens: ctx ? Math.round(ctx) : null, releaseDate: data.date || null,
+            maxOutputTokens: isLLM && data.maxOut ? Math.round(data.maxOut) : null, dimensions: data.dims, defaultDimension: data.defDim,
+            price: unit === 'REQUESTS' && !isLLM ? { unit: 'REQUESTS', per1k: data.i } : { unit: 'TOKENS', in: data.i, out: isLLM ? data.o : null } };
+          setM({ saving: true });
+          this.props.api.saveModel(M.mode === 'edit' ? M.id : null, M.mode === 'edit' ? body : { ...body, providerId: data.p }).then(() => { close(); this.toast(okMsg); }).catch(fail);
+        }
+      };
+    }
+    let pv = { open: false };
+    if (M.kind === 'prov') {
+      const invalid = !M.name.trim() || !M.key.trim() || !!M.saving;
+      pv = {
+        open: true, name: M.name, key: M.key, invalid, btnSt: btnPrimary(invalid),
+        onName: e => setM({ name: e.target.value }), onKey: e => setM({ key: e.target.value }),
+        submit: () => {
+          if (invalid) return;
+          if (!REAL) {
+            const pal = PAL[st.providers.length % 4];
+            const id = 'p' + Date.now(), k = M.key.trim();
+            this.setState(s => ({ modal: null, providers: s.providers.concat([{ id, n: M.name.trim(), g: M.name.trim()[0].toUpperCase(), c: pal[0], dk: pal[1], pre: '', k: k.slice(-4), bad: k.length < 12, testing: false }]) }));
+            this.test([id]); return;
+          }
+          // Mode réel : la clé est testée par le serveur dès l'enregistrement.
+          const name = M.name.trim();
+          setM({ saving: true });
+          this.props.api.addProvider(name, M.key.trim())
+            .then(p => { this.setState({ modal: null }); const b = p && (p.status === 'ERROR' || !p.hasKey); this.toast(b ? `${name} ajouté : clé invalide.` : `${name} ajouté : connexion réussie.`, b ? 'err' : 'ok'); })
+            .catch(fail);
+        }
+      };
+    }
+    let ky = { open: false };
+    if (M.kind === 'key') {
+      const p = P[M.pid] || { n: '', pre: '', k: '' }, invalid = !M.val.trim() || !!M.saving;
+      ky = {
+        open: true, n: p.n, cur: `${p.pre}••••••••${p.k}`, val: M.val, invalid, btnSt: btnPrimary(invalid), onVal: e => setM({ val: e.target.value }),
+        submit: () => {
+          if (invalid) return;
+          const k = M.val.trim();
+          if (!REAL) { this.setState(s => ({ modal: null, providers: s.providers.map(x => x.id === M.pid ? { ...x, k: k.slice(-4), bad: k.length < 12 } : x) })); this.test([M.pid]); return; }
+          // L'ancienne clé cesse d'être utilisée dès l'enregistrement ; le serveur teste la nouvelle.
+          const pid = M.pid;
+          this.setState(s => ({ modal: null, testing: { ...s.testing, [pid]: true } }));
+          this.props.api.replaceKey(pid, k)
+            .then(r => { this.setState(s => { const t = { ...s.testing }; delete t[pid]; return { testing: t }; }); const b = r && (r.status === 'ERROR' || !r.hasKey); this.toast(b ? `${p.n} : clé invalide. Les routes concernées basculent sur leur secours.` : `${p.n} : connexion réussie.`, b ? 'err' : 'ok'); })
+            .catch(e => { this.setState(s => { const t = { ...s.testing }; delete t[pid]; return { testing: t }; }); this.toast(errMsg(e), 'err'); });
+        }
+      };
+    }
+    // Revectorisation : confirmation avant de changer le modèle ou la dimension de la Vectorisation.
+    let rv = { open: false };
+    if (M.kind === 'revec') {
+      rv = {
+        open: true, what: M.what, btnSt: btnPrimary(!!st.busy), busy: !!st.busy,
+        text: 'Les vecteurs actuels deviennent inutilisables : tous les extraits de la Base de connaissance et des guides seront revectorisés en tâche de fond. La recherche dans les documents reprend à la fin ; l’avancement s’affiche dans les notifications.',
+        submit: () => { if (st.busy) return; const m = M; this.setState({ modal: null }); this.assign(m.fid, m.patch, m.msg); }
+      };
+    }
+    const tc = st.toast ? ({ ok: '#3fd1c1', err: '#f07b67', warn: '#e3a43b' })[st.toast.tone] : '#3fd1c1';
+    return {
+      band, provs, fns, docs, docSt, total: eur(total), docsTotal: eur(docsCost), textVol: volL('vec', ' / '),
+      docsOpen: st.docs, docsL: st.docs ? 'Plier' : 'Déplier', docsChev: `transition:transform .2s;transform:rotate(${st.docs ? 0 : 180}deg)`, toggleDocs: () => this.setState(s => ({ docs: !s.docs })),
+      dims: dimL(D.dims), dimsOpen: st.dimsOpen, dimOpts, toggleDims: () => this.setState(s => ({ dimsOpen: !s.dimsOpen, menu: null })),
+      closeMenu: () => this.setState({ menu: null }),
+      testAll: () => this.test(D.providers.map(p => p.id)),
+      openProv: () => this.setState({ modal: { kind: 'prov', name: '', key: '' }, menu: null }),
+      newModel: () => this.setState({ menu: null, modal: { kind: 'model', mode: 'new', id: null, confirm: false, saving: false, f: { t: 'LLM', p: st.fa !== 'all' ? st.fa : (D.providers[0] || {}).id, n: '', d: '', ident: '', ctx: '', date: '', maxOut: '', i: '', o: '', dims: '', defDim: '' } } }),
+      closeModal: () => this.setState({ modal: null }), stop: e => e.stopPropagation(),
+      filt, cols, rows, provOpts: D.providers.map(p => ({ id: p.id, n: p.n })),
+      mdl, pv, ky, rv,
+      toast: { open: !!st.toast, msg: st.toast ? st.toast.msg : '', dot: `width:7px;height:7px;border-radius:50%;flex:none;background:${tc};box-shadow:0 0 0 3px ${tc}33` }
+    };
+  }
+}
+</script>
+</body>
+</html>

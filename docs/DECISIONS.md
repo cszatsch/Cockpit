@@ -1103,3 +1103,19 @@ Spécification `docs/specs/TEMPS - specification.md` (écran 1c « Cascade »). 
 | Décision du commanditaire | L'éditeur d'affectation devient une section de « Fournisseurs et modèles » (composant existant, design inchangé) ; menu et page séparée supprimés ; ancienne page redirigée vers la section | `goAsg`, ancre `#ia-affectation` (`Console Admin.dc.html`) |
 | Références | Titre de page de Jev retiré (`CONSOLE_PAGE_TITLES`) ; dictionnaire de Jev : « Écran : IA › Fournisseurs et modèles, section Affectation des modèles » ; skill « Guidage console » mise à jour par l'API (journal d'audit) ; guide utilisateur Console publié : 3 extraits citent encore la page, à corriger dans sa prochaine version | `jev-prompt.ts`, `jev-dictionnaire.ts` |
 | Retour arrière | Code : `git reset --hard avant-suppression-affectation-modeles` (branche `backup/avant-suppression-affectation-modeles`) ; base : `pg_restore --clean --if-exists --no-owner` de `rise-sauvegardes/rise-avant-suppression-affectation-modeles-2026-10-02.dump` (dossier de l'utilisateur ; restauration vérifiée : 88 tables, 9 860 lignes identiques) | — |
+
+## Vue « Fournisseurs et modèles » (02/10/2026)
+
+Spécification `docs/specs/FOURNISSEURS - specification.md`. Arbitrages du commanditaire (02/10/2026) et choix techniques :
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| API | Routes existantes `/api/admin/providers`, `/models`, `/assignments`, `/functions` (la spécification propose `/api/ai/…`, « à adapter à l'existant ») ; affectation d'une fonction par `PUT /assignments` partiel `{ fonction: { primary, fallback, dimension } }` | `AiController` |
+| Désactivation | Refusée (409 `MODEL_IN_USE`, liste des affectations) pour un modèle affecté en principal **ou en secours** (auparavant : principal seulement) ; suppression d'un modèle affecté : 409 (inchangé) | `AiController.patchModel` |
+| Secours | Doit être actif (422), sauf secours inactif déjà en place et inchangé | `AiController.putAssignments` |
+| Dimensions (Embedding) | Champs « Dimensions acceptées » et « Dimension par défaut » ajoutés au formulaire (absents de la maquette) ; le sélecteur de la Vectorisation propose les dimensions du modèle affecté | `Fournisseurs et modeles.dc.html` |
+| Revectorisation | Changement du modèle ou de la dimension de la Vectorisation : confirmation, puis tâche de fond qui revectorise tous les extraits (Base de connaissance `kb_chunks`, guides `guide_chunks`) avec le même texte qu'à l'indexation ; un guide est remplacé d'un bloc ; un nouveau changement relance la tâche ; avancement et fin (ou échec) dans la cloche de la Console (type alerte, clé `revector:documents`) ; tracée « Revectorisation des documents planifiée » | `RevectorizeService`, `REVECTORIZE_BATCH` |
+| Coût estimé | Volume réel 30 j × tarif courant du modèle qui répond, entrée et sortie séparées (jetons d'entrée × prix d'entrée + jetons de sortie × prix de sortie) ; tarif à la requête : requêtes × prix / 1 000 ; aucun recalcul de l'historique | `costOf` (écran), `estimatedMonthlyCost` (API) |
+| États | Ceux du serveur (`NOMINAL`, `FALLBACK`, `UNAVAILABLE`, `BLOCKED`) : clé du fournisseur, modèle actif, chaîne Documents ; bascule sur le secours automatique au routage (clé du principal en erreur) | `functionState`, `chainStates`, `LlmService.route` |
+| Clés | Chiffrées (AES-256-GCM), jamais renvoyées (préfixe et 4 derniers caractères), testées à l'ajout et au remplacement (appel léger au fournisseur, horodaté), l'ancienne cesse d'être utilisée dès l'enregistrement ; journal d'audit sans valeur | `ProviderKeyTester`, `keyFingerprint` |
+| Vue réseau | Retirée de la page : ses informations (fournisseur → fonctions, secours en service) figurent dans l'affectation et la colonne « Utilisé par » ; indicateur de temps de réponse des clés retiré (demande) | — |

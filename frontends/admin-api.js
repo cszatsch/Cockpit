@@ -270,6 +270,8 @@ export function bindConsole(c) {
     admins: async () => ({ admins: (await get('/admins')).map(toAdmin) }),
     audit: async () => ({ audit: (await get('/audit')).map(toAudit) }),
     providers: async () => ({ provs: (await get('/providers')).map(toProv) }),
+    // Écran « Fournisseurs et modèles » (02/10/2026) : données de l'API telles quelles (props `data`), état `fpData` (`fm` est la fiche modèle de la Console).
+    fm: async () => { const [providers, models, f, assignments] = await Promise.all([get('/providers'), get('/models'), get('/functions'), get('/assignments')]); return { fpData: { providers, models, functions: f.functions, assignments } }; },
     models: async () => ({ models: (await get('/models')).map(toModel) }),
     // Volume et sortie requise (Génération de rapports : plus long rendu mesuré sur 30 jours) par fonction.
     // Volume, sortie requise et historique (vol non nul : l'estimation d'une fonction nouvelle n'est plus utilisée).
@@ -336,7 +338,7 @@ export function bindConsole(c) {
       return { apiCards: cards, apCards: cards.filter(v => !apPend[v.id]).map(toCard), apWidgets: widgets, apChecked: lastCheck(cards) }; },
   };
   const SECTION = {
-    overview: ['accounts', 'providers', 'month', 'audit', 'reqs', 'snaps', 'sched', 'ov', 'models', 'asg', 'fns'], users: ['accounts', 'wsAll'], admins: ['admins', 'audit', 'accounts'], providers: ['providers', 'models', 'asg', 'usage', 'fns'],
+    overview: ['accounts', 'providers', 'month', 'audit', 'reqs', 'snaps', 'sched', 'ov', 'models', 'asg', 'fns'], users: ['accounts', 'wsAll'], admins: ['admins', 'audit', 'accounts'], providers: ['fm', 'providers', 'models', 'asg', 'usage', 'fns'],
     conso: ['month', 'providers'], snaps: [], notifs: ['nrRules', 'nrHist', 'nrCounts', 'nrSchedule', 'models', 'providers', 'projects'], modules: ['mods', 'reqs'],
     smtp: ['smtp'], guide: ['guide'], init: ['projects'], library: ['projects'], profil: ['prof', 'sess', 'audit'], skills: ['skills'], persona: ['persona'], apis: ['apis'],
   };
@@ -349,7 +351,7 @@ export function bindConsole(c) {
 
   // ── Démarrage : squelette de chargement jusqu'à la réception des données du serveur ──
   // Guide utilisateur : listes vides dès le départ (jamais les données de démonstration du composant).
-  set0({ apiBoot: true, loading: true, nt: [], nrApi: true, apApi: true, smApi: true, gdGuides: { console: { versions: [], downloads: [], index: null }, cockpit: { versions: [], downloads: [], index: null } } });
+  set0({ apiBoot: true, loading: true, fpData: null, nt: [], nrApi: true, apApi: true, smApi: true, gdGuides: { console: { versions: [], downloads: [], index: null }, cockpit: { versions: [], downloads: [], index: null } } });
   (async () => {
     try {
       const ov = await get('/overview');
@@ -358,7 +360,7 @@ export function bindConsole(c) {
       if (typeof c.apiClock === 'function') c.apiClock(clock.server);
       // Échéances des clés API : même date du jour que le serveur (DEMO_TODAY compris).
       set0({ apiNow: String(ov.date).slice(0, 10) + 'T12:00:00' });
-      await load(['ov', 'wsAll', 'prof', 'accounts', 'admins', 'audit', 'providers', 'models', 'asg', 'usage', 'snaps', 'sched', 'nrRules', 'nrHist', 'nrCounts', 'nrSchedule', 'smtp', 'guide', 'mods', 'reqs', 'sess', 'projects', 'skills', 'persona', 'notifs', 'apis', 'fns']);
+      await load(['ov', 'wsAll', 'prof', 'accounts', 'admins', 'audit', 'fm', 'providers', 'models', 'asg', 'usage', 'snaps', 'sched', 'nrRules', 'nrHist', 'nrCounts', 'nrSchedule', 'smtp', 'guide', 'mods', 'reqs', 'sess', 'projects', 'skills', 'persona', 'notifs', 'apis', 'fns']);
       set0({ apiBoot: false, loading: false });
       jevResume();
     } catch (e) {
@@ -487,6 +489,20 @@ export function bindConsole(c) {
   c.apTest = id => post(AC(id) + '/test').then(r => { touch(); apReload(); return { resp: toResp({ code: r.code, ms: r.ms, at: new Date().toISOString(), body: r.body }, r.code ? '' : 'Injoignable'), lat: null }; }).catch(e => { fail(e); return null; });
 
   // Ouverture d'un menu : rechargement de la section en arrière-plan.
+  // ── Fournisseurs et modèles (props `api` de l'écran) : l'API d'abord, puis l'écran et la Console sont relus. ──
+  // Les erreurs remontent à l'écran (message lisible : errText), qui les affiche dans ses propres toasts.
+  const fmReload = () => load(['fm', 'providers', 'models', 'asg', 'fns']).catch(() => {});
+  const fmRun = p => p.then(async r => { await fmReload(); touch(); return r; }, e => { throw new Error(errText(e)); });
+  c.fmApi = {
+    testKey: id => fmRun(post('/providers/' + id + '/test').then(p => [p])),
+    testAll: () => fmRun(post('/providers/test-all')),
+    replaceKey: (id, apiKey) => fmRun(put('/providers/' + id + '/key', { apiKey })),
+    addProvider: (name, apiKey) => fmRun(post('/providers', { name, apiKey })),
+    saveAssignment: (fn, v) => fmRun(put('/assignments', { [fn]: v })),
+    setActive: (id, active) => fmRun(patch('/models/' + id, { active })),
+    saveModel: (id, body) => fmRun(id ? patch('/models/' + id, body) : post('/models', body)),
+    deleteModel: id => fmRun(del('/models/' + id)),
+  };
   c.go = (sec, then) => { if (sec === 'latency') latReset(); orig.go(sec, then); if (!c.state.apiBoot && SECTION[sec]) load(SECTION[sec]).catch(fail); };
 
   // ── Analyse des temps de réponse (spécification TEMPS § 3) : props fetchData / fetchSeries de l'écran ──

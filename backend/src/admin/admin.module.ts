@@ -17,6 +17,7 @@ import { UsageService } from './usage.service';
 import { JevSqlService } from './jev-sql.service';
 import { JevTraceService } from './jev-trace.service';
 import { LatencyService } from './latency.service';
+import { RevectorizeService } from './revectorize.service';
 import { LatencyController } from './latency.controller';
 import { JevCockpitInsightService } from './jev-cockpit-insight.service';
 import { GuideController } from './guide.controller';
@@ -34,7 +35,7 @@ import { SnapshotsService } from './snapshots.service';
   controllers: [ConsoleController, GuideController, AccountsController, AiController, RulesController, SmtpController, DataController, SkillsController, PersonaController, InboxController, ApiCardsController, WidgetCatalogueController, WidgetProxyController, WidgetFeedsController, WidgetNewsController, LatencyController],
   // AccountsController et DataController servent aussi de fournisseurs : les décisions du tiroir de notifications
   // reprennent exactement le traitement des pages Utilisateurs et Modules.
-  providers: [GuideIndexService, JevRouterService, JevAssistantService, GuideSearchService, GuideAnswerService, ProfilesService, UsageService, JevSqlService, JevCockpitInsightService, JevTraceService, LatencyService, JevMemoryService, NotificationWriterService, NotificationsService, SnapshotsService, InboxService, ApiCardsService, AccountsController, DataController],
+  providers: [GuideIndexService, JevRouterService, JevAssistantService, GuideSearchService, GuideAnswerService, ProfilesService, UsageService, JevSqlService, JevCockpitInsightService, JevTraceService, LatencyService, RevectorizeService, JevMemoryService, NotificationWriterService, NotificationsService, SnapshotsService, InboxService, ApiCardsService, AccountsController, DataController],
   // Jev du Cockpit : aiguillage et réponses à partir du guide du Cockpit (décision du 30/09/2026).
   exports: [JevRouterService, GuideAnswerService, JevCockpitInsightService, JevMemoryService],
 })

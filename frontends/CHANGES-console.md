@@ -588,3 +588,17 @@ Vérification des éléments de la vue d'ensemble face au serveur. Conformes : d
 - `Sidebar Console.dc.html` : entrée IA › « Affectation des modèles » retirée (16 pages).
 - `admin-api.js` : chargement de la page `providers` complété par la consommation (`usage`, estimations de l'éditeur) ; section `assign` retirée.
 - Inchangés (partagés) : `Affectation des modeles.dc.html`, `Vue reseau IA.dc.html`, `Fiche modele.dc.html`, `ia-data.js`, état `asg` / `draft`, `saveAsg`, API `/api/admin/assignments`.
+
+## Nouvelle vue « Fournisseurs et modèles » (02/10/2026)
+
+Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specification.md`) : la vue remplace la page `providers` (bandeau de fournisseurs, vue réseau, liste des modèles, section Affectation ajoutée le même jour). Mise en page, typographie, couleurs, états et micro-interactions de la maquette conservés.
+
+- `Fournisseurs et modeles.dc.html` (nouveau) : gabarit de la maquette ; logique adaptée :
+  - props `data` (réponses de `/providers`, `/models`, `/functions`, `/assignments`) et `api` (actions) ; démonstration de la maquette seulement sans `api` (écran ouvert seul, Console en `?demo=1`) ; données vides pendant le premier chargement ;
+  - coût estimé : volume réel 30 j de la fonction (jetons d'entrée × tarif d'entrée + jetons de sortie × tarif de sortie, ou requêtes × tarif / 1 000) au lieu des coefficients de démonstration ; volumes affichés réels (« Texte extrait » compris) ; sortie requise des Rapports mesurée (au lieu de 38 000 fixe), repère de la jauge placé en conséquence ;
+  - états de route : ceux du serveur (clé, modèle actif, chaîne Documents) ;
+  - ajouts : champs « Dimensions acceptées » et « Dimension par défaut » du formulaire (type Embedding, décision du 02/10/2026) ; sélecteur de dimensions de la Vectorisation = dimensions du modèle affecté (et non la liste fixe 1024–4096) ; fenêtre « Revectoriser tous les documents ? » avant tout changement du modèle ou de la dimension de la Vectorisation ; horodatage du dernier test de clé en infobulle de l'état ; monogramme « R » d'OpenRouter ; ancre `#ia-affectation` ;
+  - à la création d'un modèle, Enregistrer reste désactivé sans date de sortie, max output tokens (LLM) ou dimensions (Embedding), champs obligatoires côté serveur ;
+  - erreurs du serveur (409, 422…) affichées dans les toasts de l'écran ; la fenêtre reste ouverte en cas d'échec.
+- `Console Admin.dc.html` : page `providers` = `<dc-import name="Fournisseurs et modeles">` (props `data` = `fpData`, `api` = `fmApi`), sans l'en-tête de la Console (l'écran a le sien). L'ancienne page (bandeau, vue réseau, liste, section Affectation) est retirée du gabarit ; les fenêtres de la Console (clé, fournisseur, fiche modèle) restent pour les autres accès.
+- `admin-api.js` : chargeur `fm` (état `fpData` ; `fm` désigne déjà la fiche modèle de la Console) ; actions `fmApi` (`testKey`, `testAll`, `replaceKey`, `addProvider`, `saveAssignment`, `setActive`, `saveModel`, `deleteModel`) : appel de l'API, puis relecture de l'écran et de l'état de la Console (pastilles, vue d'ensemble) ; message d'erreur lisible (`errText`).

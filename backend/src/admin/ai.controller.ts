@@ -7,6 +7,7 @@ import { PrismaService } from '../core/prisma.service';
 import { LlmService, AI_BUDGET_LINES, AI_FUNCTIONS, AI_GROUPS, aiFunction, aiFunctionLabel } from '../core/llm.service';
 import { decodeCursor, JOURNAL_FNS, JOURNAL_PAGE, JOURNAL_PAGE_MAX, JournalFn } from '../domain/journal';
 import { JobsService } from '../core/jobs.service';
+import { RevectorizeService } from './revectorize.service';
 import { encryptSecret, keyFingerprint } from '../core/crypto';
 import { badRequest, businessRule, conflict, inUse, notFound, Usage } from '../core/errors';
 import { parse } from '../core/http';
@@ -84,6 +85,7 @@ export class AiController implements OnModuleInit {
     private readonly llm: LlmService,
     private readonly usage: UsageService,
     private readonly jobs: JobsService,
+    private readonly revectorizer: RevectorizeService,
   ) {}
 
   onModuleInit() {
@@ -307,9 +309,13 @@ export class AiController implements OnModuleInit {
     const m = await this.prisma.aiModel.findUnique({ where: { id } });
     if (!m) throw notFound('Modèle introuvable');
     if (input.active === false && m.active) {
-      // § 7.3 : chaque fonction garde un modèle principal actif.
-      const uses = await this.prisma.modelAssignment.findMany({ where: { primaryModelId: id } });
-      if (uses.length) throw conflict('MODEL_IN_USE', `Modèle principal de : ${uses.map((u) => aiFunction(u.functionId)?.short).join(', ')} — changez d'abord l'affectation`, uses.map((u) => ({ entityType: 'MODEL_ASSIGNMENT', id: u.functionId, label: `Principal de ${u.functionId}` })));
+      // Un modèle affecté (principal ou secours) ne se désactive pas : seuls les modèles actifs sont proposés et
+      // servent (vue « Fournisseurs et modèles », 02/10/2026). 409 avec les affectations à modifier.
+      const uses = await this.prisma.modelAssignment.findMany({ where: { OR: [{ primaryModelId: id }, { fallbackModelId: id }] } });
+      if (uses.length) {
+        const list = uses.map((u) => ({ entityType: 'MODEL_ASSIGNMENT', id: u.functionId, label: `${u.primaryModelId === id ? 'Principal' : 'Secours'} de ${aiFunction(u.functionId)?.short ?? u.functionId}` }));
+        throw conflict('MODEL_IN_USE', `${m.name} est affecté (${list.map((l) => l.label).join(', ')}) — réaffectez-le avant de le désactiver`, list);
+      }
     }
     if (input.category && input.category !== m.category) {
       // Une fonction n'accepte qu'une catégorie ; une règle de notification rédige avec un LLM.
@@ -440,6 +446,8 @@ export class AiController implements OnModuleInit {
     const pair = z.object({ primary: z.string().min(1), fallback: z.string().min(1).nullable().optional(), dimension: z.number().int().nullable().optional(), fallbackDimension: z.number().int().nullable().optional() }).strict();
     const input = parse(z.object(Object.fromEntries(AI_FUNCTIONS.map((f) => [f.id, pair]))).partial().strict(), body) as Record<string, z.infer<typeof pair> | undefined>;
     const models = await this.prisma.aiModel.findMany();
+    const asgBefore = await this.prisma.modelAssignment.findMany();
+    let revectorize = false;
     for (const [fn, v] of Object.entries(input)) {
       if (!v) continue;
       const cat = aiFunction(fn)!.category;
@@ -452,6 +460,7 @@ export class AiController implements OnModuleInit {
         const fm = models.find((m) => m.id === v.fallback);
         if (!fm) throw badRequest('Modèle inconnu', { [`${fn}.fallback`]: 'introuvable' });
         if (v.fallback === v.primary) throw businessRule('Le secours doit différer du principal', { [`${fn}.fallback`]: 'identique au principal' });
+        if (!fm.active && fm.id !== asgBefore.find((a) => a.functionId === fn)?.fallbackModelId) throw businessRule('Le modèle de secours doit être actif', { [`${fn}.fallback`]: `${fm.name} est inactif` });
         if (fm.category !== cat) throw businessRule(`Cette fonction n’accepte qu’un modèle ${MODEL_CATEGORY_LABEL[cat]}`, { [`${fn}.fallback`]: `${fm.name} est un modèle ${MODEL_CATEGORY_LABEL[fm.category]}` });
       }
       // Dimension : seulement pour un Embedding, et parmi celles que le modèle accepte.
@@ -477,10 +486,13 @@ export class AiController implements OnModuleInit {
         if ((before?.fallbackModelId ?? null) !== (v.fallback ?? null)) await this.audit.action(db, adminCtx(actor), { action: 'Changement de modèle de secours', target: `${label} → ${name(v.fallback)}`, severity: 'SENSITIVE', entityType: 'ModelAssignment', entityId: fn });
         // Embedding : un changement de modèle ou de dimension oblige à réindexer les documents (tracé, critique).
         if (f.category === 'EMBEDDING' && before && reindexRequired({ modelId: before.primaryModelId, dimension: effectiveDimension(before.primaryDimension, models.find((m) => m.id === before.primaryModelId)) }, { modelId: v.primary, dimension: dimsData.primaryDimension })) {
-          await this.audit.action(db, adminCtx(actor), { action: 'Réindexation des documents requise', target: `${label} : ${name(before.primaryModelId)} → ${name(v.primary)} · ${dimsData.primaryDimension ?? '—'} dimensions`, severity: 'CRITICAL', entityType: 'ModelAssignment', entityId: fn, details: { warning: REINDEX_WARNING } });
+          await this.audit.action(db, adminCtx(actor), { action: 'Revectorisation des documents planifiée', target: `${label} : ${name(before.primaryModelId)} → ${name(v.primary)} · ${dimsData.primaryDimension ?? '—'} dimensions`, severity: 'CRITICAL', entityType: 'ModelAssignment', entityId: fn, details: { warning: REINDEX_WARNING } });
+          revectorize = true;
         }
       }
     });
+    // Revectorisation automatique de la Base de connaissance et des guides (décision du 02/10/2026).
+    if (revectorize) this.revectorizer.start();
     return this.assignments();
   }
 

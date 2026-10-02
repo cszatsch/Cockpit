@@ -314,39 +314,12 @@ a{color:#1d8f86}a:hover{color:#146b64}
     </sc-if>
 
     <sc-if value="{{ isProv }}" hint-placeholder-val="{{ false }}">
-      <div style="display:flex;flex-direction:column;gap:18px;animation:rise-in .35s cubic-bezier(.2,.7,.2,1) both" data-screen-label="Fournisseurs et modèles">
-        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px"><h2 style="margin:0;font-size:17px;font-weight:800">Fournisseurs</h2><span style="flex:1"></span>
-          <button onClick="{{ pv.testAll }}" style="height:36px;padding:0 14px;border:1px solid #d3dedb;border-radius:10px;background:#fff;font-size:12.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:8px" style-hover="border-color:#10233a"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3L5 14h6l-1 7 8-11h-6z"></path></svg><span style="white-space:nowrap">Tester toutes les clés</span></button>
-          <button onClick="{{ pv.add }}" style="height:36px;padding:0 16px;border:0;border-radius:10px;background:#10233a;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px" style-hover="background:#1d3654"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>Ajouter un fournisseur</button>
-        </div>
-        <!-- API : vue réseau Fournisseurs → Fonctions (Vue reseau IA.dc.html), avec la chaîne Documents regroupée. -->
-        <dc-import name="Vue reseau IA" embedded="{{ true }}" providers="{{ ia.provs }}" models="{{ ia.models }}" functions="{{ ia.fns }}" groups="{{ ia.groups }}" assignment="{{ ia.asg }}" on-open-model="{{ ia.openModel }}" on-open-provider="{{ ia.openProv }}" on-test-key="{{ ia.testKey }}" on-replace-key="{{ ia.replKey }}" on-add-fallback="{{ ia.addFallback }}" hint-size="100%,560px"></dc-import>
-
-        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:10px"><h2 style="margin:0;font-size:17px;font-weight:800">Modèles</h2><span style="font-size:12.5px;color:#5c7280">Coûts en euros par million de tokens</span><span style="flex:1"></span><div role="tablist" aria-label="Fournisseur" style="display:inline-flex;flex-wrap:wrap;gap:2px;padding:3px;border-radius:11px;background:#e5edeb"><sc-for list="{{ pv.flt }}" as="o" hint-placeholder-count="5"><button role="tab" aria-selected="{{ o.on }}" onClick="{{ o.pick }}" style="{{ o.st }}">{{ o.l }}</button></sc-for></div><button onClick="{{ pv.addModel }}" style="height:36px;padding:0 16px;border:0;border-radius:10px;background:#10233a;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px" style-hover="background:#1d3654"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>Ajouter un modèle</button></div>
-        <div style="background:#fff;border:1px solid #e1e9e7;border-radius:16px;box-shadow:0 1px 2px rgba(16,35,58,.04);overflow-x:auto">
-          <div style="min-width:980px">
-            <div style="display:grid;grid-template-columns:minmax(240px,2.2fr) 110px 104px 104px minmax(180px,1.6fr) 64px 44px;gap:16px;padding:12px 20px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#5c7280"><sc-for list="{{ pv.sortCols }}" as="h" hint-placeholder-count="6"><button type="button" onClick="{{ h.pick }}" aria-sort="{{ h.aria }}" title="{{ h.tip }}" style="{{ h.st }}" style-hover="color:#10233a"><span>{{ h.l }}</span><span aria-hidden="true" style="{{ h.icSt }}">{{ h.ic }}</span></button></sc-for><span></span></div>
-            <sc-for list="{{ pv.models }}" as="m" hint-placeholder-count="8">
-              <div style="{{ m.rowSt }}">
-                <div style="min-width:0"><div style="display:flex;align-items:center;gap:8px;min-width:0"><span style="font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ m.n }}</span><span style="{{ m.catSt }}">{{ m.catL }}</span><sc-if value="{{ m.ageOn }}" hint-placeholder-val="{{ false }}"><span title="{{ m.ageT }}" style="{{ m.ageSt }}">{{ m.ageL }}</span></sc-if></div><div style="font-size:12px;color:#5c7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ m.d }}</div></div>
-                <span style="font-size:12.5px;color:#43586a">{{ m.pvN }}</span>
-                <span style="font-size:13px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums">{{ m.pinL }}</span>
-                <span style="font-size:13px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums">{{ m.poutL }}</span>
-                <div style="display:flex;flex-wrap:wrap;gap:4px"><sc-for list="{{ m.use }}" as="u" hint-placeholder-count="1"><span style="{{ u.st }}">{{ u.l }}</span></sc-for><sc-if value="{{ m.noUse }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:#8a9aa6">—</span></sc-if></div>
-                <button role="switch" aria-checked="{{ m.sw.on }}" aria-label="{{ m.sw.label }}" onClick="{{ m.sw.toggle }}" style="{{ m.sw.st }}"><span style="{{ m.sw.knob }}"></span></button>
-                <button onClick="{{ m.edit }}" aria-label="Modifier {{ m.n }}" title="Modifier" style="width:32px;height:32px;border-radius:8px;border:0;background:transparent;color:#5c7280;display:grid;place-items:center;cursor:pointer" style-hover="background:#eef3f2;color:#10233a"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z M13.5 6.5l4 4"></path></svg></button>
-              </div>
-            </sc-for>
-            <sc-if value="{{ pv.noModels }}" hint-placeholder-val="{{ false }}"><div style="padding:22px 20px;border-top:1px solid #eef3f2;font-size:13px;color:#5c7280">Aucun modèle. Ajoutez-en un avec « Ajouter un modèle » : LLM pour les fonctions du Cockpit, Embedding ou Reranking pour la recherche.</div></sc-if>
-          </div>
-        </div>
-        <!-- Affectation des modèles (02/10/2026) : l'éditeur de l'ancienne page « Affectation des modèles », supprimée, est une section de cette page.
-             API : affectation par fonction, chaîne Documents en trois étapes (Affectation des modeles.dc.html). -->
-        <div id="ia-affectation" style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:10px;scroll-margin-top:24px"><h2 style="margin:0;font-size:17px;font-weight:800">Affectation des modèles</h2></div>
-        <div data-screen-label="Affectation des modèles"><dc-import name="Affectation des modeles" embedded="{{ true }}" providers="{{ ia.provs }}" models="{{ ia.models }}" functions="{{ ia.fns }}" groups="{{ ia.groups }}" assignment="{{ ia.asg }}" on-save="{{ ia.saveAsg }}" hint-size="100%,900px"></dc-import></div>
+      <!-- API : fournisseurs et clés, affectation des modèles (Documents en 3 étapes), catalogue (Fournisseurs et modeles.dc.html, 02/10/2026 ;
+           admin-api.js → données `fm`, actions `fmApi`). -->
+      <div data-screen-label="Fournisseurs et modèles" style="animation:rise-in .35s cubic-bezier(.2,.7,.2,1) both">
+        <dc-import name="Fournisseurs et modeles" data="{{ fmData }}" api="{{ fmApi }}" hint-size="100%,2200px"></dc-import>
       </div>
     </sc-if>
-
     <sc-if value="{{ isConso }}" hint-placeholder-val="{{ false }}">
       <div data-screen-label="Vue générale des coûts" style="animation:rise-in .35s cubic-bezier(.2,.7,.2,1) both">
         <dc-import name="ConsoCouts" mtd-ref="{{ consoMtd }}" google-ok="{{ consoGoogleOk }}" on-fix-key="{{ consoFixKey }}" hint-size="100%,1200px"></dc-import>
@@ -1570,10 +1543,12 @@ class Component extends DCLogic {
       mob: mode === 'mob', scrim: mode === 'mob' && S.mnav, openNav: () => this.setState({ mnav: true }), closeNav: () => this.setState({ mnav: false }),
       padSt: `max-width:1320px;margin:0 auto;padding:${mode === 'mob' ? '20px 16px 96px' : mode === 'rail' ? '28px 28px 96px' : '32px 44px 96px'}`,
       topSt: `position:sticky;top:0;z-index:40;height:60px;display:flex;align-items:center;gap:12px;padding:0 ${mode === 'mob' ? 16 : mode === 'rail' ? 28 : 44}px;background:rgba(242,246,245,.82);backdrop-filter:saturate(1.4) blur(14px);-webkit-backdrop-filter:saturate(1.4) blur(14px);border-bottom:1px solid rgba(16,35,58,.06)`,
-      eyebrow: meta[0], title: meta[1], desc: meta[2], isOv: is('overview'), notOv: !is('overview') && !is('skills') && !is('persona') && !is('apis') && !is('journal') && !is('latency') && !is('notifs') && !is('smtp') && !is('guide') && !is('snaps') && !is('library'), loading: S.loading, ready: !S.loading,
+      eyebrow: meta[0], title: meta[1], desc: meta[2], isOv: is('overview'), notOv: !is('overview') && !is('skills') && !is('persona') && !is('apis') && !is('journal') && !is('latency') && !is('providers') && !is('notifs') && !is('smtp') && !is('guide') && !is('snaps') && !is('library'), loading: S.loading, ready: !S.loading,
       healthL: errN ? errN + ' incident' + (errN > 1 ? 's' : '') : 'Opérationnelle', healthPill: pill(errN ? 'err' : 'ok'), healthDot: dot(errN ? 'err' : 'ok'), goOv: () => this.go('overview'),
       isUsers: is('users') && !S.loading, isAdmins: is('admins') && !S.loading, isRights: is('rights') && !S.loading, isProv: is('providers') && !S.loading, isConso: is('conso') && !S.loading, isInit: is('init') && !S.loading, isLib: is('library') && !S.loading, isSnaps: is('snaps') && !S.loading, isNotifs: is('notifs') && !S.loading, isMods: is('modules') && !S.loading,
       isApis: is('apis') && !S.loading, isJournal: is('journal') && !S.loading, isLatency: is('latency') && !S.loading,
+      // Fournisseurs et modèles : données brutes de l'API et actions, branchées par admin-api.js (démonstration sans elles).
+      fmData: S.fpData || null, fmApi: this.fmApi || null,
       // Temps de traitement : rappels branchés par admin-api.js (absents en démonstration : l'écran affiche alors ses données fictives).
       latFetch: this.latFetch || null, latSeries: this.latSeries || null, isSmtp: is('smtp') && !S.loading, isGuide: is('guide') && !S.loading,
       // Serveur d’envoi SMTP : réglages du serveur (admin-api.js, jamais le mot de passe) ; sans eux, démonstration du composant.
