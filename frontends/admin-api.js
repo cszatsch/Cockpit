@@ -336,8 +336,8 @@ export function bindConsole(c) {
       return { apiCards: cards, apCards: cards.filter(v => !apPend[v.id]).map(toCard), apWidgets: widgets, apChecked: lastCheck(cards) }; },
   };
   const SECTION = {
-    overview: ['accounts', 'providers', 'month', 'audit', 'reqs', 'snaps', 'sched', 'ov', 'models', 'asg', 'fns'], users: ['accounts', 'wsAll'], admins: ['admins', 'audit', 'accounts'], providers: ['providers', 'models', 'asg', 'fns'],
-    assign: ['asg', 'models', 'providers', 'usage', 'fns'], conso: ['month', 'providers'], snaps: [], notifs: ['nrRules', 'nrHist', 'nrCounts', 'nrSchedule', 'models', 'providers', 'projects'], modules: ['mods', 'reqs'],
+    overview: ['accounts', 'providers', 'month', 'audit', 'reqs', 'snaps', 'sched', 'ov', 'models', 'asg', 'fns'], users: ['accounts', 'wsAll'], admins: ['admins', 'audit', 'accounts'], providers: ['providers', 'models', 'asg', 'usage', 'fns'],
+    conso: ['month', 'providers'], snaps: [], notifs: ['nrRules', 'nrHist', 'nrCounts', 'nrSchedule', 'models', 'providers', 'projects'], modules: ['mods', 'reqs'],
     smtp: ['smtp'], guide: ['guide'], init: ['projects'], library: ['projects'], profil: ['prof', 'sess', 'audit'], skills: ['skills'], persona: ['persona'], apis: ['apis'],
   };
   async function load(keys) {
@@ -798,7 +798,7 @@ export function bindConsole(c) {
   c.renderVals = () => {
     const S = c.state, v = orig.renderVals();
     if (S.apiBoot) {
-      Object.assign(v, { loading: true, ready: false, isOv: false, isUsers: false, isAdmins: false, isRights: false, isProv: false, isAsg: false, isConso: false, isInit: false, isLib: false, isSnaps: false, isNotifs: false, isMods: false, isProfil: false });
+      Object.assign(v, { loading: true, ready: false, isOv: false, isUsers: false, isAdmins: false, isRights: false, isProv: false, isConso: false, isInit: false, isLib: false, isSnaps: false, isNotifs: false, isMods: false, isProfil: false });
       return v;
     }
     v.libImported = []; // la bibliothèque lit la liste du serveur

@@ -153,7 +153,7 @@ describe('Console — Jev et la fonction guidage', () => {
 
     it('changer l’affectation change le modèle qui répond', async () => {
       await admin.put('/api/admin/assignments', { guidage: { primary: 'sonnet', fallback: 'gpt5mini' } }).expect(200);
-      const r = await admin.post(JEV, { context: { section: 'assign' }, text: 'Quel modèle me guide ?' }).expect(200);
+      const r = await admin.post(JEV, { context: { section: 'providers' }, text: 'Quel modèle me guide ?' }).expect(200);
       expect(r.body.ai.modelId).toBe('sonnet');
       expect(await lastUsage()).toMatchObject({ modelId: 'sonnet', fallbackUsed: false });
     });

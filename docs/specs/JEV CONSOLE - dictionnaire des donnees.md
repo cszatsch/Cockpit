@@ -343,7 +343,7 @@ Catalogue des modèles d’IA : catégorie, fournisseur, tarif, contexte, date d
 
 ## affectations_ia
 
-Modèle principal et modèle de secours de chaque fonction IA. Écran : IA › Affectation des modèles.
+Modèle principal et modèle de secours de chaque fonction IA. Écran : IA › Fournisseurs et modèles, section « Affectation des modèles ».
 
 | Colonne | Type | Signification | Exemples, unités |
 |---|---|---|---|

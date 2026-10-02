@@ -307,7 +307,7 @@ export const DICTIONNAIRE: DictTable[] = [
   {
     nom: 'affectations_ia',
     source: '"ModelAssignment" t',
-    description: 'Modèle principal et modèle de secours de chaque fonction IA. Écran : IA › Affectation des modèles.',
+    description: 'Modèle principal et modèle de secours de chaque fonction IA. Écran : IA › Fournisseurs et modèles, section « Affectation des modèles ».',
     colonnes: [
       { nom: 'fonction', expr: `t.${q('functionId')}`, type: 'texte', signification: 'Fonction IA', exemples: 'insights = Insights, crud = Gestion des données, rapports = Rapports, guidage = Guidage console (Jev de la Console), doc_vec = Vectorisation, doc_rrk = Reclassement, doc_syn = Synthèse' },
       { nom: 'principal_id', expr: `t.${q('primaryModelId')}`, type: 'texte', signification: 'Modèle principal → modeles_ia.id' },

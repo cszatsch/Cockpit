@@ -340,13 +340,13 @@ a{color:#1d8f86}a:hover{color:#146b64}
             <sc-if value="{{ pv.noModels }}" hint-placeholder-val="{{ false }}"><div style="padding:22px 20px;border-top:1px solid #eef3f2;font-size:13px;color:#5c7280">Aucun modèle. Ajoutez-en un avec « Ajouter un modèle » : LLM pour les fonctions du Cockpit, Embedding ou Reranking pour la recherche.</div></sc-if>
           </div>
         </div>
+        <!-- Affectation des modèles (02/10/2026) : l'éditeur de l'ancienne page « Affectation des modèles », supprimée, est une section de cette page.
+             API : affectation par fonction, chaîne Documents en trois étapes (Affectation des modeles.dc.html). -->
+        <div id="ia-affectation" style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:10px;scroll-margin-top:24px"><h2 style="margin:0;font-size:17px;font-weight:800">Affectation des modèles</h2></div>
+        <div data-screen-label="Affectation des modèles"><dc-import name="Affectation des modeles" embedded="{{ true }}" providers="{{ ia.provs }}" models="{{ ia.models }}" functions="{{ ia.fns }}" groups="{{ ia.groups }}" assignment="{{ ia.asg }}" on-save="{{ ia.saveAsg }}" hint-size="100%,900px"></dc-import></div>
       </div>
     </sc-if>
 
-    <sc-if value="{{ isAsg }}" hint-placeholder-val="{{ false }}">
-      <!-- API : affectation par fonction, chaîne Documents en trois étapes (Affectation des modeles.dc.html). -->
-      <div data-screen-label="Affectation des modèles" style="animation:rise-in .35s cubic-bezier(.2,.7,.2,1) both"><dc-import name="Affectation des modeles" embedded="{{ true }}" providers="{{ ia.provs }}" models="{{ ia.models }}" functions="{{ ia.fns }}" groups="{{ ia.groups }}" assignment="{{ ia.asg }}" on-save="{{ ia.saveAsg }}" hint-size="100%,900px"></dc-import></div>
-    </sc-if>
     <sc-if value="{{ isConso }}" hint-placeholder-val="{{ false }}">
       <div data-screen-label="Vue générale des coûts" style="animation:rise-in .35s cubic-bezier(.2,.7,.2,1) both">
         <dc-import name="ConsoCouts" mtd-ref="{{ consoMtd }}" google-ok="{{ consoGoogleOk }}" on-fix-key="{{ consoFixKey }}" hint-size="100%,1200px"></dc-import>
@@ -981,7 +981,6 @@ const META = {
   admins: ['Accès', 'Administrateurs', 'Qui administre la plateforme, et la trace de chaque action sensible.'],
   rights: ['Accès', 'Droits et habilitations', 'Trois niveaux : projet, module, fonction. Les profils types évitent de configurer chaque utilisateur un par un.'],
   providers: ['IA', 'Fournisseurs et modèles', 'Clés API, tests de connexion et catalogue des modèles avec leur coût.'],
-  assign: ['IA', 'Affectation des modèles', 'Un modèle principal et un modèle de secours pour chaque fonction IA du Cockpit.'],
   conso: ['IA', 'Vue générale des coûts', 'Tokens et dépenses par fournisseur, modèle et fonction, avec seuils d’alerte.'],
   journal: ['Intelligence artificielle', 'Journal consommation et coûts', 'Tokens consommés et détail de chaque appel LLM.'],
   latency: ['IA', 'Analyse des temps de réponse', 'Durée de traitement des prompts, de bout en bout et par étape, par catégorie de prompt ou par modèle.'],
@@ -1002,8 +1001,7 @@ const JCHIPS = {
   users: ['Comment relancer les invitations en attente ?', 'Qui ne s’est pas connecté depuis 10 jours ?', 'Comment suspendre un compte ?'],
   admins: ['Qui est administrateur ?', 'Résume le journal d’audit'],
   rights: ['Quels sont les droits de Thomas Girard ?', 'Qui est PMO sur RISE ?'],
-  providers: ['Comment tester les clés API ?', 'Pourquoi la clé Google est invalide ?'],
-  assign: ['Quelle fonction tourne sur son secours ?', 'Comment réduire les coûts ?'],
+  providers: ['Comment tester les clés API ?', 'Pourquoi la clé Google est invalide ?', 'Quelle fonction tourne sur son secours ?'],
   conso: ['Où en est le budget IA ?', 'Comment réduire les coûts ?'],
   journal: ['Combien de tokens ce mois-ci ?', 'Quel est l’appel le plus cher du mois ?'],
   snaps: ['Comment créer un snapshot ?', 'Qu’est-ce qui a changé depuis le 22 sept. ?'],
@@ -1088,6 +1086,8 @@ class Component extends DCLogic {
   cancelDlg() { const d = this.state.dlg; if (d && d.prev) this.setState({ dlg: d.prev, dt: '' }); else this.setState({ dlg: null, dt: '', form: {}, fe: {} }); }
   okDlg() { const d = this.state.dlg; if (!d) return; if (d.req && this.state.dt.trim() !== d.req) return; this.setState({ dlg: null, dt: '' }); d.ok && d.ok(); }
   go(sec, then) {
+    // Ancienne page « Affectation des modèles » (supprimée le 02/10/2026) : section de « Fournisseurs et modèles ».
+    if (sec === 'assign') return this.goAsg(then);
     const first = !this.state.seen[sec];
     this.setState(s => ({ sec, mnav: false, menu: null, loading: first, seen: { ...s.seen, [sec]: 1 } }));
     try { window.scrollTo({ top: 0 }); } catch (e) { }
@@ -1143,12 +1143,16 @@ class Component extends DCLogic {
   smSave() {}
   smTest() {}
   smTestEmail() {}
+  /** Section « Affectation des modèles » de la page Fournisseurs et modèles : ouverture de la page, puis défilement. */
+  goAsg(then) {
+    this.go('providers', () => { then && then(); setTimeout(() => { try { document.getElementById('ia-affectation')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { } }, 80); });
+  }
   sbSignals(badge) {
     const S = this.state, st = FNS.map(f => this.fnState(f.id, S.asg[f.id]).tone), anyDown = st.includes('err'), anyFallback = st.includes('warn');
     return {
       users: this.ntPendingInvites() ? { b: this.ntPendingInvites() } : undefined,
-      providers: S.provs.some(p => p.st === 'err') ? { dot: 'err' } : undefined,
-      assign: anyDown ? { dot: 'err' } : anyFallback ? { dot: 'warn' } : undefined,
+      // Fournisseurs et modèles : clé en erreur ou fonction en panne (rouge), fonction sur son secours (orange) — l'ancienne page Affectation des modèles est une section de cette page.
+      providers: S.provs.some(p => p.st === 'err') || anyDown ? { dot: 'err' } : anyFallback ? { dot: 'warn' } : undefined,
       apis: this.apiSignal()
     };
   }
@@ -1309,7 +1313,7 @@ class Component extends DCLogic {
     const provs = S.provs.map(p => ({ id: p.id, n: p.n, st: p.st === 'ok' ? 'ok' : 'err', lat: p.lat, err: p.st === 'ok' ? null : p.err || (p.st === 'new' ? 'Clé jamais testée' : 'Clé invalide'), logo: LOGO[p.id], mono: p.id === 'anthropic' || p.id === 'openai', ini: p.n.slice(0, 2) }));
     const fns = FNS.map(f => { const x = v[f.id] || { tin: 0, tout: 0, req: 0 }; const need = (S.aiNeed || {})[f.id] ?? f.needOut; return { id: f.id, n: f.n, sh: f.sh, d: f.d, cat: f.cat.toLowerCase(), group: f.group, step: f.step, isNew: !!f.isNew, needOut: need || undefined, scope: f.scope || 'cockpit', est: f.est, vol: f.est && !this.aiHistory(f.id, x) ? null : f.cat === 'RERANKING' ? { req: x.req } : f.cat === 'EMBEDDING' ? { in: x.tin / 1e6 } : { in: x.tin / 1e6, out: x.tout / 1e6 } }; });
     return { provs, models: S.models.map(m => this.iaModel(m)), fns, groups: FN_GROUPS, asg: S.asg,
-      openModel: id => this.openModelId(id), openProv: id => this.openFiche('prov', id), testKey: id => this.testKey(id), replKey: id => this.openKey(id), addFallback: () => this.go('assign'),
+      openModel: id => this.openModelId(id), openProv: id => this.openFiche('prov', id), testKey: id => this.testKey(id), replKey: id => this.openKey(id), addFallback: () => this.goAsg(),
       saveAsg: d => { this.setState({ draft: JSON.parse(JSON.stringify(d)) }); this.saveAsg(); } };
   }
   // Fonction estimée (guidage) : historique réel sur 30 jours, selon le serveur (`vol` non nul) ou, en démonstration, un volume non nul.
@@ -1537,10 +1541,10 @@ class Component extends DCLogic {
     const live = m.act && okPv(m.pv), tot = u.reduce((a, x) => a + this.est(x.fn.id, m.id), 0);
     const set = k => e => this.setState({ fF: { ...S.fF, [k]: e.target.value } });
     return { on: true, close, isProv: false, isModel: true, kind: 'MODÈLE · ' + p.n.toUpperCase(), title: m.n, pvN: p.n, logoSt: logoSt(m.pv), pill: pillOf(!m.act ? 'neu' : live ? 'ok' : 'err'), dot: dotOf(!m.act ? 'neu' : live ? 'ok' : 'err'), stL: !m.act ? 'Inactif' : live ? 'Disponible' : 'Indisponible · clé ' + p.n + ' invalide',
-      sw: this.sw(m.act, () => this.toggleModel(m), (m.act ? 'Désactiver ' : 'Activer ') + m.n), actHelp: m.act ? 'Proposé dans Affectation des modèles.' : 'Masqué dans Affectation des modèles.',
+      sw: this.sw(m.act, () => this.toggleModel(m), (m.act ? 'Désactiver ' : 'Activer ') + m.n), actHelp: m.act ? 'Proposé dans l’affectation des modèles.' : 'Masqué dans l’affectation des modèles.',
       f, fe, set: { n: set('n'), d: set('d'), pin: set('pin'), pout: set('pout') }, cOpts: this.catOpts(f.c, k => this.setState(s => ({ fF: { ...s.fF, c: k } }))),
       uses: u.map(x => ({ n: x.fn.sh, role: x.role === 'principal' ? 'Principal' : 'Secours', c: '≈ ' + eur(this.est(x.fn.id, m.id)) + ' / mois', st: x.role === 'principal' ? 'height:22px;padding:0 8px;border-radius:6px;font-size:11px;font-weight:700;background:#10233a;color:#fff;display:inline-flex;align-items:center' : 'height:22px;padding:0 8px;border-radius:6px;font-size:11px;font-weight:700;box-shadow:inset 0 0 0 1px #cfdad7;color:#43586a;display:inline-flex;align-items:center' })),
-      noUse: !u.length, costL: u.length ? 'coût estimé si 100 % du volume : ' + eur(tot) + ' / mois' : '', goAsg: () => this.setState({ fiche: null }, () => this.go('assign')), openPv: () => this.openFiche('prov', m.pv), pvPill: pillOf(pt).replace('align-self:flex-start;', ''), pvStL: pl,
+      noUse: !u.length, costL: u.length ? 'coût estimé si 100 % du volume : ' + eur(tot) + ' / mois' : '', goAsg: () => this.setState({ fiche: null }, () => this.goAsg()), openPv: () => this.openFiche('prov', m.pv), pvPill: pillOf(pt).replace('align-self:flex-start;', ''), pvStL: pl,
       clean, dirtyL: clean ? 'Aucune modification' : 'Modifications non enregistrées', save: () => this.saveFiche(),
       saveSt: 'height:38px;padding:0 18px;border:0;border-radius:10px;background:#10233a;color:#fff;font:inherit;font-weight:700;cursor:pointer;opacity:' + (clean ? .35 : 1) };
   }
@@ -1568,7 +1572,7 @@ class Component extends DCLogic {
       topSt: `position:sticky;top:0;z-index:40;height:60px;display:flex;align-items:center;gap:12px;padding:0 ${mode === 'mob' ? 16 : mode === 'rail' ? 28 : 44}px;background:rgba(242,246,245,.82);backdrop-filter:saturate(1.4) blur(14px);-webkit-backdrop-filter:saturate(1.4) blur(14px);border-bottom:1px solid rgba(16,35,58,.06)`,
       eyebrow: meta[0], title: meta[1], desc: meta[2], isOv: is('overview'), notOv: !is('overview') && !is('skills') && !is('persona') && !is('apis') && !is('journal') && !is('latency') && !is('notifs') && !is('smtp') && !is('guide') && !is('snaps') && !is('library'), loading: S.loading, ready: !S.loading,
       healthL: errN ? errN + ' incident' + (errN > 1 ? 's' : '') : 'Opérationnelle', healthPill: pill(errN ? 'err' : 'ok'), healthDot: dot(errN ? 'err' : 'ok'), goOv: () => this.go('overview'),
-      isUsers: is('users') && !S.loading, isAdmins: is('admins') && !S.loading, isRights: is('rights') && !S.loading, isProv: is('providers') && !S.loading, isAsg: is('assign') && !S.loading, isConso: is('conso') && !S.loading, isInit: is('init') && !S.loading, isLib: is('library') && !S.loading, isSnaps: is('snaps') && !S.loading, isNotifs: is('notifs') && !S.loading, isMods: is('modules') && !S.loading,
+      isUsers: is('users') && !S.loading, isAdmins: is('admins') && !S.loading, isRights: is('rights') && !S.loading, isProv: is('providers') && !S.loading, isConso: is('conso') && !S.loading, isInit: is('init') && !S.loading, isLib: is('library') && !S.loading, isSnaps: is('snaps') && !S.loading, isNotifs: is('notifs') && !S.loading, isMods: is('modules') && !S.loading,
       isApis: is('apis') && !S.loading, isJournal: is('journal') && !S.loading, isLatency: is('latency') && !S.loading,
       // Temps de traitement : rappels branchés par admin-api.js (absents en démonstration : l'écran affiche alors ses données fictives).
       latFetch: this.latFetch || null, latSeries: this.latSeries || null, isSmtp: is('smtp') && !S.loading, isGuide: is('guide') && !S.loading,

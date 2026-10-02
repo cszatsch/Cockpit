@@ -1016,7 +1016,7 @@ Base de connaissance : documents du projet (type, version, confidentialité, ét
 | `version` | texte | Version | v1, v2 |
 | `confidentialite` | texte | Confidentialité | INTERNAL = interne, RESTRICTED = restreint |
 | `origine` | texte | Origine | UPLOADED = déposé, GENERATED = généré |
-| `extraction` | texte | État de l’extraction du texte | PENDING = en attente, SUCCEEDED = extrait et indexé, PARTIAL = partiel, UNSUPPORTED = non exploitable |
+| `extraction` | texte | État de l’extraction du texte | PENDING = traitement en cours, SUCCEEDED = extrait et indexé, PARTIAL = partiel, UNSUPPORTED = non exploitable, FAILED = traitement en échec |
 | `pages` | entier | Nombre de pages |  |
 | `taille_octets` | entier | Taille | en octets |
 | `objets_lies` | texte | Objets liés (libellé) |  |

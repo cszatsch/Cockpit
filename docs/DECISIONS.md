@@ -1094,3 +1094,12 @@ Spécification `docs/specs/TEMPS - specification.md` (écran 1c « Cascade »). 
 |---|---|---|
 | Cause | Claude Sonnet 5 réfléchit par défaut (sans paramètre `thinking`) et la réflexion consomme `max_tokens` : sur un appel court (identification des documents, 300 jetons ; requête SQL), réponse sans texte, motif enregistré « réponse vide (arrêt : max_tokens · blocs : thinking) », puis secours (Gemini) ou échec | — |
 | Correction | Sonnet 5 et Opus 5 : `thinking: { type: "disabled" }` (réponses courtes de Jev ; vérifié en réel : 0 jeton de réflexion, réponse complète en 1,5 à 1,9 s). Modèles où la réflexion ne se coupe pas (Opus 5.5, Sonnet 5.5, Fable, Mythos : `disabled` refusé) : au moins 4 096 jetons de sortie. Autres modèles (Haiku 4.5…) : inchangés | `anthropicThinking`, `ANTHROPIC_THINKING_MIN_TOKENS` (`backend/src/core/llm-client.ts`) |
+
+## Suppression de la page « Affectation des modèles » (02/10/2026)
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Constat | La page n'était pas un doublon complet : seule à permettre de choisir le modèle principal et de secours de chaque fonction (la vue réseau de « Fournisseurs et modèles » est en lecture seule) | — |
+| Décision du commanditaire | L'éditeur d'affectation devient une section de « Fournisseurs et modèles » (composant existant, design inchangé) ; menu et page séparée supprimés ; ancienne page redirigée vers la section | `goAsg`, ancre `#ia-affectation` (`Console Admin.dc.html`) |
+| Références | Titre de page de Jev retiré (`CONSOLE_PAGE_TITLES`) ; dictionnaire de Jev : « Écran : IA › Fournisseurs et modèles, section Affectation des modèles » ; skill « Guidage console » mise à jour par l'API (journal d'audit) ; guide utilisateur Console publié : 3 extraits citent encore la page, à corriger dans sa prochaine version | `jev-prompt.ts`, `jev-dictionnaire.ts` |
+| Retour arrière | Code : `git reset --hard avant-suppression-affectation-modeles` (branche `backup/avant-suppression-affectation-modeles`) ; base : `pg_restore --clean --if-exists --no-owner` de `rise-sauvegardes/rise-avant-suppression-affectation-modeles-2026-10-02.dump` (dossier de l'utilisateur ; restauration vérifiée : 88 tables, 9 860 lignes identiques) | — |

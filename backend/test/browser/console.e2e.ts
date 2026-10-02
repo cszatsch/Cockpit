@@ -32,7 +32,7 @@ const OUT = process.env.OUT || path.join(os.tmpdir(), 'rise-console-e2e');
 const PAGE = 'Console%20Admin.dc.html';
 
 const MENUS: Array<[string, string]> = [
-  ['overview', 'Vue d’ensemble'], ['users', 'Utilisateurs'], ['admins', 'Administrateurs'], ['providers', 'Fournisseurs et modèles'], ['assign', 'Affectation des modèles'],
+  ['overview', 'Vue d’ensemble'], ['users', 'Utilisateurs'], ['admins', 'Administrateurs'], ['providers', 'Fournisseurs et modèles'],
   ['conso', 'Consommation et coûts'], ['snaps', 'Snapshots'], ['notifs', 'Notifications'], ['modules', 'Modules'], ['init', 'Initialisation d’un projet'],
   ['library', 'Bibliothèque des projets'], ['profil', 'Mon profil'],
 ];
@@ -86,7 +86,7 @@ const dcErrors = (page: Page) => page.evaluate(() => Array.from(document.querySe
 async function goMenu(page: Page, label: string) {
   // « Mon profil » s'ouvre par la carte de l'administrateur connecté, en bas de la navigation.
   // Sidebar Console : les pages sont rangées par domaine (accordéon) ; on déplie le domaine s'il est replié.
-  const DOM: Record<string, string> = { Utilisateurs: 'Accès', Administrateurs: 'Accès', 'Fournisseurs et modèles': 'IA', 'Affectation des modèles': 'IA', 'Consommation et coûts': 'IA', Persona: 'Assistant', Skills: 'Assistant', 'Bibliothèque des projets': 'Projets', 'Initialisation d’un projet': 'Projets', Snapshots: 'Projets', Modules: 'Plateforme', 'Notifications': 'Plateforme' };
+  const DOM: Record<string, string> = { Utilisateurs: 'Accès', Administrateurs: 'Accès', 'Fournisseurs et modèles': 'IA', 'Consommation et coûts': 'IA', Persona: 'Assistant', Skills: 'Assistant', 'Bibliothèque des projets': 'Projets', 'Initialisation d’un projet': 'Projets', Snapshots: 'Projets', Modules: 'Plateforme', 'Notifications': 'Plateforme' };
   if (label === 'Mon profil') await page.locator('aside button[aria-label="Mon profil"]').click();
   else {
     const dom = DOM[label];

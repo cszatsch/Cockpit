@@ -141,7 +141,7 @@ export const CONSOLE_GUIDANCE_SKILLS = ['Guidage console', 'Répondre sur la Con
 /** Pages de la Console : identifiant (`S.sec`) → titre, pour situer la question de l'administrateur. */
 export const CONSOLE_PAGE_TITLES: Record<string, string> = {
   overview: 'Vue d’ensemble', users: 'Utilisateurs', admins: 'Administrateurs', rights: 'Droits et habilitations',
-  providers: 'Fournisseurs et modèles', assign: 'Affectation des modèles', conso: 'Vue générale des coûts',
+  providers: 'Fournisseurs et modèles', conso: 'Vue générale des coûts',
   persona: 'Persona', skills: 'Skills', library: 'Bibliothèque des projets', init: 'Initialisation d’un projet',
   snaps: 'Snapshots', modules: 'Modules', apis: 'Registre des cartes API', notifs: 'Notifications', smtp: 'Serveur d’envoi SMTP', profil: 'Mon profil',
   journal: 'Journal consommation et coûts', latency: 'Analyse des temps de réponse',

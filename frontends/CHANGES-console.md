@@ -579,3 +579,12 @@ Vérification des éléments de la vue d'ensemble face au serveur. Conformes : d
 ## Analyse des temps de réponse : test navigateur sans écriture en base (01/10/2026)
 
 - `backend/test/browser/latency.e2e.ts` : les mesures de test ne sont plus insérées dans la base de l'application (elles s'affichaient dans l'écran pendant les essais) ; les appels de l'écran à `/api/ai/latency` sont interceptés et servis à partir du jeu de mesures, calculés par les règles du serveur.
+
+## Suppression de la page « Affectation des modèles » (02/10/2026)
+
+À la demande du commanditaire (doublon avec « Fournisseurs et modèles »). L'affectation (modèle principal et de secours par fonction, chaîne Documents) n'était modifiable que dans cette page : son éditeur devient une section de « Fournisseurs et modèles ». Point de restauration : tag `avant-suppression-affectation-modeles`.
+
+- `Console Admin.dc.html` : page `assign` supprimée (bloc `isAsg`, `META.assign`, `JCHIPS.assign`) ; section « Affectation des modèles » (ancre `#ia-affectation`, composant `Affectation des modeles.dc.html` inchangé, mêmes props) à la fin de la page `providers`, après les modèles ; `go('assign')` redirige vers cette section (`goAsg`) ; « ajouter un secours » (vue réseau) et « voir l'affectation » (fiche modèle) y mènent ; pastille de la sidebar : l'état des fonctions (en panne : rouge, sur leur secours : orange) rejoint « Fournisseurs et modèles » ; suggestion de Jev « Quelle fonction tourne sur son secours ? » reprise sur cette page ; aide du commutateur : « Proposé dans l’affectation des modèles ».
+- `Sidebar Console.dc.html` : entrée IA › « Affectation des modèles » retirée (16 pages).
+- `admin-api.js` : chargement de la page `providers` complété par la consommation (`usage`, estimations de l'éditeur) ; section `assign` retirée.
+- Inchangés (partagés) : `Affectation des modeles.dc.html`, `Vue reseau IA.dc.html`, `Fiche modele.dc.html`, `ia-data.js`, état `asg` / `draft`, `saveAsg`, API `/api/admin/assignments`.
