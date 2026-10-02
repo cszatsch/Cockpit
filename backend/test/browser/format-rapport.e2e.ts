@@ -1,0 +1,114 @@
+/// <reference lib="dom" />
+/**
+ * Recette navigateur de l'étape « Format du rapport » (Comités et rapports › Créer un template, étape B).
+ *
+ * Usage (application démarrée, AUTH_DEV=true, `npm run build` préalable) :
+ *   cd backend && npx ts-node --transpile-only test/browser/format-rapport.e2e.ts
+ * Variable : CONSOLE_URL (défaut http://localhost:3000).
+ *
+ * Écrit dans la base : des fichiers de format et un template « Recette format » (supprimé à la fin).
+ */
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+import { chromium, Browser, Page } from 'playwright';
+import JSZip from 'jszip';
+import { newPage } from './harness';
+import { makeFormatPptx, pptxIntegrity } from '../format-fixture';
+
+const API = process.env.CONSOLE_URL || 'http://localhost:3000';
+const NAME = 'Recette format';
+const results: Array<{ step: string; ok: boolean }> = [];
+const check = (step: string, ok: boolean, detail = '') => { results.push({ step, ok }); console.log(`${ok ? '✔' : '✘'} ${step}${detail ? ' — ' + detail : ''}`); };
+const text = (page: Page, re: RegExp) => page.evaluate((src) => (document.body.innerText.match(new RegExp(src)) || [''])[0], re.source);
+const cockpit = (page: Page, fn: string, ...args: unknown[]) => page.evaluate(([f, a]) => (window as any).__riseCockpit[f as string](...(a as unknown[])), [fn, args] as const);
+
+async function launch(): Promise<Browser> {
+  try { return await chromium.launch(); } catch { return chromium.launch({ channel: 'chrome' }); }
+}
+
+async function main() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'format-'));
+  const pptx = path.join(dir, 'Charte ACME.pptx'), bad = path.join(dir, 'faux.pptx');
+  fs.writeFileSync(pptx, await makeFormatPptx());
+  fs.writeFileSync(bad, 'pas un PowerPoint');
+  const browser = await launch();
+  const errors: string[] = [];
+  const page = await newPage(browser, { errors });
+  try {
+    await page.goto(`${API}/RISE%20Cockpit.dc.html?as=p01&e2e=1`, { waitUntil: 'load' });
+    await page.waitForFunction(() => !!(window as any).__riseCockpit && !!(window as any).__riseCockpit._api, null, { timeout: 60000 });
+    // Restes d'une exécution précédente : templates de recette retirés.
+    await page.waitForTimeout(2000);
+    await page.evaluate((n) => { const c = (window as any).__riseCockpit; c.setState((s: any) => ({ templates: (s.templates || []).filter((t: any) => t.name !== n) })); }, NAME);
+    await page.evaluate((n) => { const c = (window as any).__riseCockpit; c.setState({ space: 'comites', tab: 'creer', tplStep: 1, tplDraft: { ...c.state.tplDraft, name: n } }); }, NAME);
+    await page.waitForFunction(() => document.body.innerText.includes('Fiche d\'identité'), null, { timeout: 15000 });
+    const steps = await page.evaluate(() => ['Fiche d\'identité', 'Format du rapport', 'Composants', 'Ordre et données', 'Prévisualisation', 'Publication'].map((n) => document.body.innerText.indexOf(n)));
+    check('1. six étapes, « Format du rapport » en étape 2', steps.every((x, k) => x >= 0 && (k === 0 || x > steps[k - 1])), JSON.stringify(steps));
+    await page.getByText('Suivant ›').click();
+    await page.waitForTimeout(500);
+    check('   étape B affichée, 0 / 4 pages, Suivant bloqué', (await text(page, /0 \/ 4 pages chargées/)) !== '' && (await text(page, /Chargez les 4 pages modèles \(4 manquantes\)/)) !== '');
+
+    const input = page.locator('input[type=file][accept*=pptx]');
+    await input.setInputFiles(pptx);
+    await page.waitForFunction(() => /4 \/ 4 pages chargées/.test(document.body.innerText), null, { timeout: 30000 });
+    await page.waitForFunction(() => document.querySelectorAll('[role=img][style*="blob:"]').length >= 4, null, { timeout: 30000 }).catch(() => {});
+    const previews = await page.evaluate(() => document.querySelectorAll('[role=img][style*="blob:"]').length);
+    check('2. un fichier pour les 4 pages : diapositives 1, 2, 3 et 4, aperçus affichés', previews === 4, `${previews} aperçus`);
+    const pages = await page.evaluate(() => (window as any).__riseCockpit.state.tplDraft.fmt.pages);
+    check('   correspondance automatique des diapositives', ['cover', 'divider', 'standard', 'closing'].every((k, i) => pages[k].slide === i + 1), JSON.stringify(pages));
+    check('   extraction affichée (fond, éléments, polices)', (await text(page, /uni #10233A/)) !== '' && (await text(page, /1 logo · 1 bandeau/)) !== '' && (await text(page, /Police introuvable : « Montserrat »/)) !== '');
+    await page.waitForFunction(() => { const c = (window as any).__riseCockpit.state.tplFmtCheck; return c && c.complete; }, null, { timeout: 15000 }).catch(() => {});
+    check('   contrôle du serveur : format complet', await page.evaluate(() => !!((window as any).__riseCockpit.state.tplFmtCheck || {}).complete));
+
+    await page.evaluate(() => { (window as any).__riseCockpit._fmtKind = 'closing'; });
+    await input.setInputFiles(bad);
+    await page.waitForFunction(() => /faux\.pptx —/.test(document.body.innerText), null, { timeout: 15000 }).catch(() => {});
+    check('3. fichier invalide : message clair sur la carte', /illisible ou endommagé/.test(await text(page, /faux\.pptx — [^\n]+/)));
+    await cockpit(page, 'tplFmtSet', 'closing', null);
+    await page.waitForTimeout(500);
+    check('   suppression : 3 / 4 pages, Suivant bloqué', (await text(page, /3 \/ 4 pages chargées/)) !== '' && (await text(page, /Chargez les 4 pages modèles \(1 manquante\)/)) !== '');
+    await page.evaluate(() => { (window as any).__riseCockpit._fmtKind = 'closing'; });
+    await input.setInputFiles(pptx);
+    await page.waitForFunction(() => /4 \/ 4 pages chargées/.test(document.body.innerText), null, { timeout: 30000 });
+    check('   remplacement : la clôture reprend la diapositive 4', (await page.evaluate(() => (window as any).__riseCockpit.state.tplDraft.fmt.pages.closing.slide)) === 4);
+    await page.waitForFunction(() => { const c = (window as any).__riseCockpit.state; return c.tplFmtCheck && c.tplFmtCheck.complete && c.tplFmtCheck.key === JSON.stringify(c.tplDraft.fmt.pages); }, null, { timeout: 15000 });
+
+    await page.getByText('Suivant ›').click();
+    await page.waitForTimeout(400);
+    await page.evaluate(() => { const c = (window as any).__riseCockpit; c.setState({ tplDraft: { ...c.state.tplDraft, comps: [{ id: 'jalons', kind: 'Projet', target: '' }] } }); });
+    await page.waitForTimeout(300);
+    await page.getByText('Suivant ›').click(); await page.waitForTimeout(300);
+    await page.getByText('Suivant ›').click(); await page.waitForTimeout(800);
+    check('4. prévisualisation : vignettes des 4 pages modèles', (await page.evaluate(() => document.body.innerText.includes('FORMAT DU RAPPORT') || document.body.innerText.includes('Format du rapport'))) && (await page.evaluate(() => document.querySelectorAll('[role=img][style*="blob:"]').length)) >= 4);
+    await page.getByText('Suivant ›').click(); await page.waitForTimeout(500);
+    check('   récapitulatif : format 16:9 et nom du fichier', (await text(page, /16:9 · 33,87 × 19,05 cm · Charte ACME\.pptx/)) !== '');
+    await page.getByText('Valider et publier').click();
+    await page.waitForFunction((n) => ((window as any).__riseCockpit.state.templates || []).some((t: any) => t.name === n && /^T-/.test(t.id) && t.format && String(t.format.cover.fileId).startsWith('RF')), NAME, { timeout: 30000 }).catch(() => {});
+    const saved = await page.evaluate((n) => ((window as any).__riseCockpit.state.templates || []).find((t: any) => t.name === n), NAME);
+    check('5. template publié avec son format (serveur)', !!saved && !!saved.format && saved.format.closing.slide === 4, JSON.stringify(saved && saved.format));
+
+    const dl = page.waitForEvent('download', { timeout: 30000 });
+    const toasts = await page.evaluate(async (n) => { const c = (window as any).__riseCockpit; const seen: string[] = []; const orig = c.showToast.bind(c); c.showToast = (m: string) => { seen.push(m); orig(m); }; await c._api.tplPptx(c.state.templates.find((t: any) => t.name === n)); c.showToast = orig; return seen; }, NAME);
+    if (toasts.length) console.log('   messages :', toasts.join(' | '));
+    const file = path.join(dir, 'rapport.pptx');
+    await (await dl).saveAs(file);
+    const buf = fs.readFileSync(file);
+    const z = await JSZip.loadAsync(buf);
+    const cover = await z.file('ppt/slides/slide1.xml')!.async('string');
+    check('6. PowerPoint téléchargé : paquet intègre, titre sur la couverture', (await pptxIntegrity(buf)).length === 0 && cover.includes(`<a:t>${NAME}</a:t>`));
+
+    // Nettoyage : template de recette supprimé.
+    if (saved) await page.evaluate(async (id) => { const c = (window as any).__riseCockpit; c.setState((s: any) => ({ templates: s.templates.filter((t: any) => t.id !== id) })); }, saved.id);
+    await page.waitForTimeout(2500);
+    const left = errors.filter((e) => !/Expected|never resolved|cannot be parsed|conform|Failed to load resource/.test(e));
+    check('7. aucune erreur JavaScript', left.length === 0, left.slice(0, 3).join(' | '));
+  } finally {
+    await browser.close();
+  }
+  const ko = results.filter((r) => !r.ok).length;
+  console.log(`\n${results.length - ko} / ${results.length} vérifications réussies`);
+  process.exit(ko ? 1 : 0);
+}
+
+main().catch((e) => { console.error(e); process.exit(1); });

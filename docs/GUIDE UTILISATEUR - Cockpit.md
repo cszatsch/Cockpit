@@ -663,17 +663,25 @@ Le bouton orange **Mettre à jour mes tâches** de la barre latérale ouvre dire
 - Un template désactivé ne se génère plus : « Template inactif ».
 - La génération est tracée et inscrite à l'historique.
 
-**Remarque.** À ce jour, le téléchargement n'enregistre aucun fichier sur votre poste : seul un message de confirmation s'affiche (voir annexe B).
+Le téléchargement enregistre sur votre poste un fichier PowerPoint (.pptx) construit avec les données du jour, au format du template : couverture, une page intercalaire et des pages standard par section, page de clôture. Un template sans format utilise la présentation par défaut de RISE.
 
 ### 3.15.2 Créer un template
 
-Le bouton **Créer un template** du bandeau ouvre un assistant en cinq étapes.
+Le bouton **Créer un template** du bandeau ouvre un assistant en six étapes.
 
 1. **Fiche d'identité** : nom (obligatoire, 200 caractères), comité de rattachement, numéro de version (1.0 par défaut), auteur, description. Sans nom : « Renseignez au moins le nom du template. ».
-2. **Composants** : choisissez parmi Synthèse de situation, Planning, Jalons, Risques et problèmes, Actions, Décisions, Baromètre du projet, Tableau de bord, Budget. Chaque composant devient une section. Sans composant : « Sélectionnez au moins un composant. ».
-3. **Ordre et données** : pour chaque section, le périmètre (Projet entier, Vague, Phase ou Chantier) et sa cible ; boutons Monter / Descendre.
-4. **Prévisualisation** : « N pages estimées · N sections ».
-5. **Publication** : **Valider et publier**. Le template devient actif, rejoint la Bibliothèque et devient sélectionnable dans « Générer un rapport ». Toast : « Template publié · {nom} v{version} — actif dans {comité} ».
+2. **Format du rapport** : chargez un modèle pour chacun des 4 types de page : **page de couverture** (première diapositive), **page intercalaire** (transition entre deux sections), **page standard** (contenu : texte, tableaux, graphiques) et **page de clôture** (dernière diapositive). Les 4 pages sont obligatoires.
+   - Format recommandé : **.pptx**. Un seul fichier peut fournir les 4 pages : **Importer un fichier pour les 4 pages** retient les diapositives 1, 2, 3 et la dernière ; choisissez ensuite la diapositive de chaque type dans sa liste. Vous pouvez aussi charger un fichier par page (bouton de la carte, ou glisser-déposer sur la carte).
+   - PDF, PNG et JPEG sont acceptés en complément, avec une extraction moins précise : depuis un PDF, les fonds, aplats et textes sont repris, pas les images ; une image sert de fond plein écran et les zones de texte sont estimées.
+   - Après l'import, chaque carte montre l'aperçu de la page (éléments fixes à leur place, zones de contenu en pointillés) et ce qui a été extrait : format (16:9, 4:3…), fond, éléments fixes (logo, bandeau, filigrane…), zones (titre, texte, date, pagination, bas de page), polices, typographie des titres et du texte, marges, palette.
+   - **Remplacer** charge un autre fichier ; **Supprimer** vide la carte.
+   - Messages d'erreur (en rouge, la page n'est pas retenue) : « Format non pris en charge », « Ancien format PowerPoint (.ppt) », « Le contenu ne correspond pas à l'extension », « Fichier PowerPoint illisible ou endommagé », « Ce fichier est protégé par un mot de passe », « Image trop petite », et, si les dimensions diffèrent entre les pages PowerPoint, « Les 4 pages doivent avoir le même format ».
+   - Alertes (en orange, la page est retenue) : « Police introuvable » (police ni standard d'Office, ni incorporée au fichier : à installer sur les postes, ou à incorporer), zone de titre, de contenu ou de pagination absente, extraction partielle d'un PDF ou d'une image.
+   - Sans les 4 pages : « Chargez les 4 pages modèles (N manquantes). ».
+3. **Composants** : choisissez parmi Synthèse de situation, Planning, Jalons, Risques et problèmes, Actions, Décisions, Baromètre du projet, Tableau de bord, Budget. Chaque composant devient une section. Sans composant : « Sélectionnez au moins un composant. ».
+4. **Ordre et données** : pour chaque section, le périmètre (Projet entier, Vague, Phase ou Chantier) et sa cible ; boutons Monter / Descendre.
+5. **Prévisualisation** : « N pages estimées · N sections », et les vignettes des 4 pages modèles.
+6. **Publication** : le récapitulatif indique le format (ex. « 16:9 · 33,87 × 19,05 cm · Charte.pptx ») ; **Valider et publier**. Le template devient actif, rejoint la Bibliothèque et devient sélectionnable dans « Générer un rapport ». Toast : « Template publié · {nom} v{version} — actif dans {comité} ».
 
 Une section limitée à une vague, une phase ou un chantier doit avoir sa cible : « Composant incomplet ».
 
@@ -684,7 +692,7 @@ Une section limitée à une vague, une phase ou un chantier doit avoir sa cible 
 - Filtre État : Tous, Actifs, Inactifs. Résumé : « N templates · N actifs · N inactifs ».
 - Colonnes : Template, Auteur, Version, Composants, Pages, Publié le, Comité, État.
 - Interrupteur d'état : « Template désactivé · {nom} » ou « Template réactivé · {nom} — disponible dans Générer un rapport ». Un template inactif reste conservé et consultable.
-- **Visualiser** ouvre l'aperçu du template ; **Supprimer définitivement** le supprime.
+- **Visualiser** ouvre l'aperçu du template ; **Télécharger** enregistre le PowerPoint du template avec les données du jour ; **Supprimer définitivement** le supprime.
 - Un template utilisé par un rapport ne peut pas être supprimé : « Suppression impossible : objet utilisé ailleurs ». Désactivez-le plutôt.
 
 **Historique**
@@ -1126,7 +1134,7 @@ Ces points viennent de la lecture du code. Ils décrivent un écart entre le cod
 **Comités, documents, Jev**
 
 28. **« Oui, verser »** n'ajoute pas le rapport à la Base de connaissance : il crée un rapport rattaché à la séance. Les messages « versé dans la Base de connaissance… versionné et indexé » sont inexacts.
-29. **Téléchargements** de rapports et de modèles : seul un toast « · PPTX » s'affiche, aucun fichier n'est produit. Le PDF de rapport existe côté serveur mais n'est appelé par aucun écran, et ne restitue que 4 composants sur 9.
+29. ~~**Téléchargements** de rapports et de modèles~~ (corrigé le 02/10/2026) : le téléchargement produit un vrai PowerPoint au format du template. Le PDF du rapport rattaché à une séance (serveur) reste minimal et n'est appelé par aucun écran.
 30. **Nombre de pages** d'un template : trois calculs différents (publication, serveur, aperçu).
 31. **Publication d'un template** : l'historique affiché revient à des entrées de démonstration jusqu'au rechargement.
 32. **Suppression d'un template** : sans confirmation ; le toast s'affiche avant un éventuel refus du serveur.

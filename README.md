@@ -125,6 +125,7 @@ npm run test:unit   # règles de domaine seules (sans base)
   ```bash
   npx ts-node --transpile-only test/browser/cockpit.e2e.ts   # 23 vues comparées à l'original + persistance après rechargement
   npx ts-node --transpile-only test/browser/console.e2e.ts   # 13 menus comparés à l'original + actions de la console
+  npx ts-node --transpile-only test/browser/format-rapport.e2e.ts   # étape « Format du rapport » de Créer un template, PowerPoint téléchargé (écrit en base)
   ```
 
   Chaque script amorce sa propre base (`rise_fe_cockpit`, `rise_fe_console`). Le script du Cockpit démarre l’API (port 3101) si besoin ; celui de la console attend une API déjà lancée sur le port 3102 avec `DATABASE_URL=…/rise_fe_console AUTH_DEV=true DEMO_TODAY=2026-09-26 DEMO_NOW=2026-09-26T08:24:00Z JOBS_ENABLED=false OFFLINE=true FRONTEND_DIR=../frontends`. La page du Cockpit est ouverte avec `?e2e=1`, qui expose le composant au test (`window.__riseCockpit`) ; sans ce paramètre, rien n'est exposé.

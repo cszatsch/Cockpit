@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, Headers, HttpCode, Param, Patch, Post, Query, Res } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { AccessService, ProjectScope } from '../../core/access.service';
 import { Actor, CurrentActor } from '../../core/auth/auth';
@@ -17,6 +18,9 @@ import { frShort } from '../../domain/dates';
 import { sessionView } from '../views';
 import { UsagesService } from '../referential/usages.service';
 import { isoDate } from '../referential/schemas';
+import { FormatSelectionSchema } from './report-format.controller';
+import { ReportFormatService } from './report-format.service';
+import { formatRefs } from '../../domain/report-format';
 
 const time = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'heure HH:MM attendue');
 
@@ -38,6 +42,8 @@ const TemplateCreate = z
     version: z.string().trim().min(1).max(20).default('1.0'),
     description: z.string().max(2000).default(''),
     components: z.array(Component).min(1, 'au moins un composant'),
+    /** Format du rapport : les 4 pages modèles (fichier chargé, diapositive) ; null = présentation par défaut. */
+    format: FormatSelectionSchema.nullable().optional(),
     active: z.boolean().optional(),
   })
   .strict();
@@ -57,6 +63,7 @@ export class CommitteesController {
     private readonly todaySvc: TodayService,
     private readonly storage: StorageService,
     private readonly usages: UsagesService,
+    private readonly formats: ReportFormatService,
   ) {}
 
   private profile(scope: ProjectScope) {
@@ -200,7 +207,7 @@ export class CommitteesController {
   // ───────────── Templates ─────────────
 
   private templateView(t: any) {
-    return { id: t.id, name: t.name, bodyId: t.bodyId, authorId: t.authorId, authorLabel: t.authorLabel, version: t.version, description: t.description, components: t.components, pages: t.pages, publishedAt: t.publishedAt, active: t.active, rowVersion: t.rowVersion };
+    return { id: t.id, name: t.name, bodyId: t.bodyId, authorId: t.authorId, authorLabel: t.authorLabel, version: t.version, description: t.description, components: t.components, pages: t.pages, publishedAt: t.publishedAt, active: t.active, format: formatRefs(t.format), rowVersion: t.rowVersion };
   }
 
   @Get('report-templates')
@@ -240,6 +247,7 @@ export class CommitteesController {
           version: input.version,
           description: input.description,
           components: input.components as any,
+          format: input.format ? ((await this.formats.formatForTemplate(scope, input.format, db)) as any) : undefined,
           pages: 1 + input.components.reduce((a, c) => a + (PAGE_WEIGHT[c.id] ?? 2), 0),
           publishedAt: this.todaySvc.today(scope.project.timezone),
           active: input.active ?? true,
@@ -261,6 +269,7 @@ export class CommitteesController {
       if (!t) throw notFound();
       if (input.components) await this.validateComponents(db, scope.project.id, input.components);
       const data: any = { ...input, rowVersion: { increment: 1 } };
+      if (input.format !== undefined) data.format = input.format ? await this.formats.formatForTemplate(scope, input.format, db) : Prisma.DbNull;
       if (input.components) data.pages = 1 + input.components.reduce((a, c) => a + (PAGE_WEIGHT[c.id] ?? 2), 0);
       const row = await db.reportTemplate.update({ where: { id }, data });
       await this.audit.record(db, { actor, projectId: scope.project.id, profileUsed: scope.access.pmo ? 'PMO' : 'RESPONSABLE' }, { entityType: 'REPORT_TEMPLATE', entityId: id, before: this.templateView(t), after: this.templateView(row), target: row.name });

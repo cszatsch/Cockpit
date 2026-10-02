@@ -754,7 +754,10 @@ export function attach(comp) {
       const targetId = c.targetId || (scope === 'WAVE' ? waveId(c.target) : scope === 'PHASE' ? phaseId(c.target) : scope === 'WORKSTREAM' ? wsId(c.target) : null);
       return { id: c.id, scope, ...(scope !== 'PROJECT' ? { targetId } : {}) };
     });
-    return { name: t.name, bodyId: t.bodyId || bodyId(t.committee) || null, authorLabel: t.author || null, version: String(t.version || '1.0'), description: t.desc || '', components: comps, active: t.active !== false };
+    // Format du rapport (étape B, 02/10/2026) : les 4 pages modèles { fileId, slide } ; absent = présentation par défaut.
+    const fmt = t.format && ['cover', 'divider', 'standard', 'closing'].every((k) => t.format[k] && t.format[k].fileId && !String(t.format[k].fileId).startsWith('local'))
+      ? Object.fromEntries(['cover', 'divider', 'standard', 'closing'].map((k) => [k, { fileId: t.format[k].fileId, slide: +t.format[k].slide || 1 }])) : undefined;
+    return { name: t.name, bodyId: t.bodyId || bodyId(t.committee) || null, authorLabel: t.author || null, version: String(t.version || '1.0'), description: t.desc || '', components: comps, ...(fmt ? { format: fmt } : {}), active: t.active !== false };
   }
   function onTemplates(before, after) {
     const b = before || [], a = after || [], serverIds = new Set((S.B.templates || []).map((t) => t.id));
@@ -944,6 +947,39 @@ export function attach(comp) {
         const cd = r.headers.get('Content-Disposition') || '', fn = /filename="([^"]+)"/.exec(cd);
         const a = document.createElement('a'); a.href = url; a.download = fn ? decodeURIComponent(fn[1]) : d.n; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
         toast('Téléchargement — ' + d.n + ' · ' + d.v);
+      } catch (e) { toast(errorText(e)); }
+    },
+
+    /**
+     * Format du rapport (étape B de « Créer un template », 02/10/2026) : `POST /report-formats` (multipart) analyse la
+     * page modèle et renvoie ses diapositives (résumé de l'extraction, alertes par type de page) ; un fichier refusé
+     * lève l'erreur du serveur (message clair, ex. « Format non pris en charge »).
+     */
+    async fmtUpload(file) {
+      const fd = new FormData(); fd.append('file', file, file.name);
+      return ppost('/report-formats', fd);
+    },
+    /** Aperçu d'une diapositive (SVG reconstitué) : URL d'objet, à libérer par l'écran. */
+    async fmtPreview(fileId, n) {
+      const r = await pget('/report-formats/' + enc(fileId) + '/slides/' + n + '/preview', { raw: true });
+      return URL.createObjectURL(await r.blob());
+    },
+    /** Contrôle du format complet : `{ complete, errors, pages }`. */
+    fmtCheck(sel) { return ppost('/report-formats/check', sel); },
+    /** Fichier retiré du brouillon (refusé par le serveur s'il sert à un template enregistré : sans conséquence). */
+    fmtDelete(fileId) { return pdel('/report-formats/' + enc(fileId)).catch(() => null); },
+    /** PowerPoint du template avec les données du jour : `GET /report-templates/{id}/pptx`. */
+    async tplPptx(t) {
+      // Identifiant serveur (`T-…`, attribué à la création) ; sinon template local pas encore relu : recherche par nom et version.
+      const find = () => (S.B.templates || []).find((x) => x.id === t.id) || (/^T-/.test(String(t.id)) ? t : null) || (S.B.templates || []).find((x) => x.name === t.name && String(x.version) === String(t.version));
+      // Template tout juste publié : on attend son enregistrement (10 s au plus).
+      let srv = find();
+      for (let i = 0; !srv && i < 20; i++) { await new Promise((r) => setTimeout(r, 500)); srv = find(); }
+      if (!srv) return toast('Template en cours d’enregistrement : réessayez dans un instant');
+      try {
+        const r = await pget('/report-templates/' + enc(srv.id) + '/pptx', { raw: true });
+        const blob = await r.blob(), url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = (t.name + ' v' + t.version).replace(/[\\/:*?"<>|]+/g, '_') + '.pptx'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
       } catch (e) { toast(errorText(e)); }
     },
 

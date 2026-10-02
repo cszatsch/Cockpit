@@ -981,8 +981,8 @@ a{color:#1d8f86}a:hover{color:#146b64}
   <!-- ===== COMITÉS · CRÉER UN TEMPLATE ===== -->
   <sc-if value="{{ vTplCreer }}" hint-placeholder-val="{{ false }}">
   <div style="display:flex;flex-direction:column;gap:18px;animation:rise-in .4s cubic-bezier(.2,.7,.2,1) both">
-    <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px">
-      <sc-for list="{{ tplSteps }}" as="s" hint-placeholder-count="5"><div onClick="{{ s.go }}" style="{{ s.style }}"><span style="{{ s.numStyle }}">{{ s.letter }}</span><div style="min-width:0"><div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;opacity:.7">Étape {{ s.num }}</div><b style="display:block;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ s.n }}</b></div></div></sc-for>
+    <div style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px">
+      <sc-for list="{{ tplSteps }}" as="s" hint-placeholder-count="6"><div onClick="{{ s.go }}" style="{{ s.style }}"><span style="{{ s.numStyle }}">{{ s.letter }}</span><div style="min-width:0"><div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;opacity:.7">Étape {{ s.num }}</div><b style="display:block;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ s.n }}</b></div></div></sc-for>
     </div>
 
     <sc-if value="{{ tplStep1 }}" hint-placeholder-val="{{ true }}">
@@ -999,9 +999,44 @@ a{color:#1d8f86}a:hover{color:#146b64}
     </div>
     </sc-if>
 
+    <sc-if value="{{ tplStepFmt }}" hint-placeholder-val="{{ false }}">
+    <div style="background:#fff;border-radius:16px;padding:22px 24px;box-shadow:0 1px 2px rgba(16,35,58,.04)">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap"><div style="font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#5c7280;font-weight:700">B · Format du rapport</div><span style="font-size:11.5px;color:#5c7280">{{ tplFmtCount }} · .pptx recommandé, PDF ou image en complément</span></div>
+      <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap">
+        <div style="font-size:12.5px;color:#43586a;max-width:760px;text-wrap:pretty">Chargez un modèle pour chacun des 4 types de page : le PowerPoint généré reprendra leurs fonds, logos, couleurs, polices et positions. Un seul fichier PowerPoint peut fournir les 4 pages : choisissez alors la diapositive de chaque type.</div>
+        <span onClick="{{ tplFmtImportAll }}" style="height:36px;padding:0 14px;border-radius:10px;border:1px solid #d9e4e1;font-weight:700;display:inline-flex;align-items:center;gap:8px;cursor:pointer;background:#fff;white-space:nowrap;font-size:12.5px" style-hover="background:#f3f7f6"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"></path></svg>Importer un fichier pour les 4 pages</span>
+      </div>
+      <input ref="{{ tplFmtRef }}" type="file" accept=".pptx,.pdf,.png,.jpg,.jpeg" onChange="{{ tplFmtFile }}" style="display:none"></input>
+      <sc-if value="{{ tplFmtHasGlobalErr }}" hint-placeholder-val="{{ false }}"><div style="margin-top:12px;padding:10px 12px;border-radius:10px;background:#fdecea;color:#a3271b;font-size:12.5px;font-weight:600">{{ tplFmtGlobalErr }}</div></sc-if>
+      <div style="margin-top:16px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px">
+        <sc-for list="{{ tplFmtPages }}" as="p" hint-placeholder-count="4">
+          <div onDragOver="{{ p.over }}" onDrop="{{ p.drop }}" style="{{ p.cardStyle }}">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><div style="min-width:0"><div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#8a8f9c;font-weight:700">Page {{ p.num }}</div><b style="font-size:13px">{{ p.n }}</b></div><span style="{{ p.stateStyle }}">{{ p.state }}</span></div>
+            <div style="font-size:11.5px;color:#5c7280;margin-top:2px">{{ p.d }}</div>
+            <div style="{{ p.thumbStyle }}">
+              <sc-if value="{{ p.hasPrev }}" hint-placeholder-val="{{ false }}"><div role="img" aria-label="{{ p.n }}" style="{{ p.prevStyle }}"></div></sc-if>
+              <sc-if value="{{ p.busy }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:#5c7280;font-weight:600">Analyse en cours…</span></sc-if>
+              <sc-if value="{{ p.empty }}" hint-placeholder-val="{{ true }}"><div onClick="{{ p.pick }}" style="display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;color:#1d8f86;text-align:center;padding:10px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"></path></svg><b style="font-size:12.5px">Charger un fichier</b><span style="font-size:11px;color:#8a8f9c">ou déposez-le ici</span></div></sc-if>
+              <sc-if value="{{ p.noPrev }}" hint-placeholder-val="{{ false }}"><span style="font-size:11.5px;color:#8a8f9c">Aperçu en préparation…</span></sc-if>
+            </div>
+            <sc-if value="{{ p.hasFile }}" hint-placeholder-val="{{ false }}">
+              <div style="margin-top:10px;font-size:11.5px;color:#43586a;display:flex;align-items:center;gap:6px;min-width:0"><span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:800;padding:2px 6px;border-radius:5px;background:#eef3f2;color:#43586a;flex:none">{{ p.kind }}</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="{{ p.fileName }}">{{ p.fileName }}</span></div>
+              <sc-if value="{{ p.multi }}" hint-placeholder-val="{{ false }}"><select value="{{ p.slide }}" onChange="{{ p.setSlide }}" style="margin-top:8px;height:32px;padding:0 10px;border-radius:9px;border:1px solid #d9e4e1;font:inherit;font-size:12px;color:#10233a;background:#fff;width:100%;outline:none"><sc-for list="{{ p.slides }}" as="o" hint-placeholder-count="4"><option value="{{ o.v }}">{{ o.l }}</option></sc-for></select></sc-if>
+              <div style="margin-top:8px;display:flex;gap:6px"><span onClick="{{ p.pick }}" style="height:28px;padding:0 10px;border-radius:8px;border:1px solid #d9e4e1;font-size:11.5px;font-weight:700;display:inline-flex;align-items:center;cursor:pointer;background:#fff" style-hover="background:#f3f7f6">Remplacer</span><span onClick="{{ p.remove }}" style="height:28px;padding:0 10px;border-radius:8px;border:1px solid #f1d4cf;color:#a3271b;font-size:11.5px;font-weight:700;display:inline-flex;align-items:center;cursor:pointer;background:#fff" style-hover="background:#fdf3f1">Supprimer</span></div>
+              <div style="margin-top:10px;display:grid;grid-template-columns:72px minmax(0,1fr);gap:4px 8px;font-size:11px"><sc-for list="{{ p.facts }}" as="f" hint-placeholder-count="5"><span style="color:#8a8f9c">{{ f.k }}</span><span style="color:#10233a;text-wrap:pretty">{{ f.v }}</span></sc-for></div>
+              <sc-if value="{{ p.hasPalette }}" hint-placeholder-val="{{ false }}"><div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px"><sc-for list="{{ p.palette }}" as="c" hint-placeholder-count="5"><span title="{{ c.v }}" style="{{ c.style }}"></span></sc-for></div></sc-if>
+            </sc-if>
+            <sc-if value="{{ p.hasErr }}" hint-placeholder-val="{{ false }}"><div style="margin-top:10px;padding:8px 10px;border-radius:9px;background:#fdecea;color:#a3271b;font-size:11.5px;font-weight:600;text-wrap:pretty">{{ p.err }}</div></sc-if>
+            <sc-for list="{{ p.warns }}" as="w" hint-placeholder-count="0"><div style="margin-top:8px;padding:7px 10px;border-radius:9px;background:#fff6e6;color:#8a5a12;font-size:11px;text-wrap:pretty">{{ w.t }}</div></sc-for>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    </sc-if>
+
     <sc-if value="{{ tplStep2 }}" hint-placeholder-val="{{ false }}">
     <div style="background:#fff;border-radius:16px;padding:22px 24px;box-shadow:0 1px 2px rgba(16,35,58,.04)">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap"><div style="font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#5c7280;font-weight:700">B · Choix des composants</div><span style="font-size:11.5px;color:#5c7280">{{ tplCompCount }} · chaque composant devient une section du rapport</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap"><div style="font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#5c7280;font-weight:700">C · Choix des composants</div><span style="font-size:11.5px;color:#5c7280">{{ tplCompCount }} · chaque composant devient une section du rapport</span></div>
       <div style="margin-top:16px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">
         <sc-for list="{{ tplCatalog }}" as="c" hint-placeholder-count="9"><div onClick="{{ c.toggle }}" style="{{ c.style }}" style-hover="background:#f6faf9"><span style="{{ c.checkStyle }}"><sc-if value="{{ c.on }}" hint-placeholder-val="{{ false }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"></path></svg></sc-if></span><div style="min-width:0"><b style="font-size:13px">{{ c.n }}</b><div style="margin-top:3px;font-size:11.5px;color:#5c7280;text-wrap:pretty">{{ c.d }}</div></div></div></sc-for>
       </div>
@@ -1010,7 +1045,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
 
     <sc-if value="{{ tplStep3 }}" hint-placeholder-val="{{ false }}">
     <div style="background:#fff;border-radius:16px;padding:22px 24px;box-shadow:0 1px 2px rgba(16,35,58,.04)">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap"><div style="font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#5c7280;font-weight:700">C · Ordonnancement et paramétrage des données</div><span style="font-size:11.5px;color:#5c7280">Ordre d'apparition dans le document, puis périmètre des données restituées</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap"><div style="font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#5c7280;font-weight:700">D · Ordonnancement et paramétrage des données</div><span style="font-size:11.5px;color:#5c7280">Ordre d'apparition dans le document, puis périmètre des données restituées</span></div>
       <div style="margin-top:12px;display:grid;grid-template-columns:36px minmax(0,1.4fr) 150px minmax(0,1fr) 70px;gap:0 14px;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#5c7280;padding-bottom:8px;border-bottom:1px solid #e6eeec"><span>#</span><span>Composant</span><span>Périmètre</span><span>Cible</span><span style="text-align:right">Ordre</span></div>
       <sc-for list="{{ tplOrderRows }}" as="r" hint-placeholder-count="3">
         <div style="display:grid;grid-template-columns:36px minmax(0,1.4fr) 150px minmax(0,1fr) 70px;gap:0 14px;align-items:center;padding:10px 0;border-bottom:1px solid #eef3f2">
@@ -1027,7 +1062,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
     <sc-if value="{{ tplStep4 }}" hint-placeholder-val="{{ false }}">
     <div style="display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:18px">
       <div style="background:#fff;border-radius:16px;padding:22px 24px;box-shadow:0 1px 2px rgba(16,35,58,.04)">
-        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap"><div style="font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#5c7280;font-weight:700">D · Prévisualisation</div><span style="font-size:11.5px;color:#5c7280">{{ tplDraftPages }}</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap"><div style="font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#5c7280;font-weight:700">E · Prévisualisation</div><span style="font-size:11.5px;color:#5c7280">{{ tplDraftPages }}</span></div>
         <div style="margin-top:14px"><div style="border-radius:12px;border:1px solid #e6eeec;overflow:hidden;background:#fff">
         <div style="background:#1f2124;color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:baseline;gap:12px"><div style="min-width:0"><div style="font-weight:800;letter-spacing:.06em;text-transform:uppercase;font-size:13px">RISE — {{ tplDraftName }}</div><div style="font-size:11px;opacity:.8;margin-top:2px">{{ tplDraftSub }}</div></div><span style="font-size:11px;opacity:.8;white-space:nowrap">{{ tplDraftV }}</span></div>
         <div style="padding:16px 20px;display:flex;flex-direction:column;gap:10px">
@@ -1038,6 +1073,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
       </div></div>
       </div>
       <div style="background:#fff;border-radius:16px;padding:22px 24px;box-shadow:0 1px 2px rgba(16,35,58,.04)">
+        <sc-if value="{{ tplFmtHasThumbs }}" hint-placeholder-val="{{ false }}"><div style="font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#5c7280;font-weight:700">Format du rapport</div><div style="margin:10px 0 18px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px"><sc-for list="{{ tplFmtThumbs }}" as="t" hint-placeholder-count="4"><div><div style="aspect-ratio:16/9;border-radius:8px;border:1px solid #e6eeec;overflow:hidden;background:#f3f7f6"><sc-if value="{{ t.has }}" hint-placeholder-val="{{ false }}"><div role="img" aria-label="{{ t.n }}" style="{{ t.prevStyle }}"></div></sc-if></div><div style="margin-top:4px;font-size:11px;color:#5c7280">{{ t.n }}</div></div></sc-for></div></sc-if>
         <div style="font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#5c7280;font-weight:700">Structure du document</div>
         <div style="margin-top:12px;display:flex;flex-direction:column"><sc-for list="{{ tplDraftSections }}" as="s" hint-placeholder-count="4"><div style="display:grid;grid-template-columns:32px minmax(0,1fr);gap:10px;padding:9px 0;border-bottom:1px solid #eef3f2;align-items:baseline"><span style="font-family:ui-monospace,Menlo,monospace;font-weight:700;color:#1d8f86;font-size:12px">{{ s.num }}</span><div><b style="font-size:12.5px">{{ s.title }}</b><div style="font-size:11.5px;color:#5c7280">{{ s.scope }}</div></div></div></sc-for></div>
         <div style="margin-top:14px;font-size:11.5px;color:#5c7280;font-style:italic;text-wrap:pretty">Vérifiez l'ordre des sections et le périmètre de chacune. Revenez aux étapes précédentes pour ajuster avant publication.</div>
@@ -1048,7 +1084,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
     <sc-if value="{{ tplStep5 }}" hint-placeholder-val="{{ false }}">
     <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px">
       <div style="background:#fff;border-radius:16px;padding:22px 24px;box-shadow:0 1px 2px rgba(16,35,58,.04)">
-        <div style="font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#5c7280;font-weight:700">E · Validation et publication</div>
+        <div style="font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#5c7280;font-weight:700">F · Validation et publication</div>
         <div style="margin-top:12px;display:grid;grid-template-columns:150px minmax(0,1fr);gap:10px 14px;font-size:12.5px"><sc-for list="{{ tplRecap }}" as="r" hint-placeholder-count="8"><span data-proj-ro="1" style="color:#5c7280">{{ r.k }}</span><b style="text-wrap:pretty">{{ r.v }}</b></sc-for></div>
       </div>
       <div style="background:#fff;border-radius:16px;padding:22px 24px;box-shadow:0 1px 2px rgba(16,35,58,.04);display:flex;flex-direction:column;justify-content:center;gap:14px;border-left:4px solid #1d8f86">
@@ -1940,7 +1976,7 @@ class Component extends DCLogic {
     { id: 'H2', name: 'Point COPROJ hebdomadaire', version: '3.0', committee: 'Comité de projet', bodyId: 'g2', date: '18 août 2026', time: '09:15', by: this.meName(), saved: false },
     { id: 'H3', name: 'Rapport sponsor mensuel', version: '1.0', committee: 'Comité sponsors', bodyId: 'g6', date: '1 août 2026', time: '08:30', by: this.meName(), saved: true },
     { id: 'H4', name: 'Flash COPIL — synthèse 1 page', version: '1.0', committee: 'Comité de pilotage', bodyId: 'g1', date: '24 juillet 2026', time: '18:05', by: this.meName(), saved: false }
-  ], tplStep: 1, tplDraft: { name: '', version: '1.0', author: 'Robin Lefèvre', desc: '', committee: 'Comité de pilotage', bodyId: 'g1', comps: [] },  assistant: false, refObj: 'PROJECT', refEdit: null, refDraft: null, refValues: {}, refDeleted: {}, sideOpen: true, preview: null, previewPage: 1, modelOpen: false, toast: '', actionFilter: 'all', docFilter: 'Tous', slide: 1, data: null };
+  ], tplStep: 1, tplDraft: { name: '', version: '1.0', author: 'Robin Lefèvre', desc: '', committee: 'Comité de pilotage', bodyId: 'g1', comps: [], fmt: { files: {}, pages: {} } },  assistant: false, refObj: 'PROJECT', refEdit: null, refDraft: null, refValues: {}, refDeleted: {}, sideOpen: true, preview: null, previewPage: 1, modelOpen: false, toast: '', actionFilter: 'all', docFilter: 'Tous', slide: 1, data: null };
 
   cmCellOf(t) {
     if (!t || !t.closest || this.state.space !== 'pilotage' || t.closest('[data-cm-ui]')) return null;
@@ -2014,6 +2050,7 @@ class Component extends DCLogic {
   dbExtLoad() { if (this._api) { this._api.dbExtLoad(); this._api.greetLoad(); } } // API : message d'accueil de Jev, GET /today/greeting
   dbLoad() { this._dbLoaded = true; } // API : disposition et thème du tableau de bord lus dans GET /api/me (préférences), hydratés par api.js
   profFileRef = React.createRef();
+  tplFmtRef = React.createRef(); // Format du rapport : sélecteur de fichier des pages modèles
   componentDidUpdate() { if (this._cmQ) this._cmQ(); /* API : photo, prénom et ville du profil lus dans GET /api/me (préférences), hydratés par api.js */ this.dbLoad(); this.dbExtLoad(); this.applyMotion(); this.applyProjEdits(); this.friseInit(); this.lvPlanInit(); }
   friseRef = React.createRef(); FR_VIS = 6;
   friseInit() { const on = this.state.space === 'pilotage' && this.state.tab === 'jalons'; if (!on) { this._frInit = false; return; } const el = this.friseRef.current; if (this._frInit || !el || !this._frN) return; this._frInit = true; setTimeout(() => { const el2 = this.friseRef.current; if (!el2) return; el2.scrollLeft = Math.max(0, this._frPast - 1) * el2.scrollWidth / this._frN; this.friseMeasure(); }, 40); }
@@ -2220,6 +2257,54 @@ class Component extends DCLogic {
   go(space, tab) { this.setState({ space, tab, panel: null }); window.scrollTo({ top: 0, behavior: 'smooth' }); }
   // API : téléchargement du fichier stocké, GET /documents/{id}/file (message du serveur si le document n'a pas de binaire).
   downloadDoc(d) { if (this._api) this._api.downloadDoc(d); }
+  // Format du rapport (étape B de « Créer un template ») : chargement et analyse d'une page modèle, POST /report-formats.
+  // `kind` null (« Importer un fichier pour les 4 pages ») : un fichier de 4 diapositives ou plus alimente les 4 types
+  // (1, 2, 3 et la dernière) ; sinon chaque diapositive va au type suivant encore vide.
+  async tplFmtLoad(kind, file) {
+    const FK = ['cover', 'divider', 'standard', 'closing'];
+    const targets = kind ? [kind] : FK;
+    this.setState(s => ({ tplFmtBusy: { ...(s.tplFmtBusy || {}), ...Object.fromEntries(targets.map(k => [k, true])) }, tplFmtErr: { ...(s.tplFmtErr || {}), ...Object.fromEntries(targets.map(k => [k, null])), all: null } }));
+    let v;
+    try {
+      if (this._api) v = await this._api.fmtUpload(file);
+      else v = { id: 'local' + Date.now(), fileName: file.name, kind: (file.name.split('.').pop() || '').toUpperCase(), slideCount: 1, slides: [{ index: 1, label: '', summary: null, warnings: {} }] }; // maquette sans API : pas d'analyse
+    } catch (e) {
+      const msg = (e && e.message) || 'Fichier illisible';
+      this.setState(s => ({ tplFmtBusy: {}, tplFmtErr: { ...(s.tplFmtErr || {}), ...(kind ? { [kind]: file.name + ' — ' + msg } : { all: file.name + ' — ' + msg }) } }));
+      return;
+    }
+    const n = v.slideCount || 1, F = this.state.tplDraft.fmt || { files: {}, pages: {} };
+    const guess = k => Math.min(n, k === 'cover' ? 1 : k === 'divider' ? 2 : k === 'standard' ? 3 : n);
+    const pages = { ...F.pages };
+    if (kind) pages[kind] = { fileId: v.id, slide: n >= 4 ? guess(kind) : 1 };
+    else if (n >= 4) FK.forEach(k => { pages[k] = { fileId: v.id, slide: guess(k) }; });
+    else { let i = 1; FK.forEach(k => { if (i <= n && !pages[k]) pages[k] = { fileId: v.id, slide: i++ }; }); }
+    this.setState(s => ({ tplFmtBusy: {}, tplDraft: { ...s.tplDraft, fmt: { files: { ...F.files, [v.id]: v }, pages } } }), () => this.tplFmtRefresh());
+  }
+  // Choix de la diapositive d'un type de page, ou suppression (ref null) ; un fichier qui ne sert plus est retiré.
+  tplFmtSet(kind, ref) {
+    const F = this.state.tplDraft.fmt || { files: {}, pages: {} };
+    const old = F.pages[kind];
+    const pages = { ...F.pages, [kind]: ref };
+    const files = { ...F.files };
+    if (old && !ref && !Object.values(pages).some(p => p && p.fileId === old.fileId)) { delete files[old.fileId]; if (this._api && !String(old.fileId).startsWith('local')) this._api.fmtDelete(old.fileId); }
+    this.setState(s => ({ tplDraft: { ...s.tplDraft, fmt: { files, pages } }, tplFmtErr: { ...(s.tplFmtErr || {}), [kind]: null } }), () => this.tplFmtRefresh());
+  }
+  // Aperçus des diapositives retenues (GET …/preview) puis contrôle du format complet (POST /report-formats/check).
+  async tplFmtRefresh() {
+    if (!this._api) return;
+    const F = this.state.tplDraft.fmt || { files: {}, pages: {} };
+    const refs = Object.values(F.pages).filter(Boolean);
+    for (const r of refs) {
+      const key = r.fileId + '#' + r.slide;
+      if ((this.state.tplFmtPrev || {})[key] || String(r.fileId).startsWith('local')) continue;
+      try { const url = await this._api.fmtPreview(r.fileId, r.slide); this.setState(s => ({ tplFmtPrev: { ...(s.tplFmtPrev || {}), [key]: url } })); } catch (e) { /* aperçu indisponible : la carte le signale */ }
+    }
+    const key = JSON.stringify(F.pages);
+    if (refs.length < 4) return this.setState({ tplFmtCheck: null });
+    try { const r = await this._api.fmtCheck(F.pages); if (JSON.stringify((this.state.tplDraft.fmt || {}).pages) === key) this.setState({ tplFmtCheck: { ...r, key } }); }
+    catch (e) { this.setState({ tplFmtCheck: { complete: false, errors: {}, pages: {}, key, err: (e && e.message) || 'Contrôle impossible' } }); }
+  }
   // Notifications de l'utilisateur (cloche de la barre latérale) : liste relue à l'ouverture du tiroir.
   ntToggle() { const open = !this.state.ntOpen; this.setState({ ntOpen: open }); if (open && this._api) this._api.ntLoad(); }
   ntRead(id) { if (this._api) this._api.ntRead(id); else this.setState(s => ({ ntDemoRead: { ...(s.ntDemoRead || {}), [id]: true } })); }
@@ -3366,7 +3451,7 @@ class Component extends DCLogic {
     const SPACES = {
       today: { title: 'Aujourd\'hui', sub: this.todayMsg(), tabs: [['situation', 'Dashboard'], ['ecarts', 'Écarts'], ['echeances', 'Échéances']], cta: null, ctaGo: null, bg: "url('./assets/banner-aujourdhui.jpg') center 30%/cover no-repeat, linear-gradient(105deg,#0f5f5a 0%,#1d8f86 45%,#7fd0c6 100%)" },
       pilotage: { title: 'Pilotage', sub: 'Un projet se pilote mieux quand chacun voit la même réalité. Trajectoire, risques, actions et décisions : chaque onglet éclaire une facette du projet, pour que chaque comité décide sur la base d\'informations fiables.', tabs: [['planning', 'Planning'], ['jalons', 'Jalons'], ['livrables', 'Livrables'], ['risques', 'Risques et problèmes'], ['actions', 'Actions'], ['decisions', 'Décisions'], ['barometre', 'Baromètre'], ['seances', 'Comités'], ['budget', 'Budget'], ['benefices', 'Bénéfices'], ['mes', 'Mes tâches']], cta: null, ctaGo: null, bg: "url('./assets/banner-pilotage.jpg') center 35%/cover no-repeat, linear-gradient(105deg,#12324a 0%,#1f6f8a 50%,#7fc4d0 100%)" },
-      comites: { title: 'Comités et rapports', sub: 'Modèles de rapports de comité : générez un rapport à partir d\'un template actif, créez un nouveau template en cinq étapes, ou gérez la bibliothèque complète des modèles du projet.', tabs: [['generer', 'Générer un rapport'], ['creer', 'Créer un template'], ['templates', 'Bibliothèque'], ['historique', 'Historique']], cta: 'Créer un template', ctaGo: ['comites', 'creer'], bg: "url('./assets/banner-comites.jpg') center 35%/cover no-repeat, linear-gradient(105deg,#0f4a3c 0%,#1e8a6a 50%,#8fd6b8 100%)" },
+      comites: { title: 'Comités et rapports', sub: 'Modèles de rapports de comité : générez un rapport à partir d\'un template actif, créez un nouveau template en six étapes, ou gérez la bibliothèque complète des modèles du projet.', tabs: [['generer', 'Générer un rapport'], ['creer', 'Créer un template'], ['templates', 'Bibliothèque'], ['historique', 'Historique']], cta: 'Créer un template', ctaGo: ['comites', 'creer'], bg: "url('./assets/banner-comites.jpg') center 35%/cover no-repeat, linear-gradient(105deg,#0f4a3c 0%,#1e8a6a 50%,#8fd6b8 100%)" },
       documents: { title: 'Base de connaissance', sub: 'Documents et rapports du projet : versions, confidentialité, état d\'extraction. Une citation ouvre la version exacte et le passage.', tabs: [['bibliotheque', 'Bibliothèque']], cta: 'Déposer un document', ctaGo: null, bg: "url('./assets/banner-documents.jpg') center 35%/cover no-repeat, linear-gradient(105deg,#1b2a44 0%,#33507a 50%,#9db4d6 100%)" },
       projet: { title: 'RISE — AMC Corp', sub: 'Référentiel du projet : client, périmètre, lots de déploiement, jalons, dispositif (ressources, équipe, organigramme, gouvernance) et référentiel de saisie.', tabs: [['fiche', 'Fiche projet'], ['dispositif', 'Dispositif']].concat(this.can('referentiel') ? [['referentiel', 'Référentiel']] : []), cta: null, ctaGo: null, bg: "url('./assets/banner-projet.jpg') center 35%/cover no-repeat, linear-gradient(105deg,#1a1a1a 0%,#2f3b45 55%,#0096d6 100%)" },
       profil: { title: 'Mon profil', sub: 'Vos informations personnelles, vos affectations, vos notifications et la sécurité de votre compte.', tabs: [['infos', 'Mon profil']], cta: null, ctaGo: null, bg: "url('./assets/banner-profil.png') center 30%/cover no-repeat, linear-gradient(105deg,#10233a 0%,#1d4f5e 55%,#1d8f86 100%)" },
@@ -3960,11 +4045,12 @@ class Component extends DCLogic {
     const iconBtn = 'width:30px;height:30px;border-radius:8px;border:1px solid #d9e4e1;display:grid;place-items:center;cursor:pointer;color:#43586a;background:#fff;transition:background .15s';
     const setTpl = fn => this.setState(s => ({ templates: s.templates.map(fn) }));
     const tplToggle = id => setTpl(t => t.id === id ? { ...t, active: !t.active } : t);
-    const tplDownload = (t, report) => report ? this.setState({ tplAsk: t }) : this.showToast('Modèle téléchargé · ' + t.name + ' v' + t.version + ' · PPTX');
+    const tplDownload = (t, report) => { if (report) return this.setState({ tplAsk: t }); if (this._api) this._api.tplPptx(t); /* API : GET /report-templates/{id}/pptx */ this.showToast('Modèle téléchargé · ' + t.name + ' v' + t.version + ' · PPTX'); };
     const tplLog = (t, saved) => { const now = new Date(); const time = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }); const short = now.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
       const entry = { id: 'H' + Date.now(), name: t.name, version: t.version, committee: t.committee, bodyId: t.bodyId, sessionId: S.sesSel || null, date: todayFr, time, by: this.meName(), saved };
       const doc = saved ? { n: t.name + ' — ' + t.committee + ' du ' + short, type: 'Support de comité', date: short, v: 'v' + t.version, conf: 'Interne', src: 'Généré', ext: 'SUCCEEDED', mime: 'PPTX', pages: t.pages } : null;
       this.setState(s => ({ tplAsk: null, tplHistory: [entry, ...s.tplHistory], kbDocs: doc ? [doc, ...s.kbDocs] : s.kbDocs }));
+      if (this._api) this._api.tplPptx(t); // API : PowerPoint généré au format du template
       this.showToast(saved ? 'Rapport généré et versé dans la Base de connaissance · ' + t.name : 'Rapport généré · ' + t.name + ' v' + t.version + ' · PPTX'); };
     const ask = S.tplAsk;
     const tplHistRows = S.tplHistory.map(e => ({ ...e, v: 'v' + e.version, when: e.date + ' · ' + e.time, kb: e.saved ? 'Versé' : 'Non versé', kbStyle: e.saved ? P.ok : P.neutral, canOpen: e.saved, open: () => this.go('documents', 'bibliotheque') }));
@@ -3982,9 +4068,15 @@ class Component extends DCLogic {
     const Dft = S.tplDraft; const step = S.tplStep;
     const setD = patch => this.setState(s => ({ tplDraft: { ...s.tplDraft, ...patch } }));
     const inpD = k => e => setD({ [k]: e.target.value });
+    const FK = ['cover', 'divider', 'standard', 'closing'];
+    const FMT_N = { cover: ['Page de couverture', 'Première diapositive du rapport'], divider: ['Page intercalaire', 'Transition entre deux sections'], standard: ['Page standard', 'Contenu : texte, tableaux, graphiques'], closing: ['Page de clôture', 'Dernière diapositive de la présentation'] };
+    const F = Dft.fmt || { files: {}, pages: {} };
+    const fmtKey = JSON.stringify(F.pages); const chk = S.tplFmtCheck && S.tplFmtCheck.key === fmtKey ? S.tplFmtCheck : null;
+    const fmtLoaded = FK.filter(k => F.pages[k]).length;
+    const validFmt = fmtLoaded === 4 && (!this._api || !!(chk && chk.complete));
     const valid1 = Dft.name.trim().length > 0; const valid2 = Dft.comps.length > 0;
-    const canGo = n => n <= 1 || (n <= 2 && valid1) || (valid1 && valid2);
-    const tplSteps = ['Fiche d\'identité', 'Composants', 'Ordre et données', 'Prévisualisation', 'Publication'].map((n, i) => { const k = i + 1; const on = k === step; const done = k < step; const ok = canGo(k); return { n, num: k, letter: 'ABCDE'[i], go: () => ok && this.setState({ tplStep: k }), style: 'display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;min-width:0;cursor:' + (ok ? 'pointer' : 'default') + ';background:' + (on ? '#10233a' : done ? '#e6f3f2' : '#f3f7f6') + ';color:' + (on ? '#fff' : done ? '#1d8f86' : ok ? '#10233a' : '#8a8f9c') + ';transition:background .2s', numStyle: 'width:26px;height:26px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:11.5px;font-weight:800;background:' + (on ? '#f7a41c' : done ? '#1d8f86' : '#cfd8d6') + ';color:' + (on ? '#1a1200' : '#fff') }; });
+    const canGo = n => n <= 1 || (n <= 2 && valid1) || (n <= 3 && valid1 && validFmt) || (valid1 && validFmt && valid2);
+    const tplSteps = ['Fiche d\'identité', 'Format du rapport', 'Composants', 'Ordre et données', 'Prévisualisation', 'Publication'].map((n, i) => { const k = i + 1; const on = k === step; const done = k < step; const ok = canGo(k); return { n, num: k, letter: 'ABCDEF'[i], go: () => ok && this.setState({ tplStep: k }), style: 'display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;min-width:0;cursor:' + (ok ? 'pointer' : 'default') + ';background:' + (on ? '#10233a' : done ? '#e6f3f2' : '#f3f7f6') + ';color:' + (on ? '#fff' : done ? '#1d8f86' : ok ? '#10233a' : '#8a8f9c') + ';transition:background .2s', numStyle: 'width:26px;height:26px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:11.5px;font-weight:800;background:' + (on ? '#f7a41c' : done ? '#1d8f86' : '#cfd8d6') + ';color:' + (on ? '#1a1200' : '#fff') }; });
     const tplCatalog = CAT.map(([id, n, d]) => { const on = Dft.comps.some(c => c.id === id); return { id, n, d, on, toggle: () => setD({ comps: on ? Dft.comps.filter(c => c.id !== id) : [...Dft.comps, { id, kind: 'Projet', target: '' }] }), style: 'padding:14px 16px;border-radius:12px;cursor:pointer;border:1px solid ' + (on ? '#1d8f86' : '#e6eeec') + ';background:' + (on ? '#f3f9f8' : '#fff') + ';transition:background .15s,border-color .15s;display:flex;gap:12px;align-items:flex-start', checkStyle: 'width:18px;height:18px;border-radius:5px;flex:none;margin-top:1px;display:grid;place-items:center;border:2px solid ' + (on ? '#1d8f86' : '#b9c9c5') + ';background:' + (on ? '#1d8f86' : '#fff') + ';color:#fff' }; });
     const targetsFor = kind => kind === 'Vague' ? M.WAVE.rows.map(r => r.cells[1]) : kind === 'Phase' ? [...new Set(M.PHASE.rows.map(r => r.cells[1]))] : kind === 'Chantier' ? M.WORKSTREAM.rows.map(r => r.cells[1]) : [];
     const moveC = (i, d) => { const a = [...Dft.comps]; const j = i + d; if (j < 0 || j >= a.length) return; [a[i], a[j]] = [a[j], a[i]]; setD({ comps: a }); };
@@ -3992,19 +4084,47 @@ class Component extends DCLogic {
       up: () => moveC(i, -1), down: () => moveC(i, 1), upStyle: iconBtn + (i === 0 ? ';opacity:.35;pointer-events:none' : ''), downStyle: iconBtn + (i === Dft.comps.length - 1 ? ';opacity:.35;pointer-events:none' : ''),
       setKind: e => { const kind = e.target.value; const ts = targetsFor(kind); setD({ comps: Dft.comps.map((x, j) => j === i ? { ...x, kind, target: ts[0] || '' } : x) }); }, setTarget: e => { const v = e.target.value; setD({ comps: Dft.comps.map((x, j) => j === i ? { ...x, target: v } : x) }); } }));
     const draftT = { name: Dft.name.trim() || 'Nouveau template', version: Dft.version, author: Dft.author, comps: Dft.comps, pages: 1 + Dft.comps.length * 2, committee: Dft.committee };
-    const tplPublish = () => { const id = 'T' + Date.now(); const t = { id, name: draftT.name, author: Dft.author, version: Dft.version, comps: Dft.comps, pages: draftT.pages, published: todayFr, committee: Dft.committee, active: true, desc: Dft.desc }; this.setState(s => ({ templates: [t, ...s.templates], tplSel: id, tplAsk: null, kbDocs: [], tplHistory: [
+    const tplPublish = () => { const id = 'T' + Date.now(); const t = { id, name: draftT.name, author: Dft.author, version: Dft.version, comps: Dft.comps, pages: draftT.pages, published: todayFr, committee: Dft.committee, active: true, desc: Dft.desc, format: fmtLoaded === 4 ? F.pages : null }; this.setState(s => ({ templates: [t, ...s.templates], tplSel: id, tplAsk: null, kbDocs: [], tplHistory: [
     { id: 'H1', name: 'Support COPIL standard', version: '2.1', committee: 'Comité de pilotage', bodyId: 'g1', date: '23 août 2026', time: '17:42', by: this.meName(), saved: true },
     { id: 'H2', name: 'Point COPROJ hebdomadaire', version: '3.0', committee: 'Comité de projet', bodyId: 'g2', date: '18 août 2026', time: '09:15', by: this.meName(), saved: false },
     { id: 'H3', name: 'Rapport sponsor mensuel', version: '1.0', committee: 'Comité sponsors', bodyId: 'g6', date: '1 août 2026', time: '08:30', by: this.meName(), saved: true },
     { id: 'H4', name: 'Flash COPIL — synthèse 1 page', version: '1.0', committee: 'Comité de pilotage', bodyId: 'g1', date: '24 juillet 2026', time: '18:05', by: this.meName(), saved: false }
-  ], tplStep: 1, tplDraft: { name: '', version: '1.0', author: 'Robin Lefèvre', desc: '', committee: 'Comité de pilotage', bodyId: 'g1', comps: [] }, tab: 'generer' })); this.showToast('Template publié · ' + t.name + ' v' + t.version + ' — actif dans ' + t.committee); };
-    const nextOk = step === 1 ? valid1 : step === 2 ? valid2 : step < 5;
+  ], tplStep: 1, tplDraft: { name: '', version: '1.0', author: 'Robin Lefèvre', desc: '', committee: 'Comité de pilotage', bodyId: 'g1', comps: [], fmt: { files: {}, pages: {} } }, tplFmtCheck: null, tplFmtErr: {}, tab: 'generer' })); this.showToast('Template publié · ' + t.name + ' v' + t.version + ' — actif dans ' + t.committee); };
+    const nextOk = step === 1 ? valid1 : step === 2 ? validFmt : step === 3 ? valid2 : step < 6;
+    const fmtErrs = (chk && chk.errors) || {};
+    const prevOf = r => (r ? (S.tplFmtPrev || {})[r.fileId + '#' + r.slide] : null);
+    const tplFmtPages = FK.map((k, i) => {
+      const ref = F.pages[k]; const file = ref ? F.files[ref.fileId] : null; const busy = !!(S.tplFmtBusy || {})[k];
+      const sl = file && file.slides ? file.slides[(ref.slide || 1) - 1] : null; const sum = sl && sl.summary;
+      const err = (S.tplFmtErr || {})[k] || (ref && fmtErrs[k]) || null;
+      const warns = sl && sl.warnings ? (sl.warnings[k] || []) : [];
+      const prev = prevOf(ref);
+      const state = busy ? 'Analyse…' : err ? 'Erreur' : !ref ? 'À charger' : warns.length ? 'À vérifier' : 'Prêt';
+      const tone = state === 'Erreur' ? P.risk : state === 'À vérifier' ? P.vig : state === 'Prêt' ? P.ok : P.neutral;
+      return { k, num: i + 1, n: FMT_N[k][0], d: FMT_N[k][1], state, stateStyle: tone + ';flex:none', busy, empty: !ref && !busy, hasFile: !!file && !busy, hasPrev: !!prev && !busy, prevStyle: 'width:100%;height:100%;background:#fff center / contain no-repeat url(' + prev + ')', noPrev: !!ref && !prev && !busy && !!this._api && !String(ref.fileId).startsWith('local'),
+        fileName: file ? file.fileName : '', kind: file ? file.kind : '', multi: !!file && (file.slideCount || 1) > 1, slide: ref ? String(ref.slide) : '1',
+        slides: file ? (file.slides || []).map(x => ({ v: String(x.index), l: 'Diapositive ' + x.index + (x.label ? ' · ' + x.label : '') })) : [],
+        facts: sum ? [['Format', sum.format], ['Fond', sum.background], ['Éléments', sum.elements.join(' · ') || 'aucun'], ['Zones', sum.zones.join(' · ') || 'aucune'], ['Polices', sum.fonts.join(', ') || '—'], ['Titres', sum.typography.title], ['Texte', sum.typography.body], ...(sum.margins ? [['Marges', sum.margins]] : [])].map(([fk, fv]) => ({ k: fk, v: fv })) : [],
+        hasPalette: !!(sum && sum.palette.length), palette: sum ? sum.palette.map(c => ({ v: '#' + c, style: 'width:16px;height:16px;border-radius:4px;box-shadow:inset 0 0 0 1px rgba(16,35,58,.15);background:#' + c })) : [],
+        hasErr: !!err, err: err || '', warns: warns.map(t => ({ t })),
+        pick: () => { this._fmtKind = k; if (this.tplFmtRef.current) this.tplFmtRef.current.click(); }, remove: () => this.tplFmtSet(k, null),
+        setSlide: e => this.tplFmtSet(k, { fileId: ref.fileId, slide: +e.target.value }),
+        over: e => e.preventDefault(), drop: e => { e.preventDefault(); const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if (f) this.tplFmtLoad(k, f); },
+        cardStyle: 'border-radius:14px;padding:14px;min-width:0;border:1px solid ' + (err ? '#f1b7ae' : ref ? '#cfe3df' : '#e6eeec') + ';background:' + (ref ? '#fbfdfc' : '#fff'),
+        thumbStyle: 'margin-top:10px;aspect-ratio:16/9;border-radius:9px;overflow:hidden;display:grid;place-items:center;' + (prev ? 'border:1px solid #e6eeec;background:#fff' : 'border:1.5px dashed #c9d6d2;background:#f6faf9') };
+    });
+    const fmtFile0 = F.pages.cover ? F.files[F.pages.cover.fileId] : null;
+    const fmtVals = { tplFmtPages, tplFmtRef: this.tplFmtRef, tplFmtCount: fmtLoaded + ' / 4 pages chargées',
+      tplFmtImportAll: () => { this._fmtKind = null; if (this.tplFmtRef.current) this.tplFmtRef.current.click(); },
+      tplFmtFile: e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) this.tplFmtLoad(this._fmtKind || null, f); },
+      tplFmtHasGlobalErr: !!((S.tplFmtErr || {}).all || (chk && chk.err)), tplFmtGlobalErr: (S.tplFmtErr || {}).all || (chk && chk.err) || '',
+      tplFmtHasThumbs: fmtLoaded === 4, tplFmtThumbs: FK.map(k => { const pv = prevOf(F.pages[k]); return { n: FMT_N[k][0], has: !!pv, prevStyle: 'width:100%;height:100%;background:#fff center / contain no-repeat url(' + pv + ')' }; }) };
     const tplVals = { tplGroups, tplActiveCount: active.length, tplHasSel: !!sel, tplNoSel: !sel, tplSelName: sel ? sel.name : '', tplSelSub: sel ? sel.committee + ' · rapport généré le ' + todayFr : '', tplSelV: sel ? 'v' + sel.version + ' · ' + sel.pages + ' p.' : '', tplSelMeta: sel ? 'v' + sel.version + ' · ' + sel.author + ' · ' + sel.pages + ' pages · ' + sel.committee : '', tplSelSections: sel ? tplSections(sel) : [], tplSelDownload: () => sel && tplDownload(sel, true),
       tplFilters: libFilters, tplLibRows, tplLibSummary: TPL.length + ' templates · ' + active.length + ' actifs · ' + (TPL.length - active.length) + ' inactifs', tplViewOpen: !!tv, tplViewName: tv ? tv.name : '', tplViewSub: tv ? tv.committee + ' · publié le ' + tv.published : '', tplViewV: tv ? 'v' + tv.version + ' · ' + tv.pages + ' p.' : '', tplViewMeta: tv ? 'v' + tv.version + ' · ' + tv.author + ' · ' + tv.pages + ' pages · ' + tv.committee + ' · publié le ' + tv.published : '', tplViewSections: tv ? tplSections(tv) : [], tplViewClose: () => this.setState({ tplView: null }), tplStop: e => e.stopPropagation(), tplViewDownload: () => tv && tplDownload(tv, false), tplAskOpen: !!ask, tplAskName: ask ? ask.name + ' v' + ask.version : '', tplAskMeta: ask ? ask.committee + ' · ' + ask.pages + ' pages · PPTX' : '', tplAskYes: () => ask && tplLog(ask, true), tplAskNo: () => ask && tplLog(ask, false), tplAskClose: () => this.setState({ tplAsk: null }), tplHistRows, tplHistCount: S.tplHistory.length,
-      tplSteps, tplStep1: step === 1, tplStep2: step === 2, tplStep3: step === 3, tplStep4: step === 4, tplStep5: step === 5, tplDraft: Dft, tplToday: todayFr, tplSetName: inpD('name'), tplSetVersion: inpD('version'), tplSetAuthor: inpD('author'), tplSetDesc: inpD('desc'), tplSetCommittee: inpD('committee'), tplCommittees: COMMITTEES.map(v => ({ v })), tplCatalog, tplCompCount: Dft.comps.length + (Dft.comps.length > 1 ? ' composants sélectionnés' : ' composant sélectionné'), tplOrderRows,
+      ...fmtVals, tplSteps, tplStep1: step === 1, tplStepFmt: step === 2, tplStep2: step === 3, tplStep3: step === 4, tplStep4: step === 5, tplStep5: step === 6, tplDraft: Dft, tplToday: todayFr, tplSetName: inpD('name'), tplSetVersion: inpD('version'), tplSetAuthor: inpD('author'), tplSetDesc: inpD('desc'), tplSetCommittee: inpD('committee'), tplCommittees: COMMITTEES.map(v => ({ v })), tplCatalog, tplCompCount: Dft.comps.length + (Dft.comps.length > 1 ? ' composants sélectionnés' : ' composant sélectionné'), tplOrderRows,
       tplDraftName: draftT.name, tplDraftSub: Dft.committee + ' · ' + Dft.author + ' · créé le ' + todayFr, tplDraftV: 'v' + Dft.version + ' · ' + draftT.pages + ' p.', tplDraftSections: tplSections(draftT), tplDraftPages: draftT.pages + ' pages estimées · ' + Dft.comps.length + ' sections',
-      tplPrev: () => this.setState({ tplStep: Math.max(1, step - 1) }), tplNext: () => nextOk && this.setState({ tplStep: Math.min(5, step + 1) }), tplNextStyle: 'height:38px;padding:0 18px;border-radius:10px;font-weight:700;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:transform .18s;' + (nextOk ? 'background:#10233a;color:#fff;cursor:pointer' : 'background:#eef3f2;color:#8a8f9c;cursor:not-allowed'), tplNotFirst: step > 1, tplNotLast: step < 5, tplPublish, tplHint: step === 1 && !valid1 ? 'Renseignez au moins le nom du template.' : step === 2 && !valid2 ? 'Sélectionnez au moins un composant.' : '',
-      tplRecap: [['Nom', draftT.name], ['Version', 'v' + Dft.version], ['Auteur', Dft.author], ['Date de création', todayFr], ['Comité', Dft.committee], ['Composants', Dft.comps.map(compLabel).join(' · ') || '—'], ['Pages estimées', String(draftT.pages)], ['Description', Dft.desc || '—']].map(([k, v]) => ({ k, v })) };
+      tplPrev: () => this.setState({ tplStep: Math.max(1, step - 1) }), tplNext: () => nextOk && this.setState({ tplStep: Math.min(6, step + 1) }), tplNextStyle: 'height:38px;padding:0 18px;border-radius:10px;font-weight:700;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:transform .18s;' + (nextOk ? 'background:#10233a;color:#fff;cursor:pointer' : 'background:#eef3f2;color:#8a8f9c;cursor:not-allowed'), tplNotFirst: step > 1, tplNotLast: step < 6, tplPublish, tplHint: step === 1 && !valid1 ? 'Renseignez au moins le nom du template.' : step === 2 && fmtLoaded < 4 ? 'Chargez les 4 pages modèles (' + (4 - fmtLoaded) + (4 - fmtLoaded > 1 ? ' manquantes).' : ' manquante).') : step === 2 && !validFmt ? (Object.keys(fmtErrs).length ? 'Corrigez les pages signalées en rouge.' : 'Contrôle du format en cours…') : step === 3 && !valid2 ? 'Sélectionnez au moins un composant.' : '',
+      tplRecap: [['Nom', draftT.name], ['Version', 'v' + Dft.version], ['Auteur', Dft.author], ['Date de création', todayFr], ['Comité', Dft.committee], ['Format', fmtLoaded === 4 ? ((fmtFile0 && fmtFile0.slides && fmtFile0.slides[0] && fmtFile0.slides[0].summary ? fmtFile0.slides[0].summary.format + ' · ' : '') + [...new Set(FK.map(k => (F.files[F.pages[k].fileId] || {}).fileName).filter(Boolean))].join(', ')) : 'Présentation par défaut'], ['Composants', Dft.comps.map(compLabel).join(' · ') || '—'], ['Pages estimées', String(draftT.pages)], ['Description', Dft.desc || '—']].map(([k, v]) => ({ k, v })) };
 
     // --- Trajectoire (tuile Aujourd'hui)
     const trajSrc = M.PHASE.rows.filter(p => p.cells[2] === 'Lot 1');

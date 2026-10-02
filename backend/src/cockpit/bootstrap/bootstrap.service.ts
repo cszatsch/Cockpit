@@ -1,3 +1,4 @@
+import { formatRefs } from '../../domain/report-format';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../core/prisma.service';
 import { ProjectScope } from '../../core/access.service';
@@ -481,6 +482,7 @@ export class BootstrapService {
         bodyId: t.bodyId,
         active: t.active,
         desc: t.description,
+        format: formatRefs(t.format),
         rowVersion: t.rowVersion,
       })),
       tplHistory,

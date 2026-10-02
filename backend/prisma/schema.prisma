@@ -785,6 +785,8 @@ model ReportTemplate {
   description String   @default("")
   /// [{ id, scope: PROJECT|WAVE|PHASE|WORKSTREAM, targetId? }] (Q8 : composant budget, portée PHASE)
   components  Json
+  /// Format du rapport (02/10/2026) : { pages: { cover|divider|standard|closing: { fileId, slide, kind, analysis } } } ; null = présentation par défaut
+  format      Json?
   pages       Int      @default(1)
   publishedAt String?
   active      Boolean  @default(true)
@@ -1959,4 +1961,22 @@ model TodayGreeting {
   @@unique([accountId, projectId, day])
   @@index([createdAt])
   @@map("today_greetings")
+}
+
+/// Fichier chargé à l'étape « Format du rapport » (02/10/2026) : PowerPoint, PDF ou image, analysé au dépôt.
+model ReportFormatFile {
+  id         String   @id
+  projectId  String
+  fileName   String
+  /// PPTX | PDF | IMAGE
+  kind       String
+  sizeBytes  Int
+  fileKey    String
+  /// Analyse (FormatAnalysis, `domain/report-format.ts`)
+  analysis   Json
+  uploadedBy String?
+  createdAt  DateTime @default(now())
+
+  @@index([projectId])
+  @@map("report_format_files")
 }
