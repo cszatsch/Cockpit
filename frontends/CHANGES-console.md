@@ -613,3 +613,7 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
 - « Remplacer la clé » de la vue d'ensemble et « Réparer la clé Google » de « Vue générale des coûts » : page Fournisseurs et modèles, fenêtre de remplacement de l'écran (`goKey`, prop `focusKey` de `Fournisseurs et modeles.dc.html`).
 - `admin-api.js` : surcharges de l'ancienne page retirées (`testKey`, `testAll`, `saveKey`, `saveProv`, `toggleModel`, `saveModel`, `saveIaModel`, `delModel`, `saveFiche`, `saveAsg`, `provTested`, `modelSaved`, `fromIaModel`, `fromAsg`) ; chargeur `asg` sans brouillon. Les chargeurs `providers`, `models`, `asg`, `fns` restent (vue d'ensemble, pastilles de la sidebar, Vue générale des coûts).
 - Ne sont plus utilisés par la Console : `Fiche modele.dc.html`, `Vue reseau IA.dc.html`, `Affectation des modeles.dc.html`, `ia-data.js` (conservés comme maquettes).
+
+## Anciens écrans IA supprimés (02/10/2026)
+
+- Supprimés à la demande du commanditaire, plus utilisés nulle part depuis la nouvelle vue « Fournisseurs et modèles » : `Fiche modele.dc.html`, `Vue reseau IA.dc.html`, `Affectation des modeles.dc.html`, `ia-data.js`.
