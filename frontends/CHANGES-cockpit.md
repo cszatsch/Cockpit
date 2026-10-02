@@ -295,3 +295,8 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 
 - `api.js` : `greetLoad` lit `GET /today/greeting` à l'ouverture de l'écran Aujourd'hui et au changement de jour (état `tdGreet`) ; après un échec, nouvel essai au plus une fois par minute.
 - `RISE Cockpit.dc.html` : `todayMsg` affiche le message de Jev du jour ; en attendant ou à défaut, le message par règles (salutation selon le moment, une seule priorité, sans « prêt » ni compteur à zéro) ; `dbExtLoad` appelle aussi `greetLoad`. Design inchangé.
+
+## Aujourd'hui : mise en forme du message d'accueil ; trombone de Jev retiré (02/10/2026)
+
+- `RISE Cockpit.dc.html` : sur « Aujourd'hui », le sous-titre devient un bloc `data-greet` (filet ambre, salutation sur sa ligne, message, chiffres et dates en relief, message de Jev révélé mot à mot et signé « Jev ») ; `greetView` découpe le texte ; les autres espaces gardent leur sous-titre. Demande du commanditaire.
+- `RISE Cockpit.dc.html` : bouton trombone « Joindre un fichier » retiré du champ de saisie du panneau de Jev (`jevClipOn` supprimé ; marge gauche fixe de 16 px).

@@ -11,7 +11,7 @@ import { addDays, daysBetween, frShort } from '../../domain/dates';
 import { visibleWorkstreams } from '../../domain/rights';
 import { RISK_CRITICAL_MIN } from '../../domain/rules';
 import {
-  checkGreeting, GREETING_MAX_WORDS, WELCOME_BODY_SHORT_NAME, GREETING_MODULE_ID, GREETING_PROMPT_VERSION, GREETING_PURGE_DAYS, GreetingFacts, greetingPrompt, momentOf, ruleGreeting,
+  checkGreeting, shortTitle, GREETING_MAX_WORDS, WELCOME_BODY_SHORT_NAME, GREETING_MODULE_ID, GREETING_PROMPT_VERSION, GREETING_PURGE_DAYS, GreetingFacts, greetingPrompt, momentOf, ruleGreeting,
 } from '../../domain/today-greeting';
 
 /** Délai laissé au modèle pour rédiger le message. */
@@ -70,7 +70,7 @@ export class TodayGreetingService implements OnModuleInit {
     const recent = critical.filter((r) => r.updatedAt.getTime() >= now.getTime() - 864e5);
     const hour = Number(new Intl.DateTimeFormat('fr-FR', { hour: 'numeric', hourCycle: 'h23', timeZone: tz }).format(now));
     const year = +today.slice(0, 4);
-    const cnt = (xs: Array<{ n?: string; t?: string }>) => ({ count: xs.length, first: xs[0] ? (xs[0].n ?? xs[0].t ?? null) : null });
+    const cnt = (xs: Array<{ n?: string; t?: string }>) => ({ count: xs.length, first: xs[0] ? shortTitle(xs[0].n ?? xs[0].t ?? null) : null });
     return {
       day: today,
       firstName: prefs?.firstName ?? person?.firstName ?? actor.fullName.split(' ')[0],
@@ -100,7 +100,9 @@ export class TodayGreetingService implements OnModuleInit {
     if (!(await this.enabled(projectId))) return fallback('module désactivé');
     const key = { accountId: actor.accountId, projectId, day };
     const kept = await this.prisma.todayGreeting.findUnique({ where: { accountId_projectId_day: key } });
-    if (kept) return kept.status === 'JEV' && kept.text ? { text: kept.text, source: 'jev', reason: null, day } : fallback(kept.reason);
+    // Consignes modifiées depuis (nouvelle version) : le message du jour est réécrit une fois avec les nouvelles.
+    if (kept && kept.promptVersion !== GREETING_PROMPT_VERSION) await this.prisma.todayGreeting.delete({ where: { id: kept.id } });
+    else if (kept) return kept.status === 'JEV' && kept.text ? { text: kept.text, source: 'jev', reason: null, day } : fallback(kept.reason);
     // Hors ligne (ou fonction sur le bouchon) : jamais de texte de bouchon à l'écran, rien n'est enregistré.
     if (!this.llm.isLive('insights')) return fallback('génération réelle indisponible');
     const k = `${actor.accountId}|${projectId}|${day}`;

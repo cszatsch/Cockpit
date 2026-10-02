@@ -229,7 +229,8 @@ Le bouton reste grisé tant qu'une règle manque ou que la confirmation diffère
   - les décisions qui attendent votre arbitrage ;
   - les risques critiques qui ont changé depuis hier ;
   - le prochain COPIL, vos échéances de la semaine, les jalons de la semaine, les actions terminées hier.
-- Jev n'utilise que les données de vos chantiers, et aucun chiffre qui n'y figure pas. Le message est rédigé à la première ouverture de la journée, puis reste le même jusqu'au lendemain.
+- La salutation (« Bonsoir Robin, ») s'affiche sur sa propre ligne, le message en dessous ; les chiffres et les dates sont mis en relief, et la mention **Jev** signe le message qu'il a rédigé.
+- Jev n'utilise que les données de vos chantiers, et aucun chiffre qui n'y figure pas ; un titre long (risque, action) est raccourci. Le message est rédigé à la première ouverture de la journée, puis reste le même jusqu'au lendemain.
 - En attendant le message de Jev, ou s'il n'est pas disponible (module désactivé par l'administrateur, modèle d'IA indisponible), un message calculé s'affiche : « Bonjour {prénom}, {la priorité du jour}. », par exemple « Bonjour Cédric, 1 décision attend votre arbitrage avant le COPIL du 26 oct. »
 - Le bouton **Personnaliser** (voir 3.3).
 
@@ -894,7 +895,6 @@ La validation applique vos droits habituels : Jev ne peut pas faire ce que vous 
 **Autres gestes**
 
 - **Saisir sans Jev** / **Modifier sans Jev** : ouvre le formulaire manuel (voir 3.5).
-- **Joindre un fichier** (trombone, sur un bloc ou une ligne) : Jev propose de le ranger dans la Base de connaissance ; **Charger** le dépose (type Livrable, confidentialité Interne).
 - **Effacer tous les messages** (icône en haut du panneau) : revient au message d'accueil, sans confirmation.
 
 **Mémoire.** Jev ne garde pas la conversation : rouvrir le panneau repart d'un nouveau message d'accueil, et chaque question est traitée seule.

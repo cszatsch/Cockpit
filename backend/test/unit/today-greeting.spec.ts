@@ -1,4 +1,4 @@
-import { checkGreeting, GREETING_MAX_CHARS, GREETING_MAX_FACTS, GreetingFacts, greetingPrompt, momentOf, rankedFacts, ruleGreeting } from '../../src/domain/today-greeting';
+import { shortTitle, GREETING_TITLE_MAX, checkGreeting, GREETING_MAX_CHARS, GREETING_MAX_FACTS, GreetingFacts, greetingPrompt, momentOf, rankedFacts, ruleGreeting } from '../../src/domain/today-greeting';
 
 const none = { count: 0, first: null };
 const base: GreetingFacts = {
@@ -50,5 +50,15 @@ describe('Message d’accueil de Jev : règles', () => {
     expect(checkGreeting('   ', m)).toEqual({ ok: false, reason: 'réponse vide' });
     // « aujourd’hui », « t’ » de « tout » : pas de faux tutoiement.
     expect(checkGreeting('Bonjour Cédric, tout est calme aujourd’hui.', m)).toMatchObject({ ok: true });
+  });
+
+  it('titre cité raccourci au mot entier (lisible d’un coup d’œil)', () => {
+    expect(shortTitle('Reprise des données')).toBe('Reprise des données');
+    const long = 'Reprise et qualité des données au démarrage avec un Run 3 planifié en 6 semaines contre 17 pour le Run 2';
+    const s = shortTitle(long)!;
+    expect(s.length).toBeLessThanOrEqual(GREETING_TITLE_MAX);
+    expect(s.endsWith('…')).toBe(true);
+    expect(long.startsWith(s.slice(0, -1))).toBe(true);
+    expect(s).not.toMatch(/\s…$/);
   });
 });

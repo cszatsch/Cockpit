@@ -305,6 +305,7 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 
 - **Réalisé** : message de l'écran Aujourd'hui rédigé par Jev une fois par jour (ton du Soul, vouvoiement), à partir de faits filtrés par droits, contrôlé avant d'être gardé ; message par règles en repli (sans « prêt » ni compteur à zéro) ; module « Message d'accueil de Jev » dans Console › Modules.
 - **Tests** : `test/unit/today-greeting.spec.ts` (faits, règles, contrôle), `test/e2e/accueil.spec.ts` (hors ligne, génération unique par jour, refus, échec, module désactivé, droits, consommation Insights, purge) ; navigateur `test/browser/accueil.e2e.ts` 5/5 (message de Jev affiché, un seul appel, repli en cas d'échec, module listé dans la Console). Essai réel sur la base locale : message rédigé en 3,5 s par Claude Sonnet 5.
+- **Mise en forme (02/10/2026)** : salutation sur sa ligne, chiffres et dates en relief, révélation mot à mot et signature « Jev » ; titres longs raccourcis ; test navigateur 7/7 (dont trombone absent du panneau de Jev).
 - **Points d'attention** : la première ouverture de la journée attend la rédaction (quelques secondes) avant de remplacer le message par règles ; le message de repli de l'écran compte toutes les décisions à arbitrer du projet, celui du serveur seulement celles de la personne (affiché tant que la route n'a pas répondu) ; un titre long (risque, action) est recopié tel quel.
 
 ## 4. Questions ouvertes

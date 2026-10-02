@@ -1151,3 +1151,13 @@ Arbitrages du commanditaire (02/10/2026) : alternative 4 (message rédigé par J
 | Hors ligne | Pas de génération si la fonction est sur le bouchon : jamais de texte de bouchon à l'écran, rien d'enregistré | `LlmService.isLive` |
 | Interrupteur | Module `jev_accueil` « Message d'accueil de Jev » (Console › Modules), actif sur tous les projets à sa création (migration `20261106000000_jev_accueil`) ; désactivé (ou par projet) : message par règles, modification auditée (Sensible) | `GREETING_MODULE_ID`, `TodayGreetingService.enabled` |
 | API | `GET /api/projects/:id/today/greeting` → `{ text, source: 'jev' \| 'regles', reason, day }` ; l'écran l'appelle à l'ouverture d'Aujourd'hui et au changement de jour, nouvel essai au plus une fois par minute après un échec | `greetLoad` (`api.js`) |
+
+### Message d'accueil : mise en forme (02/10/2026, demande du commanditaire)
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Salutation | Sur sa propre ligne : le modèle commence par « {Salutation} {Prénom}, » (donnée fournie), l'écran sépare la salutation du message et met la première lettre du message en majuscule ; repli : tout le texte en message | `GREETING_RULES`, `greetView` (écran) |
+| Lecture immédiate | Message en une phrase de 160 caractères au plus après la salutation ; titres cités raccourcis au mot entier (60 caractères, « … ») ; nombres et dates (« 26 oct. ») en relief ambre clair | `GREETING_TITLE_MAX`, `shortTitle`, `greetView` |
+| Design | Filet ambre vertical (écho de l'arc du bandeau) qui se déploie, salutation 19 px, message 15 px, ombre douce pour la lisibilité sur la photo ; message de Jev révélé mot à mot (flou → net, 34 ms par mot) puis signé « ✦ Jev » ; message par règles affiché sans animation ni signature ; aucune animation si l'utilisateur les réduit | `@keyframes greet-word`, `greet-line` (écran) |
+| Nouvelles consignes | Un message gardé avec une version antérieure des consignes est réécrit une fois (`accueil-v1` → `accueil-v2`) ; sinon, toujours une génération par jour | `GREETING_PROMPT_VERSION` |
+| Panneau de Jev | Trombone « Joindre un fichier » retiré (demande) ; la route `POST /assistant/files` et `jevAttach` restent, sans point d'entrée | `RISE Cockpit.dc.html` |

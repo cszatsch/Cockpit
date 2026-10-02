@@ -100,6 +100,19 @@ describe('Cockpit — message d’accueil de Jev', () => {
     expect(lect.criticalRisks.count).toBeLessThan(pmo.criticalRisks.count);
   });
 
+  it('consignes modifiées (nouvelle version) : le message du jour est réécrit une fois', async () => {
+    const c = await t.as(WHO.director);
+    const spy = live('Bonjour Laurent, le COPIL du 26 oct. approche.');
+    await c.get(`${R}/today/greeting`).expect(200);
+    const row = await t.db.todayGreeting.findFirstOrThrow({ where: { text: 'Bonjour Laurent, le COPIL du 26 oct. approche.' } });
+    await t.db.todayGreeting.update({ where: { id: row.id }, data: { promptVersion: 'accueil-v1', text: 'ancien message' } });
+    const g = (await c.get(`${R}/today/greeting`).expect(200)).body;
+    expect(g).toMatchObject({ source: 'jev', text: 'Bonjour Laurent, le COPIL du 26 oct. approche.' });
+    await c.get(`${R}/today/greeting`).expect(200);
+    expect(spy).toHaveBeenCalledTimes(2);
+    expect((await t.db.todayGreeting.findFirstOrThrow({ where: { accountId: row.accountId, day: '2026-09-26' } })).promptVersion).toBe(GREETING_PROMPT_VERSION);
+  });
+
   it('purge au-delà de 30 jours', async () => {
     await t.db.todayGreeting.create({ data: { accountId: 'u1', projectId: 'RISE', day: '2026-08-01', status: 'JEV', text: 'ancien', promptVersion: GREETING_PROMPT_VERSION, createdAt: new Date('2026-08-01T08:00:00Z') } });
     expect(await t.app.get(TodayGreetingService).purge(new Date('2026-09-26T08:00:00Z'))).toBe(1);

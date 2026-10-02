@@ -13,7 +13,9 @@ export const GREETING_MAX_CHARS = 240;
 /** Nombre de faits envoyés au modèle, par ordre de priorité. */
 export const GREETING_MAX_FACTS = 6;
 /** Version des consignes (tracée avec chaque message). */
-export const GREETING_PROMPT_VERSION = 'accueil-v1';
+export const GREETING_PROMPT_VERSION = 'accueil-v2';
+/** Longueur d'un titre cité (risque, action…) : au-delà, coupé au mot avec « … » (message lisible d'un coup d'œil). */
+export const GREETING_TITLE_MAX = 60;
 /** Conservation des messages générés. */
 export const GREETING_PURGE_DAYS = 30;
 /** Mots maximum demandés au modèle (bouchon hors ligne compris). */
@@ -47,6 +49,15 @@ export interface GreetingFacts {
 
 const pl = (n: number, s: string, p = s + 's') => `${n} ${n > 1 ? p : s}`;
 const q = (t: string | null) => (t ? ` (« ${t} »)` : '');
+
+/** Titre cité dans un fait : au plus `GREETING_TITLE_MAX` caractères, coupé au dernier mot entier. */
+export function shortTitle(t: string | null): string | null {
+  if (!t) return null;
+  const s = t.replace(/\s+/g, ' ').trim();
+  if (s.length <= GREETING_TITLE_MAX) return s;
+  const cut = s.slice(0, GREETING_TITLE_MAX - 1);
+  return `${cut.slice(0, cut.lastIndexOf(' ') > 30 ? cut.lastIndexOf(' ') : cut.length).replace(/[\s,;:.–-]+$/, '')}…`;
+}
 
 /** Moment de la journée à l'heure du projet. */
 export function momentOf(hour: number): Moment {
@@ -108,8 +119,9 @@ function ruleSentence(f: GreetingFacts): string {
 /** Consignes de rédaction (après la base, l'Identité et la Personnalité de Jev, qui donnent le ton). */
 export const GREETING_RULES = `## Message d’accueil de l’écran « Aujourd’hui »
 Tu écris le message d’accueil affiché sous le titre « Aujourd’hui » du Cockpit, à l’ouverture de l’écran.
-- Une ou deux phrases, ${GREETING_MAX_CHARS} caractères au plus, en français, avec le ton de ta Personnalité.
-- Commence par saluer la personne par son prénom, selon le moment de la journée.
+- ${GREETING_MAX_CHARS} caractères au plus en tout, en français, avec le ton de ta Personnalité.
+- Commence exactement par la salutation et le prénom suivis d’une virgule (« Bonjour Cédric, », « Bonsoir Cédric, », « Bonne semaine Cédric, ») : l’écran les affiche sur leur propre ligne.
+- Après la virgule : une seule phrase de 160 caractères au plus, qui commence par l’essentiel.
 - Mets en avant une seule priorité : le premier fait de la liste. Un second fait seulement s’il tient dans la même phrase.
 - N’utilise que les faits fournis : aucun autre chiffre, nom, date ni titre. Recopie les titres tels quels.
 - Formulation neutre : pas d’accord au masculin ou au féminin pour la personne (pas de « prêt », « prête »).
@@ -121,6 +133,7 @@ export function greetingPrompt(f: GreetingFacts): string {
   const facts = rankedFacts(f);
   return [
     `Prénom : ${f.firstName}`,
+    `Salutation : ${salutation(f)}`,
     `Jour : ${f.weekday} ${f.dateLabel}, ${f.moment}`,
     'Faits du jour, du plus important au moins important :',
     ...(facts.length ? facts.map((x) => `- ${x}`) : ['- Rien d’urgent aujourd’hui.']),
