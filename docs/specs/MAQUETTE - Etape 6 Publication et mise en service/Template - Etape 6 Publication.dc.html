@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet"><style>html,body{margin:0;background:#F2F4F3;font-family:'Plus Jakarta Sans',sans-serif;color:#10233A;-webkit-font-smoothing:antialiased}a{color:#10233A}a:hover{color:#0E7C6B}button{font-family:inherit}
+@keyframes e6-spin{to{transform:rotate(360deg)}}
+@keyframes e6-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes e6-seal{0%{opacity:0;transform:scale(1.25) rotate(-8deg)}70%{opacity:1;transform:scale(.97) rotate(0)}100%{transform:scale(1)}}</style></helmet>
+<div style="max-width:1440px;margin:0 auto;padding:28px 32px 56px;display:flex;flex-direction:column;gap:28px">
+
+  <nav style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px">
+    <sc-for list="{{ steps }}" as="s" hint-placeholder-count="6">
+      <div style="{{ s.wrap }}">
+        <div style="{{ s.bar }}"></div>
+        <div style="display:flex;align-items:center;gap:10px;padding-top:12px">
+          <div style="{{ s.dot }}">{{ s.mark }}</div>
+          <div style="display:flex;flex-direction:column;gap:1px;min-width:0">
+            <span style="font-size:10.5px;font-weight:600;letter-spacing:.09em;color:#8A97A5">{{ s.n }}</span>
+            <span style="{{ s.label }}">{{ s.name }}</span>
+          </div>
+        </div>
+      </div>
+    </sc-for>
+  </nav>
+
+  <header style="display:flex;flex-direction:column;gap:10px">
+    <span style="font-size:11px;font-weight:700;letter-spacing:.16em;color:#8A97A5">F · VALIDATION ET PUBLICATION</span>
+    <h1 style="margin:0;font-size:32px;line-height:1.1;font-weight:800;letter-spacing:-.025em">Publication</h1>
+  </header>
+
+  <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:stretch">
+
+    <section style="flex:1.4 1 560px;min-width:0;background:#fff;border:1px solid #E3E8EC;border-radius:22px;box-shadow:0 1px 2px rgba(16,35,58,.04),0 12px 36px -20px rgba(16,35,58,.16);display:flex;flex-direction:column;overflow:hidden">
+      <div style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:18px 28px;padding:28px 30px 24px;border-bottom:1px solid #EEF1F3">
+        <div style="display:flex;flex-direction:column;gap:8px;min-width:0">
+          <span style="font-size:10.5px;font-weight:700;letter-spacing:.14em;color:#8A97A5">NOM</span>
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <span style="font-size:36px;line-height:1;font-weight:800;letter-spacing:-.03em">Test</span>
+            <span style="font:600 12px 'JetBrains Mono',monospace;padding:5px 9px;border-radius:8px;background:#10233A;color:#F2B544">v1.0</span>
+          </div>
+          <span style="font-size:13.5px;color:#4E5E6E">Comité de pilotage</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:16px 28px">
+          <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:10.5px;font-weight:700;letter-spacing:.12em;color:#8A97A5">AUTEUR</span><span style="font-size:14px;font-weight:600;white-space:nowrap">Cédric Schmitz</span></div>
+          <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:10.5px;font-weight:700;letter-spacing:.12em;color:#8A97A5">DATE DE CRÉATION</span><span style="font-size:14px;font-weight:600;white-space:nowrap">3 octobre 2026</span></div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;padding:8px 30px 14px">
+        <sc-for list="{{ rows }}" as="r" hint-placeholder-count="6">
+          <div style="display:grid;grid-template-columns:150px minmax(0,1fr) auto;gap:20px;align-items:start;padding:16px 0;border-bottom:1px solid #F0F3F5" style-hover="--e:1">
+            <span style="font-size:13px;color:#8A97A5;padding-top:3px">{{ r.k }}</span>
+            <div style="display:flex;flex-direction:column;gap:9px;min-width:0">
+              <sc-if value="{{ r.hasText }}"><span style="{{ r.textStyle }}">{{ r.text }}</span></sc-if>
+              <sc-if value="{{ r.hasChips }}">
+                <div style="display:flex;flex-wrap:wrap;gap:6px">
+                  <sc-for list="{{ r.chips }}" as="c"><span style="{{ c.style }}"><sc-if value="{{ c.file }}"><span style="font:600 9px 'JetBrains Mono',monospace;letter-spacing:.05em;color:#B4532A">PPTX</span></sc-if>{{ c.t }}</span></sc-for>
+                </div>
+              </sc-if>
+            </div>
+            <a href="#" onClick="{{ r.go }}" style="font-size:11.5px;font-weight:700;color:#0E7C6B;text-decoration:none;white-space:nowrap;padding-top:3px;opacity:var(--e,0);transition:opacity .15s">{{ r.link }}</a>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <section style="flex:1 1 380px;min-width:0;position:relative;overflow:hidden;border-radius:22px;background:#10233A;color:#fff;padding:32px;display:flex;flex-direction:column;justify-content:space-between;gap:28px">
+      <div style="position:absolute;right:-90px;top:-90px;width:300px;height:300px;border-radius:50%;border:1px solid rgba(255,255,255,.06)"></div>
+      <div style="position:absolute;right:-40px;top:-40px;width:200px;height:200px;border-radius:50%;border:1px solid rgba(255,255,255,.06)"></div>
+
+      <sc-if value="{{ idle }}">
+        <div style="position:relative;display:flex;flex-direction:column;gap:22px;animation:e6-in .35s ease both">
+          <div style="width:64px;height:64px;border-radius:50%;border:1.5px dashed rgba(242,181,68,.55);display:flex;align-items:center;justify-content:center;font:600 13px 'JetBrains Mono',monospace;color:#F2B544">v1.0</div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <h2 style="margin:0;font-size:26px;font-weight:800;letter-spacing:-.02em">Prêt à publier</h2>
+            <p style="margin:0;font-size:14px;line-height:1.65;color:#C3CFDB;text-wrap:pretty">La validation crée le <b style="color:#fff;font-weight:700">PowerPoint de référence</b> (v1.0), qui fige la structure, le design du rapport et ses zones de données. Le template, désormais <b style="color:#fff;font-weight:700">actif</b>, est ajouté à la Bibliothèque et disponible dans « Générer un rapport ».</p>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ publishing }}">
+        <div style="position:relative;display:flex;flex-direction:column;gap:22px;animation:e6-in .3s ease both">
+          <div style="width:64px;height:64px;border-radius:50%;border:2px solid rgba(255,255,255,.1);border-top-color:#F2B544;animation:e6-spin 1s linear infinite"></div>
+          <h2 style="margin:0;font-size:26px;font-weight:800;letter-spacing:-.02em">Publication en cours</h2>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <sc-for list="{{ tasks }}" as="t"><div style="display:flex;align-items:center;gap:12px;font-size:13.5px"><span style="{{ t.dot }}">{{ t.mark }}</span><span style="{{ t.text }}">{{ t.label }}</span></div></sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ published }}">
+        <div style="position:relative;display:flex;flex-direction:column;gap:22px">
+          <div style="width:64px;height:64px;border-radius:50%;background:#F2B544;color:#10233A;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 0 0 6px rgba(242,181,68,.15);animation:e6-seal .6s cubic-bezier(.2,.8,.2,1) both">
+            <svg width="20" height="20" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.2 5 8.5l4.5-5"></path></svg>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px;animation:e6-in .4s .15s ease both">
+            <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px"><h2 style="white-space:nowrap;margin:0;font-size:26px;font-weight:800;letter-spacing:-.02em">Template publié</h2><span style="font-size:11.5px;font-weight:700;color:#10233A;background:#9FE0C7;padding:3px 9px;border-radius:999px">Actif</span></div>
+            <p style="margin:0;font-size:14px;line-height:1.65;color:#C3CFDB">Test v1.0 est dans la Bibliothèque et disponible dans « Générer un rapport ».</p>
+          </div>
+        </div>
+      </sc-if>
+
+      <div style="position:relative;display:flex;flex-direction:column;gap:12px">
+        <sc-if value="{{ idle }}">
+          <div style="display:flex;align-items:center;gap:10px;font-size:12.5px;color:#C3CFDB"><span style="width:7px;height:7px;border-radius:99px;background:#E0A030"></span>1 point(s) signalé(s), dont 0 bloquant(s)</div>
+          <button onClick="{{ publish }}" style="display:flex;align-items:center;justify-content:center;gap:10px;height:52px;border-radius:14px;border:none;background:#F2B544;color:#10233A;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 10px 30px -10px rgba(242,181,68,.6);transition:transform .15s,background .15s" style-hover="background:#F5C364;transform:translateY(-1px)" style-active="transform:translateY(0)">
+            <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.2 5 8.5l4.5-5"></path></svg>Valider et publier
+          </button>
+        </sc-if>
+        <sc-if value="{{ published }}">
+          <div style="display:flex;flex-wrap:wrap;gap:10px;animation:e6-in .4s .3s ease both">
+            <button style="flex:1 1 180px;height:48px;border-radius:14px;border:none;background:#fff;color:#10233A;font-size:14px;font-weight:700;cursor:pointer" style-hover="background:#E6F4EE">Générer un rapport</button>
+            <button style="flex:1 1 180px;height:48px;border-radius:14px;border:1px solid rgba(255,255,255,.2);background:transparent;color:#fff;font-size:14px;font-weight:600;cursor:pointer" style-hover="background:rgba(255,255,255,.06)">Voir dans la Bibliothèque</button>
+          </div>
+        </sc-if>
+      </div>
+    </section>
+  </div>
+
+  <footer style="display:flex;align-items:center;justify-content:space-between;gap:16px">
+    <button style="{{ prevStyle }}" style-hover="border-color:#10233A">‹ Précédent</button>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;etat&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Prêt&quot;,&quot;Publié&quot;],&quot;default&quot;:&quot;Prêt&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+const TASKS=['Génération du PowerPoint de référence','Gel de la structure, du design et des zones de données','Activation du template','Ajout à la Bibliothèque'];
+class Component extends DCLogic {
+  state={st:'idle',done:0};
+  componentDidMount(){this.init();}
+  componentDidUpdate(pp){if(pp.etat!==this.props.etat)this.init();}
+  componentWillUnmount(){clearTimeout(this.t);}
+  init(){clearTimeout(this.t);this.setState((this.props.etat??'Prêt')==='Publié'?{st:'published',done:4}:{st:'idle',done:0});}
+  publish(){this.setState({st:'publishing',done:0});const tick=()=>{if(this.state.done<4){this.setState(s=>({done:s.done+1}));this.t=setTimeout(tick,850);}else this.t=setTimeout(()=>this.setState({st:'published'}),400);};this.t=setTimeout(tick,700);}
+  renderVals(){
+    const {st,done}=this.state;
+    const STEPS=[['A','ÉTAPE 1',"Fiche d'identité"],['B','ÉTAPE 2','Format du rapport'],['C','ÉTAPE 3','Composants'],['D','ÉTAPE 4','Ordre et données'],['E','ÉTAPE 5','Prévisualisation'],['F','ÉTAPE 6','Publication']];
+    const pub=st==='published';
+    const steps=STEPS.map(([l,n,name],i)=>{const d=i<5||pub,cur=i===5&&!pub;return {n,name,mark:d?'✓':l,
+      wrap:{display:'flex',flexDirection:'column',minWidth:0},
+      bar:{height:3,borderRadius:3,background:d?'#19A974':'#10233A'},
+      dot:{flex:'none',width:24,height:24,borderRadius:99,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:800,background:d?'#E6F5EE':'#10233A',color:d?'#0E6B47':'#fff'},
+      label:{fontSize:13.5,fontWeight:cur?800:600,color:'#10233A',lineHeight:1.25,textWrap:'balance'}};});
+    const chip=(t,file)=>({t,file,style:{display:'inline-flex',alignItems:'center',gap:7,height:28,padding:'0 11px',borderRadius:8,background:file?'#fff':'#F2F4F3',border:file?'1px solid #E3E8EC':'1px solid transparent',fontSize:12.5,fontWeight:600,color:'#10233A',whiteSpace:'nowrap'}});
+    const txt={fontSize:14,fontWeight:600,color:'#10233A',lineHeight:1.5};
+    const R=[
+      {k:'Format',text:'16:9 · 33,87 × 19,05 cm',chips:['Page de couverture.pptx','Intercalaire.pptx','Page standard.pptx','Page de fermeture.pptx'].map(f=>chip(f,true)),link:'Étape B'},
+      {k:'Composants',chips:['Synthèse de situation','Risques et problèmes','Baromètre du projet','Planning','Tableau de bord','Jalons'].map(c=>chip(c)),link:'Étape C'},
+      {k:'Sections',text:'Synthèse de situation',link:'Étape D'},
+      {k:'Pages',text:'9',big:true,link:'Étape E'},
+      {k:'Contrôle des données',text:'1 point(s) signalé(s), dont 0 bloquant(s)',link:'Étape E'},
+      {k:'Description',text:'—',muted:true,link:'Étape A'}];
+    const rows=R.map(r=>({k:r.k,text:r.text,hasText:!!r.text,hasChips:!!r.chips,chips:r.chips||[],link:pub?'':r.link+' ›',go:e=>e.preventDefault(),
+      textStyle:r.big?{...txt,fontSize:22,fontWeight:800,lineHeight:1,letterSpacing:'-.02em'}:r.muted?{...txt,color:'#9AA8B6'}:txt}));
+    const tasks=TASKS.map((label,i)=>{const s=i<done?'done':i===done?'cur':'todo';return {label,mark:s==='done'?'✓':'',
+      dot:{flex:'none',width:18,height:18,borderRadius:99,display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:800,background:s==='done'?'#F2B544':'transparent',color:'#10233A',border:s==='done'?'none':s==='cur'?'1.5px solid #F2B544':'1.5px solid rgba(255,255,255,.2)',boxSizing:'border-box',transition:'all .25s'},
+      text:{color:s==='todo'?'#6F8296':'#fff',fontWeight:s==='cur'?700:500,transition:'color .25s'}};});
+    return {steps,rows,tasks,idle:st==='idle',publishing:st==='publishing',published:pub,publish:()=>this.publish(),
+      prevStyle:{whiteSpace:'nowrap',height:44,padding:'0 18px',borderRadius:12,border:'1px solid #D5DDE3',background:'#fff',color:'#10233A',fontSize:14,fontWeight:600,cursor:'pointer',visibility:st==='idle'?'visible':'hidden'}};
+  }
+}
+</script>
+</body>
+</html>

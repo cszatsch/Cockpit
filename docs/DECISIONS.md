@@ -1322,3 +1322,20 @@ Maquette livrée (`docs/specs/MAQUETTE - Etape 5 Previsualisation/`) intégrée 
 | Échec de la génération | Pas d'état d'erreur dédié tant que son libellé et son visuel ne sont pas validés (demande du commanditaire) : message du serveur en notification, « Suivant › » reste désactivé ; proposition faite au commanditaire | — |
 
 Correctif au passage : la publication d'un template remplaçait l'historique des générations par les 4 lignes de démonstration de la maquette ; il est désormais conservé.
+
+## Créer un template, étape F et « Générer un rapport » : publication et mise en service (04/10/2026)
+
+Maquettes livrées (`docs/specs/MAQUETTE - Etape 6 Publication et mise en service/`) intégrées à l'identique (l'en-tête photo de l'application est conservé au-dessus de « Générer un rapport ») et branchées sur le serveur.
+
+| Sujet | Choix | Constante / code |
+|---|---|---|
+| Publication | `POST /report-templates` enregistre le template à l'état `PENDING` et répond aussitôt ; la mise en service se poursuit en tâche de fond : PowerPoint de référence (étape 0), gel dans une version (1), activation (2), Bibliothèque (3), zones de données vérifiées dans le fichier (4), puis `READY` | `ReportTemplateService.commission`, `ReportTemplate.serviceStatus` / `servicePhase` |
+| Suivi | `GET /report-templates/{id}/service` (statut, étape, tâches faites, phase de la carte, erreur, « Nouveau ») relu toutes les 600 ms par l'écran (même raison que l'étape E : pas de SSE avec le jeton porteur de développement) ; même flux pour les 4 tâches de l'étape F et les 3 phases de la carte (0-1 enregistrement, 2-3 Bibliothèque, 4 zones de données) | `serviceView`, `cardPhase`, `tplSvcPoll` |
+| Persistance | État enregistré en base, lu à l'amorçage de l'écran (`bootstrap.templates[].service`) : rechargement et autres utilisateurs voient le même état ; au démarrage du serveur, une mise en service restée en cours est marquée interrompue | `onModuleInit`, `INTERRUPTED_ERROR` |
+| Garde | Template non prêt : génération (`/pptx`), contrôle (`/check`) et rapport de séance refusés (409 `TEMPLATE_NOT_READY`) ; à l'écran, téléchargement et interrupteur masqués, « Télécharger le rapport » désactivé | `assertReady`, `NOT_READY_MESSAGE` |
+| Redirection | « Valider et publier » redirige vers « Générer un rapport » dès la réponse du serveur, template présélectionné et placé en tête de son comité ; « Template publié » sert de repli sans serveur | `f6Publish` |
+| Prêt | Onde verte unique, étiquette « Nouveau », sections révélées une à une (110 ms), notification « <Nom> v<version> est prêt à être utilisé. » pendant 3,6 s, données rechargées | `tplSvcReady` |
+| « Nouveau » | Arbitrage du 04/10/2026 : jusqu'à la première génération d'un rapport (téléchargement ou rapport de séance, par n'importe quel utilisateur), 24 h au plus après la mise en service | `NEW_BADGE_MS`, `firstReportAt` |
+| Point bloquant (étape F) | Libellé validé : point rouge, « Publication impossible : N point(s) bloquant(s) à corriger. » et lien « Voir l'étape E › » ; « Valider et publier » atténué et inactif ; l'étape F n'est accessible qu'une fois l'aperçu construit | `f6Blocked`, `canGo` |
+| Échec (validé) | Étape F : pastille rouge « ! », « Publication interrompue », tâche en échec en rouge avec sa cause, « Relancer la publication ». Générer un rapport : pastille « Mise en service interrompue », cause sous la carte, lien « Relancer la mise en service » (`POST /report-templates/{id}/commission`), téléchargement désactivé | `recommission`, `FAILED_MESSAGE` |
+| Échec de l'aperçu (étape E, validé) | Carte rouge pâle, pastille « ! », « La construction de l'aperçu a échoué », phase en échec en rouge avec sa cause sous la carte, phases suivantes grises, pages prêtes gardées, « Relancer l'aperçu » à la place du pourcentage, « Contrôle non effectué », « Suivant › » désactivé | `feErr` |

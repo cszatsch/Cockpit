@@ -159,6 +159,7 @@ export class ReportFormatController {
     const scope = await this.access.scope(actor, p);
     const t = await this.template(scope, id);
     const out = await this.reports.generate(scope, t, scope.access.personId ?? actor.accountId);
+    await this.reports.markFirstReport(t.id);
     this.send(res, out.buf, `${t.name} v${out.version.label}`);
   }
 

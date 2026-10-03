@@ -1,20 +1,22 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import { ProjectScope } from '../../core/access.service';
 import { PrismaService, Tx } from '../../core/prisma.service';
 import { StorageService } from '../../core/storage.service';
 import { TodayService } from '../../core/today.service';
-import { ApiErrorWithBody, notFound } from '../../core/errors';
+import { ApiError, ApiErrorWithBody, notFound } from '../../core/errors';
+import JSZip from 'jszip';
 import { techId } from '../../core/ids';
 import { OoxmlPackage } from '../../core/ooxml';
 import { analyzePptx, mediaDataUri } from '../../core/report-format-read';
 import { PageSource } from '../../core/report-format-write';
+import { FAILED_MESSAGE, INTERRUPTED_ERROR, NOT_READY_MESSAGE } from '../../domain/template-service';
 import { BarometerData, MILESTONES_MAX, MilestonesData, RisksData, foldPlan, GANTT_MAX_ROWS, GanttData, GanttRow, PLAN_TABLE_HEAD_IN, PLAN_TABLE_MIN_ROW_IN } from '../../core/report-draw';
 import { composeTemplate, FillData, fillTemplate, TemplateFieldMissing, TemplateManifest, visualCheck } from '../../core/report-template';
 import { LlmService } from '../../core/llm.service';
 import { parseWriting, retryPrompt, WritingFacts, WRITING_SKILLS, WRITING_TIMEOUT_MS, writingPrompt, writingSystem } from '../../domain/report-writing';
 import { FormatAnalysis, PAGE_KINDS, PageKind, previewSvg } from '../../domain/report-format';
-import { COMPONENTS, ComponentConfig, ComponentData, ComponentValues, DASHBOARD_SERIES, frDay, indicatorsOf, inPeriod, Issue, KPI_MAX, pagesOf, periodOf, periodRange, sectionsOf, COMPONENT_MODULE, ComponentId, moduleOffMessage, reportPlan } from '../../domain/report-components';
+import { COMPONENTS, ComponentConfig, ComponentData, ComponentValues, DASHBOARD_SERIES, frDay, indicatorsOf, inPeriod, Issue, KPI_MAX, pagesOf, periodOf, periodRange, sectionsOf, COMPONENT_MODULE, ComponentId, moduleOffMessage, reportPlan, fieldName } from '../../domain/report-components';
 
 const STATUS: Record<string, string> = { OPEN: 'Ouvert', IN_PROGRESS: 'En cours', BLOCKED: 'Bloquée', DONE: 'Terminé', CLOSED: 'Clos', PLANNED: 'Prévu', PREPARATION: 'En préparation', ACTIVE: 'Actif', MITIGATING: 'En traitement', DRAFT: 'Brouillon', IN_REVIEW: 'En revue', TO_ARBITRATE: 'À arbitrer', ARBITRATED: 'Arbitrée', CANCELLED: 'Annulée', SUPERSEDED: 'Remplacée' };
 const PRIO: Record<string, string> = { HIGH: 'Haute', MEDIUM: 'Moyenne', LOW: 'Basse' };
@@ -41,7 +43,7 @@ export interface Draft { name: string; version: string; bodyId: string | null; c
  * publications (valeurs remplacées dans le template), aperçu du rapport complet.
  */
 @Injectable()
-export class ReportTemplateService {
+export class ReportTemplateService implements OnModuleInit {
   private previews = new Map<string, { at: number; projectId: string; buf: Buffer; analysis: Promise<FormatAnalysis> }>();
   /** Aperçus construits par étapes (étape E, 04/10/2026) : avancement relu par l'écran, pages servies dès qu'elles sont prêtes. */
   private jobs = new Map<string, PreviewJob>();
@@ -392,6 +394,54 @@ export class ReportTemplateService {
     });
   }
 
+  /**
+   * Mise en service (04/10/2026) : PowerPoint de référence généré (0), structure, design et zones gelés dans une version
+   * (1), template activé (2), ajouté à la Bibliothèque (3), zones de données vérifiées dans le fichier (4), puis prêt.
+   * Chaque étape est enregistrée en base ; un échec passe le template à l'état FAILED avec sa cause.
+   */
+  async commission(scope: ProjectScope, templateId: string, by: string | null) {
+    const step = (servicePhase: number) => this.prisma.reportTemplate.update({ where: { id: templateId }, data: { servicePhase } });
+    try {
+      const t = (await this.prisma.reportTemplate.findUniqueOrThrow({ where: { id: templateId } })) as unknown as TemplateRow;
+      await this.prisma.reportTemplate.update({ where: { id: templateId }, data: { serviceStatus: 'PENDING', servicePhase: 0, serviceError: null } });
+      const d = this.draftOf(t);
+      const { buf, manifest } = await this.build(scope, d);
+      await step(1);
+      const last = await this.prisma.reportTemplateVersion.findFirst({ where: { templateId }, orderBy: { seq: 'desc' } });
+      const key = await this.storage.put(`report-templates/${scope.project.id}`, buf, '.pptx');
+      await this.prisma.reportTemplateVersion.create({
+        data: { id: techId('TV'), templateId, projectId: scope.project.id, seq: (last?.seq ?? 0) + 1, label: t.version, fileKey: key, manifest: manifest as any, structure: { components: d.components, format: d.format, name: d.name, bodyId: d.bodyId } as any, pages: manifest.pages.length, createdBy: by },
+      });
+      await step(2);
+      await this.prisma.reportTemplate.update({ where: { id: templateId }, data: { active: true } });
+      await step(3);
+      await this.prisma.reportTemplate.update({ where: { id: templateId }, data: { pages: manifest.pages.length } });
+      await step(4);
+      // Zones de données : chaque zone du manifeste existe dans le PowerPoint de référence.
+      const z = await JSZip.loadAsync(buf);
+      for (const f of manifest.fields) { const xml = await z.file(f.slide)?.async('string'); if (!xml || !xml.includes(`name="${fieldName(f.id)}"`)) throw new TemplateFieldMissing(f.id); }
+      await this.prisma.reportTemplate.update({ where: { id: templateId }, data: { serviceStatus: 'READY', serviceReadyAt: new Date(), serviceError: null } });
+    } catch (e) {
+      await this.prisma.reportTemplate.update({ where: { id: templateId }, data: { serviceStatus: 'FAILED', serviceError: String((e as { message?: string }).message ?? e).slice(0, 300) } }).catch(() => undefined);
+    }
+  }
+
+  /** Au démarrage : une mise en service restée en cours (serveur arrêté) est marquée interrompue, à relancer. */
+  async onModuleInit() {
+    await this.prisma.reportTemplate.updateMany({ where: { serviceStatus: 'PENDING' }, data: { serviceStatus: 'FAILED', serviceError: INTERRUPTED_ERROR } }).catch(() => undefined);
+  }
+
+  /** Un template en mise en service (ou interrompue) ne sert à générer aucun rapport : 409. */
+  assertReady(t: { serviceStatus?: string }) {
+    if (t.serviceStatus === 'PENDING') throw new ApiError(409, 'TEMPLATE_NOT_READY', NOT_READY_MESSAGE);
+    if (t.serviceStatus === 'FAILED') throw new ApiError(409, 'TEMPLATE_NOT_READY', FAILED_MESSAGE);
+  }
+
+  /** Première génération d'un rapport avec ce template : fin de l'étiquette « Nouveau ». */
+  async markFirstReport(templateId: string) {
+    await this.prisma.reportTemplate.updateMany({ where: { id: templateId, firstReportAt: null }, data: { firstReportAt: new Date() } });
+  }
+
   /** Version en vigueur ; un template antérieur aux versions est publié à sa première utilisation. */
   async current(scope: ProjectScope, t: TemplateRow, by: string | null) {
     return (await this.prisma.reportTemplateVersion.findFirst({ where: { templateId: t.id }, orderBy: { seq: 'desc' } })) ?? this.publish(scope, t, by);
@@ -403,6 +453,7 @@ export class ReportTemplateService {
 
   /** Anomalies avant publication : données (version en vigueur) et intégrité du template. */
   async check(scope: ProjectScope, t: TemplateRow, by: string | null) {
+    this.assertReady(t as any);
     const v = await this.current(scope, t, by);
     const s = v.structure as any;
     const { issues } = await this.reportData(scope, { ...this.draftOf(t), components: s.components, bodyId: s.bodyId ?? t.bodyId }, v.manifest as unknown as TemplateManifest);
@@ -415,6 +466,7 @@ export class ReportTemplateService {
    * Anomalie bloquante (périmètre disparu, template endommagé) : 422 avec la liste des anomalies.
    */
   async generate(scope: ProjectScope, t: TemplateRow, by: string | null): Promise<{ buf: Buffer; version: any; issues: Issue[] }> {
+    this.assertReady(t as any);
     const v = await this.current(scope, t, by);
     const s = v.structure as any;
     const manifest = v.manifest as unknown as TemplateManifest;

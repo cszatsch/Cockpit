@@ -352,3 +352,8 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 - `RISE Cockpit.dc.html` : bloc de l'étape E remplacé par la maquette livrée (`docs/specs/MAQUETTE - Etape 5 Previsualisation/`), à l'identique ; vignettes et vue agrandie : image réelle de chaque diapositive (cadre 16:9 de la maquette) ; animations `e5-*` ajoutées ; vue agrandie placée hors du conteneur animé ; génération par étapes relue toutes les 350 ms (`tplPreviewRun`, `tplLocalPlan`) ; anciennes vignettes et listes de l'étape E retirées.
 - `api.js` : `tplPreviewStart`, `tplPreviewJob`.
 - Publication : l'historique des générations n'est plus remplacé par les lignes de démonstration.
+
+## Créer un template, étape F ; « Générer un rapport » : mise en service (04/10/2026)
+
+- `RISE Cockpit.dc.html` : étape F remplacée par la maquette livrée (fiche, liens vers les étapes, panneau de publication, tâches, « Template publié » en repli) ; onglet « Générer un rapport » remplacé par la maquette (séance, templates par comité, carte « Mise en service », prévisualisation, notification), sous l'en-tête existant de l'application ; animations `e6-*`, `ms-*` ; suivi `tplSvcPoll`, passage à « prêt » `tplSvcReady` ; états d'erreur validés (publication, mise en service, aperçu de l'étape E) ; ancien récapitulatif de l'étape F retiré.
+- `api.js` : `tplPublish` (publication puis rechargement), `tplService`, `tplRecommission`.

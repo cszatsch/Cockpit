@@ -990,6 +990,15 @@ export function attach(comp) {
       const b = tplBody(t);
       return ppost('/report-templates/preview', { name: b.name, version: b.version, bodyId: b.bodyId, components: b.components, ...(b.format ? { format: b.format } : {}) });
     },
+    /** Publication (étape F) : `POST /report-templates` → template en mise en service ; données rechargées (template présent). */
+    async tplPublish(tpl) {
+      const r = await ppost('/report-templates', tplBody(tpl));
+      await reload();
+      return r;
+    },
+    /** Mise en service : `GET /report-templates/{id}/service` ; relance `POST …/commission`. */
+    tplService(id) { return pget('/report-templates/' + enc(id) + '/service'); },
+    tplRecommission(id) { return ppost('/report-templates/' + enc(id) + '/commission', {}); },
     /** Aperçu par étapes (étape E) : `POST /report-templates/preview-jobs` → `{ id, slides, structure }` ; avancement `GET …/{id}`. */
     tplPreviewStart(t) {
       const b = tplBody(t);

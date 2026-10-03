@@ -374,6 +374,13 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 - **Tests** : `test/unit/report-template.spec.ts` (plan du rapport), `test/e2e/report-template.spec.ts` (tâche d'aperçu : plan, pourcentage croissant, pages, alerte rattachée à sa page, 404, 400).
 - **Question ouverte** : état d'erreur de la génération (libellé et visuel) à valider avant d'être codé.
 
+### Créer un template : étape F, mise en service dans « Générer un rapport » (04/10/2026)
+
+- **Réalisé** : maquettes « Étape 6 – Publication » et « Générer un rapport – mise en service » intégrées à l'identique ; publication asynchrone avec état persistant (`PENDING` → `READY` / `FAILED`), suivi par `GET …/service`, génération refusée tant que le template n'est pas prêt (écran et API), « Nouveau » jusqu'à la première génération (24 h au plus) ; états d'erreur validés (publication, mise en service, aperçu de l'étape E) et message de point bloquant.
+- **Vérification** (Playwright) : fiche conforme au template créé, lien « Étape C › » au survol ; redirection en 0,3 s avec le template présélectionné ; carte « Mise en service » (phase, 1 / 3, barre), prévisualisation en attente, téléchargement désactivé et refusé par l'API (409) ; après rechargement, état correct ; passage à « prêt » : « Nouveau », notification retirée après 3,5 s ; écrans lisibles à 1 124 et 900 px ; blocage et erreur de l'étape E affichés ; recette `format-rapport.e2e.ts` 25 / 25.
+- **Constat** : la mise en service dure surtout le temps de la génération du PowerPoint de référence (collecte des données et rédaction par l'IA) ; les étapes suivantes s'enchaînent en moins d'une seconde.
+- **Tests** : `test/e2e/report-template.spec.ts` (mise en service : 409 pendant, phases croissantes, état à l'amorçage, « Nouveau » jusqu'à la première génération, relance, redémarrage) ; tests existants adaptés à la publication asynchrone.
+
 ## 4. Questions ouvertes
 
 1. **Déclencheur des règles de notification** : faut-il ajouter un sélecteur de déclencheur dans la console ? Aujourd'hui, une règle créée depuis l'écran reçoit un déclencheur par défaut : « planifié » pour une notification, « manuel » pour une alerte.

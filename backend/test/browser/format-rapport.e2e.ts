@@ -123,9 +123,14 @@ async function main() {
     check('6. prévisualisation : 2 + 2 sections + 4 pages, vignettes du rapport au format', !!pv && pv.pages === 8 && (await page.evaluate(() => document.querySelectorAll('[role=img][aria-label][style*="blob:"]').length)) === 8 && (await text(page, /Aperçu prêt/)) !== '' && (await text(page, /8 pages · 2 sections · format de l'étape B, données du jour/)) !== '', pv && JSON.stringify(pv.slides.map((x: any) => x.label)));
     check('   contrôle des données affiché', (await text(page, /CONTRÔLE DES DONNÉES|Contrôle des données/)) !== '');
     await page.getByText('Suivant ›').click(); await page.waitForTimeout(500);
-    check('   récapitulatif : format, sections et pages exactes', (await text(page, /16:9 · 33,87 × 19,05 cm · Charte ACME\.pptx/)) !== '' && (await text(page, /Synthèse de situation · Climat et pilotage/)) !== '');
+    check('   étape F : fiche du template (format, fichiers, sections, pages)', (await text(page, /F · VALIDATION ET PUBLICATION/)) !== '' && (await text(page, /16:9 · 33,87 × 19,05 cm/)) !== '' && (await text(page, /Charte ACME\.pptx/)) !== '' && (await text(page, /Synthèse de situation · Climat et pilotage/)) !== '');
     await page.getByText('Valider et publier').click();
-    await page.waitForFunction((n) => ((window as any).__riseCockpit.state.templates || []).some((t: any) => t.name === n && /^T-/.test(t.id) && t.format && String(t.format.cover.fileId).startsWith('RF')), NAME, { timeout: 30000 }).catch(() => {});
+    // Redirection immédiate vers « Générer un rapport », template présélectionné, carte « Mise en service ».
+    await page.waitForFunction(() => (window as any).__riseCockpit.state.tab === 'generer', null, { timeout: 30000 }).catch(() => {});
+    check('   publication : redirection vers « Générer un rapport », carte « Mise en service »', await page.evaluate((n) => { const c = (window as any).__riseCockpit; const t = (c.state.templates || []).find((x: any) => x.name === n); return !!t && c.state.tplSel === t.id; }, NAME) && /Mise en service/.test(await page.evaluate(() => document.body.innerText)));
+    await page.waitForFunction(() => document.body.innerText.includes('est prêt à être utilisé'), null, { timeout: 180000 }).catch(() => {});
+    check('   mise en service terminée : « Nouveau », notification', /Nouveau/.test(await page.evaluate(() => document.body.innerText)) && /est prêt à être utilisé/.test(await page.evaluate(() => document.body.innerText)));
+    await page.waitForFunction((n) => ((window as any).__riseCockpit.state.templates || []).some((t: any) => t.name === n && t.publishedVersion === 1), NAME, { timeout: 30000 }).catch(() => {});
     const saved = await page.evaluate((n) => ((window as any).__riseCockpit.state.templates || []).find((t: any) => t.name === n), NAME);
     check('7. template publié avec son format et sa version 1 (serveur)', !!saved && !!saved.format && saved.format.closing.slide === 4 && saved.publishedVersion === 1, JSON.stringify(saved && saved.format));
 

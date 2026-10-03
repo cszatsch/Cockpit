@@ -1,3 +1,4 @@
+import { serviceView } from '../../domain/template-service';
 import { formatRefs } from '../../domain/report-format';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../core/prisma.service';
@@ -485,6 +486,7 @@ export class BootstrapService {
         desc: t.description,
         format: formatRefs(t.format),
         publishedVersion: tplVersions.find((v) => v.templateId === t.id)?.seq ?? null,
+        service: serviceView(t),
         rowVersion: t.rowVersion,
       })),
       tplHistory,

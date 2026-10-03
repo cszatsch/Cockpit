@@ -1,3 +1,4 @@
+import { serviceView } from '../../domain/template-service';
 import { Body, Controller, Delete, Get, Headers, HttpCode, Param, Patch, Post, Query, Res } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
@@ -8,7 +9,7 @@ import { AuditService } from '../../core/audit.service';
 import { PrismaService, Tx } from '../../core/prisma.service';
 import { TodayService } from '../../core/today.service';
 import { StorageService } from '../../core/storage.service';
-import { badRequest, businessRule, forbidden, inUse, notFound } from '../../core/errors';
+import { badRequest, businessRule, conflict, forbidden, inUse, notFound } from '../../core/errors';
 import { techId, nextCode } from '../../core/ids';
 import { checkIfMatch, parse } from '../../core/http';
 import { renderPdf } from '../../core/pdf';
@@ -182,6 +183,8 @@ export class CommitteesController {
       const tpl = await db.reportTemplate.findFirst({ where: { id: input.templateId, projectId: scope.project.id } });
       if (!tpl) throw badRequest('Référence invalide', { templateId: 'template introuvable' });
       if (!tpl.active) throw businessRule('Template inactif', { templateId: 'template inactif' });
+      this.tplReports.assertReady(tpl);
+      await db.reportTemplate.updateMany({ where: { id: tpl.id, firstReportAt: null }, data: { firstReportAt: new Date() } });
       const gb = await db.governanceBody.findUnique({ where: { id: s.bodyId } });
       const prev = await db.reportInstance.findMany({ where: { sessionId: s.id }, select: { v: true } });
       const all = await db.reportInstance.findMany({ where: { projectId: scope.project.id }, select: { id: true } });
@@ -223,7 +226,30 @@ export class CommitteesController {
   // ───────────── Templates ─────────────
 
   private templateView(t: any, v?: any) {
-    return { id: t.id, name: t.name, bodyId: t.bodyId, authorId: t.authorId, authorLabel: t.authorLabel, version: t.version, description: t.description, components: t.components, pages: t.pages, publishedAt: t.publishedAt, active: t.active, format: formatRefs(t.format), ...(v ? { publishedVersion: this.tplReports.versionView(v) } : {}), rowVersion: t.rowVersion };
+    return { id: t.id, name: t.name, bodyId: t.bodyId, authorId: t.authorId, authorLabel: t.authorLabel, version: t.version, description: t.description, components: t.components, pages: t.pages, publishedAt: t.publishedAt, active: t.active, format: formatRefs(t.format), service: serviceView(t), ...(v ? { publishedVersion: this.tplReports.versionView(v) } : {}), rowVersion: t.rowVersion };
+  }
+
+  /** Avancement de la mise en service (étape 6 et carte « Mise en service ») : relu par l'écran. */
+  @Get('report-templates/:id/service')
+  async service(@CurrentActor() actor: Actor, @Param('projectId') p: string, @Param('id') id: string) {
+    const scope = await this.access.scope(actor, p);
+    const t = await this.prisma.reportTemplate.findFirst({ where: { id, projectId: scope.project.id } });
+    if (!t) throw notFound('Template introuvable');
+    return serviceView(t);
+  }
+
+  /** Relance d'une mise en service interrompue. */
+  @Post('report-templates/:id/commission')
+  @HttpCode(202)
+  async recommission(@CurrentActor() actor: Actor, @Param('projectId') p: string, @Param('id') id: string) {
+    const scope = await this.access.scope(actor, p);
+    if (!canWriteTools(scope.access)) throw forbidden('Templates : profil non Lecteur (PMO, Responsable)');
+    const t = await this.prisma.reportTemplate.findFirst({ where: { id, projectId: scope.project.id } });
+    if (!t) throw notFound('Template introuvable');
+    if (t.serviceStatus !== 'FAILED') throw conflict('NOT_FAILED', 'Seule une mise en service interrompue peut être relancée');
+    const row = await this.prisma.reportTemplate.update({ where: { id }, data: { serviceStatus: 'PENDING', servicePhase: 0, serviceError: null } });
+    void this.tplReports.commission(scope, id, scope.access.personId ?? actor.accountId);
+    return serviceView(row);
   }
 
   @Get('report-templates')
@@ -271,13 +297,18 @@ export class CommitteesController {
           publishedAt: this.todaySvc.today(scope.project.timezone),
           active: input.active ?? true,
           order: -1,
+          // Mise en service (04/10/2026) : le template n'est utilisable qu'une fois prêt.
+          serviceStatus: 'PENDING',
+          servicePhase: 0,
         },
       });
-      // Publication : le PowerPoint de référence (version 1) est généré et enregistré.
-      const v = await this.tplReports.publish(scope, row as any, scope.access.personId ?? actor.accountId, db);
-      await this.audit.record(db, { actor, projectId: scope.project.id, profileUsed: scope.access.pmo ? 'PMO' : 'RESPONSABLE' }, { entityType: 'REPORT_TEMPLATE', entityId: row.id, before: null, after: this.templateView(row, v), target: row.name });
-      return this.templateView(row, v);
-    }, { timeout: 120000 });
+      await this.audit.record(db, { actor, projectId: scope.project.id, profileUsed: scope.access.pmo ? 'PMO' : 'RESPONSABLE' }, { entityType: 'REPORT_TEMPLATE', entityId: row.id, before: null, after: this.templateView(row), target: row.name });
+      return row;
+    }, { timeout: 120000 }).then((row) => {
+      // Publication en tâche de fond : PowerPoint de référence, gel, activation, Bibliothèque, zones de données.
+      void this.tplReports.commission(scope, row.id, scope.access.personId ?? actor.accountId);
+      return this.templateView(row);
+    });
   }
 
   @Patch('report-templates/:id')

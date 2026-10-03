@@ -7,7 +7,7 @@
 </head>
 <body>
 <x-dc>
-<helmet data-dc-atomics><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500;1,600;1,700;1,800&family=JetBrains+Mono:wght@400;500;600&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet"><style>@keyframes e5-sheen{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}@keyframes e5-develop{0%{opacity:0;filter:blur(6px) saturate(0);transform:scale(.985)}60%{opacity:1;filter:blur(0) saturate(.4)}100%{opacity:1;filter:none;transform:none}}@keyframes e5-spin{to{transform:rotate(360deg)}}@keyframes e5-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}@keyframes e5-fade{from{opacity:0}to{opacity:1}}.fd-title::placeholder{color:#A3AFBB}
+<helmet data-dc-atomics><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500;1,600;1,700;1,800&family=JetBrains+Mono:wght@400;500;600&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet"><style>@keyframes e6-spin{to{transform:rotate(360deg)}}@keyframes e6-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}@keyframes e6-seal{0%{opacity:0;transform:scale(1.25) rotate(-8deg)}70%{opacity:1;transform:scale(.97) rotate(0)}100%{transform:scale(1)}}@keyframes ms-spin{to{transform:rotate(360deg)}}@keyframes ms-sheen{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}@keyframes ms-in{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}@keyframes ms-glow{0%{box-shadow:0 0 0 0 rgba(14,124,107,.45)}100%{box-shadow:0 0 0 14px rgba(14,124,107,0)}}@keyframes ms-arrive{from{opacity:0;transform:translateY(-10px) scale(.98)}to{opacity:1;transform:none}}@keyframes ms-fade{from{opacity:0}to{opacity:1}}@keyframes e5-sheen{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}@keyframes e5-develop{0%{opacity:0;filter:blur(6px) saturate(0);transform:scale(.985)}60%{opacity:1;filter:blur(0) saturate(.4)}100%{opacity:1;filter:none;transform:none}}@keyframes e5-spin{to{transform:rotate(360deg)}}@keyframes e5-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}@keyframes e5-fade{from{opacity:0}to{opacity:1}}.fd-title::placeholder{color:#A3AFBB}
 @keyframes rise-hero{from{opacity:0;transform:scale(1.03)}to{opacity:1;transform:scale(1)}}
 html,body{margin:0;background:#eef4f2;font-family:'Plus Jakarta Sans',sans-serif;color:#10233a;-webkit-font-smoothing:antialiased}
 a{color:#1d8f86}a:hover{color:#146b64}
@@ -926,56 +926,130 @@ a{color:#1d8f86}a:hover{color:#146b64}
   </sc-if>
 
   <!-- ===== COMITÉS · GÉNÉRER UN RAPPORT ===== -->
+  <!-- Maquette « Generer un rapport - mise en service » (04/10/2026), reprise à l'identique sous l'en-tête de l'application. -->
   <sc-if value="{{ vTplGenerer }}" hint-placeholder-val="{{ false }}">
-  <div style="display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:18px;animation:rise-in .4s cubic-bezier(.2,.7,.2,1) both">
-    <div style="grid-column:1/-1;background:#10233a;color:#fff;border-radius:16px;padding:18px 24px;display:flex;align-items:center;gap:18px;flex-wrap:wrap">
-      <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:220px"><span style="font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#9fdcd4;font-weight:700">Séance du rapport</span><span style="font-size:12.5px;color:rgba(255,255,255,.72)">{{ genSes.info }}</span></div>
-      <select value="{{ genSes.v }}" onChange="{{ genSes.set }}" style="height:38px;min-width:320px;max-width:100%;border-radius:10px;border:0;padding:0 12px;font:inherit;font-size:13px;font-weight:600;background:#fff;color:#10233a"><sc-for list="{{ genSes.opts }}" as="o" hint-placeholder-count="4"><option value="{{ o.v }}">{{ o.l }}</option></sc-for></select>
-      <span onClick="{{ genSes.goCal }}" style="font-size:12px;font-weight:700;color:#9fdcd4;cursor:pointer;white-space:nowrap">Calendrier des comités →</span>
+  <div style="max-width:1440px;width:100%;box-sizing:border-box;margin:0 auto;display:flex;flex-direction:column;gap:24px;font-family:'Plus Jakarta Sans',sans-serif;color:#10233A;-webkit-font-smoothing:antialiased">
+    <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px 24px;padding:24px 30px;border-radius:22px;background:#10233A;color:#fff">
+      <div style="flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:6px">
+        <span style="font-size:11.5px;font-weight:700;letter-spacing:.16em;color:#9FD9C2">SÉANCE DU RAPPORT</span>
+        <span style="display:block;line-height:1.5;font-size:14.5px;color:#D3DCE5">{{ genSes.info }}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:22px;flex-wrap:wrap">
+        <select value="{{ genSes.v }}" onChange="{{ genSes.set }}" style="height:46px;padding:0 44px 0 18px;border-radius:12px;border:none;background:#fff url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7' viewBox='0 0 12 7'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%2310233A' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E&quot;) no-repeat right 16px center;appearance:none;-webkit-appearance:none;font-size:15px;color:#10233A;cursor:pointer;font-family:inherit;max-width:100%"><sc-for list="{{ genSes.opts }}" as="o" hint-placeholder-count="4"><option value="{{ o.v }}">{{ o.l }}</option></sc-for></select>
+        <a href="#" onClick="{{ genSes.goCal }}" style="font-size:14.5px;font-weight:700;color:#9FD9C2;text-decoration:none;white-space:nowrap">Calendrier des comités →</a>
+      </div>
     </div>
-    <div style="background:#fff;border-radius:16px;padding:22px 24px;box-shadow:0 1px 2px rgba(16,35,58,.04)">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap"><div style="font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#5c7280;font-weight:700">Templates actifs · {{ tplActiveCount }}</div><span style="font-size:11.5px;color:#5c7280">Regroupés par comité · seuls les templates publiés et actifs sont proposés</span></div>
-      <div style="margin-top:14px;display:flex;flex-direction:column;gap:14px">
-        <sc-for list="{{ tplGroups }}" as="g" hint-placeholder-count="2">
-          <div>
-            <div onClick="{{ g.toggle }}" style="display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:10px;cursor:pointer;background:#f3f7f6;transition:background .15s" style-hover="background:#e9f1ef"><svg style="{{ g.chevStyle }}" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg><b style="font-size:13px">{{ g.n }}</b><span style="font-size:11.5px;color:#5c7280">{{ g.count }}</span></div>
-            <sc-if value="{{ g.open }}" hint-placeholder-val="{{ true }}">
-            <div style="margin-top:8px;display:flex;flex-direction:column;gap:8px">
-              <sc-for list="{{ g.items }}" as="t" hint-placeholder-count="2">
-                <div onClick="{{ t.select }}" style="{{ t.rowStyle }}" style-hover="background:#f6faf9">
-                  <div style="min-width:0">
-                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><b style="font-size:13px">{{ t.name }}</b><span style="font-family:ui-monospace,Menlo,monospace;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:5px;background:#eef3f2;color:#43586a">{{ t.v }}</span></div>
-                    <div style="margin-top:4px;font-size:11.5px;color:#5c7280">{{ t.author }} · {{ t.pagesLabel }}</div>
-                    <div style="margin-top:6px;font-size:12px;color:#43586a;text-wrap:pretty">{{ t.comps }}</div>
-                  </div>
-                  <div style="display:flex;gap:6px">
-                    <span onClick="{{ t.download }}" title="Générer et télécharger le rapport" style="width:30px;height:30px;border-radius:8px;border:1px solid #d9e4e1;display:grid;place-items:center;cursor:pointer;color:#43586a;background:#fff;transition:background .15s" style-hover="background:#f3f7f6"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"></path></svg></span>
-                    <span onClick="{{ t.deactivate }}" title="Désactiver — reste consultable dans la Bibliothèque" role="switch" aria-checked="true" aria-label="Désactiver le template" style="height:30px;padding:0 7px;border-radius:8px;border:1px solid #d9e4e1;display:grid;place-items:center;cursor:pointer;background:#fff;transition:background .15s,border-color .15s" style-hover="background:#e6f3f2;border-color:#bfdcd8"><span style="width:26px;height:15px;border-radius:999px;background:#1d8f86;position:relative;display:block"><span style="position:absolute;right:2px;top:2px;width:11px;height:11px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2)"></span></span></span>
-                  </div>
-                </div>
-              </sc-for>
+
+    <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">
+      <section style="flex:1 1 520px;min-width:0;background:#fff;border-radius:22px;padding:28px 30px;display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 20px">
+          <span style="font-size:12px;font-weight:700;letter-spacing:.16em;color:#4E5E6E">TEMPLATES ACTIFS · {{ tplActiveCount }}</span>
+          <span style="display:block;line-height:1.5;font-size:13px;color:#6B7A89;text-wrap:pretty">Regroupés par comité · seuls les templates publiés et actifs sont proposés</span>
+        </div>
+        <sc-for list="{{ tplGroups }}" as="g" hint-placeholder-count="1">
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <div onClick="{{ g.toggle }}" style="display:flex;align-items:center;gap:12px;height:46px;padding:0 16px;border-radius:12px;background:#F2F4F3;cursor:pointer">
+              <svg style="{{ g.chevStyle }}" width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="#10233A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4.5 6 8l3.5-3.5"></path></svg>
+              <span style="font-size:15px;font-weight:700">{{ g.n }}</span>
+              <span style="font-size:13px;color:#6B7A89">{{ g.count }}</span>
             </div>
+            <sc-if value="{{ g.open }}" hint-placeholder-val="{{ true }}">
+            <sc-for list="{{ g.items }}" as="t" hint-placeholder-count="2">
+              <div onClick="{{ t.select }}" style="{{ t.card }}">
+                <sc-if value="{{ t.pending }}"><div style="position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:14px"><div style="position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),transparent);animation:ms-sheen 1.6s ease-in-out infinite"></div></div></sc-if>
+                <div style="position:relative;display:flex;justify-content:space-between;gap:16px">
+                  <div style="display:flex;flex-direction:column;gap:6px;min-width:0">
+                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                      <span style="font-size:16px;font-weight:700">{{ t.name }}</span>
+                      <span style="font:600 11.5px 'JetBrains Mono',monospace;padding:3px 8px;border-radius:6px;background:#F2F4F3;color:#4E5E6E">{{ t.v }}</span>
+                      <sc-if value="{{ t.isNew }}"><span style="font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;background:#0E7C6B;color:#fff;animation:ms-in .4s ease both">Nouveau</span></sc-if>
+                    </div>
+                    <span style="font-size:13.5px;color:#6B7A89">{{ t.author }} · {{ t.pagesLabel }}</span>
+                    <span style="font-size:14px;line-height:1.55;color:#4E5E6E">{{ t.comps }}</span>
+                  </div>
+                  <sc-if value="{{ t.pending }}">
+                    <span style="flex:none;align-self:flex-start;display:flex;align-items:center;gap:8px;height:30px;padding:0 12px;border-radius:999px;background:#E6F3EF;color:#0E5E52;font-size:12px;font-weight:700;white-space:nowrap"><span style="width:11px;height:11px;border-radius:99px;border:1.8px solid #B9DCD2;border-top-color:#0E7C6B;animation:ms-spin .8s linear infinite"></span>Mise en service</span>
+                  </sc-if>
+                  <sc-if value="{{ t.failed }}">
+                    <span style="flex:none;align-self:flex-start;display:flex;align-items:center;gap:8px;height:30px;padding:0 12px;border-radius:999px;background:#FBEDEC;color:#A23A33;font-size:12px;font-weight:700;white-space:nowrap"><span style="width:14px;height:14px;border-radius:99px;background:#D64545;color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center">!</span>Mise en service interrompue</span>
+                  </sc-if>
+                  <sc-if value="{{ t.ready }}">
+                    <div style="flex:none;display:flex;align-items:flex-start;gap:8px;animation:ms-fade .4s ease both">
+                      <button onClick="{{ t.download }}" title="Générer et télécharger le rapport" style="width:40px;height:40px;border-radius:10px;border:1px solid #DCE2E6;background:#fff;color:#10233A;display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.5v8M4.8 7.5 8 10.7l3.2-3.2M2.5 13.5h11"></path></svg></button>
+                      <span onClick="{{ t.deactivate }}" title="Désactiver — reste consultable dans la Bibliothèque" role="switch" aria-checked="true" aria-label="Désactiver le template" style="width:54px;height:40px;border-radius:10px;border:1px solid #DCE2E6;display:flex;align-items:center;justify-content:center;cursor:pointer"><span style="width:34px;height:20px;border-radius:99px;background:#0E7C6B;position:relative"><span style="position:absolute;right:3px;top:3px;width:14px;height:14px;border-radius:99px;background:#fff"></span></span></span>
+                    </div>
+                  </sc-if>
+                </div>
+                <sc-if value="{{ t.pending }}">
+                  <div style="position:relative;display:flex;flex-direction:column;gap:9px;padding-top:14px;margin-top:2px;border-top:1px solid #DCEDE8">
+                    <div style="display:flex;justify-content:space-between;gap:12px;font-size:12.5px">
+                      <span style="color:#0E5E52;font-weight:600">{{ t.phaseLabel }}</span>
+                      <span style="font:600 11.5px 'JetBrains Mono',monospace;color:#6B9C90">{{ t.phaseCount }}</span>
+                    </div>
+                    <div style="height:3px;border-radius:3px;background:#DCEDE8;overflow:hidden"><div style="{{ t.bar }}"></div></div>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ t.failed }}">
+                  <div style="position:relative;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;padding-top:14px;margin-top:2px;border-top:1px solid #F2C9C5;font-size:12.5px">
+                    <span style="color:#A23A33;font-weight:600;text-wrap:pretty">{{ t.error }}</span>
+                    <a href="#" onClick="{{ t.retry }}" style="font-weight:700;color:#A23A33;white-space:nowrap;text-decoration:underline;text-underline-offset:3px">Relancer la mise en service</a>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
             </sc-if>
           </div>
         </sc-for>
-      </div>
-    </div>
-    <div style="background:#fff;border-radius:16px;padding:22px 24px;box-shadow:0 1px 2px rgba(16,35,58,.04)">
-      <sc-if value="{{ tplHasSel }}" hint-placeholder-val="{{ true }}">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap"><div style="font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#5c7280;font-weight:700">Prévisualisation</div><span style="font-size:11.5px;color:#5c7280">{{ tplSelMeta }}</span></div>
-      <div style="margin-top:14px"><div style="border-radius:12px;border:1px solid #e6eeec;overflow:hidden;background:#fff">
-        <div style="background:#1f2124;color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:baseline;gap:12px"><div style="min-width:0"><div style="font-weight:800;letter-spacing:.06em;text-transform:uppercase;font-size:13px">RISE — {{ tplSelName }}</div><div style="font-size:11px;opacity:.8;margin-top:2px">{{ tplSelSub }}</div></div><span style="font-size:11px;opacity:.8;white-space:nowrap">{{ tplSelV }}</span></div>
-        <div style="padding:16px 20px;display:flex;flex-direction:column;gap:10px">
-          <sc-for list="{{ tplSelSections }}" as="s" hint-placeholder-count="4">
-            <div style="border:1px solid #e6eeec;border-radius:8px;padding:10px 12px"><div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline"><div style="font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:#5c7280;font-weight:700"><span style="color:#1d8f86">{{ s.num }}</span> · {{ s.title }}</div><span style="font-size:10px;color:#8a8f9c;white-space:nowrap">{{ s.scope }}</span></div><div style="margin-top:8px;display:flex;flex-direction:column;gap:5px"><sc-for list="{{ s.lines }}" as="l" hint-placeholder-count="3"><div style="{{ l.style }}"></div></sc-for></div></div>
-          </sc-for>
+      </section>
+
+      <section style="flex:1 1 520px;min-width:0;background:#fff;border-radius:22px;padding:28px 30px;display:flex;flex-direction:column;gap:18px">
+        <sc-if value="{{ tplHasSel }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 20px">
+          <span style="font-size:12px;font-weight:700;letter-spacing:.16em;color:#4E5E6E">PRÉVISUALISATION</span>
+          <span style="display:block;line-height:1.5;font-size:13px;color:#6B7A89">{{ msPv.meta }}</span>
         </div>
-      </div></div>
-      <div style="margin-top:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span onClick="{{ tplSelDownload }}" style="height:38px;padding:0 18px;border-radius:10px;background:#10233a;color:#fff;font-weight:700;display:inline-flex;align-items:center;gap:8px;cursor:pointer;transition:transform .18s;white-space:nowrap" style-hover="transform:translateY(-1px)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"></path></svg>Télécharger le rapport</span><span style="font-size:11.5px;color:#5c7280;font-style:italic;text-wrap:pretty">Le rapport une fois généré peut être versé dans la Base de connaissance.</span></div>
-      </sc-if>
-      <sc-if value="{{ tplNoSel }}" hint-placeholder-val="{{ false }}"><div style="min-height:300px;display:grid;place-items:center;color:#8a8f9c;font-size:13px;text-align:center;padding:20px;text-wrap:pretty">Aucun template actif sélectionné. Sélectionnez un template à gauche ou réactivez-en un dans la Bibliothèque.</div></sc-if>
+        <div style="border:1px solid #E3E8EC;border-radius:16px;overflow:hidden">
+          <div style="display:flex;justify-content:space-between;gap:16px;padding:20px 26px;background:#1E2124;color:#fff">
+            <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:17px;font-weight:800;letter-spacing:.02em">{{ msPv.title }}</span><span style="font-size:13.5px;color:#D3DCE5">{{ msPv.sub }}</span></div>
+            <span style="font-size:13px;color:#D3DCE5;white-space:nowrap">{{ msPv.badge }}</span>
+          </div>
+          <sc-if value="{{ msPvPending }}">
+            <div style="display:flex;align-items:center;gap:10px;padding:14px 26px;background:#EFF7F4;border-bottom:1px solid #D6EBE4;font-size:13px;color:#0E5E52;animation:ms-fade .3s both">
+              <span style="flex:none;width:12px;height:12px;border-radius:99px;border:1.8px solid #B9DCD2;border-top-color:#0E7C6B;animation:ms-spin .8s linear infinite"></span>
+              <span><b style="font-weight:700">Template en cours de mise en service.</b> Il sera utilisable dans quelques secondes.</span>
+            </div>
+          </sc-if>
+          <div style="display:flex;flex-direction:column;gap:12px;padding:20px 26px 22px">
+            <sc-for list="{{ msPv.sections }}" as="s" hint-placeholder-count="6">
+              <div style="{{ s.card }}">
+                <div style="display:flex;justify-content:space-between;gap:12px">
+                  <span style="{{ s.label }}">{{ s.num }} · {{ s.name }}</span>
+                  <span style="{{ s.meta }}">{{ s.metaText }}</span>
+                </div>
+                <div style="position:relative;display:flex;flex-direction:column;gap:7px;overflow:hidden">
+                  <div style="{{ s.l1 }}"></div><div style="{{ s.l2 }}"></div><div style="{{ s.l3 }}"></div>
+                  <sc-if value="{{ s.shimmer }}"><div style="position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.8),transparent);animation:ms-sheen 1.4s ease-in-out infinite"></div></sc-if>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <button onClick="{{ tplSelDownload }}" disabled="{{ msPvBlocked }}" style="{{ msDlBtn }}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.5v8M4.8 7.5 8 10.7l3.2-3.2M2.5 13.5h11"></path></svg>Télécharger le rapport</button>
+          <span style="font-size:13.5px;color:#4E5E6E;font-style:italic">Le rapport une fois généré peut être versé dans la Base de connaissance.</span>
+        </div>
+        </sc-if>
+        <sc-if value="{{ tplNoSel }}" hint-placeholder-val="{{ false }}"><div style="min-height:300px;display:grid;place-items:center;color:#8a8f9c;font-size:13px;text-align:center;padding:20px;text-wrap:pretty">Aucun template actif sélectionné. Sélectionnez un template à gauche ou réactivez-en un dans la Bibliothèque.</div></sc-if>
+      </section>
     </div>
   </div>
+  </sc-if>
+  <!-- Mise en service terminée : notification de la maquette (environ 3,5 s). -->
+  <sc-if value="{{ msToastOn }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:120;display:flex;align-items:center;gap:12px;padding:12px 16px 12px 12px;border-radius:14px;background:#10233A;color:#fff;box-shadow:0 18px 40px -14px rgba(16,35,58,.55);animation:ms-in .35s ease both;white-space:nowrap;font-family:'Plus Jakarta Sans',sans-serif">
+      <span style="width:26px;height:26px;border-radius:99px;background:#9FE0C7;color:#10233A;display:flex;align-items:center;justify-content:center"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.2 5 8.5l4.5-5"></path></svg></span>
+      <span style="font-size:13.5px"><b style="font-weight:700">{{ msToastName }}</b> est prêt à être utilisé.</span>
+    </div>
   </sc-if>
 
   <!-- ===== COMITÉS · CRÉER UN TEMPLATE ===== -->
@@ -1330,11 +1404,13 @@ a{color:#1d8f86}a:hover{color:#146b64}
       <div style="{{ feProgressCard }}">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:16px">
           <div style="display:flex;align-items:center;gap:12px;min-width:0">
-            <sc-if value="{{ feLoading }}"><span style="flex:none;width:16px;height:16px;border-radius:99px;border:2px solid #CFE7E0;border-top-color:#0E7C6B;animation:e5-spin .9s linear infinite"></span></sc-if>
+            <sc-if value="{{ feSpin }}"><span style="flex:none;width:16px;height:16px;border-radius:99px;border:2px solid #CFE7E0;border-top-color:#0E7C6B;animation:e5-spin .9s linear infinite"></span></sc-if>
+            <sc-if value="{{ feErr }}"><span style="flex:none;width:18px;height:18px;border-radius:99px;background:#D64545;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800">!</span></sc-if>
             <sc-if value="{{ feDone }}"><span style="flex:none;width:18px;height:18px;border-radius:99px;background:#0E7C6B;color:#fff;display:flex;align-items:center;justify-content:center"><svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.2 5 8.5l4.5-5"></path></svg></span></sc-if>
-            <span style="font-size:14px;font-weight:700;color:#0E5E52">{{ feHeadline }}</span>
+            <span style="{{ feHeadStyle }}">{{ feHeadline }}</span>
           </div>
-          <span style="font:600 13px 'JetBrains Mono',monospace;color:#0E5E52;font-variant-numeric:tabular-nums">{{ fePct }}</span>
+          <sc-if value="{{ feNoErr }}"><span style="font:600 13px 'JetBrains Mono',monospace;color:#0E5E52;font-variant-numeric:tabular-nums">{{ fePct }}</span></sc-if>
+          <sc-if value="{{ feErr }}"><button onClick="{{ feRetry }}" style="flex:none;height:32px;padding:0 13px;border-radius:9px;border:1px solid #D5DDE3;background:#fff;color:#10233A;font:600 12.5px 'Plus Jakarta Sans',sans-serif;cursor:pointer;white-space:nowrap" style-hover="border-color:#10233A">Relancer l'aperçu</button></sc-if>
         </div>
         <div style="height:3px;border-radius:3px;background:#DCEDE8;overflow:hidden"><div style="{{ feBarFill }}"></div></div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px 18px">
@@ -1345,6 +1421,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
             </div>
           </sc-for>
         </div>
+        <sc-if value="{{ feErr }}"><span style="font-size:12.5px;line-height:1.55;color:#A23A33;text-wrap:pretty">{{ feErrCause }}</span></sc-if>
       </div>
 
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:22px 18px">
@@ -1381,6 +1458,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
           <span style="font-size:11px;font-weight:700;letter-spacing:.14em;color:#8A97A5">CONTRÔLE DES DONNÉES</span>
           <sc-if value="{{ feHasPoints }}"><span style="font-size:11.5px;font-weight:700;color:#8A5A12;background:#FBF2E2;padding:3px 8px;border-radius:999px;animation:e5-fade .3s both">{{ fePoints }}</span></sc-if>
         </div>
+        <sc-if value="{{ feErr }}"><span style="font-size:13px;color:#9AA8B6">Contrôle non effectué</span></sc-if>
         <sc-if value="{{ feChecking }}">
           <div style="display:flex;flex-direction:column;gap:8px">
             <div style="height:10px;width:86%;border-radius:6px;background:#EEF1F3"></div>
@@ -1430,17 +1508,135 @@ a{color:#1d8f86}a:hover{color:#146b64}
     </sc-if>
 
     <sc-if value="{{ tplStep5 }}" hint-placeholder-val="{{ false }}">
-    <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px">
-      <div style="background:#fff;border-radius:16px;padding:22px 24px;box-shadow:0 1px 2px rgba(16,35,58,.04)">
-        <div style="font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#5c7280;font-weight:700">F · Validation et publication</div>
-        <div style="margin-top:12px;display:grid;grid-template-columns:150px minmax(0,1fr);gap:10px 14px;font-size:12.5px"><sc-for list="{{ tplRecap }}" as="r" hint-placeholder-count="8"><span data-proj-ro="1" style="color:#5c7280">{{ r.k }}</span><b style="text-wrap:pretty">{{ r.v }}</b></sc-for></div>
+    <!-- Étape F · Publication : maquette « Template - Etape 6 Publication » (04/10/2026), reprise à l'identique. -->
+    <div style="max-width:1440px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:28px;font-family:'Plus Jakarta Sans',sans-serif;color:#10233A;-webkit-font-smoothing:antialiased">
+
+  <nav style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px">
+    <sc-for list="{{ f6Steps }}" as="s" hint-placeholder-count="6">
+      <div onClick="{{ s.go }}" style="{{ s.wrap }}">
+        <div style="{{ s.bar }}"></div>
+        <div style="display:flex;align-items:center;gap:10px;padding-top:12px">
+          <div style="{{ s.dot }}">{{ s.mark }}</div>
+          <div style="display:flex;flex-direction:column;gap:1px;min-width:0">
+            <span style="font-size:10.5px;font-weight:600;letter-spacing:.09em;color:#8A97A5">{{ s.n }}</span>
+            <span style="{{ s.label }}">{{ s.name }}</span>
+          </div>
+        </div>
       </div>
-      <div style="background:#fff;border-radius:16px;padding:22px 24px;box-shadow:0 1px 2px rgba(16,35,58,.04);display:flex;flex-direction:column;justify-content:center;gap:14px;border-left:4px solid #1d8f86">
-        <div style="font-size:16px;font-weight:800;letter-spacing:-.01em">Prêt à publier</div>
-        <div style="font-size:12.5px;color:#43586a;text-wrap:pretty">La validation crée le <b>PowerPoint de référence</b> (v{{ tplDraft.version }}), qui fige la structure, le design du rapport et ses zones de données. Le template, désormais <b>actif</b>, est ajouté à la Bibliothèque et disponible dans « Générer un rapport ».</div>
-        <sc-if value="{{ tplPubBlocked }}" hint-placeholder-val="{{ false }}"><div style="padding:10px 12px;border-radius:10px;background:#fdecea;color:#a3271b;font-size:12.5px;font-weight:600">{{ tplPubBlockMsg }}</div></sc-if>
-        <sc-if value="{{ tplPubOk }}" hint-placeholder-val="{{ true }}"><span onClick="{{ tplPublish }}" style="height:38px;padding:0 18px;border-radius:10px;background:#10233a;color:#fff;font-weight:700;display:inline-flex;align-items:center;gap:8px;cursor:pointer;transition:transform .18s;white-space:nowrap;align-self:flex-start;background:linear-gradient(90deg,#f7a41c,#f0752b);color:#1a1200" style-hover="transform:translateY(-1px)"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"></path></svg>Valider et publier</span></sc-if>
+    </sc-for>
+  </nav>
+
+  <header style="display:flex;flex-direction:column;gap:10px">
+    <span style="font-size:11px;font-weight:700;letter-spacing:.16em;color:#8A97A5">F · VALIDATION ET PUBLICATION</span>
+    <h1 style="margin:0;font-size:32px;line-height:1.1;font-weight:800;letter-spacing:-.025em">Publication</h1>
+  </header>
+
+  <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:stretch">
+
+    <section style="flex:1.4 1 560px;min-width:0;background:#fff;border:1px solid #E3E8EC;border-radius:22px;box-shadow:0 1px 2px rgba(16,35,58,.04),0 12px 36px -20px rgba(16,35,58,.16);display:flex;flex-direction:column;overflow:hidden">
+      <div style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:18px 28px;padding:28px 30px 24px;border-bottom:1px solid #EEF1F3">
+        <div style="display:flex;flex-direction:column;gap:8px;min-width:0">
+          <span style="font-size:10.5px;font-weight:700;letter-spacing:.14em;color:#8A97A5">NOM</span>
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <span style="font-size:36px;line-height:1;font-weight:800;letter-spacing:-.03em">{{ f6.name }}</span>
+            <span style="font:600 12px 'JetBrains Mono',monospace;padding:5px 9px;border-radius:8px;background:#10233A;color:#F2B544">{{ f6.v }}</span>
+          </div>
+          <span style="font-size:13.5px;color:#4E5E6E">{{ f6.committee }}</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:16px 28px">
+          <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:10.5px;font-weight:700;letter-spacing:.12em;color:#8A97A5">AUTEUR</span><span style="font-size:14px;font-weight:600;white-space:nowrap">{{ f6.author }}</span></div>
+          <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:10.5px;font-weight:700;letter-spacing:.12em;color:#8A97A5">DATE DE CRÉATION</span><span style="font-size:14px;font-weight:600;white-space:nowrap">{{ f6.date }}</span></div>
+        </div>
       </div>
+
+      <div style="display:flex;flex-direction:column;padding:8px 30px 14px">
+        <sc-for list="{{ f6Rows }}" as="r" hint-placeholder-count="6">
+          <div style="display:grid;grid-template-columns:150px minmax(0,1fr) auto;gap:20px;align-items:start;padding:16px 0;border-bottom:1px solid #F0F3F5" style-hover="--e:1">
+            <span style="font-size:13px;color:#8A97A5;padding-top:3px">{{ r.k }}</span>
+            <div style="display:flex;flex-direction:column;gap:9px;min-width:0">
+              <sc-if value="{{ r.hasText }}"><span style="{{ r.textStyle }}">{{ r.text }}</span></sc-if>
+              <sc-if value="{{ r.hasChips }}">
+                <div style="display:flex;flex-wrap:wrap;gap:6px">
+                  <sc-for list="{{ r.chips }}" as="c"><span style="{{ c.style }}"><sc-if value="{{ c.file }}"><span style="font:600 9px 'JetBrains Mono',monospace;letter-spacing:.05em;color:#B4532A">{{ c.kind }}</span></sc-if>{{ c.t }}</span></sc-for>
+                </div>
+              </sc-if>
+            </div>
+            <a href="#" onClick="{{ r.go }}" style="font-size:11.5px;font-weight:700;color:#0E7C6B;text-decoration:none;white-space:nowrap;padding-top:3px;opacity:var(--e,0);transition:opacity .15s">{{ r.link }}</a>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <section style="flex:1 1 380px;min-width:0;position:relative;overflow:hidden;border-radius:22px;background:#10233A;color:#fff;padding:32px;display:flex;flex-direction:column;justify-content:space-between;gap:28px">
+      <div style="position:absolute;right:-90px;top:-90px;width:300px;height:300px;border-radius:50%;border:1px solid rgba(255,255,255,.06)"></div>
+      <div style="position:absolute;right:-40px;top:-40px;width:200px;height:200px;border-radius:50%;border:1px solid rgba(255,255,255,.06)"></div>
+
+      <sc-if value="{{ f6Idle }}">
+        <div style="position:relative;display:flex;flex-direction:column;gap:22px;animation:e6-in .35s ease both">
+          <div style="width:64px;height:64px;border-radius:50%;border:1.5px dashed rgba(242,181,68,.55);display:flex;align-items:center;justify-content:center;font:600 13px 'JetBrains Mono',monospace;color:#F2B544">{{ f6.v }}</div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <h2 style="margin:0;font-size:26px;font-weight:800;letter-spacing:-.02em">Prêt à publier</h2>
+            <p style="margin:0;font-size:14px;line-height:1.65;color:#C3CFDB;text-wrap:pretty">La validation crée le <b style="color:#fff;font-weight:700">PowerPoint de référence</b> ({{ f6.v }}), qui fige la structure, le design du rapport et ses zones de données. Le template, désormais <b style="color:#fff;font-weight:700">actif</b>, est ajouté à la Bibliothèque et disponible dans « Générer un rapport ».</p>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ f6Publishing }}">
+        <div style="position:relative;display:flex;flex-direction:column;gap:22px;animation:e6-in .3s ease both">
+          <div style="width:64px;height:64px;border-radius:50%;border:2px solid rgba(255,255,255,.1);border-top-color:#F2B544;animation:e6-spin 1s linear infinite"></div>
+          <h2 style="margin:0;font-size:26px;font-weight:800;letter-spacing:-.02em">Publication en cours</h2>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <sc-for list="{{ f6Tasks }}" as="t"><div style="display:flex;align-items:center;gap:12px;font-size:13.5px"><span style="{{ t.dot }}">{{ t.mark }}</span><span style="{{ t.text }}">{{ t.label }}</span></div></sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ f6Failed }}">
+        <div style="position:relative;display:flex;flex-direction:column;gap:22px;animation:e6-in .3s ease both">
+          <div style="width:64px;height:64px;border-radius:50%;background:#D64545;color:#fff;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;box-shadow:0 0 0 6px rgba(214,69,69,.18)">!</div>
+          <h2 style="margin:0;font-size:26px;font-weight:800;letter-spacing:-.02em">Publication interrompue</h2>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <sc-for list="{{ f6Tasks }}" as="t"><div style="display:flex;flex-direction:column;gap:4px"><div style="display:flex;align-items:center;gap:12px;font-size:13.5px"><span style="{{ t.dot }}">{{ t.mark }}</span><span style="{{ t.text }}">{{ t.label }}</span></div><sc-if value="{{ t.failed }}"><span style="margin-left:30px;font-size:12.5px;line-height:1.5;color:#F2B1AB;text-wrap:pretty">{{ t.cause }}</span></sc-if></div></sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ f6Published }}">
+        <div style="position:relative;display:flex;flex-direction:column;gap:22px">
+          <div style="width:64px;height:64px;border-radius:50%;background:#F2B544;color:#10233A;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 0 0 6px rgba(242,181,68,.15);animation:e6-seal .6s cubic-bezier(.2,.8,.2,1) both">
+            <svg width="20" height="20" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.2 5 8.5l4.5-5"></path></svg>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px;animation:e6-in .4s .15s ease both">
+            <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px"><h2 style="white-space:nowrap;margin:0;font-size:26px;font-weight:800;letter-spacing:-.02em">Template publié</h2><span style="font-size:11.5px;font-weight:700;color:#10233A;background:#9FE0C7;padding:3px 9px;border-radius:999px">Actif</span></div>
+            <p style="margin:0;font-size:14px;line-height:1.65;color:#C3CFDB">{{ f6.name }} {{ f6.v }} est dans la Bibliothèque et disponible dans « Générer un rapport ».</p>
+          </div>
+        </div>
+      </sc-if>
+
+      <div style="position:relative;display:flex;flex-direction:column;gap:12px">
+        <sc-if value="{{ f6Idle }}">
+          <sc-if value="{{ f6NotBlocked }}"><div style="display:flex;align-items:center;gap:10px;font-size:12.5px;color:#C3CFDB"><span style="width:7px;height:7px;border-radius:99px;background:#E0A030"></span>{{ f6.control }}</div></sc-if>
+          <sc-if value="{{ f6Blocked }}"><div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:12.5px;color:#F2B1AB"><span style="width:7px;height:7px;border-radius:99px;background:#D64545"></span><span>{{ f6.blockMsg }}</span><a href="#" onClick="{{ f6GoE }}" style="font-weight:700;color:#9FD9C2;text-decoration:none;white-space:nowrap">Voir l'étape E ›</a></div></sc-if>
+          <button onClick="{{ f6Publish }}" disabled="{{ f6Blocked }}" style="{{ f6PubBtn }}" style-hover="{{ f6PubHover }}" style-active="transform:translateY(0)">
+            <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.2 5 8.5l4.5-5"></path></svg>Valider et publier
+          </button>
+        </sc-if>
+        <sc-if value="{{ f6Failed }}">
+          <button onClick="{{ f6Publish }}" style="display:flex;align-items:center;justify-content:center;gap:10px;height:52px;border-radius:14px;border:none;background:#F2B544;color:#10233A;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 10px 30px -10px rgba(242,181,68,.6);transition:transform .15s,background .15s;font-family:inherit" style-hover="background:#F5C364;transform:translateY(-1px)">Relancer la publication</button>
+        </sc-if>
+        <sc-if value="{{ f6Published }}">
+          <div style="display:flex;flex-wrap:wrap;gap:10px;animation:e6-in .4s .3s ease both">
+            <button onClick="{{ f6GoGenerate }}" style="flex:1 1 180px;height:48px;border-radius:14px;border:none;background:#fff;color:#10233A;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit" style-hover="background:#E6F4EE">Générer un rapport</button>
+            <button onClick="{{ f6GoLibrary }}" style="flex:1 1 180px;height:48px;border-radius:14px;border:1px solid rgba(255,255,255,.2);background:transparent;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit" style-hover="background:rgba(255,255,255,.06)">Voir dans la Bibliothèque</button>
+          </div>
+        </sc-if>
+      </div>
+    </section>
+  </div>
+
+  <footer style="display:flex;align-items:center;justify-content:space-between;gap:16px">
+    <button onClick="{{ tplPrev }}" style="{{ f6PrevStyle }}" style-hover="border-color:#10233A">‹ Précédent</button>
+  </footer>
     </div>
     </sc-if>
 
@@ -2685,6 +2881,36 @@ class Component extends DCLogic {
     this._tplDraftKey = key;
     clearTimeout(this._tplDraftT);
     this._tplDraftT = setTimeout(() => { (this.tplDraftEmpty(data.draft) ? this._api.tplDraftDrop() : this._api.tplDraftSave(data)).catch(() => {}); }, 800);
+  }
+  // Mise en service (04/10/2026) : GET /report-templates/{id}/service relu toutes les 600 ms tant qu'un template est en
+  // cours ; au passage à « prêt » : onde, étiquette « Nouveau », sections révélées une à une, notification ~3,5 s.
+  async tplSvcPoll() {
+    if (!this._api || this._svcPolling) return;
+    this._svcPolling = true;
+    try {
+      for (;;) {
+        const pend = (this.state.templates || []).filter(t => { const v = (this.state.tplSvc || {})[t.id] || t.service; return v && v.status === 'PENDING'; });
+        if (!pend.length) break;
+        for (const t of pend) {
+          let v;
+          try { v = await this._api.tplService(t.id); } catch (e) { continue; }
+          const was = ((this.state.tplSvc || {})[t.id] || t.service || {}).status;
+          this.setState(s => ({ tplSvc: { ...(s.tplSvc || {}), [t.id]: v } }));
+          if (was === 'PENDING' && v.status === 'READY') this.tplSvcReady(t);
+        }
+        await new Promise(r => setTimeout(r, 600));
+      }
+    } finally { this._svcPolling = false; }
+  }
+  tplSvcReady(t) {
+    const n = (t.comps || []).length;
+    this.setState(s => ({ msReady: { ...(s.msReady || {}), [t.id]: Date.now() }, msReveal: { ...(s.msReveal || {}), [t.id]: 0 }, msToast: t.name + ' v' + t.version }));
+    for (let i = 1; i <= n; i++) setTimeout(() => this.setState(s => ({ msReveal: { ...(s.msReveal || {}), [t.id]: i } })), i * 110);
+    setTimeout(() => this.setState(s => { const m = { ...(s.msReveal || {}) }; delete m[t.id]; return { msReveal: m }; }), n * 110 + 400);
+    clearTimeout(this._msToastT);
+    this._msToastT = setTimeout(() => this.setState({ msToast: null }), 3600);
+    setTimeout(() => this.setState({}), 1600); // fin de l'onde
+    if (this._api && this._api.reload) setTimeout(() => this._api.reload(), 4000); // pages et version publiée à jour
   }
   // Brouillon vu comme un template (aperçu, publication) et sa clé : l'aperçu est reconstruit quand elle change.
   tplDraftTemplate() { const D = this.state.tplDraft, F = D.fmt || { pages: {} }; const full = ['cover', 'divider', 'standard', 'closing'].every(k => F.pages[k]); return { name: D.name.trim() || 'Nouveau template', version: D.version, committee: D.committee, bodyId: D.bodyId, comps: D.comps, format: full ? F.pages : null }; }
@@ -4542,12 +4768,40 @@ class Component extends DCLogic {
     const tplHistRows = S.tplHistory.map(e => ({ ...e, v: 'v' + e.version, when: e.date + ' · ' + e.time, kb: e.saved ? 'Versé' : 'Non versé', kbStyle: e.saved ? P.ok : P.neutral, canOpen: e.saved, open: () => this.go('documents', 'bibliotheque') }));
     const tplDelete = t => { this.setState(s => ({ templates: s.templates.filter(x => x.id !== t.id), tplSel: s.tplSel === t.id ? null : s.tplSel, tplView: null })); this.showToast('Template supprimé · ' + t.name); };
     const tplDeactivate = t => { tplToggle(t.id); this.setState(s => ({ tplSel: s.tplSel === t.id ? null : s.tplSel })); this.showToast('Template désactivé · ' + t.name + ' — reste consultable dans la Bibliothèque'); };
+    // Mise en service (04/10/2026) : état du serveur (`service`), relu tant qu'un template n'est pas prêt.
+    const MS_PHASES = ['Enregistrement du PowerPoint de référence', 'Ajout à la Bibliothèque', 'Préparation des zones de données'];
+    const svcOf = t => (S.tplSvc || {})[t.id] || t.service || { status: 'READY', cardPhase: 3, isNew: false };
+    if (this._api && TPL.some(t => svcOf(t).status === 'PENDING')) setTimeout(() => this.tplSvcPoll(), 0);
+    const msJust = id => { const at = (S.msReady || {})[id]; return !!at && Date.now() - at < 1500; };
+    const msCard = (on, svc, id) => { const base = { position: 'relative', display: 'flex', flexDirection: 'column', gap: 12, padding: '18px 20px', borderRadius: 14, cursor: 'pointer', border: on ? '1.5px solid #0E7C6B' : '1px solid #E3E8EC', background: on ? '#F4FAF8' : '#fff', transition: 'background .3s,border-color .3s' };
+      if (svc.status === 'PENDING') return { ...base, animation: 'ms-arrive .5s cubic-bezier(.2,.7,.2,1) both', background: '#F7FBFA', borderColor: '#BFE0D6', cursor: 'default' };
+      if (svc.status === 'FAILED') return { ...base, background: '#FFF8F7', borderColor: '#F2C9C5' };
+      return msJust(id) ? { ...base, animation: 'ms-glow 1.1s ease-out 1' } : base; };
+    const tplRetry = t => e => { e.preventDefault(); e.stopPropagation(); if (!this._api) return; this._api.tplRecommission(t.id).then(v => { this.setState(s => ({ tplSvc: { ...(s.tplSvc || {}), [t.id]: v } })); this.tplSvcPoll(); }).catch(err => this.showToast((err && err.message) || 'Relance impossible')); };
     const active = TPL.filter(t => t.active);
     const selId = S.tplSel && active.some(t => t.id === S.tplSel) ? S.tplSel : (active[0] ? active[0].id : null);
     const sel = TPL.find(t => t.id === selId) || null;
-    const tplGroups = COMMITTEES.filter(c => active.some(t => t.committee === c)).map(c => { const items = active.filter(t => t.committee === c); const open = !S.tplClosed[c]; return { n: c, count: items.length + (items.length > 1 ? ' templates' : ' template'), open, toggle: () => this.setState(s => ({ tplClosed: { ...s.tplClosed, [c]: !s.tplClosed[c] } })), chevStyle: 'transition:transform .2s;transform:rotate(' + (open ? 90 : 0) + 'deg);flex:none',
-      items: items.map(t => { const on = t.id === selId; return { ...t, v: 'v' + t.version, comps: compsText(t), pagesLabel: t.pages + ' pages', select: () => this.setState({ tplSel: t.id }), download: e => { e.stopPropagation(); tplDownload(t, true); }, deactivate: e => { e.stopPropagation(); tplDeactivate(t); },
-        rowStyle: 'display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:start;padding:12px 14px;border-radius:12px;cursor:pointer;transition:background .15s,border-color .15s;border:1px solid ' + (on ? '#1d8f86' : '#e6eeec') + ';background:' + (on ? '#f3f9f8' : '#fff') }; }) }; });
+    // Le template en mise en service (ou nouveau) apparaît en tête de son comité.
+    const msRank = t => { const v = svcOf(t); return v.status !== 'READY' ? 0 : v.isNew ? 1 : 2; };
+    const tplGroups = COMMITTEES.filter(c => active.some(t => t.committee === c)).map(c => { const items = active.filter(t => t.committee === c).map((t, k) => [t, k]).sort((x, y) => msRank(x[0]) - msRank(y[0]) || x[1] - y[1]).map(x => x[0]); const open = !S.tplClosed[c]; return { n: c, count: items.length + (items.length > 1 ? ' templates' : ' template'), open, toggle: () => this.setState(s => ({ tplClosed: { ...s.tplClosed, [c]: !s.tplClosed[c] } })), chevStyle: 'transition:transform .2s;transform:rotate(' + (open ? 0 : -90) + 'deg);flex:none',
+      items: items.map(t => { const on = t.id === selId, svc = svcOf(t), cp = Math.min(svc.cardPhase || 0, 2); return { ...t, v: 'v' + t.version, comps: compsText(t), pagesLabel: t.pages + ' pages', select: () => this.setState({ tplSel: t.id }), download: e => { e.stopPropagation(); tplDownload(t, true); }, deactivate: e => { e.stopPropagation(); tplDeactivate(t); },
+        pending: svc.status === 'PENDING', failed: svc.status === 'FAILED', ready: svc.status === 'READY', isNew: svc.status === 'READY' && !!svc.isNew, error: svc.error || '', retry: tplRetry(t),
+        phaseLabel: MS_PHASES[cp] + '…', phaseCount: (cp + 1) + ' / 3', bar: { width: [18, 48, 78][cp] + '%', height: '100%', borderRadius: 3, background: '#0E7C6B', transition: 'width 1.2s cubic-bezier(.3,.7,.3,1)' },
+        card: msCard(on, svc, t.id) }; }) }; });
+    // Prévisualisation (maquette « mise en service ») : sections estompées pendant la mise en service, puis révélées une à une.
+    const selSvc = sel ? svcOf(sel) : { status: 'READY' }, selPending = selSvc.status !== 'READY';
+    const revealed = sel && (S.msReveal || {})[sel.id] != null ? S.msReveal[sel.id] : 99;
+    const msPv = sel ? { meta: 'v' + sel.version + ' · ' + sel.author + ' · ' + sel.pages + ' pages · ' + sel.committee, title: 'RISE — ' + sel.name.toUpperCase(), sub: sel.committee + ' · rapport généré le ' + todayFr, badge: 'v' + sel.version + ' · ' + sel.pages + ' p.',
+      sections: tplSections(sel).map((x, i) => { const r = !selPending && i < revealed; return { num: x.num, name: x.title.toUpperCase(), metaText: x.scope, shimmer: selPending,
+        card: { display: 'flex', flexDirection: 'column', gap: 14, padding: '16px 18px', borderRadius: 12, border: '1px solid #EEF1F3', background: '#fff', opacity: r ? 1 : .55, transition: 'opacity .4s' },
+        label: { fontSize: 12.5, fontWeight: 700, letterSpacing: '.12em', color: r ? '#0E7C6B' : '#9AA8B6', transition: 'color .4s' },
+        meta: { fontSize: 12.5, color: r ? '#6B7A89' : '#B6C0CA', whiteSpace: 'nowrap', transition: 'color .4s' },
+        l1: { height: 6, width: '62%', borderRadius: 6, background: r ? '#D3DCD9' : '#EEF1F3', transition: 'background .4s' },
+        l2: { height: 6, width: '46%', borderRadius: 6, background: r ? '#E3E8E6' : '#F2F4F3', transition: 'background .4s' },
+        l3: { height: 6, width: '31%', borderRadius: 6, background: r ? '#E3E8E6' : '#F2F4F3', transition: 'background .4s' } }; }) } : { sections: [] };
+    const msGenVals = { msPv, msPvPending: !!sel && selSvc.status === 'PENDING', msPvBlocked: selPending,
+      msDlBtn: { alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 10, height: 48, padding: '0 22px', borderRadius: 12, border: 'none', background: '#10233A', color: '#fff', fontSize: 15, fontWeight: 700, cursor: selPending ? 'not-allowed' : 'pointer', opacity: selPending ? .35 : 1, transition: 'opacity .4s', fontFamily: 'inherit' },
+      msToastOn: !!S.msToast, msToastName: S.msToast || '' };
     const libFilters = ['Tous', 'Actifs', 'Inactifs'].map(f => ({ label: f, select: () => this.setState({ tplFilter: f }), style: chip(f, S.tplFilter === f) }));
     const tplLibRows = TPL.filter(t => S.tplFilter === 'Tous' || (S.tplFilter === 'Actifs') === t.active).map(t => ({ ...t, swTrack: `width:26px;height:15px;border-radius:999px;position:relative;display:block;transition:background .2s;background:${t.active ? '#1d8f86' : '#cfd8d6'}`, swKnob: `position:absolute;top:2px;left:${t.active ? 13 : 2}px;width:11px;height:11px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:left .2s`, v: 'v' + t.version, comps: compsText(t), state: t.active ? 'Actif' : 'Inactif', stateStyle: (t.active ? P.ok : P.neutral) + ';cursor:pointer', stateTitle: t.active ? 'Cliquer pour désactiver' : 'Cliquer pour réactiver', toggle: () => { tplToggle(t.id); this.showToast(t.active ? 'Template désactivé · ' + t.name : 'Template réactivé · ' + t.name + ' — disponible dans Générer un rapport'); }, download: () => tplDownload(t, false), view: () => this.setState({ tplView: t.id }), remove: () => tplDelete(t) }));
     const tv = S.tplView ? TPL.find(t => t.id === S.tplView) : null;
@@ -4565,7 +4819,7 @@ class Component extends DCLogic {
     const fmtLoaded = FK.filter(k => F.pages[k]).length;
     const validFmt = fmtLoaded === 4 && (!this._api || !!(chk && chk.complete));
     const valid1 = Dft.name.trim().length > 0; const valid2 = Dft.comps.length > 0;
-    const canGo = n => n <= 1 || (n <= 2 && valid1) || (n <= 3 && valid1 && validFmt) || (valid1 && validFmt && valid2);
+    const canGo = n => n <= 1 || (n <= 2 && valid1) || (n <= 3 && valid1 && validFmt) || (n <= 5 && valid1 && validFmt && valid2) || (n === 6 && valid1 && validFmt && valid2 && !!(S.tplPrev && S.tplPrev.done && !S.tplPrev.err && S.tplPrev.key === this.tplDraftKey()));
     const tplSteps = ['Fiche d\'identité', 'Format du rapport', 'Composants', 'Ordre et données', 'Prévisualisation', 'Publication'].map((n, i) => { const k = i + 1; const on = k === step; const done = k < step; const ok = canGo(k); return { n, num: k, letter: 'ABCDEF'[i], go: () => { if (!ok) return; this.setState({ tplStep: k }); if (k === 5) this.tplPreviewRun(); }, style: 'display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;min-width:0;cursor:' + (ok ? 'pointer' : 'default') + ';background:' + (on ? '#10233a' : done ? '#e6f3f2' : '#f3f7f6') + ';color:' + (on ? '#fff' : done ? '#1d8f86' : ok ? '#10233a' : '#8a8f9c') + ';transition:background .2s', numStyle: 'width:26px;height:26px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:11.5px;font-weight:800;background:' + (on ? '#f7a41c' : done ? '#1d8f86' : '#cfd8d6') + ';color:' + (on ? '#1a1200' : '#fff') }; });
     const CC = S.tplCompCat, ccById = CC ? Object.fromEntries(CC.components.map(c => [c.id, c])) : {};
     if (this._api && !CC && !this._tplCatReq) { this._tplCatReq = true; setTimeout(() => this._api.tplComponents().then(c => this.setState({ tplCompCat: c })).catch(() => { this._tplCatReq = false; }), 0); }
@@ -4642,7 +4896,8 @@ class Component extends DCLogic {
     const feHover = S.feHover ?? null, feOpen = S.feOpen ?? null;
     const feIssues = feDoneB ? (PVp.issues || []) : [];
     const flagged = new Set(feIssues.map(i => i.page).filter(Boolean));
-    const feCur = fePhase === 2 ? fePlan.slides.findIndex(sl => !feImgs[sl.n]) : -1;
+    const feErrMsg = PVp && PVp.err ? PVp.err : null, feErrPhase = feErrMsg ? Math.min(3, PVp.phase || 0) : -1;
+    const feCur = fePhase === 2 && !feErrMsg ? fePlan.slides.findIndex(sl => !feImgs[sl.n]) : -1;
     const feGoOpen = i => { if (feImgs[fePlan.slides[i].n]) this.setState({ feOpen: i }); };
     const feStep = d => this.setState(s => { const ready = fePlan.slides.map((sl, i) => (feImgs[sl.n] ? i : -1)).filter(i => i >= 0); if (!ready.length || s.feOpen == null) return null; const k = ready.indexOf(s.feOpen); return { feOpen: ready[(k + d + ready.length) % ready.length] }; });
     this._feKeys = this._feKeys || (e => { if (this.state.feOpen == null || this.state.tplStep !== 5) return; if (e.key === 'Escape') this.setState({ feOpen: null }); if (e.key === 'ArrowRight') this._feStep && this._feStep(1); if (e.key === 'ArrowLeft') this._feStep && this._feStep(-1); });
@@ -4657,17 +4912,20 @@ class Component extends DCLogic {
         bar: { height: 3, borderRadius: 3, background: d ? '#19A974' : cur ? '#10233A' : '#DCE2E6' },
         dot: { flex: 'none', width: 24, height: 24, borderRadius: 99, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, background: d ? '#E6F5EE' : cur ? '#10233A' : '#fff', color: d ? '#0E6B47' : cur ? '#fff' : '#8A97A5', border: i > 4 ? '1px solid #DCE2E6' : 'none' },
         label: { fontSize: 13.5, fontWeight: cur ? 800 : 600, color: i > 4 ? '#4E5E6E' : '#10233A', lineHeight: 1.25, textWrap: 'balance' } }; }),
-      feDone: feDoneB, feLoading: !feDoneB, feChecking: !feDoneB,
+      feDone: feDoneB, feLoading: !feDoneB, feChecking: !feDoneB && !feErrMsg, feSpin: !feDoneB && !feErrMsg, feErr: !!feErrMsg, feNoErr: !feErrMsg,
+      feHeadStyle: { fontSize: 14, fontWeight: 700, color: feErrMsg ? '#A23A33' : '#0E5E52' },
+      feErrCause: feErrMsg ? PHASES5[feErrPhase] + ' : ' + feErrMsg : '',
+      feRetry: () => { Object.values((PVp && PVp.imgs) || {}).forEach(u => URL.revokeObjectURL(u)); this.setState({ tplPrev: null }); },
       feSummary: feN + ' pages · ' + fePlan.structure.length + (fePlan.structure.length > 1 ? ' sections' : ' section') + ' · format de l\'étape B, données du jour',
       fePagesLabel: feN + ' pages',
-      feHeadline: feDoneB ? 'Aperçu prêt' : 'Construction du rapport au format défini, avec les données du jour…',
+      feHeadline: feDoneB ? 'Aperçu prêt' : feErrMsg ? 'La construction de l\'aperçu a échoué' : 'Construction du rapport au format défini, avec les données du jour…',
       fePct: fePctN + ' %',
-      feProgressCard: { display: 'flex', flexDirection: 'column', gap: 14, padding: '18px 20px', borderRadius: 18, background: feDoneB ? '#fff' : '#EFF7F4', border: '1px solid ' + (feDoneB ? '#E3E8EC' : '#D6EBE4'), transition: 'background .4s,border-color .4s' },
+      feProgressCard: { display: 'flex', flexDirection: 'column', gap: 14, padding: '18px 20px', borderRadius: 18, background: feDoneB ? '#fff' : feErrMsg ? '#FBEDEC' : '#EFF7F4', border: '1px solid ' + (feDoneB ? '#E3E8EC' : feErrMsg ? '#F2C9C5' : '#D6EBE4'), transition: 'background .4s,border-color .4s' },
       feBarFill: { width: fePctN + '%', height: '100%', borderRadius: 3, background: '#0E7C6B', transition: 'width .45s cubic-bezier(.3,.7,.3,1)' },
-      fePhases: PHASES5.map((label, i) => { const st = i < fePhase ? 'done' : i === fePhase ? 'cur' : 'todo';
+      fePhases: PHASES5.map((label, i) => { const st = feErrMsg ? (i < feErrPhase ? 'done' : i === feErrPhase ? 'fail' : 'todo') : i < fePhase ? 'done' : i === fePhase ? 'cur' : 'todo';
         return { label: i === 2 && fePhase >= 2 ? label + ' · ' + feLoaded + ' / ' + feN : label,
-          dot: { flex: 'none', width: 7, height: 7, borderRadius: 99, background: st === 'done' ? '#0E7C6B' : st === 'cur' ? '#fff' : '#DCE2E6', boxShadow: st === 'cur' ? 'inset 0 0 0 2px #0E7C6B' : 'none' },
-          text: { color: st === 'todo' ? '#9AA8B6' : '#10233A', fontWeight: st === 'cur' ? 700 : 500, fontVariantNumeric: 'tabular-nums' } }; }),
+          dot: { flex: 'none', width: 7, height: 7, borderRadius: 99, background: st === 'done' ? '#0E7C6B' : st === 'fail' ? '#D64545' : st === 'cur' ? '#fff' : '#DCE2E6', boxShadow: st === 'cur' ? 'inset 0 0 0 2px #0E7C6B' : 'none' },
+          text: { color: st === 'todo' ? '#9AA8B6' : st === 'fail' ? '#A23A33' : '#10233A', fontWeight: st === 'cur' || st === 'fail' ? 700 : 500, fontVariantNumeric: 'tabular-nums' } }; }),
       fePages: fePlan.slides.map((sl, i) => { const url = feImgs[sl.n], r = !!url, h = feHover === i; return { num: String(sl.n).padStart(2, '0'), label: sl.label, ready: r, waiting: !r, current: i === feCur, flag: feDoneB && flagged.has(sl.n), img: r ? feImgStyle(url) : {},
         enter: () => this.setState({ feHover: i }), open: () => feGoOpen(i),
         frame: { position: 'relative', borderRadius: 10, overflow: 'hidden', cursor: r ? 'zoom-in' : 'default', background: '#fff', transition: 'box-shadow .2s,transform .2s',
@@ -4695,10 +4953,60 @@ class Component extends DCLogic {
     const draftT = { name: Dft.name.trim() || 'Nouveau template', version: Dft.version, author: Dft.author, comps: Dft.comps, pages: pvOk ? PV.pages : (Dft.comps.length ? 2 + nSec + Dft.comps.length : 2), committee: Dft.committee };
     const pvIssues = pvOk ? PV.issues || [] : [], pvErrors = pvIssues.filter(i => i.severity === 'error').length;
     const secList = []; Dft.comps.forEach((c, i) => { if (i === 0 || c.newSection) secList.push({ title: (c.sectionTitle || '').trim() || compLabel(c), comps: [] }); secList[secList.length - 1].comps.push(compLabel(c)); });
-    const prevVals = { tplSecCount: nSec + (nSec > 1 ? ' sections' : ' section'),
-      tplPubBlocked: !!this._api && (!pvOk || pvErrors > 0), tplPubOk: !this._api || (pvOk && !pvErrors),
-      tplPubBlockMsg: !pvOk ? 'Construisez l\'aperçu (étape E) avant de publier : il contrôle les données de chaque composant.' : pvErrors + (pvErrors > 1 ? ' anomalies bloquantes signalées' : ' anomalie bloquante signalée') + ' à l\'étape E : corrigez-les avant de publier.' };
-    const tplPublish = () => { const id = 'T' + Date.now(); const t = { id, name: draftT.name, author: Dft.author, version: Dft.version, comps: Dft.comps, pages: draftT.pages, published: todayFr, committee: Dft.committee, active: true, desc: Dft.desc, format: fmtLoaded === 4 ? F.pages : null }; this.setState(s => ({ templates: [t, ...s.templates], tplSel: id, tplAsk: null, kbDocs: [], tplHistory: s.tplHistory, tplStep: 1, tplDraft: { name: '', version: '1.0', author: null, desc: '', committee: 'Comité de pilotage', bodyId: 'g1', comps: [], fmt: { files: {}, pages: {} } }, tplFmtCheck: null, tplFmtErr: {}, tplPrev: null, tab: 'generer' })); this.showToast('Template publié · ' + t.name + ' v' + t.version + ' — PowerPoint de référence généré, actif dans ' + t.committee); };
+    const fmtFile0 = F.pages.cover ? F.files[F.pages.cover.fileId] : null;
+    const prevVals = { tplSecCount: nSec + (nSec > 1 ? ' sections' : ' section') };
+    // Étape F (maquette du 04/10/2026) : fiche du template en cours de création, publication par le serveur, redirection
+    // immédiate vers « Générer un rapport » (template présélectionné) ; « Template publié » sert de repli sans serveur.
+    const F6 = S.f6 || { st: 'idle', done: 0 };
+    const TASKS6 = ['Génération du PowerPoint de référence', 'Gel de la structure, du design et des zones de données', 'Activation du template', 'Ajout à la Bibliothèque'];
+    const f6Blocked = pvErrors > 0;
+    const fileChips = fmtLoaded === 4 ? FK.map(k => F.files[F.pages[k].fileId]).filter(Boolean).map(f => ({ t: f.fileName, kind: f.kind || 'PPTX', file: true })) : [];
+    const f6Format = fmtLoaded === 4 ? ((fmtFile0 && fmtFile0.slides && fmtFile0.slides[0] && fmtFile0.slides[0].summary && fmtFile0.slides[0].summary.format) || '') : 'Présentation par défaut';
+    const chip6 = (t, file, kind) => ({ t, file, kind: kind || 'PPTX', style: { display: 'inline-flex', alignItems: 'center', gap: 7, height: 28, padding: '0 11px', borderRadius: 8, background: file ? '#fff' : '#F2F4F3', border: file ? '1px solid #E3E8EC' : '1px solid transparent', fontSize: 12.5, fontWeight: 600, color: '#10233A', whiteSpace: 'nowrap' } });
+    const txt6 = { fontSize: 14, fontWeight: 600, color: '#10233A', lineHeight: 1.5 };
+    const pub6 = F6.st === 'published';
+    const R6 = [
+      { k: 'Format', text: f6Format, chips: fileChips.map(c => chip6(c.t, true, c.kind)), link: 'Étape B', step: 2 },
+      { k: 'Composants', chips: Dft.comps.map(c => chip6(compLabel(c))), link: 'Étape C', step: 3 },
+      { k: 'Sections', text: secList.map(x => x.title).join(' · ') || '—', link: 'Étape D', step: 4 },
+      { k: 'Pages', text: String(draftT.pages), big: true, link: 'Étape E', step: 5 },
+      { k: 'Contrôle des données', text: pvIssues.length + ' point(s) signalé(s), dont ' + pvErrors + ' bloquant(s)', link: 'Étape E', step: 5 },
+      { k: 'Description', text: Dft.desc || '—', muted: !Dft.desc, link: 'Étape A', step: 1 }];
+    const f6Go = n => e => { e.preventDefault(); if (F6.st === 'idle' || F6.st === 'failed') this.setState({ tplStep: n, f6: null }); };
+    const f6Publish = async () => {
+      if (f6Blocked || F6.st === 'publishing') return;
+      const t = { name: draftT.name, author: Dft.author, version: Dft.version, comps: Dft.comps, committee: Dft.committee, bodyId: Dft.bodyId, active: true, desc: Dft.desc, format: fmtLoaded === 4 ? F.pages : null };
+      this.setState({ f6: { st: 'publishing', done: 0 } });
+      if (!this._api) return this.setState({ f6: { st: 'published', done: 4 } });
+      let r;
+      try { r = await this._api.tplPublish(t); }
+      catch (e) { return this.setState({ f6: { st: 'failed', done: 0, cause: (e && e.message) || 'Publication refusée par le serveur' } }); }
+      // Redirection immédiate : la mise en service se poursuit dans « Générer un rapport ».
+      this.setState(s => ({ f6: null, tab: 'generer', tplSel: r.id, tplClosed: { ...s.tplClosed, [Dft.committee]: false }, tplSvc: { ...(s.tplSvc || {}), [r.id]: r.service }, tplStep: 1, tplDraft: { name: '', version: '1.0', author: null, desc: '', committee: 'Comité de pilotage', bodyId: 'g1', comps: [], fmt: { files: {}, pages: {} } }, tplFmtCheck: null, tplFmtErr: {}, tplPrev: null }));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      this.tplSvcPoll();
+    };
+    const f6Vals = {
+      f6: { name: draftT.name, v: 'v' + Dft.version, committee: Dft.committee, author: Dft.author, date: todayFr, control: pvIssues.length + ' point(s) signalé(s), dont ' + pvErrors + ' bloquant(s)',
+        blockMsg: 'Publication impossible : ' + pvErrors + (pvErrors > 1 ? ' points bloquants à corriger.' : ' point bloquant à corriger.') },
+      f6Rows: R6.map(r => ({ k: r.k, text: r.text, hasText: !!r.text, hasChips: !!r.chips, chips: r.chips || [], link: pub6 ? '' : r.link + ' ›', go: f6Go(r.step),
+        textStyle: r.big ? { ...txt6, fontSize: 22, fontWeight: 800, lineHeight: 1, letterSpacing: '-.02em' } : r.muted ? { ...txt6, color: '#9AA8B6' } : txt6 })),
+      f6Tasks: TASKS6.map((label, i) => { const failedHere = F6.st === 'failed' && i === F6.done; const s6 = i < F6.done ? 'done' : failedHere ? 'fail' : i === F6.done ? 'cur' : 'todo'; return { label, mark: s6 === 'done' ? '✓' : s6 === 'fail' ? '!' : '', failed: failedHere, cause: F6.cause || '',
+        dot: { flex: 'none', width: 18, height: 18, borderRadius: 99, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, background: s6 === 'done' ? '#F2B544' : s6 === 'fail' ? '#D64545' : 'transparent', color: s6 === 'fail' ? '#fff' : '#10233A', border: s6 === 'done' || s6 === 'fail' ? 'none' : s6 === 'cur' ? '1.5px solid #F2B544' : '1.5px solid rgba(255,255,255,.2)', boxSizing: 'border-box', transition: 'all .25s' },
+        text: { color: s6 === 'todo' ? '#6F8296' : s6 === 'fail' ? '#F2B1AB' : '#fff', fontWeight: s6 === 'cur' || s6 === 'fail' ? 700 : 500, transition: 'color .25s' } }; }),
+      f6Idle: F6.st === 'idle', f6Publishing: F6.st === 'publishing', f6Published: pub6, f6Failed: F6.st === 'failed',
+      f6Blocked, f6NotBlocked: !f6Blocked, f6Publish, f6GoE: e => { e.preventDefault(); this.setState({ tplStep: 5 }); },
+      f6PubBtn: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, height: 52, borderRadius: 14, border: 'none', background: '#F2B544', color: '#10233A', fontSize: 15, fontWeight: 800, cursor: f6Blocked ? 'not-allowed' : 'pointer', boxShadow: '0 10px 30px -10px rgba(242,181,68,.6)', transition: 'transform .15s,background .15s', fontFamily: 'inherit', opacity: f6Blocked ? .35 : 1 },
+      f6PubHover: f6Blocked ? '' : 'background:#F5C364;transform:translateY(-1px)',
+      f6GoGenerate: () => this.setState({ f6: null, tab: 'generer', tplStep: 1 }), f6GoLibrary: () => this.setState({ f6: null, tab: 'templates', tplStep: 1 }),
+      f6PrevStyle: { whiteSpace: 'nowrap', height: 44, padding: '0 18px', borderRadius: 12, border: '1px solid #D5DDE3', background: '#fff', color: '#10233A', fontSize: 14, fontWeight: 600, cursor: 'pointer', visibility: F6.st === 'idle' || F6.st === 'failed' ? 'visible' : 'hidden', fontFamily: 'inherit' },
+      f6Steps: ['Fiche d\'identité', 'Format du rapport', 'Composants', 'Ordre et données', 'Prévisualisation', 'Publication'].map((name, i) => { const d = i < 5 || pub6, cur = i === 5 && !pub6, can = i < 5 && (F6.st === 'idle' || F6.st === 'failed'); return { n: 'ÉTAPE ' + (i + 1), name, mark: d ? '✓' : 'ABCDEF'[i],
+        go: () => { if (can) this.setState({ tplStep: i + 1, f6: null }); },
+        wrap: { display: 'flex', flexDirection: 'column', minWidth: 0, cursor: can ? 'pointer' : 'default' },
+        bar: { height: 3, borderRadius: 3, background: d ? '#19A974' : '#10233A' },
+        dot: { flex: 'none', width: 24, height: 24, borderRadius: 99, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, background: d ? '#E6F5EE' : '#10233A', color: d ? '#0E6B47' : '#fff' },
+        label: { fontSize: 13.5, fontWeight: cur ? 800 : 600, color: '#10233A', lineHeight: 1.25, textWrap: 'balance' } }; }) };
+    const tplPublish = f6Publish;
     const nextOk = step === 1 ? valid1 : step === 2 ? validFmt : step === 3 ? valid2 : step < 6;
     const fmtErrs = (chk && chk.errors) || {};
     // Étape B (maquette du 04/10/2026) : séquence des 4 pages, espace de travail (aperçu réel + zones, rôles, fiche
@@ -4791,19 +5099,17 @@ class Component extends DCLogic {
       // Valider le format : 4 pages chargées, contrôlées et vérifiées ; sinon la première page à reprendre s'ouvre.
       fbValidate: () => { if (fbOk) return this.setState({ tplStep: 3 }); const j = FBP.findIndex(p => !p.ref || p.err || !p.verified); this.setState({ fbSel: j < 0 ? fbSel : j, fbHover: null }); },
       fbValidateStyle: 'height:42px;padding:0 20px;border-radius:12px;border:none;background:#fff;color:#10233A;font:700 13.5px \'Plus Jakarta Sans\',sans-serif;cursor:pointer' + (fbOk ? '' : ';opacity:.55'),
-      tplNotFmt: step !== 2 && step !== 4 && step !== 5 };
-    const fmtFile0 = F.pages.cover ? F.files[F.pages.cover.fileId] : null;
+      tplNotFmt: step < 2 || step === 3 };
     const fmtVals = { ...fbVals, tplFmtRef: this.tplFmtRef,
       tplFmtImportAll: () => { this._fmtKind = null; if (this.tplFmtRef.current) this.tplFmtRef.current.click(); },
       tplFmtFile: e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) this.tplFmtLoad(this._fmtKind || null, f); },
       tplFmtHasGlobalErr: !!((S.tplFmtErr || {}).all || (chk && chk.err)), tplFmtGlobalErr: (S.tplFmtErr || {}).all || (chk && chk.err) || '',
     };
-    const tplVals = { tplGroups, tplActiveCount: active.length, tplHasSel: !!sel, tplNoSel: !sel, tplSelName: sel ? sel.name : '', tplSelSub: sel ? sel.committee + ' · rapport généré le ' + todayFr : '', tplSelV: sel ? 'v' + sel.version + ' · ' + sel.pages + ' p.' : '', tplSelMeta: sel ? 'v' + sel.version + ' · ' + sel.author + ' · ' + sel.pages + ' pages · ' + sel.committee : '', tplSelSections: sel ? tplSections(sel) : [], tplSelDownload: () => sel && tplDownload(sel, true),
+    const tplVals = { tplGroups, tplActiveCount: active.length, tplHasSel: !!sel, tplNoSel: !sel, tplSelName: sel ? sel.name : '', tplSelSub: sel ? sel.committee + ' · rapport généré le ' + todayFr : '', tplSelV: sel ? 'v' + sel.version + ' · ' + sel.pages + ' p.' : '', tplSelMeta: sel ? 'v' + sel.version + ' · ' + sel.author + ' · ' + sel.pages + ' pages · ' + sel.committee : '', tplSelSections: sel ? tplSections(sel) : [], tplSelDownload: () => sel && !selPending && tplDownload(sel, true), ...msGenVals,
       tplFilters: libFilters, tplLibRows, tplLibSummary: TPL.length + ' templates · ' + active.length + ' actifs · ' + (TPL.length - active.length) + ' inactifs', tplViewOpen: !!tv, tplViewName: tv ? tv.name : '', tplViewSub: tv ? tv.committee + ' · publié le ' + tv.published : '', tplViewV: tv ? 'v' + tv.version + ' · ' + tv.pages + ' p.' : '', tplViewMeta: tv ? 'v' + tv.version + ' · ' + tv.author + ' · ' + tv.pages + ' pages · ' + tv.committee + ' · publié le ' + tv.published : '', tplViewSections: tv ? tplSections(tv) : [], tplViewClose: () => this.setState({ tplView: null }), tplStop: e => e.stopPropagation(), tplViewDownload: () => tv && tplDownload(tv, false), tplAskOpen: !!ask, tplAskName: ask ? ask.name + ' v' + ask.version : '', tplAskMeta: ask ? ask.committee + ' · ' + ask.pages + ' pages · PPTX' : '', tplAskYes: () => ask && tplLog(ask, true), tplAskNo: () => ask && tplLog(ask, false), tplAskClose: () => this.setState({ tplAsk: null }), tplHistRows, tplHistCount: S.tplHistory.length,
-      ...fmtVals, ...prevVals, ...feVals, ...issuesVals, tplSteps, tplStep1: step === 1, tplStepFmt: step === 2, tplStep2: step === 3, tplStep3: step === 4, tplStep4: step === 5, tplStep5: step === 6, tplDraft: Dft, tplToday: todayFr, tplSetName: inpD('name'), tplSetVersion: inpD('version'), tplSetAuthor: inpD('author'), tplAuthor: Dft.author, tplSetDesc: inpD('desc'), tplSetCommittee: inpD('committee'), tplCommittees: COMMITTEES.map(v => ({ v })), tplCatalog, tplCompCount: Dft.comps.length + (Dft.comps.length > 1 ? ' composants sélectionnés' : ' composant sélectionné'), ...fdVals,
+      ...fmtVals, ...prevVals, ...feVals, ...f6Vals, ...issuesVals, tplSteps, tplStep1: step === 1, tplStepFmt: step === 2, tplStep2: step === 3, tplStep3: step === 4, tplStep4: step === 5, tplStep5: step === 6, tplDraft: Dft, tplToday: todayFr, tplSetName: inpD('name'), tplSetVersion: inpD('version'), tplSetAuthor: inpD('author'), tplAuthor: Dft.author, tplSetDesc: inpD('desc'), tplSetCommittee: inpD('committee'), tplCommittees: COMMITTEES.map(v => ({ v })), tplCatalog, tplCompCount: Dft.comps.length + (Dft.comps.length > 1 ? ' composants sélectionnés' : ' composant sélectionné'), ...fdVals,
       tplDraftName: draftT.name, tplDraftSub: Dft.committee + ' · ' + Dft.author + ' · créé le ' + todayFr, tplDraftV: 'v' + Dft.version + ' · ' + draftT.pages + ' p.', tplDraftSections: tplSections(draftT), tplDraftPages: draftT.pages + ' pages estimées · ' + Dft.comps.length + ' sections',
-      tplPrev: () => this.setState({ tplStep: Math.max(1, step - 1) }), tplNext: () => { if (!nextOk) return; this.setState({ tplStep: Math.min(6, step + 1) }); if (step + 1 === 5) this.tplPreviewRun(); }, tplNextStyle: 'height:38px;padding:0 18px;border-radius:10px;font-weight:700;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:transform .18s;' + (nextOk ? 'background:#10233a;color:#fff;cursor:pointer' : 'background:#eef3f2;color:#8a8f9c;cursor:not-allowed'), tplNotFirst: step > 1, tplNotLast: step < 6, tplPublish, tplHint: step === 1 && !valid1 ? 'Renseignez au moins le nom du template.' : step === 2 && fmtLoaded < 4 ? 'Chargez les 4 pages modèles (' + (4 - fmtLoaded) + (4 - fmtLoaded > 1 ? ' manquantes).' : ' manquante).') : step === 2 && !validFmt ? (Object.keys(fmtErrs).length ? 'Corrigez les pages signalées en rouge.' : 'Contrôle du format en cours…') : step === 3 && !valid2 ? 'Sélectionnez au moins un composant.' : '',
-      tplRecap: [['Nom', draftT.name], ['Version', 'v' + Dft.version], ['Auteur', Dft.author], ['Date de création', todayFr], ['Comité', Dft.committee], ['Format', fmtLoaded === 4 ? ((fmtFile0 && fmtFile0.slides && fmtFile0.slides[0] && fmtFile0.slides[0].summary ? fmtFile0.slides[0].summary.format + ' · ' : '') + [...new Set(FK.map(k => (F.files[F.pages[k].fileId] || {}).fileName).filter(Boolean))].join(', ')) : 'Présentation par défaut'], ['Composants', Dft.comps.map(compLabel).join(' · ') || '—'], ['Sections', secList.map(x => x.title).join(' · ') || '—'], [pvOk ? 'Pages' : 'Pages estimées', String(draftT.pages)], ['Contrôle des données', !pvOk ? '—' : pvIssues.length ? pvIssues.length + ' point(s) signalé(s), dont ' + pvErrors + ' bloquant(s)' : 'Aucune anomalie'], ['Description', Dft.desc || '—']].map(([k, v]) => ({ k, v })) };
+      tplPrev: () => this.setState({ tplStep: Math.max(1, step - 1) }), tplNext: () => { if (!nextOk) return; this.setState({ tplStep: Math.min(6, step + 1) }); if (step + 1 === 5) this.tplPreviewRun(); }, tplNextStyle: 'height:38px;padding:0 18px;border-radius:10px;font-weight:700;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:transform .18s;' + (nextOk ? 'background:#10233a;color:#fff;cursor:pointer' : 'background:#eef3f2;color:#8a8f9c;cursor:not-allowed'), tplNotFirst: step > 1, tplNotLast: step < 6, tplPublish, tplHint: step === 1 && !valid1 ? 'Renseignez au moins le nom du template.' : step === 2 && fmtLoaded < 4 ? 'Chargez les 4 pages modèles (' + (4 - fmtLoaded) + (4 - fmtLoaded > 1 ? ' manquantes).' : ' manquante).') : step === 2 && !validFmt ? (Object.keys(fmtErrs).length ? 'Corrigez les pages signalées en rouge.' : 'Contrôle du format en cours…') : step === 3 && !valid2 ? 'Sélectionnez au moins un composant.' : '' };
 
     // --- Trajectoire (tuile Aujourd'hui)
     const trajSrc = M.PHASE.rows.filter(p => p.cells[2] === 'Lot 1');

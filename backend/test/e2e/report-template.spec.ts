@@ -1,3 +1,4 @@
+import { ReportTemplateService } from '../../src/cockpit/committees/report-template.service';
 import JSZip from 'jszip';
 import request from 'supertest';
 import { setup, TestCtx, WHO } from '../helpers';
@@ -27,6 +28,8 @@ describe('Cockpit — Templates de rapport : versions et publications', () => {
   const get = (url: string) => http().get(`${R}${url}`).set('Authorization', `Bearer ${pmo}`);
   const post = (url: string, body: unknown) => http().post(`${R}${url}`).set('Authorization', `Bearer ${pmo}`).send(body as object);
   const patch = (url: string, body: unknown) => http().patch(`${R}${url}`).set('Authorization', `Bearer ${pmo}`).send(body as object);
+  // Publication asynchrone (04/10/2026) : attente de la fin de la mise en service.
+  const ready = async (id: string) => { let v: any; for (let k = 0; k < 600; k++) { v = (await get(`/report-templates/${id}/service`).expect(200)).body; if (v.status !== 'PENDING') return v; await new Promise((r) => setTimeout(r, 100)); } return v; };
   const format = () => ({ cover: { fileId, slide: 1 }, divider: { fileId, slide: 2 }, standard: { fileId, slide: 3 }, closing: { fileId, slide: 4 } });
   const comps = [
     { id: 'synthese', scope: 'PROJECT' },
@@ -71,7 +74,8 @@ describe('Cockpit — Templates de rapport : versions et publications', () => {
 
   it('publication : PowerPoint de référence (v1) enregistré ; chaque publication rouvre ce template, seules les valeurs changent', async () => {
     const created = await post('/report-templates', { name: 'Support COPIL', version: '1.0', bodyId: 'g1', components: comps, format: format() }).expect(201);
-    expect(created.body).toMatchObject({ pages: 9, publishedVersion: { seq: 1, label: '1.0', pages: 9 } });
+    await ready(created.body.id);
+    expect((await get(`/report-templates/${created.body.id}/versions`).expect(200)).body[0]).toMatchObject({ seq: 1, label: '1.0', pages: 9 });
     const id = created.body.id;
     const ref = (await get(`/report-templates/${id}/versions/1/file`).buffer(true).parse(binary).expect(200)).body as Buffer;
     expect(await pptxIntegrity(ref)).toEqual([]);
@@ -98,6 +102,7 @@ describe('Cockpit — Templates de rapport : versions et publications', () => {
 
   it('composant Budget : refusé quand le module Budget est inactif pour le projet (création, aperçu, génération)', async () => {
     const t1 = await post('/report-templates', { name: 'Avec budget', version: '1.0', components: [{ id: 'budget', scope: 'PROJECT' }] }).expect(201);
+    await ready(t1.body.id);
     await t.db.module.update({ where: { id: 'bud' }, data: { scope: 'OFF' } });
     try {
       const msg = "Budget : le module n'est pas activé pour ce projet (Console › Modules).";
@@ -161,9 +166,44 @@ describe('Cockpit — Templates de rapport : versions et publications', () => {
     expect(bad.body.fields).toEqual({ 'components.0': 'Jalons : indicateur inconnu (nimporte)' });
   });
 
+  it('mise en service : état persistant, phases, génération refusée tant que le template n’est pas prêt, « Nouveau » jusqu’à la première génération, relance', async () => {
+    const created = await post('/report-templates', { name: 'Mise en service', version: '1.0', bodyId: 'g1', components: [{ id: 'synthese', scope: 'PROJECT' }], format: format() }).expect(201);
+    const id = created.body.id;
+    expect(created.body.service).toMatchObject({ status: 'PENDING', phase: 0, tasksDone: 0, cardPhase: 0, isNew: false });
+    // Pendant la mise en service : ni génération, ni contrôle, ni rapport de séance.
+    const busy = await get(`/report-templates/${id}/pptx`).expect(409);
+    expect(busy.body).toMatchObject({ code: 'TEMPLATE_NOT_READY', message: 'Template en cours de mise en service : il sera utilisable dans quelques secondes.' });
+    const session = await t.db.session.findFirstOrThrow({ where: { projectId: 'RISE', bodyId: 'g1' } });
+    await post(`/sessions/${session.id}/reports`, { templateId: id }).expect(409);
+    // Phases observées croissantes, puis prêt.
+    const phases: number[] = [];
+    let v: any;
+    for (let k = 0; k < 600; k++) { v = (await get(`/report-templates/${id}/service`).expect(200)).body; phases.push(v.phase); if (v.status !== 'PENDING') break; await new Promise((r) => setTimeout(r, 50)); }
+    expect(v).toMatchObject({ status: 'READY', tasksDone: 4, cardPhase: 3, error: null, isNew: true });
+    expect(phases).toEqual([...phases].sort((a, b) => a - b));
+    // État lu identiquement après rechargement (amorçage de l'écran).
+    const boot = await get('/bootstrap').expect(200);
+    expect(boot.body.templates.find((x: any) => x.id === id).service).toMatchObject({ status: 'READY', isNew: true });
+    // Première génération : fin de l'étiquette « Nouveau ».
+    await get(`/report-templates/${id}/pptx`).buffer(true).parse(binary).expect(200);
+    expect((await get(`/report-templates/${id}/service`).expect(200)).body.isNew).toBe(false);
+    // Relance : seule une mise en service interrompue se relance.
+    await post(`/report-templates/${id}/commission`, {}).expect(409);
+    await t.db.reportTemplate.update({ where: { id }, data: { serviceStatus: 'FAILED', serviceError: 'cause simulée' } });
+    expect((await get(`/report-templates/${id}/service`).expect(200)).body).toMatchObject({ status: 'FAILED', error: 'cause simulée' });
+    expect((await get(`/report-templates/${id}/pptx`).expect(409)).body.message).toBe('Mise en service interrompue : relancez-la depuis « Générer un rapport ».');
+    await post(`/report-templates/${id}/commission`, {}).expect(202);
+    expect((await ready(id)).status).toBe('READY');
+    // Redémarrage pendant une mise en service : marquée interrompue.
+    await t.db.reportTemplate.update({ where: { id }, data: { serviceStatus: 'PENDING' } });
+    await t.app.get(ReportTemplateService).onModuleInit();
+    expect((await get(`/report-templates/${id}/service`).expect(200)).body).toMatchObject({ status: 'FAILED', error: 'Mise en service interrompue par un redémarrage du serveur.' });
+  });
+
   it('étape B : statut « vérifiée » de chaque page enregistré avec le format du template', async () => {
     const f = format();
     const created = await post('/report-templates', { name: 'Pages vérifiées', version: '1.0', components: [{ id: 'synthese', scope: 'PROJECT' }], format: { ...f, cover: { ...f.cover, verified: true } } }).expect(201);
+    await ready(created.body.id);
     expect(created.body.format.cover).toMatchObject({ verified: true });
     expect(created.body.format.divider.verified).toBeUndefined();
     const r = await post('/report-formats/check', { ...f, standard: { ...f.standard, verified: true } }).expect(200);
@@ -172,6 +212,7 @@ describe('Cockpit — Templates de rapport : versions et publications', () => {
 
   it('planning : Gantt des phases (phase en cours, repère du jour) ; avec les sous-phases au-delà de 25 lignes, tableau', async () => {
     const gantt = await post('/report-templates', { name: 'Gantt', version: '1.0', components: [{ id: 'planning', scope: 'PROJECT' }, { id: 'barometre', scope: 'PROJECT' }], format: format() }).expect(201);
+    await ready(gantt.body.id);
     const g = await slideXml((await get(`/report-templates/${gantt.body.id}/pptx`).buffer(true).parse(binary).expect(200)).body as Buffer);
     const current = (await t.db.phase.findFirstOrThrow({ where: { projectId: 'RISE', status: 'IN_PROGRESS' } }));
     expect(g.xml[2]).toContain("Aujourd'hui · 26 sept.");
@@ -187,6 +228,7 @@ describe('Cockpit — Templates de rapport : versions et publications', () => {
       const r = await post('/report-templates/preview', { name: 'T', components: [{ id: 'planning', scope: 'PROJECT', indicators: ['milestones', 'subphases'] }], format: format() }).expect(200);
       expect(r.body.issues).toEqual(expect.arrayContaining([expect.objectContaining({ severity: 'warning', message: expect.stringMatching(/présenté en tableau/) })]));
       const tb = await post('/report-templates', { name: 'Tableau', version: '1.0', components: [{ id: 'planning', scope: 'PROJECT', indicators: ['milestones', 'subphases'] }], format: format() }).expect(201);
+      await ready(tb.body.id);
       const x = (await slideXml((await get(`/report-templates/${tb.body.id}/pptx`).buffer(true).parse(binary).expect(200)).body as Buffer)).xml[2];
       expect(x).toContain('>Phase · sous-phase<');
       expect(x).toMatch(/sous-phases? terminées?/);
@@ -195,6 +237,7 @@ describe('Cockpit — Templates de rapport : versions et publications', () => {
 
   it('anomalies avant génération : avertissements listés ; périmètre disparu ou template endommagé → génération refusée (422)', async () => {
     const created = await post('/report-templates', { name: 'Flash phase', version: '1.0', bodyId: 'g1', components: [{ id: 'jalons', scope: 'PHASE', targetId: (await t.db.phase.findFirstOrThrow({ where: { projectId: 'RISE' } })).id, period: 'all' }, { id: 'budget', scope: 'PROJECT' }] }).expect(201);
+    await ready(created.body.id);
     const id = created.body.id;
     const ok = await get(`/report-templates/${id}/check`).expect(200);
     expect(ok.body).toMatchObject({ version: { seq: 1 }, errors: 0, warnings: expect.any(Number) });
@@ -220,6 +263,7 @@ describe('Cockpit — Templates de rapport : versions et publications', () => {
 
   it('versionnement : modifier la structure publie une nouvelle version ; changer l’état actif non ; anciennes versions gardées', async () => {
     const created = await post('/report-templates', { name: 'Support versionné', version: '2.0', bodyId: 'g1', components: comps.slice(0, 2), format: format() }).expect(201);
+    await ready(created.body.id);
     const id = created.body.id;
     const v2 = await patch(`/report-templates/${id}`, { components: [...comps.slice(0, 2), { id: 'decisions', scope: 'PROJECT', period: 'quarter' }] }).expect(200);
     expect(v2.body).toMatchObject({ version: '2.1', pages: 6, publishedVersion: { seq: 2, label: '2.1', pages: 6 } });
@@ -288,6 +332,7 @@ describe('Cockpit — Templates de rapport : versions et publications', () => {
         return JSON.stringify({ titres: Object.fromEntries(k.slice(1).map((x) => [x, 'Les risques critiques dominent'])) });
       });
       const created = await post('/report-templates', { name: 'Charte remplie', version: '1.0', bodyId: 'g1', components: [{ id: 'synthese', scope: 'PROJECT' }, { id: 'risques', scope: 'PROJECT' }], format: fmt(roles) }).expect(201);
+      await ready(created.body.id);
       expect(call).toHaveBeenCalledTimes(2);
       expect(call.mock.calls[1][0].prompt).toContain('nombre absent des données (99)');
       expect(call.mock.calls[0][0].system).toContain('Skill « Rapports »');

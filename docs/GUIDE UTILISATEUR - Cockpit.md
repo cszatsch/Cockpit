@@ -701,7 +701,7 @@ Le bouton **Créer un template** du bandeau ouvre un assistant en six étapes.
 
 **Brouillon.** Le template en cours de création est enregistré automatiquement à chaque modification : en revenant sur « Créer un template », vous le retrouvez à l'étape où vous l'aviez laissé.
 
-**Versions.** Le template publié est enregistré et versionné. Toute modification de sa structure ou de son design (nom, comité, composants, format) publie une nouvelle version (1.0 → 1.1) ; activer ou désactiver le template n'en crée pas. Les versions précédentes restent conservées.
+**Publication et mise en service.** L'étape 6 récapitule le template (nom, version, comité, auteur, format et ses fichiers, composants, sections, pages, contrôle des données, description) ; au survol d'une ligne, « Étape X › » ramène à l'étape concernée. En cas de point bloquant au contrôle des données, la publication est impossible (« Voir l'étape E › »). « Valider et publier » ouvre aussitôt « Générer un rapport » : la carte du nouveau template, en tête de son comité, indique « Mise en service » et sa progression ; il n'est pas encore utilisable (les autres templates le restent). Quand il est prêt, il porte l'étiquette « Nouveau » jusqu'à la première génération d'un rapport (24 h au plus) et une notification l'annonce. En cas d'échec, « Relancer la mise en service » reprend la mise en service.\n\n**Versions.** Le template publié est enregistré et versionné. Toute modification de sa structure ou de son design (nom, comité, composants, format) publie une nouvelle version (1.0 → 1.1) ; activer ou désactiver le template n'en crée pas. Les versions précédentes restent conservées.
 
 Une section limitée à une vague, une phase ou un chantier doit avoir sa cible : « Composant incomplet ».
 

@@ -92,6 +92,7 @@ describe('Cockpit — Format du rapport', () => {
     const bad = await post(pmo, '/report-templates', tpl({ cover: { fileId: a, slide: 1 } })).expect(400);
     expect(bad.body).toMatchObject({ message: 'Format du rapport incomplet', fields: { divider: 'Page intercalaire manquante' } });
     const created = await post(pmo, '/report-templates', tpl(all(a, b))).expect(201);
+    for (let k = 0; k < 600 && (await get(pmo, `/report-templates/${created.body.id}/service`)).body.status === 'PENDING'; k++) await new Promise((r) => setTimeout(r, 100));
     expect(created.body.format).toMatchObject({
       cover: { fileId: a, fileName: 'Charte.pptx', slide: 1, kind: 'PPTX' }, divider: { fileId: a, fileName: 'Charte.pptx', slide: 2, kind: 'PPTX' },
       standard: { fileId: a, fileName: 'Charte.pptx', slide: 3, kind: 'PPTX' }, closing: { fileId: b, fileName: 'Charte rouge.pptx', slide: 1, kind: 'PPTX' },
@@ -133,6 +134,7 @@ describe('Cockpit — Format du rapport', () => {
 
   it('template sans format : PowerPoint à la présentation par défaut', async () => {
     const created = await post(pmo, '/report-templates', tpl(undefined)).expect(201);
+    for (let k = 0; k < 600 && (await get(pmo, `/report-templates/${created.body.id}/service`)).body.status === 'PENDING'; k++) await new Promise((r) => setTimeout(r, 100));
     expect(created.body.format).toBeNull();
     const res = await get(pmo, `/report-templates/${created.body.id}/pptx`).buffer(true).parse(binary).expect(200);
     expect(await pptxIntegrity(res.body)).toEqual([]);

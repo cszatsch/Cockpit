@@ -791,6 +791,13 @@ model ReportTemplate {
   publishedAt String?
   active      Boolean  @default(true)
   order       Int      @default(0)
+  /// Mise en service (04/10/2026) : PENDING → READY (ou FAILED) ; étape du serveur 0 à 4 (`domain/template-service.ts`)
+  serviceStatus  String    @default("READY")
+  servicePhase   Int       @default(0)
+  serviceError   String?
+  serviceReadyAt DateTime?
+  /// Première génération d'un rapport (fin de l'étiquette « Nouveau »)
+  firstReportAt  DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   rowVersion  Int      @default(1)
