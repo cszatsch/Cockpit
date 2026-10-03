@@ -7,7 +7,7 @@
 </head>
 <body>
 <x-dc>
-<helmet data-dc-atomics><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500;1,600;1,700;1,800&display=swap" rel="stylesheet"><style>
+<helmet data-dc-atomics><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500;1,600;1,700;1,800&family=JetBrains+Mono:wght@400;500&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet"><style>
 @keyframes rise-hero{from{opacity:0;transform:scale(1.03)}to{opacity:1;transform:scale(1)}}
 html,body{margin:0;background:#eef4f2;font-family:'Plus Jakarta Sans',sans-serif;color:#10233a;-webkit-font-smoothing:antialiased}
 a{color:#1d8f86}a:hover{color:#146b64}
@@ -981,9 +981,11 @@ a{color:#1d8f86}a:hover{color:#146b64}
   <!-- ===== COMITÉS · CRÉER UN TEMPLATE ===== -->
   <sc-if value="{{ vTplCreer }}" hint-placeholder-val="{{ false }}">
   <div style="display:flex;flex-direction:column;gap:18px;animation:rise-in .4s cubic-bezier(.2,.7,.2,1) both">
+    <sc-if value="{{ tplNotFmt }}" hint-placeholder-val="{{ true }}">
     <div style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px">
       <sc-for list="{{ tplSteps }}" as="s" hint-placeholder-count="6"><div onClick="{{ s.go }}" style="{{ s.style }}"><span style="{{ s.numStyle }}">{{ s.letter }}</span><div style="min-width:0"><div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;opacity:.7">Étape {{ s.num }}</div><b style="display:block;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ s.n }}</b></div></div></sc-for>
     </div>
+    </sc-if>
 
     <sc-if value="{{ tplStep1 }}" hint-placeholder-val="{{ true }}">
     <div style="background:#fff;border-radius:16px;padding:22px 24px;box-shadow:0 1px 2px rgba(16,35,58,.04)">
@@ -1000,43 +1002,159 @@ a{color:#1d8f86}a:hover{color:#146b64}
     </sc-if>
 
     <sc-if value="{{ tplStepFmt }}" hint-placeholder-val="{{ false }}">
-    <div style="background:#fff;border-radius:16px;padding:22px 24px;box-shadow:0 1px 2px rgba(16,35,58,.04)">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap"><div style="font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#5c7280;font-weight:700">B · Format du rapport</div><span style="font-size:11.5px;color:#5c7280">{{ tplFmtCount }} · .pptx recommandé, PDF ou image en complément</span></div>
-      <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap">
-        <div style="font-size:12.5px;color:#43586a;max-width:760px;text-wrap:pretty">Chargez un modèle pour chacun des 4 types de page : le PowerPoint généré reprendra leurs fonds, logos, couleurs, polices et positions. Un seul fichier PowerPoint peut fournir les 4 pages : choisissez alors la diapositive de chaque type.</div>
-        <span onClick="{{ tplFmtImportAll }}" style="height:36px;padding:0 14px;border-radius:10px;border:1px solid #d9e4e1;font-weight:700;display:inline-flex;align-items:center;gap:8px;cursor:pointer;background:#fff;white-space:nowrap;font-size:12.5px" style-hover="background:#f3f7f6"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"></path></svg>Importer un fichier pour les 4 pages</span>
+    <!-- Étape B · Format du rapport : maquette « Template - Etape 2 Format du rapport » (04/10/2026), reprise à l'identique. -->
+    <div style="max-width:1440px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:28px;font-family:'Plus Jakarta Sans',sans-serif;color:#10233A;-webkit-font-smoothing:antialiased">
+
+  <nav style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px">
+    <sc-for list="{{ fbSteps }}" as="s" hint-placeholder-count="6">
+      <div onClick="{{ s.go }}" style="{{ s.wrap }}">
+        <div style="{{ s.bar }}"></div>
+        <div style="display:flex;align-items:center;gap:10px;padding-top:12px">
+          <div style="{{ s.dot }}">{{ s.mark }}</div>
+          <div style="display:flex;flex-direction:column;gap:1px;min-width:0">
+            <span style="font-size:10.5px;font-weight:600;letter-spacing:.09em;color:#8A97A5">{{ s.n }}</span>
+            <span style="{{ s.label }}">{{ s.name }}</span>
+          </div>
+        </div>
       </div>
-      <input ref="{{ tplFmtRef }}" type="file" accept=".pptx,.pdf,.png,.jpg,.jpeg" onChange="{{ tplFmtFile }}" style="display:none"></input>
-      <sc-if value="{{ tplFmtHasGlobalErr }}" hint-placeholder-val="{{ false }}"><div style="margin-top:12px;padding:10px 12px;border-radius:10px;background:#fdecea;color:#a3271b;font-size:12.5px;font-weight:600">{{ tplFmtGlobalErr }}</div></sc-if>
-      <div style="margin-top:16px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px">
-        <sc-for list="{{ tplFmtPages }}" as="p" hint-placeholder-count="4">
-          <div onDragOver="{{ p.over }}" onDrop="{{ p.drop }}" style="{{ p.cardStyle }}">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><div style="min-width:0"><div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#8a8f9c;font-weight:700">Page {{ p.num }}</div><b style="font-size:13px">{{ p.n }}</b></div><span style="{{ p.stateStyle }}">{{ p.state }}</span></div>
-            <div style="font-size:11.5px;color:#5c7280;margin-top:2px">{{ p.d }}</div>
-            <div style="{{ p.thumbStyle }}">
-              <sc-if value="{{ p.hasPrev }}" hint-placeholder-val="{{ false }}"><div role="img" aria-label="{{ p.n }}" style="{{ p.prevStyle }}"></div></sc-if>
-              <sc-if value="{{ p.busy }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:#5c7280;font-weight:600">Analyse en cours…</span></sc-if>
-              <sc-if value="{{ p.empty }}" hint-placeholder-val="{{ true }}"><div onClick="{{ p.pick }}" style="display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;color:#1d8f86;text-align:center;padding:10px"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"></path></svg><b style="font-size:12.5px">Charger un fichier</b><span style="font-size:11px;color:#8a8f9c">ou déposez-le ici</span></div></sc-if>
-              <sc-if value="{{ p.noPrev }}" hint-placeholder-val="{{ false }}"><span style="font-size:11.5px;color:#8a8f9c">Aperçu en préparation…</span></sc-if>
+    </sc-for>
+  </nav>
+
+  <header style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:24px 40px">
+    <div style="display:flex;flex-direction:column;gap:10px;max-width:760px">
+      <span style="font-size:11px;font-weight:700;letter-spacing:.16em;color:#8A97A5">B · FORMAT DU RAPPORT</span>
+      <h1 style="margin:0;font-size:32px;line-height:1.1;font-weight:800;letter-spacing:-.025em">Format du rapport</h1>
+      <p style="margin:0;font-size:14.5px;line-height:1.6;color:#4E5E6E;text-wrap:pretty">Chargez un modèle pour chacun des 4 types de page : le PowerPoint généré reprendra leurs fonds, logos, couleurs, polices et positions. Un seul fichier PowerPoint peut fournir les 4 pages : choisissez alors la diapositive de chaque type.</p>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px">
+      <div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px">
+        <div style="display:flex;align-items:baseline;gap:8px;white-space:nowrap"><span style="font-size:22px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums">{{ fbLoaded }}</span><span style="font-size:13px;font-weight:600;color:#4E5E6E">pages chargées</span></div>
+        <span style="font-size:12px;color:#8A97A5">.pptx recommandé, PDF ou image en complément</span>
+      </div>
+      <button onClick="{{ tplFmtImportAll }}" style="white-space:nowrap;flex:none;display:flex;align-items:center;gap:9px;height:42px;padding:0 18px;border-radius:12px;border:1px solid #D5DDE3;background:#fff;color:#10233A;font:600 13.5px 'Plus Jakarta Sans',sans-serif;cursor:pointer;box-shadow:0 1px 2px rgba(16,35,58,.06)" style-hover="border-color:#10233A">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 10.5V2.5M4.8 5.5 8 2.3l3.2 3.2M2.5 11v2.5h11V11"></path></svg>
+        Importer un fichier pour les 4 pages
+      </button>
+    </div>
+  </header>
+  <input ref="{{ tplFmtRef }}" type="file" accept=".pptx,.pdf,.png,.jpg,.jpeg" onChange="{{ tplFmtFile }}" style="display:none"></input>
+  <sc-if value="{{ tplFmtHasGlobalErr }}" hint-placeholder-val="{{ false }}"><div style="display:flex;gap:10px;align-items:flex-start;padding:11px 13px;border-radius:12px;font-size:12.5px;line-height:1.55;background:#FBF4E6;color:#7A5212"><span style="flex:none;width:6px;height:6px;border-radius:99px;margin-top:7px;background:#E0A030"></span><span>{{ tplFmtGlobalErr }}</span></div></sc-if>
+
+  <section style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px">
+    <sc-for list="{{ fbPages }}" as="p" hint-placeholder-count="4">
+      <button onClick="{{ p.select }}" onDragOver="{{ p.over }}" onDrop="{{ p.drop }}" style="{{ p.card }}">
+        <div style="{{ p.slide }}">
+          <sc-if value="{{ p.busy }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#6B7A89">Analyse en cours…</span></sc-if>
+          <sc-if value="{{ p.empty }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:#10233A"><b style="font-size:12.5px">Charger un fichier</b><span style="font-size:11px;color:#8A97A5">ou déposez-le ici</span></span></sc-if>
+        </div>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:12px 4px 2px">
+          <div style="display:flex;flex-direction:column;gap:3px;min-width:0;text-align:left">
+            <span style="font-size:10.5px;font-weight:700;letter-spacing:.12em;color:#8A97A5">{{ p.num }}</span>
+            <span style="font-size:14.5px;font-weight:700;letter-spacing:-.01em;color:#10233A">{{ p.name }}</span>
+            <span style="font-size:12px;color:#6B7A89;line-height:1.4">{{ p.sub }}</span>
+          </div>
+          <span style="{{ p.chip }}"><span style="{{ p.chipDot }}"></span>{{ p.status }}</span>
+        </div>
+      </button>
+    </sc-for>
+  </section>
+
+  <section style="background:#fff;border-radius:22px;border:1px solid #E3E8EC;box-shadow:0 1px 2px rgba(16,35,58,.04),0 12px 40px -18px rgba(16,35,58,.14);padding:28px;display:flex;flex-direction:column;gap:24px">
+    <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px">
+      <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap">
+        <span style="font-size:11px;font-weight:700;letter-spacing:.14em;color:#8A97A5">{{ fbCur.num }}</span>
+        <h2 style="margin:0;font-size:22px;font-weight:800;letter-spacing:-.02em">{{ fbCur.name }}</h2>
+        <span style="font-size:13.5px;color:#6B7A89">{{ fbCur.sub }}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="{{ fbCur.chip }}"><span style="{{ fbCur.chipDot }}"></span>{{ fbCur.status }}</span>
+        <button onClick="{{ fbToggleVerified }}" style="{{ fbVerifyStyle }}" style-hover="border-color:#10233A">{{ fbVerifyLabel }}</button>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+      <div style="flex:1.35 1 520px;min-width:0;display:flex;flex-direction:column;gap:18px">
+        <div onDragOver="{{ fbCur.over }}" onDrop="{{ fbCur.drop }}" style="padding:14px;border-radius:16px;background:#F2F4F3">
+          <div style="{{ fbCur.slide }}">
+            <sc-for list="{{ fbCur.overlays }}" as="o"><div onMouseEnter="{{ o.enter }}" onMouseLeave="{{ fbLeave }}" style="{{ o.style }}"><sc-if value="{{ o.showTag }}"><span style="{{ o.tag }}">{{ o.role }}</span></sc-if></div></sc-for>
+            <sc-if value="{{ fbCur.busy }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:#6B7A89">Analyse en cours…</span></sc-if>
+            <sc-if value="{{ fbCur.empty }}" hint-placeholder-val="{{ false }}"><span onClick="{{ fbCur.pick }}" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;color:#10233A"><svg width="22" height="22" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 10.5V2.5M4.8 5.5 8 2.3l3.2 3.2M2.5 11v2.5h11V11"></path></svg><b style="font-size:13.5px">Charger un fichier</b><span style="font-size:12px;color:#8A97A5">ou déposez-le ici</span></span></sc-if>
+          </div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px 22px;font-size:12.5px;color:#4E5E6E">
+          <span style="display:flex;align-items:center;gap:8px"><span style="width:14px;height:10px;border-radius:3px;border:1.5px solid #19A974;background:rgba(25,169,116,.12)"></span>Zone de données<b style="font-weight:700;color:#10233A;font-variant-numeric:tabular-nums">{{ fbCur.nData }}</b></span>
+          <span style="display:flex;align-items:center;gap:8px"><span style="width:14px;height:10px;border-radius:3px;border:1.5px dashed #9AA8B6"></span>Design fixe<b style="font-weight:700;color:#10233A;font-variant-numeric:tabular-nums">{{ fbCur.nFixe }}</b></span>
+          <span style="display:flex;align-items:center;gap:8px"><span style="width:14px;height:10px;border-radius:3px;border:1.5px dashed #E0645A;background:repeating-linear-gradient(135deg,rgba(224,100,90,.25) 0 2px,transparent 2px 4px)"></span>Contenu retiré<b style="font-weight:700;color:#10233A;font-variant-numeric:tabular-nums">{{ fbCur.nRetire }}</b></span>
+        </div>
+
+        <sc-if value="{{ fbCur.hasFile }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 14px;border:1px solid #E3E8EC;border-radius:14px">
+          <div style="display:flex;align-items:center;gap:12px;min-width:0">
+            <span style="{{ fbCur.badge }}">{{ fbCur.kind }}</span>
+            <span title="{{ fbCur.file }}" style="font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ fbCur.file }}</span>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <sc-if value="{{ fbCur.multi }}" hint-placeholder-val="{{ false }}"><select value="{{ fbCur.slideNo }}" onChange="{{ fbCur.setSlide }}" style="height:32px;padding:0 28px 0 11px;border-radius:9px;border:1px solid #D5DDE3;background:#fff {{ fbChevron }} no-repeat right 11px center;appearance:none;-webkit-appearance:none;color:#10233A;font:600 12.5px 'Plus Jakarta Sans',sans-serif;cursor:pointer;outline:none;max-width:220px;text-overflow:ellipsis"><sc-for list="{{ fbCur.slides }}" as="o"><option value="{{ o.v }}">{{ o.l }}</option></sc-for></select></sc-if>
+            <button onClick="{{ fbCur.pick }}" style="height:32px;padding:0 13px;border-radius:9px;border:1px solid #D5DDE3;background:#fff;color:#10233A;font:600 12.5px 'Plus Jakarta Sans',sans-serif;cursor:pointer" style-hover="border-color:#10233A">Remplacer</button>
+            <button onClick="{{ fbCur.remove }}" style="height:32px;padding:0 13px;border-radius:9px;border:1px solid transparent;background:transparent;color:#B23A3A;font:600 12.5px 'Plus Jakarta Sans',sans-serif;cursor:pointer" style-hover="background:#FBEDEC">Supprimer</button>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0 28px">
+          <sc-for list="{{ fbCur.fiche }}" as="f" hint-placeholder-count="8">
+            <div style="display:grid;grid-template-columns:78px minmax(0,1fr);gap:12px;padding:9px 0;border-bottom:1px solid #EEF1F3;font-size:13px;line-height:1.45">
+              <span style="color:#8A97A5">{{ f.k }}</span>
+              <span style="color:#10233A;font-variant-numeric:tabular-nums;text-wrap:pretty">{{ f.v }}</span>
             </div>
-            <sc-if value="{{ p.hasFile }}" hint-placeholder-val="{{ false }}">
-              <div style="margin-top:10px;font-size:11.5px;color:#43586a;display:flex;align-items:center;gap:6px;min-width:0"><span style="font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:800;padding:2px 6px;border-radius:5px;background:#eef3f2;color:#43586a;flex:none">{{ p.kind }}</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="{{ p.fileName }}">{{ p.fileName }}</span></div>
-              <sc-if value="{{ p.multi }}" hint-placeholder-val="{{ false }}"><select value="{{ p.slide }}" onChange="{{ p.setSlide }}" style="margin-top:8px;height:32px;padding:0 10px;border-radius:9px;border:1px solid #d9e4e1;font:inherit;font-size:12px;color:#10233a;background:#fff;width:100%;outline:none"><sc-for list="{{ p.slides }}" as="o" hint-placeholder-count="4"><option value="{{ o.v }}">{{ o.l }}</option></sc-for></select></sc-if>
-              <div style="margin-top:8px;display:flex;gap:6px"><span onClick="{{ p.pick }}" style="height:28px;padding:0 10px;border-radius:8px;border:1px solid #d9e4e1;font-size:11.5px;font-weight:700;display:inline-flex;align-items:center;cursor:pointer;background:#fff" style-hover="background:#f3f7f6">Remplacer</span><span onClick="{{ p.remove }}" style="height:28px;padding:0 10px;border-radius:8px;border:1px solid #f1d4cf;color:#a3271b;font-size:11.5px;font-weight:700;display:inline-flex;align-items:center;cursor:pointer;background:#fff" style-hover="background:#fdf3f1">Supprimer</span></div>
-              <div style="margin-top:10px;display:grid;grid-template-columns:72px minmax(0,1fr);gap:4px 8px;font-size:11px"><sc-for list="{{ p.facts }}" as="f" hint-placeholder-count="5"><span style="color:#8a8f9c">{{ f.k }}</span><span style="color:#10233a;text-wrap:pretty">{{ f.v }}</span></sc-for></div>
-              <sc-if value="{{ p.hasPalette }}" hint-placeholder-val="{{ false }}"><div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px"><sc-for list="{{ p.palette }}" as="c" hint-placeholder-count="5"><span title="{{ c.v }}" style="{{ c.style }}"></span></sc-for></div></sc-if>
-            </sc-if>
-            <sc-if value="{{ p.rolesBusy }}" hint-placeholder-val="{{ false }}"><div style="margin-top:10px;font-size:11px;color:#1d8f86;font-weight:600">Analyse des zones de la page…</div></sc-if>
-            <sc-if value="{{ p.hasRoles }}" hint-placeholder-val="{{ false }}"><div style="margin-top:10px;border-top:1px solid #e6eeec;padding-top:8px">
-              <div onClick="{{ p.toggleRoles }}" style="display:flex;justify-content:space-between;align-items:center;gap:6px;cursor:pointer"><b style="font-size:11.5px">Zones de la page · {{ p.rolesCount }}</b><span style="font-size:10.5px;color:#5c7280;white-space:nowrap">{{ p.rolesSource }} {{ p.rolesChevron }}</span></div>
-              <sc-if value="{{ p.rolesOpen }}" hint-placeholder-val="{{ false }}"><div style="margin-top:6px;font-size:10.5px;color:#5c7280;text-wrap:pretty">Le contenu d'exemple est retiré de chaque rapport ; les zones en vert reçoivent le texte du rapport, avec leur mise en forme.</div><div style="margin-top:6px;display:flex;flex-direction:column;gap:3px"><sc-for list="{{ p.roleRows }}" as="r" hint-placeholder-count="4"><div style="{{ r.style }}"><span title="{{ r.full }}" style="font-size:11px;color:#43586a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.label }}</span><select value="{{ r.role }}" onChange="{{ r.set }}" style="height:26px;padding:0 6px;border-radius:7px;border:1px solid #d9e4e1;font:inherit;font-size:11px;color:#10233a;background:#fff;width:100%;outline:none"><sc-for list="{{ r.opts }}" as="o" hint-placeholder-count="4"><option value="{{ o.v }}">{{ o.l }}</option></sc-for></select></div></sc-for></div></sc-if>
-              <sc-if value="{{ p.hasRolesNote }}" hint-placeholder-val="{{ false }}"><div style="margin-top:6px;font-size:10.5px;color:#8a8f9c">{{ p.rolesNote }}</div></sc-if>
-            </div></sc-if>
-            <sc-if value="{{ p.hasErr }}" hint-placeholder-val="{{ false }}"><div style="margin-top:10px;padding:8px 10px;border-radius:9px;background:#fdecea;color:#a3271b;font-size:11.5px;font-weight:600;text-wrap:pretty">{{ p.err }}</div></sc-if>
-            <sc-for list="{{ p.warns }}" as="w" hint-placeholder-count="0"><div style="margin-top:8px;padding:7px 10px;border-radius:9px;background:#fff6e6;color:#8a5a12;font-size:11px;text-wrap:pretty">{{ w.t }}</div></sc-for>
+          </sc-for>
+        </div>
+        <div style="display:flex;align-items:center;gap:14px">
+          <span style="font-size:13px;color:#8A97A5;width:78px">Couleurs</span>
+          <div style="display:flex;flex-wrap:wrap;gap:5px">
+            <sc-for list="{{ fbCur.palette }}" as="c"><span title="{{ c.hex }}" style="{{ c.style }}"></span></sc-for>
+          </div>
+        </div>
+        </sc-if>
+      </div>
+
+      <div style="flex:1 1 380px;min-width:0;display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+          <h3 style="margin:0;font-size:15px;font-weight:700;letter-spacing:-.01em">Zones de la page<span style="color:#8A97A5;font-weight:600"> · {{ fbCur.formes }}</span></h3>
+          <sc-if value="{{ fbHasAi }}" hint-placeholder-val="{{ true }}"><button onClick="{{ fbResetAI }}" style="{{ fbAiChip }}">{{ fbAiLabel }}</button></sc-if>
+        </div>
+        <p style="margin:0;font-size:12.5px;line-height:1.55;color:#6B7A89;text-wrap:pretty">Le contenu d'exemple est retiré de chaque rapport ; les zones en vert reçoivent le texte du rapport, avec leur mise en forme.</p>
+        <div style="display:flex;flex-direction:column;border-top:1px solid #EEF1F3">
+          <sc-for list="{{ fbCur.rows }}" as="r" hint-placeholder-count="8">
+            <div onMouseEnter="{{ r.enter }}" onMouseLeave="{{ fbLeave }}" style="{{ r.style }}">
+              <span style="{{ r.icon }}">{{ r.glyph }}</span>
+              <span title="{{ r.src }}" style="{{ r.srcStyle }}">{{ r.src }}</span>
+              <select value="{{ r.role }}" onChange="{{ r.change }}" style="{{ r.select }}">
+                <sc-for list="{{ fbRoles }}" as="o"><option value="{{ o }}">{{ o }}</option></sc-for>
+              </select>
+            </div>
+          </sc-for>
+        </div>
+        <sc-for list="{{ fbCur.notices }}" as="n">
+          <div style="{{ n.style }}">
+            <span style="{{ n.dot }}"></span>
+            <span>{{ n.text }}</span>
           </div>
         </sc-for>
       </div>
+    </div>
+  </section>
+
+  <footer style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px 40px;padding:22px 26px;border-radius:20px;background:#10233A;color:#fff">
+    <div style="display:flex;gap:16px;align-items:flex-start;max-width:820px">
+      <span style="flex:none;width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font:500 11px 'JetBrains Mono',monospace;color:#9FD9C2">v1.0</span>
+      <p style="margin:0;font-size:13.5px;line-height:1.6;color:#D3DCE5;text-wrap:pretty">La validation crée le PowerPoint de référence (v1.0), qui fige la structure, le design du rapport et ses zones de données. Le template, désormais actif, est ajouté à la Bibliothèque et disponible dans « Générer un rapport ».</p>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="font-size:12.5px;color:#8FA3B7;font-variant-numeric:tabular-nums">{{ fbVerifiedCount }}</span>
+      <button onClick="{{ tplPrev }}" style="height:42px;padding:0 18px;border-radius:12px;border:1px solid rgba(255,255,255,.18);background:transparent;color:#fff;font:600 13.5px 'Plus Jakarta Sans',sans-serif;cursor:pointer" style-hover="background:rgba(255,255,255,.06)">Étape précédente</button>
+      <button onClick="{{ fbValidate }}" style="{{ fbValidateStyle }}" style-hover="background:#E6F4EE">Valider le format</button>
+    </div>
+  </footer>
     </div>
     </sc-if>
 
@@ -1114,10 +1232,12 @@ a{color:#1d8f86}a:hover{color:#146b64}
     </div>
     </sc-if>
 
+    <sc-if value="{{ tplNotFmt }}" hint-placeholder-val="{{ true }}">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
       <div><sc-if value="{{ tplNotFirst }}" hint-placeholder-val="{{ false }}"><span onClick="{{ tplPrev }}" style="height:38px;padding:0 16px;border-radius:10px;border:1px solid #d9e4e1;font-weight:700;display:inline-flex;align-items:center;gap:6px;cursor:pointer;background:#fff;white-space:nowrap" style-hover="background:#f3f7f6">‹ Précédent</span></sc-if></div>
       <div style="display:flex;align-items:center;gap:12px"><span style="font-size:11.5px;color:#8a5a12">{{ tplHint }}</span><sc-if value="{{ tplNotLast }}" hint-placeholder-val="{{ true }}"><span onClick="{{ tplNext }}" style="{{ tplNextStyle }}">Suivant ›</span></sc-if></div>
     </div>
+    </sc-if>
   </div>
   </sc-if>
 
@@ -2314,15 +2434,9 @@ class Component extends DCLogic {
   }
   // Brouillon vu comme un template (aperçu, publication) et sa clé : l'aperçu est reconstruit quand elle change.
   tplDraftTemplate() { const D = this.state.tplDraft, F = D.fmt || { pages: {} }; const full = ['cover', 'divider', 'standard', 'closing'].every(k => F.pages[k]); return { name: D.name.trim() || 'Nouveau template', version: D.version, committee: D.committee, bodyId: D.bodyId, comps: D.comps, format: full ? F.pages : null }; }
-  tplDraftKey() { return JSON.stringify(this.tplDraftTemplate()); }
-  // Clé d'aperçu d'une page modèle : fichier, diapositive et rôles des formes.
-  tplFmtPrevKey(r) { return r.fileId + '#' + r.slide + (r.roles ? '#' + JSON.stringify(r.roles) : ''); }
-  // Rôle d'une forme modifié par l'utilisateur : aperçu et contrôle du format relancés.
-  tplFmtSetRole(kind, shapeId, role) {
-    const F = this.state.tplDraft.fmt || { files: {}, pages: {} }, p = F.pages[kind];
-    if (!p) return;
-    this.setState(s => ({ tplDraft: { ...s.tplDraft, fmt: { ...F, pages: { ...F.pages, [kind]: { ...p, roles: { ...(p.roles || {}), [shapeId]: role } } } } } }), () => this.tplFmtRefresh());
-  }
+  tplDraftKey() { const t = this.tplDraftTemplate(); return JSON.stringify({ ...t, format: t.format ? JSON.parse(this.fmtPagesKey(t.format)) : null }); }
+  // Pages du format sans le statut « vérifiée » (clé du contrôle et de l'aperçu).
+  fmtPagesKey(pages) { return JSON.stringify(Object.fromEntries(Object.entries(pages || {}).map(([k, p]) => [k, p ? { fileId: p.fileId, slide: p.slide, ...(p.roles ? { roles: p.roles } : {}) } : p]))); }
   // Prévisualisation : rapport complet construit par le serveur (POST /report-templates/preview), diapositives chargées une à une.
   async tplPreviewRun() {
     if (!this._api) return;
@@ -2370,13 +2484,13 @@ class Component extends DCLogic {
     }
     const F2 = this.state.tplDraft.fmt || { files: {}, pages: {} };
     for (const r of Object.values(F2.pages).filter(Boolean)) {
-      const key = this.tplFmtPrevKey(r);
+      const key = r.fileId + '#' + r.slide;
       if ((this.state.tplFmtPrev || {})[key] || String(r.fileId).startsWith('local')) continue;
-      try { const url = await this._api.fmtPreview(r.fileId, r.slide, r.roles); this.setState(s => ({ tplFmtPrev: { ...(s.tplFmtPrev || {}), [key]: url } })); } catch (e) { /* aperçu indisponible : la carte le signale */ }
+      try { const url = await this._api.fmtPreview(r.fileId, r.slide); this.setState(s => ({ tplFmtPrev: { ...(s.tplFmtPrev || {}), [key]: url } })); } catch (e) { /* aperçu indisponible : la zone reste sur le fond de la page */ }
     }
-    const key = JSON.stringify(F2.pages);
+    const key = this.fmtPagesKey(F2.pages);
     if (Object.values(F2.pages).filter(Boolean).length < 4) return this.setState({ tplFmtCheck: null });
-    try { const r = await this._api.fmtCheck(F2.pages); if (JSON.stringify((this.state.tplDraft.fmt || {}).pages) === key) this.setState({ tplFmtCheck: { ...r, key } }); }
+    try { const r = await this._api.fmtCheck(JSON.parse(key)); if (this.fmtPagesKey((this.state.tplDraft.fmt || {}).pages) === key) this.setState({ tplFmtCheck: { ...r, key } }); }
     catch (e) { this.setState({ tplFmtCheck: { complete: false, errors: {}, pages: {}, key, err: (e && e.message) || 'Contrôle impossible' } }); }
   }
   // Notifications de l'utilisateur (cloche de la barre latérale) : liste relue à l'ouverture du tiroir.
@@ -4155,7 +4269,7 @@ class Component extends DCLogic {
     const FK = ['cover', 'divider', 'standard', 'closing'];
     const FMT_N = { cover: ['Page de couverture', 'Première diapositive du rapport'], divider: ['Page intercalaire', 'Transition entre deux sections'], standard: ['Page standard', 'Contenu : texte, tableaux, graphiques'], closing: ['Page de clôture', 'Dernière diapositive de la présentation'] };
     const F = Dft.fmt || { files: {}, pages: {} };
-    const fmtKey = JSON.stringify(F.pages); const chk = S.tplFmtCheck && S.tplFmtCheck.key === fmtKey ? S.tplFmtCheck : null;
+    const fmtKey = this.fmtPagesKey(F.pages); const chk = S.tplFmtCheck && S.tplFmtCheck.key === fmtKey ? S.tplFmtCheck : null;
     const fmtLoaded = FK.filter(k => F.pages[k]).length;
     const validFmt = fmtLoaded === 4 && (!this._api || !!(chk && chk.complete));
     const valid1 = Dft.name.trim().length > 0; const valid2 = Dft.comps.length > 0;
@@ -4198,44 +4312,99 @@ class Component extends DCLogic {
   ], tplStep: 1, tplDraft: { name: '', version: '1.0', author: null, desc: '', committee: 'Comité de pilotage', bodyId: 'g1', comps: [], fmt: { files: {}, pages: {} } }, tplFmtCheck: null, tplFmtErr: {}, tplPrev: null, tab: 'generer' })); this.showToast('Template publié · ' + t.name + ' v' + t.version + ' — PowerPoint de référence généré, actif dans ' + t.committee); };
     const nextOk = step === 1 ? valid1 : step === 2 ? validFmt : step === 3 ? valid2 : step < 6;
     const fmtErrs = (chk && chk.errors) || {};
-    const prevOf = r => (r ? (S.tplFmtPrev || {})[this.tplFmtPrevKey(r)] : null);
-    const tplFmtPages = FK.map((k, i) => {
-      const ref = F.pages[k]; const file = ref ? F.files[ref.fileId] : null; const busy = !!(S.tplFmtBusy || {})[k];
-      const sl = file && file.slides ? file.slides[(ref.slide || 1) - 1] : null; const ck = chk && chk.pages ? chk.pages[k] : null; const sum = (ck && ck.summary) || (sl && sl.summary); // contrôle du serveur : tient compte des rôles des formes
-      const err = (S.tplFmtErr || {})[k] || (ref && fmtErrs[k]) || null;
+    // Étape B (maquette du 04/10/2026) : séquence des 4 pages, espace de travail (aperçu réel + zones, rôles, fiche
+    // technique, palette, alertes) et bandeau de validation. Rôles : libellés de la maquette, dans l'ordre des rôles du serveur.
+    const FB_FIXE = 'Design fixe (gardé)', FB_RET = 'Contenu d\'exemple (retiré)';
+    const FB_ROLES = [FB_FIXE, FB_RET, 'Titre', 'Sous-titre', 'Nom de la section', 'Numéro de la section', 'Date du rapport', 'Période des données', 'Nom du projet', 'Client', 'Comité', 'Numéro de page', 'Mention de bas de page (gardée)'];
+    const FB_IDS = ['fixed', 'example', 'title', 'subtitle', 'section', 'sectionNumber', 'date', 'period', 'project', 'client', 'committee', 'pageNumber', 'footer'];
+    const fbLabel = id => FB_ROLES[Math.max(0, FB_IDS.indexOf(id || 'fixed'))];
+    const fbCat = id => (!id || id === 'fixed') ? 'fixe' : id === 'example' ? 'retire' : 'data';
+    const FB_COL = { data: ['#19A974', 'rgba(25,169,116,.11)', '#E8F6EF', '#0E6B47', '#BFE6D2'], retire: ['#E0645A', 'rgba(224,100,90,.14)', '#FBEDEC', '#A23A33', '#F2C9C5'], fixe: ['#9AA8B6', 'rgba(143,160,179,.14)', '#fff', '#5B6B7C', '#DCE2E6'] };
+    const FB_CHEV = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2310233A' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")";
+    const fbSel = Math.min(3, Math.max(0, S.fbSel || 0)), fbHover = S.fbHover ?? null;
+    const fbStatus = v => ({ status: v ? 'Vérifiée' : 'À vérifier', chip: { display: 'inline-flex', alignItems: 'center', gap: 6, height: 24, padding: '0 9px', borderRadius: 999, fontSize: 11.5, fontWeight: 700, whiteSpace: 'nowrap', background: v ? '#E6F5EE' : '#FBF2E2', color: v ? '#0E6B47' : '#8A5A12' }, chipDot: { width: 6, height: 6, borderRadius: 99, background: v ? '#19A974' : '#E0A030' } });
+    // Données réelles d'une page : fichier, diapositive, analyse (fiche, palette, alertes), formes et rôles proposés.
+    const fbPage = (k, i) => {
+      const ref = F.pages[k] || null, file = ref ? F.files[ref.fileId] : null, busy = !!(S.tplFmtBusy || {})[k];
+      const sl = file && file.slides ? file.slides[(ref.slide || 1) - 1] : null, ck = chk && chk.pages ? chk.pages[k] : null;
+      const sum = (ck && ck.summary) || (sl && sl.summary);
+      const RS = (S.tplFmtRoles || {})[k], rsOk = !!(RS && ref && RS.key === ref.fileId + '#' + ref.slide && RS.shapes);
+      const zones = rsOk ? RS.shapes.map(sh => ({ id: sh.id, kind: ['text', 'placeholder'].includes(sh.kind) ? 'text' : sh.kind === 'image' ? 'image' : 'shape', src: sh.text ? '«' + sh.text + '»' : (sh.kind === 'image' ? 'Image · ' : 'Forme · ') + sh.name, x: sh.box.x * 100, y: sh.box.y * 100, w: sh.box.w * 100, h: sh.box.h * 100, proposed: (RS.roles || {})[sh.id] || 'fixed' })) : [];
+      const roles = zones.map(z => ((ref && ref.roles) || {})[z.id] || z.proposed);
+      const bgm = /#([0-9A-F]{6})/i.exec((sum && sum.background) || ''), bg = bgm ? '#' + bgm[1].toUpperCase() : '#FFFFFF';
+      const img = ref && !String(ref.fileId).startsWith('local') ? (S.tplFmtPrev || {})[ref.fileId + '#' + ref.slide] : null;
+      const size = file && file.size ? file.size : { cx: 16, cy: 9 };
       const warns = ck ? ck.warnings || [] : sl && sl.warnings ? (sl.warnings[k] || []) : [];
-      const prev = prevOf(ref);
-      const state = busy ? 'Analyse…' : err ? 'Erreur' : !ref ? 'À charger' : warns.length ? 'À vérifier' : 'Prêt';
-      const tone = state === 'Erreur' ? P.risk : state === 'À vérifier' ? P.vig : state === 'Prêt' ? P.ok : P.neutral;
-      return { k, num: i + 1, n: FMT_N[k][0], d: FMT_N[k][1], state, stateStyle: tone + ';flex:none', busy, empty: !ref && !busy, hasFile: !!file && !busy, hasPrev: !!prev && !busy, prevStyle: 'width:100%;height:100%;background:#fff center / contain no-repeat url(' + prev + ')', noPrev: !!ref && !prev && !busy && !!this._api && !String(ref.fileId).startsWith('local'),
-        fileName: file ? file.fileName : '', kind: file ? file.kind : '', multi: !!file && (file.slideCount || 1) > 1, slide: ref ? String(ref.slide) : '1',
-        slides: file ? (file.slides || []).map(x => ({ v: String(x.index), l: 'Diapositive ' + x.index + (x.label ? ' · ' + x.label : '') })) : [],
-        facts: sum ? [['Format', sum.format], ['Fond', sum.background], ['Éléments', sum.elements.join(' · ') || 'aucun'], ['Zones', sum.zones.join(' · ') || 'aucune'], ['Polices', sum.fonts.join(', ') || '—'], ['Titres', sum.typography.title], ['Texte', sum.typography.body], ...(sum.margins ? [['Marges', sum.margins]] : [])].map(([fk, fv]) => ({ k: fk, v: fv })) : [],
-        hasPalette: !!(sum && sum.palette.length), palette: sum ? sum.palette.map(c => ({ v: '#' + c, style: 'width:16px;height:16px;border-radius:4px;box-shadow:inset 0 0 0 1px rgba(16,35,58,.15);background:#' + c })) : [],
-        hasErr: !!err, err: err || '', warns: warns.map(t => ({ t })),
-        ...(() => {
-          const RS = (S.tplFmtRoles || {})[k], ok = !!(RS && ref && RS.key === ref.fileId + '#' + ref.slide && RS.shapes && RS.shapes.length);
-          const roles = (ref && ref.roles) || {}, labels = (RS && RS.roleLabels) || [];
-          const KIND = { image: 'Image', group: 'Groupe', shape: 'Forme', line: 'Trait', table: 'Tableau', chart: 'Graphique' };
-          const textRoles = ['title', 'subtitle', 'section', 'sectionNumber', 'date', 'period', 'project', 'client', 'committee', 'pageNumber'];
-          const open = (S.tplFmtRolesOpen || {})[k] ?? !!(ref && fmtErrs[k]);
-          return {
-            hasRoles: ok, rolesOpen: ok && open, rolesChevron: open ? '▾' : '▸', toggleRoles: () => this.setState(s => ({ tplFmtRolesOpen: { ...(s.tplFmtRolesOpen || {}), [k]: !open } })),
-            rolesCount: ok ? RS.shapes.length + ' formes' : '', rolesSource: ok ? (RS.source === 'ia' ? 'Proposé par l\'IA' : 'Proposé par règles') : '',
-            hasRolesNote: !!(RS && RS.note), rolesNote: (RS && RS.note) || '', rolesBusy: !!(RS && RS.busy),
-            roleRows: ok ? RS.shapes.map(sh => ({ label: sh.text ? '« ' + sh.text.slice(0, 48) + ' »' : (KIND[sh.kind] || 'Forme') + ' · ' + sh.name, full: (sh.text || sh.name), role: roles[sh.id] || 'fixed',
-              opts: labels.filter(o => ['text', 'placeholder'].includes(sh.kind) || !textRoles.includes(o.id)).map(o => ({ v: o.id, l: o.label })), set: e => this.tplFmtSetRole(k, sh.id, e.target.value),
-              style: 'display:grid;grid-template-columns:minmax(0,1fr) 132px;gap:6px;align-items:center;padding:2px 4px;border-radius:6px;' + ((roles[sh.id] || 'fixed') === 'example' ? 'background:#fdf3f1' : textRoles.includes(roles[sh.id]) ? 'background:#e6f3f2' : '') })) : [],
-          };
-        })(),
-        pick: () => { this._fmtKind = k; if (this.tplFmtRef.current) this.tplFmtRef.current.click(); }, remove: () => this.tplFmtSet(k, null),
-        setSlide: e => this.tplFmtSet(k, { fileId: ref.fileId, slide: +e.target.value }),
-        over: e => e.preventDefault(), drop: e => { e.preventDefault(); const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if (f) this.tplFmtLoad(k, f); },
-        cardStyle: 'border-radius:14px;padding:14px;min-width:0;border:1px solid ' + (err ? '#f1b7ae' : ref ? '#cfe3df' : '#e6eeec') + ';background:' + (ref ? '#fbfdfc' : '#fff'),
-        thumbStyle: 'margin-top:10px;aspect-ratio:16/9;border-radius:9px;overflow:hidden;display:grid;place-items:center;' + (prev ? 'border:1px solid #e6eeec;background:#fff' : 'border:1.5px dashed #c9d6d2;background:#f6faf9') };
-    });
+      const err = (S.tplFmtErr || {})[k] || (ref && fmtErrs[k]) || null;
+      return { k, i, ref, file, busy, sum, RS, rsOk, zones, roles, bg, img, size, warns, err, verified: !!(ref && ref.verified) };
+    };
+    const FBP = FK.map(fbPage), cp = FBP[fbSel];
+    const fbSlideStyle = (p, big) => ({ position: 'relative', aspectRatio: p.size.cx + '/' + p.size.cy, containerType: 'inline-size', overflow: big ? 'visible' : 'hidden', background: p.ref ? (p.img ? p.bg + ' center / 100% 100% no-repeat url(' + p.img + ')' : p.bg) : '#fff', borderRadius: big ? 8 : 7, boxShadow: big ? '0 1px 2px rgba(16,35,58,.08),0 18px 40px -20px rgba(16,35,58,.35)' : 'inset 0 0 0 1px rgba(16,35,58,.08)', ...(p.ref ? {} : { outline: '1.5px dashed #C9D3DA', outlineOffset: -1.5 }) });
+    const fbPick = k => { this._fmtKind = k; if (this.tplFmtRef.current) this.tplFmtRef.current.click(); };
+    const fbDrop = k => e => { e.preventDefault(); const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if (f) this.tplFmtLoad(k, f); };
+    const fbSetRoles = (k, map) => { const Fx = this.state.tplDraft.fmt || { files: {}, pages: {} }, pr = Fx.pages[k]; if (!pr) return; this.setState(s => ({ tplDraft: { ...s.tplDraft, fmt: { ...Fx, pages: { ...Fx.pages, [k]: { ...pr, roles: map } } } } }), () => this.tplFmtRefresh()); };
+    const fbPages = FBP.map((p, i) => ({ num: 'PAGE ' + (i + 1), name: FMT_N[p.k][0], sub: FMT_N[p.k][1], ...fbStatus(p.verified), busy: p.busy, empty: !p.ref && !p.busy,
+      slide: fbSlideStyle(p, false), select: () => this.setState({ fbSel: i, fbHover: null }), over: e => e.preventDefault(), drop: fbDrop(p.k),
+      card: { display: 'flex', flexDirection: 'column', padding: 10, borderRadius: 16, cursor: 'pointer', textAlign: 'left', font: 'inherit', background: '#fff', border: i === fbSel ? '1.5px solid #10233A' : '1px solid #E3E8EC', boxShadow: i === fbSel ? '0 10px 30px -14px rgba(16,35,58,.35)' : '0 1px 2px rgba(16,35,58,.04)', margin: i === fbSel ? 0 : '.5px', transition: 'box-shadow .2s,border-color .2s' } }));
+    const counts = { data: 0, fixe: 0, retire: 0 }; cp.roles.forEach(x => counts[fbCat(x)]++);
+    const overlays = cp.zones.map((z, i) => { const c = fbCat(cp.roles[i]), h = fbHover === i, [stroke, fill] = FB_COL[c]; const vis = c !== 'fixe' || h;
+      // Contenu d'exemple retiré : atténué (voile de la couleur du fond) puis hachuré.
+      const veil = 'linear-gradient(' + cp.bg + 'B8,' + cp.bg + 'B8)';
+      const st = { position: 'absolute', left: z.x + '%', top: z.y + '%', width: z.w + '%', height: Math.max(z.h, 1.6) + '%', boxSizing: 'border-box', borderRadius: 3, cursor: 'default', transition: 'all .15s', zIndex: h ? 3 : 2,
+        border: vis ? '1.5px ' + (c === 'data' ? 'solid' : 'dashed') + ' ' + stroke : '1.5px dashed transparent',
+        background: !vis ? 'transparent' : c === 'retire' ? 'repeating-linear-gradient(135deg,' + fill + ' 0 4px,transparent 4px 8px),' + veil : fill,
+        boxShadow: h ? '0 0 0 3px ' + fill : 'none' };
+      const below = z.y < 8;
+      return { style: st, enter: () => this.setState({ fbHover: i }), showTag: h, role: fbLabel(cp.roles[i]), tag: { position: 'absolute', left: -1.5, [below ? 'top' : 'bottom']: 'calc(100% + 5px)', whiteSpace: 'nowrap', fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 6, background: stroke, color: '#fff', fontFamily: "'Plus Jakarta Sans',sans-serif", boxShadow: '0 4px 12px rgba(16,35,58,.2)' } }; });
+    const GL = { text: 'T', image: '▢', shape: '◇' };
+    const rows = cp.zones.map((z, i) => { const c = fbCat(cp.roles[i]), h = fbHover === i, col = FB_COL[c]; return { src: z.src, role: fbLabel(cp.roles[i]), glyph: GL[z.kind],
+      enter: () => this.setState({ fbHover: i }),
+      change: e => { const id = FB_IDS[FB_ROLES.indexOf(e.target.value)] || 'fixed'; const map = Object.fromEntries(cp.zones.map((x, j) => [x.id, j === i ? id : cp.roles[j]])); fbSetRoles(cp.k, map); },
+      style: { display: 'grid', gridTemplateColumns: '22px minmax(0,1fr) minmax(150px,206px)', alignItems: 'center', gap: 10, padding: '5px 8px', margin: '0 -8px', borderRadius: 10, borderBottom: '1px solid #EEF1F3', background: h ? '#F4F7F9' : 'transparent', transition: 'background .12s' },
+      icon: { width: 22, height: 22, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: z.kind === 'text' ? 11 : 12, fontWeight: 800, fontFamily: "'JetBrains Mono',monospace", background: '#F2F4F3', color: '#8A97A5' },
+      srcStyle: { fontSize: 13, color: z.kind === 'text' ? '#10233A' : '#6B7A89', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
+      select: { appearance: 'none', WebkitAppearance: 'none', height: 32, width: '100%', padding: '0 28px 0 11px', borderRadius: 9, border: '1px solid ' + col[4], background: col[2] + ' ' + FB_CHEV + ' no-repeat right 11px center', color: col[3], fontSize: 12.5, fontWeight: c === 'data' ? 700 : 600, cursor: 'pointer', outline: 'none', textOverflow: 'ellipsis' } }; });
+    // Alertes de l'analyse : police introuvable (ambre), forme libre et autres (gris) ; erreur bloquante de la page en tête.
+    const fbNotice = (text, amber) => ({ text, style: { display: 'flex', gap: 10, alignItems: 'flex-start', padding: '11px 13px', borderRadius: 12, fontSize: 12.5, lineHeight: 1.55, background: amber ? '#FBF4E6' : '#F2F4F3', color: amber ? '#7A5212' : '#4E5E6E' }, dot: { flex: 'none', width: 6, height: 6, borderRadius: 99, marginTop: 7, background: amber ? '#E0A030' : '#9AA8B6' } });
+    const fbTxt = w => w.replace(/’/g, '\'');
+    const notices = [...(cp.err ? [fbNotice(cp.err, true)] : []), ...(cp.RS && cp.RS.note && cp.rsOk ? [fbNotice(cp.RS.note, false)] : []), ...cp.warns.map(w => fbNotice(fbTxt(w), /^Police introuvable/.test(w)))];
+    const proposed = cp.zones.map(z => z.proposed), modified = cp.rsOk && cp.roles.some((x, i) => x !== proposed[i]);
+    const isAi = !!(cp.RS && cp.RS.source === 'ia');
+    const nv = FBP.filter(p => p.verified).length;
+    const fbOk = fmtLoaded === 4 && validFmt && nv === 4;
+    const curFile = cp.file;
+    const fiche = cp.sum ? [['Format', cp.sum.format], ['Fond', cp.sum.background], ['Éléments', cp.sum.elements.join(' · ') || 'aucun'], ['Zones', cp.sum.zones.join(' · ') || 'aucune'], ['Polices', cp.sum.fonts.join(', ') || '—'], ['Titres', cp.sum.typography.title], ['Texte', cp.sum.typography.body], ...(cp.sum.margins ? [['Marges', cp.sum.margins]] : [])].map(([k, v]) => ({ k, v })) : [];
+    const fbVals = { fbRoles: FB_ROLES, fbChevron: FB_CHEV, fbLoaded: fmtLoaded + ' / 4', fbPages,
+      fbSteps: ['Fiche d\'identité', 'Format du rapport', 'Composants', 'Ordre et données', 'Prévisualisation', 'Publication'].map((name, i) => { const done = i < 1, cur = i === 1; return { n: 'ÉTAPE ' + (i + 1), name, mark: done ? '✓' : 'ABCDEF'[i],
+        go: () => { if (i === 0) this.setState({ tplStep: 1 }); else if (i > 1 && canGo(i + 1)) { this.setState({ tplStep: i + 1 }); if (i + 1 === 5) this.tplPreviewRun(); } },
+        wrap: { display: 'flex', flexDirection: 'column', minWidth: 0, opacity: i > 1 ? .62 : 1, cursor: i === 0 || (i > 1 && canGo(i + 1)) ? 'pointer' : 'default' },
+        bar: { height: 3, borderRadius: 3, background: done ? '#19A974' : cur ? '#10233A' : '#DCE2E6' },
+        dot: { flex: 'none', width: 24, height: 24, borderRadius: 99, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, background: done ? '#E6F5EE' : cur ? '#10233A' : '#fff', color: done ? '#0E6B47' : cur ? '#fff' : '#8A97A5', border: i > 1 ? '1px solid #DCE2E6' : 'none' },
+        label: { fontSize: 13.5, fontWeight: cur ? 800 : 600, color: i > 1 ? '#4E5E6E' : '#10233A', lineHeight: 1.25, textWrap: 'balance' } }; }),
+      fbCur: { num: 'PAGE ' + (fbSel + 1), name: FMT_N[cp.k][0], sub: FMT_N[cp.k][1], ...fbStatus(cp.verified), slide: fbSlideStyle(cp, true), overlays, rows, notices, busy: cp.busy, empty: !cp.ref && !cp.busy,
+        hasFile: !!curFile && !cp.busy, file: curFile ? curFile.fileName : '', kind: curFile ? curFile.kind : 'PPTX',
+        badge: 'font:500 10.5px \'JetBrains Mono\',monospace;letter-spacing:.06em;padding:5px 7px;border-radius:6px;background:#FCEEE6;color:#B4532A',
+        multi: !!curFile && (curFile.slideCount || 1) > 1, slideNo: cp.ref ? String(cp.ref.slide) : '1', slides: curFile ? (curFile.slides || []).map(x => ({ v: String(x.index), l: 'Diapositive ' + x.index + (x.label ? ' · ' + x.label : '') })) : [],
+        setSlide: e => { this.tplFmtSet(cp.k, { fileId: cp.ref.fileId, slide: +e.target.value }); this.setState({ fbHover: null }); },
+        pick: () => fbPick(cp.k), remove: () => { this.tplFmtSet(cp.k, null); this.setState({ fbHover: null }); }, over: e => e.preventDefault(), drop: fbDrop(cp.k),
+        formes: cp.zones.length + (cp.zones.length > 1 ? ' formes' : ' forme'), fiche,
+        palette: cp.sum ? cp.sum.palette.map(c => ({ hex: '#' + c, style: { width: 16, height: 16, borderRadius: 5, background: '#' + c, boxShadow: 'inset 0 0 0 1px rgba(16,35,58,.12)' } })) : [],
+        nData: counts.data, nFixe: counts.fixe, nRetire: counts.retire },
+      fbLeave: () => this.setState({ fbHover: null }),
+      fbVerifyStyle: 'height:34px;padding:0 14px;border-radius:10px;border:1px solid #D5DDE3;background:#fff;color:#10233A;font:600 12.5px \'Plus Jakarta Sans\',sans-serif;cursor:pointer',
+      fbVerifyLabel: cp.verified ? 'Annuler la vérification' : 'Marquer comme vérifiée',
+      fbToggleVerified: () => { const Fx = this.state.tplDraft.fmt || { files: {}, pages: {} }, pr = Fx.pages[cp.k]; if (!pr) return; this.setState(s => ({ tplDraft: { ...s.tplDraft, fmt: { ...Fx, pages: { ...Fx.pages, [cp.k]: { ...pr, verified: !pr.verified } } } } })); },
+      fbVerifiedCount: nv + ' / 4 pages vérifiées',
+      fbHasAi: cp.rsOk && cp.zones.length > 0,
+      fbAiLabel: modified ? (isAi ? 'Rétablir la proposition de l\'IA' : 'Rétablir la proposition') : (isAi ? 'Proposé par l\'IA' : 'Proposé par règles'),
+      fbAiChip: { height: 26, padding: '0 10px', borderRadius: 999, border: '1px solid ' + (modified ? '#D5DDE3' : 'transparent'), background: modified ? '#fff' : '#EEF1F8', color: modified ? '#10233A' : '#3B4E8C', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: modified ? 'pointer' : 'default', whiteSpace: 'nowrap' },
+      fbResetAI: () => { if (!modified) return; fbSetRoles(cp.k, Object.fromEntries(cp.zones.map(z => [z.id, z.proposed]))); },
+      // Valider le format : 4 pages chargées, contrôlées et vérifiées ; sinon la première page à reprendre s'ouvre.
+      fbValidate: () => { if (fbOk) return this.setState({ tplStep: 3 }); const j = FBP.findIndex(p => !p.ref || p.err || !p.verified); this.setState({ fbSel: j < 0 ? fbSel : j, fbHover: null }); },
+      fbValidateStyle: 'height:42px;padding:0 20px;border-radius:12px;border:none;background:#fff;color:#10233A;font:700 13.5px \'Plus Jakarta Sans\',sans-serif;cursor:pointer' + (fbOk ? '' : ';opacity:.55'),
+      tplNotFmt: step !== 2 };
     const fmtFile0 = F.pages.cover ? F.files[F.pages.cover.fileId] : null;
-    const fmtVals = { tplFmtPages, tplFmtRef: this.tplFmtRef, tplFmtCount: fmtLoaded + ' / 4 pages chargées',
+    const fmtVals = { ...fbVals, tplFmtRef: this.tplFmtRef,
       tplFmtImportAll: () => { this._fmtKind = null; if (this.tplFmtRef.current) this.tplFmtRef.current.click(); },
       tplFmtFile: e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) this.tplFmtLoad(this._fmtKind || null, f); },
       tplFmtHasGlobalErr: !!((S.tplFmtErr || {}).all || (chk && chk.err)), tplFmtGlobalErr: (S.tplFmtErr || {}).all || (chk && chk.err) || '',

@@ -176,13 +176,13 @@ export function pageWarnings(kind: PageKind, s: SlideAnalysis, fileKind: FormatF
 }
 
 /** Référence d'une page modèle : fichier chargé et numéro de diapositive (1 = première). */
-export interface PageRef { fileId: string; slide: number; /** Rôle des formes de la diapositive, validé à l'étape B. */ roles?: RoleMap }
+export interface PageRef { fileId: string; slide: number; /** Rôle des formes de la diapositive, validé à l'étape B. */ roles?: RoleMap; /** Page marquée « Vérifiée » par l'utilisateur à l'étape B (04/10/2026). */ verified?: boolean }
 export type FormatSelection = Partial<Record<PageKind, PageRef | null>>;
 
 /** Références du format d'un template (fichier, diapositive, type) sans l'extraction complète. */
 export function formatRefs(f: any) {
   if (!f?.pages) return null;
-  return Object.fromEntries(Object.entries(f.pages).map(([k, p]: [string, any]) => [k, { fileId: p.fileId, fileName: p.fileName, slide: p.slide, kind: p.kind, ...(p.roles ? { roles: p.roles } : {}) }]));
+  return Object.fromEntries(Object.entries(f.pages).map(([k, p]: [string, any]) => [k, { fileId: p.fileId, fileName: p.fileName, slide: p.slide, kind: p.kind, ...(p.roles ? { roles: p.roles } : {}), ...(p.verified ? { verified: true } : {}) }]));
 }
 
 /** Contrôles bloquants du format complet (passage à l'étape suivante et enregistrement du template). */

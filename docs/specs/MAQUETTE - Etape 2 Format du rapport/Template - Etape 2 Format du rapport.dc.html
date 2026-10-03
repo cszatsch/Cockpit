@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet"><style>html,body{margin:0;background:#F2F4F3;font-family:'Plus Jakarta Sans',sans-serif;color:#10233A;-webkit-font-smoothing:antialiased}a{color:#10233A}a:hover{color:#1F5C80}select{font-family:inherit}</style></helmet>
+<div style="max-width:1440px;margin:0 auto;padding:28px 32px 56px;display:flex;flex-direction:column;gap:28px">
+
+  <nav style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px">
+    <sc-for list="{{ steps }}" as="s" hint-placeholder-count="6">
+      <div style="{{ s.wrap }}">
+        <div style="{{ s.bar }}"></div>
+        <div style="display:flex;align-items:center;gap:10px;padding-top:12px">
+          <div style="{{ s.dot }}">{{ s.mark }}</div>
+          <div style="display:flex;flex-direction:column;gap:1px;min-width:0">
+            <span style="font-size:10.5px;font-weight:600;letter-spacing:.09em;color:#8A97A5">{{ s.n }}</span>
+            <span style="{{ s.label }}">{{ s.name }}</span>
+          </div>
+        </div>
+      </div>
+    </sc-for>
+  </nav>
+
+  <header style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:24px 40px">
+    <div style="display:flex;flex-direction:column;gap:10px;max-width:760px">
+      <span style="font-size:11px;font-weight:700;letter-spacing:.16em;color:#8A97A5">B · FORMAT DU RAPPORT</span>
+      <h1 style="margin:0;font-size:32px;line-height:1.1;font-weight:800;letter-spacing:-.025em">Format du rapport</h1>
+      <p style="margin:0;font-size:14.5px;line-height:1.6;color:#4E5E6E;text-wrap:pretty">Chargez un modèle pour chacun des 4 types de page : le PowerPoint généré reprendra leurs fonds, logos, couleurs, polices et positions. Un seul fichier PowerPoint peut fournir les 4 pages : choisissez alors la diapositive de chaque type.</p>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px">
+      <div style="display:flex;flex-direction:column;align-items:flex-start;gap:6px">
+        <div style="display:flex;align-items:baseline;gap:8px;white-space:nowrap"><span style="font-size:22px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums">4 / 4</span><span style="font-size:13px;font-weight:600;color:#4E5E6E">pages chargées</span></div>
+        <span style="font-size:12px;color:#8A97A5">.pptx recommandé, PDF ou image en complément</span>
+      </div>
+      <button style="white-space:nowrap;flex:none;display:flex;align-items:center;gap:9px;height:42px;padding:0 18px;border-radius:12px;border:1px solid #D5DDE3;background:#fff;color:#10233A;font:600 13.5px 'Plus Jakarta Sans',sans-serif;cursor:pointer;box-shadow:0 1px 2px rgba(16,35,58,.06)" style-hover="border-color:#10233A">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 10.5V2.5M4.8 5.5 8 2.3l3.2 3.2M2.5 11v2.5h11V11"></path></svg>
+        Importer un fichier pour les 4 pages
+      </button>
+    </div>
+  </header>
+
+  <section style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px">
+    <sc-for list="{{ pages }}" as="p" hint-placeholder-count="4">
+      <button onClick="{{ p.select }}" style="{{ p.card }}">
+        <div style="{{ p.slide }}">
+          <sc-if value="{{ p.hasDeco }}"><div style="{{ p.deco }}"></div></sc-if>
+          <sc-for list="{{ p.zones }}" as="z"><div style="{{ z.box }}"><div style="{{ z.ink }}">{{ z.txt }}</div></div></sc-for>
+        </div>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:12px 4px 2px">
+          <div style="display:flex;flex-direction:column;gap:3px;min-width:0;text-align:left">
+            <span style="font-size:10.5px;font-weight:700;letter-spacing:.12em;color:#8A97A5">{{ p.num }}</span>
+            <span style="font-size:14.5px;font-weight:700;letter-spacing:-.01em;color:#10233A">{{ p.name }}</span>
+            <span style="font-size:12px;color:#6B7A89;line-height:1.4">{{ p.sub }}</span>
+          </div>
+          <span style="{{ p.chip }}"><span style="{{ p.chipDot }}"></span>{{ p.status }}</span>
+        </div>
+      </button>
+    </sc-for>
+  </section>
+
+  <section style="background:#fff;border-radius:22px;border:1px solid #E3E8EC;box-shadow:0 1px 2px rgba(16,35,58,.04),0 12px 40px -18px rgba(16,35,58,.14);padding:28px;display:flex;flex-direction:column;gap:24px">
+    <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px">
+      <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap">
+        <span style="font-size:11px;font-weight:700;letter-spacing:.14em;color:#8A97A5">{{ cur.num }}</span>
+        <h2 style="margin:0;font-size:22px;font-weight:800;letter-spacing:-.02em">{{ cur.name }}</h2>
+        <span style="font-size:13.5px;color:#6B7A89">{{ cur.sub }}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="{{ cur.chip }}"><span style="{{ cur.chipDot }}"></span>{{ cur.status }}</span>
+        <button onClick="{{ toggleVerified }}" style="height:34px;padding:0 14px;border-radius:10px;border:1px solid #D5DDE3;background:#fff;color:#10233A;font:600 12.5px 'Plus Jakarta Sans',sans-serif;cursor:pointer" style-hover="border-color:#10233A">{{ verifyLabel }}</button>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+      <div style="flex:1.35 1 520px;min-width:0;display:flex;flex-direction:column;gap:18px">
+        <div style="padding:14px;border-radius:16px;background:#F2F4F3">
+          <div style="{{ cur.slide }}">
+            <sc-if value="{{ cur.hasDeco }}"><div style="{{ cur.deco }}"></div></sc-if>
+            <sc-for list="{{ cur.zones }}" as="z"><div style="{{ z.box }}"><div style="{{ z.ink }}">{{ z.txt }}</div></div></sc-for>
+            <sc-for list="{{ cur.overlays }}" as="o"><div onMouseEnter="{{ o.enter }}" onMouseLeave="{{ leave }}" style="{{ o.style }}"><sc-if value="{{ o.showTag }}"><span style="{{ o.tag }}">{{ o.role }}</span></sc-if></div></sc-for>
+          </div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px 22px;font-size:12.5px;color:#4E5E6E">
+          <span style="display:flex;align-items:center;gap:8px"><span style="width:14px;height:10px;border-radius:3px;border:1.5px solid #19A974;background:rgba(25,169,116,.12)"></span>Zone de données<b style="font-weight:700;color:#10233A;font-variant-numeric:tabular-nums">{{ cur.nData }}</b></span>
+          <span style="display:flex;align-items:center;gap:8px"><span style="width:14px;height:10px;border-radius:3px;border:1.5px dashed #9AA8B6"></span>Design fixe<b style="font-weight:700;color:#10233A;font-variant-numeric:tabular-nums">{{ cur.nFixe }}</b></span>
+          <span style="display:flex;align-items:center;gap:8px"><span style="width:14px;height:10px;border-radius:3px;border:1.5px dashed #E0645A;background:repeating-linear-gradient(135deg,rgba(224,100,90,.25) 0 2px,transparent 2px 4px)"></span>Contenu retiré<b style="font-weight:700;color:#10233A;font-variant-numeric:tabular-nums">{{ cur.nRetire }}</b></span>
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 14px;border:1px solid #E3E8EC;border-radius:14px">
+          <div style="display:flex;align-items:center;gap:12px;min-width:0">
+            <span style="font:500 10.5px 'JetBrains Mono',monospace;letter-spacing:.06em;padding:5px 7px;border-radius:6px;background:#FCEEE6;color:#B4532A">PPTX</span>
+            <span style="font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ cur.file }}</span>
+          </div>
+          <div style="display:flex;gap:6px">
+            <button style="height:32px;padding:0 13px;border-radius:9px;border:1px solid #D5DDE3;background:#fff;color:#10233A;font:600 12.5px 'Plus Jakarta Sans',sans-serif;cursor:pointer" style-hover="border-color:#10233A">Remplacer</button>
+            <button style="height:32px;padding:0 13px;border-radius:9px;border:1px solid transparent;background:transparent;color:#B23A3A;font:600 12.5px 'Plus Jakarta Sans',sans-serif;cursor:pointer" style-hover="background:#FBEDEC">Supprimer</button>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0 28px">
+          <sc-for list="{{ cur.fiche }}" as="f" hint-placeholder-count="8">
+            <div style="display:grid;grid-template-columns:78px minmax(0,1fr);gap:12px;padding:9px 0;border-bottom:1px solid #EEF1F3;font-size:13px;line-height:1.45">
+              <span style="color:#8A97A5">{{ f.k }}</span>
+              <span style="color:#10233A;font-variant-numeric:tabular-nums;text-wrap:pretty">{{ f.v }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex;align-items:center;gap:14px">
+          <span style="font-size:13px;color:#8A97A5;width:78px">Couleurs</span>
+          <div style="display:flex;flex-wrap:wrap;gap:5px">
+            <sc-for list="{{ cur.palette }}" as="c"><span title="{{ c.hex }}" style="{{ c.style }}"></span></sc-for>
+          </div>
+        </div>
+      </div>
+
+      <div style="flex:1 1 380px;min-width:0;display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+          <h3 style="margin:0;font-size:15px;font-weight:700;letter-spacing:-.01em">Zones de la page<span style="color:#8A97A5;font-weight:600"> · {{ cur.formes }}</span></h3>
+          <button onClick="{{ resetAI }}" style="{{ aiChip }}">{{ aiLabel }}</button>
+        </div>
+        <p style="margin:0;font-size:12.5px;line-height:1.55;color:#6B7A89;text-wrap:pretty">Le contenu d'exemple est retiré de chaque rapport ; les zones en vert reçoivent le texte du rapport, avec leur mise en forme.</p>
+        <div style="display:flex;flex-direction:column;border-top:1px solid #EEF1F3">
+          <sc-for list="{{ cur.rows }}" as="r" hint-placeholder-count="8">
+            <div onMouseEnter="{{ r.enter }}" onMouseLeave="{{ leave }}" style="{{ r.style }}">
+              <span style="{{ r.icon }}">{{ r.glyph }}</span>
+              <span style="{{ r.srcStyle }}">{{ r.src }}</span>
+              <select value="{{ r.role }}" onChange="{{ r.change }}" style="{{ r.select }}">
+                <sc-for list="{{ roles }}" as="o"><option value="{{ o }}">{{ o }}</option></sc-for>
+              </select>
+            </div>
+          </sc-for>
+        </div>
+        <sc-for list="{{ cur.notices }}" as="n">
+          <div style="{{ n.style }}">
+            <span style="{{ n.dot }}"></span>
+            <span>{{ n.text }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <footer style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px 40px;padding:22px 26px;border-radius:20px;background:#10233A;color:#fff">
+    <div style="display:flex;gap:16px;align-items:flex-start;max-width:820px">
+      <span style="flex:none;width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font:500 11px 'JetBrains Mono',monospace;color:#9FD9C2">v1.0</span>
+      <p style="margin:0;font-size:13.5px;line-height:1.6;color:#D3DCE5;text-wrap:pretty">La validation crée le PowerPoint de référence (v1.0), qui fige la structure, le design du rapport et ses zones de données. Le template, désormais actif, est ajouté à la Bibliothèque et disponible dans « Générer un rapport ».</p>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="font-size:12.5px;color:#8FA3B7;font-variant-numeric:tabular-nums">{{ verifiedCount }}</span>
+      <button style="height:42px;padding:0 18px;border-radius:12px;border:1px solid rgba(255,255,255,.18);background:transparent;color:#fff;font:600 13.5px 'Plus Jakarta Sans',sans-serif;cursor:pointer" style-hover="background:rgba(255,255,255,.06)">Étape précédente</button>
+      <button style="height:42px;padding:0 20px;border-radius:12px;border:none;background:#fff;color:#10233A;font:700 13.5px 'Plus Jakarta Sans',sans-serif;cursor:pointer" style-hover="background:#E6F4EE">Valider le format</button>
+    </div>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const FIXE='Design fixe (gardé)', RET="Contenu d'exemple (retiré)";
+const ROLES=[FIXE,RET,'Titre','Sous-titre','Nom de la section','Numéro de la section','Date du rapport','Période des données','Nom du projet','Client','Comité','Numéro de page','Mention de bas de page (gardée)'];
+const T=(txt,role,x,y,w,h,fs,c,fw,ls)=>({kind:'text',src:'«'+txt+'»',txt,role,x,y,w,h,d:{t:'text',fs,c,fw,ls}});
+const S=(n,role,x,y,w,h,bg,r)=>({kind:'shape',src:'Forme · Shape '+n,role,x,y,w,h,d:{t:'block',bg,r}});
+const I=(n,x,y,w,h,d)=>({kind:'image',src:'Image · Image '+n,role:FIXE,x,y,w,h,d});
+const PAGES=[
+ {num:'PAGE 1',name:'Page de couverture',sub:'Première diapositive du rapport',file:'Page de couverture.pptx',bg:'#FFFFFF',formes:'17 formes',
+  fiche:[['Format','16:9 · 33,87 × 19,05 cm'],['Fond','uni #FFFFFF'],['Éléments','2 logos · 12 texte fixes · 1 trait · 2 formes'],['Zones','date du rapport · client · nom du projet · titre · sous-titre · période des données'],['Polices','Poppins, Aptos Display, Aptos'],['Titres','Poppins · 38 pt · gras · #FFFFFF'],['Texte','Aptos · 28 pt · #000000']],
+  palette:['#FFFFFF','#1E2124','#5F6368','#139FDC','#D9DCE0','#9AA0A6','#1F5C80','#E8742A','#1B2A3F','#E5E5E5','#1F7A3A','#1E9AD6'],
+  notices:[],
+  zones:[I(0,6,7,14,6,{t:'text',txt:'onepoint.',fs:2,c:'#1E2124',fw:800}),T('SEPTEMBRE 2026','Date du rapport',74,7,20,4,1.2,'#1E2124',700,'.1em'),I(1,6,19,5,9,{t:'block',bg:'#139FDC',r:'20%'}),S(1,FIXE,0,44,100,56,'#1E2124'),
+   T('Carrefour France','Client',14,19,50,5,2.2,'#1E2124',700),T('Direction financière — Programme de transformation Finance','Nom du projet',14,25,62,4,1.3,'#5F6368',500),S(4,FIXE,6,55,8,.6,'#139FDC'),T('LIVRABLE DE FIN DE MISSION',FIXE,6,50,34,3,1.1,'#139FDC',700,'.12em'),
+   T('Mission de pré-cadrage','Titre',6,57,80,9,4.4,'#FFFFFF',800),T('Programme de digitalisation de la fonction Finance','Sous-titre',6,67,70,4.5,1.6,'#C9CDD2',500),T('DESTINATAIRE',FIXE,6,79,22,3,.95,'#139FDC',700,'.12em'),T('Carrefour France — Direction financière',FIXE,6,83,28,6,1.15,'#FFFFFF',500),
+   T('PÉRIODE ANALYSÉE',FIXE,37,79,22,3,.95,'#139FDC',700,'.12em'),T('Couverture : 20 juil. 2026 → 11 sept. 2026','Période des données',37,83,28,6,1.15,'#FFFFFF',500),T('DATE DE REMISE',FIXE,70,79,22,3,.95,'#139FDC',700,'.12em'),T('11 septembre 2026','Date du rapport',70,83,22,4,1.15,'#FFFFFF',500),S(7,FIXE,6,76,88,.3,'#4A5361')]},
+ {num:'PAGE 2',name:'Page intercalaire',sub:'Transition entre deux sections',file:'Intercalaire.pptx',bg:'#1E2124',formes:'5 formes',
+  fiche:[['Format','16:9 · 33,87 × 19,05 cm'],['Fond','uni #1E2124'],['Éléments','3 texte fixes · 2 formes'],['Zones','numéro de la section · titre · sous-titre'],['Polices','Poppins, Calibri Light, Calibri'],['Titres','Poppins · 24 pt · gras · #FFFFFF'],['Texte','Calibri · 32 pt · #000000']],
+  palette:['#1E2124','#139FDC','#FFFFFF','#C9CDD2','#3B6FD1','#E8742A','#4A5361','#D9DCE0','#A0A4A8','#F5B800','#5B8FDB','#6AA84F'],
+  notices:['font'],
+  zones:[T('1','Numéro de la section',8,36,6,6,2.4,'#139FDC',800),T('Nos convictions','Titre',8,43,50,8,4,'#FFFFFF',800),T("Le programme tel qu'il a été conçu : quelle vérité sur une même fondation, la donnée, et deux chantiers transverses","Sous-titre",8,52,78,6,1.3,'#C9CDD2',500),S(3,FIXE,8,34,6,.6,'#139FDC'),S(4,FIXE,0,0,1.6,100,'#139FDC')]},
+ {num:'PAGE 3',name:'Page standard',sub:'Contenu : texte, tableaux, graphiques',file:'Page standard.pptx',bg:'#FFFFFF',formes:'13 formes',
+  fiche:[['Format','16:9 · 33,87 × 19,05 cm'],['Fond','uni #FFFFFF'],['Éléments','20 formes · 3 bandeaux'],['Zones','numéro de la section · titre · sous-titre · nom de la section · numéro de page'],['Polices','Poppins, Calibri'],['Titres','Poppins · 20 pt · gras · #1E2124'],['Texte','Calibri · 32 pt · #000000']],
+  palette:['#FFFFFF','#EEEEEC','#139FDC','#126FA0','#5F6368','#1E2124','#4A5361','#D9DCE0','#E8742A','#9AA0A6'],
+  notices:['font'],
+  zones:[T('12,8 M€ budget du programme',RET,6,23,26,11,2,'#1E2124',800),T('LES QUATRE VOLETS DU PROGRAMME',RET,6,38,84,20,1,'#139FDC',700,'.1em'),T('LES TROIS JALONS CLÉS',RET,6,62,84,20,1,'#139FDC',700,'.1em'),T('* Deux chantiers transverses accompagnent le programme',RET,6,86,60,3,.9,'#5F6368',500),
+   T('LE PROGRAMME','Nom de la section',6,5,30,3,1,'#139FDC',700,'.12em'),T("Une fonction Finance qui pilote plutôt qu'elle ne produit",'Titre',6,9,84,6,2.4,'#1E2124',800),T('Reporting, cycle prévisionnel, clôture : ce qui change','Sous-titre',6,15,84,4,1.2,'#5F6368',500),
+   S(0,FIXE,95,0,5,100,'#1E2124'),S(2,FIXE,6,20,84,.3,'#D9DCE0'),S(3,FIXE,34,23,56,11,'#EEEEEC'),T('3','Numéro de la section',95.6,3,3.8,5,1.6,'#FFFFFF',800),T('Programme Finance · Comité de pilotage','Mention de bas de page (gardée)',6,93,50,3,.85,'#9AA0A6',500),T('p. 3','Numéro de page',95.4,92,4.2,4,.9,'#FFFFFF',600)]},
+ {num:'PAGE 4',name:'Page de clôture',sub:'Dernière diapositive de la présentation',file:'Page de fermeture.pptx',bg:'#1E2124',formes:'2 formes',
+  deco:{position:'absolute',inset:0,background:'#139FDC',clipPath:'polygon(62% 0,92% 0,100% 72%,100% 100%,84% 100%)'},
+  fiche:[['Format','16:9 · 33,87 × 19,05 cm'],['Fond','uni #1E2124'],['Éléments','26 formes · 1 trait'],['Zones','date du rapport'],['Polices','Poppins'],['Titres','Poppins · 54 pt · gras · #EEEEEC'],['Texte','Poppins · 11 pt · #1E2124'],['Marges','3,12 / 7,62 / 12,33 / 2,98 cm']],
+  palette:['#1E2124','#139FDC','#FFFFFF','#1A9BD7','#E5E5E5','#D0662B','#3CC4BE','#8E3BB0','#E6007E','#5BC8F5'],
+  notices:['libre','font'],
+  zones:[T('Juillet 2026','Date du rapport',8,88,20,3.5,1,'#EEEEEC',600),T('Merci.',FIXE,8,42,30,10,4.6,'#EEEEEC',800)]}
+];
+const NOTICE={font:'Police introuvable : « Poppins » n\'est ni incorporée au fichier ni une police standard d\'Office. Installez-la sur les postes qui ouvriront le rapport, ou incorporez-la au fichier (PowerPoint › Options › Enregistrement).',libre:'Forme libre : reprise à l\'identique dans le rapport, approchée par un rectangle dans l\'aperçu.'};
+const cat=r=>r===FIXE?'fixe':r===RET?'retire':'data';
+const CHEV="url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2310233A' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")";
+
+class Component extends DCLogic {
+  state={sel:0,hover:null,roles:PAGES.map(p=>p.zones.map(z=>z.role)),verified:[false,false,false,false]};
+  drawZones(p,roles,fade){
+    return p.zones.map((z,i)=>{const d=z.d;const c=cat(roles[i]);
+      const box={position:'absolute',left:z.x+'%',top:z.y+'%',width:z.w+'%',height:z.h+'%',opacity:fade&&c==='retire'?.28:1,transition:'opacity .2s'};
+      const ink=d.t==='block'?{width:'100%',height:'100%',background:d.bg,borderRadius:d.r||0}:{fontSize:d.fs+'cqw',color:d.c,fontWeight:d.fw||500,letterSpacing:d.ls||0,lineHeight:1.18,fontFamily:"Poppins,'Plus Jakarta Sans',sans-serif",overflow:'hidden',height:'100%'};
+      return {box,ink,txt:d.t==='block'?'':(d.txt||z.txt)};});
+  }
+  slideStyle(p,big){return {position:'relative',aspectRatio:'16/9',containerType:'inline-size',overflow:big?'visible':'hidden',background:p.bg,borderRadius:big?8:7,boxShadow:big?'0 1px 2px rgba(16,35,58,.08),0 18px 40px -20px rgba(16,35,58,.35)':'inset 0 0 0 1px rgba(16,35,58,.08)'};}
+  status(v){return {status:v?'Vérifiée':'À vérifier',chip:{display:'inline-flex',alignItems:'center',gap:6,height:24,padding:'0 9px',borderRadius:999,fontSize:11.5,fontWeight:700,whiteSpace:'nowrap',background:v?'#E6F5EE':'#FBF2E2',color:v?'#0E6B47':'#8A5A12'},chipDot:{width:6,height:6,borderRadius:99,background:v?'#19A974':'#E0A030'}};}
+  renderVals(){
+    const {sel,hover,roles,verified}=this.state;
+    const STEPS=[['A','ÉTAPE 1',"Fiche d'identité"],['B','ÉTAPE 2','Format du rapport'],['C','ÉTAPE 3','Composants'],['D','ÉTAPE 4','Ordre et données'],['E','ÉTAPE 5','Prévisualisation'],['F','ÉTAPE 6','Publication']];
+    const steps=STEPS.map(([l,n,name],i)=>{const done=i<1,cur=i===1;return {n,name,mark:done?'✓':l,
+      wrap:{display:'flex',flexDirection:'column',minWidth:0,opacity:i>1?.62:1},
+      bar:{height:3,borderRadius:3,background:done?'#19A974':cur?'#10233A':'#DCE2E6'},
+      dot:{flex:'none',width:24,height:24,borderRadius:99,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:800,background:done?'#E6F5EE':cur?'#10233A':'#fff',color:done?'#0E6B47':cur?'#fff':'#8A97A5',border:i>1?'1px solid #DCE2E6':'none'},
+      label:{fontSize:13.5,fontWeight:cur?800:600,color:i>1?'#4E5E6E':'#10233A',lineHeight:1.25,textWrap:'balance'}};});
+    const pages=PAGES.map((p,i)=>({num:p.num,name:p.name,sub:p.sub,...this.status(verified[i]),hasDeco:!!p.deco,deco:p.deco,
+      slide:this.slideStyle(p,false),zones:this.drawZones(p,roles[i],false),select:()=>this.setState({sel:i,hover:null}),
+      card:{display:'flex',flexDirection:'column',padding:10,borderRadius:16,cursor:'pointer',textAlign:'left',font:'inherit',background:'#fff',border:i===sel?'1.5px solid #10233A':'1px solid #E3E8EC',boxShadow:i===sel?'0 10px 30px -14px rgba(16,35,58,.35)':'0 1px 2px rgba(16,35,58,.04)',margin:i===sel?0:'.5px',transition:'box-shadow .2s,border-color .2s'}}));
+    const p=PAGES[sel],r=roles[sel];
+    const counts={data:0,fixe:0,retire:0};r.forEach(x=>counts[cat(x)]++);
+    const COL={data:['#19A974','rgba(25,169,116,.11)','#E8F6EF','#0E6B47','#BFE6D2'],retire:['#E0645A','rgba(224,100,90,.14)','#FBEDEC','#A23A33','#F2C9C5'],fixe:['#9AA8B6','rgba(143,160,179,.14)','#fff','#5B6B7C','#DCE2E6']};
+    const overlays=p.zones.map((z,i)=>{const c=cat(r[i]),h=hover===i,[stroke,fill]=COL[c];const vis=c!=='fixe'||h;
+      const st={position:'absolute',left:z.x+'%',top:z.y+'%',width:z.w+'%',height:Math.max(z.h,1.6)+'%',boxSizing:'border-box',borderRadius:3,cursor:'default',transition:'all .15s',zIndex:h?3:2,
+        border:vis?`1.5px ${c==='data'?'solid':'dashed'} ${stroke}`:'1.5px dashed transparent',
+        background:!vis?'transparent':c==='retire'?`repeating-linear-gradient(135deg,${fill} 0 4px,transparent 4px 8px)`:fill,
+        boxShadow:h?`0 0 0 3px ${fill}`:'none'};
+      const below=z.y<8;
+      return {style:st,enter:()=>this.setState({hover:i}),showTag:h,role:r[i],tag:{position:'absolute',left:-1.5,[below?'top':'bottom']:'calc(100% + 5px)',whiteSpace:'nowrap',fontSize:11,fontWeight:700,padding:'3px 8px',borderRadius:6,background:stroke,color:'#fff',fontFamily:"'Plus Jakarta Sans',sans-serif",boxShadow:'0 4px 12px rgba(16,35,58,.2)'}};});
+    const GL={text:'T',image:'▢',shape:'◇'};
+    const rows=p.zones.map((z,i)=>{const c=cat(r[i]),h=hover===i,col=COL[c];return {src:z.src,role:r[i],glyph:GL[z.kind],
+      enter:()=>this.setState({hover:i}),
+      change:e=>{const v=e.target.value;this.setState(s=>{const rr=s.roles.map(a=>a.slice());rr[sel][i]=v;return {roles:rr};});},
+      style:{display:'grid',gridTemplateColumns:'22px minmax(0,1fr) minmax(150px,206px)',alignItems:'center',gap:10,padding:'5px 8px',margin:'0 -8px',borderRadius:10,borderBottom:'1px solid #EEF1F3',background:h?'#F4F7F9':'transparent',transition:'background .12s'},
+      icon:{width:22,height:22,borderRadius:6,display:'flex',alignItems:'center',justifyContent:'center',fontSize:z.kind==='text'?11:12,fontWeight:800,fontFamily:"'JetBrains Mono',monospace",background:'#F2F4F3',color:'#8A97A5'},
+      srcStyle:{fontSize:13,color:z.kind==='text'?'#10233A':'#6B7A89',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'},
+      select:{appearance:'none',WebkitAppearance:'none',height:32,width:'100%',padding:'0 28px 0 11px',borderRadius:9,border:'1px solid '+col[4],background:col[2]+' '+CHEV+' no-repeat right 11px center',color:col[3],fontSize:12.5,fontWeight:c==='data'?700:600,cursor:'pointer',outline:'none',textOverflow:'ellipsis'}};});
+    const notices=p.notices.map(k=>({text:NOTICE[k],style:{display:'flex',gap:10,alignItems:'flex-start',padding:'11px 13px',borderRadius:12,fontSize:12.5,lineHeight:1.55,background:k==='font'?'#FBF4E6':'#F2F4F3',color:k==='font'?'#7A5212':'#4E5E6E'},dot:{flex:'none',width:6,height:6,borderRadius:99,marginTop:7,background:k==='font'?'#E0A030':'#9AA8B6'}}));
+    const modified=r.some((x,i)=>x!==p.zones[i].role);
+    const nv=verified.filter(Boolean).length;
+    return {steps,pages,roles:ROLES,
+      cur:{num:p.num,name:p.name,sub:p.sub,file:p.file,formes:p.formes,...this.status(verified[sel]),hasDeco:!!p.deco,deco:p.deco,slide:this.slideStyle(p,true),zones:this.drawZones(p,r,true),overlays,rows,notices,
+        fiche:p.fiche.map(([k,v])=>({k,v})),palette:p.palette.map(hex=>({hex,style:{width:16,height:16,borderRadius:5,background:hex,boxShadow:'inset 0 0 0 1px rgba(16,35,58,.12)'}})),
+        nData:counts.data,nFixe:counts.fixe,nRetire:counts.retire},
+      leave:()=>this.setState({hover:null}),
+      verifyLabel:verified[sel]?'Annuler la vérification':'Marquer comme vérifiée',
+      toggleVerified:()=>this.setState(s=>{const v=s.verified.slice();v[sel]=!v[sel];return {verified:v};}),
+      verifiedCount:nv+' / 4 pages vérifiées',
+      aiLabel:modified?'Rétablir la proposition de l\'IA':'Proposé par l\'IA',
+      aiChip:{height:26,padding:'0 10px',borderRadius:999,border:'1px solid '+(modified?'#D5DDE3':'transparent'),background:modified?'#fff':'#EEF1F8',color:modified?'#10233A':'#3B4E8C',fontSize:11.5,fontWeight:700,fontFamily:'inherit',cursor:modified?'pointer':'default',whiteSpace:'nowrap'},
+      resetAI:()=>{if(!modified)return;this.setState(s=>{const rr=s.roles.map(a=>a.slice());rr[sel]=p.zones.map(z=>z.role);return {roles:rr};});}};
+  }
+}
+</script>
+</body>
+</html>

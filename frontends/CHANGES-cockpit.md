@@ -330,3 +330,9 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 
 - Natures et indicateurs venus de l'API : Jalons devient « Frise » (indicateur « Indicateurs clés »), Risques « Matrice et tableau » (indicateurs « Matrice P × I », « Plan de mitigation »).
 - `RISE Cockpit.dc.html`, étape de validation : texte remplacé à la demande du commanditaire (« La validation crée le PowerPoint de référence (v…), qui fige la structure, le design du rapport et ses zones de données. Le template, désormais actif, est ajouté à la Bibliothèque et disponible dans « Générer un rapport ». »).
+
+## Créer un template, étape B : maquette « Format du rapport » (04/10/2026)
+
+- `RISE Cockpit.dc.html` : bloc de l'étape B remplacé par la maquette livrée (`docs/specs/MAQUETTE - Etape 2 Format du rapport/`), à l'identique (mise en page, couleurs, typographies, survols, textes) ; données réelles à la place de `PAGES` (`fbPage`, `fbVals`) ; stepper et navigation génériques masqués à cette étape (`tplNotFmt`) ; polices JetBrains Mono et Poppins ajoutées au chargement des polices ; anciennes cartes de page et méthodes `tplFmtSetRole` / `tplFmtPrevKey` retirées ; aperçus : rendu réel sans annotation (`tplFmtRefresh`) ; clé du contrôle sans le statut « vérifiée » (`fmtPagesKey`).
+- `api.js` : `tplBody` transmet `verified` par page.
+- Ajouts nécessaires au fonctionnement, absents de la maquette : liste des diapositives (fichier de plusieurs diapositives), page vide (« Charger un fichier », « ou déposez-le ici »), « Analyse en cours… », « Proposé par règles » / « Rétablir la proposition » sans IA, erreurs et alertes du serveur.

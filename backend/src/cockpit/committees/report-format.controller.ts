@@ -19,7 +19,7 @@ import { ReportTemplateService } from './report-template.service';
 import { COMPONENTS, configErrors, KPI_MAX, PERIODS } from '../../domain/report-components';
 
 const Role = z.enum(SHAPE_ROLES.map((r) => r.id) as [ShapeRole, ...ShapeRole[]]);
-const Ref = z.object({ fileId: z.string().min(1), slide: z.number().int().min(1), roles: z.record(z.string(), Role).optional() }).strict();
+const Ref = z.object({ fileId: z.string().min(1), slide: z.number().int().min(1), roles: z.record(z.string(), Role).optional(), verified: z.boolean().optional() }).strict();
 export const FormatSelectionSchema = z.object(Object.fromEntries(PAGE_KINDS.map((k) => [k, Ref.nullable().optional()])) as Record<(typeof PAGE_KINDS)[number], z.ZodOptional<z.ZodNullable<typeof Ref>>>).strict();
 
 /** Brouillon de template pour l'aperçu (mêmes champs que la création). */

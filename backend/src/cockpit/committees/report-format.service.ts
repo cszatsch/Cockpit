@@ -20,7 +20,7 @@ export class ReportFormatService {
   fileView(f: FileRow) {
     const a = f.analysis as FormatAnalysis;
     return {
-      id: f.id, fileName: f.fileName, kind: f.kind, sizeBytes: f.sizeBytes, createdAt: f.createdAt, format: sizeLabel(a.size), slideCount: a.slides.length, warnings: a.warnings,
+      id: f.id, fileName: f.fileName, kind: f.kind, sizeBytes: f.sizeBytes, createdAt: f.createdAt, format: sizeLabel(a.size), size: a.size, slideCount: a.slides.length, warnings: a.warnings,
       slides: a.slides.map((s) => ({ index: s.index, label: s.label, summary: pageSummary(a, s), warnings: Object.fromEntries(PAGE_KINDS.map((k) => [k, pageWarnings(k, s, a.kind, a.embeddedFonts)])) })),
     };
   }
@@ -89,7 +89,7 @@ export class ReportFormatService {
       const a = f.analysis as FormatAnalysis;
       const s = a.slides[ref.slide - 1];
       const roles = a.kind === 'PPTX' && s.shapes ? ref.roles ?? s.suggestedRoles?.[k]?.roles ?? suggestRoles(k, s.shapes, a.size) : undefined;
-      pages[k] = { fileId: f.id, fileName: f.fileName, slide: ref.slide, kind: a.kind, size: a.size, theme: a.theme, embeddedFonts: a.embeddedFonts, analysis: s, ...(roles ? { roles } : {}) };
+      pages[k] = { fileId: f.id, fileName: f.fileName, slide: ref.slide, kind: a.kind, size: a.size, theme: a.theme, embeddedFonts: a.embeddedFonts, analysis: s, ...(roles ? { roles } : {}), ...(ref.verified ? { verified: true } : {}) };
     }
     return { pages };
   }

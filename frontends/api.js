@@ -764,7 +764,7 @@ export function attach(comp) {
     });
     // Format du rapport (étape B, 02/10/2026) : les 4 pages modèles { fileId, slide } ; absent = présentation par défaut.
     const fmt = t.format && ['cover', 'divider', 'standard', 'closing'].every((k) => t.format[k] && t.format[k].fileId && !String(t.format[k].fileId).startsWith('local'))
-      ? Object.fromEntries(['cover', 'divider', 'standard', 'closing'].map((k) => [k, { fileId: t.format[k].fileId, slide: +t.format[k].slide || 1, ...(t.format[k].roles ? { roles: t.format[k].roles } : {}) }])) : undefined;
+      ? Object.fromEntries(['cover', 'divider', 'standard', 'closing'].map((k) => [k, { fileId: t.format[k].fileId, slide: +t.format[k].slide || 1, ...(t.format[k].roles ? { roles: t.format[k].roles } : {}), ...(t.format[k].verified ? { verified: true } : {}) }])) : undefined;
     return { name: t.name, bodyId: t.bodyId || bodyId(t.committee) || null, authorLabel: t.author || null, version: String(t.version || '1.0'), description: t.desc || '', components: comps, ...(fmt ? { format: fmt } : {}), active: t.active !== false };
   }
   function onTemplates(before, after) {

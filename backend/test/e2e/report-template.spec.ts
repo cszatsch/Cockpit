@@ -94,6 +94,15 @@ describe('Cockpit — Templates de rapport : versions et publications', () => {
     await t.db.risk.delete({ where: { id: 'R-TPL' } });
   });
 
+  it('étape B : statut « vérifiée » de chaque page enregistré avec le format du template', async () => {
+    const f = format();
+    const created = await post('/report-templates', { name: 'Pages vérifiées', version: '1.0', components: [{ id: 'synthese', scope: 'PROJECT' }], format: { ...f, cover: { ...f.cover, verified: true } } }).expect(201);
+    expect(created.body.format.cover).toMatchObject({ verified: true });
+    expect(created.body.format.divider.verified).toBeUndefined();
+    const r = await post('/report-formats/check', { ...f, standard: { ...f.standard, verified: true } }).expect(200);
+    expect(r.body.complete).toBe(true);
+  });
+
   it('planning : Gantt des phases (phase en cours, repère du jour) ; avec les sous-phases au-delà de 25 lignes, tableau', async () => {
     const gantt = await post('/report-templates', { name: 'Gantt', version: '1.0', components: [{ id: 'planning', scope: 'PROJECT' }, { id: 'barometre', scope: 'PROJECT' }], format: format() }).expect(201);
     const g = await slideXml((await get(`/report-templates/${gantt.body.id}/pptx`).buffer(true).parse(binary).expect(200)).body as Buffer);

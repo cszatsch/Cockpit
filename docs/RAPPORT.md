@@ -349,6 +349,13 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 - **Tests** : `test/unit/report-template.spec.ts` (bloc « Rapport — jalons et risques », 5 tests), `test/e2e/report-template.spec.ts` adapté (risque ajouté visible dans le tableau et la matrice, planche absente → template endommagé).
 - **Point d'attention** : un jalon n'a pas d'état « atteint » dans le référentiel ; « franchi » signifie seulement que sa date est passée.
 
+### Créer un template : nouvel écran de l'étape B (04/10/2026)
+
+- **Réalisé** : maquette « Template - Etape 2 Format du rapport » intégrée à l'identique, branchée sur l'analyse réelle (formes et rôles proposés, fiche, palette, alertes), rendu réel de la diapositive sous les zones, statut « Vérifiée » enregistré avec le format, validation vers l'étape C.
+- **Vérification** (Playwright, pages modèles du template « Test ») : changement de rôle → couleur du sélecteur, cadre et compteurs ; « Rétablir la proposition de l'IA » ; survol synchronisé (étiquette du rôle) ; « Vérifiée » dans la vignette, l'en-tête et le bandeau ; lisible sans chevauchement avec une zone de 1 124 px (1 440 px d'écran) et contrainte à 900 px.
+- **Tests** : recette navigateur `test/browser/format-rapport.e2e.ts` mise à jour (22 / 22), `test/e2e/report-template.spec.ts` (statut « vérifiée » enregistré).
+- **Point d'attention** : sous 1 040 px d'écran, le Cockpit entier défile horizontalement (largeur minimale de l'application, inchangée).
+
 ## 4. Questions ouvertes
 
 1. **Déclencheur des règles de notification** : faut-il ajouter un sélecteur de déclencheur dans la console ? Aujourd'hui, une règle créée depuis l'écran reçoit un déclencheur par défaut : « planifié » pour une notification, « manuel » pour une alerte.
