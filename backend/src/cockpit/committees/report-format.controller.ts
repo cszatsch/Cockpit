@@ -12,13 +12,14 @@ import { techId } from '../../core/ids';
 import { parse } from '../../core/http';
 import { analyzeFormatFile } from '../../core/report-format-read';
 import { canWriteTools } from '../../domain/rights';
-import { FORMAT_MAX_BYTES, FORMAT_TOO_BIG, FormatReadError, PAGE_KINDS } from '../../domain/report-format';
+import { FORMAT_MAX_BYTES, FORMAT_TOO_BIG, FormatReadError, PAGE_KINDS, SHAPE_ROLES, ShapeRole } from '../../domain/report-format';
 import type { UploadedBlob } from '../../import/import.controller';
 import { ReportFormatService } from './report-format.service';
 import { ReportTemplateService } from './report-template.service';
 import { COMPONENTS, configErrors, KPI_MAX, PERIODS } from '../../domain/report-components';
 
-const Ref = z.object({ fileId: z.string().min(1), slide: z.number().int().min(1) }).strict();
+const Role = z.enum(SHAPE_ROLES.map((r) => r.id) as [ShapeRole, ...ShapeRole[]]);
+const Ref = z.object({ fileId: z.string().min(1), slide: z.number().int().min(1), roles: z.record(z.string(), Role).optional() }).strict();
 export const FormatSelectionSchema = z.object(Object.fromEntries(PAGE_KINDS.map((k) => [k, Ref.nullable().optional()])) as Record<(typeof PAGE_KINDS)[number], z.ZodOptional<z.ZodNullable<typeof Ref>>>).strict();
 
 /** Brouillon de template pour l'aperçu (mêmes champs que la création). */
@@ -86,6 +87,30 @@ export class ReportFormatController {
     const svg = await this.formats.preview(scope, id, Number(n) || 0);
     res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
     res.setHeader('Cache-Control', 'private, max-age=3600');
+    res.end(svg);
+  }
+
+  /**
+   * Rôles des formes d'une diapositive pour un type de page (étape B, 03/10/2026) : proposition de l'IA (règles à
+   * défaut), à valider par l'utilisateur ; renvoie les formes (texte, position relative) et les libellés des rôles.
+   */
+  @Post('report-formats/:id/slides/:n/roles')
+  @HttpCode(200)
+  async roles(@CurrentActor() actor: Actor, @Param('projectId') p: string, @Param('id') id: string, @Param('n') n: string, @Body() body: unknown) {
+    const scope = await this.access.scope(actor, p);
+    if (!canWriteTools(scope.access)) throw forbidden('Format du rapport : profil PMO ou Responsable');
+    const { kind } = parse(z.object({ kind: z.enum(PAGE_KINDS) }).strict(), body);
+    return this.formats.roles(scope, id, Number(n) || 0, kind);
+  }
+
+  /** Aperçu d'une diapositive avec les rôles en cours de validation (exemple voilé, zones de texte encadrées). */
+  @Post('report-formats/:id/slides/:n/preview')
+  @HttpCode(200)
+  async previewRoles(@CurrentActor() actor: Actor, @Param('projectId') p: string, @Param('id') id: string, @Param('n') n: string, @Body() body: unknown, @Res() res: any) {
+    const scope = await this.access.scope(actor, p);
+    const { roles } = parse(z.object({ roles: z.record(z.string(), Role) }).strict(), body);
+    const svg = await this.formats.preview(scope, id, Number(n) || 0, roles);
+    res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
     res.end(svg);
   }
 

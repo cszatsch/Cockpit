@@ -9,7 +9,9 @@ import { techId } from '../../core/ids';
 import { OoxmlPackage } from '../../core/ooxml';
 import { analyzePptx, mediaDataUri } from '../../core/report-format-read';
 import { PageSource } from '../../core/report-format-write';
-import { composeTemplate, FillData, fillTemplate, TemplateFieldMissing, TemplateManifest } from '../../core/report-template';
+import { composeTemplate, FillData, fillTemplate, TemplateFieldMissing, TemplateManifest, visualCheck } from '../../core/report-template';
+import { LlmService } from '../../core/llm.service';
+import { parseWriting, retryPrompt, WritingFacts, WRITING_SKILLS, WRITING_TIMEOUT_MS, writingPrompt, writingSystem } from '../../domain/report-writing';
 import { FormatAnalysis, PAGE_KINDS, PageKind, previewSvg } from '../../domain/report-format';
 import {
   COMPONENTS, ComponentConfig, ComponentData, ComponentValues, DASHBOARD_SERIES, frDay, indicatorsOf, inPeriod, Issue, KPI_MAX, pagesOf, periodOf, periodRange, sectionsOf,
@@ -38,7 +40,7 @@ export interface Draft { name: string; version: string; bodyId: string | null; c
 @Injectable()
 export class ReportTemplateService {
   private previews = new Map<string, { at: number; projectId: string; buf: Buffer; analysis: Promise<FormatAnalysis> }>();
-  constructor(private readonly prisma: PrismaService, private readonly storage: StorageService, private readonly todaySvc: TodayService) {}
+  constructor(private readonly prisma: PrismaService, private readonly storage: StorageService, private readonly todaySvc: TodayService, private readonly llm: LlmService) {}
 
   // ───────────── Données ─────────────
 
@@ -182,15 +184,24 @@ export class ReportTemplateService {
     const today = this.todaySvc.today(scope.project.timezone);
     const body = d.bodyId ? await this.prisma.governanceBody.findUnique({ where: { id: d.bodyId } }) : null;
     const project = scope.project.name.startsWith(scope.project.code) ? scope.project.name : `${scope.project.code} — ${scope.project.name}`;
-    const data: FillData = { text: { 'report.subtitle': [[body?.name, project, `v${d.version}`].filter(Boolean).join(' · ')], 'report.date': [frDay(today)] }, tables: {}, charts: {} };
+    const data: FillData = { text: { 'report.subtitle': [[body?.name, project, `v${d.version}`].filter(Boolean).join(' · ')], 'report.date': [frDay(today)], 'report.period': [`Données au ${frDay(today)}`] }, tables: {}, charts: {} };
     const issues: Issue[] = [];
-    for (const sec of sectionsOf(d.components)) {
-      for (const c of sec.components) {
-        const v = await this.componentValues(scope, c, today);
+    const comps = sectionsOf(d.components).flatMap((s) => s.components);
+    const values: ComponentValues[] = [];
+    for (const c of comps) values.push(await this.componentValues(scope, c, today));
+    // Titres-messages et synthèse rédigés par l'IA (fonction « Génération de rapports ») ; repli par règles.
+    const titreMax = Object.fromEntries((manifest?.fields ?? []).filter((f) => f.id.endsWith('.title') && f.maxChars).map((f) => [f.id.split('.')[0], f.maxChars!]));
+    const w = await this.write(scope, { title: d.name, committee: body?.name ?? '', project, date: frDay(today) }, comps, values, titreMax);
+    issues.push(...w.issues);
+    for (const [i, c] of comps.entries()) {
+      {
+        const v = values[i];
         issues.push(...v.issues);
         data.text[`${c.key}.caption`] = [v.caption];
+        data.text[`${c.key}.title`] = [w.titles[c.key] ?? COMPONENTS[c.id].label];
+        if (w.synthesis && w.synthesisKey === c.key) data.text[`${c.key}.text`] = w.synthesis;
         for (const p of v.parts) {
-          if (p.part === 'text') data.text[`${c.key}.text`] = p.lines;
+          if (p.part === 'text' && !(w.synthesis && w.synthesisKey === c.key)) data.text[`${c.key}.text`] = p.lines;
           if (p.part === 'kpi') for (const it of p.items) data.text[`${c.key}.kpi.${it.id}`] = [it.value];
           if (p.part === 'chart') data.charts[`${c.key}.chart`] = { categories: p.categories, series: p.series };
           if (p.part === 'table') {
@@ -209,6 +220,49 @@ export class ReportTemplateService {
     return { data, issues };
   }
 
+  /**
+   * Rédaction des titres-messages et de la synthèse par l'IA (fonction « Génération de rapports », consignes des skills
+   * « Rapports » et « Rédiger les slides PowerPoint ») : un seul appel par publication ; chaque texte est contrôlé
+   * (longueur, nombres présents dans les données) et remplacé par le texte par règles s'il est refusé.
+   */
+  async write(scope: ProjectScope, report: WritingFacts['report'], comps: Array<ComponentConfig & { key: string }>, values: ComponentValues[], titreMax: Record<string, number> = {}) {
+    const out = { titles: {} as Record<string, string>, synthesis: null as string[] | null, synthesisKey: null as string | null, issues: [] as Issue[], modelId: null as string | null };
+    if (!comps.length || !this.llm.isLive('rapports')) return out;
+    const synthesisKey = comps.find((c) => c.id === 'synthese')?.key ?? null;
+    const facts: WritingFacts = {
+      report, synthesis: synthesisKey,
+      components: comps.map((c, i) => {
+        const v = values[i];
+        const x: WritingFacts['components'][number] = { key: c.key, label: COMPONENTS[c.id].label, caption: v.caption, ...(titreMax[c.key] ? { titreMax: titreMax[c.key] } : {}) };
+        for (const p of v.parts) {
+          if (p.part === 'kpi') x.kpis = p.items.map((it) => ({ label: it.label, value: it.value }));
+          if (p.part === 'table') x.table = { columns: p.columns.map((id) => COMPONENTS[c.id].indicators.find((ind) => ind.id === id)?.label ?? id), rows: p.rows.slice(0, 15), total: p.rows.length };
+          if (p.part === 'chart') x.chart = { categories: p.categories, series: p.series };
+          if (p.part === 'text') x.facts = p.lines;
+        }
+        return x;
+      }),
+    };
+    const skills = (await this.prisma.skill.findMany({ where: { n: { in: WRITING_SKILLS }, on: true }, orderBy: { position: 'asc' } })).map((s) => ({ n: s.n, t: s.t }));
+    try {
+      const r = await this.llm.complete({ functionId: 'rapports', system: writingSystem(skills), prompt: writingPrompt(facts), projectId: scope.project.id, source: 'COCKPIT', timeoutMs: WRITING_TIMEOUT_MS, maxTokens: 2500 });
+      let p = parseWriting(r.text, facts);
+      // Textes refusés : une seconde demande, ciblée, avec le motif du refus.
+      if (p.rejected.length) {
+        const again = await this.llm.complete({ functionId: 'rapports', system: writingSystem(skills), prompt: retryPrompt(facts, p.rejected), projectId: scope.project.id, source: 'COCKPIT', timeoutMs: WRITING_TIMEOUT_MS, maxTokens: 1500 }).then((x) => parseWriting(x.text, facts)).catch(() => null);
+        if (again) p = { titles: { ...again.titles, ...p.titles }, synthesis: p.synthesis ?? again.synthesis, rejected: [...facts.components.filter((c) => !p.titles[c.key] && !again.titles[c.key]).map((c) => `${c.key} : titre refusé`), ...(facts.synthesis && !p.synthesis && !again.synthesis ? ['synthèse refusée'] : [])] };
+      }
+      out.titles = p.titles;
+      out.synthesis = p.synthesis;
+      out.synthesisKey = synthesisKey;
+      out.modelId = r.modelId;
+      if (p.rejected.length) out.issues.push({ severity: 'warning', message: `Rédaction par l'IA : ${p.rejected.length} texte(s) refusé(s) au contrôle (${p.rejected.slice(0, 3).join(' ; ')}), remplacé(s) par le texte par défaut.` });
+    } catch (e) {
+      out.issues.push({ severity: 'warning', message: `Rédaction par l'IA indisponible (${String((e as { message?: string }).message ?? e).slice(0, 120)}) : titres et synthèse par défaut.` });
+    }
+    return out;
+  }
+
   // ───────────── Format et composition ─────────────
 
   /** Pages modèles du format (fichiers chargés) ; null : présentation par défaut. */
@@ -223,7 +277,7 @@ export class ReportTemplateService {
       if (!bufs.has(f.id)) bufs.set(f.id, await this.storage.get(f.fileKey));
       const analysis = { ...(f.analysis as unknown as FormatAnalysis) };
       analysis.slides = analysis.slides.map((s, i) => (i === p.slide - 1 && p.analysis ? p.analysis : s));
-      out[k] = { fileId: f.id, kind: f.kind as any, buf: bufs.get(f.id) ?? null, analysis, slide: p.slide };
+      out[k] = { fileId: f.id, kind: f.kind as any, buf: bufs.get(f.id) ?? null, analysis, slide: p.slide, ...(p.roles ? { roles: p.roles } : {}) };
     }
     return out;
   }
@@ -234,10 +288,13 @@ export class ReportTemplateService {
     const today = this.todaySvc.today(scope.project.timezone);
     const { buf, manifest } = await composeTemplate(await this.pageSources(d.format), {
       title: d.name, sections: sectionsOf(d.components),
-      tokens: { titre: d.name, date: frDay(today), projet: scope.project.name, comite: body?.name ?? '', 'comité': body?.name ?? '' },
+      tokens: { titre: d.name, date: frDay(today), projet: scope.project.name, client: (await this.prisma.client.findUnique({ where: { id: scope.project.clientId } }))?.name ?? '', comite: body?.name ?? '', 'comité': body?.name ?? '' },
     });
     const { data, issues } = await this.reportData(scope, d, manifest);
-    return { buf: await fillTemplate(buf, manifest, data), manifest, issues };
+    const out = await fillTemplate(buf, manifest, data);
+    // Contrôle visuel automatique : chevauchements, débordements, éléments hors de la page.
+    issues.push(...(await visualCheck(out, manifest)));
+    return { buf: out, manifest, issues };
   }
 
   // ───────────── Versions ─────────────

@@ -1,10 +1,10 @@
 import JSZip from 'jszip';
 import ExcelJS from 'exceljs';
-import { Box, builtInFormat, DEFAULT_SIZE, estimatedZones, FormatAnalysis, PageKind, SlideAnalysis, TextStyle } from '../domain/report-format';
+import { Box, builtInFormat, DEFAULT_SIZE, estimatedZones, exampleArea, FormatAnalysis, PageKind, RoleMap, ShapeRole, SlideAnalysis, suggestRoles, TextStyle } from '../domain/report-format';
 import { COMPONENTS, DASHBOARD_SERIES, fieldName, indicatorsOf, KPI_MAX, Section } from '../domain/report-components';
 import { relsPath, resolvePath } from './ooxml';
 import { contrastOn } from './report-format-read';
-import { Assembler, Fill, fillPptxSlide, maxId, PageSource, readRels, RelRow, relsXml, relTarget, runProps, setText, Src, syntheticSlide, textBox, tokens, XML_DECL, xmlEsc } from './report-format-write';
+import { applyRoles, topLevelShapes, Assembler, Fill, fillPptxSlide, RoleValues, maxId, PageSource, readRels, RelRow, relsXml, relTarget, runProps, setText, Src, syntheticSlide, textBox, tokens, XML_DECL, xmlEsc } from './report-format-write';
 
 /**
  * Template PowerPoint d'un rapport de comité (étapes 4 à 6 de « Créer un template », 03/10/2026).
@@ -31,6 +31,10 @@ export interface TemplateField {
   /** Largeur des colonnes (EMU) et taille du texte (pt) : une cellule tient sur une ligne. */
   widths?: number[];
   size?: number;
+  /** Zone occupée par l'élément (contrôle visuel). */
+  area?: Box;
+  /** Texte : nombre de caractères qui tiennent dans la zone (taille et corps de la forme). */
+  maxChars?: number;
   chart?: string;
   chartType?: 'bar' | 'line';
   series?: string[];
@@ -163,6 +167,15 @@ function contentArea(s: SlideAnalysis, kind: PageSource['kind'], size: { cx: num
   return est;
 }
 
+/** Caractères qui tiennent dans une forme : largeur / (0,5 corps) par ligne, hauteur / (1,2 corps) lignes. */
+export function capacity(sp: string): number | null {
+  const e = /<a:ext cx="(\d+)" cy="(\d+)"\/>/.exec(sp);
+  if (!e) return null;
+  const sz = Number(/<a:rPr\b[^>]*\bsz="(\d+)"/.exec(sp)?.[1] ?? /<a:defRPr\b[^>]*\bsz="(\d+)"/.exec(sp)?.[1] ?? 1800) / 100;
+  const perLine = Math.floor(Number(e[1]) / (sz * 0.5 * 12700)), lines = Math.max(1, Math.floor(Number(e[2]) / (sz * 1.2 * 12700)));
+  return Math.max(10, perLine * lines);
+}
+
 /** Construit le template : pages copiées des modèles, éléments des composants posés, zones variables nommées. */
 export async function composeTemplate(pages: Record<PageKind, PageSource> | null, input: ComposeInput): Promise<{ buf: Buffer; manifest: TemplateManifest }> {
   const def = builtInFormat();
@@ -176,18 +189,32 @@ export async function composeTemplate(pages: Record<PageKind, PageSource> | null
   const imageMedia = new Map<string, string>();
   const manifest: TemplateManifest = { schema: 1, pages: [], fields: [] };
   let page = 0;
+  /** Rôles de chaque page : validés à l'étape B, sinon proposés par règles. */
+  const rolesOf = (k: PageKind): RoleMap | null => { const p = src[k], s = p.analysis.slides[p.slide - 1]; return p.kind === 'PPTX' && s.shapes ? p.roles ?? suggestRoles(k, s.shapes, size) : null; };
 
-  /** Page copiée du modèle ; `extra` ajoute des éléments (et leurs relations) avant l'écriture. */
-  const emit = async (kind: PageKind, f: Omit<Fill, 'page' | 'date'>, meta: Omit<TemplatePage, 'slide' | 'kind'> = {}, extra?: (xml: string, rels: RelRow[]) => Promise<string>) => {
+  /**
+   * Page copiée du modèle : rôles appliqués (exemple retiré, texte réécrit dans les formes existantes), puis zones
+   * PowerPoint remplies ; `extra` ajoute des éléments (et leurs relations) avant l'écriture.
+   */
+  const emit = async (kind: PageKind, f: Omit<Fill, 'page' | 'date'>, rv: RoleValues['values'], meta: Omit<TemplatePage, 'slide' | 'kind'> = {}, extra?: (xml: string, rels: RelRow[], done: Set<ShapeRole>) => Promise<string>) => {
     page++;
     const p = src[kind];
     const s = p.analysis.slides[p.slide - 1];
-    const fill: Fill = { ...f, date: input.tokens.date ?? '', page, names: { date: fieldName('report.date'), ...(f.names ?? {}) } };
+    const names = { date: fieldName('report.date'), ...(f.names ?? {}) };
+    const fill: Fill = { ...f, date: input.tokens.date ?? '', page, names };
     let xml: string, rels: RelRow[];
+    let done = new Set<ShapeRole>();
     if (p.kind === 'PPTX' && p.buf) {
       const sp = await asm.source(p.fileId, p.buf, cache);
       const t = await asm.templateSlide(sp, p.slide);
-      xml = fillPptxSlide(t.xml, kind, s, fill, size);
+      xml = t.xml;
+      const roles = rolesOf(kind);
+      if (roles) {
+        const r = applyRoles(xml, roles, { values: { date: fill.date, pageNumber: String(page), project: input.tokens.projet, client: input.tokens.client, committee: input.tokens.comite, ...rv }, names: { title: names.title, subtitle: names.subtitle, date: names.date, period: fieldName('report.period') } });
+        xml = r.xml;
+        done = r.done;
+      }
+      xml = fillPptxSlide(xml, kind, s, { ...fill, title: done.has('title') ? undefined : fill.title, subtitle: done.has('subtitle') ? undefined : fill.subtitle }, size);
       rels = t.rels;
     } else {
       rels = [{ id: 'rId1', type: 'slideLayout', target: blank, external: false }];
@@ -200,30 +227,41 @@ export async function composeTemplate(pages: Record<PageKind, PageSource> | null
       xml = syntheticSlide(kind, s, fill, size, bgRid);
     }
     xml = tokens(xml, { ...input.tokens, section: f.title ?? '', page: String(page) });
-    if (extra) xml = await extra(xml, rels);
+    if (extra) xml = await extra(xml, rels, done);
     const path = asm.addSlide(xml, rels);
     manifest.pages.push({ slide: path, kind, ...meta });
     return path;
   };
 
-  await emit('cover', { title: input.title, subtitle: '—', names: { subtitle: fieldName('report.subtitle') } });
+  await emit('cover', { title: input.title, subtitle: '—', names: { subtitle: fieldName('report.subtitle') } }, { title: input.title, subtitle: '—', period: '—' });
   const stdSrc = src.standard, std = stdSrc.analysis.slides[stdSrc.slide - 1];
   const d = designOf(stdSrc.analysis, std, (['cover', 'divider'] as PageKind[]).map((k) => src[k].analysis.slides[src[k].slide - 1]));
+  const divRoles = rolesOf('divider'), stdRoles = rolesOf('standard');
+  const hasNumber = !!divRoles && Object.values(divRoles).includes('sectionNumber');
   for (const [si, sec] of input.sections.entries()) {
-    await emit('divider', { title: `${String(si + 1).padStart(2, '0')} · ${sec.title}`, subtitle: sec.components.map((c) => COMPONENTS[c.id].label).join(' · ') }, { section: si });
+    const num = String(si + 1).padStart(2, '0'), comps = sec.components.map((c) => COMPONENTS[c.id].label).join(' · ');
+    await emit('divider', { title: `${num} · ${sec.title}`, subtitle: comps }, { title: hasNumber ? sec.title : `${num} · ${sec.title}`, sectionNumber: String(si + 1), subtitle: comps, section: sec.title }, { section: si });
     for (const c of sec.components) {
       const cdef = COMPONENTS[c.id];
       const inds = indicatorsOf(c).map((id) => cdef.indicators.find((x) => x.id === id)!);
       const fields: TemplateField[] = [];
-      const path = await emit('standard', { title: cdef.label, dropBody: true }, { section: si, component: c.key }, async (xml, rels) => {
+      const titleName = fieldName(`${c.key}.title`), captionName = fieldName(`${c.key}.caption`);
+      const path = await emit('standard', { title: cdef.label, dropBody: true, names: { title: titleName, subtitle: captionName } }, { title: cdef.label, subtitle: '—', section: sec.title }, { section: si, component: c.key }, async (xml, rels, done) => {
         let id = maxId(xml) + 1;
         const next = () => id++;
-        const area = contentArea(std, stdSrc.kind, size);
-        const capH = Math.round(Math.min(area.h * 0.12, d.caption.size! * 2.2 * 12700));
-        const add: string[] = [textBox(next(), fieldName(`${c.key}.caption`), { ...area, h: capH }, d.caption, ['—'])];
-        fields.push({ id: `${c.key}.caption`, kind: 'text', slide: '', component: c.key });
+        // Zone de contenu : place libérée par le contenu d'exemple, sinon zone de texte du modèle ou proportions usuelles.
+        const freed = stdRoles && std.shapes ? exampleArea(std.shapes, stdRoles) : null;
+        const head = std.shapes && stdRoles ? Math.max(0, ...std.shapes.filter((x) => ['title', 'subtitle', 'section'].includes(stdRoles[x.id])).map((x) => x.box.y + x.box.h)) : 0;
+        let area = freed ? { ...freed, y: Math.max(freed.y, head + Math.round(size.cy * 0.02)) } : contentArea(std, stdSrc.kind, size);
+        if (freed) area = { ...area, h: freed.y + freed.h - area.y };
+        const add: string[] = [];
         const gap = Math.round(size.cy * 0.02);
-        let r: Box = { x: area.x, y: area.y + capH + gap / 2, w: area.w, h: area.h - capH - gap / 2 };
+        let r: Box = area;
+        if (!done.has('subtitle')) {
+          const capH = Math.round(Math.min(area.h * 0.12, d.caption.size! * 2.2 * 12700));
+          add.push(textBox(next(), captionName, { ...area, h: capH }, d.caption, ['—']));
+          r = { x: area.x, y: area.y + capH + gap / 2, w: area.w, h: area.h - capH - gap / 2 };
+        }
         const kpis = cdef.parts.includes('kpi') ? inds.filter((x) => !(c.id === 'dashboard' && DASHBOARD_SERIES.includes(x.id))).slice(0, KPI_MAX) : [];
         const second = cdef.parts.find((x) => x !== 'kpi');
         const series = c.id === 'dashboard' ? inds.filter((x) => DASHBOARD_SERIES.includes(x.id)) : inds;
@@ -231,16 +269,14 @@ export async function composeTemplate(pages: Record<PageKind, PageSource> | null
         if (kpis.length) {
           const kh = hasSecond ? Math.round(Math.min(r.h * 0.3, size.cy * 0.17)) : Math.round(Math.min(r.h, size.cy * 0.2));
           add.push(kpiTiles(next, c.key, { ...r, h: kh }, kpis, d));
-          kpis.forEach((k) => fields.push({ id: `${c.key}.kpi.${k.id}`, kind: 'text', slide: '', component: c.key }));
           r = { ...r, y: r.y + kh + gap, h: r.h - kh - gap };
         }
         if (second === 'text') {
           add.push(textBox(next(), fieldName(`${c.key}.text`), r, { font: d.font, size: d.size, bold: false, italic: false, color: d.text }, ['—']));
-          fields.push({ id: `${c.key}.text`, kind: 'text', slide: '', component: c.key });
         } else if (second === 'table') {
           const t = tableFrame(next(), fieldName(`${c.key}.table`), r, inds, d);
           add.push(t.xml);
-          fields.push({ id: `${c.key}.table`, kind: 'table', slide: '', component: c.key, columns: inds.map((x) => x.id), capacity: t.capacity, rowH: t.rowH, rowTpl: t.rowTpl, widths: t.widths, size: d.size });
+          fields.push({ id: `${c.key}.table`, kind: 'table', slide: '', component: c.key, columns: inds.map((x) => x.id), capacity: t.capacity, rowH: t.rowH, rowTpl: t.rowTpl, widths: t.widths, size: d.size, area: r });
         } else if (second === 'chart' && series.length) {
           const type = cdef.chart ?? 'bar';
           const chartPath = asm.addPart('ppt/charts', 'chart', 'xml', chartXml(type, series.map((x) => x.label), d), CHART_CT);
@@ -256,16 +292,25 @@ export async function composeTemplate(pages: Record<PageKind, PageSource> | null
       fields.forEach((f) => manifest.fields.push({ ...f, slide: path }));
     }
   }
-  await emit('closing', {});
-  // Zones communes, selon les zones des pages modèles : sous-titre de la couverture, date (chaque page qui en a une).
+  await emit('closing', {}, {});
+  // Zones de texte variables : toutes les formes nommées `rise:…` des pages (titre-message, légende, indicateurs,
+  // texte, sous-titre, date, période), en plus des tableaux et graphiques déjà déclarés.
   const buf = await asm.finish();
   const z = await JSZip.loadAsync(buf);
-  const common: TemplateField[] = [];
+  const known = new Set(manifest.fields.map((f) => `${f.id}@${f.slide}`));
+  const text: TemplateField[] = [];
   for (const pg of manifest.pages) {
     const xml = await z.file(pg.slide)!.async('string');
-    for (const id of ['report.subtitle', 'report.date']) if (xml.includes(`name="${fieldName(id)}"`)) common.push({ id, kind: 'text', slide: pg.slide });
+    for (const m of xml.matchAll(/<p:sp(?:\s[^>]*)?>(?:(?!<\/p:sp>)[\s\S])*?<\/p:sp>/g)) {
+      const id = /<p:cNvPr\b[^>]*\bname="rise:([^"]+)"/.exec(m[0])?.[1];
+      if (!id) continue;
+      const k = `${id}@${pg.slide}`;
+      if (known.has(k)) continue;
+      known.add(k);
+      text.push({ id, kind: 'text', slide: pg.slide, ...(/^c\d+\./.test(id) ? { component: id.split('.')[0] } : {}), ...(capacity(m[0]) ? { maxChars: capacity(m[0])! } : {}) });
+    }
   }
-  manifest.fields.unshift(...common);
+  manifest.fields.push(...text);
   return { buf, manifest };
 }
 
@@ -338,4 +383,48 @@ export async function fillTemplate(buf: Buffer, manifest: TemplateManifest, data
   }
   for (const [p, xml] of slides) z.file(p, xml);
   return z.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE', mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' });
+}
+
+// ───────────── Contrôle visuel ─────────────
+
+/**
+ * Contrôle visuel automatique d'un rapport généré : un élément posé par le générateur (zone `rise:…`, tuile) ne doit
+ * ni recouvrir un texte du modèle, ni sortir de la page ; un texte posé doit tenir dans sa zone (estimation : largeur
+ * moyenne d'un caractère 0,5 corps, interligne 1,2). Avertissements, avec le numéro de page.
+ */
+export async function visualCheck(buf: Buffer, manifest: TemplateManifest): Promise<Array<{ severity: 'warning'; message: string; component?: string }>> {
+  const z = await JSZip.loadAsync(buf);
+  const pres = await z.file('ppt/presentation.xml')!.async('string');
+  const [W, H] = (/<p:sldSz cx="(\d+)" cy="(\d+)"/.exec(pres) ?? ['', '12192000', '6858000']).slice(1).map(Number);
+  const out: Array<{ severity: 'warning'; message: string; component?: string }> = [];
+  for (const [i, pg] of manifest.pages.entries()) {
+    const xml = await z.file(pg.slide)!.async('string');
+    const shapes = topLevelShapes(xml).map((s) => {
+      const b = xml.slice(s.start, s.end);
+      const m = /<a:off x="(-?\d+)" y="(-?\d+)"\/><a:ext cx="(\d+)" cy="(\d+)"\/>/.exec(b);
+      const name = /<p:cNvPr\b[^>]*\bname="([^"]*)"/.exec(b)?.[1] ?? '';
+      const text = [...b.matchAll(/<a:t>([^<]*)<\/a:t>/g)].map((x) => x[1]).join(' ').trim();
+      const paras = [...b.matchAll(/<a:p>[\s\S]*?<\/a:p>/g)].map((p) => [...p[0].matchAll(/<a:t>([^<]*)<\/a:t>/g)].map((x) => x[1]).join(''));
+      const sz = Number(/<a:rPr\b[^>]*\bsz="(\d+)"/.exec(b)?.[1] ?? 1800) / 100;
+      return { name, text, paras, sz, tag: s.tag, box: m ? { x: +m[1], y: +m[2], w: +m[3], h: +m[4] } : null };
+    }).filter((s) => s.box);
+    const ours = (n: string) => n.startsWith('rise:') || n.startsWith('Tuile ') || n.startsWith('Libellé ');
+    const page = `Page ${i + 1}`;
+    const comp = pg.component;
+    for (const a of shapes.filter((s) => ours(s.name))) {
+      const b = a.box!;
+      if (b.x < -W * 0.01 || b.y < -H * 0.01 || b.x + b.w > W * 1.01 || b.y + b.h > H * 1.01) out.push({ severity: 'warning', component: comp, message: `${page} : « ${a.name.replace('rise:', '')} » sort de la page.` });
+      for (const o of shapes.filter((s) => !ours(s.name) && s.text)) {
+        const c = o.box!;
+        const ix = Math.max(0, Math.min(b.x + b.w, c.x + c.w) - Math.max(b.x, c.x)), iy = Math.max(0, Math.min(b.y + b.h, c.y + c.h) - Math.max(b.y, c.y));
+        if (ix * iy > 0.15 * Math.min(b.w * b.h, c.w * c.h)) out.push({ severity: 'warning', component: comp, message: `${page} : « ${a.name.replace('rise:', '')} » recouvre le texte du modèle « ${o.text.slice(0, 40)} ».` });
+      }
+      if (a.tag === 'p:sp' && a.text) {
+        const cpl = Math.max(4, Math.floor(b.w / (a.sz * 0.5 * 12700)));
+        const lines = a.paras.reduce((n, p) => n + Math.max(1, Math.ceil(p.length / cpl)), 0);
+        if (lines * a.sz * 1.2 * 12700 > b.h * 1.1 + a.sz * 12700) out.push({ severity: 'warning', component: comp, message: `${page} : le texte de « ${a.name.replace('rise:', '')} » dépasse probablement de sa zone (${lines} lignes).` });
+      }
+    }
+  }
+  return out;
 }

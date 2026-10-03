@@ -59,6 +59,8 @@ async function main() {
     check('   correspondance automatique des diapositives', ['cover', 'divider', 'standard', 'closing'].every((k, i) => pages[k].slide === i + 1), JSON.stringify(pages));
     check('   extraction affichée (fond, éléments, polices)', (await text(page, /uni #10233A/)) !== '' && (await text(page, /1 logo · 1 bandeau/)) !== '' && (await text(page, /Police introuvable : « Montserrat »/)) !== '');
     await page.waitForFunction(() => { const c = (window as any).__riseCockpit.state.tplFmtCheck; return c && c.complete; }, null, { timeout: 15000 }).catch(() => {});
+    await page.waitForFunction(() => { const r = (window as any).__riseCockpit.state.tplFmtRoles || {}; return ['cover', 'divider', 'standard', 'closing'].every((k) => r[k] && !r[k].busy); }, null, { timeout: 120000 }).catch(() => {});
+    check('   zones de la page proposées (rôles des formes), titre désigné sur la page standard', (await text(page, /Zones de la page · \d+ formes/)) !== '' && await page.evaluate(() => { const s = (window as any).__riseCockpit.state; return Object.values(s.tplDraft.fmt.pages.standard.roles || {}).includes('title'); }));
     check('   contrôle du serveur : format complet', await page.evaluate(() => !!((window as any).__riseCockpit.state.tplFmtCheck || {}).complete));
 
     await page.evaluate(() => { (window as any).__riseCockpit._fmtKind = 'closing'; });

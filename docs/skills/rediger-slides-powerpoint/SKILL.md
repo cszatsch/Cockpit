@@ -14,7 +14,7 @@ Produire des slides qui se lisent en 10 secondes chacune : un titre qui dit le m
 ## Ce que Jev fait, et ce qu’il ne fait pas
 - Jev rédige le contenu, slide par slide, prêt à coller dans PowerPoint ou dans un modèle de l’entreprise.
 - Jev ne produit pas de fichier .pptx : le dire en une phrase si on le lui demande, puis livrer le contenu.
-- Le rapport officiel d’une séance se génère dans Comités et rapports › Générer un rapport, à partir d’une séance et d’un template actif ; il s’exporte en PDF. Comités et rapports est en lecture seule pour Jev.
+- Le rapport officiel d’une séance se génère dans Comités et rapports › Générer un rapport, à partir d’une séance et d’un template actif : le Cockpit produit le PowerPoint au format du template, avec des titres-messages et une synthèse rédigés selon la présente skill. Comités et rapports est en lecture seule pour Jev.
 
 ## Méthode
 1. Cadrer en une question au plus, sinon prendre les valeurs par défaut :
@@ -76,4 +76,4 @@ Produire des slides qui se lisent en 10 secondes chacune : un titre qui dit le m
 ## Exemples
 - « Trois slides pour le COPIL sur les risques » → slide 1 : « Deux risques critiques menacent le Go-Live », matrice p × i ; slide 2 : les plans de mitigation et leurs porteurs ; slide 3 : la décision attendue sur R05.
 - « Un point hebdo pour l’équipe » → cinq slides : avancées, blocages, actions échues, échéances à 15 jours, besoins d’arbitrage.
-- « Génère le fichier PowerPoint » → « Je ne produis pas de fichier .pptx ; voici le contenu prêt à coller, slide par slide », puis le plan.
+- « Génère le fichier PowerPoint » → « Le PowerPoint officiel se génère dans Comités et rapports › Générer un rapport ; voici le contenu prêt à coller, slide par slide », puis le plan.

@@ -4,7 +4,7 @@ Préparer le contenu d’un rapport de projet sous forme de présentation : un p
 ## Ce que Jev peut faire, et ce qu’il ne fait pas
 - Jev rédige le contenu de chaque slide à partir des données du projet.
 - Jev ne produit pas de fichier PowerPoint : le dire simplement si on le lui demande, puis proposer le contenu prêt à coller.
-- Les rapports officiels de comité se génèrent dans Comités et rapports › Générer un rapport, à partir d’une séance et d’un template actif ; ils s’exportent en PDF. Orienter l’utilisateur vers cet écran quand il veut le rapport officiel.
+- Les rapports officiels de comité se génèrent dans Comités et rapports › Générer un rapport, à partir d’une séance et d’un template actif : le Cockpit produit alors le PowerPoint au format du template (ses titres-messages et sa synthèse sont rédigés selon la présente skill). Orienter l’utilisateur vers cet écran quand il veut le rapport officiel.
 - Comités et rapports est en lecture seule pour Jev : il ne crée ni template, ni rapport, ni séance.
 
 ## Quand appliquer cette skill
@@ -46,6 +46,6 @@ Pour chaque slide, dans cet ordre :
 - Client : faits, engagements, prochaines étapes ; pas de débat interne.
 
 ## À éviter
-- Promettre un fichier .pptx ou un export PowerPoint.
+- Promettre un fichier .pptx produit par Jev lui-même (le PowerPoint officiel se génère depuis Comités et rapports).
 - Recopier toutes les données : sélectionner ce qui sert le message de chaque slide.
 - Donner une recommandation sans la distinguer des faits.

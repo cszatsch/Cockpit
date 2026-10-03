@@ -3,6 +3,7 @@ import request from 'supertest';
 import { setup, TestCtx, WHO } from '../helpers';
 import { makeFormatPptx, pptxIntegrity } from '../format-fixture';
 import { StorageService } from '../../src/core/storage.service';
+import { LlmService } from '../../src/core/llm.service';
 
 const R = '/api/projects/RISE';
 const binary = (res: any, cb: (e: Error | null, b: Buffer) => void) => { const chunks: Buffer[] = []; res.on('data', (c: Buffer) => chunks.push(c)); res.on('end', () => cb(null, Buffer.concat(chunks))); };
@@ -138,5 +139,72 @@ describe('Cockpit — Templates de rapport : versions et publications', () => {
     const res = await get(`/report-templates/${seed.id}/pptx`).buffer(true).parse(binary).expect(200);
     expect(await pptxIntegrity(res.body)).toEqual([]);
     expect(await t.db.reportTemplateVersion.count({ where: { templateId: seed.id } })).toBe(1);
+  });
+
+  describe('pages modèles remplies et IA (Opus 5.5 simulé)', () => {
+    let filledId: string;
+    let llm: LlmService;
+    const ok = (text: string) => ({ text, modelId: 'claude-opus-5-5', providerId: 'anthropic', tokensIn: 100, tokensOut: 50, costEur: 0.01, fallbackUsed: false, ms: 10 });
+    const live = (reply: (input: any) => string) => { jest.spyOn(llm, 'isLive').mockReturnValue(true); return jest.spyOn(llm, 'complete').mockImplementation(async (input: any) => ok(reply(input)) as any); };
+    const keys = (prompt: string) => [...prompt.matchAll(/"key": "(c\d+)"/g)].map((m) => m[1]);
+    beforeAll(async () => {
+      llm = t.app.get(LlmService);
+      filledId = (await http().post(`${R}/report-formats`).set('Authorization', `Bearer ${pmo}`).attach('file', await makeFormatPptx({ filled: true }), 'Charte remplie.pptx').expect(201)).body.id;
+    });
+    afterEach(() => jest.restoreAllMocks());
+    const fmt = (roles?: Record<string, Record<string, string>>) => Object.fromEntries(['cover', 'divider', 'standard', 'closing'].map((k, i) => [k, { fileId: filledId, slide: i + 1, ...(roles?.[k] ? { roles: roles[k] } : {}) }]));
+
+    it('rôles proposés : règles hors ligne, IA quand elle est disponible, gardés avec le fichier', async () => {
+      const rules = await post(`/report-formats/${filledId}/slides/3/roles`, { kind: 'standard' }).expect(200);
+      expect(rules.body).toMatchObject({ source: 'regles', error: null });
+      expect(rules.body.shapes.map((s: any) => s.name)).toEqual(['Barre latérale', 'Text 5', 'Text 6', 'Text 7', 'Carte 6', 'Carte 7', 'Carte 8', 'Text 48', 'Text 1']);
+      const byName = (b: any) => Object.fromEntries(b.shapes.map((s: any) => [s.name, b.roles[s.id]]));
+      expect(byName(rules.body)).toMatchObject({ 'Text 6': 'title', 'Carte 6': 'example', 'Text 48': 'footer' });
+      const call = live((input) => { const ids = [...input.prompt.matchAll(/"id": "(\d+)"/g)].map((m: any) => m[1]); return JSON.stringify({ roles: Object.fromEntries(ids.map((id: string, i: number) => [id, i === 2 ? 'title' : i === 4 ? 'client' : 'fixed'])) }); });
+      const ia = await post(`/report-formats/${filledId}/slides/1/roles`, { kind: 'cover' }).expect(200);
+      expect(ia.body).toMatchObject({ source: 'ia', note: null });
+      expect(byName(ia.body)).toMatchObject({ 'Text 1': 'title', 'Text 3': 'client' });
+      expect(call).toHaveBeenCalledWith(expect.objectContaining({ functionId: 'rapports' }));
+      await post(`/report-formats/${filledId}/slides/1/roles`, { kind: 'cover' }).expect(200);
+      expect(call).toHaveBeenCalledTimes(1); // proposition gardée
+      const svg = await http().post(`${R}/report-formats/${filledId}/slides/3/preview`).set('Authorization', `Bearer ${pmo}`).send({ roles: rules.body.roles }).buffer(true).parse(binary).expect(200);
+      expect(svg.body.toString('utf8')).toContain('Exemple retiré');
+      const bad = await post('/report-formats/check', fmt({ standard: Object.fromEntries(Object.keys(rules.body.roles).map((id) => [id, 'fixed'])) })).expect(200);
+      expect(bad.body.errors.standard).toBe('Page standard : désignez la zone de titre (la forme qui recevra le titre)');
+    });
+
+    it('rôles validés appliqués ; titres-messages et synthèse rédigés par l’IA, contrôlés, corrigés à la seconde demande', async () => {
+      const std = (await post(`/report-formats/${filledId}/slides/3/roles`, { kind: 'standard' }).expect(200)).body;
+      const footer = std.shapes.find((s: any) => s.name === 'Text 48').id;
+      const roles = { standard: { ...std.roles, [footer]: 'example' } };
+      if (!(await t.db.skill.findFirst({ where: { n: 'Rapports' } }))) await t.db.skill.create({ data: { n: 'Rapports', t: 'Écrire un titre qui dit le message.', on: true, position: 99 } });
+      let n = 0;
+      const call = live((input) => {
+        n++;
+        const k = keys(input.prompt);
+        // Première réponse : un titre cite un nombre absent des données ; la seconde le corrige.
+        if (n === 1) return JSON.stringify({ titres: Object.fromEntries(k.map((x, i) => [x, i === 0 ? 'Situation maîtrisée' : '99 risques à traiter'])), synthese: ['Le projet est actif.'] });
+        return JSON.stringify({ titres: Object.fromEntries(k.slice(1).map((x) => [x, 'Les risques critiques dominent'])) });
+      });
+      const created = await post('/report-templates', { name: 'Charte remplie', version: '1.0', bodyId: 'g1', components: [{ id: 'synthese', scope: 'PROJECT' }, { id: 'risques', scope: 'PROJECT' }], format: fmt(roles) }).expect(201);
+      expect(call).toHaveBeenCalledTimes(2);
+      expect(call.mock.calls[1][0].prompt).toContain('nombre absent des données (99)');
+      expect(call.mock.calls[0][0].system).toContain('Skill « Rapports »');
+      const file = (await get(`/report-templates/${created.body.id}/versions/1/file`).buffer(true).parse(binary).expect(200)).body as Buffer;
+      const { xml } = await slideXml(file);
+      expect(xml[2]).toContain('<a:t>Situation maîtrisée</a:t>');
+      expect(xml[2]).toContain('<a:t>Le projet est actif.</a:t>');
+      expect(xml[3]).toContain('<a:t>Les risques critiques dominent</a:t>');
+      expect(xml[3]).not.toContain('Deux chantiers transverses'); // bas de page passé en exemple par l'utilisateur
+      expect(xml[3]).not.toContain('12,8 M€');
+      expect(xml[0]).toContain('<a:t>Charte remplie</a:t>');
+      // Réponses toujours refusées : textes par défaut et avertissement.
+      jest.restoreAllMocks();
+      live(() => '{"titres": {"c01": "987 alertes", "c02": "987 alertes"}, "synthese": []}');
+      const chk = await get(`/report-templates/${created.body.id}/check`).expect(200);
+      expect(chk.body.issues).toEqual(expect.arrayContaining([expect.objectContaining({ severity: 'warning', message: expect.stringMatching(/^Rédaction par l'IA : \d texte\(s\) refusé\(s\) au contrôle/) })]));
+      const pub = (await get(`/report-templates/${created.body.id}/pptx`).buffer(true).parse(binary).expect(200)).body as Buffer;
+      expect((await slideXml(pub)).xml[3]).toContain('<a:t>Risques et problèmes</a:t>');
+    });
   });
 });

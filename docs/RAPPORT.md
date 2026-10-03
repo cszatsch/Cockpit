@@ -327,6 +327,14 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 - **Réalisé** : templates, journal de génération et rapports de démonstration retirés de l'amorçage (chargés seulement par les tests, `seedDemoReports`) et purgés de la base locale, avec les templates, versions et fichiers de format créés pendant les essais ; onglets Générer un rapport, Bibliothèque et Historique vérifiés vides et sans erreur.
 - **Point d'attention** : `frontends/rise-data.js` (mode maquette, sans API) garde ses templates d'exemple ; il n'est pas utilisé quand l'API est branchée.
 
+### Rapports : fidélité au design et rédaction par l'IA (03/10/2026)
+
+- **Constat** : le rapport « Test v1.0 » reposait sur des pages modèles « remplies » (exemple réel, zones de texte libres, sans placeholder) : 6 à 7 textes d'exemple recouverts par page, titres en double, couverture restée « Mission de pré-cadrage ». Fichier valide (validateur de la skill PowerPoint), rendu inutilisable.
+- **Réalisé** : modèle Claude Opus 5.5 pour « Génération de rapports » ; rôle de chaque forme des pages modèles proposé par l'IA (règles à défaut), validé à l'étape B ; texte écrit dans les formes du modèle, contenu d'exemple retiré, tableaux et graphiques posés à sa place ; titres-messages et synthèse rédigés par l'IA (skills « Rapports » et « Rédiger les slides PowerPoint »), contrôlés, redemandés une fois, sinon par défaut ; contrôle visuel automatique.
+- **Vérification** sur les 4 pages du commanditaire (rendu PowerPoint) : rôles proposés par l'IA en 5 à 6 s (logo et note de bas de page de l'exemple reconnus, client et projet remplacés) ; aperçu avec rédaction en 17 à 29 s ; aucun recouvrement, titres sur une ligne, chiffres justes.
+- **Tests** : `test/unit/report-roles.spec.ts` (8), `test/e2e/report-template.spec.ts` (8, dont rôles et rédaction avec une IA simulée), recette navigateur `test/browser/format-rapport.e2e.ts` 19/19.
+- **Points d'attention** : deux propositions de l'IA pour la même page peuvent différer (logo client gardé ou retiré) : l'utilisateur valide ; chaque publication réécrit les titres (un appel Opus 5.5 par publication et par aperçu) ; capacité des zones estimée (police non mesurée) ; skills en base à mettre à jour (Console › Assistant › Skills).
+
 ## 4. Questions ouvertes
 
 1. **Déclencheur des règles de notification** : faut-il ajouter un sélecteur de déclencheur dans la console ? Aujourd'hui, une règle créée depuis l'écran reçoit un déclencheur par défaut : « planifié » pour une notification, « manuel » pour une alerte.

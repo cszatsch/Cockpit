@@ -316,3 +316,8 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 ## Créer un template : auteur pré-rempli avec l'utilisateur connecté (03/10/2026)
 
 - `RISE Cockpit.dc.html` : le champ « Auteur » de la Fiche d'identité vaut par défaut le nom de l'utilisateur connecté (`meName()`, lu dans `GET /bootstrap`) au lieu d'un nom fixe ; `tplDraft.author` reste `null` tant qu'il n'est pas modifié (valeur `tplAuthor`), et repart de l'utilisateur connecté après chaque publication.
+
+## Créer un template : zones des pages modèles, rédaction par l'IA (03/10/2026)
+
+- `RISE Cockpit.dc.html` : étape B, bloc « Zones de la page » sur chaque carte PowerPoint (formes, rôle proposé par l'IA ou par règles, modifiable ; contenu d'exemple surligné en rouge, zones de texte en vert), aperçu de la carte annoté selon les rôles (`POST …/preview` avec les rôles), résumé et alertes de la carte repris du contrôle du serveur (qui tient compte des rôles) ; méthodes `tplFmtSetRole`, `tplFmtPrevKey`, rôles chargés par `tplFmtRefresh` (état `tplFmtRoles`, `tplFmtRolesOpen`) et enregistrés dans `tplDraft.fmt.pages[k].roles`.
+- `api.js` : `fmtRoles`, `fmtPreview` avec rôles (POST) ; `tplBody` envoie les rôles de chaque page.

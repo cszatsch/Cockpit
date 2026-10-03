@@ -1,6 +1,6 @@
 import JSZip from 'jszip';
 import {
-  Box, builtInFormat, DEFAULT_SIZE, estimatedZones, FixedElement, FormatAnalysis, FormatFileKind, PageKind, SlideAnalysis, TextStyle, Zone, ZoneRole,
+  Box, builtInFormat, DEFAULT_SIZE, estimatedZones, FixedElement, FormatAnalysis, FormatFileKind, PageKind, RoleMap, ShapeRole, SlideAnalysis, TEXT_ROLES, TextStyle, Zone, ZoneRole,
 } from '../domain/report-format';
 import { attr, kids, parseXml, relsPath, resolvePath, tagOf } from './ooxml';
 
@@ -11,7 +11,7 @@ import { attr, kids, parseXml, relsPath, resolvePath, tagOf } from './ooxml';
  * l'extraction (fond, aplats, zones de texte). La composition du template est dans `report-template.ts`.
  */
 
-export interface PageSource { fileId: string; kind: FormatFileKind; buf: Buffer | null; analysis: FormatAnalysis; slide: number }
+export interface PageSource { fileId: string; kind: FormatFileKind; buf: Buffer | null; analysis: FormatAnalysis; slide: number; /** Rôle des formes de la diapositive (validé à l'étape B). */ roles?: RoleMap }
 
 export const NS = 'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"';
 const REL = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
@@ -348,7 +348,7 @@ export const maxId = (xml: string) => Math.max(1, ...[...xml.matchAll(/<p:cNvPr\
  * Texte d'une page : titre, sous-titre, texte ; `names` renomme les zones remplies (zones variables du template,
  * ex. `rise:report.date`) ; `dropBody` retire les zones de texte de la page standard (le contenu y est posé ensuite).
  */
-export interface Fill { title?: string; subtitle?: string; body?: string[]; date: string; page: number; names?: Partial<Record<'subtitle' | 'date' | 'body', string>>; dropBody?: boolean }
+export interface Fill { title?: string; subtitle?: string; body?: string[]; date: string; page: number; names?: Partial<Record<'title' | 'subtitle' | 'date' | 'body', string>>; dropBody?: boolean }
 /** Nom (attribut `name` du premier `p:cNvPr`) d'une forme. */
 export const nameShape = (sp: string, name: string | undefined) => (name ? sp.replace(/(<p:cNvPr\b[^>]*\bname=")[^"]*(")/, `$1${xmlEsc(name)}$2`) : sp);
 const ROLE_OF: Record<string, ZoneRole> = { title: 'title', ctrTitle: 'title', subTitle: 'subtitle', body: 'body', obj: 'body', dt: 'date', sldNum: 'pageNumber', ftr: 'footer', pic: 'picture', chart: 'chart', tbl: 'table' };
@@ -364,14 +364,14 @@ export function fillPptxSlide(xml: string, kind: PageKind, s: SlideAnalysis, f: 
   let subtitleUsed = false, bodyUsed = false;
   xml = xml.replace(/<p:sp(?:\s[^>]*)?>[\s\S]*?<\/p:sp>/g, (sp) => {
     const ph = /<p:ph\b([^>]*)\/?>/.exec(sp);
-    if (!ph) return sp;
+    if (!ph || /<p:cNvPr\b[^>]*\bname="rise:/.test(sp)) return sp; // forme déjà remplie par son rôle
     const type = /type="([^"]+)"/.exec(ph[1])?.[1] ?? 'body';
     const role = ROLE_OF[type] ?? 'body';
     const hasText = /<a:t>[^<]*\S[^<]*<\/a:t>/.test(sp);
     if (role === 'date') return nameShape(setText(sp, [f.date]), f.names?.date);
     if (role === 'pageNumber') return setText(sp, [String(f.page)], 'slidenum');
     if (role === 'footer' || kind === 'closing') return sp;
-    if (role === 'title' && f.title !== undefined) { done.add('title'); return setText(sp, [f.title]); }
+    if (role === 'title' && f.title !== undefined) { done.add('title'); return nameShape(setText(sp, [f.title]), f.names?.title); }
     if (f.dropBody && ['body', 'chart', 'table', 'picture', 'subtitle'].includes(role)) return '';
     if (role === 'subtitle' && f.subtitle !== undefined && !subtitleUsed) { subtitleUsed = true; done.add('subtitle'); return nameShape(setText(sp, [f.subtitle]), f.names?.subtitle); }
     if (role === 'body' && f.body && !bodyUsed) { bodyUsed = true; done.add('body'); return nameShape(setText(sp, f.body), f.names?.body); }
@@ -387,7 +387,7 @@ export function fillPptxSlide(xml: string, kind: PageKind, s: SlideAnalysis, f: 
   const fallback = estimatedZones(kind, size, s.typography.title?.color ?? '1F2124', s.typography.title?.font ?? 'Calibri');
   const place = (r: ZoneRole, lines: string[]) => {
     const z = zone(r);
-    const name = r === 'subtitle' ? f.names?.subtitle : r === 'body' ? f.names?.body : undefined;
+    const name = r === 'title' ? f.names?.title : r === 'subtitle' ? f.names?.subtitle : r === 'body' ? f.names?.body : undefined;
     if (z?.ph && z.origin !== 'slide') { add.push(nameShape(phShape(id++, z.ph, lines), name)); return; }
     const est = fallback.find((x) => x.role === r) ?? fallback[0];
     const typo = r === 'title' ? s.typography.title : r === 'body' ? s.typography.body : s.typography.subtitle;
@@ -429,10 +429,71 @@ export function syntheticSlide(kind: PageKind, s: SlideAnalysis, f: Fill, size: 
     else if (z.role === 'pageNumber') { lines = [String(f.page)]; field = true; }
     else if (z.role === 'footer') lines = z.text ? [z.text] : null;
     if (!lines) continue;
-    const name = z.role === 'date' ? f.names?.date : z.role === 'subtitle' || (z.role === 'body' && !f.body) ? f.names?.subtitle : z.role === 'body' ? f.names?.body : undefined;
+    const name = z.role === 'title' && kind !== 'closing' ? f.names?.title : z.role === 'date' ? f.names?.date : z.role === 'subtitle' || (z.role === 'body' && !f.body) ? f.names?.subtitle : z.role === 'body' ? f.names?.body : undefined;
     shapes.push(textBox(id++, name ?? z.role, z.box, style, lines, { field, align: z.role === 'pageNumber' ? 'r' : 'l', anchor: z.role === 'title' && kind !== 'standard' ? 'b' : 't' }));
   }
   return `${XML_DECL}<p:sld ${NS} showMasterSp="0"><p:cSld><p:bg><p:bgPr>${bgXml}<a:effectLst/></p:bgPr></p:bg><p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>${shapes.join('')}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>`;
+}
+
+// ───────────── Rôles des formes (03/10/2026) ─────────────
+
+const NV_TAGS = ['p:sp', 'p:grpSp', 'p:pic', 'p:graphicFrame', 'p:cxnSp', 'mc:AlternateContent', 'p:contentPart'];
+/** Formes de premier niveau de l'arbre de la diapositive : position dans le XML et identifiant (`p:cNvPr id`). */
+export function topLevelShapes(xml: string): Array<{ start: number; end: number; tag: string; id: string | null }> {
+  const open = /<p:spTree(?:\s[^>]*)?>/.exec(xml);
+  if (!open) return [];
+  const out: Array<{ start: number; end: number; tag: string; id: string | null }> = [];
+  let i = open.index + open[0].length;
+  const close = xml.lastIndexOf('</p:spTree>');
+  while (i < close) {
+    const lt = xml.indexOf('<', i);
+    if (lt < 0 || lt >= close) break;
+    const tag = /^<([\w:]+)/.exec(xml.slice(lt, lt + 60))?.[1] ?? '';
+    // Fin de l'élément : profondeur des balises de même nom (groupes imbriqués).
+    const re = new RegExp(`<${tag}(?=[\\s>/])|</${tag}>`, 'g');
+    re.lastIndex = lt;
+    let depth = 0, end = -1, m: RegExpExecArray | null;
+    while ((m = re.exec(xml))) {
+      if (m[0].startsWith('</')) { depth--; if (depth === 0) { end = m.index + m[0].length; break; } }
+      else {
+        const gt = xml.indexOf('>', m.index);
+        if (xml[gt - 1] === '/') { if (depth === 0) { end = gt + 1; break; } }
+        else depth++;
+      }
+    }
+    if (end < 0) break;
+    if (NV_TAGS.includes(tag)) out.push({ start: lt, end, tag, id: /<p:cNvPr\b[^>]*\bid="(\d+)"/.exec(xml.slice(lt, end))?.[1] ?? null });
+    i = end;
+  }
+  return out;
+}
+
+/** Valeurs écrites dans les formes selon leur rôle ; `names` : nom de zone variable (`rise:…`) par rôle. */
+export interface RoleValues { values: Partial<Record<ShapeRole, string>>; names: Partial<Record<ShapeRole, string>> }
+
+/**
+ * Applique les rôles aux formes de la diapositive copiée : contenu d'exemple retiré, texte des zones remplacé en
+ * gardant la mise en forme de la forme (police, taille, couleur, position). Renvoie les rôles effectivement remplis.
+ */
+export function applyRoles(xml: string, roles: RoleMap, rv: RoleValues): { xml: string; done: Set<ShapeRole> } {
+  const done = new Set<ShapeRole>();
+  const spans = topLevelShapes(xml);
+  let out = '', last = 0;
+  for (const s of spans) {
+    const role = s.id ? roles[s.id] : undefined;
+    if (!role || role === 'fixed' || role === 'footer') continue;
+    out += xml.slice(last, s.start);
+    last = s.end;
+    if (role === 'example') continue;
+    let block = xml.slice(s.start, s.end);
+    const value = rv.values[role];
+    if (value !== undefined && s.tag === 'p:sp' && TEXT_ROLES.includes(role)) {
+      block = nameShape(setText(block, value.split('\n'), role === 'pageNumber' && /type="slidenum"/.test(block) ? 'slidenum' : undefined), rv.names[role]);
+      done.add(role);
+    }
+    out += block;
+  }
+  return { xml: out + xml.slice(last), done };
 }
 
 // ───────────── Paquet minimal (présentation par défaut, pages sans PowerPoint) ─────────────

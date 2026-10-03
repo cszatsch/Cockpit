@@ -67,6 +67,10 @@ export interface SlideAnalysis {
   fonts: string[];
   margins: Margins | null;
   warnings: string[];
+  /** Formes de premier niveau de la diapositive (PowerPoint), pour leur attribuer un rôle. */
+  shapes?: ShapeInfo[];
+  /** Rôles proposés par type de page (règles ou IA), gardés avec le fichier. */
+  suggestedRoles?: Partial<Record<PageKind, { roles: RoleMap; source: string }>>;
 }
 export interface FormatAnalysis {
   kind: FormatFileKind;
@@ -152,9 +156,12 @@ export function paletteOf(theme: FormatAnalysis['theme'], used: string[]): strin
 }
 
 /** Alertes d'une page : extraction incomplète (zones manquantes) et polices introuvables. */
-export function pageWarnings(kind: PageKind, s: SlideAnalysis, fileKind: FormatFileKind, embedded: string[]): string[] {
+export function pageWarnings(kind: PageKind, s: SlideAnalysis, fileKind: FormatFileKind, embedded: string[], roles?: RoleMap): string[] {
   const out = [...s.warnings];
-  const has = (r: ZoneRole) => s.zones.some((z) => z.role === r);
+  // Une zone existe si la page a le placeholder, ou une forme désignée pour ce rôle (le contenu d'exemple retiré
+  // libère la zone de contenu).
+  const assigned = new Set<string>(Object.values(roles ?? {}));
+  const has = (r: ZoneRole) => s.zones.some((z) => z.role === r) || assigned.has(r) || (r === 'body' && assigned.has('example'));
   if (fileKind !== 'PPTX') out.push(fileKind === 'PDF'
     ? 'Extraction partielle depuis un PDF : fonds, formes et textes sont repris, mais pas les images ni les dégradés. Pour un rendu identique, chargez la page au format .pptx.'
     : 'Image : la page sert de fond plein écran (un texte d’exemple présent dans l’image restera visible) et les zones de texte sont estimées. Pour un rendu identique et des zones exactes, chargez la page au format .pptx.');
@@ -169,13 +176,13 @@ export function pageWarnings(kind: PageKind, s: SlideAnalysis, fileKind: FormatF
 }
 
 /** Référence d'une page modèle : fichier chargé et numéro de diapositive (1 = première). */
-export interface PageRef { fileId: string; slide: number }
+export interface PageRef { fileId: string; slide: number; /** Rôle des formes de la diapositive, validé à l'étape B. */ roles?: RoleMap }
 export type FormatSelection = Partial<Record<PageKind, PageRef | null>>;
 
 /** Références du format d'un template (fichier, diapositive, type) sans l'extraction complète. */
 export function formatRefs(f: any) {
   if (!f?.pages) return null;
-  return Object.fromEntries(Object.entries(f.pages).map(([k, p]: [string, any]) => [k, { fileId: p.fileId, fileName: p.fileName, slide: p.slide, kind: p.kind }]));
+  return Object.fromEntries(Object.entries(f.pages).map(([k, p]: [string, any]) => [k, { fileId: p.fileId, fileName: p.fileName, slide: p.slide, kind: p.kind, ...(p.roles ? { roles: p.roles } : {}) }]));
 }
 
 /** Contrôles bloquants du format complet (passage à l'étape suivante et enregistrement du template). */
@@ -203,20 +210,22 @@ export function formatErrors(sel: FormatSelection, files: Map<string, { name: st
 }
 
 /** Résumé d'une page pour l'écran : format, polices, palette, éléments fixes et zones. */
-export function pageSummary(a: FormatAnalysis, s: SlideAnalysis) {
+export function pageSummary(a: FormatAnalysis, s: SlideAnalysis, roles?: RoleMap) {
   const roleLabel: Record<string, string> = { logo: 'logo', band: 'bandeau', watermark: 'filigrane', background: 'image de fond', shape: 'forme', text: 'texte fixe', image: 'image', line: 'trait', table: 'tableau', chart: 'graphique' };
   const zoneLabel: Record<ZoneRole, string> = { title: 'titre', subtitle: 'sous-titre', body: 'texte', chart: 'graphique', table: 'tableau', picture: 'image', date: 'date', pageNumber: 'pagination', footer: 'bas de page' };
   const count = (xs: string[]) => Object.entries(xs.reduce<Record<string, number>>((m, x) => ({ ...m, [x]: (m[x] ?? 0) + 1 }), {})).map(([k, n]) => (n > 1 ? `${n} ${k}${/[sx]$/.test(k) ? '' : 's'}` : `1 ${k}`));
   const bg = s.background.type === 'solid' ? `uni #${s.background.color}` : s.background.type === 'gradient' ? `dégradé ${(s.background.stops ?? []).map((x) => '#' + x.color).join(' → ')}` : s.background.type === 'image' ? 'image' : 'aucun (blanc)';
   const st = (t: TextStyle | null) => (t ? [t.font, t.size ? `${t.size} pt` : null, t.bold ? 'gras' : null, t.color ? '#' + t.color : null].filter(Boolean).join(' · ') : '—');
+  // Style de la forme désignée pour un rôle (titre, sous-titre) : c'est lui que gardera le rapport.
+  const roleStyle = (r: ShapeRole): TextStyle | null => { const sh = roles && s.shapes?.find((x) => roles[x.id] === r); return sh ? { font: sh.font ?? null, size: sh.size, bold: sh.bold, italic: false, color: sh.color ?? null } : null; };
   return {
     format: sizeLabel(a.size),
     background: bg,
     elements: count(s.elements.map((e) => roleLabel[e.role] ?? e.role)),
-    zones: [...new Set(s.zones.map((z) => zoneLabel[z.role]))],
+    zones: roles ? [...new Set(Object.values(roles).filter((r) => r !== 'fixed' && r !== 'footer').map((r) => SHAPE_ROLES.find((x) => x.id === r)!.label.replace(/ \(.*\)$/, '').toLowerCase()))] : [...new Set(s.zones.map((z) => zoneLabel[z.role]))],
     fonts: s.fonts,
     palette: s.palette,
-    typography: { title: st(s.typography.title), subtitle: st(s.typography.subtitle), body: st(s.typography.body), caption: st(s.typography.caption) },
+    typography: { title: st(roleStyle('title') ?? s.typography.title), subtitle: st(roleStyle('subtitle') ?? s.typography.subtitle), body: st(s.typography.body), caption: st(s.typography.caption) },
     margins: s.margins ? `${cm(s.margins.left)} / ${cm(s.margins.top)} / ${cm(s.margins.right)} / ${cm(s.margins.bottom)} cm` : null,
   };
 }
@@ -315,7 +324,7 @@ function chartSvg(ch: NonNullable<FixedElement['chart']>, x: number, y: number, 
  * `final` : diapositive d'un rapport généré (zones dessinées par leur seul texte).
  * `images` : chemin du média → URI `data:` (null si le format n'est pas affichable, ex. EMF).
  */
-export function previewSvg(a: FormatAnalysis, s: SlideAnalysis, images: (path: string) => string | null, opts: { final?: boolean } = {}): string {
+export function previewSvg(a: FormatAnalysis, s: SlideAnalysis, images: (path: string) => string | null, opts: { final?: boolean; roles?: RoleMap } = {}): string {
   const W = px(a.size.cx), H = px(a.size.cy);
   const defs: string[] = [];
   const body: string[] = [];
@@ -348,6 +357,13 @@ export function previewSvg(a: FormatAnalysis, s: SlideAnalysis, images: (path: s
     body.push(`<rect x="${px(b.x)}" y="${px(b.y)}" width="${px(b.w)}" height="${px(b.h)}" fill="none" stroke="#1d8f86" stroke-width="1.5" stroke-dasharray="6 4" opacity=".75"/>`);
     const st = { ...z.style, size: z.style.size ?? (z.role === 'title' ? 32 : z.role === 'body' ? 16 : 11) };
     body.push(textSvg(z.text?.trim() ? z.text : ZONE_TEXT[z.role], b, st, ['pageNumber'].includes(z.role)));
+  }
+  // Rôles en cours de validation : contenu d'exemple voilé (retiré), zones de texte encadrées avec leur rôle.
+  if (opts.roles && s.shapes) for (const sh of s.shapes) {
+    const r = opts.roles[sh.id];
+    const b = sh.box, x = px(b.x), y = px(b.y), w = Math.max(px(b.w), 2), h = Math.max(px(b.h), 2);
+    if (r === 'example') body.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#ffffff" fill-opacity=".82" stroke="#d4574a" stroke-width="1.5" stroke-dasharray="5 4"/><text x="${x + 4}" y="${y + 14}" font-family="sans-serif" font-size="12" font-weight="700" fill="#d4574a">Exemple retiré</text>`);
+    else if (r && TEXT_ROLES.includes(r)) body.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="none" stroke="#1d8f86" stroke-width="2" stroke-dasharray="6 3"/><rect x="${x}" y="${Math.max(0, y - 16)}" width="${(SHAPE_ROLES.find((q) => q.id === r)?.label.length ?? 8) * 6.4 + 10}" height="15" fill="#1d8f86"/><text x="${x + 5}" y="${Math.max(0, y - 16) + 11}" font-family="sans-serif" font-size="11" font-weight="700" fill="#ffffff">${xmlEsc(SHAPE_ROLES.find((q) => q.id === r)?.label ?? r)}</text>`);
   }
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">${defs.length ? `<defs>${defs.join('')}</defs>` : ''}${body.join('')}</svg>`;
 }
@@ -384,4 +400,113 @@ export function builtInFormat(): { analysis: FormatAnalysis; pages: Record<PageK
   };
   pages.closing.zones[0].text = 'Merci';
   return { analysis: { kind: 'PDF', size, theme: null, guides: { x: [], y: [] }, embeddedFonts: [], slides: Object.values(pages), warnings: [] }, pages };
+}
+
+// ───────────── Rôle des formes d'une page modèle (03/10/2026) ─────────────
+
+/**
+ * Rôle d'une forme posée sur la diapositive modèle : design fixe gardé tel quel, zone dont le texte est remplacé
+ * (titre, sous-titre, date…) ou contenu d'exemple retiré (sa place devient la zone de contenu de la page standard).
+ */
+export type ShapeRole = 'fixed' | 'title' | 'subtitle' | 'section' | 'sectionNumber' | 'date' | 'period' | 'project' | 'client' | 'committee' | 'pageNumber' | 'footer' | 'example';
+export const SHAPE_ROLES: Array<{ id: ShapeRole; label: string }> = [
+  { id: 'fixed', label: 'Design fixe (gardé)' },
+  { id: 'example', label: 'Contenu d’exemple (retiré)' },
+  { id: 'title', label: 'Titre' },
+  { id: 'subtitle', label: 'Sous-titre' },
+  { id: 'section', label: 'Nom de la section' },
+  { id: 'sectionNumber', label: 'Numéro de la section' },
+  { id: 'date', label: 'Date du rapport' },
+  { id: 'period', label: 'Période des données' },
+  { id: 'project', label: 'Nom du projet' },
+  { id: 'client', label: 'Client' },
+  { id: 'committee', label: 'Comité' },
+  { id: 'pageNumber', label: 'Numéro de page' },
+  { id: 'footer', label: 'Mention de bas de page (gardée)' },
+];
+/** Rôles qui remplacent le texte de la forme (zone de texte ou placeholder seulement). */
+export const TEXT_ROLES: ShapeRole[] = ['title', 'subtitle', 'section', 'sectionNumber', 'date', 'period', 'project', 'client', 'committee', 'pageNumber'];
+/** Forme de premier niveau de la diapositive (un groupe compte pour une forme). */
+export interface ShapeInfo {
+  id: string;
+  name: string;
+  kind: 'text' | 'shape' | 'image' | 'group' | 'table' | 'chart' | 'line' | 'placeholder';
+  ph?: string;
+  box: Box;
+  text: string;
+  size: number | null;
+  bold: boolean;
+  font?: string | null;
+  color?: string | null;
+}
+export type RoleMap = Record<string, ShapeRole>;
+
+const DATE_RE = /\b(janv|févr|fevr|mars|avr|mai|juin|juil|août|aout|sept|oct|nov|déc|dec)[a-zéû]*\.?\s+\d{4}\b|\b\d{1,2}[/.]\d{1,2}[/.]\d{2,4}\b|\b(january|february|march|april|june|july|august|september|october|november|december)\s+\d{4}\b/i;
+const isUpperLabel = (t: string) => t.length <= 40 && /[A-ZÉ]/.test(t) && t === t.toUpperCase() && !/\d{3,}/.test(t);
+
+/**
+ * Rôles proposés pour les formes d'une page modèle, selon le type de page : le plus grand texte (du haut de la page
+ * standard) est le titre ; le texte juste dessous, le sous-titre ; une courte mention en capitales au-dessus du titre,
+ * le nom de la section ; dates et numéros de page reconnus à leur forme ; petites mentions du bas, bas de page. Sur la
+ * page standard (sous le titre) et l'intercalaire, le reste du contenu est de l'exemple ; ailleurs, il est gardé.
+ * Proposition par règles, affinée par l'IA quand elle est disponible, validée par l'utilisateur à l'étape B.
+ */
+export function suggestRoles(kind: PageKind, shapes: ShapeInfo[], size: { cx: number; cy: number }): RoleMap {
+  const roles: RoleMap = {};
+  const H = size.cy, W = size.cx;
+  for (const s of shapes.filter((x) => x.kind === 'placeholder')) {
+    const t = s.ph ?? 'body';
+    roles[s.id] = t === 'title' || t === 'ctrTitle' ? 'title' : t === 'subTitle' ? 'subtitle' : t === 'dt' ? 'date' : t === 'sldNum' ? 'pageNumber' : t === 'ftr' ? 'footer' : kind === 'standard' ? 'example' : kind === 'closing' ? 'fixed' : 'subtitle';
+  }
+  const free = shapes.filter((s) => s.kind === 'text' && s.text.trim() && !roles[s.id]);
+  if (kind !== 'closing' && !Object.values(roles).includes('title')) {
+    const zone = kind === 'standard' ? free.filter((s) => s.box.y < H * 0.3) : free;
+    const best = [...zone].filter((s) => (s.size ?? 0) >= 16 && s.text.length <= 140).sort((a, b) => (b.size ?? 0) - (a.size ?? 0) || a.box.y - b.box.y)[0];
+    if (best) roles[best.id] = 'title';
+  }
+  const title = shapes.find((s) => roles[s.id] === 'title');
+  for (const s of free) {
+    if (roles[s.id]) continue;
+    const t = s.text.trim();
+    const nearEdge = s.box.y < H * 0.15 || s.box.y + s.box.h > H * 0.85;
+    if (/^\d{1,3}$/.test(t) && s.box.w < W * 0.1 && nearEdge && kind !== 'divider') roles[s.id] = 'pageNumber';
+    else if (/^\d{1,2}\s*[.·)]?$/.test(t) && kind === 'divider') roles[s.id] = 'sectionNumber';
+    else if (DATE_RE.test(t) && t.length <= 60 && (kind !== 'standard' || nearEdge)) roles[s.id] = /→|\s-\s|\sau\s/.test(t) ? 'period' : 'date';
+    else if (title && kind !== 'cover' && isUpperLabel(t) && s.box.y + s.box.h <= title.box.y + H * 0.02 && title.box.y - (s.box.y + s.box.h) < H * 0.12) roles[s.id] = 'section';
+    else if (s.box.y > H * 0.88 && (s.size ?? 12) <= 10) roles[s.id] = 'footer';
+  }
+  if (title && kind !== 'closing' && !Object.values(roles).includes('subtitle')) {
+    const sub = free.filter((s) => !roles[s.id] && s.box.y >= title.box.y + title.box.h * 0.5 && s.box.y - (title.box.y + title.box.h) < H * 0.12 && (s.size ?? 0) < (title.size ?? 99)).sort((a, b) => a.box.y - b.box.y)[0];
+    if (sub) roles[sub.id] = 'subtitle';
+  }
+  const top = title ? title.box.y + title.box.h : H * 0.15;
+  for (const s of shapes) {
+    if (roles[s.id]) continue;
+    // Bandeau ou fond (sans texte) : design ; un groupe ou une carte avec du texte reste du contenu.
+    const band = !s.text.trim() && ((s.box.w >= W * 0.7 && s.box.h <= H * 0.25) || (s.box.h >= H * 0.7 && s.box.w <= W * 0.2) || s.box.w * s.box.h >= W * H * 0.9);
+    const smallImage = s.kind === 'image' && s.box.w * s.box.h <= W * H * 0.05;
+    if (kind === 'standard' && !band && !smallImage && s.box.y >= top - H * 0.02 && s.box.y < H * 0.9) roles[s.id] = 'example';
+    else if (kind === 'divider' && s.text.trim() && !band) roles[s.id] = 'example';
+    else roles[s.id] = 'fixed';
+  }
+  return roles;
+}
+
+/** Contrôle des rôles : rôles connus, texte seulement dans une zone de texte, un titre (sauf clôture). */
+export function roleErrors(kind: PageKind, shapes: ShapeInfo[], roles: RoleMap): string | null {
+  const known = new Set(SHAPE_ROLES.map((r) => r.id));
+  if (Object.entries(roles).some(([id, r]) => !known.has(r) || !shapes.some((s) => s.id === id))) return `${PAGE_LABELS[kind]} : rôle de forme inconnu`;
+  const bad = shapes.filter((s) => TEXT_ROLES.includes(roles[s.id]) && !['text', 'placeholder'].includes(s.kind));
+  if (bad.length) return `${PAGE_LABELS[kind]} : seule une zone de texte peut recevoir un texte (« ${bad[0].name} »)`;
+  if (kind !== 'closing' && shapes.length && !Object.values(roles).includes('title')) return `${PAGE_LABELS[kind]} : désignez la zone de titre (la forme qui recevra le titre)`;
+  return null;
+}
+
+/** Zone de contenu de la page standard : place libérée par le contenu d'exemple retiré. */
+export function exampleArea(shapes: ShapeInfo[], roles: RoleMap): Box | null {
+  const ex = shapes.filter((s) => roles[s.id] === 'example');
+  if (!ex.length) return null;
+  const x0 = Math.min(...ex.map((s) => s.box.x)), y0 = Math.min(...ex.map((s) => s.box.y));
+  const x1 = Math.max(...ex.map((s) => s.box.x + s.box.w)), y1 = Math.max(...ex.map((s) => s.box.y + s.box.h));
+  return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
 }

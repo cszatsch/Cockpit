@@ -294,10 +294,12 @@ describe('Console — Jev et la fonction guidage', () => {
       expect(await incident()).toMatchObject({ status: 'RESOLVED' });
     });
 
-    it('les autres fonctions gardent le bouchon (aucun appel sortant)', async () => {
+    it('« Génération de rapports » génère aussi réellement (03/10/2026) : un appel sortant vers le fournisseur', async () => {
       live(() => anthropicOk);
+      expect(t.app.get(LlmService).isLive('rapports')).toBe(true);
       await t.app.get(LlmService).complete({ functionId: 'rapports', prompt: 'Bonjour', source: 'COCKPIT' });
-      expect(reqs).toHaveLength(0);
+      expect(reqs).toHaveLength(1);
+      expect(reqs[0].url).toBe('https://api.anthropic.com/v1/messages');
     });
   });
 });

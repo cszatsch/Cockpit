@@ -1,6 +1,6 @@
 import {
   Box, DEFAULT_SIZE, EMU_PER_GUIDE_UNIT, EMU_PER_PT, Fill, FixedElement, FORMAT_EMPTY, FORMAT_EXTENSIONS, FORMAT_IMAGE_UNREADABLE, FORMAT_MAX_SLIDES, FORMAT_NO_SLIDE, FORMAT_OLD_PPT,
-  FORMAT_PPTX_UNREADABLE, FORMAT_PROTECTED, FORMAT_REFUSED, FormatAnalysis, FormatFileKind, FormatReadError, IMAGE_MIN_WIDTH_PX, SlideAnalysis, TextStyle, Typography, Zone, ZoneRole,
+  FORMAT_PPTX_UNREADABLE, FORMAT_PROTECTED, FORMAT_REFUSED, FormatAnalysis, FormatFileKind, FormatReadError, IMAGE_MIN_WIDTH_PX, ShapeInfo, SlideAnalysis, TextStyle, Typography, Zone, ZoneRole,
   elementRole, formatMismatch, imageTooSmall, marginsOf, paletteOf,
 } from '../domain/report-format';
 import { attr, child, ColorCtx, colorOf, find, findAll, kids, OoxmlPackage, path, tagOf, textOf, XNode } from './ooxml';
@@ -313,6 +313,34 @@ export async function analyzePptx(buf: Buffer): Promise<FormatAnalysis> {
   return { kind: 'PPTX', size, theme: firstTheme, guides, embeddedFonts, slides, warnings };
 }
 
+/** Formes de premier niveau de la diapositive (groupes entiers), avec texte, corps et position (rôles, 03/10/2026). */
+function inventory(tree: XNode | null, zones: Zone[], c: Ctx): ShapeInfo[] {
+  const NV: Record<string, string> = { 'p:sp': 'p:nvSpPr', 'p:pic': 'p:nvPicPr', 'p:grpSp': 'p:nvGrpSpPr', 'p:graphicFrame': 'p:nvGraphicFramePr', 'p:cxnSp': 'p:nvCxnSpPr' };
+  const out: ShapeInfo[] = [];
+  for (let n of kids(tree)) {
+    if (tagOf(n) === 'mc:AlternateContent') n = kids(child(n, 'mc:Fallback') ?? child(n, 'mc:Choice')).find((k) => NV[tagOf(k)]) ?? n;
+    const t = tagOf(n);
+    if (!NV[t]) continue;
+    const nv = child(n, NV[t]);
+    const cnv = child(nv, 'p:cNvPr');
+    const id = attr(cnv, 'id');
+    if (!id) continue;
+    const ph = phOf(child(nv, 'p:nvPr'));
+    const xf = t === 'p:graphicFrame' ? xfOf(child(n, 'p:xfrm')) : t === 'p:grpSp' ? xfOf(child(child(n, 'p:grpSpPr'), 'a:xfrm')) : xfOf(child(child(n, 'p:spPr'), 'a:xfrm'));
+    const zone = ph ? zones.find((z) => z.ph && z.ph.type === ph.type && z.ph.idx === ph.idx && z.origin === 'slide') : undefined;
+    const box = xf ? boxOf(xf) : zone?.box;
+    if (!box) continue;
+    const text = t === 'p:sp' || t === 'p:grpSp' ? textOf(n) : '';
+    const sizes = [...findAll(n, 'a:rPr'), ...findAll(n, 'a:defRPr'), ...findAll(n, 'a:endParaRPr')].map((r) => num(attr(r, 'sz')) / 100).filter((v) => v > 0);
+    const uri = attr(path(n, 'a:graphic', 'a:graphicData'), 'uri') ?? '';
+    const kind: ShapeInfo['kind'] = ph ? 'placeholder' : t === 'p:pic' ? 'image' : t === 'p:grpSp' ? 'group' : t === 'p:cxnSp' ? 'line' : t === 'p:graphicFrame' ? (uri.includes('table') ? 'table' : 'chart') : text ? 'text' : 'shape';
+    const b = findAll(n, 'a:rPr').find((r) => attr(r, 'b') !== undefined);
+    const first = t === 'p:sp' ? shapeStyle(n, c) : rprStyle(findAll(n, 'a:rPr')[0] ?? null, c);
+    out.push({ id, name: attr(cnv, 'name') ?? '', kind, ...(ph ? { ph: ph.type } : {}), box, text: text.slice(0, 400), size: sizes.length ? Math.max(...sizes) : zone?.style.size ?? null, bold: b ? attr(b, 'b') === '1' : !!zone?.style.bold, font: first.font ?? zone?.style.font ?? null, color: first.color ?? zone?.style.color ?? null });
+  }
+  return out;
+}
+
 async function analyzeSlide(pkg: OoxmlPackage, slidePath: string, index: number, size: { cx: number; cy: number }, onTheme: (t: NonNullable<FormatAnalysis['theme']>) => void): Promise<SlideAnalysis> {
   const slide = (await pkg.xml(slidePath))!;
   const layoutPath = await pkg.targetOfType(slidePath, 'slideLayout');
@@ -410,6 +438,7 @@ async function analyzeSlide(pkg: OoxmlPackage, slidePath: string, index: number,
     fonts: [...c.fonts].filter((f) => !f.startsWith('+')),
     margins: marginsOf(zones, size),
     warnings: [...c.warnings],
+    shapes: inventory(path(slide, 'p:cSld', 'p:spTree'), zones, c),
   };
 }
 

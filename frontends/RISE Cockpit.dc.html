@@ -1026,6 +1026,12 @@ a{color:#1d8f86}a:hover{color:#146b64}
               <div style="margin-top:10px;display:grid;grid-template-columns:72px minmax(0,1fr);gap:4px 8px;font-size:11px"><sc-for list="{{ p.facts }}" as="f" hint-placeholder-count="5"><span style="color:#8a8f9c">{{ f.k }}</span><span style="color:#10233a;text-wrap:pretty">{{ f.v }}</span></sc-for></div>
               <sc-if value="{{ p.hasPalette }}" hint-placeholder-val="{{ false }}"><div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px"><sc-for list="{{ p.palette }}" as="c" hint-placeholder-count="5"><span title="{{ c.v }}" style="{{ c.style }}"></span></sc-for></div></sc-if>
             </sc-if>
+            <sc-if value="{{ p.rolesBusy }}" hint-placeholder-val="{{ false }}"><div style="margin-top:10px;font-size:11px;color:#1d8f86;font-weight:600">Analyse des zones de la page…</div></sc-if>
+            <sc-if value="{{ p.hasRoles }}" hint-placeholder-val="{{ false }}"><div style="margin-top:10px;border-top:1px solid #e6eeec;padding-top:8px">
+              <div onClick="{{ p.toggleRoles }}" style="display:flex;justify-content:space-between;align-items:center;gap:6px;cursor:pointer"><b style="font-size:11.5px">Zones de la page · {{ p.rolesCount }}</b><span style="font-size:10.5px;color:#5c7280;white-space:nowrap">{{ p.rolesSource }} {{ p.rolesChevron }}</span></div>
+              <sc-if value="{{ p.rolesOpen }}" hint-placeholder-val="{{ false }}"><div style="margin-top:6px;font-size:10.5px;color:#5c7280;text-wrap:pretty">Le contenu d'exemple est retiré de chaque rapport ; les zones en vert reçoivent le texte du rapport, avec leur mise en forme.</div><div style="margin-top:6px;display:flex;flex-direction:column;gap:3px"><sc-for list="{{ p.roleRows }}" as="r" hint-placeholder-count="4"><div style="{{ r.style }}"><span title="{{ r.full }}" style="font-size:11px;color:#43586a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.label }}</span><select value="{{ r.role }}" onChange="{{ r.set }}" style="height:26px;padding:0 6px;border-radius:7px;border:1px solid #d9e4e1;font:inherit;font-size:11px;color:#10233a;background:#fff;width:100%;outline:none"><sc-for list="{{ r.opts }}" as="o" hint-placeholder-count="4"><option value="{{ o.v }}">{{ o.l }}</option></sc-for></select></div></sc-for></div></sc-if>
+              <sc-if value="{{ p.hasRolesNote }}" hint-placeholder-val="{{ false }}"><div style="margin-top:6px;font-size:10.5px;color:#8a8f9c">{{ p.rolesNote }}</div></sc-if>
+            </div></sc-if>
             <sc-if value="{{ p.hasErr }}" hint-placeholder-val="{{ false }}"><div style="margin-top:10px;padding:8px 10px;border-radius:9px;background:#fdecea;color:#a3271b;font-size:11.5px;font-weight:600;text-wrap:pretty">{{ p.err }}</div></sc-if>
             <sc-for list="{{ p.warns }}" as="w" hint-placeholder-count="0"><div style="margin-top:8px;padding:7px 10px;border-radius:9px;background:#fff6e6;color:#8a5a12;font-size:11px;text-wrap:pretty">{{ w.t }}</div></sc-for>
           </div>
@@ -2309,6 +2315,14 @@ class Component extends DCLogic {
   // Brouillon vu comme un template (aperçu, publication) et sa clé : l'aperçu est reconstruit quand elle change.
   tplDraftTemplate() { const D = this.state.tplDraft, F = D.fmt || { pages: {} }; const full = ['cover', 'divider', 'standard', 'closing'].every(k => F.pages[k]); return { name: D.name.trim() || 'Nouveau template', version: D.version, committee: D.committee, bodyId: D.bodyId, comps: D.comps, format: full ? F.pages : null }; }
   tplDraftKey() { return JSON.stringify(this.tplDraftTemplate()); }
+  // Clé d'aperçu d'une page modèle : fichier, diapositive et rôles des formes.
+  tplFmtPrevKey(r) { return r.fileId + '#' + r.slide + (r.roles ? '#' + JSON.stringify(r.roles) : ''); }
+  // Rôle d'une forme modifié par l'utilisateur : aperçu et contrôle du format relancés.
+  tplFmtSetRole(kind, shapeId, role) {
+    const F = this.state.tplDraft.fmt || { files: {}, pages: {} }, p = F.pages[kind];
+    if (!p) return;
+    this.setState(s => ({ tplDraft: { ...s.tplDraft, fmt: { ...F, pages: { ...F.pages, [kind]: { ...p, roles: { ...(p.roles || {}), [shapeId]: role } } } } } }), () => this.tplFmtRefresh());
+  }
   // Prévisualisation : rapport complet construit par le serveur (POST /report-templates/preview), diapositives chargées une à une.
   async tplPreviewRun() {
     if (!this._api) return;
@@ -2337,15 +2351,32 @@ class Component extends DCLogic {
   async tplFmtRefresh() {
     if (!this._api) return;
     const F = this.state.tplDraft.fmt || { files: {}, pages: {} };
-    const refs = Object.values(F.pages).filter(Boolean);
-    for (const r of refs) {
-      const key = r.fileId + '#' + r.slide;
-      if ((this.state.tplFmtPrev || {})[key] || String(r.fileId).startsWith('local')) continue;
-      try { const url = await this._api.fmtPreview(r.fileId, r.slide); this.setState(s => ({ tplFmtPrev: { ...(s.tplFmtPrev || {}), [key]: url } })); } catch (e) { /* aperçu indisponible : la carte le signale */ }
+    // Rôles des formes (PowerPoint) : proposition de l'IA chargée une fois par diapositive et type de page.
+    for (const k of ['cover', 'divider', 'standard', 'closing']) {
+      const r = F.pages[k];
+      if (!r || String(r.fileId).startsWith('local') || (F.files[r.fileId] || {}).kind !== 'PPTX') continue;
+      const rk = r.fileId + '#' + r.slide;
+      const RS = (this.state.tplFmtRoles || {})[k] || {};
+      if (RS.key === rk && (r.roles || RS.busy || RS.err)) continue;
+      this.setState(s => ({ tplFmtRoles: { ...(s.tplFmtRoles || {}), [k]: { key: rk, busy: true } } }));
+      try {
+        const res = await this._api.fmtRoles(r.fileId, r.slide, k);
+        this.setState(s => {
+          const cur = (s.tplDraft.fmt || {}).pages || {}, p = cur[k];
+          const pages = p && p.fileId === r.fileId && p.slide === r.slide && !p.roles && Object.keys(res.roles || {}).length ? { ...cur, [k]: { ...p, roles: res.roles } } : cur;
+          return { tplFmtRoles: { ...(s.tplFmtRoles || {}), [k]: { ...res, key: rk } }, tplDraft: { ...s.tplDraft, fmt: { ...s.tplDraft.fmt, pages } } };
+        });
+      } catch (e) { this.setState(s => ({ tplFmtRoles: { ...(s.tplFmtRoles || {}), [k]: { key: rk, err: (e && e.message) || 'Rôles indisponibles' } } })); }
     }
-    const key = JSON.stringify(F.pages);
-    if (refs.length < 4) return this.setState({ tplFmtCheck: null });
-    try { const r = await this._api.fmtCheck(F.pages); if (JSON.stringify((this.state.tplDraft.fmt || {}).pages) === key) this.setState({ tplFmtCheck: { ...r, key } }); }
+    const F2 = this.state.tplDraft.fmt || { files: {}, pages: {} };
+    for (const r of Object.values(F2.pages).filter(Boolean)) {
+      const key = this.tplFmtPrevKey(r);
+      if ((this.state.tplFmtPrev || {})[key] || String(r.fileId).startsWith('local')) continue;
+      try { const url = await this._api.fmtPreview(r.fileId, r.slide, r.roles); this.setState(s => ({ tplFmtPrev: { ...(s.tplFmtPrev || {}), [key]: url } })); } catch (e) { /* aperçu indisponible : la carte le signale */ }
+    }
+    const key = JSON.stringify(F2.pages);
+    if (Object.values(F2.pages).filter(Boolean).length < 4) return this.setState({ tplFmtCheck: null });
+    try { const r = await this._api.fmtCheck(F2.pages); if (JSON.stringify((this.state.tplDraft.fmt || {}).pages) === key) this.setState({ tplFmtCheck: { ...r, key } }); }
     catch (e) { this.setState({ tplFmtCheck: { complete: false, errors: {}, pages: {}, key, err: (e && e.message) || 'Contrôle impossible' } }); }
   }
   // Notifications de l'utilisateur (cloche de la barre latérale) : liste relue à l'ouverture du tiroir.
@@ -4167,12 +4198,12 @@ class Component extends DCLogic {
   ], tplStep: 1, tplDraft: { name: '', version: '1.0', author: null, desc: '', committee: 'Comité de pilotage', bodyId: 'g1', comps: [], fmt: { files: {}, pages: {} } }, tplFmtCheck: null, tplFmtErr: {}, tplPrev: null, tab: 'generer' })); this.showToast('Template publié · ' + t.name + ' v' + t.version + ' — PowerPoint de référence généré, actif dans ' + t.committee); };
     const nextOk = step === 1 ? valid1 : step === 2 ? validFmt : step === 3 ? valid2 : step < 6;
     const fmtErrs = (chk && chk.errors) || {};
-    const prevOf = r => (r ? (S.tplFmtPrev || {})[r.fileId + '#' + r.slide] : null);
+    const prevOf = r => (r ? (S.tplFmtPrev || {})[this.tplFmtPrevKey(r)] : null);
     const tplFmtPages = FK.map((k, i) => {
       const ref = F.pages[k]; const file = ref ? F.files[ref.fileId] : null; const busy = !!(S.tplFmtBusy || {})[k];
-      const sl = file && file.slides ? file.slides[(ref.slide || 1) - 1] : null; const sum = sl && sl.summary;
+      const sl = file && file.slides ? file.slides[(ref.slide || 1) - 1] : null; const ck = chk && chk.pages ? chk.pages[k] : null; const sum = (ck && ck.summary) || (sl && sl.summary); // contrôle du serveur : tient compte des rôles des formes
       const err = (S.tplFmtErr || {})[k] || (ref && fmtErrs[k]) || null;
-      const warns = sl && sl.warnings ? (sl.warnings[k] || []) : [];
+      const warns = ck ? ck.warnings || [] : sl && sl.warnings ? (sl.warnings[k] || []) : [];
       const prev = prevOf(ref);
       const state = busy ? 'Analyse…' : err ? 'Erreur' : !ref ? 'À charger' : warns.length ? 'À vérifier' : 'Prêt';
       const tone = state === 'Erreur' ? P.risk : state === 'À vérifier' ? P.vig : state === 'Prêt' ? P.ok : P.neutral;
@@ -4182,6 +4213,21 @@ class Component extends DCLogic {
         facts: sum ? [['Format', sum.format], ['Fond', sum.background], ['Éléments', sum.elements.join(' · ') || 'aucun'], ['Zones', sum.zones.join(' · ') || 'aucune'], ['Polices', sum.fonts.join(', ') || '—'], ['Titres', sum.typography.title], ['Texte', sum.typography.body], ...(sum.margins ? [['Marges', sum.margins]] : [])].map(([fk, fv]) => ({ k: fk, v: fv })) : [],
         hasPalette: !!(sum && sum.palette.length), palette: sum ? sum.palette.map(c => ({ v: '#' + c, style: 'width:16px;height:16px;border-radius:4px;box-shadow:inset 0 0 0 1px rgba(16,35,58,.15);background:#' + c })) : [],
         hasErr: !!err, err: err || '', warns: warns.map(t => ({ t })),
+        ...(() => {
+          const RS = (S.tplFmtRoles || {})[k], ok = !!(RS && ref && RS.key === ref.fileId + '#' + ref.slide && RS.shapes && RS.shapes.length);
+          const roles = (ref && ref.roles) || {}, labels = (RS && RS.roleLabels) || [];
+          const KIND = { image: 'Image', group: 'Groupe', shape: 'Forme', line: 'Trait', table: 'Tableau', chart: 'Graphique' };
+          const textRoles = ['title', 'subtitle', 'section', 'sectionNumber', 'date', 'period', 'project', 'client', 'committee', 'pageNumber'];
+          const open = (S.tplFmtRolesOpen || {})[k] ?? !!(ref && fmtErrs[k]);
+          return {
+            hasRoles: ok, rolesOpen: ok && open, rolesChevron: open ? '▾' : '▸', toggleRoles: () => this.setState(s => ({ tplFmtRolesOpen: { ...(s.tplFmtRolesOpen || {}), [k]: !open } })),
+            rolesCount: ok ? RS.shapes.length + ' formes' : '', rolesSource: ok ? (RS.source === 'ia' ? 'Proposé par l\'IA' : 'Proposé par règles') : '',
+            hasRolesNote: !!(RS && RS.note), rolesNote: (RS && RS.note) || '', rolesBusy: !!(RS && RS.busy),
+            roleRows: ok ? RS.shapes.map(sh => ({ label: sh.text ? '« ' + sh.text.slice(0, 48) + ' »' : (KIND[sh.kind] || 'Forme') + ' · ' + sh.name, full: (sh.text || sh.name), role: roles[sh.id] || 'fixed',
+              opts: labels.filter(o => ['text', 'placeholder'].includes(sh.kind) || !textRoles.includes(o.id)).map(o => ({ v: o.id, l: o.label })), set: e => this.tplFmtSetRole(k, sh.id, e.target.value),
+              style: 'display:grid;grid-template-columns:minmax(0,1fr) 132px;gap:6px;align-items:center;padding:2px 4px;border-radius:6px;' + ((roles[sh.id] || 'fixed') === 'example' ? 'background:#fdf3f1' : textRoles.includes(roles[sh.id]) ? 'background:#e6f3f2' : '') })) : [],
+          };
+        })(),
         pick: () => { this._fmtKind = k; if (this.tplFmtRef.current) this.tplFmtRef.current.click(); }, remove: () => this.tplFmtSet(k, null),
         setSlide: e => this.tplFmtSet(k, { fileId: ref.fileId, slide: +e.target.value }),
         over: e => e.preventDefault(), drop: e => { e.preventDefault(); const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if (f) this.tplFmtLoad(k, f); },

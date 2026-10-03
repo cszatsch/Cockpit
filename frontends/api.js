@@ -764,7 +764,7 @@ export function attach(comp) {
     });
     // Format du rapport (étape B, 02/10/2026) : les 4 pages modèles { fileId, slide } ; absent = présentation par défaut.
     const fmt = t.format && ['cover', 'divider', 'standard', 'closing'].every((k) => t.format[k] && t.format[k].fileId && !String(t.format[k].fileId).startsWith('local'))
-      ? Object.fromEntries(['cover', 'divider', 'standard', 'closing'].map((k) => [k, { fileId: t.format[k].fileId, slide: +t.format[k].slide || 1 }])) : undefined;
+      ? Object.fromEntries(['cover', 'divider', 'standard', 'closing'].map((k) => [k, { fileId: t.format[k].fileId, slide: +t.format[k].slide || 1, ...(t.format[k].roles ? { roles: t.format[k].roles } : {}) }])) : undefined;
     return { name: t.name, bodyId: t.bodyId || bodyId(t.committee) || null, authorLabel: t.author || null, version: String(t.version || '1.0'), description: t.desc || '', components: comps, ...(fmt ? { format: fmt } : {}), active: t.active !== false };
   }
   function onTemplates(before, after) {
@@ -968,7 +968,10 @@ export function attach(comp) {
       return ppost('/report-formats', fd);
     },
     /** Aperçu d'une diapositive (SVG reconstitué) : URL d'objet, à libérer par l'écran. */
-    async fmtPreview(fileId, n) {
+    /** Rôles proposés pour les formes d'une diapositive (IA, sinon règles) : `POST …/slides/{n}/roles`. */
+    fmtRoles(fileId, n, kind) { return ppost('/report-formats/' + enc(fileId) + '/slides/' + n + '/roles', { kind }); },
+    async fmtPreview(fileId, n, roles) {
+      if (roles) { const r = await ppost('/report-formats/' + enc(fileId) + '/slides/' + n + '/preview', { roles }, { raw: true }); return URL.createObjectURL(await r.blob()); }
       const r = await pget('/report-formats/' + enc(fileId) + '/slides/' + n + '/preview', { raw: true });
       return URL.createObjectURL(await r.blob());
     },

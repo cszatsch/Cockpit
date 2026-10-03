@@ -92,7 +92,7 @@ describe('Cockpit — Format du rapport', () => {
     const bad = await post(pmo, '/report-templates', tpl({ cover: { fileId: a, slide: 1 } })).expect(400);
     expect(bad.body).toMatchObject({ message: 'Format du rapport incomplet', fields: { divider: 'Page intercalaire manquante' } });
     const created = await post(pmo, '/report-templates', tpl(all(a, b))).expect(201);
-    expect(created.body.format).toEqual({
+    expect(created.body.format).toMatchObject({
       cover: { fileId: a, fileName: 'Charte.pptx', slide: 1, kind: 'PPTX' }, divider: { fileId: a, fileName: 'Charte.pptx', slide: 2, kind: 'PPTX' },
       standard: { fileId: a, fileName: 'Charte.pptx', slide: 3, kind: 'PPTX' }, closing: { fileId: b, fileName: 'Charte rouge.pptx', slide: 1, kind: 'PPTX' },
     });
@@ -100,7 +100,7 @@ describe('Cockpit — Format du rapport', () => {
     const row = await t.db.reportTemplate.findUnique({ where: { id: created.body.id } });
     expect((row!.format as any).pages.cover.analysis).toMatchObject({ background: { type: 'solid', color: '10233A' }, typography: { title: { font: 'Montserrat', size: 40 } } });
     const boot = await get(pmo, '/bootstrap').expect(200);
-    expect(boot.body.templates.find((x: any) => x.id === created.body.id).format.closing).toEqual({ fileId: b, fileName: 'Charte rouge.pptx', slide: 1, kind: 'PPTX' });
+    expect(boot.body.templates.find((x: any) => x.id === created.body.id).format.closing).toMatchObject({ fileId: b, fileName: 'Charte rouge.pptx', slide: 1, kind: 'PPTX' });
 
     const res = await get(pmo, `/report-templates/${created.body.id}/pptx`).buffer(true).parse(binary).expect(200);
     expect(res.headers['content-type']).toBe('application/vnd.openxmlformats-officedocument.presentationml.presentation');
