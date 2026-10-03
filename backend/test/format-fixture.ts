@@ -1,4 +1,5 @@
 import JSZip from 'jszip';
+import { COMPONENTS } from '../src/domain/report-components';
 import zlib from 'zlib';
 
 /**
@@ -95,6 +96,19 @@ export async function makeFormatPptx(opts: FixtureOpts = {}): Promise<Buffer> {
  * pointe vers une partie existante, chaque partie a un type de contenu, chaque diapositive de la liste existe, les
  * identifiants de diapositives, de masques et de dispositions sont uniques.
  */
+/**
+ * Version publiée avant le 04/10/2026 : Actions et Décisions en tableau, Tableau de bord en cartes et graphique. Ces
+ * versions restent en service (leur PowerPoint contient ces zones) ; les tests du remplissage des tableaux et des
+ * graphiques s'appuient sur elles.
+ */
+export async function withLegacyParts<T>(fn: () => Promise<T>): Promise<T> {
+  const saved = { a: COMPONENTS.actions.parts, d: COMPONENTS.decisions.parts, b: COMPONENTS.dashboard.parts };
+  COMPONENTS.actions.parts = ['table'];
+  COMPONENTS.decisions.parts = ['table'];
+  COMPONENTS.dashboard.parts = ['kpi', 'chart'];
+  try { return await fn(); } finally { COMPONENTS.actions.parts = saved.a; COMPONENTS.decisions.parts = saved.d; COMPONENTS.dashboard.parts = saved.b; }
+}
+
 export async function pptxIntegrity(buf: Buffer): Promise<string[]> {
   const z = await JSZip.loadAsync(buf);
   const problems: string[] = [];

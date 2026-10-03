@@ -54,6 +54,9 @@ describe('Cockpit — Templates de rapport : versions et publications', () => {
     expect(r.body.components.find((c: any) => c.id === 'planning')).toMatchObject({ nature: 'Gantt', parts: ['board'], indicators: [{ id: 'milestones', label: 'Jalons sur la frise' }, { id: 'subphases', label: 'Sous-phases' }] });
     expect(r.body.components.find((c: any) => c.id === 'risques')).toMatchObject({ nature: 'Matrice et tableau', parts: ['board'], periodic: false });
     expect(r.body.components.find((c: any) => c.id === 'jalons')).toMatchObject({ nature: 'Frise', parts: ['board'], periodic: true });
+    expect(r.body.components.find((c: any) => c.id === 'actions')).toMatchObject({ nature: 'Échéancier', parts: ['board'] });
+    expect(r.body.components.find((c: any) => c.id === 'decisions')).toMatchObject({ nature: 'Arbitrages', parts: ['board'] });
+    expect(r.body.components.find((c: any) => c.id === 'dashboard')).toMatchObject({ nature: 'Tableau de bord', parts: ['board'], defaults: ['progress', 'planned', 'risks_open', 'actions_open', 'milestones_late', 'decisions_pending'] });
     expect(r.body.periods.map((p: any) => p.id)).toEqual(['all', 'month', 'prevMonth', 'quarter', 'last3', 'last6', 'last12', 'next30', 'next60', 'next90']);
   });
 
@@ -247,6 +250,30 @@ describe('Cockpit — Templates de rapport : versions et publications', () => {
       expect(x).toContain('>Phase · sous-phase<');
       expect(x).toMatch(/sous-phases? terminées?/);
     }
+  });
+
+  it('tableau de bord, échéancier des actions et arbitrages : planches dessinées avec les données du projet', async () => {
+    const tpl = await post('/report-templates', { name: 'Pilotage', version: '1.0', components: [{ id: 'dashboard', scope: 'PROJECT' }, { id: 'actions', scope: 'PROJECT', indicators: ['code', 'name', 'owner', 'due', 'status', 'prio', 'kpis'] }, { id: 'decisions', scope: 'PROJECT', period: 'month' }], format: format() }).expect(201);
+    await ready(tpl.body.id);
+    const x = (await slideXml((await get(`/report-templates/${tpl.body.id}/pptx`).buffer(true).parse(binary).expect(200)).body as Buffer)).xml;
+    const current = await t.db.phase.findFirstOrThrow({ where: { projectId: 'RISE', status: 'IN_PROGRESS' } });
+    // Tableau de bord : phase en cours, prévu à date, tuiles qualifiées.
+    expect(x[2]).toContain(`>${current.name}<`);
+    expect(x[2]).toMatch(/prévu à date \d+ %/);
+    expect(x[2]).toContain('>Santé du projet<');
+    expect(x[2]).toMatch(/>dont \d+ critiques?</);
+    expect(x[2]).toContain('>Décisions en attente<');
+    // Échéancier : retards en jours par rapport au 26 sept. (A-41, échéance le 27 août), priorité, origine.
+    expect(x[3]).toContain('Aujourd’hui · 26 sept.');
+    expect(x[3]).toContain('>30 j<');
+    expect(x[3]).toContain('issue de P02');
+    expect(x[3]).toContain('>Haute<');
+    // Arbitrages : décisions en attente quelle que soit la période ; décision prise dans le mois (D-007, 26 sept.).
+    const pending = await t.db.decision.count({ where: { projectId: 'RISE', status: { in: ['DRAFT', 'IN_REVIEW', 'TO_ARBITRATE'] } } });
+    expect(x[4]).toContain(`>${pending}<`);
+    expect(x[4]).toContain('>D-009<');
+    expect(x[4]).toContain('>À arbitrer<');
+    expect(x[4]).toContain('Go-Live Lot 1 reporté au 1er avril 2027');
   });
 
   it('anomalies avant génération : avertissements listés ; périmètre disparu ou template endommagé → génération refusée (422)', async () => {

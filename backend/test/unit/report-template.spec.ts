@@ -3,7 +3,8 @@ import ExcelJS from 'exceljs';
 import { analyzeImage, analyzePptx } from '../../src/core/report-format-read';
 import { composeTemplate, fillChartXml, FillData, fillTemplate, TemplateFieldMissing, TemplateManifest } from '../../src/core/report-template';
 import { COMPONENT_IDS, ComponentConfig, configErrors, fieldName, indicatorsOf, pagesOf, periodOf, periodRange, reportPlan, sectionsOf } from '../../src/domain/report-components';
-import { makeFormatPptx, makePng, pptxIntegrity } from '../format-fixture';
+import { makeFormatPptx, makePng, pptxIntegrity, withLegacyParts } from '../format-fixture';
+import { actionBuckets, ActionsData, DashboardData, DECISION_STALE_DAYS, DecisionsData, drawActions, drawDashboard, drawDecisions, focusPhase, gapTone, sortActions, sortPending } from '../../src/core/report-draw-pilotage';
 import { BarometerData, Draw, drawBarometer, drawGantt, drawMilestones, drawPlanTable, drawRisks, foldPlan, GANTT_MAX_ROWS, GanttData, GanttRow, isLate, MILESTONES_MAX, MilestonesData, milestoneStates, RisksData, wrapText } from '../../src/core/report-draw';
 import { designTokens, scoreTone, statusTone, timeRatio, timeScale, typeScale } from '../../src/domain/report-design';
 
@@ -84,25 +85,25 @@ describe('Template de rapport — composition et publications', () => {
     expect(manifest.pages.map((p) => p.kind)).toEqual(['cover', 'divider', 'standard', 'standard', 'standard', 'standard', 'divider', 'standard', 'standard', 'standard', 'standard', 'standard', 'closing']);
     expect(manifest.pages.length).toBe(pagesOf(all));
     const ids = manifest.fields.map((f) => f.id);
-    expect(ids).toEqual(expect.arrayContaining(['report.subtitle', 'c01.caption', 'c01.kpi.status', 'c01.text', 'c02.board', 'c03.board', 'c04.board', 'c05.table', 'c07.board', 'c07.chart', 'c08.kpi.risks_open', 'c08.chart', 'c09.kpi.committed']));
+    expect(ids).toEqual(expect.arrayContaining(['report.subtitle', 'c01.caption', 'c01.kpi.status', 'c01.text', 'c02.board', 'c03.board', 'c04.board', 'c05.board', 'c06.board', 'c07.board', 'c07.chart', 'c08.board', 'c09.kpi.committed']));
+    expect(ids.filter((x) => /\.(table|chart)$/.test(x))).toEqual(['c07.chart']); // planches : plus de tableau ni de graphique en barres
     expect(new Set(ids.map((id, i) => `${id}@${manifest.fields[i].slide}`)).size).toBe(ids.length); // identifiants uniques par page
     const { names } = await shapes(tpl);
     const { files } = await shapes(tpl);
     for (const f of manifest.fields) expect(names[files.indexOf(f.slide)]).toContain(fieldName(f.id));
     const z = await JSZip.loadAsync(tpl);
-    // Graphiques natifs : partie graphique + classeur incorporé ; tableaux natifs (a:tbl).
-    expect(Object.keys(z.files).filter((f) => /^ppt\/charts\/chart\d+\.xml$/.test(f))).toHaveLength(2);
-    expect(Object.keys(z.files).filter((f) => /^ppt\/embeddings\/.+\.xlsx$/.test(f))).toHaveLength(2);
-    expect(await z.file(manifest.fields.find((f) => f.id === 'c05.table')!.slide)!.async('string')).toContain('<a:tbl>');
+    // Graphique natif (évolution du baromètre) : partie graphique + classeur incorporé.
+    expect(Object.keys(z.files).filter((f) => /^ppt\/charts\/chart\d+\.xml$/.test(f))).toHaveLength(1);
+    expect(Object.keys(z.files).filter((f) => /^ppt\/embeddings\/.+\.xlsx$/.test(f))).toHaveLength(1);
     // Système de design au manifeste : police et accent repris de la page modèle.
     expect(manifest.design).toMatchObject({ font: expect.any(String), accent: expect.stringMatching(/^[0-9A-F]{6}$/) });
   });
 
-  it('publication : seules les valeurs changent (pages, formes, design identiques) ; lignes de tableau variables au style conservé', async () => {
+  it('publication d’une version antérieure aux planches : seules les valeurs changent (pages, formes, design identiques) ; lignes de tableau variables au style conservé', async () => {
     const buf = await makeFormatPptx();
     const a = await analyzePptx(buf);
     const src = (n: number) => ({ fileId: 'A', kind: 'PPTX' as const, buf, analysis: a, slide: n });
-    const { buf: tpl, manifest } = await composeTemplate({ cover: src(1), divider: src(2), standard: src(3), closing: src(4) }, { title: 'Support COPIL', sections: sectionsOf(all), tokens });
+    const { buf: tpl, manifest } = await withLegacyParts(() => composeTemplate({ cover: src(1), divider: src(2), standard: src(3), closing: src(4) }, { title: 'Support COPIL', sections: sectionsOf(all), tokens }));
     const p1 = await fillTemplate(tpl, manifest, values(manifest, 6, '12'));
     const p2 = await fillTemplate(p1, manifest, values(manifest, 2, '47'));
     for (const b of [p1, p2]) expect(await pptxIntegrity(b)).toEqual([]);
@@ -132,8 +133,8 @@ describe('Template de rapport — composition et publications', () => {
     expect(parts(s2.z)).toEqual(parts(s0.z));
   });
 
-  it('tableau : texte trop long abrégé sur une ligne ; lignes au-delà de la capacité non écrites', async () => {
-    const { buf: tpl, manifest } = await composeTemplate(null, { title: 'T', sections: sectionsOf([{ id: 'actions', scope: 'PROJECT' }]), tokens });
+  it('tableau (version antérieure aux planches) : texte trop long abrégé sur une ligne ; lignes au-delà de la capacité non écrites', async () => {
+    const { buf: tpl, manifest } = await withLegacyParts(() => composeTemplate(null, { title: 'T', sections: sectionsOf([{ id: 'actions', scope: 'PROJECT' }]), tokens }));
     const f = manifest.fields.find((x) => x.id === 'c01.table')!;
     const d: FillData = { text: {}, tables: { 'c01.table': Array.from({ length: f.capacity! + 5 }, (_, i) => f.columns!.map((c) => (c === 'name' ? 'x'.repeat(400) : `${c}${i}`))) }, charts: {} };
     const out = await fillTemplate(tpl, manifest, d);
@@ -144,7 +145,7 @@ describe('Template de rapport — composition et publications', () => {
   });
 
   it('zone variable absente (template modifié à la main) : erreur explicite', async () => {
-    const { buf: tpl, manifest } = await composeTemplate(null, { title: 'T', sections: sectionsOf([{ id: 'actions', scope: 'PROJECT' }]), tokens });
+    const { buf: tpl, manifest } = await withLegacyParts(() => composeTemplate(null, { title: 'T', sections: sectionsOf([{ id: 'actions', scope: 'PROJECT' }]), tokens }));
     const z = await JSZip.loadAsync(tpl);
     const f = manifest.fields.find((x) => x.id === 'c01.table')!;
     z.file(f.slide, (await z.file(f.slide)!.async('string')).replace('name="rise:c01.table"', 'name="Tableau"'));
@@ -338,5 +339,131 @@ describe('Rapport — jalons et risques', () => {
   it('risques au-delà de la page : « … et N autres risques (tous dans la matrice) »', () => {
     const rows = Array.from({ length: 20 }, (_, k) => ({ ...risks.rows[0], code: `R${k}` }));
     expect(drawRisks(new Draw(tk), box, { ...risks, rows })).toMatch(/… et \d+ autres risques \(tous dans la matrice\)/);
+  });
+});
+
+describe('Rapport — échéancier des actions, arbitrages, tableau de bord', () => {
+  const tk = designTokens({ primary: '0EA5E9', secondary: '0F6E9A', text: '000000', font: 'Poppins', head: 'Poppins', size: 11 });
+  const IN = 914400;
+  const box = { x: IN, y: 2 * IN, w: 11.4 * IN, h: 4.9 * IN };
+  /** Toutes les formes dessinées restent dans le cadre de la planche (aucun débordement). */
+  const inside = (xml: string) => [...xml.matchAll(/<a:off x="(-?\d+)" y="(-?\d+)"\/><a:ext cx="(\d+)" cy="(\d+)"\/>/g)].every((m) => +m[1] >= box.x - 1 && +m[2] >= box.y - 1 && +m[1] + +m[3] <= box.x + box.w + 1 && +m[2] + +m[4] <= box.y + box.h + 1);
+  const actions: ActionsData = {
+    today: '2026-10-03',
+    rows: [
+      { code: 'A-49', name: 'Recetter les rôles et autorisations', owner: 'Marc Delorme', ws: 'Pilotage', due: '2026-10-10', status: 'OPEN', prio: 'MEDIUM', source: null },
+      { code: 'A-41', name: 'Replanifier le Run 3', owner: 'Karim Benali', ws: 'Migration', due: '2026-08-27', status: 'IN_PROGRESS', prio: 'HIGH', source: 'R01' },
+      { code: 'A-50', name: 'Documenter les interfaces', owner: 'Léa Fontaine', ws: null, due: null, status: 'BLOCKED', prio: 'LOW', source: null },
+      { code: 'A-47', name: 'Livrer les modules de formation', owner: 'Isabelle Perrin', ws: 'Conduite', due: '2026-12-15', status: 'OPEN', prio: 'MEDIUM', source: 'R07' },
+    ],
+    show: { code: true, name: true, owner: true, due: true, status: true, prio: false, kpis: true },
+  };
+
+  it('actions : ordre d’urgence (retards d’abord), répartition par échéance (retard, sous 14 jours, plus tard, sans)', () => {
+    expect(sortActions(actions.rows, actions.today).map((r) => r.code)).toEqual(['A-41', 'A-49', 'A-47', 'A-50']);
+    expect(actionBuckets(actions.rows, actions.today)).toEqual({ late: 1, soon: 1, later: 1, none: 1 });
+  });
+
+  it('échéancier : frise centrée sur aujourd’hui (retard en rouge, délai), origine de l’action, panneau des retards ; dans le cadre', () => {
+    const xml = drawActions(new Draw(tk), box, actions);
+    expect(xml).toContain('>Retard<');
+    expect(xml).toContain('>À venir<');
+    expect(xml).toContain('Aujourd’hui · 3 oct.');
+    expect(xml).toContain('>37 j<');
+    expect(xml).toContain('>7 j<');
+    expect(xml).toContain('sans échéance');
+    expect(xml).toContain('issue de R01');
+    expect(xml).toContain('>Bloquée<');
+    expect(xml).toContain('la plus ancienne : A-41, 37 j');
+    expect(xml).toContain(`val="${tk.risk}"`);
+    expect(xml).toContain(`val="${tk.watch}"`);
+    expect(inside(xml)).toBe(true);
+    const many = drawActions(new Draw(tk), box, { ...actions, rows: Array.from({ length: 30 }, (_, k) => ({ ...actions.rows[0], code: `A-${k}` })) });
+    expect(many).toMatch(/… et \d+ autres actions ouvertes \(comptées à droite\)/);
+    expect(inside(many)).toBe(true);
+    const empty = drawActions(new Draw(tk), box, { ...actions, rows: [] });
+    expect(empty).toContain('Aucune action ouverte');
+    expect(empty).not.toContain('En retard');
+  });
+
+  const decisions: DecisionsData = {
+    today: '2026-10-03',
+    pending: [
+      { code: 'D-006', title: 'Plan de reprise des recettes Finance', status: 'DRAFT', created: '2026-09-12', decided: null, body: 'Comité de chantier', bodyShort: 'Chantier', decision: null, impact: null, expected: null },
+      { code: 'D-009', title: 'Prioriser les 79 user stories CRM', status: 'TO_ARBITRATE', created: '2026-09-20', decided: null, body: 'Comité de projet', bodyShort: 'COPROJ', decision: null, impact: null, expected: 'au COPROJ du 7 oct.' },
+      { code: 'D-005', title: 'Articles de remplacement CRM', status: 'IN_REVIEW', created: '2026-08-27', decided: null, body: "Comité d'arbitrage", bodyShort: 'Arbitrage', decision: null, impact: null, expected: null },
+    ],
+    taken: [{ code: 'D-007', title: 'Confirmer ou reporter le Go-Live', status: 'ARBITRATED', created: '2026-09-13', decided: '2026-09-26', body: 'Comité de pilotage', bodyShort: 'COPIL', decision: 'Go-Live reporté au 1er avril 2027', impact: 'Chemin critique à recaler', expected: null }],
+    last: [], period: '1 sept. → 30 sept. 2026',
+    show: { code: true, name: true, status: true, date: true, body: true, decision: true, impact: false },
+  };
+
+  it('arbitrages : à arbitrer d’abord puis les plus anciennes ; étape, attente (rouge au-delà de 30 j), séance attendue ; décisions prises en fil', () => {
+    expect(sortPending(decisions.pending).map((r) => r.code)).toEqual(['D-009', 'D-005', 'D-006']);
+    const xml = drawDecisions(new Draw(tk), box, decisions);
+    expect(xml).toContain('>décisions en attente<');
+    expect(xml).toContain('>dont 1 à arbitrer<');
+    expect(xml).toContain('>À arbitrer<');
+    expect(xml).toContain('attendue au COPROJ du 7 oct.');
+    expect(xml).toContain('>37 j<'); // D-005 : attente ≥ DECISION_STALE_DAYS
+    expect(DECISION_STALE_DAYS).toBe(30);
+    expect(xml).toContain('Go-Live reporté au 1er avril 2027');
+    expect(xml).not.toContain('Chemin critique à recaler'); // impact en option
+    expect(xml).toContain('sur la période · 1 sept. → 30 sept. 2026');
+    expect(inside(xml)).toBe(true);
+    // Aucune décision prise sur la période : les dernières sont rappelées ; rien du tout : un seul message.
+    const recall = drawDecisions(new Draw(tk), box, { ...decisions, taken: [], last: decisions.taken });
+    expect(recall).toContain('Aucune décision prise sur la période.');
+    expect(recall).toContain('>Dernière décision prise<');
+    const none = drawDecisions(new Draw(tk), box, { ...decisions, pending: [], taken: [], last: [] });
+    expect(none).toContain('Aucune décision prise à ce jour.');
+    expect(none).not.toContain('sur la période.');
+    expect(none).toContain('>rien à arbitrer<');
+  });
+
+  const dash: DashboardData = {
+    today: '2026-10-03',
+    phases: [
+      { code: '4', name: 'Realize', start: '2025-09-01', end: '2026-02-28', status: 'DONE', progress: 100, planned: 100 },
+      { code: '5', name: 'Deploy', start: '2026-02-01', end: '2027-06-30', status: 'IN_PROGRESS', progress: 40, planned: 47 },
+      { code: '6', name: 'Run', start: '2027-07-01', end: '2028-06-30', status: 'PLANNED', progress: 0, planned: 0 },
+    ],
+    tiles: [{ id: 'risks_open', label: 'Risques ouverts', value: '7', note: 'dont 3 critiques', tone: 'risk' }, { id: 'decisions_pending', label: 'Décisions en attente', value: '5', note: 'dont 1 à arbitrer', tone: 'watch' }],
+    golive: '2027-04-01', next: { code: 'J04', name: 'Fin de la migration Run 3', iso: '2026-10-14' },
+    show: { progress: true, planned: true, risks_open: true, actions_open: false, milestones_late: false, decisions_pending: true },
+  };
+
+  it('tableau de bord : phase en cours (réel, prévu, écart en points), repères, chemin des phases, tuiles qualifiées ; dans le cadre', () => {
+    expect(focusPhase(dash.phases)!.name).toBe('Deploy');
+    expect([gapTone(1), gapTone(-3), gapTone(-7)]).toEqual(['ok', 'watch', 'risk']);
+    const xml = drawDashboard(new Draw(tk), box, dash);
+    expect(xml).toContain('Phase en cours · 2 / 3');
+    expect(xml).toContain('>40<');
+    expect(xml).toContain('prévu à date 47 %');
+    expect(xml).toContain('▼ −7 pts');
+    expect(xml).toContain('>Go-live prévu<');
+    expect(xml).toContain('>1 avr. 2027<');
+    expect(xml).toContain('Prochain jalon · J04');
+    expect(xml).toContain('>Chemin des phases<');
+    expect(xml).toContain('>terminée<');
+    expect(xml).toContain('>Santé du projet<');
+    expect(xml).toContain('>dont 3 critiques<');
+    expect(inside(xml)).toBe(true);
+    // Tuiles seules (sans avancement) : une ligne, valeurs en grand.
+    const only = drawDashboard(new Draw(tk), box, { ...dash, show: { ...dash.show, progress: false, planned: false } });
+    expect(only).not.toContain('Phase en cours');
+    expect(only).not.toContain('Santé du projet');
+    expect(inside(only)).toBe(true);
+  });
+
+  it('publication : planches redessinées dans leur groupe, rapport intègre', async () => {
+    const { buf: tpl, manifest } = await composeTemplate(null, { title: 'T', sections: sectionsOf([{ id: 'dashboard', scope: 'PROJECT' }, { id: 'actions', scope: 'PROJECT' }, { id: 'decisions', scope: 'PROJECT' }]), tokens: { date: '3 oct. 2026' } });
+    expect(manifest.fields.filter((f) => f.kind === 'board').map((f) => [f.id, f.board])).toEqual([['c01.board', 'dashboard'], ['c02.board', 'actions'], ['c03.board', 'decisions']]);
+    const out = await fillTemplate(tpl, manifest, { text: {}, tables: {}, charts: {}, boards: { 'c01.board': dash, 'c02.board': actions, 'c03.board': decisions } });
+    expect(await pptxIntegrity(out)).toEqual([]);
+    const z = await JSZip.loadAsync(out);
+    const xml = await z.file(manifest.fields.find((f) => f.id === 'c02.board')!.slide)!.async('string');
+    expect(xml).toContain('name="rise:c02.board"');
+    expect(xml).toContain('>37 j<');
   });
 });

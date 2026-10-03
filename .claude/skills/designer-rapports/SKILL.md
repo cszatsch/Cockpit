@@ -16,7 +16,9 @@ finitions. Les cinq principes : innovant, utile, esthétique, compréhensible, s
   frise (`timeScale`, `timeRatio`), formats français (`frNum`, `frShortDate`). Aucune couleur ni taille en dur ailleurs.
 - `backend/src/core/report-draw.ts` : dessin en formes natives (`Draw` : `sp`, `text`, `line`, `pill`, `group`,
   `label`) et planches : `drawGantt`, `drawPlanTable` (+ `foldPlan`), `drawBarometer` (+ `barometerLayout`),
-  `drawMilestones` (frise des jalons), `drawRisks` / `drawRiskMatrix` (tableau et matrice P × I), `wrapText`,
+  `drawMilestones` (frise des jalons), `drawRisks` / `drawRiskMatrix` (tableau et matrice P × I), `wrapText` ; dans
+  `report-draw-pilotage.ts` : `drawActions` (échéancier autour d'« Aujourd'hui »), `drawDecisions` (arbitrages),
+  `drawDashboard` (phase en cours, repères, tuiles de santé) ;
   `tableHeaderRow` / `tableRow`, `kpiCards`, `synthesisParas`.
 - `backend/src/core/report-template.ts` : composition (`composeTemplate`, jetons au manifeste `manifest.design`,
   polices réellement employées par la page modèle) et publication (`fillTemplate` : chaque planche est un groupe
@@ -50,4 +52,6 @@ finitions. Les cinq principes : innovant, utile, esthétique, compréhensible, s
    alignements, cohérence des polices (celle des pages modèles, pas celle du thème), contraste.
 4. Corriger, régénérer, re-rendre jusqu'à ce qu'aucun défaut ne subsiste. Tester aussi un cas dense (sous-phases,
    > 25 lignes) et un cas vide.
-5. Ajouter ou ajuster les tests unitaires de `test/unit/report-template.spec.ts` (« Rapport — système de design »).
+5. Vérifier que toutes les formes restent dans le cadre de la planche (test `inside` du bloc « échéancier des actions,
+   arbitrages, tableau de bord ») et le rendu des cas vides.
+6. Ajouter ou ajuster les tests unitaires de `test/unit/report-template.spec.ts` (« Rapport — système de design »).

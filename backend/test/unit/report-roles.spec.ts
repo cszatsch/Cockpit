@@ -5,7 +5,7 @@ import { capacity, composeTemplate, fillTemplate, visualCheck } from '../../src/
 import { exampleArea, PageKind, roleErrors, suggestRoles } from '../../src/domain/report-format';
 import { sectionsOf } from '../../src/domain/report-components';
 import { parseRoles, parseWriting, retryPrompt, rolesPrompt, WritingFacts } from '../../src/domain/report-writing';
-import { makeFormatPptx, pptxIntegrity } from '../format-fixture';
+import { makeFormatPptx, pptxIntegrity, withLegacyParts } from '../format-fixture';
 
 /**
  * Fidélité au design des pages modèles « remplies » (03/10/2026) : rôle des formes (règles et IA), application des
@@ -61,7 +61,7 @@ describe('Pages modèles remplies — rôles des formes', () => {
     const buf = await makeFormatPptx({ filled: true });
     const a = await analyzePptx(buf);
     const src = (n: number) => ({ fileId: 'F', kind: 'PPTX' as const, buf, analysis: a, slide: n });
-    const { buf: tpl, manifest } = await composeTemplate({ cover: src(1), divider: src(2), standard: src(3), closing: src(4) }, { title: 'Support COPIL', sections: sectionsOf([{ id: 'actions', scope: 'PROJECT' }]), tokens: { titre: 'Support COPIL', date: '3 oct. 2026', projet: 'RISE', client: 'AMC Corp', comite: 'COPIL' } });
+    const { buf: tpl, manifest } = await withLegacyParts(() => composeTemplate({ cover: src(1), divider: src(2), standard: src(3), closing: src(4) }, { title: 'Support COPIL', sections: sectionsOf([{ id: 'actions', scope: 'PROJECT' }]), tokens: { titre: 'Support COPIL', date: '3 oct. 2026', projet: 'RISE', client: 'AMC Corp', comite: 'COPIL' } }));
     expect(await pptxIntegrity(tpl)).toEqual([]);
     const z = await JSZip.loadAsync(tpl);
     const std = await z.file(manifest.pages[2].slide)!.async('string');
@@ -82,7 +82,7 @@ describe('Pages modèles remplies — rôles des formes', () => {
   });
 
   it('contrôle visuel : recouvrement d’un texte du modèle, texte trop long pour sa zone', async () => {
-    const { buf, manifest } = await composeTemplate(null, { title: 'T', sections: sectionsOf([{ id: 'actions', scope: 'PROJECT' }]), tokens: { date: '3 oct. 2026' } });
+    const { buf, manifest } = await withLegacyParts(() => composeTemplate(null, { title: 'T', sections: sectionsOf([{ id: 'actions', scope: 'PROJECT' }]), tokens: { date: '3 oct. 2026' } }));
     const f = manifest.fields.find((x) => x.id === 'c01.table')!;
     const z = await JSZip.loadAsync(buf);
     const xml = await z.file(f.slide)!.async('string');

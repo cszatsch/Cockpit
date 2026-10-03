@@ -4,6 +4,7 @@ import { Box, builtInFormat, DEFAULT_SIZE, estimatedZones, exampleArea, FormatAn
 import { BOARD_OF, BoardKind, COMPONENTS, DASHBOARD_SERIES, fieldName, indicatorsOf, KPI_MAX, Section } from '../domain/report-components';
 import { relsPath, resolvePath } from './ooxml';
 import { contrastOn } from './report-format-read';
+import { ActionsData, DashboardData, DecisionsData, drawActions, drawDashboard, drawDecisions } from './report-draw-pilotage';
 import { BarometerData, COLUMN_KIND, Draw, drawMilestones, drawRisks, GanttData, MilestonesData, RisksData, TableColumn, barometerLayout, drawBarometer, drawGantt, drawPlanTable, GANTT_MAX_ROWS, kpiCards, synthesisParas, tableHeaderRow, tableRow } from './report-draw';
 import { DesignTokens, designTokens, typeScale } from '../domain/report-design';
 import { applyRoles, topLevelShapes, Assembler, Fill, fillPptxSlide, RoleValues, maxId, PageSource, readRels, RelRow, relsXml, relTarget, runProps, setText, Src, syntheticSlide, textBox, tokens, XML_DECL, xmlEsc } from './report-format-write';
@@ -424,6 +425,9 @@ export async function fillTemplate(buf: Buffer, manifest: TemplateManifest, data
         const kids = f.board === 'barometer' ? drawBarometer(d, a, b as BarometerData)
           : f.board === 'milestones' ? drawMilestones(d, a, b as MilestonesData)
           : f.board === 'risks' ? drawRisks(d, a, b as RisksData)
+          : f.board === 'actions' ? drawActions(d, a, b as ActionsData)
+          : f.board === 'decisions' ? drawDecisions(d, a, b as DecisionsData)
+          : f.board === 'dashboard' ? drawDashboard(d, a, b as DashboardData)
           : (b as GanttData).rows.length > GANTT_MAX_ROWS || (b as { mode?: string }).mode === 'table' ? drawPlanTable(d, a, b as GanttData) : drawGantt(d, a, b as GanttData);
         r = { out: xml.slice(0, span.start) + d.group(name, a, kids, Number(span.id) || d.id()) + xml.slice(span.end), found: true };
       }

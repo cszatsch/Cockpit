@@ -11,12 +11,13 @@ import { OoxmlPackage } from '../../core/ooxml';
 import { analyzePptx, mediaDataUri } from '../../core/report-format-read';
 import { PageSource } from '../../core/report-format-write';
 import { FAILED_MESSAGE, INTERRUPTED_ERROR, NOT_READY_MESSAGE } from '../../domain/template-service';
+import { ACTION_SOON_DAYS, ActionRow, ActionsData, DashboardData, DashTile, DecisionRow, DecisionsData, DECISION_STAGES, DECISIONS_RECALL, focusPhase, sortActions, sortPending } from '../../core/report-draw-pilotage';
 import { BarometerData, MILESTONES_MAX, MilestonesData, RisksData, foldPlan, GANTT_MAX_ROWS, GanttData, GanttRow, PLAN_TABLE_HEAD_IN, PLAN_TABLE_MIN_ROW_IN } from '../../core/report-draw';
 import { composeTemplate, FillData, fillTemplate, TemplateFieldMissing, TemplateManifest, visualCheck } from '../../core/report-template';
 import { LlmService } from '../../core/llm.service';
 import { parseWriting, retryPrompt, WritingFacts, WRITING_SKILLS, WRITING_TIMEOUT_MS, writingPrompt, writingSystem } from '../../domain/report-writing';
 import { FormatAnalysis, PAGE_KINDS, PageKind, previewSvg } from '../../domain/report-format';
-import { COMPONENTS, ComponentConfig, ComponentData, ComponentValues, DASHBOARD_SERIES, frDay, indicatorsOf, inPeriod, Issue, KPI_MAX, pagesOf, periodOf, periodRange, sectionsOf, COMPONENT_MODULE, ComponentId, moduleOffMessage, reportPlan, fieldName } from '../../domain/report-components';
+import { COMPONENTS, ComponentConfig, ComponentData, ComponentValues, DASHBOARD_SERIES, frDay, indicatorsOf, inPeriod, Issue, KPI_MAX, pagesOf, periodOf, periodRange, sectionsOf, COMPONENT_MODULE, ComponentId, moduleOffMessage, reportPlan, fieldName, LEGACY_PARTS } from '../../domain/report-components';
 
 const STATUS: Record<string, string> = { OPEN: 'Ouvert', IN_PROGRESS: 'En cours', BLOCKED: 'Bloquée', DONE: 'Terminé', CLOSED: 'Clos', PLANNED: 'Prévu', PREPARATION: 'En préparation', ACTIVE: 'Actif', MITIGATING: 'En traitement', DRAFT: 'Brouillon', IN_REVIEW: 'En revue', TO_ARBITRATE: 'À arbitrer', ARBITRATED: 'Arbitrée', CANCELLED: 'Annulée', SUPERSEDED: 'Remplacée' };
 const PRIO: Record<string, string> = { HIGH: 'Haute', MEDIUM: 'Moyenne', LOW: 'Basse' };
@@ -58,6 +59,23 @@ export class ReportTemplateService implements OnModuleInit {
     if (c.scope === 'PHASE') { const p = await this.prisma.phase.findUnique({ where: { id: c.targetId } }); return p ? `Phase · ${p.name}` : null; }
     const w = await this.prisma.workstream.findUnique({ where: { id: c.targetId } });
     return w ? `Chantier · ${w.name}` : null;
+  }
+
+  private async wsNames(P: { projectId: string }) {
+    return new Map((await this.prisma.workstream.findMany({ where: P, select: { id: true, name: true } })).map((w) => [w.id, w.name]));
+  }
+
+  /** Code de l'élément à l'origine de chaque action (risque, problème, jalon, décision), s'il existe encore. */
+  private async actionOrigins(P: { projectId: string }, as: Array<{ id: string; sourceType: string | null; sourceId: string | null }>) {
+    const ids = (type: string) => as.filter((a) => a.sourceType === type && a.sourceId).map((a) => a.sourceId!);
+    const [r, i, m, d] = await Promise.all([
+      this.prisma.risk.findMany({ where: { ...P, id: { in: ids('RISK') } }, select: { id: true, code: true } }),
+      this.prisma.issue.findMany({ where: { ...P, id: { in: ids('ISSUE') } }, select: { id: true, code: true } }),
+      this.prisma.milestone.findMany({ where: { ...P, id: { in: ids('MILESTONE') } }, select: { id: true, code: true } }),
+      this.prisma.decision.findMany({ where: { ...P, id: { in: ids('DECISION') } }, select: { id: true, code: true } }),
+    ]);
+    const codes = new Map([...r, ...i, ...m, ...d].map((x) => [x.id, x.code]));
+    return new Map(as.filter((a) => a.sourceId && codes.has(a.sourceId)).map((a) => [a.id, codes.get(a.sourceId!)!]));
   }
 
   /** Valeurs d'un composant et anomalies (données manquantes ou incohérentes). */
@@ -161,13 +179,32 @@ export class ReportTemplateService implements OnModuleInit {
         const noDue = as.filter((a) => !a.dueIso).map((a) => a.code);
         if (noDue.length) warn(`échéance manquante pour ${list(noDue)}.`);
         if (!as.length) warn('aucune action ouverte sur la période.');
+        // Échéancier (04/10/2026) : chantier (sauf périmètre chantier) et origine de l'action (risque, problème, jalon, décision).
+        const [wsNames, origins] = await Promise.all([c.scope === 'WORKSTREAM' ? new Map<string, string>() : this.wsNames(P), this.actionOrigins(P, as)]);
+        const rows: ActionRow[] = as.map((a) => ({ code: a.code, name: a.n, owner: name(a.ownerId), ws: wsNames.get(a.wsId) ?? null, due: a.dueIso || null, status: a.status as ActionRow['status'], prio: a.prio, source: origins.get(a.id) ?? null }));
+        parts.push({ part: 'board', board: 'actions', data: { today, rows, show: Object.fromEntries(def.indicators.map((x) => [x.id, inds.includes(x.id)])) } as ActionsData });
         parts.push(table(inds, as.map((a) => ({ code: a.code, name: a.n, owner: name(a.ownerId), due: day(a.dueIso), status: st(a.status), prio: PRIO[a.prio] ?? a.prio }))));
         break;
       }
       case 'decisions': {
-        const bodies = new Map((await this.prisma.governanceBody.findMany({ where: P, select: { id: true, shortName: true } })).map((b) => [b.id, b.shortName]));
-        const ds = (await this.prisma.decision.findMany({ where: { ...P, ...ws }, orderBy: { code: 'asc' } })).filter((d) => inPeriod(d.crIso, period));
-        if (!ds.length) warn('aucune décision sur la période.');
+        const bodyRows = await this.prisma.governanceBody.findMany({ where: P, select: { id: true, shortName: true, name: true } });
+        const bodies = new Map(bodyRows.map((b) => [b.id, b.shortName])), bodyNames = new Map(bodyRows.map((b) => [b.id, b.name]));
+        const all = await this.prisma.decision.findMany({ where: { ...P, ...ws }, orderBy: { code: 'asc' } });
+        // Arbitrages (04/10/2026) : les décisions en attente sont toujours montrées (la période ne filtre que les décisions
+        // prises, à leur date d'arbitrage) ; sans décision prise sur la période, la dernière est rappelée.
+        const sessions = new Map((await this.prisma.session.findMany({ where: { ...P, id: { in: all.map((d) => d.expectedSessionId).filter((x): x is string => !!x) } } })).map((x) => [x.id, x]));
+        const row = (d: (typeof all)[number]): DecisionRow => {
+          const se = d.expectedSessionId ? sessions.get(d.expectedSessionId) : null;
+          return { code: d.code, title: d.t, status: d.status, created: d.crIso, decided: d.ddIso, body: bodyNames.get(d.bodyId) ?? '—', bodyShort: bodies.get(d.bodyId) ?? '—', decision: d.decL, impact: d.impact, expected: se && se.dateIso >= today ? `au ${bodies.get(se.bodyId) ?? 'comité'} du ${frDay(se.dateIso).replace(/ \d{4}$/, '')}` : null };
+        };
+        const pending = all.filter((d) => DECISION_STAGES.some((x) => x.id === d.status));
+        const arbitrated = all.filter((d) => d.status === 'ARBITRATED').sort((a, b) => (b.ddIso ?? b.crIso).localeCompare(a.ddIso ?? a.crIso));
+        const taken = arbitrated.filter((d) => inPeriod(d.ddIso ?? d.crIso, period));
+        if (!pending.length && !taken.length) warn('aucune décision en attente ni prise sur la période.');
+        const short = (s: string) => frDay(s).replace(/ \d{4}$/, '');
+        const periodText = period.start ? `${short(period.start)} → ${frDay(period.end!)}` : null;
+        parts.push({ part: 'board', board: 'decisions', data: { today, pending: pending.map(row), taken: taken.map(row), last: taken.length ? [] : arbitrated.slice(0, DECISIONS_RECALL).map(row), period: periodText, show: Object.fromEntries(def.indicators.map((x) => [x.id, inds.includes(x.id)])) } as DecisionsData });
+        const ds = all.filter((d) => inPeriod(d.crIso, period));
         parts.push(table(inds, ds.map((d) => ({ code: d.code, name: d.t, status: st(d.status), date: day(d.crIso), body: bodies.get(d.bodyId) ?? '—' }))));
         break;
       }
@@ -199,16 +236,32 @@ export class ReportTemplateService implements OnModuleInit {
         break;
       }
       case 'dashboard': {
-        const [ph, risks, actions, ms] = await Promise.all([phases(), openRisks(), openActions(), this.prisma.milestone.findMany({ where: milestoneWhere })]);
-        const values: Record<string, string> = { risks_open: String(risks.length), actions_open: String(actions.length), milestones_late: String(ms.filter((m) => m.baselineIso && m.iso > m.baselineIso).length) };
+        const [ph, risks, actions, ms, decs] = await Promise.all([phases(), openRisks(), openActions(), this.prisma.milestone.findMany({ where: milestoneWhere, orderBy: { iso: 'asc' } }), pendingDecisions()]);
+        const slipped = ms.filter((m) => m.baselineIso && m.iso > m.baselineIso);
+        const values: Record<string, string> = { risks_open: String(risks.length), actions_open: String(actions.length), milestones_late: String(slipped.length), decisions_pending: String(decs.length) };
         const k = inds.filter((x) => !DASHBOARD_SERIES.includes(x)).slice(0, KPI_MAX);
         if (k.length) parts.push(kpi(k.map((id) => ({ id, value: values[id] }))));
         const planned = (p: (typeof ph)[number]) => p.plannedPctOverride ?? (today <= p.startDate ? 0 : today >= p.endDate ? 100 : Math.round((daysBetween(p.startDate, today) / Math.max(1, daysBetween(p.startDate, p.endDate))) * 100));
         const series = inds.filter((x) => DASHBOARD_SERIES.includes(x));
         if (series.length) {
-          if (!ph.length) warn('aucune phase pour le graphique d’avancement.');
           parts.push({ part: 'chart', categories: ph.map((p) => p.name), series: series.map((id) => ({ name: def.indicators.find((i) => i.id === id)!.label, values: ph.map((p) => (id === 'progress' ? p.progressPct : planned(p))) })) });
         }
+        // Tableau de bord (04/10/2026) : phase en cours et tuiles de santé, chaque valeur qualifiée (dont critiques, en retard…).
+        const n = (k: number, one: string, many: string) => `${k} ${k > 1 ? many : one}`;
+        const crit = risks.filter((r) => r.p * r.i >= 20).length, high = risks.filter((r) => r.p * r.i >= 12 && r.p * r.i < 20).length;
+        const late = actions.filter((a) => a.dueIso && a.dueIso < today).length, soon = actions.filter((a) => a.dueIso && a.dueIso >= today && daysBetween(today, a.dueIso) <= ACTION_SOON_DAYS).length;
+        const nextMs = ms.find((m) => m.iso >= today), maxSlip = Math.max(0, ...slipped.map((m) => daysBetween(m.baselineIso!, m.iso)));
+        const toArb = decs.filter((x) => x.status === 'TO_ARBITRATE').length;
+        const tileOf: Record<string, Omit<DashTile, 'id' | 'label' | 'value'>> = {
+          risks_open: crit ? { note: `dont ${n(crit, 'critique', 'critiques')}`, tone: 'risk' } : high ? { note: `dont ${n(high, 'élevé', 'élevés')}`, tone: 'watch' } : { note: risks.length ? 'aucun risque critique' : 'aucun risque ouvert', tone: 'ok' },
+          actions_open: late ? { note: `dont ${late} en retard`, tone: 'risk' } : soon ? { note: `${soon} à échéance sous ${ACTION_SOON_DAYS} j`, tone: 'watch' } : { note: 'aucune en retard', tone: 'ok' },
+          milestones_late: slipped.length ? { note: `glissement max. +${maxSlip} j`, tone: 'risk' } : { note: ms.length ? 'aucun glissement' : 'aucun jalon', tone: ms.length ? 'ok' : 'muted' },
+          decisions_pending: toArb ? { note: `dont ${toArb} à arbitrer`, tone: 'watch' } : { note: decs.length ? 'aucune à arbitrer' : 'tout est arbitré', tone: 'ok' },
+        };
+        const tiles: DashTile[] = inds.filter((id) => tileOf[id]).map((id) => ({ id, label: def.indicators.find((i) => i.id === id)!.label, value: values[id], ...tileOf[id] }));
+        const showD = Object.fromEntries(def.indicators.map((x) => [x.id, inds.includes(x.id)]));
+        if ((showD.progress || showD.planned) && !ph.length) warn('aucune phase sur le périmètre.');
+        parts.push({ part: 'board', board: 'dashboard', data: { today, phases: ph.map((p) => ({ code: p.code, name: p.name, start: p.startDate, end: p.endDate, status: p.status as 'DONE', progress: p.progressPct, planned: planned(p) })), tiles, golive: scope.project.forecastGoliveIso ?? null, next: nextMs ? { code: nextMs.code, name: nextMs.n, iso: nextMs.iso } : null, show: showD } as DashboardData });
         break;
       }
       case 'budget': {
@@ -295,6 +348,10 @@ export class ReportTemplateService implements OnModuleInit {
         const v = values[i];
         const x: WritingFacts['components'][number] = { key: c.key, label: COMPONENTS[c.id].label, caption: v.caption, ...(titreMax[c.key] ? { titreMax: titreMax[c.key] } : {}) };
         for (const p of v.parts) {
+          if (LEGACY_PARTS[c.id]?.includes(p.part)) continue;
+          if (p.part === 'board' && p.board === 'actions') { const k = p.data as ActionsData; const rows = sortActions(k.rows, k.today); x.facts = [`${rows.filter((r) => r.due && r.due < k.today).length} action(s) en retard sur ${rows.length} ouverte(s)`, ...rows.slice(0, 12).map((r) => `Action ${r.code} : ${r.name} — ${r.owner}${r.due ? `, échéance ${frDay(r.due)} (${r.due < k.today ? `en retard de ${daysBetween(r.due, k.today)} j` : `dans ${daysBetween(k.today, r.due)} j`})` : ', sans échéance'}, ${st(r.status)}`)]; }
+          if (p.part === 'board' && p.board === 'decisions') { const k = p.data as DecisionsData; x.facts = [...sortPending(k.pending).map((r) => `En attente : ${r.code} ${r.title} — étape ${st(r.status)}, depuis ${daysBetween(r.created, k.today)} j, ${r.body}`), ...k.taken.map((r) => `Décision prise le ${frDay(r.decided ?? r.created)} : ${r.code} ${r.decision ?? r.title}`), ...(k.taken.length ? [] : [`Aucune décision prise sur la période${k.last[0] ? ` ; dernière : ${k.last[0].code} le ${frDay(k.last[0].decided ?? k.last[0].created)}` : ''}`])]; }
+          if (p.part === 'board' && p.board === 'dashboard') { const k = p.data as DashboardData; const f = focusPhase(k.phases); x.facts = [...(f ? [`Phase ${f.status === 'IN_PROGRESS' ? 'en cours' : 'suivante'} ${f.name} : ${Math.round(f.progress)} % réalisé, ${Math.round(f.planned)} % prévu à date (écart ${Math.round(f.progress) - Math.round(f.planned)} points), fin ${frDay(f.end)}`] : []), ...k.tiles.map((t) => `${t.label} : ${t.value} (${t.note})`)]; }
           if (p.part === 'kpi') x.kpis = p.items.map((it) => ({ label: it.label, value: it.value }));
           if (p.part === 'table') x.table = { columns: p.columns.map((id) => COMPONENTS[c.id].indicators.find((ind) => ind.id === id)?.label ?? id), rows: p.rows.slice(0, 15), total: p.rows.length };
           if (p.part === 'chart') x.chart = { categories: p.categories, series: p.series };

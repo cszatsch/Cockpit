@@ -387,6 +387,13 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 - **Vérification** (Playwright, 112 templates dont 110 d'essai, supprimés ensuite) : tuiles de 640 px, page de 1 134 px ; recherche « ELODIE » → 36 sur 112 (auteur Élodie), recherche par nom et filtre par comité justes, message sans résultat ; un seul groupe ouvert par défaut, Tout déplier / Tout replier ; toutes les lignes à 66 px ; prévisualisation du template sélectionné ; interrupteur (ligne atténuée, 111 actifs) et réactivation ; lisible à 1 124 et 900 px ; recette `format-rapport.e2e.ts` 25 / 25 (mise en service et « Nouveau »).
 - **Tests** : `test/e2e/report-template.spec.ts` (recherche : accents, composants, pagination, comité, inactifs).
 
+### Rapports : échéancier des actions, arbitrages, tableau de bord (04/10/2026)
+
+- **Réalisé** : trois planches dessinées. Actions : échéancier trié par urgence autour d'un axe « Aujourd'hui » et panneau des retards. Décisions : décisions en attente quelle que soit la période (étape, attente), à côté des décisions prises sur la période. Tableau de bord : phase en cours (réel, prévu, écart), repères go-live et prochain jalon, chemin des phases, quatre tuiles de santé qualifiées. Contenu enrichi : origine et priorité des actions, ce qui a été décidé, séance attendue, durée d'attente, go-live, écart en points.
+- **Défaut corrigé** : la page Décisions était vide (« Aucune donnée ») quand aucune décision n'avait été créée dans la période, même avec une décision à arbitrer.
+- **Vérification** sur le template « Test » (rendu PowerPoint, 6 itérations) : intitulés trop tronqués (colonnes rééquilibrées), en-têtes en capitales coupés (« ÉCHÉANCE », « ATTENTE »), vide sous les tuiles et au centre du tableau de bord (repères ajoutés, tuiles à pleine hauteur), « Moyenne » coupée, filet du fil chronologique sur les pastilles, cas vides (panneau « 0 / 0 » retiré, message unique), tuiles seules, avancement seul, peu d'indicateurs.
+- **Tests** : `test/unit/report-template.spec.ts` (bloc « Rapport — échéancier des actions, arbitrages, tableau de bord », 6 tests, dont formes dans le cadre et cas denses ou vides ; tests des tableaux et graphiques rejoués sur une version antérieure aux planches, `withLegacyParts`), `test/e2e/report-template.spec.ts` (catalogue, planches avec les données de démonstration).
+
 ## 4. Questions ouvertes
 
 1. **Déclencheur des règles de notification** : faut-il ajouter un sélecteur de déclencheur dans la console ? Aujourd'hui, une règle créée depuis l'écran reçoit un déclencheur par défaut : « planifié » pour une notification, « manuel » pour une alerte.

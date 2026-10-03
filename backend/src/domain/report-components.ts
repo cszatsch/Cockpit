@@ -48,14 +48,16 @@ export const COMPONENTS: Record<ComponentId, ComponentDef> = {
     defaults: ['matrix', 'code', 'name', 'score', 'p', 'i', 'plan', 'owner', 'due'],
   },
   actions: {
-    id: 'actions', label: 'Actions', nature: 'Tableau', parts: ['table'], periodic: true, defaultPeriod: 'all', periods: ['all', 'month', 'next30', 'next90'],
-    indicators: [{ id: 'code', label: 'Code' }, { id: 'name', label: 'Action' }, { id: 'owner', label: 'Responsable' }, { id: 'due', label: 'Échéance' }, { id: 'status', label: 'Statut' }, { id: 'prio', label: 'Priorité' }],
-    defaults: ['code', 'name', 'owner', 'due', 'status'],
+    id: 'actions', label: 'Actions', nature: 'Échéancier', parts: ['board'], periodic: true, defaultPeriod: 'all', periods: ['all', 'month', 'next30', 'next90'],
+    // Échéancier (04/10/2026) : actions triées par urgence, frise centrée sur aujourd'hui, panneau des retards.
+    indicators: [{ id: 'code', label: 'Code' }, { id: 'name', label: 'Action' }, { id: 'owner', label: 'Responsable' }, { id: 'due', label: 'Échéance' }, { id: 'status', label: 'Statut' }, { id: 'prio', label: 'Priorité' }, { id: 'kpis', label: 'Indicateurs clés' }],
+    defaults: ['code', 'name', 'owner', 'due', 'status', 'kpis'],
   },
   decisions: {
-    id: 'decisions', label: 'Décisions', nature: 'Tableau', parts: ['table'], periodic: true, defaultPeriod: 'quarter', periods: ['month', 'prevMonth', 'quarter', 'last3', 'last6', 'all'],
-    indicators: [{ id: 'code', label: 'Code' }, { id: 'name', label: 'Décision' }, { id: 'status', label: 'Statut' }, { id: 'date', label: 'Date' }, { id: 'body', label: 'Instance' }],
-    defaults: ['code', 'name', 'status', 'date'],
+    id: 'decisions', label: 'Décisions', nature: 'Arbitrages', parts: ['board'], periodic: true, defaultPeriod: 'quarter', periods: ['month', 'prevMonth', 'quarter', 'last3', 'last6', 'all'],
+    // Arbitrages (04/10/2026) : décisions en attente quelle que soit la période (étape, attente), décisions prises sur la période.
+    indicators: [{ id: 'code', label: 'Code' }, { id: 'name', label: 'Décision' }, { id: 'status', label: 'Étape' }, { id: 'date', label: 'Attente' }, { id: 'body', label: 'Instance' }, { id: 'decision', label: 'Décision prise' }, { id: 'impact', label: 'Impact' }],
+    defaults: ['code', 'name', 'status', 'date', 'body', 'decision'],
   },
   barometre: {
     id: 'barometre', label: 'Baromètre du projet', nature: 'Tableau de bord', parts: ['board', 'chart'], chart: 'line', periodic: true, defaultPeriod: 'last6', periods: ['last3', 'last6', 'last12'],
@@ -63,9 +65,10 @@ export const COMPONENTS: Record<ComponentId, ComponentDef> = {
     defaults: ['score', 'sentiment', 'domains', 'themes'],
   },
   dashboard: {
-    id: 'dashboard', label: 'Tableau de bord', nature: 'Indicateurs et graphique', parts: ['kpi', 'chart'], chart: 'bar', periodic: false, defaultPeriod: 'all',
-    indicators: [{ id: 'progress', label: 'Avancement réel (%)' }, { id: 'planned', label: 'Avancement prévu (%)' }, { id: 'risks_open', label: 'Risques ouverts' }, { id: 'actions_open', label: 'Actions ouvertes' }, { id: 'milestones_late', label: 'Jalons glissés' }],
-    defaults: ['progress', 'planned', 'risks_open', 'actions_open'],
+    id: 'dashboard', label: 'Tableau de bord', nature: 'Tableau de bord', parts: ['board'], periodic: false, defaultPeriod: 'all',
+    // Phase en cours (réel, prévu, écart, chemin des phases) et santé du projet en tuiles (04/10/2026).
+    indicators: [{ id: 'progress', label: 'Avancement réel (%)' }, { id: 'planned', label: 'Avancement prévu (%)' }, { id: 'risks_open', label: 'Risques ouverts' }, { id: 'actions_open', label: 'Actions ouvertes' }, { id: 'milestones_late', label: 'Jalons glissés' }, { id: 'decisions_pending', label: 'Décisions en attente' }],
+    defaults: ['progress', 'planned', 'risks_open', 'actions_open', 'milestones_late', 'decisions_pending'],
   },
   budget: {
     id: 'budget', label: 'Budget', nature: 'Indicateurs', parts: ['kpi'], periodic: false, defaultPeriod: 'all',
@@ -204,7 +207,12 @@ export type ComponentData =
   | { part: 'kpi'; items: Array<{ id: string; label: string; value: string }> }
   | { part: 'text'; lines: string[] }
   | { part: 'board'; board: BoardKind; data: unknown };
-/** Planches dessinées (03/10/2026) : Gantt, baromètre, frise des jalons, matrice et tableau des risques. */
-export type BoardKind = 'planning' | 'barometer' | 'milestones' | 'risks';
-export const BOARD_OF: Partial<Record<ComponentId, BoardKind>> = { planning: 'planning', barometre: 'barometer', jalons: 'milestones', risques: 'risks' };
+/** Planches dessinées (03/10/2026) : Gantt, baromètre, frise des jalons, matrice et tableau des risques ; échéancier des actions, arbitrages, tableau de bord (04/10/2026). */
+export type BoardKind = 'planning' | 'barometer' | 'milestones' | 'risks' | 'actions' | 'decisions' | 'dashboard';
+export const BOARD_OF: Partial<Record<ComponentId, BoardKind>> = { planning: 'planning', barometre: 'barometer', jalons: 'milestones', risques: 'risks', actions: 'actions', decisions: 'decisions', dashboard: 'dashboard' };
+/**
+ * Composants passés d'un tableau ou de cartes et graphique à une planche (04/10/2026) : leurs anciennes parties restent
+ * calculées pour les versions déjà publiées (dont le PowerPoint contient encore ces zones), sans servir à la rédaction.
+ */
+export const LEGACY_PARTS: Partial<Record<ComponentId, ComponentPart[]>> = { actions: ['table'], decisions: ['table'], dashboard: ['kpi', 'chart'] };
 export interface ComponentValues { key: string; caption: string; parts: ComponentData[]; issues: Issue[] }
