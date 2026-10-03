@@ -1164,8 +1164,6 @@ a{color:#1d8f86}a:hover{color:#146b64}
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap">
             <sc-if value="{{ fbCur.multi }}" hint-placeholder-val="{{ false }}"><select value="{{ fbCur.slideNo }}" onChange="{{ fbCur.setSlide }}" style="height:32px;padding:0 28px 0 11px;border-radius:9px;border:1px solid #D5DDE3;background:#fff {{ fbChevron }} no-repeat right 11px center;appearance:none;-webkit-appearance:none;color:#10233A;font:600 12.5px 'Plus Jakarta Sans',sans-serif;cursor:pointer;outline:none;max-width:220px;text-overflow:ellipsis"><sc-for list="{{ fbCur.slides }}" as="o"><option value="{{ o.v }}">{{ o.l }}</option></sc-for></select></sc-if>
-            <button onClick="{{ fbCur.pick }}" style="height:32px;padding:0 13px;border-radius:9px;border:1px solid #D5DDE3;background:#fff;color:#10233A;font:600 12.5px 'Plus Jakarta Sans',sans-serif;cursor:pointer" style-hover="border-color:#10233A">Remplacer</button>
-            <button onClick="{{ fbCur.remove }}" style="height:32px;padding:0 13px;border-radius:9px;border:1px solid transparent;background:transparent;color:#B23A3A;font:600 12.5px 'Plus Jakarta Sans',sans-serif;cursor:pointer" style-hover="background:#FBEDEC">Supprimer</button>
           </div>
         </div>
 
@@ -5085,7 +5083,7 @@ class Component extends DCLogic {
         badge: 'font:500 10.5px \'JetBrains Mono\',monospace;letter-spacing:.06em;padding:5px 7px;border-radius:6px;background:#FCEEE6;color:#B4532A',
         multi: !!curFile && (curFile.slideCount || 1) > 1, slideNo: cp.ref ? String(cp.ref.slide) : '1', slides: curFile ? (curFile.slides || []).map(x => ({ v: String(x.index), l: 'Diapositive ' + x.index + (x.label ? ' · ' + x.label : '') })) : [],
         setSlide: e => { this.tplFmtSet(cp.k, { fileId: cp.ref.fileId, slide: +e.target.value }); this.setState({ fbHover: null }); },
-        pick: () => fbPick(cp.k), remove: () => { this.tplFmtSet(cp.k, null); this.setState({ fbHover: null }); }, over: e => e.preventDefault(), drop: fbDrop(cp.k),
+        pick: () => fbPick(cp.k), over: e => e.preventDefault(), drop: fbDrop(cp.k),
         formes: cp.zones.length + (cp.zones.length > 1 ? ' formes' : ' forme'), fiche,
         palette: cp.sum ? cp.sum.palette.map(c => ({ hex: '#' + c, style: { width: 16, height: 16, borderRadius: 5, background: '#' + c, boxShadow: 'inset 0 0 0 1px rgba(16,35,58,.12)' } })) : [],
         nData: counts.data, nFixe: counts.fixe, nRetire: counts.retire },
