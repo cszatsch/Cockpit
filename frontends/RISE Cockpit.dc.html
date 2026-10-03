@@ -7,7 +7,7 @@
 </head>
 <body>
 <x-dc>
-<helmet data-dc-atomics><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500;1,600;1,700;1,800&family=JetBrains+Mono:wght@400;500;600&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet"><style>@keyframes e6-spin{to{transform:rotate(360deg)}}@keyframes e6-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}@keyframes e6-seal{0%{opacity:0;transform:scale(1.25) rotate(-8deg)}70%{opacity:1;transform:scale(.97) rotate(0)}100%{transform:scale(1)}}@keyframes ms-spin{to{transform:rotate(360deg)}}@keyframes ms-sheen{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}@keyframes ms-in{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}@keyframes ms-glow{0%{box-shadow:0 0 0 0 rgba(14,124,107,.45)}100%{box-shadow:0 0 0 14px rgba(14,124,107,0)}}@keyframes ms-arrive{from{opacity:0;transform:translateY(-10px) scale(.98)}to{opacity:1;transform:none}}@keyframes ms-fade{from{opacity:0}to{opacity:1}}@keyframes e5-sheen{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}@keyframes e5-develop{0%{opacity:0;filter:blur(6px) saturate(0);transform:scale(.985)}60%{opacity:1;filter:blur(0) saturate(.4)}100%{opacity:1;filter:none;transform:none}}@keyframes e5-spin{to{transform:rotate(360deg)}}@keyframes e5-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}@keyframes e5-fade{from{opacity:0}to{opacity:1}}.fd-title::placeholder{color:#A3AFBB}
+<helmet data-dc-atomics><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500;1,600;1,700;1,800&family=JetBrains+Mono:wght@400;500;600&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet"><style>[data-noscrollbar]{scrollbar-width:none;-ms-overflow-style:none}[data-noscrollbar]::-webkit-scrollbar{display:none}.gn-q::placeholder{color:#9AA8B6}@keyframes e6-spin{to{transform:rotate(360deg)}}@keyframes e6-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}@keyframes e6-seal{0%{opacity:0;transform:scale(1.25) rotate(-8deg)}70%{opacity:1;transform:scale(.97) rotate(0)}100%{transform:scale(1)}}@keyframes ms-spin{to{transform:rotate(360deg)}}@keyframes ms-sheen{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}@keyframes ms-in{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}@keyframes ms-glow{0%{box-shadow:0 0 0 0 rgba(14,124,107,.4)}100%{box-shadow:0 0 0 12px rgba(14,124,107,0)}}@keyframes ms-arrive{from{opacity:0;transform:translateY(-10px) scale(.98)}to{opacity:1;transform:none}}@keyframes ms-fade{from{opacity:0}to{opacity:1}}@keyframes e5-sheen{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}@keyframes e5-develop{0%{opacity:0;filter:blur(6px) saturate(0);transform:scale(.985)}60%{opacity:1;filter:blur(0) saturate(.4)}100%{opacity:1;filter:none;transform:none}}@keyframes e5-spin{to{transform:rotate(360deg)}}@keyframes e5-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}@keyframes e5-fade{from{opacity:0}to{opacity:1}}.fd-title::placeholder{color:#A3AFBB}
 @keyframes rise-hero{from{opacity:0;transform:scale(1.03)}to{opacity:1;transform:scale(1)}}
 html,body{margin:0;background:#eef4f2;font-family:'Plus Jakarta Sans',sans-serif;color:#10233a;-webkit-font-smoothing:antialiased}
 a{color:#1d8f86}a:hover{color:#146b64}
@@ -926,127 +926,133 @@ a{color:#1d8f86}a:hover{color:#146b64}
   </sc-if>
 
   <!-- ===== COMITÉS · GÉNÉRER UN RAPPORT ===== -->
-  <!-- Maquette « Generer un rapport - mise en service » (04/10/2026), reprise à l'identique sous l'en-tête de l'application. -->
+  <!-- Maquette « Generer un rapport » (04/10/2026), reprise à l'identique sous l'en-tête de l'application. -->
   <sc-if value="{{ vTplGenerer }}" hint-placeholder-val="{{ false }}">
   <div style="max-width:1440px;width:100%;box-sizing:border-box;margin:0 auto;display:flex;flex-direction:column;gap:24px;font-family:'Plus Jakarta Sans',sans-serif;color:#10233A;-webkit-font-smoothing:antialiased">
-    <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px 24px;padding:24px 30px;border-radius:22px;background:#10233A;color:#fff">
-      <div style="flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:6px">
-        <span style="font-size:11.5px;font-weight:700;letter-spacing:.16em;color:#9FD9C2">SÉANCE DU RAPPORT</span>
-        <span style="display:block;line-height:1.5;font-size:14.5px;color:#D3DCE5">{{ genSes.info }}</span>
+
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:18px 28px;padding:18px 22px 18px 18px;border-radius:20px;background:#fff;border:1px solid #E3E8EC;box-shadow:0 14px 40px -24px rgba(16,35,58,.35)">
+      <div style="flex:none;width:58px;height:58px;border-radius:14px;background:#10233A;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">
+        <span style="font-size:9.5px;font-weight:700;letter-spacing:.12em;color:#F2B544">{{ genSes.mon }}</span>
+        <span style="font-size:22px;line-height:1;font-weight:800">{{ genSes.day }}</span>
       </div>
-      <div style="display:flex;align-items:center;gap:22px;flex-wrap:wrap">
-        <select value="{{ genSes.v }}" onChange="{{ genSes.set }}" style="height:46px;padding:0 44px 0 18px;border-radius:12px;border:none;background:#fff url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7' viewBox='0 0 12 7'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%2310233A' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E&quot;) no-repeat right 16px center;appearance:none;-webkit-appearance:none;font-size:15px;color:#10233A;cursor:pointer;font-family:inherit;max-width:100%"><sc-for list="{{ genSes.opts }}" as="o" hint-placeholder-count="4"><option value="{{ o.v }}">{{ o.l }}</option></sc-for></select>
-        <a href="#" onClick="{{ genSes.goCal }}" style="font-size:14.5px;font-weight:700;color:#9FD9C2;text-decoration:none;white-space:nowrap">Calendrier des comités →</a>
+      <div style="flex:1 1 300px;min-width:0;display:flex;flex-direction:column;gap:4px">
+        <span style="font-size:10.5px;font-weight:700;letter-spacing:.16em;color:#8A97A5">SÉANCE DU RAPPORT</span>
+        <span style="display:block;line-height:1.5;font-size:14px;color:#4E5E6E;text-wrap:pretty">{{ genSes.info }}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+        <select value="{{ genSes.v }}" onChange="{{ genSes.set }}" style="height:44px;padding:0 42px 0 16px;border-radius:12px;border:1px solid #D5DDE3;background:#fff url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7' viewBox='0 0 12 7'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%2310233A' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E&quot;) no-repeat right 15px center;appearance:none;-webkit-appearance:none;font-size:14px;font-weight:600;color:#10233A;cursor:pointer;font-family:inherit;max-width:100%"><sc-for list="{{ genSes.opts }}" as="o" hint-placeholder-count="4"><option value="{{ o.v }}">{{ o.l }}</option></sc-for></select>
+        <a href="#" onClick="{{ genSes.goCal }}" style="font-size:13.5px;font-weight:700;color:#0E7C6B;text-decoration:none;white-space:nowrap">Calendrier des comités →</a>
       </div>
     </div>
 
-    <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">
-      <section style="flex:1 1 520px;min-width:0;background:#fff;border-radius:22px;padding:28px 30px;display:flex;flex-direction:column;gap:14px">
-        <div style="display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 20px">
-          <span style="font-size:12px;font-weight:700;letter-spacing:.16em;color:#4E5E6E">TEMPLATES ACTIFS · {{ tplActiveCount }}</span>
-          <span style="display:block;line-height:1.5;font-size:13px;color:#6B7A89;text-wrap:pretty">Regroupés par comité · seuls les templates publiés et actifs sont proposés</span>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr));gap:24px;align-items:stretch">
+
+      <section style="min-width:0;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 20px;padding:0 4px;min-height:20px">
+          <span style="font-size:11px;font-weight:700;letter-spacing:.16em;color:#4E5E6E">TEMPLATES ACTIFS · {{ gnTotal }}</span>
+          <span style="display:block;line-height:1.5;font-size:12.5px;color:#8A97A5">Regroupés par comité · seuls les templates publiés et actifs sont proposés</span>
         </div>
-        <sc-for list="{{ tplGroups }}" as="g" hint-placeholder-count="1">
-          <div style="display:flex;flex-direction:column;gap:14px">
-            <div onClick="{{ g.toggle }}" style="display:flex;align-items:center;gap:12px;height:46px;padding:0 16px;border-radius:12px;background:#F2F4F3;cursor:pointer">
-              <svg style="{{ g.chevStyle }}" width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="#10233A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4.5 6 8l3.5-3.5"></path></svg>
-              <span style="font-size:15px;font-weight:700">{{ g.n }}</span>
-              <span style="font-size:13px;color:#6B7A89">{{ g.count }}</span>
+        <div style="height:640px;display:flex;flex-direction:column;background:#fff;border:1px solid #E3E8EC;border-radius:20px;overflow:hidden;box-shadow:0 1px 2px rgba(16,35,58,.04),0 18px 44px -26px rgba(16,35,58,.3)">
+          <div style="flex:none;display:flex;gap:8px;padding:14px;border-bottom:1px solid #EEF1F3">
+            <div style="flex:1;min-width:0;position:relative;display:flex;align-items:center">
+              <svg style="position:absolute;left:13px;pointer-events:none" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#8A97A5" stroke-width="1.7" stroke-linecap="round"><circle cx="7" cy="7" r="4.6"></circle><path d="m10.6 10.6 3 3"></path></svg>
+              <input class="gn-q" value="{{ gnQ }}" onChange="{{ gnOnQ }}" placeholder="Rechercher un template, un auteur, un composant" style="width:100%;height:40px;box-sizing:border-box;padding:0 12px 0 36px;border-radius:11px;border:1px solid #E3E8EC;background:#F7F9F8;font-size:13.5px;color:#10233A;outline:none;font-family:inherit" style-focus="border-color:#0E7C6B;background:#fff"></input>
             </div>
-            <sc-if value="{{ g.open }}" hint-placeholder-val="{{ true }}">
-            <sc-for list="{{ g.items }}" as="t" hint-placeholder-count="2">
-              <div onClick="{{ t.select }}" style="{{ t.card }}">
-                <sc-if value="{{ t.pending }}"><div style="position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:14px"><div style="position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),transparent);animation:ms-sheen 1.6s ease-in-out infinite"></div></div></sc-if>
-                <div style="position:relative;display:flex;justify-content:space-between;gap:16px">
-                  <div style="display:flex;flex-direction:column;gap:6px;min-width:0">
-                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-                      <span style="font-size:16px;font-weight:700">{{ t.name }}</span>
-                      <span style="font:600 11.5px 'JetBrains Mono',monospace;padding:3px 8px;border-radius:6px;background:#F2F4F3;color:#4E5E6E">{{ t.v }}</span>
-                      <sc-if value="{{ t.isNew }}"><span style="font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;background:#0E7C6B;color:#fff;animation:ms-in .4s ease both">Nouveau</span></sc-if>
-                    </div>
-                    <span style="font-size:13.5px;color:#6B7A89">{{ t.author }} · {{ t.pagesLabel }}</span>
-                    <span style="font-size:14px;line-height:1.55;color:#4E5E6E">{{ t.comps }}</span>
-                  </div>
-                  <sc-if value="{{ t.pending }}">
-                    <span style="flex:none;align-self:flex-start;display:flex;align-items:center;gap:8px;height:30px;padding:0 12px;border-radius:999px;background:#E6F3EF;color:#0E5E52;font-size:12px;font-weight:700;white-space:nowrap"><span style="width:11px;height:11px;border-radius:99px;border:1.8px solid #B9DCD2;border-top-color:#0E7C6B;animation:ms-spin .8s linear infinite"></span>Mise en service</span>
-                  </sc-if>
-                  <sc-if value="{{ t.failed }}">
-                    <span style="flex:none;align-self:flex-start;display:flex;align-items:center;gap:8px;height:30px;padding:0 12px;border-radius:999px;background:#FBEDEC;color:#A23A33;font-size:12px;font-weight:700;white-space:nowrap"><span style="width:14px;height:14px;border-radius:99px;background:#D64545;color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center">!</span>Mise en service interrompue</span>
-                  </sc-if>
-                  <sc-if value="{{ t.ready }}">
-                    <div style="flex:none;display:flex;align-items:flex-start;gap:8px;animation:ms-fade .4s ease both">
-                      <button onClick="{{ t.download }}" title="Générer et télécharger le rapport" style="width:40px;height:40px;border-radius:10px;border:1px solid #DCE2E6;background:#fff;color:#10233A;display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.5v8M4.8 7.5 8 10.7l3.2-3.2M2.5 13.5h11"></path></svg></button>
-                      <span onClick="{{ t.deactivate }}" title="Désactiver — reste consultable dans la Bibliothèque" role="switch" aria-checked="true" aria-label="Désactiver le template" style="width:54px;height:40px;border-radius:10px;border:1px solid #DCE2E6;display:flex;align-items:center;justify-content:center;cursor:pointer"><span style="width:34px;height:20px;border-radius:99px;background:#0E7C6B;position:relative"><span style="position:absolute;right:3px;top:3px;width:14px;height:14px;border-radius:99px;background:#fff"></span></span></span>
-                    </div>
-                  </sc-if>
-                </div>
-                <sc-if value="{{ t.pending }}">
-                  <div style="position:relative;display:flex;flex-direction:column;gap:9px;padding-top:14px;margin-top:2px;border-top:1px solid #DCEDE8">
-                    <div style="display:flex;justify-content:space-between;gap:12px;font-size:12.5px">
-                      <span style="color:#0E5E52;font-weight:600">{{ t.phaseLabel }}</span>
-                      <span style="font:600 11.5px 'JetBrains Mono',monospace;color:#6B9C90">{{ t.phaseCount }}</span>
-                    </div>
-                    <div style="height:3px;border-radius:3px;background:#DCEDE8;overflow:hidden"><div style="{{ t.bar }}"></div></div>
-                  </div>
-                </sc-if>
-                <sc-if value="{{ t.failed }}">
-                  <div style="position:relative;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;padding-top:14px;margin-top:2px;border-top:1px solid #F2C9C5;font-size:12.5px">
-                    <span style="color:#A23A33;font-weight:600;text-wrap:pretty">{{ t.error }}</span>
-                    <a href="#" onClick="{{ t.retry }}" style="font-weight:700;color:#A23A33;white-space:nowrap;text-decoration:underline;text-underline-offset:3px">Relancer la mise en service</a>
+            <select value="{{ gnComite }}" onChange="{{ gnOnComite }}" style="flex:none;max-width:44%;height:40px;padding:0 34px 0 12px;border-radius:11px;border:1px solid #E3E8EC;background:#fff url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2310233A' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E&quot;) no-repeat right 12px center;appearance:none;-webkit-appearance:none;font-size:13px;font-weight:600;color:#10233A;cursor:pointer;text-overflow:ellipsis;font-family:inherit">
+              <sc-for list="{{ gnComiteOptions }}" as="o"><option value="{{ o }}">{{ o }}</option></sc-for>
+            </select>
+          </div>
+          <div data-noscrollbar="" style="flex:1;min-height:0;overflow-y:auto;padding:6px 8px 10px">
+            <sc-for list="{{ gnGroups }}" as="g" hint-placeholder-count="4">
+              <div style="display:flex;flex-direction:column">
+                <button onClick="{{ g.toggle }}" style="position:sticky;top:-6px;z-index:2;display:flex;align-items:center;gap:10px;height:42px;padding:0 10px;border:none;background:rgba(255,255,255,.96);backdrop-filter:blur(6px);cursor:pointer;text-align:left;border-radius:10px;font-family:inherit">
+                  <svg style="{{ g.chev }}" width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="#8A97A5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4.5 6 8l3.5-3.5"></path></svg>
+                  <span style="font-size:13.5px;font-weight:700;color:#10233A;white-space:nowrap">{{ g.name }}</span>
+                  <span style="font-size:12px;color:#8A97A5;white-space:nowrap">{{ g.countLabel }}</span>
+                  <sc-if value="{{ g.hasPending }}"><span style="margin-left:auto;width:10px;height:10px;border-radius:99px;border:1.8px solid #B9DCD2;border-top-color:#0E7C6B;animation:ms-spin .8s linear infinite"></span></sc-if>
+                </button>
+                <sc-if value="{{ g.open }}">
+                  <div style="display:flex;flex-direction:column;gap:2px;padding:2px 0 8px">
+                    <sc-for list="{{ g.items }}" as="t">
+                      <div onClick="{{ t.select }}" title="{{ t.comps }}" style="{{ t.row }}">
+                        <sc-if value="{{ t.pending }}"><div style="position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:12px"><div style="position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.75),transparent);animation:ms-sheen 1.6s ease-in-out infinite"></div></div></sc-if>
+                        <span style="{{ t.radio }}"><span style="{{ t.dot }}"></span></span>
+                        <div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:4px">
+                          <div style="display:flex;align-items:center;gap:8px;min-width:0">
+                            <span style="font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.name }}</span>
+                            <span style="flex:none;font:600 10.5px 'JetBrains Mono',monospace;padding:2px 6px;border-radius:5px;background:#F2F4F3;color:#4E5E6E">{{ t.version }}</span>
+                            <sc-if value="{{ t.isNew }}"><span style="flex:none;font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px;background:#0E7C6B;color:#fff;animation:ms-in .4s ease both">Nouveau</span></sc-if>
+                          </div>
+                          <sc-if value="{{ t.showMeta }}"><span style="font-size:12px;color:#8A97A5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.meta }}</span></sc-if>
+                          <sc-if value="{{ t.pending }}"><span style="display:flex;justify-content:space-between;gap:10px;font-size:12px;color:#0E5E52;font-weight:600;white-space:nowrap;overflow:hidden"><span style="overflow:hidden;text-overflow:ellipsis">{{ t.phaseLabel }}</span><span style="font:600 11px 'JetBrains Mono',monospace;color:#6B9C90">{{ t.phaseCount }}</span></span></sc-if>
+                          <sc-if value="{{ t.failed }}"><span style="display:flex;justify-content:space-between;gap:10px;font-size:12px;color:#A23A33;font-weight:600;white-space:nowrap;overflow:hidden"><span title="{{ t.error }}" style="overflow:hidden;text-overflow:ellipsis">{{ t.error }}</span><a href="#" onClick="{{ t.retry }}" style="flex:none;font-weight:700;color:#A23A33;text-decoration:underline;text-underline-offset:3px">Relancer la mise en service</a></span></sc-if>
+                        </div>
+                        <sc-if value="{{ t.ready }}">
+                          <div style="flex:none;display:flex;align-items:center;gap:6px">
+                            <button onClick="{{ t.download }}" title="Télécharger" style="width:30px;height:30px;border-radius:8px;border:1px solid #E3E8EC;background:#fff;color:#4E5E6E;display:flex;align-items:center;justify-content:center;cursor:pointer" style-hover="color:#10233A;border-color:#10233A"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.5v8M4.8 7.5 8 10.7l3.2-3.2M2.5 13.5h11"></path></svg></button>
+                            <button onClick="{{ t.toggleActive }}" title="{{ t.activeTip }}" style="{{ t.sw }}"><span style="{{ t.knob }}"></span></button>
+                          </div>
+                        </sc-if>
+                        <sc-if value="{{ t.pending }}"><span style="flex:none;font-size:11px;font-weight:700;color:#0E5E52;white-space:nowrap">Mise en service</span></sc-if>
+                        <sc-if value="{{ t.failed }}"><span style="flex:none;font-size:11px;font-weight:700;color:#A23A33;white-space:nowrap">Mise en service interrompue</span></sc-if>
+                        <sc-if value="{{ t.pending }}"><div style="position:absolute;left:12px;right:12px;bottom:6px;height:2px;border-radius:2px;background:#DCEDE8;overflow:hidden"><div style="{{ t.bar }}"></div></div></sc-if>
+                      </div>
+                    </sc-for>
                   </div>
                 </sc-if>
               </div>
             </sc-for>
-            </sc-if>
+            <sc-if value="{{ gnEmpty }}"><div style="padding:48px 20px;text-align:center;font-size:13.5px;color:#8A97A5">Aucun template ne correspond à cette recherche.</div></sc-if>
           </div>
-        </sc-for>
+          <div style="flex:none;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 18px;border-top:1px solid #EEF1F3;font-size:12px;color:#8A97A5">
+            <span>{{ gnShownLabel }}</span>
+            <button onClick="{{ gnToggleAll }}" style="border:none;background:none;padding:0;font-size:12px;font-weight:700;color:#0E7C6B;cursor:pointer;font-family:inherit">{{ gnToggleAllLabel }}</button>
+          </div>
+        </div>
       </section>
 
-      <section style="flex:1 1 520px;min-width:0;background:#fff;border-radius:22px;padding:28px 30px;display:flex;flex-direction:column;gap:18px">
-        <sc-if value="{{ tplHasSel }}" hint-placeholder-val="{{ true }}">
-        <div style="display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px 20px">
-          <span style="font-size:12px;font-weight:700;letter-spacing:.16em;color:#4E5E6E">PRÉVISUALISATION</span>
-          <span style="display:block;line-height:1.5;font-size:13px;color:#6B7A89">{{ msPv.meta }}</span>
+      <section style="min-width:0;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 20px;padding:0 4px;min-height:20px">
+          <span style="font-size:11px;font-weight:700;letter-spacing:.16em;color:#4E5E6E">PRÉVISUALISATION</span>
+          <span style="display:block;line-height:1.5;font-size:12.5px;color:#8A97A5">{{ gnPv.meta }}</span>
         </div>
-        <div style="border:1px solid #E3E8EC;border-radius:16px;overflow:hidden">
-          <div style="display:flex;justify-content:space-between;gap:16px;padding:20px 26px;background:#1E2124;color:#fff">
-            <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:17px;font-weight:800;letter-spacing:.02em">{{ msPv.title }}</span><span style="font-size:13.5px;color:#D3DCE5">{{ msPv.sub }}</span></div>
-            <span style="font-size:13px;color:#D3DCE5;white-space:nowrap">{{ msPv.badge }}</span>
+        <div style="height:640px;display:flex;flex-direction:column;background:#fff;border:1px solid #E3E8EC;border-radius:20px;overflow:hidden;box-shadow:0 1px 2px rgba(16,35,58,.04),0 18px 44px -26px rgba(16,35,58,.3)">
+          <div style="flex:none;position:relative;overflow:hidden;padding:28px 30px 24px;background:#1E2124;color:#fff">
+            <div style="position:absolute;right:-60px;top:-80px;width:260px;height:260px;border-radius:50%;border:1px solid rgba(255,255,255,.07)"></div>
+            <div style="position:relative;display:flex;justify-content:space-between;align-items:flex-start;gap:16px">
+              <div style="display:flex;flex-direction:column;gap:8px;min-width:0">
+                <span style="font-size:21px;font-weight:800;letter-spacing:.01em;text-transform:uppercase">{{ gnPv.title }}</span>
+                <span style="font-size:13px;color:#C3CFDB">{{ gnPv.sub }}</span>
+              </div>
+              <span style="flex:none;font:600 11.5px 'JetBrains Mono',monospace;color:#F2B544;padding:5px 9px;border-radius:8px;border:1px solid rgba(242,181,68,.35);white-space:nowrap">{{ gnPv.badge }}</span>
+            </div>
           </div>
-          <sc-if value="{{ msPvPending }}">
-            <div style="display:flex;align-items:center;gap:10px;padding:14px 26px;background:#EFF7F4;border-bottom:1px solid #D6EBE4;font-size:13px;color:#0E5E52;animation:ms-fade .3s both">
+          <sc-if value="{{ gnPvPending }}">
+            <div style="flex:none;display:flex;align-items:center;gap:10px;padding:12px 30px;background:#EFF7F4;border-bottom:1px solid #D6EBE4;font-size:13px;color:#0E5E52;animation:ms-fade .3s both">
               <span style="flex:none;width:12px;height:12px;border-radius:99px;border:1.8px solid #B9DCD2;border-top-color:#0E7C6B;animation:ms-spin .8s linear infinite"></span>
-              <span><b style="font-weight:700">Template en cours de mise en service.</b> Il sera utilisable dans quelques secondes.</span>
+              <span style="line-height:1.5"><b style="font-weight:700">Template en cours de mise en service.</b> Il sera utilisable dans quelques secondes.</span>
             </div>
           </sc-if>
-          <div style="display:flex;flex-direction:column;gap:12px;padding:20px 26px 22px">
-            <sc-for list="{{ msPv.sections }}" as="s" hint-placeholder-count="6">
-              <div style="{{ s.card }}">
-                <div style="display:flex;justify-content:space-between;gap:12px">
-                  <span style="{{ s.label }}">{{ s.num }} · {{ s.name }}</span>
-                  <span style="{{ s.meta }}">{{ s.metaText }}</span>
-                </div>
-                <div style="position:relative;display:flex;flex-direction:column;gap:7px;overflow:hidden">
-                  <div style="{{ s.l1 }}"></div><div style="{{ s.l2 }}"></div><div style="{{ s.l3 }}"></div>
-                  <sc-if value="{{ s.shimmer }}"><div style="position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.8),transparent);animation:ms-sheen 1.4s ease-in-out infinite"></div></sc-if>
-                </div>
+          <div data-noscrollbar="" style="flex:1;min-height:0;overflow-y:auto;position:relative;padding:6px 30px 10px">
+            <sc-for list="{{ gnPv.sections }}" as="s" hint-placeholder-count="6">
+              <div style="{{ s.row }}">
+                <span style="{{ s.num }}">{{ s.n }}</span>
+                <span style="font-size:14.5px;font-weight:700;color:#10233A;white-space:nowrap">{{ s.label }}</span>
+                <span style="flex:1;min-width:16px;border-bottom:1px dotted #DCE2E6;transform:translateY(-4px)"></span>
+                <span style="font-size:12.5px;color:#8A97A5;white-space:nowrap">{{ s.metaText }}</span>
               </div>
             </sc-for>
+            <sc-if value="{{ gnPvPending }}"><div style="position:absolute;inset:0;pointer-events:none;overflow:hidden"><div style="position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),transparent);animation:ms-sheen 1.5s ease-in-out infinite"></div></div></sc-if>
           </div>
+          <div style="flex:none;padding:14px 30px;border-top:1px solid #EEF1F3;font-size:12.5px;color:#8A97A5;font-style:italic">Le rapport une fois généré peut être versé dans la Base de connaissance.</div>
         </div>
-        <div style="display:flex;flex-direction:column;gap:12px">
-          <button onClick="{{ tplSelDownload }}" disabled="{{ msPvBlocked }}" style="{{ msDlBtn }}"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.5v8M4.8 7.5 8 10.7l3.2-3.2M2.5 13.5h11"></path></svg>Télécharger le rapport</button>
-          <span style="font-size:13.5px;color:#4E5E6E;font-style:italic">Le rapport une fois généré peut être versé dans la Base de connaissance.</span>
-        </div>
-        </sc-if>
-        <sc-if value="{{ tplNoSel }}" hint-placeholder-val="{{ false }}"><div style="min-height:300px;display:grid;place-items:center;color:#8a8f9c;font-size:13px;text-align:center;padding:20px;text-wrap:pretty">Aucun template actif sélectionné. Sélectionnez un template à gauche ou réactivez-en un dans la Bibliothèque.</div></sc-if>
       </section>
     </div>
   </div>
   </sc-if>
   <!-- Mise en service terminée : notification de la maquette (environ 3,5 s). -->
   <sc-if value="{{ msToastOn }}" hint-placeholder-val="{{ false }}">
-    <div style="position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:120;display:flex;align-items:center;gap:12px;padding:12px 16px 12px 12px;border-radius:14px;background:#10233A;color:#fff;box-shadow:0 18px 40px -14px rgba(16,35,58,.55);animation:ms-in .35s ease both;white-space:nowrap;font-family:'Plus Jakarta Sans',sans-serif">
+    <div style="position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:120;display:flex;align-items:center;gap:12px;padding:12px 18px 12px 12px;border-radius:14px;background:#10233A;color:#fff;box-shadow:0 18px 40px -14px rgba(16,35,58,.55);animation:ms-in .35s ease both;white-space:nowrap;font-family:'Plus Jakarta Sans',sans-serif">
       <span style="width:26px;height:26px;border-radius:99px;background:#9FE0C7;color:#10233A;display:flex;align-items:center;justify-content:center"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.2 5 8.5l4.5-5"></path></svg></span>
       <span style="font-size:13.5px"><b style="font-weight:700">{{ msToastName }}</b> est prêt à être utilisé.</span>
     </div>
@@ -3719,12 +3725,13 @@ class Component extends DCLogic {
   SES0 = { hasNext: false, next: {}, segs: [], groups: [], canEdit: false, empty: false, sub: '', cal: { cells: [], legend: [], selList: [], title: '', selTitle: '', selRel: '' } };
   sessionList() { const S = this.state, D = this.mergedData(); if (!D || !D.sessions) return []; const E = S.sesEd || {}; return D.sessions.concat(S.sesAdded || []).map(x => ({ ...x, ...(E[x.id] || {}) })); }
   genSesVals() {
-    const S = this.state, D = this.mergedData(); if (!D || !D.sessions) return { opts: [], v: '', info: '' };
+    const S = this.state, D = this.mergedData(); if (!D || !D.sessions) return { opts: [], v: '', info: '', mon: '', day: '' };
     const GB = {}; D.model.GOVERNANCE_BODY.rows.forEach(r => { GB[r.id] = r.cells[0]; });
     const p2 = n => String(n).padStart(2, '0'), today = this.fToday();
     const L = this.sessionList().filter(x => x.status === 'PLANNED' && x.dateIso >= today).sort((a, b) => a.dateIso.localeCompare(b.dateIso)).slice(0, 30);
     const cur = L.find(x => x.id === S.sesSel) || L[0], dl = iso => new Date(iso + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
-    return { v: cur ? cur.id : '', opts: L.map(x => ({ v: x.id, l: GB[x.bodyId] + ' n°' + x.number + ' · ' + dl(x.dateIso) })), set: e => this.setState({ sesSel: e.target.value }), goCal: () => this.go('pilotage', 'seances'),
+    const dd = cur ? new Date(cur.dateIso + 'T12:00:00') : null;
+    return { v: cur ? cur.id : '', mon: dd ? dd.toLocaleDateString('fr-FR', { month: 'short' }).toUpperCase() : '—', day: dd ? String(dd.getDate()) : '', opts: L.map(x => ({ v: x.id, l: GB[x.bodyId] + ' n°' + x.number + ' · ' + dl(x.dateIso) })), set: e => this.setState({ sesSel: e.target.value }), goCal: e => { if (e && e.preventDefault) e.preventDefault(); this.go('pilotage', 'seances'); },
       info: cur ? 'Le rapport généré sera rattaché à cette séance (' + GB[cur.bodyId] + ', ' + (cur.participants || []).length + ' participants).' : 'Aucune séance planifiée : planifiez-en une dans Pilotage › Comités.' };
   }
   sesVals() {
@@ -4773,34 +4780,60 @@ class Component extends DCLogic {
     const svcOf = t => (S.tplSvc || {})[t.id] || t.service || { status: 'READY', cardPhase: 3, isNew: false };
     if (this._api && TPL.some(t => svcOf(t).status === 'PENDING')) setTimeout(() => this.tplSvcPoll(), 0);
     const msJust = id => { const at = (S.msReady || {})[id]; return !!at && Date.now() - at < 1500; };
-    const msCard = (on, svc, id) => { const base = { position: 'relative', display: 'flex', flexDirection: 'column', gap: 12, padding: '18px 20px', borderRadius: 14, cursor: 'pointer', border: on ? '1.5px solid #0E7C6B' : '1px solid #E3E8EC', background: on ? '#F4FAF8' : '#fff', transition: 'background .3s,border-color .3s' };
-      if (svc.status === 'PENDING') return { ...base, animation: 'ms-arrive .5s cubic-bezier(.2,.7,.2,1) both', background: '#F7FBFA', borderColor: '#BFE0D6', cursor: 'default' };
-      if (svc.status === 'FAILED') return { ...base, background: '#FFF8F7', borderColor: '#F2C9C5' };
-      return msJust(id) ? { ...base, animation: 'ms-glow 1.1s ease-out 1' } : base; };
     const tplRetry = t => e => { e.preventDefault(); e.stopPropagation(); if (!this._api) return; this._api.tplRecommission(t.id).then(v => { this.setState(s => ({ tplSvc: { ...(s.tplSvc || {}), [t.id]: v } })); this.tplSvcPoll(); }).catch(err => this.showToast((err && err.message) || 'Relance impossible')); };
     const active = TPL.filter(t => t.active);
-    const selId = S.tplSel && active.some(t => t.id === S.tplSel) ? S.tplSel : (active[0] ? active[0].id : null);
+    // « Générer un rapport » (maquette du 04/10/2026) : recherche sans accents ni casse (nom, auteur, composants, comité),
+    // filtre par comité, groupes repliables (seul celui du template sélectionné ouvert par défaut), lignes de hauteur fixe,
+    // mise en service suivie sur la ligne. Au-delà de GEN_LOCAL_MAX templates, la recherche passe par le serveur.
+    const GEN_LOCAL_MAX = 300;
+    if (S.tab !== 'generer' && S.genKeep && Object.keys(S.genKeep).length) setTimeout(() => this.setState({ genKeep: {} }), 0);
+    const listed = TPL.filter(t => t.active || (S.genKeep || {})[t.id]);
+    const norm = x => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    const gnQ = S.gnQ || '', qq = norm(gnQ.trim()), gnComite = S.gnComite || 'Tous les comités';
+    const remote = TPL.length > GEN_LOCAL_MAX && this._api && (qq || gnComite !== 'Tous les comités');
+    if (remote) { const key = qq + '|' + gnComite; if (!S.gnRemote || S.gnRemote.key !== key) { clearTimeout(this._gnT); this._gnT = setTimeout(() => this._api.tplSearch(gnQ.trim(), gnComite === 'Tous les comités' ? '' : (D.model.GOVERNANCE_BODY.rows.find(r => r.cells[0] === gnComite) || {}).id || '').then(r => this.setState({ gnRemote: { key, ids: r.ids } })).catch(() => {}), 250); } }
+    const hits = remote ? listed.filter(t => S.gnRemote && S.gnRemote.ids.includes(t.id)) : listed.filter(t => (gnComite === 'Tous les comités' || t.committee === gnComite) && (!qq || norm(t.name + ' ' + t.author + ' ' + t.comps.map(compLabel).join(' ') + ' ' + t.committee).includes(qq)));
+    const searching = !!qq || gnComite !== 'Tous les comités';
+    const order = COMMITTEES.filter(c => listed.some(t => t.committee === c));
+    const selId = S.tplSel && listed.some(t => t.id === S.tplSel) ? S.tplSel : (listed[0] ? listed[0].id : null);
     const sel = TPL.find(t => t.id === selId) || null;
-    // Le template en mise en service (ou nouveau) apparaît en tête de son comité.
+    const gnOpen = S.gnOpen || (sel ? { [sel.committee]: true } : {});
     const msRank = t => { const v = svcOf(t); return v.status !== 'READY' ? 0 : v.isNew ? 1 : 2; };
-    const tplGroups = COMMITTEES.filter(c => active.some(t => t.committee === c)).map(c => { const items = active.filter(t => t.committee === c).map((t, k) => [t, k]).sort((x, y) => msRank(x[0]) - msRank(y[0]) || x[1] - y[1]).map(x => x[0]); const open = !S.tplClosed[c]; return { n: c, count: items.length + (items.length > 1 ? ' templates' : ' template'), open, toggle: () => this.setState(s => ({ tplClosed: { ...s.tplClosed, [c]: !s.tplClosed[c] } })), chevStyle: 'transition:transform .2s;transform:rotate(' + (open ? 0 : -90) + 'deg);flex:none',
-      items: items.map(t => { const on = t.id === selId, svc = svcOf(t), cp = Math.min(svc.cardPhase || 0, 2); return { ...t, v: 'v' + t.version, comps: compsText(t), pagesLabel: t.pages + ' pages', select: () => this.setState({ tplSel: t.id }), download: e => { e.stopPropagation(); tplDownload(t, true); }, deactivate: e => { e.stopPropagation(); tplDeactivate(t); },
-        pending: svc.status === 'PENDING', failed: svc.status === 'FAILED', ready: svc.status === 'READY', isNew: svc.status === 'READY' && !!svc.isNew, error: svc.error || '', retry: tplRetry(t),
-        phaseLabel: MS_PHASES[cp] + '…', phaseCount: (cp + 1) + ' / 3', bar: { width: [18, 48, 78][cp] + '%', height: '100%', borderRadius: 3, background: '#0E7C6B', transition: 'width 1.2s cubic-bezier(.3,.7,.3,1)' },
-        card: msCard(on, svc, t.id) }; }) }; });
-    // Prévisualisation (maquette « mise en service ») : sections estompées pendant la mise en service, puis révélées une à une.
+    const gnGroups = order.map(name => { const items = hits.filter(t => t.committee === name).map((t, k) => [t, k]).sort((x, y) => msRank(x[0]) - msRank(y[0]) || x[1] - y[1]).map(x => x[0]); if (!items.length) return null;
+      const isOpen = searching || !!gnOpen[name];
+      return { name, countLabel: items.length + (items.length > 1 ? ' templates' : ' template'), open: isOpen, hasPending: items.some(t => svcOf(t).status === 'PENDING'),
+        chev: { transform: isOpen ? 'none' : 'rotate(-90deg)', transition: 'transform .2s', flex: 'none' },
+        toggle: () => this.setState(s => ({ gnOpen: { ...(s.gnOpen || gnOpen), [name]: !isOpen } })),
+        items: items.map(t => { const on = t.id === selId, svc = svcOf(t), pend = svc.status === 'PENDING', fail = svc.status === 'FAILED', act = !!t.active, cp = Math.min(svc.cardPhase || 0, 2);
+          return { name: t.name, version: 'v' + t.version, comps: t.comps.map(compLabel).join(' · '), meta: t.author + ' · ' + t.pages + ' pages · ' + t.comps.map(compLabel).join(' · '),
+            pending: pend, failed: fail, ready: !pend && !fail, showMeta: !pend && !fail, isNew: svc.status === 'READY' && !!svc.isNew, error: svc.error || '', retry: tplRetry(t),
+            phaseLabel: MS_PHASES[cp] + '…', phaseCount: (cp + 1) + ' / 3', bar: { width: (svc.status === 'READY' ? 100 : [18, 48, 78][cp]) + '%', height: '100%', borderRadius: 2, background: '#0E7C6B', transition: 'width 1.2s cubic-bezier(.3,.7,.3,1)' },
+            select: () => this.setState({ tplSel: t.id }),
+            download: e => { e.stopPropagation(); if (act) tplDownload(t, true); },
+            // Interrupteur : la ligne reste listée (atténuée) jusqu'au prochain chargement de l'écran (arbitrage du 04/10/2026).
+            toggleActive: e => { e.stopPropagation(); if (act) { this.setState(s => ({ genKeep: { ...(s.genKeep || {}), [t.id]: true } })); tplToggle(t.id); this.showToast('Template désactivé · ' + t.name + ' — reste consultable dans la Bibliothèque'); } else { tplToggle(t.id); this.showToast('Template réactivé · ' + t.name); } },
+            activeTip: act ? 'Actif' : 'Inactif',
+            sw: { position: 'relative', width: 34, height: 20, borderRadius: 99, border: 'none', padding: 0, cursor: 'pointer', background: act ? '#0E7C6B' : '#C9D1D9', transition: 'background .2s' },
+            knob: { position: 'absolute', top: 3, left: act ? 17 : 3, width: 14, height: 14, borderRadius: 99, background: '#fff', transition: 'left .2s', boxShadow: '0 1px 2px rgba(0,0,0,.15)' },
+            radio: { flex: 'none', width: 18, height: 18, borderRadius: 99, boxSizing: 'border-box', border: on ? '1.5px solid #0E7C6B' : '1.5px solid #C9D1D9', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'border-color .2s' },
+            dot: { width: 8, height: 8, borderRadius: 99, background: '#0E7C6B', transform: on ? 'scale(1)' : 'scale(0)', transition: 'transform .2s' },
+            row: { position: 'relative', flex: 'none', height: 66, boxSizing: 'border-box', display: 'flex', alignItems: 'center', gap: 12, padding: '0 12px', borderRadius: 12, cursor: 'pointer',
+              border: on ? '1.5px solid #0E7C6B' : '1.5px solid transparent', background: on ? '#F4FAF8' : pend ? '#F7FBFA' : fail ? '#FFF8F7' : '#fff', opacity: act ? 1 : .5, transition: 'background .2s,border-color .2s,opacity .2s',
+              animation: msJust(t.id) ? 'ms-glow 1.1s ease-out 1' : 'none' } }; }) }; }).filter(Boolean);
+    const allOpen = order.length > 0 && order.every(n => gnOpen[n]);
+    // Prévisualisation du template sélectionné ; sommaire estompé pendant la mise en service, puis révélé ligne à ligne.
     const selSvc = sel ? svcOf(sel) : { status: 'READY' }, selPending = selSvc.status !== 'READY';
     const revealed = sel && (S.msReveal || {})[sel.id] != null ? S.msReveal[sel.id] : 99;
-    const msPv = sel ? { meta: 'v' + sel.version + ' · ' + sel.author + ' · ' + sel.pages + ' pages · ' + sel.committee, title: 'RISE — ' + sel.name.toUpperCase(), sub: sel.committee + ' · rapport généré le ' + todayFr, badge: 'v' + sel.version + ' · ' + sel.pages + ' p.',
-      sections: tplSections(sel).map((x, i) => { const r = !selPending && i < revealed; return { num: x.num, name: x.title.toUpperCase(), metaText: x.scope, shimmer: selPending,
-        card: { display: 'flex', flexDirection: 'column', gap: 14, padding: '16px 18px', borderRadius: 12, border: '1px solid #EEF1F3', background: '#fff', opacity: r ? 1 : .55, transition: 'opacity .4s' },
-        label: { fontSize: 12.5, fontWeight: 700, letterSpacing: '.12em', color: r ? '#0E7C6B' : '#9AA8B6', transition: 'color .4s' },
-        meta: { fontSize: 12.5, color: r ? '#6B7A89' : '#B6C0CA', whiteSpace: 'nowrap', transition: 'color .4s' },
-        l1: { height: 6, width: '62%', borderRadius: 6, background: r ? '#D3DCD9' : '#EEF1F3', transition: 'background .4s' },
-        l2: { height: 6, width: '46%', borderRadius: 6, background: r ? '#E3E8E6' : '#F2F4F3', transition: 'background .4s' },
-        l3: { height: 6, width: '31%', borderRadius: 6, background: r ? '#E3E8E6' : '#F2F4F3', transition: 'background .4s' } }; }) } : { sections: [] };
-    const msGenVals = { msPv, msPvPending: !!sel && selSvc.status === 'PENDING', msPvBlocked: selPending,
-      msDlBtn: { alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 10, height: 48, padding: '0 22px', borderRadius: 12, border: 'none', background: '#10233A', color: '#fff', fontSize: 15, fontWeight: 700, cursor: selPending ? 'not-allowed' : 'pointer', opacity: selPending ? .35 : 1, transition: 'opacity .4s', fontFamily: 'inherit' },
+    const secs = sel ? tplSections(sel) : [];
+    const gnPv = sel ? { meta: 'v' + sel.version + ' · ' + sel.author + ' · ' + sel.pages + ' pages · ' + sel.committee, title: 'RISE — ' + sel.name, sub: sel.committee + ' · rapport généré le ' + todayFr, badge: 'v' + sel.version + ' · ' + sel.pages + ' p.',
+      sections: secs.map((x, i) => { const r = !selPending && i < revealed; return { n: x.num, label: x.title, metaText: x.scope,
+        row: { display: 'flex', alignItems: 'baseline', gap: 14, padding: '15px 0', borderBottom: i < secs.length - 1 ? '1px solid #F0F3F5' : 'none', opacity: r ? 1 : .4, transform: r ? 'none' : 'translateX(-4px)', transition: 'opacity .45s,transform .45s' },
+        num: { font: "600 12px 'JetBrains Mono',monospace", color: r ? '#0E7C6B' : '#9AA8B6', width: 22, flex: 'none', transition: 'color .4s' } }; }) } : { meta: '', title: '', sub: '', badge: '', sections: [] };
+    const msGenVals = { gnTotal: TPL.filter(t => t.active).length, gnQ, gnComite, gnComiteOptions: ['Tous les comités', ...order], gnGroups, gnEmpty: !gnGroups.length,
+      gnOnQ: e => this.setState({ gnQ: e.target.value }), gnOnComite: e => this.setState({ gnComite: e.target.value }),
+      gnShownLabel: hits.length + ' sur ' + listed.length + ' templates',
+      gnToggleAllLabel: allOpen ? 'Tout replier' : 'Tout déplier', gnToggleAll: () => this.setState({ gnOpen: allOpen ? {} : Object.fromEntries(order.map(n => [n, true])) }),
+      gnPv, gnPvPending: !!sel && selSvc.status === 'PENDING',
       msToastOn: !!S.msToast, msToastName: S.msToast || '' };
     const libFilters = ['Tous', 'Actifs', 'Inactifs'].map(f => ({ label: f, select: () => this.setState({ tplFilter: f }), style: chip(f, S.tplFilter === f) }));
     const tplLibRows = TPL.filter(t => S.tplFilter === 'Tous' || (S.tplFilter === 'Actifs') === t.active).map(t => ({ ...t, swTrack: `width:26px;height:15px;border-radius:999px;position:relative;display:block;transition:background .2s;background:${t.active ? '#1d8f86' : '#cfd8d6'}`, swKnob: `position:absolute;top:2px;left:${t.active ? 13 : 2}px;width:11px;height:11px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:left .2s`, v: 'v' + t.version, comps: compsText(t), state: t.active ? 'Actif' : 'Inactif', stateStyle: (t.active ? P.ok : P.neutral) + ';cursor:pointer', stateTitle: t.active ? 'Cliquer pour désactiver' : 'Cliquer pour réactiver', toggle: () => { tplToggle(t.id); this.showToast(t.active ? 'Template désactivé · ' + t.name : 'Template réactivé · ' + t.name + ' — disponible dans Générer un rapport'); }, download: () => tplDownload(t, false), view: () => this.setState({ tplView: t.id }), remove: () => tplDelete(t) }));
@@ -5105,7 +5138,7 @@ class Component extends DCLogic {
       tplFmtFile: e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) this.tplFmtLoad(this._fmtKind || null, f); },
       tplFmtHasGlobalErr: !!((S.tplFmtErr || {}).all || (chk && chk.err)), tplFmtGlobalErr: (S.tplFmtErr || {}).all || (chk && chk.err) || '',
     };
-    const tplVals = { tplGroups, tplActiveCount: active.length, tplHasSel: !!sel, tplNoSel: !sel, tplSelName: sel ? sel.name : '', tplSelSub: sel ? sel.committee + ' · rapport généré le ' + todayFr : '', tplSelV: sel ? 'v' + sel.version + ' · ' + sel.pages + ' p.' : '', tplSelMeta: sel ? 'v' + sel.version + ' · ' + sel.author + ' · ' + sel.pages + ' pages · ' + sel.committee : '', tplSelSections: sel ? tplSections(sel) : [], tplSelDownload: () => sel && !selPending && tplDownload(sel, true), ...msGenVals,
+    const tplVals = { tplActiveCount: active.length, tplSelName: sel ? sel.name : '', tplSelSub: sel ? sel.committee + ' · rapport généré le ' + todayFr : '', tplSelV: sel ? 'v' + sel.version + ' · ' + sel.pages + ' p.' : '', tplSelMeta: sel ? 'v' + sel.version + ' · ' + sel.author + ' · ' + sel.pages + ' pages · ' + sel.committee : '', tplSelSections: sel ? tplSections(sel) : [], tplSelDownload: () => sel && !selPending && tplDownload(sel, true), ...msGenVals,
       tplFilters: libFilters, tplLibRows, tplLibSummary: TPL.length + ' templates · ' + active.length + ' actifs · ' + (TPL.length - active.length) + ' inactifs', tplViewOpen: !!tv, tplViewName: tv ? tv.name : '', tplViewSub: tv ? tv.committee + ' · publié le ' + tv.published : '', tplViewV: tv ? 'v' + tv.version + ' · ' + tv.pages + ' p.' : '', tplViewMeta: tv ? 'v' + tv.version + ' · ' + tv.author + ' · ' + tv.pages + ' pages · ' + tv.committee + ' · publié le ' + tv.published : '', tplViewSections: tv ? tplSections(tv) : [], tplViewClose: () => this.setState({ tplView: null }), tplStop: e => e.stopPropagation(), tplViewDownload: () => tv && tplDownload(tv, false), tplAskOpen: !!ask, tplAskName: ask ? ask.name + ' v' + ask.version : '', tplAskMeta: ask ? ask.committee + ' · ' + ask.pages + ' pages · PPTX' : '', tplAskYes: () => ask && tplLog(ask, true), tplAskNo: () => ask && tplLog(ask, false), tplAskClose: () => this.setState({ tplAsk: null }), tplHistRows, tplHistCount: S.tplHistory.length,
       ...fmtVals, ...prevVals, ...feVals, ...f6Vals, ...issuesVals, tplSteps, tplStep1: step === 1, tplStepFmt: step === 2, tplStep2: step === 3, tplStep3: step === 4, tplStep4: step === 5, tplStep5: step === 6, tplDraft: Dft, tplToday: todayFr, tplSetName: inpD('name'), tplSetVersion: inpD('version'), tplSetAuthor: inpD('author'), tplAuthor: Dft.author, tplSetDesc: inpD('desc'), tplSetCommittee: inpD('committee'), tplCommittees: COMMITTEES.map(v => ({ v })), tplCatalog, tplCompCount: Dft.comps.length + (Dft.comps.length > 1 ? ' composants sélectionnés' : ' composant sélectionné'), ...fdVals,
       tplDraftName: draftT.name, tplDraftSub: Dft.committee + ' · ' + Dft.author + ' · créé le ' + todayFr, tplDraftV: 'v' + Dft.version + ' · ' + draftT.pages + ' p.', tplDraftSections: tplSections(draftT), tplDraftPages: draftT.pages + ' pages estimées · ' + Dft.comps.length + ' sections',

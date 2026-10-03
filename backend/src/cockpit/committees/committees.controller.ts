@@ -22,7 +22,7 @@ import { isoDate } from '../referential/schemas';
 import { FormatSelectionSchema } from './report-format.controller';
 import { ReportFormatService } from './report-format.service';
 import { formatRefs } from '../../domain/report-format';
-import { configErrors, pagesOf } from '../../domain/report-components';
+import { COMPONENTS as COMPONENT_DEFS, configErrors, pagesOf } from '../../domain/report-components';
 import { ReportTemplateService } from './report-template.service';
 
 const time = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'heure HH:MM attendue');
@@ -259,6 +259,25 @@ export class CommitteesController {
     const versions = await this.prisma.reportTemplateVersion.findMany({ where: { projectId: scope.project.id }, orderBy: { seq: 'desc' } });
     const history = await this.prisma.contentBlock.findUnique({ where: { projectId_key: { projectId: scope.project.id, key: 'templates.history' } } });
     return { templates: rows.map((t) => this.templateView(t, versions.find((v) => v.templateId === t.id))), history: history?.data ?? [] };
+  }
+
+  /**
+   * Templates publiés pour « Générer un rapport » (04/10/2026) : recherche sans accents ni casse sur le nom, l'auteur,
+   * les composants et le comité, filtre par comité, pagination ; utilisée par l'écran au-delà de TEMPLATE_LIST_LOCAL_MAX.
+   */
+  @Get('report-templates/search')
+  async searchTemplates(@CurrentActor() actor: Actor, @Param('projectId') p: string, @Query() query: Record<string, string>) {
+    const scope = await this.access.scope(actor, p);
+    const { q = '', bodyId = '', offset = '0', limit = '50', includeInactive = '' } = query;
+    const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    const qq = norm(q.trim());
+    const bodies = new Map((await this.prisma.governanceBody.findMany({ where: { projectId: scope.project.id }, select: { id: true, name: true } })).map((b) => [b.id, b.name]));
+    const rows = await this.prisma.reportTemplate.findMany({ where: { projectId: scope.project.id, ...(includeInactive === 'true' ? {} : { active: true }), ...(bodyId ? { bodyId } : {}) }, orderBy: [{ order: 'asc' }, { createdAt: 'asc' }] });
+    const label = (c: any) => COMPONENT_DEFS[c.id as keyof typeof COMPONENT_DEFS]?.label ?? c.id;
+    const hay = (t: any) => norm([t.name, t.authorLabel ?? '', ...(t.components as any[]).map(label), bodies.get(t.bodyId ?? '') ?? ''].join(' '));
+    const hits = rows.filter((t) => !qq || hay(t).includes(qq));
+    const from = Math.max(0, Number(offset) || 0), n = Math.min(200, Math.max(1, Number(limit) || 50));
+    return { total: rows.length, count: hits.length, offset: from, items: hits.slice(from, from + n).map((t) => ({ ...this.templateView(t), committee: bodies.get(t.bodyId ?? '') ?? '', componentLabels: (t.components as any[]).map(label) })) };
   }
 
   private async validateComponents(db: Tx, projectId: string, comps: Array<{ scope: string; targetId?: string | null }>) {

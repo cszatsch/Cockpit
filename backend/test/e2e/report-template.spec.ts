@@ -200,6 +200,20 @@ describe('Cockpit — Templates de rapport : versions et publications', () => {
     expect((await get(`/report-templates/${id}/service`).expect(200)).body).toMatchObject({ status: 'FAILED', error: 'Mise en service interrompue par un redémarrage du serveur.' });
   });
 
+  it('recherche des templates (Générer un rapport) : sans accents ni casse, par comité, paginée', async () => {
+    const a = await post('/report-templates', { name: 'Revue Élargie', version: '1.0', bodyId: 'g1', components: [{ id: 'jalons', scope: 'PROJECT' }] }).expect(201);
+    await ready(a.body.id);
+    const r = (await get('/report-templates/search?q=ELARGIE').expect(200)).body;
+    expect(r.items.map((x: any) => x.name)).toContain('Revue Élargie');
+    expect(r.items[0]).toMatchObject({ committee: expect.any(String), componentLabels: ['Jalons'], service: { status: 'READY' } });
+    expect((await get('/report-templates/search?q=jalons&limit=1').expect(200)).body.items).toHaveLength(1);
+    const byBody = (await get('/report-templates/search?bodyId=zz-inconnu').expect(200)).body;
+    expect(byBody.count).toBe(0);
+    await patch(`/report-templates/${a.body.id}/active`, { active: false }).expect(200);
+    expect((await get('/report-templates/search?q=elargie').expect(200)).body.count).toBe(0);
+    expect((await get('/report-templates/search?q=elargie&includeInactive=true').expect(200)).body.count).toBe(1);
+  });
+
   it('étape B : statut « vérifiée » de chaque page enregistré avec le format du template', async () => {
     const f = format();
     const created = await post('/report-templates', { name: 'Pages vérifiées', version: '1.0', components: [{ id: 'synthese', scope: 'PROJECT' }], format: { ...f, cover: { ...f.cover, verified: true } } }).expect(201);

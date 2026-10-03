@@ -357,3 +357,8 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 
 - `RISE Cockpit.dc.html` : étape F remplacée par la maquette livrée (fiche, liens vers les étapes, panneau de publication, tâches, « Template publié » en repli) ; onglet « Générer un rapport » remplacé par la maquette (séance, templates par comité, carte « Mise en service », prévisualisation, notification), sous l'en-tête existant de l'application ; animations `e6-*`, `ms-*` ; suivi `tplSvcPoll`, passage à « prêt » `tplSvcReady` ; états d'erreur validés (publication, mise en service, aperçu de l'étape E) ; ancien récapitulatif de l'étape F retiré.
 - `api.js` : `tplPublish` (publication puis rechargement), `tplService`, `tplRecommission`.
+
+## Comités et rapports : nouvel écran « Générer un rapport » (04/10/2026)
+
+- `RISE Cockpit.dc.html` : onglet « Générer un rapport » remplacé par la maquette livrée (`docs/specs/MAQUETTE - Generer un rapport/`) sous l'en-tête existant ; bouton « Télécharger le rapport » supprimé ; recherche, filtre, groupes repliables, lignes de 66 px, mise en service sur la ligne (`gnGroups`, `gnPv`) ; pavé date de la séance (`genSesVals`) ; défilement sans barre (`[data-noscrollbar]`).
+- `api.js` : `tplSearch` (recherche côté serveur au-delà de 300 templates).

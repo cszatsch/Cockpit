@@ -996,6 +996,11 @@ export function attach(comp) {
       await reload();
       return r;
     },
+    /** Recherche des templates côté serveur (au-delà de quelques centaines) : identifiants des templates trouvés. */
+    async tplSearch(q, bodyId) {
+      const r = await pget('/report-templates/search?q=' + encodeURIComponent(q || '') + '&bodyId=' + encodeURIComponent(bodyId || '') + '&limit=200');
+      return { ids: r.items.map((x) => x.id), count: r.count, total: r.total };
+    },
     /** Mise en service : `GET /report-templates/{id}/service` ; relance `POST …/commission`. */
     tplService(id) { return pget('/report-templates/' + enc(id) + '/service'); },
     tplRecommission(id) { return ppost('/report-templates/' + enc(id) + '/commission', {}); },

@@ -1681,6 +1681,34 @@
         ]
       }
     },
+    "/api/projects/{projectId}/report-templates/search": {
+      "get": {
+        "operationId": "CommitteesController_searchTemplates",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "cockpit · comités"
+        ]
+      }
+    },
     "/api/projects/{projectId}/report-templates/{id}": {
       "patch": {
         "operationId": "CommitteesController_patchTemplate",

@@ -1339,3 +1339,17 @@ Maquettes livrées (`docs/specs/MAQUETTE - Etape 6 Publication et mise en servic
 | Point bloquant (étape F) | Libellé validé : point rouge, « Publication impossible : N point(s) bloquant(s) à corriger. » et lien « Voir l'étape E › » ; « Valider et publier » atténué et inactif ; l'étape F n'est accessible qu'une fois l'aperçu construit | `f6Blocked`, `canGo` |
 | Échec (validé) | Étape F : pastille rouge « ! », « Publication interrompue », tâche en échec en rouge avec sa cause, « Relancer la publication ». Générer un rapport : pastille « Mise en service interrompue », cause sous la carte, lien « Relancer la mise en service » (`POST /report-templates/{id}/commission`), téléchargement désactivé | `recommission`, `FAILED_MESSAGE` |
 | Échec de l'aperçu (étape E, validé) | Carte rouge pâle, pastille « ! », « La construction de l'aperçu a échoué », phase en échec en rouge avec sa cause sous la carte, phases suivantes grises, pages prêtes gardées, « Relancer l'aperçu » à la place du pourcentage, « Contrôle non effectué », « Suivant › » désactivé | `feErr` |
+
+## Comités et rapports : nouvel écran « Générer un rapport » (04/10/2026)
+
+Maquette livrée (`docs/specs/MAQUETTE - Generer un rapport/`) intégrée à l'identique sous l'en-tête de l'application ; elle remplace la version de la mise en service du même jour ; le bouton « Télécharger le rapport » est supprimé (téléchargement depuis la ligne du template).
+
+| Sujet | Choix | Constante / code |
+|---|---|---|
+| Séance | Pavé date (mois abrégé et jour de la séance sélectionnée), texte de rattachement (comité, participants), sélecteur des séances à venir (30 au plus), « Calendrier des comités → » | `genSesVals` |
+| Tuiles | Deux tuiles de 640 px, côte à côte (empilées sous ~950 px), défilement interne sans barre visible ; la page ne s'allonge pas avec le nombre de templates | `[data-noscrollbar]` |
+| Recherche et filtre | Nom, auteur, composants et comité, sans accents ni casse ; filtre « Tous les comités » ou un comité ; une recherche ou un filtre ouvre les groupes concernés ; « x sur n templates » ; au-delà de 300 templates, recherche faite par le serveur (`GET /report-templates/search?q=&bodyId=&offset=&limit=`, 200 au plus par page) | `GEN_LOCAL_MAX`, `searchTemplates` |
+| Groupes | Par comité, repliables, en-têtes collants, compteur ; par défaut seul le groupe du template sélectionné est ouvert ; « Tout déplier / Tout replier » | `gnOpen` |
+| Lignes | Hauteur fixe 66 px : radio, nom, version, métadonnées tronquées (liste complète au survol), téléchargement, interrupteur ; mise en service sur la ligne (reflet, « Mise en service », phase n / 3, barre de 2 px en bas) sans changement de hauteur ; échec : « Mise en service interrompue » et « Relancer la mise en service » | `gnGroups` |
+| Interrupteur | Arbitrage du 04/10/2026 : un template désactivé reste listé, atténué, jusqu'au prochain chargement de l'écran (réactivation d'un clic) ; il reste dans la Bibliothèque ; activation et désactivation journalisées (auteur, date) | `genKeep`, `PATCH /report-templates/{id}/active` |
+| Prévisualisation | Bandeau (titre, comité, date, version · pages), sommaire (numéro, section, pointillés, périmètre et pages), note ; sommaire estompé pendant la mise en service puis révélé section par section | `gnPv` |

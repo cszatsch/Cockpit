@@ -381,6 +381,12 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 - **Constat** : la mise en service dure surtout le temps de la génération du PowerPoint de référence (collecte des données et rédaction par l'IA) ; les étapes suivantes s'enchaînent en moins d'une seconde.
 - **Tests** : `test/e2e/report-template.spec.ts` (mise en service : 409 pendant, phases croissantes, état à l'amorçage, « Nouveau » jusqu'à la première génération, relance, redémarrage) ; tests existants adaptés à la publication asynchrone.
 
+### Comités et rapports : nouvel écran « Générer un rapport » (04/10/2026)
+
+- **Réalisé** : maquette intégrée à l'identique et branchée sur les données réelles (templates, séances, mise en service), recherche paginée côté serveur au-delà de 300 templates, interrupteur selon l'arbitrage (ligne gardée, atténuée, jusqu'au prochain chargement).
+- **Vérification** (Playwright, 112 templates dont 110 d'essai, supprimés ensuite) : tuiles de 640 px, page de 1 134 px ; recherche « ELODIE » → 36 sur 112 (auteur Élodie), recherche par nom et filtre par comité justes, message sans résultat ; un seul groupe ouvert par défaut, Tout déplier / Tout replier ; toutes les lignes à 66 px ; prévisualisation du template sélectionné ; interrupteur (ligne atténuée, 111 actifs) et réactivation ; lisible à 1 124 et 900 px ; recette `format-rapport.e2e.ts` 25 / 25 (mise en service et « Nouveau »).
+- **Tests** : `test/e2e/report-template.spec.ts` (recherche : accents, composants, pagination, comité, inactifs).
+
 ## 4. Questions ouvertes
 
 1. **Déclencheur des règles de notification** : faut-il ajouter un sélecteur de déclencheur dans la console ? Aujourd'hui, une règle créée depuis l'écran reçoit un déclencheur par défaut : « planifié » pour une notification, « manuel » pour une alerte.
