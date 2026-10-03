@@ -342,6 +342,13 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 - **Tests** : `test/unit/report-template.spec.ts` (bloc « Rapport — système de design », 7 tests : jetons, frise, Gantt, retard, tableau, baromètre, planche redessinée), `test/e2e/report-template.spec.ts` (planning en Gantt puis en tableau sur les données réelles).
 - **Points d'attention** : largeur des textes estimée (police non mesurée) ; le graphique d'évolution du baromètre garde l'échelle 0–10 (honnête mais peu marquée quand le score bouge peu) ; un Gantt sur une période très longue (plus de 7 ans) passe à l'année.
 
+### Rapports : jalons en frise, risques en matrice et tableau (03/10/2026)
+
+- **Réalisé** : page Jalons en frise (cercles reliés, prochain jalon et délai, glissements en rouge, quatre indicateurs sur cartes sombres) ; page Risques avec tableau (criticité en pastille, plan de mitigation, porteur et chantier, échéance échue) et matrice P × I (codes dans les cases, légende par niveau).
+- **Vérification** sur le template « Test » (rendu PowerPoint, 3 itérations) : états des jalons revus (aucun n'était « atteint » : `confirmedAt` signifie date confirmée), mentions « à l'heure » répétées retirées, chevauchement d'un nom sur deux lignes corrigé (largeur des caractères), codes regroupés dans une seule étiquette par case de la matrice.
+- **Tests** : `test/unit/report-template.spec.ts` (bloc « Rapport — jalons et risques », 5 tests), `test/e2e/report-template.spec.ts` adapté (risque ajouté visible dans le tableau et la matrice, planche absente → template endommagé).
+- **Point d'attention** : un jalon n'a pas d'état « atteint » dans le référentiel ; « franchi » signifie seulement que sa date est passée.
+
 ## 4. Questions ouvertes
 
 1. **Déclencheur des règles de notification** : faut-il ajouter un sélecteur de déclencheur dans la console ? Aujourd'hui, une règle créée depuis l'écran reçoit un déclencheur par défaut : « planifié » pour une notification, « manuel » pour une alerte.

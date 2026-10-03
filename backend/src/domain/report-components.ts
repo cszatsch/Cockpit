@@ -36,14 +36,14 @@ export const COMPONENTS: Record<ComponentId, ComponentDef> = {
     defaults: ['milestones'],
   },
   jalons: {
-    id: 'jalons', label: 'Jalons', nature: 'Tableau', parts: ['table'], periodic: true, defaultPeriod: 'next90',
-    indicators: [{ id: 'code', label: 'Code' }, { id: 'name', label: 'Jalon' }, { id: 'date', label: 'Date' }, { id: 'baseline', label: 'Référence' }, { id: 'slip', label: 'Écart (j)' }, { id: 'phase', label: 'Phase' }],
-    defaults: ['code', 'name', 'date', 'baseline', 'slip'],
+    id: 'jalons', label: 'Jalons', nature: 'Frise', parts: ['board'], periodic: true, defaultPeriod: 'next90',
+    indicators: [{ id: 'code', label: 'Code' }, { id: 'name', label: 'Jalon' }, { id: 'date', label: 'Date' }, { id: 'baseline', label: 'Référence' }, { id: 'slip', label: 'Écart (j)' }, { id: 'phase', label: 'Phase' }, { id: 'kpis', label: 'Indicateurs clés' }],
+    defaults: ['code', 'name', 'date', 'baseline', 'slip', 'kpis'],
   },
   risques: {
-    id: 'risques', label: 'Risques et problèmes', nature: 'Tableau', parts: ['table'], periodic: false, defaultPeriod: 'all',
-    indicators: [{ id: 'code', label: 'Code' }, { id: 'name', label: 'Risque' }, { id: 'score', label: 'Criticité' }, { id: 'p', label: 'Probabilité' }, { id: 'i', label: 'Impact' }, { id: 'owner', label: 'Responsable' }, { id: 'due', label: 'Échéance' }, { id: 'status', label: 'Statut' }],
-    defaults: ['code', 'name', 'score', 'owner', 'status'],
+    id: 'risques', label: 'Risques et problèmes', nature: 'Matrice et tableau', parts: ['board'], periodic: false, defaultPeriod: 'all',
+    indicators: [{ id: 'matrix', label: 'Matrice P × I' }, { id: 'code', label: 'Code' }, { id: 'name', label: 'Risque' }, { id: 'score', label: 'Criticité' }, { id: 'p', label: 'Probabilité' }, { id: 'i', label: 'Impact' }, { id: 'plan', label: 'Plan de mitigation' }, { id: 'owner', label: 'Responsable' }, { id: 'due', label: 'Échéance' }, { id: 'status', label: 'Statut' }],
+    defaults: ['matrix', 'code', 'name', 'score', 'p', 'i', 'plan', 'owner', 'due'],
   },
   actions: {
     id: 'actions', label: 'Actions', nature: 'Tableau', parts: ['table'], periodic: true, defaultPeriod: 'all',
@@ -173,5 +173,8 @@ export type ComponentData =
   | { part: 'chart'; categories: string[]; series: Array<{ name: string; values: Array<number | null> }> }
   | { part: 'kpi'; items: Array<{ id: string; label: string; value: string }> }
   | { part: 'text'; lines: string[] }
-  | { part: 'board'; board: 'planning' | 'barometer'; data: unknown };
+  | { part: 'board'; board: BoardKind; data: unknown };
+/** Planches dessinées (03/10/2026) : Gantt, baromètre, frise des jalons, matrice et tableau des risques. */
+export type BoardKind = 'planning' | 'barometer' | 'milestones' | 'risks';
+export const BOARD_OF: Partial<Record<ComponentId, BoardKind>> = { planning: 'planning', barometre: 'barometer', jalons: 'milestones', risques: 'risks' };
 export interface ComponentValues { key: string; caption: string; parts: ComponentData[]; issues: Issue[] }

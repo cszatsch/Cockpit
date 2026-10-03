@@ -61,14 +61,14 @@ describe('Pages modèles remplies — rôles des formes', () => {
     const buf = await makeFormatPptx({ filled: true });
     const a = await analyzePptx(buf);
     const src = (n: number) => ({ fileId: 'F', kind: 'PPTX' as const, buf, analysis: a, slide: n });
-    const { buf: tpl, manifest } = await composeTemplate({ cover: src(1), divider: src(2), standard: src(3), closing: src(4) }, { title: 'Support COPIL', sections: sectionsOf([{ id: 'risques', scope: 'PROJECT' }]), tokens: { titre: 'Support COPIL', date: '3 oct. 2026', projet: 'RISE', client: 'AMC Corp', comite: 'COPIL' } });
+    const { buf: tpl, manifest } = await composeTemplate({ cover: src(1), divider: src(2), standard: src(3), closing: src(4) }, { title: 'Support COPIL', sections: sectionsOf([{ id: 'actions', scope: 'PROJECT' }]), tokens: { titre: 'Support COPIL', date: '3 oct. 2026', projet: 'RISE', client: 'AMC Corp', comite: 'COPIL' } });
     expect(await pptxIntegrity(tpl)).toEqual([]);
     const z = await JSZip.loadAsync(tpl);
     const std = await z.file(manifest.pages[2].slide)!.async('string');
     expect(std).not.toContain('12,8 M€');
     expect(std).toContain('<p:cNvPr id="4" name="rise:c01.title"/>'); // forme de titre du modèle, réutilisée
     expect(std).toContain('<p:cNvPr id="5" name="rise:c01.caption"/>'); // sous-titre du modèle = légende du composant
-    expect(std).toContain('<a:t>Risques et problèmes</a:t>'); // nom de la section dans la mention du modèle
+    expect(std).toContain('<a:t>Actions</a:t>'); // nom de la section dans la mention du modèle
     expect(std).toContain('* Deux chantiers transverses'); // bas de page gardé
     const cover = await z.file(manifest.pages[0].slide)!.async('string');
     expect(cover).toContain('<a:t>Support COPIL</a:t>');
@@ -82,7 +82,7 @@ describe('Pages modèles remplies — rôles des formes', () => {
   });
 
   it('contrôle visuel : recouvrement d’un texte du modèle, texte trop long pour sa zone', async () => {
-    const { buf, manifest } = await composeTemplate(null, { title: 'T', sections: sectionsOf([{ id: 'jalons', scope: 'PROJECT' }]), tokens: { date: '3 oct. 2026' } });
+    const { buf, manifest } = await composeTemplate(null, { title: 'T', sections: sectionsOf([{ id: 'actions', scope: 'PROJECT' }]), tokens: { date: '3 oct. 2026' } });
     const f = manifest.fields.find((x) => x.id === 'c01.table')!;
     const z = await JSZip.loadAsync(buf);
     const xml = await z.file(f.slide)!.async('string');

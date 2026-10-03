@@ -4,7 +4,7 @@ import { analyzeImage, analyzePptx } from '../../src/core/report-format-read';
 import { composeTemplate, fillChartXml, FillData, fillTemplate, TemplateFieldMissing, TemplateManifest } from '../../src/core/report-template';
 import { COMPONENT_IDS, ComponentConfig, configErrors, fieldName, indicatorsOf, pagesOf, periodOf, periodRange, sectionsOf } from '../../src/domain/report-components';
 import { makeFormatPptx, makePng, pptxIntegrity } from '../format-fixture';
-import { BarometerData, Draw, drawBarometer, drawGantt, drawPlanTable, foldPlan, GANTT_MAX_ROWS, GanttData, GanttRow, isLate } from '../../src/core/report-draw';
+import { BarometerData, Draw, drawBarometer, drawGantt, drawMilestones, drawPlanTable, drawRisks, foldPlan, GANTT_MAX_ROWS, GanttData, GanttRow, isLate, MILESTONES_MAX, MilestonesData, milestoneStates, RisksData, wrapText } from '../../src/core/report-draw';
 import { designTokens, scoreTone, statusTone, timeRatio, timeScale, typeScale } from '../../src/domain/report-design';
 
 /** Étapes 3 à 6 de « Créer un template » (03/10/2026) : catalogue, périodes, sections, template et publications. */
@@ -26,7 +26,7 @@ describe('Template de rapport — règles', () => {
   });
 
   it('indicateurs et période : défauts du composant, ordre du catalogue, période seulement si le composant en a une', () => {
-    expect(indicatorsOf({ id: 'jalons', scope: 'PROJECT' })).toEqual(['code', 'name', 'date', 'baseline', 'slip']);
+    expect(indicatorsOf({ id: 'jalons', scope: 'PROJECT' })).toEqual(['code', 'name', 'date', 'baseline', 'slip', 'kpis']);
     expect(indicatorsOf({ id: 'jalons', scope: 'PROJECT', indicators: ['slip', 'code'] })).toEqual(['code', 'slip']);
     expect(periodOf({ id: 'jalons', scope: 'PROJECT' })).toBe('next90');
     expect(periodOf({ id: 'planning', scope: 'PROJECT', period: 'month' })).toBe('all');
@@ -71,7 +71,7 @@ describe('Template de rapport — composition et publications', () => {
     expect(manifest.pages.map((p) => p.kind)).toEqual(['cover', 'divider', 'standard', 'standard', 'standard', 'standard', 'divider', 'standard', 'standard', 'standard', 'standard', 'standard', 'closing']);
     expect(manifest.pages.length).toBe(pagesOf(all));
     const ids = manifest.fields.map((f) => f.id);
-    expect(ids).toEqual(expect.arrayContaining(['report.subtitle', 'c01.caption', 'c01.kpi.status', 'c01.text', 'c02.board', 'c03.table', 'c07.board', 'c07.chart', 'c08.kpi.risks_open', 'c08.chart', 'c09.kpi.committed']));
+    expect(ids).toEqual(expect.arrayContaining(['report.subtitle', 'c01.caption', 'c01.kpi.status', 'c01.text', 'c02.board', 'c03.board', 'c04.board', 'c05.table', 'c07.board', 'c07.chart', 'c08.kpi.risks_open', 'c08.chart', 'c09.kpi.committed']));
     expect(new Set(ids.map((id, i) => `${id}@${manifest.fields[i].slide}`)).size).toBe(ids.length); // identifiants uniques par page
     const { names } = await shapes(tpl);
     const { files } = await shapes(tpl);
@@ -80,7 +80,7 @@ describe('Template de rapport — composition et publications', () => {
     // Graphiques natifs : partie graphique + classeur incorporé ; tableaux natifs (a:tbl).
     expect(Object.keys(z.files).filter((f) => /^ppt\/charts\/chart\d+\.xml$/.test(f))).toHaveLength(2);
     expect(Object.keys(z.files).filter((f) => /^ppt\/embeddings\/.+\.xlsx$/.test(f))).toHaveLength(2);
-    expect(await z.file(manifest.fields.find((f) => f.id === 'c03.table')!.slide)!.async('string')).toContain('<a:tbl>');
+    expect(await z.file(manifest.fields.find((f) => f.id === 'c05.table')!.slide)!.async('string')).toContain('<a:tbl>');
     // Système de design au manifeste : police et accent repris de la page modèle.
     expect(manifest.design).toMatchObject({ font: expect.any(String), accent: expect.stringMatching(/^[0-9A-F]{6}$/) });
   });
@@ -96,7 +96,7 @@ describe('Template de rapport — composition et publications', () => {
     const [s0, s1, s2] = [await shapes(tpl), await shapes(p1), await shapes(p2)];
     expect(s1.files).toEqual(s0.files);
     expect(s2.names).toEqual(s0.names); // mêmes formes, mêmes noms, même ordre
-    const tbl = manifest.fields.find((f) => f.id === 'c03.table')!;
+    const tbl = manifest.fields.find((f) => f.id === 'c05.table')!;
     const t1 = await s1.z.file(tbl.slide)!.async('string'), t2 = await s2.z.file(tbl.slide)!.async('string');
     expect((t1.match(/<a:tr\b/g) ?? []).length).toBe(7);
     expect((t2.match(/<a:tr\b/g) ?? []).length).toBe(3);
@@ -120,7 +120,7 @@ describe('Template de rapport — composition et publications', () => {
   });
 
   it('tableau : texte trop long abrégé sur une ligne ; lignes au-delà de la capacité non écrites', async () => {
-    const { buf: tpl, manifest } = await composeTemplate(null, { title: 'T', sections: sectionsOf([{ id: 'risques', scope: 'PROJECT' }]), tokens });
+    const { buf: tpl, manifest } = await composeTemplate(null, { title: 'T', sections: sectionsOf([{ id: 'actions', scope: 'PROJECT' }]), tokens });
     const f = manifest.fields.find((x) => x.id === 'c01.table')!;
     const d: FillData = { text: {}, tables: { 'c01.table': Array.from({ length: f.capacity! + 5 }, (_, i) => f.columns!.map((c) => (c === 'name' ? 'x'.repeat(400) : `${c}${i}`))) }, charts: {} };
     const out = await fillTemplate(tpl, manifest, d);
@@ -131,7 +131,7 @@ describe('Template de rapport — composition et publications', () => {
   });
 
   it('zone variable absente (template modifié à la main) : erreur explicite', async () => {
-    const { buf: tpl, manifest } = await composeTemplate(null, { title: 'T', sections: sectionsOf([{ id: 'jalons', scope: 'PROJECT' }]), tokens });
+    const { buf: tpl, manifest } = await composeTemplate(null, { title: 'T', sections: sectionsOf([{ id: 'actions', scope: 'PROJECT' }]), tokens });
     const z = await JSZip.loadAsync(tpl);
     const f = manifest.fields.find((x) => x.id === 'c01.table')!;
     z.file(f.slide, (await z.file(f.slide)!.async('string')).replace('name="rise:c01.table"', 'name="Tableau"'));
@@ -146,7 +146,7 @@ describe('Template de rapport — composition et publications', () => {
     const s = { fileId: 'I', kind: 'IMAGE' as const, buf: img, analysis: ia, slide: 1 };
     const im = await composeTemplate({ cover: s, divider: s, standard: s, closing: s }, { title: 'T', sections: sectionsOf(all.slice(0, 3)), tokens });
     expect(await pptxIntegrity(await fillTemplate(im.buf, im.manifest, values(im.manifest, 3)))).toEqual([]);
-    expect(im.manifest.fields.map((f) => f.id)).toEqual(expect.arrayContaining(['report.subtitle', 'report.date', 'c02.board', 'c03.table']));
+    expect(im.manifest.fields.map((f) => f.id)).toEqual(expect.arrayContaining(['report.subtitle', 'report.date', 'c02.board', 'c03.board']));
   });
 });
 
@@ -250,5 +250,80 @@ describe('Rapport — système de design', () => {
     const x2 = await (await JSZip.loadAsync(again)).file(f.slide)!.async('string');
     expect(x2).toContain("Aujourd'hui · 20 nov.");
     expect(x2).not.toContain("Aujourd'hui · 3 oct.");
+  });
+});
+
+/** Jalons en frise, risques en matrice et tableau (03/10/2026). */
+describe('Rapport — jalons et risques', () => {
+  const tk = designTokens({ primary: '0EA5E9', secondary: '0F6E9A', text: '000000', font: 'Poppins', head: 'Poppins', size: 11 });
+  const box = { x: 0, y: 0, w: 10.4 * 914400, h: 4.8 * 914400 };
+  const ms: MilestonesData = {
+    today: '2026-10-03',
+    rows: [
+      { code: 'J01', name: 'Fin de la recette Finance', iso: '2026-09-19', baseline: '2026-09-19', phase: 'Deploy' },
+      { code: 'J04', name: 'Fin de la migration Run 3', iso: '2026-10-14', baseline: '2026-10-14', phase: 'Deploy' },
+      { code: 'J05', name: 'Fin des tests 2-à-2', iso: '2026-11-15', baseline: '2026-10-30', phase: 'Deploy' },
+    ],
+    show: { code: true, name: true, date: true, baseline: true, slip: true, phase: false, kpis: true },
+  };
+
+  it('états : franchi (date passée), prochain, glissé (après sa référence)', () => {
+    expect(milestoneStates(ms.rows, ms.today)).toEqual(['done', 'next', 'late']);
+  });
+
+  it('frise : un cercle par jalon, prochain nommé avec son délai, glissement en rouge, indicateurs sur cartes', () => {
+    const xml = drawMilestones(new Draw(tk), box, ms);
+    expect((xml.match(/prst="ellipse"/g) ?? []).length).toBe(3);
+    expect(xml).toContain('>Prochain<');
+    expect(xml).toContain('dans 11 jours');
+    expect(xml).toContain('>Glissé<');
+    expect(xml).toContain('+16 j');
+    expect(xml).not.toContain('Réf. 19 sept.'); // date tenue : pas de mention de référence
+    expect(xml).toContain('>Jalons franchis<');
+    expect(xml).toContain('>1 / 3<');
+    expect(xml).toContain(`val="${tk.ink}"`); // cartes sombres
+    const many: MilestonesData = { ...ms, rows: Array.from({ length: 20 }, (_, i) => ({ code: `J${i + 1}`, name: `Jalon ${i + 1}`, iso: `2026-${String(1 + Math.floor(i / 2)).padStart(2, '0')}-${i % 2 ? '20' : '05'}`, baseline: null, phase: null })) };
+    const x2 = drawMilestones(new Draw(tk), box, many);
+    expect((x2.match(/prst="ellipse"/g) ?? []).length).toBe(MILESTONES_MAX);
+    expect(x2).toMatch(/Non affichés : \d+ jalons? (antérieurs?|ultérieurs?)/);
+  });
+
+  it('texte coupé en lignes, dernière ligne abrégée « … »', () => {
+    const l = wrapText('Solution CRM incomplète — 79 user stories à repositionner, capacité 40 US sur 2 sprints', 2 * 914400, 10, 2);
+    expect(l).toHaveLength(2);
+    expect(l[1].endsWith('…')).toBe(true);
+    expect(wrapText('Court', 2 * 914400, 10, 2)).toEqual(['Court']);
+  });
+
+  const risks: RisksData = {
+    today: '2026-10-03',
+    rows: [
+      { code: 'R01', name: 'Reprise des données', p: 5, i: 5, plan: 'Replanification du Run 3', owner: 'Karim Benali', ws: 'Migration', due: '2026-10-14', status: 'En traitement' },
+      { code: 'R03', name: 'Solution CRM incomplète', p: 4, i: 5, plan: null, owner: 'Olivier Chevalier', ws: 'Ventes', due: '2026-09-26', status: 'Ouvert' },
+      { code: 'R04', name: 'Faisabilité du Go-Live', p: 4, i: 4, plan: 'Report du Go-Live', owner: 'Laurent Garnier', ws: null, due: null, status: 'Ouvert' },
+      { code: 'R05', name: 'Tests insuffisants', p: 4, i: 4, plan: 'Planning resserré', owner: 'Karim Benali', ws: null, due: null, status: 'Ouvert' },
+    ],
+    show: { matrix: true, code: true, name: true, score: true, p: true, i: true, plan: true, owner: true, due: true, status: false },
+  };
+
+  it('risques : matrice 5 × 5 (codes dans les cases, légende par niveau) et tableau (criticité, plan, échéance échue)', () => {
+    const xml = drawRisks(new Draw(tk), box, risks);
+    expect(xml).toContain('Matrice des risques P × I');
+    expect(xml).toContain('>R04<');
+    expect(xml).toContain('>R05<');
+    expect(xml).toContain('>Critique <');
+    expect(xml).toContain('2 risques');
+    expect(xml).toContain('Aucun plan approuvé — à qualifier');
+    expect(xml).toContain('>P5 × I5<');
+    expect(xml).toContain('>échue<');
+    expect(xml).toContain(`val="${tk.risk}"`);
+    const noMatrix = drawRisks(new Draw(tk), box, { ...risks, show: { ...risks.show, matrix: false, status: true } });
+    expect(noMatrix).not.toContain('Matrice des risques');
+    expect(noMatrix).toContain('>Statut<');
+  });
+
+  it('risques au-delà de la page : « … et N autres risques (tous dans la matrice) »', () => {
+    const rows = Array.from({ length: 20 }, (_, k) => ({ ...risks.rows[0], code: `R${k}` }));
+    expect(drawRisks(new Draw(tk), box, { ...risks, rows })).toMatch(/… et \d+ autres risques \(tous dans la matrice\)/);
   });
 });

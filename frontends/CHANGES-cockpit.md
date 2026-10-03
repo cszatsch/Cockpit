@@ -325,3 +325,8 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 ## Créer un template : natures « Gantt » et « Tableau de bord » (03/10/2026)
 
 - Aucun changement d'écran : les natures et indicateurs des composants viennent de l'API (`GET /report-components`) ; Planning devient « Gantt » (indicateurs « Jalons sur la frise », « Sous-phases »), Baromètre « Tableau de bord » (« Score et évolution », « Avis des répondants », « Score par domaine », « Points clés »).
+
+## Créer un template : jalons en frise, risques en matrice, texte de validation (03/10/2026)
+
+- Natures et indicateurs venus de l'API : Jalons devient « Frise » (indicateur « Indicateurs clés »), Risques « Matrice et tableau » (indicateurs « Matrice P × I », « Plan de mitigation »).
+- `RISE Cockpit.dc.html`, étape de validation : texte remplacé à la demande du commanditaire (« La validation crée le PowerPoint de référence (v…), qui fige la structure, le design du rapport et ses zones de données. Le template, désormais actif, est ajouté à la Bibliothèque et disponible dans « Générer un rapport ». »).

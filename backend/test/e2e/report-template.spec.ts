@@ -12,7 +12,8 @@ const slideXml = async (buf: Buffer) => {
   const files = Object.keys(z.files).filter((f) => /^ppt\/slides\/slide\d+\.xml$/.test(f)).sort((a, b) => Number(/\d+/.exec(a)![0]) - Number(/\d+/.exec(b)![0]));
   return { z, files, xml: await Promise.all(files.map((f) => z.file(f)!.async('string'))) };
 };
-const names = (xml: string) => [...xml.matchAll(/<p:cNvPr\b[^>]*\bname="([^"]*)"/g)].map((m) => m[1]);
+// Noms des formes du template ; les formes internes des planches (redessinées à chaque publication) sont ignorées.
+const names = (xml: string) => [...xml.matchAll(/<p:cNvPr\b[^>]*\bname="([^"]*)"/g)].map((m) => m[1]).filter((n) => !/^(Forme|Filet) \d+$/.test(n));
 
 /**
  * Étapes 3 à 6 de « Créer un template » (03/10/2026) : catalogue, aperçu du rapport complet, publication du template
@@ -46,7 +47,8 @@ describe('Cockpit — Templates de rapport : versions et publications', () => {
     const r = await get('/report-components').expect(200);
     expect(r.body.components.find((c: any) => c.id === 'barometre')).toMatchObject({ nature: 'Tableau de bord', parts: ['board', 'chart'], periodic: true, defaultPeriod: 'last6', indicators: [{ id: 'score', label: 'Score et évolution' }, { id: 'sentiment', label: 'Avis des répondants' }, { id: 'domains', label: 'Score par domaine' }, { id: 'themes', label: 'Points clés' }] });
     expect(r.body.components.find((c: any) => c.id === 'planning')).toMatchObject({ nature: 'Gantt', parts: ['board'], indicators: [{ id: 'milestones', label: 'Jalons sur la frise' }, { id: 'subphases', label: 'Sous-phases' }] });
-    expect(r.body.components.find((c: any) => c.id === 'risques')).toMatchObject({ nature: 'Tableau', periodic: false });
+    expect(r.body.components.find((c: any) => c.id === 'risques')).toMatchObject({ nature: 'Matrice et tableau', parts: ['board'], periodic: false });
+    expect(r.body.components.find((c: any) => c.id === 'jalons')).toMatchObject({ nature: 'Frise', parts: ['board'], periodic: true });
     expect(r.body.periods.map((p: any) => p.id)).toEqual(['all', 'month', 'quarter', 'last3', 'last6', 'next30', 'next90']);
   });
 
@@ -58,7 +60,7 @@ describe('Cockpit — Templates de rapport : versions et publications', () => {
     const svg = await get(`/report-previews/${r.body.id}/slides/4`).buffer(true).parse(binary).expect(200);
     expect(svg.headers['content-type']).toMatch(/^image\/svg\+xml/);
     const top = (await t.db.risk.findMany({ where: { projectId: 'RISE', status: { not: 'CLOSED' } } })).sort((a, b) => b.p * b.i - a.p * a.i)[0];
-    expect(svg.body.toString('utf8')).toContain(`>${top.code}</text>`);
+    expect(svg.body.toString('utf8')).toContain(`>${top.code}<`);
     await get(`/report-previews/${r.body.id}/slides/99`).expect(404);
     await get('/report-previews/inconnu/slides/1').expect(404);
     const bad = await post('/report-templates/preview', { name: 'X', components: [{ id: 'jalons', scope: 'PROJECT', indicators: ['nimporte'] }] }).expect(400);
@@ -76,14 +78,13 @@ describe('Cockpit — Templates de rapport : versions et publications', () => {
     const [a, b] = [await slideXml(ref), await slideXml(p1)];
     expect(b.files).toEqual(a.files);
     expect(b.xml.map(names)).toEqual(a.xml.map(names));
-    // Nouvelle donnée : une ligne de plus dans le tableau des risques, rien d'autre ne bouge.
-    const before = (b.xml[3].match(/<a:tr\b/g) ?? []).length;
+    // Nouvelle donnée : un risque de plus dans le tableau et la matrice, rien d'autre ne bouge.
+    expect(b.xml[3]).not.toContain('>R99<');
     await t.db.risk.create({ data: { id: 'R-TPL', projectId: 'RISE', code: 'R99', n: 'Risque ajouté pour la publication', p: 5, i: 5, ownerId: 'p01', wsId: (await t.db.workstream.findFirstOrThrow({ where: { projectId: 'RISE' } })).id } });
     const p2 = (await get(`/report-templates/${id}/pptx`).buffer(true).parse(binary).expect(200)).body as Buffer;
     const c = await slideXml(p2);
     expect(c.xml.map(names)).toEqual(a.xml.map(names));
-    expect((c.xml[3].match(/<a:tr\b/g) ?? []).length).toBe(before + 1);
-    expect(c.xml[3]).toContain('<a:t>R99</a:t>');
+    expect((c.xml[3].match(/>R99</g) ?? []).length).toBeGreaterThanOrEqual(1); // ligne du tableau (et case de la matrice si la place le permet)
     // Graphique natif du baromètre : données mises à jour dans le cache (pas d'image).
     const chartPath = Object.keys(c.z.files).find((f) => /^ppt\/charts\/chart\d+\.xml$/.test(f))!;
     const surveys = await t.db.barometerSurvey.findMany({ where: { projectId: 'RISE' }, orderBy: { month: 'asc' } });
@@ -133,12 +134,12 @@ describe('Cockpit — Templates de rapport : versions et publications', () => {
     await t.db.reportTemplateVersion.update({ where: { id: v.id }, data: { structure: v.structure as any } });
     const storage = t.app.get(StorageService);
     const z = await JSZip.loadAsync((await storage.get(v.fileKey))!);
-    const slide = (v.manifest as any).fields.find((f: any) => f.id === 'c01.table').slide;
-    z.file(slide, (await z.file(slide)!.async('string')).replace('name="rise:c01.table"', 'name="Tableau"'));
+    const slide = (v.manifest as any).fields.find((f: any) => f.id === 'c01.board').slide;
+    z.file(slide, (await z.file(slide)!.async('string')).replace('name="rise:c01.board"', 'name="Planche"'));
     const key = await storage.put('report-templates/RISE', await z.generateAsync({ type: 'nodebuffer' }), '.pptx');
     await t.db.reportTemplateVersion.update({ where: { id: v.id }, data: { fileKey: key } });
     const damaged = await get(`/report-templates/${id}/pptx`).expect(422);
-    expect(damaged.body).toMatchObject({ code: 'TEMPLATE_DAMAGED', message: expect.stringMatching(/^Zone « c01\.table » introuvable dans le template/) });
+    expect(damaged.body).toMatchObject({ code: 'TEMPLATE_DAMAGED', message: expect.stringMatching(/^Zone « c01\.board » introuvable dans le template/) });
   });
 
   it('versionnement : modifier la structure publie une nouvelle version ; changer l’état actif non ; anciennes versions gardées', async () => {

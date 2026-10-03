@@ -1,10 +1,10 @@
 import JSZip from 'jszip';
 import ExcelJS from 'exceljs';
 import { Box, builtInFormat, DEFAULT_SIZE, estimatedZones, exampleArea, FormatAnalysis, PageKind, RoleMap, ShapeRole, SlideAnalysis, suggestRoles, TextStyle } from '../domain/report-format';
-import { COMPONENTS, DASHBOARD_SERIES, fieldName, indicatorsOf, KPI_MAX, Section } from '../domain/report-components';
+import { BOARD_OF, BoardKind, COMPONENTS, DASHBOARD_SERIES, fieldName, indicatorsOf, KPI_MAX, Section } from '../domain/report-components';
 import { relsPath, resolvePath } from './ooxml';
 import { contrastOn } from './report-format-read';
-import { BarometerData, COLUMN_KIND, Draw, GanttData, TableColumn, barometerLayout, drawBarometer, drawGantt, drawPlanTable, GANTT_MAX_ROWS, kpiCards, synthesisParas, tableHeaderRow, tableRow } from './report-draw';
+import { BarometerData, COLUMN_KIND, Draw, drawMilestones, drawRisks, GanttData, MilestonesData, RisksData, TableColumn, barometerLayout, drawBarometer, drawGantt, drawPlanTable, GANTT_MAX_ROWS, kpiCards, synthesisParas, tableHeaderRow, tableRow } from './report-draw';
 import { DesignTokens, designTokens, typeScale } from '../domain/report-design';
 import { applyRoles, topLevelShapes, Assembler, Fill, fillPptxSlide, RoleValues, maxId, PageSource, readRels, RelRow, relsXml, relTarget, runProps, setText, Src, syntheticSlide, textBox, tokens, XML_DECL, xmlEsc } from './report-format-write';
 
@@ -38,8 +38,9 @@ export interface TemplateField {
   /** Tableau (03/10/2026) : colonnes typées, lignes dessinées selon le système de design. */
   cols?: TableColumn[];
   /** Planche redessinée à chaque publication. */
-  board?: 'planning' | 'barometer';
-  show?: { score: boolean; sentiment: boolean; domains: boolean; themes: boolean };
+  board?: BoardKind;
+  /** Blocs ou colonnes affichés par la planche (indicateurs choisis). */
+  show?: Record<string, boolean>;
   /** Texte : nombre de caractères qui tiennent dans la zone (taille et corps de la forme). */
   maxChars?: number;
   chart?: string;
@@ -314,10 +315,10 @@ export async function composeTemplate(pages: Record<PageKind, PageSource> | null
           fields.push({ id: `${c.key}.table`, kind: 'table', slide: '', component: c.key, columns: inds.map((x) => x.id), cols, capacity, rowH, widths: cols.map((x) => x.width), size: typeScale(tk).small, area: r });
         } else if (second === 'board') {
           // Planche redessinée à chaque publication (Gantt, planning en tableau, tableau de bord du baromètre).
-          const board = c.id === 'barometre' ? 'barometer' : 'planning';
-          const show = { score: inds.some((x) => x.id === 'score'), sentiment: inds.some((x) => x.id === 'sentiment'), domains: inds.some((x) => x.id === 'domains'), themes: inds.some((x) => x.id === 'themes') };
+          const board = BOARD_OF[c.id]!;
+          const show = Object.fromEntries(cdef.indicators.map((x) => [x.id, inds.some((y) => y.id === x.id)])) as BarometerData['show'] & Record<string, boolean>;
           add.push(draw.group(fieldName(`${c.key}.board`), r, draw.sp({ box: { x: r.x, y: r.y, w: 1, h: 1 } })));
-          fields.push({ id: `${c.key}.board`, kind: 'board', slide: '', component: c.key, board, area: r, ...(board === 'barometer' ? { show } : {}) });
+          fields.push({ id: `${c.key}.board`, kind: 'board', slide: '', component: c.key, board, area: r, show });
           if (board === 'barometer' && show.score) {
             const L = barometerLayout(r, show);
             const chartPath = await addChart(L.chart, 'line', ['Score global'], { legend: false, labels: true, single: true, bare: true, min: 0, max: 10 });
@@ -420,7 +421,10 @@ export async function fillTemplate(buf: Buffer, manifest: TemplateManifest, data
       else {
         const d = new Draw(manifest.design, 6000);
         const a = f.area!;
-        const kids = f.board === 'barometer' ? drawBarometer(d, a, b as BarometerData) : (b as GanttData).rows.length > GANTT_MAX_ROWS || (b as { mode?: string }).mode === 'table' ? drawPlanTable(d, a, b as GanttData) : drawGantt(d, a, b as GanttData);
+        const kids = f.board === 'barometer' ? drawBarometer(d, a, b as BarometerData)
+          : f.board === 'milestones' ? drawMilestones(d, a, b as MilestonesData)
+          : f.board === 'risks' ? drawRisks(d, a, b as RisksData)
+          : (b as GanttData).rows.length > GANTT_MAX_ROWS || (b as { mode?: string }).mode === 'table' ? drawPlanTable(d, a, b as GanttData) : drawGantt(d, a, b as GanttData);
         r = { out: xml.slice(0, span.start) + d.group(name, a, kids, Number(span.id) || d.id()) + xml.slice(span.end), found: true };
       }
     } else {

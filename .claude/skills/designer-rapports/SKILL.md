@@ -16,6 +16,7 @@ finitions. Les cinq principes : innovant, utile, esthétique, compréhensible, s
   frise (`timeScale`, `timeRatio`), formats français (`frNum`, `frShortDate`). Aucune couleur ni taille en dur ailleurs.
 - `backend/src/core/report-draw.ts` : dessin en formes natives (`Draw` : `sp`, `text`, `line`, `pill`, `group`,
   `label`) et planches : `drawGantt`, `drawPlanTable` (+ `foldPlan`), `drawBarometer` (+ `barometerLayout`),
+  `drawMilestones` (frise des jalons), `drawRisks` / `drawRiskMatrix` (tableau et matrice P × I), `wrapText`,
   `tableHeaderRow` / `tableRow`, `kpiCards`, `synthesisParas`.
 - `backend/src/core/report-template.ts` : composition (`composeTemplate`, jetons au manifeste `manifest.design`,
   polices réellement employées par la page modèle) et publication (`fillTemplate` : chaque planche est un groupe

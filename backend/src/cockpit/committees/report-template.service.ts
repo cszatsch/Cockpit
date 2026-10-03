@@ -9,7 +9,7 @@ import { techId } from '../../core/ids';
 import { OoxmlPackage } from '../../core/ooxml';
 import { analyzePptx, mediaDataUri } from '../../core/report-format-read';
 import { PageSource } from '../../core/report-format-write';
-import { BarometerData, foldPlan, GANTT_MAX_ROWS, GanttData, GanttRow, PLAN_TABLE_HEAD_IN, PLAN_TABLE_MIN_ROW_IN } from '../../core/report-draw';
+import { BarometerData, MILESTONES_MAX, MilestonesData, RisksData, foldPlan, GANTT_MAX_ROWS, GanttData, GanttRow, PLAN_TABLE_HEAD_IN, PLAN_TABLE_MIN_ROW_IN } from '../../core/report-draw';
 import { composeTemplate, FillData, fillTemplate, TemplateFieldMissing, TemplateManifest, visualCheck } from '../../core/report-template';
 import { LlmService } from '../../core/llm.service';
 import { parseWriting, retryPrompt, WritingFacts, WRITING_SKILLS, WRITING_TIMEOUT_MS, writingPrompt, writingSystem } from '../../domain/report-writing';
@@ -132,7 +132,10 @@ export class ReportTemplateService {
         if (!ms.length) warn('aucun jalon sur la période.');
         const noBase = ms.filter((m) => !m.baselineIso).map((m) => m.code);
         if (noBase.length) warn(`date de référence manquante pour ${list(noBase)}.`);
-        parts.push(table(inds, ms.map((m) => ({ code: m.code, name: m.n, date: day(m.iso), baseline: day(m.baselineIso), slip: m.baselineIso ? String(daysBetween(m.baselineIso, m.iso)) : '—', phase: phaseNames.get(m.phaseId) ?? '—' }))));
+        // Frise (03/10/2026) : état de chaque jalon (atteint = confirmé), écart à la référence, indicateurs clés.
+        const shownMs: MilestonesData = { today, rows: ms.map((m) => ({ code: m.code, name: m.n, iso: m.iso, baseline: m.baselineIso || null, phase: phaseNames.get(m.phaseId) ?? null })), show: Object.fromEntries(def.indicators.map((x) => [x.id, inds.includes(x.id)])) };
+        if (ms.length > MILESTONES_MAX) warn(`${ms.length} jalons : la frise en montre ${MILESTONES_MAX}, autour du prochain.`);
+        parts.push({ part: 'board', board: 'milestones', data: shownMs });
         break;
       }
       case 'risques': {
@@ -140,7 +143,11 @@ export class ReportTemplateService {
         const bad = rs.filter((r) => r.p < 1 || r.p > 5 || r.i < 1 || r.i > 5).map((r) => r.code);
         if (bad.length) warn(`probabilité ou impact hors de l'échelle 1 à 5 pour ${list(bad)}.`);
         if (!rs.length) warn('aucun risque ouvert sur le périmètre.');
-        parts.push(table(inds, rs.map((r) => ({ code: r.code, name: r.n, score: String(r.p * r.i), p: String(r.p), i: String(r.i), owner: name(r.ownerId), due: day(r.dueIso), status: st(r.status) }))));
+        // Matrice P × I et tableau (03/10/2026).
+        const wsNames = new Map((await this.prisma.workstream.findMany({ where: P, select: { id: true, name: true } })).map((w) => [w.id, w.name]));
+        const noPlan = rs.filter((r) => r.p * r.i >= 20 && !r.plan?.trim()).map((r) => r.code);
+        if (noPlan.length && inds.includes('plan')) warn(`aucun plan de mitigation pour ${list(noPlan)} (criticité ≥ 20).`);
+        parts.push({ part: 'board', board: 'risks', data: { today, rows: rs.map((r) => ({ code: r.code, name: r.n, p: r.p, i: r.i, plan: r.plan, owner: name(r.ownerId), ws: wsNames.get(r.wsId) ?? null, due: r.dueIso, status: st(r.status) })), show: Object.fromEntries(def.indicators.map((x) => [x.id, inds.includes(x.id)])) } as RisksData });
         break;
       }
       case 'actions': {
@@ -285,6 +292,8 @@ export class ReportTemplateService {
           if (p.part === 'chart') x.chart = { categories: p.categories, series: p.series };
           if (p.part === 'text') x.facts = p.lines;
           if (p.part === 'board' && p.board === 'planning') { const g = p.data as GanttData; x.facts = g.rows.filter((r) => r.level === 0).map((r) => `${r.code} ${r.name} : ${frDay(r.start)} → ${frDay(r.end)}, ${r.progress} %, ${r.status === 'DONE' ? 'terminée' : r.current ? 'en cours' : r.status === 'IN_PROGRESS' ? 'en cours' : 'à venir'}`).concat(g.milestones.filter((m) => m.iso >= g.today).slice(0, 3).map((m) => `Jalon ${m.code} ${m.label} : ${frDay(m.iso)}`)); }
+          if (p.part === 'board' && p.board === 'milestones') { const m = p.data as MilestonesData; x.facts = m.rows.map((r) => `Jalon ${r.code} ${r.name} : ${frDay(r.iso)}${r.baseline ? ` (référence ${frDay(r.baseline)}, écart ${daysBetween(r.baseline, r.iso)} j)` : ''}${r.iso < m.today ? ', date passée' : ''}`); }
+          if (p.part === 'board' && p.board === 'risks') { const k = p.data as RisksData; x.facts = k.rows.map((r) => `Risque ${r.code} (criticité ${r.p * r.i}, P${r.p} × I${r.i}) : ${r.name}${r.plan ? ` — plan : ${r.plan}` : ' — aucun plan'}${r.due ? `, échéance ${frDay(r.due)}` : ''}`); }
           if (p.part === 'board' && p.board === 'barometer') { const b = p.data as BarometerData; x.facts = [`Score ${b.month} : ${b.score ?? '—'} /10${b.prevScore !== null ? ` (${b.prevMonth} : ${b.prevScore})` : ''}, ${b.respondents ?? '—'} répondants`, ...(b.sentiment ? [`Avis : ${b.sentiment.positive} % positifs, ${b.sentiment.neutral} % neutres, ${b.sentiment.negative} % négatifs`] : []), ...b.domains.filter((d) => d.score !== null).map((d) => `Domaine ${d.name} : ${d.score}${d.prev !== null ? ` (avant : ${d.prev})` : ''}`), ...b.themes.map((t) => `Point clé (${t.tone}) : ${t.label}`)]; }
         }
         return x;

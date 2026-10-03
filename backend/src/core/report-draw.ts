@@ -345,6 +345,243 @@ export function drawBarometer(d: Draw, a: Box, b: BarometerData): string {
   return out.join('');
 }
 
+// ───────────── Texte : coupe en lignes (largeur estimée) ─────────────
+
+/** Largeur moyenne d'un caractère (fraction du corps) : estimation prudente pour les polices larges. */
+const CHAR_EM = 0.6;
+/** Coupe un texte en `max` lignes au plus pour une largeur donnée (EMU) ; la dernière se termine par « … » si besoin. */
+export function wrapText(text: string, width: number, size: number, max: number): string[] {
+  const per = Math.max(6, Math.floor(width / (size * CHAR_EM * PT)));
+  const words = text.replace(/\s+/g, ' ').trim().split(' ');
+  const lines: string[] = [];
+  let cur = '';
+  for (let k = 0; k < words.length; k++) {
+    const w = words[k];
+    const cand = cur ? `${cur} ${w}` : w;
+    if (cand.length <= per) { cur = cand; continue; }
+    if (cur) lines.push(cur); else { lines.push(w.slice(0, per)); cur = ''; continue; }
+    cur = w;
+    if (lines.length === max) { cur = ''; break; }
+  }
+  if (cur && lines.length < max) lines.push(cur);
+  const used = lines.join(' ').length;
+  if (used < text.replace(/\s+/g, ' ').trim().length) {
+    const last = lines[max - 1] ?? lines[lines.length - 1] ?? '';
+    lines[Math.min(max, lines.length) - 1] = (last.length + 1 > per ? last.slice(0, per - 1).trimEnd() : last.trimEnd()).replace(/[\s,;:.—-]+$/, '') + '…';
+  }
+  return lines.slice(0, max);
+}
+
+// ───────────── Jalons : frise ─────────────
+
+export interface MilestoneRow { code: string; name: string; iso: string; baseline: string | null; phase: string | null }
+export interface MilestonesData { today: string; rows: MilestoneRow[]; show: Record<string, boolean> }
+/** Jalons par ligne de frise, et lignes au plus : au-delà, fenêtre centrée sur le prochain jalon. */
+export const MILESTONES_PER_ROW = 6;
+export const MILESTONES_MAX = 12;
+
+/**
+ * État d'un jalon (le référentiel ne dit pas si un jalon est « atteint ») : franchi (date passée), prochain (première
+ * date à venir), glissé (date à venir postérieure à la référence), à venir.
+ */
+type MsState = 'done' | 'late' | 'next' | 'todo';
+const slipOf = (m: MilestoneRow) => (m.baseline ? R((Date.parse(`${m.iso}T00:00:00Z`) - Date.parse(`${m.baseline}T00:00:00Z`)) / 86400000) : 0);
+export function milestoneStates(rows: MilestoneRow[], today: string): MsState[] {
+  const nextIdx = rows.findIndex((m) => m.iso >= today);
+  return rows.map((m, i) => (m.iso < today ? 'done' : i === nextIdx ? 'next' : slipOf(m) > 0 ? 'late' : 'todo'));
+}
+
+/**
+ * Frise des jalons : un cercle par jalon (franchi : plein, couleur d'accent ; prochain : plein, encre ; glissé :
+ * contour rouge ; à venir : contour d'accent), filet de liaison coloré jusqu'au dernier jalon franchi, nom, date,
+ * écart à la référence ; puis quatre indicateurs sur cartes sombres (franchis, glissés, prochain, glissement moyen).
+ */
+export function drawMilestones(d: Draw, a: Box, m: MilestonesData): string {
+  const t = d.t, ty = typeScale(t), out: string[] = [];
+  if (!m.rows.length) return d.text(a, [{ runs: [{ t: 'Aucun jalon sur la période.', size: ty.body, color: t.muted }] }]);
+  const all = m.rows, states = milestoneStates(all, m.today);
+  // Fenêtre : le prochain jalon et ce qui l'entoure (deux jalons passés au plus avant lui).
+  const nextIdx = Math.max(0, states.indexOf('next') >= 0 ? states.indexOf('next') : all.length);
+  const from = all.length <= MILESTONES_MAX ? 0 : Math.max(0, Math.min(nextIdx - 2, all.length - MILESTONES_MAX));
+  const rows = all.slice(from, from + MILESTONES_MAX), st = states.slice(from, from + MILESTONES_MAX);
+  const before = from, after = all.length - from - rows.length;
+  const perRow = Math.min(MILESTONES_PER_ROW, rows.length > MILESTONES_PER_ROW ? Math.ceil(rows.length / 2) : rows.length);
+  const lines = Math.ceil(rows.length / perRow);
+  const cardsH = m.show.kpis !== false ? 1.18 * IN : 0, noteH = before || after ? 0.26 * IN : 0;
+  const showCards = cardsH > 0 && a.h - cardsH - noteH - 0.3 * IN >= lines * 1.75 * IN;
+  const avail = a.h - (showCards ? cardsH + 0.3 * IN : 0) - noteH;
+  const rowH = Math.min(2.1 * IN, avail / lines);
+  // Frise centrée verticalement dans la place laissée par les indicateurs.
+  const cw = a.w / perRow, cs = Math.min(0.46 * IN, rowH * 0.24), top0 = a.y + Math.max(0.22 * IN, (avail - lines * rowH) / 2 + 0.22 * IN);
+  const center = (k: number) => ({ x: a.x + (k % perRow) * cw + cs / 2, y: top0 + Math.floor(k / perRow) * rowH + cs / 2 });
+  // Filets de liaison (entre deux jalons de la même ligne).
+  for (let k = 0; k < rows.length - 1; k++) {
+    if (Math.floor(k / perRow) !== Math.floor((k + 1) / perRow)) continue;
+    const p = center(k), q = center(k + 1);
+    const done = st[k] === 'done' && st[k + 1] === 'done';
+    out.push(d.line(p.x + cs / 2 + 0.06 * IN, p.y, q.x - cs / 2 - 0.06 * IN, q.y, done ? t.accent : t.hairline, done ? 1.5 : 0.75));
+  }
+  const days = (x: string, y: string) => R((Date.parse(`${y}T00:00:00Z`) - Date.parse(`${x}T00:00:00Z`)) / 86400000);
+  rows.forEach((r, k) => {
+    const c = center(k), s = st[k], x = c.x - cs / 2, tw = cw - 0.28 * IN;
+    const fill = s === 'done' ? t.accent : s === 'next' ? t.ink : 'FFFFFF';
+    const ring = s === 'late' ? t.risk : s === 'todo' ? t.accent : fill;
+    const numColor = s === 'done' || s === 'next' ? 'FFFFFF' : s === 'late' ? t.risk : t.accent;
+    out.push(d.sp({ box: { x, y: c.y - cs / 2, w: cs, h: cs }, geom: 'ellipse', fill, line: { color: ring, w: 1.5 }, anchor: 'ctr', paras: [{ align: 'ctr', runs: [{ t: r.code.length <= 4 ? r.code : String(from + k + 1), size: r.code.length > 3 ? ty.label - 0.5 : ty.label + 0.5, color: numColor, bold: true }] }] }));
+    // Mention d'état au-dessus du cercle : prochain, en retard.
+    if (s === 'next' || s === 'late') out.push(d.text({ x, y: c.y - cs / 2 - 0.22 * IN, w: tw, h: 0.18 * IN }, [{ runs: [{ t: s === 'next' ? 'Prochain' : 'Glissé', size: ty.label - 0.5, color: s === 'next' ? t.accent2 : t.risk, bold: true, caps: true, spc: 1 }] }], 'b'));
+    let y = c.y + cs / 2 + 0.14 * IN;
+    const nameSize = ty.body + 1, nl = wrapText(r.name, tw, nameSize, 3);
+    out.push(d.text({ x, y, w: tw, h: nl.length * nameSize * 1.3 * PT }, nl.map((l) => ({ line: 100, runs: [{ t: l, size: nameSize, color: s === 'done' ? t.muted : t.ink, bold: s === 'next' }] }))));
+    y += nl.length * nameSize * 1.3 * PT + 0.06 * IN;
+    const dateRuns: Run[] = [{ t: longDate(r.iso), size: ty.small, color: s === 'late' ? t.risk : s === 'done' ? t.muted : t.ink, bold: true }];
+    if (s === 'next') dateRuns.push({ t: `  ·  ${inTime(m.today, r.iso)}`, size: ty.small, color: t.accent2, bold: true });
+    out.push(d.text({ x, y, w: tw, h: ty.small * 1.4 * PT }, [{ runs: dateRuns }]));
+    y += ty.small * 1.45 * PT;
+    // Référence affichée seulement quand la date a bougé : « à l'heure » partout n'apporte rien.
+    if (m.show.baseline !== false && r.baseline && days(r.baseline, r.iso) !== 0) {
+      const slip = days(r.baseline, r.iso);
+      const runs: Run[] = [{ t: `Réf. ${frShortDate(r.baseline)}`, size: ty.label, color: t.muted }];
+      if (m.show.slip !== false) runs.push({ t: slip === 0 ? '  ·  à l’heure' : `  ·  ${slip > 0 ? '+' : ''}${slip} j`, size: ty.label, color: slip > 0 ? t.risk : slip < 0 ? t.ok : t.muted, bold: slip !== 0 });
+      out.push(d.text({ x, y, w: tw, h: ty.label * 1.4 * PT }, [{ runs }]));
+      y += ty.label * 1.45 * PT;
+    }
+    if (m.show.phase && r.phase) out.push(d.text({ x, y, w: tw, h: ty.label * 1.4 * PT }, [{ runs: [{ t: r.phase, size: ty.label, color: t.subtle }] }]));
+  });
+  if (noteH) {
+    const parts = [before ? `${before} jalon${before > 1 ? 's' : ''} antérieur${before > 1 ? 's' : ''}` : '', after ? `${after} jalon${after > 1 ? 's' : ''} ultérieur${after > 1 ? 's' : ''}` : ''].filter(Boolean);
+    out.push(d.text({ x: a.x, y: top0 + lines * rowH - 0.1 * IN, w: a.w, h: noteH }, [{ runs: [{ t: `Non affichés : ${parts.join(' · ')}`, size: ty.label, color: t.subtle, italic: true }] }], 'ctr'));
+  }
+  // Indicateurs sur cartes sombres.
+  if (showCards) {
+    const y = a.y + a.h - cardsH, gap = 0.16 * IN, w = (a.w - 3 * gap) / 4;
+    const done = all.filter((x, i) => states[i] === 'done').length, late = all.filter((x) => x.iso >= m.today && slipOf(x) > 0).length;
+    const next = all[states.indexOf('next')];
+    const slips = all.filter((x) => x.baseline).map((x) => days(x.baseline!, x.iso));
+    const avg = slips.length ? R(slips.reduce((p, q) => p + q, 0) / slips.length) : null;
+    const lite = (c: string) => mixHex(c, 'FFFFFF', 0.25);
+    const cards = [
+      { label: 'Jalons franchis', value: `${done} / ${all.length}`, color: 'FFFFFF', sub: 'sur la période' },
+      { label: 'Jalons glissés', value: String(late), color: late ? lite(t.risk) : 'FFFFFF', sub: late ? 'à venir, après leur référence' : 'aucun glissement à venir' },
+      { label: 'Prochain jalon', value: next ? inTime(m.today, next.iso).replace(/^dans /, '') : '—', color: 'FFFFFF', sub: next ? `${next.code} · ${longDate(next.iso)}` : 'aucun jalon à venir' },
+      { label: 'Glissement moyen', value: avg === null ? '—' : avg === 0 ? '0 j' : `${avg > 0 ? '+' : ''}${avg} j`, color: avg && avg > 0 ? lite(t.risk) : 'FFFFFF', sub: 'par rapport à la référence' },
+    ];
+    cards.forEach((c, i) => {
+      const x = a.x + i * (w + gap), pad = 0.2 * IN;
+      out.push(d.sp({ box: { x, y, w, h: cardsH }, fill: t.ink }));
+      out.push(d.text({ x: x + pad, y: y + 0.16 * IN, w: w - 2 * pad, h: 0.2 * IN }, [{ runs: [{ t: c.label, size: ty.label, color: mixHex(t.accent, 'FFFFFF', 0.3), bold: true, caps: true, spc: 1.2 }] }]));
+      out.push(d.text({ x: x + pad, y: y + 0.38 * IN, w: w - 2 * pad, h: ty.stat * 0.75 * 1.3 * PT }, [{ runs: [{ t: c.value, size: ty.stat * 0.75, color: c.color, bold: true, font: t.head }] }]));
+      out.push(d.text({ x: x + pad, y: y + cardsH - 0.34 * IN, w: w - 2 * pad, h: 0.22 * IN }, [{ runs: [{ t: c.sub, size: ty.label, color: mixHex(t.ink, 'FFFFFF', 0.6) }] }]));
+    });
+  }
+  return out.join('');
+}
+
+// ───────────── Risques : tableau et matrice P × I ─────────────
+
+export interface RiskRow { code: string; name: string; p: number; i: number; plan: string | null; owner: string; ws: string | null; due: string | null; status: string }
+export interface RisksData { today: string; rows: RiskRow[]; show: Record<string, boolean> }
+/** Seuils de criticité (probabilité × impact) : identiques à `scoreTone`. */
+export const RISK_LEVELS = [{ tone: 'risk' as const, label: 'Critique', range: '≥ 20', min: 20 }, { tone: 'watch' as const, label: 'Élevé', range: '12–19', min: 12 }, { tone: 'ok' as const, label: 'Modéré', range: '< 12', min: 0 }];
+
+/** Matrice 5 × 5 : zones de criticité en teinte claire, cases occupées en plein avec les codes des risques. */
+export function drawRiskMatrix(d: Draw, a: Box, rows: RiskRow[]): string {
+  const t = d.t, ty = typeScale(t), out: string[] = [];
+  out.push(d.label({ x: a.x, y: a.y, w: a.w, h: 0.22 * IN }, 'Matrice des risques P × I'));
+  const axisW = 0.3 * IN, legendH = 0.95 * IN, gap = 0.05 * IN;
+  const cell = Math.min((a.w - axisW - 4 * gap) / 5, (a.h - 0.36 * IN - 0.3 * IN - legendH - 4 * gap) / 5);
+  const gx = a.x + axisW, gy = a.y + 0.36 * IN, gw = 5 * cell + 4 * gap;
+  const zoneColor = (tone: 'risk' | 'watch' | 'ok') => t[tone];
+  for (let p = 5; p >= 1; p--) {
+    for (let i = 1; i <= 5; i++) {
+      const x = gx + (i - 1) * (cell + gap), y = gy + (5 - p) * (cell + gap), tone = scoreTone(p * i);
+      const here = rows.filter((r) => r.p === p && r.i === i);
+      out.push(d.sp({ box: { x, y, w: cell, h: cell }, geom: 'roundRect', adj: 14000, fill: here.length ? zoneColor(tone) : mixHex(zoneColor(tone), 'FFFFFF', tone === 'ok' ? 0.88 : 0.8) }));
+      if (here.length) {
+        // Une étiquette blanche, codes empilés (trois au plus, puis « +N »).
+        const size = Math.min(ty.label - 0.5, (cell / PT) * 0.17), lh = size * 1.18 * PT, cap = Math.max(1, Math.floor((cell - 0.12 * IN) / lh));
+        const shown = here.length > cap ? here.slice(0, cap - 1) : here;
+        const labels = cap === 1 && here.length > 1 ? [`${here[0].code} +${here.length - 1}`] : shown.map((r) => r.code).concat(here.length > cap ? [`+${here.length - shown.length}`] : []);
+        const bh = labels.length * lh + 0.05 * IN;
+        out.push(d.sp({ box: { x: x + 0.06 * IN, y: y + (cell - bh) / 2, w: cell - 0.12 * IN, h: bh }, geom: 'roundRect', adj: 18000, fill: 'FFFFFF', anchor: 'ctr', paras: labels.map((l) => ({ align: 'ctr' as const, line: 90, runs: [{ t: l, size, color: t.ink, bold: true }] })) }));
+      }
+    }
+    out.push(d.text({ x: gx - 0.2 * IN, y: gy + (5 - p) * (cell + gap), w: 0.16 * IN, h: cell }, [{ align: 'r', runs: [{ t: String(p), size: ty.label - 0.5, color: t.subtle }] }], 'ctr'));
+  }
+  for (let i = 1; i <= 5; i++) out.push(d.text({ x: gx + (i - 1) * (cell + gap), y: gy + gw + 0.02 * IN, w: cell, h: 0.16 * IN }, [{ align: 'ctr', runs: [{ t: String(i), size: ty.label - 0.5, color: t.subtle }] }], 't'));
+  out.push(d.text({ x: a.x, y: gy, w: 0.12 * IN, h: gw }, [{ runs: [{ t: 'P', size: ty.small, color: t.muted, bold: true }] }], 'ctr'));
+  out.push(d.text({ x: gx, y: gy + gw + 0.18 * IN, w: gw, h: 0.2 * IN }, [{ runs: [{ t: 'Impact →', size: ty.label, color: t.muted, bold: true }] }], 't'));
+  // Légende : seuils et nombre de risques par niveau.
+  let ly = gy + gw + 0.46 * IN;
+  for (const lv of RISK_LEVELS) {
+    const n = rows.filter((r) => scoreTone(r.p * r.i) === lv.tone).length;
+    out.push(d.sp({ box: { x: a.x, y: ly + 0.04 * IN, w: 0.13 * IN, h: 0.13 * IN }, geom: 'roundRect', adj: 20000, fill: zoneColor(lv.tone) }));
+    out.push(d.text({ x: a.x + 0.22 * IN, y: ly, w: a.w - 0.22 * IN, h: 0.22 * IN }, [{ runs: [{ t: `${lv.label} `, size: ty.small, color: t.ink, bold: true }, { t: `(${lv.range})`, size: ty.label, color: t.muted }, { t: `   ${n} risque${n > 1 ? 's' : ''}`, size: ty.label, color: n ? t.ink : t.subtle, bold: n > 0 }] }], 'ctr'));
+    ly += 0.25 * IN;
+  }
+  return out.join('');
+}
+
+/**
+ * Risques : tableau (code, risque et plan de mitigation, criticité en pastille avec P × I, porteur et chantier,
+ * échéance) et matrice P × I à droite ; lignes à hauteur variable, risques au-delà de la page signalés.
+ */
+export function drawRisks(d: Draw, a: Box, r: RisksData): string {
+  const t = d.t, ty = typeScale(t), out: string[] = [];
+  const show = r.show, rows = r.rows;
+  const withMatrix = show.matrix !== false;
+  const mw = withMatrix ? Math.min(a.w * 0.3, 3.3 * IN) : 0, gap = withMatrix ? 0.4 * IN : 0;
+  if (withMatrix) out.push(drawRiskMatrix(d, { x: a.x + a.w - mw, y: a.y, w: mw, h: a.h }, rows));
+  const T: Box = { x: a.x, y: a.y, w: a.w - mw - gap, h: a.h };
+  if (!rows.length) { out.push(d.text(T, [{ runs: [{ t: 'Aucun risque ouvert sur le périmètre.', size: ty.body, color: t.muted }] }])); return out.join(''); }
+  type Col = { id: string; label: string; w: number; align?: 'l' | 'r' | 'ctr' };
+  const cols: Col[] = [];
+  if (show.code !== false) cols.push({ id: 'code', label: '#', w: 0.55 * IN });
+  cols.push({ id: 'name', label: show.plan !== false ? 'Risque · plan de mitigation' : 'Risque', w: 0 });
+  if (show.score !== false || show.p || show.i) cols.push({ id: 'score', label: 'Crit.', w: 0.7 * IN, align: 'ctr' });
+  if (show.owner !== false) cols.push({ id: 'owner', label: 'Porteur', w: 1.35 * IN });
+  if (show.due !== false) cols.push({ id: 'due', label: 'Échéance', w: 1.05 * IN });
+  if (show.status) cols.push({ id: 'status', label: 'Statut', w: 1.4 * IN });
+  const fixed = cols.reduce((s, c) => s + c.w, 0);
+  cols.find((c) => c.id === 'name')!.w = Math.max(1.6 * IN, T.w - fixed);
+  const xs: number[] = []; cols.reduce((x, c) => (xs.push(x), x + c.w), T.x);
+  const headH = 0.34 * IN;
+  cols.forEach((c, k) => out.push(d.text({ x: xs[k] + 0.06 * IN, y: T.y, w: c.w - 0.12 * IN, h: headH - 0.08 * IN }, [{ align: c.align ?? 'l', runs: [{ t: c.label, size: ty.label, color: t.muted, bold: true, caps: true, spc: 0.8 }] }], 'b')));
+  out.push(d.line(T.x, T.y + headH, T.x + T.w, T.y + headH, t.ink, 1));
+  const nameW = cols.find((c) => c.id === 'name')!.w - 0.2 * IN, nameSize = ty.small + 0.5;
+  let y = T.y + headH, shown = 0;
+  const limit = T.y + T.h - 0.26 * IN;
+  for (const row of rows) {
+    const nl = wrapText(row.name, nameW, nameSize, 2);
+    const plan = show.plan !== false ? (row.plan?.trim() ? wrapText(row.plan, nameW, ty.label, 1) : null) : undefined;
+    const h = Math.max(0.5 * IN, (nl.length * nameSize * 1.25 + (plan !== undefined ? ty.label * 1.5 : 0)) * PT + 0.2 * IN);
+    if (y + h > limit && shown > 0) break;
+    const score = row.p * row.i, tone = scoreTone(score), overdue = !!row.due && row.due < r.today;
+    cols.forEach((c, k) => {
+      const x = xs[k] + 0.06 * IN, w = c.w - 0.12 * IN;
+      if (c.id === 'code') out.push(d.text({ x, y, w, h }, [{ runs: [{ t: row.code, size: ty.small, color: t.muted, bold: true }] }], 'ctr'));
+      if (c.id === 'name') {
+        const paras: Para[] = nl.map((l) => ({ line: 100, runs: [{ t: l, size: nameSize, color: t.ink, bold: true }] }));
+        if (plan !== undefined) paras.push({ spcBef: 3, runs: [plan ? { t: plan[0], size: ty.label, color: t.muted } : { t: 'Aucun plan approuvé — à qualifier', size: ty.label, color: t.risk, bold: true }] });
+        out.push(d.text({ x, y, w: c.w - 0.2 * IN, h }, paras, 'ctr'));
+      }
+      if (c.id === 'score') {
+        const pw = 0.46 * IN, ph = 0.24 * IN, py = y + (h - ph) / 2 - (show.p || show.i ? 0.07 * IN : 0);
+        if (show.score !== false) out.push(d.sp({ box: { x: xs[k] + (c.w - pw) / 2, y: py, w: pw, h: ph }, geom: 'roundRect', adj: 26000, fill: t[tone], anchor: 'ctr', paras: [{ align: 'ctr', runs: [{ t: String(score), size: ty.small, color: 'FFFFFF', bold: true }] }] }));
+        if (show.p || show.i) out.push(d.text({ x: xs[k], y: py + ph + 0.03 * IN, w: c.w, h: 0.16 * IN }, [{ align: 'ctr', runs: [{ t: `P${row.p} × I${row.i}`, size: ty.label - 1, color: t.subtle }] }], 't'));
+      }
+      if (c.id === 'owner') out.push(d.text({ x, y, w, h }, [{ runs: [{ t: row.owner, size: ty.small, color: t.ink }] }, ...(row.ws ? [{ spcBef: 2, runs: [{ t: row.ws, size: ty.label, color: t.subtle }] }] : [])], 'ctr'));
+      if (c.id === 'due') out.push(d.text({ x, y, w, h }, [{ runs: [{ t: row.due ? frShortDate(row.due) : '—', size: ty.small, color: overdue ? t.risk : row.due ? t.ink : t.subtle, bold: !!row.due }] }, ...(overdue ? [{ spcBef: 2, runs: [{ t: 'échue', size: ty.label, color: t.risk }] }] : [])], 'ctr'));
+      if (c.id === 'status') out.push(d.text({ x, y, w, h }, [{ runs: [{ t: '●  ', size: ty.label, color: toneColor(t, statusTone(row.status)) }, { t: row.status, size: ty.small, color: t.ink }] }], 'ctr'));
+    });
+    y += h;
+    shown++;
+    out.push(d.line(T.x, y, T.x + T.w, y, t.hairline, 0.5));
+  }
+  if (shown < rows.length) out.push(d.text({ x: T.x, y: y + 0.04 * IN, w: T.w, h: 0.22 * IN }, [{ runs: [{ t: `… et ${rows.length - shown} autre${rows.length - shown > 1 ? 's' : ''} risque${rows.length - shown > 1 ? 's' : ''}${withMatrix ? ' (tous dans la matrice)' : ''}`, size: ty.label, color: t.subtle, italic: true }] }], 'ctr'));
+  return out.join('');
+}
+
 // ───────────── Tableaux, indicateurs, synthèse ─────────────
 
 export interface TableColumn { id: string; label: string; width: number; align: 'l' | 'r'; kind: 'code' | 'text' | 'status' | 'score' | 'slip' | 'number' }
