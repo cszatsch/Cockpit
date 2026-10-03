@@ -322,6 +322,11 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 - **Écarts** : une page par composant (pas de page « suite ») : un tableau trop long est tronqué sur sa page avec « … et N autres » ; texte des cellules abrégé sur une ligne ; mots-clés `{{date}}` d'un texte fixe figés à la publication du template (la date variable est la zone de date des pages modèles) ; pas d'écran de modification d'un template publié (nouvelle version par l'API `PATCH`) ; le rapport rattaché à une séance (`GET /reports/{id}/file`) reste un PDF minimal.
 - **Points d'attention** : la première génération d'un template antérieur aux versions publie sa version 1 ; les aperçus sont gardés en mémoire du serveur (15 min).
 
+### Comités et rapports : données de démonstration retirées (03/10/2026)
+
+- **Réalisé** : templates, journal de génération et rapports de démonstration retirés de l'amorçage (chargés seulement par les tests, `seedDemoReports`) et purgés de la base locale, avec les templates, versions et fichiers de format créés pendant les essais ; onglets Générer un rapport, Bibliothèque et Historique vérifiés vides et sans erreur.
+- **Point d'attention** : `frontends/rise-data.js` (mode maquette, sans API) garde ses templates d'exemple ; il n'est pas utilisé quand l'API est branchée.
+
 ## 4. Questions ouvertes
 
 1. **Déclencheur des règles de notification** : faut-il ajouter un sélecteur de déclencheur dans la console ? Aujourd'hui, une règle créée depuis l'écran reçoit un déclencheur par défaut : « planifié » pour une notification, « manuel » pour une alerte.

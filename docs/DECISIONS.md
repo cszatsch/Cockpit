@@ -1205,3 +1205,14 @@ Demande du commanditaire (03/10/2026) : composants (étape 3), ordre, sections, 
 | Aperçu | Rapport construit en mémoire avec le format et les données du jour, gardé 15 min (20 au plus), vignettes SVG reconstituées (tableaux et graphiques dessinés à partir du fichier) | `PREVIEW_TTL_MS`, `previewSvg(…, { final: true })` |
 | API | `GET /report-components` ; `POST /report-templates/preview`, `GET /report-previews/:id/slides/:n` ; `GET /report-templates/:id/check`, `/pptx` (publication), `/versions`, `/versions/:seq/file` ; composants : `period`, `indicators`, `newSection`, `sectionTitle` | `ReportFormatController` |
 | Abandon | L'ancien générateur qui découpait une section en pages « (suite) » est retiré : la structure est désormais figée par le template | — |
+
+## Comités et rapports : données de démonstration retirées (03/10/2026)
+
+Demande du commanditaire (03/10/2026) : supprimer toutes les données de démonstration de Comités et rapports.
+
+| Sujet | Décision | Constante / lieu |
+|---|---|---|
+| Périmètre | Templates (6), journal « Historique des générations », rapports rattachés aux séances (4, les séances gardent leur place sans rapport) ; avec eux, les versions et fichiers de format créés pendant les essais. Les comités (instances) et les séances, qui relèvent du Pilotage, restent | — |
+| Amorçage | Plus chargés par `npm run db:seed` ni par `demarrer-rise -Reinitialiser` ; gardés pour les tests, chargés par `test/helpers.ts` (même principe que les documents de la Base de connaissance) | `seedDemoReports` (`prisma/seed/rise.ts`) |
+| Base locale | Purgée le 03/10/2026 (templates, versions, fichiers de format, rapports, journal ; fichiers `storage/reports`, `report-templates`, `report-formats`) ; le journal d'audit, en ajout seul, garde la trace des créations | — |
+

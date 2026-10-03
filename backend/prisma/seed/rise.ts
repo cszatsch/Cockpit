@@ -369,7 +369,8 @@ export async function seedRise(db: PrismaClient, rise: J, plan: J): Promise<void
         place: s.place ?? null,
         status: s.status,
         participants: s.participants,
-        reportId: s.reportId ?? null,
+        // Rapports de démonstration retirés de l'amorçage le 03/10/2026 (`seedDemoReports`) : pas de rapport rattaché.
+        reportId: null,
       },
     });
   }
@@ -477,28 +478,8 @@ export async function seedRise(db: PrismaClient, rise: J, plan: J): Promise<void
     });
   }
 
-  // ── Rapports ──
-  const tplBySessionBody: Record<string, string> = { g1: 'T1' };
-  for (const r of rise.reports) {
-    const session = rise.sessions.find((s: J) => s.id === r.sessionId);
-    await db.reportInstance.create({
-      data: {
-        id: r.id,
-        projectId: RISE_ID,
-        templateId: tplBySessionBody[session?.bodyId] ?? null,
-        sessionId: r.sessionId,
-        name: r.n,
-        v: r.v,
-        status: r.published ? 'PUBLISHED' : 'IN_REVIEW',
-        reportingDate: parseFrLabel(r.reporting),
-        reviewerId: r.id === rise.committee.sessionId.replace('S-g1-', 'RP-') ? rise.committee.reviewer : null,
-        validatorId: r.validator,
-        audience: r.audience === '—' ? null : r.audience,
-        generatedAt: r.id === 'RP-20' ? new Date('2026-09-14T07:05:00Z') : new Date(`${parseFrLabel(r.reporting)}T08:00:00Z`),
-        captureAt: r.id === 'RP-20' ? new Date('2026-09-13T16:00:00Z') : null,
-      },
-    });
-  }
+  // Rapports, templates et journal de génération de démonstration : retirés de l'amorçage le 03/10/2026, chargés
+  // seulement par les tests (`seedDemoReports`).
 
   // ── Budget ──
   await db.programBudget.create({ data: { projectId: RISE_ID, known: rise.programBudget.known, reason: rise.programBudget.reason } });
@@ -535,7 +516,53 @@ export async function seedRise(db: PrismaClient, rise: J, plan: J): Promise<void
     await db.barometerDomain.create({ data: { projectId: RISE_ID, n: d.n, size: d.size, resp: d.resp, series, range: d.range, order: i } });
   }
 
-  // ── Templates de rapport (état initial du composant) ──
+
+  // ── Contenus de présentation (brief § 12) ──
+  const barometerGlobal = {
+    label: bm.ecf.label,
+    size: bm.ecf.size,
+    questions: bm.questions.map((q: J) => ({ label: q.q, score: q.v, delta: q.delta })),
+    themes: bm.themes.map(([label, tone]: [string, string]) => ({ label, tone: ({ ok: 'OK', vig: 'WATCH', risk: 'RISK' } as J)[tone] ?? 'WATCH' })),
+  };
+  const blocks: Record<string, unknown> = {
+    'project.display': { phase: rise.project.phase, status: rise.project.status, editor: rise.project.editor, client: rise.project.client },
+    committee: rise.committee,
+    volets: rise.volets,
+    riskStats: rise.riskStats,
+    weekWins: rise.weekWins,
+    missionNext: rise.missionNext,
+    modelGaps: rise.modelGaps,
+    referential: rise.referential,
+    raci: rise.raci,
+    'barometer.global': barometerGlobal,
+    'model.meta': Object.fromEntries(
+      Object.entries(M).map(([k, v]: [string, J]) => [k, { label: v.label, scope: v.scope, constraints: v.constraints, cols: v.cols, widths: v.widths, sortable: v.sortable }]),
+    ),
+  };
+  for (const [key, data] of Object.entries(blocks)) {
+    await db.contentBlock.create({ data: { projectId: RISE_ID, key, data: data as Prisma.InputJsonValue } });
+  }
+}
+
+function dedupe<T extends { entityType: string; entityId: string }>(arr: T[]): T[] {
+  const seen = new Set<string>();
+  return arr.filter((x) => {
+    const k = `${x.entityType}|${x.entityId}`;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+}
+
+/**
+ * Comités et rapports de démonstration (6 templates, journal de génération, rapports rattachés aux séances) : retirés
+ * de l'amorçage le 03/10/2026 (demande du commanditaire), chargés seulement par les tests (`test/helpers.ts`).
+ */
+export async function seedDemoReports(db: PrismaClient): Promise<void> {
+  const { rise } = await loadDemo();
+  const wsByName: Record<string, string> = {};
+  for (const w of await db.workstream.findMany({ where: { projectId: RISE_ID } })) wsByName[normKey(w.name)] = w.id;
+  // Templates (état initial du composant)
   for (const [i, t] of TEMPLATES.entries()) {
     await db.reportTemplate.create({
       data: {
@@ -559,43 +586,30 @@ export async function seedRise(db: PrismaClient, rise: J, plan: J): Promise<void
       },
     });
   }
-
-  // ── Contenus de présentation (brief § 12) ──
-  const barometerGlobal = {
-    label: bm.ecf.label,
-    size: bm.ecf.size,
-    questions: bm.questions.map((q: J) => ({ label: q.q, score: q.v, delta: q.delta })),
-    themes: bm.themes.map(([label, tone]: [string, string]) => ({ label, tone: ({ ok: 'OK', vig: 'WATCH', risk: 'RISK' } as J)[tone] ?? 'WATCH' })),
-  };
-  const blocks: Record<string, unknown> = {
-    'project.display': { phase: rise.project.phase, status: rise.project.status, editor: rise.project.editor, client: rise.project.client },
-    committee: rise.committee,
-    volets: rise.volets,
-    riskStats: rise.riskStats,
-    weekWins: rise.weekWins,
-    missionNext: rise.missionNext,
-    modelGaps: rise.modelGaps,
-    referential: rise.referential,
-    raci: rise.raci,
-    'barometer.global': barometerGlobal,
-    'templates.history': TEMPLATE_HISTORY,
-    'model.meta': Object.fromEntries(
-      Object.entries(M).map(([k, v]: [string, J]) => [k, { label: v.label, scope: v.scope, constraints: v.constraints, cols: v.cols, widths: v.widths, sortable: v.sortable }]),
-    ),
-  };
-  for (const [key, data] of Object.entries(blocks)) {
-    await db.contentBlock.create({ data: { projectId: RISE_ID, key, data: data as Prisma.InputJsonValue } });
+  // Rapports et séances qui les portent
+  const tplBySessionBody: Record<string, string> = { g1: 'T1' };
+  for (const r of rise.reports) {
+    const session = rise.sessions.find((s: J) => s.id === r.sessionId);
+    await db.reportInstance.create({
+      data: {
+        id: r.id,
+        projectId: RISE_ID,
+        templateId: tplBySessionBody[session?.bodyId] ?? null,
+        sessionId: r.sessionId,
+        name: r.n,
+        v: r.v,
+        status: r.published ? 'PUBLISHED' : 'IN_REVIEW',
+        reportingDate: parseFrLabel(r.reporting),
+        reviewerId: r.id === rise.committee.sessionId.replace('S-g1-', 'RP-') ? rise.committee.reviewer : null,
+        validatorId: r.validator,
+        audience: r.audience === '—' ? null : r.audience,
+        generatedAt: r.id === 'RP-20' ? new Date('2026-09-14T07:05:00Z') : new Date(`${parseFrLabel(r.reporting)}T08:00:00Z`),
+        captureAt: r.id === 'RP-20' ? new Date('2026-09-13T16:00:00Z') : null,
+      },
+    });
   }
-}
-
-function dedupe<T extends { entityType: string; entityId: string }>(arr: T[]): T[] {
-  const seen = new Set<string>();
-  return arr.filter((x) => {
-    const k = `${x.entityType}|${x.entityId}`;
-    if (seen.has(k)) return false;
-    seen.add(k);
-    return true;
-  });
+  for (const s of rise.sessions) if (s.reportId && (await db.reportInstance.findUnique({ where: { id: s.reportId } }))) await db.session.update({ where: { id: s.id }, data: { reportId: s.reportId } });
+  await db.contentBlock.upsert({ where: { projectId_key: { projectId: RISE_ID, key: 'templates.history' } }, create: { projectId: RISE_ID, key: 'templates.history', data: TEMPLATE_HISTORY as Prisma.InputJsonValue }, update: { data: TEMPLATE_HISTORY as Prisma.InputJsonValue } });
 }
 
 /** Templates de l'état initial du Cockpit (`state.templates`). */

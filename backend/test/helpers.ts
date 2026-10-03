@@ -4,7 +4,7 @@ import request from 'supertest';
 import { createApp } from '../src/app.factory';
 import { runSeed } from '../prisma/seed';
 import { seedDemoAi, seedDemoDeliveries, seedDemoLibrary, seedDemoSnapshots } from '../prisma/seed/admin';
-import { seedDemoDocuments } from '../prisma/seed/rise';
+import { seedDemoDocuments, seedDemoReports } from '../prisma/seed/rise';
 import { ProviderKeyTester } from '../src/core/provider-key-tester';
 
 /** Application de test sur une base amorçée avec le jeu de démonstration. */
@@ -39,6 +39,8 @@ export async function setup(): Promise<TestCtx> {
   await seedDemoDeliveries(db);
   // Documents factices de la Base de connaissance (retirés de l'amorçage le 30/09/2026).
   await seedDemoDocuments(db);
+  // Templates, journal de génération et rapports de démonstration (retirés de l'amorçage le 03/10/2026).
+  await seedDemoReports(db);
   const app = await createApp({ logger: false });
   await app.init();
   // Les tests ne sortent jamais sur Internet : les fournisseurs d'IA sont simulés.
