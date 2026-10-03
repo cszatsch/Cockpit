@@ -21,11 +21,13 @@ export interface ComponentDef {
   /** Le composant se filtre-t-il sur une période ? */
   periodic: boolean;
   defaultPeriod: PeriodId;
+  /** Périodes proposées pour ce composant (étape 4), dans l'ordre d'affichage. */
+  periods?: PeriodId[];
 }
 
 export const COMPONENTS: Record<ComponentId, ComponentDef> = {
   synthese: {
-    id: 'synthese', label: 'Synthèse de situation', nature: 'Indicateurs et texte', parts: ['kpi', 'text'], periodic: true, defaultPeriod: 'month',
+    id: 'synthese', label: 'Synthèse de situation', nature: 'Indicateurs et texte', parts: ['kpi', 'text'], periodic: true, defaultPeriod: 'month', periods: ['month', 'prevMonth', 'quarter'],
     indicators: [{ id: 'status', label: 'Statut du projet' }, { id: 'golive', label: 'Go-live prévu' }, { id: 'risks_open', label: 'Risques ouverts' }, { id: 'risks_critical', label: 'Risques critiques' }, { id: 'actions_late', label: 'Actions en retard' }, { id: 'decisions_pending', label: 'Décisions en attente' }, { id: 'milestones_period', label: 'Jalons de la période' }],
     defaults: ['status', 'golive', 'risks_critical', 'actions_late'],
   },
@@ -36,7 +38,7 @@ export const COMPONENTS: Record<ComponentId, ComponentDef> = {
     defaults: ['milestones'],
   },
   jalons: {
-    id: 'jalons', label: 'Jalons', nature: 'Frise', parts: ['board'], periodic: true, defaultPeriod: 'next90',
+    id: 'jalons', label: 'Jalons', nature: 'Frise', parts: ['board'], periodic: true, defaultPeriod: 'next90', periods: ['next30', 'next60', 'next90', 'all'],
     indicators: [{ id: 'code', label: 'Code' }, { id: 'name', label: 'Jalon' }, { id: 'date', label: 'Date' }, { id: 'baseline', label: 'Référence' }, { id: 'slip', label: 'Écart (j)' }, { id: 'phase', label: 'Phase' }, { id: 'kpis', label: 'Indicateurs clés' }],
     defaults: ['code', 'name', 'date', 'baseline', 'slip', 'kpis'],
   },
@@ -46,17 +48,17 @@ export const COMPONENTS: Record<ComponentId, ComponentDef> = {
     defaults: ['matrix', 'code', 'name', 'score', 'p', 'i', 'plan', 'owner', 'due'],
   },
   actions: {
-    id: 'actions', label: 'Actions', nature: 'Tableau', parts: ['table'], periodic: true, defaultPeriod: 'all',
+    id: 'actions', label: 'Actions', nature: 'Tableau', parts: ['table'], periodic: true, defaultPeriod: 'all', periods: ['all', 'month', 'next30', 'next90'],
     indicators: [{ id: 'code', label: 'Code' }, { id: 'name', label: 'Action' }, { id: 'owner', label: 'Responsable' }, { id: 'due', label: 'Échéance' }, { id: 'status', label: 'Statut' }, { id: 'prio', label: 'Priorité' }],
     defaults: ['code', 'name', 'owner', 'due', 'status'],
   },
   decisions: {
-    id: 'decisions', label: 'Décisions', nature: 'Tableau', parts: ['table'], periodic: true, defaultPeriod: 'quarter',
+    id: 'decisions', label: 'Décisions', nature: 'Tableau', parts: ['table'], periodic: true, defaultPeriod: 'quarter', periods: ['month', 'prevMonth', 'quarter', 'last3', 'last6', 'all'],
     indicators: [{ id: 'code', label: 'Code' }, { id: 'name', label: 'Décision' }, { id: 'status', label: 'Statut' }, { id: 'date', label: 'Date' }, { id: 'body', label: 'Instance' }],
     defaults: ['code', 'name', 'status', 'date'],
   },
   barometre: {
-    id: 'barometre', label: 'Baromètre du projet', nature: 'Tableau de bord', parts: ['board', 'chart'], chart: 'line', periodic: true, defaultPeriod: 'last6',
+    id: 'barometre', label: 'Baromètre du projet', nature: 'Tableau de bord', parts: ['board', 'chart'], chart: 'line', periodic: true, defaultPeriod: 'last6', periods: ['last3', 'last6', 'last12'],
     indicators: [{ id: 'score', label: 'Score et évolution' }, { id: 'sentiment', label: 'Avis des répondants' }, { id: 'domains', label: 'Score par domaine' }, { id: 'themes', label: 'Points clés' }],
     defaults: ['score', 'sentiment', 'domains', 'themes'],
   },
@@ -82,14 +84,17 @@ export const KPI_MAX = 4;
 
 // ───────────── Périodes ─────────────
 
-export type PeriodId = 'all' | 'month' | 'quarter' | 'last3' | 'last6' | 'next30' | 'next90';
+export type PeriodId = 'all' | 'month' | 'prevMonth' | 'quarter' | 'last3' | 'last6' | 'last12' | 'next30' | 'next60' | 'next90';
 export const PERIODS: Array<{ id: PeriodId; label: string }> = [
   { id: 'all', label: 'Sans filtre de période' },
   { id: 'month', label: 'Mois en cours' },
+  { id: 'prevMonth', label: 'Mois précédent' },
   { id: 'quarter', label: 'Trimestre en cours' },
   { id: 'last3', label: '3 derniers mois' },
   { id: 'last6', label: '6 derniers mois' },
+  { id: 'last12', label: '12 derniers mois' },
   { id: 'next30', label: '30 prochains jours' },
+  { id: 'next60', label: '60 prochains jours' },
   { id: 'next90', label: '90 prochains jours' },
 ];
 const iso = (d: Date) => d.toISOString().slice(0, 10);
@@ -103,10 +108,13 @@ export function periodRange(id: PeriodId, today: string): { start: string | null
   const r = (a: Date, b: Date) => ({ start: iso(a), end: iso(b), label: `${frDay(iso(a))} → ${frDay(iso(b))}` });
   switch (id) {
     case 'month': return r(new Date(Date.UTC(y, m, 1)), new Date(Date.UTC(y, m + 1, 0)));
+    case 'prevMonth': return r(new Date(Date.UTC(y, m - 1, 1)), new Date(Date.UTC(y, m, 0)));
     case 'quarter': { const q = Math.floor(m / 3) * 3; return r(new Date(Date.UTC(y, q, 1)), new Date(Date.UTC(y, q + 3, 0))); }
     case 'last3': return r(new Date(Date.UTC(y, m - 2, 1)), new Date(Date.UTC(y, m + 1, 0)));
     case 'last6': return r(new Date(Date.UTC(y, m - 5, 1)), new Date(Date.UTC(y, m + 1, 0)));
+    case 'last12': return r(new Date(Date.UTC(y, m - 11, 1)), new Date(Date.UTC(y, m + 1, 0)));
     case 'next30': return r(d, new Date(d.getTime() + 30 * 86400000));
+    case 'next60': return r(d, new Date(d.getTime() + 60 * 86400000));
     case 'next90': return r(d, new Date(d.getTime() + 90 * 86400000));
     default: return { start: null, end: null, label: 'toutes dates' };
   }
@@ -162,6 +170,7 @@ export function configErrors(comps: ComponentConfig[]): Record<string, string> {
     if (unknown.length) err[`components.${i}`] = `${def.label} : indicateur inconnu (${unknown.join(', ')})`;
     else if (c.indicators && !c.indicators.length) err[`components.${i}`] = `${def.label} : choisissez au moins un indicateur`;
     if (c.period && !PERIODS.some((p) => p.id === c.period)) err[`components.${i}`] = `${def.label} : période inconnue`;
+    else if (c.period && def.periodic && def.periods && !def.periods.includes(c.period as PeriodId)) err[`components.${i}`] = `${def.label} : période non proposée pour ce composant`;
     const kpis = def.parts.includes('kpi') ? indicatorsOf(c).filter((x) => !(c.id === 'dashboard' && DASHBOARD_SERIES.includes(x))) : [];
     if (kpis.length > KPI_MAX) err[`components.${i}`] = `${def.label} : ${KPI_MAX} indicateurs au plus sur une page`;
   });

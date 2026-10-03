@@ -979,6 +979,10 @@ export function attach(comp) {
     fmtCheck(sel) { return ppost('/report-formats/check', sel); },
     /** Fichier retiré du brouillon (refusé par le serveur s'il sert à un template enregistré : sans conséquence). */
     fmtDelete(fileId) { return pdel('/report-formats/' + enc(fileId)).catch(() => null); },
+    /** Brouillon de « Créer un template » : `GET`, `POST` (enregistrement), `DELETE /report-template-draft`. */
+    tplDraftGet() { return pget('/report-template-draft'); },
+    tplDraftSave(data) { return ppost('/report-template-draft', { data }); },
+    tplDraftDrop() { return pdel('/report-template-draft'); },
     /** Catalogue des composants (nature, indicateurs, périodes) : `GET /report-components`. */
     tplComponents() { return pget('/report-components'); },
     /** Aperçu du rapport complet (brouillon) : `POST /report-templates/preview` → diapositives et anomalies. */

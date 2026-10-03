@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet"><style>html,body{margin:0;background:#F2F4F3;font-family:'Plus Jakarta Sans',sans-serif;color:#10233A;-webkit-font-smoothing:antialiased}a{color:#10233A}a:hover{color:#0E7C6B}select,input,button{font-family:inherit}input::placeholder{color:#A3AFBB}</style></helmet>
+<div style="max-width:1440px;margin:0 auto;padding:28px 32px 56px;display:flex;flex-direction:column;gap:28px">
+
+  <nav style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px">
+    <sc-for list="{{ steps }}" as="s" hint-placeholder-count="6">
+      <div style="{{ s.wrap }}">
+        <div style="{{ s.bar }}"></div>
+        <div style="display:flex;align-items:center;gap:10px;padding-top:12px">
+          <div style="{{ s.dot }}">{{ s.mark }}</div>
+          <div style="display:flex;flex-direction:column;gap:1px;min-width:0">
+            <span style="font-size:10.5px;font-weight:600;letter-spacing:.09em;color:#8A97A5">{{ s.n }}</span>
+            <span style="{{ s.label }}">{{ s.name }}</span>
+          </div>
+        </div>
+      </div>
+    </sc-for>
+  </nav>
+
+  <header style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px 40px">
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <span style="font-size:11px;font-weight:700;letter-spacing:.16em;color:#8A97A5">D · ORDRE, SECTIONS ET DONNÉES</span>
+      <h1 style="white-space:nowrap;margin:0;font-size:32px;line-height:1.1;font-weight:800;letter-spacing:-.025em">Ordre et données</h1>
+    </div>
+    <span style="font-size:13px;line-height:1.5;color:#4E5E6E;text-wrap:pretty"><b style="font-weight:700;color:#10233A;white-space:nowrap">{{ sectionCount }}</b> · une page intercalaire par section · données recalculées à chaque publication</span>
+  </header>
+
+  <div style="display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start">
+    <main style="flex:1 1 760px;min-width:0;display:flex;flex-direction:column;background:#fff;border:1px solid #E3E8EC;border-radius:22px;box-shadow:0 1px 2px rgba(16,35,58,.04),0 12px 36px -20px rgba(16,35,58,.16);padding:10px 24px 10px 6px">
+      <sc-for list="{{ sections }}" as="sec" hint-placeholder-count="1">
+        <section style="display:flex;flex-direction:column">
+          <div style="display:flex;align-items:stretch;gap:12px">
+            <div style="flex:none;width:44px;position:relative;display:flex;align-items:center;justify-content:center">
+              <div style="{{ sec.railLine }}"></div>
+              <button onClick="{{ sec.attach }}" title="{{ sec.nodeTip }}" style="{{ sec.node }}">{{ sec.num }}</button>
+            </div>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;padding:18px 0 14px">
+              <span style="font-size:10.5px;font-weight:700;letter-spacing:.14em;color:#B07A12">SECTION {{ sec.num }} · INTERCALAIRE</span>
+              <input value="{{ sec.title }}" onChange="{{ sec.onTitle }}" placeholder="{{ sec.placeholder }}" style="width:100%;border:none;border-bottom:1.5px solid transparent;background:transparent;padding:2px 0 4px;font-size:20px;font-weight:700;letter-spacing:-.015em;color:#10233A;outline:none" style-focus="border-bottom-color:#10233A" style-hover="border-bottom-color:#DCE2E6"></input>
+            </div>
+          </div>
+            <sc-for list="{{ sec.items }}" as="it" hint-placeholder-count="7">
+              <div draggable="true" onDragStart="{{ it.dragStart }}" onDragOver="{{ it.dragOver }}" onDrop="{{ it.drop }}" onDragEnd="{{ dragEnd }}" style="{{ it.rowStyle }}">
+                <sc-if value="{{ it.dropBefore }}"><div style="position:absolute;left:-12px;right:-12px;top:-1.5px;height:3px;border-radius:3px;background:#0E7C6B;box-shadow:0 0 0 4px rgba(14,124,107,.12);z-index:2"></div></sc-if>
+                <sc-if value="{{ it.dropAfter }}"><div style="position:absolute;left:-12px;right:-12px;bottom:-1.5px;height:3px;border-radius:3px;background:#0E7C6B;box-shadow:0 0 0 4px rgba(14,124,107,.12);z-index:2"></div></sc-if>
+                <sc-if value="{{ it.seam }}">
+                  <div onClick="{{ it.cut }}" style="display:flex;align-items:center;gap:12px;height:22px;cursor:pointer" style-hover="--o:1">
+                    <div style="flex:none;width:44px;align-self:stretch;position:relative;display:flex;align-items:center;justify-content:center">
+                      <div style="position:absolute;top:0;bottom:0;left:50%;width:1.5px;margin-left:-.75px;background:#E3E8EC"></div>
+                      <span style="position:relative;width:10px;height:10px;border-radius:99px;box-sizing:border-box;border:1.5px solid #C9D1D9;background:#fff;transform:scale(calc(1 + var(--o,0) * .3));transition:transform .15s"></span>
+                    </div>
+                    <div style="flex:1;display:flex;align-items:center;gap:10px"><span style="font-size:11.5px;font-weight:600;color:#0E7C6B;white-space:nowrap;opacity:var(--o,0);transform:translateX(calc((1 - var(--o,0)) * -4px));transition:opacity .15s,transform .15s">+ Nouvelle section à partir d'ici</span><span style="flex:1;height:1px;background:#EEF1F3"></span></div>
+                  </div>
+                </sc-if>
+                <div style="display:flex;gap:12px;align-items:stretch">
+                  <div style="flex:none;width:44px;position:relative"><div style="position:absolute;top:0;bottom:0;left:50%;width:1.5px;margin-left:-.75px;background:#E3E8EC"></div></div>
+                  <div style="flex:1;min-width:0;display:flex;gap:20px;padding:20px 0;align-items:flex-start">
+                  <div title="Glisser pour déplacer" style="flex:none;display:flex;align-items:center;gap:8px;cursor:grab;padding-top:2px;color:#B6C0CA" style-hover="color:#10233A">
+                    <svg width="10" height="16" viewBox="0 0 10 16" fill="currentColor"><circle cx="2.5" cy="3" r="1.4"></circle><circle cx="7.5" cy="3" r="1.4"></circle><circle cx="2.5" cy="8" r="1.4"></circle><circle cx="7.5" cy="8" r="1.4"></circle><circle cx="2.5" cy="13" r="1.4"></circle><circle cx="7.5" cy="13" r="1.4"></circle></svg>
+                    <span style="width:22px;font:600 13px 'JetBrains Mono',monospace;color:#0E7C6B">{{ it.num }}</span>
+                  </div>
+                  <div style="flex:1;min-width:0;display:flex;flex-wrap:wrap;gap:16px 20px;align-items:flex-start">
+                  <div style="flex:1 1 340px;display:flex;flex-direction:column;gap:12px;min-width:0">
+                    <div style="display:flex;flex-direction:column;gap:3px">
+                      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                        <span style="font-size:16px;line-height:1.3;font-weight:700;letter-spacing:-.01em">{{ it.name }}</span>
+                        <span style="white-space:nowrap;font:600 10px 'JetBrains Mono',monospace;letter-spacing:.06em;color:#6B7A89;padding:3px 7px;border-radius:6px;background:#F2F4F3">{{ it.type }}</span>
+                      </div>
+                      <span style="font-size:13px;color:#6B7A89">{{ it.desc }}</span>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:7px">
+                      <div style="display:flex;align-items:baseline;gap:8px">
+                        <span style="font-size:10.5px;font-weight:700;letter-spacing:.12em;color:#8A97A5">INDICATEURS</span>
+                        <span style="font-size:11.5px;font-weight:600;color:#8A97A5;font-variant-numeric:tabular-nums">{{ it.count }}</span>
+                      </div>
+                      <div style="display:flex;flex-wrap:wrap;gap:6px">
+                        <sc-for list="{{ it.inds }}" as="ind"><button onClick="{{ ind.toggle }}" style="{{ ind.style }}">{{ ind.label }}</button></sc-for>
+                      </div>
+                    </div>
+                  </div>
+                  <div style="flex:1 1 250px;max-width:340px;display:flex;flex-direction:column;border:1px solid #EEF1F3;border-radius:14px;background:#FAFBFB">
+                    <div style="display:grid;grid-template-columns:72px minmax(0,1fr);align-items:center;gap:10px;min-height:40px;padding:0 12px;border-bottom:1px solid #EEF1F3">
+                      <span style="font-size:10.5px;font-weight:700;letter-spacing:.1em;color:#8A97A5">PÉRIMÈTRE</span>
+                      <select value="{{ it.perim }}" onChange="{{ it.onPerim }}" style="{{ selectStyle }}"><sc-for list="{{ perims }}" as="o"><option value="{{ o }}">{{ o }}</option></sc-for></select>
+                    </div>
+                    <div style="display:grid;grid-template-columns:72px minmax(0,1fr);align-items:center;gap:10px;min-height:40px;padding:0 12px;border-bottom:1px solid #EEF1F3">
+                      <span style="font-size:10.5px;font-weight:700;letter-spacing:.1em;color:#8A97A5">CIBLE</span>
+                      <sc-if value="{{ it.cibleFixed }}"><span style="font-size:13px;color:#6B7A89;font-style:italic;padding-left:10px">Projet entier</span></sc-if>
+                      <sc-if value="{{ it.cibleSelect }}"><select value="{{ it.cible }}" onChange="{{ it.onCible }}" style="{{ selectStyle }}"><sc-for list="{{ it.cibles }}" as="o"><option value="{{ o }}">{{ o }}</option></sc-for></select></sc-if>
+                    </div>
+                    <div style="display:grid;grid-template-columns:72px minmax(0,1fr);align-items:center;gap:10px;min-height:40px;padding:0 12px">
+                      <span style="font-size:10.5px;font-weight:700;letter-spacing:.1em;color:#8A97A5">PÉRIODE</span>
+                      <sc-if value="{{ it.periodeFixed }}"><span style="font-size:13px;color:#6B7A89;font-style:italic;padding-left:10px">Situation du jour</span></sc-if>
+                      <sc-if value="{{ it.periodeSelect }}"><select value="{{ it.periode }}" onChange="{{ it.onPeriode }}" style="{{ selectStyle }}"><sc-for list="{{ it.periodes }}" as="o"><option value="{{ o }}">{{ o }}</option></sc-for></select></sc-if>
+                    </div>
+                  </div>
+                  </div>
+                  </div>
+                </div>
+              </div>
+            </sc-for>
+        </section>
+      </sc-for>
+    </main>
+
+    <aside style="flex:1 0 260px;max-width:300px;position:sticky;top:24px;display:flex;flex-direction:column;gap:14px;padding:20px;border-radius:20px;background:#10233A;color:#fff">
+      <span style="font-size:10.5px;font-weight:700;letter-spacing:.14em;color:#8FA3B7">DÉROULÉ DU RAPPORT</span>
+      <div style="display:flex;flex-direction:column">
+        <div style="display:flex;align-items:center;gap:10px;height:30px;font-size:12.5px;color:#8FA3B7"><span style="width:8px;height:8px;border-radius:2px;border:1.5px solid #8FA3B7"></span>Page de couverture</div>
+        <sc-for list="{{ sections }}" as="sec">
+          <div style="display:flex;flex-direction:column">
+            <div style="display:flex;align-items:center;gap:10px;min-height:34px;font-size:13px;font-weight:700;color:#fff"><span style="flex:none;width:8px;height:8px;border-radius:2px;background:#F2B544"></span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ sec.outline }}</span></div>
+            <div style="display:flex;flex-direction:column;margin-left:3.5px;padding-left:16px;border-left:1px solid rgba(255,255,255,.14)">
+              <sc-for list="{{ sec.items }}" as="it"><div style="display:flex;align-items:center;gap:10px;height:27px;font-size:12.5px;color:#D3DCE5"><span style="font:500 10.5px 'JetBrains Mono',monospace;color:#6FD0B6">{{ it.num }}</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ it.name }}</span></div></sc-for>
+            </div>
+          </div>
+        </sc-for>
+        <div style="display:flex;align-items:center;gap:10px;height:34px;font-size:12.5px;color:#8FA3B7"><span style="width:8px;height:8px;border-radius:2px;border:1.5px solid #8FA3B7"></span>Page de clôture</div>
+      </div>
+    </aside>
+  </div>
+
+  <footer style="display:flex;align-items:center;justify-content:space-between;gap:16px">
+    <button style="height:44px;padding:0 18px;border-radius:12px;border:1px solid #D5DDE3;background:#fff;color:#10233A;font-size:14px;font-weight:600;cursor:pointer" style-hover="border-color:#10233A">‹ Précédent</button>
+    <button style="height:44px;padding:0 22px;border-radius:12px;border:none;background:#10233A;color:#fff;font-size:14px;font-weight:700;cursor:pointer" style-hover="background:#1B3756">Suivant ›</button>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const C=[
+ {id:1,name:'Synthèse de situation',type:'INDICATEURS ET TEXTE',desc:"Météo, faits marquants, points d'attention",inds:[['Statut du projet',1],['Go-live prévu',1],['Risques ouverts',0],['Risques critiques',1],['Actions en retard',1],['Décisions en attente',0],['Jalons de la période',0]],periodes:['Mois en cours','Mois précédent','Trimestre en cours'],periode:'Mois en cours'},
+ {id:2,name:'Risques et problèmes',type:'MATRICE ET TABLEAU',desc:'Cartographie, top risques, problèmes ouverts',inds:[['Matrice P × I',1],['Code',1],['Risque',1],['Criticité',1],['Probabilité',1],['Impact',1],['Plan de mitigation',1],['Responsable',1],['Échéance',1],['Statut',0]]},
+ {id:3,name:'Baromètre du projet',type:'TABLEAU DE BORD',desc:'Scores mensuels, tendance 6 mois',inds:[['Score et évolution',1],['Avis des répondants',1],['Score par domaine',1],['Points clés',1]],periodes:['3 derniers mois','6 derniers mois','12 derniers mois'],periode:'6 derniers mois'},
+ {id:4,name:'Planning',type:'GANTT',desc:'Avancement vs référence, chemin critique',inds:[['Jalons sur la frise',1],['Sous-phases',0]]},
+ {id:5,name:'Tableau de bord',type:'INDICATEURS ET GRAPHIQUE',desc:'Santé, écarts planning et budget',inds:[['Avancement réel (%)',1],['Avancement prévu (%)',1],['Risques ouverts',1],['Actions ouvertes',1],['Jalons glissés',0]]},
+ {id:6,name:'Jalons',type:'FRISE',desc:'Dates uniques, glissements, J-x',inds:[['Code',1],['Jalon',1],['Date',1],['Référence',1],['Écart (j)',1],['Phase',0],['Indicateurs clés',1]],periodes:['30 prochains jours','60 prochains jours','90 prochains jours'],periode:'90 prochains jours'},
+ {id:7,name:'Budget',type:'INDICATEURS',desc:'Engagé, consommé, reste à faire',inds:[['Engagé',1],['Consommé',1],['Reste à faire',1]]}];
+const PERIMS=['Projet','Vague','Phase','Chantier'];
+const CIBLES={Vague:['Vague 1','Vague 2','Vague 3'],Phase:['Cadrage','Conception','Réalisation','Déploiement'],Chantier:['Reporting','Cycle prévisionnel','Clôture']};
+const CHEV="url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2310233A' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")";
+
+class Component extends DCLogic {
+  state={order:C.map(c=>c.id),breaks:[0],titles:{},
+    cfg:Object.fromEntries(C.map(c=>[c.id,{inds:c.inds.map(x=>!!x[1]),perim:'Projet',cible:'',periode:c.periode}]))};
+  setCfg(id,patch){this.setState(s=>({cfg:{...s.cfg,[id]:{...s.cfg[id],...patch}}}));}
+  drop(){const {drag,over}=this.state;if(drag==null||!over){this.setState({drag:null,over:null});return;}
+    let to=over.pos+(over.after?1:0);if(to>drag)to--;
+    this.setState(s=>{const o=s.order.slice();const [m]=o.splice(drag,1);o.splice(to,0,m);return {order:o,drag:null,over:null};});}
+  renderVals(){
+    const {order,breaks,titles,cfg,drag,over}=this.state;
+    const STEPS=[['A','ÉTAPE 1',"Fiche d'identité"],['B','ÉTAPE 2','Format du rapport'],['C','ÉTAPE 3','Composants'],['D','ÉTAPE 4','Ordre et données'],['E','ÉTAPE 5','Prévisualisation'],['F','ÉTAPE 6','Publication']];
+    const steps=STEPS.map(([l,n,name],i)=>{const done=i<3,cur=i===3;return {n,name,mark:done?'✓':l,
+      wrap:{display:'flex',flexDirection:'column',minWidth:0,opacity:i>3?.62:1},
+      bar:{height:3,borderRadius:3,background:done?'#19A974':cur?'#10233A':'#DCE2E6'},
+      dot:{flex:'none',width:24,height:24,borderRadius:99,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:800,background:done?'#E6F5EE':cur?'#10233A':'#fff',color:done?'#0E6B47':cur?'#fff':'#8A97A5',border:i>3?'1px solid #DCE2E6':'none'},
+      label:{fontSize:13.5,fontWeight:cur?800:600,color:i>3?'#4E5E6E':'#10233A',lineHeight:1.25,textWrap:'balance'}};});
+    const byId=Object.fromEntries(C.map(c=>[c.id,c]));
+    const bs=[...breaks].sort((a,b)=>a-b);
+    const ord=(d)=>({width:34,height:30,borderRadius:9,border:'1px solid #DCE2E6',background:'#fff',display:'flex',alignItems:'center',justifyContent:'center',color:d?'#C9D1D9':'#10233A',cursor:d?'default':'pointer',opacity:d?.55:1});
+    const sections=bs.map((start,si)=>{const end=si+1<bs.length?bs[si+1]:order.length;
+      const items=order.slice(start,end).map((id,k)=>{const pos=start+k,c=byId[id],f=cfg[id];const n=f.inds.filter(Boolean).length;
+        return {num:String(pos+1).padStart(2,'0'),name:c.name,type:c.type,desc:c.desc,count:n+' / '+c.inds.length,
+          inds:c.inds.map((x,j)=>{const on=f.inds[j];return {label:x[0],toggle:()=>{const a=f.inds.slice();a[j]=!a[j];this.setCfg(id,{inds:a});},
+            style:{whiteSpace:'nowrap',flex:'none',height:28,padding:'0 12px',borderRadius:999,fontSize:12.5,fontWeight:600,cursor:'pointer',transition:'all .15s',border:on?'1px solid #0E7C6B':'1px solid #DCE2E6',background:on?'#0E7C6B':'#fff',color:on?'#fff':'#7D8B99'}};}),
+          seam:k>0,cut:()=>this.setState(s=>({breaks:[...s.breaks,pos]})),
+          perim:f.perim,onPerim:e=>{const v=e.target.value;this.setCfg(id,{perim:v,cible:v==='Projet'?'':CIBLES[v][0]});},
+          cibleFixed:f.perim==='Projet',cibleSelect:f.perim!=='Projet',cibles:CIBLES[f.perim]||[],cible:f.cible,onCible:e=>this.setCfg(id,{cible:e.target.value}),
+          periodeFixed:!c.periodes,periodeSelect:!!c.periodes,periodes:c.periodes||[],periode:f.periode,onPeriode:e=>this.setCfg(id,{periode:e.target.value}),
+          dragStart:e=>{if(e.target.closest&&e.target.closest('select,button,input')){e.preventDefault();return;}e.dataTransfer.effectAllowed='move';try{e.dataTransfer.setData('text/plain',String(pos));}catch(_){}this.setState({drag:pos});},
+          dragOver:e=>{if(this.state.drag==null)return;e.preventDefault();const r=e.currentTarget.getBoundingClientRect();const after=e.clientY>r.top+r.height/2;const o=this.state.over;if(!o||o.pos!==pos||o.after!==after)this.setState({over:{pos,after}});},
+          drop:e=>{e.preventDefault();this.drop();},
+          dropBefore:!!(over&&over.pos===pos&&!over.after&&drag!=null&&drag!==pos&&drag!==pos-1),
+          dropAfter:!!(over&&over.pos===pos&&over.after&&drag!=null&&drag!==pos&&drag!==pos+1),
+          rowStyle:{position:'relative',display:'flex',flexDirection:'column',opacity:drag===pos?.35:1,transition:'opacity .15s',background:'#fff'}};});
+      const def=byId[order[start]].name;const t=titles[start]||'';
+      const last=si===bs.length-1;
+      return {num:si+1,title:t,nodeTip:si>0?'Rattacher à la section précédente':'Section 1',
+        railLine:{position:'absolute',left:'50%',width:1.5,marginLeft:-.75,top:si===0?'50%':0,bottom:0,background:'#E3E8EC'},
+        node:{position:'relative',width:28,height:28,borderRadius:8,border:'none',padding:0,background:'#10233A',color:'#F2B544',fontSize:12,fontWeight:800,cursor:si>0?'pointer':'default',fontVariantNumeric:'tabular-nums',boxShadow:'0 0 0 4px #fff',transition:'background .15s'},
+        nodeHover:si>0?'background:#B23A3A;color:#fff':'',placeholder:'Titre de la section (par défaut : '+def+')',outline:t||def,
+        onTitle:e=>{const v=e.target.value;this.setState(s=>({titles:{...s.titles,[start]:v}}));},
+        canAttach:si>0,attach:()=>{if(si>0)this.setState(s=>({breaks:s.breaks.filter(b=>b!==start)}));},items};});
+    return {steps,sections,perims:PERIMS,dragEnd:()=>this.setState({drag:null,over:null}),sectionCount:bs.length+(bs.length>1?' sections':' section'),
+      selectStyle:{appearance:'none',WebkitAppearance:'none',width:'100%',height:30,padding:'0 26px 0 10px',borderRadius:8,border:'1px solid transparent',background:'transparent '+CHEV+' no-repeat right 10px center',color:'#10233A',fontSize:13,fontWeight:600,cursor:'pointer',outline:'none'}};
+  }
+}
+</script>
+</body>
+</html>

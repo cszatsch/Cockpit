@@ -51,7 +51,7 @@ describe('Cockpit — Templates de rapport : versions et publications', () => {
     expect(r.body.components.find((c: any) => c.id === 'planning')).toMatchObject({ nature: 'Gantt', parts: ['board'], indicators: [{ id: 'milestones', label: 'Jalons sur la frise' }, { id: 'subphases', label: 'Sous-phases' }] });
     expect(r.body.components.find((c: any) => c.id === 'risques')).toMatchObject({ nature: 'Matrice et tableau', parts: ['board'], periodic: false });
     expect(r.body.components.find((c: any) => c.id === 'jalons')).toMatchObject({ nature: 'Frise', parts: ['board'], periodic: true });
-    expect(r.body.periods.map((p: any) => p.id)).toEqual(['all', 'month', 'quarter', 'last3', 'last6', 'next30', 'next90']);
+    expect(r.body.periods.map((p: any) => p.id)).toEqual(['all', 'month', 'prevMonth', 'quarter', 'last3', 'last6', 'last12', 'next30', 'next60', 'next90']);
   });
 
   it('aperçu : rapport complet au format défini (couverture, intercalaires, pages, clôture), vignettes et anomalies', async () => {
@@ -112,6 +112,30 @@ describe('Cockpit — Templates de rapport : versions et publications', () => {
     } finally {
       await t.db.module.update({ where: { id: 'bud' }, data: { scope: 'ALL' } });
     }
+  });
+
+  it('brouillon de « Créer un template » : enregistré, relu, remplacé et supprimé par compte', async () => {
+    expect((await get('/report-template-draft').expect(200)).body).toEqual({ data: null, updatedAt: null });
+    const data = { step: 4, draft: { name: 'Brouillon', comps: [{ id: 'synthese', kind: 'Projet', target: '' }, { id: 'jalons', kind: 'Phase', target: 'Deploy', period: 'next60', newSection: true, sectionTitle: 'Calendrier' }] } };
+    await post('/report-template-draft', { data }).expect(200);
+    expect((await get('/report-template-draft').expect(200)).body.data).toEqual(data);
+    await post('/report-template-draft', { data: { ...data, step: 5 } }).expect(200);
+    expect((await get('/report-template-draft').expect(200)).body.data.step).toBe(5);
+    // Lecteur : lecture seule.
+    const reader = await t.token(WHO.lecteurC3);
+    await http().post(`${R}/report-template-draft`).set('Authorization', `Bearer ${reader}`).send({ data }).expect(403);
+    await http().delete(`${R}/report-template-draft`).set('Authorization', `Bearer ${pmo}`).expect(204);
+    expect((await get('/report-template-draft').expect(200)).body.data).toBeNull();
+  });
+
+  it('catalogue : périodes proposées par composant', async () => {
+    const r = await get('/report-components').expect(200);
+    const by = (id: string) => r.body.components.find((c: any) => c.id === id);
+    expect(by('synthese').periods).toEqual(['month', 'prevMonth', 'quarter']);
+    expect(by('barometre').periods).toEqual(['last3', 'last6', 'last12']);
+    expect(by('jalons').periods).toEqual(['next30', 'next60', 'next90', 'all']);
+    expect(by('planning').periods).toEqual([]);
+    expect(r.body.periods.map((p: any) => p.label)).toEqual(expect.arrayContaining(['Mois précédent', '12 derniers mois', '60 prochains jours']));
   });
 
   it('étape B : statut « vérifiée » de chaque page enregistré avec le format du template', async () => {

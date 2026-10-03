@@ -7,7 +7,7 @@
 </head>
 <body>
 <x-dc>
-<helmet data-dc-atomics><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500;1,600;1,700;1,800&family=JetBrains+Mono:wght@400;500&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet"><style>
+<helmet data-dc-atomics><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,500;1,600;1,700;1,800&family=JetBrains+Mono:wght@400;500;600&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet"><style>.fd-title::placeholder{color:#A3AFBB}
 @keyframes rise-hero{from{opacity:0;transform:scale(1.03)}to{opacity:1;transform:scale(1)}}
 html,body{margin:0;background:#eef4f2;font-family:'Plus Jakarta Sans',sans-serif;color:#10233a;-webkit-font-smoothing:antialiased}
 a{color:#1d8f86}a:hover{color:#146b64}
@@ -1168,27 +1168,131 @@ a{color:#1d8f86}a:hover{color:#146b64}
     </sc-if>
 
     <sc-if value="{{ tplStep3 }}" hint-placeholder-val="{{ false }}">
-    <div style="background:#fff;border-radius:16px;padding:22px 24px;box-shadow:0 1px 2px rgba(16,35,58,.04)">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap"><div style="font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#5c7280;font-weight:700">D · Ordre, sections et données</div><span style="font-size:11.5px;color:#5c7280">{{ tplSecCount }} · une page intercalaire par section · données recalculées à chaque publication</span></div>
-      <div style="margin-top:12px;display:grid;grid-template-columns:36px minmax(0,1.3fr) 140px minmax(0,1fr) 170px 70px;gap:0 14px;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#5c7280;padding-bottom:8px;border-bottom:1px solid #e6eeec"><span>#</span><span>Composant</span><span>Périmètre</span><span>Cible</span><span>Période</span><span style="text-align:right">Ordre</span></div>
-      <sc-for list="{{ tplOrderRows }}" as="r" hint-placeholder-count="3">
-        <div>
-        <sc-if value="{{ r.sectionStart }}" hint-placeholder-val="{{ false }}"><div style="margin-top:12px;padding:8px 10px 8px 14px;border-radius:10px;background:#10233a;color:#fff;display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:800;color:#f7a41c;white-space:nowrap">Section {{ r.secNum }} · intercalaire</span><input value="{{ r.secTitle }}" onChange="{{ r.setSecTitle }}" placeholder="{{ r.secPh }}" style="flex:1;min-width:180px;height:30px;padding:0 10px;border-radius:8px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:#fff;font:inherit;font-size:12.5px;outline:none"><sc-if value="{{ r.canMerge }}" hint-placeholder-val="{{ false }}"><span onClick="{{ r.merge }}" style="font-size:11.5px;font-weight:700;cursor:pointer;color:#cfe3df;white-space:nowrap" style-hover="color:#fff">Rattacher à la section précédente</span></sc-if></div></sc-if>
-        <div style="display:grid;grid-template-columns:36px minmax(0,1.3fr) 140px minmax(0,1fr) 170px 70px;gap:0 14px;align-items:center;padding:10px 0 6px">
-          <span style="font-family:ui-monospace,Menlo,monospace;font-weight:700;color:#1d8f86">{{ r.num }}</span>
-          <div style="min-width:0"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><b style="font-size:13px">{{ r.n }}</b><sc-if value="{{ r.hasNature }}" hint-placeholder-val="{{ false }}"><span style="font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:999px;background:#eef3f2;color:#43586a">{{ r.nature }}</span></sc-if></div><div style="font-size:11.5px;color:#5c7280">{{ r.d }}</div></div>
-          <select value="{{ r.kind }}" onChange="{{ r.setKind }}" style="height:34px;padding:0 10px;border-radius:9px;border:1px solid #d9e4e1;font:inherit;font-size:12.5px;color:#10233a;background:#fff;width:100%;outline:none"><sc-for list="{{ r.kinds }}" as="k" hint-placeholder-count="4"><option value="{{ k.v }}">{{ k.v }}</option></sc-for></select>
-          <div><sc-if value="{{ r.hasTarget }}" hint-placeholder-val="{{ false }}"><select value="{{ r.target }}" onChange="{{ r.setTarget }}" style="height:34px;padding:0 10px;border-radius:9px;border:1px solid #d9e4e1;font:inherit;font-size:12.5px;color:#10233a;background:#fff;width:100%;outline:none"><sc-for list="{{ r.targets }}" as="k" hint-placeholder-count="3"><option value="{{ k.v }}">{{ k.v }}</option></sc-for></select></sc-if><sc-if value="{{ r.noTarget }}" hint-placeholder-val="{{ true }}"><span style="font-size:12px;color:#8a8f9c;font-style:italic">Projet entier</span></sc-if></div>
-          <div><sc-if value="{{ r.periodic }}" hint-placeholder-val="{{ true }}"><select value="{{ r.period }}" onChange="{{ r.setPeriod }}" style="height:34px;padding:0 10px;border-radius:9px;border:1px solid #d9e4e1;font:inherit;font-size:12.5px;color:#10233a;background:#fff;width:100%;outline:none"><sc-for list="{{ r.periods }}" as="k" hint-placeholder-count="5"><option value="{{ k.v }}">{{ k.l }}</option></sc-for></select></sc-if><sc-if value="{{ r.noPeriod }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:#8a8f9c;font-style:italic">Situation du jour</span></sc-if></div>
-          <div style="display:flex;gap:4px;justify-content:flex-end"><span onClick="{{ r.up }}" title="Monter" style="{{ r.upStyle }}" style-hover="background:#f3f7f6"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"></path></svg></span><span onClick="{{ r.down }}" title="Descendre" style="{{ r.downStyle }}" style-hover="background:#f3f7f6"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></span></div>
+    <!-- Étape D · Ordre et données : maquette « Template - Etape 4 Ordre et donnees » (04/10/2026), reprise à l'identique. -->
+    <div style="max-width:1440px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:28px;font-family:'Plus Jakarta Sans',sans-serif;color:#10233A;-webkit-font-smoothing:antialiased">
+
+  <nav style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px">
+    <sc-for list="{{ fdSteps }}" as="s" hint-placeholder-count="6">
+      <div onClick="{{ s.go }}" style="{{ s.wrap }}">
+        <div style="{{ s.bar }}"></div>
+        <div style="display:flex;align-items:center;gap:10px;padding-top:12px">
+          <div style="{{ s.dot }}">{{ s.mark }}</div>
+          <div style="display:flex;flex-direction:column;gap:1px;min-width:0">
+            <span style="font-size:10.5px;font-weight:600;letter-spacing:.09em;color:#8A97A5">{{ s.n }}</span>
+            <span style="{{ s.label }}">{{ s.name }}</span>
+          </div>
         </div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:0 0 12px 50px;border-bottom:1px solid #eef3f2">
-          <span style="font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#8a8f9c;font-weight:700;margin-right:4px">{{ r.indLabel }}</span>
-          <sc-for list="{{ r.inds }}" as="i" hint-placeholder-count="4"><span onClick="{{ i.toggle }}" title="{{ i.tip }}" style="{{ i.style }}">{{ i.l }}</span></sc-for>
-          <sc-if value="{{ r.canSplit }}" hint-placeholder-val="{{ false }}"><span onClick="{{ r.split }}" style="margin-left:auto;font-size:11.5px;font-weight:700;color:#1d8f86;cursor:pointer;white-space:nowrap" style-hover="text-decoration:underline">+ Nouvelle section à partir d'ici</span></sc-if>
-        </div>
-        </div>
+      </div>
+    </sc-for>
+  </nav>
+
+  <header style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px 40px">
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <span style="font-size:11px;font-weight:700;letter-spacing:.16em;color:#8A97A5">D · ORDRE, SECTIONS ET DONNÉES</span>
+      <h1 style="white-space:nowrap;margin:0;font-size:32px;line-height:1.1;font-weight:800;letter-spacing:-.025em">Ordre et données</h1>
+    </div>
+    <span style="font-size:13px;line-height:1.5;color:#4E5E6E;text-wrap:pretty"><b style="font-weight:700;color:#10233A;white-space:nowrap">{{ fdSectionCount }}</b> · une page intercalaire par section · données recalculées à chaque publication</span>
+  </header>
+
+  <div style="display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start">
+    <main style="flex:1 1 760px;min-width:0;display:flex;flex-direction:column;background:#fff;border:1px solid #E3E8EC;border-radius:22px;box-shadow:0 1px 2px rgba(16,35,58,.04),0 12px 36px -20px rgba(16,35,58,.16);padding:10px 24px 10px 6px">
+      <sc-for list="{{ fdSections }}" as="sec" hint-placeholder-count="1">
+        <section style="display:flex;flex-direction:column">
+          <div style="display:flex;align-items:stretch;gap:12px">
+            <div style="flex:none;width:44px;position:relative;display:flex;align-items:center;justify-content:center">
+              <div style="{{ sec.railLine }}"></div>
+              <button onClick="{{ sec.attach }}" title="{{ sec.nodeTip }}" style="{{ sec.node }}">{{ sec.num }}</button>
+            </div>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;padding:18px 0 14px">
+              <span style="font-size:10.5px;font-weight:700;letter-spacing:.14em;color:#B07A12">SECTION {{ sec.num }} · INTERCALAIRE</span>
+              <input class="fd-title" value="{{ sec.title }}" onChange="{{ sec.onTitle }}" placeholder="{{ sec.placeholder }}" style="width:100%;border:none;border-bottom:1.5px solid transparent;background:transparent;padding:2px 0 4px;font-size:20px;font-weight:700;letter-spacing:-.015em;color:#10233A;outline:none;font-family:inherit" style-focus="border-bottom-color:#10233A" style-hover="border-bottom-color:#DCE2E6"></input>
+            </div>
+          </div>
+            <sc-for list="{{ sec.items }}" as="it" hint-placeholder-count="7">
+              <div draggable="true" onDragStart="{{ it.dragStart }}" onDragOver="{{ it.dragOver }}" onDrop="{{ it.drop }}" onDragEnd="{{ fdDragEnd }}" style="{{ it.rowStyle }}">
+                <sc-if value="{{ it.dropBefore }}"><div style="position:absolute;left:-12px;right:-12px;top:-1.5px;height:3px;border-radius:3px;background:#0E7C6B;box-shadow:0 0 0 4px rgba(14,124,107,.12);z-index:2"></div></sc-if>
+                <sc-if value="{{ it.dropAfter }}"><div style="position:absolute;left:-12px;right:-12px;bottom:-1.5px;height:3px;border-radius:3px;background:#0E7C6B;box-shadow:0 0 0 4px rgba(14,124,107,.12);z-index:2"></div></sc-if>
+                <sc-if value="{{ it.seam }}">
+                  <div onClick="{{ it.cut }}" style="display:flex;align-items:center;gap:12px;height:22px;cursor:pointer" style-hover="--o:1">
+                    <div style="flex:none;width:44px;align-self:stretch;position:relative;display:flex;align-items:center;justify-content:center">
+                      <div style="position:absolute;top:0;bottom:0;left:50%;width:1.5px;margin-left:-.75px;background:#E3E8EC"></div>
+                      <span style="position:relative;width:10px;height:10px;border-radius:99px;box-sizing:border-box;border:1.5px solid #C9D1D9;background:#fff;transform:scale(calc(1 + var(--o,0) * .3));transition:transform .15s"></span>
+                    </div>
+                    <div style="flex:1;display:flex;align-items:center;gap:10px"><span style="font-size:11.5px;font-weight:600;color:#0E7C6B;white-space:nowrap;opacity:var(--o,0);transform:translateX(calc((1 - var(--o,0)) * -4px));transition:opacity .15s,transform .15s">+ Nouvelle section à partir d'ici</span><span style="flex:1;height:1px;background:#EEF1F3"></span></div>
+                  </div>
+                </sc-if>
+                <div style="display:flex;gap:12px;align-items:stretch">
+                  <div style="flex:none;width:44px;position:relative"><div style="position:absolute;top:0;bottom:0;left:50%;width:1.5px;margin-left:-.75px;background:#E3E8EC"></div></div>
+                  <div style="flex:1;min-width:0;display:flex;gap:20px;padding:20px 0;align-items:flex-start">
+                  <div title="Glisser pour déplacer" style="flex:none;display:flex;align-items:center;gap:8px;cursor:grab;padding-top:2px;color:#B6C0CA" style-hover="color:#10233A">
+                    <svg width="10" height="16" viewBox="0 0 10 16" fill="currentColor"><circle cx="2.5" cy="3" r="1.4"></circle><circle cx="7.5" cy="3" r="1.4"></circle><circle cx="2.5" cy="8" r="1.4"></circle><circle cx="7.5" cy="8" r="1.4"></circle><circle cx="2.5" cy="13" r="1.4"></circle><circle cx="7.5" cy="13" r="1.4"></circle></svg>
+                    <span style="width:22px;font:600 13px 'JetBrains Mono',monospace;color:#0E7C6B">{{ it.num }}</span>
+                  </div>
+                  <div style="flex:1;min-width:0;display:flex;flex-wrap:wrap;gap:16px 20px;align-items:flex-start">
+                  <div style="flex:1 1 340px;display:flex;flex-direction:column;gap:12px;min-width:0">
+                    <div style="display:flex;flex-direction:column;gap:3px">
+                      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                        <span style="font-size:16px;line-height:1.3;font-weight:700;letter-spacing:-.01em">{{ it.name }}</span>
+                        <span style="white-space:nowrap;font:600 10px 'JetBrains Mono',monospace;letter-spacing:.06em;color:#6B7A89;padding:3px 7px;border-radius:6px;background:#F2F4F3">{{ it.type }}</span>
+                      </div>
+                      <span style="font-size:13px;color:#6B7A89">{{ it.desc }}</span>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:7px">
+                      <div style="display:flex;align-items:baseline;gap:8px">
+                        <span style="font-size:10.5px;font-weight:700;letter-spacing:.12em;color:#8A97A5">INDICATEURS</span>
+                        <span style="font-size:11.5px;font-weight:600;color:#8A97A5;font-variant-numeric:tabular-nums">{{ it.count }}</span>
+                      </div>
+                      <div style="display:flex;flex-wrap:wrap;gap:6px">
+                        <sc-for list="{{ it.inds }}" as="ind"><button onClick="{{ ind.toggle }}" style="{{ ind.style }}">{{ ind.label }}</button></sc-for>
+                      </div>
+                    </div>
+                  </div>
+                  <div style="flex:1 1 250px;max-width:340px;display:flex;flex-direction:column;border:1px solid #EEF1F3;border-radius:14px;background:#FAFBFB">
+                    <div style="display:grid;grid-template-columns:72px minmax(0,1fr);align-items:center;gap:10px;min-height:40px;padding:0 12px;border-bottom:1px solid #EEF1F3">
+                      <span style="font-size:10.5px;font-weight:700;letter-spacing:.1em;color:#8A97A5">PÉRIMÈTRE</span>
+                      <select value="{{ it.perim }}" onChange="{{ it.onPerim }}" style="{{ fdSelectStyle }}"><sc-for list="{{ fdPerims }}" as="o"><option value="{{ o }}">{{ o }}</option></sc-for></select>
+                    </div>
+                    <div style="display:grid;grid-template-columns:72px minmax(0,1fr);align-items:center;gap:10px;min-height:40px;padding:0 12px;border-bottom:1px solid #EEF1F3">
+                      <span style="font-size:10.5px;font-weight:700;letter-spacing:.1em;color:#8A97A5">CIBLE</span>
+                      <sc-if value="{{ it.cibleFixed }}"><span style="font-size:13px;color:#6B7A89;font-style:italic;padding-left:10px">Projet entier</span></sc-if>
+                      <sc-if value="{{ it.cibleSelect }}"><select value="{{ it.cible }}" onChange="{{ it.onCible }}" style="{{ fdSelectStyle }}"><sc-for list="{{ it.cibles }}" as="o"><option value="{{ o }}">{{ o }}</option></sc-for></select></sc-if>
+                    </div>
+                    <div style="display:grid;grid-template-columns:72px minmax(0,1fr);align-items:center;gap:10px;min-height:40px;padding:0 12px">
+                      <span style="font-size:10.5px;font-weight:700;letter-spacing:.1em;color:#8A97A5">PÉRIODE</span>
+                      <sc-if value="{{ it.periodeFixed }}"><span style="font-size:13px;color:#6B7A89;font-style:italic;padding-left:10px">Situation du jour</span></sc-if>
+                      <sc-if value="{{ it.periodeSelect }}"><select value="{{ it.periode }}" onChange="{{ it.onPeriode }}" style="{{ fdSelectStyle }}"><sc-for list="{{ it.periodes }}" as="o"><option value="{{ o }}">{{ o }}</option></sc-for></select></sc-if>
+                    </div>
+                  </div>
+                  </div>
+                  </div>
+                </div>
+              </div>
+            </sc-for>
+        </section>
       </sc-for>
+    </main>
+
+    <aside style="flex:1 0 260px;max-width:300px;position:sticky;top:24px;display:flex;flex-direction:column;gap:14px;padding:20px;border-radius:20px;background:#10233A;color:#fff">
+      <span style="font-size:10.5px;font-weight:700;letter-spacing:.14em;color:#8FA3B7">DÉROULÉ DU RAPPORT</span>
+      <div style="display:flex;flex-direction:column">
+        <div style="display:flex;align-items:center;gap:10px;height:30px;font-size:12.5px;color:#8FA3B7"><span style="width:8px;height:8px;border-radius:2px;border:1.5px solid #8FA3B7"></span>Page de couverture</div>
+        <sc-for list="{{ fdSections }}" as="sec">
+          <div style="display:flex;flex-direction:column">
+            <div style="display:flex;align-items:center;gap:10px;min-height:34px;font-size:13px;font-weight:700;color:#fff"><span style="flex:none;width:8px;height:8px;border-radius:2px;background:#F2B544"></span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ sec.outline }}</span></div>
+            <div style="display:flex;flex-direction:column;margin-left:3.5px;padding-left:16px;border-left:1px solid rgba(255,255,255,.14)">
+              <sc-for list="{{ sec.items }}" as="it"><div style="display:flex;align-items:center;gap:10px;height:27px;font-size:12.5px;color:#D3DCE5"><span style="font:500 10.5px 'JetBrains Mono',monospace;color:#6FD0B6">{{ it.num }}</span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ it.name }}</span></div></sc-for>
+            </div>
+          </div>
+        </sc-for>
+        <div style="display:flex;align-items:center;gap:10px;height:34px;font-size:12.5px;color:#8FA3B7"><span style="width:8px;height:8px;border-radius:2px;border:1.5px solid #8FA3B7"></span>Page de clôture</div>
+      </div>
+    </aside>
+  </div>
+
+  <footer style="display:flex;align-items:center;justify-content:space-between;gap:16px">
+    <button onClick="{{ tplPrev }}" style="height:44px;padding:0 18px;border-radius:12px;border:1px solid #D5DDE3;background:#fff;color:#10233A;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit" style-hover="border-color:#10233A">‹ Précédent</button>
+    <button onClick="{{ tplNext }}" style="height:44px;padding:0 22px;border-radius:12px;border:none;background:#10233A;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit" style-hover="background:#1B3756">Suivant ›</button>
+  </footer>
     </div>
     </sc-if>
 
@@ -2431,6 +2535,27 @@ class Component extends DCLogic {
     else if (n >= 4) FK.forEach(k => { pages[k] = { fileId: v.id, slide: guess(k) }; });
     else { let i = 1; FK.forEach(k => { if (i <= n && !pages[k]) pages[k] = { fileId: v.id, slide: i++ }; }); }
     this.setState(s => ({ tplFmtBusy: {}, tplDraft: { ...s.tplDraft, fmt: { files: { ...F.files, [v.id]: v }, pages } } }), () => this.tplFmtRefresh());
+  }
+  // Brouillon de « Créer un template » (04/10/2026) : enregistré sur le serveur à chaque modification (après 800 ms
+  // sans saisie), relu à la première ouverture de l'onglet ; un brouillon vide (publication, abandon) est supprimé.
+  tplDraftEmpty(D) { return !D.name.trim() && !D.comps.length && !Object.values((D.fmt || {}).pages || {}).some(Boolean) && !D.desc; }
+  tplDraftSync() {
+    if (!this._api || !this._api.tplDraftGet) return;
+    if (!this._tplDraftLoad) {
+      this._tplDraftLoad = true;
+      this._api.tplDraftGet().then(r => {
+        this._tplDraftReady = true;
+        const d = r && r.data;
+        if (d && d.draft && this.tplDraftEmpty(this.state.tplDraft)) { this._tplDraftKey = JSON.stringify(d); this.setState({ tplDraft: { ...this.state.tplDraft, ...d.draft }, tplStep: d.step || 1 }, () => this.tplFmtRefresh()); }
+      }).catch(() => { this._tplDraftReady = true; });
+      return;
+    }
+    if (!this._tplDraftReady) return;
+    const data = { step: this.state.tplStep, draft: this.state.tplDraft }, key = JSON.stringify(data);
+    if (key === this._tplDraftKey) return;
+    this._tplDraftKey = key;
+    clearTimeout(this._tplDraftT);
+    this._tplDraftT = setTimeout(() => { (this.tplDraftEmpty(data.draft) ? this._api.tplDraftDrop() : this._api.tplDraftSave(data)).catch(() => {}); }, 800);
   }
   // Brouillon vu comme un template (aperçu, publication) et sa clé : l'aperçu est reconstruit quand elle change.
   tplDraftTemplate() { const D = this.state.tplDraft, F = D.fmt || { pages: {} }; const full = ['cover', 'divider', 'standard', 'closing'].every(k => F.pages[k]); return { name: D.name.trim() || 'Nouveau template', version: D.version, committee: D.committee, bodyId: D.bodyId, comps: D.comps, format: full ? F.pages : null }; }
@@ -4228,7 +4353,6 @@ class Component extends DCLogic {
     const splitPages = t => t.comps.map(() => 1);
     const tplSections = t => { const pp = splitPages(t); return t.comps.map((c, i) => ({ num: String(i + 1).padStart(2, '0'), title: compLabel(c), scope: scopeLabel(c) + ' · ' + pp[i] + (pp[i] > 1 ? ' pages' : ' page'), lines: [0, 1, 2].map(j => ({ style: 'height:6px;border-radius:3px;background:' + (j === 0 ? '#c9d6d2' : '#e6eeec') + ';width:' + [60, 45, 30][j] + '%' })) })); };
     const compsText = t => t.comps.map(compLabel).join(' · ');
-    const iconBtn = 'width:30px;height:30px;border-radius:8px;border:1px solid #d9e4e1;display:grid;place-items:center;cursor:pointer;color:#43586a;background:#fff;transition:background .15s';
     const setTpl = fn => this.setState(s => ({ templates: s.templates.map(fn) }));
     const tplToggle = id => setTpl(t => t.id === id ? { ...t, active: !t.active } : t);
     const tplDownloadNow = t => { if (this._api) this._api.tplPptx(t); /* API : GET /report-templates/{id}/pptx */ this.showToast('Rapport téléchargé · ' + t.name + ' v' + t.version + ' · PPTX'); };
@@ -4264,6 +4388,7 @@ class Component extends DCLogic {
     const tv = S.tplView ? TPL.find(t => t.id === S.tplView) : null;
     // Auteur : utilisateur connecté par défaut (null = pas encore modifié), modifiable dans la Fiche d'identité.
     const Dft = { ...S.tplDraft, author: S.tplDraft.author ?? this.meName() }; const step = S.tplStep;
+    if (S.tab === 'creer') setTimeout(() => this.tplDraftSync(), 0);
     const setD = patch => this.setState(s => ({ tplDraft: { ...s.tplDraft, ...patch } }));
     const inpD = k => e => setD({ [k]: e.target.value });
     const FK = ['cover', 'divider', 'standard', 'closing'];
@@ -4283,19 +4408,61 @@ class Component extends DCLogic {
     if (Dft.comps.some(c => compLocked(c.id)) && !this._tplLockFix) { this._tplLockFix = true; setTimeout(() => { this._tplLockFix = false; this.setState(s => ({ tplDraft: { ...s.tplDraft, comps: s.tplDraft.comps.filter(c => !compLocked(c.id)) } })); }, 0); }
     const tplCatalog = CAT.map(([id, n, d]) => { const locked = compLocked(id); const on = !locked && Dft.comps.some(c => c.id === id); return { id, n, d, on, locked, mod: locked ? CMOD[id][1] : '', tip: locked ? 'Module ' + CMOD[id][1] + ' non activé' : '', hover: locked ? '' : 'background:#f6faf9', hasNature: !!ccById[id], nature: ccById[id] ? ccById[id].nature : '', toggle: () => { if (locked) return this.showToast('Le module ' + CMOD[id][1] + ' n\'est pas activé pour votre projet'); setD({ comps: on ? Dft.comps.filter(c => c.id !== id) : [...Dft.comps, { id, kind: 'Projet', target: '' }] }); }, style: 'padding:14px 16px;border-radius:12px;cursor:' + (locked ? 'not-allowed' : 'pointer') + ';border:1px solid ' + (on ? '#1d8f86' : '#e6eeec') + ';background:' + (on ? '#f3f9f8' : locked ? '#f6f8f7' : '#fff') + ';transition:background .15s,border-color .15s;display:flex;gap:12px;align-items:flex-start' + (locked ? ';opacity:.72' : ''), checkStyle: 'width:18px;height:18px;border-radius:5px;flex:none;margin-top:1px;display:grid;place-items:center;border:2px solid ' + (on ? '#1d8f86' : locked ? '#cfd8d6' : '#b9c9c5') + ';background:' + (on ? '#1d8f86' : locked ? '#eef3f2' : '#fff') + ';color:' + (locked ? '#8a8f9c' : '#fff') }; });
     const targetsFor = kind => kind === 'Vague' ? M.WAVE.rows.map(r => r.cells[1]) : kind === 'Phase' ? [...new Set(M.PHASE.rows.map(r => r.cells[1]))] : kind === 'Chantier' ? M.WORKSTREAM.rows.map(r => r.cells[1]) : [];
-    const moveC = (i, d) => { const a = [...Dft.comps]; const j = i + d; if (j < 0 || j >= a.length) return; [a[i], a[j]] = [a[j], a[i]]; setD({ comps: a }); };
     const setC = (i, patch) => setD({ comps: Dft.comps.map((x, j) => j === i ? { ...x, ...patch } : x) });
     const secNo = []; Dft.comps.forEach((c, i) => secNo.push((i ? secNo[i - 1] : 0) + (i === 0 || c.newSection ? 1 : 0)));
     const nSec = Dft.comps.length ? secNo[secNo.length - 1] : 0;
-    const indChip = on => 'height:26px;padding:0 10px;border-radius:999px;display:inline-flex;align-items:center;font-size:11.5px;font-weight:700;cursor:pointer;transition:background .15s;' + (on ? 'background:#1d8f86;color:#fff' : 'background:#f3f7f6;color:#43586a;box-shadow:inset 0 0 0 1px #d9e4e1');
-    const tplOrderRows = Dft.comps.map((c, i) => { const m = ccById[c.id]; const inds = c.indicators || (m ? m.defaults : []); return { num: String(i + 1).padStart(2, '0'), n: compLabel(c), d: catById[c.id] ? catById[c.id].d : '', hasNature: !!m, nature: m ? m.nature : '', kind: c.kind, target: c.target, hasTarget: c.kind !== 'Projet', noTarget: c.kind === 'Projet', kinds: ['Projet', 'Vague', 'Phase', 'Chantier'].map(v => ({ v })), targets: targetsFor(c.kind).map(v => ({ v })),
-      up: () => moveC(i, -1), down: () => moveC(i, 1), upStyle: iconBtn + (i === 0 ? ';opacity:.35;pointer-events:none' : ''), downStyle: iconBtn + (i === Dft.comps.length - 1 ? ';opacity:.35;pointer-events:none' : ''),
-      setKind: e => { const kind = e.target.value; const ts = targetsFor(kind); setC(i, { kind, target: ts[0] || '' }); }, setTarget: e => setC(i, { target: e.target.value }),
-      sectionStart: i === 0 || !!c.newSection, secNum: secNo[i], secTitle: c.sectionTitle || '', secPh: 'Titre de la section (par défaut : ' + compLabel(c) + ')', setSecTitle: e => setC(i, { sectionTitle: e.target.value }),
-      canMerge: i > 0 && !!c.newSection, merge: () => setC(i, { newSection: false, sectionTitle: null }), canSplit: i > 0 && !c.newSection, split: () => setC(i, { newSection: true }),
-      periodic: !!(m && m.periodic), noPeriod: !!m && !m.periodic, period: c.period || (m ? m.defaultPeriod : 'all'), periods: (CC ? CC.periods : []).map(p => ({ v: p.id, l: p.label })), setPeriod: e => setC(i, { period: e.target.value }),
-      indLabel: !m ? '' : m.parts.includes('table') ? 'Colonnes' : m.parts.length === 1 && m.parts[0] === 'chart' ? 'Séries' : 'Indicateurs',
-      inds: m ? m.indicators.map(x => { const on = inds.includes(x.id); return { l: x.label, tip: on ? 'Retirer de la page' : 'Ajouter à la page', style: indChip(on), toggle: () => { const nx = on ? inds.filter(y => y !== x.id) : [...inds, x.id]; if (!nx.length) return this.showToast('Gardez au moins un indicateur'); if (m.kpiMax && c.id !== 'dashboard' && nx.length > m.kpiMax) return this.showToast(m.kpiMax + ' indicateurs au plus sur une page'); setC(i, { indicators: m.indicators.map(y => y.id).filter(id => nx.includes(id)) }); } }; }) : [] }; });
+    // Étape D (maquette du 04/10/2026) : rail des chapitres, glisser-déposer, indicateurs, données, déroulé du rapport.
+    // Modèle : l'ordre est celui de `comps` ; les coupures (`breaks`) et les titres (`titles`) sont portés par la position
+    // (premier composant d'une section : `newSection`, `sectionTitle`) et restent en place quand un composant bouge.
+    const FD_PERIMS = ['Projet', 'Vague', 'Phase', 'Chantier'];
+    const FD_CHEV = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2310233A' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")";
+    const pLabel = id => ((CC && CC.periods) || []).find(p => p.id === id)?.label || id;
+    const fdBreaks = Dft.comps.map((c, i) => (i === 0 || c.newSection ? i : -1)).filter(i => i >= 0);
+    const fdDrag = S.fdDrag ?? null, fdOver = S.fdOver || null;
+    // Déplacement : composant retiré puis réinséré ; coupures et titres réappliqués à leurs positions d'origine.
+    const fdMove = (from, to) => {
+      if (from === to) return;
+      const brk = new Set(fdBreaks), titles = Object.fromEntries(fdBreaks.map(b => [b, Dft.comps[b].sectionTitle || null]));
+      const a = Dft.comps.map(c => ({ ...c })); const [m] = a.splice(from, 1); a.splice(to, 0, m);
+      setD({ comps: a.map((c, i) => { const x = { ...c }; delete x.newSection; delete x.sectionTitle; if (i > 0 && brk.has(i)) x.newSection = true; if (brk.has(i) && titles[i]) x.sectionTitle = titles[i]; return x; }) });
+    };
+    const fdDrop = () => { const o = this.state.fdOver, d = this.state.fdDrag; if (d == null || !o) return this.setState({ fdDrag: null, fdOver: null }); let to = o.pos + (o.after ? 1 : 0); if (to > d) to--; this.setState({ fdDrag: null, fdOver: null }); fdMove(d, to); };
+    const fdSections = fdBreaks.map((start, si) => {
+      const end = si + 1 < fdBreaks.length ? fdBreaks[si + 1] : Dft.comps.length;
+      const items = Dft.comps.slice(start, end).map((c, k) => {
+        const pos = start + k, m = ccById[c.id], all = m ? m.indicators : [], act = c.indicators || (m ? m.defaults : []);
+        const periodIds = m && m.periodic ? (m.periods && m.periods.length ? m.periods : (CC ? CC.periods.map(p => p.id) : [])) : [];
+        const curPeriod = c.period || (m ? m.defaultPeriod : 'all');
+        return { num: String(pos + 1).padStart(2, '0'), name: compLabel(c), type: m ? m.nature.toUpperCase() : '', desc: catById[c.id] ? catById[c.id].d : '', count: all.filter(x => act.includes(x.id)).length + ' / ' + all.length,
+          inds: all.map(x => { const on = act.includes(x.id); return { label: x.label, toggle: () => { const nx = on ? act.filter(y => y !== x.id) : [...act, x.id]; if (!nx.length) return this.showToast('Gardez au moins un indicateur'); if (m.kpiMax && c.id !== 'dashboard' && nx.length > m.kpiMax) return this.showToast(m.kpiMax + ' indicateurs au plus sur une page'); setC(pos, { indicators: all.map(y => y.id).filter(id => nx.includes(id)) }); },
+            style: { whiteSpace: 'nowrap', flex: 'none', height: 28, padding: '0 12px', borderRadius: 999, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', transition: 'all .15s', fontFamily: 'inherit', border: on ? '1px solid #0E7C6B' : '1px solid #DCE2E6', background: on ? '#0E7C6B' : '#fff', color: on ? '#fff' : '#7D8B99' } }; }),
+          seam: k > 0, cut: () => setC(pos, { newSection: true }),
+          perim: c.kind || 'Projet', onPerim: e => { const v = e.target.value; const ts = targetsFor(v); setC(pos, { kind: v, target: v === 'Projet' ? '' : ts[0] || '' }); },
+          cibleFixed: (c.kind || 'Projet') === 'Projet', cibleSelect: (c.kind || 'Projet') !== 'Projet', cibles: targetsFor(c.kind), cible: c.target, onCible: e => setC(pos, { target: e.target.value }),
+          periodeFixed: !periodIds.length, periodeSelect: !!periodIds.length, periodes: periodIds.map(pLabel), periode: pLabel(curPeriod), onPeriode: e => { const id = periodIds.find(p => pLabel(p) === e.target.value); if (id) setC(pos, { period: id }); },
+          dragStart: e => { if (e.target.closest && e.target.closest('select,button,input')) { e.preventDefault(); return; } e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', String(pos)); } catch (_) { /* navigateur sans données de glisser */ } this.setState({ fdDrag: pos }); },
+          dragOver: e => { if (this.state.fdDrag == null) return; e.preventDefault(); const r = e.currentTarget.getBoundingClientRect(); const after = e.clientY > r.top + r.height / 2; const o = this.state.fdOver; if (!o || o.pos !== pos || o.after !== after) this.setState({ fdOver: { pos, after } }); },
+          drop: e => { e.preventDefault(); fdDrop(); },
+          dropBefore: !!(fdOver && fdOver.pos === pos && !fdOver.after && fdDrag != null && fdDrag !== pos && fdDrag !== pos - 1),
+          dropAfter: !!(fdOver && fdOver.pos === pos && fdOver.after && fdDrag != null && fdDrag !== pos && fdDrag !== pos + 1),
+          rowStyle: { position: 'relative', display: 'flex', flexDirection: 'column', opacity: fdDrag === pos ? .35 : 1, transition: 'opacity .15s', background: '#fff' } };
+      });
+      const def = compLabel(Dft.comps[start]), t = Dft.comps[start].sectionTitle || '';
+      return { num: si + 1, title: t, nodeTip: si > 0 ? 'Rattacher à la section précédente' : 'Section 1',
+        railLine: { position: 'absolute', left: '50%', width: 1.5, marginLeft: -.75, top: si === 0 ? '50%' : 0, bottom: 0, background: '#E3E8EC' },
+        node: { position: 'relative', width: 28, height: 28, borderRadius: 8, border: 'none', padding: 0, background: '#10233A', color: '#F2B544', fontSize: 12, fontWeight: 800, cursor: si > 0 ? 'pointer' : 'default', fontVariantNumeric: 'tabular-nums', boxShadow: '0 0 0 4px #fff', transition: 'background .15s', fontFamily: 'inherit' },
+        placeholder: 'Titre de la section (par défaut : ' + def + ')', outline: t || def,
+        onTitle: e => setC(start, { sectionTitle: e.target.value }),
+        attach: () => { if (si > 0) setC(start, { newSection: false, sectionTitle: null }); }, items };
+    });
+    const fdVals = { fdSections, fdPerims: FD_PERIMS, fdDragEnd: () => this.setState({ fdDrag: null, fdOver: null }), fdSectionCount: fdBreaks.length + (fdBreaks.length > 1 ? ' sections' : ' section'),
+      fdSelectStyle: { appearance: 'none', WebkitAppearance: 'none', width: '100%', height: 30, padding: '0 26px 0 10px', borderRadius: 8, border: '1px solid transparent', background: 'transparent ' + FD_CHEV + ' no-repeat right 10px center', color: '#10233A', fontSize: 13, fontWeight: 600, cursor: 'pointer', outline: 'none', fontFamily: 'inherit' },
+      fdSteps: ['Fiche d\'identité', 'Format du rapport', 'Composants', 'Ordre et données', 'Prévisualisation', 'Publication'].map((name, i) => { const done = i < 3, cur = i === 3; const can = i < 3 || (i > 3 && canGo(i + 1)); return { n: 'ÉTAPE ' + (i + 1), name, mark: done ? '✓' : 'ABCDEF'[i],
+        go: () => { if (!can || cur) return; this.setState({ tplStep: i + 1 }); if (i + 1 === 5) this.tplPreviewRun(); },
+        wrap: { display: 'flex', flexDirection: 'column', minWidth: 0, opacity: i > 3 ? .62 : 1, cursor: can && !cur ? 'pointer' : 'default' },
+        bar: { height: 3, borderRadius: 3, background: done ? '#19A974' : cur ? '#10233A' : '#DCE2E6' },
+        dot: { flex: 'none', width: 24, height: 24, borderRadius: 99, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, background: done ? '#E6F5EE' : cur ? '#10233A' : '#fff', color: done ? '#0E6B47' : cur ? '#fff' : '#8A97A5', border: i > 3 ? '1px solid #DCE2E6' : 'none' },
+        label: { fontSize: 13.5, fontWeight: cur ? 800 : 600, color: i > 3 ? '#4E5E6E' : '#10233A', lineHeight: 1.25, textWrap: 'balance' } }; }) };
     const PV = S.tplPrev, pvOk = !!(PV && PV.slides && PV.key === this.tplDraftKey());
     const draftT = { name: Dft.name.trim() || 'Nouveau template', version: Dft.version, author: Dft.author, comps: Dft.comps, pages: pvOk ? PV.pages : (Dft.comps.length ? 2 + nSec + Dft.comps.length : 2), committee: Dft.committee };
     const pvIssues = pvOk ? PV.issues || [] : [], pvErrors = pvIssues.filter(i => i.severity === 'error').length;
@@ -4406,7 +4573,7 @@ class Component extends DCLogic {
       // Valider le format : 4 pages chargées, contrôlées et vérifiées ; sinon la première page à reprendre s'ouvre.
       fbValidate: () => { if (fbOk) return this.setState({ tplStep: 3 }); const j = FBP.findIndex(p => !p.ref || p.err || !p.verified); this.setState({ fbSel: j < 0 ? fbSel : j, fbHover: null }); },
       fbValidateStyle: 'height:42px;padding:0 20px;border-radius:12px;border:none;background:#fff;color:#10233A;font:700 13.5px \'Plus Jakarta Sans\',sans-serif;cursor:pointer' + (fbOk ? '' : ';opacity:.55'),
-      tplNotFmt: step !== 2 };
+      tplNotFmt: step !== 2 && step !== 4 };
     const fmtFile0 = F.pages.cover ? F.files[F.pages.cover.fileId] : null;
     const fmtVals = { ...fbVals, tplFmtRef: this.tplFmtRef,
       tplFmtImportAll: () => { this._fmtKind = null; if (this.tplFmtRef.current) this.tplFmtRef.current.click(); },
@@ -4415,7 +4582,7 @@ class Component extends DCLogic {
     };
     const tplVals = { tplGroups, tplActiveCount: active.length, tplHasSel: !!sel, tplNoSel: !sel, tplSelName: sel ? sel.name : '', tplSelSub: sel ? sel.committee + ' · rapport généré le ' + todayFr : '', tplSelV: sel ? 'v' + sel.version + ' · ' + sel.pages + ' p.' : '', tplSelMeta: sel ? 'v' + sel.version + ' · ' + sel.author + ' · ' + sel.pages + ' pages · ' + sel.committee : '', tplSelSections: sel ? tplSections(sel) : [], tplSelDownload: () => sel && tplDownload(sel, true),
       tplFilters: libFilters, tplLibRows, tplLibSummary: TPL.length + ' templates · ' + active.length + ' actifs · ' + (TPL.length - active.length) + ' inactifs', tplViewOpen: !!tv, tplViewName: tv ? tv.name : '', tplViewSub: tv ? tv.committee + ' · publié le ' + tv.published : '', tplViewV: tv ? 'v' + tv.version + ' · ' + tv.pages + ' p.' : '', tplViewMeta: tv ? 'v' + tv.version + ' · ' + tv.author + ' · ' + tv.pages + ' pages · ' + tv.committee + ' · publié le ' + tv.published : '', tplViewSections: tv ? tplSections(tv) : [], tplViewClose: () => this.setState({ tplView: null }), tplStop: e => e.stopPropagation(), tplViewDownload: () => tv && tplDownload(tv, false), tplAskOpen: !!ask, tplAskName: ask ? ask.name + ' v' + ask.version : '', tplAskMeta: ask ? ask.committee + ' · ' + ask.pages + ' pages · PPTX' : '', tplAskYes: () => ask && tplLog(ask, true), tplAskNo: () => ask && tplLog(ask, false), tplAskClose: () => this.setState({ tplAsk: null }), tplHistRows, tplHistCount: S.tplHistory.length,
-      ...fmtVals, ...prevVals, ...issuesVals, tplSteps, tplStep1: step === 1, tplStepFmt: step === 2, tplStep2: step === 3, tplStep3: step === 4, tplStep4: step === 5, tplStep5: step === 6, tplDraft: Dft, tplToday: todayFr, tplSetName: inpD('name'), tplSetVersion: inpD('version'), tplSetAuthor: inpD('author'), tplAuthor: Dft.author, tplSetDesc: inpD('desc'), tplSetCommittee: inpD('committee'), tplCommittees: COMMITTEES.map(v => ({ v })), tplCatalog, tplCompCount: Dft.comps.length + (Dft.comps.length > 1 ? ' composants sélectionnés' : ' composant sélectionné'), tplOrderRows,
+      ...fmtVals, ...prevVals, ...issuesVals, tplSteps, tplStep1: step === 1, tplStepFmt: step === 2, tplStep2: step === 3, tplStep3: step === 4, tplStep4: step === 5, tplStep5: step === 6, tplDraft: Dft, tplToday: todayFr, tplSetName: inpD('name'), tplSetVersion: inpD('version'), tplSetAuthor: inpD('author'), tplAuthor: Dft.author, tplSetDesc: inpD('desc'), tplSetCommittee: inpD('committee'), tplCommittees: COMMITTEES.map(v => ({ v })), tplCatalog, tplCompCount: Dft.comps.length + (Dft.comps.length > 1 ? ' composants sélectionnés' : ' composant sélectionné'), ...fdVals,
       tplDraftName: draftT.name, tplDraftSub: Dft.committee + ' · ' + Dft.author + ' · créé le ' + todayFr, tplDraftV: 'v' + Dft.version + ' · ' + draftT.pages + ' p.', tplDraftSections: tplSections(draftT), tplDraftPages: draftT.pages + ' pages estimées · ' + Dft.comps.length + ' sections',
       tplPrev: () => this.setState({ tplStep: Math.max(1, step - 1) }), tplNext: () => { if (!nextOk) return; this.setState({ tplStep: Math.min(6, step + 1) }); if (step + 1 === 5) this.tplPreviewRun(); }, tplNextStyle: 'height:38px;padding:0 18px;border-radius:10px;font-weight:700;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:transform .18s;' + (nextOk ? 'background:#10233a;color:#fff;cursor:pointer' : 'background:#eef3f2;color:#8a8f9c;cursor:not-allowed'), tplNotFirst: step > 1, tplNotLast: step < 6, tplPublish, tplHint: step === 1 && !valid1 ? 'Renseignez au moins le nom du template.' : step === 2 && fmtLoaded < 4 ? 'Chargez les 4 pages modèles (' + (4 - fmtLoaded) + (4 - fmtLoaded > 1 ? ' manquantes).' : ' manquante).') : step === 2 && !validFmt ? (Object.keys(fmtErrs).length ? 'Corrigez les pages signalées en rouge.' : 'Contrôle du format en cours…') : step === 3 && !valid2 ? 'Sélectionnez au moins un composant.' : '',
       tplRecap: [['Nom', draftT.name], ['Version', 'v' + Dft.version], ['Auteur', Dft.author], ['Date de création', todayFr], ['Comité', Dft.committee], ['Format', fmtLoaded === 4 ? ((fmtFile0 && fmtFile0.slides && fmtFile0.slides[0] && fmtFile0.slides[0].summary ? fmtFile0.slides[0].summary.format + ' · ' : '') + [...new Set(FK.map(k => (F.files[F.pages[k].fileId] || {}).fileName).filter(Boolean))].join(', ')) : 'Présentation par défaut'], ['Composants', Dft.comps.map(compLabel).join(' · ') || '—'], ['Sections', secList.map(x => x.title).join(' · ') || '—'], [pvOk ? 'Pages' : 'Pages estimées', String(draftT.pages)], ['Contrôle des données', !pvOk ? '—' : pvIssues.length ? pvIssues.length + ' point(s) signalé(s), dont ' + pvErrors + ' bloquant(s)' : 'Aucune anomalie'], ['Description', Dft.desc || '—']].map(([k, v]) => ({ k, v })) };

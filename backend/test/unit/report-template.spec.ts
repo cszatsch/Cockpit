@@ -14,6 +14,10 @@ describe('Template de rapport — règles', () => {
     expect(periodRange('quarter', '2026-11-03')).toMatchObject({ start: '2026-10-01', end: '2026-12-31' });
     expect(periodRange('last6', '2026-09-26')).toMatchObject({ start: '2026-04-01', end: '2026-09-30' });
     expect(periodRange('next30', '2026-09-26')).toMatchObject({ start: '2026-09-26', end: '2026-10-26' });
+    // Périodes propres à certains composants (étape 4, 04/10/2026).
+    expect(periodRange('prevMonth', '2026-09-26')).toMatchObject({ start: '2026-08-01', end: '2026-08-31' });
+    expect(periodRange('last12', '2026-09-26')).toMatchObject({ start: '2025-10-01', end: '2026-09-30' });
+    expect(periodRange('next60', '2026-09-26')).toMatchObject({ start: '2026-09-26', end: '2026-11-25' });
     expect(periodRange('all', '2026-09-26')).toEqual({ start: null, end: null, label: 'toutes dates' });
   });
 
@@ -32,6 +36,8 @@ describe('Template de rapport — règles', () => {
     expect(periodOf({ id: 'planning', scope: 'PROJECT', period: 'month' })).toBe('all');
     expect(configErrors([{ id: 'jalons', scope: 'PROJECT', indicators: ['inconnu'] }])).toEqual({ 'components.0': 'Jalons : indicateur inconnu (inconnu)' });
     expect(configErrors([{ id: 'jalons', scope: 'PROJECT', indicators: [] }])).toEqual({ 'components.0': 'Jalons : choisissez au moins un indicateur' });
+    expect(configErrors([{ id: 'barometre', scope: 'PROJECT', period: 'next30' }])).toEqual({ 'components.0': 'Baromètre du projet : période non proposée pour ce composant' });
+    expect(configErrors([{ id: 'barometre', scope: 'PROJECT', period: 'last12' }])).toEqual({});
     expect(configErrors([{ id: 'synthese', scope: 'PROJECT', indicators: ['status', 'golive', 'risks_open', 'risks_critical', 'actions_late'] }])).toEqual({ 'components.0': 'Synthèse de situation : 4 indicateurs au plus sur une page' });
     expect(fieldName('c02.table')).toBe('rise:c02.table');
   });

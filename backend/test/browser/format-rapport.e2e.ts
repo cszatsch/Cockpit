@@ -143,7 +143,8 @@ async function main() {
     const cover = await z.file('ppt/slides/slide1.xml')!.async('string');
     check('9. publication téléchargée : paquet intègre, titre sur la couverture', (await pptxIntegrity(buf)).length === 0 && cover.includes(`<a:t>${NAME}</a:t>`));
 
-    // Nettoyage : template de recette supprimé.
+    // Nettoyage : brouillon de recette et template de recette supprimés.
+    await page.evaluate(() => (window as any).__riseCockpit._api.tplDraftDrop());
     if (saved) await page.evaluate(async (id) => { const c = (window as any).__riseCockpit; c.setState((s: any) => ({ templates: s.templates.filter((t: any) => t.id !== id) })); }, saved.id);
     await page.waitForTimeout(2500);
     const left = errors.filter((e) => !/Expected|never resolved|cannot be parsed|conform|Failed to load resource/.test(e));

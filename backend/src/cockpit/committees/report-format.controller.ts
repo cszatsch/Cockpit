@@ -18,6 +18,9 @@ import { ReportFormatService } from './report-format.service';
 import { ReportTemplateService } from './report-template.service';
 import { COMPONENTS, configErrors, KPI_MAX, PERIODS } from '../../domain/report-components';
 
+/** Taille maximale d'un brouillon de template (caractères JSON) : fichiers analysés compris. */
+export const DRAFT_MAX_CHARS = 3_000_000;
+
 const Role = z.enum(SHAPE_ROLES.map((r) => r.id) as [ShapeRole, ...ShapeRole[]]);
 const Ref = z.object({ fileId: z.string().min(1), slide: z.number().int().min(1), roles: z.record(z.string(), Role).optional(), verified: z.boolean().optional() }).strict();
 export const FormatSelectionSchema = z.object(Object.fromEntries(PAGE_KINDS.map((k) => [k, Ref.nullable().optional()])) as Record<(typeof PAGE_KINDS)[number], z.ZodOptional<z.ZodNullable<typeof Ref>>>).strict();
@@ -182,7 +185,35 @@ export class ReportFormatController {
   @Get('report-components')
   async components(@CurrentActor() actor: Actor, @Param('projectId') p: string) {
     await this.access.scope(actor, p);
-    return { components: Object.values(COMPONENTS).map((c) => ({ id: c.id, label: c.label, nature: c.nature, parts: c.parts, indicators: c.indicators, defaults: c.defaults, periodic: c.periodic, defaultPeriod: c.defaultPeriod, kpiMax: c.parts.includes('kpi') ? KPI_MAX : null })), periods: PERIODS };
+    return { components: Object.values(COMPONENTS).map((c) => ({ id: c.id, label: c.label, nature: c.nature, parts: c.parts, indicators: c.indicators, defaults: c.defaults, periodic: c.periodic, defaultPeriod: c.defaultPeriod, periods: c.periodic ? c.periods ?? PERIODS.map((x) => x.id) : [], kpiMax: c.parts.includes('kpi') ? KPI_MAX : null })), periods: PERIODS };
+  }
+
+  // ───── Brouillon de « Créer un template » (04/10/2026) : enregistré à chaque modification, un par compte ─────
+
+  @Get('report-template-draft')
+  async draft(@CurrentActor() actor: Actor, @Param('projectId') p: string) {
+    const scope = await this.access.scope(actor, p);
+    const d = await this.prisma.reportTemplateDraft.findUnique({ where: { projectId_accountId: { projectId: scope.project.id, accountId: actor.accountId } } });
+    return d ? { data: d.data, updatedAt: d.updatedAt } : { data: null, updatedAt: null };
+  }
+
+  @Post('report-template-draft')
+  @HttpCode(200)
+  async saveDraft(@CurrentActor() actor: Actor, @Param('projectId') p: string, @Body() body: unknown) {
+    const scope = await this.access.scope(actor, p);
+    if (!canWriteTools(scope.access)) throw forbidden('Templates : profil non Lecteur (PMO, Responsable)');
+    const { data } = parse(z.object({ data: z.record(z.string(), z.unknown()) }).strict(), body);
+    if (JSON.stringify(data).length > DRAFT_MAX_CHARS) throw badRequest('Brouillon trop volumineux', { data: `${DRAFT_MAX_CHARS} caractères au plus` });
+    const key = { projectId: scope.project.id, accountId: actor.accountId };
+    const d = await this.prisma.reportTemplateDraft.upsert({ where: { projectId_accountId: key }, create: { id: techId('TD'), ...key, data: data as any }, update: { data: data as any } });
+    return { updatedAt: d.updatedAt };
+  }
+
+  @Delete('report-template-draft')
+  @HttpCode(204)
+  async dropDraft(@CurrentActor() actor: Actor, @Param('projectId') p: string) {
+    const scope = await this.access.scope(actor, p);
+    await this.prisma.reportTemplateDraft.deleteMany({ where: { projectId: scope.project.id, accountId: actor.accountId } });
   }
 
   /** Aperçu du rapport complet (étape Prévisualisation) : construit en mémoire, diapositives servies une à une. */

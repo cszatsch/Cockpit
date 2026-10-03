@@ -1983,6 +1983,19 @@ model ReportFormatFile {
 
 /// Version publiée d'un template de rapport (03/10/2026) : PowerPoint de référence (structure figée, design, zones
 /// variables) et manifeste des zones ; toute modification de structure crée une nouvelle version.
+/// Brouillon de « Créer un template » (04/10/2026) : un par compte et par projet, enregistré à chaque modification.
+model ReportTemplateDraft {
+  id        String   @id
+  projectId String
+  accountId String
+  /// État de l'assistant : étape, fiche, format (pages, rôles, statut vérifié), composants (ordre, sections, données)
+  data      Json
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, accountId])
+  @@map("report_template_drafts")
+}
+
 model ReportTemplateVersion {
   id         String   @id
   templateId String

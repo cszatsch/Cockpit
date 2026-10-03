@@ -341,3 +341,8 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 
 - `RISE Cockpit.dc.html` : carte d'un composant dont le module est inactif (Budget) verrouillée — cadenas des widgets de modules inactifs, mention « Module Gestion du budget non activé », non sélectionnable (`CMOD`, `compLocked`).
 - `api.js` : état actif des modules (`modOn`), lu par `GET /modules`.
+
+## Créer un template, étape D : maquette « Ordre et données » ; brouillon enregistré (04/10/2026)
+
+- `RISE Cockpit.dc.html` : bloc de l'étape D remplacé par la maquette livrée (`docs/specs/MAQUETTE - Etape 4 Ordre et donnees/`), à l'identique ; données réelles (`fdSections`, `fdVals`) ; stepper et navigation génériques masqués à cette étape ; ancien tableau (`tplOrderRows`, boutons Monter / Descendre) retiré ; JetBrains Mono 600 et texte indicatif des titres de section (`.fd-title`) ajoutés ; brouillon enregistré sur le serveur (`tplDraftSync`).
+- `api.js` : `tplDraftGet`, `tplDraftSave`, `tplDraftDrop`.

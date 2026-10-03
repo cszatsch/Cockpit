@@ -2251,6 +2251,86 @@
         ]
       }
     },
+    "/api/projects/{projectId}/report-template-draft": {
+      "get": {
+        "operationId": "ReportFormatController_draft",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "cockpit · comités"
+        ]
+      },
+      "post": {
+        "operationId": "ReportFormatController_saveDraft",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "cockpit · comités"
+        ]
+      },
+      "delete": {
+        "operationId": "ReportFormatController_dropDraft",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "cockpit · comités"
+        ]
+      }
+    },
     "/api/projects/{projectId}/report-templates/preview": {
       "post": {
         "operationId": "ReportFormatController_templatePreview",
