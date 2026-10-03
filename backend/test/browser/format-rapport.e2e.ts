@@ -60,11 +60,21 @@ async function main() {
     check('   étape B (maquette du 04/10/2026) : stepper, 0 / 4 pages, bandeau de validation', (await text(page, /0 \/ 4\s*pages chargées/)) !== '' && (await text(page, /0 \/ 4 pages vérifiées/)) !== '' && (await text(page, /B · FORMAT DU RAPPORT/)) !== '' && (await text(page, /Valider le format/)) !== '');
 
     const input = page.locator('input[type=file][accept*=pptx]');
-    await input.setInputFiles(pptx);
+    // Plus de bouton « Importer un fichier pour les 4 pages » : le même fichier est chargé page par page (zone du panneau).
+    check('   bouton « Importer un fichier pour les 4 pages » absent', !/Importer un fichier pour les 4 pages/.test(await page.evaluate(() => document.body.innerText)));
+    for (const [i, k] of ['cover', 'divider', 'standard', 'closing'].entries()) {
+      await page.evaluate((i) => (window as any).__riseCockpit.setState({ fbSel: i }), i);
+      await page.waitForTimeout(200);
+      await page.getByText('Charger un fichier', { exact: true }).click();
+      await input.setInputFiles(pptx);
+      await page.waitForFunction((k) => !!(window as any).__riseCockpit.state.tplDraft.fmt.pages[k], k, { timeout: 30000 });
+    }
     await page.waitForFunction(() => /4 \/ 4\s*pages chargées/.test(document.body.innerText), null, { timeout: 30000 });
+    await page.evaluate(() => (window as any).__riseCockpit.setState({ fbSel: 0 }));
+    await page.waitForTimeout(300);
     await page.waitForFunction(() => document.querySelectorAll('[style*="blob:"]').length >= 5, null, { timeout: 30000 }).catch(() => {});
     const previews = await page.evaluate(() => document.querySelectorAll('[style*="blob:"]').length);
-    check('2. un fichier pour les 4 pages : diapositives 1, 2, 3 et 4, rendu réel en vignette et dans l\'espace de travail', previews === 5, `${previews} aperçus`);
+    check('2. un même fichier chargé pour chaque page : diapositives 1, 2, 3 et 4, rendu réel en vignette et dans l\'espace de travail', previews === 5, `${previews} aperçus`);
     const pages = await page.evaluate(() => (window as any).__riseCockpit.state.tplDraft.fmt.pages);
     check('   correspondance automatique des diapositives', ['cover', 'divider', 'standard', 'closing'].every((k, i) => pages[k].slide === i + 1), JSON.stringify(pages));
     check('   extraction affichée (fond, éléments, polices)', (await text(page, /uni #10233A/)) !== '' && (await text(page, /1 logo · 1 bandeau/)) !== '' && (await text(page, /Police introuvable : « Montserrat »/)) !== '');
@@ -77,8 +87,11 @@ async function main() {
     await input.setInputFiles(bad);
     await page.waitForFunction(() => /faux\.pptx —/.test(document.body.innerText), null, { timeout: 15000 }).catch(() => {});
     check('3. fichier invalide : message clair dans l\'espace de travail', /illisible ou endommagé/.test(await text(page, /faux\.pptx — [^\n]+/)));
-    await cockpit(page, 'tplFmtSet', 'closing', null);
+    // Retrait depuis la vignette (icône corbeille) : la page de clôture est vidée et sélectionnée.
+    const icons = await page.locator('[aria-label^="Retirer la page"]').count();
+    await page.getByRole('button', { name: 'Retirer la page de clôture', exact: true }).click();
     await page.waitForTimeout(500);
+    check('   vignette : icône de retrait sur chaque page chargée ; retrait de la clôture, page sélectionnée', icons === 4 && (await page.evaluate(() => { const c = (window as any).__riseCockpit.state; return !c.tplDraft.fmt.pages.closing && c.fbSel === 3; })) && (await page.locator('[aria-label^="Retirer la page"]').count()) === 3, String(icons));
     await page.getByRole('button', { name: 'Valider le format' }).click();
     await page.waitForTimeout(300);
     check('   suppression : 3 / 4 pages, validation refusée', (await text(page, /3 \/ 4\s*pages chargées/)) !== '' && (await page.evaluate(() => (window as any).__riseCockpit.state.tplStep)) === 2);

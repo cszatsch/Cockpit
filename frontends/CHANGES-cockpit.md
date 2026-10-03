@@ -375,3 +375,10 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 ## Créer un template, étape F : plus de double affichage de la publication (04/10/2026)
 
 - `RISE Cockpit.dc.html` : la liste « Publication en cours » (quatre tâches de la maquette de l'étape 6) n'est plus affichée ; pendant l'enregistrement du template, la carte « Prêt à publier » reste en place et le bouton, désactivé, affiche « Publication… » avec un indicateur (`f6Ready`, `f6BtnOff`) ; la mise en service n'est suivie que sur la ligne du template dans « Générer un rapport ». L'état d'échec (« Publication interrompue », cause, « Relancer la publication ») est inchangé.
+
+## Créer un template, étape B : retrait d'une page depuis sa vignette (04/10/2026)
+
+- `RISE Cockpit.dc.html` : icône corbeille en haut à droite de chaque vignette chargée (« Retirer la page de … », rouge au survol) ; même effet que « Supprimer » du panneau de la page (`tplFmtSet(k, null)`), la page vidée est sélectionnée pour être rechargée (`fbPages[].remove`).
+- Bouton « Importer un fichier pour les 4 pages » retiré, avec son code (`tplFmtImportAll`, répartition d'un fichier sur les 4 types dans `tplFmtLoad`, erreur commune `tplFmtErr.all`) : chaque page se charge depuis la zone de chargement de son panneau ; un fichier de 4 diapositives ou plus y propose toujours la diapositive du type.
+- Zones de la page : mention « Proposé par l'IA » (ou « Proposé par règles ») retirée ; le bouton « Rétablir la proposition de l'IA » n'apparaît qu'après la modification d'un rôle (`fbHasAi`).
+- Étape E (Prévisualisation) : phrase « Revenez aux étapes précédentes pour corriger le design (B), les composants (C), l'ordre, les sections ou les données (D) : l'aperçu se reconstruit à votre retour. » retirée de la structure du document.

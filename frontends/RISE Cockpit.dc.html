@@ -1097,10 +1097,6 @@ a{color:#1d8f86}a:hover{color:#146b64}
         <div style="display:flex;align-items:baseline;gap:8px;white-space:nowrap"><span style="font-size:22px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums">{{ fbLoaded }}</span><span style="font-size:13px;font-weight:600;color:#4E5E6E">pages chargées</span></div>
         <span style="font-size:12px;color:#8A97A5">.pptx recommandé, PDF ou image en complément</span>
       </div>
-      <button onClick="{{ tplFmtImportAll }}" style="white-space:nowrap;flex:none;display:flex;align-items:center;gap:9px;height:42px;padding:0 18px;border-radius:12px;border:1px solid #D5DDE3;background:#fff;color:#10233A;font:600 13.5px 'Plus Jakarta Sans',sans-serif;cursor:pointer;box-shadow:0 1px 2px rgba(16,35,58,.06)" style-hover="border-color:#10233A">
-        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 10.5V2.5M4.8 5.5 8 2.3l3.2 3.2M2.5 11v2.5h11V11"></path></svg>
-        Importer un fichier pour les 4 pages
-      </button>
     </div>
   </header>
   <input ref="{{ tplFmtRef }}" type="file" accept=".pptx,.pdf,.png,.jpg,.jpeg" onChange="{{ tplFmtFile }}" style="display:none"></input>
@@ -1111,6 +1107,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
       <button onClick="{{ p.select }}" onDragOver="{{ p.over }}" onDrop="{{ p.drop }}" style="{{ p.card }}">
         <div style="{{ p.slide }}">
           <sc-if value="{{ p.busy }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#6B7A89">Analyse en cours…</span></sc-if>
+          <sc-if value="{{ p.loaded }}" hint-placeholder-val="{{ false }}"><span role="button" aria-label="{{ p.delTip }}" title="{{ p.delTip }}" onClick="{{ p.remove }}" style="position:absolute;top:7px;right:7px;width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.94);color:#5B6B7B;box-shadow:0 1px 2px rgba(16,35,58,.12),0 4px 12px -4px rgba(16,35,58,.25);cursor:pointer;transition:background .15s,color .15s" style-hover="background:#FBEDEC;color:#B23A3A"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M8 6V4h8v2"></path><path d="M6 6l1 14h10l1-14"></path><path d="M10 11v6M14 11v6"></path></svg></span></sc-if>
                   </div>
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:12px 4px 2px">
           <div style="display:flex;flex-direction:column;gap:3px;min-width:0;text-align:left">
@@ -1457,7 +1454,6 @@ a{color:#1d8f86}a:hover{color:#146b64}
           </div>
         </div>
         </sc-for>
-        <p style="margin:0;padding-top:14px;border-top:1px solid #EEF1F3;font-size:12.5px;line-height:1.6;color:#6B7A89;font-style:italic;text-wrap:pretty">Revenez aux étapes précédentes pour corriger le design (B), les composants (C), l'ordre, les sections ou les données (D) : l'aperçu se reconstruit à votre retour.</p>
       </div>
     </aside>
   </div>
@@ -2779,27 +2775,22 @@ class Component extends DCLogic {
   // API : téléchargement du fichier stocké, GET /documents/{id}/file (message du serveur si le document n'a pas de binaire).
   downloadDoc(d) { if (this._api) this._api.downloadDoc(d); }
   // Format du rapport (étape B de « Créer un template ») : chargement et analyse d'une page modèle, POST /report-formats.
-  // `kind` null (« Importer un fichier pour les 4 pages ») : un fichier de 4 diapositives ou plus alimente les 4 types
-  // (1, 2, 3 et la dernière) ; sinon chaque diapositive va au type suivant encore vide.
+  // Un fichier par page ; s'il compte 4 diapositives ou plus, la diapositive du type est proposée (1, 2, 3 et la dernière).
   async tplFmtLoad(kind, file) {
-    const FK = ['cover', 'divider', 'standard', 'closing'];
-    const targets = kind ? [kind] : FK;
-    this.setState(s => ({ tplFmtBusy: { ...(s.tplFmtBusy || {}), ...Object.fromEntries(targets.map(k => [k, true])) }, tplFmtErr: { ...(s.tplFmtErr || {}), ...Object.fromEntries(targets.map(k => [k, null])), all: null } }));
+    this.setState(s => ({ tplFmtBusy: { ...(s.tplFmtBusy || {}), [kind]: true }, tplFmtErr: { ...(s.tplFmtErr || {}), [kind]: null } }));
     let v;
     try {
       if (this._api) v = await this._api.fmtUpload(file);
       else v = { id: 'local' + Date.now(), fileName: file.name, kind: (file.name.split('.').pop() || '').toUpperCase(), slideCount: 1, slides: [{ index: 1, label: '', summary: null, warnings: {} }] }; // maquette sans API : pas d'analyse
     } catch (e) {
       const msg = (e && e.message) || 'Fichier illisible';
-      this.setState(s => ({ tplFmtBusy: {}, tplFmtErr: { ...(s.tplFmtErr || {}), ...(kind ? { [kind]: file.name + ' — ' + msg } : { all: file.name + ' — ' + msg }) } }));
+      this.setState(s => ({ tplFmtBusy: {}, tplFmtErr: { ...(s.tplFmtErr || {}), [kind]: file.name + ' — ' + msg } }));
       return;
     }
     const n = v.slideCount || 1, F = this.state.tplDraft.fmt || { files: {}, pages: {} };
     const guess = k => Math.min(n, k === 'cover' ? 1 : k === 'divider' ? 2 : k === 'standard' ? 3 : n);
     const pages = { ...F.pages };
-    if (kind) pages[kind] = { fileId: v.id, slide: n >= 4 ? guess(kind) : 1 };
-    else if (n >= 4) FK.forEach(k => { pages[k] = { fileId: v.id, slide: guess(k) }; });
-    else { let i = 1; FK.forEach(k => { if (i <= n && !pages[k]) pages[k] = { fileId: v.id, slide: i++ }; }); }
+    pages[kind] = { fileId: v.id, slide: n >= 4 ? guess(kind) : 1 };
     this.setState(s => ({ tplFmtBusy: {}, tplDraft: { ...s.tplDraft, fmt: { files: { ...F.files, [v.id]: v }, pages } } }), () => this.tplFmtRefresh());
   }
   // Brouillon de « Créer un template » (04/10/2026) : enregistré sur le serveur à chaque modification (après 800 ms
@@ -5013,7 +5004,9 @@ class Component extends DCLogic {
     const fbPick = k => { this._fmtKind = k; if (this.tplFmtRef.current) this.tplFmtRef.current.click(); };
     const fbDrop = k => e => { e.preventDefault(); const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if (f) this.tplFmtLoad(k, f); };
     const fbSetRoles = (k, map) => { const Fx = this.state.tplDraft.fmt || { files: {}, pages: {} }, pr = Fx.pages[k]; if (!pr) return; this.setState(s => ({ tplDraft: { ...s.tplDraft, fmt: { ...Fx, pages: { ...Fx.pages, [k]: { ...pr, roles: map } } } } }), () => this.tplFmtRefresh()); };
-    const fbPages = FBP.map((p, i) => ({ num: 'PAGE ' + (i + 1), name: FMT_N[p.k][0], sub: FMT_N[p.k][1], ...fbStatus(p.verified), busy: p.busy, empty: !p.ref && !p.busy,
+    const fbPages = FBP.map((p, i) => ({ num: 'PAGE ' + (i + 1), name: FMT_N[p.k][0], sub: FMT_N[p.k][1], ...fbStatus(p.verified), busy: p.busy, empty: !p.ref && !p.busy, loaded: !!p.ref && !p.busy, delTip: 'Retirer la ' + FMT_N[p.k][0].toLowerCase(),
+      // Retrait de la page depuis sa vignette (04/10/2026) : comme « Supprimer » du panneau ; la page vidée est sélectionnée.
+      remove: e => { if (e) { e.preventDefault(); e.stopPropagation(); } this.tplFmtSet(p.k, null); this.setState({ fbSel: i, fbHover: null }); },
       slide: fbSlideStyle(p, false), select: () => this.setState({ fbSel: i, fbHover: null }), over: e => e.preventDefault(), drop: fbDrop(p.k),
       card: { display: 'flex', flexDirection: 'column', padding: 10, borderRadius: 16, cursor: 'pointer', textAlign: 'left', font: 'inherit', background: '#fff', border: i === fbSel ? '1.5px solid #10233A' : '1px solid #E3E8EC', boxShadow: i === fbSel ? '0 10px 30px -14px rgba(16,35,58,.35)' : '0 1px 2px rgba(16,35,58,.04)', margin: i === fbSel ? 0 : '.5px', transition: 'box-shadow .2s,border-color .2s' } }));
     const counts = { data: 0, fixe: 0, retire: 0 }; cp.roles.forEach(x => counts[fbCat(x)]++);
@@ -5065,8 +5058,8 @@ class Component extends DCLogic {
       fbVerifyLabel: cp.verified ? 'Annuler la vérification' : 'Marquer comme vérifiée',
       fbToggleVerified: () => { const Fx = this.state.tplDraft.fmt || { files: {}, pages: {} }, pr = Fx.pages[cp.k]; if (!pr) return; this.setState(s => ({ tplDraft: { ...s.tplDraft, fmt: { ...Fx, pages: { ...Fx.pages, [cp.k]: { ...pr, verified: !pr.verified } } } } })); },
       fbVerifiedCount: nv + ' / 4 pages vérifiées',
-      fbHasAi: cp.rsOk && cp.zones.length > 0,
-      fbAiLabel: modified ? (isAi ? 'Rétablir la proposition de l\'IA' : 'Rétablir la proposition') : (isAi ? 'Proposé par l\'IA' : 'Proposé par règles'),
+      fbHasAi: cp.rsOk && cp.zones.length > 0 && modified,
+      fbAiLabel: isAi ? 'Rétablir la proposition de l\'IA' : 'Rétablir la proposition',
       fbAiChip: { height: 26, padding: '0 10px', borderRadius: 999, border: '1px solid ' + (modified ? '#D5DDE3' : 'transparent'), background: modified ? '#fff' : '#EEF1F8', color: modified ? '#10233A' : '#3B4E8C', fontSize: 11.5, fontWeight: 700, fontFamily: 'inherit', cursor: modified ? 'pointer' : 'default', whiteSpace: 'nowrap' },
       fbResetAI: () => { if (!modified) return; fbSetRoles(cp.k, Object.fromEntries(cp.zones.map(z => [z.id, z.proposed]))); },
       // Valider le format : 4 pages chargées, contrôlées et vérifiées ; sinon la première page à reprendre s'ouvre.
@@ -5074,9 +5067,8 @@ class Component extends DCLogic {
       fbValidateStyle: 'height:42px;padding:0 20px;border-radius:12px;border:none;background:#fff;color:#10233A;font:700 13.5px \'Plus Jakarta Sans\',sans-serif;cursor:pointer' + (fbOk ? '' : ';opacity:.55'),
       tplNotFmt: step < 2 || step === 3, tplStepper: true };
     const fmtVals = { ...fbVals, tplFmtRef: this.tplFmtRef,
-      tplFmtImportAll: () => { this._fmtKind = null; if (this.tplFmtRef.current) this.tplFmtRef.current.click(); },
-      tplFmtFile: e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) this.tplFmtLoad(this._fmtKind || null, f); },
-      tplFmtHasGlobalErr: !!((S.tplFmtErr || {}).all || (chk && chk.err)), tplFmtGlobalErr: (S.tplFmtErr || {}).all || (chk && chk.err) || '',
+      tplFmtFile: e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f && this._fmtKind) this.tplFmtLoad(this._fmtKind, f); },
+      tplFmtHasGlobalErr: !!(chk && chk.err), tplFmtGlobalErr: (chk && chk.err) || '',
     };
     const tplVals = { tplActiveCount: active.length, tplSelName: sel ? sel.name : '', tplSelSub: sel ? sel.committee + ' · rapport généré le ' + todayFr : '', tplSelV: sel ? 'v' + sel.version + ' · ' + sel.pages + ' p.' : '', tplSelMeta: sel ? 'v' + sel.version + ' · ' + sel.author + ' · ' + sel.pages + ' pages · ' + sel.committee : '', tplSelSections: sel ? tplSections(sel) : [], tplSelDownload: () => sel && !selPending && tplDownload(sel, true), ...msGenVals,
       tplFilters: libFilters, tplLibRows, tplLibSummary: TPL.length + ' templates · ' + active.length + ' actifs · ' + (TPL.length - active.length) + ' inactifs', tplViewOpen: !!tv, tplViewName: tv ? tv.name : '', tplViewSub: tv ? tv.committee + ' · publié le ' + tv.published : '', tplViewV: tv ? 'v' + tv.version + ' · ' + tv.pages + ' p.' : '', tplViewMeta: tv ? 'v' + tv.version + ' · ' + tv.author + ' · ' + tv.pages + ' pages · ' + tv.committee + ' · publié le ' + tv.published : '', tplViewSections: tv ? tplSections(tv) : [], tplViewClose: () => this.setState({ tplView: null }), tplStop: e => e.stopPropagation(), tplViewDownload: () => tv && tplDownload(tv, false), tplAskOpen: !!ask, tplAskName: ask ? ask.name + ' v' + ask.version : '', tplAskMeta: ask ? ask.committee + ' · ' + ask.pages + ' pages · PPTX' : '', tplAskYes: () => ask && tplLog(ask, true), tplAskNo: () => ask && tplLog(ask, false), tplAskClose: () => this.setState({ tplAsk: null }), tplHistRows, tplHistCount: S.tplHistory.length,

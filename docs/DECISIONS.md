@@ -1380,3 +1380,12 @@ Demande du commanditaire : le bandeau des étapes différait entre l'étape A et
 ## Créer un template, étape F : plus de double affichage de la publication (04/10/2026)
 
 Constat du commanditaire : au clic sur « Valider et publier », une liste d'étapes de publication s'affichait sur l'étape F puis la mise en service recommençait dans « Générer un rapport ». La liste « Publication en cours » (quatre tâches de la maquette de l'étape 6, antérieure à la maquette de mise en service) est retirée : elle n'avançait pas réellement (simple attente de l'enregistrement). Pendant l'enregistrement, la carte « Prêt à publier » reste affichée et le bouton, désactivé, indique « Publication… » (`f6Ready`, `f6BtnOff`) ; la mise en service n'est suivie que sur la ligne du template. L'état d'échec validé le 04/10/2026 est inchangé.
+
+## Créer un template, étapes B et E : retraits demandés (04/10/2026)
+
+| Sujet | Choix | Code |
+|---|---|---|
+| Retrait d'une page depuis sa vignette | Icône corbeille en haut à droite de chaque vignette chargée (« Retirer la page de … », rouge au survol) : même effet que « Supprimer » du panneau ; la page vidée est sélectionnée pour être rechargée | `fbPages[].remove` |
+| Import d'un fichier pour les 4 pages | Bouton et code retirés (répartition d'un fichier sur les 4 types, erreur commune) : chaque page se charge depuis son panneau ; un fichier de 4 diapositives ou plus y propose la diapositive du type | `tplFmtLoad(kind, file)` |
+| « Proposé par l'IA » | Mention retirée des zones de la page ; « Rétablir la proposition (de l'IA) » n'apparaît qu'après la modification d'un rôle | `fbHasAi` |
+| Étape E | Phrase « Revenez aux étapes précédentes pour corriger le design (B)… » retirée de la structure du document | — |

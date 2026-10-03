@@ -410,6 +410,11 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 - **Réalisé** : liste « Publication en cours » retirée de l'étape F ; bouton « Publication… » pendant l'enregistrement ; suivi de la mise en service seulement dans « Générer un rapport ».
 - **Vérification** : recette `test/browser/format-rapport.e2e.ts` 28 / 28 (contrôle ajouté : bouton « Publication… » observé, liste jamais affichée).
 
+### Créer un template, étapes B et E : retraits demandés (04/10/2026)
+
+- **Réalisé** : icône de retrait sur chaque vignette chargée ; bouton « Importer un fichier pour les 4 pages » et son code retirés ; mention « Proposé par l'IA » retirée ; phrase de renvoi aux étapes précédentes retirée de l'étape E.
+- **Vérification** : recette `test/browser/format-rapport.e2e.ts` 30 / 30 (chargement page par page, bouton absent, retrait de la clôture par l'icône, « Rétablir la proposition » après une modification).
+
 ## 4. Questions ouvertes
 
 1. **Déclencheur des règles de notification** : faut-il ajouter un sélecteur de déclencheur dans la console ? Aujourd'hui, une règle créée depuis l'écran reçoit un déclencheur par défaut : « planifié » pour une notification, « manuel » pour une alerte.
