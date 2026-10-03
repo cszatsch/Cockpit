@@ -415,6 +415,14 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 - **Réalisé** : icône de retrait sur chaque vignette chargée ; bouton « Importer un fichier pour les 4 pages » et son code retirés ; mention « Proposé par l'IA » retirée ; phrase de renvoi aux étapes précédentes retirée de l'étape E.
 - **Vérification** : recette `test/browser/format-rapport.e2e.ts` 30 / 30 (chargement page par page, bouton absent, retrait de la clôture par l'icône, « Rétablir la proposition » après une modification).
 
+### Générer un rapport : téléchargement suivi étape par étape (04/10/2026)
+
+- **Réalisé** : génération en tâche suivie côté serveur (collecte, rédaction, mise en page, prêt) ; animation sur la ligne du template (étape en cours, n / 5, barre, « Rapport téléchargé ») ; état d'échec avec « Réessayer ».
+- **Cause du délai** : la rédaction par l'IA était faite deux fois (contrôle préalable puis génération) ; le contrôle ne l'appelle plus.
+- **Défaut trouvé à la vérification et corrigé** : le fichier arrivait avant l'affichage de l'étape « Téléchargement » ; une étape très courte (mise en page) n'apparaissait pas.
+- **Tests** : `test/e2e/report-template.spec.ts` (génération suivie : phases, fichier remis une fois, première génération ; avertissements de rédaction rendus par la génération), recette `test/browser/format-rapport.e2e.ts` 31 / 31 (étapes observées dans l'ordre jusqu'à « Rapport téléchargé »).
+- **Point d'attention** : un état d'échec (« Génération interrompue », message, « Réessayer ») a été ajouté sur le modèle de « Mise en service interrompue », sans maquette dédiée.
+
 ## 4. Questions ouvertes
 
 1. **Déclencheur des règles de notification** : faut-il ajouter un sélecteur de déclencheur dans la console ? Aujourd'hui, une règle créée depuis l'écran reçoit un déclencheur par défaut : « planifié » pour une notification, « manuel » pour une alerte.

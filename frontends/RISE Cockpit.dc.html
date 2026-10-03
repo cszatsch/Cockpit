@@ -976,6 +976,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
                     <sc-for list="{{ g.items }}" as="t">
                       <div onClick="{{ t.select }}" title="{{ t.comps }}" style="{{ t.row }}">
                         <sc-if value="{{ t.pending }}"><div style="position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:12px"><div style="position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.75),transparent);animation:ms-sheen 1.6s ease-in-out infinite"></div></div></sc-if>
+                        <sc-if value="{{ t.genBusy }}"><div style="position:absolute;inset:0;pointer-events:none;overflow:hidden;border-radius:12px"><div style="position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.75),transparent);animation:ms-sheen 1.6s ease-in-out infinite"></div></div></sc-if>
                         <span style="{{ t.radio }}"><span style="{{ t.dot }}"></span></span>
                         <div style="flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:4px">
                           <div style="display:flex;align-items:center;gap:8px;min-width:0">
@@ -986,6 +987,9 @@ a{color:#1d8f86}a:hover{color:#146b64}
                           <sc-if value="{{ t.showMeta }}"><span style="font-size:12px;color:#8A97A5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.meta }}</span></sc-if>
                           <sc-if value="{{ t.pending }}"><span style="display:flex;justify-content:space-between;gap:10px;font-size:12px;color:#0E5E52;font-weight:600;white-space:nowrap;overflow:hidden"><span style="overflow:hidden;text-overflow:ellipsis">{{ t.phaseLabel }}</span><span style="font:600 11px 'JetBrains Mono',monospace;color:#6B9C90">{{ t.phaseCount }}</span></span></sc-if>
                           <sc-if value="{{ t.failed }}"><span style="display:flex;justify-content:space-between;gap:10px;font-size:12px;color:#A23A33;font-weight:600;white-space:nowrap;overflow:hidden"><span title="{{ t.error }}" style="overflow:hidden;text-overflow:ellipsis">{{ t.error }}</span><a href="#" onClick="{{ t.retry }}" style="flex:none;font-weight:700;color:#A23A33;text-decoration:underline;text-underline-offset:3px">Relancer la mise en service</a></span></sc-if>
+                          <sc-if value="{{ t.genBusy }}"><span style="display:flex;justify-content:space-between;gap:10px;font-size:12px;color:#10233A;font-weight:600;white-space:nowrap;overflow:hidden"><span style="overflow:hidden;text-overflow:ellipsis;animation:ms-in .3s ease both">{{ t.genLabel }}</span><span style="font:600 11px 'JetBrains Mono',monospace;color:#8A97A5">{{ t.genCount }}</span></span></sc-if>
+                          <sc-if value="{{ t.genDone }}"><span style="display:flex;align-items:center;gap:6px;font-size:12px;color:#0E7C6B;font-weight:700;white-space:nowrap;animation:ms-in .3s ease both"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.2 5 8.5l4.5-5"></path></svg>Rapport téléchargé</span></sc-if>
+                          <sc-if value="{{ t.genErr }}"><span style="display:flex;justify-content:space-between;gap:10px;font-size:12px;color:#A23A33;font-weight:600;white-space:nowrap;overflow:hidden"><span title="{{ t.genError }}" style="overflow:hidden;text-overflow:ellipsis">{{ t.genError }}</span><a href="#" onClick="{{ t.genRetry }}" style="flex:none;font-weight:700;color:#A23A33;text-decoration:underline;text-underline-offset:3px">Réessayer</a></span></sc-if>
                         </div>
                         <sc-if value="{{ t.ready }}">
                           <div style="flex:none;display:flex;align-items:center;gap:6px">
@@ -994,8 +998,11 @@ a{color:#1d8f86}a:hover{color:#146b64}
                           </div>
                         </sc-if>
                         <sc-if value="{{ t.pending }}"><span style="flex:none;font-size:11px;font-weight:700;color:#0E5E52;white-space:nowrap">Mise en service</span></sc-if>
+                        <sc-if value="{{ t.genBusy }}"><span style="flex:none;display:flex;align-items:center;gap:7px;font-size:11px;font-weight:700;color:#10233A;white-space:nowrap"><span style="width:12px;height:12px;border-radius:99px;border:1.8px solid #D5DDE3;border-top-color:#10233A;animation:ms-spin .8s linear infinite;box-sizing:border-box"></span>Génération</span></sc-if>
+                        <sc-if value="{{ t.genErr }}"><span style="flex:none;font-size:11px;font-weight:700;color:#A23A33;white-space:nowrap">Génération interrompue</span></sc-if>
                         <sc-if value="{{ t.failed }}"><span style="flex:none;font-size:11px;font-weight:700;color:#A23A33;white-space:nowrap">Mise en service interrompue</span></sc-if>
                         <sc-if value="{{ t.pending }}"><div style="position:absolute;left:12px;right:12px;bottom:6px;height:2px;border-radius:2px;background:#DCEDE8;overflow:hidden"><div style="{{ t.bar }}"></div></div></sc-if>
+                        <sc-if value="{{ t.genAny }}"><div style="position:absolute;left:12px;right:12px;bottom:6px;height:2px;border-radius:2px;background:#DCEDE8;overflow:hidden"><div style="{{ t.genBar }}"></div></div></sc-if>
                       </div>
                     </sc-for>
                   </div>
@@ -2813,6 +2820,25 @@ class Component extends DCLogic {
     this._tplDraftKey = key;
     clearTimeout(this._tplDraftT);
     this._tplDraftT = setTimeout(() => { (this.tplDraftEmpty(data.draft) ? this._api.tplDraftDrop() : this._api.tplDraftSave(data)).catch(() => {}); }, 800);
+  }
+  // Téléchargement d'un rapport (04/10/2026) : génération suivie étape par étape sur la ligne du template (`gnDl`).
+  // L'affichage avance d'une étape à la fois vers l'étape atteinte par le serveur, chacune visible au moins
+  // GEN_STEP_MIN_MS (une étape très courte n'est pas sautée) ; « Rapport téléchargé » 1,8 s ; échec : message et « Réessayer ».
+  async tplGenRun(t, done) {
+    if (!this._api || !this._api.tplGenerate) { if (this._api) this._api.tplPptx(t); if (done) done(); return; }
+    const GEN_STEP_MIN_MS = 450;
+    const set = v => this.setState(s => ({ gnDl: { ...(s.gnDl || {}), [t.id]: v } }));
+    let shown = 1, target = 1, failed = false;
+    set({ step: 1 });
+    const walk = (async () => { while (!failed && shown < 5) { await new Promise(r => setTimeout(r, GEN_STEP_MIN_MS)); if (failed) return; if (shown < target) { shown++; set(shown === 5 ? { step: 5, done: true } : { step: shown }); } } })();
+    try {
+      // Fichier remis quand l'affichage en est à « Téléchargement du fichier » (jamais avant les étapes qui le précèdent).
+      await this._api.tplGenerate(t, step => { target = Math.max(target, step); }, async () => { target = Math.max(target, 4); while (!failed && shown < 4) await new Promise(r => setTimeout(r, 60)); });
+      target = 5;
+      await walk;
+      if (done) done();
+      setTimeout(() => this.setState(s => { const g = { ...(s.gnDl || {}) }; if (g[t.id] && g[t.id].done) delete g[t.id]; return { gnDl: g }; }), 1800);
+    } catch (e) { failed = true; set({ step: 0, err: (e && e.message) || 'Génération impossible' }); }
   }
   // Mise en service (04/10/2026) : GET /report-templates/{id}/service relu toutes les 600 ms tant qu'un template est en
   // cours ; au passage à « prêt » : onde, étiquette « Nouveau », sections révélées une à une, notification ~3,5 s.
@@ -4679,11 +4705,14 @@ class Component extends DCLogic {
     const compsText = t => t.comps.map(compLabel).join(' · ');
     const setTpl = fn => this.setState(s => ({ templates: s.templates.map(fn) }));
     const tplToggle = id => setTpl(t => t.id === id ? { ...t, active: !t.active } : t);
-    const tplDownloadNow = t => { if (this._api) this._api.tplPptx(t); /* API : GET /report-templates/{id}/pptx */ this.showToast('Rapport téléchargé · ' + t.name + ' v' + t.version + ' · PPTX'); };
+    const tplDownloadNow = t => this.tplGenRun(t, () => this.showToast('Rapport téléchargé · ' + t.name + ' v' + t.version + ' · PPTX'));
     // API : contrôle des données avant toute génération (GET /report-templates/{id}/check) ; anomalies → fenêtre de confirmation.
     const tplDownload = (t, report) => {
       if (!this._api) return report ? this.setState({ tplAsk: t }) : tplDownloadNow(t);
-      this._api.tplCheck(t).then(r => { if (!r) return; if ((r.issues || []).length) return this.setState({ tplIssues: { t, report, ...r } }); if (report) this.setState({ tplAsk: t }); else tplDownloadNow(t); });
+      // Étape 0 de la génération suivie : contrôle des données (avant les fenêtres de confirmation).
+      const clear = () => this.setState(s => { const g = { ...(s.gnDl || {}) }; delete g[t.id]; return { gnDl: g }; });
+      this.setState(s => ({ gnDl: { ...(s.gnDl || {}), [t.id]: { step: 0 } } }));
+      this._api.tplCheck(t).then(r => { clear(); if (!r) return; if ((r.issues || []).length) return this.setState({ tplIssues: { t, report, ...r } }); if (report) this.setState({ tplAsk: t }); else tplDownloadNow(t); });
     };
     const TI = S.tplIssues;
     const issueStyle = sev => 'padding:8px 10px;border-radius:9px;font-size:12px;text-wrap:pretty;' + (sev === 'error' ? 'background:#fdecea;color:#a3271b;font-weight:600' : 'background:#fff6e6;color:#8a5a12');
@@ -4695,8 +4724,8 @@ class Component extends DCLogic {
       const entry = { id: 'H' + Date.now(), name: t.name, version: t.version, committee: t.committee, bodyId: t.bodyId, sessionId: S.sesSel || null, date: todayFr, time, by: this.meName(), saved };
       const doc = saved ? { n: t.name + ' — ' + t.committee + ' du ' + short, type: 'Support de comité', date: short, v: 'v' + t.version, conf: 'Interne', src: 'Généré', ext: 'SUCCEEDED', mime: 'PPTX', pages: t.pages } : null;
       this.setState(s => ({ tplAsk: null, tplHistory: [entry, ...s.tplHistory], kbDocs: doc ? [doc, ...s.kbDocs] : s.kbDocs }));
-      if (this._api) this._api.tplPptx(t); // API : PowerPoint généré au format du template
-      this.showToast(saved ? 'Rapport généré et versé dans la Base de connaissance · ' + t.name : 'Rapport généré · ' + t.name + ' v' + t.version + ' · PPTX'); };
+      // API : PowerPoint généré au format du template, génération suivie sur la ligne du template.
+      this.tplGenRun(t, () => this.showToast(saved ? 'Rapport généré et versé dans la Base de connaissance · ' + t.name : 'Rapport généré · ' + t.name + ' v' + t.version + ' · PPTX')); };
     const ask = S.tplAsk;
     const tplHistRows = S.tplHistory.map(e => ({ ...e, v: 'v' + e.version, when: e.date + ' · ' + e.time, kb: e.saved ? 'Versé' : 'Non versé', kbStyle: e.saved ? P.ok : P.neutral, canOpen: e.saved, open: () => this.go('documents', 'bibliotheque') }));
     const tplDelete = t => { this.setState(s => ({ templates: s.templates.filter(x => x.id !== t.id), tplSel: s.tplSel === t.id ? null : s.tplSel, tplView: null })); this.showToast('Template supprimé · ' + t.name); };
@@ -4712,6 +4741,8 @@ class Component extends DCLogic {
     // filtre par comité, groupes repliables (seul celui du template sélectionné ouvert par défaut), lignes de hauteur fixe,
     // mise en service suivie sur la ligne. Au-delà de GEN_LOCAL_MAX templates, la recherche passe par le serveur.
     const GEN_LOCAL_MAX = 300;
+    // Étapes suivies du téléchargement d'un rapport (contrôle, puis phases de la génération côté serveur, puis fichier).
+    const GEN_STEPS = ['Contrôle des données', 'Collecte des données du jour', 'Rédaction des titres et de la synthèse', 'Mise en page au format du template', 'Téléchargement du fichier'];
     if (S.tab !== 'generer' && S.genKeep && Object.keys(S.genKeep).length) setTimeout(() => this.setState({ genKeep: {} }), 0);
     const listed = TPL.filter(t => t.active || (S.genKeep || {})[t.id]);
     const norm = x => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -4731,11 +4762,16 @@ class Component extends DCLogic {
         chev: { transform: isOpen ? 'none' : 'rotate(-90deg)', transition: 'transform .2s', flex: 'none' },
         toggle: () => this.setState(s => ({ gnOpen: { ...(s.gnOpen || gnOpen), [name]: !isOpen } })),
         items: items.map(t => { const on = t.id === selId, svc = svcOf(t), pend = svc.status === 'PENDING', fail = svc.status === 'FAILED', act = !!t.active, cp = Math.min(svc.cardPhase || 0, 2);
+          const gd = (S.gnDl || {})[t.id] || null, gBusy = !!gd && !gd.done && !gd.err, gStep = gd ? Math.min(gd.step, 4) : 0;
           return { name: t.name, version: 'v' + t.version, comps: t.comps.map(compLabel).join(' · '), meta: t.author + ' · ' + t.pages + ' pages · ' + t.comps.map(compLabel).join(' · '),
-            pending: pend, failed: fail, ready: !pend && !fail, showMeta: !pend && !fail, isNew: svc.status === 'READY' && !!svc.isNew, error: svc.error || '', retry: tplRetry(t),
+            pending: pend, failed: fail, ready: !pend && !fail && !gd, showMeta: !pend && !fail && !gd,
+            genBusy: gBusy, genDone: !!gd && !!gd.done, genErr: !!gd && !!gd.err, genAny: !!gd && !gd.err, genError: gd && gd.err ? gd.err : '',
+            genLabel: GEN_STEPS[gStep] + '…', genCount: (gStep + 1) + ' / ' + GEN_STEPS.length,
+            genBar: { width: (gd && gd.done ? 100 : [10, 30, 58, 82, 94][gStep]) + '%', height: '100%', borderRadius: 2, background: '#0E7C6B', transition: 'width .9s cubic-bezier(.3,.7,.3,1)' },
+            genRetry: e => { e.preventDefault(); e.stopPropagation(); this.setState(s => { const g = { ...(s.gnDl || {}) }; delete g[t.id]; return { gnDl: g }; }); tplDownload(t, true); }, isNew: svc.status === 'READY' && !!svc.isNew, error: svc.error || '', retry: tplRetry(t),
             phaseLabel: MS_PHASES[cp] + '…', phaseCount: (cp + 1) + ' / 3', bar: { width: (svc.status === 'READY' ? 100 : [18, 48, 78][cp]) + '%', height: '100%', borderRadius: 2, background: '#0E7C6B', transition: 'width 1.2s cubic-bezier(.3,.7,.3,1)' },
             select: () => this.setState({ tplSel: t.id }),
-            download: e => { e.stopPropagation(); if (act) tplDownload(t, true); },
+            download: e => { e.stopPropagation(); if (act && !gd) tplDownload(t, true); },
             // Interrupteur : la ligne reste listée (atténuée) jusqu'au prochain chargement de l'écran (arbitrage du 04/10/2026).
             toggleActive: e => { e.stopPropagation(); if (act) { this.setState(s => ({ genKeep: { ...(s.genKeep || {}), [t.id]: true } })); tplToggle(t.id); this.showToast('Template désactivé · ' + t.name + ' — reste consultable dans la Bibliothèque'); } else { tplToggle(t.id); this.showToast('Template réactivé · ' + t.name); } },
             activeTip: act ? 'Actif' : 'Inactif',

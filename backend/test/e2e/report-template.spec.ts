@@ -257,6 +257,23 @@ describe('Cockpit — Templates de rapport : versions et publications', () => {
     }
   });
 
+  it('génération suivie : lancement, phases jusqu’à « prêt », fichier remis une seule fois, première génération enregistrée', async () => {
+    const tpl = await post('/report-templates', { name: 'Génération suivie', version: '1.0', components: [{ id: 'synthese', scope: 'PROJECT' }, { id: 'jalons', scope: 'PROJECT', period: 'all' }], format: format() }).expect(201);
+    await ready(tpl.body.id);
+    const job = (await post(`/report-templates/${tpl.body.id}/generations`, {}).expect(202)).body;
+    expect(job).toMatchObject({ id: expect.any(String), phase: 0 });
+    let st: any;
+    for (let k = 0; k < 600; k++) { st = (await get(`/report-generations/${job.id}`).expect(200)).body; if (st.done) break; await new Promise((r) => setTimeout(r, 100)); }
+    expect(st).toMatchObject({ done: true, phase: 3, error: null });
+    const file = await get(`/report-generations/${job.id}/file`).buffer(true).parse(binary).expect(200);
+    expect(file.headers['content-disposition']).toContain('.pptx');
+    expect(await pptxIntegrity(file.body as Buffer)).toEqual([]);
+    await get(`/report-generations/${job.id}/file`).expect(404); // remis une seule fois
+    expect((await t.db.reportTemplate.findUniqueOrThrow({ where: { id: tpl.body.id } })).firstReportAt).not.toBeNull();
+    // Contrôle avant génération : sans rédaction par l'IA (données seules).
+    expect((await get(`/report-templates/${tpl.body.id}/check`).expect(200)).body.version.seq).toBe(1);
+  });
+
   it('tableau de bord, échéancier des actions et arbitrages : planches dessinées avec les données du projet', async () => {
     const tpl = await post('/report-templates', { name: 'Pilotage', version: '1.0', components: [{ id: 'dashboard', scope: 'PROJECT' }, { id: 'actions', scope: 'PROJECT', indicators: ['code', 'name', 'owner', 'due', 'status', 'prio', 'kpis'] }, { id: 'decisions', scope: 'PROJECT', period: 'month' }], format: format() }).expect(201);
     await ready(tpl.body.id);
@@ -393,8 +410,13 @@ describe('Cockpit — Templates de rapport : versions et publications', () => {
       // Réponses toujours refusées : textes par défaut et avertissement.
       jest.restoreAllMocks();
       live(() => '{"titres": {"c01": "987 alertes", "c02": "987 alertes"}, "synthese": []}');
+      // Rédaction à la génération seulement (le contrôle préalable n'appelle plus l'IA) : avertissement dans le statut de la génération.
       const chk = await get(`/report-templates/${created.body.id}/check`).expect(200);
-      expect(chk.body.issues).toEqual(expect.arrayContaining([expect.objectContaining({ severity: 'warning', message: expect.stringMatching(/^Rédaction par l'IA : \d texte\(s\) refusé\(s\) au contrôle/) })]));
+      expect(chk.body.issues.some((i: any) => /^Rédaction par l'IA/.test(i.message))).toBe(false);
+      const gen = (await post(`/report-templates/${created.body.id}/generations`, {}).expect(202)).body;
+      let gs: any;
+      for (let k = 0; k < 600; k++) { gs = (await get(`/report-generations/${gen.id}`).expect(200)).body; if (gs.done) break; await new Promise((r) => setTimeout(r, 100)); }
+      expect(gs.issues).toEqual(expect.arrayContaining([expect.objectContaining({ severity: 'warning', message: expect.stringMatching(/^Rédaction par l'IA : \d texte\(s\) refusé\(s\) au contrôle/) })]));
       const pub = (await get(`/report-templates/${created.body.id}/pptx`).buffer(true).parse(binary).expect(200)).body as Buffer;
       expect((await slideXml(pub)).xml[3]).toContain('<a:t>Risques et problèmes</a:t>');
     });

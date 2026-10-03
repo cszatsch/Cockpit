@@ -1389,3 +1389,13 @@ Constat du commanditaire : au clic sur « Valider et publier », une liste d'ét
 | Import d'un fichier pour les 4 pages | Bouton et code retirés (répartition d'un fichier sur les 4 types, erreur commune) : chaque page se charge depuis son panneau ; un fichier de 4 diapositives ou plus y propose la diapositive du type | `tplFmtLoad(kind, file)` |
 | « Proposé par l'IA » | Mention retirée des zones de la page ; « Rétablir la proposition (de l'IA) » n'apparaît qu'après la modification d'un rôle | `fbHasAi` |
 | Étape E | Phrase « Revenez aux étapes précédentes pour corriger le design (B)… » retirée de la structure du document | — |
+
+## Générer un rapport : téléchargement suivi étape par étape (04/10/2026)
+
+Demande du commanditaire : un laps de temps important séparait le clic sur « Télécharger » du téléchargement ; animation suivant les étapes jusqu'au fichier.
+
+| Sujet | Choix | Constante / code |
+|---|---|---|
+| Génération suivie | La génération devient une tâche du serveur : `POST /report-templates/{id}/generations` (202), avancement `GET /report-generations/{id}` (phases 0 collecte des données du jour, 1 rédaction des titres et de la synthèse, 2 mise en page au format du template, 3 prêt ; erreur avec code, message et anomalies ; avertissements une fois terminée), fichier `GET /report-generations/{id}/file` remis une seule fois (première génération enregistrée) ; tâches oubliées au bout de 15 min. `GET /report-templates/{id}/pptx` reste disponible | `startGeneration`, `generationJob`, `generationFile`, `GenerationJob` |
+| Contrôle avant génération | Données seules, sans rédaction par l'IA : la rédaction (plusieurs secondes) n'a plus lieu deux fois ; ses avertissements sont rendus par la génération | `reportData(…, { write: false })` |
+| Écran | Sur la ligne du template : reflet, étape en cours (« Contrôle des données… », « Collecte des données du jour… », « Rédaction des titres et de la synthèse… », « Mise en page au format du template… », « Téléchargement du fichier… »), compteur n / 5, mention « Génération » avec indicateur, barre de 2 px ; puis « Rapport téléchargé » (1,8 s) ; échec : message du serveur, « Réessayer », « Génération interrompue ». L'affichage avance d'une étape à la fois vers celle atteinte par le serveur, chacune visible au moins 0,45 s ; le fichier n'est remis qu'une fois « Téléchargement du fichier » affiché ; bouton de téléchargement masqué pendant la génération | `tplGenRun`, `GEN_STEPS`, `GEN_STEP_MIN_MS` (450 ms), `gnDl`, client `tplGenerate` |

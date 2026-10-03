@@ -1021,6 +1021,29 @@ export function attach(comp) {
       if (!srv) { toast('Template en cours d’enregistrement : réessayez dans un instant'); return null; }
       try { return await pget('/report-templates/' + enc(srv.id) + '/check'); } catch (e) { toast(errorText(e)); return null; }
     },
+    /**
+     * Génération suivie (04/10/2026) : `POST /report-templates/{id}/generations`, avancement relu toutes les 400 ms
+     * (`GET /report-generations/{id}` : 0 collecte, 1 rédaction, 2 mise en page, 3 prêt), puis fichier (`…/file`).
+     * `onStep(n)` : 1 collecte, 2 rédaction, 3 mise en page, 4 téléchargement ; `beforeSave` (facultatif) est attendu avant
+     * la remise du fichier au navigateur. Erreur : exception avec le message du serveur.
+     */
+    async tplGenerate(t, onStep, beforeSave) {
+      const srv = await tplServer(t);
+      if (!srv) throw new Error('Template en cours d’enregistrement : réessayez dans un instant');
+      const job = await ppost('/report-templates/' + enc(srv.id) + '/generations', {});
+      let last = -1;
+      for (;;) {
+        const j = await pget('/report-generations/' + enc(job.id));
+        if (j.phase !== last) { last = j.phase; if (onStep) onStep(Math.min(j.phase, 3) + 1); }
+        if (j.done) { if (j.error) throw new Error(j.error.message); break; }
+        await new Promise((r) => setTimeout(r, 400));
+      }
+      const r = await pget('/report-generations/' + enc(job.id) + '/file', { raw: true });
+      const blob = await r.blob(), url = URL.createObjectURL(blob);
+      if (beforeSave) await beforeSave();
+      const cd = r.headers.get('Content-Disposition') || '', fn = /filename="([^"]+)"/.exec(cd);
+      const a = document.createElement('a'); a.href = url; a.download = fn ? decodeURIComponent(fn[1]) : (t.name + ' v' + t.version).replace(/[\\/:*?"<>|]+/g, '_') + '.pptx'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+    },
     /** PowerPoint d'une publication (template de la version en vigueur, valeurs du jour) : `GET /report-templates/{id}/pptx`. */
     async tplPptx(t) {
       const srv = await tplServer(t);

@@ -28,6 +28,11 @@ const list = (codes: string[], max = 5) => codes.slice(0, max).join(', ') + (cod
 /** Durée de vie d'un aperçu en mémoire (étape Prévisualisation). */
 export const PREVIEW_TTL_MS = 15 * 60 * 1000;
 /** Aperçu par étapes : état relu par l'écran. */
+/**
+ * Génération d'un rapport suivie (04/10/2026) : phases 0 collecte des données du jour, 1 rédaction des titres et de la
+ * synthèse (IA), 2 mise en page au format du template, 3 prêt ; le fichier est remis une fois, puis la tâche est oubliée.
+ */
+interface GenerationJob { at: number; projectId: string; templateId: string; phase: number; done: boolean; error: { code: string; message: string; issues?: Issue[] } | null; buf: Buffer | null; name: string; issues: Issue[] }
 interface PreviewJob { at: number; projectId: string; phase: number; total: number; svgs: Map<number, string>; issues: Array<Issue & { page: number | null }>; done: boolean; error: string | null }
 /** Pourcentage affiché : 6 % (format), 16 % (données), 20 à 88 % (pages), 94 % (contrôle), 100 %. */
 export const previewPct = (phase: number, ready: number, total: number) => Math.round(Math.min(100, phase === 0 ? 6 : phase === 1 ? 16 : phase === 2 ? 20 + (ready / Math.max(1, total)) * 68 : phase === 3 ? 94 : 100));
@@ -48,6 +53,7 @@ export class ReportTemplateService implements OnModuleInit {
   private previews = new Map<string, { at: number; projectId: string; buf: Buffer; analysis: Promise<FormatAnalysis> }>();
   /** Aperçus construits par étapes (étape E, 04/10/2026) : avancement relu par l'écran, pages servies dès qu'elles sont prêtes. */
   private jobs = new Map<string, PreviewJob>();
+  private generations = new Map<string, GenerationJob>();
   constructor(private readonly prisma: PrismaService, private readonly storage: StorageService, private readonly todaySvc: TodayService, private readonly llm: LlmService) {}
 
   // ───────────── Données ─────────────
@@ -282,7 +288,7 @@ export class ReportTemplateService implements OnModuleInit {
   }
 
   /** Valeurs de tout le rapport, zones du template remplies, anomalies (dont lignes au-delà de la capacité d'un tableau). */
-  async reportData(scope: ProjectScope, d: Draft, manifest: TemplateManifest | null): Promise<{ data: FillData; issues: Issue[] }> {
+  async reportData(scope: ProjectScope, d: Draft, manifest: TemplateManifest | null, opts: { write?: boolean; onPhase?: (phase: number) => void } = {}): Promise<{ data: FillData; issues: Issue[] }> {
     const today = this.todaySvc.today(scope.project.timezone);
     const body = d.bodyId ? await this.prisma.governanceBody.findUnique({ where: { id: d.bodyId } }) : null;
     const project = scope.project.name.startsWith(scope.project.code) ? scope.project.name : `${scope.project.code} — ${scope.project.name}`;
@@ -293,7 +299,9 @@ export class ReportTemplateService implements OnModuleInit {
     for (const c of comps) values.push(await this.componentValues(scope, c, today));
     // Titres-messages et synthèse rédigés par l'IA (fonction « Génération de rapports ») ; repli par règles.
     const titreMax = Object.fromEntries((manifest?.fields ?? []).filter((f) => f.id.endsWith('.title') && f.maxChars).map((f) => [f.id.split('.')[0], f.maxChars!]));
-    const w = await this.write(scope, { title: d.name, committee: body?.name ?? '', project, date: frDay(today) }, comps, values, titreMax);
+    // Contrôle avant génération (`write: false`) : les données seules, sans rédaction par l'IA (rédigée une seule fois, à la génération).
+    opts.onPhase?.(1);
+    const w = opts.write === false ? { titles: {} as Record<string, string>, synthesis: null as string[] | null, synthesisKey: null as string | null, issues: [] as Issue[] } : await this.write(scope, { title: d.name, committee: body?.name ?? '', project, date: frDay(today) }, comps, values, titreMax);
     issues.push(...w.issues);
     for (const [i, c] of comps.entries()) {
       {
@@ -513,7 +521,7 @@ export class ReportTemplateService implements OnModuleInit {
     this.assertReady(t as any);
     const v = await this.current(scope, t, by);
     const s = v.structure as any;
-    const { issues } = await this.reportData(scope, { ...this.draftOf(t), components: s.components, bodyId: s.bodyId ?? t.bodyId }, v.manifest as unknown as TemplateManifest);
+    const { issues } = await this.reportData(scope, { ...this.draftOf(t), components: s.components, bodyId: s.bodyId ?? t.bodyId }, v.manifest as unknown as TemplateManifest, { write: false });
     if (!(await this.storage.get(v.fileKey))) issues.unshift({ severity: 'error', message: `Le fichier du template v${v.label} est introuvable : publiez une nouvelle version.` });
     return { version: this.versionView(v), issues, errors: issues.filter((i) => i.severity === 'error').length, warnings: issues.filter((i) => i.severity === 'warning').length };
   }
@@ -522,12 +530,14 @@ export class ReportTemplateService implements OnModuleInit {
    * Publication d'un rapport : le template de la version en vigueur est rouvert et seules les valeurs changent.
    * Anomalie bloquante (périmètre disparu, template endommagé) : 422 avec la liste des anomalies.
    */
-  async generate(scope: ProjectScope, t: TemplateRow, by: string | null): Promise<{ buf: Buffer; version: any; issues: Issue[] }> {
+  async generate(scope: ProjectScope, t: TemplateRow, by: string | null, onPhase?: (phase: number) => void): Promise<{ buf: Buffer; version: any; issues: Issue[] }> {
     this.assertReady(t as any);
     const v = await this.current(scope, t, by);
     const s = v.structure as any;
     const manifest = v.manifest as unknown as TemplateManifest;
-    const { data, issues } = await this.reportData(scope, { ...this.draftOf(t), components: s.components, bodyId: s.bodyId ?? t.bodyId }, manifest);
+    onPhase?.(0);
+    const { data, issues } = await this.reportData(scope, { ...this.draftOf(t), components: s.components, bodyId: s.bodyId ?? t.bodyId }, manifest, { onPhase });
+    onPhase?.(2);
     const file = await this.storage.get(v.fileKey);
     if (!file) issues.unshift({ severity: 'error', message: `Le fichier du template v${v.label} est introuvable : publiez une nouvelle version.` });
     const errors = issues.filter((i) => i.severity === 'error');
@@ -538,6 +548,49 @@ export class ReportTemplateService implements OnModuleInit {
       if (e instanceof TemplateFieldMissing) throw new ApiErrorWithBody(422, { code: 'TEMPLATE_DAMAGED', message: `${e.message} : publiez une nouvelle version du template.`, issues: [{ severity: 'error', message: e.message }] });
       throw e;
     }
+  }
+
+  // ───────────── Génération suivie (Générer un rapport) ─────────────
+
+  /** Lance la génération d'un rapport ; l'avancement est relu par `generationJob`, le fichier remis par `generationFile`. */
+  startGeneration(scope: ProjectScope, t: TemplateRow, by: string | null) {
+    this.assertReady(t as any);
+    const now = Date.now();
+    for (const [k, j] of this.generations) if (now - j.at > PREVIEW_TTL_MS || this.generations.size > PREVIEW_MAX) this.generations.delete(k);
+    const id = randomBytes(10).toString('hex');
+    const job: GenerationJob = { at: now, projectId: scope.project.id, templateId: t.id, phase: 0, done: false, error: null, buf: null, name: t.name, issues: [] };
+    this.generations.set(id, job);
+    void (async () => {
+      try {
+        const out = await this.generate(scope, t, by, (p) => { job.phase = Math.max(job.phase, p); });
+        job.buf = out.buf;
+        job.issues = out.issues;
+        job.name = `${t.name} v${out.version.label}`;
+        job.phase = 3;
+      } catch (e) {
+        const r = (e as { getResponse?: () => unknown }).getResponse?.() as { code?: string; message?: string; issues?: Issue[] } | undefined;
+        job.error = { code: r?.code ?? 'GENERATION_FAILED', message: String(r?.message ?? (e as { message?: string }).message ?? e).slice(0, 300), ...(r?.issues ? { issues: r.issues } : {}) };
+      }
+      job.done = true;
+    })();
+    return { id, phase: 0 };
+  }
+
+  /** Avancement d'une génération : phase (0 à 3), fin, erreur éventuelle (code, message, anomalies), avertissements une fois terminée. */
+  generationJob(scope: ProjectScope, id: string) {
+    const j = this.generations.get(id);
+    if (!j || j.projectId !== scope.project.id) throw notFound('Génération expirée : relancez le téléchargement');
+    return { phase: j.phase, done: j.done, error: j.error, issues: j.done ? j.issues : [] };
+  }
+
+  /** Fichier d'une génération terminée, remis une seule fois ; première génération du template enregistrée. */
+  async generationFile(scope: ProjectScope, id: string) {
+    const j = this.generations.get(id);
+    if (!j || j.projectId !== scope.project.id) throw notFound('Génération expirée : relancez le téléchargement');
+    if (!j.done || !j.buf) throw new ApiError(409, 'GENERATION_NOT_READY', j.error?.message ?? 'Le rapport n’est pas encore prêt');
+    this.generations.delete(id);
+    await this.markFirstReport(j.templateId);
+    return { buf: j.buf, name: j.name };
   }
 
   // ───────────── Aperçu (étape Prévisualisation) ─────────────

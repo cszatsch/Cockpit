@@ -45,12 +45,12 @@ async function main() {
     await page.waitForFunction(() => document.body.innerText.includes('Fiche d\'identité'), null, { timeout: 15000 });
     const steps = await page.evaluate(() => ['Fiche d\'identité', 'Format du rapport', 'Composants', 'Ordre et données', 'Prévisualisation', 'Publication'].map((n) => document.body.innerText.indexOf(n)));
     check('1. six étapes, « Format du rapport » en étape 2', steps.every((x, k) => x >= 0 && (k === 0 || x > steps[k - 1])), JSON.stringify(steps));
-    const stepper = () => page.evaluate(() => (document.body.innerText.match(/Format du rapport/g) || []).length + '|' + [...document.querySelectorAll('div')].filter((d) => /^Étape \d$/i.test((d.textContent || '').trim())).length);
+    const stepper = () => page.evaluate(() => (document.body.innerText.match(/Format du rapport/g) || []).length + '|' + Array.from(document.querySelectorAll('div')).filter((d) => /^Étape \d$/i.test((d.textContent || '').trim())).length);
     const stepperA = await stepper();
     await page.getByText('Suivant ›').click();
     await page.waitForTimeout(500);
     // Étape B : même bandeau qu'à l'étape A (un seul) ; vignettes vides sans libellé ni curseur en main.
-    const thumbs = await page.evaluate(() => [...document.querySelectorAll('button')].filter((b) => /PAGE \d/.test(b.textContent || '')).map((b) => ({ label: /Charger un fichier/.test(b.textContent || ''), cursor: getComputedStyle(b.querySelector('div')!).cursor })));
+    const thumbs = await page.evaluate(() => Array.from(document.querySelectorAll('button')).filter((b) => /PAGE \d/.test(b.textContent || '')).map((b) => ({ label: /Charger un fichier/.test(b.textContent || ''), cursor: getComputedStyle(b.querySelector('div')!).cursor })));
     const stepperB = await stepper();
     check('   étape B : bandeau des étapes identique à l’étape A ; vignettes vides sans « Charger un fichier », curseur normal', stepperA.split('|')[1] === '6' && stepperB.split('|')[1] === '6' && thumbs.length === 4 && thumbs.every((t) => !t.label && t.cursor === 'default'), JSON.stringify({ stepperA, stepperB, thumbs }));
     await page.evaluate(() => (window as any).__riseCockpit.setState({ tplStep: 1 }));
@@ -168,6 +168,22 @@ async function main() {
     const backReload = await page.evaluate(async () => { const c = (window as any).__riseCockpit; c.setState({ space: 'comites', tab: 'creer' }); await new Promise((r) => setTimeout(r, 2000)); return { step: c.state.tplStep, name: c.state.tplDraft.name, comps: c.state.tplDraft.comps.length }; });
     check('   session réinitialisée : brouillon supprimé, « Créer un template » à l’étape A vierge (avant et après rechargement)', draftAfter === null && [backNow, backReload].every((b) => b.step === 1 && b.name === '' && b.comps === 0), JSON.stringify({ draftAfter, backNow, backReload }));
     await page.evaluate(() => (window as any).__riseCockpit.setState({ tab: 'generer' }));
+
+    // Téléchargement depuis la ligne du template : étapes suivies (contrôle, collecte, rédaction, mise en page, fichier).
+    await page.waitForTimeout(800);
+    await page.evaluate((n) => { const c = (window as any).__riseCockpit; c.setState({ tplSel: c.state.templates.find((t: any) => t.name === n).id }); }, NAME);
+    await page.evaluate(() => { const w = window as any; w.__genSeen = []; w.__genObs = new MutationObserver(() => { for (const l of ['Contrôle des données…', 'Collecte des données du jour…', 'Rédaction des titres et de la synthèse…', 'Mise en page au format du template…', 'Téléchargement du fichier…', 'Rapport téléchargé']) if (document.body.innerText.includes(l) && !w.__genSeen.includes(l)) w.__genSeen.push(l); }); w.__genObs.observe(document.body, { subtree: true, childList: true, characterData: true }); });
+    const rowDl = page.waitForEvent('download', { timeout: 120000 });
+    await page.locator('button[title="Télécharger"]').first().click();
+    for (let k = 0; k < 40; k++) {
+      if (await page.getByText('Générer quand même').count()) await page.getByText('Générer quand même').click();
+      if (await page.getByText('Non, télécharger seulement').count()) { await page.getByText('Non, télécharger seulement').click(); break; }
+      await page.waitForTimeout(250);
+    }
+    const rowFile = await rowDl.catch(() => null);
+    await page.waitForFunction(() => document.body.innerText.includes('Rapport téléchargé'), null, { timeout: 10000 }).catch(() => {});
+    const genSeen = await page.evaluate(() => { const w = window as any; w.__genObs.disconnect(); return w.__genSeen as string[]; });
+    check('   téléchargement suivi sur la ligne : étapes affichées dans l’ordre, puis « Rapport téléchargé »', !!rowFile && genSeen.includes('Contrôle des données…') && genSeen.includes('Rapport téléchargé') && ['Collecte des données du jour…', 'Rédaction des titres et de la synthèse…', 'Mise en page au format du template…', 'Téléchargement du fichier…'].every((l, k, all) => genSeen.indexOf(l) > 0 && (k === 0 || genSeen.indexOf(l) > genSeen.indexOf(all[k - 1]))), JSON.stringify(genSeen));
 
     // Génération : contrôle des données d'abord ; anomalies → fenêtre de confirmation.
     await page.evaluate((n) => { const c = (window as any).__riseCockpit; c.setState({ tab: 'generer', tplSel: c.state.templates.find((t: any) => t.name === n).id }); }, NAME);

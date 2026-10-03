@@ -163,6 +163,30 @@ export class ReportFormatController {
     this.send(res, out.buf, `${t.name} v${out.version.label}`);
   }
 
+  /**
+   * Génération suivie (04/10/2026) : lancement (202), avancement par phases, puis fichier remis une fois. Anomalie
+   * bloquante : la tâche se termine en erreur (`REPORT_DATA_INVALID`, `TEMPLATE_DAMAGED`) avec les anomalies.
+   */
+  @Post('report-templates/:id/generations')
+  @HttpCode(202)
+  async generationStart(@CurrentActor() actor: Actor, @Param('projectId') p: string, @Param('id') id: string) {
+    const scope = await this.access.scope(actor, p);
+    return this.reports.startGeneration(scope, await this.template(scope, id), scope.access.personId ?? actor.accountId);
+  }
+
+  @Get('report-generations/:id')
+  async generationJob(@CurrentActor() actor: Actor, @Param('projectId') p: string, @Param('id') id: string) {
+    const scope = await this.access.scope(actor, p);
+    return this.reports.generationJob(scope, id);
+  }
+
+  @Get('report-generations/:id/file')
+  async generationFile(@CurrentActor() actor: Actor, @Param('projectId') p: string, @Param('id') id: string, @Res() res: any) {
+    const scope = await this.access.scope(actor, p);
+    const f = await this.reports.generationFile(scope, id);
+    this.send(res, f.buf, f.name);
+  }
+
   /** Versions publiées du template (la plus récente en premier). */
   @Get('report-templates/:id/versions')
   async versions(@CurrentActor() actor: Actor, @Param('projectId') p: string, @Param('id') id: string) {
