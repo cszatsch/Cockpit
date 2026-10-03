@@ -322,6 +322,8 @@ export class CommitteesController {
         },
       });
       await this.audit.record(db, { actor, projectId: scope.project.id, profileUsed: scope.access.pmo ? 'PMO' : 'RESPONSABLE' }, { entityType: 'REPORT_TEMPLATE', entityId: row.id, before: null, after: this.templateView(row), target: row.name });
+      // Publication : le brouillon de « Créer un template » de l'auteur est clos (l'assistant repart d'une session vierge).
+      if (actor.accountId) await db.reportTemplateDraft.deleteMany({ where: { projectId: scope.project.id, accountId: actor.accountId } });
       return row;
     }, { timeout: 120000 }).then((row) => {
       // Publication en tâche de fond : PowerPoint de référence, gel, activation, Bibliothèque, zones de données.

@@ -133,6 +133,14 @@ async function main() {
     await page.waitForFunction((n) => ((window as any).__riseCockpit.state.templates || []).some((t: any) => t.name === n && t.publishedVersion === 1), NAME, { timeout: 30000 }).catch(() => {});
     const saved = await page.evaluate((n) => ((window as any).__riseCockpit.state.templates || []).find((t: any) => t.name === n), NAME);
     check('7. template publié avec son format et sa version 1 (serveur)', !!saved && !!saved.format && saved.format.closing.slide === 4 && saved.publishedVersion === 1, JSON.stringify(saved && saved.format));
+    // Session « Créer un template » réinitialisée : brouillon supprimé, retour sur l'onglet (même après rechargement) à l'étape A vierge.
+    await page.waitForTimeout(1500);
+    const draftAfter = await page.evaluate(async () => (await (window as any).__riseCockpit._api.tplDraftGet()).data);
+    const backNow = await page.evaluate(async () => { const c = (window as any).__riseCockpit; c.setState({ tab: 'creer' }); await new Promise((r) => setTimeout(r, 1500)); return { step: c.state.tplStep, name: c.state.tplDraft.name, comps: c.state.tplDraft.comps.length }; });
+    await page.reload(); await page.waitForFunction(() => !!(window as any).__riseCockpit, null, { timeout: 30000 });
+    const backReload = await page.evaluate(async () => { const c = (window as any).__riseCockpit; c.setState({ space: 'comites', tab: 'creer' }); await new Promise((r) => setTimeout(r, 2000)); return { step: c.state.tplStep, name: c.state.tplDraft.name, comps: c.state.tplDraft.comps.length }; });
+    check('   session réinitialisée : brouillon supprimé, « Créer un template » à l’étape A vierge (avant et après rechargement)', draftAfter === null && [backNow, backReload].every((b) => b.step === 1 && b.name === '' && b.comps === 0), JSON.stringify({ draftAfter, backNow, backReload }));
+    await page.evaluate(() => (window as any).__riseCockpit.setState({ tab: 'generer' }));
 
     // Génération : contrôle des données d'abord ; anomalies → fenêtre de confirmation.
     await page.evaluate((n) => { const c = (window as any).__riseCockpit; c.setState({ tab: 'generer', tplSel: c.state.templates.find((t: any) => t.name === n).id }); }, NAME);

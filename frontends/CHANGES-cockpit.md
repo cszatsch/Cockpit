@@ -362,3 +362,7 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 
 - `RISE Cockpit.dc.html` : onglet « Générer un rapport » remplacé par la maquette livrée (`docs/specs/MAQUETTE - Generer un rapport/`) sous l'en-tête existant ; bouton « Télécharger le rapport » supprimé ; recherche, filtre, groupes repliables, lignes de 66 px, mise en service sur la ligne (`gnGroups`, `gnPv`) ; pavé date de la séance (`genSesVals`) ; défilement sans barre (`[data-noscrollbar]`).
 - `api.js` : `tplSearch` (recherche côté serveur au-delà de 300 templates).
+
+## Créer un template : session réinitialisée à la publication (04/10/2026)
+
+- `RISE Cockpit.dc.html` (`f6Publish`) : à la publication réussie, enregistrement différé du brouillon annulé, brouillon supprimé (`tplDraftDrop`) et assistant remis à vide ; le retour sur « Créer un template » ouvre l'étape A sur une session vierge (le serveur supprime aussi le brouillon de l'auteur à la création du template).

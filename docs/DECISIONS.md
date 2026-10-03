@@ -1368,3 +1368,7 @@ Demande du commanditaire : pages Actions, Décisions et Tableau de bord « médi
 | Indicateurs du tableau de bord | Nouveau : « Décisions en attente » ; défauts : les six indicateurs | `COMPONENTS.dashboard` |
 | Versions déjà publiées | Leur PowerPoint contient encore le tableau (Actions, Décisions) ou les cartes et le graphique (Tableau de bord) : ces parties restent calculées à chaque génération et remplissent ces zones ; elles ne servent plus à la rédaction par l'IA (les faits viennent des planches) ; une nouvelle version publiée passe aux planches | `LEGACY_PARTS` |
 | Rédaction par l'IA | Faits des planches : retards et échéances des actions, étape et attente des décisions en attente, décisions prises, phase en cours (réel, prévu, écart), tuiles | `ReportTemplateService.write` |
+
+## Créer un template : session réinitialisée à la publication (04/10/2026)
+
+Demande du commanditaire : après « Valider et publier », revenir sur « Créer un template » ne doit plus réafficher l'écran de publication. La publication clôt la session de l'assistant : le serveur supprime le brouillon de l'auteur dans la transaction qui crée le template (`createTemplate`, `report_template_drafts`), et l'écran annule l'enregistrement différé du brouillon, le supprime (`tplDraftDrop`) et repart d'un assistant vierge à l'étape A (`f6Publish`), y compris après un rechargement de la page.

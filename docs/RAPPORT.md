@@ -394,6 +394,12 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 - **Vérification** sur le template « Test » (rendu PowerPoint, 6 itérations) : intitulés trop tronqués (colonnes rééquilibrées), en-têtes en capitales coupés (« ÉCHÉANCE », « ATTENTE »), vide sous les tuiles et au centre du tableau de bord (repères ajoutés, tuiles à pleine hauteur), « Moyenne » coupée, filet du fil chronologique sur les pastilles, cas vides (panneau « 0 / 0 » retiré, message unique), tuiles seules, avancement seul, peu d'indicateurs.
 - **Tests** : `test/unit/report-template.spec.ts` (bloc « Rapport — échéancier des actions, arbitrages, tableau de bord », 6 tests, dont formes dans le cadre et cas denses ou vides ; tests des tableaux et graphiques rejoués sur une version antérieure aux planches, `withLegacyParts`), `test/e2e/report-template.spec.ts` (catalogue, planches avec les données de démonstration).
 
+### Créer un template : session réinitialisée à la publication (04/10/2026)
+
+- **Défaut corrigé** : le brouillon de l'assistant restait enregistré après la publication (son enregistrement n'a lieu que sur l'onglet « Créer un template ») et était relu au retour, d'où l'écran de publication réaffiché.
+- **Correction** : brouillon supprimé par le serveur à la création du template et par l'écran à la publication ; assistant vierge à l'étape A.
+- **Tests** : `test/e2e/report-template.spec.ts` (brouillon supprimé à la publication) ; recette `test/browser/format-rapport.e2e.ts` (26 / 26 : brouillon absent, étape A vierge avant et après rechargement).
+
 ## 4. Questions ouvertes
 
 1. **Déclencheur des règles de notification** : faut-il ajouter un sélecteur de déclencheur dans la console ? Aujourd'hui, une règle créée depuis l'écran reçoit un déclencheur par défaut : « planifié » pour une notification, « manuel » pour une alerte.

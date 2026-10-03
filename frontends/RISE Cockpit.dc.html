@@ -5010,10 +5010,15 @@ class Component extends DCLogic {
       if (f6Blocked || F6.st === 'publishing') return;
       const t = { name: draftT.name, author: Dft.author, version: Dft.version, comps: Dft.comps, committee: Dft.committee, bodyId: Dft.bodyId, active: true, desc: Dft.desc, format: fmtLoaded === 4 ? F.pages : null };
       this.setState({ f6: { st: 'publishing', done: 0 } });
+      clearTimeout(this._tplDraftT);
       if (!this._api) return this.setState({ f6: { st: 'published', done: 4 } });
       let r;
       try { r = await this._api.tplPublish(t); }
       catch (e) { return this.setState({ f6: { st: 'failed', done: 0, cause: (e && e.message) || 'Publication refusée par le serveur' } }); }
+      // Session « Créer un template » réinitialisée : brouillon supprimé (aussi par le serveur), assistant vierge à l'étape A.
+      clearTimeout(this._tplDraftT);
+      this._tplDraftKey = JSON.stringify({ step: 1, draft: { name: '', version: '1.0', author: null, desc: '', committee: 'Comité de pilotage', bodyId: 'g1', comps: [], fmt: { files: {}, pages: {} } } });
+      this._api.tplDraftDrop().catch(() => {});
       // Redirection immédiate : la mise en service se poursuit dans « Générer un rapport ».
       this.setState(s => ({ f6: null, tab: 'generer', tplSel: r.id, tplClosed: { ...s.tplClosed, [Dft.committee]: false }, tplSvc: { ...(s.tplSvc || {}), [r.id]: r.service }, tplStep: 1, tplDraft: { name: '', version: '1.0', author: null, desc: '', committee: 'Comité de pilotage', bodyId: 'g1', comps: [], fmt: { files: {}, pages: {} } }, tplFmtCheck: null, tplFmtErr: {}, tplPrev: null }));
       window.scrollTo({ top: 0, behavior: 'smooth' });

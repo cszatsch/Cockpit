@@ -134,6 +134,11 @@ describe('Cockpit — Templates de rapport : versions et publications', () => {
     await http().post(`${R}/report-template-draft`).set('Authorization', `Bearer ${reader}`).send({ data }).expect(403);
     await http().delete(`${R}/report-template-draft`).set('Authorization', `Bearer ${pmo}`).expect(204);
     expect((await get('/report-template-draft').expect(200)).body.data).toBeNull();
+    // Publication : la session de l'assistant est close (brouillon supprimé par le serveur).
+    await post('/report-template-draft', { data: { ...data, step: 6 } }).expect(200);
+    const pub = await post('/report-templates', { name: 'Publié depuis le brouillon', version: '1.0', components: [{ id: 'synthese', scope: 'PROJECT' }] }).expect(201);
+    expect((await get('/report-template-draft').expect(200)).body.data).toBeNull();
+    await ready(pub.body.id);
   });
 
   it('catalogue : périodes proposées par composant', async () => {
