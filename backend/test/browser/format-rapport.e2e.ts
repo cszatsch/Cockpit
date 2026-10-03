@@ -134,9 +134,13 @@ async function main() {
     check('   contrôle des données affiché', (await text(page, /CONTRÔLE DES DONNÉES|Contrôle des données/)) !== '');
     await page.getByText('Suivant ›').click(); await page.waitForTimeout(500);
     check('   étape F : fiche du template (format, fichiers, sections, pages)', (await text(page, /F · VALIDATION ET PUBLICATION/)) !== '' && (await text(page, /16:9 · 33,87 × 19,05 cm/)) !== '' && (await text(page, /Charte ACME\.pptx/)) !== '' && (await text(page, /Synthèse de situation · Climat et pilotage/)) !== '');
+    // Pendant l'enregistrement : pas de liste « Publication en cours » (suivi seulement dans « Générer un rapport »), bouton « Publication… ».
+    await page.evaluate(() => { const w = window as any; w.__pubSeen = { list: false, busy: false }; w.__pubObs = new MutationObserver(() => { const t = document.body.innerText; if (/Publication en cours/.test(t)) w.__pubSeen.list = true; if (/Publication…/.test(t)) w.__pubSeen.busy = true; }); w.__pubObs.observe(document.body, { subtree: true, childList: true, characterData: true }); });
     await page.getByText('Valider et publier').click();
     // Redirection immédiate vers « Générer un rapport », template présélectionné, carte « Mise en service ».
     await page.waitForFunction(() => (window as any).__riseCockpit.state.tab === 'generer', null, { timeout: 30000 }).catch(() => {});
+    const pubSeen = await page.evaluate(() => { const w = window as any; w.__pubObs.disconnect(); return w.__pubSeen; });
+    check('   publication : bouton « Publication… » pendant l’enregistrement, sans liste « Publication en cours » (pas de double affichage)', pubSeen.busy && !pubSeen.list, JSON.stringify(pubSeen));
     check('   publication : redirection vers « Générer un rapport », carte « Mise en service »', await page.evaluate((n) => { const c = (window as any).__riseCockpit; const t = (c.state.templates || []).find((x: any) => x.name === n); return !!t && c.state.tplSel === t.id; }, NAME) && /Mise en service/.test(await page.evaluate(() => document.body.innerText)));
     await page.waitForFunction(() => document.body.innerText.includes('est prêt à être utilisé'), null, { timeout: 180000 }).catch(() => {});
     check('   mise en service terminée : « Nouveau », notification', /Nouveau/.test(await page.evaluate(() => document.body.innerText)) && /est prêt à être utilisé/.test(await page.evaluate(() => document.body.innerText)));

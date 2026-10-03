@@ -1520,7 +1520,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
       <div style="position:absolute;right:-90px;top:-90px;width:300px;height:300px;border-radius:50%;border:1px solid rgba(255,255,255,.06)"></div>
       <div style="position:absolute;right:-40px;top:-40px;width:200px;height:200px;border-radius:50%;border:1px solid rgba(255,255,255,.06)"></div>
 
-      <sc-if value="{{ f6Idle }}">
+      <sc-if value="{{ f6Ready }}">
         <div style="position:relative;display:flex;flex-direction:column;gap:22px;animation:e6-in .35s ease both">
           <div style="width:64px;height:64px;border-radius:50%;border:1.5px dashed rgba(242,181,68,.55);display:flex;align-items:center;justify-content:center;font:600 13px 'JetBrains Mono',monospace;color:#F2B544">{{ f6.v }}</div>
           <div style="display:flex;flex-direction:column;gap:12px">
@@ -1530,15 +1530,6 @@ a{color:#1d8f86}a:hover{color:#146b64}
         </div>
       </sc-if>
 
-      <sc-if value="{{ f6Publishing }}">
-        <div style="position:relative;display:flex;flex-direction:column;gap:22px;animation:e6-in .3s ease both">
-          <div style="width:64px;height:64px;border-radius:50%;border:2px solid rgba(255,255,255,.1);border-top-color:#F2B544;animation:e6-spin 1s linear infinite"></div>
-          <h2 style="margin:0;font-size:26px;font-weight:800;letter-spacing:-.02em">Publication en cours</h2>
-          <div style="display:flex;flex-direction:column;gap:12px">
-            <sc-for list="{{ f6Tasks }}" as="t"><div style="display:flex;align-items:center;gap:12px;font-size:13.5px"><span style="{{ t.dot }}">{{ t.mark }}</span><span style="{{ t.text }}">{{ t.label }}</span></div></sc-for>
-          </div>
-        </div>
-      </sc-if>
 
       <sc-if value="{{ f6Failed }}">
         <div style="position:relative;display:flex;flex-direction:column;gap:22px;animation:e6-in .3s ease both">
@@ -1563,11 +1554,12 @@ a{color:#1d8f86}a:hover{color:#146b64}
       </sc-if>
 
       <div style="position:relative;display:flex;flex-direction:column;gap:12px">
-        <sc-if value="{{ f6Idle }}">
+        <sc-if value="{{ f6Ready }}">
           <sc-if value="{{ f6NotBlocked }}"><div style="display:flex;align-items:center;gap:10px;font-size:12.5px;color:#C3CFDB"><span style="width:7px;height:7px;border-radius:99px;background:#E0A030"></span>{{ f6.control }}</div></sc-if>
           <sc-if value="{{ f6Blocked }}"><div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:12.5px;color:#F2B1AB"><span style="width:7px;height:7px;border-radius:99px;background:#D64545"></span><span>{{ f6.blockMsg }}</span><a href="#" onClick="{{ f6GoE }}" style="font-weight:700;color:#9FD9C2;text-decoration:none;white-space:nowrap">Voir l'étape E ›</a></div></sc-if>
-          <button onClick="{{ f6Publish }}" disabled="{{ f6Blocked }}" style="{{ f6PubBtn }}" style-hover="{{ f6PubHover }}" style-active="transform:translateY(0)">
-            <svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.2 5 8.5l4.5-5"></path></svg>Valider et publier
+          <button onClick="{{ f6Publish }}" disabled="{{ f6BtnOff }}" style="{{ f6PubBtn }}" style-hover="{{ f6PubHover }}" style-active="transform:translateY(0)">
+            <sc-if value="{{ f6Idle }}"><svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 6.2 5 8.5l4.5-5"></path></svg>Valider et publier</sc-if>
+            <sc-if value="{{ f6Publishing }}"><span style="width:14px;height:14px;border-radius:50%;border:2px solid rgba(16,35,58,.25);border-top-color:#10233A;animation:e6-spin .8s linear infinite;box-sizing:border-box"></span>Publication…</sc-if>
           </button>
         </sc-if>
         <sc-if value="{{ f6Failed }}">
@@ -4975,10 +4967,10 @@ class Component extends DCLogic {
       f6Tasks: TASKS6.map((label, i) => { const failedHere = F6.st === 'failed' && i === F6.done; const s6 = i < F6.done ? 'done' : failedHere ? 'fail' : i === F6.done ? 'cur' : 'todo'; return { label, mark: s6 === 'done' ? '✓' : s6 === 'fail' ? '!' : '', failed: failedHere, cause: F6.cause || '',
         dot: { flex: 'none', width: 18, height: 18, borderRadius: 99, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, background: s6 === 'done' ? '#F2B544' : s6 === 'fail' ? '#D64545' : 'transparent', color: s6 === 'fail' ? '#fff' : '#10233A', border: s6 === 'done' || s6 === 'fail' ? 'none' : s6 === 'cur' ? '1.5px solid #F2B544' : '1.5px solid rgba(255,255,255,.2)', boxSizing: 'border-box', transition: 'all .25s' },
         text: { color: s6 === 'todo' ? '#6F8296' : s6 === 'fail' ? '#F2B1AB' : '#fff', fontWeight: s6 === 'cur' || s6 === 'fail' ? 700 : 500, transition: 'color .25s' } }; }),
-      f6Idle: F6.st === 'idle', f6Publishing: F6.st === 'publishing', f6Published: pub6, f6Failed: F6.st === 'failed',
+      f6Idle: F6.st === 'idle', f6Publishing: F6.st === 'publishing', f6Ready: F6.st === 'idle' || F6.st === 'publishing', f6BtnOff: f6Blocked || F6.st === 'publishing', f6Published: pub6, f6Failed: F6.st === 'failed',
       f6Blocked, f6NotBlocked: !f6Blocked, f6Publish, f6GoE: e => { e.preventDefault(); this.setState({ tplStep: 5 }); },
-      f6PubBtn: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, height: 52, borderRadius: 14, border: 'none', background: '#F2B544', color: '#10233A', fontSize: 15, fontWeight: 800, cursor: f6Blocked ? 'not-allowed' : 'pointer', boxShadow: '0 10px 30px -10px rgba(242,181,68,.6)', transition: 'transform .15s,background .15s', fontFamily: 'inherit', opacity: f6Blocked ? .35 : 1 },
-      f6PubHover: f6Blocked ? '' : 'background:#F5C364;transform:translateY(-1px)',
+      f6PubBtn: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, height: 52, borderRadius: 14, border: 'none', background: '#F2B544', color: '#10233A', fontSize: 15, fontWeight: 800, cursor: f6Blocked ? 'not-allowed' : F6.st === 'publishing' ? 'progress' : 'pointer', boxShadow: '0 10px 30px -10px rgba(242,181,68,.6)', transition: 'transform .15s,background .15s', fontFamily: 'inherit', opacity: f6Blocked ? .35 : 1 },
+      f6PubHover: f6Blocked || F6.st === 'publishing' ? '' : 'background:#F5C364;transform:translateY(-1px)',
       f6GoGenerate: () => this.setState({ f6: null, tab: 'generer', tplStep: 1 }), f6GoLibrary: () => this.setState({ f6: null, tab: 'templates', tplStep: 1 }),
       f6PrevStyle: { whiteSpace: 'nowrap', height: 44, padding: '0 18px', borderRadius: 12, border: '1px solid #D5DDE3', background: '#fff', color: '#10233A', fontSize: 14, fontWeight: 600, cursor: 'pointer', visibility: F6.st === 'idle' || F6.st === 'failed' ? 'visible' : 'hidden', fontFamily: 'inherit' },
       f6Steps: ['Fiche d\'identité', 'Format du rapport', 'Composants', 'Ordre et données', 'Prévisualisation', 'Publication'].map((name, i) => { const d = i < 5 || pub6, cur = i === 5 && !pub6, can = i < 5 && (F6.st === 'idle' || F6.st === 'failed'); return { n: 'ÉTAPE ' + (i + 1), name, mark: d ? '✓' : 'ABCDEF'[i],

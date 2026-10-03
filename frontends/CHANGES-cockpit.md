@@ -371,3 +371,7 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 
 - `RISE Cockpit.dc.html` : le bandeau des étapes de l'étape A (`tplSteps`, pastilles, étape courante en bleu nuit et lettre orange) est affiché à toutes les étapes (`tplStepper`) ; les bandeaux des maquettes B à F (`fbSteps`, `fdSteps`, `feSteps`, `f6Steps`) ne sont plus affichés ; navigation par le bandeau suspendue pendant la publication.
 - Étape B : vignettes des pages vides sans le libellé « Charger un fichier / ou déposez-le ici » (redondant avec la grande zone de chargement, et sans action au clic) ; curseur normal sur la zone vide.
+
+## Créer un template, étape F : plus de double affichage de la publication (04/10/2026)
+
+- `RISE Cockpit.dc.html` : la liste « Publication en cours » (quatre tâches de la maquette de l'étape 6) n'est plus affichée ; pendant l'enregistrement du template, la carte « Prêt à publier » reste en place et le bouton, désactivé, affiche « Publication… » avec un indicateur (`f6Ready`, `f6BtnOff`) ; la mise en service n'est suivie que sur la ligne du template dans « Générer un rapport ». L'état d'échec (« Publication interrompue », cause, « Relancer la publication ») est inchangé.

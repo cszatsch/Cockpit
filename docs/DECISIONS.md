@@ -1376,3 +1376,7 @@ Demande du commanditaire : après « Valider et publier », revenir sur « Crée
 ## Créer un template : un seul bandeau des étapes ; vignettes vides de l'étape B (04/10/2026)
 
 Demande du commanditaire : le bandeau des étapes différait entre l'étape A et les étapes B à F (maquettes livrées avec leur propre bandeau) ; le bon design est celui de l'étape A. Il est désormais affiché à toutes les étapes (`tplSteps`, drapeau `tplStepper`) et les bandeaux des maquettes (`fbSteps`, `fdSteps`, `feSteps`, `f6Steps`) ne sont plus affichés ; la navigation par le bandeau est suspendue pendant la publication. Étape B : les vignettes des pages vides n'affichent plus « Charger un fichier / ou déposez-le ici » (sans action au clic, redondant avec la grande zone de chargement) et la zone vide garde le curseur normal.
+
+## Créer un template, étape F : plus de double affichage de la publication (04/10/2026)
+
+Constat du commanditaire : au clic sur « Valider et publier », une liste d'étapes de publication s'affichait sur l'étape F puis la mise en service recommençait dans « Générer un rapport ». La liste « Publication en cours » (quatre tâches de la maquette de l'étape 6, antérieure à la maquette de mise en service) est retirée : elle n'avançait pas réellement (simple attente de l'enregistrement). Pendant l'enregistrement, la carte « Prêt à publier » reste affichée et le bouton, désactivé, indique « Publication… » (`f6Ready`, `f6BtnOff`) ; la mise en service n'est suivie que sur la ligne du template. L'état d'échec validé le 04/10/2026 est inchangé.

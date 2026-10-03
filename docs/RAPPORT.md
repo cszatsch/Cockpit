@@ -405,6 +405,11 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 - **Réalisé** : bandeau de l'étape A à toutes les étapes ; libellé « Charger un fichier » retiré des vignettes vides de l'étape B, curseur normal.
 - **Vérification** : captures des étapes A, B, D, E et F (même bandeau) ; recette `test/browser/format-rapport.e2e.ts` 27 / 27 (contrôle ajouté : bandeau identique, vignettes sans libellé, curseur normal).
 
+### Créer un template, étape F : plus de double affichage de la publication (04/10/2026)
+
+- **Réalisé** : liste « Publication en cours » retirée de l'étape F ; bouton « Publication… » pendant l'enregistrement ; suivi de la mise en service seulement dans « Générer un rapport ».
+- **Vérification** : recette `test/browser/format-rapport.e2e.ts` 28 / 28 (contrôle ajouté : bouton « Publication… » observé, liste jamais affichée).
+
 ## 4. Questions ouvertes
 
 1. **Déclencheur des règles de notification** : faut-il ajouter un sélecteur de déclencheur dans la console ? Aujourd'hui, une règle créée depuis l'écran reçoit un déclencheur par défaut : « planifié » pour une notification, « manuel » pour une alerte.
