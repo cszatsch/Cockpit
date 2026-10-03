@@ -367,6 +367,13 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 - **Vérification** (Playwright) : section créée depuis un point du rail puis rattachée ; titre répercuté, titre par défaut sinon ; glisser-déposer (trait vert, ligne atténuée, coupure gardée en position, numérotation et déroulé) ; dépôt à sa place sans effet ; périmètre Phase → phases réelles, retour à « Projet entier » ; compteur d'indicateurs ; périodes du baromètre ; brouillon relu sur le serveur ; lisible à 1 124 px (écran de 1 440 px) et à 900 px ; recette `format-rapport.e2e.ts` 22 / 22.
 - **Tests** : `test/unit/report-template.spec.ts` (nouvelles périodes, période non proposée), `test/e2e/report-template.spec.ts` (périodes par composant, brouillon : enregistrement, relecture, Lecteur refusé, suppression).
 
+### Créer un template : nouvel écran de l'étape E, génération par étapes (04/10/2026)
+
+- **Réalisé** : maquette « Prévisualisation » intégrée à l'identique et branchée sur la génération réelle : plan et structure affichés immédiatement, avancement réel (phase, %, « Pages générées · n / N »), pages affichées une à une avec l'effet de développement, contrôle des données (squelette puis alertes et compteur), vue agrandie (souris et clavier) ; génération en tâche de fond côté serveur (`/report-templates/preview-jobs`).
+- **Vérification** (Playwright, format du template « Test », 9 pages) : structure et 9 emplacements dès l'arrivée ; séquence observée 6 % → 16 % → 20 % (0 / 9) → 28 % (1 / 9) → 43 % (3 / 9) → 100 % (9 / 9) en 27 s, dont l'essentiel en collecte des données et rédaction par l'IA ; « Suivant › » désactivé jusqu'à la fin ; « 1 point », page 04 marquée, « Voir la page 04 » ouvre la page 04 ; flèche droite, Échap, clic hors de la page ; survol vignette ↔ structure ; lisible à 1 124 et 900 px ; recette `format-rapport.e2e.ts` 23 / 23.
+- **Tests** : `test/unit/report-template.spec.ts` (plan du rapport), `test/e2e/report-template.spec.ts` (tâche d'aperçu : plan, pourcentage croissant, pages, alerte rattachée à sa page, 404, 400).
+- **Question ouverte** : état d'erreur de la génération (libellé et visuel) à valider avant d'être codé.
+
 ## 4. Questions ouvertes
 
 1. **Déclencheur des règles de notification** : faut-il ajouter un sélecteur de déclencheur dans la console ? Aujourd'hui, une règle créée depuis l'écran reçoit un déclencheur par défaut : « planifié » pour une notification, « manuel » pour une alerte.

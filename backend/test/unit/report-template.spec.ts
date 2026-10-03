@@ -2,7 +2,7 @@ import JSZip from 'jszip';
 import ExcelJS from 'exceljs';
 import { analyzeImage, analyzePptx } from '../../src/core/report-format-read';
 import { composeTemplate, fillChartXml, FillData, fillTemplate, TemplateFieldMissing, TemplateManifest } from '../../src/core/report-template';
-import { COMPONENT_IDS, ComponentConfig, configErrors, fieldName, indicatorsOf, pagesOf, periodOf, periodRange, sectionsOf } from '../../src/domain/report-components';
+import { COMPONENT_IDS, ComponentConfig, configErrors, fieldName, indicatorsOf, pagesOf, periodOf, periodRange, reportPlan, sectionsOf } from '../../src/domain/report-components';
 import { makeFormatPptx, makePng, pptxIntegrity } from '../format-fixture';
 import { BarometerData, Draw, drawBarometer, drawGantt, drawMilestones, drawPlanTable, drawRisks, foldPlan, GANTT_MAX_ROWS, GanttData, GanttRow, isLate, MILESTONES_MAX, MilestonesData, milestoneStates, RisksData, wrapText } from '../../src/core/report-draw';
 import { designTokens, scoreTone, statusTone, timeRatio, timeScale, typeScale } from '../../src/domain/report-design';
@@ -27,6 +27,13 @@ describe('Template de rapport — règles', () => {
     expect(s.map((x) => [x.title, x.components.map((c) => c.key)])).toEqual([['Synthèse de situation', ['c01', 'c02']], ['Climat', ['c03', 'c04']]]);
     expect(pagesOf(comps)).toBe(2 + 2 + 4);
     expect(pagesOf([])).toBe(2);
+  });
+
+  it('plan du rapport connu avant la génération : pages (type, libellé) et structure (sections, page de chaque composant)', () => {
+    const p = reportPlan([{ id: 'synthese', scope: 'PROJECT' }, { id: 'risques', scope: 'PROJECT' }, { id: 'barometre', scope: 'PROJECT', newSection: true, sectionTitle: 'Climat' }]);
+    expect(p.slides.map((s) => s.label)).toEqual(['Couverture', 'Intercalaire · Synthèse de situation', 'Synthèse de situation', 'Risques et problèmes', 'Intercalaire · Climat', 'Baromètre du projet', 'Clôture']);
+    expect(p.structure).toEqual([{ num: 1, title: 'Synthèse de situation', components: [{ key: 'c01', name: 'Synthèse de situation', page: 3 }, { key: 'c02', name: 'Risques et problèmes', page: 4 }] }, { num: 2, title: 'Climat', components: [{ key: 'c03', name: 'Baromètre du projet', page: 6 }] }]);
+    expect(reportPlan([]).slides.map((s) => s.kind)).toEqual(['cover', 'closing']);
   });
 
   it('indicateurs et période : défauts du composant, ordre du catalogue, période seulement si le composant en a une', () => {

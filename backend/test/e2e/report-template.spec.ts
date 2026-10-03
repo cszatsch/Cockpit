@@ -138,6 +138,29 @@ describe('Cockpit — Templates de rapport : versions et publications', () => {
     expect(r.body.periods.map((p: any) => p.label)).toEqual(expect.arrayContaining(['Mois précédent', '12 derniers mois', '60 prochains jours']));
   });
 
+  it('aperçu par étapes : plan immédiat, avancement (phase, %), pages servies une à une, alertes rattachées à leur page', async () => {
+    const r = await post('/report-templates/preview-jobs', { name: 'Support COPIL', version: '1.0', bodyId: 'g1', components: comps, format: format() }).expect(202);
+    expect(r.body.slides.map((s: any) => s.label)).toEqual(['Couverture', 'Intercalaire · Synthèse de situation', 'Synthèse de situation', 'Risques et problèmes', 'Intercalaire · Climat et pilotage', 'Baromètre du projet', 'Jalons', 'Budget', 'Clôture']);
+    expect(r.body.structure.map((s: any) => [s.title, s.components.map((c: any) => c.page)])).toEqual([['Synthèse de situation', [3, 4]], ['Climat et pilotage', [6, 7, 8]]]);
+    const seen: number[] = [];
+    let st: any;
+    for (let k = 0; k < 200; k++) {
+      st = (await get(`/report-templates/preview-jobs/${r.body.id}`).expect(200)).body;
+      seen.push(st.pct);
+      if (st.done) break;
+      await new Promise((x) => setTimeout(x, 50));
+    }
+    expect(st).toMatchObject({ done: true, error: null, phase: 4, pct: 100, total: 9, ready: [1, 2, 3, 4, 5, 6, 7, 8, 9] });
+    expect(seen).toEqual([...seen].sort((a, b) => a - b)); // pourcentage croissant
+    const budget = st.issues.find((i: any) => /^Budget : /.test(i.message));
+    expect(budget).toMatchObject({ component: 'c05', page: 8 });
+    const svg = await get(`/report-previews/${r.body.id}/slides/4`).buffer(true).parse(binary).expect(200);
+    expect(svg.headers['content-type']).toMatch(/^image\/svg\+xml/);
+    await get('/report-templates/preview-jobs/inconnu').expect(404);
+    const bad = await post('/report-templates/preview-jobs', { name: 'X', components: [{ id: 'jalons', scope: 'PROJECT', indicators: ['nimporte'] }] }).expect(400);
+    expect(bad.body.fields).toEqual({ 'components.0': 'Jalons : indicateur inconnu (nimporte)' });
+  });
+
   it('étape B : statut « vérifiée » de chaque page enregistré avec le format du template', async () => {
     const f = format();
     const created = await post('/report-templates', { name: 'Pages vérifiées', version: '1.0', components: [{ id: 'synthese', scope: 'PROJECT' }], format: { ...f, cover: { ...f.cover, verified: true } } }).expect(201);

@@ -346,3 +346,9 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 
 - `RISE Cockpit.dc.html` : bloc de l'étape D remplacé par la maquette livrée (`docs/specs/MAQUETTE - Etape 4 Ordre et donnees/`), à l'identique ; données réelles (`fdSections`, `fdVals`) ; stepper et navigation génériques masqués à cette étape ; ancien tableau (`tplOrderRows`, boutons Monter / Descendre) retiré ; JetBrains Mono 600 et texte indicatif des titres de section (`.fd-title`) ajoutés ; brouillon enregistré sur le serveur (`tplDraftSync`).
 - `api.js` : `tplDraftGet`, `tplDraftSave`, `tplDraftDrop`.
+
+## Créer un template, étape E : maquette « Prévisualisation » (04/10/2026)
+
+- `RISE Cockpit.dc.html` : bloc de l'étape E remplacé par la maquette livrée (`docs/specs/MAQUETTE - Etape 5 Previsualisation/`), à l'identique ; vignettes et vue agrandie : image réelle de chaque diapositive (cadre 16:9 de la maquette) ; animations `e5-*` ajoutées ; vue agrandie placée hors du conteneur animé ; génération par étapes relue toutes les 350 ms (`tplPreviewRun`, `tplLocalPlan`) ; anciennes vignettes et listes de l'étape E retirées.
+- `api.js` : `tplPreviewStart`, `tplPreviewJob`.
+- Publication : l'historique des générations n'est plus remplacé par les lignes de démonstration.

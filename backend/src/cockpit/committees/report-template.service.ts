@@ -14,7 +14,7 @@ import { composeTemplate, FillData, fillTemplate, TemplateFieldMissing, Template
 import { LlmService } from '../../core/llm.service';
 import { parseWriting, retryPrompt, WritingFacts, WRITING_SKILLS, WRITING_TIMEOUT_MS, writingPrompt, writingSystem } from '../../domain/report-writing';
 import { FormatAnalysis, PAGE_KINDS, PageKind, previewSvg } from '../../domain/report-format';
-import { COMPONENTS, ComponentConfig, ComponentData, ComponentValues, DASHBOARD_SERIES, frDay, indicatorsOf, inPeriod, Issue, KPI_MAX, pagesOf, periodOf, periodRange, sectionsOf, COMPONENT_MODULE, ComponentId, moduleOffMessage } from '../../domain/report-components';
+import { COMPONENTS, ComponentConfig, ComponentData, ComponentValues, DASHBOARD_SERIES, frDay, indicatorsOf, inPeriod, Issue, KPI_MAX, pagesOf, periodOf, periodRange, sectionsOf, COMPONENT_MODULE, ComponentId, moduleOffMessage, reportPlan } from '../../domain/report-components';
 
 const STATUS: Record<string, string> = { OPEN: 'Ouvert', IN_PROGRESS: 'En cours', BLOCKED: 'Bloquée', DONE: 'Terminé', CLOSED: 'Clos', PLANNED: 'Prévu', PREPARATION: 'En préparation', ACTIVE: 'Actif', MITIGATING: 'En traitement', DRAFT: 'Brouillon', IN_REVIEW: 'En revue', TO_ARBITRATE: 'À arbitrer', ARBITRATED: 'Arbitrée', CANCELLED: 'Annulée', SUPERSEDED: 'Remplacée' };
 const PRIO: Record<string, string> = { HIGH: 'Haute', MEDIUM: 'Moyenne', LOW: 'Basse' };
@@ -24,6 +24,10 @@ const daysBetween = (a: string, b: string) => Math.round((Date.parse(`${b}T00:00
 const list = (codes: string[], max = 5) => codes.slice(0, max).join(', ') + (codes.length > max ? `… (+${codes.length - max})` : '');
 /** Durée de vie d'un aperçu en mémoire (étape Prévisualisation). */
 export const PREVIEW_TTL_MS = 15 * 60 * 1000;
+/** Aperçu par étapes : état relu par l'écran. */
+interface PreviewJob { at: number; projectId: string; phase: number; total: number; svgs: Map<number, string>; issues: Array<Issue & { page: number | null }>; done: boolean; error: string | null }
+/** Pourcentage affiché : 6 % (format), 16 % (données), 20 à 88 % (pages), 94 % (contrôle), 100 %. */
+export const previewPct = (phase: number, ready: number, total: number) => Math.round(Math.min(100, phase === 0 ? 6 : phase === 1 ? 16 : phase === 2 ? 20 + (ready / Math.max(1, total)) * 68 : phase === 3 ? 94 : 100));
 const PREVIEW_MAX = 20;
 
 /** Template tel que stocké (colonnes utiles). */
@@ -39,6 +43,8 @@ export interface Draft { name: string; version: string; bodyId: string | null; c
 @Injectable()
 export class ReportTemplateService {
   private previews = new Map<string, { at: number; projectId: string; buf: Buffer; analysis: Promise<FormatAnalysis> }>();
+  /** Aperçus construits par étapes (étape E, 04/10/2026) : avancement relu par l'écran, pages servies dès qu'elles sont prêtes. */
+  private jobs = new Map<string, PreviewJob>();
   constructor(private readonly prisma: PrismaService, private readonly storage: StorageService, private readonly todaySvc: TodayService, private readonly llm: LlmService) {}
 
   // ───────────── Données ─────────────
@@ -442,7 +448,66 @@ export class ReportTemplateService {
     };
   }
 
+  /**
+   * Aperçu construit par étapes : plan renvoyé immédiatement, puis phases (0 format appliqué, 1 données collectées,
+   * 2 pages générées une à une, 3 contrôle des données) relues par `previewJob` ; chaque page est servie dès qu'elle est prête.
+   */
+  startPreview(scope: ProjectScope, d: Draft) {
+    const now = Date.now();
+    for (const [k, j] of this.jobs) if (now - j.at > PREVIEW_TTL_MS || this.jobs.size > PREVIEW_MAX) this.jobs.delete(k);
+    const id = randomBytes(10).toString('hex');
+    const plan = reportPlan(d.components);
+    const job: PreviewJob = { at: now, projectId: scope.project.id, phase: 0, total: plan.slides.length, svgs: new Map(), issues: [], done: false, error: null };
+    this.jobs.set(id, job);
+    void this.runPreview(scope, d, job, plan.slides);
+    return { id, ...plan };
+  }
+
+  private async runPreview(scope: ProjectScope, d: Draft, job: PreviewJob, plan: Array<{ n: number; component?: string }>) {
+    try {
+      const body = d.bodyId ? await this.prisma.governanceBody.findUnique({ where: { id: d.bodyId } }) : null;
+      const today = this.todaySvc.today(scope.project.timezone);
+      const { buf, manifest } = await composeTemplate(await this.pageSources(d.format), {
+        title: d.name, sections: sectionsOf(d.components),
+        tokens: { titre: d.name, date: frDay(today), projet: scope.project.name, client: (await this.prisma.client.findUnique({ where: { id: scope.project.clientId } }))?.name ?? '', comite: body?.name ?? '', 'comité': body?.name ?? '' },
+      });
+      job.phase = 1;
+      const { data, issues } = await this.reportData(scope, d, manifest);
+      job.phase = 2;
+      const out = await fillTemplate(buf, manifest, data);
+      const a = await analyzePptx(out);
+      const pkg = await OoxmlPackage.load(out);
+      job.total = a.slides.length;
+      for (const s of a.slides) {
+        const uris = new Map<string, string | null>();
+        for (const m of [s.background.image, ...s.elements.map((e) => e.image ?? e.fill?.image)]) if (m && !uris.has(m)) uris.set(m, await mediaDataUri(pkg, m));
+        job.svgs.set(s.index, previewSvg(a, s, (m) => uris.get(m) ?? null, { final: true }));
+        await new Promise((r) => setImmediate(r));
+      }
+      job.phase = 3;
+      issues.push(...(await visualCheck(out, manifest)));
+      // Page concernée par chaque alerte : celle de son composant.
+      const pageOf = new Map(plan.filter((x) => x.component).map((x) => [x.component!, x.n]));
+      job.issues = issues.map((i) => ({ ...i, page: i.component ? pageOf.get(i.component) ?? null : null }));
+      job.phase = 4;
+      job.done = true;
+    } catch (e) {
+      job.error = String((e as { message?: string }).message ?? e).slice(0, 300);
+      job.done = true;
+    }
+  }
+
+  /** Avancement d'un aperçu : phase (0 à 4), pourcentage, pages prêtes, alertes (avec leur page), erreur éventuelle. */
+  previewJob(scope: ProjectScope, id: string) {
+    const j = this.jobs.get(id);
+    if (!j || j.projectId !== scope.project.id) throw notFound('Aperçu expiré : relancez la prévisualisation');
+    const ready = [...j.svgs.keys()].sort((x, y) => x - y);
+    return { phase: j.phase, pct: previewPct(j.phase, ready.length, j.total), total: j.total, ready, issues: j.done ? j.issues : [], done: j.done, error: j.error };
+  }
+
   async previewSlide(scope: ProjectScope, id: string, n: number): Promise<string> {
+    const j = this.jobs.get(id);
+    if (j && j.projectId === scope.project.id) { const svg = j.svgs.get(n); if (!svg) throw notFound(`Diapositive ${n} pas encore prête`); return svg; }
     const p = this.previews.get(id);
     if (!p || p.projectId !== scope.project.id) throw notFound('Aperçu expiré : relancez la prévisualisation');
     const a = await p.analysis;

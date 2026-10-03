@@ -116,9 +116,11 @@ async function main() {
     check('5. ordre et données : 2 sections, colonne ajoutée', (await text(page, /2 sections/)) !== '' && comps[2].newSection === true && (comps[1].indicators || []).includes('status'), JSON.stringify(comps.map((c: any) => [c.id, c.newSection, c.indicators])));
     // Étape 5 : aperçu complet construit par le serveur.
     await page.getByText('Suivant ›').click();
-    await page.waitForFunction(() => { const c = (window as any).__riseCockpit.state; return c.tplPrev && c.tplPrev.slides && Object.keys(c.tplPrevImgs || {}).length === c.tplPrev.slides.length; }, null, { timeout: 90000 }).catch(() => {});
+    await page.waitForTimeout(150);
+    check('   étape E : structure et emplacements affichés avant la génération, Suivant désactivé', (await text(page, /8 pages/)) !== '' && (await text(page, /STRUCTURE DU DOCUMENT/)) !== '' && (await text(page, /Construction du rapport au format défini, avec les données du jour…/)) !== '' && await page.getByRole('button', { name: 'Suivant ›' }).isDisabled());
+    await page.waitForFunction(() => { const c = (window as any).__riseCockpit.state; return c.tplPrev && c.tplPrev.done; }, null, { timeout: 120000 }).catch(() => {});
     const pv = await page.evaluate(() => (window as any).__riseCockpit.state.tplPrev);
-    check('6. prévisualisation : 2 + 2 sections + 4 pages, vignettes du rapport au format', !!pv && pv.pages === 8 && (await page.evaluate(() => document.querySelectorAll('[role=img][style*="blob:"]').length)) === 8, pv && JSON.stringify(pv.slides.map((x: any) => x.label)));
+    check('6. prévisualisation : 2 + 2 sections + 4 pages, vignettes du rapport au format', !!pv && pv.pages === 8 && (await page.evaluate(() => document.querySelectorAll('[role=img][aria-label][style*="blob:"]').length)) === 8 && (await text(page, /Aperçu prêt/)) !== '' && (await text(page, /8 pages · 2 sections · format de l'étape B, données du jour/)) !== '', pv && JSON.stringify(pv.slides.map((x: any) => x.label)));
     check('   contrôle des données affiché', (await text(page, /CONTRÔLE DES DONNÉES|Contrôle des données/)) !== '');
     await page.getByText('Suivant ›').click(); await page.waitForTimeout(500);
     check('   récapitulatif : format, sections et pages exactes', (await text(page, /16:9 · 33,87 × 19,05 cm · Charte ACME\.pptx/)) !== '' && (await text(page, /Synthèse de situation · Climat et pilotage/)) !== '');

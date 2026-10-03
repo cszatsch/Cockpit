@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="{{ frame }}">
+  <sc-if value="{{ isCover }}">
+    <div style="position:absolute;inset:0 0 54% 0;background:#fff"></div>
+    <div style="position:absolute;left:6%;top:7%;font-size:2cqw;font-weight:800;color:#1E2124;letter-spacing:-.02em">onepoint.</div>
+    <div style="position:absolute;left:6%;top:21%;width:4%;height:7%;border-radius:20%;background:#139FDC"></div>
+    <div style="position:absolute;left:12%;top:21%;font-size:1.7cqw;font-weight:700;color:#1E2124">AMC Corp</div>
+    <div style="position:absolute;left:12%;top:28%;font-size:1cqw;color:#5F6368">RISE — Implémentation Brand X × CRM</div>
+    <div style="position:absolute;right:6%;top:7%;font-size:1cqw;font-weight:700;color:#1E2124;letter-spacing:.1em">COMITÉ DE PILOTAGE</div>
+    <div style="position:absolute;left:6%;top:56%;font-size:.95cqw;font-weight:700;color:#139FDC;letter-spacing:.12em">COMITÉ DE PILOTAGE · RAPPORT</div>
+    <div style="position:absolute;left:6%;top:61%;font-size:4cqw;font-weight:800;color:#fff;letter-spacing:-.02em">Test</div>
+    <div style="position:absolute;left:6%;top:72%;font-size:1.1cqw;color:#C9CDD2">Comité de pilotage · RISE — Implémentation Brand X × CRM · v1.0</div>
+    <div style="position:absolute;left:6%;top:78%;width:8%;height:.5%;background:#139FDC"></div>
+    <div style="position:absolute;left:6%;right:6%;top:86%;display:flex;justify-content:space-between;font-size:1cqw;color:#fff;font-weight:600"><span>AMC Corp</span><span>Données au 3 oct. 2026</span><span>Octobre 2026</span></div>
+  </sc-if>
+  <sc-if value="{{ isInter }}">
+    <div style="position:absolute;left:0;top:0;bottom:0;width:1.6%;background:#139FDC"></div>
+    <div style="position:absolute;left:8%;top:37%;font-size:2.2cqw;font-weight:800;color:#139FDC">1</div>
+    <div style="position:absolute;left:8%;top:44%;font-size:3.6cqw;font-weight:800;color:#fff;letter-spacing:-.02em">{{ title }}</div>
+    <div style="position:absolute;left:8%;right:10%;top:56%;font-size:1.1cqw;color:#9AA0A6;line-height:1.4">{{ sub }}</div>
+  </sc-if>
+  <sc-if value="{{ isEnd }}">
+    <div style="position:absolute;inset:0;background:#139FDC;clip-path:polygon(64% 0,92% 0,100% 72%,100% 100%,82% 100%)"></div>
+    <div style="position:absolute;left:8%;top:42%;font-size:4.6cqw;font-weight:800;color:#EEEEEC;letter-spacing:-.02em">Merci.</div>
+    <div style="position:absolute;right:5%;bottom:6%;font-size:1.3cqw;font-weight:800;color:#fff">onepoint.</div>
+  </sc-if>
+  <sc-if value="{{ isContent }}">
+    <div style="position:absolute;right:0;top:0;bottom:0;width:4%;background:#1E2124"></div>
+    <div style="position:absolute;left:5%;top:5%;font-size:.85cqw;font-weight:700;color:#139FDC;letter-spacing:.12em">{{ label }}</div>
+    <div style="position:absolute;left:5%;right:9%;top:9%;font-size:1.95cqw;font-weight:800;color:#1E2124;line-height:1.2;letter-spacing:-.01em">{{ title }}</div>
+    <div style="position:absolute;left:5%;top:16.5%;width:28%;height:1.2%;border-radius:1cqw;background:#E3E6E8"></div>
+    <div style="position:absolute;left:5%;right:9%;top:24%;bottom:6%">
+      <sc-if value="{{ vKpi }}">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3%;height:24%">
+          <sc-for list="{{ kpis }}" as="k"><div style="display:flex;flex-direction:column;gap:6%;border-top:.2cqw solid #E3E6E8;padding-top:3%"><span style="font-size:.8cqw;color:#9AA0A6">{{ k.l }}</span><span style="{{ k.style }}">{{ k.v }}</span></div></sc-for>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:3.4%;margin-top:4%;height:62%">
+          <sc-for list="{{ lines }}" as="w"><div style="{{ w }}"></div></sc-for>
+        </div>
+      </sc-if>
+      <sc-if value="{{ vTable }}">
+        <div style="display:flex;gap:4%;height:100%">
+          <div style="flex:1.7;display:flex;flex-direction:column;gap:4%">
+            <sc-for list="{{ rows }}" as="r"><div style="display:flex;align-items:center;gap:4%;height:9%"><span style="width:6%;height:60%;border-radius:.3cqw;background:#E3E6E8"></span><span style="flex:1;height:45%;border-radius:1cqw;background:#D9DCE0"></span><span style="{{ r }}"></span></div></sc-for>
+          </div>
+          <div style="flex:1;display:grid;grid-template-columns:repeat(5,1fr);gap:3%;align-content:start">
+            <sc-for list="{{ matrix }}" as="m"><div style="{{ m }}"></div></sc-for>
+          </div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ vBaro }}">
+        <div style="display:flex;gap:6%;height:100%">
+          <div style="flex:1;display:flex;flex-direction:column;gap:4%">
+            <span style="font-size:.8cqw;color:#9AA0A6">Score global</span>
+            <span style="font-size:4cqw;font-weight:800;color:#1E2124;line-height:1">5,9</span>
+            <div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:7%">
+              <sc-for list="{{ hbars }}" as="b"><div style="display:flex;align-items:center;gap:5%"><span style="width:28%;height:1cqw;border-radius:1cqw;background:#E3E6E8"></span><span style="{{ b }}"></span></div></sc-for>
+            </div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:6%">
+            <span style="font-size:1.8cqw;font-weight:800;color:#139FDC">55 % d'avis</span>
+            <div style="height:1.2cqw;border-radius:1cqw;background:#E3E6E8;overflow:hidden"><div style="width:55%;height:100%;background:#19A974"></div></div>
+            <sc-for list="{{ lines }}" as="w"><div style="{{ w }}"></div></sc-for>
+          </div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ vGantt }}">
+        <div style="position:relative;display:flex;flex-direction:column;gap:5%;height:78%">
+          <sc-for list="{{ gantt }}" as="g"><div style="display:flex;align-items:center;gap:3%;height:8%"><span style="width:16%;height:60%;border-radius:1cqw;background:#E3E6E8"></span><div style="position:relative;flex:1;height:100%"><span style="{{ g }}"></span></div></div></sc-for>
+          <div style="position:absolute;top:0;bottom:0;left:56%;width:.25cqw;background:#139FDC"></div>
+        </div>
+        <div style="display:flex;gap:4%;margin-top:3%;font-size:1.1cqw;font-weight:700;color:#139FDC"><span>Deploy jusqu'au 30 juin 2027</span><span style="color:#1E2124">14 oct. 2026 dans 11 jours</span></div>
+      </sc-if>
+      <sc-if value="{{ vBars }}">
+        <div style="display:flex;gap:4%;margin-bottom:3%"><span style="font-size:2cqw;font-weight:800;color:#139FDC">7</span><span style="font-size:2cqw;font-weight:800;color:#1E2124;margin-left:24%">6</span></div>
+        <div style="display:flex;align-items:flex-end;gap:5%;height:72%;border-bottom:.2cqw solid #D9DCE0;padding:0 4%">
+          <sc-for list="{{ vbars }}" as="b"><div style="{{ b }}"></div></sc-for>
+        </div>
+      </sc-if>
+      <sc-if value="{{ vJalons }}">
+        <div style="position:relative;height:40%;display:flex;justify-content:space-between;align-items:flex-start;padding-top:2%">
+          <div style="position:absolute;left:0;right:0;top:calc(2% + .9cqw);height:.2cqw;background:#D9DCE0"></div>
+          <sc-for list="{{ jalons }}" as="j"><div style="position:relative;display:flex;flex-direction:column;gap:12%;width:22%"><span style="{{ j }}"></span><span style="width:80%;height:1cqw;border-radius:1cqw;background:#D9DCE0"></span><span style="width:55%;height:1cqw;border-radius:1cqw;background:#E3E6E8"></span></div></sc-for>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:2%;height:34%;margin-top:14%">
+          <sc-for list="{{ jkpi }}" as="k"><div style="background:#1E2124;padding:6% 8%;display:flex;flex-direction:column;justify-content:space-between"><span style="width:50%;height:.8cqw;border-radius:1cqw;background:#139FDC"></span><span style="font-size:1.6cqw;font-weight:800;color:#fff">{{ k }}</span></div></sc-for>
+        </div>
+      </sc-if>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:480,&quot;height&quot;:270},&quot;s&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;object&quot;,&quot;default&quot;:{&quot;kind&quot;:&quot;content&quot;,&quot;viz&quot;:&quot;table&quot;,&quot;title&quot;:&quot;R01, R02 et R03 sont critiques, et R03 n'a aucun plan de mitigation&quot;,&quot;label&quot;:&quot;RISQUES ET PROBLÈMES&quot;}}}">
+class Component extends DCLogic {
+  renderVals(){
+    const s=this.props.s||{kind:'content',viz:'kpi',title:'',label:''};
+    const dark=s.kind!=='content'&&s.kind!=='cover';
+    const ln=(n)=>Array.from({length:n},(_,i)=>({height:'1cqw',borderRadius:'1cqw',background:'#E3E6E8',width:[96,88,92,74,90,62,84][i%7]+'%'}));
+    const MC={r:'#E04B4B',o:'#F2A33A',y:'#F7D774',g:'#BFE3C7'};
+    const mat='yoorrgyoorggyyorggyoggggy'.split('').map(c=>({aspectRatio:'1',background:MC[c],borderRadius:'.2cqw'}));
+    const rowsC=['#E04B4B','#E04B4B','#F2A33A','#E04B4B','#F2A33A','#F7D774','#F2A33A','#F7D774'];
+    return {
+      frame:{position:'relative',width:'100%',aspectRatio:'16/9',containerType:'inline-size',overflow:'hidden',background:s.kind==='cover'?'#1E2124':dark?'#1E2124':'#fff',fontFamily:"Poppins,'Plus Jakarta Sans',sans-serif"},
+      isCover:s.kind==='cover',isInter:s.kind==='inter',isEnd:s.kind==='end',isContent:s.kind==='content',
+      title:s.title,label:s.label,sub:s.sub,
+      vKpi:s.viz==='kpi',vTable:s.viz==='table',vBaro:s.viz==='baro',vGantt:s.viz==='gantt',vBars:s.viz==='bars',vJalons:s.viz==='jalons',
+      kpis:[['Statut du projet','Actif','#139FDC'],['Go-live prévu','1 avr. 2027','#1E2124'],['Risques critiques','3','#1E2124'],['Actions en retard','4','#1E2124']].map(([l,v,c])=>({l,v,style:{fontSize:'1.9cqw',fontWeight:800,color:c}})),
+      lines:ln(s.viz==='baro'?5:7),
+      rows:rowsC.map(c=>({width:'8%',height:'70%',borderRadius:'.3cqw',background:c})),
+      matrix:mat,
+      hbars:[72,64,58,44,38,30].map((w,i)=>({width:w*.6+'%',height:'1cqw',borderRadius:'1cqw',background:i>3?'#F2A33A':'#139FDC'})),
+      gantt:[[0,22],[14,30],[30,18],[40,34],[52,22],[60,30],[34,58]].map(([l,w],i)=>({position:'absolute',left:l+'%',width:w+'%',top:'20%',bottom:'20%',borderRadius:'.3cqw',background:i===6?'#139FDC':'#B8BEC5'})),
+      vbars:[78,80,79,77,30,0].map((h,i)=>({flex:1,height:h+'%',background:i%2?'#126FA0':'#139FDC'})),
+      jalons:[1,0,0,0].map(d=>({width:'1.8cqw',height:'1.8cqw',borderRadius:'50%',boxSizing:'border-box',border:'.25cqw solid '+(d?'#1E2124':'#139FDC'),background:d?'#1E2124':'#fff'})),
+      jkpi:['0 / 4','0','11 jours','0 j']};
+  }
+}
+</script>
+</body>
+</html>

@@ -2359,6 +2359,70 @@
         ]
       }
     },
+    "/api/projects/{projectId}/report-templates/preview-jobs": {
+      "post": {
+        "operationId": "ReportFormatController_previewJobStart",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "cockpit · comités"
+        ]
+      }
+    },
+    "/api/projects/{projectId}/report-templates/preview-jobs/{id}": {
+      "get": {
+        "operationId": "ReportFormatController_previewJob",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "cockpit · comités"
+        ]
+      }
+    },
     "/api/projects/{projectId}/report-previews/{id}/slides/{n}": {
       "get": {
         "operationId": "ReportFormatController_previewSlide",

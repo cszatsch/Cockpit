@@ -990,6 +990,12 @@ export function attach(comp) {
       const b = tplBody(t);
       return ppost('/report-templates/preview', { name: b.name, version: b.version, bodyId: b.bodyId, components: b.components, ...(b.format ? { format: b.format } : {}) });
     },
+    /** Aperçu par étapes (étape E) : `POST /report-templates/preview-jobs` → `{ id, slides, structure }` ; avancement `GET …/{id}`. */
+    tplPreviewStart(t) {
+      const b = tplBody(t);
+      return ppost('/report-templates/preview-jobs', { name: b.name, version: b.version, bodyId: b.bodyId, components: b.components, ...(b.format ? { format: b.format } : {}) });
+    },
+    tplPreviewJob(id) { return pget('/report-templates/preview-jobs/' + enc(id)); },
     /** Vignette d'une diapositive de l'aperçu (SVG) en URL d'objet, à libérer par l'écran. */
     async tplPreviewSlide(id, n) {
       const r = await pget('/report-previews/' + enc(id) + '/slides/' + n, { raw: true });

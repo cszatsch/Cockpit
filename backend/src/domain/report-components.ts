@@ -158,6 +158,24 @@ export function sectionsOf(comps: ComponentConfig[]): Section[] {
   });
   return out;
 }
+/**
+ * Plan du rapport, connu avant la génération (étape E, 04/10/2026) : pages (type, libellé) et structure (sections,
+ * composants et numéro de leur page). Même ordre que la composition du template.
+ */
+export function reportPlan(comps: ComponentConfig[]) {
+  const slides: Array<{ n: number; kind: 'cover' | 'divider' | 'standard' | 'closing'; label: string; component?: string }> = [{ n: 1, kind: 'cover', label: 'Couverture' }];
+  const structure: Array<{ num: number; title: string; components: Array<{ key: string; name: string; page: number }> }> = [];
+  if (comps.length) sectionsOf(comps).forEach((s, si) => {
+    slides.push({ n: slides.length + 1, kind: 'divider', label: `Intercalaire · ${s.title}` });
+    structure.push({ num: si + 1, title: s.title, components: [] });
+    for (const c of s.components) {
+      slides.push({ n: slides.length + 1, kind: 'standard', label: COMPONENTS[c.id].label, component: c.key });
+      structure[si].components.push({ key: c.key, name: COMPONENTS[c.id].label, page: slides.length });
+    }
+  });
+  slides.push({ n: slides.length + 1, kind: 'closing', label: 'Clôture' });
+  return { slides, structure };
+}
 /** Pages du rapport : couverture, une intercalaire par section, une page par composant, clôture. */
 export const pagesOf = (comps: ComponentConfig[]) => (comps.length ? 2 + sectionsOf(comps).length + comps.length : 2);
 

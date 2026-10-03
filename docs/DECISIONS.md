@@ -1305,3 +1305,20 @@ Maquette livrée (`docs/specs/MAQUETTE - Etape 4 Ordre et donnees/`) intégrée 
 | Génération | Inchangée : une intercalaire par section, titre par défaut = nom du premier composant, données recalculées à chaque publication | `sectionsOf`, `periodRange` |
 
 Écarts : stepper cliquable vers les étapes déjà accessibles (comme le reste de l'assistant) ; stepper et navigation génériques masqués à l'étape D.
+
+## Créer un template, étape E : maquette « Prévisualisation » et génération par étapes (04/10/2026)
+
+Maquette livrée (`docs/specs/MAQUETTE - Etape 5 Previsualisation/`) intégrée à l'identique dans `RISE Cockpit.dc.html` (stepper A à D terminées, carte de progression, emplacements des pages, contrôle des données, structure du document, vue agrandie ; animations `e5-*`) et branchée sur la génération réelle ; `Slide.dc.html` remplacé par l'image réelle de chaque diapositive (SVG du serveur), même cadre 16:9.
+
+| Sujet | Choix | Code |
+|---|---|---|
+| Plan avant génération | Pages (type, libellé) et structure (sections, composants, numéro de page) calculées par la même règle que la composition : côté serveur (`reportPlan`, renvoyé à la création de la tâche) et côté écran pour l'affichage immédiat (`tplLocalPlan`) | `reportPlan`, `tplLocalPlan` |
+| Génération par étapes | `POST /report-templates/preview-jobs` (202 : `id`, `slides`, `structure`) lance la construction en tâche de fond : phase 0 format de l'étape B appliqué, 1 données du jour collectées (et rédaction par l'IA), 2 pages générées une à une (rendu de chaque diapositive), 3 contrôle des données (contrôle visuel), 4 terminé ; `GET …/preview-jobs/{id}` : phase, pourcentage, pages prêtes, alertes (avec la page de leur composant), erreur ; images : `GET /report-previews/{id}/slides/{n}` dès qu'elles sont prêtes ; tâches gardées 15 min, 20 au plus | `startPreview`, `runPreview`, `previewJob`, `previewPct` |
+| Transport | Interrogation toutes les 350 ms plutôt que SSE : l'authentification de développement (jeton porteur `?as=`) n'est pas transmise par `EventSource` ; une page n'est affichée qu'une fois son image chargée, dans l'ordre de livraison du serveur | `tplPreviewRun` |
+| Pourcentage | 6 % (format), 16 % (données), 20 à 88 % selon les pages affichées, 94 % (contrôle), 100 % ; la phase affichée ne dépasse pas les pages réellement affichées | `previewPct`, `fePhase` |
+| Reconstruction | À l'arrivée sur l'étape et à chaque retour après une modification des étapes B, C ou D (clé du brouillon), même séquence | `tplDraftKey` |
+| Alertes | Gabarit ambre de la maquette pour toutes les alertes (avertissements et anomalies bloquantes) ; point ambre sur la page concernée ; « Voir la page NN » ouvre la page ; compteur « n point(s) » | `feAlerts` |
+| Vue agrandie | Placée hors du conteneur animé de l'assistant (sinon elle n'occupe pas tout l'écran) ; flèches du clavier, Échap, bouton, clic hors de la page | `feLightbox`, `_feKeys` |
+| Échec de la génération | Pas d'état d'erreur dédié tant que son libellé et son visuel ne sont pas validés (demande du commanditaire) : message du serveur en notification, « Suivant › » reste désactivé ; proposition faite au commanditaire | — |
+
+Correctif au passage : la publication d'un template remplaçait l'historique des générations par les 4 lignes de démonstration de la maquette ; il est désormais conservé.
