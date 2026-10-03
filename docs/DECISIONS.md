@@ -1372,3 +1372,7 @@ Demande du commanditaire : pages Actions, Décisions et Tableau de bord « médi
 ## Créer un template : session réinitialisée à la publication (04/10/2026)
 
 Demande du commanditaire : après « Valider et publier », revenir sur « Créer un template » ne doit plus réafficher l'écran de publication. La publication clôt la session de l'assistant : le serveur supprime le brouillon de l'auteur dans la transaction qui crée le template (`createTemplate`, `report_template_drafts`), et l'écran annule l'enregistrement différé du brouillon, le supprime (`tplDraftDrop`) et repart d'un assistant vierge à l'étape A (`f6Publish`), y compris après un rechargement de la page.
+
+## Créer un template : un seul bandeau des étapes ; vignettes vides de l'étape B (04/10/2026)
+
+Demande du commanditaire : le bandeau des étapes différait entre l'étape A et les étapes B à F (maquettes livrées avec leur propre bandeau) ; le bon design est celui de l'étape A. Il est désormais affiché à toutes les étapes (`tplSteps`, drapeau `tplStepper`) et les bandeaux des maquettes (`fbSteps`, `fdSteps`, `feSteps`, `f6Steps`) ne sont plus affichés ; la navigation par le bandeau est suspendue pendant la publication. Étape B : les vignettes des pages vides n'affichent plus « Charger un fichier / ou déposez-le ici » (sans action au clic, redondant avec la grande zone de chargement) et la zone vide garde le curseur normal.

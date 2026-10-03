@@ -400,6 +400,11 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 - **Correction** : brouillon supprimé par le serveur à la création du template et par l'écran à la publication ; assistant vierge à l'étape A.
 - **Tests** : `test/e2e/report-template.spec.ts` (brouillon supprimé à la publication) ; recette `test/browser/format-rapport.e2e.ts` (26 / 26 : brouillon absent, étape A vierge avant et après rechargement).
 
+### Créer un template : un seul bandeau des étapes ; vignettes vides de l'étape B (04/10/2026)
+
+- **Réalisé** : bandeau de l'étape A à toutes les étapes ; libellé « Charger un fichier » retiré des vignettes vides de l'étape B, curseur normal.
+- **Vérification** : captures des étapes A, B, D, E et F (même bandeau) ; recette `test/browser/format-rapport.e2e.ts` 27 / 27 (contrôle ajouté : bandeau identique, vignettes sans libellé, curseur normal).
+
 ## 4. Questions ouvertes
 
 1. **Déclencheur des règles de notification** : faut-il ajouter un sélecteur de déclencheur dans la console ? Aujourd'hui, une règle créée depuis l'écran reçoit un déclencheur par défaut : « planifié » pour une notification, « manuel » pour une alerte.

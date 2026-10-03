@@ -45,6 +45,16 @@ async function main() {
     await page.waitForFunction(() => document.body.innerText.includes('Fiche d\'identité'), null, { timeout: 15000 });
     const steps = await page.evaluate(() => ['Fiche d\'identité', 'Format du rapport', 'Composants', 'Ordre et données', 'Prévisualisation', 'Publication'].map((n) => document.body.innerText.indexOf(n)));
     check('1. six étapes, « Format du rapport » en étape 2', steps.every((x, k) => x >= 0 && (k === 0 || x > steps[k - 1])), JSON.stringify(steps));
+    const stepper = () => page.evaluate(() => (document.body.innerText.match(/Format du rapport/g) || []).length + '|' + [...document.querySelectorAll('div')].filter((d) => /^Étape \d$/i.test((d.textContent || '').trim())).length);
+    const stepperA = await stepper();
+    await page.getByText('Suivant ›').click();
+    await page.waitForTimeout(500);
+    // Étape B : même bandeau qu'à l'étape A (un seul) ; vignettes vides sans libellé ni curseur en main.
+    const thumbs = await page.evaluate(() => [...document.querySelectorAll('button')].filter((b) => /PAGE \d/.test(b.textContent || '')).map((b) => ({ label: /Charger un fichier/.test(b.textContent || ''), cursor: getComputedStyle(b.querySelector('div')!).cursor })));
+    const stepperB = await stepper();
+    check('   étape B : bandeau des étapes identique à l’étape A ; vignettes vides sans « Charger un fichier », curseur normal', stepperA.split('|')[1] === '6' && stepperB.split('|')[1] === '6' && thumbs.length === 4 && thumbs.every((t) => !t.label && t.cursor === 'default'), JSON.stringify({ stepperA, stepperB, thumbs }));
+    await page.evaluate(() => (window as any).__riseCockpit.setState({ tplStep: 1 }));
+    await page.waitForTimeout(300);
     await page.getByText('Suivant ›').click();
     await page.waitForTimeout(500);
     check('   étape B (maquette du 04/10/2026) : stepper, 0 / 4 pages, bandeau de validation', (await text(page, /0 \/ 4\s*pages chargées/)) !== '' && (await text(page, /0 \/ 4 pages vérifiées/)) !== '' && (await text(page, /B · FORMAT DU RAPPORT/)) !== '' && (await text(page, /Valider le format/)) !== '');

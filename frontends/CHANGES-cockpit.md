@@ -366,3 +366,8 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 ## Créer un template : session réinitialisée à la publication (04/10/2026)
 
 - `RISE Cockpit.dc.html` (`f6Publish`) : à la publication réussie, enregistrement différé du brouillon annulé, brouillon supprimé (`tplDraftDrop`) et assistant remis à vide ; le retour sur « Créer un template » ouvre l'étape A sur une session vierge (le serveur supprime aussi le brouillon de l'auteur à la création du template).
+
+## Créer un template : un seul bandeau des étapes ; vignettes vides de l'étape B (04/10/2026)
+
+- `RISE Cockpit.dc.html` : le bandeau des étapes de l'étape A (`tplSteps`, pastilles, étape courante en bleu nuit et lettre orange) est affiché à toutes les étapes (`tplStepper`) ; les bandeaux des maquettes B à F (`fbSteps`, `fdSteps`, `feSteps`, `f6Steps`) ne sont plus affichés ; navigation par le bandeau suspendue pendant la publication.
+- Étape B : vignettes des pages vides sans le libellé « Charger un fichier / ou déposez-le ici » (redondant avec la grande zone de chargement, et sans action au clic) ; curseur normal sur la zone vide.

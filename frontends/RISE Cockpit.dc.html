@@ -1061,7 +1061,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
   <!-- ===== COMITÉS · CRÉER UN TEMPLATE ===== -->
   <sc-if value="{{ vTplCreer }}" hint-placeholder-val="{{ false }}">
   <div style="display:flex;flex-direction:column;gap:18px;animation:rise-in .4s cubic-bezier(.2,.7,.2,1) both">
-    <sc-if value="{{ tplNotFmt }}" hint-placeholder-val="{{ true }}">
+    <sc-if value="{{ tplStepper }}" hint-placeholder-val="{{ true }}">
     <div style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px">
       <sc-for list="{{ tplSteps }}" as="s" hint-placeholder-count="6"><div onClick="{{ s.go }}" style="{{ s.style }}"><span style="{{ s.numStyle }}">{{ s.letter }}</span><div style="min-width:0"><div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;opacity:.7">Étape {{ s.num }}</div><b style="display:block;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ s.n }}</b></div></div></sc-for>
     </div>
@@ -1085,20 +1085,6 @@ a{color:#1d8f86}a:hover{color:#146b64}
     <!-- Étape B · Format du rapport : maquette « Template - Etape 2 Format du rapport » (04/10/2026), reprise à l'identique. -->
     <div style="max-width:1440px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:28px;font-family:'Plus Jakarta Sans',sans-serif;color:#10233A;-webkit-font-smoothing:antialiased">
 
-  <nav style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px">
-    <sc-for list="{{ fbSteps }}" as="s" hint-placeholder-count="6">
-      <div onClick="{{ s.go }}" style="{{ s.wrap }}">
-        <div style="{{ s.bar }}"></div>
-        <div style="display:flex;align-items:center;gap:10px;padding-top:12px">
-          <div style="{{ s.dot }}">{{ s.mark }}</div>
-          <div style="display:flex;flex-direction:column;gap:1px;min-width:0">
-            <span style="font-size:10.5px;font-weight:600;letter-spacing:.09em;color:#8A97A5">{{ s.n }}</span>
-            <span style="{{ s.label }}">{{ s.name }}</span>
-          </div>
-        </div>
-      </div>
-    </sc-for>
-  </nav>
 
   <header style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:24px 40px">
     <div style="display:flex;flex-direction:column;gap:10px;max-width:760px">
@@ -1125,8 +1111,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
       <button onClick="{{ p.select }}" onDragOver="{{ p.over }}" onDrop="{{ p.drop }}" style="{{ p.card }}">
         <div style="{{ p.slide }}">
           <sc-if value="{{ p.busy }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#6B7A89">Analyse en cours…</span></sc-if>
-          <sc-if value="{{ p.empty }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:#10233A"><b style="font-size:12.5px">Charger un fichier</b><span style="font-size:11px;color:#8A97A5">ou déposez-le ici</span></span></sc-if>
-        </div>
+                  </div>
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:12px 4px 2px">
           <div style="display:flex;flex-direction:column;gap:3px;min-width:0;text-align:left">
             <span style="font-size:10.5px;font-weight:700;letter-spacing:.12em;color:#8A97A5">{{ p.num }}</span>
@@ -1251,20 +1236,6 @@ a{color:#1d8f86}a:hover{color:#146b64}
     <!-- Étape D · Ordre et données : maquette « Template - Etape 4 Ordre et donnees » (04/10/2026), reprise à l'identique. -->
     <div style="max-width:1440px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:28px;font-family:'Plus Jakarta Sans',sans-serif;color:#10233A;-webkit-font-smoothing:antialiased">
 
-  <nav style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px">
-    <sc-for list="{{ fdSteps }}" as="s" hint-placeholder-count="6">
-      <div onClick="{{ s.go }}" style="{{ s.wrap }}">
-        <div style="{{ s.bar }}"></div>
-        <div style="display:flex;align-items:center;gap:10px;padding-top:12px">
-          <div style="{{ s.dot }}">{{ s.mark }}</div>
-          <div style="display:flex;flex-direction:column;gap:1px;min-width:0">
-            <span style="font-size:10.5px;font-weight:600;letter-spacing:.09em;color:#8A97A5">{{ s.n }}</span>
-            <span style="{{ s.label }}">{{ s.name }}</span>
-          </div>
-        </div>
-      </div>
-    </sc-for>
-  </nav>
 
   <header style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px 40px">
     <div style="display:flex;flex-direction:column;gap:10px">
@@ -1380,20 +1351,6 @@ a{color:#1d8f86}a:hover{color:#146b64}
     <!-- Étape E · Prévisualisation : maquette « Template - Etape 5 Previsualisation » (04/10/2026), reprise à l'identique ; vignettes = images réelles des diapositives générées. -->
     <div style="max-width:1440px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:28px;font-family:'Plus Jakarta Sans',sans-serif;color:#10233A;-webkit-font-smoothing:antialiased">
 
-  <nav style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px">
-    <sc-for list="{{ feSteps }}" as="s" hint-placeholder-count="6">
-      <div onClick="{{ s.go }}" style="{{ s.wrap }}">
-        <div style="{{ s.bar }}"></div>
-        <div style="display:flex;align-items:center;gap:10px;padding-top:12px">
-          <div style="{{ s.dot }}">{{ s.mark }}</div>
-          <div style="display:flex;flex-direction:column;gap:1px;min-width:0">
-            <span style="font-size:10.5px;font-weight:600;letter-spacing:.09em;color:#8A97A5">{{ s.n }}</span>
-            <span style="{{ s.label }}">{{ s.name }}</span>
-          </div>
-        </div>
-      </div>
-    </sc-for>
-  </nav>
 
   <header style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px 40px">
     <div style="display:flex;flex-direction:column;gap:10px">
@@ -1517,20 +1474,6 @@ a{color:#1d8f86}a:hover{color:#146b64}
     <!-- Étape F · Publication : maquette « Template - Etape 6 Publication » (04/10/2026), reprise à l'identique. -->
     <div style="max-width:1440px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:28px;font-family:'Plus Jakarta Sans',sans-serif;color:#10233A;-webkit-font-smoothing:antialiased">
 
-  <nav style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px">
-    <sc-for list="{{ f6Steps }}" as="s" hint-placeholder-count="6">
-      <div onClick="{{ s.go }}" style="{{ s.wrap }}">
-        <div style="{{ s.bar }}"></div>
-        <div style="display:flex;align-items:center;gap:10px;padding-top:12px">
-          <div style="{{ s.dot }}">{{ s.mark }}</div>
-          <div style="display:flex;flex-direction:column;gap:1px;min-width:0">
-            <span style="font-size:10.5px;font-weight:600;letter-spacing:.09em;color:#8A97A5">{{ s.n }}</span>
-            <span style="{{ s.label }}">{{ s.name }}</span>
-          </div>
-        </div>
-      </div>
-    </sc-for>
-  </nav>
 
   <header style="display:flex;flex-direction:column;gap:10px">
     <span style="font-size:11px;font-weight:700;letter-spacing:.16em;color:#8A97A5">F · VALIDATION ET PUBLICATION</span>
@@ -4853,7 +4796,7 @@ class Component extends DCLogic {
     const validFmt = fmtLoaded === 4 && (!this._api || !!(chk && chk.complete));
     const valid1 = Dft.name.trim().length > 0; const valid2 = Dft.comps.length > 0;
     const canGo = n => n <= 1 || (n <= 2 && valid1) || (n <= 3 && valid1 && validFmt) || (n <= 5 && valid1 && validFmt && valid2) || (n === 6 && valid1 && validFmt && valid2 && !!(S.tplPrev && S.tplPrev.done && !S.tplPrev.err && S.tplPrev.key === this.tplDraftKey()));
-    const tplSteps = ['Fiche d\'identité', 'Format du rapport', 'Composants', 'Ordre et données', 'Prévisualisation', 'Publication'].map((n, i) => { const k = i + 1; const on = k === step; const done = k < step; const ok = canGo(k); return { n, num: k, letter: 'ABCDEF'[i], go: () => { if (!ok) return; this.setState({ tplStep: k }); if (k === 5) this.tplPreviewRun(); }, style: 'display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;min-width:0;cursor:' + (ok ? 'pointer' : 'default') + ';background:' + (on ? '#10233a' : done ? '#e6f3f2' : '#f3f7f6') + ';color:' + (on ? '#fff' : done ? '#1d8f86' : ok ? '#10233a' : '#8a8f9c') + ';transition:background .2s', numStyle: 'width:26px;height:26px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:11.5px;font-weight:800;background:' + (on ? '#f7a41c' : done ? '#1d8f86' : '#cfd8d6') + ';color:' + (on ? '#1a1200' : '#fff') }; });
+    const tplSteps = ['Fiche d\'identité', 'Format du rapport', 'Composants', 'Ordre et données', 'Prévisualisation', 'Publication'].map((n, i) => { const k = i + 1; const on = k === step; const done = k < step; const ok = canGo(k); return { n, num: k, letter: 'ABCDEF'[i], go: () => { if (!ok || (S.f6 && S.f6.st && S.f6.st !== 'idle' && S.f6.st !== 'failed')) return; this.setState({ tplStep: k, f6: null }); if (k === 5) this.tplPreviewRun(); }, style: 'display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;min-width:0;cursor:' + (ok ? 'pointer' : 'default') + ';background:' + (on ? '#10233a' : done ? '#e6f3f2' : '#f3f7f6') + ';color:' + (on ? '#fff' : done ? '#1d8f86' : ok ? '#10233a' : '#8a8f9c') + ';transition:background .2s', numStyle: 'width:26px;height:26px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:11.5px;font-weight:800;background:' + (on ? '#f7a41c' : done ? '#1d8f86' : '#cfd8d6') + ';color:' + (on ? '#1a1200' : '#fff') }; });
     const CC = S.tplCompCat, ccById = CC ? Object.fromEntries(CC.components.map(c => [c.id, c])) : {};
     if (this._api && !CC && !this._tplCatReq) { this._tplCatReq = true; setTimeout(() => this._api.tplComponents().then(c => this.setState({ tplCompCat: c })).catch(() => { this._tplCatReq = false; }), 0); }
     // Composants liés à un module de la Console (Budget) : verrouillés tant que le module est inactif pour le projet.
@@ -5074,7 +5017,7 @@ class Component extends DCLogic {
       return { k, i, ref, file, busy, sum, RS, rsOk, zones, roles, bg, img, size, warns, err, verified: !!(ref && ref.verified) };
     };
     const FBP = FK.map(fbPage), cp = FBP[fbSel];
-    const fbSlideStyle = (p, big) => ({ position: 'relative', aspectRatio: p.size.cx + '/' + p.size.cy, containerType: 'inline-size', overflow: big ? 'visible' : 'hidden', background: p.ref ? (p.img ? p.bg + ' center / 100% 100% no-repeat url(' + p.img + ')' : p.bg) : '#fff', borderRadius: big ? 8 : 7, boxShadow: big ? '0 1px 2px rgba(16,35,58,.08),0 18px 40px -20px rgba(16,35,58,.35)' : 'inset 0 0 0 1px rgba(16,35,58,.08)', ...(p.ref ? {} : { outline: '1.5px dashed #C9D3DA', outlineOffset: -1.5 }) });
+    const fbSlideStyle = (p, big) => ({ position: 'relative', aspectRatio: p.size.cx + '/' + p.size.cy, containerType: 'inline-size', overflow: big ? 'visible' : 'hidden', background: p.ref ? (p.img ? p.bg + ' center / 100% 100% no-repeat url(' + p.img + ')' : p.bg) : '#fff', borderRadius: big ? 8 : 7, boxShadow: big ? '0 1px 2px rgba(16,35,58,.08),0 18px 40px -20px rgba(16,35,58,.35)' : 'inset 0 0 0 1px rgba(16,35,58,.08)', ...(p.ref ? {} : { outline: '1.5px dashed #C9D3DA', outlineOffset: -1.5, ...(big ? {} : { cursor: 'default' }) }) });
     const fbPick = k => { this._fmtKind = k; if (this.tplFmtRef.current) this.tplFmtRef.current.click(); };
     const fbDrop = k => e => { e.preventDefault(); const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if (f) this.tplFmtLoad(k, f); };
     const fbSetRoles = (k, map) => { const Fx = this.state.tplDraft.fmt || { files: {}, pages: {} }, pr = Fx.pages[k]; if (!pr) return; this.setState(s => ({ tplDraft: { ...s.tplDraft, fmt: { ...Fx, pages: { ...Fx.pages, [k]: { ...pr, roles: map } } } } }), () => this.tplFmtRefresh()); };
@@ -5137,7 +5080,7 @@ class Component extends DCLogic {
       // Valider le format : 4 pages chargées, contrôlées et vérifiées ; sinon la première page à reprendre s'ouvre.
       fbValidate: () => { if (fbOk) return this.setState({ tplStep: 3 }); const j = FBP.findIndex(p => !p.ref || p.err || !p.verified); this.setState({ fbSel: j < 0 ? fbSel : j, fbHover: null }); },
       fbValidateStyle: 'height:42px;padding:0 20px;border-radius:12px;border:none;background:#fff;color:#10233A;font:700 13.5px \'Plus Jakarta Sans\',sans-serif;cursor:pointer' + (fbOk ? '' : ';opacity:.55'),
-      tplNotFmt: step < 2 || step === 3 };
+      tplNotFmt: step < 2 || step === 3, tplStepper: true };
     const fmtVals = { ...fbVals, tplFmtRef: this.tplFmtRef,
       tplFmtImportAll: () => { this._fmtKind = null; if (this.tplFmtRef.current) this.tplFmtRef.current.click(); },
       tplFmtFile: e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) this.tplFmtLoad(this._fmtKind || null, f); },
