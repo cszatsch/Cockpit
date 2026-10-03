@@ -192,7 +192,7 @@ export class ReportFormatController {
     const scope = await this.access.scope(actor, p);
     if (!canWriteTools(scope.access)) throw forbidden('Templates : profil non Lecteur (PMO, Responsable)');
     const d = parse(PreviewSchema, body);
-    const cfg = configErrors(d.components as any);
+    const cfg = { ...configErrors(d.components as any), ...(await this.reports.moduleErrors(scope.project.id, d.components as any)) };
     if (Object.keys(cfg).length) throw badRequest('Composants invalides', cfg);
     const format = d.format ? await this.prisma.$transaction((db) => this.formats.formatForTemplate(scope, d.format!, db)) : null;
     return this.reports.preview(scope, { name: d.name, version: d.version, bodyId: d.bodyId ?? null, components: d.components as any, format });

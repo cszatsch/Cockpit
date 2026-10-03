@@ -356,6 +356,11 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 - **Tests** : recette navigateur `test/browser/format-rapport.e2e.ts` mise à jour (22 / 22), `test/e2e/report-template.spec.ts` (statut « vérifiée » enregistré).
 - **Point d'attention** : sous 1 040 px d'écran, le Cockpit entier défile horizontalement (largeur minimale de l'application, inchangée).
 
+### Créer un template : composant Budget verrouillé quand le module est inactif (04/10/2026)
+
+- **Corrigé** : le composant Budget n'est plus sélectionnable quand le module Budget est inactif dans la Console (cadenas, mention « Module Gestion du budget non activé ») ; le serveur refuse aussi la création, la modification et l'aperçu d'un template qui le contient, et la génération d'un template existant.
+- **Tests** : `test/e2e/report-template.spec.ts` (refus à la création, à l'aperçu et à la génération, module inactif) ; vérifié dans le navigateur.
+
 ## 4. Questions ouvertes
 
 1. **Déclencheur des règles de notification** : faut-il ajouter un sélecteur de déclencheur dans la console ? Aujourd'hui, une règle créée depuis l'écran reçoit un déclencheur par défaut : « planifié » pour une notification, « manuel » pour une alerte.

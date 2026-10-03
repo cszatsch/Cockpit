@@ -336,3 +336,8 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 - `RISE Cockpit.dc.html` : bloc de l'étape B remplacé par la maquette livrée (`docs/specs/MAQUETTE - Etape 2 Format du rapport/`), à l'identique (mise en page, couleurs, typographies, survols, textes) ; données réelles à la place de `PAGES` (`fbPage`, `fbVals`) ; stepper et navigation génériques masqués à cette étape (`tplNotFmt`) ; polices JetBrains Mono et Poppins ajoutées au chargement des polices ; anciennes cartes de page et méthodes `tplFmtSetRole` / `tplFmtPrevKey` retirées ; aperçus : rendu réel sans annotation (`tplFmtRefresh`) ; clé du contrôle sans le statut « vérifiée » (`fmtPagesKey`).
 - `api.js` : `tplBody` transmet `verified` par page.
 - Ajouts nécessaires au fonctionnement, absents de la maquette : liste des diapositives (fichier de plusieurs diapositives), page vide (« Charger un fichier », « ou déposez-le ici »), « Analyse en cours… », « Proposé par règles » / « Rétablir la proposition » sans IA, erreurs et alertes du serveur.
+
+## Créer un template, étape 3 : composant Budget verrouillé (04/10/2026)
+
+- `RISE Cockpit.dc.html` : carte d'un composant dont le module est inactif (Budget) verrouillée — cadenas des widgets de modules inactifs, mention « Module Gestion du budget non activé », non sélectionnable (`CMOD`, `compLocked`).
+- `api.js` : état actif des modules (`modOn`), lu par `GET /modules`.

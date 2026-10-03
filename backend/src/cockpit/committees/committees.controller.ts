@@ -249,7 +249,7 @@ export class CommitteesController {
     const scope = await this.access.scope(actor, p);
     if (!canWriteTools(scope.access)) throw forbidden('Templates : profil non Lecteur (PMO, Responsable)');
     const input = parse(TemplateCreate, body);
-    const cfg = configErrors(input.components as any);
+    const cfg = { ...configErrors(input.components as any), ...(await this.tplReports.moduleErrors(scope.project.id, input.components as any)) };
     if (Object.keys(cfg).length) throw badRequest('Composants invalides', cfg);
     return this.prisma.$transaction(async (db) => {
       if (input.bodyId && !(await db.governanceBody.findFirst({ where: { id: input.bodyId, projectId: scope.project.id } }))) throw badRequest('Référence invalide', { bodyId: 'instance introuvable' });
@@ -285,7 +285,7 @@ export class CommitteesController {
     const scope = await this.access.scope(actor, p);
     if (!canWriteTools(scope.access)) throw forbidden();
     const input = parse(TemplateCreate.partial().strict(), body);
-    if (input.components) { const cfg = configErrors(input.components as any); if (Object.keys(cfg).length) throw badRequest('Composants invalides', cfg); }
+    if (input.components) { const cfg = { ...configErrors(input.components as any), ...(await this.tplReports.moduleErrors(scope.project.id, input.components as any)) }; if (Object.keys(cfg).length) throw badRequest('Composants invalides', cfg); }
     return this.prisma.$transaction(async (db) => {
       const t = await db.reportTemplate.findFirst({ where: { id, projectId: scope.project.id } });
       if (!t) throw notFound();

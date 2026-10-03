@@ -40,6 +40,8 @@ describe('Cockpit — Templates de rapport : versions et publications', () => {
     t = await setup();
     pmo = await t.token(WHO.pmo);
     fileId = (await http().post(`${R}/report-formats`).set('Authorization', `Bearer ${pmo}`).attach('file', await makeFormatPptx(), 'Charte.pptx').expect(201)).body.id;
+    // Module Budget actif pour ces essais (composant « Budget ») ; son absence est testée à part.
+    await t.db.module.update({ where: { id: 'bud' }, data: { scope: 'ALL' } });
   });
   afterAll(() => t.close());
 
@@ -92,6 +94,24 @@ describe('Cockpit — Templates de rapport : versions et publications', () => {
     expect(await c.z.file(chartPath)!.async('string')).toContain(`<c:v>${last.overallScore}</c:v>`);
     expect(Object.keys(c.z.files).some((f) => f.startsWith('ppt/media/') && /\.(png|jpe?g)$/.test(f) && f.includes('chart'))).toBe(false);
     await t.db.risk.delete({ where: { id: 'R-TPL' } });
+  });
+
+  it('composant Budget : refusé quand le module Budget est inactif pour le projet (création, aperçu, génération)', async () => {
+    const t1 = await post('/report-templates', { name: 'Avec budget', version: '1.0', components: [{ id: 'budget', scope: 'PROJECT' }] }).expect(201);
+    await t.db.module.update({ where: { id: 'bud' }, data: { scope: 'OFF' } });
+    try {
+      const msg = "Budget : le module n'est pas activé pour ce projet (Console › Modules).";
+      const c = await post('/report-templates', { name: 'Sans module', version: '1.0', components: [{ id: 'synthese', scope: 'PROJECT' }, { id: 'budget', scope: 'PROJECT' }] }).expect(400);
+      expect(c.body.fields).toEqual({ 'components.1': msg });
+      const pv = await post('/report-templates/preview', { name: 'X', components: [{ id: 'budget', scope: 'PROJECT' }] }).expect(400);
+      expect(pv.body.fields).toEqual({ 'components.0': msg });
+      // Template existant : la génération est refusée avec l'anomalie.
+      const g = await get(`/report-templates/${t1.body.id}/pptx`).expect(422);
+      expect(g.body.issues).toEqual(expect.arrayContaining([expect.objectContaining({ severity: 'error', message: msg })]));
+      expect((await get('/modules').expect(200)).body.find((m: any) => m.id === 'bud')).toMatchObject({ active: false });
+    } finally {
+      await t.db.module.update({ where: { id: 'bud' }, data: { scope: 'ALL' } });
+    }
   });
 
   it('étape B : statut « vérifiée » de chaque page enregistré avec le format du template', async () => {

@@ -313,7 +313,7 @@ export function attach(comp) {
       ed: {}, actStatus: {}, sesEd: {}, sesAdded: [], refValues: {}, refDeleted: {}, bmEd: {}, bmAdd: {},
       phLots: hydratePhLots(B), txtEd: {}, critEd: {}, arbData: {}, lvTrack: {}, gbExtra: {}, gbMem: {}, gbAdded: [], added: {}, lvAdded: [], dlOwner: {},
       psAdded: [], psAcc: {}, roAdded: [], roTier: {}, tmAdded: [], wsAdded: [], ipAdded: [], spAdded: [], phAdded: [], waAdded: [], spDesc: {}, phDesc: {}, plAdd: {},
-      newTasks: [], mineArch: {}, mineTitles: {}, mineDetails: {}, mineDue: {}, mineCta: {}, cmts: {}, modPh: {},
+      newTasks: [], mineArch: {}, mineTitles: {}, mineDetails: {}, mineDue: {}, mineCta: {}, cmts: {}, modPh: {}, modOn: {},
     };
     SECTION_STORES.forEach((k) => { const v = byId['ui.' + k]; st[k] = v && typeof v === 'object' ? v : {}; });
     // Fiches d'arbitrage : D-007 (fiche complète du jeu) → txtEd ; fiches saisies ensuite → arbData.
@@ -332,7 +332,7 @@ export function attach(comp) {
     // Invitations en attente (Q8 bis).
     (L.invites || []).filter((x) => x.status === 'PENDING').forEach((x) => { st.psAcc[x.personId] = 'pending'; });
     // Demandes d'activation de module en attente.
-    (L.modules || []).forEach((m) => { const k = Object.keys(MODULE_OF).find((x) => MODULE_OF[x] === m.id); if (k && m.pendingRequest) st.modPh[k] = 2; });
+    (L.modules || []).forEach((m) => { const k = Object.keys(MODULE_OF).find((x) => MODULE_OF[x] === m.id); if (k && m.pendingRequest) st.modPh[k] = 2; if (k) st.modOn[k] = !!m.active; });
     // Commentaires de cellule.
     (L.comments || []).forEach((c) => {
       const d = new Date(c.createdAt);

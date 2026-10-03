@@ -1279,3 +1279,13 @@ Maquette livrée (`docs/specs/MAQUETTE - Etape 2 Format du rapport/`) intégrée
 | Persistance | Le brouillon (fichiers, rôles, statut) vit dans l'assistant jusqu'à la publication (étape F), qui enregistre le template et son format ; les fichiers chargés sont enregistrés dès l'import (`report_format_files`) | — |
 
 Écarts à la maquette, nécessaires au fonctionnement réel : liste « Diapositive N » à côté de « Remplacer » quand le fichier a plusieurs diapositives (choix de la diapositive de chaque type) ; page vide : « Charger un fichier / ou déposez-le ici » (textes existants) dans la vignette et l'aperçu, « Analyse en cours… » pendant l'analyse ; proposition faite par règles quand l'IA n'est pas disponible : « Proposé par règles » / « Rétablir la proposition » ; erreurs bloquantes et autres alertes du serveur (zone de titre absente, extraction d'un PDF ou d'une image) affichées avec le style des alertes de la maquette ; badge du fichier : PPTX, PDF ou IMAGE selon le fichier.
+
+## Créer un template : composant Budget soumis au module Budget de la Console (04/10/2026)
+
+Anomalie signalée par le commanditaire : le composant « Budget » était sélectionnable à l'étape 3 alors que le module Budget est inactif dans la Console.
+
+| Sujet | Choix | Code |
+|---|---|---|
+| Règle | Un composant lié à un module optionnel n'est disponible que si le module est actif pour le projet (portée « tous les projets » ou projet rattaché) ; aujourd'hui : Budget → module `bud` | `COMPONENT_MODULE`, `ReportTemplateService.moduleActive` |
+| Serveur | Création, modification de la structure et aperçu d'un template refusés (400, champ `components.N`, « Budget : le module n'est pas activé pour ce projet (Console › Modules). ») ; template existant : anomalie bloquante à la génération (422) | `moduleErrors`, `moduleOffMessage` |
+| Écran | Carte verrouillée : cadenas à la place de la case (même pictogramme que les widgets des modules inactifs), mention « Module Gestion du budget non activé », carte atténuée, curseur interdit ; un clic affiche « Le module Gestion du budget n'est pas activé pour votre projet » ; un composant verrouillé déjà présent dans le brouillon en est retiré ; état des modules lu par `GET /modules` (`modOn`) | `CMOD`, `compLocked` |

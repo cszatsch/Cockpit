@@ -72,6 +72,9 @@ export const COMPONENTS: Record<ComponentId, ComponentDef> = {
   },
 };
 export const COMPONENT_IDS = Object.keys(COMPONENTS) as ComponentId[];
+/** Composants liés à un module optionnel de la Console (04/10/2026) : indisponibles tant que le module est inactif pour le projet. */
+export const COMPONENT_MODULE: Partial<Record<ComponentId, string>> = { budget: 'bud' };
+export const moduleOffMessage = (label: string) => `${label} : le module n'est pas activé pour ce projet (Console › Modules).`;
 /** Indicateurs du graphique du tableau de bord (séries) ; les autres sont des indicateurs chiffrés. */
 export const DASHBOARD_SERIES = ['progress', 'planned'];
 /** Indicateurs chiffrés de la synthèse affichés en tuiles (au plus 4) ; le texte reprend les faits marquants. */

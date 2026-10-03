@@ -14,9 +14,7 @@ import { composeTemplate, FillData, fillTemplate, TemplateFieldMissing, Template
 import { LlmService } from '../../core/llm.service';
 import { parseWriting, retryPrompt, WritingFacts, WRITING_SKILLS, WRITING_TIMEOUT_MS, writingPrompt, writingSystem } from '../../domain/report-writing';
 import { FormatAnalysis, PAGE_KINDS, PageKind, previewSvg } from '../../domain/report-format';
-import {
-  COMPONENTS, ComponentConfig, ComponentData, ComponentValues, DASHBOARD_SERIES, frDay, indicatorsOf, inPeriod, Issue, KPI_MAX, pagesOf, periodOf, periodRange, sectionsOf,
-} from '../../domain/report-components';
+import { COMPONENTS, ComponentConfig, ComponentData, ComponentValues, DASHBOARD_SERIES, frDay, indicatorsOf, inPeriod, Issue, KPI_MAX, pagesOf, periodOf, periodRange, sectionsOf, COMPONENT_MODULE, ComponentId, moduleOffMessage } from '../../domain/report-components';
 
 const STATUS: Record<string, string> = { OPEN: 'Ouvert', IN_PROGRESS: 'En cours', BLOCKED: 'Bloquée', DONE: 'Terminé', CLOSED: 'Clos', PLANNED: 'Prévu', PREPARATION: 'En préparation', ACTIVE: 'Actif', MITIGATING: 'En traitement', DRAFT: 'Brouillon', IN_REVIEW: 'En revue', TO_ARBITRATE: 'À arbitrer', ARBITRATED: 'Arbitrée', CANCELLED: 'Annulée', SUPERSEDED: 'Remplacée' };
 const PRIO: Record<string, string> = { HIGH: 'Haute', MEDIUM: 'Moyenne', LOW: 'Basse' };
@@ -206,6 +204,8 @@ export class ReportTemplateService {
         break;
       }
       case 'budget': {
+        // Module Budget inactif dans la Console : composant indisponible (publication refusée).
+        if (!(await this.moduleActive(scope.project.id, COMPONENT_MODULE.budget!))) { issues.push({ severity: 'error', component: c.key, message: moduleOffMessage(def.label) }); break; }
         const [periods, prog] = await Promise.all([this.prisma.missionPeriod.findMany({ where: P }), this.prisma.programBudget.findUnique({ where: { projectId: scope.project.id } })]);
         // Montants des périodes de mission en milliers (k€), comme l'écran Budget.
         const eur = (n: number) => `${Math.round(n).toLocaleString('fr-FR').replace(/ /g, ' ')} k${scope.project.currency === 'EUR' ? '€' : scope.project.currency}`;
@@ -317,6 +317,22 @@ export class ReportTemplateService {
       out.issues.push({ severity: 'warning', message: `Rédaction par l'IA indisponible (${String((e as { message?: string }).message ?? e).slice(0, 120)}) : titres et synthèse par défaut.` });
     }
     return out;
+  }
+
+  /** Module de la Console actif pour le projet (portée « tous » ou projet rattaché). */
+  async moduleActive(projectId: string, moduleId: string) {
+    const m = await this.prisma.module.findUnique({ where: { id: moduleId }, include: { projects: true } });
+    return !!m && (m.scope === 'ALL' || (m.scope === 'PROJECTS' && m.projects.some((x) => x.projectId === projectId)));
+  }
+
+  /** Composants dont le module est inactif pour le projet : erreurs par composant (création, modification, aperçu). */
+  async moduleErrors(projectId: string, comps: Array<{ id: string }>): Promise<Record<string, string>> {
+    const err: Record<string, string> = {};
+    for (const [i, c] of comps.entries()) {
+      const mod = COMPONENT_MODULE[c.id as ComponentId];
+      if (mod && !(await this.moduleActive(projectId, mod))) err[`components.${i}`] = moduleOffMessage(COMPONENTS[c.id as ComponentId].label);
+    }
+    return err;
   }
 
   // ───────────── Format et composition ─────────────
