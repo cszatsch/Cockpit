@@ -335,6 +335,13 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 - **Tests** : `test/unit/report-roles.spec.ts` (8), `test/e2e/report-template.spec.ts` (8, dont rôles et rédaction avec une IA simulée), recette navigateur `test/browser/format-rapport.e2e.ts` 19/19.
 - **Points d'attention** : deux propositions de l'IA pour la même page peuvent différer (logo client gardé ou retiré) : l'utilisateur valide ; chaque publication réécrit les titres (un appel Opus 5.5 par publication et par aperçu) ; capacité des zones estimée (police non mesurée) ; skills en base à mettre à jour (Console › Assistant › Skills).
 
+### Rapports : système de design, Gantt et baromètre (03/10/2026)
+
+- **Réalisé** : système de design (jetons, échelle typographique, polices des pages modèles) appliqué à tous les éléments posés ; planning en Gantt (phase en cours, avancement, retard, jalons, repère du jour, bandeau phase en cours / prochain jalon / fin), tableau au-delà de 25 lignes avec regroupement des phases terminées ; baromètre en tableau de bord (score et écart, évolution, avis, domaines, points clés) ; tableaux, indicateurs et synthèse retravaillés ; skill de designer pour Claude Code.
+- **Vérification** sur le template « Test » du commanditaire (rendu PowerPoint, 3 itérations) : chevauchement de l'étiquette « Aujourd'hui » et des jalons, police du thème (Calibri) au lieu de celle des pages (Poppins), retours à la ligne de la légende corrigés ; tableau de 33 lignes ramené à 15 (sous-phases terminées regroupées).
+- **Tests** : `test/unit/report-template.spec.ts` (bloc « Rapport — système de design », 7 tests : jetons, frise, Gantt, retard, tableau, baromètre, planche redessinée), `test/e2e/report-template.spec.ts` (planning en Gantt puis en tableau sur les données réelles).
+- **Points d'attention** : largeur des textes estimée (police non mesurée) ; le graphique d'évolution du baromètre garde l'échelle 0–10 (honnête mais peu marquée quand le score bouge peu) ; un Gantt sur une période très longue (plus de 7 ans) passe à l'année.
+
 ## 4. Questions ouvertes
 
 1. **Déclencheur des règles de notification** : faut-il ajouter un sélecteur de déclencheur dans la console ? Aujourd'hui, une règle créée depuis l'écran reçoit un déclencheur par défaut : « planifié » pour une notification, « manuel » pour une alerte.

@@ -44,7 +44,8 @@ describe('Cockpit — Templates de rapport : versions et publications', () => {
 
   it('catalogue : nature, indicateurs proposés et périodes des composants', async () => {
     const r = await get('/report-components').expect(200);
-    expect(r.body.components.find((c: any) => c.id === 'barometre')).toMatchObject({ nature: 'Graphique', parts: ['chart'], periodic: true, defaultPeriod: 'last6', indicators: [{ id: 'score', label: 'Score global' }, { id: 'respondents', label: 'Répondants' }] });
+    expect(r.body.components.find((c: any) => c.id === 'barometre')).toMatchObject({ nature: 'Tableau de bord', parts: ['board', 'chart'], periodic: true, defaultPeriod: 'last6', indicators: [{ id: 'score', label: 'Score et évolution' }, { id: 'sentiment', label: 'Avis des répondants' }, { id: 'domains', label: 'Score par domaine' }, { id: 'themes', label: 'Points clés' }] });
+    expect(r.body.components.find((c: any) => c.id === 'planning')).toMatchObject({ nature: 'Gantt', parts: ['board'], indicators: [{ id: 'milestones', label: 'Jalons sur la frise' }, { id: 'subphases', label: 'Sous-phases' }] });
     expect(r.body.components.find((c: any) => c.id === 'risques')).toMatchObject({ nature: 'Tableau', periodic: false });
     expect(r.body.periods.map((p: any) => p.id)).toEqual(['all', 'month', 'quarter', 'last3', 'last6', 'next30', 'next90']);
   });
@@ -90,6 +91,29 @@ describe('Cockpit — Templates de rapport : versions et publications', () => {
     expect(await c.z.file(chartPath)!.async('string')).toContain(`<c:v>${last.overallScore}</c:v>`);
     expect(Object.keys(c.z.files).some((f) => f.startsWith('ppt/media/') && /\.(png|jpe?g)$/.test(f) && f.includes('chart'))).toBe(false);
     await t.db.risk.delete({ where: { id: 'R-TPL' } });
+  });
+
+  it('planning : Gantt des phases (phase en cours, repère du jour) ; avec les sous-phases au-delà de 25 lignes, tableau', async () => {
+    const gantt = await post('/report-templates', { name: 'Gantt', version: '1.0', components: [{ id: 'planning', scope: 'PROJECT' }, { id: 'barometre', scope: 'PROJECT' }], format: format() }).expect(201);
+    const g = await slideXml((await get(`/report-templates/${gantt.body.id}/pptx`).buffer(true).parse(binary).expect(200)).body as Buffer);
+    const current = (await t.db.phase.findFirstOrThrow({ where: { projectId: 'RISE', status: 'IN_PROGRESS' } }));
+    expect(g.xml[2]).toContain("Aujourd'hui · 26 sept.");
+    expect(g.xml[2]).toContain(`>${current.name}<`);
+    expect(g.xml[2]).toContain('>Phase en cours<');
+    // Baromètre : tableau de bord (score, avis, domaines) et graphique natif de l'évolution.
+    expect(g.xml[3]).toContain('Score global');
+    expect(g.xml[3]).toContain('Score par domaine');
+    expect(g.xml[3]).toContain('<p:graphicFrame>');
+    const subs = await t.db.subphase.count({ where: { projectId: 'RISE' } });
+    const phases = await t.db.phase.count({ where: { projectId: 'RISE' } });
+    if (subs + phases > 25) {
+      const r = await post('/report-templates/preview', { name: 'T', components: [{ id: 'planning', scope: 'PROJECT', indicators: ['milestones', 'subphases'] }], format: format() }).expect(200);
+      expect(r.body.issues).toEqual(expect.arrayContaining([expect.objectContaining({ severity: 'warning', message: expect.stringMatching(/présenté en tableau/) })]));
+      const tb = await post('/report-templates', { name: 'Tableau', version: '1.0', components: [{ id: 'planning', scope: 'PROJECT', indicators: ['milestones', 'subphases'] }], format: format() }).expect(201);
+      const x = (await slideXml((await get(`/report-templates/${tb.body.id}/pptx`).buffer(true).parse(binary).expect(200)).body as Buffer)).xml[2];
+      expect(x).toContain('>Phase · sous-phase<');
+      expect(x).toMatch(/sous-phases? terminées?/);
+    }
   });
 
   it('anomalies avant génération : avertissements listés ; périmètre disparu ou template endommagé → génération refusée (422)', async () => {

@@ -9,6 +9,7 @@ import { techId } from '../../core/ids';
 import { OoxmlPackage } from '../../core/ooxml';
 import { analyzePptx, mediaDataUri } from '../../core/report-format-read';
 import { PageSource } from '../../core/report-format-write';
+import { BarometerData, foldPlan, GANTT_MAX_ROWS, GanttData, GanttRow, PLAN_TABLE_HEAD_IN, PLAN_TABLE_MIN_ROW_IN } from '../../core/report-draw';
 import { composeTemplate, FillData, fillTemplate, TemplateFieldMissing, TemplateManifest, visualCheck } from '../../core/report-template';
 import { LlmService } from '../../core/llm.service';
 import { parseWriting, retryPrompt, WritingFacts, WRITING_SKILLS, WRITING_TIMEOUT_MS, writingPrompt, writingSystem } from '../../domain/report-writing';
@@ -107,7 +108,22 @@ export class ReportTemplateService {
         const over = ph.filter((p) => p.progressPct < 0 || p.progressPct > 100).map((p) => p.code);
         if (over.length) warn(`avancement hors de 0 à 100 % pour ${list(over)}.`);
         if (!ph.length) warn('aucune phase sur le périmètre.');
-        parts.push(table(inds, ph.map((p) => ({ code: p.code, name: p.name, start: day(p.startDate), end: day(p.endDate), progress: `${p.progressPct} %`, status: st(p.status) }))));
+        // Gantt (03/10/2026) : phases, sous-phases si demandées, phase en cours, jalons ; tableau au-delà de 25 lignes.
+        const current = ph.find((p) => p.status === 'IN_PROGRESS') ?? ph.find((p) => p.startDate <= today && today <= p.endDate && p.status !== 'DONE');
+        const subs = inds.includes('subphases') ? await this.prisma.subphase.findMany({ where: { ...P, phaseId: { in: ph.map((p) => p.id) } }, orderBy: [{ startDate: 'asc' }, { code: 'asc' }] }) : [];
+        const rows: GanttRow[] = [], rowOf = new Map<string, number>();
+        for (const p of ph) {
+          rowOf.set(p.id, rows.length);
+          rows.push({ level: 0, code: p.code, name: p.name, start: p.startDate, end: p.endDate, status: p.status, progress: p.progressPct, current: p.id === current?.id });
+          for (const sp of subs.filter((x) => x.phaseId === p.id && x.startDate && x.endDate)) {
+            rowOf.set(sp.id, rows.length);
+            rows.push({ level: 1, code: sp.code, name: sp.name, start: sp.startDate!, end: sp.endDate!, status: sp.status, progress: sp.progressPct, current: false });
+          }
+        }
+        const ms = inds.includes('milestones') ? await this.prisma.milestone.findMany({ where: { ...P, phaseId: { in: ph.map((p) => p.id) } }, orderBy: { iso: 'asc' } }) : [];
+        const milestones = ms.map((m) => ({ code: m.code, label: m.n, iso: m.iso, row: rowOf.get(m.subphaseId ?? '') ?? rowOf.get(m.phaseId) ?? -1 }));
+        parts.push({ part: 'board', board: 'planning', data: { today, rows, milestones, mode: rows.length > GANTT_MAX_ROWS ? 'table' : 'gantt' } as GanttData & { mode: string } });
+        if (rows.length > GANTT_MAX_ROWS) warn(`${rows.length} lignes : le planning est présenté en tableau (Gantt jusqu'à ${GANTT_MAX_ROWS} lignes).`);
         break;
       }
       case 'jalons': {
@@ -147,8 +163,26 @@ export class ReportTemplateService {
         if (!sv.length) warn('aucune enquête sur la période.');
         const noScore = sv.filter((s) => s.overallScore === null).map((s) => s.label);
         if (noScore.length && inds.includes('score')) warn(`score manquant pour ${list(noScore)}.`);
-        const series = inds.map((id) => ({ name: def.indicators.find((i) => i.id === id)!.label, values: sv.map((s) => (id === 'score' ? s.overallScore : s.respondents)) }));
-        parts.push({ part: 'chart', categories: sv.map((s) => s.label), series });
+        // Tableau de bord (03/10/2026) : score et évolution, avis des répondants, scores par domaine, points clés.
+        const scored = sv.filter((s) => s.overallScore !== null);
+        const last = scored[scored.length - 1] ?? sv[sv.length - 1] ?? null, prev = scored.length > 1 ? scored[scored.length - 2] : null;
+        const global = ((await this.prisma.contentBlock.findUnique({ where: { projectId_key: { projectId: scope.project.id, key: 'barometer.global' } } }))?.data ?? {}) as { size?: number; themes?: Array<{ label: string; tone: string }>; questions?: Array<{ label: string; score: number; delta: number | null }> };
+        const doms = await this.prisma.barometerDomain.findMany({ where: P, orderBy: { order: 'asc' } });
+        const sent = (x: unknown) => (x && typeof x === 'object' ? (x as { positive: number; neutral: number; negative: number }) : null);
+        const valueAt = (series: unknown, month: string | undefined) => (month && series && typeof series === 'object' ? ((series as Record<string, number | null>)[month] ?? null) : null);
+        const board: BarometerData = {
+          month: last?.label ?? '—', score: last?.overallScore ?? null, prevScore: prev?.overallScore ?? null, prevMonth: prev?.label ?? null,
+          respondents: last?.respondents ?? null, population: global.size ?? null,
+          sentiment: sent(last?.sentiment), prevPositive: sent(prev?.sentiment)?.positive ?? null,
+          domains: doms.map((dm) => ({ name: dm.n, score: valueAt(dm.series, last?.month), prev: valueAt(dm.series, prev?.month), resp: dm.resp })),
+          themes: (((last?.themes as unknown) ?? global.themes ?? []) as Array<{ label: string; tone: string }>).filter((x) => x?.label).map((x) => ({ label: x.label, tone: (['OK', 'WATCH', 'RISK'].includes(x.tone) ? x.tone : 'WATCH') as 'OK' | 'WATCH' | 'RISK' })),
+          questions: (((last?.questions as unknown) ?? global.questions ?? []) as Array<{ label: string; score: number; delta: number | null }>).filter((x) => x?.label && typeof x.score === 'number'),
+          show: { score: inds.includes('score'), sentiment: inds.includes('sentiment'), domains: inds.includes('domains'), themes: inds.includes('themes') },
+        };
+        if (board.show.sentiment && !board.sentiment) warn('répartition des avis absente pour le dernier mois.');
+        if (board.show.domains && !board.domains.some((x) => x.score !== null)) warn('aucun score par domaine pour le dernier mois.');
+        parts.push({ part: 'board', board: 'barometer', data: board });
+        if (inds.includes('score')) parts.push({ part: 'chart', categories: sv.map((s) => s.label), series: [{ name: 'Score global', values: sv.map((s) => s.overallScore) }] });
         break;
       }
       case 'dashboard': {
@@ -204,6 +238,17 @@ export class ReportTemplateService {
           if (p.part === 'text' && !(w.synthesis && w.synthesisKey === c.key)) data.text[`${c.key}.text`] = p.lines;
           if (p.part === 'kpi') for (const it of p.items) data.text[`${c.key}.kpi.${it.id}`] = [it.value];
           if (p.part === 'chart') data.charts[`${c.key}.chart`] = { categories: p.categories, series: p.series };
+          if (p.part === 'board') {
+            const f = manifest?.fields.find((x) => x.id === `${c.key}.board`);
+            let b = p.data as GanttData & { mode?: string };
+            // Planning en tableau : lignes au-delà de la hauteur disponible regroupées (« … et N autres »).
+            if (p.board === 'planning' && f?.area && b.rows.length > GANTT_MAX_ROWS) {
+              b = foldPlan(b);
+              const cap = Math.max(5, Math.floor((f.area.h - PLAN_TABLE_HEAD_IN * 914400 - 0.26 * 914400) / (PLAN_TABLE_MIN_ROW_IN * 914400)));
+              if (b.rows.length > cap) { issues.push({ severity: 'warning', component: c.key, message: `${COMPONENTS[c.id].label} : ${b.rows.length} lignes, la page en affiche ${cap}.` }); b = { ...b, rows: b.rows.slice(0, cap), hidden: b.rows.length - cap }; }
+            }
+            (data.boards ??= {})[`${c.key}.board`] = b;
+          }
           if (p.part === 'table') {
             const cap = manifest?.fields.find((f) => f.id === `${c.key}.table`)?.capacity ?? p.rows.length;
             let rows = p.rows;
@@ -239,6 +284,8 @@ export class ReportTemplateService {
           if (p.part === 'table') x.table = { columns: p.columns.map((id) => COMPONENTS[c.id].indicators.find((ind) => ind.id === id)?.label ?? id), rows: p.rows.slice(0, 15), total: p.rows.length };
           if (p.part === 'chart') x.chart = { categories: p.categories, series: p.series };
           if (p.part === 'text') x.facts = p.lines;
+          if (p.part === 'board' && p.board === 'planning') { const g = p.data as GanttData; x.facts = g.rows.filter((r) => r.level === 0).map((r) => `${r.code} ${r.name} : ${frDay(r.start)} → ${frDay(r.end)}, ${r.progress} %, ${r.status === 'DONE' ? 'terminée' : r.current ? 'en cours' : r.status === 'IN_PROGRESS' ? 'en cours' : 'à venir'}`).concat(g.milestones.filter((m) => m.iso >= g.today).slice(0, 3).map((m) => `Jalon ${m.code} ${m.label} : ${frDay(m.iso)}`)); }
+          if (p.part === 'board' && p.board === 'barometer') { const b = p.data as BarometerData; x.facts = [`Score ${b.month} : ${b.score ?? '—'} /10${b.prevScore !== null ? ` (${b.prevMonth} : ${b.prevScore})` : ''}, ${b.respondents ?? '—'} répondants`, ...(b.sentiment ? [`Avis : ${b.sentiment.positive} % positifs, ${b.sentiment.neutral} % neutres, ${b.sentiment.negative} % négatifs`] : []), ...b.domains.filter((d) => d.score !== null).map((d) => `Domaine ${d.name} : ${d.score}${d.prev !== null ? ` (avant : ${d.prev})` : ''}`), ...b.themes.map((t) => `Point clé (${t.tone}) : ${t.label}`)]; }
         }
         return x;
       }),

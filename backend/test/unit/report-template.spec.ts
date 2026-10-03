@@ -4,6 +4,8 @@ import { analyzeImage, analyzePptx } from '../../src/core/report-format-read';
 import { composeTemplate, fillChartXml, FillData, fillTemplate, TemplateFieldMissing, TemplateManifest } from '../../src/core/report-template';
 import { COMPONENT_IDS, ComponentConfig, configErrors, fieldName, indicatorsOf, pagesOf, periodOf, periodRange, sectionsOf } from '../../src/domain/report-components';
 import { makeFormatPptx, makePng, pptxIntegrity } from '../format-fixture';
+import { BarometerData, Draw, drawBarometer, drawGantt, drawPlanTable, foldPlan, GANTT_MAX_ROWS, GanttData, GanttRow, isLate } from '../../src/core/report-draw';
+import { designTokens, scoreTone, statusTone, timeRatio, timeScale, typeScale } from '../../src/domain/report-design';
 
 /** Étapes 3 à 6 de « Créer un template » (03/10/2026) : catalogue, périodes, sections, template et publications. */
 describe('Template de rapport — règles', () => {
@@ -69,7 +71,7 @@ describe('Template de rapport — composition et publications', () => {
     expect(manifest.pages.map((p) => p.kind)).toEqual(['cover', 'divider', 'standard', 'standard', 'standard', 'standard', 'divider', 'standard', 'standard', 'standard', 'standard', 'standard', 'closing']);
     expect(manifest.pages.length).toBe(pagesOf(all));
     const ids = manifest.fields.map((f) => f.id);
-    expect(ids).toEqual(expect.arrayContaining(['report.subtitle', 'c01.caption', 'c01.kpi.status', 'c01.text', 'c02.table', 'c07.chart', 'c08.kpi.risks_open', 'c08.chart', 'c09.kpi.committed']));
+    expect(ids).toEqual(expect.arrayContaining(['report.subtitle', 'c01.caption', 'c01.kpi.status', 'c01.text', 'c02.board', 'c03.table', 'c07.board', 'c07.chart', 'c08.kpi.risks_open', 'c08.chart', 'c09.kpi.committed']));
     expect(new Set(ids.map((id, i) => `${id}@${manifest.fields[i].slide}`)).size).toBe(ids.length); // identifiants uniques par page
     const { names } = await shapes(tpl);
     const { files } = await shapes(tpl);
@@ -78,7 +80,9 @@ describe('Template de rapport — composition et publications', () => {
     // Graphiques natifs : partie graphique + classeur incorporé ; tableaux natifs (a:tbl).
     expect(Object.keys(z.files).filter((f) => /^ppt\/charts\/chart\d+\.xml$/.test(f))).toHaveLength(2);
     expect(Object.keys(z.files).filter((f) => /^ppt\/embeddings\/.+\.xlsx$/.test(f))).toHaveLength(2);
-    expect(await z.file(manifest.fields.find((f) => f.id === 'c02.table')!.slide)!.async('string')).toContain('<a:tbl>');
+    expect(await z.file(manifest.fields.find((f) => f.id === 'c03.table')!.slide)!.async('string')).toContain('<a:tbl>');
+    // Système de design au manifeste : police et accent repris de la page modèle.
+    expect(manifest.design).toMatchObject({ font: expect.any(String), accent: expect.stringMatching(/^[0-9A-F]{6}$/) });
   });
 
   it('publication : seules les valeurs changent (pages, formes, design identiques) ; lignes de tableau variables au style conservé', async () => {
@@ -92,15 +96,15 @@ describe('Template de rapport — composition et publications', () => {
     const [s0, s1, s2] = [await shapes(tpl), await shapes(p1), await shapes(p2)];
     expect(s1.files).toEqual(s0.files);
     expect(s2.names).toEqual(s0.names); // mêmes formes, mêmes noms, même ordre
-    const tbl = manifest.fields.find((f) => f.id === 'c02.table')!;
+    const tbl = manifest.fields.find((f) => f.id === 'c03.table')!;
     const t1 = await s1.z.file(tbl.slide)!.async('string'), t2 = await s2.z.file(tbl.slide)!.async('string');
     expect((t1.match(/<a:tr\b/g) ?? []).length).toBe(7);
     expect((t2.match(/<a:tr\b/g) ?? []).length).toBe(3);
     expect(t2).toContain('<a:t>code-2-47</a:t>');
     expect(t2).not.toContain('12</a:t>');
-    // Style : en-tête et lignes alternées identiques au gabarit (couleurs des cellules).
-    const fills = (x: string) => [...x.matchAll(/<a:tcPr[\s\S]*?<a:srgbClr val="([0-9A-F]{6})"\/><\/a:solidFill><\/a:tcPr>/g)].map((m) => m[1]);
-    expect(new Set(fills(t2))).toEqual(new Set(fills(t1)));
+    // Style : filets fins sous chaque ligne, en-tête souligné d'un filet d'encre ; même rendu d'une publication à l'autre.
+    const lines = (x: string) => new Set([...x.matchAll(/<a:lnB w="(\d+)"/g)].map((m) => m[1]));
+    expect(lines(t2)).toEqual(lines(t1));
     // Texte des zones et données du graphique (cache et classeur incorporé).
     const chart = manifest.fields.find((f) => f.id === 'c07.chart')!;
     expect(await s2.z.file(chart.chart!)!.async('string')).toContain('<c:pt idx="2"><c:v>47</c:v></c:pt>');
@@ -142,6 +146,109 @@ describe('Template de rapport — composition et publications', () => {
     const s = { fileId: 'I', kind: 'IMAGE' as const, buf: img, analysis: ia, slide: 1 };
     const im = await composeTemplate({ cover: s, divider: s, standard: s, closing: s }, { title: 'T', sections: sectionsOf(all.slice(0, 3)), tokens });
     expect(await pptxIntegrity(await fillTemplate(im.buf, im.manifest, values(im.manifest, 3)))).toEqual([]);
-    expect(im.manifest.fields.map((f) => f.id)).toEqual(expect.arrayContaining(['report.subtitle', 'report.date', 'c02.table']));
+    expect(im.manifest.fields.map((f) => f.id)).toEqual(expect.arrayContaining(['report.subtitle', 'report.date', 'c02.board', 'c03.table']));
+  });
+});
+
+/** Système de design et planches (03/10/2026) : Gantt, planning en tableau au-delà de 25 lignes, baromètre. */
+describe('Rapport — système de design', () => {
+  const tk = designTokens({ primary: '0EA5E9', secondary: '0F6E9A', text: '000000', font: 'Poppins', head: 'Poppins', size: 11 });
+  const phase = (i: number, status: GanttRow['status'], start: string, end: string, progress: number, current = false): GanttRow => ({ level: 0, code: String(i), name: `Phase ${i}`, start, end, status, progress, current });
+  const plan: GanttData = {
+    today: '2026-10-03',
+    rows: [phase(1, 'DONE', '2025-01-01', '2025-12-31', 100), phase(2, 'IN_PROGRESS', '2026-01-01', '2026-12-31', 48, true), phase(3, 'PLANNED', '2027-01-01', '2027-06-30', 0)],
+    milestones: [{ code: 'J01', label: 'Lancement', iso: '2025-01-15', row: 0 }, { code: 'J04', label: 'Fin de la migration', iso: '2026-10-14', row: 1 }],
+  };
+  const box = { x: 0, y: 0, w: 10 * 914400, h: 5 * 914400 };
+
+  it('jetons : encre adoucie, teintes dérivées de l\'accent, échelle typographique', () => {
+    expect(tk.ink).toBe('1E2124');
+    expect(tk.accentSoft).toMatch(/^[0-9A-F]{6}$/);
+    expect(typeScale(tk).hero).toBeGreaterThan(typeScale(tk).stat);
+    expect(statusTone('Terminé')).toBe('ok');
+    expect(statusTone('Bloqué')).toBe('risk');
+    expect(scoreTone(25)).toBe('risk');
+  });
+
+  it('frise : pas adapté à la durée (mois, trimestres, semestres), repères d\'année', () => {
+    expect(timeScale('2026-01-10', '2026-09-20')).toMatchObject({ unit: 'month', start: '2026-01-01', end: '2026-10-01' });
+    expect(timeScale('2025-01-01', '2027-06-30').unit).toBe('quarter');
+    const sc = timeScale('2023-06-01', '2028-06-30');
+    expect(sc.unit).toBe('half');
+    expect(sc.ticks.filter((k) => k.year).map((k) => k.year)).toEqual(['2023', '2024', '2025', '2026', '2027', '2028']);
+    expect(timeRatio('2026-04-01', { start: '2026-01-01', end: '2026-07-01' })).toBeCloseTo(0.497, 2);
+  });
+
+  it('Gantt : phase en cours mise en avant, avancement dans la barre, repère du jour, prochain jalon nommé', () => {
+    const xml = drawGantt(new Draw(tk), box, plan);
+    expect(xml).toContain("Aujourd'hui · 3 oct.");
+    expect(xml).toContain('>Phase en cours<');
+    expect(xml).toContain('>Phase 2<');
+    expect(xml).toContain('>48 %<');
+    expect(xml).toContain('>14 oct. 2026<');
+    expect(xml).toContain('dans 11 jours');
+    expect(xml).toContain(`val="${tk.accent}"`); // barre d'avancement de la phase en cours
+    expect((xml.match(/prst="diamond"/g) ?? []).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('Gantt : phase non terminée dont la fin est passée → en retard (rouge)', () => {
+    const late: GanttData = { ...plan, rows: [phase(1, 'IN_PROGRESS', '2026-01-01', '2026-09-01', 70, true)] };
+    expect(isLate(late.rows[0], late.today)).toBe(true);
+    expect(drawGantt(new Draw(tk), box, late)).toContain(`val="${tk.risk}"`);
+  });
+
+  it('planning en tableau au-delà de 25 lignes : sous-phases des phases terminées regroupées', () => {
+    const rows: GanttRow[] = [];
+    for (let p = 1; p <= 4; p++) {
+      rows.push(phase(p, p < 4 ? 'DONE' : 'IN_PROGRESS', '2025-01-01', '2026-12-31', p < 4 ? 100 : 30, p === 4));
+      for (let k = 1; k <= 8; k++) rows.push({ level: 1, code: `${p}.${k}`, name: `Sous-phase ${p}.${k}`, start: '2025-01-01', end: '2026-12-31', status: p < 4 ? 'DONE' : 'PLANNED', progress: p < 4 ? 100 : 0, current: false });
+    }
+    expect(rows.length).toBeGreaterThan(GANTT_MAX_ROWS);
+    const folded = foldPlan({ ...plan, rows });
+    expect(folded.rows).toHaveLength(4 + 8);
+    expect(folded.rows[0].folded).toBe(8);
+    const xml = drawPlanTable(new Draw(tk), box, folded);
+    expect(xml).toContain('8 sous-phases terminées');
+    expect(xml).toContain('>Sous-phase 4.8<');
+    expect(xml).not.toContain('>Sous-phase 1.1<');
+  });
+
+  it('baromètre : score et écart, avis, domaines triés, points clés ; blocs masqués selon les indicateurs', () => {
+    const b: BarometerData = {
+      month: 'juil.', score: 5.9, prevScore: 5.1, prevMonth: 'mai', respondents: 33, population: 40,
+      sentiment: { positive: 55, neutral: 24, negative: 21 }, prevPositive: 37,
+      domains: [{ name: 'Achats', score: 3, prev: 4.5, resp: 4 }, { name: 'Logistique', score: 7.7, prev: 6.1, resp: 6 }, { name: 'DSI', score: 5, prev: 5, resp: 3 }],
+      themes: [{ label: 'Le progrès est réel', tone: 'OK' }, { label: 'Reprise des données', tone: 'RISK' }],
+      questions: [{ label: 'Lisibilité de la trajectoire', score: 5.6, delta: 0.8 }],
+      show: { score: true, sentiment: true, domains: true, themes: true },
+    };
+    const xml = drawBarometer(new Draw(tk), box, b);
+    expect(xml).toContain('>5,9<');
+    expect(xml).toContain('▲ +0,8');
+    expect(xml).toContain('33');
+    expect(xml).toContain('>55 %<');
+    expect(xml).toContain('▲ +18 pt');
+    expect(xml.indexOf('>Logistique<')).toBeLessThan(xml.indexOf('>Achats<'));
+    expect(xml).toContain('▼ -1,5');
+    expect(xml).toContain('= stable');
+    expect(xml.indexOf('Reprise des données')).toBeLessThan(xml.indexOf('Le progrès est réel')); // risques d'abord
+    const only = drawBarometer(new Draw(tk), box, { ...b, show: { score: true, sentiment: false, domains: false, themes: false } });
+    expect(only).not.toContain('Avis des répondants');
+    expect(only).not.toContain('Score par domaine');
+  });
+
+  it('publication : la planche est redessinée dans son groupe nommé, même cadre', async () => {
+    const { buf: tpl, manifest } = await composeTemplate(null, { title: 'T', sections: sectionsOf([{ id: 'planning', scope: 'PROJECT' }, { id: 'barometre', scope: 'PROJECT' }]), tokens: { titre: 'T', date: '3 oct. 2026', projet: 'RISE', comite: 'COPIL' } });
+    const f = manifest.fields.find((x) => x.id === 'c01.board')!;
+    expect(f).toMatchObject({ kind: 'board', board: 'planning' });
+    const out = await fillTemplate(tpl, manifest, { text: {}, tables: {}, charts: {}, boards: { 'c01.board': plan } });
+    expect(await pptxIntegrity(out)).toEqual([]);
+    const xml = await (await JSZip.loadAsync(out)).file(f.slide)!.async('string');
+    expect((xml.match(/name="rise:c01\.board"/g) ?? []).length).toBe(1);
+    expect(xml).toContain('>Phase 2<');
+    const again = await fillTemplate(out, manifest, { text: {}, tables: {}, charts: {}, boards: { 'c01.board': { ...plan, today: '2026-11-20' } } });
+    const x2 = await (await JSZip.loadAsync(again)).file(f.slide)!.async('string');
+    expect(x2).toContain("Aujourd'hui · 20 nov.");
+    expect(x2).not.toContain("Aujourd'hui · 3 oct.");
   });
 });

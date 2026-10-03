@@ -321,3 +321,7 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 
 - `RISE Cockpit.dc.html` : étape B, bloc « Zones de la page » sur chaque carte PowerPoint (formes, rôle proposé par l'IA ou par règles, modifiable ; contenu d'exemple surligné en rouge, zones de texte en vert), aperçu de la carte annoté selon les rôles (`POST …/preview` avec les rôles), résumé et alertes de la carte repris du contrôle du serveur (qui tient compte des rôles) ; méthodes `tplFmtSetRole`, `tplFmtPrevKey`, rôles chargés par `tplFmtRefresh` (état `tplFmtRoles`, `tplFmtRolesOpen`) et enregistrés dans `tplDraft.fmt.pages[k].roles`.
 - `api.js` : `fmtRoles`, `fmtPreview` avec rôles (POST) ; `tplBody` envoie les rôles de chaque page.
+
+## Créer un template : natures « Gantt » et « Tableau de bord » (03/10/2026)
+
+- Aucun changement d'écran : les natures et indicateurs des composants viennent de l'API (`GET /report-components`) ; Planning devient « Gantt » (indicateurs « Jalons sur la frise », « Sous-phases »), Baromètre « Tableau de bord » (« Score et évolution », « Avis des répondants », « Score par domaine », « Points clés »).

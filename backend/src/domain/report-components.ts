@@ -6,7 +6,7 @@
 
 export type ComponentId = 'synthese' | 'planning' | 'jalons' | 'risques' | 'actions' | 'decisions' | 'barometre' | 'dashboard' | 'budget';
 /** Éléments posés sur la page standard d'un composant. */
-export type ComponentPart = 'table' | 'chart' | 'kpi' | 'text';
+export type ComponentPart = 'table' | 'chart' | 'kpi' | 'text' | 'board';
 export interface Indicator { id: string; label: string }
 export interface ComponentDef {
   id: ComponentId;
@@ -30,9 +30,10 @@ export const COMPONENTS: Record<ComponentId, ComponentDef> = {
     defaults: ['status', 'golive', 'risks_critical', 'actions_late'],
   },
   planning: {
-    id: 'planning', label: 'Planning', nature: 'Tableau', parts: ['table'], periodic: false, defaultPeriod: 'all',
-    indicators: [{ id: 'code', label: 'Code' }, { id: 'name', label: 'Phase' }, { id: 'start', label: 'Début' }, { id: 'end', label: 'Fin' }, { id: 'progress', label: 'Avancement' }, { id: 'status', label: 'Statut' }],
-    defaults: ['code', 'name', 'start', 'end', 'progress', 'status'],
+    id: 'planning', label: 'Planning', nature: 'Gantt', parts: ['board'], periodic: false, defaultPeriod: 'all',
+    // Gantt des phases (phase en cours, repère du jour, avancement) ; au-delà de 25 lignes, tableau (GANTT_MAX_ROWS).
+    indicators: [{ id: 'milestones', label: 'Jalons sur la frise' }, { id: 'subphases', label: 'Sous-phases' }],
+    defaults: ['milestones'],
   },
   jalons: {
     id: 'jalons', label: 'Jalons', nature: 'Tableau', parts: ['table'], periodic: true, defaultPeriod: 'next90',
@@ -55,9 +56,9 @@ export const COMPONENTS: Record<ComponentId, ComponentDef> = {
     defaults: ['code', 'name', 'status', 'date'],
   },
   barometre: {
-    id: 'barometre', label: 'Baromètre du projet', nature: 'Graphique', parts: ['chart'], chart: 'line', periodic: true, defaultPeriod: 'last6',
-    indicators: [{ id: 'score', label: 'Score global' }, { id: 'respondents', label: 'Répondants' }],
-    defaults: ['score'],
+    id: 'barometre', label: 'Baromètre du projet', nature: 'Tableau de bord', parts: ['board', 'chart'], chart: 'line', periodic: true, defaultPeriod: 'last6',
+    indicators: [{ id: 'score', label: 'Score et évolution' }, { id: 'sentiment', label: 'Avis des répondants' }, { id: 'domains', label: 'Score par domaine' }, { id: 'themes', label: 'Points clés' }],
+    defaults: ['score', 'sentiment', 'domains', 'themes'],
   },
   dashboard: {
     id: 'dashboard', label: 'Tableau de bord', nature: 'Indicateurs et graphique', parts: ['kpi', 'chart'], chart: 'bar', periodic: false, defaultPeriod: 'all',
@@ -171,5 +172,6 @@ export type ComponentData =
   | { part: 'table'; columns: string[]; rows: string[][] }
   | { part: 'chart'; categories: string[]; series: Array<{ name: string; values: Array<number | null> }> }
   | { part: 'kpi'; items: Array<{ id: string; label: string; value: string }> }
-  | { part: 'text'; lines: string[] };
+  | { part: 'text'; lines: string[] }
+  | { part: 'board'; board: 'planning' | 'barometer'; data: unknown };
 export interface ComponentValues { key: string; caption: string; parts: ComponentData[]; issues: Issue[] }
