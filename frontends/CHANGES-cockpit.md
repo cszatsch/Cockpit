@@ -397,3 +397,7 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 ## Créer un template : session sans persistance (04/10/2026)
 
 - `RISE Cockpit.dc.html` : le brouillon n'est plus enregistré ni relu (`tplDraftSync`, `tplDraftEmpty` retirés) ; l'assistant repart vierge (`tplBlank`) dès que l'on quitte l'onglet « Créer un template » ou le menu Comités et rapports, après une publication et à chaque chargement de Cockpit (`tplSessionWatch`) ; les brouillons laissés sur le serveur par les versions précédentes sont supprimés à la première ouverture de l'onglet.
+
+## Logo de Cockpit dans les onglets du navigateur (04/10/2026)
+
+- `favicon.ico`, `favicon.svg`, `apple-touch-icon.png` (icône « Cap » livrée) servis à la racine ; liens `rel="icon"` ajoutés dans `RISE Cockpit.dc.html` et `Connexion.dc.html`.

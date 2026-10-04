@@ -10,12 +10,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Lancement local (Windows)
 
-- **Démarrer** : `demarrer-rise.cmd` (double-clic) à la racine. Il appelle `demarrer-rise.ps1`, qui libère les ports, démarre le PostgreSQL personnel, crée `backend/.env` si absent, installe/migre/compile seulement si nécessaire, lance l'API dans sa propre fenêtre et ouvre le Cockpit et la Console.
+- **Démarrer** : raccourci `start_cockpit` (double-clic, icône de Cockpit) à la racine ; il lance `outils/start_cockpit.cmd`, qui appelle `outils/start_cockpit.ps1` (raccourcis `start_cockpit.lnk` / `stop_cockpit.lnk` recréés par ce script s'ils manquent, non versionnés ; premier lancement : `outils/start_cockpit.cmd`). Le script qui libère les ports, démarre le PostgreSQL personnel, crée `backend/.env` si absent, installe/migre/compile seulement si nécessaire, lance l'API dans sa propre fenêtre et ouvre le Cockpit et la Console.
   - Options du `.ps1` : `-Reinitialiser` (recharge les données de démo), `-Compiler` (force la compilation), `-Arreter`.
-- **Arrêter** : `arreter-rise.cmd` (application et PostgreSQL).
+- **Arrêter** : raccourci `stop_cockpit` à la racine (`outils/stop_cockpit.cmd` : application et PostgreSQL).
 - **PostgreSQL local : port 5433** (et non 5432), utilisateur `rise` en authentification `trust`, données dans `%USERPROFILE%\rise-pgdata`. L'application écoute sur le port 3000.
   - Connexion Cockpit : http://localhost:3000/connexion (puis `/`) — Connexion Console : http://localhost:3000/console/connexion (puis `/console`) — OpenAPI : http://localhost:3000/api/docs
-  - Compte initial (Cédric Schmitz, admin + PMO) : `demarrer-rise.ps1` demande son mot de passe provisoire s'il n'existe pas ; sinon `RISE_INITIAL_ADMIN_PASSWORD='…' npm run init:admin`. Ne jamais écrire ce mot de passe dans un fichier.
+  - Compte initial (Cédric Schmitz, admin + PMO) : `start_cockpit.ps1` demande son mot de passe provisoire s'il n'existe pas ; sinon `RISE_INITIAL_ADMIN_PASSWORD='…' npm run init:admin`. Ne jamais écrire ce mot de passe dans un fichier.
 
 ## Commandes (dans `backend/`)
 

@@ -446,6 +446,11 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 - **Réalisé** : plus d'enregistrement ni de reprise du brouillon ; assistant vierge en quittant l'onglet ou le menu, à la publication et au chargement ; anciens brouillons supprimés.
 - **Vérification** : recette `test/browser/format-rapport.e2e.ts` 32 / 32 (contrôle ajouté : changement d'onglet et de menu → étape A vierge).
 
+### Lancement local et logo de Cockpit (04/10/2026)
+
+- **Réalisé** : scripts renommés (`start_cockpit`, `stop_cockpit`) et rangés dans `outils/` ; raccourcis à l'icône de Cockpit à la racine (recréés automatiquement) ; logo dans les onglets du Cockpit et de la Console.
+- **Vérification** : syntaxe du script PowerShell contrôlée ; raccourcis créés sur le poste (cible et icône) ; icônes servies (200) et déclarées par les pages de connexion.
+
 ## 4. Questions ouvertes
 
 1. **Déclencheur des règles de notification** : faut-il ajouter un sélecteur de déclencheur dans la console ? Aujourd'hui, une règle créée depuis l'écran reçoit un déclencheur par défaut : « planifié » pour une notification, « manuel » pour une alerte.

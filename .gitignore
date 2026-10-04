@@ -3,3 +3,7 @@ dist/
 coverage/
 .env
 storage/
+
+# Raccourcis de lancement à l'icône de Cockpit (chemins du poste, recréés par outils/start_cockpit.ps1)
+/start_cockpit.lnk
+/stop_cockpit.lnk

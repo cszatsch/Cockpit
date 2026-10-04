@@ -1435,3 +1435,11 @@ Arbitrage du commanditaire : en revenant sur « Créer un template » après un 
 |---|---|---|
 | Réinitialisation | État vierge de l'assistant (fiche, format, composants, aperçu, publication) | `tplBlank` |
 | Déclencheurs | Sortie de l'onglet « Créer un template » ou du menu (sauf pendant une publication), publication, chargement de la page | `tplSessionWatch`, `f6Publish` |
+
+## Lancement local et logo de Cockpit (04/10/2026)
+
+| Sujet | Choix | Fichiers |
+|---|---|---|
+| Noms | `demarrer-rise` devient `start_cockpit`, `arreter-rise` devient `stop_cockpit` | `outils/start_cockpit.cmd`, `outils/start_cockpit.ps1`, `outils/stop_cockpit.cmd` |
+| Icône des lanceurs | Windows n'autorise pas d'icône propre sur un fichier `.cmd` : arbitrage du commanditaire, scripts rangés dans `outils/` avec l'icône « Cap » (`cockpit.ico`) et deux raccourcis `start_cockpit` / `stop_cockpit` à l'icône de Cockpit à la racine ; ils contiennent les chemins du poste, ne sont pas versionnés (`.gitignore`) et sont recréés par `start_cockpit.ps1` s'ils manquent (premier lancement : `outils/start_cockpit.cmd`) | `Creer-Raccourcis` |
+| Onglets du navigateur | Logo de Cockpit (icône « Cap » livrée) : `favicon.ico`, `favicon.svg` (version optimisée 24–40 px), `apple-touch-icon.png`, déclarés dans les pages d'entrée du Cockpit et de la Console (connexion et application) | `frontends/` |

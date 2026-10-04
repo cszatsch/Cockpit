@@ -1,17 +1,20 @@
 ﻿<#
   RISE : démarrage local (Windows) de PostgreSQL, de l'API, du Cockpit et de la Console Admin.
 
-  À placer à la racine du dossier du projet (celui qui contient « backend » et « frontends »).
+  Rangé dans le dossier « outils » du projet (à côté de « backend » et « frontends »), avec l'icône cockpit.ico.
+  À la racine du projet, deux raccourcis à l'icône de Cockpit, start_cockpit et stop_cockpit, lancent ce script ;
+  il les recrée s'ils manquent (ils contiennent les chemins du poste et ne sont pas versionnés).
 
   Lancement :
-    - double-clic sur demarrer-rise.cmd (arrêt : double-clic sur arreter-rise.cmd) ;
-    - ou, dans PowerShell : powershell -ExecutionPolicy Bypass -File .\demarrer-rise.ps1
+    - double-clic sur le raccourci start_cockpit à la racine (arrêt : raccourci stop_cockpit) ;
+    - ou double-clic sur outils\start_cockpit.cmd (premier lancement : crée les raccourcis) ;
+    - ou, dans PowerShell : powershell -ExecutionPolicy Bypass -File .\outils\start_cockpit.ps1
   Arrêt de tout (application et PostgreSQL) :
-    - powershell -ExecutionPolicy Bypass -File .\demarrer-rise.ps1 -Arreter
+    - powershell -ExecutionPolicy Bypass -File .\outils\start_cockpit.ps1 -Arreter
   Réinitialiser les données de démonstration au démarrage :
-    - powershell -ExecutionPolicy Bypass -File .\demarrer-rise.ps1 -Reinitialiser
+    - powershell -ExecutionPolicy Bypass -File .\outils\start_cockpit.ps1 -Reinitialiser
   Forcer la recompilation (normalement automatique quand le code a changé) :
-    - powershell -ExecutionPolicy Bypass -File .\demarrer-rise.ps1 -Compiler
+    - powershell -ExecutionPolicy Bypass -File .\outils\start_cockpit.ps1 -Compiler
 
   Étapes :
     1. libère les ports utilisés : 3000 (application) et 5433 (PostgreSQL) ;
@@ -35,7 +38,8 @@ $ErrorActionPreference = 'Continue'
 # ───── Réglages ─────
 $PortApp  = 3000
 $PortPg   = 5433
-$Racine   = $PSScriptRoot
+$Outils   = $PSScriptRoot
+$Racine   = Split-Path -Parent $PSScriptRoot
 $Backend  = Join-Path $Racine 'backend'
 $PgData   = Join-Path $env:USERPROFILE 'rise-pgdata'
 $PgJournal = Join-Path $PgData 'journal.txt'
@@ -129,8 +133,26 @@ function Date-De([string]$chemin) {
 
 # ───── Vérifications de départ ─────
 if (-not (Test-Path (Join-Path $Backend 'package.json'))) {
-  Echec "dossier « backend » introuvable à côté du script ($Racine). Placez le script à la racine du projet."
+  Echec "dossier « backend » introuvable ($Racine). Le script doit rester dans le dossier « outils » du projet."
 }
+
+# Raccourcis à l'icône de Cockpit à la racine du projet (start_cockpit, stop_cockpit) : recréés s'ils manquent.
+function Creer-Raccourcis {
+  try {
+    $wsh = New-Object -ComObject WScript.Shell
+    foreach ($nom in 'start_cockpit', 'stop_cockpit') {
+      $lnk = Join-Path $Racine "$nom.lnk"
+      if (Test-Path -LiteralPath $lnk) { continue }
+      $r = $wsh.CreateShortcut($lnk)
+      $r.TargetPath = Join-Path $Outils "$nom.cmd"
+      $r.WorkingDirectory = $Outils
+      $r.IconLocation = (Join-Path $Outils 'cockpit.ico') + ',0'
+      $r.Description = if ($nom -eq 'start_cockpit') { 'Démarrer RISE Cockpit' } else { 'Arrêter RISE Cockpit' }
+      $r.Save()
+    }
+  } catch { Write-Host "  (raccourcis non créés : $($_.Exception.Message))" -ForegroundColor DarkYellow }
+}
+Creer-Raccourcis
 if (-not (Get-Command node -ErrorAction SilentlyContinue)) { Echec 'Node.js est introuvable. Installez-le depuis https://nodejs.org puis relancez.' }
 
 $PgBin     = Trouver-PgBin
@@ -276,5 +298,5 @@ Write-Host '══════════════════════�
 Write-Host '  RISE est démarré' -ForegroundColor Green
 Write-Host "  Cockpit : $UrlBase/connexion"
 Write-Host "  Console : $UrlBase/console/connexion"
-Write-Host '  Pour tout arrêter : double-clic sur arreter-rise.cmd'
+Write-Host '  Pour tout arrêter : double-clic sur stop_cockpit (racine du projet)'
 Write-Host '═══════════════════════════════════════════' -ForegroundColor Green

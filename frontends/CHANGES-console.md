@@ -630,3 +630,7 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
 
 - `admin-api.js` : `MOD_ORDER` range le module `jev_accueil` après Budget et Suivi des bénéfices.
 - `Console Admin.dc.html` : module « Message d’accueil de Jev » ajouté au jeu de démonstration (actif partout). Rien d'autre : la page Modules affiche les modules lus par l'API.
+
+## Logo de Cockpit dans les onglets du navigateur (04/10/2026)
+
+- Liens `rel="icon"` (`favicon.ico`, `favicon.svg`, `apple-touch-icon.png`) ajoutés dans `Console Admin.dc.html` et `Connexion Console.dc.html`.
