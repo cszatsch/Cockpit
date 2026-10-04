@@ -26,7 +26,8 @@
     "lint": "tsc --noEmit -p tsconfig.json",
     "test": "jest --runInBand",
     "test:unit": "jest --runInBand test/unit",
-    "test:e2e": "jest --runInBand test/e2e"
+    "test:e2e": "jest --runInBand test/e2e",
+    "livraison": "powershell -NoProfile -ExecutionPolicy Bypass -File ../outils/livraison/construire.ps1"
   },
   "prisma": {
     "seed": "ts-node --transpile-only prisma/seed/index.ts"

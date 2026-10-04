@@ -40,6 +40,7 @@ npm run dictionnaire:doc                  # régénère docs/specs/JEV CONSOLE (
 npm run jev:aiguillage -- --version v2 --passages 3   # banc d'essai de l'aiguillage de Jev (API réelle de la carte JEV) et rapport
 npm run jev:aiguillage-cockpit -- --version cockpit-v3 --passages 3   # banc de l'aiguillage du Cockpit (5 cas d'usage) et rapport
 npm run jev:traces -- --dernieres 5 --min 10000 --etape vectorisation   # traces chronométrées des questions posées à Jev (table jev_traces)
+npm run livraison       # paquet d'installation Windows autonome (livraison\RISE Cockpit <date>.zip : application, Node.js, PostgreSQL, base actuelle, clés IA et SMTP rechiffrées) ; installer_cockpit.cmd chez la personne
 ```
 
 - **Base de test** : Jest ne lit pas `.env`. `test/env.ts` et `test/global-setup.ts` prennent `DATABASE_URL_TEST`, sinon `…@localhost:5432/rise_test`. Avec le PostgreSQL local sur 5433, exporter avant `npm test` : `DATABASE_URL_TEST=postgresql://rise@localhost:5433/rise_test` (base `rise_test` à créer une fois avec `createdb -h localhost -p 5433 -U rise rise_test`). Les migrations sont appliquées automatiquement et chaque suite réamorce la base.

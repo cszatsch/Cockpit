@@ -451,6 +451,13 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 - **Réalisé** : scripts renommés (`start_cockpit`, `stop_cockpit`) et rangés dans `outils/` ; raccourcis à l'icône de Cockpit à la racine (recréés automatiquement) ; logo dans les onglets du Cockpit et de la Console.
 - **Vérification** : syntaxe du script PowerShell contrôlée ; raccourcis créés sur le poste (cible et icône) ; icônes servies (200) et déclarées par les pages de connexion.
 
+### Paquet d'installation pour un autre poste (04/10/2026)
+
+- **Réalisé** : `npm run livraison` produit un ZIP autonome (~190 Mo) ; `installer_cockpit.cmd` installe Cockpit et la Console sans Docker ni droit d'administrateur, avec les données actuelles, les clés d'IA et le serveur SMTP, et crée le compte de la personne.
+- **Vérification** : installation complète dans un profil isolé (port 3100) : connexion du compte créé au Cockpit et à la Console (200), 11 secrets déchiffrés sur 11, projet RISE et serveur SMTP présents, compte de l'auteur absent, Cockpit affiché avec le message d'accueil rédigé par l'IA ; « Arrêter Cockpit » libère les deux ports.
+- **Défauts trouvés et corrigés pendant les essais** : copies temporaires du moteur Prisma (493 Mo) et outils de développement dans le paquet ; `tar` de Git appelé au lieu de celui de Windows ; démarrage de PostgreSQL bloquant (flux hérité) ; création de la base dans une transaction ; guillemets retirés par Windows PowerShell 5.1.
+- **Points d'attention** : le ZIP contient des clés d'accès (à ne transmettre qu'à la personne concernée) ; SmartScreen ou la politique d'une entreprise peuvent bloquer le ZIP (« Débloquer » dans les propriétés) ; mise à jour = nouveau paquet (données remplacées ou conservées, sans migration automatique des données conservées).
+
 ## 4. Questions ouvertes
 
 1. **Déclencheur des règles de notification** : faut-il ajouter un sélecteur de déclencheur dans la console ? Aujourd'hui, une règle créée depuis l'écran reçoit un déclencheur par défaut : « planifié » pour une notification, « manuel » pour une alerte.

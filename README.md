@@ -162,3 +162,9 @@ Pour héberger les frontends ailleurs que sur l'API, il suffit de servir le doss
 - **`src/admin`** : Console Admin (comptes, administrateurs, audit, IA, consommation, snapshots, notifications, modules, bibliothèque, initialisation).
 
 Les décisions prises en l'absence de règle ou en cas de contradiction sont listées dans `docs/DECISIONS.md`, avec la constante nommée qui les porte.
+
+## Partager Cockpit avec une autre personne (Windows)
+
+1. Démarrer le PostgreSQL de développement (raccourci `start_cockpit`), puis dans `backend/` : `npm run livraison`.
+2. Transmettre `livraison\RISE Cockpit <date>.zip` à la personne (il contient des clés d'accès IA et SMTP : à ne pas diffuser).
+3. La personne extrait le ZIP, double-clique sur `installer_cockpit.cmd`, saisit son nom, son e-mail et son mot de passe, puis utilise les raccourcis « Démarrer Cockpit » et « Arrêter Cockpit ». Ni Docker, ni droit d'administrateur, ni logiciel à installer.

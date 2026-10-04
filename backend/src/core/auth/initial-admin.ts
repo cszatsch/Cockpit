@@ -19,7 +19,15 @@ export type InitialAdminResult = 'created' | 'exists' | 'missing-password' | 'we
  * première connexion, droit d'administration de la plateforme, profil PMO sur chaque projet existant.
  * Ne fait rien si la variable est absente, si le mot de passe ne respecte pas les règles ou si le compte existe.
  */
-export async function createInitialAdmin(db: PrismaClient, password = process.env[INITIAL_PASSWORD_ENV]): Promise<InitialAdminResult> {
+export async function createInitialAdmin(
+  db: PrismaClient,
+  password = process.env[INITIAL_PASSWORD_ENV],
+  /** Identité du compte (paquet d'installation, 04/10/2026 : celle saisie à l'installation). */
+  who: { id: string; email: string; fullName: string } = INITIAL_ADMIN,
+  /** Changement du mot de passe exigé à la première connexion (non quand la personne vient de le choisir). */
+  opts: { mustChangePassword?: boolean } = {},
+): Promise<InitialAdminResult> {
+  const INITIAL_ADMIN = who;
   if (!password) return 'missing-password';
   if (await db.account.findFirst({ where: { OR: [{ id: INITIAL_ADMIN.id }, { email: INITIAL_ADMIN.email }] } })) return 'exists';
   if (!passwordRules(password).every((r) => r.ok)) return 'weak-password';
@@ -33,7 +41,7 @@ export async function createInitialAdmin(db: PrismaClient, password = process.en
         fullName: INITIAL_ADMIN.fullName,
         status: 'ACTIVE',
         passwordHash,
-        mustChangePassword: true,
+        mustChangePassword: opts.mustChangePassword ?? true,
         projects: { create: projects.map((p) => ({ projectId: p.id })) },
       },
     });
