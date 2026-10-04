@@ -2784,26 +2784,18 @@ class Component extends DCLogic {
     pages[kind] = { fileId: v.id, slide: n >= 4 ? guess(kind) : 1 };
     this.setState(s => ({ tplFmtBusy: {}, tplDraft: { ...s.tplDraft, fmt: { files: { ...F.files, [v.id]: v }, pages } } }), () => this.tplFmtRefresh());
   }
-  // Brouillon de « Créer un template » (04/10/2026) : enregistré sur le serveur à chaque modification (après 800 ms
-  // sans saisie), relu à la première ouverture de l'onglet ; un brouillon vide (publication, abandon) est supprimé.
-  tplDraftEmpty(D) { return !D.name.trim() && !D.comps.length && !Object.values((D.fmt || {}).pages || {}).some(Boolean) && !D.desc; }
-  tplDraftSync() {
-    if (!this._api || !this._api.tplDraftGet) return;
-    if (!this._tplDraftLoad) {
-      this._tplDraftLoad = true;
-      this._api.tplDraftGet().then(r => {
-        this._tplDraftReady = true;
-        const d = r && r.data;
-        if (d && d.draft && this.tplDraftEmpty(this.state.tplDraft)) { this._tplDraftKey = JSON.stringify(d); this.setState({ tplDraft: { ...this.state.tplDraft, ...d.draft }, tplStep: d.step || 1 }, () => this.tplFmtRefresh()); }
-      }).catch(() => { this._tplDraftReady = true; });
+  // Session « Créer un template » (arbitrage du 04/10/2026) : aucune persistance. L'assistant repart vierge dès que
+  // l'on quitte l'onglet ou le menu, après une publication et à chaque chargement de Cockpit ; les brouillons
+  // enregistrés sur le serveur par les versions précédentes sont supprimés à la première ouverture de l'onglet.
+  tplBlank() { return { tplStep: 1, tplDraft: { name: '', version: '1.0', author: null, desc: '', committee: 'Comité de pilotage', bodyId: 'g1', comps: [], fmt: { files: {}, pages: {} } }, tplFmtCheck: null, tplFmtErr: {}, tplFmtRoles: {}, tplFmtBusy: {}, tplPrev: null, f6: null, fbSel: 0, fbHover: null }; }
+  tplSessionWatch() {
+    const S = this.state, open = S.space === 'comites' && S.tab === 'creer';
+    if (open) {
+      this._tplOpen = true;
+      if (!this._tplOldDrafts && this._api && this._api.tplDraftDrop) { this._tplOldDrafts = true; this._api.tplDraftDrop().catch(() => {}); }
       return;
     }
-    if (!this._tplDraftReady) return;
-    const data = { step: this.state.tplStep, draft: this.state.tplDraft }, key = JSON.stringify(data);
-    if (key === this._tplDraftKey) return;
-    this._tplDraftKey = key;
-    clearTimeout(this._tplDraftT);
-    this._tplDraftT = setTimeout(() => { (this.tplDraftEmpty(data.draft) ? this._api.tplDraftDrop() : this._api.tplDraftSave(data)).catch(() => {}); }, 800);
+    if (this._tplOpen) { this._tplOpen = false; if (S.f6 && S.f6.st === 'publishing') return; this.setState(this.tplBlank()); }
   }
   // Téléchargement d'un rapport (04/10/2026) : génération suivie étape par étape sur la ligne du template (`gnDl`).
   // L'affichage avance d'une étape à la fois vers l'étape atteinte par le serveur, chacune visible au moins
@@ -4328,6 +4320,7 @@ class Component extends DCLogic {
     const nav = id => navBase + (S.space === id ? 'background:rgba(255,255,255,.1);color:#fff;font-weight:700' : 'font-weight:500;color:#d5e6e2');
     const tabBase = 'height:30px;padding:0 14px;border-radius:15px;display:inline-flex;align-items:center;cursor:pointer;white-space:nowrap;transition:background .2s,color .2s;';
     const tabs = sp.tabs.map(([id, label]) => ({ label, select: () => this.go(S.space, id), style: tabBase + (S.tab === id ? 'background:#fff;color:#10233a' : 'color:#fff') }));
+    setTimeout(() => this.tplSessionWatch(), 0);
     const is = (s, t) => S.space === s && S.tab === t;
 
     const pill = (bg, fg) => `display:inline-block;padding:3px 9px;border-radius:6px;background:${bg};color:${fg};font-weight:700;font-size:11px;white-space:nowrap`;
@@ -4776,7 +4769,6 @@ class Component extends DCLogic {
     const tv = S.tplView ? TPL.find(t => t.id === S.tplView) : null;
     // Auteur : utilisateur connecté par défaut (null = pas encore modifié), modifiable dans la Fiche d'identité.
     const Dft = { ...S.tplDraft, author: S.tplDraft.author ?? this.meName() }; const step = S.tplStep;
-    if (S.tab === 'creer') setTimeout(() => this.tplDraftSync(), 0);
     // Étape E : aperçu (re)construit à l'arrivée et à chaque retour après une modification des étapes B, C ou D.
     if (S.tab === 'creer' && step === 5 && this._api && !(S.tplPrev && S.tplPrev.key === this.tplDraftKey())) setTimeout(() => this.tplPreviewRun(), 0);
     const setD = patch => this.setState(s => ({ tplDraft: { ...s.tplDraft, ...patch } }));
@@ -4946,17 +4938,14 @@ class Component extends DCLogic {
       if (f6Blocked || F6.st === 'publishing') return;
       const t = { name: draftT.name, author: Dft.author, version: Dft.version, comps: Dft.comps, committee: Dft.committee, bodyId: Dft.bodyId, active: true, desc: Dft.desc, format: fmtLoaded === 4 ? F.pages : null };
       this.setState({ f6: { st: 'publishing', done: 0 } });
-      clearTimeout(this._tplDraftT);
       if (!this._api) return this.setState({ f6: { st: 'published', done: 4 } });
       let r;
       try { r = await this._api.tplPublish(t); }
       catch (e) { return this.setState({ f6: { st: 'failed', done: 0, cause: (e && e.message) || 'Publication refusée par le serveur' } }); }
-      // Session « Créer un template » réinitialisée : brouillon supprimé (aussi par le serveur), assistant vierge à l'étape A.
-      clearTimeout(this._tplDraftT);
-      this._tplDraftKey = JSON.stringify({ step: 1, draft: { name: '', version: '1.0', author: null, desc: '', committee: 'Comité de pilotage', bodyId: 'g1', comps: [], fmt: { files: {}, pages: {} } } });
-      this._api.tplDraftDrop().catch(() => {});
-      // Redirection immédiate : la mise en service se poursuit dans « Générer un rapport ».
-      this.setState(s => ({ f6: null, tab: 'generer', tplSel: r.id, tplClosed: { ...s.tplClosed, [Dft.committee]: false }, tplSvc: { ...(s.tplSvc || {}), [r.id]: r.service }, tplStep: 1, tplDraft: { name: '', version: '1.0', author: null, desc: '', committee: 'Comité de pilotage', bodyId: 'g1', comps: [], fmt: { files: {}, pages: {} } }, tplFmtCheck: null, tplFmtErr: {}, tplPrev: null }));
+      // Session « Créer un template » réinitialisée (assistant vierge à l'étape A) ; redirection immédiate : la mise en
+      // service se poursuit dans « Générer un rapport ».
+      this._tplOpen = false;
+      this.setState(s => ({ ...this.tplBlank(), tab: 'generer', tplSel: r.id, tplClosed: { ...s.tplClosed, [Dft.committee]: false }, tplSvc: { ...(s.tplSvc || {}), [r.id]: r.service } }));
       window.scrollTo({ top: 0, behavior: 'smooth' });
       this.tplSvcPoll();
     };

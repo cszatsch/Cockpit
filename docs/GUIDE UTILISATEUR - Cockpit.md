@@ -702,7 +702,7 @@ Le bouton **Créer un template** du bandeau ouvre un assistant en six étapes.
 
 **Jalons et risques.** Les jalons forment une frise : un cercle par jalon (plein : date passée ; foncé : prochain jalon, avec son délai ; contour rouge : glissé après sa date de référence), son nom, sa date et l'écart à la référence quand la date a bougé ; quatre indicateurs en bas (jalons franchis, glissés, prochain jalon, glissement moyen). Les risques sont présentés en tableau (criticité en pastille colorée, plan de mitigation sous l'intitulé, porteur et chantier, échéance) à côté de la matrice probabilité × impact, où chaque risque apparaît par son code.
 
-**Brouillon.** Le template en cours de création est enregistré automatiquement à chaque modification : en revenant sur « Créer un template », vous le retrouvez à l'étape où vous l'aviez laissé.
+**Session de création.** Le template en cours de création n'est pas conservé : changer d'onglet ou de menu, publier ou recharger Cockpit ramène « Créer un template » à l'étape A, vierge.
 
 **Générer un rapport.** En haut, la séance à laquelle le rapport sera rattaché (date, comité, participants) ; dessous, deux tuiles : à gauche les templates actifs, regroupés par comité (recherche sur le nom, l'auteur, les composants ou le comité, filtre par comité, « Tout déplier / Tout replier ») ; à droite la prévisualisation du template sélectionné. Chaque ligne propose le téléchargement du rapport et un interrupteur : un template désactivé reste visible, atténué, jusqu'au prochain affichage de l'écran (un clic le réactive), et reste consultable dans la Bibliothèque.
 

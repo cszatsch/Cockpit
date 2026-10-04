@@ -45,6 +45,18 @@ async function main() {
     await page.waitForFunction(() => document.body.innerText.includes('Fiche d\'identité'), null, { timeout: 15000 });
     const steps = await page.evaluate(() => ['Fiche d\'identité', 'Format du rapport', 'Composants', 'Ordre et données', 'Prévisualisation', 'Publication'].map((n) => document.body.innerText.indexOf(n)));
     check('1. six étapes, « Format du rapport » en étape 2', steps.every((x, k) => x >= 0 && (k === 0 || x > steps[k - 1])), JSON.stringify(steps));
+    // Session sans persistance : quitter l'onglet ou le menu réinitialise l'assistant (étape A vierge).
+    const away = async (to: Record<string, string>) => page.evaluate(async ([n, to]) => {
+      const c = (window as any).__riseCockpit, wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+      c.setState({ tplStep: 2, tplDraft: { ...c.state.tplDraft, name: n + ' (abandon)' } }); await wait(300);
+      c.setState(to); await wait(400);
+      c.setState({ space: 'comites', tab: 'creer' }); await wait(400);
+      return { step: c.state.tplStep, name: c.state.tplDraft.name };
+    }, [NAME, to] as const);
+    const afterTab = await away({ tab: 'generer' }), afterMenu = await away({ space: 'pilotage', tab: 'planning' });
+    check('   session sans persistance : changer d’onglet ou de menu ramène à l’étape A vierge', [afterTab, afterMenu].every((x) => x.step === 1 && x.name === ''), JSON.stringify({ afterTab, afterMenu }));
+    await page.evaluate((n) => { const c = (window as any).__riseCockpit; c.setState({ tplStep: 1, tplDraft: { ...c.state.tplDraft, name: n } }); }, NAME);
+    await page.waitForTimeout(300);
     const stepper = () => page.evaluate(() => (document.body.innerText.match(/Format du rapport/g) || []).length + '|' + Array.from(document.querySelectorAll('div')).filter((d) => /^Étape \d$/i.test((d.textContent || '').trim())).length);
     const stepperA = await stepper();
     await page.getByText('Suivant ›').click();

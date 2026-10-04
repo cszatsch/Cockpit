@@ -393,3 +393,7 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 ## Générer un rapport : bloc « Séance du rapport » retiré (04/10/2026)
 
 - `RISE Cockpit.dc.html` : bloc « Séance du rapport » retiré (pavé date, texte de rattachement, sélecteur des séances, lien « Calendrier des comités → ») avec `genSesVals` ; le sélecteur n'avait pas d'effet sur le rapport généré. Un rapport versé dans la Base de connaissance reste rattaché à la prochaine séance planifiée du comité du template (`onReportGenerated`, `api.js`) ; l'entrée d'historique ne reprend plus `sesSel`, partagé avec le calendrier des comités (où il désigne une date).
+
+## Créer un template : session sans persistance (04/10/2026)
+
+- `RISE Cockpit.dc.html` : le brouillon n'est plus enregistré ni relu (`tplDraftSync`, `tplDraftEmpty` retirés) ; l'assistant repart vierge (`tplBlank`) dès que l'on quitte l'onglet « Créer un template » ou le menu Comités et rapports, après une publication et à chaque chargement de Cockpit (`tplSessionWatch`) ; les brouillons laissés sur le serveur par les versions précédentes sont supprimés à la première ouverture de l'onglet.

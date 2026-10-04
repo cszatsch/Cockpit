@@ -441,6 +441,11 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 - **Tests** : `test/unit/notification-email.spec.ts` (blocs, HTML), `test/e2e/console.spec.ts` (envoi de test : HTML et texte).
 - **Point d'attention** : rendu à confirmer dans les messageries cibles (Outlook de bureau notamment, qui ignore les arrondis et la mise en colonne unique sur mobile).
 
+### Créer un template : session sans persistance (04/10/2026)
+
+- **Réalisé** : plus d'enregistrement ni de reprise du brouillon ; assistant vierge en quittant l'onglet ou le menu, à la publication et au chargement ; anciens brouillons supprimés.
+- **Vérification** : recette `test/browser/format-rapport.e2e.ts` 32 / 32 (contrôle ajouté : changement d'onglet et de menu → étape A vierge).
+
 ## 4. Questions ouvertes
 
 1. **Déclencheur des règles de notification** : faut-il ajouter un sélecteur de déclencheur dans la console ? Aujourd'hui, une règle créée depuis l'écran reçoit un déclencheur par défaut : « planifié » pour une notification, « manuel » pour une alerte.

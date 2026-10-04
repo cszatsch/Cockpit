@@ -1426,3 +1426,12 @@ Demande du commanditaire : e-mails de notification « médiocres » (texte brut 
 | Lecture du contenu | Blocs lus dans le Markdown rédigé par l'IA, comme dans le tiroir du Cockpit : salutations en introduction, première phrase utile en titre, chiffres clés, lignes codées « À surveiller », actions numérotées « À faire », anciens tableaux en lignes codées ; formules finales omises | `emailBlocks` |
 | Mise en page | En-tête « RISE Cockpit · projet · date » ; rubrique (nom de la règle) précédée d'un point de la couleur de gravité ; titre en grand (réduit au-delà de 150 caractères) ; chiffres sous un filet (rouge si critique, criticité ≥ 20 ou dépassement « 79 / 40 »), dénominateur en gris, barre de progression quand la valeur est une part (« 27 / 61 ») ; codes colorés selon l'état décrit ; bloc sombre des actions, numéros en corail, échéances (« avant 14/10 ») en relief, précisions entre parenthèses en gris ; lien « Ouvrir RISE Cockpit » ; pied : adresse d'expédition et raison de l'envoi (profil, projet) ; texte d'aperçu = l'essentiel ; espaces insécables de la typographie française | `notificationHtml`, `RISK`, `toneOf` |
 | Envoi | `Mail.html` facultatif ; adresse d'expédition lue dans les réglages SMTP de la Console | `MailerService.senderAddress`, `NotificationsService.deliver` |
+
+## Créer un template : session sans persistance (04/10/2026)
+
+Arbitrage du commanditaire : en revenant sur « Créer un template » après un redémarrage, l'assistant reprenait le brouillon enregistré (étape D) ; il ne doit rien conserver. Le brouillon n'est plus enregistré ni relu : l'assistant repart vierge (étape A) dès que l'on quitte l'onglet ou le menu Comités et rapports, après une publication et à chaque chargement de Cockpit. Les brouillons laissés sur le serveur par les versions précédentes sont supprimés à la première ouverture de l'onglet. Remplace l'enregistrement du brouillon du 04/10/2026 (étape D) ; la table `report_template_drafts` et la route `/report-template-draft` restent, sans usage par l'écran autre que cette suppression.
+
+| Sujet | Choix | Code |
+|---|---|---|
+| Réinitialisation | État vierge de l'assistant (fiche, format, composants, aperçu, publication) | `tplBlank` |
+| Déclencheurs | Sortie de l'onglet « Créer un template » ou du menu (sauf pendant une publication), publication, chargement de la page | `tplSessionWatch`, `f6Publish` |
