@@ -428,9 +428,18 @@ describe('Console Admin — critères d’acceptation (brief Console § 13)', ()
       expect(p.body.body).not.toContain('{reponse_llm}');
       expect(p.body.tokens).toBeGreaterThan(0);
       const before = await t.db.usageRecord.count({ where: { source: 'NOTIFICATION' } });
+      const mailer = t.app.get(MailerService) as any;
+      await t.db.notificationRule.update({ where: { id: 'n4' }, data: { channels: ['EMAIL'] } });
+      const mails0 = mailer.outbox.length;
       const sent = await c.post(`${A}/notification-rules/n4/test`).expect(200);
       expect(sent.body[0]).toMatchObject({ status: 'OK', recipientsCount: 1 });
       expect(await t.db.usageRecord.count({ where: { source: 'NOTIFICATION' } })).toBe(before + 1);
+      // E-mail mis en page (04/10/2026) : HTML (rubrique, pied) et texte en alternative.
+      const mail = mailer.outbox[mailer.outbox.length - 1];
+      expect(mailer.outbox.length).toBe(mails0 + 1);
+      expect(mail.html).toContain('<!doctype html>');
+      expect(mail.html).toContain('du projet RISE.');
+      expect(mail.text).not.toContain('<');
     });
     it('{date} vaut la date du jour dans l’aperçu et l’envoi de test (et non une date d’exemple figée)', async () => {
       const c = await t.as(WHO.admin);

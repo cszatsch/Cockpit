@@ -1403,3 +1403,26 @@ Demande du commanditaire : un laps de temps important séparait le clic sur « T
 ## Générer un rapport : bloc « Séance du rapport » retiré (04/10/2026)
 
 Analyse présentée au commanditaire : le sélecteur de séance n'avait pas d'effet sur le rapport (comité du template, date du jour, aucun rattachement enregistré au téléchargement) et partageait la variable `sesSel` avec le calendrier des comités. Améliorations proposées (rattachement réel, rapport adapté à la séance) demandées puis annulées : le bloc est retiré (pavé date, texte, sélecteur, lien vers le calendrier, `genSesVals`). Un rapport versé dans la Base de connaissance reste rattaché à la prochaine séance planifiée du comité du template (`onReportGenerated`).
+
+## Rapports, composant Planning : chemin critique et atterrissages (04/10/2026)
+
+Demande du commanditaire : indicateurs « Chemin critique », « Atterrissage rythme actuel » et « Atterrissage rythme prévu » dans le composant Planning (étape D). Mêmes définitions que l'écran Planning du Cockpit (`plItems`).
+
+| Sujet | Choix | Constante / code |
+|---|---|---|
+| Chemin critique | Phases et sous-phases marquées critiques au référentiel : contour rouge détaché autour de la barre (Gantt) ; mention « critique » après le nom (tableau) | `GanttRow.critical` |
+| Atterrissage au rythme actuel | Aujourd'hui + jours écoulés × reste à faire / réalisé (phase commencée, 0 < réalisé < 100) : cercle ambre à la date projetée | `planLandings` (`lc`) |
+| Atterrissage au rythme prévu | Aujourd'hui + reste à faire × durée prévue (phase commencée, non terminée) : losange gris | `planLandings` (`lp`) |
+| Lecture | Filet pointillé depuis la fin prévue jusqu'au repère, écart « +N j » au-dessus du filet ; frise étendue jusqu'aux atterrissages affichés (repère à sa vraie date) ; phases terminées sans repère ; légende complétée, « Terminé » puis « À venir » retirés si la place manque ; planning en tableau : colonne « Atterrissage » (rythme actuel, ambre s'il dépasse la fin, puis « prévu … »), nom abrégé sur une ligne | `drawGantt`, `drawPlanTable` |
+| Indicateurs | Trois nouveaux indicateurs du Planning, non cochés par défaut ; faits transmis à la rédaction par l'IA | `COMPONENTS.planning` |
+
+## Notifications : e-mail mis en page (04/10/2026)
+
+Demande du commanditaire : e-mails de notification « médiocres » (texte brut issu du Markdown) ; refonte sur le modèle fourni (titre éditorial, chiffres en grand, « À surveiller », bloc sombre « À faire »), lecture immédiate, sans surcharge.
+
+| Sujet | Choix | Constante / code |
+|---|---|---|
+| Format | E-mail HTML (texte brut joint en alternative, `mailText`) compatible avec les messageries : tableaux, styles en ligne, 600 px, une colonne sous 620 px ; Georgia (titre, chiffres), Helvetica / Arial (texte) ; papier chaud, encre, rouge (risque), ambre (vigilance), vert d'eau (maîtrisé) | `notificationHtml`, `EMAIL_COLORS` (`src/domain/notification-email.ts`) |
+| Lecture du contenu | Blocs lus dans le Markdown rédigé par l'IA, comme dans le tiroir du Cockpit : salutations en introduction, première phrase utile en titre, chiffres clés, lignes codées « À surveiller », actions numérotées « À faire », anciens tableaux en lignes codées ; formules finales omises | `emailBlocks` |
+| Mise en page | En-tête « RISE Cockpit · projet · date » ; rubrique (nom de la règle) précédée d'un point de la couleur de gravité ; titre en grand (réduit au-delà de 150 caractères) ; chiffres sous un filet (rouge si critique, criticité ≥ 20 ou dépassement « 79 / 40 »), dénominateur en gris, barre de progression quand la valeur est une part (« 27 / 61 ») ; codes colorés selon l'état décrit ; bloc sombre des actions, numéros en corail, échéances (« avant 14/10 ») en relief, précisions entre parenthèses en gris ; lien « Ouvrir RISE Cockpit » ; pied : adresse d'expédition et raison de l'envoi (profil, projet) ; texte d'aperçu = l'essentiel ; espaces insécables de la typographie française | `notificationHtml`, `RISK`, `toneOf` |
+| Envoi | `Mail.html` facultatif ; adresse d'expédition lue dans les réglages SMTP de la Console | `MailerService.senderAddress`, `NotificationsService.deliver` |

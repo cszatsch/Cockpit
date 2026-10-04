@@ -10,7 +10,9 @@ import { frShort } from '../domain/dates';
 
 import { NOTIFICATION_MAX_WORDS, NOTIFICATION_MIN_CONTENT_WORDS, wordCount } from '../domain/notification-rules';
 import { AUDIENCE_PRIORITY, AudienceProfile, blockingErrors, CATCH_UP_PER_MINUTE, catchUpDeadline, nextSendAt, NOTIFICATION_MEMORY_DAYS, mailText, occurrencesUntil, ON_TIME_TOLERANCE_MS, parisDay, scheduleKey, sendTimeFr } from '../domain/notification-rules';
-import { Audience, NotificationWriterService } from './notification-writer.service';
+import { Audience, NotificationWriterService, PROFILE_NAME } from './notification-writer.service';
+import { notificationHtml } from '../domain/notification-email';
+import { config } from '../core/config';
 
 /** Variables utilisables dans le prompt et le message (brief Console § 6.5). */
 /** Variables proposées dans la vue : projet, date (et reponse_llm dans le message) ; semaine reste lue pour les synthèses. */
@@ -108,7 +110,10 @@ export class NotificationsService implements OnModuleInit {
         let err = error;
         if (gen && channel === 'EMAIL') {
           try {
-            await this.mailer.send({ to: recipients.map((r) => r.email), subject: gen.subject, text: mailText(gen.body) });
+            // E-mail mis en page (04/10/2026) : HTML lu dans les blocs du contenu rédigé, texte en alternative.
+            const project = !projectId ? null : await this.prisma.project.findUnique({ where: { id: projectId }, select: { code: true, name: true, timezone: true } });
+            const html = notificationHtml(gen.body, { rule: rule.name, project: project?.code ?? '', date: frShort(this.today.today(project?.timezone || undefined), 0), profile: PROFILE_NAME[g.profile] ?? null, appUrl: config.appUrl, from: await this.mailer.senderAddress() });
+            await this.mailer.send({ to: recipients.map((r) => r.email), subject: gen.subject, text: mailText(gen.body), html });
           } catch (e: any) {
             status = 'ERROR';
             err = `Envoi e-mail : ${e?.message ?? 'échec'}`;

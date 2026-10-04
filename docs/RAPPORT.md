@@ -428,6 +428,19 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 - **Réalisé** : bloc retiré de l'écran ; l'historique ne reprend plus `sesSel` (qui pouvait contenir une date du calendrier et faire échouer le rattachement d'un rapport versé).
 - **Question ouverte** : le rattachement d'un rapport à une séance choisie et l'adaptation de la couverture à la séance (améliorations 1 et 2 de l'analyse) ne sont pas réalisés.
 
+### Rapports, composant Planning : chemin critique et atterrissages (04/10/2026)
+
+- **Réalisé** : trois indicateurs du Planning (chemin critique, atterrissage au rythme actuel, au rythme prévu), en Gantt et en tableau, avec les calculs de l'écran Planning.
+- **Vérification** (rendu PowerPoint, 3 itérations) : légende qui débordait (entrées évidentes retirées si la place manque), atterrissage au-delà de la frise sans écart affiché (frise étendue, écart au-dessus du filet), noms longs sur deux lignes dans le tableau (abrégés sur une ligne).
+- **Tests** : `test/unit/report-template.spec.ts` (calcul des atterrissages, rendu Gantt et tableau), catalogue (`test/e2e/report-template.spec.ts`).
+
+### Notifications : e-mail mis en page (04/10/2026)
+
+- **Réalisé** : e-mails de notification en HTML (titre, chiffres clés, à surveiller, à faire, pied), texte brut en alternative.
+- **Vérification** (rendu navigateur, 720 et 390 px, 2 itérations) : point de rubrique étiré, criticité 25 non signalée, deux-points isolé en début de ligne (espaces insécables), ton d'un message d'échéance.
+- **Tests** : `test/unit/notification-email.spec.ts` (blocs, HTML), `test/e2e/console.spec.ts` (envoi de test : HTML et texte).
+- **Point d'attention** : rendu à confirmer dans les messageries cibles (Outlook de bureau notamment, qui ignore les arrondis et la mise en colonne unique sur mobile).
+
 ## 4. Questions ouvertes
 
 1. **Déclencheur des règles de notification** : faut-il ajouter un sélecteur de déclencheur dans la console ? Aujourd'hui, une règle créée depuis l'écran reçoit un déclencheur par défaut : « planifié » pour une notification, « manuel » pour une alerte.

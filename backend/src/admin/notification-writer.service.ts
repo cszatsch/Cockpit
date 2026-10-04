@@ -22,7 +22,7 @@ export interface WrittenText {
   sql: string | null;
 }
 
-const PROFILE_NAME: Record<AudienceProfile, string> = { admin: 'Administrateur', pmo: 'PMO', resp: 'Responsable', lec: 'Lecteur' };
+export const PROFILE_NAME: Record<AudienceProfile, string> = { admin: 'Administrateur', pmo: 'PMO', resp: 'Responsable', lec: 'Lecteur' };
 
 /** Structure d'une notification (01/10/2026) : brève, lisible d'un coup d'œil, mise en page par le tiroir du Cockpit. */
 export const NOTIFICATION_STRUCTURE = [
