@@ -930,20 +930,6 @@ a{color:#1d8f86}a:hover{color:#146b64}
   <sc-if value="{{ vTplGenerer }}" hint-placeholder-val="{{ false }}">
   <div style="max-width:1440px;width:100%;box-sizing:border-box;margin:0 auto;display:flex;flex-direction:column;gap:24px;font-family:'Plus Jakarta Sans',sans-serif;color:#10233A;-webkit-font-smoothing:antialiased">
 
-    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:18px 28px;padding:18px 22px 18px 18px;border-radius:20px;background:#fff;border:1px solid #E3E8EC;box-shadow:0 14px 40px -24px rgba(16,35,58,.35)">
-      <div style="flex:none;width:58px;height:58px;border-radius:14px;background:#10233A;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">
-        <span style="font-size:9.5px;font-weight:700;letter-spacing:.12em;color:#F2B544">{{ genSes.mon }}</span>
-        <span style="font-size:22px;line-height:1;font-weight:800">{{ genSes.day }}</span>
-      </div>
-      <div style="flex:1 1 300px;min-width:0;display:flex;flex-direction:column;gap:4px">
-        <span style="font-size:10.5px;font-weight:700;letter-spacing:.16em;color:#8A97A5">SÉANCE DU RAPPORT</span>
-        <span style="display:block;line-height:1.5;font-size:14px;color:#4E5E6E;text-wrap:pretty">{{ genSes.info }}</span>
-      </div>
-      <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
-        <select value="{{ genSes.v }}" onChange="{{ genSes.set }}" style="height:44px;padding:0 42px 0 16px;border-radius:12px;border:1px solid #D5DDE3;background:#fff url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7' viewBox='0 0 12 7'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%2310233A' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E&quot;) no-repeat right 15px center;appearance:none;-webkit-appearance:none;font-size:14px;font-weight:600;color:#10233A;cursor:pointer;font-family:inherit;max-width:100%"><sc-for list="{{ genSes.opts }}" as="o" hint-placeholder-count="4"><option value="{{ o.v }}">{{ o.l }}</option></sc-for></select>
-        <a href="#" onClick="{{ genSes.goCal }}" style="font-size:13.5px;font-weight:700;color:#0E7C6B;text-decoration:none;white-space:nowrap">Calendrier des comités →</a>
-      </div>
-    </div>
 
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,460px),1fr));gap:24px;align-items:stretch">
 
@@ -3674,16 +3660,6 @@ class Component extends DCLogic {
   }
   SES0 = { hasNext: false, next: {}, segs: [], groups: [], canEdit: false, empty: false, sub: '', cal: { cells: [], legend: [], selList: [], title: '', selTitle: '', selRel: '' } };
   sessionList() { const S = this.state, D = this.mergedData(); if (!D || !D.sessions) return []; const E = S.sesEd || {}; return D.sessions.concat(S.sesAdded || []).map(x => ({ ...x, ...(E[x.id] || {}) })); }
-  genSesVals() {
-    const S = this.state, D = this.mergedData(); if (!D || !D.sessions) return { opts: [], v: '', info: '', mon: '', day: '' };
-    const GB = {}; D.model.GOVERNANCE_BODY.rows.forEach(r => { GB[r.id] = r.cells[0]; });
-    const p2 = n => String(n).padStart(2, '0'), today = this.fToday();
-    const L = this.sessionList().filter(x => x.status === 'PLANNED' && x.dateIso >= today).sort((a, b) => a.dateIso.localeCompare(b.dateIso)).slice(0, 30);
-    const cur = L.find(x => x.id === S.sesSel) || L[0], dl = iso => new Date(iso + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
-    const dd = cur ? new Date(cur.dateIso + 'T12:00:00') : null;
-    return { v: cur ? cur.id : '', mon: dd ? dd.toLocaleDateString('fr-FR', { month: 'short' }).toUpperCase() : '—', day: dd ? String(dd.getDate()) : '', opts: L.map(x => ({ v: x.id, l: GB[x.bodyId] + ' n°' + x.number + ' · ' + dl(x.dateIso) })), set: e => this.setState({ sesSel: e.target.value }), goCal: e => { if (e && e.preventDefault) e.preventDefault(); this.go('pilotage', 'seances'); },
-      info: cur ? 'Le rapport généré sera rattaché à cette séance (' + GB[cur.bodyId] + ', ' + (cur.participants || []).length + ' participants).' : 'Aucune séance planifiée : planifiez-en une dans Pilotage › Comités.' };
-  }
   sesVals() {
     const S = this.state, D = this.mergedData(); if (!D || !D.sessions) return this.SES0;
     const GB = D.model.GOVERNANCE_BODY.rows, gbN = {}; GB.forEach(r => { gbN[r.id] = r; });
@@ -4368,7 +4344,7 @@ class Component extends DCLogic {
       heroStyle: `position:relative;min-height:250px;padding-bottom:30px;overflow:hidden;background:${String(sp.bg).split(', linear-gradient').slice(1).map(x => 'linear-gradient' + x).join(', ') || '#10233a'}`, heroPhoto: React.createElement('div', { key: 'hero-' + S.space, style: { position: 'absolute', inset: 0, background: sp.bg, animation: 'rise-hero .7s cubic-bezier(.2,.7,.2,1) both' } }), heroNeedsPhoto: false, tabs,
       vTodaySituation: is('today', 'situation'), vTodayOld: false, db: is('today', 'situation') ? this.dbVals() : this.DB0, vTodayEcarts: is('today', 'ecarts'), vTodayEcheances: is('today', 'echeances'), vTodayQualite: is('today', 'qualite'),
       vPlanning: is('pilotage', 'planning'), vSeances: is('pilotage', 'seances'), ses: is('pilotage', 'seances') ? this.sesVals() : this.SES0, vJalons: is('pilotage', 'jalons'), vLivrables: is('pilotage', 'livrables'), lv: is('pilotage', 'livrables') ? (() => { const v = this.lvVals() || this.LV0; this._lvTodayPx = v.lvTodayPx; return v; })() : this.LV0, vRisques: is('pilotage', 'risques'), vActions: is('pilotage', 'actions'), vDecisions: is('pilotage', 'decisions'), vBudget: is('pilotage', 'budget'), vBenefices: is('pilotage', 'benefices'), mod: (is('pilotage', 'budget') || is('pilotage', 'benefices')) ? this.modVals(S.tab) : this.MOD0, vBarometre: is('pilotage', 'barometre'), vMes: is('pilotage', 'mes'),
-      vTplGenerer: is('comites', 'generer'), genSes: is('comites', 'generer') ? this.genSesVals() : { opts: [], v: '', info: '' }, vTplCreer: is('comites', 'creer'), vTplBiblio: is('comites', 'templates'), vTplHist: is('comites', 'historique'), vDocuments: is('documents', 'bibliotheque'), vEquipe: is('projet', 'dispositif') && (S.dispoView || 'annuaire') === 'annuaire',
+      vTplGenerer: is('comites', 'generer'), vTplCreer: is('comites', 'creer'), vTplBiblio: is('comites', 'templates'), vTplHist: is('comites', 'historique'), vDocuments: is('documents', 'bibliotheque'), vEquipe: is('projet', 'dispositif') && (S.dispoView || 'annuaire') === 'annuaire',
       vFiche: is('projet', 'fiche'), vPerimetre: is('projet', 'perimetre'), vChronologie: is('projet', 'chronologie'), vDispositif: is('projet', 'dispositif'), vWbs: is('projet', 'wbs'), vParties: is('projet', 'dispositif') && (S.dispoView || 'annuaire') === 'equipe', vOrga: is('projet', 'dispositif') && S.dispoView === 'orga', vRaci: is('projet', 'dispositif') && S.dispoView === 'raci', vGouv: is('projet', 'dispositif') && S.dispoView === 'gouv', vContrat: is('projet', 'contrat'),
       panelOpen: !!S.panel, panel: S.panel || {}, closePanel: () => this.setState({ panel: null }), confirmPanel: () => { const t = S.panel && S.panel.cta; this.setState({ panel: null }); this.showToast((t || 'Enregistré') + ' — confirmation métier datée du 16 sept.'); },
       shellStyle: `display:grid;grid-template-columns:${S.sideOpen ? '272px' : '68px'} minmax(0,1fr) ${S.assistant ? '400px' : '0px'} ${S.taskForm ? '440px' : '0px'};min-height:100vh;min-width:${S.sideOpen ? 1476 : 1272}px;font-size:13px;line-height:1.45;transition:grid-template-columns .45s cubic-bezier(.2,.7,.2,1)`,
@@ -4719,7 +4695,7 @@ class Component extends DCLogic {
       tplIssuesList: TI ? (TI.issues || []).map(i => ({ t: i.message, style: issueStyle(i.severity) })) : [], tplIssuesCanGo: !!TI && !tiErrors, tplIssuesCancel: tiErrors ? 'Fermer' : 'Annuler',
       tplIssuesClose: () => this.setState({ tplIssues: null }), tplIssuesGo: () => { if (!TI) return; this.setState({ tplIssues: null }); if (TI.report) this.setState({ tplAsk: TI.t }); else tplDownloadNow(TI.t); } };
     const tplLog = (t, saved) => { const now = new Date(); const time = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }); const short = now.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
-      const entry = { id: 'H' + Date.now(), name: t.name, version: t.version, committee: t.committee, bodyId: t.bodyId, sessionId: S.sesSel || null, date: todayFr, time, by: this.meName(), saved };
+      const entry = { id: 'H' + Date.now(), name: t.name, version: t.version, committee: t.committee, bodyId: t.bodyId, sessionId: null, date: todayFr, time, by: this.meName(), saved };
       const doc = saved ? { n: t.name + ' — ' + t.committee + ' du ' + short, type: 'Support de comité', date: short, v: 'v' + t.version, conf: 'Interne', src: 'Généré', ext: 'SUCCEEDED', mime: 'PPTX', pages: t.pages } : null;
       this.setState(s => ({ tplAsk: null, tplHistory: [entry, ...s.tplHistory], kbDocs: doc ? [doc, ...s.kbDocs] : s.kbDocs }));
       // API : PowerPoint généré au format du template, génération suivie sur la ligne du template.

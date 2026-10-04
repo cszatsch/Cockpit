@@ -423,6 +423,11 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 - **Tests** : `test/e2e/report-template.spec.ts` (génération suivie : phases, fichier remis une fois, première génération ; avertissements de rédaction rendus par la génération), recette `test/browser/format-rapport.e2e.ts` 31 / 31 (étapes observées dans l'ordre jusqu'à « Rapport téléchargé »).
 - **Point d'attention** : un état d'échec (« Génération interrompue », message, « Réessayer ») a été ajouté sur le modèle de « Mise en service interrompue », sans maquette dédiée.
 
+### Générer un rapport : bloc « Séance du rapport » retiré (04/10/2026)
+
+- **Réalisé** : bloc retiré de l'écran ; l'historique ne reprend plus `sesSel` (qui pouvait contenir une date du calendrier et faire échouer le rattachement d'un rapport versé).
+- **Question ouverte** : le rattachement d'un rapport à une séance choisie et l'adaptation de la couverture à la séance (améliorations 1 et 2 de l'analyse) ne sont pas réalisés.
+
 ## 4. Questions ouvertes
 
 1. **Déclencheur des règles de notification** : faut-il ajouter un sélecteur de déclencheur dans la console ? Aujourd'hui, une règle créée depuis l'écran reçoit un déclencheur par défaut : « planifié » pour une notification, « manuel » pour une alerte.

@@ -647,11 +647,10 @@ Le bouton orange **Mettre à jour mes tâches** de la barre latérale ouvre dire
 
 ### 3.15.1 Générer un rapport
 
-1. Dans **Séance du rapport**, choisissez la séance (séances planifiées à venir, 30 au plus). L'écran indique « Le rapport généré sera rattaché à cette séance ({instance}, N participants). ».
-2. Dans **Templates actifs**, regroupés par comité, sélectionnez un template. La **Prévisualisation** montre ses sections numérotées et leur nombre de pages.
-3. Cliquez sur **Télécharger le rapport** (ou **Générer et télécharger le rapport** sur la ligne du template).
-4. La fenêtre « Rapport généré » propose de le verser dans la Base de connaissance :
-   - **Oui, verser** : le rapport est enregistré et rattaché à la séance, au statut Brouillon, avec une version (v1, v2… selon les rapports déjà rattachés à la séance) ;
+1. Dans **Templates actifs**, regroupés par comité, sélectionnez un template. La **Prévisualisation** montre ses sections numérotées et leur nombre de pages.
+2. Cliquez sur le bouton de téléchargement de la ligne du template.
+3. La fenêtre « Rapport généré » propose de le verser dans la Base de connaissance :
+   - **Oui, verser** : le rapport est enregistré et rattaché à la prochaine séance planifiée du comité du template, au statut Brouillon, avec une version (v1, v2… selon les rapports déjà rattachés à la séance) ;
    - **Non, télécharger seulement** : rien n'est enregistré.
 
 **Règles**

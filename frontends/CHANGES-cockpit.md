@@ -389,3 +389,7 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 - `api.js` : `tplGenerate(t, onStep, beforeSave)` (`POST /report-templates/{id}/generations`, `GET /report-generations/{id}`, `…/file`).
 - Étape B : consigne raccourcie à « Chargez un modèle pour chacun des 4 types de page : le PowerPoint généré reprendra leurs fonds, logos, couleurs, polices et positions. » (phrase sur le fichier unique retirée).
 - Étape B : boutons « Remplacer » et « Supprimer » retirés du bandeau du fichier de la page (`fbCur.remove` supprimé) ; une page se retire par l'icône de sa vignette, puis se recharge depuis la zone de chargement.
+
+## Générer un rapport : bloc « Séance du rapport » retiré (04/10/2026)
+
+- `RISE Cockpit.dc.html` : bloc « Séance du rapport » retiré (pavé date, texte de rattachement, sélecteur des séances, lien « Calendrier des comités → ») avec `genSesVals` ; le sélecteur n'avait pas d'effet sur le rapport généré. Un rapport versé dans la Base de connaissance reste rattaché à la prochaine séance planifiée du comité du template (`onReportGenerated`, `api.js`) ; l'entrée d'historique ne reprend plus `sesSel`, partagé avec le calendrier des comités (où il désigne une date).
