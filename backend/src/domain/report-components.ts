@@ -34,7 +34,8 @@ export const COMPONENTS: Record<ComponentId, ComponentDef> = {
   planning: {
     id: 'planning', label: 'Planning', nature: 'Gantt', parts: ['board'], periodic: false, defaultPeriod: 'all',
     // Gantt des phases (phase en cours, repère du jour, avancement) ; au-delà de 25 lignes, tableau (GANTT_MAX_ROWS).
-    indicators: [{ id: 'milestones', label: 'Jalons sur la frise' }, { id: 'subphases', label: 'Sous-phases' }],
+    // Chemin critique et atterrissages (04/10/2026) : mêmes définitions que l'écran Planning du Cockpit (`planLandings`).
+    indicators: [{ id: 'milestones', label: 'Jalons sur la frise' }, { id: 'subphases', label: 'Sous-phases' }, { id: 'critical', label: 'Chemin critique' }, { id: 'landCurrent', label: 'Atterrissage rythme actuel' }, { id: 'landPlanned', label: 'Atterrissage rythme prévu' }],
     defaults: ['milestones'],
   },
   jalons: {

@@ -51,7 +51,7 @@ describe('Cockpit — Templates de rapport : versions et publications', () => {
   it('catalogue : nature, indicateurs proposés et périodes des composants', async () => {
     const r = await get('/report-components').expect(200);
     expect(r.body.components.find((c: any) => c.id === 'barometre')).toMatchObject({ nature: 'Tableau de bord', parts: ['board', 'chart'], periodic: true, defaultPeriod: 'last6', indicators: [{ id: 'score', label: 'Score et évolution' }, { id: 'sentiment', label: 'Avis des répondants' }, { id: 'domains', label: 'Score par domaine' }, { id: 'themes', label: 'Points clés' }] });
-    expect(r.body.components.find((c: any) => c.id === 'planning')).toMatchObject({ nature: 'Gantt', parts: ['board'], indicators: [{ id: 'milestones', label: 'Jalons sur la frise' }, { id: 'subphases', label: 'Sous-phases' }] });
+    expect(r.body.components.find((c: any) => c.id === 'planning')).toMatchObject({ nature: 'Gantt', parts: ['board'], indicators: [{ id: 'milestones', label: 'Jalons sur la frise' }, { id: 'subphases', label: 'Sous-phases' }, { id: 'critical', label: 'Chemin critique' }, { id: 'landCurrent', label: 'Atterrissage rythme actuel' }, { id: 'landPlanned', label: 'Atterrissage rythme prévu' }] });
     expect(r.body.components.find((c: any) => c.id === 'risques')).toMatchObject({ nature: 'Matrice et tableau', parts: ['board'], periodic: false });
     expect(r.body.components.find((c: any) => c.id === 'jalons')).toMatchObject({ nature: 'Frise', parts: ['board'], periodic: true });
     expect(r.body.components.find((c: any) => c.id === 'actions')).toMatchObject({ nature: 'Échéancier', parts: ['board'] });

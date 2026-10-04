@@ -5,7 +5,7 @@ import { composeTemplate, fillChartXml, FillData, fillTemplate, TemplateFieldMis
 import { COMPONENT_IDS, ComponentConfig, configErrors, fieldName, indicatorsOf, pagesOf, periodOf, periodRange, reportPlan, sectionsOf } from '../../src/domain/report-components';
 import { makeFormatPptx, makePng, pptxIntegrity, withLegacyParts } from '../format-fixture';
 import { actionBuckets, ActionsData, DashboardData, DECISION_STALE_DAYS, DecisionsData, drawActions, drawDashboard, drawDecisions, focusPhase, gapTone, sortActions, sortPending } from '../../src/core/report-draw-pilotage';
-import { BarometerData, Draw, drawBarometer, drawGantt, drawMilestones, drawPlanTable, drawRisks, foldPlan, GANTT_MAX_ROWS, GanttData, GanttRow, isLate, MILESTONES_MAX, MilestonesData, milestoneStates, RisksData, wrapText } from '../../src/core/report-draw';
+import { BarometerData, Draw, drawBarometer, drawGantt, drawMilestones, drawPlanTable, drawRisks, foldPlan, GANTT_MAX_ROWS, GanttData, GanttRow, isLate, MILESTONES_MAX, MilestonesData, milestoneStates, planLandings, RisksData, wrapText } from '../../src/core/report-draw';
 import { designTokens, scoreTone, statusTone, timeRatio, timeScale, typeScale } from '../../src/domain/report-design';
 
 /** Étapes 3 à 6 de « Créer un template » (03/10/2026) : catalogue, périodes, sections, template et publications. */
@@ -209,6 +209,29 @@ describe('Rapport — système de design', () => {
     const late: GanttData = { ...plan, rows: [phase(1, 'IN_PROGRESS', '2026-01-01', '2026-09-01', 70, true)] };
     expect(isLate(late.rows[0], late.today)).toBe(true);
     expect(drawGantt(new Draw(tk), box, late)).toContain(`val="${tk.risk}"`);
+  });
+
+  it('chemin critique et atterrissages : calcul de l’écran Planning, contour rouge, repères et écart, légende ; colonne du tableau', () => {
+    // 2026-01-01 → 2026-12-31 (364 j), 40 % réalisé au 03/10 (275 j écoulés) : 275 × 60 / 40 = 413 j ; 60 % × 364 = 218 j.
+    expect(planLandings('2026-01-01', '2026-12-31', 40, '2026-10-03')).toEqual({ lc: '2027-11-20', lp: '2027-05-09' });
+    expect(planLandings('2027-01-01', '2027-06-30', 0, '2026-10-03')).toEqual({ lc: null, lp: null }); // pas commencée
+    expect(planLandings('2025-01-01', '2025-12-31', 100, '2026-10-03')).toEqual({ lc: null, lp: null }); // terminée
+    const rows = [phase(1, 'DONE', '2025-01-01', '2025-12-31', 100), { ...phase(2, 'IN_PROGRESS', '2026-01-01', '2026-12-31', 40, true), critical: true, lc: '2027-11-20', lp: '2027-05-09' }, phase(3, 'PLANNED', '2027-01-01', '2027-06-30', 0)];
+    const off = drawGantt(new Draw(tk), box, { ...plan, rows });
+    expect(off).not.toContain('Chemin critique');
+    expect(off).not.toContain('+324 j');
+    const on = drawGantt(new Draw(tk), box, { ...plan, rows, show: { critical: true, landCurrent: true, landPlanned: true } });
+    expect(on).toContain('>Chemin critique<');
+    expect(on).toContain('>Atterr. rythme actuel<');
+    expect(on).toContain('>Atterr. rythme prévu<');
+    expect(on).toContain('>+324 j<'); // rythme actuel : 20 nov. 2027 contre 31 déc. 2026
+    expect(on).toContain('>+129 j<');
+    expect(on).toContain(`<a:srgbClr val="${tk.watch}"/></a:solidFill><a:prstDash`); // filet pointillé jusqu'à l'atterrissage
+    const many = Array.from({ length: 30 }, (_, i) => ({ ...rows[1], code: `P${i}`, current: i === 0 }));
+    const table = drawPlanTable(new Draw(tk), box, { ...plan, rows: many, show: { critical: true, landCurrent: true, landPlanned: true } });
+    expect(table).toContain('>Atterrissage<');
+    expect(table).toContain('>nov. 27<');
+    expect(table).toContain('>   critique<');
   });
 
   it('planning en tableau au-delà de 25 lignes : sous-phases des phases terminées regroupées', () => {

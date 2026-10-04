@@ -12,6 +12,7 @@ import { analyzePptx, mediaDataUri } from '../../core/report-format-read';
 import { PageSource } from '../../core/report-format-write';
 import { FAILED_MESSAGE, INTERRUPTED_ERROR, NOT_READY_MESSAGE } from '../../domain/template-service';
 import { ACTION_SOON_DAYS, ActionRow, ActionsData, DashboardData, DashTile, DecisionRow, DecisionsData, DECISION_STAGES, DECISIONS_RECALL, focusPhase, sortActions, sortPending } from '../../core/report-draw-pilotage';
+import { planLandings } from '../../core/report-draw';
 import { BarometerData, MILESTONES_MAX, MilestonesData, RisksData, foldPlan, GANTT_MAX_ROWS, GanttData, GanttRow, PLAN_TABLE_HEAD_IN, PLAN_TABLE_MIN_ROW_IN } from '../../core/report-draw';
 import { composeTemplate, FillData, fillTemplate, TemplateFieldMissing, TemplateManifest, visualCheck } from '../../core/report-template';
 import { LlmService } from '../../core/llm.service';
@@ -144,15 +145,15 @@ export class ReportTemplateService implements OnModuleInit {
         const rows: GanttRow[] = [], rowOf = new Map<string, number>();
         for (const p of ph) {
           rowOf.set(p.id, rows.length);
-          rows.push({ level: 0, code: p.code, name: p.name, start: p.startDate, end: p.endDate, status: p.status, progress: p.progressPct, current: p.id === current?.id });
+          rows.push({ level: 0, code: p.code, name: p.name, start: p.startDate, end: p.endDate, status: p.status, progress: p.progressPct, current: p.id === current?.id, critical: p.critical, ...planLandings(p.startDate, p.endDate, p.progressPct, today) });
           for (const sp of subs.filter((x) => x.phaseId === p.id && x.startDate && x.endDate)) {
             rowOf.set(sp.id, rows.length);
-            rows.push({ level: 1, code: sp.code, name: sp.name, start: sp.startDate!, end: sp.endDate!, status: sp.status, progress: sp.progressPct, current: false });
+            rows.push({ level: 1, code: sp.code, name: sp.name, start: sp.startDate!, end: sp.endDate!, status: sp.status, progress: sp.progressPct, current: false, critical: sp.critical, ...planLandings(sp.startDate!, sp.endDate!, sp.progressPct, today) });
           }
         }
         const ms = inds.includes('milestones') ? await this.prisma.milestone.findMany({ where: { ...P, phaseId: { in: ph.map((p) => p.id) } }, orderBy: { iso: 'asc' } }) : [];
         const milestones = ms.map((m) => ({ code: m.code, label: m.n, iso: m.iso, row: rowOf.get(m.subphaseId ?? '') ?? rowOf.get(m.phaseId) ?? -1 }));
-        parts.push({ part: 'board', board: 'planning', data: { today, rows, milestones, mode: rows.length > GANTT_MAX_ROWS ? 'table' : 'gantt' } as GanttData & { mode: string } });
+        parts.push({ part: 'board', board: 'planning', data: { today, rows, milestones, mode: rows.length > GANTT_MAX_ROWS ? 'table' : 'gantt', show: { critical: inds.includes('critical'), landCurrent: inds.includes('landCurrent'), landPlanned: inds.includes('landPlanned') } } as GanttData & { mode: string } });
         if (rows.length > GANTT_MAX_ROWS) warn(`${rows.length} lignes : le planning est présenté en tableau (Gantt jusqu'à ${GANTT_MAX_ROWS} lignes).`);
         break;
       }
@@ -364,7 +365,7 @@ export class ReportTemplateService implements OnModuleInit {
           if (p.part === 'table') x.table = { columns: p.columns.map((id) => COMPONENTS[c.id].indicators.find((ind) => ind.id === id)?.label ?? id), rows: p.rows.slice(0, 15), total: p.rows.length };
           if (p.part === 'chart') x.chart = { categories: p.categories, series: p.series };
           if (p.part === 'text') x.facts = p.lines;
-          if (p.part === 'board' && p.board === 'planning') { const g = p.data as GanttData; x.facts = g.rows.filter((r) => r.level === 0).map((r) => `${r.code} ${r.name} : ${frDay(r.start)} → ${frDay(r.end)}, ${r.progress} %, ${r.status === 'DONE' ? 'terminée' : r.current ? 'en cours' : r.status === 'IN_PROGRESS' ? 'en cours' : 'à venir'}`).concat(g.milestones.filter((m) => m.iso >= g.today).slice(0, 3).map((m) => `Jalon ${m.code} ${m.label} : ${frDay(m.iso)}`)); }
+          if (p.part === 'board' && p.board === 'planning') { const g = p.data as GanttData, sh = g.show ?? {}; x.facts = g.rows.filter((r) => r.level === 0).map((r) => `${r.code} ${r.name} : ${frDay(r.start)} → ${frDay(r.end)}, ${r.progress} %, ${r.status === 'DONE' ? 'terminée' : r.current ? 'en cours' : r.status === 'IN_PROGRESS' ? 'en cours' : 'à venir'}${sh.critical && r.critical ? ', chemin critique' : ''}${sh.landCurrent && r.lc && r.status !== 'DONE' ? `, atterrissage au rythme actuel ${frDay(r.lc)}` : ''}${sh.landPlanned && r.lp && r.status !== 'DONE' ? `, atterrissage au rythme prévu ${frDay(r.lp)}` : ''}`).concat(g.milestones.filter((m) => m.iso >= g.today).slice(0, 3).map((m) => `Jalon ${m.code} ${m.label} : ${frDay(m.iso)}`)); }
           if (p.part === 'board' && p.board === 'milestones') { const m = p.data as MilestonesData; x.facts = m.rows.map((r) => `Jalon ${r.code} ${r.name} : ${frDay(r.iso)}${r.baseline ? ` (référence ${frDay(r.baseline)}, écart ${daysBetween(r.baseline, r.iso)} j)` : ''}${r.iso < m.today ? ', date passée' : ''}`); }
           if (p.part === 'board' && p.board === 'risks') { const k = p.data as RisksData; x.facts = k.rows.map((r) => `Risque ${r.code} (criticité ${r.p * r.i}, P${r.p} × I${r.i}) : ${r.name}${r.plan ? ` — plan : ${r.plan}` : ' — aucun plan'}${r.due ? `, échéance ${frDay(r.due)}` : ''}`); }
           if (p.part === 'board' && p.board === 'barometer') { const b = p.data as BarometerData; x.facts = [`Score ${b.month} : ${b.score ?? '—'} /10${b.prevScore !== null ? ` (${b.prevMonth} : ${b.prevScore})` : ''}, ${b.respondents ?? '—'} répondants`, ...(b.sentiment ? [`Avis : ${b.sentiment.positive} % positifs, ${b.sentiment.neutral} % neutres, ${b.sentiment.negative} % négatifs`] : []), ...b.domains.filter((d) => d.score !== null).map((d) => `Domaine ${d.name} : ${d.score}${d.prev !== null ? ` (avant : ${d.prev})` : ''}`), ...b.themes.map((t) => `Point clé (${t.tone}) : ${t.label}`)]; }

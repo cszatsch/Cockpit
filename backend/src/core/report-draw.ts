@@ -60,8 +60,24 @@ export class Draw {
 
 // ───────────── Gantt et planning en tableau ─────────────
 
-export interface GanttRow { level: 0 | 1; code: string; name: string; start: string; end: string; status: 'DONE' | 'IN_PROGRESS' | 'PLANNED'; progress: number; current: boolean; /** Sous-phases terminées regroupées sous la phase (planning en tableau). */ folded?: number }
-export interface GanttData { today: string; rows: GanttRow[]; milestones: Array<{ code: string; label: string; iso: string; row: number }>; hidden?: number }
+export interface GanttRow { level: 0 | 1; code: string; name: string; start: string; end: string; status: 'DONE' | 'IN_PROGRESS' | 'PLANNED'; progress: number; current: boolean; /** Sous-phases terminées regroupées sous la phase (planning en tableau). */ folded?: number;
+  /** Sur le chemin critique (référentiel). */ critical?: boolean; /** Atterrissage au rythme actuel / au rythme prévu (`planLandings`). */ lc?: string | null; lp?: string | null }
+export interface GanttData { today: string; rows: GanttRow[]; milestones: Array<{ code: string; label: string; iso: string; row: number }>; hidden?: number;
+  /** Indicateurs du composant : chemin critique, atterrissage au rythme actuel, au rythme prévu. */ show?: { critical?: boolean; landCurrent?: boolean; landPlanned?: boolean } }
+
+/**
+ * Atterrissages d'une phase (même calcul que l'écran Planning du Cockpit, `plItems`) : au rythme actuel, aujourd'hui +
+ * jours écoulés × reste à faire / réalisé (phase commencée, 0 < réalisé < 100) ; au rythme prévu, aujourd'hui + reste à
+ * faire × durée prévue (phase commencée, non terminée).
+ */
+export function planLandings(start: string, end: string, progress: number, today: string): { lc: string | null; lp: string | null } {
+  const dur = Math.max(1, days(start, end)), el = days(start, today), reel = Math.max(0, Math.min(100, progress || 0));
+  const add = (n: number) => new Date(Date.parse(`${today}T00:00:00Z`) + n * MS_DAY).toISOString().slice(0, 10);
+  return {
+    lc: reel > 0 && reel < 100 && el > 0 ? add(R((el * (100 - reel)) / reel)) : null,
+    lp: reel < 100 && start <= today ? add(R(((100 - reel) / 100) * dur)) : null,
+  };
+}
 /** Au-delà, le planning passe en tableau (exigence du commanditaire). */
 export const GANTT_MAX_ROWS = 25;
 /** Hauteur minimale d'une ligne du planning en tableau (pouces) : en dessous, la lecture n'est plus immédiate. */
@@ -109,9 +125,11 @@ export function foldPlan(g: GanttData): GanttData {
  */
 export function drawGantt(d: Draw, a: Box, g: GanttData): string {
   const t = d.t, ty = typeScale(t), out: string[] = [];
-  const rows = g.rows;
+  const rows = g.rows, show = g.show ?? {};
   if (!rows.length) return d.text(a, [{ runs: [{ t: 'Aucune phase sur le périmètre.', size: ty.body, color: t.muted }] }]);
-  const sc = timeScale(rows.reduce((m, r) => (r.start < m ? r.start : m), rows[0].start), rows.reduce((m, r) => (r.end > m ? r.end : m), rows[0].end));
+  // Frise étendue aux atterrissages affichés : chaque repère est à sa vraie date.
+  const ends = rows.flatMap((r) => [r.end, ...(r.status !== 'DONE' && show.landCurrent && r.lc ? [r.lc] : []), ...(r.status !== 'DONE' && show.landPlanned && r.lp ? [r.lp] : [])]);
+  const sc = timeScale(rows.reduce((m, r) => (r.start < m ? r.start : m), rows[0].start), ends.reduce((m, e) => (e > m ? e : m), ends[0]));
   const labelW = Math.min(a.w * 0.26, 2.8 * IN), pctW = 0.82 * IN;
   const x0 = a.x + labelW, x1 = a.x + a.w - pctW, W = x1 - x0;
   const X = (iso: string) => x0 + timeRatio(iso, sc) * W;
@@ -167,6 +185,27 @@ export function drawGantt(d: Draw, a: Box, g: GanttData): string {
       out.push(d.pill({ x: xs, y: by, w: xe - xs, h: bh }, late ? mixHex(t.risk, 'FFFFFF', 0.82) : t.accentSoft));
       if (r.progress > 0) out.push(d.pill({ x: xs, y: by, w: Math.max(bh, (xe - xs) * Math.min(1, r.progress / 100)), h: bh }, late ? t.risk : t.accent));
     } else out.push(d.pill({ x: xs, y: by, w: xe - xs, h: bh }, null, { color: t.subtle, w: 0.75 }));
+    // Chemin critique : contour rouge détaché de la barre.
+    if (show.critical && r.critical) { const o = 0.028 * IN; out.push(d.pill({ x: xs - o, y: by - o, w: xe - xs + 2 * o, h: bh + 2 * o }, null, { color: t.risk, w: 1.1 })); }
+    // Atterrissages (phase non terminée) : cercle ambre (rythme actuel), losange gris (rythme prévu), filet pointillé
+    // depuis la fin prévue ; écart en jours s'il dépasse la fin prévue.
+    if (r.status !== 'DONE') {
+      const marks = [show.landCurrent && r.lc ? { iso: r.lc, geom: 'ellipse', color: t.watch } : null, show.landPlanned && r.lp ? { iso: r.lp, geom: 'diamond', color: t.muted } : null].filter((m): m is { iso: string; geom: string; color: string } => !!m);
+      const ms2 = Math.max(0.09 * IN, Math.min(0.13 * IN, bh * 0.95)), cy2 = by + bh / 2;
+      let labelX = 0;
+      for (const m of marks) {
+        const mx = Math.min(x1 - ms2 / 2, Math.max(x0 + ms2 / 2, X(m.iso)));
+        if (mx > xe + ms2) out.push(d.line(xe, cy2, mx - ms2 / 2, cy2, m.color, 0.75, true));
+        out.push(d.sp({ box: { x: mx - ms2 / 2, y: cy2 - ms2 / 2, w: ms2, h: ms2 }, geom: m.geom, fill: 'FFFFFF', line: { color: m.color, w: 1.5 } }));
+        labelX = Math.max(labelX, mx + ms2 / 2);
+      }
+      // Écart à la fin prévue, au-dessus du filet, aligné sur le repère le plus lointain.
+      const slips = marks.map((m) => ({ m, n: days(r.end, m.iso) })).filter((x) => x.n > 0);
+      if (slips.length && labelX) {
+        const lw2 = 1.2 * IN, lh2 = ty.label * 1.3 * PT;
+        out.push(d.text({ x: Math.max(xe, labelX - lw2), y: by - lh2 - 0.015 * IN, w: Math.min(lw2, labelX - xe), h: lh2 }, [{ align: 'r', runs: slips.flatMap((x, k) => [...(k ? [{ t: '  ·  ', size: ty.label - 0.5, color: t.subtle }] : []), { t: `+${x.n} j`, size: ty.label - 0.5, color: x.m.color, bold: true }]) }], 'b'));
+      }
+    }
     const pc = r.status === 'PLANNED' && !r.progress ? '—' : pctTxt(r.progress);
     out.push(d.text({ x: x1 + 0.08 * IN, y, w: pctW - 0.1 * IN, h: rowH }, [{ align: 'r', runs: [{ t: pc, size: r.current ? ty.body : ty.small, color: late ? t.risk : r.current ? t.accent : t.subtle, bold: r.current || late }] }], 'ctr'));
   });
@@ -216,7 +255,13 @@ export function drawGantt(d: Draw, a: Box, g: GanttData): string {
   items.push({ txt: 'En retard', w: 0.74 * IN, draw: (x) => d.pill({ x, y: sy2, w: sw, h: sh }, t.risk) });
   items.push({ txt: 'À venir', w: 0.6 * IN, draw: (x) => d.pill({ x, y: sy2, w: sw, h: sh }, null, { color: t.subtle, w: 0.75 }) });
   if (laneH) items.push({ txt: 'Jalon', w: 0.46 * IN, draw: (x) => d.sp({ box: { x: x + 0.06 * IN, y: ly + lh / 2 - 0.045 * IN, w: 0.09 * IN, h: 0.09 * IN }, geom: 'diamond', fill: t.ink }) });
-  const total = items.reduce((s, it) => s + 0.28 * IN + it.w + 0.14 * IN, 0);
+  if (show.critical) items.push({ txt: 'Chemin critique', w: 1.08 * IN, draw: (x) => d.pill({ x, y: sy2 - 0.02 * IN, w: sw, h: sh + 0.04 * IN }, null, { color: t.risk, w: 1.1 }) });
+  if (show.landCurrent) items.push({ txt: 'Atterr. rythme actuel', w: 1.42 * IN, draw: (x) => d.sp({ box: { x: x + 0.055 * IN, y: ly + lh / 2 - 0.05 * IN, w: 0.1 * IN, h: 0.1 * IN }, geom: 'ellipse', fill: 'FFFFFF', line: { color: t.watch, w: 1.5 } }) });
+  if (show.landPlanned) items.push({ txt: 'Atterr. rythme prévu', w: 1.38 * IN, draw: (x) => d.sp({ box: { x: x + 0.055 * IN, y: ly + lh / 2 - 0.05 * IN, w: 0.1 * IN, h: 0.1 * IN }, geom: 'diamond', fill: 'FFFFFF', line: { color: t.muted, w: 1.5 } }) });
+  // Place insuffisante : les entrées qui se lisent d'elles-mêmes cèdent d'abord (« Terminé », puis « À venir »).
+  const room = a.w - (g.hidden ? 2.5 * IN : 0), width = () => items.reduce((s, it) => s + 0.28 * IN + it.w + 0.14 * IN, 0);
+  for (const drop of ['Terminé', 'À venir']) if (width() > room) items.splice(items.findIndex((it) => it.txt === drop), 1);
+  const total = width();
   let lx = a.x + a.w - total;
   for (const it of items) { out.push(it.draw(lx)); out.push(d.text({ x: lx + 0.28 * IN, y: ly, w: it.w, h: lh }, [{ runs: [{ t: it.txt, size: ty.label, color: t.muted }] }], 'ctr')); lx += 0.28 * IN + it.w + 0.14 * IN; }
   if (g.hidden) out.push(d.text({ x: a.x, y: ly, w: 2.5 * IN, h: lh }, [{ runs: [{ t: `… et ${g.hidden} autres lignes`, size: ty.label, color: t.subtle, italic: true }] }], 'ctr'));
@@ -228,20 +273,25 @@ export function drawGantt(d: Draw, a: Box, g: GanttData): string {
  * d'avancement fine, statut en pastille (en retard : rouge) ; la phase en cours est teintée de l'accent.
  */
 export function drawPlanTable(d: Draw, a: Box, g: GanttData): string {
-  const t = d.t, ty = typeScale(t), out: string[] = [];
-  const cols = [0.42, 0.19, 0.25, 0.14].map((f) => f * a.w);
+  const t = d.t, ty = typeScale(t), out: string[] = [], show = g.show ?? {};
+  const land = !!(show.landCurrent || show.landPlanned);
+  const cols = (land ? [0.35, 0.16, 0.21, 0.12, 0.16] : [0.42, 0.19, 0.25, 0.14]).map((f) => f * a.w);
   const xs = cols.reduce<number[]>((acc, _w, i) => [...acc, i ? acc[i - 1] + cols[i - 1] : a.x], []);
   const headH = PLAN_TABLE_HEAD_IN * IN;
   const rowH = Math.max(PLAN_TABLE_MIN_ROW_IN * IN, Math.min(0.36 * IN, (a.h - headH - (g.hidden ? 0.26 * IN : 0)) / Math.max(1, g.rows.length)));
-  const head = ['Phase · sous-phase', 'Période', 'Avancement', 'Statut'];
+  const head = ['Phase · sous-phase', 'Période', 'Avancement', 'Statut', ...(land ? ['Atterrissage'] : [])];
   head.forEach((h, i) => out.push(d.text({ x: xs[i] + (i ? 0.1 : 0.06) * IN, y: a.y, w: cols[i] - 0.16 * IN, h: headH - 0.08 * IN }, [{ runs: [{ t: h, size: ty.label, color: t.muted, bold: true, caps: true, spc: 0.8 }] }], 'b')));
   out.push(d.line(a.x, a.y + headH, a.x + a.w, a.y + headH, t.ink, 1));
   g.rows.forEach((r, i) => {
     const y = a.y + headH + i * rowH, sub = r.level === 1, late = isLate(r, g.today);
     if (r.current && !sub) out.push(d.sp({ box: { x: a.x, y, w: a.w, h: rowH }, fill: mixHex(t.accent, 'FFFFFF', 0.92) }));
     if (!sub && r.current) out.push(d.sp({ box: { x: a.x, y, w: 0.035 * IN, h: rowH }, fill: t.accent }));
-    const runs: Run[] = [{ t: `${r.code}   `, size: ty.label, color: r.current ? t.accent : t.subtle, bold: true }, { t: r.name, size: sub ? ty.small : ty.body, color: r.current ? t.accent : sub ? t.ink : r.status === 'DONE' ? t.muted : t.ink, bold: !sub }];
+    // Nom sur une ligne, abrégé pour laisser la place aux mentions (sous-phases regroupées, « critique »).
+    const tags = (r.folded ? `   ${r.folded} sous-phases terminées`.length * ty.label * 0.6 * PT : 0) + (show.critical && r.critical ? 0.95 * IN : 0);
+    const nameW = Math.max(0.8 * IN, cols[0] - (sub ? 0.42 : 0.16) * IN - (r.code.length + 3) * ty.label * 0.6 * PT - tags);
+    const runs: Run[] = [{ t: `${r.code}   `, size: ty.label, color: r.current ? t.accent : t.subtle, bold: true }, { t: wrapText(r.name, nameW * 1.12, sub ? ty.small : ty.body, 1)[0], size: sub ? ty.small : ty.body, color: r.current ? t.accent : sub ? t.ink : r.status === 'DONE' ? t.muted : t.ink, bold: !sub }];
     if (r.folded) runs.push({ t: `   ${r.folded} sous-phase${r.folded > 1 ? 's' : ''} terminée${r.folded > 1 ? 's' : ''}`, size: ty.label, color: t.subtle });
+    if (show.critical && r.critical) runs.push({ t: '   critique', size: ty.label, color: t.risk, bold: true, caps: true, spc: 0.6 });
     out.push(d.text({ x: xs[0] + (sub ? 0.36 : 0.1) * IN, y, w: cols[0] - 0.42 * IN, h: rowH }, [{ runs }], 'ctr'));
     out.push(d.text({ x: xs[1] + 0.1 * IN, y, w: cols[1] - 0.12 * IN, h: rowH }, [{ runs: [{ t: monthYear(r.start), size: ty.small, color: t.muted }, { t: '  →  ', size: ty.label, color: t.subtle }, { t: monthYear(r.end), size: ty.small, color: late ? t.risk : t.muted, bold: late }] }], 'ctr'));
     const bw = cols[2] * 0.6, bh = Math.max(0.05 * IN, Math.min(0.08 * IN, rowH * 0.24)), bx = xs[2] + 0.1 * IN, by = y + (rowH - bh) / 2;
@@ -252,6 +302,13 @@ export function drawPlanTable(d: Draw, a: Box, g: GanttData): string {
     const st = late ? 'En retard' : r.status === 'DONE' ? 'Terminé' : r.status === 'IN_PROGRESS' ? 'En cours' : 'À venir';
     const dot = late ? t.risk : r.status === 'DONE' ? t.ok : r.status === 'IN_PROGRESS' ? t.accent : mixHex(t.ink, 'FFFFFF', 0.75);
     out.push(d.text({ x: xs[3] + 0.1 * IN, y, w: cols[3] - 0.1 * IN, h: rowH }, [{ runs: [{ t: '●  ', size: ty.label, color: dot }, { t: st, size: ty.small, color: late ? t.risk : r.status === 'DONE' ? t.muted : t.ink, bold: late }] }], 'ctr'));
+    if (land) {
+      // Atterrissage : rythme actuel (ambre s'il dépasse la fin prévue), puis rythme prévu.
+      const lruns: Run[] = [];
+      if (show.landCurrent && r.lc && r.status !== 'DONE') lruns.push({ t: monthYear(r.lc), size: ty.small, color: r.lc > r.end ? t.watch : t.ink, bold: r.lc > r.end });
+      if (show.landPlanned && r.lp && r.status !== 'DONE') lruns.push({ t: `${lruns.length ? '  ·  ' : ''}${show.landCurrent ? 'prévu ' : ''}${monthYear(r.lp)}`, size: ty.label, color: t.muted });
+      out.push(d.text({ x: xs[4] + 0.1 * IN, y, w: cols[4] - 0.12 * IN, h: rowH }, [{ runs: lruns.length ? lruns : [{ t: '—', size: ty.small, color: t.subtle }] }], 'ctr'));
+    }
     const nextIsPhase = !g.rows[i + 1] || g.rows[i + 1].level === 0;
     out.push(d.line(a.x, y + rowH, a.x + a.w, y + rowH, nextIsPhase ? t.hairline : mixHex(t.hairline, 'FFFFFF', 0.5), nextIsPhase ? 0.75 : 0.5));
   });
