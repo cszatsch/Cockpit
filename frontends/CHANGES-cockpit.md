@@ -414,3 +414,5 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 ## Mises à jour en direct (05/10/2026)
 
 - `api.js` : en-tête `X-Client-Id` sur chaque requête (`CLIENT_ID`) ; abonnement au flux `/api/changes` (`liveOpen`) : une écriture faite ailleurs sur ce projet ou sur la plateforme (Console) relit le Cockpit (`scheduleReload`, jamais pendant une écriture en cours), au retour sur l'onglet s'il était masqué. Aucun changement visuel.
+- Complément : les annonces de consommation (`kind: 'usage'`, chaque appel à un LLM) sont ignorées par le Cockpit : pas de rechargement à chaque réponse de Jev.
+- Complément (revue des cas, 05/10/2026) : la cloche (`ntLoad`) est relue à chaque annonce (notifications envoyées par la tâche planifiée), sans attendre le relevé des 60 s.

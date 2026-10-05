@@ -350,8 +350,12 @@ export function bindConsole(c) {
   const liveReload = () => {
     if (W.document && W.document.hidden) { liveDirty = true; return; }
     liveDirty = false;
-    const keys = (SECTION[c.state.sec] || []).concat(['ov']);
+    const keys = (SECTION[c.state.sec] || []).concat(['ov', 'notifs']);
     load([...new Set(keys)]).catch(() => {});
+    // Analyse des temps de réponse : cache vidé et fonctions de lecture renouvelées (l'écran relit quand elles changent).
+    if (c.state.sec === 'latency' && c.__latF0) { latReset(); c.latFetch = (...a) => c.__latF0(...a); c.latSeries = (...a) => c.__latS0(...a); set0({ latRev: Date.now() }); }
+    // Écrans qui chargent eux-mêmes leurs données (Consommation et coûts : graphique et journal) : signal à relire.
+    try { W.dispatchEvent(new CustomEvent('rise-admin:changes')); } catch (x) { /* navigateur ancien */ }
   };
   function liveStart() {
     if (liveSrc || typeof EventSource === 'undefined') return;
@@ -589,8 +593,10 @@ export function bindConsole(c) {
     reload: shReload,
     goProviders: () => c.go('providers'),
   };
-  c.latFetch = (p, off) => { const day = latDay(p, off); return latGet(p + '|' + day, '/api/ai/latency?period=' + p + (p === 'd' ? '&day=' + day : '')); };
-  c.latSeries = (p, off, axis, id) => {
+  c.latFetch = c.latFetch0 = (p, off) => { const day = latDay(p, off); return latGet(p + '|' + day, '/api/ai/latency?period=' + p + (p === 'd' ? '&day=' + day : '')); };
+  c.__latF0 = (...a) => c.latFetch0(...a);
+  c.__latS0 = (...a) => c.latSeries0(...a);
+  c.latSeries = c.latSeries0 = (p, off, axis, id) => {
     const day = latDay(p, off);
     return latGet(['s', p, day, axis, id].join('|'), '/api/ai/latency/series?period=' + p + (p === 'd' ? '&day=' + day : '') + '&axis=' + axis + '&id=' + encodeURIComponent(id));
   };
@@ -928,6 +934,11 @@ export function bindSnapshots(c) {
   c.projects = [];
   c.now = () => new Date(Date.now() + offset);
   set0({ snaps: {}, sel: [] });
+  // Mises à jour en direct (05/10/2026) : capture terminée, restauration, planification modifiée ailleurs → projet affiché relu.
+  const onChg = () => { const p = c.state.pj; if (p) Promise.all([loadList(p), loadSched(p)]).catch(() => {}); };
+  W.addEventListener && W.addEventListener('rise-admin:changes', onChg);
+  const unmountS = c.componentWillUnmount ? c.componentWillUnmount.bind(c) : null;
+  c.componentWillUnmount = () => { W.removeEventListener && W.removeEventListener('rise-admin:changes', onChg); if (unmountS) unmountS(); };
   const loadList = async p => { const l = await api('GET', '/projects/' + enc(p) + '/snapshots'); set0(s => ({ snaps: { ...s.snaps, [p]: l.map(toViewSnap) } })); };
   const keepSched = (p, r) => { scheds[p] = r; offset = new Date(r.maintenant).getTime() - Date.now(); if (c.state.pj === p) set0({ sched: toViewSched(r) }); };
   const loadSched = async p => keepSched(p, await api('GET', '/projects/' + enc(p) + '/snapshot-schedule'));
@@ -1042,7 +1053,7 @@ export function toLib(p, today) {
 export function bindBiblio(c) {
   if (isDemo() || c.__api) return;
   c.__api = true;
-  (async () => {
+  const loadLib = async () => {
     try {
       const ov = await get('/overview'), today = new Date(ov.date);
       // Ordre de la bibliothèque : nouveaux projets en tête, puis actifs, en préparation, clos ; par date de début.
@@ -1051,7 +1062,12 @@ export function bindBiblio(c) {
       // Avancement des cartes : à la date du serveur (date réelle), pas à la date de démonstration.
       c.setState({ api: list, apiToday: today });
     } catch (e) { console.warn('[admin-api]', e); }
-  })();
+  };
+  loadLib();
+  // Mises à jour en direct (05/10/2026) : projet créé par l'import, clos ou modifié ailleurs → bibliothèque relue.
+  W.addEventListener && W.addEventListener('rise-admin:changes', loadLib);
+  const unmountB = c.componentWillUnmount ? c.componentWillUnmount.bind(c) : null;
+  c.componentWillUnmount = () => { W.removeEventListener && W.removeEventListener('rise-admin:changes', loadLib); if (unmountB) unmountB(); };
 }
 
 // ───────────────────────────── Consommation et coûts ─────────────────────────────

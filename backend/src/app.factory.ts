@@ -1,3 +1,4 @@
+import { requestScopeMiddleware } from './core/changes';
 import { INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -14,6 +15,8 @@ import { registerPages } from './core/auth/pages';
 export async function createApp(opts: { logger?: boolean } = {}): Promise<INestApplication> {
   const app = await NestFactory.create(AppModule, { logger: opts.logger === false ? false : undefined });
   app.enableCors({ origin: true, exposedHeaders: ['ETag'] });
+  // Contexte de chaque requête : distingue les écritures de fond à annoncer (mises à jour en direct, 05/10/2026).
+  app.use(requestScopeMiddleware);
   // Adresse IP réelle derrière un mandataire inverse (compteur d'échecs de connexion par IP).
   if (process.env.TRUST_PROXY) app.getHttpAdapter().getInstance().set('trust proxy', process.env.TRUST_PROXY);
   app.use(express.json({ limit: '10mb' }));

@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from 'async_hooks';
 import { CallHandler, Controller, ExecutionContext, Get, Injectable, NestInterceptor, Req, Res } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
@@ -31,6 +32,55 @@ export interface ChangeEvent {
   project: string | null;
   /** Écran à l'origine de l'écriture. */
   client: string | null;
+  /** `data` : écriture de l'API ; `usage` : appel à un LLM enregistré (Consommation et coûts), sans requête d'écriture. */
+  kind: 'data' | 'usage';
+}
+
+// ───────────── Écritures hors requête (tâches de fond, traitements poursuivis après la réponse) ─────────────
+
+/**
+ * Contexte de chaque requête HTTP (posé par `requestScopeMiddleware`) : les écritures faites pendant une requête sont
+ * annoncées par `ChangesInterceptor` ; celles faites après sa fin (traitement détaché) ou hors de toute requête (tâche
+ * planifiée) le sont par `noteWrite`. Jamais pour une requête de lecture : deux écrans ne peuvent pas se relancer en boucle.
+ */
+export const requestScope = new AsyncLocalStorage<{ method: string; done: boolean }>();
+
+export function requestScopeMiddleware(req: Request, res: Response, next: () => void) {
+  const st = { method: req.method, done: false };
+  const end = () => { st.done = true; };
+  res.on('finish', end);
+  res.on('close', end);
+  requestScope.run(st, next);
+}
+
+/** Écritures Prisma qui changent des données. */
+export const WRITE_OPERATIONS = new Set(['create', 'createMany', 'createManyAndReturn', 'update', 'updateMany', 'updateManyAndReturn', 'upsert', 'delete', 'deleteMany']);
+/** Tables jamais affichées telles quelles (sessions, traces, mémoire de Jev…) ; `UsageRecord` est annoncé par `LlmService`. */
+export const CHANGES_SILENT_MODELS = new Set(['AuthSession', 'LoginThrottle', 'PasswordToken', 'JevTrace', 'JevAnswerLog', 'JevClassification', 'JevConversation', 'JevMessage', 'TodayGreeting', 'UserPreferences', 'UsageRecord']);
+/** Tables de mesure (Analyse des temps de réponse) : annonce de type « usage », ignorée par le Cockpit. */
+export const CHANGES_USAGE_MODELS = new Set(['StepTiming']);
+/** Regroupement des écritures de fond en une seule annonce (une tâche écrit souvent plusieurs lignes). */
+export const BACKGROUND_DEBOUNCE_MS = 800;
+
+let hub: ChangesService | null = null;
+const queued = { data: false, usage: false, timer: null as NodeJS.Timeout | null };
+
+/** Appelée par `PrismaService` après chaque écriture réussie. */
+export function noteWrite(model: string | undefined, result?: unknown) {
+  if (!hub || !model || CHANGES_SILENT_MODELS.has(model)) return;
+  // Écriture groupée sans ligne touchée (tâche qui ne trouve rien à faire) : rien à annoncer.
+  if (result && typeof (result as { count?: unknown }).count === 'number' && (result as { count: number }).count === 0) return;
+  const st = requestScope.getStore();
+  if (st && (!st.done || st.method === 'GET' || st.method === 'HEAD')) return;
+  if (CHANGES_USAGE_MODELS.has(model)) queued.usage = true; else queued.data = true;
+  if (queued.timer) return;
+  queued.timer = setTimeout(() => {
+    const h = hub, q = { ...queued };
+    queued.data = queued.usage = false; queued.timer = null;
+    if (q.data) h?.publish(null, null, 'data');
+    if (q.usage) h?.publish(null, null, 'usage');
+  }, BACKGROUND_DEBOUNCE_MS);
+  queued.timer.unref?.();
 }
 
 @Injectable()
@@ -38,12 +88,16 @@ export class ChangesService {
   private rev = 0;
   private readonly listeners = new Set<(e: ChangeEvent) => void>();
 
+  constructor() {
+    hub = this;
+  }
+
   get current() {
     return this.rev;
   }
 
-  publish(project: string | null, client: string | null) {
-    const e: ChangeEvent = { rev: ++this.rev, project, client };
+  publish(project: string | null, client: string | null, kind: ChangeEvent['kind'] = 'data') {
+    const e: ChangeEvent = { rev: ++this.rev, project, client, kind };
     for (const l of this.listeners) l(e);
   }
 
@@ -83,7 +137,7 @@ export class ChangesController {
   stream(@Req() req: Request, @Res() res: Response) {
     res.status(200).set({ 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-store', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
     res.flushHeaders();
-    res.write(`data: ${JSON.stringify({ rev: this.changes.current, project: null, client: null, hello: true })}\n\n`);
+    res.write(`data: ${JSON.stringify({ rev: this.changes.current, project: null, client: null, kind: 'data', hello: true })}\n\n`);
     const off = this.changes.subscribe((e) => res.write(`data: ${JSON.stringify(e)}\n\n`));
     const ping = setInterval(() => res.write(': ping\n\n'), CHANGES_PING_MS);
     req.on('close', () => { clearInterval(ping); off(); });

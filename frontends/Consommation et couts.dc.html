@@ -173,9 +173,23 @@ class Component extends DCLogic {
       if (m.isDemo()) return this.useDemo();
       this._api = m.consoApi; this._errText = m.errText; this.loadMonth().then(() => this.loadPeriod()); // période calée sur la date du serveur
     }).catch(e => { console.warn('admin-api', e); this.useDemo(); }); // écran ouvert seul : démonstration
+    // Mises à jour en direct (05/10/2026) : un appel à un LLM (ou une écriture) ailleurs → budget, graphique et journal relus.
+    this._onChg = () => { clearTimeout(this._lt); this._lt = setTimeout(() => this.refresh(), 250); };
+    window.addEventListener('rise-admin:changes', this._onChg);
+  }
+  /** Relecture silencieuse (sans vider le journal affiché) : mois, puis activité et première page de la période. */
+  async refresh() {
+    if (!this._api) return;
+    const S = this.state, key = S.period + '|' + S.fn, r = this.range(S.period), fn = S.fn === 'all' ? null : S.fn;
+    try {
+      const [month, daily, page] = await Promise.all([this._api.month(), this._api.daily(fn, r, S.period === 'jour'), this._api.calls({ fn, range: r, limit: PAGE })]);
+      if (this._key !== key) return;
+      this._m = month; this._daily = daily; this._calls = { items: page.items, next: page.nextCursor, total: page.total };
+      this.setState(s => ({ tick: s.tick + 1 }));
+    } catch (e) { /* relecture de fond : l'erreur éventuelle reste silencieuse */ }
   }
   componentDidUpdate() { this.watchEnd(); }
-  componentWillUnmount() { clearTimeout(this._tt); this._ro && this._ro.disconnect(); this._io && this._io.disconnect(); Object.values(this._save || {}).forEach(clearTimeout); }
+  componentWillUnmount() { clearTimeout(this._tt); clearTimeout(this._lt); window.removeEventListener('rise-admin:changes', this._onChg); this._ro && this._ro.disconnect(); this._io && this._io.disconnect(); Object.values(this._save || {}).forEach(clearTimeout); }
   useDemo() { const d = demo(); this._demo = d; this._m = d.month; this._daily = d.daily; this._calls = { items: d.J, next: null, total: d.J.length }; this.setState(s => ({ tick: s.tick + 1 })); }
   toast(msg) { clearTimeout(this._tt); this.setState({ toast: msg }); this._tt = setTimeout(() => this.setState({ toast: null }), 2600); }
   err(e) { this.toast(this._errText ? this._errText(e) : 'Action impossible'); }

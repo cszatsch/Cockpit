@@ -892,15 +892,17 @@ export function attach(comp) {
     liveSrc = new EventSource(API_ROOT + '/changes' + q, { withCredentials: true });
     liveSrc.onmessage = (m) => {
       let e; try { e = JSON.parse(m.data); } catch (x) { return; }
-      if (e.hello || e.client === CLIENT_ID || (e.project && e.project !== projectId)) return;
+      // Appels à un LLM (kind « usage ») : rien à relire dans le Cockpit (ils ne concernent que la Console).
+      if (e.hello || e.kind === 'usage' || e.client === CLIENT_ID || (e.project && e.project !== projectId)) return;
       if (document.hidden) { liveDirty = true; return; }
       scheduleReload();
+      ntLoad(); // cloche : notifications envoyées par la tâche planifiée
     };
     // Jeton de développement expiré : nouvelle connexion avec un jeton neuf (sinon EventSource se reconnecte seul).
     liveSrc.onerror = () => { if (DEV && liveSrc && liveSrc.readyState === 2) { liveSrc = null; token(true).then(liveOpen).catch(() => {}); } };
   };
   liveOpen().catch(() => {});
-  const liveVisible = () => { if (!document.hidden && liveDirty) { liveDirty = false; scheduleReload(); } };
+  const liveVisible = () => { if (!document.hidden && liveDirty) { liveDirty = false; scheduleReload(); ntLoad(); } };
   document.addEventListener('visibilitychange', liveVisible);
   const unmount0 = comp.componentWillUnmount ? comp.componentWillUnmount.bind(comp) : null;
   comp.componentWillUnmount = () => { clearInterval(comp._ntTimer); document.removeEventListener('visibilitychange', ntVisible); document.removeEventListener('visibilitychange', liveVisible); if (liveSrc) liveSrc.close(); if (unmount0) unmount0(); };

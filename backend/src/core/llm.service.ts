@@ -2,6 +2,7 @@ import { note, span } from './trace';
 import { Injectable } from '@nestjs/common';
 import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from './prisma.service';
+import { ChangesService } from './changes';
 import { ApiError } from './errors';
 import { decryptSecret } from './crypto';
 import { techErrors } from './tech-errors';
@@ -138,7 +139,7 @@ export const LIVE_MAX_OUTPUT_TOKENS = 1024;
  */
 @Injectable()
 export class LlmService {
-  constructor(private readonly prisma: PrismaService, private readonly keys: ProviderKeyTester, private readonly client: LlmClient) {}
+  constructor(private readonly prisma: PrismaService, private readonly keys: ProviderKeyTester, private readonly client: LlmClient, private readonly changes: ChangesService) {}
 
   /**
    * Modèle disponible : actif, de la catégorie attendue (LLM par défaut : Embedding et Reranking ne génèrent
@@ -279,6 +280,8 @@ export class LlmService {
         cacheReadTokens: cache?.read ?? 0, cacheWriteTokens: cache?.write ?? 0,
       },
     });
+    // Consommation et coûts se met à jour en direct, y compris pour les appels faits en tâche de fond (05/10/2026).
+    this.changes.publish(input.projectId ?? null, null, 'usage');
     return costEur;
   }
 

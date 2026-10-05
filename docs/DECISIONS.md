@@ -1512,4 +1512,18 @@ Constat du commanditaire : un changement (ex. un modèle ajouté dans la Console
 | Console | Relit la page affichée (chargeurs de `SECTION`) et la vue d'ensemble, regroupement 400 ms | `LIVE_DEBOUNCE_MS`, `liveStart` |
 | Cockpit | Relit le projet si l'écriture concerne ce projet ou la plateforme ; jamais pendant une écriture en cours (`scheduleReload`) | `liveOpen` |
 | Onglet masqué | Relecture différée au retour sur l'onglet | `visibilitychange` |
-| Limites | Les traitements de fond (revectorisation, mise en service d'un template, génération de paquet) ne passent pas par une écriture HTTP : leurs écrans gardent leur propre suivi | — |
+| Consommation (complément du 05/10/2026) | Les appels à un LLM s'enregistrent hors écriture HTTP (Jev, notifications, tâches de fond) : chaque ligne de consommation est annoncée (`kind: 'usage'`) ; la Console relit, et la page Consommation et coûts relit en silence budget, graphique et journal (événement `rise-admin:changes`) ; le Cockpit ignore ces annonces | `LlmService.record`, `ChangeEvent.kind`, `refresh` (`Consommation et couts.dc.html`) |
+| Limites | Les autres traitements de fond (revectorisation, mise en service d'un template, génération de paquet) gardent leur propre suivi | — |
+
+### Mises à jour en direct : écritures de fond et écrans autonomes (05/10/2026)
+
+Revue demandée par le commanditaire après le cas de Consommation et coûts : tous les cas où une donnée change sans écriture HTTP, ou où un écran charge lui-même ses données.
+
+| Cas trouvé | Avant | Correction | Code |
+|---|---|---|---|
+| Tâches planifiées : test des clés (2 h), santé des cartes API (15 min), envois de notifications (minute), décisions du tiroir exécutées après 10 s, captures planifiées de snapshots, suppression des ZIP | Jamais annoncées | Règle générale : toute écriture Prisma faite hors d'une requête en cours est annoncée (regroupée), sauf tables jamais affichées et écritures groupées sans ligne touchée | `PrismaService` (extension de requête), `noteWrite`, `CHANGES_SILENT_MODELS`, `BACKGROUND_DEBOUNCE_MS` |
+| Traitements poursuivis après la réponse : capture de snapshot, revectorisation, indexation du guide, Base de connaissance (résumé, vectorisation), mise en service d'un template, génération de rapport et de paquet, import d'un projet | Seule la requête de départ était annoncée, pas la fin du traitement | Même règle : le contexte de requête (`requestScope`, `AsyncLocalStorage`) est marqué terminé à la fin de la réponse ; les écritures suivantes sont annoncées | `requestScopeMiddleware` (`app.factory.ts`) |
+| Mesure des temps de réponse (`step_timings`, écrite après la réponse) | Page Analyse des temps de réponse figée (cache) | Annonce « usage » ; la Console vide le cache et renouvelle les fonctions de lecture de l'écran | `CHANGES_USAGE_MODELS`, `latFetch0`, `latSeries0` |
+| Écrans qui chargent eux-mêmes : Snapshots, Bibliothèque des projets | Non relus | Écoutent `rise-admin:changes` et relisent le projet affiché / la bibliothèque | `bindSnapshots`, `bindBiblio` (`admin-api.js`) |
+| Cloche de la Console (tiroir des notifications), cloche du Cockpit (envois planifiés) | Relues au démarrage / toutes les 60 s | Relues à chaque annonce | chargeur `notifs`, `ntLoad` |
+| Garde-fous | — | Écritures faites pendant une lecture jamais annoncées (pas de relances en boucle entre écrans) ; Cockpit : annonces « usage » ignorées, relecture différée pendant une saisie | `noteWrite`, `liveOpen` |
