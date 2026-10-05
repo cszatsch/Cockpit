@@ -24,6 +24,8 @@ import * as Auth from './auth-api.js';
 // ───────────────────────────── Accès HTTP ─────────────────────────────
 
 /** Base de l'API : `window.RISE_API_BASE` si défini (ex. 'https://api.exemple.fr'), sinon même origine. */
+/** Identifiant de cet écran (mises à jour en direct, 05/10/2026) : envoyé avec chaque requête, il permet d'ignorer ses propres annonces. */
+export const CLIENT_ID = 'c' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 const API_ROOT = ((typeof window !== 'undefined' && window.RISE_API_BASE) || '').replace(/\/+$/, '') + '/api';
 const QS = new URLSearchParams(typeof location !== 'undefined' ? location.search : '');
 /** Projet courant : `?project=` sinon RISE. */
@@ -86,7 +88,7 @@ function token(renew) {
 /** Appel HTTP. `path` commençant par `/projects/` ou `/me`… est relatif à `/api`. */
 export async function request(method, path, body, opts = {}) {
   const send = async (tok) => {
-    const headers = { ...(tok ? { Authorization: 'Bearer ' + tok } : Auth.sessionHeaders('app')), ...(opts.headers || {}) };
+    const headers = { ...(tok ? { Authorization: 'Bearer ' + tok } : Auth.sessionHeaders('app')), 'X-Client-Id': CLIENT_ID, ...(opts.headers || {}) };
     let payload;
     if (body instanceof FormData) payload = body;
     else if (body !== undefined) { headers['Content-Type'] = 'application/json'; payload = JSON.stringify(body); }
@@ -880,8 +882,28 @@ export function attach(comp) {
   comp._ntTimer = setInterval(ntLoad, NT_POLL_MS);
   const ntVisible = () => { if (!document.hidden) ntLoad(); };
   document.addEventListener('visibilitychange', ntVisible);
+  // ── Mises à jour en direct (05/10/2026) : une écriture faite ailleurs (Console, autre onglet, autre utilisateur) sur ce
+  // projet ou sur la plateforme fait relire le Cockpit ; jamais pendant une saisie en cours (scheduleReload attend la fin
+  // des écritures), différée tant que l'onglet est masqué. ──
+  let liveSrc = null, liveDirty = false;
+  const liveOpen = async () => {
+    if (typeof EventSource === 'undefined') return;
+    const q = DEV ? '?access_token=' + encodeURIComponent(await token()) : '';
+    liveSrc = new EventSource(API_ROOT + '/changes' + q, { withCredentials: true });
+    liveSrc.onmessage = (m) => {
+      let e; try { e = JSON.parse(m.data); } catch (x) { return; }
+      if (e.hello || e.client === CLIENT_ID || (e.project && e.project !== projectId)) return;
+      if (document.hidden) { liveDirty = true; return; }
+      scheduleReload();
+    };
+    // Jeton de développement expiré : nouvelle connexion avec un jeton neuf (sinon EventSource se reconnecte seul).
+    liveSrc.onerror = () => { if (DEV && liveSrc && liveSrc.readyState === 2) { liveSrc = null; token(true).then(liveOpen).catch(() => {}); } };
+  };
+  liveOpen().catch(() => {});
+  const liveVisible = () => { if (!document.hidden && liveDirty) { liveDirty = false; scheduleReload(); } };
+  document.addEventListener('visibilitychange', liveVisible);
   const unmount0 = comp.componentWillUnmount ? comp.componentWillUnmount.bind(comp) : null;
-  comp.componentWillUnmount = () => { clearInterval(comp._ntTimer); document.removeEventListener('visibilitychange', ntVisible); if (unmount0) unmount0(); };
+  comp.componentWillUnmount = () => { clearInterval(comp._ntTimer); document.removeEventListener('visibilitychange', ntVisible); document.removeEventListener('visibilitychange', liveVisible); if (liveSrc) liveSrc.close(); if (unmount0) unmount0(); };
   const ntMark = (id) => raw((st) => ({ ntItems: (st.ntItems || []).map((x) => (id === null || x.id === id ? { ...x, read: true } : x)), ntUnread: id === null ? 0 : Math.max(0, (st.ntUnread || 0) - ((st.ntItems || []).some((x) => x.id === id && !x.read) ? 1 : 0)) }));
 
   // ── Appels directs (remplacent les blocs SIMULÉ) ──

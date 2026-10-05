@@ -410,3 +410,7 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
   - fiche d'un comité dans le panneau : corbeille à droite du titre, confirmation dans la fiche (« Supprimer COPIL n°24 ? … » ; Supprimer en rouge / Annuler) ; corbeille grisée et message si un rapport est rattaché (refus du serveur) ; légende « Cliquez sur + pour planifier un comité ; glissez… ».
 - `api.js` : magasin `sesDel` (DELETE `/sessions/:id`, route existante, journalisée par le serveur).
 - Retouches du 05/10/2026 (demande du commanditaire) : plus aucune infobulle dans le panneau latéral d'un comité (champs, participants, corbeille, pastilles du formulaire) ; corbeille déplacée en pied de fiche, à droite de « Générer le rapport », dessin affiné (couvercle séparé) ; survol : fond rosé, icône rouge, liseré, couvercle qui se soulève, léger enfoncement au clic (règles CSS `[data-ses-del]`) ; bouton « Planifier un comité ce jour » supprimé (l'ajout passe par le « + » du jour).
+
+## Mises à jour en direct (05/10/2026)
+
+- `api.js` : en-tête `X-Client-Id` sur chaque requête (`CLIENT_ID`) ; abonnement au flux `/api/changes` (`liveOpen`) : une écriture faite ailleurs sur ce projet ou sur la plateforme (Console) relit le Cockpit (`scheduleReload`, jamais pendant une écriture en cours), au retour sur l'onglet s'il était masqué. Aucun changement visuel.

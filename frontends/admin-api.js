@@ -23,6 +23,8 @@ import * as Auth from './auth-api.js';
 const TOKEN_KEY = 'rise-admin-token';
 const W = typeof window !== 'undefined' ? window : {};
 /** Connexion de développement par jeton (`?as=`) plutôt que session par cookie. */
+/** Identifiant de cet écran (mises à jour en direct, 05/10/2026) : envoyé avec chaque écriture, il permet d'ignorer ses propres annonces. */
+export const CLIENT_ID = 'c' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 const DEV = (() => { try { return new URLSearchParams(W.location.search).has('as'); } catch (e) { return false; } })();
 
 /** Base de l'API : `window.RISE_API_BASE`, sinon même origine que la page. */
@@ -69,9 +71,12 @@ export function token(renew) {
   return tokenP;
 }
 
+/** Regroupement des annonces d'écriture avant de relire la page (ms). */
+const LIVE_DEBOUNCE_MS = 400;
+
 /** Appel brut (chemin absolu `/api/...`). Rejoue une fois après un 401 (jeton expiré ou révoqué). */
 async function raw(method, path, body, retry = true) {
-  const headers = DEV ? { Authorization: 'Bearer ' + (await token()) } : Auth.sessionHeaders('admin');
+  const headers = { ...(DEV ? { Authorization: 'Bearer ' + (await token()) } : Auth.sessionHeaders('admin')), 'X-Client-Id': CLIENT_ID };
   let payload;
   if (body instanceof FormData) payload = body;
   else if (body !== undefined) { headers['Content-Type'] = 'application/json'; payload = JSON.stringify(body); }
@@ -339,6 +344,32 @@ export function bindConsole(c) {
     conso: ['month', 'providers'], snaps: [], notifs: ['nrRules', 'nrHist', 'nrCounts', 'nrSchedule', 'models', 'providers', 'projects'], modules: ['mods', 'reqs'],
     smtp: ['smtp'], guide: ['guide'], share: ['share'], init: ['projects'], library: ['projects'], profil: ['prof', 'sess', 'audit'], skills: ['skills'], persona: ['persona'], apis: ['apis'],
   };
+  // ── Mises à jour en direct (05/10/2026) : une écriture faite ailleurs (autre onglet, Cockpit, autre administrateur)
+  // fait relire la page affichée ; regroupées (LIVE_DEBOUNCE_MS), différées tant que l'onglet est masqué. ──
+  let liveSrc = null, liveTimer = null, liveDirty = false;
+  const liveReload = () => {
+    if (W.document && W.document.hidden) { liveDirty = true; return; }
+    liveDirty = false;
+    const keys = (SECTION[c.state.sec] || []).concat(['ov']);
+    load([...new Set(keys)]).catch(() => {});
+  };
+  function liveStart() {
+    if (liveSrc || typeof EventSource === 'undefined') return;
+    const open = async () => {
+      const q = DEV ? '?access_token=' + encodeURIComponent(await token()) : '';
+      liveSrc = new EventSource(apiBase() + '/api/admin/changes' + q, { withCredentials: true });
+      liveSrc.onmessage = (m) => {
+        let e; try { e = JSON.parse(m.data); } catch (x) { return; }
+        if (e.hello || e.client === CLIENT_ID) return;
+        clearTimeout(liveTimer); liveTimer = setTimeout(liveReload, LIVE_DEBOUNCE_MS);
+      };
+      // Jeton de développement expiré : nouvelle connexion avec un jeton neuf (sinon EventSource se reconnecte seul).
+      liveSrc.onerror = () => { if (DEV && liveSrc && liveSrc.readyState === 2) { liveSrc = null; token(true).then(open).catch(() => {}); } };
+    };
+    open().catch(() => {});
+    W.document && W.document.addEventListener('visibilitychange', () => { if (!W.document.hidden && liveDirty) liveReload(); });
+  }
+
   async function load(keys) {
     const parts = await Promise.all(keys.map(k => L[k]()));
     const patch = Object.assign({}, ...parts);
@@ -362,6 +393,7 @@ export function bindConsole(c) {
       // Partager Cockpit : chargé à l'ouverture de la page seulement (taille de l'application calculée par le serveur).
       if (c.state.sec === 'share') load(['share']).catch(fail);
       jevResume();
+      liveStart();
     } catch (e) {
       fail(e);
       if (e instanceof ApiError && e.status === 403) return; // Réservé à l'Admin : masquage complet (squelette seul).

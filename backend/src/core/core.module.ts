@@ -1,6 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import { JevPromptService } from './jev-prompt.service';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { ChangesController, ChangesInterceptor, ChangesService } from './changes';
 import { JwtModule } from '@nestjs/jwt';
 import { PrismaModule } from './prisma.service';
 import { AuthGuard } from './auth/auth';
@@ -29,8 +30,8 @@ import { LlmClient } from './llm-client';
       useFactory: () => ({ secret: config.jwtSecret, signOptions: { expiresIn: config.jwtTtl as any } }),
     }),
   ],
-  controllers: [AuthController],
-  providers: [{ provide: APP_GUARD, useClass: AuthGuard }, AccessService, AuditService, TodayService, StorageService, LlmService, JevPromptService, JobsService, MailerService, SmtpService, SessionService, CredentialsService, ProviderKeyTester, LlmClient],
-  exports: [AccessService, AuditService, TodayService, StorageService, LlmService, JevPromptService, JobsService, MailerService, SmtpService, SessionService, CredentialsService, ProviderKeyTester, LlmClient],
+  controllers: [AuthController, ChangesController],
+  providers: [{ provide: APP_GUARD, useClass: AuthGuard }, ChangesService, { provide: APP_INTERCEPTOR, useClass: ChangesInterceptor }, AccessService, AuditService, TodayService, StorageService, LlmService, JevPromptService, JobsService, MailerService, SmtpService, SessionService, CredentialsService, ProviderKeyTester, LlmClient],
+  exports: [ChangesService, AccessService, AuditService, TodayService, StorageService, LlmService, JevPromptService, JobsService, MailerService, SmtpService, SessionService, CredentialsService, ProviderKeyTester, LlmClient],
 })
 export class CoreModule {}

@@ -654,3 +654,7 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
 - `Fournisseurs et modeles.dc.html` : sous le masque de chaque clé, son plafond (« Plafond 100 € / mois », ou « Sans plafond mensuel » en ambre) ; bouton « Plafond » à côté de « Tester » et « Remplacer la clé » ; fenêtre « Plafond mensuel <fournisseur> » (montant entier en €, vide = sans plafond), même style que « Remplacer la clé ». Démonstration : enregistré localement.
 - `admin-api.js` : `fmApi.saveCap` (`PUT /providers/:id/cap`).
 - `Partager Cockpit.dc.html` : « Formats de rapport » reste active et compte dans la taille quand « Fichiers déposés » est coupé (formats et templates toujours inclus) ; pied de tuile complété (« … ; les formats de rapport restent inclus. ») ; date de suppression automatique au survol de « Sur le serveur · Supprimer ».
+
+## Mises à jour en direct (05/10/2026)
+
+- `admin-api.js` : en-tête `X-Client-Id` sur chaque requête (`CLIENT_ID`) ; abonnement au flux `/api/admin/changes` après le démarrage (`liveStart`, `EventSource`, jeton en paramètre en mode développement) : une écriture faite ailleurs relit la page affichée et la vue d'ensemble, au retour sur l'onglet s'il était masqué. Aucun changement visuel.

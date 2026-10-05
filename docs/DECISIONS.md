@@ -1499,3 +1499,17 @@ Réponses aux six questions ouvertes du 05/10/2026 (`docs/RAPPORT.md`, questions
 | Onglets | « Budget » et « Bénéfices » retirés du menu Pilotage ; le point « Budget programme non renseigné » d'Aujourd'hui, qui y menait, aussi | `RISE Cockpit.dc.html` (`pilotage.tabs`) |
 | Ajouter un comité | Depuis un jour du calendrier (aujourd'hui ou à venir) : instance, heure et lieu (repris de la dernière séance non annulée de l'instance), numéro et participants selon les règles existantes (§ 7.8, calculés par le serveur) ; mêmes droits que pour planifier (`can('sessions')`) | `sesVals` (`openAdd`, `draftFor`), `POST /sessions` |
 | Supprimer un comité | Corbeille de la fiche du panneau, confirmation dans la fiche ; refus si un rapport est rattaché (usage bloquant, 409) ; audit du serveur | `sesDel` (`api.js`), `DELETE /sessions/:id` |
+
+## Mises à jour en direct (05/10/2026)
+
+Constat du commanditaire : un changement (ex. un modèle ajouté dans la Console) n'apparaissait pas tout de suite. Analyse : la page auteur relit bien ses données (modèle visible en 0,16 s), mais les autres écrans ouverts (Cockpit, autre onglet de la Console, autre utilisateur) ne relisaient qu'à leur prochain rechargement ou à leur propre écriture.
+
+| Sujet | Choix | Code |
+|---|---|---|
+| Annonce | Chaque écriture réussie de l'API (POST, PUT, PATCH, DELETE) incrémente une révision annoncée par un flux SSE : `GET /api/changes` (Cockpit) et `/api/admin/changes` (Console ; la session par cookie dépend du chemin) ; événement `{ rev, project, client }` | `src/core/changes.ts` (`ChangesService`, `ChangesInterceptor`, `ChangesController`) |
+| Exclusions | Connexion, préférences et notifications personnelles, échanges avec Jev, proxy des widgets, aperçus et contrôles, mesures de latence | `CHANGES_IGNORED` |
+| Écran auteur | Chaque écran envoie `X-Client-Id` avec ses requêtes et ignore ses propres annonces (il a déjà relu) | `CLIENT_ID` (`admin-api.js`, `api.js`), `CLIENT_ID_HEADER` |
+| Console | Relit la page affichée (chargeurs de `SECTION`) et la vue d'ensemble, regroupement 400 ms | `LIVE_DEBOUNCE_MS`, `liveStart` |
+| Cockpit | Relit le projet si l'écriture concerne ce projet ou la plateforme ; jamais pendant une écriture en cours (`scheduleReload`) | `liveOpen` |
+| Onglet masqué | Relecture différée au retour sur l'onglet | `visibilitychange` |
+| Limites | Les traitements de fond (revectorisation, mise en service d'un template, génération de paquet) ne passent pas par une écriture HTTP : leurs écrans gardent leur propre suivi | — |

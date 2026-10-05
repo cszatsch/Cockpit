@@ -127,6 +127,44 @@
         ]
       }
     },
+    "/api/changes": {
+      "get": {
+        "operationId": "ChangesController_stream[0]",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "mises à jour en direct"
+        ]
+      }
+    },
+    "/api/admin/changes": {
+      "get": {
+        "operationId": "ChangesController_stream[1]",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "mises à jour en direct"
+        ]
+      }
+    },
     "/api/projects/{projectId}/referential/import": {
       "post": {
         "operationId": "ReferentialImportController_import",
