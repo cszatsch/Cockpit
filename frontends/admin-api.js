@@ -496,6 +496,7 @@ export function bindConsole(c) {
     testKey: id => fmRun(post('/providers/' + id + '/test').then(p => [p])),
     testAll: () => fmRun(post('/providers/test-all')),
     replaceKey: (id, apiKey) => fmRun(put('/providers/' + id + '/key', { apiKey })),
+    saveCap: (id, monthlyCapEur) => fmRun(put('/providers/' + id + '/cap', { monthlyCapEur })),
     addProvider: (name, apiKey) => fmRun(post('/providers', { name, apiKey })),
     saveAssignment: (fn, v) => fmRun(put('/assignments', { [fn]: v })),
     setActive: (id, active) => fmRun(patch('/models/' + id, { active })),

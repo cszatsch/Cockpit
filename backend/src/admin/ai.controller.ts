@@ -22,6 +22,8 @@ export const KEY_TEST_CRON = '0 */2 * * *';
 const SYSTEM_ACTOR = { accountId: 'system', sessionId: 'system', email: 'system@rise.local', fullName: 'Système', personId: null, isAdmin: true, surface: null, restricted: false, viaCookie: false };
 
 const ApiKey = z.string().trim().min(20, '20 caractères minimum').max(400);
+/** Plafond mensuel maximal saisissable pour une clé (€). */
+export const PROVIDER_CAP_MAX_EUR = 100000;
 
 /** Catégories de modèles ; seuls les LLM peuvent servir une fonction du Cockpit ou une règle de notification. */
 export const MODEL_CATEGORIES = ['LLM', 'EMBEDDING', 'RERANKING'] as const;
@@ -105,7 +107,7 @@ export class AiController implements OnModuleInit {
         const primary = models.find((m) => m.id === a.primaryModelId);
         if (primary?.providerId === p.id && p.status !== 'OK' && (await this.usage.functionState(a.primaryModelId, a.fallbackModelId, aiFunction(a.functionId)?.category)) === 'FALLBACK') onFallback.push(a.functionId);
       }
-      out.push({ id: p.id, name: p.name, keyPrefix: p.keyPrefix, keyLast4: p.keyLast4, hasKey: !!p.keyCipher, status: p.status, latencyMs: p.latencyMs, lastTestedAt: p.lastTestedAt, lastError: p.lastError, functionsOnFallback: onFallback, modelCount: models.filter((m) => m.providerId === p.id).length, version: p.version });
+      out.push({ id: p.id, name: p.name, keyPrefix: p.keyPrefix, keyLast4: p.keyLast4, hasKey: !!p.keyCipher, monthlyCapEur: p.monthlyCapEur, status: p.status, latencyMs: p.latencyMs, lastTestedAt: p.lastTestedAt, lastError: p.lastError, functionsOnFallback: onFallback, modelCount: models.filter((m) => m.providerId === p.id).length, version: p.version });
     }
     return out;
   }
@@ -153,6 +155,22 @@ export class AiController implements OnModuleInit {
       await this.audit.action(db, adminCtx(actor), { action: 'Rotation de clé API', target: p.name, severity: 'CRITICAL', entityType: 'Provider', entityId: id });
     });
     await this.test(id, adminCtx(actor));
+    return (await this.providerViews()).find((x) => x.id === id);
+  }
+
+  /**
+   * Plafond de dépense mensuel de la clé (€, null = sans plafond ; 05/10/2026) : rappel de la limite fixée chez le
+   * fournisseur, repris par Partager Cockpit (« Dépense IA possible »). Action sensible.
+   */
+  @Put('providers/:id/cap')
+  async cap(@CurrentActor() actor: Actor, @Param('id') id: string, @Body() body: unknown) {
+    const { monthlyCapEur } = parse(z.object({ monthlyCapEur: z.number().int('Montant entier en euros').min(1, '1 € minimum').max(PROVIDER_CAP_MAX_EUR, `${PROVIDER_CAP_MAX_EUR} € maximum`).nullable() }).strict(), body);
+    const p = await this.prisma.provider.findUnique({ where: { id } });
+    if (!p) throw notFound('Fournisseur introuvable');
+    await this.prisma.$transaction(async (db) => {
+      await db.provider.update({ where: { id }, data: { monthlyCapEur, version: { increment: 1 } } });
+      await this.audit.action(db, adminCtx(actor), { action: 'Plafond mensuel d’une clé API', target: `${p.name} · ${monthlyCapEur === null ? 'sans plafond' : monthlyCapEur + ' € / mois'}`, severity: 'SENSITIVE', entityType: 'Provider', entityId: id, details: { avant: p.monthlyCapEur, apres: monthlyCapEur } });
+    });
     return (await this.providerViews()).find((x) => x.id === id);
   }
 

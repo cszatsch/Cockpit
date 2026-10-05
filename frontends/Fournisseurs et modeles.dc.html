@@ -43,10 +43,11 @@ input::placeholder{color:#a6b4bd}
               <span title="{{ p.at }}" style="{{ p.stSt }}"><sc-if value="{{ p.testing }}" hint-placeholder-val="{{ false }}"><span style="width:9px;height:9px;border-radius:50%;border:1.5px solid rgba(63,209,193,.3);border-top-color:#3fd1c1;animation:spin .7s linear infinite"></span></sc-if><sc-if value="{{ p.idle }}" hint-placeholder-val="{{ true }}"><span style="{{ p.dotSt }}"></span></sc-if>{{ p.stL }}</span>
             </div>
           </div>
-          <span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#6f879a;letter-spacing:.02em">{{ p.keyL }}</span>
+          <div style="display:flex;flex-direction:column;gap:4px"><span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#6f879a;letter-spacing:.02em">{{ p.keyL }}</span><span style="{{ p.capSt }}">{{ p.capL }}</span></div>
           <div style="display:flex;gap:6px;flex-wrap:wrap">
             <button onClick="{{ p.test }}" disabled="{{ p.testing }}" style="height:28px;padding:0 10px;border:0;border-radius:8px;background:rgba(255,255,255,.06);color:#cfe0ea;font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap" style-hover="background:rgba(255,255,255,.11);color:#fff">Tester</button>
             <button onClick="{{ p.replace }}" style="height:28px;padding:0 10px;border:0;border-radius:8px;background:rgba(255,255,255,.06);color:#cfe0ea;font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap" style-hover="background:rgba(255,255,255,.11);color:#fff">Remplacer la clé</button>
+            <button onClick="{{ p.capEdit }}" style="height:28px;padding:0 10px;border:0;border-radius:8px;background:rgba(255,255,255,.06);color:#cfe0ea;font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap" style-hover="background:rgba(255,255,255,.11);color:#fff">Plafond</button>
           </div>
         </div>
       </sc-for>
@@ -326,6 +327,22 @@ input::placeholder{color:#a6b4bd}
   </div>
 </sc-if>
 
+<sc-if value="{{ cp.open }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeModal }}" style="position:fixed;inset:0;z-index:60;background:rgba(14,33,53,.5);backdrop-filter:blur(3px);display:grid;place-items:center;padding:24px;animation:fade .18s ease-out both">
+    <div onClick="{{ stop }}" style="width:min(460px,100%);background:#fff;border-radius:20px;padding:24px 24px 20px;display:flex;flex-direction:column;gap:16px;box-shadow:0 40px 80px -30px rgba(14,33,53,.55);animation:pop .22s cubic-bezier(.2,.7,.2,1) both">
+      <div style="display:flex;gap:14px;align-items:flex-start">
+        <span style="width:38px;height:38px;border-radius:11px;background:#e7f6f4;color:#1d8f86;display:grid;place-items:center;flex:none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"></path><path d="M7 16V9 M12 16V5 M17 16v-4"></path></svg></span>
+        <div style="display:flex;flex-direction:column;gap:5px"><span style="font-size:18px;font-weight:800;letter-spacing:-.02em">Plafond mensuel {{ cp.n }}</span><span style="font-size:12.5px;line-height:1.5;color:#5c7280">Reportez ici la limite de dépense fixée chez le fournisseur. Partager Cockpit l’utilise pour annoncer la dépense possible d’un paquet.</span></div>
+      </div>
+      <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:12px;font-weight:700">Plafond (€ par mois)</span><input autoFocus="{{ true }}" inputMode="numeric" value="{{ cp.val }}" onChange="{{ cp.onVal }}" placeholder="Vide = sans plafond" autoComplete="off" style="{{ cp.inSt }}" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.14)"></input><span style="{{ cp.helpSt }}">{{ cp.help }}</span></label>
+      <div style="display:flex;justify-content:flex-end;gap:8px;padding-top:2px">
+        <button onClick="{{ closeModal }}" style="height:36px;padding:0 14px;border:0;border-radius:10px;background:#fff;box-shadow:inset 0 0 0 1px #d5dfdd;font-weight:700;font-size:12.5px;cursor:pointer" style-hover="background:#f6f9f8">Annuler</button>
+        <button onClick="{{ cp.submit }}" disabled="{{ cp.invalid }}" style="{{ cp.btnSt }}">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+</sc-if>
+
 <sc-if value="{{ rv.open }}" hint-placeholder-val="{{ false }}">
   <div onClick="{{ closeModal }}" style="position:fixed;inset:0;z-index:60;background:rgba(14,33,53,.5);backdrop-filter:blur(3px);display:grid;place-items:center;padding:24px;animation:fade .18s ease-out both">
     <div onClick="{{ stop }}" style="width:min(460px,100%);background:#fff;border-radius:20px;padding:24px 24px 20px;display:flex;flex-direction:column;gap:16px;box-shadow:0 40px 80px -30px rgba(14,33,53,.55);animation:pop .22s cubic-bezier(.2,.7,.2,1) both">
@@ -415,7 +432,7 @@ class Component extends DCLogic {
       return { providers: st.providers.map(p => ({ ...p, testing: p.testing || !!st.testing[p.id] })), models: st.models, assign: st.assign, dims: st.dims, fn: null, states: null };
     }
     const D = this.props.data || { providers: [], models: [], functions: [], assignments: [] };
-    const providers = (D.providers || []).map((p, i) => { const c = colOf(p.id, i); return { id: p.id, n: p.name, g: PGLYPH[p.id] || (p.name || '?').trim()[0].toUpperCase(), c: c[0], dk: c[1], pre: p.keyPrefix || '', k: p.keyLast4 || '', bad: p.status === 'ERROR' || !p.hasKey, testing: !!st.testing[p.id], at: p.lastTestedAt }; });
+    const providers = (D.providers || []).map((p, i) => { const c = colOf(p.id, i); return { id: p.id, n: p.name, g: PGLYPH[p.id] || (p.name || '?').trim()[0].toUpperCase(), c: c[0], dk: c[1], pre: p.keyPrefix || '', k: p.keyLast4 || '', bad: p.status === 'ERROR' || !p.hasKey, testing: !!st.testing[p.id], at: p.lastTestedAt, cap: p.monthlyCapEur ?? null }; });
     const models = (D.models || []).map(m => ({ id: m.id, n: m.name, t: CAT[m.category] || m.category, p: m.providerId, i: m.price && m.price.unit === 'REQUESTS' ? m.price.per1k : m.priceIn, o: m.category === 'LLM' ? m.priceOut : null, unit: (m.price && m.price.unit) || 'TOKENS', date: m.releaseDate || '', ident: m.providerModelId || '', ctx: m.contextTokens ? String(m.contextTokens) : '', maxOut: m.maxOutputTokens, d: m.description || '', on: m.active, dims: m.dimensions || [], defDim: m.defaultDimension }));
     const assign = {}, states = {}, fn = {};
     Object.entries(FID).forEach(([k, sid]) => {
@@ -596,7 +613,11 @@ class Component extends DCLogic {
         keyL: `${p.pre}••••••••${p.k}`,
         cellSt: `padding:18px 20px;display:flex;flex-direction:column;gap:13px;box-shadow:-1px 0 0 rgba(255,255,255,.07),0 -1px 0 rgba(255,255,255,.07);transition:background .25s;background:${b ? 'rgba(240,123,103,.07)' : 'transparent'}`,
         test: () => this.test([p.id]),
-        replace: () => this.setState({ modal: { kind: 'key', pid: p.id, val: '' }, menu: null })
+        replace: () => this.setState({ modal: { kind: 'key', pid: p.id, val: '' }, menu: null }),
+        // Plafond mensuel (05/10/2026) : rappel de la limite fixée chez le fournisseur, repris par Partager Cockpit.
+        capL: p.cap ? `Plafond ${p.cap} € / mois` : 'Sans plafond mensuel',
+        capSt: `font-size:11px;font-weight:600;color:${p.cap ? '#9fb3c2' : '#e3a43b'}`,
+        capEdit: () => this.setState({ modal: { kind: 'cap', pid: p.id, val: p.cap ? String(p.cap) : '' }, menu: null })
       };
     });
     const band = { okL: `${nOk} connecté${nOk > 1 ? 's' : ''}`, hasBad: nBad > 0, badL: `${nBad} clé${nBad > 1 ? 's' : ''} invalide${nBad > 1 ? 's' : ''}`, busy: D.providers.some(p => p.testing) };
@@ -749,6 +770,24 @@ class Component extends DCLogic {
         }
       };
     }
+    let cp = { open: false };
+    if (M.kind === 'cap') {
+      const p = P[M.pid] || { n: '' }, raw = String(M.val || '').replace(/[\s€]/g, '');
+      const bad = raw !== '' && !/^[1-9]\d{0,5}$/.test(raw), invalid = bad || !!M.saving;
+      cp = {
+        open: true, n: p.n, val: M.val, invalid, btnSt: btnPrimary(invalid), onVal: e => setM({ val: e.target.value }),
+        inSt: `height:40px;padding:0 12px;border:1px solid ${bad ? '#f0a193' : '#d5dfdd'};border-radius:10px;font-size:13px;outline:none;font-variant-numeric:tabular-nums`,
+        help: bad ? 'Montant entier en euros, sans décimale.' : raw === '' ? 'Sans plafond : la dépense possible s’affichera « Illimitée ».' : `Au plus ${raw} € par mois sur cette clé.`,
+        helpSt: `font-size:11.5px;color:${bad ? '#c2473b' : '#8a9aa6'}`,
+        submit: () => {
+          if (invalid) return;
+          const cap = raw === '' ? null : Number(raw), pid = M.pid;
+          if (!REAL) { this.setState(s => ({ modal: null, providers: s.providers.map(x => x.id === pid ? { ...x, cap } : x) })); this.toast(`${p.n} : plafond enregistré.`); return; }
+          setM({ saving: true });
+          this.props.api.saveCap(pid, cap).then(() => { this.setState({ modal: null }); this.toast(`${p.n} : ${cap ? 'plafond de ' + cap + ' € par mois' : 'sans plafond'}.`); }).catch(e => { setM({ saving: false }); this.toast(errMsg(e), 'err'); });
+        }
+      };
+    }
     // Revectorisation : confirmation avant de changer le modèle ou la dimension de la Vectorisation.
     let rv = { open: false };
     if (M.kind === 'revec') {
@@ -769,7 +808,7 @@ class Component extends DCLogic {
       newModel: () => this.setState({ menu: null, modal: { kind: 'model', mode: 'new', id: null, confirm: false, saving: false, f: { t: 'LLM', p: st.fa !== 'all' ? st.fa : (D.providers[0] || {}).id, n: '', d: '', ident: '', ctx: '', date: '', maxOut: '', i: '', o: '', dims: '', defDim: '' } } }),
       closeModal: () => this.setState({ modal: null }), stop: e => e.stopPropagation(),
       filt, cols, rows, provOpts: D.providers.map(p => ({ id: p.id, n: p.n })),
-      mdl, pv, ky, rv,
+      mdl, pv, ky, cp, rv,
       toast: { open: !!st.toast, msg: st.toast ? st.toast.msg : '', dot: `width:7px;height:7px;border-radius:50%;flex:none;background:${tc};box-shadow:0 0 0 3px ${tc}33` }
     };
   }

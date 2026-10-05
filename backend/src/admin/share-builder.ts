@@ -40,8 +40,11 @@ export type StepFn = (step: number) => Promise<void> | void;
 
 /** Tables de configuration reprises de la base actuelle dans le jeu de démonstration et le Cockpit vide. */
 const CONFIG_TABLES = ['Provider', 'AiModel', 'ModelAssignment', 'BudgetThreshold', 'smtp_settings', 'api_cards', 'Skill', 'Persona', 'PersonaVersion', 'jev_rag_settings', 'guide_versions', 'guide_chunks'];
-/** Tables liées aux fichiers déposés (Base de connaissance, guide, formats et templates de rapport) : vidées sans fichiers. */
-const FILE_TABLES = ['kb_chunks', 'document_events', 'Document', 'guide_chunks', 'guide_versions', 'guide_uploads', 'guide_downloads', 'report_template_versions', 'report_template_drafts', 'ReportTemplate', 'report_format_files'];
+/** Tables liées aux fichiers déposés (Base de connaissance, guide) : vidées sans fichiers. Les formats et templates de rapport
+ * restent toujours (décision du 05/10/2026 : quelques Mo, et sans eux « Générer un rapport » serait vide). */
+const FILE_TABLES = ['kb_chunks', 'document_events', 'Document', 'guide_chunks', 'guide_versions', 'guide_uploads', 'guide_downloads'];
+/** Export du jeu de démonstration livré dans l'application (relatif à `app/backend`). */
+export const DEMO_DUMP = path.join('demo', 'demo.dump');
 /** Dossiers du stockage par catégorie de fichiers ; ceux marqués projet sont filtrés par projet. */
 const FILE_DIRS: Record<'kb' | 'guide' | 'formats', string[]> = { kb: ['base-connaissance'], guide: ['guide'], formats: ['report-formats', 'report-templates'] };
 const PROJECT_DIRS = ['base-connaissance', 'report-formats', 'report-templates', 'snapshots', 'assistant', 'reports'];
@@ -138,6 +141,9 @@ export class ShareBuilder {
     // Migrations SQL : appliquées par l'installateur quand les données du poste sont conservées.
     await mirror(path.join(this.backendDir, 'prisma', 'migrations'), path.join(B, 'prisma', 'migrations'));
     for (const f of ['package.json', 'package-lock.json']) if (existsSync(path.join(this.backendDir, f))) await fs.copyFile(path.join(this.backendDir, f), path.join(B, f));
+    // Jeu de démonstration livré avec l'application : les paquets générés depuis cette installation pourront le proposer.
+    await fs.mkdir(path.dirname(path.join(B, DEMO_DUMP)), { recursive: true });
+    await fs.copyFile(await this.demoDump(P.pgBin), path.join(B, DEMO_DUMP));
     // Dépendances de production : un dossier par paquet de premier niveau (copie robocopy, rapide sous Windows),
     // sans les paquets de développement du verrou npm, les outils de construction ni les copies temporaires du moteur Prisma.
     const dev = this.devPackages();
@@ -183,13 +189,9 @@ export class ShareBuilder {
     await this.pg(bin, 'createdb', [temp]);
     const dump = path.resolve(config.storageDir, 'share-work', o.id, 'source.dump');
     if (o.data === 'demo') {
-      const prismaCli = path.join(this.backendDir, 'node_modules', 'prisma', 'build', 'index.js');
-      const tsNode = path.join(this.backendDir, 'node_modules', 'ts-node', 'dist', 'bin.js');
-      if (!existsSync(prismaCli) || !existsSync(tsNode) || !existsSync(path.join(this.backendDir, 'prisma', 'seed', 'index.ts'))) throw new Error('Jeu de démonstration indisponible sur cette installation (outils de développement absents).');
-      const d = this.db();
-      const env = { ...process.env, DATABASE_URL: `postgresql://${encodeURIComponent(d.user)}${d.password ? ':' + encodeURIComponent(d.password) : ''}@${d.host}:${d.port}/${temp}` };
-      await run(process.execPath, [prismaCli, 'migrate', 'deploy'], { cwd: this.backendDir, env, windowsHide: true, maxBuffer: 16 * 1024 * 1024 });
-      await run(process.execPath, [tsNode, '--transpile-only', 'prisma/seed/index.ts'], { cwd: this.backendDir, env, windowsHide: true, maxBuffer: 64 * 1024 * 1024 });
+      // Jeu de démonstration embarqué (décision du 05/10/2026) : fabriqué une fois par version sur le poste de
+      // développement, livré dans chaque paquet (`app/backend/demo/demo.dump`), donc disponible aussi sur une installation.
+      await this.pg(bin, 'pg_restore', ['--no-owner', '-d', temp, await this.demoDump(bin)]).catch((e) => { if (!/warning|avertissement/i.test(String(e.stderr ?? ''))) throw e; });
       // Configuration de la plateforme reprise de la base actuelle (IA, SMTP, cartes API, skills, persona, guide).
       await this.sql(temp, CONFIG_TABLES.map((t) => `DELETE FROM "${t}";`).join(' '));
       await this.pg(bin, 'pg_dump', ['-Fc', '-a', ...CONFIG_TABLES.flatMap((t) => ['-t', `public."${t}"`]), '-f', dump, main]);
@@ -233,6 +235,40 @@ export class ShareBuilder {
     `);
   }
 
+  /** Export du jeu de démonstration de cette version : celui livré avec l'installation, sinon fabriqué (et gardé en cache). */
+  async demoDump(bin: string): Promise<string> {
+    const shipped = path.join(this.backendDir, DEMO_DUMP);
+    const prismaCli = path.join(this.backendDir, 'node_modules', 'prisma', 'build', 'index.js');
+    const tsNode = path.join(this.backendDir, 'node_modules', 'ts-node', 'dist', 'bin.js');
+    const dev = existsSync(prismaCli) && existsSync(tsNode) && existsSync(path.join(this.backendDir, 'prisma', 'seed', 'index.ts'));
+    if (!dev) {
+      if (existsSync(shipped)) return shipped;
+      throw new Error('Jeu de démonstration absent de cette installation (paquet antérieur au 05/10/2026) : choisissez « Base actuelle » ou « Cockpit vide ».');
+    }
+    // Empreinte des sources du jeu : migrations, amorçage et données des écrans ; nouvel export si l'une change.
+    const h = createHash('sha256');
+    const feed = (dir: string) => { if (!existsSync(dir)) return; for (const e of readdirSync(dir, { withFileTypes: true }).sort((x, y) => x.name.localeCompare(y.name))) { const f = path.join(dir, e.name); if (e.isDirectory()) feed(f); else h.update(e.name).update(require('fs').readFileSync(f)); } };
+    feed(path.join(this.backendDir, 'prisma', 'migrations'));
+    feed(path.join(this.backendDir, 'prisma', 'seed'));
+    for (const f of ['rise-data.js', 'planning-data.js']) { const x = path.resolve(this.backendDir, config.frontendDir || '../frontends', f); if (existsSync(x)) h.update(require('fs').readFileSync(x)); }
+    const cache = path.resolve(config.storageDir, 'share-cache', `demo-${h.digest('hex').slice(0, 16)}.dump`);
+    if (existsSync(cache)) return cache;
+    const temp = `share_demo_${Date.now()}`;
+    const d = this.db();
+    const env = { ...process.env, DATABASE_URL: `postgresql://${encodeURIComponent(d.user)}${d.password ? ':' + encodeURIComponent(d.password) : ''}@${d.host}:${d.port}/${temp}` };
+    await this.pg(bin, 'createdb', [temp]);
+    try {
+      await run(process.execPath, [prismaCli, 'migrate', 'deploy'], { cwd: this.backendDir, env, windowsHide: true, maxBuffer: 16 * 1024 * 1024 });
+      await run(process.execPath, [tsNode, '--transpile-only', 'prisma/seed/index.ts'], { cwd: this.backendDir, env, windowsHide: true, maxBuffer: 64 * 1024 * 1024 });
+      await fs.rm(path.dirname(cache), { recursive: true, force: true });
+      await fs.mkdir(path.dirname(cache), { recursive: true });
+      await this.pg(bin, 'pg_dump', ['-Fc', '-f', cache, temp]);
+    } finally {
+      await this.pg(bin, 'dropdb', ['--if-exists', temp]).catch(() => {});
+    }
+    return cache;
+  }
+
   /** Rechiffrement des secrets pour le paquet : clé dérivée du code (Argon2id) ou clé incluse ; jamais la clé du serveur. */
   async encryptSecrets(o: ShareBuildOptions, temp: string) {
     const db = this.client(temp);
@@ -265,7 +301,7 @@ export class ShareBuilder {
   async copyFiles(o: ShareBuildOptions, dest: string) {
     const root = path.resolve(config.storageDir);
     if (!existsSync(root)) return;
-    const allowed = new Set<string>(['persona', 'snapshots', 'assistant', 'reports', ...(o.files ? [...FILE_DIRS.kb, ...FILE_DIRS.guide, ...FILE_DIRS.formats] : [])]);
+    const allowed = new Set<string>(['persona', 'snapshots', 'assistant', 'reports', ...FILE_DIRS.formats, ...(o.files ? [...FILE_DIRS.kb, ...FILE_DIRS.guide] : [])]);
     const projects = new Set(o.data === 'current' ? o.projects : []);
     for (const dir of readdirSync(root)) {
       if (!allowed.has(dir)) continue;

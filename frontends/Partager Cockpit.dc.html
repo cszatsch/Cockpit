@@ -101,7 +101,7 @@ input::placeholder{color:#a3b1ba}
         <div style="height:1px;background:#eef3f2"></div>
         <div style="display:flex;flex-direction:column;gap:10px">
           <div style="display:flex;align-items:center;gap:12px"><span style="flex:1;min-width:0;font-size:13.5px;font-weight:700">Fichiers déposés</span><button type="button" role="switch" aria-checked="{{ files }}" aria-label="Inclure les fichiers déposés" onClick="{{ toggleFiles }}" style="{{ filesTr }}"><span style="{{ filesKn }}"></span></button></div>
-          <div style="{{ filesListSt }}"><sc-for list="{{ fileRows }}" as="r" hint-placeholder-count="3"><div style="display:flex;align-items:baseline;gap:8px;font-size:12px"><span style="flex:1;min-width:0;color:#43586a">{{ r.l }}</span><span style="color:#a3b1ba;white-space:nowrap;flex:none">{{ r.n }}</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#10233a;min-width:50px;text-align:right;white-space:nowrap;flex:none">{{ r.s }}</span></div></sc-for></div>
+          <div style="{{ filesListSt }}"><sc-for list="{{ fileRows }}" as="r" hint-placeholder-count="3"><div style="{{ r.st }}"><span style="flex:1;min-width:0;color:#43586a">{{ r.l }}</span><span style="color:#a3b1ba;white-space:nowrap;flex:none">{{ r.n }}</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#10233a;min-width:50px;text-align:right;white-space:nowrap;flex:none">{{ r.s }}</span></div></sc-for></div>
         </div>
       </div>
       <div style="padding:14px 24px 16px;border-top:1px solid #eef3f2;font-size:12px;line-height:1.5;color:#5c7280;text-wrap:pretty">{{ smtpFoot }}</div>
@@ -163,7 +163,7 @@ input::placeholder{color:#a3b1ba}
             <div style="flex:1 1 240px;min-width:0;display:flex;flex-direction:column;gap:3px"><span style="font-size:13px;color:#10233a">{{ h.data }}</span><span style="{{ h.secSt }}">{{ h.sec }}</span></div>
             <div style="flex:0 0 130px;display:flex;flex-direction:column;gap:3px"><span style="font-size:13px;font-weight:700;white-space:nowrap">{{ h.ver }} · {{ h.size }}</span><span title="{{ h.sha }}" style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#8a9aa6;white-space:nowrap">{{ h.shaShort }}</span></div>
             <div style="flex:0 0 auto;margin-left:auto">
-              <sc-if value="{{ h.kept }}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{ h.del }}" title="Supprimer le fichier du serveur" style="height:34px;padding:0 12px;border-radius:10px;border:0;background:transparent;box-shadow:inset 0 0 0 1px #e1e9e7;font-size:12px;font-weight:700;color:#43586a;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap" style-hover="color:#a63a2f;box-shadow:inset 0 0 0 1px #f0c3ba;background:#fdf6f4"><span style="width:6px;height:6px;border-radius:50%;background:#1d8f86"></span>Sur le serveur · Supprimer</button></sc-if>
+              <sc-if value="{{ h.kept }}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{ h.del }}" title="{{ h.delTitle }}" style="height:34px;padding:0 12px;border-radius:10px;border:0;background:transparent;box-shadow:inset 0 0 0 1px #e1e9e7;font-size:12px;font-weight:700;color:#43586a;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap" style-hover="color:#a63a2f;box-shadow:inset 0 0 0 1px #f0c3ba;background:#fdf6f4"><span style="width:6px;height:6px;border-radius:50%;background:#1d8f86"></span>Sur le serveur · Supprimer</button></sc-if>
               <sc-if value="{{ h.gone }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:#a3b1ba;white-space:nowrap">{{ h.goneL }}</span></sc-if>
             </div>
           </div>
@@ -195,7 +195,8 @@ input::placeholder{color:#a3b1ba}
 // serveur : contexte, génération en 4 étapes diffusée en direct, historique, téléchargement signé, suppression.
 const PROJ = [['rise', 'RISE', '14 lots · 212 tâches · 9 snapshots', 38], ['horizon', 'Horizon', '8 lots · 96 tâches · 4 snapshots', 22], ['nova', 'Nova Brand X', '3 lots · 31 tâches', 9]];
 const KEYS = [['anthropic', 'Anthropic', 'sk-ant-…4f2a', 100], ['openai', 'OpenAI', 'sk-…9c1d', 50], ['mistral', 'Mistral', '…b72e', 30], ['google', 'Google Gemini', 'AIza…31kq', 30], ['azure', 'Azure OpenAI', '…e08f', null]];
-const FILES = [['Base de connaissance', '84 documents', 412], ['Guide utilisateur', '1 PDF', 18], ['Formats de rapport', '6 PPTX', 36]];
+// 4e valeur : toujours inclus, même sans « Fichiers déposés » (formats et templates de rapport, décision du 05/10/2026).
+const FILES = [['Base de connaissance', '84 documents', 412], ['Guide utilisateur', '1 PDF', 18], ['Formats de rapport', '6 PPTX', 36, true]];
 const PROFILES = ['Administrateur', 'Chef de projet', 'Contributeur', 'Lecteur'];
 const APP = 286, BASE = 6, FILES_MO = 466;
 const DEMO = { VER: '2.4.0', BUILD: '', PROJ, KEYS, FILES, PROFILES, APP, BASE, FILES_MO, DEMO_MO: 14, EMPTY_MO: 1, SMTP: 'smtp.gmail.com · cockpitbyone@gmail.com', FROM: 'cockpitbyone@gmail.com', HAS_SMTP: true, LAST: '2.3.1',
@@ -224,6 +225,7 @@ const sameDay = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() ==
 /** Ligne de l'historique du serveur → ligne de l'écran (masques seulement, jamais de clé). */
 const toHist = (h, fresh) => { const d = new Date(h.createdAt), g = h.fileDeletedAt ? new Date(h.fileDeletedAt) : null;
   return { id: h.id, fresh: fresh === h.id, date: sameDay(d, new Date()) ? 'Aujourd’hui' : dmy(d), time: p2(d.getHours()) + ':' + p2(d.getMinutes()), by: h.by, to: h.to, mail: h.mail, data: h.data,
+    delTitle: h.expiresAt ? 'Supprimer le fichier du serveur (supprimé automatiquement le ' + dmy(new Date(h.expiresAt)) + ' à ' + p2(new Date(h.expiresAt).getHours()) + ':' + p2(new Date(h.expiresAt).getMinutes()) + ')' : 'Supprimer le fichier du serveur',
     keys: h.keys.map(k => k.name + ' ' + k.mask.replace(/^.*…/, '…')), smtp: h.smtp, code: h.code, ver: h.version, size: fmt(MO(h.size)), sha: h.sha256 || '', kept: h.kept, goneAt: g && !sameDay(g, new Date()) ? dmy(g) : '' }; };
 
 class Component extends DCLogic {
@@ -259,7 +261,7 @@ class Component extends DCLogic {
     if (!this.live()) return DEMO;
     const me = this.props.me || {};
     return { VER: c.version, BUILD: c.build, PROJ: c.projects.map(p => [p.id, p.name, p.meta, MO(p.bytes)]), KEYS: c.keys.map(k => [k.id, k.name, k.mask, k.cap]),
-      FILES: c.files.map(f => [f.label, f.countLabel, MO(f.bytes)]), PROFILES: c.profiles, APP: MO(c.sizes.app), BASE: MO(c.sizes.shared), FILES_MO: c.files.reduce((a, f) => a + MO(f.bytes), 0),
+      FILES: c.files.map(f => [f.label, f.countLabel, MO(f.bytes), !!f.always]), PROFILES: c.profiles, APP: MO(c.sizes.app), BASE: MO(c.sizes.shared), FILES_MO: c.files.reduce((a, f) => a + MO(f.bytes), 0),
       DEMO_MO: MO(c.sizes.demo), EMPTY_MO: MO(c.sizes.empty), SMTP: c.smtp ? c.smtp.host + ' · ' + c.smtp.from : 'Aucun serveur configuré dans la Console', FROM: c.smtp ? c.smtp.from : '', HAS_SMTP: !!c.smtp,
       LAST: c.lastVersion, NEWS: c.news, SIGN: me.first || '' };
   }
@@ -267,7 +269,7 @@ class Component extends DCLogic {
   calc(S, D) {
     const projs = D.PROJ.filter(p => S.proj[p[0]]);
     const dataMo = S.data === 'current' ? D.BASE + projs.reduce((a, p) => a + p[3], 0) : S.data === 'demo' ? D.DEMO_MO : D.EMPTY_MO;
-    const filesMo = S.files ? D.FILES_MO : 0, keys = D.KEYS.filter(k => S.keys[k[0]]);
+    const filesMo = S.files ? D.FILES_MO : D.FILES.filter(f => f[3]).reduce((a, f) => a + f[2], 0), keys = D.KEYS.filter(k => S.keys[k[0]]);
     const smtp = S.smtp && D.HAS_SMTP;
     return { dataMo, filesMo, total: D.APP + dataMo + filesMo, keys, projs, smtp, secrets: keys.length + (smtp ? 1 : 0) };
   }
@@ -386,7 +388,7 @@ class Component extends DCLogic {
     const rows = live ? (this.props.history || []).filter(h => h.status === 'READY').map(h => toHist(h, S.fresh)) : S.hist;
     const histRows = rows.map((h, i) => {
       const secs = [...h.keys, ...(h.smtp ? ['SMTP'] : [])], hasSec = secs.length > 0;
-      return { ...h, gone: !h.kept, goneL: h.goneAt ? 'Fichier supprimé le ' + h.goneAt : 'Fichier supprimé aujourd’hui', shaShort: h.sha.slice(0, 8) + '…' + h.sha.slice(-4),
+      return { ...h, delTitle: h.delTitle || 'Supprimer le fichier du serveur', gone: !h.kept, goneL: h.goneAt ? 'Fichier supprimé le ' + h.goneAt : 'Fichier supprimé aujourd’hui', shaShort: h.sha.slice(0, 8) + '…' + h.sha.slice(-4),
         sec: hasSec ? secs.length + ' secret' + (secs.length > 1 ? 's' : '') + (h.code ? ' · protégés par code' : ' · sans code') : 'Aucun secret',
         secSt: 'font-size:11.5px;font-weight:600;color:' + (hasSec && !h.code ? '#b4541a' : '#8a9aa6'),
         rev: hasSec ? 'À révoquer pour couper l’accès : ' + h.keys.join(' · ') + (h.smtp ? (h.keys.length ? ' · ' : '') + 'mot de passe SMTP' : '') : 'Rien à révoquer.',
@@ -438,12 +440,12 @@ class Component extends DCLogic {
       keyFoot: uncapped.length ? 'Une clé sans plafond peut être facturée sans limite. Fixez un plafond ou décochez-la.' : 'Plafonds de dépense fixés dans Fournisseurs et modèles.',
       keyFootSt: foot(uncapped.length ? 'err' : ''),
 
-      filesMoL: S.files ? fmt(D.FILES_MO) : '0 Mo',
+      filesMoL: fmt(c.filesMo),
       smtp: smtpOn, toggleSmtp: () => D.HAS_SMTP && set(s => ({ smtp: !s.smtp })), smtpTr: smtpSw[0], smtpKn: smtpSw[1], smtpLine: D.SMTP,
       files: S.files, toggleFiles: () => set(s => ({ files: !s.files })), filesTr: filesSw[0], filesKn: filesSw[1],
-      filesListSt: 'display:flex;flex-direction:column;gap:6px;transition:opacity .2s;opacity:' + (S.files ? 1 : .35),
-      fileRows: D.FILES.map(([l, n, s]) => ({ l, n, s: fmt(s) })),
-      smtpFoot: (smtpOn ? 'SMTP inclus : ses alertes partiront de votre adresse.' : 'SMTP exclu : la personne configurera son propre serveur.') + (S.files ? '' : ' Sans fichiers, Jev ne s’appuie plus sur la Base de connaissance.'),
+      filesListSt: 'display:flex;flex-direction:column;gap:6px',
+      fileRows: D.FILES.map(([l, n, s, always]) => ({ l, n, s: fmt(s), st: 'display:flex;align-items:baseline;gap:8px;font-size:12px;transition:opacity .2s;opacity:' + (S.files || always ? 1 : .35) })),
+      smtpFoot: (smtpOn ? 'SMTP inclus : ses alertes partiront de votre adresse.' : 'SMTP exclu : la personne configurera son propre serveur.') + (S.files ? '' : ' Sans fichiers, Jev ne s’appuie plus sur la Base de connaissance ; les formats de rapport restent inclus.'),
 
       secTag: !risky ? 'Aucun secret' : codeOn ? 'Protégé' : 'Exposé',
       secTagSt: 'display:inline-flex;align-items:center;gap:7px;height:24px;padding:0 10px;border-radius:999px;font-size:11.5px;font-weight:800;white-space:nowrap;' + (!risky ? 'background:rgba(255,255,255,.08);color:#c4d3dd' : codeOn ? 'background:rgba(61,214,198,.14);color:#3dd6c6' : 'background:rgba(240,123,103,.16);color:#f5a393'),

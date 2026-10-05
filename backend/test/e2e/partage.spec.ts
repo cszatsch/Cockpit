@@ -2,6 +2,7 @@ import request from 'supertest';
 import { setup, TestCtx, WHO } from '../helpers';
 import { CODE_PATTERN } from '../../src/domain/share';
 import { encryptSecret } from '../../src/core/crypto';
+import { ShareService } from '../../src/admin/share.service';
 
 const S = '/api/admin/share';
 
@@ -155,5 +156,33 @@ describe('Partager Cockpit (spécification PARTAGE, 05/10/2026)', () => {
     } finally {
       delete process.env.SHARE_FAKE_DELAY_MS;
     }
+  });
+
+  it('plafond mensuel d’une clé : saisi dans Fournisseurs et modèles, repris par le contexte, audit sensible', async () => {
+    const c = await t.as(WHO.admin);
+    await c.put('/api/admin/providers/mistral/cap', { monthlyCapEur: 0 }).expect(400);
+    await c.put('/api/admin/providers/mistral/cap', { monthlyCapEur: 12.5 }).expect(400);
+    expect((await c.put('/api/admin/providers/mistral/cap', { monthlyCapEur: 30 }).expect(200)).body.monthlyCapEur).toBe(30);
+    expect((await c.get(`${S}/context`)).body.keys.find((k: any) => k.id === 'mistral').cap).toBe(30);
+    expect((await c.put('/api/admin/providers/mistral/cap', { monthlyCapEur: null }).expect(200)).body.monthlyCapEur).toBeNull();
+    const a = await t.db.auditEntry.findFirstOrThrow({ where: { entityType: 'Provider', entityId: 'mistral', action: 'Plafond mensuel d’une clé API' }, orderBy: { at: 'desc' } });
+    expect(a).toMatchObject({ severity: 'SENSITIVE', target: expect.stringContaining('sans plafond') });
+    await (await t.as(WHO.pmo)).put('/api/admin/providers/mistral/cap', { monthlyCapEur: 30 }).expect(403);
+  });
+
+  it('suppression automatique 2 jours après la génération : ligne gardée, fichier effacé, audit système', async () => {
+    const c = await t.as(WHO.admin);
+    const { jobId } = (await c.post(`${S}/packages`, body({ code: false })).expect(201)).body;
+    await events(t, jobId);
+    const svc = t.app.get(ShareService);
+    const done = (await t.db.sharePackage.findUniqueOrThrow({ where: { id: jobId } })).finishedAt!;
+    expect(await svc.purgeExpired(new Date(done.getTime() + 47 * 3600e3))).toBe(0);
+    expect((await c.get(`${S}/packages`)).body.find((x: any) => x.id === jobId).expiresAt).toBe(new Date(done.getTime() + 48 * 3600e3).toISOString());
+    expect(await svc.purgeExpired(new Date(done.getTime() + 48 * 3600e3 + 1000))).toBeGreaterThanOrEqual(1);
+    const r = (await c.get(`${S}/packages`)).body.find((x: any) => x.id === jobId);
+    expect(r).toMatchObject({ kept: false, expiresAt: null, fileDeletedAt: expect.any(String) });
+    await c.get(`${S}/packages/${jobId}/download`).expect(410);
+    const a = await t.db.auditEntry.findFirstOrThrow({ where: { entityId: jobId, action: 'Suppression automatique du fichier d’un paquet Cockpit' } });
+    expect(a).toMatchObject({ severity: 'SENSITIVE', origin: 'SYSTEM', accountId: null });
   });
 });

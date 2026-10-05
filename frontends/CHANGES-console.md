@@ -648,3 +648,9 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
 - `Sidebar Console.dc.html` : Plateforme › « Partager Cockpit », juste au-dessus de « Guide utilisateur ».
 - `Console Admin.dc.html` : page `share` (titre, suggestions de Jev, en-tête générique masqué), composant monté une fois le contexte et l'historique chargés.
 - `admin-api.js` : chargeur `share` (contexte et historique, à l'ouverture de la page seulement) ; client `shApi` (`start`, `events` — flux SSE lu par `fetch` pour porter l'authentification —, `download`, `del`, `reload`, `goProviders`).
+
+## Partager Cockpit : arbitrages du 05/10/2026
+
+- `Fournisseurs et modeles.dc.html` : sous le masque de chaque clé, son plafond (« Plafond 100 € / mois », ou « Sans plafond mensuel » en ambre) ; bouton « Plafond » à côté de « Tester » et « Remplacer la clé » ; fenêtre « Plafond mensuel <fournisseur> » (montant entier en €, vide = sans plafond), même style que « Remplacer la clé ». Démonstration : enregistré localement.
+- `admin-api.js` : `fmApi.saveCap` (`PUT /providers/:id/cap`).
+- `Partager Cockpit.dc.html` : « Formats de rapport » reste active et compte dans la taille quand « Fichiers déposés » est coupé (formats et templates toujours inclus) ; pied de tuile complété (« … ; les formats de rapport restent inclus. ») ; date de suppression automatique au survol de « Sur le serveur · Supprimer ».

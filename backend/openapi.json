@@ -7935,6 +7935,34 @@
         ]
       }
     },
+    "/api/admin/providers/{id}/cap": {
+      "put": {
+        "operationId": "AiController_cap",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · intelligence artificielle"
+        ]
+      }
+    },
     "/api/admin/providers/{id}/test": {
       "post": {
         "operationId": "AiController_testOne",

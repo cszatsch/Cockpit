@@ -2,14 +2,15 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
 import { existsSync, promises as fs, readFileSync, statSync } from 'fs';
 import * as path from 'path';
-import { AuditService } from '../core/audit.service';
+import { AuditService, WriteCtx } from '../core/audit.service';
 import type { Actor } from '../core/auth/auth';
 import { config } from '../core/config';
 import { ApiError, badRequest, notFound } from '../core/errors';
+import { JobsService } from '../core/jobs.service';
 import { PrismaService } from '../core/prisma.service';
 import {
   dataLabel, estimateSize, keyMask, packageFileName, possibleSpend, secretCount, SHARE_CODE_TTL_MS, SHARE_STEPS,
-  SHARE_URL_TTL_MS, ShareDataMode, shareRequestErrors, ShareUpdate, unlockCode,
+  SHARE_FILE_TTL_MS, SHARE_URL_TTL_MS, ShareDataMode, shareRequestErrors, ShareUpdate, unlockCode,
 } from '../domain/share';
 import { ShareBuilder, ShareBuildOptions } from './share-builder';
 import { adminCtx } from './profiles.service';
@@ -23,6 +24,9 @@ export const EMPTY_DATA_BYTES = 1 * 1e6;
 export const ZIP_RATIO = 0.4;
 /** Identifiant d'une carte API dans la liste des clés (les fournisseurs d'IA gardent leur identifiant). */
 export const CARD_KEY = 'card:';
+/** Vérification horaire des fichiers arrivés à échéance. */
+export const SHARE_PURGE_CRON = '10 * * * *';
+const SYSTEM_ACTOR: Actor = { accountId: 'system', sessionId: 'system', email: 'system@rise.local', fullName: 'Système', personId: null, isAdmin: true, surface: null, restricted: false, viaCookie: false };
 /** Nouveautés affichées au plus (tuile Version). */
 const NEWS_MAX = 3;
 
@@ -76,10 +80,13 @@ export class ShareService implements OnModuleInit {
   private appBytes: Promise<number> | null = null;
   private readonly builder = process.env.NODE_ENV === 'test' || process.env.SHARE_FAKE_BUILD === 'true' ? new FakeBuilder() : new ShareBuilder();
 
-  constructor(private readonly prisma: PrismaService, private readonly audit: AuditService) {}
+  constructor(private readonly prisma: PrismaService, private readonly audit: AuditService, private readonly jobs: JobsService) {}
 
   /** Une génération interrompue par un arrêt du serveur ne reprendra pas : marquée en échec. */
   async onModuleInit() {
+    // ZIP supprimés automatiquement 2 jours après leur génération (décision du 05/10/2026), vérifié chaque heure.
+    this.jobs.register('share.purge', () => this.purgeExpired(new Date()).then(() => undefined));
+    this.jobs.schedule('share.purge', SHARE_PURGE_CRON);
     await this.prisma.sharePackage.updateMany({ where: { status: 'RUNNING' }, data: { status: 'FAILED', error: 'Génération interrompue par un redémarrage du serveur.', finishedAt: new Date() } }).catch(() => {});
   }
 
@@ -166,15 +173,15 @@ export class ShareService implements OnModuleInit {
     const shared = Math.max(0, dataBytes - projects.reduce((a, p) => a + projectBytes(p.id), 0));
     const smtp = await this.prisma.smtpSettings.findFirst();
     const root = path.resolve(config.storageDir);
-    const cat = async (label: string, dirs: string[], unit: (n: number) => string) => {
+    const cat = async (id: string, label: string, dirs: string[], unit: (n: number) => string) => {
       let n = 0, bytes = 0;
       for (const d of dirs) { const s = await this.dirStats(path.join(root, d)); n += s.n; bytes += s.bytes; }
-      return { label, count: n, countLabel: unit(n), bytes };
+      return { id, label, count: n, countLabel: unit(n), bytes, always: id === 'formats' };
     };
     const files = [
-      await cat('Base de connaissance', ['base-connaissance'], (n) => `${n} document${n > 1 ? 's' : ''}`),
-      await cat('Guide utilisateur', ['guide'], (n) => `${n} fichier${n > 1 ? 's' : ''}`),
-      await cat('Formats de rapport', ['report-formats', 'report-templates'], (n) => `${n} fichier${n > 1 ? 's' : ''}`),
+      await cat('kb', 'Base de connaissance', ['base-connaissance'], (n) => `${n} document${n > 1 ? 's' : ''}`),
+      await cat('guide', 'Guide utilisateur', ['guide'], (n) => `${n} fichier${n > 1 ? 's' : ''}`),
+      await cat('formats', 'Formats de rapport', ['report-formats', 'report-templates'], (n) => `${n} fichier${n > 1 ? 's' : ''}`),
     ];
     const plural = (n: number, w: string) => `${n} ${w}${n > 1 ? 's' : ''}`;
     return {
@@ -323,6 +330,7 @@ export class ShareService implements OnModuleInit {
       keys: (r.keys as Array<{ id: string; name: string; mask: string }>).map((k) => ({ id: k.id, name: k.name, mask: k.mask })), smtp: r.smtp, files: r.files, code: r.code, prefill: r.prefill ?? null,
       update: r.updateMode, version: r.version, size: r.sizeBytes === null ? null : Number(r.sizeBytes), sha256: r.sha256, fileName: r.fileName,
       kept: r.status === 'READY' && !r.fileDeletedAt, fileDeletedAt: r.fileDeletedAt?.toISOString() ?? null,
+      expiresAt: r.status === 'READY' && !r.fileDeletedAt && r.finishedAt ? new Date(r.finishedAt.getTime() + SHARE_FILE_TTL_MS).toISOString() : null,
       spend: possibleSpend((r.keys as Array<{ cap: number | null }>).map((k) => k.cap ?? null)),
     }));
   }
@@ -361,20 +369,31 @@ export class ShareService implements OnModuleInit {
     return { abs, fileName: row.fileName! };
   }
 
+  /** Fichiers arrivés à échéance (`SHARE_FILE_TTL_MS` après la génération) : supprimés, la ligne reste, audit sensible. */
+  async purgeExpired(now: Date): Promise<number> {
+    const due = await this.prisma.sharePackage.findMany({ where: { status: 'READY', fileDeletedAt: null, finishedAt: { lte: new Date(now.getTime() - SHARE_FILE_TTL_MS) } } });
+    for (const row of due) await this.removeFile(row, { actor: SYSTEM_ACTOR, projectId: null, profileUsed: null, origin: 'SYSTEM' }, 'Suppression automatique du fichier d’un paquet Cockpit', now);
+    return due.length;
+  }
+
+  private async removeFile(row: { id: string; recipientName: string; fileName: string | null; sha256: string | null; fileKey: string | null }, ctx: WriteCtx, action: string, now: Date) {
+    await this.prisma.$transaction(async (tx) => {
+      await tx.sharePackage.update({ where: { id: row.id }, data: { fileDeletedAt: now } });
+      await this.audit.action(tx, ctx, {
+        action, target: `${row.recipientName} · ${row.fileName ?? row.id}`, severity: 'SENSITIVE', entityType: 'SharePackage', entityId: row.id,
+        details: { fichier: row.fileName, empreinte: row.sha256 },
+      });
+    });
+    if (row.fileKey) await fs.rm(path.dirname(path.resolve(config.storageDir, row.fileKey)), { recursive: true, force: true }).catch(() => {});
+  }
+
   async deleteFile(actor: Actor, id: string) {
     const row = await this.prisma.sharePackage.findUnique({ where: { id } });
     if (!row) throw notFound('Paquet introuvable');
     if (row.status === 'RUNNING') throw new ApiError(409, 'SHARE_RUNNING', 'Paquet en cours de génération.');
     if (row.fileDeletedAt) return { fileDeletedAt: row.fileDeletedAt.toISOString() };
     const now = new Date();
-    await this.prisma.$transaction(async (tx) => {
-      await tx.sharePackage.update({ where: { id }, data: { fileDeletedAt: now } });
-      await this.audit.action(tx, adminCtx(actor), {
-        action: 'Suppression du fichier d’un paquet Cockpit', target: `${row.recipientName} · ${row.fileName ?? id}`, severity: 'SENSITIVE', entityType: 'SharePackage', entityId: id,
-        details: { fichier: row.fileName, empreinte: row.sha256 },
-      });
-    });
-    if (row.fileKey) await fs.rm(path.dirname(path.resolve(config.storageDir, row.fileKey)), { recursive: true, force: true }).catch(() => {});
+    await this.removeFile(row, adminCtx(actor), 'Suppression du fichier d’un paquet Cockpit', now);
     return { fileDeletedAt: now.toISOString() };
   }
 }

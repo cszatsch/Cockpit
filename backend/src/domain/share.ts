@@ -22,6 +22,8 @@ export const SHARE_KDF = { algorithm: 'argon2id', memoryCost: 19456, timeCost: 2
 
 /** Durée de validité des liens de téléchargement signés. */
 export const SHARE_URL_TTL_MS = 15 * 60 * 1000;
+/** Durée de conservation d'un ZIP sur le serveur (décision du 05/10/2026 : 2 jours), puis suppression automatique. */
+export const SHARE_FILE_TTL_MS = 2 * 24 * 60 * 60 * 1000;
 /** Code non encore remis (personne sur l'écran à la fin) : gardé en mémoire au plus 1 h, puis oublié. */
 export const SHARE_CODE_TTL_MS = 60 * 60 * 1000;
 
