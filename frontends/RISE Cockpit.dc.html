@@ -25,6 +25,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
 @keyframes greet-line{from{transform:scaleY(0)}to{transform:scaleY(1)}}
 @media (prefers-reduced-motion:reduce){[data-greet] *{animation:none!important}}
 @keyframes rise-pulse{0%,100%{box-shadow:0 0 0 0 rgba(247,164,28,.55)}70%{box-shadow:0 0 0 8px rgba(247,164,28,0)}}
+[data-ses-day] [data-ses-add]{opacity:0;transition:opacity .15s}[data-ses-day]:hover [data-ses-add],[data-ses-day][data-sel="1"] [data-ses-add]{opacity:1}@media (hover:none){[data-ses-day] [data-ses-add]{opacity:1}}
 [data-jev-row] [data-jev-ico]{opacity:0;transition:opacity .15s}[data-jev-row]:hover [data-jev-ico]{opacity:1}@media (hover:none){[data-jev-row] [data-jev-ico]{opacity:1}}
 </style></helmet>
 <div style="{{ shellStyle }}" data-screen-label="RISE Cockpit">
@@ -841,21 +842,40 @@ a{color:#1d8f86}a:hover{color:#146b64}
           <div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#8a9aa6;font-weight:700;padding-bottom:6px"><span>Lun</span><span>Mar</span><span>Mer</span><span>Jeu</span><span>Ven</span><span>Sam</span><span>Dim</span></div>
           <div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px">
             <sc-for list="{{ ses.cal.cells }}" as="d" hint-placeholder-count="35">
-              <div onClick="{{ d.pick }}" onDragOver="{{ d.over }}" onDrop="{{ d.drop }}" style="{{ d.st }}">
-                <span style="{{ d.numSt }}">{{ d.n }}</span>
+              <div data-ses-day="1" data-sel="{{ d.sel }}" onClick="{{ d.pick }}" onDoubleClick="{{ d.add }}" onDragOver="{{ d.over }}" onDrop="{{ d.drop }}" style="{{ d.st }}">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:4px"><span style="{{ d.numSt }}">{{ d.n }}</span><sc-if value="{{ d.canAdd }}" hint-placeholder-val="{{ false }}"><span data-ses-add="1" onClick="{{ d.add }}" title="{{ d.addTip }}" aria-label="{{ d.addTip }}" role="button" style="width:20px;height:20px;margin:-2px -2px 0 0;border-radius:6px;display:grid;place-items:center;color:#1d8f86;cursor:pointer" style-hover="background:#e6f3f2"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg></span></sc-if></div>
                 <sc-for list="{{ d.chips }}" as="k" hint-placeholder-count="1"><span draggable="{{ k.drag }}" onDragStart="{{ k.start }}" onDragEnd="{{ k.end }}" title="{{ k.tip }}" data-tip-color="{{ k.col }}" style="{{ k.st }}">{{ k.l }}</span></sc-for>
                 <sc-if value="{{ d.more }}" hint-placeholder-val="{{ false }}"><span style="font-size:10.5px;color:#8a9aa6;font-weight:700">{{ d.moreL }}</span></sc-if>
               </div>
             </sc-for>
           </div>
-          <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center"><sc-for list="{{ ses.cal.legend }}" as="l" hint-placeholder-count="6"><span style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:#5c7280"><span style="{{ l.dot }}"></span>{{ l.n }}</span></sc-for><sc-if value="{{ ses.canEdit }}" hint-placeholder-val="{{ true }}"><span style="font-size:11.5px;color:#8a9aa6">· Glissez une séance vers un autre jour pour la déplacer.</span></sc-if></div>
+          <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center"><sc-for list="{{ ses.cal.legend }}" as="l" hint-placeholder-count="6"><span style="display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:#5c7280"><span style="{{ l.dot }}"></span>{{ l.n }}</span></sc-for><sc-if value="{{ ses.canEdit }}" hint-placeholder-val="{{ true }}"><span style="font-size:11.5px;color:#8a9aa6">· Cliquez sur + pour planifier un comité ; glissez une séance vers un autre jour pour la déplacer.</span></sc-if></div>
         </div>
         <div style="border:1px solid #e6eeec;border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0">
           <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#5c7280;font-weight:700">{{ ses.cal.selRel }}</span><b style="font-size:16px">{{ ses.cal.selTitle }}</b></div>
+          <sc-if value="{{ ses.cal.add.open }}" hint-placeholder-val="{{ false }}">
+            <div style="border-radius:12px;background:#f6faf9;box-shadow:inset 0 0 0 1px #d6e7e4;padding:14px;display:flex;flex-direction:column;gap:12px;animation:rise-in .25s cubic-bezier(.2,.7,.2,1) both">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span style="font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:#1d8f86;font-weight:800">Nouveau comité</span><span style="font-size:11.5px;color:#8a9aa6">{{ ses.cal.add.nP }}</span></div>
+              <div style="display:flex;align-items:center;gap:9px"><span style="{{ ses.cal.add.dot }}"></span><b style="font-size:15px;letter-spacing:-.01em;line-height:1.25">{{ ses.cal.add.title }}</b></div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px"><sc-for list="{{ ses.cal.add.bodies }}" as="o" hint-placeholder-count="4"><span onClick="{{ o.pick }}" title="{{ o.tip }}" style="{{ o.st }}"><span style="{{ o.dot }}"></span>{{ o.l }}</span></sc-for></div>
+              <div style="display:grid;grid-template-columns:62px minmax(0,1fr);gap:6px 8px;align-items:center;font-size:12.5px">
+                <span style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#8a9aa6;font-weight:700">Heure</span><input type="time" value="{{ ses.cal.add.timeV }}" onChange="{{ ses.cal.add.setTime }}" style="height:32px;width:100%;box-sizing:border-box;padding:0 8px;border:1px solid #dfe7e5;border-radius:8px;font:inherit;font-size:12.5px;color:#10233a;background:#fff;outline:none" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.12)"></input>
+                <span style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#8a9aa6;font-weight:700">Lieu</span><input value="{{ ses.cal.add.placeV }}" onChange="{{ ses.cal.add.setPlace }}" placeholder="Lieu ou lien visio" style="height:32px;width:100%;box-sizing:border-box;padding:0 8px;border:1px solid #dfe7e5;border-radius:8px;font:inherit;font-size:12.5px;color:#10233a;background:#fff;outline:none;text-overflow:ellipsis" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.12)"></input>
+              </div>
+              <sc-if value="{{ ses.cal.add.hint }}" hint-placeholder-val="{{ false }}"><span style="font-size:11.5px;color:#8a9aa6;margin-top:-4px">{{ ses.cal.add.hint }}</span></sc-if>
+              <div style="display:flex;align-items:center;gap:8px"><span onClick="{{ ses.cal.add.submit }}" role="button" style="height:32px;padding:0 14px;border-radius:8px;background:#10233a;color:#fff;font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;cursor:pointer" style-hover="background:#1b3553">Planifier</span><span onClick="{{ ses.cal.add.cancel }}" role="button" style="height:32px;padding:0 10px;border-radius:8px;color:#5c7280;font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;cursor:pointer" style-hover="color:#10233a">Annuler</span></div>
+            </div>
+          </sc-if>
           <sc-if value="{{ ses.cal.selEmpty }}" hint-placeholder-val="{{ false }}"><span style="font-size:12.5px;color:#8a9aa6">Aucune séance ce jour.</span></sc-if>
           <sc-for list="{{ ses.cal.selList }}" as="r" hint-placeholder-count="1">
             <div style="border-top:1px solid #eef3f2;padding-top:12px;display:flex;flex-direction:column;gap:8px">
-              <div style="display:flex;align-items:center;gap:8px"><span style="{{ r.dot }}"></span><b style="font-size:13.5px;flex:1">{{ r.title }}</b></div>
+              <div style="display:flex;align-items:center;gap:8px"><span style="{{ r.dot }}"></span><b style="font-size:13.5px;flex:1">{{ r.title }}</b><sc-if value="{{ r.canDel }}" hint-placeholder-val="{{ false }}"><span onClick="{{ r.askDel }}" title="{{ r.delTip }}" aria-label="{{ r.delTip }}" role="button" style="{{ r.delIco }}" style-hover="{{ r.delHov }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16 M10 11v6 M14 11v6 M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12 M9 7V4h6v3"></path></svg></span></sc-if></div>
+              <sc-if value="{{ r.asking }}" hint-placeholder-val="{{ false }}">
+                <div style="border-radius:10px;background:#fdf4f2;box-shadow:inset 0 0 0 1px #f2d2cc;padding:11px 12px;display:flex;flex-direction:column;gap:9px;animation:rise-in .2s cubic-bezier(.2,.7,.2,1) both">
+                  <span style="font-size:12.5px;line-height:1.45;color:#6e2b23"><b>Supprimer {{ r.short }} ?</b> {{ r.delTxt }}</span>
+                  <div style="display:flex;align-items:center;gap:8px"><span onClick="{{ r.doDel }}" role="button" style="height:30px;padding:0 12px;border-radius:8px;background:#c2473b;color:#fff;font-size:12px;font-weight:700;display:inline-flex;align-items:center;cursor:pointer" style-hover="background:#a83a2f">Supprimer</span><span onClick="{{ r.cancelDel }}" role="button" style="height:30px;padding:0 8px;border-radius:8px;color:#5c7280;font-size:12px;font-weight:700;display:inline-flex;align-items:center;cursor:pointer" style-hover="color:#10233a">Annuler</span></div>
+                </div>
+              </sc-if>
               <div style="display:grid;grid-template-columns:62px minmax(0,1fr);gap:4px 8px;align-items:center;font-size:12.5px">
                 <span style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#8a9aa6;font-weight:700">Date</span><input type="date" value="{{ r.dateIso }}" onChange="{{ r.setDate }}" readOnly="{{ r.dateRo }}" title="Modifier" style="height:30px;width:100%;padding:0 6px;margin-left:-7px;border:1px solid transparent;border-radius:7px;font:inherit;font-size:12.5px;color:#10233a;background:transparent;outline:none;font-weight:700" style-hover="border-color:#dfe7e5;background:#fff" style-focus="border-color:#1d8f86;background:#fff;box-shadow:0 0 0 3px rgba(29,143,134,.12)"></input>
                 <span style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#8a9aa6;font-weight:700">Heure</span><input type="time" value="{{ r.timeV }}" onChange="{{ r.setTime }}" onBlur="{{ r.blurSave }}" readOnly="{{ r.ro }}" title="Modifier" style="height:30px;width:100%;padding:0 6px;margin-left:-7px;border:1px solid transparent;border-radius:7px;font:inherit;font-size:12.5px;color:#10233a;background:transparent;outline:none" style-hover="border-color:#dfe7e5;background:#fff" style-focus="border-color:#1d8f86;background:#fff;box-shadow:0 0 0 3px rgba(29,143,134,.12)"></input>
@@ -866,6 +886,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
               <sc-if value="{{ r.canConf }}" hint-placeholder-val="{{ false }}"><span onClick="{{ r.confirm }}" title="Confirmer que la séance a eu lieu" style="align-self:flex-start;height:30px;padding:0 12px;border-radius:8px;background:#10233a;color:#fff;font-size:12px;font-weight:700;display:inline-flex;align-items:center;cursor:pointer" style-hover="background:#1b3553">Confirmer</span></sc-if>
             </div>
           </sc-for>
+          <sc-if value="{{ ses.cal.canAddDay }}" hint-placeholder-val="{{ false }}"><span onClick="{{ ses.cal.openAdd }}" role="button" style="height:36px;border-radius:10px;border:1.5px dashed #cfdedb;display:flex;align-items:center;justify-content:center;gap:7px;font-size:12.5px;font-weight:700;color:#1d8f86;cursor:pointer;transition:all .15s" style-hover="border-color:#1d8f86;background:#f3faf9"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>Planifier un comité ce jour</span></sc-if>
         </div>
       </div>
     </div>
@@ -2759,7 +2780,7 @@ class Component extends DCLogic {
   }
   todayStale(D, h) {
     const PN = {}; (D.model.PERSON.rows || []).forEach(r => { PN[r.id] = r.cells[0]; }); const nm = id => PN[id] || '—', today = this.tdIso(), out = [];
-    if (D.programBudget && !D.programBudget.known) out.push({ tag: 'Champ vide', n: 'Budget programme non renseigné', detail: 'L’écart budget ne peut pas être calculé', owner: nm(D.project.owner || 'p03'), cta: 'Renseigner', open: () => this.go('pilotage', 'budget'), lvl: 'risk' });
+    // « Budget programme non renseigné » retiré le 05/10/2026 avec l'onglet Budget du Pilotage (plus aucun écran pour le renseigner).
     (D.risks || []).filter(r => !r.plan).forEach(r => out.push({ tag: 'Champ vide', n: 'Risque ' + r.id + ' · plan de mitigation', detail: 'Criticité ' + r.p * r.i + ' sans plan', owner: nm(r.owner), cta: 'Qualifier', open: () => h.riskPanel(r), lvl: r.p * r.i >= 20 ? 'risk' : 'vig' }));
     (D.milestones || []).filter(m => m.iso >= today && m.confirmedDays > 7).sort((a, b) => b.confirmedDays - a.confirmedDays).forEach(m => out.push({ tag: 'Non confirmé · ' + m.confirmedDays + ' j', n: 'Jalon « ' + m.n + ' »', detail: 'Seuil de 7 jours dépassé', owner: nm(m.owner), cta: 'Relancer', open: () => h.msPanel(m), lvl: 'vig' }));
     (D.actions || []).filter(a => a.late).forEach(a => out.push({ tag: 'Échue', n: 'Action ' + a.id + ' · statut après échéance', detail: 'Échue le ' + (a.dueIso ? this.tdFr(a.dueIso) : a.due) + ' sans mise à jour', owner: nm(a.owner), cta: 'Mettre à jour', open: () => h.actionPanel(a), lvl: 'risk' }));
@@ -3653,8 +3674,8 @@ class Component extends DCLogic {
         all.push(it); return it; }); });
     return { subs: list.filter(g => g.items.length), allSubs: list, all, T, DAY, phases: rows('PHASE').map(r => ({ seq: r.cells[0], name: r.cells[1], range: (r.cells[3] || '') + ' → ' + (r.cells[4] || '…') })), wss: rows('WORKSTREAM').map(r => ({ seq: r.cells[0], name: r.cells[1] })) };
   }
-  SES0 = { hasNext: false, next: {}, segs: [], groups: [], canEdit: false, empty: false, sub: '', cal: { cells: [], legend: [], selList: [], title: '', selTitle: '', selRel: '' } };
-  sessionList() { const S = this.state, D = this.mergedData(); if (!D || !D.sessions) return []; const E = S.sesEd || {}; return D.sessions.concat(S.sesAdded || []).map(x => ({ ...x, ...(E[x.id] || {}) })); }
+  SES0 = { hasNext: false, next: {}, segs: [], groups: [], canEdit: false, empty: false, sub: '', cal: { cells: [], legend: [], selList: [], title: '', selTitle: '', selRel: '', add: { open: false, bodies: [] }, canAddDay: false, openAdd: () => {} } };
+  sessionList() { const S = this.state, D = this.mergedData(); if (!D || !D.sessions) return []; const E = S.sesEd || {}; const X = S.sesDel || {}; return D.sessions.concat(S.sesAdded || []).filter(x => !X[x.id]).map(x => ({ ...x, ...(E[x.id] || {}) })); }
   sesVals() {
     const S = this.state, D = this.mergedData(); if (!D || !D.sessions) return this.SES0;
     const GB = D.model.GOVERNANCE_BODY.rows, gbN = {}; GB.forEach(r => { gbN[r.id] = r; });
@@ -3687,8 +3708,14 @@ class Component extends DCLogic {
     const selIso = S.sesSel || today, cm = S.sesCm || selIso.slice(0, 7), [cy, cmo] = cm.split('-').map(Number), f1 = new Date(cy, cmo - 1, 1), off = (f1.getDay() + 6) % 7, nD = new Date(cy, cmo, 0).getDate(), tot = Math.ceil((off + nD) / 7) * 7;
     const byDay = {}; all.forEach(x => { (byDay[x.dateIso] = byDay[x.dateIso] || []).push(x); }); Object.values(byDay).forEach(L => L.sort((a, c) => (a.time || '').localeCompare(c.time || '')));
     const toConf = x => x.status === 'PLANNED' && x.dateIso <= today;
+    // Planifier un comité sur un jour (05/10/2026) : « + » au survol (ou double-clic) d'un jour à venir → formulaire dans le
+    // panneau latéral ; instance au choix, numéro calculé, heure et lieu repris de la dernière séance de l'instance.
+    const lastOf = bid => all.filter(z => z.bodyId === bid && z.status !== 'CANCELLED').sort((a, c) => (c.dateIso + (c.time || '')).localeCompare(a.dateIso + (a.time || '')))[0];
+    const draftFor = (iso, bid) => { const l = lastOf(bid) || {}; return { dateIso: iso, bodyId: bid, time: l.time || '', place: l.place || '', reused: !!(l.time || l.place) }; };
+    const openAdd = iso => { if (!canEdit || iso < today) return; const prev = S.sesNew, bid = (prev && gbN[prev.bodyId] ? prev.bodyId : (GB[0] || {}).id); this.setState({ sesSel: iso, sesNew: draftFor(iso, bid), sesDelAsk: null }); };
     const cells = []; for (let i = 0; i < tot; i++) { const dn = i - off + 1, inM = dn >= 1 && dn <= nD, iso = inM ? cy + '-' + p2(cmo) + '-' + p2(dn) : '', L = inM ? (byDay[iso] || []) : [], isT = iso === today, isS = iso === selIso, isO = inM && S.sesOver === iso && !!S.sesDrag;
-      cells.push({ n: inM ? dn : '', more: L.length > 3, moreL: '+' + (L.length - 3) + ' autres', pick: inM ? () => this.setState({ sesSel: iso }) : () => {},
+      const canAdd = inM && canEdit && iso >= today;
+      cells.push({ n: inM ? dn : '', canAdd, sel: isS ? '1' : '0', add: canAdd ? e => { if (e && e.stopPropagation) e.stopPropagation(); openAdd(iso); } : () => {}, addTip: 'Planifier un comité le ' + (inM ? long(iso) : ''), more: L.length > 3, moreL: '+' + (L.length - 3) + ' autres', pick: inM ? () => this.setState({ sesSel: iso }) : () => {},
         over: inM && canEdit ? e => { e.preventDefault(); if (this.state.sesOver !== iso) this.setState({ sesOver: iso }); } : () => {},
         drop: inM && canEdit ? e => { e.preventDefault(); const id = this.state.sesDrag || e.dataTransfer.getData('text/plain'), x = all.find(z => z.id === id); this.setState({ sesDrag: null, sesOver: null, sesSel: iso }); if (x && x.status !== 'PLANNED') { this.showToast('Seule une séance planifiée peut être déplacée'); return; } if (x && x.dateIso !== iso) set(x.id, { dateIso: iso }, 'Séance déplacée · ' + lab(x) + ' → ' + long(iso)); } : () => {},
         st: 'min-height:92px;border-radius:10px;padding:6px;display:flex;flex-direction:column;gap:3px;min-width:0;transition:background .12s,border-color .12s;cursor:' + (inM ? 'pointer' : 'default') + ';border:1.5px ' + (isO ? 'dashed #1d8f86' : 'solid ' + (isS ? '#1d8f86' : inM ? '#eef3f2' : 'transparent')) + ';background:' + (isO ? '#e6f3f2' : isS ? '#f3faf9' : inM ? '#fff' : '#f7faf9'),
@@ -3699,7 +3726,16 @@ class Component extends DCLogic {
     const shift = n => () => { const d = new Date(cy, cmo - 1 + n, 1); this.setState({ sesCm: d.getFullYear() + '-' + p2(d.getMonth() + 1) }); };
     const sd = days(selIso), STO = [['PLANNED', 'Planifiée'], ['HELD', 'Tenue'], ['CANCELLED', 'Annulée']];
     const selList = (byDay[selIso] || []).map(x => { const b = gbN[x.bodyId], rp = x.reportId && RP[x.reportId], past = x.dateIso < today;
-      return { title: b.cells[0] + ' n°' + x.number, dot: 'width:9px;height:9px;border-radius:50%;flex:none;background:' + (COL[x.bodyId] || '#8a9aa6'), dateIso: x.dateIso, timeV: x.time || '', placeV: x.place || '', ro: !canEdit, dateRo: !canEdit || x.status !== 'PLANNED',
+      // Suppression (05/10/2026) : confirmée dans la fiche ; impossible si un rapport est rattaché (refus du serveur).
+      const delBlocked = !!x.reportId, asking = S.sesDelAsk === x.id;
+      return { canDel: canEdit, delTip: delBlocked ? 'Un rapport est rattaché à cette séance : elle ne peut pas être supprimée' : 'Supprimer ce comité', asking, short: lab(x),
+        delIco: 'width:26px;height:26px;border-radius:7px;display:grid;place-items:center;flex:none;cursor:' + (delBlocked ? 'not-allowed' : 'pointer') + ';color:' + (asking ? '#c2473b' : delBlocked ? '#c9d3d1' : '#8a9aa6') + ';background:' + (asking ? '#fdecea' : 'transparent') + ';transition:background .15s,color .15s',
+        delHov: delBlocked ? '' : 'background:#fdecea;color:#c2473b',
+        askDel: e => { if (e && e.stopPropagation) e.stopPropagation(); if (delBlocked) { this.showToast('Un rapport est rattaché à ' + lab(x) + ' : suppression impossible'); return; } this.setState({ sesDelAsk: asking ? null : x.id, sesNew: null }); },
+        cancelDel: () => this.setState({ sesDelAsk: null }),
+        doDel: () => this.setState(s => ({ sesDel: { ...(s.sesDel || {}), [x.id]: true }, sesAdded: (s.sesAdded || []).filter(z => z.id !== x.id), sesDelAsk: null, audit: [{ k: 'session', id: x.id, f: 'suppression', v: null, by: this.meName(), at: new Date().toISOString(), origin: 'saisie' }, ...(s.audit || [])] }), () => this.showToast('Comité supprimé · ' + lab(x))),
+        delTxt: x.status === 'HELD' ? 'Cette séance a eu lieu : sa trace disparaît du calendrier. L’action est inscrite au journal.' : 'Elle disparaît du calendrier. L’action est inscrite au journal.',
+        title: b.cells[0] + ' n°' + x.number, dot: 'width:9px;height:9px;border-radius:50%;flex:none;background:' + (COL[x.bodyId] || '#8a9aa6'), dateIso: x.dateIso, timeV: x.time || '', placeV: x.place || '', ro: !canEdit, dateRo: !canEdit || x.status !== 'PLANNED',
         nP: (x.participants || []).length, pTip: (x.participants || []).map(id => pn[id] || id).join(', '), rep: rp ? 'Rapport ' + rp.v + ' · ' + rp.status : x.status === 'CANCELLED' ? 'Pas de rapport' : past ? 'Aucun rapport' : 'Générer le rapport',
         repGo: rp ? () => this.go('comites', 'historique') : x.status !== 'CANCELLED' && !past ? gen(x) : () => {}, repSt: 'font-size:12px;' + (rp ? 'color:#10233a;font-weight:600;cursor:pointer' : x.status !== 'CANCELLED' && !past ? 'color:#1d8f86;font-weight:700;cursor:pointer' : 'color:#9aa8b1'),
         setDate: e => canEdit && x.status === 'PLANNED' && e.target.value && e.target.value !== x.dateIso && (this.setState({ sesSel: e.target.value, sesCm: e.target.value.slice(0, 7) }), set(x.id, { dateIso: e.target.value }, 'Enregistré · ' + lab(x) + ' → ' + long(e.target.value))),
@@ -3708,8 +3744,25 @@ class Component extends DCLogic {
         blurSave: () => { if (!canEdit) return; const prev = this._sesPrev || {}; const key = x.id + '|' + (x.time || '') + '|' + (x.place || ''); if (prev[x.id] === key) return; this._sesPrev = { ...prev, [x.id]: key }; set(x.id, { time: x.time || '', place: x.place || '' }, 'Enregistré · ' + lab(x)); },
         stOpts: STO.map(([v, l]) => ({ v, l, sel: v === x.status })), setSt: e => set(x.id, { status: e.target.value }, 'Statut modifié · ' + lab(x)),
         canConf: canEdit && toConf(x), confirm: () => set(x.id, { status: 'HELD' }, 'Séance confirmée · ' + lab(x)) }; });
-    const cal = { cells, title: MOL[cmo - 1] + ' ' + cy, prev: shift(-1), next: shift(1), today: () => this.setState({ sesCm: today.slice(0, 7), sesSel: today }), legend: GB.map(b => ({ n: b.cells[0], dot: 'width:9px;height:9px;border-radius:50%;flex:none;background:' + (COL[b.id] || '#8a9aa6') })),
-      selList, selEmpty: !selList.length, selTitle: full(selIso), selRel: sd === 0 ? 'Aujourd’hui' : sd > 0 ? 'Dans ' + sd + ' j' : 'Il y a ' + -sd + ' j' };
+    // Formulaire « Nouveau comité » du panneau latéral.
+    const NW = S.sesNew && S.sesNew.dateIso === selIso && canEdit ? S.sesNew : null;
+    let add = { open: false, bodies: [] };
+    if (NW) { const nb = gbN[NW.bodyId] || GB[0], col = COL[nb.id] || '#8a9aa6', num = Math.max(0, ...all.filter(z => z.bodyId === nb.id).map(z => z.number)) + 1;
+      const setNw = p => this.setState(s => ({ sesNew: { ...(s.sesNew || {}), ...p } }));
+      add = { open: true, title: nb.cells[0] + ' n°' + num, dot: 'width:10px;height:10px;border-radius:50%;flex:none;background:' + col + ';box-shadow:0 0 0 3px ' + col + '22',
+        nP: (nb.members || []).length + ' participant' + ((nb.members || []).length > 1 ? 's' : ''), timeV: NW.time || '', placeV: NW.place || '',
+        hint: NW.reused ? 'Heure et lieu repris de la dernière séance.' : '',
+        bodies: GB.map(b => { const on = b.id === nb.id, c = COL[b.id] || '#8a9aa6';
+          return { l: SH[b.id] || short(b), tip: b.cells[0], pick: () => this.setState({ sesNew: draftFor(selIso, b.id) }),
+            st: 'height:28px;padding:0 10px 0 8px;border-radius:999px;display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .15s;' + (on ? 'background:#10233a;color:#fff' : 'background:#fff;color:#43586a;box-shadow:inset 0 0 0 1px #dfe7e5'),
+            dot: 'width:7px;height:7px;border-radius:50%;flex:none;background:' + c + (on ? ';box-shadow:0 0 0 2px rgba(255,255,255,.9)' : '') }; }),
+        setTime: e => setNw({ time: e.target.value, reused: false }), setPlace: e => setNw({ place: e.target.value, reused: false }),
+        cancel: () => this.setState({ sesNew: null }),
+        submit: () => { const id = 'S-' + nb.id + '-' + num + '-n' + Date.now().toString(36);
+          const x = { id, bodyId: nb.id, number: num, dateIso: NW.dateIso, time: NW.time || '', place: (NW.place || '').trim(), status: 'PLANNED', participants: (nb.members || []).slice(), reportId: null };
+          this.setState(s => ({ sesAdded: (s.sesAdded || []).concat([x]), sesNew: null, sesSel: x.dateIso, audit: [{ k: 'session', id, f: 'création', v: x, by: this.meName(), at: new Date().toISOString(), origin: 'saisie' }, ...(s.audit || [])] }), () => this.showToast('Comité planifié · ' + nb.cells[0] + ' n°' + num)); } }; }
+    const cal = { add, canAddDay: canEdit && selIso >= today && !NW, openAdd: () => openAdd(selIso), cells, title: MOL[cmo - 1] + ' ' + cy, prev: shift(-1), next: shift(1), today: () => this.setState({ sesCm: today.slice(0, 7), sesSel: today }), legend: GB.map(b => ({ n: b.cells[0], dot: 'width:9px;height:9px;border-radius:50%;flex:none;background:' + (COL[b.id] || '#8a9aa6') })),
+      selList, selEmpty: !selList.length && !NW, selTitle: full(selIso), selRel: sd === 0 ? 'Aujourd’hui' : sd > 0 ? 'Dans ' + sd + ' j' : 'Il y a ' + -sd + ' j' };
     return { cal, hasNext: !!nx, next, segs, groups, empty: !groups.length, canEdit,
       sub: all.length + ' séances · ' + GB.length + ' instances',
       };
@@ -4082,7 +4135,7 @@ class Component extends DCLogic {
     const nsC = this.nextSession(), copilDays = nsC ? daysTo(nsC.dateIso) : null, copilTag = nsC ? jl(nsC.dateIso) : '';
     const SPACES = {
       today: { title: 'Aujourd\'hui', sub: this.todayMsg(), tabs: [['situation', 'Dashboard'], ['ecarts', 'Écarts'], ['echeances', 'Échéances']], cta: null, ctaGo: null, bg: "url('./assets/banner-aujourdhui.jpg') center 30%/cover no-repeat, linear-gradient(105deg,#0f5f5a 0%,#1d8f86 45%,#7fd0c6 100%)" },
-      pilotage: { title: 'Pilotage', sub: 'Un projet se pilote mieux quand chacun voit la même réalité. Trajectoire, risques, actions et décisions : chaque onglet éclaire une facette du projet, pour que chaque comité décide sur la base d\'informations fiables.', tabs: [['planning', 'Planning'], ['jalons', 'Jalons'], ['livrables', 'Livrables'], ['risques', 'Risques et problèmes'], ['actions', 'Actions'], ['decisions', 'Décisions'], ['barometre', 'Baromètre'], ['seances', 'Comités'], ['budget', 'Budget'], ['benefices', 'Bénéfices'], ['mes', 'Mes tâches']], cta: null, ctaGo: null, bg: "url('./assets/banner-pilotage.jpg') center 35%/cover no-repeat, linear-gradient(105deg,#12324a 0%,#1f6f8a 50%,#7fc4d0 100%)" },
+      pilotage: { title: 'Pilotage', sub: 'Un projet se pilote mieux quand chacun voit la même réalité. Trajectoire, risques, actions et décisions : chaque onglet éclaire une facette du projet, pour que chaque comité décide sur la base d\'informations fiables.', tabs: [['planning', 'Planning'], ['jalons', 'Jalons'], ['livrables', 'Livrables'], ['risques', 'Risques et problèmes'], ['actions', 'Actions'], ['decisions', 'Décisions'], ['barometre', 'Baromètre'], ['seances', 'Comités'], ['mes', 'Mes tâches']], cta: null, ctaGo: null, bg: "url('./assets/banner-pilotage.jpg') center 35%/cover no-repeat, linear-gradient(105deg,#12324a 0%,#1f6f8a 50%,#7fc4d0 100%)" },
       comites: { title: 'Comités et rapports', sub: 'Modèles de rapports de comité : générez un rapport à partir d\'un template actif, créez un nouveau template en six étapes, ou gérez la bibliothèque complète des modèles du projet.', tabs: [['generer', 'Générer un rapport'], ['creer', 'Créer un template'], ['templates', 'Bibliothèque'], ['historique', 'Historique']], cta: 'Créer un template', ctaGo: ['comites', 'creer'], bg: "url('./assets/banner-comites.jpg') center 35%/cover no-repeat, linear-gradient(105deg,#0f4a3c 0%,#1e8a6a 50%,#8fd6b8 100%)" },
       documents: { title: 'Base de connaissance', sub: 'Documents et rapports du projet : versions, confidentialité, état d\'extraction. Une citation ouvre la version exacte et le passage.', tabs: [['bibliotheque', 'Bibliothèque']], cta: 'Déposer un document', ctaGo: null, bg: "url('./assets/banner-documents.jpg') center 35%/cover no-repeat, linear-gradient(105deg,#1b2a44 0%,#33507a 50%,#9db4d6 100%)" },
       projet: { title: 'RISE — AMC Corp', sub: 'Référentiel du projet : client, périmètre, lots de déploiement, jalons, dispositif (ressources, équipe, organigramme, gouvernance) et référentiel de saisie.', tabs: [['fiche', 'Fiche projet'], ['dispositif', 'Dispositif']].concat(this.can('referentiel') ? [['referentiel', 'Référentiel']] : []), cta: null, ctaGo: null, bg: "url('./assets/banner-projet.jpg') center 35%/cover no-repeat, linear-gradient(105deg,#1a1a1a 0%,#2f3b45 55%,#0096d6 100%)" },

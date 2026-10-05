@@ -1491,3 +1491,11 @@ Réponses aux six questions ouvertes du 05/10/2026 (`docs/RAPPORT.md`, questions
 | Jeu de démonstration | Embarqué : fabriqué une fois par version sur le poste de développement (migrations + amorçage, gardé en cache selon l'empreinte des sources), livré dans chaque paquet (`app/backend/demo/demo.dump`) ; l'option « Jeu de démonstration » fonctionne donc aussi depuis une installation livrée (sauf paquets antérieurs) | `ShareBuilder.demoDump`, `DEMO_DUMP` |
 | Templates sans fichiers | Formats et templates de rapport toujours inclus ; seuls la Base de connaissance et le guide suivent « Fichiers déposés » ; la ligne « Formats de rapport » reste active à l'écran et compte dans la taille | `FILE_TABLES`, `ShareBuilder.copyFiles`, `always` des catégories de fichiers |
 | Installateur | `installer_cockpit.cmd` conservé (pas de `.exe` signé tant que les destinataires sont des collègues prévenus) | `outils/livraison/modele/installation/` |
+
+## Pilotage : Budget et Bénéfices retirés, comités ajoutés et supprimés depuis le calendrier (05/10/2026)
+
+| Sujet | Choix | Code |
+|---|---|---|
+| Onglets | « Budget » et « Bénéfices » retirés du menu Pilotage ; le point « Budget programme non renseigné » d'Aujourd'hui, qui y menait, aussi | `RISE Cockpit.dc.html` (`pilotage.tabs`) |
+| Ajouter un comité | Depuis un jour du calendrier (aujourd'hui ou à venir) : instance, heure et lieu (repris de la dernière séance non annulée de l'instance), numéro et participants selon les règles existantes (§ 7.8, calculés par le serveur) ; mêmes droits que pour planifier (`can('sessions')`) | `sesVals` (`openAdd`, `draftFor`), `POST /sessions` |
+| Supprimer un comité | Corbeille de la fiche du panneau, confirmation dans la fiche ; refus si un rapport est rattaché (usage bloquant, 409) ; audit du serveur | `sesDel` (`api.js`), `DELETE /sessions/:id` |

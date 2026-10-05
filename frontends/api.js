@@ -184,7 +184,7 @@ const frShort = (iso, year) => { if (!iso) return ''; const [y, m, d] = iso.spli
 // ───────────────────────────── Synchronisation ─────────────────────────────
 
 /** Magasins persistants observés dans l'état du composant. */
-const STORES = ['ed', 'actStatus', 'sesEd', 'sesAdded', 'refValues', 'refDeleted', 'bmEd', 'bmAdd', 'phLots', 'txtEd', 'critEd', 'arbData', 'lvTrack',
+const STORES = ['ed', 'actStatus', 'sesEd', 'sesAdded', 'sesDel', 'refValues', 'refDeleted', 'bmEd', 'bmAdd', 'phLots', 'txtEd', 'critEd', 'arbData', 'lvTrack',
   'mineArch', 'mineTitles', 'mineDetails', 'mineDue', 'mineCta', 'newTasks', 'gbExtra', 'gbMem', 'gbAdded', 'added', 'lvAdded', 'dlOwner', 'psAdded', 'psAcc',
   'roAdded', 'roTier', 'tmAdded', 'wsAdded', 'ipAdded', 'spAdded', 'phAdded', 'waAdded', 'spDesc', 'phDesc', 'plAdd', 'templates', 'tplHistory', 'cmts', 'modPh',
   ...SECTION_STORES, ...Object.keys(PREF_OF)];
@@ -310,7 +310,7 @@ export function attach(comp) {
       // Droits effectifs de l'utilisateur connecté (serveur : habilitations du compte ET de sa personne du référentiel).
       meAccess: (L.me && L.me.effective) || null,
       psAccSrv: L.accStates || null,
-      ed: {}, actStatus: {}, sesEd: {}, sesAdded: [], refValues: {}, refDeleted: {}, bmEd: {}, bmAdd: {},
+      ed: {}, actStatus: {}, sesEd: {}, sesAdded: [], sesDel: {}, refValues: {}, refDeleted: {}, bmEd: {}, bmAdd: {},
       phLots: hydratePhLots(B), txtEd: {}, critEd: {}, arbData: {}, lvTrack: {}, gbExtra: {}, gbMem: {}, gbAdded: [], added: {}, lvAdded: [], dlOwner: {},
       psAdded: [], psAcc: {}, roAdded: [], roTier: {}, tmAdded: [], wsAdded: [], ipAdded: [], spAdded: [], phAdded: [], waAdded: [], spDesc: {}, phDesc: {}, plAdd: {},
       newTasks: [], mineArch: {}, mineTitles: {}, mineDetails: {}, mineDue: {}, mineCta: {}, cmts: {}, modPh: {}, modOn: {},
@@ -470,6 +470,8 @@ export function attach(comp) {
       case 'actStatus': return changedKeys(before, after).forEach((id) => { if (known('actions', id) && after[id]) writePatch('PATCH', '/actions/' + enc(id), { status: ACTION_STATUS[after[id]] || 'OPEN' }); });
       case 'sesEd': return changedKeys(before, after).forEach((id) => onSession(id, (before || {})[id] || {}, (after || {})[id] || {}));
       case 'sesAdded': return newItems(before, after).forEach((x) => write('POST session ' + x.id, () => ppost('/sessions', { bodyId: x.bodyId, dateIso: x.dateIso, time: x.time || null, place: x.place || null })));
+      // Suppression d'une séance depuis le panneau du calendrier (05/10/2026) ; refusée par le serveur si un rapport y est rattaché.
+      case 'sesDel': return changedKeys(before, after).forEach((id) => { if ((after || {})[id] && known('sessions', id)) write('DELETE session ' + id, () => pdel('/sessions/' + enc(id))); });
       case 'refValues': return changedKeys(before, after).forEach((key) => onRefValues(key, (after || {})[key]));
       case 'refDeleted': return changedKeys(before, after).forEach((key) => { if (!(after || {})[key]) return; const [obj, id] = splitKey(key); if (!ROUTE[obj] || !isServerRow(obj, id)) return; write('DELETE ' + key, () => pdel('/' + ROUTE[obj] + '/' + enc(id))); });
       case 'bmEd': case 'bmAdd': return write('BAROMETER', reconcileBarometer, 250);

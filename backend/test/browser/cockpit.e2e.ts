@@ -104,7 +104,6 @@ const VIEWS: Array<[string, string, string | null, string | null, string?]> = [
   ['pilotage', 'Pilotage', 'decisions', 'Décisions'],
   ['pilotage', 'Pilotage', 'barometre', 'Baromètre'],
   ['pilotage', 'Pilotage', 'seances', 'Comités'],
-  ['pilotage', 'Pilotage', 'budget', 'Budget'],
   ['pilotage', 'Pilotage', 'mes', 'Mes tâches'],
   ['comites', 'Comités et rapports', 'generer', 'Générer un rapport'],
   ['comites', 'Comités et rapports', 'templates', 'Bibliothèque'],

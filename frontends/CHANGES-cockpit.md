@@ -401,3 +401,11 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 ## Logo de Cockpit dans les onglets du navigateur (04/10/2026)
 
 - `favicon.ico`, `favicon.svg`, `apple-touch-icon.png` (icône « Cap » livrée) servis à la racine ; liens `rel="icon"` ajoutés dans `RISE Cockpit.dc.html` et `Connexion.dc.html`.
+
+## Pilotage : onglets Budget et Bénéfices retirés ; Comités : ajout et suppression (05/10/2026)
+
+- `RISE Cockpit.dc.html` :
+  - menu Pilotage sans « Budget » ni « Bénéfices » (demande du commanditaire ; les vues restent dans le code, plus atteignables) ; point « Budget programme non renseigné » d'Aujourd'hui retiré (il menait à l'onglet Budget) ;
+  - Comités, calendrier : « + » au survol d'un jour (aujourd'hui ou à venir, profil autorisé à planifier ; double-clic équivalent) et « Planifier un comité ce jour » sous la liste du panneau → formulaire « Nouveau comité » dans le panneau latéral : instance par pastilles à sa couleur, titre et numéro calculés, participants de l'instance, heure et lieu repris de la dernière séance de l'instance (modifiables), « Planifier » / « Annuler » ; création par `sesAdded` (POST `/sessions`, déjà en place) ;
+  - fiche d'un comité dans le panneau : corbeille à droite du titre, confirmation dans la fiche (« Supprimer COPIL n°24 ? … » ; Supprimer en rouge / Annuler) ; corbeille grisée et message si un rapport est rattaché (refus du serveur) ; légende « Cliquez sur + pour planifier un comité ; glissez… ».
+- `api.js` : magasin `sesDel` (DELETE `/sessions/:id`, route existante, journalisée par le serveur).
