@@ -634,3 +634,17 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
 ## Logo de Cockpit dans les onglets du navigateur (04/10/2026)
 
 - Liens `rel="icon"` (`favicon.ico`, `favicon.svg`, `apple-touch-icon.png`) ajoutés dans `Console Admin.dc.html` et `Connexion Console.dc.html`.
+
+## Partager Cockpit (05/10/2026)
+
+- `Partager Cockpit.dc.html` (nouveau) : écran livré repris à l'identique (mise en page, textes, couleurs). Sans les props `context`, `history` et `api`, il garde sa démonstration ; avec elles (Console), tout vient du serveur. Écarts, tous liés au branchement :
+  - valeurs figées remplacées par les données : ligne du serveur SMTP (hôte · expéditeur, ou « Aucun serveur configuré dans la Console »), adresse d'envoi des « pouvoirs », numéro de version (build au survol), « Nouveautés depuis le paquet … » et ses lignes (liste au lieu de trois lignes écrites), projets, clés (masques et plafonds), fichiers, profils (Administrateur, PMO, Responsable, Lecteur), tailles ;
+  - génération réelle : démarrage par l'API, étapes lues dans le flux du serveur, reprise à l'étape en cours après un rechargement (choix restaurés), nom du fichier, taille, empreinte et code venus de l'événement final ; le code masqué est oublié par l'écran ; « Quelques minutes. » au lieu d'« Environ une minute. » sous le bouton ;
+  - historique du serveur (paquets prêts), suppression du fichier par l'API, téléchargement par le lien signé ; « Fichier supprimé aujourd’hui » au lieu de « Fichier supprimé le aujourd’hui » ;
+  - lien « Fournisseurs et modèles → » branché sur la page de la Console ;
+  - message : installateur `installer_cockpit.cmd` (et non `Installer-Cockpit.exe`), version réelle, signature au prénom de l'administrateur connecté ;
+  - bandeau et tuile Sécurité en `overflow: clip` (en plus de `hidden`) : leur halo décoratif dépasse, et un clic faisait défiler le bandeau de 160 px vers la gauche (titre coupé) ;
+  - interrupteur SMTP sans effet quand aucun serveur n'est configuré dans la Console.
+- `Sidebar Console.dc.html` : Plateforme › « Partager Cockpit », juste au-dessus de « Guide utilisateur ».
+- `Console Admin.dc.html` : page `share` (titre, suggestions de Jev, en-tête générique masqué), composant monté une fois le contexte et l'historique chargés.
+- `admin-api.js` : chargeur `share` (contexte et historique, à l'ouverture de la page seulement) ; client `shApi` (`start`, `events` — flux SSE lu par `fetch` pour porter l'authentification —, `download`, `del`, `reload`, `goProviders`).

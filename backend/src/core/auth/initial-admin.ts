@@ -25,14 +25,19 @@ export async function createInitialAdmin(
   /** Identité du compte (paquet d'installation, 04/10/2026 : celle saisie à l'installation). */
   who: { id: string; email: string; fullName: string } = INITIAL_ADMIN,
   /** Changement du mot de passe exigé à la première connexion (non quand la personne vient de le choisir). */
-  opts: { mustChangePassword?: boolean } = {},
+  /**
+   * Changement du mot de passe exigé à la première connexion (non quand la personne vient de le choisir) ; profils
+   * accordés (Partager Cockpit, 05/10/2026 : préremplissage du compte) — par défaut Administrateur et PMO.
+   */
+  opts: { mustChangePassword?: boolean; profiles?: string[] } = {},
 ): Promise<InitialAdminResult> {
   const INITIAL_ADMIN = who;
   if (!password) return 'missing-password';
   if (await db.account.findFirst({ where: { OR: [{ id: INITIAL_ADMIN.id }, { email: INITIAL_ADMIN.email }] } })) return 'exists';
   if (!passwordRules(password).every((r) => r.ok)) return 'weak-password';
   const passwordHash = await hashPassword(password);
-  const projects = await db.project.findMany({ select: { id: true } });
+  const profiles = opts.profiles ?? ['Administrateur', 'PMO'];
+  const projects = await db.project.findMany({ select: { id: true, workstreams: { select: { id: true } } } });
   await db.$transaction(async (tx) => {
     await tx.account.create({
       data: {
@@ -45,9 +50,12 @@ export async function createInitialAdmin(
         projects: { create: projects.map((p) => ({ projectId: p.id })) },
       },
     });
-    await tx.adminGrant.create({ data: { accountId: INITIAL_ADMIN.id } });
+    if (profiles.includes('Administrateur')) await tx.adminGrant.create({ data: { accountId: INITIAL_ADMIN.id } });
     for (const p of projects) {
-      await tx.habilitation.create({ data: { id: `hab-${INITIAL_ADMIN.id}-${p.id}`, projectId: p.id, accountId: INITIAL_ADMIN.id, profile: 'PMO' } });
+      if (profiles.includes('PMO')) await tx.habilitation.create({ data: { id: `hab-${INITIAL_ADMIN.id}-${p.id}`, projectId: p.id, accountId: INITIAL_ADMIN.id, profile: 'PMO' } });
+      // Responsable ou Lecteur : sur chaque chantier du projet (le profil le plus fort l'emporte).
+      const ws = profiles.includes('Responsable') ? 'RESPONSABLE' : profiles.includes('Lecteur') ? 'LECTEUR' : null;
+      if (ws) for (const w of p.workstreams) await tx.habilitation.create({ data: { id: `hab-${INITIAL_ADMIN.id}-${p.id}-${w.id}`, projectId: p.id, accountId: INITIAL_ADMIN.id, profile: ws, wsId: w.id } });
     }
     await tx.auditEntry.create({
       data: {
@@ -55,7 +63,7 @@ export async function createInitialAdmin(
         actorName: 'Système',
         origin: 'SYSTEM',
         action: 'Création du compte initial',
-        target: `${INITIAL_ADMIN.fullName} · Administrateur · PMO`,
+        target: `${INITIAL_ADMIN.fullName} · ${profiles.join(' · ')}`,
         severity: 'SENSITIVE',
         entityType: 'Account',
         entityId: INITIAL_ADMIN.id,

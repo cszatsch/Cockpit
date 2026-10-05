@@ -1217,6 +1217,8 @@ model Provider {
   keyPrefix    String?
   keyLast4     String?
   keyCipher    String?
+  /// Plafond de dépense mensuel de la clé (€), null = sans plafond (Partager Cockpit, 05/10/2026)
+  monthlyCapEur Int?
   status       ProviderStatus @default(UNTESTED)
   latencyMs    Int?
   lastTestedAt DateTime?
@@ -2021,4 +2023,43 @@ model ReportTemplateVersion {
   @@unique([templateId, seq])
   @@index([projectId])
   @@map("report_template_versions")
+}
+
+/// Partager Cockpit (05/10/2026) : paquet d'installation Windows généré pour une personne (historique, fichier, état
+/// de la génération). Le code de déverrouillage n'est jamais stocké.
+model SharePackage {
+  id             String    @id
+  /// RUNNING | READY | FAILED
+  status         String    @default("RUNNING")
+  /// Étape en cours : 0 compile, 1 copy_db, 2 encrypt, 3 archive, 4 terminé
+  step           Int       @default(0)
+  error          String?
+  byAccountId    String?
+  byName         String
+  recipientName  String
+  recipientEmail String
+  /// current | demo | empty
+  dataMode       String
+  projects       String[]  @default([])
+  dataLabel      String
+  /// Clés incluses : [{ id, name, mask }]
+  keys           Json      @default("[]")
+  smtp           Boolean   @default(false)
+  files          Boolean   @default(false)
+  code           Boolean   @default(true)
+  /// { name, email, profiles[] } ou null
+  prefill        Json?
+  /// keep | replace
+  updateMode     String    @default("keep")
+  version        String
+  sizeBytes      BigInt?
+  sha256         String?
+  fileName       String?
+  fileKey        String?
+  fileDeletedAt  DateTime?
+  createdAt      DateTime  @default(now())
+  finishedAt     DateTime?
+
+  @@index([createdAt])
+  @@map("share_packages")
 }

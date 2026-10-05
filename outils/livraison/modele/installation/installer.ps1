@@ -4,8 +4,12 @@
     1. copie les programmes dans %LOCALAPPDATA%\Programs\RISE Cockpit (application, Node.js, PostgreSQL) ;
     2. crée la base dans %LOCALAPPDATA%\RISE Cockpit et y charge les données livrées (projet RISE, IA, SMTP…) ;
     3. écrit la configuration (secrets de session propres à ce poste) ;
-    4. crée le compte de la personne qui installe (Administrateur de la plateforme et PMO) ;
+    4. crée le compte de la personne qui installe (préparé par l'administrateur : seul le mot de passe est demandé ;
+       sinon nom, e-mail et mot de passe d'un compte Administrateur et PMO) ;
     5. crée les raccourcis « Démarrer Cockpit » et « Arrêter Cockpit » (Bureau et menu Démarrer) et ouvre Cockpit.
+  Paquet de la Console (Partager Cockpit, 05/10/2026 : donnees\paquet.json) : code de déverrouillage des secrets (sans
+  code valide, installation sans clés d'IA ni SMTP) ; comportement à la mise à jour fixé par l'administrateur (conserver
+  les données en appliquant les migrations, ou les remplacer après sauvegarde).
 #>
 $Paquet = Split-Path -Parent $PSScriptRoot
 . (Join-Path $PSScriptRoot 'commun.ps1')
@@ -15,9 +19,14 @@ Write-Host '══════════════════════�
 Write-Host '  Installation de RISE Cockpit' -ForegroundColor Cyan
 Write-Host '═══════════════════════════════════════════' -ForegroundColor Cyan
 
-foreach ($f in 'app\backend\dist\main.js', 'runtime\node\node.exe', 'runtime\pgsql\bin\pg_ctl.exe', 'donnees\rise.dump', 'donnees\cle-secrets.txt') {
+foreach ($f in 'app\backend\dist\main.js', 'runtime\node\node.exe', 'runtime\pgsql\bin\pg_ctl.exe', 'donnees\rise.dump') {
   if (-not (Test-Path -LiteralPath (Join-Path $Paquet $f))) { Echec "fichier manquant dans le dossier extrait : $f. Extrayez à nouveau tout le contenu du ZIP." }
 }
+# Paquet généré par la Console (paquet.json) ou par npm run livraison (cle-secrets.txt).
+$InfoPaquet = Join-Path $Paquet 'donnees\paquet.json'
+$Info = if (Test-Path -LiteralPath $InfoPaquet) { Get-Content -LiteralPath $InfoPaquet -Raw -Encoding UTF8 | ConvertFrom-Json } else { $null }
+if (-not $Info -and -not (Test-Path -LiteralPath (Join-Path $Paquet 'donnees\cle-secrets.txt'))) { Echec 'fichier manquant dans le dossier extrait : donnees\paquet.json. Extrayez à nouveau tout le contenu du ZIP.' }
+if ($Info) { Write-Host "  Cockpit $($Info.version), préparé pour $($Info.recipient.name)" -ForegroundColor DarkGray }
 
 # ───── 1. Installation précédente ─────
 Etape 'Vérification du poste'
@@ -25,7 +34,12 @@ $dejaInstalle = Test-Path -LiteralPath (Join-Path $PgData 'PG_VERSION')
 if (Test-Path -LiteralPath $Node) { Arreter-Application }
 if ($dejaInstalle -and (Test-Path -LiteralPath $PgBin)) { Arreter-Pg }
 $remplacer = $true
-if ($dejaInstalle) {
+if ($dejaInstalle -and $Info) {
+  # Choix de l'administrateur qui a préparé le paquet : conserver (application seule) ou remplacer (après sauvegarde).
+  $remplacer = $Info.update -eq 'replace'
+  $quoi = if ($remplacer) { 'ses données seront remplacées, après sauvegarde.' } else { 'seule l''application est mise à jour, ses données sont conservées.' }
+  Write-Host "  RISE Cockpit est déjà installé sur ce poste : $quoi" -ForegroundColor Yellow
+} elseif ($dejaInstalle) {
   Write-Host '  RISE Cockpit est déjà installé sur ce poste.' -ForegroundColor Yellow
   $r = Read-Host '  Remplacer ses données par celles de ce paquet ? Les données actuelles seront mises de côté. (O/N)'
   $remplacer = $r -match '^[oOyY]'
@@ -54,7 +68,7 @@ if ($remplacer) {
     $cote = Join-Path $Donnees ('ancien-' + (Get-Date -Format 'yyyyMMdd-HHmmss'))
     New-Item -ItemType Directory -Force -Path $cote | Out-Null
     foreach ($d in $PgData, $Stockage, $Config) { if (Test-Path -LiteralPath $d) { Move-Item -LiteralPath $d -Destination $cote } }
-    Ok "anciennes données mises de côté dans $cote"
+    Ok "anciennes données sauvegardées dans $cote"
   }
   & (Join-Path $PgBin 'initdb.exe') -D $PgData -U rise -A trust -E UTF8 --no-locale 2>&1 | Out-File (Join-Path $Journaux 'installation-base.log') -Encoding UTF8
   if (-not (Test-Path -LiteralPath (Join-Path $PgData 'PG_VERSION'))) { Echec "création de la base impossible (voir $Journaux\installation-base.log)." }
@@ -79,7 +93,39 @@ if ($remplacer) {
   # ───── 4. Configuration ─────
   Etape 'Configuration'
   $jwt = -join ((1..32) | ForEach-Object { '{0:x2}' -f (Get-Random -Minimum 0 -Maximum 256) })
-  $cle = (Get-Content -LiteralPath (Join-Path $Paquet 'donnees\cle-secrets.txt') -Raw).Trim()
+  if ($Info) {
+    $env:RISE_PAQUET_JSON = $InfoPaquet
+    $deverrouiller = Join-Path $Programmes 'installation\deverrouiller.js'
+    $cle = $null
+    if ($Info.securite.mode -eq 'code') {
+      Write-Host ''
+      Write-Host '  Les clés d''IA et le serveur d''e-mail de ce paquet sont protégés par un code (XXXX-XXXX-XXXX),' -ForegroundColor DarkGray
+      Write-Host '  transmis à part par la personne qui vous a envoyé Cockpit. Laissez vide pour installer sans eux.' -ForegroundColor DarkGray
+      for ($i = 1; $i -le 3 -and -not $cle; $i++) {
+        $c = if ($env:RISE_CODE) { $env:RISE_CODE } else { (Read-Host '  Code de déverrouillage').Trim() }
+        if (-not $c) { break }
+        $env:RISE_CODE = $c
+        $k = & $Node $deverrouiller cle
+        $bon = $LASTEXITCODE -eq 0
+        Remove-Item env:RISE_CODE -ErrorAction SilentlyContinue
+        $c = $null
+        if ($bon) { $cle = "$k".Trim() } else { Write-Host "  Code incorrect ($i/3)." -ForegroundColor Yellow }
+      }
+      if ($cle) { Ok 'code accepté : clés d''IA et SMTP déverrouillés' }
+    } else {
+      $cle = "$(& $Node $deverrouiller cle)".Trim()
+    }
+    if (-not $cle) {
+      # Sans code valide : installation sans clés d'IA ni SMTP.
+      $cle = -join ((1..32) | ForEach-Object { '{0:x2}' -f (Get-Random -Minimum 0 -Maximum 256) })
+      $env:DATABASE_URL = "postgresql://rise@localhost:$PortPg/rise"
+      & $Node $deverrouiller sans-secrets
+      if ($LASTEXITCODE -ne 0) { Echec 'retrait des secrets impossible.' }
+      Write-Host '  [!] Installation sans clés d''IA ni SMTP : saisissez vos propres accès dans la Console.' -ForegroundColor Yellow
+    }
+  } else {
+    $cle = (Get-Content -LiteralPath (Join-Path $Paquet 'donnees\cle-secrets.txt') -Raw).Trim()
+  }
   @(
     "DATABASE_URL=postgresql://rise@localhost:$PortPg/rise",
     "JWT_SECRET=$jwt",
@@ -98,11 +144,57 @@ if ($remplacer) {
   $nouveauCompte = $true
 } else {
   Demarrer-Pg
-  Ok 'données existantes conservées'
+  # Données conservées : migrations de la nouvelle version appliquées à la base existante (une seule fois chacune).
+  $psql = Join-Path $PgBin 'psql.exe'
+  $faites = @(& $psql -h localhost -p $PortPg -U rise -d rise -tAc 'SELECT migration_name FROM _prisma_migrations WHERE finished_at IS NOT NULL') | ForEach-Object { "$_".Trim() }
+  $dossiers = Join-Path $Programmes 'app\backend\prisma\migrations'
+  $n = 0
+  if (Test-Path -LiteralPath $dossiers) {
+    foreach ($m in Get-ChildItem -LiteralPath $dossiers -Directory | Sort-Object Name) {
+      $sql = Join-Path $m.FullName 'migration.sql'
+      if (($faites -contains $m.Name) -or -not (Test-Path -LiteralPath $sql)) { continue }
+      & $psql -h localhost -p $PortPg -U rise -d rise -q -v ON_ERROR_STOP=1 -1 -f $sql 2>&1 | Out-File (Join-Path $Journaux 'installation-migrations.log') -Append -Encoding UTF8
+      if ($LASTEXITCODE -ne 0) { Echec "mise à jour de la base impossible ($($m.Name), voir $Journaux\installation-migrations.log)." }
+      $somme = (Get-FileHash -LiteralPath $sql -Algorithm SHA256).Hash.ToLower()
+      & $psql -h localhost -p $PortPg -U rise -d rise -q -c "INSERT INTO _prisma_migrations (id, checksum, migration_name, started_at, finished_at, applied_steps_count) VALUES (gen_random_uuid()::text, '$somme', '$($m.Name)', now(), now(), 1)" | Out-Null
+      $n++
+    }
+  }
+  Ok "données existantes conservées ($n mise(s) à jour de la base)"
 }
 
 # ───── 5. Compte de la personne qui installe ─────
-if ($nouveauCompte) {
+$prerempli = $Info -and $Info.prefill -and $Info.prefill.email
+if ($nouveauCompte -and $prerempli) {
+  # Compte préparé par l'administrateur : nom, e-mail et profils connus, seul le mot de passe est demandé.
+  $profils = @($Info.prefill.profiles) -join ','
+  Etape "Votre compte : $($Info.prefill.name) <$($Info.prefill.email)>"
+  Write-Host "  Profils : $(if ($profils) { $profils -replace ',', ', ' } else { 'aucun' })" -ForegroundColor DarkGray
+  Write-Host '  Mot de passe : 12 caractères minimum, majuscule et minuscule, chiffre et caractère spécial.' -ForegroundColor DarkGray
+  Appliquer-Config
+  $env:RISE_ADMIN_NOM = $Info.prefill.name; $env:RISE_ADMIN_EMAIL = $Info.prefill.email; $env:RISE_ADMIN_PROFILS = $profils
+  $silencieux = [bool]$env:RISE_INITIAL_ADMIN_PASSWORD
+  while ($true) {
+    if (-not $silencieux) {
+      $m1 = Read-Host '  Mot de passe' -AsSecureString
+      $m2 = Read-Host '  Confirmation' -AsSecureString
+      $p1 = [Runtime.InteropServices.Marshal]::PtrToStringBSTR([Runtime.InteropServices.Marshal]::SecureStringToBSTR($m1))
+      $p2 = [Runtime.InteropServices.Marshal]::PtrToStringBSTR([Runtime.InteropServices.Marshal]::SecureStringToBSTR($m2))
+      if ($p1 -ne $p2) { Write-Host '  Les deux mots de passe diffèrent.' -ForegroundColor Yellow; continue }
+      $env:RISE_INITIAL_ADMIN_PASSWORD = $p1
+    }
+    Push-Location $Backend
+    & $Node (Join-Path $Programmes 'installation\creer-admin.js')
+    $code = $LASTEXITCODE
+    Pop-Location
+    Remove-Item env:RISE_INITIAL_ADMIN_PASSWORD -ErrorAction SilentlyContinue
+    $p1 = $null; $p2 = $null
+    if ($code -eq 0) { break }
+    if ($code -eq 3) { Write-Host '  Ce compte existe déjà dans les données livrées : connectez-vous avec son mot de passe.' -ForegroundColor Yellow; break }
+    if ($code -ne 4 -or $silencieux) { Echec 'création du compte impossible.' }
+  }
+  Remove-Item env:RISE_ADMIN_PROFILS -ErrorAction SilentlyContinue
+} elseif ($nouveauCompte) {
   Etape 'Votre compte (Administrateur de la plateforme et PMO)'
   Write-Host '  Mot de passe : 12 caractères minimum, majuscule et minuscule, chiffre et caractère spécial.' -ForegroundColor DarkGray
   Appliquer-Config

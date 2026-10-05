@@ -10103,6 +10103,192 @@
           "console · temps de réponse"
         ]
       }
+    },
+    "/api/admin/share/context": {
+      "get": {
+        "operationId": "ShareController_context",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · partager cockpit"
+        ]
+      }
+    },
+    "/api/admin/share/packages": {
+      "post": {
+        "operationId": "ShareController_start",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · partager cockpit"
+        ]
+      },
+      "get": {
+        "operationId": "ShareController_history",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · partager cockpit"
+        ]
+      }
+    },
+    "/api/admin/share/packages/{jobId}/events": {
+      "get": {
+        "operationId": "ShareController_events",
+        "parameters": [
+          {
+            "name": "jobId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · partager cockpit"
+        ]
+      }
+    },
+    "/api/admin/share/packages/{id}/download": {
+      "get": {
+        "operationId": "ShareController_download",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · partager cockpit"
+        ]
+      }
+    },
+    "/api/admin/share/packages/{id}/file": {
+      "delete": {
+        "operationId": "ShareController_deleteFile",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · partager cockpit"
+        ]
+      }
+    },
+    "/api/admin/share/files/{id}": {
+      "get": {
+        "operationId": "ShareFileController_file",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "a",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "exp",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sig",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "console · partager cockpit"
+        ]
+      }
     }
   },
   "info": {

@@ -1,7 +1,8 @@
 /*
  * Installation de RISE Cockpit : compte de la personne qui installe (Administrateur de la plateforme et PMO de chaque
  * projet), avec le nom, l'e-mail et le mot de passe saisis par l'installateur (variables RISE_ADMIN_NOM,
- * RISE_ADMIN_EMAIL, RISE_INITIAL_ADMIN_PASSWORD ; le mot de passe n'est jamais écrit sur le disque).
+ * RISE_ADMIN_EMAIL, RISE_INITIAL_ADMIN_PASSWORD ; le mot de passe n'est jamais écrit sur le disque). Compte prérempli
+ * par l'administrateur (Partager Cockpit) : profils dans RISE_ADMIN_PROFILS (Administrateur, PMO, Responsable, Lecteur).
  * Codes de sortie : 0 créé, 3 e-mail déjà utilisé, 4 mot de passe trop faible, 1 autre erreur.
  */
 const path = require('path');
@@ -18,10 +19,11 @@ const { passwordRules } = require(path.join(backend, 'dist', 'core', 'auth', 'po
   const db = new PrismaClient();
   try {
     const id = 'u-' + email.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
-    const r = await createInitialAdmin(db, password, { id, email, fullName }, { mustChangePassword: false });
+    const profiles = process.env.RISE_ADMIN_PROFILS === undefined ? undefined : process.env.RISE_ADMIN_PROFILS.split(',').map((p) => p.trim()).filter(Boolean);
+    const r = await createInitialAdmin(db, password, { id, email, fullName }, { mustChangePassword: false, profiles });
     if (r === 'exists') { console.error(`Un compte existe déjà pour ${email}.`); process.exit(3); }
     if (r !== 'created') { console.error(`Compte non créé (${r}).`); process.exit(1); }
-    console.log(`Compte créé : ${fullName} <${email}> — Administrateur de la plateforme et PMO de chaque projet.`);
+    console.log(`Compte créé : ${fullName} <${email}> — ${profiles ? profiles.join(', ') || 'sans profil' : 'Administrateur de la plateforme et PMO de chaque projet'}.`);
   } finally {
     await db.$disconnect();
   }

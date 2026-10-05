@@ -4,7 +4,8 @@ RISE Cockpit — installation sur Windows
 1. Si Windows a bloqué le ZIP : clic droit sur le ZIP > Propriétés > cocher « Débloquer » > OK.
 2. Extraire tout le contenu du ZIP (clic droit > Extraire tout).
 3. Double-cliquer sur « installer_cockpit.cmd » et répondre aux questions :
-   prénom et nom, adresse e-mail et mot de passe de votre compte (Administrateur et PMO).
+   code de déverrouillage s'il vous a été transmis (par SMS ou téléphone), puis votre mot de passe
+   (et, si votre compte n'a pas été préparé, vos prénom, nom et adresse e-mail).
 4. Cockpit s'ouvre dans le navigateur. Ensuite, utiliser les raccourcis du Bureau :
    « Démarrer Cockpit » et « Arrêter Cockpit ».
 
@@ -15,5 +16,5 @@ Programmes : %LOCALAPPDATA%\Programs\RISE Cockpit
 Données    : %LOCALAPPDATA%\RISE Cockpit (base, fichiers, configuration, journaux)
 Le dossier extrait du ZIP peut être supprimé après l'installation.
 
-Confidentialité : ce paquet contient des clés d'accès aux fournisseurs d'IA et au serveur d'e-mails.
-Ne pas le transmettre à d'autres personnes.
+Confidentialité : ce paquet peut contenir des clés d'accès aux fournisseurs d'IA et au serveur d'e-mails.
+Ne pas le transmettre à d'autres personnes et supprimer le ZIP une fois l'installation terminée.

@@ -61,6 +61,8 @@ New-Item -ItemType Directory -Force -Path $Paquet, (Join-Path $Paquet 'donnees')
 Etape 'Application'
 $B = Join-Path $Paquet 'app\backend'
 Copier (Join-Path $Backend 'dist') (Join-Path $B 'dist')
+# Migrations SQL : appliquées par l'installateur quand les données du poste sont conservées.
+Copier (Join-Path $Backend 'prisma\migrations') (Join-Path $B 'prisma\migrations')
 Copier (Join-Path $Backend 'node_modules') (Join-Path $B 'node_modules')
 Copy-Item (Join-Path $Backend 'package.json'), (Join-Path $Backend 'package-lock.json') -Destination $B
 Push-Location $B
@@ -126,7 +128,7 @@ Ok "fichiers déposés ($(Taille (Join-Path $Paquet 'donnees')) avec la base)"
 Etape 'Installateur'
 Copier (Join-Path $Modele 'installation') (Join-Path $Paquet 'installation')
 Copy-Item (Join-Path $Racine 'outils\cockpit.ico') (Join-Path $Paquet 'installation\cockpit.ico')
-Copy-Item (Join-Path $Modele 'installer_cockpit.cmd'), (Join-Path $Modele 'LISEZMOI.txt') -Destination $Paquet
+Copy-Item (Join-Path $Modele 'installation\installer_cockpit.cmd'), (Join-Path $Modele 'installation\LISEZMOI.txt') -Destination $Paquet
 Ok 'installer_cockpit.cmd, lanceurs et icône'
 
 # ───── 5. ZIP ─────

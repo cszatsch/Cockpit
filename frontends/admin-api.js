@@ -306,6 +306,8 @@ export function bindConsole(c) {
     // Serveur d’envoi SMTP : réglages sans mot de passe (`hasPassword`).
     smtp: async () => ({ smSettings: await get('/settings/smtp') }),
     // Guide utilisateur : versions et journal des téléchargements, toujours fournis (même vides : pas de démonstration).
+    // Partager Cockpit : contexte (versions, projets, clés masquées, SMTP, fichiers) et historique des paquets.
+    share: async () => { const [ctx, hist] = await Promise.all([get('/share/context'), get('/share/packages')]); return { shCtx: ctx, shHist: hist }; },
     guide: async () => { const g = await get('/guides'); setTimeout(() => gdWatch(g), 0); return { gdGuides: g }; },
     mods: async () => ({ mods: sortMods((await get('/modules')).map(toMod)) }),
     reqs: async () => ({ reqs: (await get('/module-requests?status=PENDING')).map(toReq) }),
@@ -335,7 +337,7 @@ export function bindConsole(c) {
   const SECTION = {
     overview: ['accounts', 'providers', 'month', 'audit', 'reqs', 'snaps', 'sched', 'ov', 'models', 'asg', 'fns'], users: ['accounts', 'wsAll'], admins: ['admins', 'audit', 'accounts'], providers: ['fm', 'providers', 'models', 'asg', 'usage', 'fns'],
     conso: ['month', 'providers'], snaps: [], notifs: ['nrRules', 'nrHist', 'nrCounts', 'nrSchedule', 'models', 'providers', 'projects'], modules: ['mods', 'reqs'],
-    smtp: ['smtp'], guide: ['guide'], init: ['projects'], library: ['projects'], profil: ['prof', 'sess', 'audit'], skills: ['skills'], persona: ['persona'], apis: ['apis'],
+    smtp: ['smtp'], guide: ['guide'], share: ['share'], init: ['projects'], library: ['projects'], profil: ['prof', 'sess', 'audit'], skills: ['skills'], persona: ['persona'], apis: ['apis'],
   };
   async function load(keys) {
     const parts = await Promise.all(keys.map(k => L[k]()));
@@ -357,6 +359,8 @@ export function bindConsole(c) {
       set0({ apiNow: String(ov.date).slice(0, 10) + 'T12:00:00' });
       await load(['ov', 'wsAll', 'prof', 'accounts', 'admins', 'audit', 'fm', 'providers', 'models', 'asg', 'usage', 'snaps', 'sched', 'nrRules', 'nrHist', 'nrCounts', 'nrSchedule', 'smtp', 'guide', 'mods', 'reqs', 'sess', 'projects', 'skills', 'persona', 'notifs', 'apis', 'fns']);
       set0({ apiBoot: false, loading: false });
+      // Partager Cockpit : chargé à l'ouverture de la page seulement (taille de l'application calculée par le serveur).
+      if (c.state.sec === 'share') load(['share']).catch(fail);
       jevResume();
     } catch (e) {
       fail(e);
@@ -516,6 +520,41 @@ export function bindConsole(c) {
         .catch(e => { LAT.failed.add(k); fail(e); });
     }
     return null;
+  };
+  // ── Partager Cockpit (props `context`, `history`, `api` de l'écran, 05/10/2026) : génération suivie par le flux SSE
+  // du serveur (fetch + lecture du flux, pour porter l'en-tête d'authentification) ; le ZIP se télécharge par le lien
+  // signé de 15 minutes renvoyé par l'API (navigation directe, sans tout charger en mémoire). ──
+  const shReload = () => load(['share']).catch(() => {});
+  c.shApi = {
+    start: body => post('/share/packages', body).then(r => { shReload(); touch(); return r; }, e => { throw new Error(errText(e)); }),
+    events: (jobId, onEvent, onEnd) => {
+      const ctl = new AbortController();
+      (async () => {
+        const headers = DEV ? { Authorization: 'Bearer ' + (await token()) } : Auth.sessionHeaders('admin');
+        const r = await fetch(apiBase() + '/api/admin/share/packages/' + encodeURIComponent(jobId) + '/events', { headers, credentials: 'same-origin', signal: ctl.signal });
+        if (!r.ok || !r.body) throw new Error('flux indisponible');
+        const rd = r.body.getReader(), dec = new TextDecoder();
+        let buf = '';
+        for (;;) {
+          const { value, done } = await rd.read();
+          if (done) break;
+          buf += dec.decode(value, { stream: true });
+          let i;
+          while ((i = buf.indexOf('\n\n')) >= 0) {
+            const chunk = buf.slice(0, i); buf = buf.slice(i + 2);
+            const line = chunk.split('\n').find(l => l.startsWith('data: '));
+            if (line) onEvent(JSON.parse(line.slice(6)));
+          }
+        }
+      })().catch(() => {}).finally(() => { if (onEnd) onEnd(); });
+      return () => ctl.abort();
+    },
+    download: id => get('/share/packages/' + encodeURIComponent(id) + '/download').then(d => {
+      const a = document.createElement('a'); a.href = apiBase() + d.url; a.download = d.fileName || ''; document.body.appendChild(a); a.click(); a.remove(); touch(); return d;
+    }, e => { throw new Error(errText(e)); }),
+    del: id => del('/share/packages/' + encodeURIComponent(id) + '/file').then(r => { touch(); return shReload().then(() => r); }, e => { throw new Error(errText(e)); }),
+    reload: shReload,
+    goProviders: () => c.go('providers'),
   };
   c.latFetch = (p, off) => { const day = latDay(p, off); return latGet(p + '|' + day, '/api/ai/latency?period=' + p + (p === 'd' ? '&day=' + day : '')); };
   c.latSeries = (p, off, axis, id) => {

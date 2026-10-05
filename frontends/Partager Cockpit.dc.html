@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"><style>
+html,body{margin:0;background:#f2f6f5;font-family:'Plus Jakarta Sans',sans-serif;color:#10233a;-webkit-font-smoothing:antialiased;font-size:13px}
+*{box-sizing:border-box}a{color:#1d8f86;text-decoration:none;font-weight:700}a:hover{color:#146b64}button,input{font:inherit;color:inherit}
+button:focus-visible,input:focus-visible{outline:2px solid #1d8f86;outline-offset:2px}
+input::placeholder{color:#a3b1ba}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes sheet{from{opacity:0;transform:translateY(16px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes toastIn{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style></helmet>
+<div data-screen-label="Partager Cockpit" style="max-width:1400px;margin:0 auto;padding:40px 48px 80px;display:flex;flex-direction:column;gap:28px">
+
+  <section aria-label="Paquet d’installation" style="position:relative;border-radius:26px;background:#10233a;color:#dfe8ee;overflow:hidden;overflow:clip;box-shadow:0 40px 80px -48px rgba(10,23,39,.9);animation:rise .5s cubic-bezier(.2,.7,.2,1) both">
+    <div style="position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:44px 44px;-webkit-mask-image:linear-gradient(100deg,transparent 30%,#000 85%);mask-image:linear-gradient(100deg,transparent 30%,#000 85%)"></div>
+    <div style="position:absolute;right:-160px;top:-200px;width:620px;height:620px;border-radius:50%;pointer-events:none;background:radial-gradient(closest-side,rgba(61,214,198,.18),transparent)"></div>
+
+    <div style="position:relative;padding:38px 40px 32px;display:flex;flex-wrap:wrap;align-items:flex-end;gap:28px">
+      <div style="flex:1 1 520px;min-width:0;display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:11.5px;font-weight:800;letter-spacing:.16em;color:#c4d3dd"><span style="{{ phaseDot }}"></span><span style="white-space:nowrap">PLATEFORME · PARTAGER COCKPIT</span><span style="height:22px;padding:0 9px;border-radius:999px;background:rgba(255,255,255,.07);box-shadow:inset 0 0 0 1px rgba(255,255,255,.1);font-size:10.5px;letter-spacing:.12em;color:#8fa3b3;display:inline-flex;align-items:center;white-space:nowrap">ADMINISTRATEUR</span></div>
+        <h1 style="margin:0;font-size:50px;font-weight:800;font-style:italic;letter-spacing:-.045em;line-height:1.02;color:#fff;text-wrap:balance">{{ headline }}</h1>
+        <span style="width:132px;height:6px;border-radius:3px;background:#f5a524"></span>
+        <p style="margin:6px 0 0;font-size:16px;line-height:1.5;color:#dfe8ee;max-width:720px;text-wrap:pretty">{{ summary }}</p>
+      </div>
+      <div style="flex:0 1 auto;display:flex;flex-direction:column;align-items:flex-end;gap:10px">
+        <sc-if value="{{ isConfig }}" hint-placeholder-val="{{ true }}">
+          <button type="button" onClick="{{ generate }}" disabled="{{ cantGen }}" style="{{ genSt }}" style-hover="{{ genHov }}">Générer le paquet<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14 M13 6l6 6-6 6"></path></svg></button>
+          <span style="font-size:12px;color:#8fa3b3;text-align:right;max-width:280px">{{ genHint }}</span>
+        </sc-if>
+        <sc-if value="{{ running }}" hint-placeholder-val="{{ false }}"><span style="height:52px;padding:0 20px;border-radius:14px;background:rgba(255,255,255,.07);display:inline-flex;align-items:center;gap:12px;font-size:13.5px;font-weight:700;color:#fff;white-space:nowrap"><span style="width:14px;height:14px;border-radius:50%;border:2px solid rgba(61,214,198,.25);border-top-color:#3dd6c6;animation:spin .7s linear infinite"></span>{{ runPct }}</span></sc-if>
+        <sc-if value="{{ done }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-wrap:wrap;justify-content:flex-end;gap:10px">
+            <button type="button" onClick="{{ openMsg }}" style="height:52px;padding:0 20px;border-radius:14px;border:0;background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);color:#fff;font-size:13.5px;font-weight:700;cursor:pointer;white-space:nowrap" style-hover="background:rgba(255,255,255,.14)">Message pour {{ first }}</button>
+            <button type="button" onClick="{{ download }}" style="height:52px;padding:0 22px;border-radius:14px;border:0;background:#3dd6c6;color:#0a1727;font-size:14px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:10px;white-space:nowrap;box-shadow:0 14px 30px -12px rgba(61,214,198,.6)" style-hover="background:#5fe0d2"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11 M7 10l5 5 5-5 M5 20h14"></path></svg>Télécharger le ZIP</button>
+          </div>
+          <button type="button" onClick="{{ reset }}" style="border:0;background:transparent;padding:0;font-size:12.5px;font-weight:700;color:#8fa3b3;cursor:pointer" style-hover="color:#fff">Préparer un autre paquet</button>
+        </sc-if>
+      </div>
+    </div>
+
+    <div style="position:relative;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));border-top:1px solid rgba(255,255,255,.08)">
+      <sc-for list="{{ cells }}" as="c" hint-placeholder-count="4">
+        <div style="{{ c.cell }}">
+          <div style="display:flex;align-items:center;gap:10px;min-height:16px"><span style="{{ c.eySt }}">{{ c.ey }}</span><span style="flex:1"></span><sc-if value="{{ c.hasAct }}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{ c.act }}" style="border:0;background:transparent;padding:0;font-size:12px;font-weight:700;color:#3dd6c6;cursor:pointer;white-space:nowrap">{{ c.actL }}</button></sc-if></div>
+          <span style="{{ c.vSt }}">{{ c.v }}</span>
+          <sc-if value="{{ c.hasBar }}" hint-placeholder-val="{{ false }}"><div style="display:flex;height:4px;border-radius:2px;overflow:hidden;gap:2px;margin-top:2px"><sc-for list="{{ c.bar }}" as="b" hint-placeholder-count="3"><span title="{{ b.t }}" style="{{ b.st }}"></span></sc-for></div></sc-if>
+          <span style="{{ c.sSt }}">{{ c.s }}</span>
+          <sc-if value="{{ c.hasProg }}" hint-placeholder-val="{{ false }}"><span style="display:block;height:3px;border-radius:2px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:auto"><span style="{{ c.prog }}"></span></span></sc-if>
+          <sc-if value="{{ c.hasBtn }}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{ c.btn }}" style="align-self:flex-start;margin-top:2px;height:30px;padding:0 12px;border-radius:9px;border:0;background:rgba(255,255,255,.1);color:#fff;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap" style-hover="background:rgba(255,255,255,.18)">{{ c.btnL }}</button></sc-if>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));grid-auto-rows:1fr;gap:20px">
+
+    <section aria-label="Données" style="background:#fff;border-radius:22px;box-shadow:0 0 0 1px #e1e9e7,0 24px 50px -40px rgba(16,35,58,.4);display:flex;flex-direction:column;min-width:0;animation:rise .5s .04s cubic-bezier(.2,.7,.2,1) both">
+      <div style="padding:22px 24px 0;display:flex;align-items:center;gap:12px"><span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:600;color:#1d8f86">01</span><span style="flex:1;min-width:0;font-size:15px;font-weight:800;letter-spacing:-.01em">Données</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#43586a;white-space:nowrap">{{ dataMoL }}</span></div>
+      <div style="flex:1;padding:18px 24px 20px;display:flex;flex-direction:column;gap:8px">
+        <div role="radiogroup" aria-label="Données" style="display:flex;flex-direction:column;gap:6px">
+          <sc-for list="{{ datas }}" as="o" hint-placeholder-count="3"><button type="button" role="radio" aria-checked="{{ o.on }}" onClick="{{ o.pick }}" style="{{ o.st }}" style-hover="{{ o.hov }}"><span style="{{ o.ring }}"><span style="{{ o.ringIn }}"></span></span><span style="flex:1;min-width:0;font-size:13.5px;font-weight:700;text-align:left">{{ o.l }}</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#8a9aa6;white-space:nowrap">{{ o.s }}</span></button></sc-for>
+        </div>
+        <sc-if value="{{ isCurrent }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-wrap:wrap;gap:6px;padding-top:6px;animation:rise .2s both"><sc-for list="{{ projects }}" as="p" hint-placeholder-count="3"><button type="button" aria-pressed="{{ p.on }}" onClick="{{ p.toggle }}" title="{{ p.meta }}" style="{{ p.st }}"><span style="{{ p.tick }}"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"></path></svg></span>{{ p.name }}</button></sc-for></div>
+        </sc-if>
+      </div>
+      <div style="{{ dataFootSt }}">{{ dataHelp }}</div>
+    </section>
+
+    <section aria-label="Clés d’IA" style="background:#fff;border-radius:22px;box-shadow:0 0 0 1px #e1e9e7,0 24px 50px -40px rgba(16,35,58,.4);display:flex;flex-direction:column;min-width:0;animation:rise .5s .08s cubic-bezier(.2,.7,.2,1) both">
+      <div style="padding:22px 24px 0;display:flex;align-items:center;gap:12px"><span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:600;color:#1d8f86">02</span><span style="flex:1;min-width:0;font-size:15px;font-weight:800;letter-spacing:-.01em">Clés d’IA</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#43586a;white-space:nowrap">{{ keyCount }}</span></div>
+      <div style="flex:1;padding:12px 12px 14px;display:flex;flex-direction:column">
+        <sc-for list="{{ keys }}" as="k" hint-placeholder-count="5">
+          <button type="button" role="checkbox" aria-checked="{{ k.on }}" onClick="{{ k.toggle }}" style="display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;padding:9px 12px;border:0;border-radius:11px;background:transparent;cursor:pointer;text-align:left" style-hover="background:#f6faf9">
+            <span style="{{ k.box }}"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"></path></svg></span>
+            <span style="display:flex;flex-direction:column;gap:1px;min-width:0"><span style="{{ k.nameSt }}">{{ k.name }}</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#a3b1ba;white-space:nowrap">{{ k.mask }}</span></span>
+            <span style="{{ k.capSt }}">{{ k.capL }}</span>
+          </button>
+        </sc-for>
+      </div>
+      <div style="{{ keyFootSt }}">{{ keyFoot }}</div>
+    </section>
+
+    <section aria-label="SMTP et fichiers" style="background:#fff;border-radius:22px;box-shadow:0 0 0 1px #e1e9e7,0 24px 50px -40px rgba(16,35,58,.4);display:flex;flex-direction:column;min-width:0;animation:rise .5s .12s cubic-bezier(.2,.7,.2,1) both">
+      <div style="padding:22px 24px 0;display:flex;align-items:center;gap:12px"><span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:600;color:#1d8f86">03</span><span style="flex:1;min-width:0;font-size:15px;font-weight:800;letter-spacing:-.01em">SMTP et fichiers</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#43586a;white-space:nowrap">{{ filesMoL }}</span></div>
+      <div style="flex:1;padding:18px 24px 20px;display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;align-items:center;gap:12px"><span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font-size:13.5px;font-weight:700">Serveur SMTP</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#a3b1ba;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ smtpLine }}</span></span><button type="button" role="switch" aria-checked="{{ smtp }}" aria-label="Inclure le serveur SMTP" onClick="{{ toggleSmtp }}" style="{{ smtpTr }}"><span style="{{ smtpKn }}"></span></button></div>
+        </div>
+        <div style="height:1px;background:#eef3f2"></div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:center;gap:12px"><span style="flex:1;min-width:0;font-size:13.5px;font-weight:700">Fichiers déposés</span><button type="button" role="switch" aria-checked="{{ files }}" aria-label="Inclure les fichiers déposés" onClick="{{ toggleFiles }}" style="{{ filesTr }}"><span style="{{ filesKn }}"></span></button></div>
+          <div style="{{ filesListSt }}"><sc-for list="{{ fileRows }}" as="r" hint-placeholder-count="3"><div style="display:flex;align-items:baseline;gap:8px;font-size:12px"><span style="flex:1;min-width:0;color:#43586a">{{ r.l }}</span><span style="color:#a3b1ba;white-space:nowrap;flex:none">{{ r.n }}</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#10233a;min-width:50px;text-align:right;white-space:nowrap;flex:none">{{ r.s }}</span></div></sc-for></div>
+        </div>
+      </div>
+      <div style="padding:14px 24px 16px;border-top:1px solid #eef3f2;font-size:12px;line-height:1.5;color:#5c7280;text-wrap:pretty">{{ smtpFoot }}</div>
+    </section>
+
+    <section aria-label="Sécurité" style="position:relative;background:#10233a;color:#dfe8ee;border-radius:22px;box-shadow:0 30px 60px -36px rgba(10,23,39,.8);display:flex;flex-direction:column;min-width:0;overflow:hidden;overflow:clip;animation:rise .5s .16s cubic-bezier(.2,.7,.2,1) both">
+      <div style="position:absolute;left:-120px;bottom:-160px;width:360px;height:360px;border-radius:50%;pointer-events:none;background:radial-gradient(closest-side,rgba(61,214,198,.12),transparent)"></div>
+      <div style="position:relative;padding:22px 24px 0;display:flex;align-items:center;gap:12px"><span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:600;color:#3dd6c6">04</span><span style="flex:1;min-width:0;font-size:15px;font-weight:800;letter-spacing:-.01em;color:#fff">Sécurité</span><span style="{{ secTagSt }}"><span style="{{ secTagDot }}"></span>{{ secTag }}</span></div>
+      <div style="position:relative;flex:1;padding:16px 24px 18px;display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <span style="font-size:12.5px;color:#8fa3b3">{{ riskT }}</span>
+          <sc-for list="{{ powers }}" as="p" hint-placeholder-count="2"><div style="display:flex;align-items:baseline;gap:10px"><span style="{{ p.dot }}"></span><span style="flex:1;min-width:0;font-size:13px;line-height:1.45;color:#fff">{{ p.l }}</span></div></sc-for>
+          <a href="#" onClick="{{ goProv }}" style="font-size:12px;color:#3dd6c6">Clés dédiées et plafonnées · Fournisseurs et modèles →</a>
+        </div>
+        <div style="{{ codeBoxSt }}">
+          <div style="display:flex;align-items:center;gap:12px"><svg style="flex:none" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg><span style="flex:1;min-width:0;font-size:13.5px;font-weight:800;white-space:nowrap">Code de déverrouillage</span><button type="button" role="switch" aria-checked="{{ code }}" aria-label="Code de déverrouillage" onClick="{{ toggleCode }}" style="{{ codeTr }}"><span style="{{ codeKn }}"></span></button></div>
+          <span style="font-size:12px;line-height:1.5;text-wrap:pretty">{{ codeHelp }}</span>
+        </div>
+      </div>
+      <div style="position:relative;padding:14px 24px 16px;border-top:1px solid rgba(255,255,255,.08);font-size:12px;line-height:1.5;color:#8fa3b3">La génération est inscrite au journal d’audit comme action sensible.</div>
+    </section>
+
+    <section aria-label="Destinataire" style="background:#fff;border-radius:22px;box-shadow:0 0 0 1px #e1e9e7,0 24px 50px -40px rgba(16,35,58,.4);display:flex;flex-direction:column;min-width:0;animation:rise .5s .2s cubic-bezier(.2,.7,.2,1) both">
+      <div style="padding:22px 24px 0;display:flex;align-items:center;gap:12px"><span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:600;color:#1d8f86">05</span><span style="flex:1;min-width:0;font-size:15px;font-weight:800;letter-spacing:-.01em">Destinataire</span><span style="{{ avSt }}">{{ initials }}</span></div>
+      <div style="flex:1;padding:16px 24px 18px;display:flex;flex-direction:column;gap:10px">
+        <input value="{{ rName }}" onChange="{{ setName }}" placeholder="Prénom Nom" aria-label="Nom du destinataire" style="{{ nameSt }}" style-focus="box-shadow:inset 0 0 0 1.5px #1d8f86" />
+        <input value="{{ rMail }}" onChange="{{ setMail }}" placeholder="prenom.nom@exemple.fr" spellcheck="false" aria-label="E-mail du destinataire" style="{{ mailSt }}" style-focus="box-shadow:inset 0 0 0 1.5px #1d8f86" />
+        <div style="display:flex;align-items:center;gap:12px;padding-top:6px"><span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font-size:13.5px;font-weight:700">Préremplir son compte</span><span style="font-size:11.5px;color:#8a9aa6">Elle ne saisira que son mot de passe.</span></span><button type="button" role="switch" aria-checked="{{ prefill }}" aria-label="Préremplir son compte" onClick="{{ togglePrefill }}" style="{{ preTr }}"><span style="{{ preKn }}"></span></button></div>
+        <div style="{{ profWrapSt }}"><sc-for list="{{ profiles }}" as="p" hint-placeholder-count="4"><button type="button" aria-pressed="{{ p.on }}" onClick="{{ p.toggle }}" style="{{ p.st }}">{{ p.l }}</button></sc-for></div>
+      </div>
+      <div style="{{ mailFootSt }}">{{ mailFoot }}</div>
+    </section>
+
+    <section aria-label="Version" style="background:#fff;border-radius:22px;box-shadow:0 0 0 1px #e1e9e7,0 24px 50px -40px rgba(16,35,58,.4);display:flex;flex-direction:column;min-width:0;animation:rise .5s .24s cubic-bezier(.2,.7,.2,1) both">
+      <div style="padding:22px 24px 0;display:flex;align-items:center;gap:12px"><span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:600;color:#1d8f86">06</span><span style="flex:1;min-width:0;font-size:15px;font-weight:800;letter-spacing:-.01em">Version</span><span title="{{ buildL }}" style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#43586a;white-space:nowrap">{{ ver }}</span></div>
+      <div style="flex:1;padding:16px 24px 18px;display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <span style="font-size:12px;color:#8a9aa6">{{ newsT }}</span>
+          <sc-for list="{{ news }}" as="n" hint-placeholder-count="3"><div style="display:flex;gap:10px;font-size:12.5px;line-height:1.45;color:#10233a"><span style="flex:none;font-family:'IBM Plex Mono',monospace;color:#1d8f86">+</span><span style="flex:1;min-width:0">{{ n }}</span></div></sc-for>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:auto">
+          <span style="font-size:12px;color:#8a9aa6">Si Cockpit est déjà installé chez elle</span>
+          <div role="radiogroup" aria-label="Comportement à la mise à jour" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));padding:3px;border-radius:11px;background:#eef3f2;gap:2px"><sc-for list="{{ updates }}" as="u" hint-placeholder-count="2"><button type="button" role="radio" aria-checked="{{ u.on }}" onClick="{{ u.pick }}" style="{{ u.st }}">{{ u.l }}</button></sc-for></div>
+        </div>
+      </div>
+      <div style="padding:14px 24px 16px;border-top:1px solid #eef3f2;font-size:12px;line-height:1.5;color:#5c7280;text-wrap:pretty">{{ updHelp }}</div>
+    </section>
+  </div>
+
+  <section aria-label="Historique des paquets" style="display:flex;flex-direction:column;gap:14px;margin-top:12px;animation:rise .5s .28s cubic-bezier(.2,.7,.2,1) both">
+    <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;padding:0 4px"><span style="font-size:20px;font-weight:800;letter-spacing:-.02em">Historique des paquets</span><span style="font-size:13px;color:#5c7280">{{ histCount }}</span></div>
+    <div style="background:#fff;border-radius:22px;box-shadow:0 0 0 1px #e1e9e7,0 24px 50px -40px rgba(16,35,58,.4);overflow:hidden">
+      <sc-if value="{{ histEmpty }}" hint-placeholder-val="{{ false }}"><div style="padding:40px 28px;font-size:13px;color:#8a9aa6;text-align:center">Aucun paquet généré pour l’instant.</div></sc-if>
+      <sc-for list="{{ hist }}" as="h" hint-placeholder-count="3">
+        <div style="{{ h.rowSt }}">
+          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px 28px">
+            <div style="flex:0 0 140px;display:flex;flex-direction:column;gap:3px"><span style="font-size:13px;font-weight:700;white-space:nowrap">{{ h.date }}</span><span style="font-size:11.5px;color:#8a9aa6">{{ h.time }} · {{ h.by }}</span></div>
+            <div style="flex:1 1 180px;min-width:0;display:flex;flex-direction:column;gap:3px"><span style="font-size:13.5px;font-weight:800">{{ h.to }}</span><span style="font-size:11.5px;color:#8a9aa6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ h.mail }}</span></div>
+            <div style="flex:1 1 240px;min-width:0;display:flex;flex-direction:column;gap:3px"><span style="font-size:13px;color:#10233a">{{ h.data }}</span><span style="{{ h.secSt }}">{{ h.sec }}</span></div>
+            <div style="flex:0 0 130px;display:flex;flex-direction:column;gap:3px"><span style="font-size:13px;font-weight:700;white-space:nowrap">{{ h.ver }} · {{ h.size }}</span><span title="{{ h.sha }}" style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#8a9aa6;white-space:nowrap">{{ h.shaShort }}</span></div>
+            <div style="flex:0 0 auto;margin-left:auto">
+              <sc-if value="{{ h.kept }}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{ h.del }}" title="Supprimer le fichier du serveur" style="height:34px;padding:0 12px;border-radius:10px;border:0;background:transparent;box-shadow:inset 0 0 0 1px #e1e9e7;font-size:12px;font-weight:700;color:#43586a;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap" style-hover="color:#a63a2f;box-shadow:inset 0 0 0 1px #f0c3ba;background:#fdf6f4"><span style="width:6px;height:6px;border-radius:50%;background:#1d8f86"></span>Sur le serveur · Supprimer</button></sc-if>
+              <sc-if value="{{ h.gone }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:#a3b1ba;white-space:nowrap">{{ h.goneL }}</span></sc-if>
+            </div>
+          </div>
+          <div style="{{ h.revSt }}"><span style="{{ h.revDot }}"></span><span style="flex:1;min-width:0;line-height:1.5">{{ h.rev }}</span></div>
+        </div>
+      </sc-for>
+      <div style="padding:16px 28px;background:#f8fbfa;border-top:1px solid #eef3f2;font-size:12px;color:#5c7280;line-height:1.55;text-wrap:pretty">Une installation déjà faite ne peut pas être désactivée à distance. Pour couper l’accès, révoquez les clés chez les fournisseurs et changez le mot de passe SMTP s’il était inclus.</div>
+    </div>
+  </section>
+</div>
+
+<sc-if value="{{ msgOpen }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeMsg }}" style="position:fixed;inset:0;z-index:40;background:rgba(10,23,39,.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:grid;place-items:center;padding:32px;animation:fade .2s both">
+    <div role="dialog" aria-label="Message pour le destinataire" onClick="{{ stop }}" style="width:100%;max-width:640px;max-height:calc(100vh - 64px);display:flex;flex-direction:column;background:#fff;border-radius:22px;box-shadow:0 40px 80px -30px rgba(10,23,39,.7);overflow:hidden;animation:sheet .3s cubic-bezier(.2,.7,.2,1) both">
+      <div style="padding:24px 28px 18px;display:flex;align-items:flex-start;gap:14px;border-bottom:1px solid #eef3f2">
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px"><span style="font-size:11px;font-weight:800;letter-spacing:.16em;color:#1d8f86">PRÊT À COPIER</span><span style="font-size:20px;font-weight:800;letter-spacing:-.02em">Message pour {{ first }}</span><span style="font-size:12.5px;color:#5c7280">À envoyer avec le ZIP. Le code part par un autre canal.</span></div>
+        <button type="button" onClick="{{ closeMsg }}" aria-label="Fermer" style="flex:none;width:36px;height:36px;border-radius:10px;border:0;background:#f2f6f5;cursor:pointer;display:grid;place-items:center;color:#43586a" style-hover="background:#e1e9e7;color:#10233a"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12 M18 6L6 18"></path></svg></button>
+      </div>
+      <div style="flex:1;overflow:auto;padding:22px 28px;font-size:13px;line-height:1.65;color:#10233a;white-space:pre-wrap">{{ msg }}</div>
+      <div style="padding:16px 28px;border-top:1px solid #eef3f2;background:#f8fbfa;display:flex;align-items:center;gap:12px"><span style="flex:1;min-width:0;font-size:12px;color:#8a9aa6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ msgMeta }}</span><button type="button" onClick="{{ copyMsg }}" style="height:42px;padding:0 18px;border-radius:12px;border:0;background:#10233a;color:#fff;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap" style-hover="background:#1d3654">{{ copyL }}</button></div>
+    </div>
+  </div>
+</sc-if>
+<sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}"><div role="status" style="position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:50;height:44px;padding:0 18px;border-radius:12px;background:#10233a;color:#fff;font-size:13px;font-weight:600;display:flex;align-items:center;gap:10px;box-shadow:0 18px 40px -16px rgba(16,35,58,.6);animation:toastIn .25s cubic-bezier(.2,.7,.2,1) both;white-space:nowrap"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3dd6c6" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"></path></svg>{{ toast }}</div></sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;scenario&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Configuration&quot;,&quot;Paquet généré&quot;,&quot;Premier paquet&quot;],&quot;default&quot;:&quot;Configuration&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;context&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{ version, build, lastVersion, news: string[], sizes: { app, shared, demo, empty }, projects: { id, name, meta, bytes }[], keys: { id, name, mask, cap: number | null }[], smtp: { host, from } | null, files: { label, count, countLabel, bytes }[], profiles: string[] }&quot;},&quot;history&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{ id, status, step, createdAt, by, to, mail, data, dataMode, projects, keys: { id, name, mask }[], smtp, files, code, prefill, update, version, size, sha256, fileName, kept, fileDeletedAt }[]&quot;},&quot;api&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{ start(body) =&gt; Promise&lt;{ jobId }&gt;, events(jobId, onEvent, onEnd) =&gt; close, download(id) =&gt; Promise, del(id) =&gt; Promise, reload() =&gt; Promise, goProviders() }&quot;},&quot;me&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{ first: string }&quot;}}">
+// Partager Cockpit (spécification PARTAGE, 05/10/2026). Sans les props `context` / `history` / `api` (démonstration),
+// l'écran garde les données fictives de la maquette et simule la génération ; avec elles (admin-api.js), tout vient du
+// serveur : contexte, génération en 4 étapes diffusée en direct, historique, téléchargement signé, suppression.
+const PROJ = [['rise', 'RISE', '14 lots · 212 tâches · 9 snapshots', 38], ['horizon', 'Horizon', '8 lots · 96 tâches · 4 snapshots', 22], ['nova', 'Nova Brand X', '3 lots · 31 tâches', 9]];
+const KEYS = [['anthropic', 'Anthropic', 'sk-ant-…4f2a', 100], ['openai', 'OpenAI', 'sk-…9c1d', 50], ['mistral', 'Mistral', '…b72e', 30], ['google', 'Google Gemini', 'AIza…31kq', 30], ['azure', 'Azure OpenAI', '…e08f', null]];
+const FILES = [['Base de connaissance', '84 documents', 412], ['Guide utilisateur', '1 PDF', 18], ['Formats de rapport', '6 PPTX', 36]];
+const PROFILES = ['Administrateur', 'Chef de projet', 'Contributeur', 'Lecteur'];
+const APP = 286, BASE = 6, FILES_MO = 466;
+const DEMO = { VER: '2.4.0', BUILD: '', PROJ, KEYS, FILES, PROFILES, APP, BASE, FILES_MO, DEMO_MO: 14, EMPTY_MO: 1, SMTP: 'smtp.gmail.com · cockpitbyone@gmail.com', FROM: 'cockpitbyone@gmail.com', HAS_SMTP: true, LAST: '2.3.1',
+  NEWS: ['Templates de rapport en six étapes, avec prévisualisation et publication.', 'Consommation et coûts réunis, avec le journal des appels.', 'Test du serveur SMTP étape par étape.'], SIGN: 'Cédric' };
+const STEPS = ['compile', 'copy_db', 'encrypt', 'archive'];
+const EMAIL = /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i;
+const MO = b => (b || 0) / 1e6;
+const fmt = mo => mo >= 1000 ? (mo / 1000).toFixed(2).replace('.', ',') + ' Go' : Math.round(mo) + ' Mo';
+const hex = n => Array.from({ length: n }, () => '0123456789abcdef'[Math.floor(Math.random() * 16)]).join('');
+const mkCode = () => [0, 1, 2].map(() => Array.from({ length: 4 }, () => 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 31)]).join('')).join('-');
+const sw = (on, col) => ['flex:none;position:relative;width:40px;height:24px;border-radius:12px;border:0;padding:0;cursor:pointer;transition:background .2s;background:' + (on ? (col || '#1d8f86') : '#d5e0dd'), 'position:absolute;top:3px;left:' + (on ? 19 : 3) + 'px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(16,35,58,.3);transition:left .2s cubic-bezier(.2,.7,.2,1)'];
+const chk = on => 'flex:none;width:18px;height:18px;border-radius:6px;display:grid;place-items:center;transition:all .15s;' + (on ? 'background:#10233a;color:#fff' : 'background:#fff;box-shadow:inset 0 0 0 1.5px #c5d2cf;color:transparent');
+const ring = on => ['flex:none;width:18px;height:18px;border-radius:50%;display:grid;place-items:center;transition:box-shadow .15s;box-shadow:inset 0 0 0 ' + (on ? '1.5px #10233a' : '1.5px #c5d2cf'), 'width:8px;height:8px;border-radius:50%;transition:transform .2s cubic-bezier(.2,.7,.2,1);background:#10233a;transform:scale(' + (on ? 1 : 0) + ')'];
+const inp = err => 'height:44px;width:100%;border:0;outline:0;border-radius:12px;background:#f6faf9;padding:0 14px;font-size:13.5px;font-weight:600;transition:box-shadow .15s;box-shadow:inset 0 0 0 ' + (err ? '1.5px #f0a193' : '1px #e1e9e7');
+const foot = tone => 'padding:14px 24px 16px;border-top:1px solid #eef3f2;font-size:12px;line-height:1.5;text-wrap:pretty;color:' + (tone === 'err' ? '#c2473b' : tone === 'warn' ? '#8a5a12' : '#5c7280');
+const join = a => a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' et ' + a[a.length - 1];
+const DARK = 'rgba(255,255,255,.08)';
+const HIST = [
+  { id: 'h1', date: '12/09/2026', time: '14:22', by: 'Cédric Schmitz', to: 'Julien Morel', mail: 'julien.morel@onepoint.fr', data: 'Démonstration · fichiers', keys: ['Anthropic …4f2a', 'OpenAI …9c1d'], smtp: true, code: true, ver: '2.3.1', size: '612 Mo', sha: '9f3c' + hex(56) + 'a71e', kept: true },
+  { id: 'h2', date: '28/07/2026', time: '09:05', by: 'Cédric Schmitz', to: 'Manon Petit', mail: 'manon.petit@onepoint.fr', data: 'Base actuelle · RISE', keys: ['Anthropic …77d0'], smtp: false, code: true, ver: '2.2.0', size: '734 Mo', sha: '41be' + hex(56) + '0c93', kept: false, goneAt: '04/08/2026' },
+  { id: 'h3', date: '03/06/2026', time: '17:40', by: 'Cédric Schmitz', to: 'Arnaud Leroy', mail: 'arnaud.leroy@onepoint.fr', data: 'Cockpit vide', keys: [], smtp: false, code: false, ver: '2.1.4', size: '289 Mo', sha: 'c07a' + hex(56) + '5e28', kept: false, goneAt: '10/06/2026' }
+];
+const p2 = n => String(n).padStart(2, '0');
+const dmy = d => p2(d.getDate()) + '/' + p2(d.getMonth() + 1) + '/' + d.getFullYear();
+const sameDay = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+/** Ligne de l'historique du serveur → ligne de l'écran (masques seulement, jamais de clé). */
+const toHist = (h, fresh) => { const d = new Date(h.createdAt), g = h.fileDeletedAt ? new Date(h.fileDeletedAt) : null;
+  return { id: h.id, fresh: fresh === h.id, date: sameDay(d, new Date()) ? 'Aujourd’hui' : dmy(d), time: p2(d.getHours()) + ':' + p2(d.getMinutes()), by: h.by, to: h.to, mail: h.mail, data: h.data,
+    keys: h.keys.map(k => k.name + ' ' + k.mask.replace(/^.*…/, '…')), smtp: h.smtp, code: h.code, ver: h.version, size: fmt(MO(h.size)), sha: h.sha256 || '', kept: h.kept, goneAt: g && !sameDay(g, new Date()) ? dmy(g) : '' }; };
+
+class Component extends DCLogic {
+  state = { data: 'demo', proj: { rise: true, horizon: true, nova: false }, keys: { anthropic: true, openai: true }, smtp: true, files: true, code: true,
+    name: 'Antoine Mercier', mail: 'antoine.mercier@onepoint.fr', prefill: true, prof: { 'Chef de projet': true }, upd: 'keep',
+    run: null, out: null, codeShown: false, hist: HIST, toast: '', copied: false, shaCopied: false, msgOpen: false, fresh: null };
+  live() { return !!(this.props.api && this.props.context); }
+  componentDidMount() {
+    const sc = this.props.scenario;
+    if (this.live()) this.initLive();
+    else { if (sc === 'Paquet généré') this.finish(true); if (sc === 'Premier paquet') this.setState({ hist: [] }); }
+    this._key = e => { if (e.key === 'Escape') this.setState({ msgOpen: false }); }; window.addEventListener('keydown', this._key);
+  }
+  componentDidUpdate() { if (this.live() && !this._init) this.initLive(); else if (this.live()) this.resume(); }
+  componentWillUnmount() { (this._tm || []).forEach(clearTimeout); clearTimeout(this._tt); window.removeEventListener('keydown', this._key); if (this._close) this._close(); }
+  /** Premier affichage avec le serveur : choix vierges et prudents (aucune clé cochée), puis reprise d'une génération en cours. */
+  initLive() {
+    this._init = true;
+    const c = this.props.context;
+    this.setState({ data: c.projects.length ? 'current' : 'demo', proj: Object.fromEntries(c.projects.map(p => [p.id, true])), keys: {}, smtp: false, files: true, code: true,
+      name: '', mail: '', prefill: true, prof: { PMO: true }, upd: 'keep', run: null, out: null, codeShown: false }, () => this.resume());
+  }
+  /** Génération en cours sur le serveur (écran quitté ou rechargé) : choix restaurés et flux repris à l'étape en cours. */
+  resume() {
+    const h = (this.props.history || []).find(x => x.status === 'RUNNING');
+    if (!h || this._close || this._job === h.id) return;
+    this.setState({ data: h.dataMode, proj: Object.fromEntries(h.projects.map(p => [p, true])), keys: Object.fromEntries(h.keys.map(k => [k.id, true])), smtp: h.smtp, files: h.files, code: h.code,
+      name: h.to, mail: h.mail, prefill: !!h.prefill, prof: Object.fromEntries(((h.prefill && h.prefill.profiles) || []).map(p => [p, true])), upd: h.update, run: { step: h.step }, out: null });
+    this.listen(h.id);
+  }
+  D() {
+    const c = this.props.context;
+    if (!this.live()) return DEMO;
+    const me = this.props.me || {};
+    return { VER: c.version, BUILD: c.build, PROJ: c.projects.map(p => [p.id, p.name, p.meta, MO(p.bytes)]), KEYS: c.keys.map(k => [k.id, k.name, k.mask, k.cap]),
+      FILES: c.files.map(f => [f.label, f.countLabel, MO(f.bytes)]), PROFILES: c.profiles, APP: MO(c.sizes.app), BASE: MO(c.sizes.shared), FILES_MO: c.files.reduce((a, f) => a + MO(f.bytes), 0),
+      DEMO_MO: MO(c.sizes.demo), EMPTY_MO: MO(c.sizes.empty), SMTP: c.smtp ? c.smtp.host + ' · ' + c.smtp.from : 'Aucun serveur configuré dans la Console', FROM: c.smtp ? c.smtp.from : '', HAS_SMTP: !!c.smtp,
+      LAST: c.lastVersion, NEWS: c.news, SIGN: me.first || '' };
+  }
+  say(t) { clearTimeout(this._tt); this.setState({ toast: t }); this._tt = setTimeout(() => this.setState({ toast: '' }), 2400); }
+  calc(S, D) {
+    const projs = D.PROJ.filter(p => S.proj[p[0]]);
+    const dataMo = S.data === 'current' ? D.BASE + projs.reduce((a, p) => a + p[3], 0) : S.data === 'demo' ? D.DEMO_MO : D.EMPTY_MO;
+    const filesMo = S.files ? D.FILES_MO : 0, keys = D.KEYS.filter(k => S.keys[k[0]]);
+    const smtp = S.smtp && D.HAS_SMTP;
+    return { dataMo, filesMo, total: D.APP + dataMo + filesMo, keys, projs, smtp, secrets: keys.length + (smtp ? 1 : 0) };
+  }
+  first(n) { return n.trim().split(/\s+/)[0] || 'le destinataire'; }
+  fileName(S, D) { if (S.out && S.out.fileName) return S.out.fileName; const n = S.name.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').split(/\s+/); return 'cockpit-' + D.VER + '-' + ((n.length > 1 ? n[0][0] + n[n.length - 1] : n[0]) || 'paquet').replace(/[^a-z0-9]/g, '') + '.zip'; }
+  generate() {
+    if (this.state.run) return;
+    if (this.live()) {
+      const S = this.state, D = this.D();
+      const body = { data: S.data, projects: S.data === 'current' ? D.PROJ.filter(p => S.proj[p[0]]).map(p => p[0]) : [], keys: D.KEYS.filter(k => S.keys[k[0]]).map(k => k[0]),
+        smtp: S.smtp && D.HAS_SMTP, files: S.files, code: S.code, recipient: { name: S.name.trim(), email: S.mail.trim() },
+        prefill: { enabled: S.prefill, profiles: D.PROFILES.filter(p => S.prof[p]) }, update: S.upd };
+      this.setState({ run: { step: 0 }, out: null });
+      Promise.resolve(this.props.api.start(body)).then(r => this.listen(r.jobId), e => { this.setState({ run: null }); this.say((e && e.message) || 'Génération impossible'); });
+      return;
+    }
+    (this._tm || []).forEach(clearTimeout); this._tm = [];
+    this.setState({ run: { step: 0 }, out: null });
+    [1, 2, 3, 4].forEach(i => this._tm.push(setTimeout(() => i < 4 ? this.setState({ run: { step: i } }) : this.finish(), 1100 * i)));
+  }
+  /** Flux du serveur : étape en cours, puis fin (taille, empreinte, nom, code remis une seule fois) ou échec. */
+  listen(jobId) {
+    if (this._close) this._close();
+    this._job = jobId;
+    this._close = this.props.api.events(jobId, e => {
+      if (e.step && e.status === 'running') this.setState({ run: { step: STEPS.indexOf(e.step) } });
+      else if (e.step) this.setState(s => ({ run: { step: Math.max(s.run ? s.run.step : 0, STEPS.indexOf(e.step) + 1) } }));
+      else if (e.done) { this._close = null; this.setState({ run: { step: 4 }, out: { sha: e.sha256, code: e.code || null, size: fmt(MO(e.size)), fileName: e.fileName, id: jobId }, codeShown: !!e.code, copied: false, shaCopied: false, fresh: jobId });
+        this.say('Paquet généré · inscrit au journal d’audit'); this.props.api.reload && this.props.api.reload(); }
+      else if (e.failed) { this._close = null; this.setState({ run: null, out: null }); this.say(e.message || 'Génération en échec'); this.props.api.reload && this.props.api.reload(); }
+    }, () => { this._close = null; });
+  }
+  finish(silent) {
+    const S = this.state, D = this.D(), c = this.calc(S, D), sha = hex(64), code = S.code ? mkCode() : null;
+    const dataL = (S.data === 'current' ? 'Base actuelle · ' + c.projs.map(p => p[1]).join(', ') : S.data === 'demo' ? 'Démonstration' : 'Cockpit vide') + (S.files ? ' · fichiers' : '');
+    const d = new Date(), entry = { id: 'n' + Date.now(), fresh: true, date: 'Aujourd’hui', time: String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'), by: 'Cédric Schmitz', to: S.name.trim(), mail: S.mail.trim(), data: dataL, keys: c.keys.map(k => k[1] + ' ' + k[2].replace(/^.*…/, '…')), smtp: S.smtp, code: S.code, ver: D.VER, size: fmt(c.total * 0.97), sha, kept: true };
+    this.setState(s => ({ run: { step: 4 }, out: { sha, code, size: entry.size }, codeShown: !!code, hist: [entry, ...s.hist], copied: false, shaCopied: false }));
+    if (!silent) this.say('Paquet généré · inscrit au journal d’audit');
+  }
+  msg(S, c, D) {
+    const out = S.out || {};
+    const steps = ['Téléchargez le fichier ' + this.fileName(S, D) + ' (' + (out.size || '') + ').', 'Vérifiez son empreinte SHA-256 :\n   ' + (out.sha || ''), 'Décompressez l’archive, puis lancez installer_cockpit.cmd.'];
+    if (S.code) steps.push('Saisissez le code de déverrouillage que je vous transmets par SMS.');
+    steps.push(S.prefill ? 'Votre compte est déjà créé : choisissez simplement votre mot de passe.' : 'Créez votre compte administrateur.');
+    let m = 'Bonjour ' + this.first(S.name) + ',\n\nVoici le paquet d’installation de Cockpit ' + D.VER + '.\n\nInstallation\n' + steps.map((s, i) => (i + 1) + '. ' + s).join('\n');
+    m += '\n\nConfiguration requise\nWindows 10 ou 11 64 bits, environ 1 Go d’espace libre, port 3000 disponible.';
+    m += '\n\nAdresses\nCockpit : http://localhost:3000\nConsole d’administration : http://localhost:3000/console';
+    const sec = [c.keys.length ? 'mes comptes d’IA' : '', c.smtp ? 'mon serveur d’e-mail' : ''].filter(Boolean);
+    m += '\n\nConfidentialité\n' + (sec.length ? 'Ce paquet contient des clés d’accès à ' + join(sec) + '. ' : '') + 'Ne le transmettez à personne et supprimez le ZIP une fois l’installation terminée.' + (D.SIGN ? '\n\n' + D.SIGN : '');
+    return m;
+  }
+  cell(i, o) {
+    const pad = i === 0 ? 'padding:22px 32px 26px 40px;' : i === 3 ? 'padding:22px 40px 26px 32px;' : 'padding:22px 32px 26px;';
+    return { hasAct: false, act: () => {}, actL: '', hasBar: false, bar: [], hasProg: false, prog: '', hasBtn: false, btn: () => {}, btnL: '', ...o,
+      cell: pad + 'display:flex;flex-direction:column;gap:8px;min-width:0;transition:opacity .3s,background .3s;' + (i < 3 ? 'border-right:1px solid ' + DARK + ';' : '') + (o.dim ? 'opacity:.42;' : '') + (o.glow ? 'background:linear-gradient(180deg,rgba(61,214,198,.1),rgba(61,214,198,.02));' : ''),
+      eySt: 'font-size:11px;font-weight:800;letter-spacing:.16em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:' + (o.eyCol || '#8fa3b3') + (o.pulse ? ';animation:pulse 1.2s ease-in-out infinite' : ''),
+      vSt: (o.mono ? 'font-family:\'IBM Plex Mono\',monospace;font-size:' + (o.small ? '12.5px;font-weight:500;line-height:1.6;letter-spacing:.02em;word-break:break-all' : '28px;font-weight:600;letter-spacing:.06em;line-height:1.1;white-space:nowrap') : 'font-size:' + (o.mid ? '18px' : '32px') + ';font-weight:800;letter-spacing:' + (o.mid ? '-.01em' : '-.03em') + ';line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis') + ';color:' + (o.vCol || '#fff'),
+      sSt: 'font-size:12.5px;line-height:1.45;color:' + (o.sCol || '#c4d3dd') + (o.sMono ? ';font-family:\'IBM Plex Mono\',monospace;font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap' : '') };
+  }
+  renderVals() {
+    const S = this.state, D = this.D(), c = this.calc(S, D), running = !!S.run && S.run.step < 4, done = !!S.out, isConfig = !running && !done, live = this.live();
+    const mailErr = S.mail.trim() !== '' && !EMAIL.test(S.mail.trim()), noProj = S.data === 'current' && !c.projs.length;
+    const valid = !!S.name.trim() && EMAIL.test(S.mail.trim()) && !noProj;
+    const set = p => { if (running) return; this.setState(s => ({ ...(typeof p === 'function' ? p(s) : p), run: null, out: null, codeShown: false })); };
+    const smtpOn = c.smtp;
+    const smtpSw = sw(smtpOn), filesSw = sw(S.files), codeSw = sw(S.code, '#3dd6c6'), preSw = sw(S.prefill);
+    const first = this.first(S.name), hasName = !!S.name.trim();
+    const capped = c.keys.filter(k => k[3]), uncapped = c.keys.filter(k => !k[3]);
+    const expo = capped.reduce((a, k) => a + k[3], 0);
+    const codeOn = S.code, risky = c.secrets > 0;
+
+    const dataNames = { current: 'la base actuelle' + (c.projs.length ? ' (' + join(c.projs.map(p => p[1])) + ')' : ''), demo: 'le jeu de démonstration', empty: 'un Cockpit vide' };
+    const parts = [dataNames[S.data]];
+    if (c.keys.length) parts.push(c.keys.length === 1 ? 'la clé ' + c.keys[0][1] : 'les clés ' + join(c.keys.map(k => k[1])));
+    if (smtpOn) parts.push('le serveur SMTP');
+    if (S.files) parts.push('les fichiers déposés');
+    let summary = 'Contient ' + join(parts) + '.' + (risky ? (codeOn ? ' Secrets chiffrés par un code à transmettre à part.' : ' Secrets lisibles par quiconque obtient le ZIP.') : '');
+    let headline = hasName ? 'Cockpit ' + D.VER + ' pour ' + first + '.' : 'Pour qui est ce paquet ?';
+    if (running) { headline = 'Préparation du paquet.'; summary = 'Vous pouvez quitter cet écran : la génération continue sur le serveur.'; }
+    if (done) { headline = 'Le paquet de ' + first + ' est prêt.'; summary = codeOn && (!live || S.out.code || S.hidden) ? 'Notez le code avant de le masquer, puis envoyez le ZIP et le message. Le code part par SMS ou par téléphone.' : 'Envoyez le ZIP et le message. Ce paquet n’est pas protégé par un code.'; }
+
+    const bar = [['Application', D.APP, '#3dd6c6'], ['Données', c.dataMo, '#8fd9ff'], ['Fichiers', c.filesMo, '#f5b54a']].filter(b => b[1] > 0).map(([l, v, col]) => ({ t: l + ' ' + fmt(v), st: 'height:100%;border-radius:2px;transition:flex-grow .4s cubic-bezier(.2,.7,.2,1);background:' + col + ';flex:' + v + ' 1 0' }));
+
+    let cells;
+    if (isConfig) cells = [
+      this.cell(0, { ey: 'TAILLE ESTIMÉE', v: fmt(c.total), hasBar: true, bar, s: 'Application ' + fmt(D.APP) + (c.filesMo ? ' · fichiers ' + fmt(c.filesMo) : '') }),
+      this.cell(1, { ey: 'DÉPENSE IA POSSIBLE', v: !c.keys.length ? '0 €' : uncapped.length ? 'Illimitée' : expo + ' €', vCol: uncapped.length ? '#f5a393' : '#fff', s: !c.keys.length ? 'Aucune clé d’IA incluse.' : uncapped.length ? join(uncapped.map(k => k[1])) + ' sans plafond, facturé chez vous.' : 'Par mois au plus, facturés chez vous.' }),
+      this.cell(2, { ey: 'SECRETS', v: String(c.secrets), s: !risky ? 'Aucun dans le paquet' : codeOn ? 'Chiffrés par code' : 'Lisibles dans le ZIP', sCol: !risky ? '#c4d3dd' : codeOn ? '#3dd6c6' : '#f5a393' }),
+      this.cell(3, { ey: 'SI DÉJÀ INSTALLÉ', v: S.upd === 'keep' ? 'Conservées' : 'Remplacées', s: S.upd === 'keep' ? 'Ses données restent intactes.' : 'Sa base est remplacée, après sauvegarde.' })
+    ];
+    else if (running) {
+      const defs = [['Compilation', 'win-x64 · ' + fmt(D.APP), 'Compilé'], ['Copie de la base', (S.data === 'current' ? c.projs.length + ' projet' + (c.projs.length > 1 ? 's' : '') : S.data === 'demo' ? 'Démonstration' : 'Base vide') + ' · ' + fmt(c.dataMo), 'Copiée'], ['Rechiffrement', risky ? c.secrets + ' secret' + (c.secrets > 1 ? 's' : '') + (codeOn ? ' · AES-256 par code' : ' · sans code') : 'Aucun secret', risky ? 'Chiffrés' : 'Ignoré'], ['Archive', this.fileName(S, D), 'Prête']];
+      cells = defs.map(([k, v, okL], i) => {
+        const st = i < S.run.step ? 'ok' : i === S.run.step ? 'pend' : 'idle';
+        return this.cell(i, { ey: '0' + (i + 1) + ' · ' + (st === 'ok' ? okL.toUpperCase() : st === 'pend' ? 'EN COURS' : 'EN ATTENTE'), eyCol: st === 'idle' ? '#8fa3b3' : '#3dd6c6', pulse: st === 'pend', v: k, mid: true, s: v, sMono: true, sCol: '#8fa3b3', dim: st === 'idle', hasProg: true,
+          prog: 'display:block;height:100%;border-radius:2px;background:#3dd6c6;width:' + (st === 'idle' ? '0' : '100%') + (st === 'pend' ? ';transition:width ' + (live ? '20s' : '1.1s') + ' linear' : '') });
+      });
+    } else {
+      const hasCode = !!(S.out && S.out.code);
+      cells = [
+        this.cell(0, { ey: 'FICHIER', v: S.out.size, s: this.fileName(S, D), sMono: true }),
+        this.cell(1, { ey: 'EMPREINTE SHA-256', v: S.out.sha, mono: true, small: true, s: 'Pour vérifier que le fichier n’a pas été altéré.', sCol: '#8fa3b3', hasAct: true, actL: S.shaCopied ? 'Copiée' : 'Copier', act: () => { navigator.clipboard && navigator.clipboard.writeText(S.out.sha).catch(() => {}); this.setState({ shaCopied: true }); this.say('Empreinte copiée'); } }),
+        this.cell(2, hasCode && S.codeShown ? { ey: 'CODE · AFFICHÉ UNE SEULE FOIS', eyCol: '#3dd6c6', glow: true, v: S.out.code, mono: true, s: 'Par SMS ou téléphone, jamais avec le ZIP.', hasBtn: true, btnL: 'Code noté, le masquer', btn: () => this.setState(s => ({ codeShown: false, out: { ...s.out, code: '' }, hidden: true })) }
+          : hasCode || (S.out && S.hidden && codeOn) ? { ey: 'CODE DE DÉVERROUILLAGE', v: '••••-••••-••••', mono: true, vCol: '#3c5266', s: 'Masqué. Il ne pourra plus être affiché.', sCol: '#8fa3b3' }
+          : { ey: 'CODE DE DÉVERROUILLAGE', v: 'Aucun', vCol: '#f5a393', s: risky ? 'Secrets lisibles par quiconque obtient le ZIP.' : 'Aucun secret à protéger.' }),
+        this.cell(3, { ey: 'JOURNAL D’AUDIT', v: 'Inscrit', s: 'Action sensible · ' + (hasName ? S.name.trim() : '') })
+      ];
+    }
+    const doneN = S.run ? Math.min(S.run.step, 4) : 0;
+
+    const powers = [];
+    if (c.keys.length) powers.push({ l: uncapped.length ? 'Utiliser ' + c.keys.length + ' compte' + (c.keys.length > 1 ? 's' : '') + ' d’IA, dont ' + join(uncapped.map(k => k[1])) + ' sans plafond' : 'Dépenser jusqu’à ' + expo + ' € par mois sur ' + (c.keys.length > 1 ? 'vos comptes ' : 'votre compte ') + join(c.keys.map(k => k[1])), dot: 'flex:none;width:6px;height:6px;border-radius:50%;transform:translateY(-1px);background:' + (uncapped.length ? '#f07b67' : '#f5a524') });
+    if (smtpOn) powers.push({ l: 'Envoyer des e-mails depuis ' + D.FROM, dot: 'flex:none;width:6px;height:6px;border-radius:50%;transform:translateY(-1px);background:#f5a524' });
+    if (!powers.length) powers.push({ l: 'Rien en votre nom : elle saisira ses propres accès.', dot: 'flex:none;width:6px;height:6px;border-radius:50%;transform:translateY(-1px);background:#3dd6c6' });
+
+    const rows = live ? (this.props.history || []).filter(h => h.status === 'READY').map(h => toHist(h, S.fresh)) : S.hist;
+    const histRows = rows.map((h, i) => {
+      const secs = [...h.keys, ...(h.smtp ? ['SMTP'] : [])], hasSec = secs.length > 0;
+      return { ...h, gone: !h.kept, goneL: h.goneAt ? 'Fichier supprimé le ' + h.goneAt : 'Fichier supprimé aujourd’hui', shaShort: h.sha.slice(0, 8) + '…' + h.sha.slice(-4),
+        sec: hasSec ? secs.length + ' secret' + (secs.length > 1 ? 's' : '') + (h.code ? ' · protégés par code' : ' · sans code') : 'Aucun secret',
+        secSt: 'font-size:11.5px;font-weight:600;color:' + (hasSec && !h.code ? '#b4541a' : '#8a9aa6'),
+        rev: hasSec ? 'À révoquer pour couper l’accès : ' + h.keys.join(' · ') + (h.smtp ? (h.keys.length ? ' · ' : '') + 'mot de passe SMTP' : '') : 'Rien à révoquer.',
+        revSt: 'display:flex;align-items:baseline;gap:10px;font-size:12px;padding-left:168px;color:' + (hasSec ? '#8a5a12' : '#a3b1ba'),
+        revDot: 'flex:none;width:5px;height:5px;border-radius:50%;transform:translateY(-1px);background:' + (hasSec ? '#d99a2b' : '#d5e0dd'),
+        rowSt: 'display:flex;flex-direction:column;gap:10px;padding:20px 28px;' + (i ? 'border-top:1px solid #eef3f2;' : '') + (h.fresh ? 'background:linear-gradient(90deg,#eef8f6,#fff 60%);animation:rise .4s both' : ''),
+        del: () => live
+          ? Promise.resolve(this.props.api.del(h.id)).then(() => this.say('Fichier supprimé du serveur'), e => this.say((e && e.message) || 'Suppression impossible'))
+          : this.setState(s => ({ hist: s.hist.map(x => x.id === h.id ? { ...x, kept: false } : x) }), () => this.say('Fichier supprimé du serveur')) };
+    });
+    const kept = histRows.filter(h => h.kept).length;
+    const msg = done ? this.msg(S, c, D) : '';
+    const ini = S.name.trim().split(/\s+/).filter(Boolean).map(w => w[0].toUpperCase()).slice(0, 2).join('');
+
+    return {
+      headline, summary, isConfig, running, done, first, cells,
+      phaseDot: 'width:8px;height:8px;border-radius:50%;flex:none;background:' + (risky && !codeOn && isConfig ? '#f07b67' : '#3dd6c6') + (running ? ';animation:pulse 1s ease-in-out infinite' : ''),
+      cantGen: !valid, generate: () => valid && this.generate(),
+      genSt: 'height:52px;padding:0 22px;border-radius:14px;border:0;font-size:14px;font-weight:800;display:inline-flex;align-items:center;gap:12px;white-space:nowrap;transition:all .15s;' + (valid ? 'background:#3dd6c6;color:#0a1727;cursor:pointer;box-shadow:0 14px 30px -12px rgba(61,214,198,.6)' : 'background:rgba(255,255,255,.08);color:#6f8596;cursor:not-allowed'),
+      genHov: valid ? 'background:#5fe0d2;transform:translateY(-1px)' : '',
+      genHint: !hasName || !EMAIL.test(S.mail.trim()) ? 'Renseignez le destinataire (05).' : noProj ? 'Choisissez au moins un projet (01).' : live ? 'Quelques minutes.' : 'Environ une minute.',
+      runPct: doneN + ' / 4 étapes',
+      download: () => live && S.out && S.out.id ? Promise.resolve(this.props.api.download(S.out.id)).then(() => this.say('Téléchargement de ' + this.fileName(S, D)), e => this.say((e && e.message) || 'Téléchargement impossible')) : this.say('Téléchargement de ' + this.fileName(S, D)),
+      reset: () => this.setState({ run: null, out: null, codeShown: false, hidden: false, name: '', mail: '', fresh: null }),
+      openMsg: () => this.setState({ msgOpen: true, copied: false }), closeMsg: () => this.setState({ msgOpen: false }), stop: e => e.stopPropagation(), msgOpen: S.msgOpen,
+      msg, msgMeta: 'Destinataire : ' + S.mail.trim(), copyL: S.copied ? 'Copié' : 'Copier le message',
+      copyMsg: () => { navigator.clipboard && navigator.clipboard.writeText(msg).catch(() => {}); this.setState({ copied: true }); this.say('Message copié'); },
+      goProv: e => { if (e && e.preventDefault) e.preventDefault(); if (this.props.api && this.props.api.goProviders) this.props.api.goProviders(); },
+
+      dataMoL: fmt(c.dataMo),
+      datas: [['current', 'Base actuelle', D.BASE + c.projs.reduce((a, p) => a + p[3], 0)], ['demo', 'Jeu de démonstration', D.DEMO_MO], ['empty', 'Cockpit vide', D.EMPTY_MO]].map(([k, l, mo]) => {
+        const on = S.data === k, r = ring(on);
+        return { l, s: fmt(mo), on, pick: () => set({ data: k }), ring: r[0], ringIn: r[1],
+          st: 'display:flex;align-items:center;gap:12px;height:46px;padding:0 14px;border-radius:12px;border:0;cursor:pointer;transition:all .15s;' + (on ? 'background:#fff;box-shadow:inset 0 0 0 1.5px #10233a' : 'background:#f6faf9;box-shadow:inset 0 0 0 1px #edf2f1'),
+          hov: on ? '' : 'background:#fff;box-shadow:inset 0 0 0 1px #c5d2cf' };
+      }),
+      isCurrent: S.data === 'current', noProj,
+      dataHelp: noProj ? 'Choisissez au moins un projet.' : { current: 'Une copie de la base telle qu’elle est aujourd’hui, limitée aux projets choisis.', demo: 'Deux projets fictifs, des équipes et des snapshots pour découvrir Cockpit.', empty: 'Aucun projet ni utilisateur. La personne part de zéro.' }[S.data],
+      dataFootSt: foot(noProj ? 'err' : ''),
+      projects: D.PROJ.map(([k, name, meta, mo]) => { const on = !!S.proj[k]; return { name, meta: meta + ' · ' + fmt(mo), on, toggle: () => set(s => ({ proj: { ...s.proj, [k]: !s.proj[k] } })),
+        st: 'height:30px;padding:0 11px 0 6px;border-radius:999px;border:0;cursor:pointer;display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;white-space:nowrap;transition:all .15s;' + (on ? 'background:#10233a;color:#fff' : 'background:#fff;color:#43586a;box-shadow:inset 0 0 0 1px #d5e0dd'),
+        tick: 'width:18px;height:18px;border-radius:50%;display:grid;place-items:center;' + (on ? 'background:#3dd6c6;color:#0a1727' : 'background:#eef3f2;color:transparent') }; }),
+
+      keyCount: c.keys.length + ' / ' + D.KEYS.length,
+      keys: D.KEYS.map(([k, name, mask, cap]) => { const on = !!S.keys[k]; return { name, mask, on, box: chk(on), toggle: () => set(s => ({ keys: { ...s.keys, [k]: !s.keys[k] } })),
+        nameSt: 'font-size:13px;font-weight:700;transition:color .15s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:' + (on ? '#10233a' : '#8a9aa6'),
+        capL: cap ? cap + ' € / mois' : 'sans plafond',
+        capSt: 'font-size:12px;font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums;color:' + (!cap ? (on ? '#c2473b' : '#dba79d') : on ? '#43586a' : '#b3c1c8') }; }),
+      keyFoot: uncapped.length ? 'Une clé sans plafond peut être facturée sans limite. Fixez un plafond ou décochez-la.' : 'Plafonds de dépense fixés dans Fournisseurs et modèles.',
+      keyFootSt: foot(uncapped.length ? 'err' : ''),
+
+      filesMoL: S.files ? fmt(D.FILES_MO) : '0 Mo',
+      smtp: smtpOn, toggleSmtp: () => D.HAS_SMTP && set(s => ({ smtp: !s.smtp })), smtpTr: smtpSw[0], smtpKn: smtpSw[1], smtpLine: D.SMTP,
+      files: S.files, toggleFiles: () => set(s => ({ files: !s.files })), filesTr: filesSw[0], filesKn: filesSw[1],
+      filesListSt: 'display:flex;flex-direction:column;gap:6px;transition:opacity .2s;opacity:' + (S.files ? 1 : .35),
+      fileRows: D.FILES.map(([l, n, s]) => ({ l, n, s: fmt(s) })),
+      smtpFoot: (smtpOn ? 'SMTP inclus : ses alertes partiront de votre adresse.' : 'SMTP exclu : la personne configurera son propre serveur.') + (S.files ? '' : ' Sans fichiers, Jev ne s’appuie plus sur la Base de connaissance.'),
+
+      secTag: !risky ? 'Aucun secret' : codeOn ? 'Protégé' : 'Exposé',
+      secTagSt: 'display:inline-flex;align-items:center;gap:7px;height:24px;padding:0 10px;border-radius:999px;font-size:11.5px;font-weight:800;white-space:nowrap;' + (!risky ? 'background:rgba(255,255,255,.08);color:#c4d3dd' : codeOn ? 'background:rgba(61,214,198,.14);color:#3dd6c6' : 'background:rgba(240,123,103,.16);color:#f5a393'),
+      secTagDot: 'width:6px;height:6px;border-radius:50%;background:' + (!risky ? '#8fa3b3' : codeOn ? '#3dd6c6' : '#f07b67'),
+      riskT: risky ? 'Avec ce paquet, ' + (hasName ? first : 'la personne') + ' pourra :' : 'Ce paquet ne contient aucun secret.',
+      powers,
+      codeBoxSt: 'margin-top:auto;padding:14px 16px;border-radius:14px;display:flex;flex-direction:column;gap:8px;transition:all .2s;' + (codeOn ? 'background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 1px rgba(61,214,198,.3);color:#c4d3dd' : risky ? 'background:rgba(240,123,103,.1);box-shadow:inset 0 0 0 1px rgba(240,123,103,.35);color:#f5c4b9' : 'background:rgba(255,255,255,.04);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);color:#8fa3b3'),
+      code: S.code, toggleCode: () => set(s => ({ code: !s.code })), codeTr: codeSw[0].replace('#d5e0dd', 'rgba(255,255,255,.18)'), codeKn: codeSw[1],
+      codeHelp: codeOn ? 'Fortement recommandé. Les secrets sont chiffrés par un code affiché une seule fois, à transmettre par SMS ou téléphone. Un ZIP intercepté ne livre aucune clé.' : risky ? 'Sans code, quiconque obtient le ZIP obtient aussi vos clés. Fortement recommandé.' : 'Utile seulement si le paquet contient des clés d’IA ou le SMTP.',
+
+      initials: ini || '?', avSt: 'flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:800;' + (ini ? 'background:#10233a;color:#fff' : 'background:#eef3f2;color:#a3b1ba'),
+      rName: S.name, rMail: S.mail, setName: e => set({ name: e.target.value }), setMail: e => set({ mail: e.target.value }), nameSt: inp(false), mailSt: inp(mailErr),
+      mailFoot: mailErr ? 'Adresse e-mail invalide.' : 'Pour l’historique. Cockpit n’envoie rien à cette adresse.', mailFootSt: foot(mailErr ? 'err' : ''),
+      prefill: S.prefill, togglePrefill: () => set(s => ({ prefill: !s.prefill })), preTr: preSw[0], preKn: preSw[1],
+      profWrapSt: 'display:flex;flex-wrap:wrap;gap:6px;transition:opacity .2s;' + (S.prefill ? '' : 'opacity:.35;pointer-events:none'),
+      profiles: D.PROFILES.map(l => ({ l, on: !!S.prof[l], toggle: () => set(s => ({ prof: { ...s.prof, [l]: !s.prof[l] } })),
+        st: 'white-space:nowrap;height:30px;padding:0 12px;border-radius:999px;border:0;cursor:pointer;font-size:12px;font-weight:700;transition:all .15s;' + (S.prof[l] ? 'background:#10233a;color:#fff' : 'background:#fff;color:#43586a;box-shadow:inset 0 0 0 1px #d5e0dd') })),
+
+      ver: D.VER, buildL: D.BUILD ? 'Build ' + D.BUILD : '', news: D.NEWS, newsT: D.LAST ? 'Nouveautés depuis le paquet ' + D.LAST : 'Nouveautés récentes',
+      updates: [['keep', 'Conserver'], ['replace', 'Remplacer']].map(([k, l]) => ({ l: l + ' ses données', on: S.upd === k, pick: () => set({ upd: k }),
+        st: 'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;height:36px;padding:0 8px;border:0;border-radius:9px;cursor:pointer;font-size:12.5px;transition:all .15s;' + (S.upd === k ? 'background:#fff;font-weight:700;color:#10233a;box-shadow:0 1px 2px rgba(16,35,58,.12)' : 'background:transparent;font-weight:600;color:#5c7280') })),
+      updHelp: S.upd === 'keep' ? 'Seule l’application est mise à jour. Ses projets, utilisateurs et réglages restent intacts.' : 'Sa base est remplacée par celle du paquet, après une sauvegarde sur son poste.',
+
+      hist: histRows, histEmpty: !histRows.length,
+      histCount: histRows.length + ' paquet' + (histRows.length > 1 ? 's' : '') + ' · ' + kept + ' fichier' + (kept > 1 ? 's' : '') + ' encore sur le serveur',
+      hasToast: !!S.toast, toast: S.toast
+    };
+  }
+}
+</script>
+</body>
+</html>
