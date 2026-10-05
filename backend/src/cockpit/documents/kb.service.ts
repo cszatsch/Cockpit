@@ -33,7 +33,7 @@ export function utf8Name(name: string): string {
 
 /** Fichier reçu (multer). */
 export interface KbFile { originalname: string; size: number; buffer: Buffer }
-export interface KbUploadMeta { n?: string; type?: string; conf?: 'INTERNAL' | 'RESTRICTED'; dateIso?: string }
+export interface KbUploadMeta { n?: string; type?: string; conf?: 'INTERNAL' | 'RESTRICTED'; dateIso?: string; src?: 'UPLOADED' | 'GENERATED' }
 /** Doublon de nom : remplacer un document existant, ou garder les deux. */
 export interface KbDuplicateChoice { replaceId?: string; keepBoth?: boolean }
 
@@ -129,7 +129,7 @@ export class KbService implements OnModuleInit {
       const d = await db.document.create({
         data: {
           id: techId('doc'), projectId, n: name, type: meta.type ?? replaced?.type ?? 'Livrable', conf: meta.conf ?? replaced?.conf ?? 'INTERNAL', v: replaced ? nextV(replaced.v) : 'v1',
-          dateIso: meta.dateIso ?? this.today.today(scope.project.timezone), src: 'UPLOADED', ext: 'PENDING', mime: kind.mime, fileKey: key, sizeBytes: file.size, pages: extracted.pages,
+          dateIso: meta.dateIso ?? this.today.today(scope.project.timezone), src: meta.src ?? 'UPLOADED', ext: 'PENDING', mime: kind.mime, fileKey: key, sizeBytes: file.size, pages: extracted.pages,
           format: kind.format, fileName, uploadedById: actor.accountId, uploadedBy: actor.fullName, uploadedAt: now, contentHash: hash, progress: 5, stepLabel: 'Résumé du document', replacesId: replaced?.id ?? null,
         },
         include: { links: true },

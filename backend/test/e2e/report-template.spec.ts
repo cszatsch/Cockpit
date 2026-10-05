@@ -274,6 +274,23 @@ describe('Cockpit — Templates de rapport : versions et publications', () => {
     expect((await get(`/report-templates/${tpl.body.id}/check`).expect(200)).body.version.seq).toBe(1);
   });
 
+  it('génération versée dans la Base de connaissance : document « Support de comité » généré, visible dans la liste', async () => {
+    const tpl = await post('/report-templates', { name: 'Versement', version: '1.0', components: [{ id: 'synthese', scope: 'PROJECT' }], format: format() }).expect(201);
+    await ready(tpl.body.id);
+    const job = (await post(`/report-templates/${tpl.body.id}/generations`, { toKb: true }).expect(202)).body;
+    let st: any;
+    for (let k = 0; k < 600; k++) { st = (await get(`/report-generations/${job.id}`).expect(200)).body; if (st.done) break; await new Promise((r) => setTimeout(r, 100)); }
+    expect(st).toMatchObject({ done: true, error: null, kb: { documentId: expect.any(String), error: null } });
+    const doc = await t.db.document.findUniqueOrThrow({ where: { id: st.kb.documentId } });
+    expect(doc).toMatchObject({ n: 'Versement v1.0', type: 'Support de comité', src: 'GENERATED', format: 'PPTX', v: 'v1' });
+    expect((await get('/documents').expect(200)).body.map((d: any) => d.id)).toContain(doc.id);
+    // Sans l'option : aucun document versé.
+    const plain = (await post(`/report-templates/${tpl.body.id}/generations`, {}).expect(202)).body;
+    for (let k = 0; k < 600; k++) { st = (await get(`/report-generations/${plain.id}`).expect(200)).body; if (st.done) break; await new Promise((r) => setTimeout(r, 100)); }
+    expect(st.kb).toBeNull();
+    expect(await t.db.document.count({ where: { n: 'Versement v1.0' } })).toBe(1);
+  });
+
   it('tableau de bord, échéancier des actions et arbitrages : planches dessinées avec les données du projet', async () => {
     const tpl = await post('/report-templates', { name: 'Pilotage', version: '1.0', components: [{ id: 'dashboard', scope: 'PROJECT' }, { id: 'actions', scope: 'PROJECT', indicators: ['code', 'name', 'owner', 'due', 'status', 'prio', 'kpis'] }, { id: 'decisions', scope: 'PROJECT', period: 'month' }], format: format() }).expect(201);
     await ready(tpl.body.id);

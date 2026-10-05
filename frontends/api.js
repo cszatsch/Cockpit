@@ -1053,15 +1053,15 @@ export function attach(comp) {
      * `onStep(n)` : 1 collecte, 2 rédaction, 3 mise en page, 4 téléchargement ; `beforeSave` (facultatif) est attendu avant
      * la remise du fichier au navigateur. Erreur : exception avec le message du serveur.
      */
-    async tplGenerate(t, onStep, beforeSave) {
+    async tplGenerate(t, onStep, beforeSave, opts = {}) {
       const srv = await tplServer(t);
       if (!srv) throw new Error('Template en cours d’enregistrement : réessayez dans un instant');
-      const job = await ppost('/report-templates/' + enc(srv.id) + '/generations', {});
+      const job = await ppost('/report-templates/' + enc(srv.id) + '/generations', opts.toKb ? { toKb: true } : {});
       let last = -1;
       for (;;) {
         const j = await pget('/report-generations/' + enc(job.id));
         if (j.phase !== last) { last = j.phase; if (onStep) onStep(Math.min(j.phase, 3) + 1); }
-        if (j.done) { if (j.error) throw new Error(j.error.message); break; }
+        if (j.done) { if (j.error) throw new Error(j.error.message); if (j.kb && j.kb.error) toast('Rapport généré, mais non versé dans la Base de connaissance : ' + j.kb.error); break; }
         await new Promise((r) => setTimeout(r, 400));
       }
       const r = await pget('/report-generations/' + enc(job.id) + '/file', { raw: true });

@@ -1,3 +1,5 @@
+import { KbService } from '../documents/kb.service';
+import type { Actor } from '../../core/auth/auth';
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import { ProjectScope } from '../../core/access.service';
@@ -33,7 +35,11 @@ export const PREVIEW_TTL_MS = 15 * 60 * 1000;
  * Génération d'un rapport suivie (04/10/2026) : phases 0 collecte des données du jour, 1 rédaction des titres et de la
  * synthèse (IA), 2 mise en page au format du template, 3 prêt ; le fichier est remis une fois, puis la tâche est oubliée.
  */
-interface GenerationJob { at: number; projectId: string; templateId: string; phase: number; done: boolean; error: { code: string; message: string; issues?: Issue[] } | null; buf: Buffer | null; name: string; issues: Issue[] }
+interface GenerationJob {
+  at: number; projectId: string; templateId: string; phase: number; done: boolean; error: { code: string; message: string; issues?: Issue[] } | null; buf: Buffer | null; name: string; issues: Issue[];
+  /** Versement dans la Base de connaissance (option de la génération). */
+  kb?: { documentId: string | null; error: string | null } | null;
+}
 interface PreviewJob { at: number; projectId: string; phase: number; total: number; svgs: Map<number, string>; issues: Array<Issue & { page: number | null }>; done: boolean; error: string | null }
 /** Pourcentage affiché : 6 % (format), 16 % (données), 20 à 88 % (pages), 94 % (contrôle), 100 %. */
 export const previewPct = (phase: number, ready: number, total: number) => Math.round(Math.min(100, phase === 0 ? 6 : phase === 1 ? 16 : phase === 2 ? 20 + (ready / Math.max(1, total)) * 68 : phase === 3 ? 94 : 100));
@@ -49,13 +55,16 @@ export interface Draft { name: string; version: string; bodyId: string | null; c
  * périmètre et sa période, anomalies signalées avant la génération, versions publiées (PowerPoint de référence),
  * publications (valeurs remplacées dans le template), aperçu du rapport complet.
  */
+/** Type des rapports versés dans la Base de connaissance. */
+export const REPORT_KB_TYPE = 'Support de comité';
+
 @Injectable()
 export class ReportTemplateService implements OnModuleInit {
   private previews = new Map<string, { at: number; projectId: string; buf: Buffer; analysis: Promise<FormatAnalysis> }>();
   /** Aperçus construits par étapes (étape E, 04/10/2026) : avancement relu par l'écran, pages servies dès qu'elles sont prêtes. */
   private jobs = new Map<string, PreviewJob>();
   private generations = new Map<string, GenerationJob>();
-  constructor(private readonly prisma: PrismaService, private readonly storage: StorageService, private readonly todaySvc: TodayService, private readonly llm: LlmService) {}
+  constructor(private readonly prisma: PrismaService, private readonly storage: StorageService, private readonly todaySvc: TodayService, private readonly llm: LlmService, private readonly kb: KbService) {}
 
   // ───────────── Données ─────────────
 
@@ -554,7 +563,7 @@ export class ReportTemplateService implements OnModuleInit {
   // ───────────── Génération suivie (Générer un rapport) ─────────────
 
   /** Lance la génération d'un rapport ; l'avancement est relu par `generationJob`, le fichier remis par `generationFile`. */
-  startGeneration(scope: ProjectScope, t: TemplateRow, by: string | null) {
+  startGeneration(scope: ProjectScope, t: TemplateRow, by: string | null, kb: { actor: Actor } | null = null) {
     this.assertReady(t as any);
     const now = Date.now();
     for (const [k, j] of this.generations) if (now - j.at > PREVIEW_TTL_MS || this.generations.size > PREVIEW_MAX) this.generations.delete(k);
@@ -567,6 +576,9 @@ export class ReportTemplateService implements OnModuleInit {
         job.buf = out.buf;
         job.issues = out.issues;
         job.name = `${t.name} v${out.version.label}`;
+        // « Verser dans la Base de connaissance » (05/10/2026) : le PowerPoint produit suit le chemin d'un dépôt
+        // (contrôles, extraction, résumé, indexation) ; une nouvelle génération du même rapport en devient la version suivante.
+        if (kb) job.kb = await this.depositReport(scope, kb.actor, job.name, out.buf);
         job.phase = 3;
       } catch (e) {
         const r = (e as { getResponse?: () => unknown }).getResponse?.() as { code?: string; message?: string; issues?: Issue[] } | undefined;
@@ -581,7 +593,22 @@ export class ReportTemplateService implements OnModuleInit {
   generationJob(scope: ProjectScope, id: string) {
     const j = this.generations.get(id);
     if (!j || j.projectId !== scope.project.id) throw notFound('Génération expirée : relancez le téléchargement');
-    return { phase: j.phase, done: j.done, error: j.error, issues: j.done ? j.issues : [] };
+    return { phase: j.phase, done: j.done, error: j.error, issues: j.done ? j.issues : [], kb: j.done ? j.kb ?? null : null };
+  }
+
+  /**
+   * Dépôt d'un rapport généré dans la Base de connaissance : type « Support de comité », source « Généré » ; même nom déjà
+   * versé → version suivante de ce document. Un refus (droits, contenu identique, document en cours de traitement) ne fait
+   * pas échouer la génération : il est rendu à l'écran.
+   */
+  private async depositReport(scope: ProjectScope, actor: Actor, name: string, buf: Buffer): Promise<{ documentId: string | null; error: string | null }> {
+    try {
+      const prev = await this.prisma.document.findFirst({ where: { projectId: scope.project.id, n: name, src: 'GENERATED', ext: { not: 'FAILED' } }, orderBy: { createdAt: 'desc' } });
+      const doc = await this.kb.submit(scope, actor, { originalname: `${name}.pptx`, size: buf.length, buffer: buf }, { n: name, type: REPORT_KB_TYPE, src: 'GENERATED' }, prev ? { replaceId: prev.id } : { keepBoth: true });
+      return { documentId: doc.id, error: null };
+    } catch (e) {
+      return { documentId: null, error: String((e as { message?: string }).message ?? e).slice(0, 300) };
+    }
   }
 
   /** Fichier d'une génération terminée, remis une seule fois ; première génération du template enregistrée. */

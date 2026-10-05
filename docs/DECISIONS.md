@@ -1527,3 +1527,14 @@ Revue demandée par le commanditaire après le cas de Consommation et coûts : t
 | Écrans qui chargent eux-mêmes : Snapshots, Bibliothèque des projets | Non relus | Écoutent `rise-admin:changes` et relisent le projet affiché / la bibliothèque | `bindSnapshots`, `bindBiblio` (`admin-api.js`) |
 | Cloche de la Console (tiroir des notifications), cloche du Cockpit (envois planifiés) | Relues au démarrage / toutes les 60 s | Relues à chaque annonce | chargeur `notifs`, `ntLoad` |
 | Garde-fous | — | Écritures faites pendant une lecture jamais annoncées (pas de relances en boucle entre écrans) ; Cockpit : annonces « usage » ignorées, relecture différée pendant une saisie | `noteWrite`, `liveOpen` |
+
+## Rapport généré versé dans la Base de connaissance (05/10/2026)
+
+Constat du commanditaire : un rapport « versé » depuis Comités et rapports n'apparaissait pas dans la Base de connaissance.
+Cause : le versement n'était qu'un reliquat de la maquette — l'historique marquait « Versé » et l'écran ajoutait un document fictif dans son état local (perdu au rechargement) ; aucun appel ne déposait le PowerPoint produit sur le serveur.
+
+| Sujet | Choix | Code |
+|---|---|---|
+| Versement | Option `toKb` de la génération suivie (`POST /report-templates/:id/generations`) : à la fin, le PowerPoint produit est déposé par le chemin d'un dépôt manuel (contrôles, extraction, résumé, indexation) ; nom « <template> v<version> », type « Support de comité », source « Généré » | `ReportTemplateService.depositReport`, `REPORT_KB_TYPE`, `KbUploadMeta.src` |
+| Versions | Même rapport versé à nouveau : version suivante du document (remplacement) ; contenu identique : refusé comme tout doublon | `KbService.submit` (`replaceId`) |
+| Échec du versement | Ne fait pas échouer la génération : le fichier est remis, un message indique pourquoi le rapport n'a pas été versé | `GenerationJob.kb`, `tplGenerate` (`api.js`) |

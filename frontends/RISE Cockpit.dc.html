@@ -2824,7 +2824,7 @@ class Component extends DCLogic {
   // Téléchargement d'un rapport (04/10/2026) : génération suivie étape par étape sur la ligne du template (`gnDl`).
   // L'affichage avance d'une étape à la fois vers l'étape atteinte par le serveur, chacune visible au moins
   // GEN_STEP_MIN_MS (une étape très courte n'est pas sautée) ; « Rapport téléchargé » 1,8 s ; échec : message et « Réessayer ».
-  async tplGenRun(t, done) {
+  async tplGenRun(t, done, opts) {
     if (!this._api || !this._api.tplGenerate) { if (this._api) this._api.tplPptx(t); if (done) done(); return; }
     const GEN_STEP_MIN_MS = 450;
     const set = v => this.setState(s => ({ gnDl: { ...(s.gnDl || {}), [t.id]: v } }));
@@ -2833,7 +2833,7 @@ class Component extends DCLogic {
     const walk = (async () => { while (!failed && shown < 5) { await new Promise(r => setTimeout(r, GEN_STEP_MIN_MS)); if (failed) return; if (shown < target) { shown++; set(shown === 5 ? { step: 5, done: true } : { step: shown }); } } })();
     try {
       // Fichier remis quand l'affichage en est à « Téléchargement du fichier » (jamais avant les étapes qui le précèdent).
-      await this._api.tplGenerate(t, step => { target = Math.max(target, step); }, async () => { target = Math.max(target, 4); while (!failed && shown < 4) await new Promise(r => setTimeout(r, 60)); });
+      await this._api.tplGenerate(t, step => { target = Math.max(target, step); }, async () => { target = Math.max(target, 4); while (!failed && shown < 4) await new Promise(r => setTimeout(r, 60)); }, opts || {});
       target = 5;
       await walk;
       if (done) done();
@@ -4745,10 +4745,11 @@ class Component extends DCLogic {
       tplIssuesClose: () => this.setState({ tplIssues: null }), tplIssuesGo: () => { if (!TI) return; this.setState({ tplIssues: null }); if (TI.report) this.setState({ tplAsk: TI.t }); else tplDownloadNow(TI.t); } };
     const tplLog = (t, saved) => { const now = new Date(); const time = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }); const short = now.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
       const entry = { id: 'H' + Date.now(), name: t.name, version: t.version, committee: t.committee, bodyId: t.bodyId, sessionId: null, date: todayFr, time, by: this.meName(), saved };
-      const doc = saved ? { n: t.name + ' — ' + t.committee + ' du ' + short, type: 'Support de comité', date: short, v: 'v' + t.version, conf: 'Interne', src: 'Généré', ext: 'SUCCEEDED', mime: 'PPTX', pages: t.pages } : null;
+      // Versement réel par le serveur (05/10/2026) : sans API (démonstration), document local comme avant.
+      const doc = saved && !this._api ? { n: t.name + ' — ' + t.committee + ' du ' + short, type: 'Support de comité', date: short, v: 'v' + t.version, conf: 'Interne', src: 'Généré', ext: 'SUCCEEDED', mime: 'PPTX', pages: t.pages } : null;
       this.setState(s => ({ tplAsk: null, tplHistory: [entry, ...s.tplHistory], kbDocs: doc ? [doc, ...s.kbDocs] : s.kbDocs }));
       // API : PowerPoint généré au format du template, génération suivie sur la ligne du template.
-      this.tplGenRun(t, () => this.showToast(saved ? 'Rapport généré et versé dans la Base de connaissance · ' + t.name : 'Rapport généré · ' + t.name + ' v' + t.version + ' · PPTX')); };
+      this.tplGenRun(t, () => this.showToast(saved ? 'Rapport généré et versé dans la Base de connaissance · ' + t.name : 'Rapport généré · ' + t.name + ' v' + t.version + ' · PPTX'), { toKb: saved }); };
     const ask = S.tplAsk;
     const tplHistRows = S.tplHistory.map(e => ({ ...e, v: 'v' + e.version, when: e.date + ' · ' + e.time, kb: e.saved ? 'Versé' : 'Non versé', kbStyle: e.saved ? P.ok : P.neutral, canOpen: e.saved, open: () => this.go('documents', 'bibliotheque') }));
     const tplDelete = t => { this.setState(s => ({ templates: s.templates.filter(x => x.id !== t.id), tplSel: s.tplSel === t.id ? null : s.tplSel, tplView: null })); this.showToast('Template supprimé · ' + t.name); };

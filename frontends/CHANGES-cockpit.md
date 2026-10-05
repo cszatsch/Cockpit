@@ -416,3 +416,8 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 - `api.js` : en-tête `X-Client-Id` sur chaque requête (`CLIENT_ID`) ; abonnement au flux `/api/changes` (`liveOpen`) : une écriture faite ailleurs sur ce projet ou sur la plateforme (Console) relit le Cockpit (`scheduleReload`, jamais pendant une écriture en cours), au retour sur l'onglet s'il était masqué. Aucun changement visuel.
 - Complément : les annonces de consommation (`kind: 'usage'`, chaque appel à un LLM) sont ignorées par le Cockpit : pas de rechargement à chaque réponse de Jev.
 - Complément (revue des cas, 05/10/2026) : la cloche (`ntLoad`) est relue à chaque annonce (notifications envoyées par la tâche planifiée), sans attendre le relevé des 60 s.
+
+## Rapport versé dans la Base de connaissance (05/10/2026)
+
+- `RISE Cockpit.dc.html` : « Oui, verser » transmet `toKb` à la génération (`tplGenRun(t, done, { toKb })`) ; le document fictif ajouté localement n'est plus créé qu'en démonstration (sans API).
+- `api.js` : `tplGenerate(t, onStep, beforeSave, { toKb })` envoie l'option au serveur ; versement refusé (droits, doublon) → message, le fichier reste téléchargé.

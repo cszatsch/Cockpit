@@ -169,9 +169,11 @@ export class ReportFormatController {
    */
   @Post('report-templates/:id/generations')
   @HttpCode(202)
-  async generationStart(@CurrentActor() actor: Actor, @Param('projectId') p: string, @Param('id') id: string) {
+  async generationStart(@CurrentActor() actor: Actor, @Param('projectId') p: string, @Param('id') id: string, @Body() body: unknown) {
     const scope = await this.access.scope(actor, p);
-    return this.reports.startGeneration(scope, await this.template(scope, id), scope.access.personId ?? actor.accountId);
+    // `toKb` : verser le rapport produit dans la Base de connaissance (05/10/2026).
+    const toKb = !!(body && typeof body === 'object' && (body as { toKb?: unknown }).toKb === true);
+    return this.reports.startGeneration(scope, await this.template(scope, id), scope.access.personId ?? actor.accountId, toKb ? { actor } : null);
   }
 
   @Get('report-generations/:id')
