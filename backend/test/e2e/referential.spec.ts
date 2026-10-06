@@ -100,6 +100,29 @@ describe('Étapes 2-3 — droits et Référentiel', () => {
     expect(ws.body.dependsOn).toEqual(['C5']);
     const put = await c.put(`${R}/workstreams/${ws.body.id}/dependencies`, { dependsOn: 'ALL' }).expect(200);
     expect(put.body.dependsOn).toBe('ALL');
+
+    // Sous-phases du chantier (06/10/2026) : dans ses phases ; phase retirée → sous-phases retirées (D3).
+    const other = await t.db.subphase.findFirstOrThrow({ where: { projectId: 'RISE', phaseId: 'P1' } });
+    const bad = await c.put(`${R}/workstreams/${ws.body.id}/subphases`, { subphaseIds: [other.id] }).expect(400);
+    expect(bad.body.fields.subphaseIds).toMatch(/la phase n’est pas rattachée au chantier/);
+    const ok = await c.put(`${R}/workstreams/${ws.body.id}/subphases`, { subphaseIds: [sp.body.id] }).expect(200);
+    expect(ok.body.subphaseIds).toEqual([sp.body.id]);
+    const moved = await c.patch(`${R}/subphases/${sp.body.id}`, { phaseId: 'P4', code: '4.9' }).expect(400);
+    expect(moved.body.fields.phaseId).toMatch(/rattachée aux chantiers C9/);
+    const dropped = await c.patch(`${R}/workstreams/${ws.body.id}`, { phaseIds: ['P4'] }).expect(200);
+    expect(dropped.body.subphaseIds).toEqual([]);
+    expect(dropped.body.warnings).toEqual(['Sous-phases retirées avec leur phase : 5.9']);
+    await c.patch(`${R}/workstreams/${ws.body.id}`, { phaseIds: ['P4', 'P5'], subphaseIds: [sp.body.id] }).expect(200);
+    // Sous-phase supprimée : le lien part en cascade, tracé sur le chantier.
+    await c.del(`${R}/subphases/${sp.body.id}`).expect(204);
+    expect((await c.get(`${R}/workstreams/${ws.body.id}`).expect(200)).body.subphaseIds).toEqual([]);
+    const trace = await t.db.auditEntry.findFirst({ where: { entityType: 'WORKSTREAM', entityId: ws.body.id, field: 'subphaseIds' }, orderBy: { at: 'desc' } });
+    expect(trace?.newValue).toEqual([]);
+
+    // Dépendance circulaire refusée, quelle que soit la longueur de la boucle.
+    await c.put(`${R}/workstreams/${ws.body.id}/dependencies`, { dependsOn: ['C5'] }).expect(200);
+    const loop = await c.put(`${R}/workstreams/C5/dependencies`, { dependsOn: [ws.body.id] }).expect(400);
+    expect(loop.body.fields.dependsOn).toBe('dépendance circulaire : C5 → C9 → C5');
   });
 
   it('instance : membres uniques, nom court unique', async () => {

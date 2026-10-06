@@ -45,7 +45,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
             </span>
           </span>
           <span style="font-size:20px;font-weight:800;letter-spacing:-.02em;margin-top:4px">{{ zoneT }}</span>
-          <span style="font-size:12.5px;color:#5c7280;max-width:440px;text-wrap:pretty">Fichier « Référentiel … initialisation.xlsx » rempli par le PMO · 13 onglets</span>
+          <span style="font-size:12.5px;color:#5c7280;max-width:440px;text-wrap:pretty">Fichier « Référentiel … initialisation.xlsx » rempli par le PMO · 14 onglets</span>
           <span style="height:40px;padding:0 20px;border-radius:11px;background:#10233a;color:#fff;font-weight:700;font-size:13px;display:inline-flex;align-items:center;gap:9px;margin-top:6px;white-space:nowrap;box-shadow:0 8px 18px -10px rgba(16,35,58,.7)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4 M7 9l5-5 5 5 M5 20h14"></path></svg>Choisir un fichier</span>
           <sc-if value="{{ upErr }}" hint-placeholder-val="{{ false }}"><span role="alert" style="display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px;border-radius:9px;background:#fdf1ef;font-size:12.5px;color:#a2352a;font-weight:700">{{ upErrL }}</span></sc-if>
         </div>
@@ -109,7 +109,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
           <div style="display:flex;flex-direction:column;gap:8px">
             <div style="display:flex;align-items:baseline"><span style="font-size:10.5px;font-weight:800;letter-spacing:.12em;color:#8a9aa6">ONGLETS</span><span style="flex:1"></span><span style="font-size:11.5px;font-weight:700;color:#5c7280;font-variant-numeric:tabular-nums;white-space:nowrap">{{ sheetsL }}</span></div>
             <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:5px">
-              <sc-for list="{{ sheets }}" as="c" hint-placeholder-count="13"><span title="{{ c.tip }}" style="{{ c.st }}"><span style="{{ c.dot }}"></span><span style="overflow:hidden;text-overflow:ellipsis">{{ c.l }}</span></span></sc-for>
+              <sc-for list="{{ sheets }}" as="c" hint-placeholder-count="14"><span title="{{ c.tip }}" style="{{ c.st }}"><span style="{{ c.dot }}"></span><span style="overflow:hidden;text-overflow:ellipsis">{{ c.l }}</span></span></sc-for>
             </div>
           </div>
         </div>
@@ -213,7 +213,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
 </div>
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;1100px&quot;,&quot;height&quot;:&quot;820px&quot;},&quot;existingCodes&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string[]&quot;},&quot;onImported&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(p:any)=&gt;void&quot;},&quot;onOpenLib&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;()=&gt;void&quot;},&quot;userName&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;}}">
-const SH = [['01 Équipes', 'Équipes'], ['02 Rôles', 'Rôles'], ['03 Personnes', 'Personnes'], ['04 Affectations', 'Affectations'], ['05 Projet', 'Projet'], ['06 Lots', 'Lots'], ['07 Phases', 'Phases'], ['08 Sous-phases', 'Sous-phases'], ['09 Chantiers', 'Chantiers'], ['10 Instances', 'Instances'], ['11 Membres', 'Membres'], ['12 Jalons', 'Jalons'], ['13 Livrables', 'Livrables']];
+const SH = [['01 Équipes', 'Équipes'], ['02 Rôles', 'Rôles'], ['03 Personnes', 'Personnes'], ['04 Affectations', 'Affectations'], ['05 Projet', 'Projet'], ['05b Info projet', 'Info projet'], ['06 Lots', 'Lots'], ['07 Phases', 'Phases'], ['08 Sous-phases', 'Sous-phases'], ['09 Chantiers', 'Chantiers'], ['10 Instances', 'Instances'], ['11 Membres', 'Membres'], ['12 Jalons', 'Jalons'], ['13 Livrables', 'Livrables']];
 const D = (y, m, d) => new Date(y, m - 1, d);
 function demoData() {
   const P = [['Nom du client', 'AMC Corp', 1], ['Secteur d’activité', 'Distribution B2B'], ['Pays', 'France', 1], ['Code projet', 'ORION', 1], ['Nom du projet', 'ORION — Déploiement CRM Europe', 1], ['Objectifs', 'Unifier la relation client des 6 filiales européennes sur un CRM commun.'], ['Éditeur de la solution', 'Brand X'], ['Intégrateur', 'Codilog'], ['Date de démarrage', D(2026, 11, 2), 1], ['Date de fin cible', D(2028, 3, 31), 1], ['Fuseau horaire', 'Europe/Paris', 1], ['Statut', 'Préparation'], ['Directeur de programme', 'Claire Dumont', 1], ['Sponsor', 'Vincent Lambert']];
@@ -226,6 +226,7 @@ function demoData() {
     'Lots': g([['N°', 'r'], ['Périmètre', 'r'], ['Début', 'r'], ['Fin', 'r'], ['Statut', 'o']], [[1, 'France et Benelux', D(2026, 11, 2), D(2027, 9, 30), 'Prévu'], [2, 'Allemagne, Italie, Espagne', D(2027, 6, 1), D(2028, 3, 31), 'Prévu']]),
     'Phases': g([['N°', 'r'], ['Nom', 'r'], ['Lot', 'r'], ['Début', 'r'], ['Fin', 'r']], [[1, 'Discover', 'Lot 1', D(2026, 11, 2), D(2026, 12, 18)], [2, 'Prepare', 'Lot 1', D(2027, 1, 4), D(2027, 2, 26)], [3, 'Explore', 'Lot 1', D(2027, 3, 1), D(2027, 5, 28)], [4, 'Realize', 'Lot 1', D(2027, 6, 1), D(2027, 10, 29)], [5, 'Deploy', 'Lot 1', D(2027, 11, 2), D(2028, 1, 31)], [6, 'Run', 'Lot 2', D(2028, 2, 1), D(2028, 3, 31)]]),
     'Sous-phases': g([['Phase', 'r'], ['N°', 'r'], ['Nom', 'r'], ['Début', 'o'], ['Fin', 'o']], [['1 · Discover', '1.1', 'Cadrage', D(2026, 11, 2), D(2026, 11, 27)], ['1 · Discover', '1.2', 'Feuille de route', D(2026, 11, 30), D(2026, 12, 18)], ['2 · Prepare', '2.1', 'Mobilisation des équipes', D(2027, 1, 4), D(2027, 1, 29)], ['2 · Prepare', '2.2', 'Plan projet détaillé', D(2027, 2, 1), D(2027, 2, 26)], ['3 · Explore', '3.1', 'Ateliers de conception', D(2027, 3, 1), D(2027, 4, 30)], ['3 · Explore', '3.2', 'Validation des processus', D(2027, 5, 3), D(2027, 5, 28)], ['4 · Realize', '4.1', 'Paramétrage', D(2027, 6, 1), D(2027, 8, 31)], ['4 · Realize', '4.2', 'Recette', D(2027, 9, 1), D(2027, 10, 29)], ['5 · Deploy', '5.1', 'Répétition générale', D(2027, 11, 2), D(2027, 12, 17)], ['5 · Deploy', '5.2', 'Go-live', D(2028, 1, 3), D(2028, 1, 31)]]),
+    'Info projet': g([['Rubrique', 'r'], ['Libellé', 'o'], ['Valeur', 'r']], [['Le client', 'Raison sociale', 'AMC Corp'], ['Le client', 'Pays', 'France'], ['Programme en une phrase', '', 'Un CRM commun pour les 6 filiales européennes.'], ['Enjeux stratégiques', '', 'Vision client unifiée'], ['Périmètre géographique', '', 'France']]),
     'Chantiers': g([['Code', 'c'], ['Nom', 'r'], ['Responsable', 'r'], ['Lot', 'o']], [['C1', 'Ventes et CRM', 'Thomas Girard', 'Lot 1'], ['C2', 'Service client', 'Élodie Faure', 'Lot 1'], ['C3', 'Données et migration', 'Karim Benali', 'Lot 1'], ['C4', 'Conduite du changement', 'Claire Dumont', ''], ['C5', 'Pilotage et transverse', 'Camille Rey', '']]),
     'Instances': g([['Nom', 'r'], ['Nom court', 'r'], ['Couleur', 'r'], ['Fréquence', 'r']], [['Comité de pilotage', 'COPIL', 'Marine', 'Mensuelle'], ['Comité projet', 'COPROJ', 'Sarcelle', 'Hebdomadaire'], ['Comité de chantier', 'CODIR C', 'Ambre', 'Bimensuelle']]),
     'Membres': g([['Instance', 'r'], ['Personne', 'r'], ['Rôle', 'o']], [['Comité de pilotage', 'Vincent Lambert', 'Président'], ['Comité de pilotage', 'Claire Dumont', 'Membre'], ['Comité de pilotage', 'Camille Rey', 'Secrétaire'], ['Comité projet', 'Claire Dumont', 'Président'], ['Comité projet', 'Thomas Girard', 'Membre'], ['Comité projet', 'Élodie Faure', 'Membre'], ['Comité projet', 'Karim Benali', 'Membre']]),
@@ -248,8 +249,8 @@ async function parseXlsx(file) {
     out.sheets[key] = { heads: cols.filter(c => c.t !== 'x' && c.h).map(c => [c.h, c.t]), rows: rows.map(rw => rw.filter((v, j) => cols[j].t !== 'x' && cols[j].h)) }; });
   return out;
 }
-// Simulation du contrôle : 13 ticks de lecture des onglets, puis 6 ticks par contrôle suivant.
-const TK = 85, T_SHEETS = 13, T_CHECK = 6, T_END = T_SHEETS + 4 * T_CHECK;
+// Simulation du contrôle : un tick de lecture par onglet, puis 6 ticks par contrôle suivant.
+const TK = 85, T_SHEETS = SH.length, T_CHECK = 6, T_END = T_SHEETS + 4 * T_CHECK;
 const PHASES = [['Création du projet', 'Fiche, client, dates et fuseau'], ['Lots et phases', 'Découpage et planning'], ['Chantiers et jalons', 'Périmètres et échéances'], ['Personnes et habilitations', 'Équipes, rôles et affectations'], ['Instances de pilotage', 'Comités et membres']];
 class Component extends DCLogic {
   state = { step: 'up', data: null, drag: false, upErr: '', t: 0, tab: 'Projet', vis: { Projet: 1 }, prog: 0 };
@@ -298,9 +299,9 @@ class Component extends DCLogic {
     if (!d) return v;
     const cnt = k => ((d.sheets[k] || {}).rows || []).length, errs = d.issues.filter(i => i.lvl === 'err'), warns = d.issues.filter(i => i.lvl === 'warn');
     const code = String((d.project.find(p => /Code projet/.test(p.l)) || {}).v || '').trim(), dup = (this.props.existingCodes || ['RISE', 'ATLAS', 'HORIZON', 'NOVA']).includes(code.toUpperCase());
-    const lit = Math.min(T_SHEETS, S.t), nMiss = d.missing.length;
-    const oblig = errs.filter(i => /obligatoire/.test(i.msg)).length, coh = errs.filter(i => !/obligatoire/.test(i.msg)).length, pl = (n, w) => n + ' ' + w + (n > 1 ? 's' : '');
-    const C = [['Structure du fichier', nMiss ? 'Onglets manquants : ' + d.missing.join(', ') : '13 onglets reconnus', (13 - nMiss) + ' / 13', nMiss ? 'err' : 'ok', 'Lecture des onglets… ' + lit + ' / 13'],
+    const lit = Math.min(T_SHEETS, S.t), nMiss = d.missing.length, NS = SH.length, nOld = d.issues.filter(i => /^Ancien modèle/.test(i.msg)).length;
+    const oblig = errs.filter(i => /obligatoire/.test(i.msg)).length, coh = errs.filter(i => !/obligatoire|^Ancien modèle/.test(i.msg)).length, pl = (n, w) => n + ' ' + w + (n > 1 ? 's' : '');
+    const C = [['Structure du fichier', nOld ? 'Ancien modèle de fichier : téléchargez le modèle à jour' : nMiss ? 'Onglets manquants : ' + d.missing.join(', ') : NS + ' onglets reconnus', nOld ? 'Ancien modèle' : (NS - nMiss) + ' / ' + NS, nMiss || nOld ? 'err' : 'ok', 'Lecture des onglets… ' + lit + ' / ' + NS],
       ['Fiche projet', code ? 'Code ' + code + (dup ? ' · déjà utilisé dans la bibliothèque' : ' · disponible') : 'Code projet absent', dup || !code ? '1 erreur' : 'Conforme', dup || !code ? 'err' : 'ok', 'Vérification du code projet…'],
       ['Champs obligatoires', oblig ? 'Des champs obligatoires sont vides' : 'Tous les champs obligatoires sont renseignés', oblig ? pl(oblig, 'erreur') : 'Conforme', oblig ? 'err' : 'ok', 'Parcours des champs obligatoires…'],
       ['Contrôles de cohérence', coh ? 'Incohérences signalées par le fichier' : 'Aucune incohérence bloquante', coh ? pl(coh, 'erreur') : 'Conforme', coh ? 'err' : 'ok', 'Croisement des références entre onglets…'],
@@ -319,13 +320,13 @@ class Component extends DCLogic {
       return { l, tip: sn + (on ? (miss ? ' · absent' : ' · ' + (l === 'Projet' ? d.project.length + ' champs' : pl(cnt(l), 'ligne'))) : ''),
         st: 'height:26px;padding:0 8px;border-radius:7px;display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;white-space:nowrap;min-width:0;transition:background .2s,color .2s;' + (s === 'ok' ? 'background:#f0f8f6;color:#146b64' : s === 'err' ? 'background:#fdf1ef;color:#a2352a' : 'background:#f5f8f7;color:#a3b1b9'),
         dot: 'width:6px;height:6px;border-radius:50%;flex:none;transition:background .2s;background:' + (s === 'ok' ? '#1d8f86' : s === 'err' ? '#c2473b' : '#d3dedb') }; });
-    v.sheetsL = lit < 13 ? lit + ' / 13 lus' : (13 - nMiss) + ' / 13 reconnus';
+    v.sheetsL = lit < NS ? lit + ' / ' + NS + ' lus' : (NS - nMiss) + ' / ' + NS + ' reconnus';
     const allErr = [...(dup ? [{ lvl: 'err', sheet: 'Projet', row: '', msg: 'Le code ' + code + ' existe déjà : choisissez un autre code.' }] : []), ...(!code ? [{ lvl: 'err', sheet: 'Projet', row: '', msg: 'Le code projet est obligatoire.' }] : []), ...d.missing.map(m => ({ lvl: 'err', sheet: m, row: '', msg: 'Onglet absent du fichier.' })), ...d.issues];
     const shown = chk >= 5;
     v.hasIssues = shown && allErr.length > 0; v.issuesL = 'DÉTAIL · ' + pl(allErr.length, 'point');
     v.issues = allErr.slice(0, 12).map(i => ({ where: i.sheet + (i.row ? ' · ligne ' + i.row : ''), msg: i.msg, tagL: i.lvl === 'err' ? 'Erreur' : 'À vérifier', tag: 'height:20px;padding:0 7px;border-radius:999px;font-size:10.5px;font-weight:800;display:inline-flex;align-items:center;flex:none;margin-top:1px;' + (i.lvl === 'err' ? 'background:#fbe4e1;color:#a2352a' : 'background:#fff1dc;color:#9a5a0c'), st: 'display:flex;align-items:flex-start;gap:10px;font-size:12.5px;padding:10px 12px;border-radius:10px;background:' + (i.lvl === 'err' ? '#fff8f6' : '#fffaf1') }));
     const nErr = allErr.filter(i => i.lvl === 'err').length, okImp = shown && nErr === 0;
-    v.fileN = d.file; v.fileD = d.size + ' · ' + (lit < 13 ? 'lecture en cours…' : Object.keys(d.sheets).reduce((a, k) => a + cnt(k), 0) + ' lignes lues');
+    v.fileN = d.file; v.fileD = d.size + ' · ' + (lit < NS ? 'lecture en cours…' : Object.keys(d.sheets).reduce((a, k) => a + cnt(k), 0) + ' lignes lues');
     v.verdict = { ok: okImp, ko: shown && nErr > 0, okRow: shown && nErr > 0 ? 'display:none' : 'display:flex;gap:8px;flex-wrap:wrap;margin-top:2px', l: !shown ? 'Contrôle en cours…' : nErr ? pl(nErr, 'erreur') + ' à corriger' : 'Fichier conforme', d: !shown ? 'Le fichier est vérifié onglet par onglet.' : nErr ? 'Corrigez le fichier Excel puis importez-le de nouveau. Rien n’a été créé.' : (warns.length ? pl(warns.length, 'avertissement') + ' à relire. ' : '') + 'Prévisualisez le référentiel avant de valider.',
       t: 'font-size:16px;font-weight:800;letter-spacing:-.01em;color:' + (!shown ? '#43586a' : nErr ? '#a2352a' : '#146b64'), box: 'border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:8px;transition:background .3s,box-shadow .3s;' + (!shown ? 'background:#fff;box-shadow:0 0 0 1px #e1e9e7' : nErr ? 'background:#fff8f6;box-shadow:0 0 0 1px #f0cfc9' : 'background:#eef8f6;box-shadow:0 0 0 1px #bfe3de') };
     v.toPrev = () => this.setState({ step: 'prev' });

@@ -289,17 +289,17 @@ export const model = {
     label: "Chantiers",
     scope: "",
     constraints: [],
-    cols: ["seq","nom","resp. chantier","statut","dépendances","phases"],
-    widths: "44px minmax(0,1fr) 150px 80px 200px 200px",
+    cols: ["seq","nom","resp. chantier","statut","dépendances","phases","sous-phases"],
+    widths: "44px minmax(140px,1fr) 140px 80px 160px 140px 140px",
     rows: [
-      {"id":"C1","cells":["1","Finance","Sophie Marchand","Actif","Tous","P1 P2 P3 P4 P5 P6"],"waves":[1,1,1,1],"ownerId":"p07","phaseIds":["P1","P2","P3","P4","P5","P6"],"dependsOn":"ALL"},
-      {"id":"C2","cells":["2","Achats / Appros / Logistique","Élodie Faure","Actif","Tous","P3 P4 P5"],"waves":[1,1,0,0],"ownerId":"p09","phaseIds":["P3","P4","P5"],"dependsOn":"ALL"},
-      {"id":"C3","cells":["3","Ventes / CRM","Thomas Girard","Actif","Tous","P3 P4 P5"],"waves":[1,1,0,0],"ownerId":"p08","phaseIds":["P3","P4","P5"],"dependsOn":"ALL"},
-      {"id":"C4","cells":["4","Interfaces","Élodie Faure","Actif","C1 · C2 · C3 · C5","P4 P5"],"waves":[1,0,0,0],"ownerId":"p09","phaseIds":["P4","P5"],"dependsOn":["C1","C2","C3","C5"]},
-      {"id":"C5","cells":["5","Migration des données","Karim Benali","Actif","C1 · C2 · C3","P3 P4 P5 P6"],"waves":[1,1,1,0],"ownerId":"p06","phaseIds":["P3","P4","P5","P6"],"dependsOn":["C1","C2","C3"]},
-      {"id":"C6","cells":["6","Rôles et autorisations","Karim Benali","Actif","C1 · C2 · C3","P4 P5"],"waves":[1,0,0,0],"ownerId":"p06","phaseIds":["P4","P5"],"dependsOn":["C1","C2","C3"]},
-      {"id":"C7","cells":["7","Conduite du changement","Isabelle Perrin","Actif","C1 · C2 · C3","P2 P3 P4 P5 P6"],"waves":[1,1,1,1],"ownerId":"p10","phaseIds":["P2","P3","P4","P5","P6"],"dependsOn":["C1","C2","C3"]},
-      {"id":"C8","cells":["8","Pilotage et transverse","Laurent Garnier","Actif","—","P1 P2 P3 P4 P5 P6"],"waves":[1,1,1,1],"ownerId":"p03","phaseIds":["P1","P2","P3","P4","P5","P6"],"dependsOn":[]}
+      {"id":"C1","cells":["1","Finance","Sophie Marchand","Actif","Tous","P1 P2 P3 P4 P5 P6",""],"waves":[1,1,1,1],"ownerId":"p07","phaseIds":["P1","P2","P3","P4","P5","P6"],"dependsOn":"ALL"},
+      {"id":"C2","cells":["2","Achats / Appros / Logistique","Élodie Faure","Actif","Tous","P3 P4 P5",""],"waves":[1,1,0,0],"ownerId":"p09","phaseIds":["P3","P4","P5"],"dependsOn":"ALL"},
+      {"id":"C3","cells":["3","Ventes / CRM","Thomas Girard","Actif","Tous","P3 P4 P5",""],"waves":[1,1,0,0],"ownerId":"p08","phaseIds":["P3","P4","P5"],"dependsOn":"ALL"},
+      {"id":"C4","cells":["4","Interfaces","Élodie Faure","Actif","C1 · C2 · C3 · C5","P4 P5",""],"waves":[1,0,0,0],"ownerId":"p09","phaseIds":["P4","P5"],"dependsOn":["C1","C2","C3","C5"]},
+      {"id":"C5","cells":["5","Migration des données","Karim Benali","Actif","C1 · C2 · C3","P3 P4 P5 P6",""],"waves":[1,1,1,0],"ownerId":"p06","phaseIds":["P3","P4","P5","P6"],"dependsOn":["C1","C2","C3"]},
+      {"id":"C6","cells":["6","Rôles et autorisations","Karim Benali","Actif","C1 · C2 · C3","P4 P5",""],"waves":[1,0,0,0],"ownerId":"p06","phaseIds":["P4","P5"],"dependsOn":["C1","C2","C3"]},
+      {"id":"C7","cells":["7","Conduite du changement","Isabelle Perrin","Actif","C1 · C2 · C3","P2 P3 P4 P5 P6",""],"waves":[1,1,1,1],"ownerId":"p10","phaseIds":["P2","P3","P4","P5","P6"],"dependsOn":["C1","C2","C3"]},
+      {"id":"C8","cells":["8","Pilotage et transverse","Laurent Garnier","Actif","—","P1 P2 P3 P4 P5 P6",""],"waves":[1,1,1,1],"ownerId":"p03","phaseIds":["P1","P2","P3","P4","P5","P6"],"dependsOn":[]}
     ]
   },
   TEAM: {

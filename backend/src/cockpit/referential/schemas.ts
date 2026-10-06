@@ -81,6 +81,8 @@ export const WorkstreamCreate = z
     critical: z.boolean().optional(),
     description: optText(),
     phaseIds: z.array(id).optional(),
+    /** Sous-phases du chantier (06/10/2026) : chacune appartient à l'une de ses phases. */
+    subphaseIds: z.array(id).optional(),
     waveIds: z.array(id).optional(),
     dependsOn: z.union([z.literal('ALL'), z.array(id)]).optional(),
   })

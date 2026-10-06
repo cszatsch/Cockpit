@@ -12,6 +12,8 @@ export const SHEETS = [
   '03 Personnes',
   '04 Affectations',
   '05 Projet',
+  // Info projet (06/10/2026) : une ligne par élément (Rubrique, Libellé, Valeur) ; son absence signale un ancien modèle.
+  '05b Info projet',
   '06 Lots',
   '07 Phases',
   '08 Sous-phases',

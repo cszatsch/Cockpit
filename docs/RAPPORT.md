@@ -480,6 +480,15 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 - **Réalisé** : ZIP supprimés automatiquement 2 jours après la génération ; plafond mensuel saisi dans Fournisseurs et modèles et repris par Partager Cockpit ; jeu de démonstration embarqué dans chaque paquet ; formats et templates de rapport toujours inclus.
 - **Tests** : `test/e2e/partage.spec.ts` (12) : plafond (400 sur 0 et 12,5, enregistré, repris par le contexte, remis à « sans plafond », audit sensible, 403 pour un PMO) ; suppression automatique (rien à 47 h, suppression au-delà de 48 h, ligne gardée, téléchargement 410, audit d'origine Système). Essai réel du jeu de démonstration : export fabriqué en 10 s, relu depuis le cache en 53 ms, copie « demo » correcte (projet de démonstration, clé retenue seule, SMTP exclu, compte de l'auteur absent). Recette navigateur : plafond saisi (100 €) affiché sous la clé et repris dans « Clés d'IA » de Partager Cockpit ; sans fichiers, Base de connaissance et guide grisés, formats de rapport actifs.
 
+### Sous-phases des chantiers, modèle Excel et import (06/10/2026)
+
+- **Modèle** : chantier ↔ sous-phases (choix multiple), chaque sous-phase dans une phase du chantier ; règles D1 à D6 (`docs/DECISIONS.md`) ; boucles de dépendances refusées au Référentiel et à l'import.
+- **Cockpit** : colonne « sous-phases » du Référentiel avec sélecteur filtré ; Planning (vue « un chantier ») ; avertissement croisé livrable / jalon ↔ chantier ; composant Planning des rapports en portée chantier ; snapshots (lien et libellés) ; Jev (`chantiers_sous_phases`) ; dictionnaire régénéré.
+- **Modèle Excel** : onglets « 05b Info projet » et « Références », colonnes Phases / Sous-phases / Dépendances / Contrôle dans « 09 Chantiers », ligne de complétude ; formules vérifiées dans Excel (aucune erreur de calcul).
+- **Import** (Console et Cockpit) : lecture d'Info projet et des rattachements, création des phases, sous-phases et dépendances des chantiers et du bloc Info projet ; contrôles avec onglet, ligne et colonne ; anciens fichiers refusés ; aperçu « Info projet » et colonnes des chantiers à l'écran d'initialisation (14 onglets).
+- **Tests** : règles (`test/unit/workstream-links.spec.ts`), Référentiel (sous-phases, D3, boucle), import (ancien modèle, Info projet, cas d'erreur des chantiers, création réelle).
+- **Écart** : les chantiers importés reçoivent désormais leurs phases (auparavant, seul le lot était repris).
+
 ## 4. Questions ouvertes
 
 1. **Déclencheur des règles de notification** : faut-il ajouter un sélecteur de déclencheur dans la console ? Aujourd'hui, une règle créée depuis l'écran reçoit un déclencheur par défaut : « planifié » pour une notification, « manuel » pour une alerte.

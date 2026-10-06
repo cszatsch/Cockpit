@@ -169,7 +169,7 @@ export const DICTIONNAIRE_COCKPIT: DictTable[] = [
       { nom: 'critique', expr: 't.critical', type: 'booléen', signification: 'Sur le chemin critique' },
       { nom: 'responsable_id', expr: `t.${q('ownerId')}`, type: 'texte', signification: 'Responsable → personnes.id' },
     ],
-    relations: ['sous_phases.phase_id = phases.id', 'sous_phases.id = livrables.sous_phase_id, jalons.sous_phase_id'],
+    relations: ['sous_phases.phase_id = phases.id', 'sous_phases.id = livrables.sous_phase_id, jalons.sous_phase_id, chantiers_sous_phases.sous_phase_id'],
     usages: ['Chemin critique détaillé.', 'Sous-phases en cours.'],
     regles: [AVANCEMENT_PREVU, EN_COURS, DATES_TEXTE, DROITS_PROJET],
   },
@@ -208,6 +208,19 @@ export const DICTIONNAIRE_COCKPIT: DictTable[] = [
     ],
     relations: ['chantiers_phases.chantier_id = chantiers.id', 'chantiers_phases.phase_id = phases.id'],
     usages: ['Quels chantiers travaillent sur telle phase ?'],
+    regles: [DROITS_PROJET],
+  },
+  {
+    nom: 'chantiers_sous_phases',
+    source: '"WorkstreamSubphase" t JOIN "Workstream" w ON w.id = t."wsId"',
+    description: 'Sous-phases couvertes par chaque chantier (06/10/2026) ; chacune appartient à l’une des phases du chantier. Un chantier sans ligne : sous-phases non précisées.',
+    colonnes: [
+      { nom: 'projet_id', expr: 'w."projectId"', type: 'texte', signification: 'Projet → projets.id' },
+      { nom: 'chantier_id', expr: `t.${q('wsId')}`, type: 'texte', signification: 'Chantier → chantiers.id' },
+      { nom: 'sous_phase_id', expr: `t.${q('subphaseId')}`, type: 'texte', signification: 'Sous-phase → sous_phases.id' },
+    ],
+    relations: ['chantiers_sous_phases.chantier_id = chantiers.id', 'chantiers_sous_phases.sous_phase_id = sous_phases.id'],
+    usages: ['Sur quelles sous-phases travaille tel chantier ?', 'Quels chantiers interviennent dans telle sous-phase ?'],
     regles: [DROITS_PROJET],
   },
   {

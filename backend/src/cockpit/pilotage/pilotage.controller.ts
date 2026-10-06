@@ -139,7 +139,7 @@ export class PilotageController {
     const [phases, subphases, workstreams] = await Promise.all([
       this.prisma.phase.findMany({ where: P, orderBy: { seq: 'asc' } }),
       this.prisma.subphase.findMany({ where: P, orderBy: [{ phase: { seq: 'asc' } }, { code: 'asc' }] }),
-      this.prisma.workstream.findMany({ where: P, orderBy: { seq: 'asc' }, include: { phases: true } }),
+      this.prisma.workstream.findMany({ where: P, orderBy: { seq: 'asc' }, include: { phases: true, subphases: true } }),
     ]);
     const item = (r: any) => ({
       id: r.id,
@@ -159,7 +159,7 @@ export class PilotageController {
       projectEnd: [...phases.map((x) => x.endDate)].sort().at(-1) ?? scope.project.targetEndDate,
       phases: phases.map(item),
       subphases: subphases.map((s) => ({ ...item(s), phaseId: s.phaseId })),
-      workstreams: workstreams.map((w) => ({ ...item(w), phaseIds: w.phases.map((x) => x.phaseId) })),
+      workstreams: workstreams.map((w) => ({ ...item(w), phaseIds: w.phases.map((x) => x.phaseId), subphaseIds: w.subphases.map((x) => x.subphaseId) })),
     };
   }
 

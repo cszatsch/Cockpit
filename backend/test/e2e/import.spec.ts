@@ -57,11 +57,64 @@ describe('Étape 9 — import Excel du Référentiel (§ 13.9)', () => {
     expect(m).toEqual(expect.arrayContaining([expect.stringMatching(/n'appartient pas à la phase/), 'Couleur « Fuchsia » inconnue']));
   });
 
+  it('ancien modèle (sans « 05b Info projet » ou sans les colonnes des rattachements) → refusé avec un message explicite (D5)', async () => {
+    const r1 = await post(await buildWorkbook({ ...validAtlas(), dropSheets: ['05b Info projet'] }), '?dryRun=true').expect(200);
+    expect(r1.body.errors).toEqual(expect.arrayContaining([expect.objectContaining({ sheet: '05b Info projet', message: expect.stringMatching(/^Ancien modèle de fichier : téléchargez le modèle à jour .*onglet « 05b Info projet » absent/) })]));
+    const r2 = await post(await buildWorkbook({ dropHeaders: { '09 Chantiers': ['Sous-phases', 'Dépendances'] } }), '?dryRun=true').expect(200);
+    expect(r2.body.errors).toEqual([expect.objectContaining({ sheet: '09 Chantiers', message: expect.stringMatching(/Ancien modèle.*colonnes « Sous-phases », « Dépendances » absentes/) })]);
+  });
+
+  it('Info projet : « Programme en une phrase » et un enjeu obligatoires (D1), libellé des rubriques en paires, rubrique inconnue', async () => {
+    const f = validAtlas();
+    f.rows['05b Info projet'] = [
+      { Rubrique: 'Périmètre fonctionnel', Valeur: 'Finance' },
+      { Rubrique: 'Budget', Valeur: '3 M€' },
+      { Rubrique: 'Le client', Libellé: 'Pays', Valeur: 'Belgique' },
+      { Rubrique: 'Marques du groupe', Libellé: 'x', Valeur: 'Brand X' },
+    ];
+    const r = await post(await buildWorkbook(f), '?dryRun=true').expect(200);
+    const m = r.body.errors.filter((e: any) => e.sheet === '05b Info projet').map((e: any) => e.message);
+    expect(m).toEqual(expect.arrayContaining([
+      '« Programme en une phrase » est obligatoire (une ligne)', '« Enjeux stratégiques » est obligatoire (au moins une ligne)',
+      '« Libellé » est obligatoire pour la rubrique « Périmètre fonctionnel »', 'Rubrique « Budget » inconnue (liste dans l’onglet Références)',
+      '« Pays » est déjà repris de l’onglet 05 Projet (rubrique « Le client »)',
+    ]));
+    expect(r.body.warnings.some((w: any) => /Libellé ignoré/.test(w.message))).toBe(true);
+  });
+
+  it('Chantiers : phase ou sous-phase inconnue, sous-phase hors des phases, auto-dépendance, « Tous » combiné, boucle', async () => {
+    const f = validAtlas();
+    f.rows['09 Chantiers'] = [
+      { Nom: 'Comptabilité', Responsable: 'Sophie Marchand', Phases: '1 ; 9', 'Sous-phases': '2.1 ; 7.7', Dépendances: 'Comptabilité ; Trésorerie' },
+      { Nom: 'Trésorerie', Responsable: 'Sophie Marchand', Dépendances: 'Tous ; Fiscalité' },
+      { Nom: 'Fiscalité', Responsable: 'Sophie Marchand', Dépendances: 'C4' },
+      { Nom: 'Consolidation', Responsable: 'Sophie Marchand', Dépendances: 'Fiscalité' },
+    ];
+    f.rows['12 Jalons'][0]['Chantier'] = null;
+    f.rows['13 Livrables'][0]['Chantier'] = null;
+    const r = await post(await buildWorkbook(f), '?dryRun=true').expect(200);
+    const m = r.body.errors.filter((e: any) => e.sheet === '09 Chantiers').map((e: any) => `${e.row}${e.column} ${e.message}`);
+    expect(m).toEqual(expect.arrayContaining([
+      '9H Phase « 9 » inconnue (onglet 07 Phases)',
+      '9I Sous-phase 2.1 hors des phases du chantier : sa phase « 2 · Realize » n’est pas dans la colonne Phases',
+      '9I Sous-phase « 7.7 » inconnue (onglet 08 Sous-phases)',
+      '9J Le chantier « Comptabilité » dépend de lui-même',
+      '10J « Tous » ne se combine pas avec d’autres chantiers',
+      '11J Dépendance circulaire : Fiscalité → Consolidation → Fiscalité',
+    ]));
+  });
+
   it('mode réel : crée le référentiel, les habilitations Responsable et l’historique (origine IMPORT)', async () => {
     const r = await post(await buildWorkbook(validAtlas())).expect(200);
     expect(r.body.imported).toBe(true);
     const ws = await t.db.workstream.findMany({ where: { projectId: 'ATLAS' } });
     expect(ws.map((w) => w.code)).toEqual(['C1']);
+    // Rattachements du chantier et Info projet (06/10/2026).
+    const links = await t.db.workstream.findFirstOrThrow({ where: { projectId: 'ATLAS' }, include: { phases: { include: { phase: true } }, subphases: { include: { subphase: true } } } });
+    expect(links.phases.map((p) => p.phase.code).sort()).toEqual(['1', '2']);
+    expect(links.subphases.map((s) => s.subphase.code)).toEqual(['1.1']);
+    const info = (await t.db.contentBlock.findUniqueOrThrow({ where: { projectId_key: { projectId: 'ATLAS', key: 'referential' } } })).data as any;
+    expect(info).toMatchObject({ pitch: 'Refonte de la finance du groupe.', stakes: ['Clôturer en 5 jours'], geo: ['France'], identity: [['Raison sociale', 'AMC Corp'], ['Pays', 'France'], ['Effectifs', '1 750 collaborateurs']] });
     const ms = await t.db.milestone.findMany({ where: { projectId: 'ATLAS' }, orderBy: { code: 'asc' } });
     expect(ms.map((m) => m.code)).toEqual(['J01', 'J02']);
     const hab = await t.db.habilitation.findMany({ where: { projectId: 'ATLAS', profile: 'RESPONSABLE' } });

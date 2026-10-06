@@ -635,6 +635,8 @@ export function attach(comp) {
           if (ch(3) && WS_STATUS[cells[3]]) body.status = WS_STATUS[cells[3]];
           if (ch(4)) { const v = String(cells[4]).trim(); body.dependsOn = v === 'Tous' ? 'ALL' : v === '—' || !v ? [] : v.split(/\s*·\s*|,\s*/).map((c) => (M('WORKSTREAM').find((w) => w.id === c || w.code === c || norm(w.cells[1]) === norm(c)) || {}).id).filter(Boolean); }
           if (ch(5)) body.phaseIds = String(cells[5]).split(/\s+/).map((x) => (M('PHASE').find((p) => p.id === x || norm(p.cells[1]) === norm(x)) || {}).id).filter(Boolean);
+          // Sous-phases (06/10/2026) : codes séparés par des espaces ; le serveur vérifie qu'elles appartiennent aux phases.
+          if (ch(6)) body.subphaseIds = String(cells[6] || '').split(/\s+/).filter(Boolean).map((c) => (subphaseByCode(c) || {}).id).filter(Boolean);
           break;
         case 'TEAM':
           if (ch(1) || ch(0)) body.name = ch(1) ? cells[1] : cells[0]; if (ch(2)) body.description = cells[2] || null;

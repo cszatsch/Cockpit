@@ -56,6 +56,17 @@ const MIME_SHORT: Record<string, string> = {
  * compteurs, libellés de date) sont renseignés par le serveur ; les listes transactionnelles sont
  * filtrées par chantier (RG8). Permet de brancher le frontend sans le réécrire (§ 11).
  */
+/**
+ * Colonne « sous-phases » des chantiers (06/10/2026) : ajoutée en fin de table du Référentiel, y compris pour les
+ * projets dont la description des colonnes a été enregistrée avant ce champ.
+ */
+function withSubphaseCol(key: string, m: any) {
+  if (key !== 'WORKSTREAM' || !Array.isArray(m.cols) || m.cols.includes('sous-phases')) return m;
+  return { ...m, cols: [...m.cols, 'sous-phases'], widths: WS_REF_WIDTHS };
+}
+/** Largeurs des colonnes de la table des chantiers avec les sous-phases (seq, nom, resp., statut, dépendances, phases, sous-phases). */
+const WS_REF_WIDTHS = '44px minmax(140px,1fr) 140px 80px 160px 140px 140px';
+
 @Injectable()
 export class BootstrapService {
   constructor(
@@ -79,7 +90,7 @@ export class BootstrapService {
       this.prisma.wave.findMany({ where: P, orderBy: { seq: 'asc' } }),
       this.prisma.phase.findMany({ where: P, orderBy: { seq: 'asc' }, include: { waves: true } }),
       this.prisma.subphase.findMany({ where: P, orderBy: [{ phase: { seq: 'asc' } }, { code: 'asc' }] }),
-      this.prisma.workstream.findMany({ where: P, orderBy: { seq: 'asc' }, include: { phases: true, waves: true, dependencies: true } }),
+      this.prisma.workstream.findMany({ where: P, orderBy: { seq: 'asc' }, include: { phases: true, subphases: true, waves: true, dependencies: true } }),
       this.prisma.workstreamProgress.findMany({ where: P, orderBy: { order: 'asc' } }),
       this.prisma.milestone.findMany({ where: P, orderBy: [{ code: 'asc' }] }),
       this.prisma.deliverable.findMany({ where: P, orderBy: { order: 'asc' } }),
@@ -116,7 +127,9 @@ export class BootstrapService {
     const wsName = (id: string | null | undefined) => (id ? wsById[id]?.name ?? '' : '');
     const activeRoles = (personId: string) => [...new Set(assigns.filter((a) => a.personId === personId && assignmentActive(a, today)).map((a) => roleById[a.roleId]?.label).filter(Boolean))];
     const meta = block('model.meta') ?? {};
-    const tbl = (key: string, rows: any[]) => ({ ...(meta[key] ?? { label: key, scope: '', constraints: [], cols: [], widths: '' }), rows });
+    const tbl = (key: string, rows: any[]) => ({ ...withSubphaseCol(key, meta[key] ?? { label: key, scope: '', constraints: [], cols: [], widths: '' }), rows });
+    // Ordre des sous-phases d'un chantier : phase, puis code.
+    const spOrder = (a: string, b: string) => (phaseById[spById[a]?.phaseId]?.seq ?? 0) - (phaseById[spById[b]?.phaseId]?.seq ?? 0) || String(spById[a]?.code ?? a).localeCompare(String(spById[b]?.code ?? b), 'fr', { numeric: true });
     const current = baselines.find((b) => b.current) ?? baselines.at(-1);
     const previous = current ? baselines.filter((b) => b !== current).at(-1) : undefined;
     const display = block('project.display') ?? {};
@@ -325,9 +338,12 @@ export class BootstrapService {
       WORKSTREAM: tbl('WORKSTREAM', workstreams.map((w) => {
         const deps = w.dependencies.map((d) => d.dependsOnId).sort();
         const phaseIds = w.phases.map((x) => x.phaseId).sort((a, b) => (phaseById[a]?.seq ?? 0) - (phaseById[b]?.seq ?? 0));
+        const subphaseIds = w.subphases.map((x) => x.subphaseId).sort(spOrder);
         return {
           id: w.id,
-          cells: [String(w.seq), w.name, personName[w.ownerId] ?? '', WS_STATUS_FR[w.status], w.dependsOnAll ? 'Tous' : deps.length ? deps.join(' · ') : '—', phaseIds.join(' ')],
+          // Sous-phases (06/10/2026) : 7e colonne, en fin de ligne (les écrans lisent les phases en 6e position).
+          cells: [String(w.seq), w.name, personName[w.ownerId] ?? '', WS_STATUS_FR[w.status], w.dependsOnAll ? 'Tous' : deps.length ? deps.join(' · ') : '—', phaseIds.join(' '), subphaseIds.map((x) => spById[x]?.code ?? x).join(' ')],
+          subphaseIds,
           waves: waves.map((wv) => (w.waves.some((x) => x.waveId === wv.id) ? 1 : 0)),
           ownerId: w.ownerId,
           phaseIds,
@@ -410,7 +426,7 @@ export class BootstrapService {
       projectEnd: phases.map((p) => p.endDate).sort().at(-1) ?? project.targetEndDate,
       phases: phases.map((p) => ({ id: p.id, code: p.code, n: p.name, start: p.startDate, end: p.endDate, reel: p.progressPct, owner: p.ownerId, ...(p.critical ? { crit: true } : {}), ...(p.plannedPctOverride !== null ? { prevuSet: p.plannedPctOverride } : {}), version: p.version })),
       subphases: subphases.map((s) => ({ id: s.id, code: s.code, ph: s.phaseId, n: s.name, start: s.startDate, end: s.endDate, reel: s.progressPct, crit: s.critical, owner: s.ownerId, ...(s.plannedPctOverride !== null ? { prevuSet: s.plannedPctOverride } : {}), version: s.version })),
-      chantiers: workstreams.map((w) => ({ id: w.id, code: w.code, n: w.name, start: w.startDate, end: w.endDate, reel: w.progressPct, owner: w.ownerId, phases: w.phases.map((x) => x.phaseId).sort((a, b) => (phaseById[a]?.seq ?? 0) - (phaseById[b]?.seq ?? 0)), ...(w.critical ? { crit: true } : {}), ...(w.plannedPctOverride !== null ? { prevuSet: w.plannedPctOverride } : {}), version: w.version })),
+      chantiers: workstreams.map((w) => ({ id: w.id, code: w.code, n: w.name, start: w.startDate, end: w.endDate, reel: w.progressPct, owner: w.ownerId, phases: w.phases.map((x) => x.phaseId).sort((a, b) => (phaseById[a]?.seq ?? 0) - (phaseById[b]?.seq ?? 0)), subphases: w.subphases.map((x) => x.subphaseId).sort(spOrder), ...(w.critical ? { crit: true } : {}), ...(w.plannedPctOverride !== null ? { prevuSet: w.plannedPctOverride } : {}), version: w.version })),
     };
 
     return {

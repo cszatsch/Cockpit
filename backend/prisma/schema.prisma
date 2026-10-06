@@ -447,6 +447,7 @@ model Subphase {
 
   milestones   Milestone[]
   deliverables Deliverable[]
+  workstreams  WorkstreamSubphase[]
 
   @@unique([projectId, code])
 }
@@ -472,6 +473,7 @@ model Workstream {
   version            Int              @default(1)
 
   phases       WorkstreamPhase[]
+  subphases    WorkstreamSubphase[]
   waves        WorkstreamWave[]
   dependencies WorkstreamDependency[] @relation("dependent")
   dependents   WorkstreamDependency[] @relation("dependency")
@@ -486,6 +488,16 @@ model WorkstreamPhase {
   phase   Phase      @relation(fields: [phaseId], references: [id], onDelete: Cascade)
 
   @@id([wsId, phaseId])
+}
+
+/// Sous-phases d'un chantier (06/10/2026) : chacune appartient à l'une des phases du chantier (contrôle serveur).
+model WorkstreamSubphase {
+  wsId       String
+  ws         Workstream @relation(fields: [wsId], references: [id], onDelete: Cascade)
+  subphaseId String
+  subphase   Subphase   @relation(fields: [subphaseId], references: [id], onDelete: Cascade)
+
+  @@id([wsId, subphaseId])
 }
 
 model WorkstreamWave {
@@ -775,22 +787,22 @@ model Session {
 }
 
 model ReportTemplate {
-  id          String   @id
-  projectId   String
-  name        String
-  bodyId      String?
-  authorId    String?
-  authorLabel String?
-  version     String   @default("v1")
-  description String   @default("")
+  id             String    @id
+  projectId      String
+  name           String
+  bodyId         String?
+  authorId       String?
+  authorLabel    String?
+  version        String    @default("v1")
+  description    String    @default("")
   /// [{ id, scope: PROJECT|WAVE|PHASE|WORKSTREAM, targetId? }] (Q8 : composant budget, portée PHASE)
-  components  Json
+  components     Json
   /// Format du rapport (02/10/2026) : { pages: { cover|divider|standard|closing: { fileId, slide, kind, analysis } } } ; null = présentation par défaut
-  format      Json?
-  pages       Int      @default(1)
-  publishedAt String?
-  active      Boolean  @default(true)
-  order       Int      @default(0)
+  format         Json?
+  pages          Int       @default(1)
+  publishedAt    String?
+  active         Boolean   @default(true)
+  order          Int       @default(0)
   /// Mise en service (04/10/2026) : PENDING → READY (ou FAILED) ; étape du serveur 0 à 4 (`domain/template-service.ts`)
   serviceStatus  String    @default("READY")
   servicePhase   Int       @default(0)
@@ -798,9 +810,9 @@ model ReportTemplate {
   serviceReadyAt DateTime?
   /// Première génération d'un rapport (fin de l'étiquette « Nouveau »)
   firstReportAt  DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  rowVersion  Int      @default(1)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  rowVersion     Int       @default(1)
 }
 
 model ReportInstance {
@@ -1212,20 +1224,20 @@ model AuditEntry {
 // ─────────────────────────── Console Admin ───────────────────────────
 
 model Provider {
-  id           String         @id
-  name         String
-  keyPrefix    String?
-  keyLast4     String?
-  keyCipher    String?
+  id            String         @id
+  name          String
+  keyPrefix     String?
+  keyLast4      String?
+  keyCipher     String?
   /// Plafond de dépense mensuel de la clé (€), null = sans plafond (Partager Cockpit, 05/10/2026)
   monthlyCapEur Int?
-  status       ProviderStatus @default(UNTESTED)
-  latencyMs    Int?
-  lastTestedAt DateTime?
-  lastError    String?
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  version      Int            @default(1)
+  status        ProviderStatus @default(UNTESTED)
+  latencyMs     Int?
+  lastTestedAt  DateTime?
+  lastError     String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  version       Int            @default(1)
 }
 
 /// Catégorie d'un modèle : seuls les LLM génèrent du texte (fonctions du Cockpit, notifications).
@@ -1292,30 +1304,30 @@ model ModelAssignment {
 }
 
 model UsageRecord {
-  id           String      @id @default(cuid())
-  at           DateTime
-  projectId    String?
-  functionId   String
-  modelId      String
-  providerId   String
-  tokensIn     Int
-  tokensOut    Int
+  id               String      @id @default(cuid())
+  at               DateTime
+  projectId        String?
+  functionId       String
+  modelId          String
+  providerId       String
+  tokensIn         Int
+  tokensOut        Int
   /// Requêtes facturées (Reranking à la requête)
-  requests     Int         @default(0)
-  costEur      Float
-  fallbackUsed Boolean     @default(false)
-  source       UsageSource
+  requests         Int         @default(0)
+  costEur          Float
+  fallbackUsed     Boolean     @default(false)
+  source           UsageSource
   /// Tarifs du modèle au moment de l'appel, figés (Journal des appels § 3) : € / M jetons en entrée, en sortie ;
   /// € / 1 000 requêtes (Reranking). Null pour les appels antérieurs au journal (tarif non enregistré).
-  priceIn      Float?
-  priceOut     Float?
-  pricePer1k   Float?
+  priceIn          Float?
+  priceOut         Float?
+  pricePer1k       Float?
   /// Latence totale de l'appel (ms) ; null si non mesurée
-  durationMs   Int?
+  durationMs       Int?
   /// Jetons d'entrée lus et écrits dans le cache du fournisseur (compris dans tokensIn), facturés au tarif du cache
   /// (lecture 10 %, écriture 125 % du prix d'entrée) : le calcul affiché du coût retombe exactement sur costEur.
-  cacheReadTokens  Int     @default(0)
-  cacheWriteTokens Int     @default(0)
+  cacheReadTokens  Int         @default(0)
+  cacheWriteTokens Int         @default(0)
 
   @@index([at])
   @@index([providerId, at])

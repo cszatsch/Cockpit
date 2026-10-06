@@ -124,8 +124,17 @@ export class ReferentialService {
       const usages = await this.usagesSvc.usages(tx, scope.project.id, def.entityType, id);
       if (usages.length) throw inUse(usages);
       const before = (await def.serializeMany(c, [existing]))[0];
+      // Sous-phase rattachée à des chantiers (décision D3 du 06/10/2026) : suppression permise, le lien part en cascade
+      // et chaque chantier touché garde sa trace au journal.
+      const linked = def.entityType === 'SUBPHASE'
+        ? await tx.workstream.findMany({ where: { projectId: scope.project.id, subphases: { some: { subphaseId: id } } }, include: { subphases: true } })
+        : [];
       await (tx as any)[def.delegate].delete({ where: { id } });
       await this.audit.record(tx, this.writeCtx(actor, scope), { entityType: def.entityType, entityId: id, before, after: null, wsId: def.wsOf?.(existing) ?? null, target: def.label(existing) });
+      for (const w of linked) {
+        const subs = w.subphases.map((s) => s.subphaseId).sort();
+        await this.audit.record(tx, this.writeCtx(actor, scope), { entityType: 'WORKSTREAM', entityId: w.id, before: { subphaseIds: subs }, after: { subphaseIds: subs.filter((s) => s !== id) }, wsId: w.id, target: `${w.code} · ${w.name}` });
+      }
     });
   }
 

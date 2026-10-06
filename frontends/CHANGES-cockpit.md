@@ -421,3 +421,12 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 
 - `RISE Cockpit.dc.html` : « Oui, verser » transmet `toKb` à la génération (`tplGenRun(t, done, { toKb })`) ; le document fictif ajouté localement n'est plus créé qu'en démonstration (sans API).
 - `api.js` : `tplGenerate(t, onStep, beforeSave, { toKb })` envoie l'option au serveur ; versement refusé (droits, doublon) → message, le fichier reste téléchargé.
+
+## Sous-phases des chantiers (06/10/2026)
+
+- `RISE Cockpit.dc.html` : Référentiel › Chantiers, colonne « sous-phases » (dernière colonne) avec le même sélecteur à cases que les phases, limité aux sous-phases des phases cochées (« Aucune phase cochée » sinon, « Non précisées » si vide) ; formulaire d'ajout d'un chantier : cellule vide en plus.
+- Planning, vue « un chantier » : les sous-phases du chantier s'il en a, sinon le calcul d'avant (sous-phases de ses phases sur sa période).
+- Formulaires livrable et jalon (et ajout d'un jalon au Référentiel) : avertissement, sans blocage, quand la sous-phase ou la phase n'est pas couverte par le chantier choisi (`wsLinkWarn`).
+- Suppression d'une sous-phase : le message précise de combien de chantiers elle est retirée.
+- `api.js` : modification de la colonne « sous-phases » → `subphaseIds` (codes convertis en identifiants).
+- `rise-data.js` : colonne « sous-phases » (vide) dans la table des chantiers de démonstration.

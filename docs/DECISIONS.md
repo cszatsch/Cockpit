@@ -1553,3 +1553,23 @@ Demande du commanditaire : ajouter Z.ai GLM 5.3 Flash, Qwen3.8 Max (0902) et Xia
 | Correspondance | Identifiant OpenRouter saisi, sinon identifiant chez le fournisseur (OpenRouter tel quel, autres : préfixe + identifiant comparé sans séparateurs ni date), sinon nom affiché ; identifiant retenu enregistré et corrigeable dans la fiche | `matchOpenRouter`, `OPENROUTER_PREFIX` |
 | Saisie | Les trois mesures et l'identifiant OpenRouter sont modifiables dans la fiche (modèles absents d'OpenRouter) | `ModelFields`, `statsOf` (`ai.controller.ts`) |
 | Limites | Modèles absents de Hermes Agent (Ministral 3 14B, Mistral Medium 3.5, Mistral Small 4 au 06/10/2026) : coût par session « — » ; Embedding et Reranking : non mesurés | — |
+
+## Sous-phases des chantiers, modèle Excel et import (06/10/2026)
+
+Demande du commanditaire : un onglet « Info projet » dans le modèle Excel ; dans « Chantiers », les colonnes « Dépendances », « Phases » et « Sous-phases » ; un champ à choix multiple « Sous-phases » sur le chantier ; des contrôles explicites à l'import. Analyse et plan validés le 06/10/2026 (« d'accord avec tes recommandations, sauf pour D5 : refuser les anciens fichiers Excel et D6 : maintenant »).
+
+| Sujet | Choix | Code |
+|---|---|---|
+| Modèle de données | Lien N-N chantier ↔ sous-phase (table `WorkstreamSubphase`, suppression en cascade des deux côtés) ; une sous-phase choisie appartient à l'une des phases du chantier (400 sinon) | `prisma/migrations/20261113000000_workstream_subphases`, `foreignSubphases` (`src/domain/workstream-links.ts`) |
+| D1 · Info projet obligatoire | « Programme en une phrase » (une ligne) et au moins un « Enjeu stratégique » ; le reste facultatif | `checkWorkbook` (`src/import/referential-import.ts`) |
+| D2 · Client | « Nom du client », « Secteur d'activité » et « Pays » de « 05 Projet » ouvrent la rubrique « Le client » (libellés Raison sociale, Secteur, Pays) ; « 05b Info projet » la complète, sans reprendre ces libellés | `CLIENT_FROM_PROJECT` |
+| D3 · Cohérence | Phase retirée d'un chantier → ses sous-phases retirées, avec un avertissement ; changement de phase d'une sous-phase refusé si un chantier lié n'a pas la nouvelle phase ; sous-phase supprimée → lien supprimé en cascade, tracé au journal sur chaque chantier | `keepSubphasesOf`, `SUBPHASES.prepare` (`entities.ts`), `ReferentialService.remove` |
+| D4 · Existant | Chantiers existants laissés sans sous-phase (« non précisées ») ; Planning et rapports gardent alors le calcul d'avant | — |
+| D5 · Anciens fichiers | Refusés : fichier sans l'onglet « 05b Info projet » ou sans les colonnes Phases, Sous-phases, Dépendances de « 09 Chantiers » → erreur « Ancien modèle de fichier : téléchargez le modèle à jour… », rien n'est créé | `OLD_MODEL_MESSAGE`, `WS_LINK_COLUMNS` |
+| D6 · Fait maintenant | Avertissement (jamais blocage) quand un livrable ou un jalon vise une sous-phase (ou une phase) que son chantier ne couvre pas ; composant Planning des rapports en portée chantier : phases du chantier et, s'il en a, ses seules sous-phases | `wsLinkWarn` (`RISE Cockpit.dc.html`), `report-template.service.ts` |
+| Dépendances | Boucle refusée au Référentiel comme à l'import, quelle que soit sa longueur (« dépendance circulaire : C5 → C9 → C5 ») ; « Tous » ne se combine avec rien | `dependencyCycle` |
+| Choix multiple dans Excel | Valeurs séparées par « ; » (espaces ignorés, doublons comptés une fois) ; Phases : N° ou nom ; Sous-phases : N° (ex. 3.1) ; Dépendances : noms ou codes (C1…) des chantiers, ou Tous | `multiValues` |
+| Modèle Excel | Onglet « 05b Info projet » (Rubrique en liste, Libellé obligatoire pour Le client et les périmètres fonctionnel et applicatif, Valeur, Contrôle) ; colonnes H à K de « 09 Chantiers » (Phases, Sous-phases, Dépendances, Contrôle) avec messages d'aide ; onglet visible « Références » (convention, rubriques, valeurs acceptées calculées) ; ligne 05b dans la Complétude (2 champs obligatoires) ; listes masquées `L_Rubriques`, `L_RubriquesPaires` | `frontends/Referentiel RISE - initialisation.xlsx` |
+| Référentiel du Cockpit | Colonne « sous-phases » en fin de table des chantiers (7e position : les écrans lisent les phases en 6e), codes séparés par des espaces ; sélecteur limité aux sous-phases des phases cochées | `withSubphaseCol` (`bootstrap.service.ts`) |
+| Planning | Vue « un chantier » : ses sous-phases s'il en a, sinon les sous-phases de ses phases sur sa période | `plVals` |
+| Jev du Cockpit | Vue `jev_cockpit.chantiers_sous_phases` (filtrée par droits comme `chantiers_phases`) | `prisma/migrations/20261113000100_jev_cockpit_chantiers_sous_phases` |

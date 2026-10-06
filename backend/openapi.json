@@ -3627,6 +3627,42 @@
         ]
       }
     },
+    "/api/projects/{projectId}/workstreams/{id}/subphases": {
+      "put": {
+        "operationId": "ReferentialRelationsController_wsSubphases",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "cockpit · référentiel · relations"
+        ]
+      }
+    },
     "/api/projects/{projectId}/workstreams/{id}/waves": {
       "put": {
         "operationId": "ReferentialRelationsController_wsWaves",

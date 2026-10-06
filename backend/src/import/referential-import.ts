@@ -3,6 +3,8 @@ import { Tx } from '../core/prisma.service';
 import { AuditService, WriteCtx } from '../core/audit.service';
 import { isIsoDate } from '../domain/dates';
 import { normKey } from '../domain/labels';
+import { PROJECT_INFO_BLOCK, PROJECT_INFO_ITEMS_MAX, PROJECT_INFO_LABEL_MAX, PROJECT_INFO_RUBRIQUES, PROJECT_INFO_VALUE_MAX, ProjectInfo } from '../domain/project-info';
+import { dependencyCycle, multiValues } from '../domain/workstream-links';
 import * as S from '../cockpit/referential/schemas';
 import { CellValue, ParsedWorkbook, SHEETS, SheetData } from './excel-reader';
 
@@ -41,6 +43,16 @@ const PLAN_STATUS: Record<string, string> = { prevu: 'PLANNED', prevue: 'PLANNED
 const WS_STATUS: Record<string, string> = { actif: 'ACTIVE', clos: 'CLOSED' };
 const PROJECT_STATUS: Record<string, string> = { preparation: 'PREPARATION', actif: 'ACTIVE', clos: 'CLOSED' };
 
+/**
+ * Ancien modèle (décision D5 du 06/10/2026) : fichier sans l'onglet « 05b Info projet » ou sans les colonnes des
+ * rattachements des chantiers ; refusé, avec ce message.
+ */
+export const OLD_MODEL_MESSAGE = 'Ancien modèle de fichier : téléchargez le modèle à jour (bouton « Modèle Excel ») et reportez-y vos données';
+/** Colonnes ajoutées à l'onglet « 09 Chantiers » le 06/10/2026 (choix multiple, valeurs séparées par « ; »). */
+export const WS_LINK_COLUMNS = ['Phases', 'Sous-phases', 'Dépendances'] as const;
+/** Libellés de la rubrique « Le client » repris de l'onglet « 05 Projet » (décision D2 du 06/10/2026). */
+export const CLIENT_FROM_PROJECT = { name: 'Raison sociale', sector: 'Secteur', country: 'Pays' } as const;
+
 /** Q4 : valeurs par défaut des champs du modèle absents du fichier. */
 export const IMPORT_DEFAULTS = { currency: 'EUR', progressPct: 0, memberRole: 'MEMBER', clientStatus: 'ACTIVE' } as const;
 
@@ -68,7 +80,9 @@ export interface ImportPlan {
   waves: Array<{ key: string; seq: number; name: string; startDate: string; endDate: string; status: string; owner: string | null }>;
   phases: Array<{ key: string; seq: number; code: string; name: string; wave: string; startDate: string; endDate: string; status: string; description: string | null }>;
   subphases: Array<{ key: string; phase: string; code: string; name: string; startDate: string | null; endDate: string | null; status: string; description: string | null }>;
-  workstreams: Array<{ key: string; code: string; seq: number; name: string; owner: string; wave: string | null; status: string; description: string | null }>;
+  workstreams: Array<{ key: string; code: string; seq: number; name: string; owner: string; wave: string | null; status: string; description: string | null; phases: string[]; subphases: string[]; dependsOn: string[] | 'ALL' }>;
+  /** Objet « Info projet » (onglets 05 Projet pour « Le client » et 05b Info projet). */
+  projectInfo: ProjectInfo;
   bodies: Array<{ key: string; name: string; shortName: string; color: string; frequency: string; level: string | null; description: string | null }>;
   members: Array<{ body: string; person: string; role: string }>;
   milestones: Array<{ code: string; n: string; phase: string; subphase: string | null; ws: string | null; wave: string | null; owner: string | null; iso: string; baselineIso: string | null }>;
@@ -125,9 +139,13 @@ export function checkWorkbook(wb: ParsedWorkbook): CheckResult {
   const err = (sheet: string, row: number | null, column: string | null, message: string) => issues.push({ level: 'ERROR', sheet, row, column, message, source: 'SERVER' });
   const warn = (sheet: string, row: number | null, column: string | null, message: string) => issues.push({ level: 'WARNING', sheet, row, column, message, source: 'SERVER' });
 
-  // 1. Structure
+  // 1. Structure ; ancien modèle refusé (D5) avec un message qui invite à télécharger le modèle à jour.
+  const wsCols = wb.sheets['09 Chantiers']?.columns.map((c) => c.header) ?? [];
+  const missingCols = wb.sheets['09 Chantiers'] ? WS_LINK_COLUMNS.filter((c) => !wsCols.includes(c)) : [];
+  if (wb.missingSheets.includes('05b Info projet')) err('05b Info projet', null, null, `${OLD_MODEL_MESSAGE} (onglet « 05b Info projet » absent)`);
+  if (missingCols.length) err('09 Chantiers', null, null, `${OLD_MODEL_MESSAGE} (colonne${missingCols.length > 1 ? 's' : ''} ${missingCols.map((c) => `« ${c} »`).join(', ')} absente${missingCols.length > 1 ? 's' : ''} de l'onglet 09 Chantiers)`);
   for (const m of wb.missingSheets) err(m, null, null, `Onglet « ${m} » manquant`);
-  if (wb.missingSheets.length) return finish(issues, null, wb);
+  if (wb.missingSheets.length || missingCols.length) return finish(issues, null, wb);
 
   const sheet = (name: (typeof SHEETS)[number]): SheetData => wb.sheets[name];
   const colLetter = (sh: string, header: string) => wb.sheets[sh]?.columns.find((c) => c.header === header)?.letter ?? header;
@@ -179,6 +197,7 @@ export function checkWorkbook(wb: ParsedWorkbook): CheckResult {
     members: [],
     milestones: [],
     deliverables: [],
+    projectInfo: { identity: [], brands: [], pitch: '', stakes: [], scope: [], systems: [], geo: [], legal: [] },
   };
 
   // 01 Équipes
@@ -305,6 +324,46 @@ export function checkWorkbook(wb: ParsedWorkbook): CheckResult {
     currency: IMPORT_DEFAULTS.currency,
   };
 
+  // 05b Info projet (06/10/2026) : « Le client » commence par la raison sociale, le secteur et le pays de 05 Projet (D2) ;
+  // « Programme en une phrase » et au moins un « Enjeu stratégique » sont obligatoires (D1).
+  const IP = '05b Info projet';
+  const info = plan.projectInfo;
+  const fromProject: Array<[string, string | null]> = [[CLIENT_FROM_PROJECT.name, plan.client.name || null], [CLIENT_FROM_PROJECT.sector, plan.client.sector], [CLIENT_FROM_PROJECT.country, plan.project.country || null]];
+  info.identity = fromProject.filter((x): x is [string, string] => !!x[1]);
+  const rubrique = new Map<string, (typeof PROJECT_INFO_RUBRIQUES)[number]>();
+  for (const r of PROJECT_INFO_RUBRIQUES) { rubrique.set(normKey(r.label), r); rubrique.set(normKey(r.key), r); }
+  let pitchRow: number | null = null;
+  for (const r of sheet(IP).rows) {
+    fileControl(IP, r);
+    if (!required(IP, r)) continue;
+    const rubLabel = str(r.values['Rubrique'])!;
+    const rub = rubrique.get(normKey(rubLabel));
+    if (!rub) { err(IP, r.row, 'B', `Rubrique « ${rubLabel} » inconnue (liste dans l’onglet Références)`); continue; }
+    const label = str(r.values['Libellé']);
+    const val = str(r.values['Valeur'])!;
+    if (val.length > PROJECT_INFO_VALUE_MAX) err(IP, r.row, 'D', `Valeur : ${PROJECT_INFO_VALUE_MAX} caractères au plus`);
+    if (rub.kv) {
+      if (!label) { err(IP, r.row, 'C', `« Libellé » est obligatoire pour la rubrique « ${rub.label} »`); continue; }
+      if (label.length > PROJECT_INFO_LABEL_MAX) err(IP, r.row, 'C', `Libellé : ${PROJECT_INFO_LABEL_MAX} caractères au plus`);
+      const list = info[rub.key as 'identity' | 'scope' | 'systems'];
+      if (rub.key === 'identity' && fromProject.some(([l]) => normKey(l) === normKey(label))) err(IP, r.row, 'C', `« ${label} » est déjà repris de l’onglet 05 Projet (rubrique « ${rub.label} »)`);
+      else if (list.some(([l]) => normKey(l) === normKey(label))) err(IP, r.row, 'C', `Libellé « ${label} » en double dans la rubrique « ${rub.label} »`);
+      else list.push([label, val]);
+    } else {
+      if (label) warn(IP, r.row, 'C', `Libellé ignoré : la rubrique « ${rub.label} » est une liste de valeurs`);
+      if (rub.key === 'pitch') {
+        if (pitchRow) err(IP, r.row, 'B', `« ${rub.label} » : une seule ligne attendue (déjà ligne ${pitchRow})`);
+        else { pitchRow = r.row; info.pitch = val; }
+      } else info[rub.key as 'brands' | 'stakes' | 'geo' | 'legal'].push(val);
+    }
+  }
+  for (const r of PROJECT_INFO_RUBRIQUES) {
+    const n = r.key === 'pitch' ? 0 : info[r.key].length;
+    if (n > PROJECT_INFO_ITEMS_MAX) err(IP, null, 'B', `Rubrique « ${r.label} » : ${PROJECT_INFO_ITEMS_MAX} lignes au plus (${n})`);
+  }
+  if (!info.pitch) err(IP, null, 'B', '« Programme en une phrase » est obligatoire (une ligne)');
+  if (!info.stakes.length) err(IP, null, 'B', '« Enjeux stratégiques » est obligatoire (au moins une ligne)');
+
   // 06 Lots
   const waveKeys = new Map<string, { row: number; start: string | null; end: string | null }>();
   for (const r of sheet('06 Lots').rows) {
@@ -373,7 +432,15 @@ export function checkWorkbook(wb: ParsedWorkbook): CheckResult {
     plan.subphases.push({ key, phase: normKey(phaseLabel), code, name, startDate: s, endDate: e, status: st ? PLAN_STATUS[normKey(st)] ?? 'PLANNED' : 'PLANNED', description: str(r.values['Description']) });
   }
 
-  // 09 Chantiers (clé = nom ; code attribué par le serveur dans l'ordre des lignes)
+  // 09 Chantiers (clé = nom ; code attribué par le serveur dans l'ordre des lignes). Phases, sous-phases et dépendances
+  // (06/10/2026) : choix multiple, valeurs séparées par « ; » ; une sous-phase appartient à l'une des phases du chantier.
+  const WS = '09 Chantiers';
+  const phaseOfToken = new Map<string, string>();
+  for (const p of plan.phases) { phaseOfToken.set(normKey(p.code), p.key); phaseOfToken.set(normKey(p.name), p.key); phaseOfToken.set(p.key, p.key); }
+  const spOfToken = new Map<string, { key: string; phase: string; code: string }>();
+  for (const s of plan.subphases) { const v = { key: s.key, phase: s.phase, code: s.code }; spOfToken.set(normKey(s.code), v); spOfToken.set(s.key, v); }
+  const phaseLabel = (k: string) => { const p = plan.phases.find((x) => x.key === k); return p ? `${p.code} · ${p.name}` : k; };
+  const rawDeps: Array<{ key: string; row: number; tokens: string[] }> = [];
   const wsKeys = new Map<string, number>();
   for (const [i, r] of sheet('09 Chantiers').rows.entries()) {
     fileControl('09 Chantiers', r);
@@ -387,7 +454,43 @@ export function checkWorkbook(wb: ParsedWorkbook): CheckResult {
     if (wave && !waveKeys.has(normKey(wave))) err('09 Chantiers', r.row, 'E', `Lot « ${wave} » inconnu`);
     const st = str(r.values['Statut']);
     if (st && !WS_STATUS[normKey(st)]) err('09 Chantiers', r.row, 'F', `Statut « ${st} » inconnu`);
-    plan.workstreams.push({ key: k, code: `C${i + 1}`, seq: i + 1, name, owner: owner ?? '', wave: wave ? normKey(wave) : null, status: st ? WS_STATUS[normKey(st)] ?? 'ACTIVE' : 'ACTIVE', description: str(r.values['Description']) });
+    const phases: string[] = [];
+    for (const t of multiValues(r.values['Phases'])) {
+      const p = phaseOfToken.get(normKey(t));
+      if (!p) err(WS, r.row, colLetter(WS, 'Phases'), `Phase « ${t} » inconnue (onglet 07 Phases)`);
+      else if (!phases.includes(p)) phases.push(p);
+    }
+    const subphases: string[] = [];
+    for (const t of multiValues(r.values['Sous-phases'])) {
+      const s = spOfToken.get(normKey(t));
+      if (!s) err(WS, r.row, colLetter(WS, 'Sous-phases'), `Sous-phase « ${t} » inconnue (onglet 08 Sous-phases)`);
+      else if (!phases.includes(s.phase)) err(WS, r.row, colLetter(WS, 'Sous-phases'), `Sous-phase ${s.code} hors des phases du chantier : sa phase « ${phaseLabel(s.phase)} » n’est pas dans la colonne Phases`);
+      else if (!subphases.includes(s.key)) subphases.push(s.key);
+    }
+    rawDeps.push({ key: k, row: r.row, tokens: multiValues(r.values['Dépendances']) });
+    plan.workstreams.push({ key: k, code: `C${i + 1}`, seq: i + 1, name, owner: owner ?? '', wave: wave ? normKey(wave) : null, status: st ? WS_STATUS[normKey(st)] ?? 'ACTIVE' : 'ACTIVE', description: str(r.values['Description']), phases, subphases, dependsOn: [] });
+  }
+  // Dépendances : noms (ou codes C1, C2…) de chantiers du fichier, ou « Tous » seul ; ni auto-dépendance ni boucle.
+  const depCol = colLetter(WS, 'Dépendances');
+  const wsOfToken = (t: string) => plan.workstreams.find((w) => normKey(w.name) === normKey(t) || normKey(w.code) === normKey(t))?.key;
+  for (const d of rawDeps) {
+    const w = plan.workstreams.find((x) => x.key === d.key)!;
+    if (d.tokens.some((t) => normKey(t) === 'tous')) {
+      if (d.tokens.length > 1) err(WS, d.row, depCol, '« Tous » ne se combine pas avec d’autres chantiers');
+      else w.dependsOn = 'ALL';
+      continue;
+    }
+    for (const t of d.tokens) {
+      const dep = wsOfToken(t);
+      if (!dep) err(WS, d.row, depCol, `Chantier « ${t} » inconnu (onglet 09 Chantiers)`);
+      else if (dep === d.key) err(WS, d.row, depCol, `Le chantier « ${w.name} » dépend de lui-même`);
+      else if (!(w.dependsOn as string[]).includes(dep)) (w.dependsOn as string[]).push(dep);
+    }
+  }
+  const cycle = dependencyCycle(new Map(plan.workstreams.map((w) => [w.key, w.dependsOn === 'ALL' ? [] : w.dependsOn])));
+  if (cycle) {
+    const nm = (k: string) => plan.workstreams.find((w) => w.key === k)?.name ?? k;
+    err(WS, wsKeys.get(cycle[0]) ?? null, depCol, `Dépendance circulaire : ${cycle.map(nm).join(' → ')}`);
   }
 
   // 10 Instances
@@ -482,10 +585,10 @@ function finish(issues: ImportIssue[], plan: ImportPlan | null, wb: ParsedWorkbo
     : {};
   const bySheet = (prefix: string) => errors.filter((e) => e.sheet.startsWith(prefix) || prefix === '*').length;
   const checks = [
-    { id: 'structure', label: 'Structure du fichier (13 onglets)', ok: !wb.missingSheets.length, detail: wb.missingSheets.length ? `${wb.missingSheets.length} onglet(s) manquant(s)` : '13 onglets présents' },
+    { id: 'structure', label: `Structure du fichier (${SHEETS.length} onglets)`, ok: !wb.missingSheets.length && !errors.some((e) => e.message.startsWith(OLD_MODEL_MESSAGE)), detail: errors.some((e) => e.message.startsWith(OLD_MODEL_MESSAGE)) ? 'Ancien modèle de fichier' : wb.missingSheets.length ? `${wb.missingSheets.length} onglet(s) manquant(s)` : `${SHEETS.length} onglets présents` },
     { id: 'project', label: 'Fiche projet complète', ok: bySheet('05') === 0, detail: bySheet('05') ? `${bySheet('05')} erreur(s)` : 'Champs obligatoires renseignés' },
     { id: 'required', label: 'Champs obligatoires', ok: !errors.some((e) => /obligatoire/.test(e.message)), detail: `${errors.filter((e) => /obligatoire/.test(e.message)).length} champ(s) manquant(s)` },
-    { id: 'references', label: 'Références entre onglets et doublons', ok: !errors.some((e) => /inconnu|double|appartient/.test(e.message)), detail: `${errors.filter((e) => /inconnu|double|appartient/.test(e.message)).length} erreur(s)` },
+    { id: 'references', label: 'Références entre onglets et doublons', ok: !errors.some((e) => /inconnu|double|appartient|hors des phases|lui-même|circulaire|Tous/.test(e.message)), detail: `${errors.filter((e) => /inconnu|double|appartient|hors des phases|lui-même|circulaire|Tous/.test(e.message)).length} erreur(s)` },
     { id: 'rules', label: 'Règles de dates et de codes', ok: !errors.some((e) => /date|avant|N°|Fin|Code/.test(e.message)), detail: `${issues.filter((e) => e.level === 'WARNING').length} avertissement(s)` },
   ];
   return { issues, plan, counts, checks };
@@ -540,6 +643,11 @@ export async function commitPlan(db: Tx, plan: ImportPlan, target: CommitTarget,
       },
     });
   }
+  // Info projet (06/10/2026) : rubriques écrites dans le bloc `referential`, sans toucher à ses autres données.
+  const ipWhere = { projectId_key: { projectId: P, key: PROJECT_INFO_BLOCK } };
+  const ipCur = await db.contentBlock.findUnique({ where: ipWhere });
+  const ipData = { ...((ipCur?.data as object) ?? {}), ...plan.projectInfo };
+  await db.contentBlock.upsert({ where: ipWhere, create: { projectId: P, key: PROJECT_INFO_BLOCK, data: ipData }, update: { data: ipData, version: { increment: 1 } } });
   if (target.progress) await target.progress(1, 1);
   // Identifiants techniques calculés d'avance : chaque phase peut viser des objets écrits dans une autre.
   plan.teams.forEach((t, k) => { teamId[t.key] = id('t', k + 1); });
@@ -603,11 +711,17 @@ export async function commitPlan(db: Tx, plan: ImportPlan, target: CommitTarget,
         description: w.description,
         startDate: plan.project.startDate || null,
         endDate: plan.project.targetEndDate || null,
+        dependsOnAll: w.dependsOn === 'ALL',
         waves: w.wave ? { create: [{ waveId: waveId[w.wave] }] } : undefined,
+        phases: w.phases.length ? { create: w.phases.map((p) => ({ phaseId: phaseId[p] })) } : undefined,
+        subphases: w.subphases.length ? { create: w.subphases.map((s) => ({ subphaseId: spId[s] })) } : undefined,
       },
     });
     await tick(3, ++d3, n3);
   }
+  // Dépendances entre chantiers, une fois tous les chantiers créés.
+  const deps = plan.workstreams.flatMap((w) => (w.dependsOn === 'ALL' ? [] : w.dependsOn.map((d) => ({ wsId: wsId[w.key], dependsOnId: wsId[d] }))));
+  if (deps.length) await db.workstreamDependency.createMany({ data: deps });
   for (const m of plan.milestones) {
     await db.milestone.create({
       data: {

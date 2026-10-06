@@ -670,3 +670,7 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
 
 - `ProjetInit.dc.html` : le bouton « Modèle Excel » propose le nom « [nom de l'utilisateur] - Init projet Cockpit [AAMMJJ].xlsx » (attribut `download` calculé, `tplFile` ; caractères interdits dans un nom de fichier retirés) au lieu de « download » ; nouvelle prop `userName`.
 - `Console Admin.dc.html` : nom de l'administrateur connecté transmis à l'écran (`initUser`).
+
+## Initialisation d'un projet : Info projet et rattachements des chantiers (06/10/2026)
+
+- `ProjetInit.dc.html` : 14 onglets lus (« 05b Info projet » ajouté) ; nombre d'onglets calculé ; ancien modèle de fichier signalé dans « Structure du fichier » ; onglet d'aperçu « Info projet » et colonnes Phases, Sous-phases, Dépendances des chantiers (données de démonstration comprises).

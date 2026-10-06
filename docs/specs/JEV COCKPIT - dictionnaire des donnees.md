@@ -1,7 +1,7 @@
 # Cockpit — dictionnaire des données
 
 > Généré depuis `backend/src/domain/jev-dictionnaire-cockpit.ts` (`npm run dictionnaire:doc`) : ne pas modifier à la main.
-> 34 vues en lecture seule du schéma `jev_cockpit`, chargées dans `dictionnaire_tables` et `dictionnaire_colonnes`.
+> 35 vues en lecture seule du schéma `jev_cockpit`, chargées dans `dictionnaire_tables` et `dictionnaire_colonnes`.
 > Dates métier en texte AAAA-MM-JJ, horodatages en heure de Paris. Chaque vue porte projet_id (et chantier_id) pour le filtrage par droits ; aucun rôle de lecture n’y a accès tant que ce filtrage n’est pas en place.
 
 ## Sommaire
@@ -14,6 +14,7 @@
 - [`jev_cockpit.sous_phases`](#sous_phases) — 13 colonnes
 - [`jev_cockpit.chantiers`](#chantiers) — 14 colonnes
 - [`jev_cockpit.chantiers_phases`](#chantiers_phases) — 3 colonnes
+- [`jev_cockpit.chantiers_sous_phases`](#chantiers_sous_phases) — 3 colonnes
 - [`jev_cockpit.chantiers_lots`](#chantiers_lots) — 3 colonnes
 - [`jev_cockpit.dependances_chantiers`](#dependances_chantiers) — 3 colonnes
 - [`jev_cockpit.avancements`](#avancements) — 9 colonnes
@@ -242,7 +243,7 @@ Sous-phases d’une phase (code « phase.n ») : dates, statut, avancement, crit
 **Relations**
 
 - sous_phases.phase_id = phases.id
-- sous_phases.id = livrables.sous_phase_id, jalons.sous_phase_id
+- sous_phases.id = livrables.sous_phase_id, jalons.sous_phase_id, chantiers_sous_phases.sous_phase_id
 
 **Usages**
 
@@ -311,6 +312,30 @@ Phases couvertes par chaque chantier.
 **Usages**
 
 - Quels chantiers travaillent sur telle phase ?
+
+**Règles et précautions**
+
+- Droits : visible de tout utilisateur habilité sur le projet (projet_id).
+
+## chantiers_sous_phases
+
+Sous-phases couvertes par chaque chantier (06/10/2026) ; chacune appartient à l’une des phases du chantier. Un chantier sans ligne : sous-phases non précisées.
+
+| Colonne | Type | Signification | Exemples, unités |
+|---|---|---|---|
+| `projet_id` | texte | Projet → projets.id |  |
+| `chantier_id` | texte | Chantier → chantiers.id |  |
+| `sous_phase_id` | texte | Sous-phase → sous_phases.id |  |
+
+**Relations**
+
+- chantiers_sous_phases.chantier_id = chantiers.id
+- chantiers_sous_phases.sous_phase_id = sous_phases.id
+
+**Usages**
+
+- Sur quelles sous-phases travaille tel chantier ?
+- Quels chantiers interviennent dans telle sous-phase ?
 
 **Règles et précautions**
 

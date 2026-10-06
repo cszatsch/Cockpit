@@ -76,7 +76,7 @@ const FIELD_LABELS: Record<string, string> = {
   n: 'Intitulé', name: 'Nom', t: 'Intitulé', label: 'Libellé', shortName: 'Nom court', code: 'Code', seq: 'Numéro',
   detail: 'Détail', description: 'Description', plan: 'Plan de réponse', impact: 'Impact', decL: 'Décision',
   ownerId: 'Responsable', makerId: 'Décideur', personId: 'Personne', roleId: 'Rôle', teamId: 'Équipe',
-  wsId: 'Chantier', workstreamId: 'Chantier', wsIds: 'Chantiers', phaseId: 'Phase', subphaseId: 'Sous-phase', waveId: 'Lot', bodyId: 'Instance',
+  wsId: 'Chantier', workstreamId: 'Chantier', wsIds: 'Chantiers', phaseId: 'Phase', subphaseId: 'Sous-phase', phaseIds: 'Phases', subphaseIds: 'Sous-phases', waveId: 'Lot', bodyId: 'Instance',
   iso: 'Date prévue', baselineIso: 'Date de référence', dueIso: 'Échéance', due: 'Échéance', targetIso: 'Date cible', openedIso: 'Ouvert le',
   crIso: 'Créée le', ddIso: 'Date de décision', closedAt: 'Clôturée le', confirmedAt: 'Confirmé le',
   startDate: 'Début', start: 'Début', endDate: 'Fin', status: 'Statut', prio: 'Priorité', sev: 'Gravité',

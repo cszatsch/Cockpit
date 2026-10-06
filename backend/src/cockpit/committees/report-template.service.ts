@@ -142,7 +142,10 @@ export class ReportTemplateService implements OnModuleInit {
         break;
       }
       case 'planning': {
-        const ph = await phases();
+        // Portée chantier (décision D6 du 06/10/2026) : phases du chantier et, s'il en a, ses seules sous-phases.
+        const wsLinks = c.scope === 'WORKSTREAM' ? await this.prisma.workstream.findFirst({ where: { ...P, id: t! }, include: { phases: true, subphases: true } }) : null;
+        const wsPhases = new Set((wsLinks?.phases ?? []).map((x) => x.phaseId)), wsSubs = (wsLinks?.subphases ?? []).map((x) => x.subphaseId);
+        const ph = (await phases()).filter((p) => !wsPhases.size || wsPhases.has(p.id));
         const bad = ph.filter((p) => p.endDate < p.startDate).map((p) => p.code);
         if (bad.length) warn(`fin avant le début pour ${list(bad)} (données incohérentes).`);
         const over = ph.filter((p) => p.progressPct < 0 || p.progressPct > 100).map((p) => p.code);
@@ -150,7 +153,7 @@ export class ReportTemplateService implements OnModuleInit {
         if (!ph.length) warn('aucune phase sur le périmètre.');
         // Gantt (03/10/2026) : phases, sous-phases si demandées, phase en cours, jalons ; tableau au-delà de 25 lignes.
         const current = ph.find((p) => p.status === 'IN_PROGRESS') ?? ph.find((p) => p.startDate <= today && today <= p.endDate && p.status !== 'DONE');
-        const subs = inds.includes('subphases') ? await this.prisma.subphase.findMany({ where: { ...P, phaseId: { in: ph.map((p) => p.id) } }, orderBy: [{ startDate: 'asc' }, { code: 'asc' }] }) : [];
+        const subs = inds.includes('subphases') ? await this.prisma.subphase.findMany({ where: { ...P, phaseId: { in: ph.map((p) => p.id) }, ...(wsSubs.length ? { id: { in: wsSubs } } : {}) }, orderBy: [{ startDate: 'asc' }, { code: 'asc' }] }) : [];
         const rows: GanttRow[] = [], rowOf = new Map<string, number>();
         for (const p of ph) {
           rowOf.set(p.id, rows.length);

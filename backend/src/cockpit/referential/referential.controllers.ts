@@ -90,6 +90,13 @@ export class ReferentialRelationsController {
     return this.svc.replaceRelation(WORKSTREAMS, actor, await this.access.scope(actor, p), id, { phaseIds });
   }
 
+  /** Sous-phases d'un chantier (06/10/2026) : chacune appartient à l'une de ses phases. */
+  @Put('workstreams/:id/subphases')
+  async wsSubphases(@CurrentActor() actor: Actor, @Param('projectId') p: string, @Param('id') id: string, @Body() body: unknown) {
+    const { subphaseIds } = parse(z.object({ subphaseIds: ids }).strict(), body);
+    return this.svc.replaceRelation(WORKSTREAMS, actor, await this.access.scope(actor, p), id, { subphaseIds });
+  }
+
   @Put('workstreams/:id/waves')
   async wsWaves(@CurrentActor() actor: Actor, @Param('projectId') p: string, @Param('id') id: string, @Body() body: unknown) {
     const { waveIds } = parse(z.object({ waveIds: ids }).strict(), body);

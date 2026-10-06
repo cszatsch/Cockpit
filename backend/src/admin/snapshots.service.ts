@@ -37,6 +37,7 @@ export const SNAPSHOT_ENTITIES: Array<{ key: string; label: string; delegate: st
 export const SNAPSHOT_LINKS: Array<{ key: string; delegate: string; where: (projectId: string) => object; ends: Array<[string, string]> }> = [
   { key: 'phaseWaves', delegate: 'phaseWave', where: (projectId) => ({ phase: { projectId } }), ends: [['phaseId', 'phases'], ['waveId', 'waves']] },
   { key: 'workstreamPhases', delegate: 'workstreamPhase', where: (projectId) => ({ ws: { projectId } }), ends: [['wsId', 'workstreams'], ['phaseId', 'phases']] },
+  { key: 'workstreamSubphases', delegate: 'workstreamSubphase', where: (projectId) => ({ ws: { projectId } }), ends: [['wsId', 'workstreams'], ['subphaseId', 'subphases']] },
   { key: 'workstreamWaves', delegate: 'workstreamWave', where: (projectId) => ({ ws: { projectId } }), ends: [['wsId', 'workstreams'], ['waveId', 'waves']] },
   { key: 'workstreamDependencies', delegate: 'workstreamDependency', where: (projectId) => ({ ws: { projectId } }), ends: [['wsId', 'workstreams'], ['dependsOnId', 'workstreams']] },
   { key: 'bodyMembers', delegate: 'bodyMember', where: (projectId) => ({ body: { projectId } }), ends: [['bodyId', 'bodies']] },

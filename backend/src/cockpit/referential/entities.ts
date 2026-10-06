@@ -6,6 +6,7 @@ import { nextCode, readableId, techId } from '../../core/ids';
 import { assignmentActive, confirmedDays, milestoneGap, outsidePeriod } from '../../domain/rules';
 import { ProjectAccess } from '../../domain/rights';
 import { normKey } from '../../domain/labels';
+import { dependencyCycle, foreignSubphases, keepSubphasesOf } from '../../domain/workstream-links';
 import * as S from './schemas';
 import { deliverableView, milestoneViews, personViews } from '../views';
 
@@ -208,6 +209,10 @@ export const SUBPHASES: EntityConfig = {
     if ((m.startDate && outsidePeriod(m.startDate, phase.startDate, phase.endDate)) || (m.endDate && outsidePeriod(m.endDate, phase.startDate, phase.endDate))) {
       warnings.push(`La sous-phase sort de la période de la phase ${phase.code} (${phase.startDate} → ${phase.endDate})`);
     }
+    if (existing && input.phaseId !== undefined && input.phaseId !== existing.phaseId) {
+      const linked = await ctx.db.workstream.findMany({ where: { projectId: ctx.project.id, subphases: { some: { subphaseId: existing.id } }, phases: { none: { phaseId: input.phaseId } } }, select: { code: true } });
+      if (linked.length) throw badRequest('Changement de phase impossible', { phaseId: `la sous-phase est rattachée aux chantiers ${linked.map((w) => w.code).join(', ')}, qui n’ont pas la phase ${phase.code}` });
+    }
     const data: any = { ...input };
     precisions(input, data);
     return { data, warnings };
@@ -241,7 +246,7 @@ export const WORKSTREAMS: EntityConfig = {
   delegate: 'workstream',
   create: S.WorkstreamCreate,
   patch: S.patchOf(S.WorkstreamCreate),
-  include: { phases: true, waves: true, dependencies: true },
+  include: { phases: true, subphases: true, waves: true, dependencies: true },
   orderBy: { seq: 'asc' },
   newId: async (ctx) => {
     const all = await ctx.db.workstream.findMany({ where: { projectId: ctx.project.id }, select: { code: true } });
@@ -253,6 +258,7 @@ export const WORKSTREAMS: EntityConfig = {
     await mustExist(ctx.db, 'person', ctx.project.id, input.ownerId, 'ownerId');
     const data: any = { ...input };
     delete data.phaseIds;
+    delete data.subphaseIds;
     delete data.waveIds;
     delete data.dependsOn;
     if (!existing) {
@@ -266,14 +272,53 @@ export const WORKSTREAMS: EntityConfig = {
     for (const w of input.waveIds ?? []) await mustExist(ctx.db, 'wave', ctx.project.id, w, 'waveIds');
     const deps: string[] | undefined = Array.isArray(input.dependsOn) ? input.dependsOn : input.dependsOn === 'ALL' ? [] : undefined;
     for (const d of deps ?? []) await mustExist(ctx.db, 'workstream', ctx.project.id, d, 'dependsOn');
+    // Sous-phases (06/10/2026) : chacune appartient à l'une des phases du chantier ; une phase retirée emporte ses
+    // sous-phases (décision D3), avec un avertissement.
+    const warnings: string[] = [];
+    const phasesNow: string[] = input.phaseIds ?? (existing?.phases ?? []).map((p: any) => p.phaseId);
+    const subsBefore: string[] = (existing?.subphases ?? []).map((s: any) => s.subphaseId);
+    let subs: string[] | undefined;
+    if (input.subphaseIds !== undefined || (input.phaseIds !== undefined && subsBefore.length)) {
+      const wanted: string[] = input.subphaseIds ?? subsBefore;
+      const rows = wanted.length ? await ctx.db.subphase.findMany({ where: { projectId: ctx.project.id, id: { in: wanted } }, select: { id: true, code: true, phaseId: true } }) : [];
+      const unknown = wanted.filter((w) => !rows.some((r) => r.id === w));
+      if (unknown.length) throw badRequest('Référence invalide', { subphaseIds: `sous-phase introuvable : ${unknown.join(', ')}` });
+      const phaseOf = new Map(rows.map((r) => [r.id, r.phaseId]));
+      if (input.subphaseIds !== undefined) {
+        const foreign = foreignSubphases(wanted, phasesNow, phaseOf);
+        if (foreign.length) throw badRequest('Sous-phase hors des phases du chantier', { subphaseIds: `${foreign.map((f) => rows.find((r) => r.id === f)?.code ?? f).join(', ')} : la phase n’est pas rattachée au chantier` });
+        subs = wanted;
+      } else {
+        const { kept, dropped } = keepSubphasesOf(wanted, phasesNow, phaseOf);
+        if (dropped.length) {
+          subs = kept;
+          warnings.push(`Sous-phases retirées avec leur phase : ${dropped.map((d) => rows.find((r) => r.id === d)?.code ?? d).join(', ')}`);
+        }
+      }
+    }
     return {
       data,
-      warnings: [],
+      warnings,
       relations: async (db, id) => {
         if (deps?.includes(id)) throw badRequest('Dépendance invalide', { dependsOn: 'un chantier ne peut dépendre de lui-même' });
+        if (deps) {
+          // Dépendance circulaire (06/10/2026) : refusée, quel que soit le nombre de chantiers dans la boucle.
+          const all = await db.workstream.findMany({ where: { projectId: ctx.project.id }, select: { id: true, code: true, dependencies: { select: { dependsOnId: true } } } });
+          const graph = new Map(all.map((w) => [w.id, w.id === id ? deps : w.dependencies.map((d) => d.dependsOnId)]));
+          if (!graph.has(id)) graph.set(id, deps);
+          const cycle = dependencyCycle(graph);
+          if (cycle) {
+            const code = (x: string) => all.find((w) => w.id === x)?.code ?? data.code ?? x;
+            throw badRequest('Dépendance circulaire', { dependsOn: `dépendance circulaire : ${cycle.map(code).join(' → ')}` });
+          }
+        }
         if (input.phaseIds) {
           await db.workstreamPhase.deleteMany({ where: { wsId: id } });
           await db.workstreamPhase.createMany({ data: input.phaseIds.map((phaseId: string) => ({ wsId: id, phaseId })) });
+        }
+        if (subs) {
+          await db.workstreamSubphase.deleteMany({ where: { wsId: id } });
+          await db.workstreamSubphase.createMany({ data: subs.map((subphaseId) => ({ wsId: id, subphaseId })) });
         }
         if (input.waveIds) {
           await db.workstreamWave.deleteMany({ where: { wsId: id } });
@@ -301,6 +346,7 @@ export const WORKSTREAMS: EntityConfig = {
       critical: r.critical,
       description: r.description,
       phaseIds: (r.phases ?? []).map((p: any) => p.phaseId).sort(),
+      subphaseIds: (r.subphases ?? []).map((s: any) => s.subphaseId).sort(),
       waveIds: (r.waves ?? []).map((w: any) => w.waveId).sort(),
       dependsOn: r.dependsOnAll ? 'ALL' : (r.dependencies ?? []).map((d: any) => d.dependsOnId).sort(),
       version: r.version,

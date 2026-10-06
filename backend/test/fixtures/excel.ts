@@ -9,7 +9,7 @@ type Rows = Record<string, Array<Record<string, string | number | Date | null>>>
  * Construit un classeur d'initialisation à partir du modèle fourni : lignes de données saisies
  * par en-tête (ligne 8), à partir de la ligne 9 ; formulaire « 05 Projet » par libellé (colonne D).
  */
-export async function buildWorkbook(opts: { project?: Record<string, string | Date | null>; rows?: Rows; dropSheets?: string[] } = {}): Promise<Buffer> {
+export async function buildWorkbook(opts: { project?: Record<string, string | Date | null>; rows?: Rows; dropSheets?: string[]; dropHeaders?: Record<string, string[]> } = {}): Promise<Buffer> {
   const wb = new ExcelJS.Workbook();
   await wb.xlsx.readFile(TEMPLATE);
   for (const name of opts.dropSheets ?? []) {
@@ -23,7 +23,12 @@ export async function buildWorkbook(opts: { project?: Record<string, string | Da
       if (label in opts.project) ws.getRow(r).getCell(4).value = opts.project[label] as any;
     }
   }
+  // Ancien modèle simulé : en-têtes effacés (ligne 8).
+  for (const [sheet, heads] of Object.entries(opts.dropHeaders ?? {})) {
+    wb.getWorksheet(sheet)!.getRow(8).eachCell((c) => { if (heads.includes(String(c.value))) c.value = null; });
+  }
   for (const [sheet, rows] of Object.entries(opts.rows ?? {})) {
+    if (opts.dropSheets?.includes(sheet)) continue;
     const ws = wb.getWorksheet(sheet)!;
     const headers: Record<string, number> = {};
     ws.getRow(8).eachCell((c, i) => (headers[String(c.value)] = i));
@@ -77,7 +82,13 @@ export function validAtlas(code = 'ATLAS') {
         { Phase: '1 · Explore', 'N°': '1.1', Nom: 'Ateliers', Début: d('2025-02-03'), Fin: d('2025-06-30') },
         { Phase: '2 · Realize', 'N°': '2.1', Nom: 'Paramétrage', Début: d('2025-10-01'), Fin: d('2026-12-31') },
       ],
-      '09 Chantiers': [{ Nom: 'Comptabilité', Responsable: 'Sophie Marchand', Lot: 'Lot 1', Statut: 'Actif' }],
+      '05b Info projet': [
+        { Rubrique: 'Programme en une phrase', Valeur: 'Refonte de la finance du groupe.' },
+        { Rubrique: 'Enjeux stratégiques', Valeur: 'Clôturer en 5 jours' },
+        { Rubrique: 'Le client', Libellé: 'Effectifs', Valeur: '1 750 collaborateurs' },
+        { Rubrique: 'Périmètre géographique', Valeur: 'France' },
+      ],
+      '09 Chantiers': [{ Nom: 'Comptabilité', Responsable: 'Sophie Marchand', Lot: 'Lot 1', Statut: 'Actif', Phases: '1 ; Realize', 'Sous-phases': '1.1' }],
       '10 Instances': [{ Nom: 'Comité de pilotage', 'Nom court': 'COPIL', Couleur: 'Marine', Fréquence: 'Mensuelle', Niveau: 'Stratégique' }],
       '11 Membres': [
         { Instance: 'Comité de pilotage', Personne: 'Philippe Aubert', 'Rôle dans l’instance': 'Président' },
