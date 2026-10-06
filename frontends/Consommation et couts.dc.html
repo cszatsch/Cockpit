@@ -14,7 +14,7 @@ button:focus-visible,input:focus-visible{outline:2px solid #1d8f86;outline-offse
 input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}input[type=number]{-moz-appearance:textfield}
 @keyframes pop{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
 @media (max-width:1000px){[data-screen-label="Consommation et coûts"]{padding:28px 18px 60px!important}}
-[data-conso-tiles]{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+[data-conso-tiles]{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 @container conso (max-width:900px){[data-conso-tiles]{grid-template-columns:repeat(3,minmax(0,1fr))}}
 [data-conso-row]{grid-template-columns:max-content minmax(120px,.9fr) minmax(150px,1.4fr) minmax(96px,.7fr) minmax(90px,.9fr) 72px;gap:16px;padding:12px 24px}
 @container conso (max-width:900px){[data-conso-row]{grid-template-columns:max-content minmax(100px,.9fr) minmax(110px,1.4fr) minmax(88px,.7fr) minmax(56px,.6fr) 66px;gap:10px;padding:12px 16px}}
@@ -125,7 +125,9 @@ const LINES = [
   { id: 'rapports', n: 'Rapports', c: '#8b5cf6' },
   { id: 'guidage', n: 'Guidage console', c: '#e0457b' },
   { id: 'docs', n: 'Documents', c: '#e8962e' },
-  { id: 'crud', n: 'Gestion des données', c: '#3b7ddd' }
+  { id: 'crud', n: 'Gestion des données', c: '#3b7ddd' },
+  // Fonction « Initialisation projet » (préremplissage du fichier d'initialisation, 07/10/2026) : sa ligne budgétaire.
+  { id: 'init_projet', n: 'Initialisation projet', c: '#0891b2' }
 ];
 const LB = Object.fromEntries(LINES.map(l => [l.id, l]));
 const PER = [['jour', 'Jour', 1, 'aujourd’hui'], ['7j', '7 j', 7, '7 derniers jours'], ['mois', 'Ce mois', 0, 'ce mois'], ['30j', '30 j', 30, '30 derniers jours'], ['3m', '3 mois', 90, '3 derniers mois'], ['6m', '6 mois', 180, '6 derniers mois']];
@@ -148,9 +150,9 @@ function demo() {
   const days = []; for (let i = 179; i >= 0; i--) days.push(isoAdd(today, -i));
   const v = { '2026-09-27': .20, '2026-09-28': .22, '2026-09-30': 1.80, '2026-10-01': .71, '2026-10-02': .07 };
   const daily = days.map(d => ({ date: d, tokensIn: Math.round((v[d] || 0) * 1e6 * .98), tokensOut: Math.round((v[d] || 0) * 1e6 * .02), costIn: (v[d] || 0) * 1.1, costOut: (v[d] || 0) * .03, calls: Math.round((v[d] || 0) * 150) }));
-  const fnSpent = { insights: .56, rapports: 0, guidage: .13, docs: .18, crud: .01 }, fnProj = { insights: 3.5, rapports: 0, guidage: 4.0, docs: 2.14, crud: .10 };
-  const models = { insights: ['Claude Sonnet 5'], rapports: ['Claude Sonnet 5'], guidage: ['Claude Haiku 4.5'], docs: ['Claude Sonnet 5', 'Voyage rerank-2.5', 'Qwen3 Embedding 8B'], crud: ['GPT-6 Luna'] };
-  const cap = { all: 100, insights: 50, rapports: 10, guidage: 5, docs: 10, crud: 10 };
+  const fnSpent = { insights: .56, rapports: 0, guidage: .13, docs: .18, crud: .01, init_projet: 0 }, fnProj = { insights: 3.5, rapports: 0, guidage: 4.0, docs: 2.14, crud: .10, init_projet: 0 };
+  const models = { insights: ['Claude Sonnet 5'], rapports: ['Claude Sonnet 5'], guidage: ['Claude Haiku 4.5'], docs: ['Claude Sonnet 5', 'Voyage rerank-2.5', 'Qwen3 Embedding 8B'], crud: ['GPT-6 Luna'], init_projet: ['Claude Sonnet 5', 'Gemini 3.8 Flash'] };
+  const cap = { all: 100, insights: 50, rapports: 10, guidage: 5, docs: 10, crud: 10, init_projet: 10 };
   const month = { today, monthStart, monthEnd, spent: .88, projection: 9.74, rate7d: .31, sameDateLastMonth: 0, tokensMonth: 780000, dailyCumul: [{ date: '2026-10-01', spent: .80 }, { date: '2026-10-02', spent: .88 }],
     byFunction: LINES.map(l => ({ functionId: l.id, spent: fnSpent[l.id], models: models[l.id] })),
     thresholds: [{ id: 'all', limitEur: cap.all, warnPct: 80, spent: .88, projection: 9.74 }].concat(LINES.map(l => ({ id: l.id, limitEur: cap[l.id], warnPct: 80, spent: fnSpent[l.id], projection: fnProj[l.id] }))) };

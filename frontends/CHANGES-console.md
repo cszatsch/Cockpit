@@ -692,3 +692,7 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
 - `ProjetInit.dc.html` : étapes « Importer » (zone de dépôt, lecture SheetJS, exemple) et « Contrôler » (5 contrôles) supprimées ; la vue s'ouvre sur « Prévisualiser » avec les données du serveur (prop `data`) ; ses étapes 1 et 2 (`onBack`) et « Importer un autre projet » (`onRestart`) ramènent à l'écran unique ; un refus à la publication s'affiche sous la prévisualisation.
 - `Console Admin.dc.html` : lien « Importer l'Excel » (prop `onImport`) supprimé ; l'écran unique reste monté (masqué) pendant la prévisualisation (`prefillSt`, `toPreview`, `backInit`, `restartInit`, `initEpoch`).
 - `admin-api.js` : `validateXlsx` remplacé par `toInitData` ; `bindInit` réduit à la publication ; `bindPrefill` : `process`, `anomalies`, `report`, `preview`, modèle vierge servi par le serveur (`downloadAs`, nom en UTF-8).
+
+## Consommation et coûts : ligne « Initialisation projet » (07/10/2026)
+
+- `Consommation et couts.dc.html` : tuile « Initialisation projet » ajoutée (`LINES`, couleur `#0891b2`, données de démonstration comprises) ; elle manquait alors que le serveur renvoyait déjà sa ligne budgétaire. Tuiles en 2 rangées de 3 (`[data-conso-tiles]` : `repeat(3, …)` au lieu de 5 ; 2 colonnes sous 620 px, inchangé).

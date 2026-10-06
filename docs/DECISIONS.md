@@ -1680,3 +1680,7 @@ Demande du commanditaire : remplacer l'écran de préremplissage (v2) et l'écra
 | Rapport de contrôle | Classeur .xlsx (ExcelJS, nouveau classeur) : synthèse, une ligne par anomalie (onglet, champ, valeur lue, motif, gravité, cellule), décompte par onglet ; mêmes compteurs que l'écran (même liste) | `PrefillService.report` |
 | Affichage du contrôle | Le contrôle est quasi immédiat : l'écran montre les 14 onglets un par un, au pas de la maquette (`X_TICK` = 240 ms), sans devancer le serveur | `Initialisation projet.dc.html` (`follow`) |
 | Journal | « Initialisation : Excel déposé / refusé / contrôle terminé / contrôle annulé / rapport de contrôle téléchargé / réinitialisée » : nom, taille, type, durée, statut et compteurs, jamais le contenu | `PrefillService` |
+
+### Consommation et coûts : ligne « Initialisation projet » (07/10/2026)
+
+Demande du commanditaire : afficher les coûts de la fonction « Initialisation projet », oubliée dans les tuiles, et passer d'une rangée de tuiles à 2 rangées de 3. La ligne budgétaire existait côté serveur (`AI_BUDGET_LINES`) ; il manquait la tuile de l'écran (`LINES`), le filtre du journal (`JOURNAL_FNS`, sinon 400 au clic sur la tuile) et le libellé de l'export CSV (`JOURNAL_FN_NAMES`).

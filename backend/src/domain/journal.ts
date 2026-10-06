@@ -4,7 +4,7 @@
  */
 
 /** Filtre « fonction » du journal : les lignes budgétaires (Documents = ses trois étapes). */
-export const JOURNAL_FNS = ['insights', 'rapports', 'guidage', 'docs', 'crud'] as const;
+export const JOURNAL_FNS = ['insights', 'rapports', 'guidage', 'docs', 'crud', 'init_projet'] as const;
 export type JournalFn = (typeof JOURNAL_FNS)[number];
 
 /** Taille de page du journal (« Afficher 10 de plus ») ; 100 au plus par appel. */

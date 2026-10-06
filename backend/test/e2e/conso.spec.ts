@@ -36,6 +36,19 @@ describe('Console — Consommation et coûts', () => {
     expect(m.byFunction.find((f: any) => f.functionId === 'docs').models.length).toBeGreaterThanOrEqual(1); // trois étapes, modèles distincts
   });
 
+  it('ligne budgétaire « Initialisation projet » : tuile, plafond, journal filtré et export', async () => {
+    const m = (await admin.get(`${A}/usage/month`).expect(200)).body;
+    expect(m.byFunction.map((f: any) => f.functionId)).toContain('init_projet');
+    expect(m.thresholds.find((x: any) => x.id === 'init_projet')).toMatchObject({ name: 'Initialisation projet' });
+    const mod = await t.db.aiModel.findFirstOrThrow({ where: { category: 'LLM' } });
+    await t.db.usageRecord.create({ data: { id: 'req_conso_init01', functionId: 'init_projet', modelId: mod.id, providerId: mod.providerId, requests: 0, fallbackUsed: false, source: 'IMPORT', priceIn: 3, priceOut: 15, at: new Date('2030-03-01T09:00:00Z'), tokensIn: 2000, tokensOut: 300, costEur: (2000 * 3 + 300 * 15) / 1e6 } as any });
+    const page = (await admin.get(`${A}/usage/calls?${range}&fn=init_projet&limit=10`).expect(200)).body;
+    expect(page.items.map((c: any) => c.id)).toEqual(['req_conso_init01']);
+    const csv = (await admin.get(`${A}/usage/calls.csv?${range}&fn=init_projet`).expect(200)).text;
+    expect(csv).toContain('Initialisation projet');
+    await admin.put(`${A}/budget-thresholds/init_projet`, { limitEur: 15, warnPct: 80, enabled: true }).expect(200);
+  });
+
   it('recette 5 : le calcul affiché d’un appel retombe exactement sur son coût (cache compris, et appels antérieurs)', async () => {
     const m = await t.db.aiModel.findFirstOrThrow({ where: { category: 'LLM' } });
     const [pin, pout] = [3, 15];

@@ -310,7 +310,7 @@ export function billedInOf(r: Pick<UsageRecord, 'tokensIn' | 'tokensOut' | 'cost
 }
 
 /** Libellés des lignes budgétaires dans le journal et son export. */
-export const JOURNAL_FN_NAMES: Record<string, string> = { insights: 'Insights', rapports: 'Rapports', guidage: 'Guidage console', docs: 'Documents', crud: 'Gestion des données' };
+export const JOURNAL_FN_NAMES: Record<string, string> = { insights: 'Insights', rapports: 'Rapports', guidage: 'Guidage console', docs: 'Documents', crud: 'Gestion des données', init_projet: 'Initialisation projet' };
 
 function round6(n: number) {
   return Math.round(n * 1e6) / 1e6;
