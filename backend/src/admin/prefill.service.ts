@@ -12,9 +12,11 @@ import { PREFILL_FORMAT_MESSAGE, PrefillRefusal, readProposal } from '../core/pr
 import { PrismaService } from '../core/prisma.service';
 import { StorageService } from '../core/storage.service';
 import {
-  assessTab, documentContext, emptyKnown, knownAfter, normalizeRows, pageSource, parseModelJson, prefillResult, PREFILL_MAX_FILES, PREFILL_RETENTION_HOURS_DEFAULT, PREFILL_SYSTEM, PrefillFile,
+  assessTab, documentContext, emptyKnown, knownAfter, normalizeRows, pageSource, parseModelJson, prefillResult, PREFILL_MAX_FILES, PREFILL_RETENTION_HOURS_DEFAULT, prefillSystem, PrefillFile,
   PrefillCheck, PrefillRow, PrefillTabSpec, rawEta, readingPage, smoothEta, TabOutcome, tabPrompt,
 } from '../domain/prefill';
+import { skillKey } from '../domain/jev-prompt';
+import { PREFILL_SKILL } from '../domain/prefill-skill';
 import { adminCtx } from './profiles.service';
 
 /**
@@ -203,7 +205,9 @@ export class PrefillService implements OnModuleInit {
     const specs = await this.specs();
     const pages: string[] = JSON.parse((await this.storage.get(doc.textKey!))!.toString('utf8'));
     const docFiles = (doc.files as unknown as PrefillFile[]) ?? [];
-    const system = `${PREFILL_SYSTEM}\n\n${documentContext(pages, doc.name, docFiles)}`;
+    // Skill « Préremplissage d’un projet » (Console › Skills) : lue qu'elle soit active ou non ; absente, règles du code seules.
+    const skill = (await this.prisma.skill.findMany({ select: { n: true, t: true } })).find((s) => skillKey(s.n) === skillKey(PREFILL_SKILL)) ?? null;
+    const system = `${prefillSystem(skill)}\n\n${documentContext(pages, doc.name, docFiles)}`;
     const saved = ((task.tabs as unknown as SavedTab[]) ?? []).slice(0, from);
     let known = emptyKnown();
     saved.forEach((t, i) => { known = knownAfter(specs[i], t.rows, known); });

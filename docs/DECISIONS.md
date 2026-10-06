@@ -1616,3 +1616,15 @@ Demande du commanditaire : « Choisir un fichier » doit permettre de déposer p
 | Pages et sources | Pages numérotées à la suite d'un fichier à l'autre ; chaque repère donné au modèle rappelle le fichier et sa page ; la liste « À vérifier » ajoute `fichier` et `pageFichier`, le commentaire de l'Excel indique « Source : Annexe.pdf, page 2 » | `pageSource`, `sourceLabel`, `documentContext` |
 | Confidentialité | Tous les fichiers du dépôt et leur texte sont supprimés dès l'Excel généré, comme pour un fichier seul | `dropSource` |
 | Écran | Sélection multiple dans « Choisir un fichier » et dépôt de plusieurs fichiers par glisser-déposer ; ligne du fichier : « Proposition.pdf + 2 fichiers », taille et pages du dépôt entier | `Initialisation projet.dc.html` (`take`, `label`) |
+
+### Préremplissage : skill « Préremplissage d’un projet » (07/10/2026)
+
+Demande du commanditaire : donner au modèle, pour chaque onglet, ce qui est attendu (vocabulaire, exemples du projet RISE ; par exemple « une équipe correspond à une société : celle du client et celles des prestataires »), dans une skill de la Console.
+
+| Sujet | Choix | Code |
+|---|---|---|
+| Contenu | Règles générales, puis pour chacun des 14 onglets : définition, ce qu'il faut extraire, sens des champs, confusions à éviter, exemple RISE | `PREFILL_SKILL_TEXT` (`src/domain/prefill-skill.ts`) |
+| Branchement | Jointe aux consignes de la fonction « Initialisation projet » à chaque analyse, après les règles fixes du code, dans la partie mise en cache ; lue par son nom, qu'elle soit active ou non ; supprimée : règles du code seules | `prefillSystem`, `PrefillService.run` |
+| Priorité | Le format de réponse JSON et la liste des champs de chaque onglet (lus dans le modèle Excel) restent dans le code et priment sur la skill : une modification de la skill ne peut pas casser la lecture des réponses | `PREFILL_SYSTEM`, `tabPrompt` |
+| Jev | Skill dédiée : jamais ajoutée aux réponses de Jev, même active (Cockpit et Console) | `DEDICATED_SKILLS`, `jevSkills` |
+| Installation | Créée désactivée par la migration si aucune skill ne porte ce nom (casse et apostrophe ignorées) ; présente dans le jeu de démonstration ; la version de Console › Skills fait foi | `prisma/migrations/20261114000300_skill_preremplissage` |

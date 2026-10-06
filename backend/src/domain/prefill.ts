@@ -395,6 +395,16 @@ export const PREFILL_SYSTEM = [
   '- Réponds uniquement par un objet JSON, sans texte autour.',
 ].join('\n');
 
+/**
+ * Consignes du modèle (partie stable, mise en cache) : règles fixes du code, puis la skill « Préremplissage d’un projet »
+ * (vocabulaire et attendus de chaque onglet, exemples RISE ; modifiable dans Console › Skills). Le format de réponse
+ * et la liste des champs restent ceux du code : ils priment sur la skill.
+ */
+export function prefillSystem(skill: { n: string; t: string } | null): string {
+  if (!skill || !skill.t.trim()) return PREFILL_SYSTEM;
+  return `${PREFILL_SYSTEM}\n- En cas de contradiction, le format de réponse et la liste des champs de chaque onglet priment sur la skill ci-dessous.\n\n## Skill : ${skill.n}\n${skill.t.trim()}`;
+}
+
 /** Consigne d'un onglet : champs, obligatoires, listes permises et clés des onglets déjà remplis. */
 export function tabPrompt(spec: PrefillTabSpec, known: KnownKeys): string {
   const refName: Record<RefKind, string> = { teams: 'équipes', roles: 'rôles', persons: 'personnes', lots: 'lots', phases: 'phases', subphases: 'sous-phases', workstreams: 'chantiers', bodies: 'instances' };

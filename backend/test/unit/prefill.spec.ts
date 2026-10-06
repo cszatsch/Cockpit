@@ -1,5 +1,7 @@
+import { assembleJevPrompt, jevSkills, SKILL_TEXT_MAX } from '../../src/domain/jev-prompt';
+import { PREFILL_SKILL, PREFILL_SKILL_TEXT } from '../../src/domain/prefill-skill';
 import {
-  assessTab, emptyKnown, knownAfter, normalizeCell, normalizeRows, parseModelJson, parsePrefillDate, PrefillTabSpec, readingPage, smoothEta,
+  assessTab, prefillSystem, PREFILL_SYSTEM, emptyKnown, knownAfter, normalizeCell, normalizeRows, parseModelJson, parsePrefillDate, PrefillTabSpec, readingPage, smoothEta,
 } from '../../src/domain/prefill';
 
 /** Préremplissage depuis la proposition commerciale (07/10/2026) : règles pures. */
@@ -100,5 +102,28 @@ describe('Préremplissage — règles', () => {
     expect(readingPage(13, 1, 24)).toBe(24);
     expect(parseModelJson('Voici :\n```json\n{"lignes":[{"Nom":{"v":"AMC"}}]}\n```')).toEqual({ lignes: [{ Nom: { v: 'AMC' } }] });
     expect(parseModelJson('pas de JSON')).toBeNull();
+  });
+});
+
+describe('Préremplissage — skill « Préremplissage d’un projet »', () => {
+  it('jointe aux consignes après les règles fixes, qui priment ; absente ou vide : règles seules', () => {
+    const s = prefillSystem({ n: PREFILL_SKILL, t: '01 ÉQUIPES\nUne équipe correspond à une société.' });
+    expect(s.startsWith(PREFILL_SYSTEM)).toBe(true);
+    expect(s).toContain('le format de réponse et la liste des champs de chaque onglet priment sur la skill');
+    expect(s.endsWith('## Skill : Préremplissage d’un projet\n01 ÉQUIPES\nUne équipe correspond à une société.')).toBe(true);
+    expect(prefillSystem(null)).toBe(PREFILL_SYSTEM);
+    expect(prefillSystem({ n: PREFILL_SKILL, t: '  ' })).toBe(PREFILL_SYSTEM);
+  });
+
+  it('jamais ajoutée aux réponses de Jev, même active (nom comparé sans casse ni forme d’apostrophe)', () => {
+    const skills = [{ n: 'Guidage console', on: true, t: 'a', position: 1 }, { n: "préremplissage d'un projet", on: true, t: 'b', position: 2 }];
+    expect(jevSkills(skills).map((x) => x.n)).toEqual(['Guidage console']);
+    expect(assembleJevPrompt('Base', null, jevSkills(skills))).not.toContain('## Skill : préremplissage');
+  });
+
+  it('texte d’origine : définition de chaque onglet et exemples RISE', () => {
+    for (const t of ['01 ÉQUIPES', '07 LOTS', '14 LIVRABLES']) expect(PREFILL_SKILL_TEXT).toContain(t);
+    expect(PREFILL_SKILL_TEXT).toContain('une équipe correspond à une société qui participe au projet');
+    expect(PREFILL_SKILL_TEXT.length).toBeLessThanOrEqual(SKILL_TEXT_MAX);
   });
 });

@@ -122,6 +122,29 @@ describe('Initialisation d’un projet — préremplissage par IA', () => {
     await t.db.prefillDocument.deleteMany();
   });
 
+  it('skill « Préremplissage d’un projet » : jointe aux consignes de chaque onglet, même désactivée ; une modification s’applique à l’analyse suivante', async () => {
+    const skill = await t.db.skill.findFirstOrThrow({ where: { n: 'Préremplissage d’un projet' } });
+    expect(skill.on).toBe(false);
+    const bodies: string[] = [];
+    const client = t.app.get(LlmClient), fetch0 = client.fetchImpl;
+    client.fetchImpl = (async (u: string, init: any) => { bodies.push(init.body); return fetch0(u, init); }) as any;
+    try {
+      await stream((await start()).taskId);
+      expect(bodies).toHaveLength(14);
+      expect(bodies.every((b) => b.includes('## Skill : Préremplissage d’un projet') && b.includes('une équipe correspond à une société qui participe au projet'))).toBe(true);
+      // Modifiée dans Console › Skills : la nouvelle version sert dès l'analyse suivante.
+      await request(t.app.getHttpServer()).put(`/api/assistant/skills/${skill.id}`).set('Authorization', `Bearer ${tok}`).send({ n: skill.n, t: '01 ÉQUIPES — Consigne modifiée pour le test.' }).expect(200);
+      bodies.length = 0;
+      await stream((await start()).taskId);
+      expect(bodies[0]).toContain('Consigne modifiée pour le test.');
+      expect(bodies[0]).not.toContain('une équipe correspond à une société qui participe au projet');
+    } finally {
+      client.fetchImpl = fetch0;
+      await t.db.skill.update({ where: { id: skill.id }, data: { t: skill.t } });
+      await t.db.prefillDocument.deleteMany();
+    }
+  });
+
   it('critère 2 : .numbers ou .xlsx → erreur FORMAT, sans analyse', async () => {
     const before = await t.db.usageRecord.count({ where: { functionId: 'init_projet' } });
     for (const name of ['Budget ORION.numbers', 'Budget ORION.xlsx']) {

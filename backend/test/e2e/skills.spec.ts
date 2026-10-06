@@ -14,10 +14,11 @@ describe('Console — skills de Jev', () => {
   });
   afterAll(() => t.close());
 
-  it('données initiales : les cinq skills de démonstration, dans l’ordre, la 4e désactivée', async () => {
+  it('données initiales : les cinq skills de démonstration, dans l’ordre, la 4e désactivée, puis la skill dédiée au préremplissage (désactivée)', async () => {
     const r = await admin.get(SK).expect(200);
     expect(r.body.map((s: any) => [s.n, s.on, s.position])).toEqual([
       ['Analyser le projet', true, 1], ['Rédiger un livrable', true, 2], ['Mettre à jour les données', true, 3], ['Assister l’administration', false, 4], ['Guider l’utilisateur', true, 5],
+      ['Préremplissage d’un projet', false, 6],
     ]);
     // Réservé à l'administrateur.
     await (await t.as(WHO.pmo)).get(SK).expect(403);
@@ -25,7 +26,7 @@ describe('Console — skills de Jev', () => {
 
   it('créer, enregistrer, activer, supprimer : chaque action est tracée (qui, skill, avant, après)', async () => {
     const c = await admin.post(SK, { n: 'Nouvelle skill', t: '', on: false }).expect(201);
-    expect(c.body).toMatchObject({ n: 'Nouvelle skill', t: '', on: false, position: 6, updated_by: expect.any(String) });
+    expect(c.body).toMatchObject({ n: 'Nouvelle skill', t: '', on: false, position: 7, updated_by: expect.any(String) });
     const id = c.body.id;
     // L'écran crée toujours « Nouvelle skill » : le nom suivant reçoit un numéro (unicité sans tenir compte des majuscules).
     const c2 = await admin.post(SK, { n: 'nouvelle SKILL', t: '', on: false }).expect(201);

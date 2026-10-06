@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Persona } from '@prisma/client';
 import { PrismaService } from './prisma.service';
-import { assembleConsoleGuidancePrompt, assembleJevPrompt, COCKPIT_REGISTER_RULE, cockpitCaseParts, consoleGuidanceParts, JEV_SYSTEM_PROMPT, PersonaText } from '../domain/jev-prompt';
+import { assembleConsoleGuidancePrompt, assembleJevPrompt, COCKPIT_REGISTER_RULE, cockpitCaseParts, consoleGuidanceParts, JEV_SYSTEM_PROMPT, jevSkills, PersonaText } from '../domain/jev-prompt';
 import { GREETING_RULES } from '../domain/today-greeting';
 
 /** Ligne `Persona` → forme de l'écran et du prompt (`{ identity, soul }`). */
@@ -24,7 +24,7 @@ export class JevPromptService {
       this.prisma.persona.findUnique({ where: { id: 'jev' } }),
       this.prisma.skill.findMany({ where: { on: true }, orderBy: { position: 'asc' } }),
     ]);
-    return assembleJevPrompt(JEV_SYSTEM_PROMPT, persona ? personaText(persona) : null, skills);
+    return assembleJevPrompt(JEV_SYSTEM_PROMPT, persona ? personaText(persona) : null, jevSkills(skills));
   }
 
   /** Prompt du Jev de la Console (fonction `guidage`) : une seule skill, celle du guidage, et la page ouverte. */
@@ -34,7 +34,7 @@ export class JevPromptService {
       this.prisma.persona.findUnique({ where: { id: 'jev' } }),
       this.prisma.skill.findMany({ where: { on: true }, orderBy: { position: 'asc' } }),
     ]);
-    return consoleGuidanceParts(JEV_SYSTEM_PROMPT, persona ? personaText(persona) : null, skills, page);
+    return consoleGuidanceParts(JEV_SYSTEM_PROMPT, persona ? personaText(persona) : null, jevSkills(skills), page);
   }
 
   /** Prompt du Jev du Cockpit pour un cas d'usage : la seule skill du cas, et l'écran ouvert (partie variable). */
@@ -43,7 +43,7 @@ export class JevPromptService {
       this.prisma.persona.findUnique({ where: { id: 'jev' } }),
       this.prisma.skill.findMany({ where: { on: true }, orderBy: { position: 'asc' } }),
     ]);
-    return cockpitCaseParts(JEV_SYSTEM_PROMPT, persona ? personaText(persona) : null, skills, skillName, page);
+    return cockpitCaseParts(JEV_SYSTEM_PROMPT, persona ? personaText(persona) : null, jevSkills(skills), skillName, page);
   }
 
   /**
@@ -60,6 +60,6 @@ export class JevPromptService {
       this.prisma.persona.findUnique({ where: { id: 'jev' } }),
       this.prisma.skill.findMany({ where: { on: true }, orderBy: { position: 'asc' } }),
     ]);
-    return assembleConsoleGuidancePrompt(JEV_SYSTEM_PROMPT, persona ? personaText(persona) : null, skills, page);
+    return assembleConsoleGuidancePrompt(JEV_SYSTEM_PROMPT, persona ? personaText(persona) : null, jevSkills(skills), page);
   }
 }

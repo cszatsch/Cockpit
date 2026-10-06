@@ -1,3 +1,4 @@
+import { PREFILL_SKILL, PREFILL_SKILL_TEXT } from './prefill-skill';
 /**
  * Prompt système de Jev et skills (spécification SKILLS § 1 et § 6).
  * Règles pures : l'assemblage ne dépend que de ses entrées (testé dans test/unit).
@@ -128,6 +129,7 @@ export const DEMO_SKILLS: Array<{ id: string; n: string; on: boolean; t: string 
   { id: 's3', n: 'Mettre à jour les données', on: true, t: "## Objectif\nCréer, modifier ou supprimer des actions, risques et jalons à la demande.\n\n## Consignes\n- Toujours présenter la modification avant de l’appliquer.\n- Attendre la validation explicite de l’utilisateur.\n- Refuser une suppression groupée sans confirmation élément par élément." },
   { id: 's4', n: 'Assister l’administration', on: false, t: "## Objectif\nAssister l’administrateur de la plateforme.\n\n## Consignes\n- Contrôler un fichier d’initialisation et lister les non-conformités.\n- Expliquer une panne IA et proposer le correctif." },
   { id: 's5', n: 'Guider l’utilisateur', on: true, t: "## Objectif\nRépondre aux questions « comment faire » sur le Cockpit.\n\n## Consignes\n- Répondre en trois étapes au plus.\n- Terminer par le lien vers l’écran concerné." },
+  { id: 's6', n: PREFILL_SKILL, on: false, t: PREFILL_SKILL_TEXT },
 ];
 
 /**
@@ -149,6 +151,14 @@ export const CONSOLE_PAGE_TITLES: Record<string, string> = {
 
 /** Nom de skill comparable : sans tenir compte de la casse, des espaces en trop ni de la forme de l'apostrophe (« Guidage Console » = « Guidage console »). */
 export const skillKey = (n: string) => n.trim().replace(/\s+/g, ' ').replace(/[’']/g, '’').toLocaleLowerCase('fr');
+
+/**
+ * Skills dédiées à un traitement (07/10/2026) : lues par ce traitement seulement, jamais ajoutées aux réponses de Jev,
+ * même actives.
+ */
+export const DEDICATED_SKILLS = [PREFILL_SKILL];
+/** Skills que Jev peut recevoir : toutes, sauf les skills dédiées. */
+export const jevSkills = <T extends { n: string }>(skills: T[]): T[] => skills.filter((s) => !DEDICATED_SKILLS.some((d) => skillKey(d) === skillKey(s.n)));
 
 /** Choix de la skill de guidage parmi les skills actives. */
 export function pickGuidanceSkill<T extends SkillText>(skills: T[]): T | null {
