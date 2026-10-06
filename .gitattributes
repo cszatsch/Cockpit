@@ -1,0 +1,9 @@
+# Fichiers binaires : jamais de conversion des fins de ligne (un PDF converti est corrompu).
+*.pdf binary
+*.xlsx binary
+*.pptx binary
+*.docx binary
+*.png binary
+*.jpg binary
+*.ico binary
+*.dump binary
