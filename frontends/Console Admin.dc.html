@@ -338,7 +338,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
     </sc-if>
 
     <sc-if value="{{ isInit }}" hint-placeholder-val="{{ false }}">
-      <div style="animation:rise-in .35s cubic-bezier(.2,.7,.2,1) both"><dc-import name="ProjetInit" existing-codes="{{ libCodes }}" on-imported="{{ onImported }}" on-open-lib="{{ openLib }}" hint-size="100%,560px"></dc-import></div>
+      <div style="animation:rise-in .35s cubic-bezier(.2,.7,.2,1) both"><dc-import name="ProjetInit" existing-codes="{{ libCodes }}" user-name="{{ initUser }}" on-imported="{{ onImported }}" on-open-lib="{{ openLib }}" hint-size="100%,560px"></dc-import></div>
     </sc-if>
     <sc-if value="{{ isLib }}" hint-placeholder-val="{{ false }}">
       <div style="animation:rise-in .35s cubic-bezier(.2,.7,.2,1) both"><dc-import name="ProjetsBiblio" imported="{{ libImported }}" on-new="{{ openInit }}" hint-size="100%,900px"></dc-import></div>
@@ -1365,6 +1365,8 @@ class Component extends DCLogic {
       // composant afficherait ses données de démonstration.
       gdGuides: S.gdGuides || { console: { versions: [], downloads: [], index: null }, cockpit: { versions: [], downloads: [], index: null } },
       gdMe: { name: S.prof.first + ' ' + S.prof.last, role: 'Administrateur' }, gdCan: true,
+      // Initialisation d'un projet : nom de l'utilisateur dans le nom du modèle Excel téléchargé.
+      initUser: (S.prof.first + ' ' + S.prof.last).trim(),
       gdDownload: (app, v) => this.gdDownload ? this.gdDownload(app, v) : Promise.resolve(), gdReplace: (app, f) => this.gdReplace ? this.gdReplace(app, f) : Promise.reject(new Error('démonstration')),
       gdSaveSettings: (app, s) => this.gdSaveSettings ? this.gdSaveSettings(app, s) : Promise.resolve(s),
       ...(S.smApi ? { smSave: d => this.smSave(d), smTest: d => this.smTest(d), smTestEmail: (to, d) => this.smTestEmail(to, d) } : {}),

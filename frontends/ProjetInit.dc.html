@@ -61,7 +61,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
           <span style="width:34px;height:34px;border-radius:10px;background:#eef3f2;display:grid;place-items:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#43586a" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z M4 9h16 M4 14h16 M9 4v16"></path></svg></span>
           <span style="font-weight:800;font-size:14px;margin-top:2px">Pas encore de fichier ?</span>
           <span style="font-size:12.5px;color:#5c7280;line-height:1.55;text-wrap:pretty">Téléchargez le modèle, faites-le remplir par le PMO pendant la préparation du projet, puis importez-le ici.</span>
-          <a href="./Referentiel RISE - initialisation.xlsx" download="download" style="margin-top:auto;align-self:flex-start;height:36px;padding:0 14px;border-radius:10px;border:1px solid #d3dedb;background:#fff;font-weight:700;font-size:12.5px;color:#10233a;text-decoration:none;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:border-color .15s,background .15s" style-hover="border-color:#10233a;background:#f7faf9;color:#10233a"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12 M7 11l5 5 5-5 M5 20h14"></path></svg>Modèle Excel</a>
+          <a href="./Referentiel RISE - initialisation.xlsx" download="{{ tplFile }}" style="margin-top:auto;align-self:flex-start;height:36px;padding:0 14px;border-radius:10px;border:1px solid #d3dedb;background:#fff;font-weight:700;font-size:12.5px;color:#10233a;text-decoration:none;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:border-color .15s,background .15s" style-hover="border-color:#10233a;background:#f7faf9;color:#10233a"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12 M7 11l5 5 5-5 M5 20h14"></path></svg>Modèle Excel</a>
         </div>
         <div style="flex:1;position:relative;overflow:hidden;background:#10233a;border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:10px;color:#fff">
           <span style="position:absolute;right:-60px;top:-60px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(61,214,198,.22),transparent 70%)"></span>
@@ -212,7 +212,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
   </sc-if>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;1100px&quot;,&quot;height&quot;:&quot;820px&quot;},&quot;existingCodes&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string[]&quot;},&quot;onImported&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(p:any)=&gt;void&quot;},&quot;onOpenLib&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;()=&gt;void&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;1100px&quot;,&quot;height&quot;:&quot;820px&quot;},&quot;existingCodes&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string[]&quot;},&quot;onImported&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(p:any)=&gt;void&quot;},&quot;onOpenLib&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;()=&gt;void&quot;},&quot;userName&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;}}">
 const SH = [['01 Équipes', 'Équipes'], ['02 Rôles', 'Rôles'], ['03 Personnes', 'Personnes'], ['04 Affectations', 'Affectations'], ['05 Projet', 'Projet'], ['06 Lots', 'Lots'], ['07 Phases', 'Phases'], ['08 Sous-phases', 'Sous-phases'], ['09 Chantiers', 'Chantiers'], ['10 Instances', 'Instances'], ['11 Membres', 'Membres'], ['12 Jalons', 'Jalons'], ['13 Livrables', 'Livrables']];
 const D = (y, m, d) => new Date(y, m - 1, d);
 function demoData() {
@@ -292,6 +292,9 @@ class Component extends DCLogic {
       drag: e => { e.preventDefault(); if (!S.drag) this.setState({ drag: true }); }, undrag: () => this.setState({ drag: false }), drop: e => { e.preventDefault(); this.setState({ drag: false }); this.file(e.dataTransfer.files[0]); },
       pick: e => { this.file(e.target.files[0]); e.target.value = ''; }, demo: () => this.load(demoData()), upErr: !!S.upErr, upErrL: S.upErr, restart: () => this.restart(),
       checks: [], issues: [], hasIssues: false, fileN: '', fileD: '', sheets: [], verdict: {}, tabs: [], view: { heads: [], rows: [], fields: [], bars: [], years: [] }, pj: { kpis: [] }, phases: [] };
+    // Modèle Excel (06/10/2026) : « [nom de l'utilisateur] - Init projet Cockpit [AAMMJJ].xlsx », caractères interdits retirés.
+    const d0 = new Date(), p2 = n => String(n).padStart(2, '0'), who = String(this.props.userName || '').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim();
+    v.tplFile = (who ? who + ' - ' : '') + 'Init projet Cockpit ' + String(d0.getFullYear()).slice(2) + p2(d0.getMonth() + 1) + p2(d0.getDate()) + '.xlsx';
     if (!d) return v;
     const cnt = k => ((d.sheets[k] || {}).rows || []).length, errs = d.issues.filter(i => i.lvl === 'err'), warns = d.issues.filter(i => i.lvl === 'warn');
     const code = String((d.project.find(p => /Code projet/.test(p.l)) || {}).v || '').trim(), dup = (this.props.existingCodes || ['RISE', 'ATLAS', 'HORIZON', 'NOVA']).includes(code.toUpperCase());

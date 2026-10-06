@@ -665,3 +665,8 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
 
 - `Fournisseurs et modeles.dc.html` : trois colonnes triables dans le catalogue après « Sortie » — Score (Intelligence Index), Session (coût d'une session de 10 à 49 tours dans Hermes Agent, €), Tok/s (débit médian du meilleur fournisseur), sources de la page Rankings d'OpenRouter ; « — » sans mesure ; grille resserrée pour garder la ligne lisible (colonnes et espacements réduits, puces « Utilisé par » tronquées) ; à côté du titre « Modèles », date du dernier relevé et bouton « Actualiser » (relevé à la demande). Fiche du modèle : bloc « Mesures OpenRouter » (trois valeurs et identifiant OpenRouter, modifiables ; date du relevé).
 - `admin-api.js` : `fmApi.refreshStats` (`POST /models/stats/refresh`).
+
+## Initialisation d'un projet : nom du modèle Excel téléchargé (06/10/2026)
+
+- `ProjetInit.dc.html` : le bouton « Modèle Excel » propose le nom « [nom de l'utilisateur] - Init projet Cockpit [AAMMJJ].xlsx » (attribut `download` calculé, `tplFile` ; caractères interdits dans un nom de fichier retirés) au lieu de « download » ; nouvelle prop `userName`.
+- `Console Admin.dc.html` : nom de l'administrateur connecté transmis à l'écran (`initUser`).
