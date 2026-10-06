@@ -8147,6 +8147,25 @@
         ]
       }
     },
+    "/api/admin/models/stats/refresh": {
+      "post": {
+        "operationId": "AiController_refreshStats",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · intelligence artificielle"
+        ]
+      }
+    },
     "/api/admin/functions": {
       "get": {
         "operationId": "AiController_functions",

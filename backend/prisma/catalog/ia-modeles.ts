@@ -7,9 +7,9 @@
  * palier de contexte le plus bas), convertis en euros au cours de référence BCE ci-dessous.
  */
 
-/** Cours de référence BCE du 25/09/2026 : 1 € = 1,1403 $ (ecb.europa.eu, taux de référence de l'euro). */
-export const USD_PER_EUR = 1.1403;
-export const USD_PER_EUR_DATE = '2026-09-25';
+/** Cours de référence BCE (défini avec les règles de tarification, partagé avec les mesures OpenRouter). */
+import { USD_PER_EUR, USD_PER_EUR_DATE } from '../../src/domain/ai-pricing';
+export { USD_PER_EUR, USD_PER_EUR_DATE };
 
 export interface CatalogProvider {
   id: string;
@@ -168,6 +168,27 @@ export const OPENROUTER_MODELS: CatalogModel[] = [
     releaseDate: '2025-08-11', contextTokens: 32_000, usd: { in: 0.02 },
     sources: ['https://openrouter.ai/voyageai/rerank-2.5-lite', 'https://blog.voyageai.com/2025/08/11/rerank-2-5/', 'https://docs.voyageai.com/docs/reranker', 'https://docs.voyageai.com/docs/pricing'],
     note: 'Contexte 32K (requête + document), requête limitée à 8K tokens.',
+  },
+  // Ajouts du 06/10/2026 (demande du commanditaire) : LLM servis par OpenRouter ; données relevées sur l'API publique
+  // d'OpenRouter (/api/v1/models) et les pages des modèles.
+  {
+    providerId: 'openrouter', name: 'Z.ai: GLM 5.3 Flash', apiId: 'z-ai/glm-5.3-flash', category: 'LLM',
+    description: 'Modèle multimodal rapide de Z.ai pour le code et les tâches d’agent au long cours.',
+    releaseDate: '2026-08-26', maxOutputTokens: 131_072, contextTokens: 1_048_576, usd: { in: 0.15, out: 0.5 },
+    sources: ['https://openrouter.ai/z-ai/glm-5.3-flash', 'https://openrouter.ai/api/v1/models'],
+    note: 'Max output : 131 072 chez la plupart des fournisseurs OpenRouter (un fournisseur annonce davantage).',
+  },
+  {
+    providerId: 'openrouter', name: 'Qwen: Qwen3.8 Max (0902)', apiId: 'qwen/qwen3.8-max-0902', category: 'LLM',
+    description: 'Version figée du 2 septembre de Qwen3.8 Max (Alibaba) : mixture d’experts de 2 400 Md de paramètres, texte, image et vidéo.',
+    releaseDate: '2026-09-03', maxOutputTokens: 131_072, contextTokens: 1_000_000, usd: { in: 2, out: 6 },
+    sources: ['https://openrouter.ai/qwen/qwen3.8-max-0902', 'https://openrouter.ai/api/v1/models'],
+  },
+  {
+    providerId: 'openrouter', name: 'Xiaomi: MiMo-V2.6-Pro', apiId: 'xiaomi/mimo-v2.6-pro', category: 'LLM',
+    description: 'Modèle phare de Xiaomi (plus de 1 000 Md de paramètres) pour les tâches les plus exigeantes.',
+    releaseDate: '2026-09-21', maxOutputTokens: 131_072, contextTokens: 1_050_000, usd: { in: 0.435, out: 0.87 },
+    sources: ['https://openrouter.ai/xiaomi/mimo-v2.6-pro', 'https://openrouter.ai/api/v1/models'],
   },
 ];
 

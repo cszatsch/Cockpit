@@ -1,3 +1,4 @@
+import { ModelStatsService } from './model-stats.service';
 import { Body, Controller, Delete, Get, HttpCode, OnModuleInit, Param, Patch, Post, Put, Query, Res } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
@@ -58,7 +59,19 @@ const ModelFields = z.object({
   priceIn: Money,
   priceOut: Money,
   active: z.boolean(),
+  /** Mesures OpenRouter (06/10/2026) : identifiant OpenRouter, score τ²-Bench (%), coût d'une session (€), débit (tokens/s). */
+  openrouterId: z.string().trim().max(160).nullable(),
+  benchmarkScore: z.number().min(0, '0 à 100').max(100, '0 à 100').nullable(),
+  costPerSessionEur: z.number().min(0, 'positif').max(1000).nullable(),
+  tokensPerSecond: z.number().min(0, 'positif').max(100_000).nullable(),
 }).partial();
+/** Mesures OpenRouter saisies (champs absents : inchangés). */
+const statsOf = (i: z.infer<typeof ModelFields>) => ({
+  ...(i.openrouterId !== undefined ? { openrouterId: i.openrouterId || null } : {}),
+  ...(i.benchmarkScore !== undefined ? { benchmarkScore: i.benchmarkScore } : {}),
+  ...(i.costPerSessionEur !== undefined ? { costPerSessionEur: i.costPerSessionEur } : {}),
+  ...(i.tokensPerSecond !== undefined ? { tokensPerSecond: i.tokensPerSecond } : {}),
+});
 const ModelCreate = ModelFields.extend({ name: ModelFields.shape.name.unwrap(), category: Category, providerId: z.string().min(1, 'obligatoire') }).strict();
 
 /**
@@ -88,6 +101,7 @@ export class AiController implements OnModuleInit {
     private readonly usage: UsageService,
     private readonly jobs: JobsService,
     private readonly revectorizer: RevectorizeService,
+    private readonly stats: ModelStatsService,
   ) {}
 
   onModuleInit() {
@@ -207,6 +221,8 @@ export class AiController implements OnModuleInit {
       price,
       // Compatibilité : tarifs au token à plat (null si sans objet).
       priceIn: m.priceInPerMTok, priceOut: m.priceOutPerMTok,
+      openrouterId: m.openrouterId, benchmarkScore: m.benchmarkScore, costPerSessionEur: m.costPerSessionEur, tokensPerSecond: m.tokensPerSecond,
+      statsAt: m.statsAt ? m.statsAt.toISOString() : null,
       active: m.active, version: m.version,
     };
   }
@@ -282,7 +298,7 @@ export class AiController implements OnModuleInit {
     let id = base;
     for (let n = 2; await this.prisma.aiModel.findUnique({ where: { id } }); n++) id = `${base}-${n}`;
     const row = await this.prisma.$transaction(async (db) => {
-      const row = await db.aiModel.create({ data: { id, providerId: input.providerId, name: input.name, description: input.description ?? '', active: input.active ?? true, ...data } });
+      const row = await db.aiModel.create({ data: { id, providerId: input.providerId, name: input.name, description: input.description ?? '', active: input.active ?? true, ...data, ...statsOf(input) } });
       await this.audit.action(db, adminCtx(actor), {
         action: 'Ajout d’un modèle', target: `${row.name} · ${provider.name} · ${MODEL_CATEGORY_LABEL[row.category]} · ${this.priceText(row)}`,
         severity: 'SENSITIVE', entityType: 'AiModel', entityId: id,
@@ -321,6 +337,15 @@ export class AiController implements OnModuleInit {
     });
   }
 
+  /** Relevé des mesures OpenRouter à la demande (score τ²-Bench, coût d'une session, débit) ; tracé. */
+  @Post('models/stats/refresh')
+  @HttpCode(200)
+  async refreshStats(@CurrentActor() actor: Actor) {
+    const r = await this.stats.refresh();
+    await this.audit.action(this.prisma, adminCtx(actor), { action: 'Relevé des mesures OpenRouter', target: `${r.updated} modèle(s) mesuré(s) sur ${r.total} LLM`, severity: 'INFO', entityType: 'AiModel', details: r });
+    return { ...r, models: (await this.prisma.aiModel.findMany({ orderBy: { createdAt: 'asc' } })).map((m) => this.modelView(m)) };
+  }
+
   @Patch('models/:id')
   async patchModel(@CurrentActor() actor: Actor, @Param('id') id: string, @Body() body: unknown) {
     const input = parse(ModelFields.strict(), body);
@@ -349,13 +374,14 @@ export class AiController implements OnModuleInit {
     }
     const priceChanged = data.priceUnit !== m.priceUnit || data.priceInPerMTok !== m.priceInPerMTok || data.priceOutPerMTok !== m.priceOutPerMTok || data.pricePer1kRequests !== m.pricePer1kRequests;
     const row = await this.prisma.$transaction(async (db) => {
-      const row = await db.aiModel.update({ where: { id }, data: { name: input.name, description: input.description, active: input.active, ...data, version: { increment: 1 } } });
+      const row = await db.aiModel.update({ where: { id }, data: { name: input.name, description: input.description, active: input.active, ...data, ...statsOf(input), version: { increment: 1 } } });
       const ctx = adminCtx(actor);
       if (priceChanged) await this.audit.action(db, ctx, { action: 'Modification du tarif d’un modèle', target: `${m.name} · ${this.priceText(m)} → ${this.priceText(row)}`, severity: 'SENSITIVE', entityType: 'AiModel', entityId: id });
       if (input.active !== undefined && input.active !== m.active) await this.audit.action(db, ctx, { action: input.active ? 'Activation d’un modèle' : 'Désactivation d’un modèle', target: m.name, severity: 'SENSITIVE', entityType: 'AiModel', entityId: id });
       const infoChanged = (input.name && input.name !== m.name) || (input.description !== undefined && input.description !== m.description)
         || +(row.releaseDate ?? 0) !== +(m.releaseDate ?? 0) || row.maxOutputTokens !== m.maxOutputTokens
-        || row.providerModelId !== m.providerModelId || row.contextTokens !== m.contextTokens || row.defaultDimension !== m.defaultDimension || row.dimensions.join() !== m.dimensions.join();
+        || row.providerModelId !== m.providerModelId || row.contextTokens !== m.contextTokens || row.defaultDimension !== m.defaultDimension || row.dimensions.join() !== m.dimensions.join()
+        || row.openrouterId !== m.openrouterId || row.benchmarkScore !== m.benchmarkScore || row.costPerSessionEur !== m.costPerSessionEur || row.tokensPerSecond !== m.tokensPerSecond;
       if (infoChanged) await this.audit.action(db, ctx, { action: 'Modification d’un modèle', target: row.name, severity: 'INFO', entityType: 'AiModel', entityId: id });
       if (input.category && input.category !== m.category) await this.audit.action(db, ctx, { action: 'Changement de catégorie d’un modèle', target: `${row.name} · ${MODEL_CATEGORY_LABEL[m.category]} → ${MODEL_CATEGORY_LABEL[row.category]}`, severity: 'SENSITIVE', entityType: 'AiModel', entityId: id });
       return row;

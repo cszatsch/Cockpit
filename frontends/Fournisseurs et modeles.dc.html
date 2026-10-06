@@ -205,13 +205,13 @@ input::placeholder{color:#a6b4bd}
 
   <div style="display:flex;flex-direction:column;gap:14px">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-      <div style="font-size:17px;font-weight:800;letter-spacing:-.01em">Modèles</div><span style="font-size:12.5px;color:#8a9aa6">Coûts en euros par million de tokens</span>
+      <div style="font-size:17px;font-weight:800;letter-spacing:-.01em">Modèles</div><span style="font-size:12.5px;color:#8a9aa6">Coûts en euros par million de tokens · {{ statsL }}</span><button onClick="{{ refreshStats }}" disabled="{{ statsBusy }}" style="{{ statsBtnSt }}" style-hover="color:#10233a;background:#f1f5f4"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="{{ statsIcoSt }}"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"></path><path d="M21 3v5h-5"></path></svg>{{ statsBtnL }}</button>
       <span style="flex:1"></span>
       <div role="tablist" style="display:inline-flex;gap:2px;padding:3px;border-radius:12px;background:#e3ebe9;flex-wrap:wrap"><sc-for list="{{ filt }}" as="x" hint-placeholder-count="6"><button role="tab" onClick="{{ x.pick }}" style="{{ x.st }}">{{ x.l }}</button></sc-for></div>
       <button onClick="{{ newModel }}" style="height:36px;padding:0 15px;border:0;border-radius:11px;background:#10233a;color:#fff;font-weight:700;font-size:12.5px;display:inline-flex;align-items:center;gap:8px;cursor:pointer" style-hover="background:#1b3450"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>Ajouter un modèle</button>
     </div>
     <div style="background:#fff;border-radius:20px;box-shadow:0 0 0 1px #e1e9e7,0 18px 40px -32px rgba(16,35,58,.35);overflow:hidden">
-      <div style="display:grid;grid-template-columns:minmax(0,2.3fr) 128px 80px 80px minmax(0,1.9fr) 48px 32px;gap:20px;padding:0 24px;height:46px;align-items:center;border-bottom:1px solid #edf2f1">
+      <div style="display:grid;grid-template-columns:minmax(0,2fr) 112px 62px 62px 58px 68px 46px minmax(0,1.5fr) 40px 28px;gap:14px;padding:0 24px;height:46px;align-items:center;border-bottom:1px solid #edf2f1">
         <sc-for list="{{ cols }}" as="c" hint-placeholder-count="6"><button onClick="{{ c.pick }}" style="{{ c.st }}">{{ c.l }}<span style="{{ c.arSt }}">{{ c.ar }}</span></button></sc-for><span></span>
       </div>
       <sc-for list="{{ rows }}" as="m" hint-placeholder-count="15">
@@ -220,6 +220,9 @@ input::placeholder{color:#a6b4bd}
           <div style="display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:#43586a;min-width:0"><span style="{{ m.pgSt }}">{{ m.pg }}</span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ m.prov }}</span></div>
           <div style="text-align:right;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums">{{ m.inL }}</div>
           <div style="{{ m.outSt }}">{{ m.outL }}</div>
+          <div style="{{ m.benchSt }}">{{ m.benchL }}</div>
+          <div style="{{ m.sessSt }}">{{ m.sessL }}</div>
+          <div style="{{ m.tpsSt }}">{{ m.tpsL }}</div>
           <div style="display:flex;flex-wrap:wrap;gap:5px"><sc-for list="{{ m.uses }}" as="u" hint-placeholder-count="1"><span style="{{ u.st }}">{{ u.l }}</span></sc-for><sc-if value="{{ m.noU }}" hint-placeholder-val="{{ false }}"><span style="color:#c3d0ce">—</span></sc-if></div>
           <button role="switch" aria-checked="{{ m.on }}" aria-label="Actif" onClick="{{ m.toggle }}" style="{{ m.tgSt }}"><span style="{{ m.knSt }}"></span></button>
           <button aria-label="Modifier" onClick="{{ m.edit }}" style="width:30px;height:30px;border:0;border-radius:8px;background:none;color:#8a9aa6;cursor:pointer;display:grid;place-items:center" style-hover="background:#f1f5f4;color:#10233a"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4z"></path></svg></button>
@@ -260,6 +263,15 @@ input::placeholder{color:#a6b4bd}
           </div>
         </div>
         <div style="font-size:11px;line-height:1.5;color:#8a9aa6">Un changement de tarif met à jour les estimations de l’affectation. L’historique de consommation n’est pas recalculé.</div>
+        <div style="padding:16px;border-radius:14px;background:#f6f9f8;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap"><span style="font-size:12px;font-weight:800">Mesures OpenRouter</span><span style="font-size:11px;color:#8a9aa6">{{ mdl.statsNote }}</span></div>
+          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">
+            <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:11.5px;font-weight:700;color:#43586a">Score τ²-Bench</span><span style="display:flex;align-items:center;gap:6px"><input value="{{ mdl.f.bench }}" onChange="{{ mdl.on.bench }}" inputMode="decimal" placeholder="—" style="width:100%;min-width:0;height:38px;padding:0 10px;border:1px solid #d5dfdd;border-radius:10px;background:#fff;font-size:13px;outline:none;font-variant-numeric:tabular-nums" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.14)"></input><span style="font-size:12px;color:#8a9aa6">%</span></span></label>
+            <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:11.5px;font-weight:700;color:#43586a">Coût par session</span><span style="display:flex;align-items:center;gap:6px"><input value="{{ mdl.f.sess }}" onChange="{{ mdl.on.sess }}" inputMode="decimal" placeholder="—" style="width:100%;min-width:0;height:38px;padding:0 10px;border:1px solid #d5dfdd;border-radius:10px;background:#fff;font-size:13px;outline:none;font-variant-numeric:tabular-nums" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.14)"></input><span style="font-size:12px;color:#8a9aa6">€</span></span></label>
+            <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:11.5px;font-weight:700;color:#43586a">Débit</span><span style="display:flex;align-items:center;gap:6px"><input value="{{ mdl.f.tps }}" onChange="{{ mdl.on.tps }}" inputMode="numeric" placeholder="—" style="width:100%;min-width:0;height:38px;padding:0 10px;border:1px solid #d5dfdd;border-radius:10px;background:#fff;font-size:13px;outline:none;font-variant-numeric:tabular-nums" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.14)"></input><span style="font-size:12px;color:#8a9aa6;white-space:nowrap">tok/s</span></span></label>
+          </div>
+          <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:11.5px;font-weight:700;color:#43586a">Identifiant OpenRouter</span><input value="{{ mdl.f.orId }}" onChange="{{ mdl.on.orId }}" placeholder="ex. anthropic/claude-sonnet-5" style="height:38px;padding:0 12px;border:1px solid #d5dfdd;border-radius:10px;background:#fff;font-size:13px;font-family:ui-monospace,Menlo,monospace;outline:none" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.14)"></input><span style="font-size:11px;color:#8a9aa6">Retrouvé automatiquement ; à corriger si le relevé ne trouve pas le modèle</span></label>
+        </div>
         <sc-if value="{{ mdl.showDelNote }}" hint-placeholder-val="{{ false }}"><div style="{{ mdl.delNoteSt }}">{{ mdl.delNote }}</div></sc-if>
         <div style="display:flex;align-items:center;gap:8px;padding-top:4px">
           <sc-if value="{{ mdl.isEdit }}" hint-placeholder-val="{{ true }}"><button onClick="{{ mdl.del }}" disabled="{{ mdl.delDisabled }}" style="{{ mdl.delSt }}">{{ mdl.delL }}</button></sc-if>
@@ -433,7 +445,7 @@ class Component extends DCLogic {
     }
     const D = this.props.data || { providers: [], models: [], functions: [], assignments: [] };
     const providers = (D.providers || []).map((p, i) => { const c = colOf(p.id, i); return { id: p.id, n: p.name, g: PGLYPH[p.id] || (p.name || '?').trim()[0].toUpperCase(), c: c[0], dk: c[1], pre: p.keyPrefix || '', k: p.keyLast4 || '', bad: p.status === 'ERROR' || !p.hasKey, testing: !!st.testing[p.id], at: p.lastTestedAt, cap: p.monthlyCapEur ?? null }; });
-    const models = (D.models || []).map(m => ({ id: m.id, n: m.name, t: CAT[m.category] || m.category, p: m.providerId, i: m.price && m.price.unit === 'REQUESTS' ? m.price.per1k : m.priceIn, o: m.category === 'LLM' ? m.priceOut : null, unit: (m.price && m.price.unit) || 'TOKENS', date: m.releaseDate || '', ident: m.providerModelId || '', ctx: m.contextTokens ? String(m.contextTokens) : '', maxOut: m.maxOutputTokens, d: m.description || '', on: m.active, dims: m.dimensions || [], defDim: m.defaultDimension }));
+    const models = (D.models || []).map(m => ({ id: m.id, n: m.name, t: CAT[m.category] || m.category, p: m.providerId, i: m.price && m.price.unit === 'REQUESTS' ? m.price.per1k : m.priceIn, o: m.category === 'LLM' ? m.priceOut : null, unit: (m.price && m.price.unit) || 'TOKENS', date: m.releaseDate || '', ident: m.providerModelId || '', ctx: m.contextTokens ? String(m.contextTokens) : '', maxOut: m.maxOutputTokens, d: m.description || '', on: m.active, dims: m.dimensions || [], defDim: m.defaultDimension, bench: m.benchmarkScore, sess: m.costPerSessionEur, tps: m.tokensPerSecond, orId: m.openrouterId || '', statsAt: m.statsAt || null }));
     const assign = {}, states = {}, fn = {};
     Object.entries(FID).forEach(([k, sid]) => {
       const a = (D.assignments || []).find(x => x.functionId === sid) || {};
@@ -627,9 +639,11 @@ class Component extends DCLogic {
     const ageM = d => { if (!d) return null; const x = new Date(d + 'T00:00:00'); if (isNaN(x)) return null; let m = (now.getFullYear() - x.getFullYear()) * 12 + now.getMonth() - x.getMonth(); if (now.getDate() < x.getDate()) m--; return Math.max(0, m); };
     const tagBase = 'height:19px;padding:0 7px;border-radius:6px;font-size:10px;font-weight:800;display:inline-flex;align-items:center;white-space:nowrap;';
     const typeSt = { LLM: 'background:#e4f4f1;color:#1d8f86', Embedding: 'background:#ecebfb;color:#5b4fc4', Reranking: 'background:#e8eefb;color:#3f63b8' };
-    const chipP = 'height:22px;padding:0 9px;border-radius:7px;background:#10233a;color:#fff;font-size:10.5px;font-weight:700;display:inline-flex;align-items:center;white-space:nowrap';
-    const chipS = 'height:22px;padding:0 9px;border-radius:7px;background:#fff;color:#43586a;box-shadow:inset 0 0 0 1px #cfdad8;font-size:10.5px;font-weight:600;display:inline-flex;align-items:center;white-space:nowrap';
-    const keyVal = { n: m => m.n, prov: m => (P[m.p] || {}).n || '', i: m => m.i, o: m => m.o == null ? -1 : m.o, u: m => (uses[m.id] || []).length, on: m => m.on ? 1 : 0 };
+    const chipP = 'height:22px;padding:0 9px;border-radius:7px;background:#10233a;color:#fff;font-size:10.5px;font-weight:700;display:inline-flex;align-items:center;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;min-width:0';
+    const chipS = 'height:22px;padding:0 9px;border-radius:7px;background:#fff;color:#43586a;box-shadow:inset 0 0 0 1px #cfdad8;font-size:10.5px;font-weight:600;display:inline-flex;align-items:center;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;min-width:0';
+    const statSt = v => `text-align:right;font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums;color:${v == null ? '#c3d0ce' : '#43586a'}`;
+    const sessEur = v => (v < 0.01 ? v.toFixed(4) : v < 1 ? v.toFixed(3) : v.toFixed(2)).replace('.', ',') + ' €';
+    const keyVal = { n: m => m.n, prov: m => (P[m.p] || {}).n || '', i: m => m.i, o: m => m.o == null ? -1 : m.o, bench: m => m.bench == null ? -1 : m.bench, sess: m => m.sess == null ? 1e9 : m.sess, tps: m => m.tps == null ? -1 : m.tps, u: m => (uses[m.id] || []).length, on: m => m.on ? 1 : 0 };
     const rows = D.models.filter(m => st.fa === 'all' || m.p === st.fa).slice().sort((a, b) => { const x = keyVal[st.sk](a), y = keyVal[st.sk](b); return (typeof x === 'string' ? x.localeCompare(y) : x - y) * st.sd || a.n.localeCompare(b.n); }).map(m => {
       const am = ageM(m.date), u = uses[m.id] || [];
       const flag = am == null || am < 12 ? null : am < 24 ? ['À surveiller · ' + am + ' mois', 'background:#fdf3e1;color:#a8670f'] : ['Ancien · ' + am + ' mois', 'background:#fdeeea;color:#b8432f'];
@@ -637,8 +651,11 @@ class Component extends DCLogic {
         n: m.n, d: m.d, t: m.t, tSt: tagBase + typeSt[m.t], hasF: !!flag, fL: flag ? flag[0] : '', fSt: flag ? tagBase + flag[1] : '',
         prov: (P[m.p] || {}).n, pg: (P[m.p] || {}).g, pgSt: mono(m.p, 20), inL: eur(m.i), outL: eur(m.o),
         outSt: `text-align:right;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;color:${m.o == null ? '#c3d0ce' : '#10233a'}`,
+        // Mesures OpenRouter (06/10/2026) : score τ²-Bench, coût d'une session, débit ; « — » sans mesure.
+        benchL: m.bench == null ? '—' : String(m.bench).replace('.', ',') + ' %', sessL: m.sess == null ? '—' : sessEur(m.sess), tpsL: m.tps == null ? '—' : String(Math.round(m.tps)),
+        benchSt: statSt(m.bench), sessSt: statSt(m.sess), tpsSt: statSt(m.tps),
         uses: u.map(x => ({ l: `${label(x.fid)} · ${x.r}`, st: x.r === 'principal' ? chipP : chipS })), noU: !u.length, on: m.on,
-        rowSt: `display:grid;grid-template-columns:minmax(0,2.3fr) 128px 80px 80px minmax(0,1.9fr) 48px 32px;gap:20px;padding:13px 24px;align-items:center;border-bottom:1px solid #f0f4f3;transition:opacity .2s;opacity:${m.on ? 1 : .5}`,
+        rowSt: `display:grid;grid-template-columns:minmax(0,2fr) 112px 62px 62px 58px 68px 46px minmax(0,1.5fr) 40px 28px;gap:14px;padding:13px 24px;align-items:center;border-bottom:1px solid #f0f4f3;transition:opacity .2s;opacity:${m.on ? 1 : .5}`,
         toggle: () => {
           if (m.on && u.length) { this.toast(`${m.n} est affecté (${u.map(x => label(x.fid)).join(', ')}). Réaffectez-le avant de le désactiver.`, 'warn'); return; }
           if (!REAL) { this.setState(s => ({ models: s.models.map(x => x.id === m.id ? { ...x, on: !x.on } : x) })); this.toast(`${m.n} ${m.on ? 'désactivé' : 'activé'}.`); return; }
@@ -646,10 +663,10 @@ class Component extends DCLogic {
         },
         tgSt: `width:32px;height:18px;border:0;border-radius:9px;padding:2px;cursor:pointer;display:flex;align-items:center;transition:background .2s;background:${m.on ? '#1d8f86' : '#cdd8d6'};flex:none`,
         knSt: `width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(16,35,58,.25);transition:transform .2s cubic-bezier(.3,.7,.2,1);transform:translateX(${m.on ? 14 : 0}px)`,
-        edit: () => this.setState({ menu: null, modal: { kind: 'model', mode: 'edit', id: m.id, confirm: false, saving: false, f: { t: m.t, p: m.p, n: m.n, d: m.d, ident: m.ident, ctx: m.ctx || '', date: m.date || '', maxOut: m.maxOut ? String(m.maxOut) : '', i: m.i == null ? '' : String(m.i).replace('.', ','), o: m.o == null ? '' : String(m.o).replace('.', ','), dims: (m.dims || []).join(', '), defDim: m.defDim != null ? String(m.defDim) : '' } } })
+        edit: () => this.setState({ menu: null, modal: { kind: 'model', mode: 'edit', id: m.id, confirm: false, saving: false, f: { t: m.t, p: m.p, n: m.n, d: m.d, ident: m.ident, ctx: m.ctx || '', date: m.date || '', maxOut: m.maxOut ? String(m.maxOut) : '', i: m.i == null ? '' : String(m.i).replace('.', ','), o: m.o == null ? '' : String(m.o).replace('.', ','), dims: (m.dims || []).join(', '), defDim: m.defDim != null ? String(m.defDim) : '', bench: m.bench == null ? '' : String(m.bench).replace('.', ','), sess: m.sess == null ? '' : String(m.sess).replace('.', ','), tps: m.tps == null ? '' : String(m.tps), orId: m.orId || '', statsAt: m.statsAt } } })
       };
     });
-    const cols = [['n', 'Modèle', 0], ['prov', 'Fournisseur', 0], ['i', 'Entrée', 1], ['o', 'Sortie', 1], ['u', 'Utilisé par', 0], ['on', 'Actif', 0]].map(([k, l, r]) => {
+    const cols = [['n', 'Modèle', 0], ['prov', 'Fournisseur', 0], ['i', 'Entrée', 1], ['o', 'Sortie', 1], ['bench', 'Score', 1], ['sess', 'Session', 1], ['tps', 'Tok/s', 1], ['u', 'Utilisé par', 0], ['on', 'Actif', 0]].map(([k, l, r]) => {
       const act = st.sk === k;
       return { l, ar: act ? (st.sd > 0 ? '↑' : '↓') : '↕', arSt: `color:${act ? '#1d8f86' : '#c3d0ce'};font-size:11px`, pick: () => this.setState(s => ({ sk: k, sd: s.sk === k ? -s.sd : 1 })),
         st: `display:flex;align-items:center;gap:5px;justify-content:${r ? 'flex-end' : 'flex-start'};border:0;background:none;padding:0;cursor:pointer;font-size:10.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:${act ? '#10233a' : '#8a9aa6'}` };
@@ -693,7 +710,8 @@ class Component extends DCLogic {
       const close = () => this.setState({ modal: null });
       mdl = {
         open: true, isEdit: M.mode === 'edit', title: M.mode === 'edit' ? 'Modifier le modèle' : 'Ajouter un modèle', f, isLLM, isEmb,
-        on: Object.fromEntries(['p', 'n', 'd', 'ident', 'ctx', 'date', 'maxOut', 'i', 'o', 'dims', 'defDim'].map(k => [k, setF(k)])),
+        on: Object.fromEntries(['p', 'n', 'd', 'ident', 'ctx', 'date', 'maxOut', 'i', 'o', 'dims', 'defDim', 'bench', 'sess', 'tps', 'orId'].map(k => [k, setF(k)])),
+        statsNote: f.statsAt ? 'Relevées le ' + new Date(f.statsAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + ' · τ²-Bench Airline, débit médian du meilleur fournisseur' : 'τ²-Bench Airline, débit médian du meilleur fournisseur ; relevées chaque jour',
         dimOpts: [{ v: '', l: '—' }].concat(dimsArr.map(d => ({ v: String(d), l: dimL(d) }))),
         tLLM: tCard(f.t === 'LLM'), tEmb: tCard(f.t === 'Embedding'), tRer: tCard(f.t === 'Reranking'), setLLM: setT('LLM'), setEmb: setT('Embedding'), setRer: setT('Reranking'),
         hasAge: !!ageK, ageL: ageK ? `${am} mois · ${ageK[0]}` : '', ageSt: ageK ? `align-self:flex-start;display:inline-flex;align-items:center;gap:5px;height:20px;padding:0 8px;border-radius:999px;font-size:10.5px;font-weight:800;color:${ageK[1]};background:${ageK[2]}` : '', ageDot: ageK ? `width:5px;height:5px;border-radius:50%;background:${ageK[1]}` : '',
@@ -723,7 +741,8 @@ class Component extends DCLogic {
           const ctx = num(data.ctx);
           const body = { name: data.n, description: data.d, category: CATU[data.t], providerModelId: data.ident, contextTokens: ctx ? Math.round(ctx) : null, releaseDate: data.date || null,
             maxOutputTokens: isLLM && data.maxOut ? Math.round(data.maxOut) : null, dimensions: data.dims, defaultDimension: data.defDim,
-            price: unit === 'REQUESTS' && !isLLM ? { unit: 'REQUESTS', per1k: data.i } : { unit: 'TOKENS', in: data.i, out: isLLM ? data.o : null } };
+            price: unit === 'REQUESTS' && !isLLM ? { unit: 'REQUESTS', per1k: data.i } : { unit: 'TOKENS', in: data.i, out: isLLM ? data.o : null },
+            benchmarkScore: num(f.bench), costPerSessionEur: num(f.sess), tokensPerSecond: num(f.tps), openrouterId: (f.orId || '').trim() || null };
           setM({ saving: true });
           this.props.api.saveModel(M.mode === 'edit' ? M.id : null, M.mode === 'edit' ? body : { ...body, providerId: data.p }).then(() => { close(); this.toast(okMsg); }).catch(fail);
         }
@@ -808,6 +827,16 @@ class Component extends DCLogic {
       newModel: () => this.setState({ menu: null, modal: { kind: 'model', mode: 'new', id: null, confirm: false, saving: false, f: { t: 'LLM', p: st.fa !== 'all' ? st.fa : (D.providers[0] || {}).id, n: '', d: '', ident: '', ctx: '', date: '', maxOut: '', i: '', o: '', dims: '', defDim: '' } } }),
       closeModal: () => this.setState({ modal: null }), stop: e => e.stopPropagation(),
       filt, cols, rows, provOpts: D.providers.map(p => ({ id: p.id, n: p.n })),
+      // Mesures OpenRouter : date du dernier relevé et relevé à la demande (clé OpenRouter du serveur).
+      statsL: (() => { const t = D.models.map(m => m.statsAt).filter(Boolean).sort().pop(); return t ? 'mesures OpenRouter du ' + new Date(t).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : 'mesures OpenRouter non relevées'; })(), statsBusy: !!st.statsBusy, statsBtnL: st.statsBusy ? 'Relevé en cours…' : 'Actualiser',
+      statsBtnSt: 'height:28px;padding:0 10px;border:0;border-radius:8px;background:transparent;color:#5c7280;font-size:12px;font-weight:700;display:inline-flex;align-items:center;gap:6px;cursor:pointer',
+      statsIcoSt: st.statsBusy ? 'animation:spin .8s linear infinite' : '',
+      refreshStats: () => {
+        if (st.statsBusy) return;
+        if (!REAL) { this.toast('Mesures relevées (démonstration).'); return; }
+        this.setState({ statsBusy: true });
+        this.props.api.refreshStats().then(r => { this.setState({ statsBusy: false }); this.toast(`${r.updated} modèle${r.updated > 1 ? 's' : ''} mesuré${r.updated > 1 ? 's' : ''} sur ${r.total} LLM.`); }).catch(e => { this.setState({ statsBusy: false }); this.toast(errMsg(e), 'err'); });
+      },
       mdl, pv, ky, cp, rv,
       toast: { open: !!st.toast, msg: st.toast ? st.toast.msg : '', dot: `width:7px;height:7px;border-radius:50%;flex:none;background:${tc};box-shadow:0 0 0 3px ${tc}33` }
     };

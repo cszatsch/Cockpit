@@ -29,6 +29,7 @@ import { GuideAnswerService } from './guide-answer.service';
 import { JevMemoryService } from './jev-memory.service';
 import { NotificationsService } from './notifications.service';
 import { SnapshotsService } from './snapshots.service';
+import { ModelStatsService } from './model-stats.service';
 import { ShareController, ShareFileController } from './share.controller';
 import { ShareService } from './share.service';
 
@@ -37,7 +38,7 @@ import { ShareService } from './share.service';
   controllers: [ConsoleController, GuideController, AccountsController, AiController, RulesController, SmtpController, DataController, SkillsController, PersonaController, InboxController, ApiCardsController, WidgetCatalogueController, WidgetProxyController, WidgetFeedsController, WidgetNewsController, LatencyController, ShareController, ShareFileController],
   // AccountsController et DataController servent aussi de fournisseurs : les décisions du tiroir de notifications
   // reprennent exactement le traitement des pages Utilisateurs et Modules.
-  providers: [ShareService, GuideIndexService, JevRouterService, JevAssistantService, GuideSearchService, GuideAnswerService, ProfilesService, UsageService, JevSqlService, JevCockpitInsightService, JevTraceService, LatencyService, RevectorizeService, JevMemoryService, NotificationWriterService, NotificationsService, SnapshotsService, InboxService, ApiCardsService, AccountsController, DataController],
+  providers: [ModelStatsService, ShareService, GuideIndexService, JevRouterService, JevAssistantService, GuideSearchService, GuideAnswerService, ProfilesService, UsageService, JevSqlService, JevCockpitInsightService, JevTraceService, LatencyService, RevectorizeService, JevMemoryService, NotificationWriterService, NotificationsService, SnapshotsService, InboxService, ApiCardsService, AccountsController, DataController],
   // Jev du Cockpit : aiguillage et réponses à partir du guide du Cockpit (décision du 30/09/2026).
   exports: [JevRouterService, GuideAnswerService, JevCockpitInsightService, JevMemoryService],
 })

@@ -1266,6 +1266,13 @@ model AiModel {
   priceOutPerMTok    Float?
   /// € / 1 000 requêtes (unité REQUESTS, Reranking)
   pricePer1kRequests Float?
+  /// Mesures OpenRouter (06/10/2026) : identifiant OpenRouter (deviné, corrigeable), score au τ²-Bench Airline (%),
+  /// coût moyen d'une session de ce benchmark (€), débit médian du meilleur fournisseur (tokens/s), date du relevé
+  openrouterId       String?
+  benchmarkScore     Float?
+  costPerSessionEur  Float?
+  tokensPerSecond    Float?
+  statsAt            DateTime?
   active             Boolean       @default(true)
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt

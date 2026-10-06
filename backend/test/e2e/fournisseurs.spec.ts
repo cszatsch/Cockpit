@@ -25,6 +25,22 @@ describe('Fournisseurs et modèles', () => {
   });
   afterAll(() => t.close());
 
+  it('mesures OpenRouter (06/10/2026) : saisies dans la fiche, renvoyées par le catalogue, contrôlées ; relevé refusé hors ligne', async () => {
+    const m = (await admin.get(`${A}/models`).expect(200)).body.find((x: any) => x.category === 'LLM');
+    expect(m).toMatchObject({ benchmarkScore: null, costPerSessionEur: null, tokensPerSecond: null, openrouterId: null, statsAt: null });
+    const r = (await admin.patch(`${A}/models/${m.id}`, { benchmarkScore: 75.3, costPerSessionEur: 0.1749, tokensPerSecond: 94, openrouterId: 'anthropic/claude-sonnet-5' }).expect(200)).body;
+    expect(r).toMatchObject({ benchmarkScore: 75.3, costPerSessionEur: 0.1749, tokensPerSecond: 94, openrouterId: 'anthropic/claude-sonnet-5' });
+    // Champs absents : inchangés ; valeur vidée : null.
+    expect((await admin.patch(`${A}/models/${m.id}`, { description: 'x' }).expect(200)).body.tokensPerSecond).toBe(94);
+    expect((await admin.patch(`${A}/models/${m.id}`, { tokensPerSecond: null }).expect(200)).body.tokensPerSecond).toBeNull();
+    const bad = await admin.patch(`${A}/models/${m.id}`, { benchmarkScore: 120 }).expect(400);
+    expect(bad.body.fields).toHaveProperty('benchmarkScore');
+    // Relevé : environnement de test hors ligne → refus explicite, rien n’est modifié.
+    const off = await admin.post(`${A}/models/stats/refresh`).expect(422);
+    expect(off.body.message).toMatch(/hors ligne/);
+    await (await t.as(WHO.pmo)).post(`${A}/models/stats/refresh`).expect(403);
+  });
+
   it('désactivation d’un modèle affecté comme secours seulement : 409 avec les affectations à modifier', async () => {
     // gpt5mini : secours de Gestion des données et de Guidage (jeu d'essai), principal de rien.
     const r = await admin.patch(`${A}/models/gpt5mini`, { active: false }).expect(409);

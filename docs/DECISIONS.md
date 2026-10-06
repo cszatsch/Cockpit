@@ -1538,3 +1538,18 @@ Cause : le versement n'était qu'un reliquat de la maquette — l'historique mar
 | Versement | Option `toKb` de la génération suivie (`POST /report-templates/:id/generations`) : à la fin, le PowerPoint produit est déposé par le chemin d'un dépôt manuel (contrôles, extraction, résumé, indexation) ; nom « <template> v<version> », type « Support de comité », source « Généré » | `ReportTemplateService.depositReport`, `REPORT_KB_TYPE`, `KbUploadMeta.src` |
 | Versions | Même rapport versé à nouveau : version suivante du document (remplacement) ; contenu identique : refusé comme tout doublon | `KbService.submit` (`replaceId`) |
 | Échec du versement | Ne fait pas échouer la génération : le fichier est remis, un message indique pourquoi le rapport n'a pas été versé | `GenerationJob.kb`, `tplGenerate` (`api.js`) |
+
+## Modèles : trois LLM OpenRouter et mesures OpenRouter (06/10/2026)
+
+Demande du commanditaire : ajouter Z.ai GLM 5.3 Flash, Qwen3.8 Max (0902) et Xiaomi MiMo-V2.6-Pro (OpenRouter), et compléter la fiche et le tableau de chaque modèle par son score au benchmark d'OpenRouter, son coût par session et son débit.
+
+| Sujet | Choix | Code |
+|---|---|---|
+| Nouveaux modèles | Ajoutés au catalogue (`z-ai/glm-5.3-flash`, `qwen/qwen3.8-max-0902`, `xiaomi/mimo-v2.6-pro`) avec les données de l'API publique d'OpenRouter (date, contexte, tarifs convertis au cours BCE) ; insérés seuls dans la base (l'application complète du catalogue aurait réécrit les autres modèles) | `prisma/catalog/ia-modeles.ts` |
+| Score | Précision au τ²-Bench Airline, le benchmark qu'OpenRouter fait tourner lui-même (sessions de service client multi-tours avec appels d'outils), en % | `MODEL_STATS_BENCHMARK`, `benchmarkPct` |
+| Coût par session | Coût moyen d'une tâche complète de ce benchmark (`avg_cost_per_task`, $), converti en € au cours BCE du catalogue | `sessionEur`, `USD_PER_EUR` (déplacé dans `src/domain/ai-pricing.ts`) |
+| Débit | Médiane (P50) du meilleur fournisseur sur 30 min, tokens/s — la valeur affichée sur la page du modèle | `bestThroughput` |
+| Source et relevé | API d'OpenRouter avec la clé du fournisseur OpenRouter (`/models`, `/benchmarks`, `/models/…/endpoints`) ; relevé chaque jour à 4 h 30 et à la demande (bouton « Actualiser » du catalogue, `POST /api/admin/models/stats/refresh`, tracé) ; LLM seulement ; un relevé n'efface jamais une valeur | `ModelStatsService`, `MODEL_STATS_CRON` |
+| Correspondance | Identifiant OpenRouter saisi, sinon identifiant chez le fournisseur (OpenRouter tel quel, autres : préfixe + identifiant comparé sans séparateurs ni date), sinon nom affiché ; identifiant retenu enregistré et corrigeable dans la fiche | `matchOpenRouter`, `OPENROUTER_PREFIX` |
+| Saisie | Les trois mesures et l'identifiant OpenRouter sont modifiables dans la fiche (modèles absents d'OpenRouter) | `ModelFields`, `statsOf` (`ai.controller.ts`) |
+| Limites | Modèles non évalués par OpenRouter au τ²-Bench (Ministral 3 14B, Mistral Medium 3.5, Qwen3.8 Max (0902) au 06/10/2026) : score et coût « — » ; Embedding et Reranking : non mesurés | — |

@@ -140,3 +140,7 @@ export function fitsOut(needOut: number, model?: { category: string; maxOutputTo
   if (!model || model.category !== 'LLM' || model.maxOutputTokens == null) return true;
   return model.maxOutputTokens >= needOut;
 }
+
+/** Cours de référence BCE du 25/09/2026 : 1 € = 1,1403 $ (ecb.europa.eu) ; tarifs publiés en dollars convertis en euros. */
+export const USD_PER_EUR = 1.1403;
+export const USD_PER_EUR_DATE = '2026-09-25';
