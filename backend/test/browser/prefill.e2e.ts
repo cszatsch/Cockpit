@@ -10,6 +10,8 @@
  */
 import { chromium, Page } from 'playwright';
 import { newPage } from './harness';
+import { makeTextPdf } from '../fixtures/pdf';
+import { ORION_PAGES } from '../../scripts/prefill-exemple';
 
 const URL = (process.env.PREFILL_URL || 'http://localhost:3302') + '/Console%20Admin.dc.html?as=u1';
 const results: Array<{ step: string; ok: boolean }> = [];
@@ -48,6 +50,16 @@ async function main() {
   await page.setInputFiles('input[type=file]', { name: 'Budget ORION.numbers', mimeType: 'application/octet-stream', buffer: Buffer.from('x') });
   await page.waitForTimeout(300);
   check('critère 2 : .numbers → ERREUR · FORMAT, sans appel au serveur', (await head(page)).startsWith('ERREUR · FORMAT') && posted === 0);
+
+  // Plusieurs fichiers choisis d'un coup (proposition et annexe) : un seul dépôt, analysé comme un seul document.
+  await page.setInputFiles('input[type=file]', [
+    { name: 'Proposition.pdf', mimeType: 'application/pdf', buffer: makeTextPdf(ORION_PAGES.slice(0, 4)) },
+    { name: 'Annexe planning.pdf', mimeType: 'application/pdf', buffer: makeTextPdf(ORION_PAGES.slice(4)) },
+  ]);
+  await page.waitForFunction(() => /TERMINÉ/.test(document.body.innerText), null, { timeout: 60_000 });
+  const multi = await page.evaluate(() => (document.querySelector('[data-screen-label="Initialisation d’un projet"]') as HTMLElement).innerText);
+  check('plusieurs fichiers : un seul dépôt (« Proposition.pdf + 1 fichier », 8 pages)', multi.includes('Proposition.pdf + 1 fichier') && multi.includes(`${ORION_PAGES.length} pages`));
+  await click(page, 'Analyser une autre proposition');
 
   // Exemple ORION jusqu'au résultat.
   await click(page, 'Essayer avec l’exemple ORION');

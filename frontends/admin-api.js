@@ -931,8 +931,11 @@ export function bindPrefill(c) {
   const fail = e => { throw new Error(errText(e)); };
   c.api = {
     tabs: () => get(P + '/tabs'),
-    /** `{ req, done }` : `req.abort()` interrompt l'import ; `done` → `{ id, nom, taille, pages }` ou erreur `{ code }`. */
-    upload(file, onProgress) {
+    /**
+     * Un ou plusieurs fichiers (champ `files`), lus par le serveur comme un seul document. `{ req, done }` : `req.abort()`
+     * interrompt l'import ; `done` → `{ id, nom, taille, pages, fichiers }` ou erreur `{ code, fichier }`.
+     */
+    upload(files, onProgress) {
       const req = new XMLHttpRequest();
       const done = new Promise((resolve, reject) => {
         headers().then(h => {
@@ -942,11 +945,11 @@ export function bindPrefill(c) {
           req.onload = () => {
             let b = {};
             try { b = JSON.parse(req.responseText || '{}'); } catch (e) { /* réponse vide */ }
-            if (req.status >= 200 && req.status < 300) { onProgress(100); resolve(b); } else reject({ code: b.code, message: b.message || 'Import impossible (' + req.status + ')' });
+            if (req.status >= 200 && req.status < 300) { onProgress(100); resolve(b); } else reject({ code: b.code, fichier: b.fields && b.fields.fichier, message: b.message || 'Import impossible (' + req.status + ')' });
           };
           req.onerror = () => reject({ message: 'Serveur injoignable : erreur réseau' });
           req.onabort = () => reject({ aborted: true });
-          const fd = new FormData(); fd.append('file', file);
+          const fd = new FormData(); (Array.isArray(files) ? files : [files]).forEach(f => fd.append('files', f));
           req.send(fd);
         }, reject);
       });

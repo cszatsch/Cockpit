@@ -8,11 +8,11 @@ import { ApiError, conflict, notFound } from '../core/errors';
 import { JobsService } from '../core/jobs.service';
 import { INIT_PROJET_NEED_OUT, LlmService } from '../core/llm.service';
 import { prefillSpecs, writePrefillWorkbook } from '../core/prefill-excel';
-import { PrefillRefusal, readProposal } from '../core/prefill-text';
+import { PREFILL_FORMAT_MESSAGE, PrefillRefusal, readProposal } from '../core/prefill-text';
 import { PrismaService } from '../core/prisma.service';
 import { StorageService } from '../core/storage.service';
 import {
-  assessTab, documentContext, emptyKnown, knownAfter, normalizeRows, parseModelJson, prefillResult, PREFILL_RETENTION_HOURS_DEFAULT, PREFILL_SYSTEM,
+  assessTab, documentContext, emptyKnown, knownAfter, normalizeRows, pageSource, parseModelJson, prefillResult, PREFILL_MAX_FILES, PREFILL_RETENTION_HOURS_DEFAULT, PREFILL_SYSTEM, PrefillFile,
   PrefillCheck, PrefillRow, PrefillTabSpec, rawEta, readingPage, smoothEta, TabOutcome, tabPrompt,
 } from '../domain/prefill';
 import { adminCtx } from './profiles.service';
@@ -88,30 +88,41 @@ export class PrefillService implements OnModuleInit {
 
   // ───────────── Dépôt ─────────────
 
-  async upload(actor: Actor, file: { originalname: string; size: number; buffer: Buffer }) {
-    const name = Buffer.from(file.originalname, 'latin1').toString('utf8').normalize('NFC');
+  /**
+   * Dépôt d'un ou de plusieurs fichiers (proposition et annexes, 07/10/2026), lus comme un seul document : pages
+   * numérotées à la suite. Un fichier refusé fait refuser tout le dépôt (`fields.fichier` le désigne).
+   */
+  async upload(actor: Actor, uploaded: Array<{ originalname: string; size: number; buffer: Buffer }>) {
     const ctx = adminCtx(actor);
-    let read;
-    try {
-      read = await readProposal(file.buffer, name);
-    } catch (e) {
-      if (!(e instanceof PrefillRefusal)) throw e;
-      await this.audit.action(this.prisma, ctx, { action: 'Préremplissage : proposition refusée', target: name, severity: 'INFO', entityType: 'PREFILL', details: { nom: name, taille: file.size, statut: e.code } });
-      throw new ApiError(422, e.code, e.message);
+    if (!uploaded.length) throw new ApiError(422, 'FORMAT', PREFILL_FORMAT_MESSAGE);
+    if (uploaded.length > PREFILL_MAX_FILES) throw new ApiError(422, 'FORMAT', `${PREFILL_MAX_FILES} fichiers au plus par dépôt.`);
+    const read: Array<{ nom: string; taille: number; buffer: Buffer; format: string; pages: string[] }> = [];
+    for (const file of uploaded) {
+      const nom = Buffer.from(file.originalname, 'latin1').toString('utf8').normalize('NFC');
+      try {
+        const r = await readProposal(file.buffer, nom);
+        read.push({ nom, taille: file.size, buffer: file.buffer, format: r.format, pages: r.pages });
+      } catch (e) {
+        if (!(e instanceof PrefillRefusal)) throw e;
+        await this.audit.action(this.prisma, ctx, { action: 'Préremplissage : proposition refusée', target: nom, severity: 'INFO', entityType: 'PREFILL', details: { nom, taille: file.size, fichiers: uploaded.length, statut: e.code } });
+        throw new ApiError(422, e.code, uploaded.length > 1 ? `« ${nom} » : ${e.message}` : e.message, { fichier: nom });
+      }
     }
     const id = newId('prop');
-    const ext = path.extname(name).toLowerCase();
-    const fileKey = await this.storage.put('prefill', file.buffer, ext);
-    const textKey = await this.storage.put('prefill', Buffer.from(JSON.stringify(read.pages), 'utf8'), '.json');
-    await this.prisma.prefillDocument.create({ data: { id, name, sizeBytes: file.size, pages: read.pages.length, format: read.format, fileKey, textKey, accountId: actor.accountId, expiresAt: new Date(Date.now() + prefillRetentionMs()) } });
-    await this.audit.action(this.prisma, ctx, { action: 'Préremplissage : proposition déposée', target: name, severity: 'INFO', entityType: 'PREFILL', entityId: id, details: { nom: name, taille: file.size, pages: read.pages.length, format: read.format } });
-    return { id, nom: name, taille: file.size, pages: read.pages.length };
+    const files: PrefillFile[] = [];
+    for (const f of read) files.push({ nom: f.nom, taille: f.taille, pages: f.pages.length, format: f.format, cle: await this.storage.put('prefill', f.buffer, path.extname(f.nom).toLowerCase()) });
+    const pages = read.flatMap((f) => f.pages);
+    const name = read[0].nom, size = read.reduce((n, f) => n + f.taille, 0);
+    const textKey = await this.storage.put('prefill', Buffer.from(JSON.stringify(pages), 'utf8'), '.json');
+    await this.prisma.prefillDocument.create({ data: { id, name, sizeBytes: size, pages: pages.length, format: [...new Set(read.map((f) => f.format))].join('+'), fileKey: files[0].cle, textKey, files: files as any, accountId: actor.accountId, expiresAt: new Date(Date.now() + prefillRetentionMs()) } });
+    await this.audit.action(this.prisma, ctx, { action: 'Préremplissage : proposition déposée', target: name, severity: 'INFO', entityType: 'PREFILL', entityId: id, details: { nom: name, taille: size, pages: pages.length, fichiers: files.map((f) => ({ nom: f.nom, taille: f.taille, pages: f.pages, format: f.format })) } });
+    return { id, nom: name, taille: size, pages: pages.length, fichiers: files.map((f) => ({ nom: f.nom, taille: f.taille, pages: f.pages })) };
   }
 
   /** Exemple ORION fourni avec l'application, déposé comme une proposition ordinaire. */
   async example(actor: Actor) {
     const buffer = await fs.readFile(PREFILL_EXAMPLE);
-    return this.upload(actor, { originalname: Buffer.from(path.basename(PREFILL_EXAMPLE), 'utf8').toString('latin1'), size: buffer.length, buffer });
+    return this.upload(actor, [{ originalname: Buffer.from(path.basename(PREFILL_EXAMPLE), 'utf8').toString('latin1'), size: buffer.length, buffer }]);
   }
 
   // ───────────── Analyse ─────────────
@@ -191,7 +202,8 @@ export class PrefillService implements OnModuleInit {
     const doc = task.document;
     const specs = await this.specs();
     const pages: string[] = JSON.parse((await this.storage.get(doc.textKey!))!.toString('utf8'));
-    const system = `${PREFILL_SYSTEM}\n\n${documentContext(pages, doc.name)}`;
+    const docFiles = (doc.files as unknown as PrefillFile[]) ?? [];
+    const system = `${PREFILL_SYSTEM}\n\n${documentContext(pages, doc.name, docFiles)}`;
     const saved = ((task.tabs as unknown as SavedTab[]) ?? []).slice(0, from);
     let known = emptyKnown();
     saved.forEach((t, i) => { known = knownAfter(specs[i], t.rows, known); });
@@ -237,7 +249,7 @@ export class PrefillService implements OnModuleInit {
       this.emit(taskId, { type: 'onglet_termine', ongletIndex, attendus, trouves, aVerifier, statut });
     }
     // Excel généré, puis fichier et texte supprimés : seul le résultat reste, jusqu'à l'échéance.
-    const excel = await writePrefillWorkbook(await this.template(), specs, saved);
+    const excel = await writePrefillWorkbook(await this.template(), specs, saved, docFiles);
     const excelKey = await this.storage.put('prefill', excel, '.xlsx');
     const resultat = prefillResult(saved);
     await this.prisma.prefillTask.update({ where: { id: taskId }, data: { status: 'DONE', result: resultat, excelKey, durationMs, finishedAt: new Date(), tabIndex: specs.length } });
@@ -247,12 +259,13 @@ export class PrefillService implements OnModuleInit {
     await this.audit.action(this.prisma, adminCtx(actor), { action: 'Préremplissage : analyse terminée', target: doc.name, severity: 'INFO', entityType: 'PREFILL', entityId: taskId, details: { nom: doc.name, taille: doc.sizeBytes, pages: doc.pages, duree: dureeSecondes, statut: resultat } });
   }
 
-  /** Fichier et texte extrait supprimés (la ligne garde les métadonnées). */
+  /** Fichiers et texte extrait supprimés (la ligne garde les métadonnées). */
   private async dropSource(documentId: string) {
     const d = await this.prisma.prefillDocument.findUnique({ where: { id: documentId } });
     if (!d) return;
-    for (const k of [d.fileKey, d.textKey]) if (k) await this.storage.remove(k);
-    await this.prisma.prefillDocument.update({ where: { id: documentId }, data: { fileKey: null, textKey: null } });
+    const files = (d.files as unknown as PrefillFile[]) ?? [];
+    for (const k of new Set([d.fileKey, d.textKey, ...files.map((f) => f.cle)])) if (k) await this.storage.remove(k);
+    await this.prisma.prefillDocument.update({ where: { id: documentId }, data: { fileKey: null, textKey: null, files: files.map((f) => ({ ...f, cle: null })) as any } });
   }
 
   // ───────────── Flux, résultats ─────────────
@@ -271,13 +284,18 @@ export class PrefillService implements OnModuleInit {
     return () => live.listeners.delete(send);
   }
 
-  /** Liste « À vérifier » : une ligne par valeur incertaine ou manquante (onglet non trouvé : une seule ligne). */
+  /**
+   * Liste « À vérifier » : une ligne par valeur incertaine ou manquante (onglet non trouvé : une seule ligne). Dépôt de
+   * plusieurs fichiers : `fichier` et `pageFichier` situent la page (numérotée à la suite) dans son fichier.
+   */
   async checks(taskId: string) {
-    const t = await this.prisma.prefillTask.findUnique({ where: { id: taskId } });
+    const t = await this.prisma.prefillTask.findUnique({ where: { id: taskId }, include: { document: true } });
     if (!t) throw notFound('Analyse introuvable');
-    return ((t.tabs as unknown as SavedTab[]) ?? []).flatMap((s) => s.checks).map((c: PrefillCheck) => ({
-      ongletIndex: c.ongletIndex, onglet: c.onglet, champ: c.champ, valeur: c.valeur, type: c.type, confiance: c.confiance, motif: c.motif, page: c.page,
-    }));
+    const files = (t.document.files as unknown as PrefillFile[]) ?? [];
+    return ((t.tabs as unknown as SavedTab[]) ?? []).flatMap((s) => s.checks).map((c: PrefillCheck) => {
+      const src = files.length > 1 ? pageSource(files, c.page) : null;
+      return { ongletIndex: c.ongletIndex, onglet: c.onglet, champ: c.champ, valeur: c.valeur, type: c.type, confiance: c.confiance, motif: c.motif, page: c.page, ...(src ? { fichier: src.fichier, pageFichier: src.page } : {}) };
+    });
   }
 
   async excel(actor: Actor, taskId: string): Promise<{ buffer: Buffer; fileName: string }> {
@@ -295,7 +313,8 @@ export class PrefillService implements OnModuleInit {
   async purgeExpired(now: Date): Promise<number> {
     const docs = await this.prisma.prefillDocument.findMany({ where: { expiresAt: { lte: now } }, include: { tasks: true } });
     for (const d of docs) {
-      for (const k of [d.fileKey, d.textKey, ...d.tasks.map((t) => t.excelKey)]) if (k) await this.storage.remove(k);
+      const files = (d.files as unknown as PrefillFile[]) ?? [];
+      for (const k of new Set([d.fileKey, d.textKey, ...files.map((f) => f.cle), ...d.tasks.map((t) => t.excelKey)])) if (k) await this.storage.remove(k);
       for (const t of d.tasks) { const l = this.live.get(t.id); if (l) l.cancelled = true; }
       await this.prisma.prefillDocument.delete({ where: { id: d.id } });
     }

@@ -2094,6 +2094,8 @@ model PrefillDocument {
   format    String
   fileKey   String?
   textKey   String?
+  /// Fichiers déposés ensemble (07/10/2026) : nom, taille, pages, format et clé de stockage (supprimée avec le texte)
+  files     Json          @default("[]")
   accountId String?
   createdAt DateTime      @default(now())
   expiresAt DateTime

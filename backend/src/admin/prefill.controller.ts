@@ -1,11 +1,11 @@
-import { Controller, Delete, Get, HttpCode, Param, Post, Req, Res, UploadedFile, UseInterceptors } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { Controller, Delete, Get, HttpCode, Param, Post, Req, Res, UploadedFiles, UseInterceptors } from '@nestjs/common';
+import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { Actor, AdminOnly, CurrentActor } from '../core/auth/auth';
 import { ApiError } from '../core/errors';
 import { PREFILL_FORMAT_MESSAGE } from '../core/prefill-text';
-import { PREFILL_MAX_BYTES } from '../domain/prefill';
+import { PREFILL_MAX_BYTES, PREFILL_MAX_FILES } from '../domain/prefill';
 import { PrefillEvent, PrefillService } from './prefill.service';
 
 /**
@@ -26,15 +26,19 @@ export class PrefillController {
     return this.prefill.tabs();
   }
 
-  /** Dépôt : extension, taille, signature et lisibilité contrôlées ; 422 `FORMAT` ou `LECTURE` sinon. */
+  /**
+   * Dépôt d'un ou de plusieurs fichiers (champ `files`, ou `file`), lus comme un seul document : extension, taille,
+   * signature et lisibilité contrôlées pour chacun ; 422 `FORMAT` ou `LECTURE` sinon (`fields.fichier` : le fichier refusé).
+   */
   @Post('proposals')
   @HttpCode(201)
   @ApiConsumes('multipart/form-data')
-  // Limite de multer au-dessus du plafond : un fichier trop gros reçoit l'erreur FORMAT du contrôle, pas un 413.
-  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: PREFILL_MAX_BYTES + 1024 * 1024 } }))
-  upload(@CurrentActor() actor: Actor, @UploadedFile() file: { originalname: string; size: number; buffer: Buffer } | undefined) {
-    if (!file) throw new ApiError(422, 'FORMAT', PREFILL_FORMAT_MESSAGE);
-    return this.prefill.upload(actor, file);
+  // Limites de multer au-dessus des plafonds : un fichier trop gros ou en trop reçoit l'erreur FORMAT du contrôle.
+  @UseInterceptors(AnyFilesInterceptor({ limits: { fileSize: PREFILL_MAX_BYTES + 1024 * 1024, files: PREFILL_MAX_FILES + 1 } }))
+  upload(@CurrentActor() actor: Actor, @UploadedFiles() files: Array<{ fieldname: string; originalname: string; size: number; buffer: Buffer }> | undefined) {
+    const list = (files ?? []).filter((f) => f.fieldname === 'files' || f.fieldname === 'file');
+    if (!list.length) throw new ApiError(422, 'FORMAT', PREFILL_FORMAT_MESSAGE);
+    return this.prefill.upload(actor, list);
   }
 
   /** Exemple ORION fourni avec l'application. */

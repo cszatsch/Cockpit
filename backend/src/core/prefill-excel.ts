@@ -1,7 +1,7 @@
 import ExcelJS from 'exceljs';
 import JSZip from 'jszip';
 import { columnType, SHEETS } from '../import/excel-reader';
-import { PREFILL_SKIPPED_FIELDS, PrefillCheck, PrefillField, PrefillRow, PrefillTabSpec, RefKind } from '../domain/prefill';
+import { PREFILL_SKIPPED_FIELDS, PrefillCheck, PrefillField, PrefillFile, PrefillRow, PrefillTabSpec, RefKind, sourceLabel } from '../domain/prefill';
 
 /**
  * Préremplissage (07/10/2026) : champs des 14 onglets lus dans le modèle Excel (en-têtes, obligatoires, validations),
@@ -119,17 +119,17 @@ function putCell(xml: string, row: number, col: number, make: (style: string | n
   return xml.includes('<sheetData/>') ? xml.replace('<sheetData/>', `<sheetData>${add}</sheetData>`) : xml.replace('</sheetData>', `${add}</sheetData>`);
 }
 
-const noteOf = (c: PrefillCheck) =>
+const noteOf = (c: PrefillCheck, source: (page: number | null) => string) =>
   c.type === 'incertain'
-    ? `À vérifier : ${c.motif}\nConfiance : ${c.confiance} %\nSource : ${c.page ? `page ${c.page}` : 'non indiquée'}`
+    ? `À vérifier : ${c.motif}\nConfiance : ${c.confiance} %\nSource : ${source(c.page)}`
     : `Manquant : ${c.motif}\nConfiance : —\nSource : —`;
 
 const NS_R = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
 const REL_COMMENTS = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/comments';
 const REL_VML = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/vmlDrawing';
 
-function commentsXml(checks: PrefillCheck[]): string {
-  const list = checks.map((c) => `<comment ref="${colName(c.cell.col)}${c.cell.row}" authorId="0"><text><r><rPr><sz val="9"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">${esc(noteOf(c))}</t></r></text></comment>`).join('');
+function commentsXml(checks: PrefillCheck[], source: (page: number | null) => string): string {
+  const list = checks.map((c) => `<comment ref="${colName(c.cell.col)}${c.cell.row}" authorId="0"><text><r><rPr><sz val="9"/><rFont val="Tahoma"/><family val="2"/></rPr><t xml:space="preserve">${esc(noteOf(c, source))}</t></r></text></comment>`).join('');
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<comments xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><authors><author>Cockpit</author></authors><commentList>${list}</commentList></comments>`;
 }
 function vmlXml(checks: PrefillCheck[], k: number): string {
@@ -164,7 +164,8 @@ function highlighter(styles: string) {
 }
 
 /** Excel prérempli : copie du modèle, lignes extraites écrites, cellules à vérifier surlignées et commentées. */
-export async function writePrefillWorkbook(template: Buffer, specs: PrefillTabSpec[], tabs: Array<{ rows: PrefillRow[]; checks: PrefillCheck[] }>): Promise<Buffer> {
+export async function writePrefillWorkbook(template: Buffer, specs: PrefillTabSpec[], tabs: Array<{ rows: PrefillRow[]; checks: PrefillCheck[] }>, files: PrefillFile[] = []): Promise<Buffer> {
+  const source = (page: number | null) => sourceLabel(files, page);
   const zip = await JSZip.loadAsync(template);
   const workbook = await zip.file('xl/workbook.xml')!.async('string');
   const wbRels = await zip.file('xl/_rels/workbook.xml.rels')!.async('string');
@@ -203,7 +204,7 @@ export async function writePrefillWorkbook(template: Buffer, specs: PrefillTabSp
       const relsPath = part.replace(/([^/]+)$/, '_rels/$1.rels');
       const rels = zip.file(relsPath) ? await zip.file(relsPath)!.async('string') : '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"></Relationships>';
       zip.file(relsPath, rels.replace('</Relationships>', `<Relationship Id="rIdPrefillC" Type="${REL_COMMENTS}" Target="../comments${n}.xml"/><Relationship Id="rIdPrefillV" Type="${REL_VML}" Target="../drawings/vmlDrawing${n}.vml"/></Relationships>`));
-      zip.file(`xl/comments${n}.xml`, commentsXml(tab.checks));
+      zip.file(`xl/comments${n}.xml`, commentsXml(tab.checks, source));
       zip.file(`xl/drawings/vmlDrawing${n}.vml`, vmlXml(tab.checks, k));
       types = types.replace('</Types>', `<Override PartName="/xl/comments${n}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.comments+xml"/></Types>`);
       // <legacyDrawing> à sa place dans le schéma : avant legacyDrawingHF, picture, oleObjects, controls, tableParts, extLst.

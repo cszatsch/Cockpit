@@ -79,6 +79,49 @@ describe('Initialisation d’un projet — préremplissage par IA', () => {
     await t.db.prefillDocument.deleteMany();
   });
 
+  it('plusieurs fichiers (proposition et annexe) : lus comme un seul document, source « fichier, page » ; un fichier refusé fait refuser le dépôt', async () => {
+    const send = (files: Array<[Buffer, string]>) => {
+      let r = request(t.app.getHttpServer()).post(`${P}/proposals`).set('Authorization', `Bearer ${tok}`);
+      for (const [b, n] of files) r = r.attach('files', b, n);
+      return r;
+    };
+    const main = makeTextPdf(ORION_PAGES.slice(0, 4)), annexe = makeTextPdf(ORION_PAGES.slice(4));
+    // Un fichier refusé (format, lecture) : tout le dépôt est refusé, le fichier en cause est nommé.
+    const bad = await send([[main, 'Proposition.pdf'], [Buffer.from('x'), 'Budget.numbers']]).expect(422);
+    expect(bad.body).toMatchObject({ code: 'FORMAT', fields: { fichier: 'Budget.numbers' }, message: expect.stringMatching(/^« Budget\.numbers » :/) });
+    const scan = await send([[main, 'Proposition.pdf'], [makeTextPdf(ORION_PAGES, { scanned: true }), 'Annexe scannée.pdf']]).expect(422);
+    expect(scan.body).toMatchObject({ code: 'LECTURE', fields: { fichier: 'Annexe scannée.pdf' } });
+    expect((await send(Array.from({ length: 11 }, (_, i) => [main, `p${i}.pdf`] as [Buffer, string])).expect(422)).body.code).toBe('FORMAT');
+    expect(await t.db.prefillDocument.count()).toBe(0);
+
+    const up = await send([[main, 'Proposition.pdf'], [annexe, 'Annexe planning.pdf']]).expect(201);
+    expect(up.body).toMatchObject({ nom: 'Proposition.pdf', pages: ORION_PAGES.length, fichiers: [{ nom: 'Proposition.pdf', pages: 4 }, { nom: 'Annexe planning.pdf', pages: ORION_PAGES.length - 4 }] });
+    expect(up.body.taille).toBe(main.length + annexe.length);
+    const bodies: string[] = [];
+    const client = t.app.get(LlmClient), fetch0 = client.fetchImpl;
+    client.fetchImpl = (async (u: string, init: any) => { bodies.push(init.body); return fetch0(u, init); }) as any;
+    const a = await request(t.app.getHttpServer()).post(`${P}/proposals/${up.body.id}/analysis`).set('Authorization', `Bearer ${tok}`).expect(202);
+    const events = await stream(a.body.tacheId);
+    client.fetchImpl = fetch0;
+    expect(events[events.length - 1].type).toBe('termine');
+    // Le modèle reçoit les deux fichiers, pages numérotées à la suite avec leur fichier d'origine.
+    expect(bodies[0]).toContain('DOCUMENTS : 2 fichiers lus comme un seul document (Proposition.pdf ; Annexe planning.pdf)');
+    expect(bodies[0]).toContain('=== PAGE 5 (Annexe planning.pdf, page 1) ===');
+    const checks = (await request(t.app.getHttpServer()).get(`${P}/tasks/${a.body.tacheId}/checks`).set('Authorization', `Bearer ${tok}`).expect(200)).body;
+    expect(checks.find((c: any) => c.champ === 'Fonction · Luc Nguyen')).toMatchObject({ page: 4, fichier: 'Proposition.pdf', pageFichier: 4 });
+    expect(checks.find((c: any) => c.champ.startsWith('Date prévue'))).toMatchObject({ page: 7, fichier: 'Annexe planning.pdf', pageFichier: 3 });
+    const task = await t.db.prefillTask.findUniqueOrThrow({ where: { id: a.body.tacheId } });
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load((await t.app.get(StorageService).get(task.excelKey!))!);
+    const ws = wb.getWorksheet('13 Jalons')!;
+    const note = [...Array(10).keys()].map((i) => ws.getCell(`I${9 + i}`).note as any).find(Boolean);
+    expect(typeof note === 'string' ? note : note.texts.map((x: any) => x.text).join('')).toContain('Source : Annexe planning.pdf, page 3');
+    // Les deux fichiers et le texte sont supprimés dès l'Excel généré.
+    const d = await t.db.prefillDocument.findUniqueOrThrow({ where: { id: up.body.id } });
+    expect((d.files as any[]).every((f) => f.cle === null) && d.textKey === null).toBe(true);
+    await t.db.prefillDocument.deleteMany();
+  });
+
   it('critère 2 : .numbers ou .xlsx → erreur FORMAT, sans analyse', async () => {
     const before = await t.db.usageRecord.count({ where: { functionId: 'init_projet' } });
     for (const name of ['Budget ORION.numbers', 'Budget ORION.xlsx']) {

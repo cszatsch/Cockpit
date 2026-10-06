@@ -1603,3 +1603,16 @@ Demande du commanditaire : intégrer la maquette validée « Initialisation proj
 | Excel prérempli | Écrit dans le XML du modèle (et non réécrit par ExcelJS, dont la sortie n'est pas relue par Microsoft Excel) : seules les cellules de saisie changent ; cellule à vérifier : fond ambre #FFE3AD et commentaire « motif / confiance / source » ; vérifié dans Microsoft Excel (aucune réparation, aucune formule en erreur) | `writePrefillWorkbook`, `PREFILL_HIGHLIGHT` |
 | Confidentialité | Fichier et texte supprimés dès l'Excel généré ou à l'annulation ; résultat et Excel purgés à l'échéance (`PREFILL_RETENTION_HOURS`, 24 h par défaut, tâche `prefill.purge` toutes les heures) ; journal : nom, taille, pages, durée, statut seulement | `PrefillService.purgeExpired`, `prefillRetentionMs` |
 | Exemple ORION | Proposition fictive livrée avec l'application (« Essayer avec l'exemple ORION »), analysée comme un dépôt réel | `assets/prefill/`, `scripts/prefill-exemple.ts` |
+
+### Préremplissage : plusieurs fichiers par dépôt (07/10/2026)
+
+Demande du commanditaire : « Choisir un fichier » doit permettre de déposer plusieurs fichiers.
+
+| Sujet | Choix | Code |
+|---|---|---|
+| Sens | Les fichiers choisis ensemble (proposition et annexes) forment un seul dépôt, analysé comme un seul document : un seul fichier d'initialisation prérempli | `PrefillService.upload` |
+| Limites | 10 fichiers au plus par dépôt, 25 Mo au plus par fichier (le libellé « 25 Mo max » de la maquette vaut par fichier) | `PREFILL_MAX_FILES`, `PREFILL_MAX_BYTES` |
+| Refus | Un fichier refusé (format ou lecture) fait refuser tout le dépôt ; l'erreur nomme ce fichier (`fields.fichier`), l'écran l'affiche dans l'état d'erreur | `PrefillController` |
+| Pages et sources | Pages numérotées à la suite d'un fichier à l'autre ; chaque repère donné au modèle rappelle le fichier et sa page ; la liste « À vérifier » ajoute `fichier` et `pageFichier`, le commentaire de l'Excel indique « Source : Annexe.pdf, page 2 » | `pageSource`, `sourceLabel`, `documentContext` |
+| Confidentialité | Tous les fichiers du dépôt et leur texte sont supprimés dès l'Excel généré, comme pour un fichier seul | `dropSource` |
+| Écran | Sélection multiple dans « Choisir un fichier » et dépôt de plusieurs fichiers par glisser-déposer ; ligne du fichier : « Proposition.pdf + 2 fichiers », taille et pages du dépôt entier | `Initialisation projet.dc.html` (`take`, `label`) |

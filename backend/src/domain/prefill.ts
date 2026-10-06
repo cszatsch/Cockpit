@@ -9,8 +9,30 @@ import { normKey } from './labels';
 
 /** Seuil « incertain » : une valeur extraite avec une confiance inférieure (en %) est à vérifier. */
 export const PREFILL_UNCERTAIN_BELOW = 70;
-/** Taille maximale de la proposition déposée. */
+/** Taille maximale de chaque fichier déposé. */
 export const PREFILL_MAX_BYTES = 25 * 1024 * 1024;
+/** Fichiers déposés ensemble au plus (proposition et annexes, analysés comme un seul document). */
+export const PREFILL_MAX_FILES = 10;
+
+/** Fichier d'un dépôt (métadonnées seulement) : pages numérotées à la suite, d'un fichier à l'autre. */
+export interface PrefillFile { nom: string; taille: number; pages: number; format: string; cle?: string | null }
+
+/** Fichier et page dans ce fichier d'une page du dépôt (numérotation continue), ou null hors du dépôt. */
+export function pageSource(files: PrefillFile[], page: number | null): { fichier: string; page: number } | null {
+  if (!page || page < 1) return null;
+  let first = 1;
+  for (const f of files) {
+    if (page < first + f.pages) return { fichier: f.nom, page: page - first + 1 };
+    first += f.pages;
+  }
+  return null;
+}
+/** Source lisible d'une valeur : « page 9 » (un seul fichier) ou « Annexe.pdf, page 2 » (dépôt de plusieurs fichiers). */
+export function sourceLabel(files: PrefillFile[], page: number | null): string {
+  if (!page) return 'non indiquée';
+  const s = files.length > 1 ? pageSource(files, page) : null;
+  return s ? `${s.fichier}, page ${s.page}` : `page ${page}`;
+}
 /** Extensions acceptées (le type réel est contrôlé par la signature du fichier). */
 export const PREFILL_EXTENSIONS = ['pdf', 'docx', 'pptx'] as const;
 /** Durée de conservation par défaut du document, de son texte et du résultat (variable `PREFILL_RETENTION_HOURS`). */
@@ -344,11 +366,18 @@ export function readingPage(tabIndex: number, fraction: number, pages: number, t
 
 // ───────────── échanges avec le modèle d'IA ─────────────
 
-/** Texte du document avec ses repères de page, envoyé une fois (partie mise en cache) pour les 14 onglets. */
-export function documentContext(pages: string[], name: string): string {
-  let out = `DOCUMENT : ${name} (${pages.length} page${pages.length > 1 ? 's' : ''})\n`;
+/**
+ * Texte du dépôt avec ses repères de page, envoyé une fois (partie mise en cache) pour les 14 onglets. Plusieurs
+ * fichiers : pages numérotées à la suite, chaque repère rappelle le fichier et sa page.
+ */
+export function documentContext(pages: string[], name: string, files: PrefillFile[] = []): string {
+  const multi = files.length > 1;
+  let out = multi
+    ? `DOCUMENTS : ${files.length} fichiers lus comme un seul document (${files.map((f) => f.nom).join(' ; ')}), ${pages.length} pages numérotées à la suite\n`
+    : `DOCUMENT : ${name} (${pages.length} page${pages.length > 1 ? 's' : ''})\n`;
   for (let i = 0; i < pages.length; i++) {
-    const block = `\n=== PAGE ${i + 1} ===\n${pages[i].trim()}\n`;
+    const src = multi ? pageSource(files, i + 1) : null;
+    const block = `\n=== PAGE ${i + 1}${src ? ` (${src.fichier}, page ${src.page})` : ''} ===\n${pages[i].trim()}\n`;
     if (out.length + block.length > PREFILL_TEXT_MAX_CHARS) { out += `\n[… texte coupé après la page ${i}]\n`; break; }
     out += block;
   }

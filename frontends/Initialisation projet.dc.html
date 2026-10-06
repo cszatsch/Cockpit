@@ -53,7 +53,7 @@ button:focus-visible{outline:2px solid #3dd6c6;outline-offset:2px}
       <div style="position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:44px 44px;-webkit-mask-image:linear-gradient(100deg,transparent 35%,#000 90%);mask-image:linear-gradient(100deg,transparent 35%,#000 90%)"></div>
       <div style="{{ glowSt }}"></div>
       <div style="{{ dashSt }}"></div>
-      <input type="file" ref="{{ fileRef }}" onChange="{{ onFile }}" accept=".pdf,.docx,.pptx" style="display:none">
+      <input type="file" ref="{{ fileRef }}" onChange="{{ onFile }}" accept=".pdf,.docx,.pptx" multiple="{{ multi }}" style="display:none">
 
       <div style="position:relative;padding:40px 40px 28px;display:flex;flex-wrap:wrap;align-items:flex-end;gap:24px 40px">
         <div style="flex:1 1 520px;min-width:0;display:flex;flex-direction:column;gap:12px">
@@ -201,7 +201,9 @@ const mo=b=>(b/1048576).toFixed(1).replace('.',',')+' Mo';
 const TOTAL=TABS.reduce((a,t)=>a+t[2],0);
 const MISSTOT=Object.values(MISS).reduce((a,b)=>a+b,0);
 /** Formats et taille acceptés (contrôlés aussi, et d'abord, par le serveur). */
-const EXTS=['pdf','docx','pptx'],MAX_BYTES=25*1048576;
+const EXTS=['pdf','docx','pptx'],MAX_BYTES=25*1048576,MAX_FILES=10;
+/** Fichier affiché : le premier, suivi du nombre d'autres fichiers déposés avec lui (proposition et annexes). */
+const label=f=>f.count>1?`${f.name} + ${f.count-1} fichier${f.count>2?'s':''}`:f.name;
 const STATUT={rempli:'done',a_verifier:'rev',non_trouve:'nf'};
 
 class Component extends DCLogic {
@@ -238,28 +240,34 @@ class Component extends DCLogic {
     if(this.api)return this.upload(file);
     this.setState({phase:'upload',up:0,idx:0,file,filter:'all',tab:null},()=>this.run());
   }
-  take(f){
-    const ext=(f.name.split('.').pop()||'').toLowerCase();
-    if(!EXTS.includes(ext)||(this.api&&f.size>MAX_BYTES)){this.stop();this.setState({phase:'err-format',file:{name:f.name,size:f.size}});return}
-    if(this.api)return this.upload(f);
-    this.start({name:f.name,size:f.size,pages:24});
+  /** Un ou plusieurs fichiers (proposition et annexes, analysés ensemble) ; le premier fichier refusé est signalé. */
+  take(fs){
+    const list=Array.isArray(fs)?fs:[fs];
+    if(this.api&&list.length>MAX_FILES){this.say(`${MAX_FILES} fichiers au plus par dépôt`);return}
+    const bad=list.find(f=>!EXTS.includes((f.name.split('.').pop()||'').toLowerCase())||(this.api&&f.size>MAX_BYTES));
+    if(bad){this.stop();this.setState({phase:'err-format',file:{name:bad.name,size:bad.size}});return}
+    if(this.api)return this.upload(list);
+    this.start({name:list[0].name,size:list.reduce((a,f)=>a+f.size,0),pages:24,count:list.length});
   }
   say(msg){clearTimeout(this.tt);this.setState({toast:msg});this.tt=setTimeout(()=>this.setState({toast:null}),2600)}
 
   // ───────────── Mode réel (this.api) ─────────────
   /** Dépôt avec progression de l'import, puis analyse ; refus FORMAT / LECTURE du serveur → états d'erreur. */
-  upload(f){
+  upload(list){
     this.close();
-    this.setState({phase:'upload',up:0,idx:0,file:{name:f.name,size:f.size},filter:'all',tab:null,res:[],checks:null,prog:null,taskId:null});
-    const {req,done}=this.api.upload(f,up=>this.setState({up}));
+    const all={name:list[0].name,size:list.reduce((a,f)=>a+f.size,0),count:list.length};
+    this.setState({phase:'upload',up:0,idx:0,file:all,filter:'all',tab:null,res:[],checks:null,prog:null,taskId:null});
+    const {req,done}=this.api.upload(list,up=>this.setState({up}));
     this.xhr=req;
+    // Refus : le fichier en cause (champ `fichier` du serveur), sinon le dépôt entier.
+    const culprit=e=>{const f=e&&e.fichier&&list.find(x=>x.name===e.fichier);return f?{name:f.name,size:f.size}:all};
     done.then(d=>{this.xhr=null;this.analyse(d)},e=>{this.xhr=null;if(e&&e.aborted)return;
-      if(e&&e.code==='FORMAT')this.setState({phase:'err-format',file:{name:f.name,size:f.size}});
-      else if(e&&e.code==='LECTURE')this.setState({phase:'err-read',file:{name:f.name,size:f.size}});
+      if(e&&e.code==='FORMAT')this.setState({phase:'err-format',file:culprit(e)});
+      else if(e&&e.code==='LECTURE')this.setState({phase:'err-read',file:culprit(e)});
       else{this.reset();this.say(e&&e.message||'Import impossible')}});
   }
   analyse(d){
-    this.setState({phase:'analyse',up:100,idx:0,file:{name:d.nom,size:d.taille,pages:d.pages},res:[],prog:null});
+    this.setState({phase:'analyse',up:100,idx:0,file:{name:d.nom,size:d.taille,pages:d.pages,count:(d.fichiers||[]).length||1},res:[],prog:null});
     this.api.analyse(d.id).then(r=>{this.setState({taskId:r.tacheId});this.follow(r.tacheId)},e=>{this.reset();this.say(e.message)});
   }
   /** Flux de l'analyse : onglets terminés rejoués, puis en direct. */
@@ -404,17 +412,19 @@ class Component extends DCLogic {
       stageSt:`position:relative;border-radius:28px;background:#10233a;color:#dfe8ee;overflow:hidden;box-shadow:${hot?'0 0 0 2px #3dd6c6,0 40px 90px -40px rgba(61,214,198,.55)':'0 40px 80px -48px rgba(10,23,39,.9)'};transform:${hot?'scale(1.005)':'none'};transition:box-shadow .3s,transform .3s cubic-bezier(.2,.7,.2,1);animation:rise .5s cubic-bezier(.2,.7,.2,1) both`,
       glowSt:`position:absolute;right:-160px;top:-220px;width:640px;height:640px;border-radius:50%;pointer-events:none;background:radial-gradient(closest-side,${glowC},transparent);transition:background .6s`,
       dashSt:`position:absolute;inset:12px;border-radius:20px;border:1.5px dashed rgba(61,214,198,.55);pointer-events:none;opacity:${hot?1:0};transition:opacity .25s`,
-      hasFile:!!file&&p!=='initial'&&p!=='hover',fileName:file?file.name:'',fileMeta,fileRight,
+      hasFile:!!file&&p!=='initial'&&p!=='hover',fileName:file?label(file):'',fileMeta,fileRight,
       fileIcoSt:`width:30px;height:30px;flex:none;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;background:${isErr?'rgba(255,138,148,.12)':'rgba(255,255,255,.07)'};color:${isErr?'#ff8a94':'#3dd6c6'}`,
       tiles,hasNext:isRes,hasAlt:!live&&!isRes,hasReview:p==='partial',
       progSt:`display:block;height:100%;width:${pct}%;background:#3dd6c6;opacity:${live?1:0};box-shadow:0 0 12px rgba(61,214,198,.8);transition:width .5s cubic-bezier(.2,.7,.2,1),opacity .4s`,
       revCount:list.length===RV.length?String(RV.length):`${list.length} / ${RV.length}`,
       hasTabFilter:s.tab!=null,tabFilterN:s.tab!=null?TB[s.tab][0]:'',tabFilterL:s.tab!=null?TB[s.tab][1]:'',clearTab:()=>this.setState({tab:null}),
       filters,rows,
-      fileRef:this.fileRef,onFile:e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(f)this.take(f)},
+      // Plusieurs fichiers à la fois (proposition et annexes) : attribut lié à une valeur, conservé par le moteur des écrans.
+      multi:true,
+      fileRef:this.fileRef,onFile:e=>{const fs=Array.from((e.target.files)||[]);e.target.value='';if(fs.length)this.take(fs)},
       dOver:e=>{e.preventDefault();const q=this.ph();if(q==='initial'||q.startsWith('err')){this.prev=q;this.setState({phase:'hover'})}},
       dLeave:e=>{if(e.currentTarget.contains(e.relatedTarget))return;if(this.ph()==='hover')this.setState({phase:this.prev||'initial'})},
-      drop:e=>{e.preventDefault();const f=e.dataTransfer&&e.dataTransfer.files[0];if(f&&this.ph()==='hover')this.take(f)},
+      drop:e=>{e.preventDefault();const fs=Array.from((e.dataTransfer&&e.dataTransfer.files)||[]);if(fs.length&&this.ph()==='hover')this.take(fs)},
       goImport:()=>this.props.onImport?this.props.onImport():this.say('Ouverture de l’import du fichier Excel'),
       dlTemplate:blank,
       runExample:()=>real?(this.close(),this.setState({phase:'upload',up:0,file:{name:DOC.name,size:0},res:[],checks:null,prog:null}),this.api.example().then(d=>this.analyse(d),e=>{this.reset();this.say(e.message)})):this.start(DOC),
