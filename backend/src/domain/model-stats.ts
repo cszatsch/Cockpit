@@ -1,13 +1,18 @@
 /**
- * Mesures OpenRouter des modèles d'IA (06/10/2026) : score au τ²-Bench Airline (benchmark qu'OpenRouter fait tourner
- * lui-même : sessions de service client multi-tours avec appels d'outils), coût moyen d'une session de ce benchmark,
- * débit médian (P50) du meilleur fournisseur. Règles pures, testées dans `test/unit/model-stats.spec.ts`.
+ * Mesures OpenRouter des modèles d'IA (06/10/2026, sources désignées par le commanditaire sur openrouter.ai/rankings) :
+ * - score : Intelligence Index d'Artificial Analysis (rubrique « Benchmarks ») ;
+ * - coût par session : coût médian d'une session de 10 à 49 tours dans Hermes Agent (rubrique « Cost per session ») ;
+ * - débit : médiane (P50) en tokens/s du meilleur fournisseur (rubrique « Fastest models »).
+ * Règles pures, testées dans `test/unit/model-stats.spec.ts`.
  */
 
-/** API publique d'OpenRouter. */
+/** API publique d'OpenRouter (liste des modèles, pour la correspondance des identifiants). */
 export const OPENROUTER_API = 'https://openrouter.ai/api/v1';
-/** Benchmark retenu : celui d'OpenRouter qui mesure une session complète (précision et coût par tâche). */
-export const MODEL_STATS_BENCHMARK = 'tau_bench_verified_airline';
+/** Données de la page Rankings d'OpenRouter (sans clé). */
+export const OPENROUTER_RANKINGS_API = 'https://openrouter.ai/api/frontend/v1/rankings';
+/** Coût par session : agent retenu (premier onglet de la rubrique) et tranche de 10 à 49 tours. */
+export const SESSION_HARNESS = 'Hermes Agent';
+export const SESSION_BUCKET = 'core';
 /** Relevé quotidien (heure de Paris du serveur). */
 export const MODEL_STATS_CRON = '30 4 * * *';
 /** Délai d'un appel à OpenRouter. */
@@ -19,7 +24,7 @@ export const OPENROUTER_PREFIX: Record<string, string> = { anthropic: 'anthropic
 /** Forme comparable d'un identifiant ou d'un nom : minuscules, sans séparateurs ni date finale (claude-haiku-4-5-20251001 → claudehaiku45). */
 export const comparable = (s: string) => String(s).toLowerCase().replace(/[-_.]?\d{8}$|-\d{4}-\d{2}-\d{2}$/, '').replace(/[^a-z0-9]/g, '');
 
-export interface OpenRouterModel { id: string; name: string; canonical_slug?: string; links?: { details?: string } }
+export interface OpenRouterModel { id: string; name: string; canonical_slug?: string }
 
 /**
  * Modèle OpenRouter correspondant à un modèle de la plateforme : identifiant saisi, sinon identifiant chez le
@@ -35,13 +40,25 @@ export function matchOpenRouter(list: OpenRouterModel[], m: { providerId: string
   return byId ?? mine.find((x) => comparable(x.name.split(': ').pop() ?? x.name) === comparable(m.name)) ?? null;
 }
 
-/** Débit retenu : médiane (P50) du meilleur fournisseur, en tokens/s ; null sans mesure. */
-export function bestThroughput(endpoints: Array<{ throughput_last_30m?: { p50?: number | null } | number | null }>): number | null {
-  const v = endpoints.map((e) => (typeof e.throughput_last_30m === 'number' ? e.throughput_last_30m : e.throughput_last_30m?.p50 ?? null)).filter((x): x is number => typeof x === 'number' && x > 0);
-  return v.length ? Math.round(Math.max(...v)) : null;
+export interface SessionCostData { harnesses: Array<{ label: string; models: Array<{ model: string; points: Array<{ bucket: string; medianUsd: number }> }> }> }
+export interface BenchmarksData { aaData: { intelligence: Array<{ permaslug: string; score: number }> } }
+export type PerformanceData = Array<{ slug: string; p50_throughput: number | null }>;
+
+/** Coût médian d'une session de 10 à 49 tours dans Hermes Agent, en dollars ; null si non mesuré. */
+export function sessionCostUsd(d: SessionCostData, slug: string): number | null {
+  const h = d.harnesses.find((x) => x.label === SESSION_HARNESS);
+  const p = h?.models.find((x) => x.model === slug)?.points.find((x) => x.bucket === SESSION_BUCKET);
+  return p ? p.medianUsd : null;
 }
 
-/** Score affiché : précision en pourcentage, une décimale. */
-export const benchmarkPct = (accuracy: number) => Math.round(accuracy * 1000) / 10;
+/** Intelligence Index d'Artificial Analysis ; null si non évalué. */
+export const intelligenceIndex = (d: BenchmarksData, slug: string): number | null => d.aaData.intelligence.find((x) => x.permaslug === slug)?.score ?? null;
+
+/** Débit médian du meilleur fournisseur (tokens/s, arrondi) ; null sans mesure. */
+export function throughputOf(d: PerformanceData, slug: string): number | null {
+  const v = d.find((x) => x.slug === slug)?.p50_throughput;
+  return typeof v === 'number' && v > 0 ? Math.round(v) : null;
+}
+
 /** Coût d'une session en euros (publié en dollars), quatre décimales. */
 export const sessionEur = (usd: number, usdPerEur: number) => Math.round((usd / usdPerEur) * 10_000) / 10_000;

@@ -59,7 +59,7 @@ const ModelFields = z.object({
   priceIn: Money,
   priceOut: Money,
   active: z.boolean(),
-  /** Mesures OpenRouter (06/10/2026) : identifiant OpenRouter, score τ²-Bench (%), coût d'une session (€), débit (tokens/s). */
+  /** Mesures OpenRouter (06/10/2026) : identifiant OpenRouter, Intelligence Index, coût d'une session de 10 à 49 tours (€), débit (tokens/s). */
   openrouterId: z.string().trim().max(160).nullable(),
   benchmarkScore: z.number().min(0, '0 à 100').max(100, '0 à 100').nullable(),
   costPerSessionEur: z.number().min(0, 'positif').max(1000).nullable(),
@@ -337,7 +337,7 @@ export class AiController implements OnModuleInit {
     });
   }
 
-  /** Relevé des mesures OpenRouter à la demande (score τ²-Bench, coût d'une session, débit) ; tracé. */
+  /** Relevé des mesures OpenRouter à la demande (Intelligence Index, coût d'une session, débit) ; tracé. */
   @Post('models/stats/refresh')
   @HttpCode(200)
   async refreshStats(@CurrentActor() actor: Actor) {
