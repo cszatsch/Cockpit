@@ -171,7 +171,8 @@ describe('Initialisation d’un projet — préremplissage par IA', () => {
     expect(doc).toMatchObject({ id: expect.any(String), nom: 'Proposition commerciale ORION v3.pdf', taille: expect.any(Number), pages: ORION_PAGES.length });
     const events = await stream(taskId);
     const done = events.filter((e) => e.type === 'onglet_termine');
-    expect(done.map((e) => e.ongletIndex)).toEqual([...Array(14).keys()]);
+    // Onglets d'une même vague en parallèle : ordre d'arrivée libre, chaque onglet une fois.
+    expect(done.map((e) => e.ongletIndex).sort((a, b) => a - b)).toEqual([...Array(14).keys()]);
     expect(events.some((e) => e.type === 'progression' && e.pagesTotal === ORION_PAGES.length)).toBe(true);
     expect(events[events.length - 1]).toMatchObject({ type: 'termine', resultat: 'partiel', dureeSecondes: expect.any(Number) });
     expect(done.find((e) => e.ongletIndex === 10)).toMatchObject({ statut: 'non_trouve', aVerifier: 1, trouves: 0 });
@@ -291,7 +292,7 @@ describe('Initialisation d’un projet — préremplissage par IA', () => {
     const after = await stream(taskId);
     expect(prompts[0]).toContain('ONGLET 07 Lots');
     expect(prompts.some((p) => /ONGLET 0[1-6] /.test(p))).toBe(false);
-    expect(after.filter((e) => e.type === 'onglet_termine').map((e) => e.ongletIndex)).toEqual([...Array(14).keys()]);
+    expect(after.filter((e) => e.type === 'onglet_termine').map((e) => e.ongletIndex).sort((a, b) => a - b)).toEqual([...Array(14).keys()]);
     expect(after[after.length - 1]).toMatchObject({ type: 'termine', resultat: 'partiel' });
   });
 
@@ -307,7 +308,7 @@ describe('Initialisation d’un projet — préremplissage par IA', () => {
     expect(task.status).toBe('CANCELLED');
     expect(task.excelKey).toBeNull();
     expect((await t.db.prefillDocument.findUniqueOrThrow({ where: { id: doc.id } })).textKey).toBeNull();
-    expect(await stream(taskId)).toEqual([...task.tabs as any[]].map((x: any) => expect.objectContaining({ type: 'onglet_termine', ongletIndex: x.ongletIndex })).concat([{ type: 'annule' }]));
+    expect(await stream(taskId)).toEqual([...task.tabs as any[]].filter(Boolean).map((x: any) => expect.objectContaining({ type: 'onglet_termine', ongletIndex: x.ongletIndex })).concat([{ type: 'annule' }]));
     await request(t.app.getHttpServer()).get(`${P}/tasks/${taskId}/excel`).set('Authorization', `Bearer ${tok}`).expect(409);
   });
 

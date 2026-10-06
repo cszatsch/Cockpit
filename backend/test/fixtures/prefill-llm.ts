@@ -84,8 +84,20 @@ export const ORION_EXTRACTION: Record<string, Array<Record<string, C>>> = {
   ],
 };
 
-/** Réponse au format Anthropic pour la consigne d'un onglet (« ONGLET 07 Lots — … »). */
-export function orionAnswer(prompt: string): { lignes: unknown[] } {
+/**
+ * Réponse au format compact (07/10/2026) pour la consigne d'un onglet (« ONGLET 07 Lots — … ») : colonnes une fois,
+ * une liste de valeurs par ligne, page de la ligne, « doutes » pour les seules valeurs incertaines.
+ */
+export function orionAnswer(prompt: string): { colonnes: string[]; lignes: unknown[] } {
   const sheet = /ONGLET (\d\d [^—\n]+?) —/.exec(prompt)?.[1]?.trim() ?? '';
-  return { lignes: ORION_EXTRACTION[sheet] ?? [] };
+  const rows = ORION_EXTRACTION[sheet] ?? [];
+  const colonnes = [...new Set(rows.flatMap((r) => Object.keys(r)))];
+  return {
+    colonnes,
+    lignes: rows.map((r) => {
+      const p = Object.values(r)[0]?.p ?? null;
+      const doutes = Object.fromEntries(Object.entries(r).filter(([, c]) => c.c < 70).map(([k, c]) => [k, c.p !== p ? [c.c, c.m, c.p] : [c.c, c.m]]));
+      return { p, v: colonnes.map((k) => r[k]?.v ?? null), ...(Object.keys(doutes).length ? { doutes } : {}) };
+    }),
+  };
 }

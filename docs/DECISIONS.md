@@ -1640,3 +1640,16 @@ Incident du 07/10/2026 : analyse d'une proposition de 86 pages arrêtée à l'on
 | Lecture | Lignes de maintien d'OpenRouter (« : OPENROUTER PROCESSING ») ignorées avant le JSON | `LlmClient.postTimed` |
 | Nouvel essai | Un onglet est relancé une fois (principal puis secours) avant d'être mis en échec | `PREFILL_TAB_ATTEMPTS` (2) |
 | Écran | Temps restant masqué quand l'onglet en cours dépasse l'estimation, au lieu de rester figé sur « 1 s » | `Initialisation projet.dc.html` (`hasEta`) |
+
+### Préremplissage : format compact et analyse en parallèle (07/10/2026)
+
+Demande du commanditaire : accélérer l'analyse (format de réponse compact et parallélisation recommandés).
+
+| Sujet | Choix | Code |
+|---|---|---|
+| Format compact | Le modèle répond `{"colonnes":[…],"lignes":[{"p":4,"v":[…],"doutes":{"Fonction":[58,"motif",9]}}]}` : colonnes une fois, valeurs en liste, page par ligne, confiance et motif pour les seules valeurs incertaines (page propre si elle diffère) ; une valeur sans doute reçoit une confiance de 90 % ; l'ancien format par cellule reste lu | `expandCompactRow`, `PREFILL_SURE_CONFIDENCE`, `tabPrompt` |
+| Limite | La page est celle de la ligne, sauf pour une valeur incertaine qui donne la sienne | — |
+| Vagues | 7 vagues au lieu de 14 étapes : 01, 02, 06 · 03 · 04, 05, 07 · 08, 11 · 09, 12 · 10 · 13, 14 ; chaque onglet ne vise que des onglets de vagues précédentes (vérifié par un test sur le modèle Excel) ; le premier appel part seul pour remplir le cache du document | `PREFILL_WAVES`, `REF_SOURCE` |
+| Interruption et reprise | Les onglets déjà partis de la vague vont à leur terme et sont conservés ; l'onglet en échec est le premier de la vague ; la reprise ne relance que les onglets manquants ; résultats enregistrés à leur place (14 cases) | `PrefillService.run` |
+| Écran | Tous les onglets en cours sont « lecture… » (`ongletsEnCours` de l'événement `progression`) ; le titre nomme le premier | `Initialisation projet.dc.html` |
+| Temps restant | Temps écoulé par onglet terminé × onglets restants, lissé comme avant | `rawEta`, `smoothEta` |

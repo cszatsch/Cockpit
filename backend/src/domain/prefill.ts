@@ -238,12 +238,40 @@ export function normalizeRows(spec: PrefillTabSpec, raw: unknown, known: KnownKe
   const first = normalizeOnce(spec, raw, known);
   return spec.fields.some((f) => f.kind === 'refs' && f.allowAll) ? normalizeOnce(spec, raw, knownAfter(spec, first, known)) : first;
 }
+/**
+ * Confiance d'une valeur sûre du format compact (non déclarée dans « doutes ») : au-dessus du seuil, sous la confiance
+ * maximale (la valeur reste extraite par un modèle).
+ */
+export const PREFILL_SURE_CONFIDENCE = 90;
+
+/**
+ * Ligne du format compact (`{ p, v: [...], doutes: { colonne: [confiance, motif, page?] } }`, colonnes données une fois)
+ * → cellules `{ v, c, p, m }` par colonne ; une ligne déjà au format par cellule est rendue telle quelle.
+ */
+export function expandCompactRow(row: unknown, columns: string[]): Record<string, unknown> | null {
+  if (!row || typeof row !== 'object') return null;
+  const r = row as Record<string, unknown>;
+  if (!Array.isArray(r.v)) return r;
+  const doubts = new Map(Object.entries((r.doutes && typeof r.doutes === 'object' ? r.doutes : {}) as Record<string, unknown>).map(([k, x]) => [normKey(k), x]));
+  const out: Record<string, unknown> = {};
+  columns.forEach((col, i) => {
+    const v = (r.v as unknown[])[i];
+    if (v === null || v === undefined || v === '') return;
+    const d = doubts.get(normKey(col));
+    const [c, m, p] = Array.isArray(d) ? d : d && typeof d === 'object' ? [(d as any).c ?? (d as any).confiance, (d as any).m ?? (d as any).motif, (d as any).p ?? (d as any).page] : [];
+    out[col] = { v, c: d ? c ?? PREFILL_DEFAULT_CONFIDENCE : PREFILL_SURE_CONFIDENCE, p: p ?? r.p ?? null, m: m ?? null };
+  });
+  return out;
+}
+
 function normalizeOnce(spec: PrefillTabSpec, raw: unknown, known: KnownKeys): PrefillRow[] {
   const list = Array.isArray(raw) ? raw : raw && typeof raw === 'object' ? ((raw as any).lignes ?? (raw as any).rows ?? [raw]) : [];
+  const columns = raw && typeof raw === 'object' && Array.isArray((raw as any).colonnes) ? ((raw as any).colonnes as unknown[]).map(String) : spec.fields.map((f) => f.header);
   const rows: PrefillRow[] = [];
-  for (const r of Array.isArray(list) ? list : []) {
-    if (!r || typeof r !== 'object') continue;
-    const src = r as Record<string, unknown>;
+  for (const r0 of Array.isArray(list) ? list : []) {
+    const r = expandCompactRow(r0, columns);
+    if (!r) continue;
+    const src = r;
     const byKey = new Map(Object.entries(src).map(([k, x]) => [normKey(k), x]));
     const row: PrefillRow = {};
     for (const f of spec.fields) {
@@ -352,11 +380,25 @@ export function smoothEta(prev: number | null, raw: number, dtSec: number): numb
   return Math.round(Math.min(prev, Math.max(floor, blended)));
 }
 
-/** Estimation brute : durée moyenne d'un onglet déjà traité × onglets restants, moins le temps passé sur l'onglet en cours. */
-export function rawEta(tabsDone: number, elapsedDoneSec: number, total: number, curElapsedSec: number, defaultPerTab = 6): number {
-  const per = tabsDone ? elapsedDoneSec / tabsDone : defaultPerTab;
-  return Math.max(0, per * (total - tabsDone) - curElapsedSec);
+/**
+ * Estimation brute (analyse en parallèle) : temps écoulé par onglet terminé dans cette analyse × onglets restants ;
+ * avant le premier onglet, une durée par défaut par onglet, moins le temps déjà écoulé.
+ */
+export function rawEta(tabsDone: number, elapsedSec: number, remaining: number, defaultPerTab = 6): number {
+  return Math.max(0, tabsDone ? (elapsedSec / tabsDone) * remaining : defaultPerTab * remaining - elapsedSec);
 }
+
+/**
+ * Vagues d'analyse (07/10/2026) : les onglets d'une vague partent ensemble, chacun ne visant que des onglets des vagues
+ * précédentes (ou lui-même : dépendances entre chantiers). Index des onglets (0 = 01 Équipes). Vagues dans l'ordre des
+ * onglets : une interruption ne laisse terminés que des onglets qui la précèdent, sauf ceux de sa propre vague.
+ *   1 : 01 Équipes, 02 Rôles, 06 Info projet   (le premier appel part seul : il remplit le cache du document)
+ *   2 : 03 Personnes   3 : 04 Affectations, 05 Projet, 07 Lots   4 : 08 Phases, 11 Instances
+ *   5 : 09 Sous-phases, 12 Membres   6 : 10 Chantiers   7 : 13 Jalons, 14 Livrables
+ */
+export const PREFILL_WAVES: number[][] = [[0, 1, 5], [2], [3, 4, 6], [7, 10], [8, 11], [9], [12, 13]];
+/** Onglet qui produit les clés de chaque liste reliée. */
+export const REF_SOURCE: Record<RefKind, number> = { teams: 0, roles: 1, persons: 2, lots: 6, phases: 7, subphases: 8, workstreams: 9, bodies: 10 };
 
 /** Page lue affichée : position de lecture estimée (onglet en cours et part écoulée de son analyse) sur le document. */
 export function readingPage(tabIndex: number, fraction: number, pages: number, total = 14): number {
@@ -388,9 +430,9 @@ export const PREFILL_SYSTEM = [
   'Tu prépares le fichier d’initialisation d’un projet de transformation à partir de la proposition commerciale jointe.',
   'Règles :',
   '- N’utilise que le document : n’invente aucune personne, date, adresse e-mail ni valeur. Une information absente est omise.',
-  '- Pour chaque valeur, donne la page du document où elle figure (repères « === PAGE n === »).',
-  '- Confiance (0 à 100) : 90 et plus si la valeur est écrite telle quelle ; moins de 70 si tu la déduis, la convertis, la ramènes à une moyenne ou hésites entre deux formulations.',
-  '- Sous 70, donne un motif court (moins de 12 mots) : « Déduit d’un volume en jours. », « Deux intitulés différents dans le document. »…',
+  '- Pour chaque ligne, donne la page du document où elle figure (repères « === PAGE n === ») ; la page principale si ses valeurs sont sur plusieurs pages.',
+  '- Une valeur écrite telle quelle dans le document est sûre : rien à ajouter. Une valeur déduite, convertie, ramenée à une moyenne ou choisie entre deux formulations est incertaine : déclare-la dans « doutes » avec sa confiance (0 à 69) et un motif court (moins de 12 mots), par exemple « Déduit d’un volume en jours. », « Deux intitulés différents dans le document. » ; ajoute sa page si elle diffère de celle de la ligne.',
+  '- Format compact : les colonnes une seule fois, puis chaque ligne en liste de valeurs dans l’ordre des colonnes (null si absente).',
   '- Dates au format JJ/MM/AAAA ; si seul le mois est connu, écris MM/AAAA.',
   '- Réponds uniquement par un objet JSON, sans texte autour.',
 ].join('\n');
@@ -420,9 +462,9 @@ export function tabPrompt(spec: PrefillTabSpec, known: KnownKeys): string {
     }
     return d;
   });
-  const shape = spec.form
-    ? '{"lignes":[{"<champ>":{"v":"valeur","c":95,"p":3,"m":null}}]} — une seule ligne'
-    : '{"lignes":[{"<champ>":{"v":"valeur","c":95,"p":3,"m":null}}, …]} — une ligne par élément, au plus ' + spec.capacity;
+  const cols = JSON.stringify(spec.fields.map((f) => f.header));
+  const shape = `{"colonnes":${cols},"lignes":[{"p":3,"v":[…une valeur par colonne, null si absente…],"doutes":{"<colonne>":[58,"motif court",7]}}]}`
+    + (spec.form ? ' — une seule ligne' : ` — une ligne par élément, au plus ${spec.capacity} ; « doutes » seulement pour les valeurs incertaines`);
   const extra: Record<string, string> = {
     '01 Équipes': 'Sociétés et entités impliquées (client, intégrateur, éditeur, cabinet…).',
     '02 Rôles': 'Rôles du projet (Directeur de programme, Chef de projet, Pilotes métiers…).',

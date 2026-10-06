@@ -1,7 +1,10 @@
+import { readFileSync } from 'fs';
+import { prefillSpecs } from '../../src/core/prefill-excel';
+import { TEMPLATE } from '../fixtures/excel';
 import { assembleJevPrompt, jevSkills, SKILL_TEXT_MAX } from '../../src/domain/jev-prompt';
 import { PREFILL_SKILL, PREFILL_SKILL_TEXT } from '../../src/domain/prefill-skill';
 import {
-  assessTab, prefillSystem, PREFILL_SYSTEM, emptyKnown, knownAfter, normalizeCell, normalizeRows, parseModelJson, parsePrefillDate, PrefillTabSpec, readingPage, smoothEta,
+  assessTab, expandCompactRow, prefillSystem, PREFILL_SURE_CONFIDENCE, PREFILL_SYSTEM, PREFILL_WAVES, rawEta, REF_SOURCE, tabPrompt, emptyKnown, knownAfter, normalizeCell, normalizeRows, parseModelJson, parsePrefillDate, PrefillTabSpec, readingPage, smoothEta,
 } from '../../src/domain/prefill';
 
 /** Préremplissage depuis la proposition commerciale (07/10/2026) : règles pures. */
@@ -125,5 +128,48 @@ describe('Préremplissage — skill « Préremplissage d’un projet »', () => 
     for (const t of ['01 ÉQUIPES', '07 LOTS', '14 LIVRABLES']) expect(PREFILL_SKILL_TEXT).toContain(t);
     expect(PREFILL_SKILL_TEXT).toContain('une équipe correspond à une société qui participe au projet');
     expect(PREFILL_SKILL_TEXT.length).toBeLessThanOrEqual(SKILL_TEXT_MAX);
+  });
+});
+
+describe('Préremplissage — format compact et vagues (07/10/2026)', () => {
+  it('format compact : colonnes une fois, valeurs par ligne, page de la ligne ; « doutes » pour les seules valeurs incertaines', () => {
+    const spec: PrefillTabSpec = { index: 2, n: '03', label: 'Personnes', sheet: '03 Personnes', form: false, capacity: 150, fields: [
+      { header: 'Nom complet', col: 2, required: true, kind: 'text' }, { header: 'Équipe', col: 4, required: true, kind: 'ref', ref: 'teams' }, { header: 'Fonction', col: 5, required: false, kind: 'text' },
+    ] };
+    const known = { ...emptyKnown(), teams: ['AMC Corp'] };
+    const rows = normalizeRows(spec, { colonnes: ['Nom complet', 'Fonction', 'Équipe'], lignes: [
+      { p: 4, v: ['Luc Nguyen', 'Directeur des opérations', 'AMC Corp'], doutes: { Fonction: [58, 'Deux intitulés différents.', 9] } },
+      { p: 5, v: ['Claire Dumont', null, 'amc corp'] },
+    ] }, known);
+    expect(rows[0]).toEqual({
+      'Nom complet': { v: 'Luc Nguyen', c: PREFILL_SURE_CONFIDENCE, p: 4, m: null },
+      Équipe: { v: 'AMC Corp', c: PREFILL_SURE_CONFIDENCE, p: 4, m: null },
+      Fonction: { v: 'Directeur des opérations', c: 58, p: 9, m: 'Deux intitulés différents.' },
+    });
+    expect(rows[1]).toEqual({ 'Nom complet': { v: 'Claire Dumont', c: 90, p: 5, m: null }, Équipe: { v: 'AMC Corp', c: 90, p: 5, m: null } });
+    // Sans « colonnes » : ordre des champs de l'onglet ; ancien format par cellule toujours lu.
+    expect(expandCompactRow({ p: 2, v: ['A', 'B'] }, ['x', 'y'])).toEqual({ x: { v: 'A', c: 90, p: 2, m: null }, y: { v: 'B', c: 90, p: 2, m: null } });
+    expect(expandCompactRow({ Nom: { v: 'A', c: 80 } }, ['Nom'])).toEqual({ Nom: { v: 'A', c: 80 } });
+  });
+
+  it('consigne d’un onglet : colonnes dans l’ordre des champs et format compact', () => {
+    const spec: PrefillTabSpec = { index: 0, n: '01', label: 'Équipes', sheet: '01 Équipes', form: false, capacity: 30, fields: [{ header: 'Nom', col: 2, required: true, kind: 'text' }, { header: 'Description', col: 3, required: false, kind: 'text' }] };
+    expect(tabPrompt(spec, emptyKnown())).toContain('{"colonnes":["Nom","Description"],"lignes":[{"p":3,"v":[');
+  });
+
+  it('vagues : chaque onglet une fois ; un onglet ne vise que des onglets de vagues précédentes (ou lui-même)', async () => {
+    const specs = await prefillSpecs(readFileSync(TEMPLATE));
+    expect(PREFILL_WAVES.flat().sort((a, b) => a - b)).toEqual([...Array(14).keys()]);
+    const waveOf = (i: number) => PREFILL_WAVES.findIndex((w) => w.includes(i));
+    for (const s of specs) for (const f of s.fields) if (f.ref) {
+      const src = REF_SOURCE[f.ref];
+      expect([s.sheet, f.header, src === s.index || waveOf(src) < waveOf(s.index)]).toEqual([s.sheet, f.header, true]);
+    }
+  });
+
+  it('temps restant brut en parallèle : temps par onglet terminé × onglets restants', () => {
+    expect(rawEta(0, 4, 14)).toBe(80);
+    expect(rawEta(4, 20, 10)).toBe(50);
+    expect(rawEta(14, 70, 0)).toBe(0);
   });
 });

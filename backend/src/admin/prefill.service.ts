@@ -12,7 +12,7 @@ import { PREFILL_FORMAT_MESSAGE, PrefillRefusal, readProposal } from '../core/pr
 import { PrismaService } from '../core/prisma.service';
 import { StorageService } from '../core/storage.service';
 import {
-  assessTab, documentContext, emptyKnown, knownAfter, normalizeRows, pageSource, parseModelJson, prefillResult, PREFILL_MAX_FILES, PREFILL_RETENTION_HOURS_DEFAULT, prefillSystem, PrefillFile,
+  assessTab, documentContext, emptyKnown, knownAfter, normalizeRows, pageSource, parseModelJson, prefillResult, PREFILL_MAX_FILES, PREFILL_WAVES, PREFILL_RETENTION_HOURS_DEFAULT, prefillSystem, PrefillFile,
   PrefillCheck, PrefillRow, PrefillTabSpec, rawEta, readingPage, smoothEta, TabOutcome, tabPrompt,
 } from '../domain/prefill';
 import { skillKey } from '../domain/jev-prompt';
@@ -31,7 +31,7 @@ import { adminCtx } from './profiles.service';
  */
 
 export type PrefillEvent =
-  | { type: 'progression'; ongletIndex: number; page: number; pagesTotal: number; champsExtraits: number; resteSecondes: number }
+  | { type: 'progression'; ongletIndex: number; ongletsEnCours: number[]; page: number; pagesTotal: number; champsExtraits: number; resteSecondes: number }
   | { type: 'onglet_termine'; ongletIndex: number; attendus: number; trouves: number; aVerifier: number; statut: TabOutcome['statut'] }
   | { type: 'termine'; resultat: 'complet' | 'partiel'; dureeSecondes: number }
   | { type: 'erreur'; code: 'ANALYSE'; ongletIndex: number; ongletsConserves: number }
@@ -138,7 +138,7 @@ export class PrefillService implements OnModuleInit {
     if (await this.prisma.prefillTask.findFirst({ where: { documentId, status: 'RUNNING' } })) throw conflict('PREFILL_RUNNING', 'Une analyse de cette proposition est déjà en cours.');
     const id = newId('tache');
     await this.prisma.prefillTask.create({ data: { id, documentId, status: 'RUNNING', expiresAt: doc.expiresAt } });
-    this.start(id, 0, actor);
+    this.start(id, actor);
     return { tacheId: id };
   }
 
@@ -149,7 +149,7 @@ export class PrefillService implements OnModuleInit {
     if (t.status !== 'FAILED') throw conflict('PREFILL_NOT_FAILED', 'Seule une analyse interrompue peut être reprise.');
     if (!t.document.textKey) throw new ApiError(410, 'GONE', 'Proposition supprimée : déposez-la de nouveau.');
     await this.prisma.prefillTask.update({ where: { id: taskId }, data: { status: 'RUNNING', error: null } });
-    this.start(taskId, t.tabIndex, actor);
+    this.start(taskId, actor);
     return { tacheId: taskId, ongletIndex: t.tabIndex };
   }
 
@@ -167,16 +167,16 @@ export class PrefillService implements OnModuleInit {
     }
   }
 
-  private start(taskId: string, from: number, actor: Actor) {
+  private start(taskId: string, actor: Actor) {
     this.live.set(taskId, { listeners: this.live.get(taskId)?.listeners ?? new Set(), cancelled: false, eta: null, at: Date.now() });
     // Erreur imprévue (stockage, génération de l'Excel…) : analyse en échec à l'onglet en cours, reprise possible.
     // Seul le type d'erreur est journalisé, jamais le contenu du document.
-    void this.run(taskId, from, actor).catch(async (e) => {
+    void this.run(taskId, actor).catch(async (e) => {
       this.log.error(`Analyse ${taskId} : ${e instanceof Error ? e.name : 'erreur'}`);
       const t = await this.prisma.prefillTask.findUnique({ where: { id: taskId } }).catch(() => null);
       if (!t || t.status !== 'RUNNING') return;
       await this.prisma.prefillTask.update({ where: { id: taskId }, data: { status: 'FAILED', error: 'ANALYSE' } });
-      this.emit(taskId, { type: 'erreur', code: 'ANALYSE', ongletIndex: t.tabIndex, ongletsConserves: t.tabIndex }, true);
+      this.emit(taskId, { type: 'erreur', code: 'ANALYSE', ongletIndex: t.tabIndex, ongletsConserves: ((t.tabs as unknown as unknown[]) ?? []).filter(Boolean).length }, true);
     });
   }
 
@@ -215,7 +215,14 @@ export class PrefillService implements OnModuleInit {
     throw lastError;
   }
 
-  private async run(taskId: string, from: number, actor: Actor) {
+  /**
+   * Analyse en vagues (07/10/2026, `PREFILL_WAVES`) : les onglets d'une vague partent ensemble ; le premier appel de
+   * l'analyse part seul (il remplit le cache du document pour les suivants). Résultats enregistrés un par un, à leur
+   * place (tableau de 14, onglets non traités à null) ; une reprise ne relance que les onglets manquants. Interruption :
+   * les onglets de la vague déjà partis vont à leur terme et sont conservés ; l'onglet en échec (le premier, dans
+   * l'ordre) est celui de la reprise.
+   */
+  private async run(taskId: string, actor: Actor) {
     const task = await this.prisma.prefillTask.findUniqueOrThrow({ where: { id: taskId }, include: { document: true } });
     const doc = task.document;
     const specs = await this.specs();
@@ -224,54 +231,76 @@ export class PrefillService implements OnModuleInit {
     // Skill « Préremplissage d’un projet » (Console › Skills) : lue qu'elle soit active ou non ; absente, règles du code seules.
     const skill = (await this.prisma.skill.findMany({ select: { n: true, t: true } })).find((s) => skillKey(s.n) === skillKey(PREFILL_SKILL)) ?? null;
     const system = `${prefillSystem(skill)}\n\n${documentContext(pages, doc.name, docFiles)}`;
-    const saved = ((task.tabs as unknown as SavedTab[]) ?? []).slice(0, from);
-    let known = emptyKnown();
-    saved.forEach((t, i) => { known = knownAfter(specs[i], t.rows, known); });
-    let durationMs = task.durationMs;
+    const saved: Array<SavedTab | null> = specs.map((_, i) => ((task.tabs as unknown as Array<SavedTab | null>) ?? [])[i] ?? null);
     const live = this.live.get(taskId)!;
-    for (let i = from; i < specs.length; i++) {
-      if (live.cancelled) return;
-      await this.prisma.prefillTask.update({ where: { id: taskId }, data: { tabIndex: i } });
-      const t0 = Date.now();
-      const doneMs = saved.reduce((n, s) => n + s.ms, 0), champs = saved.reduce((n, s) => n + s.trouves, 0);
-      const tick = () => {
-        const cur = (Date.now() - t0) / 1000;
-        const raw = rawEta(saved.length, doneMs / 1000, specs.length, cur);
-        const dt = (Date.now() - live.at) / 1000;
-        live.eta = smoothEta(live.eta, raw, dt);
-        live.at = Date.now();
-        const per = saved.length ? doneMs / saved.length : 6000;
-        this.emit(taskId, { type: 'progression', ongletIndex: i, page: readingPage(i, (Date.now() - t0) / per, doc.pages, specs.length), pagesTotal: doc.pages, champsExtraits: champs, resteSecondes: Math.max(1, live.eta) });
-      };
+    const t0 = Date.now(), before = task.durationMs;
+    const running = new Set<number>();
+    let doneHere = 0;
+    const knownNow = () => saved.reduce((k, t, i) => (t ? knownAfter(specs[i], t.rows, k) : k), emptyKnown());
+    // Enregistrements l'un après l'autre : les onglets d'une vague se terminent en même temps.
+    let writes: Promise<unknown> = Promise.resolve();
+    const persist = (data: Record<string, unknown>) => (writes = writes.then(() => this.prisma.prefillTask.update({ where: { id: taskId }, data: data as any })));
+    const tick = () => {
+      if (!running.size) return;
+      const remaining = saved.filter((t) => !t).length;
+      const elapsed = (Date.now() - t0) / 1000;
+      live.eta = smoothEta(live.eta, rawEta(doneHere, elapsed, remaining), (Date.now() - live.at) / 1000);
+      live.at = Date.now();
+      const cur = Math.min(...running);
+      const per = doneHere ? (Date.now() - t0) / doneHere : 6000;
+      this.emit(taskId, { type: 'progression', ongletIndex: cur, ongletsEnCours: [...running].sort((a, b) => a - b), page: readingPage(cur, ((Date.now() - t0) % per) / per, doc.pages, specs.length), pagesTotal: doc.pages, champsExtraits: saved.reduce((n, t) => n + (t ? t.trouves : 0), 0), resteSecondes: Math.max(1, live.eta) });
+    };
+    const timer = setInterval(tick, this.tickMs);
+    const failures: Array<{ index: number; error: unknown }> = [];
+    const runTab = async (i: number) => {
+      running.add(i);
+      await persist({ tabIndex: Math.min(...running) });
       tick();
-      const timer = setInterval(tick, this.tickMs);
-      let rows: PrefillRow[];
+      const s0 = Date.now();
       try {
-        rows = await this.extractTab(specs[i], system, known, live);
-      } catch (e) {
-        clearInterval(timer);
+        const rows = await this.extractTab(specs[i], system, knownNow(), live);
         if (live.cancelled) return;
-        durationMs += Date.now() - t0;
-        await this.prisma.prefillTask.update({ where: { id: taskId }, data: { status: 'FAILED', tabIndex: i, durationMs, error: e instanceof ApiError ? e.code : 'ANALYSE' } });
-        this.emit(taskId, { type: 'erreur', code: 'ANALYSE', ongletIndex: i, ongletsConserves: i }, true);
-        await this.audit.action(this.prisma, adminCtx(actor), { action: 'Préremplissage : analyse interrompue', target: doc.name, severity: 'INFO', entityType: 'PREFILL', entityId: taskId, details: { nom: doc.name, taille: doc.sizeBytes, duree: Math.round(durationMs / 1000), statut: 'erreur', onglet: specs[i].sheet } });
-        return;
+        const outcome = assessTab(specs[i], rows);
+        saved[i] = { ...outcome, rows, ms: Date.now() - s0 };
+        doneHere++;
+        await persist({ tabs: saved as any, durationMs: before + Date.now() - t0 });
+        const { ongletIndex, attendus, trouves, aVerifier, statut } = outcome;
+        this.emit(taskId, { type: 'onglet_termine', ongletIndex, attendus, trouves, aVerifier, statut });
+      } catch (error) {
+        failures.push({ index: i, error });
+      } finally {
+        running.delete(i);
       }
+    };
+    try {
+      let first = true;
+      for (const wave of PREFILL_WAVES) {
+        const todo = wave.filter((i) => !saved[i]);
+        if (!todo.length) continue;
+        if (live.cancelled) return;
+        if (first) { await runTab(todo.shift()!); first = false; }
+        if (!failures.length && todo.length && !live.cancelled) await Promise.all(todo.map(runTab));
+        if (live.cancelled) return;
+        if (failures.length) break;
+      }
+    } finally {
       clearInterval(timer);
-      if (live.cancelled) return;
-      const ms = Date.now() - t0;
-      durationMs += ms;
-      const outcome = assessTab(specs[i], rows);
-      saved.push({ ...outcome, rows, ms });
-      known = knownAfter(specs[i], rows, known);
-      await this.prisma.prefillTask.update({ where: { id: taskId }, data: { tabs: saved as any, durationMs } });
-      const { ongletIndex, attendus, trouves, aVerifier, statut } = outcome;
-      this.emit(taskId, { type: 'onglet_termine', ongletIndex, attendus, trouves, aVerifier, statut });
+      await writes.catch(() => undefined);
+    }
+    const durationMs = before + Date.now() - t0;
+    if (failures.length) {
+      const failed = failures.sort((a, b) => a.index - b.index)[0];
+      const kept = saved.filter(Boolean).length;
+      await this.prisma.prefillTask.update({ where: { id: taskId }, data: { status: 'FAILED', tabIndex: failed.index, durationMs, error: failed.error instanceof ApiError ? failed.error.code : 'ANALYSE' } });
+      this.emit(taskId, { type: 'erreur', code: 'ANALYSE', ongletIndex: failed.index, ongletsConserves: kept }, true);
+      await this.audit.action(this.prisma, adminCtx(actor), { action: 'Préremplissage : analyse interrompue', target: doc.name, severity: 'INFO', entityType: 'PREFILL', entityId: taskId, details: { nom: doc.name, taille: doc.sizeBytes, duree: Math.round(durationMs / 1000), statut: 'erreur', onglet: specs[failed.index].sheet } });
+      return;
     }
     // Excel généré, puis fichier et texte supprimés : seul le résultat reste, jusqu'à l'échéance.
-    const excel = await writePrefillWorkbook(await this.template(), specs, saved, docFiles);
+    const done = saved as SavedTab[];
+    const excel = await writePrefillWorkbook(await this.template(), specs, done, docFiles);
     const excelKey = await this.storage.put('prefill', excel, '.xlsx');
-    const resultat = prefillResult(saved);
+    const resultat = prefillResult(done);
     await this.prisma.prefillTask.update({ where: { id: taskId }, data: { status: 'DONE', result: resultat, excelKey, durationMs, finishedAt: new Date(), tabIndex: specs.length } });
     await this.dropSource(doc.id);
     const dureeSecondes = Math.max(1, Math.round(durationMs / 1000));
@@ -294,12 +323,12 @@ export class PrefillService implements OnModuleInit {
   async subscribe(taskId: string, send: (e: PrefillEvent) => void): Promise<(() => void) | null> {
     const t = await this.prisma.prefillTask.findUnique({ where: { id: taskId }, include: { document: true } });
     if (!t) throw notFound('Analyse introuvable');
-    for (const s of (t.tabs as unknown as SavedTab[]) ?? []) send({ type: 'onglet_termine', ongletIndex: s.ongletIndex, attendus: s.attendus, trouves: s.trouves, aVerifier: s.aVerifier, statut: s.statut });
+    for (const s of ((t.tabs as unknown as Array<SavedTab | null>) ?? []).filter((x): x is SavedTab => !!x)) send({ type: 'onglet_termine', ongletIndex: s.ongletIndex, attendus: s.attendus, trouves: s.trouves, aVerifier: s.aVerifier, statut: s.statut });
     if (t.status === 'DONE') { send({ type: 'termine', resultat: t.result as 'complet' | 'partiel', dureeSecondes: Math.max(1, Math.round(t.durationMs / 1000)) }); return null; }
-    if (t.status === 'FAILED') { send({ type: 'erreur', code: 'ANALYSE', ongletIndex: t.tabIndex, ongletsConserves: t.tabIndex }); return null; }
+    if (t.status === 'FAILED') { send({ type: 'erreur', code: 'ANALYSE', ongletIndex: t.tabIndex, ongletsConserves: ((t.tabs as unknown as unknown[]) ?? []).filter(Boolean).length }); return null; }
     if (t.status === 'CANCELLED') { send({ type: 'annule' }); return null; }
     const live = this.live.get(taskId);
-    if (!live) { send({ type: 'erreur', code: 'ANALYSE', ongletIndex: t.tabIndex, ongletsConserves: t.tabIndex }); return null; }
+    if (!live) { send({ type: 'erreur', code: 'ANALYSE', ongletIndex: t.tabIndex, ongletsConserves: ((t.tabs as unknown as unknown[]) ?? []).filter(Boolean).length }); return null; }
     live.listeners.add(send);
     return () => live.listeners.delete(send);
   }
@@ -312,7 +341,7 @@ export class PrefillService implements OnModuleInit {
     const t = await this.prisma.prefillTask.findUnique({ where: { id: taskId }, include: { document: true } });
     if (!t) throw notFound('Analyse introuvable');
     const files = (t.document.files as unknown as PrefillFile[]) ?? [];
-    return ((t.tabs as unknown as SavedTab[]) ?? []).flatMap((s) => s.checks).map((c: PrefillCheck) => {
+    return ((t.tabs as unknown as Array<SavedTab | null>) ?? []).filter((x): x is SavedTab => !!x).flatMap((s) => s.checks).map((c: PrefillCheck) => {
       const src = files.length > 1 ? pageSource(files, c.page) : null;
       return { ongletIndex: c.ongletIndex, onglet: c.onglet, champ: c.champ, valeur: c.valeur, type: c.type, confiance: c.confiance, motif: c.motif, page: c.page, ...(src ? { fichier: src.fichier, pageFichier: src.page } : {}) };
     });

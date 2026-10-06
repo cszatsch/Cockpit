@@ -227,7 +227,7 @@ class Component extends DCLogic {
     this.setState({phase:p,filter:'all',tab:null,up:0,idx:0,...m[p]});
   }
   /** Retour à l'état initial : flux et import en cours abandonnés. */
-  reset(){this.stop();this.close();this.setState({phase:'initial',file:null,up:0,idx:0,filter:'all',tab:null,res:[],checks:null,prog:null,taskId:null})}
+  reset(){this.stop();this.close();this.setState({phase:'initial',file:null,up:0,idx:0,filter:'all',tab:null,res:[],checks:null,prog:null,taskId:null,running:null})}
   run(from){
     this.stop();this.k=0;
     this.t=setInterval(()=>{
@@ -267,15 +267,16 @@ class Component extends DCLogic {
       else{this.reset();this.say(e&&e.message||'Import impossible')}});
   }
   analyse(d){
-    this.setState({phase:'analyse',up:100,idx:0,file:{name:d.nom,size:d.taille,pages:d.pages,count:(d.fichiers||[]).length||1},res:[],prog:null});
+    this.setState({phase:'analyse',up:100,idx:0,file:{name:d.nom,size:d.taille,pages:d.pages,count:(d.fichiers||[]).length||1},res:[],prog:null,running:[0]});
     this.api.analyse(d.id).then(r=>{this.setState({taskId:r.tacheId});this.follow(r.tacheId)},e=>{this.reset();this.say(e.message)});
   }
   /** Flux de l'analyse : onglets terminés rejoués, puis en direct. */
   follow(taskId){
     if(this.off)this.off();
     this.off=this.api.events(taskId,(type,e)=>{
-      if(type==='progression')this.setState(s=>({idx:e.ongletIndex,prog:{page:e.page,pages:e.pagesTotal,champs:e.champsExtraits,eta:s.prog&&s.prog.eta!=null?Math.min(s.prog.eta,e.resteSecondes):e.resteSecondes}}));
-      else if(type==='onglet_termine')this.setState(s=>{const res=[...s.res];res[e.ongletIndex]=e;return{res,idx:Math.max(s.idx,e.ongletIndex+1)}});
+      // Onglets analysés en parallèle (07/10/2026) : tous ceux en cours sont « lecture… » ; le titre nomme le premier.
+      if(type==='progression')this.setState(s=>({idx:e.ongletIndex,running:e.ongletsEnCours||[e.ongletIndex],prog:{page:e.page,pages:e.pagesTotal,champs:e.champsExtraits,eta:s.prog&&s.prog.eta!=null?Math.min(s.prog.eta,e.resteSecondes):e.resteSecondes}}));
+      else if(type==='onglet_termine')this.setState(s=>{const res=[...s.res];res[e.ongletIndex]=e;return{res,running:(s.running||[]).filter(i=>i!==e.ongletIndex)}});
       else if(type==='termine')this.api.checks(taskId).then(checks=>this.setState({phase:e.resultat==='complet'?'success':'partial',idx:14,checks,dur:e.dureeSecondes,filter:'all',tab:null}),x=>this.say(x.message));
       else if(type==='erreur')this.setState({phase:'err-analyse',failIdx:e.ongletIndex,kept:e.ongletsConserves,idx:e.ongletIndex});
       else if(type==='annule')this.reset();
@@ -289,14 +290,14 @@ class Component extends DCLogic {
   }
   resume(){
     const id=this.state.taskId;
-    this.setState(s=>({phase:'analyse',idx:s.failIdx,prog:null}));
+    this.setState(s=>({phase:'analyse',idx:s.failIdx,prog:null,running:[s.failIdx]}));
     this.api.resume(id).then(()=>this.follow(id),e=>{this.setState({phase:'err-analyse'});this.say(e.message)});
   }
 
   tileKind(i,p,idx){
     if(this.api){
       const r=this.state.res[i],k=r?STATUT[r.statut]:null;
-      if(p==='analyse')return k||(i===idx?'cur':'pend');
+      if(p==='analyse')return k||((this.state.running||[idx]).includes(i)?'cur':'pend');
       if(p==='success'||p==='partial')return k||'done';
       if(p==='err-analyse')return k||(i===this.state.failIdx?'err':'pend');
     }

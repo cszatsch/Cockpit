@@ -683,3 +683,4 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
 - `ProjetInit.dc.html` : onglets renumérotés 01 à 14 (« 06 Info projet », « 07 Lots »…).
 - Complément (07/10/2026) : « Choisir un fichier » et le glisser-déposer acceptent plusieurs fichiers à la fois (proposition et annexes, 10 au plus), envoyés ensemble (`bindPrefill` : champ `files`) ; la ligne du fichier affiche « [premier fichier] + N fichiers ». L'attribut `multiple` est lié à une valeur (`multiple="{{ multi }}"`) : écrit sans valeur, le moteur des écrans le retire.
 - Complément (07/10/2026) : le temps restant est masqué quand l'onglet en cours dure plus que prévu, au lieu de rester figé sur « 1 s ».
+- Complément (07/10/2026) : onglets analysés en parallèle par vagues : toutes les tuiles en cours affichent « lecture… » (champ `ongletsEnCours` de l'événement `progression`).
