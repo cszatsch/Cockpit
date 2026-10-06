@@ -295,7 +295,7 @@ describe('Console Admin — critères d’acceptation (brief Console § 13)', ()
       const c = await t.as(WHO.admin);
       await t.db.budgetThreshold.deleteMany({ where: { id: { in: ['rapports', 'guidage'] } } });
       const list = (await c.get(`${A}/budget-thresholds`).expect(200)).body;
-      expect(list.map((x: any) => x.id)).toEqual(['all', 'insights', 'crud', 'rapports', 'guidage', 'docs']);
+      expect(list.map((x: any) => x.id)).toEqual(['all', 'insights', 'crud', 'rapports', 'guidage', 'init_projet', 'docs']);
       expect(list.find((x: any) => x.id === 'guidage')).toMatchObject({ name: 'Guider l’utilisateur sur la console', limitEur: null, warnPct: 80, enabled: false, status: 'NO_LIMIT', version: 0 });
       const month = (await c.get(`${A}/usage/month`).expect(200)).body;
       expect(month.thresholds.map((x: any) => x.id)).toEqual(list.map((x: any) => x.id));

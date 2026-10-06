@@ -10410,6 +10410,231 @@
           "console · partager cockpit"
         ]
       }
+    },
+    "/api/admin/projects/prefill/tabs": {
+      "get": {
+        "operationId": "PrefillController_tabs",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · initialisation · préremplissage"
+        ]
+      }
+    },
+    "/api/admin/projects/prefill/proposals": {
+      "post": {
+        "operationId": "PrefillController_upload",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · initialisation · préremplissage"
+        ]
+      }
+    },
+    "/api/admin/projects/prefill/proposals/example": {
+      "post": {
+        "operationId": "PrefillController_example",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · initialisation · préremplissage"
+        ]
+      }
+    },
+    "/api/admin/projects/prefill/proposals/{id}/analysis": {
+      "post": {
+        "operationId": "PrefillController_analyse",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · initialisation · préremplissage"
+        ]
+      }
+    },
+    "/api/admin/projects/prefill/tasks/{id}/events": {
+      "get": {
+        "operationId": "PrefillController_events",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · initialisation · préremplissage"
+        ]
+      }
+    },
+    "/api/admin/projects/prefill/tasks/{id}/resume": {
+      "post": {
+        "operationId": "PrefillController_resume",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · initialisation · préremplissage"
+        ]
+      }
+    },
+    "/api/admin/projects/prefill/tasks/{id}": {
+      "delete": {
+        "operationId": "PrefillController_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · initialisation · préremplissage"
+        ]
+      }
+    },
+    "/api/admin/projects/prefill/tasks/{id}/checks": {
+      "get": {
+        "operationId": "PrefillController_checks",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · initialisation · préremplissage"
+        ]
+      }
+    },
+    "/api/admin/projects/prefill/tasks/{id}/excel": {
+      "get": {
+        "operationId": "PrefillController_excel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · initialisation · préremplissage"
+        ]
+      }
     }
   },
   "info": {

@@ -2083,3 +2083,45 @@ model SharePackage {
   @@index([createdAt])
   @@map("share_packages")
 }
+
+/// Préremplissage du fichier d'initialisation (07/10/2026) : proposition commerciale déposée. Le fichier et son texte
+/// (stockage) sont supprimés dès l'Excel généré ; la ligne, sans contenu, à l'échéance (`PREFILL_RETENTION_HOURS`).
+model PrefillDocument {
+  id        String        @id
+  name      String
+  sizeBytes Int
+  pages     Int
+  format    String
+  fileKey   String?
+  textKey   String?
+  accountId String?
+  createdAt DateTime      @default(now())
+  expiresAt DateTime
+  tasks     PrefillTask[]
+
+  @@index([expiresAt])
+  @@map("prefill_documents")
+}
+
+/// Analyse d'une proposition : un onglet après l'autre ; résultat de chaque onglet (lignes extraites, décompte) gardé
+/// pour la reprise, la liste « À vérifier » et l'Excel, jusqu'à l'échéance.
+model PrefillTask {
+  id         String          @id
+  documentId String
+  document   PrefillDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  /// RUNNING | DONE | FAILED | CANCELLED
+  status     String
+  /// Onglet en cours, ou en échec (reprise)
+  tabIndex   Int             @default(0)
+  tabs       Json            @default("[]")
+  result     String?
+  error      String?
+  excelKey   String?
+  durationMs Int             @default(0)
+  startedAt  DateTime        @default(now())
+  finishedAt DateTime?
+  expiresAt  DateTime
+
+  @@index([documentId])
+  @@map("prefill_tasks")
+}

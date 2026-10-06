@@ -17,7 +17,7 @@ describe('Initialisation d’un projet : contrôles de l’écran et avancement'
     const s = toScreen(null, [
       { level: 'ERROR', sheet: '03 Personnes', row: null, column: null, message: 'Onglet « 03 Personnes » manquant', source: 'SERVER' },
       { level: 'ERROR', sheet: '05 Projet', row: null, column: 'D', message: 'Le code RISE existe déjà', source: 'SERVER' },
-      { level: 'WARNING', sheet: '12 Jalons', row: 14, column: null, message: 'Contrôle du fichier : ◔ à vérifier', source: 'FILE' },
+      { level: 'WARNING', sheet: '13 Jalons', row: 14, column: null, message: 'Contrôle du fichier : ◔ à vérifier', source: 'FILE' },
     ] as any);
     expect(s).toEqual({ project: [], sheets: {}, missing: ['03 Personnes'], issues: [{ lvl: 'warn', sheet: 'Jalons', row: 14, msg: 'Contrôle du fichier : ◔ à vérifier' }] });
   });

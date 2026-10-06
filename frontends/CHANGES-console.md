@@ -674,3 +674,10 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
 ## Initialisation d'un projet : Info projet et rattachements des chantiers (06/10/2026)
 
 - `ProjetInit.dc.html` : 14 onglets lus (« 05b Info projet » ajouté) ; nombre d'onglets calculé ; ancien modèle de fichier signalé dans « Structure du fichier » ; onglet d'aperçu « Info projet » et colonnes Phases, Sous-phases, Dépendances des chantiers (données de démonstration comprises).
+
+## Initialisation d'un projet : préremplissage par IA (07/10/2026)
+
+- `Initialisation projet.dc.html` (nouveau) : maquette validée « Initialisation projet v2 » reprise telle quelle (9 états), simulation conservée sans serveur ; dans la Console, `admin-api.js` (`bindPrefill`) la relie à l'API : dépôt avec progression, analyse suivie par flux SSE, reprise, annulation, liste « À vérifier », Excel prérempli, modèle vierge. Écarts listés dans `docs/NOTE - ecarts maquette Initialisation projet v2.md`.
+- `Console Admin.dc.html` : la page « Initialisation d'un projet » s'ouvre sur l'étape « Préremplir » (nouvel écran, en-tête de la Console masqué au profit de celui de la maquette) ; « Importer l'Excel » / « Importer le fichier vérifié » mènent à l'écran d'import existant (`ProjetInit`).
+- `Fournisseurs et modeles.dc.html` : nouvelle fonction « Initialisation projet » dans la section Affectation (modèle principal, modèle de secours, coût mensuel estimé), comme les autres fonctions.
+- `ProjetInit.dc.html` : onglets renumérotés 01 à 14 (« 06 Info projet », « 07 Lots »…).

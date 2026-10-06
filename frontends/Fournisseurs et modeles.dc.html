@@ -380,7 +380,7 @@ input::placeholder{color:#a6b4bd}
 // (admin-api.js) ; chaque action appelle l'API puis la Console recharge `data`. Sans `data` (écran ouvert seul, Console en
 // ?demo=1) : démonstration de la maquette, simulée localement (init(), coefficients K).
 // Identifiants des fonctions : ceux de la maquette (insights, data, rapports, guidage, vec, rerank, synth) ↔ serveur (FID).
-const FID = { insights: 'insights', data: 'crud', rapports: 'rapports', guidage: 'guidage', vec: 'doc_vec', rerank: 'doc_rrk', synth: 'doc_syn' };
+const FID = { insights: 'insights', data: 'crud', rapports: 'rapports', guidage: 'guidage', init: 'init_projet', vec: 'doc_vec', rerank: 'doc_rrk', synth: 'doc_syn' };
 const CAT = { LLM: 'LLM', EMBEDDING: 'Embedding', RERANKING: 'Reranking' }, CATU = { LLM: 'LLM', Embedding: 'EMBEDDING', Reranking: 'RERANKING' };
 // Couleurs des monogrammes : celles de la maquette pour les fournisseurs connus, sinon une couleur de la palette.
 const PCOL = { anthropic: ['#c4693f', '#f0a07f'], openai: ['#10233a', '#d5e2ea'], mistral: ['#d9761c', '#ffb066'], google: ['#3a6fd8', '#8fb1ff'], openrouter: ['#6152cc', '#b3a8ff'], cohere: ['#2f8f6a', '#7fe0b8'] };
@@ -422,7 +422,7 @@ class Component extends DCLogic {
       md('voyage', 'Voyage rerank-2.5', 'Reranking', 'openrouter', .04, null, '2025-09-01', 'voyage/rerank-2.5', null, 'Reranker de qualité (VoyageAI by MongoDB) : environ 7,9 % de mieux…'),
       md('voyagelite', 'Voyage rerank-2.5-lite', 'Reranking', 'openrouter', .02, null, '2025-09-01', 'voyage/rerank-2.5-lite', null, 'Version rapide et économique de rerank-2.5 (VoyageAI by MongoDB).')
     ];
-    const assign = { insights: { p: 'sonnet', s: 'flash' }, data: { p: 'luna', s: 'flashlite' }, rapports: { p: 'sonnet', s: 'opus' }, guidage: { p: 'haiku', s: 'luna' }, vec: { p: 'qwen', s: null }, rerank: { p: 'voyage', s: 'voyagelite' }, synth: { p: 'sonnet', s: 'flash' } };
+    const assign = { insights: { p: 'sonnet', s: 'flash' }, data: { p: 'luna', s: 'flashlite' }, rapports: { p: 'sonnet', s: 'opus' }, guidage: { p: 'haiku', s: 'luna' }, init: { p: 'sonnet', s: 'flash' }, vec: { p: 'qwen', s: null }, rerank: { p: 'voyage', s: 'voyagelite' }, synth: { p: 'sonnet', s: 'flash' } };
     return { providers, models, assign, menu: null, modal: null, toast: null, docs: true, fa: 'all', sk: 'n', sd: 1, dims: 1536, dimsOpen: false, testing: {}, busy: false };
   }
   componentWillUnmount() { (this._t || []).forEach(clearTimeout); clearTimeout(this._tt); }
@@ -502,7 +502,7 @@ class Component extends DCLogic {
     const bad = pid => this.isBad(P[pid]);
     // Coût mensuel estimé : volume réel des 30 derniers jours de la fonction × tarif courant du modèle (entrée et sortie,
     // ou requêtes pour un tarif à la requête) ; démonstration : coefficients K de la maquette.
-    const K = { insights: .98 / 10.52, data: .09 / 10.52, rapports: 0, guidage: 1.55 / 5.26, vec: 0, rerank: 0, synth: .83 / 10.52 };
+    const K = { insights: .98 / 10.52, data: .09 / 10.52, rapports: 0, guidage: 1.55 / 5.26, init: 0, vec: 0, rerank: 0, synth: .83 / 10.52 };
     const vol = fid => (REAL && D.fn[fid] && D.fn[fid].volume30d) || { tokensIn: 0, tokensOut: 0, requests: 0 };
     const costOf = (fid, i, o, unit) => {
       if (!REAL) return K[fid] * ((i || 0) + (o || 0));
@@ -510,13 +510,14 @@ class Component extends DCLogic {
       return unit === 'REQUESTS' ? v.requests / 1000 * (i || 0) : (v.tokensIn * (i || 0) + v.tokensOut * (o || 0)) / 1e6;
     };
     const cost = (fid, m) => m ? costOf(fid, m.i, m.o, m.unit) : 0;
-    const volL = (fid, sep) => { if (!REAL) return ({ insights: '0,5 M tokens', data: '0,0 M tokens', rapports: '0,0 M tokens', guidage: '1,7 M tokens', vec: '0,1 M tokens' })[fid] + sep + '30 j'; const v = vol(fid); return nf1((v.tokensIn + v.tokensOut) / 1e6) + ' M tokens' + sep + '30 j'; };
+    const volL = (fid, sep) => { if (!REAL) return ({ insights: '0,5 M tokens', data: '0,0 M tokens', rapports: '0,0 M tokens', guidage: '1,7 M tokens', init: '0,0 M tokens', vec: '0,1 M tokens' })[fid] + sep + '30 j'; const v = vol(fid); return nf1((v.tokensIn + v.tokensOut) / 1e6) + ' M tokens' + sep + '30 j'; };
     const isNew = (fid, def) => REAL ? !!(D.fn[fid] && D.fn[fid].isNew) : def;
     const FN = [
       { id: 'insights', n: 'Insights', long: 'Analyse des données et Insights', t: 'LLM' },
       { id: 'data', n: 'Gestion des données', long: 'Création, modification et suppression des données', t: 'LLM' },
       { id: 'rapports', n: 'Rapports', long: 'Génération de rapports', nouveau: isNew('rapports', true), t: 'LLM', isR: true },
-      { id: 'guidage', n: 'Guidage console / Cockpit', short: 'Guidage console', long: 'Guider l’utilisateur sur la console', nouveau: isNew('guidage', true), t: 'LLM' }
+      { id: 'guidage', n: 'Guidage console / Cockpit', short: 'Guidage console', long: 'Guider l’utilisateur sur la console', nouveau: isNew('guidage', true), t: 'LLM' },
+      { id: 'init', n: 'Initialisation projet', long: 'Initialisation projet', nouveau: isNew('init', true), t: 'LLM' }
     ];
     const ST = [
       { id: 'vec', k: 1, n: 'Vectorisation', t: 'Embedding', tag: 'EMBEDDING', d: 'Découpe le texte extrait en passages et les transforme en vecteurs pour la recherche sémantique.', unit: m => `${eur(m.i).replace(' €', '')} € / M entrée` },
@@ -526,7 +527,7 @@ class Component extends DCLogic {
     const label = id => { const f = FN.find(x => x.id === id) || ST.find(x => x.id === id); return f.short || f.n; };
     const uses = {};
     Object.entries(D.assign).forEach(([fid, a]) => { if (a.p) (uses[a.p] = uses[a.p] || []).push({ fid, r: 'principal' }); if (a.s) (uses[a.s] = uses[a.s] || []).push({ fid, r: 'secours' }); });
-    const order = ['insights', 'data', 'rapports', 'guidage', 'vec', 'rerank', 'synth'];
+    const order = ['insights', 'data', 'rapports', 'guidage', 'init', 'vec', 'rerank', 'synth'];
     Object.values(uses).forEach(u => u.sort((a, b) => (a.r === 'principal' ? 0 : 1) - (b.r === 'principal' ? 0 : 1) || order.indexOf(a.fid) - order.indexOf(b.fid)));
     const NONE = { id: null, n: 'Aucun modèle', p: null, i: null, o: null, on: false };
 

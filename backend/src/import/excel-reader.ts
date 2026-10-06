@@ -13,15 +13,15 @@ export const SHEETS = [
   '04 Affectations',
   '05 Projet',
   // Info projet (06/10/2026) : une ligne par élément (Rubrique, Libellé, Valeur) ; son absence signale un ancien modèle.
-  '05b Info projet',
-  '06 Lots',
-  '07 Phases',
-  '08 Sous-phases',
-  '09 Chantiers',
-  '10 Instances',
-  '11 Membres',
-  '12 Jalons',
-  '13 Livrables',
+  '06 Info projet',
+  '07 Lots',
+  '08 Phases',
+  '09 Sous-phases',
+  '10 Chantiers',
+  '11 Instances',
+  '12 Membres',
+  '13 Jalons',
+  '14 Livrables',
 ] as const;
 
 export type ColumnType = 'REQUIRED' | 'OPTIONAL' | 'COMPUTED' | 'CONTROL' | 'NONE';

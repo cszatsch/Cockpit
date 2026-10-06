@@ -8,8 +8,8 @@ import { SHEETS } from './excel-reader';
 import { PROJECT_INFO_RUBRIQUES } from '../domain/project-info';
 
 export const SCREEN_SHEETS: Record<string, string> = {
-  '01 Équipes': 'Équipes', '02 Rôles': 'Rôles', '03 Personnes': 'Personnes', '04 Affectations': 'Affectations', '05 Projet': 'Projet', '05b Info projet': 'Info projet', '06 Lots': 'Lots',
-  '07 Phases': 'Phases', '08 Sous-phases': 'Sous-phases', '09 Chantiers': 'Chantiers', '10 Instances': 'Instances', '11 Membres': 'Membres', '12 Jalons': 'Jalons', '13 Livrables': 'Livrables',
+  '01 Équipes': 'Équipes', '02 Rôles': 'Rôles', '03 Personnes': 'Personnes', '04 Affectations': 'Affectations', '05 Projet': 'Projet', '06 Info projet': 'Info projet', '07 Lots': 'Lots',
+  '08 Phases': 'Phases', '09 Sous-phases': 'Sous-phases', '10 Chantiers': 'Chantiers', '11 Instances': 'Instances', '12 Membres': 'Membres', '13 Jalons': 'Jalons', '14 Livrables': 'Livrables',
 };
 const ST_FR: Record<string, string> = { PREPARATION: 'Préparation', ACTIVE: 'Actif', CLOSED: 'Clos', PLANNED: 'Prévu', IN_PROGRESS: 'En cours', DONE: 'Terminé' };
 const MISSING = /^Onglet « (.+) » manquant$/;

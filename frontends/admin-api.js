@@ -902,6 +902,103 @@ export function bindInit(c) {
   c.forceUpdate();
 }
 
+// ───────────────────────────── Préremplissage (Initialisation projet.dc.html) ─────────────────────────────
+
+/** Nom du fichier d'un téléchargement : `filename*` (UTF-8) du serveur, sinon `filename`, sinon le nom proposé. */
+const fileNameOf = (r, fallback) => {
+  const cd = r.headers.get('Content-Disposition') || '';
+  const u = /filename\*=UTF-8''([^;]+)/i.exec(cd);
+  if (u) { try { return decodeURIComponent(u[1]); } catch (e) { /* nom mal encodé */ } }
+  const m = /filename="?([^";]+)"?/.exec(cd);
+  return (m && m[1]) || fallback;
+};
+const saveBlob = (blob, name) => {
+  const u = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(u), 2000);
+};
+
+/**
+ * `Initialisation projet.dc.html` (maquette « Initialisation projet v2 », 07/10/2026) : préremplissage du fichier
+ * d'initialisation depuis la proposition commerciale (routes `/projects/prefill/…`). Import avec progression
+ * (XMLHttpRequest, seul à suivre l'envoi), analyse suivie par le flux SSE du serveur (fetch + lecture du flux, pour
+ * porter l'en-tête d'authentification), reprise, annulation, liste « À vérifier » et Excel prérempli.
+ */
+export function bindPrefill(c) {
+  if (isDemo() || c.api) return;
+  const P = '/projects/prefill';
+  const headers = async () => ({ ...(DEV ? { Authorization: 'Bearer ' + (await token()) } : Auth.sessionHeaders('admin')), 'X-Client-Id': CLIENT_ID });
+  const fail = e => { throw new Error(errText(e)); };
+  c.api = {
+    tabs: () => get(P + '/tabs'),
+    /** `{ req, done }` : `req.abort()` interrompt l'import ; `done` → `{ id, nom, taille, pages }` ou erreur `{ code }`. */
+    upload(file, onProgress) {
+      const req = new XMLHttpRequest();
+      const done = new Promise((resolve, reject) => {
+        headers().then(h => {
+          req.open('POST', apiBase() + '/api/admin' + P + '/proposals');
+          Object.entries(h).forEach(([k, v]) => req.setRequestHeader(k, v));
+          req.upload.onprogress = e => { if (e.lengthComputable) onProgress(Math.min(99, Math.round(e.loaded / e.total * 100))); };
+          req.onload = () => {
+            let b = {};
+            try { b = JSON.parse(req.responseText || '{}'); } catch (e) { /* réponse vide */ }
+            if (req.status >= 200 && req.status < 300) { onProgress(100); resolve(b); } else reject({ code: b.code, message: b.message || 'Import impossible (' + req.status + ')' });
+          };
+          req.onerror = () => reject({ message: 'Serveur injoignable : erreur réseau' });
+          req.onabort = () => reject({ aborted: true });
+          const fd = new FormData(); fd.append('file', file);
+          req.send(fd);
+        }, reject);
+      });
+      return { req, done };
+    },
+    example: () => post(P + '/proposals/example').catch(fail),
+    analyse: id => post(P + '/proposals/' + encodeURIComponent(id) + '/analysis').catch(fail),
+    /** Flux SSE : `onEvent(type, data)` pour `progression`, `onglet_termine`, `termine`, `erreur`, `annule`. */
+    events(taskId, onEvent) {
+      const ctl = new AbortController();
+      (async () => {
+        const r = await fetch(apiBase() + '/api/admin' + P + '/tasks/' + encodeURIComponent(taskId) + '/events', { headers: await headers(), credentials: 'same-origin', signal: ctl.signal });
+        if (!r.ok || !r.body) throw new Error('flux indisponible');
+        const rd = r.body.getReader(), dec = new TextDecoder();
+        let buf = '';
+        for (;;) {
+          const { value, done } = await rd.read();
+          if (done) break;
+          buf += dec.decode(value, { stream: true });
+          let i;
+          while ((i = buf.indexOf('\n\n')) >= 0) {
+            const chunk = buf.slice(0, i); buf = buf.slice(i + 2);
+            const ev = chunk.split('\n').find(l => l.startsWith('event: ')), data = chunk.split('\n').find(l => l.startsWith('data: '));
+            if (ev && data) onEvent(ev.slice(7), JSON.parse(data.slice(6)));
+          }
+        }
+      })().catch(e => { if (e && e.name !== 'AbortError') console.warn('[admin-api] préremplissage :', e); });
+      return () => ctl.abort();
+    },
+    cancel: id => del(P + '/tasks/' + encodeURIComponent(id)),
+    resume: id => post(P + '/tasks/' + encodeURIComponent(id) + '/resume').catch(fail),
+    checks: id => get(P + '/tasks/' + encodeURIComponent(id) + '/checks').catch(fail),
+    /** Excel prérempli, sous le nom donné par le serveur (« … · prérempli.xlsx ») ; renvoie ce nom. */
+    async excel(id) {
+      const r = await raw('GET', '/api/admin' + P + '/tasks/' + encodeURIComponent(id) + '/excel');
+      if (!r.ok) { const b = await r.json().catch(() => ({})); throw new Error(errText(new ApiError(r.status, b))); }
+      const name = fileNameOf(r, 'prérempli.xlsx');
+      saveBlob(await r.blob(), name);
+      return name;
+    },
+    /** Modèle vierge, nommé comme dans l'étape Importer : « [nom] - Init projet Cockpit [AAMMJJ].xlsx ». */
+    async template() {
+      const d0 = new Date(), p2 = n => String(n).padStart(2, '0'), who = String(c.props.userName || '').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim();
+      const r = await fetch('./Referentiel RISE - initialisation.xlsx', { credentials: 'same-origin' });
+      if (!r.ok) throw new Error('Modèle indisponible');
+      saveBlob(await r.blob(), (who ? who + ' - ' : '') + 'Init projet Cockpit ' + String(d0.getFullYear()).slice(2) + p2(d0.getMonth() + 1) + p2(d0.getDate()) + '.xlsx');
+    },
+  };
+  c.api.tabs().then(tabs => c.setState({ tabs })).catch(e => console.warn('[admin-api]', e));
+  c.forceUpdate();
+}
+
 // ───────────────────────────── Snapshots (Snapshots.dc.html) ─────────────────────────────
 
 const SN_MO = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];

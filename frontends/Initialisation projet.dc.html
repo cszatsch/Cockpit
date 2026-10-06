@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"><style>
+html,body{margin:0;background:#f2f6f5;font-family:'Plus Jakarta Sans',sans-serif;color:#10233a;-webkit-font-smoothing:antialiased;font-size:13px}
+*{box-sizing:border-box}a{color:#1d8f86;text-decoration:none;font-weight:700}a:hover{color:#146b64}button,input{font:inherit;color:inherit}
+button:focus-visible{outline:2px solid #3dd6c6;outline-offset:2px}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes scan{from{transform:translateX(-110%)}to{transform:translateX(260%)}}
+@keyframes toastIn{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style></helmet>
+<div data-screen-label="Initialisation d’un projet" style="min-height:100vh;padding-bottom:110px">
+
+  <sc-if value="{{ hasChrome }}" hint-placeholder-val="{{ true }}">
+  <div style="height:42px;padding:0 20px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #e1e9e7;font-size:12.5px">
+    <span style="color:#7d8d99">Projets</span>
+    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#a3b1ba" stroke-width="2.6" stroke-linecap="round"><path d="M9 6l6 6-6 6"></path></svg>
+    <span style="font-weight:700">Initialisation d’un projet</span>
+    <span style="flex:1"></span>
+    <span style="height:22px;padding:0 9px;border-radius:999px;background:#fdeeee;color:#c2414b;font-size:11.5px;font-weight:700;display:inline-flex;align-items:center;gap:6px;white-space:nowrap"><span style="width:5px;height:5px;border-radius:50%;background:#c2414b"></span>1 incident</span>
+  </div>
+  </sc-if>
+
+  <div style="max-width:1240px;margin:0 auto;padding:36px 40px 0;display:flex;flex-direction:column;gap:22px">
+
+    <header style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:20px 40px">
+      <div style="flex:1 1 420px;min-width:0;display:flex;flex-direction:column;gap:8px">
+        <span style="font-size:11px;font-weight:800;letter-spacing:.18em;color:#1d8f86">PROJETS</span>
+        <h1 style="margin:0;font-size:34px;font-weight:800;font-style:italic;letter-spacing:-.04em;line-height:1.05">Initialisation d’un projet</h1>
+      </div>
+      <ol aria-label="Parcours" style="list-style:none;margin:0;padding:0;max-width:100%;overflow-x:auto;white-space:nowrap;display:flex;flex-wrap:nowrap;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#8a9aa6">
+        <li style="height:28px;padding:0 12px;border-radius:999px;background:#10233a;color:#fff;display:flex;align-items:center;gap:8px"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#3dd6c6">1</span>Préremplir</li>
+        <li style="width:14px;height:1px;background:#cdd8d5"></li>
+        <li style="display:flex;align-items:center;gap:7px"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px">2</span>Importer</li>
+        <li style="width:14px;height:1px;background:#cdd8d5"></li>
+        <li style="display:flex;align-items:center;gap:7px"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px">3</span>Contrôler</li>
+        <li style="width:14px;height:1px;background:#cdd8d5"></li>
+        <li style="display:flex;align-items:center;gap:7px"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px">4</span>Prévisualiser</li>
+        <li style="width:14px;height:1px;background:#cdd8d5"></li>
+        <li style="display:flex;align-items:center;gap:7px"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px">5</span>Publier</li>
+      </ol>
+    </header>
+
+    <section aria-label="Préremplissage" onDragOver="{{ dOver }}" onDragLeave="{{ dLeave }}" onDrop="{{ drop }}" style="{{ stageSt }}">
+      <div style="position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:44px 44px;-webkit-mask-image:linear-gradient(100deg,transparent 35%,#000 90%);mask-image:linear-gradient(100deg,transparent 35%,#000 90%)"></div>
+      <div style="{{ glowSt }}"></div>
+      <div style="{{ dashSt }}"></div>
+      <input type="file" ref="{{ fileRef }}" onChange="{{ onFile }}" accept=".pdf,.docx,.pptx" style="display:none">
+
+      <div style="position:relative;padding:40px 40px 28px;display:flex;flex-wrap:wrap;align-items:flex-end;gap:24px 40px">
+        <div style="flex:1 1 520px;min-width:0;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;align-items:center;gap:10px;font-size:11px;font-weight:800;letter-spacing:.18em;color:#c4d3dd"><span style="{{ dotSt }}"></span>{{ eyebrow }}</div>
+          <h2 style="margin:0;font-size:44px;font-weight:800;font-style:italic;letter-spacing:-.045em;line-height:1.04;color:#fff;text-wrap:balance;max-width:760px">{{ title }}</h2>
+          <p style="margin:2px 0 0;font-size:15px;line-height:1.55;color:#c4d3dd;max-width:640px;text-wrap:pretty">{{ sub }}</p>
+        </div>
+        <div style="flex:0 1 auto;margin-left:auto;display:flex;flex-direction:column;align-items:flex-start;gap:10px">
+          <sc-if value="{{ hasEta }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;align-items:flex-start;gap:2px"><span style="display:flex;align-items:baseline;gap:3px;font-family:'IBM Plex Mono',monospace;font-size:30px;font-weight:500;letter-spacing:-.02em;color:#fff">{{ eta }}<span style="font-size:15px;color:#8fa3b3">s</span></span><span style="font-size:11.5px;color:#8fa3b3">restantes, environ</span></div>
+          </sc-if>
+          <sc-if value="{{ hasPrimary }}" hint-placeholder-val="{{ true }}">
+            <button type="button" onClick="{{ primaryFn }}" style="height:52px;padding:0 22px;border-radius:14px;border:0;background:#3dd6c6;color:#0a1727;font-size:14px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:10px;white-space:nowrap;box-shadow:0 14px 30px -12px rgba(61,214,198,.6);transition:background .15s,transform .15s" style-hover="background:#5fe0d2;transform:translateY(-1px)" style-active="transform:translateY(0)">
+              <sc-if value="{{ icoUp }}" hint-placeholder-val="{{ true }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V9 M7 14l5-5 5 5 M5 4h14"></path></svg></sc-if>
+              <sc-if value="{{ icoDown }}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11 M7 10l5 5 5-5 M5 20h14"></path></svg></sc-if>
+              <sc-if value="{{ icoRetry }}" hint-placeholder-val="{{ false }}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.4-5.7 M4 4v4h4"></path></svg></sc-if>
+              {{ primaryL }}</button>
+          </sc-if>
+          <sc-if value="{{ hasSecondary }}" hint-placeholder-val="{{ false }}">
+            <button type="button" onClick="{{ secondaryFn }}" style="border:0;background:transparent;padding:4px 0;font-size:12.5px;font-weight:700;color:#8fa3b3;cursor:pointer;white-space:nowrap;transition:color .15s" style-hover="color:#fff">{{ secondaryL }}</button>
+          </sc-if>
+          <sc-if value="{{ hasHint }}" hint-placeholder-val="{{ true }}"><span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#8fa3b3;white-space:nowrap">PDF, DOCX ou PPTX · 25 Mo max</span></sc-if>
+        </div>
+      </div>
+
+      <sc-if value="{{ hasFile }}" hint-placeholder-val="{{ false }}">
+        <div style="position:relative;margin:0 40px 18px;display:flex;align-items:center;gap:12px;min-width:0;animation:rise .3s both">
+          <span style="{{ fileIcoSt }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z M14 3v5h5"></path></svg></span>
+          <span style="min-width:0;font-size:13px;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ fileName }}</span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#8fa3b3;white-space:nowrap">{{ fileMeta }}</span>
+          <span style="flex:1;height:1px;background:rgba(255,255,255,.08);min-width:20px"></span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#8fa3b3;white-space:nowrap">{{ fileRight }}</span>
+        </div>
+      </sc-if>
+
+      <div role="list" aria-label="Onglets du fichier d’initialisation" style="position:relative;padding:0 40px 36px;display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:8px">
+        <sc-for list="{{ tiles }}" as="t" hint-placeholder-count="14">
+          <button type="button" role="listitem" onClick="{{ t.pick }}" disabled="{{ t.off }}" aria-label="{{ t.aria }}" style="{{ t.st }}" style-hover="{{ t.hov }}">
+            <span style="display:flex;align-items:center;gap:8px;height:14px"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:#8fa3b3">{{ t.n }}</span><span style="flex:1"></span>
+              <sc-if value="{{ t.isDone }}" hint-placeholder-val="{{ false }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3dd6c6" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"></path></svg></sc-if>
+              <sc-if value="{{ t.isRev }}" hint-placeholder-val="{{ false }}"><span style="width:7px;height:7px;border-radius:50%;background:#f5a524;box-shadow:0 0 0 3px rgba(245,165,36,.18)"></span></sc-if>
+              <sc-if value="{{ t.isNF }}" hint-placeholder-val="{{ false }}"><span style="width:9px;height:2px;border-radius:1px;background:#ff8a94"></span></sc-if>
+              <sc-if value="{{ t.isErr }}" hint-placeholder-val="{{ false }}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#ff8a94" stroke-width="3.2" stroke-linecap="round"><path d="M6 6l12 12 M18 6L6 18"></path></svg></sc-if>
+              <sc-if value="{{ t.isCur }}" hint-placeholder-val="{{ false }}"><span style="width:11px;height:11px;border-radius:50%;border:2px solid rgba(61,214,198,.25);border-top-color:#3dd6c6;animation:spin .7s linear infinite"></span></sc-if>
+            </span>
+            <span style="{{ t.nameSt }}">{{ t.l }}</span>
+            <span style="margin-top:auto;display:flex;flex-direction:column;gap:7px">
+              <span style="display:block;height:3px;border-radius:2px;background:rgba(255,255,255,.08);overflow:hidden"><span style="{{ t.bar }}"></span></span>
+              <span style="{{ t.subSt }}">{{ t.s }}</span>
+            </span>
+          </button>
+        </sc-for>
+      </div>
+
+      <sc-if value="{{ hasNext }}" hint-placeholder-val="{{ false }}">
+        <div style="position:relative;padding:18px 40px;border-top:1px solid rgba(255,255,255,.08);display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;animation:rise .4s .1s both">
+          <span style="font-size:11px;font-weight:800;letter-spacing:.18em;color:#3dd6c6">ENSUITE</span>
+          <span style="flex:1 1 360px;min-width:0;font-size:13.5px;color:#dfe8ee">Faites relire le fichier par le PMO, puis importez-le pour le contrôle de conformité.</span>
+          <button type="button" onClick="{{ goImport }}" style="height:38px;padding:0 16px;border-radius:11px;border:0;background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);color:#fff;font-size:13px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap" style-hover="background:rgba(255,255,255,.14)">Importer le fichier vérifié<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14 M13 6l6 6-6 6"></path></svg></button>
+        </div>
+      </sc-if>
+
+      <span style="position:absolute;left:0;right:0;bottom:0;height:3px;background:transparent"><span style="{{ progSt }}"></span></span>
+    </section>
+
+    <sc-if value="{{ hasAlt }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px 22px;padding:0 6px;font-size:13px;color:#5a6d7c">
+        <span>Déjà un fichier Excel rempli ?</span>
+        <button type="button" onClick="{{ goImport }}" style="border:0;background:transparent;padding:0;font-weight:700;color:#10233a;cursor:pointer;display:inline-flex;align-items:center;gap:6px" style-hover="color:#1d8f86">Importer l’Excel<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14 M13 6l6 6-6 6"></path></svg></button>
+        <span style="width:3px;height:3px;border-radius:50%;background:#b8c5c2"></span>
+        <button type="button" onClick="{{ dlTemplate }}" style="border:0;background:transparent;padding:0;font-weight:700;color:#10233a;cursor:pointer" style-hover="color:#1d8f86">Modèle vierge</button>
+        <span style="width:3px;height:3px;border-radius:50%;background:#b8c5c2"></span>
+        <button type="button" onClick="{{ runExample }}" style="border:0;background:transparent;padding:0;font-weight:700;color:#10233a;cursor:pointer" style-hover="color:#1d8f86">Essayer avec l’exemple ORION</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ hasReview }}" hint-placeholder-val="{{ false }}">
+      <section aria-label="Champs à vérifier" style="background:#fff;border-radius:22px;box-shadow:0 0 0 1px #e1e9e7,0 24px 50px -40px rgba(16,35,58,.4);overflow:hidden;animation:rise .45s .08s cubic-bezier(.2,.7,.2,1) both">
+        <div style="padding:22px 24px 18px;display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px">
+          <div style="flex:1 1 300px;min-width:0;display:flex;flex-direction:column;gap:4px">
+            <div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:17px;font-weight:800;letter-spacing:-.015em">À vérifier</span><span style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:#b26a00">{{ revCount }}</span></div>
+            <span style="font-size:12.5px;color:#5a6d7c">Valeurs incertaines ou absentes de la proposition. Cliquez un onglet ci-dessus pour filtrer.</span>
+          </div>
+          <sc-if value="{{ hasTabFilter }}" hint-placeholder-val="{{ false }}">
+            <button type="button" onClick="{{ clearTab }}" style="height:30px;padding:0 10px 0 12px;border-radius:999px;border:0;background:#10233a;color:#fff;font-size:12px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap"><span style="font-family:'IBM Plex Mono',monospace;color:#3dd6c6">{{ tabFilterN }}</span>{{ tabFilterL }}<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12 M18 6L6 18"></path></svg></button>
+          </sc-if>
+          <div role="tablist" aria-label="Filtrer" style="display:flex;gap:2px;padding:3px;border-radius:11px;background:#eef3f2">
+            <sc-for list="{{ filters }}" as="f" hint-placeholder-count="3"><button type="button" role="tab" aria-selected="{{ f.on }}" onClick="{{ f.go }}" style="{{ f.st }}">{{ f.l }}<span style="{{ f.nSt }}">{{ f.c }}</span></button></sc-for>
+          </div>
+        </div>
+        <div style="padding:0 24px 10px;display:grid;grid-template-columns:minmax(110px,150px) minmax(0,1.3fr) minmax(0,1fr) 140px 48px;gap:16px;font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#8a9aa6">
+          <span>ONGLET</span><span>CHAMP</span><span>VALEUR PROPOSÉE</span><span>CONFIANCE</span><span style="text-align:right">SOURCE</span>
+        </div>
+        <sc-for list="{{ rows }}" as="r" hint-placeholder-count="6">
+          <div style="padding:14px 24px;border-top:1px solid #edf2f1;display:grid;grid-template-columns:minmax(110px,150px) minmax(0,1.3fr) minmax(0,1fr) 140px 48px;gap:16px;align-items:center;animation:rise .25s both">
+            <span style="display:flex;align-items:center;gap:8px;min-width:0"><span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:600;color:#1d8f86">{{ r.tn }}</span><span style="font-size:12.5px;font-weight:600;color:#43586a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ r.tl }}</span></span>
+            <span style="min-width:0;display:flex;flex-direction:column;gap:3px"><span style="font-size:13.5px;font-weight:700">{{ r.f }}</span><span style="font-size:12px;color:#7d8d99;text-wrap:pretty">{{ r.why }}</span></span>
+            <span style="{{ r.vSt }}">{{ r.v }}</span>
+            <span style="display:flex;align-items:center;gap:10px">
+              <sc-if value="{{ r.isU }}" hint-placeholder-val="{{ true }}"><span style="width:64px;height:4px;border-radius:2px;background:#f1ebe0;overflow:hidden"><span style="{{ r.confSt }}"></span></span><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#b26a00">{{ r.conf }}</span></sc-if>
+              <sc-if value="{{ r.isM }}" hint-placeholder-val="{{ false }}"><span style="height:22px;padding:0 9px;border-radius:999px;background:#fdeeee;color:#c2414b;font-size:11.5px;font-weight:700;display:inline-flex;align-items:center;white-space:nowrap">Non trouvé</span></sc-if>
+            </span>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#7d8d99;text-align:right">{{ r.src }}</span>
+          </div>
+        </sc-for>
+        <div style="padding:14px 24px;border-top:1px solid #edf2f1;background:#fafcfb;font-size:12px;color:#5a6d7c;display:flex;align-items:center;gap:10px"><span style="width:10px;height:10px;border-radius:3px;background:#ffe3ad;box-shadow:inset 0 0 0 1px #f5c56b"></span>Dans l’Excel, ces cellules sont surlignées et commentées avec leur source.</div>
+      </section>
+    </sc-if>
+  </div>
+
+  <sc-if value="{{ showDemo }}" hint-placeholder-val="{{ true }}">
+    <nav aria-label="États de la maquette" style="position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:20;max-width:calc(100vw - 24px);overflow-x:auto;display:flex;align-items:center;gap:2px;padding:5px;border-radius:14px;background:#0b1a2c;box-shadow:0 20px 40px -16px rgba(10,23,39,.7)">
+      <span style="padding:0 10px 0 8px;font-size:10px;font-weight:800;letter-spacing:.16em;color:#5f7587;white-space:nowrap">ÉTATS</span>
+      <sc-for list="{{ demo }}" as="d" hint-placeholder-count="9"><button type="button" onClick="{{ d.go }}" aria-pressed="{{ d.on }}" style="{{ d.st }}">{{ d.l }}</button></sc-for>
+    </nav>
+  </sc-if>
+
+  <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+    <div role="status" style="position:fixed;left:50%;bottom:76px;transform:translateX(-50%);z-index:30;padding:12px 16px;border-radius:12px;background:#10233a;color:#fff;font-size:13px;font-weight:600;display:flex;align-items:center;gap:10px;white-space:nowrap;box-shadow:0 20px 40px -16px rgba(10,23,39,.7);animation:toastIn .25s both"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3dd6c6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"></path></svg>{{ toast }}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;etat&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;options&quot;: [&quot;initial&quot;, &quot;hover&quot;, &quot;upload&quot;, &quot;analyse&quot;, &quot;success&quot;, &quot;partial&quot;, &quot;err-format&quot;, &quot;err-read&quot;, &quot;err-analyse&quot;], &quot;default&quot;: &quot;initial&quot;, &quot;tsType&quot;: &quot;string&quot;}, &quot;resultat&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;options&quot;: [&quot;partiel&quot;, &quot;complet&quot;], &quot;default&quot;: &quot;partiel&quot;, &quot;tsType&quot;: &quot;string&quot;}, &quot;demo&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;}, &quot;chrome&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;}, &quot;onImport&quot;: {&quot;editor&quot;: null, &quot;tsType&quot;: &quot;()=&gt;void&quot;}, &quot;userName&quot;: {&quot;editor&quot;: null, &quot;tsType&quot;: &quot;string&quot;}}">
+// Maquette « Initialisation projet v2 » (07/10/2026). Données de démonstration (simulation de la maquette) sans
+// serveur ; dans la Console, `admin-api.js` (`bindPrefill`) fournit `this.api` : dépôt, analyse suivie par flux SSE,
+// reprise, annulation, liste « À vérifier », Excel prérempli. Les textes et le design sont ceux de la maquette.
+const TABS=[['01','Équipes',12],['02','Rôles',18],['03','Personnes',46],['04','Affectations',38],['05','Projet',14],['06','Info projet',22],['07','Lots',24],['08','Phases',30],['09','Sous-phases',36],['10','Chantiers',20],['11','Instances',8],['12','Membres',16],['13','Jalons',18],['14','Livrables',10]];
+const MISS={2:3,10:8,13:1};
+const REVIEW=[
+{t:2,f:'Courriel · C. Martin',why:'Personne citée sans coordonnées.',k:'m'},
+{t:2,f:'Courriel · L. Nguyen',why:'Personne citée sans coordonnées.',k:'m'},
+{t:2,f:'Courriel · S. Haddad',why:'Personne citée sans coordonnées.',k:'m'},
+{t:2,f:'Fonction · L. Nguyen',v:'Directeur des opérations',why:'Deux intitulés différents dans le document.',c:58,p:4},
+{t:3,f:'Taux d’affectation · S. Haddad',v:'50 %',why:'Déduit d’un volume en jours.',c:62,p:17},
+{t:4,f:'Budget',v:'1 240 000 €',why:'HT ou TTC non précisé.',c:64,p:21},
+{t:6,f:'Responsable · Lot 3',v:'A. Rossi',why:'Nommé dans une annexe, pas dans le corps.',c:55,p:9},
+{t:8,f:'Durée · Recette',v:'3 semaines',why:'Fourchette « 2 à 4 semaines » ramenée à la moyenne.',c:61,p:12},
+{t:10,f:'Onglet entier',why:'Aucune instance de gouvernance décrite.',k:'m'},
+{t:12,f:'Date · Mise en production',v:'15/03/2027',why:'Date relative « S+24 » convertie.',c:52,p:14},
+{t:12,f:'Date · Comité de lancement',v:'janv. 2027',why:'Mois connu, jour absent.',c:48,p:14},
+{t:13,f:'Format · Dossier d’exploitation',why:'Livrable cité sans format.',k:'m'}];
+const REVN={};REVIEW.forEach(r=>{REVN[r.t]=(REVN[r.t]||0)+1});
+const DOC={name:'Proposition commerciale ORION v3.pdf',size:4404019,pages:24};
+const mo=b=>(b/1048576).toFixed(1).replace('.',',')+' Mo';
+const TOTAL=TABS.reduce((a,t)=>a+t[2],0);
+const MISSTOT=Object.values(MISS).reduce((a,b)=>a+b,0);
+/** Formats et taille acceptés (contrôlés aussi, et d'abord, par le serveur). */
+const EXTS=['pdf','docx','pptx'],MAX_BYTES=25*1048576;
+const STATUT={rempli:'done',a_verifier:'rev',non_trouve:'nf'};
+
+class Component extends DCLogic {
+  state={phase:null,up:0,idx:0,file:null,filter:'all',tab:null,toast:null,tabs:null,res:[],checks:null,prog:null,dur:0,failIdx:6,kept:6,taskId:null};
+  fileRef=React.createRef();
+  componentDidMount(){
+    if(this.props.demo===false)import('./admin-api.js').then(m=>m.bindPrefill(this)).catch(()=>{});
+    const e=this.props.etat;if(e&&e!=='initial')this.go(e);
+  }
+  componentWillUnmount(){this.stop();clearTimeout(this.tt);this.close()}
+  stop(){clearInterval(this.t);this.t=null}
+  close(){if(this.off){this.off();this.off=null}if(this.xhr){this.xhr.abort();this.xhr=null}}
+  ph(){return this.state.phase||'initial'}
+  outcome(){return this.props.resultat==='complet'?'success':'partial'}
+  /** Onglets : ceux du serveur (nombre de champs du modèle) en mode réel, sinon ceux de la maquette. */
+  T(){const t=this.state.tabs;return t?t.map(x=>[x.n,x.label,x.champs]):TABS}
+  go(p){
+    this.stop();
+    const m={initial:{file:null},hover:{file:null},upload:{file:DOC,up:62},analyse:{file:DOC,idx:5},success:{file:DOC,idx:14},partial:{file:DOC,idx:14},
+      'err-format':{file:{name:'Budget ORION.numbers',size:1288490}},'err-read':{file:{name:'Proposition ORION scannée.pdf',size:18874368}},'err-analyse':{file:DOC,idx:6}};
+    this.setState({phase:p,filter:'all',tab:null,up:0,idx:0,...m[p]});
+  }
+  /** Retour à l'état initial : flux et import en cours abandonnés. */
+  reset(){this.stop();this.close();this.setState({phase:'initial',file:null,up:0,idx:0,filter:'all',tab:null,res:[],checks:null,prog:null,taskId:null})}
+  run(from){
+    this.stop();this.k=0;
+    this.t=setInterval(()=>{
+      const s=this.state;
+      if(s.phase==='upload'){const up=Math.min(100,s.up+5);this.setState(up>=100?{up:100,phase:'analyse',idx:0}:{up});return}
+      if(s.phase==='analyse'){this.k++;if(this.k%9)return;const idx=s.idx+1;if(idx>=14){this.stop();this.setState({idx:14,phase:this.outcome()})}else this.setState({idx})}
+    },80);
+  }
+  start(file){
+    if(this.api)return this.upload(file);
+    this.setState({phase:'upload',up:0,idx:0,file,filter:'all',tab:null},()=>this.run());
+  }
+  take(f){
+    const ext=(f.name.split('.').pop()||'').toLowerCase();
+    if(!EXTS.includes(ext)||(this.api&&f.size>MAX_BYTES)){this.stop();this.setState({phase:'err-format',file:{name:f.name,size:f.size}});return}
+    if(this.api)return this.upload(f);
+    this.start({name:f.name,size:f.size,pages:24});
+  }
+  say(msg){clearTimeout(this.tt);this.setState({toast:msg});this.tt=setTimeout(()=>this.setState({toast:null}),2600)}
+
+  // ───────────── Mode réel (this.api) ─────────────
+  /** Dépôt avec progression de l'import, puis analyse ; refus FORMAT / LECTURE du serveur → états d'erreur. */
+  upload(f){
+    this.close();
+    this.setState({phase:'upload',up:0,idx:0,file:{name:f.name,size:f.size},filter:'all',tab:null,res:[],checks:null,prog:null,taskId:null});
+    const {req,done}=this.api.upload(f,up=>this.setState({up}));
+    this.xhr=req;
+    done.then(d=>{this.xhr=null;this.analyse(d)},e=>{this.xhr=null;if(e&&e.aborted)return;
+      if(e&&e.code==='FORMAT')this.setState({phase:'err-format',file:{name:f.name,size:f.size}});
+      else if(e&&e.code==='LECTURE')this.setState({phase:'err-read',file:{name:f.name,size:f.size}});
+      else{this.reset();this.say(e&&e.message||'Import impossible')}});
+  }
+  analyse(d){
+    this.setState({phase:'analyse',up:100,idx:0,file:{name:d.nom,size:d.taille,pages:d.pages},res:[],prog:null});
+    this.api.analyse(d.id).then(r=>{this.setState({taskId:r.tacheId});this.follow(r.tacheId)},e=>{this.reset();this.say(e.message)});
+  }
+  /** Flux de l'analyse : onglets terminés rejoués, puis en direct. */
+  follow(taskId){
+    if(this.off)this.off();
+    this.off=this.api.events(taskId,(type,e)=>{
+      if(type==='progression')this.setState(s=>({idx:e.ongletIndex,prog:{page:e.page,pages:e.pagesTotal,champs:e.champsExtraits,eta:s.prog&&s.prog.eta!=null?Math.min(s.prog.eta,e.resteSecondes):e.resteSecondes}}));
+      else if(type==='onglet_termine')this.setState(s=>{const res=[...s.res];res[e.ongletIndex]=e;return{res,idx:Math.max(s.idx,e.ongletIndex+1)}});
+      else if(type==='termine')this.api.checks(taskId).then(checks=>this.setState({phase:e.resultat==='complet'?'success':'partial',idx:14,checks,dur:e.dureeSecondes,filter:'all',tab:null}),x=>this.say(x.message));
+      else if(type==='erreur')this.setState({phase:'err-analyse',failIdx:e.ongletIndex,kept:e.ongletsConserves,idx:e.ongletIndex});
+      else if(type==='annule')this.reset();
+    });
+  }
+  cancel(){
+    const id=this.state.taskId;
+    this.close();
+    if(this.api&&id)this.api.cancel(id).catch(()=>{});
+    this.reset();
+  }
+  resume(){
+    const id=this.state.taskId;
+    this.setState(s=>({phase:'analyse',idx:s.failIdx,prog:null}));
+    this.api.resume(id).then(()=>this.follow(id),e=>{this.setState({phase:'err-analyse'});this.say(e.message)});
+  }
+
+  tileKind(i,p,idx){
+    if(this.api){
+      const r=this.state.res[i],k=r?STATUT[r.statut]:null;
+      if(p==='analyse')return k||(i===idx?'cur':'pend');
+      if(p==='success'||p==='partial')return k||'done';
+      if(p==='err-analyse')return k||(i===this.state.failIdx?'err':'pend');
+    }
+    if(p==='analyse')return i<idx?(REVN[i]?(i===10?'nf':'rev'):'done'):i===idx?'cur':'pend';
+    if(p==='success')return 'done';
+    if(p==='partial')return i===10?'nf':REVN[i]?'rev':'done';
+    if(p==='err-analyse')return i<6?(REVN[i]?'rev':'done'):i===6?'err':'pend';
+    if(p==='hover')return 'hot';
+    if(p==='upload')return 'pend';
+    return 'idle';
+  }
+
+  renderVals(){
+    const p=this.ph(),s=this.state,idx=s.idx,file=s.file,real=!!this.api,TB=this.T();
+    const isErr=p.startsWith('err'),isRes=p==='success'||p==='partial',full=p==='success';
+    const pick=()=>this.fileRef.current&&this.fileRef.current.click();
+    const toInit=()=>real?this.cancel():this.go('initial');
+    const download=()=>real?this.api.excel(s.taskId).then(n=>this.say(n+' téléchargé'),e=>this.say(e.message)):this.say('Référentiel ORION · prérempli.xlsx téléchargé');
+    const blank=()=>real?this.api.template().then(()=>this.say('Modèle d’initialisation téléchargé')):this.say('Modèle d’initialisation téléchargé');
+    // Données de l'écran : résultats du serveur en mode réel, sinon ceux de la maquette.
+    const RV=real?(s.checks||[]).map(c=>({t:c.ongletIndex,f:c.champ,why:c.motif,v:c.valeur||undefined,c:c.confiance==null?undefined:c.confiance,p:c.page||undefined,k:c.type==='manquant'?'m':undefined})):REVIEW;
+    const RN={};RV.forEach(r=>{RN[r.t]=(RN[r.t]||0)+1});
+    const res=s.res||[],sum=k=>res.reduce((a,r)=>a+(r?r[k]:0),0);
+    const doneTabs=real?res.filter(Boolean).length:Math.min(idx,14);
+    const extracted=real?(s.prog&&s.prog.champs!=null?Math.max(s.prog.champs,sum('trouves')):sum('trouves')):TB.slice(0,doneTabs).reduce((a,t,i)=>a+t[2]-(MISS[i]||0),0);
+    const total=real?sum('attendus'):TOTAL,found=real?sum('trouves'):TOTAL-MISSTOT;
+    const cur=TB[Math.min(idx,13)],fail=TB[Math.min(s.failIdx,13)],kept=real?s.kept:6;
+    const C={
+      initial:['PRÉREMPLISSAGE PAR IA','Déposez la proposition commerciale.','Son contenu est extrait et réparti dans les 14 onglets du fichier d’initialisation.'],
+      hover:['PRÊT À ANALYSER','Relâchez pour lancer l’analyse.','Le fichier n’est utilisé que pour ce préremplissage.'],
+      upload:['IMPORT',`Import du fichier · ${s.up} %`,'L’analyse démarre dès la fin de l’import.'],
+      analyse:['ANALYSE EN COURS',`Onglet ${cur[0]} · ${cur[1]}`,`${doneTabs} onglet${doneTabs>1?'s':''} sur 14 terminé${doneTabs>1?'s':''} · ${extracted} champs extraits.`],
+      success:['TERMINÉ','Les 14 onglets sont remplis.',`${real?found:TOTAL} champs complétés. Une relecture reste conseillée avant l’import.`],
+      partial:['TERMINÉ · À VÉRIFIER',`${RV.length} champs demandent votre regard.`,`${found} champs sur ${total} complétés. Le reste est signalé ci-dessous et dans le fichier.`],
+      'err-format':['ERREUR · FORMAT','Format non pris en charge.',`« ${file?file.name:''} » ne peut pas être analysé. Déposez un PDF, DOCX ou PPTX.`],
+      'err-read':['ERREUR · LECTURE','Fichier illisible.','Le document est protégé ou ne contient que des images. Exportez-le en PDF texte, puis réessayez.'],
+      'err-analyse':['ERREUR · ANALYSE',`Analyse interrompue à l’onglet ${fail[0]} · ${fail[1]}.`,kept>1?`Les ${kept} onglets déjà traités sont conservés. La reprise repart de l’onglet ${fail[0]}.`:kept===1?`L’onglet déjà traité est conservé. La reprise repart de l’onglet ${fail[0]}.`:`Aucun onglet n’était encore traité. La reprise repart de l’onglet ${fail[0]}.`]
+    }[p];
+
+    let A={};
+    if(p==='initial'||p==='hover')A={hasPrimary:true,primaryL:'Choisir un fichier',primaryFn:pick,icoUp:true,hasHint:true};
+    else if(p==='upload'||p==='analyse')A={hasSecondary:true,secondaryL:'Annuler',secondaryFn:toInit};
+    else if(isRes)A={hasPrimary:true,primaryL:'Télécharger l’Excel',primaryFn:download,icoDown:true,hasSecondary:true,secondaryL:'Analyser une autre proposition',secondaryFn:()=>real?this.reset():this.go('initial')};
+    else if(p==='err-format')A={hasPrimary:true,primaryL:'Choisir un autre fichier',primaryFn:pick,icoUp:true,hasHint:true};
+    else if(p==='err-read')A={hasPrimary:true,primaryL:'Choisir un autre fichier',primaryFn:pick,icoUp:true,hasSecondary:true,secondaryL:'Remplir le modèle manuellement',secondaryFn:blank};
+    else A={hasPrimary:true,primaryL:'Reprendre l’analyse',primaryFn:()=>real?this.resume():this.setState({phase:'analyse',idx:6},()=>this.run()),icoRetry:true,hasSecondary:true,secondaryL:'Choisir un autre fichier',secondaryFn:pick};
+
+    const accent=isErr?'#ff8a94':p==='partial'?'#f5a524':'#3dd6c6';
+    const glowC=isErr?'rgba(255,122,133,.16)':p==='partial'?'rgba(245,165,36,.13)':'rgba(61,214,198,.18)';
+    const hot=p==='hover';
+    const live=p==='upload'||p==='analyse';
+
+    const pages=(file&&file.pages)||(real?0:24);
+    const page=real?(s.prog?s.prog.page:1):Math.min(DOC.pages,Math.max(1,Math.round((idx+.5)/14*DOC.pages)));
+    let fileMeta='',fileRight='';
+    if(file){
+      if(p==='upload'){fileMeta=mo(file.size);fileRight=`${s.up} %`}
+      else if(p==='analyse'){fileMeta=`page ${page} / ${(s.prog&&s.prog.pages)||pages}`;fileRight=`${doneTabs} / 14 onglets`}
+      else if(isRes){fileMeta=`${pages} pages · ${mo(file.size)}`;fileRight=`analysé en ${real?s.dur:38} s`}
+      else if(p==='err-analyse'){fileMeta=`${pages} pages · ${mo(file.size)}`;fileRight=`${kept} / 14 onglets`}
+      else{fileMeta=mo(file.size);fileRight=p==='err-format'?'.'+((file.name.split('.').pop()||'').toLowerCase()):'aucun texte détecté'}
+    }
+
+    const tiles=TB.map((t,i)=>{
+      const k=this.tileKind(i,p,idx),sel=s.tab===i,clickable=p==='partial'&&(RN[i]||0)>0;
+      const r=real?res[i]:null,att=r?r.attendus:t[2],found=r?r.trouves:t[2]-(MISS[i]||0);
+      const lift=hot?'translateY(-3px)':'none';
+      let bg='rgba(255,255,255,.03)',ring='rgba(255,255,255,.07)',op=1,nameC='#c4d3dd';
+      if(k==='hot'){bg='rgba(61,214,198,.07)';ring='rgba(61,214,198,.35)';nameC='#fff'}
+      if(k==='pend'){op=p==='upload'?.4:.5}
+      if(k==='cur'){bg='rgba(61,214,198,.1)';ring='rgba(61,214,198,.55)';nameC='#fff'}
+      if(k==='done'){bg='rgba(61,214,198,.06)';ring='rgba(61,214,198,.18)';nameC='#fff'}
+      if(k==='rev'){bg='rgba(245,165,36,.07)';ring='rgba(245,165,36,.28)';nameC='#fff'}
+      if(k==='nf'){bg='repeating-linear-gradient(135deg,rgba(255,138,148,.07) 0 6px,transparent 6px 12px)';ring='rgba(255,138,148,.3)';nameC='#fff'}
+      if(k==='err'){bg='rgba(255,138,148,.1)';ring='rgba(255,138,148,.5)';nameC='#fff'}
+      if(sel){ring='#fff'}
+      const dim=p==='partial'&&s.tab!=null&&!sel?.45:op;
+      const st=`position:relative;min-width:0;height:100px;padding:12px 14px;border-radius:14px;border:0;background:${bg};box-shadow:inset 0 0 0 ${sel?1.5:1}px ${ring};display:flex;flex-direction:column;gap:6px;text-align:left;color:inherit;opacity:${dim};transform:${lift};cursor:${clickable?'pointer':'default'};transition:transform .4s cubic-bezier(.2,.7,.2,1) ${i*22}ms,background .35s,box-shadow .35s,opacity .35s`;
+      const hov=clickable?'background:rgba(245,165,36,.13)':'';
+      let w=0,barC='#3dd6c6',extra='';
+      if(k==='done')w=att?found/att*100:100;
+      if(k==='rev'){w=att?found/att*100:0;barC='linear-gradient(90deg,#3dd6c6 70%,#f5a524 70%)'}
+      if(k==='cur'){w=38;extra='animation:scan 1.1s ease-in-out infinite;'}
+      if(k==='err'){w=30;barC='#ff8a94'}
+      const sTxt={idle:`${t[2]} champs`,hot:`${t[2]} champs`,pend:`${t[2]} champs`,cur:'lecture…',done:`${found} / ${att}`,rev:`${r?r.aVerifier:RN[i]} à vérifier`,nf:'non trouvé',err:'échec'}[k];
+      const sC={rev:'#f5c56b',nf:'#ff8a94',err:'#ff8a94',cur:'#3dd6c6',done:'#8fa3b3'}[k]||'#5f7587';
+      return {n:t[0],l:t[1],s:sTxt,aria:`${t[0]} ${t[1]} · ${sTxt}`,off:!clickable,
+        isDone:k==='done',isRev:k==='rev',isNF:k==='nf',isErr:k==='err',isCur:k==='cur',
+        st,hov,pick:()=>clickable&&this.setState(x=>({tab:x.tab===i?null:i})),
+        nameSt:`font-size:13.5px;font-weight:700;letter-spacing:-.01em;color:${nameC};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:color .3s`,
+        bar:`display:block;height:100%;width:${w}%;border-radius:2px;background:${barC};transition:width .6s cubic-bezier(.2,.7,.2,1);${extra}`,
+        subSt:`font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500;color:${sC};white-space:nowrap`};
+    });
+
+    const nU=RV.filter(r=>!r.k).length,nM=RV.length-nU;
+    const list=RV.filter(r=>(s.filter==='all'||(s.filter==='u'?!r.k:r.k))&&(s.tab==null||r.t===s.tab));
+    const rows=list.map(r=>({tn:TB[r.t][0],tl:TB[r.t][1],f:r.f,why:r.why,v:r.v||'—',isU:!r.k,isM:!!r.k,conf:r.c!=null?r.c+' %':'',
+      confSt:`display:block;height:100%;width:${r.c||0}%;background:#f5a524;border-radius:2px`,src:r.p?'p. '+r.p:'—',
+      vSt:`min-width:0;font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:500;color:${r.v?'#10233a':'#b8c5c2'};${r.v?'background:#fff6e5;box-shadow:inset 0 0 0 1px #f8dca5;':''}padding:${r.v?'4px 8px':'0'};border-radius:6px;justify-self:start;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%`}));
+    const filters=[['all','Tous',RV.length],['u','Incertains',nU],['m','Manquants',nM]].map(([id,l,c])=>{const on=s.filter===id;return {l,c,on,go:()=>this.setState({filter:id}),
+      st:`height:30px;padding:0 12px;border-radius:9px;border:0;background:${on?'#fff':'transparent'};box-shadow:${on?'0 1px 2px rgba(16,35,58,.12)':'none'};font-size:12.5px;font-weight:700;color:${on?'#10233a':'#5a6d7c'};cursor:pointer;display:inline-flex;align-items:center;gap:7px;white-space:nowrap;transition:background .15s`,
+      nSt:`font-family:'IBM Plex Mono',monospace;font-size:11px;color:${on?'#1d8f86':'#8a9aa6'}`}});
+
+    const pct=p==='upload'?s.up:p==='analyse'?(real?doneTabs:idx)/14*100:0;
+    const D=[['initial','Initial'],['hover','Survol'],['upload','Import'],['analyse','Analyse'],['success','Succès'],['partial','Partiel'],['err-format','Format'],['err-read','Illisible'],['err-analyse','Échec']];
+
+    return {
+      ...{hasPrimary:false,hasSecondary:false,hasHint:false,icoUp:false,icoDown:false,icoRetry:false,primaryL:'',secondaryL:''},...A,
+      hasChrome:this.props.chrome!==false,
+      eyebrow:C[0],title:C[1],sub:C[2],
+      hasEta:p==='analyse'&&(!real||!!s.prog),eta:real?String(Math.max(1,s.prog?s.prog.eta:1)):String(Math.max(1,(14-idx)*3)),
+      dotSt:`width:7px;height:7px;border-radius:50%;background:${accent};box-shadow:0 0 0 4px ${glowC};${live?'animation:spin 0s;':''}`,
+      stageSt:`position:relative;border-radius:28px;background:#10233a;color:#dfe8ee;overflow:hidden;box-shadow:${hot?'0 0 0 2px #3dd6c6,0 40px 90px -40px rgba(61,214,198,.55)':'0 40px 80px -48px rgba(10,23,39,.9)'};transform:${hot?'scale(1.005)':'none'};transition:box-shadow .3s,transform .3s cubic-bezier(.2,.7,.2,1);animation:rise .5s cubic-bezier(.2,.7,.2,1) both`,
+      glowSt:`position:absolute;right:-160px;top:-220px;width:640px;height:640px;border-radius:50%;pointer-events:none;background:radial-gradient(closest-side,${glowC},transparent);transition:background .6s`,
+      dashSt:`position:absolute;inset:12px;border-radius:20px;border:1.5px dashed rgba(61,214,198,.55);pointer-events:none;opacity:${hot?1:0};transition:opacity .25s`,
+      hasFile:!!file&&p!=='initial'&&p!=='hover',fileName:file?file.name:'',fileMeta,fileRight,
+      fileIcoSt:`width:30px;height:30px;flex:none;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;background:${isErr?'rgba(255,138,148,.12)':'rgba(255,255,255,.07)'};color:${isErr?'#ff8a94':'#3dd6c6'}`,
+      tiles,hasNext:isRes,hasAlt:!live&&!isRes,hasReview:p==='partial',
+      progSt:`display:block;height:100%;width:${pct}%;background:#3dd6c6;opacity:${live?1:0};box-shadow:0 0 12px rgba(61,214,198,.8);transition:width .5s cubic-bezier(.2,.7,.2,1),opacity .4s`,
+      revCount:list.length===RV.length?String(RV.length):`${list.length} / ${RV.length}`,
+      hasTabFilter:s.tab!=null,tabFilterN:s.tab!=null?TB[s.tab][0]:'',tabFilterL:s.tab!=null?TB[s.tab][1]:'',clearTab:()=>this.setState({tab:null}),
+      filters,rows,
+      fileRef:this.fileRef,onFile:e=>{const f=e.target.files&&e.target.files[0];e.target.value='';if(f)this.take(f)},
+      dOver:e=>{e.preventDefault();const q=this.ph();if(q==='initial'||q.startsWith('err')){this.prev=q;this.setState({phase:'hover'})}},
+      dLeave:e=>{if(e.currentTarget.contains(e.relatedTarget))return;if(this.ph()==='hover')this.setState({phase:this.prev||'initial'})},
+      drop:e=>{e.preventDefault();const f=e.dataTransfer&&e.dataTransfer.files[0];if(f&&this.ph()==='hover')this.take(f)},
+      goImport:()=>this.props.onImport?this.props.onImport():this.say('Ouverture de l’import du fichier Excel'),
+      dlTemplate:blank,
+      runExample:()=>real?(this.close(),this.setState({phase:'upload',up:0,file:{name:DOC.name,size:0},res:[],checks:null,prog:null}),this.api.example().then(d=>this.analyse(d),e=>{this.reset();this.say(e.message)})):this.start(DOC),
+      showDemo:!real&&(this.props.demo??true),
+      demo:D.map(([id,l])=>{const on=p===id;return {l,on,go:()=>this.go(id),st:`height:30px;padding:0 11px;border-radius:9px;border:0;background:${on?'#3dd6c6':'transparent'};color:${on?'#0a1727':'#c4d3dd'};font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap`}}),
+      hasToast:!!s.toast,toast:s.toast||''
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -25,8 +25,8 @@ describe('Étape 9 — import Excel du Référentiel (§ 13.9)', () => {
   });
 
   it('onglet manquant → erreur de structure', async () => {
-    const r = await post(await buildWorkbook({ dropSheets: ['09 Chantiers'] }), '?dryRun=true').expect(200);
-    expect(r.body.errors).toEqual([expect.objectContaining({ sheet: '09 Chantiers', message: 'Onglet « 09 Chantiers » manquant' })]);
+    const r = await post(await buildWorkbook({ dropSheets: ['10 Chantiers'] }), '?dryRun=true').expect(200);
+    expect(r.body.errors).toEqual([expect.objectContaining({ sheet: '10 Chantiers', message: 'Onglet « 10 Chantiers » manquant' })]);
   });
 
   it('dryRun n’écrit rien et annonce les créations', async () => {
@@ -34,46 +34,49 @@ describe('Étape 9 — import Excel du Référentiel (§ 13.9)', () => {
     const r = await post(await buildWorkbook(f), '?dryRun=true').expect(200);
     expect(r.body.errors).toEqual([]);
     expect(r.body.created).toMatchObject({ persons: 3, phases: 2, workstreams: 1, milestones: 2 });
-    expect(r.body.warnings.some((w: any) => w.sheet === '12 Jalons' && /hors de la période/.test(w.message))).toBe(true);
+    expect(r.body.warnings.some((w: any) => w.sheet === '13 Jalons' && /hors de la période/.test(w.message))).toBe(true);
     expect(await t.db.person.count({ where: { projectId: 'ATLAS' } })).toBe(0);
   });
 
   it('une erreur annule tout l’import (422, rien n’est créé)', async () => {
     const f = validAtlas();
-    f.rows['13 Livrables'][0]['Responsable'] = 'Personne Inconnue';
+    f.rows['14 Livrables'][0]['Responsable'] = 'Personne Inconnue';
     const r = await post(await buildWorkbook(f)).expect(422);
     expect(r.body.code).toBe('IMPORT_REJECTED');
-    expect(r.body.errors[0]).toMatchObject({ sheet: '13 Livrables', message: expect.stringMatching(/inconnue/) });
+    expect(r.body.errors[0]).toMatchObject({ sheet: '14 Livrables', message: expect.stringMatching(/inconnue/) });
     expect(await t.db.person.count({ where: { projectId: 'ATLAS' } })).toBe(0);
     expect(await t.db.team.count({ where: { projectId: 'ATLAS' } })).toBe(0);
   });
 
   it('sous-phase hors de sa phase, couleur et fréquence inconnues → erreurs', async () => {
     const f = validAtlas();
-    f.rows['12 Jalons'][0]['Phase'] = '2 · Realize';
-    f.rows['10 Instances'][0]['Couleur'] = 'Fuchsia';
+    f.rows['13 Jalons'][0]['Phase'] = '2 · Realize';
+    f.rows['11 Instances'][0]['Couleur'] = 'Fuchsia';
     const r = await post(await buildWorkbook(f), '?dryRun=true').expect(200);
     const m = r.body.errors.map((e: any) => e.message);
     expect(m).toEqual(expect.arrayContaining([expect.stringMatching(/n'appartient pas à la phase/), 'Couleur « Fuchsia » inconnue']));
   });
 
-  it('ancien modèle (sans « 05b Info projet » ou sans les colonnes des rattachements) → refusé avec un message explicite (D5)', async () => {
-    const r1 = await post(await buildWorkbook({ ...validAtlas(), dropSheets: ['05b Info projet'] }), '?dryRun=true').expect(200);
-    expect(r1.body.errors).toEqual(expect.arrayContaining([expect.objectContaining({ sheet: '05b Info projet', message: expect.stringMatching(/^Ancien modèle de fichier : téléchargez le modèle à jour .*onglet « 05b Info projet » absent/) })]));
-    const r2 = await post(await buildWorkbook({ dropHeaders: { '09 Chantiers': ['Sous-phases', 'Dépendances'] } }), '?dryRun=true').expect(200);
-    expect(r2.body.errors).toEqual([expect.objectContaining({ sheet: '09 Chantiers', message: expect.stringMatching(/Ancien modèle.*colonnes « Sous-phases », « Dépendances » absentes/) })]);
+  it('ancien modèle (sans « 06 Info projet » ou sans les colonnes des rattachements) → refusé avec un message explicite (D5)', async () => {
+    const r1 = await post(await buildWorkbook({ ...validAtlas(), dropSheets: ['06 Info projet'] }), '?dryRun=true').expect(200);
+    expect(r1.body.errors).toEqual(expect.arrayContaining([expect.objectContaining({ sheet: '06 Info projet', message: expect.stringMatching(/^Ancien modèle de fichier : téléchargez le modèle à jour .*onglet « 06 Info projet » absent/) })]));
+    // Numérotation d'avant le 07/10/2026 (05b Info projet, 06 Lots…) : un seul message.
+    const r0 = await post(await buildWorkbook({ renameSheets: { '06 Info projet': '05b Info projet', '07 Lots': '06 Lots', '14 Livrables': '13 Livrables' } }), '?dryRun=true').expect(200);
+    expect(r0.body.errors).toEqual([expect.objectContaining({ sheet: '06 Info projet', message: expect.stringMatching(/^Ancien modèle de fichier/) })]);
+    const r2 = await post(await buildWorkbook({ dropHeaders: { '10 Chantiers': ['Sous-phases', 'Dépendances'] } }), '?dryRun=true').expect(200);
+    expect(r2.body.errors).toEqual([expect.objectContaining({ sheet: '10 Chantiers', message: expect.stringMatching(/Ancien modèle.*colonnes « Sous-phases », « Dépendances » absentes/) })]);
   });
 
   it('Info projet : « Programme en une phrase » et un enjeu obligatoires (D1), libellé des rubriques en paires, rubrique inconnue', async () => {
     const f = validAtlas();
-    f.rows['05b Info projet'] = [
+    f.rows['06 Info projet'] = [
       { Rubrique: 'Périmètre fonctionnel', Valeur: 'Finance' },
       { Rubrique: 'Budget', Valeur: '3 M€' },
       { Rubrique: 'Le client', Libellé: 'Pays', Valeur: 'Belgique' },
       { Rubrique: 'Marques du groupe', Libellé: 'x', Valeur: 'Brand X' },
     ];
     const r = await post(await buildWorkbook(f), '?dryRun=true').expect(200);
-    const m = r.body.errors.filter((e: any) => e.sheet === '05b Info projet').map((e: any) => e.message);
+    const m = r.body.errors.filter((e: any) => e.sheet === '06 Info projet').map((e: any) => e.message);
     expect(m).toEqual(expect.arrayContaining([
       '« Programme en une phrase » est obligatoire (une ligne)', '« Enjeux stratégiques » est obligatoire (au moins une ligne)',
       '« Libellé » est obligatoire pour la rubrique « Périmètre fonctionnel »', 'Rubrique « Budget » inconnue (liste dans l’onglet Références)',
@@ -84,20 +87,20 @@ describe('Étape 9 — import Excel du Référentiel (§ 13.9)', () => {
 
   it('Chantiers : phase ou sous-phase inconnue, sous-phase hors des phases, auto-dépendance, « Tous » combiné, boucle', async () => {
     const f = validAtlas();
-    f.rows['09 Chantiers'] = [
+    f.rows['10 Chantiers'] = [
       { Nom: 'Comptabilité', Responsable: 'Sophie Marchand', Phases: '1 ; 9', 'Sous-phases': '2.1 ; 7.7', Dépendances: 'Comptabilité ; Trésorerie' },
       { Nom: 'Trésorerie', Responsable: 'Sophie Marchand', Dépendances: 'Tous ; Fiscalité' },
       { Nom: 'Fiscalité', Responsable: 'Sophie Marchand', Dépendances: 'C4' },
       { Nom: 'Consolidation', Responsable: 'Sophie Marchand', Dépendances: 'Fiscalité' },
     ];
-    f.rows['12 Jalons'][0]['Chantier'] = null;
-    f.rows['13 Livrables'][0]['Chantier'] = null;
+    f.rows['13 Jalons'][0]['Chantier'] = null;
+    f.rows['14 Livrables'][0]['Chantier'] = null;
     const r = await post(await buildWorkbook(f), '?dryRun=true').expect(200);
-    const m = r.body.errors.filter((e: any) => e.sheet === '09 Chantiers').map((e: any) => `${e.row}${e.column} ${e.message}`);
+    const m = r.body.errors.filter((e: any) => e.sheet === '10 Chantiers').map((e: any) => `${e.row}${e.column} ${e.message}`);
     expect(m).toEqual(expect.arrayContaining([
-      '9H Phase « 9 » inconnue (onglet 07 Phases)',
+      '9H Phase « 9 » inconnue (onglet 08 Phases)',
       '9I Sous-phase 2.1 hors des phases du chantier : sa phase « 2 · Realize » n’est pas dans la colonne Phases',
-      '9I Sous-phase « 7.7 » inconnue (onglet 08 Sous-phases)',
+      '9I Sous-phase « 7.7 » inconnue (onglet 09 Sous-phases)',
       '9J Le chantier « Comptabilité » dépend de lui-même',
       '10J « Tous » ne se combine pas avec d’autres chantiers',
       '11J Dépendance circulaire : Fiscalité → Consolidation → Fiscalité',

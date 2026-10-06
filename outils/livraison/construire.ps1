@@ -61,6 +61,8 @@ New-Item -ItemType Directory -Force -Path $Paquet, (Join-Path $Paquet 'donnees')
 Etape 'Application'
 $B = Join-Path $Paquet 'app\backend'
 Copier (Join-Path $Backend 'dist') (Join-Path $B 'dist')
+# Ressources lues par l'application (exemple ORION du préremplissage, 07/10/2026).
+Copier (Join-Path $Backend 'assets') (Join-Path $B 'assets')
 # Migrations SQL : appliquées par l'installateur quand les données du poste sont conservées.
 Copier (Join-Path $Backend 'prisma\migrations') (Join-Path $B 'prisma\migrations')
 Copier (Join-Path $Backend 'node_modules') (Join-Path $B 'node_modules')

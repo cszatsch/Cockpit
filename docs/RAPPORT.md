@@ -494,6 +494,15 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 - Ajouté au catalogue (OpenRouter) avec description, date de sortie, contexte, max output, tarif et mesures OpenRouter ; inséré dans la base locale par `npm run ia:catalogue -- --modele "DeepSeek: DeepSeek V4.1 Flash" --confirmer` (nouvelle option).
 - Écart : la demande visait « V4.1 » ; seule la version Flash existe.
 
+### Initialisation d'un projet : préremplissage par IA (07/10/2026)
+
+- **Écran** : maquette « Initialisation projet v2 » intégrée (`Initialisation projet.dc.html`, étape « Préremplir » de la Console) et reliée à l'API ; écarts listés dans `docs/NOTE - ecarts maquette Initialisation projet v2.md`.
+- **Serveur** : dépôt contrôlé (extension, taille, signature, lisibilité), analyse asynchrone onglet par onglet par la nouvelle fonction d'IA « Initialisation projet », flux SSE, reprise depuis l'onglet en échec, annulation, liste « À vérifier », Excel prérempli écrit dans le modèle (cellules à vérifier en ambre et commentées), purge à 24 h ; tables `prefill_documents`, `prefill_tasks`.
+- **Modèle Excel** : onglets numérotés 01 à 14 (« 06 Info projet », « 07 Lots »…).
+- **Tests** : critères 1 à 6 et 8 dans `test/e2e/prefill.spec.ts` (modèle d'IA simulé), règles dans `test/unit/prefill.spec.ts` ; critère 7 et parcours de l'écran dans la recette navigateur `test/browser/prefill.e2e.ts` (serveur de recette `test/browser/prefill-server.ts`, sans appel réel) ; ouverture de l'Excel prérempli vérifiée dans Microsoft Excel.
+- **Écart technique** : ExcelJS ne réécrit pas le modèle de façon lisible par Microsoft Excel ; l'Excel prérempli est donc écrit directement dans le XML du modèle. Les classeurs de test (`buildWorkbook`) restent écrits par ExcelJS : lus par l'import, ils ne sont pas destinés à Excel.
+- **Questions ouvertes** : voir § 4, n° 32 et 33.
+
 ## 4. Questions ouvertes
 
 1. **Déclencheur des règles de notification** : faut-il ajouter un sélecteur de déclencheur dans la console ? Aujourd'hui, une règle créée depuis l'écran reçoit un déclencheur par défaut : « planifié » pour une notification, « manuel » pour une alerte.
@@ -527,3 +536,5 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 29. ~~Partager Cockpit : jeu de démonstration~~ : tranché le 05/10/2026, jeu de démonstration embarqué dans chaque paquet (`docs/DECISIONS.md`).
 30. ~~Partager Cockpit : fichiers exclus~~ : tranché le 05/10/2026, formats et templates de rapport toujours inclus (`docs/DECISIONS.md`).
 31. ~~Partager Cockpit : installateur `.cmd` ou `.exe`~~ : tranché le 05/10/2026, `installer_cockpit.cmd` conservé (`docs/DECISIONS.md`).
+32. **Préremplissage : extraction réelle non mesurée** (07/10/2026) : les tests simulent le modèle d'IA ; la qualité d'extraction sur de vraies propositions (et le coût, estimé à 2 propositions par mois) reste à mesurer sur 2 ou 3 documents réels avant la mise en service.
+33. **Préremplissage : page lue** (07/10/2026) : le modèle lit tout le document à chaque onglet ; la « page lue » de l'écran est une position estimée. Faut-il l'afficher ainsi ou la remplacer par l'onglet en cours seul ?

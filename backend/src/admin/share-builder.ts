@@ -138,6 +138,8 @@ export class ShareBuilder {
     const B = path.join(stage, 'app', 'backend');
     await fs.mkdir(B, { recursive: true });
     await mirror(path.join(this.backendDir, 'dist'), path.join(B, 'dist'));
+    // Ressources lues par l'application (exemple ORION du préremplissage, 07/10/2026).
+    if (existsSync(path.join(this.backendDir, 'assets'))) await mirror(path.join(this.backendDir, 'assets'), path.join(B, 'assets'));
     // Migrations SQL : appliquées par l'installateur quand les données du poste sont conservées.
     await mirror(path.join(this.backendDir, 'prisma', 'migrations'), path.join(B, 'prisma', 'migrations'));
     for (const f of ['package.json', 'package-lock.json']) if (existsSync(path.join(this.backendDir, f))) await fs.copyFile(path.join(this.backendDir, f), path.join(B, f));

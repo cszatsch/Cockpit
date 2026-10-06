@@ -90,7 +90,7 @@ describe('Console — modèles d’IA', () => {
   it('chaque fonction n’accepte que sa catégorie ; la chaîne Documents a trois étapes', async () => {
     const f = (await admin.get('/api/admin/functions').expect(200)).body;
     expect(f.functions.map((x: any) => [x.id, x.category, x.group, x.step])).toEqual([
-      ['insights', 'LLM', null, null], ['crud', 'LLM', null, null], ['rapports', 'LLM', null, null], ['guidage', 'LLM', null, null],
+      ['insights', 'LLM', null, null], ['crud', 'LLM', null, null], ['rapports', 'LLM', null, null], ['guidage', 'LLM', null, null], ['init_projet', 'LLM', null, null],
       ['doc_vec', 'EMBEDDING', 'documents', 1], ['doc_rrk', 'RERANKING', 'documents', 2], ['doc_syn', 'LLM', 'documents', 3],
     ]);
     expect(f.groups).toEqual([{ id: 'documents', name: 'Documents', description: expect.any(String) }]);
@@ -143,11 +143,11 @@ describe('Console — modèles d’IA', () => {
   it('réinitialisation : modèles, affectation et consommation supprimés, fournisseurs gardés', async () => {
     const providers = await t.db.provider.count();
     const r = await resetAiModels(t.db);
-    expect(r).toMatchObject({ assignments: 7, providersKept: providers });
+    expect(r).toMatchObject({ assignments: 8, providersKept: providers });
     expect(await t.db.aiModel.count()).toBe(0);
     expect(await t.db.usageRecord.count()).toBe(0);
     const asg = (await admin.get('/api/admin/assignments').expect(200)).body;
-    expect(asg.map((a: any) => a.state)).toEqual(['UNAVAILABLE', 'UNAVAILABLE', 'UNAVAILABLE', 'UNAVAILABLE', 'UNAVAILABLE', 'BLOCKED', 'BLOCKED']);
+    expect(asg.map((a: any) => a.state)).toEqual(['UNAVAILABLE', 'UNAVAILABLE', 'UNAVAILABLE', 'UNAVAILABLE', 'UNAVAILABLE', 'UNAVAILABLE', 'BLOCKED', 'BLOCKED']);
     await expect(t.app.get(LlmService).complete({ functionId: 'insights', prompt: 'x', source: 'COCKPIT' })).rejects.toMatchObject({ response: { code: 'AI_UNAVAILABLE' } });
   });
 });

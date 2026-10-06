@@ -50,6 +50,7 @@ export const BUDGET_IA_LIGNES: Array<{ id: string; libelle: string; fonctions: s
   { id: 'crud', libelle: 'Gestion des données', fonctions: ['crud'] },
   { id: 'rapports', libelle: 'Rapports', fonctions: ['rapports'] },
   { id: 'guidage', libelle: 'Guidage console', fonctions: ['guidage'] },
+  { id: 'init_projet', libelle: 'Initialisation projet', fonctions: ['init_projet'] },
   { id: 'docs', libelle: 'Documents', fonctions: ['doc_vec', 'doc_rrk', 'doc_syn'] },
 ];
 /** Seuil d'alerte d'une ligne sans plafond enregistré (`DEFAULT_WARN_PCT` de l'écran). */

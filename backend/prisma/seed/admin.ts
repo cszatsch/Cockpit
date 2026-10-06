@@ -385,6 +385,8 @@ export async function seedDemoAi(db: PrismaClient): Promise<void> {
   for (const [fn, a] of Object.entries(asg)) {
     await db.modelAssignment.create({ data: { functionId: fn, primaryModelId: a.p, fallbackModelId: a.f } });
   }
+  // Initialisation projet (07/10/2026) : affectée, sans consommation de démonstration (les volumes des autres fonctions restent ceux d'avant).
+  await db.modelAssignment.create({ data: { functionId: 'init_projet', primaryModelId: 'sonnet', fallbackModelId: 'gpt5' } });
 
   // ── Consommation de démonstration (genUsage, déterministe) ──
   const models = await db.aiModel.findMany();

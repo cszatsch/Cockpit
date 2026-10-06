@@ -16,7 +16,7 @@ const inputChars = (i: { prompt: string; system?: string; systemTail?: string; h
 import { costOf, ModelCategory, priceOf } from '../domain/ai-pricing';
 import { hashEmbedding, normalize } from '../domain/guide-index';
 
-export type AiFunctionId = 'insights' | 'crud' | 'rapports' | 'guidage' | 'doc_vec' | 'doc_rrk' | 'doc_syn';
+export type AiFunctionId = 'insights' | 'crud' | 'rapports' | 'guidage' | 'doc_vec' | 'doc_rrk' | 'doc_syn' | 'init_projet';
 export type UsageSourceCode = 'COCKPIT' | 'JEV' | 'NOTIFICATION' | 'IMPORT' | 'GUIDE';
 
 export interface LlmResult {
@@ -60,6 +60,13 @@ export interface AiFunctionDef {
 export const REPORTS_NEED_OUT_DEFAULT = 38_000;
 /** Estimation mensuelle du guidage console (spécification IA § 8) : 0,9 M tokens en entrée, 0,25 M en sortie, 800 questions. */
 export const GUIDAGE_ESTIMATE = { in: 0.9, out: 0.25, req: 800 };
+/**
+ * Estimation mensuelle de l'initialisation projet (07/10/2026, hypothèse) : deux propositions commerciales par mois,
+ * 14 appels chacune (un par onglet) sur un document d'environ 20 000 tokens, réponses d'environ 2 500 tokens.
+ */
+export const INIT_PROJET_ESTIMATE = { in: 0.56, out: 0.07, req: 28 };
+/** Longueur de réponse la plus longue attendue pour un onglet (03 Personnes, 150 lignes au plus). */
+export const INIT_PROJET_NEED_OUT = 16_000;
 
 /**
  * Fonctions IA du Cockpit (spécification IA § 2, 28/09/2026) : l'ancienne « Analyse de documents »
@@ -70,6 +77,7 @@ export const AI_FUNCTIONS: AiFunctionDef[] = [
   { id: 'crud', name: 'Création, modification et suppression des données', short: 'Gestion des données', description: 'Prépare les modifications demandées à Jev, l’assistant du Cockpit ; l’utilisateur les valide avant enregistrement.', category: 'LLM', budgetLine: 'crud' },
   { id: 'rapports', name: 'Génération de rapports', short: 'Rapports', description: 'Rédige les rapports de comité, hebdomadaires et de phase.', category: 'LLM', budgetLine: 'rapports', isNew: true, needOut: REPORTS_NEED_OUT_DEFAULT },
   { id: 'guidage', name: 'Guider l’utilisateur sur la console', short: 'Guidage console', description: 'Répond aux administrateurs : où se trouve un réglage, comment le configurer, quoi corriger.', category: 'LLM', budgetLine: 'guidage', isNew: true, scope: 'console', est: GUIDAGE_ESTIMATE },
+  { id: 'init_projet', name: 'Initialisation projet', short: 'Initialisation projet', description: 'Lit la proposition commerciale déposée dans Initialisation d’un projet et préremplit les 14 onglets du fichier d’initialisation.', category: 'LLM', budgetLine: 'init_projet', isNew: true, scope: 'console', est: INIT_PROJET_ESTIMATE, needOut: INIT_PROJET_NEED_OUT },
   { id: 'doc_vec', name: 'Vectorisation', short: 'Vectorisation', description: 'Découpe le texte extrait en passages et les transforme en vecteurs pour la recherche sémantique.', category: 'EMBEDDING', group: 'documents', step: 1, budgetLine: 'docs', noFallback: true },
   { id: 'doc_rrk', name: 'Reclassement', short: 'Reclassement', description: 'Réordonne les passages trouvés selon leur pertinence réelle par rapport à la question posée.', category: 'RERANKING', group: 'documents', step: 2, budgetLine: 'docs' },
   { id: 'doc_syn', name: 'Synthèse', short: 'Synthèse', description: 'Rédige une réponse claire à partir des passages retenus : décisions, actions, risques.', category: 'LLM', group: 'documents', step: 3, budgetLine: 'docs' },
@@ -86,6 +94,7 @@ export const AI_BUDGET_LINES: Array<{ id: string; name: string }> = [
   { id: 'crud', name: 'Création, modification et suppression des données' },
   { id: 'rapports', name: 'Génération de rapports' },
   { id: 'guidage', name: 'Guider l’utilisateur sur la console' },
+  { id: 'init_projet', name: 'Initialisation projet' },
   { id: 'docs', name: 'Documents (vectorisation, reclassement, synthèse)' },
 ];
 
@@ -104,7 +113,8 @@ export const budgetLineOf = (functionId: string) => aiFunction(functionId)?.budg
  * Les autres fonctions gardent le bouchon ; hors ligne (tests), toutes le gardent.
  */
 // Insights en génération réelle depuis le 01/10/2026 (Jev du Cockpit, cas 1 ; arbitrage du commanditaire).
-export const LIVE_FUNCTIONS: readonly AiFunctionId[] = ['guidage', 'doc_syn', 'insights', 'crud', 'rapports'];
+// Initialisation projet en génération réelle dès sa création (07/10/2026).
+export const LIVE_FUNCTIONS: readonly AiFunctionId[] = ['guidage', 'doc_syn', 'insights', 'crud', 'rapports', 'init_projet'];
 
 /**
  * Incident « IA » remonté aux notifications de la Console (01/10/2026) : un par fonction, ouvert dès que le modèle

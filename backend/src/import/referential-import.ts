@@ -44,11 +44,11 @@ const WS_STATUS: Record<string, string> = { actif: 'ACTIVE', clos: 'CLOSED' };
 const PROJECT_STATUS: Record<string, string> = { preparation: 'PREPARATION', actif: 'ACTIVE', clos: 'CLOSED' };
 
 /**
- * Ancien modèle (décision D5 du 06/10/2026) : fichier sans l'onglet « 05b Info projet » ou sans les colonnes des
+ * Ancien modèle (décision D5 du 06/10/2026) : fichier sans l'onglet « 06 Info projet » ou sans les colonnes des
  * rattachements des chantiers ; refusé, avec ce message.
  */
 export const OLD_MODEL_MESSAGE = 'Ancien modèle de fichier : téléchargez le modèle à jour (bouton « Modèle Excel ») et reportez-y vos données';
-/** Colonnes ajoutées à l'onglet « 09 Chantiers » le 06/10/2026 (choix multiple, valeurs séparées par « ; »). */
+/** Colonnes ajoutées à l'onglet « 10 Chantiers » le 06/10/2026 (choix multiple, valeurs séparées par « ; »). */
 export const WS_LINK_COLUMNS = ['Phases', 'Sous-phases', 'Dépendances'] as const;
 /** Libellés de la rubrique « Le client » repris de l'onglet « 05 Projet » (décision D2 du 06/10/2026). */
 export const CLIENT_FROM_PROJECT = { name: 'Raison sociale', sector: 'Secteur', country: 'Pays' } as const;
@@ -81,7 +81,7 @@ export interface ImportPlan {
   phases: Array<{ key: string; seq: number; code: string; name: string; wave: string; startDate: string; endDate: string; status: string; description: string | null }>;
   subphases: Array<{ key: string; phase: string; code: string; name: string; startDate: string | null; endDate: string | null; status: string; description: string | null }>;
   workstreams: Array<{ key: string; code: string; seq: number; name: string; owner: string; wave: string | null; status: string; description: string | null; phases: string[]; subphases: string[]; dependsOn: string[] | 'ALL' }>;
-  /** Objet « Info projet » (onglets 05 Projet pour « Le client » et 05b Info projet). */
+  /** Objet « Info projet » (onglets 05 Projet pour « Le client » et 06 Info projet). */
   projectInfo: ProjectInfo;
   bodies: Array<{ key: string; name: string; shortName: string; color: string; frequency: string; level: string | null; description: string | null }>;
   members: Array<{ body: string; person: string; role: string }>;
@@ -140,10 +140,15 @@ export function checkWorkbook(wb: ParsedWorkbook): CheckResult {
   const warn = (sheet: string, row: number | null, column: string | null, message: string) => issues.push({ level: 'WARNING', sheet, row, column, message, source: 'SERVER' });
 
   // 1. Structure ; ancien modèle refusé (D5) avec un message qui invite à télécharger le modèle à jour.
-  const wsCols = wb.sheets['09 Chantiers']?.columns.map((c) => c.header) ?? [];
-  const missingCols = wb.sheets['09 Chantiers'] ? WS_LINK_COLUMNS.filter((c) => !wsCols.includes(c)) : [];
-  if (wb.missingSheets.includes('05b Info projet')) err('05b Info projet', null, null, `${OLD_MODEL_MESSAGE} (onglet « 05b Info projet » absent)`);
-  if (missingCols.length) err('09 Chantiers', null, null, `${OLD_MODEL_MESSAGE} (colonne${missingCols.length > 1 ? 's' : ''} ${missingCols.map((c) => `« ${c} »`).join(', ')} absente${missingCols.length > 1 ? 's' : ''} de l'onglet 09 Chantiers)`);
+  const wsCols = wb.sheets['10 Chantiers']?.columns.map((c) => c.header) ?? [];
+  const missingCols = wb.sheets['10 Chantiers'] ? WS_LINK_COLUMNS.filter((c) => !wsCols.includes(c)) : [];
+  // Un ancien modèle (avant le 06/10/2026, ou numéroté 05b, 06 Lots… avant le 07/10/2026) n'a pas l'onglet « 06 Info
+  // projet » : un seul message, sans la liste des onglets que l'ancienne numérotation ferait paraître manquants.
+  if (wb.missingSheets.includes('06 Info projet')) {
+    err('06 Info projet', null, null, `${OLD_MODEL_MESSAGE} (onglet « 06 Info projet » absent)`);
+    return finish(issues, null, wb);
+  }
+  if (missingCols.length) err('10 Chantiers', null, null, `${OLD_MODEL_MESSAGE} (colonne${missingCols.length > 1 ? 's' : ''} ${missingCols.map((c) => `« ${c} »`).join(', ')} absente${missingCols.length > 1 ? 's' : ''} de l'onglet 10 Chantiers)`);
   for (const m of wb.missingSheets) err(m, null, null, `Onglet « ${m} » manquant`);
   if (wb.missingSheets.length || missingCols.length) return finish(issues, null, wb);
 
@@ -324,9 +329,9 @@ export function checkWorkbook(wb: ParsedWorkbook): CheckResult {
     currency: IMPORT_DEFAULTS.currency,
   };
 
-  // 05b Info projet (06/10/2026) : « Le client » commence par la raison sociale, le secteur et le pays de 05 Projet (D2) ;
+  // 06 Info projet (06/10/2026) : « Le client » commence par la raison sociale, le secteur et le pays de 05 Projet (D2) ;
   // « Programme en une phrase » et au moins un « Enjeu stratégique » sont obligatoires (D1).
-  const IP = '05b Info projet';
+  const IP = '06 Info projet';
   const info = plan.projectInfo;
   const fromProject: Array<[string, string | null]> = [[CLIENT_FROM_PROJECT.name, plan.client.name || null], [CLIENT_FROM_PROJECT.sector, plan.client.sector], [CLIENT_FROM_PROJECT.country, plan.project.country || null]];
   info.identity = fromProject.filter((x): x is [string, string] => !!x[1]);
@@ -364,77 +369,77 @@ export function checkWorkbook(wb: ParsedWorkbook): CheckResult {
   if (!info.pitch) err(IP, null, 'B', '« Programme en une phrase » est obligatoire (une ligne)');
   if (!info.stakes.length) err(IP, null, 'B', '« Enjeux stratégiques » est obligatoire (au moins une ligne)');
 
-  // 06 Lots
+  // 07 Lots
   const waveKeys = new Map<string, { row: number; start: string | null; end: string | null }>();
-  for (const r of sheet('06 Lots').rows) {
-    fileControl('06 Lots', r);
-    if (!required('06 Lots', r)) continue;
+  for (const r of sheet('07 Lots').rows) {
+    fileControl('07 Lots', r);
+    if (!required('07 Lots', r)) continue;
     const seq = Number(r.values['N°']);
     if (!Number.isInteger(seq) || seq < 1) {
-      err('06 Lots', r.row, 'C', 'N° de lot : entier ≥ 1 attendu');
+      err('07 Lots', r.row, 'C', 'N° de lot : entier ≥ 1 attendu');
       continue;
     }
     const key = `lot ${seq}`;
-    if (waveKeys.has(key)) err('06 Lots', r.row, 'C', `Lot ${seq} en double`);
-    const s = date('06 Lots', r, 'Début');
-    const e = date('06 Lots', r, 'Fin');
-    if (s && e && e < s) err('06 Lots', r.row, 'F', 'Fin avant début');
+    if (waveKeys.has(key)) err('07 Lots', r.row, 'C', `Lot ${seq} en double`);
+    const s = date('07 Lots', r, 'Début');
+    const e = date('07 Lots', r, 'Fin');
+    if (s && e && e < s) err('07 Lots', r.row, 'F', 'Fin avant début');
     const st = str(r.values['Statut']);
-    if (st && !PLAN_STATUS[normKey(st)]) err('06 Lots', r.row, 'G', `Statut « ${st} » inconnu`);
-    const owner = person('06 Lots', r.row, 'H', str(r.values['Responsable']), 'Responsable');
+    if (st && !PLAN_STATUS[normKey(st)]) err('07 Lots', r.row, 'G', `Statut « ${st} » inconnu`);
+    const owner = person('07 Lots', r.row, 'H', str(r.values['Responsable']), 'Responsable');
     waveKeys.set(key, { row: r.row, start: s, end: e });
     plan.waves.push({ key, seq, name: str(r.values['Périmètre'])!, startDate: s ?? '', endDate: e ?? '', status: st ? PLAN_STATUS[normKey(st)] ?? 'PLANNED' : 'PLANNED', owner });
   }
 
-  // 07 Phases (clé « N° · Nom »)
+  // 08 Phases (clé « N° · Nom »)
   const phaseKeys = new Map<string, { code: string; start: string | null; end: string | null }>();
-  for (const r of sheet('07 Phases').rows) {
-    fileControl('07 Phases', r);
-    if (!required('07 Phases', r)) continue;
+  for (const r of sheet('08 Phases').rows) {
+    fileControl('08 Phases', r);
+    if (!required('08 Phases', r)) continue;
     const seq = Number(r.values['N°']);
     if (!Number.isInteger(seq) || seq < 1) {
-      err('07 Phases', r.row, 'C', 'N° de phase : entier ≥ 1 attendu');
+      err('08 Phases', r.row, 'C', 'N° de phase : entier ≥ 1 attendu');
       continue;
     }
     const name = str(r.values['Nom'])!;
     const key = normKey(`${seq} · ${name}`);
-    if ([...phaseKeys.values()].some((p) => p.code === String(seq))) err('07 Phases', r.row, 'C', `Phase n°${seq} en double`);
+    if ([...phaseKeys.values()].some((p) => p.code === String(seq))) err('08 Phases', r.row, 'C', `Phase n°${seq} en double`);
     const wave = str(r.values['Lot'])!;
-    if (!waveKeys.has(normKey(wave))) err('07 Phases', r.row, 'E', `Lot « ${wave} » inconnu (onglet 06 Lots)`);
-    const s = date('07 Phases', r, 'Début');
-    const e = date('07 Phases', r, 'Fin');
-    if (s && e && e < s) err('07 Phases', r.row, 'G', 'Fin avant début');
+    if (!waveKeys.has(normKey(wave))) err('08 Phases', r.row, 'E', `Lot « ${wave} » inconnu (onglet 07 Lots)`);
+    const s = date('08 Phases', r, 'Début');
+    const e = date('08 Phases', r, 'Fin');
+    if (s && e && e < s) err('08 Phases', r.row, 'G', 'Fin avant début');
     const st = str(r.values['Statut']);
-    if (st && !PLAN_STATUS[normKey(st)]) err('07 Phases', r.row, 'H', `Statut « ${st} » inconnu`);
+    if (st && !PLAN_STATUS[normKey(st)]) err('08 Phases', r.row, 'H', `Statut « ${st} » inconnu`);
     phaseKeys.set(key, { code: String(seq), start: s, end: e });
     plan.phases.push({ key, seq, code: String(seq), name, wave: normKey(wave), startDate: s ?? '', endDate: e ?? '', status: st ? PLAN_STATUS[normKey(st)] ?? 'PLANNED' : 'PLANNED', description: str(r.values['Description']) });
   }
 
-  // 08 Sous-phases (clé « N° · Nom »)
+  // 09 Sous-phases (clé « N° · Nom »)
   const spKeys = new Map<string, { phase: string }>();
-  for (const r of sheet('08 Sous-phases').rows) {
-    fileControl('08 Sous-phases', r);
-    if (!required('08 Sous-phases', r)) continue;
+  for (const r of sheet('09 Sous-phases').rows) {
+    fileControl('09 Sous-phases', r);
+    if (!required('09 Sous-phases', r)) continue;
     const phaseLabel = str(r.values['Phase'])!;
     const ph = phaseKeys.get(normKey(phaseLabel));
-    if (!ph) err('08 Sous-phases', r.row, 'C', `Phase « ${phaseLabel} » inconnue (onglet 07 Phases)`);
+    if (!ph) err('09 Sous-phases', r.row, 'C', `Phase « ${phaseLabel} » inconnue (onglet 08 Phases)`);
     const code = String(r.values['N°']).replace(',', '.');
-    if (ph && !new RegExp(`^${ph.code}\\.\\d+$`).test(code)) err('08 Sous-phases', r.row, 'D', `N° « ${code} » : doit commencer par « ${ph.code}. »`);
+    if (ph && !new RegExp(`^${ph.code}\\.\\d+$`).test(code)) err('09 Sous-phases', r.row, 'D', `N° « ${code} » : doit commencer par « ${ph.code}. »`);
     const name = str(r.values['Nom'])!;
     const key = normKey(`${code} · ${name}`);
-    if ([...spKeys.keys()].some((k) => k.startsWith(`${normKey(code)} ·`))) err('08 Sous-phases', r.row, 'D', `Sous-phase ${code} en double`);
-    const s = date('08 Sous-phases', r, 'Début');
-    const e = date('08 Sous-phases', r, 'Fin');
-    if (s && e && e < s) err('08 Sous-phases', r.row, 'G', 'Fin avant début');
-    if (ph && ((s && ((ph.start && s < ph.start) || (ph.end && s > ph.end))) || (e && ((ph.start && e < ph.start) || (ph.end && e > ph.end))))) warn('08 Sous-phases', r.row, 'F', 'Début ou fin hors de la période de la phase');
+    if ([...spKeys.keys()].some((k) => k.startsWith(`${normKey(code)} ·`))) err('09 Sous-phases', r.row, 'D', `Sous-phase ${code} en double`);
+    const s = date('09 Sous-phases', r, 'Début');
+    const e = date('09 Sous-phases', r, 'Fin');
+    if (s && e && e < s) err('09 Sous-phases', r.row, 'G', 'Fin avant début');
+    if (ph && ((s && ((ph.start && s < ph.start) || (ph.end && s > ph.end))) || (e && ((ph.start && e < ph.start) || (ph.end && e > ph.end))))) warn('09 Sous-phases', r.row, 'F', 'Début ou fin hors de la période de la phase');
     const st = str(r.values['Statut']);
     spKeys.set(key, { phase: normKey(phaseLabel) });
     plan.subphases.push({ key, phase: normKey(phaseLabel), code, name, startDate: s, endDate: e, status: st ? PLAN_STATUS[normKey(st)] ?? 'PLANNED' : 'PLANNED', description: str(r.values['Description']) });
   }
 
-  // 09 Chantiers (clé = nom ; code attribué par le serveur dans l'ordre des lignes). Phases, sous-phases et dépendances
+  // 10 Chantiers (clé = nom ; code attribué par le serveur dans l'ordre des lignes). Phases, sous-phases et dépendances
   // (06/10/2026) : choix multiple, valeurs séparées par « ; » ; une sous-phase appartient à l'une des phases du chantier.
-  const WS = '09 Chantiers';
+  const WS = '10 Chantiers';
   const phaseOfToken = new Map<string, string>();
   for (const p of plan.phases) { phaseOfToken.set(normKey(p.code), p.key); phaseOfToken.set(normKey(p.name), p.key); phaseOfToken.set(p.key, p.key); }
   const spOfToken = new Map<string, { key: string; phase: string; code: string }>();
@@ -442,28 +447,28 @@ export function checkWorkbook(wb: ParsedWorkbook): CheckResult {
   const phaseLabel = (k: string) => { const p = plan.phases.find((x) => x.key === k); return p ? `${p.code} · ${p.name}` : k; };
   const rawDeps: Array<{ key: string; row: number; tokens: string[] }> = [];
   const wsKeys = new Map<string, number>();
-  for (const [i, r] of sheet('09 Chantiers').rows.entries()) {
-    fileControl('09 Chantiers', r);
-    if (!required('09 Chantiers', r)) continue;
+  for (const [i, r] of sheet('10 Chantiers').rows.entries()) {
+    fileControl('10 Chantiers', r);
+    if (!required('10 Chantiers', r)) continue;
     const name = str(r.values['Nom'])!;
     const k = normKey(name);
-    if (wsKeys.has(k)) err('09 Chantiers', r.row, 'C', `Chantier « ${name} » en double (ligne ${wsKeys.get(k)})`);
+    if (wsKeys.has(k)) err('10 Chantiers', r.row, 'C', `Chantier « ${name} » en double (ligne ${wsKeys.get(k)})`);
     wsKeys.set(k, r.row);
-    const owner = person('09 Chantiers', r.row, 'D', str(r.values['Responsable']), 'Responsable');
+    const owner = person('10 Chantiers', r.row, 'D', str(r.values['Responsable']), 'Responsable');
     const wave = str(r.values['Lot']);
-    if (wave && !waveKeys.has(normKey(wave))) err('09 Chantiers', r.row, 'E', `Lot « ${wave} » inconnu`);
+    if (wave && !waveKeys.has(normKey(wave))) err('10 Chantiers', r.row, 'E', `Lot « ${wave} » inconnu`);
     const st = str(r.values['Statut']);
-    if (st && !WS_STATUS[normKey(st)]) err('09 Chantiers', r.row, 'F', `Statut « ${st} » inconnu`);
+    if (st && !WS_STATUS[normKey(st)]) err('10 Chantiers', r.row, 'F', `Statut « ${st} » inconnu`);
     const phases: string[] = [];
     for (const t of multiValues(r.values['Phases'])) {
       const p = phaseOfToken.get(normKey(t));
-      if (!p) err(WS, r.row, colLetter(WS, 'Phases'), `Phase « ${t} » inconnue (onglet 07 Phases)`);
+      if (!p) err(WS, r.row, colLetter(WS, 'Phases'), `Phase « ${t} » inconnue (onglet 08 Phases)`);
       else if (!phases.includes(p)) phases.push(p);
     }
     const subphases: string[] = [];
     for (const t of multiValues(r.values['Sous-phases'])) {
       const s = spOfToken.get(normKey(t));
-      if (!s) err(WS, r.row, colLetter(WS, 'Sous-phases'), `Sous-phase « ${t} » inconnue (onglet 08 Sous-phases)`);
+      if (!s) err(WS, r.row, colLetter(WS, 'Sous-phases'), `Sous-phase « ${t} » inconnue (onglet 09 Sous-phases)`);
       else if (!phases.includes(s.phase)) err(WS, r.row, colLetter(WS, 'Sous-phases'), `Sous-phase ${s.code} hors des phases du chantier : sa phase « ${phaseLabel(s.phase)} » n’est pas dans la colonne Phases`);
       else if (!subphases.includes(s.key)) subphases.push(s.key);
     }
@@ -482,7 +487,7 @@ export function checkWorkbook(wb: ParsedWorkbook): CheckResult {
     }
     for (const t of d.tokens) {
       const dep = wsOfToken(t);
-      if (!dep) err(WS, d.row, depCol, `Chantier « ${t} » inconnu (onglet 09 Chantiers)`);
+      if (!dep) err(WS, d.row, depCol, `Chantier « ${t} » inconnu (onglet 10 Chantiers)`);
       else if (dep === d.key) err(WS, d.row, depCol, `Le chantier « ${w.name} » dépend de lui-même`);
       else if (!(w.dependsOn as string[]).includes(dep)) (w.dependsOn as string[]).push(dep);
     }
@@ -493,84 +498,84 @@ export function checkWorkbook(wb: ParsedWorkbook): CheckResult {
     err(WS, wsKeys.get(cycle[0]) ?? null, depCol, `Dépendance circulaire : ${cycle.map(nm).join(' → ')}`);
   }
 
-  // 10 Instances
+  // 11 Instances
   const bodyKeys = new Map<string, number>();
   const shortNames = new Map<string, number>();
-  for (const r of sheet('10 Instances').rows) {
-    fileControl('10 Instances', r);
-    if (!required('10 Instances', r)) continue;
+  for (const r of sheet('11 Instances').rows) {
+    fileControl('11 Instances', r);
+    if (!required('11 Instances', r)) continue;
     const name = str(r.values['Nom'])!;
     const short = str(r.values['Nom court'])!;
-    if (bodyKeys.has(normKey(name))) err('10 Instances', r.row, 'B', `Instance « ${name} » en double`);
+    if (bodyKeys.has(normKey(name))) err('11 Instances', r.row, 'B', `Instance « ${name} » en double`);
     bodyKeys.set(normKey(name), r.row);
-    if (shortNames.has(normKey(short))) err('10 Instances', r.row, 'C', `Nom court « ${short} » en double`);
+    if (shortNames.has(normKey(short))) err('11 Instances', r.row, 'C', `Nom court « ${short} » en double`);
     shortNames.set(normKey(short), r.row);
     const colorLabel = str(r.values['Couleur'])!;
     const color = COLOR_NAMES[normKey(colorLabel)] ?? (/^#[0-9a-f]{6}$/i.test(colorLabel) ? colorLabel.toUpperCase() : null);
-    if (!color) err('10 Instances', r.row, 'D', `Couleur « ${colorLabel} » inconnue`);
+    if (!color) err('11 Instances', r.row, 'D', `Couleur « ${colorLabel} » inconnue`);
     const fr = str(r.values['Fréquence'])!;
     const frequency = FREQ[normKey(fr)];
-    if (!frequency) err('10 Instances', r.row, 'F', `Fréquence « ${fr} » inconnue`);
+    if (!frequency) err('11 Instances', r.row, 'F', `Fréquence « ${fr} » inconnue`);
     const lv = str(r.values['Niveau']);
-    if (lv && !LEVEL[normKey(lv)]) err('10 Instances', r.row, 'G', `Niveau « ${lv} » inconnu`);
+    if (lv && !LEVEL[normKey(lv)]) err('11 Instances', r.row, 'G', `Niveau « ${lv} » inconnu`);
     plan.bodies.push({ key: normKey(name), name, shortName: short, color: color ?? '#8A9AA6', frequency: frequency ?? 'ON_DEMAND', level: lv ? LEVEL[normKey(lv)] ?? null : null, description: str(r.values['Rôle de l’instance']) ?? str(r.values["Rôle de l'instance"]) });
   }
 
-  // 11 Membres
+  // 12 Membres
   const memberSeen = new Set<string>();
   const bodiesWithMembers = new Set<string>();
-  for (const r of sheet('11 Membres').rows) {
-    fileControl('11 Membres', r);
-    if (!required('11 Membres', r)) continue;
+  for (const r of sheet('12 Membres').rows) {
+    fileControl('12 Membres', r);
+    if (!required('12 Membres', r)) continue;
     const b = str(r.values['Instance'])!;
-    if (!bodyKeys.has(normKey(b))) err('11 Membres', r.row, 'B', `Instance « ${b} » inconnue (onglet 10 Instances)`);
-    const p = person('11 Membres', r.row, 'C', str(r.values['Personne']));
+    if (!bodyKeys.has(normKey(b))) err('12 Membres', r.row, 'B', `Instance « ${b} » inconnue (onglet 11 Instances)`);
+    const p = person('12 Membres', r.row, 'C', str(r.values['Personne']));
     const k = `${normKey(b)}|${p}`;
-    if (memberSeen.has(k)) err('11 Membres', r.row, 'C', 'Membre en double dans cette instance');
+    if (memberSeen.has(k)) err('12 Membres', r.row, 'C', 'Membre en double dans cette instance');
     memberSeen.add(k);
     const rl = str(r.values['Rôle dans l’instance']) ?? str(r.values["Rôle dans l'instance"]);
-    if (rl && !MEMBER_ROLE[normKey(rl)]) err('11 Membres', r.row, 'D', `Rôle « ${rl} » inconnu`);
+    if (rl && !MEMBER_ROLE[normKey(rl)]) err('12 Membres', r.row, 'D', `Rôle « ${rl} » inconnu`);
     bodiesWithMembers.add(normKey(b));
     if (p) plan.members.push({ body: normKey(b), person: p, role: rl ? MEMBER_ROLE[normKey(rl)] ?? IMPORT_DEFAULTS.memberRole : IMPORT_DEFAULTS.memberRole });
   }
-  for (const b of plan.bodies) if (!bodiesWithMembers.has(b.key)) warn('10 Instances', bodyKeys.get(b.key) ?? null, 'I', `L'instance « ${b.name} » n'a aucun membre`);
+  for (const b of plan.bodies) if (!bodiesWithMembers.has(b.key)) warn('11 Instances', bodyKeys.get(b.key) ?? null, 'I', `L'instance « ${b.name} » n'a aucun membre`);
 
-  // 12 Jalons (code attribué par le serveur dans l'ordre des lignes)
-  for (const [i, r] of sheet('12 Jalons').rows.entries()) {
-    fileControl('12 Jalons', r);
-    if (!required('12 Jalons', r)) continue;
+  // 13 Jalons (code attribué par le serveur dans l'ordre des lignes)
+  for (const [i, r] of sheet('13 Jalons').rows.entries()) {
+    fileControl('13 Jalons', r);
+    if (!required('13 Jalons', r)) continue;
     const phaseLabel = str(r.values['Phase'])!;
     const ph = phaseKeys.get(normKey(phaseLabel));
-    if (!ph) err('12 Jalons', r.row, 'D', `Phase « ${phaseLabel} » inconnue`);
+    if (!ph) err('13 Jalons', r.row, 'D', `Phase « ${phaseLabel} » inconnue`);
     const spLabel = str(r.values['Sous-phase']);
     if (spLabel) {
       const sp = spKeys.get(normKey(spLabel));
-      if (!sp) err('12 Jalons', r.row, 'E', `Sous-phase « ${spLabel} » inconnue`);
-      else if (sp.phase !== normKey(phaseLabel)) err('12 Jalons', r.row, 'E', `La sous-phase « ${spLabel} » n'appartient pas à la phase « ${phaseLabel} »`);
+      if (!sp) err('13 Jalons', r.row, 'E', `Sous-phase « ${spLabel} » inconnue`);
+      else if (sp.phase !== normKey(phaseLabel)) err('13 Jalons', r.row, 'E', `La sous-phase « ${spLabel} » n'appartient pas à la phase « ${phaseLabel} »`);
     }
     const ws = str(r.values['Chantier']);
-    if (ws && !wsKeys.has(normKey(ws))) err('12 Jalons', r.row, 'F', `Chantier « ${ws} » inconnu`);
+    if (ws && !wsKeys.has(normKey(ws))) err('13 Jalons', r.row, 'F', `Chantier « ${ws} » inconnu`);
     const wave = str(r.values['Lot']);
-    if (wave && !waveKeys.has(normKey(wave))) err('12 Jalons', r.row, 'G', `Lot « ${wave} » inconnu`);
-    const owner = person('12 Jalons', r.row, 'H', str(r.values['Responsable']), 'Responsable');
-    const iso = date('12 Jalons', r, 'Date prévue');
-    const base = date('12 Jalons', r, 'Date de référence');
-    if (iso && ph && ((ph.start && iso < ph.start) || (ph.end && iso > ph.end))) warn('12 Jalons', r.row, 'I', 'Date prévue hors de la période de la phase');
+    if (wave && !waveKeys.has(normKey(wave))) err('13 Jalons', r.row, 'G', `Lot « ${wave} » inconnu`);
+    const owner = person('13 Jalons', r.row, 'H', str(r.values['Responsable']), 'Responsable');
+    const iso = date('13 Jalons', r, 'Date prévue');
+    const base = date('13 Jalons', r, 'Date de référence');
+    if (iso && ph && ((ph.start && iso < ph.start) || (ph.end && iso > ph.end))) warn('13 Jalons', r.row, 'I', 'Date prévue hors de la période de la phase');
     plan.milestones.push({ code: `J${String(i + 1).padStart(2, '0')}`, n: str(r.values['Libellé'])!, phase: normKey(phaseLabel), subphase: spLabel ? normKey(spLabel) : null, ws: ws ? normKey(ws) : null, wave: wave ? normKey(wave) : null, owner, iso: iso ?? '', baselineIso: base });
   }
 
-  // 13 Livrables
-  for (const r of sheet('13 Livrables').rows) {
-    fileControl('13 Livrables', r);
-    if (!required('13 Livrables', r)) continue;
+  // 14 Livrables
+  for (const r of sheet('14 Livrables').rows) {
+    fileControl('14 Livrables', r);
+    if (!required('14 Livrables', r)) continue;
     const spLabel = str(r.values['Sous-phase'])!;
-    if (!spKeys.has(normKey(spLabel))) err('13 Livrables', r.row, 'C', `Sous-phase « ${spLabel} » inconnue`);
+    if (!spKeys.has(normKey(spLabel))) err('14 Livrables', r.row, 'C', `Sous-phase « ${spLabel} » inconnue`);
     const ws = str(r.values['Chantier']);
-    if (ws && !wsKeys.has(normKey(ws))) err('13 Livrables', r.row, 'D', `Chantier « ${ws} » inconnu`);
-    const owner = person('13 Livrables', r.row, 'E', str(r.values['Responsable']), 'Responsable');
-    const s = date('13 Livrables', r, 'Début');
-    const due = date('13 Livrables', r, 'Échéance');
-    if (s && due && due < s) err('13 Livrables', r.row, 'G', 'Échéance avant début');
+    if (ws && !wsKeys.has(normKey(ws))) err('14 Livrables', r.row, 'D', `Chantier « ${ws} » inconnu`);
+    const owner = person('14 Livrables', r.row, 'E', str(r.values['Responsable']), 'Responsable');
+    const s = date('14 Livrables', r, 'Début');
+    const due = date('14 Livrables', r, 'Échéance');
+    if (s && due && due < s) err('14 Livrables', r.row, 'G', 'Échéance avant début');
     plan.deliverables.push({ name: str(r.values['Nom'])!, subphase: normKey(spLabel), ws: ws ? normKey(ws) : null, owner: owner ?? '', start: s, due: due ?? '' });
   }
 
