@@ -1573,3 +1573,14 @@ Demande du commanditaire : un onglet « Info projet » dans le modèle Excel ; d
 | Référentiel du Cockpit | Colonne « sous-phases » en fin de table des chantiers (7e position : les écrans lisent les phases en 6e), codes séparés par des espaces ; sélecteur limité aux sous-phases des phases cochées | `withSubphaseCol` (`bootstrap.service.ts`) |
 | Planning | Vue « un chantier » : ses sous-phases s'il en a, sinon les sous-phases de ses phases sur sa période | `plVals` |
 | Jev du Cockpit | Vue `jev_cockpit.chantiers_sous_phases` (filtrée par droits comme `chantiers_phases`) | `prisma/migrations/20261113000100_jev_cockpit_chantiers_sous_phases` |
+
+## Modèle DeepSeek V4.1 (06/10/2026)
+
+Demande du commanditaire : ajouter « Deepseek V4.1 » au fournisseur de LLM, avec toutes ses métadonnées.
+
+| Sujet | Choix | Code |
+|---|---|---|
+| Version | DeepSeek V4.1 Flash (`deepseek/deepseek-v4.1-flash`, sortie le 10/09/2026) : seule version V4.1 publiée (pas de V4.1 Pro au 06/10/2026) | `prisma/catalog/ia-modeles.ts` |
+| Fournisseur | OpenRouter, comme les derniers ajouts (pas de fournisseur DeepSeek direct dans la Console) | — |
+| Métadonnées | Contexte 1 048 576 tokens, max output 943 718, tarif routé 0,04345 $ / 1,32 $ par M tokens (0,0381 € / 1,1576 €), description d'après la fiche Hugging Face ; mesures OpenRouter relevées (Intelligence Index 39,5, coût par session 0,0491 €, 226 tok/s) | `ModelStatsService` |
+| Insertion | Modèle seul inséré par le script du catalogue, nouvelle option `--modele "<nom>"` (ne touche ni aux autres modèles ni aux affectations) | `scripts/ia-catalogue.ts` |

@@ -3,6 +3,7 @@
  *
  *   npm run ia:catalogue                 affiche ce qui serait ajouté ou mis à jour
  *   npm run ia:catalogue -- --confirmer  l'applique (tracé au journal d'audit)
+ *   npm run ia:catalogue -- --modele "<nom>" [--confirmer]   un seul modèle, sans toucher aux autres ni aux affectations
  *
  * - Fournisseur absent : créé sans clé (« Non testée ») ; la clé se saisit dans la console.
  * - Modèle : retrouvé par fournisseur et nom (sans tenir compte de la casse), sinon créé.
@@ -20,6 +21,9 @@ const audit = (db: PrismaClient, action: string, target: string, entityType: str
 
 async function main(): Promise<number> {
   const apply = process.argv.includes('--confirmer');
+  const only = process.argv.includes('--modele') ? process.argv[process.argv.indexOf('--modele') + 1] : null;
+  const models = only ? CATALOG_MODELS.filter((m) => m.name.toLowerCase() === only.toLowerCase()) : CATALOG_MODELS;
+  if (only && !models.length) throw new Error(`Modèle « ${only} » absent du catalogue`);
   const db = new PrismaClient();
   const today = new Date().toISOString().slice(0, 10);
   try {
@@ -32,7 +36,7 @@ async function main(): Promise<number> {
         await audit(db, 'Ajout d’un fournisseur LLM', `${p.name} · sans clé (${p.note})`, 'Provider', p.id, 'CRITICAL');
       }
     }
-    for (const m of CATALOG_MODELS) {
+    for (const m of models) {
       if (!(await db.provider.findUnique({ where: { id: m.providerId } }))) throw new Error(`Fournisseur ${m.providerId} absent : ${m.name} ne peut pas être ajouté`);
       if (m.releaseDate > today) throw new Error(`${m.name} : date de sortie dans le futur`);
       const priced = normalizePrice(m.category, { unit: 'TOKENS', in: toEur(m.usd.in), out: m.usd.out == null ? null : toEur(m.usd.out) });
@@ -68,7 +72,7 @@ async function main(): Promise<number> {
       }
     }
     // Affectations par défaut : seulement si la fonction n'est pas encore affectée (un choix de l'administrateur est gardé).
-    for (const a of CATALOG_ASSIGNMENTS) {
+    for (const a of only ? [] : CATALOG_ASSIGNMENTS) {
       if (await db.modelAssignment.findUnique({ where: { functionId: a.functionId } })) { console.log(`= affectation ${a.functionId} : déjà présente`); continue; }
       const find = ([pv, n]: [string, string]) => db.aiModel.findFirst({ where: { providerId: pv, name: { equals: n, mode: 'insensitive' } } });
       const [p, f] = [await find(a.primary), await find(a.fallback)];

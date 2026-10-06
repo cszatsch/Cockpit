@@ -190,6 +190,14 @@ export const OPENROUTER_MODELS: CatalogModel[] = [
     releaseDate: '2026-09-21', maxOutputTokens: 131_072, contextTokens: 1_050_000, usd: { in: 0.435, out: 0.87 },
     sources: ['https://openrouter.ai/xiaomi/mimo-v2.6-pro', 'https://openrouter.ai/api/v1/models'],
   },
+  // Ajout du 06/10/2026 (demande du commanditaire : « Deepseek V4.1 ») : seule version V4.1 publiée, la Flash.
+  {
+    providerId: 'openrouter', name: 'DeepSeek: DeepSeek V4.1 Flash', apiId: 'deepseek/deepseek-v4.1-flash', category: 'LLM',
+    description: 'Mixture d’experts multimodale (texte et image) de DeepSeek, 552 Md de paramètres, premier modèle à architecture Causal Encoder-Decoder : 8 Md de paramètres actifs en lecture, 16 Md en génération ; raisonnement réglable ; licence MIT.',
+    releaseDate: '2026-09-10', maxOutputTokens: 943_718, contextTokens: 1_048_576, usd: { in: 0.04345, out: 1.32 },
+    sources: ['https://openrouter.ai/deepseek/deepseek-v4.1-flash', 'https://openrouter.ai/api/v1/models', 'https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash'],
+    note: 'Tarif et max output routés par OpenRouter ; varient selon le fournisseur (DeepSeek en direct : 0,15 $ / 0,60 $ par M tokens, 393 216 tokens en sortie).',
+  },
 ];
 
 CATALOG_MODELS.push(...OPENROUTER_MODELS);

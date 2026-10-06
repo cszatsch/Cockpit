@@ -489,6 +489,11 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 - **Tests** : règles (`test/unit/workstream-links.spec.ts`), Référentiel (sous-phases, D3, boucle), import (ancien modèle, Info projet, cas d'erreur des chantiers, création réelle).
 - **Écart** : les chantiers importés reçoivent désormais leurs phases (auparavant, seul le lot était repris).
 
+### Modèle DeepSeek V4.1 Flash (06/10/2026)
+
+- Ajouté au catalogue (OpenRouter) avec description, date de sortie, contexte, max output, tarif et mesures OpenRouter ; inséré dans la base locale par `npm run ia:catalogue -- --modele "DeepSeek: DeepSeek V4.1 Flash" --confirmer` (nouvelle option).
+- Écart : la demande visait « V4.1 » ; seule la version Flash existe.
+
 ## 4. Questions ouvertes
 
 1. **Déclencheur des règles de notification** : faut-il ajouter un sélecteur de déclencheur dans la console ? Aujourd'hui, une règle créée depuis l'écran reçoit un déclencheur par défaut : « planifié » pour une notification, « manuel » pour une alerte.

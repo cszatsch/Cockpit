@@ -33,7 +33,7 @@ npm run db:reset
 npm run openapi         # régénère backend/openapi.json (versionné)
 npm run init:admin      # compte initial (RISE_INITIAL_ADMIN_PASSWORD, jamais dans un fichier)
 npm run ia:reinitialiser -- --confirmer   # supprime modèles d'IA, affectation et consommation (fournisseurs gardés)
-npm run ia:catalogue -- --confirmer       # applique le catalogue des modèles (prisma/catalog/ia-modeles.ts) ; sans l'option : simulation
+npm run ia:catalogue -- --confirmer       # applique le catalogue des modèles (prisma/catalog/ia-modeles.ts) ; sans l'option : simulation ; --modele "<nom>" : un seul modèle
 npm run jev:reponses                      # banc des réponses de Jev : 50 questions en réel (coût ~1 à 2 €), Excel dans docs/aiguillage-jev
 npm run dictionnaire:charger              # recharge les dictionnaires des données (Console : jev-dictionnaire.ts, Cockpit : jev-dictionnaire-cockpit.ts) en base
 npm run dictionnaire:doc                  # régénère docs/specs/JEV CONSOLE (et JEV COCKPIT) - dictionnaire des donnees.md
