@@ -1653,3 +1653,13 @@ Demande du commanditaire : accélérer l'analyse (format de réponse compact et 
 | Interruption et reprise | Les onglets déjà partis de la vague vont à leur terme et sont conservés ; l'onglet en échec est le premier de la vague ; la reprise ne relance que les onglets manquants ; résultats enregistrés à leur place (14 cases) | `PrefillService.run` |
 | Écran | Tous les onglets en cours sont « lecture… » (`ongletsEnCours` de l'événement `progression`) ; le titre nomme le premier | `Initialisation projet.dc.html` |
 | Temps restant | Temps écoulé par onglet terminé × onglets restants, lissé comme avant | `rawEta`, `smoothEta` |
+
+### Préremplissage : réinitialisation (07/10/2026)
+
+Demande du commanditaire : une icône pour réinitialiser le préremplissage dans la vue « Initialisation d'un projet ».
+
+| Sujet | Choix | Code |
+|---|---|---|
+| Icône | Flèche circulaire en fin de ligne du fichier (après « analysé en N s »), visible dès qu'un fichier est déposé ; infobulle « Réinitialiser le préremplissage » | `Initialisation projet.dc.html` (`resetFn`) |
+| Effet | Retour à l'état initial ; côté serveur, analyse en cours arrêtée, fichiers, texte, résultats et Excel prérempli supprimés aussitôt (sans attendre l'échéance de 24 h) ; message « Préremplissage réinitialisé » ; pas de confirmation (les fichiers restent chez l'utilisateur, une nouvelle analyse est possible) | `DELETE /api/admin/projects/prefill/proposals/:id`, `PrefillService.forget` |
+| Journal | « Préremplissage : réinitialisé » : nom, taille, nombre de fichiers et d'analyses, sans contenu | `PrefillService.forget` |

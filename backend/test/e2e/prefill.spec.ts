@@ -312,6 +312,32 @@ describe('Initialisation d’un projet — préremplissage par IA', () => {
     await request(t.app.getHttpServer()).get(`${P}/tasks/${taskId}/excel`).set('Authorization', `Bearer ${tok}`).expect(409);
   });
 
+  it('réinitialisation : analyse arrêtée, fichiers, texte, résultat et Excel supprimés aussitôt ; tracée sans contenu', async () => {
+    // Analyse terminée : l'Excel et le résultat disparaissent.
+    const a = await start();
+    await stream(a.taskId);
+    const excelKey = (await t.db.prefillTask.findUniqueOrThrow({ where: { id: a.taskId } })).excelKey!;
+    await request(t.app.getHttpServer()).delete(`${P}/proposals/${a.doc.id}`).set('Authorization', `Bearer ${tok}`).expect(204);
+    expect(await t.db.prefillDocument.findUnique({ where: { id: a.doc.id } })).toBeNull();
+    expect(await t.db.prefillTask.findUnique({ where: { id: a.taskId } })).toBeNull();
+    expect(await t.app.get(StorageService).get(excelKey)).toBeNull();
+    await request(t.app.getHttpServer()).get(`${P}/tasks/${a.taskId}/checks`).set('Authorization', `Bearer ${tok}`).expect(404);
+    // Analyse en cours : arrêtée, plus aucun onglet lancé.
+    delayMs = 150;
+    const b = await start();
+    await new Promise((r) => setTimeout(r, 300));
+    await request(t.app.getHttpServer()).delete(`${P}/proposals/${b.doc.id}`).set('Authorization', `Bearer ${tok}`).expect(204);
+    const n = prompts.length;
+    await new Promise((r) => setTimeout(r, 600));
+    expect(prompts.length).toBeLessThanOrEqual(n + 1);
+    expect(await t.db.prefillDocument.count({ where: { id: b.doc.id } })).toBe(0);
+    await request(t.app.getHttpServer()).delete(`${P}/proposals/${b.doc.id}`).set('Authorization', `Bearer ${tok}`).expect(404);
+    const audit = await t.db.auditEntry.findFirstOrThrow({ where: { action: 'Préremplissage : réinitialisé' }, orderBy: { at: 'desc' } });
+    expect(Object.keys(audit.newValue as any).sort()).toEqual(['analyses', 'fichiers', 'nom', 'taille']);
+    // Réservé à l'Administrateur.
+    await request(t.app.getHttpServer()).delete(`${P}/proposals/x`).set('Authorization', `Bearer ${await t.token(WHO.pmo)}`).expect(403);
+  });
+
   it('confidentialité : journal sans contenu ; purge à l’échéance (24 h par défaut)', async () => {
     const audits = await t.db.auditEntry.findMany({ where: { entityType: 'PREFILL' } });
     expect(audits.length).toBeGreaterThan(3);

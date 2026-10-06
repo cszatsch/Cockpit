@@ -86,6 +86,7 @@ button:focus-visible{outline:2px solid #3dd6c6;outline-offset:2px}
           <span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#8fa3b3;white-space:nowrap">{{ fileMeta }}</span>
           <span style="flex:1;height:1px;background:rgba(255,255,255,.08);min-width:20px"></span>
           <span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#8fa3b3;white-space:nowrap">{{ fileRight }}</span>
+          <button type="button" onClick="{{ resetFn }}" title="Réinitialiser le préremplissage" aria-label="Réinitialiser le préremplissage" style="width:28px;height:28px;flex:none;border-radius:8px;border:0;background:transparent;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);color:#8fa3b3;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:color .15s,background .15s,box-shadow .15s" style-hover="color:#fff;background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.4-5.7 M4 4v4h4"></path></svg></button>
         </div>
       </sc-if>
 
@@ -267,7 +268,7 @@ class Component extends DCLogic {
       else{this.reset();this.say(e&&e.message||'Import impossible')}});
   }
   analyse(d){
-    this.setState({phase:'analyse',up:100,idx:0,file:{name:d.nom,size:d.taille,pages:d.pages,count:(d.fichiers||[]).length||1},res:[],prog:null,running:[0]});
+    this.setState({phase:'analyse',up:100,idx:0,file:{name:d.nom,size:d.taille,pages:d.pages,count:(d.fichiers||[]).length||1},res:[],prog:null,running:[0],docId:d.id});
     this.api.analyse(d.id).then(r=>{this.setState({taskId:r.tacheId});this.follow(r.tacheId)},e=>{this.reset();this.say(e.message)});
   }
   /** Flux de l'analyse : onglets terminés rejoués, puis en direct. */
@@ -281,6 +282,15 @@ class Component extends DCLogic {
       else if(type==='erreur')this.setState({phase:'err-analyse',failIdx:e.ongletIndex,kept:e.ongletsConserves,idx:e.ongletIndex});
       else if(type==='annule')this.reset();
     });
+  }
+  /** Réinitialisation (icône de la ligne du fichier) : retour à l'état initial ; côté serveur, tout est supprimé. */
+  forget(){
+    const id=this.state.docId;
+    this.close();
+    if(this.api&&id)this.api.forget(id).catch(()=>{});
+    if(this.api)this.reset();else this.go('initial');
+    this.setState({docId:null});
+    this.say('Préremplissage réinitialisé');
   }
   cancel(){
     const id=this.state.taskId;
@@ -414,6 +424,7 @@ class Component extends DCLogic {
       stageSt:`position:relative;border-radius:28px;background:#10233a;color:#dfe8ee;overflow:hidden;box-shadow:${hot?'0 0 0 2px #3dd6c6,0 40px 90px -40px rgba(61,214,198,.55)':'0 40px 80px -48px rgba(10,23,39,.9)'};transform:${hot?'scale(1.005)':'none'};transition:box-shadow .3s,transform .3s cubic-bezier(.2,.7,.2,1);animation:rise .5s cubic-bezier(.2,.7,.2,1) both`,
       glowSt:`position:absolute;right:-160px;top:-220px;width:640px;height:640px;border-radius:50%;pointer-events:none;background:radial-gradient(closest-side,${glowC},transparent);transition:background .6s`,
       dashSt:`position:absolute;inset:12px;border-radius:20px;border:1.5px dashed rgba(61,214,198,.55);pointer-events:none;opacity:${hot?1:0};transition:opacity .25s`,
+      resetFn:()=>this.forget(),
       hasFile:!!file&&p!=='initial'&&p!=='hover',fileName:file?label(file):'',fileMeta,fileRight,
       fileIcoSt:`width:30px;height:30px;flex:none;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;background:${isErr?'rgba(255,138,148,.12)':'rgba(255,255,255,.07)'};color:${isErr?'#ff8a94':'#3dd6c6'}`,
       tiles,hasNext:isRes,hasAlt:!live&&!isRes,hasReview:p==='partial',

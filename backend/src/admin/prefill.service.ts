@@ -153,6 +153,23 @@ export class PrefillService implements OnModuleInit {
     return { tacheId: taskId, ongletIndex: t.tabIndex };
   }
 
+  /**
+   * Réinitialisation (07/10/2026, icône de l'écran) : analyse en cours arrêtée, puis fichiers, texte, résultats et Excel
+   * prérempli supprimés aussitôt, sans attendre l'échéance. Le journal garde la trace (métadonnées seulement).
+   */
+  async forget(actor: Actor, documentId: string) {
+    const d = await this.prisma.prefillDocument.findUnique({ where: { id: documentId }, include: { tasks: true } });
+    if (!d) throw notFound('Proposition introuvable');
+    for (const t of d.tasks) {
+      const l = this.live.get(t.id);
+      if (l) { l.cancelled = true; this.emit(t.id, { type: 'annule' }, true); }
+    }
+    const files = (d.files as unknown as PrefillFile[]) ?? [];
+    for (const k of new Set([d.fileKey, d.textKey, ...files.map((f) => f.cle), ...d.tasks.map((t) => t.excelKey)])) if (k) await this.storage.remove(k);
+    await this.prisma.prefillDocument.delete({ where: { id: documentId } });
+    await this.audit.action(this.prisma, adminCtx(actor), { action: 'Préremplissage : réinitialisé', target: d.name, severity: 'INFO', entityType: 'PREFILL', entityId: documentId, details: { nom: d.name, taille: d.sizeBytes, fichiers: files.length, analyses: d.tasks.length } });
+  }
+
   /** Annulation : la tâche s'arrête (aucun onglet de plus) ; le document et son texte sont supprimés. */
   async cancel(actor: Actor, taskId: string) {
     const t = await this.prisma.prefillTask.findUnique({ where: { id: taskId }, include: { document: true } });

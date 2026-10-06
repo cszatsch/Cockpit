@@ -10468,6 +10468,34 @@
         ]
       }
     },
+    "/api/admin/projects/prefill/proposals/{id}": {
+      "delete": {
+        "operationId": "PrefillController_forget",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · initialisation · préremplissage"
+        ]
+      }
+    },
     "/api/admin/projects/prefill/proposals/{id}/analysis": {
       "post": {
         "operationId": "PrefillController_analyse",

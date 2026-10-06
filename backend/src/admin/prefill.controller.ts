@@ -48,6 +48,13 @@ export class PrefillController {
     return this.prefill.example(actor);
   }
 
+  /** Réinitialisation : analyse arrêtée, fichiers, texte, résultats et Excel prérempli supprimés aussitôt. */
+  @Delete('proposals/:id')
+  @HttpCode(204)
+  forget(@CurrentActor() actor: Actor, @Param('id') id: string) {
+    return this.prefill.forget(actor, id);
+  }
+
   /** Lance l'analyse asynchrone → `{ tacheId }`. */
   @Post('proposals/:id/analysis')
   @HttpCode(202)

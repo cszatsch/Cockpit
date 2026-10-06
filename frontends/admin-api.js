@@ -980,6 +980,8 @@ export function bindPrefill(c) {
       return () => ctl.abort();
     },
     cancel: id => del(P + '/tasks/' + encodeURIComponent(id)),
+    /** Réinitialisation : analyse arrêtée, fichiers, texte, résultats et Excel prérempli supprimés côté serveur. */
+    forget: id => del(P + '/proposals/' + encodeURIComponent(id)),
     resume: id => post(P + '/tasks/' + encodeURIComponent(id) + '/resume').catch(fail),
     checks: id => get(P + '/tasks/' + encodeURIComponent(id) + '/checks').catch(fail),
     /** Excel prérempli, sous le nom donné par le serveur (« … · prérempli.xlsx ») ; renvoie ce nom. */
