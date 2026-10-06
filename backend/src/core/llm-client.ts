@@ -30,6 +30,11 @@ export interface LiveCall {
   maxTokens: number;
   /** Délai de l'appel (ms) ; défaut `LLM_CALL_TIMEOUT_MS`. */
   timeoutMs?: number;
+  /**
+   * Raisonnement du modèle (07/10/2026) : `off` le coupe chez OpenRouter (`reasoning.enabled = false`, réflexion exclue
+   * de la réponse) ; un modèle qui l'impose est relancé avec une réflexion réduite (`effort: low`). Sinon : réglage du modèle.
+   */
+  reasoning?: 'off';
 }
 
 export interface LiveResult {
@@ -161,13 +166,26 @@ export class LlmClient {
       const text = (j?.candidates?.[0]?.content?.parts ?? []).map((x: any) => x?.text ?? '').join('').trim();
       return { ...this.result('Google Gemini', text, j?.usageMetadata?.promptTokenCount, j?.usageMetadata?.candidatesTokenCount), cacheRead: num(j?.usageMetadata?.cachedContentTokenCount), cacheWrite: 0 };
     }
-    const j = await this.post(p.label, `${p.base}/chat/completions`, { Authorization: `Bearer ${c.key}` }, {
+    const body = {
       // Partie stable, historique, puis partie variable : le préfixe (système + historique) profite du cache automatique.
       model: c.model, [p.maxField]: c.maxTokens,
       messages: [{ role: 'system', content: c.system }, ...(c.history ?? []), ...(c.systemTail ? [{ role: 'system', content: c.systemTail }] : []), { role: 'user', content: c.prompt }],
-    }, c.key, c.timeoutMs);
-    const text = String(j?.choices?.[0]?.message?.content ?? '').trim();
-    return { ...this.result(p.label, text, j?.usage?.prompt_tokens, j?.usage?.completion_tokens), cacheRead: num(j?.usage?.prompt_tokens_details?.cached_tokens), cacheWrite: 0 };
+    };
+    const off = c.reasoning === 'off' && p.label === 'OpenRouter';
+    let j: any;
+    try {
+      j = await this.post(p.label, `${p.base}/chat/completions`, { Authorization: `Bearer ${c.key}` }, off ? { ...body, reasoning: { enabled: false, exclude: true } } : body, c.key, c.timeoutMs);
+    } catch (e) {
+      // Modèle dont le raisonnement est obligatoire : refus du réglage → réflexion réduite au minimum.
+      if (!(off && e instanceof LlmCallError && / 400\b.*reason/i.test(e.message))) throw e;
+      j = await this.post(p.label, `${p.base}/chat/completions`, { Authorization: `Bearer ${c.key}` }, { ...body, reasoning: { effort: 'low', exclude: true } }, c.key, c.timeoutMs);
+    }
+    const choice = j?.choices?.[0];
+    const text = String(choice?.message?.content ?? '').trim();
+    // Réponse vide : motif d'arrêt et part de raisonnement, pour le diagnostic (« length » : budget de jetons épuisé).
+    const reasoningTokens = num(j?.usage?.completion_tokens_details?.reasoning_tokens);
+    const why = `arrêt : ${choice?.finish_reason ?? 'inconnu'}${reasoningTokens ? ` · raisonnement : ${reasoningTokens} jetons` : ''}`;
+    return { ...this.result(p.label, text, j?.usage?.prompt_tokens, j?.usage?.completion_tokens, why), cacheRead: num(j?.usage?.prompt_tokens_details?.cached_tokens), cacheWrite: 0 };
   }
 
   /**
@@ -263,7 +281,8 @@ export class LlmClient {
     }
     try {
       t = performance.now();
-      const j = JSON.parse(raw);
+      // Requête longue : OpenRouter peut envoyer des lignes de maintien (« : OPENROUTER PROCESSING ») avant le JSON.
+      const j = JSON.parse(raw.replace(/^(?:\s*:[^\n]*\n)+/, ''));
       note('analyse JSON', undefined, Math.round(performance.now() - t));
       return j;
     } catch {

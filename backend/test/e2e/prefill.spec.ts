@@ -253,6 +253,30 @@ describe('Initialisation d’un projet — préremplissage par IA', () => {
     expect(r.body.sheets['Info projet'].rows.length).toBeGreaterThanOrEqual(7);
   });
 
+  it('réponse vide d’un essai (raisonnement épuisé) : onglet relancé une fois, analyse menée à terme ; raisonnement coupé à chaque appel', async () => {
+    const client = t.app.get(LlmClient), fetch0 = client.fetchImpl;
+    const bodies: any[] = [];
+    let failed = 0;
+    client.fetchImpl = (async (u: string, init: any) => {
+      bodies.push(JSON.parse(init.body));
+      // Onglet 02 : principal et secours renvoient une réponse vide au premier essai.
+      if (/ONGLET 02 Rôles/.test(init.body) && failed < 2) {
+        failed++;
+        return new Response(JSON.stringify({ content: [], stop_reason: 'max_tokens', usage: { input_tokens: 10, output_tokens: 16000 } }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      }
+      return fetch0(u, init);
+    }) as any;
+    try {
+      const events = await stream((await start()).taskId);
+      expect(failed).toBe(2);
+      expect(events[events.length - 1]).toMatchObject({ type: 'termine' });
+      expect(events.filter((e) => e.type === 'onglet_termine')).toHaveLength(14);
+    } finally {
+      client.fetchImpl = fetch0;
+      await t.db.prefillDocument.deleteMany();
+    }
+  });
+
   it('critère 4 : interruption à l’onglet 07 → 6 onglets conservés ; « Reprendre » repart de l’onglet 07', async () => {
     failOn = 'ONGLET 07 Lots';
     const { taskId } = await start();

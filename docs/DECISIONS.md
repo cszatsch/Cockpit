@@ -1628,3 +1628,15 @@ Demande du commanditaire : donner au modèle, pour chaque onglet, ce qui est att
 | Priorité | Le format de réponse JSON et la liste des champs de chaque onglet (lus dans le modèle Excel) restent dans le code et priment sur la skill : une modification de la skill ne peut pas casser la lecture des réponses | `PREFILL_SYSTEM`, `tabPrompt` |
 | Jev | Skill dédiée : jamais ajoutée aux réponses de Jev, même active (Cockpit et Console) | `DEDICATED_SKILLS`, `jevSkills` |
 | Installation | Créée désactivée par la migration si aucune skill ne porte ce nom (casse et apostrophe ignorées) ; présente dans le jeu de démonstration ; la version de Console › Skills fait foi | `prisma/migrations/20261114000300_skill_preremplissage` |
+
+### Préremplissage : raisonnement des modèles coupé, onglet relancé (07/10/2026)
+
+Incident du 07/10/2026 : analyse d'une proposition de 86 pages arrêtée à l'onglet 02 après environ 4 minutes. DeepSeek V4.1 Flash (OpenRouter) a renvoyé une réponse vide, puis le modèle de secours une réponse illisible. Cause probable, confirmée par la documentation d'OpenRouter : le raisonnement, actif par défaut et réglé sur « high », épuise le budget de jetons de la réponse (`finish_reason: length`, contenu vide).
+
+| Sujet | Choix | Code |
+|---|---|---|
+| Raisonnement | Coupé pour les appels du préremplissage chez OpenRouter (`reasoning: { enabled: false, exclude: true }`) ; un modèle qui l'impose est relancé avec `effort: low` ; les autres fonctions gardent le réglage de leur modèle | `LiveCall.reasoning`, `PrefillService.extractTab` |
+| Diagnostic | Réponse vide : motif d'arrêt et jetons de raisonnement dans le message d'erreur | `LlmClient.generate` |
+| Lecture | Lignes de maintien d'OpenRouter (« : OPENROUTER PROCESSING ») ignorées avant le JSON | `LlmClient.postTimed` |
+| Nouvel essai | Un onglet est relancé une fois (principal puis secours) avant d'être mis en échec | `PREFILL_TAB_ATTEMPTS` (2) |
+| Écran | Temps restant masqué quand l'onglet en cours dépasse l'estimation, au lieu de rester figé sur « 1 s » | `Initialisation projet.dc.html` (`hasEta`) |

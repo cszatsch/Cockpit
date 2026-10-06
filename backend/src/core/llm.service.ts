@@ -173,7 +173,7 @@ export class LlmService {
     return LIVE_FUNCTIONS.includes(functionId) && this.client.live;
   }
 
-  async complete(input: { functionId: AiFunctionId; prompt: string; system?: string; systemTail?: string; history?: ChatTurn[]; cache?: boolean; projectId?: string | null; source: UsageSourceCode; maxWords?: number; timeoutMs?: number; maxTokens?: number }): Promise<LlmResult> {
+  async complete(input: { functionId: AiFunctionId; prompt: string; system?: string; systemTail?: string; history?: ChatTurn[]; cache?: boolean; projectId?: string | null; source: UsageSourceCode; maxWords?: number; timeoutMs?: number; maxTokens?: number; reasoning?: 'off' }): Promise<LlmResult> {
     return span(`génération · fonction ${input.functionId}`, async (d) => {
       d.caracteres_prompt = (input.system?.length ?? 0) + (input.systemTail?.length ?? 0) + input.prompt.length + (input.history ?? []).reduce((n, h) => n + h.content.length, 0);
       const r = await this.completeUntraced(input);
@@ -182,7 +182,7 @@ export class LlmService {
     });
   }
 
-  private async completeUntraced(input: { functionId: AiFunctionId; prompt: string; system?: string; systemTail?: string; history?: ChatTurn[]; cache?: boolean; projectId?: string | null; source: UsageSourceCode; maxWords?: number; timeoutMs?: number; maxTokens?: number }): Promise<LlmResult> {
+  private async completeUntraced(input: { functionId: AiFunctionId; prompt: string; system?: string; systemTail?: string; history?: ChatTurn[]; cache?: boolean; projectId?: string | null; source: UsageSourceCode; maxWords?: number; timeoutMs?: number; maxTokens?: number; reasoning?: 'off' }): Promise<LlmResult> {
     const route = await span('choix du modèle (affectation, base)', () => this.route(input.functionId));
     // Temps de traitement (TEMPS § 3) : une ligne par appel, principal ou secours, à l'étape fixée par l'appelant.
     const kind = currentLatencyKind();
@@ -214,7 +214,7 @@ export class LlmService {
   }
 
   /** Vraie génération : clé du fournisseur déchiffrée le temps de l'appel, jetons comptés par le fournisseur. */
-  private async runLive(modelId: string, input: { functionId: AiFunctionId; prompt: string; system?: string; systemTail?: string; history?: ChatTurn[]; cache?: boolean; projectId?: string | null; source: UsageSourceCode; timeoutMs?: number; maxTokens?: number }, fallbackUsed: boolean): Promise<LlmResult> {
+  private async runLive(modelId: string, input: { functionId: AiFunctionId; prompt: string; system?: string; systemTail?: string; history?: ChatTurn[]; cache?: boolean; projectId?: string | null; source: UsageSourceCode; timeoutMs?: number; maxTokens?: number; reasoning?: 'off' }, fallbackUsed: boolean): Promise<LlmResult> {
     const model = await this.prisma.aiModel.findUniqueOrThrow({ where: { id: modelId } });
     const provider = await this.prisma.provider.findUniqueOrThrow({ where: { id: model.providerId } });
     if (!provider.keyCipher) throw new LlmCallError(`${provider.name} : aucune clé enregistrée`);
@@ -227,7 +227,7 @@ export class LlmService {
     const t0 = Date.now();
     const out = await this.client.generate({
       providerId: provider.id, providerName: provider.name, model: model.providerModelId || model.id, key,
-      system: input.system ?? '', systemTail: input.systemTail, history: input.history, cache: input.cache, prompt: input.prompt, maxTokens: Math.min(input.maxTokens ?? LIVE_MAX_OUTPUT_TOKENS, model.maxOutputTokens ?? Number.MAX_SAFE_INTEGER), timeoutMs: input.timeoutMs,
+      system: input.system ?? '', systemTail: input.systemTail, history: input.history, cache: input.cache, prompt: input.prompt, maxTokens: Math.min(input.maxTokens ?? LIVE_MAX_OUTPUT_TOKENS, model.maxOutputTokens ?? Number.MAX_SAFE_INTEGER), timeoutMs: input.timeoutMs, reasoning: input.reasoning,
     });
     const tokensIn = out.tokensIn ?? Math.max(1, Math.ceil(inputChars(input) / 4));
     const tokensOut = out.tokensOut ?? Math.max(1, Math.ceil(out.text.length / 4));

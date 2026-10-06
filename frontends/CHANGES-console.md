@@ -682,3 +682,4 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
 - `Fournisseurs et modeles.dc.html` : nouvelle fonction « Initialisation projet » dans la section Affectation (modèle principal, modèle de secours, coût mensuel estimé), comme les autres fonctions.
 - `ProjetInit.dc.html` : onglets renumérotés 01 à 14 (« 06 Info projet », « 07 Lots »…).
 - Complément (07/10/2026) : « Choisir un fichier » et le glisser-déposer acceptent plusieurs fichiers à la fois (proposition et annexes, 10 au plus), envoyés ensemble (`bindPrefill` : champ `files`) ; la ligne du fichier affiche « [premier fichier] + N fichiers ». L'attribut `multiple` est lié à une valeur (`multiple="{{ multi }}"`) : écrit sans valeur, le moteur des écrans le retire.
+- Complément (07/10/2026) : le temps restant est masqué quand l'onglet en cours dure plus que prévu, au lieu de rester figé sur « 1 s ».

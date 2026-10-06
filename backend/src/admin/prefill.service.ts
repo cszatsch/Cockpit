@@ -42,6 +42,8 @@ interface Live { listeners: Set<(e: PrefillEvent) => void>; cancelled: boolean; 
 
 /** Délai d'un appel au modèle pour un onglet (documents longs, réponses de plusieurs milliers de jetons). */
 export const PREFILL_CALL_TIMEOUT_MS = 180_000;
+/** Essais par onglet avant l'échec (07/10/2026) : réponse illisible, ou principal et secours en échec. */
+export const PREFILL_TAB_ATTEMPTS = 2;
 /** Purge des documents, textes, résultats et Excel arrivés à échéance : toutes les heures. */
 const PREFILL_PURGE_CRON = '20 * * * *';
 /** Exemple fourni avec l'application (« Essayer avec l'exemple ORION »). */
@@ -185,18 +187,32 @@ export class PrefillService implements OnModuleInit {
     if (end) this.live.delete(taskId);
   }
 
-  /** Un onglet : consigne, appel au modèle (un nouvel essai si la réponse n'est pas du JSON), lignes normalisées. */
-  private async extractTab(spec: PrefillTabSpec, system: string, known: ReturnType<typeof emptyKnown>): Promise<PrefillRow[]> {
+  /**
+   * Un onglet : consigne, appel au modèle (raisonnement coupé : extraction, pas de calcul), lignes normalisées. Un nouvel
+   * essai si la réponse n'est pas du JSON ou si les deux modèles échouent (réponse vide, délai) : l'onglet n'est mis en
+   * échec qu'après `PREFILL_TAB_ATTEMPTS` essais.
+   */
+  private async extractTab(spec: PrefillTabSpec, system: string, known: ReturnType<typeof emptyKnown>, live: Live): Promise<PrefillRow[]> {
     const prompt = tabPrompt(spec, known);
-    for (let attempt = 0; attempt < 2; attempt++) {
-      const r = await this.llm.complete({
-        functionId: 'init_projet', system, cache: true, source: 'IMPORT', maxTokens: INIT_PROJET_NEED_OUT, timeoutMs: PREFILL_CALL_TIMEOUT_MS,
-        prompt: attempt ? `${prompt}\n\nTa réponse précédente n’était pas un objet JSON valide : réponds uniquement par l’objet JSON demandé.` : prompt,
-      });
-      const json = parseModelJson(r.text);
+    let lastError: unknown = new Error('Réponse du modèle illisible');
+    for (let attempt = 0; attempt < PREFILL_TAB_ATTEMPTS; attempt++) {
+      if (live.cancelled) break;
+      let text: string;
+      try {
+        text = (await this.llm.complete({
+          functionId: 'init_projet', system, cache: true, source: 'IMPORT', maxTokens: INIT_PROJET_NEED_OUT, timeoutMs: PREFILL_CALL_TIMEOUT_MS, reasoning: 'off',
+          prompt: lastError instanceof SyntaxError ? `${prompt}\n\nTa réponse précédente n’était pas un objet JSON valide : réponds uniquement par l’objet JSON demandé.` : prompt,
+        })).text;
+      } catch (e) {
+        if (!(e instanceof ApiError && e.code === 'AI_UNAVAILABLE')) throw e;
+        lastError = e;
+        continue;
+      }
+      const json = parseModelJson(text);
       if (json) return normalizeRows(spec, json, known);
+      lastError = new SyntaxError('Réponse du modèle illisible');
     }
-    throw new Error('Réponse du modèle illisible');
+    throw lastError;
   }
 
   private async run(taskId: string, from: number, actor: Actor) {
@@ -231,7 +247,7 @@ export class PrefillService implements OnModuleInit {
       const timer = setInterval(tick, this.tickMs);
       let rows: PrefillRow[];
       try {
-        rows = await this.extractTab(specs[i], system, known);
+        rows = await this.extractTab(specs[i], system, known, live);
       } catch (e) {
         clearInterval(timer);
         if (live.cancelled) return;
