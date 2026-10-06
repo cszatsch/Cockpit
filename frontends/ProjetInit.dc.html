@@ -30,111 +30,6 @@ a{color:#1d8f86}a:hover{color:#146b64}
     </sc-for>
   </nav>
 
-  <sc-if value="{{ isUp }}" hint-placeholder-val="{{ true }}">
-    <div style="display:grid;grid-template-columns:minmax(0,1.65fr) minmax(280px,1fr);gap:16px;align-items:stretch;animation:rise .35s ease both">
-      <label onDragOver="{{ drag }}" onDragLeave="{{ undrag }}" onDrop="{{ drop }}" style="{{ zoneSt }}" style-hover="{{ zoneHov }}">
-        <input type="file" accept=".xlsx" onChange="{{ pick }}" style="display:none">
-        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:40px 28px 28px;text-align:center">
-          <span aria-hidden="true" style="{{ stk.box }}">
-            <span style="{{ stk.back1 }}"></span>
-            <span style="{{ stk.back2 }}"></span>
-            <span style="{{ stk.top }}">
-              <span style="{{ stk.head }}"><span style="width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.55)"></span><span style="width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.35)"></span><span style="width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.2)"></span></span>
-              <sc-if value="{{ notReading }}" hint-placeholder-val="{{ true }}"><sc-for list="{{ stk.rows }}" as="r" hint-placeholder-count="4"><span style="{{ r.st }}"><span style="{{ r.c1 }}"></span><span style="{{ r.c2 }}"></span><span style="{{ r.c3 }}"></span></span></sc-for></sc-if>
-              <sc-if value="{{ reading }}" hint-placeholder-val="{{ false }}"><span style="flex:1;display:grid;place-items:center"><span style="width:20px;height:20px;border-radius:50%;border:2px solid #d7e5e2;border-top-color:#1d8f86;animation:spin .7s linear infinite"></span></span></sc-if>
-            </span>
-          </span>
-          <span style="font-size:20px;font-weight:800;letter-spacing:-.02em;margin-top:4px">{{ zoneT }}</span>
-          <span style="font-size:12.5px;color:#5c7280;max-width:440px;text-wrap:pretty">Fichier « Référentiel … initialisation.xlsx » rempli par le PMO · 14 onglets</span>
-          <span style="height:40px;padding:0 20px;border-radius:11px;background:#10233a;color:#fff;font-weight:700;font-size:13px;display:inline-flex;align-items:center;gap:9px;margin-top:6px;white-space:nowrap;box-shadow:0 8px 18px -10px rgba(16,35,58,.7)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4 M7 9l5-5 5 5 M5 20h14"></path></svg>Choisir un fichier</span>
-          <sc-if value="{{ upErr }}" hint-placeholder-val="{{ false }}"><span role="alert" style="display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px;border-radius:9px;background:#fdf1ef;font-size:12.5px;color:#a2352a;font-weight:700">{{ upErrL }}</span></sc-if>
-        </div>
-        <div style="border-top:1px solid #e4ecea;background:rgba(255,255,255,.7);padding:12px 16px 14px;display:flex;flex-direction:column;gap:9px">
-          <span style="font-size:10.5px;font-weight:800;letter-spacing:.12em;color:#8a9aa6">ONGLETS ATTENDUS</span>
-          <div style="display:flex;flex-wrap:wrap;gap:5px">
-            <sc-for list="{{ sheets0 }}" as="c" hint-placeholder-count="13"><span style="height:24px;padding:0 8px;border-radius:6px;background:#fff;box-shadow:0 0 0 1px #e1e9e7;display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:#43586a;white-space:nowrap"><span style="color:#a3b1b9;font-variant-numeric:tabular-nums;font-weight:700">{{ c.n }}</span>{{ c.l }}</span></sc-for>
-          </div>
-        </div>
-      </label>
-      <div style="display:flex;flex-direction:column;gap:16px">
-        <div style="flex:1;background:#fff;border-radius:18px;box-shadow:0 0 0 1px #e1e9e7;padding:22px;display:flex;flex-direction:column;gap:10px">
-          <span style="width:34px;height:34px;border-radius:10px;background:#eef3f2;display:grid;place-items:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#43586a" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z M4 9h16 M4 14h16 M9 4v16"></path></svg></span>
-          <span style="font-weight:800;font-size:14px;margin-top:2px">Pas encore de fichier ?</span>
-          <span style="font-size:12.5px;color:#5c7280;line-height:1.55;text-wrap:pretty">Téléchargez le modèle, faites-le remplir par le PMO pendant la préparation du projet, puis importez-le ici.</span>
-          <a href="./Referentiel RISE - initialisation.xlsx" download="{{ tplFile }}" style="margin-top:auto;align-self:flex-start;height:36px;padding:0 14px;border-radius:10px;border:1px solid #d3dedb;background:#fff;font-weight:700;font-size:12.5px;color:#10233a;text-decoration:none;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:border-color .15s,background .15s" style-hover="border-color:#10233a;background:#f7faf9;color:#10233a"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12 M7 11l5 5 5-5 M5 20h14"></path></svg>Modèle Excel</a>
-        </div>
-        <div style="flex:1;position:relative;overflow:hidden;background:#10233a;border-radius:18px;padding:22px;display:flex;flex-direction:column;gap:10px;color:#fff">
-          <span style="position:absolute;right:-60px;top:-60px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(61,214,198,.22),transparent 70%)"></span>
-          <span style="position:relative;display:inline-flex;align-self:flex-start;align-items:center;height:22px;padding:0 9px;border-radius:6px;background:rgba(255,255,255,.1);font-size:10.5px;font-weight:800;letter-spacing:.12em;color:#9fe7de">ORION</span>
-          <span style="position:relative;font-weight:800;font-size:14px;margin-top:2px">Découvrir avec un exemple</span>
-          <span style="position:relative;font-size:12.5px;color:#b9cad5;line-height:1.55;text-wrap:pretty">Un projet fictif complet (ORION) pour parcourir le contrôle et la prévisualisation.</span>
-          <button onClick="{{ demo }}" style="position:relative;margin-top:auto;align-self:flex-start;height:36px;padding:0 14px;border-radius:10px;border:0;background:#fff;color:#10233a;font-size:12.5px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:transform .15s,background .15s" style-hover="background:#e6f7f5;transform:translateX(2px)">Charger l’exemple<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14 M13 6l6 6-6 6"></path></svg></button>
-        </div>
-      </div>
-    </div>
-  </sc-if>
-
-  <sc-if value="{{ isChk }}" hint-placeholder-val="{{ false }}">
-    <div style="display:grid;grid-template-columns:minmax(0,1.65fr) minmax(280px,1fr);gap:16px;align-items:start;animation:rise .35s ease both">
-      <div style="background:#fff;border-radius:18px;box-shadow:0 0 0 1px #e1e9e7;overflow:hidden">
-        <div style="padding:18px 22px 16px;display:flex;flex-direction:column;gap:12px;border-bottom:1px solid #eef3f2">
-          <div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:15px;font-weight:800;letter-spacing:-.01em">Contrôle de conformité</span><span style="flex:1"></span><span style="font-size:12px;font-weight:700;color:#5c7280;font-variant-numeric:tabular-nums">{{ chkL }}</span></div>
-          <span style="display:block;height:4px;border-radius:4px;background:#eef3f2;overflow:hidden"><span style="{{ chkBar }}"></span></span>
-        </div>
-        <div style="padding:16px 22px 6px">
-          <sc-for list="{{ checks }}" as="c" hint-placeholder-count="5">
-            <div style="{{ c.row }}">
-              <span style="display:flex;flex-direction:column;align-items:center">
-                <span style="{{ c.ic }}"><sc-if value="{{ c.isOk }}" hint-placeholder-val="{{ false }}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="animation:pop .3s ease both"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></sc-if>{{ c.g }}</span>
-                <span style="{{ c.line }}"></span>
-              </span>
-              <div style="min-width:0;padding:4px 0 20px"><div style="{{ c.lSt }}">{{ c.l }}</div><div style="font-size:12px;color:#5c7280;margin-top:2px">{{ c.d }}</div></div>
-              <sc-if value="{{ c.hasN }}" hint-placeholder-val="{{ false }}"><span style="{{ c.nSt }}">{{ c.n }}</span></sc-if>
-            </div>
-          </sc-for>
-        </div>
-        <sc-if value="{{ hasIssues }}" hint-placeholder-val="{{ false }}">
-          <div style="border-top:1px solid #eef3f2;padding:14px 22px 18px;display:flex;flex-direction:column;gap:8px;animation:rise .3s ease both">
-            <span style="font-size:10.5px;font-weight:800;letter-spacing:.12em;color:#8a9aa6">{{ issuesL }}</span>
-            <sc-for list="{{ issues }}" as="i" hint-placeholder-count="2"><div style="{{ i.st }}"><span style="{{ i.tag }}">{{ i.tagL }}</span><span style="display:flex;flex-direction:column;gap:2px;min-width:0;flex:1"><span style="font-weight:700">{{ i.where }}</span><span style="color:#43586a">{{ i.msg }}</span></span></div></sc-for>
-          </div>
-        </sc-if>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:16px;position:sticky;top:12px">
-        <div style="background:#fff;border-radius:18px;box-shadow:0 0 0 1px #e1e9e7;padding:20px;display:flex;flex-direction:column;gap:14px">
-          <div style="display:flex;gap:12px;align-items:flex-start">
-            <span style="width:38px;height:38px;border-radius:11px;flex:none;background:#e6f4f2;display:grid;place-items:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1d8f86" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z M14 3v5h5 M9 13h6 M9 17h6"></path></svg></span>
-            <div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-size:10.5px;font-weight:800;letter-spacing:.12em;color:#8a9aa6">FICHIER</span><span style="font-weight:800;word-break:break-word;line-height:1.35">{{ fileN }}</span><span style="font-size:12px;color:#5c7280">{{ fileD }}</span></div>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:8px">
-            <div style="display:flex;align-items:baseline"><span style="font-size:10.5px;font-weight:800;letter-spacing:.12em;color:#8a9aa6">ONGLETS</span><span style="flex:1"></span><span style="font-size:11.5px;font-weight:700;color:#5c7280;font-variant-numeric:tabular-nums;white-space:nowrap">{{ sheetsL }}</span></div>
-            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:5px">
-              <sc-for list="{{ sheets }}" as="c" hint-placeholder-count="14"><span title="{{ c.tip }}" style="{{ c.st }}"><span style="{{ c.dot }}"></span><span style="overflow:hidden;text-overflow:ellipsis">{{ c.l }}</span></span></sc-for>
-            </div>
-          </div>
-        </div>
-        <div style="{{ verdict.box }}">
-          <span style="{{ verdict.t }}">{{ verdict.l }}</span>
-          <span style="font-size:12.5px;line-height:1.55;color:#43586a;text-wrap:pretty">{{ verdict.d }}</span>
-          <sc-if value="{{ verdict.ko }}" hint-placeholder-val="{{ false }}">
-            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:2px;animation:rise .3s ease both">
-              <label style="height:38px;padding:0 16px;border-radius:10px;background:#10233a;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:8px;box-shadow:0 8px 18px -10px rgba(16,35,58,.7);transition:background .15s" style-hover="background:#17405a"><input type="file" accept=".xlsx" onChange="{{ pick }}" style="display:none"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4 M7 9l5-5 5 5 M5 20h14"></path></svg>Importer le fichier corrigé</label>
-            </div>
-            <sc-if value="{{ upErr }}" hint-placeholder-val="{{ false }}"><span role="alert" style="font-size:12px;color:#a2352a;font-weight:700">{{ upErrL }}</span></sc-if>
-          </sc-if>
-          <div style="{{ verdict.okRow }}">
-            <button onClick="{{ restart }}" style="height:38px;padding:0 14px;border-radius:10px;border:1px solid #d3dedb;background:#fff;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap;transition:border-color .15s" style-hover="border-color:#10233a">Importer un autre fichier</button>
-            <sc-if value="{{ verdict.ok }}" hint-placeholder-val="{{ false }}"><button onClick="{{ toPrev }}" style="height:38px;padding:0 16px;border-radius:10px;border:0;background:#10233a;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:8px;animation:rise .3s ease both;box-shadow:0 8px 18px -10px rgba(16,35,58,.7)" style-hover="background:#17405a">Prévisualiser<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14 M13 6l6 6-6 6"></path></svg></button></sc-if>
-          </div>
-          <div style="margin-top:6px;padding-top:12px;border-top:1px solid rgba(16,35,58,.08);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-            <button onClick="{{ restart }}" style="height:32px;padding:0 10px 0 8px;margin-left:-8px;border-radius:8px;border:0;background:transparent;font-size:12.5px;font-weight:700;color:#43586a;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:7px;transition:background .15s,color .15s" style-hover="background:rgba(16,35,58,.06);color:#10233a"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 12a8.5 8.5 0 1 0 2.5-6 M3 4v4h4"></path></svg>Réinitialiser la session</button>
-            <span style="font-size:11.5px;color:#8a9aa6">Retour à l’étape 1 · le fichier chargé est oublié</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </sc-if>
-
   <sc-if value="{{ isPrev }}" hint-placeholder-val="{{ false }}">
     <div style="display:flex;flex-direction:column;gap:16px;animation:rise .35s ease both">
       <div style="position:relative;overflow:hidden;background:#10233a;border-radius:20px;padding:24px 28px;color:#fff;display:flex;align-items:center;gap:22px;flex-wrap:wrap">
@@ -170,6 +65,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
           </sc-if>
         </div>
       </div>
+      <sc-if value="{{ hasErr }}" hint-placeholder-val="{{ false }}"><span role="alert" style="align-self:flex-start;display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px;border-radius:9px;background:#fdf1ef;font-size:12.5px;color:#a2352a;font-weight:700">{{ errL }}</span></sc-if>
       <div style="position:sticky;bottom:12px;z-index:2;display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:14px 16px 14px 20px;border-radius:16px;background:rgba(255,255,255,.94);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:0 0 0 1px #e1e9e7,0 18px 40px -24px rgba(16,35,58,.45)">
         <span style="width:8px;height:8px;border-radius:50%;background:#f0a13a;box-shadow:0 0 0 4px rgba(240,161,58,.16);flex:none"></span>
         <span style="flex:1;min-width:260px;font-size:12.5px;color:#43586a;line-height:1.5;text-wrap:pretty">{{ confirmL }}</span>
@@ -212,7 +108,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
   </sc-if>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;1100px&quot;,&quot;height&quot;:&quot;820px&quot;},&quot;existingCodes&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string[]&quot;},&quot;onImported&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(p:any)=&gt;void&quot;},&quot;onOpenLib&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;()=&gt;void&quot;},&quot;userName&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: &quot;1100px&quot;, &quot;height&quot;: &quot;820px&quot;}, &quot;onImported&quot;: {&quot;editor&quot;: null, &quot;tsType&quot;: &quot;(p:any)=&gt;void&quot;}, &quot;onOpenLib&quot;: {&quot;editor&quot;: null, &quot;tsType&quot;: &quot;()=&gt;void&quot;}, &quot;userName&quot;: {&quot;editor&quot;: null, &quot;tsType&quot;: &quot;string&quot;}, &quot;data&quot;: {&quot;editor&quot;: null, &quot;tsType&quot;: &quot;any&quot;}, &quot;onBack&quot;: {&quot;editor&quot;: null, &quot;tsType&quot;: &quot;()=&gt;void&quot;}, &quot;onRestart&quot;: {&quot;editor&quot;: null, &quot;tsType&quot;: &quot;()=&gt;void&quot;}}">
 const SH = [['01 Équipes', 'Équipes'], ['02 Rôles', 'Rôles'], ['03 Personnes', 'Personnes'], ['04 Affectations', 'Affectations'], ['05 Projet', 'Projet'], ['06 Info projet', 'Info projet'], ['07 Lots', 'Lots'], ['08 Phases', 'Phases'], ['09 Sous-phases', 'Sous-phases'], ['10 Chantiers', 'Chantiers'], ['11 Instances', 'Instances'], ['12 Membres', 'Membres'], ['13 Jalons', 'Jalons'], ['14 Livrables', 'Livrables']];
 const D = (y, m, d) => new Date(y, m - 1, d);
 function demoData() {
@@ -235,101 +131,37 @@ function demoData() {
   const issues = [{ lvl: 'warn', sheet: 'Personnes', row: 11, msg: 'E-mail en domaine générique à vérifier (example.com).' }, { lvl: 'warn', sheet: 'Jalons', row: 14, msg: 'J04 « Conception validée » n’a pas de chantier : il sera rattaché au projet.' }];
   return { file: 'Referentiel ORION - initialisation.xlsx', size: '146 Ko', project: P.map(([l, v, r]) => ({ l, v, r: !!r })), sheets: S, issues, missing: [] };
 }
-async function parseXlsx(file) {
-  const X = await import('https://cdn.sheetjs.com/xlsx-0.20.2/package/xlsx.mjs');
-  const wb = X.read(await file.arrayBuffer(), { cellDates: true }), out = { file: file.name, size: Math.round(file.size / 1024) + ' Ko', project: [], sheets: {}, issues: [], missing: [] };
-  const low = s => String(s || '').trim();
-  SH.forEach(([sn, key]) => { const ws = wb.Sheets[sn]; if (!ws) { out.missing.push(sn); return; } const A = X.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '' });
-    if (key === 'Projet') { for (let r = 6; r < A.length; r++) { const row = A[r] || [], l = low(row[1]), t = low(row[2]); if (!l || !t) continue; const v = row[3]; out.project.push({ l, v, r: /OBLIG/.test(t) }); if (/OBLIG/.test(t) && (v === '' || v == null)) out.issues.push({ lvl: 'err', sheet: key, row: r + 1, msg: '« ' + l + ' » est obligatoire.' }); } return; }
-    const types = (A[6] || []).slice(1), heads = (A[7] || []).slice(1), cols = heads.map((h, i) => ({ h: low(h), t: /OBLIG/.test(types[i]) ? 'r' : /FACULT/.test(types[i]) ? 'o' : /CONTR/.test(types[i]) ? 'x' : 'c' })).filter(c => c.h || c.t === 'x');
-    const idx = cols.map(c => heads.findIndex(h => low(h) === c.h)), rows = [];
-    for (let r = 8; r < A.length; r++) { const row = (A[r] || []).slice(1); const inp = cols.some((c, j) => (c.t === 'r' || c.t === 'o') && row[idx[j]] !== '' && row[idx[j]] != null); if (!inp) continue;
-      cols.forEach((c, j) => { const v = row[idx[j]]; if (c.t === 'r' && (v === '' || v == null)) out.issues.push({ lvl: 'err', sheet: key, row: r + 1, msg: '« ' + c.h + ' » est obligatoire.' }); if (c.t === 'x' && typeof v === 'string') { if (v.startsWith('⚠')) out.issues.push({ lvl: 'err', sheet: key, row: r + 1, msg: v.replace('⚠', '').trim() }); if (v.startsWith('◔')) out.issues.push({ lvl: 'warn', sheet: key, row: r + 1, msg: v.replace('◔', '').trim() }); } });
-      rows.push(cols.map((c, j) => row[idx[j]])); }
-    out.sheets[key] = { heads: cols.filter(c => c.t !== 'x' && c.h).map(c => [c.h, c.t]), rows: rows.map(rw => rw.filter((v, j) => cols[j].t !== 'x' && cols[j].h)) }; });
-  return out;
-}
-// Simulation du contrôle : un tick de lecture par onglet, puis 6 ticks par contrôle suivant.
-const TK = 85, T_SHEETS = SH.length, T_CHECK = 6, T_END = T_SHEETS + 4 * T_CHECK;
 const PHASES = [['Création du projet', 'Fiche, client, dates et fuseau'], ['Lots et phases', 'Découpage et planning'], ['Chantiers et jalons', 'Périmètres et échéances'], ['Personnes et habilitations', 'Équipes, rôles et affectations'], ['Instances de pilotage', 'Comités et membres']];
+// Étapes « Prévisualiser » et « Valider » de l'initialisation (07/10/2026) : l'import et le contrôle du fichier se font
+// dans l'écran unique `Initialisation projet.dc.html` (maquette v3), qui ouvre cette vue avec les données du serveur
+// (`data`) ; sans elles, exemple ORION de démonstration.
 class Component extends DCLogic {
-  state = { step: 'up', data: null, drag: false, upErr: '', t: 0, tab: 'Projet', vis: { Projet: 1 }, prog: 0 };
-  // Console : contrôle et création par le serveur (admin-api.js, routes /admin/projects/import/…) ; sans serveur, simulation d'origine.
+  state = { step: 'prev', data: this.props.data || demoData(), tab: 'Projet', vis: { Projet: 1 }, prog: 0, err: '' };
+  // Console : création par le serveur (admin-api.js, routes /admin/projects/import/…) ; sans serveur, simulation d'origine.
   componentDidMount() { import('./admin-api.js').then(m => m.bindInit(this)).catch(() => {}); }
-  componentWillUnmount() { clearInterval(this._iv); clearInterval(this._pv); }
-  load(d) { clearInterval(this._iv); this.setState({ data: d, step: 'chk', t: 0, tab: 'Projet', vis: { Projet: 1 }, upErr: '', busyRead: false }); this._iv = setInterval(() => { const n = this.state.t + 1; this.setState({ t: n }); if (n >= T_END) clearInterval(this._iv); }, TK); }
-  async file(f) { if (!f) return; if (!/\.xlsx$/i.test(f.name)) return this.setState({ upErr: 'Format attendu : .xlsx' }); this.setState({ upErr: '', busyRead: true }); try { this.load(await parseXlsx(f)); } catch (e) { this.setState({ upErr: 'Lecture impossible : ' + (e.message || 'fichier illisible'), busyRead: false }); } }
-  restart() { clearInterval(this._iv); clearInterval(this._pv); this.setState({ step: 'up', data: null, busyRead: false, t: 0, prog: 0 }); }
+  componentWillUnmount() { clearInterval(this._pv); }
+  restart() { clearInterval(this._pv); this.props.onRestart && this.props.onRestart(); }
   renderVals() {
     const S = this.state, d = S.data, fmt = v => v instanceof Date ? v.toLocaleDateString('fr-FR') : v === '' || v == null ? '—' : String(v);
     const ORDER = ['up', 'chk', 'prev', 'done'], si = ORDER.indexOf(S.step), okDone = S.step === 'done' && S.prog >= 100;
-    const chk = S.t < T_SHEETS ? 0 : Math.min(5, 1 + Math.floor((S.t - T_SHEETS) / T_CHECK));
     const TABS = ['Projet', 'Planning', ...SH.map(s => s[1]).filter(k => k !== 'Projet')], nVis = Object.keys(S.vis).length;
-    const curPct = [S.busyRead ? 30 : 0, S.t / T_END * 100, nVis / TABS.length * 100, S.prog][si];
+    const curPct = [0, 100, nVis / TABS.length * 100, S.prog][si];
+    // Importer et Contrôler : faits dans l'écran unique, où l'on revient (fichier conforme toujours affiché).
+    const back = () => this.props.onBack && this.props.onBack();
     const steps = [['Importer', 'le fichier Excel'], ['Contrôler', 'la conformité'], ['Prévisualiser', 'le référentiel'], ['Valider', 'et publier']].map(([l, dd], i) => {
       const done = i < si || okDone, cur = i === si && !okDone, can = i < si && S.step !== 'done';
       return { l, d: dd, g: done ? '✓' : String(i + 1), cur: cur ? 'step' : undefined, dis: !can, tip: can ? 'Revenir à « ' + l + ' »' : '',
-        go: () => { if (!can) return; if (i === 0) this.restart(); else if (i === 1) this.setState({ step: 'chk' }); else this.setState({ step: 'prev' }); },
+        go: () => { if (!can) return; if (i < 2) back(); else this.setState({ step: 'prev' }); },
         st: 'display:flex;flex-direction:column;gap:12px;min-width:0;padding:0;border:0;background:transparent;text-align:left;border-radius:10px;transition:opacity .2s;cursor:' + (can ? 'pointer' : 'default'),
         hov: can ? 'opacity:.72' : '',
         fill: 'display:block;height:100%;border-radius:3px;transition:width .3s ease,background .3s;width:' + (done ? 100 : cur ? Math.max(6, curPct) : 0) + '%;background:' + (done ? '#1d8f86' : '#10233a'),
         lSt: 'font-weight:800;font-size:13px;white-space:nowrap;color:' + (done || cur ? '#10233a' : '#8a9aa6'),
         dot: 'width:24px;height:24px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:800;font-size:11px;transition:background .25s,box-shadow .25s;' + (done ? 'background:#e6f4f2;color:#146b64' : cur ? 'background:#10233a;color:#fff;box-shadow:0 0 0 4px rgba(16,35,58,.08)' : 'background:#fff;color:#8a9aa6;box-shadow:inset 0 0 0 1.5px #dbe4e2') }; });
-    const v = { steps, isUp: S.step === 'up', isChk: S.step === 'chk', isPrev: S.step === 'prev', isDone: S.step === 'done',
-      reading: !!S.busyRead, notReading: !S.busyRead,
-      sheets0: SH.map(([n, l]) => ({ n: n.slice(0, 2), l })),
-      zoneT: S.busyRead ? 'Lecture du fichier…' : S.drag ? 'Déposez le fichier ici' : 'Glissez le fichier Excel ici',
-      // Zone de dépôt « Feuillets » : filet continu d'un pixel ; au survol d'un fichier, filet sarcelle et éventail ouvert.
-      zoneSt: 'display:flex;flex-direction:column;min-height:340px;border-radius:20px;cursor:pointer;overflow:hidden;transition:background-color .25s,border-color .25s,box-shadow .25s;' + (S.drag ? 'background-color:#f7fbfa;border:1px solid #1d8f86;box-shadow:0 0 0 4px rgba(29,143,134,.08)' : 'background-color:#fff;border:1px solid #dde6e4;box-shadow:0 1px 2px rgba(16,35,58,.04)'),
-      zoneHov: S.drag ? '' : 'border-color:#c5d3d0',
-      stk: (() => { const E = 'cubic-bezier(.2,.7,.2,1)', open = S.drag, sheet = 'position:absolute;inset:0;border-radius:10px;background:#fff;box-shadow:0 0 0 1px #d9e3e1,0 1px 2px rgba(16,35,58,.06);transition:transform .35s ' + E + ',box-shadow .35s;';
-        return { box: 'position:relative;width:104px;height:78px;margin:0 0 10px;flex:none',
-          back1: sheet + 'transform:' + (open ? 'rotate(-12deg) translate(-17px,5px)' : 'rotate(-7deg) translate(-8px,1px)'),
-          back2: sheet + 'transform:' + (open ? 'rotate(10deg) translate(17px,5px)' : 'rotate(5deg) translate(8px,1px)'),
-          top: sheet + 'display:flex;flex-direction:column;overflow:hidden;transform:' + (open ? 'translateY(-9px)' : 'none') + ';box-shadow:0 0 0 1px ' + (open ? '#1d8f86' : '#d3dedb') + ',' + (open ? '0 16px 26px -14px rgba(16,35,58,.45)' : '0 6px 14px -10px rgba(16,35,58,.35)'),
-          head: 'height:15px;flex:none;display:flex;align-items:center;gap:3px;padding:0 6px;transition:background .3s;background:' + (open ? '#1d8f86' : '#10233a'),
-          rows: [0, 1, 2, 3].map(k => ({ st: 'flex:1;display:grid;grid-template-columns:1fr 1.7fr 1fr;border-top:' + (k ? '1px solid #eef3f2' : '0'),
-            c1: 'background:' + (open ? '#d6efeb' : '#e6f4f2') + ';transition:background .3s', c2: 'border-left:1px solid #eef3f2', c3: 'border-left:1px solid #eef3f2' })) }; })(),
-      drag: e => { e.preventDefault(); if (!S.drag) this.setState({ drag: true }); }, undrag: () => this.setState({ drag: false }), drop: e => { e.preventDefault(); this.setState({ drag: false }); this.file(e.dataTransfer.files[0]); },
-      pick: e => { this.file(e.target.files[0]); e.target.value = ''; }, demo: () => this.load(demoData()), upErr: !!S.upErr, upErrL: S.upErr, restart: () => this.restart(),
-      checks: [], issues: [], hasIssues: false, fileN: '', fileD: '', sheets: [], verdict: {}, tabs: [], view: { heads: [], rows: [], fields: [], bars: [], years: [] }, pj: { kpis: [] }, phases: [] };
-    // Modèle Excel (06/10/2026) : « [nom de l'utilisateur] - Init projet Cockpit [AAMMJJ].xlsx », caractères interdits retirés.
-    const d0 = new Date(), p2 = n => String(n).padStart(2, '0'), who = String(this.props.userName || '').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim();
-    v.tplFile = (who ? who + ' - ' : '') + 'Init projet Cockpit ' + String(d0.getFullYear()).slice(2) + p2(d0.getMonth() + 1) + p2(d0.getDate()) + '.xlsx';
+    const v = { steps, isPrev: S.step === 'prev', isDone: S.step === 'done', restart: () => this.restart(), hasErr: !!S.err, errL: S.err,
+      tabs: [], view: { heads: [], rows: [], fields: [], bars: [], years: [] }, pj: { kpis: [] }, phases: [] };
     if (!d) return v;
-    const cnt = k => ((d.sheets[k] || {}).rows || []).length, errs = d.issues.filter(i => i.lvl === 'err'), warns = d.issues.filter(i => i.lvl === 'warn');
-    const code = String((d.project.find(p => /Code projet/.test(p.l)) || {}).v || '').trim(), dup = (this.props.existingCodes || ['RISE', 'ATLAS', 'HORIZON', 'NOVA']).includes(code.toUpperCase());
-    const lit = Math.min(T_SHEETS, S.t), nMiss = d.missing.length, NS = SH.length, nOld = d.issues.filter(i => /^Ancien modèle/.test(i.msg)).length;
-    const oblig = errs.filter(i => /obligatoire/.test(i.msg)).length, coh = errs.filter(i => !/obligatoire|^Ancien modèle/.test(i.msg)).length, pl = (n, w) => n + ' ' + w + (n > 1 ? 's' : '');
-    const C = [['Structure du fichier', nOld ? 'Ancien modèle de fichier : téléchargez le modèle à jour' : nMiss ? 'Onglets manquants : ' + d.missing.join(', ') : NS + ' onglets reconnus', nOld ? 'Ancien modèle' : (NS - nMiss) + ' / ' + NS, nMiss || nOld ? 'err' : 'ok', 'Lecture des onglets… ' + lit + ' / ' + NS],
-      ['Fiche projet', code ? 'Code ' + code + (dup ? ' · déjà utilisé dans la bibliothèque' : ' · disponible') : 'Code projet absent', dup || !code ? '1 erreur' : 'Conforme', dup || !code ? 'err' : 'ok', 'Vérification du code projet…'],
-      ['Champs obligatoires', oblig ? 'Des champs obligatoires sont vides' : 'Tous les champs obligatoires sont renseignés', oblig ? pl(oblig, 'erreur') : 'Conforme', oblig ? 'err' : 'ok', 'Parcours des champs obligatoires…'],
-      ['Contrôles de cohérence', coh ? 'Incohérences signalées par le fichier' : 'Aucune incohérence bloquante', coh ? pl(coh, 'erreur') : 'Conforme', coh ? 'err' : 'ok', 'Croisement des références entre onglets…'],
-      ['Avertissements', warns.length ? 'À vérifier, sans bloquer l’import' : 'Aucun', warns.length ? warns.length + ' à vérifier' : 'Aucun', warns.length ? 'warn' : 'ok', 'Recherche des points d’attention…']];
-    const T = { ok: ['#1d8f86', '#fff', '', '#e6f4f2', '#146b64'], err: ['#c2473b', '#fff', '!', '#fbe4e1', '#a2352a'], warn: ['#c77d14', '#fff', '!', '#fff1dc', '#9a5a0c'] };
-    v.checks = C.map(([l, dd, n, t, run], i) => { const done = i < chk, running = i === chk && chk < 5, P = T[t];
-      return { l, d: done ? dd : running ? run : 'En attente', n, hasN: done, isOk: done && t === 'ok', g: done ? P[2] : running ? '' : String(i + 1),
-        lSt: 'font-weight:700;font-size:13px;color:' + (done || running ? '#10233a' : '#8a9aa6'),
-        ic: 'width:28px;height:28px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:800;font-size:12px;transition:background .25s;' + (done ? 'background:' + P[0] + ';color:' + P[1] : running ? 'border:2px solid #e4ecea;border-top-color:#10233a;animation:spin .7s linear infinite' : 'background:#fff;color:#9aa9b2;box-shadow:inset 0 0 0 1.5px #dbe4e2'),
-        line: 'width:2px;flex:1;min-height:14px;margin:4px 0;border-radius:2px;transition:background .3s;' + (i === 4 ? 'opacity:0' : 'background:' + (done ? '#1d8f86' : '#e4ecea')),
-        nSt: 'align-self:flex-start;margin-top:4px;height:24px;padding:0 9px;border-radius:999px;display:inline-flex;align-items:center;font-size:11.5px;font-weight:800;white-space:nowrap;font-variant-numeric:tabular-nums;animation:rise .25s ease both;background:' + P[3] + ';color:' + P[4],
-        row: 'display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:14px;transition:opacity .3s;opacity:' + (done || running ? 1 : .55) }; });
-    v.chkL = chk >= 5 ? '5 / 5 contrôles' : (chk + 1) + ' / 5 · en cours';
-    v.chkBar = 'display:block;height:100%;border-radius:4px;transition:width ' + TK + 'ms linear;width:' + (S.t / T_END * 100) + '%;background:' + (chk >= 5 ? '#1d8f86' : '#10233a');
-    v.sheets = SH.map(([sn, l], i) => { const miss = d.missing.includes(sn), on = i < lit, s = !on ? 'wait' : miss ? 'err' : 'ok';
-      return { l, tip: sn + (on ? (miss ? ' · absent' : ' · ' + (l === 'Projet' ? d.project.length + ' champs' : pl(cnt(l), 'ligne'))) : ''),
-        st: 'height:26px;padding:0 8px;border-radius:7px;display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;white-space:nowrap;min-width:0;transition:background .2s,color .2s;' + (s === 'ok' ? 'background:#f0f8f6;color:#146b64' : s === 'err' ? 'background:#fdf1ef;color:#a2352a' : 'background:#f5f8f7;color:#a3b1b9'),
-        dot: 'width:6px;height:6px;border-radius:50%;flex:none;transition:background .2s;background:' + (s === 'ok' ? '#1d8f86' : s === 'err' ? '#c2473b' : '#d3dedb') }; });
-    v.sheetsL = lit < NS ? lit + ' / ' + NS + ' lus' : (NS - nMiss) + ' / ' + NS + ' reconnus';
-    const allErr = [...(dup ? [{ lvl: 'err', sheet: 'Projet', row: '', msg: 'Le code ' + code + ' existe déjà : choisissez un autre code.' }] : []), ...(!code ? [{ lvl: 'err', sheet: 'Projet', row: '', msg: 'Le code projet est obligatoire.' }] : []), ...d.missing.map(m => ({ lvl: 'err', sheet: m, row: '', msg: 'Onglet absent du fichier.' })), ...d.issues];
-    const shown = chk >= 5;
-    v.hasIssues = shown && allErr.length > 0; v.issuesL = 'DÉTAIL · ' + pl(allErr.length, 'point');
-    v.issues = allErr.slice(0, 12).map(i => ({ where: i.sheet + (i.row ? ' · ligne ' + i.row : ''), msg: i.msg, tagL: i.lvl === 'err' ? 'Erreur' : 'À vérifier', tag: 'height:20px;padding:0 7px;border-radius:999px;font-size:10.5px;font-weight:800;display:inline-flex;align-items:center;flex:none;margin-top:1px;' + (i.lvl === 'err' ? 'background:#fbe4e1;color:#a2352a' : 'background:#fff1dc;color:#9a5a0c'), st: 'display:flex;align-items:flex-start;gap:10px;font-size:12.5px;padding:10px 12px;border-radius:10px;background:' + (i.lvl === 'err' ? '#fff8f6' : '#fffaf1') }));
-    const nErr = allErr.filter(i => i.lvl === 'err').length, okImp = shown && nErr === 0;
-    v.fileN = d.file; v.fileD = d.size + ' · ' + (lit < NS ? 'lecture en cours…' : Object.keys(d.sheets).reduce((a, k) => a + cnt(k), 0) + ' lignes lues');
-    v.verdict = { ok: okImp, ko: shown && nErr > 0, okRow: shown && nErr > 0 ? 'display:none' : 'display:flex;gap:8px;flex-wrap:wrap;margin-top:2px', l: !shown ? 'Contrôle en cours…' : nErr ? pl(nErr, 'erreur') + ' à corriger' : 'Fichier conforme', d: !shown ? 'Le fichier est vérifié onglet par onglet.' : nErr ? 'Corrigez le fichier Excel puis importez-le de nouveau. Rien n’a été créé.' : (warns.length ? pl(warns.length, 'avertissement') + ' à relire. ' : '') + 'Prévisualisez le référentiel avant de valider.',
-      t: 'font-size:16px;font-weight:800;letter-spacing:-.01em;color:' + (!shown ? '#43586a' : nErr ? '#a2352a' : '#146b64'), box: 'border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:8px;transition:background .3s,box-shadow .3s;' + (!shown ? 'background:#fff;box-shadow:0 0 0 1px #e1e9e7' : nErr ? 'background:#fff8f6;box-shadow:0 0 0 1px #f0cfc9' : 'background:#eef8f6;box-shadow:0 0 0 1px #bfe3de') };
-    v.toPrev = () => this.setState({ step: 'prev' });
+    const cnt = k => ((d.sheets[k] || {}).rows || []).length, pl = (n, w) => n + ' ' + w + (n > 1 ? 's' : '');
+    const code = String((d.project.find(p => /Code projet/.test(p.l)) || {}).v || '').trim();
     const pv = l => (d.project.find(p => p.l === l) || {}).v, name = pv('Nom du projet') || code;
     v.pj = { code: code.slice(0, 5), name, sub: [pv('Nom du client'), fmt(pv('Date de démarrage')) + ' → ' + fmt(pv('Date de fin cible')), pv('Directeur de programme') && 'Direction : ' + pv('Directeur de programme')].filter(Boolean).join(' · '),
       kpis: [['Lots', cnt('Lots')], ['Phases', cnt('Phases')], ['Chantiers', cnt('Chantiers')], ['Personnes', cnt('Personnes')]].map(([l, n]) => ({ l, v: n })) };
@@ -355,8 +187,8 @@ class Component extends DCLogic {
         rows: s.rows.slice(0, 40).map(r => ({ c: r.map((x, j) => ({ v: fmt(x), st: 'min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;' + (j === 0 ? 'font-weight:700' : 'color:#43586a') + (x === '' || x == null ? ';color:#c3cdd2' : '') })) })),
         more: s.rows.length > 40, moreL: '+ ' + (s.rows.length - 40) + ' lignes' }; }
     v.confirmL = 'Valider crée le projet ' + code + ' avec ' + ['Lots', 'Phases', 'Sous-phases', 'Chantiers', 'Jalons', 'Personnes'].map(k => cnt(k) + ' ' + k.toLowerCase()).join(', ') + '. Il rejoint la bibliothèque des projets, au statut Préparation.';
-    v.back = () => this.setState({ step: 'chk' });
-    v.doImport = () => { this.setState({ step: 'done', prog: 0 }); clearInterval(this._pv); this._pv = setInterval(() => { const p = Math.min(100, this.state.prog + 2); this.setState({ prog: p }); if (p >= 100) { clearInterval(this._pv); this.props.onImported && this.props.onImported({ code, name, client: pv('Nom du client') || '', start: pv('Date de démarrage'), end: pv('Date de fin cible'), dir: pv('Directeur de programme') || '', counts: { lots: cnt('Lots'), phases: cnt('Phases'), chantiers: cnt('Chantiers'), jalons: cnt('Jalons'), personnes: cnt('Personnes') }, file: d.file }); } }, 60); };
+    v.back = back;
+    v.doImport = () => { this.setState({ step: 'done', prog: 0, err: '' }); clearInterval(this._pv); this._pv = setInterval(() => { const p = Math.min(100, this.state.prog + 2); this.setState({ prog: p }); if (p >= 100) { clearInterval(this._pv); this.props.onImported && this.props.onImported({ code, name, client: pv('Nom du client') || '', start: pv('Date de démarrage'), end: pv('Date de fin cible'), dir: pv('Directeur de programme') || '', counts: { lots: cnt('Lots'), phases: cnt('Phases'), chantiers: cnt('Chantiers'), jalons: cnt('Jalons'), personnes: cnt('Personnes') }, file: d.file }); } }, 60); };
     const pi = Math.min(4, Math.floor(S.prog / 20));
     v.busy = S.step === 'done' && S.prog < 100; v.ok = okDone; v.pct = S.prog + ' %'; v.busyL = PHASES[pi][0] + '…'; v.busyD = PHASES[pi][1] + ' · étape ' + (pi + 1) + ' sur 5';
     v.phases = PHASES.map(([l], i) => { const done = okDone || i < pi, run = !done && i === pi;

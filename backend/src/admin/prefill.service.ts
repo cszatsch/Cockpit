@@ -1,5 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { randomBytes } from 'crypto';
+import ExcelJS from 'exceljs';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import { AuditService } from '../core/audit.service';
@@ -12,18 +13,26 @@ import { PREFILL_FORMAT_MESSAGE, PrefillRefusal, readProposal } from '../core/pr
 import { PrismaService } from '../core/prisma.service';
 import { StorageService } from '../core/storage.service';
 import {
-  assessTab, documentContext, emptyKnown, knownAfter, normalizeRows, pageSource, parseModelJson, prefillResult, PREFILL_MAX_FILES, PREFILL_WAVES, PREFILL_RETENTION_HOURS_DEFAULT, prefillSystem, PrefillFile,
+  assessTab, documentContext, emptyKnown, knownAfter, normalizeRows, pageSource, parseModelJson, prefillResult, PREFILL_MAX_BYTES, PREFILL_MAX_FILES, PREFILL_WAVES, PREFILL_RETENTION_HOURS_DEFAULT, prefillSystem, PrefillFile,
   PrefillCheck, PrefillRow, PrefillTabSpec, rawEta, readingPage, smoothEta, TabOutcome, tabPrompt,
 } from '../domain/prefill';
 import { skillKey } from '../domain/jev-prompt';
 import { PREFILL_SKILL } from '../domain/prefill-skill';
+import { checkResult, checkTabs, CheckTabOutcome, InitAnomaly } from '../domain/init-check';
+import { detectFormat, KB_PROTECTED } from '../domain/kb-documents';
+import { readWorkbook, SHEETS } from '../import/excel-reader';
+import { ImportService } from '../import/import.service';
 import { adminCtx } from './profiles.service';
 
 /**
- * Préremplissage du fichier d'initialisation (07/10/2026, maquette « Initialisation projet v2 ») : la proposition
- * commerciale est lue, puis analysée onglet par onglet par la fonction d'IA « Initialisation projet » ; l'Excel
- * prérempli est généré à la fin. Analyse dans le processus du serveur (comme Partager Cockpit), état en base pour la
- * reprise et les reconnexions, événements en direct par flux SSE.
+ * Initialisation d'un projet, point d'entrée unique (maquette v3 du 07/10/2026) : le format du fichier déposé décide du
+ * traitement (signature, pas seulement l'extension).
+ * - Proposition commerciale (PDF, DOCX, PPTX) : lue, puis analysée onglet par onglet par la fonction d'IA
+ *   « Initialisation projet » ; l'Excel prérempli est généré à la fin.
+ * - Excel d'initialisation rempli (XLSX) : contrôle de conformité du serveur (`ImportService`, qui fait foi), réparti
+ *   onglet par onglet ; un fichier conforme est gardé pour la prévisualisation et la publication (`ProjectImport`).
+ * Traitement dans le processus du serveur (comme Partager Cockpit), état en base pour la reprise et les reconnexions,
+ * événements en direct par flux SSE.
  *
  * Confidentialité : le document ne sert qu'à ce préremplissage ; le fichier et son texte sont supprimés dès l'Excel
  * généré (ou à l'annulation), le reste à l'échéance (`PREFILL_RETENTION_HOURS`, 24 h par défaut). Le journal ne garde
@@ -31,13 +40,23 @@ import { adminCtx } from './profiles.service';
  */
 
 export type PrefillEvent =
-  | { type: 'progression'; ongletIndex: number; ongletsEnCours: number[]; page: number; pagesTotal: number; champsExtraits: number; resteSecondes: number }
-  | { type: 'onglet_termine'; ongletIndex: number; attendus: number; trouves: number; aVerifier: number; statut: TabOutcome['statut'] }
-  | { type: 'termine'; resultat: 'complet' | 'partiel'; dureeSecondes: number }
+  | { type: 'progression'; ongletIndex: number; ongletsEnCours: number[]; page?: number; pagesTotal?: number; champsExtraits?: number; resteSecondes?: number }
+  | { type: 'onglet_termine'; ongletIndex: number; attendus: number; trouves: number; aVerifier: number; anomaliesBloquantes: number; avertissements: number; statut: TabOutcome['statut'] | CheckTabOutcome['statut'] }
+  | { type: 'termine'; resultat: 'complet' | 'partiel' | 'conforme' | 'anomalies'; dureeSecondes: number }
   | { type: 'erreur'; code: 'ANALYSE'; ongletIndex: number; ongletsConserves: number }
   | { type: 'annule' };
 
 interface SavedTab extends TabOutcome { rows: PrefillRow[]; ms: number }
+/** Onglet en fin d'analyse ou de contrôle → événement `onglet_termine` (mêmes compteurs pour les deux voies). */
+const tabEvent = (s: SavedTab | CheckTabOutcome): PrefillEvent => ({
+  type: 'onglet_termine', ongletIndex: s.ongletIndex, attendus: s.attendus, trouves: s.trouves, aVerifier: s.aVerifier,
+  anomaliesBloquantes: 'anomaliesBloquantes' in s ? s.anomaliesBloquantes : 0, avertissements: 'avertissements' in s ? s.avertissements : 0, statut: s.statut,
+});
+/** Type de dépôt (`prefill_documents.kind`). */
+export type InitKind = 'proposition' | 'excel';
+const XLSX_EXT = /\.xlsx$/i;
+export const INIT_EXCEL_ALONE = 'Un Excel d’initialisation se dépose seul, sans autre fichier.';
+export const INIT_EXCEL_READ_MESSAGE = 'Fichier illisible : le classeur est protégé par un mot de passe ou endommagé.';
 interface Live { listeners: Set<(e: PrefillEvent) => void>; cancelled: boolean; eta: number | null; at: number }
 
 /** Délai d'un appel au modèle pour un onglet (documents longs, réponses de plusieurs milliers de jetons). */
@@ -48,7 +67,7 @@ export const PREFILL_TAB_ATTEMPTS = 2;
 const PREFILL_PURGE_CRON = '20 * * * *';
 /** Exemple fourni avec l'application (« Essayer avec l'exemple ORION »). */
 export const PREFILL_EXAMPLE = path.join(__dirname, '../../assets/prefill/Proposition commerciale ORION v3.pdf');
-const TEMPLATE = path.join(__dirname, '../../../frontends/Referentiel RISE - initialisation.xlsx');
+export const TEMPLATE = path.join(__dirname, '../../../frontends/Referentiel RISE - initialisation.xlsx');
 const SYSTEM_ACTOR: Actor = { accountId: 'system', sessionId: 'system', email: 'system@rise.local', fullName: 'Système', personId: null, isAdmin: true, surface: null, restricted: false, viaCookie: false };
 
 export const prefillRetentionMs = () => Math.max(1, Number(process.env.PREFILL_RETENTION_HOURS ?? PREFILL_RETENTION_HOURS_DEFAULT) || PREFILL_RETENTION_HOURS_DEFAULT) * 3_600_000;
@@ -69,6 +88,7 @@ export class PrefillService implements OnModuleInit {
     private readonly llm: LlmService,
     private readonly audit: AuditService,
     private readonly jobs: JobsService,
+    private readonly imports: ImportService,
   ) {}
 
   async onModuleInit() {
@@ -100,6 +120,11 @@ export class PrefillService implements OnModuleInit {
     const ctx = adminCtx(actor);
     if (!uploaded.length) throw new ApiError(422, 'FORMAT', PREFILL_FORMAT_MESSAGE);
     if (uploaded.length > PREFILL_MAX_FILES) throw new ApiError(422, 'FORMAT', `${PREFILL_MAX_FILES} fichiers au plus par dépôt.`);
+    // Excel d'initialisation rempli (maquette v3) : voie du contrôle de conformité, un seul fichier.
+    const utf8 = (n: string) => Buffer.from(n, 'latin1').toString('utf8').normalize('NFC');
+    const xlsx = uploaded.find((f) => XLSX_EXT.test(utf8(f.originalname)));
+    if (xlsx && uploaded.length > 1) throw new ApiError(422, 'FORMAT', INIT_EXCEL_ALONE, { fichier: utf8(xlsx.originalname) });
+    if (xlsx) return this.uploadExcel(actor, xlsx);
     const read: Array<{ nom: string; taille: number; buffer: Buffer; format: string; pages: string[] }> = [];
     for (const file of uploaded) {
       const nom = Buffer.from(file.originalname, 'latin1').toString('utf8').normalize('NFC');
@@ -120,7 +145,35 @@ export class PrefillService implements OnModuleInit {
     const textKey = await this.storage.put('prefill', Buffer.from(JSON.stringify(pages), 'utf8'), '.json');
     await this.prisma.prefillDocument.create({ data: { id, name, sizeBytes: size, pages: pages.length, format: [...new Set(read.map((f) => f.format))].join('+'), fileKey: files[0].cle, textKey, files: files as any, accountId: actor.accountId, expiresAt: new Date(Date.now() + prefillRetentionMs()) } });
     await this.audit.action(this.prisma, ctx, { action: 'Préremplissage : proposition déposée', target: name, severity: 'INFO', entityType: 'PREFILL', entityId: id, details: { nom: name, taille: size, pages: pages.length, fichiers: files.map((f) => ({ nom: f.nom, taille: f.taille, pages: f.pages, format: f.format })) } });
-    return { id, nom: name, taille: size, pages: pages.length, fichiers: files.map((f) => ({ nom: f.nom, taille: f.taille, pages: f.pages })) };
+    return { id, nom: name, taille: size, type: 'proposition' as InitKind, pages: pages.length, fichiers: files.map((f) => ({ nom: f.nom, taille: f.taille, pages: f.pages })) };
+  }
+
+  /**
+   * Excel d'initialisation rempli : taille, type réel (signature d'un classeur, pas seulement l'extension), puis
+   * lecture du classeur ; protégé par mot de passe ou illisible → `LECTURE`. Le contrôle se lance ensuite (`process`).
+   */
+  private async uploadExcel(actor: Actor, file: { originalname: string; size: number; buffer: Buffer }) {
+    const ctx = adminCtx(actor);
+    const nom = Buffer.from(file.originalname, 'latin1').toString('utf8').normalize('NFC');
+    const refuse = async (code: 'FORMAT' | 'LECTURE', message: string) => {
+      await this.audit.action(this.prisma, ctx, { action: 'Initialisation : Excel refusé', target: nom, severity: 'INFO', entityType: 'PREFILL', details: { nom, taille: file.size, type: 'excel', statut: code } });
+      return new ApiError(422, code, message, { fichier: nom });
+    };
+    if (!file.buffer.length || file.buffer.length > PREFILL_MAX_BYTES) throw await refuse('FORMAT', PREFILL_FORMAT_MESSAGE);
+    const f = await detectFormat(file.buffer, nom);
+    if ('error' in f) throw await refuse(f.error === KB_PROTECTED ? 'LECTURE' : 'FORMAT', f.error === KB_PROTECTED ? INIT_EXCEL_READ_MESSAGE : PREFILL_FORMAT_MESSAGE);
+    if (f.format !== 'XLSX') throw await refuse('FORMAT', PREFILL_FORMAT_MESSAGE);
+    try {
+      await readWorkbook(file.buffer);
+    } catch {
+      throw await refuse('LECTURE', INIT_EXCEL_READ_MESSAGE);
+    }
+    const id = newId('xls');
+    const key = await this.storage.put('prefill', file.buffer, '.xlsx');
+    const files: PrefillFile[] = [{ nom, taille: file.size, pages: 0, format: 'XLSX', cle: key }];
+    await this.prisma.prefillDocument.create({ data: { id, name: nom, sizeBytes: file.size, pages: 0, format: 'XLSX', kind: 'excel', fileKey: key, textKey: null, files: files as any, accountId: actor.accountId, expiresAt: new Date(Date.now() + prefillRetentionMs()) } });
+    await this.audit.action(this.prisma, ctx, { action: 'Initialisation : Excel déposé', target: nom, severity: 'INFO', entityType: 'PREFILL', entityId: id, details: { nom, taille: file.size, type: 'excel' } });
+    return { id, nom, taille: file.size, type: 'excel' as InitKind, fichiers: [{ nom, taille: file.size }] };
   }
 
   /** Exemple ORION fourni avec l'application, déposé comme une proposition ordinaire. */
@@ -131,14 +184,15 @@ export class PrefillService implements OnModuleInit {
 
   // ───────────── Analyse ─────────────
 
-  async analyse(actor: Actor, documentId: string) {
+  /** Lance le traitement selon le type du dépôt : analyse (proposition) ou contrôle (Excel) → `{ tacheId }`. */
+  async process(actor: Actor, documentId: string) {
     const doc = await this.prisma.prefillDocument.findUnique({ where: { id: documentId } });
-    if (!doc) throw notFound('Proposition introuvable');
-    if (!doc.textKey) throw new ApiError(410, 'GONE', 'Proposition supprimée : déposez-la de nouveau.');
-    if (await this.prisma.prefillTask.findFirst({ where: { documentId, status: 'RUNNING' } })) throw conflict('PREFILL_RUNNING', 'Une analyse de cette proposition est déjà en cours.');
+    if (!doc) throw notFound('Fichier introuvable');
+    if (!(doc.kind === 'excel' ? doc.fileKey : doc.textKey)) throw new ApiError(410, 'GONE', 'Fichier supprimé : déposez-le de nouveau.');
+    if (await this.prisma.prefillTask.findFirst({ where: { documentId, status: 'RUNNING' } })) throw conflict('PREFILL_RUNNING', 'Un traitement de ce fichier est déjà en cours.');
     const id = newId('tache');
     await this.prisma.prefillTask.create({ data: { id, documentId, status: 'RUNNING', expiresAt: doc.expiresAt } });
-    this.start(id, actor);
+    this.start(id, actor, doc.kind);
     return { tacheId: id };
   }
 
@@ -147,9 +201,9 @@ export class PrefillService implements OnModuleInit {
     const t = await this.prisma.prefillTask.findUnique({ where: { id: taskId }, include: { document: true } });
     if (!t) throw notFound('Analyse introuvable');
     if (t.status !== 'FAILED') throw conflict('PREFILL_NOT_FAILED', 'Seule une analyse interrompue peut être reprise.');
-    if (!t.document.textKey) throw new ApiError(410, 'GONE', 'Proposition supprimée : déposez-la de nouveau.');
+    if (!(t.document.kind === 'excel' ? t.document.fileKey : t.document.textKey)) throw new ApiError(410, 'GONE', 'Fichier supprimé : déposez-le de nouveau.');
     await this.prisma.prefillTask.update({ where: { id: taskId }, data: { status: 'RUNNING', error: null } });
-    this.start(taskId, actor);
+    this.start(taskId, actor, t.document.kind);
     return { tacheId: taskId, ongletIndex: t.tabIndex };
   }
 
@@ -166,8 +220,20 @@ export class PrefillService implements OnModuleInit {
     }
     const files = (d.files as unknown as PrefillFile[]) ?? [];
     for (const k of new Set([d.fileKey, d.textKey, ...files.map((f) => f.cle), ...d.tasks.map((t) => t.excelKey)])) if (k) await this.storage.remove(k);
+    await this.dropImports(d.tasks);
     await this.prisma.prefillDocument.delete({ where: { id: documentId } });
-    await this.audit.action(this.prisma, adminCtx(actor), { action: 'Préremplissage : réinitialisé', target: d.name, severity: 'INFO', entityType: 'PREFILL', entityId: documentId, details: { nom: d.name, taille: d.sizeBytes, fichiers: files.length, analyses: d.tasks.length } });
+    await this.audit.action(this.prisma, adminCtx(actor), { action: d.kind === 'excel' ? 'Initialisation : réinitialisée' : 'Préremplissage : réinitialisé', target: d.name, severity: 'INFO', entityType: 'PREFILL', entityId: documentId, details: { nom: d.name, taille: d.sizeBytes, fichiers: files.length, analyses: d.tasks.length } });
+  }
+
+  /** Import d'un Excel conforme non publié : fichier gardé et ligne supprimés (une publication reste tracée). */
+  private async dropImports(tasks: Array<{ importId: string | null }>) {
+    for (const t of tasks) {
+      if (!t.importId) continue;
+      const i = await this.prisma.projectImport.findUnique({ where: { id: t.importId } });
+      if (!i || i.status === 'IMPORTED') continue;
+      await this.storage.remove(i.fileKey);
+      await this.prisma.projectImport.delete({ where: { id: i.id } });
+    }
   }
 
   /** Annulation : la tâche s'arrête (aucun onglet de plus) ; le document et son texte sont supprimés. */
@@ -180,15 +246,15 @@ export class PrefillService implements OnModuleInit {
       await this.prisma.prefillTask.update({ where: { id: taskId }, data: { status: 'CANCELLED', finishedAt: new Date() } });
       this.emit(taskId, { type: 'annule' }, true);
       await this.dropSource(t.document.id);
-      await this.audit.action(this.prisma, adminCtx(actor), { action: 'Préremplissage : analyse annulée', target: t.document.name, severity: 'INFO', entityType: 'PREFILL', entityId: taskId, details: { nom: t.document.name, taille: t.document.sizeBytes, duree: Math.round(t.durationMs / 1000), statut: 'annule' } });
+      await this.audit.action(this.prisma, adminCtx(actor), { action: t.document.kind === 'excel' ? 'Initialisation : contrôle annulé' : 'Préremplissage : analyse annulée', target: t.document.name, severity: 'INFO', entityType: 'PREFILL', entityId: taskId, details: { nom: t.document.name, taille: t.document.sizeBytes, duree: Math.round(t.durationMs / 1000), statut: 'annule' } });
     }
   }
 
-  private start(taskId: string, actor: Actor) {
+  private start(taskId: string, actor: Actor, kind: string) {
     this.live.set(taskId, { listeners: this.live.get(taskId)?.listeners ?? new Set(), cancelled: false, eta: null, at: Date.now() });
-    // Erreur imprévue (stockage, génération de l'Excel…) : analyse en échec à l'onglet en cours, reprise possible.
+    // Erreur imprévue (stockage, génération de l'Excel…) : traitement en échec à l'onglet en cours, reprise possible.
     // Seul le type d'erreur est journalisé, jamais le contenu du document.
-    void this.run(taskId, actor).catch(async (e) => {
+    void (kind === 'excel' ? this.runCheck(taskId, actor) : this.run(taskId, actor)).catch(async (e) => {
       this.log.error(`Analyse ${taskId} : ${e instanceof Error ? e.name : 'erreur'}`);
       const t = await this.prisma.prefillTask.findUnique({ where: { id: taskId } }).catch(() => null);
       if (!t || t.status !== 'RUNNING') return;
@@ -281,8 +347,7 @@ export class PrefillService implements OnModuleInit {
         saved[i] = { ...outcome, rows, ms: Date.now() - s0 };
         doneHere++;
         await persist({ tabs: saved as any, durationMs: before + Date.now() - t0 });
-        const { ongletIndex, attendus, trouves, aVerifier, statut } = outcome;
-        this.emit(taskId, { type: 'onglet_termine', ongletIndex, attendus, trouves, aVerifier, statut });
+        this.emit(taskId, tabEvent(saved[i]!));
       } catch (error) {
         failures.push({ index: i, error });
       } finally {
@@ -325,6 +390,45 @@ export class PrefillService implements OnModuleInit {
     await this.audit.action(this.prisma, adminCtx(actor), { action: 'Préremplissage : analyse terminée', target: doc.name, severity: 'INFO', entityType: 'PREFILL', entityId: taskId, details: { nom: doc.name, taille: doc.sizeBytes, pages: doc.pages, duree: dureeSecondes, statut: resultat } });
   }
 
+  /**
+   * Contrôle de conformité de l'Excel (voie Excel) : le contrôle complet du serveur, puis ses anomalies réparties onglet
+   * par onglet (événements dans l'ordre des 14 onglets). Conforme (aucune anomalie bloquante) : le fichier est gardé
+   * pour la prévisualisation et la publication (`ProjectImport`, comme l'ancien écran d'import) ; sinon il n'est pas
+   * gardé. Dans les deux cas, la copie du dépôt est supprimée.
+   */
+  private async runCheck(taskId: string, actor: Actor) {
+    const task = await this.prisma.prefillTask.findUniqueOrThrow({ where: { id: taskId }, include: { document: true } });
+    const doc = task.document;
+    const live = this.live.get(taskId)!;
+    const t0 = Date.now();
+    const buffer = await this.storage.get(doc.fileKey!);
+    if (!buffer) throw new Error('Fichier introuvable');
+    const c = await this.imports.control(buffer);
+    if (!c.wb) throw new Error('Classeur illisible');
+    const specs = await this.specs();
+    const tabs = checkTabs(c.res.issues, c.wb, SHEETS, specs.map((sp) => sp.fields.length), c.duplicate ? c.code : null);
+    for (const tab of tabs) {
+      if (live.cancelled) return;
+      this.emit(taskId, { type: 'progression', ongletIndex: tab.ongletIndex, ongletsEnCours: [tab.ongletIndex] });
+      this.emit(taskId, tabEvent(tab));
+    }
+    if (live.cancelled) return;
+    const resultat = c.ok && c.res.plan ? checkResult(tabs) : 'anomalies';
+    let importId: string | null = null;
+    if (resultat === 'conforme') {
+      const key = await this.storage.put('imports', buffer, '.xlsx');
+      const report = { ok: true, checks: c.checks, issues: c.res.issues, counts: c.res.counts, code: c.code };
+      importId = (await this.prisma.projectImport.create({ data: { fileName: doc.name, fileKey: key, uploadedBy: actor.fullName, status: 'CHECKED', report: report as any, parsed: c.res.plan as any } })).id;
+    }
+    const durationMs = Date.now() - t0;
+    await this.prisma.prefillTask.update({ where: { id: taskId }, data: { status: 'DONE', result: resultat, tabs: tabs as any, importId, durationMs, finishedAt: new Date(), tabIndex: tabs.length } });
+    await this.dropSource(doc.id);
+    const dureeSecondes = Math.max(1, Math.round(durationMs / 1000));
+    this.emit(taskId, { type: 'termine', resultat, dureeSecondes }, true);
+    const nb = tabs.reduce((n, t) => n + t.anomaliesBloquantes, 0), nw = tabs.reduce((n, t) => n + t.avertissements, 0);
+    await this.audit.action(this.prisma, adminCtx(actor), { action: 'Initialisation : contrôle terminé', target: doc.name, severity: 'INFO', entityType: 'PREFILL', entityId: taskId, details: { nom: doc.name, taille: doc.sizeBytes, type: 'excel', duree: dureeSecondes, statut: resultat, bloquantes: nb, avertissements: nw } });
+  }
+
   /** Fichiers et texte extrait supprimés (la ligne garde les métadonnées). */
   private async dropSource(documentId: string) {
     const d = await this.prisma.prefillDocument.findUnique({ where: { id: documentId } });
@@ -340,8 +444,8 @@ export class PrefillService implements OnModuleInit {
   async subscribe(taskId: string, send: (e: PrefillEvent) => void): Promise<(() => void) | null> {
     const t = await this.prisma.prefillTask.findUnique({ where: { id: taskId }, include: { document: true } });
     if (!t) throw notFound('Analyse introuvable');
-    for (const s of ((t.tabs as unknown as Array<SavedTab | null>) ?? []).filter((x): x is SavedTab => !!x)) send({ type: 'onglet_termine', ongletIndex: s.ongletIndex, attendus: s.attendus, trouves: s.trouves, aVerifier: s.aVerifier, statut: s.statut });
-    if (t.status === 'DONE') { send({ type: 'termine', resultat: t.result as 'complet' | 'partiel', dureeSecondes: Math.max(1, Math.round(t.durationMs / 1000)) }); return null; }
+    for (const s of ((t.tabs as unknown as Array<SavedTab | CheckTabOutcome | null>) ?? []).filter((x): x is SavedTab | CheckTabOutcome => !!x)) send(tabEvent(s));
+    if (t.status === 'DONE') { send({ type: 'termine', resultat: t.result as 'complet' | 'partiel' | 'conforme' | 'anomalies', dureeSecondes: Math.max(1, Math.round(t.durationMs / 1000)) }); return null; }
     if (t.status === 'FAILED') { send({ type: 'erreur', code: 'ANALYSE', ongletIndex: t.tabIndex, ongletsConserves: ((t.tabs as unknown as unknown[]) ?? []).filter(Boolean).length }); return null; }
     if (t.status === 'CANCELLED') { send({ type: 'annule' }); return null; }
     const live = this.live.get(taskId);
@@ -364,6 +468,78 @@ export class PrefillService implements OnModuleInit {
     });
   }
 
+  /** Voie Excel : anomalies du contrôle, dans l'ordre des onglets (bloquantes d'abord), avec leur cellule exacte. */
+  async anomalies(taskId: string): Promise<InitAnomaly[]> {
+    const t = await this.checkTask(taskId);
+    return ((t.tabs as unknown as CheckTabOutcome[]) ?? []).flatMap((x) => x.anomalies);
+  }
+
+  private async checkTask(taskId: string) {
+    const t = await this.prisma.prefillTask.findUnique({ where: { id: taskId }, include: { document: true } });
+    if (!t || t.document.kind !== 'excel') throw notFound('Contrôle introuvable');
+    if (t.status !== 'DONE') throw conflict('CHECK_NOT_DONE', 'Le contrôle n’est pas terminé.');
+    return t;
+  }
+
+  /**
+   * Rapport de contrôle (.xlsx) : synthèse (fichier, résultat, compteurs), une ligne par anomalie avec sa cellule, et
+   * le décompte par onglet ; compteurs identiques à ceux de l'écran (même liste).
+   */
+  async report(actor: Actor, taskId: string): Promise<{ buffer: Buffer; fileName: string }> {
+    const t = await this.checkTask(taskId);
+    const tabs = (t.tabs as unknown as CheckTabOutcome[]) ?? [];
+    const all = tabs.flatMap((x) => x.anomalies);
+    const nb = all.filter((a) => a.gravite === 'bloquant').length, nw = all.length - nb;
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Rapport de contrôle', { views: [{ state: 'frozen', ySplit: 8 }] });
+    ws.columns = [{ width: 18 }, { width: 30 }, { width: 28 }, { width: 60 }, { width: 15 }, { width: 10 }];
+    ws.addRow(['Rapport de contrôle · Excel d’initialisation']).font = { bold: true, size: 14 };
+    ws.addRow(['Fichier', t.document.name]);
+    ws.addRow(['Contrôlé le', (t.finishedAt ?? t.startedAt).toLocaleString('fr-FR', { timeZone: 'Europe/Paris' })]);
+    ws.addRow(['Résultat', t.result === 'conforme' ? 'Fichier conforme' : `${nb} anomalie${nb > 1 ? 's' : ''} bloquante${nb > 1 ? 's' : ''}`]);
+    ws.addRow(['Anomalies bloquantes', nb]);
+    ws.addRow(['Avertissements', nw]);
+    ws.addRow([]);
+    ws.addRow(['Onglet', 'Champ', 'Valeur lue', 'Motif', 'Gravité', 'Cellule']).font = { bold: true };
+    for (const a of all) {
+      const r = ws.addRow([a.onglet, a.champ, a.valeur, a.motif, a.gravite === 'bloquant' ? 'Bloquant' : 'Avertissement', a.cellule]);
+      r.getCell(5).font = { bold: true, color: { argb: a.gravite === 'bloquant' ? 'FFC2414B' : 'FFB26A00' } };
+    }
+    const sum = wb.addWorksheet('Synthèse par onglet');
+    sum.columns = [{ width: 22 }, { width: 10 }, { width: 22 }, { width: 16 }, { width: 16 }];
+    sum.addRow(['Onglet', 'Champs', 'Anomalies bloquantes', 'Avertissements', 'Statut']).font = { bold: true };
+    const ST = { conforme: 'Conforme', avertissements: 'Avertissements', anomalies: 'Anomalies' };
+    for (const x of tabs) sum.addRow([SHEETS[x.ongletIndex], x.attendus, x.anomaliesBloquantes, x.avertissements, ST[x.statut]]);
+    const buffer = Buffer.from(await wb.xlsx.writeBuffer());
+    await this.audit.action(this.prisma, adminCtx(actor), { action: 'Initialisation : rapport de contrôle téléchargé', target: t.document.name, severity: 'INFO', entityType: 'PREFILL', entityId: taskId, details: { nom: t.document.name, statut: t.result, bloquantes: nb, avertissements: nw } });
+    const base = t.document.name.replace(/\.[a-z0-9]+$/i, '').replace(/[\\/:*?"<>|]+/g, ' ').trim();
+    return { buffer, fileName: `${base} · rapport de contrôle.xlsx` };
+  }
+
+  /**
+   * « Prévisualiser le référentiel » (Excel conforme) : vue de l'étape existante (forme de l'ancien contrôle : projet,
+   * onglets, contrôles) ; fichier gardé relu et contrôlé de nouveau. `jobId` sert à la publication
+   * (`POST /projects/import/commit`). 409 si le fichier n'est pas conforme : la prévisualisation est bloquée.
+   */
+  async preview(taskId: string) {
+    const t = await this.checkTask(taskId);
+    if (t.result !== 'conforme' || !t.importId) throw conflict('NOT_CONFORMING', 'Fichier non conforme : corrigez les anomalies bloquantes avant la prévisualisation.');
+    const i = await this.prisma.projectImport.findUnique({ where: { id: t.importId } });
+    if (!i) throw new ApiError(410, 'GONE', 'Fichier supprimé : déposez-le de nouveau.');
+    if (i.status === 'IMPORTED') throw conflict('ALREADY_IMPORTED', 'Ce fichier a déjà été publié.');
+    const buffer = await this.storage.get(i.fileKey);
+    if (!buffer) throw new ApiError(410, 'GONE', 'Fichier supprimé (durée de conservation dépassée) : déposez-le de nouveau.');
+    const c = await this.imports.control(buffer);
+    return { jobId: i.id, file: i.fileName, size: `${Math.round(t.document.sizeBytes / 1024)} Ko`, ok: c.ok, checks: c.checks, ...c.screen };
+  }
+
+  /** Modèle vierge : « [nom de l'utilisateur] - Init projet Cockpit [AAMMJJ].xlsx », caractères interdits retirés. */
+  async blankTemplate(actor: Actor, now = new Date()): Promise<{ buffer: Buffer; fileName: string }> {
+    const p2 = (n: number) => String(n).padStart(2, '0');
+    const who = String(actor.fullName || '').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim();
+    return { buffer: await this.template(), fileName: `${who ? `${who} - ` : ''}Init projet Cockpit ${String(now.getFullYear()).slice(2)}${p2(now.getMonth() + 1)}${p2(now.getDate())}.xlsx` };
+  }
+
   async excel(actor: Actor, taskId: string): Promise<{ buffer: Buffer; fileName: string }> {
     const t = await this.prisma.prefillTask.findUnique({ where: { id: taskId }, include: { document: true } });
     if (!t) throw notFound('Analyse introuvable');
@@ -382,6 +558,7 @@ export class PrefillService implements OnModuleInit {
       const files = (d.files as unknown as PrefillFile[]) ?? [];
       for (const k of new Set([d.fileKey, d.textKey, ...files.map((f) => f.cle), ...d.tasks.map((t) => t.excelKey)])) if (k) await this.storage.remove(k);
       for (const t of d.tasks) { const l = this.live.get(t.id); if (l) l.cancelled = true; }
+      await this.dropImports(d.tasks);
       await this.prisma.prefillDocument.delete({ where: { id: d.id } });
     }
     if (docs.length) await this.audit.action(this.prisma, adminCtx(SYSTEM_ACTOR), { action: 'Préremplissage : purge', severity: 'INFO', entityType: 'PREFILL', details: { documents: docs.length } });

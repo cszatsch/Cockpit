@@ -15,7 +15,7 @@ export class PrefillRefusal extends Error {
   }
 }
 
-export const PREFILL_FORMAT_MESSAGE = 'Format non pris en charge : déposez un PDF, DOCX ou PPTX de 25 Mo au plus.';
+export const PREFILL_FORMAT_MESSAGE = 'Format non pris en charge : déposez un PDF, DOCX, PPTX ou XLSX de 25 Mo au plus.';
 export const PREFILL_READ_MESSAGE = 'Fichier illisible : le document est protégé ou ne contient que des images.';
 
 export interface ProposalText {

@@ -543,7 +543,23 @@ describe('Console Admin — critères d’acceptation (brief Console § 13)', ()
     beforeAll(async () => {
       adminToken = await t.token(WHO.admin);
     });
-    const upload = (buf: Buffer, name = 'init.xlsx') => request(t.app.getHttpServer()).post(`${A}/projects/import/validate`).set('Authorization', `Bearer ${adminToken}`).attach('file', buf, name);
+    const I = `${A}/projects/init`;
+    const send = (buf: Buffer, name = 'init.xlsx', tok = adminToken) => request(t.app.getHttpServer()).post(`${I}/files`).set('Authorization', `Bearer ${tok}`).attach('files', buf, name);
+    /**
+     * Écran unique (maquette v3, 07/10/2026) : dépôt de l'Excel, contrôle onglet par onglet, puis prévisualisation
+     * (forme de l'ancien contrôle, `jobId` de la publication) ; `preview` est null si elle est bloquée (409).
+     */
+    const upload = async (buf: Buffer, name = 'init.xlsx') => {
+      const f = await send(buf, name).expect(201);
+      expect(f.body).toMatchObject({ type: 'excel', nom: name });
+      const c = await t.as(WHO.admin);
+      const taskId = (await c.post(`${I}/files/${f.body.id}/processing`).expect(202)).body.tacheId;
+      for (let k = 0; k < 200 && (await t.db.prefillTask.findUniqueOrThrow({ where: { id: taskId } })).status === 'RUNNING'; k++) await new Promise((r) => setTimeout(r, 20));
+      const task = await t.db.prefillTask.findUniqueOrThrow({ where: { id: taskId } });
+      const anomalies = (await c.get(`${I}/tasks/${taskId}/anomalies`).expect(200)).body;
+      const pv = await c.get(`${I}/tasks/${taskId}/preview`);
+      return { docId: f.body.id as string, taskId, result: task.result, anomalies, preview: pv.status === 200 ? pv.body : null, previewStatus: pv.status };
+    };
     /** Attend la fin de la création ; renvoie les états successifs lus (phase, pourcentage). */
     const follow = async (jobId: string) => {
       const c = await t.as(WHO.admin), seen: any[] = [];
@@ -556,22 +572,23 @@ describe('Console Admin — critères d’acceptation (brief Console § 13)', ()
       throw new Error('création trop longue');
     };
 
-    it('réservé à l’Admin ; format .xlsx ; onglet manquant → non conforme, 422 au commit ; code existant → contrôle « Fiche projet » en erreur', async () => {
+    it('réservé à l’Admin ; format refusé ; onglet manquant → non conforme, prévisualisation bloquée ; code existant → anomalie bloquante', async () => {
       const pmo = await t.token(WHO.pmo);
-      await request(t.app.getHttpServer()).post(`${A}/projects/import/validate`).set('Authorization', `Bearer ${pmo}`).attach('file', await buildWorkbook(validAtlas('ORION')), 'init.xlsx').expect(403);
-      expect((await upload(Buffer.from('texte'), 'notes.csv').expect(400)).body.message).toBe('Format attendu : .xlsx');
-      const r = await upload(await buildWorkbook({ dropSheets: ['03 Personnes'] })).expect(200);
-      expect(r.body).toMatchObject({ ok: false, missing: ['03 Personnes'] });
-      expect(r.body.checks.map((c: any) => [c.id, c.status])).toEqual([['structure', 'err'], ['project', expect.any(String)], ['required', expect.any(String)], ['consistency', expect.any(String)], ['warnings', expect.any(String)]]);
-      await (await t.as(WHO.admin)).post(`${A}/projects/import/commit`, { jobId: r.body.jobId }).expect(422);
-      const dup = await upload(await buildWorkbook(validAtlas('RISE'))).expect(200);
-      expect(dup.body.ok).toBe(false);
-      expect(dup.body.checks[1]).toMatchObject({ id: 'project', status: 'err', detail: 'Code RISE · déjà utilisé dans la bibliothèque' });
-      await (await t.as(WHO.admin)).post(`${A}/projects/import/commit`, { jobId: dup.body.jobId }).expect(409);
+      await send(await buildWorkbook(validAtlas('ORION')), 'init.xlsx', pmo).expect(403);
+      expect((await send(Buffer.from('texte'), 'notes.csv').expect(422)).body.code).toBe('FORMAT');
+      const r = await upload(await buildWorkbook({ dropSheets: ['03 Personnes'] }));
+      expect(r).toMatchObject({ result: 'anomalies', preview: null, previewStatus: 409 });
+      expect(r.anomalies).toContainEqual({ ongletIndex: 2, onglet: '03 Personnes', champ: 'Onglet entier', valeur: '', motif: 'Onglet « 03 Personnes » manquant.', gravite: 'bloquant', cellule: '—' });
+      expect(await t.db.projectImport.count()).toBe(0);
+      const dup = await upload(await buildWorkbook(validAtlas('RISE')));
+      expect(dup).toMatchObject({ result: 'anomalies', preview: null });
+      expect(dup.anomalies).toContainEqual(expect.objectContaining({ onglet: '05 Projet', champ: 'Code projet', valeur: 'RISE', motif: 'Code déjà utilisé dans la bibliothèque des projets.', gravite: 'bloquant', cellule: expect.stringMatching(/^D\d+$/) }));
     });
 
     it('fichier conforme : vue de l’écran, 5 contrôles ; création en 5 phases, projet PREPARATION, audit ; fichier temporaire supprimé', async () => {
-      const r = await upload(await buildWorkbook(validAtlas('ORION'))).expect(200);
+      const u = await upload(await buildWorkbook(validAtlas('ORION')));
+      expect(u).toMatchObject({ result: 'conforme', previewStatus: 200 });
+      const r = { body: u.preview };
       expect(r.body).toMatchObject({ ok: true, file: 'init.xlsx', missing: [] });
       expect(r.body.checks.map((c: any) => c.status)).toEqual(['ok', 'ok', 'ok', 'ok', expect.stringMatching(/ok|warn/)]);
       expect(r.body.project.find((p: any) => p.l === 'Code projet')).toEqual({ l: 'Code projet', v: 'ORION', r: true });
@@ -597,7 +614,7 @@ describe('Console Admin — critères d’acceptation (brief Console § 13)', ()
     });
 
     it('une erreur pendant la création annule tout ; « Réinitialiser la session » oublie le fichier côté serveur', async () => {
-      const r = await upload(await buildWorkbook(validAtlas('VEGA'))).expect(200);
+      const r = { body: (await upload(await buildWorkbook(validAtlas('VEGA')))).preview };
       // Collision provoquée : une équipe au même identifiant technique existe déjà.
       await t.db.client.upsert({ where: { code: 'AMC Corp' }, create: { id: 'c1', code: 'AMC Corp', name: 'AMC Corp' }, update: {} });
       await t.db.project.create({ data: { id: 'TMP', clientId: 'c1', code: 'TMP', name: 'tmp', startDate: '2026-01-01', targetEndDate: '2026-12-31' } });
@@ -608,7 +625,7 @@ describe('Console Admin — critères d’acceptation (brief Console § 13)', ()
       expect(await t.db.project.findUnique({ where: { code: 'VEGA' } })).toBeNull();
       expect(await t.db.person.count({ where: { projectId: 'VEGA' } })).toBe(0);
       // Session oubliée : fichier temporaire supprimé, import effacé.
-      const again = await upload(await buildWorkbook(validAtlas('LYRA'))).expect(200);
+      const again = { body: (await upload(await buildWorkbook(validAtlas('LYRA')))).preview };
       const key = (await t.db.projectImport.findUniqueOrThrow({ where: { id: again.body.jobId } })).fileKey;
       expect(await t.app.get(StorageService).get(key)).not.toBeNull();
       await (await t.as(WHO.admin)).del(`${A}/projects/import/${again.body.jobId}`).expect(204);

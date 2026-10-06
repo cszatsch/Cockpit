@@ -835,11 +835,10 @@ const isoDay = v => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) ? da
  * lu par l'écran (`{ project, sheets, issues, missing }` et les 5 contrôles) ; les dates deviennent des `Date`.
  * Rien n'est créé à cette étape ; le fichier reste côté serveur jusqu'à la création ou à la réinitialisation.
  */
-export async function validateXlsx(file) {
-  const fd = new FormData(); fd.append('file', file, file.name);
-  const r = await api('POST', '/projects/import/validate', fd);
+/** Vue de l'étape « Prévisualiser » (serveur) → données de `ProjetInit` : dates du référentiel en objets Date. */
+export function toInitData(r) {
   const sheets = {};
-  for (const [k, s] of Object.entries(r.sheets || {})) sheets[k] = { heads: s.heads, rows: s.rows.map(row => row.map(isoDay)) };
+  for (const [k, sh] of Object.entries(r.sheets || {})) sheets[k] = { heads: sh.heads, rows: sh.rows.map(row => row.map(isoDay)) };
   return { file: r.file, size: r.size, project: (r.project || []).map(p => ({ ...p, v: isoDay(p.v) })), sheets, issues: r.issues || [], missing: r.missing || [], importId: r.jobId, checks: r.checks, ok: r.ok };
 }
 
@@ -847,26 +846,14 @@ export async function validateXlsx(file) {
 const INIT_STEP = 2, INIT_TICK = 60, INIT_POLL = 250;
 
 /**
- * `ProjetInit` : contrôle et création par le serveur (spécification Initialisation projet § 5). La création suit
+ * `ProjetInit` (étapes « Prévisualiser » et « Publier », depuis l'écran unique du 07/10/2026) : le fichier conforme
+ * vient de la voie Excel de `Initialisation projet.dc.html` (`data`, import gardé par le serveur). La création suit
  * l'avancement réel (`GET /projects/import/{jobId}`) sans jamais le devancer ; chaque phase reste visible.
- * « Réinitialiser la session » (et le retour à l'étape 1) oublie aussi le fichier côté serveur.
- * « Charger l'exemple » (ORION) garde la simulation d'origine (arbitrage du 29/09/2026).
  */
 export function bindInit(c) {
   if (isDemo() || c.__api) return;
   c.__api = true;
-  const rv0 = c.renderVals.bind(c), set0 = c.setState.bind(c), restart0 = c.restart.bind(c);
-  const forget = d => { if (d && d.importId) api('DELETE', '/projects/import/' + encodeURIComponent(d.importId)).catch(e => console.warn('[admin-api]', e)); };
-  c.restart = () => { forget(c.state.data); restart0(); };
-  c.file = async f => {
-    if (!f) return; if (!/\.xlsx$/i.test(f.name)) return set0({ upErr: 'Format attendu : .xlsx' });
-    set0({ upErr: '', busyRead: true });
-    try {
-      const prev = c.state.data, d = await validateXlsx(f);
-      forget(prev); // « Importer le fichier corrigé » : l'ancien fichier est oublié côté serveur
-      set0({ busyRead: false }); c.load(d);
-    } catch (e) { set0({ upErr: 'Lecture impossible : ' + errText(e), busyRead: false }); }
-  };
+  const rv0 = c.renderVals.bind(c), set0 = c.setState.bind(c);
   c.renderVals = () => {
     const v = rv0(), d = c.state.data;
     if (!d || !d.importId) return v; // exemple de démonstration : création simulée d'origine
@@ -893,8 +880,9 @@ export function bindInit(c) {
           counts: { lots: cnt('Lots'), phases: cnt('Phases'), chantiers: cnt('Chantiers'), jalons: cnt('Jalons'), personnes: cnt('Personnes') }, file: d.file });
       } catch (e) {
         clearInterval(c._pv);
-        // Refus du serveur (409 code déjà pris, 422 fichier plus conforme, échec de la transaction) : retour au contrôle.
-        set0({ step: 'chk', prog: 0, t: 999, data: { ...d, issues: [{ lvl: 'err', sheet: 'Projet', row: '', msg: errText(e) }, ...d.issues] } });
+        // Refus du serveur (409 code déjà pris, 422 fichier plus conforme, échec de la transaction) : retour à la
+        // prévisualisation, motif en notification.
+        set0({ step: 'prev', prog: 0, err: errText(e) });
       }
     };
     return v;
@@ -917,29 +905,40 @@ const saveBlob = (blob, name) => {
   a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(u), 2000);
 };
+/** Téléchargement d'un fichier de la Console, sous le nom donné par le serveur ; renvoie ce nom. */
+const downloadAs = async (path, fallback) => {
+  const r = await raw('GET', '/api/admin' + path);
+  if (!r.ok) { const b = await r.json().catch(() => ({})); throw new Error(errText(new ApiError(r.status, b))); }
+  const name = fileNameOf(r, fallback);
+  saveBlob(await r.blob(), name);
+  return name;
+};
 
 /**
- * `Initialisation projet.dc.html` (maquette « Initialisation projet v2 », 07/10/2026) : préremplissage du fichier
- * d'initialisation depuis la proposition commerciale (routes `/projects/prefill/…`). Import avec progression
- * (XMLHttpRequest, seul à suivre l'envoi), analyse suivie par le flux SSE du serveur (fetch + lecture du flux, pour
- * porter l'en-tête d'authentification), reprise, annulation, liste « À vérifier » et Excel prérempli.
+ * `Initialisation projet.dc.html` (maquette « Initialisation projet v3 », 07/10/2026) : point d'entrée unique de
+ * l'initialisation (routes `/projects/init/…`). Le serveur reconnaît le fichier : proposition commerciale
+ * (préremplissage par IA) ou Excel d'initialisation rempli (contrôle de conformité). Import avec progression
+ * (XMLHttpRequest, seul à suivre l'envoi), traitement suivi par le flux SSE du serveur (fetch + lecture du flux, pour
+ * porter l'en-tête d'authentification), reprise, annulation, listes « À vérifier » et « À corriger », Excel prérempli,
+ * rapport de contrôle, modèle vierge, données de la prévisualisation.
  */
 export function bindPrefill(c) {
   if (isDemo() || c.api) return;
-  const P = '/projects/prefill';
+  const P = '/projects/init';
   const headers = async () => ({ ...(DEV ? { Authorization: 'Bearer ' + (await token()) } : Auth.sessionHeaders('admin')), 'X-Client-Id': CLIENT_ID });
   const fail = e => { throw new Error(errText(e)); };
   c.api = {
     tabs: () => get(P + '/tabs'),
     /**
      * Un ou plusieurs fichiers (champ `files`), lus par le serveur comme un seul document. `{ req, done }` : `req.abort()`
-     * interrompt l'import ; `done` → `{ id, nom, taille, pages, fichiers }` ou erreur `{ code, fichier }`.
+     * interrompt l'import ; `done` → `{ id, nom, taille, type: proposition | excel, pages?, fichiers }` ou erreur
+     * `{ code, fichier }`.
      */
     upload(files, onProgress) {
       const req = new XMLHttpRequest();
       const done = new Promise((resolve, reject) => {
         headers().then(h => {
-          req.open('POST', apiBase() + '/api/admin' + P + '/proposals');
+          req.open('POST', apiBase() + '/api/admin' + P + '/files');
           Object.entries(h).forEach(([k, v]) => req.setRequestHeader(k, v));
           req.upload.onprogress = e => { if (e.lengthComputable) onProgress(Math.min(99, Math.round(e.loaded / e.total * 100))); };
           req.onload = () => {
@@ -955,8 +954,9 @@ export function bindPrefill(c) {
       });
       return { req, done };
     },
-    example: () => post(P + '/proposals/example').catch(fail),
-    analyse: id => post(P + '/proposals/' + encodeURIComponent(id) + '/analysis').catch(fail),
+    example: () => post(P + '/files/example').catch(fail),
+    /** Analyse (proposition) ou contrôle (Excel) → `{ tacheId }`. */
+    process: id => post(P + '/files/' + encodeURIComponent(id) + '/processing').catch(fail),
     /** Flux SSE : `onEvent(type, data)` pour `progression`, `onglet_termine`, `termine`, `erreur`, `annule`. */
     events(taskId, onEvent) {
       const ctl = new AbortController();
@@ -976,29 +976,24 @@ export function bindPrefill(c) {
             if (ev && data) onEvent(ev.slice(7), JSON.parse(data.slice(6)));
           }
         }
-      })().catch(e => { if (e && e.name !== 'AbortError') console.warn('[admin-api] préremplissage :', e); });
+      })().catch(e => { if (e && e.name !== 'AbortError') console.warn('[admin-api] initialisation :', e); });
       return () => ctl.abort();
     },
     cancel: id => del(P + '/tasks/' + encodeURIComponent(id)),
-    /** Réinitialisation : analyse arrêtée, fichiers, texte, résultats et Excel prérempli supprimés côté serveur. */
-    forget: id => del(P + '/proposals/' + encodeURIComponent(id)),
+    /** Réinitialisation : traitement arrêté, fichiers, texte, résultats, Excel prérempli et import gardé supprimés côté serveur. */
+    forget: id => del(P + '/files/' + encodeURIComponent(id)),
     resume: id => post(P + '/tasks/' + encodeURIComponent(id) + '/resume').catch(fail),
     checks: id => get(P + '/tasks/' + encodeURIComponent(id) + '/checks').catch(fail),
+    /** Voie Excel : `[{ ongletIndex, onglet, champ, valeur, motif, gravite, cellule }]`. */
+    anomalies: id => get(P + '/tasks/' + encodeURIComponent(id) + '/anomalies').catch(fail),
+    /** Voie Excel, fichier conforme : données de l'étape « Prévisualiser » (`ProjetInit`). */
+    preview: id => get(P + '/tasks/' + encodeURIComponent(id) + '/preview').then(toInitData, fail),
     /** Excel prérempli, sous le nom donné par le serveur (« … · prérempli.xlsx ») ; renvoie ce nom. */
-    async excel(id) {
-      const r = await raw('GET', '/api/admin' + P + '/tasks/' + encodeURIComponent(id) + '/excel');
-      if (!r.ok) { const b = await r.json().catch(() => ({})); throw new Error(errText(new ApiError(r.status, b))); }
-      const name = fileNameOf(r, 'prérempli.xlsx');
-      saveBlob(await r.blob(), name);
-      return name;
-    },
-    /** Modèle vierge, nommé comme dans l'étape Importer : « [nom] - Init projet Cockpit [AAMMJJ].xlsx ». */
-    async template() {
-      const d0 = new Date(), p2 = n => String(n).padStart(2, '0'), who = String(c.props.userName || '').replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim();
-      const r = await fetch('./Referentiel RISE - initialisation.xlsx', { credentials: 'same-origin' });
-      if (!r.ok) throw new Error('Modèle indisponible');
-      saveBlob(await r.blob(), (who ? who + ' - ' : '') + 'Init projet Cockpit ' + String(d0.getFullYear()).slice(2) + p2(d0.getMonth() + 1) + p2(d0.getDate()) + '.xlsx');
-    },
+    excel: id => downloadAs(P + '/tasks/' + encodeURIComponent(id) + '/excel', 'prérempli.xlsx'),
+    /** Rapport de contrôle (« … · rapport de contrôle.xlsx »). */
+    report: id => downloadAs(P + '/tasks/' + encodeURIComponent(id) + '/report', 'rapport de contrôle.xlsx'),
+    /** Modèle vierge, au nom donné par le serveur : « [nom] - Init projet Cockpit [AAMMJJ].xlsx ». */
+    template: () => downloadAs(P + '/template', 'Init projet Cockpit.xlsx'),
   };
   c.api.tabs().then(tabs => c.setState({ tabs })).catch(e => console.warn('[admin-api]', e));
   c.forceUpdate();

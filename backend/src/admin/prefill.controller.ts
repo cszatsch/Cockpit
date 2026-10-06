@@ -8,15 +8,18 @@ import { PREFILL_FORMAT_MESSAGE } from '../core/prefill-text';
 import { PREFILL_MAX_BYTES, PREFILL_MAX_FILES } from '../domain/prefill';
 import { PrefillEvent, PrefillService } from './prefill.service';
 
+const XLSX_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
 /**
- * Initialisation d'un projet, étape « Préremplir » (07/10/2026, maquette « Initialisation projet v2 ») : la proposition
- * commerciale préremplit les 14 onglets du fichier d'initialisation. Réservé, comme l'import, à l'Administrateur.
- * Routes de la proposition du brief adaptées aux conventions de la Console (`/api/admin/projects/…`).
+ * Initialisation d'un projet, point d'entrée unique (maquette v3 du 07/10/2026) : un seul dépôt, le format du fichier
+ * décide du traitement — proposition commerciale (PDF, DOCX, PPTX) : préremplissage par IA des 14 onglets ; Excel
+ * d'initialisation rempli (XLSX) : contrôle de conformité onglet par onglet. Réservé, comme l'import, à
+ * l'Administrateur. Routes de la proposition du brief adaptées aux conventions de la Console (`/api/admin/projects/…`).
  */
-@ApiTags('console · initialisation · préremplissage')
+@ApiTags('console · initialisation d’un projet')
 @ApiBearerAuth()
 @AdminOnly()
-@Controller('api/admin/projects/prefill')
+@Controller('api/admin/projects/init')
 export class PrefillController {
   constructor(private readonly prefill: PrefillService) {}
 
@@ -26,11 +29,18 @@ export class PrefillController {
     return this.prefill.tabs();
   }
 
+  /** Modèle Excel vierge, au nom de l'utilisateur et du jour. */
+  @Get('template')
+  async template(@CurrentActor() actor: Actor, @Res() res: Response) {
+    send(res, await this.prefill.blankTemplate(actor));
+  }
+
   /**
-   * Dépôt d'un ou de plusieurs fichiers (champ `files`, ou `file`), lus comme un seul document : extension, taille,
-   * signature et lisibilité contrôlées pour chacun ; 422 `FORMAT` ou `LECTURE` sinon (`fields.fichier` : le fichier refusé).
+   * Dépôt (champ `files`, ou `file`) : extension, taille (25 Mo), signature et lisibilité contrôlées ; 422 `FORMAT` ou
+   * `LECTURE` sinon (`fields.fichier` : le fichier refusé). → `{ id, nom, taille, type: proposition | excel, pages? }`.
+   * Une proposition peut venir avec ses annexes (lues comme un seul document) ; un Excel se dépose seul.
    */
-  @Post('proposals')
+  @Post('files')
   @HttpCode(201)
   @ApiConsumes('multipart/form-data')
   // Limites de multer au-dessus des plafonds : un fichier trop gros ou en trop reçoit l'erreur FORMAT du contrôle.
@@ -41,25 +51,25 @@ export class PrefillController {
     return this.prefill.upload(actor, list);
   }
 
-  /** Exemple ORION fourni avec l'application. */
-  @Post('proposals/example')
+  /** Exemple ORION fourni avec l'application (proposition). */
+  @Post('files/example')
   @HttpCode(201)
   example(@CurrentActor() actor: Actor) {
     return this.prefill.example(actor);
   }
 
-  /** Réinitialisation : analyse arrêtée, fichiers, texte, résultats et Excel prérempli supprimés aussitôt. */
-  @Delete('proposals/:id')
+  /** Réinitialisation : traitement arrêté ; fichiers, texte, résultats, Excel prérempli et import gardé supprimés aussitôt. */
+  @Delete('files/:id')
   @HttpCode(204)
   forget(@CurrentActor() actor: Actor, @Param('id') id: string) {
     return this.prefill.forget(actor, id);
   }
 
-  /** Lance l'analyse asynchrone → `{ tacheId }`. */
-  @Post('proposals/:id/analysis')
+  /** Lance l'analyse (proposition) ou le contrôle (Excel), asynchrone → `{ tacheId }`. */
+  @Post('files/:id/processing')
   @HttpCode(202)
-  analyse(@CurrentActor() actor: Actor, @Param('id') id: string) {
-    return this.prefill.analyse(actor, id);
+  process(@CurrentActor() actor: Actor, @Param('id') id: string) {
+    return this.prefill.process(actor, id);
   }
 
   /**
@@ -68,15 +78,15 @@ export class PrefillController {
    */
   @Get('tasks/:id/events')
   async events(@Param('id') id: string, @Req() req: Request, @Res() res: Response) {
-    const send = (e: PrefillEvent) => { const { type, ...data } = e; res.write(`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`); };
+    const write = (e: PrefillEvent) => { const { type, ...data } = e; res.write(`event: ${type}\ndata: ${JSON.stringify(data)}\n\n`); };
     const final = (e: PrefillEvent) => e.type === 'termine' || e.type === 'erreur' || e.type === 'annule';
     let started = false;
     const buffered: PrefillEvent[] = [];
-    const off = await this.prefill.subscribe(id, (e) => { if (started) { send(e); if (final(e)) res.end(); } else buffered.push(e); });
+    const off = await this.prefill.subscribe(id, (e) => { if (started) { write(e); if (final(e)) res.end(); } else buffered.push(e); });
     started = true;
     res.status(200).set({ 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-store', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
     res.flushHeaders();
-    buffered.forEach(send);
+    buffered.forEach(write);
     if (!off || buffered.some(final)) { off?.(); res.end(); return; }
     const ping = setInterval(() => res.write(': ping\n\n'), 15000);
     req.on('close', () => { clearInterval(ping); off(); });
@@ -97,20 +107,39 @@ export class PrefillController {
     return this.prefill.cancel(actor, id);
   }
 
-  /** `[{ ongletIndex, onglet, champ, valeur, type, confiance, motif, page }]`. */
+  /** Voie proposition : `[{ ongletIndex, onglet, champ, valeur, type, confiance, motif, page }]`. */
   @Get('tasks/:id/checks')
   checks(@Param('id') id: string) {
     return this.prefill.checks(id);
   }
 
+  /** Voie Excel : `[{ ongletIndex, onglet, champ, valeur, motif, gravite: bloquant | avertissement, cellule }]`. */
+  @Get('tasks/:id/anomalies')
+  anomalies(@Param('id') id: string) {
+    return this.prefill.anomalies(id);
+  }
+
+  /** Voie Excel, fichier conforme : vue de l'étape « Prévisualiser » ; 409 si le fichier n'est pas conforme. */
+  @Get('tasks/:id/preview')
+  preview(@Param('id') id: string) {
+    return this.prefill.preview(id);
+  }
+
+  /** Voie proposition : Excel prérempli. */
   @Get('tasks/:id/excel')
   async excel(@CurrentActor() actor: Actor, @Param('id') id: string, @Res() res: Response) {
-    const { buffer, fileName } = await this.prefill.excel(actor, id);
-    res.set({
-      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'Content-Disposition': `attachment; filename="prefill.xlsx"; filename*=UTF-8''${encodeURIComponent(fileName)}`,
-      'Cache-Control': 'no-store',
-    });
-    res.send(buffer);
+    send(res, await this.prefill.excel(actor, id));
   }
+
+  /** Voie Excel : rapport de contrôle (.xlsx). */
+  @Get('tasks/:id/report')
+  async report(@CurrentActor() actor: Actor, @Param('id') id: string, @Res() res: Response) {
+    send(res, await this.prefill.report(actor, id));
+  }
+}
+
+/** Classeur téléchargé sous son nom (UTF-8). */
+function send(res: Response, { buffer, fileName }: { buffer: Buffer; fileName: string }) {
+  res.set({ 'Content-Type': XLSX_TYPE, 'Content-Disposition': `attachment; filename="initialisation.xlsx"; filename*=UTF-8''${encodeURIComponent(fileName)}`, 'Cache-Control': 'no-store' });
+  res.send(buffer);
 }

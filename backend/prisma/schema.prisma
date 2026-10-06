@@ -2092,6 +2092,8 @@ model PrefillDocument {
   sizeBytes Int
   pages     Int
   format    String
+  /// proposition (PDF, DOCX, PPTX : préremplissage par IA) | excel (Excel d'initialisation rempli : contrôle)
+  kind      String        @default("proposition")
   fileKey   String?
   textKey   String?
   /// Fichiers déposés ensemble (07/10/2026) : nom, taille, pages, format et clé de stockage (supprimée avec le texte)
@@ -2119,6 +2121,8 @@ model PrefillTask {
   result     String?
   error      String?
   excelKey   String?
+  /// Voie Excel : import conforme gardé pour la prévisualisation et la publication (`ProjectImport`)
+  importId   String?
   durationMs Int             @default(0)
   startedAt  DateTime        @default(now())
   finishedAt DateTime?

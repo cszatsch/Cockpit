@@ -338,10 +338,10 @@ a{color:#1d8f86}a:hover{color:#146b64}
     </sc-if>
 
     <sc-if value="{{ isPrefill }}" hint-placeholder-val="{{ false }}">
-      <div style="animation:rise-in .35s cubic-bezier(.2,.7,.2,1) both"><dc-import name="Initialisation projet" demo="{{ prefillDemo }}" chrome="{{ prefillDemo }}" user-name="{{ initUser }}" on-import="{{ toImport }}" hint-size="100%,900px"></dc-import></div>
+      <div style="{{ prefillSt }}"><dc-import name="Initialisation projet" demo="{{ prefillDemo }}" user-name="{{ initUser }}" epoch="{{ initEpoch }}" on-preview="{{ toPreview }}" hint-size="100%,900px"></dc-import></div>
     </sc-if>
     <sc-if value="{{ isInit }}" hint-placeholder-val="{{ false }}">
-      <div style="animation:rise-in .35s cubic-bezier(.2,.7,.2,1) both"><dc-import name="ProjetInit" existing-codes="{{ libCodes }}" user-name="{{ initUser }}" on-imported="{{ onImported }}" on-open-lib="{{ openLib }}" hint-size="100%,560px"></dc-import></div>
+      <div style="animation:rise-in .35s cubic-bezier(.2,.7,.2,1) both"><dc-import name="ProjetInit" data="{{ initData }}" user-name="{{ initUser }}" on-imported="{{ onImported }}" on-open-lib="{{ openLib }}" on-back="{{ backInit }}" on-restart="{{ restartInit }}" hint-size="100%,560px"></dc-import></div>
     </sc-if>
     <sc-if value="{{ isLib }}" hint-placeholder-val="{{ false }}">
       <div style="animation:rise-in .35s cubic-bezier(.2,.7,.2,1) both"><dc-import name="ProjetsBiblio" imported="{{ libImported }}" on-new="{{ openInit }}" hint-size="100%,900px"></dc-import></div>
@@ -993,7 +993,7 @@ class Component extends DCLogic {
     if (sec === 'journal') sec = 'conso';
     const first = !this.state.seen[sec];
     // Initialisation d'un projet (07/10/2026) : on arrive toujours sur l'étape « Préremplir ».
-    this.setState(s => ({ sec, mnav: false, menu: null, loading: first, seen: { ...s.seen, [sec]: 1 }, ...(sec === 'init' ? { initStep: 'prefill' } : {}) }));
+    this.setState(s => ({ sec, mnav: false, menu: null, loading: first, seen: { ...s.seen, [sec]: 1 }, ...(sec === 'init' ? { initStep: 'prefill', initData: null } : {}) }));
     try { window.scrollTo({ top: 0 }); } catch (e) { }
     clearTimeout(this._lt);
     if (first) this._lt = setTimeout(() => { this.setState({ loading: false }); then && then(); }, 480); else then && then();
@@ -1353,7 +1353,12 @@ class Component extends DCLogic {
       topSt: `position:sticky;top:0;z-index:40;height:60px;display:flex;align-items:center;gap:12px;padding:0 ${mode === 'mob' ? 16 : mode === 'rail' ? 28 : 44}px;background:rgba(242,246,245,.82);backdrop-filter:saturate(1.4) blur(14px);-webkit-backdrop-filter:saturate(1.4) blur(14px);border-bottom:1px solid rgba(16,35,58,.06)`,
       eyebrow: meta[0], title: meta[1], desc: meta[2], isOv: is('overview'), notOv: !is('overview') && !is('skills') && !is('persona') && !is('apis') && !is('conso') && !is('latency') && !is('providers') && !is('notifs') && !is('smtp') && !is('guide') && !is('share') && !is('snaps') && !is('library') && !(is('init') && S.initStep !== 'import'), loading: S.loading, ready: !S.loading,
       healthL: errN ? errN + ' incident' + (errN > 1 ? 's' : '') : 'Opérationnelle', healthPill: pill(errN ? 'err' : 'ok'), healthDot: dot(errN ? 'err' : 'ok'), goOv: () => this.go('overview'),
-      isUsers: is('users') && !S.loading, isAdmins: is('admins') && !S.loading, isRights: is('rights') && !S.loading, isProv: is('providers') && !S.loading, isConso: is('conso') && !S.loading, isInit: is('init') && !S.loading && S.initStep === 'import', isPrefill: is('init') && !S.loading && S.initStep !== 'import', prefillDemo: false, toImport: () => this.setState({ initStep: 'import' }), isLib: is('library') && !S.loading, isSnaps: is('snaps') && !S.loading, isNotifs: is('notifs') && !S.loading, isMods: is('modules') && !S.loading,
+      isUsers: is('users') && !S.loading, isAdmins: is('admins') && !S.loading, isRights: is('rights') && !S.loading, isProv: is('providers') && !S.loading, isConso: is('conso') && !S.loading, isInit: is('init') && !S.loading && S.initStep === 'import',
+      // Écran unique (maquette v3, 07/10/2026) : gardé monté pendant la prévisualisation (masqué), pour y revenir tel quel.
+      isPrefill: is('init') && !S.loading, prefillDemo: false, initEpoch: S.initEpoch || 0, initData: S.initData || null,
+      prefillSt: S.initStep === 'import' ? 'display:none' : 'animation:rise-in .35s cubic-bezier(.2,.7,.2,1) both',
+      toPreview: d => this.setState({ initStep: 'import', initData: d }), backInit: () => this.setState({ initStep: 'prefill' }),
+      restartInit: () => this.setState(s => ({ initStep: 'prefill', initData: null, initEpoch: (s.initEpoch || 0) + 1 })), isLib: is('library') && !S.loading, isSnaps: is('snaps') && !S.loading, isNotifs: is('notifs') && !S.loading, isMods: is('modules') && !S.loading,
       isApis: is('apis') && !S.loading, isLatency: is('latency') && !S.loading,
       // Fournisseurs et modèles : données brutes de l'API et actions, branchées par admin-api.js (démonstration sans elles).
       fmData: S.fpData || null, fmApi: this.fmApi || null, fpKey: S.fpKey || null,

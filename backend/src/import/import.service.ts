@@ -2,8 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../core/prisma.service';
 import { AuditService, WriteCtx } from '../core/audit.service';
 import { ApiErrorWithBody, conflict } from '../core/errors';
-import { readWorkbook } from './excel-reader';
+import { ParsedWorkbook, readWorkbook } from './excel-reader';
 import { checkWorkbook, CheckResult, commitPlan, ImportIssue } from './referential-import';
+import { screenChecks, toScreen } from './import-screen';
 
 /** Rapport d'import au format du brief Cockpit § 10. */
 export interface ImportReport {
@@ -28,6 +29,25 @@ export class ImportService {
     } catch {
       return { issues: [{ level: 'ERROR', sheet: 'Fichier', row: null, column: null, message: 'Fichier illisible : un classeur .xlsx est attendu', source: 'SERVER' }], plan: null, counts: {}, checks: [] };
     }
+  }
+
+  /**
+   * Contrôle complet d'un fichier de la Console (le serveur fait foi) : classeur lu, vue de l'écran, 5 contrôles, code
+   * déjà pris dans la bibliothèque. `wb` est null si le classeur est illisible.
+   */
+  async control(buffer: Buffer) {
+    let wb: ParsedWorkbook | null = null;
+    try {
+      wb = await readWorkbook(buffer);
+    } catch {
+      /* classeur illisible : contrôle en erreur ci-dessous */
+    }
+    const res = wb ? checkWorkbook(wb) : await this.check(buffer);
+    const code = res.plan?.project.code ?? null;
+    const duplicate = !!code && !!(await this.prisma.project.findUnique({ where: { code } }));
+    const screen = toScreen(res.plan, res.issues);
+    const checks = screenChecks(code, duplicate, screen.missing, screen.issues);
+    return { wb, res, code, duplicate, screen, checks, ok: checks.every((c) => c.status !== 'err') };
   }
 
   /**

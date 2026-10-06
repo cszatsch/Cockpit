@@ -16,7 +16,7 @@ import { ORION_PAGES } from '../../scripts/prefill-exemple';
  * 1 à 6 et 8 (le 7, filtres de l'écran, est vérifié par la recette navigateur `test/browser/prefill.e2e.ts`).
  * Le modèle d'IA est un double de `fetch` (réponses de `test/fixtures/prefill-llm.ts`).
  */
-const P = '/api/admin/projects/prefill';
+const P = '/api/admin/projects/init';
 
 describe('Initialisation d’un projet — préremplissage par IA', () => {
   let t: TestCtx;
@@ -25,7 +25,7 @@ describe('Initialisation d’un projet — préremplissage par IA', () => {
   let failOn: string | null = null;
   let delayMs = 0;
 
-  const upload = (buf: Buffer, name: string) => request(t.app.getHttpServer()).post(`${P}/proposals`).set('Authorization', `Bearer ${tok}`).attach('file', buf, name);
+  const upload = (buf: Buffer, name: string) => request(t.app.getHttpServer()).post(`${P}/files`).set('Authorization', `Bearer ${tok}`).attach('file', buf, name);
   /** Flux SSE lu jusqu'à sa fin : `[{ type, ...data }]`. */
   const stream = async (taskId: string) => {
     const r = await request(t.app.getHttpServer()).get(`${P}/tasks/${taskId}/events`).set('Authorization', `Bearer ${tok}`).buffer(true)
@@ -38,7 +38,7 @@ describe('Initialisation d’un projet — préremplissage par IA', () => {
   };
   const start = async (buf = makeTextPdf(ORION_PAGES), name = 'Proposition commerciale ORION v3.pdf') => {
     const up = await upload(buf, name).expect(201);
-    const a = await request(t.app.getHttpServer()).post(`${P}/proposals/${up.body.id}/analysis`).set('Authorization', `Bearer ${tok}`).expect(202);
+    const a = await request(t.app.getHttpServer()).post(`${P}/files/${up.body.id}/processing`).set('Authorization', `Bearer ${tok}`).expect(202);
     return { doc: up.body, taskId: a.body.tacheId as string };
   };
 
@@ -70,18 +70,18 @@ describe('Initialisation d’un projet — préremplissage par IA', () => {
     expect(r.body.find((x: any) => x.label === 'Équipes').champs).toBe(2);
     const pmo = await t.token(WHO.pmo);
     await request(t.app.getHttpServer()).get(`${P}/tabs`).set('Authorization', `Bearer ${pmo}`).expect(403);
-    await request(t.app.getHttpServer()).post(`${P}/proposals`).set('Authorization', `Bearer ${pmo}`).attach('file', makeTextPdf(ORION_PAGES), 'p.pdf').expect(403);
+    await request(t.app.getHttpServer()).post(`${P}/files`).set('Authorization', `Bearer ${pmo}`).attach('file', makeTextPdf(ORION_PAGES), 'p.pdf').expect(403);
   });
 
   it('exemple ORION fourni avec l’application : déposé comme une proposition', async () => {
-    const r = await request(t.app.getHttpServer()).post(`${P}/proposals/example`).set('Authorization', `Bearer ${tok}`).expect(201);
+    const r = await request(t.app.getHttpServer()).post(`${P}/files/example`).set('Authorization', `Bearer ${tok}`).expect(201);
     expect(r.body).toMatchObject({ nom: 'Proposition commerciale ORION v3.pdf', pages: ORION_PAGES.length });
     await t.db.prefillDocument.deleteMany();
   });
 
   it('plusieurs fichiers (proposition et annexe) : lus comme un seul document, source « fichier, page » ; un fichier refusé fait refuser le dépôt', async () => {
     const send = (files: Array<[Buffer, string]>) => {
-      let r = request(t.app.getHttpServer()).post(`${P}/proposals`).set('Authorization', `Bearer ${tok}`);
+      let r = request(t.app.getHttpServer()).post(`${P}/files`).set('Authorization', `Bearer ${tok}`);
       for (const [b, n] of files) r = r.attach('files', b, n);
       return r;
     };
@@ -100,7 +100,7 @@ describe('Initialisation d’un projet — préremplissage par IA', () => {
     const bodies: string[] = [];
     const client = t.app.get(LlmClient), fetch0 = client.fetchImpl;
     client.fetchImpl = (async (u: string, init: any) => { bodies.push(init.body); return fetch0(u, init); }) as any;
-    const a = await request(t.app.getHttpServer()).post(`${P}/proposals/${up.body.id}/analysis`).set('Authorization', `Bearer ${tok}`).expect(202);
+    const a = await request(t.app.getHttpServer()).post(`${P}/files/${up.body.id}/processing`).set('Authorization', `Bearer ${tok}`).expect(202);
     const events = await stream(a.body.tacheId);
     client.fetchImpl = fetch0;
     expect(events[events.length - 1].type).toBe('termine');
@@ -149,7 +149,7 @@ describe('Initialisation d’un projet — préremplissage par IA', () => {
     const before = await t.db.usageRecord.count({ where: { functionId: 'init_projet' } });
     for (const name of ['Budget ORION.numbers', 'Budget ORION.xlsx']) {
       const r = await upload(Buffer.from('PK\u0003\u0004 contenu'), name).expect(422);
-      expect(r.body).toMatchObject({ code: 'FORMAT', message: expect.stringMatching(/PDF, DOCX ou PPTX/) });
+      expect(r.body).toMatchObject({ code: 'FORMAT', message: expect.stringMatching(/PDF, DOCX, PPTX ou XLSX/) });
     }
     // Extension acceptée mais contenu d'un autre type : refusé sur la signature.
     expect((await upload(Buffer.from('ceci n’est pas un PDF'), 'faux.pdf').expect(422)).body.code).toBe('FORMAT');
@@ -227,7 +227,7 @@ describe('Initialisation d’un projet — préremplissage par IA', () => {
     expect(d.textKey).toBeNull();
   });
 
-  it('critère 8 : une fois vérifié, l’Excel prérempli s’importe sans erreur par le parcours existant', async () => {
+  it('critère 8 : une fois vérifié, l’Excel prérempli redéposé est conforme et se prévisualise', async () => {
     const { taskId } = await start();
     await stream(taskId);
     const task = await t.db.prefillTask.findUniqueOrThrow({ where: { id: taskId } });
@@ -247,7 +247,11 @@ describe('Initialisation d’un projet — préremplissage par IA', () => {
       for (let r = 9; r < 40; r++) if (ws.getRow(r).getCell(2).value && !ws.getRow(r).getCell(+col).value) ws.getRow(r).getCell(+col).value = fix[head](r) as any;
     }
     const buf = Buffer.from(await wb.xlsx.writeBuffer());
-    const r = await request(t.app.getHttpServer()).post('/api/admin/projects/import/validate').set('Authorization', `Bearer ${tok}`).attach('file', buf, 'ORION vérifié.xlsx').expect(200);
+    // Redéposé dans l'écran unique (maquette v3) : voie Excel, contrôle conforme, prévisualisation ouverte.
+    const x = await start(buf, 'ORION vérifié.xlsx');
+    expect(x.doc.type).toBe('excel');
+    expect((await stream(x.taskId)).pop()).toMatchObject({ type: 'termine', resultat: 'conforme' });
+    const r = await request(t.app.getHttpServer()).get(`${P}/tasks/${x.taskId}/preview`).set('Authorization', `Bearer ${tok}`).expect(200);
     expect(r.body.issues.filter((i: any) => i.lvl === 'err')).toEqual([]);
     expect(r.body).toMatchObject({ ok: true, missing: [] });
     expect(r.body.sheets['Chantiers'].rows.find((x: any) => x[1] === 'Données et migration')[6]).toBe('Ventes et CRM ; Service client');
@@ -317,7 +321,7 @@ describe('Initialisation d’un projet — préremplissage par IA', () => {
     const a = await start();
     await stream(a.taskId);
     const excelKey = (await t.db.prefillTask.findUniqueOrThrow({ where: { id: a.taskId } })).excelKey!;
-    await request(t.app.getHttpServer()).delete(`${P}/proposals/${a.doc.id}`).set('Authorization', `Bearer ${tok}`).expect(204);
+    await request(t.app.getHttpServer()).delete(`${P}/files/${a.doc.id}`).set('Authorization', `Bearer ${tok}`).expect(204);
     expect(await t.db.prefillDocument.findUnique({ where: { id: a.doc.id } })).toBeNull();
     expect(await t.db.prefillTask.findUnique({ where: { id: a.taskId } })).toBeNull();
     expect(await t.app.get(StorageService).get(excelKey)).toBeNull();
@@ -326,16 +330,16 @@ describe('Initialisation d’un projet — préremplissage par IA', () => {
     delayMs = 150;
     const b = await start();
     await new Promise((r) => setTimeout(r, 300));
-    await request(t.app.getHttpServer()).delete(`${P}/proposals/${b.doc.id}`).set('Authorization', `Bearer ${tok}`).expect(204);
+    await request(t.app.getHttpServer()).delete(`${P}/files/${b.doc.id}`).set('Authorization', `Bearer ${tok}`).expect(204);
     const n = prompts.length;
     await new Promise((r) => setTimeout(r, 600));
     expect(prompts.length).toBeLessThanOrEqual(n + 1);
     expect(await t.db.prefillDocument.count({ where: { id: b.doc.id } })).toBe(0);
-    await request(t.app.getHttpServer()).delete(`${P}/proposals/${b.doc.id}`).set('Authorization', `Bearer ${tok}`).expect(404);
+    await request(t.app.getHttpServer()).delete(`${P}/files/${b.doc.id}`).set('Authorization', `Bearer ${tok}`).expect(404);
     const audit = await t.db.auditEntry.findFirstOrThrow({ where: { action: 'Préremplissage : réinitialisé' }, orderBy: { at: 'desc' } });
     expect(Object.keys(audit.newValue as any).sort()).toEqual(['analyses', 'fichiers', 'nom', 'taille']);
     // Réservé à l'Administrateur.
-    await request(t.app.getHttpServer()).delete(`${P}/proposals/x`).set('Authorization', `Bearer ${await t.token(WHO.pmo)}`).expect(403);
+    await request(t.app.getHttpServer()).delete(`${P}/files/x`).set('Authorization', `Bearer ${await t.token(WHO.pmo)}`).expect(403);
   });
 
   it('confidentialité : journal sans contenu ; purge à l’échéance (24 h par défaut)', async () => {

@@ -503,6 +503,12 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 - **Écart technique** : ExcelJS ne réécrit pas le modèle de façon lisible par Microsoft Excel ; l'Excel prérempli est donc écrit directement dans le XML du modèle. Les classeurs de test (`buildWorkbook`) restent écrits par ExcelJS : lus par l'import, ils ne sont pas destinés à Excel.
 - **Questions ouvertes** : voir § 4, n° 32 et 33.
 
+### Initialisation d'un projet : point d'entrée unique (07/10/2026)
+
+- **Écran** : maquette « Initialisation projet v3 » intégrée (`Initialisation projet.dc.html`), qui remplace l'écran de préremplissage v2 et l'ancien écran d'import de l'Excel (étapes Importer et Contrôler de `ProjetInit.dc.html`, lien « Importer l'Excel » supprimés). `ProjetInit` ne garde que la prévisualisation et la publication. Écarts : `docs/NOTE - ecarts maquette Initialisation projet v3.md`.
+- **Serveur** : routes `/api/admin/projects/init/…` ; type du fichier par sa signature ; voie Excel : contrôle existant réparti par onglet, anomalies avec leur cellule exacte, rapport de contrôle, prévisualisation du fichier conforme ; anciennes routes de préremplissage et `POST /projects/import/validate` retirées.
+- **Tests** : critères 1 à 6, 8 et 9 dans `test/e2e/init-projet.spec.ts` (11 tests), règles dans `test/unit/init-check.spec.ts` ; critère 7 (glisser-déposer) et parcours complet dans la recette navigateur `test/browser/prefill.e2e.ts` (22 vérifications) ; import de la Console (`console.spec.ts` § 9) et préremplissage (`prefill.spec.ts`) passés sur les nouvelles routes. Les 13 états de démonstration rendent le même texte et les mêmes styles que la maquette.
+
 ## 4. Questions ouvertes
 
 1. **Déclencheur des règles de notification** : faut-il ajouter un sélecteur de déclencheur dans la console ? Aujourd'hui, une règle créée depuis l'écran reçoit un déclencheur par défaut : « planifié » pour une notification, « manuel » pour une alerte.

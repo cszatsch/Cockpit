@@ -9441,25 +9441,6 @@
         ]
       }
     },
-    "/api/admin/projects/import/validate": {
-      "post": {
-        "operationId": "DataController_importValidate",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "console · données et diffusion"
-        ]
-      }
-    },
     "/api/admin/projects/import/commit": {
       "post": {
         "operationId": "DataController_importCommit",
@@ -10411,7 +10392,7 @@
         ]
       }
     },
-    "/api/admin/projects/prefill/tabs": {
+    "/api/admin/projects/init/tabs": {
       "get": {
         "operationId": "PrefillController_tabs",
         "parameters": [],
@@ -10426,11 +10407,30 @@
           }
         ],
         "tags": [
-          "console · initialisation · préremplissage"
+          "console · initialisation d’un projet"
         ]
       }
     },
-    "/api/admin/projects/prefill/proposals": {
+    "/api/admin/projects/init/template": {
+      "get": {
+        "operationId": "PrefillController_template",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · initialisation d’un projet"
+        ]
+      }
+    },
+    "/api/admin/projects/init/files": {
       "post": {
         "operationId": "PrefillController_upload",
         "parameters": [],
@@ -10445,11 +10445,11 @@
           }
         ],
         "tags": [
-          "console · initialisation · préremplissage"
+          "console · initialisation d’un projet"
         ]
       }
     },
-    "/api/admin/projects/prefill/proposals/example": {
+    "/api/admin/projects/init/files/example": {
       "post": {
         "operationId": "PrefillController_example",
         "parameters": [],
@@ -10464,11 +10464,11 @@
           }
         ],
         "tags": [
-          "console · initialisation · préremplissage"
+          "console · initialisation d’un projet"
         ]
       }
     },
-    "/api/admin/projects/prefill/proposals/{id}": {
+    "/api/admin/projects/init/files/{id}": {
       "delete": {
         "operationId": "PrefillController_forget",
         "parameters": [
@@ -10492,13 +10492,13 @@
           }
         ],
         "tags": [
-          "console · initialisation · préremplissage"
+          "console · initialisation d’un projet"
         ]
       }
     },
-    "/api/admin/projects/prefill/proposals/{id}/analysis": {
+    "/api/admin/projects/init/files/{id}/processing": {
       "post": {
-        "operationId": "PrefillController_analyse",
+        "operationId": "PrefillController_process",
         "parameters": [
           {
             "name": "id",
@@ -10520,11 +10520,11 @@
           }
         ],
         "tags": [
-          "console · initialisation · préremplissage"
+          "console · initialisation d’un projet"
         ]
       }
     },
-    "/api/admin/projects/prefill/tasks/{id}/events": {
+    "/api/admin/projects/init/tasks/{id}/events": {
       "get": {
         "operationId": "PrefillController_events",
         "parameters": [
@@ -10548,11 +10548,11 @@
           }
         ],
         "tags": [
-          "console · initialisation · préremplissage"
+          "console · initialisation d’un projet"
         ]
       }
     },
-    "/api/admin/projects/prefill/tasks/{id}/resume": {
+    "/api/admin/projects/init/tasks/{id}/resume": {
       "post": {
         "operationId": "PrefillController_resume",
         "parameters": [
@@ -10576,11 +10576,11 @@
           }
         ],
         "tags": [
-          "console · initialisation · préremplissage"
+          "console · initialisation d’un projet"
         ]
       }
     },
-    "/api/admin/projects/prefill/tasks/{id}": {
+    "/api/admin/projects/init/tasks/{id}": {
       "delete": {
         "operationId": "PrefillController_cancel",
         "parameters": [
@@ -10604,11 +10604,11 @@
           }
         ],
         "tags": [
-          "console · initialisation · préremplissage"
+          "console · initialisation d’un projet"
         ]
       }
     },
-    "/api/admin/projects/prefill/tasks/{id}/checks": {
+    "/api/admin/projects/init/tasks/{id}/checks": {
       "get": {
         "operationId": "PrefillController_checks",
         "parameters": [
@@ -10632,11 +10632,67 @@
           }
         ],
         "tags": [
-          "console · initialisation · préremplissage"
+          "console · initialisation d’un projet"
         ]
       }
     },
-    "/api/admin/projects/prefill/tasks/{id}/excel": {
+    "/api/admin/projects/init/tasks/{id}/anomalies": {
+      "get": {
+        "operationId": "PrefillController_anomalies",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · initialisation d’un projet"
+        ]
+      }
+    },
+    "/api/admin/projects/init/tasks/{id}/preview": {
+      "get": {
+        "operationId": "PrefillController_preview",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · initialisation d’un projet"
+        ]
+      }
+    },
+    "/api/admin/projects/init/tasks/{id}/excel": {
       "get": {
         "operationId": "PrefillController_excel",
         "parameters": [
@@ -10660,7 +10716,35 @@
           }
         ],
         "tags": [
-          "console · initialisation · préremplissage"
+          "console · initialisation d’un projet"
+        ]
+      }
+    },
+    "/api/admin/projects/init/tasks/{id}/report": {
+      "get": {
+        "operationId": "PrefillController_report",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · initialisation d’un projet"
         ]
       }
     }

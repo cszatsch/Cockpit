@@ -1,6 +1,5 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Put, Query, Res, UploadedFile, UseInterceptors } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Put, Query, Res } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { AdminOnly, Actor, CurrentActor } from '../core/auth/auth';
@@ -13,9 +12,7 @@ import { badRequest, businessRule, conflict, notFound } from '../core/errors';
 import { parse } from '../core/http';
 import { ImportService } from '../import/import.service';
 import { commitPlan } from '../import/referential-import';
-import { creationPercent, screenChecks, toScreen } from '../import/import-screen';
-import type { UploadedBlob } from '../import/import.controller';
-import { MAX_IMPORT_BYTES } from '../import/import.controller';
+import { creationPercent } from '../import/import-screen';
 import { adminCtx } from './profiles.service';
 import { SnapshotsService } from './snapshots.service';
 import { counters, nextSnapshotRun } from '../domain/snapshots';
@@ -284,33 +281,8 @@ export class DataController {
   private importJobs = new Map<string, { status: 'running' | 'done' | 'failed'; phase: number; percent: number; result?: { projectId: string; code: string }; error?: string }>();
 
   /** Contrôle complet d'un fichier (serveur, fait foi) : vue de l'écran, 5 contrôles, code déjà pris. */
-  private async control(buffer: Buffer) {
-    const res = await this.imports.check(buffer);
-    const code = res.plan?.project.code ?? null;
-    const duplicate = !!code && !!(await this.prisma.project.findUnique({ where: { code } }));
-    const screen = toScreen(res.plan, res.issues);
-    const checks = screenChecks(code, duplicate, screen.missing, screen.issues);
-    const errors = checks.filter((c) => c.status === 'err').length;
-    return { res, code, duplicate, screen, checks, ok: errors === 0 };
-  }
-
-  /**
-   * Étape 2 « Contrôler » : envoi du fichier (multipart, champ `file`), contrôle complet, rien n'est créé. Le fichier
-   * est gardé en fichier temporaire jusqu'à la création ou à « Réinitialiser la session » (`DELETE`).
-   * → `{ jobId, file, size, ok, checks[5], project, sheets, issues, missing }`.
-   */
-  @Post('projects/import/validate')
-  @HttpCode(200)
-  @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: MAX_IMPORT_BYTES } }))
-  async importValidate(@CurrentActor() actor: Actor, @UploadedFile() file: UploadedBlob | undefined) {
-    if (!file) throw badRequest('Fichier manquant', { file: 'fichier .xlsx attendu (champ « file »)' });
-    if (!/\.xlsx$/i.test(file.originalname)) throw badRequest('Format attendu : .xlsx', { file: '.xlsx attendu' });
-    const c = await this.control(file.buffer);
-    const key = await this.storage.put('imports', file.buffer, '.xlsx');
-    const report = { ok: c.ok, checks: c.checks, issues: c.res.issues, counts: c.res.counts, code: c.code };
-    const row = await this.prisma.projectImport.create({ data: { fileName: file.originalname, fileKey: key, uploadedBy: actor.fullName, status: c.ok ? 'CHECKED' : 'REJECTED', report: report as unknown as Prisma.InputJsonValue, parsed: (c.res.plan ?? undefined) as Prisma.InputJsonValue | undefined } });
-    return { jobId: row.id, file: file.originalname, size: `${Math.round(file.size / 1024)} Ko`, ok: c.ok, checks: c.checks, ...c.screen };
+  private control(buffer: Buffer) {
+    return this.imports.control(buffer);
   }
 
   private async importRow(id: string) {

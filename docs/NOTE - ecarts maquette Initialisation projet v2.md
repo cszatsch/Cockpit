@@ -1,5 +1,7 @@
 # Initialisation d’un projet v2 : écarts par rapport à la maquette
 
+> Remplacée le 07/10/2026 par la maquette v3 (point d’entrée unique) : voir `NOTE - ecarts maquette Initialisation projet v3.md`.
+
 Maquette validée : `Initialisation projet v2.dc.html`, livrée le 07/10/2026. Écran intégré : `frontends/Initialisation projet.dc.html`.
 
 La structure, les styles, les textes, les 9 états et leurs transitions sont ceux de la maquette. Les écarts ci-dessous viennent tous de l’intégration dans la Console ou des données réelles.
