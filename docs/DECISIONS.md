@@ -1688,3 +1688,13 @@ Demande du commanditaire : afficher les coûts de la fonction « Initialisation 
 ### Dépendances réciproques entre chantiers (07/10/2026)
 
 Arbitrage du commanditaire : deux chantiers peuvent dépendre l'un de l'autre. La dépendance est rarement séquentielle : un chantier en alimente un autre sur certaines phases, et inversement. Le contrôle de « dépendance circulaire » (bloquant à l'import de l'Excel et à l'édition du Référentiel, règle `dependencyCycle` du 06/10/2026) est supprimé. Restent refusés : l'auto-dépendance et « Tous » combiné à d'autres chantiers.
+
+### Sous-phases : numérotation libre (07/10/2026)
+
+Arbitrage du commanditaire : la numérotation des sous-phases appartient au directeur de projet (habitudes et règles propres à chaque projet : « 5.1 », « 4.2.1 », « C2.1 »…). La règle du brief Cockpit § 6.1 (« le code doit commencer par le code de la phase suivi d'un point ») est retirée de l'import de l'Excel, du Référentiel (serveur et écran) et de la colonne CONTRÔLE du modèle.
+
+| Sujet | Choix | Code |
+|---|---|---|
+| Ce qui reste contrôlé | N° unique dans le projet (identifiant repris par les chantiers, jalons et livrables ; contrainte de la base, contrôle « en double ») ; ni espace, ni « ; », ni « · » (séparateurs des valeurs multiples et des renvois « 3.1 · Ateliers ») ; rattachement à une phase obligatoire | `subphaseCodeError`, `SUBPHASE_CODE_FORBIDDEN` |
+| Modèle Excel | Colonne CONTRÔLE de « 09 Sous-phases » : « ⚠ N° hors phase » remplacé par « ⚠ N° en double » ; consigne de l'onglet mise à jour ; vérifié dans Microsoft Excel | `Referentiel RISE - initialisation.xlsx` |
+| Préremplissage | La skill reprend la numérotation de la proposition, sinon N° de la phase et rang ; la skill déjà enregistrée en base est mise à jour si sa phrase d'origine n'a pas été modifiée | `PREFILL_SKILL_TEXT`, migration `20261115000100_sous_phases_numerotation_libre` |

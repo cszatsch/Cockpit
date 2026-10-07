@@ -108,6 +108,19 @@ describe('Étape 9 — import Excel du Référentiel (§ 13.9)', () => {
     expect(m.filter((x: string) => /circulaire/.test(x))).toEqual([]);
   });
 
+  it('Sous-phases : numérotation libre du directeur de projet (« 4.2.1 », « C2.1 » sous la phase 1) ; séparateur refusé', async () => {
+    const f = validAtlas();
+    f.rows['09 Sous-phases'][0]['N°'] = 'C2.1';
+    f.rows['10 Chantiers'][0]['Sous-phases'] = 'C2.1';
+    f.rows['13 Jalons'][0]['Sous-phase'] = 'C2.1 · Ateliers';
+    f.rows['14 Livrables'][0]['Sous-phase'] = 'C2.1 · Ateliers';
+    const ok = await post(await buildWorkbook(f), '?dryRun=true').expect(200);
+    expect(ok.body.errors).toEqual([]);
+    f.rows['09 Sous-phases'][1]['N°'] = '2;1';
+    const ko = await post(await buildWorkbook(f), '?dryRun=true').expect(200);
+    expect(ko.body.errors.map((e: any) => `${e.row}${e.column} ${e.message}`)).toContain('10D N° « 2;1 » : sans espace, « ; » ni « · »');
+  });
+
   it('mode réel : crée le référentiel, les habilitations Responsable et l’historique (origine IMPORT)', async () => {
     const r = await post(await buildWorkbook(validAtlas())).expect(200);
     expect(r.body.imported).toBe(true);

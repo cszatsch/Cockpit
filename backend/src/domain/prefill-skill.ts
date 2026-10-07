@@ -69,7 +69,7 @@ Définition : les grandes étapes de la méthode, dans l’ordre, pour un lot.
 Exemple RISE (Lot 1) : 1 Discover ; 2 Prepare ; 3 Explore ; 4 Realize ; 5 Deploy ; 6 Run.
 
 09 SOUS-PHASES
-Définition : le découpage d’une phase en étapes plus fines. Le N° reprend celui de la phase : 5.1, 5.2…
+Définition : le découpage d’une phase en étapes plus fines. Numérotation libre, propre au projet et unique : reprendre celle de la proposition si elle en a une, sinon le N° de la phase suivi d’un rang (5.1, 5.2…).
 À extraire : Phase (« 5 · Deploy »), N°, Nom, Début, Fin, Statut, Description.
 Exemple RISE (phase 5 Deploy) : 5.1 Mise en place de l’environnement de production ; 5.2 Formation des utilisateurs finaux ; 5.3 Répétition générale ; 5.4 Cutover / Go-live ; 5.5 Hypercare.
 

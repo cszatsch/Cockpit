@@ -6,7 +6,7 @@ import { nextCode, readableId, techId } from '../../core/ids';
 import { assignmentActive, confirmedDays, milestoneGap, outsidePeriod } from '../../domain/rules';
 import { ProjectAccess } from '../../domain/rights';
 import { normKey } from '../../domain/labels';
-import { foreignSubphases, keepSubphasesOf } from '../../domain/workstream-links';
+import { foreignSubphases, keepSubphasesOf, subphaseCodeError } from '../../domain/workstream-links';
 import * as S from './schemas';
 import { deliverableView, milestoneViews, personViews } from '../views';
 
@@ -199,10 +199,10 @@ export const SUBPHASES: EntityConfig = {
   async prepare(ctx, input, existing) {
     const m = merged(existing, input) as any;
     const phase = await mustExist(ctx.db, 'phase', ctx.project.id, m.phaseId, 'phaseId');
-    // Le code doit commencer par le code de la phase suivi d'un point (brief § 6.1).
-    if (!new RegExp(`^${phase.code.replace('.', '\\.')}\\.\\d+$`).test(m.code)) {
-      throw badRequest('Code de sous-phase invalide', { code: `doit être de la forme ${phase.code}.n` });
-    }
+    // Numérotation libre (07/10/2026, arbitrage du commanditaire ; le brief § 6.1 imposait le préfixe de la phase) :
+    // unique dans le projet (contrainte de la base), sans séparateur.
+    const codeError = subphaseCodeError(String(m.code ?? '').trim());
+    if (codeError) throw badRequest('Code de sous-phase invalide', { code: codeError });
     checkRange(m.startDate, m.endDate);
     await mustExist(ctx.db, 'person', ctx.project.id, input.ownerId, 'ownerId');
     const warnings: string[] = [];

@@ -4,7 +4,7 @@ import { AuditService, WriteCtx } from '../core/audit.service';
 import { isIsoDate } from '../domain/dates';
 import { normKey } from '../domain/labels';
 import { PROJECT_INFO_BLOCK, PROJECT_INFO_ITEMS_MAX, PROJECT_INFO_LABEL_MAX, PROJECT_INFO_RUBRIQUES, PROJECT_INFO_VALUE_MAX, ProjectInfo } from '../domain/project-info';
-import { multiValues } from '../domain/workstream-links';
+import { multiValues, subphaseCodeError } from '../domain/workstream-links';
 import * as S from '../cockpit/referential/schemas';
 import { CellValue, ParsedWorkbook, SHEETS, SheetData } from './excel-reader';
 
@@ -424,7 +424,9 @@ export function checkWorkbook(wb: ParsedWorkbook): CheckResult {
     const ph = phaseKeys.get(normKey(phaseLabel));
     if (!ph) err('09 Sous-phases', r.row, 'C', `Phase « ${phaseLabel} » inconnue (onglet 08 Phases)`);
     const code = String(r.values['N°']).replace(',', '.');
-    if (ph && !new RegExp(`^${ph.code}\\.\\d+$`).test(code)) err('09 Sous-phases', r.row, 'D', `N° « ${code} » : doit commencer par « ${ph.code}. »`);
+    // Numérotation libre (07/10/2026) : unique dans le projet (contrôle « en double » ci-dessous), sans séparateur.
+    const codeError = subphaseCodeError(code);
+    if (codeError) err('09 Sous-phases', r.row, 'D', `N° « ${code} » : ${codeError}`);
     const name = str(r.values['Nom'])!;
     const key = normKey(`${code} · ${name}`);
     if ([...spKeys.keys()].some((k) => k.startsWith(`${normKey(code)} ·`))) err('09 Sous-phases', r.row, 'D', `Sous-phase ${code} en double`);

@@ -18,6 +18,17 @@ export function keepSubphasesOf(subphaseIds: string[], phaseIds: string[], phase
   return { kept: subphaseIds.filter((s) => !foreign.has(s)), dropped: subphaseIds.filter((s) => foreign.has(s)) };
 }
 
+/**
+ * N° d'une sous-phase (07/10/2026, arbitrage du commanditaire) : numérotation libre, choisie par le directeur de projet
+ * (5.1, 4.2.1, C2.1…), unique dans le projet. Seuls sont refusés l'espace, « ; » et « · », séparateurs des valeurs
+ * multiples et des renvois (« 3.1 · Ateliers »). Message d'erreur, ou null si le N° convient.
+ */
+export const SUBPHASE_CODE_FORBIDDEN = /[\s;·]/;
+export function subphaseCodeError(code: string): string | null {
+  if (!code) return 'N° obligatoire';
+  return SUBPHASE_CODE_FORBIDDEN.test(code) ? 'sans espace, « ; » ni « · »' : null;
+}
+
 /** Valeurs d'une cellule à choix multiple du fichier d'initialisation : séparées par « ; », vides et doublons retirés. */
 export function multiValues(raw: unknown): string[] {
   const out: string[] = [];

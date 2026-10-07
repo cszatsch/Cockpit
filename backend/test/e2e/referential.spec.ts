@@ -90,9 +90,13 @@ describe('Étapes 2-3 — droits et Référentiel', () => {
     expect(view.body.roles.sort()).toEqual(['AMOA Externe', 'AMOA interne']);
   });
 
-  it('sous-phase : code préfixé par la phase ; chantier : code attribué par le serveur', async () => {
+  it('sous-phase : numérotation libre, unique, sans séparateur ; chantier : code attribué par le serveur', async () => {
     const c = await t.as(WHO.pmo);
-    await c.post(`${R}/subphases`, { phaseId: 'P5', code: '4.9', name: 'Mauvais code' }).expect(400);
+    // Numérotation libre (07/10/2026) : « 4.2.1 » sous la phase 5 accepté ; séparateurs refusés ; doublon refusé.
+    const free = await c.post(`${R}/subphases`, { phaseId: 'P5', code: '4.2.1', name: 'Numérotation du projet' }).expect(201);
+    for (const code of ['5;9', '5 9', '5·9']) await c.post(`${R}/subphases`, { phaseId: 'P5', code, name: 'Séparateur' }).expect(400);
+    expect((await c.post(`${R}/subphases`, { phaseId: 'P5', code: '4.2.1', name: 'Doublon' })).status).toBeGreaterThanOrEqual(400);
+    await c.del(`${R}/subphases/${free.body.id}`).expect(204);
     const sp = await c.post(`${R}/subphases`, { phaseId: 'P5', code: '5.9', name: 'Stabilisation', startDate: '2026-01-01', endDate: '2026-02-01' }).expect(201);
     expect(sp.body.warnings?.[0]).toMatch(/sort de la période/);
     const ws = await c.post(`${R}/workstreams`, { name: 'Data & BI', ownerId: 'p06', phaseIds: ['P5'], dependsOn: ['C5'] }).expect(201);

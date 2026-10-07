@@ -430,3 +430,7 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 - Suppression d'une sous-phase : le message précise de combien de chantiers elle est retirée.
 - `api.js` : modification de la colonne « sous-phases » → `subphaseIds` (codes convertis en identifiants).
 - `rise-data.js` : colonne « sous-phases » (vide) dans la table des chantiers de démonstration.
+
+## Sous-phases : numérotation libre (07/10/2026)
+
+- `RISE Cockpit.dc.html`, Référentiel › Sous-phases : le numéro n'a plus à commencer par celui de la phase (arbitrage du commanditaire). Saisie dans le tableau (`setCode`) et formulaire d'ajout (`badPre`) : seuls l'espace, « ; » et « · » sont refusés (« Le numéro ne peut contenir ni espace, ni « ; », ni « · ». ») ; le contrôle du numéro déjà utilisé est inchangé.
