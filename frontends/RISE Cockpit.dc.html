@@ -340,27 +340,30 @@ a{color:#1d8f86}a:hover{color:#146b64}
     <div style="background:#fff;border-radius:16px;padding:22px 24px 24px;box-shadow:0 1px 2px rgba(16,35,58,.04)">
       <div style="display:flex;align-items:center;gap:12px"><span style="font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#5c7280;font-weight:700;white-space:nowrap">Planning</span><span style="font-size:11.5px;color:#8a9aa6">{{ pl.g.sub }}</span><span style="flex:1"></span><span title="Lecture seule. Le planning est alimenté par le référentiel (phases, sous-phases, chantiers) et par le tableau de suivi d’avancement ci-dessous." style="flex:none;width:26px;height:26px;border-radius:8px;display:grid;place-items:center;color:#8a9aa6;border:1px solid #e3ecea;cursor:pointer"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8.6"></circle><path d="M12 11v5.2"></path><circle cx="12" cy="7.9" r=".6" fill="currentColor"></circle></svg></span></div>
       <div style="margin-top:16px;display:flex;flex-direction:column;gap:10px">
-        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><span style="font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#8a9aa6;white-space:nowrap;min-width:62px">Niveau</span><div style="display:flex;gap:2px;padding:3px;border-radius:10px;background:#f1f5f4;flex-wrap:wrap"><sc-for list="{{ pl.g.levels }}" as="t" hint-placeholder-count="4"><span onClick="{{ t.on }}" style="{{ t.st }}">{{ t.l }}</span></sc-for><select value="{{ pl.g.chSel }}" onChange="{{ pl.g.setCh }}" style="{{ pl.g.selSt }}"><option value="">Un chantier…</option><sc-for list="{{ pl.chOpts }}" as="o" hint-placeholder-count="7"><option value="{{ o.v }}">{{ o.l }}</option></sc-for></select></div></div>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><span style="font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#8a9aa6;white-space:nowrap;min-width:62px">Niveau</span><div style="display:flex;gap:2px;padding:3px;border-radius:10px;background:#f1f5f4;flex-wrap:wrap"><sc-for list="{{ pl.g.levels }}" as="t" hint-placeholder-count="4"><span onClick="{{ t.on }}" style="{{ t.st }}">{{ t.l }}</span></sc-for><select value="{{ pl.g.chSel }}" onChange="{{ pl.g.setCh }}" style="{{ pl.g.selSt }}"><option value="">Un chantier…</option><sc-for list="{{ pl.chOpts }}" as="o" hint-placeholder-count="7"><option value="{{ o.v }}">{{ o.l }}</option></sc-for></select></div><sc-if value="{{ pl.g.foldable }}" hint-placeholder-val="{{ false }}"><span style="flex:1"></span><span style="display:flex;gap:2px;padding:3px;border-radius:10px;background:#f1f5f4"><span onClick="{{ pl.g.foldAll }}" title="Tout replier" style="{{ pl.g.foldAllSt }}" style-hover="background:#fff;color:#10233a;box-shadow:0 1px 3px rgba(16,35,58,.12)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4l5 5 5-5 M7 20l5-5 5 5"></path></svg></span><span onClick="{{ pl.g.unfoldAll }}" title="Tout déplier" style="{{ pl.g.unfoldAllSt }}" style-hover="background:#fff;color:#10233a;box-shadow:0 1px 3px rgba(16,35,58,.12)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9l5-5 5 5 M7 15l5 5 5-5"></path></svg></span></span></sc-if></div>
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><span style="font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#8a9aa6;white-space:nowrap;min-width:62px">Afficher</span><div style="display:flex;gap:4px;flex-wrap:wrap"><sc-for list="{{ pl.g.toggles }}" as="t" hint-placeholder-count="5"><span onClick="{{ t.on }}" style="{{ t.st }}"><span style="{{ t.dot }}"></span>{{ t.l }}</span></sc-for></div></div>
       </div>
       <div style="margin-top:18px;display:grid;grid-template-columns:230px minmax(0,1fr)">
         <div style="min-width:0;padding-right:14px">
           <div style="height:34px"></div>
           <sc-if value="{{ pl.g.jalOn }}" hint-placeholder-val="{{ true }}"><div style="height:30px;display:flex;align-items:center;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#8a9aa6">Jalons</div></sc-if>
-          <sc-for list="{{ pl.g.rows }}" as="r" hint-placeholder-count="6"><div title="{{ r.n }}" style="{{ r.lblRow }}"><span style="{{ r.codeSt }}">{{ r.code }}</span><span style="{{ r.nameSt }}">{{ r.n }}</span></div></sc-for>
+          <!-- API : arborescence, chevron et regroupement à la souris (07/10/2026) -->
+          <sc-for list="{{ pl.g.rows }}" as="r" hint-placeholder-count="6"><div title="{{ r.foldTip }}" onClick="{{ r.fold }}" style="{{ r.lblRow }}" style-hover="{{ r.lblHov }}"><sc-for list="{{ r.guides }}" as="gd" hint-placeholder-count="1"><span style="{{ gd.st }}"></span></sc-for><span style="{{ r.chevSt }}"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="{{ r.chevSvg }}"><path d="M9 6l6 6-6 6"></path></svg></span><span style="{{ r.chevSub }}"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="{{ r.chevSvg }}"><path d="M9 6l6 6-6 6"></path></svg></span><span style="{{ r.codeSt }}">{{ r.code }}</span><span style="{{ r.nameSt }}">{{ r.n }}</span><span style="{{ r.cntSt }}">{{ r.cnt }}</span></div></sc-for>
         </div>
         <div style="position:relative;min-width:0;overflow:hidden">
           <sc-for list="{{ pl.g.grid }}" as="g" hint-placeholder-count="8"><span style="{{ g.st }}"></span></sc-for>
           <div style="position:relative;height:34px;border-bottom:1px solid #e6eeec"><sc-for list="{{ pl.g.ticks }}" as="t" hint-placeholder-count="5"><span style="{{ t.st }}">{{ t.l }}</span></sc-for></div>
           <sc-if value="{{ pl.g.jalOn }}" hint-placeholder-val="{{ true }}"><div style="position:relative;height:30px;border-bottom:1px solid #f0f4f3"><sc-for list="{{ pl.g.jal }}" as="j" hint-placeholder-count="6"><span title="{{ j.tip }}" style="{{ j.st }}"><span style="{{ j.dia }}"></span><span style="{{ j.nSt }}">{{ j.n }}</span></span></sc-for></div></sc-if>
           <div style="position:relative">
-            <sc-for list="{{ pl.g.rows }}" as="r" hint-placeholder-count="6"><div style="{{ r.row }}"><span title="{{ r.tip }}" style="{{ r.track }}"><span style="{{ r.fill }}"></span><span style="{{ r.tick }}"></span></span><span style="{{ r.lcL }}"></span><span style="{{ r.lpL }}"></span><span title="{{ r.lcT }}" style="{{ r.lcM }}"></span><span title="{{ r.lpT }}" style="{{ r.lpM }}"></span><span style="{{ r.lab }}"><b style="{{ r.lReelSt }}">{{ r.lReel }}</b><span style="{{ r.lPrevSt }}">{{ r.lPrev }}</span></span></div></sc-for>
+            <sc-for list="{{ pl.g.bands }}" as="b" hint-placeholder-count="2"><span style="{{ b.st }}"></span></sc-for>
+            <sc-for list="{{ pl.g.rows }}" as="r" hint-placeholder-count="6"><div style="{{ r.row }}"><span style="{{ r.dot }}"></span><span title="{{ r.tip }}" style="{{ r.track }}"><span style="{{ r.fill }}"></span><span style="{{ r.tick }}"></span><span style="{{ r.footL }}"></span><span style="{{ r.footR }}"></span></span><span style="{{ r.lcL }}"></span><span style="{{ r.lpL }}"></span><span title="{{ r.lcT }}" style="{{ r.lcM }}"></span><span title="{{ r.lpT }}" style="{{ r.lpM }}"></span><span style="{{ r.lab }}"><b style="{{ r.lReelSt }}">{{ r.lReel }}</b><span style="{{ r.lPrevSt }}">{{ r.lPrev }}</span></span></div></sc-for>
             <svg style="{{ pl.g.critSvg }}" viewBox="{{ pl.g.critVb }}" preserveAspectRatio="none"><sc-for list="{{ pl.g.crit }}" as="c" hint-placeholder-count="3"><polyline points="{{ c.pts }}" fill="none" stroke="#d94b4b" stroke-width="1.5" stroke-dasharray="3 3" vector-effect="non-scaling-stroke"></polyline></sc-for></svg>
           </div>
           <sc-if value="{{ pl.g.todayOn }}" hint-placeholder-val="{{ true }}"><span style="{{ pl.g.today }}"><span style="{{ pl.g.todayTag }}">Aujourd'hui</span></span></sc-if>
         </div>
       </div>
       <div style="margin-top:16px;padding-top:12px;border-top:1px solid #eef3f2;display:flex;gap:18px;flex-wrap:wrap;font-size:11px;color:#5c7280">
+        <sc-for list="{{ pl.g.levelKey }}" as="l" hint-placeholder-count="3"><span style="display:flex;align-items:center;gap:7px;color:#10233a;font-weight:600"><span style="{{ l.sw }}"></span>{{ l.l }}</span></sc-for><sc-if value="{{ pl.g.foldable }}" hint-placeholder-val="{{ false }}"><span style="width:1px;height:12px;background:#dfe7e5;align-self:center"></span></sc-if>
         <sc-for list="{{ pl.g.legend }}" as="l" hint-placeholder-count="4"><span style="display:flex;align-items:center;gap:7px"><span style="{{ l.sw }}"></span>{{ l.l }}</span></sc-for>
       </div>
     </div>
@@ -3052,7 +3055,7 @@ class Component extends DCLogic {
     const MO = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
     const FR = s => { const [y, m, d] = s.split('-').map(Number); return (d === 1 ? '1er' : d) + ' ' + MO[m - 1] + ' ' + y; };
     const FRs = s => { const [y, m, d] = s.split('-').map(Number); return (d === 1 ? '1er' : d) + ' ' + MO[m - 1] + (String(y) !== today.slice(0, 4) ? ' ' + y : ''); };
-    const G0 = { sub: '', tSub: '', rows: [], ticks: [], grid: [], jal: [], crit: [], legend: [], levels: [], toggles: [], trows: [] };
+    const G0 = { sub: '', tSub: '', rows: [], ticks: [], grid: [], jal: [], bands: [], levelKey: [], foldable: false, crit: [], legend: [], levels: [], toggles: [], trows: [] };
     const base = { todayL: FRs(today), chOpts: [], people: [], band: { phs: [], chs: [], projD: '', projEnd: '' }, g: G0, b: { proj: true, ph: true, ch: true, opts: [] } };
     if (!P) return base;
     const pn = {}; (D.people || []).forEach(p => { pn[p.id] = p.name; });
@@ -3071,17 +3074,34 @@ class Component extends DCLogic {
       const prevu = Math.max(0, Math.min(100, Math.round(el / dur * 100))), status = reel >= 100 ? 'done' : a > today ? 'future' : 'cur';
       return { ...c, id: c.id + '@' + p.id, segOf: c.id, segPh: p.id, start: a, end: b, reel, prevu, dur, status, retJ: status === 'cur' ? Math.max(0, Math.round((prevu - reel) / 100 * dur)) : 0, lc: null, lp: null, depth: 1, own };
     };
-    const chOfPh = p => CH.filter(c => (c.phases || []).includes(p.id));
-    const rows = cfg.lvl === 'phch' ? PH.flatMap(p => [p, ...chOfPh(p).map(c => segOf(c, p))])
-      : cfg.lvl === 'phchsp' ? PH.flatMap(p => [p, ...chOfPh(p).flatMap(c => { const g = segOf(c, p); return [g, ...g.own.map(x => ({ ...x, depth: 2 }))]; })])
-      : cfg.lvl === 'phsp' ? PH.flatMap(p => [p, ...SP.filter(s => s.ph === p.id).map(s => ({ ...s, depth: 1 }))]) : cfg.lvl === 'sp' ? SP : cfg.lvl === 'ch' ? CH : cfg.lvl === 'one' ? (() => { const c = CH.find(x => x.id === cfg.ch) || CH[0], own = c.subphases || []; return [c, ...SP.filter(s => own.length ? own.includes(s.id) : c.phases.includes(s.ph) && s.end >= c.start && s.start <= c.end).map(s => ({ ...s, depth: 1 }))]; })() : PH;
+    const chrono = (a, b) => a.start < b.start ? -1 : a.start > b.start ? 1 : a.end < b.end ? -1 : a.end > b.end ? 1 : String(a.code).localeCompare(String(b.code), 'fr', { numeric: true });
+    const segsOf = p => CH.filter(c => (c.phases || []).includes(p.id)).map(c => segOf(c, p)).sort(chrono);
+    const rows0 = cfg.lvl === 'phch' ? PH.flatMap(p => [p, ...segsOf(p)])
+      : cfg.lvl === 'phchsp' ? PH.flatMap(p => [p, ...segsOf(p).flatMap(g => [g, ...g.own.slice().sort(chrono).map(x => ({ ...x, depth: 2 }))])])
+      : cfg.lvl === 'phsp' ? PH.flatMap(p => [p, ...SP.filter(s => s.ph === p.id).map(s => ({ ...s, depth: 1 }))]) : cfg.lvl === 'sp' ? SP : cfg.lvl === 'ch' ? CH.slice().sort(chrono) : cfg.lvl === 'one' ? (() => { const c = CH.find(x => x.id === cfg.ch) || CH[0], own = c.subphases || []; return [c, ...SP.filter(s => own.length ? own.includes(s.id) : c.phases.includes(s.ph) && s.end >= c.start && s.start <= c.end).map(s => ({ ...s, depth: 1 }))]; })() : PH;
+    // ── Arborescence et regroupement à la souris (07/10/2026) : chaque ligne connaît ses parents ; un parent replié masque
+    // ses enfants (clic sur la ligne ou le chevron ; Alt+clic : tous les groupes du même niveau). ──
+    const grouped = cfg.lvl === 'phsp' || cfg.lvl === 'one' || cfg.lvl === 'phch' || cfg.lvl === 'phchsp';
+    const fold = S.plFold || {}, gkey = r => (r.kind === 'ph' ? 'ph:' : r.kind === 'ch' ? 'ch:' : 'sp:') + (r.segOf ? r.id : r.id);
+    const tree = rows0.map((r, i) => ({ ...r, depth: r.depth || 0, _i: i }));
+    { const stack = []; tree.forEach(r => { stack.length = r.depth; r._par = stack.map(gkey); stack.push(r); }); }
+    tree.forEach((r, i) => {
+      const kids = []; for (let j = i + 1; j < tree.length && tree[j].depth > r.depth; j++) if (tree[j].depth === r.depth + 1) kids.push(tree[j]);
+      r._kids = kids; r._grp = grouped && kids.length > 0; r._key = gkey(r);
+      // Dernier de sa fratrie : la ligne suivante de même profondeur ou moins n'est pas une sœur.
+      let j = i + 1; while (j < tree.length && tree[j].depth > r.depth) j++; r._last = !(j < tree.length && tree[j].depth === r.depth);
+    });
+    { const lastAt = []; tree.forEach(r => { r._anc = lastAt.slice(1, r.depth); lastAt.length = r.depth; lastAt[r.depth] = r._last; }); }
+    const rows = tree.filter(r => !r._par.some(k => fold[k]));
+    const foldTo = (keys, on) => this.setState(st => { const f = { ...(st.plFold || {}) }; keys.forEach(k => { if (on) f[k] = 1; else delete f[k]; }); return { plFold: f }; });
+    const groupKeys = d => tree.filter(r => r._grp && (d == null || r.depth === d)).map(r => r._key);
     // Projet sans phase ni chantier daté (projet importé, 07/10/2026) : échelle sur le mois en cours.
     const all0 = IT.flatMap(x => [x.start, x.end]).filter(Boolean).sort(), all = all0.length ? all0 : [new Date().toISOString().slice(0, 10)], LO = all[0].slice(0, 8) + '01', last = all[all.length - 1];
     let [hy, hm] = last.split('-').map(Number); hm++; if (hm > 12) { hm = 1; hy++; } const HI = hy + '-' + p2(hm) + '-01', X = s => (T(s) - T(LO)) / (T(HI) - T(LO)) * 100;
     const monthIso = i => { const [y0, m0] = LO.split('-').map(Number); const d = new Date(y0, m0 - 1 + i, 1); return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-01'; };
     const NM = Math.round((T(HI) - T(LO)) / (30.44 * 864e5)), ink = '#10233a', mute = '#8a9aa6', rowH = 32;
     const seg = 'height:28px;padding:0 12px;border-radius:8px;display:flex;align-items:center;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .15s;', segOn = 'background:#fff;color:#10233a;box-shadow:0 1px 3px rgba(16,35,58,.12)', segOff = 'color:#5c7280';
-    const levels = [['ph', 'Phases'], ['phsp', 'Phases et sous-phases'], ['phch', 'Phase > Chantier'], ['phchsp', 'Phase > Chantier > Sous-phase'], ['sp', 'Sous-phases'], ['ch', 'Tous les chantiers']].map(([v, l]) => ({ l, on: () => set({ lvl: v }), st: seg + (cfg.lvl === v ? segOn : segOff) }));
+    const levels = [['ph', 'Phases'], ['phsp', 'Phase > Sous-phase'], ['phch', 'Phase > Chantier'], ['phchsp', 'Phase > Chantier > Sous-phase'], ['sp', 'Sous-phases'], ['ch', 'Tous les chantiers']].map(([v, l]) => ({ l, on: () => set({ lvl: v }), st: seg + (cfg.lvl === v ? segOn : segOff) }));
     const selSt = seg + 'border:0;outline:none;appearance:none;-webkit-appearance:none;padding-right:26px;background-repeat:no-repeat;background-position:right 9px center;background-image:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2710%27 height=%2710%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%238a9aa6%27 stroke-width=%273%27%3E%3Cpath d=%27M6 9l6 6 6-6%27/%3E%3C/svg%3E");' + (cfg.lvl === 'one' ? segOn : segOff + ';background-color:transparent');
     const toggles = [['jal', 'Jalons', '#e8a33d'], ['today', 'Date du jour', ink], ['crit', 'Chemin critique', '#d94b4b'], ['prev', '% prévu', ink], ['reel', '% réel', '#1d8f86'], ['lc', 'Atterr. rythme actuel', '#d9822b'], ['lp', 'Atterr. rythme prévu', '#6d7fa3']].map(([key, l, c]) => { const on = cfg[key]; return { l, on: () => set({ [key]: !on }),
       st: 'height:28px;padding:0 11px;border-radius:999px;display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .15s;border:1px solid ' + (on ? '#d5e0dd' : 'transparent') + ';color:' + (on ? ink : mute) + ';background:' + (on ? '#fff' : 'transparent'),
@@ -3091,20 +3111,27 @@ class Component extends DCLogic {
       if ((m - 1) % 3 === 0 || i === 0) grid.push({ st: 'position:absolute;top:34px;bottom:0;left:' + x + '%;width:1px;background:' + (major ? '#e3ebe9' : '#f2f6f5') });
       if (major && !(cfg.today && x < tx + 5 && x > tx - 9.5)) ticks.push({ l: s.slice(0, 4), st: 'position:absolute;bottom:9px;left:calc(' + x + '% + 6px);font-size:11px;font-weight:800;color:' + ink + ';white-space:nowrap;letter-spacing:.02em' }); }
     const TR = []; let prevPh = null;
-    const grouped = cfg.lvl === 'phsp' || cfg.lvl === 'one' || cfg.lvl === 'phch' || cfg.lvl === 'phchsp';
-    const out = rows.map((r, i) => { const big = r.depth === 0 && grouped, bh = r.depth ? 8 : big ? 12 : 10;
+    // Teinte d'identité d'un chantier (code C1, C2…) : palette sobre, harmonieuse sur fond blanc.
+    const HUES = ['#2a7f8e', '#6f58c9', '#c0673c', '#3f6fd1', '#b2457f', '#4f8a3a', '#b98516', '#55677d'], hueOf = r => HUES[(Math.max(1, parseInt(String(r.code).replace(/\D/g, ''), 10) || 1) - 1) % HUES.length];
+    let yAcc = 0;
+    const out = rows.map((r, i) => { const big = r.depth === 0 && grouped, isPh = r.kind === 'ph', isCh = r.kind === 'ch', bh = isPh ? 8 : isCh ? 10 : 4;
+      const sep = big && i > 0, y0 = yAcc; yAcc += rowH + (sep ? 1 : 0);
       let x1 = X(r.start), x2 = X(r.end); if (x2 - x1 < 0.4) x2 = x1 + 0.4;
       const late = r.retJ > 0, bad = r.retJ > 30, crit = cfg.crit && r.crit;
       const trackBg = r.status === 'done' ? '#dde9e6' : r.status === 'cur' ? '#e3eeeb' : '#eef3f2', fillC = r.status === 'done' ? '#9dcdc6' : late ? (bad ? '#d9822b' : '#e8a33d') : '#1d8f86';
-      const track = 'position:absolute;left:' + x1 + '%;width:' + (x2 - x1) + '%;top:' + (rowH - bh) / 2 + 'px;height:' + bh + 'px;border-radius:' + bh / 2 + 'px;background:' + trackBg + ';' + (r.status === 'future' ? 'box-shadow:inset 0 0 0 1px #dfe8e6;' : '') + (crit ? 'box-shadow:0 0 0 1.5px #d94b4b,0 0 0 5px rgba(217,75,75,.1);' : '');
+      // Phase : barre récapitulative (convention des plannings) — équerre fine aux deux pieds d'encre ; chantier : capsule ;
+      // sous-phase : filet.
+      const radius = isPh ? 1.5 : isCh ? bh / 2 : 2, caps = '', footC = r.status === 'done' ? '#a7b6c1' : ink;
+      const foot = side => isPh ? 'position:absolute;top:100%;' + side + ':-1px;width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid ' + footC + ';pointer-events:none' : 'display:none';
+      const track = 'position:absolute;left:' + x1 + '%;width:' + (x2 - x1) + '%;top:' + (rowH - bh) / 2 + 'px;height:' + bh + 'px;border-radius:' + radius + 'px;background:' + (isPh && r.status !== 'done' ? '#d9e1e8' : trackBg) + ';' + caps + (r.status === 'future' && !isPh ? 'box-shadow:inset 0 0 0 1px #dfe8e6;' : '') + (crit ? 'box-shadow:0 0 0 1.5px #d94b4b,0 0 0 5px rgba(217,75,75,.1);' : '');
       const fill = cfg.reel && r.reel > 0 ? 'position:absolute;left:0;top:0;bottom:0;border-radius:inherit;width:' + r.reel + '%;background:' + fillC : 'display:none';
       const tick = cfg.prev && r.status === 'cur' ? 'position:absolute;top:-4px;bottom:-4px;width:2px;border-radius:1px;left:calc(' + r.prevu + '% - 1px);background:' + ink : 'display:none';
-      const lReel = cfg.reel ? r.reel + ' %' : '', lPrev = cfg.prev && r.status === 'cur' ? (cfg.reel ? ' · ' : '') + 'prévu ' + r.prevu + ' %' : '';
+      const lReel = cfg.reel ? r.reel + ' %' : '', lPrev = cfg.prev && r.status === 'cur' && (!cfg.reel || r.prevu !== r.reel) ? (cfg.reel ? ' · ' : '') + 'prévu ' + r.prevu + ' %' : '';
       const lcOn = cfg.lc && !!r.lc && r.status !== 'done', lpOn = cfg.lp && !!r.lp && r.status !== 'done', XC = iso => Math.min(100, Math.max(0, X(iso)));
       const lmk = (iso, c, sq) => 'position:absolute;top:50%;left:' + XC(iso) + '%;width:10px;height:10px;margin:-5px 0 0 -5px;box-sizing:border-box;background:#fff;border:2px solid ' + c + ';border-radius:' + (sq ? '2px;transform:rotate(45deg)' : '50%') + ';z-index:2';
       const lln = (iso, c) => { const x = XC(iso), a = Math.min(x2, x), b = Math.max(x2, x); return 'position:absolute;top:50%;height:0;border-top:1.5px dashed ' + c + ';left:' + a + '%;width:' + (b - a) + '%;z-index:1'; };
       const xr = Math.max(x2, lcOn ? XC(r.lc) + .6 : 0, lpOn ? XC(r.lp) + .6 : 0);
-      const lab = !lReel && !lPrev ? 'display:none' : 'position:absolute;top:50%;transform:translateY(-50%);white-space:nowrap;font-size:11px;' + (xr < 84 ? 'left:calc(' + xr + '% + 8px)' : 'right:calc(' + (100 - x1) + '% + 8px)');
+      const lab = !lReel && !lPrev ? 'display:none' : 'position:absolute;top:50%;transform:translateY(-50%);white-space:nowrap;font-size:11px;' + (xr < 84 ? 'left:calc(' + xr + '% + 8px)' : 'right:calc(' + (100 - x1) + '% + ' + (r.kind === 'ch' ? 16 : 8) + 'px)');
       const lX = { lcM: lcOn ? lmk(r.lc, '#d9822b', false) : 'display:none', lcL: lcOn ? lln(r.lc, '#d9822b') : 'display:none', lpM: lpOn ? lmk(r.lp, '#6d7fa3', true) : 'display:none', lpL: lpOn ? lln(r.lp, '#6d7fa3') : 'display:none', lcT: lcOn ? 'Atterr. rythme actuel : ' + FR(r.lc) : '', lpT: lpOn ? 'Atterr. rythme prévu : ' + FR(r.lp) : '' };
       const mkPh = r.kind === 'ph' ? r.n : r.kind === 'sp' ? phN[r.ph] : r.segPh ? phN[r.segPh] : (phN[r.phases[0]] + ' → ' + phN[r.phases[r.phases.length - 1]]);
       const phShow = (r.kind === 'sp' && (cfg.lvl === 'phsp' || cfg.lvl === 'sp' || cfg.lvl === 'phchsp') && prevPh === r.ph) || (r.segPh && prevPh === r.segPh) ? '' : mkPh; if (r.kind === 'ph') prevPh = r.id; else if (r.kind === 'sp') prevPh = r.ph;
@@ -3124,23 +3151,53 @@ class Component extends DCLogic {
         lcSt: 'font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums;color:' + (done ? mute : lcD > 0 ? '#c43d3d' : r.lc ? ink : '#c3cfcc'), lcdSt: 'font-size:10.5px;font-weight:600;color:' + (lcD > 0 ? '#c43d3d' : '#1b8a52'),
         lp: done ? 'Terminé' : r.lp ? FR(r.lp) : '—', lpd: lpD == null ? '' : lpD > 0 ? '+' + lpD + ' j vs fin' : 'dans les temps',
         lpSt: 'font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums;color:' + (done ? mute : lpD > 0 ? '#c43d3d' : r.lp ? ink : '#c3cfcc'), lpdSt: 'font-size:10.5px;font-weight:600;color:' + (lpD > 0 ? '#c43d3d' : '#1b8a52') });
+      // Colonne des libellés : retrait par niveau, filets d'arborescence (├ └), chevron des groupes, compte une fois replié.
+      const IND = 18, open = !fold[r._key], hue = isCh ? hueOf(r) : null, gx = d => (grouped ? 22 : 0) + (d - 1) * IND + 7;
+      const guides = !grouped || !r.depth ? [] : [
+        ...r._anc.map((last, k) => last ? null : { st: 'position:absolute;left:' + gx(k + 1) + 'px;top:0;bottom:0;border-left:1px solid #dde6e4;pointer-events:none' }).filter(Boolean),
+        { st: 'position:absolute;left:' + gx(r.depth) + 'px;top:0;height:50%;width:9px;border-left:1px solid #dde6e4;border-bottom:1px solid #dde6e4;border-bottom-left-radius:5px;pointer-events:none' },
+        ...(r._last ? [] : [{ st: 'position:absolute;left:' + gx(r.depth) + 'px;top:50%;bottom:0;border-left:1px solid #dde6e4;pointer-events:none' }]),
+      ];
+      const kidsL = r._kids.length ? r._kids.length + ' ' + ({ ph: 'phase', ch: 'chantier', sp: 'sous-phase' }[r._kids[0].kind] || 'élément') + (r._kids.length > 1 ? 's' : '') : '';
+      const foldIt = e => { if (!r._grp) return; e.stopPropagation(); const keys = e.altKey ? groupKeys(r.depth) : [r._key]; foldTo(keys, open); };
       return { n: r.n, code: r.code, tip: r.code + ' · ' + r.n + ' · ' + FR(r.start) + ' → ' + FR(r.end) + ' · réel ' + r.reel + ' % · prévu ' + r.prevu + ' %',
-        lblRow: 'height:' + rowH + 'px;display:flex;align-items:center;gap:9px;min-width:0;padding-left:' + (r.depth || 0) * 16 + 'px;' + (big && i > 0 ? 'border-top:1px solid #eef3f2' : ''),
-        codeSt: 'flex:none;min-width:22px;font-size:10.5px;font-weight:800;letter-spacing:.04em;font-variant-numeric:tabular-nums;color:' + (crit ? '#d94b4b' : mute),
-        nameSt: 'min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:' + (r.depth ? '12px' : '12.5px') + ';font-weight:' + (r.depth ? 500 : 700) + ';color:' + (done ? mute : ink),
-        row: 'position:relative;height:' + rowH + 'px;' + (big && i > 0 ? 'border-top:1px solid #eef3f2' : ''), track, fill, tick, lab, lReel, lPrev, ...lX,
+        fold: foldIt, foldTip: r.n + (r._grp ? ' — ' + (open ? 'cliquer pour replier' : 'cliquer pour déplier') + ' (Alt+clic : tout le niveau)' : ''), guides,
+        lblRow: 'position:relative;height:' + rowH + 'px;display:flex;align-items:center;gap:8px;min-width:0;border-radius:8px;padding-left:' + (grouped ? (r.depth || 0) * IND + (r.depth ? 22 + 6 : 0) : (r.depth || 0) * 16) + 'px;' + (r._grp ? 'cursor:pointer;' : '') + (sep ? 'border-top:1px solid #eef3f2;' : '') + 'transition:background .15s',
+        lblHov: r._grp ? 'background:#f5f8f7' : '',
+        chevSt: !grouped || r.depth ? 'display:none' : 'flex:none;width:16px;height:16px;margin-left:2px;display:grid;place-items:center;border-radius:5px;color:#8a9aa6;' + (r._grp ? '' : 'visibility:hidden;'),
+        chevSub: !(grouped && r.depth && r._grp) ? 'display:none' : 'flex:none;width:14px;height:14px;margin-left:-20px;display:grid;place-items:center;border-radius:4px;color:#8a9aa6',
+        chevSvg: 'transition:transform .2s cubic-bezier(.2,.7,.2,1);transform:rotate(' + (open ? 90 : 0) + 'deg)',
+        codeSt: isPh ? 'flex:none;min-width:20px;height:20px;padding:0 5px;box-sizing:border-box;border-radius:6px;display:inline-grid;place-items:center;font-size:10.5px;font-weight:800;font-variant-numeric:tabular-nums;color:#fff;background:' + (crit ? '#d94b4b' : done ? '#a7b6c1' : ink)
+          : isCh ? 'flex:none;height:18px;padding:0 6px;border-radius:5px;display:inline-flex;align-items:center;font-size:10px;font-weight:800;letter-spacing:.03em;font-variant-numeric:tabular-nums;color:' + (crit ? '#d94b4b' : hue) + ';background:' + hue + '14;box-shadow:inset 0 0 0 1px ' + hue + '26'
+          : 'flex:none;min-width:22px;font-size:10.5px;font-weight:700;font-variant-numeric:tabular-nums;color:' + (crit ? '#d94b4b' : '#9aa9b3'),
+        nameSt: 'min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:' + (isPh ? '13px' : isCh ? '12.5px' : '12px') + ';font-weight:' + (isPh ? 750 : isCh ? 600 : 450) + ';letter-spacing:' + (isPh ? '-.01em' : '0') + ';color:' + (done ? mute : isPh || isCh ? ink : '#43586a'),
+        cnt: r._grp && !open ? kidsL : '', cntSt: r._grp && !open ? 'flex:none;margin-left:auto;padding-right:6px;font-size:10.5px;font-weight:600;color:#9aa9b3;white-space:nowrap' : 'display:none',
+        // Pastille d'identité du chantier, à l'entrée de sa barre.
+        dot: isCh ? 'position:absolute;top:50%;left:calc(' + x1 + '% - 9px);width:6px;height:6px;margin-top:-3px;border-radius:50%;background:' + hue + ';box-shadow:0 0 0 2px #fff;pointer-events:none' : 'display:none',
+        footL: foot('left'), footR: foot('right'),
+        row: 'position:relative;height:' + rowH + 'px;' + (sep ? 'border-top:1px solid #eef3f2' : ''), track, fill, tick, lab, lReel, lPrev, ...lX,
         lReelSt: 'font-weight:800;font-variant-numeric:tabular-nums;color:' + (done ? mute : late ? (bad ? '#b5601a' : '#b07410') : '#1d8f86'), lPrevSt: 'font-weight:600;font-variant-numeric:tabular-nums;color:' + mute,
-        _y: i * rowH + rowH / 2, _x1: x1, _x2: x2, _crit: r.crit, _g: r.kind + r.depth };
+        _y: y0 + (sep ? 1 : 0) + rowH / 2, _y0: y0 + (sep ? 1 : 0), _x1: x1, _x2: x2, _crit: r.crit, _g: r.kind + r.depth, _ph: isPh && grouped && open && r._kids.length > 0, _depth: r.depth };
     });
-    const H = out.length * rowH, crit = [], groups = {};
+    // Couloir de la phase : sa période, en filigrane derrière ses enfants (lecture immédiate de l'appartenance).
+    const bands = [];
+    out.forEach((o, i) => { if (!o._ph) return; let j = i + 1; while (j < out.length && out[j]._depth > 0) j++; const top = o._y0 + 4, bottom = j < out.length ? out[j]._y0 - (out[j].row.includes('border-top') ? 1 : 0) : yAcc;
+      bands.push({ st: 'position:absolute;left:' + o._x1 + '%;width:' + Math.max(.4, o._x2 - o._x1) + '%;top:' + top + 'px;height:' + Math.max(0, bottom - top - 4) + 'px;border-radius:9px;background:linear-gradient(180deg,rgba(16,35,58,.045),rgba(16,35,58,.012) 70%);box-shadow:inset 1px 0 0 rgba(16,35,58,.09),inset -1px 0 0 rgba(16,35,58,.09);pointer-events:none' }); });
+    const H = yAcc, crit = [], groups = {};
     out.forEach(r => { if (r._crit && !(grouped && r._g.endsWith('0'))) (groups[r._g] = groups[r._g] || []).push(r); });
     if (cfg.crit) Object.values(groups).forEach(cr => { for (let j = 1; j < cr.length; j++) { const a = cr[j - 1], b = cr[j], pts = b._x1 >= a._x2 ? [[a._x2, a._y], [a._x2, b._y], [b._x1, b._y]] : [[b._x1, a._y], [b._x1, b._y]]; crit.push({ pts: pts.map(p => p.join(',')).join(' ') }); } });
     const cl = []; ms.filter(m => m.iso).map(m => ({ m, x: X(m.iso) })).filter(o => o.x >= 0 && o.x <= 100).sort((a, b) => a.x - b.x).forEach(o => { const l = cl[cl.length - 1]; if (l && o.x - l.x1 < 1.6) { l.items.push(o.m); l.x1 = o.x; } else cl.push({ x0: o.x, x1: o.x, items: [o.m] }); });
     const jal = cl.map(c => { const n = c.items.length, col = c.items.some(m => m.gap > 0) ? '#e8a33d' : '#1d8f86';
       return { tip: c.items.map(m => m.id + ' · ' + m.n + ' · ' + FRs(m.iso)).join('\n'), n: n > 1 ? String(n) : '', st: 'position:absolute;top:50%;left:' + (c.x0 + c.x1) / 2 + '%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:4px;cursor:pointer;z-index:4',
         dia: 'width:9px;height:9px;transform:rotate(45deg);border-radius:1.5px;background:' + col + ';box-shadow:0 0 0 2px #fff', nSt: n > 1 ? 'font-size:10px;font-weight:800;color:#10233a;font-variant-numeric:tabular-nums;background:#fff;padding:0 3px;border-radius:4px' : 'display:none' }; });
-    const lvlL = { ph: 'Phases', phsp: 'Phases et sous-phases', phch: 'Phase > Chantier', phchsp: 'Phase > Chantier > Sous-phase', sp: 'Sous-phases', ch: 'Tous les chantiers', one: 'Chantier ' + ((CH.find(c => c.id === cfg.ch) || {}).n || '') }[cfg.lvl];
-    const g = { levels, toggles, selSt, chSel: cfg.lvl === 'one' ? cfg.ch : '', setCh: e => e.target.value && set({ lvl: 'one', ch: e.target.value }),
+    const lvlL = { ph: 'Phases', phsp: 'Phase > Sous-phase', phch: 'Phase > Chantier', phchsp: 'Phase > Chantier > Sous-phase', sp: 'Sous-phases', ch: 'Tous les chantiers', one: 'Chantier ' + ((CH.find(c => c.id === cfg.ch) || {}).n || '') }[cfg.lvl];
+    const anyFold = groupKeys().some(k => fold[k]), allKeys = groupKeys();
+    const g = { levels, toggles, selSt, chSel: cfg.lvl === 'one' ? cfg.ch : '', setCh: e => e.target.value && set({ lvl: 'one', ch: e.target.value }), bands,
+      foldable: grouped && allKeys.length > 0, foldAll: () => foldTo(allKeys, true), unfoldAll: () => foldTo(allKeys, false),
+      foldBtn: on => 'width:28px;height:28px;border-radius:8px;display:grid;place-items:center;cursor:pointer;color:' + (on ? '#10233a' : '#8a9aa6') + ';transition:background .15s,color .15s',
+      foldAllSt: 'width:28px;height:28px;border-radius:8px;display:grid;place-items:center;cursor:pointer;color:#5c7280;transition:background .15s,color .15s',
+      unfoldAllSt: 'width:28px;height:28px;border-radius:8px;display:grid;place-items:center;cursor:pointer;color:' + (anyFold ? '#10233a' : '#b4c0c7') + ';transition:background .15s,color .15s',
+      levelKey: grouped ? [{ l: 'Phase', sw: 'width:24px;height:10px;background:linear-gradient(#c9d3dc,#c9d3dc) top/100% 5px no-repeat,linear-gradient(135deg,#10233a 50%,transparent 50%) left 0 bottom 0/5px 5px no-repeat,linear-gradient(225deg,#10233a 50%,transparent 50%) right 0 bottom 0/5px 5px no-repeat' }, { l: 'Chantier', sw: 'width:22px;height:8px;border-radius:4px;background:#e3eeeb;box-shadow:-7px 0 0 -2px #2a7f8e' }, { l: 'Sous-phase', sw: 'width:22px;height:4px;border-radius:2px;background:#dfe8e6' }] : [],
       sub: FR(LO).replace(/^1er /, '') + ' → ' + FR(P.projectEnd).replace(/^\d+ /, ''), ticks, grid, rows: out, crit, jal, jalOn: cfg.jal, todayOn: cfg.today && tx >= 0 && tx <= 100,
       critSvg: 'position:absolute;left:0;top:0;width:100%;height:' + H + 'px;overflow:visible;pointer-events:none', critVb: '0 0 100 ' + Math.max(1, H),
       today: 'position:absolute;top:0;bottom:0;left:' + tx + '%;width:0;border-left:1.5px solid #10233a;z-index:3;pointer-events:none',

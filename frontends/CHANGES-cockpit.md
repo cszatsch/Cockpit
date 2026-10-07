@@ -450,3 +450,16 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 
 - Référentiel › Chantiers : colonnes « Début » et « Fin » (8e et 9e cellules de la ligne, calendrier de saisie existant, écriture par `dates(7, 8)` dans `api.js`, sans précision de date) ; largeurs des colonnes resserrées pour tenir sans débordement.
 - Projet importé : la description des tables vient du serveur pour tous les projets (`REFERENTIAL_META`) ; l'en-tête « Info projet » affiche le code et le client du projet ouvert au lieu de « RISE — AMC Corp » écrit en dur.
+
+## Planning : lisibilité des niveaux et regroupement à la souris (07/10/2026)
+
+- Sélecteur NIVEAU : « Phases et sous-phases » devient « Phase > Sous-phase ».
+- Chantiers dans l'ordre chronologique (début, fin, puis code) dans « Tous les chantiers » et sous chaque phase ; sous-phases d'un chantier aussi.
+- Trois grammaires visuelles, la couleur restant réservée à l'état (avancement, retard) :
+  - phase = cadre : pastille encre au numéro, nom en gras ; barre récapitulative (fine, équerre, deux pieds d'encre, convention des plannings) ; « couloir » en filigrane sur sa période derrière ses enfants ;
+  - chantier = identité : code dans une puce à la teinte du chantier (palette sobre de 8 teintes), pastille de la même teinte à l'entrée de sa barre, capsule ;
+  - sous-phase = détail : filet de 4 px, code et nom plus légers.
+- Colonne des libellés : filets d'arborescence (├ └) reliant chaque enfant à son parent, retrait par niveau.
+- Regroupement à la souris : clic sur une phase (ou un chantier dans « Phase > Chantier > Sous-phase », ou le chantier de « Un chantier… ») = replier / déplier ses enfants, chevron tourné et compte (« 5 chantiers ») une fois replié ; Alt+clic = tous les groupes du même niveau ; boutons « Tout replier » / « Tout déplier » au bout du sélecteur (`S.plFold`). Le tableau « Suivi d'avancement » suit le même repli.
+- Moins de surcharge : « prévu X % » n'est affiché que s'il diffère du réel ; un libellé placé à gauche d'une barre de chantier contourne sa pastille.
+- Légende : les trois niveaux (Phase, Chantier, Sous-phase) avant les états.
