@@ -463,3 +463,9 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 - Regroupement à la souris : clic sur une phase (ou un chantier dans « Phase > Chantier > Sous-phase », ou le chantier de « Un chantier… ») = replier / déplier ses enfants, chevron tourné et compte (« 5 chantiers ») une fois replié ; Alt+clic = tous les groupes du même niveau ; boutons « Tout replier » / « Tout déplier » au bout du sélecteur (`S.plFold`). Le tableau « Suivi d'avancement » suit le même repli.
 - Moins de surcharge : « prévu X % » n'est affiché que s'il diffère du réel ; un libellé placé à gauche d'une barre de chantier contourne sa pastille.
 - Légende : les trois niveaux (Phase, Chantier, Sous-phase) avant les états.
+
+## Planning allégé ; profil réel et projet par défaut (07/10/2026)
+
+- Planning : pieds de la barre de phase et couloir (voile) de la période retirés, à la demande du commanditaire ; la phase reste une barre récapitulative fine et équerre.
+- Mon profil : plus aucune donnée de démonstration. Carte : initiales, rôle (`meRole`), société (équipe du référentiel) et équipe (type : Client, AMOA, Intégrateur). Informations : nom, position, société et e-mail lus dans le référentiel et le compte (lecture seule, gérés par le PMO ou l'Administrateur) ; téléphone, pays, ville, langue et fuseau enregistrés en préférences. Sécurité : dernière connexion réelle. Pied : date de la dernière modification du profil.
+- Onglet Projet : projets ouverts au compte (code — client), rôle et affectation de la personne sur chacun, droits ; colonne « Par défaut » (Choisir / Par défaut) : projet ouvert à l'arrivée quand l'adresse ne précise pas de projet (`setDefaultProject`, préférence `defaultProject`). Sans projet par défaut : RISE s'il est ouvert au compte, sinon le premier projet ouvert (`arrive` dans `api.js`).

@@ -1059,6 +1059,10 @@ model UserPreferences {
   notifications   Json?
   language        String?
   timezone        String?
+  /// Profil (07/10/2026) : téléphone, pays de résidence, projet ouvert par défaut dans le Cockpit (code)
+  phone           String?
+  country         String?
+  defaultProject  String?
   updatedAt       DateTime @updatedAt
 }
 

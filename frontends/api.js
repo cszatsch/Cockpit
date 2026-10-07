@@ -159,7 +159,7 @@ const ROUTE = { CLIENT: 'clients', WAVE: 'waves', PHASE: 'phases', SUBPHASE: 'su
 /** Magasins de contenu libre de la fiche projet, persistés en sections (`PATCH /project/sections/ui.<nom>`, DECISIONS Q8). */
 const SECTION_STORES = ['projEd', 'goliveEd', 'goliveDate', 'chronoEd'];
 /** Préférences de l'utilisateur (`PATCH /api/me/preferences`). */
-const PREF_OF = { dbL: 'dashboardLayout', dbInv: 'theme', profFirst: 'firstName', profCity: 'city', profPhotoUrl: 'photoUrl', profNotif: 'notifications' };
+const PREF_OF = { dbL: 'dashboardLayout', dbInv: 'theme', profFirst: 'firstName', profCity: 'city', profPhotoUrl: 'photoUrl', profNotif: 'notifications', profPhone: 'phone', profCountry: 'country', profLang: 'language', profTz: 'timezone' };
 
 const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[’']/g, "'").replace(/\s+/g, ' ').trim();
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
@@ -318,6 +318,8 @@ export function attach(comp) {
       meAccess: (L.me && L.me.effective) || null,
       // Menu « Projet » de la barre latérale : projets ouverts au compte et projet affiché.
       meProjects: (L.me && L.me.projects) || null, meProjectId: (L.me && L.me.projectId) || null,
+      // Profil (07/10/2026) : identité, rattachement, dernière connexion ; projet ouvert par défaut.
+      meProfile: L.me ? { ...(L.me.profile || {}), email: L.me.account && L.me.account.email } : null, meDefaultProject: (L.me && L.me.preferences && L.me.preferences.defaultProject) || null,
       psAccSrv: L.accStates || null,
       ed: {}, actStatus: {}, sesEd: {}, sesAdded: [], sesDel: {}, refValues: {}, refDeleted: {}, bmEd: {}, bmAdd: {},
       phLots: hydratePhLots(B), txtEd: {}, critEd: {}, arbData: {}, lvTrack: {}, gbExtra: {}, gbMem: {}, gbAdded: [], added: {}, lvAdded: [], dlOwner: {},
@@ -358,6 +360,10 @@ export function attach(comp) {
       if (Array.isArray(pf.dashboardLayout)) st.dbL = pf.dashboardLayout;
       if (pf.theme && typeof pf.theme === 'object') st.dbInv = pf.theme;
       if (pf.firstName != null) st.profFirst = pf.firstName;
+      if (pf.phone != null) st.profPhone = pf.phone;
+      if (pf.country != null) st.profCountry = pf.country;
+      if (pf.language != null) st.profLang = pf.language;
+      if (pf.timezone != null) st.profTz = pf.timezone;
       if (pf.city != null) { st.profCity = pf.city; st.dbExt = { ...(comp.state.dbExt || {}), home: pf.city }; }
       if (pf.photoUrl) st.profPhotoUrl = pf.photoUrl;
       if (pf.notifications && typeof pf.notifications === 'object') st.profNotif = pf.notifications;
@@ -884,7 +890,23 @@ export function attach(comp) {
       raw({ toast: 'Données indisponibles — ' + errorText(e) + ' · nouvel essai dans ' + RETRY_MS / 1000 + ' s' });
       setTimeout(start, RETRY_MS);
     });
-  start();
+  // Projet à l'arrivée (07/10/2026) : sans `?project=` dans l'adresse, le projet par défaut du profil s'il est ouvert au
+  // compte, sinon RISE s'il l'est, sinon le premier projet ouvert ; le Cockpit se recharge alors sur ce projet.
+  const arrive = async () => {
+    if (QS.has('project')) return false;
+    try {
+      const me = await get('/me');
+      const codes = (me.projects || []).map((x) => x.code), pref = me.preferences && me.preferences.defaultProject;
+      const target = pref && codes.includes(pref) ? pref : codes.includes(projectId) ? projectId : codes[0];
+      if (target && target !== projectId) {
+        const q = new URLSearchParams(location.search); q.set('project', target);
+        location.replace(location.pathname + '?' + q.toString() + location.hash);
+        return true;
+      }
+    } catch (e) { /* arrivée sur le projet de l'adresse */ }
+    return false;
+  };
+  arrive().then((moved) => { if (!moved) start(); });
 
   // ── Notifications de l'utilisateur (cloche) : au démarrage, toutes les 60 s et au retour sur l'onglet ──
   const NT_POLL_MS = 60_000;
@@ -923,6 +945,8 @@ export function attach(comp) {
   const api = {
     request, get, post, patch, put, del, projectId, errorText, reload: () => reload(),
     /** Changement de projet (menu « Projet ») : le Cockpit se recharge sur `?project=CODE`, autres paramètres gardés. */
+    /** Projet ouvert par défaut (onglet « Projet » du profil) : préférence `defaultProject`, null pour la retirer. */
+    setDefaultProject: (code) => patch('/me/preferences', { defaultProject: code }).catch((e) => toast(errorText(e))),
     switchProject: (code) => { const q = new URLSearchParams(location.search); q.set('project', code); location.search = q.toString(); },
     ntLoad,
     ntRead: (id) => { ntMark(id); post('/me/notifications/' + encodeURIComponent(id) + '/read').catch((e) => { console.warn('[api]', e); ntLoad(); }); },

@@ -51,6 +51,19 @@ describe('Étape 1 — socle', () => {
     expect(admin.projects.every((p: any) => ['ADMIN', 'PMO', 'RESPONSABLE', 'LECTEUR'].includes(p.profile))).toBe(true);
   });
 
+  it('GET /me : profil réel (identité, société, équipe), rôle et affectation par projet ; projet par défaut enregistré', async () => {
+    const c = await t.as(WHO.pmo);
+    const me = (await c.get('/api/me').expect(200)).body;
+    expect(me.profile).toMatchObject({ firstName: 'Robin', lastName: 'Lefèvre', company: expect.any(String) });
+    const rise = me.projects.find((p: any) => p.code === 'RISE');
+    expect(rise).toMatchObject({ client: expect.any(String), roles: expect.arrayContaining([expect.any(String)]), startDate: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) });
+    await c.patch('/api/me/preferences', { defaultProject: 'ATLAS', phone: '+33 6 12 34 56 78', country: 'Belgique' }).expect(200);
+    const after = (await c.get('/api/me').expect(200)).body;
+    expect(after.preferences).toMatchObject({ defaultProject: 'ATLAS', phone: '+33 6 12 34 56 78', country: 'Belgique' });
+    expect(after.profile.updatedAt).toEqual(expect.any(String));
+    await c.patch('/api/me/preferences', { defaultProject: null }).expect(200);
+  });
+
   it('publie la documentation OpenAPI', async () => {
     const r = await t.http().get('/api/docs/openapi.json').expect(200);
     expect(r.body.openapi).toMatch(/^3\./);

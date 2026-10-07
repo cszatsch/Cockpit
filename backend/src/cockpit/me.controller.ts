@@ -18,6 +18,10 @@ const Preferences = z
     notifications: z.record(z.unknown()).optional(),
     language: z.string().max(40).nullable().optional(),
     timezone: z.string().max(60).nullable().optional(),
+    // Profil (07/10/2026) : téléphone, pays de résidence, projet ouvert par défaut dans le Cockpit (code).
+    phone: z.string().trim().max(40).nullable().optional(),
+    country: z.string().trim().max(80).nullable().optional(),
+    defaultProject: z.string().trim().max(40).nullable().optional(),
   })
   .strict();
 
@@ -55,6 +59,13 @@ export class MeController {
         })
       : [];
     const preferences = await this.prisma.userPreferences.findUnique({ where: { accountId: actor.accountId } });
+    // Profil (07/10/2026) : données réelles du compte et de sa personne du référentiel (plus de valeurs de démonstration).
+    const team = person?.teamId ? await this.prisma.team.findUnique({ where: { id: person.teamId } }) : null;
+    // Projets : rôle et affectation de la personne sur chacun (onglet « Projet » du profil).
+    const persIds = projects.map((x) => x.access.personId).filter((x): x is string => !!x);
+    const assigns = persIds.length ? await this.prisma.assignment.findMany({ where: { personId: { in: persIds } }, orderBy: { startDate: 'asc' } }) : [];
+    const roleIds = [...new Set(assigns.map((a) => a.roleId))];
+    const roleLabel = Object.fromEntries((roleIds.length ? await this.prisma.projectRole.findMany({ where: { id: { in: roleIds } } }) : []).map((r) => [r.id, r.label]));
     return {
       account: {
         id: account.id,
@@ -83,7 +94,25 @@ export class MeController {
         name: project.name,
         status: project.status,
         profile: access.pmo ? 'PMO' : access.responsable.length ? 'RESPONSABLE' : access.lecteur.length ? 'LECTEUR' : access.admin ? 'ADMIN' : null,
+        client: (project as any).client?.name ?? null,
+        ...(() => {
+          const mine = assigns.filter((a) => a.projectId === project.id && a.personId === access.personId);
+          return {
+            roles: [...new Set(mine.map((a) => roleLabel[a.roleId]).filter(Boolean))],
+            startDate: mine.length ? mine[0].startDate : null,
+            endDate: mine.length && mine.every((a) => a.endDate) ? mine.map((a) => a.endDate!).sort().pop()! : null,
+          };
+        })(),
       })),
+      profile: {
+        lastName: person?.lastName ?? account.fullName.split(' ').slice(1).join(' '),
+        firstName: person?.firstName ?? account.fullName.split(' ')[0],
+        position: person?.title ?? null,
+        company: team?.name ?? null,
+        teamKind: team?.kind ?? null,
+        lastLoginAt: account.lastLoginAt,
+        updatedAt: preferences?.updatedAt ?? null,
+      },
       habilitations: [
         ...(actor.isAdmin && current ? [{ id: `admin-${actor.accountId}`, projectId: current.project.id, personId: current.access.personId, accountId: actor.accountId, profile: 'ADMIN', wsId: null }] : []),
         ...habilitations.map((h) => ({ id: h.id, projectId: h.projectId, personId: h.personId, accountId: h.accountId, profile: h.profile, wsId: h.wsId })),
