@@ -254,7 +254,7 @@ describe('Initialisation d’un projet — préremplissage par IA', () => {
     const r = await request(t.app.getHttpServer()).get(`${P}/tasks/${x.taskId}/preview`).set('Authorization', `Bearer ${tok}`).expect(200);
     expect(r.body.issues.filter((i: any) => i.lvl === 'err')).toEqual([]);
     expect(r.body).toMatchObject({ ok: true, missing: [] });
-    expect(r.body.sheets['Chantiers'].rows.find((x: any) => x[1] === 'Données et migration')[6]).toBe('Ventes et CRM ; Service client');
+    expect(r.body.sheets['Chantiers'].rows.find((x: any) => x[1] === 'Données et migration')[8]).toBe('Ventes et CRM ; Service client');
     expect(r.body.sheets['Info projet'].rows.length).toBeGreaterThanOrEqual(7);
   });
 

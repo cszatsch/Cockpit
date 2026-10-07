@@ -101,7 +101,7 @@ export function toScreen(plan: ImportPlan | null, rawIssues: ImportIssue[]): Scr
       const v = plan.projectInfo[r.key];
       return typeof v === 'string' ? (v ? [[r.label, '', v]] : []) : (v as Array<string | [string, string]>).map((x) => (Array.isArray(x) ? [r.label, x[0], x[1]] : [r.label, '', x]));
     })),
-    'Chantiers': g([['Code', 'c'], ['Nom', 'r'], ['Responsable', 'r'], ['Lot', 'o'], ['Phases', 'o'], ['Sous-phases', 'o'], ['Dépendances', 'o']], plan.workstreams.map((w) => [w.code, w.name, k(per, w.owner), k(wave, w.wave),
+    'Chantiers': g([['Code', 'c'], ['Nom', 'r'], ['Responsable', 'r'], ['Lot', 'o'], ['Début', 'o'], ['Fin', 'o'], ['Phases', 'o'], ['Sous-phases', 'o'], ['Dépendances', 'o']], plan.workstreams.map((w) => [w.code, w.name, k(per, w.owner), k(wave, w.wave), dt(w.startDate), dt(w.endDate),
       w.phases.map((p) => k(ph, p)).join(' ; '), w.subphases.map((s) => plan.subphases.find((x) => x.key === s)?.code ?? s).join(' ; '), w.dependsOn === 'ALL' ? 'Tous' : w.dependsOn.map((d) => k(ws, d)).join(' ; ')])),
     'Instances': g([['Nom', 'r'], ['Nom court', 'r'], ['Couleur', 'r'], ['Fréquence', 'r']], plan.bodies.map((b) => [b.name, b.shortName, b.color, b.frequency])),
     'Membres': g([['Instance', 'r'], ['Personne', 'r'], ['Rôle', 'o']], plan.members.map((m) => [k(body, m.body), k(per, m.person), m.role ?? ''])),

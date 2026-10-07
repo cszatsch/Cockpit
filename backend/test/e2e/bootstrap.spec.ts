@@ -53,7 +53,10 @@ describe('Étape 3 (brief § 13.3) — amorçage et GET /bootstrap', () => {
     expect(dm('P5')).toEqual(['5', 'Deploy', 'Lot 1', '02/2026', '30/06/2027', 'En cours']);
     expect(b.model.SUBPHASE.rows.map((r: any) => r.cells)).toEqual(rise.model.SUBPHASE.rows.map((r: any) => r.cells));
     expect(b.model.WAVE.rows.map((r: any) => r.cells)).toEqual(rise.model.WAVE.rows.map((r: any) => r.cells));
-    expect(b.model.WORKSTREAM.rows.map((r: any) => r.cells)).toEqual(rise.model.WORKSTREAM.rows.map((r: any) => r.cells));
+    // Début et fin des chantiers (07/10/2026) : 8e et 9e cellules, absentes des données d'origine.
+    expect(b.model.WORKSTREAM.rows.map((r: any) => r.cells.slice(0, 7))).toEqual(rise.model.WORKSTREAM.rows.map((r: any) => r.cells));
+    expect(b.model.WORKSTREAM.rows.every((r: any) => r.cells.slice(7).every((c: string) => /^\d{2}\/\d{2}\/\d{4}$|^$/.test(c)))).toBe(true);
+    expect(b.model.WORKSTREAM.cols.slice(-3)).toEqual(['sous-phases', 'début', 'fin']);
     expect(b.model.WORKSTREAM.rows.map((r: any) => r.waves)).toEqual(rise.model.WORKSTREAM.rows.map((r: any) => r.waves));
     expect(b.model.GOVERNANCE_BODY.rows.map((r: any) => [r.cells, r.members, r.color])).toEqual(rise.model.GOVERNANCE_BODY.rows.map((r: any) => [r.cells, r.members, r.color]));
     expect(b.model.DELIVERABLE.rows.map((r: any) => r.cells)).toEqual(rise.model.DELIVERABLE.rows.map((r: any) => r.cells));

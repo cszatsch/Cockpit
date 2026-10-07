@@ -75,7 +75,7 @@ Exemple RISE (phase 5 Deploy) : 5.1 Mise en place de l’environnement de produc
 
 10 CHANTIERS
 Définition : un chantier est un domaine de travail transverse aux phases (un domaine métier, ou un sujet technique ou d’accompagnement), porté par un responsable.
-À extraire : Nom ; Responsable (de 03) ; Lot ; Statut (Actif, Clos) ; Description ; Phases (N° séparés par « ; ») ; Sous-phases (N° séparés par « ; », chacune dans une phase du chantier) ; Dépendances (chantiers dont il dépend, séparés par « ; », ou « Tous »).
+À extraire : Nom ; Responsable (de 03) ; Lot ; Statut (Actif, Clos) ; Début et Fin (dates du chantier, si la proposition les donne ; sinon laisser vide, elles sont calculées à partir de ses sous-phases) ; Description ; Phases (N° séparés par « ; ») ; Sous-phases (N° séparés par « ; », chacune dans une phase du chantier) ; Dépendances (chantiers dont il dépend, séparés par « ; », ou « Tous »).
 Ne pas confondre : un chantier n’est ni une équipe (société), ni une phase.
 Exemple RISE : Finance · Sophie Marchand ; Achats / Appros / Logistique · Élodie Faure ; Ventes / CRM · Thomas Girard ; Migration des données · Karim Benali, dépend de Finance ; Achats / Appros / Logistique ; Ventes / CRM ; Conduite du changement · Isabelle Perrin ; Pilotage et transverse · Laurent Garnier.
 

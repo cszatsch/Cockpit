@@ -19,6 +19,24 @@ export function keepSubphasesOf(subphaseIds: string[], phaseIds: string[], phase
 }
 
 /**
+ * Dates d'un chantier (07/10/2026) : celles saisies, sinon calculées — première date de début et dernière date de fin de
+ * ses sous-phases, sinon de ses phases, sinon celles du projet. Chaque borne est complétée indépendamment.
+ */
+export function workstreamSpan(
+  given: { start: string | null; end: string | null },
+  subphases: Array<{ start: string | null; end: string | null }>,
+  phases: Array<{ start: string | null; end: string | null }>,
+  project: { start: string | null; end: string | null },
+): { start: string | null; end: string | null } {
+  const first = (xs: Array<string | null>) => xs.filter((x): x is string => !!x).sort()[0] ?? null;
+  const last = (xs: Array<string | null>) => xs.filter((x): x is string => !!x).sort().pop() ?? null;
+  return {
+    start: given.start ?? first(subphases.map((s) => s.start)) ?? first(phases.map((p) => p.start)) ?? project.start,
+    end: given.end ?? last(subphases.map((s) => s.end)) ?? last(phases.map((p) => p.end)) ?? project.end,
+  };
+}
+
+/**
  * N° d'une sous-phase (07/10/2026, arbitrage du commanditaire) : numérotation libre, choisie par le directeur de projet
  * (5.1, 4.2.1, C2.1…), unique dans le projet. Seuls sont refusés l'espace, « ; » et « · », séparateurs des valeurs
  * multiples et des renvois (« 3.1 · Ateliers »). Message d'erreur, ou null si le N° convient.

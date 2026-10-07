@@ -1713,3 +1713,15 @@ Constat du commanditaire : avec le profil PMO sur un projet importé, le Cockpit
 ### Planning : vues « Phase > Chantier » et « Phase > Chantier > Sous-phase » (07/10/2026)
 
 Demande du commanditaire. Un chantier couvrant plusieurs phases apparaît sous chacune, réduit à son segment dans la phase : première à dernière de ses sous-phases de la phase (colonne Sous-phases du chantier), sinon intersection chantier ∩ phase ; avancement réel moyen de ces sous-phases, sinon celui de la phase (l'avancement global du chantier mêlerait les phases). Lignes calculées, non modifiables (`segOf`, `RISE Cockpit.dc.html`).
+
+### Chantiers : dates de début et de fin (07/10/2026)
+
+Constat du commanditaire : le planning laissait croire qu'un chantier se terminait à la fin du projet. L'objet Chantier avait déjà ses dates en base, mais rien ne permettait de les saisir : le modèle Excel n'avait pas de colonne, l'import leur donnait les dates du projet, le Référentiel ne les montrait pas.
+
+| Sujet | Choix | Code |
+|---|---|---|
+| Modèle Excel | Onglet « 10 Chantiers » : colonnes facultatives « Début » et « Fin » (G, H) après « Statut », format et validation de date de l'onglet 08 Phases ; colonnes insérées par Microsoft Excel (formules de la colonne CONTRÔLE et références entre onglets décalées) ; anciens fichiers sans ces colonnes toujours acceptés | `Referentiel RISE - initialisation.xlsx` |
+| Import | Dates saisies, sinon calculées : première date de début et dernière date de fin des sous-phases du chantier, sinon de ses phases, sinon du projet (chaque borne à part) ; « Fin avant début » bloquant ; dates visibles dès la prévisualisation | `workstreamSpan`, `referential-import.ts` |
+| Référentiel du Cockpit | Colonnes « Début » et « Fin » en fin de ligne du chantier (calendrier de saisie des autres objets, dates au jour) ; description des tables commune à tous les projets (un projet importé n'en avait pas : libellés techniques, tables sans colonnes) ; titre de l'en-tête « Info projet » = code et client du projet ouvert | `REFERENTIAL_META`, `withSubphaseCol`, `WS_REF_WIDTHS` |
+| Préremplissage | Début et fin extraits si la proposition les donne (champs de date lus dans le modèle) ; consigne de la skill complétée, la skill déjà en base mise à jour si sa phrase n'a pas été modifiée ; onglet 10 : 10 champs au lieu de 8 | `PREFILL_SKILL_TEXT`, migration `20261115000200_chantiers_dates` |
+| Projets existants | Recalcul unique à la migration : chantiers dont les dates sont encore exactement celles du projet → dates de leurs sous-phases (les autres sont inchangés) | migration `20261115000200_chantiers_dates` |

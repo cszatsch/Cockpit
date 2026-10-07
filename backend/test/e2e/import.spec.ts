@@ -98,11 +98,11 @@ describe('Étape 9 — import Excel du Référentiel (§ 13.9)', () => {
     const r = await post(await buildWorkbook(f), '?dryRun=true').expect(200);
     const m = r.body.errors.filter((e: any) => e.sheet === '10 Chantiers').map((e: any) => `${e.row}${e.column} ${e.message}`);
     expect(m).toEqual(expect.arrayContaining([
-      '9H Phase « 9 » inconnue (onglet 08 Phases)',
-      '9I Sous-phase 2.1 hors des phases du chantier : sa phase « 2 · Realize » n’est pas dans la colonne Phases',
-      '9I Sous-phase « 7.7 » inconnue (onglet 09 Sous-phases)',
-      '9J Le chantier « Comptabilité » dépend de lui-même',
-      '10J « Tous » ne se combine pas avec d’autres chantiers',
+      '9J Phase « 9 » inconnue (onglet 08 Phases)',
+      '9K Sous-phase 2.1 hors des phases du chantier : sa phase « 2 · Realize » n’est pas dans la colonne Phases',
+      '9K Sous-phase « 7.7 » inconnue (onglet 09 Sous-phases)',
+      '9L Le chantier « Comptabilité » dépend de lui-même',
+      '10L « Tous » ne se combine pas avec d’autres chantiers', // colonnes Début et Fin (07/10/2026) : Phases en J
     ]));
     // Fiscalité ↔ Consolidation : dépendances réciproques admises (07/10/2026).
     expect(m.filter((x: string) => /circulaire/.test(x))).toEqual([]);
@@ -119,6 +119,26 @@ describe('Étape 9 — import Excel du Référentiel (§ 13.9)', () => {
     f.rows['09 Sous-phases'][1]['N°'] = '2;1';
     const ko = await post(await buildWorkbook(f), '?dryRun=true').expect(200);
     expect(ko.body.errors.map((e: any) => `${e.row}${e.column} ${e.message}`)).toContain('10D N° « 2;1 » : sans espace, « ; » ni « · »');
+  });
+
+  it('Chantiers : début et fin saisis, sinon calculés à partir des sous-phases ; fin avant début refusée', async () => {
+    const f = validAtlas();
+    f.rows['10 Chantiers'] = [
+      { Nom: 'Comptabilité', Responsable: 'Sophie Marchand', Phases: '1 ; 2', 'Sous-phases': '1.1 ; 2.1' },
+      { Nom: 'Trésorerie', Responsable: 'Sophie Marchand', Début: new Date('2025-03-01T00:00:00Z'), Fin: new Date('2026-10-31T00:00:00Z') },
+    ];
+    f.rows['13 Jalons'][0]['Chantier'] = null;
+    f.rows['14 Livrables'][0]['Chantier'] = null;
+    const r = await post(await buildWorkbook(f), '?dryRun=true').expect(200);
+    expect(r.body.errors).toEqual([]);
+    const { checkWorkbook } = await import('../../src/import/referential-import');
+    const { readWorkbook } = await import('../../src/import/excel-reader');
+    const plan = checkWorkbook(await readWorkbook(await buildWorkbook(f))).plan!;
+    // Sous-phases 1.1 (03/02/2025 → 30/06/2025) et 2.1 (01/10/2025 → 31/12/2026).
+    expect(plan.workstreams.map((w) => [w.name, w.startDate, w.endDate])).toEqual([['Comptabilité', '2025-02-03', '2026-12-31'], ['Trésorerie', '2025-03-01', '2026-10-31']]);
+    f.rows['10 Chantiers'][1].Fin = new Date('2025-01-01T00:00:00Z');
+    const ko = await post(await buildWorkbook(f), '?dryRun=true').expect(200);
+    expect(ko.body.errors.map((e: any) => `${e.row}${e.column} ${e.message}`)).toContain('10H Fin avant début');
   });
 
   it('mode réel : crée le référentiel, les habilitations Responsable et l’historique (origine IMPORT)', async () => {

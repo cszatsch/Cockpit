@@ -1,4 +1,5 @@
 import { serviceView } from '../../domain/template-service';
+import { REFERENTIAL_META } from '../../domain/referential-meta';
 import { formatRefs } from '../../domain/report-format';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../core/prisma.service';
@@ -61,11 +62,13 @@ const MIME_SHORT: Record<string, string> = {
  * projets dont la description des colonnes a été enregistrée avant ce champ.
  */
 function withSubphaseCol(key: string, m: any) {
-  if (key !== 'WORKSTREAM' || !Array.isArray(m.cols) || m.cols.includes('sous-phases')) return m;
-  return { ...m, cols: [...m.cols, 'sous-phases'], widths: WS_REF_WIDTHS };
+  if (key !== 'WORKSTREAM' || !Array.isArray(m.cols) || m.cols.length < 6) return m;
+  // Début et fin (07/10/2026) : après les sous-phases, en fin de ligne (les écrans lisent les colonnes par position).
+  const cols = [...m.cols.slice(0, 6), 'sous-phases', 'début', 'fin'];
+  return m.cols.join('|') === cols.join('|') ? m : { ...m, cols, widths: WS_REF_WIDTHS };
 }
-/** Largeurs des colonnes de la table des chantiers avec les sous-phases (seq, nom, resp., statut, dépendances, phases, sous-phases). */
-const WS_REF_WIDTHS = '44px minmax(140px,1fr) 140px 80px 160px 140px 140px';
+/** Largeurs des colonnes de la table des chantiers (seq, nom, resp., statut, dépendances, phases, sous-phases, début, fin). */
+const WS_REF_WIDTHS = '36px minmax(100px,1fr) 100px 80px 86px 87px 87px 88px 88px';
 
 @Injectable()
 export class BootstrapService {
@@ -127,7 +130,8 @@ export class BootstrapService {
     const wsName = (id: string | null | undefined) => (id ? wsById[id]?.name ?? '' : '');
     const activeRoles = (personId: string) => [...new Set(assigns.filter((a) => a.personId === personId && assignmentActive(a, today)).map((a) => roleById[a.roleId]?.label).filter(Boolean))];
     const meta = block('model.meta') ?? {};
-    const tbl = (key: string, rows: any[]) => ({ ...withSubphaseCol(key, meta[key] ?? { label: key, scope: '', constraints: [], cols: [], widths: '' }), rows });
+    // Description des tables : celle du projet (RISE), sinon la description commune (projet importé, 07/10/2026).
+    const tbl = (key: string, rows: any[]) => ({ ...withSubphaseCol(key, meta[key] ?? REFERENTIAL_META[key] ?? { label: key, scope: '', constraints: [], cols: [], widths: '' }), rows });
     // Ordre des sous-phases d'un chantier : phase, puis code.
     const spOrder = (a: string, b: string) => (phaseById[spById[a]?.phaseId]?.seq ?? 0) - (phaseById[spById[b]?.phaseId]?.seq ?? 0) || String(spById[a]?.code ?? a).localeCompare(String(spById[b]?.code ?? b), 'fr', { numeric: true });
     const current = baselines.find((b) => b.current) ?? baselines.at(-1);
@@ -342,7 +346,7 @@ export class BootstrapService {
         return {
           id: w.id,
           // Sous-phases (06/10/2026) : 7e colonne, en fin de ligne (les écrans lisent les phases en 6e position).
-          cells: [String(w.seq), w.name, personName[w.ownerId] ?? '', WS_STATUS_FR[w.status], w.dependsOnAll ? 'Tous' : deps.length ? deps.join(' · ') : '—', phaseIds.join(' '), subphaseIds.map((x) => spById[x]?.code ?? x).join(' ')],
+          cells: [String(w.seq), w.name, personName[w.ownerId] ?? '', WS_STATUS_FR[w.status], w.dependsOnAll ? 'Tous' : deps.length ? deps.join(' · ') : '—', phaseIds.join(' '), subphaseIds.map((x) => spById[x]?.code ?? x).join(' '), formatRefDate(w.startDate, 'D' as Precision), formatRefDate(w.endDate, 'D' as Precision)],
           subphaseIds,
           waves: waves.map((wv) => (w.waves.some((x) => x.waveId === wv.id) ? 1 : 0)),
           ownerId: w.ownerId,

@@ -475,7 +475,7 @@ export function tabPrompt(spec: PrefillTabSpec, known: KnownKeys): string {
     '07 Lots': 'Lots ou vagues de déploiement (N° 1, 2…).',
     '08 Phases': 'Grandes étapes de la méthode, numérotées 1, 2… ; « Lot » au format « Lot N ».',
     '09 Sous-phases': 'Découpage de chaque phase : N° unique, numérotation du projet (par défaut N° de la phase et rang : « 3.1 », « 3.2 »…).',
-    '10 Chantiers': 'Domaines de travail transverses (Finance, Migration…).',
+    '10 Chantiers': 'Domaines de travail transverses (Finance, Migration…) ; début et fin si la proposition les donne.',
     '11 Instances': 'Comités de gouvernance (COPIL, comité de projet…).',
     '12 Membres': 'Composition des instances.',
     '13 Jalons': 'Dates clés du projet.',

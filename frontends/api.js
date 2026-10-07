@@ -644,6 +644,8 @@ export function attach(comp) {
           if (ch(5)) body.phaseIds = String(cells[5]).split(/\s+/).map((x) => (M('PHASE').find((p) => p.id === x || norm(p.cells[1]) === norm(x)) || {}).id).filter(Boolean);
           // Sous-phases (06/10/2026) : codes séparés par des espaces ; le serveur vérifie qu'elles appartiennent aux phases.
           if (ch(6)) body.subphaseIds = String(cells[6] || '').split(/\s+/).filter(Boolean).map((c) => (subphaseByCode(c) || {}).id).filter(Boolean);
+          // Début et fin (07/10/2026) : colonnes 8 et 9 ; dates au jour (pas de précision pour un chantier).
+          dates(7, 8); delete body.startPrecision; delete body.endPrecision;
           break;
         case 'TEAM':
           if (ch(1) || ch(0)) body.name = ch(1) ? cells[1] : cells[0]; if (ch(2)) body.description = cells[2] || null;

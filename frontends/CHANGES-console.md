@@ -696,3 +696,7 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
 ## Consommation et coûts : ligne « Initialisation projet » (07/10/2026)
 
 - `Consommation et couts.dc.html` : tuile « Initialisation projet » ajoutée (`LINES`, couleur `#0891b2`, données de démonstration comprises) ; elle manquait alors que le serveur renvoyait déjà sa ligne budgétaire. Tuiles en 2 rangées de 3 (`[data-conso-tiles]` : `repeat(3, …)` au lieu de 5 ; 2 colonnes sous 620 px, inchangé).
+
+## Modèle Excel : début et fin des chantiers (07/10/2026)
+
+- `Referentiel RISE - initialisation.xlsx` (modèle vierge téléchargé depuis l'écran d'initialisation et base du préremplissage) : onglet « 10 Chantiers », colonnes facultatives « Début » et « Fin » après « Statut ». Le préremplissage les remplit quand la proposition les donne ; sinon l'import les calcule à partir des sous-phases du chantier.

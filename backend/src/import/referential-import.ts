@@ -4,7 +4,7 @@ import { AuditService, WriteCtx } from '../core/audit.service';
 import { isIsoDate } from '../domain/dates';
 import { normKey } from '../domain/labels';
 import { PROJECT_INFO_BLOCK, PROJECT_INFO_ITEMS_MAX, PROJECT_INFO_LABEL_MAX, PROJECT_INFO_RUBRIQUES, PROJECT_INFO_VALUE_MAX, ProjectInfo } from '../domain/project-info';
-import { multiValues, subphaseCodeError } from '../domain/workstream-links';
+import { multiValues, subphaseCodeError, workstreamSpan } from '../domain/workstream-links';
 import * as S from '../cockpit/referential/schemas';
 import { CellValue, ParsedWorkbook, SHEETS, SheetData } from './excel-reader';
 
@@ -80,7 +80,7 @@ export interface ImportPlan {
   waves: Array<{ key: string; seq: number; name: string; startDate: string; endDate: string; status: string; owner: string | null }>;
   phases: Array<{ key: string; seq: number; code: string; name: string; wave: string; startDate: string; endDate: string; status: string; description: string | null }>;
   subphases: Array<{ key: string; phase: string; code: string; name: string; startDate: string | null; endDate: string | null; status: string; description: string | null }>;
-  workstreams: Array<{ key: string; code: string; seq: number; name: string; owner: string; wave: string | null; status: string; description: string | null; phases: string[]; subphases: string[]; dependsOn: string[] | 'ALL' }>;
+  workstreams: Array<{ key: string; code: string; seq: number; name: string; owner: string; wave: string | null; status: string; description: string | null; phases: string[]; subphases: string[]; dependsOn: string[] | 'ALL'; startDate: string | null; endDate: string | null }>;
   /** Objet « Info projet » (onglets 05 Projet pour « Le client » et 06 Info projet). */
   projectInfo: ProjectInfo;
   bodies: Array<{ key: string; name: string; shortName: string; color: string; frequency: string; level: string | null; description: string | null }>;
@@ -475,7 +475,17 @@ export function checkWorkbook(wb: ParsedWorkbook): CheckResult {
       else if (!subphases.includes(s.key)) subphases.push(s.key);
     }
     rawDeps.push({ key: k, row: r.row, tokens: multiValues(r.values['Dépendances']) });
-    plan.workstreams.push({ key: k, code: `C${i + 1}`, seq: i + 1, name, owner: owner ?? '', wave: wave ? normKey(wave) : null, status: st ? WS_STATUS[normKey(st)] ?? 'ACTIVE' : 'ACTIVE', description: str(r.values['Description']), phases, subphases, dependsOn: [] });
+    // Début et fin (07/10/2026, colonnes facultatives ; absentes des fichiers antérieurs) : saisies, sinon calculées à
+    // partir des sous-phases du chantier, puis de ses phases, puis du projet.
+    const ds = date(WS, r, 'Début'), de = date(WS, r, 'Fin');
+    if (ds && de && de < ds) err(WS, r.row, colLetter(WS, 'Fin'), 'Fin avant début');
+    const span = workstreamSpan(
+      { start: ds, end: de },
+      plan.subphases.filter((s) => subphases.includes(s.key)).map((s) => ({ start: s.startDate, end: s.endDate })),
+      plan.phases.filter((p) => phases.includes(p.key)).map((p) => ({ start: p.startDate || null, end: p.endDate || null })),
+      { start: plan.project.startDate || null, end: plan.project.targetEndDate || null },
+    );
+    plan.workstreams.push({ key: k, code: `C${i + 1}`, seq: i + 1, name, owner: owner ?? '', wave: wave ? normKey(wave) : null, status: st ? WS_STATUS[normKey(st)] ?? 'ACTIVE' : 'ACTIVE', description: str(r.values['Description']), phases, subphases, dependsOn: [], startDate: span.start, endDate: span.end });
   }
   // Dépendances : noms (ou codes C1, C2…) de chantiers du fichier, ou « Tous » seul ; pas d'auto-dépendance. Dépendances
   // réciproques admises (07/10/2026, `docs/DECISIONS.md`) : un chantier en alimente un autre sur certaines phases, et inversement.
@@ -712,8 +722,8 @@ export async function commitPlan(db: Tx, plan: ImportPlan, target: CommitTarget,
         ownerId: personId[w.owner],
         status: w.status as any,
         description: w.description,
-        startDate: plan.project.startDate || null,
-        endDate: plan.project.targetEndDate || null,
+        startDate: w.startDate,
+        endDate: w.endDate,
         dependsOnAll: w.dependsOn === 'ALL',
         waves: w.wave ? { create: [{ waveId: waveId[w.wave] }] } : undefined,
         phases: w.phases.length ? { create: w.phases.map((p) => ({ phaseId: phaseId[p] })) } : undefined,

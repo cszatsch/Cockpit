@@ -445,3 +445,8 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 ## Planning : vues « Phase > Chantier » et « Phase > Chantier > Sous-phase » (07/10/2026)
 
 - `RISE Cockpit.dc.html`, Pilotage › Planning, sélecteur NIVEAU : deux vues ajoutées (`phch`, `phchsp`). Sous chaque phase, ses chantiers (colonne Phases du chantier) ; le chantier y est représenté par son segment dans la phase : de sa première à sa dernière sous-phase de la phase, sinon l'intersection des dates du chantier et de la phase ; avancement réel = moyenne de ces sous-phases, sinon celui de la phase. Dates et avancement de ces lignes calculés, donc non modifiables sur la ligne (message). La seconde vue ajoute, sous chaque chantier, ses sous-phases de la phase. Tableau « Suivi d'avancement » aux mêmes lignes.
+
+## Chantiers : début et fin ; Référentiel des projets importés (07/10/2026)
+
+- Référentiel › Chantiers : colonnes « Début » et « Fin » (8e et 9e cellules de la ligne, calendrier de saisie existant, écriture par `dates(7, 8)` dans `api.js`, sans précision de date) ; largeurs des colonnes resserrées pour tenir sans débordement.
+- Projet importé : la description des tables vient du serveur pour tous les projets (`REFERENTIAL_META`) ; l'en-tête « Info projet » affiche le code et le client du projet ouvert au lieu de « RISE — AMC Corp » écrit en dur.
