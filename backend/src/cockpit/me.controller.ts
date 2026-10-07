@@ -75,6 +75,15 @@ export class MeController {
         title: person.title,
       },
       projectId: current?.project.id ?? null,
+      // Menu « Projet » de la barre latérale (07/10/2026) : projets ouverts au compte, profil le plus utile au pilotage
+      // (un Administrateur PMO voit « PMO » ; Administrateur seul : lecture).
+      projects: projects.map(({ project, access }) => ({
+        id: project.id,
+        code: project.code,
+        name: project.name,
+        status: project.status,
+        profile: access.pmo ? 'PMO' : access.responsable.length ? 'RESPONSABLE' : access.lecteur.length ? 'LECTEUR' : access.admin ? 'ADMIN' : null,
+      })),
       habilitations: [
         ...(actor.isAdmin && current ? [{ id: `admin-${actor.accountId}`, projectId: current.project.id, personId: current.access.personId, accountId: actor.accountId, profile: 'ADMIN', wsId: null }] : []),
         ...habilitations.map((h) => ({ id: h.id, projectId: h.projectId, personId: h.personId, accountId: h.accountId, profile: h.profile, wsId: h.wsId })),

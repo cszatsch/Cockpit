@@ -300,6 +300,11 @@ export function attach(comp) {
 
   function hydrate(L) {
     const B = prepare(L.B);
+    // Projet sans relevé du baromètre (projet importé, 07/10/2026) : baromètre vide de deux mois sans valeur, que l'écran
+    // sait afficher (il compare toujours deux mois), au lieu d'un écran en erreur.
+    if (!B.barometre || !Array.isArray(B.barometre.months) || B.barometre.months.length < 2) {
+      B.barometre = { months: [['b0', '—'], ['b1', '—']], ecf: { label: '', size: 0, series: [null, null] }, respondents: [0, 0], domains: [], sentiment: { b0: [0, 0, 0], b1: [0, 0, 0] }, questions: [], themes: [], monthQs: {}, monthTh: {} };
+    }
     // Base de connaissance : documents en cours de traitement → relecture régulière jusqu'à la fin (avancement, statut).
     clearTimeout(S.kbTimer);
     if (((L.B && L.B.documents) || []).some((d) => d.ext === 'PENDING')) S.kbTimer = setTimeout(() => reload(), KB_POLL_MS);
@@ -311,6 +316,8 @@ export function attach(comp) {
       data: B, plan: B, templates: B.templates, tplHistory: B.tplHistory, kbDocs: [],
       // Droits effectifs de l'utilisateur connecté (serveur : habilitations du compte ET de sa personne du référentiel).
       meAccess: (L.me && L.me.effective) || null,
+      // Menu « Projet » de la barre latérale : projets ouverts au compte et projet affiché.
+      meProjects: (L.me && L.me.projects) || null, meProjectId: (L.me && L.me.projectId) || null,
       psAccSrv: L.accStates || null,
       ed: {}, actStatus: {}, sesEd: {}, sesAdded: [], sesDel: {}, refValues: {}, refDeleted: {}, bmEd: {}, bmAdd: {},
       phLots: hydratePhLots(B), txtEd: {}, critEd: {}, arbData: {}, lvTrack: {}, gbExtra: {}, gbMem: {}, gbAdded: [], added: {}, lvAdded: [], dlOwner: {},
@@ -913,6 +920,8 @@ export function attach(comp) {
   // ── Appels directs (remplacent les blocs SIMULÉ) ──
   const api = {
     request, get, post, patch, put, del, projectId, errorText, reload: () => reload(),
+    /** Changement de projet (menu « Projet ») : le Cockpit se recharge sur `?project=CODE`, autres paramètres gardés. */
+    switchProject: (code) => { const q = new URLSearchParams(location.search); q.set('project', code); location.search = q.toString(); },
     ntLoad,
     ntRead: (id) => { ntMark(id); post('/me/notifications/' + encodeURIComponent(id) + '/read').catch((e) => { console.warn('[api]', e); ntLoad(); }); },
     ntReadAll: () => { ntMark(null); post('/me/notifications/read-all').catch((e) => { console.warn('[api]', e); ntLoad(); }); },

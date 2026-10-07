@@ -1698,3 +1698,14 @@ Arbitrage du commanditaire : la numérotation des sous-phases appartient au dire
 | Ce qui reste contrôlé | N° unique dans le projet (identifiant repris par les chantiers, jalons et livrables ; contrainte de la base, contrôle « en double ») ; ni espace, ni « ; », ni « · » (séparateurs des valeurs multiples et des renvois « 3.1 · Ateliers ») ; rattachement à une phase obligatoire | `subphaseCodeError`, `SUBPHASE_CODE_FORBIDDEN` |
 | Modèle Excel | Colonne CONTRÔLE de « 09 Sous-phases » : « ⚠ N° hors phase » remplacé par « ⚠ N° en double » ; consigne de l'onglet mise à jour ; vérifié dans Microsoft Excel | `Referentiel RISE - initialisation.xlsx` |
 | Préremplissage | La skill reprend la numérotation de la proposition, sinon N° de la phase et rang ; la skill déjà enregistrée en base est mise à jour si sa phrase d'origine n'a pas été modifiée | `PREFILL_SKILL_TEXT`, migration `20261115000100_sous_phases_numerotation_libre` |
+
+### Cockpit : menu « Projet » et projets importés (07/10/2026)
+
+Constat du commanditaire : avec le profil PMO sur un projet importé, le Cockpit restait sur RISE ; le bloc « Projet » de la barre latérale n'était pas branché (maquette). Ses droits étaient bien en place (habilitation posée sur sa personne du référentiel, reliée au compte par l'e-mail).
+
+| Sujet | Choix | Code |
+|---|---|---|
+| Liste des projets | `GET /api/me` renvoie `projects` : projets ouverts au compte, profil le plus utile au pilotage (PMO avant Administrateur) | `MeController.me` |
+| Changement de projet | Rechargement sur `?project=CODE` (le projet du Cockpit est lu dans l'adresse), autres paramètres gardés ; pas de mémorisation du dernier projet (une adresse sans `project` ouvre RISE, comme avant) | `switchProject` (`api.js`) |
+| En direct | Une habilitation changée dans la Console est annoncée (écriture de la plateforme) ; le Cockpit relit `GET /me` et met la liste à jour sans rechargement ; onglet masqué : relecture au retour sur l'onglet (comportement existant) | `liveOpen` |
+| Projet importé | L'écran supposait les données de démonstration de RISE ; valeurs par défaut ajoutées, chaque page et chaque onglet vérifiés sans erreur sur un projet importé par la Console | `test/browser/cockpit-ecrans.e2e.ts` |

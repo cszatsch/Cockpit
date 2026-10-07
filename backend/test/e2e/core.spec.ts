@@ -40,6 +40,17 @@ describe('Étape 1 — socle', () => {
     await t.http().get('/api/me').set('Authorization', `Bearer ${r.body.token}`).expect(401);
   });
 
+  it('GET /me : projets ouverts au compte, pour le menu « Projet » du Cockpit (profil, projet affiché)', async () => {
+    const pmo = (await (await t.as(WHO.pmo)).get('/api/me').expect(200)).body;
+    expect(pmo.projects.map((p: any) => p.code)).toContain('RISE');
+    expect(pmo.projects.find((p: any) => p.code === 'RISE')).toMatchObject({ id: 'RISE', name: expect.any(String), profile: 'PMO' });
+    expect(pmo.projects.some((p: any) => p.id === pmo.projectId)).toBe(true);
+    // Administrateur seul : tous les projets, en lecture.
+    const admin = (await (await t.as(WHO.admin)).get('/api/me').expect(200)).body;
+    expect(admin.projects.length).toBeGreaterThanOrEqual(pmo.projects.length);
+    expect(admin.projects.every((p: any) => ['ADMIN', 'PMO', 'RESPONSABLE', 'LECTEUR'].includes(p.profile))).toBe(true);
+  });
+
   it('publie la documentation OpenAPI', async () => {
     const r = await t.http().get('/api/docs/openapi.json').expect(200);
     expect(r.body.openapi).toMatch(/^3\./);

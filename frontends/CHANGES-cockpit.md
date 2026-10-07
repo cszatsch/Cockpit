@@ -434,3 +434,9 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 ## Sous-phases : numérotation libre (07/10/2026)
 
 - `RISE Cockpit.dc.html`, Référentiel › Sous-phases : le numéro n'a plus à commencer par celui de la phase (arbitrage du commanditaire). Saisie dans le tableau (`setCode`) et formulaire d'ajout (`badPre`) : seuls l'espace, « ; » et « · » sont refusés (« Le numéro ne peut contenir ni espace, ni « ; », ni « · ». ») ; le contrôle du numéro déjà utilisé est inchangé.
+
+## Menu « Projet » et projets importés (07/10/2026)
+
+- `RISE Cockpit.dc.html`, barre latérale : le bloc « Projet » (« RISE » écrit en dur, sans action, depuis la maquette) affiche le projet ouvert et, au clic, la liste des projets ouverts au compte (code, nom, profil : PMO, RESPONSABLE, LECTEUR, ADMIN · LECTURE), dans la charte sombre de la barre ; choisir un projet recharge le Cockpit sur `?project=CODE` (`switchProject` d'`api.js`). La liste suit en direct les habilitations changées dans la Console (relecture de `GET /me`).
+- Projet sans les données de démonstration de RISE (projet importé) : l'écran échouait (« renderVals() : Cannot read properties of undefined »). Valeurs par défaut là où l'écran supposait ces données : bloc d'affichage `referential` (listes vides, baromètre neutre), baromètre sans relevé (`api.js` : deux mois sans valeur, pas de tracé), lot absent (WBS), comité absent (en-tête des risques), planning sans phase datée (échelle sur le mois en cours, `pStart` / `pEnd`).
+- Recettes navigateur : `test/browser/projets-cockpit.e2e.ts` (menu, changement de projet, mise à jour en direct depuis la Console) et `test/browser/cockpit-ecrans.e2e.ts` (chaque page et chaque onglet sans erreur pour un projet donné).
