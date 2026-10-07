@@ -27,6 +27,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
 @keyframes rise-pulse{0%,100%{box-shadow:0 0 0 0 rgba(247,164,28,.55)}70%{box-shadow:0 0 0 8px rgba(247,164,28,0)}}
 [data-ses-day] [data-ses-add]{opacity:0;transition:opacity .15s}[data-ses-day]:hover [data-ses-add],[data-ses-day][data-sel="1"] [data-ses-add]{opacity:1}@media (hover:none){[data-ses-day] [data-ses-add]{opacity:1}}
 [data-ses-del]{transition:background .18s,color .18s,box-shadow .18s,transform .12s}[data-ses-del] [data-lid]{transform-box:fill-box;transform-origin:85% 100%;transition:transform .22s cubic-bezier(.2,.7,.2,1)}[data-ses-del="idle"]:hover{background:#fdecea!important;color:#c2473b!important;box-shadow:inset 0 0 0 1px #f6cfc8}[data-ses-del="idle"]:hover [data-lid],[data-ses-del="on"] [data-lid]{transform:translateY(-1.5px) rotate(-12deg)}[data-ses-del="idle"]:active{transform:scale(.94)}
+[data-proj-list]::-webkit-scrollbar{display:none}
 [data-jev-row] [data-jev-ico]{opacity:0;transition:opacity .15s}[data-jev-row]:hover [data-jev-ico]{opacity:1}@media (hover:none){[data-jev-row] [data-jev-ico]{opacity:1}}
 </style></helmet>
 <div style="{{ shellStyle }}" data-screen-label="RISE Cockpit">
@@ -43,7 +44,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
     <svg style="margin-left:auto;flex:none;{{ navLabelStyle }}{{ projChevron }}" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9fbfba" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg>
   </div>
   <sc-if value="{{ projOpen }}" hint-placeholder-val="{{ false }}">
-    <div role="listbox" aria-label="Projets" style="margin-top:6px;padding:5px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:#0c2425;display:flex;flex-direction:column;gap:2px;max-height:260px;overflow-y:auto;animation:rise-in .18s cubic-bezier(.2,.7,.2,1) both">
+    <div role="listbox" aria-label="Projets" data-proj-list style="flex:none;margin-top:6px;padding:5px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:#0c2425;display:flex;flex-direction:column;gap:2px;max-height:250px;overflow-y:auto;scrollbar-width:none;-ms-overflow-style:none;animation:rise-in .18s cubic-bezier(.2,.7,.2,1) both">
       <sc-for list="{{ projItems }}" as="p" hint-placeholder-count="2">
         <div role="option" aria-selected="{{ p.on }}" onClick="{{ p.go }}" style="{{ p.st }}" style-hover="background:rgba(255,255,255,.07)">
           <span style="display:flex;align-items:baseline;gap:8px;min-width:0"><span style="font-weight:800;font-size:12.5px;color:#fff;flex:none">{{ p.code }}</span><span style="flex:1"></span><span style="font-size:10px;font-weight:700;letter-spacing:.08em;color:{{ p.profC }};flex:none">{{ p.prof }}</span></span>
@@ -3058,14 +3059,29 @@ class Component extends DCLogic {
     const people = (D.people || []).map(p => ({ v: p.id, l: p.name + ' · ' + (p.role || p.title || '') }));
     const cfg = { lvl: 'ph', ch: 'C4', jal: true, today: true, crit: false, prev: true, reel: true, lc: false, lp: false, proj: true, ph: true, chs: true, pop: false, ...(S.plCfg || {}) }, set = p => this.setState(s => ({ plCfg: { ...(s.plCfg || {}), ...p } }));
     const IT = this.plItems(), PH = IT.filter(x => x.kind === 'ph'), SP = IT.filter(x => x.kind === 'sp'), CH = IT.filter(x => x.kind === 'ch'), phN = {}; PH.forEach(p => { phN[p.id] = p.n; });
-    const rows = cfg.lvl === 'phsp' ? PH.flatMap(p => [p, ...SP.filter(s => s.ph === p.id).map(s => ({ ...s, depth: 1 }))]) : cfg.lvl === 'sp' ? SP : cfg.lvl === 'ch' ? CH : cfg.lvl === 'one' ? (() => { const c = CH.find(x => x.id === cfg.ch) || CH[0], own = c.subphases || []; return [c, ...SP.filter(s => own.length ? own.includes(s.id) : c.phases.includes(s.ph) && s.end >= c.start && s.start <= c.end).map(s => ({ ...s, depth: 1 }))]; })() : PH;
+    // Vues « Phase > Chantier » et « Phase > Chantier > Sous-phase » (07/10/2026) : le chantier sous une phase est son
+    // segment dans cette phase — de sa première à sa dernière sous-phase de la phase, sinon chantier ∩ phase —, avancement
+    // réel moyen de ces sous-phases (sinon celui du chantier) ; dates calculées, donc non modifiables sur cette ligne.
+    const segOf = (c, p) => {
+      const own = SP.filter(x => x.ph === p.id && (c.subphases || []).includes(x.id));
+      let a = own.length ? own.reduce((m, x) => (x.start < m ? x.start : m), own[0].start) : (c.start > p.start ? c.start : p.start);
+      let b = own.length ? own.reduce((m, x) => (x.end > m ? x.end : m), own[0].end) : (c.end < p.end ? c.end : p.end);
+      if (!a || !b || b < a) { a = p.start; b = p.end; }
+      const reel = own.length ? Math.round(own.reduce((t, x) => t + (+x.reel || 0), 0) / own.length) : c.reel, dur = Math.max(1, DD(b, a)), el = DD(today, a);
+      const prevu = Math.max(0, Math.min(100, Math.round(el / dur * 100))), status = reel >= 100 ? 'done' : a > today ? 'future' : 'cur';
+      return { ...c, id: c.id + '@' + p.id, segOf: c.id, segPh: p.id, start: a, end: b, reel, prevu, dur, status, retJ: status === 'cur' ? Math.max(0, Math.round((prevu - reel) / 100 * dur)) : 0, lc: null, lp: null, depth: 1, own };
+    };
+    const chOfPh = p => CH.filter(c => (c.phases || []).includes(p.id));
+    const rows = cfg.lvl === 'phch' ? PH.flatMap(p => [p, ...chOfPh(p).map(c => segOf(c, p))])
+      : cfg.lvl === 'phchsp' ? PH.flatMap(p => [p, ...chOfPh(p).flatMap(c => { const g = segOf(c, p); return [g, ...g.own.map(x => ({ ...x, depth: 2 }))]; })])
+      : cfg.lvl === 'phsp' ? PH.flatMap(p => [p, ...SP.filter(s => s.ph === p.id).map(s => ({ ...s, depth: 1 }))]) : cfg.lvl === 'sp' ? SP : cfg.lvl === 'ch' ? CH : cfg.lvl === 'one' ? (() => { const c = CH.find(x => x.id === cfg.ch) || CH[0], own = c.subphases || []; return [c, ...SP.filter(s => own.length ? own.includes(s.id) : c.phases.includes(s.ph) && s.end >= c.start && s.start <= c.end).map(s => ({ ...s, depth: 1 }))]; })() : PH;
     // Projet sans phase ni chantier daté (projet importé, 07/10/2026) : échelle sur le mois en cours.
     const all0 = IT.flatMap(x => [x.start, x.end]).filter(Boolean).sort(), all = all0.length ? all0 : [new Date().toISOString().slice(0, 10)], LO = all[0].slice(0, 8) + '01', last = all[all.length - 1];
     let [hy, hm] = last.split('-').map(Number); hm++; if (hm > 12) { hm = 1; hy++; } const HI = hy + '-' + p2(hm) + '-01', X = s => (T(s) - T(LO)) / (T(HI) - T(LO)) * 100;
     const monthIso = i => { const [y0, m0] = LO.split('-').map(Number); const d = new Date(y0, m0 - 1 + i, 1); return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-01'; };
     const NM = Math.round((T(HI) - T(LO)) / (30.44 * 864e5)), ink = '#10233a', mute = '#8a9aa6', rowH = 32;
     const seg = 'height:28px;padding:0 12px;border-radius:8px;display:flex;align-items:center;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .15s;', segOn = 'background:#fff;color:#10233a;box-shadow:0 1px 3px rgba(16,35,58,.12)', segOff = 'color:#5c7280';
-    const levels = [['ph', 'Phases'], ['phsp', 'Phases et sous-phases'], ['sp', 'Sous-phases'], ['ch', 'Tous les chantiers']].map(([v, l]) => ({ l, on: () => set({ lvl: v }), st: seg + (cfg.lvl === v ? segOn : segOff) }));
+    const levels = [['ph', 'Phases'], ['phsp', 'Phases et sous-phases'], ['phch', 'Phase > Chantier'], ['phchsp', 'Phase > Chantier > Sous-phase'], ['sp', 'Sous-phases'], ['ch', 'Tous les chantiers']].map(([v, l]) => ({ l, on: () => set({ lvl: v }), st: seg + (cfg.lvl === v ? segOn : segOff) }));
     const selSt = seg + 'border:0;outline:none;appearance:none;-webkit-appearance:none;padding-right:26px;background-repeat:no-repeat;background-position:right 9px center;background-image:url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2710%27 height=%2710%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%238a9aa6%27 stroke-width=%273%27%3E%3Cpath d=%27M6 9l6 6 6-6%27/%3E%3C/svg%3E");' + (cfg.lvl === 'one' ? segOn : segOff + ';background-color:transparent');
     const toggles = [['jal', 'Jalons', '#e8a33d'], ['today', 'Date du jour', ink], ['crit', 'Chemin critique', '#d94b4b'], ['prev', '% prévu', ink], ['reel', '% réel', '#1d8f86'], ['lc', 'Atterr. rythme actuel', '#d9822b'], ['lp', 'Atterr. rythme prévu', '#6d7fa3']].map(([key, l, c]) => { const on = cfg[key]; return { l, on: () => set({ [key]: !on }),
       st: 'height:28px;padding:0 11px;border-radius:999px;display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .15s;border:1px solid ' + (on ? '#d5e0dd' : 'transparent') + ';color:' + (on ? ink : mute) + ';background:' + (on ? '#fff' : 'transparent'),
@@ -3075,7 +3091,8 @@ class Component extends DCLogic {
       if ((m - 1) % 3 === 0 || i === 0) grid.push({ st: 'position:absolute;top:34px;bottom:0;left:' + x + '%;width:1px;background:' + (major ? '#e3ebe9' : '#f2f6f5') });
       if (major && !(cfg.today && x < tx + 5 && x > tx - 9.5)) ticks.push({ l: s.slice(0, 4), st: 'position:absolute;bottom:9px;left:calc(' + x + '% + 6px);font-size:11px;font-weight:800;color:' + ink + ';white-space:nowrap;letter-spacing:.02em' }); }
     const TR = []; let prevPh = null;
-    const out = rows.map((r, i) => { const big = r.depth === 0 && (cfg.lvl === 'phsp' || cfg.lvl === 'one'), bh = r.depth ? 8 : big ? 12 : 10;
+    const grouped = cfg.lvl === 'phsp' || cfg.lvl === 'one' || cfg.lvl === 'phch' || cfg.lvl === 'phchsp';
+    const out = rows.map((r, i) => { const big = r.depth === 0 && grouped, bh = r.depth ? 8 : big ? 12 : 10;
       let x1 = X(r.start), x2 = X(r.end); if (x2 - x1 < 0.4) x2 = x1 + 0.4;
       const late = r.retJ > 0, bad = r.retJ > 30, crit = cfg.crit && r.crit;
       const trackBg = r.status === 'done' ? '#dde9e6' : r.status === 'cur' ? '#e3eeeb' : '#eef3f2', fillC = r.status === 'done' ? '#9dcdc6' : late ? (bad ? '#d9822b' : '#e8a33d') : '#1d8f86';
@@ -3089,13 +3106,13 @@ class Component extends DCLogic {
       const xr = Math.max(x2, lcOn ? XC(r.lc) + .6 : 0, lpOn ? XC(r.lp) + .6 : 0);
       const lab = !lReel && !lPrev ? 'display:none' : 'position:absolute;top:50%;transform:translateY(-50%);white-space:nowrap;font-size:11px;' + (xr < 84 ? 'left:calc(' + xr + '% + 8px)' : 'right:calc(' + (100 - x1) + '% + 8px)');
       const lX = { lcM: lcOn ? lmk(r.lc, '#d9822b', false) : 'display:none', lcL: lcOn ? lln(r.lc, '#d9822b') : 'display:none', lpM: lpOn ? lmk(r.lp, '#6d7fa3', true) : 'display:none', lpL: lpOn ? lln(r.lp, '#6d7fa3') : 'display:none', lcT: lcOn ? 'Atterr. rythme actuel : ' + FR(r.lc) : '', lpT: lpOn ? 'Atterr. rythme prévu : ' + FR(r.lp) : '' };
-      const mkPh = r.kind === 'ph' ? r.n : r.kind === 'sp' ? phN[r.ph] : (phN[r.phases[0]] + ' → ' + phN[r.phases[r.phases.length - 1]]);
-      const phShow = r.kind === 'sp' && (cfg.lvl === 'phsp' || cfg.lvl === 'sp') && prevPh === r.ph ? '' : mkPh; if (r.kind === 'ph') prevPh = r.id; else if (r.kind === 'sp') prevPh = r.ph;
+      const mkPh = r.kind === 'ph' ? r.n : r.kind === 'sp' ? phN[r.ph] : r.segPh ? phN[r.segPh] : (phN[r.phases[0]] + ' → ' + phN[r.phases[r.phases.length - 1]]);
+      const phShow = (r.kind === 'sp' && (cfg.lvl === 'phsp' || cfg.lvl === 'sp' || cfg.lvl === 'phchsp') && prevPh === r.ph) || (r.segPh && prevPh === r.segPh) ? '' : mkPh; if (r.kind === 'ph') prevPh = r.id; else if (r.kind === 'sp') prevPh = r.ph;
       const lcD = r.lc ? DD(r.lc, r.end) : null, lpD = r.lp ? DD(r.lp, r.end) : null, done = r.status === 'done';
-      const cal = (title, f) => e => { if (!this.can('editDates', r)) { e.stopPropagation(); this.showToast('Seul le PMO peut modifier ces dates ; le Responsable d’un chantier modifie celles de son chantier'); return; } this.openPop(e, { type: 'date', title: title + ' · ' + (r.code || r.id), iso: r[f], save: v => this.edit('pl', r.id, f, v) }); };
+      const cal = (title, f) => e => { if (r.segOf) { e.stopPropagation(); this.showToast('Dates du chantier dans cette phase : calculées à partir de ses sous-phases. Modifiez les sous-phases ou le chantier.'); return; } if (!this.can('editDates', r)) { e.stopPropagation(); this.showToast('Seul le PMO peut modifier ces dates ; le Responsable d’un chantier modifie celles de son chantier'); return; } this.openPop(e, { type: 'date', title: title + ' · ' + (r.code || r.id), iso: r[f], save: v => this.edit('pl', r.id, f, v) }); };
       TR.push({ ph: phShow, sp: r.kind === 'sp' ? r.code + ' ' + r.n : '—', ch: r.kind === 'ch' ? r.n : '—', owner: pn[r.owner] || '—', ownerId: r.owner, setOwner: e => this.edit('pl', r.id, 'owner', e.target.value),
         start: FR(r.start), end: FR(r.end), openStart: cal('Date de début', 'start'), openEnd: cal('Date de fin', 'end'), prevu: r.prevu + ' %', reel: String(r.reel),
-        commitReel: e => { const v = Math.max(0, Math.min(100, Math.round(parseFloat((e.target.textContent || '').replace(',', '.'))))); if (isNaN(v)) { e.target.textContent = String(r.reel); return; } e.target.textContent = String(v); if (v !== r.reel) this.edit('pl', r.id, 'reel', v); },
+        commitReel: e => { if (r.segOf) { e.target.textContent = String(r.reel); this.showToast('Avancement du chantier dans cette phase : moyenne de ses sous-phases.'); return; } const v = Math.max(0, Math.min(100, Math.round(parseFloat((e.target.textContent || '').replace(',', '.'))))); if (isNaN(v)) { e.target.textContent = String(r.reel); return; } e.target.textContent = String(v); if (v !== r.reel) this.edit('pl', r.id, 'reel', v); },
         tr: 'display:grid;grid-template-columns:minmax(70px,.8fr) minmax(110px,1.5fr) minmax(90px,1.1fr) minmax(100px,.9fr) 96px 96px 58px 72px 62px minmax(100px,1fr) minmax(100px,1fr);gap:0 12px;align-items:center;padding:7px 0;font-size:12px;transition:background .15s;' + (phShow && i > 0 && r.kind !== 'ch' ? 'border-top:1px solid #e6eeec' : 'border-top:1px solid #f1f5f4'),
         phSt: 'font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:' + (done ? mute : ink),
         spSt: 'min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' + (r.kind === 'sp' ? 'font-weight:600;color:' + (done ? mute : ink) : 'color:#c3cfcc'),
@@ -3108,7 +3125,7 @@ class Component extends DCLogic {
         lp: done ? 'Terminé' : r.lp ? FR(r.lp) : '—', lpd: lpD == null ? '' : lpD > 0 ? '+' + lpD + ' j vs fin' : 'dans les temps',
         lpSt: 'font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums;color:' + (done ? mute : lpD > 0 ? '#c43d3d' : r.lp ? ink : '#c3cfcc'), lpdSt: 'font-size:10.5px;font-weight:600;color:' + (lpD > 0 ? '#c43d3d' : '#1b8a52') });
       return { n: r.n, code: r.code, tip: r.code + ' · ' + r.n + ' · ' + FR(r.start) + ' → ' + FR(r.end) + ' · réel ' + r.reel + ' % · prévu ' + r.prevu + ' %',
-        lblRow: 'height:' + rowH + 'px;display:flex;align-items:center;gap:9px;min-width:0;padding-left:' + (r.depth ? 16 : 0) + 'px;' + (big && i > 0 ? 'border-top:1px solid #eef3f2' : ''),
+        lblRow: 'height:' + rowH + 'px;display:flex;align-items:center;gap:9px;min-width:0;padding-left:' + (r.depth || 0) * 16 + 'px;' + (big && i > 0 ? 'border-top:1px solid #eef3f2' : ''),
         codeSt: 'flex:none;min-width:22px;font-size:10.5px;font-weight:800;letter-spacing:.04em;font-variant-numeric:tabular-nums;color:' + (crit ? '#d94b4b' : mute),
         nameSt: 'min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:' + (r.depth ? '12px' : '12.5px') + ';font-weight:' + (r.depth ? 500 : 700) + ';color:' + (done ? mute : ink),
         row: 'position:relative;height:' + rowH + 'px;' + (big && i > 0 ? 'border-top:1px solid #eef3f2' : ''), track, fill, tick, lab, lReel, lPrev, ...lX,
@@ -3116,7 +3133,7 @@ class Component extends DCLogic {
         _y: i * rowH + rowH / 2, _x1: x1, _x2: x2, _crit: r.crit, _g: r.kind + r.depth };
     });
     const H = out.length * rowH, crit = [], groups = {};
-    out.forEach(r => { if (r._crit && !((cfg.lvl === 'phsp' || cfg.lvl === 'one') && r._g.endsWith('0'))) (groups[r._g] = groups[r._g] || []).push(r); });
+    out.forEach(r => { if (r._crit && !(grouped && r._g.endsWith('0'))) (groups[r._g] = groups[r._g] || []).push(r); });
     if (cfg.crit) Object.values(groups).forEach(cr => { for (let j = 1; j < cr.length; j++) { const a = cr[j - 1], b = cr[j], pts = b._x1 >= a._x2 ? [[a._x2, a._y], [a._x2, b._y], [b._x1, b._y]] : [[b._x1, a._y], [b._x1, b._y]]; crit.push({ pts: pts.map(p => p.join(',')).join(' ') }); } });
     const cl = []; ms.filter(m => m.iso).map(m => ({ m, x: X(m.iso) })).filter(o => o.x >= 0 && o.x <= 100).sort((a, b) => a.x - b.x).forEach(o => { const l = cl[cl.length - 1]; if (l && o.x - l.x1 < 1.6) { l.items.push(o.m); l.x1 = o.x; } else cl.push({ x0: o.x, x1: o.x, items: [o.m] }); });
     const jal = cl.map(c => { const n = c.items.length, col = c.items.some(m => m.gap > 0) ? '#e8a33d' : '#1d8f86';
@@ -4443,7 +4460,7 @@ class Component extends DCLogic {
           projToggle: () => PL.length && this.setState({ projOpen: !S.projOpen, sideOpen: true }),
           projItems: PL.map(p => { const on = !!cur && p.id === cur.id, pf = PROF[p.profile] || ['', '#9fbfba'];
             return { code: p.code, name: p.name, prof: pf[0], profC: pf[1], on,
-              st: 'display:flex;flex-direction:column;gap:2px;padding:8px 10px;border-radius:9px;cursor:pointer;min-width:0;' + (on ? 'background:rgba(61,214,198,.1);box-shadow:inset 2px 0 0 #3dd6c6' : ''),
+              st: 'flex:none;height:46px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;gap:2px;padding:0 10px;border-radius:9px;cursor:pointer;min-width:0;' + (on ? 'background:rgba(61,214,198,.1);box-shadow:inset 2px 0 0 #3dd6c6' : ''),
               go: () => { this.setState({ projOpen: false }); if (!on && this._api && this._api.switchProject) this._api.switchProject(p.code); } }; }),
         };
       })(), asideStyle: `background:linear-gradient(180deg,#0f2c2c 0%,#0a1f20 100%);color:#d5e6e2;display:flex;flex-direction:column;padding:26px ${S.sideOpen ? '18px' : '12px'} 22px;position:sticky;top:0;height:100vh;min-height:680px;box-sizing:border-box;overflow:hidden`, navLabelStyle: S.sideOpen ? '' : 'display:none', navGap: S.sideOpen ? 'display:flex;align-items:center;justify-content:space-between;padding:0 6px' : 'display:flex;align-items:center;justify-content:center;padding:0', footRow: S.sideOpen ? '' : 'justify-content:center;padding-left:0;padding-right:0',
