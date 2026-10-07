@@ -469,3 +469,11 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 - Planning : pieds de la barre de phase et couloir (voile) de la période retirés, à la demande du commanditaire ; la phase reste une barre récapitulative fine et équerre.
 - Mon profil : plus aucune donnée de démonstration. Carte : initiales, rôle (`meRole`), société (équipe du référentiel) et équipe (type : Client, AMOA, Intégrateur). Informations : nom, position, société et e-mail lus dans le référentiel et le compte (lecture seule, gérés par le PMO ou l'Administrateur) ; téléphone, pays, ville, langue et fuseau enregistrés en préférences. Sécurité : dernière connexion réelle. Pied : date de la dernière modification du profil.
 - Onglet Projet : projets ouverts au compte (code — client), rôle et affectation de la personne sur chacun, droits ; colonne « Par défaut » (Choisir / Par défaut) : projet ouvert à l'arrivée quand l'adresse ne précise pas de projet (`setDefaultProject`, préférence `defaultProject`). Sans projet par défaut : RISE s'il est ouvert au compte, sinon le premier projet ouvert (`arrive` dans `api.js`).
+
+## Corrections : photo, ordre des chantiers, livrables, risques, baromètre (07/10/2026)
+
+- Photo du profil : affichée par une balise image (une URL `data:` contient « ; », que le moteur des écrans prend pour un séparateur de styles : la photo ne s'affichait jamais) ; recadrée au carré et réduite à 256 px (JPEG) avant l'enregistrement ; aussi dans l'avatar de la barre latérale.
+- Planning : chantiers dans l'ordre croissant de leur code (C1, C2, C3…) dans toutes les vues ; sous-phases par numéro (remplace l'ordre chronologique du matin, à la demande du commanditaire).
+- Livrables : sous-phase d'un livrable retrouvée par son identifiant ; l'écran déduisait le code de la forme « SP3.1 » propre à RISE, et un projet importé n'affichait aucun livrable.
+- Risques, « Évolution sur 8 semaines » : texte de démonstration (« 14 cartographiés dont 3 critiques · +3 depuis janvier ») remplacé par les compteurs du registre (risques ouverts, critiques, variation sur la période affichée) ; « Aucun risque cartographié. » sinon.
+- Baromètre, « Répartition du ressenti » : sans relevé, « — » au lieu de « 1 % » (la normalisation à 100 % répartissait le reste sur trois valeurs nulles) ; écarts « — ».
