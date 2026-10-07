@@ -119,10 +119,11 @@ describe('Étapes 2-3 — droits et Référentiel', () => {
     const trace = await t.db.auditEntry.findFirst({ where: { entityType: 'WORKSTREAM', entityId: ws.body.id, field: 'subphaseIds' }, orderBy: { at: 'desc' } });
     expect(trace?.newValue).toEqual([]);
 
-    // Dépendance circulaire refusée, quelle que soit la longueur de la boucle.
+    // Dépendances réciproques admises (07/10/2026) ; un chantier ne dépend toujours pas de lui-même.
     await c.put(`${R}/workstreams/${ws.body.id}/dependencies`, { dependsOn: ['C5'] }).expect(200);
-    const loop = await c.put(`${R}/workstreams/C5/dependencies`, { dependsOn: [ws.body.id] }).expect(400);
-    expect(loop.body.fields.dependsOn).toBe('dépendance circulaire : C5 → C9 → C5');
+    await c.put(`${R}/workstreams/C5/dependencies`, { dependsOn: [ws.body.id] }).expect(200);
+    expect((await c.get(`${R}/workstreams/C5`).expect(200)).body.dependsOn).toEqual([ws.body.id]);
+    await c.put(`${R}/workstreams/C5/dependencies`, { dependsOn: ['C5'] }).expect(400);
   });
 
   it('instance : membres uniques, nom court unique', async () => {

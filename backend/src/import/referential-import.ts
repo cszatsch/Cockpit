@@ -4,7 +4,7 @@ import { AuditService, WriteCtx } from '../core/audit.service';
 import { isIsoDate } from '../domain/dates';
 import { normKey } from '../domain/labels';
 import { PROJECT_INFO_BLOCK, PROJECT_INFO_ITEMS_MAX, PROJECT_INFO_LABEL_MAX, PROJECT_INFO_RUBRIQUES, PROJECT_INFO_VALUE_MAX, ProjectInfo } from '../domain/project-info';
-import { dependencyCycle, multiValues } from '../domain/workstream-links';
+import { multiValues } from '../domain/workstream-links';
 import * as S from '../cockpit/referential/schemas';
 import { CellValue, ParsedWorkbook, SHEETS, SheetData } from './excel-reader';
 
@@ -475,7 +475,8 @@ export function checkWorkbook(wb: ParsedWorkbook): CheckResult {
     rawDeps.push({ key: k, row: r.row, tokens: multiValues(r.values['Dépendances']) });
     plan.workstreams.push({ key: k, code: `C${i + 1}`, seq: i + 1, name, owner: owner ?? '', wave: wave ? normKey(wave) : null, status: st ? WS_STATUS[normKey(st)] ?? 'ACTIVE' : 'ACTIVE', description: str(r.values['Description']), phases, subphases, dependsOn: [] });
   }
-  // Dépendances : noms (ou codes C1, C2…) de chantiers du fichier, ou « Tous » seul ; ni auto-dépendance ni boucle.
+  // Dépendances : noms (ou codes C1, C2…) de chantiers du fichier, ou « Tous » seul ; pas d'auto-dépendance. Dépendances
+  // réciproques admises (07/10/2026, `docs/DECISIONS.md`) : un chantier en alimente un autre sur certaines phases, et inversement.
   const depCol = colLetter(WS, 'Dépendances');
   const wsOfToken = (t: string) => plan.workstreams.find((w) => normKey(w.name) === normKey(t) || normKey(w.code) === normKey(t))?.key;
   for (const d of rawDeps) {
@@ -491,11 +492,6 @@ export function checkWorkbook(wb: ParsedWorkbook): CheckResult {
       else if (dep === d.key) err(WS, d.row, depCol, `Le chantier « ${w.name} » dépend de lui-même`);
       else if (!(w.dependsOn as string[]).includes(dep)) (w.dependsOn as string[]).push(dep);
     }
-  }
-  const cycle = dependencyCycle(new Map(plan.workstreams.map((w) => [w.key, w.dependsOn === 'ALL' ? [] : w.dependsOn])));
-  if (cycle) {
-    const nm = (k: string) => plan.workstreams.find((w) => w.key === k)?.name ?? k;
-    err(WS, wsKeys.get(cycle[0]) ?? null, depCol, `Dépendance circulaire : ${cycle.map(nm).join(' → ')}`);
   }
 
   // 11 Instances
@@ -593,7 +589,7 @@ function finish(issues: ImportIssue[], plan: ImportPlan | null, wb: ParsedWorkbo
     { id: 'structure', label: `Structure du fichier (${SHEETS.length} onglets)`, ok: !wb.missingSheets.length && !errors.some((e) => e.message.startsWith(OLD_MODEL_MESSAGE)), detail: errors.some((e) => e.message.startsWith(OLD_MODEL_MESSAGE)) ? 'Ancien modèle de fichier' : wb.missingSheets.length ? `${wb.missingSheets.length} onglet(s) manquant(s)` : `${SHEETS.length} onglets présents` },
     { id: 'project', label: 'Fiche projet complète', ok: bySheet('05') === 0, detail: bySheet('05') ? `${bySheet('05')} erreur(s)` : 'Champs obligatoires renseignés' },
     { id: 'required', label: 'Champs obligatoires', ok: !errors.some((e) => /obligatoire/.test(e.message)), detail: `${errors.filter((e) => /obligatoire/.test(e.message)).length} champ(s) manquant(s)` },
-    { id: 'references', label: 'Références entre onglets et doublons', ok: !errors.some((e) => /inconnu|double|appartient|hors des phases|lui-même|circulaire|Tous/.test(e.message)), detail: `${errors.filter((e) => /inconnu|double|appartient|hors des phases|lui-même|circulaire|Tous/.test(e.message)).length} erreur(s)` },
+    { id: 'references', label: 'Références entre onglets et doublons', ok: !errors.some((e) => /inconnu|double|appartient|hors des phases|lui-même|Tous/.test(e.message)), detail: `${errors.filter((e) => /inconnu|double|appartient|hors des phases|lui-même|Tous/.test(e.message)).length} erreur(s)` },
     { id: 'rules', label: 'Règles de dates et de codes', ok: !errors.some((e) => /date|avant|N°|Fin|Code/.test(e.message)), detail: `${issues.filter((e) => e.level === 'WARNING').length} avertissement(s)` },
   ];
   return { issues, plan, counts, checks };

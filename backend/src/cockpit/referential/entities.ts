@@ -6,7 +6,7 @@ import { nextCode, readableId, techId } from '../../core/ids';
 import { assignmentActive, confirmedDays, milestoneGap, outsidePeriod } from '../../domain/rules';
 import { ProjectAccess } from '../../domain/rights';
 import { normKey } from '../../domain/labels';
-import { dependencyCycle, foreignSubphases, keepSubphasesOf } from '../../domain/workstream-links';
+import { foreignSubphases, keepSubphasesOf } from '../../domain/workstream-links';
 import * as S from './schemas';
 import { deliverableView, milestoneViews, personViews } from '../views';
 
@@ -301,17 +301,7 @@ export const WORKSTREAMS: EntityConfig = {
       warnings,
       relations: async (db, id) => {
         if (deps?.includes(id)) throw badRequest('Dépendance invalide', { dependsOn: 'un chantier ne peut dépendre de lui-même' });
-        if (deps) {
-          // Dépendance circulaire (06/10/2026) : refusée, quel que soit le nombre de chantiers dans la boucle.
-          const all = await db.workstream.findMany({ where: { projectId: ctx.project.id }, select: { id: true, code: true, dependencies: { select: { dependsOnId: true } } } });
-          const graph = new Map(all.map((w) => [w.id, w.id === id ? deps : w.dependencies.map((d) => d.dependsOnId)]));
-          if (!graph.has(id)) graph.set(id, deps);
-          const cycle = dependencyCycle(graph);
-          if (cycle) {
-            const code = (x: string) => all.find((w) => w.id === x)?.code ?? data.code ?? x;
-            throw badRequest('Dépendance circulaire', { dependsOn: `dépendance circulaire : ${cycle.map(code).join(' → ')}` });
-          }
-        }
+        // Dépendances réciproques admises (07/10/2026) : un chantier en alimente un autre sur certaines phases, et inversement.
         if (input.phaseIds) {
           await db.workstreamPhase.deleteMany({ where: { wsId: id } });
           await db.workstreamPhase.createMany({ data: input.phaseIds.map((phaseId: string) => ({ wsId: id, phaseId })) });

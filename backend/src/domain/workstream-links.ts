@@ -18,31 +18,6 @@ export function keepSubphasesOf(subphaseIds: string[], phaseIds: string[], phase
   return { kept: subphaseIds.filter((s) => !foreign.has(s)), dropped: subphaseIds.filter((s) => foreign.has(s)) };
 }
 
-/**
- * Dépendance circulaire entre chantiers : premier cycle trouvé (liste de chantiers, le premier répété à la fin), sinon null.
- * `deps` : chantier → chantiers dont il dépend (la dépendance « Tous » n'est pas un lien et n'entre pas dans le graphe).
- */
-export function dependencyCycle(deps: Map<string, string[]>): string[] | null {
-  const state = new Map<string, 0 | 1 | 2>();
-  const path: string[] = [];
-  const visit = (n: string): string[] | null => {
-    state.set(n, 1);
-    path.push(n);
-    for (const m of deps.get(n) ?? []) {
-      if (state.get(m) === 1) return [...path.slice(path.indexOf(m)), m];
-      if (!state.get(m)) {
-        const c = visit(m);
-        if (c) return c;
-      }
-    }
-    path.pop();
-    state.set(n, 2);
-    return null;
-  };
-  for (const n of deps.keys()) if (!state.get(n)) { const c = visit(n); if (c) return c; }
-  return null;
-}
-
 /** Valeurs d'une cellule à choix multiple du fichier d'initialisation : séparées par « ; », vides et doublons retirés. */
 export function multiValues(raw: unknown): string[] {
   const out: string[] = [];

@@ -85,7 +85,7 @@ describe('Étape 9 — import Excel du Référentiel (§ 13.9)', () => {
     expect(r.body.warnings.some((w: any) => /Libellé ignoré/.test(w.message))).toBe(true);
   });
 
-  it('Chantiers : phase ou sous-phase inconnue, sous-phase hors des phases, auto-dépendance, « Tous » combiné, boucle', async () => {
+  it('Chantiers : phase ou sous-phase inconnue, sous-phase hors des phases, auto-dépendance, « Tous » combiné ; dépendances réciproques admises', async () => {
     const f = validAtlas();
     f.rows['10 Chantiers'] = [
       { Nom: 'Comptabilité', Responsable: 'Sophie Marchand', Phases: '1 ; 9', 'Sous-phases': '2.1 ; 7.7', Dépendances: 'Comptabilité ; Trésorerie' },
@@ -103,8 +103,9 @@ describe('Étape 9 — import Excel du Référentiel (§ 13.9)', () => {
       '9I Sous-phase « 7.7 » inconnue (onglet 09 Sous-phases)',
       '9J Le chantier « Comptabilité » dépend de lui-même',
       '10J « Tous » ne se combine pas avec d’autres chantiers',
-      '11J Dépendance circulaire : Fiscalité → Consolidation → Fiscalité',
     ]));
+    // Fiscalité ↔ Consolidation : dépendances réciproques admises (07/10/2026).
+    expect(m.filter((x: string) => /circulaire/.test(x))).toEqual([]);
   });
 
   it('mode réel : crée le référentiel, les habilitations Responsable et l’historique (origine IMPORT)', async () => {
