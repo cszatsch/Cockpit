@@ -1709,3 +1709,7 @@ Constat du commanditaire : avec le profil PMO sur un projet importé, le Cockpit
 | Changement de projet | Rechargement sur `?project=CODE` (le projet du Cockpit est lu dans l'adresse), autres paramètres gardés ; pas de mémorisation du dernier projet (une adresse sans `project` ouvre RISE, comme avant) | `switchProject` (`api.js`) |
 | En direct | Une habilitation changée dans la Console est annoncée (écriture de la plateforme) ; le Cockpit relit `GET /me` et met la liste à jour sans rechargement ; onglet masqué : relecture au retour sur l'onglet (comportement existant) | `liveOpen` |
 | Projet importé | L'écran supposait les données de démonstration de RISE ; valeurs par défaut ajoutées, chaque page et chaque onglet vérifiés sans erreur sur un projet importé par la Console | `test/browser/cockpit-ecrans.e2e.ts` |
+
+### Planning : vues « Phase > Chantier » et « Phase > Chantier > Sous-phase » (07/10/2026)
+
+Demande du commanditaire. Un chantier couvrant plusieurs phases apparaît sous chacune, réduit à son segment dans la phase : première à dernière de ses sous-phases de la phase (colonne Sous-phases du chantier), sinon intersection chantier ∩ phase ; avancement réel moyen de ces sous-phases, sinon celui de la phase (l'avancement global du chantier mêlerait les phases). Lignes calculées, non modifiables (`segOf`, `RISE Cockpit.dc.html`).

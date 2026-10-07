@@ -3061,13 +3061,13 @@ class Component extends DCLogic {
     const IT = this.plItems(), PH = IT.filter(x => x.kind === 'ph'), SP = IT.filter(x => x.kind === 'sp'), CH = IT.filter(x => x.kind === 'ch'), phN = {}; PH.forEach(p => { phN[p.id] = p.n; });
     // Vues « Phase > Chantier » et « Phase > Chantier > Sous-phase » (07/10/2026) : le chantier sous une phase est son
     // segment dans cette phase — de sa première à sa dernière sous-phase de la phase, sinon chantier ∩ phase —, avancement
-    // réel moyen de ces sous-phases (sinon celui du chantier) ; dates calculées, donc non modifiables sur cette ligne.
+    // réel moyen de ces sous-phases (chantier sans sous-phase dans la phase : celui de la phase) ; dates calculées, donc non modifiables sur cette ligne.
     const segOf = (c, p) => {
       const own = SP.filter(x => x.ph === p.id && (c.subphases || []).includes(x.id));
       let a = own.length ? own.reduce((m, x) => (x.start < m ? x.start : m), own[0].start) : (c.start > p.start ? c.start : p.start);
       let b = own.length ? own.reduce((m, x) => (x.end > m ? x.end : m), own[0].end) : (c.end < p.end ? c.end : p.end);
       if (!a || !b || b < a) { a = p.start; b = p.end; }
-      const reel = own.length ? Math.round(own.reduce((t, x) => t + (+x.reel || 0), 0) / own.length) : c.reel, dur = Math.max(1, DD(b, a)), el = DD(today, a);
+      const reel = own.length ? Math.round(own.reduce((t, x) => t + (+x.reel || 0), 0) / own.length) : (+p.reel || 0), dur = Math.max(1, DD(b, a)), el = DD(today, a);
       const prevu = Math.max(0, Math.min(100, Math.round(el / dur * 100))), status = reel >= 100 ? 'done' : a > today ? 'future' : 'cur';
       return { ...c, id: c.id + '@' + p.id, segOf: c.id, segPh: p.id, start: a, end: b, reel, prevu, dur, status, retJ: status === 'cur' ? Math.max(0, Math.round((prevu - reel) / 100 * dur)) : 0, lc: null, lp: null, depth: 1, own };
     };
@@ -3139,7 +3139,7 @@ class Component extends DCLogic {
     const jal = cl.map(c => { const n = c.items.length, col = c.items.some(m => m.gap > 0) ? '#e8a33d' : '#1d8f86';
       return { tip: c.items.map(m => m.id + ' · ' + m.n + ' · ' + FRs(m.iso)).join('\n'), n: n > 1 ? String(n) : '', st: 'position:absolute;top:50%;left:' + (c.x0 + c.x1) / 2 + '%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:4px;cursor:pointer;z-index:4',
         dia: 'width:9px;height:9px;transform:rotate(45deg);border-radius:1.5px;background:' + col + ';box-shadow:0 0 0 2px #fff', nSt: n > 1 ? 'font-size:10px;font-weight:800;color:#10233a;font-variant-numeric:tabular-nums;background:#fff;padding:0 3px;border-radius:4px' : 'display:none' }; });
-    const lvlL = { ph: 'Phases', phsp: 'Phases et sous-phases', sp: 'Sous-phases', ch: 'Tous les chantiers', one: 'Chantier ' + ((CH.find(c => c.id === cfg.ch) || {}).n || '') }[cfg.lvl];
+    const lvlL = { ph: 'Phases', phsp: 'Phases et sous-phases', phch: 'Phase > Chantier', phchsp: 'Phase > Chantier > Sous-phase', sp: 'Sous-phases', ch: 'Tous les chantiers', one: 'Chantier ' + ((CH.find(c => c.id === cfg.ch) || {}).n || '') }[cfg.lvl];
     const g = { levels, toggles, selSt, chSel: cfg.lvl === 'one' ? cfg.ch : '', setCh: e => e.target.value && set({ lvl: 'one', ch: e.target.value }),
       sub: FR(LO).replace(/^1er /, '') + ' → ' + FR(P.projectEnd).replace(/^\d+ /, ''), ticks, grid, rows: out, crit, jal, jalOn: cfg.jal, todayOn: cfg.today && tx >= 0 && tx <= 100,
       critSvg: 'position:absolute;left:0;top:0;width:100%;height:' + H + 'px;overflow:visible;pointer-events:none', critVb: '0 0 100 ' + Math.max(1, H),
