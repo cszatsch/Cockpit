@@ -75,8 +75,14 @@ describe('Étapes 4-8 — jalons, pilotage, comités, habilitations, Aujourd’h
     it('planning : fin ≥ début ; baromètre : sentiment = 100 ; budget inactif → 409', async () => {
       const c = await t.as(WHO.pmo);
       await c.patch(`${R}/planning/phase/P5`, { endDate: '2020-01-01' }).expect(400);
-      const pl = await c.patch(`${R}/planning/phase/P5`, { progressPct: 50 }).expect(200);
-      expect(pl.body.progressPct).toBe(50);
+      // Phase avec sous-phases : avancement calculé (moyenne pondérée par la durée, 07/10/2026), saisie refusée.
+      const no = await c.patch(`${R}/planning/phase/P5`, { progressPct: 50 }).expect(400);
+      expect(no.body.fields.progressPct).toMatch(/pondérée par leur durée/);
+      await c.patch(`${R}/planning/subphase/SP5.2`, { progressPct: 80 }).expect(200);
+      const subs = await t.db.subphase.findMany({ where: { phaseId: 'P5' } });
+      const days = (x: any) => (Date.parse(x.endDate) - Date.parse(x.startDate)) / 864e5 + 1;
+      const want = Math.round(subs.reduce((n, x) => n + x.progressPct * days(x), 0) / subs.reduce((n, x) => n + days(x), 0));
+      expect((await t.db.phase.findUnique({ where: { id: 'P5' } }))!.progressPct).toBe(want);
       await c.post(`${R}/barometer/surveys`, { month: '2026-09', overallScore: 6, respondents: 30, sentiment: { negative: 20, neutral: 20, positive: 50 } }).expect(400);
       const b = await c.post(`${R}/barometer/surveys`, { month: '2026-09', overallScore: 6.04, respondents: 30, sentiment: { negative: 20, neutral: 20, positive: 60 } }).expect(201);
       expect(b.body.surveys.at(-1)).toMatchObject({ month: '2026-09', key: 'm2026-09', overallScore: 6 });

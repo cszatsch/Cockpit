@@ -1,4 +1,5 @@
 import path from 'path';
+import { weightedProgress } from '../../src/domain/progress-rollup';
 import { setup, TestCtx, WHO } from '../helpers';
 import { loadDataModule } from '../../prisma/seed/source';
 
@@ -67,7 +68,9 @@ describe('Étape 3 (brief § 13.3) — amorçage et GET /bootstrap', () => {
     expect(b.actions.map((a: any) => [a.id, a.due, a.prio, a.source])).toEqual(rise.actions.map((a: any) => [a.id, a.due, a.prio, a.source]));
     expect(b.sessions).toEqual(rise.sessions.map((s: any) => expect.objectContaining(s)));
     expect(b.chantiers.map((c: any) => [c.id, c.start, c.end, c.reel, c.owner, c.phases])).toEqual(plan.chantiers.map((c: any) => [c.id, c.start, c.end, c.reel, c.owner, c.phases]));
-    expect(b.phases.map((c: any) => [c.id, c.start, c.end, c.reel, c.owner])).toEqual(plan.phases.map((c: any) => [c.id, c.start, c.end, c.reel, c.owner]));
+    // Phase avec sous-phases : avancement = moyenne de ses sous-phases pondérée par leur durée (07/10/2026).
+    const rolled = (ph: any) => weightedProgress(plan.subphases.filter((x: any) => x.ph === ph.id).map((x: any) => ({ startDate: x.start, endDate: x.end, progressPct: x.reel }))) ?? ph.reel;
+    expect(b.phases.map((c: any) => [c.id, c.start, c.end, c.reel, c.owner])).toEqual(plan.phases.map((c: any) => [c.id, c.start, c.end, rolled(c), c.owner]));
     expect(b.templates.map((x: any) => [x.id, x.published, x.comps.length])).toEqual([
       ['T1', '12 juillet 2026', 5], ['T2', '3 août 2026', 2], ['T3', '20 juin 2026', 4], ['T4', '8 mai 2026', 3], ['T5', '15 avril 2026', 3], ['T6', '10 mars 2026', 3],
     ]);

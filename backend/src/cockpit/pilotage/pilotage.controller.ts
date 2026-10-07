@@ -13,6 +13,7 @@ import { TransactionalService, DECISIONS } from './transactional';
 import { AnomaliesService } from './anomalies.service';
 import { decisionView, deliverableView } from '../views';
 import { isoDate, pct } from '../referential/schemas';
+import { assertPhaseProgressEditable, rollupPhaseProgress } from '../phase-progress';
 
 /** Chantier porteur du baromètre (brief § 8.6 : C8 « Pilotage et transverse »). */
 export const BAROMETER_WS_CODE = 'C8';
@@ -182,8 +183,11 @@ export class PilotageController {
     if (!start || !end) throw badRequest('Dates obligatoires', { startDate: 'début et fin obligatoires' });
     if (end < start) throw badRequest('Période invalide', { endDate: 'la fin doit être postérieure ou égale au début' });
     if (input.ownerId && !(await this.prisma.person.findFirst({ where: { id: input.ownerId, projectId: scope.project.id } }))) throw badRequest('Référence invalide', { ownerId: 'introuvable' });
+    // Phase avec sous-phases : avancement calculé (moyenne pondérée par la durée, 07/10/2026), pas de saisie directe.
+    if (kind === 'phase') await assertPhaseProgressEditable(this.prisma, id, input.progressPct);
     return this.prisma.$transaction(async (db) => {
       const row = await (db as any)[kind].update({ where: { id }, data: { ...input, version: { increment: 1 } } });
+      if (kind === 'subphase') await rollupPhaseProgress(db, [row.phaseId]);
       const ctx = { actor, projectId: scope.project.id, profileUsed: scope.access.pmo ? 'PMO' : 'RESPONSABLE' };
       await this.tx.audit.record(db, ctx, { entityType: kind.toUpperCase(), entityId: id, before: existing, after: row, wsId: kind === 'workstream' ? id : null, target: `${row.code} · ${row.name}` });
       const today = this.tx.today(scope);

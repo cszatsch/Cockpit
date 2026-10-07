@@ -1733,3 +1733,14 @@ Demande du commanditaire : distinguer d'un coup d'œil phases, chantiers et sous
 ### Profil du Cockpit : données réelles et projet par défaut (07/10/2026)
 
 Demande du commanditaire : retirer les données de démonstration du profil et permettre de choisir le projet ouvert par défaut. `GET /api/me` renvoie `profile` (nom, prénom, position, société, type d'équipe, dernière connexion, dernière modification) et, par projet, client, rôles et affectation de la personne ; préférences `phone`, `country`, `defaultProject` (migration `20261115000300_preferences_profil`). Identité et rattachement en lecture seule dans le profil (le référentiel et la Console font foi). Arrivée dans le Cockpit sans `?project=` : projet par défaut s'il est ouvert au compte, sinon RISE s'il l'est, sinon le premier projet ouvert (auparavant, RISE toujours, en erreur pour un compte qui n'y a pas accès). Planning : pieds de la phase et couloir de période retirés.
+
+### Avancement d'une phase : moyenne de ses sous-phases pondérée par leur durée (07/10/2026)
+
+Arbitrage du commanditaire. Auparavant, l'avancement d'une phase était saisi à part, sans lien avec ses sous-phases (une phase pouvait afficher 48 % quand ses sous-phases en donnaient 47). Désormais, une phase qui a des sous-phases a un avancement calculé : Σ (avancement × durée) / Σ durée, durée en jours calendaires début et fin inclus (une sous-phase sans dates complètes compte pour 1 jour), arrondi à l'entier. Exemple : 10 %, 30 %, 20 % sur 1, 2 et 3 mois → 22 % (moyenne simple : 20 %).
+
+| Où | Règle | Porteur |
+|---|---|---|
+| Règle | Moyenne pondérée, bornes 0–100, `null` sans sous-phase | `weightedProgress`, `durationDays` (`src/domain/progress-rollup.ts`) |
+| Serveur | Recalcul et enregistrement de la phase à chaque écriture d'une sous-phase (planning, Référentiel : création, modification — ancienne et nouvelle phase —, suppression) : planning, rapports et Jev lisent le même chiffre ; saisie directe refusée (400, `PHASE_PROGRESS_COMPUTED`) ; une phase sans sous-phase garde son avancement saisi | `rollupPhaseProgress`, `assertPhaseProgressEditable` (`src/cockpit/phase-progress.ts`) |
+| Projets existants | Recalcul unique à la migration ; jeu de démonstration recalculé à l'amorçage (P5 : 48 → 47 %) | migration `20261115000400_avancement_phase_pondere`, `prisma/seed/rise.ts` |
+| Écran | Avancement d'une phase avec sous-phases non modifiable (message) ; segment d'un chantier dans une phase (vues « Phase > Chantier ») : même pondération à la place de la moyenne simple | `commitReel`, `segOf` |

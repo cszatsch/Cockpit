@@ -509,6 +509,10 @@ Ce rapport répond au brief Cockpit § 14 et au brief Console § 14 : ce qui est
 - **Serveur** : routes `/api/admin/projects/init/…` ; type du fichier par sa signature ; voie Excel : contrôle existant réparti par onglet, anomalies avec leur cellule exacte, rapport de contrôle, prévisualisation du fichier conforme ; anciennes routes de préremplissage et `POST /projects/import/validate` retirées.
 - **Tests** : critères 1 à 6, 8 et 9 dans `test/e2e/init-projet.spec.ts` (11 tests), règles dans `test/unit/init-check.spec.ts` ; critère 7 (glisser-déposer) et parcours complet dans la recette navigateur `test/browser/prefill.e2e.ts` (22 vérifications) ; import de la Console (`console.spec.ts` § 9) et préremplissage (`prefill.spec.ts`) passés sur les nouvelles routes. Les 13 états de démonstration rendent le même texte et les mêmes styles que la maquette.
 
+### Avancement des phases pondéré par la durée (07/10/2026)
+
+Une phase avec sous-phases prend la moyenne de leurs avancements pondérée par leur durée en jours (`weightedProgress`), recalculée et enregistrée à chaque écriture d'une sous-phase (`rollupPhaseProgress`) ; saisie directe refusée ; migration `20261115000400_avancement_phase_pondere` pour les projets existants. Tests : `test/unit/progress-rollup.spec.ts` (exemple 10/30/20 % sur 1, 2, 3 mois → 22 %), `test/e2e/pilotage.spec.ts` (saisie refusée, recalcul après modification d'une sous-phase), `test/e2e/bootstrap.spec.ts` (phases de démonstration recalculées). Écart : la valeur de démonstration de P5 passe de 48 à 47 %.
+
 ## 4. Questions ouvertes
 
 1. **Déclencheur des règles de notification** : faut-il ajouter un sélecteur de déclencheur dans la console ? Aujourd'hui, une règle créée depuis l'écran reçoit un déclencheur par défaut : « planifié » pour une notification, « manuel » pour une alerte.

@@ -9,6 +9,7 @@ import { codeFromLabel, normKey, PLAN_STATUS_FR, WAVE_STATUS_FR, WS_STATUS_FR } 
  */
 
 import { loadDemo } from './source';
+import { rollupPhaseProgress } from '../../src/cockpit/phase-progress';
 export const RISE_ID = 'RISE';
 /** Q2 : chantier transverse par défaut des actions sans source. */
 export const DEFAULT_TRANSVERSAL_WS_CODE = 'C8';
@@ -242,6 +243,9 @@ export async function seedRise(db: PrismaClient, rise: J, plan: J): Promise<void
       },
     });
   }
+
+  // Avancement des phases avec sous-phases : moyenne pondérée par la durée (07/10/2026), comme dans l'application.
+  await rollupPhaseProgress(db as any, M.PHASE.rows.map((r: J) => r.id));
 
   // ── Chantiers ──
   const planWs = Object.fromEntries(plan.chantiers.map((p: J) => [p.id, p]));

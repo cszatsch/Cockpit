@@ -9,6 +9,7 @@ import { forbidden, inUse, notFound } from '../../core/errors';
 import { canWriteReferential } from '../../domain/rights';
 import { EntityConfig, EntityCtx } from './entities';
 import { UsagesService } from './usages.service';
+import { assertPhaseProgressEditable, rollupPhaseProgress } from '../phase-progress';
 
 /**
  * Moteur CRUD du Référentiel (brief Cockpit § 9.4) : même patron pour toutes les entités.
@@ -69,6 +70,7 @@ export class ReferentialService {
       const id = await def.newId(c, input);
       await (tx as any)[def.delegate].create({ data: { ...(def.global ? {} : { projectId: scope.project.id }), id, ...data } });
       if (relations) await relations(tx, id);
+      if (def.entityType === 'SUBPHASE') await rollupPhaseProgress(tx, [(input as any).phaseId]);
       const row = await this.findRow(def, scope, id, tx);
       const view = (await def.serializeMany(c, [row]))[0];
       await this.audit.record(tx, this.writeCtx(actor, scope, origin), { entityType: def.entityType, entityId: id, before: null, after: view, wsId: def.wsOf?.(row) ?? null, target: def.label(row) });
@@ -84,10 +86,13 @@ export class ReferentialService {
       const existing = await this.findRow(def, scope, id, tx);
       checkIfMatch(ifMatch, existing.version);
       const before = (await def.serializeMany(c, [existing]))[0];
+      if (def.entityType === 'PHASE') await assertPhaseProgressEditable(tx, id, (input as any).progressPct);
       const { data, relations, warnings } = await def.prepare(c, input, existing);
       await (tx as any)[def.delegate].update({ where: { id }, data: { ...data, version: { increment: 1 } } });
       if (relations) await relations(tx, id);
       const row = await this.findRow(def, scope, id, tx);
+      // Avancement de la phase (ancienne et nouvelle) recalculé d'après ses sous-phases.
+      if (def.entityType === 'SUBPHASE') await rollupPhaseProgress(tx, [existing.phaseId, row.phaseId]);
       const view = (await def.serializeMany(c, [row]))[0];
       await this.audit.record(tx, this.writeCtx(actor, scope, origin), { entityType: def.entityType, entityId: id, before, after: view, wsId: def.wsOf?.(row) ?? null, target: def.label(row) });
       return withWarnings(view, warnings);
@@ -130,6 +135,7 @@ export class ReferentialService {
         ? await tx.workstream.findMany({ where: { projectId: scope.project.id, subphases: { some: { subphaseId: id } } }, include: { subphases: true } })
         : [];
       await (tx as any)[def.delegate].delete({ where: { id } });
+      if (def.entityType === 'SUBPHASE') await rollupPhaseProgress(tx, [existing.phaseId]);
       await this.audit.record(tx, this.writeCtx(actor, scope), { entityType: def.entityType, entityId: id, before, after: null, wsId: def.wsOf?.(existing) ?? null, target: def.label(existing) });
       for (const w of linked) {
         const subs = w.subphases.map((s) => s.subphaseId).sort();

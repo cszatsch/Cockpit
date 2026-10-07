@@ -477,3 +477,8 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 - Livrables : sous-phase d'un livrable retrouvée par son identifiant ; l'écran déduisait le code de la forme « SP3.1 » propre à RISE, et un projet importé n'affichait aucun livrable.
 - Risques, « Évolution sur 8 semaines » : texte de démonstration (« 14 cartographiés dont 3 critiques · +3 depuis janvier ») remplacé par les compteurs du registre (risques ouverts, critiques, variation sur la période affichée) ; « Aucun risque cartographié. » sinon.
 - Baromètre, « Répartition du ressenti » : sans relevé, « — » au lieu de « 1 % » (la normalisation à 100 % répartissait le reste sur trois valeurs nulles) ; écarts « — ».
+
+## Avancement des phases pondéré par la durée (07/10/2026)
+
+- Suivi d'avancement : l'avancement d'une phase qui a des sous-phases n'est plus saisissable (message « moyenne de ses sous-phases pondérée par leur durée ») ; le serveur le recalcule à chaque modification d'une sous-phase. La fenêtre d'édition ne l'envoie plus pour une telle phase.
+- Vues « Phase > Chantier » : avancement du segment d'un chantier = moyenne de ses sous-phases de la phase pondérée par leur durée (au lieu de la moyenne simple).
