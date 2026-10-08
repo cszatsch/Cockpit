@@ -86,7 +86,7 @@ button:focus-visible{outline:2px solid #3dd6c6;outline-offset:2px}
     </div>
     <div style="position:relative" onMouseEnter="{{ meOn }}" onMouseLeave="{{ meOff }}" onFocus="{{ meOn }}" onBlur="{{ meOff }}">
     <button type="button" onClick="{{ openProfile }}" aria-label="Mon profil" title="Mon profil" style="{{ meSt }}" style-hover="background:rgba(255,255,255,.12)">
-      <span style="{{ avSt }}">{{ ini }}</span>
+      <span style="{{ avSt }}"><sc-if value="{{ hasPhoto }}" hint-placeholder-val="{{ false }}"><img src="{{ photoSrc }}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;border-radius:50%"></sc-if>{{ ini }}</span>
       <sc-if value="{{ full }}" hint-placeholder-val="{{ true }}"><span style="min-width:0;display:flex;flex-direction:column;text-align:left"><span style="font-weight:700;color:#fff;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ userName }}</span><span style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#8fa9bb">{{ userRole }}</span></span></sc-if>
     </button>
     <button type="button" onClick="{{ logout }}" aria-label="Déconnexion" title="Déconnexion" style="{{ outSt }}" style-hover="background:rgba(255,107,94,.2);color:#ff8a7e"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3 M10 17l5-5-5-5 M15 12H4"></path></svg></button>
@@ -165,7 +165,7 @@ class Component extends DCLogic {
     const ov = act === 'overview', u = P.user ?? { name: 'Cédric Schmitz', role: 'Administrateur' };
     const ini = u.ini ?? u.name.split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
     return {
-      full, rail, desk: mode === 'full', mob: mode === 'mob', doms, tip: S.tip && full, ini, userName: u.name, userRole: u.role ?? 'Administrateur', jevOn: !!P.jevOn,
+      full, rail, desk: mode === 'full', mob: mode === 'mob', doms, tip: S.tip && full, ini, hasPhoto: !!u.photo, photoSrc: u.photo || '', userName: u.name, userRole: u.role ?? 'Administrateur', jevOn: !!P.jevOn,
       // Nom de Jev : identity.name du Persona (Console), « Jev » par défaut.
       jevName: P.jevName || 'Jev', jevAria: (P.jevName || 'Jev') + ', assistant IA (⌘J)', jevTitle: (P.jevName || 'Jev') + ' · assistant IA',
       asideSt: 'position:sticky;top:0;height:100vh;flex:none;white-space:nowrap;width:' + (rail ? 72 : 300) + 'px;min-width:' + (rail ? 72 : 300) + 'px;background:linear-gradient(180deg,#0f2034 0%,#0a1727 100%);color:#c9d6de;display:flex;flex-direction:column;padding:22px ' + pad + 'px 16px;z-index:60;' + (rail ? 'overflow:visible' : 'overflow-y:auto;overflow-x:hidden'),
@@ -179,7 +179,7 @@ class Component extends DCLogic {
       ovIc: 'flex:none;color:' + (ov ? '#3dd6c6' : '#8fa9bb'),
       jevSt: 'position:relative;display:flex;align-items:center;gap:12px;width:100%;padding:8px ' + (rail ? 0 : 12) + 'px;justify-content:' + (rail ? 'center' : 'flex-start') + ';border:0;border-radius:10px;font:inherit;cursor:pointer;transition:background .15s;background:' + (P.jevOn ? 'rgba(255,255,255,.07)' : 'transparent'),
       meSt: 'display:flex;align-items:center;gap:11px;width:100%;padding:' + (rail ? '6px 0' : '10px') + ';justify-content:' + (rail ? 'center' : 'flex-start') + ';border:0;border-radius:13px;font:inherit;cursor:pointer;transition:background .15s;background:' + (act === 'profil' ? 'rgba(255,255,255,.12)' : 'rgba(255,255,255,.06)'),
-      avSt: 'flex:none;width:32px;height:32px;border-radius:50%;color:#fff;font-weight:800;display:grid;place-items:center;font-size:11.5px;background:' + (u.photo ? 'url(' + u.photo + ') center/cover' : '#1d8f86'),
+      avSt: 'flex:none;width:32px;height:32px;border-radius:50%;color:#fff;font-weight:800;display:grid;place-items:center;font-size:11.5px;position:relative;overflow:hidden;background:#1d8f86',
       goOv: () => this.go('overview'), openPalette: () => P.onOpenPalette?.(), toggleJev: () => P.onToggleJev?.(), openProfile: () => { P.onOpenProfile ? P.onOpenProfile() : this.go('profil'); },
       // Déconnexion : icône visible au survol de l'avatar (ou au focus clavier).
       meOn: () => { if (!this.state.meHov) this.setState({ meHov: true }); }, meOff: () => { if (this.state.meHov) this.setState({ meHov: false }); },

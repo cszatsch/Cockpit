@@ -434,15 +434,15 @@ a{color:#1d8f86}a:hover{color:#146b64}
     <sc-if value="{{ isProfil }}" hint-placeholder-val="{{ false }}">
       <div style="display:flex;flex-wrap:wrap;gap:18px;align-items:flex-start;animation:rise-in .4s cubic-bezier(.2,.7,.2,1) both" data-screen-label="Mon profil">
         <div style="flex:1 1 290px;max-width:340px;background:#fff;border:1px solid #e1e9e7;border-radius:16px;padding:28px 22px 22px;box-shadow:0 1px 2px rgba(16,35,58,.04);display:flex;flex-direction:column;align-items:center;text-align:center">
-          <button onClick="{{ pf.pick }}" aria-label="Changer la photo" title="Changer la photo" style="{{ pf.av }};border:0;padding:0" style-hover="filter:brightness(.92)">{{ pf.avTx }}</button>
+          <button onClick="{{ pf.pick }}" aria-label="Changer la photo" title="Changer la photo" style="{{ pf.av }};border:0;padding:0" style-hover="filter:brightness(.92)"><sc-if value="{{ pf.hasPhoto }}" hint-placeholder-val="{{ false }}"><img src="{{ pf.photoSrc }}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;border-radius:50%"></sc-if>{{ pf.avTx }}</button>
           <input ref="{{ pf.fileRef }}" type="file" accept="image/*" onChange="{{ pf.onFile }}" style="display:none">
           <div style="font-size:19px;font-weight:800;letter-spacing:-.02em;margin-top:16px">{{ pf.name }}</div>
           <div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#5c7280;font-weight:600;margin-top:4px">{{ pf.p.pos }}</div>
           <span style="margin-top:12px;display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:999px;background:#10233a;color:#fff;font-size:11.5px;font-weight:700;white-space:nowrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#f7a41c" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 4.5-3.4 8.3-8 9-4.6-.7-8-4.5-8-9V6z"></path></svg>Administrateur</span>
           <div style="width:100%;margin-top:18px;border-top:1px solid #eef3f2;text-align:left">
             <div style="display:flex;flex-direction:column;gap:2px;padding:10px 0;border-bottom:1px solid #eef3f2;font-size:12.5px"><span style="color:#5c7280;font-size:11.5px">Société</span><b>{{ pf.p.soc }}</b></div>
-            <div style="display:flex;flex-direction:column;gap:2px;padding:10px 0;border-bottom:1px solid #eef3f2;font-size:12.5px"><span style="color:#5c7280;font-size:11.5px">Équipe</span><b>{{ pf.p.team }}</b></div>
-            <div style="display:flex;flex-direction:column;gap:2px;padding:10px 0;font-size:12.5px"><span style="color:#5c7280;font-size:11.5px">Administratrice depuis</span><b>14 janv. 2025</b></div>
+            <div style="display:flex;flex-direction:column;gap:2px;padding:10px 0;border-bottom:1px solid #eef3f2;font-size:12.5px"><span style="color:#5c7280;font-size:11.5px">Équipe</span><b>{{ pf.team }}</b></div>
+            <div style="display:flex;flex-direction:column;gap:2px;padding:10px 0;font-size:12.5px"><span style="color:#5c7280;font-size:11.5px">{{ pf.sinceL }}</span><b>{{ pf.since }}</b></div>
           </div>
           <button onClick="{{ pf.pick }}" style="margin-top:12px;border:0;background:transparent;font-size:12px;font-weight:600;color:#1d8f86;cursor:pointer" style-hover="color:#146b64">Changer la photo</button>
           <!-- API : déconnexion (POST /api/auth/logout, admin-api.js) puis écran /console/connexion « Vous êtes déconnecté ». -->
@@ -467,15 +467,16 @@ a{color:#1d8f86}a:hover{color:#146b64}
           <sc-if value="{{ pf.isHab }}" hint-placeholder-val="{{ false }}">
             <div style="padding:22px 26px;display:flex;flex-direction:column;gap:22px">
               <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;padding:16px 18px;border-radius:14px;background:#10233a;color:#fff">
-                <div style="flex:1 1 240px;min-width:0"><div style="font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#a9c7d0">Niveau d’administration</div><div style="font-size:18px;font-weight:800;font-style:italic;letter-spacing:-.02em;margin-top:4px">Administrateur</div><div style="font-size:12px;color:#c3d5dc;margin-top:4px;text-wrap:pretty">Accordé le 14 janv. 2025. Seul un autre administrateur peut retirer ce droit.</div></div>
+                <div style="flex:1 1 240px;min-width:0"><div style="font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#a9c7d0">Niveau d’administration</div><div style="font-size:18px;font-weight:800;font-style:italic;letter-spacing:-.02em;margin-top:4px">Administrateur</div><div style="font-size:12px;color:#c3d5dc;margin-top:4px;text-wrap:pretty">{{ pf.grantL }}</div></div>
                 <button onClick="{{ pf.goMine }}" style="height:34px;padding:0 12px;border:1px solid rgba(255,255,255,.22);border-radius:10px;background:transparent;color:#fff;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap" style-hover="background:rgba(255,255,255,.08)">Mes {{ pf.mineN }} actions tracées · {{ pf.mineCrit }} critiques</button>
               </div>
               <div><div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#5c7280;margin-bottom:10px">Périmètre de la console</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:6px 18px"><sc-for list="{{ pf.perms }}" as="x" hint-placeholder-count="7"><span style="display:flex;align-items:center;gap:9px;font-size:12.5px;padding:6px 0"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1d8f86" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M5 12.5l4.5 4.5L19 7"></path></svg>{{ x }}</span></sc-for></div></div>
               <div style="overflow-x:auto"><div style="min-width:560px">
                 <div style="display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) minmax(0,1.1fr) 110px;gap:14px;padding:10px 0;border-bottom:1px solid #eef3f2;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#5c7280;font-weight:700"><span>Projet</span><span>Rôle</span><span>Affectation</span><span>Droits</span></div>
-                <sc-for list="{{ pf.projs }}" as="r" hint-placeholder-count="4"><div style="display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) minmax(0,1.1fr) 110px;gap:14px;align-items:center;padding:12px 0;border-bottom:1px solid #f1f5f4;font-size:13px"><b>{{ r.p }}</b><span style="color:#43586a">{{ r.role }}</span><span style="color:#43586a;font-variant-numeric:tabular-nums">{{ r.aff }}</span><span style="padding:2px 8px;border-radius:6px;background:#e6f3f2;color:#0f5f5a;font-weight:700;font-size:11px;justify-self:start">Administration</span></div></sc-for>
+                <sc-for list="{{ pf.projs }}" as="r" hint-placeholder-count="4"><div style="display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) minmax(0,1.1fr) 110px;gap:14px;align-items:center;padding:12px 0;border-bottom:1px solid #f1f5f4;font-size:13px"><b>{{ r.p }}</b><span style="color:#43586a">{{ r.role }}</span><span style="color:#43586a;font-variant-numeric:tabular-nums">{{ r.aff }}</span><span style="display:flex;flex-wrap:wrap;gap:4px"><sc-for list="{{ r.rights }}" as="d" hint-placeholder-count="1"><span style="padding:2px 8px;border-radius:6px;background:#e6f3f2;color:#0f5f5a;font-weight:700;font-size:11px;white-space:nowrap">{{ d }}</span></sc-for></span></div></sc-for>
+                <sc-if value="{{ pf.noProj }}" hint-placeholder-val="{{ false }}"><div style="padding:14px 0;font-size:12.5px;color:#8a9aa6">Aucun projet rattaché à ce compte.</div></sc-if>
               </div></div>
-              <div style="font-size:11.5px;color:#5c7280">Les affectations aux projets sont gérées dans le Cockpit, Mes projets › Dispositif.</div>
+              <div style="font-size:11.5px;color:#5c7280">Rôles et affectations : Référentiel du projet (Dispositif). Droits : Console, Utilisateurs.</div>
             </div>
           </sc-if>
           <sc-if value="{{ pf.isNot }}" hint-placeholder-val="{{ false }}">
@@ -487,10 +488,10 @@ a{color:#1d8f86}a:hover{color:#146b64}
               <!-- API : lignes « Authentification à deux facteurs » et « Confirmation renforcée » retirées — pas de double authentification (décision du 28/09/2026). -->
               <div style="display:flex;align-items:center;gap:10px;padding:18px 0 8px"><span style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:#5c7280;white-space:nowrap">Sessions ouvertes</span><span style="flex:1"></span><sc-if value="{{ pf.others }}" hint-placeholder-val="{{ true }}"><button onClick="{{ pf.revokeAll }}" style="border:0;background:transparent;font-size:12px;font-weight:700;color:#a8372c;cursor:pointer">Déconnecter les autres sessions</button></sc-if></div>
               <sc-for list="{{ pf.sess }}" as="s" hint-placeholder-count="3"><div style="display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid #f1f5f4;font-size:13px"><span style="width:8px;height:8px;border-radius:50%;background:#1d8f86;flex:none"></span><span style="min-width:0;flex:1"><span style="display:block;font-weight:600">{{ s.d }}</span><span style="display:block;font-size:11.5px;color:#5c7280">{{ s.l }} · {{ s.t }}</span></span><sc-if value="{{ s.notCur }}" hint-placeholder-val="{{ true }}"><button onClick="{{ s.rv }}" style="height:30px;padding:0 10px;border:1px solid #ecd0cc;border-radius:8px;background:#fff;color:#a8372c;font-size:12px;font-weight:700;cursor:pointer" style-hover="background:#fdecec">Déconnecter</button></sc-if></div></sc-for>
-              <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0 0;font-size:13px"><span>Dernière connexion</span><span style="color:#43586a">Aujourd’hui · 09:12 · Paris</span></div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0 0;font-size:13px"><span>Dernière connexion</span><span style="color:#43586a">{{ pf.lastLogin }}</span></div>
             </div>
           </sc-if>
-          <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;padding:16px 26px;border-top:1px solid #eef3f2;background:#f7faf9;border-radius:0 0 16px 16px"><span style="font-size:11.5px;color:#5c7280">Dernière modification le 12 sept. 2026</span><div style="display:flex;gap:10px"><sc-if value="{{ pf.dirty }}" hint-placeholder-val="{{ false }}"><button onClick="{{ pf.cancel }}" style="height:36px;padding:0 16px;border-radius:9px;border:1px solid #dfe7e5;background:#fff;font-size:13px;font-weight:600;color:#43586a;cursor:pointer">Annuler</button></sc-if><button onClick="{{ pf.save }}" aria-disabled="{{ pf.clean }}" style="{{ pf.saveSt }}">Enregistrer</button></div></div>
+          <div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;padding:16px 26px;border-top:1px solid #eef3f2;background:#f7faf9;border-radius:0 0 16px 16px"><span style="font-size:11.5px;color:#5c7280">{{ pf.updated }}</span><div style="display:flex;gap:10px"><sc-if value="{{ pf.dirty }}" hint-placeholder-val="{{ false }}"><button onClick="{{ pf.cancel }}" style="height:36px;padding:0 16px;border-radius:9px;border:1px solid #dfe7e5;background:#fff;font-size:13px;font-weight:600;color:#43586a;cursor:pointer">Annuler</button></sc-if><button onClick="{{ pf.save }}" aria-disabled="{{ pf.clean }}" style="{{ pf.saveSt }}">Enregistrer</button></div></div>
         </div>
       </div>
     </sc-if>
@@ -894,7 +895,7 @@ const META = {
   library: ['Projets', 'Bibliothèque des projets', 'Tous les projets de la plateforme, leur état et leur référentiel.'],
   persona: ['Assistant', 'Persona', 'Qui est Jev, et comment il pense.'],
   skills: ['Assistant', 'Skills', 'Des consignes ajoutées au prompt de Jev.'],
-  profil: ['Compte', 'Mon profil', 'Vos informations, vos habilitations d’administratrice et la sécurité de votre compte.']
+  profil: ['Compte', 'Mon profil', 'Vos informations, vos habilitations et la sécurité de votre compte.']
 };
 const JCHIPS = {
   overview: ['Quel est l’état de la plateforme ?', 'Où en est le budget IA ?', 'Qui a fait des actions sensibles récemment ?'],
@@ -948,6 +949,7 @@ class Component extends DCLogic {
       dlg: null, dt: '', form: {}, fe: {}, toast: null, nt: NT0.map(n => ({ ...n })), ntOpen: false,
       jev: false, jm: [], jIn: '', jThink: false, jCtx: null,
       prof: { first: 'Julien', last: 'Morel', pos: 'Directeur de projet', soc: 'Onepoint', team: 'Onepoint', mail: 'julien.morel@example.com', tel: '+33 6 12 48 90 27', city: 'Paris', country: 'France', lang: 'Français', tz: 'Europe/Paris (UTC+2)' },
+      meInfo: { admin: true, adminSince: '2025-01-14', lastLoginAt: null, updatedAt: '2026-09-12T10:00:00Z', team: 'Onepoint', myActions: null, projects: [{ code: 'RISE', client: 'AMC Corp', roles: ['PMO programme', 'AMOA'], startDate: '2024-03-01', endDate: '2026-12-31', rights: ['PMO'] }, { code: 'PMS', client: 'AMC Corp', roles: ['PMO de portefeuille'], startDate: '2024-09-15', endDate: '2027-06-30', rights: ['PMO'] }] },
       pd: null, profTab: 'infos', photo: null, pn: { crit: true, budget: true, req: true, hebdo: true, fail: false },
       sess: [{ id: 's1', d: 'MacBook Pro · Chrome', l: 'Paris, France', t: 'Session actuelle', cur: true }, { id: 's2', d: 'iPhone 15 · Safari', l: 'Paris, France', t: 'Active il y a 3 h' }, { id: 's3', d: 'Windows · Edge', l: 'Lyon, France', t: 'Active il y a 2 j' }]
     };
@@ -1578,20 +1580,29 @@ class Component extends DCLogic {
     };
     // Profil
     if (is('profil')) {
-      const P = S.pd || S.prof, dirty = !!S.pd && JSON.stringify(S.pd) !== JSON.stringify(S.prof), mine = S.audit.filter(a => a.who === 'Julien Morel');
+      // Profil réel (08/10/2026) : GET /api/admin/me/profile (`meInfo`) ; plus de projets, dates ni compteurs codés en dur.
+      const P = S.pd || S.prof, dirty = !!S.pd && JSON.stringify(S.pd) !== JSON.stringify(S.prof), meName = S.prof.first + ' ' + S.prof.last, mine = S.audit.filter(a => a.who === meName), MI = S.meInfo || {};
+      const dFr = v => v ? new Date(String(v).length === 10 ? v + 'T12:00:00' : v).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : '', dNum = v => v ? v.split('-').reverse().join('/') : '…';
+      const ll = MI.lastLoginAt ? new Date(MI.lastLoginAt) : null, llDay = ll && ll.toDateString() === new Date().toDateString();
       vals.pf = {
         tabs: [['infos', 'Informations'], ['habil', 'Habilitations'], ['notifs', 'Notifications'], ['secu', 'Sécurité']].map(([k, l]) => ({ l, on: S.profTab === k, pick: () => this.setState({ profTab: k }), st: `padding:16px 12px 14px;font-size:13px;cursor:pointer;margin-bottom:-1px;border:0;background:transparent;white-space:nowrap;border-bottom:2px solid ${S.profTab === k ? '#1d8f86' : 'transparent'};font-weight:${S.profTab === k ? 700 : 600};color:${S.profTab === k ? '#10233a' : '#5c7280'}` })),
         isInfos: S.profTab === 'infos', isHab: S.profTab === 'habil', isNot: S.profTab === 'notifs', isSec: S.profTab === 'secu',
         p: P, set: Object.fromEntries(['first', 'last', 'pos', 'soc', 'mail', 'tel', 'city'].map(k => [k, this.pSet(k)])),
-        name: S.prof.first + ' ' + S.prof.last, av: `width:96px;height:96px;border-radius:50%;display:grid;place-items:center;font-size:28px;font-weight:800;color:#fff;cursor:pointer;position:relative;overflow:hidden;box-shadow:0 0 0 4px #fff,0 0 0 5px #e1e9e7;background:${S.photo ? `url(${S.photo}) center/cover` : '#1d8f86'}`, avTx: S.photo ? '' : ini(S.prof.first + ' ' + S.prof.last),
-        pwdAge: this.state.pwdAge || 'Modifié il y a 3 mois', pick: () => this._pf.current && this._pf.current.click(), fileRef: this._pf, onFile: e => this.onPhoto(e), logout: () => (this._logout ? this._logout() : this.toast('Vous êtes déconnecté')),
+        name: meName, av: 'width:96px;height:96px;border-radius:50%;display:grid;place-items:center;font-size:28px;font-weight:800;color:#fff;cursor:pointer;position:relative;overflow:hidden;box-shadow:0 0 0 4px #fff,0 0 0 5px #e1e9e7;background:#1d8f86', avTx: S.photo ? '' : ini(meName),
+        hasPhoto: !!S.photo, photoSrc: S.photo || '',
+        team: P.team || MI.team || '—', sinceL: MI.admin === false ? 'Compte créé' : 'Administrateur depuis', since: dFr(MI.adminSince) || '—',
+        grantL: (MI.adminSince ? 'Accordé le ' + dFr(MI.adminSince) + '. ' : '') + 'Seul un autre administrateur peut retirer ce droit.',
+        lastLogin: ll ? (llDay ? 'Aujourd’hui' : dFr(ll)) + ' · ' + ll.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '—',
+        updated: MI.updatedAt ? 'Dernière modification le ' + dFr(MI.updatedAt) : 'Aucune modification enregistrée',
+        noProj: !(MI.projects || []).length,
+        pwdAge: this.state.pwdAge || '—', pick: () => this._pf.current && this._pf.current.click(), fileRef: this._pf, onFile: e => this.onPhoto(e), logout: () => (this._logout ? this._logout() : this.toast('Vous êtes déconnecté')),
         dirty, clean: !dirty, save: () => this.saveMe(), cancel: () => this.setState({ pd: null }), saveSt: `height:36px;padding:0 18px;border:0;border-radius:9px;color:#fff;font-size:13px;font-weight:700;cursor:${dirty ? 'pointer' : 'default'};background:#1d8f86;opacity:${dirty ? 1 : .4};transition:opacity .15s,background .15s`,
         countryEl: this.selEl(P.country, this.pSet('country'), ['France', 'Belgique', 'Suisse', 'Luxembourg', 'Allemagne', 'Espagne', 'Italie', 'Royaume-Uni', 'Canada', 'Maroc'].map(v => ({ v, l: v })), 'Pays de résidence', '100%'),
         langEl: this.selEl(P.lang, this.pSet('lang'), ['Français', 'English', 'Deutsch', 'Español', 'Italiano'].map(v => ({ v, l: v })), 'Langue', '100%'),
         tzEl: this.selEl(P.tz, this.pSet('tz'), ['Europe/Paris (UTC+2)', 'Europe/London (UTC+1)', 'America/Montreal (UTC−4)', 'Africa/Casablanca (UTC+1)', 'Asia/Singapore (UTC+8)'].map(v => ({ v, l: v })), 'Fuseau horaire', '100%'),
         perms: ['Utilisateurs, invitations et suspensions', 'Administrateurs de la plateforme', 'Droits, profils types et habilitations', 'Fournisseurs LLM et clés API', 'Affectation des modèles et budgets IA', 'Snapshots et restaurations', 'Notifications et modules'],
-        projs: PROJ.map((p, i) => ({ p: p + ' — AMC Corp', role: i === 0 ? 'PMO programme · AMOA' : 'PMO de portefeuille', aff: ['01/03/2024 → 31/12/2026', '15/09/2024 → 30/06/2027', '02/01/2025 → 31/03/2027', '01/07/2026 → 31/12/2027'][i] })),
-        mineN: mine.length, mineCrit: mine.filter(a => a.sev === 'critique').length, goMine: () => this.go('admins', () => this.setState({ adTab: 'audit', aq: 'Julien Morel', aSev: 'tous' })),
+        projs: (MI.projects || []).map(x => ({ p: x.code + (x.client ? ' — ' + x.client : x.name ? ' — ' + x.name : ''), role: (x.roles || []).join(' · ') || '—', aff: x.startDate ? dNum(x.startDate) + ' → ' + dNum(x.endDate) : '—', rights: (x.rights || []).length ? x.rights : ['Aucun droit'] })),
+        mineN: MI.myActions ? MI.myActions.total : mine.length, mineCrit: MI.myActions ? MI.myActions.critical : mine.filter(a => a.sev === 'critique').length, goMine: () => this.go('admins', () => this.setState({ adTab: 'audit', aq: meName, aSev: 'tous' })),
         notifs: [['crit', 'Alertes critiques de la plateforme (clé API, fournisseur indisponible)', 'E-mail et application · obligatoire pour les administrateurs', true], ['budget', 'Dépassement d’un seuil budgétaire IA', 'E-mail', false], ['req', 'Demandes d’activation de module', 'Application', false], ['hebdo', 'Synthèse hebdomadaire de l’administration', 'E-mail · lundi 08:00', false], ['fail', 'Échecs d’envoi de notifications', 'Application', false]].map(([k, l, d, lock]) => ({ l, d, lock, sw: this.sw(S.pn[k], () => { if (lock) return this.toast('Cette alerte ne peut pas être désactivée pour un administrateur', 'err'); this.setState(s => ({ pn: { ...s.pn, [k]: !s.pn[k] } })); this.toast(S.pn[k] ? 'Notification désactivée' : 'Notification activée'); }, l) })),
         sess: S.sess.map(s => ({ ...s, rv: () => this.revoke(s), notCur: !s.cur })), others: S.sess.filter(s => !s.cur).length > 0, revokeAll: () => this.revokeAll(),
         pwd: () => { this.log('Demande de changement de mot de passe', S.prof.mail, 'sensible'); this.toast('Lien de changement envoyé à ' + S.prof.mail); }

@@ -219,6 +219,8 @@ const sortMods = l => [...l].sort((a, b) => (MOD_ORDER.indexOf(a.id) + 1 || 99) 
 export const toReq = r => ({ id: r.id, m: r.moduleId, who: r.requestedBy, p: r.projectCode || r.projectId, t: D(r.at) });
 /** Profil de l'administrateur → `prof`. */
 export const toProf = me => { const p = me.profile || {}; return { first: me.firstName || '', last: me.lastName || '', pos: p.position || '', soc: p.company || '', team: p.team || '', mail: me.email, tel: p.phone || '', city: p.city || '', country: p.country || 'France', lang: p.language || 'Français', tz: p.timezone || 'Europe/Paris (UTC+2)' }; };
+/** Données du profil hors formulaire (08/10/2026) : droits, projets, rôles, affectations, compteurs, dates. */
+export const toMeInfo = me => ({ admin: me.admin !== false, adminSince: me.adminSince || null, lastLoginAt: me.lastLoginAt || null, updatedAt: me.updatedAt || null, team: me.team || null, myActions: me.myActions || null, projects: me.projects || [] });
 export const fromProf = d => ({ firstName: d.first.trim(), lastName: d.last.trim(), email: d.mail.trim(), position: d.pos || '', company: d.soc || '', team: d.team || '', phone: d.tel || '', city: d.city || '', country: d.country || '', language: d.lang || '', timezone: d.tz || '' });
 
 // Horloge de référence : l'instant du serveur (`DEMO_NOW` en démonstration) + temps écoulé.
@@ -316,7 +318,7 @@ export function bindConsole(c) {
     guide: async () => { const g = await get('/guides'); setTimeout(() => gdWatch(g), 0); return { gdGuides: g }; },
     mods: async () => ({ mods: sortMods((await get('/modules')).map(toMod)) }),
     reqs: async () => ({ reqs: (await get('/module-requests?status=PENDING')).map(toReq) }),
-    prof: async () => { const me = await get('/me/profile'); meId = me.id; return { prof: toProf(me), pn: { crit: true, budget: true, req: true, hebdo: true, fail: false, ...(me.notifications || {}) }, photo: me.photoUrl || null }; },
+    prof: async () => { const me = await get('/me/profile'); meId = me.id; return { prof: toProf(me), meInfo: toMeInfo(me), pn: { crit: true, budget: true, req: true, hebdo: true, fail: false, ...(me.notifications || {}) }, photo: me.photoUrl || null }; },
     sess: async () => ({ sess: (await get('/me/sessions')).map(toSess) }),
     // Chantiers de chaque projet, pour attribuer des chantiers en Responsable ou en Lecteur.
     wsAll: async () => { const ps = await get('/projects'), lists = await Promise.all(ps.map(p => get('/projects/' + encodeURIComponent(p.code) + '/workstreams'))); return { apiWs: Object.fromEntries(ps.map((p, i) => [p.code, lists[i].map(w => ({ id: w.id, n: w.name }))])) }; },
@@ -757,7 +759,7 @@ export function bindConsole(c) {
     const S = c.state, d = S.pd; if (!d) return;
     if (!d.first.trim() || !d.last.trim()) return toast('Le prénom et le nom sont requis', 'err');
     if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(d.mail)) return toast('Adresse e-mail invalide', 'err');
-    const commit = async () => { try { const me = await patch('/me/profile', fromProf(d)); set0({ prof: toProf(me), pd: null }); toast('Profil enregistré'); touch(); } catch (e) { fail(e); } };
+    const commit = async () => { try { const me = await patch('/me/profile', fromProf(d)); set0({ prof: toProf(me), meInfo: toMeInfo(me), pd: null }); toast('Profil enregistré'); touch(); } catch (e) { fail(e); } };
     if (d.mail !== S.prof.mail) c.ask({ tone: 'warn', title: 'Changer votre adresse e-mail de connexion ?', body: 'Un lien de vérification est envoyé à la nouvelle adresse. L’ancienne reste active jusqu’à la validation.', items: [{ l: 'E-mail', a: S.prof.mail, b: d.mail }], cta: 'Envoyer le lien', ok: commit });
     else commit();
   };
@@ -766,9 +768,15 @@ export function bindConsole(c) {
   c.onPhoto = e => {
     const f = e.target.files && e.target.files[0]; if (!f) return;
     if (!/^image\//.test(f.type)) return toast('Choisissez une image', 'err');
+    // Photo (08/10/2026) : recadrée au carré et réduite à 256 px (JPEG) ; une photo d'appareil dépassait la limite du serveur.
     const rd = new FileReader();
-    rd.onload = () => patch('/me/profile', { photoUrl: String(rd.result) }).then(me => { set0({ photo: me.photoUrl }); toast('Photo mise à jour'); touch(); }).catch(fail);
+    rd.onload = () => { const img = new Image(); img.onerror = () => toast('Image illisible', 'err');
+      img.onload = () => { const N = 256, cv = document.createElement('canvas'), k = Math.min(img.width, img.height); cv.width = N; cv.height = N;
+        cv.getContext('2d').drawImage(img, (img.width - k) / 2, (img.height - k) / 2, k, k, 0, 0, N, N);
+        patch('/me/profile', { photoUrl: cv.toDataURL('image/jpeg', .86) }).then(me => { set0({ photo: me.photoUrl, meInfo: toMeInfo(me) }); toast('Photo mise à jour'); touch(); }).catch(fail); };
+      img.src = String(rd.result); };
     rd.readAsDataURL(f);
+    e.target.value = '';
   };
   // Mon profil › Sécurité : « Modifier » → fenêtre de changement (auth-api.js), POST /api/auth/password ;
   // ancienneté réelle du mot de passe (GET /api/auth/session). Le serveur ferme les autres sessions.

@@ -700,3 +700,9 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
 ## Modèle Excel : début et fin des chantiers (07/10/2026)
 
 - `Referentiel RISE - initialisation.xlsx` (modèle vierge téléchargé depuis l'écran d'initialisation et base du préremplissage) : onglet « 10 Chantiers », colonnes facultatives « Début » et « Fin » après « Statut ». Le préremplissage les remplit quand la proposition les donne ; sinon l'import les calcule à partir des sous-phases du chantier.
+
+## Mon profil : photo et données réelles (08/10/2026)
+
+- Photo : affichée par une balise image dans le profil et dans la barre latérale (`Sidebar Console.dc.html`) ; une URL `data:` contient « ; », que le moteur des écrans prend pour un séparateur de styles : la photo ne s'affichait jamais. Recadrée au carré et réduite à 256 px (JPEG) avant l'envoi (une photo d'appareil dépassait la limite de 2 Mo du serveur).
+- Données de démonstration retirées : « Administratrice depuis 14 janv. 2025 », « Accordé le 14 janv. 2025 », projets « RISE / PMS — AMC Corp » avec rôles et dates fixes, colonne « Droits » toujours « Administration », compteur d'actions filtré sur « Julien Morel », « Dernière connexion Aujourd'hui · 09:12 · Paris », « Dernière modification le 12 sept. 2026 », « Modifié il y a 3 mois ». Ils viennent désormais de `GET /api/admin/me/profile` (`meInfo`, `toMeInfo` dans `admin-api.js`) : date d'attribution du rôle d'administrateur, équipe de la personne du référentiel, projets du compte avec rôles, affectation et droits (PMO, Responsable / Lecteur et leurs chantiers), actions tracées du compte, dernière connexion, dernière modification du profil.
+- Sous-titre : « Vos informations, vos habilitations et la sécurité de votre compte. » (sans « d'administratrice ») ; l'état initial de la simulation sans serveur garde les valeurs de la maquette.

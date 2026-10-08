@@ -210,7 +210,51 @@ export class ConsoleController implements OnModuleInit {
     const prefs = await this.prisma.userPreferences.findUnique({ where: { accountId: a.id } });
     const [firstName, ...rest] = a.fullName.split(' ');
     const grant = await this.prisma.adminGrant.findUnique({ where: { accountId: a.id } });
-    return { id: a.id, firstName, lastName: rest.join(' '), fullName: a.fullName, email: a.email, photoUrl: a.photoUrl, profile: a.profile ?? {}, adminSince: grant?.since ?? null, notifications: prefs?.notifications ?? { crit: true, budget: true, req: true, hebdo: true, fail: false }, version: a.version };
+    // Profil réel (08/10/2026 ; l'écran affichait des projets, rôles, dates et compteurs de démonstration) :
+    // projets du compte avec ses droits, rôles et affectation de la personne du référentiel (même e-mail),
+    // actions tracées, dernière connexion, dernière modification du profil.
+    const accountProjects = await this.prisma.accountProject.findMany({ where: { accountId: a.id } });
+    const rights = (await this.profiles.rightsOf([a])).get(a.id)!;
+    const persons = await this.prisma.person.findMany({ where: { OR: [{ email: { equals: a.email, mode: 'insensitive' } }, ...(a.personId ? [{ id: a.personId }] : [])] } });
+    const assigns = persons.length ? await this.prisma.assignment.findMany({ where: { personId: { in: persons.map((x) => x.id) } }, orderBy: { startDate: 'asc' } }) : [];
+    const pids = [...new Set([...accountProjects.map((x) => x.projectId), ...Object.keys(rights.projects), ...assigns.map((x) => x.projectId)])];
+    const projects = pids.length ? await this.prisma.project.findMany({ where: { id: { in: pids } }, include: { client: true }, orderBy: { createdAt: 'asc' } }) : [];
+    const roleLabel = Object.fromEntries((assigns.length ? await this.prisma.projectRole.findMany({ where: { id: { in: [...new Set(assigns.map((x) => x.roleId))] } } }) : []).map((r) => [r.id, r.label]));
+    const wsIds = Object.values(rights.projects).flatMap((r) => [...r.responsable, ...r.lecteur]);
+    const wsCode = Object.fromEntries((wsIds.length ? await this.prisma.workstream.findMany({ where: { id: { in: wsIds } }, select: { id: true, code: true } }) : []).map((w) => [w.id, w.code]));
+    const codes = (l: string[]) => [...new Set(l.map((w) => wsCode[w] ?? w))].sort((x, y) => x.localeCompare(y, 'fr', { numeric: true })).join(', ');
+    const teamIds = [...new Set(persons.map((x) => x.teamId).filter((x): x is string => !!x))];
+    const teams = teamIds.length ? await this.prisma.team.findMany({ where: { id: { in: teamIds } } }) : [];
+    const [actions, critical, lastEdit] = await Promise.all([
+      this.prisma.auditEntry.count({ where: { accountId: a.id } }),
+      this.prisma.auditEntry.count({ where: { accountId: a.id, severity: 'CRITICAL' } }),
+      this.prisma.auditEntry.findFirst({ where: { accountId: a.id, entityType: 'Account', entityId: a.id, action: { in: ['Modification du profil', 'Changement d’adresse e-mail'] } }, orderBy: { at: 'desc' }, select: { at: true } }),
+    ]);
+    return {
+      id: a.id, firstName, lastName: rest.join(' '), fullName: a.fullName, email: a.email, photoUrl: a.photoUrl, profile: a.profile ?? {}, adminSince: grant?.since ?? null,
+      notifications: prefs?.notifications ?? { crit: true, budget: true, req: true, hebdo: true, fail: false }, version: a.version,
+      admin: rights.admin,
+      lastLoginAt: a.lastLoginAt,
+      updatedAt: lastEdit?.at ?? null,
+      // Équipe : celle de la personne du référentiel (premier projet où elle en a une).
+      team: teams.map((t) => t.name).filter((x, i, l) => l.indexOf(x) === i).join(', ') || null,
+      myActions: { total: actions, critical },
+      projects: projects.map((pr) => {
+        const r = rights.projects[pr.id] ?? { pmo: false, responsable: [], lecteur: [] };
+        const mine = assigns.filter((x) => x.projectId === pr.id);
+        const lecteur = r.lecteur.filter((w) => !r.responsable.includes(w));
+        const droits = [r.pmo ? 'PMO' : null, r.responsable.length ? `Responsable ${codes(r.responsable)}` : null, lecteur.length ? `Lecteur ${codes(lecteur)}` : null].filter((x): x is string => !!x);
+        return {
+          code: pr.code,
+          name: pr.name,
+          client: pr.client?.name ?? null,
+          roles: [...new Set(mine.map((x) => roleLabel[x.roleId]).filter(Boolean))],
+          startDate: mine.length ? mine[0].startDate : null,
+          endDate: mine.length && mine.every((x) => x.endDate) ? mine.map((x) => x.endDate!).sort().pop()! : null,
+          rights: droits,
+        };
+      }),
+    };
   }
 
   @Get('me/profile')

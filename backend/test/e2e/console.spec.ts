@@ -21,6 +21,19 @@ describe('Console Admin — critères d’acceptation (brief Console § 13)', ()
       expect(ok.body.attention[0]).toMatchObject({ level: 'error', kind: 'PROVIDER_ERROR' });
       expect(ok.body.attention[0].detail).toMatch(/Documents · Synthèse tourne sur son modèle de secours/);
     });
+    it('Mon profil : données réelles (droits, projets, compteurs, dates) et photo enregistrée', async () => {
+      const c = await t.as(WHO.admin);
+      const me = (await c.get(`${A}/me/profile`).expect(200)).body;
+      expect(me.admin).toBe(true);
+      expect(Array.isArray(me.projects)).toBe(true);
+      for (const p of me.projects) expect(p).toEqual(expect.objectContaining({ code: expect.any(String), roles: expect.any(Array), rights: expect.any(Array) }));
+      expect(me.myActions).toEqual({ total: expect.any(Number), critical: expect.any(Number) });
+      const photo = 'data:image/jpeg;base64,' + Buffer.from('photo').toString('base64');
+      const up = (await c.patch(`${A}/me/profile`, { photoUrl: photo }).expect(200)).body;
+      expect(up.photoUrl).toBe(photo);
+      expect(up.updatedAt).toBeTruthy();
+      expect(up.myActions.total).toBe(me.myActions.total + 1);
+    });
     it('vue d’ensemble : échecs d’envoi et demandes d’invitation du PMO décrits en clair (règle, canal, personne)', async () => {
       const rule = await t.db.notificationRule.findFirstOrThrow();
       const person = await t.db.person.findFirstOrThrow({ where: { projectId: 'RISE' } });
