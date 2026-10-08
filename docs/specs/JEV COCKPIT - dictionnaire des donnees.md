@@ -222,7 +222,7 @@ Phases du planning d’un projet : dates, statut, avancement réel et prévu, cr
 
 ## sous_phases
 
-Sous-phases d’une phase (code « phase.n ») : dates, statut, avancement, criticité.
+Sous-phases d’une phase : dates, statut, avancement, criticité. Les utilisateurs les appellent souvent « tâches ». Numérotation libre (le code ne désigne ni la phase ni le chantier). Chaque sous-phase est rattachée à un ou plusieurs chantiers précis : chantiers_sous_phases.
 
 | Colonne | Type | Signification | Exemples, unités |
 |---|---|---|---|
@@ -249,6 +249,7 @@ Sous-phases d’une phase (code « phase.n ») : dates, statut, avancement, crit
 
 - Chemin critique détaillé.
 - Sous-phases en cours.
+- Sous-phases (tâches) par chantier : jointure avec chantiers_sous_phases.
 
 **Règles et précautions**
 
@@ -256,6 +257,7 @@ Sous-phases d’une phase (code « phase.n ») : dates, statut, avancement, crit
 - En cours = date_debut ≤ date du jour ≤ date_fin (les deux dates renseignées).
 - Les dates sont du texte AAAA-MM-JJ : comparer comme du texte, ou convertir avec ::date pour calculer un écart en jours.
 - Droits : visible de tout utilisateur habilité sur le projet (projet_id).
+- Chantier d’une sous-phase : uniquement par chantiers_sous_phases (sous_phase_id → chantier_id). Jamais par la phase : une phase est partagée par plusieurs chantiers, chantiers_phases donnerait tous les chantiers de la phase.
 
 ## chantiers
 
@@ -281,7 +283,7 @@ Chantiers (workstreams) d’un projet : responsable, dates, avancement. Le chant
 **Relations**
 
 - chantiers.projet_id = projets.id
-- chantiers.id = chantier_id des vues risques, problemes, actions, decisions, avancements, jalons, livrables, habilitations
+- chantiers.id = chantier_id des vues risques, problemes, actions, decisions, avancements, jalons, livrables, habilitations, chantiers_phases, chantiers_sous_phases
 
 **Usages**
 
@@ -316,6 +318,7 @@ Phases couvertes par chaque chantier.
 **Règles et précautions**
 
 - Droits : visible de tout utilisateur habilité sur le projet (projet_id).
+- Ne sert pas à trouver le chantier d’une sous-phase : une phase est partagée par plusieurs chantiers. Pour les sous-phases, utiliser chantiers_sous_phases.
 
 ## chantiers_sous_phases
 
@@ -334,8 +337,9 @@ Sous-phases couvertes par chaque chantier (06/10/2026) ; chacune appartient à l
 
 **Usages**
 
-- Sur quelles sous-phases travaille tel chantier ?
+- Sur quelles sous-phases (tâches) travaille tel chantier ?
 - Quels chantiers interviennent dans telle sous-phase ?
+- Par chantier, sous-phases en retard de démarrage, en cours ou à venir.
 
 **Règles et précautions**
 

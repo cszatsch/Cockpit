@@ -64,7 +64,10 @@ export const nowParisLabel = (d: Date) => new Intl.DateTimeFormat('sv-SE', { tim
 // ───────────── Cas 1 : Insight sur les données du projet ─────────────
 
 /** Consigne ajoutée à l'étape « requête » : la question vient de l'aiguillage (cas 1, données). */
-export const COCKPIT_INSIGHT_DATA_HINT = 'La question porte sur les données du projet (aiguillage) : réponds par une requête SQL sur les vues ci-dessus.';
+export const COCKPIT_INSIGHT_DATA_HINT = 'La question porte sur les données du projet (aiguillage) : réponds par une requête SQL sur les vues ci-dessus. '
+  // Correctif du 08/10/2026 : une question de suite (« par chantier », « pour chacune… ») était répondue depuis la mémoire
+  // de la conversation, sans requête, en reprenant une réponse précédente fausse.
+  + 'Écris toujours une nouvelle requête, même si un échange précédent semble déjà contenir la réponse : un nouveau découpage, regroupement ou filtre se calcule sur les données, jamais à partir des réponses précédentes (elles peuvent être incomplètes ou fausses).';
 
 /** Périmètre de lecture de l'utilisateur, tel que les vues l'appliquent (projet, chantiers lisibles). */
 export function cockpitScopeLine(chantiers: '*' | string[]): string {
@@ -78,6 +81,7 @@ export const COCKPIT_INSIGHT_ANSWER_RULES = [
   '## Réponse à partir des données du projet',
   'La question a été traduite en requête SQL, exécutée sur les données du projet que l’utilisateur a le droit de voir. Réponds à partir des résultats fournis, et d’eux seuls :',
   '- N’invente aucune valeur, aucun code, aucune date. Si les résultats sont vides, dis qu’aucune donnée ne correspond dans ton périmètre. S’ils sont tronqués, dis-le.',
+  '- N’explique pas un résultat par une règle de gestion que les données ne disent pas (« éléments communs à tous les chantiers », « phase transverse »…) : décris ce que montrent les résultats ; si un rattachement paraît anormal, signale-le comme tel.',
   '- Commence par la réponse elle-même (le chiffre, la date, la liste), puis les éléments utiles, hiérarchisés : ce qui menace le prochain jalon d’abord.',
   '- Cite les codes des objets (R03, A-41, D-005, J07) ; traduis les statuts et les codes d’après le dictionnaire ; ne montre pas la requête SQL.',
   '- Si le périmètre de l’utilisateur est limité à certains chantiers, précise que la réponse porte sur ces chantiers.',

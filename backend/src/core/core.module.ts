@@ -1,3 +1,4 @@
+import { DictionarySyncService } from './dictionary-sync';
 import { Global, Module } from '@nestjs/common';
 import { JevPromptService } from './jev-prompt.service';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
@@ -31,7 +32,7 @@ import { LlmClient } from './llm-client';
     }),
   ],
   controllers: [AuthController, ChangesController],
-  providers: [{ provide: APP_GUARD, useClass: AuthGuard }, ChangesService, { provide: APP_INTERCEPTOR, useClass: ChangesInterceptor }, AccessService, AuditService, TodayService, StorageService, LlmService, JevPromptService, JobsService, MailerService, SmtpService, SessionService, CredentialsService, ProviderKeyTester, LlmClient],
-  exports: [ChangesService, AccessService, AuditService, TodayService, StorageService, LlmService, JevPromptService, JobsService, MailerService, SmtpService, SessionService, CredentialsService, ProviderKeyTester, LlmClient],
+  providers: [{ provide: APP_GUARD, useClass: AuthGuard }, ChangesService, { provide: APP_INTERCEPTOR, useClass: ChangesInterceptor }, AccessService, AuditService, TodayService, StorageService, LlmService, JevPromptService, JobsService, MailerService, SmtpService, SessionService, CredentialsService, ProviderKeyTester, LlmClient, DictionarySyncService],
+  exports: [ChangesService, AccessService, AuditService, TodayService, StorageService, LlmService, JevPromptService, JobsService, MailerService, SmtpService, SessionService, CredentialsService, ProviderKeyTester, LlmClient, DictionarySyncService],
 })
 export class CoreModule {}

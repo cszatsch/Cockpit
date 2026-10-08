@@ -153,7 +153,7 @@ export const DICTIONNAIRE_COCKPIT: DictTable[] = [
   {
     nom: 'sous_phases',
     source: '"Subphase" t',
-    description: 'Sous-phases d’une phase (code « phase.n ») : dates, statut, avancement, criticité.',
+    description: 'Sous-phases d’une phase : dates, statut, avancement, criticité. Les utilisateurs les appellent souvent « tâches ». Numérotation libre (le code ne désigne ni la phase ni le chantier). Chaque sous-phase est rattachée à un ou plusieurs chantiers précis : chantiers_sous_phases.',
     colonnes: [
       { nom: 'id', expr: 't.id', type: 'texte', signification: 'Identifiant de la sous-phase' },
       { nom: 'projet_id', expr: `t.${q('projectId')}`, type: 'texte', signification: 'Projet → projets.id' },
@@ -170,8 +170,8 @@ export const DICTIONNAIRE_COCKPIT: DictTable[] = [
       { nom: 'responsable_id', expr: `t.${q('ownerId')}`, type: 'texte', signification: 'Responsable → personnes.id' },
     ],
     relations: ['sous_phases.phase_id = phases.id', 'sous_phases.id = livrables.sous_phase_id, jalons.sous_phase_id, chantiers_sous_phases.sous_phase_id'],
-    usages: ['Chemin critique détaillé.', 'Sous-phases en cours.'],
-    regles: [AVANCEMENT_PREVU, EN_COURS, DATES_TEXTE, DROITS_PROJET],
+    usages: ['Chemin critique détaillé.', 'Sous-phases en cours.', 'Sous-phases (tâches) par chantier : jointure avec chantiers_sous_phases.'],
+    regles: [AVANCEMENT_PREVU, EN_COURS, DATES_TEXTE, DROITS_PROJET, 'Chantier d’une sous-phase : uniquement par chantiers_sous_phases (sous_phase_id → chantier_id). Jamais par la phase : une phase est partagée par plusieurs chantiers, chantiers_phases donnerait tous les chantiers de la phase.'],
   },
   {
     nom: 'chantiers',
@@ -193,7 +193,7 @@ export const DICTIONNAIRE_COCKPIT: DictTable[] = [
       { nom: 'critique', expr: 't.critical', type: 'booléen', signification: 'Chantier critique' },
       { nom: 'depend_de_tous', expr: `t.${q('dependsOnAll')}`, type: 'booléen', signification: 'Dépend de tous les autres chantiers (« Tous »)' },
     ],
-    relations: ['chantiers.projet_id = projets.id', 'chantiers.id = chantier_id des vues risques, problemes, actions, decisions, avancements, jalons, livrables, habilitations'],
+    relations: ['chantiers.projet_id = projets.id', 'chantiers.id = chantier_id des vues risques, problemes, actions, decisions, avancements, jalons, livrables, habilitations, chantiers_phases, chantiers_sous_phases'],
     usages: ['Qui est responsable de quel chantier ?', 'Chantiers en retard d’avancement.'],
     regles: [AVANCEMENT_PREVU, DATES_TEXTE, 'Droits : le Cockpit affiche la liste de tous les chantiers du projet ; leur contenu (risques, actions…) est filtré par chantier.'],
   },
@@ -208,7 +208,7 @@ export const DICTIONNAIRE_COCKPIT: DictTable[] = [
     ],
     relations: ['chantiers_phases.chantier_id = chantiers.id', 'chantiers_phases.phase_id = phases.id'],
     usages: ['Quels chantiers travaillent sur telle phase ?'],
-    regles: [DROITS_PROJET],
+    regles: [DROITS_PROJET, 'Ne sert pas à trouver le chantier d’une sous-phase : une phase est partagée par plusieurs chantiers. Pour les sous-phases, utiliser chantiers_sous_phases.'],
   },
   {
     nom: 'chantiers_sous_phases',
@@ -220,7 +220,7 @@ export const DICTIONNAIRE_COCKPIT: DictTable[] = [
       { nom: 'sous_phase_id', expr: `t.${q('subphaseId')}`, type: 'texte', signification: 'Sous-phase → sous_phases.id' },
     ],
     relations: ['chantiers_sous_phases.chantier_id = chantiers.id', 'chantiers_sous_phases.sous_phase_id = sous_phases.id'],
-    usages: ['Sur quelles sous-phases travaille tel chantier ?', 'Quels chantiers interviennent dans telle sous-phase ?'],
+    usages: ['Sur quelles sous-phases (tâches) travaille tel chantier ?', 'Quels chantiers interviennent dans telle sous-phase ?', 'Par chantier, sous-phases en retard de démarrage, en cours ou à venir.'],
     regles: [DROITS_PROJET],
   },
   {

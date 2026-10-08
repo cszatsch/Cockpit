@@ -1,6 +1,8 @@
 import { setup, TestCtx, Client, WHO } from '../helpers';
 import { DICTIONNAIRE_COCKPIT, JEV_COCKPIT_SCHEMA } from '../../src/domain/jev-dictionnaire-cockpit';
 import { JevSqlService } from '../../src/admin/jev-sql.service';
+import { DictionarySyncService, dictionaryDrift } from '../../src/core/dictionary-sync';
+import { COCKPIT_INSIGHT_DATA_HINT } from '../../src/domain/jev-cockpit-answers';
 
 /**
  * Dictionnaire des données du Cockpit (schéma jev_cockpit).
@@ -48,6 +50,27 @@ describe('Cockpit — dictionnaire des données', () => {
       expect(tables.map((x) => x.nom)).toEqual(DICTIONNAIRE_COCKPIT.map((f) => f.nom));
       for (const [i, f] of DICTIONNAIRE_COCKPIT.entries()) expect(tables[i].colonnes.map((c) => c.nom)).toEqual(f.colonnes.map((c) => c.nom));
       expect(await t.db.dictionnaireTable.count({ where: { espace: 'console' } })).toBeGreaterThan(30);
+    });
+  });
+
+  describe('synchronisation avec le code (correctif du 08/10/2026)', () => {
+    it('au démarrage, un dictionnaire en base périmé (vue chantiers_sous_phases absente) est rechargé ; à jour, rien n’est réécrit', async () => {
+      const sync = t.app.get(DictionarySyncService);
+      expect(await dictionaryDrift(t.db)).toEqual([]);
+      expect(await sync.sync()).toEqual([]);
+      await t.db.dictionnaireTable.delete({ where: { espace_nom: { espace: 'cockpit', nom: 'chantiers_sous_phases' } } });
+      await t.db.dictionnaireTable.update({ where: { espace_nom: { espace: 'cockpit', nom: 'sous_phases' } }, data: { relations: 'ancienne relation' } });
+      expect(await dictionaryDrift(t.db)).toEqual(['cockpit.sous_phases : différente', 'cockpit.chantiers_sous_phases : absente en base']);
+      expect(await sync.sync()).toHaveLength(2);
+      expect(await dictionaryDrift(t.db)).toEqual([]);
+      const f = await t.db.dictionnaireTable.findUnique({ where: { espace_nom: { espace: 'cockpit', nom: 'chantiers_sous_phases' } } });
+      expect(f!.modifiePar).toBe('Synchronisation au démarrage');
+    });
+    it('chantier d’une sous-phase : par chantiers_sous_phases, jamais par la phase ; nouvelle requête à chaque question de données', () => {
+      const sp = DICTIONNAIRE_COCKPIT.find((x) => x.nom === 'sous_phases')!, cp = DICTIONNAIRE_COCKPIT.find((x) => x.nom === 'chantiers_phases')!;
+      expect(sp.regles.join(' ')).toMatch(/uniquement par chantiers_sous_phases.*Jamais par la phase/);
+      expect(cp.regles.join(' ')).toMatch(/utiliser chantiers_sous_phases/);
+      expect(COCKPIT_INSIGHT_DATA_HINT).toMatch(/toujours une nouvelle requête/);
     });
   });
 

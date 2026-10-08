@@ -1773,3 +1773,14 @@ Brief du commanditaire (maquette « 1a Miroir », `Consommation-et-couts.dc.html
 #### Consommation et coûts · Accès : filtre « Projet », sans données de démonstration (08/10/2026)
 
 Demande du commanditaire. Filtre « Projet » (sélection multiple, premier des filtres de la page, `u_projects` dans l'URL) : temps actif et indicateurs d'IA du ou des projets choisis (projet ouvert dans le Cockpit lors de l'interaction, `usage_events.projectId` ; projet de l'appel d'IA, `UsageRecord.projectId`) ; utilisateurs retenus : ceux qui ont accès au projet (personne du référentiel, rattachement, habilitation) — leur temps connecté reste entier, une session n'appartenant à aucun projet ; appels sans utilisateur du projet comptés. Activité de la Console : sans projet. Agrégats : dimension `project` (migration `20261116000100_consommation_projet`, recalcul complet). L'écran n'a plus de jeu de démonstration : ouvert sans serveur, il affiche un message d'erreur.
+
+### Jev du Cockpit : sous-phases attribuées à tous les chantiers (analyse et correctifs du 08/10/2026)
+
+Cause : le dictionnaire lu par Jev (`dictionnaire_tables`, `dictionnaire_colonnes`) n'était chargé que par l'amorçage ou `npm run dictionnaire:charger` ; la vue `chantiers_sous_phases` (06/10/2026), créée par une migration, en était absente. Jev rattachait donc une sous-phase aux chantiers par sa phase (tous les chantiers de la phase), puis, à la question suivante, répondait depuis la mémoire de la conversation sans nouvelle requête.
+
+| Correctif | Porteur |
+|---|---|
+| Dictionnaire rechargé dans la base locale | `npm run dictionnaire:charger` |
+| Au démarrage de l'API, dictionnaire comparé au code et rechargé s'il diffère (fiches absentes, en trop, différentes, ordre) ; journal « Dictionnaire rechargé » ; le code fait foi (aucun écran ne modifie le dictionnaire) | `DictionarySyncService`, `dictionaryDrift`, `seedDictionnaire` (`src/core/dictionary-sync.ts`) |
+| Dictionnaire : chantier d'une sous-phase uniquement par `chantiers_sous_phases`, jamais par la phase ; `chantiers_phases` ne sert pas à rattacher une sous-phase ; sous-phases appelées « tâches » par les utilisateurs | `jev-dictionnaire-cockpit.ts` |
+| Consignes : toute question de données donne lieu à une nouvelle requête (jamais de réponse tirée des échanges précédents) ; pas d'explication par une règle de gestion absente des données | `COCKPIT_INSIGHT_DATA_HINT`, `COCKPIT_INSIGHT_ANSWER_RULES` |
