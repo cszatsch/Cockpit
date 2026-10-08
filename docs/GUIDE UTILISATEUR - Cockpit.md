@@ -655,7 +655,7 @@ Demandez-le à Jev (voir 3.19.4) : libellé, probabilité et impact (1 à 5, cri
 - **Recommandation PMO** et **Décision attendue**, compte à rebours avant la prochaine séance.
 - Une fiche arbitrée porte le sceau « ARBITRÉE · date · OPTION RETENUE ».
 
-**Créer une fiche** : libellé du point de décision, priorité, référence de la fiche, statut, chantier, instance (sa description et sa fréquence s'affichent). Pour une fiche d'arbitrage complète, ajoutez au moins un critère : « Ajoutez au moins un critère à la grille d'analyse ». Toast : « Fiche d'arbitrage créée · FA-0xx · D-0yy ». Une fiche compte au plus 6 options et 20 critères.
+**Créer une décision** : demandez-la à Jev (point de décision, priorité, chantier, instance, statut, date). La fiche d'arbitrage complète (options, grille de critères) ne se saisit plus dans le Cockpit depuis le 08/10/2026.
 
 ## 3.12 Baromètre
 
@@ -668,7 +668,7 @@ Demandez-le à Jev (voir 3.19.4) : libellé, probabilité et impact (1 à 5, cri
 - **Comparateur par domaine** : « Un domaine à moins de 3 répondants est signalé : sa moyenne n'est pas représentative. »
 - Répartition du ressenti négatif / neutre / positif, autres questions, thèmes des verbatims (positif, vigilance, alerte).
 
-**Saisir un relevé mensuel** : mois (après le dernier relevé), moyenne de 1 à 10, répondants, répartition en %, notes par domaine, questions, thèmes.
+**Relevés mensuels** : la saisie d'un relevé (moyenne, répondants, répartition, domaines, questions, thèmes) n'est plus possible dans le Cockpit depuis le 08/10/2026 ; le baromètre affiche les relevés déjà enregistrés.
 
 | Message | Cause |
 |---|---|
@@ -677,7 +677,6 @@ Demandez-le à Jev (voir 3.19.4) : libellé, probabilité et impact (1 à 5, cri
 | « La répartition doit totaliser 100 % » | Somme des pourcentages ≠ 100 |
 | « Renseignez la valeur de chaque question » | Question sans valeur |
 
-Modifier un pourcentage de la répartition réajuste les deux autres pour garder 100 %.
 
 **Sans relevé.** Le baromètre n'affiche aucune donnée de démonstration. Tant qu'aucun relevé n'est saisi, la répartition du ressenti et les écarts affichent « — », et la courbe n'a pas de tracé.
 
@@ -747,10 +746,9 @@ Une seule demande par module peut être en attente.
 
 **Ce que vous pouvez faire**
 
-- **Créer une tâche** : titre (obligatoire, 300 caractères au plus), détail, échéance, action attendue. Toast « Tâche créée · … ». Une tâche personnelle n'est visible que de vous.
 - **Modifier** le titre, le détail, l'échéance et l'action attendue (Ouvrir, Relancer, Qualifier, Renseigner, Mettre à jour, Valider). Ces modifications sont personnelles : elles ne changent pas l'action, la décision ou le jalon d'origine.
 - **Archiver** une tâche : bandeau « « {titre} » archivée » avec **Annuler** pendant 5 secondes. Les archives se consultent et se restaurent (« Tâche restaurée »).
-- Le bloc **validations attendues** liste les décisions à arbitrer par priorité, avec **Créer une tâche de préparation** et **Demander à Jev**.
+- Le bloc **validations attendues** liste les décisions à arbitrer par priorité, avec **Demander à Jev**.
 
 Le bouton orange **Mettre à jour mes tâches** de la barre latérale ouvre directement cet onglet.
 

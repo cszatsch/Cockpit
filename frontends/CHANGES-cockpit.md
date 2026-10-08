@@ -504,3 +504,8 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 
 - Plan de livraison des livrables : bandeau « Niveau » identique à celui du Planning (Phases, Phase > Sous-phase, Phase > Chantier, Phase > Chantier > Sous-phase, Sous-phases, Tous les chantiers, « Un chantier… » dans le bandeau ; même style) ; le sélecteur séparé (« Toutes les phases »…) est retiré ; filtres À produire / Critiques / Validés / Tous sur une ligne « Afficher ». Niveaux « Phase > … » et « Un chantier » : regroupement par phase (repliable).
 - Jev : champ de saisie multiligne qui s'agrandit avec le texte jusqu'à 180 px (environ 8 lignes), puis défile ; Entrée envoie, Maj+Entrée va à la ligne ; bouton d'envoi aligné en bas.
+
+## Saisie sans Jev retirée (08/10/2026)
+
+- Lien « Saisir sans Jev » / « Modifier sans Jev » du panneau de Jev retiré (fonction abandonnée par le commanditaire). Formulaires latéraux qu'il ouvrait supprimés : risque, problème, action, fiche décision et fiche d'arbitrage, ligne d'avancement du Planning, livrable, séance, relevé du baromètre (mois, domaine, question, thème). Puis (même jour, demande du commanditaire) : panneau latéral « Nouvelle tâche » supprimé en entier, avec le bouton « Créer une tâche de préparation » de Mes tâches ; le bouton « Ajouter · jalons » du Référentiel ouvre désormais la fenêtre d'ajout du Référentiel (et non plus le formulaire latéral) ; `openTaskForm` ne fait plus rien. Le code de traitement de ces formulaires, devenu inatteignable, reste dans l'écran.
+- Conséquences : un relevé mensuel du baromètre et une fiche d'arbitrage complète (options, critères) ne se saisissent plus dans le Cockpit ; risques, problèmes, actions et décisions se créent avec Jev.
