@@ -18,6 +18,7 @@
     "ia:catalogue": "ts-node --transpile-only scripts/ia-catalogue.ts",
     "dictionnaire:charger": "ts-node --transpile-only prisma/seed/dictionnaire.ts",
     "dictionnaire:doc": "ts-node --transpile-only scripts/dictionnaire-doc.ts",
+    "guides:pdf": "ts-node --transpile-only scripts/guides-pdf.ts",
     "jev:aiguillage": "ts-node --transpile-only scripts/jev-aiguillage.ts",
     "jev:aiguillage-cockpit": "ts-node --transpile-only scripts/jev-aiguillage-cockpit.ts",
     "jev:traces": "ts-node --transpile-only scripts/jev-traces.ts",

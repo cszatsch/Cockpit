@@ -37,6 +37,7 @@ npm run ia:catalogue -- --confirmer       # applique le catalogue des modèles (
 npm run jev:reponses                      # banc des réponses de Jev : 50 questions en réel (coût ~1 à 2 €), Excel dans docs/aiguillage-jev
 npm run dictionnaire:charger              # recharge les dictionnaires des données (Console : jev-dictionnaire.ts, Cockpit : jev-dictionnaire-cockpit.ts) en base
 npm run dictionnaire:doc                  # régénère docs/specs/JEV CONSOLE (et JEV COCKPIT) - dictionnaire des donnees.md
+npm run guides:pdf                        # guides utilisateur (docs/GUIDE UTILISATEUR - Cockpit.md, - Console.md) en PDF dans docs/guides, à déposer dans Console › Guide utilisateur ; `-- cockpit` ou `-- console` pour un seul
 npm run jev:aiguillage -- --version v2 --passages 3   # banc d'essai de l'aiguillage de Jev (API réelle de la carte JEV) et rapport
 npm run jev:aiguillage-cockpit -- --version cockpit-v3 --passages 3   # banc de l'aiguillage du Cockpit (5 cas d'usage) et rapport
 npm run jev:traces -- --dernieres 5 --min 10000 --etape vectorisation   # traces chronométrées des questions posées à Jev (table jev_traces)

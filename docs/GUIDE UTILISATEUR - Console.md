@@ -1,12 +1,19 @@
 # Guide utilisateur de la Console d'administration RISE
 
-Version du 30 septembre 2026. Ce guide décrit le comportement réel de la Console, établi à partir de son code. Les écarts et les points encore ouverts sont regroupés en annexe.
+Version du 8 octobre 2026. Ce guide décrit le comportement réel de la Console, établi à partir de son code. Les écarts et les points encore ouverts sont regroupés en annexe.
 
 ## Sommaire
 
 1. Présentation générale
 2. Prise en main
 3. Fonctionnalités, une par une
+   - Vue d'ensemble et cloche : 3.1 à 3.2
+   - Accès : 3.3 Utilisateurs, 3.4 Administrateurs, 3.5 Journal d'audit, 3.6 Consommation et coûts (usage de la plateforme)
+   - IA : 3.7 Fournisseurs et modèles, 3.8 Consommation et coûts de l'IA, 3.9 Analyse des temps de réponse
+   - Assistant : 3.10 Jev, 3.11 Persona, 3.12 Skills
+   - Projets : 3.13 Bibliothèque des projets, 3.14 Initialisation d'un projet, 3.15 Snapshots
+   - Plateforme : 3.16 Modules, 3.17 Registre des cartes API, 3.18 Notifications, 3.19 Serveur d'envoi SMTP, 3.20 Partager Cockpit, 3.21 Guide utilisateur
+   - 3.22 Mon profil
 4. Rôles et droits
 5. Paramétrage
 6. FAQ et dépannage
@@ -24,9 +31,11 @@ RISE comprend deux espaces :
 La Console sert à :
 
 - gérer les comptes et les droits d'accès aux projets ;
-- régler l'intelligence artificielle : fournisseurs, clés, modèles, affectation aux fonctions, budgets ;
-- créer des projets à partir d'un fichier Excel, en garder l'historique (snapshots) et les restaurer ;
-- régler les services de la plateforme : modules, cartes API, notifications envoyées aux utilisateurs, serveur d'e-mail, guide utilisateur ;
+- suivre l'usage de la plateforme : temps passé, activité et dépenses d'IA, du global à l'utilisateur ;
+- régler l'intelligence artificielle : fournisseurs, clés, modèles, affectation aux fonctions, budgets, temps de réponse ;
+- créer des projets à partir d'une proposition commerciale ou d'un fichier Excel, en garder l'historique (snapshots) et les restaurer ;
+- régler les services de la plateforme : modules, cartes API, notifications envoyées aux utilisateurs, serveur d'e-mail, guides utilisateur ;
+- préparer un paquet d'installation de Cockpit pour une autre personne ;
 - surveiller l'ensemble : points à traiter, notifications de l'administrateur, journal d'audit.
 
 La Console ne modifie pas les données métier des projets (actions, risques, jalons…). Ces données se gèrent dans le Cockpit.
@@ -40,7 +49,10 @@ La Console est réservée aux **administrateurs de la plateforme**. Un compte sa
 - **Tout est tracé.** Chaque action de la Console est inscrite dans le journal d'audit. Ce journal ne peut être ni modifié ni effacé.
 - **Le référentiel du projet fait foi pour les personnes.** Le PMO tient la liste des personnes dans le Cockpit. La Console crée les comptes et les droits, et signale les écarts avec ce référentiel. Elle ne corrige jamais un compte d'elle-même.
 - **Heure de Paris.** Les dates et heures affichées, les envois planifiés et les tâches automatiques suivent l'heure de Paris, sauf mention contraire.
-- **La Console se tient à jour.** Les points « À traiter » et les notifications de l'administrateur sont recalculés à chaque lecture. Ils disparaissent d'eux-mêmes quand leur cause n'existe plus.
+- **La Console se tient à jour, sans rechargement.**
+  - Chaque modification faite ailleurs (autre administrateur, autre onglet, Cockpit, tâche automatique) fait relire la page affichée, la Vue d'ensemble et la cloche, en moins d'une seconde.
+  - Si l'onglet est masqué, la relecture a lieu au retour sur l'onglet.
+  - Les points « À traiter » et les notifications de l'administrateur sont recalculés à chaque lecture. Ils disparaissent d'eux-mêmes quand leur cause n'existe plus.
 
 ## 1.4 Glossaire
 
@@ -51,26 +63,34 @@ La Console est réservée aux **administrateurs de la plateforme**. Un compte sa
 | Responsable | Profil qui gère un ou plusieurs chantiers d'un projet. |
 | Lecteur | Profil qui consulte un ou plusieurs chantiers d'un projet. |
 | Habilitation | Droit d'un compte sur un projet : PMO, ou Responsable / Lecteur d'un chantier. |
-| Référentiel | Données de base d'un projet dans le Cockpit : équipes, personnes, lots, phases, chantiers, jalons, instances. |
+| Référentiel | Données de base d'un projet dans le Cockpit : équipes, personnes, lots, phases, sous-phases, chantiers, jalons, instances. |
 | Chantier | Sous-ensemble d'un projet, avec un responsable. |
+| Sous-phase | Subdivision d'une phase. Un chantier peut être rattaché à des sous-phases de ses phases. |
 | Invitation | E-mail qui permet à une nouvelle personne de choisir son mot de passe et d'activer son compte. |
 | À traiter | Liste des points qui demandent une action, sur la Vue d'ensemble. |
 | Cloche | Tiroir des notifications de l'administrateur : incidents, alertes et demandes. |
-| Fournisseur IA | Société qui fournit des modèles d'IA (Anthropic, OpenAI, Google, Mistral…). Il faut sa clé API. |
+| Temps actif | Temps pendant lequel un utilisateur interagit réellement avec la plateforme (clics, saisie, défilement). |
+| Temps connecté | Durée des sessions ouvertes, de la connexion à la fin de la session. |
+| Fournisseur IA | Société qui fournit des modèles d'IA (Anthropic, OpenAI, Google, Mistral, OpenRouter…). Il faut sa clé API. |
 | Clé API | Code secret qui autorise la plateforme à appeler un service externe. |
 | Modèle | Un modèle d'IA d'un fournisseur. Trois catégories : LLM (génère du texte), Embedding (vectorise des textes), Reranking (reclasse des résultats). |
-| Fonction IA | Usage de l'IA dans la plateforme : Insights, Gestion des données, Rapports, Guidage console, chaîne Documents. |
+| Fonction IA | Usage de l'IA dans la plateforme : Insights, Gestion des données, Rapports, Guidage console, Initialisation projet, et la chaîne Documents (Vectorisation, Reclassement, Synthèse). |
 | Principal / secours | Modèle qui répond normalement à une fonction, et modèle qui prend le relais s'il est indisponible. |
 | Plafond, seuil d'alerte | Budget mensuel d'IA, et pourcentage de ce budget à partir duquel la Console alerte. |
+| Plafond mensuel d'une clé | Limite de dépense fixée chez le fournisseur, reportée dans la Console pour information (utilisée par Partager Cockpit). |
 | Jeton (token) | Unité de mesure du texte traité par un modèle ; la facturation en dépend. |
 | Jev | L'assistant IA de la plateforme. Dans la Console, il explique et guide, sans agir. |
+| Aiguillage | Classement de chaque question posée à Jev (usage, données, ambiguë, hors sujet) avant d'y répondre. |
 | Persona | Identité (nom, style, avatar…) et personnalité de Jev. |
-| Skill | Consigne ajoutée aux instructions de Jev. |
+| Skill | Consigne ajoutée aux instructions de Jev ou d'un traitement d'IA. |
+| Préremplissage | Lecture d'une proposition commerciale par l'IA pour remplir le fichier Excel d'initialisation d'un projet. |
 | Snapshot | Copie de l'état des données d'un projet à un instant donné. Elle permet de comparer et de restaurer. |
-| Module | Fonction optionnelle du Cockpit (Budget, Suivi des bénéfices), activable par projet. |
-| Carte API | Service externe appelé par les widgets du Cockpit (météo, trafic, actualités…). |
+| Module | Fonction optionnelle du Cockpit (Budget, Suivi des bénéfices, Message d'accueil de Jev), activable par projet. |
+| Carte API | Service externe appelé par la plateforme : widgets du Cockpit (météo, trafic, actualités…) et aiguillage de Jev. |
 | Règle de notification | Message envoyé automatiquement aux utilisateurs, chaque jour ou chaque semaine, rédigé par un modèle d'IA à partir des données du projet. |
 | Rattrapage | Envoi d'une notification prévue pendant un arrêt de la plateforme, fait au redémarrage. |
+| Paquet d'installation | Fichier ZIP qui installe Cockpit et la Console sur le poste Windows d'une autre personne. |
+| Code de déverrouillage | Code de 12 caractères qui protège les secrets d'un paquet d'installation. |
 | Journal d'audit | Registre, non modifiable, de toutes les actions. |
 | Niveau d'audit | Info, Sensible ou Critique, selon la portée de l'action. |
 
@@ -165,28 +185,30 @@ L'écran montre ces règles et une jauge de solidité. Le bouton reste inactif t
 
 - **En-tête** :
   - le logo, qui ouvre la Vue d'ensemble ;
-  - le bouton **Ouvrir le Cockpit** (raccourci Maj+Ctrl+C), qui ouvre le Cockpit dans un nouvel onglet ;
+  - le bouton **Ouvrir le Cockpit**, qui ouvre le Cockpit dans un nouvel onglet ;
   - le bouton **Réduire la navigation** ;
   - la **cloche** des notifications de l'administrateur.
 - **Vue d'ensemble**, puis cinq domaines en accordéon (un seul ouvert à la fois) :
 
 | Domaine | Pages |
 |---|---|
-| Accès | Utilisateurs, Administrateurs |
+| Accès | Utilisateurs, Administrateurs, Consommation et coûts |
 | IA | Fournisseurs et modèles, Consommation et coûts, Analyse des temps de réponse |
 | Assistant | Persona, Skills |
 | Projets | Bibliothèque des projets, Initialisation d'un projet, Snapshots |
-| Plateforme | Modules, Registre des cartes API, Notifications, Serveur d'envoi SMTP, Guide utilisateur |
+| Plateforme | Modules, Registre des cartes API, Notifications, Serveur d'envoi SMTP, Partager Cockpit, Guide utilisateur |
 
+- Deux pages portent le nom « Consommation et coûts » :
+  - celle du domaine **Accès** suit l'usage de la plateforme (temps, activité, dépense d'IA par équipe et par utilisateur) : voir 3.6 ;
+  - celle du domaine **IA** suit le budget d'IA et le détail de chaque appel aux modèles : voir 3.8.
 - **Pied de la barre** :
   - le bouton de **Jev**, l'assistant ;
-  - votre avatar, qui ouvre **Mon profil**.
+  - votre carte de profil, avec votre photo (ou vos initiales), qui ouvre **Mon profil**.
 - **Signaux** : un point ou un compteur signale un problème sur une page.
-  - Utilisateurs : demandes d'invitation en attente.
-  - Fournisseurs et modèles : clé en erreur.
-  - Affectation des modèles : fonction indisponible (corail) ou sur son secours (ambre).
-  - Registre des cartes API : carte en erreur, clé qui expire, quota élevé.
-  - Un domaine replié affiche le signal le plus grave de ses pages.
+  - Utilisateurs : compteur des demandes d'invitation en attente.
+  - Fournisseurs et modèles : point rouge si une clé est en erreur ou si une fonction d'IA est à l'arrêt ; point orange si une fonction tourne sur son secours.
+  - Registre des cartes API : point rouge pour une carte en erreur ou une clé expirée ; point orange pour une clé qui expire dans moins de 60 jours ou un quota utilisé à 80 % ou plus.
+  - Un domaine replié affiche le total des compteurs ou le signal le plus grave de ses pages.
 - **Affichage** :
   - la barre est dépliée sur un grand écran, réduite aux icônes entre 760 et 1 180 pixels de large, et devient un tiroir sur mobile ;
   - votre choix « Réduire / Déplier » est mémorisé par le navigateur.
@@ -195,9 +217,11 @@ L'écran montre ces règles et une jauge de solidité. Le bouton reste inactif t
 
 - Le fil d'Ariane indique le domaine et la page.
 - La pastille d'état affiche « N incident(s) » ou « Opérationnelle ». Un clic ouvre la Vue d'ensemble.
-- Chaque page a un titre et une phrase qui en résume l'usage.
+- Chaque page a un titre et une phrase qui en résume l'usage. Certaines pages (Fournisseurs et modèles, Consommation et coûts, Initialisation d'un projet, Partager Cockpit, Guide utilisateur…) ont leur propre en-tête.
 
-**Enregistrement des modifications.** Selon la page, il est immédiat (interrupteurs, décisions) ou se fait par un bouton **Enregistrer** : une barre « non enregistré » le rappelle.
+**Enregistrement des modifications.** Selon la page, il est immédiat (interrupteurs, décisions, choix d'un modèle) ou se fait par un bouton **Enregistrer** : une barre « non enregistré » le rappelle.
+
+**Mises à jour en direct.** Vous n'avez pas besoin de recharger la page : une modification faite par un autre administrateur, dans un autre onglet ou par une tâche automatique apparaît d'elle-même. Les traitements longs (indexation d'un guide, génération d'un paquet, préremplissage) ont leur propre suivi à l'écran.
 
 # 3. Fonctionnalités, une par une
 
@@ -218,7 +242,7 @@ L'écran montre ces règles et une jauge de solidité. Le bouton reste inactif t
 | Indicateur | Contenu | Page ouverte |
 |---|---|---|
 | Utilisateurs actifs | Comptes actifs, nombre total de comptes, invitations en attente | Utilisateurs |
-| Coût IA du mois | Dépense du mois et part du budget consommée | Consommation et coûts |
+| Coût IA du mois | Dépense du mois et part du budget consommée | Consommation et coûts (IA) |
 | Fournisseurs IA | Fournisseurs opérationnels sur le total, ou noms de ceux hors service | Fournisseurs et modèles |
 | Dernier snapshot | Ancienneté, projet, prochaine capture prévue ou « planification suspendue » | Snapshots |
 
@@ -261,6 +285,10 @@ L'écran montre ces règles et une jauge de solidité. Le bouton reste inactif t
    - **incident ou alerte** : cliquez sur son bouton (par exemple « Remplacer la clé ») pour ouvrir la page concernée. La notification est alors marquée comme lue ;
    - **demande** : cliquez sur **Inviter** / **Activer**, ou sur **Refuser**.
 4. **Tout lire** marque toutes les notifications comme lues.
+5. L'icône **Effacer toutes les notifications** efface les incidents et les alertes :
+   - le tiroir affiche « N notifications effacées » avec un bouton **Annuler** pendant 5 secondes ; l'effacement a lieu à la fin du délai ;
+   - les demandes (invitation, module) ne sont jamais effacées : « Les demandes à traiter restent affichées. » ;
+   - l'icône est inactive s'il n'y a ni incident ni alerte.
 
 **Types de notifications**
 
@@ -278,7 +306,10 @@ L'écran montre ces règles et une jauge de solidité. Le bouton reste inactif t
 | Carte API {nom} en erreur | Le service externe ne répond pas correctement |
 | Clé {nom} : expire dans N j / expirée | Clé d'une carte API proche de son échéance (30, 7 et 1 jour avant), ou expirée |
 | Quota {nom} à N % | Quota journalier d'une carte API atteint à 80 % ou plus |
-| Erreur technique | Une opération du serveur a échoué de façon inattendue |
+| Revectorisation des documents en cours / terminée / en échec | Le modèle ou la dimension de la Vectorisation a changé (voir 3.7.4) |
+| Erreur technique · « IA · fonction {nom} » | Le modèle principal d'une fonction d'IA a échoué : le secours a répondu, ou la fonction est indisponible. Fermée à la réussite suivante du principal |
+| Erreur technique · « JEV {Console / Cockpit} · recherche dans le guide » | La recherche de Jev dans un guide utilisateur a échoué deux fois de suite. Fermée à la recherche réussie suivante |
+| Erreur technique | Une autre opération du serveur a échoué de façon inattendue |
 
 **Règles**
 
@@ -292,7 +323,7 @@ L'écran montre ces règles et une jauge de solidité. Le bouton reste inactif t
   - La décision est exécutée ensuite : création du compte et envoi de l'invitation, activation du module sur le seul projet demandé, ou refus.
   - Le demandeur est prévenu dans la cloche du Cockpit et par e-mail.
   - Si l'exécution échoue, la demande redevient à traiter avec la mention « Échec du traitement : {motif} ».
-- **Rafraîchissement** : la liste se recharge à l'ouverture et toutes les 60 secondes.
+- **Rafraîchissement** : la liste se recharge à l'ouverture et à chaque changement sur la plateforme (mises à jour en direct).
 
 **Messages d'erreur**
 
@@ -502,9 +533,9 @@ La Console compare chaque compte à la personne correspondante du référentiel.
 
 ## 3.4 Administrateurs
 
-**À quoi sert la page.** Voir qui administre la plateforme, accorder ou retirer ce rôle, et consulter le journal d'audit (onglet **Journal d'audit**, voir 3.5).
+**À quoi sert la page.** Voir qui administre la plateforme, accorder ou retirer ce rôle, régler ce que chaque administrateur voit de la consommation, et consulter le journal d'audit (onglet **Journal d'audit**, voir 3.5).
 
-> [Capture] Onglet Administrateurs.
+> [Capture] Onglet Administrateurs, avec le sélecteur des droits de consommation.
 
 **Ajouter un administrateur**
 
@@ -517,6 +548,20 @@ La Console compare chaque compte à la personne correspondante du référentiel.
 1. Cliquez sur **Retirer**.
 2. Saisissez **RETIRER** pour confirmer.
 3. Cliquez sur **Retirer les droits**. Le compte est conservé, mais perd l'accès à la Console dès sa prochaine action.
+
+**Régler les droits « Consommation et coûts » d'un administrateur**
+
+Sur la ligne de chaque **autre** administrateur, un sélecteur à trois choix règle ce qu'il voit dans Accès › Consommation et coûts (3.6) :
+
+| Choix | Coûts | Données individuelles | Effet |
+|---|---|---|---|
+| **Complet** (par défaut) | Visibles | Visibles | Tout est affiché |
+| **Sans coûts** | Masqués | Visibles | Montants remplacés par « — », barres et hausses de coût masquées, pas de tri sur le coût, export sans colonnes de coût |
+| **Anonymisé** | Visibles | Masquées | Noms remplacés par « Utilisateur 01 », « Utilisateur 02 »… ; niveau Utilisateur et filtre Utilisateurs désactivés ; export pseudonymisé |
+
+- Le sélecteur n'apparaît pas sur votre propre ligne : on ne modifie jamais ses propres droits.
+- L'effet est immédiat. Le message « Droits de consommation mis à jour · {nom} » confirme le changement.
+- Le changement est tracé au journal d'audit (Sensible) : « Modification des droits de consommation », avec l'avant et l'après.
 
 **Règles**
 
@@ -532,6 +577,7 @@ La Console compare chaque compte à la personne correspondante du référentiel.
 | « Ce compte est déjà administrateur » | Doublon |
 | « Il doit toujours rester au moins un administrateur » | Dernier administrateur |
 | « Vous ne pouvez pas retirer vos propres droits d'administrateur » | Action sur vous-même |
+| « Vous ne pouvez pas modifier vos propres droits » | Droits de consommation modifiés sur vous-même |
 
 ## 3.5 Journal d'audit
 
@@ -549,9 +595,10 @@ La Console compare chaque compte à la personne correspondante du référentiel.
 - Chaque action de la Console et chaque modification métier du Cockpit est tracée.
   - Pour le Cockpit, une entrée est créée par champ modifié, avec l'avant et l'après.
   - Les connexions sensibles sont aussi tracées : activation d'un compte, blocage, accès refusé.
+  - Les exports (journal d'audit, journal des appels d'IA, consommation de la plateforme) sont tracés eux aussi.
 - Niveaux :
-  - **Critique** : ajout ou retrait d'administrateur, suppression de compte, clés API, restauration…
-  - **Sensible** : suspension, droits, réglages…
+  - **Critique** : ajout ou retrait d'administrateur, suppression de compte, clés API, revectorisation, restauration…
+  - **Sensible** : suspension, droits, réglages, plafonds, paquets d'installation…
   - **Info** : invitations, modifications courantes.
 - Aucune entrée ne peut être modifiée ni supprimée.
 - **Conservation 24 mois** : une tâche automatique supprime chaque nuit, à 3 h 15, les entrées plus anciennes.
@@ -559,16 +606,153 @@ La Console compare chaque compte à la personne correspondante du référentiel.
 
 **Exemple.** Vous voulez savoir qui a modifié le plafond budgétaire. Filtrez **Sensible**, recherchez « plafond » : l'entrée « Modification d'un plafond budgétaire IA » indique l'auteur, la date et les valeurs avant et après.
 
-## 3.6 Fournisseurs et modèles
+## 3.6 Consommation et coûts (usage de la plateforme)
 
-**À quoi sert la page.** Déclarer les fournisseurs d'IA et leurs clés, vérifier que les clés fonctionnent, et tenir la liste des modèles avec leurs tarifs.
+**À quoi sert la page.** Suivre l'usage de la plateforme et les dépenses d'IA, du global à l'utilisateur : qui utilise quoi, combien de temps, et pour quel coût. La page se trouve dans le domaine **Accès**, après Administrateurs. Son sous-titre : « Usage de la plateforme et dépenses d'IA, du global à l'utilisateur. »
 
-> [Capture] Vue réseau des fournisseurs et liste des modèles.
+> [Capture] Consommation et coûts (Accès) : barre de filtres, bandeau de synthèse, graphique miroir, « Où va le temps, où va la dépense », « Détail par utilisateur ».
 
-### 3.6.1 Ajouter un fournisseur
+Ce que vous voyez dépend de vos droits (« Complet », « Sans coûts » ou « Anonymisé »), réglés par un autre administrateur dans la page Administrateurs (3.4).
+
+### 3.6.1 Choisir la période
+
+- Choisissez la granularité : **Jour**, **Semaine** ou **Mois** (par défaut **Mois**).
+- Les flèches « Période précédente » et « Période suivante » changent de période. Une période à venir n'a pas de données (« Période à venir : pas encore de données »).
+- L'interrupteur **Comparer à …** (activé par défaut) compare à la période précédente de même durée : « Comparer à septembre 2026 », « Comparer à la semaine 40 », « Comparer à mercredi 7 ».
+  - Les écarts s'affichent en %, avec un signe + ou −.
+  - Une hausse du temps actif est en vert ; une hausse de coût en ambre ; les compteurs neutres en gris.
+  - Sans valeur de comparaison, aucun écart n'est affiché.
+  - Sur les graphiques, des traits clairs marquent la période précédente.
+
+| Granularité | Points du graphique | Jours « ouvrés » pris en compte |
+|---|---|---|
+| Mois | Un point par jour | Du lundi au vendredi |
+| Semaine | Un point par jour, du lundi au dimanche | Du lundi au vendredi |
+| Jour | Un point par heure | Les heures de 7 h à 19 h |
+
+### 3.6.2 Niveaux et filtres
+
+**Niveaux**
+
+- **Plateforme** (par défaut) : toute la plateforme. Il vide les filtres Équipes et Utilisateurs.
+- **Équipe** : une ou plusieurs équipes. Sans choix, la page prend l'équipe qui a le plus de temps actif sur la période.
+- **Utilisateur** : un ou plusieurs utilisateurs. Sans choix, la page prend le premier du tableau. Ce niveau est désactivé pour un administrateur « Anonymisé ».
+
+**Filtres**
+
+| Filtre | Choix | Effet |
+|---|---|---|
+| Projet | Plusieurs projets ; « Tous » par défaut | Temps actif et IA du ou des projets choisis. Seuls les utilisateurs qui ont accès à ces projets sont gardés. Leur temps connecté reste entier. L'activité dans la Console n'a pas de projet |
+| Équipes | Plusieurs équipes ; « Toutes » par défaut | Équipe de la personne du référentiel liée au compte (même e-mail), sinon « Sans équipe » |
+| Utilisateurs | Plusieurs utilisateurs, avec recherche ; « Tous » par défaut | Désactivé pour un administrateur « Anonymisé » |
+| Fonctionnalité | Une seule : « Projets et saisie », « Jev · assistant », « Rapports », « Documents », « Baromètre et insights », « Console » | Filtre le temps actif et l'IA |
+| Fournisseur (IA) | Un seul ; « Tous » par défaut | Ne touche que les indicateurs d'IA |
+| Modèle (IA) | Un seul, parmi ceux du fournisseur choisi | Ne touche que les indicateurs d'IA |
+
+- Le **temps connecté** ne peut être attribué ni à une fonctionnalité ni à un projet : les filtres Fonctionnalité et Projet ne le réduisent pas.
+- Dans les menus : « Rechercher », « Effacer », « OK » ; « Aucune sélection : tout » quand rien n'est choisi.
+- Les filtres sont gardés dans l'adresse de la page : un lien copié rouvre la même sélection.
+
+### 3.6.3 Bandeau de synthèse et graphique miroir
+
+**Bandeau de synthèse**
+
+- **Utilisation · temps actif**, comparé au temps de connexion, avec le **taux d'activité**.
+- **Intelligence artificielle · coût**, avec « N requêtes · X tokens en entrée · Y en sortie ».
+- Huit indicateurs :
+
+| Indicateur | Contenu |
+|---|---|
+| Session moyenne | Temps actif moyen par connexion, en minutes |
+| Connexions | Nombre de sessions ouvertes |
+| Utilisateurs actifs | Utilisateurs avec du temps actif sur la période (non comparé) |
+| Événements journalisés | Nombre d'interactions enregistrées pour le temps actif (ce ne sont pas des entrées du journal d'audit) |
+| Tokens | Entrée + sortie |
+| Coût / heure active | Coût IA divisé par le temps actif, en € par heure |
+| Fournisseurs | Nombre de fournisseurs d'IA utilisés |
+| Modèle principal | Modèle qui a coûté le plus (ou fait le plus de requêtes si les coûts sont masqués) |
+
+**Graphique miroir**
+
+- Temps actif en haut (turquoise), coût d'IA en bas (ambre), sur le même axe du temps.
+- Le survol (ou le clavier) affiche une info-bulle : date, « Temps actif », « Coût IA », puis « Précédent : … » si la comparaison est active.
+- **Hausses inhabituelles** : un point est signalé en corail quand son coût dépasse **1,6 fois la moyenne** des points ouvrés de la période (jours du lundi au vendredi ; heures de 7 h à 19 h en vue Jour). La plus forte est annotée « Hausse inhabituelle · {date} », avec « X € · ×N la moyenne ».
+  - La détection porte sur le coût seulement.
+  - Rien n'est signalé si la moyenne est nulle, ni pour un administrateur « Sans coûts » (« Coûts masqués selon vos droits »).
+- Période vide : « Aucune donnée sur cette période ».
+
+### 3.6.4 « Où va le temps, où va la dépense »
+
+- Découpage au choix : **Fonctionnalités** (par défaut), **Équipes** ou **Utilisateurs**.
+- Pour chaque ligne : temps actif à gauche, coût d'IA à droite, et **coût par heure active** au centre.
+- Le coût par heure active est en **ambre** quand il dépasse la moyenne de plus de 15 % (moyenne × 1,15).
+- Les lignes sont triées par temps actif décroissant. Toutes les fonctionnalités sont affichées ; 8 équipes ou utilisateurs au plus.
+- Des étiquettes repèrent « le plus utilisé », le « 1er poste de coût », ou « 1er usage · 1er coût ».
+
+### 3.6.5 « Détail par utilisateur »
+
+- **Colonnes**, toutes triables : Utilisateur (et son équipe), Temps actif / connecté (avec la barre du taux d'activité), Sessions, Durée moy., Requêtes IA, Tokens E / S, Coût, Évol. coût, Tendance (petite courbe sur la période).
+- **Tri** : par défaut sur le coût, décroissant.
+- **Filtre** « Filtrer par nom ou équipe ».
+- **Pagination** : 20 lignes par page.
+- Un **point rouge** signale une hausse de coût de 30 % ou plus par rapport à la période précédente (« point rouge : hausse de coût ≥ 30 % »).
+- Les appels d'IA faits sans utilisateur (tâches automatiques, notifications planifiées…) apparaissent sur la ligne **« Tâches automatiques »**.
+- Le pied du tableau rappelle vos droits : « Données individuelles et coûts visibles · droits Administrateur complet », « Coûts masqués : … » ou « Noms masqués : … ».
+
+### 3.6.6 Exporter la sélection
+
+1. Cliquez sur **Exporter la sélection**.
+2. Le fichier CSV contient exactement la sélection affichée (période, filtres, filtre texte, tri), avec **toutes les lignes**, pas seulement la page affichée.
+3. Le message « Export CSV · N lignes · {période} » confirme l'export.
+
+**Règles**
+
+- Format : séparateur « ; », virgule décimale, encodage UTF-8.
+- Colonnes : Utilisateur, Équipe, Temps actif (h), Temps connecté (h), Sessions, Durée moyenne (min), Requêtes, Tokens entrée, Tokens sortie ; et, si vous voyez les coûts, Coût (€) et Évolution du coût (%).
+- Vos droits s'appliquent aussi à l'export : sans coûts, pas de colonne de coût ; anonymisé, noms pseudonymisés.
+- Chaque export est tracé au journal d'audit (« Export de la consommation (Accès) »), avec la période, le nombre de lignes et les filtres utilisés : niveau Sensible si vous voyez les données individuelles, Info sinon.
+
+### 3.6.7 Définitions des indicateurs
+
+| Indicateur | Définition |
+|---|---|
+| Temps actif | Chaque interaction (clic, saisie, défilement) compte jusqu'à la suivante, au plus **5 minutes**. Sans interaction, rien n'est compté. Deux onglets ouverts ne comptent pas deux fois |
+| Temps connecté | De l'ouverture de la session à sa fin : déconnexion, ou expiration après inactivité. Les sessions simultanées d'un même utilisateur sont fusionnées |
+| Taux d'activité | Temps actif ÷ temps connecté (« — » sans temps connecté) |
+| Coût IA | Coût enregistré pour chaque appel d'IA, au tarif du modèle en vigueur à la date de l'appel, attribué au compte qui a fait la demande |
+| Coût par heure active | Coût IA ÷ temps actif |
+| Session moyenne / Durée moy. | Temps actif ÷ nombre de connexions |
+
+**Automatique**
+
+- Les données sont consolidées toutes les 5 minutes ; la page se met à jour d'elle-même.
+- Les interactions brutes sont conservées **400 jours** (purge chaque nuit).
+
+**Messages** : « Les données n'ont pas pu être chargées » (avec **Réessayer**), « Aucune donnée sur cette période », « Niveau Utilisateur : droit « Voir les données individuelles » requis », « Tri sur les coûts : droit « Voir les coûts » requis ».
+
+**Exemple.** Vous ouvrez le mois d'octobre, niveau Équipe, équipe « PMO ». Le graphique miroir signale une hausse inhabituelle le 14 : 3,20 €, ×2,4 la moyenne. Dans « Où va le temps, où va la dépense », la fonctionnalité « Rapports » a un coût par heure active en ambre. Le tableau montre que deux personnes ont généré plusieurs rapports ce jour-là. Vous exportez la sélection pour la partager avec le PMO.
+
+## 3.7 Fournisseurs et modèles
+
+**À quoi sert la page.** Déclarer les fournisseurs d'IA et leurs clés, vérifier que les clés fonctionnent, choisir le modèle de chaque fonction d'IA (affectation), et tenir le catalogue des modèles avec leurs tarifs et leurs mesures. Sous-titre : « Clés API, tests de connexion et catalogue des modèles avec leur coût. »
+
+La page a trois blocs : le bandeau **Fournisseurs**, la section **Affectation des modèles** et le catalogue **Modèles**.
+
+> [Capture] Fournisseurs et modèles : bandeau des fournisseurs, affectation avec la chaîne Documents, catalogue.
+
+### 3.7.1 Le bandeau des fournisseurs et l'ajout d'un fournisseur
+
+- **En-tête du bandeau** : « N connecté(s) » et, en rouge, « N clé(s) invalide(s) » ; boutons **Tester toutes les clés** et **Ajouter un fournisseur**.
+- **Une carte par fournisseur** :
+  - le nom et l'état : « Connecté », « Clé invalide » ou « Test en cours… » (l'info-bulle donne la date du dernier test, ou « Jamais testée ») ;
+  - la clé masquée : préfixe et 4 derniers caractères ;
+  - le plafond mensuel : « Plafond N € / mois », ou « Sans plafond mensuel » en ambre ;
+  - les boutons **Tester**, **Remplacer la clé** et **Plafond**.
+
+**Ajouter un fournisseur**
 
 1. Cliquez sur **Ajouter un fournisseur**.
-2. Saisissez le nom du fournisseur et la clé API.
+2. Saisissez le **Nom du fournisseur** et la **Clé API**.
 3. Cliquez sur **Ajouter et tester**.
 
 **Règles**
@@ -579,18 +763,17 @@ La Console compare chaque compte à la personne correspondante du référentiel.
 - La clé est testée immédiatement. Ajout tracé au journal d'audit (Critique).
 - Aucun bouton ne permet de supprimer ou de renommer un fournisseur.
 
-### 3.6.2 Tester et remplacer une clé
+### 3.7.2 Tester et remplacer une clé
 
 - **Tester** :
-  - **Tester** (sur un fournisseur), **Tester la clé** (dans sa fiche) ou **Tester toutes les clés** ;
+  - **Tester** (sur une carte) ou **Tester toutes les clés** ;
   - le test lit la liste des modèles chez le fournisseur : il ne coûte rien ;
-  - délai maximal : 10 secondes.
+  - délai maximal : 10 secondes ;
+  - messages : « X : connexion réussie. », « X : clé invalide. Les routes concernées basculent sur leur secours. », « N clés testées · toutes valides ».
 - **Remplacer la clé** :
-  1. Collez la nouvelle clé.
+  1. Collez la nouvelle clé dans **Nouvelle clé API** (la clé actuelle est rappelée, barrée).
   2. Cliquez sur **Remplacer et tester**.
   3. L'ancienne clé cesse d'être utilisée immédiatement. Le remplacement est tracé (Critique).
-
-**États d'une clé** : Opérationnelle, Clé invalide, Non testée, Test en cours.
 
 **Automatique**
 
@@ -612,119 +795,158 @@ La Console compare chaque compte à la personne correspondante du référentiel.
 | « Aucune clé enregistrée » | Fournisseur déclaré sans clé | Ajoutez une clé |
 | « La clé semble incomplète (20 caractères minimum). » | Saisie trop courte | Collez la clé complète |
 
-### 3.6.3 Ajouter ou modifier un modèle
+### 3.7.3 Plafond mensuel d'une clé
 
-1. Cliquez sur **Ajouter un modèle**, ou sur le crayon d'un modèle existant.
-2. Choisissez ce que fait le modèle : **Génère du texte** (LLM), **Vectorise des textes** (Embedding) ou **Reclasse des résultats** (Reranking).
-3. Renseignez les champs :
-   - le fournisseur ;
-   - le nom, et une description d'une ligne ;
-   - l'identifiant chez le fournisseur ;
-   - la longueur de contexte (facultative) ;
-   - la **date de sortie** ;
-   - pour un LLM, le **nombre maximal de jetons en sortie** ;
-   - pour un Embedding, les dimensions proposées et la dimension par défaut.
-4. Renseignez la **tarification** :
-   - LLM : prix en entrée et en sortie, en euros par million de jetons ;
-   - Embedding : prix en entrée seulement ;
-   - Reranking : à la requête (euros pour 1 000 requêtes, choix par défaut) ou au jeton.
-5. Vérifiez l'**aperçu en direct** : fonctions possibles, coût estimé sur le volume actuel, continuité (existe-t-il un secours ?).
-6. Cliquez sur **Ajouter le modèle** ou **Enregistrer**.
+**À quoi il sert.** Reporter dans la Console la limite de dépense que vous avez fixée chez le fournisseur. **Partager Cockpit** (3.20) s'en sert pour annoncer la dépense possible d'un paquet d'installation.
+
+1. Cliquez sur **Plafond** sur la carte du fournisseur.
+2. Dans la fenêtre « Plafond mensuel {fournisseur} », saisissez un montant entier en euros dans **Plafond (€ par mois)**, ou laissez vide pour « sans plafond ».
+3. Cliquez sur **Enregistrer** : « X : plafond de N € par mois » ou « X : sans plafond. ».
 
 **Règles**
 
-- Nom : 1 à 80 caractères, unique chez un même fournisseur.
-- La date de sortie est obligatoire et ne peut pas être dans le futur.
-- Un LLM doit avoir un nombre maximal de jetons en sortie.
-- Tous les tarifs sont positifs ou nuls. Le tarif à la requête est réservé au Reranking.
-- Un nouveau modèle est créé actif.
-- Selon son ancienneté, un badge « À surveiller » ou « Ancien » s'affiche.
-- On ne peut pas changer la catégorie d'un modèle déjà utilisé par une fonction d'une autre catégorie : « {Nom} est utilisé comme … — changez d'abord l'affectation ».
-- On ne peut pas retirer une dimension affectée à la vectorisation des documents.
-- Un nouveau tarif sert pour les estimations et les appels suivants. La consommation passée garde le tarif du jour de l'appel.
+- Montant entier, de 1 à 100 000 €. Erreur : « Montant entier en euros, sans décimale. ».
+- Sans plafond, la dépense possible d'un paquet qui contient cette clé s'affiche « Illimitée ».
+- **Ce plafond ne bloque aucun appel.** Il ne remplace pas les plafonds budgétaires de Consommation et coûts (3.8), qui alertent.
+- Modification tracée (Sensible) : « Plafond mensuel d'une clé API ».
 
-### 3.6.4 Désactiver, réactiver, supprimer un modèle
+### 3.7.4 Affectation des modèles
 
-- **Désactiver** :
-  - utilisez l'interrupteur **Actif** et confirmez ;
-  - un modèle principal d'une fonction ne peut pas être désactivé : « Modèle principal de : … — changez d'abord l'affectation » ;
-  - un modèle utilisé seulement en secours peut l'être.
-- **Réactiver** : sans confirmation.
-- **Supprimer** (dans la fiche du modèle) : refusé si le modèle est affecté à une fonction, choisi par une règle de notification ou présent dans la consommation. Dans ces cas, désactivez-le plutôt : son historique reste lisible.
-
-## 3.7 Affectation des modèles
-
-**À quoi sert la page.** Choisir, pour chaque fonction d'IA, le modèle qui répond (principal) et celui qui prend le relais (secours).
-
-> [Capture] Page Affectation des modèles : cartes des fonctions et chaîne Documents.
+**À quoi elle sert.** Choisir, pour chaque fonction d'IA, le modèle qui répond (**principal**) et celui qui prend le relais (**secours**). Cette section remplace l'ancienne page « Affectation des modèles ».
 
 **Les fonctions**
 
-| Fonction | Catégorie | Usage |
+| Fonction (à l'écran) | Catégorie | Usage |
 |---|---|---|
-| Insights | LLM | Analyses du Cockpit |
-| Gestion des données | LLM | Aide à la saisie du Cockpit |
-| Rapports | LLM | Rendus longs (sortie requise d'environ 38 000 jetons par défaut) |
-| Guidage console | LLM | Jev dans la Console |
-| Documents, étape 1 : Vectorisation | Embedding | Recherche dans les documents |
-| Documents, étape 2 : Reclassement | Reranking | Recherche dans les documents |
-| Documents, étape 3 : Synthèse | LLM | Réponse à partir des documents |
+| Insights | LLM | Analyses des données du Cockpit, réponses de Jev du Cockpit sur les données, message d'accueil |
+| Gestion des données | LLM | Modifications des données demandées à Jev dans le Cockpit |
+| Rapports | LLM | Rédaction des rapports de comité |
+| Guidage console / Cockpit | LLM | Jev de la Console et du Cockpit : reformulation, clarification, réponses sur les données de la Console |
+| Initialisation projet | LLM | Préremplissage du fichier d'initialisation à partir d'une proposition commerciale (3.14) |
+| Documents, étape 1 : Vectorisation | Embedding | Recherche dans les documents et les guides |
+| Documents, étape 2 : Reclassement | Reranking | Recherche dans les documents et les guides |
+| Documents, étape 3 : Synthèse | LLM | Réponse à partir des documents et des guides |
 
 **Utilisation**
 
-1. Sur chaque carte, choisissez le **principal** puis le **secours**. Seuls les modèles actifs de la bonne catégorie sont proposés.
-2. Lisez les conseils de la carte :
-   - « Aucun secours : la fonction est à l'arrêt si le principal est indisponible » ;
-   - « Principal limité à N tokens : les rendus plus longs seraient tronqués » ;
-   - …
-3. Le bouton **Secours : {modèle} · {coût}** propose le secours utilisable le moins cher.
-4. Cliquez sur **Enregistrer**, puis sur **Enregistrer l'affectation** dans la confirmation. La confirmation rappelle l'estimation mensuelle, avant et après.
+1. Sous chaque fonction, lisez son état (« Opérationnel », « Secours en service » ou « À l'arrêt ») et son volume des 30 derniers jours.
+2. Cliquez sur le sélecteur **Principal** ou **Secours**. La liste « Modèles LLM actifs · coût estimé » (ou Embedding, Reranking) ne propose que les modèles actifs de la bonne catégorie, triés par coût estimé. Un fournisseur à clé invalide porte la mention « · clé invalide ».
+3. Choisissez un modèle. **Le choix est enregistré aussitôt**, sans confirmation (sauf pour la Vectorisation) : « {Fonction} : {modèle} en principal. ».
+4. Lisez le **coût mensuel estimé** de chaque fonction, et sous le secours « Si le secours prend le relais : ≈ X € / mois ».
+5. Pour **Rapports**, la jauge « Sortie maximale » compare la longueur maximale de réponse du principal et du secours à la sortie requise (la plus longue mesurée sur 30 jours, sinon 38 000 jetons) : vert si elle suffit, rouge sinon.
+
+**La chaîne Documents**
+
+- « 3 étapes en série · le texte extrait suit la ligne de haut en bas. Une étape à l'arrêt suspend la suite. »
+- La chaîne part du « Texte extrait » et finit par la « Réponse ». Le total s'affiche : « Total chaîne X par mois ».
+- Une étape indisponible suspend les étapes suivantes (« Suspendu en amont »). Une étape sur son secours ne bloque rien.
+- **La Vectorisation n'a pas de secours** : « Pas de modèle de secours : un autre modèle imposerait de revectoriser tous les documents. »
+- Le sélecteur de **dimensions** de la Vectorisation ne propose que les dimensions du modèle choisi.
+
+**Revectorisation automatique**
+
+1. Changer le modèle ou la dimension de la Vectorisation ouvre la fenêtre « Revectoriser tous les documents ? ».
+2. La fenêtre explique que les vecteurs actuels deviennent inutilisables : tous les extraits de la Base de connaissance des projets et des guides utilisateur seront revectorisés en tâche de fond.
+3. Cliquez sur **Changer et revectoriser**, ou **Annuler**.
+4. La cloche suit l'avancement : « Revectorisation des documents en cours », puis « … terminée » ou « … en échec ».
+5. La recherche dans les documents reprend à la fin. Le changement est tracé (Critique).
 
 **Règles**
 
-- Le principal doit être actif et de la catégorie de la fonction.
-- Le secours doit être différent du principal.
-- Les nouveaux modèles répondent dès la requête suivante.
+- Le principal doit être actif et de la catégorie de la fonction : « Cette fonction n'accepte qu'un modèle LLM » (ou Embedding, Reranking).
+- Le secours doit être différent du principal (« Le secours doit différer du principal ») et actif.
+- Les nouveaux modèles répondent dès la requête suivante. Chaque changement est tracé (Sensible).
 - **Une fonction est** :
   - **Opérationnelle** si son principal est disponible ;
   - **Secours en service** si seul le secours l'est ;
-  - **Indisponible** sinon.
+  - **À l'arrêt** sinon.
 - **Un modèle est disponible** s'il est actif et si la clé de son fournisseur a réussi son dernier test.
-- **Chaîne Documents** : une étape indisponible suspend les étapes suivantes (état « Suspendue »). Une étape sur son secours ne bloque rien.
-- Changer le modèle ou la dimension de la vectorisation affiche un avertissement : les documents devront être réindexés. Ce changement est tracé en Critique. La réindexation n'est pas faite automatiquement.
-- **Estimation mensuelle** : volume réel des 30 derniers jours × tarif actuel. Pour Guidage console sans historique, une estimation fixe est affichée, précédée de « ≈ ».
+- **Coût mensuel estimé** : volume réel des 30 derniers jours × tarif actuel du modèle. Pour une fonction sans historique (Guidage, Initialisation projet), une estimation fixe est affichée.
 
 **Automatique**
 
-- Si le principal ne répond pas au moment d'un appel, le secours est essayé.
+- Si le principal ne répond pas au moment d'un appel, le secours est essayé. Un incident « IA · fonction {nom} » s'ouvre dans la cloche.
 - Si les deux échouent, la fonction répond « indisponible ».
+- **Toutes les fonctions appellent réellement les modèles choisis.** Les règles de notification utilisent, elles, le modèle choisi dans chaque règle.
 
-**Aujourd'hui, seule la fonction Guidage console (Jev de la Console) interroge réellement le modèle choisi. Les règles de notification aussi, avec le modèle choisi dans chaque règle.** Les autres fonctions du Cockpit produisent pour l'instant un texte de démonstration, mais leur consommation est bien enregistrée.
+**Exemple.** La clé Google est refusée : Gemini, principal de la Synthèse des documents, devient indisponible. Claude Sonnet, son secours, répond à sa place et la ligne affiche « Secours en service ». Vous remplacez la clé Google : après un test réussi, Gemini répond de nouveau.
 
-**Vue réseau** (page Fournisseurs et modèles) : elle montre, pour chaque fonction, le modèle qui répond en ce moment. Un clic sur un modèle ouvre sa fiche.
+### 3.7.5 Le catalogue des modèles
 
-**Exemple.** La clé Google est refusée : Gemini, principal de la Synthèse des documents, devient indisponible. Claude Sonnet, son secours, répond à sa place et la carte affiche « Secours en service ». Vous remplacez la clé Google : après un test réussi, Gemini répond de nouveau.
+- **En-tête** : « Coûts en euros par million de tokens · mesures OpenRouter du {date} » ; bouton **Actualiser** ; filtres **Tous** puis un onglet par fournisseur ; bouton **Ajouter un modèle**.
+- **Colonnes**, toutes triables : Modèle, Fournisseur, Entrée, Sortie, Score, Session, Tok/s, Utilisé par, Actif, et le crayon **Modifier**.
+- **Badges** :
+  - catégorie : LLM, Embedding ou Reranking ;
+  - ancienneté d'après la date de sortie : « À surveiller · N mois » de 12 à 23 mois, « Ancien · N mois » à partir de 24 mois.
+- **Utilisé par** : les fonctions qui utilisent le modèle, en principal ou en secours.
 
-## 3.8 Consommation et coûts
+**Mesures OpenRouter**
 
-**À quoi sert la page.** Suivre la dépense d'IA du mois, anticiper la fin de mois, fixer des plafonds et voir le détail de chaque appel à un modèle.
+| Colonne | Mesure |
+|---|---|
+| Score | Intelligence Index (sur 100), publié par OpenRouter |
+| Session | Coût médian d'une session de 10 à 49 tours dans l'agent Hermes, converti en euros |
+| Tok/s | Débit médian du fournisseur le plus rapide, en tokens par seconde |
 
-> [Capture] Consommation et coûts : bandeau du budget et graphique, tuiles des fonctions, journal des appels.
+- Les mesures sont relevées chaque jour à 4 h 30, ou à la demande avec **Actualiser** (« N modèles mesurés sur M LLM. »).
+- Elles ne concernent que les LLM. Une mesure absente s'affiche « — ». Un relevé n'efface jamais une valeur existante.
+- Dans la fiche d'un modèle, le bloc « Mesures OpenRouter » permet de corriger les trois valeurs et l'**Identifiant OpenRouter** (« Retrouvé automatiquement ; à corriger si le relevé ne trouve pas le modèle »).
+
+### 3.7.6 Ajouter ou modifier un modèle
+
+1. Cliquez sur **Ajouter un modèle**, ou sur le crayon d'un modèle existant.
+2. Choisissez **Que fait ce modèle ?** : **Génère du texte** (LLM), **Vectorise des textes** (Embedding) ou **Reclasse des résultats** (Reranking).
+3. Renseignez les champs :
+   - le fournisseur ;
+   - le nom, et une description ;
+   - l'**Identifiant chez le fournisseur** ;
+   - la **Longueur de contexte** (facultative) ;
+   - la **Date de sortie** ;
+   - pour un LLM, le **Max output tokens** (longueur maximale d'une réponse) ;
+   - pour un Embedding, les **Dimensions acceptées** (séparées par des virgules) et la **Dimension par défaut**.
+4. Renseignez la **Tarification** en euros par million de tokens : entrée, et sortie pour un LLM.
+5. Vérifiez l'**Aperçu en direct** : fonctions possibles (« Proposé pour »), coût sur le volume actuel, continuité (existe-t-il un secours ?).
+6. Cliquez sur **Ajouter** ou **Enregistrer**.
+
+**Règles**
+
+- Nom : 1 à 80 caractères, unique chez un même fournisseur : « {Fournisseur} a déjà un modèle « X » ».
+- La date de sortie est obligatoire à la création et ne peut pas être dans le futur.
+- Un LLM doit avoir un max output tokens ; un Embedding, des dimensions.
+- Tous les tarifs sont positifs ou nuls.
+- Un nouveau modèle est créé actif.
+- On ne peut pas changer la catégorie d'un modèle déjà affecté à une fonction d'une autre catégorie.
+- On ne peut pas retirer une dimension affectée à la Vectorisation.
+- « Un changement de tarif met à jour les estimations de l'affectation. L'historique de consommation n'est pas recalculé. »
+
+### 3.7.7 Désactiver, réactiver, supprimer un modèle
+
+- **Désactiver** : interrupteur **Actif**. Un modèle **affecté**, en principal ou en secours, ne peut pas être désactivé : « X est affecté (…). Réaffectez-le avant de le désactiver. ».
+- **Réactiver** : sans confirmation.
+- **Supprimer** (dans la fiche du modèle, en deux clics : **Supprimer** puis **Confirmer la suppression**) : refusé si le modèle est affecté à une fonction, choisi par une règle de notification ou présent dans la consommation. Dans ces cas, désactivez-le plutôt : son historique reste lisible.
+
+## 3.8 Consommation et coûts de l'IA
+
+**À quoi sert la page.** Suivre la dépense d'IA du mois, anticiper la fin de mois, fixer des plafonds par fonction et voir le détail de chaque appel à un modèle. La page se trouve dans le domaine **IA**. Sous-titre : « Tokens et dépenses par fonction, fournisseur et modèle, seuils d'alerte et détail de chaque appel LLM. »
+
+> [Capture] Consommation et coûts (IA) : bandeau du budget et graphique, six tuiles des fonctions, journal des appels.
+
+### 3.8.1 Budget, graphique et plafonds
 
 **Utilisation**
 
-1. Choisissez la période : **Jour**, **7 j**, **Ce mois**, **30 j**, **3 mois** ou **6 mois**. Elle s'applique au graphique Tokens et Coûts, aux compteurs et au journal. Le budget reste celui du mois en cours.
+1. Choisissez la période : **Jour**, **7 j**, **Ce mois**, **30 j** (par défaut), **3 mois** ou **6 mois**. Elle s'applique au graphique Tokens et Coûts, aux compteurs et au journal. **Le budget reste celui du mois civil en cours.**
 2. Dans le bandeau, lisez :
-   - la **projection de fin de mois** et la note « Reste … sous le plafond » ou « Dépassement projeté de … » ;
+   - la **projection de fin de mois** et la note « Reste … sous le plafond en fin de mois. », « Dépassement projeté de … en fin de mois. » ou « Aucun plafond global : fixez-le sous les fonctions. » ;
    - la dépense depuis le 1er et le plafond global ;
-   - le rythme des 7 derniers jours, la dépense du mois précédent à la même date, les jetons du mois.
+   - le rythme des 7 derniers jours, la dépense du mois précédent à la même date, les tokens du mois.
 3. Choisissez la lecture du graphique :
    - **Budget** : dépense cumulée, plafond, seuil d'alerte et projection ;
-   - **Tokens** : jetons d'entrée au-dessus, de sortie en dessous ;
+   - **Tokens** : tokens d'entrée et de sortie par jour (par heure pour **Jour**) ;
    - **Coûts** : dépense par jour (par heure pour **Jour**).
-4. Cliquez sur une tuile (Insights, Rapports, Guidage console, Documents, Gestion des données) pour filtrer le graphique, les compteurs et le journal. Un second clic, ou « × », retire le filtre.
-5. Pour fixer un plafond, saisissez le montant dans la tuile, ou dans « Budget global ». Réglez le seuil d'alerte avec « − » et « + ». L'enregistrement est immédiat.
-6. **Exporter en CSV** télécharge exactement le journal affiché (période et fonction).
+4. Six tuiles, en deux rangées de trois, présentent les lignes budgétaires : **Insights**, **Rapports**, **Guidage console**, **Documents**, **Gestion des données**, **Initialisation projet**. Chaque tuile montre le modèle principal, la dépense, la part du mois, la projection et le statut.
+5. Cliquez sur une tuile pour filtrer le graphique, les compteurs et le journal. Un second clic, ou « × », retire le filtre.
+6. Pour fixer un plafond, saisissez le montant dans la tuile, ou dans « Budget global ». Réglez le seuil d'alerte avec « − » et « + ». L'enregistrement est automatique ; vider le champ supprime le plafond.
 
 **Règles**
 
@@ -740,28 +962,80 @@ La Console compare chaque compte à la personne correspondante du référentiel.
 - **Moyenne par jour ouvré** : du lundi au vendredi ; le pic est le jour (ou l'heure) le plus élevé.
 - **Un plafond ne bloque rien.** Les appels continuent au-delà. Le plafond sert à alerter : cloche, « À traiter » et signal du menu.
 - Les modifications de plafond et de seuil sont tracées (Sensible).
+- La page se met à jour d'elle-même : un nouvel appel à un modèle apparaît en moins d'une seconde.
 
 **Exemple.** Le plafond global est de 100 €, avec une alerte à 80 %. Au 2 du mois, 0,88 € sont dépensés au rythme de 0,31 € par jour : la projection est de 9,74 €, la note indique « Reste 90,26 € sous le plafond ». Si le plafond passe à 9 €, la note devient « Dépassement projeté de 0,74 € » et le statut « Dépassement projeté ».
 
-## 3.9 Journal des appels
+### 3.8.2 Journal des appels
 
-**À quoi il sert.** Voir le détail de chaque appel à un modèle, en bas de la page Consommation et coûts : date et heure, fonction, fournisseur et modèle, jetons (entrée → sortie, total), coût.
+**À quoi il sert.** Voir le détail de chaque appel à un modèle, en bas de la page : date et heure, fonction, fournisseur et modèle, tokens (entrée → sortie, total), coût.
 
 **Utilisation**
 
 1. Le journal suit la période et la fonction choisies en haut de la page.
-2. Faites défiler : les appels suivants se chargent d'eux-mêmes.
+2. Faites défiler : les appels suivants se chargent d'eux-mêmes (« Chargement des appels suivants… »).
 3. Cliquez sur une ligne pour voir :
    - l'identifiant de la requête ;
    - la durée ;
    - le calcul du coût, dont le résultat est le coût de la ligne.
+4. **Exporter en CSV** télécharge exactement le journal affiché (période et fonction) : « N appels exportés en CSV. ».
 
 **Règles**
 
-- **Coût d'un appel** : jetons d'entrée × prix d'entrée par million + jetons de sortie × prix de sortie par million, au tarif en vigueur au moment de l'appel, enregistré avec l'appel. Un changement de tarif ne modifie pas le passé.
+- **Coût d'un appel** : tokens d'entrée × prix d'entrée par million + tokens de sortie × prix de sortie par million (ou nombre de requêtes × prix pour 1 000 requêtes), au tarif en vigueur au moment de l'appel, enregistré avec l'appel. Un changement de tarif ne modifie pas le passé.
+- Le journal contient aussi les appels de Vectorisation et de Reclassement (ligne Documents).
 - Le texte des questions et des réponses n'est pas conservé.
-- Les données de consommation n'ont pas de durée de conservation limitée. Elles ne disparaissent que si les modèles d'IA sont réinitialisés.
-- **Mise en cache des instructions.** Pour Jev et les notifications, une partie des instructions envoyées au modèle est mise en cache chez le fournisseur. Les jetons relus depuis ce cache coûtent 10 % du prix normal ; leur première écriture coûte 125 %. Le calcul affiché le détaille (jetons lus et écrits en cache, jetons facturés) ; le nombre de jetons affiché compte, lui, tous les jetons envoyés.
+- Les données de consommation n'ont pas de durée de conservation limitée.
+- **Mise en cache des instructions.** Pour Jev, les notifications et d'autres traitements, une partie des instructions envoyées au modèle est mise en cache chez le fournisseur. Les tokens relus depuis ce cache coûtent 10 % du prix normal ; leur première écriture coûte 125 %. Le calcul affiché le détaille ; le nombre de tokens affiché compte, lui, tous les tokens envoyés.
+- L'export CSV (séparateur « ; ») contient : Date, Heure, Fonction, Fournisseur, Modèle, Secours, Tokens, Tokens entrée, Tokens sortie, Tarif entrée (€/M), Tarif sortie (€/M), Coût (€), Requête, Durée (ms). Il est tracé au journal d'audit.
+
+**Message** : « Aucun appel sur cette période pour cette fonction. ».
+
+## 3.9 Analyse des temps de réponse
+
+**À quoi sert la page.** Mesurer le temps que met Jev à répondre, de bout en bout et étape par étape, pour repérer ce qui ralentit. Sous-titre : « Durée de traitement des prompts, de bout en bout et par étape, par catégorie de prompt ou par modèle. »
+
+> [Capture] Analyse des temps de réponse : vignettes des catégories, cascade des étapes, courbe d'évolution.
+
+**Utilisation**
+
+1. Choisissez l'axe : **Par catégorie de prompt** ou **Par modèle**.
+2. Choisissez la période : **Jour**, **7 jours** (par défaut), **1 mois**, **3 mois** ou **6 mois**. En vue Jour, « Jour précédent » et « Jour suivant » parcourent les jours, jusqu'à 182 jours en arrière. Les périodes se terminent aujourd'hui, journée en cours comprise.
+3. Cliquez sur une vignette (catégorie ou modèle). Chaque vignette affiche la durée médiane de bout en bout, l'écart « min – max » et le nombre d'erreurs.
+4. Lisez la **cascade** : une ligne par étape, chacune commençant à la fin de la précédente, avec « Médiane · min – max », puis la ligne « Bout en bout ».
+5. Lisez la courbe **Évolution sur la période** : médiane et bande min – max, par heure, par jour ou par semaine ; les erreurs sont marquées en corail.
+
+**Les six catégories de prompt**
+
+| Vignette | Signification |
+|---|---|
+| Guide Console | Question sur l'utilisation de la Console |
+| Données Console | Question sur les données de la Console |
+| Guide Cockpit | Question sur l'utilisation du Cockpit |
+| Données Cockpit | Question sur les données d'un projet du Cockpit |
+| Actualisation Cockpit | Demande de création, modification ou suppression de données dans le Cockpit |
+| Base de connaissance | Question sur un document de la Base de connaissance |
+
+**Les étapes**
+
+| Étape | Ce qu'elle mesure |
+|---|---|
+| Routage | Aiguillage de la question par la carte JEV |
+| Vectorisation | Transformation de la question en vecteur |
+| Reclassement | Reclassement des extraits trouvés |
+| Formulation de la requête | Requête sur les données, reformulation d'une question de suite, extraction des champs |
+| Exécution | Lecture ou écriture en base (« Service RISE · Traitement interne ») |
+| Génération | Rédaction de la réponse |
+
+**Règles**
+
+- Seuls les prompts de Jev (Console et Cockpit) sont mesurés. Les clarifications, les questions hors sujet et les aiguillages en échec ne sont pas comptés.
+- Statistiques : médiane exacte, minimum et maximum.
+- Une étape servie par le secours apparaît avec la part des appels qu'il a pris (« secours X (N %) »).
+- Types d'erreur affichés : « Délai dépassé », « Réponse vide », « Réponse illisible », « Service injoignable », « Erreur HTTP NNN », « Requête invalide », « Carte non configurée ».
+- Les mesures sont conservées **190 jours** (purge chaque nuit à 3 h 40).
+
+**Message** : « Aucun traitement sur la période ».
 
 ## 3.10 Jev, l'assistant de la Console
 
@@ -773,49 +1047,76 @@ La Console compare chaque compte à la personne correspondante du référentiel.
 
 1. Cliquez sur le bouton de Jev, en bas de la barre latérale.
 2. Posez votre question, ou cliquez sur une suggestion adaptée à la page ouverte (par exemple « Où en est le budget IA ? »).
-3. Lisez la réponse. Quand Jev a consulté des données, les **sources** (les tables lues) s'affichent sous la réponse.
-4. Pour repartir de zéro, cliquez sur le crayon **Nouvelle conversation**.
+   - Le champ de saisie s'agrandit avec le texte, jusqu'à environ 8 lignes, puis défile.
+   - **Entrée** envoie la question ; **Maj+Entrée** va à la ligne.
+3. Lisez la réponse et ses **sources**, affichées sous la réponse.
+4. Pour repartir de zéro, cliquez sur l'icône **Effacer tous les messages** : Jev repart d'une nouvelle conversation.
 5. Fermez avec **Fermer Jev** ou la touche Échap.
 
-**Ce que Jev sait faire**
+**Comment Jev répond : l'aiguillage**
+
+Avant de répondre, Jev classe chaque question avec l'API de la carte « JEV » du Registre des cartes API (3.17). Il tient compte de la page ouverte et des 3 questions précédentes.
+
+| Type de question | Ce que fait Jev | Sources affichées |
+|---|---|---|
+| **Usage** (« Comment inviter un utilisateur ? ») | Il cherche les passages les plus proches dans le **guide utilisateur de la Console** (3.21), les reclasse, puis rédige sa réponse à partir des seuls extraits retenus. Une question de suite est d'abord reformulée en question autonome | « Guide · {section} · p. N » |
+| **Données** (« Qui ne s'est pas connecté depuis 10 jours ? ») | Il lit en direct les données de la plateforme, en lecture seule, puis répond | Les tables lues (par exemple « comptes ») |
+| **Ambiguë** ou **hors sujet** | Il demande une précision, en quelques lignes, avec 2 ou 3 reformulations ou options | — |
+
+- Si l'aiguillage est indisponible (carte JEV absente, désactivée ou en erreur), Jev traite la question comme ambiguë : il explique et peut lire les données.
+- Si aucun extrait du guide n'est assez proche, si le guide n'est pas indexé ou si la recherche est indisponible, Jev demande une précision.
+- Les réglages de la recherche dans le guide (nombre d'extraits, seuil, délais) se font dans la page Guide utilisateur (3.21).
+
+**Ce que Jev sait lire**
 
 - Il connaît la page que vous regardez.
-- Il lit en direct les données de la plateforme, dans un périmètre défini (33 tables de consultation) :
+- Il lit en direct les données de la plateforme, dans un périmètre défini (34 tables de consultation) :
   - comptes, droits, sessions, journal d'audit ;
-  - IA, consommation, plafonds ;
-  - notifications, projets, snapshots, modules ;
+  - IA, consommation, budget, plafonds ;
+  - notifications, projets, clients, informations projet, chantiers, personnes, phases, snapshots, modules, imports ;
   - cartes API, serveur d'e-mail, skills, persona.
-- Il ne lit rien d'autre : ni le guide utilisateur et ses téléchargements, ni le contenu des snapshots, ni les conversations elles-mêmes.
+- Il lit le guide utilisateur de la Console pour les questions d'usage.
+- Il ne lit rien d'autre : ni le contenu des snapshots, ni les conversations elles-mêmes.
+
+**Modèles utilisés**
+
+- Aiguillage : la carte « JEV » du Registre des cartes API.
+- Données, reformulation et clarification : la fonction **Guidage console**.
+- Recherche dans le guide : le modèle de vectorisation de l'index du guide, puis la fonction **Reclassement**.
+- Réponse à partir du guide : la fonction **Synthèse** (Documents, étape 3).
+- Sa personnalité suit le **Persona** (3.11) et la skill de guidage (3.12).
 
 **Règles**
 
 - Une question fait 2 000 caractères au plus.
 - Chaque lecture de données est limitée à 200 lignes et 5 secondes, en lecture seule.
 - Si sa première lecture échoue, Jev la corrige une fois. En cas de nouvel échec, il répond : « Je n'ai pas pu lire les données de la plateforme pour répondre (…). Reformulez la question, ou consultez directement l'écran concerné de la Console. ».
-- Jev répond avec le modèle affecté à la fonction **Guidage console**, ou son secours (voir 3.7).
-- Sa personnalité suit le **Persona** (3.11) et la skill de guidage (3.12).
+- Si la vectorisation de la question échoue, Jev fait une seconde tentative avec un délai plus long. En cas de nouvel échec, la cloche signale une erreur technique.
 
 **Mémoire conversationnelle**
 
 - Jev garde le fil de **votre** conversation, même après un rechargement de la page. Chaque administrateur a la sienne ; personne d'autre n'y accède.
 - **Ce qui est retenu** :
   - les **10 derniers échanges** ;
-  - un **résumé** des échanges plus anciens, mis à jour automatiquement à partir d'une douzaine d'échanges ;
+  - un **résumé** des échanges plus anciens, mis à jour automatiquement ;
   - les réponses très longues, retenues en abrégé.
-- **Ce qui est conservé** : vos questions, les réponses de Jev et les sources consultées. Les données lues ne sont pas conservées.
-- **Nouvelle conversation** : Jev oublie les échanges précédents.
-- **Automatique** : chaque nuit à 3 h 25, les conversations sans échange depuis **30 jours** sont supprimées. Une conversation de plus de 30 jours n'est de toute façon plus reprise.
+- **Ce qui est conservé** : vos questions, les réponses de Jev, le type de question, la reformulation éventuelle et les sources consultées. Les données lues ne sont pas conservées. Une question restée sans réponse n'est pas gardée.
+- **Effacer tous les messages** : Jev oublie les échanges précédents.
+- **Automatique** : chaque nuit à 3 h 25, les conversations sans échange depuis **30 jours** sont supprimées.
 
 **Messages d'erreur**
 
 | Message | Cause | Que faire |
 |---|---|---|
-| « Je ne peux pas répondre pour l'instant : Fonction Guidage console indisponible : aucun modèle affecté » | Aucun modèle affecté au guidage | Affectez un modèle (3.7) |
-| « … ni le modèle principal ni le secours ne répondent » | Clés refusées ou fournisseurs indisponibles | Testez et remplacez les clés (3.6) |
-| « Jev n'a pas pu répondre : Conversation introuvable. » | Conversation expirée ou supprimée | Cliquez sur **Nouvelle conversation** |
+| « Je ne peux pas répondre pour l'instant : … aucun modèle affecté » | Aucun modèle affecté à la fonction utilisée | Affectez un modèle (3.7.4) |
+| « Je ne peux pas répondre pour l'instant : … ni le modèle principal ni le secours ne répondent » | Clés refusées ou fournisseurs indisponibles | Testez et remplacez les clés (3.7.2) |
+| « Le guide utilisateur de la Console n'est pas encore publié : … » | Aucun guide de la Console | Déposez le guide (3.21) |
+| « La recherche dans le guide utilisateur de la Console est momentanément indisponible. Réessayez dans un instant. » | Vectorisation de la question impossible | Réessayez ; vérifiez la clé du fournisseur de vectorisation |
+| « Je n'ai pas trouvé cette information dans le guide utilisateur de la Console. … » | Aucun extrait assez proche | Reformulez la question |
+| « Jev n'a pas pu répondre : Conversation introuvable. » | Conversation expirée ou supprimée | Cliquez sur **Effacer tous les messages** |
 | « Jev n'a pas pu répondre : Données invalides. » | Question de plus de 2 000 caractères | Raccourcissez la question |
 
-**Exemple.** Sur la page Utilisateurs, vous demandez : « Qui ne s'est pas connecté depuis 10 jours ? ». Jev lit la table des comptes et répond par une liste de noms avec leur dernière connexion, et la source « comptes ». Vous enchaînez : « Et parmi eux, lesquels sont PMO ? ». Jev comprend que « eux » renvoie à la liste précédente.
+**Exemple.** Sur la page Utilisateurs, vous demandez : « Qui ne s'est pas connecté depuis 10 jours ? ». Jev lit la table des comptes et répond par une liste de noms avec leur dernière connexion, et la source « comptes ». Vous enchaînez : « Comment relancer leur invitation ? ». Jev comprend qu'il s'agit d'une question d'usage, cherche dans le guide et répond en citant « Guide · 3.3.4 Relancer une invitation ».
 
 ## 3.11 Persona
 
@@ -838,14 +1139,14 @@ La Console compare chaque compte à la personne correspondante du référentiel.
 
 - Chaque tuile s'enregistre séparément. **Annuler** revient à la dernière version enregistrée.
 - Chaque enregistrement garde une copie de la version précédente et est tracé (Sensible), avec l'avant et l'après.
-- Le Persona est relu à chaque réponse de Jev.
+- Le Persona est relu à chaque réponse de Jev, dans la Console comme dans le Cockpit, et pour le message d'accueil de l'écran Aujourd'hui.
 - Le nom, l'emoji et l'avatar s'affichent dans la Console : barre latérale et panneau de Jev.
 
 **Messages** : « Le nom est obligatoire. », « Image trop lourde (1 Mo maximum). », « Format non accepté ».
 
 ## 3.12 Skills
 
-**À quoi sert la page.** Gérer les consignes ajoutées aux instructions de Jev.
+**À quoi sert la page.** Gérer les consignes ajoutées aux instructions de Jev et de certains traitements d'IA.
 
 > [Capture] Page Skills : liste et éditeur.
 
@@ -856,12 +1157,17 @@ La Console compare chaque compte à la personne correspondante du référentiel.
 3. Cliquez sur **Enregistrer**.
 4. L'interrupteur active ou désactive la skill. L'effet est immédiat.
 5. **Supprimer**, puis **Confirmer la suppression**. La suppression est définitive.
-6. Retrouvez une skill avec la recherche et le filtre **Toutes / Actives / Désactivées** (9 skills par page).
+6. Retrouvez une skill avec la recherche et le filtre **Toutes / Actives / Désactivées** (9 skills par page). Au-delà de 200 skills, la recherche se fait sur le serveur.
+
+**Qui utilise quelle skill**
+
+- **Jev de la Console** : une seule skill, **la skill de guidage**. C'est la première skill active nommée « Guidage console », « Répondre sur la Console d'administration » ou « Guider l'utilisateur » (sans tenir compte des majuscules).
+- **Jev du Cockpit** : pour chaque type de question, la seule skill active qui correspond à ce type (par exemple « Insights » pour les données du projet, « Guidage Cockpit » pour l'usage).
+- **Skills dédiées** : la skill « **Préremplissage d'un projet** » sert uniquement au préremplissage de l'Initialisation d'un projet (3.14). Elle est lue, **active ou non**, à chaque analyse d'une proposition commerciale. Elle n'est **jamais envoyée à Jev**. Modifiez-la pour ajuster la façon dont l'IA lit les propositions.
 
 **Règles**
 
 - Deux skills ne peuvent pas porter le même nom (sans tenir compte des majuscules) : « Une skill s'appelle déjà « … » ».
-- **Le Jev de la Console n'utilise qu'une skill : la skill de guidage**, c'est-à-dire la première skill active nommée « Guidage console », « Répondre sur la Console d'administration » ou « Guider l'utilisateur ». Les autres skills actives servent au Jev du Cockpit.
 - Les skills restent dans leur ordre de création. On ne peut pas les réordonner.
 - Chaque création, modification, activation et suppression est tracée (Sensible).
 
@@ -881,7 +1187,7 @@ La Console compare chaque compte à la personne correspondante du référentiel.
    - les dates ;
    - les nombres de lots, phases, chantiers et personnes ;
    - l'état du dernier snapshot.
-4. **Ouvrir** ouvre le projet dans le Cockpit. Il faut une session du Cockpit.
+4. **Ouvrir** (ou la touche Entrée) ouvre le projet dans le Cockpit. Il faut une session du Cockpit.
 5. **Initialiser un projet** mène à l'initialisation (3.14).
 
 **Règles**
@@ -890,70 +1196,169 @@ La Console compare chaque compte à la personne correspondante du référentiel.
 - **Ordre d'affichage** : nouveaux projets, puis actifs, en préparation et clos, puis par date de début.
 - **Phase affichée** : la phase qui contient la date du jour, sinon « Préparation » pour un projet en préparation.
 - **Statut d'un projet** : la Console ne le modifie pas. On le change dans la fiche projet du Cockpit. Un projet clos est affiché « archivé ».
+- La liste se met à jour d'elle-même quand un projet est créé ou modifié.
 
 ## 3.14 Initialisation d'un projet
 
-**À quoi elle sert.** Créer un projet complet à partir du fichier Excel rempli par le PMO.
+**À quoi elle sert.** Créer un projet complet dans la plateforme. Un seul point d'entrée accepte deux sortes de fichiers, et le format décide du traitement :
 
-> [Capture] Initialisation : étape Contrôler avec les cinq contrôles.
+- une **proposition commerciale** (PDF, DOCX ou PPTX) : l'IA **préremplit** le fichier Excel d'initialisation ;
+- le **fichier Excel d'initialisation rempli** (XLSX) : la Console le **contrôle** onglet par onglet, puis le projet est prévisualisé et créé.
 
-**Utilisation, en quatre étapes**
+> [Capture] Initialisation d'un projet : zone de dépôt avec les deux encarts « Proposition commerciale » et « Excel d'initialisation rempli ».
 
-1. **Importer**
-   1. Si besoin, téléchargez le **Modèle Excel**.
-   2. Glissez le fichier rempli dans la zone, ou cliquez sur **Choisir un fichier**. Seul le format `.xlsx` est accepté, 10 Mo au plus.
-2. **Contrôler** : cinq contrôles sont faits, sans rien créer.
-   - **Structure du fichier** : les 13 onglets attendus sont présents.
-   - **Fiche projet** : le code projet est présent et libre.
-   - **Champs obligatoires** : tous sont remplis.
-   - **Contrôles de cohérence** : dates, doublons, références entre onglets…
-   - **Avertissements** : points à vérifier, non bloquants.
-   - Le détail liste au plus 12 points, avec leur onglet et leur ligne.
-3. **Prévisualiser** : parcourez les 14 vues du futur référentiel (fiche projet, planning, puis une grille par onglet).
-4. **Valider** : cliquez sur **Valider l'importation**. La création se fait en cinq phases :
-   1. projet ;
+Le parcours affiché en haut de l'écran compte cinq étapes : **Préremplir** (facultatif), **Importer**, **Contrôler**, **Prévisualiser**, **Publier**. Avec un Excel, l'étape Préremplir est grisée.
+
+### 3.14.1 Déposer un fichier
+
+1. Glissez le fichier dans la zone « Déposez votre fichier. », ou cliquez sur **Choisir un fichier**. Pendant le glisser, l'écran annonce « Proposition détectée » ou « Excel détecté ».
+2. Une barre suit l'import (« Import du fichier · N % ») ; **Annuler** l'interrompt.
+3. L'analyse ou le contrôle démarre dès la fin de l'import.
+
+**Règles**
+
+- Formats acceptés : PDF, DOCX, PPTX et XLSX. **25 Mo au plus par fichier.**
+- Une proposition peut être accompagnée de ses **annexes** : jusqu'à **10 fichiers** par dépôt, lus comme un seul document. La ligne du fichier affiche « {premier fichier} + N fichiers ».
+- Un Excel d'initialisation se dépose **seul** : « Un Excel d'initialisation se dépose seul ».
+- Le format réel est vérifié à partir du contenu du fichier, pas seulement de son extension.
+- Un seul fichier refusé fait refuser tout le dépôt.
+- Le lien **Modèle Excel vierge**, sous la zone, télécharge le modèle sous le nom « {votre nom} - Init projet Cockpit AAMMJJ.xlsx ».
+- L'icône **Réinitialiser**, en fin de ligne du fichier, revient à l'état initial sans confirmation. Les fichiers, le texte, les résultats et l'Excel produit sont aussitôt supprimés du serveur (« Préremplissage réinitialisé » ou « Contrôle réinitialisé »).
+
+### 3.14.2 Préremplir à partir d'une proposition commerciale
+
+1. Déposez la proposition (et ses annexes).
+2. L'IA lit le document et répartit son contenu dans les **14 onglets** du fichier d'initialisation. L'écran affiche :
+   - « Analyse en cours », l'onglet en cours (« Onglet NN · Libellé ») et « N onglets sur 14 terminés · N champs extraits. » ;
+   - les tuiles des onglets en cours de lecture (« lecture… »), plusieurs à la fois ;
+   - le temps restant estimé (« NN s restantes, environ »).
+3. À la fin, « Préremplissage terminé » :
+   - « Les 14 onglets sont remplis. » s'il n'y a rien à vérifier ;
+   - sinon « N champs demandent votre regard. ».
+4. Consultez la liste **À vérifier** : valeurs incertaines ou absentes de la proposition, avec l'onglet, le champ, la valeur proposée, la confiance et la page source. Filtrez par **Tous**, **Incertains** ou **Manquants**, ou cliquez sur une tuile d'onglet.
+5. Cliquez sur **Télécharger l'Excel**. Le fichier s'appelle « {nom de la proposition} · prérempli.xlsx ».
+6. Faites relire le fichier par le PMO, puis déposez-le avec **Déposer l'Excel vérifié** pour le contrôle (3.14.3).
+
+**Règles**
+
+- L'analyse utilise la fonction d'IA **Initialisation projet** : son modèle principal et son secours se règlent dans Fournisseurs et modèles (3.7.4), sa dépense apparaît dans la tuile « Initialisation projet » de Consommation et coûts (3.8).
+- Les consignes de lecture sont complétées par la skill **Préremplissage d'un projet** (3.12), lue qu'elle soit active ou non.
+- Une valeur est **incertaine** quand la confiance de l'IA est inférieure à **70 %**. Un champ obligatoire absent est **manquant**. Un onglet sans aucune donnée est marqué « non trouvé ».
+- Dans l'Excel prérempli, chaque cellule à vérifier est **surlignée en ambre** et porte un **commentaire** : motif, confiance et source (page, et nom du fichier quand il y en a plusieurs).
+- Le champ « Permission » des personnes n'est jamais rempli par l'IA.
+- L'analyse est **un préremplissage** : rien n'est créé dans la plateforme.
+- **Annuler** pendant l'analyse arrête la tâche et supprime le document.
+- Si l'analyse s'interrompt (« Erreur · Analyse »), les onglets déjà traités sont conservés : **Reprendre l'analyse** repart de l'onglet interrompu.
+- Le document déposé et son texte sont supprimés dès que l'Excel est produit. Le reste (résultats, Excel prérempli) est supprimé **24 heures** après.
+
+**Messages d'erreur**
+
+| Message | Cause | Que faire |
+|---|---|---|
+| « Format non pris en charge. » | Extension ou contenu non reconnu, ou fichier de plus de 25 Mo | Déposez un PDF, DOCX, PPTX ou XLSX de 25 Mo au plus |
+| « Fichier illisible. » — « Le document est protégé ou ne contient que des images. » | Document protégé, scanné ou sans texte | Exportez-le en PDF texte, ou cliquez sur **Remplir le modèle manuellement** |
+| « Analyse interrompue à l'onglet NN · Libellé. » | Modèle indisponible, délai dépassé, redémarrage du serveur | **Reprendre l'analyse** |
+| « 10 fichiers au plus par dépôt » | Trop de fichiers | Regroupez les annexes |
+| « Excel prérempli supprimé (durée de conservation dépassée) : relancez l'analyse. » | Plus de 24 heures écoulées | Déposez de nouveau la proposition |
+
+### 3.14.3 Contrôler l'Excel rempli
+
+1. Déposez le fichier Excel rempli.
+2. Les 14 onglets sont contrôlés un par un (« Contrôle en cours », « N onglets sur 14 contrôlés. »).
+3. Résultat :
+   - **« Fichier conforme. »** : « 14 onglets et N champs contrôlés. Le référentiel peut être prévisualisé. » Cliquez sur **Prévisualiser le référentiel**. Des avertissements peuvent subsister ; ils ne bloquent pas ;
+   - **« N anomalies bloquantes. »** : « Corrigez-les dans l'Excel, puis déposez-le à nouveau. » Boutons **Déposer le fichier corrigé** et **Télécharger le rapport**.
+4. Consultez la liste **À corriger** : onglet, champ, valeur lue, gravité (« Bloquant » ou « Avertissement ») et **cellule exacte** (par exemple « C14 »). Filtrez par **Toutes**, **Bloquantes** ou **Avertissements**.
+5. Le **rapport de contrôle** (« {fichier} · rapport de contrôle.xlsx ») liste chaque anomalie avec sa cellule, et une synthèse par onglet.
+
+**Règles**
+
+- Seules les anomalies bloquantes rendent le fichier non conforme.
+- Le code projet doit être libre : sinon « Code déjà utilisé dans la bibliothèque des projets. ».
+- Un fichier conforme est gardé pour la prévisualisation pendant 24 heures ; un fichier non conforme ne l'est pas.
+
+### 3.14.4 Le modèle Excel
+
+Le modèle compte **14 onglets de saisie numérotés de 01 à 14**, précédés des onglets « Complétude », « Glossaire » et « Références » :
+
+| Onglet | Contenu (* = obligatoire) |
+|---|---|
+| 01 Équipes | Nom*, Description |
+| 02 Rôles | Libellé*, Description |
+| 03 Personnes | Nom complet*, Email*, Équipe*, Fonction, Permission*, Actif |
+| 04 Affectations | Personne*, Rôle*, Début*, Fin |
+| 05 Projet | Client, secteur, pays, code et nom du projet, dates, fuseau horaire, statut, directeur de programme, sponsor… |
+| 06 Info projet | Rubrique*, Libellé, Valeur* |
+| 07 Lots | N°*, Périmètre*, Début*, Fin*, Statut, Responsable |
+| 08 Phases | N°*, Nom*, Lot*, Début*, Fin*, Statut, Description |
+| 09 Sous-phases | Phase*, N°*, Nom*, Début, Fin, Statut, Description |
+| 10 Chantiers | Nom*, Responsable*, Lot, Statut, Début, Fin, Description, Phases, Sous-phases, Dépendances |
+| 11 Instances | Nom*, Nom court*, Couleur*, Fréquence*, Niveau, Rôle de l'instance |
+| 12 Membres | Instance*, Personne*, Rôle dans l'instance |
+| 13 Jalons | Libellé*, Phase*, Sous-phase, Chantier, Lot, Responsable, Date prévue* |
+| 14 Livrables | Nom*, Sous-phase*, Chantier, Responsable*, Début, Échéance* |
+
+**Règles de saisie**
+
+- **06 Info projet** : rubriques Le client, Marques du groupe, Programme en une phrase, Enjeux stratégiques, Périmètres fonctionnel, applicatif, géographique et juridique. « Programme en une phrase » (une ligne) et « Enjeux stratégiques » (au moins une ligne) sont obligatoires.
+- **Sous-phases** : la numérotation est **libre** (par exemple 3.1, 3.2a). Un numéro ne contient ni espace, ni « ; », ni « · », et n'apparaît pas deux fois dans une même phase.
+- **10 Chantiers** :
+  - **Début** et **Fin** sont facultatifs. Vides, ils sont calculés à partir des sous-phases du chantier, sinon de ses phases, sinon du projet ;
+  - **Phases**, **Sous-phases** et **Dépendances** acceptent plusieurs valeurs séparées par « ; » ;
+  - une sous-phase choisie doit appartenir à l'une des phases du chantier ;
+  - Dépendances : noms ou codes (C1…) des chantiers, ou « Tous » seul. Un chantier ne peut pas dépendre de lui-même. **Deux chantiers peuvent dépendre l'un de l'autre.**
+- **Dates** : JJ/MM/AAAA, ou une date Excel.
+- **Code projet** : 2 à 20 caractères, lettres, chiffres, « - » ou « _ ». Il est mis en majuscules et doit être libre.
+- **Anciens fichiers refusés** : un fichier sans l'onglet « 06 Info projet » ou sans les colonnes Phases, Sous-phases, Dépendances de « 10 Chantiers » est refusé : « Ancien modèle de fichier : téléchargez le modèle à jour (bouton « Modèle Excel ») et reportez-y vos données ».
+
+### 3.14.5 Prévisualiser puis créer le projet
+
+1. **Prévisualiser** : parcourez le futur référentiel (bandeau du projet, planning des phases, puis une vue par onglet ; compteur « n / 15 vus »).
+2. Lisez le résumé : « Valider crée le projet CODE avec N lots, N phases, N sous-phases, N chantiers, N jalons, N personnes. Il rejoint la bibliothèque des projets, au statut Préparation. »
+3. Cliquez sur **Valider l'importation**. La création se fait en cinq phases :
+   1. création du projet ;
    2. lots et phases ;
    3. chantiers et jalons ;
    4. personnes et habilitations ;
    5. instances de pilotage.
+4. À la fin, « CODE a rejoint la bibliothèque des projets ». Boutons **Importer un autre projet** et **Ouvrir la bibliothèque**.
+
+**Ce qui est créé**
+
+- le projet, **toujours au statut Préparation**, quel que soit le statut indiqué dans le fichier ;
+- son client et ses informations projet ;
+- lots, phases, sous-phases ;
+- chantiers (codes C1, C2… réattribués), avec leurs phases, sous-phases et dépendances, et jalons (J01, J02…) ;
+- livrables, équipes, rôles, personnes, affectations ;
+- instances et leurs membres ;
+- **une habilitation Responsable par chantier**, sur la personne responsable ;
+- une planification de snapshots (hebdomadaire, vendredi à 4 h, conservation 12 mois) ;
+- votre rattachement au projet.
 
 **Règles**
 
 - Le serveur refait tous les contrôles à la validation. La création est « tout ou rien » : en cas d'erreur, rien n'est créé.
-- **Code projet** : 2 à 20 caractères, lettres, chiffres, « - » ou « _ ». Il est mis en majuscules et doit être libre.
-- **Dates acceptées** : JJ/MM/AAAA, ou une date Excel.
-- **Ce qui est créé** :
-  - le projet, **toujours au statut Préparation**, quel que soit le statut indiqué dans le fichier ;
-  - son client ;
-  - lots, phases, sous-phases ;
-  - chantiers (codes C1, C2… réattribués) et jalons (J01, J02…) ;
-  - livrables, équipes, rôles, personnes, affectations ;
-  - instances et leurs membres ;
-  - **une habilitation Responsable par chantier**, sur la personne responsable ;
-  - une planification de snapshots (hebdomadaire, vendredi à 4 h, conservation 12 mois) ;
-  - votre rattachement au projet.
 - **Aucun compte utilisateur n'est créé.** Invitez ensuite les personnes (3.3).
 - Une personne marquée « Actif : non » est créée inactive.
-- Les signes d'alerte du fichier (⚠, ◔) deviennent de simples avertissements.
 - L'initialisation est tracée au journal d'audit (Sensible).
-- **Réinitialiser la session** revient à l'étape 1 et oublie le fichier déposé.
-
-**Automatique** : un fichier refusé il y a moins de 7 jours est signalé dans la cloche (« Import refusé : {fichier} »).
+- **Automatique** : un fichier refusé il y a moins de 7 jours est signalé dans la cloche (« Import refusé : {fichier} »).
 
 **Messages d'erreur (exemples)**
 
 | Message | Que faire |
 |---|---|
-| « Format attendu : .xlsx » | Enregistrez le fichier au format Excel .xlsx |
 | « Onglet « X » manquant » | Repartez du modèle Excel |
-| « Le code X existe déjà : choisissez un autre code. » | Changez le code projet dans l'onglet 05 Projet |
+| « Le code X existe déjà » | Changez le code projet dans l'onglet 05 Projet |
 | « « Colonne » est obligatoire » | Complétez la cellule indiquée |
 | « … : date invalide (JJ/MM/AAAA attendu) » | Corrigez la date |
 | « Équipe « X » inconnue (onglet 01 Équipes) » | Ajoutez l'équipe ou corrigez le nom |
 | « Fin avant début » | Corrigez les dates |
-| « Fichier temporaire introuvable : importez de nouveau le fichier » | Déposez de nouveau le fichier |
+| « Sous-phase X hors des phases du chantier : … » | Ajoutez la phase au chantier, ou retirez la sous-phase |
+| « Le chantier « X » dépend de lui-même » | Retirez cette dépendance |
+| « Fichier non conforme : corrigez les anomalies bloquantes avant la prévisualisation. » | Corrigez puis déposez le fichier |
+| « Fichier supprimé (durée de conservation dépassée) : déposez-le de nouveau. » | Déposez de nouveau le fichier |
 
-**Exemple.** Le PMO d'ORION remplit le modèle. Vous le déposez : les cinq contrôles sont verts, avec 2 avertissements (jalons hors de leur phase). Vous prévisualisez, puis vous validez. ORION apparaît dans la bibliothèque avec le badge « Nouveau », au statut Préparation. Il reste à inviter son équipe.
+**Exemple.** Vous déposez la proposition commerciale d'ORION et son annexe financière. Après l'analyse, 12 champs sont à vérifier, dont la date de fin du projet. Vous téléchargez l'Excel prérempli et le confiez au PMO. Il corrige les cellules en ambre et vous renvoie le fichier. Vous le déposez : le contrôle trouve 1 anomalie bloquante en « 10 Chantiers », cellule I12 (sous-phase hors des phases du chantier). Le PMO corrige, vous redéposez : le fichier est conforme. Vous prévisualisez, puis validez. ORION apparaît dans la bibliothèque avec le badge « Nouveau », au statut Préparation. Il reste à inviter son équipe.
 
 ## 3.15 Snapshots
 
@@ -1043,12 +1448,12 @@ La liste affiche, pour chaque snapshot, les nombres de tâches, jalons, risques 
 - Un utilisateur du Cockpit voit un module désactivé comme verrouillé, et peut en demander l'activation. Une même demande en attente n'est pas dupliquée.
 - Approuver une demande active le module sur le seul projet demandé.
 - Toutes les modifications sont tracées (Sensible).
-- Le module **Budget** : sans lui, la saisie du budget est refusée.
-- Le module **Message d'accueil de Jev** (actif sur tous les projets par défaut) : Jev rédige chaque jour le message de l'écran Aujourd'hui de chaque utilisateur ; désactivé, le message est calculé par règles. Sa consommation s'inscrit sur la ligne Insights de Consommation et coûts.
+- Le module **Budget** : sans lui, la saisie du budget est refusée, et le composant « Budget » des templates de rapport n'est pas proposé (« Budget : le module n'est pas activé pour ce projet (Console › Modules). »).
+- Le module **Message d'accueil de Jev** (actif sur tous les projets par défaut) : Jev rédige chaque jour le message de l'écran Aujourd'hui de chaque utilisateur, avec le ton de sa Personnalité ; désactivé, le message est calculé par règles. Sa consommation s'inscrit sur la ligne Insights de Consommation et coûts.
 
 ## 3.17 Registre des cartes API
 
-**À quoi sert la page.** Recenser les services externes qui alimentent les widgets du Cockpit (actualités, météo, trafic), et surveiller leur santé, leurs clés et leurs quotas.
+**À quoi sert la page.** Recenser les services externes appelés par la plateforme (actualités, météo, trafic pour les widgets du Cockpit, et la carte « JEV » qui aiguille les questions posées à Jev), et surveiller leur santé, leurs clés et leurs quotas.
 
 > [Capture] Registre : état du registre par tag et fiche d'une carte.
 
@@ -1072,6 +1477,8 @@ La liste affiche, pour chaque snapshot, les nombres de tâches, jalons, risques 
 - Sont refusées les adresses locales ou privées, et une adresse qui contient un identifiant et un mot de passe.
 - Les redirections ne sont pas suivies.
 - La clé est chiffrée. Seuls ses 4 derniers caractères restent visibles.
+
+**La carte « JEV »** sert à l'aiguillage des questions posées à Jev (3.10). Son endpoint, sa clé et son modèle se règlent ici. Sans elle, ou si elle est désactivée, Jev reste utilisable mais traite chaque question comme ambiguë.
 
 ### 3.17.2 États d'une carte
 
@@ -1107,11 +1514,11 @@ Du plus prioritaire au moins prioritaire :
 - **Service en panne** : les widgets affichent la dernière réponse réussie de moins de 24 heures.
 - **Quota journalier atteint** : les widgets reçoivent un refus jusqu'à minuit (heure de Paris).
 
-**Messages d'erreur** : « Donnez un nom à la carte. », « Saisissez une adresse valide, sans espace : domaine puis chemin. », « Adresse privée ou locale interdite », « Collez la clé fournie par le service. », « JSON invalide ».
+**Messages d'erreur** : « Donnez un nom à la carte. », « Saisissez une adresse valide, sans espace : domaine puis chemin. », « Adresse privée ou locale interdite », « Collez la clé fournie par le service. », « JSON invalide », « Saisissez le corps JSON de l'appel ».
 
 ## 3.18 Notifications envoyées aux utilisateurs
 
-**À quoi sert la page.** Programmer des messages envoyés aux utilisateurs **chaque jour ou chaque semaine, à heure fixe**. Un modèle d'IA rédige leur contenu à partir des données du projet. Depuis le 30 septembre 2026, il n'y a plus d'alertes déclenchées par un événement : toutes les règles partent à heure fixe.
+**À quoi sert la page.** Programmer des messages envoyés aux utilisateurs **chaque jour ou chaque semaine, à heure fixe**. Un modèle d'IA rédige leur contenu à partir des données du projet. Il n'y a pas d'alertes déclenchées par un événement : toutes les règles partent à heure fixe.
 
 > [Capture] Page Notifications : liste des règles, éditeur, aperçu, historique.
 
@@ -1139,6 +1546,7 @@ La phrase en tête de l'éditeur résume la règle, par exemple : « Informer PM
 - Les anciennes variables `{jalon}`, `{risque}`, `{seuil}` et `{document}` sont refusées.
 - **Cas bloquants** (bandeau rouge) : une règle sans modèle, ou sans destinataire, peut être enregistrée et activée, mais **n'envoie rien**.
 - **Activer / Désactiver** a un effet immédiat. **Enregistrer** recalcule le prochain envoi.
+- Si l'enregistrement échoue, votre saisie est conservée : « Enregistrement impossible : vos modifications sont conservées. Réessayez. ».
 - **Supprimer la règle** (deux clics) supprime la règle, mais garde son historique, affiché sous « Règle supprimée ».
 - Création, modification et activation sont tracées (Info) ; la suppression aussi (Sensible).
 
@@ -1157,15 +1565,18 @@ La phrase en tête de l'éditeur résume la règle, par exemple : « Informer PM
   - Un Responsable ne reçoit donc que des informations sur les chantiers communs aux Responsables destinataires.
 - **Rédaction.**
   - Le modèle lit les données du projet, puis rédige.
+  - Le message complet compte **moins de 100 mots**.
   - Le contenu suit une mise en forme légère : une phrase essentielle, 2 ou 3 rubriques, des puces qui commencent par le chiffre clé, des étapes numérotées.
-  - Le Cockpit la met en page ; l'e-mail la reçoit en texte propre.
+- **Mise en page.**
+  - Dans le Cockpit, le tiroir des notifications met le texte en page.
+  - Par e-mail, le message est mis en page : en-tête « RISE Cockpit · projet · date », nom de la règle, titre, chiffres clés, points « À surveiller », bloc « À faire », lien « Ouvrir RISE Cockpit », et en pied l'adresse d'expédition et la raison de l'envoi (profil, projet). Une version texte est jointe pour les messageries qui n'affichent pas la mise en page.
 - **Garde-fous.**
   - Aucune requête technique n'est jamais envoyée à la place du texte.
   - Si les données ne peuvent pas être lues, le texte est rédigé sans chiffres, ou remplacé par : « Les données du projet n'ont pas pu être analysées pour cet envoi : consultez le détail dans le Cockpit. ».
 - **Mémoire.** Le dernier envoi réussi de la règle, pour le même projet et le même profil, est transmis au modèle s'il date de moins de 35 jours. Le modèle dit alors ce qui a changé depuis, au lieu de tout répéter.
 - **Canaux.**
   - Dans l'application : une notification par destinataire, dans la cloche du Cockpit.
-  - E-mail : un e-mail par profil, avec tous les destinataires en copie visible.
+  - E-mail : un e-mail par profil, avec tous les destinataires dans le champ « À ».
 - **« Tous les projets »** produit un envoi par projet ouvert.
 
 ### 3.18.4 Planification et règle de rattrapage
@@ -1189,7 +1600,7 @@ Si la plateforme n'avait redémarré que le vendredi, l'envoi du mercredi aurait
 
 ### 3.18.5 Historique et « À traiter »
 
-- **Historique des envois** : onglets **Cette règle** ou **Toutes les règles** ; les 200 derniers envois.
+- **Historique des envois** : onglets **Cette règle** ou **Toutes les règles** ; les 200 derniers envois. Sous le nom de la règle, une ligne grise indique l'heure prévue et l'heure réelle.
 - **Statuts** :
 
 | Statut | Signification |
@@ -1242,6 +1653,7 @@ Si la plateforme n'avait redémarré que le vendredi, l'envoi du mercredi aurait
 - **Mot de passe** : chiffré, jamais réaffiché. Laissé vide, il est conservé. Gmail exige un **mot de passe d'application** de 16 caractères.
 - **Délais** : 10 secondes pour la connexion et pour chaque réponse du serveur.
 - **Enregistrement** : il est tracé (Sensible). Toute modification efface le résultat du dernier test.
+- L'adresse d'expédition est aussi rappelée en pied des e-mails de notification.
 
 **Messages d'erreur** : chaque étape en échec affiche le code du serveur et une aide. Par exemple :
 
@@ -1250,51 +1662,166 @@ Si la plateforme n'avait redémarré que le vendredi, l'envoi du mercredi aurait
 
 À l'enregistrement, la Console signale aussi « Saisissez un nom d'hôte… », « Le mot de passe est requis quand l'authentification est activée. » et « Saisissez une adresse e-mail valide. ».
 
-## 3.20 Guide utilisateur
+## 3.20 Partager Cockpit
 
-**À quoi sert la page.** Mettre ce guide à disposition des administrateurs, et savoir qui l'a téléchargé.
+**À quoi sert la page.** Préparer, pour une personne précise, un **paquet d'installation Windows** de Cockpit et de la Console : un fichier ZIP qu'elle décompresse avant de lancer l'installateur. Vous choisissez les données et les secrets (clés d'IA, serveur d'e-mail) qu'il contient, et vous les protégez par un code.
 
-> [Capture] Page Guide utilisateur : version en vigueur et frise des événements.
+> [Capture] Partager Cockpit : bandeau (taille, dépense IA possible, secrets), six tuiles, historique des paquets.
 
-**Utilisation**
+### 3.20.1 Préparer un paquet
 
-- **Télécharger le guide** télécharge la version en vigueur, nommée « Guide utilisateur Console vX.Y.pdf ».
-- **Déposer ou remplacer le guide** (icône) : choisissez un PDF. Il devient aussitôt la version en vigueur.
+Le bandeau rappelle en permanence la **taille estimée**, la **dépense IA possible**, le nombre de **secrets** inclus et ce qui se passe **si Cockpit est déjà installé**. Renseignez ensuite les six tuiles :
+
+1. **01 Données** :
+   - **Base actuelle** : une copie de la base telle qu'elle est aujourd'hui, limitée aux projets choisis (tous cochés par défaut) ;
+   - **Jeu de démonstration** : deux projets fictifs, des équipes et des snapshots pour découvrir Cockpit ;
+   - **Cockpit vide** : aucun projet ni utilisateur.
+2. **02 Clés d'IA** : cochez les clés à inclure. Chaque clé affiche son masque et son plafond mensuel (« sans plafond » en rouge). Les cartes du Registre des cartes API qui ont une clé sont aussi proposées (« Carte API · {nom} »). Aucune clé n'est cochée par défaut.
+3. **03 SMTP et fichiers** :
+   - **Serveur SMTP** : inclus, les e-mails de la personne partiront de votre adresse ; exclu, elle configurera son propre serveur ;
+   - **Fichiers déposés** : Base de connaissance et guides utilisateur. Les **formats et templates de rapport sont toujours inclus**.
+4. **04 Sécurité** : la tuile résume ce que la personne pourra faire en votre nom (« Dépenser jusqu'à N € par mois sur … », « Envoyer des e-mails depuis … »). L'interrupteur **Code de déverrouillage** (activé par défaut, « Fortement recommandé ») chiffre les secrets par un code. Étiquette : « Protégé », « Exposé » (secrets lisibles dans le ZIP) ou « Aucun secret ».
+5. **05 Destinataire** : nom et e-mail de la personne (« Pour l'historique. Cockpit n'envoie rien à cette adresse. »). **Préremplir son compte** crée son compte à l'avance avec les profils choisis (Administrateur, PMO, Responsable, Lecteur) : « Elle ne saisira que son mot de passe. ».
+6. **06 Version** : numéro de version et nouveautés depuis le dernier paquet. Sous « Si Cockpit est déjà installé chez elle », choisissez **Conserver ses données** (seule l'application est mise à jour) ou **Remplacer ses données** (sa base est remplacée, après une sauvegarde sur son poste).
+
+Cliquez ensuite sur **Générer le paquet**.
 
 **Règles**
 
-- Seuls les vrais fichiers PDF sont acceptés (le contenu est vérifié), 50 Mo au plus.
+- Le bouton reste inactif tant que le destinataire ou les projets manquent : « Renseignez le destinataire (05). », « Choisissez au moins un projet (01). ».
+- **Dépense IA possible** : somme des plafonds mensuels des clés incluses. Elle vaut « Illimitée » si une clé n'a pas de plafond. Fixez les plafonds dans Fournisseurs et modèles (3.7.3) : « Une clé sans plafond peut être facturée sans limite. Fixez un plafond ou décochez-la. ».
+- Votre propre compte, les sessions et les clés non retenues ne sont jamais copiés dans le paquet.
+
+### 3.20.2 Générer et transmettre le paquet
+
+1. La génération suit quatre étapes : **Compilation**, **Copie de la base**, **Rechiffrement** (« Ignoré » sans secret), **Archive**.
+2. « Vous pouvez quitter cet écran : la génération continue sur le serveur. » Après un rechargement, l'écran reprend à l'étape en cours.
+3. À la fin, l'écran affiche :
+   - le **fichier** (nom et taille) et son **empreinte SHA-256** ;
+   - le **code de déverrouillage**, « Code · affiché une seule fois », au format XXXX-XXXX-XXXX ;
+   - le bouton **Code noté, le masquer** : le code n'est plus jamais affichable (« Masqué. Il ne pourra plus être affiché. »).
+4. Cliquez sur **Télécharger le ZIP**.
+5. Ouvrez **Message pour {prénom}**, puis **Copier le message** : il explique l'installation pas à pas. Envoyez le ZIP et le message.
+6. Transmettez le code **par un autre canal** (SMS ou téléphone), jamais avec le ZIP.
+
+**Règles**
+
+- Une seule génération à la fois : « Un paquet est déjà en cours de génération. ».
+- Le paquet reprend l'application telle qu'elle est installée sur le serveur.
+- Le **code** compte 12 caractères. Il n'existe que si le paquet contient au moins un secret. Il n'est jamais enregistré, ni dans la base ni au journal d'audit.
+- Le **lien de téléchargement** est valable **15 minutes** ; au-delà, relancez le téléchargement depuis la Console.
+- Les secrets sont rechiffrés pour le paquet. La clé de chiffrement du serveur n'est jamais exportée.
+- La génération (réussie ou en échec) est tracée au journal d'audit (Sensible), sans le code.
+
+### 3.20.3 Historique et suppression du fichier
+
+- **Historique des paquets** : date, auteur, destinataire, données, secrets (« protégés par code » ou « sans code »), version, taille, empreinte, et les clés à révoquer pour couper l'accès.
+- **Sur le serveur · Supprimer** supprime le ZIP du serveur. L'info-bulle donne la date de suppression automatique.
+- **Automatique** : chaque ZIP est supprimé **2 jours** après sa génération. La ligne de l'historique reste, avec « Fichier supprimé le … ». La suppression est tracée (Sensible).
+- **Une installation déjà faite ne peut pas être désactivée à distance.** Pour couper l'accès, révoquez les clés chez les fournisseurs et changez le mot de passe SMTP s'il était inclus.
+
+### 3.20.4 Installation chez la personne
+
+1. Elle décompresse le ZIP (« Extraire tout »), puis lance `installer_cockpit.cmd`. Aucun droit d'administrateur Windows n'est nécessaire.
+2. L'installateur demande le **code de déverrouillage** (3 essais). Sans code valide, Cockpit s'installe sans clés d'IA, sans clés de cartes API et sans serveur d'e-mail.
+3. Si son compte a été prérempli, elle ne choisit que son mot de passe. Sinon, elle crée son compte administrateur.
+4. Des raccourcis « Démarrer Cockpit » et « Arrêter Cockpit » sont créés. Cockpit s'ouvre ensuite à l'adresse `http://localhost:3000`.
+
+**Exemple.** Vous préparez un paquet pour Claire Dumas, consultante qui reprend le projet RISE : base actuelle limitée à RISE, clé Anthropic plafonnée à 50 € par mois, SMTP exclu, code de déverrouillage activé, compte prérempli en PMO. Vous téléchargez le ZIP, copiez le message et l'envoyez par e-mail, puis lui dictez le code par téléphone. Deux jours plus tard, le ZIP disparaît du serveur.
+
+## 3.21 Guide utilisateur
+
+**À quoi sert la page.** Mettre à disposition le guide utilisateur de chaque application (Console et Cockpit), savoir qui l'a téléchargé, et régler la façon dont Jev y cherche ses réponses.
+
+> [Capture] Page Guide utilisateur : onglets Console | Cockpit, version en vigueur, traçabilité, réglages de la recherche de Jev.
+
+### 3.21.1 Un guide par application
+
+- Les onglets **Console** et **Cockpit** (flèches gauche et droite du clavier) affichent chacun leur guide, avec sa version (« vN.N » ou « Aucun guide »).
+- Rien n'est partagé entre les deux : versions, téléchargements, index et réglages sont séparés.
+- Le guide de la Console sert au Jev de la Console ; le guide du Cockpit, au Jev du Cockpit.
+
+### 3.21.2 Télécharger, déposer ou remplacer le guide
+
+- **Télécharger le guide** télécharge la version en vigueur, nommée « Guide utilisateur Console vX.Y.pdf » (ou Cockpit).
+- **Déposer le guide** (premier dépôt) ou l'icône **Remplacer le guide** : choisissez un PDF. Il devient aussitôt la version en vigueur.
+
+**Règles**
+
+- Seuls les vrais fichiers PDF sont acceptés (le contenu est vérifié), **10 Mo au plus**.
 - **Numérotation** : la première version est 1.0. Chaque remplacement ajoute 1 au second chiffre (3.9 donne 3.10).
-- Seule la version en vigueur est téléchargeable. Les anciennes restent dans la frise.
+- Seule la version en vigueur est téléchargeable. Les anciennes restent dans la traçabilité.
+- Un seul dépôt à la fois par application.
 - Chaque téléchargement est enregistré avant l'envoi du fichier : qui, quand, quelle version. Ce registre ne peut pas être modifié.
 - Chaque publication est tracée au journal d'audit (Sensible).
 
-**Messages** : « Seuls les fichiers PDF sont acceptés. », « Le téléchargement a échoué. Réessayez. », « Le remplacement a échoué. Réessayez. ».
+**Messages** : « Seuls les fichiers PDF sont acceptés. », « Fichier trop lourd (10 Mo maximum). », « Ce PDF ne contient pas de texte (document scanné) : déposez un PDF exporté depuis un traitement de texte. », « Aucun texte exploitable dans ce PDF. », « Indexation en cours : attendez la fin avant un nouveau dépôt. », « Le téléchargement a échoué. Réessayez. », « Le dépôt a échoué. Réessayez. ».
 
-## 3.21 Mon profil
+### 3.21.3 Indexation pour Jev
 
-**À quoi sert la page.** Gérer vos informations personnelles, votre mot de passe et vos sessions.
+- Après un dépôt, le guide est **indexé** en tâche de fond : découpé en extraits, puis vectorisé avec le modèle de la fonction Vectorisation.
+- La ligne d'état indique « Non indexé », « Indexation en cours · {modèle} » ou « Indexé · N pages · N extraits · {modèle} ({dimension} dim.) ».
+- Une notification annonce la fin : « Guide Console indexé · N extraits » ou « Guide Console non indexé : {motif} ».
+- Pendant l'indexation, Jev continue d'utiliser l'ancien index. Le nouveau le remplace d'un coup quand il est prêt. En cas d'échec, Jev garde le dernier index valide.
+- Un changement de modèle ou de dimension de la Vectorisation réindexe automatiquement les guides (3.7.4).
+- Si le serveur redémarre pendant l'indexation : « Indexation interrompue : le serveur a redémarré pendant le traitement. Déposez le guide de nouveau. ».
 
-> [Capture] Mon profil, onglet Sécurité.
+### 3.21.4 Traçabilité
+
+- Sous « Traçabilité · Téléchargements, dépôts et remplacements » : chaque publication (« Version N.N publiée ») et chaque téléchargement (nom de la personne, version), avec les compteurs « N téléchargements » et « N personnes ».
+- 8 événements par page.
+
+### 3.21.5 Réglages de la recherche de Jev dans le guide
+
+Quand une question porte sur l'utilisation de l'application, Jev cherche les passages les plus proches dans le guide, garde ceux qui dépassent le seuil, les reclasse, puis rédige sa réponse à partir des seuls extraits retenus. Ces réglages se font par application :
+
+| Réglage | Par défaut | Limites | Rôle |
+|---|---|---|---|
+| Extraits recherchés | 8 | 1 à 30 | Nombre de passages les plus proches cherchés dans le guide |
+| Extraits conservés | 4 | 1 à 10, et au plus les extraits recherchés | Passages gardés après le reclassement |
+| Seuil de similarité | 0,58 | 0 à 0,95 | Écarte les passages trop éloignés de la question |
+| Délai · vectorisation | 10 s | 1 à 60 s | Temps accordé pour transformer la question en vecteur |
+| Délai · reclassement | 8 s | 1 à 60 s | Au-delà, l'ordre de la recherche est gardé |
+| Délai · rédaction | 30 s | 5 à 120 s | Temps accordé au modèle pour rédiger |
+
+- **Valeurs par défaut** rétablit ces valeurs ; **Enregistrer** n'est actif que si une valeur a changé.
+- Une valeur hors limites est signalée en rouge sous le champ.
+- La modification est tracée au journal d'audit (Sensible).
+- Tant qu'aucun guide n'est publié, Jev ne répond pas aux questions d'usage de cette application.
+
+## 3.22 Mon profil
+
+**À quoi sert la page.** Gérer vos informations personnelles, votre photo, votre mot de passe et vos sessions, et voir vos habilitations. Sous-titre : « Vos informations, vos habilitations et la sécurité de votre compte. »
+
+> [Capture] Mon profil, onglet Habilitations.
+
+**La carte de gauche** affiche votre photo (ou vos initiales), votre nom, votre position, le badge « Administrateur », votre société, votre équipe (celle de la personne du référentiel qui a votre e-mail) et la date « Administrateur depuis ». Elle porte les liens **Changer la photo** et **Se déconnecter**.
 
 **Utilisation**
 
-- **Informations** :
-  - modifiez vos coordonnées : prénom, nom, position, société, e-mail, téléphone, ville, pays, langue, fuseau ;
-  - **Changer la photo** (une image de 2 Mo au plus) ;
-  - cliquez sur **Enregistrer**.
-- **Sécurité** :
+- **Changer la photo** : choisissez une image. Elle est recadrée au carré et réduite automatiquement, puis s'affiche dans votre profil **et dans la barre latérale** (« Photo mise à jour »).
+- **Onglet Informations** :
+  - modifiez vos coordonnées : prénom, nom, position, société, e-mail de connexion, téléphone, ville, pays, langue, fuseau horaire ;
+  - cliquez sur **Enregistrer** ;
+  - le pied indique « Dernière modification le {date} ».
+- **Onglet Habilitations** :
+  - « Niveau d'administration » : Administrateur, « Accordé le {date}. Seul un autre administrateur peut retirer ce droit. » ;
+  - le bouton **Mes N actions tracées · M critiques** ouvre le journal d'audit filtré sur votre nom ;
+  - le tableau de vos projets : projet, rôle, affectation (dates) et droits (PMO, Responsable ou Lecteur et leurs chantiers, ou « Aucun droit »). Les rôles et affectations viennent du référentiel du projet ; les droits, de la page Utilisateurs.
+- **Onglet Sécurité** :
   - **Modifier** le mot de passe : saisissez le mot de passe actuel, puis le nouveau deux fois. Vos autres sessions sont fermées ; celle-ci reste ouverte ;
-  - **Sessions ouvertes** : **Déconnecter** ferme une session précise ; **Déconnecter les autres sessions** ferme toutes les autres.
+  - **Sessions ouvertes** : **Déconnecter** ferme une session précise ; **Déconnecter les autres sessions** ferme toutes les autres ;
+  - **Dernière connexion** : date et heure de votre dernière connexion.
 
 **Règles**
 
 - Prénom et nom sont obligatoires (60 caractères au plus).
 - Une adresse e-mail déjà prise par un autre compte est refusée.
 - Changer votre e-mail change aussi votre identifiant de connexion. Ce changement est tracé (Sensible).
+- La photo est limitée à environ 2 Mo après réduction ; un fichier qui n'est pas une image est refusé (« Choisissez une image »). Le changement de photo est tracé (Info).
 - La session courante ne se ferme pas depuis la liste : utilisez la déconnexion.
 
-**Messages** : « Le prénom et le nom sont requis », « Adresse e-mail invalide », « Mot de passe actuel incorrect ».
+**Messages** : « Le prénom et le nom sont requis », « Adresse e-mail invalide », « Mot de passe actuel incorrect », « Choisissez une image », « Image illisible ».
 
 # 4. Rôles et droits
 
@@ -1302,13 +1829,14 @@ Si la plateforme n'avait redémarré que le vendredi, l'envoi du mercredi aurait
 
 - **Seuls les administrateurs de la plateforme** accèdent à la Console.
 - Un administrateur a accès à toutes les pages et à toutes les actions de la Console. Il n'existe qu'un seul niveau d'administrateur.
+- Seule exception : dans Accès › Consommation et coûts (3.6), un autre administrateur peut limiter ce que vous voyez (« Sans coûts » ou « Anonymisé »).
 - Un compte sans ce droit, même PMO, ne peut pas ouvrir la Console. Sa tentative de connexion est tracée.
 
 ## 4.2 Ce que chaque profil voit et fait
 
 | Profil | Console | Cockpit |
 |---|---|---|
-| Administrateur | Tout : comptes, droits, IA, projets, snapshots, plateforme, journal d'audit | Voit tous les projets et tous les chantiers, **en lecture seule** |
+| Administrateur | Tout : comptes, droits, consommation, IA, projets, snapshots, plateforme, journal d'audit | Voit tous les projets et tous les chantiers, **en lecture seule** |
 | PMO (par projet) | Aucun accès | Tous les droits sur le projet : référentiel et suivi. Peut demander l'invitation d'une personne et l'activation d'un module |
 | Responsable (par chantier) | Aucun accès | Met à jour le suivi et les dates de ses chantiers. Peut demander l'activation d'un module |
 | Lecteur (par chantier) | Aucun accès | Consulte ses chantiers |
@@ -1321,25 +1849,30 @@ Si la plateforme n'avait redémarré que le vendredi, l'envoi du mercredi aurait
 - **Pertes d'accès** :
   - un compte suspendu perd tout accès immédiatement ;
   - un administrateur retiré perd l'accès à la Console dès sa requête suivante.
-- **Garde-fous** : au moins un administrateur doit toujours rester, et personne ne peut retirer ses propres droits d'administrateur.
+- **Garde-fous** : au moins un administrateur doit toujours rester, et personne ne peut retirer ses propres droits d'administrateur ni modifier ses propres droits de consommation.
 
 # 5. Paramétrage
 
 | Réglage | Où | Effet |
 |---|---|---|
+| Droits de consommation de chaque administrateur | Administrateurs | Complet, Sans coûts ou Anonymisé dans Accès › Consommation et coûts |
 | Fournisseurs et clés d'IA | Fournisseurs et modèles | Autorisent l'appel aux modèles. Une clé en erreur rend ses modèles indisponibles |
-| Modèles et tarifs | Fournisseurs et modèles | Définissent les modèles utilisables et le calcul des coûts |
-| Affectation principal / secours | Affectation des modèles | Choisit le modèle de chaque fonction, dès la requête suivante |
-| Plafonds et seuils d'alerte | Consommation et coûts | Déclenchent les alertes budgétaires, sans bloquer les appels |
+| Plafond mensuel d'une clé | Fournisseurs et modèles (bouton « Plafond ») | Information reprise par Partager Cockpit ; ne bloque rien |
+| Affectation principal / secours | Fournisseurs et modèles, section Affectation | Choisit le modèle de chaque fonction, dès la requête suivante |
+| Modèle et dimension de la Vectorisation | Fournisseurs et modèles, section Affectation | Déclenchent la revectorisation des documents et des guides |
+| Modèles et tarifs | Fournisseurs et modèles, catalogue | Définissent les modèles utilisables et le calcul des coûts |
+| Plafonds et seuils d'alerte | Consommation et coûts (IA) | Déclenchent les alertes budgétaires, sans bloquer les appels |
 | Persona | Persona | Nom, avatar et personnalité de Jev |
-| Skills | Skills | Consignes de Jev |
+| Skills | Skills | Consignes de Jev et du préremplissage |
+| Recherche de Jev dans le guide | Guide utilisateur | Nombre d'extraits, seuil de similarité, délais, par application |
+| Carte JEV | Registre des cartes API | Aiguillage des questions posées à Jev |
 | Planification des snapshots | Snapshots | Captures automatiques et durée de conservation, par projet |
 | Portée des modules | Modules | Fonctions optionnelles visibles dans le Cockpit |
-| Cartes API | Registre des cartes API | Services externes des widgets |
+| Cartes API | Registre des cartes API | Services externes des widgets et de Jev |
 | Règles de notification | Notifications | Messages programmés envoyés aux utilisateurs |
 | Serveur d'envoi | Serveur d'envoi SMTP | Envoi de tous les e-mails |
-| Guide utilisateur | Guide utilisateur | Version du guide proposée au téléchargement |
-| Informations, mot de passe, sessions | Mon profil | Votre propre compte |
+| Guides utilisateur | Guide utilisateur | Version de chaque guide proposée au téléchargement et indexée pour Jev |
+| Informations, photo, mot de passe, sessions | Mon profil | Votre propre compte |
 | Réduire / déplier la navigation | Barre latérale | Mémorisé par votre navigateur |
 
 **Réglages fixes (non modifiables à l'écran)**
@@ -1348,12 +1881,19 @@ Si la plateforme n'avait redémarré que le vendredi, l'envoi du mercredi aurait
   - 15 minutes d'inactivité avant déconnexion ;
   - blocage de 15 minutes après 5 échecs de connexion ;
   - invitation valable 14 jours ;
-  - lien de réinitialisation valable 30 minutes.
+  - lien de réinitialisation valable 30 minutes ;
+  - lien de téléchargement d'un paquet valable 15 minutes.
 - **Données** :
   - journal d'audit conservé 24 mois ;
-  - conversations de Jev conservées 30 jours.
+  - conversations de Jev conservées 30 jours ;
+  - mesures des temps de réponse conservées 190 jours ;
+  - interactions de la consommation de la plateforme conservées 400 jours ;
+  - fichiers du préremplissage et de l'initialisation conservés 24 heures ;
+  - paquets d'installation conservés 2 jours.
+- **Consommation de la plateforme** : 5 minutes d'inactivité au plus par interaction ; hausse inhabituelle au-delà de 1,6 fois la moyenne ; point rouge à partir de 30 % de hausse de coût.
 - **Planifications** :
   - test des clés d'IA toutes les 2 heures ;
+  - relevé des mesures OpenRouter chaque jour à 4 h 30 ;
   - contrôle des cartes API toutes les 15 minutes ;
   - rattrapage des notifications jusqu'au lendemain 23 h 59.
 
@@ -1383,17 +1923,35 @@ C'est voulu : l'e-mail est l'identifiant de connexion. Ouvrez le compte et cliqu
 **« Accès à retirer » apparaît en rouge.**
 La personne a été désactivée dans le référentiel. Retirez ses droits sur le projet, ou suspendez son compte.
 
+**Dans Accès › Consommation et coûts, le niveau Utilisateur est grisé, ou les montants affichent « — ».**
+Vos droits de consommation sont « Anonymisé » ou « Sans coûts ». Seul un autre administrateur peut les changer, dans la page Administrateurs.
+
+**Le taux d'activité paraît très faible avec un filtre Projet ou Fonctionnalité.**
+C'est normal : ces filtres réduisent le temps actif, mais pas le temps connecté, qui ne peut être attribué ni à un projet ni à une fonctionnalité.
+
 **Jev répond « Je ne peux pas répondre pour l'instant ».**
-Aucun modèle n'est affecté à Guidage console, ou ses clés sont refusées. Vérifiez Affectation des modèles et Fournisseurs et modèles.
+Aucun modèle n'est affecté à la fonction utilisée (Guidage console ou Synthèse), ou ses clés sont refusées. Vérifiez la section Affectation et les clés dans Fournisseurs et modèles.
+
+**Jev ne trouve rien dans le guide, ou dit que la recherche est indisponible.**
+
+- Vérifiez dans Guide utilisateur que le guide de la Console est publié et « Indexé ».
+- Vérifiez la clé du fournisseur du modèle de vectorisation.
+- Si les réponses sont trop souvent « non trouvées », baissez légèrement le seuil de similarité.
+
+**Jev demande toujours une précision, même pour des questions claires.**
+L'aiguillage est peut-être indisponible. Vérifiez la carte « JEV » dans le Registre des cartes API (état, clé).
 
 **Jev dit « Conversation introuvable ».**
-La conversation a expiré (30 jours). Cliquez sur **Nouvelle conversation**.
+La conversation a expiré (30 jours). Cliquez sur **Effacer tous les messages** pour en ouvrir une nouvelle.
 
 **Une fonction affiche « Secours en service ».**
 La clé du fournisseur principal est refusée, ou n'a jamais été testée. Testez ou remplacez la clé.
 
 **Le budget est dépassé : les appels sont-ils bloqués ?**
-Non. Les plafonds alertent sans bloquer. Pour réduire les coûts, affectez des modèles moins chers.
+Non. Les plafonds alertent sans bloquer, de même que le plafond mensuel d'une clé. Pour réduire les coûts, affectez des modèles moins chers.
+
+**J'ai changé le modèle de Vectorisation : la recherche dans les documents ne répond plus.**
+Les documents et les guides sont en cours de revectorisation. Suivez l'avancement dans la cloche ; la recherche reprend à la fin.
 
 **Une notification programmée n'est pas partie.**
 
@@ -1408,8 +1966,20 @@ Vérifiez qu'un serveur d'envoi est configuré et testé. Sans serveur, l'e-mail
 **Un snapshot a échoué.**
 La cloche le signale. Créez un nouveau snapshot manuel depuis la page Snapshots.
 
-**L'initialisation refuse mon fichier.**
-Corrigez les erreurs listées dans le détail (onglet, ligne, message), puis cliquez sur **Importer le fichier corrigé**. Rien n'a été créé entre-temps.
+**Le préremplissage refuse ma proposition (« Fichier illisible »).**
+Le document est protégé, scanné ou ne contient que des images. Exportez-le en PDF texte depuis l'outil d'origine, ou remplissez le modèle Excel à la main.
+
+**Le préremplissage s'est arrêté en cours de route.**
+Cliquez sur **Reprendre l'analyse** : les onglets déjà traités sont gardés. Si l'erreur revient, vérifiez le modèle affecté à la fonction Initialisation projet.
+
+**L'initialisation refuse mon fichier Excel.**
+Consultez la liste « À corriger » ou téléchargez le rapport : chaque anomalie indique son onglet et sa cellule. Corrigez, puis cliquez sur **Déposer le fichier corrigé**. Rien n'a été créé entre-temps. Si le message parle d'un « ancien modèle de fichier », téléchargez le modèle Excel vierge et reportez-y vos données.
+
+**La personne qui a reçu un paquet n'a pas de clés d'IA.**
+Elle n'a pas saisi le bon code de déverrouillage (3 essais), ou aucune clé n'avait été cochée. Générez un nouveau paquet si besoin.
+
+**Je veux couper l'accès d'une personne à qui j'ai envoyé un paquet.**
+Ce n'est pas possible à distance. Révoquez chez les fournisseurs les clés indiquées dans l'historique des paquets, et changez le mot de passe SMTP s'il était inclus.
 
 **Une carte API est « En erreur ».**
 
@@ -1420,7 +1990,7 @@ Corrigez les erreurs listées dans le détail (onglet, ligne, message), puis cli
 
 ## Annexe A. Récapitulatif des règles de gestion
 
-Les références désignent les fichiers du code (dossier `backend/src` sauf mention contraire) et leurs lignes au 30/09/2026.
+Les références désignent les fichiers du code (dossier `backend/src` sauf mention contraire). Les numéros de ligne datent du 30/09/2026 pour les règles inchangées ; les règles ajoutées depuis citent le fichier et la constante.
 
 | Règle | Description | Fonctionnalité | Référence dans le code |
 |---|---|---|---|
@@ -1428,72 +1998,96 @@ Les références désignent les fichiers du code (dossier `backend/src` sauf men
 | Échecs de connexion | 5 échecs par adresse, 20 par adresse IP, blocage 15 min, remise à zéro après 15 min | Connexion | `core/auth/policy.ts:11-17` |
 | Message d'échec unique | Même message pour adresse inconnue, mauvais mot de passe, compte invité ou suspendu | Connexion | `core/auth/credentials.service.ts:82-101` |
 | Mot de passe | 12 à 128 caractères, majuscule, minuscule, chiffre, spécial, différent du précédent, non compromis | Connexion | `core/auth/policy.ts:38-58` ; `core/auth/password.ts:70-75` |
-| Inactivité | 15 min dans la Console (+ 2 min de marge côté serveur), avertissement 60 s avant | Session | `core/auth/policy.ts:22-24` ; `frontends/auth-api.js:216-310` |
-| Lien de réinitialisation | Valable 30 min ; 1 envoi par minute, 5 par heure ; jamais pour un compte suspendu | Mot de passe oublié | `core/auth/policy.ts:29-33` ; `credentials.service.ts:140-163` |
-| Invitation | Lien à usage unique, valable 14 jours ; un nouveau lien annule les précédents | Utilisateurs | `admin/accounts.controller.ts:18, 73-82` ; `credentials.service.ts:107-127` |
-| Invitation sans réponse | Signalée après 7 jours | Utilisateurs, À traiter | `admin/accounts.controller.ts:20` ; `frontends/Console Admin.dc.html:1415` |
-| Au moins un accès | Un compte invité a au moins un projet ou le rôle Administrateur | Utilisateurs | `admin/accounts.controller.ts:213` |
-| Unicité de l'e-mail | Une adresse ne sert qu'à un compte | Utilisateurs | `admin/accounts.controller.ts:210` |
-| Statuts de compte | Invité → Actif (mot de passe choisi) ; Suspendu → Actif ou Invité selon la connexion passée | Utilisateurs | `admin/accounts.controller.ts:226, 330, 343` ; `credentials.service.ts:178` |
-| Suspension | Ferme toutes les sessions ; impossible sur soi-même | Utilisateurs | `admin/accounts.controller.ts:322-335` |
-| Suppression | Refusée si le compte ou la personne liée a laissé une trace ; impossible sur soi-même | Utilisateurs | `admin/accounts.controller.ts:366-403` |
-| E-mail du référentiel | Jamais recopié seul ; appliqué par l'administrateur ; invitation renvoyée pour un invité | Utilisateurs | `admin/profiles.service.ts:79` ; `admin/accounts.controller.ts:297-320` |
-| Accès à retirer | Personne inactive dont le compte garde un droit | Utilisateurs, À traiter, cloche | `domain/habilitation-proposals.ts:46-52` ; `admin/console.controller.ts:138-149` |
-| Compte à réactiver | Personne réactivée au référentiel après la suspension du compte | Utilisateurs, À traiter, cloche | `admin/profiles.service.ts:91-104` |
-| Proposition de droits | Responsable des chantiers dont la personne est responsable, Lecteur des autres chantiers de rattachement | Utilisateurs | `domain/habilitation-proposals.ts:37-61` |
-| Habilitations | Remplacement complet ; droits écrits sur la personne du référentiel si elle existe ; PMO prioritaire sur les chantiers | Droits | `admin/accounts.controller.ts:419-473` |
-| Dernier administrateur | Il reste toujours au moins un administrateur ; pas de retrait de ses propres droits | Administrateurs | `admin/accounts.controller.ts:423, 447-450, 579-591` |
-| Nouvel administrateur | Seul un compte actif peut le devenir | Administrateurs | `admin/accounts.controller.ts:566-577` |
-| Journal d'audit | Ajout seul (trigger SQL), 24 mois de conservation, purge à 03:15 | Journal d'audit | `prisma/migrations/20260928000000_audit_append_only` ; `admin/console.controller.ts:22-62` |
-| Export d'audit | 5 000 lignes au plus, séparateur « ; », export tracé | Journal d'audit | `admin/console.controller.ts:86-95` |
-| Décision différée | 10 s pour annuler une décision sur une demande ; exécution ensuite | Cloche | `admin/inbox.service.ts:23, 305-367` |
-| Réconciliation de la cloche | Une notification par cause ; fermée ou rouverte selon la cause ; lue pour tous | Cloche | `admin/inbox.service.ts:114-280` |
-| Clés d'IA | Chiffrées ; seuls le préfixe et les 4 derniers caractères restent visibles | Fournisseurs | `core/crypto.ts:9-34` |
-| Test des clés | Réel, 10 s au plus, toutes les 2 h ; « quota atteint » = clé valide | Fournisseurs | `core/provider-key-tester.ts:10, 71-92` ; `admin/ai.controller.ts:20, 89-92` |
-| Disponibilité d'un modèle | Actif, de la bonne catégorie, fournisseur au statut OK | Affectation | `core/llm.service.ts:119-125` |
-| Modèle principal protégé | Ni désactivation ni suppression d'un modèle affecté | Fournisseurs | `admin/ai.controller.ts:276-313` |
-| Tarifs | LLM entrée + sortie ; Embedding entrée ; Reranking à la requête ou au jeton ; ≥ 0 | Modèles | `domain/ai-pricing.ts:51-68, 106-115` |
-| Affectation | Principal actif de la bonne catégorie ; secours différent | Affectation | `admin/ai.controller.ts:438-484` |
-| Chaîne Documents | Une étape indisponible suspend les suivantes | Affectation | `domain/ai-pricing.ts:87-94` ; `core/llm.service.ts:179-208` |
-| Relais par le secours | Principal en échec à l'appel : le secours est essayé | IA | `core/llm.service.ts:137-149` |
-| Limite de sortie | 1 024 jetons au plus par réponse réelle ; délai de 30 s | IA | `core/llm.service.ts:101, 166` ; `core/llm-client.ts:5` |
-| Projection et statut budgétaire | Rythme sur 7 jours ; Dépassement si projection > plafond ; Alerte si dépense ≥ seuil | Coûts | `admin/usage.service.ts:89-137` |
-| Seuil d'alerte | 50 à 100 %, par pas de 5 ; 80 % par défaut | Coûts | `admin/ai.controller.ts:567-581` ; `admin/usage.service.ts:148` |
+| Inactivité | 15 min dans la Console (+ 2 min de marge côté serveur), avertissement 60 s avant | Session | `core/auth/policy.ts:22-24` ; `frontends/auth-api.js` |
+| Lien de réinitialisation | Valable 30 min ; 1 envoi par minute, 5 par heure ; jamais pour un compte suspendu | Mot de passe oublié | `core/auth/policy.ts:29-33` ; `credentials.service.ts` |
+| Invitation | Lien à usage unique, valable 14 jours ; un nouveau lien annule les précédents | Utilisateurs | `admin/accounts.controller.ts` ; `credentials.service.ts` |
+| Invitation sans réponse | Signalée après 7 jours | Utilisateurs, À traiter | `admin/accounts.controller.ts` (`INVITE_STALE_DAYS`) |
+| Au moins un accès | Un compte invité a au moins un projet ou le rôle Administrateur | Utilisateurs | `admin/accounts.controller.ts` |
+| Unicité de l'e-mail | Une adresse ne sert qu'à un compte | Utilisateurs | `admin/accounts.controller.ts` |
+| Statuts de compte | Invité → Actif (mot de passe choisi) ; Suspendu → Actif ou Invité selon la connexion passée | Utilisateurs | `admin/accounts.controller.ts` ; `credentials.service.ts` |
+| Suspension | Ferme toutes les sessions ; impossible sur soi-même | Utilisateurs | `admin/accounts.controller.ts` |
+| Suppression | Refusée si le compte ou la personne liée a laissé une trace ; impossible sur soi-même | Utilisateurs | `admin/accounts.controller.ts` |
+| E-mail du référentiel | Jamais recopié seul ; appliqué par l'administrateur ; invitation renvoyée pour un invité | Utilisateurs | `admin/profiles.service.ts` ; `admin/accounts.controller.ts` |
+| Accès à retirer | Personne inactive dont le compte garde un droit | Utilisateurs, À traiter, cloche | `domain/habilitation-proposals.ts` ; `admin/console.controller.ts` |
+| Compte à réactiver | Personne réactivée au référentiel après la suspension du compte | Utilisateurs, À traiter, cloche | `admin/profiles.service.ts` (`toReactivate`) |
+| Proposition de droits | Responsable des chantiers dont la personne est responsable, Lecteur des autres chantiers de rattachement | Utilisateurs | `domain/habilitation-proposals.ts` |
+| Habilitations | Remplacement complet ; droits écrits sur la personne du référentiel si elle existe ; PMO prioritaire sur les chantiers | Droits | `admin/accounts.controller.ts` |
+| Dernier administrateur | Il reste toujours au moins un administrateur ; pas de retrait de ses propres droits | Administrateurs | `admin/accounts.controller.ts` |
+| Nouvel administrateur | Seul un compte actif peut le devenir | Administrateurs | `admin/accounts.controller.ts` |
+| Droits de consommation | Complet / Sans coûts / Anonymisé ; jamais sur soi-même ; Complet par défaut ; tracé Sensible | Administrateurs, Consommation (Accès) | `admin/platform-usage.controller.ts` ; `prisma/schema.prisma` (`seeCosts`, `seeIndividual`) |
+| Journal d'audit | Ajout seul (trigger SQL), 24 mois de conservation, purge à 03:15 | Journal d'audit | `prisma/migrations/20260928000000_audit_append_only` ; `admin/console.controller.ts` |
+| Export d'audit | 5 000 lignes au plus, séparateur « ; », export tracé | Journal d'audit | `admin/console.controller.ts` |
+| Décision différée | 10 s pour annuler une décision sur une demande ; exécution ensuite | Cloche | `admin/inbox.service.ts` |
+| Réconciliation de la cloche | Une notification par cause ; fermée ou rouverte selon la cause ; lue pour tous | Cloche | `admin/inbox.service.ts` |
+| Incidents d'IA | Un incident par fonction quand le principal échoue ; fermé à sa réussite suivante | Cloche | `core/llm.service.ts` (`aiIncidentKey`) ; `core/tech-errors.ts` |
+| Mises à jour en direct | Chaque écriture annoncée par un flux ; la Console relit la page affichée, la Vue d'ensemble et la cloche ; ses propres écritures ignorées | Toutes les pages | `core/changes.ts` ; `frontends/admin-api.js` (`liveStart`) |
+| Temps actif | Chaque interaction compte jusqu'à la suivante, au plus 5 min ; une suite par utilisateur | Consommation (Accès) | `domain/platform-usage.ts` ; `admin/platform-usage.service.ts` |
+| Hausse inhabituelle | Coût > 1,6 × moyenne des points ouvrés (heures 7 h–19 h en vue Jour) ; point rouge si hausse de coût ≥ 30 % ; ambre si coût / heure active > moyenne × 1,15 | Consommation (Accès) | `domain/platform-usage.ts` |
+| Export de la consommation | Sélection affichée, toutes les lignes, droits appliqués ; tracé Sensible ou Info | Consommation (Accès) | `admin/platform-usage.controller.ts` |
+| Conservation des interactions | 400 jours, purge chaque nuit | Consommation (Accès) | `domain/platform-usage.ts` |
+| Clés d'IA | Chiffrées ; seuls le préfixe et les 4 derniers caractères restent visibles | Fournisseurs | `core/crypto.ts` |
+| Test des clés | Réel, 10 s au plus, toutes les 2 h ; « quota atteint » = clé valide | Fournisseurs | `core/provider-key-tester.ts` ; `admin/ai.controller.ts` (`KEY_TEST_CRON`) |
+| Plafond mensuel d'une clé | Entier de 1 à 100 000 €, ou sans plafond ; informatif ; tracé Sensible | Fournisseurs, Partager Cockpit | `admin/ai.controller.ts` (`PROVIDER_CAP_MAX_EUR`) ; `domain/share.ts` (`possibleSpend`) |
+| Disponibilité d'un modèle | Actif, de la bonne catégorie, fournisseur au statut OK | Affectation | `core/llm.service.ts` |
+| Modèle affecté protégé | Ni désactivation ni suppression d'un modèle affecté (principal ou secours) ; suppression refusée s'il a de la consommation | Fournisseurs | `admin/ai.controller.ts` (`MODEL_IN_USE`, `IN_USE`) |
+| Tarifs | LLM entrée + sortie ; Embedding entrée ; Reranking à la requête ou au jeton ; ≥ 0 | Modèles | `domain/ai-pricing.ts` |
+| Affectation | Principal actif de la bonne catégorie ; secours différent et actif ; enregistrement immédiat | Affectation | `admin/ai.controller.ts` |
+| Chaîne Documents | Une étape indisponible suspend les suivantes ; Vectorisation sans secours | Affectation | `core/llm.service.ts` (`AI_FUNCTIONS`, `noFallback`) |
+| Revectorisation | Changement du modèle ou de la dimension de la Vectorisation : tous les extraits (Base de connaissance et guides) revectorisés ; tracé Critique | Affectation | `admin/revectorize.service.ts` |
+| Génération réelle | Toutes les fonctions LLM génèrent réellement ; Vectorisation et Reclassement aussi | IA | `core/llm.service.ts` (`LIVE_FUNCTIONS`) |
+| Relais par le secours | Principal en échec à l'appel : le secours est essayé | IA | `core/llm.service.ts` |
+| Limite de sortie | 1 024 jetons par réponse réelle par défaut, sauf traitement qui en demande davantage ; plafonnée au max output du modèle | IA | `core/llm.service.ts` (`LIVE_MAX_OUTPUT_TOKENS`) |
+| Mesures OpenRouter | Intelligence Index, coût d'une session Hermes Agent, débit ; LLM seulement ; relevé à 4 h 30 et à la demande ; jamais d'effacement | Fournisseurs | `admin/model-stats.service.ts` ; `domain/model-stats.ts` (`MODEL_STATS_CRON`) |
+| Projection et statut budgétaire | Rythme sur 7 jours ; Dépassement si projection ≥ plafond ; Alerte si projection > seuil | Coûts | `admin/usage.service.ts` |
+| Seuil d'alerte | 50 à 100 %, par pas de 5 ; 80 % par défaut | Coûts | `admin/ai.controller.ts` ; `admin/usage.service.ts` |
 | Plafond non bloquant | Aucun appel n'est refusé au-delà d'un plafond | Coûts | (aucune lecture des plafonds par la passerelle IA) |
-| Tarifs figés | Le tarif de chaque appel est enregistré au moment de l'appel | Journal des appels | `core/llm.service.ts:215-228` |
-| Cache des instructions | Lecture à 10 %, écriture à 125 % du prix d'entrée | IA | `core/llm-client.ts:43-44` ; `core/llm.service.ts:172-174` |
-| Jev sans action | Jev explique et guide ; il ne produit aucune action | Jev | `admin/console.controller.ts:283-303` |
-| Lecture de données par Jev | Lecture seule, 200 lignes, 5 s, une correction | Jev | `domain/jev-sql.ts:10-16` ; `admin/jev-sql.service.ts:45-113` |
-| Mémoire de Jev | 10 derniers échanges, 16 000 caractères, résumé au-delà, isolée par administrateur | Jev | `admin/jev-memory.service.ts:17-37, 66-117` |
-| Purge des conversations | 30 jours sans échange, purge à 03:25 | Jev | `admin/jev-memory.service.ts:26, 55-63` ; `admin/console.controller.ts:49-50` |
-| Persona | Nom obligatoire, 30 caractères ; Soul 20 000 caractères ; image de 1 Mo ; versions conservées | Persona | `domain/jev-prompt.ts:19-52` ; `admin/persona.controller.ts:59-105` |
-| Skill de guidage | Seule la skill de guidage s'applique au Jev de la Console | Skills | `domain/jev-prompt.ts:139-176` |
-| Nom de skill unique | Unicité sans tenir compte des majuscules | Skills | `admin/skills.controller.ts:128-132` |
-| Badge « Nouveau » | Projet initialisé depuis moins de 7 jours, en préparation | Bibliothèque | `admin/data.controller.ts:24, 270` |
-| Contrôles d'initialisation | 13 onglets ; code libre de 2 à 20 caractères ; références et dates cohérentes | Initialisation | `import/referential-import.ts:129-474` ; `import/import-screen.ts:44-55` |
-| Création tout ou rien | Contrôle refait, transaction unique, projet au statut Préparation | Initialisation | `admin/data.controller.ts:327-362` ; `import/referential-import.ts:510-709` |
-| Taille du fichier d'initialisation | 10 Mo au plus, format .xlsx | Initialisation | `import/import.controller.ts:10` ; `admin/data.controller.ts:305-308` |
-| Capture de snapshot | 19 types d'objets et leurs liens ; libellé de 120 caractères au plus côté serveur | Snapshots | `admin/snapshots.service.ts:12-44, 90-121` ; `admin/data.controller.ts:62-75` |
-| Planification des snapshots | Vérification chaque heure ; quotidienne, hebdomadaire, mensuelle (le 1er) | Snapshots | `domain/snapshots.ts:170-189` ; `admin/snapshots.service.ts:248-256` |
-| Purge des snapshots | Au-delà de la conservation, tous types confondus, pour les planifications actives | Snapshots | `admin/snapshots.service.ts:50-56, 259-267` |
-| Restauration | Sauvegarde de sécurité d'abord, puis tout ou rien (120 s au plus) | Snapshots | `admin/snapshots.service.ts:209-245` |
-| Portée des modules | Désactivé, tous les projets, ou par projet ; approbation limitée au projet demandé | Modules | `admin/data.controller.ts:185-228` |
-| Sécurité des cartes API | https public seulement ; adresses privées refusées ; pas de redirection | Registre API | `domain/api-cards.ts:62-96` ; `admin/api-cards.service.ts:81-117` |
-| Contrôle de santé des cartes | Toutes les 15 min ; POST une fois par 24 h | Registre API | `admin/api-cards.service.ts:36, 142-153` ; `domain/api-cards.ts:38-48` |
-| Alertes des cartes | Clé à 30, 7 et 1 jour, puis expirée ; quota à 80 % | Registre API, cloche | `domain/api-cards.ts:17-19, 129-134` ; `admin/inbox.service.ts:242-264` |
-| Fréquences de notification | Quotidienne ou hebdomadaire, heure par pas de 30 min, heure de Paris ; 07:00 et lundi par défaut | Notifications | `admin/rules.controller.ts:16-19` ; `domain/notification-rules.ts:74-86` |
-| Cas bloquants | Sans modèle ou sans destinataire : enregistrable, rien n'est envoyé | Notifications | `domain/notification-rules.ts:193-194, blockingErrors` |
-| Variables | `{reponse_llm}` interdite dans le prompt ; anciennes variables refusées | Notifications | `admin/rules.controller.ts:259-262` ; `domain/notification-rules.ts:184-188` |
+| Lignes budgétaires | Insights, Gestion des données, Rapports, Guidage console, Initialisation projet, Documents | Coûts | `core/llm.service.ts` (`AI_BUDGET_LINES`) |
+| Tarifs figés | Le tarif de chaque appel est enregistré au moment de l'appel | Journal des appels | `core/llm.service.ts` |
+| Cache des instructions | Lecture à 10 %, écriture à 125 % du prix d'entrée | IA | `core/llm-client.ts` |
+| Temps de réponse | Médiane exacte, min, max ; 6 catégories ; clarifications non comptées ; conservation 190 jours, purge à 03:40 | Analyse des temps de réponse | `domain/latency.ts` ; `core/latency.ts` ; `admin/latency.service.ts` |
+| Jev sans action | Jev explique et guide ; il ne produit aucune action | Jev | `admin/console.controller.ts` |
+| Aiguillage de Jev | Carte JEV du Registre ; USAGE, DONNEES, AMBIGU, HORS_SUJET ; confiance < 0,5 → AMBIGU ; échec → AMBIGU | Jev | `domain/jev-router.ts` ; `admin/jev-router.service.ts` |
+| Réponse à partir du guide | Recherche vectorielle, seuil, reclassement, rédaction par Synthèse à partir des seuls extraits ; sources par section | Jev | `admin/jev-assistant.service.ts` ; `admin/guide-search.service.ts` ; `domain/jev-rag.ts` |
+| Réglages de la recherche | 8 / 4 extraits, seuil 0,58, délais 10 / 8 / 30 s ; bornes contrôlées ; tracé Sensible | Guide utilisateur, Jev | `domain/jev-rag.ts` (`RAG_DEFAULTS`, `RAG_LIMITS`) |
+| Lecture de données par Jev | Lecture seule, 200 lignes, 5 s, une correction ; 34 tables | Jev | `domain/jev-sql.ts` ; `admin/jev-sql.service.ts` ; `domain/jev-dictionnaire.ts` |
+| Mémoire de Jev | 10 derniers échanges, 16 000 caractères, résumé au-delà, isolée par administrateur | Jev | `admin/jev-memory.service.ts` |
+| Purge des conversations | 30 jours sans échange, purge à 03:25 | Jev | `admin/jev-memory.service.ts` ; `admin/console.controller.ts` |
+| Persona | Nom obligatoire, 30 caractères ; Soul 20 000 caractères ; image de 1 Mo ; versions conservées | Persona | `domain/jev-prompt.ts` ; `admin/persona.controller.ts` |
+| Skill de guidage | Seule la skill de guidage s'applique au Jev de la Console | Skills | `domain/jev-prompt.ts` (`CONSOLE_GUIDANCE_SKILLS`) |
+| Skills dédiées | « Préremplissage d'un projet » lue par le préremplissage, active ou non ; jamais envoyée à Jev | Skills, Initialisation | `domain/jev-prompt.ts` (`DEDICATED_SKILLS`) ; `domain/prefill-skill.ts` |
+| Nom de skill unique | Unicité sans tenir compte des majuscules | Skills | `admin/skills.controller.ts` |
+| Badge « Nouveau » | Projet initialisé depuis moins de 7 jours, en préparation | Bibliothèque | `admin/data.controller.ts` |
+| Dépôt d'initialisation | PDF, DOCX, PPTX ou XLSX ; 25 Mo par fichier ; 10 fichiers au plus ; Excel seul ; type réel par signature | Initialisation | `domain/prefill.ts` (`PREFILL_MAX_BYTES`, `PREFILL_MAX_FILES`) ; `domain/kb-documents.ts` (`detectFormat`) |
+| Préremplissage | Un appel par onglet, en vagues parallèles ; incertain sous 70 % ; cellules ambre commentées ; reprise après échec | Initialisation | `admin/prefill.service.ts` ; `domain/prefill.ts` (`PREFILL_UNCERTAIN_BELOW`) ; `core/prefill-excel.ts` |
+| Conservation du préremplissage | 24 heures ; document supprimé dès l'Excel produit | Initialisation | `domain/prefill.ts` (`PREFILL_RETENTION_HOURS`) |
+| Contrôles d'initialisation | 14 onglets 01 à 14 ; code libre de 2 à 20 caractères ; anomalies à leur cellule ; anciens modèles refusés | Initialisation | `import/referential-import.ts` (`OLD_MODEL_MESSAGE`) ; `domain/init-check.ts` |
+| Chantiers | Début et fin facultatifs (calculés sinon) ; Phases, Sous-phases, Dépendances séparées par « ; » ; dépendances réciproques admises ; auto-dépendance refusée | Initialisation | `import/referential-import.ts` ; `domain/workstream-links.ts` (`multiValues`) |
+| Sous-phases | Numérotation libre, sans espace, « ; » ni « · », unique dans la phase | Initialisation | `domain/workstream-links.ts` |
+| Création tout ou rien | Contrôle refait, transaction unique, projet au statut Préparation | Initialisation | `admin/data.controller.ts` ; `import/referential-import.ts` |
+| Capture de snapshot | 19 types d'objets et leurs liens ; libellé de 120 caractères au plus côté serveur | Snapshots | `admin/snapshots.service.ts` ; `admin/data.controller.ts` |
+| Planification des snapshots | Vérification chaque heure ; quotidienne, hebdomadaire, mensuelle (le 1er) | Snapshots | `domain/snapshots.ts` ; `admin/snapshots.service.ts` |
+| Purge des snapshots | Au-delà de la conservation, tous types confondus, pour les planifications actives | Snapshots | `admin/snapshots.service.ts` |
+| Restauration | Sauvegarde de sécurité d'abord, puis tout ou rien (120 s au plus) | Snapshots | `admin/snapshots.service.ts` |
+| Portée des modules | Désactivé, tous les projets, ou par projet ; approbation limitée au projet demandé | Modules | `admin/data.controller.ts` |
+| Sécurité des cartes API | https public seulement ; adresses privées refusées ; pas de redirection | Registre API | `domain/api-cards.ts` ; `admin/api-cards.service.ts` |
+| Contrôle de santé des cartes | Toutes les 15 min ; POST une fois par 24 h | Registre API | `admin/api-cards.service.ts` ; `domain/api-cards.ts` |
+| Alertes des cartes | Clé à 30, 7 et 1 jour, puis expirée ; quota à 80 % | Registre API, cloche | `domain/api-cards.ts` ; `admin/inbox.service.ts` |
+| Fréquences de notification | Quotidienne ou hebdomadaire, heure par pas de 30 min, heure de Paris ; 07:00 et lundi par défaut | Notifications | `admin/rules.controller.ts` ; `domain/notification-rules.ts` |
+| Cas bloquants | Sans modèle ou sans destinataire : enregistrable, rien n'est envoyé | Notifications | `domain/notification-rules.ts` (`blockingErrors`) |
+| Variables | `{reponse_llm}` interdite dans le prompt ; anciennes variables refusées | Notifications | `admin/rules.controller.ts` ; `domain/notification-rules.ts` |
 | Un envoi unique | Unicité par règle, projet et heure prévue | Notifications | `prisma/schema.prisma` (`@@unique([ruleId, projectId, scheduledAt])`) |
-| Vérification des envois | Chaque minute, sur le prochain envoi stocké | Notifications | `admin/notifications.service.ts:47-52, 154-173` |
-| Rattrapage | Jusqu'au lendemain 23:59 (fuseau du projet) ; seul le plus récent ; 10 par minute ; « à l'heure » sous 5 min | Notifications | `domain/notification-rules.ts:100-106, 137-142` ; `admin/notifications.service.ts:176-223` |
-| Texte par profil | Profil le plus large ; données communes à tous les destinataires du profil | Notifications | `admin/profiles.service.ts:140-162` ; `domain/notification-rules.ts:313-318` |
-| Mémoire des notifications | Dernier envoi réussi de moins de 35 jours, même projet et même profil | Notifications | `domain/notification-rules.ts:106` ; `admin/notifications.service.ts:72-76` |
-| Jamais de SQL envoyé | Requête coupée réécrite ; sinon texte de repli | Notifications | `domain/jev-sql.ts:23-38` ; `admin/notification-writer.service.ts` (`NO_DATA_TEXT`) |
-| Mise en forme | Markdown léger mis en page dans le Cockpit ; texte propre par e-mail | Notifications | `admin/notification-writer.service.ts` (`NOTIFICATION_ANSWER_INSTRUCTIONS`) ; `domain/notification-rules.ts` (`mailText`) |
-| Échecs dans « À traiter » | Échecs des 7 derniers jours (5 au plus) | Notifications, À traiter | `admin/console.controller.ts:109, 131` |
-| SMTP | Mot de passe chiffré et jamais renvoyé ; test réel sans envoi ; 10 s par étape | Serveur SMTP | `core/smtp.service.ts:67-94` ; `core/smtp-probe.ts:156-217` ; `domain/smtp.ts:21-40` |
-| Guide | PDF vérifié par son contenu, 50 Mo ; version 1.0 puis +0.1 ; téléchargements tracés en ajout seul | Guide | `domain/guide.ts:6-22` ; `admin/guide.controller.ts:57-85` |
+| Vérification des envois | Chaque minute, sur le prochain envoi stocké | Notifications | `admin/notifications.service.ts` |
+| Rattrapage | Jusqu'au lendemain 23:59 (fuseau du projet) ; seul le plus récent ; 10 par minute ; « à l'heure » sous 5 min | Notifications | `domain/notification-rules.ts` ; `admin/notifications.service.ts` |
+| Texte par profil | Profil le plus large ; données communes à tous les destinataires du profil | Notifications | `admin/profiles.service.ts` ; `domain/notification-rules.ts` |
+| Longueur des notifications | Message complet de moins de 100 mots | Notifications | `domain/notification-rules.ts` ; `admin/notifications.service.ts` |
+| E-mail mis en page | HTML (titre, chiffres, « À surveiller », « À faire »), texte brut joint | Notifications | `domain/notification-email.ts` (`notificationHtml`) |
+| Mémoire des notifications | Dernier envoi réussi de moins de 35 jours, même projet et même profil | Notifications | `domain/notification-rules.ts` ; `admin/notifications.service.ts` |
+| Jamais de SQL envoyé | Requête coupée réécrite ; sinon texte de repli | Notifications | `domain/jev-sql.ts` ; `admin/notification-writer.service.ts` (`NO_DATA_TEXT`) |
+| Échecs dans « À traiter » | Échecs des 7 derniers jours (5 au plus) | Notifications, À traiter | `admin/console.controller.ts` |
+| SMTP | Mot de passe chiffré et jamais renvoyé ; test réel sans envoi ; 10 s par étape | Serveur SMTP | `core/smtp.service.ts` ; `core/smtp-probe.ts` ; `domain/smtp.ts` |
+| Paquet d'installation | 4 étapes ; une génération à la fois ; code de 12 caractères jamais stocké ; lien signé 15 min ; ZIP supprimé après 2 jours ; tracé Sensible | Partager Cockpit | `admin/share.service.ts` ; `admin/share-builder.ts` ; `domain/share.ts` (`SHARE_FILE_TTL_MS`) |
+| Guide | Un guide par application ; PDF vérifié par son contenu, 10 Mo ; version 1.0 puis +0.1 ; téléchargements tracés en ajout seul ; indexation en tâche de fond, ancien index gardé jusqu'au nouveau | Guide | `domain/guide.ts` ; `admin/guide.controller.ts` ; `admin/guide-index.service.ts` |
+| Dictionnaire des données | Rechargé automatiquement au démarrage de l'application quand il diffère du code ; modifiable par aucun écran | Jev (Console et Cockpit), notifications | `core/dictionary-sync.ts` |
 
 ## Annexe B. Points à clarifier et écarts constatés
 
@@ -1507,73 +2101,90 @@ Ces points viennent de la lecture du code. Ils décrivent un écart entre le cod
 4. **Attribution des chantiers** : plusieurs textes disent que « le PMO choisit les chantiers ». Depuis le 29/09/2026, seule la Console les attribue.
 5. **« Annuler » après une suspension** : il réactive le compte, sans rouvrir les sessions fermées, et l'audit enregistre une réactivation.
 6. **Réactivation d'un compte activé mais jamais connecté** : il redevient Invité, sans nouveau lien.
-7. **Liste des utilisateurs** : les chantiers affichés proviennent d'un fichier de démonstration (projet RISE uniquement). Seule la fenêtre « Modifier » lit les droits réels.
-8. **Utilisateur courant** : la pastille « vous » et le masquage de certains boutons reposent sur un compte de démonstration fixe (`u1`). Le serveur, lui, protège correctement.
+7. **Liste des utilisateurs** : les chantiers affichés proviennent d'un fichier de démonstration (projet RISE uniquement). Seule la fenêtre « Modifier » lit les droits réels. À revérifier.
+8. **Utilisateur courant** : la pastille « vous » et le masquage de certains boutons reposent sur un compte de démonstration fixe. Le serveur, lui, protège correctement. À revérifier.
 9. **« Il y a null j »** : ce libellé peut s'afficher pour un compte actif qui ne s'est jamais connecté.
 10. **Journal d'audit** : l'écran se limite aux 500 dernières entrées, alors que l'export va jusqu'à 5 000.
 11. **Demandes d'invitation** : le bouton « Examiner » de « À traiter » mène à Utilisateurs, où aucune zone n'affiche les demandes. La décision se prend dans la cloche.
 
+**Consommation et coûts (Accès)**
+
+12. **Deux pages du même nom** : « Consommation et coûts » existe dans Accès et dans IA. Un renommage de l'une d'elles est en question.
+13. **« Session moyenne » et « Durée moy. »** : elles divisent le **temps actif** par le nombre de connexions, et non le temps connecté, alors que le libellé évoque une durée de session.
+14. **« Événements journalisés »** : ce sont les interactions enregistrées pour le temps actif, pas les entrées du journal d'audit.
+15. **Définitions** : la page n'affiche pas de bloc de définitions des indicateurs ; elles ne figurent que dans ce guide.
+16. **Réglages sans écran** : le délai d'inactivité (5 min), le facteur des hausses inhabituelles (1,6) et le seuil du point rouge (30 %) ne se modifient que par l'API.
+17. **Droits combinés** : la combinaison « sans coûts et anonymisé » est acceptée par le serveur mais ne peut pas être choisie à l'écran.
+
 **Vue d'ensemble et cloche**
 
-12. **Deux calculs du budget** : « À traiter » suit la dépense, alors que la cloche et le statut « Dépassement » suivent la projection. Un dépassement projeté peut donc apparaître dans la cloche sans apparaître dans « À traiter ».
-13. **Échecs d'envoi** : le compteur « N échecs … sur 7 jours » plafonne à 5.
-14. **Rechargement pendant une décision** : si la page est rechargée pendant les 10 secondes d'annulation, la demande réapparaît sans bouton « Annuler ».
-15. **Erreurs techniques** : après un redémarrage du serveur, une notification « Erreur technique » restée ouverte peut ne plus se fermer d'elle-même.
+18. **Deux calculs du budget** : « À traiter » suit la dépense, alors que la cloche et le statut « Dépassement » suivent la projection. Le titre « Budget IA à N % » affiche le pourcentage dépensé, alors que son déclenchement suit le statut projeté.
+19. **Échecs d'envoi** : le compteur « N échecs … sur 7 jours » plafonne à 5.
+20. **Rechargement pendant une décision** : si la page est rechargée pendant les 10 secondes d'annulation, la demande réapparaît sans bouton « Annuler ».
+21. **Erreurs techniques** : après un redémarrage du serveur, une notification « Erreur technique » restée ouverte peut ne plus se fermer d'elle-même.
 
 **IA et coûts**
 
-16. **Désactivation d'un modèle** : la confirmation annonce une bascule sur le secours, mais le serveur refuse de désactiver un modèle principal.
-17. **Bandeau « Clé Google révoquée »** : corrigé, l'écran qui l'affichait a été remplacé par Consommation et coûts.
-18. **Journal des appels** : corrigé, le calcul du coût tombe juste, cache compris.
-19. **Consommation des notifications** : elle est rangée sous la fonction Insights.
-20. **Fournisseur sans clé** : il passe en erreur au test automatique et génère une alerte critique (cas d'OpenRouter créé par le catalogue).
-21. **Seuil d'alerte** : il ne peut pas être désactivé depuis l'écran, alors que le serveur le permet.
-22. **Réponse coupée** : la bascule sur le secours n'est pas faite quand un modèle atteint sa limite de sortie.
+22. **Libellé du guidage** : l'affectation affiche « Guidage console / Cockpit », les tuiles et le journal « Guidage console ».
+23. **Clé non testée** : l'écran peut afficher « Connecté » pour une clé encore jamais testée, que le serveur traite comme indisponible.
+24. **Plafond d'une clé** : l'écran accepte jusqu'à 6 chiffres ; le serveur refuse au-delà de 100 000 €.
+25. **Sortie requise** : la jauge « Sortie maximale » n'est affichée que pour Rapports, alors qu'Initialisation projet a aussi une sortie requise (16 000 jetons).
+26. **Reranking à la requête** : la colonne Entrée du catalogue affiche alors un prix pour 1 000 requêtes sous l'en-tête « € par million de tokens » ; le formulaire ne permet pas de créer un modèle facturé à la requête.
+27. **« Chaque appel LLM »** : le journal contient aussi les appels de Vectorisation et de Reclassement.
+28. **Nom du fichier CSV du journal** : le nom proposé par l'écran et celui envoyé par le serveur diffèrent.
+29. **Consommation des notifications** : elle est rangée sous la fonction Insights.
+30. **Fournisseur sans clé** : il passe en erreur au test automatique et génère une alerte critique.
+31. **Seuil d'alerte** : il ne peut pas être désactivé depuis l'écran, alors que le serveur le permet.
+32. **Réponse coupée** : la bascule sur le secours n'est pas faite quand un modèle atteint sa limite de sortie.
 
 **Jev, Persona, Skills**
 
-23. **Raccourci ⌘J** : il est annoncé pour ouvrir Jev, mais n'existe pas.
-24. **Nom du Persona** : l'aide dit « Affiché dans le Cockpit », alors que le Cockpit garde le nom « Jev ».
-25. **« Une skill active s'applique à toutes ses réponses »** : c'est faux pour le Jev de la Console, qui n'utilise que la skill de guidage.
-26. **Skill de guidage sur une base neuve** : c'est « Guider l'utilisateur », une skill écrite pour le Cockpit. Le texte de la skill « Guidage console » demande de proposer des liens d'action, ce qui contredit la règle « Jev n'agit pas ».
-27. **Suggestions inadaptées** : certaines portent sur des données que Jev ne lit pas (téléchargements du guide, contenu des snapshots, « mes droits »).
-28. **Mémoire** :
-    - le résumé ne se déclenche qu'à partir de 13 échanges, alors que 10 seulement sont transmis : les 11e et 12e échanges sont provisoirement ni transmis ni résumés ;
-    - après « Conversation introuvable », les questions suivantes échouent jusqu'à une nouvelle conversation.
-29. **Registre** : l'accueil de Jev vouvoie, mais « Écris à… » et « Ton assistant IA » tutoient.
+33. **Raccourcis** : ⌘J (Jev) et ⇧⌘C (Cockpit) sont annoncés dans la barre latérale ; leur fonctionnement n'est pas confirmé.
+34. **Nom du Persona** : l'aide dit « Affiché dans le Cockpit », alors que le Cockpit garde le nom « Jev ».
+35. **« Une skill active s'applique à toutes ses réponses »** (sous-titre de la page Skills) : c'est faux. Le Jev de la Console n'utilise que la skill de guidage, celui du Cockpit une skill par type de question, et les skills dédiées ne sont jamais envoyées.
+36. **Skill de guidage sur une base neuve** : c'est « Guider l'utilisateur », une skill écrite pour le Cockpit. Le texte de la skill « Guidage console » demande de proposer des liens d'action, ce qui contredit la règle « Jev n'agit pas ».
+37. **Suggestions inadaptées** : certaines portent sur des données que Jev ne lit pas (téléchargements du guide, contenu des snapshots, « mes droits »).
+38. **Nouvelles pages mal connues de Jev** : les pages Consommation et coûts (Accès), Partager Cockpit et Guide utilisateur ne figurent pas dans la liste des pages transmise à Jev ni dans le périmètre décrit à l'aiguillage.
+39. **Mémoire** : après « Conversation introuvable », les questions suivantes échouent jusqu'à une nouvelle conversation.
+40. **Registre** : l'accueil de Jev vouvoie, mais « Écris à Jev… » et « Ton assistant IA » tutoient.
 
 **Projets**
 
-30. **Statut de l'initialisation** : le statut indiqué dans le fichier est contrôlé puis ignoré ; le projet est toujours créé en Préparation.
-31. **Exemple ORION** : « Charger l'exemple » simule une création et affiche « ORION créé », alors que rien n'est créé.
-32. **Libellé de snapshot** : 60 caractères à l'écran, 120 côté serveur.
-33. **Contenu d'un snapshot** : le texte « tâches, jalons, risques, livrables » sous-estime le contenu réel (19 types d'objets).
-34. **Projet vide** : le message « Le premier snapshot planifié aura lieu… » s'affiche même quand la planification est suspendue.
-35. **Échec de snapshot** : la notification dit « Relancez-la depuis Snapshots », alors qu'il n'y a pas de relance, seulement une nouvelle capture.
-36. **Purge des snapshots** : elle supprime aussi les snapshots manuels et les sauvegardes de sécurité.
-37. **Capture interrompue** : une capture interrompue par un redémarrage du serveur n'est ni listée ni signalée.
-38. **Fichiers abandonnés** : les fichiers d'initialisation abandonnés ne sont jamais purgés.
+41. **Statut de l'initialisation** : le statut indiqué dans le fichier est contrôlé puis ignoré ; le projet est toujours créé en Préparation.
+42. **Quitter pendant un préremplissage** : la tâche continue sur le serveur, mais l'écran ne la retrouve pas si l'on quitte la page puis revient ; « Reprendre l'analyse » n'existe qu'après un échec, sans avoir quitté l'écran.
+43. **Bouton cité** : le message « Ancien modèle de fichier » renvoie au bouton « Modèle Excel », alors que l'écran affiche « Modèle Excel vierge ».
+44. **Dernière étape** : le parcours de l'écran unique dit « Publier », la prévisualisation « Valider l'importation ».
+45. **Spécification périmée** : la spécification de l'initialisation décrit encore 13 onglets, 4 étapes et « Charger l'exemple ».
+46. **Libellé de snapshot** : 60 caractères à l'écran, 120 côté serveur.
+47. **Contenu d'un snapshot** : le texte « tâches, jalons, risques, livrables » sous-estime le contenu réel (19 types d'objets).
+48. **Projet vide** : le message « Le premier snapshot planifié aura lieu… » s'affiche même quand la planification est suspendue.
+49. **Échec de snapshot** : la notification dit « Relancez-la depuis Snapshots », alors qu'il n'y a pas de relance, seulement une nouvelle capture.
+50. **Purge des snapshots** : elle supprime aussi les snapshots manuels et les sauvegardes de sécurité.
+51. **Capture interrompue** : une capture interrompue par un redémarrage du serveur n'est ni listée ni signalée.
 
 **Plateforme**
 
-39. **Compteur de destinataires** : il additionne les profils (un compte à plusieurs profils est compté plusieurs fois) et ignore les projets ciblés.
-40. **Aperçu e-mail** : il montre un bouton « Ouvrir dans le Cockpit » et l'expéditeur « notifications@rise.app », absents de l'e-mail réel.
-41. **« Test envoyé sur votre compte »** : le message s'affiche avant la réponse du serveur.
-42. **Modèle désactivé** : une règle dont le modèle a été désactivé est signalée comme bloquée à l'écran, mais la planification tente quand même l'envoi, qui finit en « Échec ».
-43. **Règle incomplète acceptée** : une règle sans projet ciblé, ou avec un prompt vide, est acceptée. Sans projet, elle n'envoie rien et ne laisse aucune trace.
-44. **E-mail de notification groupé** : tous les destinataires d'un profil figurent dans le champ « À ».
-45. **E-mail sans serveur SMTP** : sans serveur configuré, un e-mail est marqué « Distribué » sans être envoyé.
-46. **Décision de module depuis la page Modules** : le message annonce « {demandeur} est prévenu », mais seul le passage par la cloche prévient réellement.
-47. **Registre API** :
+52. **Modules Budget et Suivi des bénéfices** : leurs onglets ont été retirés du menu Pilotage du Cockpit le 05/10/2026. Leur effet visible se limite au composant « Budget » des rapports et à la saisie du budget ; « Suivi des bénéfices » n'a pas d'effet constaté.
+53. **Compteur de destinataires** : il additionne les profils (un compte à plusieurs profils est compté plusieurs fois) et ignore les projets ciblés.
+54. **Aperçu e-mail** : l'aperçu de l'éditeur ne reflète pas exactement l'e-mail mis en page réellement envoyé.
+55. **« Test envoyé sur votre compte »** : le message s'affiche avant la réponse du serveur.
+56. **Modèle désactivé** : une règle dont le modèle a été désactivé est signalée comme bloquée à l'écran, mais la planification tente quand même l'envoi, qui finit en « Échec ».
+57. **Règle incomplète acceptée** : une règle sans projet ciblé, ou avec un prompt vide, est acceptée. Sans projet, elle n'envoie rien et ne laisse aucune trace.
+58. **E-mail sans serveur SMTP** : sans serveur configuré, un e-mail est marqué « Distribué » sans être envoyé.
+59. **Décision de module depuis la page Modules** : le message annonce « {demandeur} est prévenu », mais seul le passage par la cloche prévient réellement.
+60. **Registre API** :
     - l'état « Clé expirée » est « À surveiller » à l'écran et « en erreur » côté serveur ;
     - le quota et le délai d'une carte ne se règlent pas à l'écran.
-48. **Pastille SMTP** : « Configuré » s'affiche même sans serveur enregistré. L'aperçu de l'expéditeur montre encore un e-mail « Jalon en retard ».
-49. **Spécification des notifications** : `docs/specs/NOTIFICATIONS ET ALERTES - specification.md` décrit encore les alertes supprimées le 30/09/2026.
+61. **Pastille SMTP** : « Configuré » s'affiche même sans serveur enregistré.
+62. **Spécification des notifications** : elle décrit encore les alertes supprimées le 30/09/2026.
+63. **Guide utilisateur** : l'écran n'affiche ni pourcentage ni étape d'indexation ; les dépôts refusés n'apparaissent pas dans la traçabilité.
+64. **Partager Cockpit** : sans serveur, l'écran de démonstration propose d'autres profils (« Chef de projet », « Contributeur ») que ceux réellement créés.
 
 **Mon profil**
 
-50. **Informations codées en dur** : plusieurs informations sont fixes (« Administratrice depuis 14 janv. 2025 », tableau des projets, dernière connexion, filtre « Julien Morel »).
-51. **Changement d'e-mail** : la confirmation annonce un lien de vérification, mais l'adresse est changée immédiatement, sans lien.
+65. **Préférences de notification** : les cinq interrupteurs de l'onglet Notifications sont enregistrés, mais aucun traitement ne les lit ; le verrou de la première préférence n'existe qu'à l'écran.
+66. **Périmètre de la console** : la liste affichée dans l'onglet Habilitations est fixe.
+67. **Changement d'e-mail** : la confirmation annonce un lien de vérification, mais l'adresse est changée immédiatement, sans lien.
 
 ## Annexe C. Fonctionnalités non documentées
 
@@ -1583,25 +2194,25 @@ Ces fonctionnalités existent dans le code mais sont désactivées, inaccessible
 |---|---|
 | Page « Droits et habilitations » (matrice des droits, profils types, super-administrateur) | Absente du menu, code inactif |
 | Préférences de notification de Mon profil (5 interrupteurs) | Enregistrées, sans aucun effet |
-| Onglet Habilitations de Mon profil | Contenu fictif |
 | Double authentification | Retirée |
 | Palette de recherche | Prévue, sans bouton |
 | Export d'un snapshot (fichier JSON) | Disponible côté serveur, sans bouton |
 | Clôture ou archivage d'un projet | Absents de la Console (Cockpit seulement) |
-| « Charger l'exemple » (ORION) de l'initialisation | Simulation, rien n'est créé |
+| Exemple de proposition (ORION) pour le préremplissage | Disponible côté serveur, sans bouton depuis l'écran du 07/10/2026 |
+| « Réinitialiser la session » de l'ancien import | Disponible côté serveur, sans bouton |
 | Relance d'un envoi de notification en échec | Disponible côté serveur, sans bouton |
 | Aperçu serveur d'une règle de notification | Disponible côté serveur, non utilisé |
 | Variable `{semaine}` des notifications | Remplacée côté serveur, non proposée à l'écran |
 | Quota et délai d'une carte API ; rotation de clé dédiée | Réglables par l'API seulement |
+| Réglages de la consommation de la plateforme (délai d'inactivité, facteur et seuil des hausses) | Réglables par l'API seulement |
 | Restauration d'une version du Persona | Versions conservées, aucune restauration |
 | Réordonnancement des skills | Inexistant |
-| Consultation ou modification du dictionnaire de données de Jev | Ligne de commande seulement |
+| Consultation ou modification du dictionnaire de données de Jev | Ligne de commande seulement ; rechargé automatiquement au démarrage |
 | Mémoire de Jev, étape 2 (faits mémorisés) | Non réalisée |
-| Messages d'action de Jev (redirection, récapitulatif, confirmation) | Présents à l'écran, jamais produits |
+| Messages d'action de Jev (redirection, récapitulatif, confirmation) | Présents à l'écran, jamais produits dans la Console |
 | Catalogue des modèles et réinitialisation de l'IA | Ligne de commande seulement |
 | Suppression ou renommage d'un fournisseur ; retrait d'une affectation | Inexistants |
 | Filtres avancés des comptes et du journal d'audit (période, auteur, type) | Disponibles côté serveur, non exposés |
 | Réinitialisation du mot de passe d'un autre utilisateur par l'administrateur | Inexistante |
-| Mode démonstration (`?demo=1`) et mode développement (`?as=…`) | Réservés aux essais |
-| Réponses des fonctions Insights, Gestion des données, Rapports et Documents | Texte de démonstration ; seule leur consommation est réelle |
+| Mode démonstration (`?demo=1`), barre « États » de l'initialisation et mode développement (`?as=…`) | Réservés aux essais |
 | Module « Suivi des bénéfices » | Activable, sans effet constaté dans le Cockpit |
