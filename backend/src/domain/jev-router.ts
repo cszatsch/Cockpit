@@ -34,7 +34,7 @@ const CHOICE_TO_TYPE: Record<RouterChoice, RouteType> = { usage: 'USAGE', donnee
 const LABEL: Record<RouterChoice, string> = { usage: 'usage', donnees: 'données', mixte: 'mixte', hors_sujet: 'hors sujet' };
 
 /** Périmètre de la Console, donné au modèle comme contexte. */
-const CONSOLE_SCOPE = 'Console d’administration de RISE, plateforme de pilotage de projets : comptes et droits (utilisateurs, invitations, administrateurs, habilitations PMO / Responsable / Lecteur), journal d’audit, IA (fournisseurs, clés API, modèles, affectation principal / secours, plafonds et consommation, journal des appels), assistant Jev (persona, skills), projets (bibliothèque, initialisation par fichier Excel, snapshots), modules, registre des cartes API, notifications envoyées aux utilisateurs, serveur d’envoi SMTP, guide utilisateur.';
+const CONSOLE_SCOPE = 'Console d’administration de RISE, plateforme de pilotage de projets : comptes et droits (utilisateurs, invitations, administrateurs, habilitations PMO / Responsable / Lecteur), journal d’audit, consommation et coûts de la plateforme (temps actif et connecté, dépenses d’IA par équipe, utilisateur, projet), IA (fournisseurs, clés API, modèles, affectation principal / secours, plafonds et consommation, journal des appels, analyse des temps de réponse), assistant Jev (persona, skills), projets (bibliothèque, initialisation par proposition commerciale ou fichier Excel, snapshots), modules, registre des cartes API, notifications envoyées aux utilisateurs, serveur d’envoi SMTP, partage du Cockpit (paquet d’installation), guide utilisateur.';
 
 /**
  * Versions des consignes de classification (le rapport de test compare les versions). `v1` : critères courts en

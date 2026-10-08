@@ -715,3 +715,4 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
 - Panneau de Jev de la Console marqué `data-jev-panel` ; interactions envoyées par lots (`trackActivity`) pour le temps actif.
 - (08/10/2026) Consommation et coûts · Accès : données de démonstration supprimées de l'écran (sans serveur : message d'erreur) ; filtre « Projet » (sélection multiple) avant « Équipes ».
 - (08/10/2026) Jev : champ de saisie multiligne qui s'agrandit avec le texte jusqu'à 180 px (environ 8 lignes), puis défile ; Entrée envoie, Maj+Entrée va à la ligne.
+- (08/10/2026) Skills : sous-titre corrigé (chaque skill sert un usage désigné par son nom, elle ne s'applique pas à toutes les réponses de Jev).

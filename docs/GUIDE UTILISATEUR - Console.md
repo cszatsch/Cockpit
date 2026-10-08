@@ -2141,10 +2141,10 @@ Ces points viennent de la lecture du code. Ils décrivent un écart entre le cod
 
 33. **Raccourcis** : ⌘J (Jev) et ⇧⌘C (Cockpit) sont annoncés dans la barre latérale ; leur fonctionnement n'est pas confirmé.
 34. **Nom du Persona** : l'aide dit « Affiché dans le Cockpit », alors que le Cockpit garde le nom « Jev ».
-35. **« Une skill active s'applique à toutes ses réponses »** (sous-titre de la page Skills) : c'est faux. Le Jev de la Console n'utilise que la skill de guidage, celui du Cockpit une skill par type de question, et les skills dédiées ne sont jamais envoyées.
+35. ~~**« Une skill active s'applique à toutes ses réponses »**~~ : corrigé le 08/10/2026. Le sous-titre de la page Skills indique désormais l'usage de chaque skill, désigné par son nom (« Guidage console » pour le Jev de la Console ; « Insights », « Guidage Cockpit », « Gestion des données » pour le Jev du Cockpit ; « Rapports », « Rédiger les slides PowerPoint » ; « Préremplissage d'un projet »).
 36. **Skill de guidage sur une base neuve** : c'est « Guider l'utilisateur », une skill écrite pour le Cockpit. Le texte de la skill « Guidage console » demande de proposer des liens d'action, ce qui contredit la règle « Jev n'agit pas ».
 37. **Suggestions inadaptées** : certaines portent sur des données que Jev ne lit pas (téléchargements du guide, contenu des snapshots, « mes droits »).
-38. **Nouvelles pages mal connues de Jev** : les pages Consommation et coûts (Accès), Partager Cockpit et Guide utilisateur ne figurent pas dans la liste des pages transmise à Jev ni dans le périmètre décrit à l'aiguillage.
+38. ~~**Nouvelles pages mal connues de Jev**~~ : corrigé le 08/10/2026. Consommation et coûts (Accès), Partager Cockpit et Guide utilisateur figurent dans la liste des pages transmise à Jev et dans le périmètre décrit à l'aiguillage (avec l'analyse des temps de réponse et l'initialisation par proposition commerciale).
 39. **Mémoire** : après « Conversation introuvable », les questions suivantes échouent jusqu'à une nouvelle conversation.
 40. **Registre** : l'accueil de Jev vouvoie, mais « Écris à Jev… » et « Ton assistant IA » tutoient.
 

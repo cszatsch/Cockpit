@@ -1799,3 +1799,9 @@ Demande du commanditaire : un risque peut concerner un chantier, plusieurs, ou t
 | Jev (cas 3) | Champ « Chantiers » à choix multiple : pastilles à cocher, « Tous les chantiers (transverse) » (PMO), « Valider la sélection » ; réponse libre « C1, C3 » ou « tous » ; action liée créée sur le premier chantier du risque | `WRITE_FIELDS.RISK`, `wsMulti` |
 | Jev (données) | Vue `risques` : `chantier_ids`, `transverse` ; nouvelle vue `risques_chantiers` (une ligne par risque et par chantier, transverse développé sur tous les chantiers) | `jev-dictionnaire-cockpit.ts` |
 | Rapports | Composant Risques d'un chantier : risques qui le citent et risques transverses ; colonne chantier : noms, ou « Tous les chantiers » | `riskWsLabel` |
+
+### Skills et pages connues de Jev (08/10/2026)
+
+- Sous-titre de la page Skills corrigé : une skill n'est pas ajoutée à toutes les réponses ; chacune sert un usage désigné par son nom (« Guidage console » : Jev de la Console ; « Insights », « Guidage Cockpit », « Gestion des données » : Jev du Cockpit ; « Rapports », « Rédiger les slides PowerPoint » : rédaction des rapports ; « Préremplissage d'un projet » : initialisation).
+- Pages ajoutées à celles que Jev de la Console sait situer (`CONSOLE_PAGE_TITLES`) : Consommation et coûts (Accès), Partager Cockpit, Guide utilisateur ; périmètre de la Console donné à l'aiguillage (`CONSOLE_SCOPE`) complété (consommation et coûts de la plateforme, analyse des temps de réponse, initialisation par proposition commerciale, partage du Cockpit).
+- Saisie sans Jev : fonctionnalité abandonnée (commanditaire, 08/10/2026) ; les guides n'en parlent plus. La création d'un risque, d'un problème, d'une action ou d'une fiche décision passe par Jev.

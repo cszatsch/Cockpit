@@ -143,10 +143,12 @@ export const CONSOLE_GUIDANCE_SKILLS = ['Guidage console', 'Répondre sur la Con
 /** Pages de la Console : identifiant (`S.sec`) → titre, pour situer la question de l'administrateur. */
 export const CONSOLE_PAGE_TITLES: Record<string, string> = {
   overview: 'Vue d’ensemble', users: 'Utilisateurs', admins: 'Administrateurs', rights: 'Droits et habilitations',
-  providers: 'Fournisseurs et modèles', conso: 'Consommation et coûts',
+  providers: 'Fournisseurs et modèles', conso: 'Consommation et coûts (IA : budget et journal des appels)',
   persona: 'Persona', skills: 'Skills', library: 'Bibliothèque des projets', init: 'Initialisation d’un projet',
   snaps: 'Snapshots', modules: 'Modules', apis: 'Registre des cartes API', notifs: 'Notifications', smtp: 'Serveur d’envoi SMTP', profil: 'Mon profil',
   latency: 'Analyse des temps de réponse',
+  // Pages ajoutées (08/10/2026) : Jev situe aussi les questions posées depuis ces pages.
+  usage: 'Consommation et coûts (Accès : usage de la plateforme et dépenses d’IA par utilisateur)', share: 'Partager Cockpit', guide: 'Guide utilisateur',
 };
 
 /** Nom de skill comparable : sans tenir compte de la casse, des espaces en trop ni de la forme de l'apostrophe (« Guidage Console » = « Guidage console »). */

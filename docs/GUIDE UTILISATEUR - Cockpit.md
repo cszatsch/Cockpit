@@ -388,16 +388,14 @@ Le serveur contrôle le projet à chaque chargement. Rien n'est stocké : une in
 
 1. Ouvrez l'onglet concerné (par exemple Risques et problèmes).
 2. Cliquez sur le bouton **Jev** de la barre latérale. Le panneau de Jev s'ouvre dans le contexte de l'onglet.
-3. Décrivez ce que vous voulez créer (Jev prépare l'enregistrement, voir 3.19.4), ou cliquez sur **Saisir sans Jev** pour ouvrir le formulaire.
-4. Remplissez le formulaire latéral et cliquez sur **Créer le / la …** (ou **Enregistrer** pour une modification).
+3. Décrivez à Jev ce que vous voulez créer : il prépare l'enregistrement, pose les questions utiles et vous présente un récapitulatif « À valider » (voir 3.19.4). Rien n'est enregistré avant votre validation.
 
-Le formulaire dépend de l'onglet : jalon, livrable, risque, action, fiche décision, ligne d'avancement (Planning), relevé du baromètre, séance, tâche. Les icônes « Demander à Jev » des blocs et des lignes du Pilotage ont été retirées le 1er octobre 2026 : Jev s'ouvre par son bouton de la barre latérale.
+Jev crée les risques, les problèmes, les actions et les fiches décision. Les autres éléments se créent ailleurs : phases, sous-phases, chantiers, jalons et livrables dans le Référentiel (Info projet, bouton **+** de l'objet, PMO) ; séances depuis le calendrier des comités (bouton **+** d'un jour, voir 3.13.1). Les icônes « Demander à Jev » des blocs et des lignes du Pilotage ont été retirées le 1er octobre 2026 : Jev s'ouvre par son bouton de la barre latérale.
 
 ### 3.5.3 Règles communes
 
-- Un titre vide est refusé : « Ce champ est obligatoire. ».
 - Les codes (R01, A-01, D-001, J01…) sont attribués par le serveur.
-- Le pied du formulaire rappelle que la saisie est tracée : « Créé(e) par {nom} · tracé(e) » ou « Modification tracée · {nom} ».
+- Chaque création ou modification est tracée au nom de son auteur.
 - Un Responsable ne crée que sur ses chantiers : « Donnée à rattacher à vos chantiers » (avec la liste des chantiers autorisés).
 - Sans droit sur la donnée, l'écran affiche « Droit insuffisant : seul le PMO ou le Responsable du chantier peut modifier cette donnée ».
 - Les tableaux du Pilotage n'ont pas de bouton de suppression. Une action se termine, un risque se clôt, une décision s'annule. Un risque, un problème, une action ou une décision peut toutefois être supprimé par Jev, après confirmation renforcée (voir 3.19.4). Une séance de comité se supprime depuis son calendrier (voir 3.13).
@@ -467,7 +465,7 @@ Le tableau « Suivi d'avancement » suit le même repli. L'état replié est gar
 
 **Droits.** Le PMO modifie tout. Le Responsable modifie les dates et le % réel de son chantier. Seul le PMO change le responsable.
 
-**Créer un élément de planning** (PMO) : depuis Jev, **Saisir sans Jev** (voir 3.5.2). Type (Phase, Sous-phase, Chantier), nom, phase de rattachement pour une sous-phase, dates, % prévu (vide = calculé), % réel, responsable. L'élément est ajouté au Référentiel.
+**Créer un élément de planning** (PMO) : dans le Référentiel (Info projet), objets Phases, Sous-phases ou Chantiers, bouton **+**.
 
 | Message | Cause |
 |---|---|
@@ -553,7 +551,7 @@ Colonnes : Livrable, Responsable, Début, Fin, Retard, Avancement (%), Risque d�
 
 ### 3.8.4 Créer un livrable
 
-PMO uniquement, depuis Jev, **Saisir sans Jev** (voir 3.5.2) : nom, sous-phase (les dates en découlent), chantier ou « Non rattaché (transverse) », équipe, avancement, risque délai, responsable de production. Toast : « Livrable créé · {code} · ajouté au Référentiel ».
+PMO uniquement, dans le Référentiel (Info projet), objet Livrables, bouton **+** : nom, sous-phase (les dates en découlent), chantier ou « Non rattaché (transverse) », équipe, responsable de production.
 
 Si la sous-phase choisie n'est pas parmi celles du chantier, ou si sa phase n'est pas une phase du chantier, un avertissement s'affiche (« Avertissement : la sous-phase … n'est pas parmi celles du chantier … Enregistrement possible. »). Il ne bloque pas l'enregistrement. Le même avertissement existe dans le formulaire d'un jalon.
 
@@ -580,10 +578,10 @@ L'onglet affiche aussi la **matrice P × I** et l'**évolution sur 8 semaines** 
 
 Un risque peut concerner un chantier, plusieurs chantiers, ou tous les chantiers (risque **transverse**).
 
-- Dans le formulaire du risque, le champ **Chantiers concernés** présente les chantiers du projet ouvert sous forme de pastilles à cocher, précédées de **Tous les chantiers**.
-- Cochez un ou plusieurs chantiers. Le texte d'aide indique « N chantiers sélectionnés ».
-- Ou cochez **Tous les chantiers** : « Risque transverse : il concerne tous les chantiers, y compris ceux créés ensuite. ». Les autres pastilles se décochent.
-- Sans choix, l'enregistrement est refusé : « Choisissez au moins un chantier, ou « Tous les chantiers » ».
+- Avec Jev, citez les chantiers (« sur C1 et C3 ») ou « tous les chantiers ». Si vous ne les précisez pas, Jev propose les chantiers où vous pouvez écrire en pastilles à cocher, et **Tous les chantiers (transverse)** si vous êtes PMO.
+- Cochez un ou plusieurs chantiers, puis cliquez sur **Valider la sélection**.
+- Ou choisissez **Tous les chantiers (transverse)** : le risque concerne tous les chantiers, y compris ceux créés ensuite. Le récapitulatif affiche « Chantiers : Tous les chantiers ».
+- Un risque a toujours au moins un chantier, ou est transverse.
 
 **Droits sur un risque à plusieurs chantiers**
 
@@ -593,14 +591,14 @@ Un risque peut concerner un chantier, plusieurs chantiers, ou tous les chantiers
 
 ### 3.9.3 Créer un risque
 
-Libellé, probabilité et impact (1 à 5, 3 par défaut, criticité calculée), plan de mitigation, porteur, chantiers concernés, échéance. Le risque est créé au statut Ouvert. Statuts possibles : Ouvert, En mitigation, Clos.
+Demandez-le à Jev (voir 3.19.4) : libellé, probabilité et impact (1 à 5, criticité calculée), plan de mitigation, porteur, chantiers concernés, échéance. Le risque est créé au statut Ouvert. Statuts possibles : Ouvert, En mitigation, Clos.
 
 **Exemple.** Le PMO crée le risque « Retard de livraison de l'éditeur » sur les chantiers C2 et C4. Le Responsable de C2 le voit et peut le lire ; il ne peut le modifier que s'il est aussi Responsable de C4.
 
 ### 3.9.4 Problèmes ouverts
 
 - Filtres : sévérité 5, 4, 3 et moins, chantier, « Échéance dépassée ». Tris : sévérité, résolution, porteur, chantier.
-- Créer un problème : libellé, sévérité (1 à 5), détail, porteur, chantier (un seul, parmi ceux du projet), résolution visée. Statuts : Ouvert, En résolution, Résolu.
+- Créer un problème : demandez-le à Jev (voir 3.19.4). Champs : libellé, sévérité (1 à 5), détail, porteur, chantier (un seul), résolution visée. Statuts : Ouvert, En résolution, Résolu.
 
 ### 3.9.5 Droits et clôture
 
@@ -701,7 +699,6 @@ Modifier un pourcentage de la répartition réajuste les deux autres pour garder
 3. L'heure et le lieu sont repris de la dernière séance non annulée de l'instance. Modifiez-les si besoin.
 4. Cliquez sur **Planifier** (ou **Annuler**). Toast : « Comité planifié · {instance} n°N ».
 
-Le formulaire de séance ouvert depuis Jev (**Saisir sans Jev** dans l'onglet Comités) reste disponible : instance, date, heure, lieu ; toast « Séance planifiée · {instance} n°N ».
 
 **Supprimer un comité**
 
@@ -1184,7 +1181,6 @@ Jev peut **créer**, **modifier** ou **supprimer** un risque, un problème, une 
 - **Mémoire.** Jev suit la conversation : il tient compte des 10 derniers échanges et d'un résumé des plus anciens. Vous pouvez donc enchaîner (« et pour C3 ? »). La conversation est propre à vous et au projet ouvert.
 - **Fermer et rouvrir le panneau** ne vide pas la conversation. Le contexte suit l'écran ouvert.
 - **Effacer tous les messages** (icône en haut du panneau) : revient au message d'accueil et démarre une nouvelle conversation, sans confirmation. Recharger le Cockpit démarre aussi une nouvelle conversation.
-- **Saisir sans Jev** : ouvre le formulaire de création de l'onglet du Pilotage affiché (voir 3.5.2).
 
 ## 3.20 Notifications
 
@@ -1392,7 +1388,7 @@ Une phase qui a des sous-phases a un avancement calculé : la moyenne de ses sou
 Cette ligne montre le segment du chantier dans la phase, calculé à partir de ses sous-phases. Modifiez les sous-phases, ou les dates du chantier dans le Référentiel (PMO).
 
 **Comment rattacher un risque à plusieurs chantiers ?**
-Dans le formulaire du risque, cochez les chantiers voulus dans « Chantiers concernés », ou « Tous les chantiers » pour un risque transverse (PMO). Avec Jev, cochez les pastilles puis **Valider la sélection**.
+Dites-le à Jev (« sur C1 et C3 », ou « sur tous les chantiers » pour un risque transverse, PMO), ou cochez les pastilles qu'il propose puis **Valider la sélection**.
 
 **Je ne peux pas modifier un risque que je vois.**
 Il concerne aussi un chantier dont vous n'êtes pas Responsable, ou il est transverse (réservé au PMO).
@@ -1506,7 +1502,7 @@ Ces points viennent de la lecture du code. Ils décrivent un écart entre le cod
 **Pilotage**
 
 18. **Registre des risques** : le titre annonce « top 6 par criticité », l'écran affiche 4 risques avant « Voir plus ». ~~Texte fixe de l'évolution~~ (corrigé le 07/10/2026 : compteurs du registre).
-19. **Liste des chantiers** des formulaires : ~~liste figée~~ (corrigé le 08/10/2026 pour les formulaires risque et problème : chantiers du projet ouvert). Le formulaire de décision n'a pas été vérifié.
+19. ~~**Liste des chantiers** proposée pour un nouvel élément~~ : chantiers du projet ouvert (corrigé le 08/10/2026).
 20. **Statut « Bloquée »** d'une action : enregistré « À faire » à la création, affiché « Ouverte » quand il vient du serveur.
 21. **« Mes actions »** : filtre une personne fixe, pas l'utilisateur connecté.
 22. **Jalons et livrables** : l'écran laisse un Responsable modifier, le serveur refuse (PMO uniquement).
@@ -1544,12 +1540,11 @@ Ces points viennent de la lecture du code. Ils décrivent un écart entre le cod
 
 **Points relevés le 8 octobre 2026**
 
-48. **Création depuis Jev, « Saisir sans Jev »** : depuis le retrait des icônes « Demander à Jev » du Pilotage (01/10/2026), le formulaire ouvert dépend de l'onglet seul. Le formulaire de création d'un problème (onglet Risques et problèmes) et « Modifier sans Jev » sur une ligne existante ne semblent plus atteignables depuis l'écran ; à confirmer. Un problème se crée par Jev.
-49. **Suggestions et accueil de Jev** : certaines suggestions proposent des gestes que Jev ne sait pas faire (« Supprimer les actions terminées », « Décaler toutes mes tâches à vendredi », « Ajouter un verbatim », « Décaler un jalon ») : Jev ne modifie que les risques, problèmes, actions et décisions. De même, l'accueil du mode « Explication et action » dans Info projet annonce « Je peux modifier, ajouter, supprimer ou expliquer des données ».
-50. **Plan de livraison** : son niveau par défaut est « Sous-phases », alors que celui du Planning est « Phases ».
-51. **Incohérence « Budget programme non renseigné »** : toujours émise par le serveur quand le budget programme existe sans être connu, alors qu'aucun écran ne permet plus de le renseigner (onglet Budget retiré).
-52. **Rapport rattaché à une séance** : le rattachement à la prochaine séance planifiée se fait en plus du versement dans la Base de connaissance ; sans séance, le message « Rapport non enregistré : template ou séance introuvable » peut laisser croire que le versement a échoué.
-53. **Liste des projets** : avec un seul projet, le menu « Projet » s'ouvre quand même sur une liste d'un élément.
+48. **Suggestions et accueil de Jev** : certaines suggestions proposent des gestes que Jev ne sait pas faire (« Supprimer les actions terminées », « Décaler toutes mes tâches à vendredi », « Ajouter un verbatim », « Décaler un jalon ») : Jev ne modifie que les risques, problèmes, actions et décisions. De même, l'accueil du mode « Explication et action » dans Info projet annonce « Je peux modifier, ajouter, supprimer ou expliquer des données ».
+49. **Plan de livraison** : son niveau par défaut est « Sous-phases », alors que celui du Planning est « Phases ».
+50. **Incohérence « Budget programme non renseigné »** : toujours émise par le serveur quand le budget programme existe sans être connu, alors qu'aucun écran ne permet plus de le renseigner (onglet Budget retiré).
+51. **Rapport rattaché à une séance** : le rattachement à la prochaine séance planifiée se fait en plus du versement dans la Base de connaissance ; sans séance, le message « Rapport non enregistré : template ou séance introuvable » peut laisser croire que le versement a échoué.
+52. **Liste des projets** : avec un seul projet, le menu « Projet » s'ouvre quand même sur une liste d'un élément.
 
 ## Annexe C. Fonctionnalités non documentées
 
