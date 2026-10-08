@@ -482,3 +482,9 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 
 - Suivi d'avancement : l'avancement d'une phase qui a des sous-phases n'est plus saisissable (message « moyenne de ses sous-phases pondérée par leur durée ») ; le serveur le recalcule à chaque modification d'une sous-phase. La fenêtre d'édition ne l'envoie plus pour une telle phase.
 - Vues « Phase > Chantier » : avancement du segment d'un chantier = moyenne de ses sous-phases de la phase pondérée par leur durée (au lieu de la moyenne simple).
+
+## Plan de livraison des livrables : grouper / dégrouper à la souris (08/10/2026)
+
+- Comme le planning : clic sur l'en-tête d'un groupe (sous-phase, phase ou chantier selon le niveau) pour replier ou déplier ses livrables ; dans « Phases et sous-phases », clic sur la phase pour replier toutes ses sous-phases ; Alt+clic : tous les groupes du niveau ; boutons « Tout replier » / « Tout déplier » après le choix du périmètre.
+- Un groupe replié garde sa synthèse sur la frise : barre de sa période (premier début → dernière échéance), avancement moyen (validé = 100 %), couleur du pire état (retard ou critique en rouge, sous tension en ambre), « N livrables · X % » ; une phase repliée le rappelle aussi à côté de son nom.
+- État gardé le temps de la session de l'écran (`S.lvPlFold`), indépendant du repli du tableau de suivi en dessous (`S.lvOpen`).
