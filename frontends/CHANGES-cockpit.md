@@ -488,3 +488,7 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 - Comme le planning : clic sur l'en-tête d'un groupe (sous-phase, phase ou chantier selon le niveau) pour replier ou déplier ses livrables ; dans « Phases et sous-phases », clic sur la phase pour replier toutes ses sous-phases ; Alt+clic : tous les groupes du niveau ; boutons « Tout replier » / « Tout déplier » après le choix du périmètre.
 - Un groupe replié garde sa synthèse sur la frise : barre de sa période (premier début → dernière échéance), avancement moyen (validé = 100 %), couleur du pire état (retard ou critique en rouge, sous tension en ambre), « N livrables · X % » ; une phase repliée le rappelle aussi à côté de son nom.
 - État gardé le temps de la session de l'écran (`S.lvPlFold`), indépendant du repli du tableau de suivi en dessous (`S.lvOpen`).
+
+## Temps actif (Consommation et coûts · Accès, 08/10/2026)
+
+- `api.js` : interactions de l'utilisateur (clic, saisie, défilement) notées au plus une fois par fonctionnalité et par 20 s, envoyées par lots (`POST /api/me/activity`) chaque minute et quand l'onglet passe en arrière-plan ; aucun changement visible.

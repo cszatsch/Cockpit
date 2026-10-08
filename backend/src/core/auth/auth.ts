@@ -9,6 +9,7 @@ import { Reflector } from '@nestjs/core';
 import { ApiError, forbidden, unauthorized } from '../errors';
 import { PrismaService } from '../prisma.service';
 import { Surface } from './policy';
+import { requestScope } from '../changes';
 import { CSRF_HEADER, csrfMatches, SessionFailure, SessionService, surfaceOf } from './session.service';
 
 /** Utilisateur authentifié (compte d'accès). */
@@ -99,6 +100,8 @@ export class AuthGuard implements CanActivate {
       viaCookie,
     };
     req.actor = actor;
+    const scope = requestScope.getStore();
+    if (scope) scope.accountId = actor.accountId;
     // Mise à jour de l'activité, au plus une fois par minute.
     if (Date.now() - session.lastSeenAt.getTime() > 60_000) {
       await this.prisma.authSession.update({ where: { id: session.id }, data: { lastSeenAt: new Date() } });

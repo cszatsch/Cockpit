@@ -1142,9 +1142,13 @@ model Habilitation {
 }
 
 model AdminGrant {
-  accountId   String   @id
-  since       DateTime @default(now())
-  grantedById String?
+  accountId     String   @id
+  since         DateTime @default(now())
+  grantedById   String?
+  /// Consommation et coûts (Accès, 08/10/2026) : droit « Voir les coûts » (sinon montants absents des réponses)
+  seeCosts      Boolean  @default(true)
+  /// Droit « Voir les données individuelles » (sinon noms pseudonymisés, niveau Utilisateur désactivé)
+  seeIndividual Boolean  @default(true)
 }
 
 model AuthSession {
@@ -1332,8 +1336,13 @@ model UsageRecord {
   /// (lecture 10 %, écriture 125 % du prix d'entrée) : le calcul affiché du coût retombe exactement sur costEur.
   cacheReadTokens  Int         @default(0)
   cacheWriteTokens Int         @default(0)
+  /// Compte à l'origine de l'appel (requête en cours), null pour une tâche de fond ou un appel antérieur au 08/10/2026
+  accountId        String?
+  /// Fonctionnalité (Consommation et coûts · Accès) : celle de la requête, sinon déduite de la fonction d'IA
+  feature          String?
 
   @@index([at])
+  @@index([accountId, at])
   @@index([providerId, at])
   @@index([functionId, at])
 }
@@ -2134,4 +2143,77 @@ model PrefillTask {
 
   @@index([documentId])
   @@map("prefill_tasks")
+}
+
+// ─────────── Consommation et coûts · Accès (08/10/2026) : usage de la plateforme et dépenses d'IA ───────────
+
+/// Événement d'usage horodaté envoyé par un écran (interaction de l'utilisateur), base du temps actif.
+model UsageEvent {
+  id        BigInt   @id @default(autoincrement())
+  at        DateTime
+  accountId String
+  sessionId String?
+  /// Fonctionnalité (USAGE_FEATURES)
+  feature   String
+  /// Type d'événement (clic, saisie, défilement, page)
+  kind      String
+  createdAt DateTime @default(now())
+
+  @@index([at])
+  @@index([accountId, at])
+  @@map("usage_events")
+}
+
+/// Agrégat horaire (heure UTC = heure de Paris décalée) par utilisateur × fonctionnalité × fournisseur × modèle.
+/// Lignes de temps : provider = '' ; lignes de session : feature = '' et provider = '' ; lignes d'IA : provider ≠ ''.
+/// accountId = '' : appels d'IA sans utilisateur (tâches de fond, appels antérieurs au 08/10/2026).
+model UsageAggHour {
+  bucket       DateTime
+  accountId    String
+  feature      String
+  provider     String
+  model        String
+  activeSec    Float    @default(0)
+  connectedSec Float    @default(0)
+  logins       Int      @default(0)
+  events       Int      @default(0)
+  requests     Int      @default(0)
+  tokensIn     BigInt   @default(0)
+  tokensOut    BigInt   @default(0)
+  costEur      Float    @default(0)
+
+  @@id([bucket, accountId, feature, provider, model])
+  @@map("usage_agg_hour")
+}
+
+/// Agrégat journalier (date civile de Paris), recalculé à partir des heures.
+model UsageAggDay {
+  bucket       DateTime @db.Date
+  accountId    String
+  feature      String
+  provider     String
+  model        String
+  activeSec    Float    @default(0)
+  connectedSec Float    @default(0)
+  logins       Int      @default(0)
+  events       Int      @default(0)
+  requests     Int      @default(0)
+  tokensIn     BigInt   @default(0)
+  tokensOut    BigInt   @default(0)
+  costEur      Float    @default(0)
+
+  @@id([bucket, accountId, feature, provider, model])
+  @@map("usage_agg_day")
+}
+
+/// Réglages de Consommation et coûts (une ligne `default`) et repère du dernier calcul des agrégats.
+model UsageSettings {
+  id              String    @id
+  idleMinutes     Int       @default(5)
+  unusualFactor   Float     @default(1.6)
+  costAlertPct    Int       @default(30)
+  aggregatedUntil DateTime?
+  updatedAt       DateTime  @updatedAt
+
+  @@map("usage_settings")
 }

@@ -21,6 +21,7 @@ export const CHANGES_IGNORED = [
   /\/report-previews\//,
   /\/report-template-draft/,
   /^\/api\/ai\/latency/,
+  /^\/api\/admin\/me\/activity/,
 ];
 /** Intervalle du signal de vie du flux (proxys et navigateurs ferment les connexions muettes). */
 export const CHANGES_PING_MS = 25_000;
@@ -43,10 +44,11 @@ export interface ChangeEvent {
  * annoncées par `ChangesInterceptor` ; celles faites après sa fin (traitement détaché) ou hors de toute requête (tâche
  * planifiée) le sont par `noteWrite`. Jamais pour une requête de lecture : deux écrans ne peuvent pas se relancer en boucle.
  */
-export const requestScope = new AsyncLocalStorage<{ method: string; done: boolean }>();
+export const requestScope = new AsyncLocalStorage<{ method: string; done: boolean; path?: string; accountId?: string }>();
 
 export function requestScopeMiddleware(req: Request, res: Response, next: () => void) {
-  const st = { method: req.method, done: false };
+  // Chemin et compte (posé par AuthGuard) : attribution des appels d'IA dans Consommation et coûts · Accès (08/10/2026).
+  const st: { method: string; done: boolean; path?: string; accountId?: string } = { method: req.method, done: false, path: (req.originalUrl || req.url || '').split('?')[0] };
   const end = () => { st.done = true; };
   res.on('finish', end);
   res.on('close', end);
@@ -56,7 +58,7 @@ export function requestScopeMiddleware(req: Request, res: Response, next: () => 
 /** Écritures Prisma qui changent des données. */
 export const WRITE_OPERATIONS = new Set(['create', 'createMany', 'createManyAndReturn', 'update', 'updateMany', 'updateManyAndReturn', 'upsert', 'delete', 'deleteMany']);
 /** Tables jamais affichées telles quelles (sessions, traces, mémoire de Jev…) ; `UsageRecord` est annoncé par `LlmService`. */
-export const CHANGES_SILENT_MODELS = new Set(['AuthSession', 'LoginThrottle', 'PasswordToken', 'JevTrace', 'JevAnswerLog', 'JevClassification', 'JevConversation', 'JevMessage', 'TodayGreeting', 'UserPreferences', 'UsageRecord']);
+export const CHANGES_SILENT_MODELS = new Set(['AuthSession', 'LoginThrottle', 'PasswordToken', 'JevTrace', 'JevAnswerLog', 'JevClassification', 'JevConversation', 'JevMessage', 'TodayGreeting', 'UserPreferences', 'UsageRecord', 'UsageEvent', 'UsageAggHour', 'UsageAggDay', 'UsageSettings']);
 /** Tables de mesure (Analyse des temps de réponse) : annonce de type « usage », ignorée par le Cockpit. */
 export const CHANGES_USAGE_MODELS = new Set(['StepTiming']);
 /** Regroupement des écritures de fond en une seule annonce (une tâche écrit souvent plusieurs lignes). */

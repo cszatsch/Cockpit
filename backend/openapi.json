@@ -10747,6 +10747,222 @@
           "console · initialisation d’un projet"
         ]
       }
+    },
+    "/api/admin/consumption/options": {
+      "get": {
+        "operationId": "PlatformUsageController_options",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · consommation (accès)"
+        ]
+      }
+    },
+    "/api/admin/consumption/summary": {
+      "get": {
+        "operationId": "PlatformUsageController_summary",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · consommation (accès)"
+        ]
+      }
+    },
+    "/api/admin/consumption/series": {
+      "get": {
+        "operationId": "PlatformUsageController_series",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · consommation (accès)"
+        ]
+      }
+    },
+    "/api/admin/consumption/breakdown": {
+      "get": {
+        "operationId": "PlatformUsageController_breakdown",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · consommation (accès)"
+        ]
+      }
+    },
+    "/api/admin/consumption/users": {
+      "get": {
+        "operationId": "PlatformUsageController_users",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · consommation (accès)"
+        ]
+      }
+    },
+    "/api/admin/consumption/export.csv": {
+      "get": {
+        "operationId": "PlatformUsageController_exportCsv",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · consommation (accès)"
+        ]
+      }
+    },
+    "/api/admin/consumption/settings": {
+      "get": {
+        "operationId": "PlatformUsageController_settings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · consommation (accès)"
+        ]
+      },
+      "put": {
+        "operationId": "PlatformUsageController_saveSettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · consommation (accès)"
+        ]
+      }
+    },
+    "/api/admin/admins/{accountId}/consumption-rights": {
+      "put": {
+        "operationId": "PlatformUsageController_setRights",
+        "parameters": [
+          {
+            "name": "accountId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · consommation (accès)"
+        ]
+      }
+    },
+    "/api/admin/me/activity": {
+      "post": {
+        "operationId": "PlatformUsageController_activity",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · consommation (accès)"
+        ]
+      }
+    },
+    "/api/me/activity": {
+      "post": {
+        "operationId": "ActivityController_activity",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "moi"
+        ]
+      }
     }
   },
   "info": {

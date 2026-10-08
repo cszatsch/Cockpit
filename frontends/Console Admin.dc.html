@@ -193,6 +193,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
             <sc-for list="{{ ad.rows }}" as="a" hint-placeholder-count="4">
               <div style="display:flex;flex-wrap:wrap;align-items:center;gap:16px;padding:16px 20px;border-top:1px solid #f1f5f4">
                 <div style="display:flex;align-items:center;gap:12px;flex:1 1 260px;min-width:0"><span style="{{ a.avSt }}">{{ a.ini }}</span><div style="min-width:0"><div style="display:flex;align-items:center;gap:6px"><span style="font-size:14px;font-weight:700">{{ a.n }}</span><sc-if value="{{ a.me }}" hint-placeholder-val="{{ false }}"><span style="font-size:10.5px;font-weight:700;color:#1d8f86">vous</span></sc-if></div><div style="font-size:12px;color:#5c7280">{{ a.e }} · {{ a.since }}</div></div></div>
+                <sc-if value="{{ a.canUr }}" hint-placeholder-val="{{ false }}"><div role="radiogroup" aria-label="Consommation et coûts : droits de {{ a.n }}" title="Consommation et coûts : complet, sans accès aux coûts, ou données individuelles anonymisées" style="display:inline-flex;gap:2px;padding:3px;border-radius:11px;background:#e5edeb"><sc-for list="{{ a.urSeg }}" as="o" hint-placeholder-count="3"><button role="radio" aria-checked="{{ o.on }}" onClick="{{ o.pick }}" style="{{ o.st }}">{{ o.l }}</button></sc-for></div></sc-if>
                 <sc-if value="{{ a.canLv }}" hint-placeholder-val="{{ true }}"><div role="radiogroup" aria-label="Niveau de {{ a.n }}" style="display:inline-flex;gap:2px;padding:3px;border-radius:11px;background:#e5edeb"><sc-for list="{{ a.lvSeg }}" as="o" hint-placeholder-count="2"><button role="radio" aria-checked="{{ o.on }}" onClick="{{ o.pick }}" style="{{ o.st }}">{{ o.l }}</button></sc-for></div></sc-if>
                 <sc-if value="{{ a.me }}" hint-placeholder-val="{{ false }}"><span style="{{ a.lvPill }}">{{ a.lvL }}</span></sc-if>
                 <sc-if value="{{ a.can }}" hint-placeholder-val="{{ true }}"><button onClick="{{ a.rm }}" style="height:34px;padding:0 12px;border:1px solid #ecd0cc;border-radius:10px;background:#fff;color:#a8372c;font-size:12.5px;font-weight:700;cursor:pointer;transition:background .15s" style-hover="background:#fdecec">Retirer</button></sc-if>
@@ -321,6 +322,13 @@ a{color:#1d8f86}a:hover{color:#146b64}
            fenêtres position:fixed de l'écran, centrées alors sur la page entière et non sur la fenêtre du navigateur. -->
       <div data-screen-label="Fournisseurs et modèles" style="animation:fade .35s ease-out both">
         <dc-import name="Fournisseurs et modeles" data="{{ fmData }}" api="{{ fmApi }}" focus-key="{{ fpKey }}" hint-size="100%,2200px"></dc-import>
+      </div>
+    </sc-if>
+    <!-- API : Consommation et coûts · Accès (brief du 08/10/2026) ; en-tête générique masqué, le composant a le sien
+         (Consommation et couts Acces.dc.html, admin-api.js → usageApi, routes /api/admin/consumption/…). -->
+    <sc-if value="{{ isUsage }}" hint-placeholder-val="{{ false }}">
+      <div data-screen-label="Consommation et coûts · Accès" style="animation:fade .35s ease-out both">
+        <dc-import name="Consommation et couts Acces" hint-size="100%,2000px"></dc-import>
       </div>
     </sc-if>
     <sc-if value="{{ isConso }}" hint-placeholder-val="{{ false }}">
@@ -498,7 +506,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
   </div>
 </main>
 
-<div style="{{ jvWrap }}">
+<div data-jev-panel="1" style="{{ jvWrap }}">
   <aside aria-label="{{ jevAria }}" style="background:#fff;border-left:1px solid #e0e9e6;height:100vh;display:flex;flex-direction:column;width:100%;min-width:0" data-screen-label="Jev">
     <div style="display:flex;align-items:flex-start;gap:12px;padding:22px 22px 18px;border-bottom:1px solid #eef3f1">
       <span aria-hidden="true" style="{{ jv.avSt }}">{{ jv.avTx }}</span>
@@ -880,6 +888,7 @@ const META = {
   overview: ['Supervision', 'Vue d’ensemble', ''],
   users: ['Accès', 'Utilisateurs', 'Invitez, activez et suspendez les comptes, et attribuez leur profil. Les chantiers des Responsables et des Lecteurs sont choisis par le PMO dans le Référentiel du Cockpit.'],
   admins: ['Accès', 'Administrateurs', 'Qui administre la plateforme, et la trace de chaque action sensible.'],
+  usage: ['Accès', 'Consommation et coûts', 'Usage de la plateforme et dépenses d’IA, du global à l’utilisateur.'],
   rights: ['Accès', 'Droits et habilitations', 'Trois niveaux : projet, module, fonction. Les profils types évitent de configurer chaque utilisateur un par un.'],
   providers: ['IA', 'Fournisseurs et modèles', 'Clés API, tests de connexion et catalogue des modèles avec leur coût.'],
   conso: ['IA', 'Consommation et coûts', 'Tokens et dépenses par fonction, fournisseur et modèle, seuils d’alerte et détail de chaque appel LLM.'],
@@ -901,6 +910,7 @@ const JCHIPS = {
   overview: ['Quel est l’état de la plateforme ?', 'Où en est le budget IA ?', 'Qui a fait des actions sensibles récemment ?'],
   users: ['Comment relancer les invitations en attente ?', 'Qui ne s’est pas connecté depuis 10 jours ?', 'Comment suspendre un compte ?'],
   admins: ['Qui est administrateur ?', 'Résume le journal d’audit'],
+  usage: ['Qui consomme le plus ce mois-ci ?', 'Comment est calculé le temps actif ?'],
   rights: ['Quels sont les droits de Thomas Girard ?', 'Qui est PMO sur RISE ?'],
   providers: ['Comment tester les clés API ?', 'Pourquoi la clé Google est invalide ?', 'Quelle fonction tourne sur son secours ?'],
   conso: ['Où en est le budget IA ?', 'Quel est l’appel le plus cher du mois ?'],
@@ -970,6 +980,8 @@ class Component extends DCLogic {
     this._md = e => { if (this.state.menu && !e.target.closest('[data-pop]')) this.setState({ menu: null }); }; document.addEventListener('mousedown', this._md);
     if (this.props.scenario === 'nominal') this.applyScenario();
     if (this.props.startSection && this.props.startSection !== 'overview') this.go(this.props.startSection);
+    // Consommation et coûts · Accès : page et filtres conservés dans l'URL (?page=usage&u_gran=…).
+    else { try { if (new URLSearchParams(location.search).get('page') === 'usage') this.go('usage'); } catch (e) { /* hors navigateur */ } }
     // API : branchement sur /api/admin (données, écritures, audit côté serveur) ; rien en mode démonstration (?demo=1).
     import('./admin-api.js').then(m => m.bindConsole(this)).catch(e => console.warn('admin-api', e));
   }
@@ -1152,6 +1164,7 @@ class Component extends DCLogic {
   removeUser(u) { this.ask({ tone: 'danger', title: 'Supprimer définitivement ' + u.n + ' ?', body: 'Le compte et tous ses droits sont supprimés. Ses contributions restent visibles dans les projets sous « Utilisateur supprimé ». Cette action est irréversible.', req: u.n, cta: 'Supprimer le compte', ok: () => { this.setState(s => ({ users: s.users.filter(x => x.id !== u.id), admins: s.admins.filter(a => a.u !== u.id) })); this.log('Suppression d’un utilisateur', u.n + ' · ' + u.e, 'critique'); this.toast('Compte de ' + u.n + ' supprimé'); } }); }
 
   // ——— Administrateurs
+  setUsageRights(a, body) { this.setState(s => ({ admins: s.admins.map(x => x.u === a.u ? { ...x, rc: body.seeCosts ?? x.rc, ri: body.seeIndividual ?? x.ri } : x) })); this.toast('Droits de consommation mis à jour'); }
   setAdminLv(a, lv) { const u = this.uById(a.u); this.ask({ tone: 'danger', title: (lv === 'super' ? 'Promouvoir ' : 'Rétrograder ') + u.n + ' ?', body: lv === 'super' ? 'Un super-administrateur peut gérer les administrateurs et les clés API.' : 'Il ne pourra plus gérer les administrateurs ni les clés API.', items: [{ l: 'Niveau', a: a.lv === 'super' ? 'Administrateur' : 'Administrateur', b: lv === 'super' ? 'Administrateur' : 'Administrateur' }], cta: 'Confirmer', ok: () => { this.setState(s => ({ admins: s.admins.map(x => x.u === a.u ? { ...x, lv } : x) })); this.log('Changement de niveau administrateur', u.n + ' → ' + (lv === 'super' ? 'Administrateur' : 'Administrateur'), 'critique'); this.toast('Niveau de ' + u.n + ' mis à jour'); } }); }
   removeAdmin(a) { const u = this.uById(a.u); this.ask({ tone: 'danger', title: 'Retirer les droits d’administration de ' + u.n + ' ?', body: 'Son compte utilisateur est conservé. Il perd l’accès à cette console dès maintenant.', req: 'RETIRER', cta: 'Retirer les droits', ok: () => { this.setState(s => ({ admins: s.admins.filter(x => x.u !== a.u) })); this.log('Retrait d’un administrateur', u.n, 'critique'); this.toast(u.n + ' n’est plus administrateur'); } }); }
   saveAdmin() { const f = this.state.form; if (!f.u) return this.setState({ fe: { u: 'Choisissez un utilisateur.' } }); const u = this.uById(f.u); this.setState(s => ({ admins: [...s.admins, { u: f.u, lv: f.lv, since: nowD() }], dlg: null, form: {} })); this.log('Ajout d’un administrateur', u.n + ' · ' + (f.lv === 'super' ? 'Administrateur' : 'Administrateur'), 'critique'); this.toast(u.n + ' est désormais administrateur'); }
@@ -1353,9 +1366,9 @@ class Component extends DCLogic {
       mob: mode === 'mob', scrim: mode === 'mob' && S.mnav, openNav: () => this.setState({ mnav: true }), closeNav: () => this.setState({ mnav: false }),
       padSt: `max-width:1320px;margin:0 auto;padding:${mode === 'mob' ? '20px 16px 96px' : mode === 'rail' ? '28px 28px 96px' : '32px 44px 96px'}`,
       topSt: `position:sticky;top:0;z-index:40;height:60px;display:flex;align-items:center;gap:12px;padding:0 ${mode === 'mob' ? 16 : mode === 'rail' ? 28 : 44}px;background:rgba(242,246,245,.82);backdrop-filter:saturate(1.4) blur(14px);-webkit-backdrop-filter:saturate(1.4) blur(14px);border-bottom:1px solid rgba(16,35,58,.06)`,
-      eyebrow: meta[0], title: meta[1], desc: meta[2], isOv: is('overview'), notOv: !is('overview') && !is('skills') && !is('persona') && !is('apis') && !is('conso') && !is('latency') && !is('providers') && !is('notifs') && !is('smtp') && !is('guide') && !is('share') && !is('snaps') && !is('library') && !(is('init') && S.initStep !== 'import'), loading: S.loading, ready: !S.loading,
+      eyebrow: meta[0], title: meta[1], desc: meta[2], isOv: is('overview'), notOv: !is('overview') && !is('usage') && !is('skills') && !is('persona') && !is('apis') && !is('conso') && !is('latency') && !is('providers') && !is('notifs') && !is('smtp') && !is('guide') && !is('share') && !is('snaps') && !is('library') && !(is('init') && S.initStep !== 'import'), loading: S.loading, ready: !S.loading,
       healthL: errN ? errN + ' incident' + (errN > 1 ? 's' : '') : 'Opérationnelle', healthPill: pill(errN ? 'err' : 'ok'), healthDot: dot(errN ? 'err' : 'ok'), goOv: () => this.go('overview'),
-      isUsers: is('users') && !S.loading, isAdmins: is('admins') && !S.loading, isRights: is('rights') && !S.loading, isProv: is('providers') && !S.loading, isConso: is('conso') && !S.loading, isInit: is('init') && !S.loading && S.initStep === 'import',
+      isUsers: is('users') && !S.loading, isAdmins: is('admins') && !S.loading, isUsage: is('usage') && !S.loading, isRights: is('rights') && !S.loading, isProv: is('providers') && !S.loading, isConso: is('conso') && !S.loading, isInit: is('init') && !S.loading && S.initStep === 'import',
       // Écran unique (maquette v3, 07/10/2026) : gardé monté pendant la prévisualisation (masqué), pour y revenir tel quel.
       isPrefill: is('init') && !S.loading, prefillDemo: false, initEpoch: S.initEpoch || 0, initData: S.initData || null,
       prefillSt: S.initStep === 'import' ? 'display:none' : 'animation:rise-in .35s cubic-bezier(.2,.7,.2,1) both',
@@ -1452,6 +1465,8 @@ class Component extends DCLogic {
         rows: S.admins.map(a => { const u = this.uById(a.u) || { n: '?', e: '' }, me = a.u === 'u1', last = S.admins.length === 1, can = !me && !last;
           return { n: u.n, e: u.e, ini: ini(u.n), avSt: `width:38px;height:38px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:12.5px;font-weight:800;color:#fff;background:${u.av || '#10233a'}`, me, since: 'Depuis le ' + fD(a.since), isSuper: a.lv === 'super', lvL: a.lv === 'super' ? 'Administrateur' : 'Administrateur', lvPill: a.lv === 'super' ? 'display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;font-size:11.5px;font-weight:700;background:#10233a;color:#fff;white-space:nowrap' : pill('neu'),
             can, why: me ? 'Vous ne pouvez pas modifier vos propres droits' : last ? 'Au moins un administrateur est requis' : '', canLv: false,
+            // Consommation et coûts · Accès (08/10/2026) : droits « Voir les coûts » et « Voir les données individuelles ».
+            canUr: !me, urSeg: [['full', 'Complet', { seeCosts: true, seeIndividual: true }], ['nocost', 'Sans coûts', { seeCosts: false, seeIndividual: true }], ['anon', 'Anonymisé', { seeCosts: true, seeIndividual: false }]].map(([k, l, b]) => { const cur = a.rc === false ? 'nocost' : a.ri === false ? 'anon' : 'full'; return { l, on: cur === k, st: segSt(cur === k), pick: () => cur !== k && this.setUsageRights(a, b) }; }),
             lvSeg: [['super', 'Super-admin'], ['admin', 'Admin']].map(([k, l]) => ({ l, on: a.lv === k, st: segSt(a.lv === k), pick: () => a.lv !== k && (k === 'admin' && last ? this.toast('Au moins un super-administrateur est requis', 'err') : this.setAdminLv(a, k)) })), rm: () => this.removeAdmin(a) }; }),
         add: () => this.setState({ dlg: { type: 'admin' }, form: { u: '', lv: 'admin' }, fe: {} }),
         sev: [['tous', 'Tout'], ['critique', 'Critique'], ['sensible', 'Sensible'], ['info', 'Info']].map(([k, l]) => ({ l, on: S.aSev === k, st: segSt(S.aSev === k), pick: () => this.setState({ aSev: k }) })),

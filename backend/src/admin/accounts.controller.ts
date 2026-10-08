@@ -559,7 +559,7 @@ export class AccountsController {
     return grants.map((g) => {
       const a = accounts.find((x) => x.id === g.accountId);
       // Un seul niveau d'administrateur (brief Console § 5).
-      return { accountId: g.accountId, fullName: a?.fullName ?? '', email: a?.email ?? '', status: a?.status, level: 'admin', since: g.since, grantedBy: g.grantedById };
+      return { accountId: g.accountId, fullName: a?.fullName ?? '', email: a?.email ?? '', status: a?.status, level: 'admin', since: g.since, grantedBy: g.grantedById, seeCosts: g.seeCosts, seeIndividual: g.seeIndividual };
     });
   }
 

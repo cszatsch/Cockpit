@@ -2,7 +2,8 @@ import { note, span } from './trace';
 import { Injectable } from '@nestjs/common';
 import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from './prisma.service';
-import { ChangesService } from './changes';
+import { ChangesService, requestScope } from './changes';
+import { featureOfFunction, featureOfPath } from '../domain/platform-usage';
 import { ApiError } from './errors';
 import { decryptSecret } from './crypto';
 import { techErrors } from './tech-errors';
@@ -282,12 +283,16 @@ export class LlmService {
     const costEur = costOf(model, billedIn === undefined ? v : { ...v, tokensIn: billedIn });
     const price = priceOf(model);
     const at = new Date();
+    // Consommation et coûts · Accès (08/10/2026) : compte et fonctionnalité de la requête en cours ; tâche de fond : sans compte.
+    const scope = requestScope.getStore();
+    const accountId = scope?.accountId ?? null;
+    const feature = scope?.path ? featureOfPath(scope.path) : featureOfFunction(functionId);
     await this.prisma.usageRecord.create({
       data: {
         id: `req_${randomBytes(6).toString('hex')}`, at, projectId: input.projectId ?? null, functionId, modelId: model.id, providerId: model.providerId,
         tokensIn: v.tokensIn, tokensOut: v.tokensOut, requests: v.requests, costEur, fallbackUsed, source: input.source,
         priceIn: price.in ?? null, priceOut: price.out ?? null, pricePer1k: price.per1k ?? null, durationMs: durationMs ?? null,
-        cacheReadTokens: cache?.read ?? 0, cacheWriteTokens: cache?.write ?? 0,
+        cacheReadTokens: cache?.read ?? 0, cacheWriteTokens: cache?.write ?? 0, accountId, feature,
       },
     });
     // Consommation et coûts se met à jour en direct, y compris pour les appels faits en tâche de fond (05/10/2026).

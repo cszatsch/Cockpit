@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700;1,800&amp;display=swap" rel="stylesheet"><style>
+html,body{margin:0;background:#f2f6f5;font-family:'Plus Jakarta Sans',sans-serif;color:#10233a;-webkit-font-smoothing:antialiased;font-size:13px}
+*{box-sizing:border-box}a{color:#1d8f86}a:hover{color:#146b64}button,input{font:inherit;color:inherit}
+button:focus-visible,input:focus-visible,[data-uc-col]:focus-visible{outline:2px solid #1d8f86;outline-offset:2px}
+@keyframes pop{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
+@keyframes uc-shim{0%{background-position:-240px 0}100%{background-position:240px 0}}
+</style></helmet>
+<!-- Consommation et coûts · Console › Accès (brief du 08/10/2026, maquette « 1a Miroir », Consommation-et-couts.dc.html).
+     Balisage et styles repris de la maquette (barre latérale de la maquette retirée : celle de la Console). Données :
+     admin-api.js → usageApi (GET /api/admin/consumption/options, summary, series, breakdown, users, export.csv).
+     Ajouts imposés par le brief, au style de la maquette : menus des filtres, pagination du tableau, états de chargement,
+     de période vide et d'erreur. Ouvert seul (sans serveur) : données de démonstration. -->
+<div data-screen-label="Consommation et coûts" style="display:flex;flex-direction:column;gap:22px;min-width:0">
+        <div style="display:flex;align-items:flex-end;gap:24px;flex-wrap:wrap">
+          <div style="flex:1;min-width:300px;display:flex;flex-direction:column;gap:6px"><div style="font-size:11px;font-weight:800;letter-spacing:.16em;color:#1d8f86">ACCÈS</div><div style="font-size:34px;font-weight:800;font-style:italic;letter-spacing:-.03em;line-height:1.1">Consommation et coûts</div><div style="font-size:14px;color:#43586a">Usage de la plateforme et dépenses d’IA, du global à l’utilisateur.</div></div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <div role="tablist" aria-label="Granularité" style="display:inline-flex;gap:2px;padding:3px;border-radius:11px;background:#e3ebe9"><sc-for list="{{ a.gr }}" as="p" hint-placeholder-count="3"><button role="tab" aria-selected="{{ p.on }}" onClick="{{ p.pick }}" style="{{ p.st }}">{{ p.l }}</button></sc-for></div>
+            <div style="display:flex;align-items:center;height:36px;border-radius:11px;background:#fff;box-shadow:0 0 0 1px #dfe7e5"><button onClick="{{ a.prev }}" aria-label="Période précédente" style="width:32px;height:36px;border:0;background:none;color:#5c7280;cursor:pointer;display:grid;place-items:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"></path></svg></button><span style="min-width:190px;text-align:center;font-size:12.5px;font-weight:700;white-space:nowrap">{{ a.pL }}</span><button onClick="{{ a.next }}" aria-label="Période suivante" aria-disabled="{{ a.nextOff }}" style="{{ a.nextSt }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></button></div>
+            <button onClick="{{ a.cmpTog }}" aria-pressed="{{ a.cmpOn }}" style="height:36px;padding:0 13px 0 10px;border:0;border-radius:11px;background:#fff;box-shadow:0 0 0 1px #dfe7e5;display:flex;align-items:center;gap:9px;cursor:pointer;font-size:12.5px;font-weight:600;white-space:nowrap"><span style="{{ a.swSt }}"><span style="{{ a.knSt }}"></span></span>Comparer à {{ a.vsL }}</button>
+          </div>
+        </div>
+        <div style="position:relative;display:flex;align-items:center;gap:8px;flex-wrap:wrap" ref="{{ a.rowRef }}">
+          <div role="tablist" aria-label="Niveau" style="display:inline-flex;gap:2px;padding:3px;border-radius:11px;background:#e3ebe9"><sc-for list="{{ a.lvs }}" as="p" hint-placeholder-count="3"><button role="tab" aria-selected="{{ p.on }}" aria-disabled="{{ p.off }}" title="{{ p.tip }}" onClick="{{ p.pick }}" style="{{ p.st }}">{{ p.l }}</button></sc-for></div>
+          <span style="width:1px;height:20px;background:#d5dfdd;margin:0 6px"></span>
+          <sc-for list="{{ a.fl }}" as="f" hint-placeholder-count="3"><button onClick="{{ f.pick }}" aria-haspopup="listbox" aria-expanded="{{ f.open }}" aria-disabled="{{ f.off }}" title="{{ f.tip }}" style="{{ f.st }}"><span style="color:#8a9aa6;font-weight:600">{{ f.l }}</span><b>{{ f.v }}</b><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#8a9aa6" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></button></sc-for>
+          <span style="width:1px;height:20px;background:#d5dfdd;margin:0 6px"></span>
+          <span style="font-size:10px;font-weight:800;letter-spacing:.14em;color:#a8670f;padding:3px 6px;border-radius:5px;background:#fbf0dc">IA</span>
+          <sc-for list="{{ a.fia }}" as="f" hint-placeholder-count="2"><button onClick="{{ f.pick }}" aria-haspopup="listbox" aria-expanded="{{ f.open }}" style="{{ f.st }}"><span style="color:#8a9aa6;font-weight:600">{{ f.l }}</span><b>{{ f.v }}</b><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#8a9aa6" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></button></sc-for>
+          <span style="flex:1"></span>
+          <button onClick="{{ a.exp }}" style="height:34px;padding:0 14px;border:0;border-radius:10px;background:#10233a;color:#fff;font-weight:700;font-size:12.5px;display:inline-flex;align-items:center;gap:8px;cursor:pointer" style-hover="background:#1b3550"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"></path></svg>Exporter la sélection</button>
+          <!-- Menu d'un filtre (sélection multiple : équipes, utilisateurs ; choix unique : fonctionnalité, fournisseur, modèle). -->
+          <sc-if value="{{ a.mn.on }}" hint-placeholder-val="{{ false }}">
+            <div onClick="{{ a.mn.close }}" style="position:fixed;inset:0;z-index:40"></div>
+            <div role="listbox" aria-multiselectable="{{ a.mn.multi }}" aria-label="{{ a.mn.title }}" onKeyDown="{{ a.mn.key }}" style="{{ a.mn.st }}">
+              <sc-if value="{{ a.mn.search }}" hint-placeholder-val="{{ false }}"><label style="display:flex;align-items:center;gap:8px;height:34px;padding:0 12px;margin:2px 2px 6px;border-radius:10px;background:#f2f6f5"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8a9aa6" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"></circle><path d="M20 20l-4-4"></path></svg><input value="{{ a.mn.q }}" onChange="{{ a.mn.setQ }}" placeholder="Rechercher" aria-label="Rechercher" style="border:0;background:none;outline:none;flex:1;min-width:0;font-size:12.5px"></input></label></sc-if>
+              <div style="max-height:280px;overflow:auto;display:flex;flex-direction:column;gap:1px">
+                <sc-for list="{{ a.mn.opts }}" as="o" hint-placeholder-count="5"><button role="option" aria-selected="{{ o.on }}" onClick="{{ o.pick }}" style="{{ o.st }}"><span style="{{ o.box }}">{{ o.mk }}</span><span style="display:flex;flex-direction:column;min-width:0;text-align:left"><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ o.l }}</span><span style="font-size:11px;color:#8a9aa6">{{ o.sub }}</span></span></button></sc-for>
+                <sc-if value="{{ a.mn.none }}" hint-placeholder-val="{{ false }}"><span style="padding:10px 12px;font-size:12px;color:#8a9aa6">Aucun résultat</span></sc-if>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;padding:8px 4px 2px;margin-top:6px;border-top:1px solid #edf2f1"><span style="font-size:11.5px;color:#8a9aa6">{{ a.mn.foot }}</span><span style="flex:1"></span><button onClick="{{ a.mn.clear }}" style="height:28px;padding:0 10px;border:0;border-radius:8px;background:transparent;color:#1d8f86;font-size:12px;font-weight:700;cursor:pointer">Effacer</button><button onClick="{{ a.mn.close }}" style="height:28px;padding:0 12px;border:0;border-radius:8px;background:#10233a;color:#fff;font-size:12px;font-weight:700;cursor:pointer">OK</button></div>
+            </div>
+          </sc-if>
+        </div>
+
+        <sc-if value="{{ a.errOn }}" hint-placeholder-val="{{ false }}">
+          <div role="alert" style="background:#fff;border-radius:20px;box-shadow:0 0 0 1px #f0c9c9,0 18px 40px -32px rgba(16,35,58,.35);padding:28px;display:flex;align-items:center;gap:16px;flex-wrap:wrap"><span style="width:40px;height:40px;border-radius:12px;flex:none;display:grid;place-items:center;background:#fdecec;color:#c2473b;font-weight:800">!</span><span style="flex:1;min-width:220px;display:flex;flex-direction:column;gap:3px"><b style="font-size:14px">Les données n’ont pas pu être chargées</b><span style="font-size:12.5px;color:#5c7280">{{ a.errL }}</span></span><button onClick="{{ a.retry }}" style="height:36px;padding:0 16px;border:0;border-radius:10px;background:#10233a;color:#fff;font-weight:700;font-size:12.5px;cursor:pointer" style-hover="background:#1b3550">Réessayer</button></div>
+        </sc-if>
+
+        <sc-if value="{{ a.skOn }}" hint-placeholder-val="{{ false }}">
+          <div aria-busy="true" aria-label="Chargement" style="border-radius:24px;background:#0e2135;padding:28px 32px;display:flex;flex-direction:column;gap:18px;min-height:540px"><span style="{{ a.skD }};width:220px;height:12px"></span><span style="{{ a.skD }};width:min(320px,70%);height:52px"></span><span style="{{ a.skD }};width:min(420px,80%);height:12px"></span><span style="{{ a.skD }};width:100%;height:230px;margin-top:18px"></span><span style="{{ a.skD }};width:100%;height:60px"></span></div>
+          <div aria-hidden="true" style="background:#fff;border-radius:20px;box-shadow:0 0 0 1px #e1e9e7;padding:22px 28px;display:flex;flex-direction:column;gap:14px;min-height:360px"><span style="{{ a.skL }};width:260px;height:16px"></span><sc-for list="{{ a.sk6 }}" as="x" hint-placeholder-count="6"><span style="{{ a.skL }};width:100%;height:30px"></span></sc-for></div>
+          <div aria-hidden="true" style="background:#fff;border-radius:20px;box-shadow:0 0 0 1px #e1e9e7;padding:22px 24px;display:flex;flex-direction:column;gap:14px;min-height:520px"><span style="{{ a.skL }};width:200px;height:16px"></span><sc-for list="{{ a.sk8 }}" as="x" hint-placeholder-count="8"><span style="{{ a.skL }};width:100%;height:36px"></span></sc-for></div>
+        </sc-if>
+
+        <sc-if value="{{ a.ready }}" hint-placeholder-val="{{ true }}">
+        <div style="{{ a.busySt }}">
+        <div style="border-radius:24px;background:radial-gradient(900px 340px at 12% -20%,rgba(63,209,193,.11),transparent 60%),radial-gradient(700px 300px at 92% 130%,rgba(247,164,28,.08),transparent 60%),#0e2135;color:#e8f0f3;box-shadow:0 30px 60px -42px rgba(14,33,53,.75)">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr))">
+            <div style="padding:28px 32px 8px;display:flex;flex-direction:column;gap:12px">
+              <span style="font-size:10.5px;font-weight:800;letter-spacing:.16em;color:#3fd1c1">UTILISATION · TEMPS ACTIF</span>
+              <div style="display:flex;align-items:baseline;gap:8px 14px;flex-wrap:wrap"><span style="font-size:clamp(40px,4.4vw,56px);font-weight:800;font-style:italic;letter-spacing:-.05em;line-height:.95;font-variant-numeric:tabular-nums;white-space:nowrap">{{ a.k.hL }}</span><span style="{{ a.k.dH.sd }}">{{ a.k.dH.t }}</span></div>
+              <div style="display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;font-size:12px;color:#9fb3c2"><span style="display:block;width:150px;height:5px;border-radius:3px;background:rgba(255,255,255,.12);overflow:hidden"><span style="{{ a.k.actSt }}"></span></span><span><b style="color:#e8f0f3">{{ a.k.actL }}</b> des {{ a.k.cnL }} de connexion</span></div>
+            </div>
+            <div style="padding:28px 32px 8px;display:flex;flex-direction:column;gap:12px;box-shadow:-1px 0 0 rgba(255,255,255,.07)">
+              <span style="font-size:10.5px;font-weight:800;letter-spacing:.16em;color:#f7b545">INTELLIGENCE ARTIFICIELLE · COÛT</span>
+              <div style="display:flex;align-items:baseline;gap:8px 14px;flex-wrap:wrap"><span style="font-size:clamp(40px,4.4vw,56px);font-weight:800;font-style:italic;letter-spacing:-.05em;line-height:.95;font-variant-numeric:tabular-nums;white-space:nowrap">{{ a.k.cL }}</span><span style="{{ a.k.dC.sd }}">{{ a.k.dC.t }}</span></div>
+              <div style="font-size:12px;color:#9fb3c2;line-height:1.6;text-wrap:pretty"><b style="color:#e8f0f3">{{ a.k.reqL }}</b> requêtes · <b style="color:#e8f0f3">{{ a.k.tinL }}</b> tokens en entrée · <b style="color:#e8f0f3">{{ a.k.toutL }}</b> en sortie</div>
+            </div>
+          </div>
+          <div style="padding:14px 32px 0;display:flex;align-items:center;gap:18px;font-size:11px;color:#7f95a6;flex-wrap:wrap">
+            <span style="display:flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:2px;background:#3fd1c1"></span>Temps actif</span>
+            <span style="display:flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:2px;background:#f7b545"></span>Coût IA</span>
+            <sc-if value="{{ a.cmpOn }}" hint-placeholder-val="{{ true }}"><span style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:2px;background:#e8f0f3;opacity:.6"></span>{{ a.vsL }}</span></sc-if>
+            <span style="display:flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:2px;background:#ff7a5f"></span>Hausse inhabituelle</span>
+          </div>
+          <div style="position:relative;margin:6px 32px 0" onMouseLeave="{{ a.ch.out }}">
+            <svg viewBox="0 0 1000 224" style="display:block;width:100%;height:auto;overflow:visible" aria-hidden="true">
+              <path d="M0 112H1000" stroke="rgba(255,255,255,.16)" stroke-width="1"></path>
+              <path d="{{ a.ch.up }}" fill="#3fd1c1"></path>
+              <path d="{{ a.ch.dn }}" fill="#f7b545"></path>
+              <path d="{{ a.ch.an }}" fill="#ff7a5f"></path>
+              <path d="{{ a.ch.tu }}" fill="none" stroke="#e8f0f3" stroke-opacity=".6" stroke-width="1.6"></path>
+              <path d="{{ a.ch.td }}" fill="none" stroke="#e8f0f3" stroke-opacity=".6" stroke-width="1.6"></path>
+            </svg>
+            <div style="position:absolute;inset:0;display:flex"><sc-for list="{{ a.ch.cols }}" as="x" hint-placeholder-count="0"><span data-uc-col="1" tabIndex="0" aria-label="{{ x.aria }}" onMouseEnter="{{ x.en }}" onFocus="{{ x.en }}" onBlur="{{ a.ch.out }}" style="{{ x.st }}"></span></sc-for></div>
+            <sc-if value="{{ a.ch.anOn }}" hint-placeholder-val="{{ false }}"><div style="{{ a.ch.anSt }}"><span style="font-size:10.5px;font-weight:800;letter-spacing:.08em;color:#ff9a84">{{ a.ch.anT1 }}</span><span style="font-size:12px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums">{{ a.ch.anT2 }}</span></div></sc-if>
+            <sc-if value="{{ a.ch.hideC }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:0;right:0;top:56%;text-align:center;font-size:12px;color:#7f95a6">Coûts masqués selon vos droits</div></sc-if>
+            <sc-if value="{{ a.ch.empty }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:0;right:0;top:38%;text-align:center;font-size:12.5px;color:#9fb3c2">Aucune donnée sur cette période</div></sc-if>
+            <sc-if value="{{ a.ch.tip }}" hint-placeholder-val="{{ false }}"><div role="tooltip" style="{{ a.ch.tipSt }}"><span style="font-weight:800;color:#fff">{{ a.ch.tD }}</span><span style="display:flex;justify-content:space-between;gap:18px"><span style="color:#3fd1c1">Temps actif</span><b>{{ a.ch.tH }}</b></span><span style="display:flex;justify-content:space-between;gap:18px"><span style="color:#f7b545">Coût IA</span><b>{{ a.ch.tC }}</b></span><span style="color:#7f95a6">{{ a.ch.tP }}</span></div></sc-if>
+            <div style="position:relative;height:30px;font-size:11px;color:#7f95a6;font-variant-numeric:tabular-nums"><sc-for list="{{ a.ch.ticks }}" as="t" hint-placeholder-count="0"><span style="{{ t.st }}">{{ t.t }}</span></sc-for></div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));box-shadow:0 -1px 0 rgba(255,255,255,.07);background:rgba(255,255,255,.02);border-radius:0 0 24px 24px">
+            <sc-for list="{{ a.strip }}" as="x" hint-placeholder-count="8"><div style="{{ x.cs }}"><span style="font-size:11px;color:#7f95a6;text-wrap:pretty">{{ x.l }}</span><b style="font-size:17px;letter-spacing:-.02em;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ x.v }}</b><span style="{{ x.d.sd }}">{{ x.d.t }}</span></div></sc-for>
+          </div>
+        </div>
+        </div>
+
+        <div style="{{ a.busySt }}">
+        <div style="background:#fff;border-radius:20px;box-shadow:0 0 0 1px #e1e9e7,0 18px 40px -32px rgba(16,35,58,.35);padding:22px 28px 22px;display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><span style="font-size:17px;font-weight:800;letter-spacing:-.01em">Où va le temps, où va la dépense</span><span style="font-size:12.5px;color:#8a9aa6">Coût par heure active au centre ; en ambre quand il dépasse la moyenne</span><span style="flex:1"></span><div role="tablist" aria-label="Découpage" style="display:inline-flex;gap:2px;padding:3px;border-radius:11px;background:#eef3f2"><sc-for list="{{ a.bf.modes }}" as="p" hint-placeholder-count="3"><button role="tab" aria-selected="{{ p.on }}" onClick="{{ p.pick }}" style="{{ p.st }}">{{ p.l }}</button></sc-for></div></div>
+          <div style="overflow-x:auto;margin:0 -4px;padding:0 4px"><div style="min-width:760px"><div style="display:grid;grid-template-columns:1fr 230px 1fr;gap:20px;padding:10px 0 4px;font-size:10.5px;font-weight:800;letter-spacing:.14em"><span style="text-align:right;color:#1d8f86">TEMPS ACTIF</span><span></span><span style="color:#a8670f">COÛT IA</span></div>
+          <sc-for list="{{ a.bf.rows }}" as="r" hint-placeholder-count="6">
+            <div style="display:grid;grid-template-columns:1fr 230px 1fr;gap:20px;align-items:center;height:50px;border-top:1px solid #f2f5f4">
+              <div style="display:flex;align-items:center;gap:14px"><span style="width:118px;flex:none;display:flex;justify-content:flex-end;align-items:baseline;gap:8px;font-variant-numeric:tabular-nums"><span style="{{ r.dH.tx }}">{{ r.dH.t }}</span><b style="font-size:13.5px;white-space:nowrap">{{ r.hL }}</b></span><span style="flex:1;position:relative;height:12px;display:block"><span style="{{ r.hBar }}"></span><span style="{{ r.hTk }}"></span></span></div>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0"><span style="display:flex;align-items:center;gap:6px;font-weight:700;font-size:13px;white-space:nowrap;max-width:100%"><span style="overflow:hidden;text-overflow:ellipsis">{{ r.n }}</span><span style="{{ r.tagSt }}">{{ r.tag }}</span></span><span style="{{ r.ephSt }}">{{ r.eph }}</span></div>
+              <div style="display:flex;align-items:center;gap:14px"><span style="flex:1;position:relative;height:12px;display:block"><span style="{{ r.cBar }}"></span><span style="{{ r.cTk }}"></span></span><span style="width:118px;flex:none;display:flex;align-items:baseline;gap:8px;font-variant-numeric:tabular-nums"><b style="font-size:13.5px;white-space:nowrap">{{ r.cL }}</b><span style="{{ r.dC.tx }}">{{ r.dC.t }}</span></span></div>
+            </div>
+          </sc-for>
+          <sc-if value="{{ a.bf.empty }}" hint-placeholder-val="{{ false }}"><div style="padding:26px 0;text-align:center;font-size:12.5px;color:#8a9aa6;border-top:1px solid #f2f5f4">Aucune donnée sur cette période</div></sc-if>
+        </div></div></div>
+        </div>
+
+        <div style="{{ a.busySt }}">
+        <div style="background:#fff;border-radius:20px;box-shadow:0 0 0 1px #e1e9e7,0 18px 40px -32px rgba(16,35,58,.35);overflow:hidden">
+          <div style="display:flex;align-items:center;gap:12px;padding:18px 24px 14px;flex-wrap:wrap"><span style="font-size:17px;font-weight:800;letter-spacing:-.01em">Détail par utilisateur</span><span style="font-size:12.5px;color:#8a9aa6">{{ a.tb.sub }}</span><span style="flex:1"></span><label style="display:flex;align-items:center;gap:8px;height:34px;padding:0 12px;border-radius:10px;background:#f2f6f5;width:min(250px,100%)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8a9aa6" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"></circle><path d="M20 20l-4-4"></path></svg><input value="{{ a.tb.q }}" onChange="{{ a.tb.setQ }}" placeholder="Filtrer par nom ou équipe" aria-label="Filtrer par nom ou équipe" style="border:0;background:none;outline:none;flex:1;min-width:0;font-size:12.5px"></input></label></div>
+          <div style="overflow-x:auto"><div style="min-width:1032px"><div style="display:grid;grid-template-columns:minmax(170px,1.4fr) minmax(140px,1fr) 64px 76px 84px 112px 84px 92px 72px;gap:12px;align-items:center;padding:0 24px;border-top:1px solid #edf2f1;border-bottom:1px solid #edf2f1;background:#fafcfb"><sc-for list="{{ a.tb.heads }}" as="h" hint-placeholder-count="9"><button onClick="{{ h.pick }}" aria-sort="{{ h.aria }}" style="{{ h.st }}">{{ h.l }}<span>{{ h.ar }}</span></button></sc-for></div>
+          <sc-for list="{{ a.tb.rows }}" as="r" hint-placeholder-count="8">
+            <div style="display:grid;grid-template-columns:minmax(170px,1.4fr) minmax(140px,1fr) 64px 76px 84px 112px 84px 92px 72px;gap:12px;align-items:center;padding:0 24px;height:56px;border-bottom:1px solid #f0f4f3;font-variant-numeric:tabular-nums" style-hover="background:#fafcfb">
+              <div style="display:flex;align-items:center;gap:10px;min-width:0"><span style="width:30px;height:30px;flex:none;border-radius:50%;background:#e3ebe9;color:#43586a;font-size:11px;font-weight:800;display:grid;place-items:center">{{ r.ini }}</span><span style="display:flex;flex-direction:column;min-width:0"><span style="font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.n }}</span><span style="font-size:11.5px;color:#8a9aa6">{{ r.tn }}</span></span></div>
+              <div style="display:flex;flex-direction:column;gap:5px"><span style="white-space:nowrap"><b>{{ r.hL }}</b> <span style="color:#8a9aa6;font-size:11.5px">/ {{ r.cnL }}</span></span><span style="display:block;height:4px;border-radius:2px;background:#e8eeed;max-width:140px"><span style="{{ r.aSt }}"></span></span></div>
+              <span style="text-align:right">{{ r.sess }}</span>
+              <span style="text-align:right">{{ r.durL }}</span>
+              <span style="text-align:right">{{ r.reqL }}</span>
+              <span style="text-align:right;white-space:nowrap"><b>{{ r.tinL }}</b><span style="color:#8a9aa6"> / {{ r.toutL }}</span></span>
+              <b style="text-align:right;white-space:nowrap">{{ r.cL }}</b>
+              <span style="display:flex;justify-content:flex-end;align-items:center;gap:7px"><sc-if value="{{ r.flag }}" hint-placeholder-val="{{ false }}"><span title="Hausse inhabituelle" style="width:7px;height:7px;border-radius:50%;background:#e2553f;box-shadow:0 0 0 3px rgba(226,85,63,.15)"></span></sc-if><span style="{{ r.d.tx }}">{{ r.d.t }}</span></span>
+              <svg viewBox="0 0 84 24" width="84" height="24" style="justify-self:end;overflow:visible" aria-hidden="true"><path d="{{ r.sp }}" fill="none" stroke="{{ r.spC }}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            </div>
+          </sc-for>
+          <sc-if value="{{ a.tb.empty }}" hint-placeholder-val="{{ false }}"><div style="padding:28px 24px;text-align:center;font-size:12.5px;color:#8a9aa6;border-bottom:1px solid #f0f4f3">{{ a.tb.emptyL }}</div></sc-if>
+          </div></div>
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 24px;font-size:11.5px;color:#8a9aa6"><span>{{ a.tb.foot }}</span><sc-if value="{{ a.tb.paged }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:4px"><button onClick="{{ a.tb.prevP }}" aria-label="Page précédente" aria-disabled="{{ a.tb.first }}" style="{{ a.tb.pbSt1 }}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"></path></svg></button><span style="font-weight:700;color:#5c7280;font-variant-numeric:tabular-nums;white-space:nowrap">{{ a.tb.pageL }}</span><button onClick="{{ a.tb.nextP }}" aria-label="Page suivante" aria-disabled="{{ a.tb.last }}" style="{{ a.tb.pbSt2 }}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></button></span></sc-if><span style="flex:1"></span><span>{{ rightsL }}</span></div>
+        </div>
+        </div>
+        </sc-if>
+</div>
+
+<sc-if value="{{ toastOn }}" hint-placeholder-val="{{ false }}"><div role="status" style="position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:80;display:flex;align-items:center;gap:10px;padding:11px 16px 11px 13px;border-radius:13px;background:#0e2135;color:#e8f0f3;font-size:12.5px;font-weight:600;box-shadow:0 20px 40px -16px rgba(14,33,53,.6);animation:pop .2s ease-out both"><span style="width:7px;height:7px;border-radius:50%;background:#3fd1c1;box-shadow:0 0 0 3px rgba(63,209,193,.2)"></span>{{ toastMsg }}</div></sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+// Formats (repris de la maquette).
+const sum = a => a.reduce((s, x) => s + x, 0);
+const nf = (x, d = 0) => new Intl.NumberFormat('fr-FR', { minimumFractionDigits: d, maximumFractionDigits: d }).format(x);
+const fh = h => h >= 100 ? nf(h) + ' h' : h >= 10 ? nf(h, 1) + ' h' : (() => { const m = Math.round(h * 60); return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + String(m % 60).padStart(2, '0'); })();
+const eu = x => x >= 100 ? nf(x) + ' €' : nf(x, 2) + ' €';
+const tk = x => x >= 10 ? nf(x) + ' M' : x >= 1 ? nf(x, 1) + ' M' : nf(x * 1000) + ' k';
+const pct = x => nf(x * 100) + ' %';
+const f1 = v => Math.round(v * 10) / 10;
+const spark = (vals, W, H, pad = 2) => { const mx = Math.max(...vals) || 1, n = vals.length; if (n < 2) return ''; return vals.map((v, i) => (i ? 'L' : 'M') + f1(i / (n - 1) * W) + ' ' + f1(H - pad - v / mx * (H - 2 * pad))).join(''); };
+const MS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+const NODL = { t: '', st: 'display:none', sd: 'display:none', tx: 'display:none' };
+const dl = (a, b, kd, on) => { if (!on || !b || a == null) return NODL; const p = (a / b - 1) * 100, up = p >= 0, good = kd === 'u' ? up : kd === 'c' ? !up : null; const t = (up ? '+' : '−') + nf(Math.abs(p), 1) + ' %'; const L = good === null ? ['#5c7280', '#eef3f2'] : good ? ['#157a72', '#e3f2ef'] : ['#a8670f', '#fbf0dc']; const Dk = good === null ? ['#9fb3c2', 'rgba(255,255,255,.08)'] : good ? ['#3fd1c1', 'rgba(63,209,193,.13)'] : ['#f7b545', 'rgba(247,181,69,.14)']; const b0 = 'display:inline-flex;align-items:center;align-self:flex-start;height:20px;padding:0 7px;border-radius:6px;font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;'; return { t, st: b0 + `color:${L[0]};background:${L[1]}`, sd: b0 + `color:${Dk[0]};background:${Dk[1]}`, tx: `font-size:11.5px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;color:${L[0]}` }; };
+const SEG = on => on ? 'height:30px;padding:0 13px;border:0;border-radius:8px;background:#fff;color:#10233a;font-weight:700;font-size:12px;box-shadow:0 1px 2px rgba(16,35,58,.14);cursor:pointer;white-space:nowrap' : 'height:30px;padding:0 13px;border:0;border-radius:8px;background:transparent;color:#5c7280;font-weight:600;font-size:12px;cursor:pointer;white-space:nowrap';
+const CHIP = on => `height:34px;padding:0 11px 0 12px;border:0;border-radius:10px;background:${on ? '#e3f2ef' : '#fff'};box-shadow:0 0 0 1px ${on ? '#b9dcd6' : '#dfe7e5'};display:inline-flex;align-items:center;gap:6px;font-size:12.5px;cursor:pointer;white-space:nowrap`;
+const SK = dark => `display:block;border-radius:8px;background:${dark ? 'linear-gradient(90deg,rgba(255,255,255,.05),rgba(255,255,255,.11),rgba(255,255,255,.05))' : 'linear-gradient(90deg,#eef3f2,#f6f9f8,#eef3f2)'};background-size:480px 100%;animation:uc-shim 1.3s linear infinite`;
+const AMBER = 1.15; // coût par heure active « en ambre » au-delà de la moyenne × 1,15 (COST_PER_HOUR_AMBER du serveur)
+const SORTS = [['n', 'name', 'Utilisateur', 0], ['h', 'active', 'Temps actif / connecté', 0], ['sess', 'sessions', 'Sessions', 1], ['dur', 'avgSession', 'Durée moy.', 1], ['req', 'requests', 'Requêtes IA', 1], ['tok', 'tokens', 'Tokens E / S', 1], ['c', 'cost', 'Coût', 1], ['d', 'costEvolution', 'Évol. coût', 1], ['sp', 'costEvolution', 'Tendance', 1]];
+const URL_KEYS = ['gran', 'start', 'cmp', 'lv', 'teams', 'users', 'feat', 'prov', 'model', 'sort', 'dir', 'q', 'bm'];
+
+// Démonstration (écran ouvert seul, sans serveur) : jeu fictif de la maquette (septembre 2026), à la forme des réponses de l'API.
+const rnd = i => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+function demoApi() {
+  const TEAMS = ['Conseil Finance', 'Data & IA', 'Transformation', 'PMO Groupe', 'Industrie'];
+  const U = [['Camille Rousseau', 1, 41.2, 52.8, 64, 1420, 48.6, 142.3, 1.86], ['Thomas Bernier', 0, 38.5, 56.1, 71, 980, 22.4, 74.1, .06], ['Inès Moreau', 2, 35.9, 61, 58, 860, 19.8, 66.8, -.04], ['Julien Faure', 3, 33.4, 49.7, 62, 742, 16.1, 55.2, .12], ['Sarah Lemaire', 1, 31.8, 40.2, 49, 1102, 31.7, 98.4, .34], ['Antoine Girard', 4, 28.7, 47.3, 44, 518, 11.2, 38.6, .02], ['Léa Chevalier', 0, 27.2, 44.6, 52, 688, 14.9, 51.9, -.09], ['Hugo Martin', 2, 24.6, 42.8, 41, 604, 13.3, 45.7, .15]];
+  const FEAT = [['projets', 'Projets et saisie', 338, 58], ['jev', 'Jev · assistant', 176, 512], ['rapports', 'Rapports', 154, 286], ['documents', 'Documents', 118, 398], ['insights', 'Baromètre et insights', 104, 172], ['console', 'Console', 72, 56]];
+  const days = Array.from({ length: 30 }, (_, i) => { const w = (i + 2) % 7, we = w === 0 || w === 6; return { t: '2026-09-' + String(i + 1).padStart(2, '0'), label: ['Dim.', 'Lun.', 'Mar.', 'Mer.', 'Jeu.', 'Ven.', 'Sam.'][w] + ' ' + (i + 1) + ' sept.', working: !we, activeH: we ? 1 + rnd(i) : 26 + rnd(i + 7) * 12, connectedH: we ? 2 : 44 + rnd(i) * 8, costEur: i === 16 ? 166 : we ? 1.5 + rnd(i + 3) * 2 : 40 + rnd(i + 11) * 24, prevActiveH: we ? 1 : 24 + rnd(i + 40) * 10, prevCostEur: we ? 1 : 33 + rnd(i + 51) * 18, unusual: i === 16 }; });
+  const tot = k => days.reduce((s, x) => s + x[k], 0);
+  const period = { gran: 'mois', start: '2026-09-01', label: 'Septembre 2026', vsLabel: 'août 2026', prevStart: '2026-08-01', nextStart: '2026-10-01' };
+  const T = (a, c, f) => ({ activeH: a, connectedH: a * 1.58, activityRate: .633, sessions: 2412, avgSessionMin: 38, activeUsers: 86, events: 418230, requests: 18640, tokensIn: 412e6, tokensOut: 31.4e6, providers: 4, mainModel: 'Claude Sonnet 5', costEur: c, costPerActiveH: c / a, ...f });
+  const R = Promise.resolve.bind(Promise);
+  return {
+    options: () => R({ teams: TEAMS, users: U.map((u, i) => ({ id: 'u' + i, name: u[0], team: TEAMS[u[1]] })), features: FEAT.map(f => ({ id: f[0], name: f[1] })), providers: [{ id: 'anthropic', name: 'Anthropic' }, { id: 'openai', name: 'OpenAI' }, { id: 'mistral', name: 'Mistral' }, { id: 'voyage', name: 'Voyage AI' }], models: [{ id: 'm1', name: 'Claude Sonnet 5', providerId: 'anthropic' }, { id: 'm2', name: 'GPT-6 Luna', providerId: 'openai' }], rights: { costs: true, individual: true } }),
+    summary: () => R({ period, rights: { costs: true, individual: true }, settings: { unusualFactor: 1.6, costAlertPct: 30 }, current: T(tot('activeH'), tot('costEur')), previous: T(tot('prevActiveH'), tot('prevCostEur'), { sessions: 2288, avgSessionMin: 36, events: 391400, requests: 15920, tokensIn: 340e6, tokensOut: 25.1e6 }) }),
+    series: () => R({ period, points: days }),
+    breakdown: by => R({ by, avgCostPerActiveH: tot('costEur') / tot('activeH'), rows: by === 'feature' ? FEAT.map(f => ({ id: f[0], name: f[1], activeH: f[2], costEur: f[3], prevActiveH: f[2] * .92, prevCostEur: f[3] * .82, costPerActiveH: f[3] / f[2] })) : by === 'team' ? TEAMS.map((n, i) => ({ id: n, name: n, activeH: 260 - i * 30, costEur: 480 - i * 60, prevActiveH: 240 - i * 28, prevCostEur: 400 - i * 50 })) : U.map((u, i) => ({ id: 'u' + i, name: u[0], activeH: u[2], costEur: u[7], prevActiveH: u[2] * .9, prevCostEur: u[7] / (1 + u[8]) })) }),
+    users: () => R({ total: U.length, page: 1, pages: 1, pageSize: 20, rows: U.map((u, i) => ({ id: 'u' + i, name: u[0], team: TEAMS[u[1]], activeH: u[2], connectedH: u[3], sessions: u[4], avgSessionMin: Math.round(u[2] * 60 / u[4]), requests: u[5], tokensIn: u[6] * 1e6 * .93, tokensOut: u[6] * 1e6 * .07, costEur: u[7], prevCostEur: u[7] / (1 + u[8]), costEvolution: u[8], flag: u[8] >= .3, trend: days.map((d, j) => d.costEur * (.6 + .8 * rnd(j + i * 31))) })) }),
+    exportCsv: () => R('consommation-mois-2026-09-01.csv'),
+  };
+}
+
+class Component extends DCLogic {
+  state = { gran: 'mois', start: null, cmp: true, lv: 'plat', teams: [], users: [], feat: null, prov: null, model: null, sort: 'cost', dir: 'desc', q: '', qIn: '', page: 1, bm: 'feat', hov: null, mn: null, mq: '', toast: null, err: null, busy: false, tick: 0 };
+  rowRef = el => { this._row = el; };
+  componentDidMount() {
+    this.readUrl();
+    import('./admin-api.js').then(m => {
+      if (m.isDemo()) return this.useDemo();
+      this._api = m.usageApi; this._errText = m.errText; this.boot();
+    }).catch(e => { console.warn('admin-api', e); this.useDemo(); }); // écran ouvert seul : démonstration
+    // Mises à jour en direct : un appel d'IA ou une écriture ailleurs → relecture silencieuse.
+    this._onChg = () => { clearTimeout(this._lt); this._lt = setTimeout(() => this.load('all', true), 600); };
+    window.addEventListener('rise-admin:changes', this._onChg);
+    this._esc = e => { if (e.key === 'Escape' && this.state.mn) this.setState({ mn: null }); };
+    window.addEventListener('keydown', this._esc);
+  }
+  componentWillUnmount() { clearTimeout(this._tt); clearTimeout(this._lt); clearTimeout(this._qt); window.removeEventListener('rise-admin:changes', this._onChg); window.removeEventListener('keydown', this._esc); this.clearUrl(); }
+  useDemo() { this._api = demoApi(); this._demo = true; this.boot(); }
+  boot() { this._api.options().then(o => { this._opt = o; this.bump(); }).catch(() => {}); this.load('all'); }
+  bump() { this.setState(s => ({ tick: s.tick + 1 })); }
+  toast(m) { clearTimeout(this._tt); this.setState({ toast: m }); this._tt = setTimeout(() => this.setState({ toast: null }), 2600); }
+
+  // ── Paramètres (conservés dans l'URL, préfixe « u_ ») ──
+  readUrl() {
+    try {
+      const p = new URLSearchParams(location.search), g = k => p.get('u_' + k), S = {};
+      if (['jour', 'semaine', 'mois'].includes(g('gran'))) S.gran = g('gran');
+      if (/^\d{4}-\d{2}-\d{2}$/.test(g('start') || '')) S.start = g('start');
+      if (g('cmp') === '0') S.cmp = false;
+      if (['plat', 'team', 'user'].includes(g('lv'))) S.lv = g('lv');
+      ['teams', 'users'].forEach(k => { if (g(k)) S[k] = g(k).split(',').map(decodeURIComponent).filter(Boolean); });
+      ['feat', 'prov', 'model'].forEach(k => { if (g(k)) S[k] = g(k); });
+      if (g('sort')) S.sort = g('sort'); if (g('dir') === 'asc') S.dir = 'asc';
+      if (g('q')) { S.q = g('q'); S.qIn = g('q'); }
+      if (['feat', 'team', 'user'].includes(g('bm'))) S.bm = g('bm');
+      this.setState(S);
+    } catch (e) { /* hors navigateur */ }
+  }
+  writeUrl() {
+    try {
+      const S = this.state, p = new URLSearchParams(location.search), v = { gran: S.gran, start: S.start, cmp: S.cmp ? null : '0', lv: S.lv === 'plat' ? null : S.lv, teams: S.teams.map(encodeURIComponent).join(','), users: S.users.join(','), feat: S.feat, prov: S.prov, model: S.model, sort: S.sort === 'cost' ? null : S.sort, dir: S.dir === 'desc' ? null : S.dir, q: S.q, bm: S.bm === 'feat' ? null : S.bm };
+      p.set('page', 'usage');
+      URL_KEYS.forEach(k => { if (v[k]) p.set('u_' + k, v[k]); else p.delete('u_' + k); });
+      history.replaceState(history.state, '', location.pathname + '?' + p.toString() + location.hash);
+    } catch (e) { /* hors navigateur */ }
+  }
+  clearUrl() { try { const p = new URLSearchParams(location.search); p.delete('page'); URL_KEYS.forEach(k => p.delete('u_' + k)); const s = p.toString(); history.replaceState(history.state, '', location.pathname + (s ? '?' + s : '') + location.hash); } catch (e) { } }
+
+  query(extra = {}) {
+    const S = this.state, o = { gran: S.gran, start: S.start, scope: S.lv, compare: S.cmp ? '1' : '0', feature: S.feat, provider: S.prov, model: S.model, ...extra };
+    const p = new URLSearchParams(); Object.entries(o).forEach(([k, v]) => { if (v !== null && v !== undefined && v !== '') p.set(k, v); });
+    S.teams.forEach(t => p.append('teams', t)); S.users.forEach(u => p.append('users', u));
+    return p.toString();
+  }
+  keys() { const S = this.state, all = this.query(); return { all, bk: all + '|' + S.bm, us: all + '|' + S.sort + S.dir + '|' + S.q + '|' + S.page }; }
+  componentDidUpdate(pp, ps) {
+    if (!this._api) return;
+    const k = this.keys(), o = this._keys || {};
+    if (k.all !== o.all) this.load('all');
+    else { if (k.bk !== o.bk) this.load('bk'); if (k.us !== o.us) this.load('us'); }
+  }
+  bmBy() { return { feat: 'feature', team: 'team', user: 'user' }[this.state.bm]; }
+  async load(what, silent) {
+    const k = this.keys(); this._keys = k;
+    const seq = (this._seq = (this._seq || 0) + 1), S = this.state, A = this._api;
+    const us = this.query({ sort: S.sort, dir: S.dir, q: S.q, page: S.page });
+    if (!silent) this.setState({ busy: true });
+    try {
+      if (what === 'all') {
+        const [sm, se, bk, u] = await Promise.all([A.summary(this.query()), A.series(this.query()), A.breakdown(this.bmBy(), this.query({ by: this.bmBy() })), A.users(us)]);
+        if (seq !== this._seq) return;
+        Object.assign(this, { _sum: sm, _ser: se, _bk: bk, _us: u });
+      } else if (what === 'bk') { const bk = await A.breakdown(this.bmBy(), this.query({ by: this.bmBy() })); if (seq !== this._seq) return; this._bk = bk; }
+      else { const u = await A.users(us); if (seq !== this._seq) return; this._us = u; if (u.page !== S.page) this.setState({ page: u.page }); }
+      this.writeUrl();
+      this.setState(s => ({ busy: false, err: null, tick: s.tick + 1 }));
+    } catch (e) {
+      if (seq !== this._seq) return;
+      const msg = this._errText ? this._errText(e) : 'Erreur de chargement';
+      if (this._sum && silent) return;
+      this.setState({ busy: false, err: msg });
+    }
+  }
+
+  // ── Actions ──
+  setF(p) { this.setState({ ...p, page: 1, hov: null }); }
+  scope(id) {
+    const r = this.rights(), S = this.state;
+    if (id === 'user' && !r.individual) return this.toast('Niveau Utilisateur : droit « Voir les données individuelles » requis');
+    if (id === 'plat') return this.setF({ lv: 'plat', teams: [], users: [] });
+    if (id === 'team') {
+      if (S.teams.length) return this.setF({ lv: 'team', users: [] });
+      // Équipe au plus fort temps actif de la période.
+      return this._api.breakdown('team', this.query({ by: 'team', scope: 'plat' })).then(b => { const top = (b.rows || []).find(x => x.id !== 'Tâches automatiques'); this.setF({ lv: 'team', users: [], teams: top ? [top.id] : (this._opt && this._opt.teams.slice(0, 1)) || [] }); }).catch(() => this.setF({ lv: 'team' }));
+    }
+    if (S.users.length) return this.setF({ lv: 'user' });
+    const top = ((this._us && this._us.rows) || []).find(x => x.id);
+    this.setF({ lv: 'user', users: top ? [top.id] : [] });
+  }
+  rights() { return (this._sum && this._sum.rights) || (this._opt && this._opt.rights) || { costs: true, individual: true }; }
+  openMenu(k, e) {
+    const r = this.rights();
+    if (k === 'users' && !r.individual) return this.toast('Utilisateurs : droit « Voir les données individuelles » requis');
+    if (this.state.mn === k) return this.setState({ mn: null });
+    const b = e && e.currentTarget && e.currentTarget.getBoundingClientRect(), row = this._row && this._row.getBoundingClientRect();
+    this._mx = b && row ? Math.max(0, Math.min(b.left - row.left, row.width - 300)) : 0; this._my = b && row ? b.bottom - row.top + 6 : 40;
+    this.setState({ mn: k, mq: '' });
+  }
+  async exportCsv() {
+    const S = this.state, n = this._us ? this._us.total : 0, pL = this._sum ? this._sum.period.label : '';
+    try { await this._api.exportCsv(this.query({ sort: S.sort, dir: S.dir, q: S.q })); this.toast('Export CSV · ' + n + ' ligne' + (n > 1 ? 's' : '') + ' · ' + pL); }
+    catch (e) { this.toast(this._errText ? this._errText(e) : 'Export impossible'); }
+  }
+
+  // ── Valeurs de l'écran ──
+  menuVals() {
+    const S = this.state, O = this._opt || { teams: [], users: [], features: [], providers: [], models: [] }, k = S.mn;
+    if (!k) return { on: false, opts: [] };
+    const multi = k === 'teams' || k === 'users', q = S.mq.trim().toLowerCase();
+    const src = k === 'teams' ? O.teams.map(t => ({ v: t, l: t })) : k === 'users' ? O.users.map(u => ({ v: u.id, l: u.name, sub: u.team })) : k === 'feat' ? O.features.map(f => ({ v: f.id, l: f.name })) : k === 'prov' ? O.providers.map(p => ({ v: p.id, l: p.name })) : O.models.filter(m => !S.prov || m.providerId === S.prov).map(m => ({ v: m.id, l: m.name, sub: (O.providers.find(p => p.id === m.providerId) || {}).name || '' }));
+    const cur = multi ? S[k] : (S[k] ? [S[k]] : []);
+    const list = src.filter(o => !q || (o.l + ' ' + (o.sub || '')).toLowerCase().includes(q));
+    const pick = v => { if (multi) { const has = cur.includes(v), nx = has ? cur.filter(x => x !== v) : cur.concat([v]); const p = { [k]: nx }; if (k === 'teams' && S.lv === 'team' && !nx.length) p.lv = 'plat'; if (k === 'users' && S.lv === 'user' && !nx.length) p.lv = 'plat'; this.setF(p); } else { const p = { [k]: cur[0] === v ? null : v }; if (k === 'prov') p.model = null; this.setF(p); this.setState({ mn: null }); } };
+    return { on: true, multi, title: { teams: 'Équipes', users: 'Utilisateurs', feat: 'Fonctionnalité', prov: 'Fournisseur', model: 'Modèle' }[k], search: k === 'users' || src.length > 8, q: S.mq, setQ: e => this.setState({ mq: e.target.value }), none: !list.length,
+      foot: multi ? (cur.length ? cur.length + ' sélectionné' + (cur.length > 1 ? 's' : '') : 'Aucune sélection : tout') : cur.length ? '1 choisi' : 'Aucun choix : tout',
+      close: () => this.setState({ mn: null }), clear: () => { const p = { [k]: multi ? [] : null }; if ((k === 'teams' && S.lv === 'team') || (k === 'users' && S.lv === 'user')) p.lv = 'plat'; if (k === 'prov') p.model = null; this.setF(p); },
+      key: e => { if (e.key === 'Escape') this.setState({ mn: null }); },
+      st: `position:absolute;left:${this._mx || 0}px;top:${this._my || 40}px;z-index:41;width:300px;max-width:calc(100vw - 32px);padding:8px;border-radius:14px;background:#fff;box-shadow:0 0 0 1px #dfe7e5,0 24px 48px -20px rgba(16,35,58,.35);display:flex;flex-direction:column`,
+      opts: list.slice(0, 300).map(o => { const on = cur.includes(o.v); return { l: o.l, sub: o.sub || '', on, pick: () => pick(o.v), mk: on ? '✓' : '', st: 'display:flex;align-items:center;gap:10px;width:100%;min-height:36px;padding:6px 10px;border:0;border-radius:9px;background:' + (on ? '#f3faf9' : 'transparent') + ';cursor:pointer;font-size:12.5px;font-weight:' + (on ? 700 : 500) + ';color:#10233a',
+        box: 'width:16px;height:16px;border-radius:' + (multi ? 4 : 8) + 'px;flex:none;display:grid;place-items:center;font-size:10px;font-weight:800;' + (on ? 'background:#1d8f86;color:#fff' : 'box-shadow:inset 0 0 0 1.5px #c9d5d2;color:transparent') }; }) };
+  }
+
+  V() {
+    const S = this.state, sm = this._sum, se = this._ser, bk = this._bk, us = this._us, O = this._opt || { teams: [], users: [], features: [], providers: [], models: [] };
+    const R = this.rights(), hide = !R.costs, anon = !R.individual, cmp = S.cmp, E = x => hide || x == null ? '—' : eu(x);
+    const per = (sm && sm.period) || { label: '…', vsLabel: 'la période précédente' };
+    const cu = (sm && sm.current) || {}, pv = (sm && sm.previous) || {};
+    const D = (a, b, kd) => dl(a, b, kd, cmp && !(hide && kd === 'c'));
+    const today = new Date().toISOString().slice(0, 10), nextOff = !!(per.nextStart && per.nextStart > today);
+    const nm = id => (O.users.find(u => u.id === id) || {}).name || id;
+    const chipV = (arr, all, one) => !arr.length ? all : arr.length === 1 ? one(arr[0]) : arr.length + ' sélectionnés';
+    const k = {
+      hL: fh(cu.activeH || 0), dH: D(cu.activeH, pv.activeH, 'u'), cnL: fh(cu.connectedH || 0), actL: cu.activityRate == null ? '—' : pct(cu.activityRate),
+      actSt: `display:block;height:100%;border-radius:3px;background:#3fd1c1;width:${Math.min(100, (cu.activityRate || 0) * 100)}%`,
+      cL: E(cu.costEur), dC: D(cu.costEur, pv.costEur, 'c'), reqL: nf(cu.requests || 0), tinL: tk((cu.tokensIn || 0) / 1e6), toutL: tk((cu.tokensOut || 0) / 1e6),
+    };
+    const o = {
+      gr: [['jour', 'Jour'], ['semaine', 'Semaine'], ['mois', 'Mois']].map(([id, l]) => ({ l, on: S.gran === id, st: SEG(S.gran === id), pick: () => S.gran !== id && this.setF({ gran: id }) })),
+      lvs: [['plat', 'Plateforme'], ['team', 'Équipe'], ['user', 'Utilisateur']].map(([id, l]) => { const off = id === 'user' && anon; return { l, on: S.lv === id, off, tip: off ? 'Droit « Voir les données individuelles » requis' : '', st: SEG(S.lv === id) + (off ? ';opacity:.45;cursor:not-allowed' : ''), pick: () => S.lv !== id && this.scope(id) }; }),
+      pL: per.label, vsL: per.vsLabel, cmpOn: cmp, cmpTog: () => this.setState({ cmp: !cmp, hov: null }),
+      prev: () => per.prevStart && this.setF({ start: per.prevStart }), next: () => { if (nextOff) return this.toast('Période à venir : pas encore de données'); per.nextStart && this.setF({ start: per.nextStart }); }, nextOff,
+      nextSt: 'width:32px;height:36px;border:0;background:none;color:#5c7280;cursor:pointer;display:grid;place-items:center' + (nextOff ? ';opacity:.35;cursor:not-allowed' : ''),
+      swSt: `position:relative;display:block;width:28px;height:16px;border-radius:8px;background:${cmp ? '#1d8f86' : '#cdd8d6'};transition:background .2s;flex:none`,
+      knSt: `position:absolute;top:2px;left:${cmp ? 14 : 2}px;width:12px;height:12px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:left .2s`,
+      fl: [['teams', 'Équipes', chipV(S.teams, 'Toutes', x => x), false], ['users', 'Utilisateurs', anon ? 'Tous' : chipV(S.users, 'Tous', nm), anon], ['feat', 'Fonctionnalité', S.feat ? ((O.features.find(f => f.id === S.feat) || {}).name || S.feat) : 'Toutes', false]]
+        .map(([id, l, v, off]) => ({ l, v, off, open: S.mn === id, tip: off ? 'Droit « Voir les données individuelles » requis' : '', st: CHIP(v !== 'Toutes' && v !== 'Tous') + (off ? ';opacity:.45;cursor:not-allowed' : ''), pick: e => this.openMenu(id, e) })),
+      fia: [['prov', 'Fournisseur', S.prov ? ((O.providers.find(p => p.id === S.prov) || {}).name || S.prov) : 'Tous'], ['model', 'Modèle', S.model ? ((O.models.find(m => m.id === S.model) || {}).name || S.model) : 'Tous']]
+        .map(([id, l, v]) => ({ l, v, open: S.mn === id, st: CHIP(v !== 'Tous'), pick: e => this.openMenu(id, e) })),
+      k, mn: this.menuVals(), rowRef: this.rowRef, exp: () => this.exportCsv(),
+      errOn: !!S.err && !sm, errL: S.err || '', retry: () => this.load('all'),
+      skOn: !sm && !S.err, ready: !!sm, busySt: 'transition:opacity .2s;opacity:' + (S.busy ? .55 : 1),
+      skD: SK(true), skL: SK(false), sk6: [1, 2, 3, 4, 5, 6], sk8: [1, 2, 3, 4, 5, 6, 7, 8],
+    };
+    if (!sm || !se || !bk || !us) return Object.assign(o, { ch: { cols: [], ticks: [] }, strip: [], bf: { rows: [], modes: [] }, tb: { heads: [], rows: [] } });
+    Object.assign(o, this.chart(se, hide, cmp, sm), this.breakdownVals(bk, hide, cmp, cu));
+    o.strip = [{ l: 'Session moyenne', v: cu.avgSessionMin == null ? '—' : cu.avgSessionMin + ' min', d: D(cu.avgSessionMin, pv.avgSessionMin, 'u') }, { l: 'Connexions', v: nf(cu.sessions || 0), d: D(cu.sessions, pv.sessions, 'u') }, { l: 'Utilisateurs actifs', v: nf(cu.activeUsers || 0), d: NODL }, { l: 'Événements journalisés', v: nf(cu.events || 0), d: D(cu.events, pv.events, 'n') }, { l: 'Tokens', v: tk(((cu.tokensIn || 0) + (cu.tokensOut || 0)) / 1e6), d: D((cu.tokensIn || 0) + (cu.tokensOut || 0), (pv.tokensIn || 0) + (pv.tokensOut || 0), 'n') }, { l: 'Coût / heure active', v: hide || cu.costPerActiveH == null ? '—' : nf(cu.costPerActiveH, 2) + ' € / h', d: D(cu.costPerActiveH, pv.costPerActiveH, 'c') }, { l: 'Fournisseurs', v: nf(cu.providers || 0), d: NODL }, { l: 'Modèle principal', v: cu.mainModel || '—', d: NODL }]
+      .map((x, i) => ({ ...x, cs: `padding:16px 20px 18px;display:flex;flex-direction:column;gap:5px;min-width:0;${i === 4 ? 'box-shadow:-1px 0 0 rgba(255,255,255,.07)' : ''}` }));
+    o.tb = this.table(us, hide, anon, cmp, sm, per);
+    return o;
+  }
+
+  chart(se, hide, cmp, sm) {
+    const S = this.state, P = se.points, n = P.length, W = 1000, mid = 112, R = 94, st = W / n, bw = st * (n > 20 ? .56 : .42);
+    const h = P.map(x => x.activeH || 0), cc = P.map(x => hide ? 0 : x.costEur || 0), ph = P.map(x => x.prevActiveH || 0), pc = P.map(x => hide ? 0 : x.prevCostEur || 0);
+    const mh = Math.max(...h, ...(cmp ? ph : [0])) || 1, mc = Math.max(...cc, ...(cmp ? pc : [0])) || 1;
+    let up = '', dn = '', an = '', tu = '', td = '';
+    for (let i = 0; i < n; i++) {
+      const x = f1(i * st + (st - bw) / 2), w = f1(bw), a = f1(h[i] / mh * R), b = f1(cc[i] / mc * R);
+      if (a > 0) up += `M${x} ${f1(mid - 3 - a)}h${w}v${a}h${-w}Z`;
+      const sg = b > 0 ? `M${x} ${mid + 3}h${w}v${b}h${-w}Z` : '';
+      if (P[i].unusual) an += sg; else dn += sg;
+      if (cmp) { tu += `M${f1(x - 2)} ${f1(mid - 3 - ph[i] / mh * R)}h${f1(w + 4)}`; td += `M${f1(x - 2)} ${f1(mid + 3 + pc[i] / mc * R)}h${f1(w + 4)}`; }
+    }
+    if (hide) { dn = ''; an = ''; td = ''; }
+    // Hausse inhabituelle la plus forte : repère « × la moyenne des jours ouvrés ».
+    const wk = cc.filter((_, i) => P[i].working), avgD = sum(wk) / (wk.length || 1);
+    const ai = P.reduce((b, x, i) => x.unusual && (b < 0 || cc[i] > cc[b]) ? i : b, -1), ratio = ai >= 0 && avgD > 0 ? cc[ai] / avgD : 0;
+    const ax = ai >= 0 ? (ai + .5) / n * 100 : 0, ay = ai >= 0 ? (mid + 3 + cc[ai] / mc * R) / 224 * 100 : 0;
+    const anSt = `position:absolute;top:${ay}%;${ax < 75 ? `left:calc(${ax}% + ${bw / 2 + 10}px)` : `right:calc(${100 - ax}% + ${bw / 2 + 10}px)`};transform:translateY(-118%);display:flex;flex-direction:column;gap:2px;padding:7px 10px;border-radius:10px;background:rgba(255,122,95,.12);box-shadow:inset 0 0 0 1px rgba(255,122,95,.35);pointer-events:none;white-space:nowrap`;
+    const hv = S.hov != null && S.hov < n ? S.hov : null, full = i => P[i].label;
+    const empty = !sum(h) && !sum(cc) && !P.some(x => x.connectedH > 0);
+    // Repères de l'axe : mois 1, 7, 14, 21, 28 ; semaine chaque jour ; jour 0, 6, 12, 18, 23 h.
+    const g = se.period.gran, lab = P.map(x => x.label);
+    const ticks = g === 'mois' ? [0, 6, 13, 20, 27].filter(i => i < n).map(i => [i, i === 0 ? '1 ' + MS[Number(P[0].t.slice(5, 7)) - 1] : String(i + 1)])
+      : g === 'semaine' ? P.map((x, i) => [i, lab[i].split(' ').slice(0, 2).join(' ').toLowerCase()])
+      : P.map((x, i) => [i, parseInt(lab[i], 10)]).filter(([, hh], i) => [0, 6, 12, 18, 23].includes(hh) && P.findIndex(y => parseInt(y.label, 10) === hh) === i).map(([i, hh]) => [i, hh + ' h']);
+    const ch = { up, dn, an, tu, td, anOn: !hide && ai >= 0, anSt, anT1: ai >= 0 ? 'HAUSSE INHABITUELLE · ' + full(ai).toUpperCase() : '', anT2: ai >= 0 ? eu(cc[ai]) + ' · ×' + nf(ratio, 1) + ' la moyenne' : '', hideC: hide, empty,
+      out: () => this.setState({ hov: null }),
+      cols: P.map((x, i) => ({ en: () => this.setState({ hov: i }), aria: full(i) + ' : temps actif ' + fh(h[i]) + (hide ? '' : ', coût ' + eu(cc[i])) + (x.unusual && !hide ? ', hausse inhabituelle' : ''), st: `flex:1;height:224px;border-radius:6px;cursor:crosshair;outline-offset:-2px;background:${hv === i ? 'rgba(255,255,255,.06)' : 'transparent'}` })),
+      tip: hv != null, tD: hv != null ? full(hv) : '', tH: hv != null ? fh(h[hv]) : '', tC: hv != null ? (hide ? '—' : eu(cc[hv])) : '', tP: hv != null && cmp ? 'Précédent : ' + fh(ph[hv]) + ' · ' + (hide ? '—' : eu(pc[hv])) : '',
+      tipSt: hv != null ? `position:absolute;top:-8px;left:${Math.min(90, Math.max(10, (hv + .5) / n * 100))}%;transform:translate(-50%,-100%);z-index:5;display:flex;flex-direction:column;gap:4px;min-width:170px;padding:10px 12px;border-radius:11px;background:#1a3550;box-shadow:0 18px 30px -12px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,255,255,.08);font-size:11.5px;color:#cfdde6;font-variant-numeric:tabular-nums;pointer-events:none` : '',
+      ticks: ticks.map(([i, t]) => ({ t, st: `position:absolute;left:${(i + .5) / n * 100}%;top:9px;transform:translateX(-50%);white-space:nowrap` })) };
+    return { ch };
+  }
+
+  breakdownVals(bk, hide, cmp, cu) {
+    const bm = this.state.bm, L = (bk.rows || []).map(x => ({ n: x.name, h: x.activeH || 0, cc: hide ? 0 : x.costEur || 0, ph: x.prevActiveH || 0, pc: hide ? 0 : x.prevCostEur || 0 }));
+    const MH = Math.max(1e-9, ...L.map(x => Math.max(x.h, cmp ? x.ph : 0))), MC = Math.max(1e-9, ...L.map(x => Math.max(x.cc, cmp ? x.pc : 0))), iC = L.reduce((b, x, i) => x.cc > L[b].cc ? i : b, 0), avg = bk.avgCostPerActiveH || 0;
+    const rows = L.map((x, i) => {
+      const e = x.h > 0 ? x.cc / x.h : 0, tag = hide ? (i === 0 ? 'le plus utilisé' : '') : i === 0 && i === iC ? '1er usage · 1er coût' : i === iC && x.cc > 0 ? '1er poste de coût' : i === 0 ? 'le plus utilisé' : '';
+      return { n: x.n, hL: fh(x.h), cL: hide ? '—' : eu(x.cc), dH: dl(x.h, x.ph, 'u', cmp), dC: dl(x.cc, x.pc, 'c', cmp && !hide),
+        hBar: `position:absolute;right:0;top:0;bottom:0;width:${x.h / MH * 100}%;border-radius:6px 2px 2px 6px;background:#1d8f86;transition:width .4s`,
+        hTk: cmp ? `position:absolute;top:-4px;bottom:-4px;width:2px;border-radius:1px;background:#10233a;right:calc(${x.ph / MH * 100}% - 1px)` : 'display:none',
+        cBar: hide ? 'display:none' : `position:absolute;left:0;top:0;bottom:0;width:${x.cc / MC * 100}%;border-radius:2px 6px 6px 2px;background:#e8a23a;transition:width .4s`,
+        cTk: cmp && !hide ? `position:absolute;top:-4px;bottom:-4px;width:2px;border-radius:1px;background:#10233a;left:calc(${x.pc / MC * 100}% - 1px)` : 'display:none',
+        eph: hide || x.h <= 0 ? '' : nf(e, 2) + ' € / h', ephSt: `font-size:11.5px;font-weight:700;font-variant-numeric:tabular-nums;color:${e > avg * AMBER ? '#a8670f' : '#8a9aa6'}`,
+        tag, tagSt: tag ? `font-size:10px;font-weight:700;padding:1px 6px;border-radius:5px;white-space:nowrap;color:${i === iC && !hide ? '#a8670f' : '#157a72'};background:${i === iC && !hide ? '#fbf0dc' : '#e3f2ef'}` : 'display:none' };
+    });
+    const anon = !this.rights().individual;
+    return { bf: { rows, empty: !rows.length, modes: [['feat', 'Fonctionnalités'], ['team', 'Équipes'], ['user', 'Utilisateurs']].map(([id, l]) => ({ l, on: bm === id, st: SEG(bm === id), pick: () => this.setState({ bm: id }) })) } };
+  }
+
+  table(us, hide, anon, cmp, sm, per) {
+    const S = this.state, th = (sm.settings && sm.settings.costAlertPct) || 30, sk = (SORTS.find(x => x[1] === S.sort && x[0] !== 'sp') || SORTS[6]);
+    const heads = SORTS.map(([id, key, l, r]) => { const on = sk[0] === id; return { l, ar: on ? (S.dir === 'desc' ? ' ↓' : ' ↑') : '', aria: on ? (S.dir === 'desc' ? 'descending' : 'ascending') : 'none',
+      pick: () => { if (hide && (key === 'cost' || key === 'costEvolution')) return this.toast('Tri sur les coûts : droit « Voir les coûts » requis'); this.setF({ sort: key, dir: on ? (S.dir === 'desc' ? 'asc' : 'desc') : (key === 'name' ? 'asc' : 'desc') }); },
+      st: `height:40px;border:0;background:none;padding:0;font-size:11px;font-weight:700;letter-spacing:.03em;color:${on ? '#10233a' : '#8a9aa6'};cursor:pointer;display:flex;align-items:center;justify-content:${r ? 'flex-end' : 'flex-start'};white-space:nowrap` }; });
+    const rows = us.rows.map(u => { const flag = !!u.flag && !hide, rate = u.connectedH > 0 ? u.activeH / u.connectedH : 0;
+      return { ini: anon && u.name !== 'Tâches automatiques' ? '··' : u.name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase(), n: u.name, tn: u.team, hL: fh(u.activeH), cnL: fh(u.connectedH),
+        aSt: `display:block;height:100%;border-radius:2px;background:#1d8f86;width:${Math.min(100, rate * 100)}%`, sess: nf(u.sessions || 0), durL: u.avgSessionMin == null ? '—' : nf(u.avgSessionMin) + ' min', reqL: nf(u.requests || 0),
+        tinL: tk((u.tokensIn || 0) / 1e6), toutL: tk((u.tokensOut || 0) / 1e6), cL: hide ? '—' : eu(u.costEur || 0), d: dl(u.costEur, u.prevCostEur, 'c', cmp && !hide), flag, sp: spark(u.trend || [], 84, 24), spC: flag ? '#e2553f' : '#9fb3c2' }; });
+    const tn = S.teams.length === 1 ? 'Équipe ' + S.teams[0] : S.teams.length + ' équipes';
+    const set = p => this.setState(p);
+    return { heads, rows, empty: !rows.length, emptyL: S.q ? 'Aucun utilisateur ne correspond à « ' + S.q + ' »' : 'Aucune donnée sur cette période',
+      q: S.qIn, setQ: e => { const v = e.target.value; this.setState({ qIn: v }); clearTimeout(this._qt); this._qt = setTimeout(() => this.setF({ q: v.trim() }), 300); },
+      sub: (S.lv === 'plat' ? 'Tous les utilisateurs actifs' : S.lv === 'team' ? tn : 'Vue individuelle') + ' · ' + per.label,
+      foot: us.total + ' ligne' + (us.total > 1 ? 's' : '') + (us.pages > 1 ? ' · ' + rows.length + ' affichée' + (rows.length > 1 ? 's' : '') : ' affichée' + (us.total > 1 ? 's' : '')) + (hide ? '' : ' · point rouge : hausse de coût ≥ ' + th + ' %'),
+      paged: us.pages > 1, pageL: us.page + ' / ' + us.pages, first: us.page <= 1, last: us.page >= us.pages,
+      prevP: () => us.page > 1 && set({ page: us.page - 1 }), nextP: () => us.page < us.pages && set({ page: us.page + 1 }),
+      pbSt1: 'width:26px;height:26px;border:0;border-radius:8px;background:#f2f6f5;color:#43586a;display:grid;place-items:center;cursor:pointer' + (us.page <= 1 ? ';opacity:.4;cursor:not-allowed' : ''),
+      pbSt2: 'width:26px;height:26px;border:0;border-radius:8px;background:#f2f6f5;color:#43586a;display:grid;place-items:center;cursor:pointer' + (us.page >= us.pages ? ';opacity:.4;cursor:not-allowed' : '') };
+  }
+
+  renderVals() {
+    const r = this.rights(), hide = !r.costs, anon = !r.individual;
+    return { a: this.V(),
+      rightsL: hide ? 'Coûts masqués : vos droits Console n’incluent pas les données financières' : anon ? 'Noms masqués : vos droits Console n’incluent pas les données individuelles' : 'Données individuelles et coûts visibles · droits Administrateur complet',
+      toastOn: !!this.state.toast, toastMsg: this.state.toast || '' };
+  }
+}
+</script>
+</body>
+</html>

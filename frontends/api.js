@@ -908,6 +908,33 @@ export function attach(comp) {
   };
   arrive().then((moved) => { if (!moved) start(); });
 
+  // ── Consommation et coûts · Accès (08/10/2026) : interactions de l'utilisateur, base du temps actif. Au plus un
+  // événement par fonctionnalité et par tranche de 20 s, envoyés par lots toutes les minutes et quand l'onglet est masqué. ──
+  (() => {
+    if (window.__riseActivity) return;
+    window.__riseActivity = true;
+    const featureOf = (e) => {
+      if (e.target && e.target.closest && e.target.closest('[data-jev-panel]')) return 'jev';
+      const S = comp.state || {};
+      if (S.space === 'comites') return 'rapports';
+      if (S.space === 'documents') return 'documents';
+      if (S.space === 'today' || (S.space === 'pilotage' && S.tab === 'barometre')) return 'insights';
+      return 'projets';
+    };
+    const q = [], last = {};
+    const on = (e) => {
+      const f = featureOf(e), t = Date.now();
+      if (last[f] && t - last[f] < 20_000) return;
+      last[f] = t;
+      q.push({ at: new Date(t).toISOString(), feature: f, kind: e.type === 'keydown' ? 'saisie' : e.type === 'wheel' ? 'defilement' : 'clic' });
+    };
+    ['pointerdown', 'keydown', 'wheel'].forEach((n) => window.addEventListener(n, on, { capture: true, passive: true }));
+    const flush = () => { if (q.length) post('/me/activity', { events: q.splice(0, 200) }).catch(() => {}); };
+    setInterval(flush, 60_000);
+    window.addEventListener('pagehide', flush);
+    document.addEventListener('visibilitychange', () => { if (document.hidden) flush(); });
+  })();
+
   // ── Notifications de l'utilisateur (cloche) : au démarrage, toutes les 60 s et au retour sur l'onglet ──
   const NT_POLL_MS = 60_000;
   const ntLoad = () => get('/me/notifications').then((r) => raw({ ntItems: r.items, ntUnread: r.unread })).catch((e) => console.warn('[api] notifications', e));

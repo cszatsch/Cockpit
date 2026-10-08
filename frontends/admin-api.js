@@ -157,7 +157,7 @@ export function toUser(a, i = 0) {
     pr: [...(a.projectCodes || [])], lt: ll === 0 && last ? p2(last.getHours()) + ':' + p2(last.getMinutes()) : '', av: AV[i % AV.length], _v: a.version };
 }
 /** Administrateur → `{ u, lv:'admin', since }` (un seul niveau, brief § 5). */
-export const toAdmin = a => ({ u: a.accountId, lv: 'admin', since: D(a.since) });
+export const toAdmin = a => ({ u: a.accountId, lv: 'admin', since: D(a.since), rc: a.seeCosts !== false, ri: a.seeIndividual !== false });
 /** Entrée d'audit → `{ id, who, a, tg, sev, t }`. */
 export const toAudit = a => ({ id: a.id, who: a.who, a: a.action, tg: a.target || [a.entityType, a.entityId].filter(Boolean).join(' · '), sev: SEV[a.severity] || 'info', t: D(a.at) });
 /** Fournisseur → `{ id, n, pre, l4, st, lat, t, err }` (jamais de clé en clair). */
@@ -254,10 +254,12 @@ export function bindConsole(c) {
   if (!DEV) Auth.startSessionGuard('admin');
   c._logout = () => { if (DEV) writeToken(null); return Auth.logout('admin'); };
   const set0 = c.setState.bind(c), orig = {};
-  ['go', 'setUser', 'saveUser', 'removeUser', 'saveAdmin', 'removeAdmin', 'setTh', 'doCapture',
+  ['go', 'setUser', 'saveUser', 'removeUser', 'saveAdmin', 'removeAdmin', 'setUsageRights', 'setTh', 'doCapture',
     'setMod', 'approve', 'reject', 'saveMe', 'revoke', 'revokeAll', 'onPhoto', 'exportAudit', 'jevReply', 'jevNew', 'mtd', 'thVals', 'renderVals', 'skSave', 'skToggle', 'skCreate', 'skDelete', 'psSave', 'psUpload', 'ntToggle', 'ntAct', 'ntUndo', 'ntReadAll', 'apTest', 'apCreate', 'apSave', 'apToggle', 'apDelete', 'apRestore', 'apWidgetsSet'].forEach(k => { orig[k] = c[k].bind(c); });
   const toast = (m, t, u) => c.toast(m, t, u), fail = e => { console.warn('[admin-api]', e); toast(errText(e), 'err'); };
   let meId = 'u1';
+  // Consommation et coûts · Accès : interactions de l'administrateur (temps actif) ; Jev si l'interaction a lieu dans son panneau.
+  trackActivity(ev => post('/me/activity', { events: ev }), e => (e.target && e.target.closest && e.target.closest('[data-jev-panel]') ? 'jev' : 'console'));
 
   // Le serveur écrit le journal d'audit : l'écriture locale est neutralisée, le journal est relu.
   c.log = () => {};
@@ -682,6 +684,10 @@ export function bindConsole(c) {
     const f = c.state.form; if (!f.u) return c.setState({ fe: { u: 'Choisissez un utilisateur.' } });
     const u = c.uById(f.u);
     try { const list = await post('/admins', { accountId: f.u }); set0({ admins: list.map(toAdmin), dlg: null, form: {} }); toast(u.n + ' est désormais administrateur'); touch(); load(['accounts']).catch(() => {}); } catch (e) { fail(e); }
+  };
+  // Droits « Consommation et coûts » (Accès, 08/10/2026) : complet, sans coûts, données individuelles anonymisées.
+  c.setUsageRights = async (a, body) => {
+    try { const r = await put('/admins/' + encodeURIComponent(a.u) + '/consumption-rights', body); set0(s => ({ admins: s.admins.map(x => x.u === a.u ? { ...x, rc: r.seeCosts, ri: r.seeIndividual } : x) })); toast('Droits de consommation mis à jour · ' + ((c.uById(a.u) || {}).n || '')); touch(); } catch (e) { fail(e); }
   };
   c.removeAdmin = gateAsk('removeAdmin', a => del('/admins/' + a.u).then(() => () => load(['accounts']).catch(() => {})));
   c.exportAudit = async () => {
@@ -1177,6 +1183,42 @@ export function bindBiblio(c) {
 }
 
 // ───────────────────────────── Consommation et coûts ─────────────────────────────
+
+/**
+ * Événements d'usage (Consommation et coûts · Accès, 08/10/2026) : chaque interaction (clic, saisie, défilement) est
+ * notée, au plus une fois par fonctionnalité et par tranche de 20 s (EVENT_THROTTLE_SECONDS du serveur), puis envoyée
+ * par lots toutes les minutes et quand l'onglet passe en arrière-plan. Le temps actif est calculé par le serveur.
+ */
+export function trackActivity(send, featureOf) {
+  if (!W.addEventListener || W.__riseActivity) return;
+  W.__riseActivity = true;
+  const q = [], last = {};
+  const on = e => {
+    let f; try { f = featureOf(e); } catch (x) { f = null; } if (!f) return;
+    const t = Date.now(); if (last[f] && t - last[f] < 20_000) return; last[f] = t;
+    q.push({ at: new Date(t).toISOString(), feature: f, kind: e.type === 'keydown' ? 'saisie' : e.type === 'wheel' ? 'defilement' : 'clic' });
+  };
+  ['pointerdown', 'keydown', 'wheel'].forEach(n => W.addEventListener(n, on, { capture: true, passive: true }));
+  const flush = () => { if (!q.length) return; send(q.splice(0, 200)).catch(() => {}); };
+  setInterval(flush, 60_000);
+  W.addEventListener('pagehide', flush);
+  W.document && W.document.addEventListener('visibilitychange', () => { if (W.document.hidden) flush(); });
+}
+
+/**
+ * Consommation et coûts · Console › Accès (brief du 08/10/2026, `Consommation et couts Acces.dc.html`) :
+ * routes `/api/admin/consumption/…` ; `q` : paramètres communs déjà encodés (gran, start, scope, teams, users,
+ * feature, provider, model, compare). Les montants sont absents des réponses sans le droit « Voir les coûts ».
+ */
+export const usageApi = {
+  options: () => get('/consumption/options'),
+  summary: q => get('/consumption/summary?' + q),
+  series: q => get('/consumption/series?' + q),
+  breakdown: (by, q) => get('/consumption/breakdown?' + q),
+  users: q => get('/consumption/users?' + q),
+  /** Export de la sélection (journalisé par le serveur) ; renvoie le nom du fichier. */
+  exportCsv: q => downloadAs('/consumption/export.csv?' + q, 'consommation.csv'),
+};
 
 /**
  * Consommation et coûts (CONSO - specification.md, 02/10/2026 ; fusion de la Vue générale des coûts et du Journal) :

@@ -34,13 +34,15 @@ import { ShareController, ShareFileController } from './share.controller';
 import { ShareService } from './share.service';
 import { PrefillController } from './prefill.controller';
 import { PrefillService } from './prefill.service';
+import { ActivityController, PlatformUsageController } from './platform-usage.controller';
+import { PlatformUsageService } from './platform-usage.service';
 
 /** API de la Console Admin : `/api/admin/…`, réservée au profil ADMIN (RG1, RG7, RG16). */
 @Module({
-  controllers: [ConsoleController, GuideController, AccountsController, AiController, RulesController, SmtpController, DataController, SkillsController, PersonaController, InboxController, ApiCardsController, WidgetCatalogueController, WidgetProxyController, WidgetFeedsController, WidgetNewsController, LatencyController, ShareController, ShareFileController, PrefillController],
+  controllers: [ConsoleController, GuideController, AccountsController, AiController, RulesController, SmtpController, DataController, SkillsController, PersonaController, InboxController, ApiCardsController, WidgetCatalogueController, WidgetProxyController, WidgetFeedsController, WidgetNewsController, LatencyController, ShareController, ShareFileController, PrefillController, PlatformUsageController, ActivityController],
   // AccountsController et DataController servent aussi de fournisseurs : les décisions du tiroir de notifications
   // reprennent exactement le traitement des pages Utilisateurs et Modules.
-  providers: [ModelStatsService, ShareService, PrefillService, GuideIndexService, JevRouterService, JevAssistantService, GuideSearchService, GuideAnswerService, ProfilesService, UsageService, JevSqlService, JevCockpitInsightService, JevTraceService, LatencyService, RevectorizeService, JevMemoryService, NotificationWriterService, NotificationsService, SnapshotsService, InboxService, ApiCardsService, AccountsController, DataController],
+  providers: [PlatformUsageService, ModelStatsService, ShareService, PrefillService, GuideIndexService, JevRouterService, JevAssistantService, GuideSearchService, GuideAnswerService, ProfilesService, UsageService, JevSqlService, JevCockpitInsightService, JevTraceService, LatencyService, RevectorizeService, JevMemoryService, NotificationWriterService, NotificationsService, SnapshotsService, InboxService, ApiCardsService, AccountsController, DataController],
   // Jev du Cockpit : aiguillage et réponses à partir du guide du Cockpit (décision du 30/09/2026).
   exports: [JevRouterService, GuideAnswerService, JevCockpitInsightService, JevMemoryService],
 })
