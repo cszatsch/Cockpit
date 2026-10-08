@@ -382,12 +382,29 @@ export class TransactionalService {
       const row = await (tx as any)[def.delegate].update({ where: { id: existing.id }, data: { ...data, version: { increment: 1 } } });
       const view = def.view(row, c.today);
       await this.audit.record(tx, this.wctx(actor, scope, row.wsId, origin), { entityType: def.entityType, entityId: row.id, before: def.view(existing, c.today), after: view, wsId: row.wsId, target: def.label(row) });
+      if (def.entityType === 'RISK' && (input.wsId !== undefined || input.wsIds !== undefined || input.allWs !== undefined)) await this.alignRiskActions(tx, actor, scope, row);
       if (def.entityType === 'DECISION' && row.status === 'ARBITRATED' && existing.status !== 'ARBITRATED' && row.supersedesId) {
         await this.supersede(tx, actor, scope, row.supersedesId);
       }
       return { existing, row, result: withWarnings(view, warnings) };
     });
     return out.result;
+  }
+
+  /**
+   * Actions issues d'un risque (09/10/2026) : leur chantier suit ceux du risque. Une action dont le chantier n'est plus
+   * parmi ceux du risque passe au premier d'entre eux ; risque transverse : l'action garde le sien (l'écran affiche
+   * « Transverse » d'après le risque). Chaque changement est journalisé.
+   */
+  private async alignRiskActions(tx: Tx, actor: Actor, scope: ProjectScope, risk: any) {
+    const l = riskLinks(risk);
+    if (l.all || !l.ids.length) return;
+    const acts = await tx.action.findMany({ where: { projectId: scope.project.id, sourceType: 'RISK', sourceId: risk.id } });
+    for (const a of acts) {
+      if (a.wsId && l.ids.includes(a.wsId)) continue;
+      const row = await tx.action.update({ where: { id: a.id }, data: { wsId: l.ids[0], version: { increment: 1 } } });
+      await this.audit.record(tx, this.wctx(actor, scope, row.wsId), { entityType: 'ACTION', entityId: row.id, before: { wsId: a.wsId }, after: { wsId: row.wsId }, wsId: row.wsId, target: `${row.code} · ${row.n}` });
+    }
   }
 
   /** Une décision arbitrée qui en remplace une autre fait passer celle-ci à SUPERSEDED. */

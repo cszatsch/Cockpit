@@ -165,6 +165,22 @@ describe('Étapes 4-8 — jalons, pilotage, comités, habilitations, Aujourd’h
       await pmo.del(`${R}/risks/${multi.code}`).expect(204);
       await pmo.del(`${R}/risks/${trans.code}`).expect(204);
     });
+    it('actions issues d’un risque (09/10/2026) : leur chantier suit ceux du risque ; transverse : inchangé', async () => {
+      const pmo = await t.as(WHO.pmo);
+      const rk = (await pmo.post(`${R}/risks`, { n: 'Risque C2', p: 3, i: 3, owner: 'p06', wsIds: ['C2'] }).expect(201)).body;
+      const ac = (await pmo.post(`${R}/actions`, { n: 'Action du risque', owner: 'p06', wsId: 'C2', dueIso: '2026-11-15', status: 'OPEN', prio: 'HIGH', sourceType: 'RISK', sourceId: rk.id }).expect(201)).body;
+      const wsOf = async () => (await pmo.get(`${R}/actions/${ac.code}`).expect(200)).body.wsId;
+      await pmo.patch(`${R}/risks/${rk.code}`, { wsIds: ['C2', 'C1'] }).expect(200);
+      expect(await wsOf()).toBe('C2'); // toujours parmi les chantiers du risque
+      await pmo.patch(`${R}/risks/${rk.code}`, { wsIds: ['C4', 'C1'] }).expect(200);
+      expect(await wsOf()).toBe('C4');
+      await pmo.patch(`${R}/risks/${rk.code}`, { allWs: true }).expect(200);
+      expect(await wsOf()).toBe('C4');
+      const audit = await t.db.auditEntry.findMany({ where: { entityType: 'ACTION', entityId: ac.id, field: 'wsId' } });
+      expect(audit.map((x) => x.newValue)).toContain('C4');
+      await pmo.del(`${R}/actions/${ac.code}`).expect(204);
+      await pmo.del(`${R}/risks/${rk.code}`).expect(204);
+    });
     it('un Admin qui modifie un risque → 403 (RG6)', async () => {
       const c = await t.as(WHO.admin);
       await c.patch(`${R}/risks/R01`, { n: 'x' }).expect(403);

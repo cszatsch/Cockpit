@@ -509,3 +509,28 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 
 - Lien « Saisir sans Jev » / « Modifier sans Jev » du panneau de Jev retiré (fonction abandonnée par le commanditaire). Formulaires latéraux qu'il ouvrait supprimés : risque, problème, action, fiche décision et fiche d'arbitrage, ligne d'avancement du Planning, livrable, séance, relevé du baromètre (mois, domaine, question, thème). Puis (même jour, demande du commanditaire) : panneau latéral « Nouvelle tâche » supprimé en entier, avec le bouton « Créer une tâche de préparation » de Mes tâches ; le bouton « Ajouter · jalons » du Référentiel ouvre désormais la fenêtre d'ajout du Référentiel (et non plus le formulaire latéral) ; `openTaskForm` ne fait plus rien. Le code de traitement de ces formulaires, devenu inatteignable, reste dans l'écran.
 - Conséquences : un relevé mensuel du baromètre et une fiche d'arbitrage complète (options, critères) ne se saisissent plus dans le Cockpit ; risques, problèmes, actions et décisions se créent avec Jev.
+
+## Registres, frise des jalons, échelle du planning (09/10/2026)
+
+- Risques : colonne « Chantier » après « Risque » (chantiers du risque en pastilles, « Tous les chantiers » pour un risque transverse ; un risque à un seul chantier reste modifiable par son petit sélecteur) ; le chantier n'est plus affiché sous le porteur.
+- Actions : colonne « Chantier » après « Action ».
+- Jalons, frise : sans jalon passé, le trait « Aujourd'hui » se place avant le premier jalon (et non sur lui) ; son libellé passe à droite du trait près du bord gauche (il était coupé).
+- Jalons : un clic sur un jalon de la frise déplie le registre de l'onglet, amène la ligne du jalon au centre et la met en surbrillance (filtres levés s'ils la masquent) ; auparavant, il ouvrait le Planning.
+- Planning : l'échelle se termine au moins 6 jours après la dernière date, pour qu'un jalon ou une barre en fin de mois (31/12) ne soit plus coupé par le bord droit.
+
+## Livrables, plan de livraison : mise en forme du Planning (09/10/2026)
+
+- Colonne des libellés du plan de livraison alignée sur celle du Planning : phase en pastille sombre numérotée (grisée si tous ses livrables sont validés), nom en 13 px gras ; chantier en code C1, C2… dans sa teinte d'identité (même palette que le Planning), nom en 12,5 px ; sous-phase en code gris (rouge en cas de retard), nom en 12 px ; retrait de 18 px par niveau, filets d'arborescence (├ └) jusqu'aux livrables, chevron à gauche de la phase et dans le filet pour les niveaux inférieurs ; hauteur des lignes 32 à 36 px (au lieu de 34 à 40).
+- Phase > Chantier > Sous-phase : le chantier devient un niveau à part, repliable (Alt+clic : tous les chantiers), entre la phase et ses sous-phases (auparavant « Chantier › Sous-phase » sur une seule ligne) ; les groupes suivent l'ordre des chantiers puis des sous-phases.
+- Le décompte « x / n validés » reste en bout de ligne de groupe ; une phase ou un chantier replié indique le nombre de ses sous-niveaux (« 3 chantiers », « 2 sous-phases ») et montre sa synthèse sur la frise.
+
+## Jev : champ de saisie (09/10/2026)
+
+- Champ agrandi d'un tiers : hauteur de base 54 px (au lieu de 40), hauteur maximale 240 px (au lieu de 180) avant l'ascenseur ; pastille arrondie en proportion (constantes `JEV_TA_H0`, `JEV_TA_MAX`).
+- Correction : la hauteur n'était fixée que dans le DOM (et effacée à l'envoi) ; une hauteur périmée pouvait réapparaître à l'ouverture de Jev (champ vide tout déplié, replié dès la première lettre). Elle est désormais tenue dans l'état de l'écran (`jevInputH`, style `jevTaSt`) : hauteur de base dès que le champ est vide.
+
+## Risques et actions : références des chantiers, choix multiple (09/10/2026)
+
+- Colonne « Chantier » des risques et des actions : référence du chantier (C1, C2…, teinte d'identité du Planning ; nom en infobulle) au lieu du nom ; risque transverse : « Transverse ».
+- Risques : un clic sur la cellule ouvre une liste à choix multiple (« Transverse · tous les chantiers », réservé au PMO, puis C1, C2…) ; cocher « Transverse » remplace les chantiers, cocher un chantier quitte « Transverse » ; décocher le dernier est refusé. Écriture en une fois (`editFields` : `allWs`, `wss`).
+- Actions issues d'un risque : la colonne montre les chantiers du risque, et suit donc ses modifications ; côté serveur, le chantier de ces actions est réaligné à chaque changement des chantiers du risque (voir `docs/DECISIONS.md`).
