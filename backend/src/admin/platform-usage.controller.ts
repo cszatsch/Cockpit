@@ -26,6 +26,7 @@ export function usageQuery(q: Record<string, unknown>): UsageQuery {
   return {
     gran, start, scope, feature,
     teams: list(q.teams ?? q['teams[]']),
+    projects: list(q.projects ?? q['projects[]']),
     users: list(q.users ?? q['users[]']),
     provider: q.provider ? String(q.provider) : null,
     model: q.model ? String(q.model) : null,
@@ -87,7 +88,7 @@ export class PlatformUsageController {
   async exportCsv(@CurrentActor() actor: Actor, @Res() res: any, @Query() q: Record<string, unknown>) {
     const query = usageQuery(q), rights = await this.usage.rightsOf(actor.accountId);
     const { per, head, body } = await this.usage.exportRows(query, rights, String(q.sort ?? 'cost'), sortDir(q.dir), String(q.q ?? ''));
-    const filters = { gran: query.gran, start: per.start, scope: query.scope, teams: query.teams, users: query.users, feature: query.feature, provider: query.provider, model: query.model, q: String(q.q ?? '') || null, sort: q.sort ?? 'cost', dir: sortDir(q.dir), costs: rights.costs, individual: rights.individual };
+    const filters = { gran: query.gran, start: per.start, scope: query.scope, projects: query.projects, teams: query.teams, users: query.users, feature: query.feature, provider: query.provider, model: query.model, q: String(q.q ?? '') || null, sort: q.sort ?? 'cost', dir: sortDir(q.dir), costs: rights.costs, individual: rights.individual };
     await this.audit.action(this.prisma, adminCtx(actor), { action: 'Export de la consommation (Accès)', target: `${per.label} · ${body.length} ligne(s)`, severity: rights.individual ? 'SENSITIVE' : 'INFO', entityType: 'UsageExport', details: filters });
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="consommation-${per.gran}-${per.start}.csv"`);
@@ -140,9 +141,9 @@ export class ActivityController {
 
   @Post('activity')
   activity(@CurrentActor() actor: Actor, @Body() body: unknown) {
-    return this.usage.record(actor, activityBody(body));
+    return this.usage.record(actor, activityBody(body), parse(ActivityBody, body).project ?? null);
   }
 }
 
-export const ActivityBody = z.object({ events: z.array(z.object({ at: z.string().max(40), feature: z.string().max(20), kind: z.string().max(20).optional() }).strict()).max(200) }).strict();
+export const ActivityBody = z.object({ project: z.string().max(60).nullable().optional(), events: z.array(z.object({ at: z.string().max(40), feature: z.string().max(20), kind: z.string().max(20).optional() }).strict()).max(200) }).strict();
 export const activityBody = (body: unknown) => parse(ActivityBody, body).events.map((e) => ({ at: e.at, feature: e.feature, kind: e.kind ?? 'interaction' }));

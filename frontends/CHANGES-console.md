@@ -713,3 +713,4 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
 - Barre latérale : entrée « Consommation et coûts » dans Accès, après Administrateurs. Console : page `usage` (en-tête générique masqué), ouverture directe par `?page=usage`.
 - Administrateurs : sélecteur « Complet / Sans coûts / Anonymisé » des droits Consommation et coûts de chaque autre administrateur.
 - Panneau de Jev de la Console marqué `data-jev-panel` ; interactions envoyées par lots (`trackActivity`) pour le temps actif.
+- (08/10/2026) Consommation et coûts · Accès : données de démonstration supprimées de l'écran (sans serveur : message d'erreur) ; filtre « Projet » (sélection multiple) avant « Équipes ».

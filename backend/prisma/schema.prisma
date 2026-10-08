@@ -2153,6 +2153,8 @@ model UsageEvent {
   at        DateTime
   accountId String
   sessionId String?
+  /// Projet ouvert dans le Cockpit (null : Console)
+  projectId String?
   /// Fonctionnalité (USAGE_FEATURES)
   feature   String
   /// Type d'événement (clic, saisie, défilement, page)
@@ -2173,6 +2175,8 @@ model UsageAggHour {
   feature      String
   provider     String
   model        String
+  /// Projet ('' : sans projet, et lignes de session)
+  project      String   @default("")
   activeSec    Float    @default(0)
   connectedSec Float    @default(0)
   logins       Int      @default(0)
@@ -2182,7 +2186,7 @@ model UsageAggHour {
   tokensOut    BigInt   @default(0)
   costEur      Float    @default(0)
 
-  @@id([bucket, accountId, feature, provider, model])
+  @@id([bucket, accountId, feature, provider, model, project])
   @@map("usage_agg_hour")
 }
 
@@ -2193,6 +2197,8 @@ model UsageAggDay {
   feature      String
   provider     String
   model        String
+  /// Projet ('' : sans projet, et lignes de session)
+  project      String   @default("")
   activeSec    Float    @default(0)
   connectedSec Float    @default(0)
   logins       Int      @default(0)
@@ -2202,7 +2208,7 @@ model UsageAggDay {
   tokensOut    BigInt   @default(0)
   costEur      Float    @default(0)
 
-  @@id([bucket, accountId, feature, provider, model])
+  @@id([bucket, accountId, feature, provider, model, project])
   @@map("usage_agg_day")
 }
 

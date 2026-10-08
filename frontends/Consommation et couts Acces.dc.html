@@ -18,7 +18,7 @@ button:focus-visible,input:focus-visible,[data-uc-col]:focus-visible{outline:2px
      Balisage et styles repris de la maquette (barre latérale de la maquette retirée : celle de la Console). Données :
      admin-api.js → usageApi (GET /api/admin/consumption/options, summary, series, breakdown, users, export.csv).
      Ajouts imposés par le brief, au style de la maquette : menus des filtres, pagination du tableau, états de chargement,
-     de période vide et d'erreur. Ouvert seul (sans serveur) : données de démonstration. -->
+     de période vide et d'erreur. Aucune donnée de démonstration (08/10/2026) : sans serveur, message d'erreur. -->
 <div data-screen-label="Consommation et coûts" style="display:flex;flex-direction:column;gap:22px;min-width:0">
         <div style="display:flex;align-items:flex-end;gap:24px;flex-wrap:wrap">
           <div style="flex:1;min-width:300px;display:flex;flex-direction:column;gap:6px"><div style="font-size:11px;font-weight:800;letter-spacing:.16em;color:#1d8f86">ACCÈS</div><div style="font-size:34px;font-weight:800;font-style:italic;letter-spacing:-.03em;line-height:1.1">Consommation et coûts</div><div style="font-size:14px;color:#43586a">Usage de la plateforme et dépenses d’IA, du global à l’utilisateur.</div></div>
@@ -31,7 +31,7 @@ button:focus-visible,input:focus-visible,[data-uc-col]:focus-visible{outline:2px
         <div style="position:relative;display:flex;align-items:center;gap:8px;flex-wrap:wrap" ref="{{ a.rowRef }}">
           <div role="tablist" aria-label="Niveau" style="display:inline-flex;gap:2px;padding:3px;border-radius:11px;background:#e3ebe9"><sc-for list="{{ a.lvs }}" as="p" hint-placeholder-count="3"><button role="tab" aria-selected="{{ p.on }}" aria-disabled="{{ p.off }}" title="{{ p.tip }}" onClick="{{ p.pick }}" style="{{ p.st }}">{{ p.l }}</button></sc-for></div>
           <span style="width:1px;height:20px;background:#d5dfdd;margin:0 6px"></span>
-          <sc-for list="{{ a.fl }}" as="f" hint-placeholder-count="3"><button onClick="{{ f.pick }}" aria-haspopup="listbox" aria-expanded="{{ f.open }}" aria-disabled="{{ f.off }}" title="{{ f.tip }}" style="{{ f.st }}"><span style="color:#8a9aa6;font-weight:600">{{ f.l }}</span><b>{{ f.v }}</b><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#8a9aa6" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></button></sc-for>
+          <sc-for list="{{ a.fl }}" as="f" hint-placeholder-count="4"><button onClick="{{ f.pick }}" aria-haspopup="listbox" aria-expanded="{{ f.open }}" aria-disabled="{{ f.off }}" title="{{ f.tip }}" style="{{ f.st }}"><span style="color:#8a9aa6;font-weight:600">{{ f.l }}</span><b>{{ f.v }}</b><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#8a9aa6" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></button></sc-for>
           <span style="width:1px;height:20px;background:#d5dfdd;margin:0 6px"></span>
           <span style="font-size:10px;font-weight:800;letter-spacing:.14em;color:#a8670f;padding:3px 6px;border-radius:5px;background:#fbf0dc">IA</span>
           <sc-for list="{{ a.fia }}" as="f" hint-placeholder-count="2"><button onClick="{{ f.pick }}" aria-haspopup="listbox" aria-expanded="{{ f.open }}" style="{{ f.st }}"><span style="color:#8a9aa6;font-weight:600">{{ f.l }}</span><b>{{ f.v }}</b><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#8a9aa6" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></button></sc-for>
@@ -164,38 +164,17 @@ const CHIP = on => `height:34px;padding:0 11px 0 12px;border:0;border-radius:10p
 const SK = dark => `display:block;border-radius:8px;background:${dark ? 'linear-gradient(90deg,rgba(255,255,255,.05),rgba(255,255,255,.11),rgba(255,255,255,.05))' : 'linear-gradient(90deg,#eef3f2,#f6f9f8,#eef3f2)'};background-size:480px 100%;animation:uc-shim 1.3s linear infinite`;
 const AMBER = 1.15; // coût par heure active « en ambre » au-delà de la moyenne × 1,15 (COST_PER_HOUR_AMBER du serveur)
 const SORTS = [['n', 'name', 'Utilisateur', 0], ['h', 'active', 'Temps actif / connecté', 0], ['sess', 'sessions', 'Sessions', 1], ['dur', 'avgSession', 'Durée moy.', 1], ['req', 'requests', 'Requêtes IA', 1], ['tok', 'tokens', 'Tokens E / S', 1], ['c', 'cost', 'Coût', 1], ['d', 'costEvolution', 'Évol. coût', 1], ['sp', 'costEvolution', 'Tendance', 1]];
-const URL_KEYS = ['gran', 'start', 'cmp', 'lv', 'teams', 'users', 'feat', 'prov', 'model', 'sort', 'dir', 'q', 'bm'];
-
-// Démonstration (écran ouvert seul, sans serveur) : jeu fictif de la maquette (septembre 2026), à la forme des réponses de l'API.
-const rnd = i => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
-function demoApi() {
-  const TEAMS = ['Conseil Finance', 'Data & IA', 'Transformation', 'PMO Groupe', 'Industrie'];
-  const U = [['Camille Rousseau', 1, 41.2, 52.8, 64, 1420, 48.6, 142.3, 1.86], ['Thomas Bernier', 0, 38.5, 56.1, 71, 980, 22.4, 74.1, .06], ['Inès Moreau', 2, 35.9, 61, 58, 860, 19.8, 66.8, -.04], ['Julien Faure', 3, 33.4, 49.7, 62, 742, 16.1, 55.2, .12], ['Sarah Lemaire', 1, 31.8, 40.2, 49, 1102, 31.7, 98.4, .34], ['Antoine Girard', 4, 28.7, 47.3, 44, 518, 11.2, 38.6, .02], ['Léa Chevalier', 0, 27.2, 44.6, 52, 688, 14.9, 51.9, -.09], ['Hugo Martin', 2, 24.6, 42.8, 41, 604, 13.3, 45.7, .15]];
-  const FEAT = [['projets', 'Projets et saisie', 338, 58], ['jev', 'Jev · assistant', 176, 512], ['rapports', 'Rapports', 154, 286], ['documents', 'Documents', 118, 398], ['insights', 'Baromètre et insights', 104, 172], ['console', 'Console', 72, 56]];
-  const days = Array.from({ length: 30 }, (_, i) => { const w = (i + 2) % 7, we = w === 0 || w === 6; return { t: '2026-09-' + String(i + 1).padStart(2, '0'), label: ['Dim.', 'Lun.', 'Mar.', 'Mer.', 'Jeu.', 'Ven.', 'Sam.'][w] + ' ' + (i + 1) + ' sept.', working: !we, activeH: we ? 1 + rnd(i) : 26 + rnd(i + 7) * 12, connectedH: we ? 2 : 44 + rnd(i) * 8, costEur: i === 16 ? 166 : we ? 1.5 + rnd(i + 3) * 2 : 40 + rnd(i + 11) * 24, prevActiveH: we ? 1 : 24 + rnd(i + 40) * 10, prevCostEur: we ? 1 : 33 + rnd(i + 51) * 18, unusual: i === 16 }; });
-  const tot = k => days.reduce((s, x) => s + x[k], 0);
-  const period = { gran: 'mois', start: '2026-09-01', label: 'Septembre 2026', vsLabel: 'août 2026', prevStart: '2026-08-01', nextStart: '2026-10-01' };
-  const T = (a, c, f) => ({ activeH: a, connectedH: a * 1.58, activityRate: .633, sessions: 2412, avgSessionMin: 38, activeUsers: 86, events: 418230, requests: 18640, tokensIn: 412e6, tokensOut: 31.4e6, providers: 4, mainModel: 'Claude Sonnet 5', costEur: c, costPerActiveH: c / a, ...f });
-  const R = Promise.resolve.bind(Promise);
-  return {
-    options: () => R({ teams: TEAMS, users: U.map((u, i) => ({ id: 'u' + i, name: u[0], team: TEAMS[u[1]] })), features: FEAT.map(f => ({ id: f[0], name: f[1] })), providers: [{ id: 'anthropic', name: 'Anthropic' }, { id: 'openai', name: 'OpenAI' }, { id: 'mistral', name: 'Mistral' }, { id: 'voyage', name: 'Voyage AI' }], models: [{ id: 'm1', name: 'Claude Sonnet 5', providerId: 'anthropic' }, { id: 'm2', name: 'GPT-6 Luna', providerId: 'openai' }], rights: { costs: true, individual: true } }),
-    summary: () => R({ period, rights: { costs: true, individual: true }, settings: { unusualFactor: 1.6, costAlertPct: 30 }, current: T(tot('activeH'), tot('costEur')), previous: T(tot('prevActiveH'), tot('prevCostEur'), { sessions: 2288, avgSessionMin: 36, events: 391400, requests: 15920, tokensIn: 340e6, tokensOut: 25.1e6 }) }),
-    series: () => R({ period, points: days }),
-    breakdown: by => R({ by, avgCostPerActiveH: tot('costEur') / tot('activeH'), rows: by === 'feature' ? FEAT.map(f => ({ id: f[0], name: f[1], activeH: f[2], costEur: f[3], prevActiveH: f[2] * .92, prevCostEur: f[3] * .82, costPerActiveH: f[3] / f[2] })) : by === 'team' ? TEAMS.map((n, i) => ({ id: n, name: n, activeH: 260 - i * 30, costEur: 480 - i * 60, prevActiveH: 240 - i * 28, prevCostEur: 400 - i * 50 })) : U.map((u, i) => ({ id: 'u' + i, name: u[0], activeH: u[2], costEur: u[7], prevActiveH: u[2] * .9, prevCostEur: u[7] / (1 + u[8]) })) }),
-    users: () => R({ total: U.length, page: 1, pages: 1, pageSize: 20, rows: U.map((u, i) => ({ id: 'u' + i, name: u[0], team: TEAMS[u[1]], activeH: u[2], connectedH: u[3], sessions: u[4], avgSessionMin: Math.round(u[2] * 60 / u[4]), requests: u[5], tokensIn: u[6] * 1e6 * .93, tokensOut: u[6] * 1e6 * .07, costEur: u[7], prevCostEur: u[7] / (1 + u[8]), costEvolution: u[8], flag: u[8] >= .3, trend: days.map((d, j) => d.costEur * (.6 + .8 * rnd(j + i * 31))) })) }),
-    exportCsv: () => R('consommation-mois-2026-09-01.csv'),
-  };
-}
+const URL_KEYS = ['gran', 'start', 'cmp', 'lv', 'projects', 'teams', 'users', 'feat', 'prov', 'model', 'sort', 'dir', 'q', 'bm'];
 
 class Component extends DCLogic {
-  state = { gran: 'mois', start: null, cmp: true, lv: 'plat', teams: [], users: [], feat: null, prov: null, model: null, sort: 'cost', dir: 'desc', q: '', qIn: '', page: 1, bm: 'feat', hov: null, mn: null, mq: '', toast: null, err: null, busy: false, tick: 0 };
+  state = { gran: 'mois', start: null, cmp: true, lv: 'plat', projects: [], teams: [], users: [], feat: null, prov: null, model: null, sort: 'cost', dir: 'desc', q: '', qIn: '', page: 1, bm: 'feat', hov: null, mn: null, mq: '', toast: null, err: null, busy: false, tick: 0 };
   rowRef = el => { this._row = el; };
   componentDidMount() {
     this.readUrl();
     import('./admin-api.js').then(m => {
-      if (m.isDemo()) return this.useDemo();
+      if (m.isDemo()) return this.noServer();
       this._api = m.usageApi; this._errText = m.errText; this.boot();
-    }).catch(e => { console.warn('admin-api', e); this.useDemo(); }); // écran ouvert seul : démonstration
+    }).catch(e => { console.warn('admin-api', e); this.noServer(); }); // écran ouvert seul : pas de données
     // Mises à jour en direct : un appel d'IA ou une écriture ailleurs → relecture silencieuse.
     this._onChg = () => { clearTimeout(this._lt); this._lt = setTimeout(() => this.load('all', true), 600); };
     window.addEventListener('rise-admin:changes', this._onChg);
@@ -203,7 +182,8 @@ class Component extends DCLogic {
     window.addEventListener('keydown', this._esc);
   }
   componentWillUnmount() { clearTimeout(this._tt); clearTimeout(this._lt); clearTimeout(this._qt); window.removeEventListener('rise-admin:changes', this._onChg); window.removeEventListener('keydown', this._esc); this.clearUrl(); }
-  useDemo() { this._api = demoApi(); this._demo = true; this.boot(); }
+  /** Pas de données de démonstration : sans serveur, la vue l'indique. */
+  noServer() { this.setState({ err: 'Cette vue lit les données du serveur : ouvrez-la depuis la Console d’administration.' }); }
   boot() { this._api.options().then(o => { this._opt = o; this.bump(); }).catch(() => {}); this.load('all'); }
   bump() { this.setState(s => ({ tick: s.tick + 1 })); }
   toast(m) { clearTimeout(this._tt); this.setState({ toast: m }); this._tt = setTimeout(() => this.setState({ toast: null }), 2600); }
@@ -216,7 +196,7 @@ class Component extends DCLogic {
       if (/^\d{4}-\d{2}-\d{2}$/.test(g('start') || '')) S.start = g('start');
       if (g('cmp') === '0') S.cmp = false;
       if (['plat', 'team', 'user'].includes(g('lv'))) S.lv = g('lv');
-      ['teams', 'users'].forEach(k => { if (g(k)) S[k] = g(k).split(',').map(decodeURIComponent).filter(Boolean); });
+      ['projects', 'teams', 'users'].forEach(k => { if (g(k)) S[k] = g(k).split(',').map(decodeURIComponent).filter(Boolean); });
       ['feat', 'prov', 'model'].forEach(k => { if (g(k)) S[k] = g(k); });
       if (g('sort')) S.sort = g('sort'); if (g('dir') === 'asc') S.dir = 'asc';
       if (g('q')) { S.q = g('q'); S.qIn = g('q'); }
@@ -226,7 +206,7 @@ class Component extends DCLogic {
   }
   writeUrl() {
     try {
-      const S = this.state, p = new URLSearchParams(location.search), v = { gran: S.gran, start: S.start, cmp: S.cmp ? null : '0', lv: S.lv === 'plat' ? null : S.lv, teams: S.teams.map(encodeURIComponent).join(','), users: S.users.join(','), feat: S.feat, prov: S.prov, model: S.model, sort: S.sort === 'cost' ? null : S.sort, dir: S.dir === 'desc' ? null : S.dir, q: S.q, bm: S.bm === 'feat' ? null : S.bm };
+      const S = this.state, p = new URLSearchParams(location.search), v = { gran: S.gran, start: S.start, cmp: S.cmp ? null : '0', lv: S.lv === 'plat' ? null : S.lv, projects: S.projects.join(','), teams: S.teams.map(encodeURIComponent).join(','), users: S.users.join(','), feat: S.feat, prov: S.prov, model: S.model, sort: S.sort === 'cost' ? null : S.sort, dir: S.dir === 'desc' ? null : S.dir, q: S.q, bm: S.bm === 'feat' ? null : S.bm };
       p.set('page', 'usage');
       URL_KEYS.forEach(k => { if (v[k]) p.set('u_' + k, v[k]); else p.delete('u_' + k); });
       history.replaceState(history.state, '', location.pathname + '?' + p.toString() + location.hash);
@@ -237,7 +217,7 @@ class Component extends DCLogic {
   query(extra = {}) {
     const S = this.state, o = { gran: S.gran, start: S.start, scope: S.lv, compare: S.cmp ? '1' : '0', feature: S.feat, provider: S.prov, model: S.model, ...extra };
     const p = new URLSearchParams(); Object.entries(o).forEach(([k, v]) => { if (v !== null && v !== undefined && v !== '') p.set(k, v); });
-    S.teams.forEach(t => p.append('teams', t)); S.users.forEach(u => p.append('users', u));
+    S.projects.forEach(x => p.append('projects', x)); S.teams.forEach(t => p.append('teams', t)); S.users.forEach(u => p.append('users', u));
     return p.toString();
   }
   keys() { const S = this.state, all = this.query(); return { all, bk: all + '|' + S.bm, us: all + '|' + S.sort + S.dir + '|' + S.q + '|' + S.page }; }
@@ -304,12 +284,12 @@ class Component extends DCLogic {
   menuVals() {
     const S = this.state, O = this._opt || { teams: [], users: [], features: [], providers: [], models: [] }, k = S.mn;
     if (!k) return { on: false, opts: [] };
-    const multi = k === 'teams' || k === 'users', q = S.mq.trim().toLowerCase();
-    const src = k === 'teams' ? O.teams.map(t => ({ v: t, l: t })) : k === 'users' ? O.users.map(u => ({ v: u.id, l: u.name, sub: u.team })) : k === 'feat' ? O.features.map(f => ({ v: f.id, l: f.name })) : k === 'prov' ? O.providers.map(p => ({ v: p.id, l: p.name })) : O.models.filter(m => !S.prov || m.providerId === S.prov).map(m => ({ v: m.id, l: m.name, sub: (O.providers.find(p => p.id === m.providerId) || {}).name || '' }));
+    const multi = k === 'projects' || k === 'teams' || k === 'users', q = S.mq.trim().toLowerCase();
+    const src = k === 'projects' ? (O.projects || []).map(p => ({ v: p.id, l: p.code, sub: p.name })) : k === 'teams' ? O.teams.map(t => ({ v: t, l: t })) : k === 'users' ? O.users.map(u => ({ v: u.id, l: u.name, sub: u.team })) : k === 'feat' ? O.features.map(f => ({ v: f.id, l: f.name })) : k === 'prov' ? O.providers.map(p => ({ v: p.id, l: p.name })) : O.models.filter(m => !S.prov || m.providerId === S.prov).map(m => ({ v: m.id, l: m.name, sub: (O.providers.find(p => p.id === m.providerId) || {}).name || '' }));
     const cur = multi ? S[k] : (S[k] ? [S[k]] : []);
     const list = src.filter(o => !q || (o.l + ' ' + (o.sub || '')).toLowerCase().includes(q));
     const pick = v => { if (multi) { const has = cur.includes(v), nx = has ? cur.filter(x => x !== v) : cur.concat([v]); const p = { [k]: nx }; if (k === 'teams' && S.lv === 'team' && !nx.length) p.lv = 'plat'; if (k === 'users' && S.lv === 'user' && !nx.length) p.lv = 'plat'; this.setF(p); } else { const p = { [k]: cur[0] === v ? null : v }; if (k === 'prov') p.model = null; this.setF(p); this.setState({ mn: null }); } };
-    return { on: true, multi, title: { teams: 'Équipes', users: 'Utilisateurs', feat: 'Fonctionnalité', prov: 'Fournisseur', model: 'Modèle' }[k], search: k === 'users' || src.length > 8, q: S.mq, setQ: e => this.setState({ mq: e.target.value }), none: !list.length,
+    return { on: true, multi, title: { projects: 'Projet', teams: 'Équipes', users: 'Utilisateurs', feat: 'Fonctionnalité', prov: 'Fournisseur', model: 'Modèle' }[k], search: k === 'users' || src.length > 8, q: S.mq, setQ: e => this.setState({ mq: e.target.value }), none: !list.length,
       foot: multi ? (cur.length ? cur.length + ' sélectionné' + (cur.length > 1 ? 's' : '') : 'Aucune sélection : tout') : cur.length ? '1 choisi' : 'Aucun choix : tout',
       close: () => this.setState({ mn: null }), clear: () => { const p = { [k]: multi ? [] : null }; if ((k === 'teams' && S.lv === 'team') || (k === 'users' && S.lv === 'user')) p.lv = 'plat'; if (k === 'prov') p.model = null; this.setF(p); },
       key: e => { if (e.key === 'Escape') this.setState({ mn: null }); },
@@ -340,12 +320,12 @@ class Component extends DCLogic {
       nextSt: 'width:32px;height:36px;border:0;background:none;color:#5c7280;cursor:pointer;display:grid;place-items:center' + (nextOff ? ';opacity:.35;cursor:not-allowed' : ''),
       swSt: `position:relative;display:block;width:28px;height:16px;border-radius:8px;background:${cmp ? '#1d8f86' : '#cdd8d6'};transition:background .2s;flex:none`,
       knSt: `position:absolute;top:2px;left:${cmp ? 14 : 2}px;width:12px;height:12px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:left .2s`,
-      fl: [['teams', 'Équipes', chipV(S.teams, 'Toutes', x => x), false], ['users', 'Utilisateurs', anon ? 'Tous' : chipV(S.users, 'Tous', nm), anon], ['feat', 'Fonctionnalité', S.feat ? ((O.features.find(f => f.id === S.feat) || {}).name || S.feat) : 'Toutes', false]]
+      fl: [['projects', 'Projet', chipV(S.projects, 'Tous', id => ((O.projects || []).find(p => p.id === id) || {}).code || id), false], ['teams', 'Équipes', chipV(S.teams, 'Toutes', x => x), false], ['users', 'Utilisateurs', anon ? 'Tous' : chipV(S.users, 'Tous', nm), anon], ['feat', 'Fonctionnalité', S.feat ? ((O.features.find(f => f.id === S.feat) || {}).name || S.feat) : 'Toutes', false]]
         .map(([id, l, v, off]) => ({ l, v, off, open: S.mn === id, tip: off ? 'Droit « Voir les données individuelles » requis' : '', st: CHIP(v !== 'Toutes' && v !== 'Tous') + (off ? ';opacity:.45;cursor:not-allowed' : ''), pick: e => this.openMenu(id, e) })),
       fia: [['prov', 'Fournisseur', S.prov ? ((O.providers.find(p => p.id === S.prov) || {}).name || S.prov) : 'Tous'], ['model', 'Modèle', S.model ? ((O.models.find(m => m.id === S.model) || {}).name || S.model) : 'Tous']]
         .map(([id, l, v]) => ({ l, v, open: S.mn === id, st: CHIP(v !== 'Tous'), pick: e => this.openMenu(id, e) })),
       k, mn: this.menuVals(), rowRef: this.rowRef, exp: () => this.exportCsv(),
-      errOn: !!S.err && !sm, errL: S.err || '', retry: () => this.load('all'),
+      errOn: !!S.err && !sm, errL: S.err || '', retry: () => (this._api ? this.load('all') : location.reload()),
       skOn: !sm && !S.err, ready: !!sm, busySt: 'transition:opacity .2s;opacity:' + (S.busy ? .55 : 1),
       skD: SK(true), skL: SK(false), sk6: [1, 2, 3, 4, 5, 6], sk8: [1, 2, 3, 4, 5, 6, 7, 8],
     };

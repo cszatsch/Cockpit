@@ -492,3 +492,4 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 ## Temps actif (Consommation et coûts · Accès, 08/10/2026)
 
 - `api.js` : interactions de l'utilisateur (clic, saisie, défilement) notées au plus une fois par fonctionnalité et par 20 s, envoyées par lots (`POST /api/me/activity`) chaque minute et quand l'onglet passe en arrière-plan ; aucun changement visible.
+- (08/10/2026) Événements d'usage : projet ouvert envoyé avec chaque lot (`project`), pour le filtre « Projet » de la Console.

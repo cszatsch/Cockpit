@@ -33,6 +33,9 @@ describe('Consommation et coûts · Accès', () => {
       db.usageRecord.create({ data: { id, at: at(d), functionId: 'guidage', modelId: model!.id, providerId: model!.providerId, tokensIn: 1000, tokensOut: 200, costEur: cost, source: 'JEV', accountId: acc, feature } });
     await rec('req_usage_x1', '2026-09-10T09:05:00Z', X, 1.25, 'jev');
     await rec('req_usage_y1', '2026-08-03T10:00:00Z', Y, 0.5, 'projets');
+    // Projet RISE : un événement et un appel de X le 12 septembre (X est une personne du référentiel de RISE).
+    await db.usageEvent.create({ data: { at: at('2026-09-12T09:00:00Z'), accountId: X, feature: 'rapports', kind: 'clic', projectId: 'RISE' } });
+    await db.usageRecord.create({ data: { id: 'req_usage_x2', at: at('2026-09-12T09:01:00Z'), functionId: 'rapports', modelId: model!.id, providerId: model!.providerId, tokensIn: 10, tokensOut: 5, costEur: 0.01, source: 'JEV', accountId: X, feature: 'rapports', projectId: 'RISE' } });
     await db.authSession.create({ data: { accountId: Y, createdAt: at('2026-09-11T08:00:00Z'), lastSeenAt: at('2026-09-11T08:30:00Z'), revokedAt: at('2026-09-11T08:30:00Z'), surface: 'ADMIN' } });
     // Données historiques insérées après coup : recalcul complet.
     await db.usageSettings.upsert({ where: { id: 'default' }, create: { id: 'default' }, update: { aggregatedUntil: null } });
@@ -98,6 +101,22 @@ describe('Consommation et coûts · Accès', () => {
     expect(b.rows.find((r: any) => r.id === 'jev')).toMatchObject({ costEur: 1.25, name: 'Jev · assistant' });
   });
 
+  it('filtre Projet : temps actif et IA du projet, utilisateurs qui y ont accès', async () => {
+    const c = await t.as(WHO.admin);
+    expect((await c.get(`${A}/options`).expect(200)).body.projects.map((p: any) => p.code)).toContain('RISE');
+    const q = `gran=jour&start=2026-09-12`;
+    const all = (await c.get(`${A}/summary?${q}&users=${X}`).expect(200)).body.current;
+    const rise = (await c.get(`${A}/summary?${q}&users=${X}&projects=RISE`).expect(200)).body.current;
+    expect(rise).toMatchObject({ activeH: Math.round((5 / 60) * 100) / 100, requests: 1, costEur: 0.01 });
+    expect(all.costEur).toBeGreaterThanOrEqual(rise.costEur);
+    // Le 10 septembre, l'activité de X est sans projet (Console ou antérieure) : rien pour RISE.
+    expect((await c.get(`${A}/summary?gran=jour&start=2026-09-10&users=${X}&projects=RISE`).expect(200)).body.current).toMatchObject({ activeH: 0, requests: 0, costEur: 0, connectedH: 2 });
+    // Y n'a pas accès à RISE : hors sélection.
+    expect((await c.get(`${A}/summary?gran=mois&start=2026-09-01&users=${Y}&projects=RISE`).expect(200)).body.current).toMatchObject({ connectedH: 0, sessions: 0 });
+    const rows = (await c.get(`${A}/users?gran=mois&start=2026-09-01&projects=RISE&q=usage`).expect(200)).body.rows;
+    expect(rows.map((r: any) => r.name)).toEqual(['Xavier Usage']);
+  });
+
   it('hausses inhabituelles : point > facteur × moyenne des jours ouvrés (facteur réglable)', async () => {
     const c = await t.as(WHO.admin);
     const pts = (await c.get(`${A}/series?gran=mois&start=2026-09-01&users=${X}`).expect(200)).body.points;
@@ -116,7 +135,7 @@ describe('Consommation et coûts · Accès', () => {
     const q = `gran=mois&start=2026-09-01`;
     const byName = (await c.get(`${A}/users?${q}&sort=name&dir=asc&q=usage`).expect(200)).body;
     expect(byName.rows.map((r: any) => r.name)).toEqual(['Xavier Usage', 'Yasmine Usage']);
-    expect(byName.rows[0]).toMatchObject({ requests: 1, costEur: 1.25, sessions: 1 });
+    expect(byName.rows[0]).toMatchObject({ requests: 2, costEur: 1.26, sessions: 1 });
     expect(byName.rows[0].trend).toHaveLength(30);
     const r = await c.get(`${A}/export.csv?${q}&sort=name&dir=desc&q=usage`).expect(200);
     expect(r.headers['content-type']).toMatch(/text\/csv/);
@@ -166,8 +185,9 @@ describe('Consommation et coûts · Accès', () => {
   it('collecte : événements du Cockpit et de la Console (fonctionnalité connue, date récente) ; appel d’IA attribué au compte', async () => {
     const pmo = await t.as(WHO.pmo);
     const now = new Date().toISOString();
-    const r = (await pmo.post('/api/me/activity', { events: [{ at: now, feature: 'projets', kind: 'clic' }, { at: now, feature: 'inconnue' }, { at: '2020-01-01T00:00:00Z', feature: 'projets' }] }).expect(201)).body;
+    const r = (await pmo.post('/api/me/activity', { project: 'RISE', events: [{ at: now, feature: 'projets', kind: 'clic' }, { at: now, feature: 'inconnue' }, { at: '2020-01-01T00:00:00Z', feature: 'projets' }] }).expect(201)).body;
     expect(r).toEqual({ recorded: 1 });
+    expect((await t.db.usageEvent.findFirst({ orderBy: { id: 'desc' }, where: { feature: 'projets' } }))!.projectId).toBe('RISE');
     const adm = await t.as(WHO.admin);
     expect((await adm.post('/api/admin/me/activity', { events: [{ at: now, feature: 'console', kind: 'page' }] }).expect(201)).body).toEqual({ recorded: 1 });
     await adm.post('/api/admin/me/activity', { events: [{ at: now, feature: 'console', extra: 1 }] }).expect(400);

@@ -15,6 +15,8 @@ export interface UsageQuery {
   start: string;
   scope: 'plat' | 'team' | 'user';
   teams: string[];
+  /** Projets (identifiants) : temps actif et IA du projet, utilisateurs qui y ont accès (08/10/2026). */
+  projects: string[];
   users: string[];
   feature: string | null;
   provider: string | null;
@@ -31,6 +33,8 @@ interface Acc {
   name: string;
   team: string;
   rank: number;
+  /** Projets où le compte a accès (personne du référentiel, rattachement, habilitation). */
+  projects: Set<string>;
 }
 interface Totals {
   activeSec: number;
@@ -96,12 +100,14 @@ export class PlatformUsageService implements OnModuleInit {
   // ───────────── Collecte ─────────────
 
   /** Événements d'usage envoyés par un écran (interactions de l'utilisateur). Fonctionnalité inconnue ou date hors délai : ignoré. */
-  async record(actor: { accountId: string; sessionId: string }, events: Array<{ at: string; feature: string; kind: string }>) {
+  async record(actor: { accountId: string; sessionId: string }, events: Array<{ at: string; feature: string; kind: string }>, project?: string | null) {
     const now = Date.now();
+    // Projet ouvert dans le Cockpit (code ou identifiant) ; inconnu : événements sans projet.
+    const pr = project ? await this.prisma.project.findFirst({ where: { OR: [{ id: project }, { code: project }] }, select: { id: true } }) : null;
     const rows = events
       .map((e) => ({ at: new Date(e.at), feature: e.feature, kind: String(e.kind || 'interaction').slice(0, 20) }))
       .filter((e) => !Number.isNaN(e.at.getTime()) && FEATURE_IDS.includes(e.feature) && e.at.getTime() <= now + 60_000 && e.at.getTime() >= now - EVENT_MAX_AGE_MINUTES * 60_000)
-      .map((e) => ({ ...e, at: new Date(Math.min(e.at.getTime(), now)), accountId: actor.accountId, sessionId: actor.sessionId }));
+      .map((e) => ({ ...e, at: new Date(Math.min(e.at.getTime(), now)), accountId: actor.accountId, sessionId: actor.sessionId, projectId: pr?.id ?? null }));
     if (rows.length) await this.prisma.usageEvent.createMany({ data: rows });
     return { recorded: rows.length };
   }
@@ -165,7 +171,7 @@ WITH se AS (
   FROM "AuthSession"
 ),
 ev AS (
-  SELECT e.at, e."accountId", e.feature, se.en,
+  SELECT e.at, e."accountId", e.feature, e."projectId", se.en,
          LEAD(e.at) OVER (PARTITION BY e."accountId" ORDER BY e.at) AS nx
   FROM usage_events e LEFT JOIN se ON se.id = e."sessionId"
   WHERE e.at >= $1::timestamp AND e.at < $2::timestamp + make_interval(secs => $3)
@@ -173,7 +179,7 @@ ev AS (
 act AS (
   SELECT date_trunc('hour', at) AS bucket, "accountId" AS acc, feature, '' AS provider, '' AS model,
          GREATEST(0, LEAST($3::float8, EXTRACT(EPOCH FROM (COALESCE(nx, $4::timestamp) - at)), COALESCE(EXTRACT(EPOCH FROM (en - at)), $3::float8))) AS a,
-         0::float8 AS c, 0 AS l, 1 AS e, 0 AS r, 0::bigint AS ti, 0::bigint AS tou, 0::float8 AS cost
+         0::float8 AS c, 0 AS l, 1 AS e, 0 AS r, 0::bigint AS ti, 0::bigint AS tou, 0::float8 AS cost, COALESCE("projectId", '') AS project
   FROM ev WHERE at >= $1::timestamp AND at < $2::timestamp
 ),
 s0 AS (
@@ -187,34 +193,34 @@ s3 AS (SELECT *, SUM(CASE WHEN pe IS NULL OR st > pe THEN 1 ELSE 0 END) OVER (PA
 isl AS (SELECT acc, MIN(st) AS st, MAX(en) AS en FROM s3 GROUP BY acc, grp),
 con AS (
   SELECT h AS bucket, acc, '' AS feature, '' AS provider, '' AS model, 0::float8 AS a,
-         EXTRACT(EPOCH FROM (LEAST(en, h + interval '1 hour') - GREATEST(st, h)))::float8 AS c, 0 AS l, 0 AS e, 0 AS r, 0::bigint AS ti, 0::bigint AS tou, 0::float8 AS cost
+         EXTRACT(EPOCH FROM (LEAST(en, h + interval '1 hour') - GREATEST(st, h)))::float8 AS c, 0 AS l, 0 AS e, 0 AS r, 0::bigint AS ti, 0::bigint AS tou, 0::float8 AS cost, '' AS project
   FROM isl, generate_series(date_trunc('hour', st), en - interval '1 millisecond', interval '1 hour') AS h
 ),
 lg AS (
-  SELECT date_trunc('hour', "createdAt") AS bucket, "accountId" AS acc, '' AS feature, '' AS provider, '' AS model, 0::float8 AS a, 0::float8 AS c, 1 AS l, 0 AS e, 0 AS r, 0::bigint AS ti, 0::bigint AS tou, 0::float8 AS cost
+  SELECT date_trunc('hour', "createdAt") AS bucket, "accountId" AS acc, '' AS feature, '' AS provider, '' AS model, 0::float8 AS a, 0::float8 AS c, 1 AS l, 0 AS e, 0 AS r, 0::bigint AS ti, 0::bigint AS tou, 0::float8 AS cost, '' AS project
   FROM "AuthSession" WHERE "createdAt" >= $1::timestamp AND "createdAt" < $2::timestamp
 ),
 ai AS (
   SELECT date_trunc('hour', at) AS bucket, COALESCE("accountId", '') AS acc, COALESCE(feature, ${fnCase}) AS feature, "providerId" AS provider, "modelId" AS model,
-         0::float8 AS a, 0::float8 AS c, 0 AS l, 0 AS e, 1 AS r, "tokensIn"::bigint AS ti, "tokensOut"::bigint AS tou, "costEur"::float8 AS cost
+         0::float8 AS a, 0::float8 AS c, 0 AS l, 0 AS e, 1 AS r, "tokensIn"::bigint AS ti, "tokensOut"::bigint AS tou, "costEur"::float8 AS cost, COALESCE("projectId", '') AS project
   FROM "UsageRecord" WHERE at >= $1::timestamp AND at < $2::timestamp
 )
-INSERT INTO usage_agg_hour (bucket, "accountId", feature, provider, model, "activeSec", "connectedSec", logins, events, requests, "tokensIn", "tokensOut", "costEur")
-SELECT bucket, acc, feature, provider, model, SUM(a), SUM(c), SUM(l), SUM(e), SUM(r), SUM(ti), SUM(tou), SUM(cost)
+INSERT INTO usage_agg_hour (bucket, "accountId", feature, provider, model, project, "activeSec", "connectedSec", logins, events, requests, "tokensIn", "tokensOut", "costEur")
+SELECT bucket, acc, feature, provider, model, project, SUM(a), SUM(c), SUM(l), SUM(e), SUM(r), SUM(ti), SUM(tou), SUM(cost)
 FROM (SELECT * FROM act UNION ALL SELECT * FROM con UNION ALL SELECT * FROM lg UNION ALL SELECT * FROM ai) x
 WHERE bucket >= $1::timestamp AND bucket < $2::timestamp
-GROUP BY bucket, acc, feature, provider, model`,
+GROUP BY bucket, acc, feature, provider, model, project`,
         ...p,
       );
       // Jours de Paris touchés, recalculés depuis leurs heures.
       const mid = (d: string) => `((DATE '${d}')::timestamp AT TIME ZONE 'Europe/Paris') AT TIME ZONE 'UTC'`;
       await tx.$executeRawUnsafe(`DELETE FROM usage_agg_day WHERE bucket >= $1::date AND bucket <= $2::date`, d0, d1);
       await tx.$executeRawUnsafe(
-        `INSERT INTO usage_agg_day (bucket, "accountId", feature, provider, model, "activeSec", "connectedSec", logins, events, requests, "tokensIn", "tokensOut", "costEur")
-         SELECT ((bucket AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Paris')::date, "accountId", feature, provider, model,
+        `INSERT INTO usage_agg_day (bucket, "accountId", feature, provider, model, project, "activeSec", "connectedSec", logins, events, requests, "tokensIn", "tokensOut", "costEur")
+         SELECT ((bucket AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Paris')::date, "accountId", feature, provider, model, project,
                 SUM("activeSec"), SUM("connectedSec"), SUM(logins), SUM(events), SUM(requests), SUM("tokensIn"), SUM("tokensOut"), SUM("costEur")
          FROM usage_agg_hour WHERE bucket >= ${mid(d0)} AND bucket < ${mid(isoAdd(d1, 1))}
-         GROUP BY 1, 2, 3, 4, 5`,
+         GROUP BY 1, 2, 3, 4, 5, 6`,
       );
     }, { timeout: 600_000, maxWait: 60_000 });
   }
@@ -238,15 +244,18 @@ GROUP BY bucket, acc, feature, provider, model`,
 
   private async loadAccounts(): Promise<Map<string, Acc>> {
     const accounts = await this.prisma.account.findMany({ select: { id: true, fullName: true, email: true, personId: true, createdAt: true }, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] });
-    const persons = await this.prisma.person.findMany({ where: { OR: [{ id: { in: accounts.map((a) => a.personId).filter((x): x is string => !!x) } }, { email: { in: accounts.map((a) => a.email), mode: 'insensitive' } }] }, select: { id: true, email: true, teamId: true, project: { select: { createdAt: true } } } });
+    const persons = await this.prisma.person.findMany({ where: { OR: [{ id: { in: accounts.map((a) => a.personId).filter((x): x is string => !!x) } }, { email: { in: accounts.map((a) => a.email), mode: 'insensitive' } }] }, select: { id: true, email: true, teamId: true, projectId: true, project: { select: { createdAt: true } } } });
+    const links = await this.prisma.accountProject.findMany({ select: { accountId: true, projectId: true } });
+    const habs = await this.prisma.habilitation.findMany({ select: { accountId: true, personId: true, projectId: true } });
     const teams = new Map((await this.prisma.team.findMany({ select: { id: true, name: true } })).map((t) => [t.id, t.name]));
     const out = new Map<string, Acc>();
     accounts.forEach((a, i) => {
       const own = persons.filter((p) => p.id === a.personId || p.email.toLowerCase() === a.email.toLowerCase()).sort((x, y) => (x.id === a.personId ? -1 : y.id === a.personId ? 1 : x.project.createdAt.getTime() - y.project.createdAt.getTime()));
       const team = own.map((p) => (p.teamId ? teams.get(p.teamId) : null)).find(Boolean) ?? NO_TEAM;
-      out.set(a.id, { id: a.id, name: a.fullName, team, rank: i });
+      const pids = new Set<string>([...own.map((p) => p.projectId), ...links.filter((l) => l.accountId === a.id).map((l) => l.projectId), ...habs.filter((h) => h.accountId === a.id || (h.personId && own.some((p) => p.id === h.personId))).map((h) => h.projectId)]);
+      out.set(a.id, { id: a.id, name: a.fullName, team, rank: i, projects: pids });
     });
-    out.set(SYSTEM_ACCOUNT, { id: SYSTEM_ACCOUNT, name: SYSTEM_NAME, team: SYSTEM_NAME, rank: -1 });
+    out.set(SYSTEM_ACCOUNT, { id: SYSTEM_ACCOUNT, name: SYSTEM_NAME, team: SYSTEM_NAME, rank: -1, projects: new Set() });
     return out;
   }
 
@@ -256,8 +265,10 @@ GROUP BY bucket, acc, feature, provider, model`,
 
   /** Comptes retenus par les filtres (null : tous, y compris les appels sans utilisateur). */
   private selection(q: UsageQuery, accs: Map<string, Acc>): string[] | null {
-    if (!q.teams.length && !q.users.length) return null;
-    return [...accs.values()].filter((a) => a.id !== SYSTEM_ACCOUNT && (!q.teams.length || q.teams.includes(a.team)) && (!q.users.length || q.users.includes(a.id))).map((a) => a.id);
+    if (!q.teams.length && !q.users.length && !q.projects.length) return null;
+    const ids = [...accs.values()].filter((a) => a.id !== SYSTEM_ACCOUNT && (!q.teams.length || q.teams.includes(a.team)) && (!q.users.length || q.users.includes(a.id)) && (!q.projects.length || q.projects.some((p) => a.projects.has(p)))).map((a) => a.id);
+    // Projet seul : les appels d'IA sans utilisateur faits pour ce projet comptent aussi.
+    return !q.teams.length && !q.users.length ? ids.concat([SYSTEM_ACCOUNT]) : ids;
   }
 
   /** Contrôle des filtres selon les droits ; niveau Équipe sans équipe choisie : l'équipe au plus fort temps actif. */
@@ -277,10 +288,10 @@ GROUP BY bucket, acc, feature, provider, model`,
 
   /** Somme des mesures, regroupées par `group` (colonnes SQL) ; filtres de la page appliqués (fournisseur et modèle : IA seule). */
   private async sums(q: UsageQuery, sel: string[] | null, r: ReturnType<PlatformUsageService['range']>, group: string[], extra = '', where = ''): Promise<Row[]> {
-    const params: unknown[] = [r.from, r.to, q.feature, q.provider, q.model, sel];
-    const time = `provider = '' AND feature <> '' AND ($3::text IS NULL OR feature = $3)`;
+    const params: unknown[] = [r.from, r.to, q.feature, q.provider, q.model, sel, q.projects.length ? q.projects : null];
+    const time = `provider = '' AND feature <> '' AND ($3::text IS NULL OR feature = $3) AND ($7::text[] IS NULL OR project = ANY($7::text[]))`;
     const ses = `provider = '' AND feature = ''`;
-    const ai = `provider <> '' AND ($3::text IS NULL OR feature = $3) AND ($4::text IS NULL OR provider = $4) AND ($5::text IS NULL OR model = $5)`;
+    const ai = `provider <> '' AND ($3::text IS NULL OR feature = $3) AND ($4::text IS NULL OR provider = $4) AND ($5::text IS NULL OR model = $5) AND ($7::text[] IS NULL OR project = ANY($7::text[]))`;
     const g = group.length ? group.map((c, i) => `${c} AS g${i}`).join(', ') + ',' : '';
     const sql = `SELECT ${g}
       SUM("activeSec") FILTER (WHERE ${time}) AS "activeSec", SUM(events) FILTER (WHERE ${time}) AS events,
@@ -312,8 +323,8 @@ GROUP BY bucket, acc, feature, provider, model`,
   }
 
   private async extras(q: UsageQuery, sel: string[] | null, r: ReturnType<PlatformUsageService['range']>, rights: UsageRights) {
-    const [[u], models] = await Promise.all([this.sums(q, sel, r, [], `, COUNT(DISTINCT "accountId") FILTER (WHERE provider = '' AND feature <> '' AND ($3::text IS NULL OR feature = $3) AND "activeSec" > 0 AND "accountId" <> '') AS users,
-      COUNT(DISTINCT provider) FILTER (WHERE provider <> '' AND ($3::text IS NULL OR feature = $3) AND ($4::text IS NULL OR provider = $4) AND ($5::text IS NULL OR model = $5)) AS provs`), this.sums(q, sel, r, ['model'], '', `AND provider <> ''`)]);
+    const [[u], models] = await Promise.all([this.sums(q, sel, r, [], `, COUNT(DISTINCT "accountId") FILTER (WHERE provider = '' AND feature <> '' AND ($3::text IS NULL OR feature = $3) AND ($7::text[] IS NULL OR project = ANY($7::text[])) AND "activeSec" > 0 AND "accountId" <> '') AS users,
+      COUNT(DISTINCT provider) FILTER (WHERE provider <> '' AND ($3::text IS NULL OR feature = $3) AND ($4::text IS NULL OR provider = $4) AND ($5::text IS NULL OR model = $5) AND ($7::text[] IS NULL OR project = ANY($7::text[]))) AS provs`), this.sums(q, sel, r, ['model'], '', `AND provider <> ''`)]);
     const top = models.filter((m) => m.g0 && m.requests > 0).sort((a, b) => (rights.costs ? b.costEur - a.costEur : 0) || b.requests - a.requests)[0];
     const name = top ? (await this.prisma.aiModel.findUnique({ where: { id: String(top.g0) }, select: { name: true } }))?.name ?? String(top.g0) : null;
     return { totals: u ?? { ...ZERO }, activeUsers: num(u?.users), providers: num(u?.provs), mainModel: name };
@@ -374,7 +385,7 @@ GROUP BY bucket, acc, feature, provider, model`,
     const keyOf = (x: Row) => (by === 'feature' ? String(x.g0) : by === 'team' ? accs.get(String(x.g0))?.team ?? NO_TEAM : String(x.g0));
     const fold = (rows: Row[]) => { const m = new Map<string, Totals>(); for (const x of rows) { const k = keyOf(x); if (by === 'feature' && !k) continue; const t = m.get(k) ?? { ...ZERO }; for (const f of Object.keys(ZERO) as Array<keyof Totals>) t[f] += x[f] as number; m.set(k, t); } return m; };
     const C = fold(cur), P = fold(prev);
-    const nameOf = (k: string) => (by === 'feature' ? featureName(k) : by === 'team' ? k : this.nameOf(accs.get(k) ?? { id: k, name: k, team: NO_TEAM, rank: 0 }, rights));
+    const nameOf = (k: string) => (by === 'feature' ? featureName(k) : by === 'team' ? k : this.nameOf(accs.get(k) ?? { id: k, name: k, team: NO_TEAM, rank: 0, projects: new Set<string>() }, rights));
     const keys = by === 'feature' ? USAGE_FEATURES.map((f) => f.id as string).filter((k) => C.has(k) || P.has(k)) : [...C.keys()];
     const all = [...C.values()].reduce((a, t) => ({ s: a.s + t.activeSec, c: a.c + t.costEur }), { s: 0, c: 0 });
     const rows = keys
@@ -399,7 +410,7 @@ GROUP BY bucket, acc, feature, provider, model`,
     let rows = cur
       .filter((x) => x.activeSec > 0 || x.connectedSec > 0 || x.requests > 0)
       .map((x) => {
-        const a = accs.get(String(x.g0)) ?? { id: String(x.g0), name: String(x.g0), team: NO_TEAM, rank: 0 };
+        const a = accs.get(String(x.g0)) ?? { id: String(x.g0), name: String(x.g0), team: NO_TEAM, rank: 0, projects: new Set<string>() };
         const p = P.get(a.id), ev = evolution(x.costEur, p?.costEur ?? 0);
         const o: Record<string, unknown> = {
           id: rights.individual && a.id !== SYSTEM_ACCOUNT ? a.id : null, key: a.id, name: this.nameOf(a, rights), team: a.id === SYSTEM_ACCOUNT ? '—' : a.team,
@@ -461,6 +472,7 @@ GROUP BY bucket, acc, feature, provider, model`,
       teams: [...new Set(list.map((a) => a.team))].sort((a, b) => (a === NO_TEAM ? 1 : b === NO_TEAM ? -1 : a.localeCompare(b, 'fr'))),
       users: rights.individual ? list.map((a) => ({ id: a.id, name: a.name, team: a.team })).sort((a, b) => a.name.localeCompare(b.name, 'fr')) : [],
       features: USAGE_FEATURES.map((f) => ({ id: f.id, name: f.name })),
+      projects: (await this.prisma.project.findMany({ select: { id: true, code: true, name: true }, orderBy: { code: 'asc' } })).map((p) => ({ id: p.id, code: p.code, name: p.name })),
       providers: providers.map((p) => ({ id: p.id, name: p.name })),
       models: models.map((m) => ({ id: m.id, name: m.name, providerId: m.providerId })),
       rights,

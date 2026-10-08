@@ -1769,3 +1769,7 @@ Brief du commanditaire (maquette « 1a Miroir », `Consommation-et-couts.dc.html
 | URL | Page et filtres conservés : `?page=usage&u_gran=…&u_start=…&u_teams=…` | `readUrl`, `writeUrl` |
 | Ajouts à la maquette (imposés par le brief) | Menus des filtres, pagination du tableau, squelettes de chargement, période vide, erreur avec « Réessayer », info-bulles du graphique au clavier | `Consommation et couts Acces.dc.html` |
 | Performance | Jeu de 500 utilisateurs, 1 million d'événements, 10 000 sessions, 100 000 appels sur un mois : `summary` ≈ 0,43 s, `series` ≈ 0,18 s (requêtes en parallèle, comptes en cache 30 s) ; premier calcul complet ≈ 60 s (une fois, tâche de fond) | |
+
+#### Consommation et coûts · Accès : filtre « Projet », sans données de démonstration (08/10/2026)
+
+Demande du commanditaire. Filtre « Projet » (sélection multiple, premier des filtres de la page, `u_projects` dans l'URL) : temps actif et indicateurs d'IA du ou des projets choisis (projet ouvert dans le Cockpit lors de l'interaction, `usage_events.projectId` ; projet de l'appel d'IA, `UsageRecord.projectId`) ; utilisateurs retenus : ceux qui ont accès au projet (personne du référentiel, rattachement, habilitation) — leur temps connecté reste entier, une session n'appartenant à aucun projet ; appels sans utilisateur du projet comptés. Activité de la Console : sans projet. Agrégats : dimension `project` (migration `20261116000100_consommation_projet`, recalcul complet). L'écran n'a plus de jeu de démonstration : ouvert sans serveur, il affiche un message d'erreur.

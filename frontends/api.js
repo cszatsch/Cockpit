@@ -929,7 +929,7 @@ export function attach(comp) {
       q.push({ at: new Date(t).toISOString(), feature: f, kind: e.type === 'keydown' ? 'saisie' : e.type === 'wheel' ? 'defilement' : 'clic' });
     };
     ['pointerdown', 'keydown', 'wheel'].forEach((n) => window.addEventListener(n, on, { capture: true, passive: true }));
-    const flush = () => { if (q.length) post('/me/activity', { events: q.splice(0, 200) }).catch(() => {}); };
+    const flush = () => { if (q.length) post('/me/activity', { project: projectId, events: q.splice(0, 200) }).catch(() => {}); };
     setInterval(flush, 60_000);
     window.addEventListener('pagehide', flush);
     document.addEventListener('visibilitychange', () => { if (document.hidden) flush(); });
