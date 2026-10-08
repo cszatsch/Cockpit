@@ -1,3 +1,4 @@
+import { riskLinks } from '../../domain/rights';
 import { KbService } from '../documents/kb.service';
 import type { Actor } from '../../core/auth/auth';
 import { Injectable, OnModuleInit } from '@nestjs/common';
@@ -29,6 +30,13 @@ const day = (s: string | null | undefined) => (s ? frDay(s) : '—');
 const daysBetween = (a: string, b: string) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86400000);
 const list = (codes: string[], max = 5) => codes.slice(0, max).join(', ') + (codes.length > max ? `… (+${codes.length - max})` : '');
 /** Durée de vie d'un aperçu en mémoire (étape Prévisualisation). */
+/** Chantiers d'un risque, en clair : « Tous les chantiers » (transverse) ou leurs noms. */
+export function riskWsLabel(r: { wsId?: string | null; wsIds?: string[]; allWs?: boolean }, names: Map<string, string>): string | null {
+  const l = riskLinks(r);
+  if (l.all) return 'Tous les chantiers';
+  return l.ids.map((w) => names.get(w) ?? w).join(', ') || null;
+}
+
 export const PREVIEW_TTL_MS = 15 * 60 * 1000;
 /** Aperçu par étapes : état relu par l'écran. */
 /**
@@ -117,7 +125,8 @@ export class ReportTemplateService implements OnModuleInit {
     const parts: ComponentData[] = [];
 
     const milestoneWhere = { ...P, ...(c.scope === 'PHASE' ? { phaseId: t! } : c.scope === 'WAVE' ? { waveId: t! } : c.scope === 'WORKSTREAM' ? { wsId: t! } : {}) };
-    const openRisks = () => this.prisma.risk.findMany({ where: { ...P, ...ws, status: { not: 'CLOSED' } } });
+    // Risques d'un chantier : ceux qui le citent et les risques transverses (08/10/2026).
+    const openRisks = () => this.prisma.risk.findMany({ where: { ...P, ...(c.scope === 'WORKSTREAM' ? { OR: [{ allWs: true }, { wsIds: { has: t! } }] } : {}), status: { not: 'CLOSED' } } });
     const openActions = () => this.prisma.action.findMany({ where: { ...P, ...ws, status: { not: 'DONE' } }, orderBy: { order: 'asc' } });
     const pendingDecisions = () => this.prisma.decision.findMany({ where: { ...P, ...ws, status: { in: ['DRAFT', 'IN_REVIEW', 'TO_ARBITRATE'] } }, orderBy: { code: 'asc' } });
     const phases = () => this.prisma.phase.findMany({ where: { ...P, ...(c.scope === 'PHASE' ? { id: t! } : c.scope === 'WAVE' ? { waves: { some: { waveId: t! } } } : {}) }, orderBy: { seq: 'asc' } });
@@ -190,7 +199,7 @@ export class ReportTemplateService implements OnModuleInit {
         const wsNames = new Map((await this.prisma.workstream.findMany({ where: P, select: { id: true, name: true } })).map((w) => [w.id, w.name]));
         const noPlan = rs.filter((r) => r.p * r.i >= 20 && !r.plan?.trim()).map((r) => r.code);
         if (noPlan.length && inds.includes('plan')) warn(`aucun plan de mitigation pour ${list(noPlan)} (criticité ≥ 20).`);
-        parts.push({ part: 'board', board: 'risks', data: { today, rows: rs.map((r) => ({ code: r.code, name: r.n, p: r.p, i: r.i, plan: r.plan, owner: name(r.ownerId), ws: wsNames.get(r.wsId) ?? null, due: r.dueIso, status: st(r.status) })), show: Object.fromEntries(def.indicators.map((x) => [x.id, inds.includes(x.id)])) } as RisksData });
+        parts.push({ part: 'board', board: 'risks', data: { today, rows: rs.map((r) => ({ code: r.code, name: r.n, p: r.p, i: r.i, plan: r.plan, owner: name(r.ownerId), ws: riskWsLabel(r, wsNames), due: r.dueIso, status: st(r.status) })), show: Object.fromEntries(def.indicators.map((x) => [x.id, inds.includes(x.id)])) } as RisksData });
         break;
       }
       case 'actions': {

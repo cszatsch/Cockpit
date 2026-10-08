@@ -493,3 +493,14 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 
 - `api.js` : interactions de l'utilisateur (clic, saisie, défilement) notées au plus une fois par fonctionnalité et par 20 s, envoyées par lots (`POST /api/me/activity`) chaque minute et quand l'onglet passe en arrière-plan ; aucun changement visible.
 - (08/10/2026) Événements d'usage : projet ouvert envoyé avec chaque lot (`project`), pour le filtre « Projet » de la Console.
+
+## Risques sur plusieurs chantiers ou transverses (08/10/2026)
+
+- Formulaire de risque : champ « Chantiers concernés » à cocher, avec « Tous les chantiers » (transverse) ; la liste des chantiers est celle du projet ouvert (elle était fixe, issue de la démonstration).
+- Registre des risques : filtre par chantier opérant (un risque apparaît pour chacun de ses chantiers, un risque transverse pour tous).
+- Jev : choix des chantiers d'un risque par pastilles à cocher, « Tous les chantiers (transverse) » et « Valider la sélection ».
+
+## Livrables : bandeau de niveaux du Planning ; champ de Jev extensible (08/10/2026)
+
+- Plan de livraison des livrables : bandeau « Niveau » identique à celui du Planning (Phases, Phase > Sous-phase, Phase > Chantier, Phase > Chantier > Sous-phase, Sous-phases, Tous les chantiers, « Un chantier… » dans le bandeau ; même style) ; le sélecteur séparé (« Toutes les phases »…) est retiré ; filtres À produire / Critiques / Validés / Tous sur une ligne « Afficher ». Niveaux « Phase > … » et « Un chantier » : regroupement par phase (repliable).
+- Jev : champ de saisie multiligne qui s'agrandit avec le texte jusqu'à 180 px (environ 8 lignes), puis défile ; Entrée envoie, Maj+Entrée va à la ligne ; bouton d'envoi aligné en bas.

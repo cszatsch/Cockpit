@@ -687,7 +687,12 @@ model Risk {
   i         Int
   plan      String?
   ownerId   String
-  wsId      String
+  /// Chantier principal : le premier de `wsIds` ; null pour un risque transverse (08/10/2026)
+  wsId      String?
+  /// Chantiers concernés (un ou plusieurs) ; vide pour un risque transverse
+  wsIds     String[]   @default([])
+  /// Risque transverse : tous les chantiers du projet, y compris ceux créés ensuite
+  allWs     Boolean    @default(false)
   dueIso    String?
   status    RiskStatus @default(OPEN)
   createdAt DateTime   @default(now())

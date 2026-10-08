@@ -117,7 +117,10 @@ export function riskView(r: any) {
     criticality: riskCriticality(r.p, r.i),
     plan: r.plan,
     owner: r.ownerId,
-    wsId: r.wsId,
+    // Chantiers (08/10/2026) : principal (`wsId`, null si transverse), liste (`wsIds`), transverse (`allWs`).
+    wsId: r.wsId ?? null,
+    wsIds: r.allWs ? [] : r.wsIds?.length ? r.wsIds : r.wsId ? [r.wsId] : [],
+    allWs: !!r.allWs,
     dueIso: r.dueIso,
     status: r.status,
     version: r.version,

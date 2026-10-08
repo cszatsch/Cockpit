@@ -60,7 +60,7 @@ export class TodayGreetingService implements OnModuleInit {
       me ? this.prisma.decision.findMany({ where: { ...P, makerId: me, status: 'TO_ARBITRATE' }, orderBy: { code: 'asc' }, select: { t: true } }) : [],
       this.prisma.action.findMany({ where: { ...P, ...mine, status: { not: 'DONE' }, dueIso: { lt: today } }, orderBy: { dueIso: 'asc' }, select: { n: true } }),
       this.prisma.action.findMany({ where: { ...P, ...mine, status: { not: 'DONE' }, dueIso: { gte: today, lte: week } }, orderBy: { dueIso: 'asc' }, select: { n: true } }),
-      this.prisma.risk.findMany({ where: { ...P, ...wsIn, status: { not: 'CLOSED' } }, select: { n: true, p: true, i: true, updatedAt: true } }),
+      this.prisma.risk.findMany({ where: { ...P, ...(vis ? { OR: [{ allWs: true }, { wsIds: { hasSome: vis.length ? vis : ['__aucun__'] } }] } : {}), status: { not: 'CLOSED' } }, select: { n: true, p: true, i: true, updatedAt: true } }),
       this.prisma.milestone.findMany({ where: { ...P, ...(vis ? { wsId: { in: vis } } : {}), iso: { gte: today, lte: week } }, orderBy: { iso: 'asc' }, select: { n: true } }),
       this.prisma.action.count({ where: { ...P, ...mine, status: 'DONE', closedAt: yesterday } }),
       this.prisma.userPreferences.findUnique({ where: { accountId: actor.accountId } }),

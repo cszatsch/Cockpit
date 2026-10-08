@@ -573,7 +573,8 @@ export function attach(comp) {
       if (!known(list, id)) return;
       const F = { rk: ['n', 'p', 'i', 'plan', 'owner', 'dueIso', 'status'], is: ['n', 'sev', 'detail', 'owner', 'targetIso', 'status'], ac: ['n', 'detail', 'owner', 'dueIso', 'status'] }[kind];
       F.forEach((f) => { if (f in ch) body[f] = /Iso$/.test(f) ? date(ch[f]) : f === 'plan' ? (ch[f] || null) : ch[f]; });
-      if ('ws' in ch && wsId(ch.ws)) body.wsId = wsId(ch.ws);
+      if (kind === 'rk' && ('allWs' in ch || 'wss' in ch)) { if (ch.allWs) body.allWs = true; else body.wsIds = (ch.wss || []).map(wsId).filter(Boolean); }
+      else if ('ws' in ch && wsId(ch.ws)) body.wsId = wsId(ch.ws);
       if (kind === 'ac' && 'source' in ch) { const s = sourceOf(ch.source); if (s) { body.sourceType = s.sourceType; body.sourceId = s.sourceId; } }
       if (Object.keys(body).length) writePatch('PATCH', '/' + list + '/' + enc(id), body);
       return;
@@ -747,7 +748,8 @@ export function attach(comp) {
   function onCreate(t, o) {
     const B = S.B;
     if (t === 'ms') return create('milestones', o.id, { n: o.n, phaseId: o.phaseId, subphaseId: o.subphaseId || null, wsId: o.wsId || null, waveId: o.waveId || null, owner: o.owner || null, iso: o.iso, baselineIso: o.baselineIso || o.iso });
-    if (t === 'rk') return create('risks', o.id, { n: o.n, p: +o.p || 3, i: +o.i || 3, plan: o.plan || null, owner: o.owner, wsId: wsId(o.ws) || defaultWs(), dueIso: date(o.dueIso), status: 'OPEN' });
+    // Risque (08/10/2026) : un ou plusieurs chantiers (`wsIds`), ou tous (`allWs`).
+    if (t === 'rk') { const ids = (o.wss && o.wss.length ? o.wss : [o.ws]).map(wsId).filter(Boolean); return create('risks', o.id, { n: o.n, p: +o.p || 3, i: +o.i || 3, plan: o.plan || null, owner: o.owner, ...(o.allWs ? { allWs: true } : { wsIds: ids.length ? ids : [defaultWs()] }), dueIso: date(o.dueIso), status: 'OPEN' }); }
     if (t === 'is') return create('issues', o.id, { n: o.n, sev: +o.sev || 3, owner: o.owner, wsId: wsId(o.ws) || defaultWs(), targetIso: date(o.targetIso), detail: o.detail || '' });
     if (t === 'ac') { const s = sourceOf(o.source) || {}; return create('actions', o.id, { n: o.n, owner: o.owner, wsId: s.wsId || defaultWs(), dueIso: date(o.dueIso), status: o.status || 'OPEN', prio: 'HIGH', sourceType: s.sourceType || null, sourceId: s.sourceId || null }); }
     if (t === 'fa') {

@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { riskLinks } from '../../domain/rights';
 import { PrismaService } from '../../core/prisma.service';
 import { ProjectScope } from '../../core/access.service';
 import { TodayService } from '../../core/today.service';
@@ -39,7 +40,8 @@ export class AnomaliesService {
     const out: Anomaly[] = [];
 
     for (const r of await this.prisma.risk.findMany({ where: { ...P, status: { not: 'CLOSED' } }, orderBy: { code: 'asc' } })) {
-      if (!inWs(r.wsId)) continue;
+      const l = riskLinks(r);
+      if (vis && !(l.all ? vis.length > 0 : l.ids.some((w) => vis.includes(w)))) continue;
       const s = riskScore(r.p, r.i);
       if (s >= RISK_CRITICAL_MIN && !r.plan) {
         out.push({ kind: 'CRITICAL_RISK_WITHOUT_PLAN', level: 'RISK', entityType: 'RISK', entityId: r.id, wsId: r.wsId, text: `Risque ${r.code} (critique, ${s}) sans plan de mitigation`, owner: r.ownerId, action: 'Qualifier', target: { space: 'pilotage', tab: 'risques' } });

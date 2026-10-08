@@ -1,4 +1,5 @@
 import { serviceView } from '../../domain/template-service';
+import { canReadLinks, riskLinks, RISK_ALL_WS_LABEL } from '../../domain/rights';
 import { REFERENTIAL_META } from '../../domain/referential-meta';
 import { formatRefs } from '../../domain/report-format';
 import { Injectable } from '@nestjs/common';
@@ -185,7 +186,11 @@ export class BootstrapService {
         subphaseId: m.subphaseId,
         version: m.version,
       }));
-    const risksOut = risks.filter((r) => vis(r.wsId)).map((r) => ({ id: r.id, n: r.n, p: r.p, i: r.i, plan: r.plan, owner: r.ownerId, ws: wsName(r.wsId), due: frShort(r.dueIso), dueIso: r.dueIso, status: r.status, wsId: r.wsId, version: r.version }));
+    // Risques (08/10/2026) : un ou plusieurs chantiers, ou transverse ; `ws` : nom du chantier principal ou « Tous les chantiers ».
+    const risksOut = risks.filter((r) => canReadLinks(A, riskLinks(r))).map((r) => {
+      const l = riskLinks(r);
+      return { id: r.id, n: r.n, p: r.p, i: r.i, plan: r.plan, owner: r.ownerId, ws: l.all ? RISK_ALL_WS_LABEL : wsName(l.ids[0]), wss: l.all ? [] : l.ids.map(wsName), wsIds: l.ids, allWs: l.all, due: frShort(r.dueIso), dueIso: r.dueIso, status: r.status, wsId: r.wsId, version: r.version };
+    });
     const issuesOut = issues.filter((x) => vis(x.wsId)).map((x) => ({
       id: x.id,
       n: x.n,

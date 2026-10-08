@@ -1,7 +1,7 @@
 # Cockpit — dictionnaire des données
 
 > Généré depuis `backend/src/domain/jev-dictionnaire-cockpit.ts` (`npm run dictionnaire:doc`) : ne pas modifier à la main.
-> 35 vues en lecture seule du schéma `jev_cockpit`, chargées dans `dictionnaire_tables` et `dictionnaire_colonnes`.
+> 36 vues en lecture seule du schéma `jev_cockpit`, chargées dans `dictionnaire_tables` et `dictionnaire_colonnes`.
 > Dates métier en texte AAAA-MM-JJ, horodatages en heure de Paris. Chaque vue porte projet_id (et chantier_id) pour le filtrage par droits ; aucun rôle de lecture n’y a accès tant que ce filtrage n’est pas en place.
 
 ## Sommaire
@@ -26,7 +26,8 @@
 - [`jev_cockpit.affectations`](#affectations) — 6 colonnes
 - [`jev_cockpit.instances`](#instances) — 7 colonnes
 - [`jev_cockpit.membres_instances`](#membres_instances) — 4 colonnes
-- [`jev_cockpit.risques`](#risques) — 12 colonnes
+- [`jev_cockpit.risques`](#risques) — 14 colonnes
+- [`jev_cockpit.risques_chantiers`](#risques_chantiers) — 4 colonnes
 - [`jev_cockpit.problemes`](#problemes) — 13 colonnes
 - [`jev_cockpit.actions`](#actions) — 13 colonnes
 - [`jev_cockpit.decisions`](#decisions) — 17 colonnes
@@ -677,13 +678,16 @@ Registre des risques : probabilité, impact, criticité, plan de mitigation, por
 | `criticite` | entier | Criticité = probabilité × impact | 1 à 25 |
 | `plan_mitigation` | texte | Plan de mitigation (null ou vide : aucun) |  |
 | `responsable_id` | texte | Porteur → personnes.id |  |
-| `chantier_id` | texte | Chantier → chantiers.id |  |
+| `chantier_id` | texte | Chantier principal (le premier cité) → chantiers.id ; null pour un risque transverse |  |
 | `echeance` | texte | Échéance | AAAA-MM-JJ |
 | `statut` | texte | Statut | OPEN = ouvert, MITIGATING = en mitigation, CLOSED = clos |
+| `chantier_ids` | liste de textes | Chantiers concernés (un ou plusieurs) → chantiers.id ; vide pour un risque transverse |  |
+| `transverse` | booléen | Risque transverse : concerne tous les chantiers du projet |  |
 
 **Relations**
 
-- risques.chantier_id = chantiers.id
+- risques.chantier_id = chantiers.id (chantier principal)
+- risques.id = risques_chantiers.risque_id (tous les chantiers concernés)
 - risques.responsable_id = personnes.id
 - risques.id = problemes.risque_origine_id
 
@@ -698,6 +702,32 @@ Registre des risques : probabilité, impact, criticité, plan de mitigation, por
 - Niveau : critique si criticite ≥ 20 ; élevé si ≥ 12 ; modéré si ≥ 6 ; faible sinon.
 - Risque ouvert = statut autre que CLOSED.
 - Anomalie bloquante « risque critique sans plan » : ouvert, criticite ≥ 20 et plan_mitigation null ou vide.
+- Un risque concerne un ou plusieurs chantiers, ou tous (transverse). Risques d’un chantier : par risques_chantiers (un risque transverse y figure pour chaque chantier), jamais par risques.chantier_id seul.
+- Droits : le PMO voit tout le projet ; un Responsable ou un Lecteur ne voit que les lignes dont chantier_id fait partie de ses chantiers (habilitations).
+
+## risques_chantiers
+
+Chantiers concernés par chaque risque (08/10/2026) : une ligne par risque et par chantier ; un risque transverse a une ligne pour chacun des chantiers du projet.
+
+| Colonne | Type | Signification | Exemples, unités |
+|---|---|---|---|
+| `projet_id` | texte | Projet → projets.id |  |
+| `risque_id` | texte | Risque → risques.id |  |
+| `chantier_id` | texte | Chantier concerné → chantiers.id |  |
+| `transverse` | booléen | Ligne issue d’un risque transverse (tous les chantiers) |  |
+
+**Relations**
+
+- risques_chantiers.risque_id = risques.id
+- risques_chantiers.chantier_id = chantiers.id
+
+**Usages**
+
+- Risques d’un chantier (y compris les risques transverses).
+- Nombre de risques critiques par chantier.
+
+**Règles et précautions**
+
 - Droits : le PMO voit tout le projet ; un Responsable ou un Lecteur ne voit que les lignes dont chantier_id fait partie de ses chantiers (habilitations).
 
 ## problemes

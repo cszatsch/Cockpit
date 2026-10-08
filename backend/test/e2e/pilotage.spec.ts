@@ -135,6 +135,36 @@ describe('Étapes 4-8 — jalons, pilotage, comités, habilitations, Aujourd’h
   });
 
   describe('Étape 7 — habilitations (§ 13.7)', () => {
+    it('risque sur plusieurs chantiers ou transverse (08/10/2026) : lecture si l’un des chantiers est visible, écriture sur chacun ; transverse réservé au PMO', async () => {
+      const pmo = await t.as(WHO.pmo);
+      const multi = (await pmo.post(`${R}/risks`, { n: 'Risque C3 + C8', p: 3, i: 3, owner: 'p06', wsIds: ['C3', 'C8'] }).expect(201)).body;
+      expect(multi).toMatchObject({ wsId: 'C3', wsIds: ['C3', 'C8'], allWs: false });
+      const trans = (await pmo.post(`${R}/risks`, { n: 'Risque transverse', p: 4, i: 5, owner: 'p06', allWs: true }).expect(201)).body;
+      expect(trans).toMatchObject({ wsId: null, wsIds: [], allWs: true });
+      await pmo.post(`${R}/risks`, { n: 'Sans chantier', p: 1, i: 1, owner: 'p06' }).expect(400);
+      await pmo.post(`${R}/risks`, { n: 'Chantier inconnu', p: 1, i: 1, owner: 'p06', wsIds: ['C99'] }).expect(400);
+      // Lecteur C8 : voit le risque C3 + C8 et le transverse ; Lecteur C3 aussi ; Responsable C5 : le transverse seulement.
+      const l8 = await t.as(WHO.lecteurC8), l3 = await t.as(WHO.lecteurC3), r5 = await t.as(WHO.respC5);
+      await l8.get(`${R}/risks/${multi.code}`).expect(200);
+      await l3.get(`${R}/risks/${trans.code}`).expect(200);
+      await r5.get(`${R}/risks/${multi.code}`).expect(404);
+      const list5 = (await r5.get(`${R}/risks`).expect(200)).body.map((x: any) => x.code);
+      expect(list5).toContain(trans.code);
+      expect(list5).not.toContain(multi.code);
+      const byWs = (await pmo.get(`${R}/risks?wsId=C8`).expect(200)).body.map((x: any) => x.code);
+      expect(byWs).toEqual(expect.arrayContaining([multi.code, trans.code]));
+      // Responsable C5 : pas de transverse, pas de C5 + C3 ; le transverse reste modifiable par le PMO seul.
+      await r5.post(`${R}/risks`, { n: 'x', p: 1, i: 1, owner: 'p06', allWs: true }).expect(422);
+      await r5.post(`${R}/risks`, { n: 'x', p: 1, i: 1, owner: 'p06', wsIds: ['C5', 'C3'] }).expect(422);
+      await r5.patch(`${R}/risks/${trans.code}`, { plan: 'x' }).expect(403);
+      expect((await pmo.patch(`${R}/risks/${multi.code}`, { allWs: true }).expect(200)).body).toMatchObject({ allWs: true, wsIds: [] });
+      expect((await pmo.patch(`${R}/risks/${multi.code}`, { wsIds: ['C8'] }).expect(200)).body).toMatchObject({ allWs: false, wsIds: ['C8'], wsId: 'C8' });
+      // Bootstrap : chantiers en clair.
+      const boot = (await pmo.get(`${R}/bootstrap`).expect(200)).body;
+      expect(boot.risks.find((x: any) => x.id === trans.id)).toMatchObject({ allWs: true, ws: 'Tous les chantiers' });
+      await pmo.del(`${R}/risks/${multi.code}`).expect(204);
+      await pmo.del(`${R}/risks/${trans.code}`).expect(204);
+    });
     it('un Admin qui modifie un risque → 403 (RG6)', async () => {
       const c = await t.as(WHO.admin);
       await c.patch(`${R}/risks/R01`, { n: 'x' }).expect(403);

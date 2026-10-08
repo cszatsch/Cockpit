@@ -66,6 +66,34 @@ export function visibleWorkstreams(a: ProjectAccess): string[] | null {
   return [...new Set([...a.responsable, ...a.lecteur])];
 }
 
+/**
+ * Rattachement d'un objet à plusieurs chantiers (risques, 08/10/2026) : `ids` (un ou plusieurs chantiers) ou `all`
+ * (transverse : tous les chantiers du projet, y compris ceux créés ensuite).
+ */
+export interface WsLinks {
+  ids: string[];
+  all: boolean;
+}
+/** Libellé d'un risque transverse. */
+export const RISK_ALL_WS_LABEL = 'Tous les chantiers';
+
+/** Chantiers d'un risque (ancienne forme : `wsId` seul). */
+export function riskLinks(r: { wsId?: string | null; wsIds?: string[] | null; allWs?: boolean | null }): WsLinks {
+  if (r.allWs) return { ids: [], all: true };
+  return { ids: r.wsIds && r.wsIds.length ? [...r.wsIds] : r.wsId ? [r.wsId] : [], all: false };
+}
+/** Lecture : un des chantiers lisible ; transverse : toute personne qui voit au moins un chantier. */
+export function canReadLinks(a: ProjectAccess, l: WsLinks): boolean {
+  if (seesAllWorkstreams(a)) return true;
+  if (l.all) return a.responsable.length > 0 || a.lecteur.length > 0;
+  return l.ids.some((w) => a.responsable.includes(w) || a.lecteur.includes(w));
+}
+/** Écriture : Responsable de chacun des chantiers ; transverse : PMO seulement. */
+export function canWriteLinks(a: ProjectAccess, l: WsLinks): boolean {
+  if (a.pmo) return true;
+  return !l.all && l.ids.length > 0 && l.ids.every((w) => a.responsable.includes(w));
+}
+
 export function canReadWs(a: ProjectAccess, wsId: string | null | undefined): boolean {
   if (seesAllWorkstreams(a)) return true;
   if (!wsId) return false;

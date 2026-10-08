@@ -30,7 +30,7 @@ export function entityOfCode(code: string): WriteEntity | null {
   return null;
 }
 
-export type FieldKind = 'text' | 'scale5' | 'prio4' | 'person' | 'ws' | 'body' | 'date' | 'enum' | 'source';
+export type FieldKind = 'text' | 'scale5' | 'prio4' | 'person' | 'ws' | 'wsMulti' | 'body' | 'date' | 'enum' | 'source';
 
 export interface FieldSpec {
   key: string;
@@ -55,7 +55,8 @@ export const WRITE_FIELDS: Record<WriteEntity, FieldSpec[]> = {
     { key: 'n', label: 'Libellé', kind: 'text', required: true },
     { key: 'p', label: 'Probabilité', kind: 'scale5', required: true },
     { key: 'i', label: 'Impact', kind: 'scale5', required: true },
-    { key: 'wsId', label: 'Chantier', kind: 'ws', required: true },
+    // Un ou plusieurs chantiers, ou tous (risque transverse), 08/10/2026.
+    { key: 'wsIds', label: 'Chantiers', kind: 'wsMulti', required: true },
     { key: 'owner', label: 'Porteur', kind: 'person', required: true },
     { key: 'plan', label: 'Plan de mitigation', kind: 'text' },
     { key: 'dueIso', label: 'Échéance', kind: 'date' },
@@ -211,6 +212,10 @@ export interface DraftQuestion {
   options: Array<{ label: string; value: string | number | null }>;
   /** Réponse libre possible (saisie dans le champ de Jev). */
   free?: boolean;
+  /** Choix multiple (chantiers d'un risque) : pastilles à cocher, puis « Valider la sélection ». */
+  multi?: boolean;
+  /** Choix direct supplémentaire en mode multiple (« Tous les chantiers »). */
+  extra?: Array<{ label: string; value: string }>;
 }
 export interface WriteDraft {
   ops: DraftOp[];
@@ -231,7 +236,7 @@ export const WRITE_EXTRACT_RULES = [
   'L’utilisateur demande de créer, modifier ou supprimer un enregistrement du suivi du projet : risque (RISK), problème (ISSUE), action (ACTION) ou décision (DECISION). Ta seule tâche : extraire sa demande telle qu’il l’a formulée. Le serveur vérifiera chaque valeur, posera les questions nécessaires et demandera sa confirmation : tu n’écris rien, tu ne poses aucune question, tu n’inventes aucune valeur.',
   '',
   'Champs par objet (clé : signification) :',
-  '- RISK : n (libellé), p (probabilité 1 à 5), i (impact 1 à 5), wsId (chantier), owner (porteur), plan (plan de mitigation), dueIso (échéance), status (Ouvert, En mitigation, Clos).',
+  '- RISK : n (libellé), p (probabilité 1 à 5), i (impact 1 à 5), wsIds (chantiers concernés : un ou plusieurs codes ou noms séparés par des virgules, ou « tous » pour un risque transverse), owner (porteur), plan (plan de mitigation), dueIso (échéance), status (Ouvert, En mitigation, Clos).',
   '- ISSUE : n (libellé), sev (sévérité 1 à 5), wsId, owner, detail, targetIso (résolution visée), status (Ouvert, En résolution, Résolu).',
   '- ACTION : n (libellé), wsId, owner, dueIso, status (À faire, En cours, Bloquée, Terminée), prio (Haute, Moyenne, Basse), detail, source (code de l’objet d’origine : R03, P02, D-005).',
   '- DECISION : t (point de décision), p (priorité : Critique, Haute, Moyenne, Basse), wsId, bodyId (instance de décision : COPIL…), status (Brouillon, En instruction, À arbitrer, Arbitrée, Annulée), ddIso (date de décision), decL (texte de la décision), maker (décideur), impact.',
@@ -246,7 +251,7 @@ export const WRITE_EXTRACT_RULES = [
   '- Plusieurs enregistrements demandés : une opération par enregistrement, dans l’ordre de la demande.',
   '',
   'Réponds uniquement par un objet JSON, sans texte autour :',
-  '{"operations": [{"objet": "RISK", "operation": "CREATE", "code": null, "champs": {"n": "…", "p": "…", "i": "…", "wsId": "…", "owner": "…", "plan": "…"}, "actions_liees": [{"n": "…"}]}]}',
+  '{"operations": [{"objet": "RISK", "operation": "CREATE", "code": null, "champs": {"n": "…", "p": "…", "i": "…", "wsIds": "…", "owner": "…", "plan": "…"}, "actions_liees": [{"n": "…"}]}]}',
   'Si la demande ne vise aucune modification de risque, problème, action ou décision : {"operations": []}',
 ].join('\n');
 
@@ -268,7 +273,8 @@ export function parseExtraction(raw: string): ExtractedOp[] {
     const op = String(o?.operation ?? '').toUpperCase() as WriteOp;
     if (!WRITE_FIELDS[entity] || !['CREATE', 'UPDATE', 'DELETE'].includes(op)) continue;
     const keys = new Set(WRITE_FIELDS[entity].map((f) => f.key));
-    const fields = Object.fromEntries(Object.entries(o?.champs ?? {}).filter(([k, v]) => keys.has(k) && v !== null && v !== undefined && v !== ''));
+    // Risque : « wsId » (chantier) lu comme liste de chantiers « wsIds » (08/10/2026).
+    const fields = Object.fromEntries(Object.entries(o?.champs ?? {}).map(([k, v]) => [entity === 'RISK' && k === 'wsId' ? 'wsIds' : k, v] as [string, unknown]).filter(([k, v]) => keys.has(k) && v !== null && v !== undefined && v !== ''));
     const linked = entity === 'RISK' && op === 'CREATE' && Array.isArray(o?.actions_liees)
       ? o.actions_liees.filter((a: any) => a && typeof a.n === 'string' && a.n.trim()).slice(0, 8).map((a: any) => ({ n: String(a.n).trim().slice(0, 1000), owner: a.owner ?? null, dueIso: a.dueIso ?? null }))
       : [];
@@ -301,3 +307,10 @@ export const WRITE_CANCELLED_REPLY = 'Demande annulée : rien n’a été enregi
 export const WRITE_TOO_MANY_REPLY = 'Je n’arrive pas à compléter cette demande : rien n’a été enregistré. Reformulez-la en une phrase complète, ou saisissez l’enregistrement avec « Saisir sans Jev ».';
 /** Libellé du choix « annuler la demande », proposé avec chaque question. */
 export const WRITE_CANCEL_LABEL = 'Annuler la demande';
+
+/** Valeur « Tous les chantiers » d'un choix de chantiers (risque transverse). */
+export const WS_ALL_VALUE = '__ALL__';
+export const WS_ALL_LABEL = 'Tous les chantiers (transverse)';
+export const WS_MULTI_SUBMIT_LABEL = 'Valider la sélection';
+/** Réponse libre « tous », « transverse »… : tous les chantiers. */
+export const WS_ALL_RE = /^\s*(tous|toutes|tout le projet|transverse|l['’]ensemble)\b/i;

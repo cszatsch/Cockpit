@@ -1784,3 +1784,18 @@ Cause : le dictionnaire lu par Jev (`dictionnaire_tables`, `dictionnaire_colonne
 | Au démarrage de l'API, dictionnaire comparé au code et rechargé s'il diffère (fiches absentes, en trop, différentes, ordre) ; journal « Dictionnaire rechargé » ; le code fait foi (aucun écran ne modifie le dictionnaire) | `DictionarySyncService`, `dictionaryDrift`, `seedDictionnaire` (`src/core/dictionary-sync.ts`) |
 | Dictionnaire : chantier d'une sous-phase uniquement par `chantiers_sous_phases`, jamais par la phase ; `chantiers_phases` ne sert pas à rattacher une sous-phase ; sous-phases appelées « tâches » par les utilisateurs | `jev-dictionnaire-cockpit.ts` |
 | Consignes : toute question de données donne lieu à une nouvelle requête (jamais de réponse tirée des échanges précédents) ; pas d'explication par une règle de gestion absente des données | `COCKPIT_INSIGHT_DATA_HINT`, `COCKPIT_INSIGHT_ANSWER_RULES` |
+
+### Risques : plusieurs chantiers, ou transverse (08/10/2026)
+
+Demande du commanditaire : un risque peut concerner un chantier, plusieurs, ou tous (transverse).
+
+| Sujet | Règle | Porteur |
+|---|---|---|
+| Données | `Risk.wsIds` (chantiers concernés), `Risk.allWs` (transverse : tous les chantiers, y compris ceux créés ensuite) ; `wsId` = chantier principal (le premier cité, null si transverse), gardé pour les écrans et rapports qui en affichent un | migration `20261116000200_risques_plusieurs_chantiers` |
+| Lecture | Visible si l'un de ses chantiers est lisible ; transverse : par toute personne qui voit au moins un chantier ; filtre « chantier » de l'API et du registre : risques qui citent ce chantier, et risques transverses | `canReadLinks`, `riskLinks` (`src/domain/rights.ts`), `TransactionalService.list` |
+| Écriture | Droit d'écriture sur chacun des chantiers du risque ; transverse : PMO seulement (422 à la création pour un Responsable) | `canWriteLinks`, `assertWriteLinks` |
+| API | `POST`/`PATCH …/risks` : `wsIds` (liste) ou `allWs: true` ; `wsId` seul reste accepté (un chantier) ; au moins un chantier, ou transverse | `riskWsInput` |
+| Écran | Formulaire « Nouveau risque » / modification : chantiers à cocher et « Tous les chantiers » ; liste des chantiers = ceux du projet (et non plus une liste fixe de démonstration) ; filtre du registre corrigé (les lignes n'avaient pas de chantier) | `tfWsChips`, `rkFilter` |
+| Jev (cas 3) | Champ « Chantiers » à choix multiple : pastilles à cocher, « Tous les chantiers (transverse) » (PMO), « Valider la sélection » ; réponse libre « C1, C3 » ou « tous » ; action liée créée sur le premier chantier du risque | `WRITE_FIELDS.RISK`, `wsMulti` |
+| Jev (données) | Vue `risques` : `chantier_ids`, `transverse` ; nouvelle vue `risques_chantiers` (une ligne par risque et par chantier, transverse développé sur tous les chantiers) | `jev-dictionnaire-cockpit.ts` |
+| Rapports | Composant Risques d'un chantier : risques qui le citent et risques transverses ; colonne chantier : noms, ou « Tous les chantiers » | `riskWsLabel` |

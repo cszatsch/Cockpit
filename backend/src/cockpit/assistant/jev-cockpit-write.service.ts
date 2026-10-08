@@ -8,18 +8,18 @@ import { LlmService } from '../../core/llm.service';
 import { JevPromptService } from '../../core/jev-prompt.service';
 import { PrismaService } from '../../core/prisma.service';
 import { TodayService } from '../../core/today.service';
-import { canReadWs, canWriteWs } from '../../domain/rights';
+import { canReadLinks, canReadWs, canWriteLinks, canWriteWs, riskLinks, RISK_ALL_WS_LABEL } from '../../domain/rights';
 import { requestContext } from '../../domain/jev-sql';
 import { COCKPIT_CASE_ROUTE } from '../../domain/jev-router-cockpit';
 import { nowParisLabel } from '../../domain/jev-cockpit-answers';
 import {
   DraftOp, DraftQuestion, entityOfCode, enumValue, ExtractedOp, fieldSpec, frDate, matchNamed, Named, opTitle, parseDate, parseExtraction, prio4Candidates, PRIO4_LABEL,
-  scaleCandidates, SCALE5_LABEL, WriteDraft, WriteEntity, WRITE_CANCELLED_REPLY, WRITE_CANCEL_LABEL, WRITE_CODE_RE, WRITE_ENTITY_LABEL, WRITE_EXTRACT_RULES, WRITE_FIELDS,
+  scaleCandidates, SCALE5_LABEL, WS_ALL_LABEL, WS_ALL_RE, WS_ALL_VALUE, WS_MULTI_SUBMIT_LABEL, WriteDraft, WriteEntity, WRITE_CANCELLED_REPLY, WRITE_CANCEL_LABEL, WRITE_CODE_RE, WRITE_ENTITY_LABEL, WRITE_EXTRACT_RULES, WRITE_FIELDS,
   WRITE_MAX_OPTIONS, WRITE_MAX_QUESTIONS, WRITE_NOTHING_REPLY, WRITE_RECAP_REPLY, WRITE_TOO_MANY_REPLY,
 } from '../../domain/jev-cockpit-write';
 import { JEV_WRITABLE_DEFS } from './jev-writable';
 
-export interface WriteChoice { label: string; answer: { value: string | number | null } | { cancel: true } }
+export interface WriteChoice { label: string; answer: { value: string | number | null | string[]; toggle?: boolean } | { cancel: true } | { submit: true } }
 export interface WriteProposal { id: string; entityType: string; entityId: string | null; op: string; patch: unknown; summary: string; status: string; group: 'main' | 'linked'; title: string; rows: Array<{ t: string; a?: string; b: string }>; confirmCode: string | null }
 export interface WriteOutcome {
   status: 'ASK' | 'RECAP' | 'NOTHING' | 'REFUSED' | 'CANCELLED';
@@ -78,7 +78,7 @@ export class JevCockpitWriteService {
   }
 
   /** Réponse à la question à choix posée (ou annulation de la demande). */
-  async answer(scope: ProjectScope, actor: Actor, conv: JevConversation, ans: { value?: string | number | null; cancel?: boolean }): Promise<WriteOutcome> {
+  async answer(scope: ProjectScope, actor: Actor, conv: JevConversation, ans: { value?: string | number | null | string[]; cancel?: boolean }): Promise<WriteOutcome> {
     const draft = (conv.draft as unknown as WriteDraft | null) ?? null;
     if (ans.cancel || !draft || !draft.question) {
       await this.setDraft(conv.id, null);
@@ -98,7 +98,7 @@ export class JevCockpitWriteService {
     // Valeurs déjà choisies par une question (même objet, même opération) : conservées si l'extraction ne les change pas.
     const old = prev?.ops.find((p) => p.entity === o.entity && p.op === o.op && (p.code ?? null) === (o.code ?? p.code ?? null));
     const raw: Record<string, unknown> = { ...(old?.raw ?? {}) };
-    for (const [k, v] of Object.entries(o.fields)) raw[k] = v;
+    for (const [k, v] of Object.entries(o.fields)) raw[o.entity === 'RISK' && k === 'wsId' ? 'wsIds' : k] = v;
     return { entity: o.entity, op: o.op, code: o.code ?? old?.code ?? null, raw, fields: {}, shown: {}, linked: o.linked.length ? o.linked : old?.linked };
   }
 
@@ -118,7 +118,11 @@ export class JevCockpitWriteService {
         draft.question = res.question;
         draft.asked++;
         await this.setDraft(conv.id, draft);
-        const choices: WriteChoice[] = res.question.options.slice(0, WRITE_MAX_OPTIONS).map((o) => ({ label: o.label, answer: { value: o.value } }));
+        const q = res.question;
+        // Choix multiple (chantiers d'un risque) : pastilles à cocher, « Tous les chantiers », puis « Valider la sélection ».
+        const choices: WriteChoice[] = q.options.slice(0, WRITE_MAX_OPTIONS).map((o) => ({ label: o.label, answer: q.multi ? { value: o.value, toggle: true } : { value: o.value } }));
+        for (const x of q.extra ?? []) choices.push({ label: x.label, answer: { value: x.value } });
+        if (q.multi) choices.push({ label: WS_MULTI_SUBMIT_LABEL, answer: { submit: true } });
         choices.push({ label: WRITE_CANCEL_LABEL, answer: { cancel: true } });
         return { status: 'ASK', reply: res.question.text, choices, proposedChanges: [] };
       }
@@ -151,8 +155,9 @@ export class JevCockpitWriteService {
       }
       if (entityOfCode(o.code) !== o.entity) return { refuse: `Le code ${o.code} ne correspond pas à ${L.a}.` };
       existing = await (this.prisma as any)[JEV_WRITABLE_DEFS[o.entity].delegate].findFirst({ where: { projectId: scope.project.id, code: o.code } });
-      if (!existing || !canReadWs(scope.access, existing.wsId)) return { refuse: `Je ne trouve pas ${L.the} ${o.code} dans votre périmètre.` };
-      if (!canWriteWs(scope.access, existing.wsId)) return { refuse: `Vous ne pouvez pas ${o.op === 'DELETE' ? 'supprimer' : 'modifier'} ${o.code} : seul le PMO ou le Responsable du chantier ${existing.wsId} le peut.` };
+      const xl = o.entity === 'RISK' ? riskLinks(existing ?? {}) : { ids: existing?.wsId ? [existing.wsId] : [], all: false };
+      if (!existing || !canReadLinks(scope.access, xl)) return { refuse: `Je ne trouve pas ${L.the} ${o.code} dans votre périmètre.` };
+      if (!canWriteLinks(scope.access, xl)) return { refuse: `Vous ne pouvez pas ${o.op === 'DELETE' ? 'supprimer' : 'modifier'} ${o.code} : seul le PMO ou le Responsable du chantier ${existing.wsId} le peut.` };
       if (o.entity === 'DECISION' && existing.status === 'ARBITRATED') return { refuse: `La décision ${o.code} est arbitrée : sa fiche est en lecture seule.` };
       o.targetId = existing.id;
       o.targetLabel = `${existing.code} · ${existing.n ?? existing.t}`;
@@ -206,7 +211,7 @@ export class JevCockpitWriteService {
           const m = picked !== undefined ? refs.people.filter((p) => p.id === picked) : norm1(raw) === 'moi' && me ? [me] : matchNamed(raw, refs.people);
           if (m.length === 1) { o.fields[key] = m[0].id; o.shown[key] = m[0].label; break; }
           if (!has && !need) break;
-          const ws = (o.fields.wsId as string | undefined) ?? existing?.wsId;
+          const ws = (o.fields.wsId as string | undefined) ?? (o.fields.wsIds as string[] | undefined)?.[0] ?? existing?.wsId ?? undefined;
           const near = m.length > 1 ? m : await this.peopleNear(scope, refs, ws);
           return ask(m.length > 1 ? `Plusieurs personnes correspondent à « ${String(raw)} » : laquelle ?` : has ? `Je ne trouve pas « ${String(raw)} » parmi les personnes du projet. Qui est le ${spec.label.toLowerCase()} ?` : `Qui est le ${spec.label.toLowerCase()} ?`, near.map((p) => ({ label: p.label, value: p.id })), true);
         }
@@ -218,6 +223,31 @@ export class JevCockpitWriteService {
           if (!refs.writable.length) return { refuse: 'Vous n’avez le droit d’écrire sur aucun chantier de ce projet.' };
           const opts = (m.length > 1 ? m.filter((w) => canWriteWs(scope.access, w.id)) : refs.writable).map((w) => ({ label: w.label, value: w.id }));
           return ask(m.length === 1 ? `Vous ne pouvez écrire que sur vos chantiers : ${m[0].label} n’en fait pas partie. Lequel choisir ?` : m.length > 1 ? `Plusieurs chantiers correspondent à « ${String(raw)} » : lequel ?` : has ? `Je ne trouve pas le chantier « ${String(raw)} ». Lequel ?` : 'Sur quel chantier ?', opts.length ? opts : refs.writable.map((w) => ({ label: w.label, value: w.id })));
+        }
+        case 'wsMulti': {
+          // Chantiers d'un risque (08/10/2026) : un ou plusieurs, ou tous (transverse, PMO seulement).
+          const all = picked === WS_ALL_VALUE || (picked === undefined && typeof raw === 'string' && WS_ALL_RE.test(raw)) || (Array.isArray(raw) && raw.some((x) => WS_ALL_RE.test(String(x))));
+          const isPmo = canWriteLinks(scope.access, { ids: [], all: true });
+          if (all) {
+            if (!isPmo) return ask('Un risque transverse (tous les chantiers) est réservé au PMO. Sur quels chantiers, parmi les vôtres ?', refs.writable.map((w) => ({ label: w.label, value: w.id })));
+            o.fields.allWs = true; o.fields.wsIds = []; o.shown[key] = RISK_ALL_WS_LABEL; break;
+          }
+          const tokens: unknown[] = picked !== undefined ? (Array.isArray(picked) ? picked : picked === null ? [] : [picked]) : Array.isArray(raw) ? raw : typeof raw === 'string' ? raw.split(/\s*(?:,|;|\bet\b|\+)\s*/i).filter(Boolean) : raw ? [raw] : [];
+          const found = tokens.map((t) => (picked !== undefined ? refs.ws.filter((w) => w.id === t) : matchNamed(t, refs.ws)));
+          const ok = found.length > 0 && found.every((f) => f.length === 1);
+          const ids = ok ? [...new Set(found.map((f) => f[0].id))] : [];
+          if (ok && canWriteLinks(scope.access, { ids, all: false })) {
+            o.fields.wsIds = ids; o.fields.allWs = false;
+            o.shown[key] = ids.map((x) => refs.ws.find((w) => w.id === x)!.label).join(', ');
+            break;
+          }
+          if (!has && !need) break;
+          if (!has && refs.writable.length === 1 && !isPmo) { o.fields.wsIds = [refs.writable[0].id]; o.fields.allWs = false; o.shown[key] = refs.writable[0].label; break; }
+          if (!refs.writable.length) return { refuse: 'Vous n’avez le droit d’écrire sur aucun chantier de ce projet.' };
+          const bad = ok ? ids.filter((x) => !canWriteLinks(scope.access, { ids: [x], all: false })).map((x) => refs.ws.find((w) => w.id === x)!.label) : [];
+          const text = bad.length ? `Vous ne pouvez écrire que sur vos chantiers : ${bad.join(', ')} n’en ${bad.length > 1 ? 'font' : 'fait'} pas partie. Quels chantiers choisir ?`
+            : has ? `Je ne reconnais pas tous les chantiers de « ${Array.isArray(raw) ? raw.join(', ') : String(raw)} ». Quels chantiers sont concernés ?` : 'Quels chantiers sont concernés ? Cochez-en un ou plusieurs' + (isPmo ? ', ou choisissez « Tous les chantiers ».' : '.');
+          return { question: { op: idx, field: key, text, options: refs.writable.map((w) => ({ label: w.label, value: w.id })), free: true, multi: true, extra: isPmo ? [{ label: WS_ALL_LABEL, value: WS_ALL_VALUE }] : [] } };
         }
         case 'body': {
           const m = picked !== undefined ? refs.bodies.filter((b) => b.id === picked) : matchNamed(raw, refs.bodies);
@@ -263,9 +293,11 @@ export class JevCockpitWriteService {
         for (const a of o.linked) {
           const owner = a.owner ? matchNamed(a.owner, refs.people) : [];
           const due = a.dueIso ? parseDate(a.dueIso, refs.today) : null;
-          const patch = { n: a.n, wsId: o.fields.wsId, owner: owner.length === 1 ? owner[0].id : o.fields.owner, ...(due ? { dueIso: due } : {}), sourceType: 'RISK', sourceRef: c.id };
+          // Action liée : un seul chantier, le premier du risque (risque transverse : le premier chantier où l'utilisateur peut écrire).
+          const aWs = (o.fields.wsIds as string[] | undefined)?.[0] ?? (o.fields.wsId as string | undefined) ?? refs.writable[0]?.id;
+          const patch = { n: a.n, wsId: aWs, owner: owner.length === 1 ? owner[0].id : o.fields.owner, ...(due ? { dueIso: due } : {}), sourceType: 'RISK', sourceRef: c.id };
           const who = refs.people.find((p) => p.id === patch.owner)?.label ?? '';
-          const lrows = [{ t: 'Libellé', b: a.n }, { t: 'Porteur', b: who }, { t: 'Chantier', b: o.shown.wsId ?? '' }, ...(due ? [{ t: 'Échéance', b: frDate(due) }] : []), { t: 'Origine', b: 'le nouveau risque' }];
+          const lrows = [{ t: 'Libellé', b: a.n }, { t: 'Porteur', b: who }, { t: 'Chantier', b: refs.ws.find((w) => w.id === aWs)?.label ?? '' }, ...(due ? [{ t: 'Échéance', b: frDate(due) }] : []), { t: 'Origine', b: 'le nouveau risque' }];
           const lc = await this.prisma.assistantChange.create({ data: { projectId: scope.project.id, accountId: actor.accountId, entityType: 'ACTION', entityId: null, op: 'CREATE', patch: patch as any, summary: `Créer une action liée — ${a.n}`.slice(0, 2000) } });
           out.push({ id: lc.id, entityType: 'ACTION', entityId: null, op: 'CREATE', patch, summary: lc.summary, status: lc.status, group: 'linked', title: `Action liée · ${short(a.n, 80)}`, rows: lrows, confirmCode: null });
         }
@@ -330,7 +362,7 @@ export class JevCockpitWriteService {
   /** Objets que l'utilisateur peut modifier (choix proposés quand le code manque), les plus récents d'abord. */
   private async writableRows(scope: ProjectScope, entity: WriteEntity, n: number): Promise<any[]> {
     const rows = await (this.prisma as any)[JEV_WRITABLE_DEFS[entity].delegate].findMany({ where: { projectId: scope.project.id }, orderBy: { code: 'desc' } });
-    return rows.filter((r: any) => canWriteWs(scope.access, r.wsId) && !(entity === 'DECISION' && r.status === 'ARBITRATED')).slice(0, n);
+    return rows.filter((r: any) => canWriteLinks(scope.access, entity === 'RISK' ? riskLinks(r) : { ids: r.wsId ? [r.wsId] : [], all: false }) && !(entity === 'DECISION' && r.status === 'ARBITRATED')).slice(0, n);
   }
 
   /** Valeurs actuelles des objets cités (codes du texte ou de la modification en cours), dans le périmètre de lecture. */
@@ -341,7 +373,7 @@ export class JevCockpitWriteService {
       const e = entityOfCode(code);
       if (!e) continue;
       const r: any = await (this.prisma as any)[JEV_WRITABLE_DEFS[e].delegate].findFirst({ where: { projectId: scope.project.id, code } });
-      if (!r || !canReadWs(scope.access, r.wsId)) continue;
+      if (!r || !canReadLinks(scope.access, e === 'RISK' ? riskLinks(r) : { ids: r.wsId ? [r.wsId] : [], all: false })) continue;
       const pick = Object.fromEntries(Object.entries(r).filter(([k]) => !['projectId', 'createdAt', 'updatedAt', 'version', 'order'].includes(k)));
       out.push(`- ${code} : ${JSON.stringify(pick)}`);
     }

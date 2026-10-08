@@ -6,7 +6,7 @@ import { Actor, CurrentActor } from '../../core/auth/auth';
 import { PrismaService } from '../../core/prisma.service';
 import { badRequest, forbidden, notFound } from '../../core/errors';
 import { parse } from '../../core/http';
-import { canReadWs, canWriteReferential, canWriteTools, hasAnyAccess } from '../../domain/rights';
+import { canReadLinks, canReadWs, canWriteReferential, canWriteTools, hasAnyAccess, riskLinks } from '../../domain/rights';
 
 /** Entités commentables et leur rattachement (commentaires : toute personne qui peut lire l'objet, § 8.6). */
 const WS_BOUND: Record<string, { delegate: string; ws: string }> = {
@@ -53,7 +53,7 @@ export class CollabController {
     const bound = WS_BOUND[entityType];
     if (bound) {
       const row = await (this.prisma as any)[bound.delegate].findFirst({ where: { id: entityId, projectId: scope.project.id } });
-      if (!row || !canReadWs(scope.access, row[bound.ws])) throw notFound();
+      if (!row || !(bound.delegate === 'risk' ? canReadLinks(scope.access, riskLinks(row)) : canReadWs(scope.access, row[bound.ws]))) throw notFound();
       return;
     }
     const delegate = OPEN_TO_ALL[entityType];

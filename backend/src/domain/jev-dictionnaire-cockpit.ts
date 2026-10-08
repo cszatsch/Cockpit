@@ -451,18 +451,35 @@ export const DICTIONNAIRE_COCKPIT: DictTable[] = [
       { nom: 'criticite', expr: 't.p * t.i', type: 'entier', signification: 'Criticité = probabilité × impact', exemples: '1 à 25' },
       { nom: 'plan_mitigation', expr: 't.plan', type: 'texte', signification: 'Plan de mitigation (null ou vide : aucun)' },
       { nom: 'responsable_id', expr: `t.${q('ownerId')}`, type: 'texte', signification: 'Porteur → personnes.id' },
-      { nom: 'chantier_id', expr: `t.${q('wsId')}`, type: 'texte', signification: 'Chantier → chantiers.id' },
+      { nom: 'chantier_id', expr: `t.${q('wsId')}`, type: 'texte', signification: 'Chantier principal (le premier cité) → chantiers.id ; null pour un risque transverse' },
       { nom: 'echeance', expr: `t.${q('dueIso')}`, type: 'texte', signification: 'Échéance', exemples: 'AAAA-MM-JJ' },
       { nom: 'statut', expr: 't.status::text', type: 'texte', signification: 'Statut', exemples: 'OPEN = ouvert, MITIGATING = en mitigation, CLOSED = clos' },
+      { nom: 'chantier_ids', expr: `t.${q('wsIds')}`, type: 'liste de textes', signification: 'Chantiers concernés (un ou plusieurs) → chantiers.id ; vide pour un risque transverse' },
+      { nom: 'transverse', expr: `t.${q('allWs')}`, type: 'booléen', signification: 'Risque transverse : concerne tous les chantiers du projet' },
     ],
-    relations: ['risques.chantier_id = chantiers.id', 'risques.responsable_id = personnes.id', 'risques.id = problemes.risque_origine_id'],
+    relations: ['risques.chantier_id = chantiers.id (chantier principal)', 'risques.id = risques_chantiers.risque_id (tous les chantiers concernés)', 'risques.responsable_id = personnes.id', 'risques.id = problemes.risque_origine_id'],
     usages: ['Risques critiques ouverts.', 'Risques critiques sans plan de mitigation.', 'Matrice probabilité × impact.'],
     regles: [
       'Niveau : critique si criticite ≥ 20 ; élevé si ≥ 12 ; modéré si ≥ 6 ; faible sinon.',
       'Risque ouvert = statut autre que CLOSED.',
       'Anomalie bloquante « risque critique sans plan » : ouvert, criticite ≥ 20 et plan_mitigation null ou vide.',
+      'Un risque concerne un ou plusieurs chantiers, ou tous (transverse). Risques d’un chantier : par risques_chantiers (un risque transverse y figure pour chaque chantier), jamais par risques.chantier_id seul.',
       DROITS_CHANTIER,
     ],
+  },
+  {
+    nom: 'risques_chantiers',
+    source: '"Risk" t JOIN "Workstream" w ON w."projectId" = t."projectId" AND (t."allWs" OR w.id = ANY(t."wsIds"))',
+    description: 'Chantiers concernés par chaque risque (08/10/2026) : une ligne par risque et par chantier ; un risque transverse a une ligne pour chacun des chantiers du projet.',
+    colonnes: [
+      { nom: 'projet_id', expr: `t.${q('projectId')}`, type: 'texte', signification: 'Projet → projets.id' },
+      { nom: 'risque_id', expr: 't.id', type: 'texte', signification: 'Risque → risques.id' },
+      { nom: 'chantier_id', expr: 'w.id', type: 'texte', signification: 'Chantier concerné → chantiers.id' },
+      { nom: 'transverse', expr: `t.${q('allWs')}`, type: 'booléen', signification: 'Ligne issue d’un risque transverse (tous les chantiers)' },
+    ],
+    relations: ['risques_chantiers.risque_id = risques.id', 'risques_chantiers.chantier_id = chantiers.id'],
+    usages: ['Risques d’un chantier (y compris les risques transverses).', 'Nombre de risques critiques par chantier.'],
+    regles: [DROITS_CHANTIER],
   },
   {
     nom: 'problemes',
@@ -772,6 +789,8 @@ export function cockpitRightsFilter(t: DictTable): string {
   else if (t.nom === 'documents') cond.push(`(${all} OR t.conf::text <> 'RESTRICTED')`);
   else if (t.nom === 'liens_documents') cond.push(`(${all} OR d.conf::text <> 'RESTRICTED')`);
   else if (t.nom === 'commentaires') cond.push(all);
+  // Risques (08/10/2026) : visibles si transverse ou si l'un de leurs chantiers est dans la liste.
+  else if (t.nom === 'risques') cond.push(`(${all} OR t."allWs" OR t."wsIds" && string_to_array(current_setting('${SCOPE_CHANTIERS}', true), ','))`);
   else if (t.nom !== 'livrables' && col('chantier_id')) cond.push(inList(col('chantier_id')!));
   return `(current_user <> '${JEV_COCKPIT_ROLE}' OR (${cond.join(' AND ')}))`;
 }

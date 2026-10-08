@@ -43,7 +43,7 @@ const Message = z
     /** Conversation en cours (mémoire) ; absente : nouvelle conversation. */
     conversationId: z.string().max(60).optional(),
     /** Réponse à la question à choix de Jev (cas 3), ou annulation de la demande en cours. */
-    answer: z.union([z.object({ value: z.union([z.string().max(200), z.number(), z.null()]) }).strict(), z.object({ cancel: z.literal(true) }).strict()]).optional(),
+    answer: z.union([z.object({ value: z.union([z.string().max(200), z.number(), z.null(), z.array(z.string().max(200)).max(50)]) }).strict(), z.object({ cancel: z.literal(true) }).strict()]).optional(),
   })
   .strict();
 

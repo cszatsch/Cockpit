@@ -1,4 +1,5 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Put } from '@nestjs/common';
+import { riskLinks } from '../../domain/rights';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
@@ -235,7 +236,8 @@ export class TodayController {
     const budget = await this.prisma.programBudget.findUnique({ where: { projectId: scope.project.id } });
     if (budget && !budget.known) stale.push({ kind: 'EMPTY_FIELD', entityType: 'PROGRAM_BUDGET', entityId: scope.project.id, title: 'Budget programme non renseigné', owner: scope.project.programDirectorId, level: 'RISK', cta: 'Renseigner' });
     for (const r of await this.prisma.risk.findMany({ where: { ...P, plan: null, status: { not: 'CLOSED' } }, orderBy: { code: 'asc' } })) {
-      if (!inWs(r.wsId)) continue;
+      const l = riskLinks(r);
+      if (vis && !(l.all ? vis.length > 0 : l.ids.some((w) => vis.includes(w)))) continue;
       stale.push({ kind: 'EMPTY_FIELD', entityType: 'RISK', entityId: r.id, code: r.code, title: `Risque ${r.code} · plan de mitigation`, score: riskScore(r.p, r.i), owner: r.ownerId, level: riskScore(r.p, r.i) >= RISK_CRITICAL_MIN ? 'RISK' : 'WATCH', cta: 'Qualifier' });
     }
     const ms = (await this.prisma.milestone.findMany({ where: { ...P, iso: { gte: today } } }))

@@ -392,6 +392,7 @@ export async function seedRise(db: PrismaClient, rise: J, plan: J): Promise<void
         plan: r.plan ?? null,
         ownerId: r.owner,
         wsId: r.wsId,
+        wsIds: r.wsId ? [r.wsId] : [],
         // « COPIL 26 sept. » : séance du COPIL à cette date (brief § 12).
         dueIso: parseFrLabel(r.due),
         status: r.status,

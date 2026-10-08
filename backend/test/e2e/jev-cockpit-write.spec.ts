@@ -35,6 +35,41 @@ describe('Jev du Cockpit — cas 3 : modification des données', () => {
   const ask = (c: any, text: string, conversationId?: string) => c.post(C, { context: { space: 'pilotage', tab: 'risques' }, text, ...(conversationId ? { conversationId } : {}) }).expect(200);
   const pick = (c: any, conversationId: string, value: unknown) => c.post(C, { context: { space: 'pilotage', tab: 'risques' }, text: String(value), conversationId, answer: { value } }).expect(200);
 
+  it('risque sur plusieurs chantiers, ou transverse : choix multiple (pastilles à cocher), « Tous les chantiers » réservé au PMO', async () => {
+    const pmo = await t.as(WHO.pmo);
+    const base = { objet: 'RISK', operation: 'CREATE', code: null, actions_liees: [] };
+    // Plusieurs chantiers cités : résolus d'un coup.
+    let spy = extraction([{ ...base, champs: { n: 'Arbitrages trop lents', p: 4, i: 5, wsIds: 'Finance, Interfaces', owner: 'Sophie Marchand' } }]);
+    let r = await ask(pmo, 'Ajoute ce risque sur Finance et Interfaces');
+    spy.mockRestore();
+    expect(r.body.write).toBe('RECAP');
+    expect(r.body.proposedChanges[0].patch).toMatchObject({ wsIds: ['C1', 'C4'], allWs: false });
+    // Transverse : « tous les chantiers ».
+    spy = extraction([{ ...base, champs: { n: 'Arbitrages mensuels incompatibles', p: 4, i: 5, wsIds: 'tous les chantiers', owner: 'Sophie Marchand' } }]);
+    r = await ask(pmo, 'Ajoute ce risque transverse');
+    spy.mockRestore();
+    expect(r.body.proposedChanges[0]).toMatchObject({ patch: { allWs: true, wsIds: [] } });
+    expect(r.body.proposedChanges[0].rows).toEqual(expect.arrayContaining([{ t: 'Chantiers', b: 'Tous les chantiers' }]));
+    const ok = await pmo.post(`${R}/assistant/changes/${r.body.proposedChanges[0].id}/confirm`).expect(200);
+    expect(await t.db.risk.findFirst({ where: { code: ok.body.result.code } })).toMatchObject({ allWs: true, wsId: null });
+    // Chantier non précisé : question à choix multiple, puis validation de la sélection.
+    spy = extraction([{ ...base, champs: { n: 'Disponibilité des experts', p: 3, i: 3, owner: 'Sophie Marchand' } }]);
+    const q = await ask(pmo, 'Ajoute ce risque');
+    spy.mockRestore();
+    expect(q.body.write).toBe('ASK');
+    expect(q.body.choices.filter((c: any) => c.answer.toggle).length).toBeGreaterThan(1);
+    expect(q.body.choices.map((c: any) => c.label)).toEqual(expect.arrayContaining(['Tous les chantiers (transverse)', 'Valider la sélection']));
+    const v = await pick(pmo, q.body.conversationId, ['C2', 'C3']);
+    expect(v.body.proposedChanges[0].patch).toMatchObject({ wsIds: ['C2', 'C3'] });
+    // Un Responsable (C5) ne crée pas de risque transverse, ni sur un chantier qui n'est pas le sien.
+    const resp = await t.as(WHO.respC5);
+    spy = extraction([{ ...base, champs: { n: 'Risque transverse', p: 3, i: 3, wsIds: 'tous', owner: 'moi' } }]);
+    const rq = await ask(resp, 'Ajoute ce risque à tous les chantiers');
+    spy.mockRestore();
+    expect(rq.body).toMatchObject({ write: 'ASK' });
+    expect(rq.body.reply).toMatch(/réservé au PMO/);
+  });
+
   it('exemple du brief : impact « moyen à élevé » → question à choix ; récapitulatif ; risque puis actions liées ; lien', async () => {
     const pmo = await t.as(WHO.pmo);
     const spy = extraction([{
@@ -62,8 +97,8 @@ describe('Jev du Cockpit — cas 3 : modification des données', () => {
     expect(r.body).toMatchObject({ write: 'RECAP', conversationId: q.body.conversationId });
     expect(await t.db.risk.count()).toBe(before);
     const [risk, a1, a2] = r.body.proposedChanges;
-    expect(risk).toMatchObject({ entityType: 'RISK', op: 'CREATE', group: 'main', patch: { p: 4, i: 4, wsId: 'C1', owner: 'p07' } });
-    expect(risk.rows).toEqual(expect.arrayContaining([{ t: 'Probabilité', b: '4 (Élevé)' }, { t: 'Impact', b: '4 (Élevé)' }, { t: 'Chantier', b: 'C1 · Finance' }, { t: 'Porteur', b: 'Sophie Marchand' }]));
+    expect(risk).toMatchObject({ entityType: 'RISK', op: 'CREATE', group: 'main', patch: { p: 4, i: 4, wsIds: ['C1'], allWs: false, owner: 'p07' } });
+    expect(risk.rows).toEqual(expect.arrayContaining([{ t: 'Probabilité', b: '4 (Élevé)' }, { t: 'Impact', b: '4 (Élevé)' }, { t: 'Chantiers', b: 'C1 · Finance' }, { t: 'Porteur', b: 'Sophie Marchand' }]));
     expect([a1.group, a2.group]).toEqual(['linked', 'linked']);
     expect(a1.patch).toMatchObject({ n: 'Repérer les sujets qui exigent la Finance', wsId: 'C1', owner: 'p07', sourceType: 'RISK', sourceRef: risk.id });
 

@@ -8,7 +8,7 @@ import { Actor } from '../../core/auth/auth';
 import { checkIfMatch, parse, withWarnings } from '../../core/http';
 import { badRequest, businessRule, conflict, forbidden, inUse, notFound } from '../../core/errors';
 import { nextCode, readableId } from '../../core/ids';
-import { canReadWs, canWriteWs, profileUsedFor, visibleWorkstreams } from '../../domain/rights';
+import { canReadLinks, canWriteLinks, canWriteWs, profileUsedFor, riskLinks, visibleWorkstreams, WsLinks } from '../../domain/rights';
 import { actionView, decisionView, issueView, riskView } from '../views';
 import { UsagesService } from '../referential/usages.service';
 import { id, isoDate, optIsoDate, optText, text } from '../referential/schemas';
@@ -35,7 +35,12 @@ export interface TxEntity {
   label(row: any): string;
   /** Contrôle supplémentaire avant modification (ex. fiche arbitrée en lecture seule). */
   guardPatch?(existing: any, input: any): void;
+  /** Rattachement à plusieurs chantiers ou à tous (risques) ; absent : un seul chantier, `wsId`. */
+  links?(x: any): WsLinks;
 }
+
+/** Chantiers d'un objet (entrée d'API ou ligne) selon sa définition. */
+export const linksOf = (def: TxEntity, x: any): WsLinks => (def.links ? def.links(x) : { ids: x.wsId ? [x.wsId] : [], all: false });
 
 async function ref(db: Tx, delegate: string, projectId: string, value: string | null | undefined, field: string) {
   if (!value) return null;
@@ -61,11 +66,24 @@ const RiskCreate = z
     i: p15,
     plan: optText(4000),
     owner: id,
-    wsId: id,
+    // Chantiers (08/10/2026) : `wsIds` (un ou plusieurs) ou `allWs` (transverse) ; `wsId` seul reste accepté.
+    wsId: id.optional(),
+    wsIds: z.array(id).max(50).optional(),
+    allWs: z.boolean().optional(),
     dueIso: optIsoDate,
     status: z.enum(['OPEN', 'MITIGATING', 'CLOSED']).optional(),
   })
   .strict();
+
+/** Chantiers demandés d'un risque, normalisés : `wsIds` sans doublon, `wsId` = le premier, rien si transverse. */
+export function riskWsInput(input: { wsId?: string; wsIds?: string[]; allWs?: boolean }, existing: { wsId?: string | null; wsIds?: string[]; allWs?: boolean } | null) {
+  const touched = input.wsId !== undefined || input.wsIds !== undefined || input.allWs !== undefined;
+  if (!touched) return null;
+  if (input.allWs) return { wsId: null, wsIds: [] as string[], allWs: true };
+  const ids = [...new Set(input.wsIds ?? (input.wsId ? [input.wsId] : input.allWs === false && existing ? riskLinks(existing).ids : []))];
+  if (!ids.length) throw badRequest('Chantier obligatoire', { wsIds: 'au moins un chantier, ou « Tous les chantiers »' });
+  return { wsId: ids[0], wsIds: ids, allWs: false };
+}
 
 export const RISKS: TxEntity = {
   route: 'risks',
@@ -76,13 +94,20 @@ export const RISKS: TxEntity = {
   create: RiskCreate,
   patch: RiskCreate.partial().strict(),
   filters: ['status', 'wsId', 'owner'],
-  async prepare(c, input) {
+  async prepare(c, input, existing) {
     await ref(c.db, 'person', c.scope.project.id, input.owner, 'owner');
     const data = { ...input };
     ownerToId(data);
     if (data.plan === '') data.plan = null;
+    delete data.wsId; delete data.wsIds; delete data.allWs;
+    const ws = riskWsInput(input, existing);
+    if (ws) {
+      for (const w of ws.wsIds) await ref(c.db, 'workstream', c.scope.project.id, w, 'wsIds');
+      Object.assign(data, ws);
+    } else if (!existing) throw badRequest('Chantier obligatoire', { wsIds: 'au moins un chantier, ou « Tous les chantiers »' });
     return { data, warnings: [] };
   },
+  links: (x) => (x.allWs !== undefined || x.wsIds !== undefined || x.wsId !== undefined ? riskLinks(x) : { ids: [], all: false }),
   view: (r) => riskView(r),
   label: (r) => `${r.code} · ${r.n}`,
 };
@@ -267,9 +292,15 @@ export class TransactionalService {
 
   /** RG9 : écriture sur un chantier ; un Responsable hors de ses chantiers reçoit 422 à la création. */
   assertWriteWs(scope: ProjectScope, wsId: string | null | undefined, creating: boolean) {
-    if (canWriteWs(scope.access, wsId)) return;
+    this.assertWriteLinks(scope, { ids: wsId ? [wsId] : [], all: false }, creating);
+  }
+
+  /** Écriture sur un ou plusieurs chantiers (tous : PMO). */
+  assertWriteLinks(scope: ProjectScope, l: WsLinks, creating: boolean) {
+    if (canWriteLinks(scope.access, l)) return;
     if (creating && scope.access.responsable.length) {
-      throw businessRule('Donnée à rattacher à l’un de vos chantiers', { wsId: `chantiers autorisés : ${scope.access.responsable.join(', ')}` });
+      if (l.all) throw businessRule('Risque transverse (tous les chantiers) : réservé au PMO', { wsIds: `chantiers autorisés : ${scope.access.responsable.join(', ')}` });
+      throw businessRule('Donnée à rattacher à vos chantiers', { wsId: `chantiers autorisés : ${scope.access.responsable.join(', ')}` });
     }
     throw forbidden();
   }
@@ -280,7 +311,14 @@ export class TransactionalService {
       if (query[f] !== undefined) where[f === 'owner' ? 'ownerId' : f === 'maker' ? 'makerId' : f] = query[f];
     }
     const vis = visibleWorkstreams(scope.access);
-    if (vis) where.wsId = where.wsId ? (vis.includes(where.wsId) ? where.wsId : '__none__') : { in: vis };
+    if (def.links) {
+      // Plusieurs chantiers ou transverse : filtre « chantier » et visibilité sur la liste des chantiers.
+      const ws = where.wsId; delete where.wsId;
+      const and: any[] = [];
+      if (ws) and.push({ OR: [{ allWs: true }, { wsIds: { has: ws } }] });
+      if (vis) and.push({ OR: [...(vis.length ? [{ allWs: true }] : []), { wsIds: { hasSome: vis.length ? vis : ['__none__'] } }] });
+      if (and.length) where.AND = and;
+    } else if (vis) where.wsId = where.wsId ? (vis.includes(where.wsId) ? where.wsId : '__none__') : { in: vis };
     const rows = await (this.prisma as any)[def.delegate].findMany({ where, orderBy: def.delegate === 'action' ? [{ order: 'asc' }] : [{ code: 'asc' }] });
     const today = this.today(scope);
     return rows.map((r: any) => def.view(r, today));
@@ -296,7 +334,7 @@ export class TransactionalService {
       (await (db as any)[def.delegate].findFirst({ where: { id: idOrCode, projectId: scope.project.id } })) ??
       (await (db as any)[def.delegate].findFirst({ where: { code: idOrCode, projectId: scope.project.id } }));
     if (!r) throw notFound();
-    if (!canReadWs(scope.access, r.wsId)) {
+    if (!canReadLinks(scope.access, linksOf(def, r))) {
       if (forWrite && WRITE_OUT_OF_SCOPE_STATUS === 403) throw forbidden();
       throw notFound();
     }
@@ -309,10 +347,10 @@ export class TransactionalService {
 
   async create(def: TxEntity, actor: Actor, scope: ProjectScope, body: unknown, origin: WriteCtx['origin'] = 'MANUAL') {
     const input = parse(def.create, body);
-    this.assertWriteWs(scope, input.wsId, true);
+    this.assertWriteLinks(scope, linksOf(def, input), true);
     const out = await this.prisma.$transaction(async (tx) => {
       const c: TxCtx = { db: tx, scope, today: this.today(scope) };
-      await ref(tx, 'workstream', scope.project.id, input.wsId, 'wsId');
+      if (!def.links) await ref(tx, 'workstream', scope.project.id, input.wsId, 'wsId');
       const { data, warnings } = await def.prepare(c, input, null);
       const all = await (tx as any)[def.delegate].findMany({ where: { projectId: scope.project.id }, select: { code: true } });
       const code = nextCode(all.map((x: any) => x.code), def.prefix, def.pad);
@@ -329,8 +367,11 @@ export class TransactionalService {
     const input = parse(def.patch, body);
     const out = await this.prisma.$transaction(async (tx) => {
       const existing = await this.row(def, scope, idOrCode, tx, true);
-      this.assertWriteWs(scope, existing.wsId, false);
-      if (input.wsId && input.wsId !== existing.wsId) {
+      this.assertWriteLinks(scope, linksOf(def, existing), false);
+      if (def.links) {
+        // Nouveaux chantiers : droit d'écriture sur chacun (transverse : PMO).
+        if (input.wsId !== undefined || input.wsIds !== undefined || input.allWs !== undefined) this.assertWriteLinks(scope, linksOf(def, input.allWs === false && !input.wsIds && !input.wsId ? existing : input), true);
+      } else if (input.wsId && input.wsId !== existing.wsId) {
         await ref(tx, 'workstream', scope.project.id, input.wsId, 'wsId');
         this.assertWriteWs(scope, input.wsId, true);
       }
@@ -360,7 +401,7 @@ export class TransactionalService {
   async remove(def: TxEntity, actor: Actor, scope: ProjectScope, idOrCode: string, ifMatch?: string) {
     await this.prisma.$transaction(async (tx) => {
       const existing = await this.row(def, scope, idOrCode, tx, true);
-      this.assertWriteWs(scope, existing.wsId, false);
+      this.assertWriteLinks(scope, linksOf(def, existing), false);
       def.guardPatch?.(existing, {});
       checkIfMatch(ifMatch, existing.version);
       const usages = await this.usagesSvc.usages(tx, scope.project.id, def.entityType, existing.id);
