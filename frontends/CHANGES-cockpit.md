@@ -539,3 +539,7 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 
 - Registres (risques, problèmes, actions, décisions), matrice des risques, décisions récentes, Mes tâches, colonne « Origine » des actions : le code de l'objet (R02) au lieu de son identifiant technique, qui porte le préfixe du projet quand le code est déjà pris dans la base (PMS-R02). Le serveur envoie désormais `code` pour les risques, problèmes, actions et décisions (`bootstrap`) ; l'identifiant sert toujours aux écritures.
 - Mes tâches : colonne « Chantier » après « Tâche » (action : chantiers de l'action, ceux de son risque d'origine le cas échéant, fonction `actWs` partagée avec le registre des actions ; décision et jalon : leur chantier). Échéance d'une tâche issue d'une action : celle de l'action, modifiable sur place et enregistrée sur l'action (auparavant gardée dans l'écran seulement) ; « À planifier » si l'action n'en a pas.
+
+## « Saisir sans Jev » : bouton rétabli (09/10/2026)
+
+- Demande du commanditaire : le lien « Saisir sans Jev » (« Modifier sans Jev » sur une ligne) revient sous le champ de saisie du panneau de Jev, à l'identique (mêmes onglets du Pilotage, même style). À ce stade, il n'ouvre rien (`jevManual` sans action) : les formulaires retirés le 08/10/2026 ne sont pas rétablis.
