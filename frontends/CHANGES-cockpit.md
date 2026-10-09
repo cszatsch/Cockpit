@@ -548,3 +548,7 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 
 - Correction de « Génération du PowerPoint de référence · Référence invalide » à la publication (projet PMS). Cause : le brouillon d'un template partait du comité du jeu de démonstration (`committee: 'Comité de pilotage', bodyId: 'g1'`) et la liste « Comité de rattachement » ne changeait que le nom ; l'identifiant `g1`, envoyé en priorité, n'existe pas dans PMS et le serveur le refusait (il pouvait aussi rattacher en silence le template au mauvais comité dans RISE).
 - Choisir un comité change désormais son nom et son identifiant ; le comité est toujours résolu sur ceux du projet ouvert (`tplCommitteeOf` : nom choisi, sinon identifiant connu, sinon le premier comité du projet ; aucun si le projet n'en a pas) pour l'affichage, l'aperçu et la publication ; brouillon vierge sans comité de démonstration. `api.js` (`tplBody`) n'envoie jamais un identifiant de comité étranger au projet.
+
+## Jalons : colonne « Chantier » en référence (09/10/2026)
+
+- Registre des jalons : la colonne « Chantier » affiche la référence du chantier (C1, C2…, teinte d'identité ; nom en infobulle) au lieu de son nom ; jalon sans chantier : « Transverse ». Le petit sélecteur propose « Transverse (aucun chantier) » puis C1 · nom, C2 · nom… ; « Transverse » enregistre un jalon sans chantier (`wsId` nul, déjà admis par le serveur).
