@@ -115,6 +115,40 @@ describe('Jev du Cockpit — cas 3 : modification des données', () => {
     expect(await t.db.jevMessage.count({ where: { conversationId: q.body.conversationId } })).toBe(4);
   });
 
+  it('référence avec le préfixe du projet (« RISE-R01 », 09/10/2026) : ramenée au code R01', async () => {
+    const pmo = await t.as(WHO.pmo);
+    const spy = extraction([{ objet: 'RISK', operation: 'UPDATE', code: 'RISE-R01', champs: { dueIso: '31/10' } }]);
+    const r = await ask(pmo, 'Ajoute au risque "RISE-R01" une date d’échéance au 31/10');
+    spy.mockRestore();
+    expect(r.body).toMatchObject({ write: 'RECAP' });
+    expect(r.body.proposedChanges[0]).toMatchObject({ entityType: 'RISK', op: 'UPDATE', patch: { dueIso: '2026-10-31' } });
+  });
+
+  it('échéance d’une action liée (09/10/2026) : reprise du risque à sa création, une seule fois ; puis indépendante', async () => {
+    const pmo = await t.as(WHO.pmo);
+    const spy = extraction([{
+      objet: 'RISK', operation: 'CREATE', code: null,
+      champs: { n: 'Risque daté', p: 3, i: 3, wsIds: 'C1', owner: 'Sophie Marchand', plan: 'Plan', dueIso: '31/10' },
+      actions_liees: [{ n: 'Action sans échéance' }, { n: 'Action datée', dueIso: '15/11' }],
+    }]);
+    const r = await ask(pmo, 'Ajoute ce risque avec deux actions');
+    spy.mockRestore();
+    expect(r.body).toMatchObject({ write: 'RECAP' });
+    const [risk, a1, a2] = r.body.proposedChanges;
+    expect(risk.patch).toMatchObject({ dueIso: '2026-10-31' });
+    expect(a1.patch).toMatchObject({ dueIso: '2026-10-31' });
+    expect(a1.rows).toEqual(expect.arrayContaining([{ t: 'Échéance', b: '31/10/2026 (reprise du risque)' }]));
+    expect(a2.patch).toMatchObject({ dueIso: '2026-11-15' });
+    const rk = (await pmo.post(`${R}/assistant/changes/${risk.id}/confirm`).expect(200)).body.result;
+    const act = (await pmo.post(`${R}/assistant/changes/${a1.id}/confirm`).expect(200)).body.result;
+    expect(act.dueIso).toBe('2026-10-31');
+    // Ensuite, les deux dates sont indépendantes.
+    await pmo.patch(`${R}/risks/${rk.code}`, { dueIso: '2026-12-15' }).expect(200);
+    expect((await t.db.action.findFirst({ where: { id: act.id } }))!.dueIso).toBe('2026-10-31');
+    await pmo.patch(`${R}/actions/${act.code}`, { dueIso: '2026-11-30' }).expect(200);
+    expect((await t.db.risk.findFirst({ where: { id: rk.id } }))!.dueIso).toBe('2026-12-15');
+  });
+
   it('Responsable : chantier hors de son périmètre → choix parmi ses chantiers ; porteur ambigu → choix', async () => {
     const resp = await t.as(WHO.respC5);
     const spy = extraction([{ objet: 'ACTION', operation: 'CREATE', code: null, champs: { n: 'Relancer l’éditeur', wsId: 'Finance', owner: 'Marc', dueIso: '15/11' } }]);

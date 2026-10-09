@@ -13,7 +13,7 @@ import { requestContext } from '../../domain/jev-sql';
 import { COCKPIT_CASE_ROUTE } from '../../domain/jev-router-cockpit';
 import { nowParisLabel } from '../../domain/jev-cockpit-answers';
 import {
-  DraftOp, DraftQuestion, entityOfCode, enumValue, ExtractedOp, fieldSpec, frDate, matchNamed, Named, opTitle, parseDate, parseExtraction, prio4Candidates, PRIO4_LABEL,
+  DraftOp, DraftQuestion, entityOfCode, linkedActionDue, normalizeWriteCode, enumValue, ExtractedOp, fieldSpec, frDate, matchNamed, Named, opTitle, parseDate, parseExtraction, prio4Candidates, PRIO4_LABEL,
   scaleCandidates, SCALE5_LABEL, WS_ALL_LABEL, WS_ALL_RE, WS_ALL_VALUE, WS_MULTI_SUBMIT_LABEL, WriteDraft, WriteEntity, WRITE_CANCELLED_REPLY, WRITE_CANCEL_LABEL, WRITE_CODE_RE, WRITE_ENTITY_LABEL, WRITE_EXTRACT_RULES, WRITE_FIELDS,
   WRITE_MAX_OPTIONS, WRITE_MAX_QUESTIONS, WRITE_NOTHING_REPLY, WRITE_RECAP_REPLY, WRITE_TOO_MANY_REPLY,
 } from '../../domain/jev-cockpit-write';
@@ -153,8 +153,15 @@ export class JevCockpitWriteService {
         const rows = await this.writableRows(scope, o.entity, 6);
         return { question: { op: idx, field: '__code', text: `Quel ${L.one} voulez-vous ${o.op === 'DELETE' ? 'supprimer' : 'modifier'} ?`, options: rows.map((r) => ({ label: `${r.code} · ${short(r.n ?? r.t)}`, value: r.code })), free: true } };
       }
-      if (entityOfCode(o.code) !== o.entity) return { refuse: `Le code ${o.code} ne correspond pas à ${L.a}.` };
-      existing = await (this.prisma as any)[JEV_WRITABLE_DEFS[o.entity].delegate].findFirst({ where: { projectId: scope.project.id, code: o.code } });
+      // Référence du registre (R02), avec le préfixe du projet (PMS-R02) ou identifiant technique : ramenée au code.
+      const delegate = (this.prisma as any)[JEV_WRITABLE_DEFS[o.entity].delegate], cited = String(o.code).trim();
+      o.code = normalizeWriteCode(cited, scope.project.code);
+      if (entityOfCode(o.code) !== o.entity) {
+        const byId = await delegate.findFirst({ where: { projectId: scope.project.id, id: cited } });
+        if (!byId) return { refuse: `Le code ${cited} ne correspond pas à ${L.a}.` };
+        o.code = byId.code;
+      }
+      existing = await delegate.findFirst({ where: { projectId: scope.project.id, code: o.code } });
       const xl = o.entity === 'RISK' ? riskLinks(existing ?? {}) : { ids: existing?.wsId ? [existing.wsId] : [], all: false };
       if (!existing || !canReadLinks(scope.access, xl)) return { refuse: `Je ne trouve pas ${L.the} ${o.code} dans votre périmètre.` };
       if (!canWriteLinks(scope.access, xl)) return { refuse: `Vous ne pouvez pas ${o.op === 'DELETE' ? 'supprimer' : 'modifier'} ${o.code} : seul le PMO ou le Responsable du chantier ${existing.wsId} le peut.` };
@@ -292,12 +299,13 @@ export class JevCockpitWriteService {
       if (o.entity === 'RISK' && o.op === 'CREATE' && o.linked?.length) {
         for (const a of o.linked) {
           const owner = a.owner ? matchNamed(a.owner, refs.people) : [];
-          const due = a.dueIso ? parseDate(a.dueIso, refs.today) : null;
+          // Sans échéance propre : celle du plan de mitigation du nouveau risque (copie unique, `linkedActionDue`).
+          const own = a.dueIso ? parseDate(a.dueIso, refs.today) : null, due = linkedActionDue(own, o.fields.dueIso as string | undefined);
           // Action liée : un seul chantier, le premier du risque (risque transverse : le premier chantier où l'utilisateur peut écrire).
           const aWs = (o.fields.wsIds as string[] | undefined)?.[0] ?? (o.fields.wsId as string | undefined) ?? refs.writable[0]?.id;
           const patch = { n: a.n, wsId: aWs, owner: owner.length === 1 ? owner[0].id : o.fields.owner, ...(due ? { dueIso: due } : {}), sourceType: 'RISK', sourceRef: c.id };
           const who = refs.people.find((p) => p.id === patch.owner)?.label ?? '';
-          const lrows = [{ t: 'Libellé', b: a.n }, { t: 'Porteur', b: who }, { t: 'Chantier', b: refs.ws.find((w) => w.id === aWs)?.label ?? '' }, ...(due ? [{ t: 'Échéance', b: frDate(due) }] : []), { t: 'Origine', b: 'le nouveau risque' }];
+          const lrows = [{ t: 'Libellé', b: a.n }, { t: 'Porteur', b: who }, { t: 'Chantier', b: refs.ws.find((w) => w.id === aWs)?.label ?? '' }, ...(due ? [{ t: 'Échéance', b: frDate(due) + (own ? '' : ' (reprise du risque)') }] : []), { t: 'Origine', b: 'le nouveau risque' }];
           const lc = await this.prisma.assistantChange.create({ data: { projectId: scope.project.id, accountId: actor.accountId, entityType: 'ACTION', entityId: null, op: 'CREATE', patch: patch as any, summary: `Créer une action liée — ${a.n}`.slice(0, 2000) } });
           out.push({ id: lc.id, entityType: 'ACTION', entityId: null, op: 'CREATE', patch, summary: lc.summary, status: lc.status, group: 'linked', title: `Action liée · ${short(a.n, 80)}`, rows: lrows, confirmCode: null });
         }

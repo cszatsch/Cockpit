@@ -1810,3 +1810,13 @@ Demande du commanditaire : un risque peut concerner un chantier, plusieurs, ou t
 
 - Demande du commanditaire : modifier les chantiers d'un risque doit mettre à jour ceux de ses actions (Pilotage › Actions).
 - Choix : l'écran affiche, pour une action dont l'origine est un risque, les chantiers du risque (« Transverse » s'il l'est). Le serveur réaligne le chantier unique de l'action (`TransactionalService.alignRiskActions`, `src/cockpit/pilotage/transactional.ts`) à chaque modification des chantiers du risque : s'il n'est plus parmi ceux du risque, il passe au premier ; risque transverse : inchangé (les droits d'écriture de l'action restent ceux de son chantier). Chaque réalignement est journalisé (audit, action `ACTION`, champ `wsId`). Test : `test/e2e/pilotage.spec.ts` « actions issues d'un risque ».
+
+## Références citées à Jev et références affichées (09/10/2026)
+
+- Cause du refus « Le code PMS-R02 ne correspond pas à un risque » : l'identifiant technique d'un objet vaut son code s'il est libre dans toute la base, sinon `<CODEPROJET>-<code>` (`readableId`, `src/core/ids.ts`) ; le registre affichait l'identifiant (PMS-R02) alors que Jev ne cherche que le code (R02).
+- Corrections : les écrans affichent le code (le `bootstrap` le fournit) ; Jev ramène une référence citée au code (`normalizeWriteCode`, `src/domain/jev-cockpit-write.ts` : préfixe du projet ouvert retiré), puis, à défaut, la cherche comme identifiant technique. Tests : `test/unit/jev-cockpit-write-refs.spec.ts`, `test/e2e/jev-cockpit-write.spec.ts`.
+
+## Échéance d'une action créée avec son risque (règle du commanditaire, 09/10/2026)
+
+- À la création d'un risque, l'échéance de son plan de mitigation est reprise dans l'échéance de ses actions liées qui n'en ont pas ; copie unique : ensuite l'échéance de l'action se modifie à la main et toute modification ultérieure de celle du risque est sans effet sur l'action (`linkedActionDue`, `src/domain/jev-cockpit-write.ts` ; récapitulatif de Jev « (reprise du risque) », et à la validation de l'action liée dans `assistant.controller.ts` si l'échéance du risque n'était connue qu'à son enregistrement).
+- Périmètre : les actions créées avec le risque (actions liées de Jev, seul chemin qui crée un risque et ses actions ensemble ; l'import Excel ne crée pas d'action rattachée à un risque). Les actions déjà existantes ne sont pas modifiées.

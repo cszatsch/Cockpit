@@ -534,3 +534,8 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 - Colonne « Chantier » des risques et des actions : référence du chantier (C1, C2…, teinte d'identité du Planning ; nom en infobulle) au lieu du nom ; risque transverse : « Transverse ».
 - Risques : un clic sur la cellule ouvre une liste à choix multiple (« Transverse · tous les chantiers », réservé au PMO, puis C1, C2…) ; cocher « Transverse » remplace les chantiers, cocher un chantier quitte « Transverse » ; décocher le dernier est refusé. Écriture en une fois (`editFields` : `allWs`, `wss`).
 - Actions issues d'un risque : la colonne montre les chantiers du risque, et suit donc ses modifications ; côté serveur, le chantier de ces actions est réaligné à chaque changement des chantiers du risque (voir `docs/DECISIONS.md`).
+
+## Références affichées, Mes tâches (09/10/2026)
+
+- Registres (risques, problèmes, actions, décisions), matrice des risques, décisions récentes, Mes tâches, colonne « Origine » des actions : le code de l'objet (R02) au lieu de son identifiant technique, qui porte le préfixe du projet quand le code est déjà pris dans la base (PMS-R02). Le serveur envoie désormais `code` pour les risques, problèmes, actions et décisions (`bootstrap`) ; l'identifiant sert toujours aux écritures.
+- Mes tâches : colonne « Chantier » après « Tâche » (action : chantiers de l'action, ceux de son risque d'origine le cas échéant, fonction `actWs` partagée avec le registre des actions ; décision et jalon : leur chantier). Échéance d'une tâche issue d'une action : celle de l'action, modifiable sur place et enregistrée sur l'action (auparavant gardée dans l'écran seulement) ; « À planifier » si l'action n'en a pas.

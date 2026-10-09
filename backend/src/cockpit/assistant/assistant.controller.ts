@@ -24,7 +24,7 @@ import { COCKPIT_CASE_ROUTE, COCKPIT_CHOICE_TO_CASE } from '../../domain/jev-rou
 import { clarifyReasonOf, COCKPIT_CLARIFY_RULES, cockpitClarifyPrompt, cockpitPageLabel, nowParisLabel } from '../../domain/jev-cockpit-answers';
 import { JevCockpitWriteService, WriteOutcome } from './jev-cockpit-write.service';
 import { JEV_WRITABLE_DEFS } from './jev-writable';
-import { WRITE_ENTITY_LABEL, WriteEntity } from '../../domain/jev-cockpit-write';
+import { linkedActionDue, WRITE_ENTITY_LABEL, WriteEntity } from '../../domain/jev-cockpit-write';
 import { JevMemoryService } from '../../admin/jev-memory.service';
 import { JevConversation } from '@prisma/client';
 import { ChatTurn } from '../../core/llm-client';
@@ -217,6 +217,12 @@ export class AssistantController {
       if (!parent || parent.status !== 'CONFIRMED' || !parent.entityId) throw businessRule('Validez d’abord le risque : cette action lui est liée', { sourceRef: 'risque non validé' });
       patch.sourceId = parent.entityId;
       delete patch.sourceRef;
+      // Action créée avec son risque : sans échéance, celle du risque tel qu'enregistré (copie unique, `linkedActionDue`).
+      if (!patch.dueIso && parent.entityType === 'RISK') {
+        const risk = await this.prisma.risk.findFirst({ where: { id: parent.entityId, projectId: scope.project.id }, select: { dueIso: true } });
+        const due = linkedActionDue(null, risk?.dueIso ?? null);
+        if (due) patch.dueIso = due;
+      }
     }
     let result: any;
     let code: string | null = null;

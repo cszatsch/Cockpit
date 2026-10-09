@@ -189,10 +189,12 @@ export class BootstrapService {
     // Risques (08/10/2026) : un ou plusieurs chantiers, ou transverse ; `ws` : nom du chantier principal ou « Tous les chantiers ».
     const risksOut = risks.filter((r) => canReadLinks(A, riskLinks(r))).map((r) => {
       const l = riskLinks(r);
-      return { id: r.id, n: r.n, p: r.p, i: r.i, plan: r.plan, owner: r.ownerId, ws: l.all ? RISK_ALL_WS_LABEL : wsName(l.ids[0]), wss: l.all ? [] : l.ids.map(wsName), wsIds: l.ids, allWs: l.all, due: frShort(r.dueIso), dueIso: r.dueIso, status: r.status, wsId: r.wsId, version: r.version };
+      // `code` (09/10/2026) : référence affichée (R02) ; `id` peut porter le préfixe du projet (PMS-R02) s'il est déjà pris.
+      return { id: r.id, code: r.code, n: r.n, p: r.p, i: r.i, plan: r.plan, owner: r.ownerId, ws: l.all ? RISK_ALL_WS_LABEL : wsName(l.ids[0]), wss: l.all ? [] : l.ids.map(wsName), wsIds: l.ids, allWs: l.all, due: frShort(r.dueIso), dueIso: r.dueIso, status: r.status, wsId: r.wsId, version: r.version };
     });
     const issuesOut = issues.filter((x) => vis(x.wsId)).map((x) => ({
       id: x.id,
+      code: x.code,
       n: x.n,
       sev: x.sev,
       origin: x.originRiskId,
@@ -210,6 +212,7 @@ export class BootstrapService {
     }));
     const actionsOut = actions.filter((a) => vis(a.wsId)).map((a) => ({
       id: a.id,
+      code: a.code,
       n: a.n,
       owner: a.ownerId,
       due: frShort(a.dueIso),
@@ -226,6 +229,7 @@ export class BootstrapService {
     }));
     const decisionsOut = decisions.filter((d) => vis(d.wsId)).map((d) => ({
       id: d.id,
+      code: d.code,
       t: d.t,
       p: d.p,
       status: d.status,

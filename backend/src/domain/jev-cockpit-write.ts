@@ -30,6 +30,25 @@ export function entityOfCode(code: string): WriteEntity | null {
   return null;
 }
 
+/**
+ * Échéance d'une action créée avec son risque (règle du commanditaire, 09/10/2026) : sans échéance propre, elle reprend
+ * celle du plan de mitigation du risque. Copie unique, à la création du risque : ensuite les deux dates sont
+ * indépendantes (l'échéance de l'action se modifie à la main ; changer celle du risque est sans effet sur l'action).
+ */
+export function linkedActionDue(actionDue: string | null | undefined, riskDue: string | null | undefined): string | null {
+  return actionDue || riskDue || null;
+}
+
+/**
+ * Référence citée → code de l'objet (09/10/2026). L'identifiant technique d'un objet porte le préfixe du projet quand son
+ * code est déjà pris dans la base (PMS-R02 pour le risque R02 de PMS, `readableId`) : le préfixe du projet ouvert est
+ * retiré (« PMS-R02 », « pms-r02 » → « R02 ») ; tout autre texte est rendu tel quel, en majuscules.
+ */
+export function normalizeWriteCode(ref: string, projectCode: string): string {
+  const c = String(ref ?? '').trim().toUpperCase(), p = String(projectCode ?? '').trim().toUpperCase() + '-';
+  return p.length > 1 && c.startsWith(p) && entityOfCode(c.slice(p.length)) ? c.slice(p.length) : c;
+}
+
 export type FieldKind = 'text' | 'scale5' | 'prio4' | 'person' | 'ws' | 'wsMulti' | 'body' | 'date' | 'enum' | 'source';
 
 export interface FieldSpec {
