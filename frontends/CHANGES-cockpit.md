@@ -543,3 +543,8 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 ## « Saisir sans Jev » : bouton rétabli (09/10/2026)
 
 - Demande du commanditaire : le lien « Saisir sans Jev » (« Modifier sans Jev » sur une ligne) revient sous le champ de saisie du panneau de Jev, à l'identique (mêmes onglets du Pilotage, même style). À ce stade, il n'ouvre rien (`jevManual` sans action) : les formulaires retirés le 08/10/2026 ne sont pas rétablis.
+
+## Créer un template : comité de rattachement (09/10/2026)
+
+- Correction de « Génération du PowerPoint de référence · Référence invalide » à la publication (projet PMS). Cause : le brouillon d'un template partait du comité du jeu de démonstration (`committee: 'Comité de pilotage', bodyId: 'g1'`) et la liste « Comité de rattachement » ne changeait que le nom ; l'identifiant `g1`, envoyé en priorité, n'existe pas dans PMS et le serveur le refusait (il pouvait aussi rattacher en silence le template au mauvais comité dans RISE).
+- Choisir un comité change désormais son nom et son identifiant ; le comité est toujours résolu sur ceux du projet ouvert (`tplCommitteeOf` : nom choisi, sinon identifiant connu, sinon le premier comité du projet ; aucun si le projet n'en a pas) pour l'affichage, l'aperçu et la publication ; brouillon vierge sans comité de démonstration. `api.js` (`tplBody`) n'envoie jamais un identifiant de comité étranger au projet.
