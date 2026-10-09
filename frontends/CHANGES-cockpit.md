@@ -560,3 +560,9 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
   `Saisie sans Jev.dc.html` et composants de champ réutilisables (`Champ choix`, `Champ etiquettes`, `Echelle 1-4`,
   `Selecteur segmente`, `Ligne critere`) ; calculs `saisie-calc.js` ; écriture `saisie()` d'`api.js` ; listes `ssjData()`.
   × ferme la barre latérale et réinitialise (réouverture : Jev). Écarts justifiés : `docs/NOTE - Saisir sans Jev.md`.
+
+## Suivi d'avancement : % réel d'une phase ; chantiers sans dates (09/10/2026)
+
+- % réel du Suivi d'avancement : cellule reconstruite quand sa valeur change (`key`) — l'avancement recalculé d'une phase restait affiché à l'ancienne valeur après une saisie (texte réécrit dans le DOM, plus suivi par l'écran) ; valeur calculée (phase à sous-phases, chantier dans une phase) non modifiable ici.
+- Chantier sans dates : dessiné sur la période de ses phases ; élément encore sans période : « dates à renseigner » sous le Suivi d'avancement (auparavant retiré sans rien dire). « Saisir sans Jev » : période (début → fin) requise pour un chantier.
+- « Saisir sans Jev », sous-phase : le code n'est plus calculé par l'écran (il pouvait retomber sur un code existant) ; le serveur le calcule et rattache la sous-phase au chantier choisi dans la même écriture.

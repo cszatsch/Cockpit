@@ -1,4 +1,4 @@
-import { subphaseCodeError, workstreamSpan, foreignSubphases, keepSubphasesOf, multiValues } from '../../src/domain/workstream-links';
+import { subphaseCodeError, workstreamSpan, foreignSubphases, keepSubphasesOf, multiValues, nextSubphaseCode, periodOfPhases } from '../../src/domain/workstream-links';
 
 /** Rattachements d'un chantier : phases, sous-phases, dépendances (06/10/2026). */
 describe('Rattachements d’un chantier — règles', () => {
@@ -28,5 +28,24 @@ describe('Rattachements d’un chantier — règles', () => {
   it('choix multiple : « ; », espaces, vides et doublons', () => {
     expect(multiValues(' 1 ; 3 ;; 1 ')).toEqual(['1', '3']);
     expect(multiValues(null)).toEqual([]);
+  });
+});
+
+describe('Chantier sans dates : période de ses phases (09/10/2026)', () => {
+  it('du début de la première phase à la fin de la dernière ; aucune phase datée : null', () => {
+    expect(periodOfPhases([{ startDate: '2027-01-01', endDate: '2027-06-30' }, { startDate: '2026-09-29', endDate: '2026-11-30' }])).toEqual({ startDate: '2026-09-29', endDate: '2027-06-30' });
+    expect(periodOfPhases([{ startDate: null, endDate: null }])).toBeNull();
+    expect(periodOfPhases([])).toBeNull();
+  });
+});
+
+describe('Code d’une nouvelle sous-phase (09/10/2026)', () => {
+  const PMS = ['1.1', '1.2', '2.1', '2.2', '3.1', '4.1', '5.1', '5.2', '1.3', '1.4', '2.3', '2.4', '2.5', '3.2', '5.3', '5.4', '5.5', '1.5', '5.6'];
+  it('préfixe du chantier (C6 → 6.1), rang suivant parmi les codes du projet ; jamais un code déjà pris', () => {
+    expect(nextSubphaseCode(6, PMS)).toBe('6.1');
+    expect(nextSubphaseCode(5, PMS)).toBe('5.7');
+    // Préfixe de la phase 1 : 1.6 (et non 1.3, déjà pris par une sous-phase de la phase 2).
+    expect(nextSubphaseCode(1, PMS)).toBe('1.6');
+    expect(nextSubphaseCode('2', ['2.1', '2.3', '2.2x'])).toBe('2.4');
   });
 });

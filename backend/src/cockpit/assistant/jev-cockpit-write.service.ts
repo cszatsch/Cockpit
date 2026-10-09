@@ -305,14 +305,13 @@ export class JevCockpitWriteService {
         }
       }
     }
-    if (o.entity === 'SUBPHASE' && o.op === 'CREATE' && o.fields.phaseId) o.fields.code = await this.subphaseCode(scope, String(o.fields.phaseId), refs);
     return {};
   }
 
   /**
    * Objet du Référentiel (09/10/2026) : PMO seulement ; objet visé retrouvé par son code ou son nom (« 5 », « P5 »,
    * « 5. Ancrer le changement ») ; suppression : refusée d'emblée si l'objet est utilisé (mêmes contrôles que le
-   * Référentiel) ; création : numéro de phase et code de sous-phase calculés.
+   * Référentiel) ; création : numéro de phase calculé ; code de sous-phase calculé par le serveur (`nextSubphaseCode`).
    */
   private async resolveRef(scope: ProjectScope, o: DraftOp, idx: number, refs: Refs): Promise<{ question?: DraftQuestion; refuse?: string; existing?: any }> {
     const L = WRITE_ENTITY_LABEL[o.entity], P = scope.project.id, delegate = (this.prisma as any)[jevDef(o.entity).delegate];
@@ -342,14 +341,6 @@ export class JevCockpitWriteService {
       }
     }
     return { existing: row };
-  }
-
-  /** Code d'une nouvelle sous-phase : numéro de sa phase, puis rang suivant (« 2.4 »). */
-  private async subphaseCode(scope: ProjectScope, phaseId: string, refs: Refs): Promise<string> {
-    const ph = refs.phases.find((x) => x.id === phaseId);
-    const subs = await this.prisma.subphase.findMany({ where: { projectId: scope.project.id, phaseId }, select: { code: true } });
-    const rank = Math.max(0, ...subs.map((x) => parseInt(String(x.code).split('.')[1], 10) || 0)) + 1;
-    return `${ph?.seq ?? ''}.${rank}`;
   }
 
   // ───────────── Propositions ─────────────

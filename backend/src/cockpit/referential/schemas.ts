@@ -53,7 +53,10 @@ export const PhaseCreate = z
 export const SubphaseCreate = z
   .object({
     phaseId: id,
-    code: z.string().trim().min(1).max(20),
+    // Code facultatif à la création (09/10/2026) : calculé par le serveur (`nextSubphaseCode`) s'il est absent.
+    code: z.string().trim().min(1).max(20).optional(),
+    /** Chantier de la sous-phase (création, 09/10/2026) : préfixe du code calculé et rattachement au chantier. */
+    wsId: id.optional(),
     name: text(200),
     description: optText(),
     startDate: optIsoDate,

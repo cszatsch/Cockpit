@@ -101,7 +101,18 @@ describe('Étapes 2-3 — droits et Référentiel', () => {
     expect(sp.body.warnings?.[0]).toMatch(/sort de la période/);
     const ws = await c.post(`${R}/workstreams`, { name: 'Data & BI', ownerId: 'p06', phaseIds: ['P5'], dependsOn: ['C5'] }).expect(201);
     expect(ws.body.code).toBe('C9');
+    // Chantier créé sans dates (09/10/2026) : période de ses phases.
+    const p5 = await t.db.phase.findFirstOrThrow({ where: { id: 'P5' } });
+    expect(ws.body).toMatchObject({ startDate: p5.startDate, endDate: p5.endDate });
     expect(ws.body.dependsOn).toEqual(['C5']);
+    // Sous-phase sans code, avec son chantier (09/10/2026) : code n° du chantier + rang, rattachée au chantier.
+    const auto = await c.post(`${R}/subphases`, { phaseId: 'P5', wsId: ws.body.id, name: 'Cadrage du chantier', startDate: '2026-10-01', endDate: '2026-10-31' }).expect(201);
+    expect(auto.body.code).toBe('9.1');
+    expect(await t.db.workstreamSubphase.findFirst({ where: { wsId: ws.body.id, subphaseId: auto.body.id } })).toBeTruthy();
+    const dup = await c.post(`${R}/subphases`, { phaseId: 'P5', code: '9.1', name: 'Doublon' }).expect(400);
+    expect(dup.body.message).toBe('Le code 9.1 est déjà pris (9.1 · Cadrage du chantier)');
+    await c.post(`${R}/subphases`, { phaseId: 'P1', wsId: ws.body.id, name: 'Hors phase' }).expect(400);
+    await c.del(`${R}/subphases/${auto.body.id}`).expect(204);
     const put = await c.put(`${R}/workstreams/${ws.body.id}/dependencies`, { dependsOn: 'ALL' }).expect(200);
     expect(put.body.dependsOn).toBe('ALL');
 

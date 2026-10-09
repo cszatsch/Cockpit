@@ -47,9 +47,32 @@ export function subphaseCodeError(code: string): string | null {
   return SUBPHASE_CODE_FORBIDDEN.test(code) ? 'sans espace, « ; » ni « · »' : null;
 }
 
+/**
+ * Code d'une nouvelle sous-phase (09/10/2026) : préfixe (n° du chantier choisi, sinon n° de la phase), point, rang suivant
+ * parmi les codes du projet qui ont ce préfixe ; jamais un code déjà pris dans le projet (PMS numérote par chantier sur
+ * tout le projet — 1.1 à 1.5 pour C1 —, RISE par phase ; l'ancien calcul, par phase et dans la phase seulement, pouvait
+ * retomber sur un code existant).
+ */
+export function nextSubphaseCode(prefix: string | number, codes: string[]): string {
+  const p = String(prefix), taken = new Set(codes.map((c) => c.trim().toUpperCase()));
+  let rank = Math.max(0, ...codes.filter((c) => c.startsWith(p + '.')).map((c) => parseInt(c.slice(p.length + 1), 10) || 0)) + 1;
+  while (taken.has(`${p}.${rank}`.toUpperCase())) rank++;
+  return `${p}.${rank}`;
+}
+
 /** Valeurs d'une cellule à choix multiple du fichier d'initialisation : séparées par « ; », vides et doublons retirés. */
 export function multiValues(raw: unknown): string[] {
   const out: string[] = [];
   for (const v of String(raw ?? '').split(';').map((x) => x.trim()).filter(Boolean)) if (!out.includes(v)) out.push(v);
   return out;
+}
+
+/**
+ * Période d'un chantier sans dates propres (09/10/2026) : du début de la première de ses phases à la fin de la dernière.
+ * Sans phase datée : null (le chantier reste sans dates, signalé « dates à renseigner » dans le Suivi d'avancement).
+ */
+export function periodOfPhases(phases: Array<{ startDate?: string | null; endDate?: string | null }>): { startDate: string; endDate: string } | null {
+  const s = phases.map((p) => p.startDate).filter((x): x is string => !!x).sort();
+  const e = phases.map((p) => p.endDate).filter((x): x is string => !!x).sort();
+  return s.length && e.length ? { startDate: s[0], endDate: e[e.length - 1] } : null;
 }

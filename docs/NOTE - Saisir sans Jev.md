@@ -73,3 +73,5 @@ Migration `20261117000000_actions_taches_chantiers`.
     profil, le serveur refuse et le message s'affiche dans le pied du formulaire (les tuiles restent visibles, comme la maquette).
 11. **Probabilité et impact** sur 1 à 4 (maquette) : le registre des risques garde son échelle 1 à 5 ; un risque créé ici a
     donc une criticité au plus de 16 dans le registre (seuils ≥ 12, ≥ 20 du registre inchangés).
+12. **Chantier : « Période » (début → fin), requise** — demande du commanditaire du 09/10/2026, absente de la maquette : un
+    chantier sans dates n'était dessiné ni dans le Planning ni dans le Suivi d'avancement.

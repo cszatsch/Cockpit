@@ -397,8 +397,23 @@ export function attach(comp) {
 
   /** Ajustements du bootstrap pour conserver le comportement d'origine de l'écran. */
   function prepare(B) {
-    // Le Gantt ne sait pas dessiner un élément sans dates (chantier ou sous-phase créés depuis le Référentiel sans période).
-    ['phases', 'subphases', 'chantiers'].forEach((k) => { B[k] = (B[k] || []).filter((x) => x.start && x.end); });
+    // Le Gantt ne sait pas dessiner un élément sans dates. Chantier sans dates (09/10/2026) : période de ses phases (du début
+    // de la première à la fin de la dernière) ; élément encore sans période : retiré du Gantt mais gardé dans `undated`,
+    // signalé « dates à renseigner » dans le Suivi d'avancement (auparavant retiré sans rien dire).
+    const phById = Object.fromEntries((B.phases || []).map((p) => [p.id, p]));
+    (B.chantiers || []).forEach((c) => {
+      if (c.start && c.end) return;
+      const ps = (c.phases || []).map((id) => phById[id]).filter((p) => p && p.start && p.end);
+      if (!ps.length) return;
+      c.start = c.start || ps.map((p) => p.start).sort()[0];
+      c.end = c.end || ps.map((p) => p.end).sort().slice(-1)[0];
+      c.derivedDates = true;
+    });
+    B.undated = [];
+    [['phases', 'Phase'], ['subphases', 'Sous-phase'], ['chantiers', 'Chantier']].forEach(([k, kind]) => {
+      (B[k] || []).filter((x) => !(x.start && x.end)).forEach((x) => B.undated.push({ kind, code: x.code || '', n: x.n || '' }));
+      B[k] = (B[k] || []).filter((x) => x.start && x.end);
+    });
     B.decisions.forEach((d) => {
       const a = d.arbitration, hasContent = a && ((a.texts && Object.keys(a.texts).length) || (a.criteria && a.criteria.length));
       // `full` désigne dans l'écran la fiche complète du jeu (D-007) ; une fiche saisie ensuite passe par arbData.
@@ -1009,13 +1024,12 @@ export function attach(comp) {
           const r = await ppost('/phases', { seq, name: v.n.trim(), startDate: v.per[0], endDate: v.per[1], ownerId: v.owner || me });
           msg = 'Phase ' + (r.code || seq) + ' créée';
         } else if (kind === 'sousphase') {
-          const ph = M('PHASE').find((r) => r.id === v.phase), pseq = ph ? ph.cells[0] : '';
-          const rank = Math.max(0, ...(B.subphases || []).filter((x) => x.ph === v.phase).map((x) => parseInt(String(x.code).split('.')[1], 10) || 0)) + 1;
-          const r = await ppost('/subphases', { phaseId: v.phase, code: pseq + '.' + rank, name: v.n.trim(), startDate: v.per[0], endDate: v.per[1] });
-          if (v.ws) { const w = wsRow(v.ws); await pput('/workstreams/' + enc(v.ws) + '/subphases', { subphaseIds: ((w && w.subphaseIds) || []).concat([r.id]) }); }
+          // Code calculé par le serveur (n° du chantier choisi, sinon de la phase, puis rang suivant libre dans le projet) ;
+          // rattachement au chantier dans la même écriture (09/10/2026).
+          const r = await ppost('/subphases', opt({ phaseId: v.phase, wsId: v.ws, name: v.n.trim(), startDate: v.per[0], endDate: v.per[1] }));
           msg = 'Sous-phase ' + r.code + ' créée';
         } else if (kind === 'chantier') {
-          const r = await ppost('/workstreams', { name: v.n.trim(), ownerId: v.owner, phaseIds: v.phases });
+          const r = await ppost('/workstreams', { name: v.n.trim(), ownerId: v.owner, startDate: v.per[0], endDate: v.per[1], phaseIds: v.phases });
           msg = 'Chantier ' + (r.code || 'C' + r.seq) + ' créé';
         } else if (kind === 'jalon') {
           const P = B.phases || [], inP = P.find((x) => x.start <= v.date && v.date <= x.end), w = v.ws && v.ws !== T ? wsRow(v.ws) : null;

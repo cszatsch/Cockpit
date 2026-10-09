@@ -383,12 +383,14 @@ a{color:#1d8f86}a:hover{color:#146b64}
           <span data-pop-trigger="1" onClick="{{ r.openStart }}" title="Modifier la date de début" style="padding:3px 6px;margin:0 -7px;border:1px solid transparent;border-radius:6px;cursor:pointer;white-space:nowrap;font-variant-numeric:tabular-nums" style-hover="border-color:#dfe7e5;background:#fff">{{ r.start }}</span>
           <span data-pop-trigger="1" onClick="{{ r.openEnd }}" title="Modifier la date de fin" style="padding:3px 6px;margin:0 -7px;border:1px solid transparent;border-radius:6px;cursor:pointer;white-space:nowrap;font-variant-numeric:tabular-nums" style-hover="border-color:#dfe7e5;background:#fff">{{ r.end }}</span>
           <span title="Calculé à date" style="text-align:right;color:#5c7280;font-variant-numeric:tabular-nums">{{ r.prevu }}</span>
-          <span style="display:flex;justify-content:flex-end;align-items:baseline;gap:1px;white-space:nowrap"><span contentEditable="true" suppressContentEditableWarning="{{ true }}" onBlur="{{ r.commitReel }}" onKeyDown="{{ enterBlur }}" title="Saisir le % réel" style="{{ r.reelSt }}" style-hover="border-color:#dfe7e5;background:#fff" style-focus="border-color:#1d8f86;background:#fff;box-shadow:0 0 0 3px rgba(29,143,134,.12)">{{ r.reel }}</span><span style="font-size:11px;color:#8a9aa6">%</span></span>
+          <span style="display:flex;justify-content:flex-end;align-items:baseline;gap:1px;white-space:nowrap"><span key="{{ r.reelKey }}" contentEditable="{{ r.reelEd }}" suppressContentEditableWarning="{{ true }}" onBlur="{{ r.commitReel }}" onKeyDown="{{ enterBlur }}" title="{{ r.reelTip }}" style="{{ r.reelSt }}" style-hover="border-color:#dfe7e5;background:#fff" style-focus="border-color:#1d8f86;background:#fff;box-shadow:0 0 0 3px rgba(29,143,134,.12)">{{ r.reel }}</span><span style="font-size:11px;color:#8a9aa6">%</span></span>
           <span title="Calculé : (prévu − réel) × durée" style="{{ r.retSt }}">{{ r.ret }}</span>
           <span style="display:flex;flex-direction:column;gap:1px;min-width:0"><span style="{{ r.lcSt }}">{{ r.lc }}</span><span style="{{ r.lcdSt }}">{{ r.lcd }}</span></span>
           <span style="display:flex;flex-direction:column;gap:1px;min-width:0"><span style="{{ r.lpSt }}">{{ r.lp }}</span><span style="{{ r.lpdSt }}">{{ r.lpd }}</span></span>
         </div>
       </sc-for>
+      <!-- Éléments sans période (09/10/2026) : non dessinés, mais signalés ici au lieu d'être retirés sans rien dire. -->
+      <sc-if value="{{ pl.g.undatedOn }}" hint-placeholder-val="{{ false }}"><sc-for list="{{ pl.g.undated }}" as="u" hint-placeholder-count="1"><div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:9px 0;border-top:1px solid #f1f5f4;font-size:12px"><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#10233a;font-weight:600">{{ u.l }}</span><span title="Renseignez ses dates dans le Référentiel (Info projet)" style="font-size:11px;font-weight:700;color:#b8650f;white-space:nowrap">dates à renseigner</span></div></sc-for></sc-if>
       </div>
       </div>
     </div>
@@ -3074,6 +3076,11 @@ class Component extends DCLogic {
       const cal = (title, f) => e => { if (r.segOf) { e.stopPropagation(); this.showToast('Dates du chantier dans cette phase : calculées à partir de ses sous-phases. Modifiez les sous-phases ou le chantier.'); return; } if (!this.can('editDates', r)) { e.stopPropagation(); this.showToast('Seul le PMO peut modifier ces dates ; le Responsable d’un chantier modifie celles de son chantier'); return; } this.openPop(e, { type: 'date', title: title + ' · ' + (r.code || r.id), iso: r[f], save: v => this.edit('pl', r.id, f, v) }); };
       TR.push({ ph: phShow, sp: r.kind === 'sp' ? r.code + ' ' + r.n : '—', ch: r.kind === 'ch' ? r.n : '—', owner: pn[r.owner] || '—', ownerId: r.owner, setOwner: e => this.edit('pl', r.id, 'owner', e.target.value),
         start: FR(r.start), end: FR(r.end), openStart: cal('Date de début', 'start'), openEnd: cal('Date de fin', 'end'), prevu: r.prevu + ' %', reel: String(r.reel),
+        // % réel (09/10/2026) : la cellule est reconstruite quand la valeur change (`key`) — sinon, après une saisie, le texte
+        // réécrit dans le DOM n'était plus suivi par l'écran et l'avancement recalculé d'une phase restait affiché à l'ancienne
+        // valeur. Phase à sous-phases et chantier dans une phase : valeur calculée, non modifiable ici.
+        reelKey: r.id + ':' + r.reel, reelEd: r.segOf || (r.kind === 'ph' && SP.some(x => x.ph === r.id)) ? 'false' : 'true',
+        reelTip: r.segOf ? 'Calculé : moyenne de ses sous-phases dans cette phase, pondérée par leur durée' : r.kind === 'ph' && SP.some(x => x.ph === r.id) ? 'Calculé : moyenne des sous-phases de la phase, pondérée par leur durée' : 'Saisir le % réel',
         commitReel: e => { if (r.segOf) { e.target.textContent = String(r.reel); this.showToast('Avancement du chantier dans cette phase : moyenne de ses sous-phases pondérée par leur durée.'); return; }
           // Phase avec sous-phases : avancement calculé par le serveur (moyenne pondérée par la durée, 07/10/2026).
           if (r.kind === 'ph' && SP.some(x => x.ph === r.id)) { e.target.textContent = String(r.reel); this.showToast('Avancement de la phase : moyenne de ses sous-phases pondérée par leur durée. Modifiez celui des sous-phases.'); return; } const v = Math.max(0, Math.min(100, Math.round(parseFloat((e.target.textContent || '').replace(',', '.'))))); if (isNaN(v)) { e.target.textContent = String(r.reel); return; } e.target.textContent = String(v); if (v !== r.reel) this.edit('pl', r.id, 'reel', v); },
@@ -3081,7 +3088,7 @@ class Component extends DCLogic {
         phSt: 'font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:' + (done ? mute : ink),
         spSt: 'min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' + (r.kind === 'sp' ? 'font-weight:600;color:' + (done ? mute : ink) : 'color:#c3cfcc'),
         chSt: 'min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' + (r.kind === 'ch' ? 'font-weight:600;color:' + (done ? mute : ink) : 'color:#c3cfcc'),
-        reelSt: 'flex:none;white-space:nowrap;min-width:22px;text-align:right;font-weight:800;font-variant-numeric:tabular-nums;padding:3px 5px;border:1px solid transparent;border-radius:6px;outline:none;cursor:text;color:' + (done ? mute : late ? (bad ? '#b5601a' : '#b07410') : ink),
+        reelSt: 'flex:none;white-space:nowrap;min-width:22px;text-align:right;font-weight:800;font-variant-numeric:tabular-nums;padding:3px 5px;border:1px solid transparent;border-radius:6px;outline:none;cursor:' + (r.segOf || (r.kind === 'ph' && SP.some(x => x.ph === r.id)) ? 'default' : 'text') + ';color:' + (done ? mute : late ? (bad ? '#b5601a' : '#b07410') : ink),
         ret: done || r.status === 'future' ? '—' : r.retJ > 0 ? r.retJ + ' j' : 'À l’heure',
         retSt: 'text-align:right;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:' + (r.retJ > 0 ? '12px' : '11px') + ';color:' + (r.retJ > 30 ? '#c43d3d' : r.retJ > 0 ? '#b07410' : r.status === 'cur' ? '#1b8a52' : '#c3cfcc'),
         lc: done ? 'Terminé' : r.lc ? FR(r.lc) : '—', lcd: lcD == null ? '' : lcD > 0 ? '+' + lcD + ' j vs fin' : 'dans les temps',
@@ -3135,7 +3142,8 @@ class Component extends DCLogic {
       today: 'position:absolute;top:0;bottom:0;left:' + tx + '%;width:0;border-left:1.5px solid #10233a;z-index:3;pointer-events:none',
       todayTag: 'position:absolute;top:6px;left:0;transform:translateX(-50%);white-space:nowrap;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:800;padding:3px 8px;border-radius:999px;background:#10233a;color:#fff',
       legend: [{ l: 'Avancement réel', sw: 'width:22px;height:8px;border-radius:4px;background:#1d8f86' }, { l: 'Réel en retard', sw: 'width:22px;height:8px;border-radius:4px;background:#e8a33d' }, { l: 'Avancement prévu', sw: 'width:2px;height:14px;border-radius:1px;background:' + ink }, { l: 'Chemin critique', sw: 'width:22px;height:8px;border-radius:4px;box-shadow:0 0 0 1.5px #d94b4b' }, { l: 'Jalon · glissement', sw: 'width:8px;height:8px;transform:rotate(45deg);border-radius:1.5px;background:#e8a33d;margin:0 3px' }].concat(cfg.lc ? [{ l: 'Atterr. rythme actuel', sw: 'width:10px;height:10px;border-radius:50%;box-sizing:border-box;border:2px solid #d9822b;background:#fff' }] : [], cfg.lp ? [{ l: 'Atterr. rythme prévu', sw: 'width:9px;height:9px;border-radius:2px;transform:rotate(45deg);box-sizing:border-box;border:2px solid #6d7fa3;background:#fff;margin:0 2px' }] : []),
-      trows: TR, tSub: lvlL + ' · ' + TR.length + ' lignes' };
+      trows: TR, tSub: lvlL + ' · ' + TR.length + ' lignes' + ((P.undated || []).length ? ' · ' + P.undated.length + ' sans dates' : ''),
+      undatedOn: !!(P.undated || []).length, undated: (P.undated || []).map(u => ({ l: u.kind + ' ' + (u.code ? u.code + ' · ' : '') + u.n })) };
     const pStart = PH[0] ? PH[0].start : today, pEnd = P.projectEnd || today, projD = DD(pEnd, today);
     const band = { projD: projD + ' j', projEnd: FR(pEnd),
       phs: PH.filter(p => p.status === 'cur').map(p => ({ n: p.n, d: DD(p.end, today) + ' j', end: FR(p.end) })),

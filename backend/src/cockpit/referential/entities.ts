@@ -6,7 +6,7 @@ import { nextCode, readableId, techId } from '../../core/ids';
 import { assignmentActive, confirmedDays, milestoneGap, outsidePeriod } from '../../domain/rules';
 import { ProjectAccess } from '../../domain/rights';
 import { normKey } from '../../domain/labels';
-import { foreignSubphases, keepSubphasesOf, subphaseCodeError } from '../../domain/workstream-links';
+import { foreignSubphases, keepSubphasesOf, nextSubphaseCode, periodOfPhases, subphaseCodeError } from '../../domain/workstream-links';
 import * as S from './schemas';
 import { deliverableView, milestoneViews, personViews } from '../views';
 
@@ -197,8 +197,15 @@ export const SUBPHASES: EntityConfig = {
   filters: ['phaseId'],
   newId: async (ctx, input) => genReadable(ctx, 'subphase', `SP${input.code}`),
   async prepare(ctx, input, existing) {
+    const phase = await mustExist(ctx.db, 'phase', ctx.project.id, input.phaseId ?? existing?.phaseId, 'phaseId');
+    // Chantier de la sous-phase (création) : doit avoir la phase ; il donne le préfixe du code calculé (09/10/2026).
+    const ws = !existing && input.wsId ? await mustExist(ctx.db, 'workstream', ctx.project.id, input.wsId, 'wsId') : null;
+    if (ws && !(await ctx.db.workstreamPhase.findFirst({ where: { wsId: ws.id, phaseId: phase.id } }))) throw badRequest('Sous-phase hors des phases du chantier', { wsId: `${ws.code} n’a pas la phase ${phase.code}` });
+    const codes = (await ctx.db.subphase.findMany({ where: { projectId: ctx.project.id }, select: { id: true, code: true, name: true } }));
+    if (!existing && !input.code) input.code = nextSubphaseCode(ws ? ws.seq : phase.seq, codes.map((x) => x.code));
+    // Code déjà pris (09/10/2026) : message lisible au lieu de « Valeur déjà utilisée (projectId, code) ».
+    if (input.code) { const dup = codes.find((x) => x.code.toUpperCase() === String(input.code).trim().toUpperCase() && x.id !== existing?.id); if (dup) throw badRequest(`Le code ${dup.code} est déjà pris (${dup.code} · ${dup.name})`, { code: `${dup.code} est déjà pris` }); }
     const m = merged(existing, input) as any;
-    const phase = await mustExist(ctx.db, 'phase', ctx.project.id, m.phaseId, 'phaseId');
     // Numérotation libre (07/10/2026, arbitrage du commanditaire ; le brief § 6.1 imposait le préfixe de la phase) :
     // unique dans le projet (contrainte de la base), sans séparateur.
     const codeError = subphaseCodeError(String(m.code ?? '').trim());
@@ -214,8 +221,10 @@ export const SUBPHASES: EntityConfig = {
       if (linked.length) throw badRequest('Changement de phase impossible', { phaseId: `la sous-phase est rattachée aux chantiers ${linked.map((w) => w.code).join(', ')}, qui n’ont pas la phase ${phase.code}` });
     }
     const data: any = { ...input };
+    delete data.wsId;
     precisions(input, data);
-    return { data, warnings };
+    const relations = ws ? async (tx: any, id: string) => { await tx.workstreamSubphase.create({ data: { wsId: ws.id, subphaseId: id } }); } : undefined;
+    return { data, warnings, relations };
   },
   async serializeMany(ctx, rows) {
     return rows.map((r) => ({
@@ -270,6 +279,13 @@ export const WORKSTREAMS: EntityConfig = {
     if (input.dependsOn !== undefined) data.dependsOnAll = input.dependsOn === 'ALL';
     for (const p of input.phaseIds ?? []) await mustExist(ctx.db, 'phase', ctx.project.id, p, 'phaseIds');
     for (const w of input.waveIds ?? []) await mustExist(ctx.db, 'wave', ctx.project.id, w, 'waveIds');
+    // Chantier sans dates (09/10/2026) : à la création ou quand ses phases changent, période de ses phases (`periodOfPhases`) ;
+    // un chantier sans dates n'apparaissait ni dans le Planning ni dans le Suivi d'avancement.
+    if (!m.startDate && !m.endDate && (!existing || input.phaseIds !== undefined)) {
+      const ids: string[] = input.phaseIds ?? (existing?.phases ?? []).map((p: any) => p.phaseId);
+      const per = ids.length ? periodOfPhases(await ctx.db.phase.findMany({ where: { projectId: ctx.project.id, id: { in: ids } }, select: { startDate: true, endDate: true } })) : null;
+      if (per) Object.assign(data, per);
+    }
     const deps: string[] | undefined = Array.isArray(input.dependsOn) ? input.dependsOn : input.dependsOn === 'ALL' ? [] : undefined;
     for (const d of deps ?? []) await mustExist(ctx.db, 'workstream', ctx.project.id, d, 'dependsOn');
     // Sous-phases (06/10/2026) : chacune appartient à l'une des phases du chantier ; une phase retirée emporte ses
