@@ -53,7 +53,7 @@ export class CollabController {
     const bound = WS_BOUND[entityType];
     if (bound) {
       const row = await (this.prisma as any)[bound.delegate].findFirst({ where: { id: entityId, projectId: scope.project.id } });
-      if (!row || !(bound.delegate === 'risk' ? canReadLinks(scope.access, riskLinks(row)) : canReadWs(scope.access, row[bound.ws]))) throw notFound();
+      if (!row || !(bound.delegate === 'risk' || bound.delegate === 'action' ? canReadLinks(scope.access, riskLinks(row)) : canReadWs(scope.access, row[bound.ws]))) throw notFound();
       return;
     }
     const delegate = OPEN_TO_ALL[entityType];

@@ -8,12 +8,12 @@ import { Actor, CurrentActor } from '../../core/auth/auth';
 import { AuditService } from '../../core/audit.service';
 import { PrismaService } from '../../core/prisma.service';
 import { TodayService } from '../../core/today.service';
-import { badRequest, notFound } from '../../core/errors';
+import { badRequest, businessRule, notFound } from '../../core/errors';
 import { techId } from '../../core/ids';
 import { parse } from '../../core/http';
 import { addDays, daysBetween } from '../../domain/dates';
 import { actionLate, confirmedDays, countdown, FRESHNESS_ALERT_DAYS, FRESHNESS_WATCH_DAYS, riskScore, RISK_CRITICAL_MIN } from '../../domain/rules';
-import { canReadWs, visibleWorkstreams } from '../../domain/rights';
+import { canReadLinks, canReadWs, canWriteTools, visibleWorkstreams } from '../../domain/rights';
 import { AnomaliesService } from '../pilotage/anomalies.service';
 import { confirmedAtIso } from '../views';
 import { optIsoDate } from '../referential/schemas';
@@ -34,7 +34,11 @@ const TaskCreate = z
     title: z.string().trim().min(1, 'obligatoire').max(300),
     dueIso: optIsoDate,
     detail: z.string().max(4000).nullable().optional(),
-    status: z.enum(['TODO', 'DONE']).optional(),
+    // « Saisir sans Jev » (09/10/2026) : statuts En cours et Bloquée, responsable, chantiers (un ou plusieurs, ou transverse).
+    status: z.enum(['TODO', 'IN_PROGRESS', 'BLOCKED', 'DONE']).optional(),
+    owner: z.string().min(1).max(100).nullable().optional(),
+    wsIds: z.array(z.string().min(1).max(100)).max(50).optional(),
+    allWs: z.boolean().optional(),
     link: z.object({ entityType: z.enum(['RISK', 'ISSUE', 'ACTION', 'DECISION', 'MILESTONE', 'DELIVERABLE', 'SESSION', 'DOCUMENT']), entityId: z.string().min(1) }).nullable().optional(),
     cta: z.string().max(60).nullable().optional(),
   })
@@ -58,6 +62,10 @@ type TaskItem = {
   cta?: string | null;
   archived?: boolean;
   link?: unknown;
+  owner?: string | null;
+  authorId?: string;
+  wsIds?: string[];
+  allWs?: boolean;
 };
 
 /** Écran Aujourd'hui (§ 7.13), Mes tâches (§ 7.12) et tâches manuelles privées. */
@@ -86,7 +94,7 @@ export class TodayController {
     const out: TaskItem[] = [];
     if (me) {
       for (const a of await this.prisma.action.findMany({ where: { ...P, ownerId: me, status: { not: 'DONE' } }, orderBy: { order: 'asc' } })) {
-        if (!canReadWs(scope.access, a.wsId)) continue;
+        if (!canReadLinks(scope.access, riskLinks(a))) continue;
         out.push({ key: `ACTION/${a.id}`, kind: 'ACTION', id: a.id, code: a.code, title: a.n, detail: a.detail, dueIso: a.dueIso, late: actionLate(a.status, a.dueIso, today), status: a.status, wsId: a.wsId });
       }
       for (const d of await this.prisma.decision.findMany({ where: { ...P, makerId: me, status: { in: ['IN_REVIEW', 'TO_ARBITRATE'] } }, orderBy: { code: 'asc' } })) {
@@ -99,8 +107,9 @@ export class TodayController {
       }
     }
     const author = this.personOrAccount(actor, scope);
-    for (const t of await this.prisma.task.findMany({ where: { ...P, authorId: author }, orderBy: { createdAt: 'asc' } })) {
-      out.push({ key: `TASK/${t.id}`, kind: 'MANUAL', id: t.id, title: t.title, detail: t.detail, dueIso: t.dueIso, late: t.status !== 'DONE' && !!t.dueIso && t.dueIso < today, status: t.status, cta: t.cta, link: t.link });
+    // Tâches manuelles : celles dont on est l'auteur ou le responsable (09/10/2026).
+    for (const t of await this.prisma.task.findMany({ where: { ...P, OR: [{ authorId: author }, ...(me ? [{ ownerId: me }] : [])] }, orderBy: { createdAt: 'asc' } })) {
+      out.push({ key: `TASK/${t.id}`, kind: 'MANUAL', id: t.id, title: t.title, detail: t.detail, dueIso: t.dueIso, late: t.status !== 'DONE' && !!t.dueIso && t.dueIso < today, status: t.status, cta: t.cta, link: t.link, owner: t.ownerId ?? t.authorId, authorId: t.authorId, wsIds: t.wsIds, allWs: t.allWs });
     }
     const overrides = await this.prisma.taskOverride.findMany({ where: { ...P, personId: author } });
     const ov = Object.fromEntries(overrides.map((o) => [`${o.entityType}/${o.entityId}`, o]));
@@ -134,24 +143,50 @@ export class TodayController {
   @Get('tasks')
   async tasks(@CurrentActor() actor: Actor, @Param('projectId') p: string) {
     const scope = await this.access.scope(actor, p);
-    return this.prisma.task.findMany({ where: { projectId: scope.project.id, authorId: this.personOrAccount(actor, scope) }, orderBy: { createdAt: 'asc' } });
+    const me = scope.access.personId;
+    return this.prisma.task.findMany({ where: { projectId: scope.project.id, OR: [{ authorId: this.personOrAccount(actor, scope) }, ...(me ? [{ ownerId: me }] : [])] }, orderBy: { createdAt: 'asc' } });
   }
 
   @Post('tasks')
   async createTask(@CurrentActor() actor: Actor, @Param('projectId') p: string, @Body() body: unknown) {
     const scope = await this.access.scope(actor, p);
     const input = parse(TaskCreate, body);
+    const extra = await this.taskPeople(scope, input, null);
     return this.prisma.$transaction(async (db) => {
-      const row = await db.task.create({ data: { id: techId('tk'), projectId: scope.project.id, authorId: this.personOrAccount(actor, scope), title: input.title, dueIso: input.dueIso ?? null, detail: input.detail ?? null, status: input.status ?? 'TODO', link: (input.link ?? undefined) as Prisma.InputJsonValue | undefined, cta: input.cta ?? null } });
+      const row = await db.task.create({ data: { ...extra, id: techId('tk'), projectId: scope.project.id, authorId: this.personOrAccount(actor, scope), title: input.title, dueIso: input.dueIso ?? null, detail: input.detail ?? null, status: input.status ?? 'TODO', link: (input.link ?? undefined) as Prisma.InputJsonValue | undefined, cta: input.cta ?? null } });
       await this.audit.record(db, { actor, projectId: scope.project.id, profileUsed: null }, { entityType: 'TASK', entityId: row.id, before: null, after: row as any, target: row.title });
       return row;
     });
   }
 
-  private async ownTask(actor: Actor, scope: ProjectScope, id: string) {
+  /**
+   * Responsable et chantiers d'une tâche (09/10/2026) : personne du projet ; confier une tâche à quelqu'un d'autre est
+   * réservé aux profils non Lecteur (`canWriteTools`) ; chantiers du projet, ou transverse.
+   */
+  private async taskPeople(scope: ProjectScope, input: { owner?: string | null; wsIds?: string[]; allWs?: boolean }, existing: { ownerId: string | null } | null) {
+    const out: { ownerId?: string | null; wsIds?: string[]; allWs?: boolean } = {};
+    if (input.owner !== undefined) {
+      if (input.owner) {
+        if (!(await this.prisma.person.findFirst({ where: { id: input.owner, projectId: scope.project.id } }))) throw badRequest('Référence invalide', { owner: 'personne introuvable' });
+        if (input.owner !== scope.access.personId && input.owner !== existing?.ownerId && !canWriteTools(scope.access)) throw businessRule('Confier une tâche à une autre personne : profil non Lecteur', { owner: 'réservé aux PMO et Responsables' });
+      }
+      out.ownerId = input.owner || null;
+    }
+    if (input.allWs) Object.assign(out, { wsIds: [], allWs: true });
+    else if (input.wsIds !== undefined) {
+      const ids = [...new Set(input.wsIds)];
+      const n = await this.prisma.workstream.count({ where: { projectId: scope.project.id, id: { in: ids } } });
+      if (n !== ids.length) throw badRequest('Référence invalide', { wsIds: 'chantier introuvable' });
+      Object.assign(out, { wsIds: ids, allWs: false });
+    } else if (input.allWs === false) out.allWs = false;
+    return out;
+  }
+
+  /** Tâche lisible et modifiable par son auteur ou son responsable (09/10/2026) ; suppression : auteur seul. */
+  private async ownTask(actor: Actor, scope: ProjectScope, id: string, authorOnly = false) {
     const t = await this.prisma.task.findFirst({ where: { id, projectId: scope.project.id } });
-    // Visible par son auteur uniquement : 404 pour les autres.
-    if (!t || t.authorId !== this.personOrAccount(actor, scope)) throw notFound();
+    const mine = !!t && (t.authorId === this.personOrAccount(actor, scope) || (!authorOnly && !!scope.access.personId && t.ownerId === scope.access.personId));
+    if (!t || !mine) throw notFound();
     return t;
   }
 
@@ -160,8 +195,10 @@ export class TodayController {
     const scope = await this.access.scope(actor, p);
     const t = await this.ownTask(actor, scope, id);
     const input = parse(TaskCreate.partial().strict(), body);
+    const extra = await this.taskPeople(scope, input, t);
+    const { owner: _o, wsIds: _w, allWs: _a, ...rest } = input;
     return this.prisma.$transaction(async (db) => {
-      const row = await db.task.update({ where: { id }, data: { ...input, link: input.link === undefined ? undefined : input.link === null ? Prisma.DbNull : (input.link as any), version: { increment: 1 } } });
+      const row = await db.task.update({ where: { id }, data: { ...rest, ...extra, link: input.link === undefined ? undefined : input.link === null ? Prisma.DbNull : (input.link as any), version: { increment: 1 } } });
       await this.audit.record(db, { actor, projectId: scope.project.id, profileUsed: null }, { entityType: 'TASK', entityId: id, before: t as any, after: row as any, target: row.title });
       return row;
     });
@@ -171,7 +208,7 @@ export class TodayController {
   @HttpCode(204)
   async deleteTask(@CurrentActor() actor: Actor, @Param('projectId') p: string, @Param('id') id: string) {
     const scope = await this.access.scope(actor, p);
-    const t = await this.ownTask(actor, scope, id);
+    const t = await this.ownTask(actor, scope, id, true);
     await this.prisma.$transaction(async (db) => {
       await db.task.delete({ where: { id } });
       await this.audit.record(db, { actor, projectId: scope.project.id, profileUsed: null }, { entityType: 'TASK', entityId: id, before: t as any, after: null, target: t.title });
@@ -246,7 +283,8 @@ export class TodayController {
       .sort((a, b) => b.d - a.d);
     for (const { m, d } of ms) stale.push({ kind: 'UNCONFIRMED', entityType: 'MILESTONE', entityId: m.id, code: m.code, title: `Jalon « ${m.n} »`, confirmedDays: d, owner: m.ownerId, level: d > FRESHNESS_ALERT_DAYS ? 'RISK' : 'WATCH', cta: 'Relancer' });
     for (const a of await this.prisma.action.findMany({ where: { ...P, status: { not: 'DONE' } }, orderBy: { order: 'asc' } })) {
-      if (inWs(a.wsId) && actionLate(a.status, a.dueIso, today)) stale.push({ kind: 'LATE', entityType: 'ACTION', entityId: a.id, code: a.code, title: `Action ${a.code} · statut après échéance`, dueIso: a.dueIso, owner: a.ownerId, level: 'RISK', cta: 'Mettre à jour' });
+      const al = riskLinks(a);
+      if ((al.all ? !!vis?.length || !vis : al.ids.some(inWs)) && actionLate(a.status, a.dueIso, today)) stale.push({ kind: 'LATE', entityType: 'ACTION', entityId: a.id, code: a.code, title: `Action ${a.code} · statut après échéance`, dueIso: a.dueIso, owner: a.ownerId, level: 'RISK', cta: 'Mettre à jour' });
     }
 
     return {

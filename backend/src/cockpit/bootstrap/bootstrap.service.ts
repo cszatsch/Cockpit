@@ -210,7 +210,8 @@ export class BootstrapService {
       ws: wsName(x.wsId),
       version: x.version,
     }));
-    const actionsOut = actions.filter((a) => vis(a.wsId)).map((a) => ({
+    // Actions (09/10/2026) : un ou plusieurs chantiers, ou transverse, comme les risques.
+    const actionsOut = actions.filter((a) => canReadLinks(A, riskLinks(a))).map((a) => ({
       id: a.id,
       code: a.code,
       n: a.n,
@@ -225,6 +226,9 @@ export class BootstrapService {
       ...(a.closedAt ? { closed: frShort(a.closedAt) } : {}),
       detail: a.detail,
       wsId: a.wsId,
+      wsIds: riskLinks(a).ids,
+      allWs: riskLinks(a).all,
+      wss: riskLinks(a).all ? [] : riskLinks(a).ids.map(wsName),
       version: a.version,
     }));
     const decisionsOut = decisions.filter((d) => vis(d.wsId)).map((d) => ({

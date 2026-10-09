@@ -158,7 +158,10 @@ const ActionCreate = z
     n: text(1000),
     detail: optText(4000),
     owner: id,
-    wsId: id,
+    // Chantiers (09/10/2026, comme les risques) : `wsIds` (un ou plusieurs) ou `allWs` (transverse) ; `wsId` seul reste accepté.
+    wsId: id.optional(),
+    wsIds: z.array(id).max(50).optional(),
+    allWs: z.boolean().optional(),
     dueIso: optIsoDate,
     status: z.enum(['OPEN', 'IN_PROGRESS', 'BLOCKED', 'DONE']).optional(),
     prio: z.enum(['HIGH', 'MEDIUM', 'LOW']).optional(),
@@ -188,6 +191,12 @@ export const ACTIONS: TxEntity = {
     }
     const data = { ...input };
     ownerToId(data);
+    delete data.wsId; delete data.wsIds; delete data.allWs;
+    const ws = riskWsInput(input, existing);
+    if (ws) {
+      for (const w of ws.wsIds) await ref(c.db, 'workstream', c.scope.project.id, w, 'wsIds');
+      Object.assign(data, ws);
+    } else if (!existing) throw badRequest('Chantier obligatoire', { wsIds: 'au moins un chantier, ou « Tous les chantiers »' });
     if (input.status !== undefined) {
       // Date de clôture : posée au passage à DONE, retirée à la réouverture.
       if (input.status === 'DONE' && existing?.status !== 'DONE') data.closedAt = c.today;
@@ -196,6 +205,7 @@ export const ACTIONS: TxEntity = {
     if (!existing) data.order = await c.db.action.count({ where: { projectId: c.scope.project.id } });
     return { data, warnings: [] };
   },
+  links: (x) => (x.allWs !== undefined || x.wsIds !== undefined || x.wsId !== undefined ? riskLinks(x) : { ids: [], all: false }),
   view: (r, today) => actionView(r, today),
   label: (r) => `${r.code} · ${r.n}`,
 };
@@ -299,7 +309,7 @@ export class TransactionalService {
   assertWriteLinks(scope: ProjectScope, l: WsLinks, creating: boolean) {
     if (canWriteLinks(scope.access, l)) return;
     if (creating && scope.access.responsable.length) {
-      if (l.all) throw businessRule('Risque transverse (tous les chantiers) : réservé au PMO', { wsIds: `chantiers autorisés : ${scope.access.responsable.join(', ')}` });
+      if (l.all) throw businessRule('Transverse (tous les chantiers) : réservé au PMO', { wsIds: `chantiers autorisés : ${scope.access.responsable.join(', ')}` });
       throw businessRule('Donnée à rattacher à vos chantiers', { wsId: `chantiers autorisés : ${scope.access.responsable.join(', ')}` });
     }
     throw forbidden();
@@ -392,18 +402,20 @@ export class TransactionalService {
   }
 
   /**
-   * Actions issues d'un risque (09/10/2026) : leur chantier suit ceux du risque. Une action dont le chantier n'est plus
-   * parmi ceux du risque passe au premier d'entre eux ; risque transverse : l'action garde le sien (l'écran affiche
-   * « Transverse » d'après le risque). Chaque changement est journalisé.
+   * Actions issues d'un risque (09/10/2026) : leurs chantiers suivent ceux du risque. Depuis l'extension du modèle
+   * (actions sur plusieurs chantiers ou transverses), elles reprennent exactement ceux du risque, transverse compris.
+   * Chaque changement est journalisé.
    */
   private async alignRiskActions(tx: Tx, actor: Actor, scope: ProjectScope, risk: any) {
     const l = riskLinks(risk);
-    if (l.all || !l.ids.length) return;
+    const next = l.all ? { wsId: null, wsIds: [] as string[], allWs: true } : { wsId: l.ids[0] ?? null, wsIds: l.ids, allWs: false };
+    if (!l.all && !l.ids.length) return;
     const acts = await tx.action.findMany({ where: { projectId: scope.project.id, sourceType: 'RISK', sourceId: risk.id } });
     for (const a of acts) {
-      if (a.wsId && l.ids.includes(a.wsId)) continue;
-      const row = await tx.action.update({ where: { id: a.id }, data: { wsId: l.ids[0], version: { increment: 1 } } });
-      await this.audit.record(tx, this.wctx(actor, scope, row.wsId), { entityType: 'ACTION', entityId: row.id, before: { wsId: a.wsId }, after: { wsId: row.wsId }, wsId: row.wsId, target: `${row.code} · ${row.n}` });
+      const cur = riskLinks(a);
+      if (cur.all === next.allWs && cur.ids.join() === next.wsIds.join()) continue;
+      const row = await tx.action.update({ where: { id: a.id }, data: { ...next, version: { increment: 1 } } });
+      await this.audit.record(tx, this.wctx(actor, scope, row.wsId), { entityType: 'ACTION', entityId: row.id, before: { wsId: a.wsId, wsIds: a.wsIds, allWs: a.allWs }, after: { wsId: row.wsId, wsIds: row.wsIds, allWs: row.allWs }, wsId: row.wsId, target: `${row.code} · ${row.n}` });
     }
   }
 

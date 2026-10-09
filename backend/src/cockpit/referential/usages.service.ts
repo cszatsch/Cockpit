@@ -42,7 +42,7 @@ export class UsagesService {
       case 'WORKSTREAM': {
         push('RISK', await db.risk.findMany({ where: { ...P, wsIds: { has: id } } }), (r) => r.id, (r) => `${r.code} · ${r.n}`);
         push('ISSUE', await db.issue.findMany({ where: { ...P, wsId: id } }), (r) => r.id, (r) => `${r.code} · ${r.n}`);
-        push('ACTION', await db.action.findMany({ where: { ...P, wsId: id } }), (r) => r.id, (r) => `${r.code} · ${r.n}`);
+        push('ACTION', await db.action.findMany({ where: { ...P, OR: [{ wsId: id }, { wsIds: { has: id } }] } }), (r) => r.id, (r) => `${r.code} · ${r.n}`);
         push('DECISION', await db.decision.findMany({ where: { ...P, wsId: id } }), (r) => r.id, (r) => `${r.code} · ${r.t}`);
         push('MILESTONE', await db.milestone.findMany({ where: { ...P, wsId: id } }), (r) => r.id, (r) => `${r.code} · ${r.n}`);
         push('DELIVERABLE', await db.deliverable.findMany({ where: { ...P, workstreamId: id } }), (r) => r.id, (r) => r.name);

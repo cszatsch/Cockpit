@@ -165,21 +165,38 @@ describe('Étapes 4-8 — jalons, pilotage, comités, habilitations, Aujourd’h
       await pmo.del(`${R}/risks/${multi.code}`).expect(204);
       await pmo.del(`${R}/risks/${trans.code}`).expect(204);
     });
-    it('actions issues d’un risque (09/10/2026) : leur chantier suit ceux du risque ; transverse : inchangé', async () => {
+    it('actions issues d’un risque (09/10/2026) : elles reprennent les chantiers du risque, transverse compris', async () => {
       const pmo = await t.as(WHO.pmo);
       const rk = (await pmo.post(`${R}/risks`, { n: 'Risque C2', p: 3, i: 3, owner: 'p06', wsIds: ['C2'] }).expect(201)).body;
       const ac = (await pmo.post(`${R}/actions`, { n: 'Action du risque', owner: 'p06', wsId: 'C2', dueIso: '2026-11-15', status: 'OPEN', prio: 'HIGH', sourceType: 'RISK', sourceId: rk.id }).expect(201)).body;
-      const wsOf = async () => (await pmo.get(`${R}/actions/${ac.code}`).expect(200)).body.wsId;
+      const wsOf = async () => { const a = (await pmo.get(`${R}/actions/${ac.code}`).expect(200)).body; return { wsId: a.wsId, wsIds: a.wsIds, allWs: a.allWs }; };
       await pmo.patch(`${R}/risks/${rk.code}`, { wsIds: ['C2', 'C1'] }).expect(200);
-      expect(await wsOf()).toBe('C2'); // toujours parmi les chantiers du risque
-      await pmo.patch(`${R}/risks/${rk.code}`, { wsIds: ['C4', 'C1'] }).expect(200);
-      expect(await wsOf()).toBe('C4');
+      expect(await wsOf()).toEqual({ wsId: 'C2', wsIds: ['C2', 'C1'], allWs: false });
       await pmo.patch(`${R}/risks/${rk.code}`, { allWs: true }).expect(200);
-      expect(await wsOf()).toBe('C4');
-      const audit = await t.db.auditEntry.findMany({ where: { entityType: 'ACTION', entityId: ac.id, field: 'wsId' } });
-      expect(audit.map((x) => x.newValue)).toContain('C4');
+      expect(await wsOf()).toEqual({ wsId: null, wsIds: [], allWs: true });
+      const audit = await t.db.auditEntry.findMany({ where: { entityType: 'ACTION', entityId: ac.id } });
+      expect(audit.length).toBeGreaterThan(0);
       await pmo.del(`${R}/actions/${ac.code}`).expect(204);
       await pmo.del(`${R}/risks/${rk.code}`).expect(204);
+    });
+    it('actions sur plusieurs chantiers ou transverses (09/10/2026) : lecture si l’un est visible, écriture sur chacun, transverse PMO', async () => {
+      const pmo = await t.as(WHO.pmo);
+      const multi = (await pmo.post(`${R}/actions`, { n: 'Action C3 + C8', owner: 'p06', wsIds: ['C3', 'C8'], dueIso: '2026-11-15' }).expect(201)).body;
+      expect(multi).toMatchObject({ wsId: 'C3', wsIds: ['C3', 'C8'], allWs: false });
+      const trans = (await pmo.post(`${R}/actions`, { n: 'Action transverse', owner: 'p06', allWs: true }).expect(201)).body;
+      expect(trans).toMatchObject({ wsId: null, wsIds: [], allWs: true });
+      await pmo.post(`${R}/actions`, { n: 'Sans chantier', owner: 'p06' }).expect(400);
+      const l8 = await t.as(WHO.lecteurC8), r5 = await t.as(WHO.respC5);
+      await l8.get(`${R}/actions/${multi.code}`).expect(200);
+      await r5.get(`${R}/actions/${multi.code}`).expect(404);
+      expect((await r5.get(`${R}/actions`).expect(200)).body.map((x: any) => x.code)).toContain(trans.code);
+      await r5.post(`${R}/actions`, { n: 'x', owner: 'p06', allWs: true }).expect(422);
+      await r5.post(`${R}/actions`, { n: 'x', owner: 'p06', wsIds: ['C5', 'C3'] }).expect(422);
+      const boot = (await pmo.get(`${R}/bootstrap`).expect(200)).body;
+      expect(boot.actions.find((x: any) => x.id === multi.id)).toMatchObject({ wsIds: ['C3', 'C8'], allWs: false });
+      expect(boot.actions.find((x: any) => x.id === trans.id)).toMatchObject({ allWs: true });
+      await pmo.del(`${R}/actions/${multi.code}`).expect(204);
+      await pmo.del(`${R}/actions/${trans.code}`).expect(204);
     });
     it('un Admin qui modifie un risque → 403 (RG6)', async () => {
       const c = await t.as(WHO.admin);
@@ -241,6 +258,36 @@ describe('Étapes 4-8 — jalons, pilotage, comités, habilitations, Aujourd’h
       await other.patch(`${R}/tasks/${created.body.id}`, { title: 'x' }).expect(404);
       const ov = await c.patch(`${R}/tasks/${created.body.id}`, { status: 'DONE' }).expect(200);
       expect(ov.body.status).toBe('DONE');
+    });
+    it('tâche confiée (09/10/2026) : responsable, chantiers, 4 statuts ; visible et modifiable par le responsable, supprimable par l’auteur seul', async () => {
+      const c = await t.as(WHO.pmo), resp = await t.as(WHO.respC5), lect = await t.as(WHO.lecteurC3);
+      const tk = (await c.post(`${R}/tasks`, { title: 'Rédiger le cahier de recette', owner: 'p06', wsIds: ['C5', 'C3'], status: 'IN_PROGRESS', link: { entityType: 'ACTION', entityId: 'A-41' } }).expect(201)).body;
+      expect(tk).toMatchObject({ ownerId: 'p06', wsIds: ['C5', 'C3'], allWs: false, status: 'IN_PROGRESS' });
+      const mine = (await resp.get(`${R}/me/tasks`).expect(200)).body.find((x: any) => x.id === tk.id);
+      expect(mine).toMatchObject({ kind: 'MANUAL', owner: 'p06', wsIds: ['C5', 'C3'], status: 'IN_PROGRESS' });
+      expect((await resp.patch(`${R}/tasks/${tk.id}`, { status: 'BLOCKED' }).expect(200)).body.status).toBe('BLOCKED');
+      await resp.del(`${R}/tasks/${tk.id}`).expect(404);
+      await c.post(`${R}/tasks`, { title: 'x', owner: 'p99' }).expect(400);
+      await c.post(`${R}/tasks`, { title: 'x', wsIds: ['C99'] }).expect(400);
+      await lect.post(`${R}/tasks`, { title: 'x', owner: 'p06' }).expect(422);
+      const tr = (await c.post(`${R}/tasks`, { title: 'Tâche transverse', allWs: true }).expect(201)).body;
+      expect(tr).toMatchObject({ allWs: true, wsIds: [] });
+      await c.del(`${R}/tasks/${tk.id}`).expect(204);
+      await c.del(`${R}/tasks/${tr.id}`).expect(204);
+    });
+    it('fiche d’arbitrage, critères par option (09/10/2026) : enregistrés tels quels, ancien format déduit, poids contrôlés par option', async () => {
+      const c = await t.as(WHO.pmo);
+      const d = (await c.post(`${R}/decisions`, { t: 'Solution CRM', p: 3, wsId: 'C3', bodyId: 'g1' }).expect(201)).body;
+      const crit = (n: number[]) => [{ name: 'Coût total', weightPct: 40, score: n[0], comment: 'A' }, { name: 'Délai', weightPct: 35, score: n[1], comment: '' }, { name: 'Couverture', weightPct: 25, score: n[2], comment: '' }];
+      const r = await c.patch(`${R}/decisions/${d.code}/arbitration`, { question: 'Solution CRM', options: [{ code: 'A', label: 'Prolonger', criteria: crit([3, 4, 1]) }, { code: 'B', label: 'Migrer', criteria: crit([2, 2, 4]).slice(0, 2) }], recommendation: 'B' }).expect(200);
+      expect(r.body.arbitration.options[0].criteria).toHaveLength(3);
+      expect(r.body.arbitration.criteria).toEqual([
+        { name: 'Coût total', weightPct: 40, scoreA: 3, commentA: 'A', scoreB: 2, commentB: 'A' },
+        { name: 'Délai', weightPct: 35, scoreA: 4, commentA: '', scoreB: 2, commentB: '' },
+        { name: 'Couverture', weightPct: 25, scoreA: 1, commentA: '', scoreB: 0, commentB: '' },
+      ]);
+      expect(r.body.warnings).toEqual(['Option B : la somme des poids vaut 75 % (100 % attendus)']);
+      await c.del(`${R}/decisions/${d.code}`).expect(204);
     });
     it('écran Aujourd’hui : prochain COPIL n°21, validations du décideur, échéancier et écarts', async () => {
       const c = await t.as({ personId: 'p04' });

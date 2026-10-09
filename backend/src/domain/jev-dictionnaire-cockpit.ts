@@ -515,22 +515,39 @@ export const DICTIONNAIRE_COCKPIT: DictTable[] = [
       { nom: 'libelle', expr: 't.n', type: 'texte', signification: 'Libellé de l’action' },
       { nom: 'detail', expr: 't.detail', type: 'texte', signification: 'Détail' },
       { nom: 'responsable_id', expr: `t.${q('ownerId')}`, type: 'texte', signification: 'Porteur → personnes.id' },
-      { nom: 'chantier_id', expr: `t.${q('wsId')}`, type: 'texte', signification: 'Chantier → chantiers.id' },
+      { nom: 'chantier_id', expr: `t.${q('wsId')}`, type: 'texte', signification: 'Chantier principal (le premier cité) → chantiers.id ; null pour une action transverse' },
       { nom: 'echeance', expr: `t.${q('dueIso')}`, type: 'texte', signification: 'Échéance (null : sans échéance)', exemples: 'AAAA-MM-JJ' },
       { nom: 'statut', expr: 't.status::text', type: 'texte', signification: 'Statut', exemples: 'OPEN = à faire, IN_PROGRESS = en cours, BLOCKED = bloquée, DONE = terminée' },
       { nom: 'priorite', expr: 't.prio::text', type: 'texte', signification: 'Priorité', exemples: 'HIGH = haute, MEDIUM = moyenne, LOW = basse' },
       { nom: 'origine_type', expr: `t.${q('sourceType')}::text`, type: 'texte', signification: 'Type de l’objet d’origine', exemples: 'RISK, ISSUE, MILESTONE, DECISION' },
       { nom: 'origine_id', expr: `t.${q('sourceId')}`, type: 'texte', signification: 'Objet d’origine (risques.id, problemes.id, jalons.id ou decisions.id selon origine_type)' },
       { nom: 'terminee_le', expr: `t.${q('closedAt')}`, type: 'texte', signification: 'Date de passage à « terminée » (effacée à la réouverture)', exemples: 'AAAA-MM-JJ' },
+      { nom: 'chantier_ids', expr: `t.${q('wsIds')}`, type: 'liste de textes', signification: 'Chantiers concernés (un ou plusieurs) → chantiers.id ; vide pour une action transverse' },
+      { nom: 'transverse', expr: `t.${q('allWs')}`, type: 'booléen', signification: 'Action transverse : concerne tous les chantiers du projet' },
     ],
-    relations: ['actions.chantier_id = chantiers.id', 'actions.responsable_id = personnes.id'],
+    relations: ['actions.chantier_id = chantiers.id (chantier principal)', 'actions.id = actions_chantiers.action_id (tous les chantiers concernés)', 'actions.responsable_id = personnes.id'],
     usages: ['Actions en retard, par porteur ou par chantier.', 'Actions de la semaine.', 'Actions bloquées.'],
     regles: [
       'Action en retard = statut ≠ DONE et echeance non null et echeance < date du jour (anomalie bloquante).',
       'Action ouverte = statut ≠ DONE.',
+      'Une action concerne un ou plusieurs chantiers, ou tous (transverse, 09/10/2026). Actions d’un chantier : par actions_chantiers (une action transverse y figure pour chaque chantier), jamais par actions.chantier_id seul.',
       DATES_TEXTE,
       DROITS_CHANTIER,
     ],
+  },
+  {
+    nom: 'actions_chantiers',
+    source: '"Action" t JOIN "Workstream" w ON w."projectId" = t."projectId" AND (t."allWs" OR w.id = ANY(t."wsIds"))',
+    description: 'Chantiers concernés par chaque action (09/10/2026) : une ligne par action et par chantier ; une action transverse a une ligne pour chacun des chantiers du projet.',
+    colonnes: [
+      { nom: 'projet_id', expr: `t.${q('projectId')}`, type: 'texte', signification: 'Projet → projets.id' },
+      { nom: 'action_id', expr: 't.id', type: 'texte', signification: 'Action → actions.id' },
+      { nom: 'chantier_id', expr: 'w.id', type: 'texte', signification: 'Chantier concerné → chantiers.id' },
+      { nom: 'transverse', expr: `t.${q('allWs')}`, type: 'booléen', signification: 'Ligne issue d’une action transverse (tous les chantiers)' },
+    ],
+    relations: ['actions_chantiers.action_id = actions.id', 'actions_chantiers.chantier_id = chantiers.id'],
+    usages: ['Actions d’un chantier (y compris les actions transverses).', 'Actions en retard par chantier.'],
+    regles: [DROITS_CHANTIER],
   },
   {
     nom: 'decisions',
@@ -790,7 +807,8 @@ export function cockpitRightsFilter(t: DictTable): string {
   else if (t.nom === 'liens_documents') cond.push(`(${all} OR d.conf::text <> 'RESTRICTED')`);
   else if (t.nom === 'commentaires') cond.push(all);
   // Risques (08/10/2026) : visibles si transverse ou si l'un de leurs chantiers est dans la liste.
-  else if (t.nom === 'risques') cond.push(`(${all} OR t."allWs" OR t."wsIds" && string_to_array(current_setting('${SCOPE_CHANTIERS}', true), ','))`);
+  // Actions (09/10/2026) : même règle que les risques.
+  else if (t.nom === 'risques' || t.nom === 'actions') cond.push(`(${all} OR t."allWs" OR t."wsIds" && string_to_array(current_setting('${SCOPE_CHANTIERS}', true), ','))`);
   else if (t.nom !== 'livrables' && col('chantier_id')) cond.push(inList(col('chantier_id')!));
   return `(current_user <> '${JEV_COCKPIT_ROLE}' OR (${cond.join(' AND ')}))`;
 }

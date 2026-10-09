@@ -1,7 +1,7 @@
 # Cockpit — dictionnaire des données
 
 > Généré depuis `backend/src/domain/jev-dictionnaire-cockpit.ts` (`npm run dictionnaire:doc`) : ne pas modifier à la main.
-> 36 vues en lecture seule du schéma `jev_cockpit`, chargées dans `dictionnaire_tables` et `dictionnaire_colonnes`.
+> 37 vues en lecture seule du schéma `jev_cockpit`, chargées dans `dictionnaire_tables` et `dictionnaire_colonnes`.
 > Dates métier en texte AAAA-MM-JJ, horodatages en heure de Paris. Chaque vue porte projet_id (et chantier_id) pour le filtrage par droits ; aucun rôle de lecture n’y a accès tant que ce filtrage n’est pas en place.
 
 ## Sommaire
@@ -29,7 +29,8 @@
 - [`jev_cockpit.risques`](#risques) — 14 colonnes
 - [`jev_cockpit.risques_chantiers`](#risques_chantiers) — 4 colonnes
 - [`jev_cockpit.problemes`](#problemes) — 13 colonnes
-- [`jev_cockpit.actions`](#actions) — 13 colonnes
+- [`jev_cockpit.actions`](#actions) — 15 colonnes
+- [`jev_cockpit.actions_chantiers`](#actions_chantiers) — 4 colonnes
 - [`jev_cockpit.decisions`](#decisions) — 17 colonnes
 - [`jev_cockpit.seances`](#seances) — 10 colonnes
 - [`jev_cockpit.modeles_rapport`](#modeles_rapport) — 11 colonnes
@@ -779,17 +780,20 @@ Plan d’actions : porteur, chantier, échéance, statut, priorité, origine. É
 | `libelle` | texte | Libellé de l’action |  |
 | `detail` | texte | Détail |  |
 | `responsable_id` | texte | Porteur → personnes.id |  |
-| `chantier_id` | texte | Chantier → chantiers.id |  |
+| `chantier_id` | texte | Chantier principal (le premier cité) → chantiers.id ; null pour une action transverse |  |
 | `echeance` | texte | Échéance (null : sans échéance) | AAAA-MM-JJ |
 | `statut` | texte | Statut | OPEN = à faire, IN_PROGRESS = en cours, BLOCKED = bloquée, DONE = terminée |
 | `priorite` | texte | Priorité | HIGH = haute, MEDIUM = moyenne, LOW = basse |
 | `origine_type` | texte | Type de l’objet d’origine | RISK, ISSUE, MILESTONE, DECISION |
 | `origine_id` | texte | Objet d’origine (risques.id, problemes.id, jalons.id ou decisions.id selon origine_type) |  |
 | `terminee_le` | texte | Date de passage à « terminée » (effacée à la réouverture) | AAAA-MM-JJ |
+| `chantier_ids` | liste de textes | Chantiers concernés (un ou plusieurs) → chantiers.id ; vide pour une action transverse |  |
+| `transverse` | booléen | Action transverse : concerne tous les chantiers du projet |  |
 
 **Relations**
 
-- actions.chantier_id = chantiers.id
+- actions.chantier_id = chantiers.id (chantier principal)
+- actions.id = actions_chantiers.action_id (tous les chantiers concernés)
 - actions.responsable_id = personnes.id
 
 **Usages**
@@ -802,7 +806,33 @@ Plan d’actions : porteur, chantier, échéance, statut, priorité, origine. É
 
 - Action en retard = statut ≠ DONE et echeance non null et echeance < date du jour (anomalie bloquante).
 - Action ouverte = statut ≠ DONE.
+- Une action concerne un ou plusieurs chantiers, ou tous (transverse, 09/10/2026). Actions d’un chantier : par actions_chantiers (une action transverse y figure pour chaque chantier), jamais par actions.chantier_id seul.
 - Les dates sont du texte AAAA-MM-JJ : comparer comme du texte, ou convertir avec ::date pour calculer un écart en jours.
+- Droits : le PMO voit tout le projet ; un Responsable ou un Lecteur ne voit que les lignes dont chantier_id fait partie de ses chantiers (habilitations).
+
+## actions_chantiers
+
+Chantiers concernés par chaque action (09/10/2026) : une ligne par action et par chantier ; une action transverse a une ligne pour chacun des chantiers du projet.
+
+| Colonne | Type | Signification | Exemples, unités |
+|---|---|---|---|
+| `projet_id` | texte | Projet → projets.id |  |
+| `action_id` | texte | Action → actions.id |  |
+| `chantier_id` | texte | Chantier concerné → chantiers.id |  |
+| `transverse` | booléen | Ligne issue d’une action transverse (tous les chantiers) |  |
+
+**Relations**
+
+- actions_chantiers.action_id = actions.id
+- actions_chantiers.chantier_id = chantiers.id
+
+**Usages**
+
+- Actions d’un chantier (y compris les actions transverses).
+- Actions en retard par chantier.
+
+**Règles et précautions**
+
 - Droits : le PMO voit tout le projet ; un Responsable ou un Lecteur ne voit que les lignes dont chantier_id fait partie de ses chantiers (habilitations).
 
 ## decisions

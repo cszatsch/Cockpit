@@ -1829,3 +1829,19 @@ Demande du commanditaire : un risque peut concerner un chantier, plusieurs, ou t
 ## Rapports : page Risques, colonne « Chantier » (09/10/2026)
 
 - Demande du commanditaire : dans la page Risques du PowerPoint, le nom du porteur chevauchait les chantiers (les noms des chantiers étaient écrits sous le porteur, sans être comptés dans la hauteur de la ligne). Colonne « Chantier » ajoutée après « Crit. » avec les seules références (C1, C2… ; « Transverse » pour un risque transverse ; `riskWsCodes`, `'C' + seq` comme le Cockpit), largeur 1,2 po ; porteur seul dans sa cellule (2 lignes au plus) ; hauteur de ligne = la plus haute des cellules. Contrôle visuel dans PowerPoint (pages modèles du template « Test »). `riskWsLabel` (noms en clair) retiré, sans autre usage.
+
+## « Saisir sans Jev » et extension du modèle (09/10/2026)
+
+- Maquette « Jev - Saisir sans Jev 3a » intégrée (détail, composants et écarts : `docs/NOTE - Saisir sans Jev.md`).
+- Arbitrage du commanditaire : étendre le modèle plutôt que réduire les champs à l'enregistrement. **Actions** sur un ou
+  plusieurs chantiers ou transverses (`Action.wsIds`, `allWs`, `wsId` facultatif ; même règle de droits que les risques :
+  lecture si l'un des chantiers est visible, écriture sur chacun, transverse réservé au PMO) ; une action issue d'un risque
+  reprend ses chantiers, transverse compris (`alignRiskActions`). **Tâches** : `ownerId` (responsable, sinon l'auteur), `wsIds`,
+  `allWs`, statuts `IN_PROGRESS` et `BLOCKED` ; visibles et modifiables par l'auteur et le responsable, supprimables par
+  l'auteur ; confier une tâche à quelqu'un d'autre : profils non Lecteur. **Fiche d'arbitrage** : critères par option
+  (`options[].criteria`), ancien format déduit (`legacyCriteria`, `src/domain/arbitration.ts`), poids contrôlés par option.
+  Migration `20261117000000_actions_taches_chantiers` ; vues `jev_cockpit.actions` et `actions_chantiers`.
+- Valeurs exigées par le serveur et absentes du formulaire : déduites (phase du jalon par sa date, responsable de phase =
+  l'utilisateur, code de sous-phase = rang suivant) — `saisie()` dans `frontends/api.js`.
+- Calculs du formulaire (score Σ(poids × note) / Σ(poids) sur les critères pesés et notés, total des poids, composition,
+  écart, criticité P × I sur 16) : fonctions pures `frontends/saisie-calc.js`, testées par `test/unit/saisie-calc.spec.ts`.

@@ -552,3 +552,11 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 ## Jalons : colonne « Chantier » en référence (09/10/2026)
 
 - Registre des jalons : la colonne « Chantier » affiche la référence du chantier (C1, C2…, teinte d'identité ; nom en infobulle) au lieu de son nom ; jalon sans chantier : « Transverse ». Le petit sélecteur propose « Transverse (aucun chantier) » puis C1 · nom, C2 · nom… ; « Transverse » enregistre un jalon sans chantier (`wsId` nul, déjà admis par le serveur).
+
+## « Saisir sans Jev » (maquette 3a, 09/10/2026)
+
+- Lien « Saisir sans Jev » sous le champ de Jev, centré entre deux filets, icône de crayon (romain, comme la maquette).
+- Barre latérale de Jev : panneaux de la maquette (choix de l'objet, formulaire, détail d'une option d'arbitrage), composant
+  `Saisie sans Jev.dc.html` et composants de champ réutilisables (`Champ choix`, `Champ etiquettes`, `Echelle 1-4`,
+  `Selecteur segmente`, `Ligne critere`) ; calculs `saisie-calc.js` ; écriture `saisie()` d'`api.js` ; listes `ssjData()`.
+  × ferme la barre latérale et réinitialise (réouverture : Jev). Écarts justifiés : `docs/NOTE - Saisir sans Jev.md`.

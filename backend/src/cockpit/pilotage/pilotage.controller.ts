@@ -1,3 +1,4 @@
+import { ArbOption, legacyCriteria } from '../../domain/arbitration';
 import { Body, Controller, Get, Headers, Param, Patch, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
@@ -23,7 +24,17 @@ export const BUDGET_MODULE_ID = 'bud';
 const Arbitration = z
   .object({
     question: z.string().trim().min(1).max(2000).nullable(),
-    options: z.array(z.object({ code: z.string().trim().min(1).max(3), label: z.string().trim().min(1).max(300), body: z.string().max(4000).default('') })).max(6),
+    // Critères propres à chaque option (« Saisir sans Jev », 09/10/2026) : intitulé, poids (%), note 1 à 4 (0 : non notée), description.
+    options: z
+      .array(
+        z.object({
+          code: z.string().trim().min(1).max(3),
+          label: z.string().trim().min(1).max(300),
+          body: z.string().max(4000).default(''),
+          criteria: z.array(z.object({ name: z.string().max(200).default(''), weightPct: z.number().int().min(0).max(100), score: z.number().int().min(0).max(4), comment: z.string().max(1000).default('') })).max(20).optional(),
+        }),
+      )
+      .max(6),
     criteria: z
       .array(
         z.object({
@@ -115,11 +126,18 @@ export class PilotageController {
       if (d.status === 'ARBITRATED') throw conflict('READ_ONLY', 'Fiche arbitrée : lecture seule');
       const prev = (d.arbitration ?? { question: null, options: [], criteria: [], recommendation: null, texts: {} }) as any;
       const next = { ...prev, ...input, texts: { ...(prev.texts ?? {}), ...(input.texts ?? {}) } };
+      // Critères par option : l'ancien format (critères communs A / B) en est déduit s'il n'est pas fourni (`legacyCriteria`).
+      if (input.options && !input.criteria) { const lc = legacyCriteria(input.options as ArbOption[]); if (lc) next.criteria = lc; }
       const row = await db.decision.update({ where: { id: d.id }, data: { arbitration: next as Prisma.InputJsonValue, full: true, version: { increment: 1 } } });
       await this.tx.audit.record(db, this.tx.wctx(actor, scope, d.wsId), { entityType: 'DECISION', entityId: d.id, before: { arbitration: prev }, after: { arbitration: next }, wsId: d.wsId, target: `${d.code} · fiche d'arbitrage` });
       const warnings: string[] = [];
-      const w = (next.criteria ?? []).reduce((a: number, c: any) => a + c.weightPct, 0);
-      if ((next.criteria ?? []).length && w !== 100) warnings.push(`La somme des poids des critères vaut ${w} % (100 % attendus)`);
+      const perOption = (next.options ?? []).filter((o: any) => Array.isArray(o.criteria) && o.criteria.length);
+      if (perOption.length) {
+        for (const o of perOption) { const w = o.criteria.reduce((a: number, c: any) => a + c.weightPct, 0); if (w !== 100) warnings.push(`Option ${o.code} : la somme des poids vaut ${w} % (100 % attendus)`); }
+      } else {
+        const w = (next.criteria ?? []).reduce((a: number, c: any) => a + c.weightPct, 0);
+        if ((next.criteria ?? []).length && w !== 100) warnings.push(`La somme des poids des critères vaut ${w} % (100 % attendus)`);
+      }
       return withWarnings(decisionView(row, { withArbitration: true }), warnings);
     });
   }

@@ -127,7 +127,8 @@ export class ReportTemplateService implements OnModuleInit {
     const milestoneWhere = { ...P, ...(c.scope === 'PHASE' ? { phaseId: t! } : c.scope === 'WAVE' ? { waveId: t! } : c.scope === 'WORKSTREAM' ? { wsId: t! } : {}) };
     // Risques d'un chantier : ceux qui le citent et les risques transverses (08/10/2026).
     const openRisks = () => this.prisma.risk.findMany({ where: { ...P, ...(c.scope === 'WORKSTREAM' ? { OR: [{ allWs: true }, { wsIds: { has: t! } }] } : {}), status: { not: 'CLOSED' } } });
-    const openActions = () => this.prisma.action.findMany({ where: { ...P, ...ws, status: { not: 'DONE' } }, orderBy: { order: 'asc' } });
+    // Actions d'un chantier : celles qui le citent et les actions transverses (09/10/2026).
+    const openActions = () => this.prisma.action.findMany({ where: { ...P, ...(c.scope === 'WORKSTREAM' ? { OR: [{ allWs: true }, { wsIds: { has: t! } }] } : {}), status: { not: 'DONE' } }, orderBy: { order: 'asc' } });
     const pendingDecisions = () => this.prisma.decision.findMany({ where: { ...P, ...ws, status: { in: ['DRAFT', 'IN_REVIEW', 'TO_ARBITRATE'] } }, orderBy: { code: 'asc' } });
     const phases = () => this.prisma.phase.findMany({ where: { ...P, ...(c.scope === 'PHASE' ? { id: t! } : c.scope === 'WAVE' ? { waves: { some: { waveId: t! } } } : {}) }, orderBy: { seq: 'asc' } });
 
@@ -209,7 +210,7 @@ export class ReportTemplateService implements OnModuleInit {
         if (!as.length) warn('aucune action ouverte sur la période.');
         // Échéancier (04/10/2026) : chantier (sauf périmètre chantier) et origine de l'action (risque, problème, jalon, décision).
         const [wsNames, origins] = await Promise.all([c.scope === 'WORKSTREAM' ? new Map<string, string>() : this.wsNames(P), this.actionOrigins(P, as)]);
-        const rows: ActionRow[] = as.map((a) => ({ code: a.code, name: a.n, owner: name(a.ownerId), ws: wsNames.get(a.wsId) ?? null, due: a.dueIso || null, status: a.status as ActionRow['status'], prio: a.prio, source: origins.get(a.id) ?? null }));
+        const rows: ActionRow[] = as.map((a) => ({ code: a.code, name: a.n, owner: name(a.ownerId), ws: (() => { const l = riskLinks(a); return l.all ? 'Tous les chantiers' : l.ids.map((w) => wsNames.get(w) ?? w).join(', ') || null; })(), due: a.dueIso || null, status: a.status as ActionRow['status'], prio: a.prio, source: origins.get(a.id) ?? null }));
         parts.push({ part: 'board', board: 'actions', data: { today, rows, show: Object.fromEntries(def.indicators.map((x) => [x.id, inds.includes(x.id)])) } as ActionsData });
         parts.push(table(inds, as.map((a) => ({ code: a.code, name: a.n, owner: name(a.ownerId), due: day(a.dueIso), status: st(a.status), prio: PRIO[a.prio] ?? a.prio }))));
         break;

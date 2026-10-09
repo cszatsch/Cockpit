@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><style>
+html,body{margin:0;background:#fff;font-family:'Plus Jakarta Sans',sans-serif;color:#10233a;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}input{font-family:inherit}input::placeholder{color:#8a9aa6}
+</style></helmet>
+<!-- Ligne de critère d'une option d'arbitrage (« Saisir sans Jev », maquette 3a, panneau 4) : rang, intitulé, poids (%), suppression ;
+     note de 1 à 4 (un second clic sur la note choisie la retire) et son libellé ; description. -->
+<div role="group" aria-label="{{ groupL }}" style="display:flex;flex-direction:column;gap:10px;padding:12px;border-radius:12px;border:1px solid #e6eeec;background:#fff" style-hover="border-color:#cfdcd8">
+  <div style="display:grid;grid-template-columns:18px minmax(0,1fr) 58px 22px;gap:8px;align-items:center">
+    <span style="{{ iSt }}" aria-hidden="true">{{ idx }}</span>
+    <input value="{{ c }}" onChange="{{ cc }}" aria-label="{{ cL }}" placeholder="Nommer le critère" style="min-width:0;border:0;outline:0;background:none;font-size:13.5px;font-weight:700;color:#10233a;padding:0" style-focus-visible="box-shadow:0 2px 0 #1d8f86">
+    <div style="height:30px;border-radius:8px;background:#f3f6f5;display:flex;align-items:center;justify-content:flex-end;gap:2px;padding:0 8px" style-focus-within="box-shadow:0 0 0 2px #1d8f86"><input value="{{ w }}" onChange="{{ wc }}" inputMode="numeric" aria-label="{{ wL }}" placeholder="0" style="width:26px;border:0;outline:0;background:none;font-size:13px;font-weight:700;color:#10233a;padding:0;text-align:right;font-variant-numeric:tabular-nums"><span style="font-size:12px;font-weight:600;color:#8a9aa6" aria-hidden="true">%</span></div>
+    <button type="button" onClick="{{ rm }}" aria-label="{{ rmL }}" title="Supprimer le critère" style="width:22px;height:22px;border:0;padding:0;background:none;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#b4c2c9;cursor:pointer" style-hover="background:#f1f5f4;color:#43586a" style-focus-visible="outline:2px solid #146b64;outline-offset:1px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px"><div role="radiogroup" aria-label="{{ nL }}" style="flex:1;display:flex;gap:3px"><sc-for list="{{ segs }}" as="p" hint-placeholder-count="4"><button type="button" role="radio" aria-checked="{{ p.ariaChk }}" aria-label="{{ p.aria }}" onClick="{{ p.on }}" style="{{ p.st }}" style-focus-visible="outline:2px solid #146b64;outline-offset:1px">{{ p.n }}</button></sc-for></div><span style="{{ nlSt }}">{{ nl }}</span></div>
+  <input value="{{ d }}" onChange="{{ dc }}" aria-label="{{ dL }}" placeholder="Description, justification de la note" style="height:32px;border:0;outline:0;border-radius:8px;background:#f6f9f8;padding:0 10px;font-size:12.5px;font-weight:500;color:#43586a;min-width:0" style-focus-visible="box-shadow:0 0 0 2px #1d8f86">
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;index&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;number&quot;},&quot;row&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{ c: string; w: string; n: number; d: string }&quot;},&quot;onChange&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(patch: object) =&gt; void&quot;},&quot;onRemove&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;}}">
+// Composant réutilisable « Ligne de critère » (09/10/2026) : `row` = { c : intitulé, w : poids (texte, chiffres seuls), n : note 0 à 4, d : description }.
+const LC_COLORS = ['#c2413b', '#b8650f', '#1d8f86', '#0d5952'], LC_LABELS = ['Faible', 'Moyen', 'Bon', 'Excellent'];
+class Component extends DCLogic {
+  renderVals() {
+    const P = this.props, r = P.row || { c: '', w: '', n: 0, d: '' }, n = Number(r.n) || 0, k = (Number(P.index) || 0) + 1, nm = r.c || 'critère ' + k;
+    const up = p => P.onChange?.(p);
+    return {
+      idx: String(k).padStart(2, '0'), c: r.c, w: r.w, d: r.d, groupL: 'Critère ' + k,
+      cL: 'Intitulé du critère ' + k, wL: 'Poids de ' + nm + ' en %', nL: 'Note de ' + nm, dL: 'Description de ' + nm, rmL: 'Supprimer ' + nm,
+      cc: e => up({ c: e.target.value }), wc: e => up({ w: e.target.value.replace(/\D/g, '').slice(0, 3) }), dc: e => up({ d: e.target.value }), rm: () => P.onRemove?.(),
+      iSt: `font-size:10.5px;font-weight:800;font-variant-numeric:tabular-nums;flex:none;width:18px;color:${n ? LC_COLORS[n - 1] : '#b4c2c9'}`,
+      nl: n ? LC_LABELS[n - 1] : 'Non noté', nlSt: `width:62px;flex:none;text-align:right;font-size:11.5px;font-weight:700;color:${n ? LC_COLORS[n - 1] : '#8a9aa6'}`,
+      segs: [1, 2, 3, 4].map(x => ({ n: x, ariaChk: x === n ? 'true' : 'false', aria: x + ' · ' + LC_LABELS[x - 1], on: () => up({ n: n === x ? 0 : x }),
+        st: `flex:1;height:28px;border:0;padding:0;font-family:inherit;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;cursor:pointer;font-variant-numeric:tabular-nums;transition:background .15s,color .15s;${x <= n ? `background:${LC_COLORS[n - 1]};color:#fff` : 'background:#f3f6f5;color:#8a9aa6'}` })),
+    };
+  }
+}
+</script>
+</body>
+</html>

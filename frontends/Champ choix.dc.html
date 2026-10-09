@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><style>
+html,body{margin:0;background:#fff;font-family:'Plus Jakarta Sans',sans-serif;color:#10233a;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+</style></helmet>
+<!-- Champ de sélection simple (« Saisir sans Jev », maquette 3a) : libellé, valeur ou texte d'aide, liste déroulante avec coche ;
+     « Transverse » précédé d'un filet. Clavier : Entrée / Espace / flèche bas ouvrent, flèches parcourent, Entrée choisit, Échap ferme. -->
+<div ref="{{ rootRef }}" style="position:relative;display:flex;flex-direction:column;gap:6px">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:11.5px;font-weight:600;color:#43586a"><span id="{{ labelId }}" style="white-space:nowrap">{{ label }}<sc-if value="{{ required }}" hint-placeholder-val="{{ false }}"><span style="color:#1d8f86"> *</span></sc-if></span></div>
+  <div role="combobox" tabIndex="0" aria-labelledby="{{ labelId }}" aria-expanded="{{ ariaOpen }}" aria-controls="{{ listId }}" aria-activedescendant="{{ activeId }}" aria-required="{{ ariaReq }}" onClick="{{ toggle }}" onKeyDown="{{ onKey }}" style="{{ boxSt }}" style-focus-visible="outline:2px solid #146b64;outline-offset:2px">
+    <span style="{{ vSt }}">{{ txt }}</span>
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8a9aa6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex:none" aria-hidden="true"><path d="{{ ic }}"></path></svg>
+  </div>
+  <sc-if value="{{ open }}" hint-placeholder-val="{{ false }}"><div id="{{ listId }}" role="listbox" aria-labelledby="{{ labelId }}" style="position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:5;background:#fff;border-radius:12px;padding:5px;box-shadow:0 0 0 1px #e3ebe9,0 18px 36px -16px rgba(16,35,58,.35);display:flex;flex-direction:column;max-height:260px;overflow:auto"><sc-for list="{{ opts }}" as="o" hint-placeholder-count="4"><sc-if value="{{ o.sep }}" hint-placeholder-val="{{ false }}"><span role="presentation" style="flex:none;height:1px;background:#eef3f2;margin:4px 6px"></span></sc-if><div id="{{ o.id }}" role="option" aria-selected="{{ o.ariaSel }}" onClick="{{ o.on }}" onMouseEnter="{{ o.hover }}" style="{{ o.st }}"><span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ o.t }}</span><sc-if value="{{ o.chk }}" hint-placeholder-val="{{ false }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1d8f86" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg></sc-if></div></sc-for><sc-if value="{{ empty }}" hint-placeholder-val="{{ false }}"><span style="padding:8px 10px;font-size:12.5px;color:#8a9aa6">Aucun élément</span></sc-if></div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;label&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;required&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;boolean&quot;},&quot;value&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;options&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{ v: string; t: string; sep?: boolean }[]&quot;},&quot;placeholder&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;icon&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;onChange&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(v: string) =&gt; void&quot;}}">
+// Composant réutilisable « Champ de sélection simple » (09/10/2026) : valeur = `v` d'une option ; `icon` : `person` (silhouette)
+// ou chevron par défaut. Une seule liste ouverte à la fois : un clic hors du champ la referme.
+let ccSeq = 0;
+const CC_ICON = { person: 'M12 12a4 4 0 100-8 4 4 0 000 8zM4 21c1.5-4 4.5-6 8-6s6.5 2 8 6', down: 'M6 9l6 6 6-6', up: 'M6 15l6-6 6 6' };
+class Component extends DCLogic {
+  state = { open: false, active: -1 };
+  rootRef = React.createRef();
+  uid = 'cc' + (++ccSeq);
+  componentDidMount() { this._out = e => { if (this.state.open && this.rootRef.current && !this.rootRef.current.contains(e.target)) this.setState({ open: false }); }; document.addEventListener('mousedown', this._out); }
+  componentWillUnmount() { document.removeEventListener('mousedown', this._out); }
+  opts() { return this.props.options || []; }
+  pick(v) { this.setState({ open: false }); if (v !== this.props.value) this.props.onChange?.(v); }
+  renderVals() {
+    const P = this.props, S = this.state, O = this.opts(), cur = O.find(o => o.v === P.value), open = S.open;
+    const set = (open, active) => this.setState({ open, active });
+    const onKey = e => {
+      const k = e.key, idx = S.active < 0 ? O.findIndex(o => o.v === P.value) : S.active;
+      if (!open && (k === 'Enter' || k === ' ' || k === 'ArrowDown')) { e.preventDefault(); set(true, Math.max(0, O.findIndex(o => o.v === P.value))); return; }
+      if (!open) return;
+      if (k === 'Escape') { e.preventDefault(); set(false, -1); }
+      else if (k === 'ArrowDown') { e.preventDefault(); set(true, Math.min(O.length - 1, idx + 1)); }
+      else if (k === 'ArrowUp') { e.preventDefault(); set(true, Math.max(0, idx - 1)); }
+      else if (k === 'Enter' || k === ' ') { e.preventDefault(); if (O[idx]) this.pick(O[idx].v); }
+      else if (k === 'Tab') set(false, -1);
+    };
+    const has = !!cur, focus = open;
+    return {
+      label: P.label, required: !!P.required, ariaReq: P.required ? 'true' : 'false', labelId: this.uid + 'l', listId: this.uid + 'x', open, ariaOpen: open ? 'true' : 'false',
+      activeId: open && S.active >= 0 ? this.uid + 'o' + S.active : undefined, empty: open && !O.length,
+      toggle: () => set(!open, O.findIndex(o => o.v === P.value)), onKey,
+      txt: cur ? cur.t : (P.placeholder || ''), ic: P.icon === 'person' ? CC_ICON.person : open ? CC_ICON.up : CC_ICON.down,
+      vSt: `flex:1;min-width:0;font-size:13px;color:${has ? '#10233a' : '#8a9aa6'};font-weight:${has ? 600 : 500};overflow:hidden;text-overflow:ellipsis;white-space:nowrap`,
+      boxSt: `display:flex;align-items:center;gap:10px;height:42px;padding:0 12px;border:1px solid ${focus ? '#1d8f86' : '#dfe7e5'};border-radius:10px;background:#fff;${focus ? 'box-shadow:0 0 0 3px rgba(29,143,134,.12);' : ''}cursor:pointer;outline:none`,
+      opts: O.map((o, i) => { const chk = o.v === P.value, act = i === S.active;
+        return { t: o.t, sep: !!o.sep, chk, ariaSel: chk ? 'true' : 'false', id: this.uid + 'o' + i, on: e => { e.stopPropagation(); this.pick(o.v); }, hover: () => this.setState({ active: i }),
+          st: `display:flex;align-items:center;gap:10px;flex:none;height:34px;padding:0 10px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:${chk ? 700 : 500};color:${chk ? '#10233a' : '#43586a'};${act ? 'background:#f4f8f7' : ''}` }; }),
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -152,7 +152,10 @@ export function actionView(a: any, today: string) {
     n: a.n,
     detail: a.detail,
     owner: a.ownerId,
+    // Chantiers (09/10/2026, comme les risques) : principal (`wsId`, null si transverse), liste (`wsIds`), transverse (`allWs`).
     wsId: a.wsId,
+    wsIds: a.allWs ? [] : a.wsIds?.length ? a.wsIds : a.wsId ? [a.wsId] : [],
+    allWs: !!a.allWs,
     dueIso: a.dueIso,
     status: a.status,
     prio: a.prio,

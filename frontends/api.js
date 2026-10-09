@@ -352,7 +352,7 @@ export function attach(comp) {
     // Tâches manuelles.
     const meId = (B.me && B.me.personId) || null;
     (L.tasks || []).filter((t) => t.kind === 'MANUAL').forEach((t) => {
-      st.newTasks.push({ id: t.id, author: meId, status: t.status, link: t.link || null, n: t.title, detail: t.detail || '', due: t.dueIso ? new Date(t.dueIso + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }) : 'à planifier', dueIso: t.dueIso || '', cta: t.cta || 'Ouvrir', lvl: 'due' });
+      st.newTasks.push({ id: t.id, author: meId, status: t.status, link: t.link || null, owner: t.owner || null, wsIds: t.wsIds || [], allWs: !!t.allWs, n: t.title, detail: t.detail || '', due: t.dueIso ? new Date(t.dueIso + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }) : 'à planifier', dueIso: t.dueIso || '', cta: t.cta || 'Ouvrir', lvl: 'due' });
     });
     // Préférences (premier chargement uniquement : ensuite, l'écran fait foi).
     if (S.firstLoad && L.me && L.me.preferences) {
@@ -985,6 +985,72 @@ export function attach(comp) {
     // Effacer toutes mes notifications (définitif, après le délai d'annulation du tiroir) ; en cas d'échec, la liste est relue.
     ntClearAll: () => { raw({ ntItems: [], ntUnread: 0 }); del('/me/notifications').catch((e) => { console.warn('[api]', e); ntLoad(); }); },
     state: S,
+
+    /**
+     * « Saisir sans Jev » (09/10/2026, maquette 3a) : création d'un objet depuis le formulaire de la barre latérale de Jev.
+     * `values` : valeurs des champs (clés de `SSJ_F` dans « Saisie sans Jev.dc.html ») ; `__T__` = « Transverse ».
+     * Valeurs exigées par le serveur que la maquette ne demande pas (décision du commanditaire : valeurs déduites) :
+     * phase d'un jalon = celle dont la période contient la date cible (sinon la première du chantier, puis du projet) ;
+     * responsable d'une phase = l'utilisateur s'il n'est pas choisi ; code d'une sous-phase = rang suivant dans sa phase.
+     * Renvoie le message de confirmation ; lève une Error lisible (message du serveur) en cas de refus.
+     */
+    async saisie(kind, v) {
+      const B = S.B, me = (comp.me && comp.me().personId) || null;
+      const T = '__T__', links = (l) => (l || []).includes(T) ? { allWs: true } : { wsIds: (l || []).filter(Boolean) };
+      const ST4 = ['OPEN', 'IN_PROGRESS', 'DONE', 'BLOCKED'], TK4 = ['TODO', 'IN_PROGRESS', 'DONE', 'BLOCKED'];
+      const DEC = { Brouillon: 'DRAFT', 'En instruction': 'IN_REVIEW', 'À arbitrer': 'TO_ARBITRATE', Arbitrée: 'ARBITRATED', Annulée: 'CANCELLED', Remplacée: 'SUPERSEDED' };
+      const opt = (o) => Object.fromEntries(Object.entries(o).filter(([, x]) => x !== '' && x !== undefined && x !== null));
+      const name = (id) => ((B.people || []).find((x) => x.id === id) || {}).name || '';
+      const wsRow = (id) => M('WORKSTREAM').find((r) => r.id === id);
+      let msg;
+      try {
+        if (kind === 'phase') {
+          const seq = Math.max(0, ...M('PHASE').map((r) => parseInt(r.cells[0], 10) || 0)) + 1;
+          const r = await ppost('/phases', { seq, name: v.n.trim(), startDate: v.per[0], endDate: v.per[1], ownerId: v.owner || me });
+          msg = 'Phase ' + (r.code || seq) + ' créée';
+        } else if (kind === 'sousphase') {
+          const ph = M('PHASE').find((r) => r.id === v.phase), pseq = ph ? ph.cells[0] : '';
+          const rank = Math.max(0, ...(B.subphases || []).filter((x) => x.ph === v.phase).map((x) => parseInt(String(x.code).split('.')[1], 10) || 0)) + 1;
+          const r = await ppost('/subphases', { phaseId: v.phase, code: pseq + '.' + rank, name: v.n.trim(), startDate: v.per[0], endDate: v.per[1] });
+          if (v.ws) { const w = wsRow(v.ws); await pput('/workstreams/' + enc(v.ws) + '/subphases', { subphaseIds: ((w && w.subphaseIds) || []).concat([r.id]) }); }
+          msg = 'Sous-phase ' + r.code + ' créée';
+        } else if (kind === 'chantier') {
+          const r = await ppost('/workstreams', { name: v.n.trim(), ownerId: v.owner, phaseIds: v.phases });
+          msg = 'Chantier ' + (r.code || 'C' + r.seq) + ' créé';
+        } else if (kind === 'jalon') {
+          const P = B.phases || [], inP = P.find((x) => x.start <= v.date && v.date <= x.end), w = v.ws && v.ws !== T ? wsRow(v.ws) : null;
+          const phaseId = (inP && inP.id) || (w && w.phaseIds && w.phaseIds[0]) || (P[0] && P[0].id) || (M('PHASE')[0] || {}).id;
+          const r = await ppost('/milestones', opt({ n: v.n.trim(), phaseId, wsId: v.ws === T ? null : v.ws, iso: v.date, owner: v.owner }));
+          msg = 'Jalon ' + r.code + ' créé';
+        } else if (kind === 'risque') {
+          const r = await ppost('/risks', opt({ n: v.n.trim(), p: +v.p, i: +v.i, owner: v.owner, plan: (v.plan || '').trim(), dueIso: v.due, ...links(v.wss) }));
+          msg = 'Risque ' + r.code + ' créé';
+        } else if (kind === 'action') {
+          const [type, id] = String(v.src).split(':');
+          const r = await ppost('/actions', opt({ n: v.n.trim(), owner: v.owner, dueIso: v.due, status: ST4[+v.st] || 'OPEN', sourceType: type, sourceId: id, ...links(v.wss) }));
+          msg = 'Action ' + r.code + ' créée';
+        } else if (kind === 'decision') {
+          // Une décision est rattachée à un chantier (modèle actuel) : « Transverse » ou aucun chantier sont refusés.
+          if (!v.ws || v.ws === T) throw new Error('Chantier : choisissez le chantier de la décision (« Transverse » n’est pas possible pour une décision).');
+          const r = await ppost('/decisions', opt({ t: v.n.trim(), p: [4, 3, 2, 1][+v.prio] || 3, status: DEC[v.st] || 'DRAFT', crIso: B.today, ddIso: v.dd, wsId: v.ws, bodyId: v.body, opt: (v.opt || '').trim() }));
+          msg = 'Décision ' + r.code + ' créée';
+        } else if (kind === 'tache') {
+          const r = await ppost('/tasks', opt({ title: v.n.trim(), owner: v.owner, link: v.act ? { entityType: 'ACTION', entityId: v.act } : null, dueIso: v.due, status: TK4[+v.st] || 'TODO', ...links(v.wss) }));
+          msg = 'Tâche « ' + r.title + ' » créée';
+        } else if (kind === 'arbitrage') {
+          const C = globalThis.RiseSaisieCalc, w = (x) => Math.min(100, C ? C.weight(x) : parseInt(x, 10) || 0);
+          const L = ['A', 'B'], options = v.options.map((o, i) => ({ code: L[i], label: o.label, body: '', criteria: o.rows.filter((r) => r.c.trim() || w(r.w) || r.n).map((r) => ({ name: r.c.trim(), weightPct: w(r.w), score: +r.n || 0, comment: r.d || '' })) }));
+          const texts = opt({ dcQ: v.n.trim(), dcCtx: (v.ctx || '').trim(), dcBy: v.by ? 'Préparée par ' + name(v.by) : '', dcOptA: 'Option A · ' + options[0].label, dcOptB: 'Option B · ' + options[1].label, recOpt: v.rec ? 'Option ' + L[v.rec - 1] : '' });
+          await ppatch('/decisions/' + enc(v.dec) + '/arbitration', { question: v.n.trim(), options, recommendation: v.rec ? L[v.rec - 1] : null, texts });
+          const d = (B.decisions || []).find((x) => x.id === v.dec);
+          msg = 'Fiche d’arbitrage de ' + ((d && (d.code || d.id)) || 'la décision') + ' enregistrée';
+        } else throw new Error('Objet inconnu');
+      } catch (e) {
+        throw e instanceof ApiError ? new Error(errorText(e)) : e;
+      }
+      reload();
+      return msg;
+    },
 
     /**
      * Message d'accueil de « Aujourd'hui » (02/10/2026) : `GET /today/greeting`, rédigé par Jev une fois par jour (ou

@@ -2337,6 +2337,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
 <!-- ============ ASSISTANT ============ -->
 <div data-jev-panel="1" style="{{ assistantWrap }}">
 <aside style="background:#fff;border-left:1px solid #e0e9e6;height:100vh;display:flex;flex-direction:column;width:400px;min-width:0" data-screen-label="Jev">
+  <sc-if value="{{ jevChat }}" hint-placeholder-val="{{ true }}">
   <div style="display:flex;align-items:flex-start;gap:12px;padding:22px 22px 18px;border-bottom:1px solid #eef3f1">
     <span style="width:34px;height:34px;border-radius:50%;background:#1fb3a5;color:#fff;font-weight:800;font-size:15px;display:grid;place-items:center;flex:none">J</span>
     <div style="flex:1;min-width:0"><div style="font-weight:800;font-size:18px;letter-spacing:-.02em;line-height:1.1">Jev</div><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px"><span style="padding:2px 8px;border-radius:6px;background:#eef3f2;font-size:11px;font-weight:700;color:#43586a;max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Contexte : {{ jevCtx }}</span><span style="{{ jevModeStyle }}">{{ jevModeLabel }}</span></div></div>
@@ -2363,9 +2364,12 @@ a{color:#1d8f86}a:hover{color:#146b64}
       <div style="{{ jevPillSt }}" style-focus-within="border-color:#1d8f86"><textarea data-jev-input="1" rows="1" value="{{ jevInput }}" onChange="{{ jevSetInput }}" onKeyDown="{{ jevKey }}" placeholder="Écris à Jev…" aria-label="Message à Jev (Entrée pour envoyer, Maj+Entrée pour aller à la ligne)" style="{{ jevTaSt }}"></textarea></div>
       <span onClick="{{ jevSendClick }}" title="Envoyer" style="width:42px;height:42px;border-radius:50%;background:#1d8f86;color:#fff;display:grid;place-items:center;cursor:pointer;flex:none" style-hover="background:#146b64"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"></path></svg></span>
     </div>
-    <!-- « Saisir sans Jev » : bouton rétabli le 09/10/2026 (demande du commanditaire), toujours affiché, en italique, sans action pour l'instant. -->
-    <span onClick="{{ jevManual }}" style="align-self:flex-start;font-size:11.5px;font-style:italic;color:#5c7280;cursor:pointer;text-decoration:underline;text-underline-offset:3px" style-hover="color:#1d8f86">Saisir sans Jev</span>
+    <!-- « Saisir sans Jev » (maquette 3a, 09/10/2026) : lien discret sous le champ, centré entre deux filets ; Jev reste le mode par défaut. -->
+    <div style="display:flex;align-items:center;gap:12px"><span style="flex:1;height:1px;background:#eef3f2"></span><button type="button" onClick="{{ jevManual }}" style="display:flex;align-items:center;gap:6px;border:0;padding:0;background:none;font-family:inherit;font-size:11.5px;font-weight:600;color:#5c7280;cursor:pointer;white-space:nowrap" style-hover="color:#10233a" style-focus-visible="outline:2px solid #146b64;outline-offset:2px;border-radius:4px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"></path></svg>Saisir sans Jev</button><span style="flex:1;height:1px;background:#eef3f2"></span></div>
   </div>
+  </sc-if>
+  <!-- « Saisir sans Jev » (09/10/2026, maquette 3a) : choix de l'objet, formulaire, détail d'une option d'arbitrage. -->
+  <sc-if value="{{ ssjOn }}" hint-placeholder-val="{{ false }}"><div style="flex:1;min-height:0;display:flex"><dc-import name="Saisie sans Jev" data="{{ ssjData }}" on-back="{{ ssjBack }}" on-close="{{ ssjClose }}" on-submit="{{ ssjSubmit }}" hint-size="100%,100%" style="width:100%;height:100%"></dc-import></div></sc-if>
 </aside>
 </div>
 
@@ -2806,6 +2810,23 @@ class Component extends DCLogic {
     if (this._api && this._api.reload) setTimeout(() => this._api.reload(), 4000); // pages et version publiée à jour
   }
   // Brouillon vu comme un template (aperçu, publication) et sa clé : l'aperçu est reconstruit quand elle change.
+  /** Listes de « Saisir sans Jev » (09/10/2026) : personnes, phases, chantiers, objets de rattachement, actions, décisions, instances. */
+  ssjData() {
+    const D = this.mergedData() || {}, M = (k) => (D.model && D.model[k] && D.model[k].rows) || [], code = (x) => x.code || x.id;
+    const people = (D.people || []).filter((p) => p.active !== false).map((p) => ({ v: p.id, t: p.name })).sort((a, b) => a.t.localeCompare(b.t, 'fr'));
+    const open = (x) => !['CLOSED', 'DONE', 'RESOLVED', 'ARBITRATED', 'CANCELLED', 'SUPERSEDED'].includes(x.status);
+    return {
+      me: this.me().personId || '', pmo: !!this.prof(this.me().personId).pmo, people,
+      phases: M('PHASE').map((r) => ({ v: r.id, t: r.cells[1] })),
+      wss: M('WORKSTREAM').map((r) => ({ v: r.id, t: r.cells[1] })),
+      sources: (D.risks || []).filter(open).map((x) => ({ v: 'RISK:' + x.id, t: code(x) + ' · ' + x.n }))
+        .concat((D.decisions || []).filter(open).map((x) => ({ v: 'DECISION:' + x.id, t: code(x) + ' · ' + x.t })))
+        .concat((D.milestones || []).map((x) => ({ v: 'MILESTONE:' + x.id, t: code(x) + ' · ' + x.n }))),
+      actions: (D.actions || []).filter((x) => x.status !== 'DONE').map((x) => ({ v: x.id, t: code(x) + ' · ' + x.n })),
+      decisions: (D.decisions || []).filter((x) => x.status !== 'ARBITRATED' && x.status !== 'CANCELLED' && x.status !== 'SUPERSEDED').map((x) => ({ v: x.id, t: code(x) + ' · ' + x.t })),
+      bodies: M('GOVERNANCE_BODY').map((r) => ({ v: r.id, t: r.cells[0] })),
+    };
+  }
   // Comité de rattachement d'un template (09/10/2026) : toujours un comité du projet ouvert, nom et identifiant ensemble.
   // Comité choisi (nom) ; à défaut identifiant connu ; sinon le premier comité du projet (brouillon vierge, ou identifiant
   // d'un autre projet, comme « g1 » du jeu de démonstration dans PMS, que le serveur refusait : « Référence invalide »).
@@ -3217,9 +3238,9 @@ class Component extends DCLogic {
     // Conversation conservée à la réouverture (correction du 01/10/2026) : seuls un redémarrage de l'application et
     // « Effacer tous les messages » la remettent à zéro. Une demande précise (date d'une ligne) s'ajoute à la suite.
     const J0 = { ...o, ctx, mode, space: S.space, tab: S.tab, spT, noun, one, aw }, kept = (S.jevMsgs || []).some(m => m.t === 'user');
-    if (kept) { this.setState(s => ({ assistant: true, taskForm: false, jev: J0, jevInput: o.prefill || s.jevInput || '', jevMsgs: o.field ? s.jevMsgs.concat([{ t: 'jev', text, chips }]) : s.jevMsgs })); this.jevScroll(); return; }
+    if (kept) { this.setState(s => ({ assistant: true, ssjOn: false, taskForm: false, jev: J0, jevInput: o.prefill || s.jevInput || '', jevMsgs: o.field ? s.jevMsgs.concat([{ t: 'jev', text, chips }]) : s.jevMsgs })); this.jevScroll(); return; }
     if (this._api && this._api.jevReset) this._api.jevReset(); // nouvelle conversation : la mémoire de Jev repart de zéro
-    this.setState({ assistant: true, taskForm: false, jev: J0, jevInput: o.prefill || '', jevMsgs: [{ t: 'jev', text, chips }] });
+    this.setState({ assistant: true, ssjOn: false, taskForm: false, jev: J0, jevInput: o.prefill || '', jevMsgs: [{ t: 'jev', text, chips }] });
   }
   // API : réponses de Jev par POST /assistant/messages (voir jevSendText) ; ces règles locales ne servent plus que de repli si l'API n'est pas chargée.
   jevExplain(text, J) {
@@ -3395,8 +3416,17 @@ class Component extends DCLogic {
             rm: () => this.setState(st => ({ jevFiles: (st.jevFiles || []).filter((_, j) => j !== i) })) }; }),
           jevOnFile: e => { const fs = [...(e.target.files || [])]; e.target.value = ''; if (!fs.length) return; if (this._api) return this._api.jevAttach(fs); /* API : POST /assistant/files */ const add = fs.map(x => ({ id: 'f' + Date.now() + Math.random(), name: x.name, ext: (x.name.split('.').pop() || '').toUpperCase().slice(0, 4), sizeL: x.size > 1048576 ? (x.size / 1048576).toFixed(1).replace('.', ',') + ' Mo' : Math.max(1, Math.round(x.size / 1024)) + ' Ko', pct: 0 }));
             this.setState(st => ({ jevFiles: (st.jevFiles || []).concat(add) })); const ids = add.map(a => a.id); const tick = () => { let more = false; this.setState(st => ({ jevFiles: (st.jevFiles || []).map(f => { if (!ids.includes(f.id) || f.pct >= 100) return f; const p = Math.min(100, f.pct + 12 + Math.round(Math.random() * 14)); if (p < 100) more = true; return { ...f, pct: p }; }) }), () => { if (more) setTimeout(tick, 140); }); }; setTimeout(tick, 140); } }; })(),
-      // « Saisir sans Jev » (09/10/2026) : bouton rétabli, toujours affiché sous le champ de Jev, sans action pour l'instant.
-      jevManual: () => {},
+      // « Saisir sans Jev » (maquette 3a, 09/10/2026) : le lien ouvre le choix de l'objet ; la flèche revient à Jev ; × ferme la barre
+      // latérale et réinitialise (à la réouverture : Jev, étape 1) ; listes tirées des données du projet ; écriture par api.js (`saisie`).
+      jevManual: () => this.setState({ ssjOn: true }), jevChat: !S.ssjOn, ssjOn: !!S.ssjOn,
+      ssjBack: () => this.setState({ ssjOn: false }), ssjClose: () => this.setState({ ssjOn: false, assistant: false }),
+      ssjData: S.ssjOn ? this.ssjData() : null,
+      ssjSubmit: async (kind, values) => {
+        if (!this._api || !this._api.saisie) throw new Error('Enregistrement indisponible (API injoignable)');
+        const msg = await this._api.saisie(kind, values);
+        this.setState({ ssjOn: false }); this.showToast(msg);
+        return msg;
+      },
       jevBodyRef: this._jb,
       jevBlock: e => { e.stopPropagation(); this.jevOpen({ kind: 'bloc', block: e.currentTarget.dataset.jev }); },
       jevRow: e => { e.stopPropagation(); const d = e.currentTarget.dataset; this.jevOpen({ kind: 'ligne', block: d.jev, row: d.row, id: d.id }); },
@@ -3404,7 +3434,7 @@ class Component extends DCLogic {
       jevNoClear: (S.jevMsgs || []).length <= 1,
       jevClearSt: 'width:28px;height:28px;border-radius:8px;border:0;background:transparent;display:grid;place-items:center;flex:none;padding:0;color:#5c7280;' + ((S.jevMsgs || []).length <= 1 ? 'opacity:.35;cursor:default' : 'cursor:pointer'),
       jevClear: () => { const m = S.jevMsgs || []; if (m.length <= 1) return; if (this._api && this._api.jevReset) this._api.jevReset(); this._jevLoad = null; this._jevFileIds = []; this.setState({ jevMsgs: m.slice(0, 1), jevInput: '', jevFiles: [], jev: { ...J, aw: null, pending: null } }); },
-      toggleAssistant: () => (S.assistant ? this.setState({ assistant: false }) : this.jevOpen({ kind: 'global' })) };
+      toggleAssistant: () => (S.assistant ? this.setState({ assistant: false, ssjOn: false }) : this.jevOpen({ kind: 'global' })) };
   }
   showToast(t) { this.setState({ toast: t }); clearTimeout(this._tt); this._tt = setTimeout(() => this.setState({ toast: '' }), 2600); }
 
@@ -4630,10 +4660,12 @@ class Component extends DCLogic {
     const acts = D.actions.filter(a => S.actionFilter === 'all' || (S.actionFilter === 'mine' && a.owner === 'p01') || (S.actionFilter === 'late' && a.late) || (S.actionFilter === 'open' && a.status !== 'DONE'));
     const WSN = {}; WSR.forEach(w => { WSN[w.id] = w; WSN[w.name] = w; });
     // Chantiers d'une action (09/10/2026) : ceux de son risque d'origine (codes ou « Transverse »), sinon le sien ; registre des actions et Mes tâches.
-    const actWs = a => { const rk = a.source && D.risks.find(r => r.id === a.source || r.code === a.source);
-        if (rk && rk.allWs) return { ws: 'Transverse', wsTip: 'Action du risque ' + (rk.code || rk.id) + ', transverse : tous les chantiers', wsChips: [{ l: 'Transverse', st: wsCodeSt('#10233a', true) }] };
-        const L = (rk ? (rk.wss && rk.wss.length ? rk.wss : [rk.ws]) : [a.wsId, a.ws]).map(x => WSN[x]).filter(Boolean).filter((w, i, A) => A.indexOf(w) === i).slice(0, rk ? 50 : 1);
-        return { ws: L.map(w => w.code).join(' '), wsTip: L.map(w => w.code + ' · ' + w.name).join(' / ') + (rk ? ' (chantiers du risque ' + (rk.code || rk.id) + ')' : ''), wsChips: L.map(w => ({ l: w.code, st: wsCodeSt(w.hue) })) }; };
+    const actWs = a => {
+      // Chantiers propres de l'action (09/10/2026 : plusieurs chantiers ou transverse, comme les risques) ; ceux d'une action issue
+      // d'un risque sont réalignés par le serveur à chaque modification du risque.
+      if (a.allWs) return { ws: 'Transverse', wsTip: 'Action transverse : tous les chantiers', wsChips: [{ l: 'Transverse', st: wsCodeSt('#10233a', true) }] };
+      const L = ((a.wsIds && a.wsIds.length ? a.wsIds : [a.wsId, a.ws])).map(x => WSN[x]).filter(Boolean).filter((w, i, A) => A.indexOf(w) === i);
+      return { ws: L.map(w => w.code).join(' '), wsTip: L.map(w => w.code + ' · ' + w.name).join(' / '), wsChips: L.map(w => ({ l: w.code, st: wsCodeSt(w.hue) })) }; };
     const taskWs = x => { const w = WSN[x.wsId] || WSN[x.ws]; return { wsChips: w ? [{ l: w.code, st: wsCodeSt(w.hue) }] : [], wsTip: w ? w.code + ' · ' + w.name : '' }; };
     // Référence affichée d'un objet d'origine (09/10/2026) : son code (R02), l'identifiant pouvant porter le préfixe du projet (PMS-R02).
     const REFS = {}; [D.risks, D.issues, D.milestones, D.decisions].forEach(L => (L || []).forEach(x => { if (x.code) REFS[x.id] = x.code; }));
@@ -4663,7 +4695,8 @@ class Component extends DCLogic {
       return out; })();
     const mT = S.mineTitles || {}, mD = S.mineDraft || {};
     const mArch = S.mineArch || {};
-    const mineAll = mineSrc.concat((S.newTasks || []).filter(t => !t.author || t.author === this.me().personId).map(t => ({ ...t, src: 'manual', open: () => this.showToast(t.n) })));
+    // Tâches manuelles : chantiers de la tâche (09/10/2026) ; « Transverse » si elle concerne tous les chantiers.
+    const mineAll = mineSrc.concat((S.newTasks || []).filter(t => !t.author || t.author === this.me().personId).map(t => ({ ...t, src: 'manual', open: () => this.showToast(t.n), ...actWs({ allWs: t.allWs, wsIds: t.wsIds || [] }) })));
     const archiveTask = (i, e) => { if (e) e.stopPropagation(); clearTimeout(this._undoT); this.setState(s => ({ mineArch: { ...(s.mineArch || {}), [i]: '23 sept.' }, mineLast: i })); this._undoT = setTimeout(() => this.setState({ mineLast: null }), 5000); };
     const restoreTask = i => this.setState(s => { const a = { ...(s.mineArch || {}) }; delete a[i]; return { mineArch: a, mineLast: null }; });
     const mineArchRows = mineAll.map((m, i) => ({ i, n: mT[i] ?? m.n, detail: m.detail, date: mArch[i], restore: () => { restoreTask(i); this.showToast('Tâche restaurée'); } })).filter(r => mArch[r.i] !== undefined);

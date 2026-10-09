@@ -162,6 +162,8 @@ enum ExtractionStatus {
 
 enum TaskStatus {
   TODO
+  IN_PROGRESS
+  BLOCKED
   DONE
 }
 
@@ -730,8 +732,12 @@ model Action {
   n          String
   detail     String?
   ownerId    String
-  /// Q2 : chantier obligatoire
-  wsId       String
+  /// Chantier principal : le premier de `wsIds` ; null pour une action transverse (09/10/2026, auparavant obligatoire, Q2)
+  wsId       String?
+  /// Chantiers concernés (un ou plusieurs) ; vide si transverse
+  wsIds      String[]     @default([])
+  /// Action transverse : concerne tous les chantiers du projet
+  allWs      Boolean      @default(false)
   dueIso     String?
   status     ActionStatus @default(OPEN)
   prio       Priority     @default(MEDIUM)
@@ -1015,6 +1021,12 @@ model Task {
   dueIso    String?
   detail    String?
   status    TaskStatus @default(TODO)
+  /// Responsable de la tâche (09/10/2026, « Saisir sans Jev ») : une personne du projet ; null = l'auteur
+  ownerId   String?
+  /// Chantiers de la tâche (un ou plusieurs) ; vide si transverse ou sans chantier
+  wsIds     String[]   @default([])
+  /// Tâche transverse : tous les chantiers
+  allWs     Boolean    @default(false)
   /// { entityType, entityId }
   link      Json?
   cta       String?
