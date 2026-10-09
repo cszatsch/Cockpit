@@ -536,6 +536,7 @@ export function drawMilestones(d: Draw, a: Box, m: MilestonesData): string {
 
 // ───────────── Risques : tableau et matrice P × I ─────────────
 
+/** `ws` : références des chantiers (« C1 C3 », « Transverse »), colonne « Chantier » (09/10/2026). */
 export interface RiskRow { code: string; name: string; p: number; i: number; plan: string | null; owner: string; ws: string | null; due: string | null; status: string }
 export interface RisksData { today: string; rows: RiskRow[]; show: Record<string, boolean> }
 /** Seuils de criticité (probabilité × impact) : identiques à `scoreTone`. */
@@ -596,6 +597,8 @@ export function drawRisks(d: Draw, a: Box, r: RisksData): string {
   if (show.code !== false) cols.push({ id: 'code', label: '#', w: 0.55 * IN });
   cols.push({ id: 'name', label: show.plan !== false ? 'Risque · plan de mitigation' : 'Risque', w: 0 });
   if (show.score !== false || show.p || show.i) cols.push({ id: 'score', label: 'Crit.', w: 0.7 * IN, align: 'ctr' });
+  // Colonne « Chantier » (09/10/2026) : références seules ; auparavant les noms sous le porteur débordaient sur la ligne suivante.
+  if (show.ws !== false) cols.push({ id: 'ws', label: 'Chantier', w: 1.2 * IN });
   if (show.owner !== false) cols.push({ id: 'owner', label: 'Porteur', w: 1.35 * IN });
   if (show.due !== false) cols.push({ id: 'due', label: 'Échéance', w: 1.05 * IN });
   if (show.status) cols.push({ id: 'status', label: 'Statut', w: 1.4 * IN });
@@ -606,12 +609,15 @@ export function drawRisks(d: Draw, a: Box, r: RisksData): string {
   cols.forEach((c, k) => out.push(d.text({ x: xs[k] + 0.06 * IN, y: T.y, w: c.w - 0.12 * IN, h: headH - 0.08 * IN }, [{ align: c.align ?? 'l', runs: [{ t: c.label, size: ty.label, color: t.muted, bold: true, caps: true, spc: 0.8 }] }], 'b')));
   out.push(d.line(T.x, T.y + headH, T.x + T.w, T.y + headH, t.ink, 1));
   const nameW = cols.find((c) => c.id === 'name')!.w - 0.2 * IN, nameSize = ty.small + 0.5;
+  const ownerW = (cols.find((c) => c.id === 'owner')?.w ?? 0) - 0.12 * IN, wsW = (cols.find((c) => c.id === 'ws')?.w ?? 0) - 0.12 * IN;
   let y = T.y + headH, shown = 0;
   const limit = T.y + T.h - 0.26 * IN;
   for (const row of rows) {
     const nl = wrapText(row.name, nameW, nameSize, 2);
     const plan = show.plan !== false ? (row.plan?.trim() ? wrapText(row.plan, nameW, ty.label, 1) : null) : undefined;
-    const h = Math.max(0.5 * IN, (nl.length * nameSize * 1.25 + (plan !== undefined ? ty.label * 1.5 : 0)) * PT + 0.2 * IN);
+    // Hauteur : la plus haute des cellules (nom et plan, porteur, chantiers), pour qu'aucun texte ne déborde sur la ligne suivante.
+    const ol = show.owner !== false ? wrapText(row.owner || '—', ownerW, ty.small, 2) : [], wl = show.ws !== false ? wrapText(row.ws || '—', wsW, ty.small, 3) : [];
+    const h = Math.max(0.5 * IN, (Math.max(nl.length * nameSize * 1.25 + (plan !== undefined ? ty.label * 1.5 : 0), ol.length * ty.small * 1.25, wl.length * ty.small * 1.25)) * PT + 0.2 * IN);
     if (y + h > limit && shown > 0) break;
     const score = row.p * row.i, tone = scoreTone(score), overdue = !!row.due && row.due < r.today;
     cols.forEach((c, k) => {
@@ -627,7 +633,8 @@ export function drawRisks(d: Draw, a: Box, r: RisksData): string {
         if (show.score !== false) out.push(d.sp({ box: { x: xs[k] + (c.w - pw) / 2, y: py, w: pw, h: ph }, geom: 'roundRect', adj: 26000, fill: t[tone], anchor: 'ctr', paras: [{ align: 'ctr', runs: [{ t: String(score), size: ty.small, color: 'FFFFFF', bold: true }] }] }));
         if (show.p || show.i) out.push(d.text({ x: xs[k], y: py + ph + 0.03 * IN, w: c.w, h: 0.16 * IN }, [{ align: 'ctr', runs: [{ t: `P${row.p} × I${row.i}`, size: ty.label - 1, color: t.subtle }] }], 't'));
       }
-      if (c.id === 'owner') out.push(d.text({ x, y, w, h }, [{ runs: [{ t: row.owner, size: ty.small, color: t.ink }] }, ...(row.ws ? [{ spcBef: 2, runs: [{ t: row.ws, size: ty.label, color: t.subtle }] }] : [])], 'ctr'));
+      if (c.id === 'owner') out.push(d.text({ x, y, w, h }, ol.map((l) => ({ line: 100, runs: [{ t: l, size: ty.small, color: t.ink }] })), 'ctr'));
+      if (c.id === 'ws') out.push(d.text({ x, y, w, h }, wl.map((l) => ({ line: 100, runs: [{ t: l, size: ty.small, color: row.ws ? t.ink : t.subtle, bold: !!row.ws }] })), 'ctr'));
       if (c.id === 'due') out.push(d.text({ x, y, w, h }, [{ runs: [{ t: row.due ? frShortDate(row.due) : '—', size: ty.small, color: overdue ? t.risk : row.due ? t.ink : t.subtle, bold: !!row.due }] }, ...(overdue ? [{ spcBef: 2, runs: [{ t: 'échue', size: ty.label, color: t.risk }] }] : [])], 'ctr'));
       if (c.id === 'status') out.push(d.text({ x, y, w, h }, [{ runs: [{ t: '●  ', size: ty.label, color: toneColor(t, statusTone(row.status)) }, { t: row.status, size: ty.small, color: t.ink }] }], 'ctr'));
     });

@@ -1,5 +1,5 @@
 import JSZip from 'jszip';
-import { Draw } from '../../src/core/report-draw';
+import { Draw, drawRisks } from '../../src/core/report-draw';
 import { pruneOrphanMedia } from '../../src/core/ooxml';
 import { designTokens } from '../../src/domain/report-design';
 
@@ -22,5 +22,16 @@ describe('Rapports — paquet PowerPoint valide', () => {
     z.file('ppt/embeddings/old.xlsx', 'd');
     expect((await pruneOrphanMedia(z)).sort()).toEqual(['ppt/embeddings/old.xlsx', 'ppt/media/image2.png']);
     expect(Object.keys(z.files).filter((p) => p.startsWith('ppt/media/') && !z.files[p].dir).sort()).toEqual(['ppt/media/image1.png', 'ppt/media/logo.emf']);
+  });
+
+  it('page Risques (09/10/2026) : colonne « Chantier » en références, porteur seul dans sa cellule', () => {
+    const d = new Draw(designTokens({ primary: '10233A', secondary: '1D8F86', text: '10233A', font: 'Poppins', size: 11 }));
+    const row = { code: 'R02', name: 'Risque', p: 4, i: 4, plan: 'Plan', owner: 'Mehmet SERTTAS', due: '2026-10-30', status: 'Ouvert' };
+    const xml = drawRisks(d, { x: 0, y: 0, w: 9e6, h: 4e6 }, { today: '2026-10-09', show: {}, rows: [{ ...row, ws: 'C2 C1' }, { ...row, code: 'R03', ws: 'Transverse' }] });
+    expect(xml).toContain('>Chantier<');
+    expect(xml).toContain('>C2 C1<');
+    expect(xml).toContain('>Transverse<');
+    // Le nom du porteur n'est plus suivi des chantiers dans la même zone de texte.
+    expect(xml).not.toMatch(/Mehmet SERTTAS<\/a:t>[\s\S]{0,400}C2 C1[\s\S]{0,40}<\/p:txBody>/);
   });
 });

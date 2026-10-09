@@ -30,11 +30,11 @@ const day = (s: string | null | undefined) => (s ? frDay(s) : '—');
 const daysBetween = (a: string, b: string) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86400000);
 const list = (codes: string[], max = 5) => codes.slice(0, max).join(', ') + (codes.length > max ? `… (+${codes.length - max})` : '');
 /** Durée de vie d'un aperçu en mémoire (étape Prévisualisation). */
-/** Chantiers d'un risque, en clair : « Tous les chantiers » (transverse) ou leurs noms. */
-export function riskWsLabel(r: { wsId?: string | null; wsIds?: string[]; allWs?: boolean }, names: Map<string, string>): string | null {
+/** Chantiers d'un risque en références (09/10/2026, page Risques du rapport) : « Transverse », ou C1, C2… (`'C' + seq`, comme le Cockpit). */
+export function riskWsCodes(r: { wsId?: string | null; wsIds?: string[]; allWs?: boolean }, codes: Map<string, string>): string | null {
   const l = riskLinks(r);
-  if (l.all) return 'Tous les chantiers';
-  return l.ids.map((w) => names.get(w) ?? w).join(', ') || null;
+  if (l.all) return 'Transverse';
+  return l.ids.map((w) => codes.get(w) ?? w).join(' ') || null;
 }
 
 export const PREVIEW_TTL_MS = 15 * 60 * 1000;
@@ -196,10 +196,10 @@ export class ReportTemplateService implements OnModuleInit {
         if (bad.length) warn(`probabilité ou impact hors de l'échelle 1 à 5 pour ${list(bad)}.`);
         if (!rs.length) warn('aucun risque ouvert sur le périmètre.');
         // Matrice P × I et tableau (03/10/2026).
-        const wsNames = new Map((await this.prisma.workstream.findMany({ where: P, select: { id: true, name: true } })).map((w) => [w.id, w.name]));
+        const wsCodes = new Map((await this.prisma.workstream.findMany({ where: P, select: { id: true, seq: true } })).map((w) => [w.id, `C${w.seq}`]));
         const noPlan = rs.filter((r) => r.p * r.i >= 20 && !r.plan?.trim()).map((r) => r.code);
         if (noPlan.length && inds.includes('plan')) warn(`aucun plan de mitigation pour ${list(noPlan)} (criticité ≥ 20).`);
-        parts.push({ part: 'board', board: 'risks', data: { today, rows: rs.map((r) => ({ code: r.code, name: r.n, p: r.p, i: r.i, plan: r.plan, owner: name(r.ownerId), ws: riskWsLabel(r, wsNames), due: r.dueIso, status: st(r.status) })), show: Object.fromEntries(def.indicators.map((x) => [x.id, inds.includes(x.id)])) } as RisksData });
+        parts.push({ part: 'board', board: 'risks', data: { today, rows: rs.map((r) => ({ code: r.code, name: r.n, p: r.p, i: r.i, plan: r.plan, owner: name(r.ownerId), ws: riskWsCodes(r, wsCodes), due: r.dueIso, status: st(r.status) })), show: Object.fromEntries(def.indicators.map((x) => [x.id, inds.includes(x.id)])) } as RisksData });
         break;
       }
       case 'actions': {
