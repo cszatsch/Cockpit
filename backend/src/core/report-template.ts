@@ -2,7 +2,7 @@ import JSZip from 'jszip';
 import ExcelJS from 'exceljs';
 import { Box, builtInFormat, DEFAULT_SIZE, estimatedZones, exampleArea, FormatAnalysis, PageKind, RoleMap, ShapeRole, SlideAnalysis, suggestRoles, TextStyle } from '../domain/report-format';
 import { BOARD_OF, BoardKind, COMPONENTS, DASHBOARD_SERIES, fieldName, indicatorsOf, KPI_MAX, Section } from '../domain/report-components';
-import { relsPath, resolvePath } from './ooxml';
+import { ensureSlideParagraphs, pruneOrphanMedia, relsPath, resolvePath } from './ooxml';
 import { contrastOn } from './report-format-read';
 import { ActionsData, DashboardData, DecisionsData, drawActions, drawDashboard, drawDecisions } from './report-draw-pilotage';
 import { BarometerData, COLUMN_KIND, Draw, drawMilestones, drawRisks, GanttData, MilestonesData, RisksData, TableColumn, barometerLayout, drawBarometer, drawGantt, drawPlanTable, GANTT_MAX_ROWS, kpiCards, synthesisParas, tableHeaderRow, tableRow } from './report-draw';
@@ -407,7 +407,7 @@ export async function fillTemplate(buf: Buffer, manifest: TemplateManifest, data
       // Synthèse (03/10/2026) : message principal puis faits en liste, typographiés par le système de design.
       if (manifest.design && /^c\d+\.text$/.test(f.id)) {
         const d = new Draw(manifest.design);
-        r = each(xml, SP, name, (sp) => sp.replace(/<p:txBody>[\s\S]*<\/p:txBody>/, `<p:txBody><a:bodyPr wrap="square" lIns="0" tIns="0" rIns="0" bIns="0" anchor="t" rtlCol="0"><a:noAutofit/></a:bodyPr><a:lstStyle/>${synthesisParas(d, lines).map((x) => d.para(x)).join('')}</p:txBody>`));
+        r = each(xml, SP, name, (sp) => sp.replace(/<p:txBody>[\s\S]*<\/p:txBody>/, `<p:txBody><a:bodyPr wrap="square" lIns="0" tIns="0" rIns="0" bIns="0" anchor="t" rtlCol="0"><a:noAutofit/></a:bodyPr><a:lstStyle/>${synthesisParas(d, lines).map((x) => d.para(x)).join('') || '<a:p><a:endParaRPr lang="fr-FR" dirty="0"/></a:p>'}</p:txBody>`));
       } else r = each(xml, SP, name, (sp) => setText(sp, lines.length ? lines : ['']));
     } else if (f.kind === 'table') {
       const rows = data.tables[f.id];
@@ -450,6 +450,8 @@ export async function fillTemplate(buf: Buffer, manifest: TemplateManifest, data
     slides.set(f.slide, r.out);
   }
   for (const [p, xml] of slides) z.file(p, xml);
+  await ensureSlideParagraphs(z);
+  await pruneOrphanMedia(z);
   return z.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE', mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' });
 }
 

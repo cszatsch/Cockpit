@@ -2,7 +2,7 @@ import JSZip from 'jszip';
 import {
   Box, builtInFormat, DEFAULT_SIZE, estimatedZones, FixedElement, FormatAnalysis, FormatFileKind, PageKind, RoleMap, ShapeRole, SlideAnalysis, TEXT_ROLES, TextStyle, Zone, ZoneRole,
 } from '../domain/report-format';
-import { attr, kids, parseXml, relsPath, resolvePath, tagOf } from './ooxml';
+import { attr, ensureSlideParagraphs, kids, parseXml, pruneOrphanMedia, relsPath, resolvePath, tagOf } from './ooxml';
 
 /**
  * Assemblage des paquets PowerPoint du Format du rapport : chaque diapositive est la copie de sa page modèle
@@ -305,6 +305,8 @@ export class Assembler {
     this.zip.file('[Content_Types].xml', this.ct);
     const app = this.zip.file('docProps/app.xml');
     if (app) this.zip.file('docProps/app.xml', (await app.async('string')).replace(/<Slides>\d+<\/Slides>/, `<Slides>${this.slideCount}</Slides>`).replace(/<Notes>\d+<\/Notes>/, '<Notes>0</Notes>'));
+    await ensureSlideParagraphs(this.zip);
+    await pruneOrphanMedia(this.zip);
     return this.zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE', mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' });
   }
 }

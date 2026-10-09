@@ -63,6 +63,39 @@ export function resolvePath(base: string, target: string): string {
   }
   return parts.join('/');
 }
+/**
+ * Zones de texte sans paragraphe complétées d'un paragraphe vide (09/10/2026) : le schéma exige au moins un `<a:p>` dans
+ * `<p:txBody>`, PowerPoint propose sinon de réparer le fichier. Appliqué aussi aux templates publiés avant la correction.
+ */
+export function ensureTextParagraphs(xml: string): string {
+  return xml.replace(/(<p:txBody>(?:(?!<\/p:txBody>)[\s\S])*?)(<\/p:txBody>)/g, (m, body: string, end: string) => (/<a:p[\s>/]/.test(body) ? m : `${body}<a:p><a:endParaRPr lang="fr-FR" dirty="0"/></a:p>${end}`));
+}
+/** Diapositives du paquet : zones de texte complétées (`ensureTextParagraphs`). */
+export async function ensureSlideParagraphs(zip: JSZip): Promise<void> {
+  for (const p of Object.keys(zip.files).filter((x) => /^ppt\/slides\/slide\d+\.xml$/.test(x))) {
+    const xml = await zip.file(p)!.async('string'), out = ensureTextParagraphs(xml);
+    if (out !== xml) zip.file(p, out);
+  }
+}
+/**
+ * Médias et objets incorporés qu'aucune relation ne vise, retirés du paquet (09/10/2026). PowerPoint signale un fichier
+ * orphelin comme un contenu à réparer : c'est le cas de l'image d'une forme « exemple » retirée d'une page modèle
+ * (la relation tombe avec la forme, le fichier restait). Renvoie les parties retirées.
+ */
+export async function pruneOrphanMedia(zip: JSZip): Promise<string[]> {
+  const used = new Set<string>();
+  for (const rf of Object.keys(zip.files).filter((p) => /(^|\/)_rels\/[^/]+\.rels$/.test(p))) {
+    const owner = rf.replace(/_rels\/([^/]+)\.rels$/, '$1');
+    const xml = await zip.file(rf)!.async('string');
+    for (const m of xml.matchAll(/<Relationship\b[^>]*>/g)) {
+      const t = /\bTarget="([^"]+)"/.exec(m[0]);
+      if (t && !/TargetMode="External"/.test(m[0])) used.add(resolvePath(owner, t[1].replace(/&amp;/g, '&')));
+    }
+  }
+  const removed = Object.keys(zip.files).filter((p) => !zip.files[p].dir && /^ppt\/(media|embeddings)\/[^/]+$/.test(p) && !used.has(p));
+  for (const p of removed) zip.remove(p);
+  return removed;
+}
 /** Fichier de relations d'une partie : `ppt/slides/slide1.xml` → `ppt/slides/_rels/slide1.xml.rels`. */
 export const relsPath = (p: string) => `${dirOf(p)}/_rels/${p.slice(p.lastIndexOf('/') + 1)}.rels`;
 

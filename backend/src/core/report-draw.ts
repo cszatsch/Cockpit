@@ -38,7 +38,7 @@ export class Draw {
     const fill = o.fill ? `<a:solidFill><a:srgbClr val="${o.fill}">${o.alpha !== undefined ? `<a:alpha val="${R(o.alpha * 100000)}"/>` : ''}</a:srgbClr></a:solidFill>` : '<a:noFill/>';
     const ln = o.line ? `<a:ln w="${R(o.line.w * PT)}"><a:solidFill><a:srgbClr val="${o.line.color}"/></a:solidFill>${o.line.dash ? '<a:prstDash val="dash"/>' : ''}</a:ln>` : '<a:ln><a:noFill/></a:ln>';
     const ins = o.inset ?? 0;
-    const tx = o.paras ? `<p:txBody><a:bodyPr wrap="${o.wrap === false ? 'none' : 'square'}" lIns="${ins}" tIns="${ins}" rIns="${ins}" bIns="${ins}" anchor="${o.anchor ?? 't'}" rtlCol="0"><a:noAutofit/></a:bodyPr><a:lstStyle/>${o.paras.map((p) => this.para(p)).join('')}</p:txBody>` : '';
+    const tx = o.paras ? `<p:txBody><a:bodyPr wrap="${o.wrap === false ? 'none' : 'square'}" lIns="${ins}" tIns="${ins}" rIns="${ins}" bIns="${ins}" anchor="${o.anchor ?? 't'}" rtlCol="0"><a:noAutofit/></a:bodyPr><a:lstStyle/>${o.paras.length ? o.paras.map((p) => this.para(p)).join('') : '<a:p><a:endParaRPr lang="fr-FR" dirty="0"/></a:p>'}</p:txBody>` : '';
     return `<p:sp><p:nvSpPr><p:cNvPr id="${id}" name="${esc(o.name ?? `Forme ${id}`)}"/><p:cNvSpPr${o.paras ? ' txBox="1"' : ''}/><p:nvPr/></p:nvSpPr><p:spPr><a:xfrm><a:off x="${R(b.x)}" y="${R(b.y)}"/><a:ext cx="${Math.max(1, R(b.w))}" cy="${Math.max(1, R(b.h))}"/></a:xfrm><a:prstGeom prst="${o.geom ?? 'rect'}"><a:avLst>${o.adj !== undefined ? `<a:gd name="adj" fmla="val ${R(o.adj)}"/>` : ''}</a:avLst></a:prstGeom>${fill}${ln}</p:spPr>${tx}</p:sp>`;
   }
   text(box: Box, paras: Para[], anchor: 't' | 'ctr' | 'b' = 't', name?: string) { return this.sp({ box, paras, anchor, name }); }
