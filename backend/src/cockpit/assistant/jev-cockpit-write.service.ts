@@ -31,7 +31,7 @@ export interface WriteOutcome {
   fallbackUsed: boolean;
 }
 
-interface Refs { people: Named[]; ws: Named[]; writable: Named[]; bodies: Named[]; phases: Array<Named & { start: string; end: string; seq: number }>; me: string | null; today: string }
+interface Refs { people: Named[]; ws: Named[]; writable: Named[]; bodies: Named[]; phases: Array<Named & { start: string; end: string; seq: number }>; subphases: Named[]; me: string | null; today: string }
 
 /**
  * Cas 3 du Jev du Cockpit — modification des données (brief du 01/10/2026) :
@@ -236,7 +236,7 @@ export class JevCockpitWriteService {
         }
         case 'ws': {
           // Jalon sans chantier (« transverse », « aucun ») : chantier vide (09/10/2026).
-          if (o.entity === 'MILESTONE' && (picked === null || (picked === undefined && /^\s*(transverse|aucun|sans|tous|toutes)\b/i.test(String(raw ?? ''))))) { o.fields[key] = null; o.shown[key] = 'Transverse (aucun chantier)'; break; }
+          if ((o.entity === 'MILESTONE' || o.entity === 'DELIVERABLE') && (picked === null || (picked === undefined && /^\s*(transverse|aucun|sans|tous|toutes)\b/i.test(String(raw ?? ''))))) { o.fields[key] = null; o.shown[key] = 'Transverse (aucun chantier)'; break; }
           const m = picked !== undefined ? refs.ws.filter((w) => w.id === picked) : matchNamed(raw, refs.ws);
           if (m.length === 1 && canWriteWs(scope.access, m[0].id)) { o.fields[key] = m[0].id; o.shown[key] = m[0].label; break; }
           if (!has && !need) break;
@@ -277,6 +277,12 @@ export class JevCockpitWriteService {
           if (m.length === 1) { o.fields[key] = m[0].id; o.shown[key] = m[0].label; break; }
           if (!has && !need) break;
           return ask(m.length > 1 ? `Plusieurs phases correspondent à « ${String(raw)} » : laquelle ?` : has ? `Je ne trouve pas la phase « ${String(raw)} ». Laquelle ?` : 'Dans quelle phase ?', (m.length > 1 ? m : refs.phases).map((x) => ({ label: x.label, value: x.id })));
+        }
+        case 'subphase': {
+          const m = picked !== undefined ? refs.subphases.filter((x) => x.id === picked) : has ? matchNamed(raw, refs.subphases) : [];
+          if (m.length === 1) { o.fields[key] = m[0].id; o.shown[key] = m[0].label; break; }
+          if (!has && !need) break;
+          return ask(m.length > 1 ? `Plusieurs sous-phases correspondent à « ${String(raw)} » : laquelle ?` : has ? `Je ne trouve pas la sous-phase « ${String(raw)} ». Laquelle ?` : 'Dans quelle sous-phase ?', (m.length > 1 ? m : refs.subphases).map((x) => ({ label: x.label, value: x.id })));
         }
         case 'phaseMulti': {
           const tokens: unknown[] = picked !== undefined ? (Array.isArray(picked) ? picked : picked === null ? [] : [picked]) : Array.isArray(raw) ? raw : typeof raw === 'string' ? raw.split(/\s*(?:,|;|\bet\b|\+)\s*/i).filter(Boolean) : raw ? [raw] : [];
@@ -322,17 +328,19 @@ export class JevCockpitWriteService {
       return {};
     }
     const verb = o.op === 'DELETE' ? 'supprimer' : 'modifier';
-    const rows: any[] = await delegate.findMany({ where: { projectId: P }, orderBy: { code: 'asc' } });
-    if (!o.code) return { question: { op: idx, field: '__code', text: `Quel${o.entity === 'WORKSTREAM' || o.entity === 'MILESTONE' ? '' : 'le'} ${L.one} voulez-vous ${verb} ?`, options: rows.slice(0, 8).map((r) => ({ label: `${r.code} · ${short(nameOf(r))}`, value: r.id })), free: true } };
-    const ref = norm(o.code), bare = ref.replace(/^(phase|sous-phase|sous phase|chantier|jalon|p|c|j)\s*/, '');
-    let m = rows.filter((r) => r.id === o.code || norm(r.code) === ref || norm(r.code) === bare || norm(nameOf(r)) === ref || norm(`${r.code}. ${nameOf(r)}`) === ref || norm(`${r.code} ${nameOf(r)}`) === ref);
+    // Livrable (09/10/2026) : pas de code, désigné par son nom ; sa « référence » est son nom.
+    const noCode = o.entity === 'DELIVERABLE', refOf = (r: any) => (noCode ? r.name : r.code);
+    const rows: any[] = await delegate.findMany({ where: { projectId: P }, orderBy: noCode ? { name: 'asc' } : { code: 'asc' } });
+    if (!o.code) return { question: { op: idx, field: '__code', text: `Quel${o.entity === 'WORKSTREAM' || o.entity === 'MILESTONE' ? '' : 'le'} ${L.one} voulez-vous ${verb} ?`, options: rows.slice(0, 8).map((r) => ({ label: noCode ? short(nameOf(r)) : `${r.code} · ${short(nameOf(r))}`, value: r.id })), free: true } };
+    const ref = norm(o.code), bare = ref.replace(/^(phase|sous-phase|sous phase|chantier|jalon|livrable|p|c|j)\s*/, '');
+    let m = rows.filter((r) => r.id === o.code || (!noCode && (norm(r.code) === ref || norm(r.code) === bare)) || norm(nameOf(r)) === ref || norm(`${r.code}. ${nameOf(r)}`) === ref || norm(`${r.code} ${nameOf(r)}`) === ref);
     if (!m.length) m = rows.filter((r) => { const n = norm(nameOf(r)); return n.length > 2 && (n.includes(bare) || bare.includes(n)); });
-    if (m.length > 1) return { question: { op: idx, field: '__code', text: `Plusieurs ${L.one}s correspondent à « ${o.code} » : laquelle ?`.replace('laquelle', o.entity === 'WORKSTREAM' || o.entity === 'MILESTONE' ? 'lequel' : 'laquelle'), options: m.slice(0, 8).map((r) => ({ label: `${r.code} · ${short(nameOf(r))}`, value: r.id })), free: true } };
+    if (m.length > 1) return { question: { op: idx, field: '__code', text: `Plusieurs ${L.one}s correspondent à « ${o.code} » : laquelle ?`.replace('laquelle', o.entity === 'WORKSTREAM' || o.entity === 'MILESTONE' ? 'lequel' : 'laquelle'), options: m.slice(0, 8).map((r) => ({ label: noCode ? short(nameOf(r)) : `${r.code} · ${short(nameOf(r))}`, value: r.id })), free: true } };
     if (!m.length) return { refuse: `Je ne trouve pas ${L.the} « ${o.code} » dans ce projet.` };
     const row = m[0];
-    o.code = row.code;
+    o.code = refOf(row);
     o.targetId = row.id;
-    o.targetLabel = `${row.code} · ${nameOf(row)}`;
+    o.targetLabel = noCode ? nameOf(row) : `${row.code} · ${nameOf(row)}`;
     if (o.op === 'DELETE') {
       const used = await this.usages.usages(this.prisma as any, P, o.entity, row.id);
       if (used.length) {
@@ -391,6 +399,7 @@ export class JevCockpitWriteService {
         : f.kind === 'ws' ? refs.ws.find((w) => w.id === v)?.label ?? String(v)
         : f.kind === 'body' ? refs.bodies.find((b) => b.id === v)?.label ?? String(v)
         : f.kind === 'phase' ? refs.phases.find((x) => x.id === v)?.label ?? String(v)
+        : f.kind === 'subphase' ? refs.subphases.find((x) => x.id === v)?.label ?? String(v)
         : f.kind === 'scale5' ? `${v} (${SCALE5_LABEL[v]})` : f.kind === 'prio4' ? `${v} (${PRIO4_LABEL[v]})`
         : f.kind === 'enum' ? f.values![v] ?? String(v) : f.kind === 'date' ? frDate(String(v)) : short(String(v), 200);
     }
@@ -401,11 +410,12 @@ export class JevCockpitWriteService {
 
   private async refs(scope: ProjectScope): Promise<Refs> {
     const P = scope.project.id;
-    const [people, ws, bodies, phases] = await Promise.all([
+    const [people, ws, bodies, phases, subphases] = await Promise.all([
       this.prisma.person.findMany({ where: { projectId: P, active: true }, orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }] }),
       this.prisma.workstream.findMany({ where: { projectId: P }, orderBy: { seq: 'asc' } }),
       this.prisma.governanceBody.findMany({ where: { projectId: P } }),
       this.prisma.phase.findMany({ where: { projectId: P }, orderBy: { seq: 'asc' } }),
+      this.prisma.subphase.findMany({ where: { projectId: P }, orderBy: { code: 'asc' } }),
     ]);
     const wsN = ws.map((w) => ({ id: w.id, label: `${w.code} · ${w.name}`, keys: [w.code, w.name, `${w.code} ${w.name}`] }));
     return {
@@ -413,6 +423,7 @@ export class JevCockpitWriteService {
       ws: wsN,
       writable: wsN.filter((w) => canWriteWs(scope.access, w.id)),
       bodies: bodies.map((b) => ({ id: b.id, label: `${b.shortName} · ${b.name}`, keys: [b.shortName, b.name] })),
+      subphases: subphases.map((x) => ({ id: x.id, label: `${x.code} · ${x.name}`, keys: [x.code, x.name, `${x.code} ${x.name}`] })),
       phases: phases.map((x) => ({ id: x.id, label: `${x.code} · ${x.name}`, keys: [x.code, String(x.seq), x.name, `P${x.seq}`, `phase ${x.seq}`], start: x.startDate, end: x.endDate, seq: x.seq })),
       me: scope.access.personId,
       today: this.today.today(),
@@ -437,7 +448,7 @@ export class JevCockpitWriteService {
 
   /** Objets que l'utilisateur peut modifier (choix proposés quand le code manque), les plus récents d'abord. */
   private async writableRows(scope: ProjectScope, entity: WriteEntity, n: number): Promise<any[]> {
-    const rows = await (this.prisma as any)[jevDef(entity).delegate].findMany({ where: { projectId: scope.project.id }, orderBy: { code: 'desc' } });
+    const rows = await (this.prisma as any)[jevDef(entity).delegate].findMany({ where: { projectId: scope.project.id }, orderBy: entity === 'DELIVERABLE' ? { createdAt: 'desc' } : { code: 'desc' } });
     if (isRefEntity(entity)) return rows.slice(0, n);
     return rows.filter((r: any) => canWriteLinks(scope.access, entity === 'RISK' ? riskLinks(r) : { ids: r.wsId ? [r.wsId] : [], all: false }) && !(entity === 'DECISION' && r.status === 'ARBITRATED')).slice(0, n);
   }

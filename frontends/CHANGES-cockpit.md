@@ -567,3 +567,4 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 - Chantier sans dates : dessiné sur la période de ses phases ; élément encore sans période : « dates à renseigner » sous le Suivi d'avancement (auparavant retiré sans rien dire). « Saisir sans Jev » : période (début → fin) requise pour un chantier.
 - « Saisir sans Jev », sous-phase : le code n'est plus calculé par l'écran (il pouvait retomber sur un code existant) ; le serveur le calcule et rattache la sous-phase au chantier choisi dans la même écriture.
 - « Saisir sans Jev » : formulaire Livrable (avant Risque) — nom, phase, chantier, sous-phase (liste dépendant de la phase et du chantier), responsable, dates de début et de fin ; écriture `POST /deliverables` (`saisie`, cas `livrable`).
+- « Saisir sans Jev » : Tâche placée avant Décision (demande du commanditaire).

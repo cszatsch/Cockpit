@@ -186,11 +186,34 @@ describe('Jev du Cockpit — cas 3 : modification des données', () => {
     expect(j.patch.phaseId).toBeTruthy();
     const ok = await pmo.post(`${R}/assistant/changes/${j.id}/confirm`).expect(200);
     expect(ok.body.link).toMatchObject({ space: 'projet', tab: 'referentiel' });
-    spy = extraction([{ objet: 'DELIVERABLE', operation: 'DELETE', code: 'Plan de recette', champs: {} }]);
-    const un = await ask(pmo, 'Supprime le livrable Plan de recette');
+    spy = extraction([{ objet: 'SESSION', operation: 'DELETE', code: 'COPIL 21', champs: {} }]);
+    const un = await ask(pmo, 'Supprime la séance du COPIL 21');
     spy.mockRestore();
-    expect(un.body.reply).toMatch(/^Je ne sais pas encore supprimer les livrables\./);
+    expect(un.body.reply).toMatch(/^Je ne sais pas encore supprimer les séances\./);
     await pmo.del(`${R}/milestones/${ok.body.result.id}`).expect(204);
+  });
+
+  it('Référentiel, livrable (09/10/2026) : désigné par son nom, nom à retaper pour supprimer ; création avec lien vers Pilotage › Livrables', async () => {
+    const pmo = await t.as(WHO.pmo);
+    const lv = (await pmo.post(`${R}/deliverables`, { name: 'Note de cadrage', subphaseId: 'SP5.2', ownerId: 'p06', due: '2026-11-20' }).expect(201)).body;
+    let spy = extraction([{ objet: 'DELIVERABLE', operation: 'DELETE', code: 'Note de cadrage', champs: {} }]);
+    const r = await ask(pmo, 'supprime le livrable "Note de cadrage"');
+    spy.mockRestore();
+    expect(r.body).toMatchObject({ write: 'RECAP' });
+    const d = r.body.proposedChanges[0];
+    expect(d).toMatchObject({ entityType: 'DELIVERABLE', op: 'DELETE', confirmCode: 'Note de cadrage', rows: [{ t: 'Note de cadrage', b: 'supprimé définitivement' }] });
+    const bad = await pmo.post(`${R}/assistant/changes/${d.id}/confirm`).send({ confirmCode: 'x' }).expect(422);
+    expect(bad.body.message).toBe('Pour supprimer, retapez le nom Note de cadrage');
+    await pmo.post(`${R}/assistant/changes/${d.id}/confirm`).send({ confirmCode: 'note de cadrage' }).expect(200);
+    expect(await t.db.deliverable.findFirst({ where: { id: lv.id } })).toBeNull();
+    spy = extraction([{ objet: 'DELIVERABLE', operation: 'CREATE', code: null, champs: { name: 'Plan de recette', subphaseId: '5.2', workstreamId: 'aucun', ownerId: 'Karim', due: '20/11' } }]);
+    const c = await ask(pmo, 'Crée le livrable Plan de recette dans la sous-phase 5.2, porté par Karim, pour le 20/11');
+    spy.mockRestore();
+    expect(c.body).toMatchObject({ write: 'RECAP' });
+    expect(c.body.proposedChanges[0].patch).toMatchObject({ name: 'Plan de recette', subphaseId: 'SP5.2', workstreamId: null, ownerId: 'p06', due: '2026-11-20' });
+    const ok = await pmo.post(`${R}/assistant/changes/${c.body.proposedChanges[0].id}/confirm`).expect(200);
+    expect(ok.body.link).toMatchObject({ space: 'pilotage', tab: 'livrables', code: 'Plan de recette' });
+    await pmo.del(`${R}/deliverables/${ok.body.result.id}`).expect(204);
   });
 
   it('Responsable : chantier hors de son périmètre → choix parmi ses chantiers ; porteur ambigu → choix', async () => {

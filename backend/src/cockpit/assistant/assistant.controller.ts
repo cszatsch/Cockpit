@@ -257,16 +257,18 @@ export class AssistantController {
     if (c.op === 'DELETE') {
       const row = await (this.prisma as any)[def.delegate].findFirst({ where: { id: c.entityId!, projectId: scope.project.id } });
       if (!row) throw notFound();
-      if ((input.confirmCode ?? '').trim().toUpperCase() !== String(row.code).toUpperCase()) throw businessRule(`Pour supprimer, retapez le code ${row.code}`, { confirmCode: `${row.code} attendu` });
+      // Livrable (sans code) : son nom est à retaper.
+      const ref = String(row.code ?? row.name), what = row.code ? 'le code' : 'le nom';
+      if ((input.confirmCode ?? '').trim().toUpperCase() !== ref.trim().toUpperCase()) throw businessRule(`Pour supprimer, retapez ${what} ${ref}`, { confirmCode: `${ref} attendu` });
       await timedStep('exe', LATENCY_SERVICE_MODEL, 'primary', () => this.ref.remove(def, actor, scope, c.entityId!, undefined, 'JEV'));
-      result = { id: row.id, code: row.code, deleted: true };
-      code = row.code;
+      result = { id: row.id, code: ref, deleted: true };
+      code = ref;
     } else {
       result = await timedStep('exe', LATENCY_SERVICE_MODEL, 'primary', () => (c.op === 'CREATE' ? this.ref.create(def, actor, scope, c.patch, 'JEV') : this.ref.patch(def, actor, scope, c.entityId!, c.patch, undefined, 'JEV')));
-      code = result?.code ?? result?.id ?? null;
+      code = result?.code ?? result?.name ?? result?.id ?? null;
     }
     await this.prisma.assistantChange.update({ where: { id: c.id }, data: { status: 'CONFIRMED', decidedAt: new Date(), entityId: result?.id ?? c.entityId } });
-    return { id: c.id, status: 'CONFIRMED', result, link: c.op === 'DELETE' ? null : { space: 'projet', tab: L.tab, code, label: `Ouvrir ${code} · ${L.tabLabel}` } };
+    return { id: c.id, status: 'CONFIRMED', result, link: c.op === 'DELETE' ? null : { space: L.space ?? 'projet', tab: L.tab, code, label: `Ouvrir ${code} · ${L.tabLabel}` } };
   }
 
   @Post('changes/:id/reject')
