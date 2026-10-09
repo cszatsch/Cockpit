@@ -75,3 +75,7 @@ Migration `20261117000000_actions_taches_chantiers`.
     donc une criticité au plus de 16 dans le registre (seuils ≥ 12, ≥ 20 du registre inchangés).
 12. **Chantier : « Période » (début → fin), requise** — demande du commanditaire du 09/10/2026, absente de la maquette : un
     chantier sans dates n'était dessiné ni dans le Planning ni dans le Suivi d'avancement.
+13. **Livrable** (demande du commanditaire du 09/10/2026, hors maquette) : tuile placée avant « Risque » ; champs Nom*, Phase*,
+    Chantier, Sous-phase*, Responsable*, Date de début, Date de fin*. Sous-phase, responsable et date de fin sont requis par le
+    serveur (un livrable appartient toujours à une sous-phase, dont il tire sa phase ; le plan de livraison les regroupe ainsi) ;
+    la sous-phase est choisie parmi celles de la phase (et du chantier s'il en a dans cette phase), retirée si la phase change.

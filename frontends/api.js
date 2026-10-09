@@ -1036,6 +1036,10 @@ export function attach(comp) {
           const phaseId = (inP && inP.id) || (w && w.phaseIds && w.phaseIds[0]) || (P[0] && P[0].id) || (M('PHASE')[0] || {}).id;
           const r = await ppost('/milestones', opt({ n: v.n.trim(), phaseId, wsId: v.ws === T ? null : v.ws, iso: v.date, owner: v.owner }));
           msg = 'Jalon ' + r.code + ' créé';
+        } else if (kind === 'livrable') {
+          // Livrable (09/10/2026) : rattaché à une sous-phase (dont il tire sa phase) ; chantier facultatif.
+          const r = await ppost('/deliverables', opt({ name: v.n.trim(), subphaseId: v.sp, workstreamId: v.ws || null, ownerId: v.owner, start: v.start, due: v.due }));
+          msg = 'Livrable « ' + (r.name || v.n.trim()) + ' » créé';
         } else if (kind === 'risque') {
           const r = await ppost('/risks', opt({ n: v.n.trim(), p: +v.p, i: +v.i, owner: v.owner, plan: (v.plan || '').trim(), dueIso: v.due, ...links(v.wss) }));
           msg = 'Risque ' + r.code + ' créé';

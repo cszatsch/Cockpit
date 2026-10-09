@@ -2820,7 +2820,9 @@ class Component extends DCLogic {
     return {
       me: this.me().personId || '', pmo: !!this.prof(this.me().personId).pmo, people,
       phases: M('PHASE').map((r) => ({ v: r.id, t: r.cells[1] })),
-      wss: M('WORKSTREAM').map((r) => ({ v: r.id, t: r.cells[1] })),
+      wss: M('WORKSTREAM').map((r) => ({ v: r.id, t: r.cells[1], subphaseIds: r.subphaseIds || [] })),
+      // Sous-phases (formulaire Livrable, 09/10/2026) : code · nom, phase.
+      subphases: M('SUBPHASE').map((r) => ({ v: r.id, t: r.cells[0] + ' · ' + r.cells[2], ph: r.phaseId || (M('PHASE').find((p) => p.cells[1] === r.cells[1]) || {}).id })),
       sources: (D.risks || []).filter(open).map((x) => ({ v: 'RISK:' + x.id, t: code(x) + ' · ' + x.n }))
         .concat((D.decisions || []).filter(open).map((x) => ({ v: 'DECISION:' + x.id, t: code(x) + ' · ' + x.t })))
         .concat((D.milestones || []).map((x) => ({ v: 'MILESTONE:' + x.id, t: code(x) + ' · ' + x.n }))),
