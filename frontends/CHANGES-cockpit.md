@@ -568,3 +568,4 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 - « Saisir sans Jev », sous-phase : le code n'est plus calculé par l'écran (il pouvait retomber sur un code existant) ; le serveur le calcule et rattache la sous-phase au chantier choisi dans la même écriture.
 - « Saisir sans Jev » : formulaire Livrable (avant Risque) — nom, phase, chantier, sous-phase (liste dépendant de la phase et du chantier), responsable, dates de début et de fin ; écriture `POST /deliverables` (`saisie`, cas `livrable`).
 - « Saisir sans Jev » : Tâche placée avant Décision (demande du commanditaire).
+- Registre des décisions (10/10/2026) : colonne « Chantier » en référence (C1, C2…, teinte du Planning ; nom en infobulle) ; le sélecteur propose « C1 · nom ».
