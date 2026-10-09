@@ -542,7 +542,7 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 
 ## « Saisir sans Jev » : bouton rétabli (09/10/2026)
 
-- Demande du commanditaire : le lien « Saisir sans Jev » (« Modifier sans Jev » sur une ligne) revient sous le champ de saisie du panneau de Jev, à l'identique (mêmes onglets du Pilotage, même style). À ce stade, il n'ouvre rien (`jevManual` sans action) : les formulaires retirés le 08/10/2026 ne sont pas rétablis.
+- Demande du commanditaire : le lien « Saisir sans Jev » revient sous le champ de saisie du panneau de Jev, affiché en permanence (tous les espaces, toutes les situations ; d'abord rétabli avec son ancienne condition — Pilotage, mode action, onglet à formulaire —, il n'apparaissait pas ailleurs), libellé en italique. À ce stade, il n'ouvre rien (`jevManual` sans action) : les formulaires retirés le 08/10/2026 ne sont pas rétablis.
 
 ## Créer un template : comité de rattachement (09/10/2026)
 

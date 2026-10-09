@@ -2363,8 +2363,8 @@ a{color:#1d8f86}a:hover{color:#146b64}
       <div style="{{ jevPillSt }}" style-focus-within="border-color:#1d8f86"><textarea data-jev-input="1" rows="1" value="{{ jevInput }}" onChange="{{ jevSetInput }}" onKeyDown="{{ jevKey }}" placeholder="Écris à Jev…" aria-label="Message à Jev (Entrée pour envoyer, Maj+Entrée pour aller à la ligne)" style="{{ jevTaSt }}"></textarea></div>
       <span onClick="{{ jevSendClick }}" title="Envoyer" style="width:42px;height:42px;border-radius:50%;background:#1d8f86;color:#fff;display:grid;place-items:center;cursor:pointer;flex:none" style-hover="background:#146b64"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"></path></svg></span>
     </div>
-    <!-- « Saisir sans Jev » : bouton rétabli le 09/10/2026 (demande du commanditaire), sans action pour l'instant. -->
-    <sc-if value="{{ jevCanManual }}" hint-placeholder-val="{{ false }}"><span onClick="{{ jevManual }}" style="align-self:flex-start;font-size:11.5px;color:#5c7280;cursor:pointer;text-decoration:underline;text-underline-offset:3px" style-hover="color:#1d8f86">{{ jevManualLabel }}</span></sc-if>
+    <!-- « Saisir sans Jev » : bouton rétabli le 09/10/2026 (demande du commanditaire), toujours affiché, en italique, sans action pour l'instant. -->
+    <span onClick="{{ jevManual }}" style="align-self:flex-start;font-size:11.5px;font-style:italic;color:#5c7280;cursor:pointer;text-decoration:underline;text-underline-offset:3px" style-hover="color:#1d8f86">Saisir sans Jev</span>
   </div>
 </aside>
 </div>
@@ -3395,8 +3395,8 @@ class Component extends DCLogic {
             rm: () => this.setState(st => ({ jevFiles: (st.jevFiles || []).filter((_, j) => j !== i) })) }; }),
           jevOnFile: e => { const fs = [...(e.target.files || [])]; e.target.value = ''; if (!fs.length) return; if (this._api) return this._api.jevAttach(fs); /* API : POST /assistant/files */ const add = fs.map(x => ({ id: 'f' + Date.now() + Math.random(), name: x.name, ext: (x.name.split('.').pop() || '').toUpperCase().slice(0, 4), sizeL: x.size > 1048576 ? (x.size / 1048576).toFixed(1).replace('.', ',') + ' Mo' : Math.max(1, Math.round(x.size / 1024)) + ' Ko', pct: 0 }));
             this.setState(st => ({ jevFiles: (st.jevFiles || []).concat(add) })); const ids = add.map(a => a.id); const tick = () => { let more = false; this.setState(st => ({ jevFiles: (st.jevFiles || []).map(f => { if (!ids.includes(f.id) || f.pct >= 100) return f; const p = Math.min(100, f.pct + 12 + Math.round(Math.random() * 14)); if (p < 100) more = true; return { ...f, pct: p }; }) }), () => { if (more) setTimeout(tick, 140); }); }; setTimeout(tick, 140); } }; })(),
-      // « Saisir sans Jev » (09/10/2026) : bouton rétabli à l'identique (mêmes onglets, même libellé), sans action pour l'instant.
-      jevCanManual: act && S.space === 'pilotage' && !!this.formKind(S.tab, J.block), jevManualLabel: (J.kind === 'ligne' && J.id != null && J.id !== '') || (this.formKind(S.tab, J.block) === 'arbitrage' && (() => { const sel = S.faSel || 'D-007', MD = this.mergedData() || {}, fx = (MD.arbitrations || []).find(x => x.id === sel); return !!(fx && fx.full) || !!(S.arbData || {})[sel]; })()) ? 'Modifier sans Jev' : 'Saisir sans Jev', jevManual: () => {},
+      // « Saisir sans Jev » (09/10/2026) : bouton rétabli, toujours affiché sous le champ de Jev, sans action pour l'instant.
+      jevManual: () => {},
       jevBodyRef: this._jb,
       jevBlock: e => { e.stopPropagation(); this.jevOpen({ kind: 'bloc', block: e.currentTarget.dataset.jev }); },
       jevRow: e => { e.stopPropagation(); const d = e.currentTarget.dataset; this.jevOpen({ kind: 'ligne', block: d.jev, row: d.row, id: d.id }); },
