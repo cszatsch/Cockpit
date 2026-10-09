@@ -120,7 +120,7 @@ export class ReferentialService {
     });
   }
 
-  async remove(def: EntityConfig, actor: Actor, scope: ProjectScope, id: string, ifMatch?: string) {
+  async remove(def: EntityConfig, actor: Actor, scope: ProjectScope, id: string, ifMatch?: string, origin: WriteCtx['origin'] = 'MANUAL') {
     this.assertWrite(scope);
     await this.prisma.$transaction(async (tx) => {
       const c = this.ctx(scope, tx);
@@ -136,7 +136,7 @@ export class ReferentialService {
         : [];
       await (tx as any)[def.delegate].delete({ where: { id } });
       if (def.entityType === 'SUBPHASE') await rollupPhaseProgress(tx, [existing.phaseId]);
-      await this.audit.record(tx, this.writeCtx(actor, scope), { entityType: def.entityType, entityId: id, before, after: null, wsId: def.wsOf?.(existing) ?? null, target: def.label(existing) });
+      await this.audit.record(tx, this.writeCtx(actor, scope, origin), { entityType: def.entityType, entityId: id, before, after: null, wsId: def.wsOf?.(existing) ?? null, target: def.label(existing) });
       for (const w of linked) {
         const subs = w.subphases.map((s) => s.subphaseId).sort();
         await this.audit.record(tx, this.writeCtx(actor, scope), { entityType: 'WORKSTREAM', entityId: w.id, before: { subphaseIds: subs }, after: { subphaseIds: subs.filter((s) => s !== id) }, wsId: w.id, target: `${w.code} · ${w.name}` });

@@ -23,7 +23,9 @@ import { TodayService } from '../../core/today.service';
 import { COCKPIT_CASE_ROUTE, COCKPIT_CHOICE_TO_CASE } from '../../domain/jev-router-cockpit';
 import { clarifyReasonOf, COCKPIT_CLARIFY_RULES, cockpitClarifyPrompt, cockpitPageLabel, nowParisLabel } from '../../domain/jev-cockpit-answers';
 import { JevCockpitWriteService, WriteOutcome } from './jev-cockpit-write.service';
-import { JEV_WRITABLE_DEFS } from './jev-writable';
+import { JEV_WRITABLE_DEFS, JEV_REF_DEFS } from './jev-writable';
+import { ReferentialService } from '../referential/referential.service';
+import { EntityConfig } from '../referential/entities';
 import { linkedActionDue, WRITE_ENTITY_LABEL, WriteEntity } from '../../domain/jev-cockpit-write';
 import { JevMemoryService } from '../../admin/jev-memory.service';
 import { JevConversation } from '@prisma/client';
@@ -75,6 +77,7 @@ export class AssistantController {
     private readonly insight: JevCockpitInsightService,
     private readonly docs: JevCockpitDocsService,
     private readonly write: JevCockpitWriteService,
+    private readonly ref: ReferentialService,
     private readonly memory: JevMemoryService,
   ) {}
 
@@ -209,8 +212,10 @@ export class AssistantController {
     const scope = await this.access.scope(actor, p);
     const input = parse(Confirm, body ?? {});
     const c = await this.change(scope, actor, id);
-    const def = JEV_WRITABLE[c.entityType];
-    if (!def) throw forbidden('Jev ne modifie pas ce type de données');
+    const def = JEV_WRITABLE[c.entityType], refDef = (JEV_REF_DEFS as Record<string, EntityConfig>)[c.entityType];
+    if (!def && !refDef) throw forbidden('Jev ne modifie pas ce type de données');
+    // Objet du Référentiel (09/10/2026) : service du Référentiel (PMO, contrôle des usages, historique d'origine JEV).
+    if (refDef) return this.confirmRef(scope, actor, c, refDef, input);
     const patch: any = { ...(c.patch as any) };
     if (patch.sourceRef) {
       const parent = await this.prisma.assistantChange.findFirst({ where: { id: patch.sourceRef, projectId: scope.project.id, accountId: actor.accountId } });
@@ -242,6 +247,26 @@ export class AssistantController {
     await this.prisma.assistantChange.update({ where: { id }, data: { status: 'CONFIRMED', decidedAt: new Date(), entityId: result?.id ?? c.entityId } });
     const L = WRITE_ENTITY_LABEL[c.entityType as WriteEntity];
     return { id, status: 'CONFIRMED', result, link: c.op === 'DELETE' ? null : { space: 'pilotage', tab: L.tab, code, label: `Ouvrir ${code} · ${L.tabLabel}` } };
+  }
+
+  private async confirmRef(scope: ProjectScope, actor: Actor, c: { id: string; entityType: string; entityId: string | null; op: string; patch: unknown }, def: EntityConfig, input: { confirmCode?: string }) {
+    const L = WRITE_ENTITY_LABEL[c.entityType as WriteEntity];
+    let result: any;
+    let code: string | null = null;
+    latencyCategory('update_cockpit');
+    if (c.op === 'DELETE') {
+      const row = await (this.prisma as any)[def.delegate].findFirst({ where: { id: c.entityId!, projectId: scope.project.id } });
+      if (!row) throw notFound();
+      if ((input.confirmCode ?? '').trim().toUpperCase() !== String(row.code).toUpperCase()) throw businessRule(`Pour supprimer, retapez le code ${row.code}`, { confirmCode: `${row.code} attendu` });
+      await timedStep('exe', LATENCY_SERVICE_MODEL, 'primary', () => this.ref.remove(def, actor, scope, c.entityId!, undefined, 'JEV'));
+      result = { id: row.id, code: row.code, deleted: true };
+      code = row.code;
+    } else {
+      result = await timedStep('exe', LATENCY_SERVICE_MODEL, 'primary', () => (c.op === 'CREATE' ? this.ref.create(def, actor, scope, c.patch, 'JEV') : this.ref.patch(def, actor, scope, c.entityId!, c.patch, undefined, 'JEV')));
+      code = result?.code ?? result?.id ?? null;
+    }
+    await this.prisma.assistantChange.update({ where: { id: c.id }, data: { status: 'CONFIRMED', decidedAt: new Date(), entityId: result?.id ?? c.entityId } });
+    return { id: c.id, status: 'CONFIRMED', result, link: c.op === 'DELETE' ? null : { space: 'projet', tab: L.tab, code, label: `Ouvrir ${code} · ${L.tabLabel}` } };
   }
 
   @Post('changes/:id/reject')

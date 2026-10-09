@@ -149,6 +149,50 @@ describe('Jev du Cockpit — cas 3 : modification des données', () => {
     expect((await t.db.risk.findFirst({ where: { id: rk.id } }))!.dueIso).toBe('2026-12-15');
   });
 
+  it('Référentiel (09/10/2026) : supprimer une phase désignée par son nom ; refus si elle est utilisée ; PMO seulement', async () => {
+    const pmo = await t.as(WHO.pmo);
+    const ph = (await pmo.post(`${R}/phases`, { seq: 99, name: 'Ancrer le changement', startDate: '2028-01-09', endDate: '2028-11-09', ownerId: 'p01' }).expect(201)).body;
+    let spy = extraction([{ objet: 'PHASE', operation: 'DELETE', code: `${ph.code}. Ancrer le changement`, champs: {} }]);
+    const r = await ask(pmo, `Supprimer la phase "${ph.code}. Ancrer le changement"`);
+    spy.mockRestore();
+    expect(r.body).toMatchObject({ write: 'RECAP' });
+    const d = r.body.proposedChanges[0];
+    expect(d).toMatchObject({ entityType: 'PHASE', op: 'DELETE', confirmCode: ph.code, rows: [{ t: `${ph.code} · Ancrer le changement`, b: 'supprimé définitivement' }] });
+    await pmo.post(`${R}/assistant/changes/${d.id}/confirm`).send({ confirmCode: 'x' }).expect(422);
+    const ok = await pmo.post(`${R}/assistant/changes/${d.id}/confirm`).send({ confirmCode: ph.code }).expect(200);
+    expect(ok.body.result).toMatchObject({ deleted: true });
+    await pmo.get(`${R}/phases/${ph.id}`).expect(404);
+    expect((await t.db.auditEntry.findMany({ where: { entityType: 'PHASE', entityId: ph.id } })).map((x) => x.origin)).toEqual(expect.arrayContaining(['MANUAL', 'JEV']));
+    // Phase utilisée (sous-phases, jalons…) : refus immédiat, éléments cités.
+    spy = extraction([{ objet: 'PHASE', operation: 'DELETE', code: 'Realize', champs: {} }]);
+    const used = await ask(pmo, 'Supprime la phase Realize');
+    spy.mockRestore();
+    expect(used.body.reply).toMatch(/est utilisée par \d+ éléments? .*Rien n’a été enregistré/);
+    // Responsable de chantier : Référentiel réservé au PMO.
+    spy = extraction([{ objet: 'PHASE', operation: 'DELETE', code: 'Realize', champs: {} }]);
+    const resp = await ask(await t.as(WHO.respC5), 'Supprime la phase Realize');
+    spy.mockRestore();
+    expect(resp.body.reply).toMatch(/modifiable par le PMO uniquement/);
+  });
+
+  it('Référentiel : créer un jalon transverse (phase déduite de sa date) ; objet non pris en charge → message qui oriente', async () => {
+    const pmo = await t.as(WHO.pmo);
+    let spy = extraction([{ objet: 'MILESTONE', operation: 'CREATE', code: null, champs: { n: 'Comité de validation V1', iso: '2026-11-12', wsId: 'transverse', owner: 'Karim' } }]);
+    const r = await ask(pmo, 'Crée le jalon Comité de validation V1 le 12/11, transverse, porté par Karim');
+    spy.mockRestore();
+    expect(r.body).toMatchObject({ write: 'RECAP' });
+    const j = r.body.proposedChanges[0];
+    expect(j.patch).toMatchObject({ n: 'Comité de validation V1', iso: '2026-11-12', wsId: null, owner: 'p06' });
+    expect(j.patch.phaseId).toBeTruthy();
+    const ok = await pmo.post(`${R}/assistant/changes/${j.id}/confirm`).expect(200);
+    expect(ok.body.link).toMatchObject({ space: 'projet', tab: 'referentiel' });
+    spy = extraction([{ objet: 'DELIVERABLE', operation: 'DELETE', code: 'Plan de recette', champs: {} }]);
+    const un = await ask(pmo, 'Supprime le livrable Plan de recette');
+    spy.mockRestore();
+    expect(un.body.reply).toMatch(/^Je ne sais pas encore supprimer les livrables\./);
+    await pmo.del(`${R}/milestones/${ok.body.result.id}`).expect(204);
+  });
+
   it('Responsable : chantier hors de son périmètre → choix parmi ses chantiers ; porteur ambigu → choix', async () => {
     const resp = await t.as(WHO.respC5);
     const spy = extraction([{ objet: 'ACTION', operation: 'CREATE', code: null, champs: { n: 'Relancer l’éditeur', wsId: 'Finance', owner: 'Marc', dueIso: '15/11' } }]);

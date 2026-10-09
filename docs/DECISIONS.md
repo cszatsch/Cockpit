@@ -1845,3 +1845,10 @@ Demande du commanditaire : un risque peut concerner un chantier, plusieurs, ou t
   l'utilisateur, code de sous-phase = rang suivant) — `saisie()` dans `frontends/api.js`.
 - Calculs du formulaire (score Σ(poids × note) / Σ(poids) sur les critères pesés et notés, total des poids, composition,
   écart, criticité P × I sur 16) : fonctions pures `frontends/saisie-calc.js`, testées par `test/unit/saisie-calc.spec.ts`.
+
+## Jev du Cockpit : objets du Référentiel (09/10/2026)
+
+- Constat : « Supprimer la phase 5. Ancrer le changement » répondait « Je n’ai pas identifié de modification… » : la fonction d’écriture de Jev ne connaissait que les risques, problèmes, actions et décisions (`WriteEntity`), les autres objets étaient écartés sans explication (règle du 01/10/2026 « jamais le Référentiel »).
+- Décision du commanditaire : Jev crée, modifie et supprime aussi les **phases, sous-phases, chantiers et jalons** (`REF_ENTITIES`, `src/domain/jev-cockpit-write.ts`), **PMO seulement** (`REF_PMO_ONLY_REPLY`) ; objet visé retrouvé par son code ou son nom (« 5 », « P5 », « 5. Ancrer le changement » ; plusieurs : question à choix) ; suppression refusée d’emblée si l’objet est utilisé (`UsagesService`, éléments cités) ; numéro de phase et code de sous-phase calculés, phase d’un jalon déduite de sa date, jalon « transverse » = sans chantier ; écriture par le service du Référentiel, historique d’origine JEV (`ReferentialService.remove` reçoit désormais l’origine), lien vers Info projet › Référentiel (`AssistantController.confirmRef`).
+- Objet que Jev ne modifie pas (livrable, séance, personne, équipe, document…) : message qui oriente vers l’écran concerné (`unsupportedRequests`, `unsupportedReply`) au lieu du message générique.
+- Tests : `test/e2e/jev-cockpit-write.spec.ts` (« Référentiel »).

@@ -10,7 +10,13 @@
  * confirmation explicite ; l'écriture passe par le service métier (droits, règles, historique d'origine JEV).
  */
 
-export type WriteEntity = 'RISK' | 'ISSUE' | 'ACTION' | 'DECISION';
+export type WriteEntity = 'RISK' | 'ISSUE' | 'ACTION' | 'DECISION' | 'PHASE' | 'SUBPHASE' | 'WORKSTREAM' | 'MILESTONE';
+/**
+ * Objets du Référentiel que Jev crée, modifie ou supprime (demande du commanditaire du 09/10/2026, qui lève la règle « jamais
+ * le Référentiel » du 01/10/2026) : réservés au PMO, écrits par le service du Référentiel (contrôle des usages compris).
+ */
+export const REF_ENTITIES: WriteEntity[] = ['PHASE', 'SUBPHASE', 'WORKSTREAM', 'MILESTONE'];
+export const isRefEntity = (e: WriteEntity) => REF_ENTITIES.includes(e);
 export type WriteOp = 'CREATE' | 'UPDATE' | 'DELETE';
 
 export const WRITE_ENTITY_LABEL: Record<WriteEntity, { one: string; the: string; a: string; tab: string; tabLabel: string }> = {
@@ -18,6 +24,10 @@ export const WRITE_ENTITY_LABEL: Record<WriteEntity, { one: string; the: string;
   ISSUE: { one: 'problème', the: 'le problème', a: 'un problème', tab: 'risques', tabLabel: 'Pilotage › Risques et problèmes' },
   ACTION: { one: 'action', the: 'l’action', a: 'une action', tab: 'actions', tabLabel: 'Pilotage › Actions' },
   DECISION: { one: 'décision', the: 'la décision', a: 'une décision', tab: 'decisions', tabLabel: 'Pilotage › Décisions' },
+  PHASE: { one: 'phase', the: 'la phase', a: 'une phase', tab: 'referentiel', tabLabel: 'Info projet › Référentiel' },
+  SUBPHASE: { one: 'sous-phase', the: 'la sous-phase', a: 'une sous-phase', tab: 'referentiel', tabLabel: 'Info projet › Référentiel' },
+  WORKSTREAM: { one: 'chantier', the: 'le chantier', a: 'un chantier', tab: 'referentiel', tabLabel: 'Info projet › Référentiel' },
+  MILESTONE: { one: 'jalon', the: 'le jalon', a: 'un jalon', tab: 'referentiel', tabLabel: 'Info projet › Référentiel' },
 };
 
 /** Code d'un objet modifiable par Jev (R03, P01, A-41, D-005). */
@@ -49,7 +59,7 @@ export function normalizeWriteCode(ref: string, projectCode: string): string {
   return p.length > 1 && c.startsWith(p) && entityOfCode(c.slice(p.length)) ? c.slice(p.length) : c;
 }
 
-export type FieldKind = 'text' | 'scale5' | 'prio4' | 'person' | 'ws' | 'wsMulti' | 'body' | 'date' | 'enum' | 'source';
+export type FieldKind = 'text' | 'scale5' | 'prio4' | 'person' | 'ws' | 'wsMulti' | 'body' | 'date' | 'enum' | 'source' | 'phase' | 'phaseMulti';
 
 export interface FieldSpec {
   key: string;
@@ -66,6 +76,8 @@ const STATUS = {
   ISSUE: { OPEN: 'Ouvert', RESOLVING: 'En résolution', RESOLVED: 'Résolu' },
   ACTION: { OPEN: 'À faire', IN_PROGRESS: 'En cours', BLOCKED: 'Bloquée', DONE: 'Terminée' },
   DECISION: { DRAFT: 'Brouillon', IN_REVIEW: 'En instruction', TO_ARBITRATE: 'À arbitrer', ARBITRATED: 'Arbitrée', CANCELLED: 'Annulée' },
+  PLAN: { PLANNED: 'Prévue', IN_PROGRESS: 'En cours', DONE: 'Terminée' },
+  WORKSTREAM: { ACTIVE: 'Actif', CLOSED: 'Clos' },
 } as const;
 
 /** Champs que Jev sait renseigner, par objet (clés de l'API métier). */
@@ -111,6 +123,45 @@ export const WRITE_FIELDS: Record<WriteEntity, FieldSpec[]> = {
     { key: 'maker', label: 'Décideur', kind: 'person' },
     { key: 'impact', label: 'Impact', kind: 'text' },
   ],
+  // Référentiel (09/10/2026) : clés de l'API du Référentiel (`PhaseCreate`, `SubphaseCreate`, `WorkstreamCreate`, `MilestoneCreate`).
+  PHASE: [
+    { key: 'name', label: 'Nom', kind: 'text', required: true },
+    { key: 'startDate', label: 'Début', kind: 'date', required: true },
+    { key: 'endDate', label: 'Fin', kind: 'date', required: true },
+    { key: 'ownerId', label: 'Responsable', kind: 'person', required: true },
+    { key: 'status', label: 'Statut', kind: 'enum', values: STATUS.PLAN },
+    { key: 'description', label: 'Description', kind: 'text' },
+  ],
+  SUBPHASE: [
+    { key: 'phaseId', label: 'Phase', kind: 'phase', required: true },
+    { key: 'name', label: 'Nom', kind: 'text', required: true },
+    { key: 'startDate', label: 'Début', kind: 'date' },
+    { key: 'endDate', label: 'Fin', kind: 'date' },
+    { key: 'ownerId', label: 'Responsable', kind: 'person' },
+    { key: 'status', label: 'Statut', kind: 'enum', values: STATUS.PLAN },
+    { key: 'description', label: 'Description', kind: 'text' },
+  ],
+  WORKSTREAM: [
+    { key: 'name', label: 'Nom', kind: 'text', required: true },
+    { key: 'ownerId', label: 'Responsable', kind: 'person', required: true },
+    { key: 'phaseIds', label: 'Phases', kind: 'phaseMulti' },
+    { key: 'status', label: 'Statut', kind: 'enum', values: STATUS.WORKSTREAM },
+    { key: 'description', label: 'Description', kind: 'text' },
+  ],
+  MILESTONE: [
+    { key: 'n', label: 'Intitulé', kind: 'text', required: true },
+    { key: 'iso', label: 'Date prévue', kind: 'date', required: true },
+    { key: 'phaseId', label: 'Phase', kind: 'phase', required: true },
+    { key: 'wsId', label: 'Chantier', kind: 'ws' },
+    { key: 'owner', label: 'Responsable', kind: 'person' },
+  ],
+};
+/** Objets que Jev ne modifie pas (encore) : libellé pour le message qui oriente vers le bon écran (09/10/2026). */
+export const UNSUPPORTED_OBJECTS: Record<string, string> = {
+  DELIVERABLE: 'les livrables', LIVRABLE: 'les livrables', SESSION: 'les séances', SEANCE: 'les séances', PERSON: 'les personnes', PERSONNE: 'les personnes',
+  TEAM: 'les équipes', EQUIPE: 'les équipes', WAVE: 'les vagues', VAGUE: 'les vagues', ROLE: 'les rôles', ASSIGNMENT: 'les affectations', AFFECTATION: 'les affectations',
+  GOVERNANCE_BODY: 'les instances', INSTANCE: 'les instances', CLIENT: 'les clients', PROJECT: 'la fiche du projet', PROJET: 'la fiche du projet',
+  DOCUMENT: 'les documents', TASK: 'les tâches', TACHE: 'les tâches', BAROMETER: 'le baromètre', BAROMETRE: 'le baromètre', REPORT: 'les rapports', RAPPORT: 'les rapports',
 };
 export const fieldSpec = (e: WriteEntity, key: string) => WRITE_FIELDS[e].find((f) => f.key === key) ?? null;
 
@@ -252,29 +303,52 @@ export const WRITE_MAX_OPTIONS = 6;
 /** Consignes de l'étape « extraire la demande » (partie stable, mise en cache). */
 export const WRITE_EXTRACT_RULES = [
   '## Extraire une demande de modification',
-  'L’utilisateur demande de créer, modifier ou supprimer un enregistrement du suivi du projet : risque (RISK), problème (ISSUE), action (ACTION) ou décision (DECISION). Ta seule tâche : extraire sa demande telle qu’il l’a formulée. Le serveur vérifiera chaque valeur, posera les questions nécessaires et demandera sa confirmation : tu n’écris rien, tu ne poses aucune question, tu n’inventes aucune valeur.',
+  'L’utilisateur demande de créer, modifier ou supprimer un enregistrement du projet : risque (RISK), problème (ISSUE), action (ACTION), décision (DECISION), ou, dans le Référentiel, phase (PHASE), sous-phase (SUBPHASE), chantier (WORKSTREAM) ou jalon (MILESTONE). Ta seule tâche : extraire sa demande telle qu’il l’a formulée. Le serveur vérifiera chaque valeur, posera les questions nécessaires et demandera sa confirmation : tu n’écris rien, tu ne poses aucune question, tu n’inventes aucune valeur.',
   '',
   'Champs par objet (clé : signification) :',
   '- RISK : n (libellé), p (probabilité 1 à 5), i (impact 1 à 5), wsIds (chantiers concernés : un ou plusieurs codes ou noms séparés par des virgules, ou « tous » pour un risque transverse), owner (porteur), plan (plan de mitigation), dueIso (échéance), status (Ouvert, En mitigation, Clos).',
   '- ISSUE : n (libellé), sev (sévérité 1 à 5), wsId, owner, detail, targetIso (résolution visée), status (Ouvert, En résolution, Résolu).',
   '- ACTION : n (libellé), wsId, owner, dueIso, status (À faire, En cours, Bloquée, Terminée), prio (Haute, Moyenne, Basse), detail, source (code de l’objet d’origine : R03, P02, D-005).',
+  '- PHASE : name (nom), startDate, endDate, ownerId (responsable), status (Prévue, En cours, Terminée), description.',
+  '- SUBPHASE : phaseId (phase : numéro ou nom), name, startDate, endDate, ownerId, status (Prévue, En cours, Terminée), description.',
+  '- WORKSTREAM : name (nom du chantier), ownerId (responsable), phaseIds (phases : numéros ou noms séparés par des virgules), status (Actif, Clos), description.',
+  '- MILESTONE : n (intitulé du jalon), iso (date prévue), phaseId (phase), wsId (chantier, ou « transverse »), owner (responsable).',
   '- DECISION : t (point de décision), p (priorité : Critique, Haute, Moyenne, Basse), wsId, bodyId (instance de décision : COPIL…), status (Brouillon, En instruction, À arbitrer, Arbitrée, Annulée), ddIso (date de décision), decL (texte de la décision), maker (décideur), impact.',
   '',
   'Règles :',
   '- Recopie les valeurs avec les mots de l’utilisateur (« Élevée », « moyen à élevé », « Karim », « Finance ») : ne les convertis pas, sauf les dates.',
   '- Dates : convertis-les en AAAA-MM-JJ d’après la date du jour (« vendredi », « fin du mois », « 15 novembre ») ; si la date n’est pas déterminable, recopie-la telle quelle.',
   '- « moi », « je » pour un porteur : écris « moi ».',
-  '- Modification ou suppression : indique le code de l’objet visé (R03, A-41…) s’il est cité ou s’il ressort de la conversation ; sinon, null.',
+  '- Modification ou suppression : indique le code de l’objet visé (R03, A-41…) s’il est cité ou s’il ressort de la conversation ; sinon, null. Phase, sous-phase, chantier ou jalon : son code (5, 2.3, C4, J03) ou, à défaut, son nom tel que l’utilisateur l’écrit (« 5. Ancrer le changement »).',
+  '- Autre objet (livrable, séance, personne, équipe, document, tâche…) : renvoie quand même l’opération avec son type en majuscules (DELIVERABLE, SESSION, PERSON, TEAM, DOCUMENT, TASK…), sans champs.',
   '- Création d’un risque : regroupe dans « plan » la description, les impacts possibles et les actions de mitigation (texte complet, en phrases ou en liste) ; liste aussi chaque action de mitigation dans « actions_liees » (n, et owner / dueIso s’ils sont donnés).',
   '- Si une « Modification en cours » est fournie, la demande la complète ou la corrige : renvoie la modification complète mise à jour (mêmes opérations, valeurs corrigées ou ajoutées).',
   '- Plusieurs enregistrements demandés : une opération par enregistrement, dans l’ordre de la demande.',
   '',
   'Réponds uniquement par un objet JSON, sans texte autour :',
   '{"operations": [{"objet": "RISK", "operation": "CREATE", "code": null, "champs": {"n": "…", "p": "…", "i": "…", "wsIds": "…", "owner": "…", "plan": "…"}, "actions_liees": [{"n": "…"}]}]}',
-  'Si la demande ne vise aucune modification de risque, problème, action ou décision : {"operations": []}',
+  'Si la demande ne vise aucune création, modification ou suppression : {"operations": []}',
 ].join('\n');
 
 export interface ExtractedOp { entity: WriteEntity; op: WriteOp; code: string | null; fields: Record<string, unknown>; linked: Array<{ n: string; owner?: string | null; dueIso?: string | null }> }
+
+/** Objets demandés que Jev ne modifie pas (09/10/2026) : type et opération, pour orienter l'utilisateur. */
+export function unsupportedRequests(raw: string): Array<{ objet: string; op: WriteOp }> {
+  const m = String(raw || '').match(/\{[\s\S]*\}/);
+  if (!m) return [];
+  let j: any;
+  try { j = JSON.parse(m[0]); } catch { return []; }
+  return (Array.isArray(j?.operations) ? j.operations : [])
+    .map((o: any) => ({ objet: norm(o?.objet ?? '').toUpperCase().replace(/\s+/g, '_'), op: String(o?.operation ?? '').toUpperCase() as WriteOp }))
+    .filter((o: { objet: string; op: WriteOp }) => o.objet && !WRITE_FIELDS[o.objet as WriteEntity] && ['CREATE', 'UPDATE', 'DELETE'].includes(o.op));
+}
+
+/** Message pour un objet que Jev ne modifie pas : quoi faire à la place (09/10/2026). */
+export function unsupportedReply(list: Array<{ objet: string; op: WriteOp }>): string {
+  const o = list[0], what = UNSUPPORTED_OBJECTS[o.objet] ?? 'cet objet';
+  const verb = o.op === 'CREATE' ? 'créer' : o.op === 'DELETE' ? 'supprimer' : 'modifier';
+  return `Je ne sais pas encore ${verb} ${what}. Passez par l’écran concerné (le Référentiel, dans Info projet, pour les données du projet). Je peux créer, modifier ou supprimer les risques, problèmes, actions, décisions, phases, sous-phases, chantiers et jalons.`;
+}
 
 /** Lecture de l'extraction : objets et opérations connus seulement, champs du catalogue seulement. */
 export function parseExtraction(raw: string): ExtractedOp[] {
@@ -297,7 +371,8 @@ export function parseExtraction(raw: string): ExtractedOp[] {
     const linked = entity === 'RISK' && op === 'CREATE' && Array.isArray(o?.actions_liees)
       ? o.actions_liees.filter((a: any) => a && typeof a.n === 'string' && a.n.trim()).slice(0, 8).map((a: any) => ({ n: String(a.n).trim().slice(0, 1000), owner: a.owner ?? null, dueIso: a.dueIso ?? null }))
       : [];
-    const code = typeof o?.code === 'string' && o.code.trim() ? o.code.trim().toUpperCase() : null;
+    // Objet du Référentiel : référence gardée telle quelle (code ou nom, « 5. Ancrer le changement »).
+    const code = typeof o?.code === 'string' && o.code.trim() ? (isRefEntity(entity) ? o.code.trim() : o.code.trim().toUpperCase()) : typeof o?.code === 'number' ? String(o.code) : null;
     out.push({ entity, op, code, fields, linked });
   }
   return out.slice(0, 5);
@@ -321,7 +396,9 @@ export function opTitle(d: DraftOp): string {
 
 export const WRITE_RECAP_REPLY = (n: number, del: boolean) =>
   `Voici ${n > 1 ? 'les enregistrements' : 'l’enregistrement'} tel${n > 1 ? 's' : ''} qu’${n > 1 ? 'ils seront écrits' : 'il sera écrit'}. Rien n’est enregistré avant votre validation (« Valider et enregistrer » ou « Refuser »).${del ? ' Une suppression est définitive : retapez le code de l’objet pour la confirmer.' : ''}`;
-export const WRITE_NOTHING_REPLY = 'Je n’ai pas identifié de modification à faire sur un risque, un problème, une action ou une décision. Précisez l’objet (par exemple R03 ou A-41), l’opération (créer, modifier, supprimer) et les valeurs.';
+export const WRITE_NOTHING_REPLY = 'Je n’ai pas identifié de modification à faire sur un risque, un problème, une action, une décision, une phase, une sous-phase, un chantier ou un jalon. Précisez l’objet (par exemple R03, A-41 ou la phase 5), l’opération (créer, modifier, supprimer) et les valeurs.';
+/** Objet du Référentiel : réservé au PMO (09/10/2026). */
+export const REF_PMO_ONLY_REPLY = 'Le Référentiel (phases, sous-phases, chantiers, jalons) est modifiable par le PMO uniquement.';
 export const WRITE_CANCELLED_REPLY = 'Demande annulée : rien n’a été enregistré.';
 export const WRITE_TOO_MANY_REPLY = 'Je n’arrive pas à compléter cette demande : rien n’a été enregistré. Reformulez-la en une phrase complète, ou saisissez l’enregistrement avec « Saisir sans Jev ».';
 /** Libellé du choix « annuler la demande », proposé avec chaque question. */
