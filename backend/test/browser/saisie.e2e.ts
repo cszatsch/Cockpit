@@ -2,7 +2,7 @@
 /**
  * Recette navigateur de « Saisir sans Jev » (maquette 5a, 10/10/2026) : un seul panneau (le formulaire glisse à la place du
  * choix de l'objet, la flèche le ramène ; bandeau sans recherche, liste au clavier), « Parcours » (Phase créée pour de vrai), « Chapitres » (criticité, cycle de vie, listes déroulantes, dates
- * masquées), fiche d'arbitrage (score, écart, détail d'une option), message de confirmation et formulaire vidé.
+ * masquées), fiche d'arbitrage (deux chapitres puis la fiche « barème commun »), message de confirmation et formulaire vidé.
  *   npx ts-node --transpile-only test/browser/saisie.e2e.ts [dossier des captures]   (serveur de recette sur 3302)
  */
 import { chromium, Page } from 'playwright';
@@ -121,40 +121,10 @@ import { chromium, Page } from 'playwright';
   check('second clic : retour à « Brouillon »', (await dr.getByRole('radio', { name: 'Brouillon' }).getAttribute('aria-checked')) === 'true');
   await shot('7-decision-instance');
 
-  // 6. Fiche d'arbitrage : options A / B, critères, score pondéré, écart.
+  // 6. Fiche d'arbitrage : chapitres Arbitrage et Contexte, puis « Composer la fiche » (détail : test/browser/fiche-arbitrage.e2e.ts).
   await pick('arbitrage');
   const ar = p.getByRole('region', { name: "Nouvelle fiche d'arbitrage" });
-  await ar.getByRole('button', { name: /Chapitre 3/ }).click();
-  await wait(300);
-  const fill = async (L: string, title: string, rows: [string, string, number][]) => {
-    await p.getByRole('button', { name: new RegExp('^Option ' + L + ' · .*ouvrir le détail') }).click();
-    await wait(400);
-    await p.locator('#ssj-ot').fill(title);
-    for (let i = 0; i < rows.length; i++) {
-      if (i) { await p.getByRole('button', { name: 'Ajouter un critère' }).click(); await wait(250); }
-      const [c, wt, n] = rows[i];
-      await p.getByLabel('Intitulé du critère ' + (i + 1)).fill(c);
-      await p.getByLabel('Poids de ' + c + ' en %').fill(wt);
-      await p.getByRole('radiogroup', { name: 'Note de ' + c }).getByRole('radio').nth(n - 1).click();
-      await wait(150);
-    }
-  };
-  await fill('A', 'Éditeur SaaS', [['Coût', '40', 3], ['Délai', '35', 4], ['Couverture', '25', 1]]);
-  check('option A : « Poids répartis · 100 % », score 2,85', (await p.getByText('Poids répartis · 100 %').count()) === 1 && (await p.getByRole('img', { name: /Score de l'option A : 2,85 sur 4/ }).count()) === 1);
-  await shot('8-option-a');
-  await p.getByRole('tab', { name: 'Option B' }).click();
-  await wait(300);
-  await p.locator('#ssj-ot').fill('Développement interne');
-  for (const [i, [c, wt, n]] of ([['Coût', '40', 2], ['Délai', '35', 2], ['Couverture', '25', 4]] as [string, string, number][]).entries()) {
-    if (i) { await p.getByRole('button', { name: 'Ajouter un critère' }).click(); await wait(250); }
-    await p.getByLabel('Intitulé du critère ' + (i + 1)).fill(c);
-    await p.getByLabel('Poids de ' + c + ' en %').fill(wt);
-    await p.getByRole('radiogroup', { name: 'Note de ' + c }).getByRole('radio').nth(n - 1).click();
-    await wait(150);
-  }
-  await p.getByRole('button', { name: 'Retour à la fiche', exact: true }).last().click();
-  await wait(400);
-  check('carte A / B : écart « +0,35 », « Le score suggère A »', (await ar.getByText('+0,35').count()) === 1 && (await ar.getByText('Le score suggère A').count()) === 1);
+  check('fiche d’arbitrage : deux chapitres, « Composer la fiche »', (await ar.getByRole('button', { name: /^Chapitre \d/ }).count()) === 2 && (await ar.getByRole('button', { name: 'Composer la fiche' }).count()) === 1);
   await shot('9-arbitrage');
 
   if (errs.length) { ko++; console.log('✘ erreurs de la page :', errs.slice(0, 3)); }

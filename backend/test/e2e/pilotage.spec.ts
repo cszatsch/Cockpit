@@ -289,6 +289,29 @@ describe('Étapes 4-8 — jalons, pilotage, comités, habilitations, Aujourd’h
       expect(r.body.warnings).toEqual(['Option B : la somme des poids vaut 75 % (100 % attendus)']);
       await c.del(`${R}/decisions/${d.code}`).expect(204);
     });
+    it('fiche d’arbitrage « barème commun » (maquette 11a, 10/10/2026) : critères et poids communs, remplace une fiche par option', async () => {
+      const c = await t.as(WHO.pmo);
+      const d = (await c.post(`${R}/decisions`, { t: 'Solution CRM', p: 3, wsId: 'C3', bodyId: 'g1' }).expect(201)).body;
+      // Fiche saisie avant le 10/10/2026 : critères propres à chaque option.
+      await c.patch(`${R}/decisions/${d.code}/arbitration`, { question: 'Solution CRM', options: [{ code: 'A', label: 'Prolonger', criteria: [{ name: 'Coût', weightPct: 100, score: 3, comment: '' }] }, { code: 'B', label: 'Migrer', criteria: [] }] }).expect(200);
+      // Format de la fiche 11a (api.js, `writeFiche`) : options sans critères, critères communs.
+      const criteria = [
+        { name: 'Coût total', weightPct: 40, scoreA: 3, commentA: 'Licences connues', scoreB: 2, commentB: '' },
+        { name: 'Délai', weightPct: 35, scoreA: 4, commentA: '', scoreB: 2, commentB: 'Reprise des données' },
+        { name: 'Couverture', weightPct: 25, scoreA: 1, commentA: '', scoreB: 4, commentB: '' },
+      ];
+      const r = await c.patch(`${R}/decisions/${d.code}/arbitration`, { options: [{ code: 'A', label: 'Éditeur SaaS' }, { code: 'B', label: 'Développement interne' }], criteria, texts: { dcOptA: 'Option A · Éditeur SaaS', dcOptB: 'Option B · Développement interne' } }).expect(200);
+      expect(r.body.arbitration.options.map((o: any) => [o.code, o.label, o.criteria])).toEqual([['A', 'Éditeur SaaS', undefined], ['B', 'Développement interne', undefined]]);
+      expect(r.body.arbitration.criteria).toEqual(criteria);
+      expect(r.body.arbitration.question).toBe('Solution CRM');
+      expect(r.body.warnings ?? []).toEqual([]);
+      // Relecture : la fiche telle qu'enregistrée.
+      expect((await c.get(`${R}/decisions/${d.code}/arbitration`).expect(200)).body.arbitration.criteria).toEqual(criteria);
+      // Poids qui ne totalisent pas 100 % : avertissement sur les critères communs.
+      const w = await c.patch(`${R}/decisions/${d.code}/arbitration`, { criteria: criteria.slice(0, 2) }).expect(200);
+      expect(w.body.warnings).toEqual(['La somme des poids des critères vaut 75 % (100 % attendus)']);
+      await c.del(`${R}/decisions/${d.code}`).expect(204);
+    });
     it('écran Aujourd’hui : prochain COPIL n°21, validations du décideur, échéancier et écarts', async () => {
       const c = await t.as({ personId: 'p04' });
       const r = await c.get(`${R}/today`).expect(200);

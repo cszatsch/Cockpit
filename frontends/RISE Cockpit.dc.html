@@ -730,6 +730,8 @@ a{color:#1d8f86}a:hover{color:#146b64}
           
           <sc-if value="{{ faLite }}" hint-placeholder-val="{{ false }}"><span style="flex:none;white-space:nowrap;font-size:12px;color:#8a9aa6">· {{ faBy }}</span></sc-if>
           <span style="flex:1"></span>
+          <!-- Fiche « barème commun » (maquette 11a, 10/10/2026) : ouverte dans la barre latérale de Jev (création ou édition). -->
+          <sc-if value="{{ faEditOn }}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{ faEdit }}" style="height:32px;padding:0 13px;border-radius:9px;border:1px solid #D5DDE3;background:#fff;color:#10233A;font:600 12.5px 'Plus Jakarta Sans',sans-serif;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:7px" style-hover="border-color:#10233A" style-focus-visible="outline:2px solid #146b64;outline-offset:2px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v16M14.5 7h3M14.5 12h5M14.5 17h2M4 7h5.5M4 12h4.5M4 17h5.5"></path></svg>{{ faEditL }}</button></sc-if>
           
           
         </div>
@@ -769,7 +771,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
             <span style="border-top:1px solid #dfe7e5"></span>
           </div>
           <div style="display:grid;grid-template-columns:minmax(0,1.1fr) 72px minmax(0,3fr) 26px;gap:6px;margin-top:4px">
-            <div style="grid-column:1 / 3;padding:16px 6px;border-top:1px solid #e6eeec;display:flex;flex-direction:column;gap:4px"><span style="font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#146b64;font-weight:700"><span contentEditable="true" suppressContentEditableWarning="{{ true }}" onKeyDown="{{ enterBlur }}" style="display:block;padding:2px 6px;margin:0 -7px;border:1px solid transparent;border-radius:6px;outline:none;cursor:text;transition:border-color .15s,background .15s" style-hover="border-color:#dfe7e5;background:#fff" style-focus="border-color:#1d8f86;background:#fff;box-shadow:0 0 0 3px rgba(29,143,134,.12)" onBlur="{{ recTitleSet }}" title="Modifier le titre">{{ recTitle }}</span></span><b><span contentEditable="true" suppressContentEditableWarning="{{ true }}" onKeyDown="{{ enterBlur }}" style="display:block;padding:2px 6px;margin:0 -7px;border:1px solid transparent;border-radius:6px;outline:none;cursor:text;transition:border-color .15s,background .15s" style-hover="border-color:#dfe7e5;background:#fff" style-focus="border-color:#1d8f86;background:#fff;box-shadow:0 0 0 3px rgba(29,143,134,.12)" onBlur="{{ recOptSet }}" title="Modifier l’option recommandée">{{ recOpt }}</span></b></div>
+            <div style="grid-column:1 / 3;padding:16px 6px;border-top:1px solid #e6eeec;display:flex;flex-direction:column;gap:4px"><span style="font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#146b64;font-weight:700"><span contentEditable="true" suppressContentEditableWarning="{{ true }}" onKeyDown="{{ enterBlur }}" style="display:block;padding:2px 6px;margin:0 -7px;border:1px solid transparent;border-radius:6px;outline:none;cursor:text;transition:border-color .15s,background .15s" style-hover="border-color:#dfe7e5;background:#fff" style-focus="border-color:#1d8f86;background:#fff;box-shadow:0 0 0 3px rgba(29,143,134,.12)" onBlur="{{ recTitleSet }}" title="Modifier le titre">{{ recTitle }}</span></span><b title="Option la mieux notée (score pondéré)">{{ recOpt }}</b></div>
             <div style="padding:16px 14px;border-top:1px solid #e6eeec;display:flex;flex-direction:column;gap:8px"><span style="line-height:1.6;text-wrap:pretty;max-width:860px"><span contentEditable="true" suppressContentEditableWarning="{{ true }}" onKeyDown="{{ enterBlur }}" style="display:block;padding:2px 6px;margin:0 -7px;border:1px solid transparent;border-radius:6px;outline:none;cursor:text;transition:border-color .15s,background .15s" style-hover="border-color:#dfe7e5;background:#fff" style-focus="border-color:#1d8f86;background:#fff;box-shadow:0 0 0 3px rgba(29,143,134,.12)" onBlur="{{ recBodySet }}" title="Modifier la recommandation">{{ recBody }}</span></span></div>
             <div style="padding-top:14px;border-top:1px solid #e6eeec"></div>
           </div>
@@ -2371,6 +2373,8 @@ a{color:#1d8f86}a:hover{color:#146b64}
   </div>
   </sc-if>
   <!-- « Saisir sans Jev » (maquette 5a, 10/10/2026) : choix de l'objet, puis formulaire à sa place (glissement), détail d'une option d'arbitrage. -->
+  <!-- Fiche d'arbitrage « barème commun » (maquette 11a, 10/10/2026), ouverte depuis Pilotage › Décisions ; retour : la décision. -->
+  <sc-if value="{{ faOn }}" hint-placeholder-val="{{ false }}"><div style="flex:1;min-height:0;display:flex"><dc-import name="Fiche arbitrage" fiche="{{ faFiche }}" fiche-key="{{ faKey }}" back-label="Retour à la décision" on-back="{{ faBack }}" on-save="{{ faSave }}" hint-size="100%,100%" style="width:100%;height:100%"></dc-import></div></sc-if>
   <sc-if value="{{ ssjOn }}" hint-placeholder-val="{{ false }}"><div style="flex:1;min-height:0;display:flex"><dc-import name="Saisie sans Jev" data="{{ ssjData }}" on-back="{{ ssjBack }}" on-close="{{ ssjClose }}" on-submit="{{ ssjSubmit }}" hint-size="100%,100%" style="width:100%;height:100%"></dc-import></div></sc-if>
 </aside>
 </div>
@@ -2565,7 +2569,7 @@ class Component extends DCLogic {
     return; // Plus de formulaire latéral (08/10/2026) : saisie sans Jev abandonnée.
     kind = kind || 'tache'; const S = this.state, D = this.mergedData(), AS = S.actStatus || {};
     const A0 = ((D && D.arbitrations) || []).concat((S.added || {}).fa || []), DECN = {}; ((D && D.decisions) || []).forEach(x => { DECN[x.id] = x.n; }); let critName = null;
-    let arbNew = null; if (kind === 'arbitrage') { const sel = S.faSel || 'D-007', fx = A0.find(x => x.id === sel); if (!fx) { kind = 'decision'; id = sel; } else if (!fx.full && !(S.arbData || {})[sel]) { arbNew = sel; id = null; } else { if (id != null && id !== '' && !/^PD-/.test(String(id))) critName = String(id); id = sel; } }
+    let arbNew = null; if (kind === 'arbitrage') { const sel = this.faSelId(), fx = A0.find(x => x.id === sel); if (!fx) { kind = 'decision'; id = sel; } else if (!fx.full && !(S.arbData || {})[sel]) { arbNew = sel; id = null; } else { if (id != null && id !== '' && !/^PD-/.test(String(id))) critName = String(id); id = sel; } }
     const tf = { kind, editId: id != null && id !== '' ? id : null, title: '', detail: '', owner: this.me().personId, ws: 'Pilotage et transverse', due: '', p: 3, i: 3, sev: 3, status: 'À faire', origin: '', cta: 'Ouvrir', prioN: 3, faSt: 'Brouillon', inst: 'Comité de pilotage', crIso: '' };
     if (kind === 'jalon' && tf.editId == null) Object.assign(tf, { phaseId: '', subphaseId: '', wsId: '' });
     if (kind === 'seance') { const td = this.fToday(); Object.assign(tf, { bodyId: 'g1', due: S.sesSel || td, time: '14:00', place: '' }); }
@@ -2827,7 +2831,7 @@ class Component extends DCLogic {
         .concat((D.decisions || []).filter(open).map((x) => ({ v: 'DECISION:' + x.id, t: code(x) + ' · ' + x.t })))
         .concat((D.milestones || []).map((x) => ({ v: 'MILESTONE:' + x.id, t: code(x) + ' · ' + x.n }))),
       actions: (D.actions || []).filter((x) => x.status !== 'DONE').map((x) => ({ v: x.id, t: code(x) + ' · ' + x.n })),
-      decisions: (D.decisions || []).filter((x) => x.status !== 'ARBITRATED' && x.status !== 'CANCELLED' && x.status !== 'SUPERSEDED').map((x) => ({ v: x.id, t: code(x) + ' · ' + x.t })),
+      decisions: (D.decisions || []).filter((x) => x.status !== 'ARBITRATED' && x.status !== 'CANCELLED' && x.status !== 'SUPERSEDED').map((x) => ({ v: x.id, t: code(x) + ' · ' + x.t, fiche: this._api && this._api.ficheOf ? this._api.ficheOf(x.id) : null })),
       bodies: M('GOVERNANCE_BODY').map((r) => ({ v: r.id, t: r.cells[0] })),
     };
   }
@@ -3248,9 +3252,9 @@ class Component extends DCLogic {
     // Conversation conservée à la réouverture (correction du 01/10/2026) : seuls un redémarrage de l'application et
     // « Effacer tous les messages » la remettent à zéro. Une demande précise (date d'une ligne) s'ajoute à la suite.
     const J0 = { ...o, ctx, mode, space: S.space, tab: S.tab, spT, noun, one, aw }, kept = (S.jevMsgs || []).some(m => m.t === 'user');
-    if (kept) { this.setState(s => ({ assistant: true, ssjOn: false, taskForm: false, jev: J0, jevInput: o.prefill || s.jevInput || '', jevMsgs: o.field ? s.jevMsgs.concat([{ t: 'jev', text, chips }]) : s.jevMsgs })); this.jevScroll(); return; }
+    if (kept) { this.setState(s => ({ assistant: true, ssjOn: false, faPanel: null, taskForm: false, jev: J0, jevInput: o.prefill || s.jevInput || '', jevMsgs: o.field ? s.jevMsgs.concat([{ t: 'jev', text, chips }]) : s.jevMsgs })); this.jevScroll(); return; }
     if (this._api && this._api.jevReset) this._api.jevReset(); // nouvelle conversation : la mémoire de Jev repart de zéro
-    this.setState({ assistant: true, ssjOn: false, taskForm: false, jev: J0, jevInput: o.prefill || '', jevMsgs: [{ t: 'jev', text, chips }] });
+    this.setState({ assistant: true, ssjOn: false, faPanel: null, taskForm: false, jev: J0, jevInput: o.prefill || '', jevMsgs: [{ t: 'jev', text, chips }] });
   }
   // API : réponses de Jev par POST /assistant/messages (voir jevSendText) ; ces règles locales ne servent plus que de repli si l'API n'est pas chargée.
   jevExplain(text, J) {
@@ -3391,12 +3395,13 @@ class Component extends DCLogic {
       popStyle: PO ? `position:fixed;left:${PO.x}px;top:${PO.y}px;width:${PO.w}px;box-sizing:border-box;z-index:60;background:#fff;border:1px solid #dfe7e5;border-radius:14px;box-shadow:0 18px 40px -12px rgba(16,35,58,.35);padding:14px;font-size:13px;color:#10233a;animation:rise-in .18s both` : 'display:none',
       popSetDraft: e => this.setState({ pop: { ...this.state.pop, draft: e.target.value } }), popKey: e => { if (e.key === 'Enter') popSave(); if (e.key === 'Escape') this.setState({ pop: null }); }, popSave, popCancel: () => this.setState({ pop: null }),
       calDays, calTitle, calPrev: () => shiftM(-1), calNext: () => shiftM(1), calToday: () => { const iso = isoOf(new Date()), f = PO.save; this.setState({ pop: null }); f(iso); } };
-    const PDs = S.faSel || 'D-007', ADp = PDs !== 'D-007' ? (S.arbData || {})[PDs] : null;
-    const TE = ADp ? ADp.tx : (S.txtEd || {}), tSet = (key, old) => e => { if ((((this.mergedData() || {}).decisions || []).find(x => x.id === PDs) || {}).status === 'ARBITRATED') { e.currentTarget.innerText = old; this.showToast('Fiche arbitrée : lecture seule'); return; } const el = e.currentTarget, val = el.innerText.replace(/\s+/g, ' ').trim(); if (!val) { el.innerText = old; return; } if (val === old) return; this.setState(s => ({ ...(ADp ? { arbData: { ...(s.arbData || {}), [PDs]: { ...s.arbData[PDs], tx: { ...s.arbData[PDs].tx, [key]: val } } } } : { txtEd: { ...(s.txtEd || {}), [key]: val } }), audit: [{ k: 'texte', id: key, v: val, by: this.meName(), at: new Date().toISOString(), origin: 'saisie' }, ...(s.audit || [])] })); this.showToast('Modifié · ' + this.meName() + ' · saisie directe'); };
-    const TXD = { dcTitle: 'D-007 · arbitrée au COPIL n°20 du 26 sept.', dcBy: 'Préparée par le PMO (A-45) · 13 sept. · arbitrée le 26 sept. (option B)', dcQ: 'Maintenir le Go-Live du Lot 1 au 1er novembre 2026, ou le reporter au 1er avr. 2027 (5e date) ?', dcCtx: 'Run 3 à 44 % (CRM 0 %), interfaces à 30 %, recette Ventes / CRM à 46 %, 45 % des équipes se sentent prêtes. La date du 1er nov. est officiellement maintenue, sa faisabilité est questionnée par les équipes elles-mêmes (R04).', dcOptA: 'Option A · 1er nov. maintenu', dcOptB: 'Option B · 1er avr. 2027',
-      recTitle: 'Recommandation PMO', recOpt: 'Option B', recBody: 'Report au 1er avr. 2027, Go / No-Go anticipé au COPIL du 26 oct., Dry Run maintenu comme répétition ; 2 sprints CRM supplémentaires et Run 4 de consolidation. Le 2 mai 2027 est conservé en date de repli.', recSrc: 'Sources : cartographie des risques 19e COPIL · baromètre août 2026 · plan de bascule v3.',
-      deqTitle: 'Décision attendue — COPIL 26 sept', deqBody: 'Confirmer ou reporter la date de Go-Live ; décideur : Philippe Aubert (sponsor), sur avis de la DG (Vincent Lambert). La décision remplacera D-002 (baseline v4) par lien de succession et déclenchera une baseline v5.', deqT1: 'Brouillon', deqT2: 'Décideur : Philippe Aubert' };
+    const PDs = this.faSelId(), ADp = (S.arbData || {})[PDs] || null, PDd = (((this.mergedData() || {}).decisions) || []).find(x => x.id === PDs) || {};
+    const TE = ADp ? ADp.tx : {}, tSet = (key, old) => e => { if ((((this.mergedData() || {}).decisions || []).find(x => x.id === PDs) || {}).status === 'ARBITRATED') { e.currentTarget.innerText = old; this.showToast('Fiche arbitrée : lecture seule'); return; } const el = e.currentTarget, val = el.innerText.replace(/\s+/g, ' ').trim(); if (!val) { el.innerText = old; return; } if (val === old) return; this.setState(s => ({ ...(ADp ? { arbData: { ...(s.arbData || {}), [PDs]: { ...s.arbData[PDs], tx: { ...s.arbData[PDs].tx, [key]: val } } } } : { arbData: { ...(s.arbData || {}), [PDs]: { tx: { [key]: val }, crit: [], dec: PDs } } }), audit: [{ k: 'texte', id: key, v: val, by: this.meName(), at: new Date().toISOString(), origin: 'saisie' }, ...(s.audit || [])] })); this.showToast('Modifié · ' + this.meName() + ' · saisie directe'); };
+    // Textes de la fiche (10/10/2026) : ceux de la décision seulement ; plus de textes d'exemple de la maquette (D-007) en repli.
+    const TXD = { dcTitle: PDs, dcBy: '', dcQ: PDd.t || '', dcCtx: '', dcOptA: 'Option A', dcOptB: 'Option B', recTitle: 'Recommandation PMO', recOpt: '', recBody: '', recSrc: '', deqTitle: 'Décision attendue', deqBody: '', deqT1: '', deqT2: '' };
     this._txCur = Object.fromEntries(Object.keys(TXD).map(k => [k, TE[k] ?? TXD[k]])); const txVals = {}; Object.keys(TXD).forEach(key => { const cur = TE[key] ?? TXD[key]; txVals[key] = cur; txVals[key + 'Set'] = tSet(key, cur); });
+    // Option recommandée : celle qui a le meilleur score pondéré (« À définir » sans note ou à égalité), jamais une valeur saisie.
+    txVals.recOpt = this.faReco(PDs) || 'À définir';
     const CC = { ccTitle: 'Chemin critique — Lot 1', ccBody: 'Le Run 3 (fin estimée 14 oct.) et la recette Ventes / CRM (42 / 92) portent le chemin critique. Le Dry Run démarre sans Run 3 finalisé ; les tests 2-à-2 interfaces se terminent le 30 oct., cinq jours avant le Go / No-Go.', ccT1: 'Marge : négative', ccT2: '4 reports de bascule à date' };
     const ccVals = {}; Object.keys(CC).forEach(key => { const cur = TE[key] ?? CC[key]; ccVals[key] = cur; ccVals[key.replace('cc', 'ccSet')] = tSet(key, cur); });
     const allIss = v.issueRows || [], issOpen = !!S.issuesOpen;
@@ -3428,7 +3433,12 @@ class Component extends DCLogic {
             this.setState(st => ({ jevFiles: (st.jevFiles || []).concat(add) })); const ids = add.map(a => a.id); const tick = () => { let more = false; this.setState(st => ({ jevFiles: (st.jevFiles || []).map(f => { if (!ids.includes(f.id) || f.pct >= 100) return f; const p = Math.min(100, f.pct + 12 + Math.round(Math.random() * 14)); if (p < 100) more = true; return { ...f, pct: p }; }) }), () => { if (more) setTimeout(tick, 140); }); }; setTimeout(tick, 140); } }; })(),
       // « Saisir sans Jev » (maquette 3a, 09/10/2026) : le lien ouvre le choix de l'objet ; la flèche revient à Jev ; × ferme la barre
       // latérale et réinitialise (à la réouverture : Jev, étape 1) ; listes tirées des données du projet ; écriture par api.js (`saisie`).
-      jevManual: () => this.setState({ ssjOn: true }), jevChat: !S.ssjOn, ssjOn: !!S.ssjOn,
+      jevManual: () => this.setState({ ssjOn: true, faPanel: null }), jevChat: !S.ssjOn && !S.faPanel, ssjOn: !!S.ssjOn,
+      // Fiche « barème commun » d'une décision (Pilotage › Décisions, 10/10/2026) : chargée depuis les données du projet,
+      // enregistrée par api.js (`saveFiche`) ; retour : barre latérale fermée, la fiche de la décision à l'écran.
+      faOn: !!S.faPanel, faFiche: S.faPanel && this._api && this._api.ficheOf ? this._api.ficheOf(S.faPanel) : null, faKey: (S.faPanel || '') + ':' + (S.faN || 0),
+      faBack: () => { this.setState({ faPanel: null, assistant: false }); this.scrollFiche(); },
+      faSave: async f => { if (!this._api || !this._api.saveFiche) throw new Error('Enregistrement indisponible (API injoignable)'); await this._api.saveFiche(S.faPanel, f); },
       ssjBack: () => this.setState({ ssjOn: false }), ssjClose: () => this.setState({ ssjOn: false, assistant: false }),
       ssjData: S.ssjOn ? this.ssjData() : null,
       // Maquette 5a (10/10/2026) : après la création, le formulaire reste ouvert, vidé, et confirme dans son propre panneau.
@@ -3446,7 +3456,7 @@ class Component extends DCLogic {
       jevNoClear: (S.jevMsgs || []).length <= 1,
       jevClearSt: 'width:28px;height:28px;border-radius:8px;border:0;background:transparent;display:grid;place-items:center;flex:none;padding:0;color:#5c7280;' + ((S.jevMsgs || []).length <= 1 ? 'opacity:.35;cursor:default' : 'cursor:pointer'),
       jevClear: () => { const m = S.jevMsgs || []; if (m.length <= 1) return; if (this._api && this._api.jevReset) this._api.jevReset(); this._jevLoad = null; this._jevFileIds = []; this.setState({ jevMsgs: m.slice(0, 1), jevInput: '', jevFiles: [], jev: { ...J, aw: null, pending: null } }); },
-      toggleAssistant: () => (S.assistant ? this.setState({ assistant: false, ssjOn: false }) : this.jevOpen({ kind: 'global' })) };
+      toggleAssistant: () => (S.assistant ? this.setState({ assistant: false, ssjOn: false, faPanel: null }) : this.jevOpen({ kind: 'global' })) };
   }
   showToast(t) { this.setState({ toast: t }); clearTimeout(this._tt); this._tt = setTimeout(() => this.setState({ toast: '' }), 2600); }
 
@@ -3586,7 +3596,7 @@ class Component extends DCLogic {
     L.sort((x, y) => { const a = K[o.sk](x), b = K[o.sk](y); const r = typeof a === 'number' ? a - b : String(a).localeCompare(String(b), 'fr', { numeric: true }); return r * o.sd || (y.p - x.p) || y.crIso.localeCompare(x.crIso); });
     const custom = !!(q || o.pr || o.inst || o.ch || o.st !== 'Ouvertes'), cut = !custom && !o.all && L.length > 5, shown = cut ? L.slice(0, 5) : L, n = L.length, extra = L.length - 5, pl = x => x > 1 ? 's' : '';
     const rgH = {}; Object.keys(K).forEach(c => { rgH[c] = { on: () => set(o.sk === c ? { sd: -o.sd } : { sk: c, sd: ['p', 'dd', 'cr'].includes(c) ? -1 : 1 }), ar: o.sk === c ? (o.sd > 0 ? '↑' : '↓') : '' }; });
-    const sel = S.faSel || 'D-007';
+    const sel = this.faSelId();
     const GR = 'display:grid;grid-template-columns:56px minmax(0,1.1fr) 88px minmax(0,1.4fr) 120px 64px 92px 100px 140px 84px 24px;gap:0 12px;align-items:center;padding:12px 24px;border-top:1px solid #eef3f2;cursor:pointer;transition:background .15s;';
     const IDX = { Brouillon: 0, 'En instruction': 1, 'À arbitrer': 2, 'Arbitrée': 3, 'Annulée': -1, 'Remplacée': -1 };
     const txt = (id, f, old) => e => { const el = e.currentTarget, v = el.innerText.replace(/\s+/g, ' ').trim(); if (!v) { el.innerText = old; return; } if (v !== old) this.edit('fa', id, f, v); };
@@ -3605,7 +3615,7 @@ class Component extends DCLogic {
     const sDotC = { Brouillon: '#a3b0b9', 'En instruction': '#1d8f86', 'À arbitrer': '#c06f1f', 'Arbitrée': '#10233a', 'Annulée': '#cfd8d6' };
     const F = ALL.find(x => x.id === sel) || ALL[0] || { id: '', st: 'Brouillon', t: '', ch: '', inst: '', crIso: '' }, full = !!F.full || !!(S.arbData || {})[F.id];
     const nsA = this.nextSession(), dj = nsA ? Math.round((new Date(nsA.dateIso + 'T12:00:00') - new Date(today + 'T12:00:00')) / 864e5) : null;
-    const recOpt = F.full ? ((S.txtEd || {}).recOpt ?? 'Option B') : ((((S.arbData || {})[F.id] || {}).tx || {}).recOpt || '');
+    const recOpt = this.faReco(F.id);
     if (!this._faRef) this._faRef = React.createRef();
     const valL = ALL.filter(f => f.st === 'À arbitrer').sort((a, b) => b.p - a.p || a.crIso.localeCompare(b.crIso));
     const valRows = valL.map(f => ({ id: f.id, t: f.t, inst: f.inst, pl: PRL[f.p], pSt: 'font-weight:700;color:' + PRC[f.p], dot: 'width:6px;height:6px;border-radius:50%;background:' + PRC[f.p], sub: (f.dec || f.decL ? (f.dec ? f.dec.replace(/^D-/, 'FA-') + ' · ' : '') + (f.decL || '') : 'Décision non rédigée') + ' · ' + f.ch,
@@ -3626,7 +3636,9 @@ class Component extends DCLogic {
       rgPrList: [4, 3, 2, 1].map(p => ({ v: String(p), l: PRL[p] })), rgStList: STO.map(s => ({ v: s, l: s })), rgWsList: WS.map(w => ({ v: w, l: (WSC[w] ? WSC[w].code + ' · ' : '') + w })), rgInstList: GB.map(g => ({ v: g.l, l: g.l })),
       rgCustom: custom, rgReset: () => set({ q: '', pr: '', inst: '', ch: '', st: 'Ouvertes', all: false }), rgEmpty: n === 0,
       rgMore: !custom && L.length > 5, rgMoreLbl: o.all ? 'Afficher uniquement les 5 plus prioritaires' : 'Afficher ' + extra + ' autre' + pl(extra) + ' fiche' + pl(extra) + ' ouverte' + pl(extra), rgToggleAll: () => set({ all: !o.all }),
-      faRef: this._faRef, faId: F.id, faSt: F.st, faSDot: 'width:7px;height:7px;border-radius:50%;flex:none;background:' + sDotC[F.st] + (F.st === 'À arbitrer' ? ';box-shadow:0 0 0 3px rgba(192,111,31,.16)' : ''),
+      faRef: this._faRef, faId: F.id,
+      faEditOn: !!F.id && OPEN(F.st) && !!this._api, faEditL: this._api && this._api.ficheOf && this._api.ficheOf(F.id) ? 'Modifier la fiche' : 'Composer la fiche',
+      faEdit: () => this.setState(st => ({ assistant: true, ssjOn: false, faPanel: F.id, faN: (st.faN || 0) + 1 })), faSt: F.st, faSDot: 'width:7px;height:7px;border-radius:50%;flex:none;background:' + sDotC[F.st] + (F.st === 'À arbitrer' ? ';box-shadow:0 0 0 3px rgba(192,111,31,.16)' : ''),
       faFull: full, faLite: !full, faMeta: F.ch + ' · ' + F.inst, faBy: 'Créée le ' + fr(F.crIso), faQ: F.t,
       faLitMsg: OPEN(F.st) ? 'La grille d\'analyse de cette fiche n\'est pas encore renseignée. Critères, options et recommandation s\'afficheront ici dès leur saisie.' : 'Arbitrage rendu le ' + fr(F.ddIso) + ' en ' + String(F.inst).toLowerCase() + '.',
       faSealOn: full && F.st === 'Arbitrée', faSealTip: 'Arbitrée le ' + fr(F.ddIso) + ' · ' + F.inst + ' · option ' + (F.opt || recOpt) + ' retenue', faSeal: (() => { if (!(full && F.st === 'Arbitrée')) return null; const h = React.createElement, L = F.opt || (/\b([AB])\b/.exec(recOpt) || [, 'B'])[1], dt = (fr(F.ddIso) || '').toUpperCase(), inst = String(F.inst || '').toUpperCase();
@@ -3643,6 +3655,14 @@ class Component extends DCLogic {
           h('text', { x: 110, y: 121, textAnchor: 'middle', fontSize: 46, fontWeight: 800, fill: '#10233a', letterSpacing: -1 }, L),
           h('text', { x: 110, y: 138, textAnchor: 'middle', fontSize: 7.6, fontWeight: 800, letterSpacing: 1.4, fill: '#10233a' }, 'OPTION RETENUE')); })(),
       faHasLitDec: !!F.decL && !OPEN(F.st), faLitDec: F.decL ? F.id + ' · ' + F.decL : '', faRecA: /\bA\b/.test(recOpt), faRecB: /\bB\b/.test(recOpt), faJx: !F.full || dj == null ? '' : dj > 0 ? 'J-' + dj : dj === 0 ? 'Aujourd\'hui' : 'Échue', faJxSub: F.full ? (nsA ? nsA.label + ' · ' + this.frShortIso(nsA.dateIso) : 'Aucune séance planifiée') : F.inst };
+  }
+  /** Fiche affichée dans Pilotage › Décisions : la décision choisie, sinon la première (10/10/2026 : plus de D-007 par défaut). */
+  faSelId() { const L = ((this.mergedData() || {}).arbitrations) || [], s = this.state.faSel; return s && L.some(x => x.id === s) ? s : (L[0] || {}).id || ''; }
+  /** Option recommandée d'une fiche = la mieux notée (barème commun, saisie-calc.js) ; '' sans note ou à égalité. */
+  faReco(id) {
+    const A = (this.state.arbData || {})[id], C = globalThis.RiseSaisieCalc; if (!A || !C) return '';
+    const cr = (A.crit || []).map(c => ({ poids: parseFloat(c[1]) || 0, noteA: +c[2] || 0, noteB: +c[4] || 0 })), a = C.baremeScore(cr, 'A'), b = C.baremeScore(cr, 'B');
+    return !C.baremeRated(cr) || Math.abs(a - b) < C.TIE ? '' : a > b ? 'Option A' : 'Option B';
   }
   scrollFiche() {
     setTimeout(() => { const el = this._faRef && this._faRef.current; if (!el) return; const r = el.getBoundingClientRect(); if (r.top > 0 && r.top < window.innerHeight * .6) return;
@@ -4482,7 +4502,7 @@ class Component extends DCLogic {
           if (K === 'action') { E('ac', 'n', n1); E('ac', 'owner', tf.owner); if (tf.due) E('ac', 'dueIso', tf.due); E('ac', 'source', tf.origin || null); this.setState(s => ({ actStatus: { ...(s.actStatus || {}), [id]: tf.status } })); }
           if (K === 'decision') { const o0 = tf.orig || {}, nv = { t: n1, p: tf.prioN || 3, decL: (tf.detail || '').trim(), st: tf.faSt, ddIso: tf.due || '', ch: tf.ws, inst: tf.inst }, ch = {}; Object.keys(nv).forEach(k2 => { if (nv[k2] !== o0[k2]) ch[k2] = nv[k2]; });
             if (Object.keys(ch).length) this.setState(s => ({ ed: { ...(s.ed || {}), ['fa:' + id]: { ...((s.ed || {})['fa:' + id] || {}), ...ch } }, audit: Object.keys(ch).map(f2 => ({ k: 'fa', id, f: f2, v: ch[f2], by: this.meName(), at: new Date().toISOString(), origin: 'saisie' })).concat(s.audit || []) })); }
-          if (K === 'arbitrage' && id !== 'D-007' && (S.arbData || {})[id]) { const A = S.arbData[id], ar = tf.arb || {}, tx = { ...A.tx, ...Object.fromEntries(Object.entries(ar).map(([k2, v2]) => [k2, String(v2 || '').trim()])), dcQ: n1 }, cr = (tf.crit || []).filter(c => (c.n || '').trim()).map(c => [c.n.trim(), (+c.w || 0) + ' %', c.a || 0, (c.at || '').trim(), c.b || 0, (c.bt || '').trim()]);
+          if (K === 'arbitrage' && (S.arbData || {})[id]) { const A = S.arbData[id], ar = tf.arb || {}, tx = { ...A.tx, ...Object.fromEntries(Object.entries(ar).map(([k2, v2]) => [k2, String(v2 || '').trim()])), dcQ: n1 }, cr = (tf.crit || []).filter(c => (c.n || '').trim()).map(c => [c.n.trim(), (+c.w || 0) + ' %', c.a || 0, (c.at || '').trim(), c.b || 0, (c.bt || '').trim()]);
             this.setState(s => ({ arbData: { ...(s.arbData || {}), [id]: { ...A, tx, crit: cr } }, ed: { ...(s.ed || {}), ['fa:' + id]: { ...((s.ed || {})['fa:' + id] || {}), decL: n1 } }, audit: [{ k: 'arbitrage', id, v: n1, by: this.meName(), at: new Date().toISOString(), origin: 'saisie' }, ...(s.audit || [])] })); }
           else if (K === 'arbitrage') { const cur = this._txCur || {}, cc = this._critCur || [], ar = { ...(tf.arb || {}), dcQ: n1 }, tx = {}; Object.keys(ar).forEach(k2 => { const v2 = String(ar[k2] || '').trim(); if (v2 && v2 !== cur[k2]) tx[k2] = v2; });
             const ce = {}; (tf.crit || []).forEach((c, ci) => { const o = cc[ci] || [], d2 = {}; if (String(c.n).trim() && c.n.trim() !== o[0]) d2.n = c.n.trim(); if (c.w !== '' && +c.w !== parseFloat(o[1])) d2.w = +c.w; if (c.a !== o[2]) d2.a = c.a; if (c.at.trim() && c.at.trim() !== o[3]) d2.at = c.at.trim(); if (c.b !== o[4]) d2.b = c.b; if (c.bt.trim() && c.bt.trim() !== o[5]) d2.bt = c.bt.trim(); if (Object.keys(d2).length) ce[ci] = d2; });
@@ -4687,12 +4707,13 @@ class Component extends DCLogic {
     const REFS = {}; [D.risks, D.issues, D.milestones, D.decisions].forEach(L => (L || []).forEach(x => { if (x.code) REFS[x.id] = x.code; }));
     const actionRows = acts.map(a => ({ ref: a.code || a.id, sk: { id: a.id, n: a.n, owner: pshort(a.owner), due: a.dueIso || '', source: a.source || '' }, id: a.id, n: a.n, ...actWs(a), ownerId: a.owner, opts: peopleOpts, setOwner: selOwner('ac', a.id), dueIso: a.dueIso, openCal: calOpen('Échéance · ' + a.id, a.dueIso, v => this.edit('ac', a.id, 'dueIso', v)), commitN: txt('ac', a.id, 'n', a.n), nameStyle: a.status === 'DONE' ? 'color:#8a8f9c;text-decoration:line-through' : 'font-weight:600', owner: pshort(a.owner), initials: person(a.owner).initials, avStyle: av(a.owner, a.owner === 'p01' ? '#0096d6' : '#e6f3f2'), due: a.due, dueStyle: a.late ? 'color:#8a3b3b' : '', status: a.status === 'DONE' ? 'Terminée' : a.status === 'IN_PROGRESS' ? 'En cours' : 'Ouverte', statusStyle: a.status === 'DONE' ? P.ok : a.late ? P.risk : P.neutral, source: REFS[a.source] || a.source || '—', open: () => actionPanel(a) }));
     const actionSummary = `${acts.length} actions · ${D.actions.filter(a => a.late).length} échues · ${D.actions.filter(a => a.owner === 'p01' && a.status !== 'DONE').length} à moi`;
-    const critSrc = [['Préparation des équipes et formation', '30 %', 1, '45 % se sentent prêts ; 70 % des contenus produits ; modules obligatoires au 15/10', 4, 'Formation complète et sessions de rattrapage avant l\'été'], ['Fiabilité des données au démarrage', '25 %', 1, 'Run 3 à 44 %, CRM à 0 % ; fin estimée 14/10 ; Dry Run comprimé', 3, 'Run 3 achevé ; un Run 4 de consolidation possible'], ['Complétude de la solution CRM et des interfaces', '20 %', 2, '79 US à repositionner ; 42 interfaces à recetter ; articles de remplacement sans solution', 4, '2 sprints CRM supplémentaires ; tests 2-à-2 achevés'], ['Impact sur les lots 2–4 et coûts', '15 %', 3, 'Calendrier groupe tenu ; pas de prolongation', 2, '+4 mois de run parallèle ; prolongation intégrateur / AMOA (AMC Corp) ; Lot 2 décalé'], ['Risque de bascule et saisonnalité', '10 %', 2, 'Bascule VSD en octobre, en pleine activité commerciale', 3, 'Bascule début mars, avant le pic de fin d\'année']];
+    // Critères de la fiche de la décision (10/10/2026 : plus de critères d'exemple de la maquette en repli).
+    const critSrc = [];
     const dotc = (n, k, c) => `width:11px;height:11px;border-radius:50%;cursor:pointer;transition:transform .12s;background:${k <= n ? c : '#dfe7e5'}`;
-    const ADc = (S.faSel && S.faSel !== 'D-007') ? (S.arbData || {})[S.faSel] : null; if (ADc) critSrc.splice(0, critSrc.length, ...ADc.crit.map(c => c.slice()));
+    const ADc = (S.arbData || {})[this.faSelId()] || null; if (ADc) critSrc.splice(0, critSrc.length, ...ADc.crit.map(c => c.slice()));
     const CE0 = ADc ? {} : (S.critEd || {}); critSrc.forEach((c, ci) => { const o = CE0[ci] || {}; ['n', 'w', 'a', 'at', 'b', 'bt'].forEach((f, fi) => { if (o[f] !== undefined) c[fi] = f === 'w' ? o[f] + ' %' : o[f]; }); });
     this._critCur = critSrc.map(c => c.slice());
-    const critSet = (ci, f, v) => { if (ADc) { const pd = S.faSel; this.setState(s => { const A = { ...(s.arbData || {}) }, cur = A[pd], cr = cur.crit.map(x => x.slice()); cr[ci][['n', 'w', 'a', 'at', 'b', 'bt'].indexOf(f)] = f === 'w' ? v + ' %' : v; A[pd] = { ...cur, crit: cr }; return { arbData: A, audit: [{ k: 'critere', id: pd + ':' + ci, f, v, by: this.meName(), at: new Date().toISOString(), origin: 'saisie' }, ...(s.audit || [])] }; }); this.showToast('Modifié · ' + this.meName() + ' · saisie directe'); return; } this.setState(s => ({ critEd: { ...(s.critEd || {}), [ci]: { ...((s.critEd || {})[ci] || {}), [f]: v } }, audit: [{ k: 'critere', id: ci, f, v, by: this.meName(), at: new Date().toISOString(), origin: 'saisie' }, ...(s.audit || [])] })); this.showToast('Modifié · ' + this.meName() + ' · saisie directe'); };
+    const critSet = (ci, f, v) => { if (ADc) { const pd = this.faSelId(); this.setState(s => { const A = { ...(s.arbData || {}) }, cur = A[pd], cr = cur.crit.map(x => x.slice()); cr[ci][['n', 'w', 'a', 'at', 'b', 'bt'].indexOf(f)] = f === 'w' ? v + ' %' : v; A[pd] = { ...cur, crit: cr }; return { arbData: A, audit: [{ k: 'critere', id: pd + ':' + ci, f, v, by: this.meName(), at: new Date().toISOString(), origin: 'saisie' }, ...(s.audit || [])] }; }); this.showToast('Modifié · ' + this.meName() + ' · saisie directe'); return; } this.setState(s => ({ critEd: { ...(s.critEd || {}), [ci]: { ...((s.critEd || {})[ci] || {}), [f]: v } }, audit: [{ k: 'critere', id: ci, f, v, by: this.meName(), at: new Date().toISOString(), origin: 'saisie' }, ...(s.audit || [])] })); this.showToast('Modifié · ' + this.meName() + ' · saisie directe'); };
     const critTxt = (ci, f, old) => e => { const v = e.currentTarget.innerText.replace(/\s+/g, ' ').trim(); if (!v) { e.currentTarget.innerText = old; return; } if (v !== old) critSet(ci, f, v); };
     const HTc = { 0: ['#f6f8f7', '#8a9aa6', '#a3b0b9'], 1: ['#f1f4f3', '#43586a', '#8a9aa6'], 2: ['#dcefeb', '#1f4b47', '#3d7f78'], 3: ['#a9d7d0', '#0e3b37', '#0e3b37'], 4: ['#15756e', '#ffffff', '#ffffff'] }, tileS = v => { const h = HTc[v] || HTc[0]; return 'border-radius:10px;padding:12px 14px;display:flex;gap:12px;align-items:flex-start;transition:background .2s;background:' + h[0] + ';color:' + h[1]; }, numS = v => 'flex:none;width:20px;padding:0 2px;margin:0 -2px;border-radius:4px;cursor:pointer;font-size:17px;font-weight:800;line-height:1.3;font-variant-numeric:tabular-nums;color:' + (HTc[v] || HTc[0])[2];
     const criteria = critSrc.map(([n, w, a, at, b, bt], ci) => { const o = { sk: { n, w: parseFloat(w), a, b }, n, w, at, bt, setN: critTxt(ci, 'n', n), setAt: critTxt(ci, 'at', at), setBt: critTxt(ci, 'bt', bt), editW: numOpen('Poids · ' + n, parseFloat(w), v => critSet(ci, 'w', v), { min: 0, max: 100, dec: 0, hint: 'Pourcentage entre 0 et 100' }), aV: a || '–', bV: b || '–', aT: tileS(a), bT: tileS(b), aNum: numS(a), bNum: numS(b), editA: numOpen('Note option A · ' + n, a || 1, v => critSet(ci, 'a', Math.round(v)), { min: 1, max: 4, dec: 0, hint: 'Note entière de 1 à 4' }), editB: numOpen('Note option B · ' + n, b || 1, v => critSet(ci, 'b', Math.round(v)), { min: 1, max: 4, dec: 0, hint: 'Note entière de 1 à 4' }) };

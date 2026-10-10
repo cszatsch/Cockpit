@@ -1,7 +1,9 @@
 /**
- * Fiche d'arbitrage (« Saisir sans Jev », 09/10/2026) : chaque option porte sa propre liste de critères (intitulé,
- * poids en %, note de 1 à 4, description). L'ancien format — critères communs aux options A et B (`criteria` :
- * name, weightPct, scoreA, commentA, scoreB, commentB) — reste lu par l'onglet Décisions : il est déduit ici.
+ * Fiche d'arbitrage. Depuis le 10/10/2026 (fiche « barème commun », maquette 11a), la fiche se saisit sur un barème commun :
+ * critères et poids communs aux options A et B, notes et justifications propres à chacune (`criteria` : name, weightPct,
+ * scoreA, commentA, scoreB, commentB) ; les options n'ont plus de critères propres. Les fiches saisies du 09 au 10/10/2026
+ * portent des critères par option (`options[].criteria` : intitulé, poids, note, description) : leur barème commun est
+ * déduit ici (`legacyCriteria`), à l'enregistrement, pour l'onglet Décisions et la fiche 11a.
  */
 export interface OptionCriterion { name: string; weightPct: number; score: number; comment: string }
 export interface ArbOption { code: string; label: string; body?: string; criteria?: OptionCriterion[] }

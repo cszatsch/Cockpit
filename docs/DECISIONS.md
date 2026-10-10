@@ -1890,3 +1890,28 @@ Demande du commanditaire : un risque peut concerner un chantier, plusieurs, ou t
   `fold` / `matchObjects` retirés de `saisie-calc.js` ; (5) **pas de filet** entre le bandeau de la page et celui de la barre
   latérale pendant la saisie (`jevAsideSt` : bordure gauche nulle quand `ssjOn`) ; (6) **trait fin** à gauche de la partie
   blanche (liste des objets, pied, formulaire), comme la barre de Jev ; (7) **pas d'infobulle** au survol d'un objet du menu.
+
+## Fiche d'arbitrage « barème commun » (maquette 11a, 10/10/2026)
+
+- Maquette « Jev - Fiche d'arbitrage 11a » intégrée : composant `frontends/Fiche arbitrage.dc.html` (duel A / B avec « En tête »,
+  échelle 0–4 animée, verdict, grille Critère · Poids · A · B, notes en barres, justifications, total des poids, contrôle de
+  complétude et premier problème dans la légende, toast « Fiche d'arbitrage enregistrée » 2,2 s) ; calculs `bareme…` de
+  `frontends/saisie-calc.js` (score, verdict, total, premier problème, conversion vers et depuis le serveur).
+- **Barème commun** : critères et poids définis une seule fois, notes et justifications par option ; les critères propres à
+  chaque option (choix du 09/10/2026, maquettes 3a et 5a) ne se saisissent plus — le serveur les accepte encore et en déduit le
+  barème commun (`legacyCriteria`). Écriture : `PATCH /decisions/:id/arbitration` avec des options sans critères et `criteria`
+  communs (`writeFiche` dans `api.js`). Détail d'une option par option et sélecteur « Option recommandée » de « Saisir sans
+  Jev » supprimés (composant `Ligne critere` retiré).
+- **Emplacement** (arbitrage du commanditaire : les deux) : création dans « Saisir sans Jev » › Fiche d'arbitrage (chapitres
+  Arbitrage et Contexte, puis « Composer la fiche » ; retour : le formulaire de la fiche) ; édition depuis Pilotage › Décisions
+  (bouton « Composer la fiche » ou « Modifier la fiche » de la fiche de la décision, ouverte dans la barre latérale de Jev ;
+  retour : la barre se ferme, la fiche de la décision à l'écran). Fiche existante chargée en édition (`ficheOf`).
+- Écart : panneau de 400 px (largeur de la barre de Jev) au lieu de 380 × 720, sans arrondi ; note en barres : la ligne s'ouvre
+  au focus du nom ou du poids seulement (comme la maquette), pas au clic sur une note.
+- **Données de la maquette retirées** (demande du commanditaire, 10/10/2026) : la fiche de Pilotage › Décisions n'affiche plus
+  pour D-007 (ni pour aucune décision) les textes et critères d'exemple de l'ancienne maquette (« arbitrée au COPIL n°20 »,
+  « Report au 1er avr. 2027… », critères de préparation…) ; chaque décision montre ses seules données (`arbData`), la fiche
+  affichée par défaut est la première décision (`faSelId`), plus jamais D-007 ; aucune saisie n'écrit plus sur D-007 par défaut.
+- **Option recommandée = la mieux notée** (demande du commanditaire, 10/10/2026 : B était recommandée alors que A avait le meilleur
+  score) : calculée sur le barème commun (`faReco`), « À définir » sans note ou à égalité ; le libellé n'est plus modifiable dans
+  la fiche ; enregistrée avec la fiche (`recommendation` A / B, `texts.recOpt`).

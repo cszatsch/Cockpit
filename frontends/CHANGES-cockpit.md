@@ -591,3 +591,14 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
   `Selecteur segmente`, `Ligne critere` (refaits) ; `Champ etiquettes` supprimé (choix multiple dans `Champ choix`).
 - Choix de l'objet : pas d'infobulle au survol d'un objet (demande du commanditaire, 10/10/2026).
 - Trait fin à gauche de la partie blanche de « Saisir sans Jev » (liste, pied, formulaire), le bandeau bleu nuit restant sans filet.
+
+## Fiche d'arbitrage « barème commun » (maquette 11a, 10/10/2026)
+
+- Nouveau composant `Fiche arbitrage.dc.html` (maquette 11a) : critères et poids communs à A et B, notes en barres et
+  justifications par option, scores, échelle, verdict, total des poids, « Enregistrer » avec contrôle de complétude.
+- « Saisir sans Jev » › Fiche d'arbitrage : deux chapitres (Arbitrage, Contexte), puis « Composer la fiche » ouvre la fiche à la
+  place du formulaire ; l'ancienne carte A / B, le détail par option et « Option recommandée » sont retirés.
+- Pilotage › Décisions : bouton « Composer la fiche » / « Modifier la fiche » dans l'en-tête de la fiche, qui l'ouvre dans la barre
+  latérale de Jev ; « Retour à la décision » referme la barre.
+- Fiche de Pilotage › Décisions : plus de textes ni de critères d'exemple (D-007 de l'ancienne maquette) ; option recommandée =
+  la mieux notée, non modifiable ; fiche affichée par défaut : la première décision.

@@ -20,8 +20,9 @@ couleurs, survols, sélection, libellés), aux écarts près listés plus bas.
      résumé des chapitres fermés, bouton « Suivant ».
 4. Anneau « requis remplis X/Y » ; « Créer … » grisé (opacité 0,4) tant qu'un requis manque ; création par l'API, message
    dans le panneau (« Phase 7 créée »), puis formulaire vidé.
-5. **Détail d'une option** (fiche d'arbitrage) : onglets A / B, intitulé, jauge semi-circulaire du score (repère : l'autre
-   option), barre de composition, indicateur des poids, critères repliables, « Ajouter un critère », « Retour à la fiche ».
+5. **Fiche d'arbitrage** (maquette 11a, 10/10/2026) : après les chapitres Arbitrage et Contexte, « Composer la fiche » ouvre la
+   fiche « barème commun » (composant Fiche arbitrage) à la place du formulaire ; son « Enregistrer » écrit la fiche de la
+   décision ; la flèche ramène au formulaire.
 
 Score d'une option : moyenne pondérée des critères qui ont un poids et une note, deux décimales, virgule. Criticité d'un risque :
 P × I sur 16 (Critique ≥ 12, Majeure ≥ 6, Modérée ≥ 3).
@@ -37,7 +38,7 @@ P × I sur 16 (Critique ≥ 12, Majeure ≥ 6, Modérée ≥ 3).
 | Échelle 1–4 | `frontends/Echelle 1-4.dc.html` | Probabilité, impact (chiffre et niveau) |
 | Sélecteur segmenté | `frontends/Selecteur segmente.dc.html` | Statut, priorité (pastilles), option recommandée (point de suggestion) |
 | Cycle de vie | `frontends/Cycle de vie.dc.html` | Brouillon → En instruction → À arbitrer → Arbitrée ; Annulée, Remplacée hors parcours |
-| Ligne de critère | `frontends/Ligne critere.dc.html` | Repliée (intitulé, poids, note) ou dépliée (édition, note 1–4, description, suppression) |
+| Fiche d'arbitrage | `frontends/Fiche arbitrage.dc.html` | Barème commun A / B (maquette 11a) : duel, échelle, grille, enregistrement |
 | Calculs | `frontends/saisie-calc.js` | Score, poids, composition, comparaison et écart, criticité, dates — fonctions pures |
 
 Écriture : `api.js` → `saisie(kind, values)` (routes `/phases`, `/subphases`, `/workstreams`, `/milestones`, `/deliverables`,
@@ -52,7 +53,8 @@ Tests : `backend/test/unit/saisie-calc.spec.ts` (calculs), `backend/test/unit/ar
 - **Action** : un ou plusieurs chantiers, ou transverse (`wsIds`, `allWs`) ; droits sur chacun des chantiers, transverse
   réservé au PMO. Les actions issues d'un risque reprennent ses chantiers.
 - **Tâche** : responsable (`ownerId`), chantiers (`wsIds`, `allWs`), statuts À faire, En cours, Bloquée, Terminée.
-- **Fiche d'arbitrage** : critères propres à chaque option (`options[].criteria`).
+- **Fiche d'arbitrage** : critères propres à chaque option (`options[].criteria`) du 09 au 10/10/2026 ; depuis le 10/10/2026,
+  barème commun (critères et poids communs, notes et justifications par option, maquette 11a, `docs/DECISIONS.md`).
 
 Migration `20261117000000_actions_taches_chantiers`.
 

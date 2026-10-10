@@ -68,4 +68,47 @@ describe('Saisir sans Jev — calculs purs', () => {
     expect(C.rangeState(['31/12/2026', '01/10/2026'])).toBe('reversed');
     expect(C.rangeState(['32/12/2026', '01/10/2027'])).toBe('invalid');
   });
+
+  describe('fiche d’arbitrage « barème commun » (maquette 11a)', () => {
+    const f = { optionA: { intitule: 'Éditeur SaaS' }, optionB: { intitule: 'Développement interne' }, criteres: [
+      { nom: 'Coût', poids: 40, noteA: 3, noteB: 2, justificationA: '', justificationB: '' },
+      { nom: 'Délai', poids: 35, noteA: 4, noteB: 2, justificationA: '', justificationB: '' },
+      { nom: 'Couverture', poids: 25, noteA: 1, noteB: 4, justificationA: '', justificationB: '' }] };
+
+    it('score = Σ(poids × note) / Σ(poids) sur les critères notés de poids > 0 ; verdict', () => {
+      expect(C.formatScore(C.baremeScore(f.criteres, 'A'))).toBe('2,85');
+      expect(C.formatScore(C.baremeScore(f.criteres, 'B'))).toBe('2,50');
+      expect(C.baremeVerdict(2.85, 2.5, true)).toBe('A devance B de 0,35 pt');
+      expect(C.baremeVerdict(1, 3.5, true)).toBe('B devance A de 2,50 pt');
+      expect(C.baremeVerdict(2, 2.004, true)).toBe('Égalité parfaite entre A et B');
+      expect(C.baremeVerdict(0, 0, false)).toBe('Notez les critères pour comparer');
+      expect(C.baremeScore([{ poids: 50, noteA: 4 }, { poids: 50, noteA: 0 }, { poids: 0, noteA: 1 }], 'A')).toBe(4);
+      expect(C.baremeRated([{ poids: 0, noteA: 3, noteB: 2 }])).toBe(false);
+      expect(C.baremeRated([{ poids: 10, noteA: 0, noteB: 2 }])).toBe(true);
+    });
+
+    it('total des poids : 100 %, reste à répartir, excède', () => {
+      expect(C.baremeWeight(f.criteres)).toEqual({ total: 100, ok: true, text: '100 %' });
+      expect(C.baremeWeight(f.criteres.slice(0, 2)).text).toBe('Reste 25 % à répartir');
+      expect(C.baremeWeight([...f.criteres, { poids: 10 }]).text).toBe('Excède de 10 %');
+    });
+
+    it('premier problème à l’enregistrement, dans l’ordre de priorité', () => {
+      expect(C.baremeIssue(f)).toBe('');
+      expect(C.baremeIssue({ ...f, optionB: { intitule: ' ' }, criteres: [] })).toBe("Renseignez l'intitulé des deux options");
+      expect(C.baremeIssue({ ...f, criteres: [] })).toBe('Ajoutez au moins un critère');
+      expect(C.baremeIssue({ ...f, criteres: [{ ...f.criteres[0], nom: '' }] })).toBe('Nommez chaque critère');
+      expect(C.baremeIssue({ ...f, criteres: f.criteres.slice(0, 2) })).toBe('Les poids doivent totaliser 100 %');
+      expect(C.baremeIssue({ ...f, criteres: [{ ...f.criteres[0], poids: 100, noteB: 0 }] })).toBe('Notez chaque critère pour A et B');
+    });
+
+    it('conversion vers et depuis le format du serveur (critères communs)', () => {
+      const srv = C.baremeToServer(f);
+      expect(srv.options).toEqual([{ code: 'A', label: 'Éditeur SaaS' }, { code: 'B', label: 'Développement interne' }]);
+      expect(srv.criteria[0]).toEqual({ name: 'Coût', weightPct: 40, scoreA: 3, commentA: '', scoreB: 2, commentB: '' });
+      expect(C.baremeFromServer({ options: srv.options, criteria: srv.criteria })).toEqual(f);
+      expect(C.baremeFromServer(null)).toBeNull();
+      expect(C.baremeFromServer({ options: [], criteria: [], texts: { dcQ: 'x' } })).toBeNull();
+    });
+  });
 });

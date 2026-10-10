@@ -24,7 +24,8 @@ export const BUDGET_MODULE_ID = 'bud';
 const Arbitration = z
   .object({
     question: z.string().trim().min(1).max(2000).nullable(),
-    // Critères propres à chaque option (« Saisir sans Jev », 09/10/2026) : intitulé, poids (%), note 1 à 4 (0 : non notée), description.
+    // Critères propres à chaque option (09/10/2026, encore acceptés) ; depuis le 10/10/2026 la fiche « barème commun » (maquette 11a)
+    // envoie des options sans critères et des critères communs (`criteria`).
     options: z
       .array(
         z.object({

@@ -1,7 +1,7 @@
 /*
  * « Saisir sans Jev » (maquette « Jev - Saisir sans Jev 5a », 10/10/2026) : calculs purs du formulaire.
  * Score pondéré d'une option d'arbitrage, total des poids, barre de composition, comparaison A / B, criticité d'un
- * risque, dates saisies au clavier (jj/mm/aaaa). Chargé par l'écran (`import('./saisie-calc.js')`,
+ * risque, dates saisies au clavier (jj/mm/aaaa), fiche d'arbitrage « barème commun » (maquette 11a). Chargé par l'écran (`import('./saisie-calc.js')`,
  * qui l'expose en `globalThis.RiseSaisieCalc`) et par les tests (`require`). Aucune dépendance, aucun effet de bord hors de cet objet.
  */
 (function (root) {
@@ -104,7 +104,63 @@
     return a || b ? 'partial' : 'empty';
   }
 
-  const api = { NOTE_COLORS, NOTE_LABELS, SCALE_LABELS, TIE, weight, note, totalWeight, optionScore, formatScore, weightState, composition, compare, criticality, maskDate, frToIso, isoToFr, dateState, rangeState };
+  // ── Fiche d'arbitrage « barème commun » (maquette 11a, 10/10/2026) : critères et poids communs aux options A et B,
+  // notes (0 à 4) et justifications propres à chaque option. Fiche : { optionA: { intitule }, optionB: { intitule },
+  // criteres: [{ nom, poids, noteA, noteB, justificationA, justificationB }] }.
+
+  /** Score d'une option ('A' ou 'B') = Σ(poids × note) / Σ(poids), sur les critères notés pour cette option et de poids > 0. */
+  function baremeScore(criteres, side) {
+    let W = 0, S = 0;
+    (criteres || []).forEach((c) => { const n = note(c['note' + side]), w = weight(c.poids); if (n > 0 && w > 0) { W += w; S += w * n; } });
+    return W ? S / W : 0;
+  }
+
+  /** Au moins un critère de poids > 0 noté pour A ou pour B. */
+  function baremeRated(criteres) { return (criteres || []).some((c) => (note(c.noteA) || note(c.noteB)) && weight(c.poids) > 0); }
+
+  /** Verdict sous l'échelle : aucune note, égalité (écart < 0,005), sinon « A devance B de 0,35 pt ». */
+  function baremeVerdict(sA, sB, rated) {
+    const d = sA - sB;
+    if (!rated) return 'Notez les critères pour comparer';
+    if (Math.abs(d) < TIE) return 'Égalité parfaite entre A et B';
+    return (d > 0 ? 'A devance B' : 'B devance A') + ' de ' + formatScore(Math.abs(d)) + ' pt';
+  }
+
+  /** Total des poids : « 100 % » (vert, coche), « Reste X % à répartir » ou « Excède de X % » (orange). */
+  function baremeWeight(criteres) {
+    const t = (criteres || []).reduce((a, c) => a + weight(c.poids), 0);
+    return { total: t, ok: t === 100, text: t === 100 ? '100 %' : t < 100 ? 'Reste ' + (100 - t) + ' % à répartir' : 'Excède de ' + (t - 100) + ' %' };
+  }
+
+  /** Premier problème qui empêche l'enregistrement, dans l'ordre de priorité du brief ; '' si la fiche est complète. */
+  function baremeIssue(f) {
+    const C = (f && f.criteres) || [];
+    if (!String(((f && f.optionA) || {}).intitule || '').trim() || !String(((f && f.optionB) || {}).intitule || '').trim()) return "Renseignez l'intitulé des deux options";
+    if (!C.length) return 'Ajoutez au moins un critère';
+    if (C.some((c) => !String(c.nom || '').trim())) return 'Nommez chaque critère';
+    if (!baremeWeight(C).ok) return 'Les poids doivent totaliser 100 %';
+    if (C.some((c) => !note(c.noteA) || !note(c.noteB))) return 'Notez chaque critère pour A et B';
+    return '';
+  }
+
+  /** Fiche au format du serveur (`PATCH /decisions/:id/arbitration`) : options A / B sans critères propres, critères communs. */
+  function baremeToServer(f) {
+    return {
+      options: [{ code: 'A', label: String(f.optionA.intitule).trim() }, { code: 'B', label: String(f.optionB.intitule).trim() }],
+      criteria: (f.criteres || []).map((c) => ({ name: String(c.nom).trim(), weightPct: weight(c.poids), scoreA: note(c.noteA), commentA: String(c.justificationA || '').trim(), scoreB: note(c.noteB), commentB: String(c.justificationB || '').trim() })),
+    };
+  }
+
+  /** Fiche lue sur le serveur (`arbitration` d'une décision) ; `null` si elle n'a ni intitulés ni critères. */
+  function baremeFromServer(a) {
+    if (!a) return null;
+    const O = a.options || [], lab = (k) => ((O.find((o) => o.code === k) || {}).label || '').trim();
+    const C = (a.criteria || []).map((c) => ({ nom: c.name || '', poids: weight(c.weightPct), noteA: note(c.scoreA), noteB: note(c.scoreB), justificationA: c.commentA || '', justificationB: c.commentB || '' }));
+    if (!lab('A') && !lab('B') && !C.length) return null;
+    return { optionA: { intitule: lab('A') }, optionB: { intitule: lab('B') }, criteres: C };
+  }
+
+  const api = { NOTE_COLORS, NOTE_LABELS, SCALE_LABELS, TIE, weight, note, totalWeight, optionScore, formatScore, weightState, composition, compare, criticality, maskDate, frToIso, isoToFr, dateState, rangeState, baremeScore, baremeRated, baremeVerdict, baremeWeight, baremeIssue, baremeToServer, baremeFromServer };
   if (typeof module === 'object' && module && module.exports) module.exports = api;
   root.RiseSaisieCalc = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

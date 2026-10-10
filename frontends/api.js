@@ -20,6 +20,8 @@
 // de développement par jeton, pour les tests et la démonstration.
 
 import * as Auth from './auth-api.js';
+// Calculs de « Saisir sans Jev » et de la fiche d'arbitrage (`globalThis.RiseSaisieCalc`) : conversion des fiches « barème commun ».
+import './saisie-calc.js';
 
 // ───────────────────────────── Accès HTTP ─────────────────────────────
 
@@ -327,13 +329,12 @@ export function attach(comp) {
       newTasks: [], mineArch: {}, mineTitles: {}, mineDetails: {}, mineDue: {}, mineCta: {}, cmts: {}, modPh: {}, modOn: {},
     };
     SECTION_STORES.forEach((k) => { const v = byId['ui.' + k]; st[k] = v && typeof v === 'object' ? v : {}; });
-    // Fiches d'arbitrage : D-007 (fiche complète du jeu) → txtEd ; fiches saisies ensuite → arbData.
+    // Fiches d'arbitrage : chacune dans arbData, avec ses seuls textes et critères (10/10/2026 : plus de cas particulier D-007).
     B.decisions.forEach((d) => {
       const a = d.arbitration;
       if (!a) return;
       const hasContent = (a.texts && Object.keys(a.texts).length) || (a.criteria && a.criteria.length);
       if (!hasContent) return;
-      if (d._fullSeed) { st.txtEd = { ...a.texts }; return; }
       st.arbData[d.id] = { tx: { ...a.texts }, crit: (a.criteria || []).map((c) => [c.name, c.weightPct + ' %', c.scoreA, c.commentA || '', c.scoreB, c.commentB || '']), dec: d.id };
     });
     // Livrables : risque saisi manuellement.
@@ -416,9 +417,9 @@ export function attach(comp) {
     });
     B.decisions.forEach((d) => {
       const a = d.arbitration, hasContent = a && ((a.texts && Object.keys(a.texts).length) || (a.criteria && a.criteria.length));
-      // `full` désigne dans l'écran la fiche complète du jeu (D-007) ; une fiche saisie ensuite passe par arbData.
-      d._fullSeed = !!d.full && (!hasContent || d.id === 'D-007');
-      if (d.full && !d._fullSeed) d.full = false;
+      // `full` : la décision a une fiche (textes ou critères), lue dans arbData.
+      d._fullSeed = false;
+      d.full = !!hasContent;
     });
     return B;
   }
@@ -506,8 +507,8 @@ export function attach(comp) {
       case 'refDeleted': return changedKeys(before, after).forEach((key) => { if (!(after || {})[key]) return; const [obj, id] = splitKey(key); if (!ROUTE[obj] || !isServerRow(obj, id)) return; write('DELETE ' + key, () => pdel('/' + ROUTE[obj] + '/' + enc(id))); });
       case 'bmEd': case 'bmAdd': return write('BAROMETER', reconcileBarometer, 250);
       case 'phLots': return changedKeys(before, after).forEach((id) => onPhLots(id, (before || {})[id], (after || {})[id]));
-      case 'txtEd': return writeArbitration('D-007', { texts: onlyFilled(after) });
-      case 'critEd': return writeArbitration('D-007', { criteria: critFromArrays(comp._critCur || []) });
+      // Anciens états de la fiche D-007 du jeu de démonstration : plus alimentés (10/10/2026), jamais écrits sur une autre décision.
+      case 'txtEd': case 'critEd': return;
       case 'arbData': return changedKeys(before, after).forEach((id) => { const a = (after || {})[id]; if (!a) return; writeArbitration(id, { texts: onlyFilled(a.tx), criteria: critFromArrays(a.crit || []) }); });
       case 'lvTrack': return changedKeys(before, after).forEach((id) => {
         if (!isServerRow('DELIVERABLE', id)) return;
@@ -560,6 +561,15 @@ export function attach(comp) {
   const onlyFilled = (o) => Object.fromEntries(Object.entries(o || {}).filter(([, v]) => String(v == null ? '' : v).trim()).map(([k, v]) => [k, String(v).trim()]));
   const critFromArrays = (arr) => (arr || []).filter((c) => c && String(c[0] || '').trim()).map((c) => ({ name: String(c[0]).trim(), weightPct: Math.max(0, Math.min(100, Math.round(parseFloat(c[1]) || 0))), scoreA: Math.max(0, Math.min(4, +c[2] || 0)), commentA: String(c[3] || ''), scoreB: Math.max(0, Math.min(4, +c[4] || 0)), commentB: String(c[5] || '') }));
   function writeArbitration(id, body) { writePatch('PATCH', '/decisions/' + enc(id) + '/arbitration', body); }
+  // Fiche « barème commun » (maquette 11a, 10/10/2026) : options A / B sans critères propres, critères communs (poids, notes et
+  // justifications de A et de B) ; intitulés des options repris dans les textes lus par la fiche de Pilotage › Décisions.
+  async function writeFiche(decId, fiche, extra) {
+    const C = globalThis.RiseSaisieCalc, body = C.baremeToServer(fiche);
+    // Option recommandée = la mieux notée (A ou B ; aucune à égalité ou sans note), comme l'affiche Pilotage › Décisions.
+    const sA = C.baremeScore(fiche.criteres, 'A'), sB = C.baremeScore(fiche.criteres, 'B'), lead = !C.baremeRated(fiche.criteres) || Math.abs(sA - sB) < C.TIE ? '' : sA > sB ? 'A' : 'B';
+    const texts = { ...(extra.texts || {}), dcOptA: 'Option A · ' + body.options[0].label, dcOptB: 'Option B · ' + body.options[1].label, recOpt: lead ? 'Option ' + lead : '' };
+    await ppatch('/decisions/' + enc(decId) + '/arbitration', { ...(extra.question ? { question: extra.question } : {}), ...body, recommendation: lead || null, texts });
+  }
   function create(route, clientId, body) {
     const key = 'POST ' + route + ' ' + clientId;
     if (S.sentCreations.has(key)) return;
@@ -1009,6 +1019,17 @@ export function attach(comp) {
      * responsable d'une phase = l'utilisateur s'il n'est pas choisi ; code d'une sous-phase = rang suivant dans sa phase.
      * Renvoie le message de confirmation ; lève une Error lisible (message du serveur) en cas de refus.
      */
+    /** Fiche d'arbitrage « barème commun » d'une décision (maquette 11a) : `null` si la décision n'en a pas encore. */
+    ficheOf(decId) {
+      const d = ((S.B && S.B.decisions) || []).find((x) => x.id === decId), C = globalThis.RiseSaisieCalc;
+      return d && C ? C.baremeFromServer(d.arbitration) : null;
+    },
+    /** Enregistre la fiche « barème commun » d'une décision (création ou mise à jour), puis relit les données. */
+    async saveFiche(decId, fiche) {
+      try { await writeFiche(decId, fiche, {}); } catch (e) { throw e instanceof ApiError ? new Error(errorText(e)) : e; }
+      reload();
+    },
+
     async saisie(kind, v) {
       const B = S.B, me = (comp.me && comp.me().personId) || null;
       const T = '__T__', links = (l) => (l || []).includes(T) ? { allWs: true } : { wsIds: (l || []).filter(Boolean) };
@@ -1056,10 +1077,8 @@ export function attach(comp) {
           const r = await ppost('/tasks', opt({ title: v.n.trim(), owner: v.owner, link: v.act ? { entityType: 'ACTION', entityId: v.act } : null, dueIso: v.due, status: TK4[+v.st] || 'TODO', ...links(v.wss) }));
           msg = 'Tâche « ' + r.title + ' » créée';
         } else if (kind === 'arbitrage') {
-          const C = globalThis.RiseSaisieCalc, w = (x) => Math.min(100, C ? C.weight(x) : parseInt(x, 10) || 0);
-          const L = ['A', 'B'], options = v.options.map((o, i) => ({ code: L[i], label: o.label, body: '', criteria: o.rows.filter((r) => r.c.trim() || w(r.w) || r.n).map((r) => ({ name: r.c.trim(), weightPct: w(r.w), score: +r.n || 0, comment: r.d || '' })) }));
-          const texts = opt({ dcQ: v.n.trim(), dcCtx: (v.ctx || '').trim(), dcBy: v.by ? 'Préparée par ' + name(v.by) : '', dcOptA: 'Option A · ' + options[0].label, dcOptB: 'Option B · ' + options[1].label, recOpt: v.rec ? 'Option ' + L[v.rec - 1] : '' });
-          await ppatch('/decisions/' + enc(v.dec) + '/arbitration', { question: v.n.trim(), options, recommendation: v.rec ? L[v.rec - 1] : null, texts });
+          // Fiche d'arbitrage « barème commun » (maquette 11a, 10/10/2026) : intitulé, préparée par, contexte (formulaire) et fiche.
+          await writeFiche(v.dec, v.fiche, { question: v.n.trim(), texts: opt({ dcQ: v.n.trim(), dcCtx: (v.ctx || '').trim(), dcBy: v.by ? 'Préparée par ' + name(v.by) : '' }) });
           const d = (B.decisions || []).find((x) => x.id === v.dec);
           msg = 'Fiche d’arbitrage de ' + ((d && (d.code || d.id)) || 'la décision') + ' enregistrée';
         } else throw new Error('Objet inconnu');

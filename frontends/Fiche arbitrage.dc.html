@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><style>
+html,body{margin:0;background:#fff;font-family:'Plus Jakarta Sans',sans-serif;color:#10233a;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+.fa11,.fa11 *{scrollbar-width:none}.fa11::-webkit-scrollbar,.fa11 *::-webkit-scrollbar{display:none;width:0;height:0}
+.fa11 input,.fa11 button{font-family:inherit}.fa11 input::placeholder{color:#a3b2ba}
+</style></helmet>
+<!-- Fiche d'arbitrage « barème commun » (maquette « Jev - Fiche d'arbitrage 11a », 10/10/2026) : deux options A et B comparées
+     sur un barème commun — critères et poids définis une seule fois, notes (1 à 4) et justifications propres à chaque option.
+     Duel (cartes A / B, score, « En tête »), échelle 0–4 (repères A et B, écart, verdict), grille Critère · Poids · A · B
+     (ligne dépliée au focus : justifications, suppression), total des poids, « Enregistrer » (contrôle de complétude).
+     Utilisée dans « Saisir sans Jev » (création) et depuis Pilotage › Décisions (édition), dans la barre latérale de Jev. -->
+<div ref="{{ root }}" class="fa11" style="position:relative;width:100%;height:100%;background:#fff;display:flex;flex-direction:column;overflow:hidden">
+  <div style="flex:none;padding:16px 20px 0;display:flex;align-items:center;gap:12px"><button type="button" onClick="{{ back }}" title="Retour" aria-label="{{ backL }}" style="width:30px;height:30px;border:0;padding:0;background:none;border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#43586a;box-shadow:inset 0 0 0 1px #e3ebe8" style-hover="background:#f4f7f6" style-focus-visible="outline:2px solid #146b64;outline-offset:2px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></button><h2 style="margin:0;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#1f9a8a;font-weight:700">Fiche d'arbitrage</h2></div>
+  <div style="flex:none;padding:16px 20px 0;display:flex;flex-direction:column;gap:12px">
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px">
+      <sc-for list="{{ sides }}" as="s" hint-placeholder-count="2">
+        <div style="{{ s.cardSt }}">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;height:20px"><span style="{{ s.chipSt }}" aria-hidden="true">{{ s.L }}</span><sc-if value="{{ s.lead }}" hint-placeholder-val="{{ false }}"><span style="font-size:9.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#146b64">En tête</span></sc-if></div>
+          <input value="{{ s.t }}" onChange="{{ s.tc }}" placeholder="{{ s.ph }}" title="{{ s.t }}" aria-label="{{ s.aria }}" aria-required="true" aria-invalid="{{ s.inv }}" maxLength="300" style="{{ s.tSt }}">
+          <div role="status" aria-label="{{ s.scL }}" style="display:flex;align-items:baseline;gap:4px"><b style="{{ s.scSt }}">{{ s.sc }}</b><span style="font-size:12px;font-weight:600;color:#b4c2c9">/ 4</span></div>
+        </div>
+      </sc-for>
+    </div>
+    <div role="img" aria-label="{{ scaleL }}" style="position:relative;height:30px;margin:0 8px">
+      <span style="position:absolute;left:0;right:0;top:8px;height:2px;border-radius:1px;background:#edf2f0"></span>
+      <span style="{{ gapSt }}"></span>
+      <span style="{{ mA }}"></span>
+      <span style="{{ mB }}"></span>
+      <span style="position:absolute;top:18px;left:0;transform:translateX(-50%);font-size:9.5px;font-weight:700;color:#b4c2c9">0</span><span style="position:absolute;top:18px;left:25%;transform:translateX(-50%);font-size:9.5px;font-weight:700;color:#b4c2c9">1</span><span style="position:absolute;top:18px;left:50%;transform:translateX(-50%);font-size:9.5px;font-weight:700;color:#b4c2c9">2</span><span style="position:absolute;top:18px;left:75%;transform:translateX(-50%);font-size:9.5px;font-weight:700;color:#b4c2c9">3</span><span style="position:absolute;top:18px;left:100%;transform:translateX(-50%);font-size:9.5px;font-weight:700;color:#b4c2c9">4</span>
+    </div>
+    <span role="status" aria-live="polite" style="font-size:12px;font-weight:600;color:#43586a;text-align:center">{{ verdict }}</span>
+  </div>
+  <div role="table" aria-label="Critères" style="flex:1;overflow-y:auto;overflow-x:hidden;padding:18px 20px 8px;display:flex;flex-direction:column">
+    <div role="row" style="display:grid;grid-template-columns:minmax(0,1fr) 56px 40px 40px;gap:10px;align-items:center;padding-bottom:8px;font-size:9.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase"><span role="columnheader" style="color:#8a9aa6">Critère</span><span role="columnheader" style="color:#8a9aa6;text-align:right;padding-right:8px">Poids</span><span role="columnheader" style="color:#1f9a8a;text-align:center">A</span><span role="columnheader" style="color:#13243d;text-align:center">B</span></div>
+    <sc-for list="{{ rows }}" as="r" hint-placeholder-count="1">
+      <div data-row="1" role="row" style="display:flex;flex-direction:column;border-top:1px solid #edf2f0">
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 56px 40px 40px;gap:10px;align-items:center;min-height:48px">
+          <input data-name="{{ r.i }}" value="{{ r.n }}" onChange="{{ r.nc }}" onFocus="{{ r.foc }}" onKeyDown="{{ r.nkd }}" placeholder="Nommer le critère" aria-label="{{ r.nL }}" aria-invalid="{{ r.nInv }}" maxLength="200" style="{{ r.nSt }}">
+          <div style="{{ r.wBoxSt }}"><input data-w="{{ r.i }}" value="{{ r.w }}" onChange="{{ r.wc }}" onFocus="{{ r.foc }}" onKeyDown="{{ r.wkd }}" inputMode="numeric" placeholder="0" aria-label="{{ r.wL }}" style="width:24px;border:0;outline:0;background:none;padding:0;text-align:right;font-size:12.5px;font-weight:700;color:#10233a;font-variant-numeric:tabular-nums"><span style="font-size:11.5px;font-weight:600;color:#8a9aa6" aria-hidden="true">%</span></div>
+          <div role="radiogroup" aria-label="{{ r.aL }}" style="{{ r.aBoxSt }}"><sc-for list="{{ r.sa }}" as="p" hint-placeholder-count="4"><button type="button" role="radio" aria-checked="{{ p.chk }}" aria-label="{{ p.aria }}" onClick="{{ p.on }}" title="{{ p.tip }}" style="height:100%;border:0;background:none;padding:0 1.5px;display:flex;align-items:flex-end;cursor:pointer;border-radius:3px" style-focus-visible="outline:2px solid #146b64;outline-offset:1px"><span style="{{ p.st }}"></span></button></sc-for></div>
+          <div role="radiogroup" aria-label="{{ r.bL }}" style="{{ r.bBoxSt }}"><sc-for list="{{ r.sb }}" as="p" hint-placeholder-count="4"><button type="button" role="radio" aria-checked="{{ p.chk }}" aria-label="{{ p.aria }}" onClick="{{ p.on }}" title="{{ p.tip }}" style="height:100%;border:0;background:none;padding:0 1.5px;display:flex;align-items:flex-end;cursor:pointer;border-radius:3px" style-focus-visible="outline:2px solid #146b64;outline-offset:1px"><span style="{{ p.st }}"></span></button></sc-for></div>
+        </div>
+        <sc-if value="{{ r.exp }}" hint-placeholder-val="{{ false }}"><div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 24px;gap:6px;align-items:center;padding:0 0 12px">
+          <div style="height:32px;border-radius:9px;background:#f4f7f6;display:flex;align-items:center;gap:7px;padding:0 10px"><span style="width:6px;height:6px;border-radius:50%;background:#1f9a8a;flex:none" aria-hidden="true"></span><input value="{{ r.ja }}" onChange="{{ r.jac }}" placeholder="Justifier A" title="{{ r.ja }}" aria-label="{{ r.jaL }}" maxLength="1000" style="flex:1;min-width:0;border:0;outline:0;background:none;padding:0;font-size:12px;font-weight:500;color:#43586a;text-overflow:ellipsis"></div>
+          <div style="height:32px;border-radius:9px;background:#f4f7f6;display:flex;align-items:center;gap:7px;padding:0 10px"><span style="width:6px;height:6px;border-radius:50%;background:#13243d;flex:none" aria-hidden="true"></span><input value="{{ r.jb }}" onChange="{{ r.jbc }}" placeholder="Justifier B" title="{{ r.jb }}" aria-label="{{ r.jbL }}" maxLength="1000" style="flex:1;min-width:0;border:0;outline:0;background:none;padding:0;font-size:12px;font-weight:500;color:#43586a;text-overflow:ellipsis"></div>
+          <button type="button" onClick="{{ r.rm }}" title="Supprimer le critère" aria-label="{{ r.rmL }}" style="width:24px;height:24px;border:0;padding:0;background:none;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#b4c2c9;cursor:pointer" style-hover="background:#f1f5f4;color:#43586a" style-focus-visible="outline:2px solid #146b64;outline-offset:1px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"></path></svg></button>
+        </div></sc-if>
+      </div>
+    </sc-for>
+    <sc-if value="{{ empty }}" hint-placeholder-val="{{ false }}"><div style="border-top:1px solid #edf2f0;padding:22px 0 10px;font-size:12.5px;color:#8a9aa6;text-align:center">Aucun critère. Ajoutez-en un pour comparer A et B.</div></sc-if>
+    <div style="flex:none;height:46px;border-top:1px solid #edf2f0;display:flex;align-items:center;justify-content:space-between;gap:10px">
+      <button type="button" onClick="{{ add }}" style="display:flex;align-items:center;gap:8px;border:0;padding:0;background:none;font-size:12.5px;font-weight:700;color:#146b64;cursor:pointer;border-radius:4px" style-hover="color:#0d5952" style-focus-visible="outline:2px solid #146b64;outline-offset:2px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Ajouter un critère</button>
+      <span role="status" style="{{ wSt }}"><sc-if value="{{ wOk }}" hint-placeholder-val="{{ false }}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#1f9a8a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></sc-if>{{ wTxt }}</span>
+    </div>
+  </div>
+  <div style="flex:none;padding:12px 14px 14px 20px;border-top:1px solid #edf2f0;display:flex;align-items:center;gap:6px"><span data-foot="1" role="status" aria-live="polite" style="{{ footSt }}">{{ foot }}</span><button type="button" onClick="{{ save }}" aria-disabled="{{ busy }}" style="{{ ctaSt }}" style-focus-visible="outline:2px solid #146b64;outline-offset:2px">{{ cta }}</button></div>
+  <div role="status" aria-live="polite" style="position:absolute;left:50%;bottom:76px;transform:translateX(-50%);pointer-events:none"><sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}"><div style="height:38px;padding:0 16px 0 12px;border-radius:12px;background:#13243d;color:#fff;display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;white-space:nowrap;box-shadow:0 18px 30px -16px rgba(19,36,61,.6)"><span style="width:20px;height:20px;border-radius:50%;background:#1f9a8a;display:flex;align-items:center;justify-content:center" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span>{{ toast }}</div></sc-if></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;fiche&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;object&quot;},&quot;ficheKey&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;backLabel&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;onBack&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;onSave&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(fiche: object) =&gt; Promise&lt;void&gt;&quot;}}">
+// Composant réutilisable « Fiche d'arbitrage » (maquette 11a, 10/10/2026). `fiche` = { optionA: { intitule }, optionB: { intitule },
+// criteres: [{ nom, poids, noteA, noteB, justificationA, justificationB }] } (null : intitulés vides et un critère vierge) ;
+// `ficheKey` : la fiche est rechargée quand elle change (autre décision) ; `onSave(fiche)` écrit (création ou mise à jour) et
+// lève une erreur affichable ; `onBack` : retour à la décision. Calculs : saisie-calc.js (`bareme…`).
+const FA_A = '#1f9a8a', FA_B = '#13243d', FA_WARN = '#b5620f';
+const FA_BLANK = () => ({ nom: '', poids: 0, noteA: 0, noteB: 0, justificationA: '', justificationB: '' });
+const FA_FROM = f => f ? { tA: (f.optionA || {}).intitule || '', tB: (f.optionB || {}).intitule || '', crit: (f.criteres || []).map(c => ({ ...FA_BLANK(), ...c })) } : { tA: '', tB: '', crit: [FA_BLANK()] };
+class Component extends DCLogic {
+  state = { ...FA_FROM(this.props.fiche), open: 0, tried: false, toast: '', focusName: null, err: '', busy: false, calc: globalThis.RiseSaisieCalc || null };
+  root = React.createRef();
+  componentDidMount() {
+    if (!this.state.calc) import('./saisie-calc.js').then(() => this.setState({ calc: globalThis.RiseSaisieCalc })).catch(() => {});
+    // Un clic en dehors des lignes referme la ligne ouverte.
+    this.onDown = e => { if (this.root.current && !(e.target.closest && e.target.closest('[data-row]'))) this.setState({ open: -1 }); };
+    document.addEventListener('mousedown', this.onDown);
+    this.applyFocus();
+  }
+  componentWillUnmount() { document.removeEventListener('mousedown', this.onDown); clearTimeout(this.tt); }
+  componentDidUpdate(pp) {
+    if (pp.ficheKey !== this.props.ficheKey) this.setState({ ...FA_FROM(this.props.fiche), open: 0, tried: false, err: '' });
+    this.applyFocus();
+  }
+  applyFocus() {
+    const f = this.state.focusName; if (f == null || !this.root.current) return;
+    const [kind, i] = typeof f === 'string' ? f.split(':') : ['n', f];
+    const el = this.root.current.querySelector(kind === 'w' ? `[data-w="${i}"]` : `[data-name="${i}"]`);
+    if (el) { el.focus(); this.setState({ focusName: null }); }
+  }
+  fiche() { const s = this.state; return { optionA: { intitule: s.tA }, optionB: { intitule: s.tB }, criteres: s.crit }; }
+  setC(i, p) { this.setState(s => ({ crit: s.crit.map((c, j) => (j === i ? { ...c, ...p } : c)), err: '' })); }
+  add() { this.setState(s => ({ crit: [...s.crit, FA_BLANK()], open: s.crit.length, focusName: s.crit.length })); }
+  rm(i) { this.setState(s => ({ crit: s.crit.filter((_, j) => j !== i), open: -1 })); }
+  flash(t) { clearTimeout(this.tt); this.setState({ toast: t }); this.tt = setTimeout(() => this.setState({ toast: '' }), 2200); }
+  async save(issue) {
+    if (this.state.busy) return;
+    if (issue) { this.setState({ tried: true }); return; }
+    this.setState({ tried: false, busy: true, err: '' });
+    try { await this.props.onSave?.(this.fiche()); this.setState({ busy: false }); this.flash("Fiche d'arbitrage enregistrée"); }
+    catch (e) { this.setState({ busy: false, err: (e && e.message) || String(e) }); }
+  }
+  renderVals() {
+    const s = this.state, C = s.calc, crit = s.crit, f2 = x => (Number(x) || 0).toFixed(2).replace('.', ',');
+    const sA = C ? C.baremeScore(crit, 'A') : 0, sB = C ? C.baremeScore(crit, 'B') : 0, d = sA - sB;
+    const rated = C ? C.baremeRated(crit) : false, tie = Math.abs(d) < 0.005;
+    const W = C ? C.baremeWeight(crit) : { total: 0, ok: false, text: '' }, wOk = W.ok;
+    const issue = C ? C.baremeIssue(this.fiche()) : 'Chargement…', ready = !issue, t = s.tried;
+    const verdict = C ? C.baremeVerdict(sA, sB, rated) : '';
+    const sides = ['A', 'B'].map(L => {
+      const lead = rated && !tie && (L === 'A' ? d > 0 : d < 0), v = L === 'A' ? s.tA : s.tB, bad = t && !v.trim(), sc = L === 'A' ? sA : sB;
+      return { L, lead, t: v, ph: bad ? 'Intitulé requis' : "Intitulé de l'option", sc: f2(sc), aria: "Intitulé de l'option " + L, inv: bad ? 'true' : 'false',
+        scL: 'Score de l\'option ' + L + ' : ' + f2(sc) + ' sur 4' + (lead ? ', en tête' : ''),
+        chipSt: `width:20px;height:20px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#fff;background:${L === 'A' ? FA_A : FA_B}`,
+        tc: e => this.setState(L === 'A' ? { tA: e.target.value, err: '' } : { tB: e.target.value, err: '' }),
+        tSt: `width:100%;min-width:0;border:0;outline:0;background:none;padding:0;font-size:12.5px;font-weight:600;color:#43586a;caret-color:#1f9a8a;text-overflow:ellipsis;${bad ? 'box-shadow:0 1.5px 0 ' + FA_WARN : ''}`,
+        cardSt: `min-width:0;display:flex;flex-direction:column;gap:8px;padding:12px 14px;border-radius:14px;transition:background .3s,box-shadow .3s;background:${lead ? '#fff' : '#f6f9f8'};box-shadow:${lead ? 'inset 0 0 0 1.5px ' + (L === 'A' ? FA_A : FA_B) : 'none'}`,
+        scSt: `font-size:30px;font-weight:800;letter-spacing:-.04em;line-height:1;font-variant-numeric:tabular-nums;transition:color .3s;color:${lead || !rated || tie ? '#10233a' : '#9aabb5'}` };
+    });
+    const pa = sA / 4 * 100, pb = sB / 4 * 100, lo = Math.min(pa, pb), hi = Math.max(pa, pb), ez = 'cubic-bezier(.2,.8,.2,1)';
+    const mk = (p, L) => `position:absolute;top:3px;left:calc(${p}% - 6px);width:12px;height:12px;border-radius:50%;transition:left .45s ${ez},opacity .3s;opacity:${rated ? 1 : 0};${L === 'A' ? 'background:' + FA_A + ';box-shadow:0 0 0 2.5px #fff;z-index:2' : 'background:#fff;box-shadow:inset 0 0 0 2.5px ' + FA_B + ',0 0 0 2px #fff;z-index:1'}`;
+    const sig = (val, col, set) => [1, 2, 3, 4].map(x => ({ on: set(x), chk: x === val ? 'true' : 'false', aria: 'Note ' + x, tip: `Note ${x}${x === val ? ' · cliquer pour effacer' : ''}`,
+      st: `display:block;width:6px;height:${6 + x * 4}px;border-radius:2px;transition:background .2s;background:${x <= val ? col : '#e3ebe8'}` }));
+    const box = bad => `display:flex;align-items:flex-end;justify-content:center;height:28px;padding-bottom:2px;border-radius:7px;${bad ? 'box-shadow:inset 0 -2px 0 ' + FA_WARN : ''}`;
+    const rows = crit.map((c, i) => { const nm = c.nom.trim() || 'critère ' + (i + 1);
+      return {
+        i, n: c.nom, w: c.poids ? String(c.poids) : '', exp: s.open === i, ja: c.justificationA, jb: c.justificationB,
+        nL: 'Nom du critère ' + (i + 1), wL: 'Poids de ' + nm + ' en %', aL: 'Note de A pour ' + nm, bL: 'Note de B pour ' + nm,
+        jaL: 'Justifier A pour ' + nm, jbL: 'Justifier B pour ' + nm, rmL: 'Supprimer ' + nm, nInv: t && !c.nom.trim() ? 'true' : 'false',
+        nc: e => this.setC(i, { nom: e.target.value }),
+        wc: e => { const x = parseInt(String(e.target.value).replace(/\D/g, ''), 10) || 0; this.setC(i, { poids: Math.min(100, x) }); },
+        foc: () => s.open !== i && this.setState({ open: i }),
+        nkd: e => { if (e.key === 'Enter') { e.preventDefault(); this.setState({ focusName: 'w:' + i }); } },
+        wkd: e => { if (e.key === 'Enter') { e.preventDefault(); i === crit.length - 1 ? this.add() : this.setState({ focusName: i + 1, open: i + 1 }); } },
+        jac: e => this.setC(i, { justificationA: e.target.value }), jbc: e => this.setC(i, { justificationB: e.target.value }),
+        rm: () => this.rm(i),
+        nSt: `min-width:0;border:0;outline:0;background:none;padding:0;font-size:13.5px;font-weight:700;color:#10233a;caret-color:#1f9a8a;text-overflow:ellipsis;${t && !c.nom.trim() ? 'box-shadow:0 1.5px 0 ' + FA_WARN : ''}`,
+        wBoxSt: `height:28px;border-radius:8px;background:#f3f6f5;display:flex;align-items:center;justify-content:flex-end;gap:2px;padding:0 8px;${t && !wOk ? 'box-shadow:inset 0 0 0 1.5px ' + FA_WARN : ''}`,
+        aBoxSt: box(t && !c.noteA), bBoxSt: box(t && !c.noteB),
+        sa: sig(c.noteA, FA_A, x => () => this.setC(i, { noteA: c.noteA === x ? 0 : x })),
+        sb: sig(c.noteB, FA_B, x => () => this.setC(i, { noteB: c.noteB === x ? 0 : x })),
+      }; });
+    const warnFoot = (t && issue) || s.err;
+    return {
+      root: this.root, sides, rows, verdict, wOk, empty: !crit.length, toast: s.toast, backL: this.props.backLabel || 'Retour à la décision',
+      scaleL: rated ? 'Échelle de 0 à 4 : A ' + f2(sA) + ', B ' + f2(sB) : 'Échelle de 0 à 4 : aucune note',
+      mA: mk(pa, 'A'), mB: mk(pb, 'B'),
+      gapSt: `position:absolute;top:8px;height:2px;left:${lo}%;width:${rated ? hi - lo : 0}%;background:#9fb3ae;transition:left .45s ${ez},width .45s ${ez}`,
+      wTxt: W.text, wSt: `font-size:11.5px;font-weight:700;display:flex;align-items:center;gap:5px;white-space:nowrap;font-variant-numeric:tabular-nums;color:${wOk ? '#146b64' : FA_WARN}`,
+      foot: s.err || (t && issue ? issue : 'Note : 1 faible · 4 excellent'),
+      footSt: `flex:1;min-width:0;font-size:11.5px;font-weight:${warnFoot ? 700 : 500};color:${warnFoot ? FA_WARN : '#8a9aa6'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis`,
+      cta: s.busy ? 'Enregistrement…' : 'Enregistrer', busy: s.busy ? 'true' : 'false',
+      ctaSt: `height:40px;padding:0 16px;border:0;border-radius:12px;display:flex;align-items:center;font-size:13px;font-weight:700;white-space:nowrap;cursor:${s.busy ? 'progress' : 'pointer'};transition:background .2s,color .2s;background:${ready ? '#13243d' : '#edf2f0'};color:${ready ? '#fff' : '#7d8f9a'}`,
+      add: () => this.add(), back: () => this.props.onBack?.(), save: () => this.save(issue),
+    };
+  }
+}
+</script>
+</body>
+</html>
