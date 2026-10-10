@@ -267,7 +267,7 @@ export class LlmService {
     for (const r of routes.filter((x) => x.fn.id !== 'doc_syn')) {
       const model = await this.prisma.aiModel.findUniqueOrThrow({ where: { id: r.modelId } });
       const volume = r.fn.category === 'RERANKING' ? { tokensIn: model.priceUnit === 'REQUESTS' ? 0 : tokens, tokensOut: 0, requests: 1 } : { tokensIn: tokens, tokensOut: 0, requests: 0 };
-      await this.record(model, r.fn.id, volume, r.fallback, input);
+      await this.record(model, r.fn.id, volume, r.fallback, input, undefined, undefined, undefined, true);
     }
     const syn = routes.find((x) => x.fn.id === 'doc_syn')!;
     return this.run(syn.modelId, { ...input, functionId: 'doc_syn' }, syn.fallback);
@@ -278,7 +278,7 @@ export class LlmService {
    * identifiant de requête `req_…`, tarifs du modèle figés sur la ligne (un changement de tarif au catalogue ne
    * modifie pas les appels passés), latence. Le contenu des prompts et des réponses n'est jamais enregistré.
    */
-  private async record(model: Parameters<typeof costOf>[0] & { id: string; providerId: string }, functionId: AiFunctionId, v: { tokensIn: number; tokensOut: number; requests: number }, fallbackUsed: boolean, input: { projectId?: string | null; source: UsageSourceCode }, durationMs?: number, billedIn?: number, cache?: { read: number; write: number }) {
+  private async record(model: Parameters<typeof costOf>[0] & { id: string; providerId: string }, functionId: AiFunctionId, v: { tokensIn: number; tokensOut: number; requests: number }, fallbackUsed: boolean, input: { projectId?: string | null; source: UsageSourceCode }, durationMs?: number, billedIn?: number, cache?: { read: number; write: number }, simulated = false) {
     // Jetons d'entrée facturés : moins que les jetons envoyés quand une partie est lue dans le cache.
     const costEur = costOf(model, billedIn === undefined ? v : { ...v, tokensIn: billedIn });
     const price = priceOf(model);
@@ -292,7 +292,7 @@ export class LlmService {
         id: `req_${randomBytes(6).toString('hex')}`, at, projectId: input.projectId ?? null, functionId, modelId: model.id, providerId: model.providerId,
         tokensIn: v.tokensIn, tokensOut: v.tokensOut, requests: v.requests, costEur, fallbackUsed, source: input.source,
         priceIn: price.in ?? null, priceOut: price.out ?? null, pricePer1k: price.per1k ?? null, durationMs: durationMs ?? null,
-        cacheReadTokens: cache?.read ?? 0, cacheWriteTokens: cache?.write ?? 0, accountId, feature,
+        cacheReadTokens: cache?.read ?? 0, cacheWriteTokens: cache?.write ?? 0, accountId, feature, simulated,
       },
     });
     // Consommation et coûts se met à jour en direct, y compris pour les appels faits en tâche de fond (05/10/2026).
@@ -366,7 +366,7 @@ export class LlmService {
       }
       const tokens = out.tokens ?? batch.reduce((n, t) => n + Math.max(1, Math.ceil(t.length / 4)), 0);
       d.jetons = tokens;
-      await span('enregistrement de la consommation (base)', () => this.record(model, 'doc_vec', { tokensIn: tokens, tokensOut: 0, requests: 0 }, false, { source, projectId: opts.projectId ?? null }, Date.now() - t0));
+      await span('enregistrement de la consommation (base)', () => this.record(model, 'doc_vec', { tokensIn: tokens, tokensOut: 0, requests: 0 }, false, { source, projectId: opts.projectId ?? null }, Date.now() - t0, undefined, undefined, !this.client.live));
       await onBatch?.(Math.min(i + batch.length, texts.length), texts.length);
     }
     return { modelId: model.id, modelName: model.name, dims, vectors };
@@ -406,7 +406,7 @@ export class LlmService {
         out = { results: overlapRank(query, documents).slice(0, topN), tokens: null };
       }
       const tokens = out.tokens ?? Math.max(1, Math.ceil((query.length + documents.join(' ').length) / 4));
-      await this.record(model, 'doc_rrk', { tokensIn: model.priceUnit === 'REQUESTS' ? 0 : tokens, tokensOut: 0, requests: 1 }, fallbackUsed, { source }, Date.now() - t0);
+      await this.record(model, 'doc_rrk', { tokensIn: model.priceUnit === 'REQUESTS' ? 0 : tokens, tokensOut: 0, requests: 1 }, fallbackUsed, { source }, Date.now() - t0, undefined, undefined, !this.client.live);
       return { modelId: model.id, modelName: model.name, fallbackUsed, results: out.results.slice(0, topN) };
     };
     try {
@@ -474,7 +474,8 @@ export class LlmService {
     const tokensIn = Math.max(1, Math.ceil(inputChars(input) / 4));
     const tokensOut = Math.max(1, Math.ceil(text.length / 4));
     const ms = Date.now() - t0;
-    const costEur = await this.record(model, input.functionId, { tokensIn, tokensOut, requests: 0 }, fallbackUsed, input, ms);
+    // Bouchon : coût estimé, jamais facturé (repère `simulated`, 10/10/2026).
+    const costEur = await this.record(model, input.functionId, { tokensIn, tokensOut, requests: 0 }, fallbackUsed, input, ms, undefined, undefined, true);
     return { text, modelId: model.id, providerId: model.providerId, tokensIn, tokensOut, costEur, fallbackUsed, ms };
   }
 

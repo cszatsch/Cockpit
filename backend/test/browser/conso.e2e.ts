@@ -4,7 +4,7 @@
  *
  * Usage (application démarrée, AUTH_DEV=true) :
  *   cd backend && npx ts-node --transpile-only test/browser/conso.e2e.ts
- * Variable : CONSOLE_URL (défaut http://localhost:3000).
+ * Variable : CONSOLE_URL (défaut http://localhost:3302, serveur de recette sur la base de test — jamais l'application réelle, dont la base serait polluée : 10/10/2026).
  *
  * Rien n'est écrit dans la base : les routes de l'écran (`/usage/month`, `/usage/daily`, `/usage/calls`,
  * `/usage/calls.csv`, `PUT /budget-thresholds/:id`) sont interceptées et servies par un jeu de données de test
@@ -14,7 +14,7 @@ import { chromium, Browser, Page } from 'playwright';
 import { newPage } from './harness';
 import { addDays } from '../../src/domain/dates';
 
-const API = process.env.CONSOLE_URL || 'http://localhost:3000';
+const API = process.env.CONSOLE_URL || 'http://localhost:3302';
 const TODAY = '2026-10-02';
 const LINES = ['insights', 'rapports', 'guidage', 'docs', 'crud'];
 const SPENT: Record<string, number> = { insights: 0.56, rapports: 0, guidage: 0.13, docs: 0.18, crud: 0.01 };

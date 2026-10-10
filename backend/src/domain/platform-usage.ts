@@ -69,6 +69,16 @@ export const AGGREGATE_STALE_MS = 5 * 60_000;
 export const AGGREGATE_LOOKBACK_HOURS = 2;
 
 /**
+ * Usage réel seulement (demande du commanditaire du 10/10/2026) : les connexions des outils automatiques (recettes
+ * navigateur, scripts) ne comptent pas. Reconnus à leur agent utilisateur (`AuthSession.device`) : navigateur sans
+ * interface (HeadlessChrome), Node.js (« node »), curl. Les comptes et projets du jeu de démonstration (`demo`) et les
+ * appels d'IA simulés par le bouchon (`UsageRecord.simulated`) sont exclus de la même façon.
+ */
+export const AUTOMATED_DEVICE_PATTERN = '(HeadlessChrome|^node|^curl/)';
+/** Session ouverte par un outil automatique (même règle que le calcul SQL). */
+export const isAutomatedDevice = (device: string | null | undefined) => new RegExp(AUTOMATED_DEVICE_PATTERN).test(device ?? '');
+
+/**
  * Temps actif d'une suite d'événements d'un même utilisateur (référence de la requête SQL d'agrégation) : chaque
  * événement compte jusqu'au suivant, au plus `idleMs` ; le dernier compte jusqu'à `endMs` (fin de session ou
  * maintenant), au plus `idleMs`. Deux onglets ouverts ne comptent pas deux fois (une seule suite par utilisateur).

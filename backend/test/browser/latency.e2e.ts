@@ -4,7 +4,7 @@
  *
  * Usage (application démarrée, `npm run build` préalable, AUTH_DEV=true) :
  *   cd backend && npx ts-node --transpile-only test/browser/latency.e2e.ts
- * Variable : CONSOLE_URL (défaut http://localhost:3000).
+ * Variable : CONSOLE_URL (défaut http://localhost:3302, serveur de recette sur la base de test — jamais l'application réelle, dont la base serait polluée : 10/10/2026).
  *
  * Rien n'est écrit dans la base de l'application (01/10/2026 : les mesures de test s'y voyaient) : les appels de
  * l'écran à `/api/ai/latency` sont interceptés dans le navigateur et servis à partir du jeu de mesures de test
@@ -17,7 +17,7 @@ import { parisDay } from '../../src/domain/notification-rules';
 import { latencyFixture } from '../fixtures/latency';
 import { buildLatencyReport, buildLatencySeries, isLatencyPeriod, LATENCY_END_OFFSET_DAYS, latencyInstants, latencyRange, TimingRow } from '../../src/domain/latency';
 
-const API = process.env.CONSOLE_URL || 'http://localhost:3000';
+const API = process.env.CONSOLE_URL || 'http://localhost:3302';
 const haikuName = 'Claude Haiku 4.5';
 const EMPTY_BACK = 10; // jour sans mesure (période Jour, 10 jours avant le dernier jour)
 /** Noms et fournisseurs des modèles du jeu de mesures (champ `models` du rapport). */

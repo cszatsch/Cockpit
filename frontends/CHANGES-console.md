@@ -730,3 +730,8 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
   plan d'empilement à part, peint sous l'en-tête (z-index 40). Remplissage `backwards` pour les cinq écrans animés (Fournisseurs
   et modèles, Consommation et coûts, Consommation et coûts · Accès, Analyse des temps de réponse, Snapshots) : même entrée en
   fondu, les fenêtres repassent au-dessus de l'en-tête.
+
+## Consommation et coûts · Accès : usage réel seulement (10/10/2026)
+
+- Écran inchangé ; le serveur n'y compte plus les comptes et le projet de démonstration, les connexions des outils automatiques,
+  ni les appels d'IA simulés (voir `docs/DECISIONS.md`). Filtres Projet et Utilisateurs sans éléments de démonstration.

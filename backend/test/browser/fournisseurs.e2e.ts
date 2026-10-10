@@ -4,7 +4,7 @@
  *
  * Usage (application démarrée, AUTH_DEV=true) :
  *   cd backend && npx ts-node --transpile-only test/browser/fournisseurs.e2e.ts
- * Variable : CONSOLE_URL (défaut http://localhost:3000).
+ * Variable : CONSOLE_URL (défaut http://localhost:3302, serveur de recette sur la base de test — jamais l'application réelle, dont la base serait polluée : 10/10/2026).
  *
  * Rien n'est écrit dans la base : les appels de la Console à /providers, /models, /assignments et /functions sont
  * interceptés et servis par un double en mémoire, initialisé avec les vraies données (tests de clé simulés, états de
@@ -13,7 +13,7 @@
 import { chromium, Browser, Page, Route } from 'playwright';
 import { newPage } from './harness';
 
-const API = process.env.CONSOLE_URL || 'http://localhost:3000';
+const API = process.env.CONSOLE_URL || 'http://localhost:3302';
 const results: Array<{ step: string; ok: boolean; detail?: string }> = [];
 const check = (step: string, ok: boolean, detail = '') => { results.push({ step, ok, detail }); console.log(`${ok ? '✔' : '✘'} ${step}${detail ? ' — ' + detail : ''}`); };
 async function launch(): Promise<Browser> { try { return await chromium.launch(); } catch { return chromium.launch({ channel: 'chrome' }); } }

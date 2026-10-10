@@ -7,6 +7,7 @@ import {
   AGGREGATE_FRESH_MS, AGGREGATE_LOOKBACK_HOURS, AGGREGATE_STALE_MS, BREAKDOWN_MAX, COST_ALERT_PCT_DEFAULT, EVENT_MAX_AGE_MINUTES, FEATURE_IDS, FEATURE_OF_FUNCTION,
   Gran, IDLE_MINUTES_DEFAULT, UNUSUAL_FACTOR_DEFAULT, USAGE_EVENTS_RETENTION_DAYS, USAGE_FEATURES, USERS_PAGE_SIZE, eur, evolution, featureName, hours,
   isoAdd, parisDate, parisMidnight, periodOf, Period, pseudonym, unusualFlags,
+  AUTOMATED_DEVICE_PATTERN,
 } from '../domain/platform-usage';
 
 /** Filtres communs des routes (`gran`, `start`, `scope`, `teams[]`, `users[]`, `feature`, `provider`, `model`, `compare`). */
@@ -166,15 +167,24 @@ export class PlatformUsageService implements OnModuleInit {
       await tx.$executeRawUnsafe(`DELETE FROM usage_agg_hour WHERE bucket >= $1::timestamp AND bucket < $2::timestamp`, p[0], p[1]);
       await tx.$executeRawUnsafe(
         `
-WITH se AS (
+WITH demo_acc AS (SELECT id FROM "Account" WHERE demo),
+demo_proj AS (SELECT id FROM "Project" WHERE demo),
+-- Usage réel seulement (10/10/2026) : ni comptes de démonstration, ni sessions d'outils automatiques.
+real_s AS (
+  SELECT * FROM "AuthSession"
+  WHERE "accountId" NOT IN (SELECT id FROM demo_acc) AND COALESCE(device, '') !~ '${AUTOMATED_DEVICE_PATTERN}'
+),
+se AS (
   SELECT id, COALESCE("revokedAt", LEAST($4::timestamp, "lastSeenAt" + (CASE surface WHEN 'ADMIN' THEN ${adminIdle} ELSE ${appIdle} END) * interval '1 minute')) AS en
-  FROM "AuthSession"
+  FROM real_s
 ),
 ev AS (
   SELECT e.at, e."accountId", e.feature, e."projectId", se.en,
          LEAD(e.at) OVER (PARTITION BY e."accountId" ORDER BY e.at) AS nx
   FROM usage_events e LEFT JOIN se ON se.id = e."sessionId"
   WHERE e.at >= $1::timestamp AND e.at < $2::timestamp + make_interval(secs => $3)
+    AND e."accountId" NOT IN (SELECT id FROM demo_acc) AND COALESCE(e."projectId", '') NOT IN (SELECT id FROM demo_proj)
+    AND (e."sessionId" IS NULL OR e."sessionId" NOT IN (SELECT id FROM "AuthSession" WHERE COALESCE(device, '') ~ '${AUTOMATED_DEVICE_PATTERN}'))
 ),
 act AS (
   SELECT date_trunc('hour', at) AS bucket, "accountId" AS acc, feature, '' AS provider, '' AS model,
@@ -184,7 +194,7 @@ act AS (
 ),
 s0 AS (
   SELECT s."accountId" AS acc, GREATEST(s."createdAt", $1::timestamp) AS st, LEAST(GREATEST(s."createdAt", se.en), $2::timestamp) AS en
-  FROM "AuthSession" s JOIN se ON se.id = s.id
+  FROM real_s s JOIN se ON se.id = s.id
   WHERE s."createdAt" < $2::timestamp AND se.en > $1::timestamp
 ),
 s1 AS (SELECT * FROM s0 WHERE en > st),
@@ -198,12 +208,13 @@ con AS (
 ),
 lg AS (
   SELECT date_trunc('hour', "createdAt") AS bucket, "accountId" AS acc, '' AS feature, '' AS provider, '' AS model, 0::float8 AS a, 0::float8 AS c, 1 AS l, 0 AS e, 0 AS r, 0::bigint AS ti, 0::bigint AS tou, 0::float8 AS cost, '' AS project
-  FROM "AuthSession" WHERE "createdAt" >= $1::timestamp AND "createdAt" < $2::timestamp
+  FROM real_s WHERE "createdAt" >= $1::timestamp AND "createdAt" < $2::timestamp
 ),
 ai AS (
   SELECT date_trunc('hour', at) AS bucket, COALESCE("accountId", '') AS acc, COALESCE(feature, ${fnCase}) AS feature, "providerId" AS provider, "modelId" AS model,
          0::float8 AS a, 0::float8 AS c, 0 AS l, 0 AS e, 1 AS r, "tokensIn"::bigint AS ti, "tokensOut"::bigint AS tou, "costEur"::float8 AS cost, COALESCE("projectId", '') AS project
   FROM "UsageRecord" WHERE at >= $1::timestamp AND at < $2::timestamp
+    AND NOT simulated AND COALESCE("accountId", '') NOT IN (SELECT id FROM demo_acc) AND COALESCE("projectId", '') NOT IN (SELECT id FROM demo_proj)
 )
 INSERT INTO usage_agg_hour (bucket, "accountId", feature, provider, model, project, "activeSec", "connectedSec", logins, events, requests, "tokensIn", "tokensOut", "costEur")
 SELECT bucket, acc, feature, provider, model, project, SUM(a), SUM(c), SUM(l), SUM(e), SUM(r), SUM(ti), SUM(tou), SUM(cost)
@@ -243,7 +254,8 @@ GROUP BY bucket, acc, feature, provider, model, project`,
   }
 
   private async loadAccounts(): Promise<Map<string, Acc>> {
-    const accounts = await this.prisma.account.findMany({ select: { id: true, fullName: true, email: true, personId: true, createdAt: true }, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] });
+    // Comptes du jeu de démonstration exclus (usage réel seulement, 10/10/2026).
+    const accounts = await this.prisma.account.findMany({ where: { demo: false }, select: { id: true, fullName: true, email: true, personId: true, createdAt: true }, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] });
     const persons = await this.prisma.person.findMany({ where: { OR: [{ id: { in: accounts.map((a) => a.personId).filter((x): x is string => !!x) } }, { email: { in: accounts.map((a) => a.email), mode: 'insensitive' } }] }, select: { id: true, email: true, teamId: true, projectId: true, project: { select: { createdAt: true } } } });
     const links = await this.prisma.accountProject.findMany({ select: { accountId: true, projectId: true } });
     const habs = await this.prisma.habilitation.findMany({ select: { accountId: true, personId: true, projectId: true } });
@@ -472,7 +484,7 @@ GROUP BY bucket, acc, feature, provider, model, project`,
       teams: [...new Set(list.map((a) => a.team))].sort((a, b) => (a === NO_TEAM ? 1 : b === NO_TEAM ? -1 : a.localeCompare(b, 'fr'))),
       users: rights.individual ? list.map((a) => ({ id: a.id, name: a.name, team: a.team })).sort((a, b) => a.name.localeCompare(b.name, 'fr')) : [],
       features: USAGE_FEATURES.map((f) => ({ id: f.id, name: f.name })),
-      projects: (await this.prisma.project.findMany({ select: { id: true, code: true, name: true }, orderBy: { code: 'asc' } })).map((p) => ({ id: p.id, code: p.code, name: p.name })),
+      projects: (await this.prisma.project.findMany({ where: { demo: false }, select: { id: true, code: true, name: true }, orderBy: { code: 'asc' } })).map((p) => ({ id: p.id, code: p.code, name: p.name })),
       providers: providers.map((p) => ({ id: p.id, name: p.name })),
       models: models.map((m) => ({ id: m.id, name: m.name, providerId: m.providerId })),
       rights,

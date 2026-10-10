@@ -1,4 +1,4 @@
-import { activeMs, csvOf, featureOfPath, isoWeek, parisMidnight, periodOf, pseudonym, unusualFlags } from '../../src/domain/platform-usage';
+import { activeMs, csvOf, featureOfPath, isAutomatedDevice, isoWeek, parisMidnight, periodOf, pseudonym, unusualFlags } from '../../src/domain/platform-usage';
 
 const min = 60_000;
 
@@ -48,5 +48,13 @@ describe('Consommation et coûts · Accès : règles', () => {
     expect(featureOfPath('/api/projects/RISE/planning/phase/P1')).toBe('projets');
     expect(pseudonym(0)).toBe('Utilisateur 01');
     expect(csvOf([['Nom', 'Coût (€)'], ['Dupont; Jean', 12.5]])).toBe('﻿Nom;Coût (€)\r\n"Dupont; Jean";12,5\r\n');
+  });
+
+  it('sessions d’outils automatiques (recettes navigateur, scripts) reconnues à leur agent utilisateur', () => {
+    expect(isAutomatedDevice('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36')).toBe(true);
+    expect(isAutomatedDevice('node')).toBe(true);
+    expect(isAutomatedDevice('curl/8.19.0')).toBe(true);
+    expect(isAutomatedDevice('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36')).toBe(false);
+    expect(isAutomatedDevice(null)).toBe(false);
   });
 });

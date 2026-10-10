@@ -280,6 +280,8 @@ model Project {
   client            Client        @relation(fields: [clientId], references: [id])
   code              String        @unique
   name              String
+  /// Projet du jeu de démonstration (10/10/2026) : exclu de Consommation et coûts · Accès (usage non réel)
+  demo              Boolean       @default(false)
   objective         String?
   startDate         String
   targetEndDate     String
@@ -1120,6 +1122,8 @@ model Account {
   inviteExpiresAt    DateTime?
   lastLoginAt        DateTime?
   photoUrl           String?
+  /// Compte du jeu de démonstration (10/10/2026) : exclu de Consommation et coûts · Accès (usage non réel)
+  demo               Boolean       @default(false)
   /// Profil de l'administrateur (fonction, société, téléphone, ville, pays, langue, fuseau)
   profile            Json?
   /// Empreinte Argon2id du mot de passe (null : mot de passe jamais défini, connexion impossible)
@@ -1357,6 +1361,9 @@ model UsageRecord {
   accountId        String?
   /// Fonctionnalité (Consommation et coûts · Accès) : celle de la requête, sinon déduite de la fonction d'IA
   feature          String?
+  /// Appel simulé par le bouchon (hors ligne ou fonction non réelle) : coût estimé, jamais facturé (10/10/2026) ;
+  /// exclu de Consommation et coûts · Accès
+  simulated        Boolean     @default(false)
 
   @@index([at])
   @@index([accountId, at])

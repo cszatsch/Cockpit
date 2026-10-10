@@ -1938,3 +1938,20 @@ Demande du commanditaire : un risque peut concerner un chantier, plusieurs, ou t
   128K tokens, contexte 1M tokens ; palier au-delà de 100K tokens et cache en note. Date de sortie non indiquée sur la fiche
   (« Nouveau ») : date d'ajout, 10/10/2026. Appliqué à la base locale par `npm run ia:catalogue -- --modele "Claude Haiku 5.5"
   --confirmer` (aucun autre modèle ni affectation touchés).
+
+## Consommation et coûts · Accès : usage réel seulement (10/10/2026)
+
+- Demande du commanditaire : retirer de la vue les consommations et coûts qui ne sont pas réels. Constat (base locale) : aucune
+  donnée inventée dans l'écran ni dans le serveur, mais une base où s'étaient accumulés les usages des comptes de démonstration
+  (@example.com), des outils automatiques (recettes navigateur et scripts qui visaient par défaut l'application réelle, port
+  3000), du projet de démonstration RISE, et des appels d'IA simulés par le bouchon (coût estimé, jamais facturé).
+- Règle : rien n'est supprimé ; repères ajoutés (migration `20261118000000_consommation_reelle`) — `Account.demo`,
+  `Project.demo` (base existante : comptes @example.com, projet RISE), `UsageRecord.simulated` (posé par le bouchon à
+  l'enregistrement ; passé : appels sans durée ou de moins de 50 ms) ; le calcul des agrégats (`aggregateRange`) écarte ces
+  comptes, ces projets, ces appels et les sessions des outils automatiques (agent utilisateur HeadlessChrome, node, curl :
+  `AUTOMATED_DEVICE_PATTERN`, `src/domain/platform-usage.ts`) ; listes des filtres sans comptes ni projets de démonstration.
+  Agrégats recalculés en entier au premier passage après la migration.
+- Effet sur la base locale (octobre 2026) : coût IA de 13,98 € (651 appels) à 2,98 € (206 appels) ; connexions de 352 à 105.
+  Le Journal des appels (Consommation et coûts › IA) garde toutes les lignes.
+- Cause corrigée : les recettes navigateur (`accueil`, `conso`, `format-rapport`, `fournisseurs`, `latency`) visent par défaut le
+  serveur de recette (port 3302, base de test), plus l'application réelle.

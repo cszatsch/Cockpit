@@ -4,7 +4,7 @@
  *
  * Usage (application démarrée, AUTH_DEV=true, `npm run build` préalable) :
  *   cd backend && npx ts-node --transpile-only test/browser/format-rapport.e2e.ts
- * Variable : CONSOLE_URL (défaut http://localhost:3000).
+ * Variable : CONSOLE_URL (défaut http://localhost:3302, serveur de recette sur la base de test — jamais l'application réelle, dont la base serait polluée : 10/10/2026).
  *
  * Écrit dans la base : des fichiers de format et un template « Recette format » (supprimé à la fin).
  */
@@ -16,7 +16,7 @@ import JSZip from 'jszip';
 import { newPage } from './harness';
 import { makeFormatPptx, pptxIntegrity } from '../format-fixture';
 
-const API = process.env.CONSOLE_URL || 'http://localhost:3000';
+const API = process.env.CONSOLE_URL || 'http://localhost:3302';
 const NAME = 'Recette format';
 const results: Array<{ step: string; ok: boolean }> = [];
 const check = (step: string, ok: boolean, detail = '') => { results.push({ step, ok }); console.log(`${ok ? '✔' : '✘'} ${step}${detail ? ' — ' + detail : ''}`); };

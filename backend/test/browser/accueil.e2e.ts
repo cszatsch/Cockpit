@@ -4,14 +4,14 @@
  *
  * Usage (application démarrée, AUTH_DEV=true) :
  *   cd backend && npx ts-node --transpile-only test/browser/accueil.e2e.ts
- * Variable : CONSOLE_URL (défaut http://localhost:3000).
+ * Variable : CONSOLE_URL (défaut http://localhost:3302, serveur de recette sur la base de test — jamais l'application réelle, dont la base serait polluée : 10/10/2026).
  *
  * Rien n'est généré ni écrit : `GET /today/greeting` est intercepté (message de Jev, puis échec de la route).
  */
 import { chromium, Browser, Page } from 'playwright';
 import { newPage } from './harness';
 
-const API = process.env.CONSOLE_URL || 'http://localhost:3000';
+const API = process.env.CONSOLE_URL || 'http://localhost:3302';
 const JEV = 'Bonsoir Robin, le COPIL du 26 oct. se prépare dès maintenant : 3 risques critiques méritent votre regard.';
 
 const results: Array<{ step: string; ok: boolean; detail?: string }> = [];

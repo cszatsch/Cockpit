@@ -197,4 +197,40 @@ describe('Consommation et coûts · Accès', () => {
     const recs = await t.db.usageRecord.findMany({ where: { accountId: 'u1' }, orderBy: { at: 'desc' } });
     if (recs.length > before) expect(recs[0].feature).toBe('jev');
   });
+
+  it('usage réel seulement (10/10/2026) : ni compte ni projet de démonstration, ni session automatique, ni appel simulé', async () => {
+    const db = t.db, D = 'acc-usage-demo';
+    const model = await db.aiModel.findFirst({ where: { category: 'LLM' } });
+    const rec = (id: string, d: string, acc: string, cost: number, extra: Record<string, unknown> = {}) =>
+      db.usageRecord.create({ data: { id, at: at(d), functionId: 'guidage', modelId: model!.id, providerId: model!.providerId, tokensIn: 100, tokensOut: 20, costEur: cost, source: 'JEV', accountId: acc, feature: 'jev', ...extra } });
+    // Dimanche 20 septembre 2026. Compte de démonstration : session et appel d'IA.
+    await db.account.create({ data: { id: D, email: 'demo.usage@example.com', fullName: 'Démo Usage', status: 'ACTIVE', demo: true, createdAt: at('2020-01-03T00:00:00Z') } });
+    await db.authSession.create({ data: { accountId: D, createdAt: at('2026-09-20T08:00:00Z'), lastSeenAt: at('2026-09-20T09:00:00Z'), revokedAt: at('2026-09-20T09:00:00Z'), surface: 'APP' } });
+    await rec('req_usage_demo1', '2026-09-20T08:10:00Z', D, 0.4);
+    // X par un outil automatique (recette navigateur) : session et événement.
+    const auto = await db.authSession.create({ data: { accountId: X, device: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36', createdAt: at('2026-09-20T10:00:00Z'), lastSeenAt: at('2026-09-20T10:30:00Z'), revokedAt: at('2026-09-20T10:30:00Z'), surface: 'APP' } });
+    await db.usageEvent.create({ data: { at: at('2026-09-20T10:05:00Z'), accountId: X, sessionId: auto.id, feature: 'projets', kind: 'clic' } });
+    await db.authSession.create({ data: { accountId: X, device: 'curl/8.19.0', createdAt: at('2026-09-20T10:40:00Z'), lastSeenAt: at('2026-09-20T10:40:00Z'), surface: 'APP' } });
+    // X : un appel simulé par le bouchon, un appel réel, puis activité et appel sur un projet de démonstration.
+    await rec('req_usage_sim1', '2026-09-20T11:00:00Z', X, 0.3, { simulated: true });
+    await rec('req_usage_real1', '2026-09-20T12:00:00Z', X, 0.2);
+    await db.project.update({ where: { id: 'RISE' }, data: { demo: true } });
+    try {
+      await db.usageEvent.create({ data: { at: at('2026-09-20T13:00:00Z'), accountId: X, feature: 'rapports', kind: 'clic', projectId: 'RISE' } });
+      await rec('req_usage_demo2', '2026-09-20T13:01:00Z', X, 0.7, { projectId: 'RISE' });
+      await db.usageSettings.update({ where: { id: 'default' }, data: { aggregatedUntil: null } });
+      await svc.aggregate();
+      const c = await t.as(WHO.admin);
+      const r = (await c.get(`${A}/summary?gran=jour&start=2026-09-20`).expect(200)).body.current;
+      // Seul l'appel réel de X compte ; aucune connexion ni événement réels ce jour-là.
+      expect(r).toMatchObject({ requests: 1, costEur: 0.2, sessions: 0, events: 0, activeH: 0, connectedH: 0 });
+      const o = (await c.get(`${A}/options`).expect(200)).body;
+      expect(o.users.map((u: any) => u.id)).not.toContain(D);
+      expect(o.projects.map((p: any) => p.code)).not.toContain('RISE');
+    } finally {
+      await db.project.update({ where: { id: 'RISE' }, data: { demo: false } });
+      await db.usageSettings.update({ where: { id: 'default' }, data: { aggregatedUntil: null } });
+      await svc.aggregate();
+    }
+  });
 });
