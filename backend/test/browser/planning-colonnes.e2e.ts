@@ -1,7 +1,7 @@
 /// <reference lib="dom" />
 /**
  * Recette navigateur (10/10/2026) : dans Pilotage › Planning, l'ordre des colonnes du « Suivi d'avancement » suit le niveau
- * choisi — Phase > Chantier > Sous-phase (et Phase > Chantier) : Phase, Chantier, Sous-phase ; sinon Phase, Sous-phase, Chantier.
+ * choisi — Phase > Chantier > Sous-phase (et Phase > Chantier, Un chantier) : Phase, Chantier, Sous-phase ; sinon Phase, Sous-phase, Chantier.
  *   npx ts-node --transpile-only test/browser/planning-colonnes.e2e.ts   (serveur de recette sur 3302)
  */
 import { chromium, Page } from 'playwright';
@@ -37,6 +37,13 @@ import { chromium, Page } from 'playwright';
   await p.screenshot({ path: process.env.SHOT || 'planning-colonnes.png' });
   const c = await level('Phase > Chantier');
   check('Phase > Chantier : colonnes Phase, Chantier, Sous-phase', c.heads.join('|') === 'PHASE|CHANTIER|SOUS-PHASE', c.heads);
+  // « Un chantier » : sélecteur de la barre des niveaux.
+  const sel = p.locator('select').filter({ has: p.locator('option', { hasText: /Un chantier/ }) }).first();
+  await sel.selectOption({ index: 1 });
+  await p.waitForTimeout(1200);
+  const o = await read(p);
+  check('Un chantier : colonnes Phase, Chantier, Sous-phase', o.heads.join('|') === 'PHASE|CHANTIER|SOUS-PHASE', o.heads);
+  check('… le chantier dans la 2e colonne', o.cells.some((c) => !empty(c[1]) && empty(c[2])), o.cells.slice(0, 4));
   const s = await level('Phase > Sous-phase');
   check('Phase > Sous-phase : ordre d’origine (Phase, Sous-phase, Chantier)', s.heads.join('|') === 'PHASE|SOUS-PHASE|CHANTIER', s.heads);
   const t = await level('Tous les chantiers');

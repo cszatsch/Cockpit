@@ -612,7 +612,7 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 ## Planning : ordre des colonnes du Suivi d'avancement (10/10/2026)
 
 - Pilotage › Planning › « Suivi d'avancement » : les colonnes suivent le niveau choisi — « Phase > Chantier > Sous-phase » et
-  « Phase > Chantier » : Phase, Chantier, Sous-phase (largeurs permutées avec elles) ; autres niveaux : Phase, Sous-phase,
+  « Phase > Chantier » et « Un chantier » (ajout du 10/10/2026) : Phase, Chantier, Sous-phase (largeurs permutées avec elles) ; autres niveaux : Phase, Sous-phase,
   Chantier, comme avant (`pl.g.chFirst`, `pl.g.tCols`). Repères `data-suivi-head` / `data-suivi-row` pour la recette
   `test/browser/planning-colonnes.e2e.ts`.
 
