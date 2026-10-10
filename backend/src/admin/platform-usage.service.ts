@@ -58,6 +58,8 @@ export const DEMO_NAME = 'Tests et démonstration';
 export const NO_TEAM = 'Sans équipe';
 
 const ZERO: Totals = { activeSec: 0, connectedSec: 0, logins: 0, events: 0, requests: 0, tokensIn: 0, tokensOut: 0, costEur: 0 };
+/** Nom affiché d'un compte supprimé : nom lu dans la cible du journal (« Nom · e-mail »), suivi de « (supprimé) ». */
+export const deletedName = (target: string | null | undefined, id: string) => `${(target ?? '').split(' · ')[0].trim() || id} (supprimé)`;
 const num = (v: unknown) => (v === null || v === undefined ? 0 : Number(v));
 /** Horodatage naïf UTC accepté par une colonne `timestamp(3)` de Prisma. */
 const ts = (d: Date) => d.toISOString().replace('T', ' ').replace('Z', '');
@@ -270,6 +272,13 @@ GROUP BY bucket, acc, feature, provider, model, project`,
       const pids = new Set<string>([...own.map((p) => p.projectId), ...links.filter((l) => l.accountId === a.id).map((l) => l.projectId), ...habs.filter((h) => h.accountId === a.id || (h.personId && own.some((p) => p.id === h.personId))).map((h) => h.projectId)]);
       out.set(a.id, { id: a.id, name: a.fullName, team, rank: i, projects: pids });
     });
+    // Comptes supprimés (11/10/2026) : leur usage reste dans les agrégats ; ils gardent leur nom, lu dans le journal d'audit
+    // (« Suppression d'un utilisateur », cible « Nom · e-mail »), suivi de « (supprimé) », au lieu de leur identifiant.
+    const gone = await this.prisma.auditEntry.findMany({ where: { action: 'Suppression d’un utilisateur', entityType: 'Account', entityId: { not: null } }, select: { entityId: true, target: true }, orderBy: { at: 'desc' } });
+    for (const g of gone) {
+      if (!g.entityId || out.has(g.entityId)) continue;
+      out.set(g.entityId, { id: g.entityId, name: deletedName(g.target, g.entityId), team: NO_TEAM, rank: out.size, projects: new Set() });
+    }
     out.set(SYSTEM_ACCOUNT, { id: SYSTEM_ACCOUNT, name: SYSTEM_NAME, team: SYSTEM_NAME, rank: -1, projects: new Set() });
     out.set(DEMO_ACCOUNT, { id: DEMO_ACCOUNT, name: DEMO_NAME, team: DEMO_NAME, rank: -2, projects: new Set() });
     return out;

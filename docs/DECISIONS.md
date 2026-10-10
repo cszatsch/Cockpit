@@ -2054,4 +2054,9 @@ Demande du commanditaire : un risque peut concerner un chantier, plusieurs, ou t
 - Routes : `GET /api/admin/accounts-suspended` (aperçu : `deletable`, `kept` avec `reason`), `DELETE
   /api/admin/accounts-suspended` (tri refait au moment de l'appel ; une entrée « Suppression d'un utilisateur » par compte).
   Confirmation par la saisie de « SUPPRIMER ». Tests : `test/e2e/comptes-suspendus.spec.ts`.
+- Consommation d'un compte supprimé (11/10/2026) : rien n'est effacé (vue IA : appels gardés ; vue Accès : agrégats gardés).
+  Dans la vue Accès, le compte garde son nom, lu dans le journal d'audit (« Suppression d'un utilisateur », cible « Nom ·
+  e-mail »), suivi de « (supprimé) », équipe « Sans équipe » (`deletedName`, `PlatformUsageService.loadAccounts`) ; il reste
+  proposé dans le filtre « Utilisateurs ». Limite connue : son temps connecté vient des sessions, supprimées avec le compte —
+  gardé dans les agrégats, mais perdu si les agrégats sont entièrement recalculés (changement du délai d'inactivité).
 
