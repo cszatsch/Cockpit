@@ -15,6 +15,11 @@ import { registerPages } from './core/auth/pages';
 export async function createApp(opts: { logger?: boolean } = {}): Promise<INestApplication> {
   const app = await NestFactory.create(AppModule, { logger: opts.logger === false ? false : undefined });
   app.enableCors({ origin: true, exposedHeaders: ['ETag'] });
+  // Réponses de l'API jamais servies depuis le cache du navigateur (10/10/2026) : l'ETag `W/"version"` sert au verrouillage
+  // optimiste (`If-Match`), pas au cache ; sans cela, Express répondait 304 à `If-None-Match` et le navigateur gardait un ancien
+  // corps tant que la version ne changeait pas (profil sans `superAdmin` après une mise à jour). Les routes qui fixent leur
+  // propre `Cache-Control` (images, aperçus) le remplacent ensuite.
+  app.use('/api', apiNoCache);
   // Contexte de chaque requête : distingue les écritures de fond à annoncer (mises à jour en direct, 05/10/2026).
   app.use(requestScopeMiddleware);
   // Adresse IP réelle derrière un mandataire inverse (compteur d'échecs de connexion par IP).
@@ -29,6 +34,14 @@ export async function createApp(opts: { logger?: boolean } = {}): Promise<INestA
     app.use('/', express.static(path.resolve(config.frontendDir), { index: false }));
   }
   return app;
+}
+
+/** Requêtes de l'API : validateurs conditionnels du navigateur ignorés, réponse non mise en cache par défaut. */
+export function apiNoCache(req: express.Request, res: express.Response, next: express.NextFunction) {
+  delete req.headers['if-none-match'];
+  delete req.headers['if-modified-since'];
+  res.setHeader('Cache-Control', 'no-store');
+  next();
 }
 
 export function openApiConfig() {

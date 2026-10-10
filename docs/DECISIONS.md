@@ -2019,3 +2019,16 @@ Demande du commanditaire : un risque peut concerner un chantier, plusieurs, ou t
   `GET /api/admin/project-trash`, `POST /api/admin/project-trash/:id/restore`.
 - Tests : `test/unit/project-deletion.spec.ts`, `test/e2e/suppression-projet.spec.ts` (suppression et restauration complètes de
   RISE, consommation inchangée, droits, purge), recette `test/browser/suppression-projet.e2e.ts`.
+
+## Réponses de l'API jamais mises en cache par le navigateur (10/10/2026)
+
+- Constat (bouton « Supprimer le projet » absent pour un Super Admin, « Administrateur » sous l'avatar) : `GET
+  /api/admin/me/profile` renvoyait au navigateur un ancien corps, sans `superAdmin`. Cause : l'ETag de verrouillage optimiste
+  (`W/"version"`, `EtagInterceptor`) servait aussi de validateur de cache ; le navigateur renvoyait `If-None-Match`, Express
+  répondait 304 tant que la version du compte ne changeait pas, et le navigateur réutilisait sa copie d'avant la mise à jour
+  (le profil Super Admin et les champs calculés ne modifient pas `Account.version`). Toute réponse versionnée dont un champ
+  calculé change sans nouvelle version était exposée au même défaut.
+- Correction : intergiciel `apiNoCache` sur `/api` (`src/app.factory.ts`) — `If-None-Match` et `If-Modified-Since` ignorés,
+  `Cache-Control: no-store` par défaut (les routes qui fixent leur propre `Cache-Control` le gardent). L'ETag reste exposé pour
+  `If-Match`. Fichiers statiques des écrans inchangés (revalidation). Test : `test/e2e/cache-api.spec.ts`.
+
