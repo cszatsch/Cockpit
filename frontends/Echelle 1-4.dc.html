@@ -11,18 +11,14 @@
 html,body{margin:0;background:#fff;font-family:'Plus Jakarta Sans',sans-serif;color:#10233a;-webkit-font-smoothing:antialiased}
 *{box-sizing:border-box}
 </style></helmet>
-<!-- Échelle 1–4 (« Saisir sans Jev », maquette 3a : probabilité, impact) : libellé à gauche, niveau en clair à droite, quatre cases ;
-     la case choisie en encre, les précédentes en vert pâle. Clavier : groupe de boutons radio, flèches gauche / droite. -->
-<div style="display:flex;flex-direction:column;gap:6px">
-  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:11.5px;font-weight:600;color:#43586a"><span id="{{ labelId }}" style="white-space:nowrap">{{ label }}<sc-if value="{{ required }}" hint-placeholder-val="{{ false }}"><span style="color:#1d8f86"> *</span></sc-if></span><span style="font-size:11px;color:#10233a;font-weight:700;white-space:nowrap">{{ levelL }}</span></div>
-  <div role="radiogroup" aria-labelledby="{{ labelId }}" style="display:flex;gap:4px"><sc-for list="{{ dots }}" as="p" hint-placeholder-count="4"><button type="button" role="radio" aria-checked="{{ p.ariaChk }}" aria-label="{{ p.aria }}" tabIndex="{{ p.tab }}" onClick="{{ p.on }}" onKeyDown="{{ onKey }}" style="{{ p.st }}" style-focus-visible="outline:2px solid #146b64;outline-offset:2px">{{ p.n }}</button></sc-for></div>
-</div>
+<!-- Échelle 1–4 (« Saisir sans Jev », maquette 5a, 10/10/2026 : probabilité, impact) : quatre cases, chiffre et niveau en clair ;
+     la case choisie en bleu nuit, les précédentes en vert pâle. Le libellé et le niveau à droite sont affichés par l'écran.
+     Clavier : groupe de boutons radio, flèches. -->
+<div role="radiogroup" aria-labelledby="{{ labelledBy }}" style="display:flex;gap:4px"><sc-for list="{{ dots }}" as="p" hint-placeholder-count="4"><button type="button" role="radio" aria-checked="{{ p.ariaChk }}" aria-label="{{ p.aria }}" tabIndex="{{ p.tab }}" onClick="{{ p.on }}" onKeyDown="{{ onKey }}" style="{{ p.st }}" style-focus-visible="outline:2px solid #146b64;outline-offset:2px"><b style="font-size:13px;line-height:1">{{ p.n }}</b><span style="font-size:9.5px;font-weight:600;opacity:.8;white-space:nowrap">{{ p.t }}</span></button></sc-for></div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;label&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;required&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;boolean&quot;},&quot;value&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;number&quot;},&quot;labels&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string[]&quot;},&quot;onChange&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(n: number) =&gt; void&quot;}}">
-// Composant réutilisable « Échelle 1–4 » (09/10/2026) : `labels` = libellés des niveaux 1 à 4.
-let e4Seq = 0;
+<script type="text/x-dc" data-dc-script data-props="{&quot;value&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;number&quot;},&quot;labels&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string[]&quot;},&quot;labelledBy&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;onChange&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(n: number) =&gt; void&quot;}}">
+// Composant réutilisable « Échelle 1–4 » (10/10/2026) : `labels` = libellés des niveaux 1 à 4.
 class Component extends DCLogic {
-  uid = 'e4' + (++e4Seq);
   renderVals() {
     const P = this.props, cv = Number(P.value) || 0, L = P.labels || [];
     const set = n => { if (n !== cv) P.onChange?.(n); };
@@ -33,9 +29,9 @@ class Component extends DCLogic {
       const g = e.currentTarget.parentElement; setTimeout(() => g && g.children[n - 1] && g.children[n - 1].focus(), 0);
     };
     return {
-      label: P.label, required: !!P.required, labelId: this.uid + 'l', levelL: cv ? (L[cv - 1] || '') : '', onKey,
-      dots: [1, 2, 3, 4].map(n => ({ n, ariaChk: n === cv ? 'true' : 'false', aria: n + (L[n - 1] ? ' · ' + L[n - 1] : ''), tab: n === (cv || 1) ? 0 : -1, on: () => set(n),
-        st: `flex:1;height:30px;border:0;padding:0;font-family:inherit;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;cursor:pointer;${n === cv ? 'background:#10233a;color:#fff' : n < cv ? 'background:#e3f1ee;color:#1d8f86' : 'background:#f3f6f5;color:#8a9aa6'}` })),
+      labelledBy: P.labelledBy, onKey,
+      dots: [1, 2, 3, 4].map(n => ({ n, t: L[n - 1] || '', ariaChk: n === cv ? 'true' : 'false', aria: n + (L[n - 1] ? ' · ' + L[n - 1] : ''), tab: n === (cv || 1) ? 0 : -1, on: () => set(n),
+        st: `flex:1;min-width:0;height:42px;border:0;padding:0;font-family:inherit;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;transition:background .15s,color .15s,box-shadow .15s;${n === cv ? 'background:#13243d;color:#fff;box-shadow:0 8px 16px -10px rgba(19,36,61,.7)' : n < cv ? 'background:#e3f2ef;color:#146b64' : 'background:#f2f6f5;color:#8a9aa6'}` })),
     };
   }
 }

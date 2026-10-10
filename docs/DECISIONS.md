@@ -1863,3 +1863,30 @@ Demande du commanditaire : un risque peut concerner un chantier, plusieurs, ou t
 - Constat : « Saisir sans Jev » (sous-phase de C6 dans la phase 1, projet PMS) échouait sur « Valeur déjà utilisée (projectId, code) » : l’écran calculait le code « n° de phase . rang suivant dans la phase » (1.3), alors que PMS numérote par chantier sur tout le projet (1.1 à 1.5 pour C1) et que 1.3 existait déjà (phase 2) ; les codes sont uniques dans le projet. Même calcul côté Jev.
 - Corrections : code facultatif à la création, calculé par le serveur (`nextSubphaseCode`, `src/domain/workstream-links.ts`) — préfixe = n° du chantier choisi (C6 → 6.1), sinon n° de la phase ; rang suivant parmi les codes du projet qui ont ce préfixe ; jamais un code déjà pris. La création reçoit le chantier (`wsId`, qui doit avoir la phase) et rattache la sous-phase dans la même écriture. Code saisi déjà pris : « Le code 1.3 est déjà pris (1.3 · …) ». Le formulaire et Jev ne calculent plus le code.
 - Livrables (09/10/2026, même jour) : Jev crée, modifie et supprime aussi les livrables (PMO) ; sans code, un livrable est désigné par son nom (nom à retaper pour confirmer une suppression) ; champs nom, sous-phase, chantier (« aucun » possible), responsable, début, fin ; lien vers Pilotage › Livrables.
+
+## « Saisir sans Jev » : maquette 5a (10/10/2026)
+
+- Maquette « Jev - Saisir sans Jev 5a » intégrée ; écarts signalés au commanditaire avant le code, arbitrés le 10/10/2026 :
+  (1) **un seul panneau à l'écran** (demande du commanditaire du 10/10/2026, qui remplace l'arbitrage « deux panneaux côte à
+  côte » du même jour) : la barre latérale garde ses 400 px ; un clic sur un objet fait glisser le formulaire à la place du
+  choix de l'objet (0,42 s, fondu ; aucun mouvement si le système demande moins d'animations), la flèche « Changer d'objet » le
+  ramène et rend le focus à la recherche ; le panneau caché sort du parcours au clavier (`view`, `trackSt`, `paneSt`) ;
+  (2) **ordre des objets du commanditaire** maintenu (Phase, Chantier, Sous-phase, Jalon ; Livrable, Risque, Action, Tâche,
+  Décision, Fiche d'arbitrage — `SSJ_OBJ`), et non celui de la maquette ;
+  (3) **palette de la maquette** (#13243d, #1f9a8a, dégradé orange #f6a62a → #f2851c) limitée à « Saisir sans Jev » et à ses
+  composants ; le reste du Cockpit garde la sienne.
+- Reconduits sans changement : décision rattachée à un chantier (« Transverse » refusé à l'enregistrement), valeurs déduites
+  (phase du jalon, responsable d'une phase, codes), probabilité et impact sur 1 à 4 dans le formulaire, droits du Référentiel.
+- Nouveaux choix : après « Créer … », le formulaire reste ouvert, vidé, avec un message dans son panneau (maquette) — le message
+  est celui du serveur (« Phase 7 créée ») ; refus du serveur : en rouge à la place de « * Requis », valeurs conservées ; dates
+  saisies au clavier jj/mm/aaaa (masque, `maskDate`), converties à l'envoi (`frToIso`) ; une date impossible (31/02) ou une
+  période inversée est en rouge et bloque la création (« À corriger : … » en infobulle du bouton) ; « Créer … » est un bouton
+  `aria-disabled` (infobulle lisible) ; le × du formulaire le vide (maquette), celui du choix de l'objet ferme la barre.
+- Calculs partagés et testés : `frontends/saisie-calc.js` (`compare().gap`, `maskDate`, `frToIso`, `isoToFr`, `dateState`,
+  `rangeState`) ; tests `test/unit/saisie-calc.spec.ts` ; recette navigateur
+  `test/browser/saisie.e2e.ts`. Détail et écarts : `docs/NOTE - Saisir sans Jev.md`.
+- Même jour, demandes du commanditaire : (4) **pas de recherche** dans le bandeau du choix de l'objet — titre fixe « Que
+  voulez-vous créer ? », la liste des objets prend le focus et se parcourt au clavier (`qKey`, `aria-activedescendant`) ;
+  `fold` / `matchObjects` retirés de `saisie-calc.js` ; (5) **pas de filet** entre le bandeau de la page et celui de la barre
+  latérale pendant la saisie (`jevAsideSt` : bordure gauche nulle quand `ssjOn`) ; (6) **trait fin** à gauche de la partie
+  blanche (liste des objets, pied, formulaire), comme la barre de Jev ; (7) **pas d'infobulle** au survol d'un objet du menu.

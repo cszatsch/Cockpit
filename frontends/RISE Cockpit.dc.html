@@ -2338,7 +2338,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
 
 <!-- ============ ASSISTANT ============ -->
 <div data-jev-panel="1" style="{{ assistantWrap }}">
-<aside style="background:#fff;border-left:1px solid #e0e9e6;height:100vh;display:flex;flex-direction:column;width:400px;min-width:0" data-screen-label="Jev">
+<aside style="{{ jevAsideSt }}" data-screen-label="Jev">
   <sc-if value="{{ jevChat }}" hint-placeholder-val="{{ true }}">
   <div style="display:flex;align-items:flex-start;gap:12px;padding:22px 22px 18px;border-bottom:1px solid #eef3f1">
     <span style="width:34px;height:34px;border-radius:50%;background:#1fb3a5;color:#fff;font-weight:800;font-size:15px;display:grid;place-items:center;flex:none">J</span>
@@ -2370,7 +2370,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
     <div style="display:flex;align-items:center;gap:12px"><span style="flex:1;height:1px;background:#eef3f2"></span><button type="button" onClick="{{ jevManual }}" style="display:flex;align-items:center;gap:6px;border:0;padding:0;background:none;font-family:inherit;font-size:11.5px;font-weight:600;color:#5c7280;cursor:pointer;white-space:nowrap" style-hover="color:#10233a" style-focus-visible="outline:2px solid #146b64;outline-offset:2px;border-radius:4px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"></path></svg>Saisir sans Jev</button><span style="flex:1;height:1px;background:#eef3f2"></span></div>
   </div>
   </sc-if>
-  <!-- « Saisir sans Jev » (09/10/2026, maquette 3a) : choix de l'objet, formulaire, détail d'une option d'arbitrage. -->
+  <!-- « Saisir sans Jev » (maquette 5a, 10/10/2026) : choix de l'objet, puis formulaire à sa place (glissement), détail d'une option d'arbitrage. -->
   <sc-if value="{{ ssjOn }}" hint-placeholder-val="{{ false }}"><div style="flex:1;min-height:0;display:flex"><dc-import name="Saisie sans Jev" data="{{ ssjData }}" on-back="{{ ssjBack }}" on-close="{{ ssjClose }}" on-submit="{{ ssjSubmit }}" hint-size="100%,100%" style="width:100%;height:100%"></dc-import></div></sc-if>
 </aside>
 </div>
@@ -3431,12 +3431,14 @@ class Component extends DCLogic {
       jevManual: () => this.setState({ ssjOn: true }), jevChat: !S.ssjOn, ssjOn: !!S.ssjOn,
       ssjBack: () => this.setState({ ssjOn: false }), ssjClose: () => this.setState({ ssjOn: false, assistant: false }),
       ssjData: S.ssjOn ? this.ssjData() : null,
+      // Maquette 5a (10/10/2026) : après la création, le formulaire reste ouvert, vidé, et confirme dans son propre panneau.
       ssjSubmit: async (kind, values) => {
         if (!this._api || !this._api.saisie) throw new Error('Enregistrement indisponible (API injoignable)');
-        const msg = await this._api.saisie(kind, values);
-        this.setState({ ssjOn: false }); this.showToast(msg);
-        return msg;
+        return this._api.saisie(kind, values);
       },
+      // Barre latérale de Jev : 400 px, « Saisir sans Jev » compris (un seul panneau à l'écran, demande du 10/10/2026) ; sans filet
+      // à gauche pendant la saisie (le bandeau bleu nuit touche celui de la page, demande du 10/10/2026).
+      jevAsideSt: `background:#fff;border-left:${S.ssjOn ? '0' : '1px solid #e0e9e6'};height:100vh;display:flex;flex-direction:column;width:400px;min-width:0`,
       jevBodyRef: this._jb,
       jevBlock: e => { e.stopPropagation(); this.jevOpen({ kind: 'bloc', block: e.currentTarget.dataset.jev }); },
       jevRow: e => { e.stopPropagation(); const d = e.currentTarget.dataset; this.jevOpen({ kind: 'ligne', block: d.jev, row: d.row, id: d.id }); },

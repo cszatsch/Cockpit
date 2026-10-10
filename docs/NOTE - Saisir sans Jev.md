@@ -1,81 +1,95 @@
-# « Saisir sans Jev » — intégration de la maquette 3a (09/10/2026)
+# « Saisir sans Jev » — intégration de la maquette 5a (10/10/2026)
 
-Maquette : `Jev - Saisir sans Jev 3a.dc.html` (ZIP « RISE COCKPIT »). Fonction intégrée dans la barre latérale de Jev du
-Cockpit, à l'identique de la maquette (mise en page, espacements, Plus Jakarta Sans, couleurs, survols, sélection, libellés).
+Maquette : `Jev - Saisir sans Jev 5a.dc.html` (ZIP « RISE COCKPIT », 10/10/2026), qui remplace la 3a du 09/10/2026. Fonction
+intégrée dans la barre latérale de Jev du Cockpit, à l'identique de la maquette (mise en page, espacements, Plus Jakarta Sans,
+couleurs, survols, sélection, libellés), aux écarts près listés plus bas.
 
 ## Parcours
 
-1. **Bouton** : lien « Saisir sans Jev » sous le champ de Jev, centré entre deux filets, icône de crayon (`RISE Cockpit.dc.html`).
-   Jev reste le mode par défaut.
-2. **Choix de l'objet** : tuiles sur deux colonnes, familles « Structure du projet » (Phase, Chantier, Sous-phase, Jalon) et
-   « Suivi et pilotage » (Risque, Action, Décision, Tâche, Fiche d'arbitrage). Flèche : retour à Jev.
-3. **Formulaire** de l'objet choisi, champs requis marqués d'un astérisque. Flèche : changer d'objet. « Annuler » : retour au
-   choix de l'objet. Bouton « Créer … » : écriture par l'API, puis retour à Jev avec un message de confirmation.
-4. **Détail de l'option** (fiche d'arbitrage seulement) : intitulé, score, barre de composition, critères.
+1. **Lien** « Saisir sans Jev » sous le champ de Jev (`RISE Cockpit.dc.html`). Jev reste le mode par défaut.
+2. **Un seul panneau à l'écran** (400 px, largeur de la barre latérale) :
+   - **choix de l'objet** : bandeau bleu nuit avec le titre « Que voulez-vous créer ? » (sans champ de recherche, demande du
+     commanditaire du 10/10/2026), liste des objets au clavier (↑ ↓, Début / Fin, Entrée ou Espace ouvrent), familles « Structure du projet » et « Suivi et pilotage », objet choisi
+     sur fond bleu nuit, bouton orange « Continuer ». Flèche : retour à Jev ; × : fermeture de la barre latérale ;
+   - **formulaire** de l'objet choisi, qui glisse depuis la droite à la place du choix de l'objet (0,42 s, fondu) ; flèche :
+     retour au choix de l'objet (glissement inverse, focus dans la liste des objets) ; × et « Annuler » : formulaire vidé.
+3. **Deux modèles de formulaire** :
+   - « Parcours » (Phase, Chantier, Sous-phase, Jalon) : étapes numérotées, un seul champ ouvert, Entrée passe au suivant, coche
+     turquoise et résumé des étapes remplies ;
+   - « Chapitres » (Livrable, Risque, Action, Tâche, Décision, Fiche d'arbitrage) : trois chapitres par objet (`SSJ_CHAP`),
+     résumé des chapitres fermés, bouton « Suivant ».
+4. Anneau « requis remplis X/Y » ; « Créer … » grisé (opacité 0,4) tant qu'un requis manque ; création par l'API, message
+   dans le panneau (« Phase 7 créée »), puis formulaire vidé.
+5. **Détail d'une option** (fiche d'arbitrage) : onglets A / B, intitulé, jauge semi-circulaire du score (repère : l'autre
+   option), barre de composition, indicateur des poids, critères repliables, « Ajouter un critère », « Retour à la fiche ».
 
-Le bouton × ferme la barre latérale et réinitialise : à la réouverture, Jev (étape 1).
+Score d'une option : moyenne pondérée des critères qui ont un poids et une note, deux décimales, virgule. Criticité d'un risque :
+P × I sur 16 (Critique ≥ 12, Majeure ≥ 6, Modérée ≥ 3).
 
-## Composants créés
+## Composants
 
 | Composant | Fichier | Rôle |
 |---|---|---|
-| Saisie sans Jev | `frontends/Saisie sans Jev.dc.html` | Panneaux 2, 3 et 4 ; champs par objet (`SSJ_F`), cartes A / B, recommandation |
-| Champ de sélection simple | `frontends/Champ choix.dc.html` | Liste déroulante avec coche, « Transverse » précédé d'un filet, icône personne |
-| Sélection multiple en étiquettes | `frontends/Champ etiquettes.dc.html` | Étiquettes retirables, « Ajouter », liste à cocher qui reste ouverte |
-| Échelle 1–4 | `frontends/Echelle 1-4.dc.html` | Probabilité, impact ; niveau en clair à droite |
-| Sélecteur segmenté | `frontends/Selecteur segmente.dc.html` | Statut, priorité (pastilles de couleur), option recommandée (point de suggestion) |
-| Ligne de critère | `frontends/Ligne critere.dc.html` | Critère, poids (%), note 1–4 (second clic : retirée), description, suppression |
-| Calculs | `frontends/saisie-calc.js` | Score, total des poids, composition, comparaison, criticité — fonctions pures |
+| Saisie sans Jev | `frontends/Saisie sans Jev.dc.html` | Panneaux ; moteur de champs générique piloté par `SSJ_F` (champs) et `SSJ_CHAP` (chapitres) |
+| Champ de sélection | `frontends/Champ choix.dc.html` | Boîte (valeur, ou étiquettes tronquées « … » en choix multiple), liste dessous, fermée par un clic extérieur |
+| Liste d'options | `frontends/Liste options.dc.html` | Choix simple (coche) ou multiple (cases), initiales d'une personne, « Transverse » exclusif ; clavier |
+| Champ date | `frontends/Champ date.dc.html` | jj/mm/aaaa au clavier, « / » automatiques ; période début → fin ; date impossible en rouge |
+| Échelle 1–4 | `frontends/Echelle 1-4.dc.html` | Probabilité, impact (chiffre et niveau) |
+| Sélecteur segmenté | `frontends/Selecteur segmente.dc.html` | Statut, priorité (pastilles), option recommandée (point de suggestion) |
+| Cycle de vie | `frontends/Cycle de vie.dc.html` | Brouillon → En instruction → À arbitrer → Arbitrée ; Annulée, Remplacée hors parcours |
+| Ligne de critère | `frontends/Ligne critere.dc.html` | Repliée (intitulé, poids, note) ou dépliée (édition, note 1–4, description, suppression) |
+| Calculs | `frontends/saisie-calc.js` | Score, poids, composition, comparaison et écart, criticité, dates — fonctions pures |
 
-Écriture : `api.js` → `saisie(kind, values)` (routes `/phases`, `/subphases` + `PUT /workstreams/:id/subphases`,
-`/workstreams`, `/milestones`, `/risks`, `/actions`, `/decisions`, `/tasks`, `PATCH /decisions/:id/arbitration`).
-Listes réelles : `ssjData()` dans `RISE Cockpit.dc.html` (personnes actives, phases, chantiers, risques / décisions / jalons
-ouverts, actions ouvertes, décisions non arbitrées, instances).
+Écriture : `api.js` → `saisie(kind, values)` (routes `/phases`, `/subphases`, `/workstreams`, `/milestones`, `/deliverables`,
+`/risks`, `/actions`, `/decisions`, `/tasks`, `PATCH /decisions/:id/arbitration`). Listes réelles : `ssjData()` dans
+`RISE Cockpit.dc.html`.
 
 Tests : `backend/test/unit/saisie-calc.spec.ts` (calculs), `backend/test/unit/arbitration.spec.ts`,
-`backend/test/e2e/pilotage.spec.ts` (actions sur plusieurs chantiers, tâches confiées, critères par option).
+`backend/test/e2e/pilotage.spec.ts` ; recette navigateur `backend/test/browser/saisie.e2e.ts` (serveur de recette sur 3302).
 
 ## Extension du modèle de données (décision du commanditaire du 09/10/2026)
 
-- **Action** : un ou plusieurs chantiers, ou transverse (`wsIds`, `allWs`, `wsId` = chantier principal, nul si transverse),
-  comme les risques ; droits sur chacun des chantiers, transverse réservé au PMO ; vues `jev_cockpit.actions` (colonnes
-  `chantier_ids`, `transverse`) et `jev_cockpit.actions_chantiers`. Les actions issues d'un risque reprennent ses chantiers.
-- **Tâche** : responsable (`ownerId`, sinon l'auteur), chantiers (`wsIds`, `allWs`), statuts À faire, En cours, Bloquée,
-  Terminée ; visible et modifiable par l'auteur et le responsable, supprimable par l'auteur ; confier une tâche à une autre
-  personne : profils non Lecteur.
-- **Fiche d'arbitrage** : critères propres à chaque option (`options[].criteria` : intitulé, poids, note 0–4, description) ;
-  l'ancien format (critères communs A / B) est déduit pour l'onglet Décisions (`legacyCriteria`) ; contrôle des poids par option.
+- **Action** : un ou plusieurs chantiers, ou transverse (`wsIds`, `allWs`) ; droits sur chacun des chantiers, transverse
+  réservé au PMO. Les actions issues d'un risque reprennent ses chantiers.
+- **Tâche** : responsable (`ownerId`), chantiers (`wsIds`, `allWs`), statuts À faire, En cours, Bloquée, Terminée.
+- **Fiche d'arbitrage** : critères propres à chaque option (`options[].criteria`).
 
 Migration `20261117000000_actions_taches_chantiers`.
 
 ## Écarts avec la maquette, justifiés
 
-1. **Largeur** : 400 px au lieu de 380 px — largeur actuelle de la barre latérale de Jev ; hauteur : celle de l'écran.
-2. **Lien « Saisir sans Jev »** : en romain, comme la maquette (il avait été passé en italique le 09/10/2026, avant la maquette).
-3. **Valeurs exigées par le serveur mais absentes du formulaire** (choix « valeurs déduites ») : phase du jalon = celle dont la
-   période contient la date cible (sinon la première du chantier, puis du projet) ; responsable d'une phase = l'utilisateur s'il
-   n'est pas choisi ; code d'une sous-phase = rang suivant dans sa phase (« 2.4 ») ; numéro d'une phase = suivant.
-4. **Décision** : le serveur rattache une décision à un chantier ; « Transverse » ou aucun chantier sont refusés à
-   l'enregistrement avec un message (la liste garde « Transverse » comme la maquette).
-5. **Valeurs initiales** : les valeurs d'exemple de la maquette (Claire Martin, 23/10/2026, Refonte du SI RH…) ne sont pas
-   reprises ; Responsable de l'action = l'utilisateur ; Chantier du risque = « Transverse » pour un PMO, vide sinon ; statut,
-   priorité, probabilité et impact : valeurs par défaut de la maquette. Fiche d'arbitrage : un critère vide par option.
-6. **« Transverse »** dans une sélection multiple : exclusif (le cocher retire les autres chantiers, cocher un chantier le
-   retire) — cohérence avec le modèle (transverse = tous les chantiers).
-7. **Champs requis manquants** : la mention « * Requis » du pied devient, en rouge, « À renseigner : … » et les champs
-   concernés sont bordés de rouge — la maquette ne décrit pas cet état. Erreur du serveur : même emplacement.
-8. **Dates** : champ date du navigateur (jj/mm/aaaa, clavier et calendrier natifs) dans la boîte de la maquette, icône de la
-   maquette ; « Période » : deux dates séparées par une flèche.
-9. **Accessibilité** : libellés associés (`label`, `aria-labelledby`), listes en `combobox` / `listbox` (flèches, Entrée,
-   Échap), échelles et segments en groupes de boutons radio (flèches), contour de focus visible (#146b64). Le champ
-   d'intitulé reçoit le focus à l'ouverture du formulaire (d'où sa bordure verte, comme dans la maquette).
-10. **Droits** : les objets de structure (phase, sous-phase, chantier, jalon) relèvent du Référentiel (PMO) ; pour un autre
-    profil, le serveur refuse et le message s'affiche dans le pied du formulaire (les tuiles restent visibles, comme la maquette).
-11. **Probabilité et impact** sur 1 à 4 (maquette) : le registre des risques garde son échelle 1 à 5 ; un risque créé ici a
-    donc une criticité au plus de 16 dans le registre (seuils ≥ 12, ≥ 20 du registre inchangés).
-12. **Chantier : « Période » (début → fin), requise** — demande du commanditaire du 09/10/2026, absente de la maquette : un
-    chantier sans dates n'était dessiné ni dans le Planning ni dans le Suivi d'avancement.
-13. **Livrable** (demande du commanditaire du 09/10/2026, hors maquette) : tuile placée avant « Risque » ; champs Nom*, Phase*,
-    Chantier, Sous-phase*, Responsable*, Date de début, Date de fin*. Sous-phase, responsable et date de fin sont requis par le
-    serveur (un livrable appartient toujours à une sous-phase, dont il tire sa phase ; le plan de livraison les regroupe ainsi) ;
-    la sous-phase est choisie parmi celles de la phase (et du chantier s'il en a dans cette phase), retirée si la phase change.
+1. **Un seul panneau** (demande du commanditaire du 10/10/2026) au lieu des deux panneaux côte à côte de la maquette : le
+   formulaire remplace le choix de l'objet, avec un glissement (supprimé si le système demande moins d'animations) ; largeur :
+   400 px, celle de la barre latérale de Jev (380 px dans la maquette) ; hauteur : celle de l'écran (720 px dans la maquette).
+2. **Ordre des objets** (arbitrage du 10/10/2026) : celui du commanditaire — Phase, Chantier, Sous-phase, Jalon ; Livrable,
+   Risque, Action, Tâche, Décision, Fiche d'arbitrage.
+3. **Couleurs** (arbitrage du 10/10/2026) : palette de la maquette pour « Saisir sans Jev » et ses composants seulement.
+4. **Valeurs exigées par le serveur mais absentes du formulaire** (valeurs déduites) : phase du jalon = celle dont la période
+   contient la date cible (sinon la première du chantier, puis du projet) ; responsable d'une phase = l'utilisateur s'il n'est
+   pas choisi ; numéro d'une phase et code d'une sous-phase calculés par le serveur.
+5. **Décision** : le serveur la rattache à un chantier ; « Transverse » ou aucun chantier sont refusés à l'enregistrement avec un
+   message. « Option choisie » : 3 caractères au plus (serveur).
+6. **Valeurs initiales** : les exemples de la maquette (Cédric SCHMITZ, R-014, D-005, A-021, listes de phases et de chantiers…)
+   sont remplacés par les données du projet ; Responsable de l'action = l'utilisateur ; Chantier du risque = « Transverse » pour
+   un PMO, vide sinon ; statut, priorité, probabilité et impact : valeurs par défaut de la maquette ; fiche d'arbitrage : un
+   critère vide par option.
+7. **« Transverse »** dans un choix multiple : exclusif (le cocher retire les autres chantiers, et inversement).
+8. **Message après création** : celui du serveur, qui porte le code de l'objet (« Risque R14 créé »), au lieu de « Risque créé ».
+9. **Refus du serveur ou enregistrement impossible** (non décrit par la maquette) : message en rouge à la place de « * Requis »,
+   valeurs conservées ; « Création… » pendant l'envoi.
+10. **Dates** : une date impossible (31/02/2027) ou une fin avant le début est écrite en rouge (`aria-invalid`) et bloque la
+    création ; l'infobulle du bouton dit « À corriger : … » (sinon « Renseignez les champs requis », comme la maquette).
+11. **Probabilité et impact** sur 1 à 4 (maquette) : le registre des risques garde son échelle de 1 à 5 ; un risque créé ici a
+    donc une criticité au plus de 16 dans le registre.
+12. **Chantier : « Période » requise** (demande du commanditaire du 09/10/2026) ; la maquette 5a la prévoit aussi.
+13. **Livrable** : sous-phase, responsable et date de fin requis par le serveur (la maquette 5a les marque aussi requis) ; la
+    sous-phase est choisie parmi celles de la phase (et du chantier s'il en a dans cette phase), retirée si la phase change.
+14. **Droits** : les objets de structure relèvent du Référentiel (PMO) ; pour un autre profil, le serveur refuse et le message
+    s'affiche dans le pied du formulaire.
+15. **Accessibilité** (demandée par le brief) : liste des objets en `listbox` (`aria-activedescendant`), listes en `listbox` (flèches, Début / Fin, Entrée, Espace, Échap), échelles, statuts et cycle de vie en groupes de boutons
+    radio (flèches), libellés reliés aux champs (`aria-labelledby`), anneau et jauge décrits (`role="img"`), messages annoncés
+    (`role="status"`), contours de focus visibles ; chiffres et pastilles des étapes doublés par des boutons nommés.
+16. **Sans recherche** (demande du commanditaire du 10/10/2026) : le bandeau affiche « Que voulez-vous créer ? » en titre, sans
+    champ de saisie (la maquette en faisait un champ de recherche) ; la liste des objets reçoit le focus.
+17. **Filet à gauche** (demandes du 10/10/2026) : pendant la saisie, le bandeau bleu nuit touche celui de la page (pas de filet) ;
+    un trait fin (#e0e9e6, celui de la barre de Jev) borde la partie blanche : liste, pied et formulaire.

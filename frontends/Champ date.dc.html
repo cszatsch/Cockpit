@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><style>
+html,body{margin:0;background:#fff;font-family:'Plus Jakarta Sans',sans-serif;color:#10233a;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}input{font-family:inherit}input::placeholder{color:#8a9aa6}
+</style></helmet>
+<!-- Champ date (« Saisir sans Jev », maquette 5a, 10/10/2026) : saisie au clavier jj/mm/aaaa, « / » ajoutés automatiquement ;
+     période : deux dates séparées par une flèche, le curseur passe à la fin quand le début est complet. Date impossible ou fin
+     avant le début : texte en rouge et `aria-invalid`. Présentations `active` (étape ouverte, cadre turquoise) et `box` (boîte grise). -->
+<div style="{{ boxSt }}" style-focus-within="background:#fff;box-shadow:0 0 0 1.5px #1f9a8a,0 0 0 5px rgba(31,154,138,.12)">
+  <input ref="{{ r0 }}" value="{{ v0 }}" onChange="{{ c0 }}" onKeyDown="{{ kd }}" placeholder="jj/mm/aaaa" inputMode="numeric" maxLength="10" aria-labelledby="{{ labelledBy }}" aria-label="{{ a0 }}" aria-required="{{ ariaReq }}" aria-invalid="{{ bad0 }}" style="{{ st0 }}">
+  <sc-if value="{{ range }}" hint-placeholder-val="{{ false }}"><span style="color:#b4c2c9;font-size:13px" aria-hidden="true">→</span><input ref="{{ r1 }}" value="{{ v1 }}" onChange="{{ c1 }}" onKeyDown="{{ kd }}" placeholder="jj/mm/aaaa" inputMode="numeric" maxLength="10" aria-label="Date de fin" aria-required="{{ ariaReq }}" aria-invalid="{{ bad1 }}" style="{{ st1 }}"></sc-if>
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="{{ icC }}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex:none" aria-hidden="true"><path d="M6.5 5h11A2.5 2.5 0 0120 7.5v10a2.5 2.5 0 01-2.5 2.5h-11A2.5 2.5 0 014 17.5v-10A2.5 2.5 0 016.5 5zM4 10h16M8.5 3v4M15.5 3v4"></path></svg>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;value&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string | string[]&quot;},&quot;range&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;boolean&quot;},&quot;variant&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;autoFocus&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;boolean&quot;},&quot;required&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;boolean&quot;},&quot;labelledBy&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;onChange&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(v: string | string[]) =&gt; void&quot;},&quot;onEnter&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;}}">
+// Composant réutilisable « Champ date » (10/10/2026) : `value` = texte saisi « jj/mm/aaaa » (tableau [début, fin] si `range`),
+// converti en date par l'écran à l'enregistrement (saisie-calc.js : `frToIso`) ; Entrée → `onEnter` (étape suivante du parcours).
+const CD_MASK = s => { const d = String(s || '').replace(/\D/g, '').slice(0, 8); return d.length > 4 ? d.slice(0, 2) + '/' + d.slice(2, 4) + '/' + d.slice(4) : d.length > 2 ? d.slice(0, 2) + '/' + d.slice(2) : d; };
+const CD_ISO = s => { const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(s || ''); if (!m) return ''; const t = new Date(Date.UTC(+m[3], +m[2] - 1, +m[1])); return +m[3] >= 1900 && t.getUTCDate() === +m[1] && t.getUTCMonth() === +m[2] - 1 ? m[3] + m[2] + m[1] : ''; };
+class Component extends DCLogic {
+  r0 = React.createRef();
+  r1 = React.createRef();
+  componentDidMount() { if (this.props.autoFocus) setTimeout(() => this.r0.current && this.r0.current.focus({ preventScroll: true }), 0); }
+  renderVals() {
+    const P = this.props, range = !!P.range, V = range ? (Array.isArray(P.value) ? P.value : ['', '']) : [P.value || '', ''], act = P.variant === 'active';
+    const set = (i, s) => { if (!range) return P.onChange?.(s); const n = [V[0] || '', V[1] || '']; n[i] = s; P.onChange?.(n); };
+    const bad = s => !!s && s.length === 10 && !CD_ISO(s), rev = range && CD_ISO(V[0]) && CD_ISO(V[1]) && CD_ISO(V[1]) < CD_ISO(V[0]);
+    const b0 = bad(V[0]), b1 = bad(V[1]) || rev;
+    const ist = (w, b) => `${w};border:0;outline:0;background:none;padding:0;font-size:14px;font-weight:600;color:${b ? '#c2413b' : '#10233a'};caret-color:#1f9a8a;font-variant-numeric:tabular-nums;letter-spacing:.02em`;
+    return {
+      r0: this.r0, r1: this.r1, range, v0: V[0] || '', v1: V[1] || '', labelledBy: P.labelledBy, a0: range ? 'Date de début' : undefined, ariaReq: P.required ? 'true' : 'false',
+      bad0: b0 ? 'true' : 'false', bad1: b1 ? 'true' : 'false', st0: ist(range ? 'width:96px;flex:none' : 'flex:1;min-width:0', b0), st1: ist('flex:1;min-width:0', b1),
+      c0: e => { const s = CD_MASK(e.target.value); set(0, s); if (range && s.length === 10 && this.r1.current) this.r1.current.focus(); },
+      c1: e => set(1, CD_MASK(e.target.value)),
+      kd: e => { if (e.key === 'Enter' && P.onEnter) { e.preventDefault(); P.onEnter(); } },
+      icC: act ? '#1f9a8a' : '#8a9aa6',
+      boxSt: `border-radius:12px;display:flex;align-items:center;gap:10px;padding:0 14px;min-width:0;transition:box-shadow .15s,background .15s;${act ? 'height:48px;background:#fff;box-shadow:0 0 0 1.5px #1f9a8a,0 0 0 5px rgba(31,154,138,.12)' : 'height:46px;background:#f4f7f6'}`,
+    };
+  }
+}
+</script>
+</body>
+</html>

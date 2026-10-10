@@ -569,3 +569,25 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 - « Saisir sans Jev » : formulaire Livrable (avant Risque) — nom, phase, chantier, sous-phase (liste dépendant de la phase et du chantier), responsable, dates de début et de fin ; écriture `POST /deliverables` (`saisie`, cas `livrable`).
 - « Saisir sans Jev » : Tâche placée avant Décision (demande du commanditaire).
 - Registre des décisions (10/10/2026) : colonne « Chantier » en référence (C1, C2…, teinte du Planning ; nom en infobulle) ; le sélecteur propose « C1 · nom ».
+
+## « Saisir sans Jev » (maquette 5a, 10/10/2026)
+
+- Nouvelle présentation (maquette « Jev - Saisir sans Jev 5a ») dans la barre latérale de Jev (400 px) : un seul panneau à
+  l'écran (demande du commanditaire) — le formulaire glisse depuis la droite à la place du choix de l'objet, la flèche le ramène.
+- Choix de l'objet : bandeau bleu nuit avec le titre « Que voulez-vous créer ? » (pas de champ de recherche, demande du
+  commanditaire ; liste au clavier : flèches, Début / Fin, Entrée), sans filet entre la page et la barre latérale ; familles
+  « Structure du projet » et « Suivi et pilotage », objet choisi sur fond bleu nuit, pictogrammes de la maquette, bouton
+  « Continuer » ; l'ordre des objets reste celui du commanditaire.
+- Formulaire : « Parcours » en étapes numérotées pour Phase, Chantier, Sous-phase, Jalon (un champ ouvert, Entrée passe au
+  suivant, coche turquoise et résumé) ; « Chapitres » (trois par objet, « Suivant ») pour Livrable, Risque, Action, Tâche,
+  Décision, Fiche d'arbitrage ; anneau « requis remplis X/Y » ; « Créer … » grisé tant que les requis manquent ; message de
+  confirmation dans le panneau, puis formulaire vidé (il ne revient plus à Jev).
+- Champs : listes déroulantes fermées par un clic extérieur, étiquettes tronquées « … » ; dates jj/mm/aaaa saisies au clavier ;
+  échelle 1–4 avec niveau en clair ; statut et priorité à pastilles ; cycle de vie de la décision (hors parcours : Annulée,
+  Remplacée) ; fiche d'arbitrage : carte bleu nuit A / B (scores, écart « +0,35 » ou « = », barre de force), option recommandée
+  avec point de suggestion ; détail d'une option : onglets A / B, jauge semi-circulaire avec repère de l'autre option, barre
+  de composition, critères repliables, « Ajouter un critère », « Retour à la fiche ».
+- Composants : `Champ choix` (refait), `Liste options`, `Champ date`, `Cycle de vie` (nouveaux), `Echelle 1-4`,
+  `Selecteur segmente`, `Ligne critere` (refaits) ; `Champ etiquettes` supprimé (choix multiple dans `Champ choix`).
+- Choix de l'objet : pas d'infobulle au survol d'un objet (demande du commanditaire, 10/10/2026).
+- Trait fin à gauche de la partie blanche de « Saisir sans Jev » (liste, pied, formulaire), le bandeau bleu nuit restant sans filet.

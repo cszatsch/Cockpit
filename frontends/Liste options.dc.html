@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><style>
+html,body{margin:0;background:#fff;font-family:'Plus Jakarta Sans',sans-serif;color:#10233a;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}.ssj-ns,.ssj-ns *{scrollbar-width:none}.ssj-ns::-webkit-scrollbar,.ssj-ns *::-webkit-scrollbar{display:none;width:0;height:0}
+</style></helmet>
+<!-- Liste d'options (« Saisir sans Jev », maquette 5a, 10/10/2026) : choix simple (coche à droite) ou multiple (cases à cocher),
+     initiales pour une personne ; « Transverse » précédé d'un filet. Deux présentations : `active` (étape ouverte du parcours,
+     cadre turquoise) et `drop` (liste déroulante d'un chapitre). Clavier : flèches, Début / Fin, Entrée ou Espace, Échap. -->
+<div data-dd="1" class="ssj-ns" style="{{ boxSt }}">
+  <div ref="{{ listRef }}" id="{{ listId }}" role="listbox" tabIndex="0" aria-labelledby="{{ labelledBy }}" aria-multiselectable="{{ ariaMulti }}" aria-activedescendant="{{ activeId }}" onKeyDown="{{ onKey }}" style="display:flex;flex-direction:column;max-height:264px;overflow-y:auto;overflow-x:hidden;outline:none;border-radius:9px" style-focus-visible="box-shadow:inset 0 0 0 2px rgba(20,107,100,.35)">
+    <sc-for list="{{ opts }}" as="o" hint-placeholder-count="3">
+      <sc-if value="{{ o.sep }}" hint-placeholder-val="{{ false }}"><span role="presentation" style="flex:none;height:1px;background:#edf2f0;margin:4px 8px"></span></sc-if>
+      <div id="{{ o.id }}" role="option" aria-selected="{{ o.ariaSel }}" onClick="{{ o.on }}" onMouseEnter="{{ o.hover }}" style="{{ o.st }}">
+        <sc-if value="{{ o.multi }}" hint-placeholder-val="{{ false }}"><span style="{{ o.boxSt }}" aria-hidden="true"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span></sc-if>
+        <sc-if value="{{ o.av }}" hint-placeholder-val="{{ false }}"><span aria-hidden="true" style="width:24px;height:24px;border-radius:50%;background:#e8f3f0;color:#146b64;font-size:9.5px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none;letter-spacing:.02em">{{ o.ini }}</span></sc-if>
+        <span style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ o.t }}</span>
+        <sc-if value="{{ o.mark }}" hint-placeholder-val="{{ false }}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1f9a8a" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="flex:none" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></sc-if>
+      </div>
+    </sc-for>
+    <sc-if value="{{ empty }}" hint-placeholder-val="{{ false }}"><span style="padding:10px;font-size:12.5px;color:#8a9aa6">Aucun élément</span></sc-if>
+  </div>
+  <sc-if value="{{ hasValidate }}" hint-placeholder-val="{{ false }}"><div style="display:flex;justify-content:flex-end;padding:6px 6px 4px;border-top:1px solid #f0f4f3;margin-top:2px"><button type="button" onClick="{{ validate }}" style="height:28px;padding:0 10px;border:0;background:none;border-radius:8px;display:flex;align-items:center;font-family:inherit;font-size:12px;font-weight:700;color:#146b64;cursor:pointer" style-hover="background:#eef6f4" style-focus-visible="outline:2px solid #146b64;outline-offset:1px">Valider</button></div></sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;options&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{ v: string; t: string; sep?: boolean; exclusive?: boolean }[]&quot;},&quot;value&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string | string[]&quot;},&quot;multi&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;boolean&quot;},&quot;avatars&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;boolean&quot;},&quot;variant&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;autoFocus&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;boolean&quot;},&quot;labelledBy&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;onPick&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(v: string) =&gt; void&quot;},&quot;onChange&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(v: string[]) =&gt; void&quot;},&quot;onValidate&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;onEscape&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;}}">
+// Composant réutilisable « Liste d'options » (10/10/2026) : `value` = `v` de l'option choisie, ou tableau en choix multiple ;
+// choix simple → `onPick(v)` ; choix multiple → `onChange(valeurs)` (une option `exclusive`, comme « Transverse », retire les
+// autres et inversement) et bouton « Valider » si `onValidate` est fourni ; Échap → `onEscape`.
+let loSeq = 0;
+class Component extends DCLogic {
+  state = { active: -1 };
+  listRef = React.createRef();
+  uid = 'lo' + (++loSeq);
+  componentDidMount() {
+    const i = this.selIndex();
+    if (i >= 0) this.setState({ active: i }, () => this.reveal());
+    if (this.props.autoFocus) setTimeout(() => this.listRef.current && this.listRef.current.focus({ preventScroll: true }), 0);
+  }
+  opts() { return this.props.options || []; }
+  vals() { const v = this.props.value; return Array.isArray(v) ? v : v ? [v] : []; }
+  selIndex() { const V = this.vals(); return this.opts().findIndex(o => V.includes(o.v)); }
+  reveal() { const el = document.getElementById(this.uid + 'o' + this.state.active); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' }); }
+  move(i) { this.setState({ active: i }, () => this.reveal()); }
+  pick(o) {
+    const P = this.props;
+    if (!P.multi) { P.onPick?.(o.v); return; }
+    const V = this.vals(), on = V.includes(o.v), O = this.opts(), excl = O.filter(x => x.exclusive).map(x => x.v);
+    const next = on ? V.filter(x => x !== o.v) : o.exclusive ? [o.v] : V.filter(x => !excl.includes(x)).concat([o.v]);
+    P.onChange?.(next);
+  }
+  renderVals() {
+    const P = this.props, S = this.state, O = this.opts(), V = this.vals(), multi = !!P.multi, act = P.variant === 'active';
+    const onKey = e => {
+      const k = e.key, n = O.length, i = S.active;
+      if (k === 'ArrowDown') { e.preventDefault(); if (n) this.move(i < 0 ? 0 : Math.min(n - 1, i + 1)); }
+      else if (k === 'ArrowUp') { e.preventDefault(); if (n) this.move(i < 0 ? n - 1 : Math.max(0, i - 1)); }
+      else if (k === 'Home') { e.preventDefault(); if (n) this.move(0); }
+      else if (k === 'End') { e.preventDefault(); if (n) this.move(n - 1); }
+      else if (k === 'Enter' || k === ' ') { e.preventDefault(); if (O[i]) this.pick(O[i]); else if (multi && k === 'Enter') P.onValidate?.(); }
+      else if (k === 'Escape') { e.preventDefault(); e.stopPropagation(); P.onEscape?.(); }
+    };
+    const ini = s => String(s || '').split(/\s+/).filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+    return {
+      listRef: this.listRef, listId: this.uid, labelledBy: P.labelledBy, ariaMulti: multi ? 'true' : 'false',
+      activeId: S.active >= 0 && O[S.active] ? this.uid + 'o' + S.active : undefined, onKey, empty: !O.length,
+      hasValidate: multi && !!P.onValidate, validate: () => P.onValidate?.(),
+      boxSt: `border-radius:12px;background:#fff;padding:4px;display:flex;flex-direction:column;min-width:0;${act ? 'box-shadow:0 0 0 1.5px #1f9a8a,0 0 0 5px rgba(31,154,138,.12)' : 'box-shadow:0 0 0 1px #e3ebe8,0 16px 32px -18px rgba(19,36,61,.35)'}`,
+      opts: O.map((o, i) => { const chk = V.includes(o.v), on = i === S.active;
+        return { t: o.t, sep: !!o.sep, multi, av: !!P.avatars, ini: ini(o.t), mark: chk && !multi, id: this.uid + 'o' + i, ariaSel: chk ? 'true' : 'false',
+          on: e => { e.stopPropagation(); this.setState({ active: i }); this.pick(o); }, hover: () => this.setState({ active: i }),
+          boxSt: `width:18px;height:18px;border-radius:5px;flex:none;display:flex;align-items:center;justify-content:center;transition:background .15s;${chk ? 'background:#1f9a8a' : 'box-shadow:inset 0 0 0 1.5px #c9d6d2'}`,
+          st: `display:flex;align-items:center;gap:10px;flex:none;height:40px;padding:0 10px;border-radius:9px;cursor:pointer;font-size:13.5px;color:#10233a;font-weight:${chk ? 700 : 500};background:${on ? '#f3f7f6' : chk && !multi ? '#f0f7f5' : 'transparent'}` }; }),
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><style>
+html,body{margin:0;background:#fff;font-family:'Plus Jakarta Sans',sans-serif;color:#10233a;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box}
+</style></helmet>
+<!-- Cycle de vie (« Saisir sans Jev », maquette 5a, 10/10/2026 : statut d'une décision) : parcours en quatre étapes reliées par un
+     trait (Brouillon → En instruction → À arbitrer → Arbitrée), puis les statuts « hors parcours » (Annulée, Remplacée) ; un second
+     clic sur un statut hors parcours revient au premier. Clavier : groupe de boutons radio, flèches. -->
+<div role="radiogroup" aria-labelledby="{{ labelledBy }}" style="display:flex;flex-direction:column;gap:10px;padding:12px 10px;border-radius:12px;background:#f6f9f8">
+  <div style="position:relative;display:grid;grid-template-columns:repeat(4,minmax(0,1fr))">
+    <span style="position:absolute;left:12.5%;right:12.5%;top:7px;height:2px;border-radius:1px;background:#e1e9e6"></span><span style="{{ barSt }}"></span>
+    <sc-for list="{{ steps }}" as="p" hint-placeholder-count="4"><button type="button" role="radio" aria-checked="{{ p.ariaChk }}" tabIndex="{{ p.tab }}" onClick="{{ p.on }}" onKeyDown="{{ onKey }}" style="position:relative;display:flex;flex-direction:column;align-items:center;gap:7px;min-width:0;border:0;padding:0;background:none;font-family:inherit;cursor:pointer;border-radius:8px" style-focus-visible="outline:2px solid #146b64;outline-offset:2px"><span style="{{ p.nSt }}"><sc-if value="{{ p.cur }}" hint-placeholder-val="{{ false }}"><span style="width:5px;height:5px;border-radius:50%;background:#fff"></span></sc-if></span><span style="{{ p.lSt }}">{{ p.t }}</span></button></sc-for>
+  </div>
+  <div style="display:flex;align-items:center;gap:6px;padding:10px 4px 0;border-top:1px solid #e6eeec"><span style="flex:1;font-size:11px;font-weight:500;color:#8a9aa6">Hors parcours</span><sc-for list="{{ off }}" as="p" hint-placeholder-count="2"><button type="button" role="radio" aria-checked="{{ p.ariaChk }}" tabIndex="{{ p.tab }}" onClick="{{ p.on }}" onKeyDown="{{ onKey }}" style="{{ p.st }}" style-focus-visible="outline:2px solid #146b64;outline-offset:1px">{{ p.t }}</button></sc-for></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;steps&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string[]&quot;},&quot;off&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string[]&quot;},&quot;value&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;labelledBy&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;onChange&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(v: string) =&gt; void&quot;}}">
+// Composant réutilisable « Cycle de vie » (10/10/2026) : `steps` = statuts du parcours (4), `off` = statuts hors parcours ;
+// `value` = statut choisi.
+class Component extends DCLogic {
+  renderVals() {
+    const P = this.props, L = P.steps || [], X = P.off || [], all = L.concat(X), v = P.value, ci = L.indexOf(v);
+    const set = n => { if (n !== v) P.onChange?.(n); };
+    const onKey = e => {
+      const d = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
+      if (!d) return;
+      e.preventDefault(); const n = (Math.max(0, all.indexOf(v)) + d + all.length) % all.length; set(all[n]);
+      const root = e.currentTarget.closest('[role="radiogroup"]'); setTimeout(() => { const b = root && root.querySelectorAll('button[role="radio"]')[n]; if (b) b.focus(); }, 0);
+    };
+    return {
+      labelledBy: P.labelledBy, onKey,
+      barSt: `position:absolute;left:12.5%;top:7px;height:2px;border-radius:1px;background:#1f9a8a;transition:width .3s;width:${Math.max(0, ci) * 25}%`,
+      steps: L.map((t, q) => { const cur = q === ci, past = ci > q;
+        return { t, cur, ariaChk: cur ? 'true' : 'false', tab: cur || (ci < 0 && !X.includes(v) && q === 0) ? 0 : -1, on: () => set(t),
+          nSt: `width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:background .2s,box-shadow .2s;${cur ? 'background:#1f9a8a;box-shadow:0 0 0 4px rgba(31,154,138,.16)' : past ? 'background:#a9dcd3' : 'background:#fff;box-shadow:inset 0 0 0 1.5px #d3dfdb'}`,
+          lSt: `font-size:10.5px;line-height:1.2;text-align:center;font-weight:${cur ? 700 : 600};color:${cur ? '#10233a' : '#8a9aa6'}` }; }),
+      off: X.map(t => ({ t, ariaChk: v === t ? 'true' : 'false', tab: v === t ? 0 : -1, on: () => set(v === t ? L[0] : t),
+        st: `height:26px;padding:0 10px;border:0;border-radius:8px;display:flex;align-items:center;font-family:inherit;font-size:11.5px;font-weight:600;cursor:pointer;${v === t ? 'background:#13243d;color:#fff' : 'color:#5c7280;box-shadow:inset 0 0 0 1px #dfe7e4;background:#fff'}` })),
+    };
+  }
+}
+</script>
+</body>
+</html>

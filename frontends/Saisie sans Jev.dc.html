@@ -10,241 +10,480 @@
 <helmet><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><style>
 html,body{margin:0;background:#fff;font-family:'Plus Jakarta Sans',sans-serif;color:#10233a;-webkit-font-smoothing:antialiased}
 *{box-sizing:border-box}input,textarea{font-family:inherit}input::placeholder,textarea::placeholder{color:#8a9aa6}
-.ssj-date{position:relative}.ssj-date::-webkit-calendar-picker-indicator{position:absolute;inset:0;width:auto;height:auto;opacity:0;cursor:pointer}
-.ssj-date:invalid,.ssj-date[data-empty="1"]{color:#8a9aa6;font-weight:500}
+.ssj-ns,.ssj-ns *{scrollbar-width:none}.ssj-ns::-webkit-scrollbar,.ssj-ns *::-webkit-scrollbar{display:none;width:0;height:0}
+.ssj-track{transition:transform .42s cubic-bezier(.22,.8,.24,1)}
+@media (prefers-reduced-motion:reduce){.ssj-track,.ssj-track>div{transition:none!important}}
 </style></helmet>
-<!-- « Saisir sans Jev » (maquette « Jev - Saisir sans Jev 3a », 09/10/2026) : panneaux 2 (choix de l'objet), 3 (formulaire) et
-     4 (détail d'une option de la fiche d'arbitrage), dans la barre latérale de Jev. Le panneau 1 (lien sous le champ de Jev) est dans
-     RISE Cockpit.dc.html. Champs : composants réutilisables Champ choix, Champ etiquettes, Echelle 1-4, Selecteur segmente, Ligne critere. -->
-<div style="width:100%;height:100%;background:#fff;display:flex;flex-direction:column;overflow:hidden">
+<!-- « Saisir sans Jev » (maquette « Jev - Saisir sans Jev 5a », 10/10/2026) : un seul panneau à l'écran, dans la barre latérale de
+     Jev (demande du commanditaire du 10/10/2026, au lieu des deux panneaux côte à côte de la maquette). D'abord le choix de l'objet
+     (titre fixe, sans recherche — demande du 10/10/2026 ; liste au clavier : flèches, Début / Fin, Entrée ; familles « Structure du
+     projet » et « Suivi et pilotage ») ; un clic (ou
+     Entrée, « Continuer ») fait glisser le formulaire à sa place, la flèche le ramène : « Parcours » en étapes numérotées (objets de structure) ou « Chapitres » (objets de suivi), puis le détail
+     d'une option de la fiche d'arbitrage. Champs : composants Champ choix, Liste options, Champ date, Echelle 1-4, Selecteur
+     segmente, Cycle de vie, Ligne critere ; moteur générique piloté par la configuration de chaque objet (`SSJ_F`, `SSJ_CHAP`). -->
+<div class="ssj-ns" style="width:100%;height:100%;background:#fff;overflow:hidden">
+<!-- Rail de deux panneaux de la largeur de la barre ; un seul visible : le formulaire glisse depuis la droite à la place du choix de l'objet. -->
+<div class="ssj-track" style="{{ trackSt }}">
 
-<!-- ── 2 · Choix de l'objet ── -->
-<sc-if value="{{ stChoose }}" hint-placeholder-val="{{ true }}">
-  <div style="display:flex;align-items:center;gap:12px;padding:16px 18px 14px;border-bottom:1px solid #eef3f2"><button type="button" onClick="{{ back }}" title="Revenir à Jev" aria-label="Revenir à Jev" style="width:32px;height:32px;border-radius:10px;border:1px solid #e3ebe9;background:#fff;padding:0;display:flex;align-items:center;justify-content:center;flex:none;cursor:pointer" style-focus-visible="outline:2px solid #146b64;outline-offset:2px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#43586a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></button><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:#1d8f86;font-weight:700">Saisir sans Jev</span><h2 style="margin:0;font-size:16px;letter-spacing:-.01em;font-weight:800">Que voulez-vous créer ?</h2></div><button type="button" onClick="{{ close }}" title="Fermer" aria-label="Fermer" style="width:30px;height:30px;border:0;background:none;padding:0;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer" style-hover="background:#f1f5f4" style-focus-visible="outline:2px solid #146b64;outline-offset:2px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8a9aa6" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div>
-  <div style="flex:1;overflow:auto;padding:20px 18px;display:flex;flex-direction:column;gap:22px">
+<!-- ── Choix de l'objet ── -->
+<div data-ssj-pick="1" aria-hidden="{{ pickHidden }}" style="{{ pickSt }}">
+  <div style="position:relative;flex:none;padding:16px 16px 14px 20px;background:#13243d;background-image:radial-gradient(130% 120% at 100% 0%,rgba(42,179,160,.20) 0%,rgba(42,179,160,0) 55%);display:flex;flex-direction:column;gap:10px;overflow:hidden">
+    <svg width="380" height="132" viewBox="0 0 380 132" fill="none" style="position:absolute;left:0;top:0;pointer-events:none" aria-hidden="true"><path d="M150 140C230 96 300 70 400 52" stroke="#f2941f" stroke-width="1.5" stroke-linecap="round" opacity=".55"></path></svg>
+    <div style="position:relative;display:flex;align-items:center;gap:10px">
+      <button type="button" onClick="{{ back }}" title="Revenir à Jev" aria-label="Revenir à Jev" style="width:30px;height:30px;border:0;padding:0;border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:rgba(255,255,255,.85);background:rgba(255,255,255,.07)" style-hover="background:rgba(255,255,255,.14)" style-focus-visible="outline:2px solid #3fd0bb;outline-offset:2px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></button>
+      <span style="flex:1;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#2ab3a0;font-weight:700;white-space:nowrap">Saisir sans Jev</span>
+      <button type="button" onClick="{{ close }}" title="Fermer" aria-label="Fermer" style="width:30px;height:30px;border:0;padding:0;background:none;border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:rgba(255,255,255,.6)" style-hover="background:rgba(255,255,255,.08);color:#fff" style-focus-visible="outline:2px solid #3fd0bb;outline-offset:2px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+    </div>
+    <h2 style="position:relative;margin:4px 0 6px;font-size:24px;font-weight:700;letter-spacing:-.03em;line-height:1.2;color:#fff">Que voulez-vous créer ?</h2>
+  </div>
+  <div id="ssj-objs" ref="{{ qRef }}" role="listbox" tabIndex="0" aria-label="Que voulez-vous créer ?" aria-activedescendant="{{ actId }}" onKeyDown="{{ qKey }}" onMouseLeave="{{ leave }}" style-focus-visible="box-shadow:inset 0 0 0 2px rgba(31,154,138,.35)" style="outline:none;border-left:1px solid #e0e9e6;flex:1;overflow-x:hidden;overflow-y:auto;padding:14px 12px 6px;display:flex;flex-direction:column;gap:26px">
     <sc-for list="{{ groups }}" as="g" hint-placeholder-count="2">
-      <div role="group" aria-labelledby="{{ g.id }}" style="flex:none;display:flex;flex-direction:column;gap:10px"><span id="{{ g.id }}" style="white-space:nowrap;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:#8a9aa6;font-weight:700">{{ g.t }}</span>
-        <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px"><sc-for list="{{ g.items }}" as="o" hint-placeholder-count="4"><button type="button" onClick="{{ o.on }}" aria-pressed="{{ o.pressed }}" style="{{ o.st }}" style-focus-visible="outline:2px solid #146b64;outline-offset:2px"><span style="{{ o.gst }}" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="{{ o.g }}"></path></svg></span><b style="font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">{{ o.l }}</b></button></sc-for></div>
+      <div role="group" aria-labelledby="{{ g.id }}" style="display:flex;flex-direction:column;gap:2px">
+        <div style="display:flex;align-items:center;gap:10px;padding:0 8px 8px"><span id="{{ g.id }}" style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#13243d;font-weight:800;white-space:nowrap">{{ g.t }}</span><span style="flex:1;height:1px;background:#e3ebe8"></span></div>
+        <sc-for list="{{ g.items }}" as="o" hint-placeholder-count="4">
+          <div id="{{ o.id }}" role="option" aria-selected="{{ o.ariaSel }}" onClick="{{ o.on }}" onMouseEnter="{{ o.en }}" style="{{ o.st }}">
+            <span style="{{ o.tSt }}" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="{{ o.iff }}" fill="{{ o.acc }}"></path><path d="{{ o.il }}" stroke="currentColor" stroke-width="1.5"></path><path d="{{ o.ib }}" stroke="currentColor" stroke-width="2.1"></path><path d="{{ o.ia }}" stroke="{{ o.acc }}" stroke-width="2.1"></path></svg></span>
+            <span style="{{ o.lSt }}">{{ o.l }}</span>
+          </div>
+        </sc-for>
       </div>
     </sc-for>
   </div>
-</sc-if>
+  <div style="flex:none;padding:12px 14px 14px 18px;border-top:1px solid #edf2f0;border-left:1px solid #e0e9e6;display:flex;align-items:center;justify-content:flex-end;gap:12px">
+    <button type="button" onClick="{{ go }}" style="height:40px;padding:0 14px 0 16px;border:0;border-radius:12px;background:linear-gradient(90deg,#f6a62a,#f2851c);box-shadow:0 10px 20px -10px rgba(242,133,28,.7),inset 0 1px 0 rgba(255,255,255,.25);color:#13243d;display:flex;align-items:center;gap:8px;font-family:inherit;font-size:13px;font-weight:800;white-space:nowrap;cursor:pointer;flex:none" style-hover="filter:brightness(1.04)" style-focus-visible="outline:2px solid #13243d;outline-offset:2px">Continuer<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></button>
+  </div>
+</div>
 
-<!-- ── 3 · Formulaire ── -->
-<sc-if value="{{ stForm }}" hint-placeholder-val="{{ false }}">
-  <div style="display:flex;align-items:center;gap:12px;padding:16px 18px 14px;border-bottom:1px solid #eef3f2"><button type="button" onClick="{{ toChoose }}" title="Changer d'objet" aria-label="Changer d'objet" style="width:32px;height:32px;border-radius:10px;border:1px solid #e3ebe9;background:#fff;padding:0;display:flex;align-items:center;justify-content:center;flex:none;cursor:pointer" style-focus-visible="outline:2px solid #146b64;outline-offset:2px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#43586a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></button><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:#1d8f86;font-weight:700">Saisir sans Jev</span><h2 style="margin:0;font-size:16px;letter-spacing:-.01em;font-weight:800">{{ nv }}</h2></div><button type="button" onClick="{{ close }}" title="Fermer" aria-label="Fermer" style="width:30px;height:30px;border:0;background:none;padding:0;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer" style-hover="background:#f1f5f4" style-focus-visible="outline:2px solid #146b64;outline-offset:2px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8a9aa6" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div>
-  <div style="flex:1;overflow:auto;padding:16px 18px 18px;display:flex;flex-direction:column;gap:14px">
-    <sc-for list="{{ fields }}" as="f" hint-placeholder-count="5">
-      <sc-if value="{{ f.isTitle }}" hint-placeholder-val="{{ true }}"><div style="display:flex;flex-direction:column;gap:6px"><label htmlFor="{{ f.id }}" style="font-size:11.5px;font-weight:600;color:#43586a;white-space:nowrap">{{ f.l }}<sc-if value="{{ f.req }}" hint-placeholder-val="{{ false }}"><span style="color:#1d8f86"> *</span></sc-if></label><div style="{{ f.boxSt }}" style-focus-within="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.12)"><input id="{{ f.id }}" ref="{{ f.ref }}" value="{{ f.v }}" onChange="{{ f.tc }}" placeholder="{{ f.ph }}" aria-required="{{ f.ariaReq }}" aria-invalid="{{ f.ariaInv }}" style="flex:1;min-width:0;border:0;outline:0;background:none;font-size:15px;font-weight:600;color:#10233a;padding:0"></div></div></sc-if>
-      <sc-if value="{{ f.isText }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-direction:column;gap:6px"><label htmlFor="{{ f.id }}" style="font-size:11.5px;font-weight:600;color:#43586a;white-space:nowrap">{{ f.l }}<sc-if value="{{ f.req }}" hint-placeholder-val="{{ false }}"><span style="color:#1d8f86"> *</span></sc-if></label><div style="{{ f.boxSt }}" style-focus-within="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.12)"><input id="{{ f.id }}" value="{{ f.v }}" onChange="{{ f.tc }}" placeholder="{{ f.ph }}" maxLength="{{ f.max }}" aria-required="{{ f.ariaReq }}" style="flex:1;min-width:0;border:0;outline:0;background:none;font-size:13px;font-weight:600;color:#10233a;padding:0"></div></div></sc-if>
-      <sc-if value="{{ f.isLong }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-direction:column;gap:6px"><label htmlFor="{{ f.id }}" style="font-size:11.5px;font-weight:600;color:#43586a;white-space:nowrap">{{ f.l }}<sc-if value="{{ f.req }}" hint-placeholder-val="{{ false }}"><span style="color:#1d8f86"> *</span></sc-if></label><div style="{{ f.boxSt }}" style-focus-within="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.12)"><textarea id="{{ f.id }}" value="{{ f.v }}" onChange="{{ f.tc }}" placeholder="{{ f.ph }}" rows="2" style="flex:1;min-width:0;height:100%;border:0;outline:0;background:none;resize:none;font-size:13px;line-height:1.45;font-weight:600;color:#10233a;padding:0"></textarea></div></div></sc-if>
-      <sc-if value="{{ f.isDate }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-direction:column;gap:6px"><label htmlFor="{{ f.id }}" style="font-size:11.5px;font-weight:600;color:#43586a;white-space:nowrap">{{ f.l }}<sc-if value="{{ f.req }}" hint-placeholder-val="{{ false }}"><span style="color:#1d8f86"> *</span></sc-if></label><div style="{{ f.boxSt }}" style-focus-within="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.12)"><input id="{{ f.id }}" type="date" className="ssj-date" data-empty="{{ f.empty }}" value="{{ f.v }}" onChange="{{ f.tc }}" aria-required="{{ f.ariaReq }}" style="flex:1;min-width:0;border:0;outline:0;background:none;font-size:13px;font-weight:600;color:#10233a;padding:0"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8a9aa6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex:none;pointer-events:none" aria-hidden="true"><path d="M4 6h16v14H4zM4 10h16M8 3v4M16 3v4"></path></svg></div></div></sc-if>
-      <sc-if value="{{ f.isRange }}" hint-placeholder-val="{{ false }}"><div role="group" aria-labelledby="{{ f.lid }}" style="display:flex;flex-direction:column;gap:6px"><span id="{{ f.lid }}" style="font-size:11.5px;font-weight:600;color:#43586a;white-space:nowrap">{{ f.l }}<sc-if value="{{ f.req }}" hint-placeholder-val="{{ false }}"><span style="color:#1d8f86"> *</span></sc-if></span><div style="{{ f.boxSt }}" style-focus-within="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.12)"><input type="date" className="ssj-date" data-empty="{{ f.empty1 }}" aria-label="Début" value="{{ f.v1 }}" onChange="{{ f.tc1 }}" style="flex:1;min-width:0;border:0;outline:0;background:none;font-size:13px;font-weight:600;color:#10233a;padding:0"><span style="color:#8a9aa6;font-size:13px" aria-hidden="true">→</span><input type="date" className="ssj-date" data-empty="{{ f.empty2 }}" aria-label="Fin" value="{{ f.v2 }}" onChange="{{ f.tc2 }}" style="flex:1;min-width:0;border:0;outline:0;background:none;font-size:13px;font-weight:600;color:#10233a;padding:0"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8a9aa6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex:none;pointer-events:none" aria-hidden="true"><path d="M4 6h16v14H4zM4 10h16M8 3v4M16 3v4"></path></svg></div></div></sc-if>
-      <sc-if value="{{ f.isRef }}" hint-placeholder-val="{{ false }}"><dc-import name="Champ choix" label="{{ f.l }}" required="{{ f.req }}" value="{{ f.v }}" options="{{ f.opts }}" placeholder="{{ f.ph }}" icon="{{ f.icon }}" on-change="{{ f.set }}" hint-size="100%,64px"></dc-import></sc-if>
-      <sc-if value="{{ f.isMulti }}" hint-placeholder-val="{{ false }}"><dc-import name="Champ etiquettes" label="{{ f.l }}" required="{{ f.req }}" value="{{ f.v }}" options="{{ f.opts }}" on-change="{{ f.set }}" hint-size="100%,64px"></dc-import></sc-if>
-      <sc-if value="{{ f.isScale }}" hint-placeholder-val="{{ false }}"><dc-import name="Echelle 1-4" label="{{ f.l }}" required="{{ f.req }}" value="{{ f.v }}" labels="{{ f.labels }}" on-change="{{ f.set }}" hint-size="100%,56px"></dc-import></sc-if>
-      <sc-if value="{{ f.isSeg }}" hint-placeholder-val="{{ false }}"><dc-import name="Selecteur segmente" label="{{ f.l }}" required="{{ f.req }}" value="{{ f.v }}" options="{{ f.segOpts }}" on-change="{{ f.set }}" hint-size="100%,56px"></dc-import></sc-if>
-    </sc-for>
-    <sc-if value="{{ crit.on }}" hint-placeholder-val="{{ false }}"><div role="status" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;background:#f6f9f8"><span style="font-size:11.5px;font-weight:600;color:#43586a;flex:none">Criticité</span><span style="flex:1;height:4px;border-radius:2px;background:#e3ebe9;position:relative;overflow:hidden"><span style="{{ crit.bar }}"></span></span><b style="font-size:12.5px;font-variant-numeric:tabular-nums;flex:none;white-space:nowrap">{{ crit.txt }}</b></div></sc-if>
-    <sc-if value="{{ arb }}" hint-placeholder-val="{{ false }}">
-      <div style="display:flex;flex-direction:column;gap:8px;padding-top:4px">
-        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px"><span id="ssj-opts" style="font-size:11.5px;font-weight:600;color:#43586a;white-space:nowrap">Options comparées<span style="color:#1d8f86"> *</span></span><span style="font-size:11px;color:#8a9aa6;white-space:nowrap">Score pondéré sur 4</span></div>
-        <div role="group" aria-labelledby="ssj-opts" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px">
-          <sc-for list="{{ opts }}" as="o" hint-placeholder-count="2">
-            <button type="button" onClick="{{ o.on }}" aria-label="{{ o.aria }}" style="{{ o.st }}" style-focus-visible="outline:2px solid #146b64;outline-offset:2px">
-              <div style="display:flex;align-items:flex-start;gap:8px"><span style="{{ o.bSt }}">{{ o.L }}</span><span style="{{ o.tSt }}">{{ o.t }}</span></div>
-              <div style="display:flex;align-items:baseline;gap:4px"><b style="{{ o.scSt }}">{{ o.sc }}</b><span style="font-size:12px;font-weight:600;color:#8a9aa6">/ 4</span></div>
-              <span style="height:3px;border-radius:2px;background:#eef3f2;position:relative;overflow:hidden;display:block"><span style="{{ o.barSt }}"></span></span>
-              <span style="{{ o.metaSt }}">{{ o.meta }}</span>
-            </button>
-          </sc-for>
+<!-- ── Formulaire (ou détail d'une option de la fiche d'arbitrage) ── -->
+<div role="region" aria-label="{{ regionL }}" aria-hidden="{{ formHidden }}" style="{{ formSt }}">
+  <sc-if value="{{ hasHead }}" hint-placeholder-val="{{ true }}">
+  <div style="flex:none;padding:16px 16px 0 20px;display:flex;align-items:center;justify-content:space-between">
+    <button type="button" onClick="{{ toPick }}" title="Changer d'objet" aria-label="Changer d'objet" style="width:30px;height:30px;border:0;padding:0;background:none;border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#43586a;box-shadow:inset 0 0 0 1px #e3ebe8" style-hover="background:#f4f7f6" style-focus-visible="outline:2px solid #146b64;outline-offset:2px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></button>
+    <button type="button" onClick="{{ cancel }}" title="Vider le formulaire" aria-label="Vider le formulaire" style="width:30px;height:30px;border:0;padding:0;background:none;border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#8a9aa6" style-hover="background:#f2f6f5;color:#10233a" style-focus-visible="outline:2px solid #146b64;outline-offset:2px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+  </div>
+  <div style="flex:none;padding:14px 20px 0;display:flex;align-items:flex-end;gap:14px">
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:5px"><span style="font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#1f9a8a;font-weight:700;white-space:nowrap">Saisir sans Jev</span><h2 style="margin:0;font-size:24px;font-weight:800;letter-spacing:-.03em;line-height:1.15">{{ nv }}</h2></div>
+    <div role="img" aria-label="{{ ringL }}" style="display:flex;align-items:center;gap:8px;flex:none"><span aria-hidden="true" style="font-size:11px;font-weight:600;color:#8a9aa6;text-align:right;line-height:1.25">requis<br>remplis</span><span aria-hidden="true" style="position:relative;width:40px;height:40px;display:flex;align-items:center;justify-content:center"><svg width="40" height="40" viewBox="0 0 40 40" style="position:absolute;inset:0;transform:rotate(-90deg)"><circle cx="20" cy="20" r="17" fill="none" stroke="#e6eeec" stroke-width="3"></circle><circle cx="20" cy="20" r="17" fill="none" stroke="#1f9a8a" stroke-width="3" stroke-linecap="round" stroke-dasharray="106.8" stroke-dashoffset="{{ ringOff }}" style="transition:stroke-dashoffset .4s cubic-bezier(.2,.8,.2,1)"></circle></svg><b style="font-size:12px;font-variant-numeric:tabular-nums;color:#10233a">{{ ringTxt }}</b></span></div>
+  </div>
+  </sc-if>
+
+  <!-- Parcours : étapes numérotées, un seul champ ouvert ; Entrée passe à l'étape suivante. -->
+  <sc-if value="{{ isSteps }}" hint-placeholder-val="{{ true }}"><div style="flex:1;overflow-x:hidden;overflow-y:auto;padding:26px 20px 16px;display:flex;flex-direction:column">
+    <sc-for list="{{ fields }}" as="f" hint-placeholder-count="4">
+      <div style="display:grid;grid-template-columns:24px minmax(0,1fr);gap:14px">
+        <div style="display:flex;flex-direction:column;align-items:center">
+          <span onClick="{{ f.open }}" aria-hidden="true" style="{{ f.nSt }}"><sc-if value="{{ f.check }}" hint-placeholder-val="{{ false }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></sc-if><sc-if value="{{ f.num }}" hint-placeholder-val="{{ true }}">{{ f.n }}</sc-if></span>
+          <sc-if value="{{ f.notLast }}" hint-placeholder-val="{{ true }}"><span style="{{ f.lineSt }}"></span></sc-if>
         </div>
-        <span role="status" style="font-size:11.5px;color:#5c7280;font-weight:500">{{ verdict }}</span>
+        <div style="{{ f.bSt }}">
+          <span id="{{ f.lid }}" onClick="{{ f.open }}" style="cursor:pointer;font-size:13px;font-weight:700;color:#10233a;letter-spacing:-.005em">{{ f.l }}<sc-if value="{{ f.r }}" hint-placeholder-val="{{ false }}"><span style="color:#1f9a8a" aria-label="requis"> *</span></sc-if></span>
+          <sc-if value="{{ f.closed }}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{ f.open }}" aria-label="{{ f.openL }}" style="display:flex;align-items:center;gap:10px;cursor:pointer;min-width:0;border:0;padding:0;background:none;font-family:inherit;text-align:left;border-radius:6px" style-focus-visible="outline:2px solid #146b64;outline-offset:3px"><span style="{{ f.sumSt }}">{{ f.sum }}</span><sc-if value="{{ f.hasIc }}" hint-placeholder-val="{{ false }}"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#b4c2c9" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex:none" aria-hidden="true"><path d="{{ f.ic }}"></path></svg></sc-if></button></sc-if>
+          <sc-if value="{{ f.aText }}" hint-placeholder-val="{{ false }}"><div style="height:48px;padding:0 14px;border-radius:12px;background:#fff;box-shadow:0 0 0 1.5px #1f9a8a,0 0 0 5px rgba(31,154,138,.12);display:flex;align-items:center"><input ref="{{ f.fr }}" value="{{ f.v }}" onChange="{{ f.ch }}" onKeyDown="{{ f.kd }}" placeholder="{{ f.ph }}" maxLength="{{ f.max }}" aria-labelledby="{{ f.lid }}" aria-required="{{ f.ariaReq }}" style="flex:1;min-width:0;border:0;outline:0;background:none;padding:0;font-size:15px;font-weight:600;color:#10233a;caret-color:#1f9a8a"></div></sc-if>
+          <sc-if value="{{ f.aLong }}" hint-placeholder-val="{{ false }}"><div style="padding:12px 14px;border-radius:12px;background:#fff;box-shadow:0 0 0 1.5px #1f9a8a,0 0 0 5px rgba(31,154,138,.12);display:flex"><textarea ref="{{ f.fr }}" value="{{ f.v }}" onChange="{{ f.ch }}" placeholder="{{ f.ph }}" rows="3" aria-labelledby="{{ f.lid }}" style="flex:1;min-width:0;border:0;outline:0;background:none;padding:0;resize:none;font-size:13.5px;line-height:1.5;font-weight:500;color:#10233a;caret-color:#1f9a8a"></textarea></div></sc-if>
+          <sc-if value="{{ f.aDate }}" hint-placeholder-val="{{ false }}"><dc-import name="Champ date" variant="active" range="{{ f.range }}" value="{{ f.dv }}" auto-focus="{{ f.af }}" required="{{ f.r }}" labelled-by="{{ f.lid }}" on-change="{{ f.set }}" on-enter="{{ f.next }}" hint-size="100%,48px"></dc-import></sc-if>
+          <sc-if value="{{ f.aList }}" hint-placeholder-val="{{ false }}"><dc-import name="Liste options" variant="active" options="{{ f.opts }}" value="{{ f.lv }}" multi="{{ f.isMulti }}" avatars="{{ f.av }}" auto-focus="{{ f.af }}" labelled-by="{{ f.lid }}" on-pick="{{ f.pick }}" on-change="{{ f.set }}" on-validate="{{ f.next }}" on-escape="{{ f.esc }}" hint-size="100%,140px"></dc-import></sc-if>
+        </div>
       </div>
-      <dc-import name="Selecteur segmente" label="Option recommandée" note="{{ suggest }}" value="{{ rec }}" options="{{ recOpts }}" on-change="{{ setRec }}" hint-size="100%,56px"></dc-import>
-    </sc-if>
-  </div>
-  <div style="padding:14px 18px;border-top:1px solid #eef3f2;display:flex;align-items:center;gap:10px"><span role="status" aria-live="polite" style="{{ footSt }}">{{ footTxt }}</span><button type="button" onClick="{{ cancel }}" style="height:38px;padding:0 14px;border:0;background:none;border-radius:10px;display:flex;align-items:center;font-family:inherit;font-size:13px;font-weight:700;color:#43586a;cursor:pointer" style-hover="background:#f1f5f4" style-focus-visible="outline:2px solid #146b64;outline-offset:2px">Annuler</button><button type="button" onClick="{{ submit }}" disabled="{{ busy }}" style="{{ ctaSt }}" style-hover="background:#146b64" style-focus-visible="outline:2px solid #146b64;outline-offset:2px">{{ cta }}</button></div>
-</sc-if>
+    </sc-for>
+  </div></sc-if>
 
-<!-- ── 4 · Détail de l'option (fiche d'arbitrage) ── -->
-<sc-if value="{{ stOption }}" hint-placeholder-val="{{ false }}">
-  <div style="display:flex;align-items:center;gap:12px;padding:16px 18px 14px;border-bottom:1px solid #eef3f2"><button type="button" onClick="{{ toForm }}" title="Retour à la fiche" aria-label="Retour à la fiche" style="width:32px;height:32px;border-radius:10px;border:1px solid #e3ebe9;background:#fff;padding:0;display:flex;align-items:center;justify-content:center;flex:none;cursor:pointer" style-focus-visible="outline:2px solid #146b64;outline-offset:2px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#43586a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></button><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:#1d8f86;font-weight:700;white-space:nowrap">Fiche d'arbitrage</span><h2 style="margin:0;font-size:16px;letter-spacing:-.01em;font-weight:800">Option {{ o.L }}</h2></div><div role="tablist" aria-label="Options" style="display:flex;gap:2px;padding:3px;border-radius:9px;background:#f1f5f4"><sc-for list="{{ o.tabs }}" as="p" hint-placeholder-count="2"><button type="button" role="tab" aria-selected="{{ p.sel }}" onClick="{{ p.on }}" style="{{ p.st }}" style-focus-visible="outline:2px solid #146b64;outline-offset:1px">{{ p.t }}</button></sc-for></div></div>
-  <div style="flex:1;overflow:auto;padding:16px 18px 18px;display:flex;flex-direction:column;gap:18px">
-    <div style="display:flex;flex-direction:column;gap:6px"><label htmlFor="ssj-ot" style="font-size:11.5px;font-weight:600;color:#43586a">Intitulé de l'option<span style="color:#1d8f86"> *</span></label><div style="height:48px;padding:0 12px;display:flex;align-items:center;border:1px solid #dfe7e5;border-radius:10px" style-focus-within="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.12)"><input id="ssj-ot" value="{{ o.tv }}" onChange="{{ o.tc }}" placeholder="Décrire l'option" aria-required="true" style="flex:1;min-width:0;border:0;outline:0;background:none;font-size:15px;font-weight:600;color:#10233a;padding:0"></div></div>
-    <div style="display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:14px;background:#f6f9f8">
-      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px">
-        <div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#5c7280;font-weight:700">Score pondéré</span><div role="status" style="display:flex;align-items:baseline;gap:6px"><b style="{{ o.scSt }}">{{ o.sc }}</b><span style="font-size:14px;font-weight:600;color:#8a9aa6">/ 4</span></div></div>
-        <span style="height:24px;padding:0 9px;border-radius:7px;background:#fff;box-shadow:0 0 0 1px #e3ebe9;font-size:11.5px;font-weight:600;color:#43586a;display:flex;align-items:center;white-space:nowrap;font-variant-numeric:tabular-nums">{{ o.other }}</span>
+  <!-- Chapitres : trois chapitres par objet, résumé des chapitres fermés, bouton « Suivant ». -->
+  <sc-if value="{{ isChap }}" hint-placeholder-val="{{ false }}"><div style="flex:1;overflow-x:hidden;overflow-y:auto;padding:26px 20px 16px;display:flex;flex-direction:column">
+    <sc-for list="{{ chaps }}" as="c" hint-placeholder-count="3">
+      <div style="display:grid;grid-template-columns:24px minmax(0,1fr);gap:14px">
+        <div style="display:flex;flex-direction:column;align-items:center">
+          <span onClick="{{ c.open }}" aria-hidden="true" style="{{ c.nSt }}"><sc-if value="{{ c.check }}" hint-placeholder-val="{{ false }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></sc-if><sc-if value="{{ c.num }}" hint-placeholder-val="{{ true }}">{{ c.n }}</sc-if></span>
+          <sc-if value="{{ c.notLast }}" hint-placeholder-val="{{ true }}"><span style="{{ c.lineSt }}"></span></sc-if>
+        </div>
+        <div style="{{ c.bSt }}">
+          <h3 style="margin:0;display:flex"><button type="button" onClick="{{ c.open }}" aria-expanded="{{ c.ariaOn }}" aria-label="{{ c.aria }}" style="{{ c.tSt }}" style-focus-visible="outline:2px solid #146b64;outline-offset:2px">{{ c.t }}</button></h3>
+          <sc-if value="{{ c.showKv }}" hint-placeholder-val="{{ false }}"><div onClick="{{ c.open }}" style="display:flex;flex-direction:column;gap:5px;cursor:pointer"><sc-for list="{{ c.kv }}" as="r" hint-placeholder-count="2"><div style="display:grid;grid-template-columns:96px minmax(0,1fr);gap:10px;font-size:12.5px;align-items:baseline"><span style="color:#8a9aa6;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.k }}</span><span style="{{ r.st }}">{{ r.v }}</span></div></sc-for></div></sc-if>
+          <sc-if value="{{ c.showTodo }}" hint-placeholder-val="{{ false }}"><span onClick="{{ c.open }}" style="font-size:12.5px;color:#8a9aa6;font-weight:500;line-height:1.5;cursor:pointer">{{ c.todo }}</span></sc-if>
+          <sc-if value="{{ c.on }}" hint-placeholder-val="{{ false }}">
+            <sc-for list="{{ c.fields }}" as="f" hint-placeholder-count="2">
+              <div style="display:flex;flex-direction:column;gap:6px;min-width:0">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px"><span id="{{ f.lid }}" style="font-size:12px;font-weight:600;color:#43586a;white-space:nowrap">{{ f.l }}<sc-if value="{{ f.r }}" hint-placeholder-val="{{ false }}"><span style="color:#1f9a8a" aria-label="requis"> *</span></sc-if></span><sc-if value="{{ f.hasRt }}" hint-placeholder-val="{{ false }}"><span style="{{ f.rtSt }}">{{ f.rt }}</span></sc-if></div>
+                <sc-if value="{{ f.cText }}" hint-placeholder-val="{{ false }}"><div style="height:46px;padding:0 14px;border-radius:12px;display:flex;align-items:center;gap:10px;background:#f4f7f6;transition:box-shadow .15s,background .15s" style-focus-within="background:#fff;box-shadow:0 0 0 1.5px #1f9a8a,0 0 0 5px rgba(31,154,138,.12)"><input ref="{{ f.fr }}" value="{{ f.v }}" onChange="{{ f.ch }}" placeholder="{{ f.ph }}" maxLength="{{ f.max }}" aria-labelledby="{{ f.lid }}" aria-required="{{ f.ariaReq }}" style="flex:1;min-width:0;border:0;outline:0;background:none;padding:0;font-size:14.5px;font-weight:600;color:#10233a;caret-color:#1f9a8a"></div></sc-if>
+                <sc-if value="{{ f.cLong }}" hint-placeholder-val="{{ false }}"><div style="padding:12px 14px;border-radius:12px;display:flex;background:#f4f7f6;transition:box-shadow .15s,background .15s" style-focus-within="background:#fff;box-shadow:0 0 0 1.5px #1f9a8a,0 0 0 5px rgba(31,154,138,.12)"><textarea ref="{{ f.fr }}" value="{{ f.v }}" onChange="{{ f.ch }}" placeholder="{{ f.ph }}" rows="3" aria-labelledby="{{ f.lid }}" style="flex:1;min-width:0;border:0;outline:0;background:none;padding:0;resize:none;font-size:13.5px;line-height:1.5;font-weight:500;color:#10233a;caret-color:#1f9a8a"></textarea></div></sc-if>
+                <sc-if value="{{ f.cDate }}" hint-placeholder-val="{{ false }}"><dc-import name="Champ date" variant="box" value="{{ f.dv }}" required="{{ f.r }}" labelled-by="{{ f.lid }}" on-change="{{ f.set }}" hint-size="100%,46px"></dc-import></sc-if>
+                <sc-if value="{{ f.cDrop }}" hint-placeholder-val="{{ false }}"><dc-import name="Champ choix" value="{{ f.lv }}" options="{{ f.opts }}" multi="{{ f.isMulti }}" person="{{ f.av }}" placeholder="{{ f.ph }}" required="{{ f.r }}" labelled-by="{{ f.lid }}" on-change="{{ f.set }}" hint-size="100%,46px"></dc-import></sc-if>
+                <sc-if value="{{ f.cScale }}" hint-placeholder-val="{{ false }}"><dc-import name="Echelle 1-4" value="{{ f.nv }}" labels="{{ f.labels }}" labelled-by="{{ f.lid }}" on-change="{{ f.set }}" hint-size="100%,42px"></dc-import></sc-if>
+                <sc-if value="{{ f.cSeg }}" hint-placeholder-val="{{ false }}"><dc-import name="Selecteur segmente" value="{{ f.nv }}" options="{{ f.segOpts }}" labelled-by="{{ f.lid }}" on-change="{{ f.set }}" hint-size="100%,40px"></dc-import></sc-if>
+                <sc-if value="{{ f.cLife }}" hint-placeholder-val="{{ false }}"><dc-import name="Cycle de vie" value="{{ f.lv }}" steps="{{ f.lifeSteps }}" off="{{ f.lifeOff }}" labelled-by="{{ f.lid }}" on-change="{{ f.set }}" hint-size="100%,96px"></dc-import></sc-if>
+                <sc-if value="{{ f.cDuel }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-direction:column;gap:14px">
+                  <div role="group" aria-labelledby="{{ f.lid }}" style="display:flex;flex-direction:column;gap:14px;padding:16px;border-radius:16px;background:#13243d;background-image:radial-gradient(120% 120% at 0% 0%,rgba(42,179,160,.22) 0%,rgba(42,179,160,0) 55%)">
+                    <div style="display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:end;gap:10px">
+                      <div onClick="{{ f.dA.on }}" style="display:flex;flex-direction:column;gap:6px;min-width:0;cursor:pointer"><span style="display:flex;align-items:center;gap:6px;height:20px"><span style="{{ f.dA.bSt }}">A</span><sc-if value="{{ f.dA.lead }}" hint-placeholder-val="{{ false }}"><span style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#3fd0bb;font-weight:700">en tête</span></sc-if></span><b style="{{ f.dA.scSt }}">{{ f.dA.sc }}</b></div>
+                      <span role="status" aria-label="{{ f.gapL }}" style="height:24px;padding:0 9px;border-radius:7px;background:rgba(63,208,187,.14);color:#3fd0bb;font-size:11.5px;font-weight:800;display:flex;align-items:center;font-variant-numeric:tabular-nums;margin-bottom:4px">{{ f.gap }}</span>
+                      <div onClick="{{ f.dB.on }}" style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;min-width:0;cursor:pointer"><span style="display:flex;align-items:center;gap:6px;height:20px"><sc-if value="{{ f.dB.lead }}" hint-placeholder-val="{{ false }}"><span style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#3fd0bb;font-weight:700">en tête</span></sc-if><span style="{{ f.dB.bSt }}">B</span></span><b style="{{ f.dB.scSt }}">{{ f.dB.sc }}</b></div>
+                    </div>
+                    <div aria-hidden="true" style="display:flex;height:8px;border-radius:4px;overflow:hidden;gap:2px"><span style="{{ f.dA.barSt }}"></span><span style="{{ f.dB.barSt }}"></span></div>
+                    <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;font-size:11.5px;line-height:1.35">
+                      <button type="button" onClick="{{ f.dA.on }}" aria-label="{{ f.dA.aria }}" style="display:flex;align-items:center;gap:4px;min-width:0;cursor:pointer;border:0;padding:0;background:none;font-family:inherit;font-size:11.5px;text-align:left;border-radius:4px" style-focus-visible="outline:2px solid #3fd0bb;outline-offset:2px"><span style="{{ f.dA.tSt }}">{{ f.dA.t }}</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3fd0bb" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex:none" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></button>
+                      <button type="button" onClick="{{ f.dB.on }}" aria-label="{{ f.dB.aria }}" style="display:flex;align-items:center;justify-content:flex-end;gap:4px;min-width:0;cursor:pointer;border:0;padding:0;background:none;font-family:inherit;font-size:11.5px;text-align:right;border-radius:4px" style-focus-visible="outline:2px solid #3fd0bb;outline-offset:2px"><span style="{{ f.dB.tSt }}">{{ f.dB.t }}</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3fd0bb" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex:none" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></button>
+                    </div>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:6px"><div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px"><span id="ssj-rec" style="font-size:12px;font-weight:600;color:#43586a;white-space:nowrap">Option recommandée</span><span style="display:flex;align-items:center;gap:6px;font-size:11px;color:#5c7280;font-weight:600;white-space:nowrap"><span style="width:6px;height:6px;border-radius:50%;background:#1f9a8a"></span>{{ f.suggest }}</span></div><dc-import name="Selecteur segmente" value="{{ f.rec }}" options="{{ f.recOpts }}" height="{{ 32 }}" labelled-by="ssj-rec" on-change="{{ f.setRec }}" hint-size="100%,38px"></dc-import></div>
+                </div></sc-if>
+              </div>
+            </sc-for>
+            <sc-if value="{{ c.hasCrit }}" hint-placeholder-val="{{ false }}"><div role="status" style="display:flex;align-items:center;gap:12px;height:44px;padding:0 14px;border-radius:12px;background:#f6f9f8"><span style="font-size:12px;font-weight:600;color:#43586a">Criticité</span><span style="flex:1;height:4px;border-radius:2px;background:#e3ebe8;position:relative;overflow:hidden"><span style="{{ c.critBar }}"></span></span><b style="font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap">{{ c.critTxt }}</b></div></sc-if>
+            <sc-if value="{{ c.hasNext }}" hint-placeholder-val="{{ false }}"><div style="display:flex;justify-content:flex-end"><button type="button" onClick="{{ c.next }}" style="height:32px;padding:0 10px 0 12px;border:0;background:none;border-radius:9px;display:flex;align-items:center;gap:6px;font-family:inherit;font-size:12.5px;font-weight:700;color:#146b64;cursor:pointer" style-hover="background:#eef6f4" style-focus-visible="outline:2px solid #146b64;outline-offset:2px">Suivant<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></button></div></sc-if>
+          </sc-if>
+        </div>
       </div>
-      <div role="img" aria-label="{{ o.compL }}" style="display:flex;gap:3px"><sc-for list="{{ o.comp }}" as="s" hint-placeholder-count="3"><span title="{{ s.tip }}" style="{{ s.st }}"><span style="{{ s.fSt }}"></span></span></sc-for></div>
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><span style="font-size:11px;color:#8a9aa6">Largeur = poids · remplissage = note</span><span role="status" style="{{ o.wSt }}"><sc-if value="{{ o.wOk }}" hint-placeholder-val="{{ true }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#1d8f86" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg></sc-if>{{ o.wTxt }}</span></div>
+    </sc-for>
+  </div></sc-if>
+
+  <sc-if value="{{ hasHead }}" hint-placeholder-val="{{ true }}"><div style="flex:none;padding:12px 14px 14px 20px;border-top:1px solid #edf2f0;display:flex;align-items:center;gap:6px">
+    <span role="status" aria-live="polite" style="{{ footSt }}"><sc-if value="{{ noErr }}" hint-placeholder-val="{{ true }}"><span style="color:#1f9a8a">*</span> Requis</sc-if>{{ err }}</span>
+    <button type="button" onClick="{{ cancel }}" style="height:40px;padding:0 14px;border:0;background:none;border-radius:12px;display:flex;align-items:center;font-family:inherit;font-size:13px;font-weight:700;color:#43586a;cursor:pointer;flex:none" style-hover="background:#f2f6f5;color:#10233a" style-focus-visible="outline:2px solid #146b64;outline-offset:2px">Annuler</button>
+    <button type="button" onClick="{{ create }}" title="{{ ctaTip }}" aria-disabled="{{ ctaOff }}" style="{{ ctaSt }}" style-focus-visible="outline:2px solid #13243d;outline-offset:2px">{{ cta }}</button>
+  </div></sc-if>
+
+  <!-- Détail d'une option de la fiche d'arbitrage : onglets A / B, intitulé, jauge du score (repère : l'autre option), composition,
+       critères repliables (un seul déplié). -->
+  <sc-if value="{{ isOpt }}" hint-placeholder-val="{{ false }}">
+    <div style="flex:none;padding:16px 16px 0 20px;display:flex;align-items:center;gap:12px"><button type="button" onClick="{{ ob.back }}" title="Retour à la fiche" aria-label="Retour à la fiche" style="width:30px;height:30px;border:0;padding:0;background:none;border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#43586a;box-shadow:inset 0 0 0 1px #e3ebe8" style-hover="background:#f4f7f6" style-focus-visible="outline:2px solid #146b64;outline-offset:2px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></button><span style="flex:1"></span><div role="tablist" aria-label="Options" style="display:flex;gap:2px;padding:3px;border-radius:10px;background:#f1f5f4"><sc-for list="{{ ob.tabs }}" as="p" hint-placeholder-count="2"><button type="button" role="tab" aria-selected="{{ p.sel }}" aria-label="{{ p.aria }}" onClick="{{ p.on }}" style="{{ p.st }}" style-focus-visible="outline:2px solid #146b64;outline-offset:1px">{{ p.t }}</button></sc-for></div></div>
+    <div style="flex:none;padding:14px 20px 0;display:flex;flex-direction:column;gap:5px"><span style="font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#1f9a8a;font-weight:700">Fiche d'arbitrage</span><h2 style="margin:0;font-size:24px;font-weight:800;letter-spacing:-.03em;line-height:1.15">Option {{ ob.L }}</h2></div>
+    <div style="flex:1;overflow-x:hidden;overflow-y:auto;padding:18px 20px 12px;display:flex;flex-direction:column">
+      <div style="display:flex;flex-direction:column;gap:6px"><label htmlFor="ssj-ot" style="font-size:12px;font-weight:600;color:#43586a">Intitulé de l'option<span style="color:#1f9a8a" aria-label="requis"> *</span></label><div style="height:46px;padding:0 14px;border-radius:12px;background:#f4f7f6;display:flex;align-items:center;transition:box-shadow .15s,background .15s" style-focus-within="background:#fff;box-shadow:0 0 0 1.5px #1f9a8a,0 0 0 5px rgba(31,154,138,.12)"><input id="ssj-ot" value="{{ ob.tv }}" onChange="{{ ob.tc }}" placeholder="Décrire l'option" aria-required="true" style="flex:1;min-width:0;border:0;outline:0;background:none;padding:0;font-size:14.5px;font-weight:600;color:#10233a;caret-color:#1f9a8a"></div></div>
+      <div role="img" aria-label="{{ ob.gaugeL }}" style="position:relative;display:flex;flex-direction:column;align-items:center;padding-top:14px;flex:none"><svg width="220" height="122" viewBox="0 0 200 110" fill="none" aria-hidden="true"><path d="M20 100A80 80 0 01180 100" stroke="#e8efed" stroke-width="12" stroke-linecap="round"></path><path d="{{ ob.arc }}" stroke="{{ ob.arcC }}" stroke-width="12" stroke-linecap="round"></path><circle cx="{{ ob.bx }}" cy="{{ ob.by }}" r="4" fill="#fff" stroke="#10233a" stroke-width="2"></circle></svg>
+        <div aria-hidden="true" style="position:absolute;left:0;right:0;bottom:2px;display:flex;flex-direction:column;align-items:center;gap:2px"><div style="display:flex;align-items:baseline;gap:5px"><b style="{{ ob.scSt }}">{{ ob.sc }}</b><span style="font-size:13px;font-weight:600;color:#8a9aa6">/ 4</span></div><span style="font-size:11px;font-weight:600;color:#5c7280;display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:50%;box-shadow:inset 0 0 0 2px #10233a"></span>{{ ob.other }}</span></div></div>
+      <div aria-hidden="true" style="flex:none;display:flex;justify-content:space-between;width:220px;margin:4px auto 14px;font-size:10px;font-weight:700;color:#b4c2c9;padding:0 6px"><span>0</span><span>4</span></div>
+      <div role="img" aria-label="{{ ob.compL }}" style="flex:none;display:flex;gap:3px"><sc-for list="{{ ob.comp }}" as="s" hint-placeholder-count="3"><span title="{{ s.tip }}" style="{{ s.st }}"><span style="{{ s.fSt }}"></span></span></sc-for></div>
+      <div style="flex:none;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px"><span style="font-size:11px;color:#8a9aa6">Largeur = poids · remplissage = note</span><span role="status" style="{{ ob.wSt }}"><sc-if value="{{ ob.wOk }}" hint-placeholder-val="{{ false }}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#1f9a8a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></sc-if>{{ ob.wTxt }}</span></div>
+      <div style="flex:none;display:flex;flex-direction:column;margin-top:14px">
+        <sc-for list="{{ ob.rows }}" as="r" hint-placeholder-count="2"><dc-import name="Ligne critere" index="{{ r.i }}" row="{{ r.row }}" expanded="{{ r.ex }}" on-open="{{ r.open }}" on-change="{{ r.up }}" on-remove="{{ r.rm }}" hint-size="100%,50px"></dc-import></sc-for>
+        <button type="button" onClick="{{ ob.add }}" style="height:44px;border:0;border-top:1px solid #edf2f0;background:none;padding:0;display:flex;align-items:center;gap:8px;font-family:inherit;font-size:12.5px;font-weight:700;color:#146b64;cursor:pointer" style-hover="color:#0d5952" style-focus-visible="outline:2px solid #146b64;outline-offset:-2px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Ajouter un critère</button>
+      </div>
     </div>
-    <div style="display:flex;flex-direction:column;gap:8px">
-      <div aria-hidden="true" style="display:grid;grid-template-columns:18px minmax(0,1fr) 58px 22px;gap:8px;align-items:center;padding:0 12px;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#8a9aa6;font-weight:700"><span></span><span>Critère</span><span style="text-align:right">Poids</span><span></span></div>
-      <sc-for list="{{ o.rows }}" as="r" hint-placeholder-count="3"><dc-import name="Ligne critere" index="{{ r.i }}" row="{{ r.row }}" on-change="{{ r.up }}" on-remove="{{ r.rm }}" hint-size="100%,132px"></dc-import></sc-for>
-      <button type="button" onClick="{{ o.add }}" style="height:40px;border-radius:12px;border:1px dashed #c6d6d2;background:none;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;font-size:12.5px;font-weight:700;color:#43586a;cursor:pointer" style-hover="border-color:#1d8f86;color:#146b64;background:#f6faf9" style-focus-visible="outline:2px solid #146b64;outline-offset:2px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Ajouter un critère</button>
-    </div>
-  </div>
-  <div style="padding:14px 18px;border-top:1px solid #eef3f2;display:flex;align-items:center;gap:10px"><span style="flex:1;min-width:0;font-size:11px;color:#8a9aa6;white-space:nowrap">Note : 1 faible · 4 excellent</span><button type="button" onClick="{{ toForm }}" style="height:38px;padding:0 16px;border:0;border-radius:10px;background:#10233a;color:#fff;display:flex;align-items:center;font-family:inherit;font-size:13px;font-weight:700;white-space:nowrap;cursor:pointer" style-focus-visible="outline:2px solid #146b64;outline-offset:2px">Retour à la fiche</button></div>
-</sc-if>
+    <div style="flex:none;padding:12px 14px 14px 20px;border-top:1px solid #edf2f0;display:flex;align-items:center;gap:6px"><span style="flex:1;font-size:11.5px;color:#8a9aa6;font-weight:500;white-space:nowrap">Note : 1 faible · 4 excellent</span><button type="button" onClick="{{ ob.back }}" style="height:40px;padding:0 16px;border:0;border-radius:12px;background:#13243d;color:#fff;display:flex;align-items:center;font-family:inherit;font-size:13px;font-weight:700;white-space:nowrap;cursor:pointer" style-hover="background:#1b3150" style-focus-visible="outline:2px solid #146b64;outline-offset:2px">Retour à la fiche</button></div>
+  </sc-if>
+
+  <div role="status" aria-live="polite" style="position:absolute;left:50%;bottom:76px;transform:translateX(-50%);pointer-events:none"><sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}"><div style="height:38px;padding:0 16px 0 12px;border-radius:12px;background:#13243d;color:#fff;display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;white-space:nowrap;box-shadow:0 18px 30px -16px rgba(19,36,61,.6)"><span style="width:20px;height:20px;border-radius:50%;background:#1f9a8a;display:flex;align-items:center;justify-content:center;flex:none" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span>{{ toast }}</div></sc-if></div>
+</div>
+</div>
 </div>
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;data&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;object&quot;},&quot;onBack&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;onClose&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;onSubmit&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(kind: string, values: object) =&gt; Promise&lt;string&gt;&quot;}}">
-// « Saisir sans Jev » (09/10/2026) : objets, champs et règles de la maquette 3a. Les listes (`data` : personnes, phases,
-// chantiers, risques / décisions / jalons, actions, décisions, instances) viennent du Cockpit ; `onSubmit(kind, values)`
-// écrit par l'API (api.js, `saisie`) et renvoie le libellé de l'objet créé, ou lève une erreur affichable.
-// Calculs (score, poids, criticité, comparaison) : frontends/saisie-calc.js, partagé avec les tests.
+// « Saisir sans Jev » (maquette 5a, 10/10/2026) : objets, champs et règles. Les listes (`data` : personnes, phases, chantiers,
+// sous-phases, risques / décisions / jalons, actions, décisions, instances) viennent du Cockpit ; `onSubmit(kind, values)` écrit
+// par l'API (api.js, `saisie`) et renvoie le message de confirmation, ou lève une erreur affichable. Calculs (score, poids,
+// criticité, comparaison, dates, recherche) : frontends/saisie-calc.js, partagé avec les tests.
+// Ordre des objets : celui du commanditaire (09/10/2026 : Livrable avant Risque, Tâche avant Décision), maintenu le 10/10/2026.
 const SSJ_OBJ = [
-  { k: 'phase', l: 'Phase', art: 'la phase', nv: 'Nouvelle phase', fam: 0, g: 'M3 12h18M3 7v10M21 7v10' },
-  { k: 'chantier', l: 'Chantier', art: 'le chantier', nv: 'Nouveau chantier', fam: 0, g: 'M12 3l9 5-9 5-9-5zM3 13l9 5 9-5' },
-  { k: 'sousphase', l: 'Sous-phase', art: 'la sous-phase', nv: 'Nouvelle sous-phase', fam: 0, g: 'M3 12h6M15 12h6M3 7v10M12 9v6M21 7v10' },
-  { k: 'jalon', l: 'Jalon', art: 'le jalon', nv: 'Nouveau jalon', fam: 0, g: 'M12 3l7 9-7 9-7-9z' },
-  // Livrable (09/10/2026, demande du commanditaire, hors maquette) : avant « Risque ».
-  { k: 'livrable', l: 'Livrable', art: 'le livrable', nv: 'Nouveau livrable', fam: 1, g: 'M6 3h9l3 3v15H6zM14 3v4h4M9 12h6M9 16h6' },
-  { k: 'risque', l: 'Risque', art: 'le risque', nv: 'Nouveau risque', fam: 1, g: 'M12 4l9 16H3zM12 10v4M12 17v.5' },
-  { k: 'action', l: 'Action', art: "l'action", nv: 'Nouvelle action', fam: 1, g: 'M4 12h15M13 6l6 6-6 6' },
-  // Ordre du commanditaire (09/10/2026) : Tâche avant Décision.
-  { k: 'tache', l: 'Tâche', art: 'la tâche', nv: 'Nouvelle tâche', fam: 1, g: 'M5 5h14v14H5zM9 12l2 2 4-4' },
-  { k: 'decision', l: 'Décision', art: 'la décision', nv: 'Nouvelle décision', fam: 1, g: 'M12 21v-9M12 12L6 5M12 12l6-7' },
-  { k: 'arbitrage', l: "Fiche d'arbitrage", art: 'la fiche', nv: "Nouvelle fiche d'arbitrage", fam: 1, g: 'M12 4v16M8 20h8M5 7h14M5 7l-3 6h6zM19 7l-3 6h6z' },
+  { k: 'phase', l: 'Phase', fam: 0, fem: 1, art: 'la phase', nv: 'Nouvelle phase' },
+  { k: 'chantier', l: 'Chantier', fam: 0, art: 'le chantier', nv: 'Nouveau chantier' },
+  { k: 'sousphase', l: 'Sous-phase', fam: 0, fem: 1, art: 'la sous-phase', nv: 'Nouvelle sous-phase' },
+  { k: 'jalon', l: 'Jalon', fam: 0, art: 'le jalon', nv: 'Nouveau jalon' },
+  { k: 'livrable', l: 'Livrable', fam: 1, art: 'le livrable', nv: 'Nouveau livrable' },
+  { k: 'risque', l: 'Risque', fam: 1, art: 'le risque', nv: 'Nouveau risque' },
+  { k: 'action', l: 'Action', fam: 1, fem: 1, art: "l'action", nv: 'Nouvelle action' },
+  { k: 'tache', l: 'Tâche', fam: 1, fem: 1, art: 'la tâche', nv: 'Nouvelle tâche' },
+  { k: 'decision', l: 'Décision', fam: 1, fem: 1, art: 'la décision', nv: 'Nouvelle décision' },
+  { k: 'arbitrage', l: "Fiche d'arbitrage", fam: 1, fem: 1, art: 'la fiche', nv: "Nouvelle fiche d'arbitrage" },
 ];
-const SSJ_ST = [['À faire', '#8a9aa6'], ['En cours', '#1d8f86'], ['Terminée', '#10233a'], ['Bloquée', '#b23b3b']];
-const SSJ_PR = [['Critique', '#c2413b'], ['Haute', '#c06f1f'], ['Moyenne', '#1d8f86'], ['Basse', '#8a9aa6']];
-const SSJ_DEC_ST = ['Brouillon', 'En instruction', 'À arbitrer', 'Arbitrée', 'Annulée', 'Remplacée'];
+// Pictogrammes de la maquette : l = trait fin, b = trait épais, a = accent (turquoise, orange pour le risque), f = plein.
+const SSJ_IC = {
+  phase: { l: 'M5.5 9h13a3 3 0 010 6h-13a3 3 0 010-6z', a: 'M14 6.5v11', f: 'M5.5 9H14v6H5.5a3 3 0 010-6z' },
+  sousphase: { l: 'M5 4.5h8a2 2 0 010 4H5a2 2 0 010-4z', f: 'M9 10.5h6a2 2 0 010 4H9a2 2 0 010-4zM13 16.5h6a2 2 0 010 4h-6a2 2 0 010-4z' },
+  chantier: { l: 'M3.5 18h17', a: 'M3.5 18c4.5 0 5-7.5 9.5-7.5h5', f: 'M19.5 8.6a1.9 1.9 0 110 3.8 1.9 1.9 0 010-3.8z' },
+  jalon: { l: 'M2.5 12h4M17.5 12h4', f: 'M12 6.5l5.5 5.5-5.5 5.5L6.5 12z' },
+  livrable: { l: 'M7 3.5h6.5L18 8v12.5H7zM10 13h5M10 16.5h3', f: 'M13.5 3.5L18 8h-4.5z' },
+  risque: { l: 'M12 4.5l8.5 15h-17z', a: 'M12 9.6v4.2', f: 'M12 15.3a1.35 1.35 0 110 2.7 1.35 1.35 0 010-2.7z', warm: 1 },
+  action: { l: 'M9 12h10M15 8l4 4-4 4', f: 'M5.5 9.5a2.5 2.5 0 110 5 2.5 2.5 0 010-5z' },
+  tache: { l: 'M6.5 4.5h11a2 2 0 012 2v11a2 2 0 01-2 2h-11a2 2 0 01-2-2v-11a2 2 0 012-2z', a: 'M8.6 12.2l2.4 2.4 4.5-5' },
+  decision: { l: 'M12 20.5V13L7.4 7.6M6.5 3.5a2.2 2.2 0 110 4.4 2.2 2.2 0 010-4.4z', a: 'M12 13l4.6-5.4', f: 'M17.5 3.5a2.2 2.2 0 110 4.4 2.2 2.2 0 010-4.4z' },
+  arbitrage: { l: 'M12 4v16', b: 'M14.5 7h3M14.5 12h5M14.5 17h2', a: 'M4 7h5.5M4 12h4.5M4 17h5.5' },
+};
+const SSJ_G = { cal: 'M6.5 5h11A2.5 2.5 0 0120 7.5v10a2.5 2.5 0 01-2.5 2.5h-11A2.5 2.5 0 014 17.5v-10A2.5 2.5 0 016.5 5zM4 10h16M8.5 3v4M15.5 3v4', per: 'M12 12a4 4 0 100-8 4 4 0 000 8zM4.5 20.5c1.4-3.6 4.2-5.5 7.5-5.5s6.1 1.9 7.5 5.5', chev: 'M7 10l5 5 5-5' };
+const SSJ_ST = [['À faire', '#8a9aa6'], ['En cours', '#1f9a8a'], ['Terminée', '#10233a'], ['Bloquée', '#c2413b']];
+const SSJ_PR = [['Critique', '#c2413b'], ['Haute', '#e08a1e'], ['Moyenne', '#1f9a8a'], ['Basse', '#8a9aa6']];
+const SSJ_LIFE = ['Brouillon', 'En instruction', 'À arbitrer', 'Arbitrée'], SSJ_OFF = ['Annulée', 'Remplacée'];
+const SSJ_SCL = ['Faible', 'Modérée', 'Forte', 'Très forte'];
 const PER = 'Choisir une personne';
-// Champs par objet (maquette 3a) : k = clé de la valeur, t = type, src = liste du Cockpit, def = valeur initiale.
+// Champs par objet : k = clé de la valeur, t = type (text, long, date, range, sel, per, multi, scale, status, prio, life, duel),
+// src = liste du Cockpit, r = requis, def = valeur initiale, max = longueur maximale.
 const SSJ_F = {
-  phase: [{ k: 'n', l: 'Nom de la phase', t: 'title', ph: 'Ex. Conception détaillée', req: 1 }, { k: 'per', l: 'Période', t: 'range', req: 1 }, { k: 'owner', l: 'Responsable', t: 'person', ph: PER }],
-  sousphase: [{ k: 'phase', l: 'Phase', t: 'ref', src: 'phases', ph: 'Choisir une phase', req: 1 }, { k: 'ws', l: 'Chantier', t: 'ref', src: 'wss', ph: 'Aucun chantier' }, { k: 'n', l: 'Nom de la sous-phase', t: 'title', ph: 'Ex. Maquettes fonctionnelles', req: 1 }, { k: 'per', l: 'Période', t: 'range', req: 1 }],
-  // Période du chantier (demande du commanditaire du 09/10/2026, écart à la maquette) : un chantier sans dates n'est pas dessiné.
-  chantier: [{ k: 'n', l: 'Nom du chantier', t: 'title', ph: 'Ex. Refonte du SI RH', req: 1 }, { k: 'owner', l: 'Responsable', t: 'person', ph: PER, req: 1 }, { k: 'per', l: 'Période', t: 'range', req: 1 }, { k: 'phases', l: 'Phase', t: 'multi', src: 'phases', req: 1 }],
-  jalon: [{ k: 'n', l: 'Intitulé du jalon', t: 'title', ph: 'Ex. Comité de validation V1', req: 1 }, { k: 'ws', l: 'Chantier', t: 'ref', src: 'wssT', ph: 'Choisir un chantier', req: 1 }, { k: 'date', l: 'Date cible', t: 'date', req: 1 }, { k: 'owner', l: 'Responsable', t: 'person', ph: PER }],
+  phase: [{ k: 'n', l: 'Nom de la phase', t: 'text', ph: 'Ex. Conception détaillée', r: 1 }, { k: 'per', l: 'Période', t: 'range', r: 1 }, { k: 'owner', l: 'Responsable', t: 'per', ph: PER }],
+  // Période du chantier (demande du commanditaire du 09/10/2026) : un chantier sans dates n'est pas dessiné.
+  chantier: [{ k: 'n', l: 'Nom du chantier', t: 'text', ph: 'Ex. Refonte du SI RH', r: 1 }, { k: 'owner', l: 'Responsable', t: 'per', ph: PER, r: 1 }, { k: 'per', l: 'Période', t: 'range', r: 1 }, { k: 'phases', l: 'Phase', t: 'multi', src: 'phases', ph: 'Ajouter', r: 1 }],
+  sousphase: [{ k: 'phase', l: 'Phase', t: 'sel', src: 'phases', ph: 'Choisir une phase', r: 1 }, { k: 'ws', l: 'Chantier', t: 'sel', src: 'wss', ph: 'Aucun chantier' }, { k: 'n', l: 'Nom de la sous-phase', t: 'text', ph: 'Ex. Maquettes fonctionnelles', r: 1 }, { k: 'per', l: 'Période', t: 'range', r: 1 }],
+  jalon: [{ k: 'n', l: 'Intitulé du jalon', t: 'text', ph: 'Ex. Comité de validation V1', r: 1 }, { k: 'ws', l: 'Chantier', t: 'sel', src: 'wssT', ph: 'Choisir un chantier', r: 1 }, { k: 'date', l: 'Date cible', t: 'date', r: 1 }, { k: 'owner', l: 'Responsable', t: 'per', ph: PER }],
   // Livrable : sous-phase requise (le serveur rattache tout livrable à une sous-phase, dont il tire sa phase et sa période),
   // proposée parmi celles de la phase choisie (et du chantier s'il est choisi) ; responsable et date de fin requis (serveur).
-  livrable: [{ k: 'n', l: 'Nom du livrable', t: 'title', ph: 'Ex. Cahier de recette validé', req: 1 }, { k: 'phase', l: 'Phase', t: 'ref', src: 'phases', ph: 'Choisir une phase', req: 1 }, { k: 'ws', l: 'Chantier', t: 'ref', src: 'wssNone', ph: 'Aucun chantier' }, { k: 'sp', l: 'Sous-phase', t: 'ref', src: 'subphasesOf', ph: 'Choisir une sous-phase', req: 1 }, { k: 'owner', l: 'Responsable', t: 'person', ph: PER, req: 1 }, { k: 'start', l: 'Date de début', t: 'date' }, { k: 'due', l: 'Date de fin', t: 'date', req: 1 }],
-  risque: [{ k: 'n', l: 'Intitulé du risque', t: 'title', ph: 'Ex. Retard de livraison fournisseur', req: 1 }, { k: 'wss', l: 'Chantier', t: 'multi', src: 'wssT', def: 'transverse' }, { k: 'p', l: 'Probabilité', t: 'scale', def: 3 }, { k: 'i', l: 'Impact', t: 'scale', def: 3 }, { k: 'owner', l: 'Responsable', t: 'person', ph: PER, req: 1 }, { k: 'plan', l: 'Plan de mitigation', t: 'long', ph: 'Mesures prévues pour réduire le risque' }, { k: 'due', l: 'Échéance', t: 'date' }],
-  action: [{ k: 'n', l: "Intitulé de l'action", t: 'title', ph: 'Ex. Relancer le fournisseur', req: 1 }, { k: 'src', l: 'Rattachée à', t: 'ref', src: 'sources', ph: 'Risque, décision ou jalon', req: 1 }, { k: 'wss', l: 'Chantier', t: 'multi', src: 'wssT', req: 1 }, { k: 'owner', l: 'Responsable', t: 'person', ph: PER, req: 1, def: 'me' }, { k: 'due', l: 'Échéance', t: 'date', req: 1 }, { k: 'st', l: 'Statut', t: 'status', def: 1 }],
-  decision: [{ k: 'n', l: 'Point de décision', t: 'title', ph: 'Ex. Choisir une solution de remplacement CRM', req: 1 }, { k: 'prio', l: 'Priorité', t: 'prio', def: 1 }, { k: 'st', l: 'Statut', t: 'ref', src: 'decSt', def: 'Brouillon', req: 1 }, { k: 'ws', l: 'Chantier', t: 'ref', src: 'wssT', ph: 'Choisir un chantier' }, { k: 'body', l: 'Instance de décision', t: 'ref', src: 'bodies', ph: 'Choisir une instance', req: 1 }, { k: 'dd', l: 'Date de décision', t: 'date' }, { k: 'opt', l: 'Option choisie', t: 'text', ph: 'Ex. B', max: 3 }],
-  tache: [{ k: 'n', l: 'Intitulé de la tâche', t: 'title', ph: 'Ex. Rédiger le cahier de recette', req: 1 }, { k: 'owner', l: 'Responsable', t: 'person', ph: PER, req: 1 }, { k: 'act', l: 'Rattachée à', t: 'ref', src: 'actions', ph: 'Choisir une action' }, { k: 'wss', l: 'Chantier', t: 'multi', src: 'wssT', req: 1 }, { k: 'due', l: 'Échéance', t: 'date' }, { k: 'st', l: 'Statut', t: 'status', def: 0 }],
-  arbitrage: [{ k: 'n', l: "Intitulé de l'arbitrage", t: 'title', ph: 'Ex. Solution de remplacement CRM', req: 1 }, { k: 'dec', l: 'Décision concernée', t: 'ref', src: 'decisions', ph: 'Choisir une décision', req: 1 }, { k: 'by', l: 'Préparée par', t: 'person', ph: PER }, { k: 'ctx', l: 'Contexte', t: 'long', ph: 'Enjeu, contraintes, éléments déjà connus' }],
+  livrable: [{ k: 'n', l: 'Nom du livrable', t: 'text', ph: 'Ex. Cahier de recette validé', r: 1 }, { k: 'phase', l: 'Phase', t: 'sel', src: 'phases', ph: 'Choisir une phase', r: 1 }, { k: 'ws', l: 'Chantier', t: 'sel', src: 'wssNone', ph: 'Aucun chantier', def: '' }, { k: 'sp', l: 'Sous-phase', t: 'sel', src: 'subphasesOf', ph: 'Choisir une sous-phase', r: 1 }, { k: 'owner', l: 'Responsable', t: 'per', ph: PER, r: 1 }, { k: 'start', l: 'Date de début', t: 'date' }, { k: 'due', l: 'Date de fin', t: 'date', r: 1 }],
+  risque: [{ k: 'n', l: 'Intitulé du risque', t: 'text', ph: 'Ex. Retard de livraison fournisseur', r: 1 }, { k: 'wss', l: 'Chantier', t: 'multi', src: 'wssT', ph: 'Ajouter', def: 'transverse' }, { k: 'p', l: 'Probabilité', t: 'scale', def: 3 }, { k: 'i', l: 'Impact', t: 'scale', def: 3 }, { k: 'owner', l: 'Responsable', t: 'per', ph: PER, r: 1 }, { k: 'plan', l: 'Plan de mitigation', t: 'long', ph: 'Mesures prévues pour réduire le risque' }, { k: 'due', l: 'Échéance', t: 'date' }],
+  action: [{ k: 'n', l: "Intitulé de l'action", t: 'text', ph: 'Ex. Relancer le fournisseur', r: 1 }, { k: 'src', l: 'Rattachée à', t: 'sel', src: 'sources', ph: 'Risque, décision ou jalon', r: 1 }, { k: 'wss', l: 'Chantier', t: 'multi', src: 'wssT', ph: 'Ajouter', r: 1 }, { k: 'owner', l: 'Responsable', t: 'per', ph: PER, r: 1, def: 'me' }, { k: 'due', l: 'Échéance', t: 'date', r: 1 }, { k: 'st', l: 'Statut', t: 'status', def: 1 }],
+  tache: [{ k: 'n', l: 'Intitulé de la tâche', t: 'text', ph: 'Ex. Rédiger le cahier de recette', r: 1 }, { k: 'owner', l: 'Responsable', t: 'per', ph: PER, r: 1 }, { k: 'act', l: 'Rattachée à', t: 'sel', src: 'actions', ph: 'Choisir une action' }, { k: 'wss', l: 'Chantier', t: 'multi', src: 'wssT', ph: 'Ajouter', r: 1 }, { k: 'due', l: 'Échéance', t: 'date' }, { k: 'st', l: 'Statut', t: 'status', def: 0 }],
+  // Décision : le serveur la rattache à un chantier ; « Transverse » reste proposé (maquette) et est refusé à l'enregistrement.
+  decision: [{ k: 'n', l: 'Point de décision', t: 'text', ph: 'Ex. Choisir une solution de remplacement CRM', r: 1 }, { k: 'prio', l: 'Priorité', t: 'prio', def: 1 }, { k: 'st', l: 'Statut', t: 'life', def: 'Brouillon', r: 1 }, { k: 'ws', l: 'Chantier', t: 'sel', src: 'wssT', ph: 'Choisir un chantier' }, { k: 'body', l: 'Instance de décision', t: 'sel', src: 'bodies', ph: 'Choisir une instance', r: 1 }, { k: 'dd', l: 'Date de décision', t: 'date' }, { k: 'opt', l: 'Option choisie', t: 'text', ph: 'Ex. B', max: 3 }],
+  arbitrage: [{ k: 'n', l: "Intitulé de l'arbitrage", t: 'text', ph: 'Ex. Solution de remplacement CRM', r: 1 }, { k: 'dec', l: 'Décision concernée', t: 'sel', src: 'decisions', ph: 'Choisir une décision', r: 1 }, { k: 'by', l: 'Préparée par', t: 'per', ph: PER }, { k: 'ctx', l: 'Contexte', t: 'long', ph: 'Enjeu, contraintes, éléments déjà connus' }, { k: 'opts', l: 'Options comparées', t: 'duel', r: 1, rt: 'Score pondéré sur 4' }],
 };
+// Chapitres des objets de suivi (rangs des champs de SSJ_F) ; les objets de structure suivent le « Parcours ».
+const SSJ_CHAP = {
+  livrable: [['Livrable', [0]], ['Rattachement', [1, 2, 3]], ['Pilotage', [4, 5, 6]]],
+  risque: [['Risque', [0, 1]], ['Évaluation', [2, 3]], ['Traitement', [4, 5, 6]]],
+  action: [['Action', [0]], ['Rattachement', [1, 2]], ['Pilotage', [3, 4, 5]]],
+  tache: [['Tâche', [0]], ['Rattachement', [2, 3]], ['Pilotage', [1, 4, 5]]],
+  decision: [['Décision', [0, 1]], ['Instance', [2, 3, 4]], ['Issue', [5, 6]]],
+  arbitrage: [['Arbitrage', [0, 1]], ['Contexte', [2, 3]], ['Options comparées', [4]]],
+};
+const SSJ_ALWAYS = ['scale', 'status', 'prio', 'life'];
 const SSJ_BLANK_ROW = () => ({ c: '', w: '', n: 0, d: '' });
+const SSJ_BLANK_ARB = () => ({ ot: ['', ''], rows: [[SSJ_BLANK_ROW()], [SSJ_BLANK_ROW()]], rec: 0 });
 class Component extends DCLogic {
-  state = { step: 'choose', sel: null, vals: {}, err: '', busy: false, ot: ['', ''], rows: [[SSJ_BLANK_ROW()], [SSJ_BLANK_ROW()]], oi: 0, rec: 0, calc: globalThis.RiseSaisieCalc || null };
-  titleRef = React.createRef();
-  componentDidMount() { if (!this.state.calc) import('./saisie-calc.js').then(() => this.setState({ calc: globalThis.RiseSaisieCalc })).catch(() => {}); }
-  focusTitle() { setTimeout(() => this.titleRef.current && this.titleRef.current.focus({ preventScroll: true }), 30); }
+  state = { view: 'pick', sel: 'phase', hov: null, vals: {}, step: 0, chap: 0, vis: {}, opt: null, crx: 0, arb: SSJ_BLANK_ARB(), err: '', busy: false, toast: null, calc: globalThis.RiseSaisieCalc || null };
+  qRef = React.createRef();
+  componentDidMount() {
+    if (!this.state.calc) import('./saisie-calc.js').then(() => this.setState({ calc: globalThis.RiseSaisieCalc })).catch(() => {});
+    setTimeout(() => this.qRef.current && this.qRef.current.focus({ preventScroll: true }), 30);
+    // Parcours : un clic hors de la liste ouverte la referme (toutes les étapes repliées).
+    this._out = e => { if (e.target.closest && e.target.closest('[data-dd]')) return; if (this._listOpen && this.state.view === 'form') this.setState({ step: -1 }); };
+    document.addEventListener('mousedown', this._out);
+  }
+  componentWillUnmount() { clearTimeout(this._tt); document.removeEventListener('mousedown', this._out); }
+  C() { return this.state.calc; }
   data() { return this.props.data || {}; }
-  /** Listes des champs : `wssT` = chantiers puis « Transverse » (exclusif, précédé d'un filet). */
+  obj() { return SSJ_OBJ.find(o => o.k === this.state.sel) || SSJ_OBJ[0]; }
+  /** Listes : `wssT` = chantiers puis « Transverse » (exclusif, précédé d'un filet) ; `subphasesOf` dépend de la phase et du chantier. */
   list(src, vals) {
     const D = this.data();
+    if (src === 'people') return D.people || [];
     if (src === 'wssT') return (D.wss || []).concat([{ v: '__T__', t: 'Transverse', sep: true, exclusive: true }]);
-    if (src === 'decSt') return SSJ_DEC_ST.map(t => ({ v: t, t }));
     if (src === 'wssNone') return [{ v: '', t: 'Aucun chantier' }].concat(D.wss || []);
-    // Sous-phases de la phase choisie ; un chantier choisi qui a des sous-phases dans cette phase : les siennes.
     if (src === 'subphasesOf') {
-      const V = vals || this.state.vals, ph = V.phase, ws = (D.wss || []).find(w => w.v === V.ws), all = (D.subphases || []).filter(x => !ph || x.ph === ph);
+      const V = vals || {}, ph = V.phase, ws = (D.wss || []).find(w => w.v === V.ws), all = (D.subphases || []).filter(x => !ph || x.ph === ph);
       const own = ws && ws.subphaseIds ? all.filter(x => ws.subphaseIds.includes(x.v)) : [];
       return own.length ? own : all;
     }
-    if (src === 'people') return D.people || [];
     return D[src] || [];
   }
+  opts(f, k) { return f.t === 'per' ? this.list('people') : this.list(f.src, this.objVals(k)); }
   initial(f) {
     if (f.def === 'me') return this.data().me || '';
     if (f.def === 'transverse') return this.data().pmo ? ['__T__'] : [];
     if (f.def !== undefined) return f.def;
     return f.t === 'multi' ? [] : f.t === 'range' ? ['', ''] : '';
   }
-  val(f) { const v = this.state.vals[f.k]; return v === undefined ? this.initial(f) : v; }
-  setVal(k, v) { this.setState(s => { const vals = { ...s.vals, [k]: v };
-    // Livrable : sous-phase retirée si elle n'est plus proposée après un changement de phase ou de chantier.
-    if (s.sel === 'livrable' && (k === 'phase' || k === 'ws') && vals.sp && !this.list('subphasesOf', vals).some(x => x.v === vals.sp)) vals.sp = '';
-    return { vals, err: '' }; }); }
-  choose(k) { this.setState({ step: 'form', sel: k, vals: {}, err: '', busy: false, ot: ['', ''], rows: [[SSJ_BLANK_ROW()], [SSJ_BLANK_ROW()]], oi: 0, rec: 0 }); this.focusTitle(); }
-  /** Champs requis manquants (libellés). */
-  missing() {
-    const F = SSJ_F[this.state.sel] || [], out = [];
-    for (const f of F) {
-      if (!f.req) continue;
-      const v = this.val(f), empty = Array.isArray(v) ? (f.t === 'range' ? !v[0] || !v[1] : !v.length) : v === '' || v === null || v === undefined;
-      if (empty) out.push(f.l);
-    }
-    if (this.state.sel === 'arbitrage' && (!this.state.ot[0].trim() || !this.state.ot[1].trim())) out.push('Options comparées');
-    return out;
-  }
-  async submit() {
-    const S = this.state, miss = this.missing();
-    if (miss.length) { this.setState({ err: 'À renseigner : ' + miss.join(', ') }); return; }
-    const F = SSJ_F[S.sel], values = {};
-    for (const f of F) values[f.k] = this.val(f);
-    if (S.sel === 'arbitrage') Object.assign(values, { options: [0, 1].map(i => ({ label: S.ot[i].trim(), rows: S.rows[i] })), rec: S.rec });
-    this.setState({ busy: true, err: '' });
-    try { await this.props.onSubmit?.(S.sel, values); this.setState({ busy: false }); }
-    catch (e) { this.setState({ busy: false, err: (e && e.message) || String(e) }); }
-  }
-  renderVals() {
-    const S = this.state, C = S.calc, x = SSJ_OBJ.find(o => o.k === S.sel) || SSJ_OBJ[0];
-    const fmt = v => (C ? C.formatScore(v) : (Number(v) || 0).toFixed(2).replace('.', ','));
-    // ── 2 · tuiles
-    const groups = [['Structure du projet', 0], ['Suivi et pilotage', 1]].map(([t, fam], gi) => ({ t, id: 'ssj-g' + gi, items: SSJ_OBJ.filter(o => o.fam === fam).map(o => { const s = S.sel === o.k;
-      return { l: o.l, g: o.g, pressed: s ? 'true' : 'false', on: () => this.choose(o.k),
-        st: `display:flex;align-items:center;gap:10px;height:52px;padding:0 12px;border-radius:12px;cursor:pointer;font-family:inherit;color:#10233a;text-align:left;min-width:0;border:1px solid ${s ? '#1d8f86' : '#e6eeec'};background:${s ? '#f3faf8' : '#fff'};${s ? 'box-shadow:0 0 0 3px rgba(29,143,134,.08)' : ''}`,
-        gst: `width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex:none;background:${s ? '#1d8f86' : '#f1f5f4'};color:${s ? '#fff' : '#43586a'}` }; }) }));
-    // ── 3 · champs
-    const F = SSJ_F[S.sel] || [], missSet = new Set(S.err ? this.missing() : []);
-    const fields = F.map((f, i) => {
-      const v = this.val(f), id = 'ssj-' + (S.sel || '') + '-' + f.k, tall = f.t === 'long', bad = missSet.has(f.l);
-      const boxSt = `display:flex;align-items:${tall ? 'flex-start' : 'center'};gap:10px;height:${tall ? 72 : f.t === 'title' ? 48 : 42}px;padding:${tall ? '11px 12px' : '0 12px'};border:1px solid ${bad ? '#c2413b' : '#dfe7e5'};border-radius:10px;background:#fff`;
-      const opts = f.t === 'person' ? this.list('people') : f.src ? this.list(f.src) : [];
-      const base = { l: f.l, req: !!f.req, ariaReq: f.req ? 'true' : 'false', ariaInv: bad ? 'true' : 'false', id, lid: id + '-l', ph: f.ph || '', boxSt, max: f.max || 300,
-        isTitle: f.t === 'title', isText: f.t === 'text', isLong: tall, isDate: f.t === 'date', isRange: f.t === 'range', isRef: f.t === 'ref' || f.t === 'person', isMulti: f.t === 'multi', isScale: f.t === 'scale', isSeg: f.t === 'status' || f.t === 'prio',
-        icon: f.t === 'person' ? 'person' : '', opts, labels: C ? C.SCALE_LABELS : ['Faible', 'Modérée', 'Forte', 'Très forte'],
-        ref: f.t === 'title' && i === F.findIndex(z => z.t === 'title') ? this.titleRef : undefined,
-        set: nv => this.setVal(f.k, nv), tc: e => this.setVal(f.k, e.target.value) };
-      if (f.t === 'range') return { ...base, v1: v[0] || '', v2: v[1] || '', empty1: v[0] ? '0' : '1', empty2: v[1] ? '0' : '1', tc1: e => this.setVal(f.k, [e.target.value, v[1] || '']), tc2: e => this.setVal(f.k, [v[0] || '', e.target.value]) };
-      if (f.t === 'status' || f.t === 'prio') return { ...base, v, segOpts: (f.t === 'status' ? SSJ_ST : SSJ_PR).map(([t, dot]) => ({ t, dot })) };
-      return { ...base, v, empty: v ? '0' : '1' };
+  get(k, f) { const v = this.state.vals[k + '.' + f.k]; return v === undefined ? this.initial(f) : v; }
+  /** Valeurs d'un objet par clé de champ (listes dépendantes). */
+  objVals(k) { const o = {}; (SSJ_F[k] || []).forEach(f => { o[f.k] = this.get(k, f); }); return o; }
+  setv(k, f, v) {
+    this.setState(s => {
+      const vals = { ...s.vals, [k + '.' + f.k]: v };
+      // Livrable : sous-phase retirée si elle n'est plus proposée après un changement de phase ou de chantier.
+      if (k === 'livrable' && (f.k === 'phase' || f.k === 'ws')) {
+        const V = {}; SSJ_F.livrable.forEach(g => { const x = vals['livrable.' + g.k]; V[g.k] = x === undefined ? this.initial(g) : x; });
+        if (V.sp && !this.list('subphasesOf', V).some(x => x.v === V.sp)) vals['livrable.sp'] = '';
+      }
+      return { vals, err: '' };
     });
-    const pv = F.filter(f => f.t === 'scale').map(f => this.val(f)), crit = C && pv.length === 2 ? C.criticality(pv[0], pv[1]) : { text: '', pct: 0, color: '#1d8f86' };
-    // ── fiche d'arbitrage : cartes A / B, recommandation
-    const L = ['A', 'B'], sc = S.rows.map(rs => (C ? C.optionScore(rs) : 0)), cmp = C ? C.compare(sc[0], sc[1]) : { lead: -1, verdict: '', suggest: '' }, lead = cmp.lead;
-    const tot = rs => (C ? C.totalWeight(rs) : 0);
-    const opts = S.rows.map((rs, i) => { const s = S.oi === i, ld = lead === i, w = tot(rs);
-      return { L: L[i], t: S.ot[i] || 'Option sans intitulé', sc: fmt(sc[i]), aria: 'Option ' + L[i] + ' · ' + (S.ot[i] || 'sans intitulé') + ' · score ' + fmt(sc[i]) + ' sur 4 · ouvrir le détail',
-        on: () => this.setState({ oi: i, step: 'option' }),
-        st: `display:flex;flex-direction:column;gap:12px;padding:12px 12px 13px;border-radius:12px;cursor:pointer;min-width:0;text-align:left;font-family:inherit;color:#10233a;transition:border-color .2s,background .2s;border:1px solid ${s ? '#1d8f86' : '#e6eeec'};background:${s ? '#f3faf8' : '#fff'};${s ? 'box-shadow:0 0 0 3px rgba(29,143,134,.08)' : ''}`,
-        bSt: `width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:800;flex:none;${ld ? 'background:#1d8f86;color:#fff' : 'background:#f1f5f4;color:#43586a'}`,
-        tSt: `flex:1;min-width:0;font-size:12px;line-height:1.35;font-weight:600;color:${S.ot[i] ? '#10233a' : '#8a9aa6'};display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-wrap:pretty`,
-        scSt: `font-size:30px;line-height:1;font-weight:700;letter-spacing:-.035em;font-variant-numeric:tabular-nums;color:${ld ? '#146b64' : '#10233a'}`,
-        barSt: `position:absolute;left:0;top:0;bottom:0;border-radius:2px;transition:width .3s;width:${sc[i] / 4 * 100}%;background:${ld ? '#1d8f86' : '#10233a'}`,
-        meta: rs.length + ' critère' + (rs.length > 1 ? 's' : '') + ' · ' + w + ' %', metaSt: `font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;color:${w === 100 ? '#8a9aa6' : '#b8650f'}` }; });
-    const recOpts = ['À définir', 'Option A', 'Option B'].map((t, n) => ({ t, dot: n - 1 === lead ? '#1d8f86' : undefined }));
-    // ── 4 · option ouverte
-    const oi = S.oi, R = S.rows[oi], W = tot(R), ws = C ? C.weightState(W) : { ok: false, text: '' };
-    const setRows = fn => this.setState(z => ({ rows: z.rows.map((rs, a) => (a === oi ? fn(rs) : rs)) }));
+  }
+  /** État de saisie d'un champ : `ok` (rempli), `empty`, ou `bad` (date incomplète, impossible ou période inversée). */
+  status(f, v) {
+    const C = this.C(), t = f.t;
+    if (t === 'duel') { const A = this.state.arb; return A.ot[0].trim() && A.ot[1].trim() ? 'ok' : 'empty'; }
+    if (SSJ_ALWAYS.includes(t)) return 'ok';
+    if (t === 'multi') return v && v.length ? 'ok' : 'empty';
+    if (t === 'date' || t === 'range') { if (!C) return 'empty'; const s = t === 'date' ? C.dateState(v) : C.rangeState(v); return s === 'valid' ? 'ok' : s === 'empty' ? 'empty' : 'bad'; }
+    return v !== undefined && v !== null && String(v).trim() ? 'ok' : 'empty';
+  }
+  label(f, k, v) {
+    const O = this.opts(f, k), t = f.t, name = x => { const o = O.find(z => z.v === x); return o ? o.t : ''; };
+    if (t === 'multi') return (v || []).map(name).filter(Boolean).join(', ');
+    if (t === 'sel' || t === 'per') return name(v);
+    if (t === 'scale') return v + ' · ' + SSJ_SCL[v - 1];
+    if (t === 'status') return (SSJ_ST[v] || [])[0] || '';
+    if (t === 'prio') return (SSJ_PR[v] || [])[0] || '';
+    if (t === 'range') return (v[0] || 'jj/mm/aaaa') + '  →  ' + (v[1] || 'jj/mm/aaaa');
+    if (t === 'duel') { const sc = this.scores(); return 'A ' + this.fmt(sc[0]) + ' · B ' + this.fmt(sc[1]); }
+    return v;
+  }
+  fmt(v) { const C = this.C(); return C ? C.formatScore(v) : (Number(v) || 0).toFixed(2).replace('.', ','); }
+  scores() { const C = this.C(); return this.state.arb.rows.map(rs => (C ? C.optionScore(rs) : 0)); }
+  setA(fn) { this.setState(s => ({ arb: fn(s.arb), err: '' })); }
+  /** Ouvre le formulaire d'un objet ; le focus passe à son premier champ. */
+  openForm(k) { this._armed = true; this._fk = null; this.setState({ view: 'form', sel: k, hov: null, step: 0, chap: 0, opt: null, err: '' }); }
+  /** Retour au choix de l'objet (le formulaire glisse vers la droite) ; le focus revient à la liste des objets. */
+  toPick() { this._armed = false; this.setState({ view: 'pick', opt: null }); setTimeout(() => this.qRef.current && this.qRef.current.focus({ preventScroll: true }), 30); }
+  /** Vide le formulaire de l'objet courant. */
+  cleared() { const k = this.state.sel, vals = { ...this.state.vals }; Object.keys(vals).forEach(x => { if (x.startsWith(k + '.')) delete vals[x]; });
+    this._armed = true; this._fk = null;
+    return { vals, step: 0, chap: 0, vis: { ...this.state.vis, [k]: 0 }, err: '', ...(k === 'arbitrage' ? { arb: SSJ_BLANK_ARB(), opt: null, crx: 0 } : {}) }; }
+  async create(ready) {
+    const S = this.state, k = S.sel, o = this.obj(), C = this.C();
+    if (!ready || S.busy) return;
+    const values = {};
+    (SSJ_F[k] || []).forEach(f => { if (f.t === 'duel') return; const v = this.get(k, f);
+      values[f.k] = f.t === 'date' ? (C ? C.frToIso(v) : '') : f.t === 'range' ? [C ? C.frToIso(v[0]) : '', C ? C.frToIso(v[1]) : ''] : v; });
+    if (k === 'arbitrage') Object.assign(values, { options: [0, 1].map(i => ({ label: S.arb.ot[i].trim(), rows: S.arb.rows[i] })), rec: S.arb.rec });
+    this.setState({ busy: true, err: '' });
+    try {
+      const msg = await this.props.onSubmit?.(k, values);
+      this.setState({ ...this.cleared(), busy: false, toast: msg || o.l + (o.fem ? ' créée' : ' créé') });
+      clearTimeout(this._tt); this._tt = setTimeout(() => this.setState({ toast: null }), 2800);
+    } catch (e) { this.setState({ busy: false, err: (e && e.message) || String(e) }); }
+  }
+  pickVals() {
+    const S = this.state, C = this.C();
+    // Choix de l'objet sans recherche (demande du 10/10/2026) : la liste a le focus ; flèches, Début / Fin, Entrée ou Espace.
+    const shown = SSJ_OBJ, flat = shown.map(o => o.k), act = S.hov || S.sel;
+    const goTo = n => { this.setState({ hov: n }); const el = document.getElementById('ssj-o-' + n); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' }); };
+    const qKey = e => {
+      const i = flat.indexOf(act), k = e.key;
+      if (k === 'ArrowDown') { e.preventDefault(); goTo(flat[(i + 1) % flat.length]); }
+      else if (k === 'ArrowUp') { e.preventDefault(); goTo(flat[(i - 1 + flat.length) % flat.length]); }
+      else if (k === 'Home') { e.preventDefault(); goTo(flat[0]); }
+      else if (k === 'End') { e.preventDefault(); goTo(flat[flat.length - 1]); }
+      else if (k === 'Enter' || k === ' ') { e.preventDefault(); this.openForm(act); }
+    };
+    const groups = ['Structure du projet', 'Suivi et pilotage'].map((t, fam) => ({ t, id: 'ssj-g' + fam, items: shown.filter(o => o.fam === fam).map(o => {
+      const ic = SSJ_IC[o.k], s = S.sel === o.k, h = act === o.k && !s, acc = ic.warm ? '#f08c1c' : s ? '#3fd0bb' : '#1f9a8a';
+      return { l: o.l, id: 'ssj-o-' + o.k, ariaSel: s ? 'true' : 'false', il: ic.l, ib: ic.b || '', ia: ic.a || '', iff: ic.f || '', acc,
+        on: () => this.openForm(o.k), en: () => this.setState({ hov: o.k }),
+        st: `display:grid;grid-template-columns:32px minmax(0,1fr);gap:12px;align-items:center;height:40px;padding:0 12px 0 6px;border-radius:12px;cursor:pointer;transition:background .16s;background:${s ? '#13243d' : h ? '#f2f7f6' : 'transparent'};${S.hov === o.k && !s ? 'box-shadow:inset 0 0 0 1.5px rgba(31,154,138,.45)' : ''}`,
+        tSt: `width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;transition:background .16s,color .16s;background:${s ? 'rgba(255,255,255,.08)' : h ? '#e6f0ee' : '#f1f6f5'};color:${s ? '#fff' : '#10233a'}`,
+        lSt: `font-size:14px;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700;color:${s ? '#fff' : '#10233a'}` }; }) })).filter(g => g.items.length);
+    return { qRef: this.qRef, qKey, groups, actId: 'ssj-o-' + act, leave: () => this.setState({ hov: null }),
+      go: () => this.openForm(S.sel), back: () => this.props.onBack?.(), close: () => this.props.onClose?.() };
+  }
+  /** Parcours (objets de structure) : un champ ouvert à la fois. */
+  stepsVals(k, FS) {
+    const S = this.state, armed = !!this._armed;
+    const next = i => { this._fk = null; this.setState({ step: i + 1 < FS.length ? i + 1 : -1 }); };
+    this._listOpen = S.step >= 0 && !!FS[S.step] && ['per', 'sel', 'multi'].includes(FS[S.step].t);
+    return FS.map((f, i) => {
+      const v = this.get(k, f), on = S.step === i, st = this.status(f, v), fl = st === 'ok', last = i === FS.length - 1, t = f.t;
+      let sum = fl ? this.label(f, k, v) : f.ph || '', ic = '';
+      if (t === 'range') { sum = v[0] || v[1] ? this.label(f, k, v) : 'jj/mm/aaaa  →  jj/mm/aaaa'; ic = SSJ_G.cal; }
+      else if (t === 'date') { sum = v || 'jj/mm/aaaa'; ic = SSJ_G.cal; }
+      else if (t === 'multi' || t === 'sel') ic = SSJ_G.chev;
+      else if (t === 'per') ic = SSJ_G.per;
+      const fk = k + i;
+      return { l: f.l, r: !!f.r, ariaReq: f.r ? 'true' : 'false', n: i + 1, lid: 'ssj-' + k + '-' + f.k, ph: f.ph || '', max: f.max || 300,
+        v: typeof v === 'string' ? v : '', dv: v, lv: v, range: t === 'range', isMulti: t === 'multi', av: t === 'per', af: armed,
+        opts: ['per', 'sel', 'multi'].includes(t) ? this.opts(f, k) : [],
+        check: fl && !on, num: !(fl && !on), notLast: !last, closed: !on, sum, hasIc: !!ic, ic,
+        openL: 'Modifier ' + f.l + ' : ' + (fl || st === 'bad' ? sum : 'non renseigné'),
+        aText: on && t === 'text', aLong: on && t === 'long', aDate: on && (t === 'date' || t === 'range'), aList: on && ['per', 'sel', 'multi'].includes(t),
+        open: () => { this._armed = true; this.setState({ step: i }); }, next: () => next(i), esc: () => this.setState({ step: -1 }),
+        kd: e => { if (e.key === 'Enter') { e.preventDefault(); next(i); } },
+        fr: el => { if (el && on && armed && this._fk !== fk) { this._fk = fk; setTimeout(() => el.focus({ preventScroll: true }), 0); } },
+        ch: e => this.setv(k, f, e.target.value), set: nv => this.setv(k, f, nv),
+        pick: x => { const chk = v === x; this.setv(k, f, chk && !f.r ? '' : x); if (!chk) next(i); },
+        nSt: `width:24px;height:24px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;cursor:pointer;transition:background .2s,box-shadow .2s,color .2s;${on ? 'background:#1f9a8a;color:#fff;box-shadow:0 0 0 4px rgba(31,154,138,.14)' : fl ? 'background:#1f9a8a;color:#fff' : 'box-shadow:inset 0 0 0 1.5px #d3dfdb;color:#8a9aa6'}`,
+        lineSt: `flex:1;width:1.5px;margin:6px 0;border-radius:1px;transition:background .3s;background:${fl ? '#a9dcd3' : '#e6eeec'}`,
+        bSt: `min-width:0;display:flex;flex-direction:column;gap:${on ? 10 : 6}px;padding:3px 0 ${last ? 0 : 24}px`,
+        sumSt: `flex:1;min-width:0;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums;font-weight:${fl || st === 'bad' ? 600 : 500};color:${st === 'bad' ? '#c2413b' : fl ? '#10233a' : '#8a9aa6'}` };
+    });
+  }
+  /** Fiche d'arbitrage : carte de comparaison A / B et option recommandée. */
+  duelVals() {
+    const A = this.state.arb, C = this.C(), sc = this.scores(), cmp = C ? C.compare(sc[0], sc[1]) : { lead: -1, gap: '=', suggest: '' }, lead = cmp.lead, eq = lead < 0, L = ['A', 'B'];
+    const side = i => ({ sc: this.fmt(sc[i]), t: A.ot[i] || 'Option sans intitulé', lead: lead === i,
+      aria: 'Option ' + L[i] + ' · ' + (A.ot[i] || 'sans intitulé') + ' · score ' + this.fmt(sc[i]) + ' sur 4 · ouvrir le détail',
+      on: () => this.setState({ opt: i, crx: 0 }),
+      scSt: `font-size:34px;line-height:1;letter-spacing:-.04em;font-weight:700;font-variant-numeric:tabular-nums;color:${lead === i || eq ? '#fff' : 'rgba(255,255,255,.62)'}`,
+      bSt: `width:20px;height:20px;border-radius:6px;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;${lead === i ? 'background:#2ab3a0;color:#13243d' : 'background:rgba(255,255,255,.1);color:#fff'}`,
+      tSt: `white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;color:${A.ot[i] ? (lead === i || eq ? '#fff' : 'rgba(255,255,255,.72)') : 'rgba(255,255,255,.45)'}`,
+      barSt: `flex:${eq && !sc[i] ? 1 : sc[i]} 1 0;transition:flex .4s;background:${lead === i ? '#2ab3a0' : 'rgba(255,255,255,.22)'}` });
+    return { dA: side(0), dB: side(1), gap: cmp.gap, gapL: eq ? 'Scores à égalité' : "Écart de l'option " + L[lead] + ' : ' + cmp.gap, suggest: cmp.suggest,
+      rec: A.rec, setRec: n => this.setA(z => ({ ...z, rec: n })),
+      recOpts: ['À définir', 'Option A', 'Option B'].map((t, n) => ({ t, dot: n - 1 === lead || (eq && n === 0) ? '#1f9a8a' : undefined })) };
+  }
+  /** Chapitres (objets de suivi). */
+  chapsVals(k, FS) {
+    const S = this.state, C = this.C(), CP = SSJ_CHAP[k], cur = S.chap, vis = S.vis[k] || 0, armed = !!this._armed;
+    this._listOpen = false;
+    const goChap = j => { this._fk = null; this._armed = true; this.setState(st => ({ chap: j, vis: { ...st.vis, [k]: Math.max(st.vis[k] || 0, j) } })); };
+    return CP.map(([t, idx], j) => {
+      const on = cur === j, last = j === CP.length - 1;
+      const stOf = i => this.status(FS[i], this.get(k, FS[i]));
+      const reqOk = idx.every(i => !FS[i].r || stOf(i) === 'ok');
+      const dn = !on && reqOk && (j < cur || j <= vis) && idx.some(i => stOf(i) === 'ok') && !idx.some(i => stOf(i) === 'bad');
+      const anyF = idx.some(i => FS[i].def !== undefined || SSJ_ALWAYS.includes(FS[i].t) || stOf(i) !== 'empty');
+      const kv = idx.map(i => { const f = FS[i], v = this.get(k, f), s = stOf(i), fl = s === 'ok';
+        const txt = fl ? this.label(f, k, v) : s === 'bad' ? (f.t === 'range' ? this.label(f, k, v) : v) : f.t === 'date' ? 'jj/mm/aaaa' : f.t === 'range' ? 'jj/mm/aaaa → jj/mm/aaaa' : f.t === 'duel' ? 'Deux options à décrire' : f.ph || '—';
+        return { k: f.l, v: txt, fl: fl || s === 'bad', st: `font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:${s === 'bad' ? '#c2413b' : fl ? '#10233a' : '#8a9aa6'}` }; }).filter(r => (dn ? r.fl : true));
+      const fields = on ? idx.map((i, q) => {
+        const f = FS[i], v = this.get(k, f), tt = f.t, fk = 'c' + k + j;
+        const base = { l: f.l, r: !!f.r, ariaReq: f.r ? 'true' : 'false', lid: 'ssj-' + k + '-' + f.k, ph: f.ph || '', max: f.max || 300,
+          v: typeof v === 'string' ? v : '', dv: v, lv: v, nv: Number(v) || 0, isMulti: tt === 'multi', av: tt === 'per',
+          cText: tt === 'text', cLong: tt === 'long', cDate: tt === 'date', cDrop: ['sel', 'per', 'multi'].includes(tt), cScale: tt === 'scale', cSeg: tt === 'status' || tt === 'prio', cLife: tt === 'life', cDuel: tt === 'duel',
+          hasRt: tt === 'scale' || !!f.rt, rt: tt === 'scale' ? SSJ_SCL[v - 1] || '' : f.rt || '',
+          rtSt: tt === 'scale' ? 'font-size:11.5px;font-weight:700;color:#10233a;white-space:nowrap' : 'font-size:11px;color:#8a9aa6;white-space:nowrap',
+          opts: ['per', 'sel', 'multi'].includes(tt) ? this.opts(f, k) : [], labels: SSJ_SCL, lifeSteps: SSJ_LIFE, lifeOff: SSJ_OFF,
+          segOpts: (tt === 'status' ? SSJ_ST : SSJ_PR).map(([t2, dot]) => ({ t: t2, dot })),
+          fr: el => { if (el && q === 0 && (tt === 'text' || tt === 'long') && armed && this._fk !== fk) { this._fk = fk; setTimeout(() => el.focus({ preventScroll: true }), 0); } },
+          ch: e => this.setv(k, f, e.target.value), set: nv => this.setv(k, f, nv) };
+        return tt === 'duel' ? { ...base, ...this.duelVals() } : base;
+      }) : [];
+      const crit = k === 'risque' && j === 1 && C ? C.criticality(this.get(k, FS[2]), this.get(k, FS[3])) : null;
+      return { t, n: j + 1, on, ariaOn: on ? 'true' : 'false', aria: 'Chapitre ' + (j + 1) + ' · ' + t + (dn ? ' · complet' : ''), notLast: !last, check: dn, num: !dn, fields, kv,
+        showKv: !on && (dn || anyF), showTodo: !on && !dn && !anyF,
+        todo: idx.map(i => FS[i].l).join(', ').toLowerCase().replace(/^./, c => c.toUpperCase()),
+        open: () => goChap(j), next: () => goChap(j + 1), hasNext: on && !last,
+        hasCrit: on && !!crit, critTxt: crit ? crit.text : '',
+        critBar: crit ? `position:absolute;left:0;top:0;bottom:0;border-radius:2px;transition:width .3s,background .3s;width:${crit.pct}%;background:${crit.color}` : '',
+        nSt: `width:24px;height:24px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;cursor:pointer;transition:background .2s,box-shadow .2s;${on ? 'background:#1f9a8a;color:#fff;box-shadow:0 0 0 4px rgba(31,154,138,.14)' : dn ? 'background:#1f9a8a;color:#fff' : 'box-shadow:inset 0 0 0 1.5px #d3dfdb;color:#8a9aa6'}`,
+        lineSt: `flex:1;width:1.5px;margin:6px 0;border-radius:1px;background:${dn ? '#a9dcd3' : '#e6eeec'}`,
+        bSt: `min-width:0;display:flex;flex-direction:column;gap:${on ? 14 : 8}px;padding:2px 0 ${last ? 0 : 26}px`,
+        tSt: `border:0;padding:0;background:none;font-family:inherit;text-align:left;cursor:pointer;font-size:15px;font-weight:800;letter-spacing:-.015em;border-radius:4px;color:${on || dn ? '#10233a' : '#5c7280'}` };
+    });
+  }
+  /** Détail d'une option de la fiche d'arbitrage. */
+  optVals() {
+    const S = this.state, C = this.C(), oi = S.opt, A = S.arb, L = ['A', 'B'], sc = this.scores(), lead = C ? C.compare(sc[0], sc[1]).lead : -1;
+    const R = A.rows[oi], W = C ? C.totalWeight(R) : 0, ws = C ? C.weightState(W) : { ok: false, text: '' };
+    const setRows = fn => this.setA(z => ({ ...z, rows: z.rows.map((rs, a) => (a === oi ? fn(rs) : rs)) }));
+    const s = sc[oi], ang = Math.PI * s / 4, so = sc[1 - oi], ao = Math.PI * so / 4, x = 100 - 80 * Math.cos(ang), y = 100 - 80 * Math.sin(ang);
     const comp = (C ? C.composition(R) : []).map(sg => ({ tip: sg.tip,
-      st: sg.rest ? `flex:${sg.flex} 1 0;min-width:6px;height:10px;border-radius:3px;border:1px dashed #c6d6d2;box-sizing:border-box` : `flex:${sg.flex} 1 0;min-width:6px;height:10px;border-radius:3px;background:#eef3f2;position:relative;overflow:hidden`,
+      st: sg.rest ? `flex:${sg.flex} 1 0;min-width:6px;height:8px;border-radius:3px;border:1px dashed #c6d6d2` : `flex:${sg.flex} 1 0;min-width:6px;height:8px;border-radius:3px;background:#e6eeec;position:relative;overflow:hidden`,
       fSt: sg.rest ? 'display:none' : `position:absolute;left:0;top:0;bottom:0;transition:width .25s;width:${sg.fillPct}%;background:${sg.color}` }));
-    const o = { L: L[oi], sc: fmt(sc[oi]), other: 'Option ' + L[1 - oi] + ' · ' + fmt(sc[1 - oi]),
-      scSt: `font-size:44px;line-height:1;font-weight:700;letter-spacing:-.04em;font-variant-numeric:tabular-nums;color:${lead === oi ? '#146b64' : '#10233a'}`,
-      tv: S.ot[oi], tc: e => { const v = e.target.value; this.setState(z => ({ ot: z.ot.map((t, a) => (a === oi ? v : t)), err: '' })); },
-      tabs: L.map((l, i) => ({ t: l, sel: i === oi ? 'true' : 'false', on: () => this.setState({ oi: i }), st: `width:30px;height:26px;border:0;padding:0;font-family:inherit;background:none;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;cursor:pointer;${i === oi ? 'background:#fff;color:#10233a;box-shadow:0 1px 2px rgba(16,35,58,.08),0 0 0 1px #e3ebe9' : 'color:#8a9aa6'}` })),
-      comp, compL: 'Composition du score : ' + comp.map(sg => sg.tip).join(' ; '), wOk: ws.ok, wTxt: ws.text,
-      wSt: `display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;font-variant-numeric:tabular-nums;color:${ws.ok ? '#5c7280' : '#b8650f'}`,
-      add: () => setRows(rs => rs.concat([SSJ_BLANK_ROW()])),
-      rows: R.map((r, j) => ({ i: j, row: r, up: p => setRows(rs => rs.map((q, b) => (b === j ? { ...q, ...p } : q))), rm: () => setRows(rs => rs.filter((_, b) => b !== j)) })) };
-    const goJev = () => this.props.onBack?.();
     return {
-      stChoose: S.step === 'choose', stForm: S.step === 'form', stOption: S.step === 'option', groups, fields, nv: x.nv, arb: S.sel === 'arbitrage',
-      back: goJev, close: () => this.props.onClose?.(), toChoose: () => this.setState({ step: 'choose', err: '' }), toForm: () => this.setState({ step: 'form' }),
-      cancel: () => this.setState({ step: 'choose', err: '' }),
-      crit: { on: S.sel === 'risque', txt: crit.text, bar: `position:absolute;left:0;top:0;bottom:0;width:${crit.pct}%;border-radius:2px;background:${crit.color}` },
-      opts, verdict: cmp.verdict, suggest: cmp.suggest, rec: S.rec, recOpts, setRec: n => this.setState({ rec: n }), o,
-      cta: S.busy ? 'Création…' : 'Créer ' + x.art, busy: S.busy, submit: () => this.submit(),
-      ctaSt: `height:38px;padding:0 16px;border:0;border-radius:10px;background:#1d8f86;color:#fff;display:flex;align-items:center;font-family:inherit;font-size:13px;font-weight:700;white-space:nowrap;cursor:${S.busy ? 'progress' : 'pointer'};${S.busy ? 'opacity:.7' : ''}`,
-      footTxt: S.err || '* Requis', footSt: `flex:1;min-width:0;font-size:11px;${S.err ? 'color:#c2413b;font-weight:600;line-height:1.35' : 'color:#8a9aa6;white-space:nowrap'}`,
+      L: L[oi], back: () => this.setState({ opt: null }), tv: A.ot[oi], tc: e => { const v = e.target.value; this.setA(z => ({ ...z, ot: z.ot.map((t, a) => (a === oi ? v : t)) })); },
+      tabs: [0, 1].map(i => ({ t: L[i], sel: i === oi ? 'true' : 'false', aria: 'Option ' + L[i], on: () => this.setState({ opt: i, crx: 0 }),
+        st: `width:32px;height:28px;border:0;padding:0;background:none;font-family:inherit;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;cursor:pointer;${i === oi ? 'background:#fff;color:#10233a;box-shadow:0 1px 2px rgba(19,36,61,.08),0 0 0 1px #e3ebe8' : 'color:#8a9aa6'}` })),
+      sc: this.fmt(s), other: 'Option ' + L[1 - oi] + ' · ' + this.fmt(so), gaugeL: 'Score de l\'option ' + L[oi] + ' : ' + this.fmt(s) + ' sur 4 ; option ' + L[1 - oi] + ' : ' + this.fmt(so),
+      arc: s > 0 ? `M20 100A80 80 0 0 1 ${x.toFixed(1)} ${y.toFixed(1)}` : 'M20 100', arcC: s > 0 ? (lead === oi ? '#1f9a8a' : '#10233a') : 'none',
+      bx: (100 - 80 * Math.cos(ao)).toFixed(1), by: (100 - 80 * Math.sin(ao)).toFixed(1),
+      scSt: `font-size:38px;line-height:1;letter-spacing:-.04em;font-weight:700;font-variant-numeric:tabular-nums;color:${lead === oi ? '#146b64' : '#10233a'}`,
+      comp, compL: 'Composition du score : ' + (comp.map(c => c.tip).join(' ; ') || 'aucun critère pesé'), wOk: ws.ok, wTxt: ws.text,
+      wSt: `display:flex;align-items:center;gap:4px;font-size:11px;font-weight:700;white-space:nowrap;color:${ws.ok ? '#146b64' : '#b8650f'}`,
+      add: () => { setRows(rs => rs.concat([SSJ_BLANK_ROW()])); this.setState({ crx: R.length }); },
+      rows: R.map((r, j) => ({ i: j, row: r, ex: S.crx === j, open: () => this.setState({ crx: j }),
+        up: p => setRows(rs => rs.map((q, b) => (b === j ? { ...q, ...p } : q))),
+        rm: () => { setRows(rs => (rs.length > 1 ? rs.filter((_, b) => b !== j) : [SSJ_BLANK_ROW()])); this.setState({ crx: -1 }); } })),
+    };
+  }
+  paneSt(on) { return `width:50%;flex:none;min-width:0;height:100%;display:flex;flex-direction:column;overflow:hidden;transition:opacity .32s ease ${on ? '.08s' : '0s'},visibility 0s linear ${on ? '0s' : '.42s'};opacity:${on ? 1 : 0};visibility:${on ? 'visible' : 'hidden'}`; }
+  renderVals() {
+    const S = this.state, o = this.obj(), k = o.k, FS = SSJ_F[k] || [], chap = !!SSJ_CHAP[k], isOpt = k === 'arbitrage' && S.opt !== null;
+    if (isOpt) this._listOpen = false;
+    const req = FS.filter(f => f.r), done = req.filter(f => this.status(f, this.get(k, f)) === 'ok').length;
+    const bad = FS.filter(f => this.status(f, this.get(k, f)) === 'bad').map(f => f.l), ready = done === req.length && !bad.length;
+    const off = !ready || S.busy;
+    return {
+      toast: S.toast, regionL: isOpt ? "Fiche d'arbitrage · option " + 'AB'[S.opt] : o.nv, ...this.pickVals(),
+      hasHead: !isOpt, isOpt, isSteps: !isOpt && !chap, isChap: !isOpt && chap, nv: o.nv,
+      fields: !isOpt && !chap ? this.stepsVals(k, FS) : [], chaps: !isOpt && chap ? this.chapsVals(k, FS) : [], ob: isOpt ? this.optVals() : {},
+      ringTxt: done + '/' + req.length, ringOff: 106.8 * (1 - (req.length ? done / req.length : 1)), ringL: done + ' champ' + (done > 1 ? 's' : '') + ' requis rempli' + (done > 1 ? 's' : '') + ' sur ' + req.length,
+      toPick: () => this.toPick(),
+      // Trait fin à gauche de la partie blanche (liste, pied, formulaire), pas du bandeau bleu nuit (demande du 10/10/2026).
+      // Un seul panneau visible : rail de deux panneaux décalé d'un panneau ; le panneau caché sort du parcours au clavier
+      // (visibilité masquée à la fin du glissement).
+      trackSt: `display:flex;width:200%;height:100%;transform:translateX(${S.view === 'form' ? '-50%' : '0'})`,
+      pickHidden: S.view === 'form' ? 'true' : 'false', formHidden: S.view === 'form' ? 'false' : 'true',
+      pickSt: this.paneSt(S.view !== 'form'), formSt: 'position:relative;border-left:1px solid #e0e9e6;' + this.paneSt(S.view === 'form'),
+      cancel: () => this.setState(this.cleared()),
+      cta: S.busy ? 'Création…' : 'Créer ' + o.art, ctaOff: off ? 'true' : 'false',
+      ctaTip: S.busy ? '' : bad.length ? 'À corriger : ' + bad.join(', ') : ready ? '' : 'Renseignez les champs requis',
+      ctaSt: `height:40px;padding:0 16px;border:0;border-radius:12px;display:flex;align-items:center;font-family:inherit;font-size:13px;font-weight:800;white-space:nowrap;flex:none;transition:opacity .2s,box-shadow .2s;color:#13243d;background:linear-gradient(90deg,#f6a62a,#f2851c);${off ? 'cursor:default;opacity:.4' : 'cursor:pointer;box-shadow:0 10px 20px -10px rgba(242,133,28,.7),inset 0 1px 0 rgba(255,255,255,.25)'}`,
+      create: () => this.create(ready),
+      noErr: !S.err, err: S.err,
+      footSt: `flex:1;min-width:0;font-size:11.5px;font-weight:${S.err ? 600 : 500};${S.err ? 'color:#c2413b;line-height:1.35' : 'color:#8a9aa6;white-space:nowrap'}`,
     };
   }
 }

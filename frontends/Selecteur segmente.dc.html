@@ -11,21 +11,17 @@
 html,body{margin:0;background:#fff;font-family:'Plus Jakarta Sans',sans-serif;color:#10233a;-webkit-font-smoothing:antialiased}
 *{box-sizing:border-box}
 </style></helmet>
-<!-- Sélecteur segmenté (« Saisir sans Jev », maquette 3a : statut, priorité, option recommandée) : libellé facultatif (avec mention
-     à droite), segments égaux ; le segment choisi en blanc ; pastille de couleur facultative par segment. Clavier : flèches gauche / droite. -->
-<div style="display:flex;flex-direction:column;gap:6px">
-  <sc-if value="{{ hasLabel }}" hint-placeholder-val="{{ true }}"><div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;font-size:11.5px;font-weight:600;color:#43586a"><span id="{{ labelId }}" style="white-space:nowrap">{{ label }}<sc-if value="{{ required }}" hint-placeholder-val="{{ false }}"><span style="color:#1d8f86"> *</span></sc-if></span><sc-if value="{{ hasNote }}" hint-placeholder-val="{{ false }}"><span style="display:flex;align-items:center;gap:6px;font-size:11px;color:#5c7280;font-weight:600;white-space:nowrap"><span style="width:6px;height:6px;border-radius:50%;background:#1d8f86"></span>{{ note }}</span></sc-if></div></sc-if>
-  <div role="radiogroup" aria-labelledby="{{ labelId }}" aria-label="{{ ariaLabel }}" style="display:flex;gap:2px;padding:3px;border-radius:10px;background:#f1f5f4"><sc-for list="{{ opts }}" as="p" hint-placeholder-count="3"><button type="button" role="radio" aria-checked="{{ p.ariaChk }}" tabIndex="{{ p.tab }}" onClick="{{ p.on }}" onKeyDown="{{ onKey }}" style="{{ p.st }}" style-focus-visible="outline:2px solid #146b64;outline-offset:1px"><span style="{{ p.dSt }}"></span>{{ p.t }}</button></sc-for></div>
-</div>
+<!-- Sélecteur segmenté (« Saisir sans Jev », maquette 5a, 10/10/2026 : statut, priorité, option recommandée) : segments égaux sur
+     fond gris, le segment choisi en blanc ; pastille de couleur facultative par segment. Le libellé est affiché par l'écran.
+     Clavier : groupe de boutons radio, flèches. -->
+<div role="radiogroup" aria-labelledby="{{ labelledBy }}" style="display:flex;gap:3px;padding:3px;border-radius:12px;background:#f2f6f5"><sc-for list="{{ opts }}" as="p" hint-placeholder-count="3"><button type="button" role="radio" aria-checked="{{ p.ariaChk }}" tabIndex="{{ p.tab }}" onClick="{{ p.on }}" onKeyDown="{{ onKey }}" style="{{ p.st }}" style-focus-visible="outline:2px solid #146b64;outline-offset:1px"><span style="{{ p.dSt }}"></span>{{ p.t }}</button></sc-for></div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;label&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;required&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;boolean&quot;},&quot;note&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;options&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{ t: string; dot?: string }[]&quot;},&quot;value&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;number&quot;},&quot;onChange&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(i: number) =&gt; void&quot;}}">
-// Composant réutilisable « Sélecteur segmenté » (09/10/2026) : `value` = rang du segment choisi ; `dot` : couleur de la
-// pastille d'un segment (statut, priorité, option suggérée par le score) ; `note` : mention à droite du libellé.
-let sgSeq = 0;
+<script type="text/x-dc" data-dc-script data-props="{&quot;options&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{ t: string; dot?: string }[]&quot;},&quot;value&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;number&quot;},&quot;height&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;number&quot;},&quot;labelledBy&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;onChange&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(i: number) =&gt; void&quot;}}">
+// Composant réutilisable « Sélecteur segmenté » (10/10/2026) : `value` = rang du segment choisi ; `dot` : couleur de la pastille
+// d'un segment (statut, priorité, option suggérée par le score) ; `height` : hauteur des segments (34 px par défaut).
 class Component extends DCLogic {
-  uid = 'sg' + (++sgSeq);
   renderVals() {
-    const P = this.props, O = P.options || [], cv = Number(P.value) || 0;
+    const P = this.props, O = P.options || [], cv = Number(P.value) || 0, h = Number(P.height) || 34;
     const set = n => { if (n !== cv) P.onChange?.(n); };
     const onKey = e => {
       const d = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
@@ -34,11 +30,10 @@ class Component extends DCLogic {
       const g = e.currentTarget.parentElement; setTimeout(() => g && g.children[n] && g.children[n].focus(), 0);
     };
     return {
-      hasLabel: !!P.label, label: P.label, required: !!P.required, labelId: P.label ? this.uid + 'l' : undefined, ariaLabel: P.label ? undefined : 'Choix',
-      hasNote: !!P.note, note: P.note || '', onKey,
+      labelledBy: P.labelledBy, onKey,
       opts: O.map((o, n) => ({ t: o.t, ariaChk: n === cv ? 'true' : 'false', tab: n === cv ? 0 : -1, on: () => set(n),
         dSt: o.dot ? `width:6px;height:6px;border-radius:50%;flex:none;background:${o.dot}` : 'display:none',
-        st: `flex:1;min-width:0;height:30px;border:0;padding:0;font-family:inherit;background:none;border-radius:8px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;white-space:nowrap;cursor:pointer;font-weight:${n === cv ? 700 : 600};${n === cv ? 'background:#fff;color:#10233a;box-shadow:0 1px 2px rgba(16,35,58,.08),0 0 0 1px #e3ebe9' : 'color:#5c7280'}` })),
+        st: `flex:1;min-width:0;height:${h}px;border:0;padding:0 4px;font-family:inherit;background:none;border-radius:9px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;white-space:nowrap;cursor:pointer;transition:background .15s;${n === cv ? 'background:#fff;color:#10233a;font-weight:700;box-shadow:0 1px 2px rgba(19,36,61,.08),0 0 0 1px #e3ebe8' : 'color:#5c7280;font-weight:600'}` })),
     };
   }
 }
