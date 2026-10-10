@@ -2031,4 +2031,8 @@ Demande du commanditaire : un risque peut concerner un chantier, plusieurs, ou t
 - Correction : intergiciel `apiNoCache` sur `/api` (`src/app.factory.ts`) — `If-None-Match` et `If-Modified-Since` ignorés,
   `Cache-Control: no-store` par défaut (les routes qui fixent leur propre `Cache-Control` le gardent). L'ETag reste exposé pour
   `If-Match`. Fichiers statiques des écrans inchangés (revalidation). Test : `test/e2e/cache-api.spec.ts`.
+- Correctif du 10/10/2026 : après la suppression de RISE, la Console ne démarrait plus (« Projet introuvable », compte de
+  démonstration affiché). Cause : le chargeur `sched` d'`admin-api.js` lisait `/projects/RISE/snapshot-schedule`, RISE étant
+  le projet présélectionné par l'état de démonstration de l'écran Snapshots ; tous les chargeurs du démarrage partant ensemble
+  (`Promise.all`), un seul 404 bloquait tout. Le chargeur retient désormais un projet existant.
 

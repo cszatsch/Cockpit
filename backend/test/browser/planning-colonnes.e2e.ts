@@ -44,6 +44,16 @@ import { chromium, Page } from 'playwright';
   const o = await read(p);
   check('Un chantier : colonnes Phase, Chantier, Sous-phase', o.heads.join('|') === 'PHASE|CHANTIER|SOUS-PHASE', o.heads);
   check('… le chantier dans la 2e colonne', o.cells.some((c) => !empty(c[1]) && empty(c[2])), o.cells.slice(0, 4));
+  // Étiquettes des barres jamais coupées : chacune tient dans la zone du graphique, pour chaque chantier en vue « Un chantier ».
+  const clipped = () => p.evaluate(() => Array.from(document.querySelectorAll('[data-bar-lab]')).filter((l) => {
+    const e = l as HTMLElement; if (!e.offsetParent || !e.innerText.trim()) return false;
+    const r = e.getBoundingClientRect(), c = (e.parentElement as HTMLElement).getBoundingClientRect();
+    return r.left < c.left - 1 || r.right > c.right + 1;
+  }).map((l) => (l as HTMLElement).innerText));
+  const n = await sel.locator('option').count(), bad: string[] = [];
+  for (let i = 1; i < n; i++) { await sel.selectOption({ index: i }); await p.waitForTimeout(700); bad.push(...(await clipped())); }
+  for (const l of ['Phases', 'Phase > Chantier > Sous-phase', 'Tous les chantiers']) { await level(l); bad.push(...(await clipped())); }
+  check('étiquettes des barres jamais coupées (Un chantier, Phases, Phase > Chantier > Sous-phase, Tous les chantiers)', bad.length === 0, bad);
   const s = await level('Phase > Sous-phase');
   check('Phase > Sous-phase : ordre d’origine (Phase, Sous-phase, Chantier)', s.heads.join('|') === 'PHASE|SOUS-PHASE|CHANTIER', s.heads);
   const t = await level('Tous les chantiers');

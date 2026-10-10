@@ -764,3 +764,8 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
   au lieu de « Administrateur » (libellé jusque-là écrit en dur).
 - Mon profil : badge sous la photo et « Niveau d'administration » (onglet Habilitations) à « Super Admin » pour un Super Admin
   (libellés jusque-là écrits en dur), avec « Seul un autre Super Admin peut retirer ce profil. ».
+- Démarrage de la Console après la suppression d'un projet : la planification des snapshots était lue pour le projet
+  présélectionné par l'écran (« RISE », état de démonstration) ; projet supprimé → 404 « Projet introuvable », échec de tout le
+  démarrage et données de démonstration affichées (compte « Julien Morel »). Le chargeur `sched` d'`admin-api.js` retient
+  désormais un projet existant (le premier de la base sinon). Contrôle dans `test/browser/suppression-projet.e2e.ts`
+  (`RECETTE_PROJET=RISE`).

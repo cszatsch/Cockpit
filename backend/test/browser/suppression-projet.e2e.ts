@@ -66,6 +66,14 @@ const CODE = process.env.RECETTE_PROJET || 'NOVA';
   check('projet supprimé en base', !(await db.project.findUnique({ where: { code: CODE } })));
   check('message de confirmation avec la date limite de restauration', (await s.getByText(new RegExp(`Projet ${CODE} supprimé\\. Restaurable jusqu’au`)).count()) === 1);
   check('projet retiré de la liste', (await s.locator('[aria-label="Liste des projets"] [role="button"]').filter({ hasText: CODE }).count()) === 0);
+  // Démarrage de la Console après la suppression (10/10/2026) : le projet présélectionné des Snapshots (« RISE ») n'existe
+  // plus — la Console doit démarrer quand même (auparavant 404 « Projet introuvable » et données de démonstration affichées).
+  const fresh = await b.newPage({ viewport: { width: 1500, height: 950 } });
+  fresh.on('pageerror', (e) => errs.push(String(e)));
+  await fresh.goto(`${BASE}/Console%20Admin.dc.html?as=u1`);
+  await fresh.waitForTimeout(6000);
+  check('la Console redémarre sans « Projet introuvable » ni squelette de chargement', (await fresh.getByText('Projet introuvable').count()) === 0 && (await fresh.getByText(/Utilisateurs actifs/i).count()) > 0);
+  await fresh.close();
   const trash = s.locator('[data-project-trash]');
   check('« Projets supprimés » : le projet, restaurable encore 48 h', (await trash.getByText(CODE, { exact: true }).count()) === 1 && (await trash.getByText(/Restaurable encore 4[78] h/).count()) === 1);
   await s.screenshot({ path: (process.env.SHOT || 'suppression-projet.png').replace(/\.png$/, '-corbeille.png'), fullPage: true });

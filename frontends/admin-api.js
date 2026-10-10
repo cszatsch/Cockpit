@@ -306,7 +306,14 @@ export function bindConsole(c) {
       const snaps = {}; codes.forEach((p, i) => { snaps[p] = lists[i].map(toSnap); });
       return { snaps };
     },
-    sched: async () => ({ sched: toSched(await get('/projects/' + c.state.sPj + '/snapshot-schedule')) }),
+    // Planification des snapshots du projet choisi. Le projet présélectionné par l'écran (« RISE », état de démonstration) ou
+    // choisi auparavant peut ne plus exister (projet supprimé, 10/10/2026) : sinon 404 « Projet introuvable » et échec de tout le
+    // démarrage de la Console. On retient alors le premier projet de la base ; aucun projet : pas de planification.
+    sched: async () => {
+      const codes = (await get('/projects')).map(p => p.code), sPj = codes.includes(c.state.sPj) ? c.state.sPj : codes[0];
+      if (!sPj) return {};
+      return { sPj, sched: toSched(await get('/projects/' + encodeURIComponent(sPj) + '/snapshot-schedule')) };
+    },
     // Notifications et alertes : format Rule / History de la vue (NOTIFICATIONS ET ALERTES - specification.md § 2).
     nrRules: async () => ({ nrRules: await get('/notifications/rules') }),
     nrHist: async () => ({ nrHist: await get('/notifications/history?limit=200') }),

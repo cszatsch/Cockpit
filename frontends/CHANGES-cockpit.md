@@ -615,4 +615,6 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
   « Phase > Chantier » et « Un chantier » (ajout du 10/10/2026) : Phase, Chantier, Sous-phase (largeurs permutées avec elles) ; autres niveaux : Phase, Sous-phase,
   Chantier, comme avant (`pl.g.chFirst`, `pl.g.tCols`). Repères `data-suivi-head` / `data-suivi-row` pour la recette
   `test/browser/planning-colonnes.e2e.ts`.
-
+- Étiquette des barres (« 82 % · prévu 66 % ») : une barre qui occupe presque toute la largeur du graphique n'a de place ni à
+  droite ni à gauche ; l'étiquette se place alors au début de la barre, sur fond blanc, au lieu d'être coupée au bord gauche
+  (`labPos`). Repère `data-bar-lab` ; contrôle dans `test/browser/planning-colonnes.e2e.ts`.
