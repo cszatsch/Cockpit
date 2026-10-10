@@ -101,7 +101,7 @@ import { chromium, Page } from 'playwright';
   await p.keyboard.type('31022027');
   await wait(200);
   const inv = await region.getByPlaceholder('jj/mm/aaaa').getAttribute('aria-invalid');
-  const tip = await region.getByRole('button', { name: 'Créer le risque' }).getAttribute('title');
+  const tip = await region.locator('[role=status][aria-live=polite]').first().innerText();
   check('31/02/2027 : date invalide signalée, « À corriger : Échéance »', inv === 'true' && /Échéance/.test(tip || ''), { inv, tip });
   await region.getByRole('button', { name: 'Annuler' }).click();
   await wait(300);

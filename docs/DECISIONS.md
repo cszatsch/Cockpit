@@ -1915,3 +1915,18 @@ Demande du commanditaire : un risque peut concerner un chantier, plusieurs, ou t
 - **Option recommandée = la mieux notée** (demande du commanditaire, 10/10/2026 : B était recommandée alors que A avait le meilleur
   score) : calculée sur le barème commun (`faReco`), « À définir » sans note ou à égalité ; le libellé n'est plus modifiable dans
   la fiche ; enregistrée avec la fiche (`recommendation` A / B, `texts.recOpt`).
+
+## Aucune infobulle dans le Cockpit ni dans la Console (10/10/2026)
+
+- Demande du commanditaire : supprimer toutes les infobulles. Mécanisme unique `frontends/sans-infobulles.js`, chargé par
+  `auth-api.js` (donc par le Cockpit, la Console et les pages de connexion) : tout attribut `title` est retiré dès qu'il apparaît
+  (MutationObserver : rendu initial et mises à jour), de même que le texte des `<title>` des SVG ; un élément sans texte visible
+  ni nom accessible (bouton à icône) reçoit l'ancien texte en `aria-label`, pour les lecteurs d'écran.
+- Retirés aussi : les infobulles « Halo » du Cockpit (`tipInit`, qui transformait chaque `title` en bulle) et la bulle
+  « Ouvrir le Cockpit ⇧⌘C » de la barre latérale de la Console.
+- Conséquences : les textes qui n'existaient qu'en infobulle ne s'affichent plus au survol (noms complets de textes tronqués,
+  nom du chantier sur les références C1, C2…, détails de pastilles) ; « Saisir sans Jev » : une date à corriger s'affiche dans
+  le pied du formulaire (« À corriger : … ») au lieu de l'infobulle du bouton « Créer … ». Les lectures de valeurs au survol des
+  graphiques (Consommation et coûts › Accès) sont gardées : ce sont des données, pas des infobulles de libellé.
+- Recette navigateur `test/browser/infobulles.e2e.ts` (Cockpit : pages, onglets du Pilotage, barre de Jev, « Saisir sans Jev » ;
+  Console : chaque page) ; recettes adaptées (`data-proj-switch` du bloc Projet, recherche par nom accessible).

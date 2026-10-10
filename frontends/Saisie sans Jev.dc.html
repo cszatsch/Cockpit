@@ -416,8 +416,9 @@ class Component extends DCLogic {
       ctaTip: S.busy ? '' : bad.length ? 'À corriger : ' + bad.join(', ') : ready ? '' : 'Renseignez les champs requis',
       ctaSt: `height:40px;padding:0 16px;border:0;border-radius:12px;display:flex;align-items:center;font-family:inherit;font-size:13px;font-weight:800;white-space:nowrap;flex:none;transition:opacity .2s,box-shadow .2s;color:#13243d;background:linear-gradient(90deg,#f6a62a,#f2851c);${off ? 'cursor:default;opacity:.4' : 'cursor:pointer;box-shadow:0 10px 20px -10px rgba(242,133,28,.7),inset 0 1px 0 rgba(255,255,255,.25)'}`,
       create: () => this.create(ready),
-      noErr: !S.err, err: S.err,
-      footSt: `flex:1;min-width:0;font-size:11.5px;font-weight:${S.err ? 600 : 500};${S.err ? 'color:#c2413b;line-height:1.35' : 'color:#8a9aa6;white-space:nowrap'}`,
+      // Sans infobulle (10/10/2026) : une date à corriger est signalée dans le pied, à la place de « * Requis ».
+      noErr: !S.err && !bad.length, err: S.err || (bad.length ? 'À corriger : ' + bad.join(', ') : ''),
+      footSt: `flex:1;min-width:0;font-size:11.5px;font-weight:${S.err || bad.length ? 600 : 500};${S.err || bad.length ? 'color:#c2413b;line-height:1.35' : 'color:#8a9aa6;white-space:nowrap'}`,
     };
   }
 }

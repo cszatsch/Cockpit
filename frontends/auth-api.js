@@ -13,6 +13,9 @@
 const W = typeof window !== 'undefined' ? window : {};
 
 /** Écran de connexion et page d'arrivée de chaque surface. */
+// Aucune infobulle dans le Cockpit ni dans la Console (10/10/2026) : module chargé ici, commun à tous les écrans.
+import './sans-infobulles.js';
+
 export const LOGIN_URL = { app: '/connexion', admin: '/console/connexion' };
 export const HOME_URL = { app: '/', admin: '/console' };
 /** Inactivité tolérée (minutes) et avertissement (secondes), repris du serveur (policy.ts). */

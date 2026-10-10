@@ -186,7 +186,7 @@ async function main() {
     await page.evaluate((n) => { const c = (window as any).__riseCockpit; c.setState({ tplSel: c.state.templates.find((t: any) => t.name === n).id }); }, NAME);
     await page.evaluate(() => { const w = window as any; w.__genSeen = []; w.__genObs = new MutationObserver(() => { for (const l of ['Contrôle des données…', 'Collecte des données du jour…', 'Rédaction des titres et de la synthèse…', 'Mise en page au format du template…', 'Téléchargement du fichier…', 'Rapport téléchargé']) if (document.body.innerText.includes(l) && !w.__genSeen.includes(l)) w.__genSeen.push(l); }); w.__genObs.observe(document.body, { subtree: true, childList: true, characterData: true }); });
     const rowDl = page.waitForEvent('download', { timeout: 120000 });
-    await page.locator('button[title="Télécharger"]').first().click();
+    await page.getByRole('button', { name: 'Télécharger', exact: true }).first().click();
     for (let k = 0; k < 40; k++) {
       if (await page.getByText('Générer quand même').count()) await page.getByText('Générer quand même').click();
       if (await page.getByText('Non, télécharger seulement').count()) { await page.getByText('Non, télécharger seulement').click(); break; }

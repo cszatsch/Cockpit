@@ -64,7 +64,7 @@ async function main() {
     // Panneau de Jev : plus de trombone « Joindre un fichier ».
     await page.locator('button, span, div', { hasText: /^Jev$/ }).first().click().catch(() => {});
     await page.waitForTimeout(800);
-    check('   panneau de Jev : aucun bouton « Joindre un fichier »', (await page.locator('[title="Joindre un fichier"]').count()) === 0);
+    check('   panneau de Jev : aucun bouton « Joindre un fichier »', (await page.locator('[title="Joindre un fichier"],[aria-label="Joindre un fichier"]').count()) === 0);
     await page.close();
 
     // 3. Console › Plateforme › Modules : le module « Message d’accueil de Jev » est listé, actif partout.

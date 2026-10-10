@@ -42,10 +42,11 @@ const read = (page: Page) => page.evaluate(() => {
   const bars = Array.from(root.querySelectorAll('span')).filter((s) => (s as HTMLElement).style.transition.includes('left')) as HTMLElement[];
   const rows = bars.map((b) => {
     const row = b.closest('div[style*="grid-template-columns"]') as HTMLElement;
-    const pill = row.querySelector('span[title]') as HTMLElement | null;
+    // Pastille d'erreur : son détail est dans son nom accessible (plus d'infobulle depuis le 10/10/2026).
+    const pill = (Array.from(row.querySelectorAll('span[aria-label]')).find((s) => (s.textContent || '').trim()) as HTMLElement) || null;
     const head = row.previousElementSibling && /^[A-ZÉ ]+$/.test(txt(row.previousElementSibling)) ? txt(row.previousElementSibling) : '';
     const label = row.firstElementChild!.querySelector(':scope > div > div');
-    return { name: txt(label), head, left: parseFloat(b.style.left), width: parseFloat(b.style.width), ring: b.style.boxShadow.includes('240, 123, 103') || b.style.boxShadow.includes('#f07b67'), pill: pill ? pill.getAttribute('title') : null, value: txt(row.lastElementChild) };
+    return { name: txt(label), head, left: parseFloat(b.style.left), width: parseFloat(b.style.width), ring: b.style.boxShadow.includes('240, 123, 103') || b.style.boxShadow.includes('#f07b67'), pill: pill ? pill.getAttribute('aria-label') : null, value: txt(row.lastElementChild) };
   });
   const svg = root.querySelector('svg[role="img"]');
   const points = svg ? svg.querySelectorAll('circle').length : 0;
@@ -86,8 +87,8 @@ async function main() {
     await page.waitForSelector('text=Vue d’ensemble', { timeout: 30000 });
     // Sidebar : groupe IA déplié (après le chargement initial de la Console), puis l'entrée.
     await page.waitForTimeout(2000);
-    for (let i = 0; i < 3 && (await page.locator('button[aria-label="IA"][aria-expanded="true"]').count()) === 0; i++) {
-      await page.click('button[aria-label="IA"]');
+    for (let i = 0; i < 3 && (await page.locator('button[aria-label^="IA"][aria-expanded="true"]').count()) === 0; i++) {
+      await page.click('button[aria-label^="IA"]');
       await page.waitForTimeout(1000);
     }
     await page.locator('#sb-ia').getByText('Analyse des temps de réponse', { exact: true }).click();

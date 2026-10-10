@@ -17,13 +17,13 @@ const results: Array<{ step: string; ok: boolean }> = [];
 const check = (step: string, ok: boolean, detail = '') => { results.push({ step, ok }); console.log(`${ok ? '✔' : '✘'} ${step}${detail ? ' — ' + detail : ''}`); };
 
 const menu = async (p: Page) => {
-  await p.evaluate(() => (Array.from(document.querySelectorAll('aside div')).find((d) => (d as HTMLElement).innerText.trim().startsWith('PROJET') && d.getAttribute('title') !== null) as HTMLElement).click());
+  await p.evaluate(() => (document.querySelector('[data-proj-switch]') as HTMLElement).click());
   await p.waitForTimeout(300);
   const items = await p.evaluate(() => Array.from(document.querySelectorAll('[role=listbox][aria-label=Projets] [role=option]')).map((o) => ({ code: (o as HTMLElement).innerText.split('\n')[0], on: o.getAttribute('aria-selected') === 'true' })));
-  await p.evaluate(() => (Array.from(document.querySelectorAll('aside div')).find((d) => (d as HTMLElement).innerText.trim().startsWith('PROJET') && d.getAttribute('title') !== null) as HTMLElement).click());
+  await p.evaluate(() => (document.querySelector('[data-proj-switch]') as HTMLElement).click());
   return items;
 };
-const current = (p: Page) => p.evaluate(() => (Array.from(document.querySelectorAll('aside div')).find((d) => (d as HTMLElement).innerText.trim().startsWith('PROJET') && d.getAttribute('title') !== null) as HTMLElement).innerText.replace(/\s+/g, ' ').trim());
+const current = (p: Page) => p.evaluate(() => (document.querySelector('[data-proj-switch]') as HTMLElement).innerText.replace(/\s+/g, ' ').trim());
 
 async function main() {
   const db = new PrismaClient({ datasources: { db: { url: process.env.DATABASE_URL_TEST } } });
@@ -70,7 +70,7 @@ async function main() {
   // Changement de projet : projet importé (sans données de démonstration) affiché sans erreur.
   await habilitate(['RISE', 'ATLAS', 'ORION']);
   await p.waitForTimeout(2500);
-  await p.evaluate(() => (Array.from(document.querySelectorAll('aside div')).find((d) => (d as HTMLElement).innerText.trim().startsWith('PROJET') && d.getAttribute('title') !== null) as HTMLElement).click());
+  await p.evaluate(() => (document.querySelector('[data-proj-switch]') as HTMLElement).click());
   await p.waitForTimeout(300);
   await Promise.all([p.waitForNavigation(), p.evaluate(() => (Array.from(document.querySelectorAll('[role=option]')).find((o) => (o as HTMLElement).innerText.startsWith('ORION')) as HTMLElement).click())]);
   await p.waitForTimeout(5000);

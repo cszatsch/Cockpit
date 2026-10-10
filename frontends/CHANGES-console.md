@@ -716,3 +716,9 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
 - (08/10/2026) Consommation et coûts · Accès : données de démonstration supprimées de l'écran (sans serveur : message d'erreur) ; filtre « Projet » (sélection multiple) avant « Équipes ».
 - (08/10/2026) Jev : champ de saisie multiligne qui s'agrandit avec le texte jusqu'à 180 px (environ 8 lignes), puis défile ; Entrée envoie, Maj+Entrée va à la ligne.
 - (08/10/2026) Skills : sous-titre corrigé (chaque skill sert un usage désigné par son nom, elle ne s'applique pas à toutes les réponses de Jev).
+
+## Aucune infobulle (10/10/2026)
+
+- Plus aucune infobulle : attributs `title` retirés à l'affichage (`sans-infobulles.js`, chargé par `auth-api.js` ; nom accessible
+  gardé pour les boutons à icône) ; bulle « Ouvrir le Cockpit ⇧⌘C » de la barre latérale supprimée (le raccourci reste dans le nom
+  accessible du bouton).

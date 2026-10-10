@@ -20,9 +20,8 @@ button:focus-visible{outline:2px solid #3dd6c6;outline-offset:2px}
     <sc-if value="{{ full }}" hint-placeholder-val="{{ true }}">
       <button type="button" onClick="{{ goOv }}" aria-label="Vue d’ensemble" style="display:flex;align-items:baseline;gap:6px;border:0;background:transparent;padding:0;cursor:pointer;color:#fff;font:inherit"><span style="font-weight:800;font-size:14px;letter-spacing:.04em">COCKPIT</span><span style="font-size:10.5px;color:#8fa9bb;font-style:italic">by</span><span style="font-size:13px;font-weight:700;letter-spacing:-.01em">onepoint</span></button>
       <span style="flex:1"></span>
-      <div style="position:relative;flex:none;display:flex" onMouseEnter="{{ tipOn }}" onMouseLeave="{{ tipOff }}">
-        <button type="button" onClick="{{ openCockpit }}" onFocus="{{ tipOn }}" onBlur="{{ tipOff }}" aria-label="Ouvrir le Cockpit (⇧⌘C)" aria-describedby="sb-ck-tip" style="flex:none;width:28px;height:28px;border:0;border-radius:8px;display:grid;place-items:center;color:#8fa9bb;background:transparent;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);cursor:pointer;transition:color .15s,background .15s" style-hover="color:#fff;background:rgba(255,255,255,.07)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M8 16L17 7 M9 7h8v8"></path></svg></button>
-        <sc-if value="{{ tip }}" hint-placeholder-val="{{ false }}"><span id="sb-ck-tip" role="tooltip" style="position:absolute;top:36px;right:-34px;z-index:90;display:flex;align-items:center;gap:10px;padding:7px 8px 7px 11px;border-radius:9px;background:#f2f6f5;color:#10233a;font-size:11.5px;font-weight:700;white-space:nowrap;box-shadow:0 14px 30px -10px rgba(0,0,0,.6);pointer-events:none">Ouvrir le Cockpit<span style="font-size:10px;font-weight:700;padding:2px 6px;border-radius:5px;background:#dfe7e5;color:#43586a;font-family:ui-monospace,Menlo,monospace">⇧⌘C</span></span></sc-if>
+      <div style="position:relative;flex:none;display:flex">
+        <button type="button" onClick="{{ openCockpit }}" aria-label="Ouvrir le Cockpit (⇧⌘C)" style="flex:none;width:28px;height:28px;border:0;border-radius:8px;display:grid;place-items:center;color:#8fa9bb;background:transparent;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);cursor:pointer;transition:color .15s,background .15s" style-hover="color:#fff;background:rgba(255,255,255,.07)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M8 16L17 7 M9 7h8v8"></path></svg></button>
       </div>
       <sc-if value="{{ desk }}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{ collapse }}" aria-label="Réduire la navigation" style="flex:none;width:28px;height:28px;border:0;border-radius:8px;display:grid;place-items:center;color:#8fa9bb;background:transparent;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);cursor:pointer;transition:color .15s,background .15s" style-hover="color:#fff;background:rgba(255,255,255,.07)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v14H4z M9 5v14"></path></svg></button></sc-if>
       <sc-if value="{{ mob }}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{ close }}" aria-label="Fermer le menu" style="width:28px;height:28px;border:0;border-radius:8px;display:grid;place-items:center;color:#c9d6de;background:rgba(255,255,255,.06);cursor:pointer"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></sc-if>
@@ -109,7 +108,7 @@ const TONE = { err: ['#f07b67', 'rgba(240,123,103,.18)'], warn: ['#f7a41c', 'rgb
 const BADGE = 'min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#f7a41c;color:#1a1200;font-size:10.5px;font-weight:800;display:grid;place-items:center;flex:none';
 
 class Component extends DCLogic {
-  state = { act: 'conso', open: undefined, fly: null, tip: false, meHov: false };
+  state = { act: 'conso', open: undefined, fly: null, meHov: false };
 
   componentDidMount() {
     this._k = e => {
@@ -125,7 +124,7 @@ class Component extends DCLogic {
   active() { return this.props.active ?? this.state.act; }
   mode() { return this.props.mode ?? 'full'; }
   go(id) { this.setState({ act: id, open: undefined, fly: null }); this.props.onNavigate?.(id); }
-  openCockpit() { const P = this.props; this.setState({ tip: false }); if (P.onOpenCockpit) P.onOpenCockpit(); else window.open(P.cockpitUrl ?? './RISE Cockpit.dc.html', '_blank', 'noopener'); }
+  openCockpit() { const P = this.props; if (P.onOpenCockpit) P.onOpenCockpit(); else window.open(P.cockpitUrl ?? './RISE Cockpit.dc.html', '_blank', 'noopener'); }
   dot(t, rail) { return (rail ? 'position:absolute;top:7px;right:7px;box-shadow:0 0 0 2px #0f2034;' : 'margin:0 2px 0 4px;box-shadow:0 0 0 3px ' + TONE[t][1] + ';') + 'width:7px;height:7px;border-radius:50%;flex:none;background:' + TONE[t][0]; }
 
   renderVals() {
@@ -165,7 +164,7 @@ class Component extends DCLogic {
     const ov = act === 'overview', u = P.user ?? { name: 'Cédric Schmitz', role: 'Administrateur' };
     const ini = u.ini ?? u.name.split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase();
     return {
-      full, rail, desk: mode === 'full', mob: mode === 'mob', doms, tip: S.tip && full, ini, hasPhoto: !!u.photo, photoSrc: u.photo || '', userName: u.name, userRole: u.role ?? 'Administrateur', jevOn: !!P.jevOn,
+      full, rail, desk: mode === 'full', mob: mode === 'mob', doms, ini, hasPhoto: !!u.photo, photoSrc: u.photo || '', userName: u.name, userRole: u.role ?? 'Administrateur', jevOn: !!P.jevOn,
       // Nom de Jev : identity.name du Persona (Console), « Jev » par défaut.
       jevName: P.jevName || 'Jev', jevAria: (P.jevName || 'Jev') + ', assistant IA (⌘J)', jevTitle: (P.jevName || 'Jev') + ' · assistant IA',
       asideSt: 'position:sticky;top:0;height:100vh;flex:none;white-space:nowrap;width:' + (rail ? 72 : 300) + 'px;min-width:' + (rail ? 72 : 300) + 'px;background:linear-gradient(180deg,#0f2034 0%,#0a1727 100%);color:#c9d6de;display:flex;flex-direction:column;padding:22px ' + pad + 'px 16px;z-index:60;' + (rail ? 'overflow:visible' : 'overflow-y:auto;overflow-x:hidden'),
@@ -193,7 +192,7 @@ class Component extends DCLogic {
           notifBadge: 'position:absolute;top:-4px;right:-5px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;display:grid;place-items:center;font-size:9.5px;font-weight:800;box-shadow:0 0 0 2px #0f2034;background:' + bg + ';color:' + fg,
           bellSt: 'position:relative;flex:none;width:28px;height:28px;border:0;border-radius:8px;display:grid;place-items:center;cursor:pointer;transition:background .15s,color .15s;' + (open ? 'color:#fff;background:rgba(255,255,255,.12)' : 'color:#c9d6de;background:transparent;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)'),
           bellRailSt: 'position:relative;width:40px;height:36px;margin:0 auto;border:0;border-radius:10px;display:grid;place-items:center;cursor:pointer;' + (open ? 'color:#fff;background:rgba(255,255,255,.12)' : 'color:#8fa9bb;background:transparent') }; })(),
-      openCockpit: () => this.openCockpit(), tipOn: () => this.setState({ tip: true }), tipOff: () => this.setState({ tip: false })
+      openCockpit: () => this.openCockpit()
     };
   }
 }

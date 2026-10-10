@@ -16,7 +16,7 @@ import { readFileSync } from 'fs';
   const proj = process.argv[2] || 'ATLAS';
   await p.goto(`http://localhost:3302/RISE%20Cockpit.dc.html?as=p01&project=${proj}`);
   await p.waitForTimeout(6000);
-  const block = await p.evaluate(() => (Array.from(document.querySelectorAll('aside div')).find((d) => (d as HTMLElement).innerText.trim().startsWith('PROJET') && d.getAttribute('title') !== null) as HTMLElement)?.innerText.replace(/\n/g, ' '));
+  const block = await p.evaluate(() => (document.querySelector('[data-proj-switch]') as HTMLElement)?.innerText.replace(/\n/g, ' '));
   console.log('Bloc projet :', block);
   const src = readFileSync('../frontends/RISE Cockpit.dc.html', 'utf8').split('\n');
   const start = src.findIndex((l) => l.includes('<script type="text/x-dc"')) + 1;

@@ -602,3 +602,9 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
   latérale de Jev ; « Retour à la décision » referme la barre.
 - Fiche de Pilotage › Décisions : plus de textes ni de critères d'exemple (D-007 de l'ancienne maquette) ; option recommandée =
   la mieux notée, non modifiable ; fiche affichée par défaut : la première décision.
+
+## Aucune infobulle (10/10/2026)
+
+- Plus aucune infobulle : attributs `title` retirés à l'affichage (`sans-infobulles.js`, nom accessible gardé pour les boutons à
+  icône), infobulles « Halo » supprimées. Bloc Projet de la barre latérale : repère `data-proj-switch` (recettes).
+- « Saisir sans Jev » : « À corriger : … » (date impossible ou période inversée) dans le pied du formulaire.
