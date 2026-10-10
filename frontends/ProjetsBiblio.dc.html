@@ -56,11 +56,60 @@ html,body{margin:0;background:#f2f6f5;font-family:'Plus Jakarta Sans',sans-serif
           <div style="margin-top:8px;display:flex;justify-content:space-between;font-size:12px;color:#5c7280;font-variant-numeric:tabular-nums"><span>{{ d.from }}</span><span>{{ d.to }}</span></div>
           <div style="margin-top:32px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid #eef3f2;border-bottom:1px solid #eef3f2"><sc-for list="{{ d.kpis }}" as="k" hint-placeholder-count="4"><div style="{{ k.st }}"><span style="font-size:28px;line-height:1;font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums">{{ k.v }}</span><span style="font-size:12px;color:#5c7280">{{ k.l }}</span></div></sc-for></div>
         </div>
-        <div style="height:76px;flex:none;padding:0 22px;display:flex;align-items:center;justify-content:flex-end;border-top:1px solid #eef3f2;background:#fbfdfc"><a href="{{ d.href }}" onClick="{{ d.open }}" style="height:42px;padding:0 16px 0 20px;border-radius:12px;background:#10233a;color:#fff;font-size:13.5px;font-weight:700;display:inline-flex;align-items:center;gap:10px;transition:background .15s" style-hover="background:#1d3654;color:#fff">Ouvrir<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#3dd6c6" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></a></div>
+        <div style="height:76px;flex:none;padding:0 22px;display:flex;align-items:center;justify-content:flex-end;gap:12px;border-top:1px solid #eef3f2;background:#fbfdfc"><sc-if value="{{ canDel }}" hint-placeholder-val="{{ false }}"><button type="button" data-del-project onClick="{{ askDel }}" style="height:42px;padding:0 14px;border:1px solid #f1d4d0;border-radius:12px;background:#fff;color:#b4322a;font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:8px;cursor:pointer;transition:background .15s" style-hover="background:#fdf1ef"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"></path></svg>Supprimer le projet</button></sc-if><span style="flex:1"></span><a href="{{ d.href }}" onClick="{{ d.open }}" style="height:42px;padding:0 16px 0 20px;border-radius:12px;background:#10233a;color:#fff;font-size:13.5px;font-weight:700;display:inline-flex;align-items:center;gap:10px;transition:background .15s" style-hover="background:#1d3654;color:#fff">Ouvrir<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#3dd6c6" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg></a></div>
       </sc-if>
       <sc-if value="{{ none }}" hint-placeholder-val="{{ false }}"><div style="margin:auto;color:#8a9aa6">Sélectionnez un projet.</div></sc-if>
     </section>
   </div>
+
+  <sc-if value="{{ hasMsg }}" hint-placeholder-val="{{ false }}"><div role="status" style="{{ msgSt }}"><span style="flex:1;min-width:0">{{ msg }}</span><button type="button" onClick="{{ closeMsg }}" aria-label="Fermer" style="width:24px;height:24px;border:0;border-radius:7px;background:rgba(16,35,58,.06);cursor:pointer;flex:none">×</button></div></sc-if>
+
+  <sc-if value="{{ hasTrash }}" hint-placeholder-val="{{ false }}">
+    <section aria-label="Projets supprimés" data-project-trash style="background:#fff;border:1px solid #e1e9e7;border-radius:20px;overflow:hidden;box-shadow:0 1px 2px rgba(16,35,58,.04)">
+      <div style="padding:18px 22px"><div style="font-size:15px;font-weight:800">Projets supprimés</div><div style="font-size:12.5px;color:#5c7280;margin-top:3px">Sauvegardes de sécurité, restaurables pendant 48 h après la suppression, puis effacées définitivement.</div></div>
+      <sc-for list="{{ trashRows }}" as="t" hint-placeholder-count="1">
+        <div style="min-height:64px;padding:12px 22px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;border-top:1px solid #eef3f2">
+          <span style="width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:none;font-size:10px;font-weight:800;letter-spacing:.04em;color:#fff;background:#b3c0c7;overflow:hidden">{{ t.code }}</span>
+          <div style="flex:1 1 240px;min-width:0"><div style="font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.name }}</div><div style="font-size:11.5px;color:#5c7280;margin-top:2px">{{ t.by }}</div></div>
+          <span style="font-size:12px;font-weight:700;color:#9a5a0c;white-space:nowrap">{{ t.left }}</span>
+          <sc-if value="{{ t.can }}" hint-placeholder-val="{{ false }}"><button type="button" data-restore-project onClick="{{ t.restore }}" disabled="{{ t.busy }}" style="height:34px;padding:0 14px;border:1px solid #d3dedb;border-radius:10px;background:#fff;font-size:12.5px;font-weight:700;cursor:pointer" style-hover="border-color:#10233a">{{ t.btn }}</button></sc-if>
+        </div>
+      </sc-for>
+    </section>
+  </sc-if>
+
+  <sc-if value="{{ dlgOn }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ dlgBack }}" onKeyDown="{{ dlgKey }}" style="position:fixed;inset:0;z-index:60;background:rgba(16,35,58,.42);display:flex;align-items:center;justify-content:center;padding:16px">
+      <div role="dialog" aria-modal="true" aria-label="{{ dlgTitle }}" data-del-dialog style="width:min(560px,100%);max-height:calc(100vh - 32px);overflow:auto;background:#fff;border-radius:20px;box-shadow:0 30px 60px -20px rgba(16,35,58,.45);display:flex;flex-direction:column">
+        <div style="padding:22px 24px 0;display:flex;align-items:flex-start;gap:14px">
+          <span style="width:40px;height:40px;border-radius:12px;background:#fdecea;color:#b4322a;display:grid;place-items:center;flex:none"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"></path></svg></span>
+          <div style="min-width:0"><div style="font-size:18px;font-weight:800;letter-spacing:-.01em">{{ dlgTitle }}</div><div style="font-size:13px;color:#5c7280;margin-top:3px">{{ dlgName }}</div></div>
+        </div>
+        <sc-if value="{{ dlgLoading }}" hint-placeholder-val="{{ false }}"><div style="padding:28px 24px 0;color:#8a9aa6">Inventaire des données du projet…</div></sc-if>
+        <sc-if value="{{ dlgReady }}" hint-placeholder-val="{{ false }}">
+          <div style="padding:18px 24px 0;display:flex;flex-direction:column;gap:16px">
+            <div><div style="font-size:10.5px;font-weight:800;letter-spacing:.12em;color:#8a9aa6">SERA SUPPRIMÉ</div>
+              <div style="margin-top:8px;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px 18px"><sc-for list="{{ dlgCounts }}" as="k" hint-placeholder-count="4"><div style="display:flex;justify-content:space-between;gap:8px;font-size:12.5px"><span style="color:#43586a">{{ k.l }}</span><span style="font-weight:800;font-variant-numeric:tabular-nums">{{ k.v }}</span></div></sc-for></div>
+              <div style="font-size:12px;color:#5c7280;margin-top:8px">{{ dlgTotal }}</div></div>
+            <sc-if value="{{ dlgHasAcc }}" hint-placeholder-val="{{ false }}"><div style="border:1px solid #f3e2c4;background:#fffaf0;border-radius:12px;padding:12px 14px">
+              <div style="font-size:12.5px;font-weight:700">{{ dlgAccTitle }}</div><div style="font-size:12px;color:#5c7280;margin-top:4px">{{ dlgAccNames }}</div>
+              <label style="margin-top:10px;display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;cursor:pointer"><input type="checkbox" data-del-suspend checked="{{ dlgSuspend }}" onChange="{{ setSuspend }}" style="width:16px;height:16px;accent-color:#b4322a">Suspendre ces comptes</label></div></sc-if>
+            <ul style="margin:0;padding-left:18px;font-size:12.5px;color:#43586a;display:flex;flex-direction:column;gap:5px">
+              <li>{{ dlgKeep }}</li>
+              <li>La consommation et les coûts (IA et Accès) et le journal d’audit sont conservés.</li>
+              <li>Dans Consommation et coûts › Accès, les comptes de ce projet sans autre rattachement figureront dans « Sans équipe ».</li>
+            </ul>
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600">{{ dlgAsk }}<input data-del-code value="{{ dlgTyped }}" onChange="{{ setTyped }}" autocomplete="off" spellcheck="false" style="height:40px;border:1px solid #d3dedb;border-radius:10px;padding:0 12px;font-size:14px;font-weight:700;letter-spacing:.04em" style-focus="border-color:#b4322a;box-shadow:0 0 0 2px rgba(180,50,42,.15)"></label>
+          </div>
+        </sc-if>
+        <sc-if value="{{ dlgHasErr }}" hint-placeholder-val="{{ false }}"><div role="alert" style="margin:14px 24px 0;padding:10px 12px;border-radius:10px;background:#fdecea;color:#8f2620;font-size:12.5px">{{ dlgErr }}</div></sc-if>
+        <div style="padding:20px 24px 22px;display:flex;justify-content:flex-end;gap:10px">
+          <button type="button" onClick="{{ closeDlg }}" style="height:40px;padding:0 16px;border:1px solid #d3dedb;border-radius:11px;background:#fff;font-size:13px;font-weight:700;cursor:pointer" style-hover="border-color:#10233a">Annuler</button>
+          <button type="button" data-del-confirm onClick="{{ confirmDel }}" disabled="{{ dlgOff }}" style="{{ dlgBtnSt }}">{{ dlgBtn }}</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
 </div>
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;1200px&quot;,&quot;height&quot;:&quot;900px&quot;},&quot;projects&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{code,name,client,st:'actif'|'prep'|'clos',phase,start:Date,end:Date,k:[number,number,number,number],snap,health:'ok'|'warn'|'neu'}[]&quot;},&quot;imported&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;any[]&quot;},&quot;today&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Date&quot;},&quot;openHref&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string&quot;},&quot;onOpen&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(p)=&gt;void&quot;},&quot;onNew&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;()=&gt;void&quot;}}">
@@ -71,10 +120,59 @@ class Component extends DCLogic {
   // « Ouvrir » : Cockpit du projet choisi (?project=CODE).
   href(p) { return (this.props.openHref ?? './RISE Cockpit.dc.html') + '?project=' + encodeURIComponent(p.code); }
   open(p) { if (this.props.onOpen) this.props.onOpen(p); else window.location.href = this.href(p); }
+  // Suppression d'un projet (10/10/2026, Super Admin) : aperçu, confirmation par le code, sauvegarde de sécurité de 48 h.
+  async askDel(p) {
+    this.setState({ dlg: { code: p.code, name: p.name, loading: true, typed: '', suspend: true } });
+    try { const pv = await this.bib.preview(p.code); if (this.state.dlg && this.state.dlg.code === p.code) this.setState({ dlg: { ...this.state.dlg, loading: false, p: pv } }); }
+    catch (e) { if (this.state.dlg) this.setState({ dlg: { ...this.state.dlg, loading: false, err: e.message || 'Aperçu indisponible' } }); }
+  }
+  async confirmDel() {
+    const g = this.state.dlg;
+    if (!g || !g.p || g.busy || g.typed.trim().toUpperCase() !== g.code.toUpperCase()) return;
+    this.setState({ dlg: { ...g, busy: true, err: '' } });
+    try {
+      const r = await this.bib.remove(g.code, { confirmCode: g.typed, suspendAccounts: !!(g.suspend && g.p.accounts.length) });
+      this.setState({ dlg: null, sel: 0, page: 0, msg: { ok: true, t: 'Projet ' + r.code + ' supprimé. Restaurable jusqu’au ' + this.when(new Date(r.expiresAt)) + ' dans « Projets supprimés ».' } });
+    } catch (e) { this.setState({ dlg: { ...this.state.dlg, busy: false, err: e.message || 'Suppression impossible' } }); }
+  }
+  async restore(t) {
+    this.setState({ restoring: t.id });
+    try { await this.bib.restore(t.id); this.setState({ restoring: null, msg: { ok: true, t: 'Projet ' + t.code + ' restauré.' } }); }
+    catch (e) { this.setState({ restoring: null, msg: { ok: false, t: e.message || 'Restauration impossible' } }); }
+  }
+  when(d) { return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) + ' à ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }); }
+  delVals(d) {
+    const S = this.state, g = S.dlg, pv = g && g.p, n = v => v.toLocaleString('fr-FR'), H = pv ? pv.retentionHours : 48;
+    const L = [['chantiers', 'Chantiers'], ['phases', 'Phases'], ['sousPhases', 'Sous-phases'], ['jalons', 'Jalons'], ['livrables', 'Livrables'], ['risques', 'Risques'], ['problemes', 'Problèmes'], ['actions', 'Actions'], ['decisions', 'Décisions'], ['taches', 'Tâches'], ['personnes', 'Personnes'], ['documents', 'Documents'], ['rapports', 'Rapports'], ['templates', 'Templates de rapport'], ['snapshots', 'Snapshots']];
+    const acc = pv ? pv.accounts : [], ok = !!(g && pv && !g.busy && g.typed.trim().toUpperCase() === g.code.toUpperCase()), now = Date.now(), busy = !!(g && g.busy);
+    return {
+      canDel: !!(S.canDelete && d && !d.local && this.bib), askDel: () => d && this.askDel(d),
+      dlgOn: !!g, dlgTitle: g ? 'Supprimer le projet ' + g.code + ' ?' : '', dlgName: g ? g.name : '', dlgLoading: !!(g && g.loading), dlgReady: !!pv,
+      dlgCounts: pv ? L.filter(([k]) => pv.counts[k]).map(([k, l]) => ({ l, v: n(pv.counts[k]) })) : [],
+      dlgTotal: pv ? n(pv.totalRows) + ' enregistrement' + (pv.totalRows > 1 ? 's' : '') + ' au total, avec les extraits des documents et les fichiers déposés.' : '',
+      dlgHasAcc: acc.length > 0, dlgAccTitle: acc.length + (acc.length > 1 ? ' comptes n’auront plus accès à aucun projet' : ' compte n’aura plus accès à aucun projet'),
+      dlgAccNames: acc.slice(0, 6).map(a => a.fullName).join(', ') + (acc.length > 6 ? ' et ' + (acc.length - 6) + ' autre' + (acc.length > 7 ? 's' : '') : ''),
+      dlgSuspend: !!(g && g.suspend), setSuspend: e => this.setState({ dlg: { ...this.state.dlg, suspend: e.target.checked } }),
+      dlgKeep: 'Une sauvegarde de sécurité est conservée ' + H + ' h : le projet peut être restauré jusqu’au ' + this.when(new Date(now + H * 3600000)) + ', puis tout est effacé définitivement.',
+      dlgAsk: g ? 'Saisissez ' + g.code + ' pour confirmer' : '', dlgTyped: g ? g.typed : '', setTyped: e => this.setState({ dlg: { ...this.state.dlg, typed: e.target.value, err: '' } }),
+      dlgHasErr: !!(g && g.err), dlgErr: g ? g.err || '' : '',
+      dlgOff: !ok, dlgBtn: busy ? 'Suppression…' : 'Supprimer définitivement', confirmDel: () => this.confirmDel(),
+      dlgBtnSt: 'height:40px;padding:0 16px;border:0;border-radius:11px;font-size:13px;font-weight:800;color:#fff;background:#b4322a;transition:opacity .15s;' + (ok ? 'cursor:pointer' : 'opacity:.4;cursor:default'),
+      closeDlg: () => { if (!busy) this.setState({ dlg: null }); },
+      dlgBack: e => { if (e.target === e.currentTarget && !busy) this.setState({ dlg: null }); },
+      dlgKey: e => { if (e.key === 'Escape' && !busy) this.setState({ dlg: null }); if (e.key === 'Enter' && ok) this.confirmDel(); },
+      hasMsg: !!S.msg, msg: S.msg ? S.msg.t : '', closeMsg: () => this.setState({ msg: null }),
+      msgSt: 'display:flex;align-items:center;gap:12px;padding:12px 14px 12px 18px;border-radius:14px;font-size:13px;font-weight:600;' + (S.msg && !S.msg.ok ? 'background:#fdecea;color:#8f2620' : 'background:#e6f4f2;color:#146b64'),
+      hasTrash: !!(S.trash && S.trash.length),
+      trashRows: (S.trash || []).map(t => { const h = Math.max(0, Math.ceil((t.expiresAt - now) / 3600000));
+        return { code: t.code, name: t.name, by: 'Supprimé le ' + this.when(t.deletedAt) + ' par ' + t.deletedBy, left: 'Restaurable encore ' + h + ' h', can: !!S.canDelete,
+          busy: S.restoring === t.id, btn: S.restoring === t.id ? 'Restauration…' : 'Restaurer', restore: () => this.restore(t) }; }),
+    };
+  }
   renderVals() {
     const S = this.state, today = this.props.today instanceof Date ? this.props.today : S.apiToday || new Date(), PER = 7; // API : date du serveur
     const src = Array.isArray(this.props.projects) ? this.props.projects : S.api || [], loaded = Array.isArray(this.props.projects) || !!S.api;
-    const imp = (this.props.imported || []).map(p => ({ code: p.code, name: p.name, client: p.client, st: 'prep', phase: 'Préparation · importé', start: p.start instanceof Date ? p.start : null, end: p.end instanceof Date ? p.end : null, k: [p.counts.lots, p.counts.phases, p.counts.chantiers, p.counts.personnes], snap: 'importé depuis ' + p.file, health: 'neu', isNew: true }));
+    const imp = (this.props.imported || []).map(p => ({ code: p.code, name: p.name, client: p.client, st: 'prep', phase: 'Préparation · importé', local: true, start: p.start instanceof Date ? p.start : null, end: p.end instanceof Date ? p.end : null, k: [p.counts.lots, p.counts.phases, p.counts.chantiers, p.counts.personnes], snap: 'importé depuis ' + p.file, health: 'neu', isNew: true }));
     const all = [...imp, ...src], q = S.q.trim().toLowerCase(), cnt = k => all.filter(p => k === 'tous' || p.st === k).length;
     const SL = { actif: ['Actif', '#e6f4f2', '#146b64', '#1d8f86'], prep: ['En préparation', '#fff1dc', '#9a5a0c', '#f0a24a'], clos: ['Clos', '#eef2f1', '#5c7280', '#a9b7bf'] };
     const HC = { ok: '#1d8f86', warn: '#e89a2c', neu: '#b3c0c7' };
@@ -108,6 +206,7 @@ class Component extends DCLogic {
       reset: () => this.setState({ q: '', st: 'tous', sel: 0, page: 0 }),
       newP: () => this.props.onNew && this.props.onNew(),
       listKey: e => { if (!list.length || e.target.tagName === 'INPUT') return; if (e.key === 'ArrowDown') { e.preventDefault(); go(Math.min(list.length - 1, sel + 1)); } if (e.key === 'ArrowUp') { e.preventDefault(); go(Math.max(0, sel - 1)); } if (e.key === 'Enter' && d) { e.preventDefault(); this.open(d); } },
+      ...this.delVals(d),
       noMatch: loaded && !list.length, has: !!d, none: loaded && !d, d: det,
       multi: pages > 1, pageL: (pg + 1) + ' / ' + pages, atFirst: pg === 0, atLast: pg === pages - 1, prevSt: nav(pg === 0), nextSt: nav(pg === pages - 1),
       prev: () => pg > 0 && go((pg - 1) * PER), next: () => pg < pages - 1 && go((pg + 1) * PER),

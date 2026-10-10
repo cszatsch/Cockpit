@@ -752,3 +752,11 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
   interrupteurs « Actif » inactifs) ; Consommation et coûts › IA : plafonds et seuils non modifiables ; Guide utilisateur :
   réglages de recherche de Jev non modifiables ; Vue d'ensemble : « Voir les fournisseurs » au lieu de « Remplacer la clé ».
 - Le compte connecté est reconnu par son identifiant réel (Administrateurs, fiche utilisateur), et non plus par `u1`.
+
+## Suppression d'un projet (10/10/2026)
+
+- `ProjetsBiblio.dc.html` : bouton « Supprimer le projet » dans le pied de la fiche (Super Admin seulement, projets enregistrés) ;
+  fenêtre de confirmation (inventaire, comptes sans autre accès et « Suspendre ces comptes », sauvegarde de 48 h, consommation et
+  journal conservés, effet « Sans équipe » dans la vue Accès, saisie du code) ; bandeau de résultat ; section « Projets
+  supprimés » (date, auteur, temps restant, « Restaurer »). `admin-api.js` (`bindBiblio`) : `superAdmin` de `/me/profile`,
+  `/project-trash`, client `c.bib` (`preview`, `remove`, `restore`).

@@ -478,6 +478,23 @@ GROUP BY bucket, acc, feature, provider, model, project`,
     return { per, head, body };
   }
 
+  /**
+   * Projets du filtre : ceux de la plateforme, puis les projets supprimés dont l'usage reste dans les agrégats (la suppression
+   * d'un projet ne touche pas la consommation) ; code et nom lus dans le journal d'audit, libellé « (supprimé) ».
+   */
+  private async projectOptions() {
+    const live = await this.prisma.project.findMany({ select: { id: true, code: true, name: true }, orderBy: { code: 'asc' } });
+    const known = new Set(live.map((p) => p.id));
+    const used = await this.prisma.$queryRawUnsafe<Array<{ project: string }>>(`SELECT DISTINCT project FROM usage_agg_day WHERE project <> ''`);
+    const gone = used.map((u) => u.project).filter((id) => !known.has(id));
+    const deleted = gone.length ? await this.prisma.auditEntry.findMany({ where: { action: 'Suppression d’un projet', entityId: { in: gone } }, select: { entityId: true, target: true }, orderBy: { at: 'desc' } }) : [];
+    const label = (id: string) => {
+      const [code, ...name] = (deleted.find((d) => d.entityId === id)?.target ?? id).split(' · ');
+      return { id, code, name: `${name.join(' · ') || code} (supprimé)` };
+    };
+    return [...live.map((p) => ({ id: p.id, code: p.code, name: p.name })), ...gone.map(label).sort((x, y) => x.code.localeCompare(y.code, 'fr'))];
+  }
+
   /** Listes des filtres : équipes, utilisateurs (droit « données individuelles »), fonctionnalités, fournisseurs et modèles. */
   async options(rights: UsageRights) {
     const accs = await this.accounts();
@@ -488,7 +505,7 @@ GROUP BY bucket, acc, feature, provider, model, project`,
       teams: [...new Set(list.map((a) => a.team))].sort((a, b) => (a === NO_TEAM ? 1 : b === NO_TEAM ? -1 : a.localeCompare(b, 'fr'))),
       users: rights.individual ? list.map((a) => ({ id: a.id, name: a.name, team: a.team })).sort((a, b) => a.name.localeCompare(b.name, 'fr')) : [],
       features: USAGE_FEATURES.map((f) => ({ id: f.id, name: f.name })),
-      projects: (await this.prisma.project.findMany({ select: { id: true, code: true, name: true }, orderBy: { code: 'asc' } })).map((p) => ({ id: p.id, code: p.code, name: p.name })),
+      projects: await this.projectOptions(),
       providers: providers.map((p) => ({ id: p.id, name: p.name })),
       models: models.map((m) => ({ id: m.id, name: m.name, providerId: m.providerId })),
       rights,

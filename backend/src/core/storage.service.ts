@@ -36,6 +36,32 @@ export class StorageService {
     }
   }
 
+  /** Fichier écrit à une clé choisie (archive d'un projet supprimé) ; la clé est contrôlée comme les autres. */
+  async putAt(key: string, data: Buffer): Promise<void> {
+    const file = this.resolve(key);
+    await fs.mkdir(path.dirname(file), { recursive: true });
+    await fs.writeFile(file, data);
+  }
+
+  /** Déplace un dossier (fichiers d'un projet supprimé ou restauré) ; rien si la source n'existe pas. */
+  async moveDir(from: string, to: string): Promise<boolean> {
+    const src = this.resolve(from), dest = this.resolve(to);
+    try { await fs.access(src); } catch { return false; }
+    await fs.mkdir(path.dirname(dest), { recursive: true });
+    try {
+      await fs.rename(src, dest);
+    } catch {
+      await fs.cp(src, dest, { recursive: true });
+      await fs.rm(src, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+    }
+    return true;
+  }
+
+  /** Supprime un dossier et son contenu. */
+  async removeDir(key: string): Promise<void> {
+    await fs.rm(this.resolve(key), { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+  }
+
   async remove(key: string): Promise<void> {
     // Windows : un fichier juste écrit peut être verrouillé un instant (antivirus) ; nouvelles tentatives.
     await fs.rm(this.resolve(key), { force: true, maxRetries: 5, retryDelay: 100 });

@@ -2,7 +2,7 @@ import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Put, Query
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
-import { AdminOnly, Actor, CurrentActor } from '../core/auth/auth';
+import { AdminOnly, Actor, CurrentActor, SuperAdminOnly } from '../core/auth/auth';
 import { AuditService } from '../core/audit.service';
 import { PrismaService } from '../core/prisma.service';
 import { StorageService } from '../core/storage.service';
@@ -15,6 +15,7 @@ import { commitPlan } from '../import/referential-import';
 import { creationPercent } from '../import/import-screen';
 import { adminCtx } from './profiles.service';
 import { SnapshotsService } from './snapshots.service';
+import { ProjectDeletionService } from './project-deletion.service';
 import { counters, nextSnapshotRun } from '../domain/snapshots';
 
 /** Nombre de jours pendant lesquels un projet importé porte le badge « Nouveau ». */
@@ -34,7 +35,41 @@ export class DataController {
     private readonly storage: StorageService,
     private readonly imports: ImportService,
     private readonly today: TodayService,
+    private readonly deletion: ProjectDeletionService,
   ) {}
+
+  // ───────────── Suppression d'un projet (Bibliothèque des projets, 10/10/2026) ─────────────
+
+  /** Ce que la suppression effacera : compteurs, comptes qui n'auront plus d'accès, lignes par table. Super Admin. */
+  @SuperAdminOnly()
+  @Get('projects/:ref/deletion-preview')
+  deletionPreview(@Param('ref') ref: string) {
+    return this.deletion.preview(ref);
+  }
+
+  /**
+   * Supprime un projet et toutes ses données, après une sauvegarde de sécurité restaurable 48 h. Confirmation par le code du
+   * projet ; option : suspendre les comptes qui n'avaient accès qu'à lui. Consommation d'IA, usage et audit conservés.
+   */
+  @SuperAdminOnly()
+  @Delete('projects/:ref')
+  deleteProject(@CurrentActor() actor: Actor, @Param('ref') ref: string, @Body() body: unknown) {
+    const input = parse(z.object({ confirmCode: z.string().default(''), suspendAccounts: z.boolean().default(false) }).strict(), body ?? {});
+    return this.deletion.remove(ref, actor, input);
+  }
+
+  /** Projets supprimés encore restaurables (sauvegardes de sécurité de moins de 48 h). */
+  @Get('project-trash')
+  projectTrash() {
+    return this.deletion.trash();
+  }
+
+  /** Restaure un projet supprimé. Super Admin. */
+  @SuperAdminOnly()
+  @Post('project-trash/:id/restore')
+  restoreProject(@CurrentActor() actor: Actor, @Param('id') id: string) {
+    return this.deletion.restore(id, actor);
+  }
 
   private async project(ref: string) {
     const p = (await this.prisma.project.findUnique({ where: { id: ref } })) ?? (await this.prisma.project.findUnique({ where: { code: ref.toUpperCase() } }));

@@ -2248,3 +2248,23 @@ model UsageSettings {
 
   @@map("usage_settings")
 }
+
+/// Projet supprimé (Console › Projets, 10/10/2026) : sauvegarde de sécurité complète (lignes du projet et fichiers déposés),
+/// restaurable pendant 48 h (`TRASH_RETENTION_HOURS`), puis effacée par la tâche `projects.trash.purge`.
+model ProjectTrash {
+  id          String   @id
+  projectId   String
+  code        String
+  name        String
+  deletedAt   DateTime @default(now())
+  deletedById String?
+  deletedBy   String
+  expiresAt   DateTime
+  /// Archive JSON dans le stockage (`corbeille/<id>/archive.json`) ; fichiers dans `corbeille/<id>/files/`
+  archiveKey  String
+  /// Compteurs affichés (chantiers, risques, documents…) et lignes archivées par table
+  stats       Json
+
+  @@index([expiresAt])
+  @@map("project_trash")
+}

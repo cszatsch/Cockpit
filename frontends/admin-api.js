@@ -1174,8 +1174,15 @@ export function bindBiblio(c) {
       const R = { actif: 0, prep: 1, clos: 2 };
       const list = (await get('/projects')).map(p => toLib(p, today)).sort((a, b) => Number(b.isNew) - Number(a.isNew) || R[a.st] - R[b.st] || (a.start || 0) - (b.start || 0));
       // Avancement des cartes : à la date du serveur (date réelle), pas à la date de démonstration.
-      c.setState({ api: list, apiToday: today });
+      // Suppression d'un projet (10/10/2026) : réservée au Super Admin ; projets supprimés restaurables 48 h.
+      const [me, trash] = await Promise.all([get('/me/profile').catch(() => ({})), get('/project-trash').catch(() => [])]);
+      c.setState({ api: list, apiToday: today, canDelete: !!me.superAdmin, trash: trash.map(t => ({ ...t, deletedAt: new Date(t.deletedAt), expiresAt: new Date(t.expiresAt) })) });
     } catch (e) { console.warn('[admin-api]', e); }
+  };
+  c.bib = {
+    preview: code => get('/projects/' + encodeURIComponent(code) + '/deletion-preview'),
+    remove: async (code, body) => { const r = await api('DELETE', '/projects/' + encodeURIComponent(code), body); await loadLib(); return r; },
+    restore: async id => { const r = await post('/project-trash/' + encodeURIComponent(id) + '/restore', {}); await loadLib(); return r; },
   };
   loadLib();
   // Mises à jour en direct (05/10/2026) : projet créé par l'import, clos ou modifié ailleurs → bibliothèque relue.

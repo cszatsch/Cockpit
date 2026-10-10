@@ -1990,3 +1990,32 @@ Demande du commanditaire : un risque peut concerner un chantier, plusieurs, ou t
   Administrateurs, props `read-only` / `settings-read-only` (Fournisseurs et modèles, Consommation et coûts, Guide utilisateur).
 - Tests : `test/e2e/super-admin.spec.ts`, recette `test/browser/super-admin.e2e.ts`. Le compte de démonstration `u1` est Super
   Admin dans le jeu de démonstration.
+
+## Suppression d'un projet (10/10/2026)
+
+- Demande du commanditaire : pouvoir supprimer toutes les données d'un projet (projet de test, mauvaise version chargée par
+  erreur). Arbitrages (10/10/2026) : sauvegarde de sécurité conservée **48 h** (`TRASH_RETENTION_HOURS`, et non 30 jours) ;
+  historique des coûts d'IA conservé ; les vues Consommation et coûts (IA et Accès) ne sont pas touchées ; pas de raccourci
+  « Supprimer et réimporter ».
+- Choix retenus : bouton « Supprimer le projet » dans la fiche de Console › Projets › Bibliothèque des projets, réservé au Super
+  Admin (`@SuperAdminOnly()`) ; fenêtre de confirmation avec l'inventaire de ce qui sera supprimé, les comptes qui n'auront plus
+  accès à aucun projet (option « Suspendre ces comptes », cochée par défaut ; sessions révoquées, réactivés à la restauration),
+  la date limite de restauration et la saisie du code du projet (casse indifférente, `confirmsCode`) ; section « Projets
+  supprimés » avec « Restaurer » (refusée, 409 `PROJECT_EXISTS`, si un projet du même identifiant ou code existe).
+- Données supprimées : toutes les lignes des tables qui portent `projectId` / `project_id`, le projet, et les enfants en cascade
+  (plan lu dans le catalogue de PostgreSQL : toute nouvelle table est prise en compte ; `selectionPlan`, `deletionOrder` dans
+  `src/domain/project-deletion.ts`) — référentiel, pilotage, documents et extraits vectorisés, rapports, templates, snapshots,
+  notifications du Cockpit… — et les fichiers déposés du projet (mis de côté dans `corbeille/<id>/files`).
+- Jamais supprimés (`KEPT_TABLES`) : `UsageRecord`, `usage_events`, `usage_agg_hour`, `usage_agg_day` (consommation), journal
+  d'audit et historique des documents (ajout seul). Le filtre « Projets » de la vue Accès garde les projets supprimés qui ont de
+  l'usage, libellés « (supprimé) » (code et nom lus dans le journal d'audit). Effet signalé dans la fenêtre : dans la vue Accès,
+  les comptes de ce projet sans autre rattachement passent dans « Sans équipe » (l'équipe vient de la personne du référentiel).
+- Mise en œuvre : `ProjectDeletionService` (`src/admin/project-deletion.service.ts`) — archive JSON complète écrite avant toute
+  suppression (`corbeille/<id>/archive.json`), suppression en une transaction des enfants vers les parents, restauration dans
+  l'ordre inverse (`json_populate_recordset`) ; table `project_trash` (migration `20261118000300_projets_supprimes`) ; purge
+  horaire `projects.trash.purge` au-delà de 48 h (archive et fichiers effacés, journal « Purge de la sauvegarde d'un projet
+  supprimé »). Journal : « Suppression d'un projet » et « Restauration d'un projet supprimé » (critiques). Routes :
+  `GET /api/admin/projects/:ref/deletion-preview`, `DELETE /api/admin/projects/:ref` (`{ confirmCode, suspendAccounts }`),
+  `GET /api/admin/project-trash`, `POST /api/admin/project-trash/:id/restore`.
+- Tests : `test/unit/project-deletion.spec.ts`, `test/e2e/suppression-projet.spec.ts` (suppression et restauration complètes de
+  RISE, consommation inchangée, droits, purge), recette `test/browser/suppression-projet.e2e.ts`.
