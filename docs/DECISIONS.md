@@ -1930,3 +1930,11 @@ Demande du commanditaire : un risque peut concerner un chantier, plusieurs, ou t
   graphiques (Consommation et coûts › Accès) sont gardées : ce sont des données, pas des infobulles de libellé.
 - Recette navigateur `test/browser/infobulles.e2e.ts` (Cockpit : pages, onglets du Pilotage, barre de Jev, « Saisir sans Jev » ;
   Console : chaque page) ; recettes adaptées (`data-proj-switch` du bloc Projet, recherche par nom accessible).
+
+## Catalogue IA : Claude Haiku 5.5 (10/10/2026)
+
+- Ajouté au catalogue (`prisma/catalog/ia-modeles.ts`, demande du commanditaire, fiche du modèle de la Console Anthropic) :
+  `claude-haiku-5-5`, LLM, 0,10 $ / 0,50 $ par M tokens (≈ 0,0877 € / 0,4385 € au cours BCE du catalogue), sortie maximale
+  128K tokens, contexte 1M tokens ; palier au-delà de 100K tokens et cache en note. Date de sortie non indiquée sur la fiche
+  (« Nouveau ») : date d'ajout, 10/10/2026. Appliqué à la base locale par `npm run ia:catalogue -- --modele "Claude Haiku 5.5"
+  --confirmer` (aucun autre modèle ni affectation touchés).

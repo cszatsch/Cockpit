@@ -319,28 +319,31 @@ a{color:#1d8f86}a:hover{color:#146b64}
       <!-- API : fournisseurs et clés, affectation des modèles (Documents en 3 étapes), catalogue (Fournisseurs et modeles.dc.html, 02/10/2026 ;
            admin-api.js → données `fm`, actions `fmApi`). -->
       <!-- Fondu sans transform : une animation de transform maintenue (fill-mode both) fait de ce conteneur le repère des
-           fenêtres position:fixed de l'écran, centrées alors sur la page entière et non sur la fenêtre du navigateur. -->
-      <div data-screen-label="Fournisseurs et modèles" style="animation:fade .35s ease-out both">
+           fenêtres position:fixed de l'écran, centrées alors sur la page entière et non sur la fenêtre du navigateur.
+           Remplissage « backwards » (10/10/2026) : une animation d'opacité maintenue (« both ») faisait aussi de ce conteneur
+           un plan d'empilement à part, peint sous l'en-tête collant (z-index 40) : le haut des fenêtres (fiche d'un modèle)
+           était masqué par l'en-tête. Même règle pour les autres écrans animés. -->
+      <div data-screen-label="Fournisseurs et modèles" style="animation:fade .35s ease-out backwards">
         <dc-import name="Fournisseurs et modeles" data="{{ fmData }}" api="{{ fmApi }}" focus-key="{{ fpKey }}" hint-size="100%,2200px"></dc-import>
       </div>
     </sc-if>
     <!-- API : Consommation et coûts · Accès (brief du 08/10/2026) ; en-tête générique masqué, le composant a le sien
          (Consommation et couts Acces.dc.html, admin-api.js → usageApi, routes /api/admin/consumption/…). -->
     <sc-if value="{{ isUsage }}" hint-placeholder-val="{{ false }}">
-      <div data-screen-label="Consommation et coûts · Accès" style="animation:fade .35s ease-out both">
+      <div data-screen-label="Consommation et coûts · Accès" style="animation:fade .35s ease-out backwards">
         <dc-import name="Consommation et couts Acces" hint-size="100%,2000px"></dc-import>
       </div>
     </sc-if>
     <sc-if value="{{ isConso }}" hint-placeholder-val="{{ false }}">
       <!-- API : /usage/month, /usage/daily, /usage/calls, /usage/calls.csv, /budget-thresholds (Consommation et couts.dc.html, admin-api.js → consoApi).
            Pas d'animation à transformation maintenue : elle ferait de ce bloc le repère des éléments position:fixed (toast). -->
-      <div data-screen-label="Consommation et coûts" style="animation:fade .35s ease-out both">
+      <div data-screen-label="Consommation et coûts" style="animation:fade .35s ease-out backwards">
         <dc-import name="Consommation et couts" hint-size="100%,2000px"></dc-import>
       </div>
     </sc-if>
     <sc-if value="{{ isLatency }}" hint-placeholder-val="{{ false }}">
       <!-- API : GET /api/ai/latency et /api/ai/latency/series (Analyse des temps de réponse.dc.html, admin-api.js → latFetch, latSeries). -->
-      <div data-screen-label="Analyse des temps de réponse" style="animation:rise-in .35s cubic-bezier(.2,.7,.2,1) both">
+      <div data-screen-label="Analyse des temps de réponse" style="animation:rise-in .35s cubic-bezier(.2,.7,.2,1) backwards">
         <dc-import name="Analyse des temps de réponse" fetch-data="{{ latFetch }}" fetch-series="{{ latSeries }}" hint-size="100%,1300px"></dc-import>
       </div>
     </sc-if>
@@ -357,7 +360,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
 
     <sc-if value="{{ isSnaps }}" hint-placeholder-val="{{ false }}">
       <!-- API : /projects/{code}/snapshots, /snapshot-jobs, /snapshots/{a}/diff/{b}, /restore, /snapshot-schedule (Snapshots.dc.html, admin-api.js → bindSnapshots). -->
-      <div data-screen-label="Snapshots" style="animation:rise-in .35s cubic-bezier(.2,.7,.2,1) both">
+      <div data-screen-label="Snapshots" style="animation:rise-in .35s cubic-bezier(.2,.7,.2,1) backwards">
         <dc-import name="Snapshots" hint-size="100%,1300px"></dc-import>
       </div>
     </sc-if>

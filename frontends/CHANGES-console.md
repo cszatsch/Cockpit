@@ -722,3 +722,11 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
 - Plus aucune infobulle : attributs `title` retirés à l'affichage (`sans-infobulles.js`, chargé par `auth-api.js` ; nom accessible
   gardé pour les boutons à icône) ; bulle « Ouvrir le Cockpit ⇧⌘C » de la barre latérale supprimée (le raccourci reste dans le nom
   accessible du bouton).
+
+## Fenêtres masquées par l'en-tête (10/10/2026)
+
+- Fournisseurs et modèles : le haut de la fiche d'un modèle (« Modifier le modèle », « Ajouter un modèle ») passait sous l'en-tête
+  collant de la page. Cause : l'animation d'entrée de l'écran (`fade … both`, maintenue après la fin) faisait du conteneur un
+  plan d'empilement à part, peint sous l'en-tête (z-index 40). Remplissage `backwards` pour les cinq écrans animés (Fournisseurs
+  et modèles, Consommation et coûts, Consommation et coûts · Accès, Analyse des temps de réponse, Snapshots) : même entrée en
+  fondu, les fenêtres repassent au-dessus de l'en-tête.

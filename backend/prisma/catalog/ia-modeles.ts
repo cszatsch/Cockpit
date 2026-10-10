@@ -61,6 +61,15 @@ export const CATALOG_MODELS: CatalogModel[] = [
     note: 'Tarif de lancement devenu tarif standard (la hausse annoncée au 01/09/2026 n’a pas eu lieu).',
   },
   {
+    // Ajouté le 10/10/2026 (demande du commanditaire, fiche du modèle de la Console Anthropic) : « Nouveau », date de sortie non
+    // indiquée sur la fiche — date d'ajout au catalogue.
+    providerId: 'anthropic', name: 'Claude Haiku 5.5', apiId: 'claude-haiku-5-5', category: 'LLM',
+    description: 'Intelligence proche des meilleurs modèles au coût le plus bas : rapide, grand volume, réflexion adaptative.',
+    releaseDate: '2026-10-10', maxOutputTokens: 128_000, contextTokens: 1_000_000, usd: { in: 0.1, out: 0.5 },
+    sources: ['https://platform.claude.com/docs/en/about-claude/models/overview', 'https://platform.claude.com/docs/en/about-claude/pricing'],
+    note: 'Tarif pour les requêtes jusqu’à 100K tokens ; au-delà : 0,50 $ en entrée, 2,50 $ en sortie par M tokens. Cache : écriture 0,125 $, lecture 0,01 $ par M tokens. Connaissances jusqu’à juin 2026.',
+  },
+  {
     providerId: 'anthropic', name: 'Claude Haiku 4.5', apiId: 'claude-haiku-4-5-20251001', category: 'LLM',
     description: 'Le plus rapide et le moins cher : tâches simples, faible latence, grand volume.',
     releaseDate: '2025-10-15', maxOutputTokens: 64_000, usd: { in: 1, out: 5 },
