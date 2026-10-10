@@ -52,6 +52,9 @@ type Row = Totals & Record<string, unknown>;
 /** Compte fictif des appels d'IA sans utilisateur (tâches de fond, appels antérieurs au 08/10/2026). */
 export const SYSTEM_ACCOUNT = '';
 export const SYSTEM_NAME = 'Tâches automatiques';
+/** Appels d'IA des comptes de démonstration (10/10/2026) : une seule ligne, pour que la somme des lignes égale le total. */
+export const DEMO_ACCOUNT = '__demo__';
+export const DEMO_NAME = 'Tests et démonstration';
 export const NO_TEAM = 'Sans équipe';
 
 const ZERO: Totals = { activeSec: 0, connectedSec: 0, logins: 0, events: 0, requests: 0, tokensIn: 0, tokensOut: 0, costEur: 0 };
@@ -168,8 +171,8 @@ export class PlatformUsageService implements OnModuleInit {
       await tx.$executeRawUnsafe(
         `
 WITH demo_acc AS (SELECT id FROM "Account" WHERE demo),
-demo_proj AS (SELECT id FROM "Project" WHERE demo),
--- Usage réel seulement (10/10/2026) : ni comptes de démonstration, ni sessions d'outils automatiques.
+-- Temps, connexions, événements : usage réel seulement (10/10/2026), ni comptes de démonstration, ni sessions d'outils automatiques.
+-- Coûts d'IA : tous les appels réels, comme Consommation et coûts › IA (source de vérité), sans les appels simulés.
 real_s AS (
   SELECT * FROM "AuthSession"
   WHERE "accountId" NOT IN (SELECT id FROM demo_acc) AND COALESCE(device, '') !~ '${AUTOMATED_DEVICE_PATTERN}'
@@ -183,7 +186,7 @@ ev AS (
          LEAD(e.at) OVER (PARTITION BY e."accountId" ORDER BY e.at) AS nx
   FROM usage_events e LEFT JOIN se ON se.id = e."sessionId"
   WHERE e.at >= $1::timestamp AND e.at < $2::timestamp + make_interval(secs => $3)
-    AND e."accountId" NOT IN (SELECT id FROM demo_acc) AND COALESCE(e."projectId", '') NOT IN (SELECT id FROM demo_proj)
+    AND e."accountId" NOT IN (SELECT id FROM demo_acc)
     AND (e."sessionId" IS NULL OR e."sessionId" NOT IN (SELECT id FROM "AuthSession" WHERE COALESCE(device, '') ~ '${AUTOMATED_DEVICE_PATTERN}'))
 ),
 act AS (
@@ -211,10 +214,10 @@ lg AS (
   FROM real_s WHERE "createdAt" >= $1::timestamp AND "createdAt" < $2::timestamp
 ),
 ai AS (
-  SELECT date_trunc('hour', at) AS bucket, COALESCE("accountId", '') AS acc, COALESCE(feature, ${fnCase}) AS feature, "providerId" AS provider, "modelId" AS model,
+  SELECT date_trunc('hour', at) AS bucket, CASE WHEN "accountId" IN (SELECT id FROM demo_acc) THEN '${DEMO_ACCOUNT}' ELSE COALESCE("accountId", '') END AS acc, COALESCE(feature, ${fnCase}) AS feature, "providerId" AS provider, "modelId" AS model,
          0::float8 AS a, 0::float8 AS c, 0 AS l, 0 AS e, 1 AS r, "tokensIn"::bigint AS ti, "tokensOut"::bigint AS tou, "costEur"::float8 AS cost, COALESCE("projectId", '') AS project
   FROM "UsageRecord" WHERE at >= $1::timestamp AND at < $2::timestamp
-    AND NOT simulated AND COALESCE("accountId", '') NOT IN (SELECT id FROM demo_acc) AND COALESCE("projectId", '') NOT IN (SELECT id FROM demo_proj)
+    AND NOT simulated
 )
 INSERT INTO usage_agg_hour (bucket, "accountId", feature, provider, model, project, "activeSec", "connectedSec", logins, events, requests, "tokensIn", "tokensOut", "costEur")
 SELECT bucket, acc, feature, provider, model, project, SUM(a), SUM(c), SUM(l), SUM(e), SUM(r), SUM(ti), SUM(tou), SUM(cost)
@@ -268,19 +271,20 @@ GROUP BY bucket, acc, feature, provider, model, project`,
       out.set(a.id, { id: a.id, name: a.fullName, team, rank: i, projects: pids });
     });
     out.set(SYSTEM_ACCOUNT, { id: SYSTEM_ACCOUNT, name: SYSTEM_NAME, team: SYSTEM_NAME, rank: -1, projects: new Set() });
+    out.set(DEMO_ACCOUNT, { id: DEMO_ACCOUNT, name: DEMO_NAME, team: DEMO_NAME, rank: -2, projects: new Set() });
     return out;
   }
 
   private nameOf(a: Acc, rights: UsageRights) {
-    return rights.individual || a.id === SYSTEM_ACCOUNT ? a.name : pseudonym(a.rank);
+    return rights.individual || a.id === SYSTEM_ACCOUNT || a.id === DEMO_ACCOUNT ? a.name : pseudonym(a.rank);
   }
 
   /** Comptes retenus par les filtres (null : tous, y compris les appels sans utilisateur). */
   private selection(q: UsageQuery, accs: Map<string, Acc>): string[] | null {
     if (!q.teams.length && !q.users.length && !q.projects.length) return null;
-    const ids = [...accs.values()].filter((a) => a.id !== SYSTEM_ACCOUNT && (!q.teams.length || q.teams.includes(a.team)) && (!q.users.length || q.users.includes(a.id)) && (!q.projects.length || q.projects.some((p) => a.projects.has(p)))).map((a) => a.id);
+    const ids = [...accs.values()].filter((a) => a.id !== SYSTEM_ACCOUNT && a.id !== DEMO_ACCOUNT && (!q.teams.length || q.teams.includes(a.team)) && (!q.users.length || q.users.includes(a.id)) && (!q.projects.length || q.projects.some((p) => a.projects.has(p)))).map((a) => a.id);
     // Projet seul : les appels d'IA sans utilisateur faits pour ce projet comptent aussi.
-    return !q.teams.length && !q.users.length ? ids.concat([SYSTEM_ACCOUNT]) : ids;
+    return !q.teams.length && !q.users.length ? ids.concat([SYSTEM_ACCOUNT, DEMO_ACCOUNT]) : ids;
   }
 
   /** Contrôle des filtres selon les droits ; niveau Équipe sans équipe choisie : l'équipe au plus fort temps actif. */
@@ -425,7 +429,7 @@ GROUP BY bucket, acc, feature, provider, model, project`,
         const a = accs.get(String(x.g0)) ?? { id: String(x.g0), name: String(x.g0), team: NO_TEAM, rank: 0, projects: new Set<string>() };
         const p = P.get(a.id), ev = evolution(x.costEur, p?.costEur ?? 0);
         const o: Record<string, unknown> = {
-          id: rights.individual && a.id !== SYSTEM_ACCOUNT ? a.id : null, key: a.id, name: this.nameOf(a, rights), team: a.id === SYSTEM_ACCOUNT ? '—' : a.team,
+          id: rights.individual && a.id !== SYSTEM_ACCOUNT && a.id !== DEMO_ACCOUNT ? a.id : null, key: a.id, name: this.nameOf(a, rights), team: a.id === SYSTEM_ACCOUNT || a.id === DEMO_ACCOUNT ? '—' : a.team,
           activeH: hours(x.activeSec), connectedH: hours(x.connectedSec), sessions: x.logins, avgSessionMin: x.logins > 0 ? Math.round(x.activeSec / 60 / x.logins) : null,
           requests: x.requests, tokensIn: x.tokensIn, tokensOut: x.tokensOut,
         };
@@ -477,14 +481,14 @@ GROUP BY bucket, acc, feature, provider, model, project`,
   /** Listes des filtres : équipes, utilisateurs (droit « données individuelles »), fonctionnalités, fournisseurs et modèles. */
   async options(rights: UsageRights) {
     const accs = await this.accounts();
-    const list = [...accs.values()].filter((a) => a.id !== SYSTEM_ACCOUNT);
+    const list = [...accs.values()].filter((a) => a.id !== SYSTEM_ACCOUNT && a.id !== DEMO_ACCOUNT);
     const providers = await this.prisma.provider.findMany({ select: { id: true, name: true }, orderBy: { name: 'asc' } });
     const models = await this.prisma.aiModel.findMany({ select: { id: true, name: true, providerId: true }, orderBy: { name: 'asc' } });
     return {
       teams: [...new Set(list.map((a) => a.team))].sort((a, b) => (a === NO_TEAM ? 1 : b === NO_TEAM ? -1 : a.localeCompare(b, 'fr'))),
       users: rights.individual ? list.map((a) => ({ id: a.id, name: a.name, team: a.team })).sort((a, b) => a.name.localeCompare(b.name, 'fr')) : [],
       features: USAGE_FEATURES.map((f) => ({ id: f.id, name: f.name })),
-      projects: (await this.prisma.project.findMany({ where: { demo: false }, select: { id: true, code: true, name: true }, orderBy: { code: 'asc' } })).map((p) => ({ id: p.id, code: p.code, name: p.name })),
+      projects: (await this.prisma.project.findMany({ select: { id: true, code: true, name: true }, orderBy: { code: 'asc' } })).map((p) => ({ id: p.id, code: p.code, name: p.name })),
       providers: providers.map((p) => ({ id: p.id, name: p.name })),
       models: models.map((m) => ({ id: m.id, name: m.name, providerId: m.providerId })),
       rights,

@@ -735,3 +735,9 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
 
 - Écran inchangé ; le serveur n'y compte plus les comptes et le projet de démonstration, les connexions des outils automatiques,
   ni les appels d'IA simulés (voir `docs/DECISIONS.md`). Filtres Projet et Utilisateurs sans éléments de démonstration.
+
+## Consommation et coûts : vues IA et Accès alignées (10/10/2026)
+
+- Accès : coûts d'IA identiques à ceux de Consommation et coûts › IA ; ligne « Tests et démonstration » (appels des comptes de
+  démonstration), traitée comme « Tâches automatiques » (pas d'initiales, jamais retenue comme équipe par défaut) ; filtre Projet
+  de nouveau complet. Vue IA et vue Accès : sans les appels simulés par le bouchon.

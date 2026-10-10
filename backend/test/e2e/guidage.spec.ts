@@ -165,6 +165,9 @@ describe('Console — Jev et la fonction guidage', () => {
       expect(await lastUsage()).toMatchObject({ modelId: 'gpt5mini', fallbackUsed: true });
       const a = (await admin.get('/api/admin/assignments').expect(200)).body.find((x: any) => x.functionId === 'guidage');
       expect(a.state).toBe('FALLBACK');
+      // Volume réel : les appels du bouchon (hors ligne) sont « simulés » et n'en font pas partie (10/10/2026) ; ceux de ce test
+      // sont marqués réels, comme s'ils venaient du fournisseur.
+      await t.db.usageRecord.updateMany({ where: { simulated: true }, data: { simulated: false } });
       const f = (await admin.get('/api/admin/functions').expect(200)).body.functions.find((x: any) => x.id === 'guidage');
       expect(f.vol).not.toBeNull();
       expect(f.vol.in).toBeGreaterThan(0);

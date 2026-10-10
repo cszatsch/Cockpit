@@ -26,6 +26,11 @@ describe('Console — Journal des appels', () => {
     } while (cursor);
     throw new Error(`appel ${id} absent du journal`);
   };
+  /**
+   * Hors ligne, chaque appel passe par le bouchon et porte le repère « simulé » : absent du journal (10/10/2026). Ces recettes
+   * vérifient la mécanique du journal ; leurs appels sont donc marqués réels, comme ceux d'un fournisseur.
+   */
+  const asReal = () => t.db.usageRecord.updateMany({ where: { simulated: true }, data: { simulated: false } });
   const lastRecord = (functionId: string, modelId: string) => t.db.usageRecord.findFirstOrThrow({ where: { functionId, modelId, id: { startsWith: 'req_' } }, orderBy: { at: 'desc' } });
 
   beforeAll(async () => {
@@ -36,6 +41,7 @@ describe('Console — Journal des appels', () => {
 
   it('recette 1 : un appel crée une ligne avec identifiant req_, tarifs figés, durée, et le bon coût', async () => {
     const r = await llm().complete({ functionId: 'insights', prompt: 'Synthèse du projet', source: 'COCKPIT' });
+    await asReal();
     const c = await findCall('insights', (await lastRecord('insights', r.modelId)).id);
     const m = await t.db.aiModel.findUniqueOrThrow({ where: { id: r.modelId } });
     expect(c).toMatchObject({ fn: 'insights', step: 'insights', model: m.id, modelName: m.name, provider: m.providerId, fallback: false, tokensIn: r.tokensIn, tokensOut: r.tokensOut, priceIn: m.priceInPerMTok, priceOut: m.priceOutPerMTok });
@@ -61,6 +67,7 @@ describe('Console — Journal des appels', () => {
     const primary = await t.db.aiModel.findUniqueOrThrow({ where: { id: asg.primaryModelId } });
     await t.db.provider.update({ where: { id: primary.providerId }, data: { status: 'ERROR' } });
     await llm().complete({ functionId: 'guidage', prompt: 'Question', source: 'COCKPIT' });
+    await asReal();
     await t.db.provider.update({ where: { id: primary.providerId }, data: { status: 'OK' } });
     const c = await findCall('guidage', (await lastRecord('guidage', asg.fallbackModelId!)).id);
     expect(c).toMatchObject({ fn: 'guidage', fallback: true, model: asg.fallbackModelId });
@@ -102,7 +109,7 @@ describe('Console — Journal des appels', () => {
   });
 
   it('recette 3 : filtre Guidage console : graphique, total et journal ne montrent que guidage', async () => {
-    const n = await t.db.usageRecord.count({ where: { functionId: 'guidage', at: { gte: new Date(`${FROM}T00:00:00+02:00`) } } });
+    const n = await t.db.usageRecord.count({ where: { functionId: 'guidage', simulated: false, at: { gte: new Date(`${FROM}T00:00:00+02:00`) } } });
     const days = (await admin.get(`${A}/usage/daily?${range}&fn=guidage`).expect(200)).body;
     expect(days.reduce((a: number, d: any) => a + d.calls, 0)).toBe(n);
     const page = (await admin.get(`${A}/usage/calls?${range}&fn=guidage&limit=100`).expect(200)).body;
@@ -117,7 +124,17 @@ describe('Console — Journal des appels', () => {
     expect(docs.items.every((c: any) => c.fn === 'docs')).toBe(true);
     const oa = (await admin.get(`${A}/usage/calls?${range}&provider=openai&limit=100`).expect(200)).body;
     expect(oa.items.every((c: any) => c.provider === 'openai')).toBe(true);
-    expect(oa.total).toBe(await t.db.usageRecord.count({ where: { providerId: 'openai', at: { gte: new Date(`${FROM}T00:00:00+02:00`) } } }));
+    expect(oa.total).toBe(await t.db.usageRecord.count({ where: { providerId: 'openai', simulated: false, at: { gte: new Date(`${FROM}T00:00:00+02:00`) } } }));
+  });
+
+  it('appel simulé par le bouchon (10/10/2026) : absent du journal, du graphique et de la dépense', async () => {
+    const before = (await admin.get(`${A}/usage/month`).expect(200)).body.spent;
+    const r = await llm().complete({ functionId: 'insights', prompt: 'Appel simulé', source: 'COCKPIT' });
+    const rec = await lastRecord('insights', r.modelId);
+    expect(rec.simulated).toBe(true);
+    await expect(findCall('insights', rec.id)).rejects.toThrow(/absent du journal/);
+    expect((await admin.get(`${A}/usage/month`).expect(200)).body.spent).toBe(before);
+    await t.db.usageRecord.delete({ where: { id: rec.id } });
   });
 
   it('pagination par curseur : du plus récent au plus ancien, sans doublon ni oubli', async () => {

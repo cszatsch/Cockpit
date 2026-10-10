@@ -71,9 +71,10 @@ export class UsageService {
     return new Date(Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10), -offsetH));
   }
 
+  /** Appels de la période (10/10/2026 : sans les appels simulés par le bouchon, jamais facturés). */
   async records(fromIso: string, toIso: string, projectId?: string) {
     return this.prisma.usageRecord.findMany({
-      where: { at: { gte: this.startOf(fromIso), lt: this.startOf(addDays(toIso, 1)) }, ...(projectId ? { projectId } : {}) },
+      where: { at: { gte: this.startOf(fromIso), lt: this.startOf(addDays(toIso, 1)) }, simulated: false, ...(projectId ? { projectId } : {}) },
       orderBy: { at: 'asc' },
     });
   }
@@ -223,6 +224,8 @@ export class UsageService {
   private journalWhere(fromIso: string, toIso: string, fn?: JournalFn, provider?: string): Prisma.UsageRecordWhereInput {
     return {
       at: { gte: this.startOf(fromIso), lt: this.startOf(addDays(toIso, 1)) },
+      // Appels simulés par le bouchon : ni coût réel ni appel au fournisseur, absents du journal (10/10/2026).
+      simulated: false,
       ...(fn ? { functionId: { in: stepsOf(fn) } } : {}),
       ...(provider ? { providerId: provider } : {}),
     };

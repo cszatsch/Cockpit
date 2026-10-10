@@ -259,7 +259,7 @@ class Component extends DCLogic {
     if (id === 'team') {
       if (S.teams.length) return this.setF({ lv: 'team', users: [] });
       // Équipe au plus fort temps actif de la période.
-      return this._api.breakdown('team', this.query({ by: 'team', scope: 'plat' })).then(b => { const top = (b.rows || []).find(x => x.id !== 'Tâches automatiques'); this.setF({ lv: 'team', users: [], teams: top ? [top.id] : (this._opt && this._opt.teams.slice(0, 1)) || [] }); }).catch(() => this.setF({ lv: 'team' }));
+      return this._api.breakdown('team', this.query({ by: 'team', scope: 'plat' })).then(b => { const top = (b.rows || []).find(x => x.id !== 'Tâches automatiques' && x.id !== 'Tests et démonstration'); this.setF({ lv: 'team', users: [], teams: top ? [top.id] : (this._opt && this._opt.teams.slice(0, 1)) || [] }); }).catch(() => this.setF({ lv: 'team' }));
     }
     if (S.users.length) return this.setF({ lv: 'user' });
     const top = ((this._us && this._us.rows) || []).find(x => x.id);
@@ -394,7 +394,7 @@ class Component extends DCLogic {
       pick: () => { if (hide && (key === 'cost' || key === 'costEvolution')) return this.toast('Tri sur les coûts : droit « Voir les coûts » requis'); this.setF({ sort: key, dir: on ? (S.dir === 'desc' ? 'asc' : 'desc') : (key === 'name' ? 'asc' : 'desc') }); },
       st: `height:40px;border:0;background:none;padding:0;font-size:11px;font-weight:700;letter-spacing:.03em;color:${on ? '#10233a' : '#8a9aa6'};cursor:pointer;display:flex;align-items:center;justify-content:${r ? 'flex-end' : 'flex-start'};white-space:nowrap` }; });
     const rows = us.rows.map(u => { const flag = !!u.flag && !hide, rate = u.connectedH > 0 ? u.activeH / u.connectedH : 0;
-      return { ini: anon && u.name !== 'Tâches automatiques' ? '··' : u.name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase(), n: u.name, tn: u.team, hL: fh(u.activeH), cnL: fh(u.connectedH),
+      return { ini: anon && u.name !== 'Tâches automatiques' && u.name !== 'Tests et démonstration' ? '··' : u.name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase(), n: u.name, tn: u.team, hL: fh(u.activeH), cnL: fh(u.connectedH),
         aSt: `display:block;height:100%;border-radius:2px;background:#1d8f86;width:${Math.min(100, rate * 100)}%`, sess: nf(u.sessions || 0), durL: u.avgSessionMin == null ? '—' : nf(u.avgSessionMin) + ' min', reqL: nf(u.requests || 0),
         tinL: tk((u.tokensIn || 0) / 1e6), toutL: tk((u.tokensOut || 0) / 1e6), cL: hide ? '—' : eu(u.costEur || 0), d: dl(u.costEur, u.prevCostEur, 'c', cmp && !hide), flag, sp: spark(u.trend || [], 84, 24), spC: flag ? '#e2553f' : '#9fb3c2' }; });
     const tn = S.teams.length === 1 ? 'Équipe ' + S.teams[0] : S.teams.length + ' équipes';

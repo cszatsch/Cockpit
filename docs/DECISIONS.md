@@ -1955,3 +1955,17 @@ Demande du commanditaire : un risque peut concerner un chantier, plusieurs, ou t
   Le Journal des appels (Consommation et coûts › IA) garde toutes les lignes.
 - Cause corrigée : les recettes navigateur (`accueil`, `conso`, `format-rapport`, `fournisseurs`, `latency`) visent par défaut le
   serveur de recette (port 3302, base de test), plus l'application réelle.
+
+## Consommation et coûts : vue Accès alignée sur la vue IA, appels simulés retirés partout (10/10/2026)
+
+- Arbitrage du commanditaire : « Consommation et coûts » du menu IA est la source de vérité ; la vue Accès s'aligne sur elle, et
+  les appels simulés par le bouchon (coût estimé, jamais facturé) sont retirés partout. Remplace, pour les coûts, la règle du même
+  jour « usage réel seulement ».
+- Coûts d'IA de la vue Accès : tous les appels réels, comme la vue IA — projet de démonstration RISE compris (repère
+  `Project.demo` retiré, migration `20261118000100_conso_alignement`) ; les appels des comptes de démonstration figurent sur une
+  ligne « Tests et démonstration » (`DEMO_ACCOUNT`), pour que la somme des lignes égale le total. Temps actif, connexions,
+  événements et utilisateurs actifs restent sans comptes de démonstration ni sessions d'outils automatiques.
+- Appels simulés (`UsageRecord.simulated`) exclus : vue IA (dépense du mois, projection, plafonds et statuts, graphique, journal
+  des appels et exports : `UsageService.records`, `journalWhere`), vue Accès, vues de Jev `jev.consommation_ia` et
+  `jev.budget_ia` (même migration).
+- Test d'alignement (`test/e2e/consommation-acces.spec.ts`) : coût de la vue Accès = coût de la vue IA, sur le jour et le mois.

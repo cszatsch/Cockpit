@@ -74,7 +74,7 @@ export const BUDGET_IA_SOURCE = `(
     SELECT CASE ${BUDGET_IA_LIGNES.filter((l) => l.fonctions.join() !== l.id).map((l) => `WHEN r."functionId" IN (${l.fonctions.map((f) => `'${f}'`).join(', ')}) THEN '${l.id}'`).join(' ')} ELSE r."functionId" END AS ligne,
       r."costEur" AS cout, ((r.at AT TIME ZONE 'UTC') AT TIME ZONE 'Europe/Paris')::date AS jour
     FROM "UsageRecord" r, b
-    WHERE r.at >= (LEAST(b.debut, b.jour - ${BUDGET_IA_FENETRE_JOURS - 1})::timestamp AT TIME ZONE 'Europe/Paris')
+    WHERE r.at >= (LEAST(b.debut, b.jour - ${BUDGET_IA_FENETRE_JOURS - 1})::timestamp AT TIME ZONE 'Europe/Paris') AND NOT r."simulated"
   ), c AS (
     SELECT l.ligne, l.libelle, l.ordre, b.jour, b.restants,
       COALESCE(sum(u.cout) FILTER (WHERE u.jour BETWEEN b.debut AND b.jour), 0) AS depense,
@@ -328,6 +328,8 @@ export const DICTIONNAIRE: DictTable[] = [
   {
     nom: 'consommation_ia',
     source: '"UsageRecord" t',
+    // Appels simulés par le bouchon exclus (10/10/2026) : coût estimé, jamais facturé.
+    filtre: 'NOT t."simulated"',
     description: 'Une ligne par appel à un modèle d’IA : fonction, modèle, jetons, coût, bascule sur le secours. Écran : IA › Consommation et coûts ; Vue d’ensemble « Dépense IA du mois ».',
     colonnes: [
       { nom: 'date', expr: P('at'), type: 'date-heure', signification: 'Moment de l’appel' },
