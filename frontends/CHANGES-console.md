@@ -762,3 +762,5 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
   `/project-trash`, client `c.bib` (`preview`, `remove`, `restore`).
 - `Console Admin.dc.html` : sous l'avatar de la barre latérale (et dans le Guide utilisateur), « Super Admin » pour un Super Admin
   au lieu de « Administrateur » (libellé jusque-là écrit en dur).
+- Mon profil : badge sous la photo et « Niveau d'administration » (onglet Habilitations) à « Super Admin » pour un Super Admin
+  (libellés jusque-là écrits en dur), avec « Seul un autre Super Admin peut retirer ce profil. ».

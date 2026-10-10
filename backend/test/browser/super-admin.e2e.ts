@@ -37,6 +37,10 @@ const ADM = 'acc-recette-admin';
   // ── Super Admin
   const s = await open('u1');
   check('Super Admin : « Super Admin » sous l’avatar de la barre latérale', (await s.getByText('Super Admin', { exact: true }).count()) > 0);
+  await s.getByRole('button', { name: 'Mon profil' }).first().click();
+  await s.waitForTimeout(1500);
+  const prof = s.locator('[data-screen-label="Mon profil"]');
+  check('Super Admin : Mon profil affiche « Super Admin »', (await prof.getByText('Super Admin', { exact: true }).count()) > 0 && (await prof.getByText('Administrateur', { exact: true }).count()) === 0);
   await page(s, 'ia', 'Fournisseurs et modèles');
   check('Super Admin : commandes de Fournisseurs et modèles visibles, sans bandeau', (await s.getByRole('button', { name: /Tester toutes les clés/ }).count()) === 1 && (await s.getByRole('button', { name: /Ajouter un modèle/ }).count()) === 1 && (await banner(s)) === 0);
   await page(s, 'acces', 'Administrateurs');
