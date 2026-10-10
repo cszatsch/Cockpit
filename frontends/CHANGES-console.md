@@ -760,3 +760,5 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
   journal conservés, effet « Sans équipe » dans la vue Accès, saisie du code) ; bandeau de résultat ; section « Projets
   supprimés » (date, auteur, temps restant, « Restaurer »). `admin-api.js` (`bindBiblio`) : `superAdmin` de `/me/profile`,
   `/project-trash`, client `c.bib` (`preview`, `remove`, `restore`).
+- `Console Admin.dc.html` : sous l'avatar de la barre latérale (et dans le Guide utilisateur), « Super Admin » pour un Super Admin
+  au lieu de « Administrateur » (libellé jusque-là écrit en dur).

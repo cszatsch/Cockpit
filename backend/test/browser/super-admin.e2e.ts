@@ -36,6 +36,7 @@ const ADM = 'acc-recette-admin';
 
   // ── Super Admin
   const s = await open('u1');
+  check('Super Admin : « Super Admin » sous l’avatar de la barre latérale', (await s.getByText('Super Admin', { exact: true }).count()) > 0);
   await page(s, 'ia', 'Fournisseurs et modèles');
   check('Super Admin : commandes de Fournisseurs et modèles visibles, sans bandeau', (await s.getByRole('button', { name: /Tester toutes les clés/ }).count()) === 1 && (await s.getByRole('button', { name: /Ajouter un modèle/ }).count()) === 1 && (await banner(s)) === 0);
   await page(s, 'acces', 'Administrateurs');
@@ -50,6 +51,7 @@ const ADM = 'acc-recette-admin';
 
   // ── Admin
   const a = await open(ADM);
+  check('Admin : « Administrateur » sous l’avatar', (await a.getByText('Super Admin', { exact: true }).count()) === 0 && (await a.getByText('Administrateur', { exact: true }).count()) > 0);
   await page(a, 'ia', 'Fournisseurs et modèles');
   check('Admin : Fournisseurs et modèles en lecture seule (bandeau, sans Tester / Ajouter / Remplacer la clé)', (await banner(a)) === 1 && (await a.getByRole('button', { name: /Tester toutes les clés/ }).count()) === 0
     && (await a.getByRole('button', { name: /Ajouter un modèle/ }).count()) === 0 && (await a.getByRole('button', { name: /Remplacer la clé/ }).count()) === 0);
