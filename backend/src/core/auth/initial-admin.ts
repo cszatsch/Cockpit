@@ -50,7 +50,8 @@ export async function createInitialAdmin(
         projects: { create: projects.map((p) => ({ projectId: p.id })) },
       },
     });
-    if (profiles.includes('Administrateur')) await tx.adminGrant.create({ data: { accountId: INITIAL_ADMIN.id } });
+    // Compte initial d'une installation : Super Admin (10/10/2026), tous les droits de la Console.
+    if (profiles.includes('Administrateur')) await tx.adminGrant.create({ data: { accountId: INITIAL_ADMIN.id, superAdmin: true } });
     for (const p of projects) {
       if (profiles.includes('PMO')) await tx.habilitation.create({ data: { id: `hab-${INITIAL_ADMIN.id}-${p.id}`, projectId: p.id, accountId: INITIAL_ADMIN.id, profile: 'PMO' } });
       // Responsable ou Lecteur : sur chaque chantier du projet (le profil le plus fort l'emporte).

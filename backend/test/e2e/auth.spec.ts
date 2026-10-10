@@ -313,7 +313,8 @@ describe('Authentification (spécification AUTH)', () => {
       // Première connexion : session limitée au changement de mot de passe.
       const { r, h } = await signIn(INITIAL_ADMIN.email, provisional, 'admin');
       expect(r.body.mustChangePassword).toBe(true);
-      expect(r.body.user).toMatchObject({ firstName: 'Cédric', roleLabel: 'Administrateur · PMO' });
+      // Compte initial : Super Admin depuis le 10/10/2026.
+      expect(r.body.user).toMatchObject({ firstName: 'Cédric', roleLabel: 'Super Admin · PMO', superAdmin: true });
       const blocked = await request(server()).get('/api/admin/accounts').set(h).expect(403);
       expect(blocked.body.code).toBe('PASSWORD_CHANGE_REQUIRED');
       await request(server()).post('/api/auth/password').set(h).send({ password: provisional }).expect(400);

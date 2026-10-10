@@ -20,6 +20,8 @@ export interface Actor {
   fullName: string;
   personId: string | null;
   isAdmin: boolean;
+  /** Super Admin (10/10/2026) : seul à modifier le menu IA de la Console et à agir sur le compte d'un Super Admin. */
+  isSuperAdmin?: boolean;
   /** Surface de la session (null : jeton de développement). */
   surface: Surface | null;
   /** Session limitée au changement de mot de passe obligatoire. */
@@ -35,6 +37,14 @@ export const Public = () => SetMetadata(PUBLIC_KEY, true);
 const ADMIN_KEY = 'rise:admin';
 /** Route réservée au profil ADMIN (console, RG1/RG7). */
 export const AdminOnly = () => SetMetadata(ADMIN_KEY, true);
+
+const SUPER_ADMIN_KEY = 'rise:super-admin';
+/**
+ * Route réservée au Super Admin (10/10/2026) : modifications du menu IA de la Console (fournisseurs, clés, modèles,
+ * affectations, plafonds) et réglages de Jev liés aux modèles. L'Admin garde la lecture.
+ */
+export const SuperAdminOnly = () => SetMetadata(SUPER_ADMIN_KEY, true);
+export const SUPER_ADMIN_ONLY_MESSAGE = 'Modification réservée au Super Admin';
 
 const RESTRICTED_KEY = 'rise:restricted';
 /** Route ouverte à une session limitée (première connexion : changement de mot de passe, déconnexion). */
@@ -80,7 +90,7 @@ export class AuthGuard implements CanActivate {
     const viaCookie = !bearer;
     const r = await this.sessions.resolve(token, viaCookie);
     if (typeof r === 'string') throw new ApiError(401, r === 'SESSION_EXPIRED' ? 'SESSION_EXPIRED' : 'UNAUTHENTICATED', FAILURE_MESSAGES[r]);
-    const { session, account, isAdmin } = r;
+    const { session, account, isAdmin, isSuperAdmin } = r;
     if (viaCookie && session.surface !== surface) throw unauthorized('Session fermée');
     if (viaCookie && !SAFE_METHODS.has(req.method) && !csrfMatches(session.id, req.headers[CSRF_HEADER])) {
       throw new ApiError(403, 'CSRF', 'Jeton anti-CSRF absent ou invalide ; rechargez la page');
@@ -95,6 +105,7 @@ export class AuthGuard implements CanActivate {
       fullName: account.fullName,
       personId: account.personId,
       isAdmin,
+      isSuperAdmin,
       surface: (session.surface as Surface | null) ?? null,
       restricted: session.restricted,
       viaCookie,
@@ -108,6 +119,9 @@ export class AuthGuard implements CanActivate {
     }
     if (this.reflector.getAllAndOverride<boolean>(ADMIN_KEY, targets) && !actor.isAdmin) {
       throw forbidden('Console réservée aux administrateurs');
+    }
+    if (this.reflector.getAllAndOverride<boolean>(SUPER_ADMIN_KEY, targets) && !actor.isSuperAdmin) {
+      throw forbidden(SUPER_ADMIN_ONLY_MESSAGE);
     }
     return true;
   }

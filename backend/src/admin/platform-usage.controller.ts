@@ -116,6 +116,8 @@ export class PlatformUsageController {
     if (accountId === actor.accountId) throw forbidden('Vous ne pouvez pas modifier vos propres droits');
     const g = await this.prisma.adminGrant.findUnique({ where: { accountId } });
     if (!g) throw notFound('Administrateur introuvable');
+    // Compte d'un Super Admin : ses droits ne sont modifiés que par un Super Admin (10/10/2026).
+    if (g.superAdmin && !actor.isSuperAdmin) throw forbidden('Compte d’un Super Admin : action réservée au Super Admin');
     const a = await this.prisma.account.findUniqueOrThrow({ where: { id: accountId } });
     const after = await this.prisma.$transaction(async (db) => {
       const r = await db.adminGrant.update({ where: { accountId }, data: input });

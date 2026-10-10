@@ -2,7 +2,7 @@ import { ModelStatsService } from './model-stats.service';
 import { Body, Controller, Delete, Get, HttpCode, OnModuleInit, Param, Patch, Post, Put, Query, Res } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
-import { AdminOnly, Actor, CurrentActor } from '../core/auth/auth';
+import { AdminOnly, Actor, CurrentActor, SuperAdminOnly } from '../core/auth/auth';
 import { AuditService, WriteCtx } from '../core/audit.service';
 import { PrismaService } from '../core/prisma.service';
 import { LlmService, AI_BUDGET_LINES, AI_FUNCTIONS, AI_GROUPS, aiFunction, aiFunctionLabel } from '../core/llm.service';
@@ -88,7 +88,10 @@ function modelSlug(name: string): string {
   return name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60) || 'modele';
 }
 
-/** Fournisseurs, modèles, affectation, consommation et plafonds (brief Console § 9.4-9.6). */
+/**
+ * Fournisseurs, modèles, affectation, consommation et plafonds (brief Console § 9.4-9.6). Lecture : tout administrateur ;
+ * modifications (`@SuperAdminOnly`) : Super Admin seulement (10/10/2026).
+ */
 @ApiTags('console · intelligence artificielle')
 @ApiBearerAuth()
 @AdminOnly()
@@ -143,6 +146,7 @@ export class AiController implements OnModuleInit {
     return r;
   }
 
+  @SuperAdminOnly()
   @Post('providers')
   async create(@CurrentActor() actor: Actor, @Body() body: unknown) {
     const input = parse(z.object({ name: z.string().trim().min(2, '2 caractères minimum').max(60), apiKey: ApiKey }).strict(), body);
@@ -158,6 +162,7 @@ export class AiController implements OnModuleInit {
   }
 
   /** Remplacer une clé : stockage chiffré, test immédiat, action critique (§ 7.2). */
+  @SuperAdminOnly()
   @Put('providers/:id/key')
   async rotate(@CurrentActor() actor: Actor, @Param('id') id: string, @Body() body: unknown) {
     const { apiKey } = parse(z.object({ apiKey: ApiKey }).strict(), body);
@@ -176,6 +181,7 @@ export class AiController implements OnModuleInit {
    * Plafond de dépense mensuel de la clé (€, null = sans plafond ; 05/10/2026) : rappel de la limite fixée chez le
    * fournisseur, repris par Partager Cockpit (« Dépense IA possible »). Action sensible.
    */
+  @SuperAdminOnly()
   @Put('providers/:id/cap')
   async cap(@CurrentActor() actor: Actor, @Param('id') id: string, @Body() body: unknown) {
     const { monthlyCapEur } = parse(z.object({ monthlyCapEur: z.number().int('Montant entier en euros').min(1, '1 € minimum').max(PROVIDER_CAP_MAX_EUR, `${PROVIDER_CAP_MAX_EUR} € maximum`).nullable() }).strict(), body);
@@ -188,6 +194,7 @@ export class AiController implements OnModuleInit {
     return (await this.providerViews()).find((x) => x.id === id);
   }
 
+  @SuperAdminOnly()
   @Post('providers/:id/test')
   @HttpCode(200)
   async testOne(@CurrentActor() actor: Actor, @Param('id') id: string) {
@@ -202,6 +209,7 @@ export class AiController implements OnModuleInit {
   }
 
   /** Tester toutes les clés, en parallèle. */
+  @SuperAdminOnly()
   @Post('providers/test-all')
   @HttpCode(200)
   testAll(@CurrentActor() actor: Actor) {
@@ -285,6 +293,7 @@ export class AiController implements OnModuleInit {
   }
 
   /** Ajout d'un modèle à un fournisseur existant (action sensible, tracée). */
+  @SuperAdminOnly()
   @Post('models')
   async createModel(@CurrentActor() actor: Actor, @Body() body: unknown) {
     const input = parse(ModelCreate, body);
@@ -324,6 +333,7 @@ export class AiController implements OnModuleInit {
   }
 
   /** Suppression d'un modèle jamais utilisé ; sinon 409 IN_USE avec les usages (le désactiver reste possible). */
+  @SuperAdminOnly()
   @Delete('models/:id')
   @HttpCode(204)
   async deleteModel(@CurrentActor() actor: Actor, @Param('id') id: string) {
@@ -338,6 +348,7 @@ export class AiController implements OnModuleInit {
   }
 
   /** Relevé des mesures OpenRouter à la demande (Intelligence Index, coût d'une session, débit) ; tracé. */
+  @SuperAdminOnly()
   @Post('models/stats/refresh')
   @HttpCode(200)
   async refreshStats(@CurrentActor() actor: Actor) {
@@ -346,6 +357,7 @@ export class AiController implements OnModuleInit {
     return { ...r, models: (await this.prisma.aiModel.findMany({ orderBy: { createdAt: 'asc' } })).map((m) => this.modelView(m)) };
   }
 
+  @SuperAdminOnly()
   @Patch('models/:id')
   async patchModel(@CurrentActor() actor: Actor, @Param('id') id: string, @Body() body: unknown) {
     const input = parse(ModelFields.strict(), body);
@@ -485,6 +497,7 @@ export class AiController implements OnModuleInit {
    * Affectation : un principal et un secours facultatif par fonction, de la catégorie de la fonction (422 sinon),
    * principal actif, secours différent du principal. Une entrée d'audit par changement (principal, secours).
    */
+  @SuperAdminOnly()
   @Put('assignments')
   async putAssignments(@CurrentActor() actor: Actor, @Body() body: unknown) {
     const pair = z.object({ primary: z.string().min(1), fallback: z.string().min(1).nullable().optional(), dimension: z.number().int().nullable().optional(), fallbackDimension: z.number().int().nullable().optional() }).strict();
@@ -623,6 +636,7 @@ export class AiController implements OnModuleInit {
     return this.usage.thresholds();
   }
 
+  @SuperAdminOnly()
   @Put('budget-thresholds/:id')
   async putThreshold(@CurrentActor() actor: Actor, @Param('id') id: string, @Body() body: unknown) {
     // Un plafond par ligne budgétaire (Documents = « docs », pour ses trois étapes), ou « all ».

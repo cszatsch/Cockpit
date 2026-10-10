@@ -77,19 +77,20 @@ button:focus-visible,label:focus-within,input:focus-visible{outline:2px solid #1
       <sc-for list="{{ fields }}" as="f" hint-placeholder-count="6">
         <label style="display:flex;flex-direction:column;gap:8px;min-width:0">
           <span style="font-size:12.5px;font-weight:800">{{ f.label }}</span>
-          <span style="position:relative;display:block"><input type="text" inputMode="decimal" value="{{ f.val }}" onChange="{{ f.on }}" aria-invalid="{{ f.bad }}" style="{{ f.inSt }}"><span style="position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:12.5px;color:#8a9aa6;pointer-events:none">{{ f.unit }}</span></span>
+          <span style="position:relative;display:block"><input type="text" inputMode="decimal" value="{{ f.val }}" onChange="{{ f.on }}" readOnly="{{ setRo }}" aria-invalid="{{ f.bad }}" style="{{ f.inSt }}"><span style="position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:12.5px;color:#8a9aa6;pointer-events:none">{{ f.unit }}</span></span>
           <span style="{{ f.helpSt }}">{{ f.help }}</span>
         </label>
       </sc-for>
     </div>
-    <div style="display:flex;justify-content:flex-end;gap:12px">
+    <sc-if value="{{ setRo }}" hint-placeholder-val="{{ false }}"><div role="note" style="align-self:flex-start;display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;background:#eef3f6;color:#43586a;font-size:12.5px;font-weight:600"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 018 0v4"></path></svg>Lecture seule : modification réservée au Super Admin.</div></sc-if>
+    <sc-if value="{{ setEdit }}" hint-placeholder-val="{{ true }}"><div style="display:flex;justify-content:flex-end;gap:12px">
       <button type="button" onClick="{{ resetDef }}" disabled="{{ defDis }}" style="{{ defSt }}">Valeurs par défaut</button>
       <button type="button" onClick="{{ save }}" disabled="{{ saveDis }}" style="{{ saveSt }}">{{ saveL }}</button>
-    </div>
+    </div></sc-if>
   </section>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;guides&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{console:Guide,cockpit:Guide}  // Guide = {versions:{v,at,by,size,url?,fileName?}[], downloads:{user,role?,at,version}[], index?:{status:'run'|'ok',pages,chunks}, settings?:{k,keep,thr,tv,tr,tw}}&quot;},&quot;currentUser&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{name:string,role?:string}&quot;},&quot;canReplace&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;boolean&quot;},&quot;onDownload&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(app,version)=&gt;Promise&lt;void&gt;&quot;},&quot;onReplace&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(app,file:File)=&gt;Promise&lt;void&gt;&quot;},&quot;onSaveSettings&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(app,settings)=&gt;Promise&lt;void&gt;&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;guides&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{console:Guide,cockpit:Guide}  // Guide = {versions:{v,at,by,size,url?,fileName?}[], downloads:{user,role?,at,version}[], index?:{status:'run'|'ok',pages,chunks}, settings?:{k,keep,thr,tv,tr,tw}}&quot;},&quot;currentUser&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{name:string,role?:string}&quot;},&quot;canReplace&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;boolean&quot;},&quot;onDownload&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(app,version)=&gt;Promise&lt;void&gt;&quot;},&quot;onReplace&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(app,file:File)=&gt;Promise&lt;void&gt;&quot;},&quot;onSaveSettings&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(app,settings)=&gt;Promise&lt;void&gt;&quot;},&quot;settingsReadOnly&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;boolean&quot;}}">
 const APPS = [{ k: 'console', n: 'Console', sheet: 'CONSOLE', de: 'de la Console', le: 'la Console', dans: 'dans la Console' }, { k: 'cockpit', n: 'Cockpit', sheet: 'COCKPIT', de: 'du Cockpit', le: 'le Cockpit', dans: 'dans le Cockpit' }];
 const DEF = { k: 8, keep: 4, thr: 0.58, tv: 10, tr: 8, tw: 30 };
 const FIELDS = [['k', 'Extraits recherchés', 'extraits', 'Les plus proches dans le guide (1 à 30)', 1, 30, 1], ['keep', 'Extraits conservés', 'extraits', 'Après le reclassement (1 à 10)', 1, 10, 1], ['thr', 'Seuil de similarité', '', 'Écarte les passages éloignés (0 à 0,95)', 0, 0.95, 0], ['tv', 'Délai · vectorisation', 's', 'Question transformée en vecteur', 1, 60, 1], ['tr', 'Délai · reclassement', 's', 'Au-delà, ordre de la recherche', 1, 60, 1], ['tw', 'Délai · rédaction', 's', 'Réponse du modèle', 5, 120, 1]];
@@ -171,7 +172,10 @@ class Component extends DCLogic {
     const tabKey = e => { if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return; const i = APPS.findIndex(a => a.k === app), n = APPS[(i + (e.key === 'ArrowRight' ? 1 : APPS.length - 1)) % APPS.length]; this.setState({ app: n.k, err: '' }); const bs = e.currentTarget.querySelectorAll('[role=tab]'); setTimeout(() => bs[APPS.indexOf(n)] && bs[APPS.indexOf(n)].focus(), 0); };
 
     const idxRun = idx && idx.status === 'run';
+    // Réglages de recherche de Jev : modification réservée au Super Admin (10/10/2026).
+    const setRo = !!this.props.settingsReadOnly;
     return {
+      setRo, setEdit: !setRo,
       subtitle: 'Fonctionnalités, fonctionnement et règles appliquées ' + A.dans + '.', tabs, tabKey,
       has: !!cur, none: !cur, stateL: cur ? 'EN VIGUEUR' : 'GUIDE ' + A.sheet, sheetApp: A.sheet,
       cur: cur ? { v: cur.v, size: mo(cur.size || 0) } : { v: '', size: '' },

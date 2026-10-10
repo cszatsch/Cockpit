@@ -22,6 +22,7 @@ input::placeholder{color:#a6b4bd}
     <div style="font-size:11px;font-weight:800;letter-spacing:.16em;color:#1d8f86">IA</div>
     <div style="font-size:34px;font-weight:800;font-style:italic;letter-spacing:-.03em;line-height:1.1">Fournisseurs et modèles</div>
     <div style="font-size:14px;color:#43586a">Clés API, tests de connexion et catalogue des modèles avec leur coût.</div>
+    <sc-if value="{{ ro }}" hint-placeholder-val="{{ false }}"><div role="note" style="margin-top:10px;align-self:flex-start;display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;background:#eef3f6;color:#43586a;font-size:12.5px;font-weight:600"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 018 0v4"></path></svg>Lecture seule : modification réservée au Super Admin.</div></sc-if>
   </div>
 
   <div style="background:radial-gradient(900px 300px at 20% -20%,rgba(63,209,193,.09),transparent 60%),#0e2135;border-radius:22px;color:#e8f0f3;box-shadow:0 30px 60px -42px rgba(14,33,53,.75);overflow:hidden">
@@ -30,8 +31,8 @@ input::placeholder{color:#a6b4bd}
       <span style="font-size:12px;color:#7f95a6;font-variant-numeric:tabular-nums">{{ band.okL }}</span>
       <sc-if value="{{ band.hasBad }}" hint-placeholder-val="{{ false }}"><span style="display:flex;align-items:center;gap:6px;height:22px;padding:0 9px;border-radius:999px;background:rgba(240,123,103,.14);color:#ff9d8a;font-size:11px;font-weight:800"><span style="width:5px;height:5px;border-radius:50%;background:#f07b67"></span>{{ band.badL }}</span></sc-if>
       <span style="flex:1"></span>
-      <button onClick="{{ testAll }}" disabled="{{ band.busy }}" style="height:34px;padding:0 13px;border:0;border-radius:10px;background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 1px rgba(255,255,255,.1);color:#e8f0f3;font-weight:700;font-size:12.5px;display:inline-flex;align-items:center;gap:8px;cursor:pointer;white-space:nowrap" style-hover="background:rgba(255,255,255,.1)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-8 4 16 3-8h4"></path></svg>Tester toutes les clés</button>
-      <button onClick="{{ openProv }}" style="height:34px;padding:0 14px;border:0;border-radius:10px;background:#3fd1c1;color:#0e2135;font-weight:800;font-size:12.5px;display:inline-flex;align-items:center;gap:8px;cursor:pointer;white-space:nowrap" style-hover="background:#62dccf"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>Ajouter un fournisseur</button>
+      <sc-if value="{{ canEdit }}" hint-placeholder-val="{{ true }}"><button onClick="{{ testAll }}" disabled="{{ band.busy }}" style="height:34px;padding:0 13px;border:0;border-radius:10px;background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 1px rgba(255,255,255,.1);color:#e8f0f3;font-weight:700;font-size:12.5px;display:inline-flex;align-items:center;gap:8px;cursor:pointer;white-space:nowrap" style-hover="background:rgba(255,255,255,.1)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3-8 4 16 3-8h4"></path></svg>Tester toutes les clés</button></sc-if>
+      <sc-if value="{{ canEdit }}" hint-placeholder-val="{{ true }}"><button onClick="{{ openProv }}" style="height:34px;padding:0 14px;border:0;border-radius:10px;background:#3fd1c1;color:#0e2135;font-weight:800;font-size:12.5px;display:inline-flex;align-items:center;gap:8px;cursor:pointer;white-space:nowrap" style-hover="background:#62dccf"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>Ajouter un fournisseur</button></sc-if>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));border-top:1px solid rgba(255,255,255,.07)">
       <sc-for list="{{ provs }}" as="p" hint-placeholder-count="5">
@@ -45,9 +46,9 @@ input::placeholder{color:#a6b4bd}
           </div>
           <div style="display:flex;flex-direction:column;gap:4px"><span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#6f879a;letter-spacing:.02em">{{ p.keyL }}</span><span style="{{ p.capSt }}">{{ p.capL }}</span></div>
           <div style="display:flex;gap:6px;flex-wrap:wrap">
-            <button onClick="{{ p.test }}" disabled="{{ p.testing }}" style="height:28px;padding:0 10px;border:0;border-radius:8px;background:rgba(255,255,255,.06);color:#cfe0ea;font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap" style-hover="background:rgba(255,255,255,.11);color:#fff">Tester</button>
-            <button onClick="{{ p.replace }}" style="height:28px;padding:0 10px;border:0;border-radius:8px;background:rgba(255,255,255,.06);color:#cfe0ea;font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap" style-hover="background:rgba(255,255,255,.11);color:#fff">Remplacer la clé</button>
-            <button onClick="{{ p.capEdit }}" style="height:28px;padding:0 10px;border:0;border-radius:8px;background:rgba(255,255,255,.06);color:#cfe0ea;font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap" style-hover="background:rgba(255,255,255,.11);color:#fff">Plafond</button>
+            <sc-if value="{{ canEdit }}" hint-placeholder-val="{{ true }}"><button onClick="{{ p.test }}" disabled="{{ p.testing }}" style="height:28px;padding:0 10px;border:0;border-radius:8px;background:rgba(255,255,255,.06);color:#cfe0ea;font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap" style-hover="background:rgba(255,255,255,.11);color:#fff">Tester</button></sc-if>
+            <sc-if value="{{ canEdit }}" hint-placeholder-val="{{ true }}"><button onClick="{{ p.replace }}" style="height:28px;padding:0 10px;border:0;border-radius:8px;background:rgba(255,255,255,.06);color:#cfe0ea;font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap" style-hover="background:rgba(255,255,255,.11);color:#fff">Remplacer la clé</button></sc-if>
+            <sc-if value="{{ canEdit }}" hint-placeholder-val="{{ true }}"><button onClick="{{ p.capEdit }}" style="height:28px;padding:0 10px;border:0;border-radius:8px;background:rgba(255,255,255,.06);color:#cfe0ea;font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap" style-hover="background:rgba(255,255,255,.11);color:#fff">Plafond</button></sc-if>
           </div>
         </div>
       </sc-for>
@@ -205,10 +206,10 @@ input::placeholder{color:#a6b4bd}
 
   <div style="display:flex;flex-direction:column;gap:14px">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-      <div style="font-size:17px;font-weight:800;letter-spacing:-.01em">Modèles</div><span style="font-size:12.5px;color:#8a9aa6">Coûts en euros par million de tokens · {{ statsL }}</span><button onClick="{{ refreshStats }}" disabled="{{ statsBusy }}" style="{{ statsBtnSt }}" style-hover="color:#10233a;background:#f1f5f4"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="{{ statsIcoSt }}"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"></path><path d="M21 3v5h-5"></path></svg>{{ statsBtnL }}</button>
+      <div style="font-size:17px;font-weight:800;letter-spacing:-.01em">Modèles</div><span style="font-size:12.5px;color:#8a9aa6">Coûts en euros par million de tokens · {{ statsL }}</span><sc-if value="{{ canEdit }}" hint-placeholder-val="{{ true }}"><button onClick="{{ refreshStats }}" disabled="{{ statsBusy }}" style="{{ statsBtnSt }}" style-hover="color:#10233a;background:#f1f5f4"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="{{ statsIcoSt }}"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"></path><path d="M21 3v5h-5"></path></svg>{{ statsBtnL }}</button></sc-if>
       <span style="flex:1"></span>
       <div role="tablist" style="display:inline-flex;gap:2px;padding:3px;border-radius:12px;background:#e3ebe9;flex-wrap:wrap"><sc-for list="{{ filt }}" as="x" hint-placeholder-count="6"><button role="tab" onClick="{{ x.pick }}" style="{{ x.st }}">{{ x.l }}</button></sc-for></div>
-      <button onClick="{{ newModel }}" style="height:36px;padding:0 15px;border:0;border-radius:11px;background:#10233a;color:#fff;font-weight:700;font-size:12.5px;display:inline-flex;align-items:center;gap:8px;cursor:pointer" style-hover="background:#1b3450"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>Ajouter un modèle</button>
+      <sc-if value="{{ canEdit }}" hint-placeholder-val="{{ true }}"><button onClick="{{ newModel }}" style="height:36px;padding:0 15px;border:0;border-radius:11px;background:#10233a;color:#fff;font-weight:700;font-size:12.5px;display:inline-flex;align-items:center;gap:8px;cursor:pointer" style-hover="background:#1b3450"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>Ajouter un modèle</button></sc-if>
     </div>
     <div style="background:#fff;border-radius:20px;box-shadow:0 0 0 1px #e1e9e7,0 18px 40px -32px rgba(16,35,58,.35);overflow:hidden">
       <div style="display:grid;grid-template-columns:minmax(0,2fr) 112px 62px 62px 58px 68px 46px minmax(0,1.5fr) 40px 28px;gap:14px;padding:0 24px;height:46px;align-items:center;border-bottom:1px solid #edf2f1">
@@ -225,7 +226,7 @@ input::placeholder{color:#a6b4bd}
           <div style="{{ m.tpsSt }}">{{ m.tpsL }}</div>
           <div style="display:flex;flex-wrap:wrap;gap:5px"><sc-for list="{{ m.uses }}" as="u" hint-placeholder-count="1"><span style="{{ u.st }}">{{ u.l }}</span></sc-for><sc-if value="{{ m.noU }}" hint-placeholder-val="{{ false }}"><span style="color:#c3d0ce">—</span></sc-if></div>
           <button role="switch" aria-checked="{{ m.on }}" aria-label="Actif" onClick="{{ m.toggle }}" style="{{ m.tgSt }}"><span style="{{ m.knSt }}"></span></button>
-          <button aria-label="Modifier" onClick="{{ m.edit }}" style="width:30px;height:30px;border:0;border-radius:8px;background:none;color:#8a9aa6;cursor:pointer;display:grid;place-items:center" style-hover="background:#f1f5f4;color:#10233a"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4z"></path></svg></button>
+          <sc-if value="{{ canEdit }}" hint-placeholder-val="{{ true }}"><button aria-label="Modifier" onClick="{{ m.edit }}" style="width:30px;height:30px;border:0;border-radius:8px;background:none;color:#8a9aa6;cursor:pointer;display:grid;place-items:center" style-hover="background:#f1f5f4;color:#10233a"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4z"></path></svg></button></sc-if>
         </div>
       </sc-for>
     </div>
@@ -374,7 +375,7 @@ input::placeholder{color:#a6b4bd}
   <div style="position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:80;display:flex;align-items:center;gap:10px;max-width:min(560px,calc(100vw - 32px));padding:11px 16px 11px 13px;border-radius:13px;background:#0e2135;color:#e8f0f3;font-size:12.5px;font-weight:600;box-shadow:0 20px 40px -16px rgba(14,33,53,.6);animation:pop .2s ease-out both"><span style="{{ toast.dot }}"></span>{{ toast.msg }}</div>
 </sc-if>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;invalid&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Aucun&quot;,&quot;Anthropic&quot;,&quot;OpenAI&quot;,&quot;Mistral AI&quot;,&quot;Google&quot;,&quot;OpenRouter&quot;],&quot;default&quot;:&quot;Aucun&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Démo&quot;},&quot;data&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{ providers: any[]; models: any[]; functions: any[]; assignments: any[] } | null&quot;},&quot;focusKey&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{ id: string; at: number } | null&quot;},&quot;api&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Record<string, (...a: any[]) => Promise<any>> | null&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;invalid&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Aucun&quot;,&quot;Anthropic&quot;,&quot;OpenAI&quot;,&quot;Mistral AI&quot;,&quot;Google&quot;,&quot;OpenRouter&quot;],&quot;default&quot;:&quot;Aucun&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Démo&quot;},&quot;data&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{ providers: any[]; models: any[]; functions: any[]; assignments: any[] } | null&quot;},&quot;focusKey&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{ id: string; at: number } | null&quot;},&quot;api&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;Record&lt;string, (...a: any[]) =&gt; Promise&lt;any&gt;&gt; | null&quot;},&quot;readOnly&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;boolean&quot;}}">
 // Fournisseurs et modèles (livraison « Fournisseurs et modèles », FOURNISSEURS - specification.md).
 // Données réelles : props `data` (GET /providers, /models, /functions, /assignments) et `api` (actions) fournies par la Console
 // (admin-api.js) ; chaque action appelle l'API puis la Console recharge `data`. Sans `data` (écran ouvert seul, Console en
@@ -430,7 +431,7 @@ class Component extends DCLogic {
   // prop `focusKey` { id, at } → fenêtre de remplacement de ce fournisseur, une fois par demande.
   componentDidMount() { this.focusKey(); }
   componentDidUpdate() { this.focusKey(); }
-  focusKey() { const f = this.props.focusKey; if (!f || f.at === this._fk) return; this._fk = f.at; this.setState({ modal: { kind: 'key', pid: f.id, val: '' }, menu: null }); }
+  focusKey() { const f = this.props.focusKey; if (!f || f.at === this._fk || this.props.readOnly) return; this._fk = f.at; this.setState({ modal: { kind: 'key', pid: f.id, val: '' }, menu: null }); }
   later(fn, ms) { (this._t = this._t || []).push(setTimeout(fn, ms)); }
   toast(msg, tone) { clearTimeout(this._tt); this.setState({ toast: { msg, tone: tone || 'ok' } }); this._tt = setTimeout(() => this.setState({ toast: null }), 3000); }
   /** Mode réel : écran branché par la Console (`api`) ; données vides tant qu'elles se chargent (jamais la démonstration). */
@@ -818,10 +819,19 @@ class Component extends DCLogic {
       };
     }
     const tc = st.toast ? ({ ok: '#3fd1c1', err: '#f07b67', warn: '#e3a43b' })[st.toast.tone] : '#3fd1c1';
+    // Lecture seule (Admin, 10/10/2026) : sélecteurs d'affectation, interrupteurs « Actif » et fiche d'un modèle inactifs ;
+    // les commandes de modification sont masquées par le gabarit (`canEdit`). Le serveur refuse de toute façon (403).
+    const ro = !!this.props.readOnly, noop = () => {};
+    if (ro) {
+      [...fns, ...(Array.isArray(docs) ? docs : [])].forEach(f => { ['p', 's'].forEach(k => { if (f && f[k] && f[k].toggle) f[k].toggle = noop; }); });
+      (Array.isArray(provs) ? provs : []).forEach(x => { if (x) { x.test = noop; x.replace = noop; x.capEdit = noop; } });
+      rows.forEach(m => { m.toggle = noop; m.edit = noop; m.tgSt += ';cursor:default'; });
+    }
     return {
+      ro, canEdit: !ro,
       band, provs, fns, docs, docSt, total: eur(total), docsTotal: eur(docsCost), textVol: volL('vec', ' / '),
       docsOpen: st.docs, docsL: st.docs ? 'Plier' : 'Déplier', docsChev: `transition:transform .2s;transform:rotate(${st.docs ? 0 : 180}deg)`, toggleDocs: () => this.setState(s => ({ docs: !s.docs })),
-      dims: dimL(D.dims), dimsOpen: st.dimsOpen, dimOpts, toggleDims: () => this.setState(s => ({ dimsOpen: !s.dimsOpen, menu: null })),
+      dims: dimL(D.dims), dimsOpen: st.dimsOpen, dimOpts, toggleDims: this.props.readOnly ? () => {} : () => this.setState(s => ({ dimsOpen: !s.dimsOpen, menu: null })),
       closeMenu: () => this.setState({ menu: null }),
       testAll: () => this.test(D.providers.map(p => p.id)),
       openProv: () => this.setState({ modal: { kind: 'prov', name: '', key: '' }, menu: null }),

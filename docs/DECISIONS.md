@@ -1969,3 +1969,24 @@ Demande du commanditaire : un risque peut concerner un chantier, plusieurs, ou t
   des appels et exports : `UsageService.records`, `journalWhere`), vue Accès, vues de Jev `jev.consommation_ia` et
   `jev.budget_ia` (même migration).
 - Test d'alignement (`test/e2e/consommation-acces.spec.ts`) : coût de la vue Accès = coût de la vue IA, sur le jour et le mois.
+
+## Profil Super Admin de la Console (10/10/2026)
+
+- Demande du commanditaire : cinquième profil, **Super Admin**, qui a tous les droits de la Console ; l'**Admin** a tous les
+  droits sauf la modification et la suppression dans le menu IA, qu'il consulte en lecture.
+- Arbitrages (10/10/2026) : au départ, le compte initial est Super Admin (repli : l'administrateur le plus ancien), les autres
+  restent Admin ; le compte initial d'une nouvelle installation (Partager Cockpit, `createInitialAdmin`) est Super Admin ; seul
+  un Super Admin attribue ou retire ce profil et agit sur le compte d'un Super Admin (modifier, suspendre, supprimer, sessions,
+  habilitations, droits de consommation) ; il en reste toujours un et nul ne retire son propre profil ; commandes de modification
+  du menu IA masquées pour l'Admin, avec le bandeau « Lecture seule : modification réservée au Super Admin. » ; même règle hors
+  du menu (« Remplacer la clé » de la Vue d'ensemble, réglages de recherche de Jev du Guide utilisateur) ; Persona, Skills et
+  Registre des cartes API restent ouverts à l'Admin.
+- Mise en œuvre : `AdminGrant.superAdmin` (migration `20261118000200_super_admin`) ; `Actor.isSuperAdmin` ; décorateur
+  `@SuperAdminOnly()` (403 « Modification réservée au Super Admin ») sur les écritures de `ai.controller` (fournisseurs, clés,
+  tests, plafonds, modèles, mesures, affectations, budgets) et sur `PUT /api/admin/guides/:app/settings` ; comptes :
+  `guardSuper`, `setSuper` (LAST_SUPER_ADMIN, SELF_ACTION, journal « Attribution / Retrait du profil Super Admin ») ;
+  `PUT /api/admin/admins/:id/level` ; profil `SUPER_ADMIN` dans les vues de comptes, `superAdmin` dans `GET /me/profile` et
+  `GET /admins` (`level`). Écran : profil « Super Admin », interrupteur dans « Modifier le compte », niveaux dans
+  Administrateurs, props `read-only` / `settings-read-only` (Fournisseurs et modèles, Consommation et coûts, Guide utilisateur).
+- Tests : `test/e2e/super-admin.spec.ts`, recette `test/browser/super-admin.e2e.ts`. Le compte de démonstration `u1` est Super
+  Admin dans le jeu de démonstration.

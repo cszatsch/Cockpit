@@ -8,7 +8,7 @@ import { PrismaService, Tx } from '../core/prisma.service';
 import { MailerService } from '../core/mailer.service';
 import { CredentialsService } from '../core/auth/credentials.service';
 import { TodayService } from '../core/today.service';
-import { badRequest, businessRule, conflict, inUse, notFound, Usage } from '../core/errors';
+import { badRequest, businessRule, conflict, forbidden, inUse, notFound, Usage } from '../core/errors';
 import { techId } from '../core/ids';
 import { parse } from '../core/http';
 import { adminCtx, ProfilesService, SUSPENSION_ACTION } from './profiles.service';
@@ -21,8 +21,8 @@ export const INVITE_STALE_DAYS = 7;
 
 const PROFILE = z
   .string()
-  .transform((s) => ({ admin: 'ADMIN', pmo: 'PMO', resp: 'RESPONSABLE', lec: 'LECTEUR' } as Record<string, string>)[s] ?? s.toUpperCase())
-  .pipe(z.enum(['ADMIN', 'PMO', 'RESPONSABLE', 'LECTEUR']));
+  .transform((s) => ({ super: 'SUPER_ADMIN', admin: 'ADMIN', pmo: 'PMO', resp: 'RESPONSABLE', lec: 'LECTEUR' } as Record<string, string>)[s] ?? s.toUpperCase())
+  .pipe(z.enum(['SUPER_ADMIN', 'ADMIN', 'PMO', 'RESPONSABLE', 'LECTEUR']));
 
 /**
  * Habilitations d'un compte, projet par projet (profils multiples, 29/09/2026) : Administrateur de la plateforme
@@ -31,6 +31,8 @@ const PROFILE = z
 const Habilitations = z
   .object({
     admin: z.boolean(),
+    /** Super Admin (10/10/2026) : absent, le profil actuel est gardé ; n'a de sens qu'avec `admin`. */
+    superAdmin: z.boolean().optional(),
     projects: z.array(z.object({ code: z.string().min(1), pmo: z.boolean().default(false), responsable: z.array(z.string().min(1)).default([]), lecteur: z.array(z.string().min(1)).default([]) }).strict()),
   })
   .strict();
@@ -50,7 +52,7 @@ const AccountPatch = z
   .object({ fullName: z.string().trim().min(2, '2 caractères minimum').max(120), email: z.string().trim().toLowerCase().email('e-mail invalide'), profile: PROFILE, projectCodes: z.array(z.string().min(1)).min(1, 'au moins un projet') })
   .partial()
   .strict();
-const PROFILE_ORDER = ['ADMIN', 'PMO', 'RESPONSABLE', 'LECTEUR'] as const;
+const PROFILE_ORDER = ['SUPER_ADMIN', 'ADMIN', 'PMO', 'RESPONSABLE', 'LECTEUR'] as const;
 
 const DAY = 86_400_000;
 
@@ -96,16 +98,18 @@ export class AccountsController {
         return { code: codes[pid] ?? pid, pmo: x.pmo, responsable: [...x.responsable].sort(), lecteur: x.lecteur.filter((w) => !x.responsable.includes(w)).sort() };
       });
       // Tous les profils détenus (un compte peut en cumuler plusieurs), du plus large au plus restreint.
-      const has = { ADMIN: r.admin, PMO: habilitations.some((h) => h.pmo), RESPONSABLE: habilitations.some((h) => h.responsable.length > 0), LECTEUR: habilitations.some((h) => h.lecteur.length > 0) };
+      // Super Admin (10/10/2026) : profil d'administrateur le plus large, affiché à la place d'Admin.
+      const has = { SUPER_ADMIN: r.superAdmin, ADMIN: r.admin && !r.superAdmin, PMO: habilitations.some((h) => h.pmo), RESPONSABLE: habilitations.some((h) => h.responsable.length > 0), LECTEUR: habilitations.some((h) => h.lecteur.length > 0) };
       return {
         id: a.id,
         fullName: a.fullName,
         email: a.email,
         personId: a.personId,
         status: a.status,
-        profile: r.strongest,
+        profile: r.superAdmin ? 'SUPER_ADMIN' : r.strongest,
         profiles: PROFILE_ORDER.filter((p) => has[p]),
         admin: r.admin,
+        superAdmin: r.superAdmin,
         habilitations,
         // E-mail du référentiel quand il diffère de celui du compte (personne liée) : l'Administrateur l'applique.
         emailReferentiel: (referential.get(a.id) ?? []).find((e) => e.emailEcart)?.email.trim().toLowerCase() ?? null,
@@ -130,7 +134,7 @@ export class AccountsController {
   async list(@Query() q: { status?: string; profile?: string; project?: string; q?: string; staleDays?: string }) {
     const all = await this.view(await this.prisma.account.findMany({ include: { projects: true }, orderBy: { createdAt: 'asc' } }));
     const status = q.status && q.status !== 'tous' ? ({ actif: 'ACTIVE', invité: 'INVITED', suspendu: 'SUSPENDED' } as Record<string, string>)[q.status] ?? q.status.toUpperCase() : null;
-    const profile = q.profile && q.profile !== 'tous' ? ({ admin: 'ADMIN', pmo: 'PMO', resp: 'RESPONSABLE', lec: 'LECTEUR' } as Record<string, string>)[q.profile] ?? q.profile.toUpperCase() : null;
+    const profile = q.profile && q.profile !== 'tous' ? ({ super: 'SUPER_ADMIN', admin: 'ADMIN', pmo: 'PMO', resp: 'RESPONSABLE', lec: 'LECTEUR' } as Record<string, string>)[q.profile] ?? q.profile.toUpperCase() : null;
     const project = q.project && q.project !== 'tous' ? q.project.toUpperCase() : null;
     const text = (q.q ?? '').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
     const stale = q.staleDays ? Number(q.staleDays) : null;
@@ -183,10 +187,30 @@ export class AccountsController {
     return projects;
   }
 
+  /** Compte d'un Super Admin (10/10/2026) : seul un Super Admin le modifie, le suspend, le supprime ou change ses droits. */
+  private async guardSuper(actor: Actor, id: string, db: Tx = this.prisma) {
+    if (actor.isSuperAdmin) return;
+    if ((await db.adminGrant.findUnique({ where: { accountId: id } }))?.superAdmin) throw forbidden('Compte d’un Super Admin : action réservée au Super Admin');
+  }
+
+  /** Attribue ou retire le profil Super Admin (le compte reste administrateur) : Super Admin seulement ; il en reste toujours un. */
+  private async setSuper(db: Tx, actor: Actor, id: string, want: boolean) {
+    const g = await db.adminGrant.findUnique({ where: { accountId: id } });
+    if (!!g?.superAdmin === want) return;
+    if (!actor.isSuperAdmin) throw forbidden('Profil Super Admin : attribution réservée au Super Admin');
+    if (!want) {
+      if (id === actor.accountId) throw conflict('SELF_ACTION', 'Vous ne pouvez pas retirer votre propre profil Super Admin');
+      if ((await db.adminGrant.count({ where: { superAdmin: true } })) <= 1) throw conflict('LAST_SUPER_ADMIN', 'Il doit toujours rester au moins un Super Admin');
+    }
+    await db.adminGrant.upsert({ where: { accountId: id }, create: { accountId: id, grantedById: actor.accountId, superAdmin: want }, update: { superAdmin: want } });
+    const who = (await db.account.findUnique({ where: { id } }))?.fullName ?? id;
+    await this.audit.action(db, adminCtx(actor), { action: want ? 'Attribution du profil Super Admin' : 'Retrait du profil Super Admin', target: who, severity: 'CRITICAL', entityType: 'AdminGrant', entityId: id });
+  }
+
   /** Q3 : l'Admin attribue ADMIN et PMO ; Responsable/Lecteur d'une personne du référentiel relèvent du PMO. */
   private async applyProfile(db: Tx, account: Account, profile: string, projects: Array<{ id: string }>) {
     await db.habilitation.deleteMany({ where: { accountId: account.id, profile: 'PMO' } });
-    if (profile === 'ADMIN') {
+    if (profile === 'ADMIN' || profile === 'SUPER_ADMIN') {
       await db.adminGrant.upsert({ where: { accountId: account.id }, create: { accountId: account.id }, update: {} });
       return;
     }
@@ -212,7 +236,7 @@ export class AccountsController {
     const projects = await this.resolveProjects(hab ? hab.projects.map((p) => p.code) : input.projectCodes!);
     if (!projects.length && !hab?.admin) throw badRequest('Aucun accès', { habilitations: 'au moins un projet, ou le rôle d’administrateur' });
     const label = hab
-      ? [hab.admin ? 'ADMIN' : null, ...hab.projects.map((p) => `${p.code} ${p.pmo ? 'PMO' : `${p.responsable.length} resp. · ${p.lecteur.length} lect.`}`)].filter(Boolean).join(' · ')
+      ? [hab.admin ? (hab.superAdmin ? 'SUPER_ADMIN' : 'ADMIN') : null, ...hab.projects.map((p) => `${p.code} ${p.pmo ? 'PMO' : `${p.responsable.length} resp. · ${p.lecteur.length} lect.`}`)].filter(Boolean).join(' · ')
       : input.profile!;
     const now = this.today.now();
     const created = await this.prisma.$transaction(async (db) => {
@@ -230,9 +254,12 @@ export class AccountsController {
         },
       });
       if (hab) await this.writeHabilitations(db, actor, a, hab);
-      else if (!keepReferentialRights) await this.applyProfile(db, a, input.profile!, projects);
+      else if (!keepReferentialRights) {
+        await this.applyProfile(db, a, input.profile!, projects);
+        if (input.profile === 'SUPER_ADMIN') await this.setSuper(db, actor, a.id, true);
+      }
       await this.audit.action(db, adminCtx(actor), { action: 'Invitation d’un utilisateur', target: `${a.fullName} · ${label}`, severity: 'INFO', entityType: 'Account', entityId: a.id, details: { email: a.email, profile: input.profile ?? null, projects: projects.map((p) => p.code), habilitations: hab ?? null } });
-      const raw = await this.creds.issueToken(db, a, 'INVITE', (hab ? hab.admin : input.profile === 'ADMIN') ? 'ADMIN' : 'APP', INVITE_VALIDITY_DAYS * DAY);
+      const raw = await this.creds.issueToken(db, a, 'INVITE', (hab ? hab.admin : input.profile === 'ADMIN' || input.profile === 'SUPER_ADMIN') ? 'ADMIN' : 'APP', INVITE_VALIDITY_DAYS * DAY);
       return { a, raw };
     });
     // Le compte est créé même si l'e-mail ne part pas (serveur d'envoi indisponible) : la réponse le dit, et
@@ -251,11 +278,12 @@ export class AccountsController {
   @Patch('accounts/:id')
   async patch(@CurrentActor() actor: Actor, @Param('id') id: string, @Body() body: unknown) {
     const input = parse(AccountPatch, body);
+    await this.guardSuper(actor, id);
     const a = await this.one(id);
     if (input.email && input.email !== a.email && (await this.prisma.account.findUnique({ where: { email: input.email } }))) throw conflict('DUPLICATE', `Un compte existe déjà pour ${input.email}`);
     const [before] = await this.view([a]);
     const rightsChange = input.profile !== undefined || input.projectCodes !== undefined;
-    if (rightsChange && id === actor.accountId && input.profile && input.profile !== 'ADMIN') throw conflict('SELF_ACTION', 'Vous ne pouvez pas retirer vos propres droits d’administrateur');
+    if (rightsChange && id === actor.accountId && input.profile && input.profile !== 'ADMIN' && input.profile !== 'SUPER_ADMIN') throw conflict('SELF_ACTION', 'Vous ne pouvez pas retirer vos propres droits d’administrateur');
     await this.prisma.$transaction(async (db) => {
       const projects = input.projectCodes ? await this.resolveProjects(input.projectCodes) : a.projects.map((p) => ({ id: p.projectId }));
       await db.account.update({ where: { id }, data: { fullName: input.fullName, email: input.email, version: { increment: 1 } } });
@@ -270,12 +298,15 @@ export class AccountsController {
       // ne doit pas réattribuer un profil qui relève du PMO (Q3, 422).
       const profile = input.profile ?? before.profile ?? 'LECTEUR';
       const profileChanged = input.profile !== undefined && input.profile !== before.profile;
-      if (profileChanged || (input.projectCodes !== undefined && (profile === 'ADMIN' || profile === 'PMO'))) {
-        if (profile !== 'ADMIN' && before.admin) {
+      if (profileChanged || (input.projectCodes !== undefined && (profile === 'ADMIN' || profile === 'SUPER_ADMIN' || profile === 'PMO'))) {
+        // Super Admin : attribué ou retiré par un Super Admin seulement ; il en reste toujours un.
+        if (profileChanged && before.superAdmin && profile !== 'SUPER_ADMIN') await this.setSuper(db, actor, id, false);
+        if (profile !== 'ADMIN' && profile !== 'SUPER_ADMIN' && before.admin) {
           if ((await db.adminGrant.count()) <= 1) throw conflict('LAST_ADMIN', 'Il doit toujours rester au moins un administrateur');
           await db.adminGrant.delete({ where: { accountId: id } });
         }
         await this.applyProfile(db, { ...a, email: input.email ?? a.email }, profile, projects);
+        if (profile === 'SUPER_ADMIN') await this.setSuper(db, actor, id, true);
       }
       const [after] = await this.view([await this.one(id, db)], db);
       await this.audit.action(db, adminCtx(actor), {
@@ -297,6 +328,7 @@ export class AccountsController {
   @Post('accounts/:id/referential-email')
   @HttpCode(200)
   async applyReferentialEmail(@CurrentActor() actor: Actor, @Param('id') id: string) {
+    await this.guardSuper(actor, id);
     const a = await this.one(id);
     const person = a.personId ? await this.prisma.person.findUnique({ where: { id: a.personId } }) : null;
     if (!person) throw conflict('NO_REFERENTIAL_PERSON', 'Ce compte n’est lié à aucune personne du référentiel');
@@ -323,6 +355,7 @@ export class AccountsController {
   @Post('accounts/:id/suspend')
   @HttpCode(200)
   async suspend(@CurrentActor() actor: Actor, @Param('id') id: string) {
+    await this.guardSuper(actor, id);
     if (id === actor.accountId) throw conflict('SELF_ACTION', 'Vous ne pouvez pas vous suspendre vous-même');
     const a = await this.one(id);
     if (a.status === 'SUSPENDED') throw conflict('ALREADY_SUSPENDED', 'Compte déjà suspendu');
@@ -337,6 +370,7 @@ export class AccountsController {
   @Post('accounts/:id/reactivate')
   @HttpCode(200)
   async reactivate(@CurrentActor() actor: Actor, @Param('id') id: string) {
+    await this.guardSuper(actor, id);
     const a = await this.one(id);
     if (a.status !== 'SUSPENDED') throw conflict('NOT_SUSPENDED', 'Seul un compte suspendu peut être réactivé');
     await this.prisma.$transaction(async (db) => {
@@ -350,6 +384,7 @@ export class AccountsController {
   @Post('accounts/:id/resend-invite')
   @HttpCode(200)
   async resend(@CurrentActor() actor: Actor, @Param('id') id: string) {
+    await this.guardSuper(actor, id);
     const a = await this.one(id);
     if (a.status !== 'INVITED') throw conflict('NOT_INVITED', 'Seule une invitation en attente peut être relancée');
     const now = this.today.now();
@@ -389,6 +424,7 @@ export class AccountsController {
   @Delete('accounts/:id')
   @HttpCode(204)
   async remove(@CurrentActor() actor: Actor, @Param('id') id: string) {
+    await this.guardSuper(actor, id);
     if (id === actor.accountId) throw conflict('SELF_ACTION', 'Vous ne pouvez pas supprimer votre propre compte');
     const a = await this.one(id);
     const usages = await this.accountUsages(a);
@@ -419,6 +455,7 @@ export class AccountsController {
   @Put('accounts/:id/habilitations')
   async putHabilitations(@CurrentActor() actor: Actor, @Param('id') id: string, @Body() body: unknown) {
     const input = parse(Habilitations, body);
+    await this.guardSuper(actor, id);
     const a = await this.one(id);
     if (id === actor.accountId && !input.admin) throw conflict('SELF_ACTION', 'Vous ne pouvez pas retirer vos propres droits d’administrateur');
     const [before] = await this.view([a]);
@@ -431,7 +468,7 @@ export class AccountsController {
         severity: 'SENSITIVE',
         entityType: 'Account',
         entityId: id,
-        details: { avant: { admin: before.admin, habilitations: before.habilitations }, apres: { admin: after.admin, habilitations: after.habilitations } },
+        details: { avant: { admin: before.admin, superAdmin: before.superAdmin, habilitations: before.habilitations }, apres: { admin: after.admin, superAdmin: after.superAdmin, habilitations: after.habilitations } },
       });
     });
     return this.get(id);
@@ -442,12 +479,16 @@ export class AccountsController {
     if (new Set(codes).size !== codes.length) throw badRequest('Projet en double', { projects: 'un projet apparaît deux fois' });
     const projects = codes.length ? await this.resolveProjects(codes) : [];
     // Rôle d'administrateur : indépendant des projets ; il reste toujours au moins un administrateur.
-    const isAdmin = !!(await db.adminGrant.findUnique({ where: { accountId: a.id } }));
+    const grant = await db.adminGrant.findUnique({ where: { accountId: a.id } }), isAdmin = !!grant;
+    // Super Admin (10/10/2026) : demandé, sinon gardé tant que le compte reste administrateur.
+    const wantSuper = input.admin && (input.superAdmin ?? !!grant?.superAdmin);
+    if (grant?.superAdmin && !wantSuper) await this.setSuper(db, actor, a.id, false);
     if (input.admin && !isAdmin) await db.adminGrant.create({ data: { accountId: a.id, grantedById: actor.accountId } });
     if (!input.admin && isAdmin) {
       if ((await db.adminGrant.count()) <= 1) throw conflict('LAST_ADMIN', 'Il doit toujours rester au moins un administrateur');
       await db.adminGrant.delete({ where: { accountId: a.id } });
     }
+    if (wantSuper && !grant?.superAdmin) await this.setSuper(db, actor, a.id, true);
     // Projets touchés : ceux demandés et ceux rattachés jusqu'ici (un projet retiré perd ses habilitations).
     const attached = (await db.accountProject.findMany({ where: { accountId: a.id } })).map((x) => x.projectId);
     for (const pid of [...new Set([...attached, ...projects.map((p) => p.id)])]) {
@@ -477,6 +518,7 @@ export class AccountsController {
   @Put('accounts/:id/global-profiles')
   async globalProfiles(@CurrentActor() actor: Actor, @Param('id') id: string, @Body() body: unknown) {
     const input = parse(z.object({ projectId: z.string().min(1), profiles: z.array(z.enum(['ADMIN', 'PMO'])) }).strict(), body);
+    await this.guardSuper(actor, id);
     const a = await this.one(id);
     const [project] = await this.resolveProjects([input.projectId]);
     if (id === actor.accountId && !input.profiles.includes('ADMIN')) throw conflict('SELF_ACTION', 'Vous ne pouvez pas retirer vos propres droits d’administrateur');
@@ -487,6 +529,7 @@ export class AccountsController {
       if (input.profiles.includes('ADMIN') && !isAdmin) await db.adminGrant.create({ data: { accountId: id, grantedById: actor.accountId } });
       if (!input.profiles.includes('ADMIN') && isAdmin) {
         if ((await db.adminGrant.count()) <= 1) throw conflict('LAST_ADMIN', 'Il doit toujours rester au moins un administrateur');
+        await this.setSuper(db, actor, id, false);
         await db.adminGrant.delete({ where: { accountId: id } });
       }
       await db.accountProject.upsert({ where: { accountId_projectId: { accountId: id, projectId: project.id } }, create: { accountId: id, projectId: project.id }, update: {} });
@@ -498,6 +541,7 @@ export class AccountsController {
   /** Lecteur externe (partenaire, actionnaire) sur les chantiers choisis par l'Admin (§ 8.3). */
   @Put('accounts/:id/reader-scopes')
   async readerScopes(@CurrentActor() actor: Actor, @Param('id') id: string, @Body() body: unknown) {
+    await this.guardSuper(actor, id);
     const input = parse(z.object({ projectId: z.string().min(1), wsIds: z.array(z.string().min(1)) }).strict(), body);
     const a = await this.one(id);
     const [project] = await this.resolveProjects([input.projectId]);
@@ -530,6 +574,7 @@ export class AccountsController {
   @Delete('accounts/:id/sessions/:sid')
   @HttpCode(204)
   async revoke(@CurrentActor() actor: Actor, @Param('id') id: string, @Param('sid') sid: string) {
+    await this.guardSuper(actor, id);
     const a = await this.one(id);
     const s = await this.prisma.authSession.findFirst({ where: { id: sid, accountId: id, revokedAt: null } });
     if (!s) throw notFound('Session introuvable');
@@ -542,6 +587,7 @@ export class AccountsController {
   @Delete('accounts/:id/sessions')
   @HttpCode(204)
   async revokeAll(@CurrentActor() actor: Actor, @Param('id') id: string) {
+    await this.guardSuper(actor, id);
     const a = await this.one(id);
     await this.prisma.$transaction(async (db) => {
       // Pour son propre compte, la session courante est conservée.
@@ -558,8 +604,8 @@ export class AccountsController {
     const accounts = await this.prisma.account.findMany({ where: { id: { in: grants.map((g) => g.accountId) } } });
     return grants.map((g) => {
       const a = accounts.find((x) => x.id === g.accountId);
-      // Un seul niveau d'administrateur (brief Console § 5).
-      return { accountId: g.accountId, fullName: a?.fullName ?? '', email: a?.email ?? '', status: a?.status, level: 'admin', since: g.since, grantedBy: g.grantedById, seeCosts: g.seeCosts, seeIndividual: g.seeIndividual };
+      // Deux niveaux depuis le 10/10/2026 : Super Admin et Admin (menu IA en lecture seule).
+      return { accountId: g.accountId, fullName: a?.fullName ?? '', email: a?.email ?? '', status: a?.status, level: g.superAdmin ? 'super' : 'admin', superAdmin: g.superAdmin, since: g.since, grantedBy: g.grantedById, seeCosts: g.seeCosts, seeIndividual: g.seeIndividual };
     });
   }
 
@@ -576,6 +622,15 @@ export class AccountsController {
     return this.admins();
   }
 
+  /** Niveau d'un administrateur (10/10/2026) : Super Admin ou Admin ; Super Admin seulement, jamais son propre niveau. */
+  @Put('admins/:accountId/level')
+  async adminLevel(@CurrentActor() actor: Actor, @Param('accountId') accountId: string, @Body() body: unknown) {
+    const { level } = parse(z.object({ level: z.enum(['super', 'admin']) }).strict(), body);
+    if (!(await this.prisma.adminGrant.findUnique({ where: { accountId } }))) throw notFound('Administrateur introuvable');
+    await this.prisma.$transaction((db) => this.setSuper(db, actor, accountId, level === 'super'));
+    return this.admins();
+  }
+
   @Delete('admins/:accountId')
   @HttpCode(204)
   async removeAdmin(@CurrentActor() actor: Actor, @Param('accountId') accountId: string) {
@@ -583,8 +638,10 @@ export class AccountsController {
     const g = await this.prisma.adminGrant.findUnique({ where: { accountId } });
     if (!g) throw notFound('Administrateur introuvable');
     if ((await this.prisma.adminGrant.count()) <= 1) throw conflict('LAST_ADMIN', 'Il doit toujours rester au moins un administrateur');
+    await this.guardSuper(actor, accountId);
     const a = await this.one(accountId);
     await this.prisma.$transaction(async (db) => {
+      await this.setSuper(db, actor, accountId, false);
       await db.adminGrant.delete({ where: { accountId } });
       await this.audit.action(db, adminCtx(actor), { action: 'Retrait d’un administrateur', target: a.fullName, severity: 'CRITICAL', entityType: 'AdminGrant', entityId: accountId });
     });

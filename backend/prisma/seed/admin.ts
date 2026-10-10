@@ -119,7 +119,8 @@ export async function seedAdmin(db: PrismaClient): Promise<void> {
     }
   }
   // Administrateur (habilitation h02 de rise-data + admins[] de la console).
-  await db.adminGrant.create({ data: { accountId: 'u1', since: new Date('2025-01-14T08:00:00Z') } });
+  // Administrateur du jeu de démonstration : Super Admin (10/10/2026), comme le compte initial d'une installation.
+  await db.adminGrant.create({ data: { accountId: 'u1', since: new Date('2025-01-14T08:00:00Z'), superAdmin: true } });
 
   // Sessions de l'administrateur connecté (`sess`).
   await db.authSession.createMany({

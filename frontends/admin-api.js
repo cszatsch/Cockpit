@@ -129,7 +129,7 @@ export function errText(e) {
 // ───────────────────────────── Adaptateurs ─────────────────────────────
 
 const AV = ['#10233a', '#1d8f86', '#43586a', '#0f5f5a', '#5c7280', '#2c4a63'];
-export const PROFILE = { ADMIN: 'admin', PMO: 'pmo', RESPONSABLE: 'resp', LECTEUR: 'lec' };
+export const PROFILE = { SUPER_ADMIN: 'super', ADMIN: 'admin', PMO: 'pmo', RESPONSABLE: 'resp', LECTEUR: 'lec' };
 export const STATUS = { ACTIVE: 'actif', INVITED: 'invité', SUSPENDED: 'suspendu' };
 export const SEV = { INFO: 'info', SENSITIVE: 'sensible', CRITICAL: 'critique' };
 export const PROV_ST = { OK: 'ok', ERROR: 'err', UNTESTED: 'new' };
@@ -153,11 +153,11 @@ export function toUser(a, i = 0) {
   const hab = Object.fromEntries((a.habilitations || []).map(h => [h.code, { pmo: !!h.pmo, ws: Object.fromEntries([...(h.lecteur || []).map(w => [w, 'lec']), ...(h.responsable || []).map(w => [w, 'resp'])]) }]));
   // Référentiel du projet (personne liée) : proposition Responsable / Lecteur et chantiers de rattachement.
   const ref = Object.fromEntries((a.referentiel || []).map(r => [r.code, { personne: r.personne, active: r.active !== false, resp: r.proposition.responsable, lec: r.proposition.lecteur, att: r.rattachement, ecarts: r.ecarts }]));
-  return { id: a.id, n: a.fullName, e: a.email, refMail: a.emailReferentiel || null, p: PROFILE[a.profile] || null, profs: (a.profiles || []).map(p => PROFILE[p]).filter(Boolean), adm: !!a.admin, hab, ref, s, ll, inv: s === 'invité' ? Math.max(0, a.invitedDays || 0) : null,
+  return { id: a.id, n: a.fullName, e: a.email, refMail: a.emailReferentiel || null, p: PROFILE[a.profile] || null, profs: (a.profiles || []).map(p => PROFILE[p]).filter(Boolean), adm: !!a.admin, sup: !!a.superAdmin, hab, ref, s, ll, inv: s === 'invité' ? Math.max(0, a.invitedDays || 0) : null,
     pr: [...(a.projectCodes || [])], lt: ll === 0 && last ? p2(last.getHours()) + ':' + p2(last.getMinutes()) : '', av: AV[i % AV.length], _v: a.version };
 }
 /** Administrateur → `{ u, lv:'admin', since }` (un seul niveau, brief § 5). */
-export const toAdmin = a => ({ u: a.accountId, lv: 'admin', since: D(a.since), rc: a.seeCosts !== false, ri: a.seeIndividual !== false });
+export const toAdmin = a => ({ u: a.accountId, lv: a.level === 'super' ? 'super' : 'admin', since: D(a.since), rc: a.seeCosts !== false, ri: a.seeIndividual !== false });
 /** Entrée d'audit → `{ id, who, a, tg, sev, t }`. */
 export const toAudit = a => ({ id: a.id, who: a.who, a: a.action, tg: a.target || [a.entityType, a.entityId].filter(Boolean).join(' · '), sev: SEV[a.severity] || 'info', t: D(a.at) });
 /** Fournisseur → `{ id, n, pre, l4, st, lat, t, err }` (jamais de clé en clair). */
@@ -220,7 +220,7 @@ export const toReq = r => ({ id: r.id, m: r.moduleId, who: r.requestedBy, p: r.p
 /** Profil de l'administrateur → `prof`. */
 export const toProf = me => { const p = me.profile || {}; return { first: me.firstName || '', last: me.lastName || '', pos: p.position || '', soc: p.company || '', team: p.team || '', mail: me.email, tel: p.phone || '', city: p.city || '', country: p.country || 'France', lang: p.language || 'Français', tz: p.timezone || 'Europe/Paris (UTC+2)' }; };
 /** Données du profil hors formulaire (08/10/2026) : droits, projets, rôles, affectations, compteurs, dates. */
-export const toMeInfo = me => ({ admin: me.admin !== false, adminSince: me.adminSince || null, lastLoginAt: me.lastLoginAt || null, updatedAt: me.updatedAt || null, team: me.team || null, myActions: me.myActions || null, projects: me.projects || [] });
+export const toMeInfo = me => ({ id: me.id || null, admin: me.admin !== false, superAdmin: !!me.superAdmin, adminSince: me.adminSince || null, lastLoginAt: me.lastLoginAt || null, updatedAt: me.updatedAt || null, team: me.team || null, myActions: me.myActions || null, projects: me.projects || [] });
 export const fromProf = d => ({ firstName: d.first.trim(), lastName: d.last.trim(), email: d.mail.trim(), position: d.pos || '', company: d.soc || '', team: d.team || '', phone: d.tel || '', city: d.city || '', country: d.country || '', language: d.lang || '', timezone: d.tz || '' });
 
 // Horloge de référence : l'instant du serveur (`DEMO_NOW` en démonstration) + temps écoulé.
@@ -636,7 +636,7 @@ export function bindConsole(c) {
     if (call) post('/accounts/' + id + call).then(a => { repl('users', id, userFrom(a)); touch(); }).catch(e => { fail(e); load(['accounts']).catch(() => {}); });
   };
   // Profils multiples : invitation et modification envoient les habilitations projet par projet (PUT …/habilitations).
-  const habBody = f => ({ admin: !!f.adm, projects: (f.pr || []).map(code => { const h = (f.hab || {})[code] || { pmo: false, ws: {} }, ws = Object.entries(h.ws || {});
+  const habBody = f => ({ admin: !!f.adm, superAdmin: !!f.adm && !!f.sup, projects: (f.pr || []).map(code => { const h = (f.hab || {})[code] || { pmo: false, ws: {} }, ws = Object.entries(h.ws || {});
     return { code, pmo: !!h.pmo, responsable: h.pmo ? [] : ws.filter(([, v]) => v === 'resp').map(([w]) => w), lecteur: h.pmo ? [] : ws.filter(([, v]) => v === 'lec').map(([w]) => w) }; }) });
   c.saveUser = async () => {
     const S = c.state, f = S.form, fe = {}, id = S.dlg.id;
@@ -689,6 +689,8 @@ export function bindConsole(c) {
   c.setUsageRights = async (a, body) => {
     try { const r = await put('/admins/' + encodeURIComponent(a.u) + '/consumption-rights', body); set0(s => ({ admins: s.admins.map(x => x.u === a.u ? { ...x, rc: r.seeCosts, ri: r.seeIndividual } : x) })); toast('Droits de consommation mis à jour · ' + ((c.uById(a.u) || {}).n || '')); touch(); } catch (e) { fail(e); }
   };
+  // Niveau d'un administrateur (10/10/2026) : Super Admin ou Admin.
+  c.setAdminLv = gateAsk('setAdminLv', (a, lv) => put('/admins/' + encodeURIComponent(a.u) + '/level', { level: lv }).then(list => () => { set0({ admins: list.map(toAdmin) }); load(['accounts']).catch(() => {}); }));
   c.removeAdmin = gateAsk('removeAdmin', a => del('/admins/' + a.u).then(() => () => load(['accounts']).catch(() => {})));
   c.exportAudit = async () => {
     const S = c.state, q = new URLSearchParams();

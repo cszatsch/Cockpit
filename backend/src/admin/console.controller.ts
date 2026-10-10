@@ -234,6 +234,8 @@ export class ConsoleController implements OnModuleInit {
       id: a.id, firstName, lastName: rest.join(' '), fullName: a.fullName, email: a.email, photoUrl: a.photoUrl, profile: a.profile ?? {}, adminSince: grant?.since ?? null,
       notifications: prefs?.notifications ?? { crit: true, budget: true, req: true, hebdo: true, fail: false }, version: a.version,
       admin: rights.admin,
+      // Super Admin (10/10/2026) : l'écran masque les commandes de modification du menu IA aux autres administrateurs.
+      superAdmin: !!grant?.superAdmin,
       lastLoginAt: a.lastLoginAt,
       updatedAt: lastEdit?.at ?? null,
       // Équipe : celle de la personne du référentiel (premier projet où elle en a une).

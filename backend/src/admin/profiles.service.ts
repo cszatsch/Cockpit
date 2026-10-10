@@ -35,6 +35,8 @@ const RANK: Record<ProfileCode, number> = { ADMIN: 4, PMO: 3, RESPONSABLE: 2, LE
 
 export interface AccountRights {
   admin: boolean;
+  /** Super Admin de la Console (10/10/2026). */
+  superAdmin: boolean;
   /** Profils par projet : { RISE: { pmo, responsable[], lecteur[] } } */
   projects: Record<string, { pmo: boolean; responsable: string[]; lecteur: string[] }>;
   /** Profil le plus fort (affiché par la console, RG5). */
@@ -104,7 +106,7 @@ export class ProfilesService {
   }
 
   async rightsOf(accounts: Account[], db: Tx = this.prisma): Promise<Map<string, AccountRights>> {
-    const grants = new Set((await db.adminGrant.findMany()).map((g) => g.accountId));
+    const all = await db.adminGrant.findMany(), grants = new Set(all.map((g) => g.accountId)), supers = new Set(all.filter((g) => g.superAdmin).map((g) => g.accountId));
     const emails = accounts.map((a) => a.email.toLowerCase());
     const persons = await db.person.findMany({ where: { email: { in: emails, mode: 'insensitive' } }, select: { id: true, email: true, projectId: true } });
     const personIds = [...new Set([...persons.map((p) => p.id), ...accounts.map((a) => a.personId).filter(Boolean) as string[]])];
@@ -113,7 +115,7 @@ export class ProfilesService {
     for (const a of accounts) {
       const mine = new Set<string>(persons.filter((p) => p.email.toLowerCase() === a.email.toLowerCase()).map((p) => p.id));
       if (a.personId) mine.add(a.personId);
-      const r: AccountRights = { admin: grants.has(a.id), projects: {}, strongest: null };
+      const r: AccountRights = { admin: grants.has(a.id), superAdmin: supers.has(a.id), projects: {}, strongest: null };
       for (const h of habs) {
         if (h.accountId !== a.id && !(h.personId && mine.has(h.personId))) continue;
         const pr = (r.projects[h.projectId] ??= { pmo: false, responsable: [], lecteur: [] });

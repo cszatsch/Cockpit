@@ -1168,6 +1168,9 @@ model AdminGrant {
   seeCosts      Boolean  @default(true)
   /// Droit « Voir les données individuelles » (sinon noms pseudonymisés, niveau Utilisateur désactivé)
   seeIndividual Boolean  @default(true)
+  /// Super Admin (10/10/2026) : tous les droits de la Console ; l'Admin consulte le menu IA sans le modifier, et seul un
+  /// Super Admin attribue ce profil ou agit sur le compte d'un Super Admin.
+  superAdmin    Boolean  @default(false)
 }
 
 model AuthSession {

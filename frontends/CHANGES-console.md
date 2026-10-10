@@ -741,3 +741,14 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
 - Accès : coûts d'IA identiques à ceux de Consommation et coûts › IA ; ligne « Tests et démonstration » (appels des comptes de
   démonstration), traitée comme « Tâches automatiques » (pas d'initiales, jamais retenue comme équipe par défaut) ; filtre Projet
   de nouveau complet. Vue IA et vue Accès : sans les appels simulés par le bouchon.
+
+## Profil Super Admin (10/10/2026)
+
+- Profils : « Super Admin » (tous les droits de la Console) avant « Admin » (menu IA en lecture seule) ; interrupteur « Super
+  Admin » dans « Modifier le compte », proposé au seul Super Admin ; Administrateurs : niveaux Super Admin / Admin (sélecteur
+  du Super Admin), comptes de Super Admin non modifiables par un Admin.
+- Menu IA pour l'Admin : bandeau « Lecture seule : modification réservée au Super Admin. » ; Fournisseurs et modèles sans
+  Ajouter, Tester, Remplacer la clé, Plafond, Mettre à jour les mesures, Ajouter un modèle, Modifier (sélecteurs d'affectation et
+  interrupteurs « Actif » inactifs) ; Consommation et coûts › IA : plafonds et seuils non modifiables ; Guide utilisateur :
+  réglages de recherche de Jev non modifiables ; Vue d'ensemble : « Voir les fournisseurs » au lieu de « Remplacer la clé ».
+- Le compte connecté est reconnu par son identifiant réel (Administrateurs, fiche utilisateur), et non plus par `u1`.

@@ -324,7 +324,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
            un plan d'empilement à part, peint sous l'en-tête collant (z-index 40) : le haut des fenêtres (fiche d'un modèle)
            était masqué par l'en-tête. Même règle pour les autres écrans animés. -->
       <div data-screen-label="Fournisseurs et modèles" style="animation:fade .35s ease-out backwards">
-        <dc-import name="Fournisseurs et modeles" data="{{ fmData }}" api="{{ fmApi }}" focus-key="{{ fpKey }}" hint-size="100%,2200px"></dc-import>
+        <dc-import name="Fournisseurs et modeles" data="{{ fmData }}" api="{{ fmApi }}" focus-key="{{ fpKey }}" read-only="{{ aiRo }}" hint-size="100%,2200px"></dc-import>
       </div>
     </sc-if>
     <!-- API : Consommation et coûts · Accès (brief du 08/10/2026) ; en-tête générique masqué, le composant a le sien
@@ -338,7 +338,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
       <!-- API : /usage/month, /usage/daily, /usage/calls, /usage/calls.csv, /budget-thresholds (Consommation et couts.dc.html, admin-api.js → consoApi).
            Pas d'animation à transformation maintenue : elle ferait de ce bloc le repère des éléments position:fixed (toast). -->
       <div data-screen-label="Consommation et coûts" style="animation:fade .35s ease-out backwards">
-        <dc-import name="Consommation et couts" hint-size="100%,2000px"></dc-import>
+        <dc-import name="Consommation et couts" read-only="{{ aiRo }}" hint-size="100%,2000px"></dc-import>
       </div>
     </sc-if>
     <sc-if value="{{ isLatency }}" hint-placeholder-val="{{ false }}">
@@ -377,7 +377,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
     <!-- API : Guide utilisateur (Guide utilisateur.dc.html, 30/09/2026) : versions et téléchargements toujours passés, même vides ; en-tête générique masqué, le composant a le sien. -->
     <sc-if value="{{ isGuide }}" hint-placeholder-val="{{ false }}">
       <div style="{{ skWrap }}" data-screen-label="Guide utilisateur (Console)">
-        <dc-import name="Guide utilisateur" guides="{{ gdGuides }}" current-user="{{ gdMe }}" can-replace="{{ gdCan }}" on-download="{{ gdDownload }}" on-replace="{{ gdReplace }}" on-save-settings="{{ gdSaveSettings }}" hint-size="100%,1240px"></dc-import>
+        <dc-import name="Guide utilisateur" settings-read-only="{{ aiRo }}" guides="{{ gdGuides }}" current-user="{{ gdMe }}" can-replace="{{ gdCan }}" on-download="{{ gdDownload }}" on-replace="{{ gdReplace }}" on-save-settings="{{ gdSaveSettings }}" hint-size="100%,1240px"></dc-import>
       </div>
     </sc-if>
     <!-- API : Partager Cockpit (Partager Cockpit.dc.html, PARTAGE - specification.md, 05/10/2026) : monté une fois le contexte chargé ; en-tête générique masqué, le composant a le sien. -->
@@ -619,6 +619,10 @@ a{color:#1d8f86}a:hover{color:#146b64}
                 <button onClick="{{ du.adm.tog }}" aria-pressed="{{ du.adm.on }}" aria-label="Administrateur de la plateforme" style="{{ du.adm.sw }}"><span style="{{ du.adm.knob }}"></span></button>
                 <div style="flex:1;min-width:0"><div style="font-weight:800;font-size:13px">Administrateur de la plateforme</div><div style="font-size:12px;color:#5c7280;line-height:1.45;margin-top:1px">{{ du.adm.d }}</div></div>
               </div>
+              <sc-if value="{{ du.sup.show }}" hint-placeholder-val="{{ false }}"><div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;box-shadow:inset 0 0 0 1px #e1e9e7;background:#fff">
+                <button onClick="{{ du.sup.tog }}" aria-pressed="{{ du.sup.on }}" aria-label="Super Admin" style="{{ du.sup.sw }}"><span style="{{ du.sup.knob }}"></span></button>
+                <div style="flex:1;min-width:0"><div style="font-weight:800;font-size:13px">Super Admin</div><div style="font-size:12px;color:#5c7280;line-height:1.45;margin-top:1px">Tous les droits de la Console, dont la modification du menu IA (fournisseurs, clés, modèles, affectations, plafonds) et des autres Super Admin.</div></div>
+              </div></sc-if>
             </div>
             <div style="display:flex;flex-direction:column;gap:8px">
               <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px"><span style="font-size:11px;font-weight:800;letter-spacing:.1em;color:#8a9aa6;white-space:nowrap">ACCÈS PAR PROJET</span><span style="font-size:12px;color:#1d8f86;font-weight:700;white-space:nowrap">{{ du.prN }}</span></div>
@@ -751,10 +755,12 @@ const MODS = [
 // ── Profils multiples (29/09/2026) : habilitations d'un compte = { adm, hab: { CODE: { pmo, ws: { chantier: 'resp' | 'lec' } } } } ──
 const hasProf = (u, p) => (u.profs && u.profs.length ? u.profs : u.p ? [u.p] : []).includes(p);
 /** Profils détenus (du plus large au plus restreint) et profil le plus large. */
-const habProfs = (adm, hab) => { const H = Object.values(hab || {}), ws = H.flatMap(h => Object.values(h.ws || {}));
-  return ['admin', 'pmo', 'resp', 'lec'].filter(p => p === 'admin' ? adm : p === 'pmo' ? H.some(h => h.pmo) : H.some(h => !h.pmo) && ws.includes(p)); };
+const habProfs = (adm, hab, sup) => { const H = Object.values(hab || {}), ws = H.flatMap(h => Object.values(h.ws || {}));
+  return ['super', 'admin', 'pmo', 'resp', 'lec'].filter(p => p === 'super' ? adm && sup : p === 'admin' ? adm && !sup : p === 'pmo' ? H.some(h => h.pmo) : H.some(h => !h.pmo) && ws.includes(p)); };
 const PROFS = [
-  { id: 'admin', n: 'Admin', d: 'Gère les comptes et consulte le journal d’audit. Lecture seule sur les données métier.', lv: { auj: 1, pil: 1, com: 1, base: 1, bud: 1, ben: 1 } },
+  // Super Admin (10/10/2026) : tous les droits de la Console ; l'Admin consulte le menu IA sans le modifier.
+  { id: 'super', n: 'Super Admin', d: 'Tous les droits de la Console, dont la modification du menu IA et des administrateurs.', lv: { auj: 1, pil: 1, com: 1, base: 1, bud: 1, ben: 1 } },
+  { id: 'admin', n: 'Admin', d: 'Gère les comptes et consulte le journal d’audit. Menu IA en lecture seule.', lv: { auj: 1, pil: 1, com: 1, base: 1, bud: 1, ben: 1 } },
   { id: 'pmo', n: 'PMO', d: 'Tous les droits sur le référentiel et le transactionnel, sur tous les chantiers.', lv: { auj: 4, pil: 4, com: 4, base: 4, bud: 4, ben: 4 } },
   { id: 'resp', n: 'Responsable', d: 'Gère le transactionnel de ses chantiers. Les chantiers sont choisis par le PMO dans le Référentiel.', lv: { auj: 1, pil: 4, com: 2, base: 2, bud: 0, ben: 0 } },
   { id: 'lec', n: 'Lecteur', d: 'Consulte le transactionnel de ses chantiers. Les chantiers sont choisis par le PMO dans le Référentiel.', lv: { auj: 1, pil: 1, com: 1, base: 1, bud: 0, ben: 0 } }];
@@ -962,7 +968,7 @@ class Component extends DCLogic {
       dlg: null, dt: '', form: {}, fe: {}, toast: null, nt: NT0.map(n => ({ ...n })), ntOpen: false,
       jev: false, jm: [], jIn: '', jThink: false, jCtx: null,
       prof: { first: 'Julien', last: 'Morel', pos: 'Directeur de projet', soc: 'Onepoint', team: 'Onepoint', mail: 'julien.morel@example.com', tel: '+33 6 12 48 90 27', city: 'Paris', country: 'France', lang: 'Français', tz: 'Europe/Paris (UTC+2)' },
-      meInfo: { admin: true, adminSince: '2025-01-14', lastLoginAt: null, updatedAt: '2026-09-12T10:00:00Z', team: 'Onepoint', myActions: null, projects: [{ code: 'RISE', client: 'AMC Corp', roles: ['PMO programme', 'AMOA'], startDate: '2024-03-01', endDate: '2026-12-31', rights: ['PMO'] }, { code: 'PMS', client: 'AMC Corp', roles: ['PMO de portefeuille'], startDate: '2024-09-15', endDate: '2027-06-30', rights: ['PMO'] }] },
+      meInfo: { admin: true, superAdmin: true, adminSince: '2025-01-14', lastLoginAt: null, updatedAt: '2026-09-12T10:00:00Z', team: 'Onepoint', myActions: null, projects: [{ code: 'RISE', client: 'AMC Corp', roles: ['PMO programme', 'AMOA'], startDate: '2024-03-01', endDate: '2026-12-31', rights: ['PMO'] }, { code: 'PMS', client: 'AMC Corp', roles: ['PMO de portefeuille'], startDate: '2024-09-15', endDate: '2027-06-30', rights: ['PMO'] }] },
       pd: null, profTab: 'infos', photo: null, pn: { crit: true, budget: true, req: true, hebdo: true, fail: false },
       sess: [{ id: 's1', d: 'MacBook Pro · Chrome', l: 'Paris, France', t: 'Session actuelle', cur: true }, { id: 's2', d: 'iPhone 15 · Safari', l: 'Paris, France', t: 'Active il y a 3 h' }, { id: 's3', d: 'Windows · Edge', l: 'Lyon, France', t: 'Active il y a 2 j' }]
     };
@@ -1135,7 +1141,7 @@ class Component extends DCLogic {
   setF(k) { return e => { const v = e && e.target ? (e.target.type === 'checkbox' ? e.target.checked : e.target.value) : e; this.setState(s => ({ form: { ...s.form, [k]: v }, fe: { ...s.fe, [k]: '' } })); }; }
 
   // ——— Utilisateurs
-  openUser(u) { this.setState({ dlg: { type: 'user', id: u ? u.id : null }, form: u ? { n: u.n, e: u.e, p: u.p, pr: [...u.pr], adm: u.adm != null ? !!u.adm : u.p === 'admin', hab: JSON.parse(JSON.stringify(this.habOfUser(u))) } : { n: '', e: '', p: 'lec', pr: ['RISE'], adm: false, hab: { RISE: { pmo: false, ws: {} } } }, fe: {} }); }
+  openUser(u) { this.setState({ dlg: { type: 'user', id: u ? u.id : null }, form: u ? { n: u.n, e: u.e, p: u.p, pr: [...u.pr], adm: u.adm != null ? !!u.adm : u.p === 'admin' || u.p === 'super', sup: u.sup != null ? !!u.sup : u.p === 'super', hab: JSON.parse(JSON.stringify(this.habOfUser(u))) } : { n: '', e: '', p: 'lec', pr: ['RISE'], adm: false, hab: { RISE: { pmo: false, ws: {} } } }, fe: {} }); }
   /** Habilitations projet par projet d'un compte : celles du serveur, sinon reconstituées (démonstration : profil unique, chantiers de RISE). */
   habOfUser(u) { if (u.hab) return u.hab; const hb = this.habOf(u), out = {};
     (u.pr || []).forEach(code => { const ws = {}; if (code === 'RISE' && hb) { hb.lec.forEach(w => { ws[w] = 'lec'; }); hb.resp.forEach(w => { ws[w] = 'resp'; }); } out[code] = { pmo: u.p === 'pmo', ws }; }); return out; }
@@ -1152,12 +1158,12 @@ class Component extends DCLogic {
     const he = this.habErr(f); if (he) fe.pr = he;
     if (Object.keys(fe).length) return this.setState({ fe });
     // Démonstration : les habilitations saisies sont gardées telles quelles ; profil affiché = le plus large.
-    const hab = Object.fromEntries(f.pr.map(c => [c, (f.hab || {})[c] || { pmo: false, ws: {} }])), profs = habProfs(!!f.adm, hab), p = profs[0] || 'lec';
+    const hab = Object.fromEntries(f.pr.map(c => [c, (f.hab || {})[c] || { pmo: false, ws: {} }])), profs = habProfs(!!f.adm, hab, !!f.sup), p = profs[0] || 'lec';
     if (!id) {
-      const nu = { id: 'u' + Date.now(), n: f.n.trim(), e: f.e.trim(), p, profs, adm: !!f.adm, hab, s: 'invité', inv: 0, ll: null, pr: f.pr, av: AV[S.users.length % AV.length] };
+      const nu = { id: 'u' + Date.now(), n: f.n.trim(), e: f.e.trim(), p, profs, adm: !!f.adm, sup: !!f.adm && !!f.sup, hab, s: 'invité', inv: 0, ll: null, pr: f.pr, av: AV[S.users.length % AV.length] };
       this.setState(s => ({ users: [nu, ...s.users], dlg: null, form: {} })); this.log('Invitation d’un utilisateur', nu.n + ' · ' + profs.map(x => PN[x]).join(', ')); this.toast('Invitation envoyée à ' + nu.e); return;
     }
-    this.setState(s => ({ users: s.users.map(x => x.id === id ? { ...x, n: f.n.trim(), e: f.e.trim(), p, profs, adm: !!f.adm, hab, pr: f.pr } : x), dlg: null, form: {} }));
+    this.setState(s => ({ users: s.users.map(x => x.id === id ? { ...x, n: f.n.trim(), e: f.e.trim(), p, profs, adm: !!f.adm, sup: !!f.adm && !!f.sup, hab, pr: f.pr } : x), dlg: null, form: {} }));
     this.log('Modification des habilitations', f.n.trim() + ' · ' + profs.map(x => PN[x]).join(', '), 'sensible'); this.toast('Modifications enregistrées pour ' + f.n.trim());
   }
   setUser(id, patch) { this.setState(s => ({ users: s.users.map(x => x.id === id ? { ...x, ...patch } : x) })); }
@@ -1168,7 +1174,7 @@ class Component extends DCLogic {
 
   // ——— Administrateurs
   setUsageRights(a, body) { this.setState(s => ({ admins: s.admins.map(x => x.u === a.u ? { ...x, rc: body.seeCosts ?? x.rc, ri: body.seeIndividual ?? x.ri } : x) })); this.toast('Droits de consommation mis à jour'); }
-  setAdminLv(a, lv) { const u = this.uById(a.u); this.ask({ tone: 'danger', title: (lv === 'super' ? 'Promouvoir ' : 'Rétrograder ') + u.n + ' ?', body: lv === 'super' ? 'Un super-administrateur peut gérer les administrateurs et les clés API.' : 'Il ne pourra plus gérer les administrateurs ni les clés API.', items: [{ l: 'Niveau', a: a.lv === 'super' ? 'Administrateur' : 'Administrateur', b: lv === 'super' ? 'Administrateur' : 'Administrateur' }], cta: 'Confirmer', ok: () => { this.setState(s => ({ admins: s.admins.map(x => x.u === a.u ? { ...x, lv } : x) })); this.log('Changement de niveau administrateur', u.n + ' → ' + (lv === 'super' ? 'Administrateur' : 'Administrateur'), 'critique'); this.toast('Niveau de ' + u.n + ' mis à jour'); } }); }
+  setAdminLv(a, lv) { const u = this.uById(a.u), L = x => (x === 'super' ? 'Super Admin' : 'Admin'); this.ask({ tone: 'danger', title: (lv === 'super' ? 'Nommer ' + u.n + ' Super Admin ?' : 'Rétrograder ' + u.n + ' en Admin ?'), body: lv === 'super' ? 'Un Super Admin a tous les droits de la Console : menu IA (fournisseurs, clés, modèles, affectations, plafonds) et autres Super Admin.' : 'Il gardera l’accès à la Console, avec le menu IA en lecture seule, et ne pourra plus agir sur un Super Admin.', items: [{ l: 'Niveau', a: L(a.lv), b: L(lv) }], cta: 'Confirmer', ok: () => { this.setState(s => ({ admins: s.admins.map(x => x.u === a.u ? { ...x, lv } : x) })); this.log('Changement de niveau administrateur', u.n + ' → ' + L(lv), 'critique'); this.toast('Niveau de ' + u.n + ' mis à jour'); } }); }
   removeAdmin(a) { const u = this.uById(a.u); this.ask({ tone: 'danger', title: 'Retirer les droits d’administration de ' + u.n + ' ?', body: 'Son compte utilisateur est conservé. Il perd l’accès à cette console dès maintenant.', req: 'RETIRER', cta: 'Retirer les droits', ok: () => { this.setState(s => ({ admins: s.admins.filter(x => x.u !== a.u) })); this.log('Retrait d’un administrateur', u.n, 'critique'); this.toast(u.n + ' n’est plus administrateur'); } }); }
   saveAdmin() { const f = this.state.form; if (!f.u) return this.setState({ fe: { u: 'Choisissez un utilisateur.' } }); const u = this.uById(f.u); this.setState(s => ({ admins: [...s.admins, { u: f.u, lv: f.lv, since: nowD() }], dlg: null, form: {} })); this.log('Ajout d’un administrateur', u.n + ' · ' + (f.lv === 'super' ? 'Administrateur' : 'Administrateur'), 'critique'); this.toast(u.n + ' est désormais administrateur'); }
   exportAudit() { const L = ['Date;Auteur;Action;Cible;Niveau', ...this.state.audit.map(a => [fDT(a.t), a.who, a.a, a.tg, a.sev].join(';'))]; csvDl('journal-audit.csv', L); this.toast('Journal d’audit exporté'); }
@@ -1258,7 +1264,7 @@ class Component extends DCLogic {
   attention() {
     const S = this.state, out = [], th = this.thVals();
     S.provs.filter(p => p.st === 'err').forEach(p => { const hit = FNS.filter(f => { const m = S.models.find(x => x.id === (S.asg[f.id] || {}).p); return m && m.pv === p.id; }); const fb = hit.map(f => (S.models.find(m => m.id === S.asg[f.id].f) || {}).n).filter(Boolean);
-      out.push({ tone: 'err', t: 'Clé API ' + p.n + ' invalide depuis ' + ago(p.t).replace('il y a ', ''), d: hit.length ? '« ' + hit.map(f => f.group ? fnLabel(f) : f.n).join(', ') + ' » tourne sur son modèle de secours' + (fb.length ? ' (' + fb.join(', ') + ')' : '') + '.' : (p.err || ''), cta: 'Remplacer la clé', go: () => this.goKey(p.id) }); });
+      out.push({ tone: 'err', t: 'Clé API ' + p.n + ' invalide depuis ' + ago(p.t).replace('il y a ', ''), d: hit.length ? '« ' + hit.map(f => f.group ? fnLabel(f) : f.n).join(', ') + ' » tourne sur son modèle de secours' + (fb.length ? ' (' + fb.join(', ') + ')' : '') + '.' : (p.err || ''), cta: (S.meInfo || {}).superAdmin ? 'Remplacer la clé' : 'Voir les fournisseurs', go: () => (S.meInfo || {}).superAdmin ? this.goKey(p.id) : this.go('providers') }); });
     th.filter(t => t.on && t.pct >= t.warn).forEach(t => out.push({ tone: t.pct >= 100 ? 'err' : 'warn', t: (t.id === 'all' ? 'Budget IA' : t.n) + ' à ' + t.pct + ' % du plafond mensuel', d: t.spL + ' sur ' + t.limL + (t.over ? ' · au rythme actuel, ' + t.projL + ' fin ' + MO_L[nowD().getMonth()] + '.' : '.'), cta: 'Voir la consommation', go: () => this.go('conso') }));
     const stale = S.users.filter(u => u.s === 'invité' && u.inv > 7);
     if (stale.length) out.push({ tone: 'warn', t: stale.length + ' invitation' + (stale.length > 1 ? 's' : '') + ' sans réponse depuis plus de 7 jours', d: stale.map(u => u.n).join(', ') + '.', cta: 'Voir les invités', go: () => this.go('users', () => this.setState({ uSt: 'invité', uq: '', uPf: 'tous', uPj: 'tous' })) });
@@ -1315,13 +1321,16 @@ class Component extends DCLogic {
             st: 'height:26px;min-width:34px;padding:0 7px;border:0;border-radius:7px;font:inherit;font-size:11px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s,box-shadow .15s;background:' + c[0] + ';color:' + c[1] + ';box-shadow:' + c[2] }; }),
         sw: 'width:38px;height:22px;border-radius:999px;border:0;padding:0;position:relative;cursor:pointer;flex:none;transition:background .2s;background:' + (on ? '#1d8f86' : '#c9d5d2'), knob: 'position:absolute;top:3px;left:' + (on ? 19 : 3) + 'px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:left .2s',
         st: 'padding:12px 14px;transition:background .2s;' + (i ? 'border-top:1px solid #eef3f2;' : '') + (on ? 'background:#fff' : 'background:#fafcfb') }; });
-    const profs = habProfs(!!f.adm, Object.fromEntries(pr.map(c => [c, hab[c] || { pmo: false, ws: {} }])));
+    const profs = habProfs(!!f.adm, Object.fromEntries(pr.map(c => [c, hab[c] || { pmo: false, ws: {} }])), !!f.sup);
     const summary = !pr.length && !f.adm ? 'Rattachez au moins un projet.' : (u.n || 'Ce compte') + ' · ' + (profs.length ? profs.map(p => (PROFS.find(x => x.id === p) || {}).n).join(', ') : 'aucun profil') + (pr.length ? ' · ' + pr.join(', ') : '') + '.';
     const stT = { actif: ['Actif', '#e6f4f2', '#146b64'], 'invité': ['Invité', '#fff1dc', '#9a5a0c'], suspendu: ['Suspendu', '#eef2f1', '#5c7280'] }[u.s] || ['', '', ''];
     return { ini: (u.n || '?').split(' ').map(x => x[0]).join('').slice(0, 2).toUpperCase(), av: 'width:48px;height:48px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:15px;font-weight:800;color:#fff;background:' + (u0 ? u.av : '#1d8f86'),
       sub: u0 ? (u.e || '') + (hb && hb.team ? ' · ' + hb.team : '') : 'Nouveau compte', hasSt: !!u0, stL: stT[0], stPill: 'height:24px;padding:0 10px;border-radius:999px;font-size:11.5px;font-weight:800;display:inline-flex;align-items:center;white-space:nowrap;background:' + stT[1] + ';color:' + stT[2],
       adm: { on: !!f.adm, d: 'Accès à la Console : comptes, habilitations, IA, journal d’audit. Lecture seule sur les données de tous les projets. Se cumule avec les profils ci-dessous.', tog: () => this.setState(s => ({ form: { ...s.form, adm: !s.form.adm }, fe: { ...s.fe, pr: '' } })),
         sw: 'width:38px;height:22px;border-radius:999px;border:0;padding:0;position:relative;cursor:pointer;flex:none;transition:background .2s;background:' + (f.adm ? '#3b7dd8' : '#c9d5d2'), knob: 'position:absolute;top:3px;left:' + (f.adm ? 19 : 3) + 'px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:left .2s' },
+      // Super Admin (10/10/2026) : réglé par un Super Admin seulement, pour un compte administrateur.
+      sup: { show: !!f.adm && !!(S.meInfo || {}).superAdmin, on: !!f.sup, tog: () => this.setState(s => ({ form: { ...s.form, sup: !s.form.sup } })),
+        sw: 'width:38px;height:22px;border-radius:999px;border:0;padding:0;position:relative;cursor:pointer;flex:none;transition:background .2s;background:' + (f.sup ? '#10233a' : '#c9d5d2'), knob: 'position:absolute;top:3px;left:' + (f.sup ? 19 : 3) + 'px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:left .2s' },
       mail: u0 && u0.refMail ? { on: true, t: 'Le référentiel indique ' + u0.refMail + ' (compte : ' + u0.e + ').', btn: u0.s === 'invité' ? 'Appliquer et renvoyer l’invitation' : 'Appliquer', tt: 'Remplacer l’e-mail de connexion par celui du référentiel ; les liens envoyés à l’ancienne adresse ne serviront plus', go: () => this.applyRefMail(u0.id) } : { on: false },
       prof: [], profD: '', prN: pr.length + ' projet' + (pr.length > 1 ? 's' : '') + ' sur ' + PROJ.length, rows, summary };
   }
@@ -1337,7 +1346,7 @@ class Component extends DCLogic {
     const fresh = u.s !== 'actif' ? '#c3d0cd' : u.ll <= 7 ? '#1d8f86' : u.ll <= 14 ? '#e39a2d' : '#c2473b';
     const ws = glob || !hb ? [] : [...hb.resp.map(w => this.usChip(w, 'r', hb.WS)), ...hb.lec.map(w => this.usChip(w, 'l', hb.WS))];
     const a = u.id === 'u1' ? null : u.s === 'invité' ? ['Relancer l’invitation', () => this.resend(u), false] : u.s === 'suspendu' ? ['Réactiver', () => this.reactivate(u), false] : ['Suspendre', () => this.suspend(u), true];
-    return { on: true, close: () => this.setState({ ucId: null }), n: u.n, e: u.e, team: (hb && hb.team) || '', ini: ini(u.n), isMe: u.id === 'u1',
+    return { on: true, close: () => this.setState({ ucId: null }), n: u.n, e: u.e, team: (hb && hb.team) || '', ini: ini(u.n), isMe: u.id === ((S.meInfo || {}).id || 'u1'),
       av: 'width:54px;height:54px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:17px;font-weight:800;color:#fff;background:' + (u.s === 'suspendu' ? '#a9b7bf' : u.av),
       stL: { actif: 'Actif', 'invité': 'Invité', suspendu: 'Suspendu' }[u.s], pill: pill(t), dot: dot(t), fDot: 'width:8px;height:8px;border-radius:50%;background:' + fresh,
       last: u.s === 'invité' ? (u.inv === 0 ? 'Invité aujourd’hui' : 'Invité il y a ' + u.inv + ' j') : u.ll === 0 ? 'Connecté aujourd’hui' + (u.lt ? ' à ' + u.lt : '') : u.ll === 1 ? 'Connecté hier' : 'Dernière connexion il y a ' + u.ll + ' j',
@@ -1371,6 +1380,8 @@ class Component extends DCLogic {
       topSt: `position:sticky;top:0;z-index:40;height:60px;display:flex;align-items:center;gap:12px;padding:0 ${mode === 'mob' ? 16 : mode === 'rail' ? 28 : 44}px;background:rgba(242,246,245,.82);backdrop-filter:saturate(1.4) blur(14px);-webkit-backdrop-filter:saturate(1.4) blur(14px);border-bottom:1px solid rgba(16,35,58,.06)`,
       eyebrow: meta[0], title: meta[1], desc: meta[2], isOv: is('overview'), notOv: !is('overview') && !is('usage') && !is('skills') && !is('persona') && !is('apis') && !is('conso') && !is('latency') && !is('providers') && !is('notifs') && !is('smtp') && !is('guide') && !is('share') && !is('snaps') && !is('library') && !(is('init') && S.initStep !== 'import'), loading: S.loading, ready: !S.loading,
       healthL: errN ? errN + ' incident' + (errN > 1 ? 's' : '') : 'Opérationnelle', healthPill: pill(errN ? 'err' : 'ok'), healthDot: dot(errN ? 'err' : 'ok'), goOv: () => this.go('overview'),
+      // Menu IA : lecture seule pour l'Admin (10/10/2026) ; le Super Admin modifie.
+      aiRo: !(S.meInfo || {}).superAdmin,
       isUsers: is('users') && !S.loading, isAdmins: is('admins') && !S.loading, isUsage: is('usage') && !S.loading, isRights: is('rights') && !S.loading, isProv: is('providers') && !S.loading, isConso: is('conso') && !S.loading, isInit: is('init') && !S.loading && S.initStep === 'import',
       // Écran unique (maquette v3, 07/10/2026) : gardé monté pendant la prévisualisation (masqué), pour y revenir tel quel.
       isPrefill: is('init') && !S.loading, prefillDemo: false, initEpoch: S.initEpoch || 0, initData: S.initData || null,
@@ -1448,7 +1459,7 @@ class Component extends DCLogic {
         q: S.uq, setQ: e => this.setState({ uq: e.target.value }), pf: S.uPf, setPf: e => this.setState({ uPf: e.target.value }), pj: S.uPj, setPj: e => this.setState({ uPj: e.target.value }),
         pfOpts: PROFS.map(p => ({ v: p.id, l: p.n })), pjOpts: PROJ.map(p => ({ v: p, l: p })),
         rows: list.map(u => { const t = u.s === 'actif' ? 'ok' : u.s === 'invité' ? 'info' : 'neu', stale = u.s === 'invité' && u.inv > 7;
-          return { ...u, ini: ini(u.n), avSt: `width:34px;height:34px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:12px;font-weight:800;color:#fff;background:${u.s === 'suspendu' ? '#a9b7bf' : u.av}`, isMe: u.id === 'u1', prof: (u.profs && u.profs.length > 1 ? u.profs.map(p => PN[p]).join(' · ') : PN[u.p]) || '—', stL: { actif: 'Actif', 'invité': 'Invité', suspendu: 'Suspendu' }[u.s], pill: pill(t), dot: dot(t),
+          return { ...u, ini: ini(u.n), avSt: `width:34px;height:34px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:12px;font-weight:800;color:#fff;background:${u.s === 'suspendu' ? '#a9b7bf' : u.av}`, isMe: u.id === ((S.meInfo || {}).id || 'u1'), prof: (u.profs && u.profs.length > 1 ? u.profs.map(p => PN[p]).join(' · ') : PN[u.p]) || '—', stL: { actif: 'Actif', 'invité': 'Invité', suspendu: 'Suspendu' }[u.s], pill: pill(t), dot: dot(t),
             last: u.s === 'invité' ? (u.inv === 0 ? 'Invité aujourd’hui' : 'Invité il y a ' + u.inv + ' j') : u.ll === 0 ? 'Aujourd’hui' + (u.lt ? ', ' + u.lt : '') : u.ll === 1 ? 'Hier' : 'Il y a ' + u.ll + ' j',
             lastSt: stale ? 'font-size:12.5px;color:#8a5a12;font-weight:700' : 'font-size:12.5px;color:#43586a', stale, isInv: u.s === 'invité', isAct: u.s === 'actif' && u.id !== 'u1', isSus: u.s === 'suspendu', canDel: u.id !== 'u1',
             ...this.usRow(u), edit: e => { e && e.stopPropagation(); this.openUser(u); }, suspend: e => { e && e.stopPropagation(); this.suspend(u); }, react: e => { e && e.stopPropagation(); this.reactivate(u); }, resend: e => { e && e.stopPropagation(); this.resend(u); }, del: e => { e && e.stopPropagation(); this.removeUser(u); } }; }),
@@ -1465,12 +1476,12 @@ class Component extends DCLogic {
       vals.ad = {
         tabs: [['admins', 'Administrateurs · ' + S.admins.length], ['audit', 'Journal d’audit']].map(([k, l]) => ({ l, on: S.adTab === k, st: segSt(S.adTab === k), pick: () => this.setState({ adTab: k }) })),
         isList: S.adTab === 'admins', isAudit: S.adTab === 'audit',
-        rows: S.admins.map(a => { const u = this.uById(a.u) || { n: '?', e: '' }, me = a.u === 'u1', last = S.admins.length === 1, can = !me && !last;
-          return { n: u.n, e: u.e, ini: ini(u.n), avSt: `width:38px;height:38px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:12.5px;font-weight:800;color:#fff;background:${u.av || '#10233a'}`, me, since: 'Depuis le ' + fD(a.since), isSuper: a.lv === 'super', lvL: a.lv === 'super' ? 'Administrateur' : 'Administrateur', lvPill: a.lv === 'super' ? 'display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;font-size:11.5px;font-weight:700;background:#10233a;color:#fff;white-space:nowrap' : pill('neu'),
-            can, why: me ? 'Vous ne pouvez pas modifier vos propres droits' : last ? 'Au moins un administrateur est requis' : '', canLv: false,
+        rows: S.admins.map(a => { const u = this.uById(a.u) || { n: '?', e: '' }, me = a.u === ((S.meInfo || {}).id || 'u1'), last = S.admins.length === 1, meSup = !!(S.meInfo || {}).superAdmin, locked = a.lv === 'super' && !meSup, can = !me && !last && !locked;
+          return { n: u.n, e: u.e, ini: ini(u.n), avSt: `width:38px;height:38px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:12.5px;font-weight:800;color:#fff;background:${u.av || '#10233a'}`, me, since: 'Depuis le ' + fD(a.since), isSuper: a.lv === 'super', lvL: a.lv === 'super' ? 'Super Admin' : 'Admin', lvPill: a.lv === 'super' ? 'display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;font-size:11.5px;font-weight:700;background:#10233a;color:#fff;white-space:nowrap' : pill('neu'),
+            can, why: me ? 'Vous ne pouvez pas modifier vos propres droits' : last ? 'Au moins un administrateur est requis' : locked ? 'Compte d’un Super Admin : action réservée au Super Admin' : '', canLv: meSup && !me,
             // Consommation et coûts · Accès (08/10/2026) : droits « Voir les coûts » et « Voir les données individuelles ».
-            canUr: !me, urSeg: [['full', 'Complet', { seeCosts: true, seeIndividual: true }], ['nocost', 'Sans coûts', { seeCosts: false, seeIndividual: true }], ['anon', 'Anonymisé', { seeCosts: true, seeIndividual: false }]].map(([k, l, b]) => { const cur = a.rc === false ? 'nocost' : a.ri === false ? 'anon' : 'full'; return { l, on: cur === k, st: segSt(cur === k), pick: () => cur !== k && this.setUsageRights(a, b) }; }),
-            lvSeg: [['super', 'Super-admin'], ['admin', 'Admin']].map(([k, l]) => ({ l, on: a.lv === k, st: segSt(a.lv === k), pick: () => a.lv !== k && (k === 'admin' && last ? this.toast('Au moins un super-administrateur est requis', 'err') : this.setAdminLv(a, k)) })), rm: () => this.removeAdmin(a) }; }),
+            canUr: !me && !locked, urSeg: [['full', 'Complet', { seeCosts: true, seeIndividual: true }], ['nocost', 'Sans coûts', { seeCosts: false, seeIndividual: true }], ['anon', 'Anonymisé', { seeCosts: true, seeIndividual: false }]].map(([k, l, b]) => { const cur = a.rc === false ? 'nocost' : a.ri === false ? 'anon' : 'full'; return { l, on: cur === k, st: segSt(cur === k), pick: () => cur !== k && this.setUsageRights(a, b) }; }),
+            lvSeg: [['super', 'Super Admin'], ['admin', 'Admin']].map(([k, l]) => ({ l, on: a.lv === k, st: segSt(a.lv === k), pick: () => a.lv !== k && (k === 'admin' && supers <= 1 ? this.toast('Au moins un Super Admin est requis', 'err') : this.setAdminLv(a, k)) })), rm: () => this.removeAdmin(a) }; }),
         add: () => this.setState({ dlg: { type: 'admin' }, form: { u: '', lv: 'admin' }, fe: {} }),
         sev: [['tous', 'Tout'], ['critique', 'Critique'], ['sensible', 'Sensible'], ['info', 'Info']].map(([k, l]) => ({ l, on: S.aSev === k, st: segSt(S.aSev === k), pick: () => this.setState({ aSev: k }) })),
         aq: S.aq, setAq: e => this.setState({ aq: e.target.value }), exp: () => this.exportAudit(),

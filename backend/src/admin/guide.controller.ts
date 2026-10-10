@@ -3,7 +3,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { z } from 'zod';
-import { AdminOnly, Actor, CurrentActor } from '../core/auth/auth';
+import { AdminOnly, Actor, CurrentActor, SuperAdminOnly } from '../core/auth/auth';
 import { AuditService } from '../core/audit.service';
 import { PrismaService } from '../core/prisma.service';
 import { StorageService } from '../core/storage.service';
@@ -90,6 +90,7 @@ export class GuideController {
   }
 
   /** Réglages de la recherche de Jev dans le guide de l'application (format de l'écran : délais en secondes), revalidés. */
+  @SuperAdminOnly()
   @Put(':app/settings')
   async settings(@CurrentActor() actor: Actor, @Param('app') a: string, @Body() body: unknown) {
     const app = appOf(a);

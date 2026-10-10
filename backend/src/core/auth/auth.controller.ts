@@ -76,9 +76,10 @@ export class AuthController {
       select: { profile: true },
     });
     const best = ['PMO', 'RESPONSABLE', 'LECTEUR'].find((p) => habs.some((h) => h.profile === p));
-    const roles = [...(isAdmin ? ['Administrateur'] : []), ...(best ? [PROFILE_LABEL[best]] : [])];
+    const superAdmin = isAdmin && !!(await this.prisma.adminGrant.findUnique({ where: { accountId: a.id } }))?.superAdmin;
+    const roles = [...(isAdmin ? [superAdmin ? 'Super Admin' : 'Administrateur'] : []), ...(best ? [PROFILE_LABEL[best]] : [])];
     return {
-      email: a.email, fullName: a.fullName, firstName: a.fullName.split(/\s+/)[0], roleLabel: roles.join(' · '), isAdmin,
+      email: a.email, fullName: a.fullName, firstName: a.fullName.split(/\s+/)[0], roleLabel: roles.join(' · '), isAdmin, superAdmin,
       passwordChangedAt: a.passwordChangedAt?.toISOString() ?? null,
     };
   }

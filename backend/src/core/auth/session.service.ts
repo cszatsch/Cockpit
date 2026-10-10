@@ -27,6 +27,8 @@ export interface ResolvedSession {
   session: AuthSession;
   account: Account;
   isAdmin: boolean;
+  /** Super Admin (10/10/2026). */
+  isSuperAdmin: boolean;
 }
 
 export function parseCookies(header: string | undefined): Record<string, string> {
@@ -141,8 +143,8 @@ export class SessionService {
     }
     const account = await this.prisma.account.findUnique({ where: { id: payload.sub } });
     if (!account || account.status !== 'ACTIVE') return 'ACCOUNT_INACTIVE';
-    const isAdmin = !!(await this.prisma.adminGrant.findUnique({ where: { accountId: account.id } }));
-    return { session, account, isAdmin };
+    const grant = await this.prisma.adminGrant.findUnique({ where: { accountId: account.id } });
+    return { session, account, isAdmin: !!grant, isSuperAdmin: !!grant?.superAdmin };
   }
 
   /** Session d'une surface portée par les cookies d'une requête (pages servies par le serveur). */

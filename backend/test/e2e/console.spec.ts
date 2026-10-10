@@ -86,7 +86,7 @@ describe('Console Admin — critères d’acceptation (brief Console § 13)', ()
       expect(audits.every((a) => a.severity === 'SENSITIVE' && a.profileUsed === 'ADMIN')).toBe(true);
       expect(audits.map((a) => a.newValue)).toEqual(expect.arrayContaining([
         expect.objectContaining({ avant: expect.objectContaining({ admin: false }), apres: expect.objectContaining({ admin: true }) }),
-        expect.objectContaining({ avant: expect.objectContaining({ admin: true }), apres: { admin: false, habilitations: [{ code: 'RISE', pmo: false, responsable: [ws[1]], lecteur: [] }] } }),
+        expect.objectContaining({ avant: expect.objectContaining({ admin: true }), apres: { admin: false, superAdmin: false, habilitations: [{ code: 'RISE', pmo: false, responsable: [ws[1]], lecteur: [] }] } }),
       ]));
     });
 
@@ -260,9 +260,15 @@ describe('Console Admin — critères d’acceptation (brief Console § 13)', ()
       await c.post(`${A}/admins`, { accountId: 'u13' }).expect(201);
       const other = await t.as({ accountId: 'u13' });
       await other.del(`${A}/admins/u13`).expect(409);
-      await other.del(`${A}/admins/u1`).expect(204);
-      await other.del(`${A}/admins/u13`).expect(409);
-      await other.post(`${A}/admins`, { accountId: 'u1' }).expect(201);
+      // Super Admin (10/10/2026) : un Admin ne retire pas un Super Admin ; u13 est d'abord nommé Super Admin par u1.
+      await other.del(`${A}/admins/u1`).expect(403);
+      await c.put(`${A}/admins/u13/level`, { level: 'super' }).expect(200);
+      const other2 = await t.as({ accountId: 'u13' });
+      await other2.del(`${A}/admins/u1`).expect(204);
+      await other2.del(`${A}/admins/u13`).expect(409);
+      await other2.post(`${A}/admins`, { accountId: 'u1' }).expect(201);
+      await other2.put(`${A}/admins/u1/level`, { level: 'super' }).expect(200);
+      await c.put(`${A}/admins/u13/level`, { level: 'admin' }).expect(200);
     });
   });
 

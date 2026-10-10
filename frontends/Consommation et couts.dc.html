@@ -71,8 +71,8 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}input[type
         <div style="display:flex;flex-direction:column;gap:6px"><div style="position:relative;height:6px;border-radius:3px;background:#eef3f2"><span style="{{ r.projSt }}"></span><span style="{{ r.curSt }}"></span><span style="{{ r.alSt }}"></span></div><span style="font-size:10.5px;color:#8a9aa6;font-variant-numeric:tabular-nums">{{ r.pctL }}</span></div>
         <span style="{{ r.stSt }}">{{ r.stL }}</span>
         <div onClick="{{ stop }}" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;padding-top:12px;border-top:1px solid #edf2f1;cursor:default">
-          <span style="display:flex;align-items:center;gap:4px"><input type="number" min="0" value="{{ r.pl }}" onChange="{{ r.setPl }}" aria-label="Plafond" style="width:56px;height:30px;padding:0 7px;border:1px solid #d5dfdd;border-radius:8px;text-align:right;font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums;outline:none" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.14)"></input><span style="color:#8a9aa6;font-size:11.5px">€</span></span>
-          <span style="display:flex;align-items:center;gap:2px"><button onClick="{{ r.alDn }}" aria-label="Baisser l’alerte" style="width:22px;height:22px;border:0;border-radius:6px;background:#f1f5f4;cursor:pointer;font-weight:800;font-size:12px;color:#43586a" style-hover="background:#e3ebe9">−</button><span style="width:38px;text-align:center;font-size:11.5px;font-weight:800;color:#a8670f;font-variant-numeric:tabular-nums">{{ r.alL }}</span><button onClick="{{ r.alUp }}" aria-label="Monter l’alerte" style="width:22px;height:22px;border:0;border-radius:6px;background:#f1f5f4;cursor:pointer;font-weight:800;font-size:12px;color:#43586a" style-hover="background:#e3ebe9">+</button></span>
+          <span style="display:flex;align-items:center;gap:4px"><input type="number" min="0" value="{{ r.pl }}" onChange="{{ r.setPl }}" readOnly="{{ ro }}" aria-label="Plafond" style="width:56px;height:30px;padding:0 7px;border:1px solid #d5dfdd;border-radius:8px;text-align:right;font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums;outline:none" style-focus="border-color:#1d8f86;box-shadow:0 0 0 3px rgba(29,143,134,.14)"></input><span style="color:#8a9aa6;font-size:11.5px">€</span></span>
+          <span style="display:flex;align-items:center;gap:2px"><sc-if value="{{ canEdit }}" hint-placeholder-val="{{ true }}"><button onClick="{{ r.alDn }}" aria-label="Baisser l’alerte" style="width:22px;height:22px;border:0;border-radius:6px;background:#f1f5f4;cursor:pointer;font-weight:800;font-size:12px;color:#43586a" style-hover="background:#e3ebe9">−</button></sc-if><span style="width:38px;text-align:center;font-size:11.5px;font-weight:800;color:#a8670f;font-variant-numeric:tabular-nums">{{ r.alL }}</span><sc-if value="{{ canEdit }}" hint-placeholder-val="{{ true }}"><button onClick="{{ r.alUp }}" aria-label="Monter l’alerte" style="width:22px;height:22px;border:0;border-radius:6px;background:#f1f5f4;cursor:pointer;font-weight:800;font-size:12px;color:#43586a" style-hover="background:#e3ebe9">+</button></sc-if></span>
         </div>
       </div>
     </sc-for>
@@ -80,11 +80,12 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}input[type
 
   <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:-10px;font-size:11.5px;color:#6b7f8c">
     <span style="white-space:nowrap">Budget global : plafond</span>
-    <span style="display:flex;align-items:center;gap:4px"><input type="number" min="0" value="{{ g.pl }}" onChange="{{ g.setPl }}" aria-label="Plafond global" style="width:64px;height:28px;padding:0 7px;border:1px solid #d5dfdd;border-radius:8px;text-align:right;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;outline:none;background:#fff" style-focus="border-color:#1d8f86"></input>€</span>
+    <span style="display:flex;align-items:center;gap:4px"><input type="number" min="0" value="{{ g.pl }}" onChange="{{ g.setPl }}" readOnly="{{ ro }}" aria-label="Plafond global" style="width:64px;height:28px;padding:0 7px;border:1px solid #d5dfdd;border-radius:8px;text-align:right;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;outline:none;background:#fff" style-focus="border-color:#1d8f86"></input>€</span>
     <span style="white-space:nowrap">· alerte</span>
-    <span style="display:flex;align-items:center;gap:2px"><button onClick="{{ g.alDn }}" aria-label="Baisser l’alerte globale" style="width:22px;height:22px;border:0;border-radius:6px;background:#e3ebe9;cursor:pointer;font-weight:800;font-size:12px;color:#43586a">−</button><span style="width:38px;text-align:center;font-weight:800;color:#a8670f;font-variant-numeric:tabular-nums">{{ g.alL }}</span><button onClick="{{ g.alUp }}" aria-label="Monter l’alerte globale" style="width:22px;height:22px;border:0;border-radius:6px;background:#e3ebe9;cursor:pointer;font-weight:800;font-size:12px;color:#43586a">+</button></span>
+    <span style="display:flex;align-items:center;gap:2px"><sc-if value="{{ canEdit }}" hint-placeholder-val="{{ true }}"><button onClick="{{ g.alDn }}" aria-label="Baisser l’alerte globale" style="width:22px;height:22px;border:0;border-radius:6px;background:#e3ebe9;cursor:pointer;font-weight:800;font-size:12px;color:#43586a">−</button></sc-if><span style="width:38px;text-align:center;font-weight:800;color:#a8670f;font-variant-numeric:tabular-nums">{{ g.alL }}</span><sc-if value="{{ canEdit }}" hint-placeholder-val="{{ true }}"><button onClick="{{ g.alUp }}" aria-label="Monter l’alerte globale" style="width:22px;height:22px;border:0;border-radius:6px;background:#e3ebe9;cursor:pointer;font-weight:800;font-size:12px;color:#43586a">+</button></sc-if></span>
     <span style="{{ g.stSt }}">{{ g.stL }}</span>
     <span style="flex:1"></span>
+    <sc-if value="{{ ro }}" hint-placeholder-val="{{ false }}"><div role="note" style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;background:#eef3f6;color:#43586a;font-size:12.5px;font-weight:600"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 018 0v4"></path></svg>Lecture seule : modification réservée au Super Admin.</div></sc-if>
     <span style="color:#8a9aa6;white-space:nowrap">Cliquez une fonction pour filtrer le graphique et le journal.</span>
   </div>
 
@@ -115,7 +116,7 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}input[type
 </div>
 <sc-if value="{{ toast.open }}" hint-placeholder-val="{{ false }}"><div style="position:fixed;left:50%;bottom:28px;transform:translateX(-50%);z-index:80;display:flex;align-items:center;gap:10px;padding:11px 16px 11px 13px;border-radius:13px;background:#0e2135;color:#e8f0f3;font-size:12.5px;font-weight:600;box-shadow:0 20px 40px -16px rgba(14,33,53,.6);animation:pop .2s ease-out both"><span style="width:7px;height:7px;border-radius:50%;background:#3fd1c1;box-shadow:0 0 0 3px rgba(63,209,193,.2)"></span>{{ toast.msg }}</div></sc-if>
 </x-dc>
-<script type="text/x-dc" data-dc-script>
+<script type="text/x-dc" data-dc-script data-props="{&quot;readOnly&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;boolean&quot;}}">
 // Consommation et coûts (livraison du 02/10/2026, CONSO - specification.md) : fusion de « Vue générale des coûts » et du
 // « Journal consommation et coûts ». Données : admin-api.js (consoApi) — GET /usage/month (budget du mois civil, plafonds),
 // /usage/daily (activité de la période), /usage/calls (journal paginé), /usage/calls.csv (export), PUT /budget-thresholds.
@@ -248,14 +249,16 @@ class Component extends DCLogic {
   }
 
   renderVals() {
+    // Lecture seule (Admin, 10/10/2026) : plafonds et seuils affichés, non modifiables ; le serveur refuse de toute façon (403).
+    const RO = !!this.props.readOnly;
     const st = this.state, h = React.createElement, M = this._m;
     const per = PER.find(p => p[0] === st.period), r = this.range(st.period);
     // Plafond désactivé = sans plafond (statut NO_LIMIT du serveur) ; saisie en cours prioritaire jusqu'à l'enregistrement.
     const thr = id => { const t = (M && M.thresholds.find(x => x.id === id)) || { limitEur: null, warnPct: 80, spent: 0, projection: 0 }; return { ...t, limitEur: t.enabled === false ? null : t.limitEur, ...(st.edit[id] || {}) }; };
     const statusOf = (proj, cap, al) => { if (!cap) return ['Sans plafond', '#5c7280', '#eef3f2']; const p = proj / cap * 100; return p >= 100 ? ['Dépassement projeté', '#c2492f', '#fdeeea'] : p > al ? ['Alerte projetée', '#a8670f', '#fdf3e1'] : ['Sous le plafond', '#1d8f86', '#e4f4f1']; };
     const pillSt = s => `display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;font-size:11px;font-weight:800;white-space:nowrap;color:${s[1]};background:${s[2]};align-self:flex-start`;
-    const setPl = id => e => { const v = parseFloat(String(e.target.value).replace(',', '.')); this.setCap(id, { limitEur: v > 0 ? v : null }, 700); };
-    const alStep = (id, d) => () => { const t = thr(id); this.setCap(id, { warnPct: Math.min(100, Math.max(50, (t.warnPct || 80) + d)) }); };
+    const setPl = id => e => { if (RO) return; const v = parseFloat(String(e.target.value).replace(',', '.')); this.setCap(id, { limitEur: v > 0 ? v : null }, 700); };
+    const alStep = (id, d) => () => { if (RO) return; const t = thr(id); this.setCap(id, { warnPct: Math.min(100, Math.max(50, (t.warnPct || 80) + d)) }); };
     const hatch = c => `repeating-linear-gradient(-45deg,${c}66 0 3px,${c}22 3px 6px)`;
     const periods = PER.map(p => { const on = p[0] === st.period; return { l: p[1], on, pick: () => this.setPeriod(p[0]), st: `height:30px;padding:0 12px;border:0;border-radius:9px;font-size:12.5px;font-weight:${on ? 800 : 600};cursor:pointer;background:${on ? '#fff' : 'transparent'};color:${on ? '#10233a' : '#5c7280'};box-shadow:${on ? '0 1px 2px rgba(16,35,58,.08)' : 'none'};white-space:nowrap;transition:background .15s` }; });
 
@@ -386,6 +389,7 @@ class Component extends DCLogic {
     };
     const f = fsel || { n: 'Toutes fonctions', c: teal };
     return {
+      ro: RO, canEdit: !RO,
       periods, g, modes, chart: st.mode === 'budget' ? cumul() : bars(st.mode),
       head: st.mode === 'budget' ? `${MOIS_L[mo]} · dépense cumulée, plafond et projection` : `${range}${ann ? ' · ' + ann : ''}`,
       periodL: per[3], k: { tok: tok(tt), inL: tok(sumIn), outL: tok(sumOut), calls: num(sumCalls), inPctL: inPct + ' %', outPctL: (tt ? 100 - inPct : 0) + ' %', inBar: `flex:${inPct || 1};background:#3fd1c1`, outBar: `flex:${tt ? 100 - inPct : 1};min-width:3px;background:#e8f0f3` },
