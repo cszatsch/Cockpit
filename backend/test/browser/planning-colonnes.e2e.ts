@@ -58,6 +58,10 @@ import { chromium, Page } from 'playwright';
   check('Phase > Sous-phase : ordre d’origine (Phase, Sous-phase, Chantier)', s.heads.join('|') === 'PHASE|SOUS-PHASE|CHANTIER', s.heads);
   const t = await level('Tous les chantiers');
   check('Tous les chantiers : ordre d’origine', t.heads.join('|') === 'PHASE|SOUS-PHASE|CHANTIER', t.heads);
+  check('Tous les chantiers : colonne Phase non renseignée', t.cells.length > 0 && t.cells.every((c) => c[0] === '—' || c[0] === ''), t.cells.slice(0, 3));
+  // Mise en forme du planning : pastille du chantier (code) puis nom.
+  const chip = await p.evaluate(() => { const r = document.querySelector('[data-suivi-row]') as HTMLElement; const sp = Array.from(r.children)[2].querySelectorAll('span'); return sp.length >= 2 ? (sp[0] as HTMLElement).innerText.trim() : ''; });
+  check('Tous les chantiers : code du chantier en pastille (C…)', /^C\d+$/.test(chip), chip);
   check('aucune erreur de page', errs.length === 0, errs);
   await b.close();
   console.log(ko ? `${ko} échec(s)` : 'Recette réussie');

@@ -408,10 +408,11 @@ a{color:#1d8f86}a:hover{color:#146b64}
             <button onClick="{{ q.ok }}" style="height:34px;padding:0 14px;border:0;border-radius:10px;background:#10233a;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer" style-hover="background:#1d3654">{{ q.okL }}</button>
           </div>
         </sc-for>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:16px;align-items:start">
+        <!-- Tuiles de même largeur et de même hauteur (11/10/2026) : min-width:0 empêche une pastille longue (« Actif sur tous les projets ») d'élargir sa colonne. -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:16px;align-items:stretch">
           <sc-for list="{{ md.list }}" as="m" hint-placeholder-count="2">
-            <div style="background:#fff;border:1px solid #e1e9e7;border-radius:18px;box-shadow:0 1px 2px rgba(16,35,58,.04);padding:22px;display:flex;flex-direction:column;gap:16px">
-              <div style="display:flex;align-items:flex-start;gap:12px"><div style="min-width:0;flex:1"><div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#5c7280">Module optionnel</div><div style="font-size:22px;font-weight:800;font-style:italic;letter-spacing:-.02em;margin-top:4px">{{ m.n }}</div><div style="font-size:13px;color:#43586a;margin-top:4px;text-wrap:pretty">{{ m.d }}</div></div><span style="{{ m.pill }}"><span style="{{ m.dot }}"></span>{{ m.stL }}</span></div>
+            <div data-module-tile style="min-width:0;background:#fff;border:1px solid #e1e9e7;border-radius:18px;box-shadow:0 1px 2px rgba(16,35,58,.04);padding:22px;display:flex;flex-direction:column;gap:16px">
+              <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap"><div style="min-width:0;flex:1"><div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#5c7280">Module optionnel</div><div style="font-size:22px;font-weight:800;font-style:italic;letter-spacing:-.02em;margin-top:4px">{{ m.n }}</div><div style="font-size:13px;color:#43586a;margin-top:4px;text-wrap:pretty">{{ m.d }}</div></div><span style="{{ m.pill }}"><span style="{{ m.dot }}"></span>{{ m.stL }}</span></div>
               <div role="radiogroup" aria-label="Portée de {{ m.n }}" style="display:flex;gap:2px;padding:3px;border-radius:11px;background:#e5edeb;align-self:flex-start;flex-wrap:wrap"><sc-for list="{{ m.seg }}" as="o" hint-placeholder-count="3"><button role="radio" aria-checked="{{ o.on }}" onClick="{{ o.pick }}" style="{{ o.st }}">{{ o.l }}</button></sc-for></div>
               <sc-if value="{{ m.isOff }}" hint-placeholder-val="{{ false }}"><div style="font-size:12.5px;color:#5c7280;padding:12px 14px;border-radius:12px;background:#f3f7f6">Invisible dans le Cockpit. Les utilisateurs voient le module verrouillé et peuvent demander son activation.</div></sc-if>
               <sc-if value="{{ m.isG }}" hint-placeholder-val="{{ false }}"><div style="font-size:12.5px;color:#0f5f5a;font-weight:600;padding:12px 14px;border-radius:12px;background:#e6f3f2">{{ m.gL }}. Les nouveaux projets en bénéficient automatiquement.</div></sc-if>
@@ -1142,7 +1143,7 @@ class Component extends DCLogic {
   setF(k) { return e => { const v = e && e.target ? (e.target.type === 'checkbox' ? e.target.checked : e.target.value) : e; this.setState(s => ({ form: { ...s.form, [k]: v }, fe: { ...s.fe, [k]: '' } })); }; }
 
   // ——— Utilisateurs
-  openUser(u) { this.setState({ dlg: { type: 'user', id: u ? u.id : null }, form: u ? { n: u.n, e: u.e, p: u.p, pr: [...u.pr], adm: u.adm != null ? !!u.adm : u.p === 'admin' || u.p === 'super', sup: u.sup != null ? !!u.sup : u.p === 'super', hab: JSON.parse(JSON.stringify(this.habOfUser(u))) } : { n: '', e: '', p: 'lec', pr: ['RISE'], adm: false, hab: { RISE: { pmo: false, ws: {} } } }, fe: {} }); }
+  openUser(u) { this.setState({ dlg: { type: 'user', id: u ? u.id : null }, form: u ? { n: u.n, e: u.e, p: u.p, pr: [...u.pr], adm: u.adm != null ? !!u.adm : u.p === 'admin' || u.p === 'super', sup: u.sup != null ? !!u.sup : u.p === 'super', hab: JSON.parse(JSON.stringify(this.habOfUser(u))) } : (p0 => ({ n: '', e: '', p: 'lec', pr: p0 ? [p0] : [], adm: false, hab: p0 ? { [p0]: { pmo: false, ws: {} } } : {} }))(PROJ[0]), fe: {} }); } // nouveau compte : premier projet de la base (et non plus « RISE » de la démonstration)
   /** Habilitations projet par projet d'un compte : celles du serveur, sinon reconstituées (démonstration : profil unique, chantiers de RISE). */
   habOfUser(u) { if (u.hab) return u.hab; const hb = this.habOf(u), out = {};
     (u.pr || []).forEach(code => { const ws = {}; if (code === 'RISE' && hb) { hb.lec.forEach(w => { ws[w] = 'lec'; }); hb.resp.forEach(w => { ws[w] = 'resp'; }); } out[code] = { pmo: u.p === 'pmo', ws }; }); return out; }
@@ -1330,7 +1331,7 @@ class Component extends DCLogic {
         note: h.pmo ? 'PMO : tous les droits sur le référentiel et le transactionnel, sur tous les chantiers de ' + code + '.' : !wsl.length ? 'Aucun chantier dans le référentiel de ' + code + ' : seul le profil PMO est possible pour l’instant.' : 'Choisissez au moins un chantier, ou PMO.',
         noteSt: 'padding:9px 12px;border-radius:10px;font-size:12.5px;line-height:1.45;' + (h.pmo ? 'background:#eef8f6;color:#146b64' : 'background:#fffaf1;color:#8a5a12'),
         cells: wsl.map(w => { const v = (h.ws || {})[w.id] || '', c = CHIP[v];
-          return { c: w.id, t: w.n + ' · ' + (v === 'resp' ? 'Responsable' : v === 'lec' ? 'Lecteur' : 'sans accès'), cycle: () => setHab(code, x => { const nx = v === '' ? 'lec' : v === 'lec' ? 'resp' : ''; x.ws = x.ws || {}; if (nx) x.ws[w.id] = nx; else delete x.ws[w.id]; }),
+          return { c: w.code || w.id, t: w.n + ' · ' + (v === 'resp' ? 'Responsable' : v === 'lec' ? 'Lecteur' : 'sans accès'), cycle: () => setHab(code, x => { const nx = v === '' ? 'lec' : v === 'lec' ? 'resp' : ''; x.ws = x.ws || {}; if (nx) x.ws[w.id] = nx; else delete x.ws[w.id]; }),
             st: 'height:26px;min-width:34px;padding:0 7px;border:0;border-radius:7px;font:inherit;font-size:11px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s,box-shadow .15s;background:' + c[0] + ';color:' + c[1] + ';box-shadow:' + c[2] }; }),
         sw: 'width:38px;height:22px;border-radius:999px;border:0;padding:0;position:relative;cursor:pointer;flex:none;transition:background .2s;background:' + (on ? '#1d8f86' : '#c9d5d2'), knob: 'position:absolute;top:3px;left:' + (on ? 19 : 3) + 'px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:left .2s',
         st: 'padding:12px 14px;transition:background .2s;' + (i ? 'border-top:1px solid #eef3f2;' : '') + (on ? 'background:#fff' : 'background:#fafcfb') }; });
@@ -1358,7 +1359,7 @@ class Component extends DCLogic {
     const hb = this.habOf(u), glob = u.p === 'admin' || u.p === 'pmo', t = u.s === 'actif' ? 'ok' : u.s === 'invité' ? 'info' : 'neu';
     const fresh = u.s !== 'actif' ? '#c3d0cd' : u.ll <= 7 ? '#1d8f86' : u.ll <= 14 ? '#e39a2d' : '#c2473b';
     const ws = glob || !hb ? [] : [...hb.resp.map(w => this.usChip(w, 'r', hb.WS, hb.C)), ...hb.lec.map(w => this.usChip(w, 'l', hb.WS, hb.C))];
-    const a = u.id === 'u1' ? null : u.s === 'invité' ? ['Relancer l’invitation', () => this.resend(u), false] : u.s === 'suspendu' ? ['Réactiver', () => this.reactivate(u), false] : ['Suspendre', () => this.suspend(u), true];
+    const a = u.id === ((S.meInfo || {}).id || 'u1') ? null : u.s === 'invité' ? ['Relancer l’invitation', () => this.resend(u), false] : u.s === 'suspendu' ? ['Réactiver', () => this.reactivate(u), false] : ['Suspendre', () => this.suspend(u), true];
     return { on: true, close: () => this.setState({ ucId: null }), n: u.n, e: u.e, team: (hb && hb.team) || '', ini: ini(u.n), isMe: u.id === ((S.meInfo || {}).id || 'u1'),
       av: 'width:54px;height:54px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:17px;font-weight:800;color:#fff;background:' + (u.s === 'suspendu' ? '#a9b7bf' : u.av),
       stL: { actif: 'Actif', 'invité': 'Invité', suspendu: 'Suspendu' }[u.s], pill: pill(t), dot: dot(t), fDot: 'width:8px;height:8px;border-radius:50%;background:' + fresh,
@@ -1465,6 +1466,8 @@ class Component extends DCLogic {
     }
     // Users
     if (is('users')) {
+      // Compte connecté (et non plus « u1 », compte de démonstration) : ni suspendu ni supprimé depuis sa propre ligne.
+      const meId = (S.meInfo || {}).id || 'u1';
       const q = S.uq.trim().toLowerCase(), base = S.users.filter(u => (!S.uStale || (u.s === 'actif' && u.ll > 14)) && (S.uPf === 'tous' || hasProf(u, S.uPf)) && (S.uPj === 'tous' || u.pr.includes(S.uPj)) && (!q || (u.n + ' ' + u.e).toLowerCase().includes(q))), cnt = { tous: base.length, actif: 0, 'invité': 0, suspendu: 0 }; base.forEach(u => cnt[u.s]++);
       const list = S.users.filter(u => (!S.uStale || (u.s === 'actif' && u.ll > 14)) && (S.uSt === 'tous' || u.s === S.uSt) && (S.uPf === 'tous' || hasProf(u, S.uPf)) && (S.uPj === 'tous' || u.pr.includes(S.uPj)) && (!q || (u.n + ' ' + u.e).toLowerCase().includes(q)));
       vals.us = {
@@ -1474,7 +1477,7 @@ class Component extends DCLogic {
         rows: list.map(u => { const t = u.s === 'actif' ? 'ok' : u.s === 'invité' ? 'info' : 'neu', stale = u.s === 'invité' && u.inv > 7;
           return { ...u, ini: ini(u.n), avSt: `width:34px;height:34px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:12px;font-weight:800;color:#fff;background:${u.s === 'suspendu' ? '#a9b7bf' : u.av}`, isMe: u.id === ((S.meInfo || {}).id || 'u1'), prof: (u.profs && u.profs.length > 1 ? u.profs.map(p => PN[p]).join(' · ') : PN[u.p]) || '—', stL: { actif: 'Actif', 'invité': 'Invité', suspendu: 'Suspendu' }[u.s], pill: pill(t), dot: dot(t),
             last: u.s === 'invité' ? (u.inv === 0 ? 'Invité aujourd’hui' : 'Invité il y a ' + u.inv + ' j') : u.ll === 0 ? 'Aujourd’hui' + (u.lt ? ', ' + u.lt : '') : u.ll === 1 ? 'Hier' : 'Il y a ' + u.ll + ' j',
-            lastSt: stale ? 'font-size:12.5px;color:#8a5a12;font-weight:700' : 'font-size:12.5px;color:#43586a', stale, isInv: u.s === 'invité', isAct: u.s === 'actif' && u.id !== 'u1', isSus: u.s === 'suspendu', canDel: u.id !== 'u1',
+            lastSt: stale ? 'font-size:12.5px;color:#8a5a12;font-weight:700' : 'font-size:12.5px;color:#43586a', stale, isInv: u.s === 'invité', isAct: u.s === 'actif' && u.id !== meId, isSus: u.s === 'suspendu', canDel: u.id !== meId,
             ...this.usRow(u), edit: e => { e && e.stopPropagation(); this.openUser(u); }, suspend: e => { e && e.stopPropagation(); this.suspend(u); }, react: e => { e && e.stopPropagation(); this.reactivate(u); }, resend: e => { e && e.stopPropagation(); this.resend(u); }, del: e => { e && e.stopPropagation(); this.removeUser(u); } }; }),
         empty: list.length === 0, some: list.length > 0, shown: list.length, total: S.users.length, filtered: list.length !== S.users.length,
         reset: () => this.setState({ uq: '', uSt: 'tous', uPf: 'tous', uPj: 'tous', uStale: false }), invite: () => this.openUser(),

@@ -618,3 +618,7 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 - Étiquette des barres (« 82 % · prévu 66 % ») : une barre qui occupe presque toute la largeur du graphique n'a de place ni à
   droite ni à gauche ; l'étiquette se place alors au début de la barre, sur fond blanc, au lieu d'être coupée au bord gauche
   (`labPos`). Repère `data-bar-lab` ; contrôle dans `test/browser/planning-colonnes.e2e.ts`.
+- Suivi d'avancement (11/10/2026) : « Tous les chantiers » ne renseigne plus la colonne Phase ; phase, sous-phase et chantier
+  mis en forme comme dans le planning (numéro de phase foncé, code de sous-phase gris, pastille colorée du chantier, puis le
+  nom). Contrôles dans `test/browser/planning-colonnes.e2e.ts`.
+

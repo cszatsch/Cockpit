@@ -781,4 +781,9 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
   les comptes supprimés et les comptes gardés avec leur raison, saisie « SUPPRIMER » (dialogue de confirmation existant,
   `purgeSuspended` / `purgeAsk`) ; reliée au serveur : `c.purgeSuspended` d'`admin-api.js` (`GET` / `DELETE
   /api/admin/accounts-suspended`). Recette `test/browser/comptes-suspendus.e2e.ts`.
+- Utilisateurs (11/10/2026) : « Suspendre » et « Supprimer » masqués sur la ligne du compte connecté (et non plus sur celle du
+  compte de démonstration `u1`, Julien Morel) ; invitation d'un utilisateur : premier projet de la base présélectionné (et non
+  plus « RISE ») ; pastilles des chantiers au code du chantier (C1…) et non à son identifiant (PMS-C-1).
+- Modules : tuiles de même largeur et de même hauteur (`min-width:0`, `align-items:stretch`) ; une pastille d'état longue
+  n'élargit plus sa tuile.
 
