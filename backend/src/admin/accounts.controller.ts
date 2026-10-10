@@ -12,6 +12,7 @@ import { badRequest, businessRule, conflict, forbidden, inUse, notFound, Usage }
 import { techId } from '../core/ids';
 import { parse } from '../core/http';
 import { adminCtx, ProfilesService, SUSPENSION_ACTION } from './profiles.service';
+import { ProjectDeletionService } from './project-deletion.service';
 import { proposal } from '../domain/habilitation-proposals';
 
 /** Validité d'une invitation (brief Console § 7.1). */
@@ -69,6 +70,7 @@ export class AccountsController {
     private readonly mailer: MailerService,
     private readonly today: TodayService,
     private readonly creds: CredentialsService,
+    private readonly deletion: ProjectDeletionService,
   ) {}
 
   /** E-mail d'invitation : lien à usage unique pour définir son mot de passe (pas d'inscription en libre-service). */
@@ -419,6 +421,57 @@ export class AccountsController {
       for (const b of await this.prisma.governanceBody.findMany({ where: { ...P, members: { some: { personId: p.id } } } })) out.push({ entityType: 'GOVERNANCE_BODY', id: b.id, label: `Membre de ${b.shortName}` });
     }
     return out;
+  }
+
+  // ───────────── Supprimer les comptes suspendus (Utilisateurs, 11/10/2026) ─────────────
+
+  /**
+   * Comptes suspendus : ceux qui peuvent être supprimés et ceux qui sont gardés, avec la raison — administrateur de la Console,
+   * suspendu par la suppression d'un projet encore restaurable (la restauration le réactivera), ou lié à des données (journal
+   * d'audit, responsabilités dans un projet), comme pour la suppression d'un seul compte.
+   */
+  private async suspendedTriage(actor: Actor) {
+    const accs = await this.prisma.account.findMany({ where: { status: 'SUSPENDED' }, orderBy: { fullName: 'asc' } });
+    const [grants, restorable] = await Promise.all([this.prisma.adminGrant.findMany({ select: { accountId: true } }), this.deletion.restorableSuspensions()]);
+    const admins = new Set(grants.map((g: { accountId: string }) => g.accountId));
+    const deletable: Account[] = [], kept: Array<{ id: string; fullName: string; email: string; reason: string }> = [];
+    for (const a of accs) {
+      const keep = (reason: string) => kept.push({ id: a.id, fullName: a.fullName, email: a.email, reason });
+      if (a.id === actor.accountId) continue;
+      if (admins.has(a.id)) { keep('Administrateur de la Console : retirez d’abord ses droits'); continue; }
+      if (restorable.has(a.id)) { keep(`Suspendu par la suppression du projet ${restorable.get(a.id)}, encore restaurable`); continue; }
+      const usages = await this.accountUsages(a);
+      if (usages.length) { keep(usages.slice(0, 2).map((u) => u.label).join(' · ') + (usages.length > 2 ? ` (+${usages.length - 2})` : '')); continue; }
+      deletable.push(a);
+    }
+    return { deletable, kept };
+  }
+
+  @Get('accounts-suspended')
+  async suspendedPreview(@CurrentActor() actor: Actor) {
+    const { deletable, kept } = await this.suspendedTriage(actor);
+    return { deletable: deletable.map((a) => ({ id: a.id, fullName: a.fullName, email: a.email })), kept };
+  }
+
+  /** Supprime les comptes suspendus supprimables (tri refait au moment de l'appel) ; chaque suppression est journalisée. */
+  @Delete('accounts-suspended')
+  async suspendedDelete(@CurrentActor() actor: Actor) {
+    const { deletable, kept } = await this.suspendedTriage(actor);
+    const deleted: string[] = [];
+    for (const a of deletable) {
+      try {
+        await this.prisma.$transaction(async (db) => {
+          await db.habilitation.deleteMany({ where: { accountId: a.id } });
+          await db.userPreferences.deleteMany({ where: { accountId: a.id } });
+          await db.account.delete({ where: { id: a.id } });
+          await this.audit.action(db, adminCtx(actor), { action: 'Suppression d’un utilisateur', target: `${a.fullName} · ${a.email}`, severity: 'CRITICAL', entityType: 'Account', entityId: a.id, details: { motif: 'Suppression des comptes suspendus' } });
+        });
+        deleted.push(a.id);
+      } catch {
+        kept.push({ id: a.id, fullName: a.fullName, email: a.email, reason: 'Données liées : suppression impossible' });
+      }
+    }
+    return { deleted: deleted.length, kept };
   }
 
   @Delete('accounts/:id')

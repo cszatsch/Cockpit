@@ -2035,4 +2035,23 @@ Demande du commanditaire : un risque peut concerner un chantier, plusieurs, ou t
   démonstration affiché). Cause : le chargeur `sched` d'`admin-api.js` lisait `/projects/RISE/snapshot-schedule`, RISE étant
   le projet présélectionné par l'état de démonstration de l'écran Snapshots ; tous les chargeurs du démarrage partant ensemble
   (`Promise.all`), un seul 404 bloquait tout. Le chargeur retient désormais un projet existant.
+- Règles de notification (10/10/2026) : la suppression d'un projet le retire des règles qui le ciblent (code ou identifiant) ; une
+  règle qui n'en cible plus aucun est désactivée ; état d'origine gardé dans l'archive (`patches.rules`) et rétabli à la
+  restauration. Les projets supprimés avant cette règle sont retirés au démarrage (`ProjectDeletionService.reconcileRules`).
+- Comptes et projet supprimé (rappel) : la suppression ne supprime aucun compte ; elle propose de suspendre ceux qui n'avaient
+  accès qu'à ce projet ; un compte administrateur de la Console (ex. Julien Morel, compte de démonstration `u1`) n'est jamais
+  proposé, il garde la Console.
+
+## Supprimer les comptes suspendus (11/10/2026)
+
+- Demande du commanditaire (après la suppression de RISE, 38 comptes suspendus) : action « Supprimer les comptes suspendus »
+  dans Utilisateurs (onglet « Suspendus »).
+- Règles (`AccountsController.suspendedTriage`) : sont supprimés les comptes suspendus sans lien ; sont gardés, avec la raison
+  affichée, les administrateurs de la Console (retirer d'abord leurs droits), les comptes suspendus par la suppression d'un
+  projet encore restaurable (la restauration les réactive ; supprimables après la purge de la sauvegarde, 48 h —
+  `ProjectDeletionService.restorableSuspensions`), et les comptes liés à des données (journal d'audit, responsabilités dans un
+  projet), comme pour la suppression d'un seul compte (`accountUsages`). Le compte connecté n'est jamais concerné.
+- Routes : `GET /api/admin/accounts-suspended` (aperçu : `deletable`, `kept` avec `reason`), `DELETE
+  /api/admin/accounts-suspended` (tri refait au moment de l'appel ; une entrée « Suppression d'un utilisateur » par compte).
+  Confirmation par la saisie de « SUPPRIMER ». Tests : `test/e2e/comptes-suspendus.spec.ts`.
 

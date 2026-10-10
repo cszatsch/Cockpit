@@ -330,7 +330,7 @@ export function bindConsole(c) {
     prof: async () => { const me = await get('/me/profile'); meId = me.id; return { prof: toProf(me), meInfo: toMeInfo(me), pn: { crit: true, budget: true, req: true, hebdo: true, fail: false, ...(me.notifications || {}) }, photo: me.photoUrl || null }; },
     sess: async () => ({ sess: (await get('/me/sessions')).map(toSess) }),
     // Chantiers de chaque projet, pour attribuer des chantiers en Responsable ou en Lecteur.
-    wsAll: async () => { const ps = await get('/projects'), lists = await Promise.all(ps.map(p => get('/projects/' + encodeURIComponent(p.code) + '/workstreams'))); return { apiWs: Object.fromEntries(ps.map((p, i) => [p.code, lists[i].map(w => ({ id: w.id, n: w.name }))])) }; },
+    wsAll: async () => { const ps = await get('/projects'), lists = await Promise.all(ps.map(p => get('/projects/' + encodeURIComponent(p.code) + '/workstreams'))); return { apiWs: Object.fromEntries(ps.map((p, i) => [p.code, lists[i].map(w => ({ id: w.id, n: w.name, code: w.code }))])) }; },
     projects: async () => {
       const ps = await get('/projects');
       // Listes de projets de la Console (rattachements, droits, modules) : ceux de la base, du plus ancien au plus récent.
@@ -685,6 +685,21 @@ export function bindConsole(c) {
     } catch (e) { fail(e); }
   };
   c.removeUser = gateAsk('removeUser', u => del('/accounts/' + u.id));
+  // Supprimer les comptes suspendus (11/10/2026) : le serveur fait le tri (supprimables / gardés avec la raison) et le refait
+  // au moment de supprimer.
+  c.purgeSuspended = async () => {
+    try {
+      const pv = await get('/accounts-suspended');
+      c.purgeAsk(pv.deletable.map(a => ({ id: a.id, n: a.fullName, e: a.email })), pv.kept.map(k => ({ n: k.fullName, why: k.reason })), async () => {
+        try {
+          const r = await api('DELETE', '/accounts-suspended');
+          await load(['accounts', 'admins']);
+          toast(r.deleted + ' compte' + (r.deleted > 1 ? 's' : '') + ' supprimé' + (r.deleted > 1 ? 's' : '') + (r.kept.length ? ' · ' + r.kept.length + ' gardé' + (r.kept.length > 1 ? 's' : '') : ''));
+          touch();
+        } catch (e) { fail(e); }
+      });
+    } catch (e) { fail(e); }
+  };
 
   // ── Administrateurs et audit ──
   c.saveAdmin = async () => {

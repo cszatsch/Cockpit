@@ -73,6 +73,12 @@ const CODE = process.env.RECETTE_PROJET || 'NOVA';
   await fresh.goto(`${BASE}/Console%20Admin.dc.html?as=u1`);
   await fresh.waitForTimeout(6000);
   check('la Console redémarre sans « Projet introuvable » ni squelette de chargement', (await fresh.getByText('Projet introuvable').count()) === 0 && (await fresh.getByText(/Utilisateurs actifs/i).count()) > 0);
+  // Utilisateurs : pastilles de chantiers lues dans les habilitations du serveur, jamais dans la démonstration de RISE.
+  for (let i = 0; i < 3 && (await fresh.locator('button[aria-label^="Accès"][aria-expanded="true"]').count()) === 0; i++) { await fresh.locator('button[aria-label^="Accès"][aria-expanded]').first().click(); await fresh.waitForTimeout(700); }
+  await fresh.locator('#sb-acces').getByText('Utilisateurs', { exact: true }).click();
+  await fresh.waitForTimeout(2500);
+  const demoChips = await fresh.evaluate(() => Array.from(document.querySelectorAll('span')).filter((e) => /^C\d+$/.test(e.textContent || '') && /Laurent Garnier/.test(e.closest('[role="button"], div')?.parentElement?.parentElement?.textContent || '')).length);
+  if (CODE === 'RISE') check('Utilisateurs : plus de pastilles de chantiers de RISE pour les comptes suspendus', demoChips === 0, demoChips);
   await fresh.close();
   const trash = s.locator('[data-project-trash]');
   check('« Projets supprimés » : le projet, restaurable encore 48 h', (await trash.getByText(CODE, { exact: true }).count()) === 1 && (await trash.getByText(/Restaurable encore 4[78] h/).count()) === 1);

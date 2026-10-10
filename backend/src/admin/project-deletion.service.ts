@@ -4,6 +4,7 @@ import { Actor } from '../core/auth/auth';
 import { AuditService, WriteCtx } from '../core/audit.service';
 import { PrismaService } from '../core/prisma.service';
 import { StorageService } from '../core/storage.service';
+import { config } from '../core/config';
 import { JobsService } from '../core/jobs.service';
 import { ApiError, conflict, notFound } from '../core/errors';
 import { adminCtx, SUSPENSION_ACTION } from './profiles.service';
@@ -23,7 +24,7 @@ const COUNTED: Array<[string, string]> = [
 ];
 
 interface Plan { preds: Map<string, string>; order: string[] }
-interface Archive { version: 1; projectId: string; order: string[]; tables: Record<string, unknown[]>; patches: { defaultProject: string[]; suspended: string[] } }
+interface Archive { version: 1; projectId: string; order: string[]; tables: Record<string, unknown[]>; patches: { defaultProject: string[]; suspended: string[]; rules?: Array<{ id: string; projectIds: string[]; enabled: boolean }> } }
 
 /**
  * Suppression d'un projet et sauvegarde de sécurité (Console › Projets, 10/10/2026). Toutes les données du projet sont
@@ -42,6 +43,33 @@ export class ProjectDeletionService implements OnModuleInit {
   onModuleInit() {
     this.jobs.register('projects.trash.purge', async () => { await this.purge(); });
     this.jobs.schedule('projects.trash.purge', '17 * * * *');
+    // Projets supprimés avant le 10/10/2026 (soir) : encore présents dans des règles de notification.
+    // Hors tests (tâches de fond coupées) : jamais pendant l'amorçage d'une base de test.
+    if (config.jobsEnabled) void this.reconcileRules().catch(() => undefined);
+  }
+
+  /**
+   * Retire des règles de notification les projets supprimés encore restaurables qui y figurent (suppressions faites avant que
+   * la suppression ne s'en charge) ; l'état d'origine est ajouté à l'archive pour la restauration. Idempotent.
+   */
+  async reconcileRules() {
+    let n = 0;
+    for (const t of await this.prisma.projectTrash.findMany({ where: { expiresAt: { gt: new Date() } } })) {
+      if (await this.prisma.project.findFirst({ where: { OR: [{ id: t.projectId }, { code: t.code }] } })) continue;
+      const rules = await this.prisma.notificationRule.findMany({ where: { projectIds: { hasSome: [t.code, t.projectId] } }, select: { id: true, projectIds: true, enabled: true } });
+      if (!rules.length) continue;
+      const raw = await this.storage.get(t.archiveKey);
+      if (!raw) continue;
+      const a = JSON.parse(raw.toString('utf8')) as Archive;
+      a.patches.rules = [...(a.patches.rules ?? []).filter((x) => !rules.some((r) => r.id === x.id)), ...rules];
+      await this.storage.putAt(t.archiveKey, Buffer.from(JSON.stringify(a)));
+      for (const ru of rules) {
+        const left = ru.projectIds.filter((x) => x !== t.code && x !== t.projectId);
+        await this.prisma.notificationRule.update({ where: { id: ru.id }, data: { projectIds: left, ...(left.length ? {} : { enabled: false }), version: { increment: 1 } } });
+        n++;
+      }
+    }
+    return n;
   }
 
   /** Tables touchées et ordre de suppression, lus dans le catalogue de PostgreSQL (toute nouvelle table est prise en compte). */
@@ -108,7 +136,10 @@ export class ProjectDeletionService implements OnModuleInit {
       const [r] = await this.prisma.$queryRawUnsafe<Array<{ rows: unknown[] }>>(`SELECT coalesce(json_agg(x), '[]'::json) AS rows FROM ${q(t)} x WHERE ${preds.get(t)}`, p.id);
       if (r.rows.length) tables[t] = r.rows;
     }
-    const archive: Archive = { version: 1, projectId: p.id, order, tables, patches: { defaultProject, suspended } };
+    // Règles de notification qui ciblent le projet (par code ou identifiant, 10/10/2026) : le projet en est retiré ; une règle qui
+    // n'en cible plus aucun est désactivée. État d'origine gardé pour la restauration.
+    const rules = (await this.prisma.notificationRule.findMany({ where: { projectIds: { hasSome: [p.code, p.id] } }, select: { id: true, projectIds: true, enabled: true } }));
+    const archive: Archive = { version: 1, projectId: p.id, order, tables, patches: { defaultProject, suspended, rules } };
     await this.storage.putAt(archiveKey, Buffer.from(JSON.stringify(archive)));
     const stats = { counts: Object.fromEntries(COUNTED.map(([t, k]) => [k, (tables[t] ?? []).length])), rows: Object.fromEntries(Object.entries(tables).map(([t, l]) => [t, l.length])), suspended: suspended.length };
     // 2. Suppression, des enfants vers les parents, en une transaction.
@@ -116,6 +147,10 @@ export class ProjectDeletionService implements OnModuleInit {
       await this.prisma.$transaction(async (db) => {
         for (const t of order) if (tables[t]) await db.$executeRawUnsafe(`DELETE FROM ${q(t)} WHERE ${preds.get(t)}`, p.id);
         if (defaultProject.length) await db.userPreferences.updateMany({ where: { accountId: { in: defaultProject } }, data: { defaultProject: null } });
+        for (const ru of rules) {
+          const left = ru.projectIds.filter((x) => x !== p.code && x !== p.id);
+          await db.notificationRule.update({ where: { id: ru.id }, data: { projectIds: left, ...(left.length ? {} : { enabled: false }), version: { increment: 1 } } });
+        }
         if (suspended.length) {
           await db.account.updateMany({ where: { id: { in: suspended } }, data: { status: 'SUSPENDED' } });
           await db.authSession.updateMany({ where: { accountId: { in: suspended }, revokedAt: null }, data: { revokedAt: new Date() } });
@@ -136,6 +171,17 @@ export class ProjectDeletionService implements OnModuleInit {
 
   private trashView(t: { id: string; projectId: string; code: string; name: string; deletedAt: Date; deletedBy: string; expiresAt: Date; stats: unknown }) {
     return { id: t.id, projectId: t.projectId, code: t.code, name: t.name, deletedAt: t.deletedAt, deletedBy: t.deletedBy, expiresAt: t.expiresAt, stats: t.stats };
+  }
+
+  /** Comptes suspendus par la suppression d'un projet encore restaurable (id → code du projet) : la restauration les réactive. */
+  async restorableSuspensions() {
+    const out = new Map<string, string>();
+    for (const t of await this.prisma.projectTrash.findMany({ where: { expiresAt: { gt: new Date() } } })) {
+      const raw = await this.storage.get(t.archiveKey).catch(() => null);
+      if (!raw) continue;
+      for (const id of (JSON.parse(raw.toString('utf8')) as Archive).patches.suspended) out.set(id, t.code);
+    }
+    return out;
   }
 
   /** Projets supprimés encore restaurables. */
@@ -162,6 +208,12 @@ export class ProjectDeletionService implements OnModuleInit {
       }
       if (a.patches.defaultProject.length) await db.userPreferences.updateMany({ where: { accountId: { in: a.patches.defaultProject } }, data: { defaultProject: t.code } });
       if (a.patches.suspended.length) await db.account.updateMany({ where: { id: { in: a.patches.suspended }, status: 'SUSPENDED' }, data: { status: 'ACTIVE' } });
+      // Règles de notification : le projet y revient ; une règle désactivée par la suppression retrouve son état.
+      for (const ru of a.patches.rules ?? []) {
+        const cur = await db.notificationRule.findUnique({ where: { id: ru.id }, select: { projectIds: true, enabled: true } });
+        if (!cur) continue;
+        await db.notificationRule.update({ where: { id: ru.id }, data: { projectIds: [...new Set([...cur.projectIds, t.code])], ...(!cur.projectIds.length && ru.enabled ? { enabled: true } : {}), version: { increment: 1 } } });
+      }
       await db.projectTrash.delete({ where: { id: t.id } });
       await this.audit.action(db, adminCtx(actor), { action: 'Restauration d’un projet supprimé', target: `${t.code} · ${t.name}`, severity: 'CRITICAL', entityType: 'Project', entityId: t.projectId, details: { sauvegarde: t.id, comptesReactives: a.patches.suspended.length } });
     }, { timeout: 180_000, maxWait: 30_000 });

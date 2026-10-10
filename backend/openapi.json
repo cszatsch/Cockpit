@@ -7604,6 +7604,42 @@
         ]
       }
     },
+    "/api/admin/accounts-suspended": {
+      "get": {
+        "operationId": "AccountsController_suspendedPreview",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · comptes"
+        ]
+      },
+      "delete": {
+        "operationId": "AccountsController_suspendedDelete",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · comptes"
+        ]
+      }
+    },
     "/api/admin/projects/{id}/workstreams": {
       "get": {
         "operationId": "AccountsController_workstreams",

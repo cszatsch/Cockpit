@@ -32,6 +32,10 @@ describe('Console — suppression d’un projet', () => {
     // Usage du projet dans les agrégats de la vue Accès.
     await t.db.usageEvent.create({ data: { at: new Date('2026-09-20T09:00:00Z'), accountId: SOLO, sessionId: 's-solo', feature: 'projets', kind: 'click', projectId: 'RISE' } });
     await t.app.get(PlatformUsageService).aggregate();
+    // Règles de notification ciblant RISE (avec un autre projet, ou seul).
+    const rule = (id: string, projectIds: string[]) => t.db.notificationRule.create({ data: { id, name: id, targetProfiles: ['PMO'], projectIds, modelId: 'm', prompt: 'p', subject: 's', body: 'b', frequency: 'DAILY', hour: '06:30', channels: ['APP'], enabled: true } });
+    await rule('r-rise-atlas', ['RISE', 'ATLAS']);
+    await rule('r-rise', ['RISE']);
     sup = await t.as(WHO.admin);
     adm = await t.as({ accountId: ADM });
   });
@@ -72,6 +76,9 @@ describe('Console — suppression d’un projet', () => {
     expect(await usage()).toEqual(before);
     const opts = (await sup.get(`${A}/consumption/options`).expect(200)).body;
     expect(opts.projects).toContainEqual({ id: 'RISE', code: 'RISE', name: expect.stringContaining('(supprimé)') });
+    // Règles de notification : RISE retiré ; une règle qui ne cible plus aucun projet est désactivée.
+    expect(await t.db.notificationRule.findUniqueOrThrow({ where: { id: 'r-rise-atlas' } })).toMatchObject({ projectIds: ['ATLAS'], enabled: true });
+    expect(await t.db.notificationRule.findUniqueOrThrow({ where: { id: 'r-rise' } })).toMatchObject({ projectIds: [], enabled: false });
     // Journal d'audit gardé et complété.
     expect(await t.db.auditEntry.count({ where: { action: 'Suppression d’un projet', entityId: 'RISE' } })).toBe(1);
     expect((await sup.get(`${A}/project-trash`).expect(200)).body.map((x: any) => x.code)).toEqual(['RISE']);
@@ -88,9 +95,22 @@ describe('Console — suppression d’un projet', () => {
     const total = Object.values(tr.stats.rows as Record<string, number>).reduce((a, b) => a + b, 0);
     expect((await sup.get(`${A}/projects/RISE/deletion-preview`).expect(200)).body.totalRows).toBe(total);
     expect((await t.db.account.findUniqueOrThrow({ where: { id: SOLO } })).status).toBe('ACTIVE');
+    expect(await t.db.notificationRule.findUniqueOrThrow({ where: { id: 'r-rise-atlas' } })).toMatchObject({ projectIds: ['ATLAS', 'RISE'], enabled: true });
+    expect(await t.db.notificationRule.findUniqueOrThrow({ where: { id: 'r-rise' } })).toMatchObject({ projectIds: ['RISE'], enabled: true });
     expect((await sup.get(`${A}/project-trash`).expect(200)).body).toEqual([]);
     // Le Cockpit relit le projet restauré.
     await (await t.as(WHO.pmo)).get('/api/projects/RISE/bootstrap').expect(200);
+  });
+
+  it('réconciliation : projet supprimé avant cette règle, encore dans une règle → retiré, puis rétabli à la restauration', async () => {
+    const svc = t.app.get(ProjectDeletionService);
+    const r = (await sup.del(`${A}/projects/NOVA`).send({ confirmCode: 'NOVA' }).expect(200)).body;
+    await t.db.notificationRule.update({ where: { id: 'r-rise-atlas' }, data: { projectIds: ['ATLAS', 'NOVA', 'RISE'] } });
+    expect(await svc.reconcileRules()).toBe(1);
+    expect(await svc.reconcileRules()).toBe(0);
+    expect((await t.db.notificationRule.findUniqueOrThrow({ where: { id: 'r-rise-atlas' } })).projectIds).toEqual(['ATLAS', 'RISE']);
+    await sup.post(`${A}/project-trash/${r.id}/restore`, {}).expect(201);
+    expect((await t.db.notificationRule.findUniqueOrThrow({ where: { id: 'r-rise-atlas' } })).projectIds).toEqual(['ATLAS', 'RISE', 'NOVA']);
   });
 
   it('purge : au-delà de 48 h, la sauvegarde est effacée et n’est plus restaurable', async () => {

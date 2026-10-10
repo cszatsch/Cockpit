@@ -769,3 +769,16 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
   démarrage et données de démonstration affichées (compte « Julien Morel »). Le chargeur `sched` d'`admin-api.js` retient
   désormais un projet existant (le premier de la base sinon). Contrôle dans `test/browser/suppression-projet.e2e.ts`
   (`RECETTE_PROJET=RISE`).
+- Utilisateurs : pastilles de chantiers (C1, C8…) lues dans les habilitations du serveur et nommées d'après les chantiers de la
+  base (code du chantier) — et non plus dans le référentiel de démonstration de RISE (`habOf`, `usChip`), qui faisait garder
+  leurs pastilles aux comptes suspendus après la suppression de RISE.
+- Administrateurs › Ajouter un administrateur : sans candidat (aucun compte actif sans droits d'administration), la liste le dit
+  (« invitez ou réactivez d'abord le compte ») au lieu de rester vide.
+
+## Supprimer les comptes suspendus (11/10/2026)
+
+- Utilisateurs, onglet « Suspendus » : bouton « Supprimer les comptes suspendus » (à gauche d'« Inviter »), confirmation listant
+  les comptes supprimés et les comptes gardés avec leur raison, saisie « SUPPRIMER » (dialogue de confirmation existant,
+  `purgeSuspended` / `purgeAsk`) ; reliée au serveur : `c.purgeSuspended` d'`admin-api.js` (`GET` / `DELETE
+  /api/admin/accounts-suspended`). Recette `test/browser/comptes-suspendus.e2e.ts`.
+
