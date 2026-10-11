@@ -295,7 +295,10 @@ export class ReportTemplateService implements OnModuleInit {
       case 'arbitrages': {
         // Fiches d'arbitrage (11/10/2026) : décisions qui ont une fiche — en attente d'abord (quelle que soit la période, à
         // arbitrer en tête), puis arbitrées sur la période ; ARBITRATIONS_MAX cartes, les autres citées par leur code.
-        const bodyNames = new Map((await this.prisma.governanceBody.findMany({ where: P, select: { id: true, name: true } })).map((b) => [b.id, b.name]));
+        const bodyRows = await this.prisma.governanceBody.findMany({ where: P, select: { id: true, name: true, shortName: true } });
+        const bodyNames = new Map(bodyRows.map((b) => [b.id, b.name])), bodyShort = new Map(bodyRows.map((b) => [b.id, b.shortName]));
+        const wsNames = new Map((await this.prisma.workstream.findMany({ where: P, select: { id: true, name: true } })).map((w) => [w.id, w.name]));
+        const planned = await this.prisma.session.findMany({ where: { ...P, dateIso: { gte: today } }, orderBy: { dateIso: 'asc' } });
         const all = (await this.prisma.decision.findMany({ where: { ...P, ...ws }, orderBy: { code: 'asc' } })).map((dc) => ({ dc, sum: arbitrationSummary(dc.arbitration as ArbitrationSheet | null) })).filter((x) => !!x.sum);
         const stageRank: Record<string, number> = { TO_ARBITRATE: 0, IN_REVIEW: 1, DRAFT: 2 };
         const pending = all.filter((x) => x.dc.status in stageRank).sort((a, b) => stageRank[a.dc.status] - stageRank[b.dc.status] || a.dc.code.localeCompare(b.dc.code, 'fr', { numeric: true }));
@@ -304,7 +307,16 @@ export class ReportTemplateService implements OnModuleInit {
         if (!ordered.length) warn('aucune fiche d’arbitrage en attente ni arbitrée sur la période.');
         const noScore = ordered.filter((x) => x.sum!.options.every((o) => o.score === null)).map((x) => x.dc.code);
         if (noScore.length) warn(`fiche sans note pour ${list(noScore)}.`);
-        const cards: ArbitrationCard[] = ordered.slice(0, ARBITRATIONS_MAX).map(({ dc, sum }) => ({ code: dc.code, title: dc.t, status: dc.status, body: bodyNames.get(dc.bodyId) ?? null, question: sum!.question, options: sum!.options, reco: sum!.reco, tie: sum!.tie, criteria: sum!.criteria, decided: dc.status === 'ARBITRATED' ? dc.ddIso : null }));
+        // Fiche complète (comme Pilotage › Décisions, 11/10/2026) : chantier et instance, contexte, critères justifiés,
+        // recommandation, décision attendue et séance (attendue, sinon la prochaine de l'instance).
+        const cards: ArbitrationCard[] = ordered.slice(0, ARBITRATIONS_MAX).map(({ dc, sum }) => {
+          const se = planned.find((x) => x.id === dc.expectedSessionId) ?? planned.find((x) => x.bodyId === dc.bodyId);
+          return {
+            code: dc.code, title: dc.t, status: dc.status, body: bodyNames.get(dc.bodyId) ?? null, question: sum!.question, options: sum!.options, reco: sum!.reco, tie: sum!.tie, criteria: sum!.criteria,
+            decided: dc.status === 'ARBITRATED' ? dc.ddIso : null, ws: dc.wsId ? wsNames.get(dc.wsId) ?? null : null, context: sum!.context, recBody: sum!.recBody, expectedText: sum!.expectedText,
+            session: dc.status === 'ARBITRATED' || !se ? null : { iso: se.dateIso, label: `${bodyShort.get(se.bodyId) ?? 'Séance'} · ${frDay(se.dateIso).replace(/ \d{4}$/, '')}` },
+          };
+        });
         const short = (s2: string) => frDay(s2).replace(/ \d{4}$/, '');
         parts.push({ part: 'board', board: 'arbitrations', data: { today, cards, more: ordered.slice(ARBITRATIONS_MAX).map((x) => x.dc.code), period: period.start ? `${short(period.start)} → ${frDay(period.end!)}` : null, show: Object.fromEntries(def.indicators.map((x) => [x.id, inds.includes(x.id)])) } as ArbitrationsData });
         break;

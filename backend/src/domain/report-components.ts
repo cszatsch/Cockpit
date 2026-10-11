@@ -131,8 +131,8 @@ export const STATUS_FILTERS: Partial<Record<ComponentId, Array<{ id: StatusFilte
 };
 /** Statuts retenus d'un composant (null : tous). */
 export const statusesOf = (c: ComponentConfig): StatusFilter[] | null => (c.statuses?.length && STATUS_FILTERS[c.id] ? c.statuses : null);
-/** Fiches d'arbitrage montrées sur une page (deux cartes côte à côte), les autres résumées. */
-export const ARBITRATIONS_MAX = 2;
+/** Fiches d’arbitrage par page : une fiche complète, comme Pilotage › Décisions (11/10/2026 ; deux en duel auparavant). */
+export const ARBITRATIONS_MAX = 1;
 
 // ───────────── Périodes ─────────────
 

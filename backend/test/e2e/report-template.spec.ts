@@ -306,9 +306,9 @@ describe('Cockpit — Templates de rapport : versions et publications', () => {
     await t.db.decision.update({ where: { id: dec.id }, data: { arbitration: { question: 'Faut-il internaliser la recette ?', options: [{ code: 'A', label: 'Internaliser' }, { code: 'B', label: 'Externaliser' }], criteria: [{ name: 'Coût', weightPct: 60, scoreA: 4, commentA: '', scoreB: 2, commentB: '' }, { name: 'Délai', weightPct: 40, scoreA: 2, commentA: '', scoreB: 3, commentB: '' }] } } });
     const x5 = await pptx([{ id: 'arbitrages', scope: 'PROJECT', period: 'all' }]);
     expect(x5).toContain('>Faut-il internaliser la recette ?<');
-    expect(x5).toContain('>Internaliser<');
-    expect(x5).toContain('>3,20<'); // A : (60 × 4 + 40 × 2) / 100, deux décimales
-    expect(x5).toMatch(/·\s*Recommandée</i);
+    expect(x5.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ')).toContain('Option A · Internaliser');
+    expect(x5).toContain('>3,2<'); // A : (60 × 4 + 40 × 2) / 100, une décimale comme Pilotage › Décisions
+    expect(x5).toContain('>Recommandation PMO<');
   });
 
   it('génération suivie : lancement, phases jusqu’à « prêt », fichier remis une seule fois, première génération enregistrée', async () => {

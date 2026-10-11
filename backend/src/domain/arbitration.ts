@@ -36,7 +36,7 @@ export function legacyCriteria(options: ArbOption[]): LegacyCriterion[] | null {
 /** Écart en dessous duquel deux notes sont à égalité (même seuil que la fiche 11a, `saisie-calc.js` `TIE`). */
 export const ARB_TIE = 0.005;
 /** Fiche telle que stockée (`Decision.arbitration`). */
-export interface ArbitrationSheet { question?: string | null; options?: ArbOption[]; criteria?: LegacyCriterion[]; recommendation?: string | null }
+export interface ArbitrationSheet { question?: string | null; options?: ArbOption[]; criteria?: LegacyCriterion[]; recommendation?: string | null; texts?: Record<string, string> | null }
 /** Note d'une option (0 à 4) = Σ(poids × note) / Σ(poids), sur les critères notés de poids > 0 ; null sans note. */
 export function arbScore(criteria: LegacyCriterion[], side: 'A' | 'B'): number | null {
   let W = 0, S = 0;
@@ -45,7 +45,8 @@ export function arbScore(criteria: LegacyCriterion[], side: 'A' | 'B'): number |
 }
 /**
  * Résumé d'une fiche pour un rapport (11/10/2026) : question, options A et B notées sur le barème commun, option
- * recommandée (la mieux notée ; aucune à égalité), critères par poids décroissant. null si la fiche est vide.
+ * recommandée (enregistrée, sinon la mieux notée ; aucune à égalité), critères dans l'ordre de la fiche avec leurs
+ * justifications, contexte, recommandation et décision attendue (textes de la fiche). null si la fiche est vide.
  */
 export function arbitrationSummary(a: ArbitrationSheet | null | undefined) {
   if (!a) return null;
@@ -54,11 +55,16 @@ export function arbitrationSummary(a: ArbitrationSheet | null | undefined) {
   const label = (k: 'A' | 'B') => options.find((o) => o.code === k)?.label?.trim() ?? '';
   if (!label('A') && !label('B') && !criteria.length && !a.question?.trim()) return null;
   const sA = arbScore(criteria, 'A'), sB = arbScore(criteria, 'B');
-  const reco: 'A' | 'B' | null = sA === null && sB === null ? null : Math.abs((sA ?? 0) - (sB ?? 0)) < ARB_TIE ? null : (sA ?? 0) > (sB ?? 0) ? 'A' : 'B';
+  const best: 'A' | 'B' | null = sA === null && sB === null ? null : Math.abs((sA ?? 0) - (sB ?? 0)) < ARB_TIE ? null : (sA ?? 0) > (sB ?? 0) ? 'A' : 'B';
+  // Recommandation PMO : celle enregistrée par la fiche (option la mieux notée à l'enregistrement), sinon recalculée.
+  const saved = a.recommendation === 'A' || a.recommendation === 'B' ? a.recommendation : null;
+  const tx = (k: string) => (typeof a.texts?.[k] === 'string' && a.texts[k].trim() ? a.texts[k].trim() : null);
   return {
     question: a.question?.trim() || null,
     options: (['A', 'B'] as const).map((k) => ({ code: k, label: label(k) || `Option ${k}`, score: k === 'A' ? sA : sB })),
-    reco, tie: sA !== null && sB !== null && Math.abs(sA - sB) < ARB_TIE,
-    criteria: criteria.filter((c) => c.weightPct > 0).sort((x, y) => y.weightPct - x.weightPct).map((c) => ({ name: c.name, weight: c.weightPct, a: c.scoreA, b: c.scoreB })),
+    reco: saved ?? best, tie: sA !== null && sB !== null && Math.abs(sA - sB) < ARB_TIE,
+    // Critères dans l'ordre de la fiche (comme Pilotage › Décisions), avec la justification de chaque note.
+    criteria: criteria.filter((c) => c.name?.trim()).map((c) => ({ name: c.name, weight: c.weightPct, a: c.scoreA, b: c.scoreB, at: c.commentA?.trim() || '', bt: c.commentB?.trim() || '' })),
+    context: tx('dcCtx'), recBody: tx('recBody'), expectedText: tx('deqBody'),
   };
 }

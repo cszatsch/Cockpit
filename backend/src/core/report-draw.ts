@@ -62,7 +62,7 @@ export class Draw {
 
 export interface GanttRow { /** 0 : phase (ou chantier aux niveaux chantier) ; 1 : sous-phase ou chantier dans la phase ; 2 : sous-phase du chantier (11/10/2026). */ level: 0 | 1 | 2;
   /** Nature de la ligne (niveaux du Planning, 11/10/2026). */ kind?: 'ph' | 'ch' | 'sp'; code: string; name: string; start: string; end: string; status: 'DONE' | 'IN_PROGRESS' | 'PLANNED'; progress: number; current: boolean; /** Sous-phases terminées regroupées sous la phase (planning en tableau). */ folded?: number;
-  /** Sur le chemin critique (référentiel). */ critical?: boolean; /** Atterrissage au rythme actuel / au rythme prévu (`planLandings`). */ lc?: string | null; lp?: string | null }
+  /** Sur le chemin critique (référentiel). */ critical?: boolean; /** Sous-phases repliées sur la ligne du chantier (Gantt trop dense, 11/10/2026). */ subs?: number; /** Atterrissage au rythme actuel / au rythme prévu (`planLandings`). */ lc?: string | null; lp?: string | null }
 export interface GanttData { today: string; rows: GanttRow[]; milestones: Array<{ code: string; label: string; iso: string; row: number }>; hidden?: number;
   /** Lignes de tête : phases (défaut) ou chantiers (« Tous les chantiers », « Un chantier »), pour le bandeau et les libellés. */ unit?: 'phase' | 'chantier';
   /** Indicateurs du composant : chemin critique, atterrissages, repère du jour (absent : affiché). */ show?: { critical?: boolean; landCurrent?: boolean; landPlanned?: boolean; today?: boolean } }
@@ -80,6 +80,8 @@ export function planLandings(start: string, end: string, progress: number, today
     lp: reel < 100 && start <= today ? add(R(((100 - reel) / 100) * dur)) : null,
   };
 }
+/** Hauteur minimale d'une ligne du Gantt (pouces) : en dessous, le Gantt se simplifie (`ganttFit`). */
+export const GANTT_MIN_ROW_IN = 0.18;
 /** Au-delà, le planning passe en tableau (exigence du commanditaire). */
 export const GANTT_MAX_ROWS = 25;
 /** Hauteur minimale d'une ligne du planning en tableau (pouces) : en dessous, la lecture n'est plus immédiate. */
@@ -123,21 +125,48 @@ export function foldPlan(g: GanttData): GanttData {
 }
 
 /**
+ * Gantt lisible dans la hauteur donnée (`cap` lignes au plus, 11/10/2026) : d'abord les sous-lignes des phases terminées
+ * regroupées (`foldPlan`), puis les sous-phases des chantiers repliées hors de la phase en cours (« 3 sous-phases »), puis
+ * dans la phase en cours, enfin les dernières lignes résumées (« … et N autres lignes »).
+ */
+export function ganttFit(g: GanttData, cap: number): { rows: GanttRow[]; hidden: number } {
+  const max = Math.max(3, Math.floor(cap));
+  let rows = g.rows;
+  if (rows.length <= max) return { rows, hidden: 0 };
+  rows = foldPlan(g).rows;
+  const collapse = (list: GanttRow[], keepCurrent: boolean) => {
+    const out: GanttRow[] = [];
+    let inCurrent = false;
+    for (const r of list) {
+      if (r.level === 0) inCurrent = r.current;
+      if (r.level === 2 && !(keepCurrent && inCurrent)) { const p = out[out.length - 1]; if (p && p.level === 1) p.subs = (p.subs ?? 0) + 1; continue; }
+      out.push({ ...r });
+    }
+    return out;
+  };
+  if (rows.length > max) rows = collapse(rows, true);
+  if (rows.length > max) rows = collapse(rows, false);
+  return rows.length > max ? { rows: rows.slice(0, max), hidden: rows.length - max } : { rows, hidden: 0 };
+}
+
+/**
  * Gantt : frise graduée, couloir des jalons, une barre par phase (avancement dans la barre ; en retard : rouge), phase
  * en cours mise en avant, repère du jour, puis un bandeau de lecture immédiate (phase en cours, prochain jalon, fin).
  */
 export function drawGantt(d: Draw, a: Box, g: GanttData): string {
   const t = d.t, ty = typeScale(t), out: string[] = [];
-  const rows = g.rows, show = g.show ?? {};
-  if (!rows.length) return d.text(a, [{ runs: [{ t: g.unit === 'chantier' ? 'Aucun chantier daté sur le périmètre.' : 'Aucune phase sur le périmètre.', size: ty.body, color: t.muted }] }]);
+  const show = g.show ?? {};
+  if (!g.rows.length) return d.text(a, [{ runs: [{ t: g.unit === 'chantier' ? 'Aucun chantier daté sur le périmètre.' : 'Aucune phase sur le périmètre.', size: ty.body, color: t.muted }] }]);
   // Frise étendue aux atterrissages affichés : chaque repère est à sa vraie date.
-  const ends = rows.flatMap((r) => [r.end, ...(r.status !== 'DONE' && show.landCurrent && r.lc ? [r.lc] : []), ...(r.status !== 'DONE' && show.landPlanned && r.lp ? [r.lp] : [])]);
-  const sc = timeScale(rows.reduce((m, r) => (r.start < m ? r.start : m), rows[0].start), ends.reduce((m, e) => (e > m ? e : m), ends[0]));
-  const labelW = Math.min(a.w * 0.26, 2.8 * IN), pctW = 0.82 * IN;
+  const ends = g.rows.flatMap((r) => [r.end, ...(r.status !== 'DONE' && show.landCurrent && r.lc ? [r.lc] : []), ...(r.status !== 'DONE' && show.landPlanned && r.lp ? [r.lp] : [])]);
+  const sc = timeScale(g.rows.reduce((m, r) => (r.start < m ? r.start : m), g.rows[0].start), ends.reduce((m, e) => (e > m ? e : m), ends[0]));
+  const labelW = Math.min(a.w * 0.3, 3.4 * IN), pctW = 0.82 * IN;
   const x0 = a.x + labelW, x1 = a.x + a.w - pctW, W = x1 - x0;
   const X = (iso: string) => x0 + timeRatio(iso, sc) * W;
   const ms = g.milestones.filter((m) => m.iso >= sc.start && m.iso <= sc.end).sort((p, q) => p.iso.localeCompare(q.iso));
   const headH = 0.46 * IN, laneH = ms.length ? 0.44 * IN : 0, tagH = 0.32 * IN, legendH = 0.26 * IN;
+  // Lignes trop nombreuses pour la page (11/10/2026) : le Gantt se simplifie pour rester lisible (`ganttFit`).
+  const { rows, hidden } = ganttFit(g, (a.h - headH - laneH - tagH - legendH) / (GANTT_MIN_ROW_IN * IN));
   let stripH = 0.92 * IN;
   // Lignes d'au moins 0,24 pouce : sinon le bandeau de lecture cède sa place.
   if ((a.h - headH - laneH - tagH - legendH - stripH) / rows.length < 0.24 * IN) stripH = 0;
@@ -179,11 +208,18 @@ export function drawGantt(d: Draw, a: Box, g: GanttData): string {
     const bh = Math.max(0.07 * IN, Math.min(0.17 * IN, rowH * (r.level === 2 ? 0.2 : sub ? 0.26 : 0.38)));
     const by = y + (rowH - bh) / 2;
     const xs = X(r.start), xe = Math.max(X(r.end), xs + bh);
-    const lbl: Para[] = [{ runs: [{ t: `${r.code}   `, size: ty.label, color: r.current ? t.accent : t.subtle, bold: true }, { t: r.name, size: sub ? ty.small : ty.body, color: r.current ? t.accent : r.status === 'DONE' ? t.muted : t.ink, bold: r.current || !sub }] }];
-    if (r.current && rowH >= 0.4 * IN) lbl.push({ runs: [{ t: `${monthYear(r.start)} → ${monthYear(r.end)}`, size: ty.label, color: t.muted }] });
-    // Sous-phases terminées regroupées sur la ligne (« Un chantier », 11/10/2026).
-    if (r.folded) lbl.push({ runs: [{ t: `${r.folded} sous-phase${r.folded > 1 ? 's' : ''} terminée${r.folded > 1 ? 's' : ''}`, size: ty.label, color: t.subtle }] });
-    const indent = [0.06, 0.22, 0.38][r.level] * IN;
+    // Libellé sur une seule ligne (coupé par « … »), corps ajusté à la hauteur de la ligne : jamais de chevauchement.
+    const indent = [0.06, 0.22, 0.38][r.level] * IN, fit = (rowH / PT) * 0.62;
+    const ns = Math.max(6.5, Math.min(sub ? ty.small : ty.body, fit)), cs = Math.max(6, Math.min(ty.label, fit));
+    const codeW = (r.code.length + 2) * cs * 0.6 * PT, nameW = labelW - indent - 0.18 * IN - codeW;
+    const tall = rowH >= 0.4 * IN;
+    const note = r.folded ? `${r.folded} sous-phase${r.folded > 1 ? 's' : ''} terminée${r.folded > 1 ? 's' : ''}` : r.subs ? `${r.subs} sous-phase${r.subs > 1 ? 's' : ''}` : '';
+    // Le nom d'abord : la mention des sous-phases regroupées ne s'ajoute que s'il reste la place (sinon, note sous le Gantt).
+    const name = wrapText(r.name, nameW, ns, 1)[0], inline = !!note && !tall && !name.endsWith('…') && (r.name.length + note.length + 5) * ns * 0.6 * PT <= nameW;
+    const lbl: Para[] = [{ runs: [{ t: `${r.code}  `, size: cs, color: r.current ? t.accent : t.subtle, bold: true }, { t: name, size: ns, color: r.current ? t.accent : r.status === 'DONE' ? t.muted : t.ink, bold: r.current || !sub }, ...(inline ? [{ t: `  ·  ${note}`, size: cs, color: t.subtle }] : [])] }];
+    if (r.current && tall) lbl.push({ runs: [{ t: `${monthYear(r.start)} → ${monthYear(r.end)}`, size: ty.label, color: t.muted }] });
+    // Sous-phases regroupées sur la ligne (terminées, ou hors de la phase en cours quand la page manque de place).
+    if (note && tall) lbl.push({ runs: [{ t: note, size: ty.label, color: t.subtle }] });
     out.push(d.text({ x: a.x + indent, y, w: labelW - indent - 0.18 * IN, h: rowH }, lbl, 'ctr'));
     if (i > 0) out.push(d.line(a.x, y, a.x + a.w, y, mixHex(t.hairline, 'FFFFFF', 0.45), 0.5));
     if (r.status === 'DONE') out.push(d.pill({ x: xs, y: by, w: xe - xs, h: bh }, doneFill));
@@ -213,9 +249,12 @@ export function drawGantt(d: Draw, a: Box, g: GanttData): string {
       }
     }
     const pc = r.status === 'PLANNED' && !r.progress ? '—' : pctTxt(r.progress);
-    out.push(d.text({ x: x1 + 0.08 * IN, y, w: pctW - 0.1 * IN, h: rowH }, [{ align: 'r', runs: [{ t: pc, size: r.current ? ty.body : ty.small, color: late ? t.risk : r.current ? t.accent : t.subtle, bold: r.current || late }] }], 'ctr'));
+    out.push(d.text({ x: x1 + 0.08 * IN, y, w: pctW - 0.1 * IN, h: rowH }, [{ align: 'r', runs: [{ t: pc, size: Math.max(6.5, Math.min(r.current ? ty.body : ty.small, fit)), color: late ? t.risk : r.current ? t.accent : t.subtle, bold: r.current || late }] }], 'ctr'));
   });
   out.push(d.line(a.x, yEnd, a.x + a.w, yEnd, t.hairline, 0.75));
+  // Sous la frise : lignes résumées, sous-phases regroupées sur leur chantier.
+  const foot = [hidden ? `… et ${hidden} ${hidden > 1 ? 'autres lignes' : 'autre ligne'}` : '', rows.some((r) => r.subs) ? 'Sous-phases regroupées sur leur chantier' : ''].filter(Boolean);
+  if (foot.length) out.push(d.text({ x: a.x + 0.06 * IN, y: yEnd + 0.04 * IN, w: labelW - 0.1 * IN, h: 0.22 * IN * foot.length }, foot.map((f) => ({ runs: [{ t: f, size: ty.label, color: t.subtle, italic: true }] })), 't'));
 
   // Repère du jour : filet de couleur sur toute la frise, étiquette sous la dernière ligne.
   const xt = X(g.today);

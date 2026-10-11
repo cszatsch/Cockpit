@@ -2141,3 +2141,26 @@ Demande du commanditaire : un risque peut concerner un chantier, plusieurs, ou t
 - Lignes équilibrées (`balanced`) : même nombre de lignes que `wrapText`, à la largeur la plus étroite qui le garde — plus
   de mot isolé en dernière ligne des titres, questions et libellés.
 - Contrôle visuel dans PowerPoint (skill designer-rapports) ; tests `test/unit/report-template.spec.ts`.
+
+## Rapports : fiche d'arbitrage identique au Cockpit, Gantt dense lisible (11/10/2026)
+
+- Demande du commanditaire : reprendre exactement, dans le rapport PowerPoint, le design de la fiche d'arbitrage de
+  Pilotage › Décisions ; planning généré illisible (libellés superposés).
+- Fiche d'arbitrage (`drawArbitrations`, remplace le « duel » du même jour) : en-tête « Fiche d'arbitrage · code · étape »
+  avec chantier et instance en vert d'eau, question en titre, « Contexte · » ; grille Critère · Poids · « Option A · … » ·
+  « Option B · … », chaque note dans une cellule arrondie teintée selon sa valeur avec sa justification, pastille
+  « Recommandation PMO » sur l'option retenue ; « Score pondéré · sur 4 » (une décimale, A en encre, B en vert d'eau, légende
+  des notes 1 à 4) ; « Recommandation PMO » (option et texte) ; bandeau sombre « Décision attendue » avec le compte à rebours
+  jusqu'à la séance attendue (sinon la prochaine de l'instance). Palette de la fiche du Cockpit reprise telle quelle
+  (`ARB_HEAT`, `ARB_COLORS`, valeurs de `HTc` dans `RISE Cockpit.dc.html`), et non celle du format du rapport.
+- Une fiche complète par page (`ARBITRATIONS_MAX` = 1 ; une page par composant dans la structure du template) : la plus
+  urgente (à arbitrer, puis en instruction, puis arbitrées sur la période), les autres citées en tête (« Autres fiches »).
+  Justifications sur deux lignes, puis deux lignes en corps réduit, sinon une ligne ; critères au-delà de la page résumés.
+- Résumé de la fiche (`arbitrationSummary`) : critères dans l'ordre de la fiche avec leurs justifications, recommandation
+  enregistrée (sinon la mieux notée), textes `dcCtx`, `recBody`, `deqBody`.
+- Gantt (`drawGantt`) : libellés sur une seule ligne (coupés par « … »), corps ajusté à la hauteur de ligne, colonne des
+  libellés élargie (30 %, 3,4 po au plus). Lignes plus basses que `GANTT_MIN_ROW_IN` (0,18 po) : simplification
+  progressive (`ganttFit`) — phases terminées regroupées, puis sous-phases repliées sur leur chantier hors de la phase en
+  cours, puis aussi dans la phase en cours (note « Sous-phases regroupées sur leur chantier »), enfin « … et N autres lignes ».
+- Contrôle visuel dans PowerPoint (skill designer-rapports), y compris un Gantt de 24 lignes en Poppins reproduisant le cas
+  du commanditaire ; tests `test/unit/report-template.spec.ts`, `test/e2e/report-template.spec.ts`.

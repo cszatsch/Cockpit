@@ -4,8 +4,8 @@ import { analyzeImage, analyzePptx } from '../../src/core/report-format-read';
 import { composeTemplate, fillChartXml, FillData, fillTemplate, TemplateFieldMissing, TemplateManifest } from '../../src/core/report-template';
 import { COMPONENT_IDS, ComponentConfig, configErrors, fieldName, indicatorsOf, pagesOf, periodOf, periodRange, reportPlan, sectionsOf } from '../../src/domain/report-components';
 import { makeFormatPptx, makePng, pptxIntegrity, withLegacyParts } from '../format-fixture';
-import { actionBuckets, ActionsData, ARB_SCALE, ArbitrationCard, ArbitrationsData, balanced, DashboardData, drawArbitrations, DECISION_STALE_DAYS, DecisionsData, drawActions, drawDashboard, drawDecisions, focusPhase, gapTone, sortActions, sortPending } from '../../src/core/report-draw-pilotage';
-import { BarometerData, Draw, drawBarometer, drawGantt, drawMilestones, drawPlanTable, drawRisks, foldPlan, GANTT_MAX_ROWS, GanttData, GanttRow, isLate, MILESTONES_MAX, MilestonesData, milestoneStates, planLandings, RisksData, wrapText } from '../../src/core/report-draw';
+import { actionBuckets, ActionsData, ARB_HEAT, ARB_SCALE, ArbitrationCard, ArbitrationsData, balanced, DashboardData, drawArbitrations, DECISION_STALE_DAYS, DecisionsData, drawActions, drawDashboard, drawDecisions, focusPhase, gapTone, sortActions, sortPending } from '../../src/core/report-draw-pilotage';
+import { BarometerData, Draw, drawBarometer, drawGantt, drawMilestones, drawPlanTable, drawRisks, foldPlan, GANTT_MAX_ROWS, GANTT_MIN_ROW_IN, ganttFit, GanttData, GanttRow, isLate, MILESTONES_MAX, MilestonesData, milestoneStates, planLandings, RisksData, wrapText } from '../../src/core/report-draw';
 import { designTokens, scoreTone, statusTone, timeRatio, timeScale, typeScale } from '../../src/domain/report-design';
 
 /** Étapes 3 à 6 de « Créer un template » (03/10/2026) : catalogue, périodes, sections, template et publications. */
@@ -449,24 +449,29 @@ describe('Rapport — échéancier des actions, arbitrages, tableau de bord', ()
     expect(none).toContain('>rien à arbitrer<');
   });
 
-  it('fiches d’arbitrage en duel : A à gauche, B à droite, notes sur 4, recommandée, critères en papillon ; fiche seule en deux colonnes (11/10/2026)', () => {
-    const card: ArbitrationCard = { code: 'D-009', title: 'Prioriser les 79 user stories CRM sur une capacité de 40', status: 'TO_ARBITRATE', body: 'Comité de projet', question: 'Faut-il internaliser la recette ?',
-      options: [{ code: 'A', label: 'Internaliser', score: 3.2 }, { code: 'B', label: 'Externaliser', score: 2.4 }], reco: 'A', tie: false,
-      criteria: [{ name: 'Coût', weight: 60, a: 4, b: 2 }, { name: 'Délai', weight: 40, a: 2, b: 3 }] };
-    const data: ArbitrationsData = { today: '2026-10-03', cards: [card, { ...card, code: 'D-005', status: 'IN_REVIEW', reco: null, tie: true }], more: ['D-010'], period: null, show: { question: true, options: true, reco: true, criteria: true, status: true } };
+  it('fiche d’arbitrage comme Pilotage › Décisions : grille critère, poids, A, B (cellules teintées par note, justifications), score pondéré, recommandation PMO, décision attendue (11/10/2026)', () => {
+    const card: ArbitrationCard = { code: 'D-009', title: 'Externalisation des développements Board', status: 'TO_ARBITRATE', body: 'Comité de projet', question: null, ws: 'Ventes / CRM',
+      options: [{ code: 'A', label: 'Externalisation', score: 3.2 }, { code: 'B', label: 'Internalisation', score: 2.4 }], reco: 'A', tie: false,
+      criteria: [{ name: 'Coût', weight: 60, a: 4, b: 2, at: 'Mutualisation', bt: 'Coûts actuels' }, { name: 'Délai', weight: 40, a: 2, b: 3, at: '', bt: 'Délais conservés' }],
+      context: 'Enjeu financier et de délai', recBody: 'Externaliser dès le Lot 2.', expectedText: 'Valider l’externalisation.', session: { iso: '2026-10-07', label: 'COPROJ · 7 oct.' } };
+    const data: ArbitrationsData = { today: '2026-10-03', cards: [card], more: ['D-005', 'D-010'], period: null, show: { question: true, options: true, reco: true, criteria: true, status: true } };
     const xml = drawArbitrations(new Draw(tk), box, data);
-    expect(xml).toContain('>3,20<');
-    expect(xml).toMatch(/>\s*·\s*Recommandée</);
-    expect(xml).toContain('>Égalité<');
-    expect(xml.indexOf('>Option A<')).toBeLessThan(xml.indexOf('>Option B<'));
-    expect(xml).toContain('>Coût<');
-    expect(xml).toContain('… et 1 autre fiche : D-010');
+    const plain = xml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+    expect(plain).toContain('Option A · Externalisation');
+    expect(xml).toContain('>Recommandation PMO<');
+    expect(xml).toContain('>3,2<'); // une décimale, comme le Cockpit
+    expect(xml).toContain('Mutualisation');
+    expect(xml).toContain(`val="${ARB_HEAT[4][0]}"`); // note 4 : cellule pleine
+    expect(xml).toContain('>J-4<');
+    expect(xml).toContain('COPROJ · 7 oct.');
+    expect(plain).toContain('Contexte ·');
+    expect(plain).toContain('D-005 · D-010');
     expect(inside(xml)).toBe(true);
-    // Échelle fixe 0–4 : la barre de la note 4 occupe toute la piste.
     expect(ARB_SCALE).toBe(4);
-    const one = drawArbitrations(new Draw(tk), box, { ...data, cards: [card], more: [] });
-    expect(one).toContain('>Faut-il internaliser la recette ?<');
-    expect(inside(one)).toBe(true);
+    // Beaucoup de critères : ce qui ne tient pas est résumé, rien ne déborde.
+    const many = drawArbitrations(new Draw(tk), box, { ...data, cards: [{ ...card, criteria: Array.from({ length: 12 }, (_, k) => ({ name: `Critère ${k}`, weight: 8, a: 2, b: 3, at: 'Justification assez longue pour occuper deux lignes de la cellule', bt: '' })) }] });
+    expect(many).toMatch(/… et \d+ autres critères/);
+    expect(inside(many)).toBe(true);
     expect(drawArbitrations(new Draw(tk), box, { ...data, cards: [], more: [] })).toContain('Aucune fiche d’arbitrage');
     // Lignes équilibrées : même nombre de lignes, pas de mot isolé en dernière ligne.
     const l = balanced('Prioriser les 79 user stories CRM sur une capacité de 40', 4 * IN, 14, 2);
@@ -518,5 +523,25 @@ describe('Rapport — échéancier des actions, arbitrages, tableau de bord', ()
     const xml = await z.file(manifest.fields.find((f) => f.id === 'c02.board')!.slide)!.async('string');
     expect(xml).toContain('name="rise:c02.board"');
     expect(xml).toContain('>37 j<');
+  });
+});
+
+describe('Planning en Gantt dense (11/10/2026)', () => {
+  const tk = designTokens({ primary: '0094D9', secondary: '0E6E8C', text: '1A1A1A', font: 'Poppins', head: 'Poppins', size: 12 });
+  const IN = 914400, box = { x: IN, y: 2 * IN, w: 12 * IN, h: 3.6 * IN };
+  const row = (code: string, level: 0 | 1 | 2, current = false): GanttRow => ({ level, kind: level === 0 ? 'ph' : level === 1 ? 'ch' : 'sp', code, name: `${code} Datalake / Industrialisation des reportings et quick wins`, start: '2026-09-20', end: '2027-03-01', status: 'IN_PROGRESS', progress: 20, current });
+  const rows: GanttRow[] = [row('1', 0, true), ...[1, 2, 3, 4, 5].flatMap((k) => [row(`C${k}`, 1), row(`${k}.1`, 2), row(`${k}.2`, 2)]), row('2', 0), ...[1, 2].flatMap((k) => [row(`C${k}`, 1), row(`${k}.3`, 2)])];
+  it('libellés sur une ligne ; sous-phases regroupées sur leur chantier quand la page manque de place ; rien ne déborde', () => {
+    expect(GANTT_MIN_ROW_IN).toBe(0.18);
+    expect(ganttFit({ today: '2026-10-11', rows, milestones: [] }, 40).rows).toHaveLength(rows.length);
+    const fit = ganttFit({ today: '2026-10-11', rows, milestones: [] }, 12);
+    expect(fit.rows.length).toBeLessThanOrEqual(12);
+    expect(fit.rows.find((r) => r.code === 'C1')!.subs).toBe(2);
+    const xml = drawGantt(new Draw(tk), box, { today: '2026-10-11', rows, milestones: [], unit: 'phase', show: { today: true } });
+    expect(xml).toContain('Sous-phases regroupées sur leur chantier');
+    // Une ligne par libellé : aucun paragraphe de libellé ne contient de retour à la ligne, noms coupés par « … ».
+    expect(xml).toContain('…');
+    const inside = [...xml.matchAll(/<a:off x="(-?\d+)" y="(-?\d+)"\/><a:ext cx="(\d+)" cy="(\d+)"\/>/g)].every((m) => +m[1] >= box.x - 1 && +m[2] >= box.y - 1 && +m[1] + +m[3] <= box.x + box.w + 1 && +m[2] + +m[4] <= box.y + box.h + 1);
+    expect(inside).toBe(true);
   });
 });
