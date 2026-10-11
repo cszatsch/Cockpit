@@ -35,7 +35,7 @@ const fr = (s: string) => esc(s).replace(/\s+([:;?!»])/g, '&nbsp;$1').replace(/
 export function invitationEmail(x: InvitationInput): { subject: string; text: string; html: string } {
   const first = firstNameOf(x.fullName), until = longFrDate(x.expiresIso);
   const subject = x.again ? 'Votre invitation à rejoindre l’application Cockpit (nouveau lien)' : 'Votre invitation à rejoindre l’application Cockpit';
-  const intro = 'Vous avez été invité(e) à rejoindre RISE Cockpit, votre espace de gestion de pilotage projet en ligne.';
+  const intro = 'Vous avez été invité(e) à rejoindre Cockpit, votre espace de gestion de pilotage projet en ligne.';
   const how = 'Pour activer votre compte, il vous suffit de définir votre mot de passe en cliquant sur le lien ci-dessous :';
   const facts = [
     'Ce lien est personnel et ne peut être utilisé qu’une seule fois.',
@@ -65,7 +65,7 @@ export function invitationEmail(x: InvitationInput): { subject: string; text: st
       <div style="width:36px;height:4px;border-radius:2px;background:#${C.amber};font-size:0;line-height:0">&nbsp;</div>
       <p style="margin:22px 0 0;font-family:${SANS};font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#${C.tealDark};font-weight:700">${x.again ? 'Nouveau lien d’invitation' : 'Invitation'}</p>
       <h1 class="inv-h1" style="margin:10px 0 0;font-family:${SANS};font-size:30px;line-height:1.2;letter-spacing:-.02em;color:#${C.ink};font-weight:800">Bonjour ${esc(first)},</h1>
-      ${p(fr(intro).replace('RISE Cockpit', `<strong style="color:#${C.ink}">RISE Cockpit</strong>`), { size: 16, top: 14 })}
+      ${p(fr(intro).replace('Cockpit', `<strong style="color:#${C.ink}">Cockpit</strong>`), { size: 16, top: 14 })}
       ${p(fr(how), { top: 14 })}
       <table role="presentation" cellpadding="0" cellspacing="0" style="margin:26px 0 0;"><tr><td style="border-radius:12px;background:#${C.ink};">
         <a href="${link}" style="display:inline-block;padding:16px 30px;font-family:${SANS};font-size:15px;font-weight:700;color:#FFFFFF;text-decoration:none;border-radius:12px;">Activer mon compte&nbsp;&nbsp;&rarr;</a>

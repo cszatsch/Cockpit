@@ -8,7 +8,7 @@ describe('E-mail d’invitation à Cockpit', () => {
     const m = invitationEmail(base);
     expect(m.subject).toBe('Votre invitation à rejoindre l’application Cockpit');
     expect(m.text).toMatch(/^Bonjour William,/);
-    for (const t of ['Vous avez été invité(e) à rejoindre RISE Cockpit, votre espace de gestion de pilotage projet en ligne.', 'Ce lien est personnel et ne peut être utilisé qu’une seule fois.', 'Il reste valable pendant 14 jours, soit jusqu’au 25 octobre 2026.', 'aucun compte ne sera activé sans votre action', 'L’équipe Cockpit']) expect(m.text).toContain(t);
+    for (const t of ['Vous avez été invité(e) à rejoindre Cockpit, votre espace de gestion de pilotage projet en ligne.', 'Ce lien est personnel et ne peut être utilisé qu’une seule fois.', 'Il reste valable pendant 14 jours, soit jusqu’au 25 octobre 2026.', 'aucun compte ne sera activé sans votre action', 'L’équipe Cockpit']) expect(m.text).toContain(t);
     expect(m.html).toContain('>Activer mon compte');
     expect(m.html).toContain('25 octobre 2026');
     expect(m.html).toContain('william@exemple.fr');

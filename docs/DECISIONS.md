@@ -2212,7 +2212,7 @@ Demande du commanditaire : un risque peut concerner un chantier, plusieurs, ou t
 
 ## E-mail d'invitation : texte du commanditaire et mise en page (11/10/2026)
 
-- Texte fourni par le commanditaire (objet « Votre invitation à rejoindre l'application Cockpit », prénom, lien
+- Texte fourni par le commanditaire (objet « Votre invitation à rejoindre l'application Cockpit », prénom, « … à rejoindre Cockpit » (sans « RISE »), lien
   d'activation, « À savoir » : lien personnel à usage unique, validité `INVITE_VALIDITY_DAYS` jours avec la date limite,
   connexion avec l'adresse e-mail ; aide si le lien a expiré ; mise en garde ; signature « L'équipe Cockpit »). Relance :
   même message, objet « … (nouveau lien) ».
