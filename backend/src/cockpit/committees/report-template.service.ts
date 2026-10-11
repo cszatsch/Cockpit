@@ -1,4 +1,5 @@
 import { riskLinks } from '../../domain/rights';
+import { measuredTask } from '../../core/latency';
 import { KbService } from '../documents/kb.service';
 import type { Actor } from '../../core/auth/auth';
 import { Injectable, OnModuleInit } from '@nestjs/common';
@@ -485,11 +486,11 @@ export class ReportTemplateService implements OnModuleInit {
     };
     const skills = (await this.prisma.skill.findMany({ where: { n: { in: WRITING_SKILLS }, on: true }, orderBy: { position: 'asc' } })).map((s) => ({ n: s.n, t: s.t }));
     try {
-      const r = await this.llm.complete({ functionId: 'rapports', system: writingSystem(skills), prompt: writingPrompt(facts), projectId: scope.project.id, source: 'COCKPIT', timeoutMs: WRITING_TIMEOUT_MS, maxTokens: 2500 });
+      const r = await measuredTask('report_writing', () => this.llm.complete({ functionId: 'rapports', system: writingSystem(skills), prompt: writingPrompt(facts), projectId: scope.project.id, source: 'COCKPIT', timeoutMs: WRITING_TIMEOUT_MS, maxTokens: 2500 }));
       let p = parseWriting(r.text, facts);
       // Textes refusés : une seconde demande, ciblée, avec le motif du refus.
       if (p.rejected.length) {
-        const again = await this.llm.complete({ functionId: 'rapports', system: writingSystem(skills), prompt: retryPrompt(facts, p.rejected), projectId: scope.project.id, source: 'COCKPIT', timeoutMs: WRITING_TIMEOUT_MS, maxTokens: 1500 }).then((x) => parseWriting(x.text, facts)).catch(() => null);
+        const again = await measuredTask('report_writing', () => this.llm.complete({ functionId: 'rapports', system: writingSystem(skills), prompt: retryPrompt(facts, p.rejected), projectId: scope.project.id, source: 'COCKPIT', timeoutMs: WRITING_TIMEOUT_MS, maxTokens: 1500 })).then((x) => parseWriting(x.text, facts)).catch(() => null);
         if (again) p = { titles: { ...again.titles, ...p.titles }, synthesis: p.synthesis ?? again.synthesis, rejected: [...facts.components.filter((c) => !p.titles[c.key] && !again.titles[c.key]).map((c) => `${c.key} : titre refusé`), ...(facts.synthesis && !p.synthesis && !again.synthesis ? ['synthèse refusée'] : [])] };
       }
       out.titles = p.titles;

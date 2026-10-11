@@ -8,7 +8,9 @@ import { randomBytes } from 'crypto';
  * n'est enregistré. Les lignes partent à l'écriture après la réponse (`setImmediate`), sans jamais la retarder.
  */
 
-export const LATENCY_CATEGORIES = ['guide_cockpit', 'guide_console', 'data_cockpit', 'data_console', 'update_cockpit', 'kb_document'] as const;
+export const LATENCY_CATEGORIES = ['guide_cockpit', 'guide_console', 'data_cockpit', 'data_console', 'update_cockpit', 'kb_document',
+  // Traitements hors questions à Jev (11/10/2026) : toutes les fonctions d'IA sont mesurées (`measuredTask`).
+  'report_writing', 'report_roles', 'project_init', 'greeting', 'notification', 'kb_indexing', 'guide_indexing', 'revectorize'] as const;
 export type LatencyCategory = (typeof LATENCY_CATEGORIES)[number];
 export const LATENCY_STEPS = ['route', 'vec', 'rrk', 'qry', 'exe', 'gen'] as const;
 export type LatencyStep = (typeof LATENCY_STEPS)[number];
@@ -91,6 +93,16 @@ function finish(ctx: Ctx, e: unknown) {
 }
 
 const msgOf = (e: unknown) => String((e as any)?.response?.message ?? (e as any)?.message ?? e ?? '').slice(0, 500);
+
+/**
+ * Traitement mesuré hors question à Jev (11/10/2026 : rédaction des rapports, initialisation de projet, message
+ * d'accueil, notifications, indexation des documents et du guide, revectorisation) : même mesure qu'un prompt, catégorie
+ * fixée d'avance. Appelé pendant une question à Jev (contexte déjà ouvert), il s'y fond : ses étapes comptent pour elle.
+ */
+export async function measuredTask<T>(category: LatencyCategory, fn: () => Promise<T>): Promise<T> {
+  if (store.getStore()) return fn();
+  return measuredPrompt(() => { latencyCategory(category); return fn(); });
+}
 
 /** Catégorie du prompt, fixée à l'aiguillage ; `null` : prompt non compté (clarification, hors sujet). */
 export function latencyCategory(c: LatencyCategory | null) {

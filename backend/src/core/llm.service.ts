@@ -448,7 +448,7 @@ export class LlmService {
   /** Appel direct d'un modèle (règles de notification : modèle propre à la règle). */
   async completeWithModel(modelId: string, input: { functionId: AiFunctionId; prompt: string; projectId?: string | null; source: UsageSourceCode }): Promise<LlmResult> {
     if (!(await this.modelAvailable(modelId))) throw new ApiError(503, 'AI_UNAVAILABLE', `Modèle ${modelId} inconnu, inactif, non LLM ou fournisseur en erreur`);
-    return this.run(modelId, input, false);
+    return timedStep(currentLatencyKind(), modelId, 'primary', () => this.run(modelId, input, false));
   }
 
   /**
@@ -457,9 +457,10 @@ export class LlmService {
    */
   async completeWithModelLive(modelId: string, input: { functionId: AiFunctionId; prompt: string; system?: string; systemTail?: string; cache?: boolean; projectId?: string | null; source: UsageSourceCode; maxWords?: number }): Promise<LlmResult> {
     if (!(await this.modelAvailable(modelId))) throw new ApiError(503, 'AI_UNAVAILABLE', `Modèle ${modelId} inconnu, inactif, non LLM ou fournisseur en erreur`);
-    if (!this.client.live) return this.run(modelId, input, false);
+    // Chronométré comme les autres appels (analyse des temps de réponse, 11/10/2026).
+    if (!this.client.live) return timedStep(currentLatencyKind(), modelId, 'primary', () => this.run(modelId, input, false));
     try {
-      return await this.runLive(modelId, input, false);
+      return await timedStep(currentLatencyKind(), modelId, 'primary', () => this.runLive(modelId, input, false));
     } catch (e) {
       if (e instanceof LlmCallError) throw new ApiError(503, 'AI_UNAVAILABLE', e.message);
       throw e;

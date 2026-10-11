@@ -18,7 +18,7 @@ export type LatencyPeriod = keyof typeof LATENCY_PERIODS;
 export const LATENCY_MAX_DAYS_BACK = 182;
 /** Conservation des lignes brutes (jours). */
 export const LATENCY_RETENTION_DAYS = 190;
-export const LATENCY_CATEGORY_ORDER = ['guide_cockpit', 'guide_console', 'data_cockpit', 'data_console', 'update_cockpit', 'kb_document'] as const;
+export const LATENCY_CATEGORY_ORDER = ['guide_cockpit', 'guide_console', 'data_cockpit', 'data_console', 'update_cockpit', 'kb_document', 'report_writing', 'report_roles', 'project_init', 'greeting', 'notification', 'kb_indexing', 'guide_indexing', 'revectorize'] as const;
 
 export interface TimingRow {
   requestId: string;

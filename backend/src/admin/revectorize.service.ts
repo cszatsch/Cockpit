@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { measuredTask } from '../core/latency';
 import { PrismaService } from '../core/prisma.service';
 import { LlmService } from '../core/llm.service';
 import { hnswIndexSql, vectorLiteral } from '../domain/guide-index';
@@ -34,7 +35,7 @@ export class RevectorizeService {
   /** Planifie la revectorisation (après la réponse de la requête d'affectation). */
   start(): void {
     const run = ++this.seq;
-    const q: Promise<void> = new Promise<void>((res) => setImmediate(res)).then(() => this.run(run)).finally(() => { if (this.running === q) this.running = null; });
+    const q: Promise<void> = new Promise<void>((res) => setImmediate(res)).then(() => measuredTask('revectorize', () => this.run(run))).finally(() => { if (this.running === q) this.running = null; });
     this.running = q;
   }
 

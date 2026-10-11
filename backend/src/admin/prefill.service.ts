@@ -1,4 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { measuredTask } from '../core/latency';
 import { randomBytes } from 'crypto';
 import ExcelJS from 'exceljs';
 import { promises as fs } from 'fs';
@@ -282,10 +283,10 @@ export class PrefillService implements OnModuleInit {
       if (live.cancelled) break;
       let text: string;
       try {
-        text = (await this.llm.complete({
+        text = (await measuredTask('project_init', () => this.llm.complete({
           functionId: 'init_projet', system, cache: true, source: 'IMPORT', maxTokens: INIT_PROJET_NEED_OUT, timeoutMs: PREFILL_CALL_TIMEOUT_MS, reasoning: 'off',
           prompt: lastError instanceof SyntaxError ? `${prompt}\n\nTa réponse précédente n’était pas un objet JSON valide : réponds uniquement par l’objet JSON demandé.` : prompt,
-        })).text;
+        }))).text;
       } catch (e) {
         if (!(e instanceof ApiError && e.code === 'AI_UNAVAILABLE')) throw e;
         lastError = e;

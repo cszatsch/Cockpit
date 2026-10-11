@@ -1,3 +1,4 @@
+import { LATENCY_SERVICE_MODEL, latencyKind, measuredTask, relabelLastStep, timedStep } from '../core/latency';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../core/prisma.service';
 import { LlmResult, LlmService } from '../core/llm.service';
@@ -102,7 +103,12 @@ export class NotificationWriterService {
    * changé depuis au lieu de répéter le même texte. Il part, avec la date et l'heure, dans la partie variable du prompt ;
    * la partie stable est marquée pour le cache.
    */
-  async write(rule: { modelId: string }, prompt: string, project: { id: string; code: string } | null, audience: Audience, previous?: { at: Date; text: string } | null, maxWords = NOTIFICATION_MAX_WORDS - 1): Promise<WrittenText> {
+  /** Rédaction mesurée (analyse des temps de réponse, catégorie « notification », 11/10/2026). */
+  write(...args: Parameters<NotificationWriterService['writeMeasured']>): Promise<WrittenText> {
+    return measuredTask('notification', () => this.writeMeasured(...args));
+  }
+
+  private async writeMeasured(rule: { modelId: string }, prompt: string, project: { id: string; code: string } | null, audience: Audience, previous?: { at: Date; text: string } | null, maxWords = NOTIFICATION_MAX_WORDS - 1): Promise<WrittenText> {
     const calls: LlmResult[] = [];
     const tail = [
       `## Contexte de l’envoi\nDate du jour de la plateforme : ${this.today.today()}. Maintenant (heure de Paris) : ${this.nowParis()}.`,
@@ -132,11 +138,11 @@ export class NotificationWriterService {
       direct: 'Si la consigne ne demande aucune donnée, rédige directement le contenu, sans SQL.',
       scope: `Les vues ne contiennent que le projet ${project.code}. ${this.scopeLine(audience)}`,
     })}`;
-    const first = await call(prompt, system);
+    const first = await latencyKind('qry', () => call(prompt, system));
     let sql = extractSql(first.text);
     // Requête coupée ou mal balisée (correction du 30/09/2026) : jamais envoyée telle quelle, elle est réécrite.
     let cut = sqlCut(first.text);
-    if (sql === null && !looksLikeSql(first.text)) return out(await this.shorten(first.text, maxWords, call, base));
+    if (sql === null && !looksLikeSql(first.text)) { relabelLastStep('qry', 'gen'); return out(await this.shorten(first.text, maxWords, call, base)); }
 
     // 4. Exécution sur le périmètre des destinataires, une correction au plus.
     let rows: Array<Record<string, unknown>> | null = null;
@@ -145,14 +151,14 @@ export class NotificationWriterService {
       why = cut ? SQL_CUT_REASON : sql ? sqlError(sql) ?? '' : 'aucune requête dans la réponse';
       if (!why) {
         try {
-          rows = await this.jevSql.executeCockpit(sql!, project.id, audience.chantiers);
+          rows = await timedStep('exe', LATENCY_SERVICE_MODEL, 'primary', () => this.jevSql.executeCockpit(sql!, project.id, audience.chantiers));
           break;
         } catch (e) {
           why = dbMessage(e);
         }
       }
       if (attempt >= JEV_SQL_RETRIES) break;
-      const fix = await call(`${prompt}\n\n## Requête à corriger\n\`\`\`sql\n${sql ?? ''}\n\`\`\`\nMotif du refus ou de l’échec : ${why}\nRéponds uniquement par la requête corrigée, dans un bloc \`\`\`sql\`\`\`.`, system);
+      const fix = await latencyKind('qry', () => call(`${prompt}\n\n## Requête à corriger\n\`\`\`sql\n${sql ?? ''}\n\`\`\`\nMotif du refus ou de l’échec : ${why}\nRéponds uniquement par la requête corrigée, dans un bloc \`\`\`sql\`\`\`.`, system));
       sql = extractSql(fix.text);
       cut = sqlCut(fix.text);
     }

@@ -1,4 +1,5 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
+import { measuredTask } from '../core/latency';
 import { Prisma } from '@prisma/client';
 import { randomBytes } from 'crypto';
 import { Actor } from '../core/auth/auth';
@@ -98,7 +99,7 @@ export class GuideIndexService implements OnModuleInit {
       throw e;
     }
     for (const k of created.oldKeys) await this.storage.remove(k).catch((e) => console.warn(`[guide] ancien fichier non supprimé (${k}) : ${e instanceof Error ? e.message : e}`));
-    const job = this.index(app, actor, created.uploadId, chunks).finally(() => { if (this.running.get(app) === job) this.running.delete(app); });
+    const job = measuredTask('guide_indexing', () => this.index(app, actor, created.uploadId, chunks)).finally(() => { if (this.running.get(app) === job) this.running.delete(app); });
     this.running.set(app, job);
     return { uploadId: created.uploadId, v: created.v, status: 'INDEXING', pages: read.pages, chunks: chunks.length };
   }

@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { measuredTask } from '../../core/latency';
 import { ProjectScope } from '../../core/access.service';
 import { PrismaService, Tx } from '../../core/prisma.service';
 import { StorageService } from '../../core/storage.service';
@@ -127,7 +128,7 @@ export class ReportFormatService {
     let roles = rules, source = 'regles', note: string | null = null;
     if (this.llm.isLive('rapports')) {
       try {
-        const r = await this.llm.complete({ functionId: 'rapports', system: ROLES_SYSTEM, prompt: rolesPrompt(kind, s.shapes, a.size, rules), projectId: scope.project.id, source: 'COCKPIT', timeoutMs: ROLES_TIMEOUT_MS, maxTokens: 1500 });
+        const r = await measuredTask('report_roles', () => this.llm.complete({ functionId: 'rapports', system: ROLES_SYSTEM, prompt: rolesPrompt(kind, s.shapes!, a.size, rules), projectId: scope.project.id, source: 'COCKPIT', timeoutMs: ROLES_TIMEOUT_MS, maxTokens: 1500 }));
         const parsed = parseRoles(r.text, kind, s.shapes, rules);
         if (parsed) { roles = parsed; source = 'ia'; } else note = 'Proposition de l’IA refusée au contrôle : proposition par règles.';
       } catch (e) { note = `IA indisponible (${String((e as { message?: string }).message ?? e).slice(0, 80)}) : proposition par règles.`; }

@@ -787,3 +787,6 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
 - Modules : tuiles de même largeur et de même hauteur (`min-width:0`, `align-items:stretch`) ; une pastille d'état longue
   n'élargit plus sa tuile.
 
+- Analyse des temps de réponse (11/10/2026) : catégories des traitements hors questions à Jev (rédaction des rapports,
+  rôles des formes, initialisation projet, message d'accueil, notifications, dépôt de document, indexation du guide,
+  revectorisation), avec leurs données de démonstration ; toutes les fonctions d'IA sont désormais mesurées.

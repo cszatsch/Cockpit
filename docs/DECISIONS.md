@@ -2194,3 +2194,18 @@ Demande du commanditaire : un risque peut concerner un chantier, plusieurs, ou t
   sous le contexte (« Recommandation PMO · … »).
 - Espacements réguliers (rangées de 0,42 po au moins, 0,06 po entre rangées), colonne Critère plus étroite au profit des
   options ; justifications entières de préférence (deux lignes, puis deux ou trois en corps réduit, une en dernier recours).
+
+## Analyse des temps de réponse : toutes les fonctions d'IA mesurées (11/10/2026)
+
+- Constat : la vue ne montrait que les modèles appelés pendant une question à Jev (périmètre de la spécification TEMPS) ;
+  rapports, initialisation de projet, message d'accueil, notifications, dépôt de documents, indexation du guide et
+  revectorisation n'étaient pas mesurés (Claude Opus 5.5, DeepSeek, MiMo, GPT-6 Sol… absents). Arbitrage du
+  commanditaire : étendre la mesure à toutes les fonctions.
+- `measuredTask(catégorie, traitement)` (`src/core/latency.ts`) : même mesure qu'un prompt (étapes + bout en bout),
+  catégorie fixée d'avance ; appelé pendant une question à Jev, il s'y fond (pas de seconde mesure). Nouvelles catégories
+  (`LATENCY_CATEGORIES`, `LATENCY_CATEGORY_ORDER`) : `report_writing` (rédaction d'un rapport, chaque demande),
+  `report_roles` (rôles des formes), `project_init` (un onglet préempli), `greeting` (message d'accueil), `notification`
+  (requête, exécution, rédaction), `kb_indexing` (résumé et vectorisation d'un document déposé), `guide_indexing`,
+  `revectorize` (un passage complet). Appels de la passerelle avec un modèle imposé (`completeWithModel*`, notifications)
+  désormais chronométrés. Écran : libellés et données de démonstration des nouvelles catégories.
+- Tests `test/unit/latency-tasks.spec.ts`.

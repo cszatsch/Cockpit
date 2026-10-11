@@ -81,7 +81,16 @@ const CATS = [
   { id: 'data_cockpit', sh: 'Données Cockpit', f: 'Demande d’information sur les données d’un projet Cockpit', v: 52, st: [['route', [['h45', 1, 380]]], ['qry', [['g6', 1, 950]], .006, 'Requête invalide'], ['exe', [['svc', 1, 280]]], ['gen', [['s5', .96, 2900], ['ml2', .04, 3500]]]] },
   { id: 'data_console', sh: 'Données Console', f: 'Demande d’information sur les données dans la Console', v: 21, st: [['route', [['h45', 1, 370]]], ['qry', [['g6', 1, 820]]], ['exe', [['svc', 1, 210]]], ['gen', [['s5', 1, 2500]]]] },
   { id: 'update_cockpit', sh: 'Actualisation Cockpit', f: 'Demande d’actualisation des données de Cockpit (Création, modification, Suppression)', v: 17, st: [['route', [['h45', 1, 390]]], ['qry', [['g6', 1, 1100]]], ['exe', [['svc', 1, 640]], .018, 'Conflit de version'], ['gen', [['g6', 1, 900]]]] },
-  { id: 'kb_document', sh: 'Base de connaissance', f: 'Appel aux informations sur un document dans la base de connaissance', v: 29, st: [['route', [['h45', 1, 360]]], ['vec', [['qwen', 1, 260]]], ['rrk', [['rr35', 1, 340]], .014, 'Délai dépassé (5 s)'], ['gen', [['s5', .93, 4300], ['ml2', .07, 5200]], .003, 'Réponse tronquée']] }
+  { id: 'kb_document', sh: 'Base de connaissance', f: 'Appel aux informations sur un document dans la base de connaissance', v: 29, st: [['route', [['h45', 1, 360]]], ['vec', [['qwen', 1, 260]]], ['rrk', [['rr35', 1, 340]], .014, 'Délai dépassé (5 s)'], ['gen', [['s5', .93, 4300], ['ml2', .07, 5200]], .003, 'Réponse tronquée']] },
+  // Traitements hors questions à Jev, mesurés depuis le 11/10/2026 (toutes les fonctions d'IA).
+  { id: 'report_writing', sh: 'Rédaction des rapports', f: 'Rédaction des titres et de la synthèse d’un rapport', v: 6, st: [['gen', [['s5', 1, 14000]]]] },
+  { id: 'report_roles', sh: 'Rôles des formes', f: 'Proposition des rôles des formes d’un format de rapport', v: 4, st: [['gen', [['s5', 1, 6500]]]] },
+  { id: 'project_init', sh: 'Initialisation projet', f: 'Préremplissage d’un projet à partir d’une proposition (un onglet)', v: 9, st: [['gen', [['s5', 1, 24000]], .02, 'Délai dépassé (90 s)']] },
+  { id: 'greeting', sh: 'Message d’accueil', f: 'Message d’accueil de Jev (écran Aujourd’hui)', v: 22, st: [['gen', [['h45', 1, 2100]]]] },
+  { id: 'notification', sh: 'Notifications', f: 'Rédaction des notifications envoyées aux utilisateurs', v: 14, st: [['qry', [['g6', 1, 1300]]], ['exe', [['svc', 1, 180]]], ['gen', [['g6', 1, 2400]]]] },
+  { id: 'kb_indexing', sh: 'Dépôt de document', f: 'Résumé et vectorisation d’un document déposé dans la base de connaissance', v: 5, st: [['vec', [['qwen', 1, 3200]]], ['gen', [['s5', 1, 9000]]]] },
+  { id: 'guide_indexing', sh: 'Indexation du guide', f: 'Vectorisation du guide utilisateur déposé dans la Console', v: 2, st: [['vec', [['qwen', 1, 8500]]]] },
+  { id: 'revectorize', sh: 'Revectorisation', f: 'Revectorisation des documents après changement du modèle de vectorisation', v: 1, st: [['vec', [['qwen', 1, 42000]]]] }
 ];
 const CB = Object.fromEntries(CATS.map(c => [c.id, c]));
 const MO = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];

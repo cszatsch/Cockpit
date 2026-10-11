@@ -1,4 +1,5 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
+import { measuredTask } from '../../core/latency';
 import { createHash, randomBytes } from 'crypto';
 import { Actor } from '../../core/auth/auth';
 import { ProjectScope } from '../../core/access.service';
@@ -139,7 +140,7 @@ export class KbService implements OnModuleInit {
     });
     await this.event(projectId, actor, { documentId: doc.id, documentName: doc.n, action: replaced ? 'REMPLACEMENT' : 'DEPOT', status: 'EN_COURS', detail: `${kind.format} · ${extracted.chunks.length} extraits${replaced ? ` · remplace ${replaced.n} ${replaced.v}` : ''}` });
     const job = { id: doc.id, projectId, name: doc.n, type: doc.type, format: kind.format, depositedAt: now.toISOString().slice(0, 10), chunks: extracted.chunks, note: extracted.note, replacesId: replaced?.id ?? null, actor };
-    this.queue = this.queue.then(() => this.index(job)).catch(() => undefined);
+    this.queue = this.queue.then(() => measuredTask('kb_indexing', () => this.index(job))).catch(() => undefined);
     return doc;
   }
 
@@ -246,7 +247,7 @@ export class KbService implements OnModuleInit {
     await this.prisma.document.update({ where: { id }, data: { ext: 'PENDING', progress: 5, stepLabel: 'Résumé du document', error: null, pages: extracted.pages ?? d.pages, version: { increment: 1 } } });
     await this.event(scope.project.id, actor, { documentId: id, documentName: d.n, action: 'RETRAITEMENT', status: 'EN_COURS', detail: `${d.format} · ${extracted.chunks.length} extraits` });
     const job = { id, projectId: scope.project.id, name: d.n, type: d.type, format: d.format as KbFormat, depositedAt: (d.uploadedAt ?? d.createdAt).toISOString().slice(0, 10), chunks: extracted.chunks, note: extracted.note, replacesId: null, actor };
-    this.queue = this.queue.then(() => this.index(job)).catch(() => undefined);
+    this.queue = this.queue.then(() => measuredTask('kb_indexing', () => this.index(job))).catch(() => undefined);
     return this.prisma.document.findUniqueOrThrow({ where: { id }, include: { links: true } });
   }
 

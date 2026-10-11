@@ -1,4 +1,5 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
+import { measuredTask } from '../../core/latency';
 import { Prisma } from '@prisma/client';
 import { Actor } from '../../core/auth/auth';
 import { ProjectScope } from '../../core/access.service';
@@ -118,7 +119,7 @@ export class TodayGreetingService implements OnModuleInit {
   private async generate(f: GreetingFacts, key: { accountId: string; projectId: string; day: string }, scope: ProjectScope): Promise<Greeting> {
     let row: { status: string; text: string | null; reason: string | null; modelId: string | null };
     try {
-      const r = await this.llm.complete({ functionId: 'insights', prompt: greetingPrompt(f), system: await this.jevPrompt.greetingSystem(), projectId: scope.project.id, source: 'COCKPIT', maxWords: GREETING_MAX_WORDS, timeoutMs: GREETING_TIMEOUT_MS });
+      const r = await measuredTask('greeting', async () => this.llm.complete({ functionId: 'insights', prompt: greetingPrompt(f), system: await this.jevPrompt.greetingSystem(), projectId: scope.project.id, source: 'COCKPIT', maxWords: GREETING_MAX_WORDS, timeoutMs: GREETING_TIMEOUT_MS }));
       const c = checkGreeting(r.text, f);
       row = c.ok ? { status: 'JEV', text: c.text, reason: null, modelId: r.modelId } : { status: 'REFUSE', text: r.text.slice(0, 2000), reason: c.reason, modelId: r.modelId };
     } catch (e) {
