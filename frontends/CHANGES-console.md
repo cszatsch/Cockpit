@@ -797,3 +797,6 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
   l'attribution dans la Console (« Modifier le compte ») au lieu du Référentiel.
 - E-mail d'invitation (11/10/2026) : texte du commanditaire et nouvelle mise en page HTML (envoyé par la Console ;
   `src/domain/invitation-email.ts`).
+- Utilisateurs (11/10/2026) : les demandes d'invitation du PMO en attente apparaissent parmi les invités (statut
+  « Demandée », demandeur, chantiers proposés) avec Inviter / Refuser — même décision que dans la cloche (annulable 10 s,
+  message au PMO) ; elles comptent dans « Tous » et « Invités ». Client : `toInvReq`, `invReqDecide` (admin-api.js).

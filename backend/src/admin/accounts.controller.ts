@@ -698,14 +698,31 @@ export class AccountsController {
 
   // ───────────── Q8 bis : demandes d'invitation émises par le PMO ─────────────
 
+  /**
+   * Demandes d'invitation. Pour la page Utilisateurs (11/10/2026 : une demande en attente apparaît parmi les invités,
+   * avant même la création du compte) : projet, demandeur, droits proposés par le référentiel et notification à décider
+   * (même décision que dans la cloche : délai d'annulation et message au PMO demandeur).
+   */
   @Get('invitation-requests')
   async invitationRequests() {
     const rows = await this.prisma.invitationRequest.findMany({ orderBy: { createdAt: 'desc' } });
     const persons = await this.prisma.person.findMany({ where: { id: { in: rows.map((r) => r.personId) } } });
-    return rows.map((r) => {
+    const projects = new Map((await this.prisma.project.findMany({ where: { id: { in: [...new Set(rows.map((r) => r.projectId))] } }, select: { id: true, code: true } })).map((p) => [p.id, p.code]));
+    const by = new Map((await this.prisma.account.findMany({ where: { id: { in: [...new Set(rows.map((r) => r.requestedById))] } }, select: { id: true, fullName: true } })).map((a) => [a.id, a.fullName]));
+    const notes = new Map((await this.prisma.notification.findMany({ where: { key: { in: rows.map((r) => `invite:${r.id}`) } }, select: { id: true, key: true, status: true } })).map((n) => [n.key, n]));
+    const codes = new Map((await this.prisma.workstream.findMany({ where: { projectId: { in: [...projects.keys()] } }, select: { id: true, seq: true } })).map((w) => [w.id, `C${w.seq}`]));
+    return Promise.all(rows.map(async (r) => {
       const p = persons.find((x) => x.id === r.personId);
-      return { ...r, person: p ? { id: p.id, name: `${p.firstName} ${p.lastName}`, email: p.email } : null };
-    });
+      const owned = p && r.status === 'PENDING' ? (await this.prisma.workstream.findMany({ where: { projectId: r.projectId, ownerId: p.id }, select: { id: true } })).map((w) => w.id) : [];
+      const prop = p && r.status === 'PENDING' ? proposal(owned, p.wsIds) : null;
+      const n = notes.get(`invite:${r.id}`);
+      return {
+        ...r, person: p ? { id: p.id, name: `${p.firstName} ${p.lastName}`, email: p.email } : null,
+        projectCode: projects.get(r.projectId) ?? null, requestedByName: by.get(r.requestedById) ?? null,
+        proposal: prop ? { responsable: prop.responsable.map((w) => codes.get(w) ?? w), lecteur: prop.lecteur.map((w) => codes.get(w) ?? w) } : null,
+        notificationId: n?.id ?? null, notificationStatus: n?.status ?? null,
+      };
+    }));
   }
 
   @Post('invitation-requests/:id/approve')

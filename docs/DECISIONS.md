@@ -2222,3 +2222,12 @@ Demande du commanditaire : un risque peut concerner un chantier, plusieurs, ou t
   date limite et l'adresse de connexion en relief, mise en garde en pied ; version texte équivalente ; marges réduites
   sur petit écran. Ajouts au texte : lien de secours sous le bouton, adresse de connexion affichée.
 - Tests `test/unit/invitation-email.spec.ts`.
+
+## Demandes d'invitation visibles dans Console › Utilisateurs (11/10/2026)
+
+- Constat : une demande d'invitation du PMO (`InvitationRequest`, en attente de décision) n'est pas un compte ; la page
+  Utilisateurs ne listant que les comptes, le filtre « Invités » (invitation envoyée) ne la montrait pas.
+- Correction : `GET /api/admin/invitation-requests` renvoie aussi le code du projet, le demandeur, les droits proposés par le
+  référentiel et la notification à décider ; la page Utilisateurs ajoute les demandes en attente à « Tous » et « Invités »
+  (statut « Demandée »), avec Inviter / Refuser qui passent par la décision de la cloche (délai d'annulation de 10 s,
+  message au PMO) ; sans notification ouverte, décision directe (`/approve`, `/reject`).

@@ -156,6 +156,15 @@ export function toUser(a, i = 0) {
   return { id: a.id, n: a.fullName, e: a.email, refMail: a.emailReferentiel || null, p: PROFILE[a.profile] || null, profs: (a.profiles || []).map(p => PROFILE[p]).filter(Boolean), adm: !!a.admin, sup: !!a.superAdmin, hab, ref, s, ll, inv: s === 'invité' ? Math.max(0, a.invitedDays || 0) : null,
     pr: [...(a.projectCodes || [])], lt: ll === 0 && last ? p2(last.getHours()) + ':' + p2(last.getMinutes()) : '', av: AV[i % AV.length], _v: a.version };
 }
+/**
+ * Demande d'invitation du PMO (en attente) → ligne de la page Utilisateurs, avant la création du compte :
+ * `{ id: 'req:…', reqId, notifId, n, e, s: 'invité', req: true, pr[], by, prop{responsable, lecteur}, inv }`.
+ */
+export function toInvReq(x) {
+  const inv = Math.max(0, Math.round((Date.now() - new Date(x.createdAt).getTime()) / 86400000));
+  return { id: 'req:' + x.id, reqId: x.id, notifId: x.notificationStatus === 'OPEN' ? x.notificationId : null, n: x.person.name, e: x.person.email, p: null, profs: [], adm: false, sup: false, hab: {}, ref: {},
+    s: 'invité', req: true, pr: x.projectCode ? [x.projectCode] : [], by: x.requestedByName || 'un PMO', prop: x.proposal || { responsable: [], lecteur: [] }, inv, ll: null, lt: '', av: '#c8871a' };
+}
 /** Administrateur → `{ u, lv:'admin', since }` (un seul niveau, brief § 5). */
 export const toAdmin = a => ({ u: a.accountId, lv: a.level === 'super' ? 'super' : 'admin', since: D(a.since), rc: a.seeCosts !== false, ri: a.seeIndividual !== false });
 /** Entrée d'audit → `{ id, who, a, tg, sev, t }`. */
@@ -270,7 +279,8 @@ export function bindConsole(c) {
   // ── Chargements (GET) ──
   const apPend = {}; // suppressions de cartes API en attente (identifiant → minuterie)
   const L = {
-    accounts: async () => { const r = await get('/accounts'); return { users: r.items.map(toUser) }; },
+    // Demandes d'invitation du PMO en attente (11/10/2026) : montrées parmi les invités de la page Utilisateurs.
+    accounts: async () => { const [r, q] = await Promise.all([get('/accounts'), get('/invitation-requests').catch(() => [])]); return { users: r.items.map(toUser), invReqs: q.filter(x => x.status === 'PENDING' && x.person).map(toInvReq) }; },
     admins: async () => ({ admins: (await get('/admins')).map(toAdmin) }),
     audit: async () => ({ audit: (await get('/audit')).map(toAudit) }),
     providers: async () => ({ provs: (await get('/providers')).map(toProv) }),
@@ -478,6 +488,13 @@ export function bindConsole(c) {
       refreshNt(); touch();
       setTimeout(() => { load(['notifs', 'accounts', 'reqs', 'mods']).catch(() => {}); touch(); }, 10_000 + 1_500);
     } catch (e) { fail(e); refreshNt(); }
+  };
+  // Demande d'invitation décidée depuis la page Utilisateurs : même décision que dans la cloche (annulable 10 s,
+  // message au PMO demandeur) ; sans notification ouverte, décision directe.
+  c.invReqDecide = async (r, a) => {
+    if (r.notifId) { await c.ntAct(r.notifId, a); toast((a === 'accept' ? 'Invitation de ' : 'Refus de la demande de ') + r.n + ' : décision enregistrée, annulable 10 s dans les notifications'); return; }
+    try { await post('/invitation-requests/' + encodeURIComponent(r.reqId) + (a === 'accept' ? '/approve' : '/reject')); toast(a === 'accept' ? 'Invitation envoyée à ' + r.n : 'Demande refusée : ' + r.n); await load(['accounts', 'notifs']); touch(); }
+    catch (e) { fail(e); load(['accounts']).catch(() => {}); }
   };
   c.ntUndo = id => post('/notifications/' + id + '/undo').then(() => { toast('Décision annulée'); refreshNt(); touch(); }).catch(e => { fail(e); refreshNt(); });
   c.ntReadAll = () => post('/notifications/read-all').then(refreshNt).catch(fail);

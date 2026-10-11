@@ -46,6 +46,9 @@ describe('Console — notifications de l’administrateur', () => {
     const n = list.items.find((i: any) => i.type === 'invite');
     expect(n).toMatchObject({ pending: true, meta: { project: 'RISE' } });
     const pending0 = list.pendingInvitations;
+    // Page Utilisateurs (11/10/2026) : la demande en attente est listée avec projet, demandeur, droits proposés et notification.
+    const reqs = (await admin.get('/api/admin/invitation-requests').expect(200)).body;
+    expect(reqs.find((r: any) => r.personId === person.id)).toMatchObject({ status: 'PENDING', projectCode: 'RISE', requestedByName: expect.any(String), proposal: { responsable: expect.any(Array), lecteur: expect.any(Array) }, notificationId: n.id, notificationStatus: 'OPEN', person: { email: person.email } });
 
     const mails0 = mailer.outbox.length;
     await admin.post(`${NT}/${n.id}/decision`, { decision: 'accept' }).expect(200);
