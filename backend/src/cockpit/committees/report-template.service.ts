@@ -16,6 +16,7 @@ import { PageSource } from '../../core/report-format-write';
 import { FAILED_MESSAGE, INTERRUPTED_ERROR, NOT_READY_MESSAGE } from '../../domain/template-service';
 import { ACTION_SOON_DAYS, ActionRow, ActionsData, ArbitrationCard, ArbitrationsData, DashboardData, DashTile, DecisionRow, DecisionsData, DECISION_STAGES, DECISIONS_RECALL, DeliverableRow, DeliverablesData, focusPhase, sortActions, sortDeliverables, sortPending } from '../../core/report-draw-pilotage';
 import { arbitrationSummary, ArbitrationSheet } from '../../domain/arbitration';
+import { FREQUENCY_FR } from '../../domain/labels';
 import { deliverableDates, deliverableRisk, deliverableStatus } from '../../domain/rules';
 import { planLandings } from '../../core/report-draw';
 import { filterPlan, planRows, planStatusOf } from '../../domain/plan-levels';
@@ -271,15 +272,16 @@ export class ReportTemplateService implements OnModuleInit {
         break;
       }
       case 'decisions': {
-        const bodyRows = await this.prisma.governanceBody.findMany({ where: P, select: { id: true, shortName: true, name: true } });
-        const bodies = new Map(bodyRows.map((b) => [b.id, b.shortName])), bodyNames = new Map(bodyRows.map((b) => [b.id, b.name]));
+        const bodyRows = await this.prisma.governanceBody.findMany({ where: P, select: { id: true, shortName: true, name: true, frequency: true } });
+        const bodies = new Map(bodyRows.map((b) => [b.id, b.shortName])), bodyNames = new Map(bodyRows.map((b) => [b.id, b.name])), bodyFreq = new Map(bodyRows.map((b) => [b.id, FREQUENCY_FR[b.frequency]]));
+        const wsSeq = new Map((await this.prisma.workstream.findMany({ where: P, select: { id: true, seq: true } })).map((w) => [w.id, w.seq]));
         const all = await this.prisma.decision.findMany({ where: { ...P, ...ws }, orderBy: { code: 'asc' } });
         // Arbitrages (04/10/2026) : les décisions en attente sont toujours montrées (la période ne filtre que les décisions
         // prises, à leur date d'arbitrage) ; sans décision prise sur la période, la dernière est rappelée.
         const sessions = new Map((await this.prisma.session.findMany({ where: { ...P, id: { in: all.map((d) => d.expectedSessionId).filter((x): x is string => !!x) } } })).map((x) => [x.id, x]));
         const row = (d: (typeof all)[number]): DecisionRow => {
           const se = d.expectedSessionId ? sessions.get(d.expectedSessionId) : null;
-          return { code: d.code, title: d.t, status: d.status, created: d.crIso, decided: d.ddIso, body: bodyNames.get(d.bodyId) ?? '—', bodyShort: bodies.get(d.bodyId) ?? '—', decision: d.decL, impact: d.impact, expected: se && se.dateIso >= today ? `au ${bodies.get(se.bodyId) ?? 'comité'} du ${frDay(se.dateIso).replace(/ \d{4}$/, '')}` : null };
+          return { code: d.code, title: d.t, status: d.status, created: d.crIso, decided: d.ddIso, body: bodyNames.get(d.bodyId) ?? '—', bodyShort: bodies.get(d.bodyId) ?? '—', decision: d.decL, impact: d.impact, prio: d.p, wsSeq: wsSeq.get(d.wsId) ?? null, freq: bodyFreq.get(d.bodyId) ?? null, fiche: d.full || !!d.arbitration, opt: d.opt, session: se && se.dateIso >= today ? frDay(se.dateIso).replace(/ \d{4}$/, '') : null, expected: se && se.dateIso >= today ? `au ${bodies.get(se.bodyId) ?? 'comité'} du ${frDay(se.dateIso).replace(/ \d{4}$/, '')}` : null };
         };
         const pending = all.filter((d) => DECISION_STAGES.some((x) => x.id === d.status));
         const arbitrated = all.filter((d) => d.status === 'ARBITRATED').sort((a, b) => (b.ddIso ?? b.crIso).localeCompare(a.ddIso ?? a.crIso));

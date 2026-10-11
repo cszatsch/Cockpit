@@ -422,31 +422,37 @@ describe('Rapport — échéancier des actions, arbitrages, tableau de bord', ()
     show: { code: true, name: true, status: true, date: true, body: true, decision: true, impact: false },
   };
 
-  it('flux de décision : un couloir par étape (brouillon, en instruction, à arbitrer, décidées) ; attente (rouge au-delà de 30 j), séance attendue (11/10/2026)', () => {
+  it('registre des décisions comme Pilotage › Décisions : bandeau, colonnes du Cockpit, statut en 4 étapes, attente (rouge à 30 j), séance attendue, décisions prises (11/10/2026)', () => {
     expect(sortPending(decisions.pending).map((r) => r.code)).toEqual(['D-009', 'D-005', 'D-006']);
-    const xml = drawDecisions(new Draw(tk), box, decisions);
-    for (const lane of ['Brouillon', 'En instruction', 'À arbitrer', 'Décidées']) expect(xml).toContain(`>${lane}<`);
-    expect(xml.indexOf('>En instruction<')).toBeLessThan(xml.indexOf('>À arbitrer<'));
-    expect(xml).toContain('la plus ancienne : 37 j');
-    expect(xml).toContain('prst="chevron"');
-    expect(xml).toContain('attendue au COPROJ du 7 oct.');
-    expect(xml).toContain('>37 j<'); // D-005 : attente ≥ DECISION_STALE_DAYS
+    const rich: DecisionsData = { ...decisions, pending: decisions.pending.map((r, k) => ({ ...r, prio: [3, 4, 2][k], wsSeq: k + 1, freq: 'Mensuelle', session: r.expected ? '7 oct.' : null })) };
+    const xml = drawDecisions(new Draw(tk), box, rich);
+    const plain = xml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+    expect(plain).toContain('Registre des décisions');
+    expect(plain).toContain('3 décisions en attente');
+    expect(plain).toContain('dont 1 à arbitrer');
+    for (const h of ['ID', 'Point de décision', 'Priorité', 'Fiche d’arbitrage', 'Statut', 'Option choisie', 'Date de décision', 'Chantier', 'Instance de décision', 'Date de création']) expect(plain).toContain(h);
+    expect(xml).toContain('>Critique<');
+    expect(xml).toContain('>À arbitrer<');
+    expect(xml).toContain('>séance du 7 oct.<');
+    expect(xml).toContain('>37 j<'); // D-005 : attente ≥ DECISION_STALE_DAYS, en rouge
     expect(DECISION_STALE_DAYS).toBe(30);
-    expect(xml).toContain('Go-Live reporté au 1er avril 2027');
+    expect(xml).toContain('>Mensuelle<');
+    expect(xml).toContain('>C2<');
+    expect(plain).toContain('Go-Live reporté au 1er avril 2027');
     expect(xml).not.toContain('Chemin critique à recaler'); // impact en option
-    expect(xml).toContain('prises sur la période'); // la période est déjà dans la légende de la planche
-    expect(xml).not.toContain('1 sept. → 30 sept. 2026');
-    // Brouillons : couloir seulement s'il en reste.
-    expect(drawDecisions(new Draw(tk), box, { ...decisions, pending: decisions.pending.filter((r) => r.status !== 'DRAFT') })).not.toContain('>Brouillon<');
+    expect(plain).toContain('Prises sur la période');
     expect(inside(xml)).toBe(true);
     // Aucune décision prise sur la période : les dernières sont rappelées ; rien du tout : un seul message.
     const recall = drawDecisions(new Draw(tk), box, { ...decisions, taken: [], last: decisions.taken });
-    expect(recall).toContain('Aucune décision prise sur la période.');
     expect(recall).toContain('>Dernière décision prise<');
+    expect(recall.replace(/<[^>]+>/g, ' ')).toContain('aucune prise sur la période');
     const none = drawDecisions(new Draw(tk), box, { ...decisions, pending: [], taken: [], last: [] });
-    expect(none).toContain('Aucune décision prise à ce jour.');
-    expect(none).not.toContain('sur la période.');
-    expect(none).toContain('>rien à arbitrer<');
+    expect(none).toContain('Aucune décision en attente ni prise à ce jour.');
+    expect(none).toContain('aucune à arbitrer');
+    // Beaucoup de décisions : ce qui ne tient pas est compté, rien ne déborde.
+    const many = drawDecisions(new Draw(tk), box, { ...decisions, pending: Array.from({ length: 14 }, (_, k) => ({ ...decisions.pending[1], code: `D-${100 + k}` })) });
+    expect(many).toMatch(/… et \d+ autres décisions en attente/);
+    expect(inside(many)).toBe(true);
   });
 
   it('fiche d’arbitrage comme Pilotage › Décisions : grille critère, poids, A, B (cellules teintées par note, justifications), score pondéré, recommandation PMO, décision attendue (11/10/2026)', () => {

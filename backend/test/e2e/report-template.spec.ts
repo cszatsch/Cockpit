@@ -362,16 +362,16 @@ describe('Cockpit — Templates de rapport : versions et publications', () => {
     expect(x[3]).toContain('issue de P02');
     expect(x[3]).toContain('>Haute<');
     // Arbitrages : décisions en attente quelle que soit la période ; décision prise dans le mois (D-007, 26 sept.).
-    // Flux de décision (11/10/2026) : un couloir par étape, avec le nombre de décisions à cette étape.
-    const toArb = await t.db.decision.count({ where: { projectId: 'RISE', status: 'TO_ARBITRATE' } });
-    expect(x[4]).toContain('>En instruction<');
-    expect(x[4]).toContain('>Décidées<');
+    // Registre des décisions (11/10/2026) : bandeau et colonnes du Cockpit.
+    const pending = await t.db.decision.count({ where: { projectId: 'RISE', status: { in: ['DRAFT', 'IN_REVIEW', 'TO_ARBITRATE'] } } });
     const plain4 = x[4].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
-    expect(plain4).toContain(`${toArb} la plus ancienne`);
+    expect(plain4).toContain(`${pending} décisions en attente`);
+    expect(plain4).toContain('Instance de décision');
     expect(x[4]).toContain('>D-009<');
     expect(x[4]).toContain('>À arbitrer<');
-    // Texte de la décision réparti en lignes équilibrées : lu sans les balises.
-    expect(plain4).toContain('Go-Live Lot 1 reporté au 1er avril 2027');
+    // Décision prise (D-007) gardée à côté des décisions en attente ; texte sur trois lignes au plus (colonne étroite sans format).
+    expect(plain4).toContain('Prises sur la période');
+    expect(plain4).toContain('Go-Live Lot 1 reporté au 1er');
   });
 
   it('anomalies avant génération : avertissements listés ; périmètre disparu ou template endommagé → génération refusée (422)', async () => {

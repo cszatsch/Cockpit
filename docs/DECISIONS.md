@@ -2164,3 +2164,19 @@ Demande du commanditaire : un risque peut concerner un chantier, plusieurs, ou t
   cours, puis aussi dans la phase en cours (note « Sous-phases regroupées sur leur chantier »), enfin « … et N autres lignes ».
 - Contrôle visuel dans PowerPoint (skill designer-rapports), y compris un Gantt de 24 lignes en Poppins reproduisant le cas
   du commanditaire ; tests `test/unit/report-template.spec.ts`, `test/e2e/report-template.spec.ts`.
+
+## Rapports : Décisions en registre, comme Pilotage › Décisions (11/10/2026)
+
+- Constat du commanditaire : la planche en couloirs (même jour) se dégradait avec la police et la taille de texte de son
+  format (nombre et précision coupés, code et attente superposés, chevrons mal rendus). Cible : le registre des décisions
+  de Pilotage › Décisions.
+- `drawDecisions` : bandeau sombre « Registre des décisions » (nombre en attente, dont à arbitrer, prises sur la période),
+  puis les colonnes du Cockpit — ID, point de décision, priorité (`REGISTER.prio`, libellés et couleurs `PRL` / `PRC`),
+  fiche d'arbitrage (« Rédigée » + décision prise ou « Fiche complète », sinon « Non rédigée »), statut en quatre étapes
+  reliées (`IDX`), option choisie, date de décision (« En attente » et séance attendue), chantier en pastille teintée
+  (`DHUES`), instance de décision et fréquence, date de création et attente (rouge à partir de `DECISION_STALE_DAYS`).
+  Décisions en attente d'abord (à arbitrer en tête, liseré ambre), puis « Prises sur la période » (sinon les dernières,
+  grisées) ; hauteur de chaque ligne = sa cellule la plus haute ; le reste compté en pied. Corps de texte bornés (10 pt
+  au plus) pour rester lisible avec tout format. `DECISION_DONE_LANE` supprimé ; `DECISION_WRAP` porté à 1,2.
+- `DecisionRow` : priorité, numéro du chantier, fréquence de l'instance, fiche rédigée, option choisie, date de séance.
+- Contrôle visuel dans PowerPoint ; tests `test/unit/report-template.spec.ts`, `test/e2e/report-template.spec.ts`.

@@ -213,20 +213,33 @@ function actionsPanel(d: Draw, p: Box, rows: ActionRow[], today: string, show: R
   return out.join('');
 }
 
-// ───────────── Décisions : flux de décision (refonte du 11/10/2026) ─────────────
+// ───────────── Décisions : registre des décisions, comme Pilotage › Décisions (11/10/2026) ─────────────
 
-export interface DecisionRow { code: string; title: string; status: string; created: string; decided: string | null; body: string; bodyShort: string; decision: string | null; impact: string | null; expected: string | null }
+export interface DecisionRow {
+  code: string; title: string; status: string; created: string; decided: string | null; body: string; bodyShort: string; decision: string | null; impact: string | null; expected: string | null;
+  /** Registre (11/10/2026) : priorité 1 à 4, numéro du chantier (couleur de sa pastille), fréquence de l'instance, fiche rédigée, option choisie, date de la séance attendue. */
+  prio?: number; wsSeq?: number | null; freq?: string | null; fiche?: boolean; opt?: string | null; session?: string | null;
+}
 export interface DecisionsData { today: string; pending: DecisionRow[]; taken: DecisionRow[]; last: DecisionRow[]; period: string | null; show: Record<string, boolean> }
 /** Décisions déjà prises rappelées quand aucune ne l'a été sur la période. */
 export const DECISIONS_RECALL = 3;
-/** Étapes d'une décision avant arbitrage, dans l'ordre (libellés du Cockpit ; « Brouillon » pour les décisions antérieures au 11/10/2026). */
+/** Étapes d'une décision avant arbitrage, dans l'ordre (libellés du Cockpit). */
 export const DECISION_STAGES = [{ id: 'DRAFT', label: 'Brouillon' }, { id: 'IN_REVIEW', label: 'En instruction' }, { id: 'TO_ARBITRATE', label: 'À arbitrer' }];
 /** Attente « longue » (rouge) : 30 jours et plus depuis la création. */
 export const DECISION_STALE_DAYS = 30;
-/** Couloir des décisions prises : un peu plus large (il porte le texte de la décision). */
-export const DECISION_DONE_LANE = 1.35;
-/** Largeur utile estimée pour couper les textes des couloirs (la police réelle est plus étroite que l'estimation prudente de `wrapText`). */
-export const DECISION_WRAP = 1.15;
+/** Largeur utile estimée pour couper les textes du registre (police réelle plus étroite que l'estimation de `wrapText`). */
+export const DECISION_WRAP = 1.2;
+/**
+ * Registre des décisions du Cockpit (Pilotage › Décisions, `RISE Cockpit.dc.html`) repris tel quel : priorités (`PRL` /
+ * `PRC`), étapes du statut (`IDX`, 4 points), couleurs des pastilles de chantier (`DHUES`), palette de l'écran.
+ */
+export const REGISTER = {
+  prio: { 4: ['Critique', 'C2413B'], 3: ['Haute', 'C06F1F'], 2: ['Moyenne', '1D8F86'], 1: ['Basse', '8A9AA6'] } as Record<number, [string, string]>,
+  steps: ['DRAFT', 'IN_REVIEW', 'TO_ARBITRATE', 'ARBITRATED'],
+  stage: { DRAFT: 'Brouillon', IN_REVIEW: 'En instruction', TO_ARBITRATE: 'À arbitrer', ARBITRATED: 'Arbitrée' } as Record<string, string>,
+  hues: ['2A7F8E', '6F58C9', 'C0673C', '3F6FD1', 'B2457F', '4F8A3A', 'B98516', '55677D'],
+  ink: '10233A', teal: '1D8F86', amber: 'C06F1F', label: '5C7280', text: '43586A', grey: '8A9AA6', rule: 'EEF3F2', ring: 'CFD8D6', off: 'E3EAE8', band: '10233A', bandLabel: '9FDCD4', soft: 'F3F7FA',
+};
 
 /** Ordre des décisions en attente : les plus avancées (à arbitrer) d'abord, puis les plus anciennes. */
 export function sortPending(rows: DecisionRow[]): DecisionRow[] {
@@ -235,90 +248,135 @@ export function sortPending(rows: DecisionRow[]): DecisionRow[] {
 }
 
 /**
- * Flux de décision : un couloir par étape, lu de gauche à droite — en instruction › à arbitrer › décidées (brouillons
- * en tête s'il en reste). Chaque couloir : libellé, nombre, précision (la plus ancienne attente ; la période), filet de
- * sa couleur ; les filets et les chevrons dessinent le parcours. Décisions en attente : code, attente (rouge à partir de
- * 30 jours), intitulé, instance et séance attendue, les plus anciennes en tête. Décisions prises sur la période : date,
- * instance, code, ce qui a été décidé, intitulé, impact en option ; sans décision prise, les dernières sont rappelées.
+ * Registre des décisions, comme Pilotage › Décisions : un bandeau sombre (« Registre des décisions », nombre en attente,
+ * dont à arbitrer, prises sur la période), puis le tableau du Cockpit — ID, point de décision, priorité, fiche
+ * d'arbitrage, statut en quatre étapes, option choisie, date de décision, chantier, instance de décision et sa
+ * fréquence, date de création. Décisions en attente d'abord (à arbitrer en tête, liseré ambre), avec leur attente
+ * (rouge à partir de 30 jours) et leur séance attendue ; puis les décisions prises sur la période (sinon les dernières,
+ * rappelées en grisé). Ce qui ne tient pas est compté en pied.
  */
 export function drawDecisions(d: Draw, a: Box, x: DecisionsData): string {
-  const t = d.t, ty = typeScale(t), out: string[] = [], show = x.show;
-  const oldest = (rs: DecisionRow[]) => [...rs].sort((u, v) => u.created.localeCompare(v.created) || u.code.localeCompare(v.code));
-  const pending = sortPending(x.pending), quiet = mixHex(t.ink, 'FFFFFF', 0.62);
-  type Lane = { id: string; label: string; rows: DecisionRow[]; color: string; f: number };
-  const lanes: Lane[] = show.status !== false
-    ? DECISION_STAGES.map((s) => ({ id: s.id, label: s.label, rows: oldest(pending.filter((r) => r.status === s.id)), color: s.id === 'TO_ARBITRATE' ? t.watch : quiet, f: 1 })).filter((l) => l.id !== 'DRAFT' || l.rows.length)
-    : [{ id: 'WAIT', label: 'En attente', rows: oldest(pending), color: quiet, f: 1 }];
-  const taken = [...x.taken].sort((u, v) => (v.decided ?? '').localeCompare(u.decided ?? '')), recall = !taken.length;
-  const doneRows = taken.length ? taken : x.last.slice(0, DECISIONS_RECALL);
-  lanes.push({ id: 'DONE', label: 'Décidées', rows: doneRows, color: t.accent, f: DECISION_DONE_LANE });
-  const G = 0.42 * IN, F = lanes.reduce((s, l) => s + l.f, 0), unit = (a.w - G * (lanes.length - 1)) / F;
-  const headH = 0.8 * IN, ruleY = a.y + headH, limit = a.y + a.h - 0.24 * IN, nameSize = ty.small + 0.5;
-  let lx = a.x;
-  lanes.forEach((L, li) => {
-    const lw = L.f * unit, done = L.id === 'DONE';
-    const n = done ? taken.length : L.rows.length, hot = L.id === 'TO_ARBITRATE' && n > 0;
-    // En-tête : libellé, nombre, précision ; filet de la couleur du couloir.
-    out.push(d.label({ x: lx, y: a.y, w: lw, h: 0.2 * IN }, L.label, hot ? t.watch : done ? t.accent : t.muted));
-    const maxAge = L.rows.length ? Math.max(...L.rows.map((r) => days(r.created, x.today))) : 0;
-    const sub = done ? (x.period ? 'prises sur la période' : 'prises · toutes dates') : n && show.date !== false ? `la plus ancienne : ${maxAge} j` : '';
-    out.push(d.text({ x: lx, y: a.y + 0.2 * IN, w: lw, h: headH - 0.3 * IN }, [{ runs: [{ t: String(n), size: ty.stat * 0.82, color: !n ? t.subtle : hot ? t.watch : done ? t.accent : t.ink, bold: true, font: t.head }, ...(sub ? [{ t: `   ${sub}`, size: ty.small, color: !done && maxAge >= DECISION_STALE_DAYS ? t.risk : t.muted, bold: !done && maxAge >= DECISION_STALE_DAYS }] : [])] }], 'b'));
-    out.push(d.sp({ box: { x: lx, y: ruleY - 0.012 * IN, w: lw, h: 0.024 * IN }, fill: !n && !done ? t.hairline : L.color }));
-    if (li < lanes.length - 1) out.push(d.sp({ box: { x: lx + lw + G / 2 - 0.035 * IN, y: ruleY - 0.055 * IN, w: 0.07 * IN, h: 0.11 * IN }, geom: 'chevron', adj: 60000, fill: t.subtle }));
-    let y = ruleY + 0.16 * IN, shown = 0;
-    const note = (txt: string) => { out.push(d.text({ x: lx, y, w: lw, h: 0.26 * IN }, [{ runs: [{ t: txt, size: ty.small, color: t.subtle, italic: true }] }], 't')); y += 0.3 * IN; };
-    if (!done) {
-      if (!L.rows.length) note(L.id === 'TO_ARBITRATE' ? 'rien à arbitrer' : L.id === 'WAIT' ? 'aucune décision en attente' : 'aucune décision');
-      for (const r of L.rows) {
-        const tl = balanced(r.title, lw * DECISION_WRAP, nameSize, 3);
-        // Instance, puis séance attendue : chacune sur sa ligne.
-        const cl = [show.body !== false ? r.body : null, r.expected ? `attendue ${r.expected}` : null].filter((v): v is string => !!v).map((v) => wrapText(v, lw * DECISION_WRAP, ty.label, 1)[0]);
-        const top = show.code !== false || show.date !== false;
-        const h = (top ? ty.label * 1.7 : 0) * PT + tl.length * nameSize * 1.24 * PT + (cl.length ? cl.length * ty.label * 1.38 * PT + 3 * PT : 0) + 0.18 * IN;
-        if (y + h > limit && shown > 0) break;
-        const age = days(r.created, x.today), stale = age >= DECISION_STALE_DAYS;
-        const paras: Para[] = [];
-        if (top) {
-          if (show.date !== false) out.push(d.text({ x: lx, y: y + 0.06 * IN, w: lw, h: ty.label * 1.7 * PT }, [{ align: 'r', runs: [{ t: 'attente  ', size: ty.label, color: t.subtle }, { t: `${age} j`, size: ty.small, color: stale ? t.risk : t.ink, bold: true }] }], 'ctr'));
-          paras.push({ runs: [{ t: show.code !== false ? r.code : ' ', size: ty.label, color: t.subtle, bold: true, spc: 0.4 }] });
-        }
-        tl.forEach((l, j) => paras.push({ spcBef: j || !top ? 0 : 2, line: 100, runs: [{ t: l, size: nameSize, color: t.ink, bold: true }] }));
-        cl.forEach((l, j) => paras.push({ spcBef: j ? 0 : 3, runs: [{ t: l, size: ty.label, color: t.muted }] }));
-        out.push(d.text({ x: lx, y: y + 0.08 * IN, w: lw, h: h - 0.12 * IN }, paras, 't'));
-        y += h;
-        shown++;
-        if (shown < L.rows.length) out.push(d.line(lx, y, lx + lw, y, mixHex(t.hairline, 'FFFFFF', 0.3), 0.5));
-      }
-      if (shown < L.rows.length) out.push(d.text({ x: lx, y: y + 0.02 * IN, w: lw, h: 0.22 * IN }, [{ runs: [{ t: `… et ${plural(L.rows.length - shown, 'autre décision', 'autres décisions')}`, size: ty.label, color: t.subtle, italic: true }] }], 't'));
-    } else {
-      if (!L.rows.length) note('Aucune décision prise à ce jour.');
-      else if (recall) {
-        note('Aucune décision prise sur la période.');
-        out.push(d.label({ x: lx, y: y - 0.04 * IN, w: lw, h: 0.2 * IN }, L.rows.length > 1 ? 'Dernières décisions prises' : 'Dernière décision prise', t.subtle));
-        y += 0.24 * IN;
-      }
-      for (const r of L.rows) {
-        const decided = r.decided ?? r.created, hasDec = show.decision !== false && !!r.decision?.trim();
-        const wl = balanced(hasDec ? r.decision! : r.title, lw * DECISION_WRAP, nameSize, 3);
-        const sub = hasDec ? wrapText(r.title, lw * DECISION_WRAP, ty.label, 2) : [];
-        const imp = show.impact && r.impact?.trim() ? wrapText(`Impact : ${r.impact}`, lw * DECISION_WRAP, ty.label, 2) : [];
-        const h = ty.label * 1.7 * PT + wl.length * nameSize * 1.24 * PT + (sub.length ? sub.length * ty.label * 1.38 * PT + 2 * PT : 0) + imp.length * ty.label * 1.38 * PT + (imp.length ? 3 * PT : 0) + 0.18 * IN;
-        if (y + h > limit && shown > 0) break;
-        const head: Run[] = [{ t: decided.slice(0, 4) === x.today.slice(0, 4) ? frShortDate(decided) : longDate(decided), size: ty.label, color: recall ? t.muted : t.accent, bold: true, caps: true, spc: 0.8 }];
-        if (show.body !== false) head.push({ t: `  ·  ${r.bodyShort}`, size: ty.label, color: t.muted, bold: true, caps: true, spc: 0.8 });
-        if (show.code !== false) head.push({ t: `  ·  ${r.code}`, size: ty.label, color: t.subtle, bold: true });
-        const paras: Para[] = [{ runs: head }, ...wl.map((l, j) => ({ spcBef: j ? 0 : 2, line: 100, runs: [{ t: l, size: nameSize, color: recall ? t.muted : t.ink, bold: true }] }))];
-        sub.forEach((l, j) => paras.push({ spcBef: j ? 0 : 2, runs: [{ t: l, size: ty.label, color: t.muted }] }));
-        imp.forEach((l, j) => paras.push({ spcBef: j ? 0 : 3, runs: [{ t: l, size: ty.label, color: t.subtle, italic: true }] }));
-        out.push(d.text({ x: lx, y: y + 0.08 * IN, w: lw, h: h - 0.12 * IN }, paras, 't'));
-        y += h;
-        shown++;
-        if (shown < L.rows.length) out.push(d.line(lx, y, lx + lw, y, mixHex(t.hairline, 'FFFFFF', 0.3), 0.5));
-      }
-      if (shown < L.rows.length) out.push(d.text({ x: lx, y: y + 0.02 * IN, w: lw, h: 0.22 * IN }, [{ runs: [{ t: `… et ${plural(L.rows.length - shown, 'autre décision', 'autres décisions')} prise${L.rows.length - shown > 1 ? 's' : ''}`, size: ty.label, color: t.subtle, italic: true }] }], 't'));
+  const t = d.t, ty = typeScale(t), out: string[] = [], show = x.show, C = REGISTER, W = DECISION_WRAP;
+  // Corps bornés : le registre reste lisible quelle que soit la taille de texte du format (pas de débordement).
+  const fs = Math.min(ty.small, 10), fl = Math.min(ty.label, 8), fh = Math.min(ty.lead + 2, 15), lh = (s: number) => s * 1.25 * PT;
+  const pending = sortPending(x.pending), toArb = pending.filter((r) => r.status === 'TO_ARBITRATE').length;
+  const taken = [...x.taken].sort((u, v) => (v.decided ?? '').localeCompare(u.decided ?? '')), recall = !taken.length && x.last.length > 0;
+  const done = taken.length ? taken : x.last.slice(0, DECISIONS_RECALL);
+
+  // 1. Bandeau : le registre en une phrase.
+  const bandH = 0.66 * IN;
+  out.push(d.sp({ box: { x: a.x, y: a.y, w: a.w, h: bandH }, geom: 'roundRect', adj: 9000, fill: C.band }));
+  const head: Run[] = [{ t: String(pending.length), size: fh + 6, color: 'FFFFFF', bold: true, font: t.head }, { t: pending.length > 1 ? '  décisions en attente' : pending.length ? '  décision en attente' : '  aucune décision en attente', size: fh, color: 'FFFFFF', bold: true, font: t.head }];
+  const sub: Run[] = [{ t: toArb ? `dont ${toArb} à arbitrer` : 'aucune à arbitrer', size: fs, color: toArb ? 'F2B66B' : C.bandLabel, bold: toArb > 0 }, { t: `   ·   ${taken.length ? `${taken.length} prise${taken.length > 1 ? 's' : ''}` : 'aucune prise'} ${x.period ? 'sur la période' : 'à ce jour'}`, size: fs, color: mixHex(C.band, 'FFFFFF', 0.72) }];
+  out.push(d.text({ x: a.x + 0.24 * IN, y: a.y + 0.06 * IN, w: a.w * 0.62, h: bandH - 0.12 * IN }, [{ runs: [{ t: 'Registre des décisions', size: fl, color: C.bandLabel, bold: true, caps: true, spc: 1.6 }] }, { spcBef: 1, runs: head }], 'ctr'));
+  out.push(d.text({ x: a.x + a.w * 0.55, y: a.y + 0.06 * IN, w: a.w * 0.45 - 0.24 * IN, h: bandH - 0.12 * IN }, [{ align: 'r', runs: sub }], 'ctr'));
+
+  // 2. Colonnes du registre (largeurs fixes pour les repères, souples pour les textes).
+  type Col = { id: string; label: string; w: number; f?: number };
+  const cols: Col[] = [
+    ...(show.code !== false ? [{ id: 'id', label: 'ID', w: 0.62 * IN }] : []),
+    { id: 'name', label: 'Point de décision', w: 0, f: 2.3 },
+    { id: 'prio', label: 'Priorité', w: 0.86 * IN },
+    ...(show.decision !== false ? [{ id: 'fiche', label: 'Fiche d’arbitrage', w: 0, f: 1.45 }] : []),
+    ...(show.status !== false ? [{ id: 'status', label: 'Statut', w: 1.12 * IN }] : []),
+    { id: 'opt', label: 'Option choisie', w: 0.66 * IN },
+    { id: 'dd', label: 'Date de décision', w: 0.98 * IN },
+    { id: 'ws', label: 'Chantier', w: 0.66 * IN },
+    ...(show.body !== false ? [{ id: 'body', label: 'Instance de décision', w: 0, f: 1.45 }] : []),
+    { id: 'cr', label: 'Date de création', w: 0.98 * IN },
+  ];
+  const gap = 0.12 * IN, pad = 0.16 * IN, inner = a.w - 2 * pad - gap * (cols.length - 1);
+  const flex = inner - cols.reduce((s, c) => s + c.w, 0), F = cols.reduce((s, c) => s + (c.f ?? 0), 0);
+  cols.forEach((c) => { if (c.f) c.w = (flex * c.f) / F; });
+  const xs: number[] = []; cols.reduce((p, c) => (xs.push(p), p + c.w + gap), a.x + pad);
+  let y = a.y + bandH + 0.06 * IN;
+  const thH = 0.4 * IN;
+  cols.forEach((c, i) => out.push(d.text({ x: xs[i], y, w: c.w + gap * 0.6, h: thH }, wrapText(c.label, (c.w + gap * 0.6) * 1.15, fl, 2).map((l) => ({ line: 95, runs: [{ t: l, size: fl, color: C.label, bold: true, caps: true, spc: 0.8 }] })), 'b')));
+  y += thH + 0.06 * IN;
+
+  // 3. Lignes : en attente, puis prises (ou rappel des dernières).
+  const rows: Array<{ r: DecisionRow; faded: boolean }> = [...pending.map((r) => ({ r, faded: false })), ...done.map((r) => ({ r, faded: recall }))];
+  const avail = a.y + a.h - y - 0.24 * IN;
+  const nameW = cols.find((c) => c.id === 'name')!.w, bodyW = cols.find((c) => c.id === 'body')?.w ?? 0, ficheW = cols.find((c) => c.id === 'fiche')?.w ?? 0, impOn = !!show.impact;
+  // Hauteur d'une ligne : la plus haute de ses cellules (intitulé et impact, instance et fréquence).
+  const hOf = (r: DecisionRow) => {
+    const nh = balanced(r.title, nameW * W, fs + 0.5, 3).length * lh(fs + 0.5) + (impOn && r.impact?.trim() ? lh(fl) : 0);
+    const bh = bodyW ? balanced(r.body, bodyW * W, fs, 2).length * lh(fs) + (r.freq ? lh(fl) : 0) : 0;
+    const dh = ficheW && r.decision?.trim() ? balanced(r.decision, (ficheW - (r.fiche ? 0.55 * IN : 0)) * W, fs, 3).length * lh(fs) : 0;
+    return Math.max(0.46 * IN, Math.max(nh, bh, dh) + 0.16 * IN);
+  };
+  // Place réservée aux deux premières décisions prises (et à leur séparateur) : les deux groupes restent visibles.
+  const keepDone = done.slice(0, 2), reserve = keepDone.length ? keepDone.reduce((s2, r) => s2 + hOf(r), 0.2 * IN) : 0;
+  let used = 0, nOpen = 0, nDone = 0;
+  for (const r of pending) { const h = hOf(r); if (used + h > avail - reserve && nOpen) break; used += h; nOpen++; }
+  for (const [k, r] of done.entries()) { const h = hOf(r) + (k ? 0 : 0.2 * IN); if (used + h > avail && (nOpen || nDone)) break; used += h; nDone++; }
+  const list = [...rows.slice(0, nOpen), ...rows.slice(pending.length, pending.length + nDone)], shown = nOpen + nDone;
+  let sep = -1;
+  list.forEach(({ r, faded }, k) => {
+    const h = hOf(r), open = DECISION_STAGES.some((s) => s.id === r.status), hot = r.status === 'TO_ARBITRATE';
+    // Passage des décisions en attente aux décisions prises : filet et libellé discret.
+    if (!open && sep < 0) {
+      sep = k;
+      out.push(d.text({ x: a.x + pad, y: y + 0.02 * IN, w: a.w * 0.5, h: 0.16 * IN }, [{ runs: [{ t: recall ? (done.length > 1 ? 'Dernières décisions prises' : 'Dernière décision prise') : x.period ? 'Prises sur la période' : 'Décisions prises', size: fl - 0.5, color: C.grey, bold: true, caps: true, spc: 1 }] }], 'ctr'));
+      y += 0.2 * IN;
     }
-    lx += lw + G;
+    if (hot) out.push(d.sp({ box: { x: a.x, y: y + 0.04 * IN, w: 0.03 * IN, h: h - 0.08 * IN }, fill: C.amber }));
+    const ink = faded ? C.grey : C.ink;
+    cols.forEach((c, i) => {
+      const bx = xs[i], w = c.w, box = { x: bx, y, w: w + 0.02 * IN, h };
+      if (c.id === 'id') out.push(d.text(box, [{ runs: [{ t: r.code, size: fl + 0.5, color: ink, bold: true, font: 'Consolas' }] }], 'ctr'));
+      else if (c.id === 'name') {
+        const tl = balanced(r.title, w * W, fs + 0.5, 3), imp = impOn && r.impact?.trim() ? wrapText(`Impact : ${r.impact}`, w * W, fl, 1)[0] : null;
+        out.push(d.text(box, [...tl.map((l) => ({ line: 100, runs: [{ t: l, size: fs + 0.5, color: ink, bold: true }] })), ...(imp ? [{ spcBef: 1, runs: [{ t: imp, size: fl, color: C.grey, italic: true }] }] : [])], 'ctr'));
+      } else if (c.id === 'prio') {
+        const [pl, pc] = C.prio[r.prio ?? 2] ?? C.prio[2];
+        out.push(d.text(box, [{ runs: [{ t: '●  ', size: fl - 1, color: faded ? C.ring : pc }, { t: pl, size: fs, color: faded ? C.grey : pc, bold: true }] }], 'ctr'));
+      } else if (c.id === 'fiche') {
+        const dec = r.decision?.trim();
+        // « Rédigée » (fiche complète), puis la décision prise (trois lignes au plus) ou « Fiche complète ».
+        const dl = balanced(dec || 'Fiche complète', (w - (r.fiche ? 0.55 * IN : 0)) * W, fs, 3);
+        out.push(d.text(box, dec || r.fiche ? dl.map((l, j) => ({ line: 100, runs: [...(r.fiche && !j ? [{ t: 'Rédigée  ', size: fl - 0.5, color: ink, bold: true, font: 'Consolas' }] : []), { t: l, size: fs, color: faded ? C.grey : C.text }] }))
+          : [{ runs: [{ t: 'Non rédigée', size: fs, color: C.grey, italic: true }] }], 'ctr'));
+      } else if (c.id === 'status') {
+        // Quatre étapes reliées : franchies pleines, étape courante cerclée, à venir creuses (couleur de l'étape).
+        const ix = C.steps.indexOf(r.status), col = faded ? C.grey : r.status === 'TO_ARBITRATE' ? C.amber : r.status === 'ARBITRATED' ? C.ink : C.teal;
+        const dot = 0.075 * IN, seg = 0.15 * IN, cy = y + h / 2 - 0.08 * IN;
+        C.steps.forEach((_, j) => {
+          const dx = bx + j * (dot + seg);
+          if (j < 3) out.push(d.line(dx + dot, cy + dot / 2, dx + dot + seg, cy + dot / 2, ix >= 0 && j < ix ? col : C.off, 1.25));
+          if (j === ix) out.push(d.sp({ box: { x: dx - 0.025 * IN, y: cy - 0.025 * IN, w: dot + 0.05 * IN, h: dot + 0.05 * IN }, geom: 'ellipse', fill: mixHex(col, 'FFFFFF', 0.8) }));
+          out.push(d.sp({ box: { x: dx, y: cy, w: dot, h: dot }, geom: 'ellipse', fill: ix < 0 ? C.off : j <= ix ? col : 'FFFFFF', line: j > ix && ix >= 0 ? { color: C.ring, w: 0.9 } : null }));
+        });
+        out.push(d.text({ x: bx, y: cy + dot + 0.04 * IN, w: w + gap, h: lh(fs) + 0.02 * IN }, [{ runs: [{ t: C.stage[r.status] ?? r.status, size: fs - 0.5, color: col, bold: true }] }], 't'));
+      } else if (c.id === 'opt') {
+        const has = !!r.opt?.trim(), bw = Math.min(w, 0.5 * IN), bh = 0.28 * IN;
+        out.push(d.sp({ box: { x: bx, y: y + (h - bh) / 2, w: bw, h: bh }, geom: 'roundRect', adj: 22000, fill: has ? mixHex(C.teal, 'FFFFFF', 0.9) : null, line: has ? null : { color: C.off, w: 0.75, dash: true }, anchor: 'ctr', paras: [{ align: 'ctr', runs: [{ t: has ? r.opt!.trim() : '–', size: has ? fs : fs - 1, color: has ? C.ink : C.ring, bold: has }] }] }));
+      } else if (c.id === 'dd') {
+        const p: Para[] = r.decided && !open ? [{ runs: [{ t: dayOf(r.decided, x.today), size: fs, color: ink }] }] : [{ runs: [{ t: 'En attente', size: fs, color: C.grey, italic: true }] }];
+        if (open && r.session) p.push({ spcBef: 1, runs: [{ t: `séance du ${r.session}`, size: fl, color: hot ? C.amber : C.teal, bold: true }] });
+        out.push(d.text(box, p, 'ctr'));
+      } else if (c.id === 'ws') {
+        if (r.wsSeq) {
+          const hue = C.hues[(r.wsSeq - 1) % C.hues.length], cw = (String(r.wsSeq).length * 0.075 + 0.24) * IN, ch = 0.22 * IN;
+          out.push(d.sp({ box: { x: bx, y: y + (h - ch) / 2, w: cw, h: ch }, geom: 'roundRect', adj: 24000, fill: mixHex(hue, 'FFFFFF', faded ? 0.95 : 0.91), line: { color: mixHex(hue, 'FFFFFF', 0.78), w: 0.75 }, anchor: 'ctr', paras: [{ align: 'ctr', runs: [{ t: `C${r.wsSeq}`, size: fl, color: faded ? C.grey : hue, bold: true }] }] }));
+        } else out.push(d.text(box, [{ runs: [{ t: '—', size: fs, color: C.ring }] }], 'ctr'));
+      } else if (c.id === 'body') {
+        const bl = balanced(r.body, w * W, fs, 2);
+        out.push(d.text(box, [...bl.map((l) => ({ line: 100, runs: [{ t: l, size: fs, color: faded ? C.grey : C.ink }] })), ...(r.freq ? [{ spcBef: 1, runs: [{ t: r.freq, size: fl, color: C.grey }] }] : [])], 'ctr'));
+      } else if (c.id === 'cr') {
+        const age = days(r.created, x.today), stale = open && age >= DECISION_STALE_DAYS;
+        out.push(d.text(box, [{ runs: [{ t: dayOf(r.created, x.today), size: fs, color: C.grey }] }, ...(open && show.date !== false ? [{ spcBef: 1, runs: [{ t: 'attente ', size: fl, color: C.grey }, { t: `${age} j`, size: fl + 0.5, color: stale ? 'C2413B' : C.ink, bold: true }] }] : [])], 'ctr'));
+      }
+    });
+    y += h;
+    out.push(d.line(a.x + pad, y, a.x + a.w - pad, y, C.rule, 0.75));
   });
+  if (!rows.length) out.push(d.text({ x: a.x, y: y + 0.1 * IN, w: a.w, h: 0.4 * IN }, [{ align: 'ctr', runs: [{ t: 'Aucune décision en attente ni prise à ce jour.', size: fs + 1, color: C.grey, italic: true }] }], 't'));
+  if (shown < rows.length) {
+    const restOpen = pending.length - nOpen, restDone = done.length - nDone;
+    const parts = [restOpen ? plural(restOpen, 'autre décision en attente', 'autres décisions en attente') : '', restDone ? plural(restDone, recall ? 'autre décision rappelée' : 'autre décision prise', recall ? 'autres décisions rappelées' : 'autres décisions prises') : ''].filter(Boolean);
+    out.push(d.text({ x: a.x + pad, y: y + 0.03 * IN, w: a.w - 2 * pad, h: 0.2 * IN }, [{ runs: [{ t: `… et ${parts.join(' · ')}`, size: fl, color: C.grey, italic: true }] }], 'ctr'));
+  }
   return out.join('');
 }
 
