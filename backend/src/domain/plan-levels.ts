@@ -79,3 +79,17 @@ export function planRows(level: PlanLevel, input: { phases: PlanPhase[]; subs: P
       return phases.map(phRow);
   }
 }
+
+/** Statut d'une ligne pour le filtre (11/10/2026) : terminé, en retard (non terminé, fin dépassée), en cours, à venir. */
+export const planStatusOf = (r: { status: PlanStatus; end: string }, today: string): 'DONE' | 'LATE' | 'ACTIVE' | 'FUTURE' =>
+  r.status === 'DONE' ? 'DONE' : r.end < today ? 'LATE' : r.status === 'IN_PROGRESS' ? 'ACTIVE' : 'FUTURE';
+
+/** Lignes retenues par un filtre ; une ligne parente est gardée (contexte) dès qu'une de ses descendantes l'est. */
+export function filterPlan<T extends { level: number }>(rows: T[], keep: (r: T) => boolean): T[] {
+  const ok = rows.map(keep);
+  for (let i = rows.length - 1; i >= 0; i--) {
+    if (ok[i]) continue;
+    for (let j = i + 1; j < rows.length && rows[j].level > rows[i].level; j++) if (ok[j]) { ok[i] = true; break; }
+  }
+  return rows.filter((_, i) => ok[i]);
+}

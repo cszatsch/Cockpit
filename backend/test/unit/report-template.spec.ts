@@ -41,7 +41,7 @@ describe('Template de rapport — règles', () => {
     expect(indicatorsOf({ id: 'jalons', scope: 'PROJECT' })).toEqual(['code', 'name', 'date', 'baseline', 'slip', 'kpis']);
     expect(indicatorsOf({ id: 'jalons', scope: 'PROJECT', indicators: ['slip', 'code'] })).toEqual(['code', 'slip']);
     expect(periodOf({ id: 'jalons', scope: 'PROJECT' })).toBe('next90');
-    expect(periodOf({ id: 'planning', scope: 'PROJECT', period: 'month' })).toBe('all');
+    expect(periodOf({ id: 'risques', scope: 'PROJECT', period: 'month' })).toBe('all');
     expect(configErrors([{ id: 'jalons', scope: 'PROJECT', indicators: ['inconnu'] }])).toEqual({ 'components.0': 'Jalons : indicateur inconnu (inconnu)' });
     expect(configErrors([{ id: 'jalons', scope: 'PROJECT', indicators: [] }])).toEqual({ 'components.0': 'Jalons : choisissez au moins un indicateur' });
     expect(configErrors([{ id: 'barometre', scope: 'PROJECT', period: 'next30' }])).toEqual({ 'components.0': 'Baromètre du projet : période non proposée pour ce composant' });

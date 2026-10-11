@@ -1,4 +1,4 @@
-import { planRows, PlanPhase, PlanSub, PlanWs, segmentOf } from '../../src/domain/plan-levels';
+import { filterPlan, planRows, planStatusOf, PlanPhase, PlanSub, PlanWs, segmentOf } from '../../src/domain/plan-levels';
 import { planLevelOf } from '../../src/domain/report-components';
 import { arbitrationSummary } from '../../src/domain/arbitration';
 
@@ -42,6 +42,14 @@ describe('Planning des rapports : niveaux de détail', () => {
     // Chantier sans sous-phase propre : sous-phases de ses phases qui chevauchent ses dates.
     expect(planRows('one', { ...input, wsId: 'W1' }).map((r) => r.code)).toEqual(['C1', '2.1', '2.2']);
     expect(planRows('one', { ...input, wsId: 'inconnu' })).toEqual([]);
+  });
+
+  it('filtre par période et statut : parentes gardées pour le contexte (11/10/2026)', () => {
+    const rows = planRows('phsp', input);
+    expect(rows.map((r) => planStatusOf(r, today))).toEqual(['DONE', 'ACTIVE', 'DONE', 'ACTIVE']);
+    expect(filterPlan(rows, (r) => planStatusOf(r, today) === 'ACTIVE').map((r) => r.code)).toEqual(['2', '2.2']);
+    expect(filterPlan(rows, (r) => r.code === '2.1').map((r) => r.code)).toEqual(['2', '2.1']);
+    expect(planStatusOf({ status: 'IN_PROGRESS', end: '2026-09-01' }, today)).toBe('LATE');
   });
 
   it('templates antérieurs : niveau déduit (chantier → un chantier ; « Sous-phases » → phase > sous-phase)', () => {

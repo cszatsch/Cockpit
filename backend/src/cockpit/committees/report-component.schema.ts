@@ -14,6 +14,7 @@ export const ComponentSchema = z
     scope: z.enum(['PROJECT', 'WAVE', 'PHASE', 'WORKSTREAM']),
     targetId: z.string().nullable().optional(),
     level: z.enum(ids(PLAN_LEVELS.map((l) => l.id))).optional(),
+    statuses: z.array(z.enum(['ACTIVE', 'FUTURE', 'LATE', 'DONE'])).max(4).optional(),
     period: z.enum(ids(PERIODS.map((p) => p.id))).optional(),
     indicators: z.array(z.string().min(1)).max(10).optional(),
     newSection: z.boolean().optional(),

@@ -52,13 +52,13 @@ describe('Cockpit — Templates de rapport : versions et publications', () => {
     const r = await get('/report-components').expect(200);
     expect(r.body.components.find((c: any) => c.id === 'barometre')).toMatchObject({ nature: 'Tableau de bord', parts: ['board', 'chart'], periodic: true, defaultPeriod: 'last6', indicators: [{ id: 'score', label: 'Score et évolution' }, { id: 'sentiment', label: 'Avis des répondants' }, { id: 'domains', label: 'Score par domaine' }, { id: 'themes', label: 'Points clés' }] });
     // « Sous-phases » retiré (11/10/2026) : le niveau de détail le remplace (`planLevels`).
-    expect(r.body.components.find((c: any) => c.id === 'planning')).toMatchObject({ nature: 'Gantt', parts: ['board'], indicators: [{ id: 'milestones', label: 'Jalons sur la frise' }, { id: 'critical', label: 'Chemin critique' }, { id: 'landCurrent', label: 'Atterrissage rythme actuel' }, { id: 'landPlanned', label: 'Atterrissage rythme prévu' }] });
+    expect(r.body.components.find((c: any) => c.id === 'planning')).toMatchObject({ nature: 'Gantt', parts: ['board'], indicators: [{ id: 'milestones', label: 'Jalons sur la frise' }, { id: 'today', label: 'Date du jour' }, { id: 'critical', label: 'Chemin critique' }, { id: 'landCurrent', label: 'Atterrissage rythme actuel' }, { id: 'landPlanned', label: 'Atterrissage rythme prévu' }], periodic: true, periods: ['next30', 'next60', 'next90', 'all'], statuses: [{ id: 'ACTIVE', label: 'En cours' }, { id: 'FUTURE', label: 'À venir' }, { id: 'LATE', label: 'En retard' }, { id: 'DONE', label: 'Terminé' }] });
     expect(r.body.planLevels.map((l: any) => l.label)).toEqual(['Phases', 'Phase > Sous-phase', 'Phase > Chantier > Sous-phase', 'Tous les chantiers', 'Un chantier']);
     // Livrables après Jalons, Fiches d'arbitrage après Décisions (11/10/2026).
     const order = r.body.components.map((c: any) => c.id);
     expect(order.indexOf('livrables')).toBe(order.indexOf('jalons') + 1);
     expect(order.indexOf('arbitrages')).toBe(order.indexOf('decisions') + 1);
-    expect(r.body.components.find((c: any) => c.id === 'livrables')).toMatchObject({ label: 'Livrables', parts: ['board'], periodic: true, defaults: ['name', 'phase', 'ws', 'owner', 'due', 'progress', 'status', 'risk'] });
+    expect(r.body.components.find((c: any) => c.id === 'livrables')).toMatchObject({ label: 'Livrables', parts: ['board'], periodic: true, defaults: ['name', 'phase', 'ws', 'owner', 'due', 'progress', 'status', 'risk'], periods: ['next30', 'next60', 'next90', 'all'], statuses: [{ id: 'ACTIVE', label: 'En cours' }, { id: 'FUTURE', label: 'À venir' }, { id: 'LATE', label: 'En retard' }, { id: 'DONE', label: 'Livré' }] });
     expect(r.body.components.find((c: any) => c.id === 'arbitrages')).toMatchObject({ label: 'Fiches d’arbitrage', parts: ['board'], periodic: true });
     expect(r.body.components.find((c: any) => c.id === 'risques')).toMatchObject({ nature: 'Matrice et tableau', parts: ['board'], periodic: false });
     expect(r.body.components.find((c: any) => c.id === 'jalons')).toMatchObject({ nature: 'Frise', parts: ['board'], periodic: true });
@@ -155,7 +155,8 @@ describe('Cockpit — Templates de rapport : versions et publications', () => {
     expect(by('synthese').periods).toEqual(['month', 'prevMonth', 'quarter']);
     expect(by('barometre').periods).toEqual(['last3', 'last6', 'last12']);
     expect(by('jalons').periods).toEqual(['next30', 'next60', 'next90', 'all']);
-    expect(by('planning').periods).toEqual([]);
+    expect(by('planning').periods).toEqual(['next30', 'next60', 'next90', 'all']); // Planning filtré par période (11/10/2026)
+    expect(by('risques').periods).toEqual([]);
     expect(r.body.periods.map((p: any) => p.label)).toEqual(expect.arrayContaining(['Mois précédent', '12 derniers mois', '60 prochains jours']));
   });
 
@@ -283,9 +284,23 @@ describe('Cockpit — Templates de rapport : versions et publications', () => {
     expect((await post('/report-templates/preview', { name: 'T', components: [{ id: 'planning', scope: 'PROJECT', level: 'one' }], format: format() }).expect(400)).body.fields).toMatchObject({ 'components.0': expect.stringMatching(/choisissez le chantier/) });
     const x3 = await pptx([{ id: 'planning', scope: 'WORKSTREAM', targetId: ws.id, level: 'one', indicators: ['milestones'] }]);
     expect(x3).toContain(`>${ws.name}<`);
-    // Livrables : repères chiffrés, ou état vide.
+    // Livrables : repères chiffrés, groupes par urgence ; filtre par statut (11/10/2026).
     const x4 = await pptx([{ id: 'livrables', scope: 'PROJECT', period: 'all' }]);
-    expect(x4).toMatch(/livrables? à livrer|Aucun livrable/);
+    expect(x4).toMatch(/à livrer|Aucun livrable/);
+    const x4b = await pptx([{ id: 'livrables', scope: 'PROJECT', period: 'all', statuses: ['DONE'] }]);
+    expect(x4b).not.toContain('>À livrer<');
+    expect(x4b).not.toContain('>En retard<');
+    // Statut inconnu ou sur un composant sans statuts : refusé.
+    expect((await post('/report-templates/preview', { name: 'T', components: [{ id: 'jalons', scope: 'PROJECT', statuses: ['DONE'] }], format: format() }).expect(400)).body.fields).toMatchObject({ 'components.0': expect.stringMatching(/statut inconnu/) });
+    // Planning : « Date du jour » (indicateur) ; sans lui, pas de repère.
+    const xt = await pptx([{ id: 'planning', scope: 'PROJECT', level: 'ph', indicators: ['milestones', 'today'] }]);
+    expect(xt).toContain("Aujourd'hui");
+    const xn = await pptx([{ id: 'planning', scope: 'PROJECT', level: 'ph', indicators: ['milestones'] }]);
+    expect(xn).not.toContain("Aujourd'hui");
+    // Planning : période et statuts (lignes en cours seulement ; leurs parentes gardées).
+    const xs = await pptx([{ id: 'planning', scope: 'PROJECT', level: 'phsp', indicators: ['milestones'], period: 'next90', statuses: ['ACTIVE'] }]);
+    const done = await t.db.phase.findFirstOrThrow({ where: { projectId: 'RISE', status: 'DONE' } });
+    expect(xs).not.toContain(`>${done.name}<`);
     // Fiches d'arbitrage : options notées sur 4, option recommandée (la mieux notée).
     const dec = await t.db.decision.findFirstOrThrow({ where: { projectId: 'RISE', status: { in: ['TO_ARBITRATE', 'IN_REVIEW', 'DRAFT'] } } });
     await t.db.decision.update({ where: { id: dec.id }, data: { arbitration: { question: 'Faut-il internaliser la recette ?', options: [{ code: 'A', label: 'Internaliser' }, { code: 'B', label: 'Externaliser' }], criteria: [{ name: 'Coût', weightPct: 60, scoreA: 4, commentA: '', scoreB: 2, commentB: '' }, { name: 'Délai', weightPct: 40, scoreA: 2, commentA: '', scoreB: 3, commentB: '' }] } } });

@@ -32,13 +32,15 @@ export const COMPONENTS: Record<ComponentId, ComponentDef> = {
     defaults: ['status', 'golive', 'risks_critical', 'actions_late'],
   },
   planning: {
-    id: 'planning', label: 'Planning', nature: 'Gantt', parts: ['board'], periodic: false, defaultPeriod: 'all',
+    id: 'planning', label: 'Planning', nature: 'Gantt', parts: ['board'], periodic: true, defaultPeriod: 'all', periods: ['next30', 'next60', 'next90', 'all'],
+    // Période et statuts (11/10/2026) : lignes qui chevauchent la période, de l'un des statuts choisis (`STATUS_FILTERS`) ;
+    // leurs lignes parentes restent pour le contexte. « Date du jour » : repère « Aujourd'hui » sur la frise.
     // Gantt des phases (phase en cours, repère du jour, avancement) ; au-delà de 25 lignes, tableau (GANTT_MAX_ROWS).
     // Chemin critique et atterrissages (04/10/2026) : mêmes définitions que l'écran Planning du Cockpit (`planLandings`).
     // Niveau de détail (11/10/2026) : les niveaux de l'écran Planning (`PLAN_LEVELS`, champ `level`) remplacent l'indicateur
     // « Sous-phases » et les périmètres lot / phase.
-    indicators: [{ id: 'milestones', label: 'Jalons sur la frise' }, { id: 'critical', label: 'Chemin critique' }, { id: 'landCurrent', label: 'Atterrissage rythme actuel' }, { id: 'landPlanned', label: 'Atterrissage rythme prévu' }],
-    defaults: ['milestones'],
+    indicators: [{ id: 'milestones', label: 'Jalons sur la frise' }, { id: 'today', label: 'Date du jour' }, { id: 'critical', label: 'Chemin critique' }, { id: 'landCurrent', label: 'Atterrissage rythme actuel' }, { id: 'landPlanned', label: 'Atterrissage rythme prévu' }],
+    defaults: ['milestones', 'today'],
   },
   jalons: {
     id: 'jalons', label: 'Jalons', nature: 'Frise', parts: ['board'], periodic: true, defaultPeriod: 'next90', periods: ['next30', 'next60', 'next90', 'all'],
@@ -118,6 +120,17 @@ export const PLAN_LEVELS: Array<{ id: PlanLevel; label: string }> = [
  * chantier ; indicateur « Sous-phases » → phase > sous-phase ; sinon phases).
  */
 export const planLevelOf = (c: ComponentConfig): PlanLevel => c.level ?? (c.scope === 'WORKSTREAM' ? 'one' : (c.indicators ?? []).includes('subphases') ? 'phsp' : 'ph');
+/**
+ * Filtre par statut (11/10/2026), choix multiple ; aucun choix = tous les statuts. Mêmes états que l'écran : en cours, à
+ * venir, en retard (non terminé, fin ou échéance dépassée), terminé (Planning) ou livré (Livrables).
+ */
+export type StatusFilter = 'ACTIVE' | 'FUTURE' | 'LATE' | 'DONE';
+export const STATUS_FILTERS: Partial<Record<ComponentId, Array<{ id: StatusFilter; label: string }>>> = {
+  planning: [{ id: 'ACTIVE', label: 'En cours' }, { id: 'FUTURE', label: 'À venir' }, { id: 'LATE', label: 'En retard' }, { id: 'DONE', label: 'Terminé' }],
+  livrables: [{ id: 'ACTIVE', label: 'En cours' }, { id: 'FUTURE', label: 'À venir' }, { id: 'LATE', label: 'En retard' }, { id: 'DONE', label: 'Livré' }],
+};
+/** Statuts retenus d'un composant (null : tous). */
+export const statusesOf = (c: ComponentConfig): StatusFilter[] | null => (c.statuses?.length && STATUS_FILTERS[c.id] ? c.statuses : null);
 /** Fiches d'arbitrage montrées sur une page (deux cartes côte à côte), les autres résumées. */
 export const ARBITRATIONS_MAX = 2;
 
@@ -169,6 +182,8 @@ export interface ComponentConfig {
   targetId?: string | null;
   /** Planning : niveau de détail (11/10/2026). */
   level?: PlanLevel;
+  /** Planning, Livrables : statuts montrés (11/10/2026) ; absent ou vide : tous. */
+  statuses?: StatusFilter[];
   period?: PeriodId;
   indicators?: string[];
   /** Ce composant ouvre une nouvelle section (page intercalaire) ; le premier en ouvre toujours une. */
@@ -231,6 +246,7 @@ export function configErrors(comps: ComponentConfig[]): Record<string, string> {
     else if (c.indicators && !c.indicators.length) err[`components.${i}`] = `${def.label} : choisissez au moins un indicateur`;
     if (c.level && (c.id !== 'planning' || !PLAN_LEVELS.some((l) => l.id === c.level))) err[`components.${i}`] = `${def.label} : niveau inconnu`;
     if (c.id === 'planning' && c.level === 'one' && (c.scope !== 'WORKSTREAM' || !c.targetId)) err[`components.${i}`] = `${def.label} : choisissez le chantier`;
+    if (c.statuses?.length && (!STATUS_FILTERS[c.id] || c.statuses.some((x) => !STATUS_FILTERS[c.id]!.some((f) => f.id === x)))) err[`components.${i}`] = `${def.label} : statut inconnu`;
     if (c.period && !PERIODS.some((p) => p.id === c.period)) err[`components.${i}`] = `${def.label} : période inconnue`;
     else if (c.period && def.periodic && def.periods && !def.periods.includes(c.period as PeriodId)) err[`components.${i}`] = `${def.label} : période non proposée pour ce composant`;
     const kpis = def.parts.includes('kpi') ? indicatorsOf(c).filter((x) => !(c.id === 'dashboard' && DASHBOARD_SERIES.includes(x))) : [];

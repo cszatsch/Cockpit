@@ -1349,6 +1349,11 @@ a{color:#1d8f86}a:hover{color:#146b64}
                       <sc-if value="{{ it.periodeFixed }}"><span style="font-size:13px;color:#6B7A89;font-style:italic;padding-left:10px">Situation du jour</span></sc-if>
                       <sc-if value="{{ it.periodeSelect }}"><select value="{{ it.periode }}" onChange="{{ it.onPeriode }}" style="{{ fdSelectStyle }}"><sc-for list="{{ it.periodes }}" as="o"><option value="{{ o }}">{{ o }}</option></sc-for></select></sc-if>
                     </div>
+                    <!-- Statut (11/10/2026) : choix multiple ; « Tous les statuts » quand rien n'est choisi. -->
+                    <sc-if value="{{ it.hasStatut }}" hint-placeholder-val="{{ false }}"><div data-statut-row style="display:grid;grid-template-columns:72px minmax(0,1fr);align-items:start;gap:10px;padding:10px 12px;border-top:1px solid #EEF1F3">
+                      <span style="font-size:10.5px;font-weight:700;letter-spacing:.1em;color:#8A97A5;padding-top:6px">STATUT</span>
+                      <div style="display:flex;flex-wrap:wrap;gap:6px;padding-left:4px"><sc-for list="{{ it.statuts }}" as="sx" hint-placeholder-count="3"><button type="button" onClick="{{ sx.toggle }}" aria-pressed="{{ sx.on }}" style="{{ sx.st }}">{{ sx.l }}</button></sc-for></div>
+                    </div></sc-if>
                   </div>
                   </div>
                   </div>
@@ -5149,6 +5154,11 @@ class Component extends DCLogic {
               cibleFixed: !one, cibleSelect: one, cibles: chs, cible: c.target, onCible: e => setC(pos, { target: e.target.value }) }; })()
           : { perims: FD_PERIMS, perim: c.kind || 'Projet', onPerim: e => { const v = e.target.value; const ts = targetsFor(v); setC(pos, { kind: v, target: v === 'Projet' ? '' : ts[0] || '' }); },
             cibleFixed: (c.kind || 'Projet') === 'Projet', cibleSelect: (c.kind || 'Projet') !== 'Projet', cibles: targetsFor(c.kind), cible: c.target, onCible: e => setC(pos, { target: e.target.value }) }),
+          // Statut (11/10/2026) : statuts proposés par le catalogue du serveur ; aucun choisi = tous.
+          ...(() => { const opts = (m && m.statuses) || [], sel = c.statuses || [];
+            const chip = on => ({ whiteSpace: 'nowrap', height: 26, padding: '0 10px', borderRadius: 999, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all .15s', border: on ? '1px solid #10233A' : '1px solid #DCE2E6', background: on ? '#10233A' : '#fff', color: on ? '#fff' : '#5C6B79' });
+            return { hasStatut: opts.length > 0, statuts: [{ l: 'Tous les statuts', on: !sel.length, toggle: () => setC(pos, { statuses: [] }), st: chip(!sel.length) },
+              ...opts.map(o => { const on = sel.includes(o.id); return { l: o.label, on, st: chip(on), toggle: () => { const nx = on ? sel.filter(x => x !== o.id) : [...sel, o.id]; setC(pos, { statuses: nx.length === opts.length ? [] : opts.map(x => x.id).filter(x => nx.includes(x)) }); } }; })] }; })(),
           periodeFixed: !periodIds.length, periodeSelect: !!periodIds.length, periodes: periodIds.map(pLabel), periode: pLabel(curPeriod), onPeriode: e => { const id = periodIds.find(p => pLabel(p) === e.target.value); if (id) setC(pos, { period: id }); },
           dragStart: e => { if (e.target.closest && e.target.closest('select,button,input')) { e.preventDefault(); return; } e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', String(pos)); } catch (_) { /* navigateur sans données de glisser */ } this.setState({ fdDrag: pos }); },
           dragOver: e => { if (this.state.fdDrag == null) return; e.preventDefault(); const r = e.currentTarget.getBoundingClientRect(); const after = e.clientY > r.top + r.height / 2; const o = this.state.fdOver; if (!o || o.pos !== pos || o.after !== after) this.setState({ fdOver: { pos, after } }); },

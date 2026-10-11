@@ -65,7 +65,7 @@ export interface GanttRow { /** 0 : phase (ou chantier aux niveaux chantier) ; 1
   /** Sur le chemin critique (référentiel). */ critical?: boolean; /** Atterrissage au rythme actuel / au rythme prévu (`planLandings`). */ lc?: string | null; lp?: string | null }
 export interface GanttData { today: string; rows: GanttRow[]; milestones: Array<{ code: string; label: string; iso: string; row: number }>; hidden?: number;
   /** Lignes de tête : phases (défaut) ou chantiers (« Tous les chantiers », « Un chantier »), pour le bandeau et les libellés. */ unit?: 'phase' | 'chantier';
-  /** Indicateurs du composant : chemin critique, atterrissage au rythme actuel, au rythme prévu. */ show?: { critical?: boolean; landCurrent?: boolean; landPlanned?: boolean } }
+  /** Indicateurs du composant : chemin critique, atterrissages, repère du jour (absent : affiché). */ show?: { critical?: boolean; landCurrent?: boolean; landPlanned?: boolean; today?: boolean } }
 
 /**
  * Atterrissages d'une phase (même calcul que l'écran Planning du Cockpit, `plItems`) : au rythme actuel, aujourd'hui +
@@ -84,7 +84,8 @@ export function planLandings(start: string, end: string, progress: number, today
 export const GANTT_MAX_ROWS = 25;
 /** Hauteur minimale d'une ligne du planning en tableau (pouces) : en dessous, la lecture n'est plus immédiate. */
 export const PLAN_TABLE_MIN_ROW_IN = 0.21;
-export const PLAN_TABLE_HEAD_IN = 0.34;
+/** En-tête du planning en tableau : libellés, années de la frise et repère « Aujourd'hui » (11/10/2026). */
+export const PLAN_TABLE_HEAD_IN = 0.5;
 
 const pctTxt = (v: number) => `${R(v)} %`;
 const MS_DAY = 86400000;
@@ -218,7 +219,7 @@ export function drawGantt(d: Draw, a: Box, g: GanttData): string {
 
   // Repère du jour : filet de couleur sur toute la frise, étiquette sous la dernière ligne.
   const xt = X(g.today);
-  if (g.today >= sc.start && g.today <= sc.end) {
+  if (show.today !== false && g.today >= sc.start && g.today <= sc.end) {
     out.push(d.line(xt, yL, xt, yEnd + 0.06 * IN, t.accent2, 1.25));
     const lw = 1.3 * IN, lh = 0.22 * IN;
     out.push(d.sp({ box: { x: Math.min(Math.max(xt - lw / 2, x0), x1 - lw), y: yEnd + 0.06 * IN, w: lw, h: lh }, geom: 'roundRect', adj: 50000, fill: t.accent2, paras: [{ align: 'ctr', runs: [{ t: `Aujourd'hui · ${frShortDate(g.today)}`, size: ty.label, color: contrastText(t.accent2), bold: true }] }], anchor: 'ctr' }));
@@ -280,48 +281,124 @@ export function drawGantt(d: Draw, a: Box, g: GanttData): string {
  * d'avancement fine, statut en pastille (en retard : rouge) ; la phase en cours est teintée de l'accent.
  */
 export function drawPlanTable(d: Draw, a: Box, g: GanttData): string {
+  // Refonte du 11/10/2026 (« ligne de vie ») : arborescence lisible (phase en tête de groupe, chantier à son code, sous-phases
+  // reliées par un filet), une frise par ligne (avancement dans la barre, retard en rouge) traversée par le repère du jour ;
+  // période, avancement et statut gardés, en retrait. Aucun cadre, filets fins, couleur réservée au sens.
   const t = d.t, ty = typeScale(t), out: string[] = [], show = g.show ?? {};
+  if (!g.rows.length) return d.text(a, [{ runs: [{ t: g.unit === 'chantier' ? 'Aucun chantier daté sur le périmètre.' : 'Aucune phase sur le périmètre.', size: ty.body, color: t.muted }] }]);
   const land = !!(show.landCurrent || show.landPlanned);
-  const cols = (land ? [0.35, 0.16, 0.21, 0.12, 0.16] : [0.42, 0.19, 0.25, 0.14]).map((f) => f * a.w);
-  const xs = cols.reduce<number[]>((acc, _w, i) => [...acc, i ? acc[i - 1] + cols[i - 1] : a.x], []);
-  const headH = PLAN_TABLE_HEAD_IN * IN;
-  const rowH = Math.max(PLAN_TABLE_MIN_ROW_IN * IN, Math.min(0.36 * IN, (a.h - headH - (g.hidden ? 0.26 * IN : 0)) / Math.max(1, g.rows.length)));
-  const levels = new Set(g.rows.map((r) => r.kind ?? (r.level ? 'sp' : 'ph')));
-  const first = g.unit === 'chantier' ? (levels.has('sp') ? 'Chantier · sous-phase' : 'Chantier') : levels.has('ch') ? 'Phase · chantier · sous-phase' : 'Phase · sous-phase';
-  const head = [first, 'Période', 'Avancement', 'Statut', ...(land ? ['Atterrissage'] : [])];
-  head.forEach((h, i) => out.push(d.text({ x: xs[i] + (i ? 0.1 : 0.06) * IN, y: a.y, w: cols[i] - 0.16 * IN, h: headH - 0.08 * IN }, [{ runs: [{ t: h, size: ty.label, color: t.muted, bold: true, caps: true, spc: 0.8 }] }], 'b')));
-  out.push(d.line(a.x, a.y + headH, a.x + a.w, a.y + headH, t.ink, 1));
+  const fr = land ? [0.31, 0.135, 0.26, 0.075, 0.11, 0.11] : [0.35, 0.145, 0.29, 0.08, 0.135];
+  const cols = fr.map((f) => f * a.w), xs = cols.reduce<number[]>((acc, _w, i) => [...acc, i ? acc[i - 1] + cols[i - 1] : a.x], []);
+  const headH = PLAN_TABLE_HEAD_IN * IN, moreH = g.hidden ? 0.26 * IN : 0;
+  const rowH = Math.max(PLAN_TABLE_MIN_ROW_IN * IN, Math.min(0.34 * IN, (a.h - headH - moreH) / g.rows.length));
+  const y0 = a.y + headH, yEnd = y0 + g.rows.length * rowH, dense = rowH < 0.26 * IN;
+  const nameSize = (lv: number) => (lv === 0 ? (dense ? ty.small : ty.body) : ty.small);
+
+  // Frise commune (colonne 3) : bornes des lignes, graduations discrètes, repère du jour.
+  const tx0 = xs[2] + 0.12 * IN, tx1 = xs[2] + cols[2] - 0.12 * IN, TW = tx1 - tx0;
+  const sc = timeScale(g.rows.reduce((m, r) => (r.start < m ? r.start : m), g.rows[0].start), g.rows.reduce((m, r) => (r.end > m ? r.end : m), g.rows[0].end));
+  const X = (iso: string) => tx0 + timeRatio(iso, sc) * TW;
+  const years = sc.ticks.filter((k) => k.year || sc.unit === 'year');
+  for (const k of sc.ticks) {
+    const x = X(k.iso);
+    if (x <= tx0 + 1 || x >= tx1 - 1) continue;
+    out.push(d.line(x, y0, x, yEnd, mixHex(t.hairline, 'FFFFFF', k.year ? 0.15 : 0.55), k.year ? 0.5 : 0.35));
+  }
+  const todayOn = show.today !== false && g.today >= sc.start && g.today <= sc.end, xt0 = X(g.today), pillW = 1.32 * IN;
+  const pillX = Math.min(Math.max(xt0 - pillW / 2, tx0 - 0.08 * IN), tx1 - pillW + 0.08 * IN);
+  for (const k of years) {
+    const x = X(k.iso);
+    if (x > tx1 - 0.3 * IN) continue;
+    if (todayOn && x + 0.45 * IN > pillX - 0.04 * IN && x < pillX + pillW + 0.04 * IN) continue; // place laissée au repère du jour
+    out.push(d.text({ x: x + 0.03 * IN, y: a.y + headH * 0.52, w: 0.6 * IN, h: headH * 0.44 }, [{ runs: [{ t: k.year ?? k.label, size: ty.label, color: t.subtle, bold: true, spc: 0.4 }] }], 'b'));
+  }
+
+  // En-tête : petites capitales, filet d'encre.
+  const head = [g.unit === 'chantier' ? (g.rows.some((r) => r.level > 0) ? 'Chantier · sous-phase' : 'Chantier') : g.rows.some((r) => r.kind === 'ch') ? 'Phase · chantier · sous-phase' : 'Phase · sous-phase', 'Période', 'Calendrier', 'Réalisé', 'Statut', ...(land ? ['Atterrissage'] : [])];
+  head.forEach((h, i) => out.push(d.text({ x: xs[i] + (i === 3 ? 0 : 0.06 * IN), y: a.y, w: cols[i] - 0.12 * IN, h: headH * 0.48 }, [{ align: i === 3 ? 'r' : 'l', runs: [{ t: h, size: ty.label, color: t.muted, bold: true, caps: true, spc: 0.8 }] }], 'b')));
+  out.push(d.line(a.x, y0, a.x + a.w, y0, t.ink, 1));
+
+  // Phase en cours : bandeau très clair et trait d'accent ; séparation des groupes par un filet plus marqué.
   g.rows.forEach((r, i) => {
-    const y = a.y + headH + i * rowH, sub = r.level > 0, late = isLate(r, g.today);
-    if (r.current && !sub) out.push(d.sp({ box: { x: a.x, y, w: a.w, h: rowH }, fill: mixHex(t.accent, 'FFFFFF', 0.92) }));
-    if (!sub && r.current) out.push(d.sp({ box: { x: a.x, y, w: 0.035 * IN, h: rowH }, fill: t.accent }));
-    // Nom sur une ligne, abrégé pour laisser la place aux mentions (sous-phases regroupées, « critique »).
-    const tags = (r.folded ? `   ${r.folded} sous-phases terminées`.length * ty.label * 0.6 * PT : 0) + (show.critical && r.critical ? 0.95 * IN : 0);
-    const nameW = Math.max(0.8 * IN, cols[0] - [0.16, 0.42, 0.58][r.level] * IN - (r.code.length + 3) * ty.label * 0.6 * PT - tags);
-    const runs: Run[] = [{ t: `${r.code}   `, size: ty.label, color: r.current ? t.accent : t.subtle, bold: true }, { t: wrapText(r.name, nameW * 1.12, sub ? ty.small : ty.body, 1)[0], size: sub ? ty.small : ty.body, color: r.current ? t.accent : sub ? t.ink : r.status === 'DONE' ? t.muted : t.ink, bold: !sub }];
-    if (r.folded) runs.push({ t: `   ${r.folded} ${g.rows.some((x) => x.kind === 'ch' && x.level > 0) ? 'ligne' : 'sous-phase'}${r.folded > 1 ? 's' : ''} terminée${r.folded > 1 ? 's' : ''}`, size: ty.label, color: t.subtle });
-    if (show.critical && r.critical) runs.push({ t: '   critique', size: ty.label, color: t.risk, bold: true, caps: true, spc: 0.6 });
-    out.push(d.text({ x: xs[0] + [0.1, 0.36, 0.52][r.level] * IN, y, w: cols[0] - [0.42, 0.42, 0.58][r.level] * IN, h: rowH }, [{ runs }], 'ctr'));
-    out.push(d.text({ x: xs[1] + 0.1 * IN, y, w: cols[1] - 0.12 * IN, h: rowH }, [{ runs: [{ t: monthYear(r.start), size: ty.small, color: t.muted }, { t: '  →  ', size: ty.label, color: t.subtle }, { t: monthYear(r.end), size: ty.small, color: late ? t.risk : t.muted, bold: late }] }], 'ctr'));
-    const bw = cols[2] * 0.6, bh = Math.max(0.05 * IN, Math.min(0.08 * IN, rowH * 0.24)), bx = xs[2] + 0.1 * IN, by = y + (rowH - bh) / 2;
-    out.push(d.pill({ x: bx, y: by, w: bw, h: bh }, mixHex(t.hairline, 'FFFFFF', 0.2)));
-    const fc = late ? t.risk : r.status === 'DONE' ? mixHex(t.ink, 'FFFFFF', 0.62) : t.accent;
-    if (r.progress > 0) out.push(d.pill({ x: bx, y: by, w: Math.max(bh, bw * Math.min(1, r.progress / 100)), h: bh }, fc));
-    out.push(d.text({ x: bx + bw + 0.06 * IN, y, w: cols[2] - bw - 0.24 * IN, h: rowH }, [{ align: 'r', runs: [{ t: r.status === 'PLANNED' && !r.progress ? '—' : pctTxt(r.progress), size: ty.small, color: late ? t.risk : r.current ? t.accent : r.status === 'DONE' ? t.subtle : t.ink, bold: r.current || late }] }], 'ctr'));
-    const st = late ? 'En retard' : r.status === 'DONE' ? 'Terminé' : r.status === 'IN_PROGRESS' ? 'En cours' : 'À venir';
-    const dot = late ? t.risk : r.status === 'DONE' ? t.ok : r.status === 'IN_PROGRESS' ? t.accent : mixHex(t.ink, 'FFFFFF', 0.75);
-    out.push(d.text({ x: xs[3] + 0.1 * IN, y, w: cols[3] - 0.1 * IN, h: rowH }, [{ runs: [{ t: '●  ', size: ty.label, color: dot }, { t: st, size: ty.small, color: late ? t.risk : r.status === 'DONE' ? t.muted : t.ink, bold: late }] }], 'ctr'));
-    if (land) {
-      // Atterrissage : rythme actuel (ambre s'il dépasse la fin prévue), puis rythme prévu.
-      const lruns: Run[] = [];
-      if (show.landCurrent && r.lc && r.status !== 'DONE') lruns.push({ t: monthYear(r.lc), size: ty.small, color: r.lc > r.end ? t.watch : t.ink, bold: r.lc > r.end });
-      if (show.landPlanned && r.lp && r.status !== 'DONE') lruns.push({ t: `${lruns.length ? '  ·  ' : ''}${show.landCurrent ? 'prévu ' : ''}${monthYear(r.lp)}`, size: ty.label, color: t.muted });
-      out.push(d.text({ x: xs[4] + 0.1 * IN, y, w: cols[4] - 0.12 * IN, h: rowH }, [{ runs: lruns.length ? lruns : [{ t: '—', size: ty.small, color: t.subtle }] }], 'ctr'));
+    const y = y0 + i * rowH;
+    if (r.current && r.level === 0) {
+      out.push(d.sp({ box: { x: a.x, y, w: a.w, h: rowH }, fill: mixHex(t.accent, 'FFFFFF', 0.94) }));
+      out.push(d.sp({ box: { x: a.x, y, w: 0.035 * IN, h: rowH }, fill: t.accent }));
     }
-    const nextIsPhase = !g.rows[i + 1] || g.rows[i + 1].level === 0;
-    out.push(d.line(a.x, y + rowH, a.x + a.w, y + rowH, nextIsPhase ? t.hairline : mixHex(t.hairline, 'FFFFFF', 0.5), nextIsPhase ? 0.75 : 0.5));
+    if (i > 0) out.push(d.line(a.x, y, a.x + a.w, y, r.level === 0 ? t.hairline : mixHex(t.hairline, 'FFFFFF', 0.55), r.level === 0 ? 0.75 : 0.4));
   });
-  if (g.hidden) out.push(d.text({ x: a.x, y: a.y + headH + g.rows.length * rowH + 0.04 * IN, w: a.w, h: 0.22 * IN }, [{ runs: [{ t: `… et ${g.hidden} ${g.hidden > 1 ? 'autres lignes' : 'autre ligne'}`, size: ty.label, color: t.subtle, italic: true }] }], 'ctr'));
+
+  // Arborescence : filet vertical sous chaque ligne parente, court filet horizontal vers chaque enfant.
+  const indent = [0.08, 0.36, 0.6].map((v) => v * IN), badge = Math.min(0.2 * IN, rowH * 0.7);
+  if (!dense) g.rows.forEach((r, i) => {
+    if (r.level === 0 && !g.rows[i + 1]) return;
+    let last = -1;
+    for (let j = i + 1; j < g.rows.length && g.rows[j].level > r.level; j++) if (g.rows[j].level === r.level + 1) last = j;
+    if (last < 0) return;
+    const gx = xs[0] + indent[r.level] + (r.level === 0 ? badge / 2 : 0.1 * IN), gc = mixHex(t.hairline, t.ink, 0.12);
+    out.push(d.line(gx, y0 + i * rowH + rowH * 0.78, gx, y0 + last * rowH + rowH / 2, gc, 0.5));
+    for (let j = i + 1; j <= last; j++) if (g.rows[j].level === r.level + 1) out.push(d.line(gx, y0 + j * rowH + rowH / 2, xs[0] + indent[r.level + 1] - 0.05 * IN, y0 + j * rowH + rowH / 2, gc, 0.5));
+  });
+
+  // Repère du jour, sur toute la hauteur de la frise.
+  if (todayOn) {
+    const lh = 0.18 * IN;
+    out.push(d.line(xt0, y0 - 0.03 * IN, xt0, yEnd, t.accent2, 1));
+    out.push(d.sp({ box: { x: pillX, y: y0 - lh - 0.06 * IN, w: pillW, h: lh }, geom: 'roundRect', adj: 50000, fill: t.accent2, paras: [{ align: 'ctr', runs: [{ t: `Aujourd'hui · ${frShortDate(g.today)}`, size: ty.label - 0.5, color: contrastText(t.accent2), bold: true }] }], anchor: 'ctr', inset: 0 }));
+  }
+
+  g.rows.forEach((r, i) => {
+    const y = y0 + i * rowH, late = isLate(r, g.today), lv = r.level, head0 = lv === 0, done = r.status === 'DONE';
+    const isCh = r.kind === 'ch' || (g.unit === 'chantier' && head0);
+    const cy = y + rowH / 2;
+    // 1. Libellé : badge (phase), code en pastille (chantier) ou en gris (sous-phase), puis le nom et ses mentions.
+    let lx = xs[0] + indent[lv];
+    if (head0 && !isCh) {
+      out.push(d.sp({ box: { x: lx, y: cy - badge / 2, w: Math.max(badge, (r.code.length * 0.075 + 0.06) * IN), h: badge }, geom: 'roundRect', adj: 22000, fill: done ? mixHex(t.ink, 'FFFFFF', 0.62) : r.current ? t.accent : t.ink, paras: [{ align: 'ctr', runs: [{ t: r.code, size: ty.label, color: 'FFFFFF', bold: true }] }], anchor: 'ctr', inset: 0 }));
+      lx += Math.max(badge, (r.code.length * 0.075 + 0.06) * IN) + 0.09 * IN;
+    } else if (isCh) {
+      const cw = (r.code.length * 0.072 + 0.12) * IN, ch = Math.min(0.17 * IN, rowH * 0.66), c2 = done ? t.subtle : t.accent;
+      out.push(d.sp({ box: { x: lx, y: cy - ch / 2, w: cw, h: ch }, geom: 'roundRect', adj: 26000, fill: mixHex(c2, 'FFFFFF', 0.9), line: { color: mixHex(c2, 'FFFFFF', 0.6), w: 0.5 }, paras: [{ align: 'ctr', runs: [{ t: r.code, size: ty.label - 0.5, color: c2, bold: true, spc: 0.3 }] }], anchor: 'ctr', inset: 0 }));
+      lx += cw + 0.08 * IN;
+    } else {
+      const cw = (r.code.length * 0.068 + 0.06) * IN;
+      out.push(d.text({ x: lx, y, w: cw, h: rowH }, [{ runs: [{ t: r.code, size: ty.label, color: t.subtle, bold: true }] }], 'ctr'));
+      lx += cw + 0.04 * IN;
+    }
+    const tags: Run[] = [];
+    if (r.folded) tags.push({ t: `   ${r.folded} ${g.rows.some((x) => x.kind === 'ch' && x.level > 0) ? 'ligne' : 'sous-phase'}${r.folded > 1 ? 's' : ''} terminée${r.folded > 1 ? 's' : ''}`, size: ty.label, color: t.subtle });
+    if (show.critical && r.critical) tags.push({ t: '   critique', size: ty.label - 0.5, color: t.risk, bold: true, caps: true, spc: 0.6 });
+    const tagW = tags.reduce((s, x) => s + x.t.length * x.size * 0.56 * PT, 0);
+    const nw = Math.max(0.6 * IN, xs[0] + cols[0] - lx - 0.1 * IN - tagW);
+    const ns = nameSize(lv);
+    out.push(d.text({ x: lx, y, w: xs[0] + cols[0] - lx - 0.06 * IN, h: rowH }, [{ runs: [{ t: wrapText(r.name, nw * 1.1, ns, 1)[0], size: ns, color: r.current ? t.accent : done ? t.muted : t.ink, bold: head0 || (isCh && !done) }, ...tags] }], 'ctr'));
+    // 2. Période.
+    out.push(d.text({ x: xs[1] + 0.06 * IN, y, w: cols[1] - 0.08 * IN, h: rowH }, [{ runs: [{ t: monthYear(r.start), size: ty.small, color: done ? t.subtle : t.muted }, { t: '  →  ', size: ty.label, color: t.subtle }, { t: monthYear(r.end), size: ty.small, color: late ? t.risk : done ? t.subtle : t.muted, bold: late }] }], 'ctr'));
+    // 3. Frise : barre à sa vraie place, avancement dedans (retard : rouge ; terminé : gris).
+    const bh = Math.max(0.035 * IN, Math.min(head0 ? 0.085 * IN : lv === 1 ? 0.065 * IN : 0.05 * IN, rowH * 0.3));
+    const bx = X(r.start), bw = Math.max(bh, X(r.end) - bx), by = cy - bh / 2;
+    if (done) out.push(d.pill({ x: bx, y: by, w: bw, h: bh }, mixHex(t.ink, 'FFFFFF', head0 ? 0.68 : 0.78)));
+    else {
+      out.push(d.pill({ x: bx, y: by, w: bw, h: bh }, late ? mixHex(t.risk, 'FFFFFF', 0.84) : r.status === 'PLANNED' && !r.progress ? mixHex(t.hairline, 'FFFFFF', 0.2) : t.accentSoft));
+      if (r.progress > 0) out.push(d.pill({ x: bx, y: by, w: Math.max(bh, bw * Math.min(1, r.progress / 100)), h: bh }, late ? t.risk : t.accent));
+    }
+    if (show.critical && r.critical && !done) { const o = 0.022 * IN; out.push(d.pill({ x: bx - o, y: by - o, w: bw + 2 * o, h: bh + 2 * o }, null, { color: t.risk, w: 0.9 })); }
+    // 4. Réalisé.
+    out.push(d.text({ x: xs[3], y, w: cols[3] - 0.04 * IN, h: rowH }, [{ align: 'r', runs: [{ t: r.status === 'PLANNED' && !r.progress ? '—' : pctTxt(r.progress), size: head0 ? ty.small + 0.5 : ty.small, color: late ? t.risk : r.current ? t.accent : done ? t.subtle : t.ink, bold: r.current || late || (head0 && !done) }] }], 'ctr'));
+    // 5. Statut : point de couleur et libellé ; « À venir » et « Terminé » en retrait.
+    const st = late ? 'En retard' : done ? 'Terminé' : r.status === 'IN_PROGRESS' ? 'En cours' : 'À venir';
+    const dot = late ? t.risk : done ? t.ok : r.status === 'IN_PROGRESS' ? t.accent : mixHex(t.ink, 'FFFFFF', 0.72);
+    out.push(d.text({ x: xs[4] + 0.16 * IN, y, w: cols[4] - 0.18 * IN, h: rowH }, [{ runs: [{ t: '●  ', size: ty.label - 1, color: dot }, { t: st, size: ty.small, color: late ? t.risk : r.status === 'IN_PROGRESS' ? t.ink : t.subtle, bold: late }] }], 'ctr'));
+    // 6. Atterrissage (indicateurs) : rythme actuel (ambre s'il dépasse la fin prévue), rythme prévu.
+    if (land) {
+      const lruns: Run[] = [];
+      if (show.landCurrent && r.lc && !done) lruns.push({ t: monthYear(r.lc), size: ty.small, color: r.lc > r.end ? t.watch : t.ink, bold: r.lc > r.end });
+      if (show.landPlanned && r.lp && !done) lruns.push({ t: `${lruns.length ? '  ·  ' : ''}${show.landCurrent ? 'prévu ' : ''}${monthYear(r.lp)}`, size: ty.label, color: t.muted });
+      out.push(d.text({ x: xs[5] + 0.06 * IN, y, w: cols[5] - 0.08 * IN, h: rowH }, [{ runs: lruns.length ? lruns : [{ t: '—', size: ty.small, color: t.subtle }] }], 'ctr'));
+    }
+  });
+  out.push(d.line(a.x, yEnd, a.x + a.w, yEnd, t.hairline, 0.75));
+  if (g.hidden) out.push(d.text({ x: a.x, y: yEnd + 0.04 * IN, w: a.w, h: 0.22 * IN }, [{ runs: [{ t: `… et ${g.hidden} ${g.hidden > 1 ? 'autres lignes' : 'autre ligne'}`, size: ty.label, color: t.subtle, italic: true }] }], 'ctr'));
   return out.join('');
 }
 

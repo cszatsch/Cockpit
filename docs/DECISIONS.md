@@ -2093,3 +2093,26 @@ Demande du commanditaire : un risque peut concerner un chantier, plusieurs, ou t
 - Tests : `test/unit/plan-levels.spec.ts`, `test/unit/report-template.spec.ts`, `test/e2e/report-template.spec.ts` ; recette
   navigateur `test/browser/composants-rapport.e2e.ts` ; contrôle visuel dans PowerPoint (skill designer-rapports).
 
+## Planning et Livrables des rapports : date du jour, période, statuts, refonte des tableaux (11/10/2026)
+
+- Demande du commanditaire : Planning — pastille « Date du jour », période des Livrables (30, 60, 90 prochains jours, sans
+  filtre), champ STATUT à choix multiple ; Livrables — champ STATUT ; refonte des visuels en tableau (Planning en tableau et
+  Livrables), contenu inchangé, design ultra premium sans surcharge.
+- Données : indicateur `today` du Planning (défaut ; templates antérieurs sans niveau enregistré : repère gardé) ; Planning
+  périodique (`next30`, `next60`, `next90`, `all`) : lignes qui chevauchent la période ; statuts `ComponentConfig.statuses`
+  (`STATUS_FILTERS` : en cours, à venir, en retard, terminé / livré ; aucun = tous ; `statusesOf`), lignes parentes gardées pour
+  le contexte (`filterPlan`, `planStatusOf`) ; Livrables filtrés par statut (le filtre l'emporte sur « retards toujours
+  montrés »). Écran : ligne STATUT sous la période (« Tous les statuts » + statuts du catalogue, `data-statut-row`).
+- Planning en tableau (« ligne de vie », `drawPlanTable`) : phase en tête de groupe (numéro en pastille foncée, phase en cours
+  teintée et soulignée d'un trait d'accent), chantier à son code en pastille, sous-phases en retrait reliées par un filet
+  d'arborescence ; colonne « Calendrier » : une barre par ligne à sa vraie place (avancement dedans, retard en rouge, terminé
+  en gris, chemin critique cerclé) traversée par le repère « Aujourd'hui · date » ; période, réalisé et statut gardés, en
+  retrait (« À venir » et « Terminé » estompés). En-tête `PLAN_TABLE_HEAD_IN` porté à 0,5 po (années et repère du jour).
+- Livrables (`drawDeliverables`) : trois repères chiffrés et une barre de répartition (en retard, à livrer, livrés) ; lignes
+  regroupées par urgence (En retard, À livrer, Livrés), échéance en tête de ligne avec compte à rebours (« retard 21 j »,
+  « dans 10 j », ambre sous 14 jours), nom du livrable et phase · sous-phase dessous, trait rouge en marge des retards ;
+  place insuffisante : les plus urgents d'abord, puis « … et 21 autres à livrer · 79 livrés ». La période n'est plus répétée
+  dans la planche (déjà dans la légende).
+- Contrôle visuel dans PowerPoint (skill designer-rapports) ; tests `test/unit/plan-levels.spec.ts`,
+  `test/e2e/report-template.spec.ts`, recette `test/browser/composants-rapport.e2e.ts`.
+

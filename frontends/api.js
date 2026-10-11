@@ -810,7 +810,7 @@ export function attach(comp) {
       // Étape 4 : période, indicateurs, ouverture d'une section (page intercalaire) et son titre.
       // Planning (11/10/2026) : niveau de détail ; l'ancien indicateur « Sous-phases » n'est plus envoyé.
       const inds = c.indicators && c.id === 'planning' ? c.indicators.filter((x) => x !== 'subphases') : c.indicators;
-      return { id: c.id, scope, ...(scope !== 'PROJECT' ? { targetId } : {}), ...(c.id === 'planning' && c.level ? { level: c.level } : {}), ...(c.period ? { period: c.period } : {}), ...(inds && inds.length ? { indicators: inds } : {}), ...(c.newSection ? { newSection: true, ...(c.sectionTitle ? { sectionTitle: c.sectionTitle } : {}) } : {}) };
+      return { id: c.id, scope, ...(scope !== 'PROJECT' ? { targetId } : {}), ...(c.id === 'planning' ? { level: c.level || (c.kind === 'Chantier' ? 'one' : (c.indicators || []).includes('subphases') ? 'phsp' : 'ph') } : {}), ...(c.statuses && c.statuses.length ? { statuses: c.statuses } : {}), ...(c.period ? { period: c.period } : {}), ...(inds && inds.length ? { indicators: inds } : {}), ...(c.newSection ? { newSection: true, ...(c.sectionTitle ? { sectionTitle: c.sectionTitle } : {}) } : {}) };
     });
     // Format du rapport (étape B, 02/10/2026) : les 4 pages modèles { fileId, slide } ; absent = présentation par défaut.
     const fmt = t.format && ['cover', 'divider', 'standard', 'closing'].every((k) => t.format[k] && t.format[k].fileId && !String(t.format[k].fileId).startsWith('local'))

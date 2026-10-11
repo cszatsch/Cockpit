@@ -630,3 +630,7 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
   pastille « Sous-phases » (catalogue du serveur). `api.js` (`tplBody`) envoie `level` et n'envoie plus « subphases ».
 - Suivi d'avancement (11/10/2026) : « Un chantier » ne renseigne plus la colonne Phase non plus (`noPh`), comme « Tous les
   chantiers ».
+- Ordre et données (11/10/2026) : ligne STATUT (choix multiple, « Tous les statuts » par défaut) sous la période, pour les
+  composants qui en ont (Planning, Livrables) ; le Planning a désormais une période (catalogue du serveur) et la pastille
+  « Date du jour » ; `api.js` envoie `statuses` et toujours le niveau du Planning.
+

@@ -18,13 +18,13 @@ import { ACTION_SOON_DAYS, ActionRow, ActionsData, ArbitrationCard, Arbitrations
 import { arbitrationSummary, ArbitrationSheet } from '../../domain/arbitration';
 import { deliverableDates, deliverableRisk, deliverableStatus } from '../../domain/rules';
 import { planLandings } from '../../core/report-draw';
-import { planRows } from '../../domain/plan-levels';
+import { filterPlan, planRows, planStatusOf } from '../../domain/plan-levels';
 import { BarometerData, MILESTONES_MAX, MilestonesData, RisksData, foldPlan, GANTT_MAX_ROWS, GanttData, GanttRow, PLAN_TABLE_HEAD_IN, PLAN_TABLE_MIN_ROW_IN } from '../../core/report-draw';
 import { composeTemplate, FillData, fillTemplate, TemplateFieldMissing, TemplateManifest, visualCheck } from '../../core/report-template';
 import { LlmService } from '../../core/llm.service';
 import { parseWriting, retryPrompt, WritingFacts, WRITING_SKILLS, WRITING_TIMEOUT_MS, writingPrompt, writingSystem } from '../../domain/report-writing';
 import { FormatAnalysis, PAGE_KINDS, PageKind, previewSvg } from '../../domain/report-format';
-import { COMPONENTS, ComponentConfig, ComponentData, ComponentValues, DASHBOARD_SERIES, frDay, indicatorsOf, inPeriod, Issue, KPI_MAX, pagesOf, periodOf, periodRange, sectionsOf, COMPONENT_MODULE, ComponentId, moduleOffMessage, reportPlan, fieldName, LEGACY_PARTS, planLevelOf, ARBITRATIONS_MAX, PLAN_LEVELS } from '../../domain/report-components';
+import { COMPONENTS, ComponentConfig, ComponentData, ComponentValues, DASHBOARD_SERIES, frDay, indicatorsOf, inPeriod, Issue, KPI_MAX, pagesOf, periodOf, periodRange, sectionsOf, COMPONENT_MODULE, ComponentId, moduleOffMessage, reportPlan, fieldName, LEGACY_PARTS, planLevelOf, ARBITRATIONS_MAX, PLAN_LEVELS, statusesOf } from '../../domain/report-components';
 
 const STATUS: Record<string, string> = { OPEN: 'Ouvert', IN_PROGRESS: 'En cours', BLOCKED: 'Bloquée', DONE: 'Terminé', CLOSED: 'Clos', PLANNED: 'Prévu', PREPARATION: 'En préparation', ACTIVE: 'Actif', MITIGATING: 'En traitement', DRAFT: 'Brouillon', IN_REVIEW: 'En revue', TO_ARBITRATE: 'À arbitrer', ARBITRATED: 'Arbitrée', CANCELLED: 'Annulée', SUPERSEDED: 'Remplacée' };
 const PRIO: Record<string, string> = { HIGH: 'Haute', MEDIUM: 'Moyenne', LOW: 'Basse' };
@@ -181,6 +181,14 @@ export class ReportTemplateService implements OnModuleInit {
           wss: wsList.map((w) => ({ id: w.id, code: w.code, name: w.name, start: w.startDate, end: w.endDate, progress: w.progressPct, critical: w.critical, phaseIds: w.phases.map((x) => x.phaseId), subIds: w.subphases.map((x) => x.subphaseId) })),
         });
         if (level === 'one' && !plan.length) warn('le chantier n’a ni dates ni phases.');
+        // Période et statuts (11/10/2026) : lignes qui chevauchent la période, de l'un des statuts choisis ; leurs parentes
+        // restent pour le contexte (`filterPlan`).
+        const wanted = statusesOf(c);
+        if (period.start || wanted) {
+          const kept = filterPlan(plan, (x) => (!period.start || (x.end >= period.start && x.start <= period.end!)) && (!wanted || wanted.includes(planStatusOf(x, today))));
+          plan.splice(0, plan.length, ...kept);
+          if (!plan.length) warn('aucune ligne pour cette période et ces statuts.');
+        }
         let rows: GanttRow[] = plan.map((x) => ({ level: x.level, kind: x.kind, code: x.code, name: x.name, start: x.start, end: x.end, status: x.status, progress: x.progress, current: x.current, critical: x.critical, ...planLandings(x.start, x.end, x.progress, today) }));
         // « Un chantier » trop long pour la page : ses sous-phases terminées sont regroupées sur la ligne du chantier
         // (« 16 sous-phases terminées »), pour laisser la place à ce qui est en cours ou à venir.
@@ -195,7 +203,9 @@ export class ReportTemplateService implements OnModuleInit {
         const ms = inds.includes('milestones') ? await this.prisma.milestone.findMany({ where: msWhere, orderBy: { iso: 'asc' } }) : [];
         const milestones = ms.map((m) => ({ code: m.code, label: m.n, iso: m.iso, row: rowOf.get(m.subphaseId ?? '') ?? rowOf.get(m.phaseId) ?? rowOf.get(m.wsId ?? '') ?? -1 }));
         const unit = level === 'ch' || level === 'one' ? 'chantier' : 'phase';
-        parts.push({ part: 'board', board: 'planning', data: { today, rows, milestones, unit, mode: rows.length > GANTT_MAX_ROWS ? 'table' : 'gantt', show: { critical: inds.includes('critical'), landCurrent: inds.includes('landCurrent'), landPlanned: inds.includes('landPlanned') } } as GanttData & { mode: string } });
+        // « Date du jour » (11/10/2026) : indicateur ; les templates antérieurs (sans niveau enregistré) gardent le repère.
+        const showToday = inds.includes('today') || !c.level;
+        parts.push({ part: 'board', board: 'planning', data: { today, rows, milestones, unit, mode: rows.length > GANTT_MAX_ROWS ? 'table' : 'gantt', show: { critical: inds.includes('critical'), landCurrent: inds.includes('landCurrent'), landPlanned: inds.includes('landPlanned'), today: showToday } } as GanttData & { mode: string } });
         if (rows.length > GANTT_MAX_ROWS) warn(`${rows.length} lignes : le planning est présenté en tableau (Gantt jusqu'à ${GANTT_MAX_ROWS} lignes).`);
         break;
       }
@@ -222,12 +232,13 @@ export class ReportTemplateService implements OnModuleInit {
         ]);
         const spOf = new Map(sps.map((x) => [x.id, x])), phOf = new Map(phs.map((x) => [x.id, x]));
         const inScope = (spId: string) => { const sp = spOf.get(spId); if (!sp) return false; if (c.scope === 'PHASE') return sp.phaseId === t; if (c.scope === 'WAVE') return !!phOf.get(sp.phaseId)?.waves.some((w) => w.waveId === t); return true; };
-        const rows: DeliverableRow[] = [];
+        const rows: DeliverableRow[] = [], wantedDl = statusesOf(c);
         for (const x of dl.filter((y) => inScope(y.subphaseId))) {
           const sp = spOf.get(x.subphaseId)!, dd = deliverableDates(x.start, x.due, sp);
           if (!dd.due) continue;
           const status = deliverableStatus(x.prog, dd.start, dd.due, today);
           if (status !== 'LATE' && !inPeriod(dd.due, period)) continue;
+          if (wantedDl && !wantedDl.includes(status)) continue;
           rows.push({ name: x.name, phase: `${phOf.get(sp.phaseId)?.name ?? '—'} · ${sp.code} ${sp.name}`, ws: x.workstreamId ? wsAll.get(x.workstreamId) ?? null : null, owner: name(x.ownerId), due: dd.due, progress: x.prog, status, risk: deliverableRisk(x.prog, dd.start, dd.due, today, x.riskOverride) });
         }
         if (!rows.length) warn('aucun livrable sur la période.');

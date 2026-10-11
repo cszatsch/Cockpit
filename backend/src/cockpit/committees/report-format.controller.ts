@@ -17,7 +17,7 @@ import { FORMAT_MAX_BYTES, FORMAT_TOO_BIG, FormatReadError, PAGE_KINDS, SHAPE_RO
 import type { UploadedBlob } from '../../import/import.controller';
 import { ReportFormatService } from './report-format.service';
 import { ReportTemplateService } from './report-template.service';
-import { COMPONENTS, configErrors, KPI_MAX, PERIODS, PLAN_LEVELS } from '../../domain/report-components';
+import { COMPONENTS, configErrors, KPI_MAX, PERIODS, PLAN_LEVELS, STATUS_FILTERS } from '../../domain/report-components';
 
 /** Taille maximale d'un brouillon de template (caractères JSON) : fichiers analysés compris. */
 export const DRAFT_MAX_CHARS = 3_000_000;
@@ -213,7 +213,7 @@ export class ReportFormatController {
   @Get('report-components')
   async components(@CurrentActor() actor: Actor, @Param('projectId') p: string) {
     await this.access.scope(actor, p);
-    return { components: Object.values(COMPONENTS).map((c) => ({ id: c.id, label: c.label, nature: c.nature, parts: c.parts, indicators: c.indicators, defaults: c.defaults, periodic: c.periodic, defaultPeriod: c.defaultPeriod, periods: c.periodic ? c.periods ?? PERIODS.map((x) => x.id) : [], kpiMax: c.parts.includes('kpi') ? KPI_MAX : null })), periods: PERIODS, planLevels: PLAN_LEVELS };
+    return { components: Object.values(COMPONENTS).map((c) => ({ id: c.id, label: c.label, nature: c.nature, parts: c.parts, indicators: c.indicators, defaults: c.defaults, periodic: c.periodic, defaultPeriod: c.defaultPeriod, periods: c.periodic ? c.periods ?? PERIODS.map((x) => x.id) : [], kpiMax: c.parts.includes('kpi') ? KPI_MAX : null, statuses: STATUS_FILTERS[c.id] ?? [] })), periods: PERIODS, planLevels: PLAN_LEVELS };
   }
 
   // ───── Brouillon de « Créer un template » (04/10/2026) : enregistré à chaque modification, un par compte ─────

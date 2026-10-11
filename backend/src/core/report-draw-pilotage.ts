@@ -442,64 +442,106 @@ export function sortDeliverables(rows: DeliverableRow[]): DeliverableRow[] {
 }
 
 /**
- * Livrables : repères chiffrés (à livrer, en retard, livrés), puis tableau trié par urgence — livrable, phase · sous-phase,
- * chantier, responsable, échéance (rouge si dépassée), avancement en barre fine, statut et risque en pastille.
+ * Livrables (refonte du 11/10/2026) : trois repères chiffrés et leur répartition en une barre fine ; puis les livrables
+ * regroupés par urgence — en retard, à livrer, livrés —, l'échéance en tête de ligne (date et compte à rebours), le nom
+ * avec sa phase · sous-phase dessous, chantier, responsable, avancement en barre fine, statut et risque en point de
+ * couleur. Un trait rouge en marge signale chaque retard. Aucun cadre, filets fins.
  */
 export function drawDeliverables(d: Draw, a: Box, x: DeliverablesData): string {
   const t = d.t, ty = typeScale(t), out: string[] = [], show = x.show;
   if (!x.rows.length) return emptyState(d, a, 'Aucun livrable sur la période', x.period ? `Échéances : ${x.period}.` : 'Aucun livrable sur le périmètre.');
-  const rows = sortDeliverables(x.rows), late = rows.filter((r) => r.status === 'LATE').length, done = rows.filter((r) => r.status === 'DONE').length, todo = rows.length - done;
-  // Repères chiffrés.
-  const headH = 0.66 * IN, cw = Math.min(2.4 * IN, a.w / 3);
-  const marks: Array<[number, string, string]> = [[todo, todo > 1 ? 'livrables à livrer' : 'livrable à livrer', t.ink], [late, 'en retard', late ? t.risk : t.subtle], [done, done > 1 ? 'livrés' : 'livré', done ? t.ok : t.subtle]];
+  const rows = sortDeliverables(x.rows);
+  const late = rows.filter((r) => r.status === 'LATE'), todo = rows.filter((r) => r.status === 'ACTIVE' || r.status === 'FUTURE'), done = rows.filter((r) => r.status === 'DONE');
+
+  // 1. Repères chiffrés et répartition.
+  const kpiH = 0.62 * IN, cw = Math.min(2.1 * IN, a.w / 4);
+  const marks: Array<[number, string, string]> = [[late.length + todo.length, late.length + todo.length > 1 ? 'à livrer' : 'à livrer', t.ink], [late.length, 'en retard', late.length ? t.risk : t.subtle], [done.length, done.length > 1 ? 'livrés' : 'livré', done.length ? t.ok : t.subtle]];
   marks.forEach(([n, l, c], i) => {
-    const bx = a.x + i * cw, nw = Math.max(0.45, String(n).length * 0.36) * IN;
-    if (i) out.push(d.line(bx - 0.12 * IN, a.y + 0.1 * IN, bx - 0.12 * IN, a.y + headH - 0.1 * IN, t.hairline, 0.75));
-    out.push(d.text({ x: bx, y: a.y, w: nw, h: headH }, [{ runs: [{ t: String(n), size: ty.stat, color: c, bold: true, font: t.head }] }], 'ctr'));
-    out.push(d.text({ x: bx + nw + 0.06 * IN, y: a.y, w: cw - nw - 0.2 * IN, h: headH }, [{ runs: [{ t: l, size: ty.small, color: t.muted }] }], 'ctr'));
+    const bx = a.x + i * cw;
+    out.push(d.text({ x: bx, y: a.y, w: cw - 0.1 * IN, h: kpiH * 0.7 }, [{ runs: [{ t: String(n), size: ty.stat * 0.9, color: c, bold: true, font: t.head }, { t: `  ${l}`, size: ty.small, color: t.muted }] }], 'b'));
   });
-  if (x.period) out.push(d.text({ x: a.x + 3 * cw, y: a.y, w: Math.max(0, a.w - 3 * cw), h: headH }, [{ align: 'r', runs: [{ t: `Échéances : ${x.period}`, size: ty.label, color: t.subtle }] }], 'ctr'));
-  // Colonnes retenues, largeurs relatives.
-  type Col = { id: string; label: string; f: number };
-  const all: Col[] = [{ id: 'name', label: 'Livrable', f: 3 }, { id: 'phase', label: 'Phase · sous-phase', f: 2.2 }, { id: 'ws', label: 'Chantier', f: 1.8 }, { id: 'owner', label: 'Responsable', f: 1.6 }, { id: 'due', label: 'Échéance', f: 1.1 }, { id: 'progress', label: 'Avancement', f: 1.5 }, { id: 'status', label: 'Statut', f: 1.2 }, { id: 'risk', label: 'Risque', f: 1.1 }];
-  const cols = all.filter((c) => show[c.id] !== false);
-  const F = cols.reduce((s, c) => s + c.f, 0);
+  // Barre de répartition : en retard, à livrer, livrés (proportions exactes), sur toute la largeur.
+  const barY = a.y + kpiH * 0.84, barH = 0.035 * IN, total = rows.length;
+  let bx = a.x;
+  for (const [n, c] of [[late.length, t.risk], [todo.length, mixHex(t.accent, 'FFFFFF', 0.45)], [done.length, mixHex(t.ok, 'FFFFFF', 0.45)]] as Array<[number, string]>) {
+    if (!n) continue;
+    const w = (a.w * n) / total;
+    out.push(d.sp({ box: { x: bx, y: barY, w: Math.max(0.02 * IN, w - 0.03 * IN), h: barH }, fill: c }));
+    bx += w;
+  }
+
+  // 2. Colonnes retenues.
+  type Col = { id: string; label: string; f: number; align?: 'r' };
+  const twoLines = show.phase !== false;
+  const all: Col[] = [{ id: 'due', label: 'Échéance', f: 1.25 }, { id: 'name', label: twoLines ? 'Livrable · phase · sous-phase' : 'Livrable', f: 3.6 }, { id: 'ws', label: 'Chantier', f: 1.8 }, { id: 'owner', label: 'Responsable', f: 1.55 }, { id: 'progress', label: 'Avancement', f: 1.45 }, { id: 'status', label: 'Statut', f: 1.05 }, { id: 'risk', label: 'Risque', f: 1.05 }];
+  const cols = all.filter((c) => show[c.id] !== false || (c.id === 'name' && show.phase !== false));
+  const F = cols.reduce((s, c) => s + c.f, 0), W = (i: number) => (cols[i].f / F) * a.w;
   const xs: number[] = [];
   let cx = a.x;
   for (const c of cols) { xs.push(cx); cx += (c.f / F) * a.w; }
-  const W = (i: number) => (cols[i].f / F) * a.w;
-  const top = a.y + headH + 0.14 * IN, thH = 0.3 * IN, moreH = 0.26 * IN;
-  let rowH = Math.min(0.42 * IN, (a.y + a.h - top - thH) / rows.length);
-  let shown = rows;
-  if (rowH < DELIVERABLE_ROW_MIN_IN * IN) { rowH = DELIVERABLE_ROW_MIN_IN * IN; shown = rows.slice(0, Math.max(1, Math.floor((a.y + a.h - top - thH - moreH) / rowH))); }
-  cols.forEach((c, i) => out.push(d.text({ x: xs[i] + 0.05 * IN, y: top, w: W(i) - 0.1 * IN, h: thH - 0.06 * IN }, [{ runs: [{ t: c.label, size: ty.label, color: t.muted, bold: true, caps: true, spc: 0.8 }] }], 'b')));
+  const top = a.y + kpiH + 0.16 * IN, thH = 0.26 * IN;
+  cols.forEach((c, i) => out.push(d.text({ x: xs[i] + 0.08 * IN, y: top, w: W(i) - 0.12 * IN, h: thH - 0.05 * IN }, [{ runs: [{ t: c.label, size: ty.label, color: t.muted, bold: true, caps: true, spc: 0.8 }] }], 'b')));
   out.push(d.line(a.x, top + thH, a.x + a.w, top + thH, t.ink, 1));
-  shown.forEach((r, k) => {
-    const y = top + thH + k * rowH, late1 = r.status === 'LATE';
-    cols.forEach((c, i) => {
-      const bx = xs[i] + 0.05 * IN, bw = W(i) - 0.1 * IN, box = { x: bx, y, w: bw, h: rowH };
-      const cell = (txt: string, o: { color?: string; bold?: boolean } = {}) => out.push(d.text(box, [{ runs: [{ t: wrapText(txt, bw * 1.1, ty.small, 1)[0], size: ty.small, color: o.color ?? t.ink, bold: o.bold }] }], 'ctr'));
-      if (c.id === 'name') cell(r.name, { bold: true, color: r.status === 'DONE' ? t.muted : t.ink });
-      else if (c.id === 'phase') cell(r.phase ?? '—', { color: r.phase ? t.muted : t.subtle });
-      else if (c.id === 'ws') cell(r.ws ?? '—', { color: r.ws ? t.muted : t.subtle });
-      else if (c.id === 'owner') cell(r.owner, { color: t.muted });
-      else if (c.id === 'due') cell(dayOf(r.due, x.today), { color: late1 ? t.risk : t.ink, bold: late1 });
-      else if (c.id === 'progress') {
-        const pw = Math.min(bw * 0.58, 0.9 * IN), ph = 0.07 * IN, py = y + (rowH - ph) / 2;
-        out.push(d.pill({ x: bx, y: py, w: pw, h: ph }, mixHex(t.hairline, 'FFFFFF', 0.2)));
-        if (r.progress > 0) out.push(d.pill({ x: bx, y: py, w: Math.max(ph, pw * Math.min(1, r.progress / 100)), h: ph }, late1 ? t.risk : r.status === 'DONE' ? mixHex(t.ink, 'FFFFFF', 0.62) : t.accent));
-        out.push(d.text({ x: bx + pw + 0.06 * IN, y, w: bw - pw - 0.06 * IN, h: rowH }, [{ align: 'r', runs: [{ t: `${R(r.progress)} %`, size: ty.small, color: late1 ? t.risk : t.ink, bold: late1 }] }], 'ctr'));
-      } else if (c.id === 'status') {
-        const col = late1 ? t.risk : r.status === 'DONE' ? t.ok : r.status === 'ACTIVE' ? t.accent : t.subtle;
-        out.push(d.text(box, [{ runs: [{ t: '●  ', size: ty.label, color: col }, { t: DLV_STATUS[r.status], size: ty.small, color: late1 ? t.risk : t.ink, bold: late1 }] }], 'ctr'));
-      } else if (c.id === 'risk') {
-        const col = r.risk === 'CRITICAL' ? t.risk : r.risk === 'TENSION' ? t.watch : t.ok;
-        out.push(d.text(box, [{ runs: [{ t: '●  ', size: ty.label, color: col }, { t: DLV_RISK[r.risk], size: ty.small, color: r.risk === 'OK' ? t.muted : col, bold: r.risk !== 'OK' }] }], 'ctr'));
-      }
-    });
-    out.push(d.line(a.x, y + rowH, a.x + a.w, y + rowH, t.hairline, 0.5));
-  });
-  if (shown.length < rows.length) out.push(d.text({ x: a.x, y: top + thH + shown.length * rowH + 0.04 * IN, w: a.w, h: moreH - 0.04 * IN }, [{ runs: [{ t: `… et ${plural(rows.length - shown.length, 'autre livrable', 'autres livrables')}`, size: ty.label, color: t.subtle, italic: true }] }], 'ctr'));
+
+  // 3. Lignes par groupe, dans la hauteur disponible.
+  const groups = ([['En retard', late, t.risk], ['À livrer', todo, t.ink], ['Livrés', done, t.ok]] as Array<[string, DeliverableRow[], string]>).filter((gq) => gq[1].length);
+  const ghH = 0.27 * IN, moreH = 0.24 * IN, avail = a.y + a.h - (top + thH) - 0.04 * IN;
+  let rowH = Math.min(twoLines ? 0.46 * IN : 0.36 * IN, (avail - groups.length * ghH) / rows.length);
+  const minH = (twoLines ? DELIVERABLE_ROW_MIN_IN + 0.04 : DELIVERABLE_ROW_MIN_IN) * IN;
+  // Place insuffisante : les lignes vont d'abord aux plus urgentes ; seules les têtes des groupes atteints comptent.
+  let budget = rows.length;
+  if (rowH < minH) {
+    rowH = minH;
+    let room = avail - moreH;
+    budget = 0;
+    for (const [, list] of groups) { if (room < ghH + rowH) break; room -= ghH; const n = Math.min(list.length, Math.floor(room / rowH)); budget += n; room -= n * rowH; if (n < list.length) break; }
+    budget = Math.max(1, budget);
+  }
+  let y = top + thH, shown = 0;
+  const left = new Map<string, number>(groups.map((gq) => [gq[0], gq[1].length]));
+  for (const [label, list, color] of groups) {
+    if (shown >= budget) break;
+    // Tête de groupe : libellé en petites capitales de la couleur du groupe, nombre, filet.
+    out.push(d.text({ x: a.x + 0.08 * IN, y, w: a.w * 0.5, h: ghH }, [{ runs: [{ t: label, size: ty.label, color, bold: true, caps: true, spc: 1 }, { t: `   ${list.length}`, size: ty.label, color: t.subtle, bold: true }] }], 'ctr'));
+    y += ghH;
+    for (const r of list) {
+      if (shown >= budget) break;
+      const isLate = r.status === 'LATE', isDone = r.status === 'DONE';
+      if (isLate) out.push(d.sp({ box: { x: a.x, y: y + 0.05 * IN, w: 0.03 * IN, h: rowH - 0.1 * IN }, fill: t.risk }));
+      cols.forEach((c, i) => {
+        const x0 = xs[i] + 0.08 * IN, w = W(i) - 0.14 * IN, box = { x: x0, y, w, h: rowH };
+        const one = (txt: string, o: { color?: string; bold?: boolean; size?: number } = {}) => out.push(d.text(box, [{ runs: [{ t: wrapText(txt, w * 1.1, o.size ?? ty.small, 1)[0], size: o.size ?? ty.small, color: o.color ?? t.ink, bold: o.bold }] }], 'ctr'));
+        if (c.id === 'due') {
+          const n = Math.round((Date.parse(`${r.due}T00:00:00Z`) - Date.parse(`${x.today}T00:00:00Z`)) / 86400000);
+          const sub = isDone ? null : isLate ? `retard ${Math.abs(n)} j` : n === 0 ? "aujourd'hui" : n <= 60 ? `dans ${n} j` : inTime(x.today, r.due);
+          out.push(d.text(box, [{ runs: [{ t: dayOf(r.due, x.today), size: ty.small, color: isLate ? t.risk : isDone ? t.subtle : t.ink, bold: !isDone }] }, ...(sub && rowH >= 0.32 * IN ? [{ runs: [{ t: sub, size: ty.label, color: isLate ? t.risk : n <= 14 ? t.watch : t.subtle, bold: isLate || n <= 14 }] }] : [])], 'ctr'));
+        } else if (c.id === 'name') {
+          const nm: Para = { runs: [{ t: wrapText(r.name, w * 1.08, ty.small, 1)[0], size: ty.small, color: isDone ? t.muted : t.ink, bold: true }] };
+          out.push(d.text(box, show.name === false ? [{ runs: [{ t: wrapText(r.phase ?? '—', w * 1.12, ty.label, 1)[0], size: ty.label, color: t.muted }] }] : twoLines && r.phase ? [nm, { runs: [{ t: wrapText(r.phase, w * 1.14, ty.label, 1)[0], size: ty.label, color: t.subtle }] }] : [nm], 'ctr'));
+        } else if (c.id === 'ws') one(r.ws ?? '—', { color: r.ws ? t.muted : t.subtle });
+        else if (c.id === 'owner') one(r.owner, { color: t.muted });
+        else if (c.id === 'progress') {
+          const pw = Math.min(w * 0.56, 0.8 * IN), ph = 0.055 * IN, py = y + (rowH - ph) / 2;
+          out.push(d.pill({ x: x0, y: py, w: pw, h: ph }, mixHex(t.hairline, 'FFFFFF', 0.25)));
+          if (r.progress > 0) out.push(d.pill({ x: x0, y: py, w: Math.max(ph, pw * Math.min(1, r.progress / 100)), h: ph }, isLate ? t.risk : isDone ? mixHex(t.ok, 'FFFFFF', 0.35) : t.accent));
+          out.push(d.text({ x: x0 + pw + 0.05 * IN, y, w: w - pw - 0.05 * IN, h: rowH }, [{ align: 'r', runs: [{ t: `${R(r.progress)} %`, size: ty.small, color: isLate ? t.risk : isDone ? t.subtle : t.ink, bold: isLate }] }], 'ctr'));
+        } else if (c.id === 'status') {
+          const col = isLate ? t.risk : isDone ? t.ok : r.status === 'ACTIVE' ? t.accent : mixHex(t.ink, 'FFFFFF', 0.72);
+          out.push(d.text(box, [{ runs: [{ t: '●  ', size: ty.label - 1, color: col }, { t: DLV_STATUS[r.status], size: ty.small, color: isLate ? t.risk : r.status === 'ACTIVE' ? t.ink : t.subtle, bold: isLate }] }], 'ctr'));
+        } else if (c.id === 'risk') {
+          const col = r.risk === 'CRITICAL' ? t.risk : r.risk === 'TENSION' ? t.watch : mixHex(t.ok, 'FFFFFF', 0.2);
+          out.push(d.text(box, [{ runs: [{ t: '●  ', size: ty.label - 1, color: col }, { t: DLV_RISK[r.risk], size: ty.small, color: r.risk === 'OK' ? t.subtle : col, bold: r.risk !== 'OK' }] }], 'ctr'));
+        }
+      });
+      y += rowH;
+      shown++;
+      left.set(label, (left.get(label) ?? 1) - 1);
+      out.push(d.line(a.x, y, a.x + a.w, y, mixHex(t.hairline, 'FFFFFF', 0.35), 0.5));
+    }
+  }
+  // Reste, groupe par groupe : « … et 22 autres à livrer · 79 livrés ».
+  const rest = groups.map(([label]) => [label, left.get(label) ?? 0] as const).filter(([, n]) => n > 0).map(([label, n]) => (label === 'Livrés' ? `${n} livré${n > 1 ? 's' : ''}` : label === 'En retard' ? `${n} autre${n > 1 ? 's' : ''} en retard` : `${n} autre${n > 1 ? 's' : ''} à livrer`));
+  if (rest.length) out.push(d.text({ x: a.x, y: y + 0.03 * IN, w: a.w, h: moreH - 0.03 * IN }, [{ runs: [{ t: `… et ${rest.join(' · ')}`, size: ty.label, color: t.subtle, italic: true }] }], 'ctr'));
   return out.join('');
 }
 
