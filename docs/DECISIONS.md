@@ -2116,3 +2116,28 @@ Demande du commanditaire : un risque peut concerner un chantier, plusieurs, ou t
 - Contrôle visuel dans PowerPoint (skill designer-rapports) ; tests `test/unit/plan-levels.spec.ts`,
   `test/e2e/report-template.spec.ts`, recette `test/browser/composants-rapport.e2e.ts`.
 
+
+## Rapports : Décisions en flux, Fiches d'arbitrage en duel (11/10/2026)
+
+- Demande du commanditaire : refonte des visuels Décisions et Fiches d'arbitrage, contenu gardé, lecture immédiate, design
+  ultra premium sans surcharge. Même jour : « Brouillon » retiré du parcours d'une décision saisie (formulaire de Jev,
+  section « Détails ») et bouton « Composer la fiche » retiré de Pilotage › Décisions.
+- Décisions (`drawDecisions`) : un couloir par étape, lu de gauche à droite — En instruction › À arbitrer › Décidées
+  (« Brouillon » en tête seulement s'il reste des décisions à ce statut, saisies avant le 11/10/2026). Chaque couloir :
+  libellé, nombre, précision (« la plus ancienne : 45 j », en rouge à partir de `DECISION_STALE_DAYS` ; « prises sur la
+  période »), filet de sa couleur (ambre : à arbitrer ; accent : décidées), chevrons entre couloirs. Décisions en attente,
+  les plus anciennes en tête : code, attente, intitulé, instance, séance attendue ; décisions prises : date, instance, code,
+  décision, intitulé, impact en option ; rappel des dernières sans décision sur la période. Étape « Étape » décochée : un seul
+  couloir « En attente ». Libellé de `IN_REVIEW` aligné sur le Cockpit : « En instruction » (au lieu de « En revue »).
+  Constantes : `DECISION_DONE_LANE` (couloir des décisions prises 1,35 fois plus large), `DECISION_WRAP` (1,15, largeur
+  utile estimée des textes).
+- Fiches d'arbitrage (`drawArbitrations`) : duel — l'option A toujours à gauche, B à droite, notes sur 4 face à face de
+  part et d'autre d'un axe, la recommandée en accent (« Option B · Recommandée »), « Égalité » au pied de l'axe ; critères
+  en papillon : intitulé et poids au centre, barre de A vers la gauche, de B vers la droite, échelle fixe 0–4 (`ARB_SCALE`),
+  la meilleure note du critère en accent ; colonne des intitulés à la mesure du plus long. Libellés d'options sur deux
+  lignes au lieu d'une ligne tronquée. Deux fiches par page (compactes) ; fiche seule plus large que `ARB_SPLIT_IN` (8 po) :
+  énoncé à gauche, duel et critères à droite. `ARB_CRITERIA_MAX` porté à 6 (dans la hauteur disponible). Date d'arbitrage
+  à côté de l'étape « Arbitrée » (`ArbitrationCard.decided`).
+- Lignes équilibrées (`balanced`) : même nombre de lignes que `wrapText`, à la largeur la plus étroite qui le garde — plus
+  de mot isolé en dernière ligne des titres, questions et libellés.
+- Contrôle visuel dans PowerPoint (skill designer-rapports) ; tests `test/unit/report-template.spec.ts`.

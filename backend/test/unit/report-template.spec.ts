@@ -4,7 +4,7 @@ import { analyzeImage, analyzePptx } from '../../src/core/report-format-read';
 import { composeTemplate, fillChartXml, FillData, fillTemplate, TemplateFieldMissing, TemplateManifest } from '../../src/core/report-template';
 import { COMPONENT_IDS, ComponentConfig, configErrors, fieldName, indicatorsOf, pagesOf, periodOf, periodRange, reportPlan, sectionsOf } from '../../src/domain/report-components';
 import { makeFormatPptx, makePng, pptxIntegrity, withLegacyParts } from '../format-fixture';
-import { actionBuckets, ActionsData, DashboardData, DECISION_STALE_DAYS, DecisionsData, drawActions, drawDashboard, drawDecisions, focusPhase, gapTone, sortActions, sortPending } from '../../src/core/report-draw-pilotage';
+import { actionBuckets, ActionsData, ARB_SCALE, ArbitrationCard, ArbitrationsData, balanced, DashboardData, drawArbitrations, DECISION_STALE_DAYS, DecisionsData, drawActions, drawDashboard, drawDecisions, focusPhase, gapTone, sortActions, sortPending } from '../../src/core/report-draw-pilotage';
 import { BarometerData, Draw, drawBarometer, drawGantt, drawMilestones, drawPlanTable, drawRisks, foldPlan, GANTT_MAX_ROWS, GanttData, GanttRow, isLate, MILESTONES_MAX, MilestonesData, milestoneStates, planLandings, RisksData, wrapText } from '../../src/core/report-draw';
 import { designTokens, scoreTone, statusTone, timeRatio, timeScale, typeScale } from '../../src/domain/report-design';
 
@@ -422,18 +422,22 @@ describe('Rapport — échéancier des actions, arbitrages, tableau de bord', ()
     show: { code: true, name: true, status: true, date: true, body: true, decision: true, impact: false },
   };
 
-  it('arbitrages : à arbitrer d’abord puis les plus anciennes ; étape, attente (rouge au-delà de 30 j), séance attendue ; décisions prises en fil', () => {
+  it('flux de décision : un couloir par étape (brouillon, en instruction, à arbitrer, décidées) ; attente (rouge au-delà de 30 j), séance attendue (11/10/2026)', () => {
     expect(sortPending(decisions.pending).map((r) => r.code)).toEqual(['D-009', 'D-005', 'D-006']);
     const xml = drawDecisions(new Draw(tk), box, decisions);
-    expect(xml).toContain('>décisions en attente<');
-    expect(xml).toContain('>dont 1 à arbitrer<');
-    expect(xml).toContain('>À arbitrer<');
+    for (const lane of ['Brouillon', 'En instruction', 'À arbitrer', 'Décidées']) expect(xml).toContain(`>${lane}<`);
+    expect(xml.indexOf('>En instruction<')).toBeLessThan(xml.indexOf('>À arbitrer<'));
+    expect(xml).toContain('la plus ancienne : 37 j');
+    expect(xml).toContain('prst="chevron"');
     expect(xml).toContain('attendue au COPROJ du 7 oct.');
     expect(xml).toContain('>37 j<'); // D-005 : attente ≥ DECISION_STALE_DAYS
     expect(DECISION_STALE_DAYS).toBe(30);
     expect(xml).toContain('Go-Live reporté au 1er avril 2027');
     expect(xml).not.toContain('Chemin critique à recaler'); // impact en option
-    expect(xml).toContain('sur la période · 1 sept. → 30 sept. 2026');
+    expect(xml).toContain('prises sur la période'); // la période est déjà dans la légende de la planche
+    expect(xml).not.toContain('1 sept. → 30 sept. 2026');
+    // Brouillons : couloir seulement s'il en reste.
+    expect(drawDecisions(new Draw(tk), box, { ...decisions, pending: decisions.pending.filter((r) => r.status !== 'DRAFT') })).not.toContain('>Brouillon<');
     expect(inside(xml)).toBe(true);
     // Aucune décision prise sur la période : les dernières sont rappelées ; rien du tout : un seul message.
     const recall = drawDecisions(new Draw(tk), box, { ...decisions, taken: [], last: decisions.taken });
@@ -443,6 +447,31 @@ describe('Rapport — échéancier des actions, arbitrages, tableau de bord', ()
     expect(none).toContain('Aucune décision prise à ce jour.');
     expect(none).not.toContain('sur la période.');
     expect(none).toContain('>rien à arbitrer<');
+  });
+
+  it('fiches d’arbitrage en duel : A à gauche, B à droite, notes sur 4, recommandée, critères en papillon ; fiche seule en deux colonnes (11/10/2026)', () => {
+    const card: ArbitrationCard = { code: 'D-009', title: 'Prioriser les 79 user stories CRM sur une capacité de 40', status: 'TO_ARBITRATE', body: 'Comité de projet', question: 'Faut-il internaliser la recette ?',
+      options: [{ code: 'A', label: 'Internaliser', score: 3.2 }, { code: 'B', label: 'Externaliser', score: 2.4 }], reco: 'A', tie: false,
+      criteria: [{ name: 'Coût', weight: 60, a: 4, b: 2 }, { name: 'Délai', weight: 40, a: 2, b: 3 }] };
+    const data: ArbitrationsData = { today: '2026-10-03', cards: [card, { ...card, code: 'D-005', status: 'IN_REVIEW', reco: null, tie: true }], more: ['D-010'], period: null, show: { question: true, options: true, reco: true, criteria: true, status: true } };
+    const xml = drawArbitrations(new Draw(tk), box, data);
+    expect(xml).toContain('>3,20<');
+    expect(xml).toMatch(/>\s*·\s*Recommandée</);
+    expect(xml).toContain('>Égalité<');
+    expect(xml.indexOf('>Option A<')).toBeLessThan(xml.indexOf('>Option B<'));
+    expect(xml).toContain('>Coût<');
+    expect(xml).toContain('… et 1 autre fiche : D-010');
+    expect(inside(xml)).toBe(true);
+    // Échelle fixe 0–4 : la barre de la note 4 occupe toute la piste.
+    expect(ARB_SCALE).toBe(4);
+    const one = drawArbitrations(new Draw(tk), box, { ...data, cards: [card], more: [] });
+    expect(one).toContain('>Faut-il internaliser la recette ?<');
+    expect(inside(one)).toBe(true);
+    expect(drawArbitrations(new Draw(tk), box, { ...data, cards: [], more: [] })).toContain('Aucune fiche d’arbitrage');
+    // Lignes équilibrées : même nombre de lignes, pas de mot isolé en dernière ligne.
+    const l = balanced('Prioriser les 79 user stories CRM sur une capacité de 40', 4 * IN, 14, 2);
+    expect(l).toHaveLength(2);
+    expect(l[1].split(' ').length).toBeGreaterThan(1);
   });
 
   const dash: DashboardData = {

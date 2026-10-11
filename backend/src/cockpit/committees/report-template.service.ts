@@ -304,7 +304,7 @@ export class ReportTemplateService implements OnModuleInit {
         if (!ordered.length) warn('aucune fiche d’arbitrage en attente ni arbitrée sur la période.');
         const noScore = ordered.filter((x) => x.sum!.options.every((o) => o.score === null)).map((x) => x.dc.code);
         if (noScore.length) warn(`fiche sans note pour ${list(noScore)}.`);
-        const cards: ArbitrationCard[] = ordered.slice(0, ARBITRATIONS_MAX).map(({ dc, sum }) => ({ code: dc.code, title: dc.t, status: dc.status, body: bodyNames.get(dc.bodyId) ?? null, question: sum!.question, options: sum!.options, reco: sum!.reco, tie: sum!.tie, criteria: sum!.criteria }));
+        const cards: ArbitrationCard[] = ordered.slice(0, ARBITRATIONS_MAX).map(({ dc, sum }) => ({ code: dc.code, title: dc.t, status: dc.status, body: bodyNames.get(dc.bodyId) ?? null, question: sum!.question, options: sum!.options, reco: sum!.reco, tie: sum!.tie, criteria: sum!.criteria, decided: dc.status === 'ARBITRATED' ? dc.ddIso : null }));
         const short = (s2: string) => frDay(s2).replace(/ \d{4}$/, '');
         parts.push({ part: 'board', board: 'arbitrations', data: { today, cards, more: ordered.slice(ARBITRATIONS_MAX).map((x) => x.dc.code), period: period.start ? `${short(period.start)} → ${frDay(period.end!)}` : null, show: Object.fromEntries(def.indicators.map((x) => [x.id, inds.includes(x.id)])) } as ArbitrationsData });
         break;
