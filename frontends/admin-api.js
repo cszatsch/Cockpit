@@ -199,7 +199,7 @@ export const relWhen = (iso, now = Date.now()) => {
   return 'il y a ' + Math.max(2, Math.round((today - d) / 86_400_000) + 1) + ' j';
 };
 /** Notification du serveur → élément du tiroir (`Notifications.dc.html`) ; `pending` : demande encore à traiter. */
-export const toNotif = n => ({ id: n.id, type: n.type, title: n.title, text: n.text, note: n.note, when: relWhen(n.createdAt), unread: n.unread, actLabel: n.actLabel, meta: n.meta, target: n.target, pending: n.pending });
+export const toNotif = n => ({ id: n.id, type: n.type, title: n.title, text: n.text, note: n.note, when: relWhen(n.createdAt), unread: n.unread, actLabel: n.actLabel, meta: n.meta, target: n.target, pending: n.pending, key: n.key || '' });
 /** Snapshot du serveur (`{ id, date, type, libelle, auteur, compteurs }`) → `{ id, t, k, lab, by, ix, cnt }`. */
 export const toSnap = (s, ix) => ({ id: s.id, t: D(s.date), k: s.type, lab: s.libelle || '', by: s.auteur || '', ix, cnt: s.compteurs });
 /** Planification d'un projet → `sched` `{ on, fq, day, hour, keep }`. */
@@ -337,7 +337,7 @@ export function bindConsole(c) {
     guide: async () => { const g = await get('/guides'); setTimeout(() => gdWatch(g), 0); return { gdGuides: g }; },
     mods: async () => ({ mods: sortMods((await get('/modules')).map(toMod)) }),
     reqs: async () => ({ reqs: (await get('/module-requests?status=PENDING')).map(toReq) }),
-    prof: async () => { const me = await get('/me/profile'); meId = me.id; return { prof: toProf(me), meInfo: toMeInfo(me), pn: { crit: true, budget: true, req: true, hebdo: true, fail: false, ...(me.notifications || {}) }, photo: me.photoUrl || null }; },
+    prof: async () => { const me = await get('/me/profile'); meId = me.id; return { meLoaded: true, prof: toProf(me), meInfo: toMeInfo(me), pn: { crit: true, budget: true, req: true, hebdo: true, fail: false, ...(me.notifications || {}) }, photo: me.photoUrl || null }; },
     sess: async () => ({ sess: (await get('/me/sessions')).map(toSess) }),
     // Chantiers de chaque projet, pour attribuer des chantiers en Responsable ou en Lecteur.
     wsAll: async () => { const ps = await get('/projects'), lists = await Promise.all(ps.map(p => get('/projects/' + encodeURIComponent(p.code) + '/workstreams'))); return { apiWs: Object.fromEntries(ps.map((p, i) => [p.code, lists[i].map(w => ({ id: w.id, n: w.name, code: w.code }))])) }; },
@@ -483,20 +483,30 @@ export function bindConsole(c) {
   c.ntAct = async (id, a) => {
     const n = (c.state.nt || []).find(x => x.id === id);
     if (a === 'fix' || a === 'open') { set0({ ntOpen: false }); if (n && n.target) c.go(n.target); post('/notifications/' + id + '/read').then(refreshNt).catch(() => {}); return; }
+    // Demande décidée (11/10/2026) : sa ligne quitte aussitôt la page Utilisateurs (`reqDecided`), sans attendre
+    // l'exécution par le serveur (10 s) ni la relecture ; elle revient si la décision est annulée.
+    const rk = n && /^invite:/.test(n.key || '') ? n.key.slice(7) : null;
+    if (rk) set0({ reqDecided: { ...(c.state.reqDecided || {}), [rk]: true } });
     try {
       await post('/notifications/' + id + '/decision', { decision: a });
       refreshNt(); touch();
-      setTimeout(() => { load(['notifs', 'accounts', 'reqs', 'mods']).catch(() => {}); touch(); }, 10_000 + 1_500);
-    } catch (e) { fail(e); refreshNt(); }
+      // Relectures indépendantes : l'échec de l'une n'empêche plus les autres (auparavant groupées, tout était perdu).
+      const reread = () => { ['notifs', 'accounts', 'reqs', 'mods'].forEach(k => load([k]).catch(() => {})); touch(); };
+      setTimeout(reread, 10_000 + 1_500);
+      setTimeout(reread, 10_000 + 6_000);
+    } catch (e) { fail(e); refreshNt(); undecide(id); }
   };
+  // Décision annulée (ou refusée par le serveur) : la ligne de la demande revient.
+  const undecide = id => { const n = (c.state.nt || []).find(x => x.id === id), rk = n && /^invite:/.test(n.key || '') ? n.key.slice(7) : null; if (!rk) return; const d = { ...(c.state.reqDecided || {}) }; delete d[rk]; set0({ reqDecided: d }); };
   // Demande d'invitation décidée depuis la page Utilisateurs : même décision que dans la cloche (annulable 10 s,
   // message au PMO demandeur) ; sans notification ouverte, décision directe.
   c.invReqDecide = async (r, a) => {
-    if (r.notifId) { await c.ntAct(r.notifId, a); toast((a === 'accept' ? 'Invitation de ' : 'Refus de la demande de ') + r.n + ' : décision enregistrée, annulable 10 s dans les notifications'); return; }
+    const nid = r.notifId || ((c.state.nt || []).find(n => n.key === 'invite:' + r.reqId && n.pending) || {}).id;
+    if (nid) { await c.ntAct(nid, a); toast((a === 'accept' ? 'Invitation de ' : 'Refus de la demande de ') + r.n + ' : décision enregistrée, annulable 10 s dans les notifications'); return; }
     try { await post('/invitation-requests/' + encodeURIComponent(r.reqId) + (a === 'accept' ? '/approve' : '/reject')); toast(a === 'accept' ? 'Invitation envoyée à ' + r.n : 'Demande refusée : ' + r.n); await load(['accounts', 'notifs']); touch(); }
     catch (e) { fail(e); load(['accounts']).catch(() => {}); }
   };
-  c.ntUndo = id => post('/notifications/' + id + '/undo').then(() => { toast('Décision annulée'); refreshNt(); touch(); }).catch(e => { fail(e); refreshNt(); });
+  c.ntUndo = id => post('/notifications/' + id + '/undo').then(() => { undecide(id); toast('Décision annulée'); refreshNt(); touch(); }).catch(e => { fail(e); refreshNt(); });
   c.ntReadAll = () => post('/notifications/read-all').then(refreshNt).catch(fail);
   // Effacer (après le délai d'annulation du tiroir) : incidents et alertes masqués pour tous les administrateurs.
   c.ntClearAll = () => del('/notifications').then(() => { refreshNt(); touch(); }).catch(e => { fail(e); refreshNt(); });

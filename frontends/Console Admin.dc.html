@@ -994,7 +994,7 @@ class Component extends DCLogic {
     // Consommation et coûts · Accès : page et filtres conservés dans l'URL (?page=usage&u_gran=…).
     else { try { if (new URLSearchParams(location.search).get('page') === 'usage') this.go('usage'); } catch (e) { /* hors navigateur */ } }
     // API : branchement sur /api/admin (données, écritures, audit côté serveur) ; rien en mode démonstration (?demo=1).
-    import('./admin-api.js').then(m => m.bindConsole(this)).catch(e => console.warn('admin-api', e));
+    import('./admin-api.js').then(m => m.bindConsole(this)).catch(e => { console.warn('admin-api', e); this._apiDown = true; this.setState({}); });
   }
   _jb = React.createRef(); _pf = React.createRef();
   componentDidUpdate(pp, ps) { if (ps && (ps.jm !== this.state.jm || ps.jThink !== this.state.jThink || (!ps.jev && this.state.jev))) this.jScroll(); if (pp.scenario !== this.props.scenario) this.applyScenario(); if (pp.startSection !== this.props.startSection && this.props.startSection) this.go(this.props.startSection); }
@@ -1032,7 +1032,7 @@ class Component extends DCLogic {
   // Nouvelle conversation (démonstration : l'échange affiché est effacé ; API : admin-api.js ouvre une conversation neuve).
   jevNew() { const sec = this.state.sec; this.setState({ jm: [], jCtx: sec, jIn: '' }); this.jPush(...this.jGreet(sec)); }
   jGreet(sec) {
-    const t = sec === 'overview' ? 'Bonjour ' + this.state.prof.first + '. Je peux expliquer la console, un chiffre ou une règle, et vous guider pas à pas. Je n’agis pas à votre place : je vous indique où faire chaque action.' : 'Que souhaitez-vous faire dans « ' + META[sec][1] + ' » ? Je peux expliquer ce qui s’affiche et vous guider.';
+    const t = sec === 'overview' ? 'Bonjour' + (this.meReady() ? ' ' + this.state.prof.first : '') + '. Je peux expliquer la console, un chiffre ou une règle, et vous guider pas à pas. Je n’agis pas à votre place : je vous indique où faire chaque action.' : 'Que souhaitez-vous faire dans « ' + META[sec][1] + ' » ? Je peux expliquer ce qui s’affiche et vous guider.';
     return [{ t: 'jev', text: t }, { t: 'chips', chips: (JCHIPS[sec] || JCHIPS.overview).map(q => ({ label: q })) }];
   }
   // ——— Barre latérale : mode (mobile, réduite, déployée) et bouton réduire / déployer du composant Sidebar Console
@@ -1139,6 +1139,8 @@ class Component extends DCLogic {
   revoke(s) { this.ask({ tone: 'warn', title: 'Déconnecter « ' + s.d + ' » ?', body: 'La session est fermée immédiatement sur cet appareil. Il faudra s’y reconnecter avec son mot de passe.', cta: 'Déconnecter', ok: () => { this.setState(st => ({ sess: st.sess.filter(x => x.id !== s.id) })); this.log('Fermeture de session', s.d + ' · ' + s.l, 'sensible'); this.toast('Session fermée'); } }); }
   revokeAll() { const o = this.state.sess.filter(s => !s.cur); if (!o.length) return; this.ask({ tone: 'warn', title: 'Déconnecter vos ' + o.length + ' autres sessions ?', body: 'Seule la session en cours reste ouverte.', items: o.map(s => ({ l: s.l, a: s.d, b: 'Déconnectée' })), cta: 'Tout déconnecter', ok: () => { this.setState(st => ({ sess: st.sess.filter(x => x.cur) })); this.log('Fermeture des autres sessions', o.length + ' appareils', 'sensible'); this.toast('Autres sessions fermées'); } }); }
   onPhoto(e) { const f = e.target.files && e.target.files[0]; if (!f) return; if (!/^image\//.test(f.type)) return this.toast('Choisissez une image', 'err'); this.setState({ photo: URL.createObjectURL(f) }); this.toast('Photo mise à jour'); }
+  /** Profil du compte connecté chargé (GET /me/profile), ou démonstration sans serveur. */
+  meReady() { return !!this.state.meLoaded || !!this._apiDown; }
   uById(id) { return this.state.users.find(u => u.id === id); }
   setF(k) { return e => { const v = e && e.target ? (e.target.type === 'checkbox' ? e.target.checked : e.target.value) : e; this.setState(s => ({ form: { ...s.form, [k]: v }, fe: { ...s.fe, [k]: '' } })); }; }
 
@@ -1391,7 +1393,9 @@ class Component extends DCLogic {
       shellSt: `display:grid;grid-template-columns:${mode === 'full' ? SB_W + 'px' : mode === 'rail' ? '72px' : '0px'} minmax(0,1fr) ${S.jev && mode === 'full' ? '400px' : '0px'};min-height:100vh;transition:grid-template-columns .4s cubic-bezier(.2,.7,.2,1)`,
       // Sidebar Console : mode, page active, signaux (pastilles existantes, fournisseurs, fonctions IA), profil et rappels.
       sbMode: mode === 'rail' ? 'rail' : mode === 'mob' ? 'mob' : 'full', sec: S.sec, sbGo: id => this.go(id), toggleRail: () => this.toggleNav(),
-      sbUser: { name: S.prof.first + ' ' + S.prof.last, role: (S.meInfo || {}).superAdmin ? 'Super Admin' : 'Administrateur', photo: S.photo || undefined, ini: S.photo ? '' : undefined },
+      // Compte connecté : neutre tant que GET /me/profile n'est pas arrivé (11/10/2026 ; auparavant le profil de
+      // démonstration, Julien Morel, s'affichait le temps du chargement). Démonstration seulement si l'API est injoignable.
+      sbUser: this.meReady() ? { name: S.prof.first + ' ' + S.prof.last, role: (S.meInfo || {}).superAdmin ? 'Super Admin' : 'Administrateur', photo: S.photo || undefined, ini: S.photo ? '' : undefined } : { name: '', role: '', ini: '' },
       sbSignals: this.sbSignals(badge),
       sbWrap: mode === 'mob' ? `position:fixed;top:0;left:0;bottom:0;width:min(${SB_W}px, 86vw);z-index:60;transform:translateX(${S.mnav ? 0 : -105}%);transition:transform .32s cubic-bezier(.2,.7,.2,1);box-shadow:${S.mnav ? '24px 0 60px -20px rgba(0,0,0,.5)' : 'none'}` : 'position:sticky;top:0;align-self:start;height:100vh;min-width:0;z-index:60',
       jvWrap: mode === 'full' ? `position:sticky;top:0;height:100vh;overflow:hidden;min-width:0;z-index:30;opacity:${S.jev ? 1 : 0};transform:translateX(${S.jev ? 0 : 24}px);transition:opacity .3s ease,transform .4s cubic-bezier(.2,.7,.2,1);pointer-events:${S.jev ? 'auto' : 'none'}` : `position:fixed;top:0;right:0;bottom:0;width:min(400px,100%);z-index:70;box-shadow:-24px 0 60px -20px rgba(10,23,38,.35);transform:translateX(${S.jev ? 0 : 105}%);transition:transform .35s cubic-bezier(.2,.7,.2,1)`,
@@ -1427,9 +1431,9 @@ class Component extends DCLogic {
       // Guide utilisateur Console et Cockpit (30/09/2026) : `guides` toujours passé (tableaux vides par défaut), sinon le
       // composant afficherait ses données de démonstration.
       gdGuides: S.gdGuides || { console: { versions: [], downloads: [], index: null }, cockpit: { versions: [], downloads: [], index: null } },
-      gdMe: { name: S.prof.first + ' ' + S.prof.last, role: (S.meInfo || {}).superAdmin ? 'Super Admin' : 'Administrateur' }, gdCan: true,
+      gdMe: this.meReady() ? { name: S.prof.first + ' ' + S.prof.last, role: (S.meInfo || {}).superAdmin ? 'Super Admin' : 'Administrateur' } : { name: '', role: '' }, gdCan: true,
       // Initialisation d'un projet : nom de l'utilisateur dans le nom du modèle Excel téléchargé.
-      initUser: (S.prof.first + ' ' + S.prof.last).trim(),
+      initUser: this.meReady() ? (S.prof.first + ' ' + S.prof.last).trim() : '',
       gdDownload: (app, v) => this.gdDownload ? this.gdDownload(app, v) : Promise.resolve(), gdReplace: (app, f) => this.gdReplace ? this.gdReplace(app, f) : Promise.reject(new Error('démonstration')),
       gdSaveSettings: (app, s) => this.gdSaveSettings ? this.gdSaveSettings(app, s) : Promise.resolve(s),
       ...(S.smApi ? { smSave: d => this.smSave(d), smTest: d => this.smTest(d), smTestEmail: (to, d) => this.smTestEmail(to, d) } : {}),
@@ -1480,7 +1484,7 @@ class Component extends DCLogic {
       // Compte connecté (et non plus « u1 », compte de démonstration) : ni suspendu ni supprimé depuis sa propre ligne.
       const meId = (S.meInfo || {}).id || 'u1';
       // Demandes d'invitation du PMO en attente (11/10/2026) : parmi les invités, avant même la création du compte.
-      const UL = [...S.users, ...(S.invReqs || [])];
+      const UL = [...S.users, ...(S.invReqs || []).filter(r => !(S.reqDecided || {})[r.reqId])];
       const q = S.uq.trim().toLowerCase(), base = UL.filter(u => (!S.uStale || (u.s === 'actif' && u.ll > 14)) && (S.uPf === 'tous' || hasProf(u, S.uPf)) && (S.uPj === 'tous' || u.pr.includes(S.uPj)) && (!q || (u.n + ' ' + u.e).toLowerCase().includes(q))), cnt = { tous: base.length, actif: 0, 'invité': 0, suspendu: 0 }; base.forEach(u => cnt[u.s]++);
       const list = UL.filter(u => (!S.uStale || (u.s === 'actif' && u.ll > 14)) && (S.uSt === 'tous' || u.s === S.uSt) && (S.uPf === 'tous' || hasProf(u, S.uPf)) && (S.uPj === 'tous' || u.pr.includes(S.uPj)) && (!q || (u.n + ' ' + u.e).toLowerCase().includes(q)));
       vals.us = {

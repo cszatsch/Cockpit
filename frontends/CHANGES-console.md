@@ -800,3 +800,6 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
 - Utilisateurs (11/10/2026) : les demandes d'invitation du PMO en attente apparaissent parmi les invités (statut
   « Demandée », demandeur, chantiers proposés) avec Inviter / Refuser — même décision que dans la cloche (annulable 10 s,
   message au PMO) ; elles comptent dans « Tous » et « Invités ». Client : `toInvReq`, `invReqDecide` (admin-api.js).
+- Utilisateurs (11/10/2026, suite) : une demande décidée dans la cloche quitte aussitôt la page (`reqDecided`, reliée par
+  la clé `invite:<demande>` de la notification) et revient si la décision est annulée ; relectures après la décision
+  indépendantes (l'échec de l'une ne perd plus les autres), à 11,5 s puis 16 s.

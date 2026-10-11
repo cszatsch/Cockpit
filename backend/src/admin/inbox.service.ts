@@ -104,6 +104,8 @@ export class InboxService implements OnModuleInit, OnModuleDestroy {
       actLabel: n.actLabel ?? undefined,
       meta: (n.meta as Record<string, string> | null) ?? undefined,
       target: n.target ?? undefined,
+      /** Clé de la cause (`invite:<demande>`…) : relie la notification à la ligne d'une page (Utilisateurs, 11/10/2026). */
+      key: n.key,
       decision: n.decision ?? undefined,
       undoUntil: n.undoUntil?.toISOString(),
     };
