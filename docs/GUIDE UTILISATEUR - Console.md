@@ -1,6 +1,6 @@
 # Guide utilisateur de la Console d'administration RISE
 
-Version du 8 octobre 2026. Ce guide décrit le comportement réel de la Console, établi à partir de son code. Les écarts et les points encore ouverts sont regroupés en annexe.
+Version du 12 octobre 2026. Ce guide décrit le comportement réel de la Console, établi à partir de son code. Les écarts et les points encore ouverts sont regroupés en annexe.
 
 ## Sommaire
 
@@ -33,7 +33,7 @@ La Console sert à :
 - gérer les comptes et les droits d'accès aux projets ;
 - suivre l'usage de la plateforme : temps passé, activité et dépenses d'IA, du global à l'utilisateur ;
 - régler l'intelligence artificielle : fournisseurs, clés, modèles, affectation aux fonctions, budgets, temps de réponse ;
-- créer des projets à partir d'une proposition commerciale ou d'un fichier Excel, en garder l'historique (snapshots) et les restaurer ;
+- créer des projets à partir d'une proposition commerciale ou d'un fichier Excel, en garder l'historique (snapshots) et les restaurer, ou les supprimer ;
 - régler les services de la plateforme : modules, cartes API, notifications envoyées aux utilisateurs, serveur d'e-mail, guides utilisateur ;
 - préparer un paquet d'installation de Cockpit pour une autre personne ;
 - surveiller l'ensemble : points à traiter, notifications de l'administrateur, journal d'audit.
@@ -43,6 +43,11 @@ La Console ne modifie pas les données métier des projets (actions, risques, ja
 ## 1.2 À qui elle s'adresse
 
 La Console est réservée aux **administrateurs de la plateforme**. Un compte sans droit d'administration ne peut pas l'ouvrir, même s'il est PMO d'un projet.
+
+Les administrateurs ont l'un de deux niveaux :
+
+- **Super Admin** : tous les droits de la Console ;
+- **Admin** : tous les droits, sauf la modification du menu IA (qu'il consulte en lecture seule), la suppression d'un projet et les actions sur le compte d'un Super Admin. Voir 4.1.
 
 ## 1.3 Principes à connaître
 
@@ -58,7 +63,9 @@ La Console est réservée aux **administrateurs de la plateforme**. Un compte sa
 
 | Terme | Définition |
 |---|---|
-| Administrateur | Compte qui a accès à la Console. Il voit tous les projets du Cockpit en lecture seule. |
+| Administrateur | Compte qui a accès à la Console. Il voit tous les projets du Cockpit en lecture seule. Deux niveaux : Super Admin et Admin. |
+| Super Admin | Administrateur qui a tous les droits de la Console, dont la modification du menu IA, la suppression d'un projet et la gestion des autres Super Admin. |
+| Admin | Administrateur qui consulte le menu IA sans pouvoir le modifier. |
 | PMO | Profil qui gère un projet dans le Cockpit : référentiel et suivi. |
 | Responsable | Profil qui gère un ou plusieurs chantiers d'un projet. |
 | Lecteur | Profil qui consulte un ou plusieurs chantiers d'un projet. |
@@ -85,6 +92,7 @@ La Console est réservée aux **administrateurs de la plateforme**. Un compte sa
 | Skill | Consigne ajoutée aux instructions de Jev ou d'un traitement d'IA. |
 | Préremplissage | Lecture d'une proposition commerciale par l'IA pour remplir le fichier Excel d'initialisation d'un projet. |
 | Snapshot | Copie de l'état des données d'un projet à un instant donné. Elle permet de comparer et de restaurer. |
+| Projet supprimé | Projet dont toutes les données ont été supprimées par un Super Admin. Une sauvegarde de sécurité permet de le restaurer pendant 48 heures. |
 | Module | Fonction optionnelle du Cockpit (Budget, Suivi des bénéfices, Message d'accueil de Jev), activable par projet. |
 | Carte API | Service externe appelé par la plateforme : widgets du Cockpit (météo, trafic, actualités…) et aiguillage de Jev. |
 | Règle de notification | Message envoyé automatiquement aux utilisateurs, chaque jour ou chaque semaine, rédigé par un modèle d'IA à partir des données du projet. |
@@ -109,7 +117,7 @@ La Console est réservée aux **administrateurs de la plateforme**. Un compte sa
 1. Saisissez votre adresse e-mail (format `prenom.nom@entreprise.com`).
 2. Saisissez votre mot de passe. L'icône en forme d'œil l'affiche ou le masque. Si la touche Verr. Maj est active, l'écran le signale.
 3. Cliquez sur **Se connecter**.
-4. En cas de succès, l'écran affiche « Bonjour {prénom}. » avec vos rôles, puis ouvre la Console.
+4. En cas de succès, l'écran affiche « Bonjour {prénom}. » avec vos rôles (« Super Admin » ou « Administrateur », puis votre profil projet le plus large), puis ouvre la Console.
 
 **Règles**
 
@@ -203,7 +211,7 @@ L'écran montre ces règles et une jauge de solidité. Le bouton reste inactif t
   - celle du domaine **IA** suit le budget d'IA et le détail de chaque appel aux modèles : voir 3.8.
 - **Pied de la barre** :
   - le bouton de **Jev**, l'assistant ;
-  - votre carte de profil, avec votre photo (ou vos initiales), qui ouvre **Mon profil**.
+  - votre carte de profil, avec votre photo (ou vos initiales), votre nom et votre niveau (« Super Admin » ou « Administrateur »), qui ouvre **Mon profil**. Pendant le chargement de la Console, la carte reste vide jusqu'à la lecture de votre profil.
 - **Signaux** : un point ou un compteur signale un problème sur une page.
   - Utilisateurs : compteur des demandes d'invitation en attente.
   - Fournisseurs et modèles : point rouge si une clé est en erreur ou si une fonction d'IA est à l'arrêt ; point orange si une fonction tourne sur son secours.
@@ -220,6 +228,10 @@ L'écran montre ces règles et une jauge de solidité. Le bouton reste inactif t
 - Chaque page a un titre et une phrase qui en résume l'usage. Certaines pages (Fournisseurs et modèles, Consommation et coûts, Initialisation d'un projet, Partager Cockpit, Guide utilisateur…) ont leur propre en-tête.
 
 **Enregistrement des modifications.** Selon la page, il est immédiat (interrupteurs, décisions, choix d'un modèle) ou se fait par un bouton **Enregistrer** : une barre « non enregistré » le rappelle.
+
+**Lecture seule (Admin).** Pour un Admin, les pages Fournisseurs et modèles et Consommation et coûts du domaine IA, ainsi que les réglages de la recherche de Jev de la page Guide utilisateur, affichent le bandeau « Lecture seule : modification réservée au Super Admin. ». Les commandes de modification y sont masquées ou inactives (voir 4.1).
+
+**Pas d'infobulles.** Depuis le 10 octobre 2026, la Console n'affiche plus aucune infobulle au survol des boutons et des libellés. Les valeurs lues au survol d'un graphique (par exemple dans Consommation et coûts du domaine Accès) restent affichées.
 
 **Mises à jour en direct.** Vous n'avez pas besoin de recharger la page : une modification faite par un autre administrateur, dans un autre onglet ou par une tâche automatique apparaît d'elle-même. Les traitements longs (indexation d'un guide, génération d'un paquet, préremplissage) ont leur propre suivi à l'écran.
 
@@ -253,7 +265,7 @@ L'écran montre ces règles et une jauge de solidité. Le bouton reste inactif t
 
 | Point | Niveau | Quand il apparaît | Action proposée |
 |---|---|---|---|
-| Clé API {fournisseur} invalide | Critique | Le dernier test de la clé a échoué | Remplacer la clé |
+| Clé API {fournisseur} invalide | Critique | Le dernier test de la clé a échoué | Remplacer la clé (Super Admin) ; Voir les fournisseurs (Admin) |
 | Budget IA à N % du plafond | Critique si ≥ 100 %, avertissement sinon | La dépense du mois atteint le seuil d'alerte d'un plafond actif | Voir la consommation |
 | Échecs d'envoi de notification sur 7 jours | Critique | Un envoi de notification a échoué ces 7 derniers jours (5 au plus sont comptés) | Voir l'historique |
 | Accès à retirer | Critique | Une personne désactivée dans le référentiel garde un compte actif ou invité avec des droits | Voir les utilisateurs |
@@ -261,7 +273,7 @@ L'écran montre ces règles et une jauge de solidité. Le bouton reste inactif t
 | Compte suspendu : personne réactivée | Avertissement | Le PMO a réactivé la personne après la suspension de son compte | Voir les utilisateurs |
 | Droits différents du référentiel | Avertissement | Les droits d'un compte diffèrent de ce que propose le référentiel | Voir les utilisateurs |
 | Invitations sans réponse depuis plus de 7 jours | Avertissement | Un invité n'a pas activé son compte après 7 jours | Voir les invités |
-| Demande d'invitation du PMO | Information | Un PMO a demandé l'invitation d'une personne | Examiner |
+| Demande d'invitation du PMO | Information | Un PMO a demandé l'invitation d'une personne | Examiner (ouvre Utilisateurs, où la demande figure parmi les invités) |
 | Demande d'activation de module | Information | Un PMO ou un Responsable a demandé un module | Examiner |
 
 **Automatique**
@@ -323,6 +335,7 @@ L'écran montre ces règles et une jauge de solidité. Le bouton reste inactif t
   - La décision est exécutée ensuite : création du compte et envoi de l'invitation, activation du module sur le seul projet demandé, ou refus.
   - Le demandeur est prévenu dans la cloche du Cockpit et par e-mail.
   - Si l'exécution échoue, la demande redevient à traiter avec la mention « Échec du traitement : {motif} ».
+  - Une demande d'invitation décidée dans la cloche quitte aussitôt la page Utilisateurs ; elle y revient si vous annulez la décision. Elle peut aussi se décider depuis cette page (3.3.5).
 - **Rafraîchissement** : la liste se recharge à l'ouverture et à chaque changement sur la plateforme (mises à jour en direct).
 
 **Messages d'erreur**
@@ -336,7 +349,7 @@ L'écran montre ces règles et une jauge de solidité. Le bouton reste inactif t
 
 ## 3.3 Utilisateurs
 
-**À quoi sert la page.** Voir tous les comptes, inviter de nouvelles personnes, régler leurs droits, suspendre, réactiver ou supprimer un compte.
+**À quoi sert la page.** Voir tous les comptes et les demandes d'invitation des PMO, inviter de nouvelles personnes, régler leurs droits, suspendre, réactiver ou supprimer un compte.
 
 > [Capture] Page Utilisateurs : bandeaux, filtres, liste, fiche latérale.
 
@@ -346,18 +359,22 @@ L'écran montre ces règles et une jauge de solidité. Le bouton reste inactif t
   - « N invitation(s) en attente », avec **Relancer**, qui relance toutes les invitations en attente, sans confirmation ;
   - « N compte(s) sans connexion depuis plus de 14 jours », avec **Voir**.
 - **Filtres** :
-  - puces par profil (Admin, PMO, Responsable, Lecteur) ;
+  - puces par profil (Super Admin, Admin, PMO, Responsable, Lecteur) ;
   - onglets de statut (Tous, Actifs, Invités, Suspendus) ;
   - recherche « Nom ou e-mail » ;
   - choix du projet.
 - **Colonnes** : Utilisateur, Profil et chantiers, Statut, Projets, Dernière connexion, Actions.
+  - « Profil et chantiers » montre les chantiers attribués, projet par projet, à leur code (C1, C2…). La mention « tous les chantiers » est réservée au PMO d'un projet.
   - Un invité affiche « Invité il y a N j », en ambre au-delà de 7 jours.
+  - Les demandes d'invitation des PMO en attente apparaissent aussi dans la liste, au statut « Demandée » (voir 3.3.5).
+  - Votre propre ligne porte la pastille « vous » et n'a ni **Suspendre** ni **Supprimer**.
 - **Fiche** : un clic sur une ligne ouvre la fiche du compte, avec :
   - le statut ;
   - la fraîcheur de connexion (vert jusqu'à 7 jours, ambre jusqu'à 14, rouge au-delà) ;
-  - le profil le plus large ;
-  - les projets ;
+  - les tuiles de profil, où **tous les profils détenus** sont surlignés (par exemple Admin et Lecteur) ;
+  - les projets et leurs chantiers, projet par projet : « PMO : tous les droits sur tous les chantiers. », les chantiers attribués avec leur rôle, ou « Aucun chantier attribué pour l'instant sur {projet} : à attribuer avec « Modifier le compte ». ». Un administrateur sans chantier sur un projet y voit « Aucun chantier attribué : lecture seule sur les données du projet (administrateur de la plateforme). » ; il garde ses profils projet ;
   - les boutons **Modifier le compte**, **Relancer l'invitation** / **Suspendre** / **Réactiver** et **Journal du compte**.
+- **Supprimer les comptes suspendus** : bouton de l'onglet Suspendus (voir 3.3.7).
 
 ### 3.3.2 Statuts d'un compte
 
@@ -379,8 +396,8 @@ L'écran montre ces règles et une jauge de solidité. Le bouton reste inactif t
 
 1. Cliquez sur **Inviter**.
 2. Saisissez le **nom complet** et l'**e-mail professionnel**.
-3. Si la personne doit administrer la plateforme, cochez **Administrateur de la plateforme**.
-4. Sous **Accès par projet**, activez chaque projet concerné, puis choisissez :
+3. Si la personne doit administrer la plateforme, cochez **Administrateur de la plateforme**. Si vous êtes Super Admin, un second interrupteur, **Super Admin**, lui donne en plus tous les droits de la Console.
+4. Sous **Accès par projet** (le premier projet de la plateforme est présélectionné), activez chaque projet concerné, puis choisissez :
    - **PMO** ;
    - ou **Chantiers** : un clic sur un chantier le fait passer de Lecteur à Responsable, puis à sans accès.
 5. Cliquez sur **Envoyer l'invitation**.
@@ -392,6 +409,13 @@ L'écran montre ces règles et une jauge de solidité. Le bouton reste inactif t
 - Il faut au moins un projet, ou le rôle Administrateur.
 - Pour chaque projet activé, il faut PMO ou au moins un chantier.
 - Le lien d'invitation est valable **14 jours**, une seule fois. Il mène à la Console si la personne est administrateur, sinon au Cockpit.
+- **L'e-mail d'invitation** a pour objet « Votre invitation à rejoindre l'application Cockpit » (« … (nouveau lien) » pour une relance). Il contient :
+  - « Bonjour {prénom}, » et une phrase qui invite à rejoindre Cockpit ;
+  - un bouton **Activer mon compte**, et le même lien en clair pour le cas où le bouton ne fonctionne pas ;
+  - un encart « À savoir » : lien personnel à usage unique, valable 14 jours avec sa date limite, et l'adresse e-mail de connexion ;
+  - que faire si le lien a expiré (demander une nouvelle invitation à la personne qui a invité) ;
+  - la signature « L'équipe Cockpit » et, en pied, une mise en garde pour qui n'attendait pas cette invitation.
+- Une version texte équivalente de l'invitation est jointe pour les messageries qui n'affichent pas la mise en page.
 - Si une personne du référentiel a la même adresse e-mail, le compte lui est rattaché.
 - Si l'e-mail ne part pas (serveur d'envoi en panne), le compte est quand même créé. La Console l'indique et il suffit de **Relancer**.
 - Action tracée au journal d'audit (Info).
@@ -406,7 +430,7 @@ L'écran montre ces règles et une jauge de solidité. Le bouton reste inactif t
 | « Rattachez au moins un projet, ou cochez Administrateur de la plateforme. » | Donnez au moins un accès |
 | « {PROJET} : choisissez PMO ou au moins un chantier. » | Complétez l'accès au projet |
 
-**Exemple.** Vous invitez Hugo Lambert, Responsable du chantier C3 de RISE. Il reçoit « Invitation à RISE Cockpit », choisit son mot de passe dans les 14 jours, et son compte passe à Actif.
+**Exemple.** Vous invitez Hugo Lambert, Responsable du chantier C3 de RISE. Il reçoit « Votre invitation à rejoindre l'application Cockpit », clique sur **Activer mon compte**, choisit son mot de passe dans les 14 jours, et son compte passe à Actif.
 
 ### 3.3.4 Relancer une invitation
 
@@ -423,9 +447,17 @@ Un PMO peut demander, depuis le référentiel du Cockpit, l'invitation d'une per
 
 - dans la cloche (« Inviter {nom} ») ;
 - dans « À traiter » ;
-- et par un compteur sur le menu Accès.
+- par un compteur sur le menu Accès ;
+- et dans la page **Utilisateurs**, parmi les invités : elle compte dans les onglets « Tous » et « Invités ».
 
-La décision se prend **dans la cloche** (voir 3.2). En cas d'acceptation, le compte reçoit les droits proposés par le référentiel.
+**Dans la page Utilisateurs**, la demande s'affiche comme une ligne au statut « Demandée » :
+
+- le profil proposé (« Responsable proposé », « Lecteur proposé » ou « À inviter ») et les chantiers proposés par le référentiel ;
+- le projet ;
+- « Demandée par {PMO} aujourd'hui » ou « … il y a N j » ;
+- deux boutons : **Refuser** (icône) et **Inviter**.
+
+La décision est **la même que dans la cloche** (voir 3.2) : elle est annulable pendant 10 secondes depuis la cloche, puis exécutée, et le PMO est prévenu. La ligne quitte la page aussitôt, et revient si la décision est annulée. Si la demande n'a plus de notification ouverte dans la cloche, la décision est appliquée aussitôt, sans délai d'annulation. En cas d'acceptation, le compte reçoit les droits proposés par le référentiel.
 
 ### 3.3.6 Suspendre et réactiver
 
@@ -445,6 +477,8 @@ La suspension vaut pour **toute la plateforme**, tous projets confondus.
 **Règles**
 
 - On ne peut pas se suspendre soi-même.
+- Seul un Super Admin peut suspendre ou réactiver le compte d'un Super Admin : « Compte d'un Super Admin : action réservée au Super Admin ».
+- La suppression d'un projet peut suspendre les comptes qui n'avaient accès qu'à ce projet (voir 3.13) ; sa restauration les réactive.
 - Juste après une suspension, un bouton **Annuler** reste affiché quelques secondes. Il réactive le compte, mais ne rouvre pas les sessions fermées.
 - Suspension et réactivation sont tracées au journal d'audit (Sensible).
 
@@ -457,16 +491,33 @@ La suspension vaut pour **toute la plateforme**, tous projets confondus.
 **Règles**
 
 - La suppression est définitive.
-- Elle est **refusée** dès que le compte a laissé une trace :
-  - il est l'auteur d'une entrée du journal d'audit (c'est le cas de tout compte qui a activé son accès) ;
-  - la personne liée est responsable d'une action, d'un risque, d'un problème, d'un jalon, d'un livrable ou d'un chantier ;
+- Elle est **refusée** quand la personne liée au compte a des responsabilités dans un projet :
+  - elle est responsable d'une action, d'un risque, d'un problème, d'un jalon, d'un livrable ou d'un chantier ;
   - elle a pris une décision ;
   - elle est membre d'une instance.
+- **Le journal d'audit ne bloque plus la suppression** (depuis le 11 octobre 2026). Le journal n'est jamais modifié : chaque entrée garde le nom de son auteur, et la trace reste lisible après la suppression.
 - On ne peut pas supprimer son propre compte.
-- En pratique, seul un invité qui n'a jamais activé son compte peut être supprimé. Pour couper l'accès d'une autre personne, **suspendez** son compte.
+- Seul un Super Admin peut supprimer le compte d'un Super Admin.
+- La consommation du compte est conservée : dans Consommation et coûts (Accès), il apparaît sous son nom suivi de « (supprimé) » (voir 3.6).
+- Pour couper l'accès d'une personne qui a des responsabilités dans un projet, **suspendez** son compte.
 - Suppression tracée au journal d'audit (Critique).
 
 **Message** : « Suppression impossible : objet utilisé ailleurs · N usages : … ». Suspendez le compte à la place.
+
+**Supprimer les comptes suspendus**
+
+1. Ouvrez l'onglet **Suspendus** de la page Utilisateurs.
+2. Cliquez sur **Supprimer les comptes suspendus** (à gauche d'**Inviter**).
+3. La fenêtre de confirmation liste les comptes qui seront supprimés, puis ceux qui seront gardés, avec leur raison.
+4. Saisissez **SUPPRIMER**, puis cliquez sur **Supprimer N comptes**. Le message « N comptes supprimés · M gardés » confirme l'opération.
+
+Sont **gardés**, avec la raison affichée :
+
+- les administrateurs de la Console : « Administrateur de la Console : retirez d'abord ses droits » ;
+- les comptes suspendus par la suppression d'un projet encore restaurable : « Suspendu par la suppression du projet {code}, encore restaurable » (ils deviennent supprimables après la fin des 48 heures, voir 3.13) ;
+- les comptes dont la personne a des responsabilités dans un projet (mêmes règles que pour un seul compte).
+
+Votre propre compte n'est jamais concerné. Le tri est refait au moment de la suppression. S'il ne reste aucun compte à supprimer, la fenêtre l'indique (« Aucun compte suspendu à supprimer »). Chaque suppression est tracée au journal d'audit (Critique).
 
 ### 3.3.8 Écarts avec le référentiel
 
@@ -512,7 +563,7 @@ La Console compare chaque compte à la personne correspondante du référentiel.
 ### 3.3.9 Modifier un compte et ses droits
 
 1. Cliquez sur **Modifier le compte**.
-2. Ajustez le nom, l'e-mail, le rôle Administrateur et les accès par projet.
+2. Ajustez le nom, l'e-mail, le rôle Administrateur (et, si vous êtes Super Admin, l'interrupteur **Super Admin**) et les accès par projet. Les chantiers des Responsables et des Lecteurs s'attribuent ici, projet par projet.
 3. Cliquez sur **Enregistrer**. Le message « Modifications enregistrées pour {nom} » s'affiche.
 
 **Règles des droits (habilitations)**
@@ -527,21 +578,40 @@ La Console compare chaque compte à la personne correspondante du référentiel.
 - Retirer un projet retire toutes les habilitations de la personne sur ce projet, y compris celles créées à l'initialisation.
 - **Garde-fous** :
   - on ne peut pas se retirer ses propres droits d'administrateur ;
-  - il doit toujours rester au moins un administrateur.
+  - il doit toujours rester au moins un administrateur ;
+  - seul un Super Admin attribue ou retire le profil Super Admin, et modifie le compte d'un Super Admin ;
+  - il doit toujours rester au moins un Super Admin (« Il doit toujours rester au moins un Super Admin »), et personne ne retire son propre profil Super Admin.
 - Changer l'e-mail d'un invité invalide son lien : relancez ensuite l'invitation.
 - Tracé au journal d'audit (Sensible) avec l'avant et l'après.
 
 ## 3.4 Administrateurs
 
-**À quoi sert la page.** Voir qui administre la plateforme, accorder ou retirer ce rôle, régler ce que chaque administrateur voit de la consommation, et consulter le journal d'audit (onglet **Journal d'audit**, voir 3.5).
+**À quoi sert la page.** Voir qui administre la plateforme, accorder ou retirer ce rôle, choisir le niveau de chaque administrateur (Super Admin ou Admin), régler ce que chaque administrateur voit de la consommation, et consulter le journal d'audit (onglet **Journal d'audit**, voir 3.5).
 
-> [Capture] Onglet Administrateurs, avec le sélecteur des droits de consommation.
+> [Capture] Onglet Administrateurs, avec le niveau et le sélecteur des droits de consommation.
 
 **Ajouter un administrateur**
 
 1. Cliquez sur **Ajouter un administrateur**.
-2. Choisissez un utilisateur actif dans la liste.
-3. Cliquez sur **Accorder les droits**.
+2. Choisissez un utilisateur actif dans la liste. S'il n'y en a aucun, la liste l'indique : « Aucun utilisateur actif sans droits d'administration : invitez ou réactivez d'abord le compte ».
+3. Cliquez sur **Accorder les droits**. Le nouvel administrateur est **Admin**.
+
+**Choisir le niveau d'un administrateur (Super Admin seulement)**
+
+Sur la ligne de chaque autre administrateur, un Super Admin choisit **Super Admin** ou **Admin** :
+
+| Niveau | Droits |
+|---|---|
+| **Super Admin** | Tous les droits de la Console : menu IA (fournisseurs, clés, modèles, affectations, plafonds), suppression d'un projet, actions sur les autres Super Admin |
+| **Admin** | Tous les autres droits de la Console. Il consulte le menu IA sans le modifier et ne peut agir ni sur le compte d'un Super Admin ni sur ses droits |
+
+1. Cliquez sur le niveau voulu.
+2. Confirmez dans la fenêtre « Nommer {nom} Super Admin ? » ou « Rétrograder {nom} en Admin ? ».
+
+- Votre propre niveau s'affiche, sans sélecteur, sur votre ligne. Un Admin ne voit pas de sélecteur de niveau.
+- Il doit toujours rester au moins un Super Admin : « Au moins un Super Admin est requis ».
+- Sur la ligne d'un Super Admin, un Admin voit « Compte d'un Super Admin : action réservée au Super Admin » à la place de **Retirer** et du sélecteur de consommation.
+- Le changement de niveau est tracé au journal d'audit (Critique) : « Attribution du profil Super Admin » ou « Retrait du profil Super Admin ».
 
 **Retirer un administrateur**
 
@@ -566,7 +636,7 @@ Sur la ligne de chaque **autre** administrateur, un sélecteur à trois choix r�
 **Règles**
 
 - Seul un compte **actif** peut devenir administrateur.
-- Le bouton **Retirer** est masqué pour vous-même et quand il ne reste qu'un administrateur.
+- Le bouton **Retirer** est masqué pour vous-même, quand il ne reste qu'un administrateur, et, pour un Admin, sur la ligne d'un Super Admin.
 - Ajout et retrait sont tracés au journal d'audit (Critique).
 
 **Messages d'erreur**
@@ -578,6 +648,8 @@ Sur la ligne de chaque **autre** administrateur, un sélecteur à trois choix r�
 | « Il doit toujours rester au moins un administrateur » | Dernier administrateur |
 | « Vous ne pouvez pas retirer vos propres droits d'administrateur » | Action sur vous-même |
 | « Vous ne pouvez pas modifier vos propres droits » | Droits de consommation modifiés sur vous-même |
+| « Il doit toujours rester au moins un Super Admin » | Dernier Super Admin rétrogradé ou retiré |
+| « Compte d'un Super Admin : action réservée au Super Admin » | Un Admin agit sur le compte d'un Super Admin |
 
 ## 3.5 Journal d'audit
 
@@ -597,7 +669,7 @@ Sur la ligne de chaque **autre** administrateur, un sélecteur à trois choix r�
   - Les connexions sensibles sont aussi tracées : activation d'un compte, blocage, accès refusé.
   - Les exports (journal d'audit, journal des appels d'IA, consommation de la plateforme) sont tracés eux aussi.
 - Niveaux :
-  - **Critique** : ajout ou retrait d'administrateur, suppression de compte, clés API, revectorisation, restauration…
+  - **Critique** : ajout ou retrait d'administrateur, profil Super Admin, suppression de compte, clés API, revectorisation, restauration, suppression et restauration d'un projet…
   - **Sensible** : suspension, droits, réglages, plafonds, paquets d'installation…
   - **Info** : invitations, modifications courantes.
 - Aucune entrée ne peut être modifiée ni supprimée.
@@ -613,6 +685,18 @@ Sur la ligne de chaque **autre** administrateur, un sélecteur à trois choix r�
 > [Capture] Consommation et coûts (Accès) : barre de filtres, bandeau de synthèse, graphique miroir, « Où va le temps, où va la dépense », « Détail par utilisateur ».
 
 Ce que vous voyez dépend de vos droits (« Complet », « Sans coûts » ou « Anonymisé »), réglés par un autre administrateur dans la page Administrateurs (3.4).
+
+**Usage réel seulement** (depuis le 10 octobre 2026) :
+
+- le temps actif, les connexions, les événements et les utilisateurs actifs ne comptent ni les comptes de démonstration, ni les sessions des outils automatiques (tests, scripts) ;
+- les coûts d'IA sont **identiques à ceux de Consommation et coûts du domaine IA** (3.8) : tous les appels réels y figurent. Les appels des comptes de démonstration sont regroupés sur une ligne « Tests et démonstration », pour que la somme des lignes égale le total ;
+- les appels d'IA simulés (coût estimé, jamais facturé) ne sont comptés nulle part ;
+- les listes des filtres Projet et Utilisateurs ne proposent pas les comptes de démonstration.
+
+**Comptes et projets supprimés.** Leur consommation reste comptée :
+
+- un compte supprimé garde son nom, suivi de « (supprimé) », dans l'équipe « Sans équipe » ; il reste proposé dans le filtre Utilisateurs ;
+- un projet supprimé qui a de l'usage reste proposé dans le filtre Projet, libellé « (supprimé) » ; les comptes de ce projet sans autre rattachement passent dans « Sans équipe ».
 
 ### 3.6.1 Choisir la période
 
@@ -697,6 +781,8 @@ Ce que vous voyez dépend de vos droits (« Complet », « Sans coûts » ou « 
 - **Pagination** : 20 lignes par page.
 - Un **point rouge** signale une hausse de coût de 30 % ou plus par rapport à la période précédente (« point rouge : hausse de coût ≥ 30 % »).
 - Les appels d'IA faits sans utilisateur (tâches automatiques, notifications planifiées…) apparaissent sur la ligne **« Tâches automatiques »**.
+- Les appels d'IA des comptes de démonstration apparaissent sur la ligne **« Tests et démonstration »**. Comme « Tâches automatiques », elle n'a pas d'initiales et n'est jamais retenue comme équipe par défaut.
+- Un compte supprimé apparaît sous son nom suivi de « (supprimé) ».
 - Le pied du tableau rappelle vos droits : « Données individuelles et coûts visibles · droits Administrateur complet », « Coûts masqués : … » ou « Noms masqués : … ».
 
 ### 3.6.6 Exporter la sélection
@@ -719,7 +805,7 @@ Ce que vous voyez dépend de vos droits (« Complet », « Sans coûts » ou « 
 | Temps actif | Chaque interaction (clic, saisie, défilement) compte jusqu'à la suivante, au plus **5 minutes**. Sans interaction, rien n'est compté. Deux onglets ouverts ne comptent pas deux fois |
 | Temps connecté | De l'ouverture de la session à sa fin : déconnexion, ou expiration après inactivité. Les sessions simultanées d'un même utilisateur sont fusionnées |
 | Taux d'activité | Temps actif ÷ temps connecté (« — » sans temps connecté) |
-| Coût IA | Coût enregistré pour chaque appel d'IA, au tarif du modèle en vigueur à la date de l'appel, attribué au compte qui a fait la demande |
+| Coût IA | Coût enregistré pour chaque appel d'IA réel, au tarif du modèle en vigueur à la date de l'appel, attribué au compte qui a fait la demande. Même total que dans Consommation et coûts du domaine IA ; les appels simulés en sont exclus |
 | Coût par heure active | Coût IA ÷ temps actif |
 | Session moyenne / Durée moy. | Temps actif ÷ nombre de connexions |
 
@@ -738,13 +824,15 @@ Ce que vous voyez dépend de vos droits (« Complet », « Sans coûts » ou « 
 
 La page a trois blocs : le bandeau **Fournisseurs**, la section **Affectation des modèles** et le catalogue **Modèles**.
 
+**Super Admin seulement.** Toutes les modifications de cette page sont réservées au Super Admin. Un Admin voit le bandeau « Lecture seule : modification réservée au Super Admin. » ; les boutons **Tester toutes les clés**, **Ajouter un fournisseur**, **Tester**, **Remplacer la clé**, **Plafond**, **Actualiser**, **Ajouter un modèle** et le crayon **Modifier** sont masqués ; les sélecteurs d'affectation et les interrupteurs **Actif** sont inactifs. Le serveur refuse de toute façon ces actions à un Admin : « Modification réservée au Super Admin ».
+
 > [Capture] Fournisseurs et modèles : bandeau des fournisseurs, affectation avec la chaîne Documents, catalogue.
 
 ### 3.7.1 Le bandeau des fournisseurs et l'ajout d'un fournisseur
 
 - **En-tête du bandeau** : « N connecté(s) » et, en rouge, « N clé(s) invalide(s) » ; boutons **Tester toutes les clés** et **Ajouter un fournisseur**.
 - **Une carte par fournisseur** :
-  - le nom et l'état : « Connecté », « Clé invalide » ou « Test en cours… » (l'info-bulle donne la date du dernier test, ou « Jamais testée ») ;
+  - le nom et l'état : « Connecté », « Clé invalide » ou « Test en cours… » ;
   - la clé masquée : préfixe et 4 derniers caractères ;
   - le plafond mensuel : « Plafond N € / mois », ou « Sans plafond mensuel » en ambre ;
   - les boutons **Tester**, **Remplacer la clé** et **Plafond**.
@@ -892,6 +980,8 @@ La page a trois blocs : le bandeau **Fournisseurs**, la section **Affectation de
 - Elles ne concernent que les LLM. Une mesure absente s'affiche « — ». Un relevé n'efface jamais une valeur existante.
 - Dans la fiche d'un modèle, le bloc « Mesures OpenRouter » permet de corriger les trois valeurs et l'**Identifiant OpenRouter** (« Retrouvé automatiquement ; à corriger si le relevé ne trouve pas le modèle »).
 
+**Catalogue de référence.** Depuis le 10 octobre 2026, il comprend **Claude Haiku 5.5** (Anthropic, LLM) : environ 0,09 € en entrée et 0,44 € en sortie par million de tokens, réponses jusqu'à 128 000 tokens, contexte d'un million de tokens. Comme les autres modèles du catalogue de référence, il n'apparaît dans la liste qu'une fois le catalogue appliqué à la plateforme, ce qui ne se fait pas depuis l'écran (voir Annexe C).
+
 ### 3.7.6 Ajouter ou modifier un modèle
 
 1. Cliquez sur **Ajouter un modèle**, ou sur le crayon d'un modèle existant.
@@ -928,6 +1018,10 @@ La page a trois blocs : le bandeau **Fournisseurs**, la section **Affectation de
 ## 3.8 Consommation et coûts de l'IA
 
 **À quoi sert la page.** Suivre la dépense d'IA du mois, anticiper la fin de mois, fixer des plafonds par fonction et voir le détail de chaque appel à un modèle. La page se trouve dans le domaine **IA**. Sous-titre : « Tokens et dépenses par fonction, fournisseur et modèle, seuils d'alerte et détail de chaque appel LLM. »
+
+- Cette page est la **référence des coûts d'IA** : Consommation et coûts du domaine Accès (3.6) affiche les mêmes coûts.
+- **Usage réel seulement** : les appels simulés (coût estimé, jamais facturé) sont exclus partout — dépense du mois, projection, plafonds et statuts, graphique, journal des appels et exports.
+- **Super Admin seulement** pour les plafonds et les seuils. Un Admin voit le bandeau « Lecture seule : modification réservée au Super Admin. » : les montants ne sont pas modifiables et les boutons « − » et « + » du seuil sont masqués.
 
 > [Capture] Consommation et coûts (IA) : bandeau du budget et graphique, six tuiles des fonctions, journal des appels.
 
@@ -993,7 +1087,7 @@ La page a trois blocs : le bandeau **Fournisseurs**, la section **Affectation de
 
 ## 3.9 Analyse des temps de réponse
 
-**À quoi sert la page.** Mesurer le temps que met Jev à répondre, de bout en bout et étape par étape, pour repérer ce qui ralentit. Sous-titre : « Durée de traitement des prompts, de bout en bout et par étape, par catégorie de prompt ou par modèle. »
+**À quoi sert la page.** Mesurer le temps que mettent Jev et tous les traitements d'IA de la plateforme à répondre, de bout en bout et étape par étape, pour repérer ce qui ralentit. Sous-titre : « Durée de traitement des prompts, de bout en bout et par étape, par catégorie de prompt ou par modèle. »
 
 > [Capture] Analyse des temps de réponse : vignettes des catégories, cascade des étapes, courbe d'évolution.
 
@@ -1005,7 +1099,9 @@ La page a trois blocs : le bandeau **Fournisseurs**, la section **Affectation de
 4. Lisez la **cascade** : une ligne par étape, chacune commençant à la fin de la précédente, avec « Médiane · min – max », puis la ligne « Bout en bout ».
 5. Lisez la courbe **Évolution sur la période** : médiane et bande min – max, par heure, par jour ou par semaine ; les erreurs sont marquées en corail.
 
-**Les six catégories de prompt**
+**Les catégories**
+
+Six catégories concernent les questions posées à Jev :
 
 | Vignette | Signification |
 |---|---|
@@ -1015,6 +1111,19 @@ La page a trois blocs : le bandeau **Fournisseurs**, la section **Affectation de
 | Données Cockpit | Question sur les données d'un projet du Cockpit |
 | Actualisation Cockpit | Demande de création, modification ou suppression de données dans le Cockpit |
 | Base de connaissance | Question sur un document de la Base de connaissance |
+
+Depuis le 11 octobre 2026, **toutes les fonctions d'IA sont mesurées**. Huit catégories s'ajoutent pour les traitements faits hors d'une question à Jev :
+
+| Vignette | Signification |
+|---|---|
+| Rédaction des rapports | Rédaction des titres et de la synthèse d'un rapport |
+| Rôles des formes | Proposition des rôles des formes d'un format de rapport |
+| Initialisation projet | Préremplissage d'un projet à partir d'une proposition (un onglet) |
+| Message d'accueil | Message d'accueil de Jev (écran Aujourd'hui) |
+| Notifications | Rédaction des notifications envoyées aux utilisateurs |
+| Dépôt de document | Résumé et vectorisation d'un document déposé dans la Base de connaissance |
+| Indexation du guide | Vectorisation du guide utilisateur déposé dans la Console |
+| Revectorisation | Revectorisation des documents après un changement du modèle de vectorisation |
 
 **Les étapes**
 
@@ -1029,7 +1138,8 @@ La page a trois blocs : le bandeau **Fournisseurs**, la section **Affectation de
 
 **Règles**
 
-- Seuls les prompts de Jev (Console et Cockpit) sont mesurés. Les clarifications, les questions hors sujet et les aiguillages en échec ne sont pas comptés.
+- Sont mesurés les prompts de Jev (Console et Cockpit) et, depuis le 11 octobre 2026, tous les autres traitements d'IA (catégories ci-dessus). Un traitement lancé pendant une question à Jev est compté dans cette question, pas une seconde fois.
+- Pour Jev, les clarifications, les questions hors sujet et les aiguillages en échec ne sont pas comptés.
 - Statistiques : médiane exacte, minimum et maximum.
 - Une étape servie par le secours apparaît avec la part des appels qu'il a pris (« secours X (N %) »).
 - Types d'erreur affichés : « Délai dépassé », « Réponse vide », « Réponse illisible », « Service injoignable », « Erreur HTTP NNN », « Requête invalide », « Carte non configurée ».
@@ -1173,7 +1283,7 @@ Avant de répondre, Jev classe chaque question avec l'API de la carte « JEV » 
 
 ## 3.13 Bibliothèque des projets
 
-**À quoi sert la page.** Voir tous les projets de la plateforme, leur état et leur référentiel, et les ouvrir dans le Cockpit.
+**À quoi sert la page.** Voir tous les projets de la plateforme, leur état et leur référentiel, les ouvrir dans le Cockpit, et, pour un Super Admin, supprimer un projet puis le restaurer si besoin.
 
 > [Capture] Bibliothèque : liste à gauche, fiche projet à droite.
 
@@ -1197,6 +1307,34 @@ Avant de répondre, Jev classe chaque question avec l'API de la carte « JEV » 
 - **Phase affichée** : la phase qui contient la date du jour, sinon « Préparation » pour un projet en préparation.
 - **Statut d'un projet** : la Console ne le modifie pas. On le change dans la fiche projet du Cockpit. Un projet clos est affiché « archivé ».
 - La liste se met à jour d'elle-même quand un projet est créé ou modifié.
+
+**Supprimer un projet (Super Admin)**
+
+Pour effacer un projet de test, ou une mauvaise version chargée par erreur.
+
+1. Choisissez le projet, puis cliquez sur **Supprimer le projet**, dans le pied de sa fiche. Le bouton n'apparaît que pour un Super Admin.
+2. La fenêtre « Supprimer le projet {code} ? » fait l'inventaire de ce qui sera supprimé (« Inventaire des données du projet… » pendant le calcul) :
+   - sous « SERA SUPPRIMÉ », les nombres de chantiers, phases, sous-phases, jalons, livrables, risques, problèmes, actions, décisions, tâches, personnes, documents, rapports, templates de rapport et snapshots, et le total des enregistrements, avec les extraits des documents et les fichiers déposés ;
+   - les comptes qui n'auront plus accès à aucun projet, avec la case **Suspendre ces comptes** (cochée par défaut) ;
+   - la date limite de restauration ;
+   - les rappels : « La consommation et les coûts (IA et Accès) et le journal d'audit sont conservés. » et « Dans Consommation et coûts › Accès, les comptes de ce projet sans autre rattachement figureront dans « Sans équipe ». ».
+3. Saisissez le code du projet (« Saisissez {code} pour confirmer » ; majuscules ou minuscules indifférentes).
+4. Cliquez sur **Supprimer définitivement**. Le message « Projet {code} supprimé. Restaurable jusqu'au … dans « Projets supprimés ». » confirme la suppression.
+
+**Ce qui est supprimé, ce qui est gardé**
+
+- Sont supprimées toutes les données du projet : référentiel, pilotage, documents et leurs extraits, rapports, templates, snapshots, notifications du Cockpit, fichiers déposés…
+- Ne sont **jamais** supprimés : la consommation (IA et Accès), le journal d'audit et l'historique des documents.
+- Aucun compte n'est supprimé. Les comptes qui n'avaient accès qu'à ce projet sont suspendus si la case est cochée ; un administrateur de la Console n'est jamais proposé, il garde la Console.
+- Le projet est retiré des règles de notification qui le ciblaient ; une règle qui ne cible plus aucun projet est désactivée.
+
+**Projets supprimés et restauration**
+
+- La section **Projets supprimés**, sous la liste, montre chaque projet supprimé : code, nom, « Supprimé le … par … » et « Restaurable encore N h ».
+- Une **sauvegarde de sécurité** est conservée **48 heures**. Pendant ce délai, **Restaurer** (Super Admin) remet le projet tel qu'il était : ses données et fichiers, les règles de notification qui le ciblaient, et les comptes suspendus par la suppression sont réactivés. Message : « Projet {code} restauré. ».
+- Au-delà de 48 heures, une tâche horaire efface définitivement la sauvegarde.
+- La restauration est refusée si un projet de même code existe : « Un projet {code} existe déjà : supprimez-le ou renommez-le avant de restaurer ». Une sauvegarde expirée : « Sauvegarde introuvable ou expirée ».
+- Suppression et restauration sont tracées au journal d'audit (Critique) : « Suppression d'un projet », « Restauration d'un projet supprimé ».
 
 ## 3.14 Initialisation d'un projet
 
@@ -1287,7 +1425,7 @@ Le modèle compte **14 onglets de saisie numérotés de 01 à 14**, précédés 
 | 02 Rôles | Libellé*, Description |
 | 03 Personnes | Nom complet*, Email*, Équipe*, Fonction, Permission*, Actif |
 | 04 Affectations | Personne*, Rôle*, Début*, Fin |
-| 05 Projet | Client, secteur, pays, code et nom du projet, dates, fuseau horaire, statut, directeur de programme, sponsor… |
+| 05 Projet | 16 champs : client, secteur, pays, ville du projet, code postal, code et nom du projet, dates, fuseau horaire, statut, directeur de programme, sponsor… |
 | 06 Info projet | Rubrique*, Libellé, Valeur* |
 | 07 Lots | N°*, Périmètre*, Début*, Fin*, Statut, Responsable |
 | 08 Phases | N°*, Nom*, Lot*, Début*, Fin*, Statut, Description |
@@ -1300,6 +1438,7 @@ Le modèle compte **14 onglets de saisie numérotés de 01 à 14**, précédés 
 
 **Règles de saisie**
 
+- **05 Projet** : depuis le 11 octobre 2026, deux lignes facultatives, « Ville du projet » et « Code postal », suivent « Pays ». Le code postal compte 2 à 12 caractères (chiffres, lettres, espace ou tiret) : sinon « Code postal « … » invalide ». Ville et code postal alimentent la météo et le trafic de l'écran Aujourd'hui du Cockpit.
 - **06 Info projet** : rubriques Le client, Marques du groupe, Programme en une phrase, Enjeux stratégiques, Périmètres fonctionnel, applicatif, géographique et juridique. « Programme en une phrase » (une ligne) et « Enjeux stratégiques » (au moins une ligne) sont obligatoires.
 - **Sous-phases** : la numérotation est **libre** (par exemple 3.1, 3.2a). Un numéro ne contient ni espace, ni « ; », ni « · », et n'apparaît pas deux fois dans une même phase.
 - **10 Chantiers** :
@@ -1325,7 +1464,7 @@ Le modèle compte **14 onglets de saisie numérotés de 01 à 14**, précédés 
 
 **Ce qui est créé**
 
-- le projet, **toujours au statut Préparation**, quel que soit le statut indiqué dans le fichier ;
+- le projet, **toujours au statut Préparation**, quel que soit le statut indiqué dans le fichier, avec sa ville et son code postal s'ils sont renseignés ;
 - son client et ses informations projet ;
 - lots, phases, sous-phases ;
 - chantiers (codes C1, C2… réattribués), avec leurs phases, sous-phases et dépendances, et jalons (J01, J02…) ;
@@ -1433,7 +1572,9 @@ La liste affiche, pour chaque snapshot, les nombres de tâches, jalons, risques 
 
 **À quoi sert la page.** Activer les fonctions optionnelles du Cockpit, pour toute la plateforme ou projet par projet. Trois modules existent : **Budget**, **Suivi des bénéfices** et **Message d'accueil de Jev**.
 
-> [Capture] Page Modules : carte d'un module et bandeau de demande.
+> [Capture] Page Modules : tuiles des modules et bandeau de demande.
+
+Chaque module est présenté dans une tuile ; toutes les tuiles ont la même largeur et la même hauteur.
 
 **Utilisation**
 
@@ -1548,6 +1689,7 @@ La phrase en tête de l'éditeur résume la règle, par exemple : « Informer PM
 - **Activer / Désactiver** a un effet immédiat. **Enregistrer** recalcule le prochain envoi.
 - Si l'enregistrement échoue, votre saisie est conservée : « Enregistrement impossible : vos modifications sont conservées. Réessayez. ».
 - **Supprimer la règle** (deux clics) supprime la règle, mais garde son historique, affiché sous « Règle supprimée ».
+- La suppression d'un projet (3.13) le retire des règles qui le ciblent ; une règle qui ne cible plus aucun projet est désactivée. La restauration du projet rétablit ces règles telles qu'elles étaient.
 - Création, modification et activation sont tracées (Info) ; la suppression aussi (Sensible).
 
 ### 3.18.2 Tester une règle
@@ -1681,7 +1823,7 @@ Le bandeau rappelle en permanence la **taille estimée**, la **dépense IA possi
    - **Serveur SMTP** : inclus, les e-mails de la personne partiront de votre adresse ; exclu, elle configurera son propre serveur ;
    - **Fichiers déposés** : Base de connaissance et guides utilisateur. Les **formats et templates de rapport sont toujours inclus**.
 4. **04 Sécurité** : la tuile résume ce que la personne pourra faire en votre nom (« Dépenser jusqu'à N € par mois sur … », « Envoyer des e-mails depuis … »). L'interrupteur **Code de déverrouillage** (activé par défaut, « Fortement recommandé ») chiffre les secrets par un code. Étiquette : « Protégé », « Exposé » (secrets lisibles dans le ZIP) ou « Aucun secret ».
-5. **05 Destinataire** : nom et e-mail de la personne (« Pour l'historique. Cockpit n'envoie rien à cette adresse. »). **Préremplir son compte** crée son compte à l'avance avec les profils choisis (Administrateur, PMO, Responsable, Lecteur) : « Elle ne saisira que son mot de passe. ».
+5. **05 Destinataire** : nom et e-mail de la personne (« Pour l'historique. Cockpit n'envoie rien à cette adresse. »). **Préremplir son compte** crée son compte à l'avance avec les profils choisis (Administrateur, PMO, Responsable, Lecteur) : « Elle ne saisira que son mot de passe. ». Avec le profil Administrateur, son compte est Super Admin de son installation.
 6. **06 Version** : numéro de version et nouveautés depuis le dernier paquet. Sous « Si Cockpit est déjà installé chez elle », choisissez **Conserver ses données** (seule l'application est mise à jour) ou **Remplacer ses données** (sa base est remplacée, après une sauvegarde sur son poste).
 
 Cliquez ensuite sur **Générer le paquet**.
@@ -1716,7 +1858,7 @@ Cliquez ensuite sur **Générer le paquet**.
 ### 3.20.3 Historique et suppression du fichier
 
 - **Historique des paquets** : date, auteur, destinataire, données, secrets (« protégés par code » ou « sans code »), version, taille, empreinte, et les clés à révoquer pour couper l'accès.
-- **Sur le serveur · Supprimer** supprime le ZIP du serveur. L'info-bulle donne la date de suppression automatique.
+- **Sur le serveur · Supprimer** supprime le ZIP du serveur.
 - **Automatique** : chaque ZIP est supprimé **2 jours** après sa génération. La ligne de l'historique reste, avec « Fichier supprimé le … ». La suppression est tracée (Sensible).
 - **Une installation déjà faite ne peut pas être désactivée à distance.** Pour couper l'accès, révoquez les clés chez les fournisseurs et changez le mot de passe SMTP s'il était inclus.
 
@@ -1724,7 +1866,7 @@ Cliquez ensuite sur **Générer le paquet**.
 
 1. Elle décompresse le ZIP (« Extraire tout »), puis lance `installer_cockpit.cmd`. Aucun droit d'administrateur Windows n'est nécessaire.
 2. L'installateur demande le **code de déverrouillage** (3 essais). Sans code valide, Cockpit s'installe sans clés d'IA, sans clés de cartes API et sans serveur d'e-mail.
-3. Si son compte a été prérempli, elle ne choisit que son mot de passe. Sinon, elle crée son compte administrateur.
+3. Si son compte a été prérempli, elle ne choisit que son mot de passe. Sinon, elle crée son compte administrateur, qui est Super Admin de son installation.
 4. Des raccourcis « Démarrer Cockpit » et « Arrêter Cockpit » sont créés. Cockpit s'ouvre ensuite à l'adresse `http://localhost:3000`.
 
 **Exemple.** Vous préparez un paquet pour Claire Dumas, consultante qui reprend le projet RISE : base actuelle limitée à RISE, clé Anthropic plafonnée à 50 € par mois, SMTP exclu, code de déverrouillage activé, compte prérempli en PMO. Vous téléchargez le ZIP, copiez le message et l'envoyez par e-mail, puis lui dictez le code par téléphone. Deux jours plus tard, le ZIP disparaît du serveur.
@@ -1784,6 +1926,7 @@ Quand une question porte sur l'utilisation de l'application, Jev cherche les pas
 | Délai · reclassement | 8 s | 1 à 60 s | Au-delà, l'ordre de la recherche est gardé |
 | Délai · rédaction | 30 s | 5 à 120 s | Temps accordé au modèle pour rédiger |
 
+- Ces réglages sont **réservés au Super Admin**. Un Admin les voit en lecture seule, avec le bandeau « Lecture seule : modification réservée au Super Admin. », sans les boutons **Valeurs par défaut** et **Enregistrer**. Le dépôt et le remplacement du guide restent ouverts à tous les administrateurs.
 - **Valeurs par défaut** rétablit ces valeurs ; **Enregistrer** n'est actif que si une valeur a changé.
 - Une valeur hors limites est signalée en rouge sous le champ.
 - La modification est tracée au journal d'audit (Sensible).
@@ -1795,7 +1938,7 @@ Quand une question porte sur l'utilisation de l'application, Jev cherche les pas
 
 > [Capture] Mon profil, onglet Habilitations.
 
-**La carte de gauche** affiche votre photo (ou vos initiales), votre nom, votre position, le badge « Administrateur », votre société, votre équipe (celle de la personne du référentiel qui a votre e-mail) et la date « Administrateur depuis ». Elle porte les liens **Changer la photo** et **Se déconnecter**.
+**La carte de gauche** affiche votre photo (ou vos initiales), votre nom, votre position, le badge « Super Admin » ou « Administrateur », votre société, votre équipe (celle de la personne du référentiel qui a votre e-mail) et la date « Administrateur depuis ». Elle porte les liens **Changer la photo** et **Se déconnecter**.
 
 **Utilisation**
 
@@ -1805,7 +1948,7 @@ Quand une question porte sur l'utilisation de l'application, Jev cherche les pas
   - cliquez sur **Enregistrer** ;
   - le pied indique « Dernière modification le {date} ».
 - **Onglet Habilitations** :
-  - « Niveau d'administration » : Administrateur, « Accordé le {date}. Seul un autre administrateur peut retirer ce droit. » ;
+  - « Niveau d'administration » : « Super Admin », avec « Accordé le {date}. Seul un autre Super Admin peut retirer ce profil. », ou « Administrateur », avec « Accordé le {date}. Seul un autre administrateur peut retirer ce droit. » ;
   - le bouton **Mes N actions tracées · M critiques** ouvre le journal d'audit filtré sur votre nom ;
   - le tableau de vos projets : projet, rôle, affectation (dates) et droits (PMO, Responsable ou Lecteur et leurs chantiers, ou « Aucun droit »). Les rôles et affectations viennent du référentiel du projet ; les droits, de la page Utilisateurs.
 - **Onglet Sécurité** :
@@ -1828,15 +1971,24 @@ Quand une question porte sur l'utilisation de l'application, Jev cherche les pas
 ## 4.1 Qui accède à la Console
 
 - **Seuls les administrateurs de la plateforme** accèdent à la Console.
-- Un administrateur a accès à toutes les pages et à toutes les actions de la Console. Il n'existe qu'un seul niveau d'administrateur.
-- Seule exception : dans Accès › Consommation et coûts (3.6), un autre administrateur peut limiter ce que vous voyez (« Sans coûts » ou « Anonymisé »).
+- Depuis le 10 octobre 2026, il existe **deux niveaux d'administrateur** :
+
+| Niveau | Ce qu'il peut faire |
+|---|---|
+| **Super Admin** | Toutes les pages et toutes les actions de la Console |
+| **Admin** | Toutes les pages. Le menu IA (Fournisseurs et modèles, Consommation et coûts de l'IA) est en **lecture seule**, de même que les réglages de la recherche de Jev (Guide utilisateur) ; sur la Vue d'ensemble, une clé invalide propose « Voir les fournisseurs » au lieu de « Remplacer la clé ». Il ne peut ni supprimer ni restaurer un projet, ni agir sur le compte d'un Super Admin (modifier, suspendre, supprimer, droits, niveau). Persona, Skills et Registre des cartes API lui restent ouverts |
+
+- Seul un Super Admin attribue ou retire le profil Super Admin (page Administrateurs, ou « Modifier le compte »). Il en reste toujours au moins un, et personne ne retire son propre profil.
+- Le compte créé à l'installation d'une plateforme (y compris par un paquet de Partager Cockpit) est Super Admin. Un administrateur ajouté par la page Administrateurs est Admin ; un Super Admin peut ensuite changer son niveau.
+- Autre limite : dans Accès › Consommation et coûts (3.6), un autre administrateur peut limiter ce que vous voyez (« Sans coûts » ou « Anonymisé »).
 - Un compte sans ce droit, même PMO, ne peut pas ouvrir la Console. Sa tentative de connexion est tracée.
 
 ## 4.2 Ce que chaque profil voit et fait
 
 | Profil | Console | Cockpit |
 |---|---|---|
-| Administrateur | Tout : comptes, droits, consommation, IA, projets, snapshots, plateforme, journal d'audit | Voit tous les projets et tous les chantiers, **en lecture seule** |
+| Super Admin | Tout : comptes, droits, consommation, IA, projets (dont la suppression), snapshots, plateforme, journal d'audit | Voit tous les projets et tous les chantiers, **en lecture seule** |
+| Admin | Tout, sauf la modification du menu IA (lecture seule), la suppression d'un projet et les actions sur un Super Admin | Voit tous les projets et tous les chantiers, **en lecture seule** |
 | PMO (par projet) | Aucun accès | Tous les droits sur le projet : référentiel et suivi. Peut demander l'invitation d'une personne et l'activation d'un module |
 | Responsable (par chantier) | Aucun accès | Met à jour le suivi et les dates de ses chantiers. Peut demander l'activation d'un module |
 | Lecteur (par chantier) | Aucun accès | Consulte ses chantiers |
@@ -1844,17 +1996,18 @@ Quand une question porte sur l'utilisation de l'application, Jev cherche les pas
 **Règles**
 
 - **Seule la Console attribue les droits.** Le Cockpit les lit et les combine.
-- **Cumul** : un même compte peut être administrateur et, selon les projets, PMO, Responsable ou Lecteur. Le profil le plus large s'applique : Administrateur, puis PMO, puis Responsable, puis Lecteur.
+- **Cumul** : un même compte peut être administrateur (Super Admin ou Admin) et, selon les projets, PMO, Responsable ou Lecteur. Le profil le plus large s'applique : Super Admin, puis Admin, puis PMO, puis Responsable, puis Lecteur. Un administrateur garde ses profils projet, affichés projet par projet dans Utilisateurs.
 - **Rattachement** : être rattaché à un projet ne donne aucun accès. Seules les habilitations comptent.
 - **Pertes d'accès** :
   - un compte suspendu perd tout accès immédiatement ;
   - un administrateur retiré perd l'accès à la Console dès sa requête suivante.
-- **Garde-fous** : au moins un administrateur doit toujours rester, et personne ne peut retirer ses propres droits d'administrateur ni modifier ses propres droits de consommation.
+- **Garde-fous** : au moins un administrateur et au moins un Super Admin doivent toujours rester, et personne ne peut retirer ses propres droits d'administrateur, son propre profil Super Admin, ni modifier ses propres droits de consommation.
 
 # 5. Paramétrage
 
 | Réglage | Où | Effet |
 |---|---|---|
+| Niveau de chaque administrateur | Administrateurs (Super Admin seulement), ou « Modifier le compte » | Super Admin (tous les droits) ou Admin (menu IA en lecture seule) |
 | Droits de consommation de chaque administrateur | Administrateurs | Complet, Sans coûts ou Anonymisé dans Accès › Consommation et coûts |
 | Fournisseurs et clés d'IA | Fournisseurs et modèles | Autorisent l'appel aux modèles. Une clé en erreur rend ses modèles indisponibles |
 | Plafond mensuel d'une clé | Fournisseurs et modèles (bouton « Plafond ») | Information reprise par Partager Cockpit ; ne bloque rien |
@@ -1875,6 +2028,8 @@ Quand une question porte sur l'utilisation de l'application, Jev cherche les pas
 | Informations, photo, mot de passe, sessions | Mon profil | Votre propre compte |
 | Réduire / déplier la navigation | Barre latérale | Mémorisé par votre navigateur |
 
+Les réglages de Fournisseurs et modèles, les plafonds et seuils de Consommation et coûts (IA) et les réglages de la recherche de Jev dans le guide sont **réservés au Super Admin** ; un Admin les consulte en lecture seule.
+
 **Réglages fixes (non modifiables à l'écran)**
 
 - **Sécurité** :
@@ -1889,6 +2044,7 @@ Quand une question porte sur l'utilisation de l'application, Jev cherche les pas
   - mesures des temps de réponse conservées 190 jours ;
   - interactions de la consommation de la plateforme conservées 400 jours ;
   - fichiers du préremplissage et de l'initialisation conservés 24 heures ;
+  - sauvegarde de sécurité d'un projet supprimé conservée 48 heures ;
   - paquets d'installation conservés 2 jours.
 - **Consommation de la plateforme** : 5 minutes d'inactivité au plus par interaction ; hausse inhabituelle au-delà de 1,6 fois la moyenne ; point rouge à partir de 30 % de hausse de coût.
 - **Planifications** :
@@ -1903,7 +2059,7 @@ Quand une question porte sur l'utilisation de l'application, Jev cherche les pas
 
 - Vérifiez l'adresse dans Utilisateurs.
 - Vérifiez le serveur d'envoi : **Tester la connexion**, puis envoyez un e-mail de test.
-- Faites **Relancer**. Un nouveau lien de 14 jours part, et l'ancien devient invalide.
+- Faites **Relancer**. Un nouveau lien de 14 jours part, et l'ancien devient invalide. L'e-mail a pour objet « Votre invitation à rejoindre l'application Cockpit (nouveau lien) ».
 - Demandez aussi à l'utilisateur de regarder ses courriers indésirables.
 
 **Le lien d'invitation « n'est plus valide ».**
@@ -1915,7 +2071,22 @@ Il a expiré (14 jours), a déjà servi, ou une relance l'a remplacé. Relancez 
 - Après 5 échecs, la connexion est bloquée 15 minutes. Il peut utiliser « Mot de passe oublié ? ».
 
 **Je veux supprimer un compte, mais la Console refuse.**
-Le compte a laissé des traces : journal d'audit, responsabilités, décisions. Suspendez-le : l'accès est coupé et l'historique reste cohérent.
+La personne liée a des responsabilités dans un projet (actions, risques, jalons, chantiers…), a pris des décisions ou est membre d'une instance. Le journal d'audit, lui, ne bloque plus la suppression. Suspendez le compte : l'accès est coupé et l'historique reste cohérent. Si le compte est celui d'un Super Admin, seul un Super Admin peut le supprimer.
+
+**Je veux faire le ménage dans les comptes suspendus.**
+Dans Utilisateurs, onglet Suspendus, cliquez sur **Supprimer les comptes suspendus**. La fenêtre indique pour chaque compte gardé la raison (administrateur, projet supprimé encore restaurable, responsabilités dans un projet).
+
+**Je ne peux pas modifier les fournisseurs, les modèles, les plafonds ou les réglages de Jev (« Lecture seule »).**
+Ces modifications sont réservées au Super Admin. Demandez à un Super Admin de les faire, ou de vous nommer Super Admin dans la page Administrateurs.
+
+**Je ne vois pas le bouton « Supprimer le projet ».**
+Il est réservé au Super Admin, et n'apparaît que pour un projet enregistré dans la plateforme.
+
+**J'ai supprimé un projet par erreur.**
+Dans Bibliothèque des projets, section « Projets supprimés », cliquez sur **Restaurer** dans les 48 heures qui suivent la suppression (Super Admin). Au-delà, la sauvegarde est effacée.
+
+**Une demande d'invitation du PMO n'apparaît pas dans Utilisateurs.**
+Elle figure parmi les invités, au statut « Demandée », tant qu'elle est en attente. Une fois décidée (dans la cloche ou dans la page), elle disparaît de la liste ; l'invité accepté apparaît comme compte Invité.
 
 **Le PMO a corrigé l'e-mail d'une personne, mais le compte n'a pas changé.**
 C'est voulu : l'e-mail est l'identifiant de connexion. Ouvrez le compte et cliquez sur **Appliquer** dans l'encart « E-mail du référentiel ».
@@ -1995,6 +2166,7 @@ Les références désignent les fichiers du code (dossier `backend/src` sauf men
 | Règle | Description | Fonctionnalité | Référence dans le code |
 |---|---|---|---|
 | Accès réservé | Toute la Console est réservée aux administrateurs | Accès | `core/auth/auth.ts:106` ; `@AdminOnly` sur chaque contrôleur |
+| Super Admin | Deux niveaux (Super Admin, Admin) ; écritures du menu IA, réglages de recherche de Jev et suppression / restauration d'un projet réservées au Super Admin ; seul un Super Admin agit sur un Super Admin ; au moins un Super Admin ; jamais sur soi-même ; compte initial Super Admin | Administrateurs, IA, Bibliothèque | `core/auth/auth.ts` (`SuperAdminOnly`, `SUPER_ADMIN_ONLY_MESSAGE`) ; `admin/accounts.controller.ts` (`guardSuper`, `setSuper`) ; `core/auth/initial-admin.ts` |
 | Échecs de connexion | 5 échecs par adresse, 20 par adresse IP, blocage 15 min, remise à zéro après 15 min | Connexion | `core/auth/policy.ts:11-17` |
 | Message d'échec unique | Même message pour adresse inconnue, mauvais mot de passe, compte invité ou suspendu | Connexion | `core/auth/credentials.service.ts:82-101` |
 | Mot de passe | 12 à 128 caractères, majuscule, minuscule, chiffre, spécial, différent du précédent, non compromis | Connexion | `core/auth/policy.ts:38-58` ; `core/auth/password.ts:70-75` |
@@ -2006,7 +2178,10 @@ Les références désignent les fichiers du code (dossier `backend/src` sauf men
 | Unicité de l'e-mail | Une adresse ne sert qu'à un compte | Utilisateurs | `admin/accounts.controller.ts` |
 | Statuts de compte | Invité → Actif (mot de passe choisi) ; Suspendu → Actif ou Invité selon la connexion passée | Utilisateurs | `admin/accounts.controller.ts` ; `credentials.service.ts` |
 | Suspension | Ferme toutes les sessions ; impossible sur soi-même | Utilisateurs | `admin/accounts.controller.ts` |
-| Suppression | Refusée si le compte ou la personne liée a laissé une trace ; impossible sur soi-même | Utilisateurs | `admin/accounts.controller.ts` |
+| Suppression | Refusée si la personne liée a des responsabilités dans un projet ou est membre d'une instance ; le journal d'audit ne bloque plus (11/10/2026) ; impossible sur soi-même | Utilisateurs | `admin/accounts.controller.ts` (`accountUsages`) |
+| Comptes suspendus | Suppression groupée ; gardés : administrateurs, comptes suspendus par un projet supprimé encore restaurable, comptes liés à des données ; confirmation « SUPPRIMER » ; tri refait à la suppression | Utilisateurs | `admin/accounts.controller.ts` (`suspendedTriage`) |
+| E-mail d'invitation | Objet « Votre invitation à rejoindre l'application Cockpit » ; bouton, lien de secours, date limite, adresse de connexion ; version texte jointe | Utilisateurs | `domain/invitation-email.ts` (`invitationEmail`) ; `admin/accounts.controller.ts` (`INVITE_VALIDITY_DAYS`) |
+| Demandes d'invitation dans Utilisateurs | Demandes en attente listées parmi les invités (« Demandée ») ; même décision que la cloche | Utilisateurs, cloche | `frontends/admin-api.js` (`toInvReq`, `invReqDecide`) |
 | E-mail du référentiel | Jamais recopié seul ; appliqué par l'administrateur ; invitation renvoyée pour un invité | Utilisateurs | `admin/profiles.service.ts` ; `admin/accounts.controller.ts` |
 | Accès à retirer | Personne inactive dont le compte garde un droit | Utilisateurs, À traiter, cloche | `domain/habilitation-proposals.ts` ; `admin/console.controller.ts` |
 | Compte à réactiver | Personne réactivée au référentiel après la suspension du compte | Utilisateurs, À traiter, cloche | `admin/profiles.service.ts` (`toReactivate`) |
@@ -2025,6 +2200,7 @@ Les références désignent les fichiers du code (dossier `backend/src` sauf men
 | Hausse inhabituelle | Coût > 1,6 × moyenne des points ouvrés (heures 7 h–19 h en vue Jour) ; point rouge si hausse de coût ≥ 30 % ; ambre si coût / heure active > moyenne × 1,15 | Consommation (Accès) | `domain/platform-usage.ts` |
 | Export de la consommation | Sélection affichée, toutes les lignes, droits appliqués ; tracé Sensible ou Info | Consommation (Accès) | `admin/platform-usage.controller.ts` |
 | Conservation des interactions | 400 jours, purge chaque nuit | Consommation (Accès) | `domain/platform-usage.ts` |
+| Usage réel | Comptes de démonstration et outils automatiques exclus du temps ; coûts identiques à la vue IA, ligne « Tests et démonstration » ; appels simulés exclus des deux vues ; comptes et projets supprimés affichés « (supprimé) » | Consommation (Accès et IA) | `admin/platform-usage.service.ts` (`DEMO_NAME`, `deletedName`) ; `domain/platform-usage.ts` (`AUTOMATED_DEVICE_PATTERN`) ; `admin/usage.service.ts` (`journalWhere`) |
 | Clés d'IA | Chiffrées ; seuls le préfixe et les 4 derniers caractères restent visibles | Fournisseurs | `core/crypto.ts` |
 | Test des clés | Réel, 10 s au plus, toutes les 2 h ; « quota atteint » = clé valide | Fournisseurs | `core/provider-key-tester.ts` ; `admin/ai.controller.ts` (`KEY_TEST_CRON`) |
 | Plafond mensuel d'une clé | Entier de 1 à 100 000 €, ou sans plafond ; informatif ; tracé Sensible | Fournisseurs, Partager Cockpit | `admin/ai.controller.ts` (`PROVIDER_CAP_MAX_EUR`) ; `domain/share.ts` (`possibleSpend`) |
@@ -2044,7 +2220,7 @@ Les références désignent les fichiers du code (dossier `backend/src` sauf men
 | Lignes budgétaires | Insights, Gestion des données, Rapports, Guidage console, Initialisation projet, Documents | Coûts | `core/llm.service.ts` (`AI_BUDGET_LINES`) |
 | Tarifs figés | Le tarif de chaque appel est enregistré au moment de l'appel | Journal des appels | `core/llm.service.ts` |
 | Cache des instructions | Lecture à 10 %, écriture à 125 % du prix d'entrée | IA | `core/llm-client.ts` |
-| Temps de réponse | Médiane exacte, min, max ; 6 catégories ; clarifications non comptées ; conservation 190 jours, purge à 03:40 | Analyse des temps de réponse | `domain/latency.ts` ; `core/latency.ts` ; `admin/latency.service.ts` |
+| Temps de réponse | Médiane exacte, min, max ; 14 catégories (6 pour Jev, 8 pour les autres traitements d'IA depuis le 11/10/2026) ; clarifications non comptées ; conservation 190 jours, purge à 03:40 | Analyse des temps de réponse | `domain/latency.ts` (`LATENCY_CATEGORY_ORDER`) ; `core/latency.ts` (`measuredTask`) ; `admin/latency.service.ts` |
 | Jev sans action | Jev explique et guide ; il ne produit aucune action | Jev | `admin/console.controller.ts` |
 | Aiguillage de Jev | Carte JEV du Registre ; USAGE, DONNEES, AMBIGU, HORS_SUJET ; confiance < 0,5 → AMBIGU ; échec → AMBIGU | Jev | `domain/jev-router.ts` ; `admin/jev-router.service.ts` |
 | Réponse à partir du guide | Recherche vectorielle, seuil, reclassement, rédaction par Synthèse à partir des seuls extraits ; sources par section | Jev | `admin/jev-assistant.service.ts` ; `admin/guide-search.service.ts` ; `domain/jev-rag.ts` |
@@ -2057,10 +2233,11 @@ Les références désignent les fichiers du code (dossier `backend/src` sauf men
 | Skills dédiées | « Préremplissage d'un projet » lue par le préremplissage, active ou non ; jamais envoyée à Jev | Skills, Initialisation | `domain/jev-prompt.ts` (`DEDICATED_SKILLS`) ; `domain/prefill-skill.ts` |
 | Nom de skill unique | Unicité sans tenir compte des majuscules | Skills | `admin/skills.controller.ts` |
 | Badge « Nouveau » | Projet initialisé depuis moins de 7 jours, en préparation | Bibliothèque | `admin/data.controller.ts` |
+| Suppression d'un projet | Super Admin ; code à saisir ; toutes les données du projet, jamais la consommation ni l'audit ; comptes sans autre accès suspendus au choix ; retrait des règles de notification ; sauvegarde restaurable 48 h, purge horaire ; tracé Critique | Bibliothèque | `admin/project-deletion.service.ts` ; `domain/project-deletion.ts` (`TRASH_RETENTION_HOURS`, `KEPT_TABLES`, `confirmsCode`) |
 | Dépôt d'initialisation | PDF, DOCX, PPTX ou XLSX ; 25 Mo par fichier ; 10 fichiers au plus ; Excel seul ; type réel par signature | Initialisation | `domain/prefill.ts` (`PREFILL_MAX_BYTES`, `PREFILL_MAX_FILES`) ; `domain/kb-documents.ts` (`detectFormat`) |
 | Préremplissage | Un appel par onglet, en vagues parallèles ; incertain sous 70 % ; cellules ambre commentées ; reprise après échec | Initialisation | `admin/prefill.service.ts` ; `domain/prefill.ts` (`PREFILL_UNCERTAIN_BELOW`) ; `core/prefill-excel.ts` |
 | Conservation du préremplissage | 24 heures ; document supprimé dès l'Excel produit | Initialisation | `domain/prefill.ts` (`PREFILL_RETENTION_HOURS`) |
-| Contrôles d'initialisation | 14 onglets 01 à 14 ; code libre de 2 à 20 caractères ; anomalies à leur cellule ; anciens modèles refusés | Initialisation | `import/referential-import.ts` (`OLD_MODEL_MESSAGE`) ; `domain/init-check.ts` |
+| Contrôles d'initialisation | 14 onglets 01 à 14 ; code libre de 2 à 20 caractères ; anomalies à leur cellule ; anciens modèles refusés ; « Ville du projet » et « Code postal » facultatifs (05 Projet, 16 champs), code postal de 2 à 12 caractères | Initialisation | `import/referential-import.ts` (`OLD_MODEL_MESSAGE`) ; `domain/init-check.ts` |
 | Chantiers | Début et fin facultatifs (calculés sinon) ; Phases, Sous-phases, Dépendances séparées par « ; » ; dépendances réciproques admises ; auto-dépendance refusée | Initialisation | `import/referential-import.ts` ; `domain/workstream-links.ts` (`multiValues`) |
 | Sous-phases | Numérotation libre, sans espace, « ; » ni « · », unique dans la phase | Initialisation | `domain/workstream-links.ts` |
 | Création tout ou rien | Contrôle refait, transaction unique, projet au statut Préparation | Initialisation | `admin/data.controller.ts` ; `import/referential-import.ts` |
@@ -2097,15 +2274,15 @@ Ces points viennent de la lecture du code. Ils décrivent un écart entre le cod
 
 1. **Lien expiré** : l'écran annonce « durée de validité de 30 minutes », même pour un lien d'invitation, qui vaut 14 jours.
 2. **Ajout d'un administrateur** : la fenêtre annonce « La personne est prévenue par e-mail », mais aucun e-mail n'est envoyé.
-3. **Suppression d'un compte** : le texte annonce que les contributions restent visibles sous « Utilisateur supprimé ». En réalité, la suppression est refusée dès qu'une trace existe.
-4. **Attribution des chantiers** : plusieurs textes disent que « le PMO choisit les chantiers ». Depuis le 29/09/2026, seule la Console les attribue.
+3. **Suppression d'un compte** : le texte annonce que les contributions restent visibles sous « Utilisateur supprimé ». En réalité, la suppression est refusée dès que la personne liée a des responsabilités dans un projet ; depuis le 11/10/2026, seules les entrées du journal d'audit, qui gardent le nom de leur auteur, restent après la suppression.
+4. ~~**Attribution des chantiers** : plusieurs textes disaient que « le PMO choisit les chantiers », alors que depuis le 29/09/2026 seule la Console les attribue.~~ Corrigé : descriptions des profils Responsable et Lecteur (11/10/2026) et sous-titre de la page Utilisateurs (12/10/2026) renvoient à « Modifier le compte ».
 5. **« Annuler » après une suspension** : il réactive le compte, sans rouvrir les sessions fermées, et l'audit enregistre une réactivation.
 6. **Réactivation d'un compte activé mais jamais connecté** : il redevient Invité, sans nouveau lien.
-7. **Liste des utilisateurs** : les chantiers affichés proviennent d'un fichier de démonstration (projet RISE uniquement). Seule la fenêtre « Modifier » lit les droits réels. À revérifier.
-8. **Utilisateur courant** : la pastille « vous » et le masquage de certains boutons reposent sur un compte de démonstration fixe. Le serveur, lui, protège correctement. À revérifier.
+7. ~~**Liste des utilisateurs**~~ : corrigé le 11/10/2026. La liste et la fiche lisent les droits réels, projet par projet, pour tous les projets.
+8. ~~**Utilisateur courant**~~ : corrigé les 10 et 11/10/2026. La pastille « vous » et le masquage de **Suspendre** et **Supprimer** suivent le compte connecté.
 9. **« Il y a null j »** : ce libellé peut s'afficher pour un compte actif qui ne s'est jamais connecté.
 10. **Journal d'audit** : l'écran se limite aux 500 dernières entrées, alors que l'export va jusqu'à 5 000.
-11. **Demandes d'invitation** : le bouton « Examiner » de « À traiter » mène à Utilisateurs, où aucune zone n'affiche les demandes. La décision se prend dans la cloche.
+11. ~~**Demandes d'invitation**~~ : corrigé le 11/10/2026. Les demandes en attente figurent dans Utilisateurs, parmi les invités, avec Inviter et Refuser. Le bouton « Examiner » ouvre la page sans filtrer les invités.
 
 **Consommation et coûts (Accès)**
 
@@ -2114,7 +2291,9 @@ Ces points viennent de la lecture du code. Ils décrivent un écart entre le cod
 14. **« Événements journalisés »** : ce sont les interactions enregistrées pour le temps actif, pas les entrées du journal d'audit.
 15. **Définitions** : la page n'affiche pas de bloc de définitions des indicateurs ; elles ne figurent que dans ce guide.
 16. **Réglages sans écran** : le délai d'inactivité (5 min), le facteur des hausses inhabituelles (1,6) et le seuil du point rouge (30 %) ne se modifient que par l'API.
-17. **Droits combinés** : la combinaison « sans coûts et anonymisé » est acceptée par le serveur mais ne peut pas être choisie à l'écran.
+17. **Droits combinés et comptes supprimés** :
+    - la combinaison « sans coûts et anonymisé » est acceptée par le serveur mais ne peut pas être choisie à l'écran ;
+    - l'usage d'un compte supprimé est gardé, mais son temps connecté serait perdu si les données de consommation étaient entièrement recalculées (changement du délai d'inactivité).
 
 **Vue d'ensemble et cloche**
 
@@ -2139,7 +2318,7 @@ Ces points viennent de la lecture du code. Ils décrivent un écart entre le cod
 
 **Jev, Persona, Skills**
 
-33. **Raccourcis** : ⌘J (Jev) et ⇧⌘C (Cockpit) sont annoncés dans la barre latérale ; leur fonctionnement n'est pas confirmé.
+33. **Raccourcis** : depuis le retrait des infobulles (10/10/2026), ⌘J (Jev) et ⇧⌘C (Cockpit) ne sont plus annoncés à l'écran. Le code prévoit l'ouverture du Cockpit par Ctrl (⌘) + Maj + C ; aucun raccourci n'ouvre Jev.
 34. **Nom du Persona** : l'aide dit « Affiché dans le Cockpit », alors que le Cockpit garde le nom « Jev ».
 35. ~~**« Une skill active s'applique à toutes ses réponses »**~~ : corrigé le 08/10/2026. Le sous-titre de la page Skills indique désormais l'usage de chaque skill, désigné par son nom (« Guidage console » pour le Jev de la Console ; « Insights », « Guidage Cockpit », « Gestion des données » pour le Jev du Cockpit ; « Rapports », « Rédiger les slides PowerPoint » ; « Préremplissage d'un projet »).
 36. **Skill de guidage sur une base neuve** : c'est « Guider l'utilisateur », une skill écrite pour le Cockpit. Le texte de la skill « Guidage console » demande de proposer des liens d'action, ce qui contredit la règle « Jev n'agit pas ».
@@ -2192,7 +2371,7 @@ Ces fonctionnalités existent dans le code mais sont désactivées, inaccessible
 
 | Fonctionnalité | État |
 |---|---|
-| Page « Droits et habilitations » (matrice des droits, profils types, super-administrateur) | Absente du menu, code inactif |
+| Page « Droits et habilitations » (matrice des droits, profils types, super-administrateur ; sans lien avec le profil Super Admin décrit en 4.1) | Absente du menu, code inactif |
 | Préférences de notification de Mon profil (5 interrupteurs) | Enregistrées, sans aucun effet |
 | Double authentification | Retirée |
 | Palette de recherche | Prévue, sans bouton |

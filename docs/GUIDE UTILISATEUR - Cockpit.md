@@ -1,6 +1,6 @@
 # Guide utilisateur du Cockpit RISE
 
-Version du 8 octobre 2026. Ce guide décrit le comportement réel du Cockpit, établi à partir de son code. Les écarts et les points encore ouverts sont regroupés en annexe.
+Version du 12 octobre 2026. Ce guide décrit le comportement réel du Cockpit, établi à partir de son code. Les écarts et les points encore ouverts sont regroupés en annexe.
 
 ## Sommaire
 
@@ -8,7 +8,7 @@ Version du 8 octobre 2026. Ce guide décrit le comportement réel du Cockpit, é
 2. Prise en main
 3. Fonctionnalités, une par une
    - 3.1 à 3.4 : Aujourd'hui (tableau de bord, widgets, personnalisation, écarts et échéances)
-   - 3.5 à 3.14 : Pilotage (principes communs, Planning, Jalons, Livrables, Risques et problèmes, Actions, Décisions, Baromètre, Comités, Mes tâches)
+   - 3.5 à 3.14 : Pilotage (principes communs et « Saisir sans Jev », Planning, Jalons, Livrables, Risques et problèmes, Actions, Décisions, Baromètre, Comités, Mes tâches)
    - 3.15 : Comités et rapports (générer un rapport, créer un template, contenu des pages, bibliothèque et historique)
    - 3.16 : Base de connaissance
    - 3.17 et 3.18 : Info projet et Référentiel
@@ -35,6 +35,7 @@ Le Cockpit sert à :
 
 - voir en un coup d'œil où en est le projet, grâce au tableau de bord d'**Aujourd'hui** ;
 - tenir le **Pilotage** : planning, jalons, livrables, risques et problèmes, actions, décisions et fiches d'arbitrage, baromètre des équipes, calendrier des comités, tâches personnelles ;
+- créer les éléments du projet avec **Jev** ou avec le formulaire **Saisir sans Jev** ;
 - préparer les **comités** : modèles de rapport (templates) et génération des rapports ;
 - conserver les documents du projet dans la **Base de connaissance**, résumés et indexés automatiquement ;
 - décrire le projet dans **Info projet** : fiche projet, dispositif (ressources, équipes, organigramme, gouvernance) et **Référentiel** (données de base du projet) ;
@@ -63,6 +64,8 @@ Le détail des droits figure au chapitre 4.
 - **Mises à jour en direct.** Une modification faite ailleurs (par un collègue, par Jev, depuis la Console) apparaît sans recharger la page (voir 3.23).
 - **Date du jour du projet.** Les retards, écarts et comptes à rebours se calculent avec la date du jour dans le fuseau horaire du projet.
 - **Une valeur inconnue n'est ni zéro ni verte.** Un indicateur qui manque de données affiche « non calculé » ou un état vide, jamais une valeur inventée.
+- **Aucune infobulle.** Depuis le 10 octobre 2026, le Cockpit n'affiche plus de bulle d'aide au survol. Un texte qui n'apparaissait qu'au survol (par exemple le nom complet d'un chantier derrière sa référence C1, C2…) se lit désormais dans l'écran concerné, ici le Référentiel.
+- **Références des chantiers.** Dans les registres (jalons, risques, actions, décisions, mes tâches), un chantier s'affiche par sa référence (C1, C2…) dans sa couleur, la même que dans le Planning ; « Transverse » désigne un élément qui concerne tous les chantiers, ou aucun chantier pour un jalon.
 
 ## 1.4 Glossaire
 
@@ -72,7 +75,8 @@ Le détail des droits figure au chapitre 4.
 | Chantier | Sous-ensemble du projet avec un responsable (codes C1, C2…), des dates de début et de fin, ses phases et, s'il y a lieu, ses sous-phases |
 | Lot | Périmètre de déploiement (vague) |
 | Phase, sous-phase | Découpage du planning. Une sous-phase appartient à une phase ; son numéro est libre (par exemple 4.5, 4.2.1 ou C2.1) |
-| Risque transverse | Risque qui concerne tous les chantiers du projet, y compris ceux créés ensuite |
+| Risque transverse | Risque qui concerne tous les chantiers du projet, y compris ceux créés ensuite. Une action peut aussi être transverse ; un jalon « Transverse » n'a pas de chantier |
+| Saisir sans Jev | Formulaire de création des éléments du projet, ouvert depuis le panneau de Jev |
 | Jalon | Événement daté du planning (codes J01, J02…), avec une date prévue et une date de référence |
 | Date de référence | Date du jalon dans la référence du planning. L'écart compare la date prévue à cette référence |
 | Confirmation métier | Date à laquelle un métier a confirmé un jalon. Au-delà de 7 jours, elle est jugée ancienne |
@@ -134,8 +138,8 @@ Le détail des droits figure au chapitre 4.
 
 ## 2.3 Première connexion et invitation
 
-- **Invitation.** Votre compte est créé par l'administrateur de la plateforme, souvent à la demande du PMO. Vous recevez l'e-mail « Invitation à RISE Cockpit » avec un lien valable **14 jours**, utilisable une seule fois.
-  1. Ouvrez le lien. L'écran indique « Lien valable encore {durée} ».
+- **Invitation.** Votre compte est créé par l'administrateur de la plateforme, souvent à la demande du PMO. Vous recevez l'e-mail « Votre invitation à rejoindre l'application Cockpit » avec un lien valable **14 jours**, utilisable une seule fois. L'e-mail rappelle la date limite et l'adresse avec laquelle vous vous connecterez ; si le bouton ne fonctionne pas, copiez dans votre navigateur le lien affiché en clair sous le bouton. Une relance porte la mention « (nouveau lien) ».
+  1. Cliquez sur **Activer mon compte** dans l'e-mail. L'écran indique « Lien valable encore {durée} ».
   2. Saisissez un **Nouveau mot de passe**, puis la **Confirmation**.
   3. Cliquez sur **Enregistrer le mot de passe**.
   4. Le compte devient actif. L'écran affiche « Mot de passe modifié. » et vous renvoie à la connexion au bout de 6 secondes.
@@ -205,7 +209,7 @@ Le bouton reste grisé tant qu'une règle manque ou que la confirmation diffère
 - **Pied de la barre** :
   - la **cloche** des notifications, avec le nombre de non lues (« 99+ » au-delà) ;
   - le bouton **Jev**, l'assistant ;
-  - votre **carte** (photo ou initiales, nom, profil principal), qui ouvre **Mon profil**.
+  - votre **carte** (photo ou initiales, nom, profil principal), qui ouvre **Mon profil**. Pendant le chargement du Cockpit, elle reste neutre jusqu'à la lecture de votre compte : elle n'affiche jamais une autre personne.
 
 **Le bandeau de page**
 
@@ -221,6 +225,7 @@ Le bouton reste grisé tant qu'une règle manque ou que la confirmation diffère
 - Échap ferme les fenêtres flottantes, le panneau de détail et les aperçus.
 - Ctrl+Entrée (Cmd+Entrée sur Mac) enregistre un commentaire de cellule.
 - Dans le champ de saisie de Jev, Entrée envoie le message et Maj+Entrée va à la ligne.
+- Dans le choix de l'objet de **Saisir sans Jev**, les flèches, Début et Fin parcourent la liste, Entrée ou Espace ouvre le formulaire ; dans un formulaire en étapes, Entrée passe au champ suivant.
 - Dans le Planning et le plan de livraison des Livrables, Alt+clic sur un groupe replie ou déplie tous les groupes du même niveau.
 
 **Affichage.** Le Cockpit est conçu pour un écran d'ordinateur (largeur minimale d'environ 1 280 pixels). Il n'a pas de version mobile.
@@ -308,7 +313,7 @@ Chaque widget répond à une question. La couleur ne porte qu'un statut : bleu n
 - **Risque critique** : criticité P × I d'au moins 20. Dans la matrice, la zone rouge commence à 15 et la zone ambre à 8.
 - **Action en retard** : action non terminée dont l'échéance est passée.
 - **Support du prochain COPIL** : « Support vX publié », « Support vX · {statut} », ou « Support à préparer » (rouge à 7 jours ou moins de la séance).
-- **Météo et trafic** : la ville du projet vient du Référentiel (objet Projet), sinon Paris. Le départ du trajet est la **Ville de résidence** de Mon profil, sinon Paris.
+- **Météo et trafic** : le site du projet est repéré par le **code postal**, la **ville** et le **pays du projet** du Référentiel (objet Projet), sinon Paris. Le code postal est cherché en premier ; entre deux villes de même nom, celle du pays du projet qui porte ce code postal l'emporte ; un nom composé introuvable (« Massy Palaiseau ») est cherché partie par partie. Le départ du trajet est la **Ville de résidence** de Mon profil, sinon Paris. Les deux widgets se mettent à jour dès que la ville, le code postal ou le pays du projet, ou votre ville de résidence, changent, sans recharger la page.
 - **Actualité** : titres des sources d'actualité actives du Registre des cartes API (réglées dans la Console), du plus récent au plus ancien, sans doublon. Une source en panne n'empêche pas les autres.
 - **Données externes** : les réponses sont gardées 2 minutes (météo, trafic) à 30 minutes (actualité). En cas de panne, la dernière réponse valable (24 h au plus) est affichée ; sinon « Météo indisponible », « Trafic indisponible » ou « Actualité indisponible (connexion requise) ».
 
@@ -386,11 +391,21 @@ Le serveur contrôle le projet à chaque chargement. Rien n'est stocké : une in
 
 ### 3.5.2 Créer un élément
 
-1. Ouvrez l'onglet concerné (par exemple Risques et problèmes).
-2. Cliquez sur le bouton **Jev** de la barre latérale. Le panneau de Jev s'ouvre dans le contexte de l'onglet.
-3. Décrivez à Jev ce que vous voulez créer : il prépare l'enregistrement, pose les questions utiles et vous présente un récapitulatif « À valider » (voir 3.19.4). Rien n'est enregistré avant votre validation.
+Deux façons de créer, toutes deux depuis le bouton **Jev** de la barre latérale :
 
-Jev crée les risques, les problèmes, les actions et les fiches décision. Les autres éléments se créent ailleurs : phases, sous-phases, chantiers, jalons et livrables dans le Référentiel (Info projet, bouton **+** de l'objet, PMO) ; séances depuis le calendrier des comités (bouton **+** d'un jour, voir 3.13.1). Les icônes « Demander à Jev » des blocs et des lignes du Pilotage ont été retirées le 1er octobre 2026 : Jev s'ouvre par son bouton de la barre latérale.
+- **Avec Jev** : décrivez ce que vous voulez créer ; Jev prépare l'enregistrement, pose les questions utiles et vous présente un récapitulatif « À valider » (voir 3.19.4). Rien n'est enregistré avant votre validation.
+- **Avec « Saisir sans Jev »** : un formulaire, sans conversation (voir 3.5.4).
+
+| Élément | Avec Jev | Saisir sans Jev | Ailleurs |
+|---|---|---|---|
+| Risque, action, décision | Oui | Oui | — |
+| Problème | Oui | — | — |
+| Phase, sous-phase, chantier, jalon, livrable (PMO) | Oui | Oui | Référentiel (Info projet, bouton **+** de l'objet) |
+| Tâche | — | Oui | — |
+| Fiche d'arbitrage | — | Oui | Correction dans Pilotage › Décisions (voir 3.11) |
+| Séance de comité | — | — | Calendrier des comités (bouton **+** d'un jour, voir 3.13.1) |
+
+Les icônes « Demander à Jev » des blocs et des lignes du Pilotage ont été retirées le 1er octobre 2026 : Jev s'ouvre par son bouton de la barre latérale.
 
 ### 3.5.3 Règles communes
 
@@ -398,7 +413,50 @@ Jev crée les risques, les problèmes, les actions et les fiches décision. Les 
 - Chaque création ou modification est tracée au nom de son auteur.
 - Un Responsable ne crée que sur ses chantiers : « Donnée à rattacher à vos chantiers » (avec la liste des chantiers autorisés).
 - Sans droit sur la donnée, l'écran affiche « Droit insuffisant : seul le PMO ou le Responsable du chantier peut modifier cette donnée ».
-- Les tableaux du Pilotage n'ont pas de bouton de suppression. Une action se termine, un risque se clôt, une décision s'annule. Un risque, un problème, une action ou une décision peut toutefois être supprimé par Jev, après confirmation renforcée (voir 3.19.4). Une séance de comité se supprime depuis son calendrier (voir 3.13).
+- Les tableaux du Pilotage n'ont pas de bouton de suppression. Une action se termine, un risque se clôt, une décision s'annule. Un risque, un problème, une action ou une décision (et, pour le PMO, une phase, une sous-phase, un chantier, un jalon ou un livrable) peut toutefois être supprimé par Jev, après confirmation renforcée (voir 3.19.4). Une séance de comité se supprime depuis son calendrier (voir 3.13).
+
+### 3.5.4 Saisir sans Jev
+
+**À quoi il sert.** Créer un élément par un formulaire, sans passer par la conversation avec Jev.
+
+**Ouvrir le formulaire**
+
+1. Cliquez sur le bouton **Jev** de la barre latérale.
+2. Sous le champ de saisie de Jev, cliquez sur **Saisir sans Jev** (icône de crayon). Le lien est affiché dans tous les espaces du Cockpit.
+3. Le panneau « Que voulez-vous créer ? » liste les objets en deux familles :
+   - **Structure du projet** : Phase, Chantier, Sous-phase, Jalon ;
+   - **Suivi et pilotage** : Livrable, Risque, Action, Tâche, Décision, Fiche d'arbitrage.
+4. Cliquez sur un objet (ou choisissez-le au clavier et appuyez sur Entrée, ou cliquez sur **Continuer**). Le formulaire glisse à la place de la liste ; la flèche **Changer d'objet** ramène la liste. La croix du choix de l'objet ferme le panneau (à la réouverture, Jev revient) ; celle du formulaire le vide.
+
+**Remplir le formulaire**
+
+- **Objets de structure** (Phase, Chantier, Sous-phase, Jalon) : un **parcours** en étapes numérotées. Un seul champ est ouvert à la fois ; Entrée passe au suivant ; un champ rempli est coché et résumé.
+- **Objets de suivi** (Livrable, Risque, Action, Tâche, Décision, Fiche d'arbitrage) : trois **chapitres** (deux pour la fiche d'arbitrage), ouverts l'un après l'autre par **Suivant**.
+- Un anneau indique le nombre de champs requis remplis (« 2/4 »). Le bouton **Créer …** reste grisé tant qu'un champ requis manque ; le pied du formulaire affiche « * Requis », ou « À corriger : … » pour une date impossible (31/02) ou une période dont la fin précède le début.
+- Les dates se saisissent au clavier, au format jj/mm/aaaa.
+- Après **Créer …**, le message du serveur s'affiche dans le panneau (par exemple « Phase 7 créée », « Risque R12 créé ») et le formulaire reste ouvert, vidé, pour une nouvelle saisie. En cas de refus, le message du serveur s'affiche en rouge dans le pied et vos valeurs sont conservées.
+
+**Les champs de chaque objet** (* : requis)
+
+| Objet | Champs |
+|---|---|
+| Phase | Nom de la phase*, Période*, Responsable (vous, par défaut). Le numéro est le suivant |
+| Chantier | Nom du chantier*, Responsable*, Période*, Phase* (une ou plusieurs). Le code C… est attribué par le serveur |
+| Sous-phase | Phase*, Chantier, Nom de la sous-phase*, Période*. Le code est calculé par le serveur : numéro du chantier choisi (C6 → 6.1, 6.2…), sinon numéro de la phase, puis rang suivant libre dans le projet ; la sous-phase est rattachée au chantier choisi |
+| Jalon | Intitulé du jalon*, Chantier* (ou « Transverse » : aucun chantier), Date cible*, Responsable. La phase est déduite de la date |
+| Livrable | Livrable : nom*. Rattachement : phase*, chantier (« Aucun chantier » possible), sous-phase* (proposée parmi celles de la phase et du chantier). Pilotage : responsable*, date de début, date de fin* |
+| Risque | Risque : intitulé*, chantier (un ou plusieurs, ou « Transverse », proposé d'office au PMO). Évaluation : probabilité et impact (Faible, Modérée, Forte, Très forte), avec la criticité calculée. Traitement : responsable*, plan de mitigation, échéance |
+| Action | Action : intitulé*. Rattachement : rattachée à* (un risque, une décision ou un jalon ouverts), chantier* (un ou plusieurs, ou « Transverse »). Pilotage : responsable* (vous, par défaut), échéance*, statut (À faire, En cours, Terminée, Bloquée) |
+| Tâche | Tâche : intitulé*. Rattachement : action (facultative), chantier*. Pilotage : responsable*, échéance, statut |
+| Décision | Décision : point de décision*, priorité (Critique, Haute, Moyenne, Basse). Détails : statut* (« En instruction » par défaut), chantier, instance de décision*. Issue : date de décision, option choisie |
+| Fiche d'arbitrage | Arbitrage : intitulé de l'arbitrage*, décision concernée* (parmi les décisions non clôturées). Contexte : préparée par, contexte. Puis **Composer la fiche** (voir 3.11) |
+
+**Règles**
+
+- Le serveur applique vos droits habituels : phases, sous-phases, chantiers, jalons et livrables relèvent du Référentiel (PMO uniquement) ; risques, actions et décisions du PMO ou du Responsable du chantier ; « Transverse » est réservé au PMO.
+- Une décision doit être rattachée à un chantier : « Transverse » est proposé dans la liste mais refusé à l'enregistrement (« Chantier : choisissez le chantier de la décision (« Transverse » n'est pas possible pour une décision). »).
+- Le statut d'une décision suit le cycle En instruction → À arbitrer → Arbitrée ; Annulée et Remplacée sont proposés à part. « Brouillon » n'est plus proposé depuis le 11 octobre 2026.
+- Une tâche est visible et modifiable par son auteur et par son responsable ; seul l'auteur la supprime. Confier une tâche à une autre personne est réservé aux PMO et Responsables.
 
 ## 3.6 Planning
 
@@ -425,7 +483,9 @@ Le bandeau **Niveau** choisit ce que montre le Gantt :
 - Les chantiers sont rangés par code croissant (C1, C2, C3…) dans toutes les vues ; les sous-phases par numéro.
 - Dans les vues « Phase > Chantier », un chantier qui couvre plusieurs phases apparaît sous chacune, réduit à son **segment** dans la phase : de sa première à sa dernière sous-phase de la phase, sinon l'intersection des dates du chantier et de la phase. Son avancement est la moyenne de ses sous-phases de la phase, pondérée par leur durée (sans sous-phase dans la phase : celui de la phase). Ces lignes sont calculées : leurs dates et leur avancement ne se modifient pas sur la ligne.
 - Les trois niveaux se distinguent par la forme, la couleur restant réservée à l'état (avancement, retard) : la **phase** est une barre récapitulative fine, avec son numéro dans une pastille ; le **chantier** est une capsule, avec son code dans une puce à sa teinte ; la **sous-phase** est un filet fin. Des filets d'arborescence relient chaque ligne à son parent. La légende rappelle les trois niveaux avant les états.
-- « prévu X % » n'est affiché que s'il diffère du réel.
+- « prévu X % » n'est affiché que s'il diffère du réel. Une étiquette de barre qui n'a de place ni à droite ni à gauche de la barre se place au début de la barre, sur fond blanc, au lieu d'être coupée.
+- Un chantier sans dates propres est dessiné sur la période de ses phases. Un élément qui n'a encore aucune période n'est pas dessiné : il est signalé sous le Suivi d'avancement avec la mention « dates à renseigner » (à compléter dans le Référentiel).
+- L'échelle se prolonge d'au moins 6 jours après la dernière date, pour qu'un jalon ou une barre en fin de mois ne soit pas coupé au bord droit.
 
 **Options d'affichage** : Jalons, Date du jour, Chemin critique, % prévu, % réel, Atterr. rythme actuel, Atterr. rythme prévu. Par défaut : Jalons, Date du jour, % prévu et % réel. Un losange de jalon est orange si l'un des jalons regroupés glisse.
 
@@ -441,9 +501,12 @@ Le tableau « Suivi d'avancement » suit le même repli. L'état replié est gar
 
 ### 3.6.3 Tableau « Suivi d'avancement »
 
-- Colonnes : Phase, Sous-phase, Chantier, Responsable, Début, Fin, Prévu, Réel, Retard, Atterr. rythme actuel, Atterr. rythme prévu. Les lignes suivent le niveau choisi pour le Gantt.
+- Colonnes : Phase, Sous-phase, Chantier (ou Phase, Chantier, Sous-phase), Responsable, Début, Fin, Prévu, Réel, Retard, Atterr. rythme actuel, Atterr. rythme prévu. Les lignes suivent le niveau choisi pour le Gantt.
+- **Ordre des colonnes selon le niveau** : « Phase > Chantier », « Phase > Chantier > Sous-phase » et « Un chantier… » affichent Phase, Chantier, Sous-phase ; les autres niveaux affichent Phase, Sous-phase, Chantier.
+- **Colonne Phase vide** pour « Tous les chantiers » et « Un chantier… ».
+- Les cellules reprennent la mise en forme du Gantt : numéro de la phase en foncé, code de la sous-phase en gris, référence du chantier dans une pastille à sa couleur, puis le nom.
 - Vous pouvez modifier les dates (calendrier), le % réel (de 0 à 100) et le responsable.
-- **L'avancement d'une phase qui a des sous-phases n'est pas modifiable** : il est calculé. Une saisie est annulée avec le message « Avancement de la phase : moyenne de ses sous-phases pondérée par leur durée. Modifiez celui des sous-phases. ».
+- **L'avancement d'une phase qui a des sous-phases n'est pas modifiable** : il est calculé, et la cellule affiche aussitôt la nouvelle valeur après la saisie d'une sous-phase. Une saisie est annulée avec le message « Avancement de la phase : moyenne de ses sous-phases pondérée par leur durée. Modifiez celui des sous-phases. ».
 - Sur une ligne de chantier dans une phase (vues « Phase > Chantier ») : « Dates du chantier dans cette phase : calculées à partir de ses sous-phases. Modifiez les sous-phases ou le chantier. » et « Avancement du chantier dans cette phase : moyenne de ses sous-phases pondérée par leur durée. ».
 
 ### 3.6.4 Calculs
@@ -465,7 +528,7 @@ Le tableau « Suivi d'avancement » suit le même repli. L'état replié est gar
 
 **Droits.** Le PMO modifie tout. Le Responsable modifie les dates et le % réel de son chantier. Seul le PMO change le responsable.
 
-**Créer un élément de planning** (PMO) : dans le Référentiel (Info projet), objets Phases, Sous-phases ou Chantiers, bouton **+**.
+**Créer un élément de planning** (PMO) : dans le Référentiel (Info projet), objets Phases, Sous-phases ou Chantiers, bouton **+** ; ou avec **Saisir sans Jev** (voir 3.5.4) ; ou en le demandant à Jev (voir 3.19.4).
 
 | Message | Cause |
 |---|---|
@@ -479,11 +542,14 @@ Le tableau « Suivi d'avancement » suit le même repli. L'état replié est gar
 
 **À quoi il sert.** Suivre les jalons et leur glissement par rapport à la référence.
 
-**Frise « Ordonnancement des jalons »** : « N jalons · X passés · Y en glissement · prochain dans Z j ». Le prochain jalon est marqué « Prochain jalon » avec « J−n ».
+**Frise « Ordonnancement des jalons »** : « N jalons · X passés · Y en glissement · prochain dans Z j ». Le prochain jalon est marqué « Prochain jalon » avec « J−n ». Sans jalon passé, le trait « Aujourd'hui » se place avant le premier jalon.
+
+Un clic sur un jalon de la frise déplie le tableau des jalons, amène sa ligne au centre et la met en surbrillance (les filtres qui la masqueraient sont levés).
 
 **Tableau « Jalons — prévision vs référence »**
 
 - Colonnes : Jalon, Prévu, Référence, Écart, Porteur, Chantier, Confirmation métier. 5 lignes, puis **Voir plus**.
+- La colonne **Chantier** affiche la référence du chantier (C1, C2…) dans sa couleur, ou « Transverse » pour un jalon sans chantier. Sa liste propose « Transverse (aucun chantier) », puis « C1 · {nom} », « C2 · {nom} »… ; choisir « Transverse » enregistre un jalon sans chantier.
 - Filtres : chantier, porteur, « En retard sur la référence ». Tris : date prévue, écart, porteur, chantier. Recherche sur le libellé.
 
 **Calculs**
@@ -492,7 +558,7 @@ Le tableau « Suivi d'avancement » suit le même repli. L'état replié est gar
 - **Confirmation métier** : « aujourd'hui », « il y a n j », ou « non confirmé · n j » au-delà de 7 jours. Au-delà de 7 jours, le jalon à venir devient un avertissement des incohérences ; au-delà de 14, un blocage.
 - **Modifier la date prévue vaut confirmation** : la confirmation métier passe à aujourd'hui.
 
-**Créer un jalon** (PMO) : libellé, **phase** (obligatoire), sous-phase, chantier, porteur, date prévue, date de référence (identique à la date prévue si vide). L'écran affiche l'« Écart calculé ».
+**Créer un jalon** (PMO), dans le Référentiel (Info projet, objet Jalons, bouton **+**) : libellé, **phase** (obligatoire), sous-phase, chantier, porteur, date prévue, date de référence (identique à la date prévue si vide). L'écran affiche l'« Écart calculé ». Vous pouvez aussi passer par **Saisir sans Jev** (la phase est alors déduite de la date cible, voir 3.5.4) ou demander le jalon à Jev (voir 3.19.4).
 
 | Message | Effet |
 |---|---|
@@ -526,8 +592,12 @@ Le plan de livraison est une frise en lecture seule, alimentée par l'objet Livr
 - Dans les vues par phase, **clic** sur la phase : replie ou déplie tous ses groupes.
 - **Alt+clic** : replie ou déplie tous les groupes du niveau (« Alt+clic : tous les groupes », « Alt+clic : toutes les phases »).
 - Boutons **Tout replier** et **Tout déplier**, au bout du bandeau Niveau.
+- Dans « Phase > Chantier > Sous-phase », le chantier est un niveau à part entière entre la phase et ses sous-phases : il se replie d'un clic (Alt+clic : tous les chantiers).
 - Un groupe replié garde sa **synthèse sur la frise** : une barre sur sa période (du premier début à la dernière échéance), l'avancement moyen (un livrable validé compte pour 100 %), la couleur du pire état (rouge pour un retard ou un risque critique, ambre pour « sous tension ») et le libellé « N livrables · X % ». Une phase repliée rappelle aussi cette synthèse à côté de son nom.
+- Une phase ou un chantier replié indique le nombre de ses sous-niveaux (« 3 chantiers », « 2 sous-phases ») ; le décompte « x / n validés » reste en bout de ligne de chaque groupe.
 - Le repli est gardé tant que l'écran reste ouvert. Il ne change pas le tableau de suivi situé en dessous.
+
+**Mise en forme.** La colonne des libellés reprend celle du Planning : la phase dans une pastille sombre numérotée (grisée quand tous ses livrables sont validés), le chantier par sa référence (C1, C2…) dans sa couleur, la sous-phase par son code en gris (en rouge en cas de retard), reliés par des filets d'arborescence jusqu'aux livrables.
 
 ### 3.8.3 Suivi d'avancement
 
@@ -551,7 +621,7 @@ Colonnes : Livrable, Responsable, Début, Fin, Retard, Avancement (%), Risque d�
 
 ### 3.8.4 Créer un livrable
 
-PMO uniquement, dans le Référentiel (Info projet), objet Livrables, bouton **+** : nom, sous-phase (les dates en découlent), chantier ou « Non rattaché (transverse) », équipe, responsable de production.
+PMO uniquement, dans le Référentiel (Info projet), objet Livrables, bouton **+** : nom, sous-phase (les dates en découlent), chantier ou « Non rattaché (transverse) », équipe, responsable de production. Le PMO peut aussi utiliser **Saisir sans Jev** › Livrable (voir 3.5.4) ou le demander à Jev (voir 3.19.4).
 
 Si la sous-phase choisie n'est pas parmi celles du chantier, ou si sa phase n'est pas une phase du chantier, un avertissement s'affiche (« Avertissement : la sous-phase … n'est pas parmi celles du chantier … Enregistrement possible. »). Il ne bloque pas l'enregistrement. Le même avertissement existe dans le formulaire d'un jalon.
 
@@ -559,7 +629,8 @@ Si la sous-phase choisie n'est pas parmi celles du chantier, ou si sa phase n'es
 
 ### 3.9.1 Registre des risques
 
-- Colonnes : #, Risque, P, I, Crit., Plan de mitigation, Porteur et chantier, Échéance. La colonne chantier liste les chantiers du risque, séparés par des virgules, ou « Tous les chantiers » pour un risque transverse.
+- Colonnes : #, Risque, Chantier, P, I, Crit., Plan de mitigation, Porteur, Échéance. La colonne **Chantier** affiche les références des chantiers du risque (C1, C2…) dans leur couleur, ou « Transverse » pour un risque transverse.
+- **Modifier les chantiers d'un risque** : un clic sur la cellule Chantier ouvre une liste à choix multiple : « Transverse · tous les chantiers » (PMO seulement), puis C1, C2… Cocher « Transverse » remplace les chantiers ; cocher un chantier quitte « Transverse ». Décocher le dernier chantier est refusé : « Choisissez au moins un chantier, ou « Transverse » ».
 - Filtres : niveau (Critique, Élevé, Modéré), chantier (« Tous chantiers » ou un chantier), « Sans plan ». Un plan vide s'affiche « Aucun plan approuvé — à qualifier ».
 - **Filtre par chantier** : un risque apparaît pour chacun de ses chantiers ; un risque transverse apparaît quel que soit le chantier choisi.
 
@@ -591,7 +662,7 @@ Un risque peut concerner un chantier, plusieurs chantiers, ou tous les chantiers
 
 ### 3.9.3 Créer un risque
 
-Demandez-le à Jev (voir 3.19.4) : libellé, probabilité et impact (1 à 5, criticité calculée), plan de mitigation, porteur, chantiers concernés, échéance. Le risque est créé au statut Ouvert. Statuts possibles : Ouvert, En mitigation, Clos.
+Demandez-le à Jev (voir 3.19.4) : libellé, probabilité et impact (1 à 5, criticité calculée), plan de mitigation, porteur, chantiers concernés, échéance. Ou utilisez **Saisir sans Jev** › Risque (voir 3.5.4). Le risque est créé au statut Ouvert. Statuts possibles : Ouvert, En mitigation, Clos.
 
 **Exemple.** Le PMO crée le risque « Retard de livraison de l'éditeur » sur les chantiers C2 et C4. Le Responsable de C2 le voit et peut le lire ; il ne peut le modifier que s'il est aussi Responsable de C4.
 
@@ -610,7 +681,9 @@ Demandez-le à Jev (voir 3.19.4) : libellé, probabilité et impact (1 à 5, cri
 
 **Registre des actions**
 
-- Colonnes : #, Action, Porteur, Échéance, Statut, Origine.
+- Colonnes : #, Action, Chantier, Porteur, Échéance, Statut, Origine. La colonne **Chantier** affiche les références des chantiers de l'action, ou « Transverse ».
+- Une action issue d'un risque affiche les chantiers du risque, et suit donc leurs modifications : quand les chantiers du risque changent, le chantier de l'action est réaligné (s'il n'en fait plus partie, il passe au premier chantier du risque) et ce changement est tracé au journal d'audit.
+- La colonne Origine affiche le code de l'objet d'origine (R02, D-005…).
 - Filtres : statut (À faire, En cours, Bloquée, Terminée), porteur, « Échues ».
 - Statut modifiable par le menu de la ligne : toast « {id} · statut « X » enregistré ».
 
@@ -619,7 +692,9 @@ Demandez-le à Jev (voir 3.19.4) : libellé, probabilité et impact (1 à 5, cri
 - Une action est **en retard** si elle n'est pas terminée et que son échéance est passée. Elle apparaît alors dans les incohérences (« Relancer ») et dans le widget Actions en retard.
 - Passer à « Terminée » enregistre la date de clôture ; rouvrir l'action l'efface.
 
-**Créer une action** : libellé, statut, porteur, échéance, origine (« Aucune (saisie directe) » ou un risque, un problème, une décision, un jalon). Une action liée à une origine prend le chantier de celle-ci ; sinon, le chantier transverse « Pilotage et transverse ».
+**Créer une action** : demandez-la à Jev (voir 3.19.4), ou utilisez **Saisir sans Jev** › Action (voir 3.5.4) : intitulé, objet de rattachement (un risque, une décision ou un jalon), un ou plusieurs chantiers ou « Transverse », responsable, échéance, statut.
+
+**Chantiers d'une action.** Une action peut concerner un, plusieurs ou tous les chantiers (« Transverse »), avec les mêmes droits qu'un risque : lecture si l'un de ses chantiers est visible, écriture si vous avez le droit sur chacun, « Transverse » réservé au PMO.
 
 ## 3.11 Décisions et fiches d'arbitrage
 
@@ -629,12 +704,13 @@ Demandez-le à Jev (voir 3.19.4) : libellé, probabilité et impact (1 à 5, cri
 - Par défaut, les 5 fiches ouvertes les plus prioritaires, puis « Afficher N autres fiches ouvertes ».
 - Filtres : priorité, instance, chantier ; recherche ; **Réinitialiser**.
 - Colonnes : ID, Point de décision, Priorité (Critique, Haute, Moyenne, Basse), Fiche d'arbitrage, Statut, Option choisie, Date de décision (« En attente » tant que la fiche est ouverte), Chantier, Instance, Date de création.
+- La colonne **Chantier** affiche la référence du chantier (C1, C2…) dans sa couleur ; sa liste propose « C1 · {nom} », « C2 · {nom} »…
 
 **Cycle de vie**
 
 | Statut | Signification |
 |---|---|
-| Brouillon | Fiche en cours de rédaction |
+| Brouillon | Fiche en cours de rédaction. Ce statut n'est plus proposé à la création depuis le 11 octobre 2026 (une décision saisie commence « En instruction ») ; il reste affiché pour les décisions créées avant |
 | En instruction | Analyse en cours |
 | À arbitrer | Prête pour l'instance |
 | Arbitrée | Décision prise : la fiche passe en lecture seule |
@@ -648,14 +724,27 @@ Demandez-le à Jev (voir 3.19.4) : libellé, probabilité et impact (1 à 5, cri
 - Une fiche arbitrée ne se modifie plus : « Fiche arbitrée : lecture seule ».
 - Quand une décision qui en remplace une autre est arbitrée, l'ancienne passe à « Remplacée ».
 
-**La fiche d'arbitrage**
+**La fiche d'arbitrage (Pilotage › Décisions)**
 
+- La fiche affichée est celle de la décision choisie, sinon la première du registre. Chaque fiche ne montre que ses propres données ; une décision sans grille affiche « La grille d'analyse de cette fiche n'est pas encore renseignée. … ».
 - Titre, question, contexte, options A et B.
-- **Grille de critères** : poids de chaque critère, note de 1 à 4 et constat pour chaque option. Score pondéré = Σ poids / 100 × note, sur 4. La somme des poids doit faire 100 % ; sinon l'écran affiche « Total des poids : X % ».
-- **Recommandation PMO** et **Décision attendue**, compte à rebours avant la prochaine séance.
+- **Barème commun** : les critères et leurs poids sont communs aux deux options ; chaque option reçoit, critère par critère, une note de 1 à 4 et une justification. Score pondéré = Σ poids / 100 × note, sur 4. Si la somme des poids ne fait pas 100 %, l'écran affiche « poids : X % ».
+- **Option recommandée = la mieux notée** : la pastille « Recommandation PMO » et la ligne **Recommandation PMO** désignent l'option qui a le meilleur score pondéré. Elles ne se modifient pas à la main ; sans note, ou à égalité, l'option affiche « À définir ».
+- **Décision attendue**, compte à rebours avant la prochaine séance.
 - Une fiche arbitrée porte le sceau « ARBITRÉE · date · OPTION RETENUE ».
+- Les textes, les poids et les notes d'une fiche existante se corrigent directement dans la fiche (toast « Modifié · {nom} · saisie directe »).
+- Le bouton « Composer la fiche » / « Modifier la fiche » a été retiré de Pilotage › Décisions le 11 octobre 2026 : une fiche se compose depuis **Saisir sans Jev**.
 
-**Créer une décision** : demandez-la à Jev (point de décision, priorité, chantier, instance, statut, date). La fiche d'arbitrage complète (options, grille de critères) ne se saisit plus dans le Cockpit depuis le 08/10/2026.
+**Composer une fiche d'arbitrage**
+
+1. Ouvrez Jev, puis **Saisir sans Jev** › **Fiche d'arbitrage**.
+2. Chapitre **Arbitrage** : intitulé de l'arbitrage et décision concernée (parmi les décisions non clôturées). Chapitre **Contexte** : préparée par, contexte.
+3. Cliquez sur **Composer la fiche**. La fiche « barème commun » remplace le formulaire ; si la décision a déjà une fiche, elle s'ouvre pour modification.
+4. Saisissez l'intitulé des options A et B, puis les critères : nom, poids (en %), note de A et de B (1 faible à 4 excellent, un nouveau clic sur la note l'efface), justification de chaque option. **Ajouter un critère** ajoute une ligne.
+5. En haut de la fiche, les deux cartes donnent le score de chaque option sur 4 (« En tête » sur la meilleure), une échelle de 0 à 4 les situe, et un verdict les compare (« A devance B de 0,35 pt », « Égalité parfaite entre A et B », ou « Notez les critères pour comparer »). Sous la grille, le total des poids indique « 100 % », « Reste X % à répartir » ou « Excède de X % ».
+6. Cliquez sur **Enregistrer** (toast « Fiche d'arbitrage enregistrée »). L'enregistrement est refusé tant que la fiche est incomplète ; le premier problème s'affiche : « Renseignez l'intitulé des deux options », « Ajoutez au moins un critère », « Nommez chaque critère », « Les poids doivent totaliser 100 % », « Notez chaque critère pour A et B ».
+
+**Créer une décision** : demandez-la à Jev (point de décision, priorité, chantier, instance, statut, date), ou utilisez **Saisir sans Jev** › Décision (voir 3.5.4).
 
 ## 3.12 Baromètre
 
@@ -742,11 +831,15 @@ Une seule demande par module peut être en attente.
 | Vos actions non terminées | Titre de l'action, « Action A-xx · en retard » si échue | Ouvrir |
 | Les décisions dont vous êtes le décideur, en instruction ou à arbitrer | « Arbitrer D-xxx · … » | Valider |
 | Vos jalons des 45 prochains jours | « Confirmer le jalon Jxx · … » | Mettre à jour |
-| Vos tâches personnelles | Titre saisi | Au choix |
+| Les tâches que vous avez créées, ou qui vous sont confiées | Titre saisi | Au choix |
+
+- Colonnes : Tâche, Chantier, Échéance, Action attendue. La colonne **Chantier** affiche la référence du chantier : pour une action, ses chantiers (ceux de son risque d'origine le cas échéant) ; pour une décision ou un jalon, son chantier.
+- Les codes affichés sont ceux du projet (A-01, D-005, J03…).
 
 **Ce que vous pouvez faire**
 
-- **Modifier** le titre, le détail, l'échéance et l'action attendue (Ouvrir, Relancer, Qualifier, Renseigner, Mettre à jour, Valider). Ces modifications sont personnelles : elles ne changent pas l'action, la décision ou le jalon d'origine.
+- **Créer une tâche** : **Saisir sans Jev** › **Tâche** (voir 3.5.4) ; vous pouvez la confier à une autre personne si vous êtes PMO ou Responsable.
+- **Modifier** le titre, le détail, l'échéance et l'action attendue (Ouvrir, Relancer, Qualifier, Renseigner, Mettre à jour, Valider). Ces modifications sont personnelles : elles ne changent pas l'action, la décision ou le jalon d'origine, **sauf l'échéance d'une tâche issue d'une action** : c'est celle de l'action, modifiable sur place et enregistrée sur l'action (« À planifier » si l'action n'en a pas).
 - **Archiver** une tâche : bandeau « « {titre} » archivée » avec **Annuler** pendant 5 secondes. Les archives se consultent et se restaurent (« Tâche restaurée »).
 - Le bloc **validations attendues** liste les décisions à arbitrer par priorité, avec **Demander à Jev**.
 
@@ -785,7 +878,7 @@ Chaque ligne de template porte :
 4. La ligne du template suit chaque étape, avec « n / 5 » et une barre de progression : Contrôle des données, Collecte des données du jour, Rédaction des titres et de la synthèse, Mise en page au format du template, Téléchargement du fichier. Puis « Rapport téléchargé ».
 5. En cas d'échec : « Génération interrompue », la cause et le lien **Réessayer**.
 
-Le fichier est un PowerPoint (.pptx) au format du template, rempli avec les données du jour : couverture, une page intercalaire par section, une page par composant, page de clôture. Un template sans format utilise la présentation par défaut de RISE.
+Le fichier est un PowerPoint (.pptx) au format du template, rempli avec les données du jour : couverture, une page intercalaire par section, une page par composant, page de clôture. Un template sans format utilise la présentation par défaut de RISE. Depuis le 9 octobre 2026, le fichier s'ouvre dans PowerPoint sans message « Réparer » ; les templates publiés avant cette date sont corrigés à chaque génération.
 
 **Verser le rapport dans la Base de connaissance**
 
@@ -807,15 +900,15 @@ Le fichier est un PowerPoint (.pptx) au format du template, rempli avec les donn
 
 **Publications successives.** Chaque rapport généré rouvre le PowerPoint de référence du template et n'en change que les valeurs : textes, chiffres, lignes des tableaux, données des graphiques (graphiques PowerPoint natifs, modifiables), date et périodes. Les titres-messages et la synthèse sont rédigés à chaque génération par l'IA (fonction « Génération de rapports »), à partir des seules données du Cockpit : un texte qui cite un chiffre absent des données, ou trop long pour sa zone, est redemandé une fois, puis remplacé par le texte par défaut (intitulé du composant), avec un point d'attention. La mise en page et le design ne bougent pas. Un tableau garde sa hauteur de ligne : un texte trop long est abrégé « … », et au-delà du nombre de lignes que la page peut contenir, la dernière ligne indique « … et N autres ».
 
-### 3.15.2 Créer un template : principes et étape A
+### 3.15.2 Créer un template : principes et étape 1
 
-Le bouton **Créer un template** du bandeau ouvre un assistant en six étapes. Un bandeau unique, en haut de l'assistant, montre les étapes avec leur lettre : A · Fiche d'identité, B · Format du rapport, C · Composants, D · Ordre et données, E · Prévisualisation, F · Publication. L'étape en cours est en bleu nuit. Un clic sur une étape accessible y mène ; ce n'est plus possible pendant la publication.
+Le bouton **Créer un template** du bandeau ouvre un assistant en six étapes. Un bandeau unique, en haut de l'assistant, montre les étapes avec leur numéro (depuis le 11 octobre 2026, au lieu des lettres A à F) : 1 · Fiche d'identité, 2 · Format du rapport, 3 · Composants, 4 · Ordre et données, 5 · Prévisualisation, 6 · Publication. L'étape en cours est en bleu nuit. Un clic sur une étape accessible y mène ; ce n'est plus possible pendant la publication.
 
-**Session de création.** Le template en cours de création n'est pas conservé : changer d'onglet ou de menu, publier ou recharger Cockpit ramène « Créer un template » à l'étape A, vierge.
+**Session de création.** Le template en cours de création n'est pas conservé : changer d'onglet ou de menu, publier ou recharger Cockpit ramène « Créer un template » à l'étape 1, vierge.
 
-**Étape A · Fiche d'identité** : nom (obligatoire, 200 caractères), comité de rattachement, numéro de version (1.0 par défaut), auteur (vous, par défaut), description. Sans nom : « Renseignez au moins le nom du template. ».
+**Étape 1 · Fiche d'identité** : nom (obligatoire, 200 caractères), comité de rattachement (parmi les comités du projet ouvert ; le premier par défaut), numéro de version (1.0 par défaut), auteur (vous, par défaut), description. Sans nom : « Renseignez au moins le nom du template. ».
 
-### 3.15.3 Étape B · Format du rapport
+### 3.15.3 Étape 2 · Format du rapport
 
 « Chargez un modèle pour chacun des 4 types de page : le PowerPoint généré reprendra leurs fonds, logos, couleurs, polices et positions. » Les 4 pages sont obligatoires : **page de couverture** (première diapositive), **page intercalaire** (transition entre deux sections), **page standard** (contenu : texte, tableaux, graphiques) et **page de clôture** (dernière diapositive).
 
@@ -826,13 +919,13 @@ Le bouton **Créer un template** du bandeau ouvre un assistant en six étapes. U
 - Un fichier de plusieurs diapositives propose la liste de ses diapositives ; s'il en compte 4 ou plus, la diapositive du type de page est proposée (1, 2, 3 et la dernière). Changez-la dans la liste si besoin.
 - **Retirer une page** : icône corbeille en haut à droite de sa vignette (« Retirer la page de … »). La page vidée est sélectionnée : chargez le nouveau fichier. Il n'y a plus de bouton « Remplacer » ni « Supprimer » sous l'aperçu.
 
-**Séquence des 4 pages.** Chaque vignette montre la page et son statut, « À vérifier » ou « Vérifiée ». Un clic ouvre la page dans l'espace de travail. Le compteur indique le nombre de pages chargées.
+**Séquence des 4 pages.** Chaque vignette montre la page et son statut, « À vérifier » ou « Vérifiée ». Un clic ouvre la page dans l'espace de travail ; la vignette de la page sélectionnée est bordée d'orange, les autres d'un filet gris. Le compteur indique le nombre de pages chargées.
 
 **Espace de travail**
 
 - L'aperçu de la diapositive porte ses zones : contour vert plein, **zone de données**, qui reçoit le texte du rapport avec sa mise en forme ; hachuré rouge, **contenu d'exemple**, retiré de chaque rapport (sur la page standard, sa place reçoit les tableaux et graphiques) ; **design fixe**, visible au survol. La légende compte les zones de chaque catégorie.
 - Le survol d'une zone met en évidence sa ligne dans « Zones de la page », et inversement ; une étiquette affiche son rôle.
-- Sous l'aperçu : le nom du fichier (et la liste des diapositives), la fiche technique (format, fond, éléments, zones, polices, titres, texte, marges) et les couleurs détectées (code au survol).
+- Sous l'aperçu : le nom du fichier (et la liste des diapositives), la fiche technique (format, fond, éléments, zones, polices, titres, texte, marges) et les couleurs détectées.
 
 **Zones de la page** (pages PowerPoint) : un rôle par forme, proposé par l'IA (sinon par règles) : **Design fixe (gardé)**, **Contenu d'exemple (retiré)**, **Titre**, **Sous-titre**, **Nom** ou **Numéro de la section**, **Date du rapport**, **Période des données**, **Nom du projet**, **Client**, **Comité**, **Numéro de page**, **Mention de bas de page (gardée)**. Dès qu'un rôle diffère de la proposition, **Rétablir la proposition de l'IA** apparaît et remet les rôles proposés pour la page. Une couverture, une intercalaire ou une page standard sans zone de titre est refusée (« désignez la zone de titre »).
 
@@ -847,33 +940,36 @@ Le bouton **Créer un template** du bandeau ouvre un assistant en six étapes. U
 - Erreurs (en rouge, la page n'est pas retenue) : « Format non pris en charge », « Ancien format PowerPoint (.ppt) », « Le contenu ne correspond pas à l'extension », « Fichier PowerPoint illisible ou endommagé », « Ce fichier est protégé par un mot de passe », « Image trop petite », et, si les dimensions diffèrent entre les pages PowerPoint, « Les 4 pages doivent avoir le même format ».
 - Alertes (en orange, la page est retenue) : « Police introuvable » (police ni standard d'Office, ni incorporée au fichier : à installer sur les postes, ou à incorporer), zone de titre, de contenu ou de pagination absente, extraction partielle d'un PDF ou d'une image.
 
-### 3.15.4 Étapes C et D · Composants, ordre et données
+### 3.15.4 Étapes 3 et 4 · Composants, ordre et données
 
-**Étape C · Composants.** Choisissez parmi Synthèse de situation, Planning, Jalons, Risques et problèmes, Actions, Décisions, Baromètre du projet, Tableau de bord, Budget. Chaque carte indique la nature du composant (Gantt, Frise, Matrice et tableau, Échéancier, Arbitrages, Tableau de bord, Indicateurs, Indicateurs et texte…). Chaque composant devient une page du rapport. Sans composant : « Sélectionnez au moins un composant. ». Le composant **Budget** n'est disponible que si le module Budget est activé pour le projet dans la Console : sinon sa carte porte un cadenas et la mention « Module Gestion du budget non activé ».
+**Étape 3 · Composants.** Choisissez parmi Synthèse de situation, Planning, Jalons, **Livrables**, Risques et problèmes, Actions, Décisions, **Fiches d'arbitrage**, Baromètre du projet, Tableau de bord, Budget (Livrables et Fiches d'arbitrage ajoutés le 11 octobre 2026). Chaque carte indique la nature du composant (Gantt, Frise, Tableau, Matrice et tableau, Échéancier, Arbitrages, Fiches, Tableau de bord, Indicateurs, Indicateurs et texte…). Chaque composant devient une page du rapport. Sans composant : « Sélectionnez au moins un composant. ». Le composant **Budget** n'est disponible que si le module Budget est activé pour le projet dans la Console : sinon sa carte porte un cadenas et la mention « Module Gestion du budget non activé ».
 
-**Étape D · Ordre, sections et données**
+**Étape 4 · Ordre, sections et données**
 
 - **Ordre** : saisissez un composant par sa poignée (six points, devant son numéro) et déposez-le au-dessus ou au-dessous d'un autre ; un trait vert indique l'emplacement. Les numéros sont recalculés ; les coupures de section restent à leur place.
 - **Sections** : le rail à gauche de la liste matérialise les chapitres. Chaque section commence par un repère numéroté, « SECTION n · INTERCALAIRE » et son titre (facultatif ; par défaut, le nom de son premier composant). Entre deux composants, survolez le point du rail : **+ Nouvelle section à partir d'ici** fait commencer une section au composant suivant. Un clic sur le repère numéroté d'une section (à partir de la section 2) la rattache à la section précédente. Chaque section reçoit une page intercalaire.
 - **Données** : pour chaque composant, les **indicateurs** (pastilles à activer, compteur « actifs / total »), le **périmètre** (Projet, Vague, Phase ou Chantier) et sa **cible** (« Projet entier », ou la liste des vagues, phases ou chantiers du projet), la **période** proposée pour ce composant (par exemple 3, 6 ou 12 derniers mois pour le baromètre) ou « Situation du jour ». Les données sont recalculées à chaque publication.
+- **Planning** : le périmètre propose les niveaux de l'écran Planning — Phases, Phase > Sous-phase, Phase > Chantier > Sous-phase, Tous les chantiers, Un chantier ; « Un chantier » fait choisir le chantier dans la cible. Le Planning a une période (30, 60 ou 90 prochains jours, ou sans filtre de période : les lignes qui chevauchent la période) et la pastille **Date du jour** (repère « Aujourd'hui »). La pastille « Sous-phases » a été retirée : choisissez un niveau avec sous-phases.
+- **Statut** (Planning et Livrables) : une ligne STATUT, sous la période, à choix multiple — « Tous les statuts » (par défaut), En cours, À venir, En retard, Terminé (Livré pour les livrables).
+- **Livrables** : période de 30, 60 ou 90 prochains jours, ou sans filtre ; les livrables en retard sont toujours montrés, sauf si le filtre de statut les exclut.
 - Le panneau **Déroulé du rapport** montre en temps réel la couverture, chaque section avec ses composants numérotés, puis la clôture.
 - Une section limitée à une vague, une phase ou un chantier doit avoir sa cible : « Composant incomplet ».
 
-### 3.15.5 Étape E · Prévisualisation
+### 3.15.5 Étape 5 · Prévisualisation
 
 - Dès l'arrivée, l'écran montre le nombre de pages, leurs numéros et libellés et la structure du document.
-- Une carte suit la construction : format de l'étape B appliqué, données du jour collectées, pages générées · n / N, contrôle des données. Chaque page apparaît dès qu'elle est prête.
+- Une carte suit la construction : format de l'étape 2 appliqué, données du jour collectées, pages générées · n / N, contrôle des données. Chaque page apparaît dès qu'elle est prête.
 - Survolez une page pour la retrouver dans la structure ; cliquez-la pour l'agrandir (‹ ›, flèches du clavier, Échap pour fermer).
-- Le rapport complet est construit avec le format de l'étape B, les données du jour et les textes rédigés par l'IA (titre-message de chaque page, synthèse) : couverture, intercalaires, une page par composant, clôture.
+- Le rapport complet est construit avec le format de l'étape 2, les données du jour et les textes rédigés par l'IA (titre-message de chaque page, synthèse) : couverture, intercalaires, une page par composant, clôture.
 - L'encadré **Contrôle des données** liste les anomalies : en orange, une donnée manquante ou incohérente (par exemple « Budget : budget du programme non connu », « Jalons : date de référence manquante ») ; en rouge, une anomalie bloquante (par exemple un périmètre qui n'existe plus). Le contrôle visuel automatique signale aussi un élément qui recouvre un texte du modèle, un texte trop long pour sa zone ou un élément qui sort de la page. Une alerte marque sa page d'un point ambre ; « Voir la page NN » l'ouvre.
 - « Suivant › » s'active à la fin de la construction.
 - Pour corriger, revenez aux étapes précédentes (design, composants, ordre, données) : l'aperçu se reconstruit à votre retour.
 
-### 3.15.6 Étape F · Publication et mise en service
+### 3.15.6 Étape 6 · Publication et mise en service
 
-- Le récapitulatif reprend le template : nom, version, comité, auteur, format et ses fichiers, composants, sections, nombre exact de pages, contrôle des données, description. Au survol d'une ligne, « Étape X › » ramène à l'étape concernée.
-- La publication est impossible tant qu'une anomalie bloquante subsiste au contrôle des données (« Voir l'étape E › »).
-- **Valider et publier** génère le **PowerPoint de référence** du template (version 1.0) : structure figée, design de l'étape B et zones de données. Pendant l'enregistrement, le bouton affiche « Publication… ». En cas d'échec : « Publication interrompue », la cause et **Relancer la publication**.
+- Le récapitulatif reprend le template : nom, version, comité, auteur, format et ses fichiers, composants, sections, nombre exact de pages, contrôle des données, description. Au survol d'une ligne, un lien ramène à l'étape concernée (« Étape 1 › » à « Étape 5 › »).
+- La publication est impossible tant qu'une anomalie bloquante subsiste au contrôle des données (« Voir l'étape E › », qui mène à l'étape 5).
+- **Valider et publier** génère le **PowerPoint de référence** du template (version 1.0) : structure figée, design de l'étape 2 et zones de données. Pendant l'enregistrement, le bouton affiche « Publication… ». En cas d'échec : « Publication interrompue », la cause et **Relancer la publication**.
 - Une fois le template enregistré, Cockpit ouvre « Générer un rapport » : la ligne du nouveau template, en tête de son comité, indique « Mise en service » et sa progression. Il n'est pas encore utilisable (les autres templates le restent).
 - Quand il est prêt, il porte l'étiquette « Nouveau » et une notification l'annonce. Il rejoint aussi la Bibliothèque.
 
@@ -881,21 +977,27 @@ Le bouton **Créer un template** du bandeau ouvre un assistant en six étapes. U
 
 ### 3.15.7 Contenu des pages du rapport
 
-Couleurs, polices et hiérarchie des textes viennent des pages modèles de l'étape B. Chaque bloc d'une page suit un indicateur choisi à l'étape D.
+Couleurs, polices et hiérarchie des textes viennent des pages modèles de l'étape 2. Chaque bloc d'une page suit un indicateur choisi à l'étape 4.
 
-**Planning (Gantt).** Une barre par phase : gris, terminée ; bleu, avancement de la phase en cours, dans sa barre ; rouge, en retard ; contour, à venir. La phase en cours est mise en avant ; un repère « Aujourd'hui » et les jalons sur leur couloir complètent le diagramme ; en bas, la phase en cours, le prochain jalon et la fin du planning. Avec l'indicateur « Sous-phases », au-delà de 25 lignes, le planning passe en tableau et les sous-phases des phases terminées y sont regroupées. Pour un composant limité à un chantier : les phases du chantier et, s'il en a, ses seules sous-phases.
+**Planning (Gantt).** Les lignes suivent le niveau choisi à l'étape 4, avec les mêmes règles que l'écran Planning (un chantier dans une phase est réduit à son segment dans la phase) et trois niveaux de retrait (phase, chantier, sous-phase). Une barre par ligne : gris, terminée ; bleu, avancement en cours, dans sa barre ; rouge, en retard ; contour, à venir. La phase en cours est mise en avant ; le repère « Aujourd'hui » (pastille **Date du jour**) et les jalons sur leur couloir complètent le diagramme ; en bas, la phase en cours (ou, pour les niveaux par chantier, « En cours » et « N chantiers sur M terminés »), le prochain jalon et la fin du planning. Les libellés tiennent sur une ligne (abrégés « … ») ; quand les lignes deviennent trop serrées, le Gantt se simplifie pas à pas : phases terminées regroupées, puis sous-phases repliées sur leur chantier (note « Sous-phases regroupées sur leur chantier »), enfin « … et N autres lignes ». Le statut choisi à l'étape 4 filtre les lignes, en gardant les lignes parentes pour le contexte.
+
+**Planning en tableau.** Au-delà de 25 lignes, le planning passe en tableau : chaque phase en tête de groupe (numéro en pastille foncée ; phase en cours teintée et soulignée), chantier par sa référence en pastille, sous-phases en retrait reliées par un filet ; une colonne « Calendrier » place la barre de chaque ligne à sa vraie date (avancement dedans, retard en rouge, terminé en gris, chemin critique cerclé), traversée par le repère « Aujourd'hui · date » ; la période, le réalisé et le statut suivent (« À venir » et « Terminé » estompés). Pour « Un chantier » trop long, les sous-phases terminées sont regroupées sur la ligne du chantier.
 
 **Planning : chemin critique et atterrissages.** Trois indicateurs facultatifs : **Chemin critique** (contour rouge autour des phases critiques), **Atterrissage rythme actuel** (cercle ambre : date de fin projetée au rythme observé) et **Atterrissage rythme prévu** (losange gris : date de fin si le reste avance au rythme prévu) ; l'écart à la fin prévue s'affiche en jours. En tableau, une colonne « Atterrissage » reprend ces dates.
 
 **Baromètre (tableau de bord).** Score global et écart au relevé précédent, évolution du score, avis des répondants, score par domaine et points clés.
 
+**Livrables (tableau).** Trois repères chiffrés et une barre de répartition (en retard, à livrer, livrés), puis les livrables regroupés par urgence (En retard, À livrer, Livrés) : échéance en tête de ligne avec son compte à rebours (« retard 21 j », « dans 10 j », en ambre sous 14 jours), nom du livrable et phase · sous-phase dessous, trait rouge en marge des retards. Les colonnes suivent les indicateurs choisis (chantier, responsable, avancement, statut, risque délai). Faute de place, les plus urgents d'abord, puis « … et N autres à livrer · N livrés ».
+
 **Jalons (frise).** Un cercle par jalon (plein : date passée ; foncé : prochain jalon, avec son délai ; contour rouge : glissé après sa date de référence), son nom, sa date et l'écart à la référence quand la date a bougé ; quatre indicateurs en bas (jalons franchis, glissés, prochain jalon, glissement moyen).
 
-**Risques (matrice et tableau).** Tableau des risques (criticité en pastille colorée, plan de mitigation sous l'intitulé, porteur et chantier, échéance) à côté de la matrice probabilité × impact, où chaque risque apparaît par son code. Pour un composant limité à un chantier : les risques qui citent ce chantier et les risques transverses. La colonne chantier donne les noms des chantiers, ou « Tous les chantiers ».
+**Risques (matrice et tableau).** Tableau des risques (criticité en pastille colorée, plan de mitigation sous l'intitulé, colonne **Chantier**, porteur, échéance) à côté de la matrice probabilité × impact, où chaque risque apparaît par son code. Pour un composant limité à un chantier : les risques qui citent ce chantier et les risques transverses. La colonne Chantier, placée après la criticité, donne les références des chantiers (C1, C2…), ou « Transverse » ; le porteur a sa propre cellule.
 
 **Actions (échéancier).** Les actions ouvertes, les plus en retard d'abord, avec leur responsable, leur chantier et leur origine (« issue de R01 ») ; un axe « Aujourd'hui » montre le retard en rouge à gauche et le délai à droite (ambre sous 14 jours) ; un panneau sombre donne le nombre d'actions en retard et leur répartition par échéance.
 
-**Décisions (arbitrages).** À gauche, les décisions en attente, quelle que soit la période (étape : brouillon, en revue, à arbitrer ; durée d'attente, en rouge à partir de 30 jours ; séance attendue) ; à droite, les décisions prises sur la période, avec ce qui a été décidé. Sans décision prise sur la période, les trois dernières sont rappelées.
+**Décisions (registre).** La page reprend le registre de Pilotage › Décisions : un bandeau « Registre des décisions » (nombre en attente, dont à arbitrer, prises sur la période), puis les colonnes ID, point de décision, priorité, fiche d'arbitrage (« Rédigée » ou « Non rédigée »), statut en quatre étapes reliées, option choisie, date de décision (« En attente » et séance attendue), chantier en pastille, instance et fréquence, date de création et attente (en rouge à partir de 30 jours). Les décisions en attente viennent d'abord, quelle que soit la période (à arbitrer en tête), puis « Prises sur la période » ; sans décision prise sur la période, les dernières sont rappelées, grisées. Ce qui ne tient pas sur la page est compté en pied.
+
+**Fiches d'arbitrage.** Une fiche complète par page, présentée comme dans Pilotage › Décisions : en-tête « Fiche d'arbitrage · code · étape » avec chantier et instance, question, contexte (et la recommandation, si un texte existe) ; grille Critère · Poids · Option A · Option B, chaque note dans une cellule teintée selon sa valeur, avec sa justification ; pastille « Recommandation PMO » sur l'option la mieux notée (aucune à égalité) ; « Score pondéré · sur 4 » ; bandeau « Décision attendue » avec le compte à rebours jusqu'à la séance attendue. La fiche montrée est la plus urgente (à arbitrer, puis en instruction, puis arbitrées sur la période) ; les autres sont citées en tête (« Autres fiches »).
 
 **Tableau de bord.** La phase en cours (avancement réel en grand, prévu à date et écart en points, fin prévue), le go-live prévu, le prochain jalon et le chemin des phases, puis la santé du projet en quatre tuiles : risques dont critiques, actions dont en retard, jalons glissés, décisions dont à arbitrer.
 
@@ -932,7 +1034,7 @@ Les documents y arrivent de deux façons : par un dépôt manuel (voir 3.16.1), 
 | État | Signification |
 |---|---|
 | En cours · N % | Résumé et indexation en cours (l'écran se met à jour seul) |
-| Extrait · indexé | Prêt ; l'info-bulle donne le nombre d'extraits indexés |
+| Extrait · indexé | Prêt ; le nombre d'extraits indexés figure au pied de la fenêtre Résumé |
 | Partiel · {note} | Indexé, mais une partie n'a pas pu être lue (pages en images, classeur tronqué…) |
 | En échec · {motif} | Traitement échoué ; le fichier reste téléchargeable |
 
@@ -1039,13 +1141,13 @@ Les documents y arrivent de deux façons : par un dépôt manuel (voir 3.16.1), 
 
 | Objet | Règles |
 |---|---|
-| Projet | Code non modifiable. Nom obligatoire (200 caractères). Date de fin après la date de début. Devise (EUR, USD, GBP…), fuseau horaire, ville et pays du projet. La ville sert aux widgets Météo et Trafic |
+| Projet | Code non modifiable. Nom obligatoire (200 caractères). Date de fin après la date de début. Devise (EUR, USD, GBP…), fuseau horaire, ville, **code postal** (ligne « Code postal », juste après « Ville du projet » ; facultatif ; 2 à 12 chiffres, lettres, espaces ou tirets, sinon « code postal invalide ») et pays du projet. Ville, code postal et pays servent aux widgets Météo et Trafic |
 | Info projet | Une ligne par élément : rubrique, libellé, valeur. 8 rubriques (Le client, Marques du groupe, Programme en une phrase, Enjeux stratégiques, Périmètres fonctionnel, applicatif, géographique, juridique). 60 lignes par rubrique, libellé 120 caractères, valeur 2 000 caractères |
 | Lot | Numéro et nom obligatoires ; fin après début |
 | Phase | Numéro, nom, dates de début et de fin, responsable obligatoires ; une phase peut couvrir plusieurs lots |
-| Sous-phase | Rattachement à une phase obligatoire. **Numérotation libre**, choisie par le directeur de projet (« 5.1 », « 4.2.1 », « C2.1 »…) : le numéro n'a plus à commencer par celui de la phase. Il doit être unique dans le projet (« Numéro … déjà utilisé par une autre sous-phase — modification annulée ») et ne contenir ni espace, ni « ; », ni « · » (« Le numéro ne peut contenir ni espace, ni « ; », ni « · ». »). Avertissement si elle sort de la période de sa phase. Changer sa phase est refusé si un chantier qui la cite n'a pas la nouvelle phase. Supprimer une sous-phase la retire des chantiers qui la citaient (le message précise de combien de chantiers) |
+| Sous-phase | Rattachement à une phase obligatoire. Créée avec **Saisir sans Jev** ou par Jev, son code est calculé par le serveur (numéro du chantier choisi, sinon de la phase, puis rang suivant libre) ; un code saisi déjà pris est refusé (« Le code 1.3 est déjà pris (1.3 · …) »). **Numérotation libre**, choisie par le directeur de projet (« 5.1 », « 4.2.1 », « C2.1 »…) : le numéro n'a plus à commencer par celui de la phase. Il doit être unique dans le projet (« Numéro … déjà utilisé par une autre sous-phase — modification annulée ») et ne contenir ni espace, ni « ; », ni « · » (« Le numéro ne peut contenir ni espace, ni « ; », ni « · ». »). Avertissement si elle sort de la période de sa phase. Changer sa phase est refusé si un chantier qui la cite n'a pas la nouvelle phase. Supprimer une sous-phase la retire des chantiers qui la citaient (le message précise de combien de chantiers) |
 | Chantier | Nom et responsable obligatoires ; code C1, C2… attribué automatiquement. Colonnes : n°, nom, responsable, statut, dépendances, phases, sous-phases, **début** et **fin** (voir ci-dessous) |
-| Jalon | Nom, phase et date prévue obligatoires ; code J01… automatique ; référence = date prévue par défaut |
+| Jalon | Nom, phase et date prévue obligatoires ; code J01… automatique ; référence = date prévue par défaut ; sans chantier, le jalon est « Transverse » |
 | Équipe | Nom unique (« L'équipe « X » existe déjà ») |
 | Rôle | Libellé unique (« Le rôle « X » existe déjà ») ; 4 niveaux : Gouvernance, Métiers, Maîtrise d'ouvrage, Maîtrise d'œuvre |
 | Personne | Prénom, e-mail valide et unique dans le projet, équipe obligatoires |
@@ -1054,7 +1156,7 @@ Les documents y arrivent de deux façons : par un dépôt manuel (voir 3.16.1), 
 
 ### 3.18.1 Chantiers : dates, phases, sous-phases et dépendances
 
-**Dates de début et de fin.** Chaque chantier a ses propres dates, saisies dans les colonnes « Début » et « Fin » (calendrier). Le Planning les utilise dans la vue « Tous les chantiers » : un chantier ne paraît plus durer jusqu'à la fin du projet. À l'import d'un projet, des dates absentes sont calculées : première date de début et dernière date de fin des sous-phases du chantier, sinon de ses phases, sinon du projet.
+**Dates de début et de fin.** Chaque chantier a ses propres dates, saisies dans les colonnes « Début » et « Fin » (calendrier). Le Planning les utilise dans la vue « Tous les chantiers » : un chantier ne paraît plus durer jusqu'à la fin du projet. À l'import d'un projet, des dates absentes sont calculées : première date de début et dernière date de fin des sous-phases du chantier, sinon de ses phases, sinon du projet. Un chantier créé sans dates, ou dont les phases changent alors qu'il n'a pas de dates, prend la période de ses phases.
 
 **Phases et sous-phases.** La colonne « phases » liste les phases auxquelles le chantier participe. La colonne « sous-phases » ouvre un sélecteur à cases limité aux sous-phases des phases cochées :
 
@@ -1112,9 +1214,11 @@ Un nouveau clic sur l'horloge rappelle « Demande déjà transmise à l'administ
 **Écrire un message**
 
 1. Saisissez votre question dans le champ « Écris à Jev… » (4 000 caractères au plus), ou cliquez sur une suggestion (« Résumer ce bloc », « Expliquer cette ligne », « D'où vient cette donnée ? »…).
-2. Le champ s'agrandit avec le texte, jusqu'à 8 lignes environ ; au-delà, il défile.
+2. Le champ s'agrandit avec le texte, jusqu'à 10 lignes environ ; au-delà, il défile. Vide, il reprend sa hauteur de départ.
 3. **Entrée** envoie le message ; **Maj+Entrée** va à la ligne. Le bouton **Envoyer** envoie aussi.
 4. Trois points animés indiquent que Jev réfléchit.
+
+Sous le champ, le lien **Saisir sans Jev** ouvre le formulaire de création (voir 3.5.4).
 
 ### 3.19.2 Comment Jev classe et traite une question
 
@@ -1146,7 +1250,7 @@ Une demande de modification n'est retenue que si Jev en est très sûr ; sinon, 
 
 ### 3.19.4 Faire modifier une donnée par Jev
 
-Jev peut **créer**, **modifier** ou **supprimer** un risque, un problème, une action ou une décision. Il ne modifie ni le Référentiel, ni les Comités et rapports, ni la Base de connaissance.
+Jev peut **créer**, **modifier** ou **supprimer** un risque, un problème, une action ou une décision. Depuis le 9 octobre 2026, il le fait aussi pour les **phases, sous-phases, chantiers, jalons et livrables**, pour le PMO seulement (sinon : « Le Référentiel (phases, sous-phases, chantiers, jalons, livrables) est modifiable par le PMO uniquement. »). Il ne modifie ni les autres objets du Référentiel (personnes, équipes…), ni les séances, ni les Comités et rapports, ni la Base de connaissance : pour ces objets, il répond « Je ne sais pas encore … » et oriente vers l'écran concerné.
 
 | Demande | Exemple |
 |---|---|
@@ -1154,6 +1258,11 @@ Jev peut **créer**, **modifier** ou **supprimer** un risque, un problème, une 
 | Changer un statut | « A-41 est terminée », « R03 est mitigé », « rouvrir P02 » |
 | Reporter une échéance | « reporter A-41 au 15/10 » |
 | Supprimer | « supprime l'action A-12 » |
+| Objet du Référentiel (PMO) | « crée la sous-phase Recette utilisateur dans la phase 4 », « supprime la phase 5. Ancrer le changement » |
+
+**Objets du Référentiel.** Jev retrouve l'objet visé par son code ou son nom (« 5 », « P5 », « 5. Ancrer le changement ») ; s'il en trouve plusieurs, il pose une question à choix. Le numéro d'une phase et le code d'une sous-phase sont calculés ; la phase d'un jalon est déduite de sa date ; un jalon « transverse » n'a pas de chantier ; un livrable sans code est désigné par son nom. La suppression d'un objet utilisé ailleurs est refusée d'emblée, avec les éléments qui l'utilisent. Après validation, le bouton **Ouvrir** mène à Info projet › Référentiel (à Pilotage › Livrables pour un livrable).
+
+**Références.** Citez un objet par son code tel qu'il est affiché (R02, A-41, D-005) : Jev le retrouve même si le projet le stocke sous une autre forme.
 
 **Questions à choix.** S'il manque une information, ou si une valeur est ambiguë (une personne, un chantier, « moyen à élevé »…), Jev pose une question à la fois, avec au plus 6 choix en pastilles, plus « Annuler la demande ». Cliquez sur une pastille, ou répondez librement. Une demande compte 8 questions au plus.
 
@@ -1168,9 +1277,9 @@ Jev peut **créer**, **modifier** ou **supprimer** un risque, un problème, une 
 2. Cliquez sur **Valider et enregistrer** (toast « Modifications enregistrées ») ou sur **Refuser** (« Proposition refusée »).
 3. Après validation, Jev confirme « Enregistré : R07. » avec un bouton **Ouvrir R07 · {onglet}** qui ouvre l'écran du Pilotage concerné.
 
-**Actions liées à un risque.** À la création d'un risque, chaque action de mitigation que vous citez devient une action liée, proposée dans un second récapitulatif « … à valider après le risque » : même chantier (le premier du risque), porteur du risque par défaut. Validez d'abord le risque, sinon : « Validez d'abord le risque : cette action lui est liée ».
+**Actions liées à un risque.** À la création d'un risque, chaque action de mitigation que vous citez devient une action liée, proposée dans un second récapitulatif « … à valider après le risque » : même chantier (le premier du risque), porteur du risque par défaut. Une action liée sans échéance reprend celle du risque (mention « (reprise du risque) ») ; cette copie est faite une seule fois : modifier ensuite l'échéance du risque ne change pas celle de l'action. Validez d'abord le risque, sinon : « Validez d'abord le risque : cette action lui est liée ».
 
-**Suppression.** Une suppression est définitive. Le récapitulatif affiche le champ « Retapez R06 pour confirmer » et le bouton rouge **Supprimer définitivement**, actif seulement quand le code saisi est juste. Jev confirme « Supprimé : R06. ».
+**Suppression.** Une suppression est définitive. Le récapitulatif affiche le champ « Retapez R06 pour confirmer » et le bouton rouge **Supprimer définitivement**, actif seulement quand le code saisi est juste (pour un livrable, son nom). Jev confirme « Supprimé : R06. ».
 
 **Droits.** La validation applique vos droits habituels : Jev ne peut pas faire ce que vous ne pouvez pas faire à la main. Pour un objet hors de votre périmètre, Jev répond « Je ne trouve pas … dans votre périmètre. » ; une fiche arbitrée reste en lecture seule.
 
@@ -1211,7 +1320,7 @@ Votre carte, en bas de la barre latérale, ouvre **Mon profil**. Le profil n'aff
 
 ### 3.21.1 La carte d'identité
 
-À gauche : votre photo (ou vos initiales), votre nom, votre profil principal (PMO projet, Administrateur, Responsable ou Lecteur), votre **Société** et votre **Équipe** (Client, AMOA ou Intégrateur), lues dans le Référentiel.
+À gauche : votre photo (ou vos initiales), votre nom, votre profil principal (PMO projet, Administrateur, Responsable ou Lecteur), votre **Société** et votre **Équipe** (Client, AMOA ou Intégrateur), lues dans le Référentiel. Tant que votre compte n'est pas chargé, la carte de la barre latérale reste neutre : aucune personne de démonstration ni mention « Sans profil » ne s'affiche.
 
 **Changer la photo**
 
@@ -1292,10 +1401,13 @@ Le Cockpit se tient à jour seul : une modification faite ailleurs apparaît san
 | Risques, problèmes, actions, décisions | Tous | Ses chantiers | — | — |
 | Risque à plusieurs chantiers | Oui | Si Responsable de chacun de ses chantiers | — | — |
 | Risque transverse (« Tous les chantiers ») | Oui | — | — | — |
-| Faire modifier une donnée par Jev | Comme à la main | Comme à la main | — | — |
+| Action à plusieurs chantiers ou transverse | Oui | Si Responsable de chacun de ses chantiers (transverse : —) | — | — |
+| Faire modifier une donnée par Jev, ou créer avec Saisir sans Jev | Comme à la main | Comme à la main | — | — |
 | Dates et % réel du planning | Tous | Son chantier | — | — |
 | Porteur et criticité | Oui | — | — | — |
-| Jalons, livrables, éléments de planning | Oui | — | — | — |
+| Jalons, livrables, éléments de planning (Référentiel, Saisir sans Jev, Jev) | Oui | — | — | — |
+| Créer une tâche pour soi | Oui | Oui | Oui | — |
+| Confier une tâche à une autre personne | Oui | Oui | — | — |
 | Baromètre | Oui | Responsable du chantier transverse | — | — |
 | Séances de comité (planifier, modifier, supprimer) | Oui | Si directeur de programme | Si directeur de programme | — |
 | Templates et rapports de comité | Oui | Oui | — | — |
@@ -1327,7 +1439,7 @@ Le Cockpit se tient à jour seul : une modification faite ailleurs apparaît san
 | Téléphone, pays, langue, fuseau horaire | Mon profil › Informations | Enregistrés pour votre compte |
 | Projet ouvert par défaut | Mon profil › Projet | Projet ouvert à l'arrivée dans le Cockpit |
 | Préférences de notification | Mon profil › Notifications | Enregistrées pour votre compte |
-| Ville et pays du projet | Référentiel › Projet (PMO) | Widgets Météo et Trafic |
+| Ville, code postal et pays du projet | Référentiel › Projet (PMO) | Widgets Météo et Trafic |
 | Fuseau horaire du projet | Référentiel › Projet (PMO) | Date du jour du projet |
 | Contenu de la fiche projet | Référentiel › Info projet (PMO) | Onglet Fiche projet |
 | Dates, phases, sous-phases et dépendances des chantiers | Référentiel › Chantiers (PMO) | Planning, plan de livraison, rapports, Jev |
@@ -1368,7 +1480,10 @@ Un document au contenu identique existe déjà : le message donne son nom et sa 
 La source externe ne répond pas, ou sa carte est désactivée dans la Console. Le widget affiche la dernière réponse valable quand elle a moins de 24 heures.
 
 **Le widget Trafic part de Paris.**
-Renseignez votre ville de résidence dans Mon profil, puis rechargez la page.
+Renseignez votre ville de résidence dans Mon profil : le widget se met à jour sans recharger la page.
+
+**La météo ou le trafic visent la mauvaise ville.**
+Une ville porte parfois le même nom ailleurs. Demandez au PMO de renseigner le **code postal** et le pays du projet dans Référentiel › Projet : la recherche passe d'abord par le code postal.
 
 **Jev répond qu'il ne trouve pas l'information.**
 Reformulez la question avec les mots de l'écran (« registre des risques », « fiche d'arbitrage »…). Pour une question sur une donnée précise, citez son code (R03, A-41, D-005). Pour un document, précisez son nom, la séance ou la date.
@@ -1377,7 +1492,7 @@ Reformulez la question avec les mots de l'écran (« registre des risques », «
 Il lui manque une information, ou la demande est ambiguë. Cliquez sur l'une des pastilles proposées, ou répondez librement. « Annuler la demande » abandonne la modification en cours.
 
 **Comment écrire un message de plusieurs lignes à Jev ?**
-Appuyez sur Maj+Entrée pour aller à la ligne ; Entrée envoie le message. Le champ s'agrandit jusqu'à 8 lignes environ.
+Appuyez sur Maj+Entrée pour aller à la ligne ; Entrée envoie le message. Le champ s'agrandit jusqu'à 10 lignes environ.
 
 **Je ne peux pas modifier l'avancement d'une phase.**
 Une phase qui a des sous-phases a un avancement calculé : la moyenne de ses sous-phases, pondérée par leur durée. Modifiez l'avancement des sous-phases.
@@ -1386,7 +1501,19 @@ Une phase qui a des sous-phases a un avancement calculé : la moyenne de ses sou
 Cette ligne montre le segment du chantier dans la phase, calculé à partir de ses sous-phases. Modifiez les sous-phases, ou les dates du chantier dans le Référentiel (PMO).
 
 **Comment rattacher un risque à plusieurs chantiers ?**
-Dites-le à Jev (« sur C1 et C3 », ou « sur tous les chantiers » pour un risque transverse, PMO), ou cochez les pastilles qu'il propose puis **Valider la sélection**.
+Dites-le à Jev (« sur C1 et C3 », ou « sur tous les chantiers » pour un risque transverse, PMO), ou cochez les pastilles qu'il propose puis **Valider la sélection**. Pour un risque existant, cliquez sur sa cellule Chantier dans le registre et cochez les chantiers.
+
+**Comment créer un élément sans dialoguer avec Jev ?**
+Ouvrez Jev, puis cliquez sur **Saisir sans Jev** sous le champ de saisie (voir 3.5.4).
+
+**Je ne vois plus le nom complet d'un chantier au survol de sa référence.**
+Le Cockpit n'affiche plus d'infobulles depuis le 10 octobre 2026. Les noms des chantiers figurent dans Info projet › Référentiel › Chantiers, et dans les listes de choix (« C1 · {nom} »).
+
+**Je ne trouve plus le bouton « Composer la fiche » dans Pilotage › Décisions.**
+Il a été retiré le 11 octobre 2026. Composez la fiche depuis Jev › **Saisir sans Jev** › **Fiche d'arbitrage** ; une fiche existante se corrige aussi directement dans Pilotage › Décisions.
+
+**Je ne peux pas choisir l'option recommandée d'une fiche d'arbitrage.**
+Elle est calculée : c'est l'option la mieux notée. Sans note, ou à égalité, elle affiche « À définir ».
 
 **Je ne peux pas modifier un risque que je vois.**
 Il concerne aussi un chantier dont vous n'êtes pas Responsable, ou il est transverse (réservé au PMO).
@@ -1413,7 +1540,7 @@ Après 30 minutes d'inactivité, la session se ferme. Reconnectez-vous : vous re
 
 ## Annexe A. Récapitulatif des règles de gestion
 
-Les références désignent les fichiers du code (dossier `backend/src` sauf mention contraire). Les numéros de ligne ont été relevés le 1er octobre 2026 et peuvent avoir bougé depuis ; les règles ajoutées le 8 octobre 2026 citent le fichier seul.
+Les références désignent les fichiers du code (dossier `backend/src` sauf mention contraire). Les numéros de ligne ont été relevés le 1er octobre 2026 et peuvent avoir bougé depuis ; les règles ajoutées les 8 et 12 octobre 2026 citent le fichier seul.
 
 | Règle | Description | Fonctionnalité | Référence dans le code |
 |---|---|---|---|
@@ -1444,6 +1571,14 @@ Les références désignent les fichiers du code (dossier `backend/src` sauf men
 | Fiche arbitrée | Lecture seule ; texte de la décision obligatoire | Décisions | `cockpit/pilotage/transactional.ts:209-235` |
 | Remplacement | La décision remplacée passe à « Remplacée » | Décisions | `cockpit/pilotage/transactional.ts:344-358` |
 | Grille d'arbitrage | 6 options et 20 critères au plus ; somme des poids attendue à 100 % | Décisions | `cockpit/pilotage/pilotage.controller.ts:22-42, 107-124` |
+| Fiche « barème commun » | Critères et poids communs à A et B, notes 1 à 4 et justifications par option ; score = Σ(poids × note) / Σ poids ; enregistrement refusé si la fiche est incomplète (intitulés, critère, noms, poids à 100 %, notes) | Décisions, Saisir sans Jev | `frontends/saisie-calc.js` ; `domain/arbitration.ts` |
+| Option recommandée | Option de meilleur score pondéré ; « À définir » sans note ou à égalité ; non modifiable | Décisions, rapports | `frontends/RISE Cockpit.dc.html` (`faReco`) ; `domain/arbitration.ts` |
+| Saisir sans Jev | Formulaire de création de 10 objets ; valeurs déduites : phase d'un jalon par sa date, responsable d'une phase, code d'une sous-phase calculé par le serveur ; décision « Transverse » refusée | Saisir sans Jev | `frontends/Saisie sans Jev.dc.html` ; `frontends/api.js` (`saisie`) ; `domain/workstream-links.ts` |
+| Actions issues d'un risque | Chantier réaligné sur ceux du risque à chaque modification, journalisé ; échéance du risque reprise une fois à la création | Actions | `cockpit/pilotage/transactional.ts` ; `domain/jev-cockpit-write.ts` |
+| Actions et tâches multi-chantiers | Action : un ou plusieurs chantiers ou transverse, droits comme un risque ; tâche : visible et modifiable par son auteur et son responsable, supprimable par l'auteur, confiée à autrui par un profil non Lecteur | Actions, Mes tâches | `cockpit/pilotage/transactional.ts` ; `cockpit/today/today.controller.ts` |
+| Chantier sans dates | Période de ses phases à la création ou au changement de ses phases ; élément sans période signalé « dates à renseigner » | Planning | `domain/workstream-links.ts` ; `frontends/api.js` |
+| Code postal du projet | Facultatif, 2 à 12 chiffres, lettres, espaces ou tirets ; géocodage de la météo et du trafic par le code postal, puis le nom, dans le pays du projet | Référentiel, Aujourd'hui | `cockpit/project/project.controller.ts` ; `frontends/api.js` (`geocode`) |
+| Niveaux du Planning des rapports | Phases, Phase > Sous-phase, Phase > Chantier > Sous-phase, Tous les chantiers, Un chantier ; tableau au-delà de 25 lignes ; statuts et période filtrent les lignes | Comités et rapports | `domain/report-components.ts` ; `domain/plan-levels.ts` ; `core/report-draw.ts` |
 | Baromètre | Répartition = 100 % ; mois postérieur au dernier relevé | Baromètre | `cockpit/pilotage/pilotage.controller.ts:249-388` |
 | Séances | Numéro = max + 1 ; transitions contrôlées | Comités | `cockpit/committees/committees.controller.ts:21-148` ; `domain/rules.ts:133-148` |
 | Rapport | Version vN par séance, Brouillon à la création, publié irréversible | Comités et rapports | `cockpit/committees/committees.controller.ts:151-190, 306-319` |
@@ -1460,13 +1595,14 @@ Les références désignent les fichiers du code (dossier `backend/src` sauf men
 | Données lues par Jev | Lecture seule, sous les droits de l'utilisateur ; une nouvelle requête par question | Jev | `admin/jev-cockpit-insight.service.ts` ; `domain/jev-cockpit-answers.ts` |
 | Documents lus par Jev | 3 documents visés au plus, 10 extraits cherchés, 5 gardés ; documents restreints selon les droits | Jev | `domain/jev-cockpit-answers.ts` ; `cockpit/documents/kb.service.ts` |
 | Réponses d'usage | Guide du Cockpit seul, 8 extraits cherchés, 4 gardés, seuil 0,58 | Jev | `domain/jev-rag.ts:25` ; `admin/guide-answer.service.ts` |
-| Modifications par Jev | Risques, problèmes, actions, décisions : création, modification, suppression (code à retaper) ; questions à choix (6 choix, 8 questions au plus) ; validation explicite, droits habituels | Jev | `domain/jev-cockpit-write.ts` ; `cockpit/assistant/jev-cockpit-write.service.ts` ; `cockpit/assistant/assistant.controller.ts` |
+| Modifications par Jev | Risques, problèmes, actions, décisions, et (PMO) phases, sous-phases, chantiers, jalons, livrables : création, modification, suppression (code, ou nom d'un livrable, à retaper ; objet utilisé : suppression refusée) ; questions à choix (6 choix, 8 questions au plus) ; validation explicite, droits habituels | Jev | `domain/jev-cockpit-write.ts` ; `cockpit/assistant/jev-cockpit-write.service.ts` ; `cockpit/assistant/assistant.controller.ts` |
 | Mémoire de Jev | Conversation par utilisateur et par projet ; 10 derniers échanges et résumé des plus anciens | Jev | `admin/jev-memory.service.ts` |
 | Message d'accueil | Une génération par compte, projet et jour ; faits limités aux chantiers visibles ; contrôle du texte ; message par règles en repli | Aujourd'hui | `domain/today-greeting.ts` ; `cockpit/today/today-greeting.service.ts` |
 | Versement d'un rapport | Dépôt dans la Base de connaissance (« Support de comité ») ; version suivante si déjà versé ; échec sans effet sur le téléchargement | Comités et rapports | `cockpit/committees/report-template.service.ts` |
 | Séance supprimée | PMO ou directeur de programme ; refusée si un rapport est rattaché | Comités | `frontends/api.js` (`sesDel`) ; `cockpit/committees/committees.controller.ts` |
 | Notifications | 50 plus récentes ; effacement annulable 5 s | Notifications | `cockpit/my-notifications.controller.ts:8-56` ; `frontends/Notifications Cockpit.dc.html` |
 | Préférences | Disposition, couleurs, prénom, ville, photo, notifications, téléphone, pays, langue, fuseau, projet par défaut | Préférences | `frontends/api.js` (`PREF_OF`, `setDefaultProject`) |
+| Aucune infobulle | Bulles d'aide retirées partout ; le texte reste lu par les lecteurs d'écran sur les boutons à icône | Tous les écrans | `frontends/sans-infobulles.js` |
 | Projet à l'arrivée | Projet par défaut s'il est ouvert au compte, sinon RISE s'il l'est, sinon le premier projet ouvert | Changer de projet | `frontends/api.js` (`arrive`) |
 | Mises à jour en direct | Chaque écriture annoncée ; le Cockpit relit le projet (jamais pendant une saisie ; au retour sur l'onglet s'il est masqué) ; ses propres écritures ignorées | Mises à jour en direct | `core/changes.ts` ; `frontends/api.js` (`liveOpen`) |
 
@@ -1538,11 +1674,20 @@ Ces points viennent de la lecture du code. Ils décrivent un écart entre le cod
 
 **Points relevés le 8 octobre 2026**
 
-48. **Suggestions et accueil de Jev** : certaines suggestions proposent des gestes que Jev ne sait pas faire (« Supprimer les actions terminées », « Décaler toutes mes tâches à vendredi », « Ajouter un verbatim », « Décaler un jalon ») : Jev ne modifie que les risques, problèmes, actions et décisions. De même, l'accueil du mode « Explication et action » dans Info projet annonce « Je peux modifier, ajouter, supprimer ou expliquer des données ».
+48. **Suggestions et accueil de Jev** : certaines suggestions proposent des gestes que Jev ne sait pas faire (« Supprimer les actions terminées », « Décaler toutes mes tâches à vendredi », « Ajouter un verbatim ») : Jev ne modifie que les risques, problèmes, actions et décisions, et, pour le PMO, les phases, sous-phases, chantiers, jalons et livrables (« Décaler un jalon » n'est donc possible que pour le PMO depuis le 9 octobre 2026). De même, l'accueil du mode « Explication et action » dans Info projet annonce « Je peux modifier, ajouter, supprimer ou expliquer des données ».
 49. **Plan de livraison** : son niveau par défaut est « Sous-phases », alors que celui du Planning est « Phases ».
 50. **Incohérence « Budget programme non renseigné »** : toujours émise par le serveur quand le budget programme existe sans être connu, alors qu'aucun écran ne permet plus de le renseigner (onglet Budget retiré).
 51. **Rapport rattaché à une séance** : le rattachement à la prochaine séance planifiée se fait en plus du versement dans la Base de connaissance ; sans séance, le message « Rapport non enregistré : template ou séance introuvable » peut laisser croire que le versement a échoué.
 52. **Liste des projets** : avec un seul projet, le menu « Projet » s'ouvre quand même sur une liste d'un élément.
+
+**Points relevés le 12 octobre 2026**
+
+53. ~~**Créer un template, étape 6** : les liens du récapitulatif portaient encore les lettres de l'ancienne numérotation, et l'étape 5 parlait du « format de l'étape B ».~~ Corrigé le 12/10/2026 : liens « Étape 1 › » à « Étape 5 › », « Voir l'étape 5 › », « format de l'étape 2 ».
+54. **Saisir sans Jev, risque** : la probabilité et l'impact se choisissent de 1 à 4 (Faible à Très forte), alors que le registre et Jev les notent de 1 à 5 ; la criticité du formulaire est calculée sur 16.
+55. **Saisir sans Jev, décision** : « Transverse » est proposé dans la liste des chantiers, puis refusé à l'enregistrement.
+56. **Saisir sans Jev, droits** : le lien est affiché à tout profil, Lecteur compris ; les objets du Référentiel (phases, sous-phases, chantiers, jalons, livrables) ne sont acceptés que du PMO, et le refus n'arrive qu'à l'enregistrement.
+57. **Statut « Brouillon »** : retiré du formulaire de création d'une décision, il reste proposé dans la liste de statuts du registre des décisions.
+58. **Infobulles retirées** : certains textes n'existaient qu'en infobulle (nom du chantier derrière sa référence, nom complet d'un libellé tronqué, code d'une couleur détectée à l'étape 2 de Créer un template) ; ils ne sont plus visibles sur l'écran concerné.
 
 ## Annexe C. Fonctionnalités non documentées
 

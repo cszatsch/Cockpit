@@ -806,3 +806,5 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
 - Pastille du compte (barre latérale) et autres usages du nom (11/10/2026) : neutres tant que GET /me/profile n'est pas
   arrivé (`meLoaded`, `meReady()`) ; le profil de démonstration (Julien Morel) ne s'affiche plus au chargement — seulement
   si l'API est injoignable (`_apiDown`). Recette `test/browser/avatar-console.e2e.ts`. (Correction livrée avec 1918a84.)
+- Utilisateurs (12/10/2026) : sous-titre de la page aligné sur l'attribution des chantiers dans « Modifier le compte »
+  (il renvoyait encore au Référentiel du Cockpit).

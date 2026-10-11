@@ -654,3 +654,5 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
   nom composé introuvable (« Massy Palaiseau »), essai de chacune de ses parties (`geocode`, api.js).
 - Référentiel › Projet (11/10/2026) : ligne « Code postal » après « Ville du projet » (`PROJECT_FIELD.postalCode`) ;
   Aujourd'hui › Météo et Trafic géocodés d'abord par le code postal du projet (`geocode`).
+- Créer un template (12/10/2026) : derniers renvois en lettres passés en chiffres (étape 6 « Étape 2 … 5 », « Voir l'étape 5 »,
+  « format de l'étape 2 » à l'étape 5).

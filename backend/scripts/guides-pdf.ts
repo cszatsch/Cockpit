@@ -13,8 +13,9 @@ import { chromium } from 'playwright';
 
 const ROOT = join(__dirname, '..', '..');
 const GUIDES = {
-  cockpit: { md: 'GUIDE UTILISATEUR - Cockpit.md', pdf: 'Guide utilisateur du Cockpit RISE.pdf', title: 'Guide utilisateur du Cockpit RISE' },
-  console: { md: 'GUIDE UTILISATEUR - Console.md', pdf: "Guide utilisateur de la Console d'administration RISE.pdf", title: "Guide utilisateur de la Console d'administration RISE" },
+  // Noms des fichiers remis par le commanditaire (12/10/2026) : « Cockpit » au lieu de « RISE ».
+  cockpit: { md: 'GUIDE UTILISATEUR - Cockpit.md', pdf: "Guide utilisateur de l'application Cockpit.pdf", title: "Guide utilisateur de l'application Cockpit" },
+  console: { md: 'GUIDE UTILISATEUR - Console.md', pdf: "Guide utilisateur de la Console d'administration Cockpit.pdf", title: "Guide utilisateur de la Console d'administration Cockpit" },
 } as const;
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
