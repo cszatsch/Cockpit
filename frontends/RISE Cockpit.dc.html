@@ -732,7 +732,6 @@ a{color:#1d8f86}a:hover{color:#146b64}
           <sc-if value="{{ faLite }}" hint-placeholder-val="{{ false }}"><span style="flex:none;white-space:nowrap;font-size:12px;color:#8a9aa6">· {{ faBy }}</span></sc-if>
           <span style="flex:1"></span>
           <!-- Fiche « barème commun » (maquette 11a, 10/10/2026) : ouverte dans la barre latérale de Jev (création ou édition). -->
-          <sc-if value="{{ faEditOn }}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{ faEdit }}" style="height:32px;padding:0 13px;border-radius:9px;border:1px solid #D5DDE3;background:#fff;color:#10233A;font:600 12.5px 'Plus Jakarta Sans',sans-serif;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:7px" style-hover="border-color:#10233A" style-focus-visible="outline:2px solid #146b64;outline-offset:2px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v16M14.5 7h3M14.5 12h5M14.5 17h2M4 7h5.5M4 12h4.5M4 17h5.5"></path></svg>{{ faEditL }}</button></sc-if>
           
           
         </div>
@@ -3635,8 +3634,7 @@ class Component extends DCLogic {
       rgCustom: custom, rgReset: () => set({ q: '', pr: '', inst: '', ch: '', st: 'Ouvertes', all: false }), rgEmpty: n === 0,
       rgMore: !custom && L.length > 5, rgMoreLbl: o.all ? 'Afficher uniquement les 5 plus prioritaires' : 'Afficher ' + extra + ' autre' + pl(extra) + ' fiche' + pl(extra) + ' ouverte' + pl(extra), rgToggleAll: () => set({ all: !o.all }),
       faRef: this._faRef, faId: F.id,
-      faEditOn: !!F.id && OPEN(F.st) && !!this._api, faEditL: this._api && this._api.ficheOf && this._api.ficheOf(F.id) ? 'Modifier la fiche' : 'Composer la fiche',
-      faEdit: () => this.setState(st => ({ assistant: true, ssjOn: false, faPanel: F.id, faN: (st.faN || 0) + 1 })), faSt: F.st, faSDot: 'width:7px;height:7px;border-radius:50%;flex:none;background:' + sDotC[F.st] + (F.st === 'À arbitrer' ? ';box-shadow:0 0 0 3px rgba(192,111,31,.16)' : ''),
+      faSt: F.st, faSDot: 'width:7px;height:7px;border-radius:50%;flex:none;background:' + sDotC[F.st] + (F.st === 'À arbitrer' ? ';box-shadow:0 0 0 3px rgba(192,111,31,.16)' : ''),
       faFull: full, faLite: !full, faMeta: F.ch + ' · ' + F.inst, faBy: 'Créée le ' + fr(F.crIso), faQ: F.t,
       faLitMsg: OPEN(F.st) ? 'La grille d\'analyse de cette fiche n\'est pas encore renseignée. Critères, options et recommandation s\'afficheront ici dès leur saisie.' : 'Arbitrage rendu le ' + fr(F.ddIso) + ' en ' + String(F.inst).toLowerCase() + '.',
       faSealOn: full && F.st === 'Arbitrée', faSealTip: 'Arbitrée le ' + fr(F.ddIso) + ' · ' + F.inst + ' · option ' + (F.opt || recOpt) + ' retenue', faSeal: (() => { if (!(full && F.st === 'Arbitrée')) return null; const h = React.createElement, L = F.opt || (/\b([AB])\b/.exec(recOpt) || [, 'B'])[1], dt = (fr(F.ddIso) || '').toUpperCase(), inst = String(F.inst || '').toUpperCase();

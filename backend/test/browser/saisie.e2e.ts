@@ -118,7 +118,7 @@ import { chromium, Page } from 'playwright';
   check('cycle de vie : « Annulée » choisie hors parcours', (await dr.getByRole('radio', { name: 'Annulée' }).getAttribute('aria-checked')) === 'true');
   await dr.getByRole('radio', { name: 'Annulée' }).click();
   await wait(200);
-  check('second clic : retour à « Brouillon »', (await dr.getByRole('radio', { name: 'Brouillon' }).getAttribute('aria-checked')) === 'true');
+  check('second clic : retour à « En instruction » (plus de Brouillon)', (await dr.getByRole('radio', { name: 'En instruction' }).getAttribute('aria-checked')) === 'true');
   await shot('7-decision-instance');
 
   // 6. Fiche d'arbitrage : chapitres Arbitrage et Contexte, puis « Composer la fiche » (détail : test/browser/fiche-arbitrage.e2e.ts).

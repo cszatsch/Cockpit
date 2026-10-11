@@ -169,7 +169,7 @@ const SSJ_IC = {
 const SSJ_G = { cal: 'M6.5 5h11A2.5 2.5 0 0120 7.5v10a2.5 2.5 0 01-2.5 2.5h-11A2.5 2.5 0 014 17.5v-10A2.5 2.5 0 016.5 5zM4 10h16M8.5 3v4M15.5 3v4', per: 'M12 12a4 4 0 100-8 4 4 0 000 8zM4.5 20.5c1.4-3.6 4.2-5.5 7.5-5.5s6.1 1.9 7.5 5.5', chev: 'M7 10l5 5 5-5' };
 const SSJ_ST = [['À faire', '#8a9aa6'], ['En cours', '#1f9a8a'], ['Terminée', '#10233a'], ['Bloquée', '#c2413b']];
 const SSJ_PR = [['Critique', '#c2413b'], ['Haute', '#e08a1e'], ['Moyenne', '#1f9a8a'], ['Basse', '#8a9aa6']];
-const SSJ_LIFE = ['Brouillon', 'En instruction', 'À arbitrer', 'Arbitrée'], SSJ_OFF = ['Annulée', 'Remplacée'];
+const SSJ_LIFE = ['En instruction', 'À arbitrer', 'Arbitrée'], SSJ_OFF = ['Annulée', 'Remplacée'];
 const SSJ_SCL = ['Faible', 'Modérée', 'Forte', 'Très forte'];
 const PER = 'Choisir une personne';
 // Champs par objet : k = clé de la valeur, t = type (text, long, date, range, sel, per, multi, scale, status, prio, life),
@@ -187,7 +187,7 @@ const SSJ_F = {
   action: [{ k: 'n', l: "Intitulé de l'action", t: 'text', ph: 'Ex. Relancer le fournisseur', r: 1 }, { k: 'src', l: 'Rattachée à', t: 'sel', src: 'sources', ph: 'Risque, décision ou jalon', r: 1 }, { k: 'wss', l: 'Chantier', t: 'multi', src: 'wssT', ph: 'Ajouter', r: 1 }, { k: 'owner', l: 'Responsable', t: 'per', ph: PER, r: 1, def: 'me' }, { k: 'due', l: 'Échéance', t: 'date', r: 1 }, { k: 'st', l: 'Statut', t: 'status', def: 1 }],
   tache: [{ k: 'n', l: 'Intitulé de la tâche', t: 'text', ph: 'Ex. Rédiger le cahier de recette', r: 1 }, { k: 'owner', l: 'Responsable', t: 'per', ph: PER, r: 1 }, { k: 'act', l: 'Rattachée à', t: 'sel', src: 'actions', ph: 'Choisir une action' }, { k: 'wss', l: 'Chantier', t: 'multi', src: 'wssT', ph: 'Ajouter', r: 1 }, { k: 'due', l: 'Échéance', t: 'date' }, { k: 'st', l: 'Statut', t: 'status', def: 0 }],
   // Décision : le serveur la rattache à un chantier ; « Transverse » reste proposé (maquette) et est refusé à l'enregistrement.
-  decision: [{ k: 'n', l: 'Point de décision', t: 'text', ph: 'Ex. Choisir une solution de remplacement CRM', r: 1 }, { k: 'prio', l: 'Priorité', t: 'prio', def: 1 }, { k: 'st', l: 'Statut', t: 'life', def: 'Brouillon', r: 1 }, { k: 'ws', l: 'Chantier', t: 'sel', src: 'wssT', ph: 'Choisir un chantier' }, { k: 'body', l: 'Instance de décision', t: 'sel', src: 'bodies', ph: 'Choisir une instance', r: 1 }, { k: 'dd', l: 'Date de décision', t: 'date' }, { k: 'opt', l: 'Option choisie', t: 'text', ph: 'Ex. B', max: 3 }],
+  decision: [{ k: 'n', l: 'Point de décision', t: 'text', ph: 'Ex. Choisir une solution de remplacement CRM', r: 1 }, { k: 'prio', l: 'Priorité', t: 'prio', def: 1 }, { k: 'st', l: 'Statut', t: 'life', def: 'En instruction', r: 1 }, { k: 'ws', l: 'Chantier', t: 'sel', src: 'wssT', ph: 'Choisir un chantier' }, { k: 'body', l: 'Instance de décision', t: 'sel', src: 'bodies', ph: 'Choisir une instance', r: 1 }, { k: 'dd', l: 'Date de décision', t: 'date' }, { k: 'opt', l: 'Option choisie', t: 'text', ph: 'Ex. B', max: 3 }],
   arbitrage: [{ k: 'n', l: "Intitulé de l'arbitrage", t: 'text', ph: 'Ex. Solution de remplacement CRM', r: 1 }, { k: 'dec', l: 'Décision concernée', t: 'sel', src: 'decisions', ph: 'Choisir une décision', r: 1 }, { k: 'by', l: 'Préparée par', t: 'per', ph: PER }, { k: 'ctx', l: 'Contexte', t: 'long', ph: 'Enjeu, contraintes, éléments déjà connus' }],
 };
 // Chapitres des objets de suivi (rangs des champs de SSJ_F) ; les objets de structure suivent le « Parcours ».
@@ -196,7 +196,7 @@ const SSJ_CHAP = {
   risque: [['Risque', [0, 1]], ['Évaluation', [2, 3]], ['Traitement', [4, 5, 6]]],
   action: [['Action', [0]], ['Rattachement', [1, 2]], ['Pilotage', [3, 4, 5]]],
   tache: [['Tâche', [0]], ['Rattachement', [2, 3]], ['Pilotage', [1, 4, 5]]],
-  decision: [['Décision', [0, 1]], ['Instance', [2, 3, 4]], ['Issue', [5, 6]]],
+  decision: [['Décision', [0, 1]], ['Détails', [2, 3, 4]], ['Issue', [5, 6]]],
   // Fiche d'arbitrage : intitulé, décision, préparée par, contexte ; puis la fiche « barème commun » (maquette 11a), à la place du formulaire.
   arbitrage: [['Arbitrage', [0, 1]], ['Contexte', [2, 3]]],
 };

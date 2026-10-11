@@ -634,3 +634,11 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
   composants qui en ont (Planning, Livrables) ; le Planning a désormais une période (catalogue du serveur) et la pastille
   « Date du jour » ; `api.js` envoie `statuses` et toujours le niveau du Planning.
 
+- Formulaire Décision de Jev (11/10/2026) : la deuxième section « Instance » s’appelle « Détails » (statut, chantier, instance de
+  décision) ; `SSJ_CHAP.decision` dans `Saisie sans Jev.dc.html`.
+- Formulaire Décision de Jev (11/10/2026) : statut « Brouillon » retiré du parcours ; une décision saisie commence « En instruction »
+  (`SSJ_LIFE`, valeur par défaut du champ Statut).
+- Pilotage › Décisions (11/10/2026) : bouton « Composer la fiche » / « Modifier la fiche » retiré de l'en-tête de la fiche
+  d'arbitrage ; la fiche se compose depuis Jev › Saisir sans Jev › Fiche d'arbitrage.
+- Composant « Cycle de vie » (11/10/2026) : colonnes et trait au nombre d'étapes (`gridSt`, `trackSt`), le parcours n'en ayant plus
+  que trois.
