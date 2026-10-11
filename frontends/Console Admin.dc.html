@@ -764,8 +764,8 @@ const PROFS = [
   { id: 'super', n: 'Super Admin', d: 'Tous les droits de la Console, dont la modification du menu IA et des administrateurs.', lv: { auj: 1, pil: 1, com: 1, base: 1, bud: 1, ben: 1 } },
   { id: 'admin', n: 'Admin', d: 'Gère les comptes et consulte le journal d’audit. Menu IA en lecture seule.', lv: { auj: 1, pil: 1, com: 1, base: 1, bud: 1, ben: 1 } },
   { id: 'pmo', n: 'PMO', d: 'Tous les droits sur le référentiel et le transactionnel, sur tous les chantiers.', lv: { auj: 4, pil: 4, com: 4, base: 4, bud: 4, ben: 4 } },
-  { id: 'resp', n: 'Responsable', d: 'Gère le transactionnel de ses chantiers. Les chantiers sont choisis par le PMO dans le Référentiel.', lv: { auj: 1, pil: 4, com: 2, base: 2, bud: 0, ben: 0 } },
-  { id: 'lec', n: 'Lecteur', d: 'Consulte le transactionnel de ses chantiers. Les chantiers sont choisis par le PMO dans le Référentiel.', lv: { auj: 1, pil: 1, com: 1, base: 1, bud: 0, ben: 0 } }];
+  { id: 'resp', n: 'Responsable', d: 'Gère le transactionnel de ses chantiers. Les chantiers sont attribués dans la Console, projet par projet.', lv: { auj: 1, pil: 4, com: 2, base: 2, bud: 0, ben: 0 } },
+  { id: 'lec', n: 'Lecteur', d: 'Consulte le transactionnel de ses chantiers. Les chantiers sont attribués dans la Console, projet par projet.', lv: { auj: 1, pil: 1, com: 1, base: 1, bud: 0, ben: 0 } }];
 const USERS = [
   ['u1', 'Julien Morel', 'julien.morel@example.com', 'admin', 'actif', 0, 'RISE ATLAS HORIZON NOVA', '09:12'],
   ['u2', 'Robin Lefèvre', 'robin.lefevre@example.com', 'pmo', 'actif', 0, 'RISE ATLAS', '08:47'],
@@ -1291,9 +1291,15 @@ class Component extends DCLogic {
   habOf(u) { const S0 = this.state; if (S0.apiWs) { if (!u.hab) return null; const WS = {}; const C = {}; Object.values(S0.apiWs).forEach(l => l.forEach(w => { WS[w.id] = w.n; C[w.id] = w.code || w.id; })); const resp = [], lec = []; Object.values(u.hab).forEach(h => Object.entries(h.ws || {}).forEach(([w, k]) => (k === 'resp' ? resp : lec).push(w))); return { team: '', resp: [...new Set(resp)], lec: [...new Set(lec)].filter(w => !resp.includes(w)), WS, C }; }
     const D = this.state.rd; if (!D || !D.habilitations) return null; const r = (D.model.PERSON.rows || []).find(x => x.cells[6] === u.e); if (!r) return null; const H = D.habilitations.filter(x => x.personId === r.id), T = {}; (D.model.TEAM.rows || []).forEach(t => T[t.id] = t.cells[1]); const WS = {}; (D.model.WORKSTREAM.rows || []).forEach(w => WS[w.id] = w.cells[1]);
     const resp = H.filter(x => x.profile === 'RESPONSABLE').map(x => x.wsId); return { team: T[r.teamId] || '', resp, lec: H.filter(x => x.profile === 'LECTEUR').map(x => x.wsId).filter(w => !resp.includes(w)), WS }; }
+  // Habilitations d'un compte sur un projet (serveur, 11/10/2026) : PMO, ou chantiers en Responsable puis Lecteur.
+  // Remplace l'ancienne lecture « un seul profil » : un administrateur garde ses profils projet par projet.
+  wsOfProj(u, code) { const h = (u.hab || {})[code]; if (!h) return { pmo: false, ws: [] }; const WS = {}, C = {};
+    Object.values(this.state.apiWs || {}).forEach(l => l.forEach(w => { WS[w.id] = w.n; C[w.id] = w.code || w.id; }));
+    const E = Object.entries(h.ws || {});
+    return { pmo: !!h.pmo, ws: [...E.filter(([, k]) => k === 'resp').map(([w]) => this.usChip(w, 'r', WS, C)), ...E.filter(([, k]) => k !== 'resp').map(([w]) => this.usChip(w, 'l', WS, C))] }; }
   usChip(id, kind, WS, C) { return { c: (C && C[id]) || id, n: WS[id] || id, r: kind === 'r' ? 'Responsable' : 'Lecteur', t: (kind === 'r' ? 'Responsable · ' : 'Lecteur · ') + (WS[id] || id), st: 'display:inline-flex;align-items:center;height:20px;padding:0 6px;border-radius:5px;font-size:10.5px;font-weight:800;' + (kind === 'r' ? 'background:#10233a;color:#fff' : 'background:#fff;color:#146b64;box-shadow:inset 0 0 0 1px #9fd8d1') }; }
-  usRow(u) { const S = this.state, hb = this.habOf(u), glob = u.p === 'admin' || u.p === 'pmo', PC = { admin: ['#e8f0fb', '#1f5fb8'], pmo: ['#e3f4f2', '#146b64'], resp: ['#e7ecf1', '#10233a'], lec: ['#eef2f1', '#43586a'] }[u.p] || ['#eef2f1', '#43586a'];
-    return { pPill: 'display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:999px;font-size:11.5px;font-weight:700;white-space:nowrap;background:' + PC[0] + ';color:' + PC[1], allWs: glob, ws: glob || !hb ? [] : [...hb.resp.map(w => this.usChip(w, 'r', hb.WS, hb.C)), ...hb.lec.map(w => this.usChip(w, 'l', hb.WS, hb.C))],
+  usRow(u) { const S = this.state, hb = this.habOf(u), api = !!S.apiWs, glob = api ? Object.values(u.hab || {}).some(h => h.pmo) : u.p === 'admin' || u.p === 'pmo', PC = { admin: ['#e8f0fb', '#1f5fb8'], pmo: ['#e3f4f2', '#146b64'], resp: ['#e7ecf1', '#10233a'], lec: ['#eef2f1', '#43586a'] }[u.p] || ['#eef2f1', '#43586a'];
+    return { pPill: 'display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:999px;font-size:11.5px;font-weight:700;white-space:nowrap;background:' + PC[0] + ';color:' + PC[1], allWs: glob, ws: api ? (u.pr || []).flatMap(code => { const h = this.wsOfProj(u, code); return h.pmo ? [] : h.ws; }) : glob || !hb ? [] : [...hb.resp.map(w => this.usChip(w, 'r', hb.WS, hb.C)), ...hb.lec.map(w => this.usChip(w, 'l', hb.WS, hb.C))],
       open: () => this.setState({ ucId: u.id }), selSt: S.ucId === u.id ? 'background:#eef6f4;box-shadow:inset 3px 0 0 #1d8f86' : '' }; }
   usExtra(list) { const S = this.state, FC = { admin: '#3b7dd8', pmo: '#1d8f86', resp: '#10233a', lec: '#8a9aa6' }, q = S.uq.trim().toLowerCase(), pool = S.users.filter(u => (!S.uStale || (u.s === 'actif' && u.ll > 14)) && (S.uSt === 'tous' || u.s === S.uSt) && (S.uPj === 'tous' || u.pr.includes(S.uPj)) && (!q || (u.n + ' ' + u.e).toLowerCase().includes(q))), cnt = k => pool.filter(u => hasProf(u, k)).length;
     const inv = S.users.filter(u => u.s === 'invité'), stale = S.users.filter(u => u.s === 'actif' && u.ll > 14), att = [];
@@ -1350,11 +1356,16 @@ class Component extends DCLogic {
   }
   // Démonstration sans serveur : l'e-mail du référentiel remplace celui du compte.
   applyRefMail(id) { const u = this.uById(id); if (!u || !u.refMail) return; const e = u.refMail; this.setState(s => ({ users: s.users.map(x => (x.id === id ? { ...x, e, refMail: null } : x)), form: s.dlg && s.dlg.id === id ? { ...s.form, e } : s.form })); this.toast('E-mail mis à jour : ' + e); }
-  prGroups(u, prs) { const hb = this.habOf(u), glob = u.p === 'admin' || u.p === 'pmo', NM = PROJ_NAMES;
-    return (prs || []).map(code => { const ws = !glob && code === 'RISE' && hb ? [...hb.resp.map(w => this.usChip(w, 'r', hb.WS, hb.C)), ...hb.lec.map(w => this.usChip(w, 'l', hb.WS, hb.C))] : [];
-      const note = glob || !ws.length; return { code, sub: NM[code] || '', ws, note,
-        noteL: glob ? (u.p === 'admin' ? 'Lecture seule sur tous les chantiers.' : 'Tous les droits sur tous les chantiers.') : code === 'RISE' ? 'Aucun chantier : le PMO doit en attribuer un dans le Référentiel.' : 'Aucun chantier attribué pour l’instant dans le Référentiel de ' + code + '.',
-        noteSt: 'padding:10px 12px;border-top:1px solid #eef3f2;font-size:12.5px;' + (glob ? 'color:#43586a' : 'color:#9a5a0c;background:#fffaf1') }; }); }
+  prGroups(u, prs) { const hb = this.habOf(u), NM = PROJ_NAMES, api = !!this.state.apiWs;
+    return (prs || []).map(code => {
+      // Données réelles : habilitations du projet (PMO ou chantiers) ; démonstration sans serveur : profil unique.
+      const h = api ? this.wsOfProj(u, code) : { pmo: u.p === 'admin' || u.p === 'pmo', ws: code === 'RISE' && hb ? [...hb.resp.map(w => this.usChip(w, 'r', hb.WS, hb.C)), ...hb.lec.map(w => this.usChip(w, 'l', hb.WS, hb.C))] : [] };
+      const glob = h.pmo, ws = glob ? [] : h.ws, note = glob || !ws.length, ro = !glob && !ws.length && !!u.adm;
+      const noteL = glob ? (api ? 'PMO : tous les droits sur tous les chantiers.' : u.p === 'admin' ? 'Lecture seule sur tous les chantiers.' : 'Tous les droits sur tous les chantiers.')
+        : ro ? 'Aucun chantier attribué : lecture seule sur les données du projet (administrateur de la plateforme).'
+        : 'Aucun chantier attribué pour l’instant sur ' + code + ' : à attribuer avec « Modifier le compte ».';
+      return { code, sub: NM[code] || '', ws, note, noteL,
+        noteSt: 'padding:10px 12px;border-top:1px solid #eef3f2;font-size:12.5px;' + (glob || ro ? 'color:#43586a' : 'color:#9a5a0c;background:#fffaf1') }; }); }
   ucVals() { const S = this.state, u = S.ucId && S.sec === 'users' ? this.uById(S.ucId) : null; if (!u) return { on: false };
     const hb = this.habOf(u), glob = u.p === 'admin' || u.p === 'pmo', t = u.s === 'actif' ? 'ok' : u.s === 'invité' ? 'info' : 'neu';
     const fresh = u.s !== 'actif' ? '#c3d0cd' : u.ll <= 7 ? '#1d8f86' : u.ll <= 14 ? '#e39a2d' : '#c2473b';
@@ -1364,9 +1375,9 @@ class Component extends DCLogic {
       av: 'width:54px;height:54px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:17px;font-weight:800;color:#fff;background:' + (u.s === 'suspendu' ? '#a9b7bf' : u.av),
       stL: { actif: 'Actif', 'invité': 'Invité', suspendu: 'Suspendu' }[u.s], pill: pill(t), dot: dot(t), fDot: 'width:8px;height:8px;border-radius:50%;background:' + fresh,
       last: u.s === 'invité' ? (u.inv === 0 ? 'Invité aujourd’hui' : 'Invité il y a ' + u.inv + ' j') : u.ll === 0 ? 'Connecté aujourd’hui' + (u.lt ? ' à ' + u.lt : '') : u.ll === 1 ? 'Connecté hier' : 'Dernière connexion il y a ' + u.ll + ' j',
-      prof: PROFS.map(p => { const on = u.p === p.id; return { l: p.n, d: p.d.split('.')[0] + '.', st: 'display:flex;flex-direction:column;gap:3px;padding:10px 12px;border-radius:11px;' + (on ? 'box-shadow:inset 0 0 0 1.5px #10233a;background:#f5f8fa;color:#10233a' : 'box-shadow:inset 0 0 0 1px #e6eeec;color:#8a9aa6;opacity:.75') }; }),
+      prof: PROFS.map(p => { const held = new Set([...(u.profs || []), u.p, ...(u.sup ? ['super'] : [])]), on = held.has(p.id) && !(p.id === 'admin' && held.has('super')); return { l: p.n, d: p.d.split('.')[0] + '.', st: 'display:flex;flex-direction:column;gap:3px;padding:10px 12px;border-radius:11px;' + (on ? 'box-shadow:inset 0 0 0 1.5px #10233a;background:#f5f8fa;color:#10233a' : 'box-shadow:inset 0 0 0 1px #e6eeec;color:#8a9aa6;opacity:.75') }; }),
       ws, allWs: glob, allL: u.p === 'admin' ? 'Lecture seule sur tous les chantiers, et accès à cette plateforme.' : 'Tous les droits sur tous les chantiers.', noWs: !glob && !!hb && !ws.length,
-      wsHelp: glob ? 'Profil global : il s’applique à tous les chantiers de chaque projet.' : 'Les chantiers sont choisis par le PMO dans le Référentiel de chaque projet.', pr: u.pr, prN: u.pr.length + ' projet' + (u.pr.length > 1 ? 's' : ''), groups: this.prGroups(u, u.pr),
+      wsHelp: S.apiWs ? (u.adm ? 'Administrateur de la plateforme : lecture seule sur les données de tous les projets, en plus de ces profils. ' : '') + 'Profils attribués projet par projet avec « Modifier le compte ».' : glob ? 'Profil global : il s’applique à tous les chantiers de chaque projet.' : 'Les chantiers sont choisis par le PMO dans le Référentiel de chaque projet.', pr: u.pr, prN: u.pr.length + ' projet' + (u.pr.length > 1 ? 's' : ''), groups: this.prGroups(u, u.pr),
       edit: () => this.openUser(u), hasA: !!a, aL: a ? a[0] : '', a: a ? a[1] : null, aSt: 'height:38px;padding:0 14px;border-radius:10px;border:0;font:inherit;font-weight:700;font-size:12.5px;cursor:pointer;white-space:nowrap;' + (a && a[2] ? 'background:#fbe4e1;color:#a2352a' : 'background:#e6f4f2;color:#146b64'),
       log: () => this.setState({ ucId: null }, () => this.go('admins', () => this.setState({ adTab: 'audit', aq: u.n, aSev: 'tous' }))) };
   }

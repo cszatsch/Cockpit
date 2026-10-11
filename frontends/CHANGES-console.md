@@ -790,3 +790,8 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
 - Analyse des temps de réponse (11/10/2026) : catégories des traitements hors questions à Jev (rédaction des rapports,
   rôles des formes, initialisation projet, message d'accueil, notifications, dépôt de document, indexation du guide,
   revectorisation), avec leurs données de démonstration ; toutes les fonctions d'IA sont désormais mesurées.
+- Utilisateurs (11/10/2026) : fiche latérale et liste lues dans les habilitations du serveur, projet par projet
+  (`wsOfProj`) ; un administrateur garde ses profils projet (ex. Lecteur de C1 sur PMS) au lieu de « Lecture seule sur
+  tous les chantiers » ; chantiers affichés pour tous les projets (plus seulement RISE) ; tuiles de profil : tous les
+  profils détenus surlignés (Admin et Lecteur) ; « tous les chantiers » réservé au PMO ; textes d'aide alignés sur
+  l'attribution dans la Console (« Modifier le compte ») au lieu du Référentiel.
