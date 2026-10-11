@@ -3062,13 +3062,13 @@ class Component extends DCLogic {
       const phShow = (r.kind === 'sp' && (cfg.lvl === 'phsp' || cfg.lvl === 'sp' || cfg.lvl === 'phchsp') && prevPh === r.ph) || (r.segPh && prevPh === r.segPh) ? '' : mkPh; if (r.kind === 'ph') prevPh = r.id; else if (r.kind === 'sp') prevPh = r.ph;
       const lcD = r.lc ? DD(r.lc, r.end) : null, lpD = r.lp ? DD(r.lp, r.end) : null, done = r.status === 'done';
       const cal = (title, f) => e => { if (r.segOf) { e.stopPropagation(); this.showToast('Dates du chantier dans cette phase : calculées à partir de ses sous-phases. Modifiez les sous-phases ou le chantier.'); return; } if (!this.can('editDates', r)) { e.stopPropagation(); this.showToast('Seul le PMO peut modifier ces dates ; le Responsable d’un chantier modifie celles de son chantier'); return; } this.openPop(e, { type: 'date', title: title + ' · ' + (r.code || r.id), iso: r[f], save: v => this.edit('pl', r.id, f, v) }); };
-      // Suivi d'avancement (11/10/2026) : « Tous les chantiers » n'a pas de colonne Phase renseignée ; phase, sous-phase et
+      // Suivi d'avancement (11/10/2026) : « Tous les chantiers » et « Un chantier » n'ont pas de colonne Phase renseignée ; phase, sous-phase et
       // chantier présentés comme dans le planning (numéro de phase foncé, code de sous-phase gris, pastille colorée du chantier).
-      const phTxt = cfg.lvl === 'ch' ? '' : phShow, phRef = r.kind === 'ph' ? r : PH.find(p => p.id === (r.kind === 'sp' ? r.ph : r.segPh)), phC = phTxt && phRef ? String(phRef.code || '') : '';
+      const noPh = cfg.lvl === 'ch' || cfg.lvl === 'one', phTxt = noPh ? '' : phShow, phRef = r.kind === 'ph' ? r : PH.find(p => p.id === (r.kind === 'sp' ? r.ph : r.segPh)), phC = phTxt && phRef ? String(phRef.code || '') : '';
       const chHue = r.kind === 'ch' ? hueOf(r) : null, dash = 'color:#c3cfcc';
       const cellSt = 'display:flex;align-items:center;gap:7px;min-width:0;';
       const nmSt = (on, w) => 'min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' + (on ? 'font-weight:' + w + ';color:' + (done ? mute : ink) : dash);
-      TR.push({ ph: phTxt || (cfg.lvl === 'ch' ? '—' : ''), sp: r.kind === 'sp' ? r.code + ' ' + r.n : '—', ch: r.kind === 'ch' ? r.n : '—',
+      TR.push({ ph: phTxt || (noPh ? '—' : ''), sp: r.kind === 'sp' ? r.code + ' ' + r.n : '—', ch: r.kind === 'ch' ? r.n : '—',
         phC, phCSt: phC ? 'flex:none;min-width:20px;height:20px;padding:0 5px;box-sizing:border-box;border-radius:6px;display:inline-grid;place-items:center;font-size:10.5px;font-weight:800;font-variant-numeric:tabular-nums;color:#fff;background:' + (done ? '#a7b6c1' : ink) : 'display:none',
         phNSt: nmSt(!!phTxt, 700) + (phTxt ? '' : ';' + dash),
         spC: r.kind === 'sp' ? r.code : '', spN: r.kind === 'sp' ? r.n : '—', spCSt: r.kind === 'sp' ? 'flex:none;min-width:22px;font-size:10.5px;font-weight:700;font-variant-numeric:tabular-nums;color:#9aa9b3' : 'display:none', spNSt: nmSt(r.kind === 'sp', 500),

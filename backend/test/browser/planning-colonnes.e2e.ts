@@ -44,6 +44,7 @@ import { chromium, Page } from 'playwright';
   const o = await read(p);
   check('Un chantier : colonnes Phase, Chantier, Sous-phase', o.heads.join('|') === 'PHASE|CHANTIER|SOUS-PHASE', o.heads);
   check('… le chantier dans la 2e colonne', o.cells.some((c) => !empty(c[1]) && empty(c[2])), o.cells.slice(0, 4));
+  check('Un chantier : colonne Phase non renseignée', o.cells.length > 0 && o.cells.every((c) => empty(c[0])), o.cells.slice(0, 3));
   // Étiquettes des barres jamais coupées : chacune tient dans la zone du graphique, pour chaque chantier en vue « Un chantier ».
   const clipped = () => p.evaluate(() => Array.from(document.querySelectorAll('[data-bar-lab]')).filter((l) => {
     const e = l as HTMLElement; if (!e.offsetParent || !e.innerText.trim()) return false;

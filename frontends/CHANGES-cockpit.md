@@ -628,4 +628,5 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 - Étape « Ordre et données » : le PÉRIMÈTRE du Planning propose les niveaux de l'écran Planning (`PLAN_LEVELS`, `planLevel`) ;
   « Un chantier » fait choisir le chantier dans la CIBLE ; liste du périmètre propre à chaque composant (`it.perims`). Plus de
   pastille « Sous-phases » (catalogue du serveur). `api.js` (`tplBody`) envoie `level` et n'envoie plus « subphases ».
-
+- Suivi d'avancement (11/10/2026) : « Un chantier » ne renseigne plus la colonne Phase non plus (`noPh`), comme « Tous les
+  chantiers ».
