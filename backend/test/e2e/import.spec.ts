@@ -142,8 +142,13 @@ describe('Étape 9 — import Excel du Référentiel (§ 13.9)', () => {
   });
 
   it('mode réel : crée le référentiel, les habilitations Responsable et l’historique (origine IMPORT)', async () => {
-    const r = await post(await buildWorkbook(validAtlas())).expect(200);
+    // Ville et code postal du site (11/10/2026) : lignes facultatives de 05 Projet ; code postal invalide refusé.
+    const bad = validAtlas() as any; bad.project['Code postal'] = '91 120 !';
+    expect((await post(await buildWorkbook(bad), '?dryRun=true').expect(200)).body.errors).toEqual([expect.objectContaining({ sheet: '05 Projet', message: 'Code postal « 91 120 ! » invalide' })]);
+    const f = validAtlas() as any; f.project['Ville du projet'] = 'Palaiseau'; f.project['Code postal'] = '91120';
+    const r = await post(await buildWorkbook(f)).expect(200);
     expect(r.body.imported).toBe(true);
+    expect(await t.db.project.findUniqueOrThrow({ where: { id: 'ATLAS' } })).toMatchObject({ city: 'Palaiseau', postalCode: '91120' });
     const ws = await t.db.workstream.findMany({ where: { projectId: 'ATLAS' } });
     expect(ws.map((w) => w.code)).toEqual(['C1']);
     // Rattachements du chantier et Info projet (06/10/2026).

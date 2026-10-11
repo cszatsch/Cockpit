@@ -63,6 +63,8 @@ export interface ImportPlan {
     name: string;
     objective: string | null;
     country: string;
+    /** Ville et code postal du site (11/10/2026, lignes facultatives de 05 Projet). */ city: string | null;
+    postalCode: string | null;
     startDate: string;
     targetEndDate: string;
     timezone: string;
@@ -302,6 +304,9 @@ export function checkWorkbook(wb: ParsedWorkbook): CheckResult {
       err('05 Projet', f('Fuseau horaire')?.row ?? null, 'D', `Fuseau horaire « ${tz} » invalide`);
     }
   }
+  // Code postal (11/10/2026) : facultatif ; chiffres, lettres, espace ou tiret.
+  const postal = pv('Code postal');
+  if (postal && !/^[A-Za-z0-9 -]{2,12}$/.test(postal)) err('05 Projet', f('Code postal')?.row ?? null, 'D', `Code postal « ${postal} » invalide`);
   const statusLabel = pv('Statut');
   const status = statusLabel ? PROJECT_STATUS[normKey(statusLabel)] : 'PREPARATION';
   if (statusLabel && !status) err('05 Projet', f('Statut')?.row ?? null, 'D', `Statut « ${statusLabel} » inconnu`);
@@ -318,6 +323,8 @@ export function checkWorkbook(wb: ParsedWorkbook): CheckResult {
     name: pv('Nom du projet') ?? '',
     objective: pv('Objectifs'),
     country: pv('Pays') ?? '',
+    city: pv('Ville du projet'),
+    postalCode: postal,
     startDate: start ?? '',
     targetEndDate: end ?? '',
     timezone: tz ?? 'Europe/Paris',
@@ -650,6 +657,8 @@ export async function commitPlan(db: Tx, plan: ImportPlan, target: CommitTarget,
         targetEndDate: plan.project.targetEndDate,
         timezone: plan.project.timezone,
         country: plan.project.country,
+        city: plan.project.city,
+        postalCode: plan.project.postalCode,
         // Console § 7.8 : le projet créé a le statut PREPARATION.
         status: 'PREPARATION',
         currency: plan.project.currency,

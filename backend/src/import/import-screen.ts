@@ -83,7 +83,7 @@ export function toScreen(plan: ImportPlan | null, rawIssues: ImportIssue[]): Scr
   const dt = (d: string | null | undefined) => (d ? String(d).slice(0, 10) : '');
   const P = plan.project;
   const fields: Array<[string, Cell | undefined, boolean?]> = [
-    ['Nom du client', plan.client.name, true], ['Secteur d’activité', plan.client.sector], ['Pays', P.country, true], ['Code projet', P.code, true], ['Nom du projet', P.name, true], ['Objectifs', P.objective],
+    ['Nom du client', plan.client.name, true], ['Secteur d’activité', plan.client.sector], ['Pays', P.country, true], ['Ville du projet', P.city], ['Code postal', P.postalCode], ['Code projet', P.code, true], ['Nom du projet', P.name, true], ['Objectifs', P.objective],
     ['Éditeur de la solution', k(team, P.editorTeam)], ['Intégrateur', k(team, P.integratorTeam)], ['Date de démarrage', dt(P.startDate), true], ['Date de fin cible', dt(P.targetEndDate), true],
     ['Fuseau horaire', P.timezone, true], ['Statut', ST_FR[P.status] ?? P.status], ['Directeur de programme', k(per, P.programDirector), true], ['Sponsor', k(per, P.sponsor)],
   ];

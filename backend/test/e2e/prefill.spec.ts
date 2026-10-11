@@ -66,7 +66,7 @@ describe('Initialisation d’un projet — préremplissage par IA', () => {
   it('les 14 onglets, dans l’ordre, avec leur nombre de champs ; routes réservées à l’Administrateur', async () => {
     const r = await request(t.app.getHttpServer()).get(`${P}/tabs`).set('Authorization', `Bearer ${tok}`).expect(200);
     expect(r.body.map((x: any) => `${x.n} ${x.label}`)).toEqual([...SHEETS]);
-    expect(r.body.find((x: any) => x.label === 'Projet').champs).toBe(14);
+    expect(r.body.find((x: any) => x.label === 'Projet').champs).toBe(16); // + Ville du projet, Code postal (11/10/2026)
     expect(r.body.find((x: any) => x.label === 'Équipes').champs).toBe(2);
     const pmo = await t.token(WHO.pmo);
     await request(t.app.getHttpServer()).get(`${P}/tabs`).set('Authorization', `Bearer ${pmo}`).expect(403);

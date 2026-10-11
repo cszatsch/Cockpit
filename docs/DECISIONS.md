@@ -2231,3 +2231,18 @@ Demande du commanditaire : un risque peut concerner un chantier, plusieurs, ou t
   référentiel et la notification à décider ; la page Utilisateurs ajoute les demandes en attente à « Tous » et « Invités »
   (statut « Demandée »), avec Inviter / Refuser qui passent par la décision de la cloche (délai d'annulation de 10 s,
   message au PMO) ; sans notification ouverte, décision directe (`/approve`, `/reject`).
+
+## Code postal du projet ; météo et trafic géocodés avec lui (11/10/2026)
+
+- Demande du commanditaire : champ « Code postal » dans l'objet Projet du référentiel, après la ville ; utilisé par la
+  recherche d'Open-Meteo ; ajouté au fichier Excel d'initialisation.
+- Donnée : `Project.postalCode` (facultatif ; chiffres, lettres, espace ou tiret, 2 à 12 caractères), migration
+  `20261118000400_projet_code_postal` ; `PATCH /project` (`postalCode`), ligne `postalCode` « Code postal » du référentiel
+  juste après « Ville du projet ».
+- Excel d'initialisation, onglet « 05 Projet » : lignes facultatives « Ville du projet » (la ville n'y figurait pas) et
+  « Code postal » après « Pays » (section Client) ; lignes suivantes décalées dans le modèle (validations, mises en forme,
+  formule de cohérence des dates, Complétude, chaîne de calcul) ; lues par libellé à l'import, aperçu de l'écran
+  d'initialisation, code postal contrôlé ; à la réinitialisation d'un projet, ville et code postal remplacés seulement
+  s'ils sont renseignés. 05 Projet compte 16 champs.
+- Géocodage (Aujourd'hui › Météo et Trafic, `api.js`) : code postal d'abord (Open-Meteo trouve une commune par son code
+  postal), puis le nom et ses parties ; entre homonymes, le lieu du pays du projet qui porte ce code postal l'emporte.

@@ -218,6 +218,7 @@ export const model = {
       {"id":"currency","cells":["Devise","EUR"]},
       {"id":"tz","cells":["Fuseau horaire","Europe/Paris"]},
       {"id":"city","cells":["Ville du projet","Grigny"]},
+      {"id":"postalCode","cells":["Code postal","91350"]},
       {"id":"country","cells":["Pays","France"]}
     ]
   },

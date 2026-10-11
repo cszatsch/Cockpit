@@ -72,7 +72,7 @@ export class ImportService {
         const created = await commitPlan(tx, plan, { projectId: project.id, createProject: false, idPrefix: project.code }, this.audit, ctx);
         await tx.project.update({
           where: { id: project.id },
-          data: { name: plan.project.name, objective: plan.project.objective, startDate: plan.project.startDate, targetEndDate: plan.project.targetEndDate, timezone: plan.project.timezone, country: plan.project.country, version: { increment: 1 } },
+          data: { name: plan.project.name, objective: plan.project.objective, startDate: plan.project.startDate, targetEndDate: plan.project.targetEndDate, timezone: plan.project.timezone, country: plan.project.country, ...(plan.project.city ? { city: plan.project.city } : {}), ...(plan.project.postalCode ? { postalCode: plan.project.postalCode } : {}), version: { increment: 1 } },
         });
         return created;
       },

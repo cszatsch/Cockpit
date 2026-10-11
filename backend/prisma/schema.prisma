@@ -285,6 +285,8 @@ model Project {
   targetEndDate     String
   timezone          String        @default("Europe/Paris")
   city              String?
+  /// Code postal du site du projet (11/10/2026) : précise le géocodage de la météo et du trafic
+  postalCode        String?
   country           String        @default("France")
   status            ProjectStatus @default(PREPARATION)
   editorTeamId      String?

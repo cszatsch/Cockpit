@@ -652,3 +652,5 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 - Aujourd'hui › Météo et Trafic (11/10/2026) : relus dès que la ville ou le pays du projet (Référentiel) ou la ville du
   profil changent (`_dbExtKey`), au lieu d'une seule fois par session ; géocodage restreint au pays du projet et, pour un
   nom composé introuvable (« Massy Palaiseau »), essai de chacune de ses parties (`geocode`, api.js).
+- Référentiel › Projet (11/10/2026) : ligne « Code postal » après « Ville du projet » (`PROJECT_FIELD.postalCode`) ;
+  Aujourd'hui › Météo et Trafic géocodés d'abord par le code postal du projet (`geocode`).

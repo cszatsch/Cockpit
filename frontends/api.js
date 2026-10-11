@@ -155,7 +155,7 @@ const MODULE_OF = { b: 'bud', n: 'ben' };
 /** Chantier transverse par défaut des créations sans chantier (DECISIONS Q2). */
 const DEFAULT_WS_CODE = 'C8';
 /** Champs du tableau PROJECT du Référentiel → champs de `PATCH /project`. */
-const PROJECT_FIELD = { name: 'name', objectives: 'objective', start: 'startDate', end: 'targetEndDate', currency: 'currency', tz: 'timezone', city: 'city', country: 'country', owner: 'programDirectorId' };
+const PROJECT_FIELD = { name: 'name', objectives: 'objective', start: 'startDate', end: 'targetEndDate', currency: 'currency', tz: 'timezone', city: 'city', postalCode: 'postalCode', country: 'country', owner: 'programDirectorId' };
 /** Tableaux du Référentiel → routes de l'API. */
 const ROUTE = { CLIENT: 'clients', WAVE: 'waves', PHASE: 'phases', SUBPHASE: 'subphases', WORKSTREAM: 'workstreams', DELIVERABLE: 'deliverables', TEAM: 'teams', ROLE: 'roles', PERSON: 'persons', PROJECT_ASSIGNMENT: 'assignments', GOVERNANCE_BODY: 'governance-bodies', MILESTONE: 'milestones' };
 /** Magasins de contenu libre de la fiche projet, persistés en sections (`PATCH /project/sections/ui.<nom>`, DECISIONS Q8). */
@@ -653,7 +653,7 @@ export function attach(comp) {
           let v = cells[1];
           if (f === 'startDate' || f === 'targetEndDate') { const d = parseRefDate(v, f === 'startDate' ? 'start' : 'end'); if (!d || !d.iso) throw bad('date « ' + v + ' »'); v = d.iso; }
           if (f === 'programDirectorId') { v = personId(v); if (!v) throw bad('personne inconnue « ' + cells[1] + ' »'); }
-          if (f === 'objective' || f === 'city') v = v || null;
+          if (f === 'objective' || f === 'city' || f === 'postalCode') v = String(v || '').trim() || null;
           return writePatch('PATCH', '/project', { [f]: v });
         }
         case 'CLIENT':
@@ -1113,11 +1113,11 @@ export function attach(comp) {
       if (comp.state.space !== 'today') return;
       const D = comp.mergedData(); if (!D || !D.model || !D.model.PROJECT) return;
       const OV = comp.state.refValues || {}, getV = (id) => { const r = D.model.PROJECT.rows.find((x) => x.id === id); if (!r) return ''; const ov = OV['PROJECT/' + r.id]; return (ov && ov[1] !== undefined ? ov[1] : r.cells[1]) || ''; };
-      const city = getV('city') || 'Paris', country = getV('country') || 'France', up = (p) => comp.setState((s) => ({ dbExt: { ...(s.dbExt || {}), ...p } }));
+      const city = getV('city') || 'Paris', country = getV('country') || 'France', postal = String(getV('postalCode') || '').trim(), up = (p) => comp.setState((s) => ({ dbExt: { ...(s.dbExt || {}), ...p } }));
       const home = ((comp.state.dbExt || {}).home ?? comp.state.profCity ?? 'Paris') || 'Paris';
       // Ville, pays ou domicile changés (Référentiel, profil) : météo et trafic relus aussitôt (11/10/2026 ; auparavant
       // chargés une seule fois par session, l'ancienne ville restait affichée jusqu'au rechargement de la page).
-      const key = city + '|' + country + '|' + home;
+      const key = city + '|' + postal + '|' + country + '|' + home;
       if (comp._dbExtKey === key) return;
       const first = !comp._dbExtKey;
       comp._dbExtKey = key;
@@ -1129,13 +1129,22 @@ export function attach(comp) {
       // Géocodage (11/10/2026) : lieu du pays du projet de préférence (« Massy » seul désignait une ville du Kirghizistan) ;
       // nom composé introuvable (« Massy Palaiseau ») : chacune de ses parties, dans l'ordre.
       const norm = (x) => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-      const geocode = (name, widget) => {
-        const tries = [name, ...String(name).split(/[\s-]+/).filter((x) => x.length > 2)].filter((x, i, a) => a.indexOf(x) === i);
-        const pick = (r) => { const L = (r && r.results) || []; return L.find((g) => norm(g.country) === norm(country) || norm(g.country_code) === norm(country)) || (L.length && !country ? L[0] : null); };
-        return tries.reduce((p, n) => p.then((g) => g || PX('open-meteo-geocodage', { name: n, count: 10, language: 'fr', format: 'json' }, widget).then(pick).catch(() => null)), Promise.resolve(null))
+      // Code postal du projet (11/10/2026) : la recherche passe d'abord par lui (Open-Meteo trouve une commune par son
+      // code postal), puis par le nom ; entre homonymes, le lieu qui porte ce code postal l'emporte.
+      const hasCp = (g, cp) => !!cp && (g.postcodes || []).some((x) => String(x).split(' ')[0] === cp);
+      const geocode = (name, widget, cp = '') => {
+        const tries = [...(cp ? [cp] : []), name, ...String(name).split(/[\s-]+/).filter((x) => x.length > 2)].filter((x, i, a) => x && a.indexOf(x) === i);
+        const pick = (r) => {
+          const L = ((r && r.results) || []).filter((g) => !country || norm(g.country) === norm(country) || norm(g.country_code) === norm(country));
+          return L.find((g) => hasCp(g, cp) && norm(g.name) === norm(name)) || L.find((g) => hasCp(g, cp)) || (cp ? null : L[0]) || null;
+        };
+        const byName = (n) => PX('open-meteo-geocodage', { name: n, count: 10, language: 'fr', format: 'json' }, widget).catch(() => null);
+        // 1. Avec code postal : lieu qui porte ce code ; 2. sans résultat (ou sans code) : premier lieu du pays par le nom.
+        return tries.reduce((p, n) => p.then((g) => g || byName(n).then(pick)), Promise.resolve(null))
+          .then((g) => g || (cp ? tries.slice(1).reduce((p, n) => p.then((h) => h || byName(n).then((r) => (((r && r.results) || []).find((x) => !country || norm(x.country) === norm(country) || norm(x.country_code) === norm(country))) || null)), Promise.resolve(null)) : null))
           .then((g) => { if (!g) throw 0; return g; });
       };
-      geocode(city, 'meteo')
+      geocode(city, 'meteo', postal)
         .then((g) => {
           return PX('open-meteo', { latitude: g.latitude, longitude: g.longitude, current: 'temperature_2m,weather_code', daily: 'temperature_2m_max,temperature_2m_min,sunrise,sunset', timezone: 'auto', forecast_days: 1 }, 'meteo')
             .then((f) => ({ temperature: f.current ? f.current.temperature_2m : null, weatherCode: f.current ? f.current.weather_code : null, min: f.daily ? f.daily.temperature_2m_min[0] : null, max: f.daily ? f.daily.temperature_2m_max[0] : null, sunrise: f.daily ? f.daily.sunrise[0] : null, sunset: f.daily ? f.daily.sunset[0] : null, fetchedAt: new Date().toISOString() })); })
@@ -1147,7 +1156,7 @@ export function attach(comp) {
       const geoOf = (name) => geocode(name, 'trafic');
       const leg = (a, b) => PX('tomtom-routing', { route: a.latitude + ',' + a.longitude + ':' + b.latitude + ',' + b.longitude, traffic: 'true', travelMode: 'car' }, 'trafic')
         .then((r) => { const s = r && r.routes && r.routes[0] && r.routes[0].summary; if (!s || !s.travelTimeInSeconds) throw 0; return { min: Math.max(1, Math.round(s.travelTimeInSeconds / 60)), delay: Math.max(0, Math.round((s.trafficDelayInSeconds || 0) / 60)) }; });
-      Promise.all([geoOf(home), geoOf(city)])
+      Promise.all([geoOf(home), geocode(city, 'trafic', postal)])
         .then(([h, c]) => Promise.all([leg(h, c), leg(c, h)]))
         .then(([go, back]) => up({ tr: { home, go, back }, trErr: false }))
         .catch(() => up({ trErr: true }));

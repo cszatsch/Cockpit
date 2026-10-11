@@ -159,6 +159,11 @@ describe('Étapes 2-3 — droits et Référentiel', () => {
     const p = await c.patch(`${R}/project`, { healthOverride: { value: 'Rouge', reason: 'Report' } }).expect(200);
     expect(p.body.healthOverride).toMatchObject({ value: 'Rouge', reason: 'Report', by: 'p01' });
     await c.patch(`${R}/project/sections/identity.0`, { value: ['Raison sociale', 'AMC Corp SA'] }).expect(200);
+    // Code postal (11/10/2026) : modifiable, contrôlé, ligne « Code postal » du référentiel juste après la ville.
+    await c.patch(`${R}/project`, { postalCode: '91 120 !' }).expect(400);
+    expect((await c.patch(`${R}/project`, { city: 'Palaiseau', postalCode: '91120' }).expect(200)).body).toMatchObject({ city: 'Palaiseau', postalCode: '91120' });
+    const rows = (await c.get(`${R}/bootstrap`).expect(200)).body.model.PROJECT.rows.map((x: any) => x.id);
+    expect(rows.indexOf('postalCode')).toBe(rows.indexOf('city') + 1);
   });
 
   it('signal « porteur sans affectation active »', async () => {

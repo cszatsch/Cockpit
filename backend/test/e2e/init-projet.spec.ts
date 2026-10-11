@@ -69,7 +69,7 @@ describe('Initialisation d’un projet — écran unique (maquette v3)', () => {
     const r = await get('/tabs').expect(200);
     expect(r.body.map((x: any) => `${x.n} ${x.label}`)).toEqual([...SHEETS]);
     // 10 Chantiers : 8 champs + Début et Fin (07/10/2026, arbitrage du commanditaire).
-    expect(r.body.map((x: any) => x.champs)).toEqual([2, 2, 5, 4, 14, 3, 6, 7, 7, 10, 6, 3, 8, 6]);
+    expect(r.body.map((x: any) => x.champs)).toEqual([2, 2, 5, 4, 16, 3, 6, 7, 7, 10, 6, 3, 8, 6]); // 05 Projet : + Ville du projet, Code postal (11/10/2026)
     const pmo = await t.token(WHO.pmo);
     for (const path of ['/tabs', '/template', '/tasks/x/anomalies', '/tasks/x/report', '/tasks/x/preview']) await http().get(`${P}${path}`).set('Authorization', `Bearer ${pmo}`).expect(403);
     await http().post(`${P}/files`).set('Authorization', `Bearer ${pmo}`).attach('files', await buildWorkbook(validAtlas('ORION')), 'init.xlsx').expect(403);

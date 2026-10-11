@@ -326,6 +326,7 @@ export class BootstrapService {
         { id: 'currency', cells: ['Devise', project.currency] },
         { id: 'tz', cells: ['Fuseau horaire', project.timezone] },
         { id: 'city', cells: ['Ville du projet', project.city ?? ''] },
+        { id: 'postalCode', cells: ['Code postal', project.postalCode ?? ''] },
         { id: 'country', cells: ['Pays', project.country] },
       ]),
       WAVE: tbl('WAVE', waves.map((w) => ({

@@ -30,6 +30,8 @@ const ProjectPatch = z
       }
     }, 'fuseau IANA invalide'),
     city: optText(120),
+    // Code postal (11/10/2026) : chiffres, lettres, espace ou tiret (codes étrangers compris).
+    postalCode: optText(12).refine((v) => v == null || /^[A-Za-z0-9 -]{2,12}$/.test(v), 'code postal invalide'),
     country: text(80),
     status: z.enum(['PREPARATION', 'ACTIVE', 'CLOSED']),
     editorTeamId: z.string().nullable(),
@@ -72,6 +74,7 @@ export class ProjectController {
       targetEndDate: p.targetEndDate,
       timezone: p.timezone,
       city: p.city,
+      postalCode: p.postalCode,
       country: p.country,
       status: p.status,
       editorTeamId: p.editorTeamId,
