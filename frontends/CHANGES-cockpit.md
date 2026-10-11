@@ -668,3 +668,10 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
   schéma des objets, l'en-tête de la vue agrandie (étape 5), l'aperçu de « Générer un rapport » et la réponse locale de Jev ;
   organigramme : « Directeur de programme » par défaut ; onglet « Connexion · Cockpit ». `api.js` : plus de projet par
   défaut « RISE » ; compte sans projet → message « Aucun projet ne vous est ouvert… ».
+- Saisir sans Jev › Baromètre (12/10/2026) : nouvel objet « Baromètre » (famille Suivi et pilotage, pictogramme jauge), proposé
+  au PMO et au Responsable du chantier porteur C8 (`ssjBaro`, `data.baro.can`). Relevé mensuel en quatre chapitres — Relevé
+  (mois en pastilles, répondants et participation), Ressenti (note sur 10 sur carte bleu nuit, curseur et écart « vs {mois} » ;
+  barre négatif / neutre / positif à deux poignées, total 100 %), Détail (questions communes et domaines notés sur 10,
+  note précédente et écart), Verbatims (thèmes, tonalité en trois pastilles). Types de champ `month`, `count`, `score`,
+  `senti`, `qs`, `doms`, `themes` (`baroField`) ; écriture `POST /barometer/surveys` (`api.js`, `saisie('barometre')`,
+  écart des questions calculé sur le relevé précédent, sinon sur les questions communes) ; accès `api.barometer()`.

@@ -1027,6 +1027,8 @@ export function attach(comp) {
      * responsable d'une phase = l'utilisateur s'il n'est pas choisi ; code d'une sous-phase = rang suivant dans sa phase.
      * Renvoie le message de confirmation ; lève une Error lisible (message du serveur) en cas de refus.
      */
+    /** Baromètre tel que lu sur le serveur (relevés par mois AAAA-MM, domaines, questions communes) : formulaire « Baromètre ». */
+    barometer() { return S.extra.barometer || null; },
     /** Fiche d'arbitrage « barème commun » d'une décision (maquette 11a) : `null` si la décision n'en a pas encore. */
     ficheOf(decId) {
       const d = ((S.B && S.B.decisions) || []).find((x) => x.id === decId), C = globalThis.RiseSaisieCalc;
@@ -1089,6 +1091,23 @@ export function attach(comp) {
           await writeFiche(v.dec, v.fiche, { question: v.n.trim(), texts: opt({ dcQ: v.n.trim(), dcCtx: (v.ctx || '').trim(), dcBy: v.by ? 'Préparée par ' + name(v.by) : '' }) });
           const d = (B.decisions || []).find((x) => x.id === v.dec);
           msg = 'Fiche d’arbitrage de ' + ((d && (d.code || d.id)) || 'la décision') + ' enregistrée';
+        } else if (kind === 'barometre') {
+          // Relevé mensuel du baromètre (12/10/2026) : écart de chaque question calculé sur le relevé précédent.
+          // Note précédente : celle du dernier relevé, sinon la note courante des questions communes (comme le formulaire).
+          const bm = S.extra.barometer || {}, prev = (bm.surveys || []).slice(-1)[0] || null, sc = (l) => (l || []).filter((q) => q.score != null).map((q) => [q.label, q.score]);
+          const was = Object.fromEntries(sc((bm.global || {}).questions).concat(sc(prev && prev.questions)));
+          const questions = Object.entries(v.qs || {}).filter(([, x]) => x != null).map(([label, x]) => ({ label, score: +x, delta: was[label] != null ? Math.round((x - was[label]) * 10) / 10 : null }));
+          const domainScores = Object.fromEntries(Object.entries(v.doms || {}).filter(([, x]) => x != null).map(([id, x]) => [id, +x]));
+          const [y, m] = String(v.month).split('-').map(Number);
+          await ppost('/barometer/surveys', {
+            month: v.month, overallScore: +v.score, respondents: parseInt(v.resp, 10) || 0,
+            sentiment: { negative: v.senti[0], neutral: v.senti[1], positive: v.senti[2] },
+            questions: questions.length ? questions : null,
+            themes: (v.themes || []).length ? v.themes.map((t) => ({ label: t.label, tone: t.tone })) : null,
+            domainScores,
+          });
+          const mo = new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+          msg = 'Relevé ' + (/^[aeiouyéè]/i.test(mo) ? 'd’' : 'de ') + mo + ' enregistré';
         } else throw new Error('Objet inconnu');
       } catch (e) {
         throw e instanceof ApiError ? new Error(errorText(e)) : e;

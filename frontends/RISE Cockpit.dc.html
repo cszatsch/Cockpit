@@ -2820,6 +2820,38 @@ class Component extends DCLogic {
       actions: (D.actions || []).filter((x) => x.status !== 'DONE').map((x) => ({ v: x.id, t: code(x) + ' · ' + x.n })),
       decisions: (D.decisions || []).filter((x) => x.status !== 'ARBITRATED' && x.status !== 'CANCELLED' && x.status !== 'SUPERSEDED').map((x) => ({ v: x.id, t: code(x) + ' · ' + x.t, fiche: this._api && this._api.ficheOf ? this._api.ficheOf(x.id) : null })),
       bodies: M('GOVERNANCE_BODY').map((r) => ({ v: r.id, t: r.cells[0] })),
+      baro: this.ssjBaro(M),
+    };
+  }
+  /**
+   * Formulaire « Baromètre » de Saisir sans Jev (12/10/2026) : relevé mensuel. Proposé au PMO et au Responsable du chantier
+   * porteur du baromètre (C8, règle du serveur) ; mois proposés : après le dernier relevé, jusqu'au mois en cours (au moins
+   * un) ; repères du relevé précédent (note, répondants, ressenti, questions, domaines) pour les écarts.
+   */
+  ssjBaro(M) {
+    const p = this.prof(this.me().personId), ws = M('WORKSTREAM').find((r) => r.code === 'C8');
+    const can = !!p.pmo || !!(ws && (p.resp || []).includes(ws.id));
+    const B = this._api && this._api.barometer ? this._api.barometer() : null;
+    if (!can || !B) return { can: false };
+    const MO = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+    const ML = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+    const S = B.surveys || [], last = S[S.length - 1] || null, today = this.tdIso().slice(0, 7);
+    const add = (ym, n) => { const [y, m] = ym.split('-').map(Number), d = new Date(Date.UTC(y, m - 1 + n, 1)); return d.toISOString().slice(0, 7); };
+    const first = last ? add(last.month, 1) : add(today, -3), months = [];
+    for (let m = first; m <= today || !months.length; m = add(m, 1)) months.push(m);
+    const pick = months.slice(-4).map((m) => { const i = +m.slice(5) - 1; return { v: m, t: MO[i], y: m.slice(0, 4), long: ML[i] + ' ' + m.slice(0, 4) }; });
+    // Ressenti précédent ramené à 100 % (certains relevés historiques totalisent 97 ou 101) : écarts en points justes.
+    const raw = last && last.sentiment ? [last.sentiment.negative, last.sentiment.neutral, last.sentiment.positive].map((x) => +x || 0) : null, tot = raw ? raw[0] + raw[1] + raw[2] : 0;
+    const sen = tot ? raw.map((x) => Math.round((x * 100) / tot)) : null; if (sen) sen[1] += 100 - sen[0] - sen[1] - sen[2];
+    const G = B.global || {}, qLabels = ((G.questions || []).length ? G.questions : (last && last.questions) || []).map((q) => q.label);
+    // Note précédente d'une question : celle du dernier relevé, sinon la note courante des questions communes.
+    const qPrev = Object.fromEntries((G.questions || []).filter((q) => q.score != null).map((q) => [q.label, q.score]).concat(((last && last.questions) || []).filter((q) => q.score != null).map((q) => [q.label, q.score])));
+    return {
+      can: true, size: G.size || 0, months: pick, def: (pick.find((x) => x.v === today) || pick[pick.length - 1]).v,
+      last: last ? { label: last.label, score: last.overallScore, resp: last.respondents, senti: sen,
+        qs: qPrev,
+        doms: Object.fromEntries((B.domains || []).map((d) => [d.id, (d.series || {})[last.month] ?? null])) } : null,
+      questions: qLabels, domains: (B.domains || []).map((d) => ({ id: d.id, n: d.n })),
     };
   }
   // Comité de rattachement d'un template (09/10/2026) : toujours un comité du projet ouvert, nom et identifiant ensemble.

@@ -403,6 +403,7 @@ Deux façons de créer, toutes deux depuis le bouton **Jev** de la barre latéra
 | Phase, sous-phase, chantier, jalon, livrable (PMO) | Oui | Oui | Référentiel (Info projet, bouton **+** de l'objet) |
 | Tâche | — | Oui | — |
 | Fiche d'arbitrage | — | Oui | Correction dans Pilotage › Décisions (voir 3.11) |
+| Relevé du baromètre (PMO, Responsable du chantier transverse) | — | Oui | — |
 | Séance de comité | — | — | Calendrier des comités (bouton **+** d'un jour, voir 3.13.1) |
 
 Les icônes « Demander à Jev » des blocs et des lignes du Pilotage ont été retirées le 1er octobre 2026 : Jev s'ouvre par son bouton de la barre latérale.
@@ -425,13 +426,13 @@ Les icônes « Demander à Jev » des blocs et des lignes du Pilotage ont été 
 2. Sous le champ de saisie de Jev, cliquez sur **Saisir sans Jev** (icône de crayon). Le lien est affiché dans tous les espaces du Cockpit, sauf aux Lecteurs (profils sans droit d'écriture), pour qui il est masqué depuis le 12 octobre 2026.
 3. Le panneau « Que voulez-vous créer ? » liste les objets en deux familles :
    - **Structure du projet** : Phase, Chantier, Sous-phase, Jalon ;
-   - **Suivi et pilotage** : Livrable, Risque, Action, Tâche, Décision, Fiche d'arbitrage.
+   - **Suivi et pilotage** : Livrable, Risque, Action, Tâche, Décision, Fiche d'arbitrage, Baromètre (proposé au PMO et au Responsable du chantier transverse).
 4. Cliquez sur un objet (ou choisissez-le au clavier et appuyez sur Entrée, ou cliquez sur **Continuer**). Le formulaire glisse à la place de la liste ; la flèche **Changer d'objet** ramène la liste. La croix du choix de l'objet ferme le panneau (à la réouverture, Jev revient) ; celle du formulaire le vide.
 
 **Remplir le formulaire**
 
 - **Objets de structure** (Phase, Chantier, Sous-phase, Jalon) : un **parcours** en étapes numérotées. Un seul champ est ouvert à la fois ; Entrée passe au suivant ; un champ rempli est coché et résumé.
-- **Objets de suivi** (Livrable, Risque, Action, Tâche, Décision, Fiche d'arbitrage) : trois **chapitres** (deux pour la fiche d'arbitrage), ouverts l'un après l'autre par **Suivant**.
+- **Objets de suivi** (Livrable, Risque, Action, Tâche, Décision, Fiche d'arbitrage, Baromètre) : trois **chapitres** (deux pour la fiche d'arbitrage, quatre pour le baromètre), ouverts l'un après l'autre par **Suivant**.
 - Un anneau indique le nombre de champs requis remplis (« 2/4 »). Le bouton **Créer …** reste grisé tant qu'un champ requis manque ; le pied du formulaire affiche « * Requis », ou « À corriger : … » pour une date impossible (31/02) ou une période dont la fin précède le début.
 - Les dates se saisissent au clavier, au format jj/mm/aaaa.
 - Après **Créer …**, le message du serveur s'affiche dans le panneau (par exemple « Phase 7 créée », « Risque R12 créé ») et le formulaire reste ouvert, vidé, pour une nouvelle saisie. En cas de refus, le message du serveur s'affiche en rouge dans le pied et vos valeurs sont conservées.
@@ -450,6 +451,7 @@ Les icônes « Demander à Jev » des blocs et des lignes du Pilotage ont été 
 | Tâche | Tâche : intitulé*. Rattachement : action (facultative), chantier*. Pilotage : responsable*, échéance, statut |
 | Décision | Décision : point de décision*, priorité (Critique, Haute, Moyenne, Basse). Détails : statut* (« En instruction » par défaut), chantier, instance de décision*. Issue : date de décision, option choisie |
 | Fiche d'arbitrage | Arbitrage : intitulé de l'arbitrage*, décision concernée* (parmi les décisions non clôturées). Contexte : préparée par, contexte. Puis **Composer la fiche** (voir 3.11) |
+| Baromètre | Relevé : mois du relevé* (après le dernier relevé, jusqu'au mois en cours), répondants* (avec le taux de participation). Ressenti : note globale* sur 10 (curseur, écart avec le relevé précédent), répartition négatif / neutre / positif (une barre à deux poignées, toujours 100 %, partant du relevé précédent). Détail : note sur 10 de chaque question commune et de chaque domaine, facultative (la note précédente et l'écart s'affichent ; un clic sur la note l'efface). Verbatims : thèmes, avec leur tonalité positif, vigilance ou alerte. Bouton **Enregistrer le relevé** (voir 3.12) |
 
 **Règles**
 
@@ -757,7 +759,9 @@ Demandez-le à Jev (voir 3.19.4) : libellé, probabilité et impact (1 à 5, cri
 - **Comparateur par domaine** : « Un domaine à moins de 3 répondants est signalé : sa moyenne n'est pas représentative. »
 - Répartition du ressenti négatif / neutre / positif, autres questions, thèmes des verbatims (positif, vigilance, alerte).
 
-**Relevés mensuels** : la saisie d'un relevé (moyenne, répondants, répartition, domaines, questions, thèmes) n'est plus possible dans le Cockpit depuis le 08/10/2026 ; le baromètre affiche les relevés déjà enregistrés.
+**Relevés mensuels** : depuis le 12 octobre 2026, un relevé se saisit avec Jev › **Saisir sans Jev** › **Baromètre** (voir 3.5.4) : mois, répondants, note globale, répartition du ressenti, questions, domaines et thèmes. Le relevé enregistré apparaît aussitôt dans le baromètre (« Ressenti · {mois} »). Un relevé déjà enregistré ne se modifie pas depuis cet écran.
+
+**Exemple.** Le PMO saisit le relevé d'octobre : 31 répondants sur 33 interrogés, note 6,4 (« +0,5 vs juil. »), ressenti 22 · 21 · 57 %, Logistique 7,2, et le thème « Bascule des données : calendrier encore flou » en alerte. Le message « Relevé d'octobre 2026 enregistré » confirme ; Pilotage › Baromètre affiche « Ressenti · oct. 26 ».
 
 | Message | Cause |
 |---|---|

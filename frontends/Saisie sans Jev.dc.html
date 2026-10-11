@@ -13,6 +13,25 @@ html,body{margin:0;background:#fff;font-family:'Plus Jakarta Sans',sans-serif;co
 .ssj-ns,.ssj-ns *{scrollbar-width:none}.ssj-ns::-webkit-scrollbar,.ssj-ns *::-webkit-scrollbar{display:none;width:0;height:0}
 .ssj-track{transition:transform .42s cubic-bezier(.22,.8,.24,1)}
 @media (prefers-reduced-motion:reduce){.ssj-track,.ssj-track>div{transition:none!important}}
+.ssj-rng{-webkit-appearance:none;appearance:none;display:block;width:100%;height:6px;border-radius:3px;margin:0;outline:none;cursor:pointer;background:#e3ebe8}
+.ssj-rng::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;background:#fff;border:0;box-shadow:0 0 0 1.5px #1f9a8a,0 4px 10px -3px rgba(16,35,58,.45);transition:transform .15s,box-shadow .15s}
+.ssj-rng::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:#fff;border:0;box-shadow:0 0 0 1.5px #1f9a8a,0 4px 10px -3px rgba(16,35,58,.45)}
+.ssj-rng:active::-webkit-slider-thumb{transform:scale(1.12)}
+.ssj-rng:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 1.5px #1f9a8a,0 0 0 6px rgba(31,154,138,.22)}
+.ssj-rng-d::-webkit-slider-thumb{width:20px;height:20px;box-shadow:0 0 0 4px rgba(63,208,187,.28),0 8px 16px -4px rgba(0,0,0,.55)}
+.ssj-rng-d::-moz-range-thumb{box-shadow:0 0 0 4px rgba(63,208,187,.28),0 8px 16px -4px rgba(0,0,0,.55)}
+.ssj-rng-d:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 4px rgba(63,208,187,.55),0 8px 16px -4px rgba(0,0,0,.55)}
+.ssj-rng-s{height:4px;border-radius:2px}
+.ssj-rng-s::-webkit-slider-thumb{width:14px;height:14px}
+.ssj-rng-s::-moz-range-thumb{width:14px;height:14px}
+.ssj-rng-o::-webkit-slider-thumb{background:#f4f7f6;box-shadow:inset 0 0 0 1.5px #c9d6d2}
+.ssj-rng-o::-moz-range-thumb{background:#f4f7f6;box-shadow:inset 0 0 0 1.5px #c9d6d2}
+.ssj-cut{-webkit-appearance:none;appearance:none;position:absolute;top:0;left:-3px;width:calc(100% + 6px);height:28px;margin:0;background:transparent;pointer-events:none;outline:none}
+.ssj-cut::-webkit-slider-runnable-track{height:28px;background:transparent}
+.ssj-cut::-moz-range-track{height:28px;background:transparent}
+.ssj-cut::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;pointer-events:auto;width:6px;height:24px;margin-top:2px;border-radius:3px;background:#10233a;border:0;box-shadow:0 0 0 2.5px #fff,0 4px 10px -3px rgba(16,35,58,.55);cursor:ew-resize}
+.ssj-cut::-moz-range-thumb{pointer-events:auto;width:6px;height:24px;border-radius:3px;background:#10233a;border:0;box-shadow:0 0 0 2.5px #fff,0 4px 10px -3px rgba(16,35,58,.55);cursor:ew-resize}
+.ssj-cut:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 2.5px #fff,0 0 0 5.5px rgba(31,154,138,.5)}
 </style></helmet>
 <!-- « Saisir sans Jev » (maquette « Jev - Saisir sans Jev 5a », 10/10/2026) : un seul panneau à l'écran, dans la barre latérale de
      Jev (demande du commanditaire du 10/10/2026, au lieu des deux panneaux côte à côte de la maquette). D'abord le choix de l'objet
@@ -110,6 +129,24 @@ html,body{margin:0;background:#fff;font-family:'Plus Jakarta Sans',sans-serif;co
                 <sc-if value="{{ f.cScale }}" hint-placeholder-val="{{ false }}"><dc-import name="Echelle 1-4" value="{{ f.nv }}" labels="{{ f.labels }}" labelled-by="{{ f.lid }}" on-change="{{ f.set }}" hint-size="100%,42px"></dc-import></sc-if>
                 <sc-if value="{{ f.cSeg }}" hint-placeholder-val="{{ false }}"><dc-import name="Selecteur segmente" value="{{ f.nv }}" options="{{ f.segOpts }}" labelled-by="{{ f.lid }}" on-change="{{ f.set }}" hint-size="100%,40px"></dc-import></sc-if>
                 <sc-if value="{{ f.cLife }}" hint-placeholder-val="{{ false }}"><dc-import name="Cycle de vie" value="{{ f.lv }}" steps="{{ f.lifeSteps }}" off="{{ f.lifeOff }}" labelled-by="{{ f.lid }}" on-change="{{ f.set }}" hint-size="100%,96px"></dc-import></sc-if>
+                <!-- Baromètre (12/10/2026) : mois, répondants, note sur 10, répartition du ressenti, questions et domaines, thèmes. -->
+                <sc-if value="{{ f.cMonth }}" hint-placeholder-val="{{ false }}"><div role="radiogroup" aria-labelledby="{{ f.lid }}" style="display:flex;gap:6px"><sc-for list="{{ f.months }}" as="m" hint-placeholder-count="3"><button type="button" role="radio" aria-checked="{{ m.ar }}" aria-label="{{ m.long }}" onClick="{{ m.on }}" style="{{ m.st }}" style-focus-visible="outline:2px solid #146b64;outline-offset:2px"><span style="{{ m.tSt }}">{{ m.t }}</span><span style="{{ m.ySt }}">{{ m.y }}</span></button></sc-for></div></sc-if>
+                <sc-if value="{{ f.cCount }}" hint-placeholder-val="{{ false }}"><div style="height:46px;padding:0 14px;border-radius:12px;display:flex;align-items:center;gap:8px;background:#f4f7f6;transition:box-shadow .15s,background .15s" style-focus-within="background:#fff;box-shadow:0 0 0 1.5px #1f9a8a,0 0 0 5px rgba(31,154,138,.12)"><input value="{{ f.v }}" onChange="{{ f.ch }}" inputMode="numeric" placeholder="0" maxLength="3" aria-labelledby="{{ f.lid }}" aria-required="true" style="width:46px;border:0;outline:0;background:none;padding:0;font-size:17px;font-weight:800;color:#10233a;caret-color:#1f9a8a;font-variant-numeric:tabular-nums"><span style="font-size:12.5px;font-weight:600;color:#8a9aa6;white-space:nowrap">{{ f.cntOf }}</span><span style="flex:1"></span><sc-if value="{{ f.hasPart }}" hint-placeholder-val="{{ false }}"><span style="display:flex;align-items:center;gap:7px;font-size:11.5px;font-weight:700;color:#146b64;white-space:nowrap;font-variant-numeric:tabular-nums"><span style="width:34px;height:4px;border-radius:2px;background:#dde7e4;position:relative;overflow:hidden"><span style="{{ f.partBar }}"></span></span>{{ f.part }}</span></sc-if></div></sc-if>
+                <sc-if value="{{ f.cScore }}" hint-placeholder-val="{{ false }}"><div style="position:relative;overflow:hidden;display:flex;flex-direction:column;gap:14px;padding:16px 16px 12px;border-radius:14px;background:#13243d;background-image:radial-gradient(120% 140% at 100% 0%,rgba(42,179,160,.22) 0%,rgba(42,179,160,0) 60%);color:#fff">
+                  <div style="display:flex;align-items:baseline;gap:6px"><b style="{{ f.scSt }}">{{ f.scTxt }}</b><span style="font-size:13px;font-weight:600;color:rgba(255,255,255,.5)">/10</span><span style="flex:1"></span><sc-if value="{{ f.hasD }}" hint-placeholder-val="{{ false }}"><span style="{{ f.dSt }}">{{ f.dTxt }}</span></sc-if></div>
+                  <input type="range" class="{{ f.rCls }}" min="0" max="10" step="0.1" value="{{ f.rv }}" onChange="{{ f.rch }}" aria-labelledby="{{ f.lid }}" aria-valuetext="{{ f.scAria }}" style="{{ f.rSt }}">
+                  <div style="display:flex;justify-content:space-between;font-size:10.5px;font-weight:600;color:rgba(255,255,255,.42);font-variant-numeric:tabular-nums"><span>0</span><span>5</span><span>10 · très bien</span></div>
+                </div></sc-if>
+                <sc-if value="{{ f.cSenti }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-direction:column;gap:14px;padding-top:2px">
+                  <div style="position:relative;height:28px"><div style="position:absolute;left:0;right:0;top:9px;height:10px;border-radius:5px;overflow:hidden;display:flex"><span style="{{ f.sNeg }}"></span><span style="{{ f.sNeu }}"></span><span style="{{ f.sPos }}"></span></div><input type="range" class="ssj-cut" min="0" max="100" step="1" value="{{ f.c1 }}" onChange="{{ f.c1ch }}" aria-label="Limite entre ressenti négatif et neutre" aria-valuetext="{{ f.c1Aria }}"><input type="range" class="ssj-cut" min="0" max="100" step="1" value="{{ f.c2 }}" onChange="{{ f.c2ch }}" aria-label="Limite entre ressenti neutre et positif" aria-valuetext="{{ f.c2Aria }}"></div>
+                  <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px"><sc-for list="{{ f.sParts }}" as="p" hint-placeholder-count="3"><div style="display:flex;flex-direction:column;gap:3px;min-width:0"><span style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:#8a9aa6;white-space:nowrap"><span style="{{ p.dot }}"></span>{{ p.l }}</span><span style="display:flex;align-items:baseline;gap:6px;white-space:nowrap"><b style="font-size:17px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:#10233a">{{ p.v }}</b><span style="{{ p.dSt }}">{{ p.d }}</span></span></div></sc-for></div>
+                </div></sc-if>
+                <sc-if value="{{ f.cRows }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-direction:column"><sc-for list="{{ f.rows }}" as="q" hint-placeholder-count="2"><div style="display:grid;grid-template-columns:minmax(0,1fr) 84px 30px;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid #eef3f1"><span style="min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font-size:12.5px;font-weight:600;line-height:1.35;color:#10233a">{{ q.l }}</span><span style="font-size:11px;font-weight:500;color:#8a9aa6;font-variant-numeric:tabular-nums">{{ q.sub }}</span></span><input type="range" class="{{ q.cls }}" min="0" max="10" step="0.1" value="{{ q.rv }}" onChange="{{ q.ch }}" aria-label="{{ q.aria }}" aria-valuetext="{{ q.vt }}" style="{{ q.rSt }}"><button type="button" onClick="{{ q.clr }}" title="{{ q.tip }}" aria-label="{{ q.tip }}" style="{{ q.vSt }}" style-focus-visible="outline:2px solid #146b64;outline-offset:2px">{{ q.vt }}</button></div></sc-for><sc-if value="{{ f.rowsEmpty }}" hint-placeholder-val="{{ false }}"><span style="font-size:12.5px;color:#8a9aa6;font-weight:500;line-height:1.5">{{ f.emptyTxt }}</span></sc-if></div></sc-if>
+                <sc-if value="{{ f.cThemes }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-direction:column;gap:6px">
+                  <sc-for list="{{ f.ths }}" as="t" hint-placeholder-count="2"><div style="{{ t.st }}"><span style="font-size:12.5px;font-weight:600;line-height:1.4;color:#10233a;min-width:0">{{ t.l }}</span><span role="radiogroup" aria-label="{{ t.aria }}" style="display:flex;gap:2px;padding:3px;border-radius:9px;background:#fff;box-shadow:inset 0 0 0 1px #e3ebe8"><sc-for list="{{ t.tones }}" as="o" hint-placeholder-count="3"><button type="button" role="radio" aria-checked="{{ o.ar }}" title="{{ o.l }}" aria-label="{{ o.l }}" onClick="{{ o.on }}" style="{{ o.st }}" style-focus-visible="outline:2px solid #146b64;outline-offset:1px"><span style="{{ o.dot }}"></span></button></sc-for></span><button type="button" onClick="{{ t.rm }}" title="Retirer" aria-label="{{ t.rmL }}" style="width:24px;height:24px;border:0;padding:0;background:none;border-radius:7px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#a3b2bb" style-hover="background:#eef3f1;color:#10233a" style-focus-visible="outline:2px solid #146b64;outline-offset:1px"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div></sc-for>
+                  <div style="height:46px;padding:0 6px 0 14px;border-radius:12px;display:flex;align-items:center;gap:8px;background:#f4f7f6;transition:box-shadow .15s,background .15s" style-focus-within="background:#fff;box-shadow:0 0 0 1.5px #1f9a8a,0 0 0 5px rgba(31,154,138,.12)"><input value="{{ f.thDraft }}" onChange="{{ f.thCh }}" onKeyDown="{{ f.thKd }}" placeholder="Ex. Formation Ventes à renforcer" maxLength="300" aria-labelledby="{{ f.lid }}" style="flex:1;min-width:0;border:0;outline:0;background:none;padding:0;font-size:13.5px;font-weight:600;color:#10233a;caret-color:#1f9a8a"><button type="button" onClick="{{ f.thAdd }}" aria-disabled="{{ f.thOff }}" style="{{ f.thBtn }}" style-focus-visible="outline:2px solid #146b64;outline-offset:2px">Ajouter</button></div>
+                  <sc-if value="{{ f.thHint }}" hint-placeholder-val="{{ false }}"><span style="display:flex;align-items:center;gap:10px;font-size:11px;font-weight:500;color:#8a9aa6"><span style="display:flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:50%;background:#1f9a8a"></span>positif</span><span style="display:flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:50%;background:#e08a1e"></span>vigilance</span><span style="display:flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:50%;background:#c2413b"></span>alerte</span></span></sc-if>
+                </div></sc-if>
               </div>
             </sc-for>
             <sc-if value="{{ c.hasCrit }}" hint-placeholder-val="{{ false }}"><div role="status" style="display:flex;align-items:center;gap:12px;height:44px;padding:0 14px;border-radius:12px;background:#f6f9f8"><span style="font-size:12px;font-weight:600;color:#43586a">Criticité</span><span style="flex:1;height:4px;border-radius:2px;background:#e3ebe8;position:relative;overflow:hidden"><span style="{{ c.critBar }}"></span></span><b style="font-size:13px;font-variant-numeric:tabular-nums;white-space:nowrap">{{ c.critTxt }}</b></div></sc-if>
@@ -152,6 +189,8 @@ const SSJ_OBJ = [
   { k: 'tache', l: 'Tâche', fam: 1, fem: 1, art: 'la tâche', nv: 'Nouvelle tâche' },
   { k: 'decision', l: 'Décision', fam: 1, fem: 1, art: 'la décision', nv: 'Nouvelle décision' },
   { k: 'arbitrage', l: "Fiche d'arbitrage", fam: 1, fem: 1, art: 'la fiche', nv: "Nouvelle fiche d'arbitrage" },
+  // Baromètre (12/10/2026) : relevé mensuel ; proposé au PMO et au Responsable du chantier porteur (`data.baro.can`).
+  { k: 'barometre', l: 'Baromètre', fam: 1, art: 'le relevé', nv: 'Nouveau relevé', cta: 'Enregistrer le relevé' },
 ];
 // Pictogrammes de la maquette : l = trait fin, b = trait épais, a = accent (turquoise, orange pour le risque), f = plein.
 const SSJ_IC = {
@@ -165,6 +204,7 @@ const SSJ_IC = {
   tache: { l: 'M6.5 4.5h11a2 2 0 012 2v11a2 2 0 01-2 2h-11a2 2 0 01-2-2v-11a2 2 0 012-2z', a: 'M8.6 12.2l2.4 2.4 4.5-5' },
   decision: { l: 'M12 20.5V13L7.4 7.6M6.5 3.5a2.2 2.2 0 110 4.4 2.2 2.2 0 010-4.4z', a: 'M12 13l4.6-5.4', f: 'M17.5 3.5a2.2 2.2 0 110 4.4 2.2 2.2 0 010-4.4z' },
   arbitrage: { l: 'M12 4v16', b: 'M14.5 7h3M14.5 12h5M14.5 17h2', a: 'M4 7h5.5M4 12h4.5M4 17h5.5' },
+  barometre: { l: 'M3.8 16.5a8.2 8.2 0 0116.4 0M6.2 9.6l1.1 1M17.8 9.6l-1.1 1M12 6.8v1.4', a: 'M12 16.5l3.6-4.6', f: 'M12 14.9a1.6 1.6 0 110 3.2 1.6 1.6 0 010-3.2z' },
 };
 const SSJ_G = { cal: 'M6.5 5h11A2.5 2.5 0 0120 7.5v10a2.5 2.5 0 01-2.5 2.5h-11A2.5 2.5 0 014 17.5v-10A2.5 2.5 0 016.5 5zM4 10h16M8.5 3v4M15.5 3v4', per: 'M12 12a4 4 0 100-8 4 4 0 000 8zM4.5 20.5c1.4-3.6 4.2-5.5 7.5-5.5s6.1 1.9 7.5 5.5', chev: 'M7 10l5 5 5-5' };
 const SSJ_ST = [['À faire', '#8a9aa6'], ['En cours', '#1f9a8a'], ['Terminée', '#10233a'], ['Bloquée', '#c2413b']];
@@ -188,6 +228,9 @@ const SSJ_F = {
   tache: [{ k: 'n', l: 'Intitulé de la tâche', t: 'text', ph: 'Ex. Rédiger le cahier de recette', r: 1 }, { k: 'owner', l: 'Responsable', t: 'per', ph: PER, r: 1 }, { k: 'act', l: 'Rattachée à', t: 'sel', src: 'actions', ph: 'Choisir une action' }, { k: 'wss', l: 'Chantier', t: 'multi', src: 'wssT', ph: 'Ajouter', r: 1 }, { k: 'due', l: 'Échéance', t: 'date' }, { k: 'st', l: 'Statut', t: 'status', def: 0 }],
   // Décision : le serveur la rattache à un chantier ; « Transverse » reste proposé (maquette) et est refusé à l'enregistrement.
   decision: [{ k: 'n', l: 'Point de décision', t: 'text', ph: 'Ex. Choisir une solution de remplacement CRM', r: 1 }, { k: 'prio', l: 'Priorité', t: 'prio', def: 1 }, { k: 'st', l: 'Statut', t: 'life', def: 'En instruction', r: 1 }, { k: 'ws', l: 'Chantier', t: 'sel', src: 'wssT', ph: 'Choisir un chantier' }, { k: 'body', l: 'Instance de décision', t: 'sel', src: 'bodies', ph: 'Choisir une instance', r: 1 }, { k: 'dd', l: 'Date de décision', t: 'date' }, { k: 'opt', l: 'Option choisie', t: 'text', ph: 'Ex. B', max: 3 }],
+  // Baromètre : mois (après le dernier relevé), répondants, note globale sur 10, ressenti (total 100), questions et domaines
+  // (facultatifs, notés sur 10), thèmes des verbatims avec leur tonalité.
+  barometre: [{ k: 'month', l: 'Mois du relevé', t: 'month', r: 1 }, { k: 'resp', l: 'Répondants', t: 'count', r: 1 }, { k: 'score', l: 'Note globale', t: 'score', r: 1 }, { k: 'senti', l: 'Répartition du ressenti', t: 'senti' }, { k: 'qs', l: 'Questions', t: 'qs' }, { k: 'doms', l: 'Domaines', t: 'doms' }, { k: 'themes', l: 'Thèmes des verbatims', t: 'themes' }],
   arbitrage: [{ k: 'n', l: "Intitulé de l'arbitrage", t: 'text', ph: 'Ex. Solution de remplacement CRM', r: 1 }, { k: 'dec', l: 'Décision concernée', t: 'sel', src: 'decisions', ph: 'Choisir une décision', r: 1 }, { k: 'by', l: 'Préparée par', t: 'per', ph: PER }, { k: 'ctx', l: 'Contexte', t: 'long', ph: 'Enjeu, contraintes, éléments déjà connus' }],
 };
 // Chapitres des objets de suivi (rangs des champs de SSJ_F) ; les objets de structure suivent le « Parcours ».
@@ -199,10 +242,16 @@ const SSJ_CHAP = {
   decision: [['Décision', [0, 1]], ['Détails', [2, 3, 4]], ['Issue', [5, 6]]],
   // Fiche d'arbitrage : intitulé, décision, préparée par, contexte ; puis la fiche « barème commun » (maquette 11a), à la place du formulaire.
   arbitrage: [['Arbitrage', [0, 1]], ['Contexte', [2, 3]]],
+  barometre: [['Relevé', [0, 1]], ['Ressenti', [2, 3]], ['Détail', [4, 5]], ['Verbatims', [6]]],
 };
-const SSJ_ALWAYS = ['scale', 'status', 'prio', 'life'];
+const SSJ_ALWAYS = ['scale', 'status', 'prio', 'life', 'senti'];
+// Baromètre : couleurs du Cockpit (Pilotage › Baromètre) — ressenti négatif / neutre / positif, tonalités des thèmes.
+const SSJ_SEN = [['Négatif', '#e0857a'], ['Neutre', '#cfd9d6'], ['Positif', '#1f9a8a']];
+const SSJ_TONE = [['OK', 'Positif', '#1f9a8a'], ['WATCH', 'Vigilance', '#e08a1e'], ['RISK', 'Alerte', '#c2413b']];
+const ssjFr1 = x => (Math.round(x * 10) / 10).toFixed(1).replace('.', ',');
+const ssjDelta = (d, unit) => (d > 0 ? '+' : d < 0 ? '−' : '') + (unit ? Math.abs(Math.round(d)) + ' ' + unit : ssjFr1(Math.abs(d)));
 class Component extends DCLogic {
-  state = { view: 'pick', sel: 'phase', hov: null, vals: {}, step: 0, chap: 0, vis: {}, fiche: false, ficheN: 0, err: '', busy: false, toast: null, calc: globalThis.RiseSaisieCalc || null };
+  state = { view: 'pick', sel: 'phase', hov: null, vals: {}, step: 0, chap: 0, vis: {}, fiche: false, ficheN: 0, err: '', busy: false, toast: null, thDraft: '', calc: globalThis.RiseSaisieCalc || null };
   qRef = React.createRef();
   componentDidMount() {
     if (!this.state.calc) import('./saisie-calc.js').then(() => this.setState({ calc: globalThis.RiseSaisieCalc })).catch(() => {});
@@ -233,6 +282,17 @@ class Component extends DCLogic {
     if (f.def === 'me') return this.data().me || '';
     if (f.def === 'transverse') return this.data().pmo ? ['__T__'] : [];
     if (f.def !== undefined) return f.def;
+    const B = this.data().baro || {};
+    if (f.t === 'month') return B.def || '';
+    if (f.t === 'senti') {
+      // Repartir du relevé précédent, ramené à 100 % (certains relevés historiques totalisent 97 ou 101) ; sinon 30 · 40 · 30.
+      const p = B.last && B.last.senti, t = p ? p.reduce((a, x) => a + (+x || 0), 0) : 0;
+      if (!t) return [30, 40, 30];
+      const r = p.map(x => Math.round(((+x || 0) * 100) / t)); r[1] += 100 - r[0] - r[1] - r[2]; return r;
+    }
+    if (f.t === 'score') return null;
+    if (f.t === 'qs' || f.t === 'doms') return {};
+    if (f.t === 'themes') return [];
     return f.t === 'multi' ? [] : f.t === 'range' ? ['', ''] : '';
   }
   get(k, f) { const v = this.state.vals[k + '.' + f.k]; return v === undefined ? this.initial(f) : v; }
@@ -253,7 +313,10 @@ class Component extends DCLogic {
   status(f, v) {
     const C = this.C(), t = f.t;
     if (SSJ_ALWAYS.includes(t)) return 'ok';
-    if (t === 'multi') return v && v.length ? 'ok' : 'empty';
+    if (t === 'multi' || t === 'themes') return v && v.length ? 'ok' : 'empty';
+    if (t === 'score') return v === null || v === undefined ? 'empty' : 'ok';
+    if (t === 'qs' || t === 'doms') return Object.values(v || {}).some(x => x !== null && x !== undefined) ? 'ok' : 'empty';
+    if (t === 'count') { const x = String(v || '').trim(); return !x ? 'empty' : /^\d{1,3}$/.test(x) ? 'ok' : 'bad'; }
     if (t === 'date' || t === 'range') { if (!C) return 'empty'; const s = t === 'date' ? C.dateState(v) : C.rangeState(v); return s === 'valid' ? 'ok' : s === 'empty' ? 'empty' : 'bad'; }
     return v !== undefined && v !== null && String(v).trim() ? 'ok' : 'empty';
   }
@@ -265,6 +328,12 @@ class Component extends DCLogic {
     if (t === 'status') return (SSJ_ST[v] || [])[0] || '';
     if (t === 'prio') return (SSJ_PR[v] || [])[0] || '';
     if (t === 'range') return (v[0] || 'jj/mm/aaaa') + '  →  ' + (v[1] || 'jj/mm/aaaa');
+    if (t === 'month') { const m = ((this.data().baro || {}).months || []).find(x => x.v === v); return m ? m.long.replace(/^./, c => c.toUpperCase()) : ''; }
+    if (t === 'count') return v + ' répondant' + (+v > 1 ? 's' : '');
+    if (t === 'score') return ssjFr1(v) + ' / 10';
+    if (t === 'senti') return v.join(' · ') + ' %';
+    if (t === 'qs' || t === 'doms') { const n = Object.values(v || {}).filter(x => x !== null && x !== undefined).length; return n + (t === 'qs' ? ' question' : ' domaine') + (n > 1 ? 's' : '') + (t === 'qs' ? ' notée' : ' noté') + (n > 1 ? 's' : ''); }
+    if (t === 'themes') return v.length + ' thème' + (v.length > 1 ? 's' : '') + ' · ' + SSJ_TONE.map(([c, l]) => v.filter(x => x.tone === c).length + ' ' + l.toLowerCase()).filter(x => !/^0 /.test(x)).join(', ');
     return v;
   }
   /** Ouvre le formulaire d'un objet ; le focus passe à son premier champ. */
@@ -274,7 +343,7 @@ class Component extends DCLogic {
   /** Vide le formulaire de l'objet courant. */
   cleared() { const k = this.state.sel, vals = { ...this.state.vals }; Object.keys(vals).forEach(x => { if (x.startsWith(k + '.')) delete vals[x]; });
     this._armed = true; this._fk = null;
-    return { vals, step: 0, chap: 0, vis: { ...this.state.vis, [k]: 0 }, err: '', fiche: false }; }
+    return { vals, step: 0, chap: 0, vis: { ...this.state.vis, [k]: 0 }, err: '', fiche: false, thDraft: '' }; }
   async create(ready) {
     const S = this.state, k = S.sel, o = this.obj(), C = this.C();
     if (!ready || S.busy) return;
@@ -293,7 +362,7 @@ class Component extends DCLogic {
   pickVals() {
     const S = this.state, C = this.C();
     // Choix de l'objet sans recherche (demande du 10/10/2026) : la liste a le focus ; flèches, Début / Fin, Entrée ou Espace.
-    const shown = SSJ_OBJ, flat = shown.map(o => o.k), act = S.hov || S.sel;
+    const shown = SSJ_OBJ.filter(o => o.k !== 'barometre' || (this.data().baro || {}).can), flat = shown.map(o => o.k), act = S.hov || S.sel;
     const goTo = n => { this.setState({ hov: n }); const el = document.getElementById('ssj-o-' + n); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' }); };
     const qKey = e => {
       const i = flat.indexOf(act), k = e.key;
@@ -362,13 +431,14 @@ class Component extends DCLogic {
         const base = { l: f.l, r: !!f.r, ariaReq: f.r ? 'true' : 'false', lid: 'ssj-' + k + '-' + f.k, ph: f.ph || '', max: f.max || 300,
           v: typeof v === 'string' ? v : '', dv: v, lv: v, nv: Number(v) || 0, isMulti: tt === 'multi', av: tt === 'per',
           cText: tt === 'text', cLong: tt === 'long', cDate: tt === 'date', cDrop: ['sel', 'per', 'multi'].includes(tt), cScale: tt === 'scale', cSeg: tt === 'status' || tt === 'prio', cLife: tt === 'life',
+          cMonth: tt === 'month', cCount: tt === 'count', cScore: tt === 'score', cSenti: tt === 'senti', cRows: tt === 'qs' || tt === 'doms', cThemes: tt === 'themes',
           hasRt: tt === 'scale' || !!f.rt, rt: tt === 'scale' ? SSJ_SCL[v - 1] || '' : f.rt || '',
           rtSt: tt === 'scale' ? 'font-size:11.5px;font-weight:700;color:#10233a;white-space:nowrap' : 'font-size:11px;color:#8a9aa6;white-space:nowrap',
           opts: ['per', 'sel', 'multi'].includes(tt) ? this.opts(f, k) : [], labels: SSJ_SCL, lifeSteps: SSJ_LIFE, lifeOff: SSJ_OFF,
           segOpts: (tt === 'status' ? SSJ_ST : SSJ_PR).map(([t2, dot]) => ({ t: t2, dot })),
           fr: el => { if (el && q === 0 && (tt === 'text' || tt === 'long') && armed && this._fk !== fk) { this._fk = fk; setTimeout(() => el.focus({ preventScroll: true }), 0); } },
           ch: e => this.setv(k, f, e.target.value), set: nv => this.setv(k, f, nv) };
-        return base;
+        return ['month', 'count', 'score', 'senti', 'qs', 'doms', 'themes'].includes(tt) ? { ...base, ...this.baroField(k, f, v) } : base;
       }) : [];
       const crit = k === 'risque' && j === 1 && C ? C.criticality(this.get(k, FS[2]), this.get(k, FS[3])) : null;
       return { t, n: j + 1, on, ariaOn: on ? 'true' : 'false', aria: 'Chapitre ' + (j + 1) + ' · ' + t + (dn ? ' · complet' : ''), notLast: !last, check: dn, num: !dn, fields, kv,
@@ -382,6 +452,73 @@ class Component extends DCLogic {
         bSt: `min-width:0;display:flex;flex-direction:column;gap:${on ? 14 : 8}px;padding:2px 0 ${last ? 0 : 26}px`,
         tSt: `border:0;padding:0;background:none;font-family:inherit;text-align:left;cursor:pointer;font-size:15px;font-weight:800;letter-spacing:-.015em;border-radius:4px;color:${on || dn ? '#10233a' : '#5c7280'}` };
     });
+  }
+  /**
+   * Champs du baromètre (12/10/2026). Repères du relevé précédent : écart de la note (« +0,8 vs juil. »), répondants, écarts
+   * du ressenti en points, note précédente de chaque question et de chaque domaine. Ressenti : une barre, deux poignées
+   * (curseurs natifs, au clavier aussi) qui découpent 100 % en négatif / neutre / positif.
+   */
+  baroField(k, f, v) {
+    const B = this.data().baro || {}, L = B.last || null, tt = f.t, lab = L ? L.label : '', set = nv => this.setv(k, f, nv);
+    if (tt === 'month') {
+      return { hasRt: true, rt: L ? 'Dernier relevé : ' + lab : 'Premier relevé du projet', months: (B.months || []).map(m => { const on = m.v === v;
+        return { t: m.t, y: m.y, long: m.long, ar: on ? 'true' : 'false', on: () => set(m.v),
+          st: `flex:1;min-width:0;height:54px;border:0;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;font-family:inherit;transition:background .16s,box-shadow .16s;${on ? 'background:#13243d;box-shadow:0 10px 18px -12px rgba(19,36,61,.8)' : 'background:#f4f7f6'}`,
+          tSt: `font-size:14px;font-weight:800;letter-spacing:-.01em;color:${on ? '#fff' : '#10233a'}`, ySt: `font-size:10.5px;font-weight:600;font-variant-numeric:tabular-nums;color:${on ? 'rgba(255,255,255,.55)' : '#8a9aa6'}` }; }) };
+    }
+    if (tt === 'count') {
+      const n = /^\d{1,3}$/.test(String(v).trim()) ? +v : null, pct = n !== null && B.size ? Math.min(100, Math.round((n / B.size) * 100)) : null;
+      return { hasRt: !!(L && L.resp !== null && L.resp !== undefined), rt: lab + ' : ' + (L ? L.resp : ''), cntOf: B.size ? 'sur ' + B.size + ' interrogés' : 'répondants',
+        hasPart: pct !== null, part: pct + ' %', partBar: `position:absolute;left:0;top:0;bottom:0;border-radius:2px;background:#1f9a8a;width:${pct || 0}%;transition:width .3s` };
+    }
+    if (tt === 'score') {
+      const has = v !== null && v !== undefined, x = has ? +v : 5, d = has && L && L.score !== null && L.score !== undefined ? Math.round((x - L.score) * 10) / 10 : null, pc = x * 10;
+      return { hasRt: true, rt: 'Comment vous sentez-vous sur le projet ?', rtSt: 'font-size:11px;color:#8a9aa6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0',
+        scTxt: has ? ssjFr1(x) : '—', scAria: has ? ssjFr1(x) + ' sur 10' : 'non renseignée', rv: x, rch: e => set(Math.round(parseFloat(e.target.value) * 10) / 10),
+        scSt: `font-size:44px;font-weight:800;letter-spacing:-.045em;line-height:.95;font-variant-numeric:tabular-nums;color:${has ? '#fff' : 'rgba(255,255,255,.35)'}`,
+        rCls: 'ssj-rng ssj-rng-d' + (has ? '' : ' ssj-rng-o'),
+        rSt: `background:${has ? `linear-gradient(90deg,#3fd0bb 0,#3fd0bb ${pc}%,rgba(255,255,255,.14) ${pc}%)` : 'rgba(255,255,255,.14)'}`,
+        hasD: d !== null, dTxt: d === null ? '' : (d === 0 ? '= stable' : ssjDelta(d)) + ' vs ' + lab,
+        dSt: `height:24px;padding:0 9px;border-radius:12px;display:flex;align-items:center;font-size:11.5px;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums;${d > 0 ? 'background:rgba(63,208,187,.16);color:#5fe0cb' : d < 0 ? 'background:rgba(240,133,122,.16);color:#f4a79e' : 'background:rgba(255,255,255,.08);color:rgba(255,255,255,.7)'}` };
+    }
+    if (tt === 'senti') {
+      const [a, b] = [v[0], v[0] + v[1]], P = L && L.senti;
+      const seg = (w, c, i) => `width:${w}%;background:${c};transition:width .12s;${i ? 'box-shadow:inset 1.5px 0 0 #fff' : ''}`;
+      return { hasRt: true, rt: 'Total 100 %', c1: a, c2: b,
+        c1ch: e => { const x = Math.min(+e.target.value, b); set([x, b - x, 100 - b]); }, c2ch: e => { const x = Math.max(+e.target.value, a); set([a, x - a, 100 - x]); },
+        c1Aria: v[0] + ' % négatif', c2Aria: v[2] + ' % positif',
+        sNeg: seg(v[0], SSJ_SEN[0][1], 0), sNeu: seg(v[1], SSJ_SEN[1][1], 1), sPos: seg(v[2], SSJ_SEN[2][1], 1),
+        sParts: SSJ_SEN.map(([l, c], i) => { const d = P ? v[i] - P[i] : null;
+          return { l, v: v[i] + ' %', dot: `width:8px;height:8px;border-radius:50%;flex:none;background:${c}`, d: d === null ? '' : d === 0 ? '=' : ssjDelta(d, 'pts'),
+            dSt: `font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;color:${d === null || d === 0 ? '#8a9aa6' : (i === 2 ? d > 0 : i === 0 ? d < 0 : false) ? '#146b64' : (i === 1 ? '#8a9aa6' : '#c2413b')}` }; }) };
+    }
+    if (tt === 'qs' || tt === 'doms') {
+      const src = tt === 'qs' ? (B.questions || []).map(q => ({ id: q, n: q })) : (B.domains || []);
+      const was = L ? (tt === 'qs' ? L.qs : L.doms) || {} : {};
+      return { cRows: true, rowsEmpty: !src.length, hasRt: !!src.length, rt: 'Facultatif · sur 10',
+        emptyTxt: tt === 'qs' ? 'Aucune question commune : elles se définissent dans Pilotage › Baromètre.' : 'Aucun domaine : ils se définissent dans Pilotage › Baromètre.',
+        rows: src.map(r => { const x = (v || {})[r.id], has = x !== null && x !== undefined, pc = (has ? x : 0) * 10, p = was[r.id];
+          return { l: r.n, sub: p !== null && p !== undefined ? lab + ' : ' + ssjFr1(p) + (has ? ' · ' + (Math.round((x - p) * 10) === 0 ? '=' : ssjDelta(Math.round((x - p) * 10) / 10)) : '') : 'Pas de note précédente',
+            rv: has ? x : 5, vt: has ? ssjFr1(x) : '—', aria: r.n + ', note sur 10', tip: has ? 'Effacer la note' : 'Non notée',
+            cls: 'ssj-rng ssj-rng-s' + (has ? '' : ' ssj-rng-o'),
+            rSt: `background:${has ? `linear-gradient(90deg,#1f9a8a 0,#1f9a8a ${pc}%,#e3ebe8 ${pc}%)` : '#e9efed'}`,
+            ch: e => set({ ...(v || {}), [r.id]: Math.round(parseFloat(e.target.value) * 10) / 10 }),
+            clr: () => { if (!has) return; const o = { ...(v || {}) }; delete o[r.id]; set(o); },
+            vSt: `border:0;padding:0;background:none;font-family:inherit;text-align:right;font-size:14px;font-weight:800;font-variant-numeric:tabular-nums;border-radius:4px;cursor:${has ? 'pointer' : 'default'};color:${has ? '#10233a' : '#b4c2c9'}` }; }) };
+    }
+    // Thèmes des verbatims : ajout par Entrée ou « Ajouter » (vigilance par défaut), tonalité en trois pastilles.
+    const S = this.state, draft = S.thDraft || '', list = v || [], off = !draft.trim() || list.length >= 12;
+    const add = () => { if (off) return; set(list.concat([{ label: draft.trim(), tone: 'WATCH' }])); this.setState({ thDraft: '' }); };
+    return { hasRt: true, rt: 'Facultatif', thDraft: draft, thCh: e => this.setState({ thDraft: e.target.value }), thKd: e => { if (e.key === 'Enter') { e.preventDefault(); add(); } }, thAdd: add,
+      thOff: off ? 'true' : 'false', thHint: list.length > 0,
+      thBtn: `height:34px;padding:0 12px;border:0;border-radius:9px;font-family:inherit;font-size:12.5px;font-weight:700;white-space:nowrap;transition:opacity .2s;background:#13243d;color:#fff;${off ? 'opacity:.25;cursor:default' : 'cursor:pointer'}`,
+      ths: list.map((t, i) => { const tone = SSJ_TONE.find(x => x[0] === t.tone) || SSJ_TONE[1];
+        return { l: t.label, aria: 'Tonalité de « ' + t.label + ' »', rmL: 'Retirer « ' + t.label + ' »', rm: () => set(list.filter((_, j) => j !== i)),
+          st: `display:grid;grid-template-columns:minmax(0,1fr) auto 24px;gap:8px;align-items:center;padding:8px 6px 8px 12px;border-radius:12px;background:#f6f9f8;box-shadow:inset 3px 0 0 ${tone[2]}`,
+          tones: SSJ_TONE.map(([c, l, col]) => { const on = t.tone === c;
+            return { l, ar: on ? 'true' : 'false', on: () => set(list.map((x, j) => (j === i ? { ...x, tone: c } : x))),
+              st: `width:22px;height:22px;border:0;padding:0;border-radius:7px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s;background:${on ? col + '1f' : 'transparent'}`,
+              dot: `width:${on ? 10 : 7}px;height:${on ? 10 : 7}px;border-radius:50%;transition:width .15s,height .15s;background:${on ? col : '#c9d6d2'}` }; }) }; }) };
   }
   /** Fiche « barème commun » de la décision choisie : la fiche existante de la décision (édition), sinon vierge. */
   ficheVals(on) {
@@ -412,7 +549,7 @@ class Component extends DCLogic {
       pickHidden: S.view === 'form' ? 'true' : 'false', formHidden: S.view === 'form' ? 'false' : 'true',
       pickSt: this.paneSt(S.view !== 'form'), formSt: 'position:relative;border-left:1px solid #e0e9e6;' + this.paneSt(S.view === 'form'),
       cancel: () => this.setState(this.cleared()),
-      cta: S.busy ? 'Création…' : k === 'arbitrage' ? 'Composer la fiche' : 'Créer ' + o.art, ctaOff: off ? 'true' : 'false',
+      cta: S.busy ? (o.cta ? 'Enregistrement…' : 'Création…') : k === 'arbitrage' ? 'Composer la fiche' : o.cta || 'Créer ' + o.art, ctaOff: off ? 'true' : 'false',
       ctaTip: S.busy ? '' : bad.length ? 'À corriger : ' + bad.join(', ') : ready ? '' : 'Renseignez les champs requis',
       ctaSt: `height:40px;padding:0 16px;border:0;border-radius:12px;display:flex;align-items:center;font-family:inherit;font-size:13px;font-weight:800;white-space:nowrap;flex:none;transition:opacity .2s,box-shadow .2s;color:#13243d;background:linear-gradient(90deg,#f6a62a,#f2851c);${off ? 'cursor:default;opacity:.4' : 'cursor:pointer;box-shadow:0 10px 20px -10px rgba(242,133,28,.7),inset 0 1px 0 rgba(255,255,255,.25)'}`,
       create: () => this.create(ready),

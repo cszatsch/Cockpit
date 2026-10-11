@@ -2266,3 +2266,9 @@ Demande du commanditaire : un risque peut concerner un chantier, plusieurs, ou t
   Démarrer « Cockpit » ; une installation « RISE Cockpit » existante est arrêtée puis déplacée (chemins de `config.env`
   réécrits). Restent techniques et invisibles : nom du fichier d'écran `RISE Cockpit.dc.html`, variables `RISE_*`,
   en-tête `X-RISE-Widget`, base `rise`, données de démonstration.
+- Saisir sans Jev › Baromètre (12/10/2026, demande du commanditaire) : la saisie d'un relevé mensuel revient dans le
+  Cockpit, par le formulaire de Saisir sans Jev (route existante `POST /api/projects/:id/barometer/surveys`). Objet proposé
+  seulement à qui peut écrire (PMO, Responsable du chantier `BAROMETER_WS_CODE` = C8), comme le serveur. Mois proposés :
+  après le dernier relevé jusqu'au mois en cours (au moins un). Répartition de départ : celle du relevé précédent ramenée à
+  100 % (relevés historiques à 97 ou 101), sinon 30 · 40 · 30. Questions : les questions communes du baromètre ; domaines :
+  ceux du comparateur ; notes facultatives. Un relevé existant ne se modifie pas depuis ce formulaire.
