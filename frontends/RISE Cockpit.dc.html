@@ -2450,7 +2450,7 @@ class Component extends DCLogic {
     this.bindProjEdit();
     ['aujourdhui', 'pilotage', 'comites', 'documents', 'projet'].map(n => './assets/banner-' + n + '.jpg').concat(['./assets/banner-profil.png']).forEach(u => { const im = new Image(); im.src = u; });
     // API : données chargées par GET /bootstrap (même forme que rise-data.js + planning-data.js) et écritures synchronisées (api.js).
-    import('./api.js').then(A => A.attach(this)).catch(e => this.showToast('API injoignable — ' + (e && e.message || e)));
+    import('./api.js').then(A => A.attach(this)).catch(e => { this._apiDown = true; this.setState({}); this.showToast('API injoignable — ' + (e && e.message || e)); });
     const firstTab = { today: 'situation', pilotage: 'planning', comites: 'generer', documents: 'bibliotheque', projet: 'fiche' };
     const sp = this.props.startSpace ?? 'today';
     if (sp !== 'today' && firstTab[sp]) this.setState({ space: sp, tab: firstTab[sp] });
@@ -2579,8 +2579,10 @@ class Component extends DCLogic {
     if (kind === 'bmTheme' && tf.editId == null) tf.tone = 'vig';
     this.setState({ taskForm: true, assistant: false, tf, tfErr: false });
   }
-  me() { const D = this.state.data; return (D && D.me) || { personId: 'p01', firstName: 'Robin', lastName: 'Lefèvre' }; }
-  meName() { const m = this.me(); return m.firstName + ' ' + m.lastName; }
+  // Compte connecté (GET /bootstrap). Avant son chargement, identité neutre (11/10/2026) : la personne de démonstration
+  // (p01, Robin Lefèvre) ne s'affiche plus dans l'avatar le temps du chargement ; elle ne sert que si l'API est injoignable.
+  me() { const D = this.state.data; return (D && D.me) || (this._apiDown ? { personId: 'p01', firstName: 'Robin', lastName: 'Lefèvre' } : { personId: null, firstName: '', lastName: '', pending: true }); }
+  meName() { const m = this.me(); return [m.firstName, m.lastName].filter(Boolean).join(' '); }
   /**
    * Profil (07/10/2026) : valeurs réelles (GET /me) au lieu des données de démonstration ; projets ouverts au compte avec
    * rôle, affectation et droits ; projet ouvert par défaut (préférence `defaultProject`).
@@ -3414,7 +3416,7 @@ class Component extends DCLogic {
     const projEditable = S.space === 'projet' && S.tab !== 'referentiel' ? 'true' : 'false';
     // Carte de la barre latérale : initiales et profil principal de l'utilisateur connecté (et non « RL » / « PMO projet » fixes).
     const meTop = this.topProf(this.me().personId);
-    return { ...v, meName: this.meName(), meIni: this.meName().split(/\s+/).filter(Boolean).map(x => x[0]).join('').slice(0, 2).toUpperCase(), meRole: { PMO: 'PMO projet', ADMIN: 'Administrateur', RESPONSABLE: 'Responsable', LECTEUR: 'Lecteur' }[meTop] || 'Sans profil', mePermL: this.profLabel(this.me().personId), frise: this.friseVals(v.milestoneRows || []), pl: this.plVals(), ...this.rkVals(v.riskRows || []), fRk: this.fRk(v.riskRows || []), fIs: this.fIs(allIss, sortVals.sIs), xMs: this.fxVals('ms', v.milestoneRows || [], sortVals.sMs), xMt: this.fxVals('mt', v.mineRows || [], sortVals.sMt), fAc: this.fAc(actionRows, v.actionSummary), ...sortVals, projEditable, projTab: S.space + '-' + S.tab + '-' + (S.dispoView || ''), ...popVals, ...ccVals, ...txVals, ...issVals, actionRows, jevMsgs, jevThink: !!S.jevThink, enterBlur: e => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); } if (e.key === 'Escape') e.currentTarget.blur(); }, pickDate: e => { try { e.currentTarget.showPicker(); } catch (_) {} }, jevCtx: J.ctx || '', jevModeLabel: act ? 'Explication et action' : 'Explication',
+    return { ...v, meName: this.meName(), meIni: this.meName().split(/\s+/).filter(Boolean).map(x => x[0]).join('').slice(0, 2).toUpperCase(), meRole: this.me().pending ? '' : { PMO: 'PMO projet', ADMIN: 'Administrateur', RESPONSABLE: 'Responsable', LECTEUR: 'Lecteur' }[meTop] || 'Sans profil', mePermL: this.profLabel(this.me().personId), frise: this.friseVals(v.milestoneRows || []), pl: this.plVals(), ...this.rkVals(v.riskRows || []), fRk: this.fRk(v.riskRows || []), fIs: this.fIs(allIss, sortVals.sIs), xMs: this.fxVals('ms', v.milestoneRows || [], sortVals.sMs), xMt: this.fxVals('mt', v.mineRows || [], sortVals.sMt), fAc: this.fAc(actionRows, v.actionSummary), ...sortVals, projEditable, projTab: S.space + '-' + S.tab + '-' + (S.dispoView || ''), ...popVals, ...ccVals, ...txVals, ...issVals, actionRows, jevMsgs, jevThink: !!S.jevThink, enterBlur: e => { if (e.key === 'Enter') { e.preventDefault(); e.currentTarget.blur(); } if (e.key === 'Escape') e.currentTarget.blur(); }, pickDate: e => { try { e.currentTarget.showPicker(); } catch (_) {} }, jevCtx: J.ctx || '', jevModeLabel: act ? 'Explication et action' : 'Explication',
       jevModeStyle: 'padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap;' + (act ? 'background:#e6f3f2;color:#0f5f5a' : 'background:#fff3dc;color:#8a5a12'),
       jevInput: S.jevInput || '', // Champ de saisie qui grandit avec le texte (08/10/2026) : jusqu'à 180 px (8 lignes), puis défilement ; Entrée envoie, Maj+Entrée va à la ligne.
       jevSetInput: e => { const el = e.target; el.style.height = 'auto'; const h = Math.max(JEV_TA_H0, Math.min(el.scrollHeight, JEV_TA_MAX)); el.style.height = h + 'px'; this.setState({ jevInput: el.value, jevInputH: h }); },

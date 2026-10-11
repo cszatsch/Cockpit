@@ -646,3 +646,6 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
   (1,5 px ; 2,5 px et ombre ambrée pour la tuile sélectionnée), pour que chaque tuile se détache.
 - Créer un template (11/10/2026) : étapes numérotées 1 à 6 au lieu de A à F (pastilles du stepper et sous-titres de section).
 - Format du rapport (11/10/2026, suite) : bordure #F7A41C réservée à la tuile sélectionnée ; les autres reprennent leur filet gris.
+- Avatar du Cockpit (11/10/2026) : identité neutre tant que le compte n'est pas chargé (GET /bootstrap) ; la personne de
+  démonstration (p01, Robin Lefèvre) ne s'affiche plus le temps du chargement — elle ne sert que si l'API est injoignable
+  (`me()`, `_apiDown`) ; « Sans profil » n'apparaît plus avant le chargement. Recette `test/browser/avatar.e2e.ts`.
