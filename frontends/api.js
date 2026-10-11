@@ -1110,18 +1110,33 @@ export function attach(comp) {
 
     /** Météo et actualités (proxy serveur ; 503 hors ligne : l'écran affiche son état d'erreur). */
     dbExtLoad() {
-      if (comp._dbExtOn || comp.state.space !== 'today') return;
+      if (comp.state.space !== 'today') return;
       const D = comp.mergedData(); if (!D || !D.model || !D.model.PROJECT) return;
-      comp._dbExtOn = true;
       const OV = comp.state.refValues || {}, getV = (id) => { const r = D.model.PROJECT.rows.find((x) => x.id === id); if (!r) return ''; const ov = OV['PROJECT/' + r.id]; return (ov && ov[1] !== undefined ? ov[1] : r.cells[1]) || ''; };
       const city = getV('city') || 'Paris', country = getV('country') || 'France', up = (p) => comp.setState((s) => ({ dbExt: { ...(s.dbExt || {}), ...p } }));
-      up({ city, country });
+      const home = ((comp.state.dbExt || {}).home ?? comp.state.profCity ?? 'Paris') || 'Paris';
+      // Ville, pays ou domicile changés (Référentiel, profil) : météo et trafic relus aussitôt (11/10/2026 ; auparavant
+      // chargés une seule fois par session, l'ancienne ville restait affichée jusqu'au rechargement de la page).
+      const key = city + '|' + country + '|' + home;
+      if (comp._dbExtKey === key) return;
+      const first = !comp._dbExtKey;
+      comp._dbExtKey = key;
+      up({ city, country, wx: null, wxErr: false, tr: null, trErr: false });
       const WMO = (c) => (c === 0 ? 'Ciel dégagé' : c <= 2 ? 'Peu nuageux' : c === 3 ? 'Couvert' : c <= 48 ? 'Brouillard' : c <= 57 ? 'Bruine' : c <= 67 ? 'Pluie' : c <= 77 ? 'Neige' : c <= 82 ? 'Averses' : 'Orages');
       // Proxy des cartes API (GET /api/widgets/proxy/{carte}) : la clé, le quota et le cache sont gérés par le serveur ;
       // 503 (carte désactivée ou en erreur) ou 429 (quota) : la tuile affiche son état d'erreur.
       const PX = (card, q, widget) => get('/widgets/proxy/' + enc(card) + '?' + new URLSearchParams(q), { headers: { 'X-RISE-Widget': widget } });
-      PX('open-meteo-geocodage', { name: city, count: 1, language: 'fr', format: 'json' }, 'meteo')
-        .then((geo) => { const g = geo && geo.results && geo.results[0]; if (!g) throw 0;
+      // Géocodage (11/10/2026) : lieu du pays du projet de préférence (« Massy » seul désignait une ville du Kirghizistan) ;
+      // nom composé introuvable (« Massy Palaiseau ») : chacune de ses parties, dans l'ordre.
+      const norm = (x) => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+      const geocode = (name, widget) => {
+        const tries = [name, ...String(name).split(/[\s-]+/).filter((x) => x.length > 2)].filter((x, i, a) => a.indexOf(x) === i);
+        const pick = (r) => { const L = (r && r.results) || []; return L.find((g) => norm(g.country) === norm(country) || norm(g.country_code) === norm(country)) || (L.length && !country ? L[0] : null); };
+        return tries.reduce((p, n) => p.then((g) => g || PX('open-meteo-geocodage', { name: n, count: 10, language: 'fr', format: 'json' }, widget).then(pick).catch(() => null)), Promise.resolve(null))
+          .then((g) => { if (!g) throw 0; return g; });
+      };
+      geocode(city, 'meteo')
+        .then((g) => {
           return PX('open-meteo', { latitude: g.latitude, longitude: g.longitude, current: 'temperature_2m,weather_code', daily: 'temperature_2m_max,temperature_2m_min,sunrise,sunset', timezone: 'auto', forecast_days: 1 }, 'meteo')
             .then((f) => ({ temperature: f.current ? f.current.temperature_2m : null, weatherCode: f.current ? f.current.weather_code : null, min: f.daily ? f.daily.temperature_2m_min[0] : null, max: f.daily ? f.daily.temperature_2m_max[0] : null, sunrise: f.daily ? f.daily.sunrise[0] : null, sunset: f.daily ? f.daily.sunset[0] : null, fetchedAt: new Date().toISOString() })); })
         .then((w) => { if (w.temperature == null) throw 0; const now = new Date(w.fetchedAt || Date.now()); up({ wx: { t: Math.round(w.temperature), lbl: WMO(w.weatherCode), max: Math.round(w.max), min: Math.round(w.min), rise: w.sunrise || '', set: w.sunset || '', now: now.getFullYear() + '-' + pad2(now.getMonth() + 1) + '-' + pad2(now.getDate()) + 'T' + pad2(now.getHours()) + ':' + pad2(now.getMinutes()) } }); })
@@ -1129,8 +1144,7 @@ export function attach(comp) {
       // Trafic (30/09/2026) : domicile (ville du profil) et site du projet géocodés par la carte « open-meteo-geocodage »,
       // puis durée avec trafic et retard, aller et retour, par la carte « tomtom-routing » (TomTom Routing). Carte
       // désactivée, en erreur ou sans itinéraire : la tuile affiche « Trafic indisponible », jamais de valeur inventée.
-      const home = ((comp.state.dbExt || {}).home ?? comp.state.profCity ?? 'Paris') || 'Paris';
-      const geoOf = (name) => PX('open-meteo-geocodage', { name, count: 1, language: 'fr', format: 'json' }, 'trafic').then((r) => { const g = r && r.results && r.results[0]; if (!g) throw 0; return g; });
+      const geoOf = (name) => geocode(name, 'trafic');
       const leg = (a, b) => PX('tomtom-routing', { route: a.latitude + ',' + a.longitude + ':' + b.latitude + ',' + b.longitude, traffic: 'true', travelMode: 'car' }, 'trafic')
         .then((r) => { const s = r && r.routes && r.routes[0] && r.routes[0].summary; if (!s || !s.travelTimeInSeconds) throw 0; return { min: Math.max(1, Math.round(s.travelTimeInSeconds / 60)), delay: Math.max(0, Math.round((s.trafficDelayInSeconds || 0) / 60)) }; });
       Promise.all([geoOf(home), geoOf(city)])
@@ -1139,10 +1153,10 @@ export function attach(comp) {
         .catch(() => up({ trErr: true }));
       // Actualités agrégées du registre (GNews, NewsData.io, flux RSS Le Monde, L'Équipe, BBC… : cartes actives) ;
       // la date ISO est remise au format AAAAMMJJTHHMMSS (heure locale) attendu par la tuile.
-      get('/widgets/news?limit=6', { headers: { 'X-RISE-Widget': 'news' } })
+      if (first) get('/widgets/news?limit=6', { headers: { 'X-RISE-Widget': 'news' } })
         .then((r) => ({ articles: (r.items || []).map((i) => { const d = i.date ? new Date(i.date) : null; return { t: i.title, src: i.source, url: i.url || '', iso: i.date || '', d: d ? d.getFullYear() + pad2(d.getMonth() + 1) + pad2(d.getDate()) + 'T' + pad2(d.getHours()) + pad2(d.getMinutes()) + '00' : '' }; }) }))
         .then((j) => { const A = (j.articles || []).filter((a) => a.t).slice(0, 6).map((a) => { const s = String(a.d || ''); return { t: a.t, url: a.url || '', iso: a.iso || '', src: String(a.src || '').replace(/^www\./, '').split('.')[0], d: s.length >= 12 ? s.slice(9, 11) + ':' + s.slice(11, 13) : '' }; }); if (!A.length) throw 0; up({ news: A }); })
-        .catch(() => { up({ newsErr: true }); setTimeout(() => { comp._dbExtOn = false; }, 60000); });
+        .catch(() => { up({ newsErr: true }); setTimeout(() => { comp._dbExtKey = null; }, 60000); });
     },
 
     /** Téléchargement : `GET /documents/{id}/file` (le jeu de démonstration n'a pas de binaire : 404 affiché). */

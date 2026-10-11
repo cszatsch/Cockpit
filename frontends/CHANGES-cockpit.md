@@ -649,3 +649,6 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 - Avatar du Cockpit (11/10/2026) : identité neutre tant que le compte n'est pas chargé (GET /bootstrap) ; la personne de
   démonstration (p01, Robin Lefèvre) ne s'affiche plus le temps du chargement — elle ne sert que si l'API est injoignable
   (`me()`, `_apiDown`) ; « Sans profil » n'apparaît plus avant le chargement. Recette `test/browser/avatar.e2e.ts`.
+- Aujourd'hui › Météo et Trafic (11/10/2026) : relus dès que la ville ou le pays du projet (Référentiel) ou la ville du
+  profil changent (`_dbExtKey`), au lieu d'une seule fois par session ; géocodage restreint au pays du projet et, pour un
+  nom composé introuvable (« Massy Palaiseau »), essai de chacune de ses parties (`geocode`, api.js).
