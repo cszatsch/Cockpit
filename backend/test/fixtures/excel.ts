@@ -1,7 +1,7 @@
 import ExcelJS from 'exceljs';
 import path from 'path';
 
-export const TEMPLATE = path.join(__dirname, '../../../frontends/Referentiel RISE - initialisation.xlsx');
+export const TEMPLATE = path.join(__dirname, '../../../frontends/Referentiel Cockpit - initialisation.xlsx');
 
 type Rows = Record<string, Array<Record<string, string | number | Date | null>>>;
 

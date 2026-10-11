@@ -2254,3 +2254,15 @@ Demande du commanditaire : un risque peut concerner un chantier, plusieurs, ou t
   la base et le code de projet de démonstration « RISE » restent inchangés ; l'Annexe A des guides n'est pas modifiée.
 - Registre des décisions (12/10/2026) : « Brouillon » ne se choisit plus (`rgStList`) ; « Saisir sans Jev » masqué pour les
   Lecteurs (`jevCanManual`).
+- Marque « Cockpit », suite (12/10/2026) : plus aucune référence en dur au projet RISE dans le Cockpit et la Console.
+  Écrans : code du projet ouvert (`projCode()`), aucun projet par défaut dans `api.js` (compte sans projet : message).
+  Aperçu d'une règle de notification (`POST …/notification-rules/:id/preview`) : projet demandé, sinon le premier par code.
+  Consignes de l'IA (aiguillage Console et Cockpit, mémoire, guide, notifications, rapports) : « Cockpit » ; dictionnaire :
+  exemple de code « PMS ». Skills : migration `20261118000500_marque_cockpit_skills` (remplacements ciblés, reste du texte
+  gardé ; exemples du préremplissage sans nom de projet, code d'exemple « NXL »). PowerPoint sans format : auteur,
+  application et thème « Cockpit ». Expéditeur par défaut `Cockpit <no-reply@cockpit.local>`. Fichiers renommés : modèle
+  `Referentiel Cockpit - initialisation.xlsx` ; paquets (Partager Cockpit, `npm run livraison`) : dossier « Cockpit »,
+  ZIP « Cockpit <date>.zip » ; installation dans `%LOCALAPPDATA%\Programs\Cockpit` et `%LOCALAPPDATA%\Cockpit`, menu
+  Démarrer « Cockpit » ; une installation « RISE Cockpit » existante est arrêtée puis déplacée (chemins de `config.env`
+  réécrits). Restent techniques et invisibles : nom du fichier d'écran `RISE Cockpit.dc.html`, variables `RISE_*`,
+  en-tête `X-RISE-Widget`, base `rise`, données de démonstration.

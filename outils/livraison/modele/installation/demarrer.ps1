@@ -3,8 +3,8 @@
 #>
 . (Join-Path $PSScriptRoot 'commun.ps1')
 Write-Host ''
-Write-Host '  RISE Cockpit — démarrage' -ForegroundColor White
-if (-not (Test-Path -LiteralPath $Config)) { Echec "RISE Cockpit n'est pas installé : lancez installer_cockpit.cmd depuis le dossier extrait du ZIP." }
+Write-Host '  Cockpit — démarrage' -ForegroundColor White
+if (-not (Test-Path -LiteralPath $Config)) { Echec "Cockpit n'est pas installé : lancez installer_cockpit.cmd depuis le dossier extrait du ZIP." }
 Demarrer-Pg
 Ok 'base de données démarrée'
 Demarrer-Application

@@ -201,8 +201,11 @@ export class RulesController {
   async preview(@Param('id') id: string, @Body() body: unknown) {
     const r = await this.one(id);
     const { sampleContext } = parse(z.object({ sampleContext: z.record(z.string()).default({}) }).strict(), body ?? {});
-    const ctx: RuleContext = { projet: 'RISE', semaine: 'semaine 39', ...sampleContext };
-    const project = await this.prisma.project.findFirst({ where: { code: ctx.projet } });
+    // Projet de l'exemple : celui demandé, sinon le premier ciblé par la règle, sinon le premier de la plateforme
+    // (12/10/2026 : plus de code de projet en dur).
+    const code = sampleContext.projet ?? (r as { projectIds?: string[] }).projectIds?.[0];
+    const project = (code ? await this.prisma.project.findFirst({ where: { code } }) : null) ?? (await this.prisma.project.findFirst({ orderBy: { code: 'asc' } }));
+    const ctx: RuleContext = { projet: project?.code ?? 'Projet', semaine: 'semaine 39', ...sampleContext };
     return this.notifs.generate(r, ctx, project?.id ?? null);
   }
 

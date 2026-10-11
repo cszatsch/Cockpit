@@ -1,8 +1,8 @@
 ﻿<#
-  Installation de RISE Cockpit (Cockpit et Console) sur ce poste, sans droit d'administrateur ni Docker.
+  Installation de Cockpit (Cockpit et Console) sur ce poste, sans droit d'administrateur ni Docker.
   Lancée par installer_cockpit.cmd, depuis le dossier extrait du ZIP.
-    1. copie les programmes dans %LOCALAPPDATA%\Programs\RISE Cockpit (application, Node.js, PostgreSQL) ;
-    2. crée la base dans %LOCALAPPDATA%\RISE Cockpit et y charge les données livrées (projet RISE, IA, SMTP…) ;
+    1. copie les programmes dans %LOCALAPPDATA%\Programs\Cockpit (application, Node.js, PostgreSQL) ;
+    2. crée la base dans %LOCALAPPDATA%\Cockpit et y charge les données livrées (projets, IA, SMTP…) ;
     3. écrit la configuration (secrets de session propres à ce poste) ;
     4. crée le compte de la personne qui installe (préparé par l'administrateur : seul le mot de passe est demandé ;
        sinon nom, e-mail et mot de passe d'un compte Administrateur et PMO) ;
@@ -16,7 +16,7 @@ $Paquet = Split-Path -Parent $PSScriptRoot
 
 Write-Host ''
 Write-Host '═══════════════════════════════════════════' -ForegroundColor Cyan
-Write-Host '  Installation de RISE Cockpit' -ForegroundColor Cyan
+Write-Host '  Installation de Cockpit' -ForegroundColor Cyan
 Write-Host '═══════════════════════════════════════════' -ForegroundColor Cyan
 
 foreach ($f in 'app\backend\dist\main.js', 'runtime\node\node.exe', 'runtime\pgsql\bin\pg_ctl.exe', 'donnees\rise.dump') {
@@ -28,6 +28,30 @@ $Info = if (Test-Path -LiteralPath $InfoPaquet) { Get-Content -LiteralPath $Info
 if (-not $Info -and -not (Test-Path -LiteralPath (Join-Path $Paquet 'donnees\cle-secrets.txt'))) { Echec 'fichier manquant dans le dossier extrait : donnees\paquet.json. Extrayez à nouveau tout le contenu du ZIP.' }
 if ($Info) { Write-Host "  Cockpit $($Info.version), préparé pour $($Info.recipient.name)" -ForegroundColor DarkGray }
 
+# ───── 0. Installation antérieure au 12/10/2026 (dossiers « RISE Cockpit ») : arrêtée puis reprise sous « Cockpit » ─────
+$AncienProgrammes = Join-Path $env:LOCALAPPDATA 'Programs\RISE Cockpit'
+$AncienDonnees    = Join-Path $env:LOCALAPPDATA 'RISE Cockpit'
+if ((Test-Path -LiteralPath $AncienDonnees) -and -not (Test-Path -LiteralPath $Donnees)) {
+  Etape 'Reprise de l''installation précédente'
+  $ancienNode = Join-Path $AncienProgrammes 'runtime\node\node.exe'
+  foreach ($id in @(Processus-SurPort $PortApp)) {
+    $p = Get-Process -Id $id -ErrorAction SilentlyContinue
+    if ($p -and $p.Path -and ($p.Path -ieq $ancienNode)) { Stop-Process -Id $id -Force -ErrorAction SilentlyContinue }
+  }
+  $ancienneBase = Join-Path $AncienDonnees 'base'
+  if (Test-Path -LiteralPath (Join-Path $ancienneBase 'postmaster.pid')) { & (Join-Path $AncienProgrammes 'runtime\pgsql\bin\pg_ctl.exe') -D $ancienneBase -m fast -w stop | Out-Null }
+  Move-Item -LiteralPath $AncienDonnees -Destination $Donnees -ErrorAction SilentlyContinue
+  if (-not (Test-Path -LiteralPath $Donnees)) { Echec "déplacement impossible de $AncienDonnees vers $Donnees : fermez Cockpit puis relancez l'installation." }
+  # Configuration conservée : chemins de l'ancienne installation remplacés par les nouveaux.
+  if (Test-Path -LiteralPath $Config) {
+    $c = (Get-Content -LiteralPath $Config -Raw -Encoding UTF8).Replace($AncienProgrammes, $Programmes).Replace($AncienDonnees, $Donnees)
+    Set-Content -LiteralPath $Config -Value $c -Encoding UTF8 -NoNewline
+  }
+  Remove-Item -LiteralPath $AncienProgrammes -Recurse -Force -ErrorAction SilentlyContinue
+  Remove-Item -LiteralPath (Join-Path ([Environment]::GetFolderPath('Programs')) 'RISE Cockpit') -Recurse -Force -ErrorAction SilentlyContinue
+  Ok "données reprises dans $Donnees"
+}
+
 # ───── 1. Installation précédente ─────
 Etape 'Vérification du poste'
 $dejaInstalle = Test-Path -LiteralPath (Join-Path $PgData 'PG_VERSION')
@@ -38,9 +62,9 @@ if ($dejaInstalle -and $Info) {
   # Choix de l'administrateur qui a préparé le paquet : conserver (application seule) ou remplacer (après sauvegarde).
   $remplacer = $Info.update -eq 'replace'
   $quoi = if ($remplacer) { 'ses données seront remplacées, après sauvegarde.' } else { 'seule l''application est mise à jour, ses données sont conservées.' }
-  Write-Host "  RISE Cockpit est déjà installé sur ce poste : $quoi" -ForegroundColor Yellow
+  Write-Host "  Cockpit est déjà installé sur ce poste : $quoi" -ForegroundColor Yellow
 } elseif ($dejaInstalle) {
-  Write-Host '  RISE Cockpit est déjà installé sur ce poste.' -ForegroundColor Yellow
+  Write-Host '  Cockpit est déjà installé sur ce poste.' -ForegroundColor Yellow
   $r = Read-Host '  Remplacer ses données par celles de ce paquet ? Les données actuelles seront mises de côté. (O/N)'
   $remplacer = $r -match '^[oOyY]'
 }
@@ -234,10 +258,10 @@ if ($nouveauCompte -and $prerempli) {
 Etape 'Raccourcis'
 if ($env:RISE_SANS_RACCOURCIS) { Ok 'raccourcis non créés (essai)' } else {
 $wsh = New-Object -ComObject WScript.Shell
-$menu = Join-Path ([Environment]::GetFolderPath('Programs')) 'RISE Cockpit'
+$menu = Join-Path ([Environment]::GetFolderPath('Programs')) 'Cockpit'
 New-Item -ItemType Directory -Force -Path $menu | Out-Null
 foreach ($dossier in [Environment]::GetFolderPath('Desktop'), $menu) {
-  foreach ($r in @(@('Démarrer Cockpit', 'demarrer.cmd', 'Démarrer RISE Cockpit'), @('Arrêter Cockpit', 'arreter.cmd', 'Arrêter RISE Cockpit'))) {
+  foreach ($r in @(@('Démarrer Cockpit', 'demarrer.cmd', 'Démarrer Cockpit'), @('Arrêter Cockpit', 'arreter.cmd', 'Arrêter Cockpit'))) {
     $l = $wsh.CreateShortcut((Join-Path $dossier "$($r[0]).lnk"))
     $l.TargetPath = Join-Path $Programmes "installation\$($r[1])"
     $l.WorkingDirectory = Join-Path $Programmes 'installation'

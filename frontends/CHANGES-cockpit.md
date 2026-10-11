@@ -663,3 +663,8 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
   `jevManual`).
 - Marque (12/10/2026) : « RISE » retiré des textes visibles — projet à l'arrivée = projet par défaut, sinon le premier de la
   liste (`arrive`, api.js, plus de préférence pour le code « RISE »).
+- Marque (12/10/2026, suite) : plus de « RISE » en dur — code du projet ouvert (`projCode()`, valeurs `projCode`, `projLe`,
+  `projTitle`, `projDash`) dans la question du Baromètre, le titre « Projet {code} » de la Fiche projet, la case PROJECT du
+  schéma des objets, l'en-tête de la vue agrandie (étape 5), l'aperçu de « Générer un rapport » et la réponse locale de Jev ;
+  organigramme : « Directeur de programme » par défaut ; onglet « Connexion · Cockpit ». `api.js` : plus de projet par
+  défaut « RISE » ; compte sans projet → message « Aucun projet ne vous est ouvert… ».

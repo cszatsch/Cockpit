@@ -47,7 +47,7 @@ export const config = {
     return process.env.SMTP_URL ?? '';
   },
   get mailFrom() {
-    return process.env.MAIL_FROM ?? 'RISE <no-reply@rise.local>';
+    return process.env.MAIL_FROM ?? 'Cockpit <no-reply@cockpit.local>';
   },
   /** Attribut `Secure` des cookies de session (les navigateurs l'acceptent aussi sur http://localhost). */
   get cookieSecure() {

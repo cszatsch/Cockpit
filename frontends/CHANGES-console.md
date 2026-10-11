@@ -809,3 +809,7 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
 - Utilisateurs (12/10/2026) : sous-titre de la page aligné sur l'attribution des chantiers dans « Modifier le compte »
   (il renvoyait encore au Référentiel du Cockpit).
 - Analyse des temps de réponse (12/10/2026) : « Service RISE » devient « Service Cockpit ».
+- Marque (12/10/2026, suite) : onglet « Connexion · Console Cockpit » ; Guide utilisateur : bandeau « GUIDE COCKPIT » /
+  « GUIDE CONSOLE » ; Notifications : aperçu de l'e-mail signé « Cockpit · adresse d'expédition du serveur SMTP », `{projet}`
+  remplacé par le premier projet ciblé par la règle (sinon le premier projet de la plateforme) ; Serveur SMTP et Skills :
+  exemples sans « RISE ». Modèle Excel renommé `Referentiel Cockpit - initialisation.xlsx`.

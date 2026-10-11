@@ -95,7 +95,7 @@ export class ShareBuilder {
   async build(o: ShareBuildOptions, step: StepFn): Promise<ShareBuildResult> {
     const P = this.paths();
     const work = path.resolve(config.storageDir, 'share-work', o.id);
-    const stage = path.join(work, 'RISE Cockpit');
+    const stage = path.join(work, 'Cockpit');
     const temp = `share_${o.id.replace(/[^a-z0-9]/gi, '').toLowerCase()}`;
     await fs.rm(work, { recursive: true, force: true });
     await fs.mkdir(path.join(stage, 'donnees'), { recursive: true });
@@ -124,7 +124,7 @@ export class ShareBuilder {
       await fs.mkdir(outDir, { recursive: true });
       const file = path.join(outDir, o.fileName);
       await fs.rm(file, { force: true });
-      await run(path.join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'tar.exe'), ['-a', '-c', '-f', file, 'RISE Cockpit'], { cwd: work, windowsHide: true, maxBuffer: 16 * 1024 * 1024 });
+      await run(path.join(process.env.SystemRoot ?? 'C:\\Windows', 'System32', 'tar.exe'), ['-a', '-c', '-f', file, 'Cockpit'], { cwd: work, windowsHide: true, maxBuffer: 16 * 1024 * 1024 });
       const size = (await fs.stat(file)).size;
       return { file, size, sha256: await sha256(file) };
     } finally {

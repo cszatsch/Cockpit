@@ -59,7 +59,7 @@ describe('Jev — guide de l’application d’où vient la question', () => {
     expect(r.body).toMatchObject({ reply: guideMissingReply('cockpit'), sources: [], route: '2', guide: 'NO_GUIDE' });
     expect(llm).not.toHaveBeenCalled();
     llm.mockRestore();
-    expect(sent[sent.length - 1].state.assistant_scope).toMatch(/^RISE Cockpit/);
+    expect(sent[sent.length - 1].state.assistant_scope).toMatch(/^Cockpit, /);
     expect(sent[sent.length - 1].state.open_page).toBe('pilotage › actions');
   });
 

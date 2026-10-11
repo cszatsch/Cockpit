@@ -65,7 +65,7 @@ export interface WritingFacts {
 
 export function writingSystem(skills: Array<{ n: string; t: string }>): string {
   const guide = skills.map((s) => `### Skill « ${s.n} »\n${s.t}`).join('\n\n');
-  return `Tu rédiges les textes d'un rapport de comité PowerPoint généré par le Cockpit RISE. Le fichier, sa mise en page et ses tableaux sont produits par l'application : tu n'écris que les titres-messages des pages et, s'il est demandé, le texte de synthèse.
+  return `Tu rédiges les textes d'un rapport de comité PowerPoint généré par Cockpit. Le fichier, sa mise en page et ses tableaux sont produits par l'application : tu n'écris que les titres-messages des pages et, s'il est demandé, le texte de synthèse.
 Règles impératives :
 - Vouvoiement, français professionnel, phrases courtes ; aucun Markdown, aucun guillemet autour des textes.
 - Un titre-message par page : il dit le message de la page (« Le Go-Live tient, sous réserve de la recette »), pas son intitulé (« Planning ») ; il tient dans sa zone : « titreMax » caractères au plus (espaces compris), sinon ${TITLE_MAX} ; sans point final.

@@ -30,8 +30,8 @@ import './saisie-calc.js';
 export const CLIENT_ID = 'c' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 const API_ROOT = ((typeof window !== 'undefined' && window.RISE_API_BASE) || '').replace(/\/+$/, '') + '/api';
 const QS = new URLSearchParams(typeof location !== 'undefined' ? location.search : '');
-/** Projet courant : `?project=` sinon RISE. */
-export const projectId = QS.get('project') || 'RISE';
+/** Projet courant : `?project=` ; sans lui, le projet d'arrivée (`arrive`) — aucun code de projet en dur (12/10/2026). */
+export const projectId = QS.get('project') || '';
 /** Personne de la connexion de développement : `?as=` (sans `?as=`, session par cookie). */
 const AS = QS.get('as') || '';
 /** Connexion de développement par jeton (`?as=`) plutôt que session par cookie. */
@@ -922,7 +922,7 @@ export function attach(comp) {
       setTimeout(start, RETRY_MS);
     });
   // Projet à l'arrivée (07/10/2026) : sans `?project=` dans l'adresse, le projet par défaut du profil s'il est ouvert au
-  // compte, sinon RISE s'il l'est, sinon le premier projet ouvert ; le Cockpit se recharge alors sur ce projet.
+  // compte, sinon le premier projet ouvert ; le Cockpit se recharge alors sur ce projet. Aucun projet ouvert : message.
   const arrive = async () => {
     if (QS.has('project')) return false;
     try {
@@ -930,7 +930,12 @@ export function attach(comp) {
       const codes = (me.projects || []).map((x) => x.code), pref = me.preferences && me.preferences.defaultProject;
       // Projet par défaut du compte, sinon le premier de sa liste (12/10/2026 : plus de préférence pour un code de démonstration).
       const target = pref && codes.includes(pref) ? pref : codes[0];
-      if (target && target !== projectId) {
+      if (!target) {
+        // Aucun projet ouvert au compte : un message, plus de tentative sur un projet de démonstration (12/10/2026).
+        raw({ toast: 'Aucun projet ne vous est ouvert : demandez un accès à l’administrateur de la plateforme.' });
+        return true;
+      }
+      if (target !== projectId) {
         const q = new URLSearchParams(location.search); q.set('project', target);
         location.replace(location.pathname + '?' + q.toString() + location.hash);
         return true;

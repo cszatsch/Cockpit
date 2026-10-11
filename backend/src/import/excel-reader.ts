@@ -1,7 +1,7 @@
 import ExcelJS from 'exceljs';
 
 /**
- * Lecture du fichier « Referentiel RISE - initialisation.xlsx » (brief Cockpit § 10, Console § 10.6).
+ * Lecture du fichier « Referentiel Cockpit - initialisation.xlsx » (brief Cockpit § 10, Console § 10.6).
  * Onglets de saisie : types en ligne 7 (OBLIGATOIRE, FACULTATIF, CALCULÉ, CONTRÔLE), en-têtes en ligne 8,
  * données à partir de la ligne 9. L'onglet « 05 Projet » est un formulaire (libellé en B, type en C, valeur en D).
  */

@@ -78,7 +78,7 @@ export class NotificationWriterService {
 
   base(audience: Audience, projectCode: string | null): string {
     return [
-      `Tu rédiges le contenu d’une notification de la plateforme RISE (pilotage de projets de transformation), envoyée aux utilisateurs de profil ${PROFILE_NAME[audience.profile]}${projectCode ? ` du projet ${projectCode}` : ''}.`,
+      `Tu rédiges le contenu d’une notification de la plateforme Cockpit (pilotage de projets de transformation), envoyée aux utilisateurs de profil ${PROFILE_NAME[audience.profile]}${projectCode ? ` du projet ${projectCode}` : ''}.`,
       'Méthode : 1. analyse la consigne ; 2. repère dans le dictionnaire des données les vues et colonnes utiles ; 3. écris la requête SQL ; le serveur l’exécute et te renvoie les résultats ; 4. rédige le contenu à partir des résultats.',
       'Le contenu est inséré tel quel dans le message envoyé : en français, en Markdown léger (structure ci-dessous), sans titre « # » ni formule de politesse.',
       NOTIFICATION_STRUCTURE,

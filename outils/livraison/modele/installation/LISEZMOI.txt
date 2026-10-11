@@ -1,4 +1,4 @@
-RISE Cockpit — installation sur Windows
+Cockpit — installation sur Windows
 =======================================
 
 1. Si Windows a bloqué le ZIP : clic droit sur le ZIP > Propriétés > cocher « Débloquer » > OK.
@@ -12,8 +12,8 @@ RISE Cockpit — installation sur Windows
 Adresses : Cockpit http://localhost:3000/connexion — Console http://localhost:3000/console/connexion
 
 Aucun droit d'administrateur ni logiciel à installer : Node.js et PostgreSQL sont fournis.
-Programmes : %LOCALAPPDATA%\Programs\RISE Cockpit
-Données    : %LOCALAPPDATA%\RISE Cockpit (base, fichiers, configuration, journaux)
+Programmes : %LOCALAPPDATA%\Programs\Cockpit
+Données    : %LOCALAPPDATA%\Cockpit (base, fichiers, configuration, journaux)
 Le dossier extrait du ZIP peut être supprimé après l'installation.
 
 Confidentialité : ce paquet peut contenir des clés d'accès aux fournisseurs d'IA et au serveur d'e-mails.

@@ -129,7 +129,7 @@ textarea::placeholder,input::placeholder{color:#8a9aa6}
               </sc-if>
               <sc-if value="{{ pvMail }}" hint-placeholder-val="{{ false }}">
                 <div style="width:100%;background:#fff;border-radius:14px;box-shadow:0 12px 30px -16px rgba(16,35,58,.35);overflow:hidden">
-                  <div style="padding:12px 18px;border-bottom:1px solid #eef3f2;display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:#8a9aa6"><span><b style="color:#43586a">RISE Cockpit</b> · notifications@rise.app</span><span>Objet : <b style="color:#10233a">{{ pv.subject }}</b></span></div>
+                  <div style="padding:12px 18px;border-bottom:1px solid #eef3f2;display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:#8a9aa6"><span><b style="color:#43586a">Cockpit</b> · adresse d’expédition du serveur SMTP</span><span>Objet : <b style="color:#10233a">{{ pv.subject }}</b></span></div>
                   <div style="padding:16px 18px;display:flex;flex-direction:column;gap:12px"><div style="font-size:12.5px;line-height:1.6;color:#43586a;text-wrap:pretty">{{ pv.body }}</div><span style="align-self:flex-start;height:30px;padding:0 12px;border-radius:8px;background:#10233a;color:#fff;font-size:12px;font-weight:700;display:inline-flex;align-items:center">Ouvrir dans le Cockpit</span></div>
                 </div>
               </sc-if>
@@ -229,6 +229,8 @@ class Component extends DCLogic {
   errors(d) { const e = []; if (!d.model) e.push(ERR_MODEL); if (!d.profils.length) e.push(ERR_DEST); return e; }
   renderVals() {
     const S = this.state, rules = this.rules(), cur = this.sel(), d = this.draft(), counts = this.props.counts ?? COUNTS;
+    // Exemple de l'aperçu : le premier projet ciblé par la règle, sinon le premier projet de la plateforme (12/10/2026).
+    const sample = { ...SAMPLE, projet: (d.projets || []).find(p => p !== '*') || (this.props.projects ?? PROJETS)[0] || 'Projet' };
     const sch = this.props.schedule ?? SCHED0, atP = atParts(d.at);
     const models = this.models(), model = models.find(m => m.id === d.model);
     const dirty = JSON.stringify(d) !== JSON.stringify(cur), errs = this.errors(d);
@@ -302,7 +304,7 @@ class Component extends DCLogic {
           st: 'border:0;cursor:pointer;font-family:\'IBM Plex Mono\',monospace;font-size:11.5px;padding:2px 6px;border-radius:6px;transition:background .15s;' + (llm ? 'background:#e6f4f2;color:#146b64' : 'background:#eef3f2;color:#2a3f53'), hov: 'background:#d5e0dd' }; }),
       pvTabs: [['app', 'Application'], ['mail', 'E-mail']].map(([k, l]) => ({ l, on: S.pv === k, pick: () => this.setState({ pv: k }), st: seg(S.pv === k, 26) })),
       pvApp: S.pv === 'app', pvMail: S.pv === 'mail',
-      pv: { kind: 'Notification', subject: fill(d.subject, SAMPLE) || 'Sans objet', body: fill(d.body, SAMPLE),
+      pv: { kind: 'Notification', subject: fill(d.subject, sample) || 'Sans objet', body: fill(d.body, sample),
         bar: 'width:3px;border-radius:2px;flex:none;background:#1d8f86',
         badge: 'height:20px;padding:0 8px;border-radius:999px;font-weight:700;display:inline-flex;align-items:center;background:#e6f4f2;color:#146b64' },
       cantSend: !canSend,

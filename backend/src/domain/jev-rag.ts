@@ -133,7 +133,7 @@ export function guideExtractsBlock(xs: GuideExtract[]): string {
 }
 
 /** Ce que Jev sait faire (rappelé dans la clarification). */
-export const JEV_CAPABILITIES = 'Je réponds à deux sortes de questions sur la Console d’administration RISE : son utilisation (où trouver un écran ou un réglage, comment faire, quelles règles s’appliquent, d’après le guide utilisateur) et ses données (comptes, droits, IA et coûts, projets, snapshots, notifications, modules, cartes API, journal d’audit).';
+export const JEV_CAPABILITIES = 'Je réponds à deux sortes de questions sur la Console d’administration de Cockpit : son utilisation (où trouver un écran ou un réglage, comment faire, quelles règles s’appliquent, d’après le guide utilisateur) et ses données (comptes, droits, IA et coûts, projets, snapshots, notifications, modules, cartes API, journal d’audit).';
 
 export type ClarifyReason = 'AMBIGU' | 'HORS_SUJET' | 'AUCUN_EXTRAIT' | 'GUIDE_NON_INDEXE' | 'INDISPONIBLE';
 
@@ -161,7 +161,7 @@ export function clarifyPrompt(question: string, reason: ClarifyReason): string {
 
 /** Reformulation d'une question de suite en question autonome (avant la recherche dans le guide). */
 export const REFORMULATE_SYSTEM = [
-  'Tu reformules la dernière question d’un administrateur de la Console d’administration RISE pour qu’elle se comprenne seule, sans la conversation.',
+  'Tu reformules la dernière question d’un administrateur de la Console d’administration de Cockpit pour qu’elle se comprenne seule, sans la conversation.',
   'Remplace les pronoms et les ellipses par ce qu’ils désignent dans les échanges précédents. Garde le sens et la langue ; n’ajoute rien.',
   'Si la question se comprend déjà seule, recopie-la telle quelle.',
   'Réponds uniquement par la question reformulée, sur une ligne, sans guillemets.',

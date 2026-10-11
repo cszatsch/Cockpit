@@ -1,5 +1,5 @@
 /*
- * Installation de RISE Cockpit : compte de la personne qui installe (Administrateur de la plateforme et PMO de chaque
+ * Installation de Cockpit : compte de la personne qui installe (Administrateur de la plateforme et PMO de chaque
  * projet), avec le nom, l'e-mail et le mot de passe saisis par l'installateur (variables RISE_ADMIN_NOM,
  * RISE_ADMIN_EMAIL, RISE_INITIAL_ADMIN_PASSWORD ; le mot de passe n'est jamais écrit sur le disque). Compte prérempli
  * par l'administrateur (Partager Cockpit) : profils dans RISE_ADMIN_PROFILS (Administrateur, PMO, Responsable, Lecteur).

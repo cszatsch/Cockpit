@@ -1,5 +1,5 @@
 /*
- * Installation de RISE Cockpit : secrets du paquet (Partager Cockpit, 05/10/2026). Lit donnees\paquet.json.
+ * Installation de Cockpit : secrets du paquet (Partager Cockpit, 05/10/2026). Lit donnees\paquet.json.
  *   node deverrouiller.js cle            → affiche la clé des secrets (64 caractères hexadécimaux) :
  *       - paquet protégé par code : clé dérivée du code (variable RISE_CODE, jamais écrite sur le disque) par Argon2id
  *         avec le sel du paquet, puis vérifiée ; code faux : sortie 2 ;

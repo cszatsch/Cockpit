@@ -1350,7 +1350,7 @@ Votre carte, en bas de la barre latérale, ouvre **Mon profil**. Le profil n'aff
 2. Sur la ligne du projet voulu, cliquez sur **Choisir**. La pastille devient **Par défaut**. Toast : « {code} s'ouvrira par défaut ».
 3. Un nouveau clic sur **Par défaut** retire ce choix (« Projet par défaut retiré »).
 
-Le projet par défaut s'ouvre quand vous arrivez dans le Cockpit par une adresse qui ne précise pas de projet. Sans projet par défaut, le Cockpit ouvre le premier projet de votre liste. Le texte sous le tableau le rappelle (« Le Cockpit s'ouvre sur … quand l'adresse ne précise pas de projet. »).
+Le projet par défaut s'ouvre quand vous arrivez dans le Cockpit par une adresse qui ne précise pas de projet. Sans projet par défaut, le Cockpit ouvre le premier projet de votre liste. Si aucun projet ne vous est ouvert, le message « Aucun projet ne vous est ouvert : demandez un accès à l'administrateur de la plateforme. » s'affiche. Le texte sous le tableau le rappelle (« Le Cockpit s'ouvre sur … quand l'adresse ne précise pas de projet. »).
 
 ### 3.21.4 Changer son mot de passe
 

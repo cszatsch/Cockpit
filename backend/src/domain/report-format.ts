@@ -385,7 +385,7 @@ export function estimatedZones(kind: PageKind, size: { cx: number; cy: number },
   return [];
 }
 
-/** Présentation par défaut (templates sans format) : charte de RISE, 16:9. */
+/** Présentation par défaut (templates sans format) : charte de Cockpit, 16:9. */
 export function builtInFormat(): { analysis: FormatAnalysis; pages: Record<PageKind, SlideAnalysis> } {
   const size = DEFAULT_SIZE;
   const navy = '10233A', teal = '1D8F86', amber = 'F7A41C', white = 'FFFFFF', ink = '43586A';

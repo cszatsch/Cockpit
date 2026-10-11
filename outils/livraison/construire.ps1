@@ -1,20 +1,20 @@
 ﻿<#
-  Construction du paquet d'installation de RISE Cockpit (04/10/2026) : un ZIP autonome pour Windows, sans Docker ni
+  Construction du paquet d'installation de Cockpit (04/10/2026) : un ZIP autonome pour Windows, sans Docker ni
   droit d'administrateur chez la personne qui l'installe.
     - application compilée (Cockpit, Console) avec ses dépendances de production ;
     - Node.js et PostgreSQL (avec l'extension pgvector) embarqués ;
-    - copie de la base de développement (état actuel : projet RISE, templates, IA, SMTP, skills, guide…) et des fichiers
+    - copie de la base de développement (état actuel : projets, templates, IA, SMTP, skills, guide…) et des fichiers
       déposés ; le compte de l'auteur, les sessions et les liens de mot de passe sont retirés ; les secrets (clés d'IA,
       cartes API, mot de passe SMTP) sont rechiffrés avec une clé propre au paquet ;
     - installateur (installer_cockpit.cmd) et lanceurs « Démarrer Cockpit » / « Arrêter Cockpit ».
   Lancement : npm run livraison (dans backend/), avec le PostgreSQL de développement démarré (port 5433).
-  Sortie : livraison\RISE Cockpit <date>.zip (dossier non versionné).
+  Sortie : livraison\Cockpit <date>.zip (dossier non versionné).
 #>
 $ErrorActionPreference = 'Continue'
 $Racine  = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $Backend = Join-Path $Racine 'backend'
 $Sortie  = Join-Path $Racine 'livraison'
-$Paquet  = Join-Path $Sortie 'RISE Cockpit'
+$Paquet  = Join-Path $Sortie 'Cockpit'
 $Modele  = Join-Path $PSScriptRoot 'modele'
 
 function Ok([string]$m)    { Write-Host "  [OK] $m" -ForegroundColor Green }
@@ -44,7 +44,7 @@ $env:PGHOST = 'localhost'; $env:PGPORT = "$PgPort"; $env:PGUSER = $PgUser
 if ($LASTEXITCODE -ne 0) { Echec "le PostgreSQL de développement ne répond pas sur le port $PgPort (lancez start_cockpit)." }
 
 Write-Host ''
-Write-Host "Paquet d'installation de RISE Cockpit — PostgreSQL $($PgDir.Name), base « $PgBase »" -ForegroundColor White
+Write-Host "Paquet d'installation de Cockpit — PostgreSQL $($PgDir.Name), base « $PgBase »" -ForegroundColor White
 
 # ───── 1. Compilation ─────
 Etape 'Compilation'
@@ -135,10 +135,10 @@ Ok 'installer_cockpit.cmd, lanceurs et icône'
 
 # ───── 5. ZIP ─────
 Etape 'Archive'
-$zip = Join-Path $Sortie ("RISE Cockpit $(Get-Date -Format 'yyyy-MM-dd').zip")
+$zip = Join-Path $Sortie ("Cockpit $(Get-Date -Format 'yyyy-MM-dd').zip")
 if (Test-Path -LiteralPath $zip) { Remove-Item -LiteralPath $zip -Force }
 Push-Location $Sortie
-& (Join-Path $env:SystemRoot 'System32\tar.exe') -a -c -f $zip 'RISE Cockpit'
+& (Join-Path $env:SystemRoot 'System32\tar.exe') -a -c -f $zip 'Cockpit'
 $t = $LASTEXITCODE
 Pop-Location
 if ($t -ne 0) { Echec 'création du ZIP impossible.' }

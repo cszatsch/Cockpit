@@ -55,7 +55,7 @@ export const COCKPIT_Q_WRITE = 'demande_ecriture';
 export const COCKPIT_Q_MULTI = 'plusieurs_demandes';
 
 /** Périmètre du Cockpit, donné au modèle comme contexte. */
-export const COCKPIT_ROUTER_SCOPE = 'RISE Cockpit, the project-steering application used by project teams (PMO, workstream leads, readers). Its records: risks, issues, actions, decisions and arbitration sheets, milestones, deliverables, planning (phases, sub-phases, workstreams called « chantiers », progress), steering committees (instances such as COPIL, sessions, generated reports), team barometer, budget, people, teams and roles. Its knowledge base stores the project documents (presentations, minutes, reports, contracts, deliverables). The assistant can answer from the records, from the user guide, from the documents, and can create, update or delete records after the user confirms.';
+export const COCKPIT_ROUTER_SCOPE = 'Cockpit, the project-steering application used by project teams (PMO, workstream leads, readers). Its records: risks, issues, actions, decisions and arbitration sheets, milestones, deliverables, planning (phases, sub-phases, workstreams called « chantiers », progress), steering committees (instances such as COPIL, sessions, generated reports), team barometer, budget, people, teams and roles. Its knowledge base stores the project documents (presentations, minutes, reports, contracts, deliverables). The assistant can answer from the records, from the user guide, from the documents, and can create, update or delete records after the user confirms.';
 
 /**
  * Versions des consignes (le rapport de test compare les versions). Les exemples ne reprennent jamais les questions du
@@ -63,7 +63,7 @@ export const COCKPIT_ROUTER_SCOPE = 'RISE Cockpit, the project-steering applicat
  * Jev ; leçon du banc de la Console), questions posées en français.
  */
 const V2 = {
-  instructions: 'Which kind of help does the latest message ask the RISE Cockpit assistant for? Use previous questions to interpret a short follow-up. If the message contains several requests, classify the one stated first.',
+  instructions: 'Which kind of help does the latest message ask the Cockpit assistant for? Use previous questions to interpret a short follow-up. If the message contains several requests, classify the one stated first.',
   criteria: {
     donnees: {
       covers: 'The answer must be read from the project’s current records: count, list, find, compare or check risks, issues, actions, decisions, milestones, deliverables, planning and progress of workstreams, committee sessions and dates, budget, barometer, people and their roles.',

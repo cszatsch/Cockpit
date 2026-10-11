@@ -1,13 +1,13 @@
 ﻿<#
-  RISE Cockpit installé : chemins, configuration et serveur PostgreSQL embarqué (fonctions communes à l'installateur
+  Cockpit installé : chemins, configuration et serveur PostgreSQL embarqué (fonctions communes à l'installateur
   et aux lanceurs « Démarrer Cockpit » / « Arrêter Cockpit »).
-    - programmes : %LOCALAPPDATA%\Programs\RISE Cockpit (application, Node.js et PostgreSQL embarqués) ;
-    - données    : %LOCALAPPDATA%\RISE Cockpit (base, fichiers déposés, configuration, journaux).
+    - programmes : %LOCALAPPDATA%\Programs\Cockpit (application, Node.js et PostgreSQL embarqués) ;
+    - données    : %LOCALAPPDATA%\Cockpit (base, fichiers déposés, configuration, journaux).
   Aucun droit d'administrateur n'est nécessaire.
 #>
 $ErrorActionPreference = 'Continue'
-$Programmes = Join-Path $env:LOCALAPPDATA 'Programs\RISE Cockpit'
-$Donnees    = Join-Path $env:LOCALAPPDATA 'RISE Cockpit'
+$Programmes = Join-Path $env:LOCALAPPDATA 'Programs\Cockpit'
+$Donnees    = Join-Path $env:LOCALAPPDATA 'Cockpit'
 $PgData     = Join-Path $Donnees 'base'
 $Stockage   = Join-Path $Donnees 'fichiers'
 $Journaux   = Join-Path $Donnees 'journaux'

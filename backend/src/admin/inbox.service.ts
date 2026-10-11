@@ -365,7 +365,7 @@ export class InboxService implements OnModuleInit, OnModuleDestroy {
           if (n.decision === 'ACCEPT') mailOk = (await this.accounts.approveInvitation(actor, reqId)).inviteSent !== false;
           else await this.accounts.rejectInvitation(actor, reqId);
           const r = await this.prisma.invitationRequest.findUnique({ where: { id: reqId } });
-          await this.tellRequester(r?.requestedById, r?.projectId ?? null, `Demande d’invitation ${n.decision === 'ACCEPT' ? 'acceptée' : 'refusée'} : ${(n.meta as any)?.name ?? ''}`, n.decision === 'ACCEPT' ? (mailOk ? `${(n.meta as any)?.name} a reçu son invitation à RISE Cockpit.` : `Le compte de ${(n.meta as any)?.name} est créé ; l’e-mail d’invitation n’a pas pu partir, l’administrateur va le relancer.`) : `L’administrateur a refusé l’invitation de ${(n.meta as any)?.name}.`);
+          await this.tellRequester(r?.requestedById, r?.projectId ?? null, `Demande d’invitation ${n.decision === 'ACCEPT' ? 'acceptée' : 'refusée'} : ${(n.meta as any)?.name ?? ''}`, n.decision === 'ACCEPT' ? (mailOk ? `${(n.meta as any)?.name} a reçu son invitation à Cockpit.` : `Le compte de ${(n.meta as any)?.name} est créé ; l’e-mail d’invitation n’a pas pu partir, l’administrateur va le relancer.`) : `L’administrateur a refusé l’invitation de ${(n.meta as any)?.name}.`);
         } else {
           if (n.decision === 'ACCEPT') await this.data.approve(actor, reqId);
           else await this.data.reject(actor, reqId);

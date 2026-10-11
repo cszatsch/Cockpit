@@ -143,7 +143,7 @@ export const DICTIONNAIRE: DictTable[] = [
     ],
     relations: ['comptes_projets.compte_id = comptes.id', 'comptes_projets.projet_id = projets.id (le code lisible est projets.code)'],
     usages: ['Lister les utilisateurs d’un projet, ou les projets d’un utilisateur.', 'Compter les utilisateurs par projet.'],
-    regles: ['Afficher le code du projet (projets.code, ex. RISE) plutôt que son identifiant.', 'Le rattachement ne dit pas le profil : voir habilitations.'],
+    regles: ['Afficher le code du projet (projets.code, ex. PMS) plutôt que son identifiant.', 'Le rattachement ne dit pas le profil : voir habilitations.'],
   },
   {
     nom: 'habilitations',
@@ -483,7 +483,7 @@ export const DICTIONNAIRE: DictTable[] = [
     description: 'Projets de la plateforme (Bibliothèque des projets) : code, nom, client, dates, statut.',
     colonnes: [
       { nom: 'id', expr: 't.id', type: 'texte', signification: 'Identifiant du projet' },
-      { nom: 'code', expr: 't.code', type: 'texte', signification: 'Code du projet (unique, affiché partout)', exemples: 'RISE' },
+      { nom: 'code', expr: 't.code', type: 'texte', signification: 'Code du projet (unique, affiché partout)', exemples: 'PMS' },
       { nom: 'nom', expr: 't.name', type: 'texte', signification: 'Nom du projet' },
       { nom: 'client_id', expr: `t.${q('clientId')}`, type: 'texte', signification: 'Client → clients.id' },
       { nom: 'client_nom', expr: 'c.name', type: 'texte', signification: 'Nom du client' },
@@ -527,7 +527,7 @@ export const DICTIONNAIRE: DictTable[] = [
       { nom: 'valeur', expr: 't.valeur', type: 'texte', signification: 'Valeur (texte, marque, enjeu, pays, entité…)' },
     ],
     relations: ['infos_projet.projet_id = projets.id'],
-    usages: ['Quel est le périmètre fonctionnel du projet RISE ?', 'Quels sont les enjeux stratégiques d’un projet ?', 'Dans quels pays le projet est-il déployé ?'],
+    usages: ['Quel est le périmètre fonctionnel du projet PMS ?', 'Quels sont les enjeux stratégiques d’un projet ?', 'Dans quels pays le projet est-il déployé ?'],
     regles: ['Filtrer par projet avec projets.code ; ordre d’affichage = ordre_rubrique puis ordre.', 'Nombre de pays = lignes de « Périmètre géographique » ; nombre d’entités = lignes de « Périmètre juridique ».'],
   },
   {

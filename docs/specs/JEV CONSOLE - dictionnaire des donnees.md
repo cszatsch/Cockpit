@@ -110,7 +110,7 @@ Projets auxquels un compte est rattaché (codes projet affichés dans la liste d
 
 **Règles et précautions**
 
-- Afficher le code du projet (projets.code, ex. RISE) plutôt que son identifiant.
+- Afficher le code du projet (projets.code, ex. PMS) plutôt que son identifiant.
 - Le rattachement ne dit pas le profil : voir habilitations.
 
 ## habilitations
@@ -583,7 +583,7 @@ Projets de la plateforme (Bibliothèque des projets) : code, nom, client, dates,
 | Colonne | Type | Signification | Exemples, unités |
 |---|---|---|---|
 | `id` | texte | Identifiant du projet |  |
-| `code` | texte | Code du projet (unique, affiché partout) | RISE |
+| `code` | texte | Code du projet (unique, affiché partout) | PMS |
 | `nom` | texte | Nom du projet |  |
 | `client_id` | texte | Client → clients.id |  |
 | `client_nom` | texte | Nom du client |  |
@@ -649,7 +649,7 @@ Objet « Info projet » du Référentiel de chaque projet : client, marques du g
 
 **Usages**
 
-- Quel est le périmètre fonctionnel du projet RISE ?
+- Quel est le périmètre fonctionnel du projet PMS ?
 - Quels sont les enjeux stratégiques d’un projet ?
 - Dans quels pays le projet est-il déployé ?
 

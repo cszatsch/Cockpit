@@ -34,7 +34,7 @@ export interface JevMemory {
 }
 
 const SUMMARY_SYSTEM = [
-  'Tu tiens la mémoire d’une conversation entre un utilisateur de la plateforme RISE (administrateur dans la Console, membre d’un projet dans le Cockpit) et l’assistant Jev.',
+  'Tu tiens la mémoire d’une conversation entre un utilisateur de la plateforme Cockpit (administrateur dans la Console, membre d’un projet dans le Cockpit) et l’assistant Jev.',
   'Mets à jour le résumé avec les nouveaux échanges : sujet et objets en cours (projet, compte, modèle, carte, risque, action…, avec leur code ou leur nom exact), faits établis, chiffres utiles, questions restées ouvertes.',
   `Écris en français, en ${JEV_SUMMARY_MAX_WORDS} mots au plus, en phrases courtes ou en liste. N’invente rien ; garde les noms et les codes tels quels ; pas de formule de politesse.`,
 ].join('\n');

@@ -68,7 +68,7 @@ export const PREFILL_TAB_ATTEMPTS = 2;
 const PREFILL_PURGE_CRON = '20 * * * *';
 /** Exemple fourni avec l'application (« Essayer avec l'exemple ORION »). */
 export const PREFILL_EXAMPLE = path.join(__dirname, '../../assets/prefill/Proposition commerciale ORION v3.pdf');
-export const TEMPLATE = path.join(__dirname, '../../../frontends/Referentiel RISE - initialisation.xlsx');
+export const TEMPLATE = path.join(__dirname, '../../../frontends/Referentiel Cockpit - initialisation.xlsx');
 const SYSTEM_ACTOR: Actor = { accountId: 'system', sessionId: 'system', email: 'system@rise.local', fullName: 'Système', personId: null, isAdmin: true, surface: null, restricted: false, viaCookie: false };
 
 export const prefillRetentionMs = () => Math.max(1, Number(process.env.PREFILL_RETENTION_HOURS ?? PREFILL_RETENTION_HOURS_DEFAULT) || PREFILL_RETENTION_HOURS_DEFAULT) * 3_600_000;

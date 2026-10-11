@@ -1864,10 +1864,11 @@ Cliquez ensuite sur **Générer le paquet**.
 
 ### 3.20.4 Installation chez la personne
 
-1. Elle décompresse le ZIP (« Extraire tout »), puis lance `installer_cockpit.cmd`. Aucun droit d'administrateur Windows n'est nécessaire.
+1. Elle décompresse le ZIP (« Extraire tout »), ouvre le dossier « Cockpit » obtenu, puis lance `installer_cockpit.cmd`. Aucun droit d'administrateur Windows n'est nécessaire.
 2. L'installateur demande le **code de déverrouillage** (3 essais). Sans code valide, Cockpit s'installe sans clés d'IA, sans clés de cartes API et sans serveur d'e-mail.
 3. Si son compte a été prérempli, elle ne choisit que son mot de passe. Sinon, elle crée son compte administrateur, qui est Super Admin de son installation.
-4. Des raccourcis « Démarrer Cockpit » et « Arrêter Cockpit » sont créés. Cockpit s'ouvre ensuite à l'adresse `http://localhost:3000`.
+4. Des raccourcis « Démarrer Cockpit » et « Arrêter Cockpit » sont créés (Bureau et menu Démarrer › Cockpit). Cockpit s'ouvre ensuite à l'adresse `http://localhost:3000`.
+5. Les programmes sont installés dans `%LOCALAPPDATA%\Programs\Cockpit` et les données dans `%LOCALAPPDATA%\Cockpit`. Une installation antérieure au 12 octobre 2026, faite sous l’ancien nom, est arrêtée puis reprise dans ces dossiers, données comprises.
 
 **Exemple.** Vous préparez un paquet pour Claire Dumas, consultante qui reprend le projet PMS : base actuelle limitée à PMS, clé Anthropic plafonnée à 50 € par mois, SMTP exclu, code de déverrouillage activé, compte prérempli en PMO. Vous téléchargez le ZIP, copiez le message et l'envoyez par e-mail, puis lui dictez le code par téléphone. Deux jours plus tard, le ZIP disparaît du serveur.
 

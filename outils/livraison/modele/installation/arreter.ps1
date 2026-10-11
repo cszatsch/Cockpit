@@ -3,7 +3,7 @@
 #>
 . (Join-Path $PSScriptRoot 'commun.ps1')
 Write-Host ''
-Write-Host '  RISE Cockpit — arrêt' -ForegroundColor White
+Write-Host '  Cockpit — arrêt' -ForegroundColor White
 Arreter-Application
 Ok 'application arrêtée'
 Arreter-Pg
