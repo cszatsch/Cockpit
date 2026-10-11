@@ -82,11 +82,12 @@ describe('Template de rapport — composition et publications', () => {
     const src = (n: number) => ({ fileId: 'A', kind: 'PPTX' as const, buf, analysis: a, slide: n });
     const { buf: tpl, manifest } = await composeTemplate({ cover: src(1), divider: src(2), standard: src(3), closing: src(4) }, { title: 'Support COPIL', sections: sectionsOf(all), tokens });
     expect(await pptxIntegrity(tpl)).toEqual([]);
-    expect(manifest.pages.map((p) => p.kind)).toEqual(['cover', 'divider', 'standard', 'standard', 'standard', 'standard', 'divider', 'standard', 'standard', 'standard', 'standard', 'standard', 'closing']);
+    // 11 composants (Livrables et Fiches d'arbitrage ajoutés le 11/10/2026) : 4 dans la première section, 7 dans la seconde.
+    expect(manifest.pages.map((p) => p.kind)).toEqual(['cover', 'divider', 'standard', 'standard', 'standard', 'standard', 'divider', 'standard', 'standard', 'standard', 'standard', 'standard', 'standard', 'standard', 'closing']);
     expect(manifest.pages.length).toBe(pagesOf(all));
     const ids = manifest.fields.map((f) => f.id);
-    expect(ids).toEqual(expect.arrayContaining(['report.subtitle', 'c01.caption', 'c01.kpi.status', 'c01.text', 'c02.board', 'c03.board', 'c04.board', 'c05.board', 'c06.board', 'c07.board', 'c07.chart', 'c08.board', 'c09.kpi.committed']));
-    expect(ids.filter((x) => /\.(table|chart)$/.test(x))).toEqual(['c07.chart']); // planches : plus de tableau ni de graphique en barres
+    expect(ids).toEqual(expect.arrayContaining(['report.subtitle', 'c01.caption', 'c01.kpi.status', 'c01.text', 'c02.board', 'c03.board', 'c04.board', 'c05.board', 'c06.board', 'c07.board', 'c08.board', 'c09.board', 'c09.chart', 'c10.board', 'c11.kpi.committed']));
+    expect(ids.filter((x) => /\.(table|chart)$/.test(x))).toEqual(['c09.chart']); // planches : plus de tableau ni de graphique en barres
     expect(new Set(ids.map((id, i) => `${id}@${manifest.fields[i].slide}`)).size).toBe(ids.length); // identifiants uniques par page
     const { names } = await shapes(tpl);
     const { files } = await shapes(tpl);
@@ -110,7 +111,7 @@ describe('Template de rapport — composition et publications', () => {
     const [s0, s1, s2] = [await shapes(tpl), await shapes(p1), await shapes(p2)];
     expect(s1.files).toEqual(s0.files);
     expect(s2.names).toEqual(s0.names); // mêmes formes, mêmes noms, même ordre
-    const tbl = manifest.fields.find((f) => f.id === 'c05.table')!;
+    const tbl = manifest.fields.find((f) => f.id === 'c06.table')!; // échéancier des actions (ancienne partie tableau)
     const t1 = await s1.z.file(tbl.slide)!.async('string'), t2 = await s2.z.file(tbl.slide)!.async('string');
     expect((t1.match(/<a:tr\b/g) ?? []).length).toBe(7);
     expect((t2.match(/<a:tr\b/g) ?? []).length).toBe(3);
@@ -120,7 +121,7 @@ describe('Template de rapport — composition et publications', () => {
     const lines = (x: string) => new Set([...x.matchAll(/<a:lnB w="(\d+)"/g)].map((m) => m[1]));
     expect(lines(t2)).toEqual(lines(t1));
     // Texte des zones et données du graphique (cache et classeur incorporé).
-    const chart = manifest.fields.find((f) => f.id === 'c07.chart')!;
+    const chart = manifest.fields.find((f) => f.id === 'c09.chart')!;
     expect(await s2.z.file(chart.chart!)!.async('string')).toContain('<c:pt idx="2"><c:v>47</c:v></c:pt>');
     const rels = await s2.z.file(chart.chart!.replace('charts/', 'charts/_rels/') + '.rels')!.async('string');
     const emb = /Target="\.\.\/embeddings\/([^"]+)"/.exec(rels)![1];

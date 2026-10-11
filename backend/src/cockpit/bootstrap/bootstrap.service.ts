@@ -510,7 +510,7 @@ export class BootstrapService {
         name: t.name,
         author: t.authorLabel ?? '',
         version: t.version,
-        comps: (t.components as any[]).map((c) => ({ id: c.id, ...(c.period ? { period: c.period } : {}), ...(c.indicators ? { indicators: c.indicators } : {}), ...(c.newSection ? { newSection: true } : {}), ...(c.sectionTitle ? { sectionTitle: c.sectionTitle } : {}), kind: { PROJECT: 'Projet', WAVE: 'Vague', PHASE: 'Phase', WORKSTREAM: 'Chantier' }[c.scope as string], ...(c.targetId ? { target: c.scope === 'WAVE' ? `Lot ${waves.find((w) => w.id === c.targetId)?.seq ?? ''}` : c.scope === 'PHASE' ? phaseById[c.targetId]?.name : wsName(c.targetId), targetId: c.targetId } : {}) })),
+        comps: (t.components as any[]).map((c) => ({ id: c.id, ...(c.level ? { level: c.level } : {}), ...(c.period ? { period: c.period } : {}), ...(c.indicators ? { indicators: c.indicators } : {}), ...(c.newSection ? { newSection: true } : {}), ...(c.sectionTitle ? { sectionTitle: c.sectionTitle } : {}), kind: { PROJECT: 'Projet', WAVE: 'Vague', PHASE: 'Phase', WORKSTREAM: 'Chantier' }[c.scope as string], ...(c.targetId ? { target: c.scope === 'WAVE' ? `Lot ${waves.find((w) => w.id === c.targetId)?.seq ?? ''}` : c.scope === 'PHASE' ? phaseById[c.targetId]?.name : wsName(c.targetId), targetId: c.targetId } : {}) })),
         pages: t.pages,
         published: frLong(t.publishedAt),
         committee: bodies.find((b) => b.id === t.bodyId)?.name ?? '',

@@ -1337,7 +1337,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
                   <div style="flex:1 1 250px;max-width:340px;display:flex;flex-direction:column;border:1px solid #EEF1F3;border-radius:14px;background:#FAFBFB">
                     <div style="display:grid;grid-template-columns:72px minmax(0,1fr);align-items:center;gap:10px;min-height:40px;padding:0 12px;border-bottom:1px solid #EEF1F3">
                       <span style="font-size:10.5px;font-weight:700;letter-spacing:.1em;color:#8A97A5">PÉRIMÈTRE</span>
-                      <select value="{{ it.perim }}" onChange="{{ it.onPerim }}" style="{{ fdSelectStyle }}"><sc-for list="{{ fdPerims }}" as="o"><option value="{{ o }}">{{ o }}</option></sc-for></select>
+                      <select value="{{ it.perim }}" onChange="{{ it.onPerim }}" style="{{ fdSelectStyle }}"><sc-for list="{{ it.perims }}" as="o"><option value="{{ o }}">{{ o }}</option></sc-for></select>
                     </div>
                     <div style="display:grid;grid-template-columns:72px minmax(0,1fr);align-items:center;gap:10px;min-height:40px;padding:0 12px;border-bottom:1px solid #EEF1F3">
                       <span style="font-size:10.5px;font-weight:700;letter-spacing:.1em;color:#8A97A5">CIBLE</span>
@@ -4978,7 +4978,7 @@ class Component extends DCLogic {
     const wbsVals = { wbsWaves, wbsWaveCount: M.WAVE.rows.length, wbsWaveCode: '1.' + wbsSel, wbsWaveName: wbsWaveRow ? wbsWaveRow.cells[1] : "", wbsPhases, wbsRows, wbsHasPhases: wbsPhaseRows.length > 0, wbsNoPhases: wbsPhaseRows.length === 0 };
 
     // --- Comités et rapports · templates
-    const CAT = [['synthese', 'Synthèse de situation', 'Météo, faits marquants, points d\'attention'], ['planning', 'Planning', 'Avancement vs référence, chemin critique'], ['jalons', 'Jalons', 'Dates uniques, glissements, J-x'], ['risques', 'Risques et problèmes', 'Cartographie, top risques, problèmes ouverts'], ['actions', 'Actions', 'Plan d\'actions, échues, décisions attendues'], ['decisions', 'Décisions', 'Relevé de décisions et arbitrages'], ['barometre', 'Baromètre du projet', 'Scores mensuels, tendance 6 mois'], ['dashboard', 'Tableau de bord', 'Santé, écarts planning et budget'], ['budget', 'Budget', 'Engagé, consommé, reste à faire']];
+    const CAT = [['synthese', 'Synthèse de situation', 'Météo, faits marquants, points d\'attention'], ['planning', 'Planning', 'Avancement vs référence, chemin critique'], ['jalons', 'Jalons', 'Dates uniques, glissements, J-x'], ['livrables', 'Livrables', 'Échéances, avancement, retards et risques'], ['risques', 'Risques et problèmes', 'Cartographie, top risques, problèmes ouverts'], ['actions', 'Actions', 'Plan d\'actions, échues, décisions attendues'], ['decisions', 'Décisions', 'Relevé de décisions et arbitrages'], ['arbitrages', 'Fiches d’arbitrage', 'Options notées, option recommandée, critères'], ['barometre', 'Baromètre du projet', 'Scores mensuels, tendance 6 mois'], ['dashboard', 'Tableau de bord', 'Santé, écarts planning et budget'], ['budget', 'Budget', 'Engagé, consommé, reste à faire']];
     const catById = Object.fromEntries(CAT.map(([id, n, d]) => [id, { id, n, d }]));
     const compLabel = c => catById[c.id] ? catById[c.id].n : c.id;
     const scopeLabel = c => !c.kind || c.kind === 'Projet' ? 'Projet entier' : c.kind + ' · ' + (c.target || '—');
@@ -5116,6 +5116,10 @@ class Component extends DCLogic {
     // Modèle : l'ordre est celui de `comps` ; les coupures (`breaks`) et les titres (`titles`) sont portés par la position
     // (premier composant d'une section : `newSection`, `sectionTitle`) et restent en place quand un composant bouge.
     const FD_PERIMS = ['Projet', 'Vague', 'Phase', 'Chantier'];
+    // Niveaux du composant Planning (11/10/2026) : ceux de l'écran Planning ; templates antérieurs : niveau déduit
+    // (périmètre chantier → « Un chantier » ; indicateur « Sous-phases » → « Phase > Sous-phase »).
+    const PLAN_LEVELS = [['ph', 'Phases'], ['phsp', 'Phase > Sous-phase'], ['phchsp', 'Phase > Chantier > Sous-phase'], ['ch', 'Tous les chantiers'], ['one', 'Un chantier']];
+    const planLevel = c => c.level || (c.kind === 'Chantier' ? 'one' : (c.indicators || []).includes('subphases') ? 'phsp' : 'ph');
     const FD_CHEV = "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%2310233A' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")";
     const pLabel = id => ((CC && CC.periods) || []).find(p => p.id === id)?.label || id;
     const fdBreaks = Dft.comps.map((c, i) => (i === 0 || c.newSection ? i : -1)).filter(i => i >= 0);
@@ -5138,8 +5142,13 @@ class Component extends DCLogic {
           inds: all.map(x => { const on = act.includes(x.id); return { label: x.label, toggle: () => { const nx = on ? act.filter(y => y !== x.id) : [...act, x.id]; if (!nx.length) return this.showToast('Gardez au moins un indicateur'); if (m.kpiMax && c.id !== 'dashboard' && nx.length > m.kpiMax) return this.showToast(m.kpiMax + ' indicateurs au plus sur une page'); setC(pos, { indicators: all.map(y => y.id).filter(id => nx.includes(id)) }); },
             style: { whiteSpace: 'nowrap', flex: 'none', height: 28, padding: '0 12px', borderRadius: 999, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', transition: 'all .15s', fontFamily: 'inherit', border: on ? '1px solid #0E7C6B' : '1px solid #DCE2E6', background: on ? '#0E7C6B' : '#fff', color: on ? '#fff' : '#7D8B99' } }; }),
           seam: k > 0, cut: () => setC(pos, { newSection: true }),
-          perim: c.kind || 'Projet', onPerim: e => { const v = e.target.value; const ts = targetsFor(v); setC(pos, { kind: v, target: v === 'Projet' ? '' : ts[0] || '' }); },
-          cibleFixed: (c.kind || 'Projet') === 'Projet', cibleSelect: (c.kind || 'Projet') !== 'Projet', cibles: targetsFor(c.kind), cible: c.target, onCible: e => setC(pos, { target: e.target.value }),
+          // Planning (11/10/2026) : le périmètre propose les niveaux de l'écran Planning ; « Un chantier » fait choisir le chantier.
+          ...(c.id === 'planning' ? (() => { const lv = planLevel(c), one = lv === 'one', chs = targetsFor('Chantier');
+            return { perims: PLAN_LEVELS.map(x => x[1]), perim: (PLAN_LEVELS.find(x => x[0] === lv) || PLAN_LEVELS[0])[1],
+              onPerim: e => { const id = (PLAN_LEVELS.find(x => x[1] === e.target.value) || PLAN_LEVELS[0])[0]; setC(pos, id === 'one' ? { level: id, kind: 'Chantier', target: c.kind === 'Chantier' && c.target ? c.target : chs[0] || '' } : { level: id, kind: 'Projet', target: '' }); },
+              cibleFixed: !one, cibleSelect: one, cibles: chs, cible: c.target, onCible: e => setC(pos, { target: e.target.value }) }; })()
+          : { perims: FD_PERIMS, perim: c.kind || 'Projet', onPerim: e => { const v = e.target.value; const ts = targetsFor(v); setC(pos, { kind: v, target: v === 'Projet' ? '' : ts[0] || '' }); },
+            cibleFixed: (c.kind || 'Projet') === 'Projet', cibleSelect: (c.kind || 'Projet') !== 'Projet', cibles: targetsFor(c.kind), cible: c.target, onCible: e => setC(pos, { target: e.target.value }) }),
           periodeFixed: !periodIds.length, periodeSelect: !!periodIds.length, periodes: periodIds.map(pLabel), periode: pLabel(curPeriod), onPeriode: e => { const id = periodIds.find(p => pLabel(p) === e.target.value); if (id) setC(pos, { period: id }); },
           dragStart: e => { if (e.target.closest && e.target.closest('select,button,input')) { e.preventDefault(); return; } e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', String(pos)); } catch (_) { /* navigateur sans données de glisser */ } this.setState({ fdDrag: pos }); },
           dragOver: e => { if (this.state.fdDrag == null) return; e.preventDefault(); const r = e.currentTarget.getBoundingClientRect(); const after = e.clientY > r.top + r.height / 2; const o = this.state.fdOver; if (!o || o.pos !== pos || o.after !== after) this.setState({ fdOver: { pos, after } }); },

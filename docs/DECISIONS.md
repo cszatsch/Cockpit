@@ -2064,3 +2064,32 @@ Demande du commanditaire : un risque peut concerner un chantier, plusieurs, ou t
   trace reste lisible. Restent bloquants (`accountUsages`) : les responsabilités dans un projet (actions, risques, problèmes,
   jalons, livrables, chantiers, décisions) et la participation à une instance de gouvernance.
 
+## Templates de rapport : Livrables, Fiches d'arbitrage, niveaux du Planning (11/10/2026)
+
+- Demande du commanditaire : à l'étape « Composants », ajouter « Livrables » (après Jalons) et « Fiches d'arbitrage » (après
+  Décisions) ; à l'étape « Ordre et données », retirer la pastille « Sous-phases » du Planning et proposer comme périmètre les
+  niveaux de l'écran Planning. Arbitrages (11/10/2026) : Livrables en tableau complet ; une carte par fiche ; niveaux à la place
+  des périmètres Projet / Lot / Phase / Chantier.
+- Livrables (`livrables`, planche `deliverables`, `drawDeliverables`) : livrable, phase · sous-phase, chantier, responsable,
+  échéance, avancement, statut, risque (règles de l'onglet Livrables : `deliverableDates`, `deliverableStatus`,
+  `deliverableRisk`) ; échéance sur la période (30, 60, 90 jours ou tous), livrables en retard toujours montrés ; tri par urgence
+  (`sortDeliverables`) ; lignes d'au moins `DELIVERABLE_ROW_MIN_IN` (0,3 po), au-delà « … et N autres livrables ».
+- Fiches d'arbitrage (`arbitrages`, planche `arbitrations`, `drawArbitrations`) : décisions qui ont une fiche, en attente
+  d'abord (à arbitrer en tête, quelle que soit la période), puis arbitrées sur la période. Écart à la demande « une planche par
+  fiche » : un composant occupe une page du template (structure figée à la publication) ; la page montre donc
+  `ARBITRATIONS_MAX` (2) fiches en cartes côte à côte et cite les autres par leur code. Note de chaque option sur le barème
+  commun (`arbitrationSummary`, `arbScore`, même calcul que la fiche 11a), option recommandée = la mieux notée (aucune à
+  égalité, `ARB_TIE`), `ARB_CRITERIA_MAX` (4) critères les plus pondérés.
+- Planning : niveau `level` (`PLAN_LEVELS` : Phases, Phase > Sous-phase, Phase > Chantier > Sous-phase, Tous les chantiers, Un
+  chantier — la cible choisit le chantier) ; lignes construites par `planRows` (`src/domain/plan-levels.ts`, mêmes règles que
+  l'écran Planning, segment d'un chantier dans une phase : `segmentOf`) ; Gantt et tableau à trois niveaux de retrait ;
+  bandeau en chantiers (« En cours », « N chantiers sur M terminés ») pour les niveaux chantier (`GanttData.unit`). « Un
+  chantier » trop long : sous-phases terminées regroupées sur la ligne du chantier. Templates déjà publiés : niveau déduit
+  (`planLevelOf` : périmètre chantier → Un chantier ; indicateur « Sous-phases » → Phase > Sous-phase ; sinon Phases),
+  périmètre lot / phase conservé ; l'indicateur « Sous-phases » reste accepté à la lecture.
+- Validation : un seul schéma des composants pour la création, la modification et l'aperçu (`report-component.schema.ts`),
+  identifiants, périodes et niveaux lus dans le catalogue — les deux copies précédentes refusaient « Mois précédent », « 12
+  derniers mois » et « 60 prochains jours », pourtant proposés.
+- Tests : `test/unit/plan-levels.spec.ts`, `test/unit/report-template.spec.ts`, `test/e2e/report-template.spec.ts` ; recette
+  navigateur `test/browser/composants-rapport.e2e.ts` ; contrôle visuel dans PowerPoint (skill designer-rapports).
+

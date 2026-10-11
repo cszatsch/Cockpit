@@ -51,7 +51,15 @@ describe('Cockpit — Templates de rapport : versions et publications', () => {
   it('catalogue : nature, indicateurs proposés et périodes des composants', async () => {
     const r = await get('/report-components').expect(200);
     expect(r.body.components.find((c: any) => c.id === 'barometre')).toMatchObject({ nature: 'Tableau de bord', parts: ['board', 'chart'], periodic: true, defaultPeriod: 'last6', indicators: [{ id: 'score', label: 'Score et évolution' }, { id: 'sentiment', label: 'Avis des répondants' }, { id: 'domains', label: 'Score par domaine' }, { id: 'themes', label: 'Points clés' }] });
-    expect(r.body.components.find((c: any) => c.id === 'planning')).toMatchObject({ nature: 'Gantt', parts: ['board'], indicators: [{ id: 'milestones', label: 'Jalons sur la frise' }, { id: 'subphases', label: 'Sous-phases' }, { id: 'critical', label: 'Chemin critique' }, { id: 'landCurrent', label: 'Atterrissage rythme actuel' }, { id: 'landPlanned', label: 'Atterrissage rythme prévu' }] });
+    // « Sous-phases » retiré (11/10/2026) : le niveau de détail le remplace (`planLevels`).
+    expect(r.body.components.find((c: any) => c.id === 'planning')).toMatchObject({ nature: 'Gantt', parts: ['board'], indicators: [{ id: 'milestones', label: 'Jalons sur la frise' }, { id: 'critical', label: 'Chemin critique' }, { id: 'landCurrent', label: 'Atterrissage rythme actuel' }, { id: 'landPlanned', label: 'Atterrissage rythme prévu' }] });
+    expect(r.body.planLevels.map((l: any) => l.label)).toEqual(['Phases', 'Phase > Sous-phase', 'Phase > Chantier > Sous-phase', 'Tous les chantiers', 'Un chantier']);
+    // Livrables après Jalons, Fiches d'arbitrage après Décisions (11/10/2026).
+    const order = r.body.components.map((c: any) => c.id);
+    expect(order.indexOf('livrables')).toBe(order.indexOf('jalons') + 1);
+    expect(order.indexOf('arbitrages')).toBe(order.indexOf('decisions') + 1);
+    expect(r.body.components.find((c: any) => c.id === 'livrables')).toMatchObject({ label: 'Livrables', parts: ['board'], periodic: true, defaults: ['name', 'phase', 'ws', 'owner', 'due', 'progress', 'status', 'risk'] });
+    expect(r.body.components.find((c: any) => c.id === 'arbitrages')).toMatchObject({ label: 'Fiches d’arbitrage', parts: ['board'], periodic: true });
     expect(r.body.components.find((c: any) => c.id === 'risques')).toMatchObject({ nature: 'Matrice et tableau', parts: ['board'], periodic: false });
     expect(r.body.components.find((c: any) => c.id === 'jalons')).toMatchObject({ nature: 'Frise', parts: ['board'], periodic: true });
     expect(r.body.components.find((c: any) => c.id === 'actions')).toMatchObject({ nature: 'Échéancier', parts: ['board'] });
@@ -255,6 +263,37 @@ describe('Cockpit — Templates de rapport : versions et publications', () => {
       expect(x).toContain('>Phase · sous-phase<');
       expect(x).toMatch(/sous-phases? terminées?/);
     }
+  });
+
+  it('Planning : niveaux de détail de l’écran Planning ; Livrables ; Fiches d’arbitrage notées (11/10/2026)', async () => {
+    const pptx = async (components: unknown[]) => {
+      const tb = await post('/report-templates', { name: `Niveaux ${Math.random()}`, version: '1.0', components, format: format() }).expect(201);
+      expect((await ready(tb.body.id)).status).toBe('READY');
+      return (await slideXml((await get(`/report-templates/${tb.body.id}/pptx`).buffer(true).parse(binary).expect(200)).body as Buffer)).xml[2];
+    };
+    const ws = await t.db.workstream.findFirstOrThrow({ where: { projectId: 'RISE', phases: { some: {} } }, include: { phases: true }, orderBy: { seq: 'asc' } });
+    // Phase > Chantier > Sous-phase : chantiers sous leur phase.
+    const x1 = await pptx([{ id: 'planning', scope: 'PROJECT', level: 'phchsp', indicators: ['milestones'] }]);
+    expect(x1).toContain(`>${ws.name}<`);
+    // Tous les chantiers : bandeau en chantiers.
+    const x2 = await pptx([{ id: 'planning', scope: 'PROJECT', level: 'ch', indicators: ['milestones'] }]);
+    expect(x2).toContain(`>${ws.name}<`);
+    expect(x2).not.toContain('>Phase en cours<');
+    // Un chantier : cible obligatoire.
+    expect((await post('/report-templates/preview', { name: 'T', components: [{ id: 'planning', scope: 'PROJECT', level: 'one' }], format: format() }).expect(400)).body.fields).toMatchObject({ 'components.0': expect.stringMatching(/choisissez le chantier/) });
+    const x3 = await pptx([{ id: 'planning', scope: 'WORKSTREAM', targetId: ws.id, level: 'one', indicators: ['milestones'] }]);
+    expect(x3).toContain(`>${ws.name}<`);
+    // Livrables : repères chiffrés, ou état vide.
+    const x4 = await pptx([{ id: 'livrables', scope: 'PROJECT', period: 'all' }]);
+    expect(x4).toMatch(/livrables? à livrer|Aucun livrable/);
+    // Fiches d'arbitrage : options notées sur 4, option recommandée (la mieux notée).
+    const dec = await t.db.decision.findFirstOrThrow({ where: { projectId: 'RISE', status: { in: ['TO_ARBITRATE', 'IN_REVIEW', 'DRAFT'] } } });
+    await t.db.decision.update({ where: { id: dec.id }, data: { arbitration: { question: 'Faut-il internaliser la recette ?', options: [{ code: 'A', label: 'Internaliser' }, { code: 'B', label: 'Externaliser' }], criteria: [{ name: 'Coût', weightPct: 60, scoreA: 4, commentA: '', scoreB: 2, commentB: '' }, { name: 'Délai', weightPct: 40, scoreA: 2, commentA: '', scoreB: 3, commentB: '' }] } } });
+    const x5 = await pptx([{ id: 'arbitrages', scope: 'PROJECT', period: 'all' }]);
+    expect(x5).toContain('>Faut-il internaliser la recette ?<');
+    expect(x5).toContain('>Internaliser<');
+    expect(x5).toContain('>3,20<'); // A : (60 × 4 + 40 × 2) / 100, deux décimales
+    expect(x5).toMatch(/>Recommandée</i);
   });
 
   it('génération suivie : lancement, phases jusqu’à « prêt », fichier remis une seule fois, première génération enregistrée', async () => {

@@ -426,3 +426,163 @@ export function drawDashboard(d: Draw, a: Box, x: DashboardData): string {
   }
   return out.join('');
 }
+
+// ───────────── Livrables (11/10/2026) ─────────────
+
+export interface DeliverableRow { name: string; phase: string | null; ws: string | null; owner: string; due: string; progress: number; status: 'DONE' | 'LATE' | 'ACTIVE' | 'FUTURE'; risk: 'OK' | 'TENSION' | 'CRITICAL' }
+export interface DeliverablesData { today: string; rows: DeliverableRow[]; show: Record<string, boolean>; period: string | null }
+const DLV_STATUS: Record<DeliverableRow['status'], string> = { DONE: 'Livré', LATE: 'En retard', ACTIVE: 'En cours', FUTURE: 'À venir' };
+const DLV_RISK: Record<DeliverableRow['risk'], string> = { OK: 'Maîtrisé', TENSION: 'Tension', CRITICAL: 'Critique' };
+/** Hauteur minimale d'une ligne du tableau des livrables (pouces) ; au-delà, « … et N autres livrables ». */
+export const DELIVERABLE_ROW_MIN_IN = 0.3;
+/** Ordre de lecture : en retard d'abord, puis par échéance, les livrés en dernier. */
+export function sortDeliverables(rows: DeliverableRow[]): DeliverableRow[] {
+  const rank = { LATE: 0, ACTIVE: 1, FUTURE: 1, DONE: 2 } as const;
+  return [...rows].sort((a, b) => rank[a.status] - rank[b.status] || a.due.localeCompare(b.due) || a.name.localeCompare(b.name));
+}
+
+/**
+ * Livrables : repères chiffrés (à livrer, en retard, livrés), puis tableau trié par urgence — livrable, phase · sous-phase,
+ * chantier, responsable, échéance (rouge si dépassée), avancement en barre fine, statut et risque en pastille.
+ */
+export function drawDeliverables(d: Draw, a: Box, x: DeliverablesData): string {
+  const t = d.t, ty = typeScale(t), out: string[] = [], show = x.show;
+  if (!x.rows.length) return emptyState(d, a, 'Aucun livrable sur la période', x.period ? `Échéances : ${x.period}.` : 'Aucun livrable sur le périmètre.');
+  const rows = sortDeliverables(x.rows), late = rows.filter((r) => r.status === 'LATE').length, done = rows.filter((r) => r.status === 'DONE').length, todo = rows.length - done;
+  // Repères chiffrés.
+  const headH = 0.66 * IN, cw = Math.min(2.4 * IN, a.w / 3);
+  const marks: Array<[number, string, string]> = [[todo, todo > 1 ? 'livrables à livrer' : 'livrable à livrer', t.ink], [late, 'en retard', late ? t.risk : t.subtle], [done, done > 1 ? 'livrés' : 'livré', done ? t.ok : t.subtle]];
+  marks.forEach(([n, l, c], i) => {
+    const bx = a.x + i * cw, nw = Math.max(0.45, String(n).length * 0.36) * IN;
+    if (i) out.push(d.line(bx - 0.12 * IN, a.y + 0.1 * IN, bx - 0.12 * IN, a.y + headH - 0.1 * IN, t.hairline, 0.75));
+    out.push(d.text({ x: bx, y: a.y, w: nw, h: headH }, [{ runs: [{ t: String(n), size: ty.stat, color: c, bold: true, font: t.head }] }], 'ctr'));
+    out.push(d.text({ x: bx + nw + 0.06 * IN, y: a.y, w: cw - nw - 0.2 * IN, h: headH }, [{ runs: [{ t: l, size: ty.small, color: t.muted }] }], 'ctr'));
+  });
+  if (x.period) out.push(d.text({ x: a.x + 3 * cw, y: a.y, w: Math.max(0, a.w - 3 * cw), h: headH }, [{ align: 'r', runs: [{ t: `Échéances : ${x.period}`, size: ty.label, color: t.subtle }] }], 'ctr'));
+  // Colonnes retenues, largeurs relatives.
+  type Col = { id: string; label: string; f: number };
+  const all: Col[] = [{ id: 'name', label: 'Livrable', f: 3 }, { id: 'phase', label: 'Phase · sous-phase', f: 2.2 }, { id: 'ws', label: 'Chantier', f: 1.8 }, { id: 'owner', label: 'Responsable', f: 1.6 }, { id: 'due', label: 'Échéance', f: 1.1 }, { id: 'progress', label: 'Avancement', f: 1.5 }, { id: 'status', label: 'Statut', f: 1.2 }, { id: 'risk', label: 'Risque', f: 1.1 }];
+  const cols = all.filter((c) => show[c.id] !== false);
+  const F = cols.reduce((s, c) => s + c.f, 0);
+  const xs: number[] = [];
+  let cx = a.x;
+  for (const c of cols) { xs.push(cx); cx += (c.f / F) * a.w; }
+  const W = (i: number) => (cols[i].f / F) * a.w;
+  const top = a.y + headH + 0.14 * IN, thH = 0.3 * IN, moreH = 0.26 * IN;
+  let rowH = Math.min(0.42 * IN, (a.y + a.h - top - thH) / rows.length);
+  let shown = rows;
+  if (rowH < DELIVERABLE_ROW_MIN_IN * IN) { rowH = DELIVERABLE_ROW_MIN_IN * IN; shown = rows.slice(0, Math.max(1, Math.floor((a.y + a.h - top - thH - moreH) / rowH))); }
+  cols.forEach((c, i) => out.push(d.text({ x: xs[i] + 0.05 * IN, y: top, w: W(i) - 0.1 * IN, h: thH - 0.06 * IN }, [{ runs: [{ t: c.label, size: ty.label, color: t.muted, bold: true, caps: true, spc: 0.8 }] }], 'b')));
+  out.push(d.line(a.x, top + thH, a.x + a.w, top + thH, t.ink, 1));
+  shown.forEach((r, k) => {
+    const y = top + thH + k * rowH, late1 = r.status === 'LATE';
+    cols.forEach((c, i) => {
+      const bx = xs[i] + 0.05 * IN, bw = W(i) - 0.1 * IN, box = { x: bx, y, w: bw, h: rowH };
+      const cell = (txt: string, o: { color?: string; bold?: boolean } = {}) => out.push(d.text(box, [{ runs: [{ t: wrapText(txt, bw * 1.1, ty.small, 1)[0], size: ty.small, color: o.color ?? t.ink, bold: o.bold }] }], 'ctr'));
+      if (c.id === 'name') cell(r.name, { bold: true, color: r.status === 'DONE' ? t.muted : t.ink });
+      else if (c.id === 'phase') cell(r.phase ?? '—', { color: r.phase ? t.muted : t.subtle });
+      else if (c.id === 'ws') cell(r.ws ?? '—', { color: r.ws ? t.muted : t.subtle });
+      else if (c.id === 'owner') cell(r.owner, { color: t.muted });
+      else if (c.id === 'due') cell(dayOf(r.due, x.today), { color: late1 ? t.risk : t.ink, bold: late1 });
+      else if (c.id === 'progress') {
+        const pw = Math.min(bw * 0.58, 0.9 * IN), ph = 0.07 * IN, py = y + (rowH - ph) / 2;
+        out.push(d.pill({ x: bx, y: py, w: pw, h: ph }, mixHex(t.hairline, 'FFFFFF', 0.2)));
+        if (r.progress > 0) out.push(d.pill({ x: bx, y: py, w: Math.max(ph, pw * Math.min(1, r.progress / 100)), h: ph }, late1 ? t.risk : r.status === 'DONE' ? mixHex(t.ink, 'FFFFFF', 0.62) : t.accent));
+        out.push(d.text({ x: bx + pw + 0.06 * IN, y, w: bw - pw - 0.06 * IN, h: rowH }, [{ align: 'r', runs: [{ t: `${R(r.progress)} %`, size: ty.small, color: late1 ? t.risk : t.ink, bold: late1 }] }], 'ctr'));
+      } else if (c.id === 'status') {
+        const col = late1 ? t.risk : r.status === 'DONE' ? t.ok : r.status === 'ACTIVE' ? t.accent : t.subtle;
+        out.push(d.text(box, [{ runs: [{ t: '●  ', size: ty.label, color: col }, { t: DLV_STATUS[r.status], size: ty.small, color: late1 ? t.risk : t.ink, bold: late1 }] }], 'ctr'));
+      } else if (c.id === 'risk') {
+        const col = r.risk === 'CRITICAL' ? t.risk : r.risk === 'TENSION' ? t.watch : t.ok;
+        out.push(d.text(box, [{ runs: [{ t: '●  ', size: ty.label, color: col }, { t: DLV_RISK[r.risk], size: ty.small, color: r.risk === 'OK' ? t.muted : col, bold: r.risk !== 'OK' }] }], 'ctr'));
+      }
+    });
+    out.push(d.line(a.x, y + rowH, a.x + a.w, y + rowH, t.hairline, 0.5));
+  });
+  if (shown.length < rows.length) out.push(d.text({ x: a.x, y: top + thH + shown.length * rowH + 0.04 * IN, w: a.w, h: moreH - 0.04 * IN }, [{ runs: [{ t: `… et ${plural(rows.length - shown.length, 'autre livrable', 'autres livrables')}`, size: ty.label, color: t.subtle, italic: true }] }], 'ctr'));
+  return out.join('');
+}
+
+// ───────────── Fiches d'arbitrage (11/10/2026) ─────────────
+
+export interface ArbitrationCard {
+  code: string; title: string; status: string; body: string | null; question: string | null;
+  options: Array<{ code: 'A' | 'B'; label: string; score: number | null }>; reco: 'A' | 'B' | null; tie: boolean;
+  criteria: Array<{ name: string; weight: number; a: number; b: number }>;
+}
+export interface ArbitrationsData { today: string; cards: ArbitrationCard[]; more: string[]; show: Record<string, boolean>; period: string | null }
+const ARB_STAGE: Record<string, string> = { DRAFT: 'Brouillon', IN_REVIEW: 'En revue', TO_ARBITRATE: 'À arbitrer', ARBITRATED: 'Arbitrée' };
+/** Critères montrés par fiche (les plus pondérés). */
+export const ARB_CRITERIA_MAX = 4;
+
+/**
+ * Fiches d'arbitrage : une carte par fiche (deux au plus, côte à côte) — décision et étape, question, options A et B
+ * notées sur 4 (barre à échelle fixe 0–4, option recommandée en accent), critères les plus pondérés avec leurs notes.
+ */
+export function drawArbitrations(d: Draw, a: Box, x: ArbitrationsData): string {
+  const t = d.t, ty = typeScale(t), out: string[] = [], show = x.show;
+  if (!x.cards.length) return emptyState(d, a, 'Aucune fiche d’arbitrage', x.period ? `Ni en attente, ni arbitrée sur la période (${x.period}).` : 'Aucune décision n’a de fiche d’arbitrage.');
+  const moreH = x.more.length ? 0.3 * IN : 0, gap = 0.4 * IN, n = x.cards.length;
+  const cw = (a.w - gap * (n - 1)) / n, ch = a.h - moreH, lh = (s: number) => s * 1.32 * PT;
+  x.cards.forEach((c, i) => {
+    const bx = a.x + i * (cw + gap), w = cw;
+    let y = a.y;
+    if (i) out.push(d.line(bx - gap / 2, a.y + 0.06 * IN, bx - gap / 2, a.y + ch - 0.06 * IN, t.hairline, 0.75));
+    // En-tête : trait (ambre si à arbitrer), code et intitulé de la décision, étape.
+    const toArb = c.status === 'TO_ARBITRATE';
+    out.push(d.sp({ box: { x: bx, y, w: 0.3 * IN, h: 0.028 * IN }, fill: toArb ? t.watch : t.accent }));
+    y += 0.1 * IN;
+    const stW = show.status !== false ? 1.15 * IN : 0;
+    if (stW) out.push(d.text({ x: bx + w - stW, y, w: stW, h: 0.26 * IN }, [{ align: 'r', runs: [{ t: '●  ', size: ty.label, color: toArb ? t.watch : c.status === 'ARBITRATED' ? t.ok : t.subtle }, { t: ARB_STAGE[c.status] ?? c.status, size: ty.small, color: toArb ? t.watch : t.muted, bold: toArb }] }], 'ctr'));
+    const tl = wrapText(c.title, (w - stW) * 1.05, ty.lead, 2);
+    out.push(d.text({ x: bx, y, w: w - stW - (stW ? 0.1 * IN : 0), h: tl.length * lh(ty.lead) + 0.06 * IN }, [{ runs: [{ t: `${c.code}  `, size: ty.label, color: t.subtle, bold: true }, { t: tl.join(' '), size: ty.lead, color: t.ink, bold: true, font: t.head }] }], 't'));
+    y += tl.length * lh(ty.lead) + 0.08 * IN;
+    if (c.body) { out.push(d.text({ x: bx, y, w, h: 0.22 * IN }, [{ runs: [{ t: c.body, size: ty.label, color: t.subtle }] }], 't')); y += 0.26 * IN; }
+    // Question.
+    if (show.question !== false && c.question) {
+      const ql = wrapText(c.question, w * 1.08, ty.small, 3);
+      out.push(d.label({ x: bx, y, w, h: 0.2 * IN }, 'Question'));
+      y += 0.22 * IN;
+      out.push(d.text({ x: bx, y, w, h: ql.length * lh(ty.small) + 0.04 * IN }, [{ runs: [{ t: ql.join(' '), size: ty.small, color: t.ink, italic: true }] }], 't'));
+      y += ql.length * lh(ty.small) + 0.16 * IN;
+    }
+    // Options notées sur 4 (échelle fixe), option recommandée en accent.
+    if (show.options !== false || show.reco !== false) {
+      out.push(d.label({ x: bx, y, w, h: 0.2 * IN }, show.options !== false ? 'Options · note sur 4' : 'Options'));
+      y += 0.24 * IN;
+      const rowH = 0.44 * IN, barX = bx + w * 0.52, barW = w * 0.3, barH = 0.08 * IN;
+      for (const o of c.options) {
+        const best = show.reco !== false && c.reco === o.code, col = best ? t.accent : t.ink;
+        out.push(d.text({ x: bx, y, w: w * 0.5, h: rowH }, [{ runs: [{ t: `${o.code}   `, size: ty.label, color: best ? t.accent : t.subtle, bold: true }, { t: wrapText(o.label, w * 0.46, ty.small, 1)[0], size: ty.small, color: col, bold: best }] }, ...(best ? [{ runs: [{ t: 'Recommandée', size: ty.label - 0.5, color: t.accent, bold: true, caps: true, spc: 0.8 }] }] : [])], 'ctr'));
+        if (show.options !== false) {
+          const by = y + (rowH - barH) / 2;
+          out.push(d.pill({ x: barX, y: by, w: barW, h: barH }, mixHex(t.hairline, 'FFFFFF', 0.2)));
+          if (o.score !== null && o.score > 0) out.push(d.pill({ x: barX, y: by, w: Math.max(barH, (barW * o.score) / 4), h: barH }, best ? t.accent : mixHex(t.ink, 'FFFFFF', 0.45)));
+          out.push(d.text({ x: barX + barW + 0.06 * IN, y, w: bx + w - barX - barW - 0.06 * IN, h: rowH }, [{ align: 'r', runs: [{ t: o.score === null ? '—' : o.score.toFixed(2).replace('.', ','), size: ty.body, color: col, bold: best, font: t.head }] }], 'ctr'));
+        }
+        y += rowH;
+        out.push(d.line(bx, y, bx + w, y, mixHex(t.hairline, 'FFFFFF', 0.4), 0.5));
+      }
+      if (show.reco !== false && c.tie) { out.push(d.text({ x: bx, y: y + 0.02 * IN, w, h: 0.22 * IN }, [{ runs: [{ t: 'Égalité entre A et B', size: ty.label, color: t.watch, bold: true }] }], 'ctr')); y += 0.24 * IN; }
+      y += 0.16 * IN;
+    }
+    // Critères les plus pondérés, notes de A et B (la meilleure en accent).
+    if (show.criteria !== false && c.criteria.length) {
+      const rh = 0.27 * IN, room = Math.floor((a.y + ch - y - 0.26 * IN - 0.2 * IN) / rh), list = c.criteria.slice(0, Math.max(0, Math.min(ARB_CRITERIA_MAX, room)));
+      if (list.length) {
+        out.push(d.label({ x: bx, y, w: w * 0.6, h: 0.2 * IN }, 'Critères · poids'));
+        out.push(d.text({ x: bx + w * 0.6, y, w: w * 0.4, h: 0.2 * IN }, [{ align: 'r', runs: [{ t: 'A   ·   B', size: ty.label, color: t.muted, bold: true, spc: 0.6 }] }], 'b'));
+        y += 0.24 * IN;
+        for (const k of list) {
+          out.push(d.text({ x: bx, y, w: w * 0.72, h: rh }, [{ runs: [{ t: wrapText(k.name, w * 0.58, ty.small, 1)[0], size: ty.small, color: t.ink }, { t: `   ${k.weight} %`, size: ty.label, color: t.subtle }] }], 'ctr'));
+          const hi = (v: number, other: number): Run => ({ t: String(v), size: ty.small, color: v > other ? t.accent : t.muted, bold: v > other });
+          out.push(d.text({ x: bx + w * 0.72, y, w: w * 0.28, h: rh }, [{ align: 'r', runs: [hi(k.a, k.b), { t: '   ·   ', size: ty.label, color: t.subtle }, hi(k.b, k.a)] }], 'ctr'));
+          y += rh;
+        }
+        if (c.criteria.length > list.length) out.push(d.text({ x: bx, y, w, h: 0.2 * IN }, [{ runs: [{ t: `… et ${plural(c.criteria.length - list.length, 'autre critère', 'autres critères')}`, size: ty.label, color: t.subtle, italic: true }] }], 'ctr'));
+      }
+    }
+  });
+  if (x.more.length) out.push(d.text({ x: a.x, y: a.y + a.h - moreH, w: a.w, h: moreH }, [{ runs: [{ t: `… et ${plural(x.more.length, 'autre fiche', 'autres fiches')} : ${x.more.slice(0, 8).join(', ')}${x.more.length > 8 ? '…' : ''}`, size: ty.label, color: t.subtle, italic: true }] }], 'ctr'));
+  return out.join('');
+}

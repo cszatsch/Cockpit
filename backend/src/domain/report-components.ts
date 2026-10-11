@@ -4,7 +4,7 @@
  * identifiants stables des zones variables du template PowerPoint.
  */
 
-export type ComponentId = 'synthese' | 'planning' | 'jalons' | 'risques' | 'actions' | 'decisions' | 'barometre' | 'dashboard' | 'budget';
+export type ComponentId = 'synthese' | 'planning' | 'jalons' | 'livrables' | 'risques' | 'actions' | 'decisions' | 'arbitrages' | 'barometre' | 'dashboard' | 'budget';
 /** Éléments posés sur la page standard d'un composant. */
 export type ComponentPart = 'table' | 'chart' | 'kpi' | 'text' | 'board';
 export interface Indicator { id: string; label: string }
@@ -35,13 +35,21 @@ export const COMPONENTS: Record<ComponentId, ComponentDef> = {
     id: 'planning', label: 'Planning', nature: 'Gantt', parts: ['board'], periodic: false, defaultPeriod: 'all',
     // Gantt des phases (phase en cours, repère du jour, avancement) ; au-delà de 25 lignes, tableau (GANTT_MAX_ROWS).
     // Chemin critique et atterrissages (04/10/2026) : mêmes définitions que l'écran Planning du Cockpit (`planLandings`).
-    indicators: [{ id: 'milestones', label: 'Jalons sur la frise' }, { id: 'subphases', label: 'Sous-phases' }, { id: 'critical', label: 'Chemin critique' }, { id: 'landCurrent', label: 'Atterrissage rythme actuel' }, { id: 'landPlanned', label: 'Atterrissage rythme prévu' }],
+    // Niveau de détail (11/10/2026) : les niveaux de l'écran Planning (`PLAN_LEVELS`, champ `level`) remplacent l'indicateur
+    // « Sous-phases » et les périmètres lot / phase.
+    indicators: [{ id: 'milestones', label: 'Jalons sur la frise' }, { id: 'critical', label: 'Chemin critique' }, { id: 'landCurrent', label: 'Atterrissage rythme actuel' }, { id: 'landPlanned', label: 'Atterrissage rythme prévu' }],
     defaults: ['milestones'],
   },
   jalons: {
     id: 'jalons', label: 'Jalons', nature: 'Frise', parts: ['board'], periodic: true, defaultPeriod: 'next90', periods: ['next30', 'next60', 'next90', 'all'],
     indicators: [{ id: 'code', label: 'Code' }, { id: 'name', label: 'Jalon' }, { id: 'date', label: 'Date' }, { id: 'baseline', label: 'Référence' }, { id: 'slip', label: 'Écart (j)' }, { id: 'phase', label: 'Phase' }, { id: 'kpis', label: 'Indicateurs clés' }],
     defaults: ['code', 'name', 'date', 'baseline', 'slip', 'kpis'],
+  },
+  livrables: {
+    id: 'livrables', label: 'Livrables', nature: 'Tableau', parts: ['board'], periodic: true, defaultPeriod: 'next90', periods: ['next30', 'next60', 'next90', 'all'],
+    // Livrables (11/10/2026) : échéance sur la période ; les livrables en retard sont toujours montrés.
+    indicators: [{ id: 'name', label: 'Livrable' }, { id: 'phase', label: 'Phase · sous-phase' }, { id: 'ws', label: 'Chantier' }, { id: 'owner', label: 'Responsable' }, { id: 'due', label: 'Échéance' }, { id: 'progress', label: 'Avancement' }, { id: 'status', label: 'Statut' }, { id: 'risk', label: 'Risque' }],
+    defaults: ['name', 'phase', 'ws', 'owner', 'due', 'progress', 'status', 'risk'],
   },
   risques: {
     id: 'risques', label: 'Risques et problèmes', nature: 'Matrice et tableau', parts: ['board'], periodic: false, defaultPeriod: 'all',
@@ -59,6 +67,13 @@ export const COMPONENTS: Record<ComponentId, ComponentDef> = {
     // Arbitrages (04/10/2026) : décisions en attente quelle que soit la période (étape, attente), décisions prises sur la période.
     indicators: [{ id: 'code', label: 'Code' }, { id: 'name', label: 'Décision' }, { id: 'status', label: 'Étape' }, { id: 'date', label: 'Attente' }, { id: 'body', label: 'Instance' }, { id: 'decision', label: 'Décision prise' }, { id: 'impact', label: 'Impact' }],
     defaults: ['code', 'name', 'status', 'date', 'body', 'decision'],
+  },
+  arbitrages: {
+    id: 'arbitrages', label: 'Fiches d’arbitrage', nature: 'Fiches', parts: ['board'], periodic: true, defaultPeriod: 'quarter', periods: ['month', 'prevMonth', 'quarter', 'last3', 'last6', 'all'],
+    // Fiches d'arbitrage (11/10/2026) : décisions qui ont une fiche, en attente d'abord (quelle que soit la période), puis
+    // arbitrées sur la période ; une carte par fiche, ARBITRATIONS_MAX par page.
+    indicators: [{ id: 'question', label: 'Question' }, { id: 'options', label: 'Options et notes' }, { id: 'reco', label: 'Option recommandée' }, { id: 'criteria', label: 'Critères' }, { id: 'status', label: 'Étape' }],
+    defaults: ['question', 'options', 'reco', 'criteria', 'status'],
   },
   barometre: {
     id: 'barometre', label: 'Baromètre du projet', nature: 'Tableau de bord', parts: ['board', 'chart'], chart: 'line', periodic: true, defaultPeriod: 'last6', periods: ['last3', 'last6', 'last12'],
@@ -85,6 +100,26 @@ export const moduleOffMessage = (label: string) => `${label} : le module n'est p
 export const DASHBOARD_SERIES = ['progress', 'planned'];
 /** Indicateurs chiffrés de la synthèse affichés en tuiles (au plus 4) ; le texte reprend les faits marquants. */
 export const KPI_MAX = 4;
+
+/**
+ * Niveaux du composant Planning (11/10/2026) : ceux de l'écran Planning du Cockpit. « Un chantier » se règle avec la cible
+ * (périmètre WORKSTREAM) ; les autres portent sur le projet entier.
+ */
+export type PlanLevel = 'ph' | 'phsp' | 'phchsp' | 'ch' | 'one';
+export const PLAN_LEVELS: Array<{ id: PlanLevel; label: string }> = [
+  { id: 'ph', label: 'Phases' },
+  { id: 'phsp', label: 'Phase > Sous-phase' },
+  { id: 'phchsp', label: 'Phase > Chantier > Sous-phase' },
+  { id: 'ch', label: 'Tous les chantiers' },
+  { id: 'one', label: 'Un chantier' },
+];
+/**
+ * Niveau d'un composant Planning : celui choisi, sinon déduit des réglages d'avant le 11/10/2026 (périmètre chantier → un
+ * chantier ; indicateur « Sous-phases » → phase > sous-phase ; sinon phases).
+ */
+export const planLevelOf = (c: ComponentConfig): PlanLevel => c.level ?? (c.scope === 'WORKSTREAM' ? 'one' : (c.indicators ?? []).includes('subphases') ? 'phsp' : 'ph');
+/** Fiches d'arbitrage montrées sur une page (deux cartes côte à côte), les autres résumées. */
+export const ARBITRATIONS_MAX = 2;
 
 // ───────────── Périodes ─────────────
 
@@ -132,6 +167,8 @@ export interface ComponentConfig {
   id: ComponentId;
   scope: 'PROJECT' | 'WAVE' | 'PHASE' | 'WORKSTREAM';
   targetId?: string | null;
+  /** Planning : niveau de détail (11/10/2026). */
+  level?: PlanLevel;
   period?: PeriodId;
   indicators?: string[];
   /** Ce composant ouvre une nouvelle section (page intercalaire) ; le premier en ouvre toujours une. */
@@ -188,9 +225,12 @@ export function configErrors(comps: ComponentConfig[]): Record<string, string> {
   const err: Record<string, string> = {};
   comps.forEach((c, i) => {
     const def = COMPONENTS[c.id];
-    const unknown = (c.indicators ?? []).filter((x) => !def.indicators.some((d) => d.id === x));
+    // « Sous-phases » du planning, retiré le 11/10/2026 : toléré dans les templates déjà publiés (niveau déduit).
+    const unknown = (c.indicators ?? []).filter((x) => !def.indicators.some((d) => d.id === x) && !(c.id === 'planning' && x === 'subphases'));
     if (unknown.length) err[`components.${i}`] = `${def.label} : indicateur inconnu (${unknown.join(', ')})`;
     else if (c.indicators && !c.indicators.length) err[`components.${i}`] = `${def.label} : choisissez au moins un indicateur`;
+    if (c.level && (c.id !== 'planning' || !PLAN_LEVELS.some((l) => l.id === c.level))) err[`components.${i}`] = `${def.label} : niveau inconnu`;
+    if (c.id === 'planning' && c.level === 'one' && (c.scope !== 'WORKSTREAM' || !c.targetId)) err[`components.${i}`] = `${def.label} : choisissez le chantier`;
     if (c.period && !PERIODS.some((p) => p.id === c.period)) err[`components.${i}`] = `${def.label} : période inconnue`;
     else if (c.period && def.periodic && def.periods && !def.periods.includes(c.period as PeriodId)) err[`components.${i}`] = `${def.label} : période non proposée pour ce composant`;
     const kpis = def.parts.includes('kpi') ? indicatorsOf(c).filter((x) => !(c.id === 'dashboard' && DASHBOARD_SERIES.includes(x))) : [];
@@ -209,8 +249,8 @@ export type ComponentData =
   | { part: 'text'; lines: string[] }
   | { part: 'board'; board: BoardKind; data: unknown };
 /** Planches dessinées (03/10/2026) : Gantt, baromètre, frise des jalons, matrice et tableau des risques ; échéancier des actions, arbitrages, tableau de bord (04/10/2026). */
-export type BoardKind = 'planning' | 'barometer' | 'milestones' | 'risks' | 'actions' | 'decisions' | 'dashboard';
-export const BOARD_OF: Partial<Record<ComponentId, BoardKind>> = { planning: 'planning', barometre: 'barometer', jalons: 'milestones', risques: 'risks', actions: 'actions', decisions: 'decisions', dashboard: 'dashboard' };
+export type BoardKind = 'planning' | 'barometer' | 'milestones' | 'deliverables' | 'risks' | 'actions' | 'decisions' | 'arbitrations' | 'dashboard';
+export const BOARD_OF: Partial<Record<ComponentId, BoardKind>> = { planning: 'planning', barometre: 'barometer', jalons: 'milestones', livrables: 'deliverables', risques: 'risks', actions: 'actions', decisions: 'decisions', arbitrages: 'arbitrations', dashboard: 'dashboard' };
 /**
  * Composants passés d'un tableau ou de cartes et graphique à une planche (04/10/2026) : leurs anciennes parties restent
  * calculées pour les versions déjà publiées (dont le PowerPoint contient encore ces zones), sans servir à la rédaction.

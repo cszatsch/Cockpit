@@ -622,3 +622,10 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
   mis en forme comme dans le planning (numéro de phase foncé, code de sous-phase gris, pastille colorée du chantier, puis le
   nom). Contrôles dans `test/browser/planning-colonnes.e2e.ts`.
 
+## Créer un template : Livrables, Fiches d'arbitrage, niveaux du Planning (11/10/2026)
+
+- Étape « Composants » (`CAT`) : « Livrables » après « Jalons », « Fiches d'arbitrage » après « Décisions ».
+- Étape « Ordre et données » : le PÉRIMÈTRE du Planning propose les niveaux de l'écran Planning (`PLAN_LEVELS`, `planLevel`) ;
+  « Un chantier » fait choisir le chantier dans la CIBLE ; liste du périmètre propre à chaque composant (`it.perims`). Plus de
+  pastille « Sous-phases » (catalogue du serveur). `api.js` (`tplBody`) envoie `level` et n'envoie plus « subphases ».
+

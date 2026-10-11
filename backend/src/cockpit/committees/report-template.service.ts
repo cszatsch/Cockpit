@@ -14,14 +14,17 @@ import { OoxmlPackage } from '../../core/ooxml';
 import { analyzePptx, mediaDataUri } from '../../core/report-format-read';
 import { PageSource } from '../../core/report-format-write';
 import { FAILED_MESSAGE, INTERRUPTED_ERROR, NOT_READY_MESSAGE } from '../../domain/template-service';
-import { ACTION_SOON_DAYS, ActionRow, ActionsData, DashboardData, DashTile, DecisionRow, DecisionsData, DECISION_STAGES, DECISIONS_RECALL, focusPhase, sortActions, sortPending } from '../../core/report-draw-pilotage';
+import { ACTION_SOON_DAYS, ActionRow, ActionsData, ArbitrationCard, ArbitrationsData, DashboardData, DashTile, DecisionRow, DecisionsData, DECISION_STAGES, DECISIONS_RECALL, DeliverableRow, DeliverablesData, focusPhase, sortActions, sortDeliverables, sortPending } from '../../core/report-draw-pilotage';
+import { arbitrationSummary, ArbitrationSheet } from '../../domain/arbitration';
+import { deliverableDates, deliverableRisk, deliverableStatus } from '../../domain/rules';
 import { planLandings } from '../../core/report-draw';
+import { planRows } from '../../domain/plan-levels';
 import { BarometerData, MILESTONES_MAX, MilestonesData, RisksData, foldPlan, GANTT_MAX_ROWS, GanttData, GanttRow, PLAN_TABLE_HEAD_IN, PLAN_TABLE_MIN_ROW_IN } from '../../core/report-draw';
 import { composeTemplate, FillData, fillTemplate, TemplateFieldMissing, TemplateManifest, visualCheck } from '../../core/report-template';
 import { LlmService } from '../../core/llm.service';
 import { parseWriting, retryPrompt, WritingFacts, WRITING_SKILLS, WRITING_TIMEOUT_MS, writingPrompt, writingSystem } from '../../domain/report-writing';
 import { FormatAnalysis, PAGE_KINDS, PageKind, previewSvg } from '../../domain/report-format';
-import { COMPONENTS, ComponentConfig, ComponentData, ComponentValues, DASHBOARD_SERIES, frDay, indicatorsOf, inPeriod, Issue, KPI_MAX, pagesOf, periodOf, periodRange, sectionsOf, COMPONENT_MODULE, ComponentId, moduleOffMessage, reportPlan, fieldName, LEGACY_PARTS } from '../../domain/report-components';
+import { COMPONENTS, ComponentConfig, ComponentData, ComponentValues, DASHBOARD_SERIES, frDay, indicatorsOf, inPeriod, Issue, KPI_MAX, pagesOf, periodOf, periodRange, sectionsOf, COMPONENT_MODULE, ComponentId, moduleOffMessage, reportPlan, fieldName, LEGACY_PARTS, planLevelOf, ARBITRATIONS_MAX, PLAN_LEVELS } from '../../domain/report-components';
 
 const STATUS: Record<string, string> = { OPEN: 'Ouvert', IN_PROGRESS: 'En cours', BLOCKED: 'Bloquée', DONE: 'Terminé', CLOSED: 'Clos', PLANNED: 'Prévu', PREPARATION: 'En préparation', ACTIVE: 'Actif', MITIGATING: 'En traitement', DRAFT: 'Brouillon', IN_REVIEW: 'En revue', TO_ARBITRATE: 'À arbitrer', ARBITRATED: 'Arbitrée', CANCELLED: 'Annulée', SUPERSEDED: 'Remplacée' };
 const PRIO: Record<string, string> = { HIGH: 'Haute', MEDIUM: 'Moyenne', LOW: 'Basse' };
@@ -110,7 +113,10 @@ export class ReportTemplateService implements OnModuleInit {
     const P = { projectId: scope.project.id };
     const label = await this.scopeLabel(c);
     const period = periodRange(periodOf(c), today);
-    const caption = [label ?? '—', def.periodic && period.start ? period.label : null].filter(Boolean).join(' · ');
+    // Planning (11/10/2026) : la légende nomme le niveau (« Phase > Sous-phase »…) ; « Un chantier » nomme le chantier.
+    const lvl = c.id === 'planning' ? planLevelOf(c) : null;
+    const where = lvl && lvl !== 'one' ? PLAN_LEVELS.find((x) => x.id === lvl)!.label + (c.scope !== 'PROJECT' && label ? ` · ${label}` : '') : label;
+    const caption = [where ?? '—', def.periodic && period.start ? period.label : null].filter(Boolean).join(' · ');
     if (!label) {
       issues.push({ severity: 'error', component: c.key, message: `${def.label} : le périmètre ciblé (${c.scope === 'WAVE' ? 'lot' : c.scope === 'PHASE' ? 'phase' : 'chantier'}) n'existe plus. Modifiez le template et publiez une nouvelle version.` });
       return { key: c.key, caption, parts: [], issues };
@@ -152,30 +158,44 @@ export class ReportTemplateService implements OnModuleInit {
         break;
       }
       case 'planning': {
-        // Portée chantier (décision D6 du 06/10/2026) : phases du chantier et, s'il en a, ses seules sous-phases.
-        const wsLinks = c.scope === 'WORKSTREAM' ? await this.prisma.workstream.findFirst({ where: { ...P, id: t! }, include: { phases: true, subphases: true } }) : null;
-        const wsPhases = new Set((wsLinks?.phases ?? []).map((x) => x.phaseId)), wsSubs = (wsLinks?.subphases ?? []).map((x) => x.subphaseId);
-        const ph = (await phases()).filter((p) => !wsPhases.size || wsPhases.has(p.id));
+        // Niveau de détail (11/10/2026) : ceux de l'écran Planning (`planRows`, `src/domain/plan-levels.ts`) ; « Un chantier »
+        // se règle avec la cible. Templates antérieurs : niveau déduit (`planLevelOf`) ; périmètre lot ou phase conservé.
+        const level = planLevelOf(c);
+        const ph = await phases();
         const bad = ph.filter((p) => p.endDate < p.startDate).map((p) => p.code);
         if (bad.length) warn(`fin avant le début pour ${list(bad)} (données incohérentes).`);
         const over = ph.filter((p) => p.progressPct < 0 || p.progressPct > 100).map((p) => p.code);
         if (over.length) warn(`avancement hors de 0 à 100 % pour ${list(over)}.`);
         if (!ph.length) warn('aucune phase sur le périmètre.');
-        // Gantt (03/10/2026) : phases, sous-phases si demandées, phase en cours, jalons ; tableau au-delà de 25 lignes.
         const current = ph.find((p) => p.status === 'IN_PROGRESS') ?? ph.find((p) => p.startDate <= today && today <= p.endDate && p.status !== 'DONE');
-        const subs = inds.includes('subphases') ? await this.prisma.subphase.findMany({ where: { ...P, phaseId: { in: ph.map((p) => p.id) }, ...(wsSubs.length ? { id: { in: wsSubs } } : {}) }, orderBy: [{ startDate: 'asc' }, { code: 'asc' }] }) : [];
-        const rows: GanttRow[] = [], rowOf = new Map<string, number>();
-        for (const p of ph) {
-          rowOf.set(p.id, rows.length);
-          rows.push({ level: 0, code: p.code, name: p.name, start: p.startDate, end: p.endDate, status: p.status, progress: p.progressPct, current: p.id === current?.id, critical: p.critical, ...planLandings(p.startDate, p.endDate, p.progressPct, today) });
-          for (const sp of subs.filter((x) => x.phaseId === p.id && x.startDate && x.endDate)) {
-            rowOf.set(sp.id, rows.length);
-            rows.push({ level: 1, code: sp.code, name: sp.name, start: sp.startDate!, end: sp.endDate!, status: sp.status, progress: sp.progressPct, current: false, critical: sp.critical, ...planLandings(sp.startDate!, sp.endDate!, sp.progressPct, today) });
-          }
+        const needSubs = level === 'phsp' || level === 'phchsp' || level === 'one' || level === 'ch';
+        const needWs = level === 'phchsp' || level === 'ch' || level === 'one';
+        const [subs, wsList] = await Promise.all([
+          needSubs ? this.prisma.subphase.findMany({ where: { ...P, phaseId: { in: ph.map((p) => p.id) } }, orderBy: [{ startDate: 'asc' }, { code: 'asc' }] }) : Promise.resolve([]),
+          needWs ? this.prisma.workstream.findMany({ where: P, include: { phases: true, subphases: true }, orderBy: { seq: 'asc' } }) : Promise.resolve([]),
+        ]);
+        const plan = planRows(level, {
+          today, currentPhaseId: current?.id ?? null, wsId: level === 'one' ? t : null,
+          phases: ph.map((p) => ({ id: p.id, code: p.code, name: p.name, start: p.startDate, end: p.endDate, status: p.status, progress: p.progressPct, critical: p.critical })),
+          subs: subs.map((x) => ({ id: x.id, phaseId: x.phaseId, code: x.code, name: x.name, start: x.startDate, end: x.endDate, status: x.status, progress: x.progressPct, critical: x.critical })),
+          wss: wsList.map((w) => ({ id: w.id, code: w.code, name: w.name, start: w.startDate, end: w.endDate, progress: w.progressPct, critical: w.critical, phaseIds: w.phases.map((x) => x.phaseId), subIds: w.subphases.map((x) => x.subphaseId) })),
+        });
+        if (level === 'one' && !plan.length) warn('le chantier n’a ni dates ni phases.');
+        let rows: GanttRow[] = plan.map((x) => ({ level: x.level, kind: x.kind, code: x.code, name: x.name, start: x.start, end: x.end, status: x.status, progress: x.progress, current: x.current, critical: x.critical, ...planLandings(x.start, x.end, x.progress, today) }));
+        // « Un chantier » trop long pour la page : ses sous-phases terminées sont regroupées sur la ligne du chantier
+        // (« 16 sous-phases terminées »), pour laisser la place à ce qui est en cours ou à venir.
+        if (level === 'one' && rows.length > GANTT_MAX_ROWS) {
+          const done = rows.filter((r) => r.level > 0 && r.status === 'DONE').length;
+          if (done) { rows = [{ ...rows[0], folded: done }, ...rows.slice(1).filter((r) => r.status !== 'DONE')]; plan.splice(0, plan.length, ...plan.filter((x, i) => i === 0 || x.status !== 'DONE')); }
         }
-        const ms = inds.includes('milestones') ? await this.prisma.milestone.findMany({ where: { ...P, phaseId: { in: ph.map((p) => p.id) } }, orderBy: { iso: 'asc' } }) : [];
-        const milestones = ms.map((m) => ({ code: m.code, label: m.n, iso: m.iso, row: rowOf.get(m.subphaseId ?? '') ?? rowOf.get(m.phaseId) ?? -1 }));
-        parts.push({ part: 'board', board: 'planning', data: { today, rows, milestones, mode: rows.length > GANTT_MAX_ROWS ? 'table' : 'gantt', show: { critical: inds.includes('critical'), landCurrent: inds.includes('landCurrent'), landPlanned: inds.includes('landPlanned') } } as GanttData & { mode: string } });
+        // Jalons : rattachés à la ligne de leur sous-phase, sinon de leur phase, sinon de leur chantier.
+        const rowOf = new Map<string, number>();
+        plan.forEach((x, i) => { if (!rowOf.has(x.ref)) rowOf.set(x.ref, i); });
+        const msWhere = level === 'one' ? { ...P, wsId: t! } : { ...P, phaseId: { in: ph.map((p) => p.id) } };
+        const ms = inds.includes('milestones') ? await this.prisma.milestone.findMany({ where: msWhere, orderBy: { iso: 'asc' } }) : [];
+        const milestones = ms.map((m) => ({ code: m.code, label: m.n, iso: m.iso, row: rowOf.get(m.subphaseId ?? '') ?? rowOf.get(m.phaseId) ?? rowOf.get(m.wsId ?? '') ?? -1 }));
+        const unit = level === 'ch' || level === 'one' ? 'chantier' : 'phase';
+        parts.push({ part: 'board', board: 'planning', data: { today, rows, milestones, unit, mode: rows.length > GANTT_MAX_ROWS ? 'table' : 'gantt', show: { critical: inds.includes('critical'), landCurrent: inds.includes('landCurrent'), landPlanned: inds.includes('landPlanned') } } as GanttData & { mode: string } });
         if (rows.length > GANTT_MAX_ROWS) warn(`${rows.length} lignes : le planning est présenté en tableau (Gantt jusqu'à ${GANTT_MAX_ROWS} lignes).`);
         break;
       }
@@ -189,6 +209,30 @@ export class ReportTemplateService implements OnModuleInit {
         const shownMs: MilestonesData = { today, rows: ms.map((m) => ({ code: m.code, name: m.n, iso: m.iso, baseline: m.baselineIso || null, phase: phaseNames.get(m.phaseId) ?? null })), show: Object.fromEntries(def.indicators.map((x) => [x.id, inds.includes(x.id)])) };
         if (ms.length > MILESTONES_MAX) warn(`${ms.length} jalons : la frise en montre ${MILESTONES_MAX}, autour du prochain.`);
         parts.push({ part: 'board', board: 'milestones', data: shownMs });
+        break;
+      }
+      case 'livrables': {
+        // Livrables (11/10/2026) : échéance sur la période, livrables en retard toujours montrés ; dates héritées de la
+        // sous-phase (`deliverableDates`), statut et risque calculés comme dans l'onglet Livrables.
+        const [dl, sps, phs, wsAll] = await Promise.all([
+          this.prisma.deliverable.findMany({ where: { ...P, ...(c.scope === 'WORKSTREAM' ? { workstreamId: t! } : {}) }, orderBy: [{ due: 'asc' }, { order: 'asc' }] }),
+          this.prisma.subphase.findMany({ where: P, select: { id: true, phaseId: true, code: true, name: true, startDate: true, endDate: true } }),
+          this.prisma.phase.findMany({ where: P, select: { id: true, name: true, waves: { select: { waveId: true } } } }),
+          this.wsNames(P),
+        ]);
+        const spOf = new Map(sps.map((x) => [x.id, x])), phOf = new Map(phs.map((x) => [x.id, x]));
+        const inScope = (spId: string) => { const sp = spOf.get(spId); if (!sp) return false; if (c.scope === 'PHASE') return sp.phaseId === t; if (c.scope === 'WAVE') return !!phOf.get(sp.phaseId)?.waves.some((w) => w.waveId === t); return true; };
+        const rows: DeliverableRow[] = [];
+        for (const x of dl.filter((y) => inScope(y.subphaseId))) {
+          const sp = spOf.get(x.subphaseId)!, dd = deliverableDates(x.start, x.due, sp);
+          if (!dd.due) continue;
+          const status = deliverableStatus(x.prog, dd.start, dd.due, today);
+          if (status !== 'LATE' && !inPeriod(dd.due, period)) continue;
+          rows.push({ name: x.name, phase: `${phOf.get(sp.phaseId)?.name ?? '—'} · ${sp.code} ${sp.name}`, ws: x.workstreamId ? wsAll.get(x.workstreamId) ?? null : null, owner: name(x.ownerId), due: dd.due, progress: x.prog, status, risk: deliverableRisk(x.prog, dd.start, dd.due, today, x.riskOverride) });
+        }
+        if (!rows.length) warn('aucun livrable sur la période.');
+        const short = (s2: string) => frDay(s2).replace(/ \d{4}$/, '');
+        parts.push({ part: 'board', board: 'deliverables', data: { today, rows, period: period.start ? `${short(period.start)} → ${frDay(period.end!)}` : null, show: Object.fromEntries(def.indicators.map((x) => [x.id, inds.includes(x.id)])) } as DeliverablesData });
         break;
       }
       case 'risques': {
@@ -235,6 +279,23 @@ export class ReportTemplateService implements OnModuleInit {
         parts.push({ part: 'board', board: 'decisions', data: { today, pending: pending.map(row), taken: taken.map(row), last: taken.length ? [] : arbitrated.slice(0, DECISIONS_RECALL).map(row), period: periodText, show: Object.fromEntries(def.indicators.map((x) => [x.id, inds.includes(x.id)])) } as DecisionsData });
         const ds = all.filter((d) => inPeriod(d.crIso, period));
         parts.push(table(inds, ds.map((d) => ({ code: d.code, name: d.t, status: st(d.status), date: day(d.crIso), body: bodies.get(d.bodyId) ?? '—' }))));
+        break;
+      }
+      case 'arbitrages': {
+        // Fiches d'arbitrage (11/10/2026) : décisions qui ont une fiche — en attente d'abord (quelle que soit la période, à
+        // arbitrer en tête), puis arbitrées sur la période ; ARBITRATIONS_MAX cartes, les autres citées par leur code.
+        const bodyNames = new Map((await this.prisma.governanceBody.findMany({ where: P, select: { id: true, name: true } })).map((b) => [b.id, b.name]));
+        const all = (await this.prisma.decision.findMany({ where: { ...P, ...ws }, orderBy: { code: 'asc' } })).map((dc) => ({ dc, sum: arbitrationSummary(dc.arbitration as ArbitrationSheet | null) })).filter((x) => !!x.sum);
+        const stageRank: Record<string, number> = { TO_ARBITRATE: 0, IN_REVIEW: 1, DRAFT: 2 };
+        const pending = all.filter((x) => x.dc.status in stageRank).sort((a, b) => stageRank[a.dc.status] - stageRank[b.dc.status] || a.dc.code.localeCompare(b.dc.code, 'fr', { numeric: true }));
+        const taken = all.filter((x) => x.dc.status === 'ARBITRATED' && inPeriod(x.dc.ddIso ?? x.dc.crIso, period)).sort((a, b) => (b.dc.ddIso ?? b.dc.crIso).localeCompare(a.dc.ddIso ?? a.dc.crIso));
+        const ordered = [...pending, ...taken];
+        if (!ordered.length) warn('aucune fiche d’arbitrage en attente ni arbitrée sur la période.');
+        const noScore = ordered.filter((x) => x.sum!.options.every((o) => o.score === null)).map((x) => x.dc.code);
+        if (noScore.length) warn(`fiche sans note pour ${list(noScore)}.`);
+        const cards: ArbitrationCard[] = ordered.slice(0, ARBITRATIONS_MAX).map(({ dc, sum }) => ({ code: dc.code, title: dc.t, status: dc.status, body: bodyNames.get(dc.bodyId) ?? null, question: sum!.question, options: sum!.options, reco: sum!.reco, tie: sum!.tie, criteria: sum!.criteria }));
+        const short = (s2: string) => frDay(s2).replace(/ \d{4}$/, '');
+        parts.push({ part: 'board', board: 'arbitrations', data: { today, cards, more: ordered.slice(ARBITRATIONS_MAX).map((x) => x.dc.code), period: period.start ? `${short(period.start)} → ${frDay(period.end!)}` : null, show: Object.fromEntries(def.indicators.map((x) => [x.id, inds.includes(x.id)])) } as ArbitrationsData });
         break;
       }
       case 'barometre': {
@@ -382,6 +443,8 @@ export class ReportTemplateService implements OnModuleInit {
           if (LEGACY_PARTS[c.id]?.includes(p.part)) continue;
           if (p.part === 'board' && p.board === 'actions') { const k = p.data as ActionsData; const rows = sortActions(k.rows, k.today); x.facts = [`${rows.filter((r) => r.due && r.due < k.today).length} action(s) en retard sur ${rows.length} ouverte(s)`, ...rows.slice(0, 12).map((r) => `Action ${r.code} : ${r.name} — ${r.owner}${r.due ? `, échéance ${frDay(r.due)} (${r.due < k.today ? `en retard de ${daysBetween(r.due, k.today)} j` : `dans ${daysBetween(k.today, r.due)} j`})` : ', sans échéance'}, ${st(r.status)}`)]; }
           if (p.part === 'board' && p.board === 'decisions') { const k = p.data as DecisionsData; x.facts = [...sortPending(k.pending).map((r) => `En attente : ${r.code} ${r.title} — étape ${st(r.status)}, depuis ${daysBetween(r.created, k.today)} j, ${r.body}`), ...k.taken.map((r) => `Décision prise le ${frDay(r.decided ?? r.created)} : ${r.code} ${r.decision ?? r.title}`), ...(k.taken.length ? [] : [`Aucune décision prise sur la période${k.last[0] ? ` ; dernière : ${k.last[0].code} le ${frDay(k.last[0].decided ?? k.last[0].created)}` : ''}`])]; }
+          if (p.part === 'board' && p.board === 'deliverables') { const k = p.data as DeliverablesData; const rows = sortDeliverables(k.rows); x.facts = [`${rows.filter((r) => r.status === 'LATE').length} livrable(s) en retard, ${rows.filter((r) => r.status !== 'DONE').length} à livrer, ${rows.filter((r) => r.status === 'DONE').length} livré(s)`, ...rows.slice(0, 8).map((r) => `${r.name} — échéance ${frDay(r.due)}, ${r.progress} %, ${r.status === 'LATE' ? 'en retard' : r.status === 'DONE' ? 'livré' : 'à livrer'}${r.risk !== 'OK' ? `, risque ${r.risk === 'CRITICAL' ? 'critique' : 'en tension'}` : ''}`)]; }
+          if (p.part === 'board' && p.board === 'arbitrations') { const k = p.data as ArbitrationsData; x.facts = [...k.cards.map((cd) => `${cd.code} ${cd.title} — ${st(cd.status)}${cd.question ? ` ; question : ${cd.question}` : ''} ; ${cd.options.map((o) => `${o.code} ${o.label} ${o.score === null ? 'non notée' : `${o.score.toFixed(2).replace('.', ',')}/4`}`).join(', ')}${cd.reco ? ` ; recommandée : ${cd.reco}` : cd.tie ? ' ; égalité' : ''}`), ...(k.more.length ? [`Autres fiches : ${k.more.join(', ')}`] : [])]; }
           if (p.part === 'board' && p.board === 'dashboard') { const k = p.data as DashboardData; const f = focusPhase(k.phases); x.facts = [...(f ? [`Phase ${f.status === 'IN_PROGRESS' ? 'en cours' : 'suivante'} ${f.name} : ${Math.round(f.progress)} % réalisé, ${Math.round(f.planned)} % prévu à date (écart ${Math.round(f.progress) - Math.round(f.planned)} points), fin ${frDay(f.end)}`] : []), ...k.tiles.map((t) => `${t.label} : ${t.value} (${t.note})`)]; }
           if (p.part === 'kpi') x.kpis = p.items.map((it) => ({ label: it.label, value: it.value }));
           if (p.part === 'table') x.table = { columns: p.columns.map((id) => COMPONENTS[c.id].indicators.find((ind) => ind.id === id)?.label ?? id), rows: p.rows.slice(0, 15), total: p.rows.length };

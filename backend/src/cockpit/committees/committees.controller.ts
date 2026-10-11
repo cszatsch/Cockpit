@@ -3,6 +3,7 @@ import { Body, Controller, Delete, Get, Headers, HttpCode, Param, Patch, Post, Q
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
+import { ComponentSchema } from './report-component.schema';
 import { AccessService, ProjectScope } from '../../core/access.service';
 import { Actor, CurrentActor } from '../../core/auth/auth';
 import { AuditService } from '../../core/audit.service';
@@ -35,19 +36,8 @@ const SessionPatch = z
   .partial()
   .strict();
 
-const COMPONENTS = ['synthese', 'planning', 'jalons', 'risques', 'decisions', 'actions', 'barometre', 'dashboard', 'budget'] as const;
-/** Composant (étape 4) : périmètre, période, indicateurs, ouverture d'une section (page intercalaire). */
-const Component = z
-  .object({
-    id: z.enum(COMPONENTS),
-    scope: z.enum(['PROJECT', 'WAVE', 'PHASE', 'WORKSTREAM']),
-    targetId: z.string().nullable().optional(),
-    period: z.enum(['all', 'month', 'quarter', 'last3', 'last6', 'next30', 'next90']).optional(),
-    indicators: z.array(z.string().min(1)).max(10).optional(),
-    newSection: z.boolean().optional(),
-    sectionTitle: z.string().max(120).nullable().optional(),
-  })
-  .strict();
+/** Composant (étape 4) : schéma partagé avec l'aperçu (`report-component.schema.ts`). */
+const Component = ComponentSchema;
 const TemplateCreate = z
   .object({
     name: z.string().trim().min(1, 'obligatoire').max(200),

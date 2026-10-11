@@ -60,9 +60,11 @@ export class Draw {
 
 // ───────────── Gantt et planning en tableau ─────────────
 
-export interface GanttRow { level: 0 | 1; code: string; name: string; start: string; end: string; status: 'DONE' | 'IN_PROGRESS' | 'PLANNED'; progress: number; current: boolean; /** Sous-phases terminées regroupées sous la phase (planning en tableau). */ folded?: number;
+export interface GanttRow { /** 0 : phase (ou chantier aux niveaux chantier) ; 1 : sous-phase ou chantier dans la phase ; 2 : sous-phase du chantier (11/10/2026). */ level: 0 | 1 | 2;
+  /** Nature de la ligne (niveaux du Planning, 11/10/2026). */ kind?: 'ph' | 'ch' | 'sp'; code: string; name: string; start: string; end: string; status: 'DONE' | 'IN_PROGRESS' | 'PLANNED'; progress: number; current: boolean; /** Sous-phases terminées regroupées sous la phase (planning en tableau). */ folded?: number;
   /** Sur le chemin critique (référentiel). */ critical?: boolean; /** Atterrissage au rythme actuel / au rythme prévu (`planLandings`). */ lc?: string | null; lp?: string | null }
 export interface GanttData { today: string; rows: GanttRow[]; milestones: Array<{ code: string; label: string; iso: string; row: number }>; hidden?: number;
+  /** Lignes de tête : phases (défaut) ou chantiers (« Tous les chantiers », « Un chantier »), pour le bandeau et les libellés. */ unit?: 'phase' | 'chantier';
   /** Indicateurs du composant : chemin critique, atterrissage au rythme actuel, au rythme prévu. */ show?: { critical?: boolean; landCurrent?: boolean; landPlanned?: boolean } }
 
 /**
@@ -110,9 +112,9 @@ export function foldPlan(g: GanttData): GanttData {
   let folding = false;
   for (let i = 0; i < g.rows.length; i++) {
     const r = g.rows[i];
-    if (r.level === 1) { if (!folding) rows.push({ ...r }); continue; }
+    if (r.level > 0) { if (!folding) rows.push({ ...r }); continue; }
     let n = 0;
-    for (let j = i + 1; j < g.rows.length && g.rows[j].level === 1; j++) n++;
+    for (let j = i + 1; j < g.rows.length && g.rows[j].level > 0; j++) n++;
     folding = r.status === 'DONE' && n > 0;
     rows.push(folding ? { ...r, folded: n } : { ...r });
   }
@@ -126,7 +128,7 @@ export function foldPlan(g: GanttData): GanttData {
 export function drawGantt(d: Draw, a: Box, g: GanttData): string {
   const t = d.t, ty = typeScale(t), out: string[] = [];
   const rows = g.rows, show = g.show ?? {};
-  if (!rows.length) return d.text(a, [{ runs: [{ t: 'Aucune phase sur le périmètre.', size: ty.body, color: t.muted }] }]);
+  if (!rows.length) return d.text(a, [{ runs: [{ t: g.unit === 'chantier' ? 'Aucun chantier daté sur le périmètre.' : 'Aucune phase sur le périmètre.', size: ty.body, color: t.muted }] }]);
   // Frise étendue aux atterrissages affichés : chaque repère est à sa vraie date.
   const ends = rows.flatMap((r) => [r.end, ...(r.status !== 'DONE' && show.landCurrent && r.lc ? [r.lc] : []), ...(r.status !== 'DONE' && show.landPlanned && r.lp ? [r.lp] : [])]);
   const sc = timeScale(rows.reduce((m, r) => (r.start < m ? r.start : m), rows[0].start), ends.reduce((m, e) => (e > m ? e : m), ends[0]));
@@ -172,13 +174,16 @@ export function drawGantt(d: Draw, a: Box, g: GanttData): string {
 
   // Lignes : libellé, barre (avancement dedans), pourcentage.
   rows.forEach((r, i) => {
-    const y = yOf(i), sub = r.level === 1, late = isLate(r, g.today);
-    const bh = Math.max(0.07 * IN, Math.min(0.17 * IN, rowH * (sub ? 0.26 : 0.38)));
+    const y = yOf(i), sub = r.level > 0, late = isLate(r, g.today);
+    const bh = Math.max(0.07 * IN, Math.min(0.17 * IN, rowH * (r.level === 2 ? 0.2 : sub ? 0.26 : 0.38)));
     const by = y + (rowH - bh) / 2;
     const xs = X(r.start), xe = Math.max(X(r.end), xs + bh);
     const lbl: Para[] = [{ runs: [{ t: `${r.code}   `, size: ty.label, color: r.current ? t.accent : t.subtle, bold: true }, { t: r.name, size: sub ? ty.small : ty.body, color: r.current ? t.accent : r.status === 'DONE' ? t.muted : t.ink, bold: r.current || !sub }] }];
     if (r.current && rowH >= 0.4 * IN) lbl.push({ runs: [{ t: `${monthYear(r.start)} → ${monthYear(r.end)}`, size: ty.label, color: t.muted }] });
-    out.push(d.text({ x: a.x + (sub ? 0.22 * IN : 0.06 * IN), y, w: labelW - 0.24 * IN, h: rowH }, lbl, 'ctr'));
+    // Sous-phases terminées regroupées sur la ligne (« Un chantier », 11/10/2026).
+    if (r.folded) lbl.push({ runs: [{ t: `${r.folded} sous-phase${r.folded > 1 ? 's' : ''} terminée${r.folded > 1 ? 's' : ''}`, size: ty.label, color: t.subtle }] });
+    const indent = [0.06, 0.22, 0.38][r.level] * IN;
+    out.push(d.text({ x: a.x + indent, y, w: labelW - indent - 0.18 * IN, h: rowH }, lbl, 'ctr'));
     if (i > 0) out.push(d.line(a.x, y, a.x + a.w, y, mixHex(t.hairline, 'FFFFFF', 0.45), 0.5));
     if (r.status === 'DONE') out.push(d.pill({ x: xs, y: by, w: xe - xs, h: bh }, doneFill));
     else if (r.current || r.status === 'IN_PROGRESS' || r.progress > 0) {
@@ -222,18 +227,20 @@ export function drawGantt(d: Draw, a: Box, g: GanttData): string {
   // Bandeau de lecture immédiate : phase en cours, prochain jalon, fin du planning.
   if (stripH) {
     const sy = yEnd + tagH + 0.12 * IN, cw = a.w / 3;
-    const cur = rows.find((r) => r.current && r.level === 0) ?? rows.find((r) => r.status === 'IN_PROGRESS');
+    const cur = g.unit === 'chantier' ? undefined : rows.find((r) => r.current && r.level === 0) ?? rows.find((r) => r.status === 'IN_PROGRESS');
+    const heads = rows.filter((r) => r.level === 0), active = heads.filter((r) => r.status === 'IN_PROGRESS'), lateHeads = active.filter((r) => isLate(r, g.today));
     const next = ms.find((m) => m.iso >= g.today) ?? g.milestones.find((m) => m.iso >= g.today);
     const endIso = rows.reduce((m, r) => (r.end > m ? r.end : m), rows[0].end);
     const elapsed = cur ? Math.max(0, Math.min(100, R((100 * days(cur.start, g.today)) / Math.max(1, days(cur.start, cur.end))))) : 0;
-    const done = rows.filter((r) => r.level === 0 && r.status === 'DONE').length, phases = rows.filter((r) => r.level === 0).length;
+    const done = heads.filter((r) => r.status === 'DONE').length, phases = heads.length, noun = g.unit === 'chantier' ? 'chantier' : 'phase';
     const small = (x: string, color = t.muted, bold = false): Run => ({ t: x, size: ty.small, color, bold });
     const cells: Array<{ label: string; value: string; color: string; after?: Run; sub: Run[] }> = [
+      g.unit === 'chantier' ? { label: 'En cours', value: `${active.length} chantier${active.length > 1 ? 's' : ''}`, color: lateHeads.length ? t.risk : t.accent, sub: [small(lateHeads.length ? `${lateHeads.length} en retard` : 'aucun en retard', lateHeads.length ? t.risk : t.muted, !!lateHeads.length)] } :
       cur ? { label: 'Phase en cours', value: cur.name, color: isLate(cur, g.today) ? t.risk : t.accent, after: small(`   jusqu'au ${longDate(cur.end)}`), sub: [small(`${pctTxt(cur.progress)} réalisé`, isLate(cur, g.today) || cur.progress + 10 < elapsed ? t.risk : t.ink, true), small(`  ·  ${elapsed} % du temps écoulé`)] }
           : { label: 'Phase en cours', value: '—', color: t.subtle, sub: [] },
       next ? { label: 'Prochain jalon', value: longDate(next.iso), color: t.ink, after: small(`   ${inTime(g.today, next.iso)}`, t.accent2, true), sub: [small(`${next.code}  `, t.ink, true), small(next.label)] }
            : { label: 'Prochain jalon', value: '—', color: t.subtle, sub: [small('aucun jalon à venir')] },
-      { label: 'Fin du planning', value: longDate(endIso), color: t.ink, after: small(`   ${inTime(g.today, endIso)}`), sub: [small(`${done} phase${done > 1 ? 's' : ''} sur ${phases} terminée${done > 1 ? 's' : ''}`)] },
+      { label: 'Fin du planning', value: longDate(endIso), color: t.ink, after: small(`   ${inTime(g.today, endIso)}`), sub: [small(`${done} ${noun}${done > 1 ? 's' : ''} sur ${phases} terminé${noun === 'phase' ? 'e' : ''}${done > 1 ? 's' : ''}`)] },
     ];
     cells.forEach((c, i) => {
       const cx = a.x + i * cw, pad = i ? 0.22 * IN : 0;
@@ -264,7 +271,7 @@ export function drawGantt(d: Draw, a: Box, g: GanttData): string {
   const total = width();
   let lx = a.x + a.w - total;
   for (const it of items) { out.push(it.draw(lx)); out.push(d.text({ x: lx + 0.28 * IN, y: ly, w: it.w, h: lh }, [{ runs: [{ t: it.txt, size: ty.label, color: t.muted }] }], 'ctr')); lx += 0.28 * IN + it.w + 0.14 * IN; }
-  if (g.hidden) out.push(d.text({ x: a.x, y: ly, w: 2.5 * IN, h: lh }, [{ runs: [{ t: `… et ${g.hidden} autres lignes`, size: ty.label, color: t.subtle, italic: true }] }], 'ctr'));
+  if (g.hidden) out.push(d.text({ x: a.x, y: ly, w: 2.5 * IN, h: lh }, [{ runs: [{ t: `… et ${g.hidden} ${g.hidden > 1 ? 'autres lignes' : 'autre ligne'}`, size: ty.label, color: t.subtle, italic: true }] }], 'ctr'));
   return out.join('');
 }
 
@@ -279,20 +286,22 @@ export function drawPlanTable(d: Draw, a: Box, g: GanttData): string {
   const xs = cols.reduce<number[]>((acc, _w, i) => [...acc, i ? acc[i - 1] + cols[i - 1] : a.x], []);
   const headH = PLAN_TABLE_HEAD_IN * IN;
   const rowH = Math.max(PLAN_TABLE_MIN_ROW_IN * IN, Math.min(0.36 * IN, (a.h - headH - (g.hidden ? 0.26 * IN : 0)) / Math.max(1, g.rows.length)));
-  const head = ['Phase · sous-phase', 'Période', 'Avancement', 'Statut', ...(land ? ['Atterrissage'] : [])];
+  const levels = new Set(g.rows.map((r) => r.kind ?? (r.level ? 'sp' : 'ph')));
+  const first = g.unit === 'chantier' ? (levels.has('sp') ? 'Chantier · sous-phase' : 'Chantier') : levels.has('ch') ? 'Phase · chantier · sous-phase' : 'Phase · sous-phase';
+  const head = [first, 'Période', 'Avancement', 'Statut', ...(land ? ['Atterrissage'] : [])];
   head.forEach((h, i) => out.push(d.text({ x: xs[i] + (i ? 0.1 : 0.06) * IN, y: a.y, w: cols[i] - 0.16 * IN, h: headH - 0.08 * IN }, [{ runs: [{ t: h, size: ty.label, color: t.muted, bold: true, caps: true, spc: 0.8 }] }], 'b')));
   out.push(d.line(a.x, a.y + headH, a.x + a.w, a.y + headH, t.ink, 1));
   g.rows.forEach((r, i) => {
-    const y = a.y + headH + i * rowH, sub = r.level === 1, late = isLate(r, g.today);
+    const y = a.y + headH + i * rowH, sub = r.level > 0, late = isLate(r, g.today);
     if (r.current && !sub) out.push(d.sp({ box: { x: a.x, y, w: a.w, h: rowH }, fill: mixHex(t.accent, 'FFFFFF', 0.92) }));
     if (!sub && r.current) out.push(d.sp({ box: { x: a.x, y, w: 0.035 * IN, h: rowH }, fill: t.accent }));
     // Nom sur une ligne, abrégé pour laisser la place aux mentions (sous-phases regroupées, « critique »).
     const tags = (r.folded ? `   ${r.folded} sous-phases terminées`.length * ty.label * 0.6 * PT : 0) + (show.critical && r.critical ? 0.95 * IN : 0);
-    const nameW = Math.max(0.8 * IN, cols[0] - (sub ? 0.42 : 0.16) * IN - (r.code.length + 3) * ty.label * 0.6 * PT - tags);
+    const nameW = Math.max(0.8 * IN, cols[0] - [0.16, 0.42, 0.58][r.level] * IN - (r.code.length + 3) * ty.label * 0.6 * PT - tags);
     const runs: Run[] = [{ t: `${r.code}   `, size: ty.label, color: r.current ? t.accent : t.subtle, bold: true }, { t: wrapText(r.name, nameW * 1.12, sub ? ty.small : ty.body, 1)[0], size: sub ? ty.small : ty.body, color: r.current ? t.accent : sub ? t.ink : r.status === 'DONE' ? t.muted : t.ink, bold: !sub }];
-    if (r.folded) runs.push({ t: `   ${r.folded} sous-phase${r.folded > 1 ? 's' : ''} terminée${r.folded > 1 ? 's' : ''}`, size: ty.label, color: t.subtle });
+    if (r.folded) runs.push({ t: `   ${r.folded} ${g.rows.some((x) => x.kind === 'ch' && x.level > 0) ? 'ligne' : 'sous-phase'}${r.folded > 1 ? 's' : ''} terminée${r.folded > 1 ? 's' : ''}`, size: ty.label, color: t.subtle });
     if (show.critical && r.critical) runs.push({ t: '   critique', size: ty.label, color: t.risk, bold: true, caps: true, spc: 0.6 });
-    out.push(d.text({ x: xs[0] + (sub ? 0.36 : 0.1) * IN, y, w: cols[0] - 0.42 * IN, h: rowH }, [{ runs }], 'ctr'));
+    out.push(d.text({ x: xs[0] + [0.1, 0.36, 0.52][r.level] * IN, y, w: cols[0] - [0.42, 0.42, 0.58][r.level] * IN, h: rowH }, [{ runs }], 'ctr'));
     out.push(d.text({ x: xs[1] + 0.1 * IN, y, w: cols[1] - 0.12 * IN, h: rowH }, [{ runs: [{ t: monthYear(r.start), size: ty.small, color: t.muted }, { t: '  →  ', size: ty.label, color: t.subtle }, { t: monthYear(r.end), size: ty.small, color: late ? t.risk : t.muted, bold: late }] }], 'ctr'));
     const bw = cols[2] * 0.6, bh = Math.max(0.05 * IN, Math.min(0.08 * IN, rowH * 0.24)), bx = xs[2] + 0.1 * IN, by = y + (rowH - bh) / 2;
     out.push(d.pill({ x: bx, y: by, w: bw, h: bh }, mixHex(t.hairline, 'FFFFFF', 0.2)));
@@ -312,7 +321,7 @@ export function drawPlanTable(d: Draw, a: Box, g: GanttData): string {
     const nextIsPhase = !g.rows[i + 1] || g.rows[i + 1].level === 0;
     out.push(d.line(a.x, y + rowH, a.x + a.w, y + rowH, nextIsPhase ? t.hairline : mixHex(t.hairline, 'FFFFFF', 0.5), nextIsPhase ? 0.75 : 0.5));
   });
-  if (g.hidden) out.push(d.text({ x: a.x, y: a.y + headH + g.rows.length * rowH + 0.04 * IN, w: a.w, h: 0.22 * IN }, [{ runs: [{ t: `… et ${g.hidden} autres lignes`, size: ty.label, color: t.subtle, italic: true }] }], 'ctr'));
+  if (g.hidden) out.push(d.text({ x: a.x, y: a.y + headH + g.rows.length * rowH + 0.04 * IN, w: a.w, h: 0.22 * IN }, [{ runs: [{ t: `… et ${g.hidden} ${g.hidden > 1 ? 'autres lignes' : 'autre ligne'}`, size: ty.label, color: t.subtle, italic: true }] }], 'ctr'));
   return out.join('');
 }
 

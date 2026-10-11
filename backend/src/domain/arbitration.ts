@@ -32,3 +32,33 @@ export function legacyCriteria(options: ArbOption[]): LegacyCriterion[] | null {
   }
   return out;
 }
+
+/** Écart en dessous duquel deux notes sont à égalité (même seuil que la fiche 11a, `saisie-calc.js` `TIE`). */
+export const ARB_TIE = 0.005;
+/** Fiche telle que stockée (`Decision.arbitration`). */
+export interface ArbitrationSheet { question?: string | null; options?: ArbOption[]; criteria?: LegacyCriterion[]; recommendation?: string | null }
+/** Note d'une option (0 à 4) = Σ(poids × note) / Σ(poids), sur les critères notés de poids > 0 ; null sans note. */
+export function arbScore(criteria: LegacyCriterion[], side: 'A' | 'B'): number | null {
+  let W = 0, S = 0;
+  for (const c of criteria) { const n = side === 'A' ? c.scoreA : c.scoreB; if (n > 0 && c.weightPct > 0) { W += c.weightPct; S += c.weightPct * n; } }
+  return W ? S / W : null;
+}
+/**
+ * Résumé d'une fiche pour un rapport (11/10/2026) : question, options A et B notées sur le barème commun, option
+ * recommandée (la mieux notée ; aucune à égalité), critères par poids décroissant. null si la fiche est vide.
+ */
+export function arbitrationSummary(a: ArbitrationSheet | null | undefined) {
+  if (!a) return null;
+  const options = (a.options ?? []).filter((o) => o.code === 'A' || o.code === 'B');
+  const criteria = (a.criteria?.length ? a.criteria : legacyCriteria(a.options ?? [])) ?? [];
+  const label = (k: 'A' | 'B') => options.find((o) => o.code === k)?.label?.trim() ?? '';
+  if (!label('A') && !label('B') && !criteria.length && !a.question?.trim()) return null;
+  const sA = arbScore(criteria, 'A'), sB = arbScore(criteria, 'B');
+  const reco: 'A' | 'B' | null = sA === null && sB === null ? null : Math.abs((sA ?? 0) - (sB ?? 0)) < ARB_TIE ? null : (sA ?? 0) > (sB ?? 0) ? 'A' : 'B';
+  return {
+    question: a.question?.trim() || null,
+    options: (['A', 'B'] as const).map((k) => ({ code: k, label: label(k) || `Option ${k}`, score: k === 'A' ? sA : sB })),
+    reco, tie: sA !== null && sB !== null && Math.abs(sA - sB) < ARB_TIE,
+    criteria: criteria.filter((c) => c.weightPct > 0).sort((x, y) => y.weightPct - x.weightPct).map((c) => ({ name: c.name, weight: c.weightPct, a: c.scoreA, b: c.scoreB })),
+  };
+}

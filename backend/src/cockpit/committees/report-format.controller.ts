@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, HttpCode, Param, Post, Res, UploadedFile
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
+import { ComponentSchema } from './report-component.schema';
 import { AccessService, ProjectScope } from '../../core/access.service';
 import { Actor, CurrentActor } from '../../core/auth/auth';
 import { AuditService } from '../../core/audit.service';
@@ -16,7 +17,7 @@ import { FORMAT_MAX_BYTES, FORMAT_TOO_BIG, FormatReadError, PAGE_KINDS, SHAPE_RO
 import type { UploadedBlob } from '../../import/import.controller';
 import { ReportFormatService } from './report-format.service';
 import { ReportTemplateService } from './report-template.service';
-import { COMPONENTS, configErrors, KPI_MAX, PERIODS } from '../../domain/report-components';
+import { COMPONENTS, configErrors, KPI_MAX, PERIODS, PLAN_LEVELS } from '../../domain/report-components';
 
 /** Taille maximale d'un brouillon de template (caractères JSON) : fichiers analysés compris. */
 export const DRAFT_MAX_CHARS = 3_000_000;
@@ -30,7 +31,7 @@ const PreviewSchema = z.object({
   name: z.string().trim().min(1).max(200),
   version: z.string().trim().min(1).max(20).default('1.0'),
   bodyId: z.string().nullable().optional(),
-  components: z.array(z.object({ id: z.enum(['synthese', 'planning', 'jalons', 'risques', 'actions', 'decisions', 'barometre', 'dashboard', 'budget']), scope: z.enum(['PROJECT', 'WAVE', 'PHASE', 'WORKSTREAM']), targetId: z.string().nullable().optional(), period: z.enum(['all', 'month', 'quarter', 'last3', 'last6', 'next30', 'next90']).optional(), indicators: z.array(z.string()).max(10).optional(), newSection: z.boolean().optional(), sectionTitle: z.string().max(120).nullable().optional() }).strict()).min(1, 'au moins un composant'),
+  components: z.array(ComponentSchema).min(1, 'au moins un composant'),
   format: FormatSelectionSchema.nullable().optional(),
 }).strict();
 
@@ -212,7 +213,7 @@ export class ReportFormatController {
   @Get('report-components')
   async components(@CurrentActor() actor: Actor, @Param('projectId') p: string) {
     await this.access.scope(actor, p);
-    return { components: Object.values(COMPONENTS).map((c) => ({ id: c.id, label: c.label, nature: c.nature, parts: c.parts, indicators: c.indicators, defaults: c.defaults, periodic: c.periodic, defaultPeriod: c.defaultPeriod, periods: c.periodic ? c.periods ?? PERIODS.map((x) => x.id) : [], kpiMax: c.parts.includes('kpi') ? KPI_MAX : null })), periods: PERIODS };
+    return { components: Object.values(COMPONENTS).map((c) => ({ id: c.id, label: c.label, nature: c.nature, parts: c.parts, indicators: c.indicators, defaults: c.defaults, periodic: c.periodic, defaultPeriod: c.defaultPeriod, periods: c.periodic ? c.periods ?? PERIODS.map((x) => x.id) : [], kpiMax: c.parts.includes('kpi') ? KPI_MAX : null })), periods: PERIODS, planLevels: PLAN_LEVELS };
   }
 
   // ───── Brouillon de « Créer un template » (04/10/2026) : enregistré à chaque modification, un par compte ─────
