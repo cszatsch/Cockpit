@@ -645,3 +645,4 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 - Créer un template › étape 2 « Format du rapport » (11/10/2026) : bordure #F7A41C autour des quatre tuiles de page
   (1,5 px ; 2,5 px et ombre ambrée pour la tuile sélectionnée), pour que chaque tuile se détache.
 - Créer un template (11/10/2026) : étapes numérotées 1 à 6 au lieu de A à F (pastilles du stepper et sous-titres de section).
+- Format du rapport (11/10/2026, suite) : bordure #F7A41C réservée à la tuile sélectionnée ; les autres reprennent leur filet gris.

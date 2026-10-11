@@ -5343,7 +5343,7 @@ class Component extends DCLogic {
       // Retrait de la page depuis sa vignette (04/10/2026) : comme « Supprimer » du panneau ; la page vidée est sélectionnée.
       remove: e => { if (e) { e.preventDefault(); e.stopPropagation(); } this.tplFmtSet(p.k, null); this.setState({ fbSel: i, fbHover: null }); },
       slide: fbSlideStyle(p, false), select: () => this.setState({ fbSel: i, fbHover: null }), over: e => e.preventDefault(), drop: fbDrop(p.k),
-      card: { display: 'flex', flexDirection: 'column', padding: 10, borderRadius: 16, cursor: 'pointer', textAlign: 'left', font: 'inherit', background: '#fff', border: i === fbSel ? '2.5px solid #F7A41C' : '1.5px solid #F7A41C', boxShadow: i === fbSel ? '0 10px 30px -14px rgba(247,164,28,.55)' : '0 1px 2px rgba(16,35,58,.04)', margin: i === fbSel ? 0 : '1px', transition: 'box-shadow .2s,border-color .2s' } }));
+      card: { display: 'flex', flexDirection: 'column', padding: 10, borderRadius: 16, cursor: 'pointer', textAlign: 'left', font: 'inherit', background: '#fff', border: i === fbSel ? '2.5px solid #F7A41C' : '1px solid #E3E8EC', boxShadow: i === fbSel ? '0 10px 30px -14px rgba(247,164,28,.55)' : '0 1px 2px rgba(16,35,58,.04)', margin: i === fbSel ? 0 : '1.5px', transition: 'box-shadow .2s,border-color .2s' } }));
     const counts = { data: 0, fixe: 0, retire: 0 }; cp.roles.forEach(x => counts[fbCat(x)]++);
     const overlays = cp.zones.map((z, i) => { const c = fbCat(cp.roles[i]), h = fbHover === i, [stroke, fill] = FB_COL[c]; const vis = c !== 'fixe' || h;
       // Contenu d'exemple retiré : atténué (voile de la couleur du fond) puis hachuré.
