@@ -803,3 +803,6 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
 - Utilisateurs (11/10/2026, suite) : une demande décidée dans la cloche quitte aussitôt la page (`reqDecided`, reliée par
   la clé `invite:<demande>` de la notification) et revient si la décision est annulée ; relectures après la décision
   indépendantes (l'échec de l'une ne perd plus les autres), à 11,5 s puis 16 s.
+- Pastille du compte (barre latérale) et autres usages du nom (11/10/2026) : neutres tant que GET /me/profile n'est pas
+  arrivé (`meLoaded`, `meReady()`) ; le profil de démonstration (Julien Morel) ne s'affiche plus au chargement — seulement
+  si l'API est injoignable (`_apiDown`). Recette `test/browser/avatar-console.e2e.ts`. (Correction livrée avec 1918a84.)
