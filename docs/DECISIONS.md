@@ -2059,4 +2059,8 @@ Demande du commanditaire : un risque peut concerner un chantier, plusieurs, ou t
   e-mail »), suivi de « (supprimé) », équipe « Sans équipe » (`deletedName`, `PlatformUsageService.loadAccounts`) ; il reste
   proposé dans le filtre « Utilisateurs ». Limite connue : son temps connecté vient des sessions, supprimées avec le compte —
   gardé dans les agrégats, mais perdu si les agrégats sont entièrement recalculés (changement du délai d'inactivité).
+- Arbitrage du 11/10/2026 : le journal d'audit ne bloque plus la suppression d'un compte (ex. Julien Morel, compte de
+  démonstration, 74 entrées). Le journal n'est jamais modifié et chaque entrée garde le nom de son auteur (`actorName`) : la
+  trace reste lisible. Restent bloquants (`accountUsages`) : les responsabilités dans un projet (actions, risques, problèmes,
+  jalons, livrables, chantiers, décisions) et la participation à une instance de gouvernance.
 

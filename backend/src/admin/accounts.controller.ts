@@ -403,8 +403,8 @@ export class AccountsController {
   /** RG12 : suppression refusée si le compte est lié (auteur d'audit, responsable d'objets, membre d'instance). */
   async accountUsages(a: Account): Promise<Usage[]> {
     const out: Usage[] = [];
-    const audits = await this.prisma.auditEntry.count({ where: { accountId: a.id } });
-    if (audits) out.push({ entityType: 'AUDIT_ENTRY', id: a.id, label: `${audits} entrée(s) du journal d'audit` });
+    // Journal d'audit : ne bloque plus la suppression (arbitrage du 11/10/2026). Chaque entrée garde le nom de l'auteur
+    // (`actorName`) et le journal n'est jamais modifié : la trace reste lisible après la suppression du compte.
     const persons = await this.prisma.person.findMany({ where: { OR: [{ id: a.personId ?? '__' }, { email: { equals: a.email, mode: 'insensitive' } }] } });
     for (const p of persons) {
       const P = { projectId: p.projectId };

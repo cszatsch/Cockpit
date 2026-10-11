@@ -6,8 +6,8 @@ const A = '/api/admin';
 
 /**
  * Utilisateurs › « Supprimer les comptes suspendus » (11/10/2026) : seuls les comptes suspendus sans lien sont supprimés ;
- * gardés, avec leur raison : administrateurs, comptes suspendus par la suppression d'un projet encore restaurable, comptes liés
- * à des données (journal d'audit…).
+ * gardés, avec leur raison : administrateurs, comptes suspendus par la suppression d'un projet encore restaurable, comptes
+ * responsables d'éléments d'un projet. Le journal d'audit ne bloque plus (11/10/2026) : ses entrées restent, au nom de l'auteur.
  */
 describe('Console — supprimer les comptes suspendus', () => {
   let t: TestCtx;
@@ -24,6 +24,11 @@ describe('Console — supprimer les comptes suspendus', () => {
     await acc('s-audit', 'SUSPENDED');
     await t.db.auditEntry.create({ data: { accountId: 's-audit', actorName: 'Compte s-audit', action: 'Modification', entityType: 'Risk' } });
     await acc('a-actif', 'ACTIVE');
+    // Compte responsable d'un risque de RISE (personne du référentiel de même e-mail) : gardé.
+    await acc('s-resp', 'SUSPENDED');
+    await t.db.person.create({ data: { id: 'p-s-resp', projectId: 'RISE', firstName: 'Compte', lastName: 's-resp', email: 's-resp@example.com' } });
+    const risk = await t.db.risk.findFirstOrThrow({ where: { projectId: 'RISE' } });
+    await t.db.risk.update({ where: { id: risk.id }, data: { ownerId: 'p-s-resp' } });
     // Usage de s-libre (vue Accès) avant sa suppression : 2 événements, 6 et 3 min d'écart.
     for (const m of ['09:00', '09:04']) await t.db.usageEvent.create({ data: { at: new Date(`2026-09-10T${m}:00Z`), accountId: 's-libre', feature: 'projets', kind: 'clic' } });
     await t.app.get(PlatformUsageService).aggregate();
@@ -37,19 +42,21 @@ describe('Console — supprimer les comptes suspendus', () => {
 
   it('aperçu : supprimables et gardés, avec la raison', async () => {
     const r = (await sup.get(`${A}/accounts-suspended`).expect(200)).body;
-    expect(r.deletable.map((a: any) => a.id)).toEqual(['s-libre']);
+    expect(r.deletable.map((a: any) => a.id)).toEqual(['s-audit', 's-libre']);
     const why = Object.fromEntries(r.kept.map((k: any) => [k.id, k.reason]));
     expect(why['s-admin']).toMatch(/Administrateur/);
     expect(why['s-nova']).toMatch(/NOVA, encore restaurable/);
-    expect(why['s-audit']).toMatch(/journal d'audit/);
+    expect(why['s-resp']).toMatch(/Responsable de RISK/);
     expect(why['a-actif']).toBeUndefined();
   });
 
   it('suppression : seuls les supprimables, journalisée ; les autres gardés', async () => {
     const r = (await sup.del(`${A}/accounts-suspended`).expect(200)).body;
-    expect(r.deleted).toBe(1);
+    expect(r.deleted).toBe(2);
     expect(await t.db.account.findUnique({ where: { id: 's-libre' } })).toBeNull();
-    for (const id of ['s-admin', 's-audit', 's-nova', 'a-actif']) expect(await t.db.account.findUnique({ where: { id } })).not.toBeNull();
+    for (const id of ['s-admin', 's-resp', 's-nova', 'a-actif']) expect(await t.db.account.findUnique({ where: { id } })).not.toBeNull();
+    // Le journal d'audit du compte supprimé est intact, toujours au nom de son auteur.
+    expect(await t.db.auditEntry.findFirst({ where: { accountId: 's-audit', action: 'Modification' } })).toMatchObject({ actorName: 'Compte s-audit' });
     expect(await t.db.auditEntry.count({ where: { action: 'Suppression d’un utilisateur', entityId: 's-libre' } })).toBe(1);
     expect((await sup.del(`${A}/accounts-suspended`).expect(200)).body.deleted).toBe(0);
   });
