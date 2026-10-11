@@ -2180,3 +2180,17 @@ Demande du commanditaire : un risque peut concerner un chantier, plusieurs, ou t
   au plus) pour rester lisible avec tout format. `DECISION_DONE_LANE` supprimé ; `DECISION_WRAP` porté à 1,2.
 - `DecisionRow` : priorité, numéro du chantier, fréquence de l'instance, fiche rédigée, option choisie, date de séance.
 - Contrôle visuel dans PowerPoint ; tests `test/unit/report-template.spec.ts`, `test/e2e/report-template.spec.ts`.
+
+## Rapports : fiche d'arbitrage aérée et sans débordement (11/10/2026)
+
+- Retours du commanditaire sur la fiche d'arbitrage rendue avec son format (Poppins) : mise en page trop dense, texte qui
+  déborde des cellules et de la pastille, bloc « Recommandation PMO · Option A » redondant avec la pastille, pastille à
+  passer en #F69E1E.
+- Coupe des textes selon la police : polices larges (`WIDE_FONTS` : Poppins, Montserrat, Raleway, Nunito, Open Sans,
+  Lato, Work Sans) estimées plus prudemment (0,9 au lieu de `WRAP_ARB`), pour que le nombre de lignes calculé soit celui
+  que PowerPoint affiche. Pastille « Recommandation PMO » à la mesure de son texte, sur une ligne (`wrap: false`), à
+  droite de l'en-tête de colonne, fond `ARB_REC_PILL` (#F69E1E) ; libellé de l'option sur deux lignes équilibrées au plus.
+- Bloc « Recommandation PMO / Option A » supprimé ; le texte de la recommandation, s'il existe, est repris sur une ligne
+  sous le contexte (« Recommandation PMO · … »).
+- Espacements réguliers (rangées de 0,42 po au moins, 0,06 po entre rangées), colonne Critère plus étroite au profit des
+  options ; justifications entières de préférence (deux lignes, puis deux ou trois en corps réduit, une en dernier recours).

@@ -4,7 +4,7 @@ import { analyzeImage, analyzePptx } from '../../src/core/report-format-read';
 import { composeTemplate, fillChartXml, FillData, fillTemplate, TemplateFieldMissing, TemplateManifest } from '../../src/core/report-template';
 import { COMPONENT_IDS, ComponentConfig, configErrors, fieldName, indicatorsOf, pagesOf, periodOf, periodRange, reportPlan, sectionsOf } from '../../src/domain/report-components';
 import { makeFormatPptx, makePng, pptxIntegrity, withLegacyParts } from '../format-fixture';
-import { actionBuckets, ActionsData, ARB_HEAT, ARB_SCALE, ArbitrationCard, ArbitrationsData, balanced, DashboardData, drawArbitrations, DECISION_STALE_DAYS, DecisionsData, drawActions, drawDashboard, drawDecisions, focusPhase, gapTone, sortActions, sortPending } from '../../src/core/report-draw-pilotage';
+import { actionBuckets, ActionsData, ARB_HEAT, ARB_REC_PILL, ARB_SCALE, ArbitrationCard, ArbitrationsData, balanced, DashboardData, drawArbitrations, DECISION_STALE_DAYS, DecisionsData, drawActions, drawDashboard, drawDecisions, focusPhase, gapTone, sortActions, sortPending } from '../../src/core/report-draw-pilotage';
 import { BarometerData, Draw, drawBarometer, drawGantt, drawMilestones, drawPlanTable, drawRisks, foldPlan, GANTT_MAX_ROWS, GANTT_MIN_ROW_IN, ganttFit, GanttData, GanttRow, isLate, MILESTONES_MAX, MilestonesData, milestoneStates, planLandings, RisksData, wrapText } from '../../src/core/report-draw';
 import { designTokens, scoreTone, statusTone, timeRatio, timeScale, typeScale } from '../../src/domain/report-design';
 
@@ -464,6 +464,9 @@ describe('Rapport — échéancier des actions, arbitrages, tableau de bord', ()
     const xml = drawArbitrations(new Draw(tk), box, data);
     const plain = xml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
     expect(plain).toContain('Option A · Externalisation');
+    expect(xml).toContain(`val="${ARB_REC_PILL}"`); // pastille « Recommandation PMO » orange
+    expect(plain).toContain('Recommandation PMO · Externaliser dès le Lot 2.'); // texte du PMO repris sous le contexte
+    expect(plain).not.toContain('Option A Externaliser'); // plus de bloc « Recommandation PMO · Option A » redondant
     expect(xml).toContain('>Recommandation PMO<');
     expect(xml).toContain('>3,2<'); // une décimale, comme le Cockpit
     expect(xml).toContain('Mutualisation');

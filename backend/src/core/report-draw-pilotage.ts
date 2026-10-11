@@ -626,6 +626,10 @@ export const ARB_COLORS = { ink: '10233A', teal: '15756E', tealText: '1D8F86', r
 
 /** Largeur utile estimée pour couper les textes de la fiche (police réelle plus étroite que l'estimation de `wrapText`). */
 const WRAP_ARB = 1.12;
+/** Polices larges : coupe des textes plus prudente (sinon débordement des cellules, 11/10/2026). */
+const WIDE_FONTS = /poppins|montserrat|raleway|nunito|open sans|lato|work sans/i;
+/** Fond de la pastille « Recommandation PMO » (demande du commanditaire, 11/10/2026). */
+export const ARB_REC_PILL = 'F69E1E';
 const score1 = (v: number | null) => (v === null ? '—' : (Math.round(v * 10) / 10).toFixed(1).replace('.', ','));
 
 /**
@@ -638,28 +642,31 @@ const score1 = (v: number | null) => (v === null ? '—' : (Math.round(v * 10) /
 export function drawArbitrations(d: Draw, a: Box, x: ArbitrationsData): string {
   const t = d.t, ty = typeScale(t), out: string[] = [], show = x.show, C = ARB_COLORS;
   if (!x.cards.length) return emptyState(d, a, 'Aucune fiche d’arbitrage', x.period ? `Ni en attente, ni arbitrée sur la période (${x.period}).` : 'Aucune décision n’a de fiche d’arbitrage.');
-  const c = x.cards[0], lh = (s: number) => s * 1.28 * PT, W = WRAP_ARB;
+  // Polices larges (Poppins, Montserrat…) : largeur utile estimée plus prudente, sinon le texte déborde des cellules.
+  const wide = WIDE_FONTS.test(t.font), c = x.cards[0], lh = (s: number) => s * 1.28 * PT, W = wide ? 0.9 : WRAP_ARB, em = wide ? 0.62 : 0.5;
   const toArb = c.status === 'TO_ARBITRATE', done = c.status === 'ARBITRATED';
   // Colonnes : critère, poids, option A, option B (proportions de la fiche du Cockpit).
-  const gap = 0.07 * IN, wW = 0.62 * IN, rest = a.w - wW - 3 * gap, crW = (rest * 1.1) / 4.1, opW = (rest * 1.5) / 4.1;
+  const gap = 0.07 * IN, wW = 0.62 * IN, rest = a.w - wW - 3 * gap, crW = (rest * 0.8) / 4.1, opW = (rest * 1.65) / 4.1;
   const cX = a.x, wX = cX + crW + gap, aX = wX + wW + gap, bX = aX + opW + gap;
   const titleSize = ty.lead + 3, title = c.question || c.title, tl = balanced(title, a.w * 0.8 * W, titleSize, 2);
   const ctx = c.context ? wrapText(c.context, (a.w - 0.9 * IN) * W, ty.small + 0.5, 2) : [];
-  const recL = show.reco !== false && c.recBody ? wrapText(c.recBody, (a.w - crW - wW - 2 * gap - 0.2 * IN) * W, ty.small + 0.5, 2) : [];
+  // Recommandation du PMO : son option est déjà signalée par la pastille ; seul son texte, s'il existe, est repris.
+  const recL = show.reco !== false && c.recBody ? wrapText(c.recBody, (a.w - 1.9 * IN) * W, ty.small + 0.5, 2) : [];
   const expL = c.expectedText ? wrapText(c.expectedText, (a.w - 2.6 * IN) * W, ty.small + 0.5, 2) : [];
   const expNone = !expL.length;
-  const headH = 0.25 * IN, metaH = 0, titleH = tl.length * lh(titleSize) + 0.06 * IN, ctxH = ctx.length ? ctx.length * lh(ty.small + 0.5) + 0.1 * IN : 0.04 * IN;
-  const thH = 0.32 * IN, scoreH = 0.5 * IN, recH = show.reco !== false ? Math.max(0.44 * IN, recL.length * lh(ty.small + 0.5) + 0.18 * IN) : 0, bandH = Math.max(0.54 * IN, expL.length * lh(ty.small + 0.5) + 0.28 * IN);
-  const fixed = headH + metaH + titleH + ctxH + thH + scoreH + recH + bandH + 0.06 * IN;
+  const headH = 0.28 * IN, metaH = 0, titleH = tl.length * lh(titleSize) + 0.1 * IN, ctxH = ctx.length ? ctx.length * lh(ty.small + 0.5) + 0.1 * IN : 0.04 * IN;
+  const recH = recL.length ? recL.length * lh(ty.small + 0.5) + 0.12 * IN : 0;
+  const thH = 0.36 * IN, scoreH = 0.56 * IN, bandH = Math.max(0.56 * IN, expL.length * lh(ty.small + 0.5) + 0.3 * IN), air = 0.14 * IN;
+  const fixed = headH + metaH + titleH + ctxH + recH + 0.06 * IN + thH + scoreH + air + bandH;
   // Lignes de la grille : justification sur deux lignes, sinon une ; au-delà de la page, « … et N autres critères ».
   const crits = show.criteria !== false ? c.criteria : [];
-  const cellW = opW - 0.62 * IN, cl = (s: number) => s * 1.18 * PT, rowsH = (n: number, z: number) => crits.map((k) => Math.max(0.34 * IN, Math.max(1, ...[k.at, k.bt].map((s) => (s ? wrapText(s, cellW * W, z, n).length : 1))) * cl(z) + 0.1 * IN));
-  const RG = 0.045 * IN;
+  const cellW = opW - 0.6 * IN, cl = (s: number) => s * 1.18 * PT, rowsH = (n: number, z: number) => crits.map((k) => Math.max(0.42 * IN, Math.max(1, ...[k.at, k.bt].map((s) => (s ? wrapText(s, cellW * W, z, n).length : 1))) * cl(z) + 0.14 * IN));
+  const RG = 0.06 * IN;
   // Justifications : deux lignes, puis deux lignes en corps réduit, sinon une ligne.
   const room = a.h - fixed, fits = (h: number[]) => h.reduce((s, v) => s + v + RG, 0) <= room;
+  // Justifications entières de préférence : deux lignes, puis deux ou trois lignes en corps réduit ; une ligne en dernier recours.
   let lines = 2, js = ty.small, hs = rowsH(2, js);
-  if (!fits(hs)) { js = ty.small - 1; hs = rowsH(2, js); }
-  if (!fits(hs)) { lines = 1; js = ty.small; hs = rowsH(1, js); }
+  for (const [n, z] of [[2, ty.small - 1], [3, ty.small - 1], [1, ty.small]] as Array<[number, number]>) { if (fits(hs)) break; lines = n; js = z; hs = rowsH(n, z); }
   let shown = 0, used = 0;
   for (const h of hs) { if (used + h + RG > room - (shown < hs.length - 1 ? 0.22 * IN : 0) && shown) break; used += h + RG; shown++; }
 
@@ -668,7 +675,7 @@ export function drawArbitrations(d: Draw, a: Box, x: ArbitrationsData): string {
   const dot = toArb ? C.amber : done ? t.ok : C.tealText;
   // Chantier et instance en vert d'eau, sur la même ligne.
   const meta = [c.ws, c.body].filter(Boolean).join(' · ');
-  out.push(d.text({ x: a.x, y, w: a.w * 0.8, h: headH }, [{ runs: [{ t: 'Fiche d’arbitrage', size: ty.label, color: C.label, bold: true, caps: true, spc: 2 }, { t: `     ${c.code}`, size: ty.small, color: C.ink, bold: true }, ...(show.status !== false ? [{ t: '     ●  ', size: ty.label, color: dot }, { t: `${ARB_STAGE[c.status] ?? c.status}${done && c.decided ? ` · ${dayOf(c.decided, x.today)}` : ''}`, size: ty.small, color: C.ink }] : []), ...(meta ? [{ t: `     ${wrapText(meta, a.w * 0.4 * W, ty.small, 1)[0]}`, size: ty.small, color: C.tealText, bold: true }] : [])] }], 'ctr'));
+  out.push(d.text({ x: a.x, y, w: a.w * 0.8, h: headH }, [{ runs: [{ t: 'Fiche d’arbitrage', size: ty.label, color: C.label, bold: true, caps: true, spc: 2 }, { t: `     ${c.code}`, size: ty.small, color: C.ink, bold: true }, ...(show.status !== false ? [{ t: '     ●  ', size: ty.label, color: dot }, { t: `${ARB_STAGE[c.status] ?? c.status}${done && c.decided ? ` · ${dayOf(c.decided, x.today)}` : ''}`, size: ty.small, color: C.ink }] : []), ...(meta ? [{ t: `     ${wrapText(meta, a.w * 0.36 * W, ty.small, 1)[0]}`, size: ty.small, color: C.tealText, bold: true }] : [])] }], 'ctr'));
   if (x.more.length) out.push(d.text({ x: a.x + a.w * 0.6, y, w: a.w * 0.4, h: headH }, [{ align: 'r', runs: [{ t: x.more.length > 1 ? 'Autres fiches  ' : 'Autre fiche  ', size: ty.label, color: C.grey }, { t: `${x.more.slice(0, 6).join(' · ')}${x.more.length > 6 ? ' …' : ''}`, size: ty.label, color: C.label, bold: true }] }], 'ctr'));
   y += headH;
   // 2. Question en titre ; contexte.
@@ -678,17 +685,22 @@ export function drawArbitrations(d: Draw, a: Box, x: ArbitrationsData): string {
     out.push(d.text({ x: a.x, y, w: a.w, h: ctxH }, ctx.map((l, j) => ({ line: 100, runs: [...(j ? [] : [{ t: 'Contexte ·  ', size: ty.small + 0.5, color: C.ink, bold: true }]), { t: l, size: ty.small + 0.5, color: C.text }] })), 't'));
   }
   y += ctxH;
+  if (recL.length) {
+    out.push(d.text({ x: a.x, y, w: a.w, h: recH }, recL.map((l, j) => ({ line: 100, runs: [...(j ? [] : [{ t: 'Recommandation PMO ·  ', size: ty.small + 0.5, color: C.recLabel, bold: true }]), { t: l, size: ty.small + 0.5, color: C.text }] })), 't'));
+    y += recH;
+  }
+  y += 0.06 * IN;
   // 3. Grille : en-têtes, puis une ligne par critère.
   const head = (bx: number, w: number, txt: string) => out.push(d.text({ x: bx + 0.06 * IN, y, w: w - 0.06 * IN, h: thH }, [{ runs: [{ t: txt, size: ty.label, color: C.label, bold: true, caps: true, spc: 1 }] }], 'ctr'));
   head(cX, crW, 'Critère'); head(wX, wW, 'Poids');
   for (const o of c.options) {
     const bx = o.code === 'A' ? aX : bX, rec = show.reco !== false && c.reco === o.code;
-    const lbl = wrapText(`Option ${o.code} · ${o.label}`, (opW - (rec ? 1.55 * IN : 0.2 * IN)) * W, ty.small + 0.5, 1)[0];
-    out.push(d.text({ x: bx + 0.14 * IN, y, w: opW - 0.14 * IN, h: thH }, [{ runs: [{ t: lbl, size: ty.small + 0.5, color: C.ink, bold: true }] }], 'ctr'));
-    if (rec) {
-      const pw = 1.32 * IN, ph = 0.22 * IN, est = Math.min(opW - pw - 0.3 * IN, (lbl.length * (ty.small + 0.5) * 0.47 * PT));
-      out.push(d.sp({ box: { x: bx + 0.14 * IN + est + 0.12 * IN, y: y + (thH - ph) / 2, w: pw, h: ph }, geom: 'roundRect', adj: 50000, fill: C.teal, anchor: 'ctr', paras: [{ align: 'ctr', runs: [{ t: 'Recommandation PMO', size: ty.label, color: 'FFFFFF', bold: true }] }] }));
-    }
+    // Pastille « Recommandation PMO » à la mesure de son texte (sur une ligne), juste après le libellé de l'option.
+    const ps = ty.label, pw = ('Recommandation PMO'.length * ps * em * 1.05 + 20) * PT, ph = Math.max(0.24 * IN, ps * 2 * PT);
+    // Libellé de l'option (deux lignes équilibrées au plus) ; pastille alignée à droite de l'en-tête de colonne.
+    const lw = opW - 0.14 * IN - (rec ? pw + 0.16 * IN : 0.1 * IN), ll = balanced(`Option ${o.code} · ${o.label}`, lw * W, ty.small + 0.5, 2);
+    out.push(d.text({ x: bx + 0.14 * IN, y, w: lw, h: thH }, ll.map((l) => ({ line: 95, runs: [{ t: l, size: ty.small + 0.5, color: C.ink, bold: true }] })), 'ctr'));
+    if (rec) out.push(d.sp({ box: { x: bx + opW - pw - 0.06 * IN, y: y + (thH - ph) / 2, w: pw, h: ph }, geom: 'roundRect', adj: 50000, fill: ARB_REC_PILL, anchor: 'ctr', wrap: false, paras: [{ align: 'ctr', runs: [{ t: 'Recommandation PMO', size: ps, color: 'FFFFFF', bold: true }] }] }));
   }
   y += thH;
   crits.slice(0, shown).forEach((k, i) => {
@@ -725,15 +737,7 @@ export function drawArbitrations(d: Draw, a: Box, x: ArbitrationsData): string {
     if (show.options !== false && o.score) out.push(d.pill({ x: barX, y: cy - bh / 2, w: Math.max(bh, (barW * Math.min(ARB_SCALE, o.score)) / ARB_SCALE), h: bh }, col));
   }
   y += scoreH;
-  // 5. Recommandation du PMO.
-  if (recH) {
-    out.push(d.line(a.x, y, a.x + a.w, y, 'E6EEEC', 0.75));
-    const opt = c.reco ? `Option ${c.reco}` : c.tie ? 'Égalité entre A et B' : '—';
-    out.push(d.text({ x: cX + 0.06 * IN, y: y + 0.1 * IN, w: crW + wW, h: recH - 0.14 * IN }, [{ runs: [{ t: 'Recommandation PMO', size: ty.label, color: C.recLabel, bold: true, caps: true, spc: 1.4 }] }, { spcBef: 3, runs: [{ t: opt, size: ty.small + 0.5, color: c.tie && !c.reco ? C.amber : C.ink, bold: true }] }], 't'));
-    if (recL.length) out.push(d.text({ x: aX + 0.14 * IN, y: y + 0.12 * IN, w: a.x + a.w - aX - 0.2 * IN, h: recH - 0.14 * IN }, recL.map((l) => ({ line: 110, runs: [{ t: l, size: ty.small + 0.5, color: C.ink }] })), 't'));
-    y += recH;
-  }
-  // 6. Bandeau « Décision attendue » : texte de la fiche, compte à rebours jusqu'à la séance.
+  // 5. Bandeau « Décision attendue » : texte de la fiche, compte à rebours jusqu'à la séance.
   const by = a.y + a.h - bandH;
   out.push(d.sp({ box: { x: a.x, y: by, w: a.w, h: bandH }, fill: C.band }));
   const jx = done ? 'Arbitrée' : c.session ? (() => { const n = days(x.today, c.session.iso); return n > 0 ? `J-${n}` : n === 0 ? 'Aujourd’hui' : 'Échue'; })() : '';
