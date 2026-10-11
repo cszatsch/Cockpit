@@ -795,3 +795,5 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
   tous les chantiers » ; chantiers affichés pour tous les projets (plus seulement RISE) ; tuiles de profil : tous les
   profils détenus surlignés (Admin et Lecteur) ; « tous les chantiers » réservé au PMO ; textes d'aide alignés sur
   l'attribution dans la Console (« Modifier le compte ») au lieu du Référentiel.
+- E-mail d'invitation (11/10/2026) : texte du commanditaire et nouvelle mise en page HTML (envoyé par la Console ;
+  `src/domain/invitation-email.ts`).

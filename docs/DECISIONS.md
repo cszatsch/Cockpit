@@ -2209,3 +2209,16 @@ Demande du commanditaire : un risque peut concerner un chantier, plusieurs, ou t
   `revectorize` (un passage complet). Appels de la passerelle avec un modèle imposé (`completeWithModel*`, notifications)
   désormais chronométrés. Écran : libellés et données de démonstration des nouvelles catégories.
 - Tests `test/unit/latency-tasks.spec.ts`.
+
+## E-mail d'invitation : texte du commanditaire et mise en page (11/10/2026)
+
+- Texte fourni par le commanditaire (objet « Votre invitation à rejoindre l'application Cockpit », prénom, lien
+  d'activation, « À savoir » : lien personnel à usage unique, validité `INVITE_VALIDITY_DAYS` jours avec la date limite,
+  connexion avec l'adresse e-mail ; aide si le lien a expiré ; mise en garde ; signature « L'équipe Cockpit »). Relance :
+  même message, objet « … (nouveau lien) ».
+- Mise en page (`src/domain/invitation-email.ts`, `invitationEmail`) : HTML compatible messageries (tableaux, styles en
+  ligne, 600 px, sans image ni police distante) dans la palette de Cockpit (`INVITE_COLORS`) ; titre au prénom, un seul
+  bouton « Activer mon compte », lien de secours en clair, encart « À savoir » à trois repères (1×, 14 j, @) avec la
+  date limite et l'adresse de connexion en relief, mise en garde en pied ; version texte équivalente ; marges réduites
+  sur petit écran. Ajouts au texte : lien de secours sous le bouton, adresse de connexion affichée.
+- Tests `test/unit/invitation-email.spec.ts`.

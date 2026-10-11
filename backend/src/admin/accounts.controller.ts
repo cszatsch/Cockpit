@@ -1,4 +1,6 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Put, Query } from '@nestjs/common';
+import { addDays } from '../domain/dates';
+import { invitationEmail } from '../domain/invitation-email';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Account } from '@prisma/client';
 import { z } from 'zod';
@@ -73,16 +75,10 @@ export class AccountsController {
     private readonly deletion: ProjectDeletionService,
   ) {}
 
-  /** E-mail d'invitation : lien à usage unique pour définir son mot de passe (pas d'inscription en libre-service). */
+  /** E-mail d'invitation : lien à usage unique pour définir son mot de passe (pas d'inscription en libre-service ; texte et mise en page du 11/10/2026, `invitationEmail`). */
   private inviteMail(a: Account, raw: string, again: boolean) {
-    return this.mailer.send({
-      to: [a.email],
-      subject: again ? 'Invitation à RISE Cockpit (relance)' : 'Invitation à RISE Cockpit',
-      text:
-        `Bonjour ${a.fullName}, ${again ? 'voici un nouveau lien d’accès' : 'vous êtes invité(e) sur RISE Cockpit'}.\n\n` +
-        `Pour activer votre compte, choisissez votre mot de passe en ouvrant ce lien :\n${this.creds.resetLink(raw)}\n\n` +
-        `Ce lien est à usage unique et valable ${INVITE_VALIDITY_DAYS} jours.`,
-    });
+    const m = invitationEmail({ fullName: a.fullName, email: a.email, link: this.creds.resetLink(raw), validityDays: INVITE_VALIDITY_DAYS, expiresIso: addDays(this.today.today(), INVITE_VALIDITY_DAYS), again });
+    return this.mailer.send({ to: [a.email], subject: m.subject, text: m.text, html: m.html });
   }
 
   /** `db` : la transaction en cours, pour que la vue « après » d'un audit lise bien les droits qui viennent d'être écrits. */

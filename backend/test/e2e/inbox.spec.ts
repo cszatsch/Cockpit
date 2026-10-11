@@ -116,7 +116,7 @@ describe('Console — notifications de l’administrateur', () => {
     expect(r).toMatchObject({ email: 'robin.test@gmail.com', status: 'INVITED', inviteSent: true });
     const sent = mailer.outbox.slice(mails0);
     expect(sent).toHaveLength(1);
-    expect(sent[0]).toMatchObject({ to: ['robin.test@gmail.com'], subject: 'Invitation à RISE Cockpit (relance)' });
+    expect(sent[0]).toMatchObject({ to: ['robin.test@gmail.com'], subject: 'Votre invitation à rejoindre l’application Cockpit (nouveau lien)' });
     expect((await t.db.passwordToken.findUniqueOrThrow({ where: { id: oldToken.id } })).usedAt).not.toBeNull(); // lien envoyé à gmaail.com : inutilisable
     expect(await t.db.passwordToken.count({ where: { accountId: acc.id, usedAt: null } })).toBe(1);
   });
