@@ -69,7 +69,7 @@ async function main() {
     await page.waitForTimeout(300);
     await page.getByText('Suivant ›').click();
     await page.waitForTimeout(500);
-    check('   étape B (maquette du 04/10/2026) : stepper, 0 / 4 pages, bandeau de validation', (await text(page, /0 \/ 4\s*pages chargées/)) !== '' && (await text(page, /0 \/ 4 pages vérifiées/)) !== '' && (await text(page, /B · FORMAT DU RAPPORT/)) !== '' && (await text(page, /Valider le format/)) !== '');
+    check('   étape B (maquette du 04/10/2026) : stepper, 0 / 4 pages, bandeau de validation', (await text(page, /0 \/ 4\s*pages chargées/)) !== '' && (await text(page, /0 \/ 4 pages vérifiées/)) !== '' && (await text(page, /2 · FORMAT DU RAPPORT/)) !== '' && (await text(page, /Valider le format/)) !== '');
 
     const input = page.locator('input[type=file][accept*=pptx]');
     // Plus de bouton « Importer un fichier pour les 4 pages » : le même fichier est chargé page par page (zone du panneau).
@@ -158,7 +158,7 @@ async function main() {
     check('6. prévisualisation : 2 + 2 sections + 4 pages, vignettes du rapport au format', !!pv && pv.pages === 8 && (await page.evaluate(() => document.querySelectorAll('[role=img][aria-label][style*="blob:"]').length)) === 8 && (await text(page, /Aperçu prêt/)) !== '' && (await text(page, /8 pages · 2 sections · format de l'étape B, données du jour/)) !== '', pv && JSON.stringify(pv.slides.map((x: any) => x.label)));
     check('   contrôle des données affiché', (await text(page, /CONTRÔLE DES DONNÉES|Contrôle des données/)) !== '');
     await page.getByText('Suivant ›').click(); await page.waitForTimeout(500);
-    check('   étape F : fiche du template (format, fichiers, sections, pages)', (await text(page, /F · VALIDATION ET PUBLICATION/)) !== '' && (await text(page, /16:9 · 33,87 × 19,05 cm/)) !== '' && (await text(page, /Charte ACME\.pptx/)) !== '' && (await text(page, /Synthèse de situation · Climat et pilotage/)) !== '');
+    check('   étape F : fiche du template (format, fichiers, sections, pages)', (await text(page, /6 · VALIDATION ET PUBLICATION/)) !== '' && (await text(page, /16:9 · 33,87 × 19,05 cm/)) !== '' && (await text(page, /Charte ACME\.pptx/)) !== '' && (await text(page, /Synthèse de situation · Climat et pilotage/)) !== '');
     // Pendant l'enregistrement : pas de liste « Publication en cours » (suivi seulement dans « Générer un rapport »), bouton « Publication… ».
     await page.evaluate(() => { const w = window as any; w.__pubSeen = { list: false, busy: false }; w.__pubObs = new MutationObserver(() => { const t = document.body.innerText; if (/Publication en cours/.test(t)) w.__pubSeen.list = true; if (/Publication…/.test(t)) w.__pubSeen.busy = true; }); w.__pubObs.observe(document.body, { subtree: true, childList: true, characterData: true }); });
     await page.getByText('Valider et publier').click();

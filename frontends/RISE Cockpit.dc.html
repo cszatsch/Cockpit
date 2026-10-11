@@ -1109,7 +1109,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
 
     <sc-if value="{{ tplStep1 }}" hint-placeholder-val="{{ true }}">
     <div style="background:#fff;border-radius:16px;padding:22px 24px;box-shadow:0 1px 2px rgba(16,35,58,.04)">
-      <div style="font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#5c7280;font-weight:700">A · Fiche d'identité</div>
+      <div style="font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#5c7280;font-weight:700">1 · Fiche d'identité</div>
       <div style="margin-top:16px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 20px">
         <div><label style="font-size:11px;font-weight:700;color:#5c7280;letter-spacing:.04em;text-transform:uppercase;display:block;margin-bottom:6px">Nom du template</label><input value="{{ tplDraft.name }}" onChange="{{ tplSetName }}" placeholder="ex. Support COPIL mensuel" style="height:38px;padding:0 12px;border-radius:9px;border:1px solid #d9e4e1;font:inherit;font-size:13px;color:#10233a;background:#fff;width:100%;outline:none" style-focus="border-color:#1d8f86"></div>
         <div><label style="font-size:11px;font-weight:700;color:#5c7280;letter-spacing:.04em;text-transform:uppercase;display:block;margin-bottom:6px">Comité de rattachement</label><select value="{{ tplDraft.committee }}" onChange="{{ tplSetCommittee }}" style="height:38px;padding:0 12px;border-radius:9px;border:1px solid #d9e4e1;font:inherit;font-size:13px;color:#10233a;background:#fff;width:100%;outline:none"><sc-for list="{{ tplCommittees }}" as="c" hint-placeholder-count="3"><option value="{{ c.v }}">{{ c.v }}</option></sc-for></select></div>
@@ -1128,7 +1128,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
 
   <header style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:24px 40px">
     <div style="display:flex;flex-direction:column;gap:10px;max-width:760px">
-      <span style="font-size:11px;font-weight:700;letter-spacing:.16em;color:#8A97A5">B · FORMAT DU RAPPORT</span>
+      <span style="font-size:11px;font-weight:700;letter-spacing:.16em;color:#8A97A5">2 · FORMAT DU RAPPORT</span>
       <h1 style="margin:0;font-size:32px;line-height:1.1;font-weight:800;letter-spacing:-.025em">Format du rapport</h1>
       <p style="margin:0;font-size:14.5px;line-height:1.6;color:#4E5E6E;text-wrap:pretty">Chargez un modèle pour chacun des 4 types de page : le PowerPoint généré reprendra leurs fonds, logos, couleurs, polices et positions.</p>
     </div>
@@ -1260,7 +1260,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
 
     <sc-if value="{{ tplStep2 }}" hint-placeholder-val="{{ false }}">
     <div style="background:#fff;border-radius:16px;padding:22px 24px;box-shadow:0 1px 2px rgba(16,35,58,.04)">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap"><div style="font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#5c7280;font-weight:700">C · Choix des composants</div><span style="font-size:11.5px;color:#5c7280">{{ tplCompCount }} · chaque composant devient une page du rapport ; les sections se définissent à l'étape suivante</span></div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap"><div style="font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#5c7280;font-weight:700">3 · Choix des composants</div><span style="font-size:11.5px;color:#5c7280">{{ tplCompCount }} · chaque composant devient une page du rapport ; les sections se définissent à l'étape suivante</span></div>
       <div style="margin-top:16px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px">
         <sc-for list="{{ tplCatalog }}" as="c" hint-placeholder-count="9"><div onClick="{{ c.toggle }}" title="{{ c.tip }}" style="{{ c.style }}" style-hover="{{ c.hover }}"><span style="{{ c.checkStyle }}"><sc-if value="{{ c.on }}" hint-placeholder-val="{{ false }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"></path></svg></sc-if><sc-if value="{{ c.locked }}" hint-placeholder-val="{{ false }}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="9.5" rx="2.2"></rect><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"></path></svg></sc-if></span><div style="min-width:0"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><b style="font-size:13px">{{ c.n }}</b><sc-if value="{{ c.hasNature }}" hint-placeholder-val="{{ false }}"><span style="font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:999px;background:#eef3f2;color:#43586a">{{ c.nature }}</span></sc-if></div><div style="margin-top:3px;font-size:11.5px;color:#5c7280;text-wrap:pretty">{{ c.d }}</div><sc-if value="{{ c.locked }}" hint-placeholder-val="{{ false }}"><div style="margin-top:6px;display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#8a8f9c"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="9.5" rx="2.2"></rect><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"></path></svg><span>Module {{ c.mod }} non activé</span></div></sc-if></div></div></sc-for>
       </div>
@@ -1274,7 +1274,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
 
   <header style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px 40px">
     <div style="display:flex;flex-direction:column;gap:10px">
-      <span style="font-size:11px;font-weight:700;letter-spacing:.16em;color:#8A97A5">D · ORDRE, SECTIONS ET DONNÉES</span>
+      <span style="font-size:11px;font-weight:700;letter-spacing:.16em;color:#8A97A5">4 · ORDRE, SECTIONS ET DONNÉES</span>
       <h1 style="white-space:nowrap;margin:0;font-size:32px;line-height:1.1;font-weight:800;letter-spacing:-.025em">Ordre et données</h1>
     </div>
     <span style="font-size:13px;line-height:1.5;color:#4E5E6E;text-wrap:pretty"><b style="font-weight:700;color:#10233A;white-space:nowrap">{{ fdSectionCount }}</b> · une page intercalaire par section · données recalculées à chaque publication</span>
@@ -1394,7 +1394,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
 
   <header style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:16px 40px">
     <div style="display:flex;flex-direction:column;gap:10px">
-      <span style="font-size:11px;font-weight:700;letter-spacing:.16em;color:#8A97A5">E · PRÉVISUALISATION</span>
+      <span style="font-size:11px;font-weight:700;letter-spacing:.16em;color:#8A97A5">5 · PRÉVISUALISATION</span>
       <h1 style="margin:0;font-size:32px;line-height:1.1;font-weight:800;letter-spacing:-.025em;white-space:nowrap">Prévisualisation</h1>
     </div>
     <sc-if value="{{ feDone }}"><span style="font-size:13px;color:#4E5E6E;animation:e5-fade .4s ease both">{{ feSummary }}</span></sc-if>
@@ -1515,7 +1515,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
 
 
   <header style="display:flex;flex-direction:column;gap:10px">
-    <span style="font-size:11px;font-weight:700;letter-spacing:.16em;color:#8A97A5">F · VALIDATION ET PUBLICATION</span>
+    <span style="font-size:11px;font-weight:700;letter-spacing:.16em;color:#8A97A5">6 · VALIDATION ET PUBLICATION</span>
     <h1 style="margin:0;font-size:32px;line-height:1.1;font-weight:800;letter-spacing:-.025em">Publication</h1>
   </header>
 
@@ -5103,7 +5103,7 @@ class Component extends DCLogic {
     const validFmt = fmtLoaded === 4 && (!this._api || !!(chk && chk.complete));
     const valid1 = Dft.name.trim().length > 0; const valid2 = Dft.comps.length > 0;
     const canGo = n => n <= 1 || (n <= 2 && valid1) || (n <= 3 && valid1 && validFmt) || (n <= 5 && valid1 && validFmt && valid2) || (n === 6 && valid1 && validFmt && valid2 && !!(S.tplPrev && S.tplPrev.done && !S.tplPrev.err && S.tplPrev.key === this.tplDraftKey()));
-    const tplSteps = ['Fiche d\'identité', 'Format du rapport', 'Composants', 'Ordre et données', 'Prévisualisation', 'Publication'].map((n, i) => { const k = i + 1; const on = k === step; const done = k < step; const ok = canGo(k); return { n, num: k, letter: 'ABCDEF'[i], go: () => { if (!ok || (S.f6 && S.f6.st && S.f6.st !== 'idle' && S.f6.st !== 'failed')) return; this.setState({ tplStep: k, f6: null }); if (k === 5) this.tplPreviewRun(); }, style: 'display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;min-width:0;cursor:' + (ok ? 'pointer' : 'default') + ';background:' + (on ? '#10233a' : done ? '#e6f3f2' : '#f3f7f6') + ';color:' + (on ? '#fff' : done ? '#1d8f86' : ok ? '#10233a' : '#8a8f9c') + ';transition:background .2s', numStyle: 'width:26px;height:26px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:11.5px;font-weight:800;background:' + (on ? '#f7a41c' : done ? '#1d8f86' : '#cfd8d6') + ';color:' + (on ? '#1a1200' : '#fff') }; });
+    const tplSteps = ['Fiche d\'identité', 'Format du rapport', 'Composants', 'Ordre et données', 'Prévisualisation', 'Publication'].map((n, i) => { const k = i + 1; const on = k === step; const done = k < step; const ok = canGo(k); return { n, num: k, letter: String(i + 1), go: () => { if (!ok || (S.f6 && S.f6.st && S.f6.st !== 'idle' && S.f6.st !== 'failed')) return; this.setState({ tplStep: k, f6: null }); if (k === 5) this.tplPreviewRun(); }, style: 'display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;min-width:0;cursor:' + (ok ? 'pointer' : 'default') + ';background:' + (on ? '#10233a' : done ? '#e6f3f2' : '#f3f7f6') + ';color:' + (on ? '#fff' : done ? '#1d8f86' : ok ? '#10233a' : '#8a8f9c') + ';transition:background .2s', numStyle: 'width:26px;height:26px;border-radius:50%;flex:none;display:grid;place-items:center;font-size:11.5px;font-weight:800;background:' + (on ? '#f7a41c' : done ? '#1d8f86' : '#cfd8d6') + ';color:' + (on ? '#1a1200' : '#fff') }; });
     const CC = S.tplCompCat, ccById = CC ? Object.fromEntries(CC.components.map(c => [c.id, c])) : {};
     if (this._api && !CC && !this._tplCatReq) { this._tplCatReq = true; setTimeout(() => this._api.tplComponents().then(c => this.setState({ tplCompCat: c })).catch(() => { this._tplCatReq = false; }), 0); }
     // Composants liés à un module de la Console (Budget) : verrouillés tant que le module est inactif pour le projet.
