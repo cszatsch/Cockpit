@@ -642,3 +642,5 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
   d'arbitrage ; la fiche se compose depuis Jev › Saisir sans Jev › Fiche d'arbitrage.
 - Composant « Cycle de vie » (11/10/2026) : colonnes et trait au nombre d'étapes (`gridSt`, `trackSt`), le parcours n'en ayant plus
   que trois.
+- Créer un template › étape 2 « Format du rapport » (11/10/2026) : bordure #F7A41C autour des quatre tuiles de page
+  (1,5 px ; 2,5 px et ombre ambrée pour la tuile sélectionnée), pour que chaque tuile se détache.
