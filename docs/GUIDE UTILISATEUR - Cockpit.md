@@ -1,4 +1,4 @@
-# Guide utilisateur du Cockpit RISE
+# Guide utilisateur de l'application Cockpit
 
 Version du 12 octobre 2026. Ce guide décrit le comportement réel du Cockpit, établi à partir de son code. Les écarts et les points encore ouverts sont regroupés en annexe.
 
@@ -26,7 +26,7 @@ Version du 12 octobre 2026. Ce guide décrit le comportement réel du Cockpit, �
 
 ## 1.1 À quoi sert le Cockpit
 
-RISE comprend deux espaces :
+Cockpit comprend deux espaces :
 
 - **le Cockpit**, où les équipes projet pilotent leur projet ;
 - **la Console d'administration**, qui règle la plateforme (comptes, droits, IA, modules…).
@@ -71,7 +71,7 @@ Le détail des droits figure au chapitre 4.
 
 | Terme | Définition |
 |---|---|
-| Projet | Le programme piloté, identifié par un code (par exemple RISE) |
+| Projet | Le programme piloté, identifié par un code (par exemple PMS) |
 | Chantier | Sous-ensemble du projet avec un responsable (codes C1, C2…), des dates de début et de fin, ses phases et, s'il y a lieu, ses sous-phases |
 | Lot | Périmètre de déploiement (vague) |
 | Phase, sous-phase | Découpage du planning. Une sous-phase appartient à une phase ; son numéro est libre (par exemple 4.5, 4.2.1 ou C2.1) |
@@ -167,7 +167,7 @@ Le bouton reste grisé tant qu'une règle manque ou que la confirmation diffère
 1. Sur la page de connexion, cliquez sur **Mot de passe oublié ?**.
 2. Saisissez l'adresse e-mail de votre compte, puis cliquez sur **Envoyer le lien**.
 3. L'écran affiche toujours « Vérifiez votre messagerie. » et « Si un compte existe pour cette adresse, un e-mail vous a été envoyé. ».
-4. Ouvrez le lien de l'e-mail « RISE · Réinitialisation de votre mot de passe » et choisissez un nouveau mot de passe.
+4. Ouvrez le lien de l'e-mail « Cockpit · Réinitialisation de votre mot de passe » et choisissez un nouveau mot de passe.
 
 **Règles**
 
@@ -422,7 +422,7 @@ Les icônes « Demander à Jev » des blocs et des lignes du Pilotage ont été 
 **Ouvrir le formulaire**
 
 1. Cliquez sur le bouton **Jev** de la barre latérale.
-2. Sous le champ de saisie de Jev, cliquez sur **Saisir sans Jev** (icône de crayon). Le lien est affiché dans tous les espaces du Cockpit.
+2. Sous le champ de saisie de Jev, cliquez sur **Saisir sans Jev** (icône de crayon). Le lien est affiché dans tous les espaces du Cockpit, sauf aux Lecteurs (profils sans droit d'écriture), pour qui il est masqué depuis le 12 octobre 2026.
 3. Le panneau « Que voulez-vous créer ? » liste les objets en deux familles :
    - **Structure du projet** : Phase, Chantier, Sous-phase, Jalon ;
    - **Suivi et pilotage** : Livrable, Risque, Action, Tâche, Décision, Fiche d'arbitrage.
@@ -710,7 +710,7 @@ Demandez-le à Jev (voir 3.19.4) : libellé, probabilité et impact (1 à 5, cri
 
 | Statut | Signification |
 |---|---|
-| Brouillon | Fiche en cours de rédaction. Ce statut n'est plus proposé à la création depuis le 11 octobre 2026 (une décision saisie commence « En instruction ») ; il reste affiché pour les décisions créées avant |
+| Brouillon | Fiche en cours de rédaction. Ce statut n'est plus proposé, ni à la création depuis le 11 octobre 2026 (une décision saisie commence « En instruction »), ni dans la liste de statuts du registre depuis le 12 octobre 2026 ; il reste affiché pour les décisions créées avant |
 | En instruction | Analyse en cours |
 | À arbitrer | Prête pour l'instance |
 | Arbitrée | Décision prise : la fiche passe en lecture seule |
@@ -878,7 +878,7 @@ Chaque ligne de template porte :
 4. La ligne du template suit chaque étape, avec « n / 5 » et une barre de progression : Contrôle des données, Collecte des données du jour, Rédaction des titres et de la synthèse, Mise en page au format du template, Téléchargement du fichier. Puis « Rapport téléchargé ».
 5. En cas d'échec : « Génération interrompue », la cause et le lien **Réessayer**.
 
-Le fichier est un PowerPoint (.pptx) au format du template, rempli avec les données du jour : couverture, une page intercalaire par section, une page par composant, page de clôture. Un template sans format utilise la présentation par défaut de RISE. Depuis le 9 octobre 2026, le fichier s'ouvre dans PowerPoint sans message « Réparer » ; les templates publiés avant cette date sont corrigés à chaque génération.
+Le fichier est un PowerPoint (.pptx) au format du template, rempli avec les données du jour : couverture, une page intercalaire par section, une page par composant, page de clôture. Un template sans format utilise la présentation par défaut. Depuis le 9 octobre 2026, le fichier s'ouvre dans PowerPoint sans message « Réparer » ; les templates publiés avant cette date sont corrigés à chaque génération.
 
 **Verser le rapport dans la Base de connaissance**
 
@@ -1218,7 +1218,7 @@ Un nouveau clic sur l'horloge rappelle « Demande déjà transmise à l'administ
 3. **Entrée** envoie le message ; **Maj+Entrée** va à la ligne. Le bouton **Envoyer** envoie aussi.
 4. Trois points animés indiquent que Jev réfléchit.
 
-Sous le champ, le lien **Saisir sans Jev** ouvre le formulaire de création (voir 3.5.4).
+Sous le champ, le lien **Saisir sans Jev** ouvre le formulaire de création (voir 3.5.4) ; il est masqué pour les Lecteurs.
 
 ### 3.19.2 Comment Jev classe et traite une question
 
@@ -1350,7 +1350,7 @@ Votre carte, en bas de la barre latérale, ouvre **Mon profil**. Le profil n'aff
 2. Sur la ligne du projet voulu, cliquez sur **Choisir**. La pastille devient **Par défaut**. Toast : « {code} s'ouvrira par défaut ».
 3. Un nouveau clic sur **Par défaut** retire ce choix (« Projet par défaut retiré »).
 
-Le projet par défaut s'ouvre quand vous arrivez dans le Cockpit par une adresse qui ne précise pas de projet. Sans projet par défaut, le Cockpit ouvre le projet RISE s'il vous est ouvert, sinon le premier projet de votre liste. Le texte sous le tableau le rappelle (« Le Cockpit s'ouvre sur … quand l'adresse ne précise pas de projet. »).
+Le projet par défaut s'ouvre quand vous arrivez dans le Cockpit par une adresse qui ne précise pas de projet. Sans projet par défaut, le Cockpit ouvre le premier projet de votre liste. Le texte sous le tableau le rappelle (« Le Cockpit s'ouvre sur … quand l'adresse ne précise pas de projet. »).
 
 ### 3.21.4 Changer son mot de passe
 
@@ -1663,7 +1663,7 @@ Ces points viennent de la lecture du code. Ils décrivent un écart entre le cod
 
 38. **Jev** dit que « le référentiel est géré par l'administrateur du projet » : c'est le PMO.
 39. **Saisie directe de la Fiche projet** : elle n'alimente pas l'objet Info projet, que lisent la Console et les notifications ; les deux peuvent diverger. L'écran ne contrôle pas les droits.
-40. **Lots et tuiles chiffrées de la Fiche projet** : contenu statique, distinct des Lots du Référentiel. L'en-tête d'Info projet affiche désormais le code et le client du projet ouvert (07/10/2026) ; le titre « Projet RISE » n'a pas été revérifié.
+40. **Lots et tuiles chiffrées de la Fiche projet** : contenu statique, distinct des Lots du Référentiel. L'en-tête d'Info projet affiche désormais le code et le client du projet ouvert (07/10/2026) ; le titre du projet n'a pas été revérifié.
 41. **Contrôle des usages** : l'écran vérifie moins de cas que le serveur ; une suppression permise à l'écran peut être refusée ensuite.
 42. **Rôle déjà porté par le passé** : sa suppression clôt les affectations, puis échoue côté serveur.
 43. **Ajout d'une personne** : l'écran n'exige que le nom, le serveur exige un e-mail valide. **Ajout d'une phase** : dates facultatives à l'écran, obligatoires au serveur.
@@ -1685,8 +1685,8 @@ Ces points viennent de la lecture du code. Ils décrivent un écart entre le cod
 53. ~~**Créer un template, étape 6** : les liens du récapitulatif portaient encore les lettres de l'ancienne numérotation, et l'étape 5 parlait du « format de l'étape B ».~~ Corrigé le 12/10/2026 : liens « Étape 1 › » à « Étape 5 › », « Voir l'étape 5 › », « format de l'étape 2 ».
 54. **Saisir sans Jev, risque** : la probabilité et l'impact se choisissent de 1 à 4 (Faible à Très forte), alors que le registre et Jev les notent de 1 à 5 ; la criticité du formulaire est calculée sur 16.
 55. **Saisir sans Jev, décision** : « Transverse » est proposé dans la liste des chantiers, puis refusé à l'enregistrement.
-56. **Saisir sans Jev, droits** : le lien est affiché à tout profil, Lecteur compris ; les objets du Référentiel (phases, sous-phases, chantiers, jalons, livrables) ne sont acceptés que du PMO, et le refus n'arrive qu'à l'enregistrement.
-57. **Statut « Brouillon »** : retiré du formulaire de création d'une décision, il reste proposé dans la liste de statuts du registre des décisions.
+56. **Saisir sans Jev, droits** : ~~le lien était affiché à tout profil, Lecteur compris.~~ Corrigé le 12/10/2026 : le lien est masqué pour les Lecteurs. Reste ouvert : pour un Responsable, les objets du Référentiel (phases, sous-phases, chantiers, jalons, livrables) ne sont acceptés que du PMO, et le refus n'arrive qu'à l'enregistrement.
+57. ~~**Statut « Brouillon »** : retiré du formulaire de création d'une décision, il restait proposé dans la liste de statuts du registre des décisions.~~ Corrigé le 12/10/2026 : il n'est plus proposé dans le registre ; une décision déjà en brouillon garde son libellé.
 58. **Infobulles retirées** : certains textes n'existaient qu'en infobulle (nom du chantier derrière sa référence, nom complet d'un libellé tronqué, code d'une couleur détectée à l'étape 2 de Créer un template) ; ils ne sont plus visibles sur l'écran concerné.
 
 ## Annexe C. Fonctionnalités non documentées

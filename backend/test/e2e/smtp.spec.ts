@@ -134,7 +134,7 @@ describe('Console — serveur d’envoi SMTP (spécification SMTP § 5 à § 7)'
     expect(r.body).toMatchObject({ ok: true, to: 'destinataire@exemple.fr' });
     expect(srv.received.length).toBe(n0 + 1);
     expect(srv.received.at(-1)).toMatchObject({ from: 'envoi@exemple.fr', to: ['destinataire@exemple.fr'] });
-    expect(srv.received.at(-1)!.data).toMatch(/RISE Cockpit/);
+    expect(srv.received.at(-1)!.data).toMatch(/^From: "?Cockpit"? </m);
     expect((await admin.post(`${S}/test-email`, { to: 'x@exemple.fr', settings: { ...draft(), port: 1 } }).expect(422)).body.message).toMatch(/Échec de l’envoi/);
     // Canal E-mail : « M'envoyer un test » d'une règle part par le serveur SMTP enregistré.
     const n1 = srv.received.length;

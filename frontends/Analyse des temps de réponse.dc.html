@@ -72,7 +72,7 @@ button:focus-visible{outline:2px solid #1d8f86;outline-offset:2px}
 const PER = [{ id: 'd', l: 'Jour', days: 1 }, { id: '7', l: '7 jours', days: 7 }, { id: '1m', l: '1 mois', days: 30 }, { id: '3m', l: '3 mois', days: 91 }, { id: '6m', l: '6 mois', days: 183 }];
 const STEPS = { route: { n: 'Routage', c: '#9aaebb' }, vec: { n: 'Vectorisation', c: '#6b97dc' }, rrk: { n: 'Reclassement', c: '#a184db' }, qry: { n: 'Formulation de la requête', c: '#dda24a' }, exe: { n: 'Exécution', c: '#7d93a6' }, gen: { n: 'Génération', c: '#1d8f86' } };
 const SK = ['route', 'vec', 'rrk', 'qry', 'exe', 'gen'];
-const MOD = { h45: { n: 'Claude Haiku 4.5', pv: 'Anthropic' }, qwen: { n: 'Qwen3 Embedding 8B', pv: 'Alibaba Cloud' }, rr35: { n: 'Rerank 3.5', pv: 'Cohere' }, g6: { n: 'GPT-6 Luna', pv: 'OpenAI' }, s5: { n: 'Claude Sonnet 5', pv: 'Anthropic' }, ml2: { n: 'Mistral Large 2', pv: 'Mistral AI' }, svc: { n: 'Service RISE', pv: 'Traitement interne', svc: 1 } };
+const MOD = { h45: { n: 'Claude Haiku 4.5', pv: 'Anthropic' }, qwen: { n: 'Qwen3 Embedding 8B', pv: 'Alibaba Cloud' }, rr35: { n: 'Rerank 3.5', pv: 'Cohere' }, g6: { n: 'GPT-6 Luna', pv: 'OpenAI' }, s5: { n: 'Claude Sonnet 5', pv: 'Anthropic' }, ml2: { n: 'Mistral Large 2', pv: 'Mistral AI' }, svc: { n: 'Service Cockpit', pv: 'Traitement interne', svc: 1 } };
 const MK = ['h45', 'qwen', 'rr35', 'g6', 's5', 'ml2'];
 // Catégories : [étape, [[modèle, part des appels, médiane démo ms]], taux d’erreur démo, type d’erreur démo]
 const CATS = [

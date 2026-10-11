@@ -11,7 +11,7 @@ export interface SmtpLastTest extends SmtpProbeResult {
 }
 
 /** Nom affiché de l'expéditeur des e-mails de la plateforme. */
-export const SMTP_SENDER_NAME = 'RISE Cockpit';
+export const SMTP_SENDER_NAME = 'Cockpit';
 const ID = 'smtp';
 
 /**

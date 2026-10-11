@@ -12,7 +12,7 @@ import {
 /** Nom et fournisseur des « modèles » qui ne sont pas des modèles d'IA du catalogue. */
 export const LATENCY_PSEUDO_MODELS: Record<string, { name: string; provider: string; service?: boolean }> = {
   [LATENCY_ROUTER_MODEL]: { name: 'JEV · TypeSafe', provider: 'Aiguillage (carte du Registre)' },
-  [LATENCY_SERVICE_MODEL]: { name: 'Service RISE', provider: 'Traitement interne', service: true },
+  [LATENCY_SERVICE_MODEL]: { name: 'Service Cockpit', provider: 'Traitement interne', service: true },
 };
 
 export type LatencyReport = LatencyReportBody & { models: Record<string, { name: string; provider: string; service?: boolean }> };

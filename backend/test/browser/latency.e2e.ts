@@ -24,7 +24,7 @@ const EMPTY_BACK = 10; // jour sans mesure (période Jour, 10 jours avant le der
 const MODELS: Record<string, { name: string; provider: string; service?: boolean }> = {
   haiku: { name: 'Claude Haiku 4.5', provider: 'Anthropic' }, sonnet: { name: 'Claude Sonnet 5', provider: 'Anthropic' }, te3large: { name: 'Qwen3 Embedding 8B', provider: 'OpenRouter' },
   rerank35: { name: 'Voyage rerank-2.5', provider: 'OpenRouter' }, gpt5: { name: 'GPT-6 Luna', provider: 'OpenAI' }, mlarge: { name: 'Mistral Medium 3.5', provider: 'Mistral AI' },
-  svc: { name: 'Service RISE', provider: 'Traitement interne', service: true },
+  svc: { name: 'Service Cockpit', provider: 'Traitement interne', service: true },
 };
 
 const results: Array<{ step: string; ok: boolean; detail?: string }> = [];

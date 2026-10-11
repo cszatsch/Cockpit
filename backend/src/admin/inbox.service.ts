@@ -390,6 +390,6 @@ export class InboxService implements OnModuleInit, OnModuleDestroy {
     await this.prisma.userNotification.create({ data: { accountId: a.id, projectId, title: subject, body: text } });
     // E-mail en complément : son échec n'empêche pas la notification dans le Cockpit.
     await this.mailer
-      .send({ to: [a.email], subject: `RISE Cockpit · ${subject}`, text: `Bonjour ${a.fullName},\n\n${text}\n\nL’équipe RISE Cockpit` }).catch((e) => console.warn('[notifications] e-mail au demandeur non envoyé :', e instanceof Error ? e.message : e));
+      .send({ to: [a.email], subject: `Cockpit · ${subject}`, text: `Bonjour ${a.fullName},\n\n${text}\n\nL’équipe Cockpit` }).catch((e) => console.warn('[notifications] e-mail au demandeur non envoyé :', e instanceof Error ? e.message : e));
   }
 }

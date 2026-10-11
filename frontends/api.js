@@ -928,7 +928,8 @@ export function attach(comp) {
     try {
       const me = await get('/me');
       const codes = (me.projects || []).map((x) => x.code), pref = me.preferences && me.preferences.defaultProject;
-      const target = pref && codes.includes(pref) ? pref : codes.includes(projectId) ? projectId : codes[0];
+      // Projet par défaut du compte, sinon le premier de sa liste (12/10/2026 : plus de préférence pour un code de démonstration).
+      const target = pref && codes.includes(pref) ? pref : codes[0];
       if (target && target !== projectId) {
         const q = new URLSearchParams(location.search); q.set('project', target);
         location.replace(location.pathname + '?' + q.toString() + location.hash);

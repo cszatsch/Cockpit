@@ -1,4 +1,4 @@
-# Guide utilisateur de la Console d'administration RISE
+# Guide utilisateur de la Console d'administration Cockpit
 
 Version du 12 octobre 2026. Ce guide décrit le comportement réel de la Console, établi à partir de son code. Les écarts et les points encore ouverts sont regroupés en annexe.
 
@@ -23,7 +23,7 @@ Version du 12 octobre 2026. Ce guide décrit le comportement réel de la Console
 
 ## 1.1 À quoi sert la Console
 
-RISE comprend deux espaces :
+Cockpit comprend deux espaces :
 
 - **le Cockpit**, où les équipes projet pilotent leurs projets (planning, risques, décisions, comités…) ;
 - **la Console d'administration**, qui règle la plateforme elle-même.
@@ -281,7 +281,7 @@ L'écran montre ces règles et une jauge de solidité. Le bouton reste inactif t
 - Rien n'est stocké. Chaque point est recalculé à chaque affichage de la Vue d'ensemble.
 - Un point disparaît dès que sa cause n'existe plus : clé remplacée et testée, droits retirés, compte réactivé, e-mail appliqué…
 
-**Exemple.** Le PMO désactive Karim Benali dans le référentiel de RISE, mais son compte reste Responsable de deux chantiers. La Vue d'ensemble affiche en rouge « 1 accès à retirer ». Vous cliquez, retirez l'accès de Karim dans sa fiche (ou suspendez son compte), et le point disparaît.
+**Exemple.** Le PMO désactive Karim Benali dans le référentiel du projet PMS, mais son compte reste Responsable de deux chantiers. La Vue d'ensemble affiche en rouge « 1 accès à retirer ». Vous cliquez, retirez l'accès de Karim dans sa fiche (ou suspendez son compte), et le point disparaît.
 
 ## 3.2 Notifications de l'administrateur (la cloche)
 
@@ -345,7 +345,7 @@ L'écran montre ces règles et une jauge de solidité. Le bouton reste inactif t
 | « La décision ne peut plus être annulée (10 s écoulées) » | Vous avez cliqué sur Annuler trop tard |
 | « Cette demande a déjà été traitée » | Un autre administrateur a décidé avant vous |
 
-**Exemple.** Camille Rey, PMO de RISE, demande l'invitation de Léa Martin. La cloche affiche « Inviter Léa Martin », avec les droits proposés par le référentiel. Vous cliquez sur **Inviter**. Dix secondes plus tard, le compte de Léa est créé et son invitation part. Camille est prévenue.
+**Exemple.** Camille Rey, PMO de PMS, demande l'invitation de Léa Martin. La cloche affiche « Inviter Léa Martin », avec les droits proposés par le référentiel. Vous cliquez sur **Inviter**. Dix secondes plus tard, le compte de Léa est créé et son invitation part. Camille est prévenue.
 
 ## 3.3 Utilisateurs
 
@@ -430,7 +430,7 @@ L'écran montre ces règles et une jauge de solidité. Le bouton reste inactif t
 | « Rattachez au moins un projet, ou cochez Administrateur de la plateforme. » | Donnez au moins un accès |
 | « {PROJET} : choisissez PMO ou au moins un chantier. » | Complétez l'accès au projet |
 
-**Exemple.** Vous invitez Hugo Lambert, Responsable du chantier C3 de RISE. Il reçoit « Votre invitation à rejoindre l'application Cockpit », clique sur **Activer mon compte**, choisit son mot de passe dans les 14 jours, et son compte passe à Actif.
+**Exemple.** Vous invitez Hugo Lambert, Responsable du chantier C3 de PMS. Il reçoit « Votre invitation à rejoindre l'application Cockpit », clique sur **Activer mon compte**, choisit son mot de passe dans les 14 jours, et son compte passe à Actif.
 
 ### 3.3.4 Relancer une invitation
 
@@ -980,7 +980,7 @@ La page a trois blocs : le bandeau **Fournisseurs**, la section **Affectation de
 - Elles ne concernent que les LLM. Une mesure absente s'affiche « — ». Un relevé n'efface jamais une valeur existante.
 - Dans la fiche d'un modèle, le bloc « Mesures OpenRouter » permet de corriger les trois valeurs et l'**Identifiant OpenRouter** (« Retrouvé automatiquement ; à corriger si le relevé ne trouve pas le modèle »).
 
-**Catalogue de référence.** Depuis le 10 octobre 2026, il comprend **Claude Haiku 5.5** (Anthropic, LLM) : environ 0,09 € en entrée et 0,44 € en sortie par million de tokens, réponses jusqu'à 128 000 tokens, contexte d'un million de tokens. Comme les autres modèles du catalogue de référence, il n'apparaît dans la liste qu'une fois le catalogue appliqué à la plateforme, ce qui ne se fait pas depuis l'écran (voir Annexe C).
+**Catalogue de référence.** Depuis le 10 octobre 2026, il comprend **Claude Haiku 5.5** (Anthropic, LLM) : environ 0,09 € en entrée et 0,44 € en sortie par million de tokens, réponses jusqu'à 128 000 tokens, contexte d'un million de tokens. Le catalogue a été appliqué à la plateforme : Claude Haiku 5.5 figure dans la liste des modèles et peut être affecté à une fonction.
 
 ### 3.7.6 Ajouter ou modifier un modèle
 
@@ -1133,7 +1133,7 @@ Depuis le 11 octobre 2026, **toutes les fonctions d'IA sont mesurées**. Huit ca
 | Vectorisation | Transformation de la question en vecteur |
 | Reclassement | Reclassement des extraits trouvés |
 | Formulation de la requête | Requête sur les données, reformulation d'une question de suite, extraction des champs |
-| Exécution | Lecture ou écriture en base (« Service RISE · Traitement interne ») |
+| Exécution | Lecture ou écriture en base (« Service Cockpit · Traitement interne ») |
 | Génération | Rédaction de la réponse |
 
 **Règles**
@@ -1679,7 +1679,7 @@ Du plus prioritaire au moins prioritaire :
    - `{reponse_llm}` : le texte rédigé par le modèle.
 10. Cliquez sur **Enregistrer**, puis sur **Activer**.
 
-La phrase en tête de l'éditeur résume la règle, par exemple : « Informer PMO et Responsable sur RISE, chaque semaine, lundi 07:00, dans l'application et par e-mail. Message rédigé par Claude Sonnet 4.5. ».
+La phrase en tête de l'éditeur résume la règle, par exemple : « Informer PMO et Responsable sur PMS, chaque semaine, lundi 07:00, dans l'application et par e-mail. Message rédigé par Claude Sonnet 4.5. ».
 
 **Règles**
 
@@ -1711,7 +1711,7 @@ La phrase en tête de l'éditeur résume la règle, par exemple : « Informer PM
   - Le contenu suit une mise en forme légère : une phrase essentielle, 2 ou 3 rubriques, des puces qui commencent par le chiffre clé, des étapes numérotées.
 - **Mise en page.**
   - Dans le Cockpit, le tiroir des notifications met le texte en page.
-  - Par e-mail, le message est mis en page : en-tête « RISE Cockpit · projet · date », nom de la règle, titre, chiffres clés, points « À surveiller », bloc « À faire », lien « Ouvrir RISE Cockpit », et en pied l'adresse d'expédition et la raison de l'envoi (profil, projet). Une version texte est jointe pour les messageries qui n'affichent pas la mise en page.
+  - Par e-mail, le message est mis en page : en-tête « Cockpit by onepoint · projet · date », nom de la règle, titre, chiffres clés, points « À surveiller », bloc « À faire », lien « Ouvrir Cockpit », et en pied l'adresse d'expédition et la raison de l'envoi (profil, projet). Une version texte est jointe pour les messageries qui n'affichent pas la mise en page.
 - **Garde-fous.**
   - Aucune requête technique n'est jamais envoyée à la place du texte.
   - Si les données ne peuvent pas être lues, le texte est rédigé sans chiffres, ou remplacé par : « Les données du projet n'ont pas pu être analysées pour cet envoi : consultez le détail dans le Cockpit. ».
@@ -1767,7 +1767,7 @@ Si la plateforme n'avait redémarré que le vendredi, l'envoi du mercredi aurait
 | « Aucun modèle choisi (modèles réinitialisés) : la règle ne pourra pas s'envoyer. » | Cas bloquant |
 | « Aucun destinataire : la règle ne pourra pas s'envoyer. » | Cas bloquant |
 
-**Exemple.** La règle « Synthèse hebdomadaire du projet » part chaque lundi à 7 h 00 vers les PMO et Responsables de RISE, dans l'application et par e-mail. Les PMO reçoivent une synthèse de tout le projet. Les Responsables reçoivent celle de leurs chantiers communs. Chaque synthèse commence par ce qui a changé depuis le lundi précédent.
+**Exemple.** La règle « Synthèse hebdomadaire du projet » part chaque lundi à 7 h 00 vers les PMO et Responsables de PMS, dans l'application et par e-mail. Les PMO reçoivent une synthèse de tout le projet. Les Responsables reçoivent celle de leurs chantiers communs. Chaque synthèse commence par ce qui a changé depuis le lundi précédent.
 
 ## 3.19 Serveur d'envoi SMTP
 
@@ -1869,7 +1869,7 @@ Cliquez ensuite sur **Générer le paquet**.
 3. Si son compte a été prérempli, elle ne choisit que son mot de passe. Sinon, elle crée son compte administrateur, qui est Super Admin de son installation.
 4. Des raccourcis « Démarrer Cockpit » et « Arrêter Cockpit » sont créés. Cockpit s'ouvre ensuite à l'adresse `http://localhost:3000`.
 
-**Exemple.** Vous préparez un paquet pour Claire Dumas, consultante qui reprend le projet RISE : base actuelle limitée à RISE, clé Anthropic plafonnée à 50 € par mois, SMTP exclu, code de déverrouillage activé, compte prérempli en PMO. Vous téléchargez le ZIP, copiez le message et l'envoyez par e-mail, puis lui dictez le code par téléphone. Deux jours plus tard, le ZIP disparaît du serveur.
+**Exemple.** Vous préparez un paquet pour Claire Dumas, consultante qui reprend le projet PMS : base actuelle limitée à PMS, clé Anthropic plafonnée à 50 € par mois, SMTP exclu, code de déverrouillage activé, compte prérempli en PMO. Vous téléchargez le ZIP, copiez le message et l'envoyez par e-mail, puis lui dictez le code par téléphone. Deux jours plus tard, le ZIP disparaît du serveur.
 
 ## 3.21 Guide utilisateur
 

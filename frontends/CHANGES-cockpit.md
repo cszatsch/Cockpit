@@ -656,3 +656,10 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
   Aujourd'hui › Météo et Trafic géocodés d'abord par le code postal du projet (`geocode`).
 - Créer un template (12/10/2026) : derniers renvois en lettres passés en chiffres (étape 6 « Étape 2 … 5 », « Voir l'étape 5 »,
   « format de l'étape 2 » à l'étape 5).
+- Créer un template (12/10/2026) : pastilles des bandeaux d'étapes (étapes 4, 5, 6 et Format) numérotées 1 à 6 au lieu de A à F.
+- Pilotage › Décisions (12/10/2026) : « Brouillon » retiré de la liste de statuts du registre (`rgStList`) ; une décision
+  déjà en brouillon garde son libellé.
+- Jev (12/10/2026) : lien « Saisir sans Jev » masqué pour les Lecteurs (`jevCanManual` = `can('edit')`, aussi vérifié par
+  `jevManual`).
+- Marque (12/10/2026) : « RISE » retiré des textes visibles — projet à l'arrivée = projet par défaut, sinon le premier de la
+  liste (`arrive`, api.js, plus de préférence pour le code « RISE »).

@@ -13,7 +13,7 @@ export const SKILL_UNNAMED = 'Sans nom';
 
 /** Prompt système de base de Jev, avant le Persona et les skills. */
 export const JEV_SYSTEM_PROMPT =
-  'Tu es Jev, l’assistant IA de RISE Cockpit. Tu réponds en français, de façon factuelle et concise, à partir des données du projet et de la plateforme. ' +
+  'Tu es Jev, l’assistant IA de Cockpit. Tu réponds en français, de façon factuelle et concise, à partir des données du projet et de la plateforme. ' +
   'Tu ne modifies jamais une donnée sans la validation explicite de l’utilisateur.';
 
 /** Persona de Jev (spécification PERSONA § 5) : un seul pour la plateforme. */

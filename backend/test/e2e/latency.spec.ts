@@ -64,9 +64,9 @@ describe('Analyse des temps de réponse', () => {
       expect(kb.e2e.med).toBeLessThanOrEqual(kb.e2e.max);
       const rrk = kb.steps[2].models[0];
       expect(rrk.errors).toEqual([{ type: FIXTURE_TIMEOUT, count: 3, lastAt: expect.any(String) }]);
-      // Noms et fournisseurs des modèles cités, « Service RISE » pour les traitements internes.
+      // Noms et fournisseurs des modèles cités, « Service Cockpit » pour les traitements internes.
       expect(r.models.haiku).toEqual({ name: 'Claude Haiku 4.5', provider: 'Anthropic' });
-      expect(r.models.svc).toEqual({ name: 'Service RISE', provider: 'Traitement interne', service: true });
+      expect(r.models.svc).toEqual({ name: 'Service Cockpit', provider: 'Traitement interne', service: true });
     });
 
     it('recette 4 : Jour — aujourd’hui par défaut ; le jour précédent change la date et les valeurs', async () => {

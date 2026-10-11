@@ -2246,3 +2246,11 @@ Demande du commanditaire : un risque peut concerner un chantier, plusieurs, ou t
   s'ils sont renseignés. 05 Projet compte 16 champs.
 - Géocodage (Aujourd'hui › Météo et Trafic, `api.js`) : code postal d'abord (Open-Meteo trouve une commune par son code
   postal), puis le nom et ses parties ; entre homonymes, le lieu du pays du projet qui porte ce code postal l'emporte.
+- Marque « Cockpit » (12/10/2026, demande du commanditaire) : plus aucune mention de « RISE » dans les textes envoyés ou
+  affichés — objet de l'e-mail de réinitialisation et des réponses aux demandes d'invitation « Cockpit · … », signature
+  « L'équipe Cockpit », expéditeur `SMTP_SENDER_NAME` = « Cockpit », en-tête des notifications « Cockpit by onepoint »,
+  lien « Ouvrir Cockpit », ligne « Service Cockpit » des temps de réponse, prompt de Jev « assistant IA de Cockpit ».
+  Projet à l'arrivée : projet par défaut du compte, sinon le premier de sa liste (`arrive`, api.js). Les noms de fichiers,
+  la base et le code de projet de démonstration « RISE » restent inchangés ; l'Annexe A des guides n'est pas modifiée.
+- Registre des décisions (12/10/2026) : « Brouillon » ne se choisit plus (`rgStList`) ; « Saisir sans Jev » masqué pour les
+  Lecteurs (`jevCanManual`).

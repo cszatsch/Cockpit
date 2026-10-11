@@ -90,8 +90,8 @@ export class SmtpController {
       await this.smtp.transportFor(d, pass).sendMail({
         from: { name: SMTP_SENDER_NAME, address: d.from },
         to: i.to,
-        subject: 'RISE · e-mail de test',
-        text: `Cet e-mail de test confirme que le serveur ${d.host}:${d.port} envoie les e-mails de la plateforme RISE.\n\nEnvoyé depuis la Console d’administration par ${actor.fullName}.`,
+        subject: 'Cockpit · e-mail de test',
+        text: `Cet e-mail de test confirme que le serveur ${d.host}:${d.port} envoie les e-mails de Cockpit.\n\nEnvoyé depuis la Console d’administration par ${actor.fullName}.`,
       });
     } catch (e: any) {
       await this.audit.action(this.prisma, adminCtx(actor), { action: 'Envoi d’un e-mail de test', target: `${i.to} · échec`, severity: 'INFO', entityType: 'SmtpSettings', entityId: 'smtp' });

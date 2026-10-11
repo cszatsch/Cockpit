@@ -151,7 +151,7 @@ export class CredentialsService {
     const link = this.resetLink(raw);
     await this.mailer.send({
       to: [account.email],
-      subject: 'RISE · Réinitialisation de votre mot de passe',
+      subject: 'Cockpit · Réinitialisation de votre mot de passe',
       text:
         `Bonjour ${account.fullName},\n\nPour choisir un nouveau mot de passe, ouvrez ce lien :\n${link}\n\n` +
         `Il est à usage unique et expire dans ${RESET_TOKEN_MINUTES} minutes. ` +
