@@ -1,0 +1,99 @@
+# RISE — production sur une machine virtuelle (Google Cloud Compute Engine ou autre hôte Linux).
+# Fiche de déploiement : docs/DEPLOIEMENT - Google Cloud.md
+#
+#   cp outils/gcp/env.prod.example .env.prod   (puis renseigner les valeurs ; fichier jamais versionné)
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+#
+# Trois services : PostgreSQL 18 avec pgvector (jamais exposé), l'API (Cockpit + Console, port 3000 interne)
+# et Caddy (HTTPS Let's Encrypt automatique, seul service ouvert sur Internet : ports 80 et 443).
+
+x-journaux: &journaux
+  logging:
+    driver: json-file
+    options:
+      max-size: "20m"
+      max-file: "5"
+
+services:
+  db:
+    # pgvector requis (migration 20261026000000_guide_indexation : CREATE EXTENSION vector). Version 18, comme le
+    # PostgreSQL du poste : une sauvegarde pg_dump 18 ne se relit pas avec une version antérieure.
+    image: pgvector/pgvector:pg18
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: rise
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD manquant dans .env.prod}
+      POSTGRES_DB: rise
+    # Réglages pour une VM de 4 Go partagée avec l'API.
+    command: >
+      postgres
+      -c shared_buffers=512MB
+      -c effective_cache_size=1536MB
+      -c work_mem=16MB
+      -c maintenance_work_mem=128MB
+      -c max_connections=50
+    volumes:
+      # Images PostgreSQL 18 : données dans /var/lib/postgresql/18/docker, volume monté sur le dossier parent.
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rise -d rise"]
+      interval: 5s
+      retries: 20
+    <<: *journaux
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: rise-api:prod
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: .env.prod
+    environment:
+      DATABASE_URL: postgresql://rise:${POSTGRES_PASSWORD}@db:5432/rise
+      APP_URL: https://${DOMAINE:?DOMAINE manquant dans .env.prod}
+      # Valeurs imposées en production, quelles que soient celles de .env.prod.
+      AUTH_DEV: "false"
+      DEMO_TODAY: ""
+      DEMO_NOW: ""
+      OFFLINE: "false"
+      JOBS_ENABLED: "true"
+      COOKIE_SECURE: "true"
+      # Caddy est le seul mandataire devant l'API : adresse IP réelle pour le blocage par IP.
+      TRUST_PROXY: "1"
+      TZ: Europe/Paris
+    volumes:
+      - storage:/data/storage
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/connexion').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 90s
+      retries: 3
+    <<: *journaux
+
+  caddy:
+    image: caddy:2.8
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      DOMAINE: ${DOMAINE}
+      EMAIL_ACME: ${EMAIL_ACME:-}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./outils/gcp/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    <<: *journaux
+
+volumes:
+  pgdata:
+  storage:
+  caddy_data:
+  caddy_config:

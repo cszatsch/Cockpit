@@ -2303,3 +2303,25 @@ Demande du commanditaire : un risque peut concerner un chantier, plusieurs, ou t
 - Jev et le baromètre (12/10/2026, demande du commanditaire) : Jev supprime un relevé (un récapitulatif par mois cité,
   confirmation renforcée par le mois à retaper, droits de l'écran : PMO ou Responsable du chantier `BAROMETER_WS_CODE`) ;
   la saisie d'un relevé reste dans Saisir sans Jev (`BAROMETER_OPS` = suppression seulement).
+
+## Hébergement de production sur Google Cloud (12/10/2026)
+
+Demande du commanditaire : déployer le Cockpit et la Console sur Google Cloud pour une dizaine de personnes. Fiche :
+`docs/DEPLOIEMENT - Google Cloud.md`.
+
+- **Une VM Compute Engine** (e2-medium, Debian 12, région Paris) avec `docker-compose.prod.yml`, et non Cloud Run : tâches
+  pg-boss permanentes (`notifications.due` chaque minute), flux SSE, fichiers sur disque (`STORAGE_DIR`). Coût estimé
+  35 à 40 € par mois hors IA.
+- **PostgreSQL 18 + pgvector** (`pgvector/pgvector:pg18`), même version majeure que le poste : un `pg_dump` 18 ne se
+  relit pas avec une version antérieure. Volume monté sur `/var/lib/postgresql` (disposition des images 18).
+- **Caddy** devant l'API (HTTPS Let's Encrypt, `flush_interval -1` pour les SSE, corps de 100 Mo au plus) ;
+  `TRUST_PROXY=1`, `AUTH_DEV=false`, `DEMO_TODAY` vide, `COOKIE_SECURE=true` imposés par le fichier compose.
+- **Secrets** dans `.env.prod` (modèle `outils/gcp/env.prod.example`, jamais versionné). Reprise de la base du poste :
+  même `SECRETS_KEY`, sinon clés API et mot de passe SMTP illisibles.
+- **Sauvegardes** : `outils/gcp/sauvegarde.sh` (pg_dump par la sortie standard + archive de `STORAGE_DIR`, bucket
+  Cloud Storage 30 jours, 7 jours sur la VM) et instantané quotidien du disque (14 jours) ; `outils/gcp/restaurer.sh`
+  recrée les rôles `jev_lecteur` / `jev_lecteur_cockpit` (absents d'un `pg_dump`), restaure dans une base temporaire
+  puis bascule (tout ou rien).
+- **Image de l'API** : `scripts/` et `assets/` ajoutés (`init:admin`, `ia:catalogue`, exemple du préremplissage
+  `PREFILL_EXAMPLE`, absents jusqu'ici) ; `.dockerignore` exclut `.env`, `.env.prod`, `sauvegardes`, `livraison`.
+- Écart : **Partager Cockpit** et `npm run livraison` restent sur le poste Windows (`share-builder.ts`, Windows seulement).

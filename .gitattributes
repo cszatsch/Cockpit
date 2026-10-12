@@ -7,3 +7,7 @@
 *.jpg binary
 *.ico binary
 *.dump binary
+
+# Scripts shell exécutés sur la VM Linux de production : toujours LF.
+*.sh text eol=lf
+Caddyfile text eol=lf

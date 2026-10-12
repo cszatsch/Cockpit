@@ -16,6 +16,9 @@ COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
 COPY --from=build /app/src ./src
+# Scripts d'exploitation (init:admin, ia:catalogue…) et ressources (exemple du préremplissage).
+COPY --from=build /app/scripts ./scripts
+COPY --from=build /app/assets ./assets
 COPY --from=build /app/tsconfig.json ./tsconfig.json
 COPY frontends/ /frontends/
 ENV FRONTEND_DIR=/frontends SEED_DATA_DIR=/frontends STORAGE_DIR=/data/storage

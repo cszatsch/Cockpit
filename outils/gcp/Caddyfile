@@ -1,0 +1,34 @@
+# Caddy devant l'API RISE : certificat Let's Encrypt automatique pour {$DOMAINE}, HTTP redirigé vers HTTPS.
+{
+	email {$EMAIL_ACME}
+}
+
+{$DOMAINE} {
+	encode zstd gzip
+
+	# Fichiers déposés (propositions, documents, formats de rapport, guides) : 100 Mo au plus.
+	request_body {
+		max_size 100MB
+	}
+
+	reverse_proxy api:3000 {
+		# Flux SSE (/api/changes, avancement des imports, rapports, paquets) : envoi immédiat, sans tampon.
+		flush_interval -1
+		transport http {
+			read_timeout 0
+			write_timeout 0
+		}
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}

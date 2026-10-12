@@ -10,3 +10,7 @@ storage/
 
 # Paquet d'installation (npm run livraison)
 /livraison/
+
+# Production (docker-compose.prod.yml) : configuration secrète et sauvegardes de la VM
+/.env.prod
+/sauvegardes/

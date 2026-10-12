@@ -3,3 +3,7 @@ backend/dist
 backend/storage
 backend/coverage
 .git
+**/.env
+.env.prod
+sauvegardes
+livraison
