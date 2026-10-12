@@ -491,7 +491,7 @@ describe('Console Admin — critères d’acceptation (brief Console § 13)', ()
       // Plus d'alertes (30/09/2026) : ni type, ni événement ; les règles n1 à n3 n'existent plus.
       expect(rules.map((r: any) => r.id)).toEqual(expect.not.arrayContaining(['n1', 'n2', 'n3']));
       const n5 = rules.find((r: any) => r.id === 'n5');
-      expect(Object.keys(n5).sort()).toEqual(['at', 'body', 'canaux', 'freq', 'id', 'model', 'on', 'profils', 'projets', 'prompt', 'subject', 'title']);
+      expect(Object.keys(n5).sort()).toEqual(['at', 'body', 'canaux', 'freq', 'id', 'mandatory', 'model', 'on', 'profils', 'projets', 'prompt', 'subject', 'title']);
       expect(n5).toMatchObject({ title: 'Nouveau document analysé', profils: ['Responsable'], projets: ['RISE', 'HORIZON'], canaux: ['app'] });
       expect(rules.find((r: any) => r.id === 'n5')).toMatchObject({ freq: 'day', at: '18:00', on: false });
       const counts = (await c.get(`${A}/notifications/counts`).expect(200)).body;

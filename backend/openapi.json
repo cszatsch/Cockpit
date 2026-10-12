@@ -359,6 +359,62 @@
         ]
       }
     },
+    "/api/me/notification-rules": {
+      "get": {
+        "operationId": "MyNotificationRulesController_list",
+        "parameters": [
+          {
+            "name": "project",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "cockpit · mes notifications"
+        ]
+      }
+    },
+    "/api/me/notification-rules/{id}": {
+      "put": {
+        "operationId": "MyNotificationRulesController_set",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "cockpit · mes notifications"
+        ]
+      }
+    },
     "/api/projects/{projectId}/project": {
       "get": {
         "operationId": "ProjectController_get",

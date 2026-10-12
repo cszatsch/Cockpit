@@ -1669,9 +1669,10 @@ Du plus prioritaire au moins prioritaire :
 2. Cliquez sur le titre et renommez la règle (120 caractères au plus).
 3. **Canal** : **Dans l'application** (cloche du Cockpit) et/ou **E-mail**. Il faut au moins un canal.
 4. **Destinataires par profil** : Admin, PMO, Responsable, Lecteur. Le nombre de destinataires actifs s'affiche.
+   - **Désabonnement** (depuis le 12/10/2026) : **Libre** (par défaut), chaque destinataire peut désactiver la règle dans son profil du Cockpit (Mon profil › Notifications) ; **Obligatoire**, elle ne se désactive pas.
 5. **Projets ciblés** : **Tous** (chaque projet ouvert) ou une sélection de projets.
 6. **Fournisseur et modèle** : un modèle de langage actif, qui rédigera le contenu.
-7. **Prompt envoyé au modèle** : la consigne de rédaction (4 000 caractères au plus).
+7. **Prompt envoyé au modèle** : la consigne de rédaction (4 000 caractères au plus). Décrivez le sujet : le périmètre de chaque destinataire (projet ou chantiers) est ajouté automatiquement, inutile de citer un chantier ou une personne.
 8. **Fréquence d'envoi** : **Quotidienne** ou **Hebdomadaire** ; le jour (hebdomadaire) et l'heure (par pas de 30 minutes, heure de Paris).
 9. **Message** : l'objet (300 caractères au plus) et le corps (4 000 au plus). Insérez les variables :
    - `{projet}` : code du projet ;
@@ -1701,10 +1702,12 @@ La phrase en tête de l'éditeur résume la règle, par exemple : « Informer PM
 
 ### 3.18.3 Comment un envoi est préparé
 
-- **Un texte par profil.**
+- **Un texte par profil et par périmètre** (depuis le 12/10/2026).
   - Chaque destinataire reçoit le texte de son profil le plus large parmi ceux visés : Admin, puis PMO, puis Responsable, puis Lecteur.
-  - Ce texte est rédigé sur les seules données que **tous** les destinataires de ce profil ont le droit de voir.
-  - Un Responsable ne reçoit donc que des informations sur les chantiers communs aux Responsables destinataires.
+  - Admin et PMO : tout le projet. Responsable : ses chantiers en responsabilité. Lecteur : les chantiers qu'il peut lire.
+  - Les destinataires d'un même profil et d'un même périmètre partagent un texte ; deux périmètres différents donnent deux textes (un appel au modèle par périmètre).
+  - Une seule règle suffit pour tout le projet : le périmètre de chacun vient de ses habilitations.
+- **Désabonnés.** Un destinataire désabonné (Mon profil › Notifications du Cockpit) est exclu de l'envoi, sauf règle obligatoire. L'historique l'indique (« 5 destinataires · 1 désabonné ») ; un périmètre dont tous les destinataires sont désabonnés n'est pas rédigé.
 - **Rédaction.**
   - Le modèle lit les données du projet, puis rédige.
   - Le message complet compte **moins de 100 mots**.
@@ -1767,7 +1770,7 @@ Si la plateforme n'avait redémarré que le vendredi, l'envoi du mercredi aurait
 | « Aucun modèle choisi (modèles réinitialisés) : la règle ne pourra pas s'envoyer. » | Cas bloquant |
 | « Aucun destinataire : la règle ne pourra pas s'envoyer. » | Cas bloquant |
 
-**Exemple.** La règle « Synthèse hebdomadaire du projet » part chaque lundi à 7 h 00 vers les PMO et Responsables de PMS, dans l'application et par e-mail. Les PMO reçoivent une synthèse de tout le projet. Les Responsables reçoivent celle de leurs chantiers communs. Chaque synthèse commence par ce qui a changé depuis le lundi précédent.
+**Exemple.** La règle « Synthèse hebdomadaire du projet » part chaque lundi à 7 h 00 vers les PMO et Responsables de PMS, dans l'application et par e-mail. Les PMO reçoivent une synthèse de tout le projet. Chaque Responsable reçoit celle de ses chantiers : Karim (C5, C6) la sienne, Sophie (C1) la sienne. Chaque synthèse commence par ce qui a changé depuis le lundi précédent.
 
 ## 3.19 Serveur d'envoi SMTP
 

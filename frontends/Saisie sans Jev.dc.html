@@ -78,7 +78,7 @@ html,body{margin:0;background:#fff;font-family:'Plus Jakarta Sans',sans-serif;co
   <sc-if value="{{ hasHead }}" hint-placeholder-val="{{ true }}">
   <div style="flex:none;padding:16px 16px 0 20px;display:flex;align-items:center;justify-content:space-between">
     <button type="button" onClick="{{ toPick }}" title="Changer d'objet" aria-label="Changer d'objet" style="width:30px;height:30px;border:0;padding:0;background:none;border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#43586a;box-shadow:inset 0 0 0 1px #e3ebe8" style-hover="background:#f4f7f6" style-focus-visible="outline:2px solid #146b64;outline-offset:2px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></button>
-    <button type="button" onClick="{{ cancel }}" title="Vider le formulaire" aria-label="Vider le formulaire" style="width:30px;height:30px;border:0;padding:0;background:none;border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#8a9aa6" style-hover="background:#f2f6f5;color:#10233a" style-focus-visible="outline:2px solid #146b64;outline-offset:2px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+    <button type="button" onClick="{{ closeForm }}" title="Fermer" aria-label="Fermer Saisir sans Jev" style="width:30px;height:30px;border:0;padding:0;background:none;border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#8a9aa6" style-hover="background:#f2f6f5;color:#10233a" style-focus-visible="outline:2px solid #146b64;outline-offset:2px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
   </div>
   <div style="flex:none;padding:14px 20px 0;display:flex;align-items:flex-end;gap:14px">
     <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:5px"><span style="font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#1f9a8a;font-weight:700;white-space:nowrap">Saisir sans Jev</span><h2 style="margin:0;font-size:24px;font-weight:800;letter-spacing:-.03em;line-height:1.15">{{ nv }}</h2></div>
@@ -159,7 +159,7 @@ html,body{margin:0;background:#fff;font-family:'Plus Jakarta Sans',sans-serif;co
 
   <sc-if value="{{ hasHead }}" hint-placeholder-val="{{ true }}"><div style="flex:none;padding:12px 14px 14px 20px;border-top:1px solid #edf2f0;display:flex;align-items:center;gap:6px">
     <span role="status" aria-live="polite" style="{{ footSt }}"><sc-if value="{{ noErr }}" hint-placeholder-val="{{ true }}"><span style="color:#1f9a8a">*</span> Requis</sc-if>{{ err }}</span>
-    <button type="button" onClick="{{ cancel }}" style="height:40px;padding:0 14px;border:0;background:none;border-radius:12px;display:flex;align-items:center;font-family:inherit;font-size:13px;font-weight:700;color:#43586a;cursor:pointer;flex:none" style-hover="background:#f2f6f5;color:#10233a" style-focus-visible="outline:2px solid #146b64;outline-offset:2px">Annuler</button>
+    <button type="button" onClick="{{ cancelForm }}" title="Abandonner la saisie et revenir au choix de l’objet" style="height:40px;padding:0 14px;border:0;background:none;border-radius:12px;display:flex;align-items:center;font-family:inherit;font-size:13px;font-weight:700;color:#43586a;cursor:pointer;flex:none" style-hover="background:#f2f6f5;color:#10233a" style-focus-visible="outline:2px solid #146b64;outline-offset:2px">Annuler</button>
     <button type="button" onClick="{{ create }}" title="{{ ctaTip }}" aria-disabled="{{ ctaOff }}" style="{{ ctaSt }}" style-focus-visible="outline:2px solid #13243d;outline-offset:2px">{{ cta }}</button>
   </div></sc-if>
 
@@ -563,7 +563,11 @@ class Component extends DCLogic {
       trackSt: `display:flex;width:200%;height:100%;transform:translateX(${S.view === 'form' ? '-50%' : '0'})`,
       pickHidden: S.view === 'form' ? 'true' : 'false', formHidden: S.view === 'form' ? 'false' : 'true',
       pickSt: this.paneSt(S.view !== 'form'), formSt: 'position:relative;border-left:1px solid #e0e9e6;' + this.paneSt(S.view === 'form'),
+      // Annuler et × (12/10/2026) : ils ne faisaient que vider le formulaire (rien de visible sur un formulaire vierge).
+      // Annuler abandonne la saisie et revient au choix de l'objet ; × abandonne la saisie et ferme le panneau.
       cancel: () => this.setState(this.cleared()),
+      cancelForm: () => { this.setState(this.cleared()); this.toPick(); },
+      closeForm: () => { this.setState({ ...this.cleared(), view: 'pick' }); this.props.onClose?.(); },
       cta: S.busy ? (o.cta ? 'Enregistrement…' : 'Création…') : k === 'arbitrage' ? 'Composer la fiche' : o.cta || 'Créer ' + o.art, ctaOff: off ? 'true' : 'false',
       ctaTip: S.busy ? '' : bad.length ? 'À corriger : ' + bad.join(', ') : ready ? '' : 'Renseignez les champs requis',
       ctaSt: `height:40px;padding:0 16px;border:0;border-radius:12px;display:flex;align-items:center;font-family:inherit;font-size:13px;font-weight:800;white-space:nowrap;flex:none;transition:opacity .2s,box-shadow .2s;color:#13243d;background:linear-gradient(90deg,#f6a62a,#f2851c);${off ? 'cursor:default;opacity:.4' : 'cursor:pointer;box-shadow:0 10px 20px -10px rgba(242,133,28,.7),inset 0 1px 0 rgba(255,255,255,.25)'}`,

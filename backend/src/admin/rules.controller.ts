@@ -38,6 +38,7 @@ const RuleBody = z
     hour: z.string().regex(/^([01]\d|2[0-3]):(00|30)$/, 'HH:MM par pas de 30 minutes').nullable(),
     channels: z.array(CHANNEL),
     enabled: z.boolean(),
+    mandatory: z.boolean(),
   })
   .partial()
   .strict();
@@ -57,6 +58,7 @@ const UiRuleBody = z
     prompt: z.string().max(4000),
     subject: z.string().max(300),
     body: z.string().max(4000),
+    mandatory: z.boolean().optional(),
   })
   .strict();
 
@@ -124,6 +126,7 @@ export class RulesController {
       everyDays: null,
       channels: (i.channels ?? ['APP']) as NotificationRule['channels'],
       enabled: i.enabled ?? false,
+      mandatory: i.mandatory ?? false,
     };
     await this.validate(r);
     const row = await this.prisma.$transaction(async (db) => {

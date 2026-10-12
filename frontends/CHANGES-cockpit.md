@@ -684,3 +684,9 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
   Retirer ») ; à l'enregistrement, questions ajoutées aux questions communes (`PATCH /barometer/global`), domaines créés
   (`POST /barometer/domains`) puis notés avec le relevé. Message de liste vide corrigé (il renvoyait à Pilotage › Baromètre,
   où rien ne se crée).
+- Mon profil › Notifications (12/10/2026) : les quatre interrupteurs génériques (jamais lus par l'envoi) sont remplacés par
+  les règles de la Console qui me visent sur le projet ouvert (`GET /api/me/notification-rules`, `myRules`), avec fréquence,
+  canaux, profil et périmètre de réception, un interrupteur par règle (`PUT /api/me/notification-rules/:id`,
+  `api.setMyRule`) et la mention « Obligatoire » (verrou) ; message si aucune règle.
+- Saisir sans Jev (12/10/2026) : la croix d'un formulaire ferme le panneau (elle vidait seulement le formulaire) et
+  **Annuler** revient au choix de l'objet (`closeForm`, `cancelForm`) ; vaut pour tous les objets (moteur commun).

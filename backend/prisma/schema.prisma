@@ -1422,6 +1422,8 @@ model NotificationRule {
   everyDays      Int?
   channels       Channel[]
   enabled        Boolean       @default(false)
+  /// Règle obligatoire (12/10/2026) : ses destinataires ne peuvent pas s'en désabonner depuis leur profil.
+  mandatory      Boolean       @default(false)
   /// Prochain envoi d'une règle planifiée (heure de Paris), calculé à l'enregistrement et après chaque envoi ; null sinon.
   nextRunAt      DateTime?
   /// Fréquence, jour et heure qui ont servi à calculer nextRunAt : s'ils changent, il est recalculé.
@@ -1456,8 +1458,22 @@ model Delivery {
   /// Texte rédigé par le modèle ({reponse_llm}) : mémoire de la rédaction de l'envoi suivant.
   llmResponse     String?
   recipients      String[]       @default([])
+  /// Périmètre du texte (12/10/2026) : « * » (tout le projet) ou codes des chantiers, triés (« C5,C6 ») ; un texte par profil et périmètre.
+  scope           String?
+  /// Destinataires du groupe désabonnés de la règle (exclus de l'envoi).
+  optedOut        Int            @default(0)
 
   @@index([ruleId, eventKey])
+}
+
+/// Désabonnement d'un compte à une règle de notification (12/10/2026, « Mon profil › Notifications » du Cockpit).
+model NotificationOptOut {
+  accountId String
+  ruleId    String
+  createdAt DateTime @default(now())
+
+  @@id([accountId, ruleId])
+  @@index([ruleId])
 }
 
 model Module {

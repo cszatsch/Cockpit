@@ -8,6 +8,8 @@ import {
   isSendTime,
   mailText,
   profileScope,
+  memberScope,
+  scopeKey,
   removedVariablesIn,
   sendSlot,
   blockingErrors,
@@ -57,6 +59,7 @@ describe('Notifications : adaptateur table ↔ vue (spécification § 2)', () =>
       prompt: 'Rédige la synthèse des jalons du projet {projet}.',
       subject: 'Jalons · {projet}',
       body: 'Jalons de {projet}. {reponse_llm}',
+      mandatory: false,
     });
   });
 
@@ -131,6 +134,15 @@ describe('Notifications : cas bloquants (§ 3) et historique', () => {
 });
 
 describe('Notifications : périmètre d’un texte par profil (point 7)', () => {
+  it('périmètre exact d’un destinataire (12/10/2026) : tout le projet, chantiers en responsabilité, chantiers lisibles ; clé triée', () => {
+    expect(memberScope('pmo', { responsable: ['C1'], lecteur: [] })).toBe('*');
+    expect(memberScope('admin', undefined)).toBe('*');
+    expect(memberScope('resp', { responsable: ['C6', 'C5'], lecteur: ['C1'] })).toEqual(['C5', 'C6']);
+    expect(memberScope('lec', { responsable: ['C4'], lecteur: ['C8', 'C4'] })).toEqual(['C4', 'C8']);
+    expect(scopeKey('*')).toBe('*');
+    expect(scopeKey(['C6', 'C5'])).toBe('C5,C6');
+  });
+
   it('PMO et administrateur : tout le projet ; Responsable : chantiers communs ; Lecteur : chantiers lisibles par tous', () => {
     expect(profileScope('pmo', [])).toBe('*');
     expect(profileScope('admin', [undefined])).toBe('*');

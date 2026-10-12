@@ -65,6 +65,15 @@ textarea::placeholder,input::placeholder{color:#8a9aa6}
           <div style="flex:0 0 220px;display:flex;flex-direction:column;gap:5px;padding-top:9px"><span style="font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#5c7280">DESTINATAIRES PAR PROFIL</span><span style="{{ recipSt }}">{{ recipL }}</span></div>
           <div style="flex:1 1 380px;min-width:0;display:flex;gap:6px;flex-wrap:wrap;align-content:flex-start"><sc-for list="{{ profils }}" as="c" hint-placeholder-count="4"><button type="button" onClick="{{ c.flip }}" aria-pressed="{{ c.on }}" style="{{ c.st }}"><sc-if value="{{ c.on }}" hint-placeholder-val="{{ false }}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"></path></svg></sc-if>{{ c.l }}</button></sc-for></div>
         </div>
+        <!-- Désabonnement (12/10/2026) : « Libre » — chaque destinataire peut désactiver la règle dans Mon profil › Notifications du
+             Cockpit ; « Obligatoire » — elle ne se désactive pas. -->
+        <div style="display:flex;flex-wrap:wrap;gap:10px 24px;padding:22px 0;border-bottom:1px solid #eef3f2">
+          <div style="flex:0 0 220px;display:flex;flex-direction:column;gap:5px;padding-top:9px"><span style="font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#5c7280">DÉSABONNEMENT</span><span style="font-size:12.5px;font-weight:700;color:#1d8f86">{{ oblL }}</span></div>
+          <div style="flex:1 1 380px;min-width:0;display:flex;flex-direction:column;gap:8px">
+            <div role="radiogroup" aria-label="Désabonnement" style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ oblig }}" as="c" hint-placeholder-count="2"><button type="button" role="radio" aria-checked="{{ c.on }}" onClick="{{ c.flip }}" style="{{ c.st }}"><sc-if value="{{ c.on }}" hint-placeholder-val="{{ false }}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"></path></svg></sc-if>{{ c.l }}</button></sc-for></div>
+            <span style="font-size:12px;color:#5c7280;line-height:1.55">{{ oblHint }}</span>
+          </div>
+        </div>
         <div style="display:flex;flex-wrap:wrap;gap:10px 24px;padding:22px 0;border-bottom:1px solid #eef3f2">
           <div style="flex:0 0 220px;display:flex;flex-direction:column;gap:5px;padding-top:9px"><span style="font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#5c7280">PROJETS CIBLÉS</span><span style="font-size:12.5px;font-weight:700;color:#1d8f86">{{ projL }}</span></div>
           <div style="flex:1 1 380px;min-width:0;display:flex;gap:6px;flex-wrap:wrap;align-content:flex-start"><sc-for list="{{ projets }}" as="c" hint-placeholder-count="5"><button type="button" onClick="{{ c.flip }}" aria-pressed="{{ c.on }}" style="{{ c.st }}"><sc-if value="{{ c.on }}" hint-placeholder-val="{{ false }}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"></path></svg></sc-if>{{ c.l }}</button></sc-for></div>
@@ -88,7 +97,7 @@ textarea::placeholder,input::placeholder{color:#8a9aa6}
           <div style="flex:0 0 220px;display:flex;flex-direction:column;gap:5px;padding-top:14px"><span style="font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#5c7280">PROMPT ENVOYÉ AU MODÈLE</span><span style="font-size:12px;color:#8a9aa6;font-variant-numeric:tabular-nums">{{ promptL }}</span></div>
           <div style="flex:1 1 380px;min-width:0;display:flex;flex-direction:column;gap:8px">
             <textarea value="{{ d.prompt }}" onChange="{{ setPrompt }}" rows="4" aria-label="Prompt envoyé au modèle" style="resize:vertical;min-height:112px;border:0;outline:0;border-radius:14px;background:#f6f9f8;box-shadow:inset 0 0 0 1px #e1e9e7;padding:16px 18px;font-family:'IBM Plex Mono',monospace;font-size:12.5px;line-height:1.75;color:#2a3f53;transition:box-shadow .15s" style-focus="box-shadow:inset 0 0 0 1.5px #1d8f86;background:#fff"></textarea>
-            <span style="font-size:12px;color:#5c7280;line-height:1.55">Le modèle reçoit ce prompt avec les données du projet ciblé ; sa réponse s’insère dans le message à l’endroit de {reponse_llm}. Variables utilisables ici : toutes, sauf {reponse_llm}.</span>
+            <span style="font-size:12px;color:#5c7280;line-height:1.55">Décrivez le sujet. Le périmètre de chaque destinataire (projet ou chantiers) est ajouté automatiquement : inutile de citer un chantier ou une personne. Le modèle reçoit ce prompt avec les données de ce périmètre ; sa réponse s’insère dans le message à l’endroit de {reponse_llm}. Variables utilisables ici : toutes, sauf {reponse_llm}.</span>
           </div>
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:10px 24px;padding:22px 0;border-bottom:1px solid #eef3f2">
@@ -275,6 +284,9 @@ class Component extends DCLogic {
         return { l: CH[k][0], ic: CH[k][2], on, flip: () => { if (on && d.canaux.length === 1) return; this.edit({ canaux: toggleIn(d.canaux, k).sort() }); },
           st: 'white-space:nowrap;height:34px;padding:0 14px 0 11px;border-radius:10px;display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:12.5px;cursor:pointer;transition:all .15s;' + (on ? 'border:1px solid #10233a;background:#10233a;color:#fff' : 'border:1px solid #d5e0dd;background:#fff;color:#5c7280') }; }),
       profils: PROFILS.map(p => { const on = d.profils.includes(p); return { l: p, on, st: chip(on), flip: () => this.edit({ profils: toggleIn(d.profils, p) }) }; }),
+      oblig: [['Libre', false], ['Obligatoire', true]].map(([l, v]) => { const on = !!d.mandatory === v; return { l, on, st: chip(on), flip: () => this.edit({ mandatory: v }) }; }),
+      oblL: d.mandatory ? 'Obligatoire' : 'Libre',
+      oblHint: d.mandatory ? 'Les destinataires ne peuvent pas désactiver cette notification : elle figure dans leur profil du Cockpit avec la mention « Obligatoire ».' : 'Chaque destinataire peut désactiver cette notification dans son profil du Cockpit (Mon profil › Notifications). L’historique compte les désabonnés de chaque envoi.',
       recipL: recips ? recips + ' destinataire' + (recips > 1 ? 's' : '') + ' actif' + (recips > 1 ? 's' : '') : 'Aucun destinataire',
       recipSt: 'font-size:12.5px;font-weight:700;color:' + (recips ? '#1d8f86' : '#c2473b'),
       projets: [{ l: 'Tous', on: allP, st: chip(allP), flip: () => this.edit({ projets: allP ? [] : ['*'] }) }, ...(this.props.projects ?? PROJETS).map(p => { const on = !allP && d.projets.includes(p);

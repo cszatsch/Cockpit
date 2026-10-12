@@ -3,7 +3,7 @@ import { Account } from '@prisma/client';
 import { PrismaService, Tx } from '../core/prisma.service';
 import { Actor } from '../core/auth/auth';
 import { WriteCtx } from '../core/audit.service';
-import { AUDIENCE_PRIORITY, AudienceProfile, ChantierScope, profileScope } from '../domain/notification-rules';
+import { AUDIENCE_PRIORITY, AudienceProfile, ChantierScope, memberScope, scopeKey } from '../domain/notification-rules';
 import { Gaps, gaps, Proposal, proposal } from '../domain/habilitation-proposals';
 
 /** Entrée « référentiel » d'un compte sur un projet (voir `ProfilesService.referential`). */
@@ -143,7 +143,7 @@ export class ProfilesService {
     const accounts = await this.prisma.account.findMany({ where: { status: 'ACTIVE' } });
     const rights = await this.rightsOf(accounts);
     const want = new Set(profiles);
-    const groups = new Map<AudienceProfile, Account[]>();
+    const groups = new Map<string, { profile: AudienceProfile; accounts: Account[]; chantiers: ChantierScope }>();
     for (const a of accounts) {
       const r = rights.get(a.id)!;
       const projects = projectId ? [r.projects[projectId]].filter(Boolean) : Object.values(r.projects);
@@ -154,13 +154,16 @@ export class ProfilesService {
         lec: projects.some((p) => p.lecteur.length > 0),
       };
       const p = AUDIENCE_PRIORITY.find((x) => want.has(x) && has[x]);
-      if (p) groups.set(p, [...(groups.get(p) ?? []), a]);
+      if (!p) continue;
+      // Périmètre exact du destinataire (12/10/2026) : un texte par profil et par périmètre, et non plus un texte par
+      // profil rédigé sur les seuls chantiers communs à tous ses membres.
+      const chantiers = projectId ? memberScope(p, r.projects[projectId]) : ('*' as const), key = p + '|' + scopeKey(chantiers);
+      const g = groups.get(key) ?? { profile: p, accounts: [] as Account[], chantiers };
+      g.accounts.push(a);
+      groups.set(key, g);
     }
-    return AUDIENCE_PRIORITY.filter((p) => groups.has(p)).map((profile) => {
-      const members = groups.get(profile)!;
-      const chantiers = projectId ? profileScope(profile, members.map((a) => rights.get(a.id)!.projects[projectId])) : ('*' as const);
-      return { profile, accounts: members, chantiers };
-    });
+    const rank = (p: AudienceProfile) => AUDIENCE_PRIORITY.indexOf(p);
+    return [...groups.values()].sort((x, y) => rank(x.profile) - rank(y.profile) || scopeKey(x.chantiers).localeCompare(scopeKey(y.chantiers)));
   }
 
   async recipients(profiles: string[], projectId: string | null): Promise<Account[]> {

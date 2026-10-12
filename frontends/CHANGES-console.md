@@ -813,3 +813,6 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
   « GUIDE CONSOLE » ; Notifications : aperçu de l'e-mail signé « Cockpit · adresse d'expédition du serveur SMTP », `{projet}`
   remplacé par le premier projet ciblé par la règle (sinon le premier projet de la plateforme) ; Serveur SMTP et Skills :
   exemples sans « RISE ». Modèle Excel renommé `Referentiel Cockpit - initialisation.xlsx`.
+- Notifications, éditeur de règle (12/10/2026) : ligne « Désabonnement » (Libre / Obligatoire, champ `mandatory`) ; aide
+  sous le prompt (« Décrivez le sujet. Le périmètre de chaque destinataire… est ajouté automatiquement ») ; historique :
+  « N destinataires · K désabonnés ».

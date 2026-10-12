@@ -65,32 +65,74 @@ describe('Notifications du Cockpit et rédaction à partir des données', () => 
     });
     afterAll(() => spy.mockRestore());
 
-    it('un texte par profil, sur les données que tous ses membres peuvent lire ; notifications « Dans l’application »', async () => {
+    it('un texte par profil et par périmètre exact (12/10/2026) ; notifications « Dans l’application »', async () => {
       const svc = t.app.get(NotificationsService);
       const rule = await t.db.notificationRule.update({ where: { id: 'n4' }, data: { body: '{reponse_llm}', channels: ['APP'] } });
       const groups = await t.app.get(NotificationsService)['profiles'].audiences(rule.targetProfiles, RISE);
-      expect(groups.map((g: any) => g.profile)).toEqual(['pmo', 'resp']);
-      const pmoGroup = groups[0], respGroup = groups[1];
-      expect(pmoGroup.chantiers).toBe('*');
-      expect(Array.isArray(respGroup.chantiers)).toBe(true);
+      // PMO : tout le projet ; Responsables : un groupe par ensemble exact de chantiers (plus d'intersection commune).
+      expect(groups[0]).toMatchObject({ profile: 'pmo', chantiers: '*' });
+      const resp = groups.slice(1);
+      expect(resp.length).toBeGreaterThan(1);
+      expect(resp.every((g: any) => g.profile === 'resp' && Array.isArray(g.chantiers) && g.chantiers.length > 0)).toBe(true);
+      expect(new Set(resp.map((g: any) => g.chantiers.join(','))).size).toBe(resp.length);
       const exec = jest.spyOn(jev, 'executeCockpit');
       const out = await svc.deliver(rule, RISE, { projet: 'RISE' }, 'test|profils');
-      expect(out.map((d) => [d.profile, d.channel, d.status])).toEqual([['pmo', 'APP', 'OK'], ['resp', 'APP', 'OK']]);
-      // Étapes : dictionnaire et périmètre dans le prompt système, requête exécutée sur le périmètre du profil, rédaction.
+      expect(out.map((d) => [d.profile, d.channel, d.status])).toEqual(groups.map((g: any) => [g.profile, 'APP', 'OK']));
+      expect(out.map((d) => d.scope)).toEqual(groups.map((g: any) => (g.chantiers === '*' ? '*' : g.chantiers.join(','))));
+      // Étapes : dictionnaire et périmètre dans le prompt système, requête exécutée sur le périmètre du groupe, rédaction.
       expect(calls[0].system).toMatch(/### jev_cockpit\.risques/);
       expect(calls[0].system).toMatch(/profil PMO du projet RISE/);
       expect(calls[0].system).toMatch(/tout le projet/);
-      expect(exec.mock.calls.map((c) => c[2])).toEqual(['*', respGroup.chantiers]);
-      const all = (await sql<{ n: number }>(`SELECT count(*)::int AS n FROM "Risk" WHERE "projectId" = '${RISE}'`))[0].n;
-      const respCount = respGroup.chantiers.length ? (await sql<{ n: number }>(`SELECT count(*)::int AS n FROM "Risk" WHERE "projectId" = '${RISE}' AND "wsId" = ANY(ARRAY[${(respGroup.chantiers as string[]).map((w: string) => `'${w}'`).join(',')}]::text[])`))[0].n : 0;
-      expect(out[0].body).toBe(`Risques ouverts : ${all}.`);
-      expect(out[1].body).toBe(`Risques ouverts : ${respCount}.`);
-      // Une notification par destinataire, avec le texte de son profil.
+      expect(exec.mock.calls.map((c) => c[2])).toEqual(groups.map((g: any) => g.chantiers));
+      const count = async (ws: '*' | string[]) => (await sql<{ n: number }>(`SELECT count(*)::int AS n FROM "Risk" WHERE "projectId" = '${RISE}'` + (ws === '*' ? '' : ` AND "wsId" = ANY(ARRAY[${ws.map((w) => `'${w}'`).join(',')}]::text[])`)))[0].n;
+      for (const [i, g] of groups.entries()) expect(out[i].body).toBe(`Risques ouverts : ${await count(g.chantiers)}.`);
+      // Une notification par destinataire, avec le texte de son groupe.
       const notes = await t.db.userNotification.findMany({ where: { ruleId: 'n4' } });
-      expect(notes.length).toBe(pmoGroup.accounts.length + respGroup.accounts.length);
-      const pmoAccount = pmoGroup.accounts[0].id;
-      expect(notes.find((n) => n.accountId === pmoAccount)).toMatchObject({ body: `Risques ouverts : ${all}.`, projectId: RISE, readAt: null });
+      expect(notes.length).toBe(groups.reduce((n: number, g: any) => n + g.accounts.length, 0));
+      const pmoAccount = groups[0].accounts[0].id;
+      expect(notes.find((n) => n.accountId === pmoAccount)).toMatchObject({ body: `Risques ouverts : ${await count('*')}.`, projectId: RISE, readAt: null });
       exec.mockRestore();
+    });
+
+    it('désabonnement (Mon profil › Notifications) : liste des règles qui me visent, exclusion de l’envoi, règle obligatoire', async () => {
+      const svc = t.app.get(NotificationsService);
+      const resp5 = await t.as(WHO.respC5);
+      const mine = (await resp5.get('/api/me/notification-rules?project=RISE').expect(200)).body;
+      const n4 = mine.find((r: any) => r.id === 'n4');
+      expect(n4).toMatchObject({ name: 'Synthèse hebdomadaire du projet', freq: 'week', profile: 'Responsable', mandatory: false, subscribed: true, channels: ['app'] });
+      expect(Array.isArray(n4.scope) && n4.scope.includes('C5')).toBe(true);
+      // Le PMO la reçoit en tant que PMO, sur tout le projet ; une règle désactivée n'apparaît pas.
+      const pmo = await t.as(WHO.pmo);
+      expect((await pmo.get('/api/me/notification-rules?project=RISE').expect(200)).body.find((r: any) => r.id === 'n4')).toMatchObject({ profile: 'PMO', scope: '*' });
+      expect(mine.some((r: any) => r.id === 'n5')).toBe(false);
+      // Se désabonner : exclu de l'envoi suivant ; l'historique compte le désabonné.
+      expect((await resp5.put('/api/me/notification-rules/n4', { subscribed: false }).expect(200)).body).toEqual({ id: 'n4', subscribed: false });
+      expect((await resp5.get('/api/me/notification-rules?project=RISE').expect(200)).body.find((r: any) => r.id === 'n4').subscribed).toBe(false);
+      const me5 = (await t.db.account.findMany()).filter((a) => a.personId === 'p06').map((a) => a.id);
+      const rule = await t.db.notificationRule.findUniqueOrThrow({ where: { id: 'n4' } });
+      const out = await svc.deliver(rule, RISE, { projet: 'RISE' }, 'test|desabonnement');
+      expect(out.every((d) => !d.recipients.some((id) => me5.includes(id)))).toBe(true);
+      // Groupe de plusieurs membres dont un se désabonne : le texte part aux autres, l'envoi compte un désabonné. (Un
+      // groupe entièrement désabonné ne part pas : aucun appel au modèle.)
+      const big = (await svc['profiles'].audiences(rule.targetProfiles, RISE)).find((g: any) => g.accounts.length > 1)!;
+      await t.db.notificationOptOut.create({ data: { accountId: big.accounts[0].id, ruleId: 'n4' } });
+      const out2 = await svc.deliver(rule, RISE, { projet: 'RISE' }, 'test|desabonnement-2');
+      const key = big.chantiers === '*' ? '*' : big.chantiers.join(',');
+      expect(out2.find((d) => d.profile === big.profile && d.scope === key)).toMatchObject({ optedOut: 1, recipientsCount: big.accounts.length - 1 });
+      await t.db.notificationOptOut.deleteMany({ where: { accountId: big.accounts[0].id, ruleId: 'n4' } });
+      const hist = (await admin.get(`${A}/notifications/history`).expect(200)).body;
+      expect(hist.some((h: any) => /désabonné/.test(h.d))).toBe(true);
+      // Règle obligatoire : pas de désabonnement possible (409), et le compte la reçoit malgré un ancien désabonnement.
+      await t.db.notificationRule.update({ where: { id: 'n4' }, data: { mandatory: true } });
+      await resp5.put('/api/me/notification-rules/n4', { subscribed: false }).expect(409);
+      expect((await resp5.get('/api/me/notification-rules?project=RISE').expect(200)).body.find((r: any) => r.id === 'n4')).toMatchObject({ mandatory: true, subscribed: true });
+      const forced = await svc.deliver(await t.db.notificationRule.findUniqueOrThrow({ where: { id: 'n4' } }), RISE, { projet: 'RISE' }, 'test|obligatoire');
+      expect(forced.some((d) => d.recipients.some((id) => me5.includes(id)))).toBe(true);
+      // Remise en état ; se réabonner.
+      await t.db.notificationRule.update({ where: { id: 'n4' }, data: { mandatory: false } });
+      expect((await resp5.put('/api/me/notification-rules/n4', { subscribed: true }).expect(200)).body).toEqual({ id: 'n4', subscribed: true });
+      await resp5.put('/api/me/notification-rules/inconnue', { subscribed: false }).expect(404);
+      await resp5.get('/api/me/notification-rules').expect(400);
     });
 
     it('Cockpit : la cloche liste mes notifications, compte les non lues, marque lu ; chacun ne voit que les siennes', async () => {

@@ -278,7 +278,7 @@ export function attach(comp) {
   // ── Chargement et hydratation ──
   async function load() {
     const opt = (p) => p.catch((e) => { console.warn('[api] chargement partiel', e); return null; });
-    const [B, project, tasks, comments, me, barometer, modules, invites, accStates] = await Promise.all([
+    const [B, project, tasks, comments, me, barometer, modules, invites, accStates, myRules] = await Promise.all([
       bootstrap(),
       opt(pget('/project')),
       opt(pget('/me/tasks')),
@@ -288,8 +288,10 @@ export function attach(comp) {
       opt(pget('/modules')),
       pget('/invitation-requests').catch(() => null), // réservé au PMO
       pget('/account-states').catch(() => null), // état réel du compte de chaque personne (PMO)
+      // Mes notifications (12/10/2026) : règles de la Console qui me visent sur ce projet, et mon abonnement.
+      opt(get('/me/notification-rules?project=' + encodeURIComponent(projectId))),
     ]);
-    return { B, project, tasks, comments, me, barometer, modules, invites, accStates };
+    return { B, project, tasks, comments, me, barometer, modules, invites, accStates, myRules };
   }
 
   async function reload() {
@@ -324,6 +326,7 @@ export function attach(comp) {
       // Profil (07/10/2026) : identité, rattachement, dernière connexion ; projet ouvert par défaut.
       meProfile: L.me ? { ...(L.me.profile || {}), email: L.me.account && L.me.account.email } : null, meDefaultProject: (L.me && L.me.preferences && L.me.preferences.defaultProject) || null,
       psAccSrv: L.accStates || null,
+      myRules: Array.isArray(L.myRules) ? L.myRules : null,
       ed: {}, actStatus: {}, sesEd: {}, sesAdded: [], sesDel: {}, refValues: {}, refDeleted: {}, bmEd: {}, bmAdd: {},
       phLots: hydratePhLots(B), txtEd: {}, critEd: {}, arbData: {}, lvTrack: {}, gbExtra: {}, gbMem: {}, gbAdded: [], added: {}, lvAdded: [], dlOwner: {},
       psAdded: [], psAcc: {}, roAdded: [], roTier: {}, tmAdded: [], wsAdded: [], ipAdded: [], spAdded: [], phAdded: [], waAdded: [], spDesc: {}, phDesc: {}, plAdd: {},
@@ -1028,6 +1031,13 @@ export function attach(comp) {
      * responsable d'une phase = l'utilisateur s'il n'est pas choisi ; code d'une sous-phase = rang suivant dans sa phase.
      * Renvoie le message de confirmation ; lève une Error lisible (message du serveur) en cas de refus.
      */
+    /** S'abonner à une règle de notification ou s'en désabonner (« Mon profil › Notifications », 12/10/2026). */
+    async setMyRule(id, subscribed) {
+      const prev = comp.state.myRules || [];
+      raw({ myRules: prev.map((r) => (r.id === id ? { ...r, subscribed } : r)) });
+      try { await put('/me/notification-rules/' + encodeURIComponent(id), { subscribed }); }
+      catch (e) { raw({ myRules: prev }); throw new Error(errorText(e)); }
+    },
     /** Baromètre tel que lu sur le serveur (relevés par mois AAAA-MM, domaines, questions communes) : formulaire « Baromètre ». */
     barometer() { return S.extra.barometer || null; },
     /** Fiche d'arbitrage « barème commun » d'une décision (maquette 11a) : `null` si la décision n'en a pas encore. */

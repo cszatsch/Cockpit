@@ -8,7 +8,7 @@ import { TodayService } from '../core/today.service';
 import { ProfilesService } from './profiles.service';
 import { frShort } from '../domain/dates';
 
-import { NOTIFICATION_MAX_WORDS, NOTIFICATION_MIN_CONTENT_WORDS, wordCount } from '../domain/notification-rules';
+import { NOTIFICATION_MAX_WORDS, NOTIFICATION_MIN_CONTENT_WORDS, wordCount, scopeKey } from '../domain/notification-rules';
 import { AUDIENCE_PRIORITY, AudienceProfile, blockingErrors, CATCH_UP_PER_MINUTE, catchUpDeadline, nextSendAt, NOTIFICATION_MEMORY_DAYS, mailText, occurrencesUntil, ON_TIME_TOLERANCE_MS, parisDay, scheduleKey, sendTimeFr } from '../domain/notification-rules';
 import { Audience, NotificationWriterService, PROFILE_NAME } from './notification-writer.service';
 import { notificationHtml } from '../domain/notification-email';
@@ -65,7 +65,7 @@ export class NotificationsService implements OnModuleInit {
     const project = projectId ? await this.prisma.project.findUnique({ where: { id: projectId }, select: { id: true, code: true } }) : null;
     const t0 = Date.now();
     // Mémoire (décision du 30/09/2026) : le dernier envoi réussi de la règle, pour le même projet et le même profil.
-    const previous = withMemory && rule.id ? await this.previousSend(rule.id, projectId, audience.profile) : null;
+    const previous = withMemory && rule.id ? await this.previousSend(rule.id, projectId, audience.profile, scopeKey(audience.chantiers)) : null;
     // Moins de 100 mots pour tout le message (01/10/2026) : le contenu rédigé dispose de ce que le gabarit laisse.
     const frame = wordCount(fill(rule.body, { ...ctx, [LLM_RESPONSE_VARIABLE]: '' } as Record<string, string>));
     const budget = Math.max(NOTIFICATION_MIN_CONTENT_WORDS, NOTIFICATION_MAX_WORDS - 1 - frame);
@@ -75,15 +75,16 @@ export class NotificationsService implements OnModuleInit {
   }
 
   /** Dernier envoi réussi (texte rédigé) de moins de `NOTIFICATION_MEMORY_DAYS` jours, ou null. */
-  async previousSend(ruleId: string, projectId: string | null, profile: string): Promise<{ at: Date; text: string } | null> {
+  async previousSend(ruleId: string, projectId: string | null, profile: string, scope?: string): Promise<{ at: Date; text: string } | null> {
     const since = new Date(this.today.now().getTime() - NOTIFICATION_MEMORY_DAYS * 86_400_000);
-    const d = await this.prisma.delivery.findFirst({ where: { ruleId, projectId, profile, status: 'OK', llmResponse: { not: null }, at: { gte: since } }, orderBy: { at: 'desc' } });
+    // Même profil et même périmètre (12/10/2026) ; les envois antérieurs, sans périmètre, valent pour tout le profil.
+    const d = await this.prisma.delivery.findFirst({ where: { ruleId, projectId, profile, status: 'OK', llmResponse: { not: null }, at: { gte: since }, ...(scope ? { OR: [{ scope }, { scope: null }] } : {}) }, orderBy: { at: 'desc' } });
     return d ? { at: d.at, text: d.llmResponse! } : null;
   }
 
   /**
-   * Envoie une règle pour un projet (ou pour la plateforme) : un texte par profil destinataire (arbitrage du
-   * 29/09/2026), rédigé sur les données que tous les membres du profil peuvent lire. Canal « Dans l'application » :
+   * Envoie une règle pour un projet (ou pour la plateforme) : un texte par profil et par périmètre de chantiers
+   * (arbitrage du 29/09/2026, périmètre exact depuis le 12/10/2026), rédigé sur les données de ce périmètre. Canal « Dans l'application » :
    * une notification par destinataire dans le Cockpit (cloche) ; canal E-mail : serveur SMTP de la Console.
    * En cas de modèle inactif ou de clé invalide, l'échec est tracé dans l'historique (visible dans « À traiter »).
    * `only` (« M'envoyer un test ») : le texte du premier profil destinataire, envoyé aux seuls comptes indiqués.
@@ -91,6 +92,17 @@ export class NotificationsService implements OnModuleInit {
   async deliver(rule: NotificationRule, projectId: string | null, ctx: RuleContext, eventKey: string | null, only?: { accountIds: string[] }, planned?: { scheduledAt: Date; mode: string }) {
     if (eventKey && (await this.prisma.delivery.findFirst({ where: { ruleId: rule.id, eventKey } }))) return [];
     let groups = await this.profiles.audiences(rule.targetProfiles, projectId);
+    // Désabonnements (12/10/2026, « Mon profil › Notifications ») : comptes exclus, sauf règle obligatoire ; un groupe
+    // entièrement désabonné ne coûte aucun appel au modèle. Le nombre de désabonnés est tracé dans l'historique.
+    const optedOut = new Map<string, number>();
+    if (!only && !rule.mandatory) {
+      const out0 = new Set((await this.prisma.notificationOptOut.findMany({ where: { ruleId: rule.id }, select: { accountId: true } })).map((o) => o.accountId));
+      groups = groups.map((g) => {
+        const kept = g.accounts.filter((a) => !out0.has(a.id));
+        optedOut.set(g.profile + '|' + scopeKey(g.chantiers), g.accounts.length - kept.length);
+        return { ...g, accounts: kept };
+      }).filter((g) => g.accounts.length);
+    }
     if (only) {
       const first = groups[0] ?? { profile: (AUDIENCE_PRIORITY.find((p) => rule.targetProfiles.includes(p)) ?? 'pmo') as AudienceProfile, chantiers: '*' as const };
       groups = [{ ...first, accounts: await this.prisma.account.findMany({ where: { id: { in: only.accountIds } } }) }];
@@ -121,7 +133,7 @@ export class NotificationsService implements OnModuleInit {
         }
         const first = channel === rule.channels[0];
         const d = await this.prisma.delivery.create({
-          data: { ruleId: rule.id, at: this.today.now(), channel, recipientsCount: recipients.length, status, error: err, costEur: first ? gen?.costEur ?? 0 : 0, tokens: first ? gen?.tokens ?? 0 : 0, projectId, subject: gen?.subject ?? null, body: gen?.body ?? null, llmResponse: first ? gen?.llmResponse ?? null : null, scheduledAt: planned?.scheduledAt ?? null, mode: planned?.mode ?? null, eventKey, recipients: recipients.map((r) => r.id), profile: g.profile },
+          data: { ruleId: rule.id, at: this.today.now(), channel, recipientsCount: recipients.length, status, error: err, costEur: first ? gen?.costEur ?? 0 : 0, tokens: first ? gen?.tokens ?? 0 : 0, projectId, subject: gen?.subject ?? null, body: gen?.body ?? null, llmResponse: first ? gen?.llmResponse ?? null : null, scheduledAt: planned?.scheduledAt ?? null, mode: planned?.mode ?? null, eventKey, recipients: recipients.map((r) => r.id), profile: g.profile, scope: scopeKey(g.chantiers), optedOut: optedOut.get(g.profile + '|' + scopeKey(g.chantiers)) ?? 0 },
         });
         // Canal « Dans l'application » : notifications des destinataires dans le Cockpit (cloche, non lues).
         if (gen && channel === 'APP' && recipients.length) {

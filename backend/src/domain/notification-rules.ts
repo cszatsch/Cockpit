@@ -24,6 +24,8 @@ export interface UiRule {
   prompt: string;
   subject: string;
   body: string;
+  /** Règle obligatoire (12/10/2026) : non désactivable depuis le profil des destinataires. */
+  mandatory?: boolean;
 }
 
 /** Ligne d'historique de la vue (§ 2), complétée de l'instant exact et de l'erreur éventuelle. */
@@ -61,6 +63,8 @@ export interface RuleRow {
   everyDays: number | null;
   channels: ('APP' | 'EMAIL')[];
   enabled: boolean;
+  /** Règle obligatoire : pas de désabonnement possible depuis le profil (12/10/2026). */
+  mandatory?: boolean;
 }
 
 /** Profils : code de la table → libellé de la vue (ordre d'affichage). */
@@ -227,6 +231,7 @@ export function toUiRule(r: RuleRow, llmIds: ReadonlySet<string>): UiRule {
     prompt: r.prompt,
     subject: r.subject,
     body: r.body,
+    mandatory: !!r.mandatory,
   };
 }
 
@@ -246,6 +251,7 @@ export function fromUiRule(u: Omit<UiRule, 'id'>): Omit<RuleRow, 'id'> {
     ...parseAt(u.freq, u.at),
     channels: [...new Set(u.canaux)].sort().map((c) => (c === 'app' ? 'APP' : 'EMAIL')),
     enabled: u.on,
+    mandatory: !!u.mandatory,
   };
 }
 
@@ -297,7 +303,7 @@ export function relativeFr(at: Date, now: Date): string {
 
 /** Envoi (`Delivery`) → ligne d'historique de la vue. */
 export function toUiHistory(
-  d: { id: string; ruleId: string; at: Date; channel: 'APP' | 'EMAIL'; recipientsCount: number; status: string; error: string | null; mode?: string | null; scheduledAt?: Date | null },
+  d: { id: string; ruleId: string; at: Date; channel: 'APP' | 'EMAIL'; recipientsCount: number; status: string; error: string | null; mode?: string | null; scheduledAt?: Date | null; optedOut?: number },
   now: Date,
 ): UiHistory {
   // Mode : envoi planifié à l'heure, rattrapé, remplacé ou abandonné ; null pour un envoi sur événement ou un test.
@@ -313,7 +319,7 @@ export function toUiHistory(
     rid: d.ruleId,
     w: relativeFr(d.at, now),
     c: d.channel === 'EMAIL' ? 'E-mail' : 'Application',
-    d: `${d.recipientsCount} destinataire${d.recipientsCount > 1 ? 's' : ''}`,
+    d: `${d.recipientsCount} destinataire${d.recipientsCount > 1 ? 's' : ''}` + (d.optedOut ? ` · ${d.optedOut} désabonné${d.optedOut > 1 ? 's' : ''}` : ''),
     ok: d.status === 'OK',
     at: d.at.toISOString(),
     error: d.error,
@@ -328,6 +334,19 @@ export type AudienceProfile = 'admin' | 'pmo' | 'resp' | 'lec';
 export const AUDIENCE_PRIORITY: AudienceProfile[] = ['admin', 'pmo', 'resp', 'lec'];
 /** Chantiers lisibles par un groupe de destinataires : « * » (tous) ou liste d'identifiants. */
 export type ChantierScope = '*' | string[];
+
+/**
+ * Périmètre d'un destinataire (12/10/2026) : tout le projet pour l'administrateur et le PMO ; ses chantiers en
+ * responsabilité pour un Responsable ; ses chantiers lisibles (responsabilité et lecture) pour un Lecteur. Les
+ * destinataires d'un même profil et d'un même périmètre partagent un texte ; deux périmètres différents, deux textes.
+ */
+export function memberScope(profile: AudienceProfile, m: { responsable: string[]; lecteur: string[] } | undefined): ChantierScope {
+  if (profile === 'admin' || profile === 'pmo') return '*';
+  const ws = profile === 'resp' ? m?.responsable ?? [] : [...(m?.responsable ?? []), ...(m?.lecteur ?? [])];
+  return [...new Set(ws)].sort();
+}
+/** Clé d'un périmètre (« * » ou identifiants triés, séparés par une virgule) : regroupement et mémoire de la rédaction. */
+export const scopeKey = (s: ChantierScope) => (s === '*' ? '*' : [...s].sort().join(','));
 
 /**
  * Périmètre d'un texte rédigé pour un profil (arbitrage du 29/09/2026 : un texte par profil) : ce que tous les

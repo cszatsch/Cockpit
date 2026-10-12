@@ -2278,3 +2278,16 @@ Demande du commanditaire : un risque peut concerner un chantier, plusieurs, ou t
   domaines : le formulaire ne proposait que l'existant, que rien ne permet de créer dans le Cockpit depuis le 09/10/2026 ;
   il les crée maintenant (questions communes, domaines du comparateur, nombre de répondants du domaine non renseigné →
   « — » et non signalé).
+- Notifications, abonnements et périmètre (12/10/2026, recommandation acceptée par le commanditaire) :
+  1. les interrupteurs du profil ne désignaient aucune règle et n'étaient jamais lus ; le profil liste désormais les règles
+     qui visent le compte sur le projet (actives, projet ou « tous », profil détenu) et chacun peut s'en désabonner
+     (`notification_optouts` → table `NotificationOptOut`), sauf règle obligatoire (`NotificationRule.mandatory`, 409
+     `MANDATORY_RULE`) ;
+  2. un texte par profil, inchangé ;
+  3. rédaction par périmètre exact (`memberScope`, `scopeKey`) et non plus sur l'intersection des chantiers des membres
+     (`profileScope`, gardée pour mémoire) : un appel au modèle par périmètre distinct ; mémoire de la rédaction par
+     profil et périmètre (`Delivery.scope`) ; désabonnés comptés par envoi (`Delivery.optedOut`), groupe entièrement
+     désabonné non rédigé. Migration `20261118000600_notifications_abonnements`.
+  Le prompt de la règle reste le sujet ; le périmètre est ajouté par le moteur (aide sous le champ).
+- Saisir sans Jev (12/10/2026) : × ferme le panneau, **Annuler** revient au choix de l'objet (les deux vidaient seulement le
+  formulaire, sans effet visible sur un formulaire vierge).

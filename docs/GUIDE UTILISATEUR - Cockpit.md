@@ -427,7 +427,7 @@ Les icônes « Demander à Jev » des blocs et des lignes du Pilotage ont été 
 3. Le panneau « Que voulez-vous créer ? » liste les objets en deux familles :
    - **Structure du projet** : Phase, Chantier, Sous-phase, Jalon ;
    - **Suivi et pilotage** : Livrable, Risque, Action, Tâche, Décision, Fiche d'arbitrage, Baromètre (proposé au PMO et au Responsable du chantier transverse).
-4. Cliquez sur un objet (ou choisissez-le au clavier et appuyez sur Entrée, ou cliquez sur **Continuer**). Le formulaire glisse à la place de la liste ; la flèche **Changer d'objet** ramène la liste. La croix du choix de l'objet ferme le panneau (à la réouverture, Jev revient) ; celle du formulaire le vide.
+4. Cliquez sur un objet (ou choisissez-le au clavier et appuyez sur Entrée, ou cliquez sur **Continuer**). Le formulaire glisse à la place de la liste ; la flèche **Changer d'objet** ramène la liste. La croix ferme le panneau, depuis le choix de l'objet comme depuis un formulaire (la saisie en cours est abandonnée ; à la réouverture, Jev revient). Dans un formulaire, **Annuler** abandonne la saisie et revient au choix de l'objet.
 
 **Remplir le formulaire**
 
@@ -1340,8 +1340,17 @@ Votre carte, en bas de la barre latérale, ouvre **Mon profil**. Le profil n'aff
 |---|---|
 | Informations | **Prénom**, nom, position, société, e-mail, **téléphone**, **ville de résidence**, **pays de résidence**, **langue**, **fuseau horaire** |
 | Projet | Vos projets, avec, pour chacun : projet (code — client), rôle, affectation (dates de début et de fin), droits (PMO, Responsable, Lecteur, ou Lecture pour l'administrateur) et colonne **Par défaut** |
-| Notifications | Quatre préférences d'envoi (quotidien du matin, rapport hebdomadaire, actions échues, rappel la veille d'un comité) |
+| Notifications | Les notifications de la Console qui vous visent sur le projet ouvert, avec un interrupteur par notification (voir ci-dessous) |
 | Sécurité | Mot de passe (« Modifié il y a N jours ») et date et heure de votre dernière connexion |
+
+**Onglet Notifications.** Depuis le 12 octobre 2026, il liste les notifications définies par l'administrateur dans la Console qui vous visent sur le projet ouvert. Pour chacune :
+- son nom, sa fréquence et ses canaux (« Chaque jour à 07:00 · dans l'application et par e-mail ») ;
+- le profil et le périmètre sous lesquels vous la recevez (« En tant que Responsable · chantiers C5, C6 », « En tant que PMO · tout le projet ») : le texte reçu porte sur ce périmètre ;
+- un interrupteur : coupé, vous ne la recevez plus (« Vous ne recevrez plus « … » »), ni dans l'application ni par e-mail. Une notification marquée **Obligatoire** par l'administrateur ne se désactive pas.
+
+Sans notification qui vous vise : « Aucune notification ne vous est destinée sur ce projet. » Les anciens interrupteurs (quotidien du matin, rapport hebdomadaire, actions échues, rappel la veille d'un comité) sont retirés : ils n'étaient reliés à aucun envoi.
+
+**Exemple.** Karim, Responsable de C5 et C6, voit « Synthèse hebdomadaire du projet · Chaque lundi à 07:00 · dans l'application · En tant que Responsable · chantiers C5, C6 ». Il coupe l'interrupteur : le lundi suivant, la synthèse part aux autres destinataires, pas à lui.
 
 **Ce que vous modifiez, ce qui est géré ailleurs**
 
