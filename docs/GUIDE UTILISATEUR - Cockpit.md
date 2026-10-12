@@ -451,7 +451,7 @@ Les icônes « Demander à Jev » des blocs et des lignes du Pilotage ont été 
 | Tâche | Tâche : intitulé*. Rattachement : action (facultative), chantier*. Pilotage : responsable*, échéance, statut |
 | Décision | Décision : point de décision*, priorité (Critique, Haute, Moyenne, Basse). Détails : statut* (« En instruction » par défaut), chantier, instance de décision*. Issue : date de décision, option choisie |
 | Fiche d'arbitrage | Arbitrage : intitulé de l'arbitrage*, décision concernée* (parmi les décisions non clôturées). Contexte : préparée par, contexte. Puis **Composer la fiche** (voir 3.11) |
-| Baromètre | Relevé : mois du relevé* (après le dernier relevé, jusqu'au mois en cours), répondants* (avec le taux de participation). Ressenti : note globale* sur 10 (curseur, écart avec le relevé précédent), répartition négatif / neutre / positif (une barre à deux poignées, toujours 100 %, partant du relevé précédent). Détail : note sur 10 de chaque question commune et de chaque domaine, facultative (la note précédente et l'écart s'affichent ; un clic sur la note l'efface). Verbatims : thèmes, avec leur tonalité positif, vigilance ou alerte. Bouton **Enregistrer le relevé** (voir 3.12) |
+| Baromètre | Relevé : mois du relevé* (après le dernier relevé, jusqu'au mois en cours), répondants* (avec le taux de participation). Ressenti : note globale* sur 10 (curseur, écart avec le relevé précédent), répartition négatif / neutre / positif (une barre à deux poignées, toujours 100 %, partant du relevé précédent). Détail : note sur 10 de chaque question commune et de chaque domaine, facultative (la note précédente et l'écart s'affichent ; un clic sur la note l'efface) ; **Ajouter** sous chaque liste crée une nouvelle question ou un nouveau domaine (« Nouvelle question · Retirer »), enregistré avec le relevé : la question rejoint les questions communes, le domaine le comparateur, et les relevés suivants les proposent. Verbatims : thèmes, avec leur tonalité positif, vigilance ou alerte. Bouton **Enregistrer le relevé** (voir 3.12) |
 
 **Règles**
 
@@ -760,6 +760,8 @@ Demandez-le à Jev (voir 3.19.4) : libellé, probabilité et impact (1 à 5, cri
 - Répartition du ressenti négatif / neutre / positif, autres questions, thèmes des verbatims (positif, vigilance, alerte).
 
 **Relevés mensuels** : depuis le 12 octobre 2026, un relevé se saisit avec Jev › **Saisir sans Jev** › **Baromètre** (voir 3.5.4) : mois, répondants, note globale, répartition du ressenti, questions, domaines et thèmes. Le relevé enregistré apparaît aussitôt dans le baromètre (« Ressenti · {mois} »). Un relevé déjà enregistré ne se modifie pas depuis cet écran.
+
+**Premier relevé.** Avec un seul relevé, le baromètre l'affiche seul : note, répondants, répartition, questions et thèmes du mois, un point sur la courbe, et « premier relevé » à la place des écarts. Les comparaisons apparaissent à partir du deuxième relevé. Un domaine dont le nombre de répondants n'est pas renseigné affiche « — » et n'est pas signalé comme non représentatif.
 
 **Exemple.** Le PMO saisit le relevé d'octobre : 31 répondants sur 33 interrogés, note 6,4 (« +0,5 vs juil. »), ressenti 22 · 21 · 57 %, Logistique 7,2, et le thème « Bascule des données : calendrier encore flou » en alerte. Le message « Relevé d'octobre 2026 enregistré » confirme ; Pilotage › Baromètre affiche « Ressenti · oct. 26 ».
 

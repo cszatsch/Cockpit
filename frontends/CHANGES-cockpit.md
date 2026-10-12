@@ -675,3 +675,12 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
   note précédente et écart), Verbatims (thèmes, tonalité en trois pastilles). Types de champ `month`, `count`, `score`,
   `senti`, `qs`, `doms`, `themes` (`baroField`) ; écriture `POST /barometer/surveys` (`api.js`, `saisie('barometre')`,
   écart des questions calculé sur le relevé précédent, sinon sur les questions communes) ; accès `api.barometer()`.
+- Baromètre, premier relevé (12/10/2026) : un projet à un seul relevé n'est plus remplacé par le baromètre vide (`api.js`,
+  `hydrate` : vide seulement sans relevé) ; la vue (`bm4`, `solo`) l'affiche seul — mois B sans mois A, un point centré,
+  « premier relevé » au lieu des écarts, une seule ligne de répartition et ses parts sous la légende ; ancien calcul aux
+  indices bornés. Domaine sans nombre de répondants : « — », non signalé. Titre « Autres questions » (au lieu de « Deux
+  autres questions »). Tuile « Baromètre des équipes » : mois sans relevé exclus (plus de « null »), virgule décimale.
+- Saisir sans Jev › Baromètre, chapitre Détail (12/10/2026) : **Ajouter** une question ou un domaine (« Nouvelle question ·
+  Retirer ») ; à l'enregistrement, questions ajoutées aux questions communes (`PATCH /barometer/global`), domaines créés
+  (`POST /barometer/domains`) puis notés avec le relevé. Message de liste vide corrigé (il renvoyait à Pilotage › Baromètre,
+  où rien ne se crée).

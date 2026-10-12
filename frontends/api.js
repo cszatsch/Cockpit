@@ -303,8 +303,9 @@ export function attach(comp) {
   function hydrate(L) {
     const B = prepare(L.B);
     // Projet sans relevé du baromètre (projet importé, 07/10/2026) : baromètre vide de deux mois sans valeur, que l'écran
-    // sait afficher (il compare toujours deux mois), au lieu d'un écran en erreur.
-    if (!B.barometre || !Array.isArray(B.barometre.months) || B.barometre.months.length < 2) {
+    // sait afficher, au lieu d'un écran en erreur. Un seul relevé (premier relevé d'un projet, 12/10/2026) est gardé : l'écran
+    // l'affiche seul (`bm4`, « premier relevé »).
+    if (!B.barometre || !Array.isArray(B.barometre.months) || B.barometre.months.length < 1) {
       B.barometre = { months: [['b0', '—'], ['b1', '—']], ecf: { label: '', size: 0, series: [null, null] }, respondents: [0, 0], domains: [], sentiment: { b0: [0, 0, 0], b1: [0, 0, 0] }, questions: [], themes: [], monthQs: {}, monthTh: {} };
     }
     // Base de connaissance : documents en cours de traitement → relecture régulière jusqu'à la fin (avancement, statut).
@@ -1097,7 +1098,19 @@ export function attach(comp) {
           const bm = S.extra.barometer || {}, prev = (bm.surveys || []).slice(-1)[0] || null, sc = (l) => (l || []).filter((q) => q.score != null).map((q) => [q.label, q.score]);
           const was = Object.fromEntries(sc((bm.global || {}).questions).concat(sc(prev && prev.questions)));
           const questions = Object.entries(v.qs || {}).filter(([, x]) => x != null).map(([label, x]) => ({ label, score: +x, delta: was[label] != null ? Math.round((x - was[label]) * 10) / 10 : null }));
-          const domainScores = Object.fromEntries(Object.entries(v.doms || {}).filter(([, x]) => x != null).map(([id, x]) => [id, +x]));
+          // Questions ajoutées dans le formulaire (12/10/2026) : elles rejoignent les questions communes du baromètre.
+          const G = bm.global || {}, gq = G.questions || [], newQ = Object.keys(v.qs || {}).filter((l) => !gq.some((q) => q.label === l));
+          if (newQ.length) await ppatch('/barometer/global', { questions: gq.concat(newQ.map((label) => ({ label, score: v.qs[label] != null ? +v.qs[label] : null, delta: null }))) });
+          // Domaines ajoutés (clé « new:{nom} ») : créés dans le comparateur, puis notés avec le relevé.
+          const domainScores = {};
+          for (const [id, x] of Object.entries(v.doms || {})) {
+            let real = id;
+            if (/^new:/.test(id)) {
+              const r = await ppost('/barometer/domains', { n: id.slice(4) });
+              real = r && r.id;
+            }
+            if (real && x != null) domainScores[real] = +x;
+          }
           const [y, m] = String(v.month).split('-').map(Number);
           await ppost('/barometer/surveys', {
             month: v.month, overallScore: +v.score, respondents: parseInt(v.resp, 10) || 0,

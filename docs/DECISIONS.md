@@ -2272,3 +2272,9 @@ Demande du commanditaire : un risque peut concerner un chantier, plusieurs, ou t
   après le dernier relevé jusqu'au mois en cours (au moins un). Répartition de départ : celle du relevé précédent ramenée à
   100 % (relevés historiques à 97 ou 101), sinon 30 · 40 · 30. Questions : les questions communes du baromètre ; domaines :
   ceux du comparateur ; notes facultatives. Un relevé existant ne se modifie pas depuis ce formulaire.
+- Baromètre, premier relevé (12/10/2026, root cause) : `hydrate` (api.js) remplaçait tout baromètre de moins de deux relevés
+  par deux mois vides (correctif du 07/10/2026 pour les projets importés), ce qui masquait le premier relevé saisi (PMS,
+  octobre). Désormais, baromètre vide seulement sans aucun relevé ; un relevé seul s'affiche sans comparaison. Questions et
+  domaines : le formulaire ne proposait que l'existant, que rien ne permet de créer dans le Cockpit depuis le 09/10/2026 ;
+  il les crée maintenant (questions communes, domaines du comparateur, nombre de répondants du domaine non renseigné →
+  « — » et non signalé).
