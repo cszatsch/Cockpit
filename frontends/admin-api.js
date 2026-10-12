@@ -337,7 +337,8 @@ export function bindConsole(c) {
     guide: async () => { const g = await get('/guides'); setTimeout(() => gdWatch(g), 0); return { gdGuides: g }; },
     mods: async () => ({ mods: sortMods((await get('/modules')).map(toMod)) }),
     reqs: async () => ({ reqs: (await get('/module-requests?status=PENDING')).map(toReq) }),
-    prof: async () => { const me = await get('/me/profile'); meId = me.id; return { meLoaded: true, prof: toProf(me), meInfo: toMeInfo(me), pn: { crit: true, budget: true, req: true, hebdo: true, fail: false, ...(me.notifications || {}) }, photo: me.photoUrl || null }; },
+    // Mes notifications (12/10/2026) : les règles qui visent le profil Admin, et mon abonnement (`myRules`).
+    prof: async () => { const [me, myRules] = await Promise.all([get('/me/profile'), get('/me/notification-rules').catch(() => null)]); meId = me.id; return { meLoaded: true, prof: toProf(me), meInfo: toMeInfo(me), pn: { crit: true, budget: true, req: true, hebdo: true, fail: false, ...(me.notifications || {}) }, myRules: Array.isArray(myRules) ? myRules : [], photo: me.photoUrl || null }; },
     sess: async () => ({ sess: (await get('/me/sessions')).map(toSess) }),
     // Chantiers de chaque projet, pour attribuer des chantiers en Responsable ou en Lecteur.
     wsAll: async () => { const ps = await get('/projects'), lists = await Promise.all(ps.map(p => get('/projects/' + encodeURIComponent(p.code) + '/workstreams'))); return { apiWs: Object.fromEntries(ps.map((p, i) => [p.code, lists[i].map(w => ({ id: w.id, n: w.name, code: w.code }))])) }; },
@@ -646,6 +647,9 @@ export function bindConsole(c) {
     if (next.apiBoot) return;
     if (next.sPj !== prev.sPj) load(['sched']).catch(fail);
     else if (next.sched !== prev.sched && prev.sched) put('/projects/' + next.sPj + '/snapshot-schedule', fromSched(next.sched)).then(s => { set0({ sched: toSched(s) }); touch(); }).catch(e => { fail(e); load(['sched']).catch(() => {}); });
+    // Abonnement à une règle (Mon profil › Notifications) : la ligne modifiée est envoyée ; en cas de refus, relecture.
+    if (next.myRules !== prev.myRules && prev.myRules) (next.myRules || []).filter(r => { const o = prev.myRules.find(x => x.id === r.id); return o && o.subscribed !== r.subscribed; })
+      .forEach(r => put('/me/notification-rules/' + encodeURIComponent(r.id), { subscribed: r.subscribed }).then(() => touch()).catch(e => { fail(e); load(['prof']).catch(() => {}); }));
     if (next.pn !== prev.pn && prev.pn) patch('/me/notifications', next.pn).then(pn => set0({ pn: { ...next.pn, ...pn } })).catch(e => { fail(e); load(['prof']).catch(() => {}); });
   };
 

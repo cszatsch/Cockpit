@@ -415,6 +415,53 @@
         ]
       }
     },
+    "/api/admin/me/notification-rules": {
+      "get": {
+        "operationId": "AdminMyNotificationRulesController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · mes notifications"
+        ]
+      }
+    },
+    "/api/admin/me/notification-rules/{id}": {
+      "put": {
+        "operationId": "AdminMyNotificationRulesController_set",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · mes notifications"
+        ]
+      }
+    },
     "/api/projects/{projectId}/project": {
       "get": {
         "operationId": "ProjectController_get",

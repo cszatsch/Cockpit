@@ -2296,3 +2296,7 @@ Demande du commanditaire : un risque peut concerner un chantier, plusieurs, ou t
   questions communes, les mois passés gardent la leur (`monthQs`). Le suivi d'un chantier peut être arrêté (« Ne plus
   suivre », un chantier passé en production) : `retiredFrom` = mois du relevé, plus proposé ensuite, historique conservé
   et marqué « suivi arrêté » dans le comparateur. Migration `20261118000700_barometre_domaine_arrete`.
+- Console, Mon profil › Notifications (12/10/2026, demande du commanditaire) : même principe que le Cockpit — les règles
+  actives qui visent le profil Admin (tous projets ou liste), désabonnement par règle (`NotificationOptOut`), règle
+  obligatoire non désactivable ; route `api/admin/me/notification-rules` (`AdminMyNotificationRulesController`,
+  `@AdminOnly`). Annexe A du guide Console mise à jour pour la règle « Texte par profil », devenue inexacte.

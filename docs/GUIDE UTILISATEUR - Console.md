@@ -1666,7 +1666,7 @@ Du plus prioritaire au moins prioritaire :
 ### 3.18.1 Créer et régler une règle
 
 1. Cliquez sur **Nouvelle règle**. La règle est créée inactive, quotidienne à 7 h 00.
-2. Cliquez sur le titre et renommez la règle (120 caractères au plus).
+2. Nommez la règle dans le champ **Nom de la règle** (souligné en pointillé, avec un crayon ; il est sélectionné à la création, 120 caractères au plus). La pastille de la règle, dans la liste, reflète aussitôt le nom, la fréquence, l'heure et le statut en cours de saisie, avant l'enregistrement.
 3. **Canal** : **Dans l'application** (cloche du Cockpit) et/ou **E-mail**. Il faut au moins un canal.
 4. **Destinataires par profil** : Admin, PMO, Responsable, Lecteur. Le nombre de destinataires actifs s'affiche.
    - **Désabonnement** (depuis le 12/10/2026) : **Libre** (par défaut), chaque destinataire peut désactiver la règle dans son profil du Cockpit (Mon profil › Notifications) ; **Obligatoire**, elle ne se désactive pas.
@@ -1955,6 +1955,7 @@ Quand une question porte sur l'utilisation de l'application, Jev cherche les pas
   - « Niveau d'administration » : « Super Admin », avec « Accordé le {date}. Seul un autre Super Admin peut retirer ce profil. », ou « Administrateur », avec « Accordé le {date}. Seul un autre administrateur peut retirer ce droit. » ;
   - le bouton **Mes N actions tracées · M critiques** ouvre le journal d'audit filtré sur votre nom ;
   - le tableau de vos projets : projet, rôle, affectation (dates) et droits (PMO, Responsable ou Lecteur et leurs chantiers, ou « Aucun droit »). Les rôles et affectations viennent du référentiel du projet ; les droits, de la page Utilisateurs.
+- **Onglet Notifications** (depuis le 12/10/2026) : les règles de la page Notifications qui visent le profil **Admin**, avec leur fréquence, leurs canaux et leurs projets (« Chaque lundi à 07:00 · dans l'application et par e-mail · projet PMS »). Un interrupteur par règle : coupé, vous ne la recevez plus. Une règle **Obligatoire** affiche un cadenas et ne se désactive pas. Sans règle qui vise le profil Admin : « Aucune notification ne vise le profil Admin. » Les anciens interrupteurs (alertes critiques, budget, demandes de module, synthèse, échecs d'envoi), qu'aucun envoi ne lisait, sont retirés ;
 - **Onglet Sécurité** :
   - **Modifier** le mot de passe : saisissez le mot de passe actuel, puis le nouveau deux fois. Vos autres sessions sont fermées ; celle-ci reste ouverte ;
   - **Sessions ouvertes** : **Déconnecter** ferme une session précise ; **Déconnecter les autres sessions** ferme toutes les autres ;
@@ -2259,7 +2260,7 @@ Les références désignent les fichiers du code (dossier `backend/src` sauf men
 | Un envoi unique | Unicité par règle, projet et heure prévue | Notifications | `prisma/schema.prisma` (`@@unique([ruleId, projectId, scheduledAt])`) |
 | Vérification des envois | Chaque minute, sur le prochain envoi stocké | Notifications | `admin/notifications.service.ts` |
 | Rattrapage | Jusqu'au lendemain 23:59 (fuseau du projet) ; seul le plus récent ; 10 par minute ; « à l'heure » sous 5 min | Notifications | `domain/notification-rules.ts` ; `admin/notifications.service.ts` |
-| Texte par profil | Profil le plus large ; données communes à tous les destinataires du profil | Notifications | `admin/profiles.service.ts` ; `domain/notification-rules.ts` |
+| Texte par profil | Profil le plus large ; un texte par profil et par périmètre exact de chantiers (depuis le 12/10/2026) ; désabonnés exclus sauf règle obligatoire | Notifications | `admin/profiles.service.ts` ; `domain/notification-rules.ts` |
 | Longueur des notifications | Message complet de moins de 100 mots | Notifications | `domain/notification-rules.ts` ; `admin/notifications.service.ts` |
 | E-mail mis en page | HTML (titre, chiffres, « À surveiller », « À faire »), texte brut joint | Notifications | `domain/notification-email.ts` (`notificationHtml`) |
 | Mémoire des notifications | Dernier envoi réussi de moins de 35 jours, même projet et même profil | Notifications | `domain/notification-rules.ts` ; `admin/notifications.service.ts` |
@@ -2365,7 +2366,7 @@ Ces points viennent de la lecture du code. Ils décrivent un écart entre le cod
 
 **Mon profil**
 
-65. **Préférences de notification** : les cinq interrupteurs de l'onglet Notifications sont enregistrés, mais aucun traitement ne les lit ; le verrou de la première préférence n'existe qu'à l'écran.
+65. ~~**Préférences de notification** : les cinq interrupteurs de l'onglet Notifications étaient enregistrés, sans qu'aucun traitement ne les lise.~~ Corrigé le 12/10/2026 : l'onglet liste les règles qui visent le profil Admin, avec un désabonnement réel.
 66. **Périmètre de la console** : la liste affichée dans l'onglet Habilitations est fixe.
 67. **Changement d'e-mail** : la confirmation annonce un lien de vérification, mais l'adresse est changée immédiatement, sans lien.
 
@@ -2376,7 +2377,7 @@ Ces fonctionnalités existent dans le code mais sont désactivées, inaccessible
 | Fonctionnalité | État |
 |---|---|
 | Page « Droits et habilitations » (matrice des droits, profils types, super-administrateur ; sans lien avec le profil Super Admin décrit en 4.1) | Absente du menu, code inactif |
-| Préférences de notification de Mon profil (5 interrupteurs) | Enregistrées, sans aucun effet |
+| Préférences de notification de Mon profil (5 interrupteurs) | Remplacées le 12/10/2026 par l'abonnement aux règles visant le profil Admin |
 | Double authentification | Retirée |
 | Palette de recherche | Prévue, sans bouton |
 | Export d'un snapshot (fichier JSON) | Disponible côté serveur, sans bouton |

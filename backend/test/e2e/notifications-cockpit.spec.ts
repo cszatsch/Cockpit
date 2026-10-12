@@ -135,6 +135,18 @@ describe('Notifications du Cockpit et rédaction à partir des données', () => 
       await resp5.get('/api/me/notification-rules').expect(400);
     });
 
+    it('Console › Mon profil › Notifications : règles visant le profil Admin, désabonnement ; réservé à l’Admin', async () => {
+      await t.db.notificationRule.update({ where: { id: 'n4' }, data: { targetProfiles: ['admin', 'pmo', 'resp'] } });
+      const list = (await admin.get(`${A}/me/notification-rules`).expect(200)).body;
+      expect(list.find((r: any) => r.id === 'n4')).toMatchObject({ name: 'Synthèse hebdomadaire du projet', profile: 'Admin', projects: expect.anything(), subscribed: true, mandatory: false });
+      expect(list.some((r: any) => r.id === 'n5')).toBe(false); // inactive, et sans le profil Admin
+      expect((await admin.put(`${A}/me/notification-rules/n4`, { subscribed: false }).expect(200)).body).toEqual({ id: 'n4', subscribed: false });
+      expect((await admin.get(`${A}/me/notification-rules`).expect(200)).body.find((r: any) => r.id === 'n4').subscribed).toBe(false);
+      await admin.put(`${A}/me/notification-rules/n4`, { subscribed: true }).expect(200);
+      await (await t.as(WHO.pmo)).get(`${A}/me/notification-rules`).expect(403);
+      await t.db.notificationRule.update({ where: { id: 'n4' }, data: { targetProfiles: ['pmo', 'resp'] } });
+    });
+
     it('Cockpit : la cloche liste mes notifications, compte les non lues, marque lu ; chacun ne voit que les siennes', async () => {
       const pmo = await t.as(WHO.pmo);
       const me = (await pmo.get('/api/me/notifications').expect(200)).body;

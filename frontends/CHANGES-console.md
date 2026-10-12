@@ -816,3 +816,10 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
 - Notifications, éditeur de règle (12/10/2026) : ligne « Désabonnement » (Libre / Obligatoire, champ `mandatory`) ; aide
   sous le prompt (« Décrivez le sujet. Le périmètre de chaque destinataire… est ajouté automatiquement ») ; historique :
   « N destinataires · K désabonnés ».
+- Mon profil › Notifications (12/10/2026) : les cinq interrupteurs génériques (jamais lus par l'envoi) sont remplacés par
+  les règles qui visent le profil Admin (`GET /api/admin/me/notification-rules`, `myRules` chargé avec `prof`), un
+  interrupteur par règle (`PUT /api/admin/me/notification-rules/:id`, envoyé par `admin-api.js` au changement de
+  `myRules`), cadenas « Obligatoire ».
+- Notifications, éditeur de règle (12/10/2026) : nom de la règle signalé comme modifiable (étiquette « Nom de la règle »,
+  soulignement pointillé, crayon, champ sélectionné à la création, `titleRef`) ; pastille de la règle ouverte alimentée
+  par le brouillon (nom, fréquence, heure, statut) avant l'enregistrement.

@@ -3,7 +3,7 @@ import { JevCockpitWriteService } from './assistant/jev-cockpit-write.service';
 import { Module } from '@nestjs/common';
 import { MeController } from './me.controller';
 import { MyNotificationsController } from './my-notifications.controller';
-import { MyNotificationRulesController } from './my-notification-rules.controller';
+import { AdminMyNotificationRulesController, MyNotificationRulesController } from './my-notification-rules.controller';
 import { ReferentialService } from './referential/referential.service';
 import { UsagesService } from './referential/usages.service';
 import { REFERENTIAL_CONTROLLERS } from './referential/referential.controllers';
@@ -30,7 +30,7 @@ import { AdminModule } from '../admin/admin.module';
 @Module({
   imports: [AdminModule],
   // Ordre significatif : les routes fixes (ex. deliverables/tracking) avant les routes paramétrées (deliverables/:id).
-  controllers: [MeController, MyNotificationsController, MyNotificationRulesController, ProjectController, BootstrapController, PilotageController, TodayController, CommitteesController, ReportFormatController, DocumentsController, CollabController, AssistantController, ...REFERENTIAL_CONTROLLERS, ...TX_CONTROLLERS],
+  controllers: [MeController, MyNotificationsController, MyNotificationRulesController, AdminMyNotificationRulesController, ProjectController, BootstrapController, PilotageController, TodayController, CommitteesController, ReportFormatController, DocumentsController, CollabController, AssistantController, ...REFERENTIAL_CONTROLLERS, ...TX_CONTROLLERS],
   providers: [ReferentialService, UsagesService, TransactionalService, AnomaliesService, BootstrapService, KbService, ReportFormatService, ReportTemplateService, JevCockpitDocsService, JevCockpitWriteService, TodayGreetingService],
   exports: [ReferentialService, UsagesService, TransactionalService, AnomaliesService],
 })
