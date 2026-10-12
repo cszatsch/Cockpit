@@ -699,3 +699,8 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
   mois, mois à retaper ; `barometerMonth`, `confirmBarometer`) ; création ou modification d'un relevé → orientation vers
   Saisir sans Jev › Baromètre. Route `DELETE /api/projects/:id/barometer/surveys/:month` (notes du mois retirées des
   chantiers du comparateur, `removeBarometerSurvey`, `pilotage/barometer.ts`). Aucun changement d'écran.
+- Jev, plusieurs suppressions dans un même récapitulatif (12/10/2026) : un champ par suppression, chacun avec sa référence
+  (`dels`, `codes`, `codeFields`) ; bouton « Supprimer définitivement (N) » actif quand toutes sont retapées. Avant : un
+  seul champ (référence de la première), le même code envoyé pour toutes — la deuxième était refusée, puis « Proposition
+  déjà validée ou refusée » au nouvel essai. Validation : propositions déjà traitées jamais renvoyées (`done`), reprise
+  après une interruption, 409 ALREADY_DECIDED ignoré (`jevDecide`, api.js).

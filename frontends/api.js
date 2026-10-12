@@ -1395,9 +1395,10 @@ export function attach(comp) {
           const g = pc.filter((c) => (c.group || 'main') === group);
           if (!g.length) continue;
           const items = g.flatMap((c) => [...(g.length > 1 || group === 'linked' ? [[c.title || c.summary, '', '']] : []), ...(c.rows || [[c.entityId || 'Nouveau', '', c.summary]]).map((x) => (Array.isArray(x) ? x : [x.t, x.a || '', x.b]))]);
-          const del = g.find((c) => c.confirmCode);
+          // Suppressions (12/10/2026) : une référence à retaper par suppression (plusieurs dans un même récapitulatif).
+          const dels = g.filter((c) => c.confirmCode).map((c) => ({ id: c.id, code: c.confirmCode }));
           msgs.push({
-            t: 'recap', st: 'proposed', changeIds: g.map((c) => c.id), items, confirmCode: del ? del.confirmCode : null, code: '',
+            t: 'recap', st: 'proposed', changeIds: g.map((c) => c.id), items, dels, codes: {}, done: [], confirmCode: dels.length ? dels[0].code : null, code: '',
             title: group === 'linked' ? g.length + (g.length > 1 ? ' actions liées proposées' : ' action liée proposée') + ' · à valider après le risque' : g.length > 1 ? g.length + ' modifications proposées' : g[0].title || '1 modification proposée',
           });
         }
@@ -1411,18 +1412,30 @@ export function attach(comp) {
     /** Validation ou refus d'une proposition de Jev : `POST /assistant/changes/{id}/confirm|reject`. */
     async jevDecide(m, verb) {
       const ids = (m && m.changeIds) || [];
+      // Propositions déjà traitées (12/10/2026) : jamais renvoyées ; une validation interrompue reprend là où elle s'est arrêtée.
+      m.done = m.done || [];
+      const dels = m.dels || (m.confirmCode && ids.length === 1 ? [{ id: ids[0], code: m.confirmCode }] : []);
       try {
-        const links = [];
+        const links = [], deleted = [];
         for (const id of ids) {
-          // Suppression : confirmation renforcée, le code retapé par l'utilisateur est vérifié par le serveur.
-          const r = await ppost('/assistant/changes/' + enc(id) + '/' + verb, verb === 'confirm' && m.confirmCode ? { confirmCode: m.code || '' } : {});
+          if (m.done.includes(id)) continue;
+          // Suppression : confirmation renforcée, la référence retapée pour CETTE suppression est vérifiée par le serveur.
+          const d = dels.find((x) => x.id === id);
+          let r;
+          try {
+            r = await ppost('/assistant/changes/' + enc(id) + '/' + verb, verb === 'confirm' && d ? { confirmCode: ((m.codes || {})[id] ?? m.code ?? '').trim() } : {});
+          } catch (e) {
+            if (!(e instanceof ApiError && e.status === 409 && e.code === 'ALREADY_DECIDED')) throw e;
+          }
+          m.done.push(id);
           if (r && r.link) links.push(r.link);
+          if (d && verb === 'confirm') deleted.push(d.code);
         }
         if (ids.length && verb === 'confirm') {
           scheduleReload();
           // Lien vers chaque enregistrement créé ou modifié (écran du Pilotage).
           const msgs = links.map((l) => ({ t: 'jev', text: 'Enregistré : ' + l.code + '.', link: l }));
-          if (m.confirmCode) msgs.push({ t: 'jev', text: 'Supprimé : ' + m.confirmCode + '.' });
+          if (deleted.length) msgs.push({ t: 'jev', text: 'Supprimé : ' + deleted.join(', ') + '.' });
           if (msgs.length) { comp.setState((s) => ({ jevMsgs: (s.jevMsgs || []).concat(msgs) })); comp.jevScroll(); }
         }
         return true;
