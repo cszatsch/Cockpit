@@ -340,7 +340,8 @@ export class ReportTemplateService implements OnModuleInit {
           month: last?.label ?? '—', score: last?.overallScore ?? null, prevScore: prev?.overallScore ?? null, prevMonth: prev?.label ?? null,
           respondents: last?.respondents ?? null, population: global.size ?? null,
           sentiment: sent(last?.sentiment), prevPositive: sent(prev?.sentiment)?.positive ?? null,
-          domains: doms.map((dm) => ({ name: dm.n, score: valueAt(dm.series, last?.month), prev: valueAt(dm.series, prev?.month), resp: dm.resp })),
+          // Chantier dont le suivi est arrêté (12/10/2026) : absent s'il n'a pas de note au dernier mois.
+          domains: doms.filter((dm) => !(dm.retiredFrom && valueAt(dm.series, last?.month) === null)).map((dm) => ({ name: dm.n, score: valueAt(dm.series, last?.month), prev: valueAt(dm.series, prev?.month), resp: dm.resp })),
           themes: (((last?.themes as unknown) ?? global.themes ?? []) as Array<{ label: string; tone: string }>).filter((x) => x?.label).map((x) => ({ label: x.label, tone: (['OK', 'WATCH', 'RISK'].includes(x.tone) ? x.tone : 'WATCH') as 'OK' | 'WATCH' | 'RISK' })),
           questions: (((last?.questions as unknown) ?? global.questions ?? []) as Array<{ label: string; score: number; delta: number | null }>).filter((x) => x?.label && typeof x.score === 'number'),
           show: { score: inds.includes('score'), sentiment: inds.includes('sentiment'), domains: inds.includes('domains'), themes: inds.includes('themes') },

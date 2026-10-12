@@ -704,3 +704,11 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
   seul champ (référence de la première), le même code envoyé pour toutes — la deuxième était refusée, puis « Proposition
   déjà validée ou refusée » au nouvel essai. Validation : propositions déjà traitées jamais renvoyées (`done`), reprise
   après une interruption, 409 ALREADY_DECIDED ignoré (`jevDecide`, api.js).
+- Baromètre, comparateur (12/10/2026) : un chantier dont le suivi est arrêté est masqué quand le mois B n'a pas de note
+  (`bm4`) ; il reparaît sur des mois antérieurs à l'arrêt. Même règle dans le composant Baromètre des rapports
+  (dernier mois, `report-template.service.ts`).
+- Baromètre (12/10/2026) : icônes « i » (« Bloc informatif ») retirées des quatre blocs. « Autres questions » : écart
+  calculé entre les mois comparés (B − A, même question) ; relevé seul : « premier relevé » ; mois A sans questions
+  propres (relevés historiques) : écart enregistré seulement si A précède B, sinon « — ». Saisie (Saisir sans Jev) : la
+  note précédente d'une question vient du relevé précédent seulement (la note des questions communes pouvait venir d'un
+  relevé supprimé : « +3,3 vs sept. 26 » sur un relevé seul).

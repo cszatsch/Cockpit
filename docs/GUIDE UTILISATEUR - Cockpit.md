@@ -756,8 +756,8 @@ Demandez-le à Jev (voir 3.19.4) : libellé, probabilité et impact (1 à 5, cri
 
 - « Ressenti · {mois} » : note moyenne sur 10, écart avec le mois de comparaison, nombre de répondants.
 - Courbe des 7 derniers mois ; vous choisissez les deux mois comparés (A et B). Un commentaire automatique qualifie l'évolution (« repli après … », « reprise, sans retrouver le niveau de … »).
-- **Comparateur par chantier** : « Un chantier à moins de 3 répondants est signalé : sa moyenne n'est pas représentative. » Un chantier dont le suivi est arrêté garde son historique, avec la mention « suivi arrêté ».
-- Répartition du ressenti négatif / neutre / positif, autres questions, thèmes des verbatims (positif, vigilance, alerte).
+- **Comparateur par chantier** : « Un chantier à moins de 3 répondants est signalé : sa moyenne n'est pas représentative. » Un chantier dont le suivi est arrêté n'apparaît plus dès que le mois comparé (B) est postérieur à l'arrêt ; il reparaît, avec ses notes et la mention « suivi arrêté », si vous comparez des mois où il était encore suivi. Il est aussi absent du composant Baromètre des rapports.
+- Répartition du ressenti négatif / neutre / positif, autres questions (note du mois B et écart avec le mois A pour la même question ; « premier relevé » s'il n'y en a qu'un), thèmes des verbatims (positif, vigilance, alerte).
 
 **Relevés mensuels** : depuis le 12 octobre 2026, un relevé se saisit avec Jev › **Saisir sans Jev** › **Baromètre** (voir 3.5.4) : mois, répondants, note globale, répartition du ressenti, questions, chantiers et thèmes. Le relevé enregistré apparaît aussitôt dans le baromètre (« Ressenti · {mois} »). Un relevé déjà enregistré ne se modifie pas depuis cet écran.
 

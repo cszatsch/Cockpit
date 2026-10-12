@@ -833,3 +833,6 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
 - Correctif (12/10/2026) : `admin-api.js` ne se chargeait plus (commentaire `//` inséré au milieu d'une ligne du chargeur
   `prof`, commit 2e649bf) ; la Console restait sur ses données de démonstration (compte « Julien Morel », 26/09/2026).
   Nouveau test `test/unit/frontends-syntaxe.spec.ts` : syntaxe de chaque client `.js` et du script de chaque écran.
+- Mon profil (12/10/2026) : barre de défilement verticale (flèches ▲ ▼) retirée de la barre d'onglets — elle débordait
+  d'un pixel (`overflow-x:auto` rendait aussi le défilement vertical automatique) : `overflow-y:hidden`,
+  `scrollbar-width:none`.

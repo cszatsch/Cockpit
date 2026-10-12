@@ -1104,9 +1104,10 @@ export function attach(comp) {
           msg = 'Fiche d’arbitrage de ' + ((d && (d.code || d.id)) || 'la décision') + ' enregistrée';
         } else if (kind === 'barometre') {
           // Relevé mensuel du baromètre (12/10/2026) : écart de chaque question calculé sur le relevé précédent.
-          // Note précédente : celle du dernier relevé, sinon la note courante des questions communes (comme le formulaire).
+          // Note précédente : celle du relevé précédent seulement (12/10/2026 : la note des questions communes pouvait venir
+          // d'un relevé supprimé depuis).
           const bm = S.extra.barometer || {}, prev = (bm.surveys || []).slice(-1)[0] || null, sc = (l) => (l || []).filter((q) => q.score != null).map((q) => [q.label, q.score]);
-          const was = Object.fromEntries(sc((bm.global || {}).questions).concat(sc(prev && prev.questions)));
+          const was = Object.fromEntries(sc(prev && prev.questions));
           const questions = Object.entries(v.qs || {}).filter(([l, x]) => x != null && !/^off:/.test(l)).map(([label, x]) => ({ label, score: +x, delta: was[label] != null ? Math.round((x - was[label]) * 10) / 10 : null }));
           // Questions ajoutées dans le formulaire (12/10/2026) : elles rejoignent les questions communes du baromètre.
           // Questions retirées (« Ne plus poser », 12/10/2026) : sorties des questions communes ; les mois passés gardent les leurs.
