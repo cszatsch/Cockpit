@@ -2291,3 +2291,8 @@ Demande du commanditaire : un risque peut concerner un chantier, plusieurs, ou t
   Le prompt de la règle reste le sujet ; le périmètre est ajouté par le moteur (aide sous le champ).
 - Saisir sans Jev (12/10/2026) : × ferme le panneau, **Annuler** revient au choix de l'objet (les deux vidaient seulement le
   formulaire, sans effet visible sur un formulaire vierge).
+- Baromètre, questions et chantiers (12/10/2026, demande du commanditaire) : le mot « domaine » devient « chantier » à
+  l'écran (la table reste `BarometerDomain`). Une question commune peut être retirée (« Ne plus poser ») : elle sort des
+  questions communes, les mois passés gardent la leur (`monthQs`). Le suivi d'un chantier peut être arrêté (« Ne plus
+  suivre », un chantier passé en production) : `retiredFrom` = mois du relevé, plus proposé ensuite, historique conservé
+  et marqué « suivi arrêté » dans le comparateur. Migration `20261118000700_barometre_domaine_arrete`.

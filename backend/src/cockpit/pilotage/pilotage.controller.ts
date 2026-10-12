@@ -92,7 +92,7 @@ const SurveyCreate = z
 const SurveyPatch = SurveyCreate.omit({ month: true }).extend({ sentiment: Sentiment.partial() }).partial().strict();
 
 const DomainCreate = z
-  .object({ n: z.string().trim().min(1).max(120), size: z.number().int().min(0).max(100000).default(0), resp: z.number().int().min(0).max(999).default(0), range: z.string().max(40).default(''), series: z.record(z.number().min(0).max(10).nullable()).default({}) })
+  .object({ n: z.string().trim().min(1).max(120), size: z.number().int().min(0).max(100000).default(0), resp: z.number().int().min(0).max(999).default(0), range: z.string().max(40).default(''), series: z.record(z.number().min(0).max(10).nullable()).default({}), retiredFrom: Month.nullable().optional() })
   .strict();
 
 const GlobalPatch = z.object({ label: z.string().max(120), size: z.number().int().min(0), questions: z.array(Question), themes: z.array(Theme) }).partial().strict();
@@ -288,7 +288,7 @@ export class PilotageController {
     return {
       global: global?.data ?? { label: '', size: 0, questions: [], themes: [] },
       surveys: surveys.map((s) => ({ month: s.month, key: s.key, label: s.label, overallScore: s.overallScore, respondents: s.respondents, sentiment: s.sentiment, questions: s.questions, themes: s.themes, version: s.version })),
-      domains: domains.map((d) => ({ id: d.id, n: d.n, size: d.size, resp: d.resp, range: d.range, series: d.series, version: d.version })),
+      domains: domains.map((d) => ({ id: d.id, n: d.n, size: d.size, resp: d.resp, range: d.range, series: d.series, retiredFrom: d.retiredFrom, version: d.version })),
     };
   }
 
@@ -374,7 +374,7 @@ export class PilotageController {
       const order = await db.barometerDomain.count({ where: { projectId: scope.project.id } });
       const row = await db.barometerDomain.create({ data: { projectId: scope.project.id, ...input, order } });
       await this.tx.audit.record(db, this.tx.wctx(actor, scope, wsId), { entityType: 'BAROMETER_DOMAIN', entityId: row.id, before: null, after: row as any, wsId, target: row.n });
-      return { id: row.id, n: row.n, size: row.size, resp: row.resp, range: row.range, series: row.series, version: row.version };
+      return { id: row.id, n: row.n, size: row.size, resp: row.resp, range: row.range, series: row.series, retiredFrom: row.retiredFrom, version: row.version };
     });
   }
 
@@ -390,7 +390,7 @@ export class PilotageController {
       if (input.series) data.series = { ...(existing.series as any), ...input.series };
       const row = await db.barometerDomain.update({ where: { id }, data: { ...data, version: { increment: 1 } } });
       await this.tx.audit.record(db, this.tx.wctx(actor, scope, wsId), { entityType: 'BAROMETER_DOMAIN', entityId: id, before: existing as any, after: row as any, wsId, target: row.n });
-      return { id: row.id, n: row.n, size: row.size, resp: row.resp, range: row.range, series: row.series, version: row.version };
+      return { id: row.id, n: row.n, size: row.size, resp: row.resp, range: row.range, series: row.series, retiredFrom: row.retiredFrom, version: row.version };
     });
   }
 

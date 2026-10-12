@@ -301,7 +301,7 @@ export class BootstrapService {
       months: surveys.map((s) => [s.key, s.label]),
       ecf: { label: bg.label, size: bg.size, series: surveys.map((s) => s.overallScore) },
       respondents: surveys.map((s) => s.respondents),
-      domains: domains.map((d) => ({ id: d.id, n: d.n, size: d.size, resp: d.resp, series: surveys.map((s) => (d.series as any)?.[s.month] ?? null), range: d.range })),
+      domains: domains.map((d) => ({ id: d.id, n: d.n, size: d.size, resp: d.resp, series: surveys.map((s) => (d.series as any)?.[s.month] ?? null), range: d.range, retiredFrom: d.retiredFrom ?? null })),
       sentiment: Object.fromEntries(surveys.map((s) => {
         const x = (s.sentiment as any) ?? { negative: 0, neutral: 0, positive: 0 };
         return [s.key, [x.negative, x.neutral, x.positive]];

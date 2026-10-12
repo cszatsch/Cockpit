@@ -880,6 +880,8 @@ model BarometerDomain {
   /// { "YYYY-MM": score | null }
   series    Json
   range     String   @default("")
+  /// Suivi arrêté à partir de ce mois (AAAA-MM, 12/10/2026) : le domaine n'est plus proposé aux relevés suivants, son historique reste.
+  retiredFrom String?
   order     Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

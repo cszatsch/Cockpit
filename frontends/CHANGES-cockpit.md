@@ -690,3 +690,8 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
   `api.setMyRule`) et la mention « Obligatoire » (verrou) ; message si aucune règle.
 - Saisir sans Jev (12/10/2026) : la croix d'un formulaire ferme le panneau (elle vidait seulement le formulaire) et
   **Annuler** revient au choix de l'objet (`closeForm`, `cancelForm`) ; vaut pour tous les objets (moteur commun).
+- Baromètre (12/10/2026) : « domaine » devient « chantier » (formulaire de Saisir sans Jev, Pilotage › Baromètre :
+  « Comparateur par chantier », colonne « Chantier », note sur la représentativité, tuile d'Aujourd'hui). Formulaire,
+  chapitre Détail : **Ne plus poser** (question retirée des questions communes, `PATCH /barometer/global`) et **Ne plus
+  suivre** (chantier arrêté à partir du mois du relevé, `BarometerDomain.retiredFrom`, `PATCH /barometer/domains/:id`),
+  **Rétablir** avant l'enregistrement ; l'historique reste ; comparateur : « · suivi arrêté ».

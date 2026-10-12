@@ -1107,13 +1107,17 @@ export function attach(comp) {
           // Note précédente : celle du dernier relevé, sinon la note courante des questions communes (comme le formulaire).
           const bm = S.extra.barometer || {}, prev = (bm.surveys || []).slice(-1)[0] || null, sc = (l) => (l || []).filter((q) => q.score != null).map((q) => [q.label, q.score]);
           const was = Object.fromEntries(sc((bm.global || {}).questions).concat(sc(prev && prev.questions)));
-          const questions = Object.entries(v.qs || {}).filter(([, x]) => x != null).map(([label, x]) => ({ label, score: +x, delta: was[label] != null ? Math.round((x - was[label]) * 10) / 10 : null }));
+          const questions = Object.entries(v.qs || {}).filter(([l, x]) => x != null && !/^off:/.test(l)).map(([label, x]) => ({ label, score: +x, delta: was[label] != null ? Math.round((x - was[label]) * 10) / 10 : null }));
           // Questions ajoutées dans le formulaire (12/10/2026) : elles rejoignent les questions communes du baromètre.
-          const G = bm.global || {}, gq = G.questions || [], newQ = Object.keys(v.qs || {}).filter((l) => !gq.some((q) => q.label === l));
-          if (newQ.length) await ppatch('/barometer/global', { questions: gq.concat(newQ.map((label) => ({ label, score: v.qs[label] != null ? +v.qs[label] : null, delta: null }))) });
+          // Questions retirées (« Ne plus poser », 12/10/2026) : sorties des questions communes ; les mois passés gardent les leurs.
+          const G = bm.global || {}, gq = G.questions || [], keys = Object.keys(v.qs || {}), offQ = new Set(keys.filter((l) => /^off:/.test(l)).map((l) => l.slice(4)));
+          const newQ = keys.filter((l) => !/^off:/.test(l) && !gq.some((q) => q.label === l));
+          if (newQ.length || offQ.size) await ppatch('/barometer/global', { questions: gq.filter((q) => !offQ.has(q.label)).concat(newQ.map((label) => ({ label, score: v.qs[label] != null ? +v.qs[label] : null, delta: null }))) });
           // Domaines ajoutés (clé « new:{nom} ») : créés dans le comparateur, puis notés avec le relevé.
           const domainScores = {};
           for (const [id, x] of Object.entries(v.doms || {})) {
+            // Chantier dont le suivi s'arrête (« Ne plus suivre ») : plus proposé à partir de ce relevé ; son historique reste.
+            if (/^off:/.test(id)) { await ppatch('/barometer/domains/' + encodeURIComponent(id.slice(4)), { retiredFrom: v.month }); continue; }
             let real = id;
             if (/^new:/.test(id)) {
               const r = await ppost('/barometer/domains', { n: id.slice(4) });
