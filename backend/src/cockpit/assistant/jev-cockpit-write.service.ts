@@ -6,6 +6,7 @@ import { ProjectScope } from '../../core/access.service';
 import { ChatTurn } from '../../core/llm-client';
 import { LlmService } from '../../core/llm.service';
 import { JevPromptService } from '../../core/jev-prompt.service';
+import { barometerWriteWs } from '../pilotage/barometer';
 import { PrismaService } from '../../core/prisma.service';
 import { TodayService } from '../../core/today.service';
 import { canReadLinks, canReadWs, canWriteLinks, canWriteReferential, canWriteWs, riskLinks, RISK_ALL_WS_LABEL } from '../../domain/rights';
@@ -13,7 +14,7 @@ import { requestContext } from '../../domain/jev-sql';
 import { COCKPIT_CASE_ROUTE } from '../../domain/jev-router-cockpit';
 import { nowParisLabel } from '../../domain/jev-cockpit-answers';
 import {
-  DraftOp, DraftQuestion, entityOfCode, isRefEntity, linkedActionDue, norm, normalizeWriteCode, enumValue, REF_PMO_ONLY_REPLY, unsupportedReply, unsupportedRequests, ExtractedOp, fieldSpec, frDate, matchNamed, Named, opTitle, parseDate, parseExtraction, prio4Candidates, PRIO4_LABEL,
+  DraftOp, DraftQuestion, FieldSpec, barometerMonth, barometerMonthLabel, entityOfCode, isRefEntity, linkedActionDue, norm, normalizeWriteCode, enumValue, REF_PMO_ONLY_REPLY, unsupportedReply, unsupportedRequests, ExtractedOp, fieldSpec, frDate, matchNamed, Named, opTitle, parseDate, parseExtraction, prio4Candidates, PRIO4_LABEL,
   scaleCandidates, SCALE5_LABEL, WS_ALL_LABEL, WS_ALL_RE, WS_ALL_VALUE, WS_MULTI_SUBMIT_LABEL, WriteDraft, WriteEntity, WRITE_CANCELLED_REPLY, WRITE_CANCEL_LABEL, WRITE_CODE_RE, WRITE_ENTITY_LABEL, WRITE_EXTRACT_RULES, WRITE_FIELDS,
   WRITE_MAX_OPTIONS, WRITE_MAX_QUESTIONS, WRITE_NOTHING_REPLY, WRITE_RECAP_REPLY, WRITE_TOO_MANY_REPLY,
 } from '../../domain/jev-cockpit-write';
@@ -155,6 +156,23 @@ export class JevCockpitWriteService {
     o.fields = {};
     o.shown = {};
     let existing: any = null;
+    // Relevé du baromètre (12/10/2026) : suppression seulement ; désigné par son mois ; droits de l'écran (PMO, ou
+    // Responsable du chantier transverse).
+    if (o.entity === 'BAROMETER') {
+      if (!(await barometerWriteWs(this.prisma, scope)).ok) return { refuse: 'Le baromètre est modifiable par le PMO ou le Responsable du chantier transverse uniquement.' };
+      const surveys = await this.prisma.barometerSurvey.findMany({ where: { projectId: scope.project.id }, orderBy: { month: 'desc' } });
+      const label = (x: { month: string; overallScore: number | null; respondents: number | null }) => `${barometerMonthLabel(x.month)}${x.overallScore != null ? ` · ${String(x.overallScore).replace('.', ',')}/10` : ''}${x.respondents != null ? ` · ${x.respondents} répondants` : ''}`;
+      const month = o.code ? barometerMonth(o.code, refs.today) : null;
+      const row = month ? surveys.find((x) => x.month === month) : null;
+      if (!row) {
+        if (!surveys.length) return { refuse: 'Aucun relevé du baromètre n’est enregistré sur ce projet.' };
+        return { question: { op: idx, field: '__code', text: o.code ? `Je ne trouve pas de relevé pour « ${o.code} ». Lequel voulez-vous supprimer ?` : 'Quel relevé du baromètre voulez-vous supprimer ?', options: surveys.slice(0, 8).map((x) => ({ label: label(x), value: x.month })), free: true } };
+      }
+      o.code = row.month;
+      o.targetId = row.id;
+      o.targetLabel = `Relevé de ${label(row)}`;
+      return {};
+    }
     if (isRefEntity(o.entity)) {
       const r = await this.resolveRef(scope, o, idx, refs);
       if (r.question || r.refuse) return r;
@@ -186,7 +204,7 @@ export class JevCockpitWriteService {
     const keys = o.op === 'CREATE' ? specs.map((s) => s.key) : specs.map((s) => s.key).filter((k) => o.raw[k] !== undefined);
     if (o.op === 'UPDATE' && !keys.length) return { question: { op: idx, field: 'n', text: `Que voulez-vous modifier dans ${o.code} ? Écrivez le champ et la nouvelle valeur (par exemple « échéance au 15/11 »).`, options: [], free: true } };
     for (const key of keys) {
-      const spec = fieldSpec(o.entity, key)!;
+      const spec: FieldSpec = fieldSpec(o.entity, key)!;
       const raw = o.raw[key];
       const picked = raw && typeof raw === 'object' && 'picked' in (raw as any) ? (raw as any).picked : undefined;
       const has = picked !== undefined || (raw !== undefined && raw !== null && raw !== '');

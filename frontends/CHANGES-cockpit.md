@@ -695,3 +695,7 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
   chapitre Détail : **Ne plus poser** (question retirée des questions communes, `PATCH /barometer/global`) et **Ne plus
   suivre** (chantier arrêté à partir du mois du relevé, `BarometerDomain.retiredFrom`, `PATCH /barometer/domains/:id`),
   **Rétablir** avant l'enregistrement ; l'historique reste ; comparateur : « · suivi arrêté ».
+- Jev, modification des données (12/10/2026) : suppression d'un relevé du baromètre (objet `BAROMETER`, désigné par son
+  mois, mois à retaper ; `barometerMonth`, `confirmBarometer`) ; création ou modification d'un relevé → orientation vers
+  Saisir sans Jev › Baromètre. Route `DELETE /api/projects/:id/barometer/surveys/:month` (notes du mois retirées des
+  chantiers du comparateur, `removeBarometerSurvey`, `pilotage/barometer.ts`). Aucun changement d'écran.

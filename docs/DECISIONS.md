@@ -2300,3 +2300,6 @@ Demande du commanditaire : un risque peut concerner un chantier, plusieurs, ou t
   actives qui visent le profil Admin (tous projets ou liste), désabonnement par règle (`NotificationOptOut`), règle
   obligatoire non désactivable ; route `api/admin/me/notification-rules` (`AdminMyNotificationRulesController`,
   `@AdminOnly`). Annexe A du guide Console mise à jour pour la règle « Texte par profil », devenue inexacte.
+- Jev et le baromètre (12/10/2026, demande du commanditaire) : Jev supprime un relevé (un récapitulatif par mois cité,
+  confirmation renforcée par le mois à retaper, droits de l'écran : PMO ou Responsable du chantier `BAROMETER_WS_CODE`) ;
+  la saisie d'un relevé reste dans Saisir sans Jev (`BAROMETER_OPS` = suppression seulement).

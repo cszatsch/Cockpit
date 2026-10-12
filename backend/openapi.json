@@ -1005,6 +1005,40 @@
       }
     },
     "/api/projects/{projectId}/barometer/surveys/{month}": {
+      "delete": {
+        "operationId": "PilotageController_deleteSurvey",
+        "parameters": [
+          {
+            "name": "projectId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "month",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "cockpit · pilotage"
+        ]
+      },
       "patch": {
         "operationId": "PilotageController_patchSurvey",
         "parameters": [

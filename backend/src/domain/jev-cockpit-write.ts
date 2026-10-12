@@ -10,7 +10,7 @@
  * confirmation explicite ; l'écriture passe par le service métier (droits, règles, historique d'origine JEV).
  */
 
-export type WriteEntity = 'RISK' | 'ISSUE' | 'ACTION' | 'DECISION' | 'PHASE' | 'SUBPHASE' | 'WORKSTREAM' | 'MILESTONE' | 'DELIVERABLE';
+export type WriteEntity = 'RISK' | 'ISSUE' | 'ACTION' | 'DECISION' | 'PHASE' | 'SUBPHASE' | 'WORKSTREAM' | 'MILESTONE' | 'DELIVERABLE' | 'BAROMETER';
 /**
  * Objets du Référentiel que Jev crée, modifie ou supprime (demande du commanditaire du 09/10/2026, qui lève la règle « jamais
  * le Référentiel » du 01/10/2026) : réservés au PMO, écrits par le service du Référentiel (contrôle des usages compris).
@@ -30,7 +30,36 @@ export const WRITE_ENTITY_LABEL: Record<WriteEntity, { one: string; the: string;
   MILESTONE: { one: 'jalon', the: 'le jalon', a: 'un jalon', tab: 'referentiel', tabLabel: 'Info projet › Référentiel' },
   // Livrable (09/10/2026) : sans code, désigné par son nom ; lien vers Pilotage › Livrables.
   DELIVERABLE: { one: 'livrable', the: 'le livrable', a: 'un livrable', tab: 'livrables', tabLabel: 'Pilotage › Livrables', space: 'pilotage' },
+  // Relevé mensuel du baromètre (12/10/2026) : suppression seulement ; désigné par son mois (AAAA-MM).
+  BAROMETER: { one: 'relevé du baromètre', the: 'le relevé du baromètre', a: 'un relevé du baromètre', tab: 'barometre', tabLabel: 'Pilotage › Baromètre', space: 'pilotage' },
 };
+
+/** Opérations de Jev sur le baromètre (12/10/2026) : suppression d'un relevé ; la saisie passe par « Saisir sans Jev ». */
+export const BAROMETER_OPS: WriteOp[] = ['DELETE'];
+const MONTHS_FR = ['janvier', 'fevrier', 'mars', 'avril', 'mai', 'juin', 'juillet', 'aout', 'septembre', 'octobre', 'novembre', 'decembre'];
+const MONTHS_SHORT = ['janv', 'fevr', 'mars', 'avr', 'mai', 'juin', 'juil', 'aout', 'sept', 'oct', 'nov', 'dec'];
+/**
+ * Mois d'un relevé cité (12/10/2026) : « 2026-11 », « 11/2026 », « novembre 2026 », « nov. 26 », « m2026-11 » → « 2026-11 » ;
+ * sans année, celle de `todayIso`. Null si rien de reconnaissable.
+ */
+export function barometerMonth(ref: string, todayIso: string): string | null {
+  const s = norm(String(ref ?? '')).replace(/^m(?=\d{4}-)/, '');
+  let m = /^(\d{4})-(\d{1,2})$/.exec(s);
+  if (m && +m[2] >= 1 && +m[2] <= 12) return `${m[1]}-${String(+m[2]).padStart(2, '0')}`;
+  m = /^(\d{1,2})[/.-](\d{4})$/.exec(s);
+  if (m && +m[1] >= 1 && +m[1] <= 12) return `${m[2]}-${String(+m[1]).padStart(2, '0')}`;
+  const words = s.replace(/\./g, ' ').split(/\s+/).filter(Boolean);
+  const i = words.map((w) => { const a = MONTHS_FR.indexOf(w); return a >= 0 ? a : MONTHS_SHORT.indexOf(w); }).find((x) => x >= 0);
+  if (i === undefined) return null;
+  const y = words.map((w) => (/^\d{4}$/.test(w) ? +w : /^\d{2}$/.test(w) ? 2000 + +w : null)).find((x) => x !== null) ?? +String(todayIso).slice(0, 4);
+  return `${y}-${String(i + 1).padStart(2, '0')}`;
+}
+/** « 2026-11 » → « novembre 2026 ». */
+export function barometerMonthLabel(month: string): string {
+  const [y, mo] = month.split('-').map(Number);
+  const L = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+  return `${L[mo - 1] ?? month} ${y}`;
+}
 
 /** Code d'un objet modifiable par Jev (R03, P01, A-41, D-005). */
 export const WRITE_CODE_RE = /\b(R\d{2,}|P\d{2,}|A-\d+|D-\d{3,})\b/gi;
@@ -165,13 +194,14 @@ export const WRITE_FIELDS: Record<WriteEntity, FieldSpec[]> = {
     { key: 'start', label: 'Début', kind: 'date' },
     { key: 'due', label: 'Fin', kind: 'date', required: true },
   ],
+  BAROMETER: [],
 };
 /** Objets que Jev ne modifie pas (encore) : libellé pour le message qui oriente vers le bon écran (09/10/2026). */
 export const UNSUPPORTED_OBJECTS: Record<string, string> = {
   SESSION: 'les séances', SEANCE: 'les séances', PERSON: 'les personnes', PERSONNE: 'les personnes',
   TEAM: 'les équipes', EQUIPE: 'les équipes', WAVE: 'les vagues', VAGUE: 'les vagues', ROLE: 'les rôles', ASSIGNMENT: 'les affectations', AFFECTATION: 'les affectations',
   GOVERNANCE_BODY: 'les instances', INSTANCE: 'les instances', CLIENT: 'les clients', PROJECT: 'la fiche du projet', PROJET: 'la fiche du projet',
-  DOCUMENT: 'les documents', TASK: 'les tâches', TACHE: 'les tâches', BAROMETER: 'le baromètre', BAROMETRE: 'le baromètre', REPORT: 'les rapports', RAPPORT: 'les rapports',
+  DOCUMENT: 'les documents', TASK: 'les tâches', TACHE: 'les tâches', BAROMETRE: 'le baromètre', REPORT: 'les rapports', RAPPORT: 'les rapports',
 };
 export const fieldSpec = (e: WriteEntity, key: string) => WRITE_FIELDS[e].find((f) => f.key === key) ?? null;
 
@@ -324,6 +354,7 @@ export const WRITE_EXTRACT_RULES = [
   '- WORKSTREAM : name (nom du chantier), ownerId (responsable), phaseIds (phases : numéros ou noms séparés par des virgules), status (Actif, Clos), description.',
   '- MILESTONE : n (intitulé du jalon), iso (date prévue), phaseId (phase), wsId (chantier, ou « transverse »), owner (responsable).',
   '- DELIVERABLE (livrable) : name (nom), subphaseId (sous-phase : code ou nom), workstreamId (chantier, ou « aucun »), ownerId (responsable), start (début), due (fin).',
+  '- BAROMETER (relevé mensuel du baromètre, ressenti des équipes) : aucun champ ; code = mois du relevé au format AAAA-MM (« novembre 2026 » → 2026-11) ; une opération par mois cité (« novembre et décembre » → deux opérations).',
   '- DECISION : t (point de décision), p (priorité : Critique, Haute, Moyenne, Basse), wsId, bodyId (instance de décision : COPIL…), status (Brouillon, En instruction, À arbitrer, Arbitrée, Annulée), ddIso (date de décision), decL (texte de la décision), maker (décideur), impact.',
   '',
   'Règles :',
@@ -351,14 +382,18 @@ export function unsupportedRequests(raw: string): Array<{ objet: string; op: Wri
   try { j = JSON.parse(m[0]); } catch { return []; }
   return (Array.isArray(j?.operations) ? j.operations : [])
     .map((o: any) => ({ objet: norm(o?.objet ?? '').toUpperCase().replace(/\s+/g, '_'), op: String(o?.operation ?? '').toUpperCase() as WriteOp }))
-    .filter((o: { objet: string; op: WriteOp }) => o.objet && !WRITE_FIELDS[o.objet as WriteEntity] && ['CREATE', 'UPDATE', 'DELETE'].includes(o.op));
+    .filter((o: { objet: string; op: WriteOp }) => o.objet && (!WRITE_FIELDS[o.objet as WriteEntity] || (o.objet === 'BAROMETER' && !BAROMETER_OPS.includes(o.op))) && ['CREATE', 'UPDATE', 'DELETE'].includes(o.op));
 }
 
 /** Message pour un objet que Jev ne modifie pas : quoi faire à la place (09/10/2026). */
 export function unsupportedReply(list: Array<{ objet: string; op: WriteOp }>): string {
   const o = list[0], what = UNSUPPORTED_OBJECTS[o.objet] ?? 'cet objet';
+  if (o.objet === 'BAROMETER' || o.objet === 'BAROMETRE') {
+    if (o.op === 'DELETE') return 'Je peux supprimer un relevé du baromètre : précisez son mois (par exemple « supprime le relevé de novembre 2026 »).';
+    return `Je ne ${o.op === 'CREATE' ? 'saisis' : 'modifie'} pas les relevés du baromètre : utilisez « Saisir sans Jev » › Baromètre pour un nouveau relevé${o.op === 'UPDATE' ? ', ou corrigez la valeur dans Pilotage › Baromètre' : ''}. Je peux en revanche supprimer un relevé.`;
+  }
   const verb = o.op === 'CREATE' ? 'créer' : o.op === 'DELETE' ? 'supprimer' : 'modifier';
-  return `Je ne sais pas encore ${verb} ${what}. Passez par l’écran concerné (le Référentiel, dans Info projet, pour les données du projet). Je peux créer, modifier ou supprimer les risques, problèmes, actions, décisions, phases, sous-phases, chantiers, jalons et livrables.`;
+  return `Je ne sais pas encore ${verb} ${what}. Passez par l’écran concerné (le Référentiel, dans Info projet, pour les données du projet). Je peux créer, modifier ou supprimer les risques, problèmes, actions, décisions, phases, sous-phases, chantiers, jalons et livrables, et supprimer un relevé du baromètre.`;
 }
 
 /** Lecture de l'extraction : objets et opérations connus seulement, champs du catalogue seulement. */
@@ -376,6 +411,7 @@ export function parseExtraction(raw: string): ExtractedOp[] {
     const entity = String(o?.objet ?? '').toUpperCase() as WriteEntity;
     const op = String(o?.operation ?? '').toUpperCase() as WriteOp;
     if (!WRITE_FIELDS[entity] || !['CREATE', 'UPDATE', 'DELETE'].includes(op)) continue;
+    if (entity === 'BAROMETER' && !BAROMETER_OPS.includes(op)) continue;
     const keys = new Set(WRITE_FIELDS[entity].map((f) => f.key));
     // Risque : « wsId » (chantier) lu comme liste de chantiers « wsIds » (08/10/2026).
     const fields = Object.fromEntries(Object.entries(o?.champs ?? {}).map(([k, v]) => [entity === 'RISK' && k === 'wsId' ? 'wsIds' : k, v] as [string, unknown]).filter(([k, v]) => keys.has(k) && v !== null && v !== undefined && v !== ''));
@@ -401,13 +437,14 @@ export function recapLines(d: DraftOp): string[] {
 export function opTitle(d: DraftOp): string {
   const L = WRITE_ENTITY_LABEL[d.entity];
   if (d.op === 'CREATE') return `Créer ${L.a}`;
+  if (d.op === 'DELETE' && d.entity === 'BAROMETER') return `Supprimer ${L.the} de ${d.code ? barometerMonthLabel(d.code) : '…'}`;
   if (d.op === 'DELETE') return `Supprimer ${L.the} ${d.code}`;
   return `Modifier ${L.the} ${d.code}`;
 }
 
 export const WRITE_RECAP_REPLY = (n: number, del: boolean) =>
   `Voici ${n > 1 ? 'les enregistrements' : 'l’enregistrement'} tel${n > 1 ? 's' : ''} qu’${n > 1 ? 'ils seront écrits' : 'il sera écrit'}. Rien n’est enregistré avant votre validation (« Valider et enregistrer » ou « Refuser »).${del ? ' Une suppression est définitive : retapez le code de l’objet pour la confirmer.' : ''}`;
-export const WRITE_NOTHING_REPLY = 'Je n’ai pas identifié de modification à faire sur un risque, un problème, une action, une décision, une phase, une sous-phase, un chantier, un jalon ou un livrable. Précisez l’objet (par exemple R03, A-41 ou la phase 5), l’opération (créer, modifier, supprimer) et les valeurs.';
+export const WRITE_NOTHING_REPLY = 'Je n’ai pas identifié de modification à faire sur un risque, un problème, une action, une décision, une phase, une sous-phase, un chantier, un jalon, un livrable ou un relevé du baromètre. Précisez l’objet (par exemple R03, A-41 ou la phase 5), l’opération (créer, modifier, supprimer) et les valeurs.';
 /** Objet du Référentiel : réservé au PMO (09/10/2026). */
 export const REF_PMO_ONLY_REPLY = 'Le Référentiel (phases, sous-phases, chantiers, jalons, livrables) est modifiable par le PMO uniquement.';
 export const WRITE_CANCELLED_REPLY = 'Demande annulée : rien n’a été enregistré.';

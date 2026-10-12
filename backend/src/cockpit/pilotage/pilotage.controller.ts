@@ -1,5 +1,6 @@
 import { ArbOption, legacyCriteria } from '../../domain/arbitration';
-import { Body, Controller, Get, Headers, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Headers, Param, Patch, Post } from '@nestjs/common';
+import { PrismaService } from '../../core/prisma.service';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
@@ -16,8 +17,10 @@ import { decisionView, deliverableView } from '../views';
 import { isoDate, pct } from '../referential/schemas';
 import { assertPhaseProgressEditable, rollupPhaseProgress } from '../phase-progress';
 
-/** Chantier porteur du baromètre (brief § 8.6 : C8 « Pilotage et transverse »). */
-export const BAROMETER_WS_CODE = 'C8';
+// Baromètre : chantier porteur (C8) et suppression d'un relevé, partagés avec Jev (12/10/2026).
+import { BAROMETER_WS_CODE, removeBarometerSurvey } from './barometer';
+export { BAROMETER_WS_CODE };
+
 /** Module optionnel Budget (brief Console § 6.6). */
 export const BUDGET_MODULE_ID = 'bud';
 
@@ -324,6 +327,15 @@ export class PilotageController {
       await this.tx.audit.record(db, this.tx.wctx(actor, scope, wsId), { entityType: 'BAROMETER_SURVEY', entityId: row.month, before: null, after: row as any, wsId, target: row.label });
       return this.barometerView(scope.project.id, db);
     });
+  }
+
+  /** Suppression d'un relevé (12/10/2026). */
+  @Delete('barometer/surveys/:month')
+  async deleteSurvey(@CurrentActor() actor: Actor, @Param('projectId') p: string, @Param('month') month: string) {
+    const scope = await this.access.scope(actor, p);
+    const wsId = await this.assertBarometer(scope);
+    await removeBarometerSurvey(this.prisma as PrismaService, this.tx, actor, scope, month, wsId);
+    return this.barometerView(scope.project.id);
   }
 
   @Patch('barometer/surveys/:month')

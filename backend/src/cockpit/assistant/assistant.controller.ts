@@ -8,6 +8,7 @@ import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
 import { AccessService, ProjectScope } from '../../core/access.service';
 import { Actor, CurrentActor } from '../../core/auth/auth';
+import { barometerWriteWs, removeBarometerSurvey } from '../pilotage/barometer';
 import { PrismaService } from '../../core/prisma.service';
 import { StorageService } from '../../core/storage.service';
 import { LlmService } from '../../core/llm.service';
@@ -212,6 +213,8 @@ export class AssistantController {
     const scope = await this.access.scope(actor, p);
     const input = parse(Confirm, body ?? {});
     const c = await this.change(scope, actor, id);
+    // Relevé du baromètre (12/10/2026) : suppression, mois à retaper ; mêmes droits que l'écran.
+    if (c.entityType === 'BAROMETER') return this.confirmBarometer(scope, actor, c, input);
     const def = JEV_WRITABLE[c.entityType], refDef = (JEV_REF_DEFS as Record<string, EntityConfig>)[c.entityType];
     if (!def && !refDef) throw forbidden('Jev ne modifie pas ce type de données');
     // Objet du Référentiel (09/10/2026) : service du Référentiel (PMO, contrôle des usages, historique d'origine JEV).
@@ -247,6 +250,19 @@ export class AssistantController {
     await this.prisma.assistantChange.update({ where: { id }, data: { status: 'CONFIRMED', decidedAt: new Date(), entityId: result?.id ?? c.entityId } });
     const L = WRITE_ENTITY_LABEL[c.entityType as WriteEntity];
     return { id, status: 'CONFIRMED', result, link: c.op === 'DELETE' ? null : { space: 'pilotage', tab: L.tab, code, label: `Ouvrir ${code} · ${L.tabLabel}` } };
+  }
+
+  private async confirmBarometer(scope: ProjectScope, actor: Actor, c: { id: string; entityId: string | null; op: string }, input: { confirmCode?: string }) {
+    if (c.op !== 'DELETE') throw forbidden('Jev ne fait que supprimer un relevé du baromètre');
+    const row = await this.prisma.barometerSurvey.findFirst({ where: { id: c.entityId!, projectId: scope.project.id } });
+    if (!row) throw notFound('Relevé introuvable');
+    const w = await barometerWriteWs(this.prisma, scope);
+    if (!w.ok) throw forbidden('Baromètre : PMO ou Responsable du chantier transverse');
+    if ((input.confirmCode ?? '').trim() !== row.month) throw businessRule(`Pour supprimer, retapez le mois ${row.month}`, { confirmCode: `${row.month} attendu` });
+    latencyCategory('update_cockpit');
+    const result = await timedStep('exe', LATENCY_SERVICE_MODEL, 'primary', () => removeBarometerSurvey(this.prisma, this.tx, actor, scope, row.month, w.wsId));
+    await this.prisma.assistantChange.update({ where: { id: c.id }, data: { status: 'CONFIRMED', decidedAt: new Date() } });
+    return { id: c.id, status: 'CONFIRMED', result: { id: row.id, code: row.month, deleted: true, label: result.label }, link: null };
   }
 
   private async confirmRef(scope: ProjectScope, actor: Actor, c: { id: string; entityType: string; entityId: string | null; op: string; patch: unknown }, def: EntityConfig, input: { confirmCode?: string }) {

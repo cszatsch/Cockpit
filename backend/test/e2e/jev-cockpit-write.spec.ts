@@ -228,6 +228,47 @@ describe('Jev du Cockpit — cas 3 : modification des données', () => {
     expect(r.body.proposedChanges[0].patch).toMatchObject({ wsId: 'C5', owner: 'p11', dueIso: '2026-11-15' });
   });
 
+  it('baromètre (12/10/2026) : supprimer les relevés de deux mois (mois à retaper) ; droits de l’écran ; mois inconnu → choix ; saisie → orientation', async () => {
+    const pmo = await t.as(WHO.pmo);
+    const P = (await t.db.project.findFirstOrThrow({ where: { code: 'RISE' } })).id;
+    const surveys = await t.db.barometerSurvey.findMany({ where: { projectId: P }, orderBy: { month: 'desc' } });
+    const [a, b] = surveys;
+    const del = (code: string | null) => ({ objet: 'BAROMETER', operation: 'DELETE', code, champs: {} });
+    let spy = extraction([del(a.month), del(b.month)]);
+    const r = await ask(pmo, 'Supprime les deux derniers relevés du baromètre');
+    spy.mockRestore();
+    expect(r.body.write).toBe('RECAP');
+    expect(r.body.proposedChanges.map((p: any) => [p.entityType, p.op, p.confirmCode])).toEqual([['BAROMETER', 'DELETE', a.month], ['BAROMETER', 'DELETE', b.month]]);
+    expect(r.body.proposedChanges[0].title).toMatch(/^Supprimer le relevé du baromètre de \S+ \d{4}$/);
+    // Mauvais mois retapé : refusé ; bon mois : relevé supprimé, notes du mois retirées des chantiers.
+    await pmo.post(`${R}/assistant/changes/${r.body.proposedChanges[0].id}/confirm`, { confirmCode: b.month }).expect(422);
+    const ok = await pmo.post(`${R}/assistant/changes/${r.body.proposedChanges[0].id}/confirm`, { confirmCode: a.month }).expect(200);
+    expect(ok.body).toMatchObject({ status: 'CONFIRMED', result: { code: a.month, deleted: true }, link: null });
+    expect(await t.db.barometerSurvey.findFirst({ where: { id: a.id } })).toBeNull();
+    const doms = await t.db.barometerDomain.findMany({ where: { projectId: a.projectId } });
+    expect(doms.some((d) => a.month in ((d.series as any) ?? {}))).toBe(false);
+    // Mois cité en toutes lettres, introuvable : question à choix parmi les relevés.
+    spy = extraction([del('février 2020')]);
+    const q = await ask(pmo, 'Supprime le relevé de février 2020');
+    spy.mockRestore();
+    expect(q.body.write).toBe('ASK');
+    expect(q.body.choices.map((c: any) => c.answer.value)).toContain(b.month);
+    // Responsable d'un autre chantier que le chantier transverse : refus.
+    const resp = await t.as(WHO.respC5);
+    spy = extraction([del(b.month)]);
+    const no = await ask(resp, 'Supprime le dernier relevé du baromètre');
+    spy.mockRestore();
+    expect(no.body).toMatchObject({ write: 'REFUSED' });
+    expect(no.body.reply).toMatch(/PMO ou le Responsable du chantier transverse/);
+    // Saisie d'un relevé : Jev oriente vers « Saisir sans Jev ».
+    spy = extraction([{ objet: 'BAROMETER', operation: 'CREATE', code: null, champs: {} }]);
+    const cr = await ask(pmo, 'Ajoute le relevé de novembre');
+    spy.mockRestore();
+    expect(cr.body.reply).toMatch(/Saisir sans Jev/);
+    // Route de l'écran : suppression directe.
+    expect((await pmo.del(`${R}/barometer/surveys/${b.month}`).expect(200)).body.surveys.some((x: any) => x.month === b.month)).toBe(false);
+  });
+
   it('suppression : confirmation renforcée (code à retaper) ; objet d’un autre chantier refusé', async () => {
     const pmo = await t.as(WHO.pmo);
     let spy = extraction([{ objet: 'ISSUE', operation: 'DELETE', code: 'P03', champs: {} }]);
