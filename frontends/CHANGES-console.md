@@ -836,3 +836,5 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
 - Mon profil (12/10/2026) : barre de défilement verticale (flèches ▲ ▼) retirée de la barre d'onglets — elle débordait
   d'un pixel (`overflow-x:auto` rendait aussi le défilement vertical automatique) : `overflow-y:hidden`,
   `scrollbar-width:none`.
+- Barre latérale (12/10/2026) : icône de déconnexion alignée sur celle du Cockpit (flèche qui sort du cadre) ; elle
+  dessinait une flèche qui entre (symbole « se connecter »).
