@@ -1668,7 +1668,7 @@ Du plus prioritaire au moins prioritaire :
 1. Cliquez sur **Nouvelle règle**. La règle est créée inactive, quotidienne à 7 h 00.
 2. Nommez la règle dans le champ **Nom de la règle** (souligné en pointillé, continu au survol et pendant la saisie ; 120 caractères au plus). « Nouvelle règle » s'efface dès que vous cliquez dans le champ ; laissé vide, il revient en quittant le champ. La pastille de la règle, dans la liste, reflète aussitôt le nom, la fréquence, l'heure et le statut en cours de saisie, avant l'enregistrement.
 3. **Canal** : **Dans l'application** (cloche du Cockpit) et/ou **E-mail**. Il faut au moins un canal.
-4. **Destinataires par profil** : Admin, PMO, Responsable, Lecteur. Le nombre de destinataires actifs s'affiche.
+4. **Destinataires par profil** : Admin, PMO, Responsable, Lecteur. Le nombre de destinataires actifs s'affiche. **Admin** vise tous les administrateurs de la plateforme, Super Admin compris.
    - **Désabonnement** (depuis le 12/10/2026) : **Libre** (par défaut), chaque destinataire peut désactiver la règle dans son profil du Cockpit (Mon profil › Notifications) ; **Obligatoire**, elle ne se désactive pas.
 5. **Projets ciblés** : **Tous** (chaque projet ouvert) ou une sélection de projets.
 6. **Fournisseur et modèle** : un modèle de langage actif, qui rédigera le contenu.

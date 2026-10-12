@@ -826,3 +826,7 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
 - Notifications, nom de la règle (12/10/2026) : crayon retiré ; soulignement #F0A193 (pointillé, continu au survol et à la
   saisie) ; « Nouvelle règle » s'efface au clic dans le champ et revient s'il est laissé vide (`titleFocus`, `titleBlur`) ;
   texte d'aide « Nommez la règle ».
+- Notifications (12/10/2026) : sous les profils destinataires, « Admin : tous les administrateurs de la plateforme, Super
+  Admin compris ». Mon profil › Notifications : une liste qui ne se charge pas (API non à jour, panne) affiche « Vos
+  notifications sont momentanément indisponibles… » au lieu de « Aucune notification ne vise le profil Admin »
+  (`myRules` = null). Même distinction dans le profil du Cockpit.
