@@ -81,7 +81,6 @@ services:
       - api
     environment:
       DOMAINE: ${DOMAINE}
-      EMAIL_ACME: ${EMAIL_ACME:-}
     ports:
       - "80:80"
       - "443:443"

@@ -149,7 +149,7 @@ openssl rand -hex 32    # → JWT_SECRET
 nano .env.prod
 ```
 
-Renseigner `DOMAINE`, `EMAIL_ACME`, `POSTGRES_PASSWORD`, `JWT_SECRET`, `SECRETS_KEY`, le SMTP et
+Renseigner `DOMAINE`, `POSTGRES_PASSWORD`, `JWT_SECRET`, `SECRETS_KEY`, le SMTP et
 `BUCKET_SAUVEGARDES`. **`SECRETS_KEY`** dépend du choix de l'étape 8 :
 
 - reprise de la base du poste : **la même valeur que `backend/.env` du poste**, sinon les clés API des fournisseurs

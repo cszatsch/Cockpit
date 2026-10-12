@@ -1,7 +1,6 @@
 # Caddy devant l'API RISE : certificat Let's Encrypt automatique pour {$DOMAINE}, HTTP redirigé vers HTTPS.
-{
-	email {$EMAIL_ACME}
-}
+# Pas de bloc global « email » : vide, il invalide toute la configuration (Caddy redémarre en boucle) ;
+# Let's Encrypt n'exige pas d'adresse.
 
 {$DOMAINE} {
 	encode zstd gzip
