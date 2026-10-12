@@ -338,7 +338,7 @@ export function bindConsole(c) {
     mods: async () => ({ mods: sortMods((await get('/modules')).map(toMod)) }),
     reqs: async () => ({ reqs: (await get('/module-requests?status=PENDING')).map(toReq) }),
     // Mes notifications (12/10/2026) : les règles qui visent le profil Admin, et mon abonnement (`myRules`).
-    prof: async () => { const [me, myRules] = await Promise.all([get('/me/profile'), get('/me/notification-rules').catch(() => null)]); meId = me.id; return { meLoaded: true, prof: toProf(me), meInfo: toMeInfo(me), pn: { crit: true, budget: true, req: true, hebdo: true, fail: false, ...(me.notifications || {}) }, myRules: Array.isArray(myRules) ? myRules : null, // null : liste indisponible (API ancienne ou en panne) photo: me.photoUrl || null }; },
+    prof: async () => { const [me, myRules] = await Promise.all([get('/me/profile'), get('/me/notification-rules').catch(() => null)]); meId = me.id; return { meLoaded: true, prof: toProf(me), meInfo: toMeInfo(me), pn: { crit: true, budget: true, req: true, hebdo: true, fail: false, ...(me.notifications || {}) }, myRules: Array.isArray(myRules) ? myRules : null /* null : liste indisponible (API ancienne ou en panne) */, photo: me.photoUrl || null }; },
     sess: async () => ({ sess: (await get('/me/sessions')).map(toSess) }),
     // Chantiers de chaque projet, pour attribuer des chantiers en Responsable ou en Lecteur.
     wsAll: async () => { const ps = await get('/projects'), lists = await Promise.all(ps.map(p => get('/projects/' + encodeURIComponent(p.code) + '/workstreams'))); return { apiWs: Object.fromEntries(ps.map((p, i) => [p.code, lists[i].map(w => ({ id: w.id, n: w.name, code: w.code }))])) }; },

@@ -830,3 +830,6 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
   Admin compris ». Mon profil › Notifications : une liste qui ne se charge pas (API non à jour, panne) affiche « Vos
   notifications sont momentanément indisponibles… » au lieu de « Aucune notification ne vise le profil Admin »
   (`myRules` = null). Même distinction dans le profil du Cockpit.
+- Correctif (12/10/2026) : `admin-api.js` ne se chargeait plus (commentaire `//` inséré au milieu d'une ligne du chargeur
+  `prof`, commit 2e649bf) ; la Console restait sur ses données de démonstration (compte « Julien Morel », 26/09/2026).
+  Nouveau test `test/unit/frontends-syntaxe.spec.ts` : syntaxe de chaque client `.js` et du script de chaque écran.
