@@ -823,3 +823,6 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
 - Notifications, éditeur de règle (12/10/2026) : nom de la règle signalé comme modifiable (étiquette « Nom de la règle »,
   soulignement pointillé, crayon, champ sélectionné à la création, `titleRef`) ; pastille de la règle ouverte alimentée
   par le brouillon (nom, fréquence, heure, statut) avant l'enregistrement.
+- Notifications, nom de la règle (12/10/2026) : crayon retiré ; soulignement #F0A193 (pointillé, continu au survol et à la
+  saisie) ; « Nouvelle règle » s'efface au clic dans le champ et revient s'il est laissé vide (`titleFocus`, `titleBlur`) ;
+  texte d'aide « Nommez la règle ».

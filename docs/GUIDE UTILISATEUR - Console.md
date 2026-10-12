@@ -1666,7 +1666,7 @@ Du plus prioritaire au moins prioritaire :
 ### 3.18.1 Créer et régler une règle
 
 1. Cliquez sur **Nouvelle règle**. La règle est créée inactive, quotidienne à 7 h 00.
-2. Nommez la règle dans le champ **Nom de la règle** (souligné en pointillé, avec un crayon ; il est sélectionné à la création, 120 caractères au plus). La pastille de la règle, dans la liste, reflète aussitôt le nom, la fréquence, l'heure et le statut en cours de saisie, avant l'enregistrement.
+2. Nommez la règle dans le champ **Nom de la règle** (souligné en pointillé, continu au survol et pendant la saisie ; 120 caractères au plus). « Nouvelle règle » s'efface dès que vous cliquez dans le champ ; laissé vide, il revient en quittant le champ. La pastille de la règle, dans la liste, reflète aussitôt le nom, la fréquence, l'heure et le statut en cours de saisie, avant l'enregistrement.
 3. **Canal** : **Dans l'application** (cloche du Cockpit) et/ou **E-mail**. Il faut au moins un canal.
 4. **Destinataires par profil** : Admin, PMO, Responsable, Lecteur. Le nombre de destinataires actifs s'affiche.
    - **Désabonnement** (depuis le 12/10/2026) : **Libre** (par défaut), chaque destinataire peut désactiver la règle dans son profil du Cockpit (Mon profil › Notifications) ; **Obligatoire**, elle ne se désactive pas.

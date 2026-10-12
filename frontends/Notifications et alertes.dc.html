@@ -44,13 +44,12 @@ textarea::placeholder,input::placeholder{color:#8a9aa6}
     <div style="flex:1 1 580px;min-width:0;background:#fff;border-radius:22px;box-shadow:0 0 0 1px #e1e9e7,0 24px 50px -36px rgba(16,35,58,.4);overflow:hidden;animation:rise .5s .06s cubic-bezier(.2,.7,.2,1) both">
       <div style="padding:30px 36px 26px;display:flex;flex-direction:column;gap:18px;border-bottom:1px solid #eef3f2">
         <div style="display:flex;align-items:flex-end;gap:12px">
-          <!-- Nom de la règle (12/10/2026) : champ signalé comme modifiable — étiquette, soulignement pointillé, crayon ; focus et
-               sélection à la création d'une règle. -->
+          <!-- Nom de la règle (12/10/2026) : champ signalé comme modifiable — étiquette, soulignement pointillé #F0A193 (continu au
+               survol et à la saisie) ; « Nouvelle règle » s'efface au clic ; focus à la création d'une règle. -->
           <label style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;cursor:text">
             <span style="font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#5c7280">NOM DE LA RÈGLE</span>
-            <span style="display:flex;align-items:center;gap:10px;padding:0 4px 6px 0;border-bottom:1.5px dashed #c3d3cf;transition:border-color .15s" style-hover="border-bottom-color:#1d8f86" style-focus-within="border-bottom:1.5px solid #1d8f86">
-              <input ref="{{ titleRef }}" value="{{ d.title }}" onChange="{{ setTitle }}" placeholder="Nommez la règle (ex. Synthèse hebdomadaire)" maxLength="120" aria-label="Nom de la règle" style="flex:1;min-width:0;border:0;outline:0;background:transparent;padding:0;font-size:26px;font-weight:800;font-style:italic;letter-spacing:-.03em;color:#10233a;caret-color:#1d8f86" />
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8a9aa6" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M4 20h4L19 9l-4-4L4 16z"></path><path d="M13.5 6.5l4 4"></path></svg>
+            <span style="display:flex;align-items:center;gap:10px;padding:0 4px 6px 0;border-bottom:1.5px dashed #F0A193;transition:border-color .15s" style-hover="border-bottom-style:solid" style-focus-within="border-bottom:1.5px solid #F0A193">
+              <input ref="{{ titleRef }}" value="{{ d.title }}" onChange="{{ setTitle }}" onFocus="{{ titleFocus }}" onBlur="{{ titleBlur }}" placeholder="Nommez la règle" maxLength="120" aria-label="Nom de la règle" style="flex:1;min-width:0;border:0;outline:0;background:transparent;padding:0;font-size:26px;font-weight:800;font-style:italic;letter-spacing:-.03em;color:#10233a;caret-color:#1d8f86" />
             </span>
           </label>
           <sc-if value="{{ inactive }}" hint-placeholder-val="{{ false }}"><span style="height:24px;padding:0 10px;border-radius:999px;background:#fdf1dc;color:#8a5a12;font-size:11.5px;font-weight:700;display:inline-flex;align-items:center">Inactive</span></sc-if>
@@ -284,7 +283,10 @@ class Component extends DCLogic {
     return {
       // Pastille de la règle ouverte : le brouillon en direct (nom, fréquence, heure, statut), 12/10/2026.
       notifs: rules.map(r => row(r.id === cur.id ? { ...d, title: d.title.trim() || 'Sans nom' } : r)),
-      titleRef: el => { if (el && this._focusTitle) { this._focusTitle = false; setTimeout(() => { el.focus(); el.select(); }, 40); } },
+      titleRef: el => { if (el && this._focusTitle) { this._focusTitle = false; setTimeout(() => el.focus(), 40); } },
+      // « Nouvelle règle » s'efface dès le clic dans le champ ; laissé vide, le nom par défaut revient en quittant le champ.
+      titleFocus: () => { if (d.title === 'Nouvelle règle') this.edit({ title: '' }); },
+      titleBlur: () => { if (!this.draft().title.trim()) this.edit({ title: 'Nouvelle règle' }); },
       create: () => { this._focusTitle = true; const id = 'r' + Date.now(), r = { id, title: 'Nouvelle règle', profils: [], projets: ['*'], canaux: ['app'], freq: 'day', at: sch.defaultHour, on: false, model: null, prompt: '', subject: '', body: '' };
         this.setState({ rules: [...rules, r], selId: id, draft: null }); this.props.onCreate?.(r); },
       d, sentence, errors: errs, inactive: !d.on, activeL: d.on ? 'Désactiver' : 'Activer',
