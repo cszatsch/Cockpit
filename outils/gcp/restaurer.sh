@@ -18,7 +18,8 @@ read -r -p "La base de production sera remplacée par ${dump}. Taper RESTAURER p
 
 echo "arrêt de l'API"
 "${COMPOSE[@]}" stop api
-"${COMPOSE[@]}" up -d db
+# --wait : premier démarrage d'une VM neuve, PostgreSQL initialise ses données avant d'accepter les connexions.
+"${COMPOSE[@]}" up -d --wait db
 
 psql=("${COMPOSE[@]}" exec -T db psql -U rise -v ON_ERROR_STOP=1)
 "${psql[@]}" -d postgres -c "DROP DATABASE IF EXISTS rise_restauration;" -c "CREATE DATABASE rise_restauration OWNER rise;"
