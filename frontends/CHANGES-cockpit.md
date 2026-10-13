@@ -712,3 +712,11 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
   propres (relevés historiques) : écart enregistré seulement si A précède B, sinon « — ». Saisie (Saisir sans Jev) : la
   note précédente d'une question vient du relevé précédent seulement (la note des questions communes pouvait venir d'un
   relevé supprimé : « +3,3 vs sept. 26 » sur un relevé seul).
+- Jev, suggestion de résumé (13/10/2026, recette) : « Résumer ce bloc » partait tel quel, sans le nom du bloc, et
+  s'affichait aussi quand Jev est ouvert sans bloc (bouton général, « Contexte : Aujourd'hui ») ; Jev répondait qu'il
+  ignorait de quel bloc il s'agissait. Bloc sélectionné : « Résumer « <bloc> » » ; sans bloc : demande portant sur la
+  rubrique (`SUM` dans `jevOpen` : « Résumer la situation du jour », « Résumer l'état du pilotage »…).
+- Référentiel, champs modifiables (13/10/2026, recette) : la bordure gauche et le halo de focus du champ en cours de
+  saisie étaient coupés (champ décalé de 7 px pour aligner son texte, dans une cellule en `overflow:hidden`). La cellule
+  reçoit 10 px de marge intérieure compensée par une marge négative (`style0`) : bordure et halo entiers, texte et
+  colonnes à la même position.
