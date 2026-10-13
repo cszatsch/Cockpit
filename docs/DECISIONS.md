@@ -2343,3 +2343,6 @@ passe le filtre depuis le poste. Décision du commanditaire : relais temporaire 
 - Écart accepté : l'API voit les adresses IP de Google ; le blocage par IP (`IP_MAX_FAILURES`, 20 échecs) est commun aux
   utilisateurs du relais. Coût estimé 10 à 15 € par mois (requêtes SSE ouvertes facturées).
 - Retrait prévu dès l'autorisation du domaine définitif (`docs/DEPLOIEMENT - Google Cloud.md` § 15).
+- Plafond des corps de requête du Caddy de la VM relevé de 100 à 260 Mo (13/10/2026, demande du commanditaire) : plus
+  grand envoi de l'application = Initialisation d'un projet, 10 propositions de 25 Mo en une requête
+  (`PREFILL_MAX_FILES` × `PREFILL_MAX_BYTES`), plus une marge ; les limites par fichier restent celles de l'application.

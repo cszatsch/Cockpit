@@ -6,7 +6,7 @@
 #   gcloud run services add-iam-policy-binding cockpit --region=europe-west9 --member=allUsers --role=roles/run.invoker
 #
 # CIBLE : adresse HTTPS de la VM (certificat Let's Encrypt de son Caddy). Port nommé h2c : HTTP/2 de bout en bout,
-# sans la limite de 32 Mo des corps de requête HTTP/1 de Cloud Run (dépôts jusqu'à 100 Mo, plafond du Caddy de la VM).
+# sans la limite de 32 Mo des corps de requête HTTP/1 de Cloud Run (envois jusqu'à 260 Mo, plafond du Caddy de la VM).
 # timeoutSeconds 3600 : durée maximale d'une requête ; les flux SSE (/api/changes) sont rouverts par le navigateur.
 apiVersion: serving.knative.dev/v1
 kind: Service

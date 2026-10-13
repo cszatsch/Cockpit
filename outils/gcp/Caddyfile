@@ -5,9 +5,10 @@
 {$DOMAINE} {
 	encode zstd gzip
 
-	# Fichiers déposés (propositions, documents, formats de rapport, guides) : 100 Mo au plus.
+	# Corps de requête : 260 Mo au plus. Plus grand envoi de l'application : Initialisation d'un projet, jusqu'à
+	# 10 propositions de 25 Mo en une requête (PREFILL_MAX_FILES × PREFILL_MAX_BYTES), plus une marge.
 	request_body {
-		max_size 100MB
+		max_size 260MB
 	}
 
 	reverse_proxy api:3000 {

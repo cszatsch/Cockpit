@@ -317,7 +317,7 @@ Adresse : `https://cockpit-<numéro du projet>.europe-west9.run.app`. Liens des 
 oublié) : `APP_URL=<adresse du relais>` dans `.env.prod`, puis
 `docker compose -f docker-compose.prod.yml --env-file .env.prod up -d api`.
 
-Ce qui fonctionne : HTTPS, sessions (cookies liés à l'adresse visitée), jeton anti-CSRF, dépôts jusqu'à 100 Mo
+Ce qui fonctionne : HTTPS, sessions (cookies liés à l'adresse visitée), jeton anti-CSRF, envois jusqu'à 260 Mo
 (HTTP/2 de bout en bout, port `h2c` : sans lui, Cloud Run refuse les corps HTTP/1 de plus de 32 Mo), mises à jour en
 direct (connexion rouverte par le navigateur au plus tard toutes les 60 minutes, `timeoutSeconds: 3600`).
 
