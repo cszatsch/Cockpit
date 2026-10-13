@@ -299,3 +299,36 @@ de la VM d'environ 37 %.
 - [ ] Compte initial : mot de passe provisoire changé à la première connexion.
 - [ ] Sauvegarde nocturne présente dans le bucket, restauration testée une fois.
 - [ ] Alerte budgétaire et contrôle de disponibilité actifs.
+
+## 15. Relais temporaire Cloud Run (filtre web de l'entreprise)
+
+Cas rencontré en recette (13/10/2026) : le filtre web de l'entreprise (Zscaler) bloque `sslip.io` (catégorie « DNS
+dynamique ») et l'autorisation d'un domaine prend plusieurs semaines. Les adresses `….run.app` de Google passent.
+Un relais Cloud Run transmet alors tout à la VM, sans rien changer à l'application : `outils/gcp/relais/service.yaml`
+(Caddy officiel, configuration dans la variable `CADDYFILE`, aucune image à construire).
+
+```bash
+gcloud services enable run.googleapis.com
+gcloud run services replace outils/gcp/relais/service.yaml --region=europe-west9
+gcloud run services add-iam-policy-binding cockpit --region=europe-west9 --member=allUsers --role=roles/run.invoker
+```
+
+Adresse : `https://cockpit-<numéro du projet>.europe-west9.run.app`. Liens des e-mails (invitations, mot de passe
+oublié) : `APP_URL=<adresse du relais>` dans `.env.prod`, puis
+`docker compose -f docker-compose.prod.yml --env-file .env.prod up -d api`.
+
+Ce qui fonctionne : HTTPS, sessions (cookies liés à l'adresse visitée), jeton anti-CSRF, dépôts jusqu'à 100 Mo
+(HTTP/2 de bout en bout, port `h2c` : sans lui, Cloud Run refuse les corps HTTP/1 de plus de 32 Mo), mises à jour en
+direct (connexion rouverte par le navigateur au plus tard toutes les 60 minutes, `timeoutSeconds: 3600`).
+
+Limites :
+
+- l'API voit les adresses IP de Google et non celles des utilisateurs : le blocage après 20 échecs par IP
+  (`IP_MAX_FAILURES`) vaut pour tous les utilisateurs du relais ensemble ; le blocage par adresse e-mail est inchangé ;
+  la colonne « lieu » des sessions montre une adresse de Google ;
+- coût : Cloud Run facture tant qu'une requête est en cours, et chaque onglet ouvert garde son flux de mises à jour
+  ouvert, soit environ 10 à 15 € par mois si des onglets restent ouverts toute la journée ;
+- l'adresse `sslip.io` reste ouverte (téléphones, réseaux hors entreprise) : session distincte pour le navigateur.
+
+Retrait, une fois le domaine définitif autorisé : vider `APP_URL` dans `.env.prod` (ou le domaine dans `DOMAINE`),
+redémarrer l'API, puis `gcloud run services delete cockpit --region=europe-west9`.

@@ -1,0 +1,54 @@
+# Relais temporaire Cloud Run devant la VM (13/10/2026, docs/DECISIONS.md « Relais Cloud Run ») : adresse
+# https://cockpit-<numéro du projet>.<région>.run.app, autorisée par le filtre web de l'entreprise, en attendant le
+# domaine définitif. Caddy officiel, configuration passée par la variable CADDYFILE : aucune image à construire.
+#
+#   gcloud run services replace outils/gcp/relais/service.yaml --region=europe-west9
+#   gcloud run services add-iam-policy-binding cockpit --region=europe-west9 --member=allUsers --role=roles/run.invoker
+#
+# CIBLE : adresse HTTPS de la VM (certificat Let's Encrypt de son Caddy). Port nommé h2c : HTTP/2 de bout en bout,
+# sans la limite de 32 Mo des corps de requête HTTP/1 de Cloud Run (dépôts jusqu'à 100 Mo, plafond du Caddy de la VM).
+# timeoutSeconds 3600 : durée maximale d'une requête ; les flux SSE (/api/changes) sont rouverts par le navigateur.
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: cockpit
+  annotations:
+    run.googleapis.com/ingress: all
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: "0"
+        autoscaling.knative.dev/maxScale: "2"
+    spec:
+      containerConcurrency: 200
+      timeoutSeconds: 3600
+      containers:
+        - image: docker.io/library/caddy:2.8-alpine
+          command: ["sh", "-c"]
+          args: ['printf "%s" "$CADDYFILE" > /tmp/Caddyfile && exec caddy run --config /tmp/Caddyfile --adapter caddyfile']
+          ports:
+            - name: h2c
+              containerPort: 8080
+          resources:
+            limits:
+              cpu: "1"
+              memory: 256Mi
+          env:
+            - name: CIBLE
+              value: 34-155-91-151.sslip.io
+            - name: CADDYFILE
+              value: |
+                {
+                  admin off
+                  auto_https off
+                  servers {
+                    protocols h1 h2c
+                  }
+                }
+                :8080 {
+                  reverse_proxy https://{$CIBLE} {
+                    header_up Host {$CIBLE}
+                    flush_interval -1
+                  }
+                }

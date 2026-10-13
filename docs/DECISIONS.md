@@ -2325,3 +2325,21 @@ Demande du commanditaire : déployer le Cockpit et la Console sur Google Cloud p
 - **Image de l'API** : `scripts/` et `assets/` ajoutés (`init:admin`, `ia:catalogue`, exemple du préremplissage
   `PREFILL_EXAMPLE`, absents jusqu'ici) ; `.dockerignore` exclut `.env`, `.env.prod`, `sauvegardes`, `livraison`.
 - Écart : **Partager Cockpit** et `npm run livraison` restent sur le poste Windows (`share-builder.ts`, Windows seulement).
+
+## Relais Cloud Run en attendant le domaine de production (13/10/2026)
+
+Constat de recette : le filtre web de l'entreprise (Zscaler) refuse `34-155-91-151.sslip.io` sur les postes
+(`ERR_SSL_VERSION_OR_CIPHER_MISMATCH`, catégorie « DNS dynamique ») ; le site répond normalement hors du réseau de
+l'entreprise. La DSI annonce trois semaines pour autoriser un domaine. Une page d'exemple Cloud Run (`….run.app`)
+passe le filtre depuis le poste. Décision du commanditaire : relais temporaire Cloud Run devant la VM.
+
+- `outils/gcp/relais/service.yaml` : service `cockpit`, Caddy officiel (`caddy:2.8-alpine`), configuration dans la
+  variable `CADDYFILE`, cible `CIBLE` = adresse HTTPS de la VM (en-tête `Host` réécrit, certificat de la VM vérifié).
+- Port `h2c` (HTTP/2 de bout en bout) : la limite de 32 Mo des corps HTTP/1 de Cloud Run ne s'applique pas ; corps de
+  40 Mo vérifié jusqu'à l'API. `timeoutSeconds: 3600` pour les flux SSE, rouverts seuls par `EventSource`.
+- Aucun changement de l'application : jeton anti-CSRF par en-tête, cookies sans domaine, redirections relatives.
+- `APP_URL` facultatif dans `.env.prod` (`docker-compose.prod.yml` : `${APP_URL:-https://${DOMAINE}}`) pour que les
+  liens des e-mails ouvrent le relais.
+- Écart accepté : l'API voit les adresses IP de Google ; le blocage par IP (`IP_MAX_FAILURES`, 20 échecs) est commun aux
+  utilisateurs du relais. Coût estimé 10 à 15 € par mois (requêtes SSE ouvertes facturées).
+- Retrait prévu dès l'autorisation du domaine définitif (`docs/DEPLOIEMENT - Google Cloud.md` § 15).

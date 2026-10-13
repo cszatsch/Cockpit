@@ -53,7 +53,8 @@ services:
     env_file: .env.prod
     environment:
       DATABASE_URL: postgresql://rise:${POSTGRES_PASSWORD}@db:5432/rise
-      APP_URL: https://${DOMAINE:?DOMAINE manquant dans .env.prod}
+      # Adresse des liens envoyés par e-mail : https://<DOMAINE>, sauf APP_URL dans .env.prod (relais Cloud Run).
+      APP_URL: ${APP_URL:-https://${DOMAINE}}
       # Valeurs imposées en production, quelles que soient celles de .env.prod.
       AUTH_DEV: "false"
       DEMO_TODAY: ""
@@ -80,7 +81,7 @@ services:
     depends_on:
       - api
     environment:
-      DOMAINE: ${DOMAINE}
+      DOMAINE: ${DOMAINE:?DOMAINE manquant dans .env.prod}
     ports:
       - "80:80"
       - "443:443"
