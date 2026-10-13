@@ -113,6 +113,11 @@ export class JevCockpitDocsService {
     return done('ANSWERED', r.text, [...dataSources, ...docSources], ident.ids, data ?? undefined);
   }
 
+  /** Au moins un document indexé consultable par l'utilisateur (suggestion « Chercher dans les documents »). */
+  async hasDocuments(scope: ProjectScope, actor: Actor): Promise<boolean> {
+    return (await this.kb.visibleIndexed(scope, actor)).length > 0;
+  }
+
   /** Séances tenues du projet, de la plus récente à la plus ancienne (pour situer « le dernier COPIL »). */
   private async heldSessions(projectId: string) {
     const rows = await this.prisma.session.findMany({ where: { projectId, status: 'HELD' }, orderBy: { dateIso: 'desc' }, take: DOC_SESSIONS_MAX });

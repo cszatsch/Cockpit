@@ -6,7 +6,7 @@ import { ApiCardsService } from '../../src/admin/api-cards.service';
 import { LlmService } from '../../src/core/llm.service';
 import { KbService } from '../../src/cockpit/documents/kb.service';
 import { COCKPIT_Q_CASE } from '../../src/domain/jev-router-cockpit';
-import { DOC_ANSWER_RULES, DOC_DATA_ANSWER_RULES, DOC_EMPTY_REPLY, parseDocIdentification } from '../../src/domain/jev-cockpit-answers';
+import { COCKPIT_INSIGHT_ANSWER_RULES, DOC_ANSWER_RULES, DOC_DATA_ANSWER_RULES, DOC_EMPTY_REPLY, parseDocIdentification } from '../../src/domain/jev-cockpit-answers';
 
 const R = '/api/projects/RISE';
 const C = `${R}/assistant/messages`;
@@ -92,6 +92,31 @@ describe('Jev du Cockpit — cas 4 : documents', () => {
     expect(calls.map((c) => c.functionId)).toEqual(['insights', 'insights', 'doc_syn', 'doc_syn']);
     expect(calls[3].system).toContain(DOC_DATA_ANSWER_RULES);
     expect(calls[3].systemTail).toMatch(/## Réponse tirée des données du projet[\s\S]*R01, R02, R03[\s\S]*## Extraits des documents[\s\S]*Support COPIL 20/);
+    spy.mockRestore();
+  });
+
+  it('règle : en cas d’écart, les données du projet font foi pour l’état actuel (13/10/2026)', () => {
+    expect(DOC_DATA_ANSWER_RULES).toContain('les données du projet font foi pour l’état actuel');
+  });
+
+  it('cas 1 avec des documents consultables : suggestion « Chercher dans les documents » (docsSuggest)', async () => {
+    next = 'donnees';
+    const spy = scripted('```sql\nSELECT code, libelle FROM jev_cockpit.risques\n```', 'Trois risques critiques ouverts.');
+    const r = await (await t.as(WHO.pmo)).post(C, { context: { space: 'pilotage', tab: 'risques' }, text: 'Quels sont les principaux risques ?' }).expect(200);
+    expect(r.body).toMatchObject({ route: '1', docsSuggest: true });
+    // Objet nommé introuvable (13/10/2026) : jamais un autre objet à sa place ; consigne envoyée à l'étape de rédaction.
+    const answer = spy.mock.calls.map((c) => c[0] as any).find((c) => String(c.system ?? '').includes('## Réponse à partir des données du projet'));
+    expect(answer?.system).toContain(COCKPIT_INSIGHT_ANSWER_RULES);
+    expect(COCKPIT_INSIGHT_ANSWER_RULES).toContain('Ne présente jamais un autre objet à sa place');
+    spy.mockRestore();
+  });
+
+  it('« Chercher dans les documents » (searchDocs) : données et documents (4b), même si l’aiguillage dit données', async () => {
+    next = 'donnees';
+    const spy = scripted('```sql\nSELECT code, libelle FROM jev_cockpit.risques\n```', 'Trois risques critiques ouverts.', JSON.stringify({ documents: [copil], recherche: 'risques présentés' }), 'Réponse données et documents.');
+    const r = await (await t.as(WHO.pmo)).post(C, { context: { space: 'pilotage', tab: 'risques' }, text: 'Cherche dans les documents : Quels sont les principaux risques ?', searchDocs: true }).expect(200);
+    expect(r.body).toMatchObject({ route: '4b', docs: 'ANSWERED', insight: 'ANSWERED', reply: 'Réponse données et documents.' });
+    expect(spy.mock.calls.map((c) => (c[0] as any).functionId)).toEqual(['insights', 'insights', 'doc_syn', 'doc_syn']);
     spy.mockRestore();
   });
 

@@ -3358,7 +3358,7 @@ class Component extends DCLogic {
     this.setState(s => ({ jevMsgs: (s.jevMsgs || []).concat([{ t: 'user', text: c.label }]), jevThink: true }));
     this._api.jevSend(c.label, J, { answer: c.answer }); this.jevScroll();
   }
-  jevSendText(raw) {
+  jevSendText(raw, extra) {
     const FL = raw == null ? (this.state.jevFiles || []) : [];
     if (FL.length) { const t0 = (this.state.jevInput || '').trim() || (FL.length > 1 ? 'Charge ces fichiers dans l\'application.' : 'Charge ce fichier dans l\'application.'), names = FL.map(f => f.name);
       this._jevLoad = names;
@@ -3367,7 +3367,7 @@ class Component extends DCLogic {
     if (this._jevLoad && raw === 'Autre emplacement') { this.setState(s => ({ jevMsgs: (s.jevMsgs || []).concat([{ t: 'user', text: 'Autre emplacement' }, { t: 'jev', text: 'Où souhaitez-vous le ranger ?', chips: ['Charger', 'Registre des décisions', 'Comités et rapports'] }]) })); this.jevScroll(); return; }
     const text = (raw ?? this.state.jevInput ?? '').trim(); if (!text) return;
     const J = this.state.jev || { mode: 'explain', ctx: '' };
-    if (this._api) { this.setState(s => ({ jevMsgs: (s.jevMsgs || []).concat([{ t: 'user', text }]), jevInput: '', jevThink: true, jev: { ...J, aw: null } })); this._api.jevSend(text, J); this.jevScroll(); return; } // API : POST /assistant/messages
+    if (this._api) { this.setState(s => ({ jevMsgs: (s.jevMsgs || []).concat([{ t: 'user', text }]), jevInput: '', jevThink: true, jev: { ...J, aw: null } })); this._api.jevSend(text, J, extra || {}); this.jevScroll(); return; } // API : POST /assistant/messages
     const r = this.jevReply(text, J);
     this.setState(s => ({ jevMsgs: (s.jevMsgs || []).concat([{ t: 'user', text }], r.msgs), jevInput: '', jev: { ...J, aw: r.aw !== undefined ? r.aw : null, pending: r.pending || J.pending } }));
     if (r.toast && !(r.msgs || []).some(m => m.t === 'recap')) this.showToast(r.toast);
@@ -3403,7 +3403,7 @@ class Component extends DCLogic {
       ...(m.t === 'jev' ? this.jevRich(m) : {}),
       srcOpen: !!m.srcOpen, srcOpenL: m.srcOpen ? 'true' : 'false', srcTip: m.srcOpen ? 'Masquer les sources' : 'Afficher les sources', srcChevSt: 'transition:transform .2s;transform:rotate(' + (m.srcOpen ? 180 : 0) + 'deg)',
       toggleSrc: () => this.jevUpd(i, mm => { mm.srcOpen = !mm.srcOpen; }),
-      hasChips: !!(m.chips && m.chips.length) && i === lastJev && i > lastUser, chips: (m.chips || []).map(c => (typeof c === 'string' ? { label: c, pick: () => this.jevSendText(c) } : { label: c.label, pick: () => this.jevSendAnswer(c) })),
+      hasChips: !!(m.chips && m.chips.length) && i === lastJev && i > lastUser, chips: (m.chips || []).map(c => (typeof c === 'string' ? { label: c, pick: () => this.jevSendText(c) } : c.send ? { label: c.label, pick: () => this.jevSendText(c.send, { docs: !!c.docs }) } : { label: c.label, pick: () => this.jevSendAnswer(c) })),
       isRedirect: !!(m.redirect || m.link), btn: m.link ? m.link.label : m.redirect ? m.redirect.btn : '', go: () => (m.link ? this.go(m.link.space, m.link.tab) : m.redirect && this.jevGo(m.redirect)),
       isScale: m.t === 'scale', scales: (m.scales || []).map((s, j) => ({ l: s.l, opts: [1, 2, 3, 4, 5].map(n => ({ v: n, pick: () => this.jevUpd(i, mm => { mm.scales[j].v = n; }), style: 'width:28px;height:28px;border-radius:7px;display:grid;place-items:center;font-weight:700;cursor:pointer;' + (s.v === n ? 'background:#1d8f86;color:#fff' : 'border:1px solid #bfdcd8;color:#0f5f5a;background:#fff') })) })),
       isRecap: m.t === 'recap', title: (m.st === 'applied' ? 'Enregistré · ' : m.st === 'rejected' ? 'Refusé · ' : 'À valider · ') + (m.title || ''), recapPending: m.t === 'recap' && m.st === 'proposed', canUndo: !this._api && m.t === 'recap' && m.st === 'applied' && !m.undone, undone: !!m.undone || m.st === 'rejected',

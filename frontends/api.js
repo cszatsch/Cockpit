@@ -1386,11 +1386,14 @@ export function attach(comp) {
       const context = { space: J.space || comp.state.space, ...(J.tab || comp.state.tab ? { tab: J.tab || comp.state.tab } : {}), ...(J.block ? { block: String(J.block).slice(0, 80) } : {}), ...(J.id ? { rowId: String(J.id).slice(0, 80) } : {}) };
       const fileIds = (comp._jevFileIds || []).splice(0);
       try {
-        const r = await ppost('/assistant/messages', { context, text: (!extra.answer && J.row && J.kind === 'ligne' && !/\b(A-\d+|R\d{2,}|P\d{2,}|D-\d{3}|J\d{2,})\b/i.test(text) ? String(J.row).split(' · ')[0] + ' · ' : '') + text, fileIds, ...(comp._jevConv ? { conversationId: comp._jevConv } : {}), ...(extra.answer ? { answer: extra.answer } : {}) });
+        const r = await ppost('/assistant/messages', { context, text: (!extra.answer && J.row && J.kind === 'ligne' && !/\b(A-\d+|R\d{2,}|P\d{2,}|D-\d{3}|J\d{2,})\b/i.test(text) ? String(J.row).split(' · ')[0] + ' · ' : '') + text, fileIds, ...(comp._jevConv ? { conversationId: comp._jevConv } : {}), ...(extra.answer ? { answer: extra.answer } : {}), ...(extra.docs ? { searchDocs: true } : {}) });
         comp._jevConv = r.conversationId || comp._jevConv;
         // Sources en étiquettes (jev-format.js, séparateur : saut de ligne) : « Guide · section · p. N » → « section · p. N ».
         const src = (r.sources || []).map((s) => (s.entityType === 'GUIDE' ? String(s.label).replace(/^Guide · /, '') : s.label)).join('\n');
-        const msgs = [{ t: 'jev', text: r.reply, src, chips: (r.choices || []).map((c) => ({ label: c.label, answer: c.answer })) }];
+        // Réponse sur les données avec des documents consultables (13/10/2026) : suggestion « Chercher dans les documents »,
+        // qui repose la question en données et documents (`searchDocs`, cas 4b).
+        const docsChip = r.docsSuggest ? [{ label: 'Chercher dans les documents', send: 'Cherche dans les documents : ' + text, docs: true }] : [];
+        const msgs = [{ t: 'jev', text: r.reply, src, chips: (r.choices || []).map((c) => ({ label: c.label, answer: c.answer })).concat(docsChip) }];
         const pc = r.proposedChanges || [];
         for (const group of ['main', 'linked']) {
           const g = pc.filter((c) => (c.group || 'main') === group);

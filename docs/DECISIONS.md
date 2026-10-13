@@ -2363,3 +2363,28 @@ en direct). Un premier essai avait échoué sur le crédit épuisé du compte An
   `openaiMaxTokens`), comme `ANTHROPIC_THINKING_MIN_TOKENS` pour les modèles Anthropic qui réfléchissent toujours.
 - Effet de bord assumé : la fonction `insights` (Jev du Cockpit, cas 1), elle aussi sur Haiku 5.5, répond désormais sans
   réflexion (réponses plus rapides ; mêmes consignes).
+
+## Jev du Cockpit : documents sans avoir à les nommer (13/10/2026)
+
+Demande du commanditaire : ne plus devoir écrire « Recherche dans la base documentaire… » pour que Jev consulte les
+documents. L'aiguillage classe la question d'après sa seule formulation, sans connaître le contenu de la Base.
+
+- Scénario A (contrôle par la proximité avant les données) écarté après mesure sur la base du poste (12 questions,
+  modèle de vectorisation et Voyage rerank-2.5) : questions sur les documents 0,48 à 0,73 en similarité (0,68 à 0,88 au
+  reclassement), questions sur les données 0,45 à 0,70 (0,53 à 0,82). Les supports de comité traitent des mêmes sujets
+  que les données (risques, actions, jalons) : aucun seuil ne sépare les deux ; presque toutes les questions sur les
+  données auraient basculé en 4b (plus lent, plus cher, chiffres d'un ancien support).
+- Retenu : suggestion « Chercher dans les documents » sous une réponse du cas 1 quand l'utilisateur a des documents
+  consultables (`docsSuggest`, `JevCockpitDocsService.hasDocuments`) ; un clic repose la question avec `searchDocs`
+  (`POST /assistant/messages`) : cas 4b, sauf modification (3) ou documents seuls (4a).
+- Règle de rédaction 4b (`DOC_DATA_ANSWER_RULES`) : en cas d'écart, les données du projet font foi pour l'état actuel ;
+  le document indique ce qui était annoncé ou décidé à sa date.
+- Piste ouverte (à valider par `npm run jev:aiguillage-cockpit`) : donner à l'aiguillage la liste des documents (titres
+  et descriptions), pour qu'une question qui nomme le sujet d'un document soit classée 4a ou 4b.
+- Objet nommé introuvable (13/10/2026, constat du commanditaire) : « le chantier Data gouvernance » (inexistant) était
+  répondu par la fiche complète de C1 Datalake, présentée comme « le plus proche ». Consigne ajoutée à la rédaction du
+  cas 1 (`COCKPIT_INSIGHT_ANSWER_RULES`) : le dire dès la première phrase, ne jamais présenter ni détailler un autre
+  objet à sa place ; seule exception, un nom presque identique (faute de frappe, sigle), demandé sans détail. Essai réel
+  sur la base du poste (Claude Haiku 5.5) : « Aucun chantier nommé « Data gouvernance » n'existe… », suggestion
+  « Chercher dans les documents » proposée ; « l'avancement du chantier Datalake » reste répondu normalement.
+

@@ -720,3 +720,7 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
   saisie étaient coupés (champ décalé de 7 px pour aligner son texte, dans une cellule en `overflow:hidden`). La cellule
   reçoit 10 px de marge intérieure compensée par une marge négative (`style0`) : bordure et halo entiers, texte et
   colonnes à la même position.
+- Jev, suggestion « Chercher dans les documents » (13/10/2026) : sous une réponse tirée des données du projet, quand
+  l'utilisateur a des documents consultables (`docsSuggest` de `POST /assistant/messages`), une suggestion repose la
+  question en données et documents (« Cherche dans les documents : … », champ `searchDocs`, cas 4b). `api.js` ajoute la
+  suggestion ; l'écran l'envoie par `jevSendText(texte, { docs: true })` (suggestion objet `{ label, send, docs }`).

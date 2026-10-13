@@ -47,6 +47,8 @@ const Message = z
     conversationId: z.string().max(60).optional(),
     /** Réponse à la question à choix de Jev (cas 3), ou annulation de la demande en cours. */
     answer: z.union([z.object({ value: z.union([z.string().max(200), z.number(), z.null(), z.array(z.string().max(200)).max(50)]) }).strict(), z.object({ cancel: z.literal(true) }).strict()]).optional(),
+    /** Suggestion « Chercher dans les documents » (13/10/2026) : données et documents (4b), quel que soit l'aiguillage. */
+    searchDocs: z.literal(true).optional(),
   })
   .strict();
 
@@ -124,9 +126,12 @@ export class AssistantController {
       return r;
     });
     recordRoute(routeStart, route);
+    // « Chercher dans les documents » (suggestion sous une réponse sur les données, 13/10/2026) : la recherche dans les
+    // documents est demandée explicitement ; données et documents (4b), sauf modification ou documents seuls.
+    const cas = input.searchDocs && ['1', '2', '5'].includes(route.cas) ? '4b' : route.cas;
     // Modification en cours : une réponse libre la complète ou la corrige (cas 3 ou clarification).
     const pending = !!conv.draft;
-    if (route.cas === '3' || (pending && route.cas === '5')) {
+    if (cas === '3' || (pending && cas === '5')) {
       latencyCategory('update_cockpit');
       const w = await span('cas 3 · modification des données', () => this.write.handle(scope, actor, conv, input.text, { page, history }));
       await this.router.noteAnswerModel(route.traceId, w.modelId);
@@ -136,18 +141,18 @@ export class AssistantController {
     // Cas 2 — guide utilisateur du Cockpit : recherche (8 extraits, seuil, reclassement, 4 gardés), rédaction par le
     // modèle de la fonction Guidage avec la seule skill « Guidage Cockpit » (partie stable en cache) ; extraits, section
     // et page dans la partie variable. Sans extrait au-dessus du seuil, Jev le dit sans appeler de modèle.
-    if (route.cas === '2') {
+    if (cas === '2') {
       latencyCategory('guide_cockpit');
       const { functionId, skill } = COCKPIT_CASE_ROUTE['2'];
       const parts = await this.jev.cockpitParts(skill, context);
       const g = await span('cas 2 · réponse depuis le guide', () => this.guide.answer('cockpit', input.text, { system: parts.stable, context: parts.page, functionId, projectId: scope.project.id }));
       await this.router.noteAnswerModel(route.traceId, g.modelId ?? null);
       if (g.status === 'UNAVAILABLE') latencyUnserved(g.error ?? 'Recherche dans le guide indisponible');
-      return { reply: g.reply, route: route.cas, sources: g.sources.map((label) => ({ entityType: 'GUIDE', id: 'cockpit', label })), proposedChanges: [], model: g.modelId ? { id: g.modelId, fallbackUsed: g.fallbackUsed } : null, guide: g.status };
+      return { reply: g.reply, route: cas, sources: g.sources.map((label) => ({ entityType: 'GUIDE', id: 'cockpit', label })), proposedChanges: [], model: g.modelId ? { id: g.modelId, fallbackUsed: g.fallbackUsed } : null, guide: g.status };
     }
     // Cas 5 — clarification : demande de précision rédigée par le modèle de la fonction Guidage (proposition du brief),
     // selon le motif (ambigu, hors sujet, confiance insuffisante, écriture incertaine, aiguillage indisponible).
-    if (route.cas === '5') {
+    if (cas === '5') {
       const reason = clarifyReasonOf(route);
       const probable = route.choice ? COCKPIT_CHOICE_TO_CASE[route.choice] : null;
       const parts = await this.jev.cockpitParts(COCKPIT_CASE_ROUTE['5'].skill, context);
@@ -156,24 +161,26 @@ export class AssistantController {
         system: `${parts.stable}\n\n${COCKPIT_CLARIFY_RULES}`, systemTail: parts.page, prompt: cockpitClarifyPrompt(input.text, reason, probable),
       });
       await this.router.noteAnswerModel(route.traceId, r.modelId ?? null);
-      return { reply: r.text, route: route.cas, reason, sources: [], proposedChanges: [], model: { id: r.modelId, fallbackUsed: r.fallbackUsed } };
+      return { reply: r.text, route: cas, reason, sources: [], proposedChanges: [], model: { id: r.modelId, fallbackUsed: r.fallbackUsed } };
     }
     // Cas 1 — données du projet : requête SQL écrite par le modèle Insights (skill « Insights »), exécutée en lecture
     // seule sur les vues jev_cockpit filtrées par les droits de l'utilisateur, puis réponse à partir des résultats.
-    if (route.cas === '1') {
+    if (cas === '1') {
       latencyCategory('data_cockpit');
       const { functionId, skill } = COCKPIT_CASE_ROUTE['1'];
       const a = await span('cas 1 · données du projet', () => this.insight.ask(input.text, { project: scope.project, access: scope.access, page, functionId, skill, history }));
       await this.router.noteAnswerModel(route.traceId, a.modelId);
       if (a.status === 'FAILED') latencyUnserved(a.error ?? 'Requête impossible');
-      return { reply: a.reply, route: route.cas, insight: a.status, sources: a.sources.map((label) => ({ entityType: 'DATA', id: label, label })), proposedChanges: [], model: a.modelId ? { id: a.modelId, fallbackUsed: a.fallbackUsed } : null };
+      // Suggestion « Chercher dans les documents » sous la réponse, s'il y a des documents consultables (13/10/2026).
+      const docsSuggest = a.status !== 'FAILED' && (await this.docs.hasDocuments(scope, actor));
+      return { reply: a.reply, route: cas, insight: a.status, docsSuggest, sources: a.sources.map((label) => ({ entityType: 'DATA', id: label, label })), proposedChanges: [], model: a.modelId ? { id: a.modelId, fallbackUsed: a.fallbackUsed } : null };
     }
     // Cas 4 — documents de la Base de connaissance : identification des documents visés, recherche, reclassement,
     // réponse par le modèle Documents / Synthèse (skill « Analyser un document ») ; 4b : données du projet d'abord.
     latencyCategory('kb_document');
-    const a = await span(`cas ${route.cas} · documents`, () => this.docs.answer(scope, actor, input.text, { page, withData: route.cas === '4b', history }));
+    const a = await span(`cas ${cas} · documents`, () => this.docs.answer(scope, actor, input.text, { page, withData: cas === '4b', history }));
     await this.router.noteAnswerModel(route.traceId, a.modelId);
-    return { reply: a.reply, route: route.cas, docs: a.status, insight: a.insight, sources: a.sources, proposedChanges: [], model: a.modelId ? { id: a.modelId, fallbackUsed: a.fallbackUsed } : null };
+    return { reply: a.reply, route: cas, docs: a.status, insight: a.insight, sources: a.sources, proposedChanges: [], model: a.modelId ? { id: a.modelId, fallbackUsed: a.fallbackUsed } : null };
   }
 
   private writeReply(w: WriteOutcome, route: string): JevReply {

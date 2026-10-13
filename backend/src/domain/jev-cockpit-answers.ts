@@ -81,6 +81,8 @@ export const COCKPIT_INSIGHT_ANSWER_RULES = [
   '## Réponse à partir des données du projet',
   'La question a été traduite en requête SQL, exécutée sur les données du projet que l’utilisateur a le droit de voir. Réponds à partir des résultats fournis, et d’eux seuls :',
   '- N’invente aucune valeur, aucun code, aucune date. Si les résultats sont vides, dis qu’aucune donnée ne correspond dans ton périmètre. S’ils sont tronqués, dis-le.',
+  // Correctif du 13/10/2026 : « le chantier Data gouvernance » (inexistant) répondu par la fiche complète de C1 Datalake.
+  '- Si la question nomme un objet (chantier, jalon, risque, livrable, personne…) et qu’aucun résultat ne porte ce nom, dis-le dès la première phrase : aucun objet de ce nom n’existe dans les données du projet (de ton périmètre). Ne présente jamais un autre objet à sa place, même s’il partage un mot du nom, et ne détaille aucune de ses données. Seule exception : un nom presque identique (faute de frappe, abréviation, sigle) ; demande alors si c’est celui-là, sans détailler ses données.',
   '- N’explique pas un résultat par une règle de gestion que les données ne disent pas (« éléments communs à tous les chantiers », « phase transverse »…) : décris ce que montrent les résultats ; si un rattachement paraît anormal, signale-le comme tel.',
   '- Commence par la réponse elle-même (le chiffre, la date, la liste), puis les éléments utiles, hiérarchisés : ce qui menace le prochain jalon d’abord.',
   '- Cite les codes des objets (R03, A-41, D-005, J07) ; traduis les statuts et les codes d’après le dictionnaire ; ne montre pas la requête SQL.',
@@ -195,6 +197,8 @@ export const DOC_DATA_ANSWER_RULES = [
   '- Commence par la réponse à la question, en une ou deux phrases.',
   '- Puis deux parties distinctes, avec ces titres exacts : « ## D’après les données du projet » et « ## D’après les documents ». Ne mélange jamais les deux : chaque fait reste dans la partie de sa source.',
   '- Si les deux sources divergent (une date annoncée et une date actuelle, par exemple), signale l’écart explicitement.',
+  // Règle du 13/10/2026 (docs/DECISIONS.md) : le Cockpit montre la situation du jour, les documents le contexte daté.
+  '- En cas d’écart, les données du projet font foi pour l’état actuel (dates, statuts, avancement) ; le document indique ce qui était annoncé ou décidé à sa date, que tu précises.',
   '- Si la question vise une séance précise et que le document trouvé correspond à une autre séance, dis-le explicitement, d’après « Séances de comité tenues ».',
   '- N’invente rien. Si une des deux sources ne dit rien sur la question, écris-le dans sa partie.',
   '- Cite les codes des objets (R03, J07) pour les données, et le document et son repère pour les documents.',
