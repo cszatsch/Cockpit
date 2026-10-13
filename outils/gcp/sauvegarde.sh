@@ -5,6 +5,9 @@
 #   15 2 * * * cd /opt/rise && ./outils/gcp/sauvegarde.sh >> sauvegardes/sauvegarde.log 2>&1
 # Restauration : outils/gcp/restaurer.sh. La clé SECRETS_KEY n'est pas dans la sauvegarde : la garder à part.
 set -euo pipefail
+# Entrée standard fermée : docker compose exec et gcloud la lisent, et avalaient la suite d'un script appelant
+# (« … | bash -s » par SSH : les étapes suivant la sauvegarde ne s'exécutaient pas).
+exec < /dev/null
 
 cd "$(dirname "$0")/../.."
 COMPOSE=(docker compose -f docker-compose.prod.yml --env-file .env.prod)
