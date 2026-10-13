@@ -100,14 +100,28 @@ export class LlmCallError extends Error {}
  * réponse vide « arrêt : max_tokens · blocs : thinking ». Ces modèles l'acceptent coupée : elle l'est (réponses courtes,
  * latence en moins). Ceux qui réfléchissent toujours (Opus 5.5, Sonnet 5.5, Fable, Mythos : `disabled` refusé, 400)
  * gardent au moins `ANTHROPIC_THINKING_MIN_TOKENS` jetons de sortie. Les autres (Haiku 4.5…) : inchangés.
+ * Claude Haiku 5.5 (correction du 13/10/2026) : réflexion active par défaut, coupure acceptée (effort par défaut
+ * `medium`) ; il manquait à la liste, d'où « réponse vide (arrêt : max_tokens · blocs : thinking) » sur l'identification
+ * des documents de la Synthèse (300 jetons).
  */
 export const ANTHROPIC_THINKING_MIN_TOKENS = 4096;
-const THINKING_DISABLABLE = /^claude-(sonnet-5|opus-5)(-\d{8})?$/;
+const THINKING_DISABLABLE = /^claude-(sonnet-5|opus-5|haiku-5-5)(-\d{8})?$/;
 const THINKING_ALWAYS_ON = /^claude-(opus-5-5|sonnet-5-5|fable|mythos)/;
 export function anthropicThinking(model: string, maxTokens: number): { max_tokens: number; thinking?: { type: 'disabled' } } {
   if (THINKING_DISABLABLE.test(model)) return { max_tokens: maxTokens, thinking: { type: 'disabled' } };
   if (THINKING_ALWAYS_ON.test(model)) return { max_tokens: Math.max(maxTokens, ANTHROPIC_THINKING_MIN_TOKENS) };
   return { max_tokens: maxTokens };
+}
+
+/**
+ * Modèles à raisonnement appelés directement chez OpenAI (champ `max_completion_tokens` : GPT-5, GPT-6…), correction du
+ * 13/10/2026 : le raisonnement, qu'aucun réglage ne coupe ici (`reasoning: 'off'` ne vaut que pour OpenRouter),
+ * consomme le budget de sortie — « réponse vide (arrêt : length · raisonnement : 300 jetons) » en secours de la
+ * Synthèse. Budget porté au moins à `OPENAI_REASONING_MIN_TOKENS` (bien en deçà de la sortie maximale de ces modèles).
+ */
+export const OPENAI_REASONING_MIN_TOKENS = 4096;
+export function openaiMaxTokens(maxField: 'max_tokens' | 'max_completion_tokens', maxTokens: number): number {
+  return maxField === 'max_completion_tokens' ? Math.max(maxTokens, OPENAI_REASONING_MIN_TOKENS) : maxTokens;
 }
 
 type Protocol = { kind: 'anthropic' } | { kind: 'gemini' } | { kind: 'openai'; base: string; label: string; maxField: 'max_tokens' | 'max_completion_tokens' };
@@ -168,7 +182,7 @@ export class LlmClient {
     }
     const body = {
       // Partie stable, historique, puis partie variable : le préfixe (système + historique) profite du cache automatique.
-      model: c.model, [p.maxField]: c.maxTokens,
+      model: c.model, [p.maxField]: openaiMaxTokens(p.maxField, c.maxTokens),
       messages: [{ role: 'system', content: c.system }, ...(c.history ?? []), ...(c.systemTail ? [{ role: 'system', content: c.systemTail }] : []), { role: 'user', content: c.prompt }],
     };
     const off = c.reasoning === 'off' && p.label === 'OpenRouter';

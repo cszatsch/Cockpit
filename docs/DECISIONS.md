@@ -2346,3 +2346,20 @@ passe le filtre depuis le poste. Décision du commanditaire : relais temporaire 
 - Plafond des corps de requête du Caddy de la VM relevé de 100 à 260 Mo (13/10/2026, demande du commanditaire) : plus
   grand envoi de l'application = Initialisation d'un projet, 10 propositions de 25 Mo en une requête
   (`PREFILL_MAX_FILES` × `PREFILL_MAX_BYTES`), plus une marge ; les limites par fichier restent celles de l'application.
+
+## Synthèse des documents : réponses vides des modèles qui réfléchissent (13/10/2026)
+
+Constat de recette (Jev du Cockpit, question sur la Base de connaissance) : « Fonction Synthèse indisponible :
+Anthropic : réponse vide (arrêt : max_tokens · blocs : thinking) ; secours : OpenAI : réponse vide (arrêt : length ·
+raisonnement : 300 jetons) ». Modèles affectés à `doc_syn` : Claude Haiku 5.5 (principal), GPT-6 Luna (secours, OpenAI
+en direct). Un premier essai avait échoué sur le crédit épuisé du compte Anthropic (400), sans rapport avec le code.
+
+- Cause : l'identification des documents (`JevCockpitDocsService`, 300 jetons) et la rédaction (`LIVE_MAX_OUTPUT_TOKENS`,
+  1 024) laissent trop peu de jetons à des modèles qui réfléchissent par défaut. Haiku 5.5 manquait à la liste des
+  modèles dont la réflexion est coupée (`THINKING_DISABLABLE`, `anthropicThinking`) ; le raisonnement des modèles
+  OpenAI appelés directement n'était jamais limité (`reasoning: 'off'` ne vaut que pour OpenRouter).
+- Correction : Haiku 5.5 ajouté à `THINKING_DISABLABLE` (coupure acceptée à l'effort par défaut `medium`, documentation
+  de l'API) ; appels OpenAI à `max_completion_tokens` portés au moins à `OPENAI_REASONING_MIN_TOKENS` (4 096,
+  `openaiMaxTokens`), comme `ANTHROPIC_THINKING_MIN_TOKENS` pour les modèles Anthropic qui réfléchissent toujours.
+- Effet de bord assumé : la fonction `insights` (Jev du Cockpit, cas 1), elle aussi sur Haiku 5.5, répond désormais sans
+  réflexion (réponses plus rapides ; mêmes consignes).

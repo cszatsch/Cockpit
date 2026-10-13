@@ -1,6 +1,6 @@
 import { setup, TestCtx, Client, WHO } from '../helpers';
 import { aiIncidentKey, LlmService } from '../../src/core/llm.service';
-import { LlmClient } from '../../src/core/llm-client';
+import { LlmClient, OPENAI_REASONING_MIN_TOKENS } from '../../src/core/llm-client';
 import { encryptSecret } from '../../src/core/crypto';
 import { JEV_SYSTEM_PROMPT } from '../../src/domain/jev-prompt';
 
@@ -243,7 +243,8 @@ describe('Console — Jev et la fonction guidage', () => {
       expect(o.body.messages[0]).toEqual({ role: 'system', content: reqs[0].body.system[0].text });
       expect(o.body.messages[1]).toEqual({ role: 'system', content: reqs[0].body.system[1].text });
       expect(o.body.messages[2]).toEqual({ role: 'user', content: 'Que montre cette page ?' });
-      expect(o.body.max_completion_tokens).toBe(1024);
+      // Modèle à raisonnement chez OpenAI : plancher de jetons de sortie (13/10/2026), au lieu des 1 024 demandés.
+      expect(o.body.max_completion_tokens).toBe(OPENAI_REASONING_MIN_TOKENS);
       expect(await lastUsage()).toMatchObject({ modelId: 'gpt5mini', tokensIn: 900, tokensOut: 20, fallbackUsed: true });
     });
 
