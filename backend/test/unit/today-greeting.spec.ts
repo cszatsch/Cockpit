@@ -8,6 +8,16 @@ const base: GreetingFacts = {
 const f = (p: Partial<GreetingFacts>): GreetingFacts => ({ ...base, ...p });
 
 describe('Message d’accueil de Jev : règles', () => {
+  it('titre long (15/10/2026) : complet et avec son code pour le modèle, abrégé pour le message par règles, « … » refusé', () => {
+    const long = 'Arbitrages mensuels de l’organisation incompatibles pour la réactivité exigée par les jalons';
+    const risks = { count: 1, first: long, code: 'R03', recent: 0 };
+    expect(rankedFacts(f({ criticalRisks: risks }))).toContain(`1 risque critique ouvert sur ses chantiers (R03 « ${long} »).`);
+    expect(ruleGreeting(f({ criticalRisks: { ...risks, recent: 1 } }))).toBe(`Bonjour Cédric, 1 risque critique a évolué depuis hier : « ${shortTitle(long)} ».`);
+    const cut = checkGreeting('Bonsoir Cédric, un risque critique reste ouvert sur vos chantiers : Arbitrages mensuels de l’organisation incompatibles pour…', f({ criticalRisks: risks }));
+    expect(cut).toEqual({ ok: false, reason: 'texte coupé (points de suspension)' });
+    expect(checkGreeting('Bonsoir Cédric, le risque critique R03 sur les arbitrages mensuels reste ouvert sur vos chantiers.', f({ criticalRisks: risks })).ok).toBe(true);
+  });
+
   it('moment de la journée', () => {
     expect([8, 11, 12, 17, 18, 23].map(momentOf)).toEqual(['matin', 'matin', 'après-midi', 'après-midi', 'soir', 'soir']);
   });

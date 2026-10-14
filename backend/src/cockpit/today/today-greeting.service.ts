@@ -12,7 +12,7 @@ import { addDays, daysBetween, frShort } from '../../domain/dates';
 import { visibleWorkstreams } from '../../domain/rights';
 import { RISK_CRITICAL_MIN } from '../../domain/rules';
 import {
-  checkGreeting, shortTitle, GREETING_MAX_WORDS, WELCOME_BODY_SHORT_NAME, GREETING_MODULE_ID, GREETING_PROMPT_VERSION, GREETING_PURGE_DAYS, GreetingFacts, greetingPrompt, momentOf, ruleGreeting,
+  checkGreeting, GREETING_MAX_WORDS, WELCOME_BODY_SHORT_NAME, GREETING_MODULE_ID, GREETING_PROMPT_VERSION, GREETING_PURGE_DAYS, GreetingFacts, greetingPrompt, momentOf, ruleGreeting,
 } from '../../domain/today-greeting';
 
 /** Délai laissé au modèle pour rédiger le message. */
@@ -58,11 +58,11 @@ export class TodayGreetingService implements OnModuleInit {
     const body = (await this.prisma.governanceBody.findFirst({ where: { ...P, shortName: WELCOME_BODY_SHORT_NAME } })) ?? (await this.prisma.governanceBody.findFirst({ where: { ...P, level: 'STRATEGIC' }, orderBy: { order: 'asc' } }));
     const [next, decisions, late, due, risks, milestones, done, prefs, person] = await Promise.all([
       body ? this.prisma.session.findFirst({ where: { ...P, bodyId: body.id, status: 'PLANNED', dateIso: { gte: today } }, orderBy: [{ dateIso: 'asc' }, { time: 'asc' }] }) : null,
-      me ? this.prisma.decision.findMany({ where: { ...P, makerId: me, status: 'TO_ARBITRATE' }, orderBy: { code: 'asc' }, select: { t: true } }) : [],
-      this.prisma.action.findMany({ where: { ...P, ...mine, status: { not: 'DONE' }, dueIso: { lt: today } }, orderBy: { dueIso: 'asc' }, select: { n: true } }),
-      this.prisma.action.findMany({ where: { ...P, ...mine, status: { not: 'DONE' }, dueIso: { gte: today, lte: week } }, orderBy: { dueIso: 'asc' }, select: { n: true } }),
-      this.prisma.risk.findMany({ where: { ...P, ...(vis ? { OR: [{ allWs: true }, { wsIds: { hasSome: vis.length ? vis : ['__aucun__'] } }] } : {}), status: { not: 'CLOSED' } }, select: { n: true, p: true, i: true, updatedAt: true } }),
-      this.prisma.milestone.findMany({ where: { ...P, ...(vis ? { wsId: { in: vis } } : {}), iso: { gte: today, lte: week } }, orderBy: { iso: 'asc' }, select: { n: true } }),
+      me ? this.prisma.decision.findMany({ where: { ...P, makerId: me, status: 'TO_ARBITRATE' }, orderBy: { code: 'asc' }, select: { t: true, code: true } }) : [],
+      this.prisma.action.findMany({ where: { ...P, ...mine, status: { not: 'DONE' }, dueIso: { lt: today } }, orderBy: { dueIso: 'asc' }, select: { n: true, code: true } }),
+      this.prisma.action.findMany({ where: { ...P, ...mine, status: { not: 'DONE' }, dueIso: { gte: today, lte: week } }, orderBy: { dueIso: 'asc' }, select: { n: true, code: true } }),
+      this.prisma.risk.findMany({ where: { ...P, ...(vis ? { OR: [{ allWs: true }, { wsIds: { hasSome: vis.length ? vis : ['__aucun__'] } }] } : {}), status: { not: 'CLOSED' } }, select: { n: true, code: true, p: true, i: true, updatedAt: true } }),
+      this.prisma.milestone.findMany({ where: { ...P, ...(vis ? { wsId: { in: vis } } : {}), iso: { gte: today, lte: week } }, orderBy: { iso: 'asc' }, select: { n: true, code: true } }),
       this.prisma.action.count({ where: { ...P, ...mine, status: 'DONE', closedAt: yesterday } }),
       this.prisma.userPreferences.findUnique({ where: { accountId: actor.accountId } }),
       me ? this.prisma.person.findUnique({ where: { id: me } }) : null,
@@ -71,7 +71,8 @@ export class TodayGreetingService implements OnModuleInit {
     const recent = critical.filter((r) => r.updatedAt.getTime() >= now.getTime() - 864e5);
     const hour = Number(new Intl.DateTimeFormat('fr-FR', { hour: 'numeric', hourCycle: 'h23', timeZone: tz }).format(now));
     const year = +today.slice(0, 4);
-    const cnt = (xs: Array<{ n?: string; t?: string }>) => ({ count: xs.length, first: xs[0] ? shortTitle(xs[0].n ?? xs[0].t ?? null) : null });
+    // Titre complet et code du premier élément (15/10/2026) : le message par règles l'abrège lui-même (shortTitle).
+    const cnt = (xs: Array<{ n?: string; t?: string; code?: string }>) => ({ count: xs.length, first: xs[0] ? (xs[0].n ?? xs[0].t ?? '').replace(/\s+/g, ' ').trim() || null : null, code: xs[0]?.code ?? null });
     return {
       day: today,
       firstName: prefs?.firstName ?? person?.firstName ?? actor.fullName.split(' ')[0],

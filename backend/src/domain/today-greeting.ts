@@ -13,8 +13,11 @@ export const GREETING_MAX_CHARS = 240;
 /** Nombre de faits envoyés au modèle, par ordre de priorité. */
 export const GREETING_MAX_FACTS = 6;
 /** Version des consignes (tracée avec chaque message). */
-export const GREETING_PROMPT_VERSION = 'accueil-v2';
-/** Longueur d'un titre cité (risque, action…) : au-delà, coupé au mot avec « … » (message lisible d'un coup d'œil). */
+export const GREETING_PROMPT_VERSION = 'accueil-v3';
+/**
+ * Longueur d'un titre cité par le message calculé par règles : au-delà, coupé au mot avec « … ». Le modèle reçoit le
+ * titre complet et son code (15/10/2026 : un titre coupé recopié tel quel terminait le message par « pour… »).
+ */
 export const GREETING_TITLE_MAX = 60;
 /** Conservation des messages générés. */
 export const GREETING_PURGE_DAYS = 30;
@@ -22,8 +25,8 @@ export const GREETING_PURGE_DAYS = 30;
 export const GREETING_MAX_WORDS = 45;
 
 export type Moment = 'matin' | 'après-midi' | 'soir';
-/** Un compte et le premier élément concerné (titre), pour nommer la priorité. */
-export type Count = { count: number; first: string | null };
+/** Un compte et le premier élément concerné (titre complet, code), pour nommer la priorité. */
+export type Count = { count: number; first: string | null; code?: string | null };
 
 export interface GreetingFacts {
   firstName: string;
@@ -48,7 +51,10 @@ export interface GreetingFacts {
 }
 
 const pl = (n: number, s: string, p = s + 's') => `${n} ${n > 1 ? p : s}`;
-const q = (t: string | null) => (t ? ` (« ${t} »)` : '');
+/** Premier élément d'un fait, pour le modèle : code et titre complet (« (R03 « Arbitrages… ») »). */
+const q = (c: Count) => (c.first ? ` (${c.code ? `${c.code} ` : ''}« ${c.first} »)` : '');
+/** Premier élément, pour le message par règles : titre abrégé. */
+const r = (c: Count) => shortTitle(c.first);
 
 /** Titre cité dans un fait : au plus `GREETING_TITLE_MAX` caractères, coupé au dernier mot entier. */
 export function shortTitle(t: string | null): string | null {
@@ -74,13 +80,13 @@ export function rankedFacts(f: GreetingFacts): string[] {
   const c = f.committee;
   const when = c ? (c.inDays === 0 ? 'aujourd’hui' : c.inDays === 1 ? 'demain' : `le ${c.dateLabel}, dans ${c.inDays} jours`) : '';
   if (c && c.inDays <= 2) out.push([100, `Prochaine séance du ${c.name} : ${when}.`]);
-  if (f.lateActions.count) out.push([90, `${pl(f.lateActions.count, 'action')} de la personne ${f.lateActions.count > 1 ? 'ont' : 'a'} dépassé l’échéance${q(f.lateActions.first)}.`]);
-  if (f.decisions.count) out.push([80, `${pl(f.decisions.count, 'décision')} ${f.decisions.count > 1 ? 'attendent' : 'attend'} son arbitrage${q(f.decisions.first)}.`]);
-  if (f.criticalRisks.recent) out.push([70, `${pl(f.criticalRisks.recent, 'risque critique', 'risques critiques')} ${f.criticalRisks.recent > 1 ? 'ont' : 'a'} changé depuis hier${q(f.criticalRisks.first)}.`]);
+  if (f.lateActions.count) out.push([90, `${pl(f.lateActions.count, 'action')} de la personne ${f.lateActions.count > 1 ? 'ont' : 'a'} dépassé l’échéance${q(f.lateActions)}.`]);
+  if (f.decisions.count) out.push([80, `${pl(f.decisions.count, 'décision')} ${f.decisions.count > 1 ? 'attendent' : 'attend'} son arbitrage${q(f.decisions)}.`]);
+  if (f.criticalRisks.recent) out.push([70, `${pl(f.criticalRisks.recent, 'risque critique', 'risques critiques')} ${f.criticalRisks.recent > 1 ? 'ont' : 'a'} changé depuis hier${q(f.criticalRisks)}.`]);
   if (c && c.inDays > 2) out.push([60, `Prochaine séance du ${c.name} : ${when}.`]);
-  if (f.dueThisWeek.count) out.push([50, `${pl(f.dueThisWeek.count, 'action')} de la personne ${f.dueThisWeek.count > 1 ? 'arrivent' : 'arrive'} à échéance dans les 7 jours${q(f.dueThisWeek.first)}.`]);
-  if (f.criticalRisks.count && !f.criticalRisks.recent) out.push([40, `${pl(f.criticalRisks.count, 'risque critique ouvert', 'risques critiques ouverts')} sur ses chantiers${q(f.criticalRisks.first)}.`]);
-  if (f.milestonesThisWeek.count) out.push([30, `${pl(f.milestonesThisWeek.count, 'jalon')} dans les 7 jours${q(f.milestonesThisWeek.first)}.`]);
+  if (f.dueThisWeek.count) out.push([50, `${pl(f.dueThisWeek.count, 'action')} de la personne ${f.dueThisWeek.count > 1 ? 'arrivent' : 'arrive'} à échéance dans les 7 jours${q(f.dueThisWeek)}.`]);
+  if (f.criticalRisks.count && !f.criticalRisks.recent) out.push([40, `${pl(f.criticalRisks.count, 'risque critique ouvert', 'risques critiques ouverts')} sur ses chantiers${q(f.criticalRisks)}.`]);
+  if (f.milestonesThisWeek.count) out.push([30, `${pl(f.milestonesThisWeek.count, 'jalon')} dans les 7 jours${q(f.milestonesThisWeek)}.`]);
   if (f.doneYesterday) out.push([20, `${pl(f.doneYesterday, 'action terminée', 'actions terminées')} hier par la personne.`]);
   return out.sort((a, b) => b[0] - a[0]).slice(0, GREETING_MAX_FACTS).map((x) => x[1]);
 }
@@ -107,10 +113,10 @@ function ruleSentence(f: GreetingFacts): string {
   if (c && c.inDays <= 1) return `${hi}, le ${c.name} a lieu ${c.inDays === 0 ? 'aujourd’hui' : 'demain'}${dec}`;
   if (f.lateActions.count) {
     const n = f.lateActions.count, who = n > 1 ? `${n} de vos actions ont` : 'une de vos actions a';
-    return `${hi}, ${who} dépassé l’échéance${f.lateActions.first ? `, à commencer par « ${f.lateActions.first} »` : ''}.`;
+    return `${hi}, ${who} dépassé l’échéance${r(f.lateActions) ? `, à commencer par « ${r(f.lateActions)} »` : ''}.`;
   }
   if (d) return `${hi}, ${pl(d, 'décision')} ${d > 1 ? 'attendent' : 'attend'} votre arbitrage${c ? ` avant le ${c.name} du ${c.dateLabel}` : ''}.`;
-  if (f.criticalRisks.recent) return `${hi}, ${pl(f.criticalRisks.recent, 'risque critique', 'risques critiques')} ${f.criticalRisks.recent > 1 ? 'ont' : 'a'} évolué depuis hier${f.criticalRisks.first ? ` : « ${f.criticalRisks.first} »` : ''}.`;
+  if (f.criticalRisks.recent) return `${hi}, ${pl(f.criticalRisks.recent, 'risque critique', 'risques critiques')} ${f.criticalRisks.recent > 1 ? 'ont' : 'a'} évolué depuis hier${r(f.criticalRisks) ? ` : « ${r(f.criticalRisks)} »` : ''}.`;
   if (f.dueThisWeek.count) return `${hi}, ${pl(f.dueThisWeek.count, 'action')} ${f.dueThisWeek.count > 1 ? 'arrivent' : 'arrive'} à échéance cette semaine${c ? ` ; prochain ${c.name} le ${c.dateLabel}` : ''}.`;
   if (c) return `${hi}, rien d’urgent aujourd’hui : le prochain ${c.name} a lieu le ${c.dateLabel}, dans ${c.inDays} jours.`;
   return `${hi}, rien d’urgent aujourd’hui.`;
@@ -123,7 +129,7 @@ Tu écris le message d’accueil affiché sous le titre « Aujourd’hui » du C
 - Commence exactement par la salutation et le prénom suivis d’une virgule (« Bonjour Cédric, », « Bonsoir Cédric, », « Bonne semaine Cédric, ») : l’écran les affiche sur leur propre ligne.
 - Après la virgule : une seule phrase de 160 caractères au plus, qui commence par l’essentiel.
 - Mets en avant une seule priorité : le premier fait de la liste. Un second fait seulement s’il tient dans la même phrase.
-- N’utilise que les faits fournis : aucun autre chiffre, nom, date ni titre. Recopie les titres tels quels.
+- N’utilise que les faits fournis : aucun autre chiffre, nom, date ni titre. Cite un titre tel quel s’il tient dans la phrase ; sinon, cite le code de l’objet suivi de quelques mots du titre qui en gardent le sens (« le risque R03 sur les arbitrages mensuels »). Jamais de points de suspension ni de titre coupé.
 - Formulation neutre : pas d’accord au masculin ou au féminin pour la personne (pas de « prêt », « prête »).
 - Texte brut : pas de Markdown, pas de lien, pas d’emoji, pas de guillemets autour du message.
 - Pas de question de relance, pas de signature.`;
@@ -159,6 +165,8 @@ export function checkGreeting(raw: string, f: GreetingFacts): { ok: true; text: 
   if (text.length > GREETING_MAX_CHARS) return { ok: false, reason: `trop long (${text.length} caractères)` };
   if (/https?:|\[[^\]]*\]\(|#/.test(text)) return { ok: false, reason: 'lien ou mise en forme' };
   if (TUTOIEMENT.test(text)) return { ok: false, reason: 'tutoiement' };
+  // 15/10/2026 : message terminé par un titre coupé (« … pour… ») ; refusé, le message par règles prend le relais.
+  if (/…|\.\.\./.test(text)) return { ok: false, reason: 'texte coupé (points de suspension)' };
   const allowed = new Set(numbersOf([greetingPrompt(f), f.dateLabel].join(' ')));
   const unknown = numbersOf(text).filter((n) => !allowed.has(n));
   if (unknown.length) return { ok: false, reason: `nombre absent des faits (${unknown.join(', ')})` };

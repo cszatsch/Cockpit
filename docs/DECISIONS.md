@@ -2444,3 +2444,16 @@ en cas d'écart entre données et documents, l'information du document n'est pas
   9,3 centimes et 23 s par question (cache actif d'une question à l'autre) ; GPT-6 Sol / GPT-6 Sol 30 sur 30,
   4,6 centimes et 10,9 s. Choix du modèle de production laissé au commanditaire après relecture humaine de l'Excel.
   Résultats (données réelles du projet) non versionnés.
+
+## Message d'accueil : titres coupés (15/10/2026)
+
+Constat : « Bonsoir Cédric, Un risque critique reste ouvert sur vos chantiers : Arbitrages mensuels de l'organisation
+incompatibles pour… » — les titres de plus de `GREETING_TITLE_MAX` (60) caractères étaient coupés avec « … » avant
+d'être donnés au modèle, à qui la consigne demandait de les recopier tels quels.
+
+- Le modèle reçoit le titre complet et le code de l'objet (`Count.code`, « (R03 « … ») ») ; consigne : titre cité tel
+  quel s'il tient dans la phrase, sinon le code et quelques mots qui en gardent le sens, jamais de points de suspension.
+- `checkGreeting` refuse un message avec « … » ou « ... » (motif « texte coupé ») : le message par règles prend le
+  relais, avec le titre abrégé entre guillemets (`shortTitle`).
+- `GREETING_PROMPT_VERSION` = `accueil-v3` : le message du jour gardé est réécrit une fois. Essai réel (base du poste) :
+  « … Le risque critique R03, sur les arbitrages mensuels trop lents pour nos jalons, demande votre décision… ».
