@@ -23,6 +23,7 @@
     "jev:aiguillage-cockpit": "ts-node --transpile-only scripts/jev-aiguillage-cockpit.ts",
     "jev:traces": "ts-node --transpile-only scripts/jev-traces.ts",
     "jev:reponses": "ts-node --transpile-only scripts/jev-reponses.ts",
+    "jev:banc-cockpit": "ts-node --transpile-only scripts/jev-cockpit-banc.ts",
     "openapi": "ts-node --transpile-only scripts/export-openapi.ts",
     "lint": "tsc --noEmit -p tsconfig.json",
     "test": "jest --runInBand",

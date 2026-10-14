@@ -2423,3 +2423,16 @@ en cas d'écart entre données et documents, l'information du document n'est pas
   vient jamais d'un document. `DOC_AUTO_ANSWER_RULES` (rédaction complète) gardée pour mémoire.
 - Coût mesuré (journal des appels, base du poste, Synthèse sur Opus 5.5, données sur Haiku 5.5) : ≈ 2 à 7 centimes par
   question sur les données, dont l'essentiel pour le complément (1,3 à 5,9 centimes selon les extraits et le cache).
+
+## Banc des réponses du Jev du Cockpit ; sélection annoncée (14/10/2026)
+
+- Consigne ajoutée à la rédaction du cas 1 (`COCKPIT_INSIGHT_ANSWER_RULES`) : quand la réponse ne retient qu'une partie
+  des résultats (« les principaux », « les plus en retard »), elle indique le total et le critère retenu. Constat : « les
+  principaux risques » répondu par 3 risques sur 4 sans le dire (GPT-6 Sol) ; sélection légitime, mais non annoncée.
+- `npm run jev:banc-cockpit` (`scripts/jev-cockpit-banc.ts`, questions `scripts/banc/jev-cockpit-questions.json`,
+  dans l'image Docker avec les scripts) : la route de l'écran (aiguillage, mémoire, double recherche réels), une ou
+  plusieurs configurations Insights / Synthèse forcées pour le banc (`--configs`, affectations inchangées), contrôles
+  sans modèle (`bancChecks`, `src/domain/jev-cockpit-banc.ts` : codes et noms de chantiers, complément répété,
+  source imposée, objet inexistant, documents attendus ; `BANC_NAME_PREFIX`, `BANC_REPEAT_CHARS`), durée et coût par
+  question (journal des appels du compte), Excel « Jev Cockpit - banc des reponses.xlsx » avec une colonne de
+  relecture humaine. `npm run jev:reponses` reste le banc du Jev de la Console.
