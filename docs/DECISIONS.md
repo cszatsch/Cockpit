@@ -2436,3 +2436,11 @@ en cas d'écart entre données et documents, l'information du document n'est pas
   source imposée, objet inexistant, documents attendus ; `BANC_NAME_PREFIX`, `BANC_REPEAT_CHARS`), durée et coût par
   question (journal des appels du compte), Excel « Jev Cockpit - banc des reponses.xlsx » avec une colonne de
   relecture humaine. `npm run jev:reponses` reste le banc du Jev de la Console.
+- Consigne ajoutée (`COCKPIT_INSIGHT_ANSWER_RULES`) : aucun code d'objet absent des résultats, même en exemple ; nombre
+  et codes des objets tirés des seuls résultats, jamais de la description du projet. Constat du banc : Opus écrivait
+  « son code (C1 à C8) » pour 5 chantiers (l'objectif du projet annonce « 8 chantiers »), « R05 » en exemple, « aucun
+  jalon sur C6, C7 ou C8 » ; rejoué après la consigne : 4 questions sur 4 conformes.
+- Premier banc (base du poste, 2 documents, 30 questions) : Opus 5.5 / Opus 5.5 26 sur 30 (30 sur 30 après la consigne),
+  9,3 centimes et 23 s par question (cache actif d'une question à l'autre) ; GPT-6 Sol / GPT-6 Sol 30 sur 30,
+  4,6 centimes et 10,9 s. Choix du modèle de production laissé au commanditaire après relecture humaine de l'Excel.
+  Résultats (données réelles du projet) non versionnés.
