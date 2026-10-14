@@ -1,4 +1,4 @@
-import { DOC_AUTO_ANSWER_RULES, DOC_DATA_ANSWER_RULES, DOCS_PART_TITLE, explicitSource, usesDocsPart } from '../../src/domain/jev-cockpit-answers';
+import { DOC_COMPLEMENT_RULES, DOC_DATA_ANSWER_RULES, DOCS_PART_TITLE, explicitSource, parseDocComplement, usesDocsPart } from '../../src/domain/jev-cockpit-answers';
 
 /** Double recherche de Jev (13/10/2026) : source demandée explicitement, partie « documents », règles de rédaction. */
 describe('Jev du Cockpit : source explicite et double recherche', () => {
@@ -27,9 +27,17 @@ describe('Jev du Cockpit : source explicite et double recherche', () => {
   });
 
   it('règles : les informations d’un document qui contredisent les données ne sont pas citées', () => {
-    expect(DOC_AUTO_ANSWER_RULES).toContain('ne la cite pas : garde uniquement celle des données');
-    expect(DOC_AUTO_ANSWER_RULES).toContain(DOCS_PART_TITLE);
+    expect(DOC_COMPLEMENT_RULES).toContain('toute information qui diffère de la réponse tirée des données');
+    expect(DOC_COMPLEMENT_RULES).toContain('l’état des objets du Cockpit');
     expect(DOC_DATA_ANSWER_RULES).toContain('ne cite pas celle du document');
     expect(DOC_DATA_ANSWER_RULES).toContain('demande explicitement de comparer');
+  });
+
+  it('complément : « RIEN » ou vide → aucun ; titre ajouté par le modèle retiré (14/10/2026)', () => {
+    expect(parseDocComplement('RIEN')).toBeNull();
+    expect(parseDocComplement(' **RIEN**. ')).toBeNull();
+    expect(parseDocComplement('')).toBeNull();
+    expect(parseDocComplement(`${DOCS_PART_TITLE}\n- Point daté.`)).toBe('- Point daté.');
+    expect(parseDocComplement('- Le support du 09/10/2026 présente la feuille de route.')).toBe('- Le support du 09/10/2026 présente la feuille de route.');
   });
 });

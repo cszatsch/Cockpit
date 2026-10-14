@@ -6,7 +6,7 @@ import { ApiCardsService } from '../../src/admin/api-cards.service';
 import { LlmService } from '../../src/core/llm.service';
 import { KbService } from '../../src/cockpit/documents/kb.service';
 import { COCKPIT_Q_CASE } from '../../src/domain/jev-router-cockpit';
-import { COCKPIT_INSIGHT_ANSWER_RULES, DOC_ANSWER_RULES, DOC_AUTO_ANSWER_RULES, DOC_DATA_ANSWER_RULES, DOC_EMPTY_REPLY, DOCS_MODULE_ID, DOCS_PART_TITLE, parseDocIdentification } from '../../src/domain/jev-cockpit-answers';
+import { COCKPIT_INSIGHT_ANSWER_RULES, DOC_ANSWER_RULES, DOC_COMPLEMENT_RULES, DOC_DATA_ANSWER_RULES, DOC_EMPTY_REPLY, DOCS_MODULE_ID, DOCS_PART_TITLE, parseDocIdentification } from '../../src/domain/jev-cockpit-answers';
 
 const R = '/api/projects/RISE';
 const C = `${R}/assistant/messages`;
@@ -148,22 +148,24 @@ describe('Jev du Cockpit — cas 4 : documents', () => {
 
     it('les documents apportent un élément : partie « documents », sources données et documents, consignes de la double recherche', async () => {
       next = 'donnees';
-      const spy = byFn({ insights: [SQL, 'Trois risques critiques ouverts : R01, R02, R03.'], doc_syn: [JSON.stringify({ documents: [copil], recherche: 'risques' }), `R01, R02 et R03 sont critiques.\n\n${DOCS_PART_TITLE}\n- Présentés au COPIL n°20 du 26/09/2026.`] });
+      const spy = byFn({ insights: [SQL, 'Trois risques critiques ouverts : R01, R02, R03.'], doc_syn: [JSON.stringify({ documents: [copil], recherche: 'risques' }), '- Présentés au COPIL n°20 du 26/09/2026 (Support COPIL 20, diapositive 1).'] });
       const r = await (await t.as(WHO.pmo)).post(C, { context: { space: 'pilotage', tab: 'risques' }, text: 'Quels sont les principaux risques ?' }).expect(200);
       expect(r.body).toMatchObject({ route: '1', insight: 'ANSWERED', docs: 'ANSWERED', docsUsed: true });
+      // Réponse des données affichée telle quelle, puis le complément sous le titre de la partie documents (14/10/2026).
+      expect(r.body.reply).toBe(`Trois risques critiques ouverts : R01, R02, R03.\n\n${DOCS_PART_TITLE}\n- Présentés au COPIL n°20 du 26/09/2026 (Support COPIL 20, diapositive 1).`);
       expect(r.body.docsSuggest).toBeUndefined();
       expect(r.body.sources.map((s: any) => s.entityType)).toEqual(expect.arrayContaining(['DATA', 'DOCUMENT']));
       const last = fnCalls(spy).pop();
-      expect(last.system).toContain(DOC_AUTO_ANSWER_RULES);
+      expect(last.system).toContain(DOC_COMPLEMENT_RULES);
       expect(last.systemTail).toMatch(/## Réponse tirée des données du projet[\s\S]*R01, R02, R03/);
       spy.mockRestore();
     });
 
     it('les documents n’apportent rien : pas de partie « documents », sources des données seules', async () => {
       next = 'donnees';
-      const spy = byFn({ insights: [SQL, 'Trois risques critiques ouverts.'], doc_syn: [JSON.stringify({ documents: [copil], recherche: 'risques' }), 'Trois risques critiques ouverts : R01, R02, R03.'] });
+      const spy = byFn({ insights: [SQL, 'Trois risques critiques ouverts.'], doc_syn: [JSON.stringify({ documents: [copil], recherche: 'risques' }), 'RIEN'] });
       const r = await (await t.as(WHO.pmo)).post(C, { context: { space: 'pilotage', tab: 'risques' }, text: 'Quels sont les principaux risques ?' }).expect(200);
-      expect(r.body).toMatchObject({ route: '1', docsUsed: false });
+      expect(r.body).toMatchObject({ route: '1', docsUsed: false, reply: 'Trois risques critiques ouverts.' });
       expect(r.body.sources.every((s: any) => s.entityType === 'DATA')).toBe(true);
       spy.mockRestore();
     });

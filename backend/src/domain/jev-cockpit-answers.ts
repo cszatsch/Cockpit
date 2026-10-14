@@ -223,11 +223,38 @@ export const usesDocsPart = (reply: string) => /^#{2,3}\s*D[’']apr[èe]s les d
  * seulement s'ils apportent un élément absent des données, datés ; une information de document qui contredit les
  * données n'est jamais citée (décision du commanditaire du 13/10/2026).
  */
+/**
+ * Complément tiré des documents (14/10/2026, essai réel) : rédiger toute la réponse mêlait les deux sources (chiffres d'un
+ * ancien support glissés dans la réponse des données) ; la réponse des données est désormais affichée telle quelle, et
+ * le modèle n'écrit que le complément, ou « RIEN » (`DOC_COMPLEMENT_NONE`, `parseDocComplement`).
+ */
+export const DOC_COMPLEMENT_NONE = 'RIEN';
+export const DOC_COMPLEMENT_RULES = [
+  '## Compléter une réponse tirée des données par les documents',
+  'La « Réponse tirée des données du projet » ci-dessous est déjà rédigée, fait foi et sera affichée telle quelle. Ta seule tâche : écrire le complément tiré des « Extraits des documents », ou le mot RIEN.',
+  `- Écris ${DOC_COMPLEMENT_NONE} (ce seul mot) si les extraits n’apportent aucun élément utile à la question que les données ne peuvent pas contenir. C’est la réponse attendue le plus souvent, en particulier pour une question de comptage, de liste ou d’état (« combien », « lesquels », « où en est »).`,
+  '- Exclus du complément, même si un document en parle : l’état des objets du Cockpit (nombre, liste, statut, échéance, porteur, responsable, avancement, criticité des actions, risques, problèmes, jalons, livrables, décisions et chantiers), et toute information qui diffère de la réponse tirée des données. Ne dis jamais qu’un document confirme, nuance ou date les données.',
+  '- Complément autorisé : contexte, objectifs, périmètre, organisation, raisons d’une décision, ce qui a été présenté ou recommandé. Au plus trois points courts, chacun daté (nom du document, date, diapositive ou page).',
+  '- Si la réponse tirée des données dit qu’aucun objet de ce nom n’existe dans le projet et qu’un document en parle : le complément est la réponse tirée de ce document (six points au plus), datée.',
+  '- Ni titre, ni introduction, ni conclusion, ni question finale, ni liste « Sources ». N’invente rien.',
+].join('\n');
+
+/** Complément rédigé, sans titre ajouté par le modèle ; null : « RIEN » ou réponse vide. */
+export function parseDocComplement(text: string): string | null {
+  const t = String(text ?? '').trim().replace(/^#{1,4}\s*D[’']apr[èe]s les documents\s*\n+/i, '').trim();
+  if (!t || new RegExp(`^\\**${DOC_COMPLEMENT_NONE}\\**[.!]?$`, 'i').test(t)) return null;
+  return t;
+}
+
+/** Ancienne consigne de rédaction complète (avant le 14/10/2026), gardée pour mémoire. */
 export const DOC_AUTO_ANSWER_RULES = [
   '## Répondre à partir des données du projet, complétées par les documents',
   'La question porte sur les données du projet. Deux sources sont fournies : « Réponse tirée des données du projet » (lue dans les tables du Cockpit, elle fait foi) et des extraits de documents de la Base de connaissance, trouvés par recherche automatique : ils peuvent être sans rapport, anciens ou dépassés.',
   '- Commence par la réponse tirée des données, en reprenant ses faits sans les modifier : réponse en une ou deux phrases, puis les éléments utiles.',
-  `- Ajoute une partie avec exactement ce titre : « ${DOCS_PART_TITLE} », seulement si les extraits apportent un élément utile absent des données : contexte, raison d’une décision, ce qui était annoncé ou présenté. Au plus trois points. Sinon, n’écris rien sur les documents, pas même pour dire qu’ils ne disent rien.`,
+  // Correctif du 14/10/2026 (essai réel) : « Combien d'actions sont en retard ? » complété par les chiffres d'un ancien
+  // support (actions ouvertes, sans échéance, porteur) présentés comme un point de vigilance.
+  '- L’état des objets du Cockpit ne vient jamais des documents : nombre, liste, statut, échéance, porteur, responsable, avancement, criticité des actions, risques, problèmes, jalons, livrables, décisions et chantiers. Ces éléments viennent des seules données, même si un document semble les préciser ou les compléter ; ne les cite pas d’après un document, même pour dire qu’il les confirme.',
+  `- Ajoute une partie avec exactement ce titre : « ${DOCS_PART_TITLE} », seulement si les extraits apportent un élément utile que les données ne peuvent pas contenir : contexte, objectifs, périmètre, organisation, raisons d’une décision, ce qui a été présenté ou recommandé. Au plus trois points. Pour une question de comptage, de liste ou d’état (« combien », « lesquels », « où en est »), il n’y a en général rien à ajouter. Sinon, n’écris rien sur les documents, pas même pour dire qu’ils ne disent rien.`,
   '- Date chaque élément tiré d’un document (nom du document et sa date, repère : diapositive, page) ; ne le présente jamais comme la situation actuelle.',
   '- Si une information d’un document diffère de celle des données sur le même point (date, statut, chiffre, avancement, responsable…), ne la cite pas : garde uniquement celle des données.',
   `- Si la réponse tirée des données dit qu’aucun objet de ce nom n’existe dans le projet et qu’un document en parle, dis-le en une phrase, puis réponds à partir du document, sous le titre « ${DOCS_PART_TITLE} ».`,

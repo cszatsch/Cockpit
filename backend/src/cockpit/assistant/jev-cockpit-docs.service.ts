@@ -11,8 +11,8 @@ import { ChatTurn } from '../../core/llm-client';
 import { requestContext } from '../../domain/jev-sql';
 import { COCKPIT_CASE_ROUTE } from '../../domain/jev-router-cockpit';
 import {
-  DOC_ANSWER_RULES, DOC_AUTO_ANSWER_RULES, DOC_DATA_ANSWER_HINT, DOC_DATA_ANSWER_RULES, DOC_DATA_QUERY_HINT, docSessionsBlock, DOC_EMPTY_REPLY, DOC_IDENTIFY_SYSTEM, DOC_KEEP, DOC_MIN_SIMILARITY, DOC_NOT_FOUND_REPLY, DOC_OUTLINE_MAX, DOC_SEARCH_K,
-  DOC_SESSIONS_MAX, DocExtract, DOCS_MODULE_ID, docCatalogText, docExtractsBlock, docOverviewBlock, docSourceLabel, nowParisLabel, parseDocIdentification, usesDocsPart,
+  DOC_ANSWER_RULES, DOC_COMPLEMENT_RULES, DOC_DATA_ANSWER_HINT, DOC_DATA_ANSWER_RULES, DOC_DATA_QUERY_HINT, docSessionsBlock, DOC_EMPTY_REPLY, DOC_IDENTIFY_SYSTEM, DOC_KEEP, DOC_MIN_SIMILARITY, DOC_NOT_FOUND_REPLY, DOC_OUTLINE_MAX, DOC_SEARCH_K,
+  DOC_SESSIONS_MAX, DocExtract, DOCS_MODULE_ID, DOCS_PART_TITLE, docCatalogText, docExtractsBlock, docOverviewBlock, docSourceLabel, nowParisLabel, parseDocComplement, parseDocIdentification,
 } from '../../domain/jev-cockpit-answers';
 import { KbService } from '../documents/kb.service';
 import { InsightAnswer, JevCockpitInsightService } from '../../admin/jev-cockpit-insight.service';
@@ -119,7 +119,7 @@ export class JevCockpitDocsService {
         ...(visees.length ? [docOverviewBlock(visees)] : []),
         docExtractsBlock(extracts),
       ].join('\n\n');
-      const rules = opts.auto ? DOC_AUTO_ANSWER_RULES : data ? DOC_DATA_ANSWER_RULES : DOC_ANSWER_RULES;
+      const rules = opts.auto ? DOC_COMPLEMENT_RULES : data ? DOC_DATA_ANSWER_RULES : DOC_ANSWER_RULES;
       const r = await this.llm.complete({
         functionId, source: 'JEV', cache: true, projectId: scope.project.id,
         system: `${parts.stable}\n\n${rules}`, systemTail: tail, prompt: question, history: opts.history,
@@ -128,9 +128,11 @@ export class JevCockpitDocsService {
       const seen = new Set<string>();
       const docSources = extracts.map((x) => docSourceLabel(x)).filter((l) => (seen.has(l) ? false : (seen.add(l), true))).map((label) => ({ entityType: 'DOCUMENT' as const, id: label, label }));
       if (!opts.auto) return done('ANSWERED', r.text, [...dataSourcesOf(data), ...docSources], ident.ids, data ?? undefined);
-      // Double recherche : sources « document » seulement si la réponse contient la partie documents.
-      const docsUsed = usesDocsPart(r.text);
-      return done('ANSWERED', r.text, [...dataSourcesOf(data), ...(docsUsed ? docSources : [])], ident.ids, data ?? undefined, docsUsed);
+      // Double recherche : la réponse des données telle quelle, puis le complément tiré des documents s'il y en a un ;
+      // sources « document » seulement dans ce cas.
+      const complement = parseDocComplement(r.text);
+      if (!complement) return done('ANSWERED', data!.reply, dataSourcesOf(data), ident.ids, data ?? undefined, false);
+      return done('ANSWERED', `${data!.reply}\n\n${DOCS_PART_TITLE}\n${complement}`, [...dataSourcesOf(data), ...docSources], ident.ids, data ?? undefined, true);
     } catch (e) {
       if (!opts.auto) throw e;
       // Chaîne Documents indisponible (vectorisation, modèle…) : la réponse des données, sans message d'erreur.

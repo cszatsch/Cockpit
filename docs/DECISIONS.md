@@ -2415,3 +2415,11 @@ en cas d'écart entre données et documents, l'information du document n'est pas
 - Coût estimé : ≈ 0,3 à 0,5 centime par question sur les données (Claude Haiku 5.5), à mesurer par `npm run jev:reponses`.
 - Guides utilisateur (Cockpit § 3.19.2, Console § 3.16) mis à jour ; PDF à régénérer (`npm run guides:pdf`) et à
   déposer dans Console › Guide utilisateur.
+- Essais réels du 14/10/2026 : avec Claude Haiku 5.5 en Synthèse (`doc_syn`), la consigne n'est pas suivie (chiffres
+  d'un ancien support glissés dans la réponse des données, avec ou sans partie « documents ») ; avec Claude Opus 5.5,
+  les trois questions d'essai sont conformes. Structure renforcée : la réponse des données est affichée telle quelle,
+  le modèle n'écrit que le complément tiré des documents ou « RIEN » (`DOC_COMPLEMENT_RULES`, `parseDocComplement`,
+  `DOC_COMPLEMENT_NONE`) ; l'état des objets du Cockpit (nombre, liste, statut, échéance, porteur, avancement…) ne
+  vient jamais d'un document. `DOC_AUTO_ANSWER_RULES` (rédaction complète) gardée pour mémoire.
+- Coût mesuré (journal des appels, base du poste, Synthèse sur Opus 5.5, données sur Haiku 5.5) : ≈ 2 à 7 centimes par
+  question sur les données, dont l'essentiel pour le complément (1,3 à 5,9 centimes selon les extraits et le cache).
