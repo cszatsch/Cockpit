@@ -840,3 +840,17 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
   dessinait une flèche qui entre (symbole « se connecter »).
 - Modules (13/10/2026) : module « Recherche documentaire systématique » (`jev_documents`) rangé après le message
   d'accueil de Jev (`MOD_ORDER`) ; ajouté aux données de démonstration de l'écran (`Console Admin.dc.html`).
+- Modules (15/10/2026, maquette « Modules - refonte », brief du commanditaire) : écran remplacé par le composant
+  `Modules.dc.html` (comme Persona et Skills : en-tête propre, en-tête générique masqué ; notre `support.js`, pas celui
+  de la maquette). Textes et valeurs de la maquette mot pour mot ; sélecteur de portée « Désactivé · Par projet · Tous
+  les projets » (radiogroup, remplissage et curseur animés en 400 ms, flèches en boucle, roving tabindex) ; jauge
+  « N sur 4 actifs » ; tuiles de même hauteur, sélecteurs alignés. Composant contrôlé : `modules` (mode off / project /
+  all, date ISO), `requests` ; événements `on-mode`, `on-project`, `on-approve`, `on-reject`. Changement de mode
+  immédiat, sans la fenêtre de confirmation d'avant (`mdMode`, `mdProj` ; `setScope` garde ses confirmations pour Jev).
+  Hors maquette, gardés : bandeau des demandes d'activation ; mode « Par projet » → fenêtre de sélection des projets
+  (ouverte au choix du mode, rouverte par « Projets (N) » dans le pied de tuile). `admin-api.js` : `setMod` envoie
+  `{ mode, projectIds? }`, mise à jour optimiste, retour immédiat à l'état précédent et message en cas d'erreur ;
+  chargeur `projects` ajouté à la page.
+- Console sur téléphone (15/10/2026) : `<main>` placé dans la colonne du contenu (`grid-column:2`) et tiroir des
+  notifications dans un conteneur absolu de taille nulle ; la barre latérale (fixe sur téléphone) sortant de la grille,
+  `<main>` glissait dans la première colonne, de largeur nulle (toutes les pages, défaut antérieur).

@@ -22,6 +22,9 @@ import { counters, nextSnapshotRun } from '../domain/snapshots';
 export const NEW_PROJECT_DAYS = 7;
 
 /** Snapshots, modules, bibliothèque des projets et initialisation (brief Console § 9.7, 9.9, 9.10). */
+/** Mode d'un module (page Modules) → portée stockée. */
+const MODULE_MODE_SCOPE = { off: 'OFF', project: 'PROJECTS', all: 'ALL' } as const;
+
 @ApiTags('console · données et diffusion')
 @ApiBearerAuth()
 @AdminOnly()
@@ -216,12 +219,15 @@ export class DataController {
 
   @Patch('modules/:id')
   async setModule(@CurrentActor() actor: Actor, @Param('id') id: string, @Body() body: unknown) {
-    const input = parse(z.object({ scope: z.enum(['OFF', 'ALL', 'PROJECTS']), projectIds: z.array(z.string()).optional() }).strict(), body);
+    // Page Modules (maquette du 15/10/2026) : `mode` (off / project / all) ou `scope` (OFF / PROJECTS / ALL), l'un des deux ;
+    // « Par projet » sans `projectIds` garde les projets déjà actifs (choisis ensuite dans la sélection des projets).
+    const raw = parse(z.object({ scope: z.enum(['OFF', 'ALL', 'PROJECTS']).optional(), mode: z.enum(['off', 'project', 'all']).optional(), projectIds: z.array(z.string()).optional() }).strict()
+      .refine((v) => !!v.scope !== !!v.mode, { message: 'scope ou mode, l’un des deux' }), body);
+    const input = { scope: raw.scope ?? MODULE_MODE_SCOPE[raw.mode!], projectIds: raw.projectIds };
     const m = await this.prisma.module.findUnique({ where: { id }, include: { projects: true } });
     if (!m) throw notFound('Module introuvable');
     const projects = input.projectIds ? await this.prisma.project.findMany({ where: { OR: [{ code: { in: input.projectIds.map((c) => c.toUpperCase()) } }, { id: { in: input.projectIds } }] } }) : null;
     if (input.projectIds && projects!.length !== new Set(input.projectIds).size) throw badRequest('Projet inconnu', { projectIds: 'un ou plusieurs projets sont introuvables' });
-    if (input.scope === 'PROJECTS' && !(projects ?? []).length && !input.projectIds) throw badRequest('Projets manquants', { projectIds: 'obligatoire pour la portée PROJECTS' });
     await this.prisma.$transaction(async (db) => {
       await db.module.update({ where: { id }, data: { scope: input.scope, globalSince: input.scope === 'ALL' ? m.globalSince ?? new Date() : null, version: { increment: 1 } } });
       if (projects) {

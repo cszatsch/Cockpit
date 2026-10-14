@@ -37,7 +37,9 @@ a{color:#1d8f86}a:hover{color:#146b64}
 </div>
 <sc-if value="{{ scrim }}" hint-placeholder-val="{{ false }}"><div onClick="{{ closeNav }}" style="position:fixed;inset:0;background:rgba(10,23,38,.45);z-index:55;animation:fade .2s both"></div></sc-if>
 
-<main style="min-width:0">
+<!-- Colonne du contenu imposée (15/10/2026) : sur téléphone, la barre latérale (fixe) sort de la grille et <main> glissait
+     dans la première colonne, de largeur nulle. -->
+<main style="min-width:0;grid-column:2">
   <header style="{{ topSt }}">
     <sc-if value="{{ mob }}" hint-placeholder-val="{{ false }}"><button onClick="{{ openNav }}" aria-label="Ouvrir le menu" style="width:36px;height:36px;border:1px solid #d3dedb;border-radius:10px;background:#fff;display:grid;place-items:center;cursor:pointer;flex:none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10233a" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"></path></svg></button></sc-if>
     <div style="display:flex;align-items:center;gap:8px;min-width:0;font-size:12.5px;color:#5c7280;white-space:nowrap;overflow:hidden">
@@ -398,28 +400,11 @@ a{color:#1d8f86}a:hover{color:#146b64}
       </div>
     </sc-if>
 
+    <!-- API : page Modules (Modules.dc.html, maquette « Modules - refonte » du 15/10/2026) ; en-tête générique masqué, le
+         composant a le sien. Composant contrôlé : mode, sélection des projets et demandes passent par la Console. -->
     <sc-if value="{{ isMods }}" hint-placeholder-val="{{ false }}">
-      <div style="display:flex;flex-direction:column;gap:16px;animation:rise-in .35s cubic-bezier(.2,.7,.2,1) both" data-screen-label="Modules">
-        <sc-for list="{{ md.reqs }}" as="q" hint-placeholder-count="1">
-          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:14px;padding:14px 16px 14px 18px;border-radius:14px;background:#e6f1f8">
-            <span style="width:32px;height:32px;border-radius:50%;background:#fff;color:#0b5c8a;display:grid;place-items:center;font-weight:800;flex:none">i</span>
-            <div style="flex:1 1 260px;min-width:0"><div style="font-size:13.5px;font-weight:700;color:#10233a">{{ q.t }}</div><div style="font-size:12px;color:#43586a">{{ q.d }}</div></div>
-            <button onClick="{{ q.no }}" style="height:34px;padding:0 14px;border:1px solid #b9d3e3;border-radius:10px;background:transparent;font-size:12.5px;font-weight:600;cursor:pointer;color:#10233a" style-hover="background:rgba(255,255,255,.6)">Refuser</button>
-            <button onClick="{{ q.ok }}" style="height:34px;padding:0 14px;border:0;border-radius:10px;background:#10233a;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer" style-hover="background:#1d3654">{{ q.okL }}</button>
-          </div>
-        </sc-for>
-        <!-- Tuiles de même largeur et de même hauteur (11/10/2026) : min-width:0 empêche une pastille longue (« Actif sur tous les projets ») d'élargir sa colonne. -->
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr));gap:16px;align-items:stretch">
-          <sc-for list="{{ md.list }}" as="m" hint-placeholder-count="2">
-            <div data-module-tile style="min-width:0;background:#fff;border:1px solid #e1e9e7;border-radius:18px;box-shadow:0 1px 2px rgba(16,35,58,.04);padding:22px;display:flex;flex-direction:column;gap:16px">
-              <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap"><div style="min-width:0;flex:1"><div style="font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:#5c7280">Module optionnel</div><div style="font-size:22px;font-weight:800;font-style:italic;letter-spacing:-.02em;margin-top:4px">{{ m.n }}</div><div style="font-size:13px;color:#43586a;margin-top:4px;text-wrap:pretty">{{ m.d }}</div></div><span style="{{ m.pill }}"><span style="{{ m.dot }}"></span>{{ m.stL }}</span></div>
-              <div role="radiogroup" aria-label="Portée de {{ m.n }}" style="display:flex;gap:2px;padding:3px;border-radius:11px;background:#e5edeb;align-self:flex-start;flex-wrap:wrap"><sc-for list="{{ m.seg }}" as="o" hint-placeholder-count="3"><button role="radio" aria-checked="{{ o.on }}" onClick="{{ o.pick }}" style="{{ o.st }}">{{ o.l }}</button></sc-for></div>
-              <sc-if value="{{ m.isOff }}" hint-placeholder-val="{{ false }}"><div style="font-size:12.5px;color:#5c7280;padding:12px 14px;border-radius:12px;background:#f3f7f6">Invisible dans le Cockpit. Les utilisateurs voient le module verrouillé et peuvent demander son activation.</div></sc-if>
-              <sc-if value="{{ m.isG }}" hint-placeholder-val="{{ false }}"><div style="font-size:12.5px;color:#0f5f5a;font-weight:600;padding:12px 14px;border-radius:12px;background:#e6f3f2">{{ m.gL }}. Les nouveaux projets en bénéficient automatiquement.</div></sc-if>
-              <sc-if value="{{ m.isP }}" hint-placeholder-val="{{ true }}"><div style="border:1px solid #eef3f2;border-radius:12px"><sc-for list="{{ m.rows }}" as="r" hint-placeholder-count="4"><div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-top:1px solid #f1f5f4"><span style="font-size:12.5px;font-weight:800;letter-spacing:.04em;min-width:80px">{{ r.p }}</span><span style="{{ r.sSt }}">{{ r.since }}</span><span style="flex:1"></span><button role="switch" aria-checked="{{ r.sw.on }}" aria-label="{{ r.sw.label }}" onClick="{{ r.sw.toggle }}" style="{{ r.sw.st }}"><span style="{{ r.sw.knob }}"></span></button></div></sc-for></div></sc-if>
-            </div>
-          </sc-for>
-        </div>
+      <div style="{{ skWrap }}" data-screen-label="Modules">
+        <dc-import name="Modules" modules="{{ mdModules }}" requests="{{ mdReqs }}" on-mode="{{ mdMode }}" on-project="{{ mdProj }}" on-approve="{{ mdApprove }}" on-reject="{{ mdReject }}" hint-size="100%,900px"></dc-import>
       </div>
     </sc-if>
     <!-- API : Registre des cartes API v3c (Registre des cartes API.dc.html, REGISTRE API - specification.md § 6) ; en-tête générique masqué. -->
@@ -542,9 +527,13 @@ a{color:#1d8f86}a:hover{color:#146b64}
     </div>
   </aside>
 </div>
-<!-- API : tiroir des notifications de l’administrateur (Notifications.dc.html, NOTIFICATIONS - specification.md § 6). -->
+<!-- API : tiroir des notifications de l’administrateur (Notifications.dc.html, NOTIFICATIONS - specification.md § 6).
+     Conteneur absolu de taille nulle (15/10/2026) : hors de la grille de la Console ; sur téléphone (barre latérale fixe), il
+     prenait la colonne du contenu et laissait <main> à 0 px de large. Le tiroir, en position fixe, s'affiche comme avant. -->
+<div style="position:absolute;top:0;left:0;width:0;height:0">
 <dc-import name="Notifications" open="{{ ntOpen }}" left="{{ ntLeft }}" items="{{ ntItems }}"
   on-close="{{ ntClose }}" on-action="{{ ntAct }}" on-undo="{{ ntUndo }}" on-read-all="{{ ntReadAll }}" on-clear-all="{{ ntClearAll }}" hint-size="0,0"></dc-import>
+</div>
 </div>
 
 <sc-if value="{{ pend.on }}" hint-placeholder-val="{{ false }}">
@@ -1244,6 +1233,22 @@ class Component extends DCLogic {
     const pj = m.sc === 'global' ? Object.fromEntries(PROJ.map(p => [p, m.g])) : m.pj;
     this.setMod(m.id, { sc: 'projet', pj }); this.log('Changement de portée de module', m.n + ' · par projet', 'sensible'); this.toast('Portée : projet par projet');
   }
+  // Page Modules (maquette « Modules - refonte », 15/10/2026) : changement de mode immédiat, sans confirmation ; « Par
+  // projet » garde les projets déjà actifs (tous, quand le module était actif partout). La Console reliée au serveur
+  // (admin-api.js, setMod) fait l'appel, la mise à jour optimiste et le retour arrière en cas d'erreur.
+  mdMode(id, mode) {
+    const m = this.state.mods.find(x => x.id === id); if (!m) return;
+    const sc = { off: 'off', project: 'projet', all: 'global' }[mode]; if (!sc || sc === m.sc) return;
+    if (sc === 'off') { this.setMod(id, { sc: 'off', pj: {}, g: null }); this.log('Désactivation de module', m.n, 'sensible'); return; }
+    if (sc === 'global') { this.setMod(id, { sc: 'global', g: nowD() }); this.log('Activation de module', m.n + ' · tous les projets', 'sensible'); return; }
+    const pj = m.sc === 'global' ? Object.fromEntries(PROJ.map(p => [p, m.g || nowD()])) : m.pj;
+    this.setMod(id, { sc: 'projet', pj, g: null }); this.log('Changement de portée de module', m.n + ' · par projet', 'sensible');
+  }
+  mdProj(id, code, on) {
+    const m = this.state.mods.find(x => x.id === id); if (!m || !!m.pj[code] === on) return;
+    const pj = { ...m.pj }; if (on) pj[code] = nowD(); else delete pj[code];
+    this.setMod(id, { pj }); this.log(on ? 'Activation de module' : 'Désactivation de module', m.n + ' · ' + code, 'sensible');
+  }
   togProj(m, p) {
     if (m.pj[p]) return this.ask({ tone: 'warn', title: 'Désactiver « ' + m.n + ' » sur ' + p + ' ?', body: 'Les données saisies sur ce projet sont conservées.', cta: 'Désactiver sur ' + p, ok: () => { const pj = { ...m.pj }; delete pj[p]; this.setMod(m.id, { pj }); this.log('Désactivation de module', m.n + ' · ' + p, 'sensible'); this.toast(m.n + ' désactivé sur ' + p); } });
     this.setMod(m.id, { pj: { ...m.pj, [p]: nowD() } }); this.log('Activation de module', m.n + ' · ' + p, 'sensible'); this.toast(m.n + ' activé sur ' + p);
@@ -1408,7 +1413,7 @@ class Component extends DCLogic {
       mob: mode === 'mob', scrim: mode === 'mob' && S.mnav, openNav: () => this.setState({ mnav: true }), closeNav: () => this.setState({ mnav: false }),
       padSt: `max-width:1320px;margin:0 auto;padding:${mode === 'mob' ? '20px 16px 96px' : mode === 'rail' ? '28px 28px 96px' : '32px 44px 96px'}`,
       topSt: `position:sticky;top:0;z-index:40;height:60px;display:flex;align-items:center;gap:12px;padding:0 ${mode === 'mob' ? 16 : mode === 'rail' ? 28 : 44}px;background:rgba(242,246,245,.82);backdrop-filter:saturate(1.4) blur(14px);-webkit-backdrop-filter:saturate(1.4) blur(14px);border-bottom:1px solid rgba(16,35,58,.06)`,
-      eyebrow: meta[0], title: meta[1], desc: meta[2], isOv: is('overview'), notOv: !is('overview') && !is('usage') && !is('skills') && !is('persona') && !is('apis') && !is('conso') && !is('latency') && !is('providers') && !is('notifs') && !is('smtp') && !is('guide') && !is('share') && !is('snaps') && !is('library') && !(is('init') && S.initStep !== 'import'), loading: S.loading, ready: !S.loading,
+      eyebrow: meta[0], title: meta[1], desc: meta[2], isOv: is('overview'), notOv: !is('overview') && !is('usage') && !is('skills') && !is('persona') && !is('modules') && !is('apis') && !is('conso') && !is('latency') && !is('providers') && !is('notifs') && !is('smtp') && !is('guide') && !is('share') && !is('snaps') && !is('library') && !(is('init') && S.initStep !== 'import'), loading: S.loading, ready: !S.loading,
       healthL: errN ? errN + ' incident' + (errN > 1 ? 's' : '') : 'Opérationnelle', healthPill: pill(errN ? 'err' : 'ok'), healthDot: dot(errN ? 'err' : 'ok'), goOv: () => this.go('overview'),
       // Menu IA : lecture seule pour l'Admin (10/10/2026) ; le Super Admin modifie.
       aiRo: !(S.meInfo || {}).superAdmin,
@@ -1605,16 +1610,16 @@ class Component extends DCLogic {
       vals.sn.sch.setFq = vals.sn.sch.set('fq'); vals.sn.sch.setDay = vals.sn.sch.set('day'); vals.sn.sch.setHour = vals.sn.sch.set('hour'); vals.sn.sch.setKeep = vals.sn.sch.set('keep');
       vals.sn.fqOpts = ['Quotidienne', 'Hebdomadaire', 'Mensuelle'].map(v => ({ v, l: v })); vals.sn.dayOpts = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'].map(v => ({ v, l: v })); vals.sn.hourOpts = ['00:00', '02:00', '04:00', '06:00', '20:00', '22:00'].map(v => ({ v, l: v })); vals.sn.keepOpts = ['3 mois', '6 mois', '12 mois', '24 mois'].map(v => ({ v, l: v }));
     }
-    // Modules
+    // Modules (Modules.dc.html, 15/10/2026) : modules au format du composant (mode off / project / all, dates ISO).
     if (is('modules')) {
-      vals.md = {
-        reqs: S.reqs.map(q => { const m = S.mods.find(x => x.id === q.m); return { t: q.who + ' demande l’activation de « ' + m.n + ' » sur ' + q.p, d: 'Demande envoyée depuis le Cockpit · ' + ago(q.t), ok: () => this.approve(q), no: () => this.reject(q), okL: 'Activer sur ' + q.p }; }), hasReq: S.reqs.length > 0,
-        list: S.mods.map(m => { const n = Object.keys(m.pj).length, on = m.sc === 'global' || (m.sc === 'projet' && n > 0), t = on ? 'ok' : 'neu';
-          return { n: m.n, d: m.d, stL: m.sc === 'global' ? 'Actif sur tous les projets' : m.sc === 'projet' ? (n ? 'Actif sur ' + n + ' projet' + (n > 1 ? 's' : '') : 'Aucun projet activé') : 'Désactivé', pill: pill(t), dot: dot(t),
-            seg: [['off', 'Désactivé'], ['global', 'Tous les projets'], ['projet', 'Par projet']].map(([k, l]) => ({ l, on: m.sc === k, st: segSt(m.sc === k), pick: () => this.setScope(m, k) })),
-            isOff: m.sc === 'off', isG: m.sc === 'global', isP: m.sc === 'projet', gL: m.g ? 'Activé sur tous les projets le ' + fD(m.g) : '',
-            rows: PROJ.map(p => ({ p, sw: this.sw(!!m.pj[p], () => this.togProj(m, p), (m.pj[p] ? 'Désactiver ' : 'Activer ') + m.n + ' sur ' + p), since: m.pj[p] ? 'Activé le ' + fD(m.pj[p]) : 'Inactif', sSt: m.pj[p] ? 'font-size:12px;color:#43586a' : 'font-size:12px;color:#8a9aa6' })) }; })
-      };
+      const MODE = { off: 'off', projet: 'project', global: 'all' };
+      vals.mdModules = S.mods.map(m => ({ id: m.id, name: m.n, description: m.d, mode: MODE[m.sc] || 'off', activatedAt: m.g ? m.g.toISOString() : null,
+        projects: PROJ.map(p => ({ code: p, on: !!m.pj[p], since: m.pj[p] ? m.pj[p].toISOString() : null })) }));
+      vals.mdReqs = S.reqs.map(q => { const m = S.mods.find(x => x.id === q.m); return { id: q.id, title: q.who + ' demande l’activation de « ' + (m ? m.n : q.m) + ' » sur ' + q.p, detail: 'Demande envoyée depuis le Cockpit · ' + ago(q.t), okLabel: 'Activer sur ' + q.p }; });
+      vals.mdMode = (id, mode) => this.mdMode(id, mode);
+      vals.mdProj = (id, code, on) => this.mdProj(id, code, on);
+      vals.mdApprove = qid => { const q = S.reqs.find(x => x.id === qid); if (q) this.approve(q); };
+      vals.mdReject = qid => { const q = S.reqs.find(x => x.id === qid); if (q) this.reject(q); };
     }
     // Jev
     const jid = this.persona().identity;

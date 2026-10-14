@@ -2457,3 +2457,21 @@ d'être donnés au modèle, à qui la consigne demandait de les recopier tels qu
   relais, avec le titre abrégé entre guillemets (`shortTitle`).
 - `GREETING_PROMPT_VERSION` = `accueil-v3` : le message du jour gardé est réécrit une fois. Essai réel (base du poste) :
   « … Le risque critique R03, sur les arbitrages mensuels trop lents pour nos jalons, demande votre décision… ».
+
+## Page Modules de la Console (15/10/2026, maquette « Modules - refonte »)
+
+Brief du commanditaire : reproduire la maquette (activation désactivé / par projet / tous les projets) avec les vraies
+données, sans intégrer son `support.js`.
+
+- « En React dans notre stack » : la Console est rendue par React à travers `support.js` (moteur dc) ; l'écran devient
+  le composant `frontends/Modules.dc.html`, importé par la Console comme Persona et Skills. Les découpages proposés
+  (ModuleTile, ScopeSelector, StatusPill, ActiveSummary) sont des blocs du gabarit.
+- Identifiants : ceux de la base (`bud`, `ben`, `jev_accueil`, `jev_documents`), pas ceux de la maquette.
+- API : `PATCH /api/admin/modules/:id` accepte `{ mode: 'off' | 'project' | 'all' }` (`MODULE_MODE_SCOPE`) en plus de
+  `{ scope }` (l'un des deux) ; « Par projet » sans `projectIds` garde les projets actifs (auparavant refusé :
+  « Projets manquants »), choisis ensuite dans la sélection des projets.
+- Écart au comportement antérieur : plus de fenêtre de confirmation au changement de mode (brief : « le mode change
+  immédiatement ») ; chaque changement reste tracé au journal d'audit (sévérité sensible).
+- Hors maquette, conservés : demandes d'activation ; sélection des projets dans une fenêtre (dans la tuile, elle aurait
+  désaligné les sélecteurs). Libellé ajouté : « Projets (N) » dans le pied de tuile en mode « Par projet ».
+- Recette : `test/browser/modules.e2e.ts` ; essais faits dans la Console sur la base du poste (état d'origine rétabli).

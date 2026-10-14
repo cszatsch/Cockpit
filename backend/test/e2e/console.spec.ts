@@ -555,6 +555,20 @@ describe('Console Admin — critères d’acceptation (brief Console § 13)', ()
       expect(mods.body.find((m: any) => m.id === 'ben').active).toBe(true);
       expect((await (await t.as(WHO.pmo)).get('/api/projects/ATLAS/modules').expect(200)).body.find((m: any) => m.id === 'ben').active).toBe(false);
     });
+
+    it('page Modules (15/10/2026) : PATCH { mode } ; « Par projet » sans liste garde les projets actifs ; scope ou mode, l’un des deux', async () => {
+      const c = await t.as(WHO.admin);
+      const all = (await c.patch(`${A}/modules/ben`, { mode: 'all' }).expect(200)).body;
+      expect(all).toMatchObject({ id: 'ben', scope: 'ALL' });
+      expect(all.globalSince).toBeTruthy();
+      const proj = (await c.patch(`${A}/modules/ben`, { mode: 'project' }).expect(200)).body;
+      expect(proj).toMatchObject({ scope: 'PROJECTS', projectIds: ['RISE'], globalSince: null });
+      expect((await c.patch(`${A}/modules/ben`, { mode: 'project', projectIds: ['RISE', 'ATLAS'] }).expect(200)).body.projectIds.sort()).toEqual(['ATLAS', 'RISE']);
+      expect((await c.patch(`${A}/modules/ben`, { mode: 'off', projectIds: [] }).expect(200)).body).toMatchObject({ scope: 'OFF', projectIds: [] });
+      await c.patch(`${A}/modules/ben`, { mode: 'all', scope: 'ALL' }).expect(400);
+      await c.patch(`${A}/modules/ben`, {}).expect(400);
+      await c.patch(`${A}/modules/ben`, { mode: 'partout' }).expect(400);
+    });
   });
 
   describe('9. Import d’un projet (Initialisation projet § 5)', () => {

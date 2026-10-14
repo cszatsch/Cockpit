@@ -363,7 +363,7 @@ export function bindConsole(c) {
   };
   const SECTION = {
     overview: ['accounts', 'providers', 'month', 'audit', 'reqs', 'snaps', 'sched', 'ov', 'models', 'asg', 'fns'], users: ['accounts', 'wsAll'], admins: ['admins', 'audit', 'accounts'], providers: ['fm', 'providers', 'models', 'asg', 'usage', 'fns'],
-    conso: ['month', 'providers'], snaps: [], notifs: ['nrRules', 'nrHist', 'nrCounts', 'nrSchedule', 'models', 'providers', 'projects'], modules: ['mods', 'reqs'],
+    conso: ['month', 'providers'], snaps: [], notifs: ['nrRules', 'nrHist', 'nrCounts', 'nrSchedule', 'models', 'providers', 'projects'], modules: ['mods', 'reqs', 'projects'],
     smtp: ['smtp'], guide: ['guide'], share: ['share'], init: ['projects'], library: ['projects'], profil: ['prof', 'sess', 'audit'], skills: ['skills'], persona: ['persona'], apis: ['apis'],
   };
   // ── Mises à jour en direct (05/10/2026) : une écriture faite ailleurs (autre onglet, Cockpit, autre administrateur)
@@ -801,11 +801,14 @@ export function bindConsole(c) {
   }, false);
 
   // ── Modules : `setMod` (portée, projets) est le point de passage de setScope, togProj et Jev ──
+  // Mise à jour optimiste (page Modules, 15/10/2026) : l'écran change aussitôt ; le serveur renvoie le module (date
+  // d'activation comprise) ; en cas d'échec, l'ancien état revient tout de suite, avec un message d'erreur.
   c.setMod = (id, p) => {
+    const prev = c.state.mods.find(x => x.id === id);
     orig.setMod(id, p);
-    const m = c.state.mods.find(x => x.id === id), body = { scope: inv(SCOPE)[m.sc] };
+    const m = c.state.mods.find(x => x.id === id), body = { mode: { off: 'off', projet: 'project', global: 'all' }[m.sc] };
     if (m.sc === 'projet') body.projectIds = Object.keys(m.pj); else if (m.sc === 'off') body.projectIds = [];
-    patch('/modules/' + id, body).then(r => { repl('mods', id, toMod(r)); touch(); }).catch(e => { fail(e); load(['mods']).catch(() => {}); });
+    patch('/modules/' + id, body).then(r => { repl('mods', id, toMod(r)); touch(); }).catch(e => { if (prev) repl('mods', id, prev); fail(e); load(['mods']).catch(() => {}); });
   };
   c.approve = async q => {
     const m = c.state.mods.find(x => x.id === q.m);
