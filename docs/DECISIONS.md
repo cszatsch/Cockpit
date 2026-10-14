@@ -2388,3 +2388,30 @@ documents. L'aiguillage classe la question d'après sa seule formulation, sans c
   sur la base du poste (Claude Haiku 5.5) : « Aucun chantier nommé « Data gouvernance » n'existe… », suggestion
   « Chercher dans les documents » proposée ; « l'avancement du chantier Datalake » reste répondu normalement.
 
+
+## Jev du Cockpit : double recherche données et documents (13/10/2026)
+
+Demande du commanditaire : toute question classée « données » lance aussi une recherche dans la Base de connaissance ;
+en cas d'écart entre données et documents, l'information du document n'est pas citée.
+
+- Module de la Console « Recherche documentaire systématique » (`DOCS_MODULE_ID` = `jev_documents`, migration
+  `20261118000800_jev_documents`, actif sur tous les projets) ; coupé, comportement antérieur : données seules et
+  suggestion « Chercher dans les documents » (`docsSuggest`). Coupé dans la préparation des tests (`test/helpers.ts`).
+- Cas 1, module actif et documents consultables : `JevCockpitDocsService.answer(…, { withData: true, auto: true })`,
+  données (`insights`) et documents (identification, recherche, reclassement) en parallèle — aussi pour 4b ; rédaction
+  par `doc_syn` avec `DOC_AUTO_ANSWER_RULES` : réponse tirée des données d'abord ; partie « D'après les documents »
+  (`DOCS_PART_TITLE`, repérée par `usesDocsPart`, qui décide des sources « document ») seulement si un document apporte
+  un élément absent des données, au plus trois points, datés ; information de document contraire aux données jamais
+  citée ; objet absent des données mais présent dans un document : réponse tirée du document, en le disant.
+- Aucun document consultable, aucun extrait, données illisibles ou chaîne Documents en échec : réponse des données seule,
+  sans message d'erreur (`dataOnly`). La réponse garde le cas « 1 » (`docsUsed` indique la partie documents).
+- 4b (`DOC_DATA_ANSWER_RULES`) : une information de document contraire aux données n'est pas citée, sauf question de
+  comparaison explicite (« les dates annoncées au COPIL sont-elles tenues ? »), qui n'aurait sinon plus de réponse.
+- Source demandée explicitement (`explicitSource`) : « d'après le Cockpit uniquement », « sans les documents » →
+  données seules ; « seulement dans les documents », « sans les données » → documents seuls (4a) ; quel que soit
+  l'aiguillage.
+- 4a (`DOC_ANSWER_RULES`) : aucune donnée fournie, donc aucun rapprochement avec le Cockpit (l'étape 4 de la skill
+  « Analyser un document » ne vaut qu'en 4b).
+- Coût estimé : ≈ 0,3 à 0,5 centime par question sur les données (Claude Haiku 5.5), à mesurer par `npm run jev:reponses`.
+- Guides utilisateur (Cockpit § 3.19.2, Console § 3.16) mis à jour ; PDF à régénérer (`npm run guides:pdf`) et à
+  déposer dans Console › Guide utilisateur.

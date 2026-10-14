@@ -11,8 +11,8 @@ import { ChatTurn } from '../../core/llm-client';
 import { requestContext } from '../../domain/jev-sql';
 import { COCKPIT_CASE_ROUTE } from '../../domain/jev-router-cockpit';
 import {
-  DOC_ANSWER_RULES, DOC_DATA_ANSWER_HINT, DOC_DATA_ANSWER_RULES, DOC_DATA_QUERY_HINT, docSessionsBlock, DOC_EMPTY_REPLY, DOC_IDENTIFY_SYSTEM, DOC_KEEP, DOC_MIN_SIMILARITY, DOC_NOT_FOUND_REPLY, DOC_OUTLINE_MAX, DOC_SEARCH_K,
-  DOC_SESSIONS_MAX, DocExtract, docCatalogText, docExtractsBlock, docOverviewBlock, docSourceLabel, nowParisLabel, parseDocIdentification,
+  DOC_ANSWER_RULES, DOC_AUTO_ANSWER_RULES, DOC_DATA_ANSWER_HINT, DOC_DATA_ANSWER_RULES, DOC_DATA_QUERY_HINT, docSessionsBlock, DOC_EMPTY_REPLY, DOC_IDENTIFY_SYSTEM, DOC_KEEP, DOC_MIN_SIMILARITY, DOC_NOT_FOUND_REPLY, DOC_OUTLINE_MAX, DOC_SEARCH_K,
+  DOC_SESSIONS_MAX, DocExtract, DOCS_MODULE_ID, docCatalogText, docExtractsBlock, docOverviewBlock, docSourceLabel, nowParisLabel, parseDocIdentification, usesDocsPart,
 } from '../../domain/jev-cockpit-answers';
 import { KbService } from '../documents/kb.service';
 import { InsightAnswer, JevCockpitInsightService } from '../../admin/jev-cockpit-insight.service';
@@ -28,6 +28,8 @@ export interface DocsAnswer {
   modelId: string | null;
   fallbackUsed: boolean;
   insight?: InsightAnswer['status'];
+  /** Double recherche : la réponse contient une partie tirée des documents. */
+  docsUsed?: boolean;
 }
 
 /**
@@ -52,65 +54,95 @@ export class JevCockpitDocsService {
     private readonly insight: JevCockpitInsightService,
   ) {}
 
-  async answer(scope: ProjectScope, actor: Actor, question: string, opts: { page: string; withData: boolean; history?: ChatTurn[] }): Promise<DocsAnswer> {
+  async answer(scope: ProjectScope, actor: Actor, question: string, opts: { page: string; withData: boolean; auto?: boolean; history?: ChatTurn[] }): Promise<DocsAnswer> {
     const { functionId, skill } = COCKPIT_CASE_ROUTE[opts.withData ? '4b' : '4a'];
     const calls: LlmResult[] = [];
-    const done = (status: DocsAnswer['status'], reply: string, sources: DocsAnswer['sources'] = [], documents: string[] = [], insight?: InsightAnswer): DocsAnswer => ({
+    const done = (status: DocsAnswer['status'], reply: string, sources: DocsAnswer['sources'] = [], documents: string[] = [], insight?: InsightAnswer, docsUsed?: boolean): DocsAnswer => ({
       status, reply, sources, documents, modelId: calls.length ? calls[calls.length - 1].modelId : insight?.modelId ?? null, fallbackUsed: calls.some((c) => c.fallbackUsed) || !!insight?.fallbackUsed, insight: insight?.status,
+      ...(docsUsed === undefined ? {} : { docsUsed }),
     });
+    const dataSourcesOf = (d: InsightAnswer | null) => (d?.sources ?? []).map((label) => ({ entityType: 'DATA' as const, id: label, label }));
 
-    // 4b : la partie « données » d'abord (cas 1, droits de l'utilisateur).
-    const data = opts.withData ? await this.insight.ask(question, { project: scope.project, access: scope.access, page: opts.page, queryHint: DOC_DATA_QUERY_HINT, extraRules: DOC_DATA_ANSWER_HINT, history: opts.history }) : null;
-    const dataSources = (data?.sources ?? []).map((label) => ({ entityType: 'DATA' as const, id: label, label }));
+    // 4b et double recherche : la partie « données » (cas 1, droits de l'utilisateur) part en même temps que la
+    // recherche dans les documents (13/10/2026) ; elle ne sert qu'à la rédaction finale.
+    const dataP: Promise<InsightAnswer | null> = opts.withData ? this.insight.ask(question, { project: scope.project, access: scope.access, page: opts.page, queryHint: DOC_DATA_QUERY_HINT, extraRules: DOC_DATA_ANSWER_HINT, history: opts.history }) : Promise.resolve(null);
+    dataP.catch(() => undefined); // rejet traité à l'attente ; jamais de rejet non suivi pendant la recherche
+    // Double recherche (cas 1, module actif) : sans document utile, ou si la chaîne Documents échoue, réponse des données seule.
+    const dataOnly = async (): Promise<DocsAnswer> => { const d = (await dataP)!; return done('NOT_FOUND', d.reply, dataSourcesOf(d), [], d, false); };
 
-    // 1. Identification des documents visés.
-    const docs = await this.kb.visibleIndexed(scope, actor);
-    if (!docs.length) return data ? done('EMPTY', `${data.reply}\n\n${DOC_EMPTY_REPLY}`, dataSources, [], data) : done('EMPTY', DOC_EMPTY_REPLY);
-    const sessions = await this.heldSessions(scope.project.id);
-    const idCall = await latencyKind('qry', () => this.llm.complete({
-      functionId, source: 'JEV', cache: true, projectId: scope.project.id, maxTokens: 300, history: opts.history,
-      system: DOC_IDENTIFY_SYSTEM, systemTail: docCatalogText(docs, sessions, this.today.today()), prompt: question,
-    }));
-    calls.push(idCall);
-    const ident = parseDocIdentification(idCall.text, docs.map((d) => d.id), question);
-
-    // 2. Recherche et reclassement.
-    const found = await span('recherche dans la Base de connaissance', async (d) => { const f = await this.kb.searchChunks(scope, actor, ident.query, { k: DOC_SEARCH_K, documentIds: ident.ids }); Object.assign(d, { documents_vises: ident.ids.length, extraits: f.results.length }); return f; });
-    let candidates = found.results.filter((r) => ident.ids.length || r.similarity >= DOC_MIN_SIMILARITY);
-    if (candidates.length > DOC_KEEP) {
-      try {
-        const rr = await this.llm.rerankTexts(ident.query, candidates.map((c) => `${c.document} · ${c.location}\n${c.content}`), DOC_KEEP, 'COCKPIT');
-        candidates = rr.results.map((x) => candidates[x.index]).filter(Boolean);
-      } catch (e) {
-        // Reclassement indisponible : les premiers résultats de la recherche (brief, cas 2, appliqué ici).
-        console.warn(`[jev] reclassement indisponible (documents) : ${e instanceof Error ? e.message : e}`);
-        candidates = candidates.slice(0, DOC_KEEP);
+    try {
+      // 1. Identification des documents visés.
+      const docs = await this.kb.visibleIndexed(scope, actor);
+      if (!docs.length) {
+        if (opts.auto) return await dataOnly();
+        const data = await dataP;
+        return data ? done('EMPTY', `${data.reply}\n\n${DOC_EMPTY_REPLY}`, dataSourcesOf(data), [], data) : done('EMPTY', DOC_EMPTY_REPLY);
       }
-    }
-    if (!candidates.length) {
-      return data ? done('NOT_FOUND', `${data.reply}\n\n${DOC_NOT_FOUND_REPLY}`, dataSources, ident.ids, data) : done('NOT_FOUND', DOC_NOT_FOUND_REPLY, [], ident.ids);
-    }
+      const sessions = await this.heldSessions(scope.project.id);
+      const idCall = await latencyKind('qry', () => this.llm.complete({
+        functionId, source: 'JEV', cache: true, projectId: scope.project.id, maxTokens: 300, history: opts.history,
+        system: DOC_IDENTIFY_SYSTEM, systemTail: docCatalogText(docs, sessions, this.today.today()), prompt: question,
+      }));
+      calls.push(idCall);
+      const ident = parseDocIdentification(idCall.text, docs.map((d) => d.id), question);
 
-    // 3. Réponse à partir des documents (et des données pour 4b).
-    const visees = await Promise.all(docs.filter((d) => ident.ids.includes(d.id)).map(async (d) => ({ n: d.n, dateIso: d.dateIso, type: d.type, description: d.description, outline: await this.kb.outline(d.id, DOC_OUTLINE_MAX) })));
-    const extracts: DocExtract[] = candidates.map((c) => ({ document: c.document, dateIso: c.dateIso, location: c.location, content: c.content, similarity: c.similarity }));
-    const parts = await this.jevPrompt.cockpitParts(skill, opts.page);
-    const context = requestContext(parts.page, this.today.today(), nowParisLabel(this.today.now()));
-    const tail = [
-      context,
-      ...(data ? [`## Réponse tirée des données du projet (tables du Cockpit, périmètre de l’utilisateur)\n${data.reply}`] : []),
-      ...(sessions.length ? [docSessionsBlock(sessions)] : []),
-      ...(visees.length ? [docOverviewBlock(visees)] : []),
-      docExtractsBlock(extracts),
-    ].join('\n\n');
-    const r = await this.llm.complete({
-      functionId, source: 'JEV', cache: true, projectId: scope.project.id,
-      system: `${parts.stable}\n\n${data ? DOC_DATA_ANSWER_RULES : DOC_ANSWER_RULES}`, systemTail: tail, prompt: question, history: opts.history,
-    });
-    calls.push(r);
-    const seen = new Set<string>();
-    const docSources = extracts.map((x) => docSourceLabel(x)).filter((l) => (seen.has(l) ? false : (seen.add(l), true))).map((label) => ({ entityType: 'DOCUMENT' as const, id: label, label }));
-    return done('ANSWERED', r.text, [...dataSources, ...docSources], ident.ids, data ?? undefined);
+      // 2. Recherche et reclassement.
+      const found = await span('recherche dans la Base de connaissance', async (d) => { const f = await this.kb.searchChunks(scope, actor, ident.query, { k: DOC_SEARCH_K, documentIds: ident.ids }); Object.assign(d, { documents_vises: ident.ids.length, extraits: f.results.length }); return f; });
+      let candidates = found.results.filter((r) => ident.ids.length || r.similarity >= DOC_MIN_SIMILARITY);
+      if (candidates.length > DOC_KEEP) {
+        try {
+          const rr = await this.llm.rerankTexts(ident.query, candidates.map((c) => `${c.document} · ${c.location}\n${c.content}`), DOC_KEEP, 'COCKPIT');
+          candidates = rr.results.map((x) => candidates[x.index]).filter(Boolean);
+        } catch (e) {
+          // Reclassement indisponible : les premiers résultats de la recherche (brief, cas 2, appliqué ici).
+          console.warn(`[jev] reclassement indisponible (documents) : ${e instanceof Error ? e.message : e}`);
+          candidates = candidates.slice(0, DOC_KEEP);
+        }
+      }
+      const data = await dataP;
+      if (!candidates.length) {
+        if (opts.auto) return await dataOnly();
+        return data ? done('NOT_FOUND', `${data.reply}\n\n${DOC_NOT_FOUND_REPLY}`, dataSourcesOf(data), ident.ids, data) : done('NOT_FOUND', DOC_NOT_FOUND_REPLY, [], ident.ids);
+      }
+      // Données illisibles : jamais une réponse tirée des seuls documents à la place (double recherche).
+      if (opts.auto && data?.status === 'FAILED') return await dataOnly();
+
+      // 3. Réponse à partir des documents (et des données pour 4b et la double recherche).
+      const visees = await Promise.all(docs.filter((d) => ident.ids.includes(d.id)).map(async (d) => ({ n: d.n, dateIso: d.dateIso, type: d.type, description: d.description, outline: await this.kb.outline(d.id, DOC_OUTLINE_MAX) })));
+      const extracts: DocExtract[] = candidates.map((c) => ({ document: c.document, dateIso: c.dateIso, location: c.location, content: c.content, similarity: c.similarity }));
+      const parts = await this.jevPrompt.cockpitParts(skill, opts.page);
+      const context = requestContext(parts.page, this.today.today(), nowParisLabel(this.today.now()));
+      const tail = [
+        context,
+        ...(data ? [`## Réponse tirée des données du projet (tables du Cockpit, périmètre de l’utilisateur)\n${data.reply}`] : []),
+        ...(sessions.length ? [docSessionsBlock(sessions)] : []),
+        ...(visees.length ? [docOverviewBlock(visees)] : []),
+        docExtractsBlock(extracts),
+      ].join('\n\n');
+      const rules = opts.auto ? DOC_AUTO_ANSWER_RULES : data ? DOC_DATA_ANSWER_RULES : DOC_ANSWER_RULES;
+      const r = await this.llm.complete({
+        functionId, source: 'JEV', cache: true, projectId: scope.project.id,
+        system: `${parts.stable}\n\n${rules}`, systemTail: tail, prompt: question, history: opts.history,
+      });
+      calls.push(r);
+      const seen = new Set<string>();
+      const docSources = extracts.map((x) => docSourceLabel(x)).filter((l) => (seen.has(l) ? false : (seen.add(l), true))).map((label) => ({ entityType: 'DOCUMENT' as const, id: label, label }));
+      if (!opts.auto) return done('ANSWERED', r.text, [...dataSourcesOf(data), ...docSources], ident.ids, data ?? undefined);
+      // Double recherche : sources « document » seulement si la réponse contient la partie documents.
+      const docsUsed = usesDocsPart(r.text);
+      return done('ANSWERED', r.text, [...dataSourcesOf(data), ...(docsUsed ? docSources : [])], ident.ids, data ?? undefined, docsUsed);
+    } catch (e) {
+      if (!opts.auto) throw e;
+      // Chaîne Documents indisponible (vectorisation, modèle…) : la réponse des données, sans message d'erreur.
+      console.warn(`[jev] double recherche : documents indisponibles, réponse des données seule (${e instanceof Error ? e.message : e})`);
+      return dataOnly();
+    }
+  }
+
+  /** Module « Recherche documentaire systématique » actif sur ce projet ? (absent : inactif) */
+  async autoEnabled(projectId: string): Promise<boolean> {
+    const m = await this.prisma.module.findUnique({ where: { id: DOCS_MODULE_ID }, include: { projects: true } });
+    return !!m && (m.scope === 'ALL' || (m.scope === 'PROJECTS' && m.projects.some((x) => x.projectId === projectId)));
   }
 
   /** Au moins un document indexé consultable par l'utilisateur (suggestion « Chercher dans les documents »). */

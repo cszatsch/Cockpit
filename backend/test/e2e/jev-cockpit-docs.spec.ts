@@ -6,7 +6,7 @@ import { ApiCardsService } from '../../src/admin/api-cards.service';
 import { LlmService } from '../../src/core/llm.service';
 import { KbService } from '../../src/cockpit/documents/kb.service';
 import { COCKPIT_Q_CASE } from '../../src/domain/jev-router-cockpit';
-import { COCKPIT_INSIGHT_ANSWER_RULES, DOC_ANSWER_RULES, DOC_DATA_ANSWER_RULES, DOC_EMPTY_REPLY, parseDocIdentification } from '../../src/domain/jev-cockpit-answers';
+import { COCKPIT_INSIGHT_ANSWER_RULES, DOC_ANSWER_RULES, DOC_AUTO_ANSWER_RULES, DOC_DATA_ANSWER_RULES, DOC_EMPTY_REPLY, DOCS_MODULE_ID, DOCS_PART_TITLE, parseDocIdentification } from '../../src/domain/jev-cockpit-answers';
 
 const R = '/api/projects/RISE';
 const C = `${R}/assistant/messages`;
@@ -82,30 +82,52 @@ describe('Jev du Cockpit — cas 4 : documents', () => {
     spy.mockRestore();
   });
 
-  it('4b : données du projet d’abord (cas 1), puis documents ; consignes de deux parties distinctes ; sources des deux', async () => {
+  /**
+   * Modèle simulé par fonction (13/10/2026) : données et documents partent en parallèle, l'ordre des appels n'est plus
+   * fixe ; chaque fonction (insights, doc_syn) reçoit ses réponses dans l'ordre de ses propres appels.
+   */
+  const byFn = (script: Record<string, string[]>) => {
+    const llm = t.app.get(LlmService);
+    const real = llm.complete.bind(llm);
+    const seen: Record<string, number> = {};
+    return jest.spyOn(llm, 'complete').mockImplementation(async (input: any) => {
+      const q = script[input.functionId] ?? [''], i = seen[input.functionId] = (seen[input.functionId] ?? -1) + 1;
+      return { ...(await real(input)), text: q[Math.min(i, q.length - 1)] };
+    });
+  };
+  const SQL = '```sql\nSELECT code, libelle FROM jev_cockpit.risques\n```';
+  const fnCalls = (spy: jest.SpyInstance) => spy.mock.calls.map((c) => c[0] as any);
+  const setAuto = (scope: 'ALL' | 'OFF') => t.db.module.update({ where: { id: DOCS_MODULE_ID }, data: { scope } });
+
+  it('4b : données et documents en parallèle ; consignes de deux parties distinctes ; sources des deux', async () => {
     next = 'donnees_et_documents';
-    const spy = scripted('```sql\nSELECT code, libelle FROM jev_cockpit.risques\n```', 'Trois risques critiques ouverts : R01, R02, R03.', JSON.stringify({ documents: [copil], recherche: 'risques présentés au COPIL 20' }), 'Réponse en deux parties.');
+    const spy = byFn({ insights: [SQL, 'Trois risques critiques ouverts : R01, R02, R03.'], doc_syn: [JSON.stringify({ documents: [copil], recherche: 'risques présentés au COPIL 20' }), 'Réponse en deux parties.'] });
     const r = await (await t.as(WHO.pmo)).post(C, { context: { space: 'pilotage', tab: 'risques' }, text: 'Quels risques critiques actuels n’ont pas été présentés au dernier COPIL ?' }).expect(200);
     expect(r.body).toMatchObject({ route: '4b', docs: 'ANSWERED', insight: 'ANSWERED', reply: 'Réponse en deux parties.' });
     expect(r.body.sources.map((s: any) => s.entityType)).toEqual(expect.arrayContaining(['DATA', 'DOCUMENT']));
-    const calls = spy.mock.calls.map((c) => c[0] as any);
-    expect(calls.map((c) => c.functionId)).toEqual(['insights', 'insights', 'doc_syn', 'doc_syn']);
-    expect(calls[3].system).toContain(DOC_DATA_ANSWER_RULES);
-    expect(calls[3].systemTail).toMatch(/## Réponse tirée des données du projet[\s\S]*R01, R02, R03[\s\S]*## Extraits des documents[\s\S]*Support COPIL 20/);
+    const calls = fnCalls(spy);
+    expect(calls.map((c) => c.functionId).sort()).toEqual(['doc_syn', 'doc_syn', 'insights', 'insights']);
+    const last = calls[calls.length - 1];
+    expect(last.functionId).toBe('doc_syn');
+    expect(last.system).toContain(DOC_DATA_ANSWER_RULES);
+    expect(last.systemTail).toMatch(/## Réponse tirée des données du projet[\s\S]*R01, R02, R03[\s\S]*## Extraits des documents[\s\S]*Support COPIL 20/);
     spy.mockRestore();
   });
 
-  it('règle : en cas d’écart, les données du projet font foi pour l’état actuel (13/10/2026)', () => {
-    expect(DOC_DATA_ANSWER_RULES).toContain('les données du projet font foi pour l’état actuel');
+  it('règles : les données font foi ; une information de document qui les contredit n’est pas citée (13/10/2026)', () => {
+    expect(DOC_DATA_ANSWER_RULES).toContain('Les données du projet font foi pour l’état actuel');
+    expect(DOC_DATA_ANSWER_RULES).toContain('ne cite pas celle du document');
+    expect(DOC_ANSWER_RULES).toContain('ne fais aucun rapprochement avec le Cockpit');
   });
 
-  it('cas 1 avec des documents consultables : suggestion « Chercher dans les documents » (docsSuggest)', async () => {
+  it('module coupé : cas 1 seul, suggestion « Chercher dans les documents » (docsSuggest)', async () => {
     next = 'donnees';
-    const spy = scripted('```sql\nSELECT code, libelle FROM jev_cockpit.risques\n```', 'Trois risques critiques ouverts.');
+    const spy = byFn({ insights: [SQL, 'Trois risques critiques ouverts.'] });
     const r = await (await t.as(WHO.pmo)).post(C, { context: { space: 'pilotage', tab: 'risques' }, text: 'Quels sont les principaux risques ?' }).expect(200);
     expect(r.body).toMatchObject({ route: '1', docsSuggest: true });
+    expect(fnCalls(spy).map((c) => c.functionId)).toEqual(['insights', 'insights']);
     // Objet nommé introuvable (13/10/2026) : jamais un autre objet à sa place ; consigne envoyée à l'étape de rédaction.
-    const answer = spy.mock.calls.map((c) => c[0] as any).find((c) => String(c.system ?? '').includes('## Réponse à partir des données du projet'));
+    const answer = fnCalls(spy).find((c) => String(c.system ?? '').includes('## Réponse à partir des données du projet'));
     expect(answer?.system).toContain(COCKPIT_INSIGHT_ANSWER_RULES);
     expect(COCKPIT_INSIGHT_ANSWER_RULES).toContain('Ne présente jamais un autre objet à sa place');
     spy.mockRestore();
@@ -113,11 +135,66 @@ describe('Jev du Cockpit — cas 4 : documents', () => {
 
   it('« Chercher dans les documents » (searchDocs) : données et documents (4b), même si l’aiguillage dit données', async () => {
     next = 'donnees';
-    const spy = scripted('```sql\nSELECT code, libelle FROM jev_cockpit.risques\n```', 'Trois risques critiques ouverts.', JSON.stringify({ documents: [copil], recherche: 'risques présentés' }), 'Réponse données et documents.');
+    const spy = byFn({ insights: [SQL, 'Trois risques critiques ouverts.'], doc_syn: [JSON.stringify({ documents: [copil], recherche: 'risques présentés' }), 'Réponse données et documents.'] });
     const r = await (await t.as(WHO.pmo)).post(C, { context: { space: 'pilotage', tab: 'risques' }, text: 'Cherche dans les documents : Quels sont les principaux risques ?', searchDocs: true }).expect(200);
     expect(r.body).toMatchObject({ route: '4b', docs: 'ANSWERED', insight: 'ANSWERED', reply: 'Réponse données et documents.' });
-    expect(spy.mock.calls.map((c) => (c[0] as any).functionId)).toEqual(['insights', 'insights', 'doc_syn', 'doc_syn']);
+    expect(fnCalls(spy).map((c) => c.functionId).sort()).toEqual(['doc_syn', 'doc_syn', 'insights', 'insights']);
     spy.mockRestore();
+  });
+
+  describe('double recherche (module « Recherche documentaire systématique » actif)', () => {
+    beforeAll(() => setAuto('ALL'));
+    afterAll(() => setAuto('OFF'));
+
+    it('les documents apportent un élément : partie « documents », sources données et documents, consignes de la double recherche', async () => {
+      next = 'donnees';
+      const spy = byFn({ insights: [SQL, 'Trois risques critiques ouverts : R01, R02, R03.'], doc_syn: [JSON.stringify({ documents: [copil], recherche: 'risques' }), `R01, R02 et R03 sont critiques.\n\n${DOCS_PART_TITLE}\n- Présentés au COPIL n°20 du 26/09/2026.`] });
+      const r = await (await t.as(WHO.pmo)).post(C, { context: { space: 'pilotage', tab: 'risques' }, text: 'Quels sont les principaux risques ?' }).expect(200);
+      expect(r.body).toMatchObject({ route: '1', insight: 'ANSWERED', docs: 'ANSWERED', docsUsed: true });
+      expect(r.body.docsSuggest).toBeUndefined();
+      expect(r.body.sources.map((s: any) => s.entityType)).toEqual(expect.arrayContaining(['DATA', 'DOCUMENT']));
+      const last = fnCalls(spy).pop();
+      expect(last.system).toContain(DOC_AUTO_ANSWER_RULES);
+      expect(last.systemTail).toMatch(/## Réponse tirée des données du projet[\s\S]*R01, R02, R03/);
+      spy.mockRestore();
+    });
+
+    it('les documents n’apportent rien : pas de partie « documents », sources des données seules', async () => {
+      next = 'donnees';
+      const spy = byFn({ insights: [SQL, 'Trois risques critiques ouverts.'], doc_syn: [JSON.stringify({ documents: [copil], recherche: 'risques' }), 'Trois risques critiques ouverts : R01, R02, R03.'] });
+      const r = await (await t.as(WHO.pmo)).post(C, { context: { space: 'pilotage', tab: 'risques' }, text: 'Quels sont les principaux risques ?' }).expect(200);
+      expect(r.body).toMatchObject({ route: '1', docsUsed: false });
+      expect(r.body.sources.every((s: any) => s.entityType === 'DATA')).toBe(true);
+      spy.mockRestore();
+    });
+
+    it('chaîne Documents indisponible : réponse des données seule, sans message d’erreur', async () => {
+      next = 'donnees';
+      const spy = byFn({ insights: [SQL, 'Trois risques critiques ouverts.'], doc_syn: ['{}'] });
+      const kb = jest.spyOn(t.app.get(KbService), 'searchChunks').mockRejectedValue(new Error('Vectorisation indisponible'));
+      const r = await (await t.as(WHO.pmo)).post(C, { context: { space: 'pilotage', tab: 'risques' }, text: 'Quels sont les principaux risques ?' }).expect(200);
+      expect(r.body).toMatchObject({ route: '1', insight: 'ANSWERED', reply: 'Trois risques critiques ouverts.', docsUsed: false });
+      kb.mockRestore();
+      spy.mockRestore();
+    });
+
+    it('« d’après le Cockpit uniquement » : données seules, aucune recherche dans les documents', async () => {
+      next = 'donnees';
+      const spy = byFn({ insights: [SQL, 'Trois risques critiques ouverts.'] });
+      const r = await (await t.as(WHO.pmo)).post(C, { context: { space: 'pilotage', tab: 'risques' }, text: 'Quels sont les principaux risques, d’après le Cockpit uniquement ?' }).expect(200);
+      expect(r.body).toMatchObject({ route: '1', insight: 'ANSWERED' });
+      expect(fnCalls(spy).map((c) => c.functionId)).toEqual(['insights', 'insights']);
+      spy.mockRestore();
+    });
+
+    it('« seulement dans les documents » : documents seuls (4a), même si l’aiguillage dit données', async () => {
+      next = 'donnees';
+      const spy = byFn({ doc_syn: [JSON.stringify({ documents: [copil], recherche: 'risques' }), 'D’après le support du COPIL n°20…'] });
+      const r = await (await t.as(WHO.pmo)).post(C, { context: { space: 'pilotage', tab: 'risques' }, text: 'Quels risques, seulement dans les documents ?' }).expect(200);
+      expect(r.body).toMatchObject({ route: '4a', docs: 'ANSWERED' });
+      expect(fnCalls(spy).map((c) => c.functionId)).toEqual(['doc_syn', 'doc_syn']);
+      spy.mockRestore();
+    });
   });
 
   it('confidentialité : un document restreint n’entre pas dans le catalogue d’un lecteur', async () => {

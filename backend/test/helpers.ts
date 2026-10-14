@@ -41,6 +41,9 @@ export async function setup(): Promise<TestCtx> {
   await seedDemoDocuments(db);
   // Templates, journal de génération et rapports de démonstration (retirés de l'amorçage le 03/10/2026).
   await seedDemoReports(db);
+  // Recherche documentaire systématique de Jev (13/10/2026) : coupée par défaut, pour que les questions sur les données
+  // des tests restent sur les données seules ; les tests de la double recherche l'activent.
+  await db.module.update({ where: { id: 'jev_documents' }, data: { scope: 'OFF', globalSince: null } });
   const app = await createApp({ logger: false });
   await app.init();
   // Les tests ne sortent jamais sur Internet : les fournisseurs d'IA sont simulés.

@@ -188,6 +188,8 @@ export const DOC_ANSWER_RULES = [
   '- Si la question vise une séance précise (« le dernier COPIL », « la séance de mars ») : vérifie, d’après « Séances de comité tenues », que le document trouvé correspond bien à cette séance. Sinon, dis-le d’abord explicitement (par exemple : « Le dernier COPIL est le n°20 du 26/09/2026 ; son support n’est pas dans la Base de connaissance. Le plus récent disponible est celui du 19/03/2025 »), puis réponds à partir de ce document en le datant.',
   '- Si les éléments ne permettent pas de répondre, dis-le clairement (« Je n’ai pas trouvé cette information dans les documents de la Base de connaissance »), puis indique ce qui s’en approche le plus.',
   '- Ne termine pas par une liste « Sources » : elles s’affichent sous la réponse.',
+  // 13/10/2026 : la skill « Analyser un document » demande de rapprocher avec le Cockpit ; ici, aucune donnée n'est fournie.
+  '- Les données du Cockpit ne te sont pas fournies ici : ne fais aucun rapprochement avec le Cockpit et n’affirme rien sur l’état actuel du projet ; décris ce que dit le document, à sa date.',
 ].join('\n');
 
 /** Consignes de la réponse « données + documents » (cas 4b), partie stable. */
@@ -196,14 +198,55 @@ export const DOC_DATA_ANSWER_RULES = [
   'Deux sources sont fournies : « Réponse tirée des données du projet » (lue dans les tables du Cockpit) et les documents de la Base de connaissance (« Documents visés », « Extraits des documents »).',
   '- Commence par la réponse à la question, en une ou deux phrases.',
   '- Puis deux parties distinctes, avec ces titres exacts : « ## D’après les données du projet » et « ## D’après les documents ». Ne mélange jamais les deux : chaque fait reste dans la partie de sa source.',
-  '- Si les deux sources divergent (une date annoncée et une date actuelle, par exemple), signale l’écart explicitement.',
-  // Règle du 13/10/2026 (docs/DECISIONS.md) : le Cockpit montre la situation du jour, les documents le contexte daté.
-  '- En cas d’écart, les données du projet font foi pour l’état actuel (dates, statuts, avancement) ; le document indique ce qui était annoncé ou décidé à sa date, que tu précises.',
+  // Règles du 13/10/2026 (docs/DECISIONS.md) : les données font foi ; une information de document qui les contredit
+  // n'est pas citée (décision du commanditaire), sauf question de comparaison explicite.
+  '- Les données du projet font foi pour l’état actuel (dates, statuts, avancement, chiffres, responsables).',
+  '- Si une information d’un document diffère de celle des données sur le même point, ne cite pas celle du document : garde uniquement celle des données. Exception : la question demande explicitement de comparer ce qui était annoncé, présenté ou décidé avec la situation actuelle ; dis alors ce que disait le document, daté, et l’écart.',
   '- Si la question vise une séance précise et que le document trouvé correspond à une autre séance, dis-le explicitement, d’après « Séances de comité tenues ».',
   '- N’invente rien. Si une des deux sources ne dit rien sur la question, écris-le dans sa partie.',
   '- Cite les codes des objets (R03, J07) pour les données, et le document et son repère pour les documents.',
   '- Ne termine pas par une liste « Sources » : elles s’affichent sous la réponse.',
 ].join('\n');
+
+// ───────────── Double recherche : données et documents pour toute question sur les données (13/10/2026) ─────────────
+
+/** Module de la Console « Recherche documentaire systématique » : actif, une question du cas 1 lit aussi les documents. */
+export const DOCS_MODULE_ID = 'jev_documents';
+
+/** Titre de la partie « documents » : sa présence dans la réponse décide des sources « document » affichées. */
+export const DOCS_PART_TITLE = '## D’après les documents';
+/** La réponse contient-elle la partie « documents » (titre de niveau 2 ou 3, apostrophe droite ou courbe) ? */
+export const usesDocsPart = (reply: string) => /^#{2,3}\s*D[’']apr[èe]s les documents/im.test(reply);
+
+/**
+ * Consignes de la double recherche (cas 1, module actif) : les données d'abord et elles font foi ; les documents
+ * seulement s'ils apportent un élément absent des données, datés ; une information de document qui contredit les
+ * données n'est jamais citée (décision du commanditaire du 13/10/2026).
+ */
+export const DOC_AUTO_ANSWER_RULES = [
+  '## Répondre à partir des données du projet, complétées par les documents',
+  'La question porte sur les données du projet. Deux sources sont fournies : « Réponse tirée des données du projet » (lue dans les tables du Cockpit, elle fait foi) et des extraits de documents de la Base de connaissance, trouvés par recherche automatique : ils peuvent être sans rapport, anciens ou dépassés.',
+  '- Commence par la réponse tirée des données, en reprenant ses faits sans les modifier : réponse en une ou deux phrases, puis les éléments utiles.',
+  `- Ajoute une partie avec exactement ce titre : « ${DOCS_PART_TITLE} », seulement si les extraits apportent un élément utile absent des données : contexte, raison d’une décision, ce qui était annoncé ou présenté. Au plus trois points. Sinon, n’écris rien sur les documents, pas même pour dire qu’ils ne disent rien.`,
+  '- Date chaque élément tiré d’un document (nom du document et sa date, repère : diapositive, page) ; ne le présente jamais comme la situation actuelle.',
+  '- Si une information d’un document diffère de celle des données sur le même point (date, statut, chiffre, avancement, responsable…), ne la cite pas : garde uniquement celle des données.',
+  `- Si la réponse tirée des données dit qu’aucun objet de ce nom n’existe dans le projet et qu’un document en parle, dis-le en une phrase, puis réponds à partir du document, sous le titre « ${DOCS_PART_TITLE} ».`,
+  '- N’invente rien. Cite les codes des objets (R03, J07) pour les données. Ne termine pas par une liste « Sources » : elles s’affichent sous la réponse.',
+].join('\n');
+
+/**
+ * Source demandée explicitement par l'utilisateur (13/10/2026) : « uniquement d'après le Cockpit », « seulement dans les
+ * documents », « sans les documents »… ; respectée quel que soit l'aiguillage. Null : rien d'explicite.
+ */
+export function explicitSource(text: string): 'data' | 'docs' | null {
+  const t = text.toLowerCase().replace(/[’']/g, ' ');
+  const DATA = '(?:cockpit|donn[ée]es(?: du projet)?)', DOCS = '(?:documents?|base documentaire|base de connaissances?)';
+  const ONLY = '(?:uniquement|seulement|exclusivement)';
+  const near = (src: string) => new RegExp(`${ONLY}[^.?!]{0,30}\\b${src}|\\b${src}[^.?!]{0,12}${ONLY}`);
+  const without = (src: string) => new RegExp(`\\bsans (?:les |la |le )?${src}`);
+  const data = near(DATA).test(t) || without(DOCS).test(t), docs = near(DOCS).test(t) || without(DATA).test(t);
+  return data && !docs ? 'data' : docs && !data ? 'docs' : null;
+}
 
 /** Base de connaissance vide (pour l'utilisateur) : réponse fixe, sans modèle. */
 export const DOC_EMPTY_REPLY = 'La Base de connaissance du projet ne contient aucun document indexé que vous puissiez consulter : je ne peux pas répondre à partir des documents. Déposez le document concerné depuis la Base de connaissance, puis reposez la question.';

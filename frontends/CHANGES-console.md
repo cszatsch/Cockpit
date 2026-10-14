@@ -838,3 +838,5 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
   `scrollbar-width:none`.
 - Barre latérale (12/10/2026) : icône de déconnexion alignée sur celle du Cockpit (flèche qui sort du cadre) ; elle
   dessinait une flèche qui entre (symbole « se connecter »).
+- Modules (13/10/2026) : module « Recherche documentaire systématique » (`jev_documents`) rangé après le message
+  d'accueil de Jev (`MOD_ORDER`) ; ajouté aux données de démonstration de l'écran (`Console Admin.dc.html`).

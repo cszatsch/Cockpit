@@ -22,7 +22,7 @@ import { JevRouterService } from '../../admin/jev-router.service';
 import { GuideAnswerService } from '../../admin/guide-answer.service';
 import { TodayService } from '../../core/today.service';
 import { COCKPIT_CASE_ROUTE, COCKPIT_CHOICE_TO_CASE } from '../../domain/jev-router-cockpit';
-import { clarifyReasonOf, COCKPIT_CLARIFY_RULES, cockpitClarifyPrompt, cockpitPageLabel, nowParisLabel } from '../../domain/jev-cockpit-answers';
+import { clarifyReasonOf, COCKPIT_CLARIFY_RULES, cockpitClarifyPrompt, cockpitPageLabel, explicitSource, nowParisLabel } from '../../domain/jev-cockpit-answers';
 import { JevCockpitWriteService, WriteOutcome } from './jev-cockpit-write.service';
 import { JEV_WRITABLE_DEFS, JEV_REF_DEFS } from './jev-writable';
 import { ReferentialService } from '../referential/referential.service';
@@ -128,7 +128,13 @@ export class AssistantController {
     recordRoute(routeStart, route);
     // « Chercher dans les documents » (suggestion sous une réponse sur les données, 13/10/2026) : la recherche dans les
     // documents est demandée explicitement ; données et documents (4b), sauf modification ou documents seuls.
-    const cas = input.searchDocs && ['1', '2', '5'].includes(route.cas) ? '4b' : route.cas;
+    // Source demandée explicitement (« uniquement d'après le Cockpit », « seulement dans les documents », 13/10/2026) :
+    // respectée quel que soit l'aiguillage.
+    const only = input.searchDocs ? null : explicitSource(input.text);
+    const cas = input.searchDocs && ['1', '2', '5'].includes(route.cas) ? '4b'
+      : only === 'data' && ['4a', '4b'].includes(route.cas) ? '1'
+      : only === 'docs' && ['1', '4b'].includes(route.cas) ? '4a'
+      : route.cas;
     // Modification en cours : une réponse libre la complète ou la corrige (cas 3 ou clarification).
     const pending = !!conv.draft;
     if (cas === '3' || (pending && cas === '5')) {
@@ -167,6 +173,14 @@ export class AssistantController {
     // seule sur les vues jev_cockpit filtrées par les droits de l'utilisateur, puis réponse à partir des résultats.
     if (cas === '1') {
       latencyCategory('data_cockpit');
+      // Double recherche (module « Recherche documentaire systématique », 13/10/2026) : données et documents en parallèle ;
+      // les documents n'apparaissent que s'ils apportent un élément absent des données (DOC_AUTO_ANSWER_RULES).
+      if (only !== 'data' && (await this.docs.autoEnabled(scope.project.id)) && (await this.docs.hasDocuments(scope, actor))) {
+        const d = await span('cas 1 · données et documents (double recherche)', () => this.docs.answer(scope, actor, input.text, { page, withData: true, auto: true, history }));
+        await this.router.noteAnswerModel(route.traceId, d.modelId);
+        if (d.insight === 'FAILED') latencyUnserved('Requête impossible');
+        return { reply: d.reply, route: cas, insight: d.insight, docs: d.status, docsUsed: !!d.docsUsed, sources: d.sources, proposedChanges: [], model: d.modelId ? { id: d.modelId, fallbackUsed: d.fallbackUsed } : null };
+      }
       const { functionId, skill } = COCKPIT_CASE_ROUTE['1'];
       const a = await span('cas 1 · données du projet', () => this.insight.ask(input.text, { project: scope.project, access: scope.access, page, functionId, skill, history }));
       await this.router.noteAnswerModel(route.traceId, a.modelId);

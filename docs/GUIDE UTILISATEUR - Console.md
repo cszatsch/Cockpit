@@ -93,7 +93,7 @@ Les administrateurs ont l'un de deux niveaux :
 | Préremplissage | Lecture d'une proposition commerciale par l'IA pour remplir le fichier Excel d'initialisation d'un projet. |
 | Snapshot | Copie de l'état des données d'un projet à un instant donné. Elle permet de comparer et de restaurer. |
 | Projet supprimé | Projet dont toutes les données ont été supprimées par un Super Admin. Une sauvegarde de sécurité permet de le restaurer pendant 48 heures. |
-| Module | Fonction optionnelle du Cockpit (Budget, Suivi des bénéfices, Message d'accueil de Jev), activable par projet. |
+| Module | Fonction optionnelle du Cockpit (Budget, Suivi des bénéfices, Message d'accueil de Jev, Recherche documentaire systématique), activable par projet. |
 | Carte API | Service externe appelé par la plateforme : widgets du Cockpit (météo, trafic, actualités…) et aiguillage de Jev. |
 | Règle de notification | Message envoyé automatiquement aux utilisateurs, chaque jour ou chaque semaine, rédigé par un modèle d'IA à partir des données du projet. |
 | Rattrapage | Envoi d'une notification prévue pendant un arrêt de la plateforme, fait au redémarrage. |
@@ -1570,7 +1570,7 @@ La liste affiche, pour chaque snapshot, les nombres de tâches, jalons, risques 
 
 ## 3.16 Modules
 
-**À quoi sert la page.** Activer les fonctions optionnelles du Cockpit, pour toute la plateforme ou projet par projet. Trois modules existent : **Budget**, **Suivi des bénéfices** et **Message d'accueil de Jev**.
+**À quoi sert la page.** Activer les fonctions optionnelles du Cockpit, pour toute la plateforme ou projet par projet. Quatre modules existent : **Budget**, **Suivi des bénéfices**, **Message d'accueil de Jev** et **Recherche documentaire systématique**.
 
 > [Capture] Page Modules : tuiles des modules et bandeau de demande.
 
@@ -1591,6 +1591,7 @@ Chaque module est présenté dans une tuile ; toutes les tuiles ont la même lar
 - Toutes les modifications sont tracées (Sensible).
 - Le module **Budget** : sans lui, la saisie du budget est refusée, et le composant « Budget » des templates de rapport n'est pas proposé (« Budget : le module n'est pas activé pour ce projet (Console › Modules). »).
 - Le module **Message d'accueil de Jev** (actif sur tous les projets par défaut) : Jev rédige chaque jour le message de l'écran Aujourd'hui de chaque utilisateur, avec le ton de sa Personnalité ; désactivé, le message est calculé par règles. Sa consommation s'inscrit sur la ligne Insights de Consommation et coûts.
+- Le module **Recherche documentaire systématique** (actif sur tous les projets par défaut) : à chaque question sur les données du projet, Jev du Cockpit cherche aussi dans la Base de connaissance, en même temps, et n'ajoute à sa réponse que ce qu'un document apporte de plus que les données (une information de document qui contredit les données n'est jamais citée). Désactivé : Jev répond à partir des seules données et propose « Chercher dans les documents » sous sa réponse. La recherche dans les documents s'inscrit sur la ligne Documents de Consommation et coûts.
 
 ## 3.17 Registre des cartes API
 

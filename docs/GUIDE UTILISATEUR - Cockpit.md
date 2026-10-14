@@ -1219,7 +1219,7 @@ Un nouveau clic sur l'horloge rappelle « Demande déjà transmise à l'administ
 
 **Écrire un message**
 
-1. Saisissez votre question dans le champ « Écris à Jev… » (4 000 caractères au plus), ou cliquez sur une suggestion (« Résumer ce bloc », « Expliquer cette ligne », « D'où vient cette donnée ? »…).
+1. Saisissez votre question dans le champ « Écris à Jev… » (4 000 caractères au plus), ou cliquez sur une suggestion (« Résumer « nom du bloc » », « Résumer la situation du jour », « Expliquer cette ligne », « D'où vient cette donnée ? »…).
 2. Le champ s'agrandit avec le texte, jusqu'à 10 lignes environ ; au-delà, il défile. Vide, il reprend sa hauteur de départ.
 3. **Entrée** envoie le message ; **Maj+Entrée** va à la ligne. Le bouton **Envoyer** envoie aussi.
 4. Trois points animés indiquent que Jev réfléchit.
@@ -1232,12 +1232,16 @@ Chaque question est d'abord classée, puis traitée selon son cas :
 
 | Cas | Exemple | Ce que fait Jev |
 |---|---|---|
-| Question sur les données du projet | « Quels risques critiques sont ouverts sur C2 ? » | Lit les données du projet, dans la limite de vos droits, et répond à partir des seuls résultats |
+| Question sur les données du projet | « Quels risques critiques sont ouverts sur C2 ? » | Lit les données du projet, dans la limite de vos droits, et cherche en même temps dans les documents que vous pouvez consulter. Les données font foi : la réponse en part toujours. Une partie « D'après les documents » n'est ajoutée que si un document apporte un élément absent des données (contexte, raison d'une décision, ce qui avait été annoncé), toujours daté ; une information de document qui contredit les données n'est jamais citée |
 | Question d'usage | « Comment créer un risque ? » | Répond à partir du seul guide utilisateur du Cockpit |
 | Question sur les documents | « Que dit le compte rendu du dernier COPIL sur la recette ? » | Cherche dans les documents de la Base de connaissance |
-| Question mêlant données et documents | « Le planning présenté au COPIL est-il encore à jour ? » | Répond en deux parties : « D'après les données du projet », puis « D'après les documents », et signale les écarts |
+| Question mêlant données et documents | « Le planning présenté au COPIL est-il encore à jour ? » | Répond en deux parties : « D'après les données du projet », puis « D'après les documents ». Les données font foi ; ce que disait un document n'est cité, daté, que si la question demande de comparer |
 | Demande de modification | « Crée une action : relancer l'éditeur sur le correctif » | Prépare l'enregistrement et le soumet à votre validation (voir 3.19.4) |
 | Question ambiguë, hors sujet ou incertaine | « Et pour l'autre ? » | Demande une précision et propose 2 ou 3 reformulations, sans rien modifier |
+
+**Choisir la source.** Précisez-la dans la question pour qu'il s'y tienne : « … d'après le Cockpit uniquement » (ou « sans les documents ») pour les données seules, « … seulement dans les documents » (ou « sans les données ») pour les documents seuls. Un objet que vous nommez (chantier, jalon, risque…) et qui n'existe pas dans le projet n'est jamais remplacé par un autre : Jev vous le dit.
+
+Si l'Administrateur a désactivé la recherche documentaire systématique (Console › Modules), Jev répond aux questions sur les données à partir des seules données, et propose sous sa réponse la suggestion **Chercher dans les documents**, qui repose la question en consultant aussi les documents.
 
 Une demande de modification n'est retenue que si Jev en est très sûr ; sinon, il demande confirmation. Jev vouvoie toujours dans le Cockpit.
 

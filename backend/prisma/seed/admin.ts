@@ -234,6 +234,8 @@ export async function seedAdmin(db: PrismaClient): Promise<void> {
   await db.module.create({ data: { id: 'ben', name: 'Suivi des bénéfices', description: 'Indicateurs de valeur, trajectoire des bénéfices et revues.', scope: 'OFF' } });
   // Message d'accueil de Jev (02/10/2026) : actif partout, comme la migration 20261106000000_jev_accueil.
   await db.module.create({ data: { id: 'jev_accueil', name: 'Message d’accueil de Jev', description: 'Message de l’écran Aujourd’hui rédigé chaque jour par Jev, avec le ton de sa Personnalité. Désactivé : message calculé par règles.', scope: 'ALL', globalSince: new Date() } });
+  // Recherche documentaire systématique de Jev (13/10/2026) : actif partout, comme la migration 20261118000800_jev_documents.
+  await db.module.create({ data: { id: 'jev_documents', name: 'Recherche documentaire systématique', description: 'Jev complète chaque réponse sur les données du projet par la Base de connaissance, quand un document apporte un élément absent des données. Désactivé : données seules, recherche dans les documents sur demande.', scope: 'ALL', globalSince: new Date() } });
   await db.moduleRequest.create({ data: { id: 'q1', moduleId: 'ben', projectId: RISE_ID, requestedById: 'u13', requestedBy: 'Camille Rey', at: back(60 * 48 + 40) } });
 }
 
