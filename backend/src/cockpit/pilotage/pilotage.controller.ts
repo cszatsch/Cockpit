@@ -15,7 +15,7 @@ import { TransactionalService, DECISIONS } from './transactional';
 import { AnomaliesService } from './anomalies.service';
 import { decisionView, deliverableView } from '../views';
 import { isoDate, pct } from '../referential/schemas';
-import { assertPhaseProgressEditable, rollupPhaseProgress } from '../phase-progress';
+import { assertPhaseProgressEditable, assertWorkstreamProgressEditable, rollupPhaseProgress, rollupWorkstreamsOfSubphases } from '../phase-progress';
 
 // Baromètre : chantier porteur (C8) et suppression d'un relevé, partagés avec Jev (12/10/2026).
 import { BAROMETER_WS_CODE, removeBarometerSurvey } from './barometer';
@@ -207,9 +207,12 @@ export class PilotageController {
     if (input.ownerId && !(await this.prisma.person.findFirst({ where: { id: input.ownerId, projectId: scope.project.id } }))) throw badRequest('Référence invalide', { ownerId: 'introuvable' });
     // Phase avec sous-phases : avancement calculé (moyenne pondérée par la durée, 07/10/2026), pas de saisie directe.
     if (kind === 'phase') await assertPhaseProgressEditable(this.prisma, id, input.progressPct);
+    // Chantier rattaché à des sous-phases : avancement calculé (15/10/2026), pas de saisie directe.
+    if (kind === 'workstream') await assertWorkstreamProgressEditable(this.prisma, id, input.progressPct);
     return this.prisma.$transaction(async (db) => {
       const row = await (db as any)[kind].update({ where: { id }, data: { ...input, version: { increment: 1 } } });
       if (kind === 'subphase') await rollupPhaseProgress(db, [row.phaseId]);
+      if (kind === 'subphase') await rollupWorkstreamsOfSubphases(db, [id]);
       const ctx = { actor, projectId: scope.project.id, profileUsed: scope.access.pmo ? 'PMO' : 'RESPONSABLE' };
       await this.tx.audit.record(db, ctx, { entityType: kind.toUpperCase(), entityId: id, before: existing, after: row, wsId: kind === 'workstream' ? id : null, target: `${row.code} · ${row.name}` });
       const today = this.tx.today(scope);

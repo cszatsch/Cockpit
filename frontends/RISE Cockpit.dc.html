@@ -3258,6 +3258,7 @@ class Component extends DCLogic {
       // chantier présentés comme dans le planning (numéro de phase foncé, code de sous-phase gris, pastille colorée du chantier).
       const noPh = cfg.lvl === 'ch' || cfg.lvl === 'one', phTxt = noPh ? '' : phShow, phRef = r.kind === 'ph' ? r : PH.find(p => p.id === (r.kind === 'sp' ? r.ph : r.segPh)), phC = phTxt && phRef ? String(phRef.code || '') : '';
       const chHue = r.kind === 'ch' ? hueOf(r) : null, dash = 'color:#c3cfcc';
+      const chSp = r.kind === 'ch' && !r.segOf && (r.subphases || []).length > 0; // avancement calculé par le serveur (15/10/2026)
       const cellSt = 'display:flex;align-items:center;gap:7px;min-width:0;';
       const nmSt = (on, w) => 'min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;' + (on ? 'font-weight:' + w + ';color:' + (done ? mute : ink) : dash);
       TR.push({ ph: phTxt || (noPh ? '—' : ''), sp: r.kind === 'sp' ? r.code + ' ' + r.n : '—', ch: r.kind === 'ch' ? r.n : '—',
@@ -3269,14 +3270,16 @@ class Component extends DCLogic {
         // % réel (09/10/2026) : la cellule est reconstruite quand la valeur change (`key`) — sinon, après une saisie, le texte
         // réécrit dans le DOM n'était plus suivi par l'écran et l'avancement recalculé d'une phase restait affiché à l'ancienne
         // valeur. Phase à sous-phases et chantier dans une phase : valeur calculée, non modifiable ici.
-        reelKey: r.id + ':' + r.reel, reelEd: r.segOf || (r.kind === 'ph' && SP.some(x => x.ph === r.id)) ? 'false' : 'true',
-        reelTip: r.segOf ? 'Calculé : moyenne de ses sous-phases dans cette phase, pondérée par leur durée' : r.kind === 'ph' && SP.some(x => x.ph === r.id) ? 'Calculé : moyenne des sous-phases de la phase, pondérée par leur durée' : 'Saisir le % réel',
+        reelKey: r.id + ':' + r.reel, reelEd: r.segOf || chSp || (r.kind === 'ph' && SP.some(x => x.ph === r.id)) ? 'false' : 'true',
+        reelTip: r.segOf ? 'Calculé : moyenne de ses sous-phases dans cette phase, pondérée par leur durée' : chSp ? 'Calculé : moyenne des sous-phases du chantier, pondérée par leur durée' : r.kind === 'ph' && SP.some(x => x.ph === r.id) ? 'Calculé : moyenne des sous-phases de la phase, pondérée par leur durée' : 'Saisir le % réel',
         commitReel: e => { if (r.segOf) { e.target.textContent = String(r.reel); this.showToast('Avancement du chantier dans cette phase : moyenne de ses sous-phases pondérée par leur durée.'); return; }
+          // Chantier rattaché à des sous-phases : avancement calculé et enregistré par le serveur (15/10/2026).
+          if (chSp) { e.target.textContent = String(r.reel); this.showToast('Avancement du chantier : moyenne de ses sous-phases pondérée par leur durée. Modifiez celui des sous-phases.'); return; }
           // Phase avec sous-phases : avancement calculé par le serveur (moyenne pondérée par la durée, 07/10/2026).
           if (r.kind === 'ph' && SP.some(x => x.ph === r.id)) { e.target.textContent = String(r.reel); this.showToast('Avancement de la phase : moyenne de ses sous-phases pondérée par leur durée. Modifiez celui des sous-phases.'); return; } const v = Math.max(0, Math.min(100, Math.round(parseFloat((e.target.textContent || '').replace(',', '.'))))); if (isNaN(v)) { e.target.textContent = String(r.reel); return; } e.target.textContent = String(v); if (v !== r.reel) this.edit('pl', r.id, 'reel', v); },
         tr: 'display:grid;' + ((cfg.lvl === 'phch' || cfg.lvl === 'phchsp' || cfg.lvl === 'one') ? 'grid-template-columns:minmax(70px,.8fr) minmax(90px,1.1fr) minmax(110px,1.5fr) minmax(100px,.9fr) 96px 96px 58px 72px 62px minmax(100px,1fr) minmax(100px,1fr);' : 'grid-template-columns:minmax(70px,.8fr) minmax(110px,1.5fr) minmax(90px,1.1fr) minmax(100px,.9fr) 96px 96px 58px 72px 62px minmax(100px,1fr) minmax(100px,1fr);') + 'gap:0 12px;align-items:center;padding:7px 0;font-size:12px;transition:background .15s;' + (phShow && i > 0 && r.kind !== 'ch' ? 'border-top:1px solid #e6eeec' : 'border-top:1px solid #f1f5f4'),
         phSt: cellSt, spSt: cellSt, chSt: cellSt,
-        reelSt: 'flex:none;white-space:nowrap;min-width:22px;text-align:right;font-weight:800;font-variant-numeric:tabular-nums;padding:3px 5px;border:1px solid transparent;border-radius:6px;outline:none;cursor:' + (r.segOf || (r.kind === 'ph' && SP.some(x => x.ph === r.id)) ? 'default' : 'text') + ';color:' + (done ? mute : late ? (bad ? '#b5601a' : '#b07410') : ink),
+        reelSt: 'flex:none;white-space:nowrap;min-width:22px;text-align:right;font-weight:800;font-variant-numeric:tabular-nums;padding:3px 5px;border:1px solid transparent;border-radius:6px;outline:none;cursor:' + (r.segOf || chSp || (r.kind === 'ph' && SP.some(x => x.ph === r.id)) ? 'default' : 'text') + ';color:' + (done ? mute : late ? (bad ? '#b5601a' : '#b07410') : ink),
         ret: done || r.status === 'future' ? '—' : r.retJ > 0 ? r.retJ + ' j' : 'À l’heure',
         retSt: 'text-align:right;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:' + (r.retJ > 0 ? '12px' : '11px') + ';color:' + (r.retJ > 30 ? '#c43d3d' : r.retJ > 0 ? '#b07410' : r.status === 'cur' ? '#1b8a52' : '#c3cfcc'),
         lc: done ? 'Terminé' : r.lc ? FR(r.lc) : '—', lcd: lcD == null ? '' : lcD > 0 ? '+' + lcD + ' j vs fin' : 'dans les temps',
@@ -4357,19 +4360,8 @@ class Component extends DCLogic {
     // (plItems) — auparavant la table de démonstration « suivi d'avancement », vide pour tout projet initialisé. Chantiers
     // commencés d'abord (tous s'il n'y en a aucun), les plus en retard en tête ; WS_TILE_MAX lignes dans la tuile.
     const WS_TILE_MAX = 4, PLI = this.plItems();
-    // Chantier qui a des sous-phases : réel = moyenne de ses sous-phases pondérée par leur durée, prévu à date sur la période
-    // de sa première à sa dernière sous-phase — calcul des lignes de chantier de Pilotage › Planning (segOf), étendu à toutes
-    // ses phases (le champ « avancement » du chantier, saisi à la main, reste à 0 % après une initialisation). Sinon : ses
-    // propres valeurs.
-    const SPI = PLI.filter(x => x.kind === 'sp'), dDays = (a, b) => Math.round((new Date(a + 'T12:00:00') - new Date(b + 'T12:00:00')) / 864e5);
-    const chProg = c => {
-      const own = SPI.filter(x => (c.subphases || []).includes(x.id) && x.start && x.end);
-      if (!own.length) return { v: +c.reel || 0, ref: +c.prevu || 0, st: c.status };
-      const a = own.reduce((m, x) => (x.start < m ? x.start : m), own[0].start), b = own.reduce((m, x) => (x.end > m ? x.end : m), own[0].end), w = x => Math.max(1, dDays(x.end, x.start) + 1);
-      const v = Math.round(own.reduce((t, x) => t + (+x.reel || 0) * w(x), 0) / own.reduce((t, x) => t + w(x), 0)), ref = Math.max(0, Math.min(100, Math.round(dDays(tIso, a) / Math.max(1, dDays(b, a)) * 100)));
-      return { v, ref, st: v >= 100 ? 'done' : a > tIso ? 'future' : 'cur' };
-    };
-    const chAll = PLI.filter(x => x.kind === 'ch' && x.start && x.end).map(c => { const p = chProg(c); return { n: (c.code ? c.code + ' · ' : '') + c.n, v: p.v, ref: p.ref, detail: p.st === 'future' ? 'pas encore commencé' : '', st: p.st }; });
+    // % réel : `Workstream.progressPct`, calculé et enregistré par le serveur à partir des sous-phases du chantier (15/10/2026).
+    const chAll = PLI.filter(x => x.kind === 'ch' && x.start && x.end).map(c => ({ n: (c.code ? c.code + ' · ' : '') + c.n, v: +c.reel || 0, ref: +c.prevu || 0, detail: c.status === 'future' ? 'pas encore commencé' : '', st: c.status }));
     const chStarted = chAll.filter(c => c.st !== 'future'), chSrc = (chStarted.length ? chStarted : chAll).sort((a, b) => (a.v - a.ref) - (b.v - b.ref) || String(a.n).localeCompare(String(b.n), 'fr', { numeric: true }));
     const wss = chSrc.slice(0, WS_TILE_MAX), wssMore = chSrc.length - wss.length, SIG = { ok: '#1d8f86', warn: '#e39a2d', ko: '#d4574a', late: '#d4574a' }, gapC = g => g >= 0 ? '#1d8f86' : g > -10 ? '#e39a2d' : '#d4574a';
     const rs = (d.riskStats || { weeks: [] }).weeks.map(w => w[0]), bs = (((d.barometre || {}).ecf || { series: [] }).series || []).filter(v => v != null); // mois sans relevé exclus (tuile « null », 12/10/2026)

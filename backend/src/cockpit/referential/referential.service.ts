@@ -9,7 +9,7 @@ import { forbidden, inUse, notFound } from '../../core/errors';
 import { canWriteReferential } from '../../domain/rights';
 import { EntityConfig, EntityCtx } from './entities';
 import { UsagesService } from './usages.service';
-import { assertPhaseProgressEditable, rollupPhaseProgress } from '../phase-progress';
+import { assertPhaseProgressEditable, assertWorkstreamProgressEditable, rollupPhaseProgress, rollupWorkstreamProgress, rollupWorkstreamsOfSubphases } from '../phase-progress';
 
 /**
  * Moteur CRUD du Référentiel (brief Cockpit § 9.4) : même patron pour toutes les entités.
@@ -71,6 +71,9 @@ export class ReferentialService {
       await (tx as any)[def.delegate].create({ data: { ...(def.global ? {} : { projectId: scope.project.id }), id, ...data } });
       if (relations) await relations(tx, id);
       if (def.entityType === 'SUBPHASE') await rollupPhaseProgress(tx, [(input as any).phaseId]);
+      // Avancement des chantiers (15/10/2026) : ceux de la sous-phase créée, ou le chantier créé avec ses sous-phases.
+      if (def.entityType === 'SUBPHASE') await rollupWorkstreamsOfSubphases(tx, [id]);
+      if (def.entityType === 'WORKSTREAM') await rollupWorkstreamProgress(tx, [id]);
       const row = await this.findRow(def, scope, id, tx);
       const view = (await def.serializeMany(c, [row]))[0];
       await this.audit.record(tx, this.writeCtx(actor, scope, origin), { entityType: def.entityType, entityId: id, before: null, after: view, wsId: def.wsOf?.(row) ?? null, target: def.label(row) });
@@ -87,9 +90,13 @@ export class ReferentialService {
       checkIfMatch(ifMatch, existing.version);
       const before = (await def.serializeMany(c, [existing]))[0];
       if (def.entityType === 'PHASE') await assertPhaseProgressEditable(tx, id, (input as any).progressPct);
+      if (def.entityType === 'WORKSTREAM') await assertWorkstreamProgressEditable(tx, id, (input as any).progressPct);
       const { data, relations, warnings } = await def.prepare(c, input, existing);
       await (tx as any)[def.delegate].update({ where: { id }, data: { ...data, version: { increment: 1 } } });
       if (relations) await relations(tx, id);
+      // Avancement des chantiers recalculé (15/10/2026) : ceux de la sous-phase, ou le chantier (sous-phases modifiées).
+      if (def.entityType === 'SUBPHASE') await rollupWorkstreamsOfSubphases(tx, [id]);
+      if (def.entityType === 'WORKSTREAM') await rollupWorkstreamProgress(tx, [id]);
       const row = await this.findRow(def, scope, id, tx);
       // Avancement de la phase (ancienne et nouvelle) recalculé d'après ses sous-phases.
       if (def.entityType === 'SUBPHASE') await rollupPhaseProgress(tx, [existing.phaseId, row.phaseId]);
@@ -113,6 +120,7 @@ export class ReferentialService {
       const { data, relations, warnings } = await def.prepare(c, parse(def.create.partial().strict(), input), existing);
       if (relations) await relations(tx, id);
       await (tx as any)[def.delegate].update({ where: { id }, data: { ...data, version: { increment: 1 } } });
+      if (def.entityType === 'WORKSTREAM') await rollupWorkstreamProgress(tx, [id]);
       const row = await this.findRow(def, scope, id, tx);
       const view = (await def.serializeMany(c, [row]))[0];
       await this.audit.record(tx, this.writeCtx(actor, scope), { entityType: def.entityType, entityId: id, before, after: view, wsId: def.wsOf?.(row) ?? null, target: def.label(row) });
@@ -136,6 +144,7 @@ export class ReferentialService {
         : [];
       await (tx as any)[def.delegate].delete({ where: { id } });
       if (def.entityType === 'SUBPHASE') await rollupPhaseProgress(tx, [existing.phaseId]);
+      if (def.entityType === 'SUBPHASE') await rollupWorkstreamProgress(tx, linked.map((w) => w.id));
       await this.audit.record(tx, this.writeCtx(actor, scope, origin), { entityType: def.entityType, entityId: id, before, after: null, wsId: def.wsOf?.(existing) ?? null, target: def.label(existing) });
       for (const w of linked) {
         const subs = w.subphases.map((s) => s.subphaseId).sort();

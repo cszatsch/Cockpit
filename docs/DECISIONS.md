@@ -2629,5 +2629,18 @@ Brief du commanditaire : reproduire la maquette avec les vraies données et les 
   d'exemple de l'ancien formulaire de tâche (`LINKS`).
 - Suite : dans la Météo des chantiers, l'avancement d'un chantier est celui de ses sous-phases (même calcul que ses
   lignes « Phase > Chantier » du Planning, étendu à toutes ses phases), et non le champ saisi du chantier (0 % après une
-  initialisation). Le champ saisi n'est pas recalculé côté serveur (proposition restée ouverte : remontée automatique de
-  l'avancement des sous-phases vers le chantier, comme pour les phases).
+  initialisation). Remplacé le jour même par le calcul serveur ci-dessous.
+
+## Avancement d'un chantier calculé et enregistré par le serveur (15/10/2026, demande du commanditaire)
+
+- Règle : un chantier rattaché à des sous-phases a pour avancement la moyenne des avancements de ses sous-phases
+  pondérée par leur durée (jours calendaires, début et fin inclus ; 1 jour si une date manque) — la règle des phases
+  (07/10/2026). Le résultat est enregistré dans `Workstream.progressPct` : Aujourd'hui, le Planning, les rapports et Jev
+  (`chantiers.avancement_reel_pct`) lisent le même chiffre.
+- Recalcul à chaque écriture d'une sous-phase (création, modification, suppression, Planning comme Référentiel) et des
+  liens chantier ↔ sous-phase (`rollupWorkstreamProgress`, `rollupWorkstreamsOfSubphases`, `src/cockpit/phase-progress.ts`).
+  Recalcul unique des projets existants par la migration `20261118001000_avancement_chantiers`.
+- Saisie directe de l'avancement refusée (400, `WORKSTREAM_PROGRESS_COMPUTED`) pour un chantier qui a des sous-phases ;
+  un chantier sans sous-phase garde son avancement saisi (y compris après le retrait de sa dernière sous-phase, qui laisse
+  la dernière valeur calculée).
+- La tuile Météo des chantiers ne calcule plus rien : elle lit la valeur enregistrée.

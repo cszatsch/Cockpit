@@ -198,7 +198,7 @@ Phases du planning d’un projet : dates, statut, avancement réel et prévu, cr
 | `precision_debut` | texte | Précision de la date de début | D = jour (JJ/MM/AAAA), M = mois (MM/AAAA), Y = année (AAAA) ; en M ou Y, la date stockée est le 1er jour (début) ou le dernier jour (fin) |
 | `precision_fin` | texte | Précision de la date de fin | D, M, Y |
 | `statut` | texte | Statut | PLANNED = prévue, IN_PROGRESS = en cours, DONE = terminée |
-| `avancement_reel_pct` | entier | Avancement réel | en % |
+| `avancement_reel_pct` | entier | Avancement réel ; pour une phase qui a des sous-phases, moyenne de leurs avancements pondérée par leur durée (calculé par l’application) | en % |
 | `avancement_prevu_force_pct` | entier | Avancement prévu saisi à la main (null : calculé) | en % |
 | `critique` | booléen | Sur le chemin critique |  |
 | `responsable_id` | texte | Responsable → personnes.id |  |
@@ -277,7 +277,7 @@ Chantiers (workstreams) d’un projet : responsable, dates, avancement. Le chant
 | `statut` | texte | Statut | ACTIVE = actif, CLOSED = clos |
 | `date_debut` | texte | Date de début | AAAA-MM-JJ |
 | `date_fin` | texte | Date de fin | AAAA-MM-JJ |
-| `avancement_reel_pct` | entier | Avancement réel | en % |
+| `avancement_reel_pct` | entier | Avancement réel ; pour un chantier rattaché à des sous-phases, moyenne de leurs avancements pondérée par leur durée (calculé par l’application) | en % |
 | `avancement_prevu_force_pct` | entier | Avancement prévu saisi à la main | en % |
 | `critique` | booléen | Chantier critique |  |
 | `depend_de_tous` | booléen | Dépend de tous les autres chantiers (« Tous ») |  |

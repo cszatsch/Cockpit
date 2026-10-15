@@ -30,3 +30,5 @@ export function weightedProgress(items: RollupItem[]): number | null {
 }
 
 export const PHASE_PROGRESS_COMPUTED = 'Avancement calculé : moyenne de ses sous-phases pondérée par leur durée';
+/** Chantier rattaché à des sous-phases (15/10/2026) : même règle que la phase, sur les sous-phases du chantier. */
+export const WORKSTREAM_PROGRESS_COMPUTED = 'Avancement du chantier calculé : moyenne de ses sous-phases pondérée par leur durée';

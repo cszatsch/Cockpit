@@ -801,3 +801,8 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
   Pilotage › Planning (moyenne de ses sous-phases pondérée par leur durée ; prévu à date sur la période de sa première à
   sa dernière sous-phase ; `chProg`) — le champ « avancement » du chantier, saisi à la main, restait à 0 % après une
   initialisation. Chantier sans sous-phase : ses propres valeurs.
+- Avancement des chantiers calculé par le serveur (15/10/2026) : la Météo des chantiers lit `reel` / `prevu` du
+  planning (calcul de la tuile retiré) ; dans Pilotage › Planning, le % réel d'un chantier qui a des sous-phases n'est
+  plus modifiable (`chSp`, infobulle « Calculé : moyenne des sous-phases du chantier, pondérée par leur durée », saisie
+  annulée avec le message « Avancement du chantier : moyenne de ses sous-phases pondérée par leur durée. Modifiez celui
+  des sous-phases. »).
