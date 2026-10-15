@@ -368,6 +368,8 @@ export class TransactionalService {
       const row = await (tx as any)[def.delegate].create({ data: { ...data, id: newId, code, projectId: scope.project.id } });
       const view = def.view(row, c.today);
       await this.audit.record(tx, this.wctx(actor, scope, row.wsId, origin), { entityType: def.entityType, entityId: row.id, before: null, after: view, wsId: row.wsId, target: def.label(row) });
+      // Décision créée déjà arbitrée et qui en remplace une autre (15/10/2026) : l'ancienne passe à « Remplacée », comme à la modification.
+      if (def.entityType === 'DECISION' && row.status === 'ARBITRATED' && row.supersedesId) await this.supersede(tx, actor, scope, row.supersedesId);
       return { row, result: withWarnings(view, warnings) };
     });
     return out.result;

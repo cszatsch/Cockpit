@@ -2596,3 +2596,7 @@ Brief du commanditaire : reproduire la maquette avec les vraies données et les 
   décision prise au lieu de la décision attendue, et rattache la séance prévue à la décision (`expectedSessionId`,
   champ serveur existant, jusqu'ici inutilisé) ; à défaut, prochaine séance planifiée de **l'instance de la décision**.
   Revenir sur un arbitrage reste impossible : créer une décision qui remplace l'ancienne (« Remplacée »).
+- Remplacement d'une décision arbitrée (demande du commanditaire, même jour) : l'écran saisit et affiche le lien
+  `supersedes` existant ; seules les décisions arbitrées sont proposées comme « remplacées ». Serveur : une décision
+  créée directement arbitrée qui en remplace une autre fait aussi passer l'ancienne à « Remplacée » (auparavant
+  seulement à la modification). Le lien reste enregistré sur la nouvelle décision ; « Remplacée par » est déduit.

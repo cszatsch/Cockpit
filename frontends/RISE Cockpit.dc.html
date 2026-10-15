@@ -728,6 +728,8 @@ a{color:#1d8f86}a:hover{color:#146b64}
           <span style="font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#5c7280;font-weight:700">Fiche d'arbitrage</span>
           <span style="font-family:ui-monospace,Menlo,monospace;font-size:12px;font-weight:700">{{ faId }}</span>
           <span style="display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600"><span style="{{ faSDot }}"></span>{{ faSt }}</span>
+          <sc-if value="{{ faHasSupOf }}" hint-placeholder-val="{{ false }}"><span onClick="{{ faGoSupOf }}" title="{{ faSupOfTip }}" style="display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:11px;background:#e6f3f2;color:#0f5f5a;font-size:11px;font-weight:700;white-space:nowrap;cursor:pointer">↺ Remplace {{ faSupOfCode }}</span></sc-if>
+          <sc-if value="{{ faHasSupBy }}" hint-placeholder-val="{{ false }}"><span onClick="{{ faGoSupBy }}" title="{{ faSupByTip }}" style="display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:11px;background:#fff3dc;color:#8a5a12;font-size:11px;font-weight:700;white-space:nowrap;cursor:pointer">→ Remplacée par {{ faSupByCode }}</span></sc-if>
           <sc-if value="{{ faRo }}" hint-placeholder-val="{{ false }}"><span title="Fiche arbitrée : lecture seule" style="display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:11px;background:#f0f4f3;color:#5c7280;font-size:11px;font-weight:700;white-space:nowrap"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="9.5" rx="2.2"></rect><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"></path></svg>Lecture seule</span></sc-if>
           
           <sc-if value="{{ faLite }}" hint-placeholder-val="{{ false }}"><span style="flex:none;white-space:nowrap;font-size:12px;color:#8a9aa6">· {{ faBy }}</span></sc-if>
@@ -2334,6 +2336,9 @@ a{color:#1d8f86}a:hover{color:#146b64}
       <textarea value="{{ arb.decL }}" onChange="{{ arb.setDecL }}" maxLength="4000" aria-label="Texte de la décision" style="{{ arb.txtSt }}"></textarea>
       <sc-if value="{{ arb.txtErr }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:#c2473b">Rédigez le texte de la décision.</span></sc-if>
     </label>
+    <sc-if value="{{ arb.hasSupOpts }}" hint-placeholder-val="{{ false }}"><label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#8a9aa6">REMPLACE LA DÉCISION</span>
+      <select value="{{ arb.supV }}" onChange="{{ arb.setSup }}" aria-label="Remplace la décision" style="height:38px;border:0;border-radius:9px;padding:0 10px;font:inherit;font-size:13px;color:#10233a;background:#fff;box-shadow:inset 0 0 0 1.5px #d3dedb"><sc-for list="{{ arb.supOpts }}" as="o" hint-placeholder-count="2"><option value="{{ o.v }}">{{ o.l }}</option></sc-for></select>
+      <span style="font-size:12px;color:#5c7280">{{ arb.supHint }}</span></label></sc-if>
     <label style="display:flex;align-items:center;gap:12px"><span style="font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#8a9aa6">DATE DE DÉCISION</span><input type="date" value="{{ arb.dd }}" onChange="{{ arb.setDd }}" aria-label="Date de décision" style="height:36px;border:0;border-radius:9px;padding:0 10px;font:inherit;font-size:13px;color:#10233a;box-shadow:inset 0 0 0 1.5px #d3dedb"></label>
     <span style="font-size:12px;color:#8a5a12;line-height:1.5">Une fois arbitrée, la fiche passe en lecture seule.</span>
   </div>
@@ -2960,6 +2965,8 @@ class Component extends DCLogic {
       actions: (D.actions || []).filter((x) => x.status !== 'DONE').map((x) => ({ v: x.id, t: code(x) + ' · ' + x.n })),
       decisions: (D.decisions || []).filter((x) => x.status !== 'ARBITRATED' && x.status !== 'CANCELLED' && x.status !== 'SUPERSEDED').map((x) => ({ v: x.id, t: code(x) + ' · ' + x.t, fiche: this._api && this._api.ficheOf ? this._api.ficheOf(x.id) : null })),
       bodies: M('GOVERNANCE_BODY').map((r) => ({ v: r.id, t: r.cells[0] })),
+      // Décisions arbitrées qu'une nouvelle décision peut remplacer (15/10/2026).
+      arbitrated: [{ v: '', t: 'Aucune' }].concat((D.decisions || []).filter((x) => x.status === 'ARBITRATED').map((x) => ({ v: x.id, t: code(x) + ' · ' + x.t }))),
       baro: this.ssjBaro(M),
     };
   }
@@ -3812,6 +3819,10 @@ class Component extends DCLogic {
     const sesUp = this.sessionList().filter(x => x.bodyId === bidF && x.status === 'PLANNED' && x.dateIso >= today).sort((a, b) => a.dateIso.localeCompare(b.dateIso));
     const sesWant = F.expSes !== undefined ? F.expSes : F.expectedSessionId, sesPick = sesUp.find(x => x.id === sesWant) || null;
     const nsA0 = sesPick || sesUp[0] || null, nsA = nsA0 ? { ...nsA0, label: this.sessionLabel(nsA0) } : null, dj = nsA ? Math.round((new Date(nsA.dateIso + 'T12:00:00') - new Date(today + 'T12:00:00')) / 864e5) : null;
+    // Remplacement (15/10/2026) : décision remplacée par celle-ci (son champ « remplace ») et décision qui la remplace.
+    const DSL = (D && D.decisions) || [], supOf0 = (F.sup !== undefined ? F.sup : F.supersedes) || '', supOf = supOf0 ? DSL.find(x => x.id === supOf0) : null;
+    const supBy = DSL.find(x => x.id !== F.id && ((((S.ed || {})['fa:' + x.id] || {}).sup !== undefined ? S.ed['fa:' + x.id].sup : x.supersedes) === F.id)) || null;
+    const goDec = x => () => { this.setState({ faSel: x.id }); this.scrollFiche(); };
     const faRo = this.decRo(F.id), optLbl = F.opt ? ((this.arbOpts(F.id).find(o => o[0] === F.opt) || [])[1] || 'Option ' + F.opt) : '';
     const recOpt = this.faReco(F.id);
     if (!this._faRef) this._faRef = React.createRef();
@@ -3853,6 +3864,8 @@ class Component extends DCLogic {
           h('text', { x: 110, y: 138, textAnchor: 'middle', fontSize: 7.6, fontWeight: 800, letterSpacing: 1.4, fill: '#10233a' }, 'OPTION RETENUE')); })(),
       faHasLitDec: !!F.decL && !OPEN(F.st), faLitDec: F.decL ? F.id + ' · ' + F.decL : '', faRecA: /\bA\b/.test(recOpt), faRecB: /\bB\b/.test(recOpt), faJx: !F.full || dj == null ? '' : dj > 0 ? 'J-' + dj : dj === 0 ? 'Aujourd\'hui' : 'Échue', faJxSub: F.full ? (nsA ? nsA.label + ' · ' + this.frShortIso(nsA.dateIso) : 'Aucune séance planifiée pour ' + (F.inst || 'son instance')) : F.inst,
       faRo, faCe: !faRo, faOpenDeq: !faRo, faDone: faRo,
+      faHasSupOf: !!supOf, faSupOfCode: supOf ? supOf.code || supOf.id : '', faSupOfTip: supOf ? 'Remplace ' + (supOf.code || supOf.id) + ' · ' + supOf.t + (F.st === 'Arbitrée' ? '' : ' (elle passera à « Remplacée » à l’arbitrage de ' + F.id + ')') : '', faGoSupOf: supOf ? goDec(supOf) : () => {},
+      faHasSupBy: !!supBy, faSupByCode: supBy ? supBy.code || supBy.id : '', faSupByTip: supBy ? 'Remplacée par ' + (supBy.code || supBy.id) + ' · ' + supBy.t : '', faGoSupBy: supBy ? goDec(supBy) : () => {},
       faDoneTxt: F.decL || 'Texte de la décision non renseigné', faDoneDate: F.ddIso ? fr(F.ddIso) : '—',
       faDoneSub: [optLbl ? optLbl + ' retenue' : '', F.inst].filter(Boolean).join(' · '),
       faSesV: sesPick ? sesPick.id : '', faSesL: sesPick ? 'Séance choisie' : sesUp.length ? 'Prochaine séance' : 'Choisir une séance',
@@ -3871,7 +3884,8 @@ class Component extends DCLogic {
   arbOpen(f) {
     if (!this.can('edit', this.findObj(f.id))) { this.showToast('Droit insuffisant : seul le PMO ou le Responsable du chantier peut modifier cette donnée'); return; }
     const reco = (/\b([AB])\b/.exec(this.faReco(f.id)) || [])[1] || '', opt = f.opt || reco;
-    this.setState({ arbDlg: { id: f.id, t: f.t, opt, reco, decL: f.decL || this.arbDefaultText(f.id, opt), auto: !f.decL, dd: f.ddIso || this.fToday(), touched: false } });
+    const sup = (f.sup !== undefined ? f.sup : f.supersedes) || '';
+    this.setState({ arbDlg: { id: f.id, t: f.t, opt, reco, sup, decL: f.decL || this.arbDefaultText(f.id, opt), auto: !f.decL, dd: f.ddIso || this.fToday(), touched: false } });
     setTimeout(() => { const el = document.querySelector('[data-arb-first]'); el && el.focus(); }, 80);
   }
   arbVals() {
@@ -3883,14 +3897,17 @@ class Component extends DCLogic {
       pick: () => set({ opt: k, ...(D.auto ? { decL: this.arbDefaultText(D.id, k) } : {}) }),
       st: 'display:flex;align-items:center;gap:10px;min-height:46px;padding:8px 12px;border:0;border-radius:11px;cursor:pointer;text-align:left;font:inherit;transition:background .15s,box-shadow .15s;' + (on ? 'background:#10233a;color:#fff;box-shadow:none' : 'background:#fff;color:#10233a;box-shadow:inset 0 0 0 1.5px #d3dedb'),
       dot: 'width:16px;height:16px;border-radius:50%;flex:none;box-sizing:border-box;' + (on ? 'border:5px solid #3dd6c6;background:#10233a' : 'border:1.5px solid #a9b8c0') }; });
+    const arbL = (((this.mergedData() || {}).decisions) || []).filter(x => x.status === 'ARBITRATED' && x.id !== D.id);
     return { open: true, title: 'Arbitrer ' + D.id, q: D.t, opts, hasFiche, noFiche: !hasFiche,
+      supV: D.sup || '', setSup: e => set({ sup: e.target.value }), supOpts: [{ v: '', l: 'Aucune' }].concat(arbL.map(x => ({ v: x.id, l: (x.code || x.id) + ' · ' + x.t }))), hasSupOpts: arbL.length > 0,
+      supHint: D.sup ? 'À l’arbitrage, ' + ((arbL.find(x => x.id === D.sup) || {}).code || D.sup) + ' passera à « Remplacée ».' : '',
       decL: D.decL, setDecL: e => set({ decL: e.target.value, auto: false }), dd: D.dd, setDd: e => set({ dd: e.target.value }),
       optErr: D.touched && optErr, txtErr: D.touched && txtErr, ddErr: D.touched && ddErr,
       txtSt: 'width:100%;min-height:76px;box-sizing:border-box;border:0;border-radius:10px;padding:10px 12px;font:inherit;font-size:13px;line-height:1.5;resize:vertical;color:#10233a;box-shadow:inset 0 0 0 1.5px ' + (D.touched && txtErr ? '#c2473b' : '#d3dedb'),
       close, key: e => { if (e.key === 'Escape') { e.stopPropagation(); close(); } },
       confirm: () => {
         if (optErr || txtErr || ddErr) return set({ touched: true });
-        const key = 'fa:' + D.id, v = { st: 'Arbitrée', opt: D.opt || '', decL: String(D.decL).trim(), ddIso: D.dd };
+        const key = 'fa:' + D.id, v = { st: 'Arbitrée', opt: D.opt || '', decL: String(D.decL).trim(), ddIso: D.dd, sup: D.sup || '' };
         // Une seule modification (statut, option, texte, date) : api.js en fait un seul envoi au serveur.
         this.setState(s => ({ arbDlg: null, ed: { ...(s.ed || {}), [key]: { ...((s.ed || {})[key] || {}), ...v } },
           audit: Object.entries(v).map(([f, x]) => ({ k: 'fa', id: D.id, f, v: x, by: this.meName(), at: new Date().toISOString(), origin: 'saisie' })).concat(s.audit || []) }));

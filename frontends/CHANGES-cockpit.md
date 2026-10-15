@@ -770,3 +770,8 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
   Décision ouverte : séance prévue choisie parmi les séances planifiées de l'instance de la décision (`expectedSessionId`
   via `expSes` dans `api.js`), sinon la prochaine de cette instance (auparavant celle du COPIL, `nextSession('g1')`).
   Texte de la décision du serveur gardé dans la liste (`decL`, il était remplacé par une valeur vide).
+- Pilotage › Décisions, remplacement d'une décision arbitrée (15/10/2026) : lien `supersedes` (champ serveur existant)
+  saisissable dans Saisir sans Jev (« Remplace la décision », décisions arbitrées ; `ssjData().arbitrated`) et dans la
+  fenêtre « Arbitrer » (envoyé avec l'arbitrage) ; affiché dans les deux sens sur les fiches (« ↺ Remplace D-xxx »,
+  « → Remplacée par D-xxx », cliquables). Saisir sans Jev : champ « Texte de la décision », obligatoire pour une décision
+  créée arbitrée (message clair au lieu du refus du serveur).

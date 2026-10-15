@@ -622,6 +622,8 @@ export function attach(comp) {
       if ('status' in ch) body.status = ch.status;
       if ('ch' in ch && wsId(ch.ch)) body.wsId = wsId(ch.ch);
       if ('inst' in ch && bodyId(ch.inst)) body.bodyId = bodyId(ch.inst);
+      // Décision remplacée (15/10/2026) : envoyée avec l'arbitrage ; à l'arbitrage, l'ancienne passe à « Remplacée ».
+      if ('sup' in ch) body.supersedes = ch.sup || null;
       // Séance prévue de la décision (15/10/2026) : '' = la prochaine séance de son instance.
       if ('expSes' in ch) body.expectedSessionId = ch.expSes || null;
       if (Object.keys(body).length) writePatch('PATCH', '/decisions/' + enc(id), body);
@@ -1107,7 +1109,9 @@ export function attach(comp) {
         } else if (kind === 'decision') {
           // Une décision est rattachée à un chantier (modèle actuel) : « Transverse » ou aucun chantier sont refusés.
           if (!v.ws || v.ws === T) throw new Error('Chantier : choisissez le chantier de la décision (« Transverse » n’est pas possible pour une décision).');
-          const r = await ppost('/decisions', opt({ t: v.n.trim(), p: [4, 3, 2, 1][+v.prio] || 3, status: DEC[v.st] || 'DRAFT', crIso: B.today, ddIso: v.dd, wsId: v.ws, bodyId: v.body, opt: (v.opt || '').trim() }));
+          // Décision créée arbitrée : le serveur exige son texte (15/10/2026 : message clair au lieu d'un refus générique).
+          if (DEC[v.st] === 'ARBITRATED' && !(v.decL || '').trim()) throw new Error('Texte de la décision : obligatoire pour une décision arbitrée.');
+          const r = await ppost('/decisions', opt({ t: v.n.trim(), p: [4, 3, 2, 1][+v.prio] || 3, status: DEC[v.st] || 'DRAFT', crIso: B.today, ddIso: v.dd, wsId: v.ws, bodyId: v.body, opt: (v.opt || '').trim(), decL: (v.decL || '').trim(), supersedes: v.sup || undefined }));
           msg = 'Décision ' + r.code + ' créée';
         } else if (kind === 'tache') {
           const r = await ppost('/tasks', opt({ title: v.n.trim(), owner: v.owner, link: v.act ? { entityType: 'ACTION', entityId: v.act } : null, dueIso: v.due, status: TK4[+v.st] || 'TODO', ...links(v.wss) }));
