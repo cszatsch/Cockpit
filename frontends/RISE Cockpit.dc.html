@@ -3138,6 +3138,37 @@ class Component extends DCLogic {
       const status = reel >= 100 ? 'done' : x.start > today ? 'future' : 'cur', retJ = status === 'cur' ? Math.max(0, Math.round((prevu - reel) / 100 * dur)) : 0;
       const lc = reel > 0 && reel < 100 && el > 0 ? ADD(today, Math.round(el * (100 - reel) / reel)) : null, lp = reel < 100 && x.start <= today ? ADD(today, Math.round((100 - reel) / 100 * dur)) : null;
       return { ...x, reel, depth: 0, dur, prevu, status, retJ, lc, lp }; }); }
+  // Chantier dans une phase (Pilotage › Planning, vues « Phase > Chantier » ; Météo des chantiers, 15/10/2026) : segment de sa
+  // première à sa dernière sous-phase de la phase (sinon chantier ∩ phase), réel moyen de ces sous-phases pondéré par leur durée.
+  plSeg(c, p, SP) {
+    const today = this.fToday(), T = s => new Date(s + 'T12:00:00').getTime(), DD = (a, b) => Math.round((T(a) - T(b)) / 864e5);
+    const own = SP.filter(x => x.ph === p.id && (c.subphases || []).includes(x.id));
+    let a = own.length ? own.reduce((m, x) => (x.start < m ? x.start : m), own[0].start) : (c.start > p.start ? c.start : p.start);
+    let b = own.length ? own.reduce((m, x) => (x.end > m ? x.end : m), own[0].end) : (c.end < p.end ? c.end : p.end);
+    if (!a || !b || b < a) { a = p.start; b = p.end; }
+    const w = x => (x.start && x.end && x.end >= x.start ? DD(x.end, x.start) + 1 : 1);
+    const reel = own.length ? Math.round(own.reduce((t, x) => t + (+x.reel || 0) * w(x), 0) / own.reduce((t, x) => t + w(x), 0)) : (+p.reel || 0), dur = Math.max(1, DD(b, a)), el = DD(today, a);
+    const prevu = Math.max(0, Math.min(100, Math.round(el / dur * 100))), status = reel >= 100 ? 'done' : a > today ? 'future' : 'cur';
+    return { ...c, id: c.id + '@' + p.id, segOf: c.id, segPh: p.id, start: a, end: b, reel, prevu, dur, status, retJ: status === 'cur' ? Math.max(0, Math.round((prevu - reel) / 100 * dur)) : 0, lc: null, lp: null, depth: 1, own };
+  }
+  // Phases en cours (Météo des chantiers, 15/10/2026, solution B2) : toutes celles qui contiennent la date du jour ; sinon la
+  // prochaine à commencer ; sinon la dernière.
+  plCurPhases(PH) { const today = this.fToday(), D = PH.filter(p => p.start && p.end).slice().sort((a, b) => a.start < b.start ? -1 : a.start > b.start ? 1 : 0);
+    const cur = D.filter(p => p.start <= today && p.end >= today), next = D.find(p => p.start > today);
+    return cur.length ? cur : next ? [next] : D.length ? [D[D.length - 1]] : []; }
+  // Chantier sur plusieurs phases (solution B2) : ses sous-phases de ces phases mises en commun, même moyenne pondérée par la
+  // durée ; une phase où il n'a pas de sous-phase compte pour son segment (période et avancement de plSeg). Une seule phase :
+  // exactement sa ligne « Phase > Chantier » du Planning (plSeg).
+  plSegMulti(c, phases, SP) {
+    const segs = phases.filter(p => (c.phases || []).includes(p.id)).map(p => this.plSeg(c, p, SP));
+    if (segs.length <= 1) return segs[0] || null;
+    const today = this.fToday(), T = s => new Date(s + 'T12:00:00').getTime(), DD = (a, b) => Math.round((T(a) - T(b)) / 864e5);
+    const items = segs.flatMap(g => g.own.length ? g.own : [{ start: g.start, end: g.end, reel: g.reel }]), w = x => (x.start && x.end && x.end >= x.start ? DD(x.end, x.start) + 1 : 1);
+    const a = segs.reduce((m, g) => (g.start < m ? g.start : m), segs[0].start), b = segs.reduce((m, g) => (g.end > m ? g.end : m), segs[0].end);
+    const reel = Math.round(items.reduce((t, x) => t + (+x.reel || 0) * w(x), 0) / items.reduce((t, x) => t + w(x), 0));
+    const prevu = Math.max(0, Math.min(100, Math.round(DD(today, a) / Math.max(1, DD(b, a)) * 100)));
+    return { ...c, start: a, end: b, reel, prevu, status: reel >= 100 ? 'done' : a > today ? 'future' : 'cur' };
+  }
   tfAvFrom(x) { return { editId: x.id, editLbl: (x.code ? x.code + ' ' : '') + x.n, title: x.n, owner: x.owner, start: x.start, end: x.end, reel: x.reel, prevu: x.prevuSet != null ? x.prevuSet : '' }; }
   tfAvVals(tf, setTf) { if ((tf.kind || '') !== 'avancement') return { tfShowAv: false, tfAvOpts: [] };
     const it = this.plItems(), MO = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'], fr = s => { if (!s) return '—'; const [y, m, d] = s.split('-').map(Number); return (d === 1 ? '1er' : d) + ' ' + MO[m - 1] + ' ' + y; };
@@ -3176,16 +3207,7 @@ class Component extends DCLogic {
     // segment dans cette phase — de sa première à sa dernière sous-phase de la phase, sinon chantier ∩ phase —, avancement
     // réel moyen de ces sous-phases pondéré par leur durée (règle des phases, 07/10/2026 ; chantier sans sous-phase dans la phase : celui de la phase) ;
     // dates calculées, donc non modifiables sur cette ligne.
-    const segOf = (c, p) => {
-      const own = SP.filter(x => x.ph === p.id && (c.subphases || []).includes(x.id));
-      let a = own.length ? own.reduce((m, x) => (x.start < m ? x.start : m), own[0].start) : (c.start > p.start ? c.start : p.start);
-      let b = own.length ? own.reduce((m, x) => (x.end > m ? x.end : m), own[0].end) : (c.end < p.end ? c.end : p.end);
-      if (!a || !b || b < a) { a = p.start; b = p.end; }
-      const w = x => (x.start && x.end && x.end >= x.start ? DD(x.end, x.start) + 1 : 1);
-      const reel = own.length ? Math.round(own.reduce((t, x) => t + (+x.reel || 0) * w(x), 0) / own.reduce((t, x) => t + w(x), 0)) : (+p.reel || 0), dur = Math.max(1, DD(b, a)), el = DD(today, a);
-      const prevu = Math.max(0, Math.min(100, Math.round(el / dur * 100))), status = reel >= 100 ? 'done' : a > today ? 'future' : 'cur';
-      return { ...c, id: c.id + '@' + p.id, segOf: c.id, segPh: p.id, start: a, end: b, reel, prevu, dur, status, retJ: status === 'cur' ? Math.max(0, Math.round((prevu - reel) / 100 * dur)) : 0, lc: null, lp: null, depth: 1, own };
-    };
+    const segOf = (c, p) => this.plSeg(c, p, SP);
     // Ordre croissant des codes (C1, C2, C3… ; sous-phases 1.1, 1.2…), demande du commanditaire du 07/10/2026.
     const chrono = (a, b) => String(a.code).localeCompare(String(b.code), 'fr', { numeric: true });
     const segsOf = p => CH.filter(c => (c.phases || []).includes(p.id)).map(c => segOf(c, p)).sort(chrono);
@@ -4356,14 +4378,15 @@ class Component extends DCLogic {
     const acts = (d.actions || []).filter(a => a.late).slice(0, 3);
     const decs = (d.decisions || []).filter(x => !['ARBITRATED', 'SUPERSEDED', 'CANCELLED'].includes(x.status)).slice(0, 3);
     const arbOpen = (d.arbitrations || []).filter(x => !/Arbitrée|Annulée|Remplacée/.test(x.st)), arbTo = arbOpen.filter(x => x.st === 'À arbitrer').length;
-    // Météo des chantiers (15/10/2026) : chantiers du planning, % réel et % prévu à date calculés comme Pilotage › Planning
-    // (plItems) — auparavant la table de démonstration « suivi d'avancement », vide pour tout projet initialisé. Chantiers
-    // commencés d'abord (tous s'il n'y en a aucun), les plus en retard en tête ; WS_TILE_MAX lignes dans la tuile.
-    const WS_TILE_MAX = 4, PLI = this.plItems();
-    // % réel : `Workstream.progressPct`, calculé et enregistré par le serveur à partir des sous-phases du chantier (15/10/2026).
-    const chAll = PLI.filter(x => x.kind === 'ch' && x.start && x.end).map(c => ({ n: (c.code ? c.code + ' · ' : '') + c.n, v: +c.reel || 0, ref: +c.prevu || 0, detail: c.status === 'future' ? 'pas encore commencé' : '', st: c.status }));
-    const chStarted = chAll.filter(c => c.st !== 'future'), chSrc = (chStarted.length ? chStarted : chAll).sort((a, b) => (a.v - a.ref) - (b.v - b.ref) || String(a.n).localeCompare(String(b.n), 'fr', { numeric: true }));
-    const wss = chSrc.slice(0, WS_TILE_MAX), wssMore = chSrc.length - wss.length, SIG = { ok: '#1d8f86', warn: '#e39a2d', ko: '#d4574a', late: '#d4574a' }, gapC = g => g >= 0 ? '#1d8f86' : g > -10 ? '#e39a2d' : '#d4574a';
+    // Météo des chantiers (15/10/2026, solution B2 du commanditaire) : chantiers des phases en cours, mesurés dans ces phases
+    // (une seule phase : comme leurs lignes « Phase > Chantier » de Pilotage › Planning ; plusieurs : leurs sous-phases de ces
+    // phases mises en commun, plSegMulti) ; tous les chantiers, triés par code (C1, C2…).
+    const PLI = this.plItems(), wsPhs = this.plCurPhases(PLI.filter(x => x.kind === 'ph')), PLS = PLI.filter(x => x.kind === 'sp');
+    const wss = PLI.filter(x => x.kind === 'ch').map(c => this.plSegMulti(c, wsPhs, PLS)).filter(Boolean)
+      .sort((a, b) => String(a.code).localeCompare(String(b.code), 'fr', { numeric: true }))
+      .map(c => ({ n: (c.code ? c.code + ' · ' : '') + c.n, v: c.reel, ref: c.prevu, detail: c.status === 'future' ? 'pas encore commencé dans ' + (wsPhs.length > 1 ? 'ces phases' : 'la phase') : '', st: c.status }));
+    const phC = wsPhs.map(x => String(x.code || '')), wsPhL = wsPhs.length === 1 ? 'Phase ' + phC[0] + ' · ' + wsPhs[0].n : wsPhs.length ? 'Phases ' + phC.slice(0, -1).join(', ') + ' et ' + phC[phC.length - 1] : '';
+    const SIG = { ok: '#1d8f86', warn: '#e39a2d', ko: '#d4574a', late: '#d4574a' }, gapC = g => g >= 0 ? '#1d8f86' : g > -10 ? '#e39a2d' : '#d4574a';
     const rs = (d.riskStats || { weeks: [] }).weeks.map(w => w[0]), bs = (((d.barometre || {}).ecf || { series: [] }).series || []).filter(v => v != null); // mois sans relevé exclus (tuile « null », 12/10/2026)
     // Courbe (refonte 01/10/2026) : série plate centrée ; dégradé sous la courbe ; dernier point marqué d'un halo.
     const spark = (ser, c, v, u, sub, id) => { const n = ser.length, mn = Math.min(...ser), mx = Math.max(...ser), flat = mx === mn, sp = (mx - mn) || 1; const pts = ser.map((y, i) => [(i / (n - 1) * 200).toFixed(1), (flat ? 24 : 40 - (y - mn) / sp * 34).toFixed(1)]); const line = 'M' + pts.map(p => p.join(' ')).join(' L'); const [ex, ey] = pts[pts.length - 1].map(Number), at = 'position:absolute;left:' + (ex / 2).toFixed(2) + '%;top:' + (ey / 44 * 100).toFixed(2) + '%;border-radius:50%;transform:translate(-50%,-50%);';
@@ -4399,7 +4422,7 @@ class Component extends DCLogic {
       { id: 'av', name: 'Avancement vs référence', cat: 'Planning', size: [1, 1], type: 'kpi', g: '%', fmt: 'Tuile KPI et jauge', q: 'Le projet avance-t-il au rythme prévu ?', data: 'Planning : phases (% réel, % prévu à date, pondérés par leur durée)', k: avR == null ? { v: '—', u: '', sub: 'Aucune ligne de suivi d’avancement', c: '#10233a' } : { v: String(avR), u: '% réel', sub: 'Prévu à date : ' + avP + ' %', c: avC, ring: { v: avR, ref: avP, lbl: (avGap > 0 ? '+' : avGap < 0 ? '−' : '') + Math.abs(avGap), cap: 'pts d’écart' } } },
       { id: 'jal', name: 'Prochains jalons', cat: 'Jalons', size: [2, 1], type: 'list', g: '◆', fmt: 'Liste datée', q: 'Quelles sont les prochaines échéances et glissent-elles ?', data: 'Jalons — prévision vs référence (date prévue, glissement)', rows: ms.map(m => ({ a: m.planned, aS: tag('#f1f5f4', '#43586a'), t: m.n, r: m.gap > 0 ? '+' + m.gap + ' j' : 'à l’heure', rS: rt(m.gap > 0 ? '#c2473b' : '#1d8f86') })) },
       { id: 'crit', name: 'Chemin critique', cat: 'Planning', size: [2, 1], type: 'gantt', g: '▤', fmt: 'Mini-Gantt', q: 'Quelles tâches conditionnent la date de fin ?', data: 'Planning (sous-phases et chantiers sur le chemin critique)', rows: critSrc.map(x => { const e = dIso(x.end), b0 = dIso(x.start); return { t: (x.code ? x.code + ' ' : '') + x.n, bar: gb(b0, e, e < T ? '#b9c7cd' : b0 <= T ? '#d4574a' : '#10233a') }; }), g2: (() => { const x = 'left:calc(140px + (100% - 140px) * ' + (gp(T) / 100).toFixed(3) + ')'; return { lineS: 'position:absolute;top:0;bottom:17px;width:0;border-left:1.5px dashed #10233a;opacity:.45;z-index:1;' + x, tagS: 'position:absolute;bottom:0;transform:translateX(-50%);font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#10233a;white-space:nowrap;line-height:1;' + x, a: moY(g0), b: moY(g1) }; })() },
-      { id: 'ch', name: 'Météo des chantiers', cat: 'Chantiers', size: [2, 1], type: 'bars', g: '≡', fmt: 'Barres réel vs référence', q: 'Quels chantiers décrochent ?', data: 'Planning : chantiers (% réel, % prévu à date), les plus en retard d’abord', rows: wss.map(w => { const gC = gapC(w.v - w.ref); return { t: short(String(w.n).replace(/^\d+ · /, '')), v: w.v + ' %', vS: rt(gC) + ';text-align:right', bar: 'position:absolute;left:0;top:0;bottom:0;border-radius:3px;width:' + w.v + '%;background:' + gC, ref: 'position:absolute;top:-3px;bottom:-3px;width:2px;border-radius:1px;background:#10233a;left:' + w.ref + '%' }; }) },
+      { id: 'ch', name: 'Météo des chantiers', cat: 'Chantiers', size: [2, 1], type: 'bars', g: '≡', fmt: 'Barres réel vs référence', q: 'Quels chantiers décrochent ?', data: 'Planning : chantiers des phases en cours (% réel, % prévu à date dans ces phases), par code', rows: wss.map(w => { const gC = gapC(w.v - w.ref); return { t: short(String(w.n).replace(/^\d+ · /, '')), v: w.v + ' %', vS: rt(gC) + ';text-align:right', bar: 'position:absolute;left:0;top:0;bottom:0;border-radius:3px;width:' + w.v + '%;background:' + gC, ref: 'position:absolute;top:-3px;bottom:-3px;width:2px;border-radius:1px;background:#10233a;left:' + w.ref + '%' }; }) },
       { id: 'risk', name: 'Risques critiques', cat: 'Risques', size: [1, 2], type: 'list', g: '!', fmt: 'Liste priorisée', q: 'Quels risques menacent le projet maintenant ?', data: 'Risques (probabilité × impact, plan de mitigation, porteur)', rows: (d.risks || []).slice().sort((a, b) => b.p * b.i - a.p * a.i).slice(0, 8).map(r => ({ a: String(r.p * r.i), aS: tag(r.p * r.i >= 20 ? '#fbecea' : '#fff3dc', r.p * r.i >= 20 ? '#c2473b' : r.p * r.i >= 12 ? '#8a5a12' : '#5c7280'), t: short(r.n), r: r.id, rS: rt('#8a9aa6') })) },
       { id: 'rtrend', name: 'Tendance des risques', cat: 'Risques', size: [1, 1], type: 'spark', g: '↗', fmt: 'Courbe de tendance', q: 'L’exposition au risque augmente-t-elle ?', data: 'Registre des risques, historique hebdomadaire', s: spark(rs.length > 1 ? rs : rs.length ? [rs[0], rs[0]] : [0, 0], '#d4574a', String(RS.total ?? (d.risks || []).length), 'risques ouverts', 'dont ' + (RS.critical ?? critN) + ' critiques · ' + (rs.length >= 8 ? '8 dernières semaines' : RS.since ? 'suivi depuis le ' + this.frShortIso(RS.since) : 'registre vide'), 'rtrend') },
       { id: 'pb', name: 'Problèmes ouverts', cat: 'Risques', size: [1, 1], type: 'list', g: '⚑', fmt: 'Liste', q: 'Quels problèmes bloquent aujourd’hui ?', data: 'Problèmes (sévérité, porteur, résolution visée)', rows: (d.issues || []).slice(0, 3).map(x => ({ a: 'S' + x.sev, aS: tag(x.sev >= 4 ? '#fbecea' : '#fff3dc', x.sev >= 4 ? '#c2473b' : '#8a5a12'), t: short(x.n), r: '', rS: rt('#8a9aa6') })) },
@@ -4530,7 +4553,7 @@ class Component extends DCLogic {
     })();
     // Météo des chantiers : pictogramme météo selon l'écart au prévu (WS_GAP_WATCH), barre du réel en encre, retard hachuré jusqu'au prévu, écart en clair.
     (() => { const WS_GAP_WATCH = -10, kind = g => g >= 0 ? 'sun' : g > WS_GAP_WATCH ? 'cloud' : 'rain';
-      VIZ.ch = { viz: 'weather', meta: 'écart au prévu' + (wssMore > 0 ? ' · ' + wss.length + ' sur ' + chSrc.length : ''), wx: { rows: wss.map(w => { const g = w.v - w.ref, col = gapC(g), k = kind(g), lo = Math.min(w.v, w.ref), hi = Math.max(w.v, w.ref);
+      VIZ.ch = { viz: 'weather', meta: (wsPhL ? wsPhL + ' · ' : '') + 'écart au prévu', wx: { boxS: 'flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;justify-content:safe center;gap:' + (wss.length > 4 ? 10 : 14) + 'px', rows: wss.map(w => { const g = w.v - w.ref, col = gapC(g), k = kind(g), lo = Math.min(w.v, w.ref), hi = Math.max(w.v, w.ref);
         return { t: String(w.n).replace(/^\d+ · /, ''), tip: [w.detail, 'réel ' + w.v + ' % · prévu ' + w.ref + ' %'].filter(Boolean).join(' · '), sun: k === 'sun', cloud: k === 'cloud', rain: k === 'rain', icS: 'display:block;color:' + col, v: w.v + ' %', gap: g ? (g > 0 ? '+' : '−') + Math.abs(g) + ' pts' : 'au prévu',
           gapS: 'font-size:12.5px;font-weight:800;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;color:' + (g ? col : '#1d8f86'),
           fillS: 'position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--wi,#10233a);opacity:.85;width:' + w.v + '%',

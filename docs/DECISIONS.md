@@ -2644,3 +2644,16 @@ Brief du commanditaire : reproduire la maquette avec les vraies données et les 
   un chantier sans sous-phase garde son avancement saisi (y compris après le retrait de sa dernière sous-phase, qui laisse
   la dernière valeur calculée).
 - La tuile Météo des chantiers ne calcule plus rien : elle lit la valeur enregistrée.
+
+## Météo des chantiers : chantiers des phases en cours (15/10/2026, solution B2 du commanditaire)
+
+- Constat : la tuile (avancement du chantier entier, sous-phases futures à 0 % comprises ; prévu sur toute sa période ;
+  4 chantiers les plus en retard) ne correspondait pas à la vue « Phase > Chantier » du Planning ; C2, en avance, était coupé.
+- Choix : la tuile montre les chantiers des phases en cours, mesurés dans ces phases — une seule phase : exactement leur
+  ligne « Phase > Chantier » du Planning (`plSeg`, extrait du Planning et partagé) ; plusieurs phases en cours : sous-phases
+  du chantier dans ces phases mises en commun, même moyenne pondérée par la durée, une phase sans sous-phase du chantier
+  comptant pour son segment (`plSegMulti`), prévu sur la période couverte. Phases en cours = celles qui contiennent la date
+  du jour ; sinon la prochaine ; sinon la dernière (`plCurPhases`).
+- Tous les chantiers, triés par code ; en-tête « Phase N · nom » ou « Phases 1 et 2 » ; la tuile défile au-delà de 4 lignes.
+- Conséquence assumée : la tuile ne donne plus l'avancement global du chantier (celui de Jev, des rapports et de la vue
+  « Tous les chantiers » du Planning, `Workstream.progressPct`), mais son avancement dans la phase en cours.

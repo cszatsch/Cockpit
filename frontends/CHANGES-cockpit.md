@@ -806,3 +806,8 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
   plus modifiable (`chSp`, infobulle « Calculé : moyenne des sous-phases du chantier, pondérée par leur durée », saisie
   annulée avec le message « Avancement du chantier : moyenne de ses sous-phases pondérée par leur durée. Modifiez celui
   des sous-phases. »).
+- Météo des chantiers, phases en cours (15/10/2026, solution B2) : chantiers des phases en cours mesurés dans ces phases
+  (`plSeg`, extrait de Pilotage › Planning ; `plSegMulti` pour plusieurs phases ; `plCurPhases`), tous, triés par code ;
+  en-tête « Phase N · nom » / « Phases 1 et 2 » ; plus de `WS_TILE_MAX` ni de tri par retard. `Widget.dc.html` : le
+  conteneur des lignes de la vue `weather` prend son style de `w.vz.wx.boxS` (défilement vertical au-delà de 4 lignes,
+  centrage « safe ») — seule modification de ce composant.
