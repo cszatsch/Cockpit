@@ -5,7 +5,7 @@
  *   npm run cartes:catalogue -- --confirmer  l'applique (tracé au journal d'audit)
  *
  * - Cartes de démonstration (absentes du catalogue) : supprimées.
- * - Cartes gardées : widgets thématiques du catalogue ajoutés, le reste inchangé (clé, réglages).
+ * - Cartes gardées : widgets thématiques du catalogue ajoutés, tag remplacé s'il est indiqué, le reste inchangé (clé, réglages).
  * - Flux du catalogue : créés sans clé (flux RSS) ou, déjà présents, remis au nom, tag, endpoint et widgets du catalogue.
  * Mêmes contrôles que l'API : endpoint https public, widgets connus et alimentés par une carte.
  */
@@ -24,7 +24,7 @@ async function main(): Promise<number> {
     const err = endpointError(c.endpoint);
     if (err) throw new Error(`${c.name} : endpoint refusé (${err})`);
   }
-  const unknown = [...CATALOG_CARDS.flatMap((c) => c.widgets), ...Object.values(CATALOG_KEEP).flat()].filter((w) => !API_WIDGET_IDS.has(w));
+  const unknown = [...CATALOG_CARDS.flatMap((c) => c.widgets), ...Object.values(CATALOG_KEEP).flatMap((k) => k.widgets ?? [])].filter((w) => !API_WIDGET_IDS.has(w));
   if (unknown.length) throw new Error(`Widgets inconnus : ${unknown.join(', ')}`);
   const db = new PrismaClient();
   try {
@@ -32,23 +32,25 @@ async function main(): Promise<number> {
     const all = await db.apiCard.findMany({ orderBy: { name: 'asc' } });
     const wanted = new Set([...Object.keys(CATALOG_KEEP), ...CATALOG_CARDS.map((c) => c.id)]);
     for (const c of all.filter((x) => !wanted.has(x.id))) {
-      console.log(`- ${c.name} (${c.id}) · ${c.category} : carte de démonstration supprimée`);
+      console.log(`- ${c.name} (${c.id}) · ${c.category} : supprimée (absente du catalogue)`);
       if (apply) {
         await db.$transaction(async (tx) => {
           await tx.apiCard.delete({ where: { id: c.id } });
-          await audit(tx as unknown as PrismaClient, 'Suppression d’une carte API', `${c.name} · carte de démonstration (catalogue du 15/10/2026)`, c.id);
+          await audit(tx as unknown as PrismaClient, 'Suppression d’une carte API', `${c.name} · absente du catalogue des cartes API (15/10/2026)`, c.id);
         });
       }
     }
-    for (const [id, add] of Object.entries(CATALOG_KEEP)) {
+    for (const [id, keep] of Object.entries(CATALOG_KEEP)) {
       const c = all.find((x) => x.id === id);
       if (!c) { console.log(`! ${id} : carte à garder absente de la base`); continue; }
-      const now = cardWidgets(c.widgets), next = [...new Set([...now, ...add])];
-      if (next.length === now.length && next.every((w) => c.widgets.includes(w))) { console.log(`= ${c.name} : gardée`); continue; }
-      console.log(`~ ${c.name} : gardée · widgets ${names(next)}`);
+      const add = keep.widgets ?? [], now = cardWidgets(c.widgets), next = [...new Set([...now, ...add])];
+      const sameW = next.length === now.length && next.every((w) => c.widgets.includes(w)), cat = keep.category && keep.category !== c.category ? keep.category : null;
+      if (sameW && !cat) { console.log(`= ${c.name} : gardée`); continue; }
+      console.log(`~ ${c.name} : gardée${sameW ? '' : ` · widgets ${names(next)}`}${cat ? ` · tag ${c.category} → ${cat}` : ''}`);
       if (apply) {
-        await db.apiCard.update({ where: { id }, data: { widgets: next, version: { increment: 1 }, updatedBy: 'Catalogue des cartes API' } });
+        await db.apiCard.update({ where: { id }, data: { widgets: next, ...(cat ? { category: cat } : {}), version: { increment: 1 }, updatedBy: 'Catalogue des cartes API' } });
         if (add.some((w) => !now.includes(w))) await audit(db, 'Widgets alimentés par une carte API', `${c.name} · associée à ${names(add.filter((w) => !now.includes(w)))}`, id);
+        if (cat) await audit(db, 'Modification d’une carte API', `${c.name} · tag ${c.category} → ${cat}`, id);
       }
     }
     for (const c of CATALOG_CARDS) {

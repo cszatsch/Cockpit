@@ -2,8 +2,8 @@
  * Catalogue des cartes API de la plateforme (consigne du commanditaire du 15/10/2026), appliqué par
  * `npm run cartes:catalogue -- --confirmer` (scripts/cartes-catalogue.ts).
  *
- * - `CATALOG_KEEP` : cartes gardées telles quelles (clé, réglages, historique) ; seuls les widgets indiqués sont
- *   ajoutés à leurs widgets actuels.
+ * - `CATALOG_KEEP` : cartes gardées (clé, réglages, historique) ; les widgets indiqués sont ajoutés à leurs widgets
+ *   actuels, le tag indiqué remplace le leur.
  * - `CATALOG_CARDS` : flux RSS créés (sans clé) ou, s'ils existent déjà, remis à ces widgets.
  * - Toute autre carte de la base est une carte de démonstration : supprimée.
  *
@@ -18,18 +18,19 @@ export interface CatalogCard {
   widgets: string[];
 }
 
-/** Cartes gardées (identifiant → widgets thématiques ajoutés). */
-export const CATALOG_KEEP: Record<string, string[]> = {
-  'rss-bbc': [],
-  gnews: [],
-  'rss-le-monde': ['news_fr'],
-  'rss-lequipe': ['sport_fr'],
-  'newsdata-io': [],
-  'open-meteo-geocodage': [],
-  'open-meteo': [],
-  'tomtom-routing': [],
-  finnhub: [],
-  jev: [],
+/**
+ * Cartes gardées : widgets thématiques ajoutés et, le cas échéant, nouveau tag. GNews et NewsData.io retirées le
+ * 15/10/2026 (consigne du commanditaire) : absentes de la liste, elles sont supprimées.
+ */
+export const CATALOG_KEEP: Record<string, { widgets?: string[]; category?: string }> = {
+  'rss-bbc': {},
+  'rss-le-monde': { widgets: ['news_fr'] },
+  'rss-lequipe': { widgets: ['sport_fr'], category: 'Sports' },
+  'open-meteo-geocodage': {},
+  'open-meteo': {},
+  'tomtom-routing': {},
+  finnhub: {},
+  jev: {},
 };
 
 export const CATALOG_CARDS: readonly CatalogCard[] = [

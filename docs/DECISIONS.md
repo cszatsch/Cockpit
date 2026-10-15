@@ -2506,7 +2506,8 @@ Brief du commanditaire : reproduire la maquette avec les vraies données et les 
 
 ## Cartes API et widgets thématiques (consigne du commanditaire, 15/10/2026)
 
-- Cartes gardées (captures du commanditaire) : BBC News, GNews, Le Monde, L'Équipe, NewsData.io, Open-Meteo ·
+- Cartes gardées (captures du commanditaire, puis GNews et NewsData.io retirées le même jour) : BBC News, Le Monde,
+  L'Équipe (tag Sports), Open-Meteo ·
   géocodage, Open-Meteo · prévisions, TomTom · Itinéraire, Finnhub, JEV ; toute autre carte est une carte de
   démonstration, supprimée. Catalogue `prisma/catalog/api-cartes.ts` (`CATALOG_KEEP`, `CATALOG_CARDS`), appliqué par
   `npm run cartes:catalogue -- --confirmer` (simulation sans l'option ; journal d'audit, acteur « Catalogue des cartes

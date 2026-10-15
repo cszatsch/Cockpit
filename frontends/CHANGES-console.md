@@ -872,3 +872,5 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
   avant), `toCard` ajoute `err`.
 - Registre des cartes API (15/10/2026, consigne du commanditaire) : matrice des widgets thématiques lue du serveur —
   Actualités Eco, Sports, News (FR / EN) et Sport US (EN seul, case FR vide) ; Tech retiré. Aucun changement du composant.
+- Registre des cartes API (15/10/2026) : monogramme d'une carte calculé en coupant aussi sur les tirets « – » et « — »
+  (« CBS Sports – Headlines » → CS, et non « C– »).

@@ -241,7 +241,7 @@ const spark = (v, w = 40, h = 16) => {
 /** Série de 24 h : valeurs manquantes remplacées par la médiane ; sans mesure, ligne plate. */
 const seriesOf = c => { const s = (c.series || []).map(v => v ?? c.lat); return s.length > 1 && s.some(v => v != null) ? s : [c.lat, c.lat]; };
 const hostOf = ep => (ep || '').replace(/^https?:\/\//, '').replace(/\/.*$/, '') || '—';
-const monoOf = n => (n || '').split(/[\s·.\-’']+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('') || '+';
+const monoOf = n => (n || '').split(/[\s·.\-–—’']+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('') || '+';
 const parseKey = k => { const m = /^(\d{2})\/(\d{2})\/(\d{2})$/.exec(k || ''); return m ? new Date(2000 + +m[3], +m[2] - 1, +m[1]) : null; };
 const fmtOf = (c, lines) => { const first = (lines.find(l => l.trim()) || '').trim(); return first.startsWith('<') ? 'xml' : first ? 'json' : c.fmt || 'json'; };
 const tokenize = (lines, fmt) => lines.map(l => ({
