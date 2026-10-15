@@ -2627,3 +2627,7 @@ Brief du commanditaire : reproduire la maquette avec les vraies données et les 
   corrigées — instance COPIL (identifiant `g1`) et jalon de Go-Live (identifiant `J08`), désormais retrouvés par leur nom.
   Restent liés à la démonstration, hors tableau de bord : l'ancienne vue Aujourd'hui masquée (`vTodayOld`) et les liens
   d'exemple de l'ancien formulaire de tâche (`LINKS`).
+- Suite : dans la Météo des chantiers, l'avancement d'un chantier est celui de ses sous-phases (même calcul que ses
+  lignes « Phase > Chantier » du Planning, étendu à toutes ses phases), et non le champ saisi du chantier (0 % après une
+  initialisation). Le champ saisi n'est pas recalculé côté serveur (proposition restée ouverte : remontée automatique de
+  l'avancement des sous-phases vers le chantier, comme pour les phases).

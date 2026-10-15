@@ -797,3 +797,7 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
   (`copilBodyId` : sigle COPIL, sinon nom « pilotage » / « steering », sinon 1re instance) au lieu de l'identifiant `g1`
   de la démo (Prochain COPIL, message d'accueil, échéances) ; Go-Live (`goliveIso` : date prévue du projet, sinon jalon
   « Go-Live ») au lieu du jalon `J08` de la démo.
+- Météo des chantiers (15/10/2026, suite) : avancement d'un chantier qui a des sous-phases calculé comme ses lignes dans
+  Pilotage › Planning (moyenne de ses sous-phases pondérée par leur durée ; prévu à date sur la période de sa première à
+  sa dernière sous-phase ; `chProg`) — le champ « avancement » du chantier, saisi à la main, restait à 0 % après une
+  initialisation. Chantier sans sous-phase : ses propres valeurs.

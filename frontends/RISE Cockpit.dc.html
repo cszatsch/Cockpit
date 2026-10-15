@@ -4357,7 +4357,19 @@ class Component extends DCLogic {
     // (plItems) — auparavant la table de démonstration « suivi d'avancement », vide pour tout projet initialisé. Chantiers
     // commencés d'abord (tous s'il n'y en a aucun), les plus en retard en tête ; WS_TILE_MAX lignes dans la tuile.
     const WS_TILE_MAX = 4, PLI = this.plItems();
-    const chAll = PLI.filter(x => x.kind === 'ch' && x.start && x.end).map(c => ({ n: (c.code ? c.code + ' · ' : '') + c.n, v: +c.reel || 0, ref: +c.prevu || 0, detail: c.status === 'future' ? 'pas encore commencé' : '', st: c.status }));
+    // Chantier qui a des sous-phases : réel = moyenne de ses sous-phases pondérée par leur durée, prévu à date sur la période
+    // de sa première à sa dernière sous-phase — calcul des lignes de chantier de Pilotage › Planning (segOf), étendu à toutes
+    // ses phases (le champ « avancement » du chantier, saisi à la main, reste à 0 % après une initialisation). Sinon : ses
+    // propres valeurs.
+    const SPI = PLI.filter(x => x.kind === 'sp'), dDays = (a, b) => Math.round((new Date(a + 'T12:00:00') - new Date(b + 'T12:00:00')) / 864e5);
+    const chProg = c => {
+      const own = SPI.filter(x => (c.subphases || []).includes(x.id) && x.start && x.end);
+      if (!own.length) return { v: +c.reel || 0, ref: +c.prevu || 0, st: c.status };
+      const a = own.reduce((m, x) => (x.start < m ? x.start : m), own[0].start), b = own.reduce((m, x) => (x.end > m ? x.end : m), own[0].end), w = x => Math.max(1, dDays(x.end, x.start) + 1);
+      const v = Math.round(own.reduce((t, x) => t + (+x.reel || 0) * w(x), 0) / own.reduce((t, x) => t + w(x), 0)), ref = Math.max(0, Math.min(100, Math.round(dDays(tIso, a) / Math.max(1, dDays(b, a)) * 100)));
+      return { v, ref, st: v >= 100 ? 'done' : a > tIso ? 'future' : 'cur' };
+    };
+    const chAll = PLI.filter(x => x.kind === 'ch' && x.start && x.end).map(c => { const p = chProg(c); return { n: (c.code ? c.code + ' · ' : '') + c.n, v: p.v, ref: p.ref, detail: p.st === 'future' ? 'pas encore commencé' : '', st: p.st }; });
     const chStarted = chAll.filter(c => c.st !== 'future'), chSrc = (chStarted.length ? chStarted : chAll).sort((a, b) => (a.v - a.ref) - (b.v - b.ref) || String(a.n).localeCompare(String(b.n), 'fr', { numeric: true }));
     const wss = chSrc.slice(0, WS_TILE_MAX), wssMore = chSrc.length - wss.length, SIG = { ok: '#1d8f86', warn: '#e39a2d', ko: '#d4574a', late: '#d4574a' }, gapC = g => g >= 0 ? '#1d8f86' : g > -10 ? '#e39a2d' : '#d4574a';
     const rs = (d.riskStats || { weeks: [] }).weeks.map(w => w[0]), bs = (((d.barometre || {}).ecf || { series: [] }).series || []).filter(v => v != null); // mois sans relevé exclus (tuile « null », 12/10/2026)
