@@ -7,10 +7,10 @@ describe('Catalogue des widgets (registre des cartes API v3c)', () => {
   it('reste identique au catalogue du Cockpit : identifiants, noms et catégories', () => {
     const src = readFileSync(join(__dirname, '../../../frontends/RISE Cockpit.dc.html'), 'utf8');
     const cockpit = [...src.matchAll(/\{ id: '([a-z_]+)', name: ('([^']*)'|'([^']*)' \+ [^,]+), cat: '([^']*)'/g)].map((m) => ({ id: m[1], n: m[3] ?? m[4], cat: m[5] }));
-    // 22 widgets du tableau de bord, puis les 7 tuiles Actualités (widgets thématiques du registre, 15/10/2026).
-    expect(cockpit).toHaveLength(29);
+    // 22 widgets du tableau de bord, puis les 6 tuiles Actualités (widgets thématiques du registre, 15/10/2026).
+    expect(cockpit).toHaveLength(28);
     expect(WIDGET_CATALOGUE).toHaveLength(22);
-    expect(REGISTRY_WIDGETS).toHaveLength(29);
+    expect(REGISTRY_WIDGETS).toHaveLength(28);
     for (const w of cockpit) {
       const c = REGISTRY_WIDGETS.find((x) => x.id === w.id);
       expect(c).toBeDefined();
@@ -30,7 +30,7 @@ describe('Catalogue des widgets (registre des cartes API v3c)', () => {
     expect(widgetName('ai')).toBe('L’essentiel, par Jev');
     expect(widgetName('xyz')).toBe('xyz');
     expect(widgetName('eco_en')).toBe('Actualités Eco EN');
-    expect(widgetName('sport_us')).toBe('Sport US');
+    expect(widgetName('sport_en')).toBe('Sports EN');
     // Widgets d'une carte enregistrés sous d'anciens libellés (jeu de démonstration) : identifiants, sans doublon.
     expect(cardWidgets(['Actualités', 'news', 'Météo · ville', 'eco_fr'])).toEqual(['news', 'meteo', 'eco_fr']);
   });

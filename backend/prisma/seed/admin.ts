@@ -73,9 +73,9 @@ export async function seedAdmin(db: PrismaClient): Promise<void> {
   // ── Flux RSS d'actualités (registre des cartes API) : Le Monde, L’Équipe, BBC (Les Échos et GDELT retirés le 28/09/2026) ──
   await db.apiCard.createMany({
     data: [
-      { id: 'rss-le-monde', name: 'Le Monde', category: 'Actualités', endpoint: 'https://www.lemonde.fr/rss/une.xml', feed: true, widgets: ['news'], updatedBy: 'Données initiales' },
-      { id: 'rss-lequipe', name: 'L’Équipe', category: 'Actualités', endpoint: 'https://dwh.lequipe.fr/api/edito/rss?path=/', feed: true, widgets: ['news'], updatedBy: 'Données initiales' },
-      { id: 'rss-bbc', name: 'BBC News', category: 'Actualités', endpoint: 'https://feeds.bbci.co.uk/news/rss.xml', feed: true, widgets: ['news'], updatedBy: 'Données initiales' },
+      { id: 'rss-le-monde', name: 'Le Monde', category: 'Actualités', endpoint: 'https://www.lemonde.fr/rss/une.xml', feed: true, widgets: ['news_fr'], updatedBy: 'Données initiales' },
+      { id: 'rss-lequipe', name: 'L’Équipe', category: 'Actualités', endpoint: 'https://dwh.lequipe.fr/api/edito/rss?path=/', feed: true, widgets: ['sport_fr'], updatedBy: 'Données initiales' },
+      { id: 'rss-bbc', name: 'BBC News', category: 'Actualités', endpoint: 'https://feeds.bbci.co.uk/news/rss.xml', feed: true, widgets: ['news_en'], updatedBy: 'Données initiales' },
     ],
   });
   // ── Persona de Jev : valeur initiale (même donnée que la migration 20261004000000_persona_jev) ──

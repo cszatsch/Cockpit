@@ -162,13 +162,13 @@ describe('Console — registre des cartes API', () => {
     expect(Object.fromEntries(all.body.sources.map((x: any) => [x.id, x.ok]))).toEqual({ 'rss-bbc': true, 'rss-lequipe': false, 'rss-le-monde': true });
     // Une carte JSON n'est pas un flux.
     expect((await pmo.get('/api/widgets/feeds/open-meteo').expect(502)).body.code).toBe('NOT_A_FEED');
-    // Tuile Actualités du Cockpit (15/10/2026) : seuls les flux associés au widget thématique ; widget inconnu refusé.
-    await admin.put(`${AC}/rss-le-monde/widgets`, { ids: ['news', 'news_fr'] }).expect(200);
-    const th = await pmo.get('/api/widgets/feeds?widget=news_fr&limit=30').expect(200);
-    expect(th.body.items.map((i: any) => i.source + ' · ' + i.title)).toEqual(['Le Monde · Titre LM']);
+    // Tuiles Actualités du Cockpit (15/10/2026) : seules les cartes associées au widget, tous tags ; widget inconnu refusé.
+    const th = await pmo.get('/api/widgets/news?widget=news_fr&limit=30').expect(200);
+    expect(th.body).toMatchObject({ widget: 'news_fr', category: null });
+    expect(th.body.items.map((i: any) => i.via + ' · ' + i.title)).toEqual(['Le Monde · Titre LM']);
     expect(th.body.sources.map((x: any) => x.id)).toEqual(['rss-le-monde']);
-    expect((await pmo.get('/api/widgets/feeds?widget=sport_en').expect(200)).body).toEqual({ items: [], sources: [] });
-    expect((await pmo.get('/api/widgets/feeds?widget=meteo').expect(422)).body.fields.widget).toContain('sport_us');
+    expect((await pmo.get('/api/widgets/news?widget=sport_en').expect(200)).body).toMatchObject({ items: [], sources: [] });
+    expect((await pmo.get('/api/widgets/news?widget=meteo').expect(422)).body.fields.widget).toContain('sport_en');
   });
 
   it('actualités agrégées : GNews, NewsData.io, Finnhub et flux RSS ramenés à une même forme ; économie à part', async () => {
@@ -196,27 +196,28 @@ describe('Console — registre des cartes API', () => {
 
   it('v3c : catalogue des widgets, association, tag libre, clé dans le PATCH, endpoint modifié, latence médiane', async () => {
     const cat = (await admin.get('/api/admin/widgets').expect(200)).body;
-    // 22 widgets du Cockpit, puis 7 widgets thématiques (tuiles symétriques et liste du 15/10/2026).
-    expect(cat).toHaveLength(29);
-    expect(cat.find((w: any) => w.id === 'news')).toEqual({ id: 'news', g: '◉', n: 'Actualité', cat: 'Contexte', apiCard: true, tags: ['Actualités'], group: 'context' });
-    expect(cat.filter((w: any) => w.group === 'context').map((w: any) => w.id)).toEqual(['news', 'meteo', 'trafic']);
-    expect(cat.filter((w: any) => w.group === 'thematic').map((w: any) => `${w.theme} ${w.lang}`)).toEqual(['Actualités Eco FR', 'Actualités Eco EN', 'Sports FR', 'Sports EN', 'News FR', 'News EN', 'Sport US EN']);
+    // 22 widgets du Cockpit, puis 6 widgets thématiques ; 8 widgets alimentés par une carte (consigne du 15/10/2026).
+    expect(cat).toHaveLength(28);
+    expect(cat.find((w: any) => w.id === 'news')).toEqual({ id: 'news', g: '◉', n: 'Actualité', cat: 'Contexte', apiCard: false, tags: [] });
+    expect(cat.filter((w: any) => w.group === 'thematic').map((w: any) => `${w.theme} ${w.lang}`)).toEqual(['Météo FR', 'Trafic FR', 'Actualités Eco FR', 'Actualités Eco EN', 'News FR', 'News EN', 'Sports FR', 'Sports EN']);
     expect(cat.find((w: any) => w.id === 'eco_fr')).toMatchObject({ n: 'Actualités Eco FR', apiCard: true });
-    expect(cat.filter((w: any) => w.apiCard)).toHaveLength(10);
+    expect(cat.filter((w: any) => w.apiCard)).toHaveLength(8);
     await (await t.as(WHO.pmo)).get('/api/admin/widgets').expect(403);
     // Tag créé à la volée.
     const c = await admin.post(AC, { name: 'Pappers', category: 'Entreprises', endpoint: 'https://api.pappers.fr/v2/entreprise', key: 'cle-pappers-0001', keyExpiresAt: '2027-01-31' }).expect(201);
     expect(c.body).toMatchObject({ id: 'pappers', category: 'Entreprises', keyLast4: '0001', latencyMedian24h: null, lastTest: null });
     expect((await admin.post(AC, { name: 'X', category: '', endpoint: 'https://api.exemple.fr/x' }).expect(400)).body.fields.category).toBeDefined();
     // Associer / dissocier.
-    expect((await admin.put(`${AC}/pappers/widgets`, { ids: ['meteo', 'news', 'meteo'] }).expect(200)).body.widgets).toEqual(['meteo', 'news']);
+    expect((await admin.put(`${AC}/pappers/widgets`, { ids: ['meteo', 'news_fr', 'meteo'] }).expect(200)).body.widgets).toEqual(['meteo', 'news_fr']);
     expect((await admin.put(`${AC}/pappers/widgets`, { ids: ['inconnu'] }).expect(422)).body.fields.ids).toBe('inconnu');
     // Carte API requise : un widget alimenté par les données du projet ne peut pas être associé.
     expect((await admin.put(`${AC}/pappers/widgets`, { ids: ['ai'] }).expect(422)).body.fields.ids).toBe('ai');
-    expect((await admin.put(`${AC}/pappers/widgets`, { ids: ['meteo', 'sport_us'] }).expect(200)).body.widgets).toEqual(['meteo', 'sport_us']);
-    expect((await t.db.auditEntry.findFirst({ where: { action: 'Widgets alimentés par une carte API' }, orderBy: { at: 'desc' } }))!.target).toBe('Pappers · associée à Sport US · dissociée de Actualité');
+    // Actualité : plus associable depuis le 15/10/2026 (la tuile lit le widget News FR).
+    expect((await admin.put(`${AC}/pappers/widgets`, { ids: ['news'] }).expect(422)).body.fields.ids).toBe('news');
+    expect((await admin.put(`${AC}/pappers/widgets`, { ids: ['meteo', 'sport_en'] }).expect(200)).body.widgets).toEqual(['meteo', 'sport_en']);
+    expect((await t.db.auditEntry.findFirst({ where: { action: 'Widgets alimentés par une carte API' }, orderBy: { at: 'desc' } }))!.target).toBe('Pappers · associée à Sports EN · dissociée de News FR');
     expect((await admin.put(`${AC}/pappers/widgets`, { ids: ['meteo'] }).expect(200)).body.widgets).toEqual(['meteo']);
-    expect((await t.db.auditEntry.findFirst({ where: { action: 'Widgets alimentés par une carte API' }, orderBy: { at: 'desc' } }))!.target).toBe('Pappers · dissociée de Sport US');
+    expect((await t.db.auditEntry.findFirst({ where: { action: 'Widgets alimentés par une carte API' }, orderBy: { at: 'desc' } }))!.target).toBe('Pappers · dissociée de Sports EN');
     // Test en 401, puis nouvelle clé dans le PATCH : l'erreur est levée, seuls les 4 derniers caractères reviennent.
     upstream = () => ({ status: 401, body: '{"error":"invalid_api_key"}' });
     expect((await admin.post(`${AC}/pappers/test`).expect(200)).body.code).toBe(401);

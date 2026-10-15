@@ -2529,3 +2529,19 @@ Brief du commanditaire : reproduire la maquette avec les vraies données et les 
   `TH_ITEMS` = 6 montrés, un par source à tour de rôle) pour qu'un flux très actif n'occupe pas toute la tuile ; source
   affichée = nom de la carte avant « – ». Widget sans flux associé : « Aucun flux associé à ce widget dans le Registre
   des cartes API ». Les tuiles ne sont pas dans les dispositions proposées : chacun les ajoute par « Personnaliser ».
+- Refonte du même jour (consigne du commanditaire) : **8 widgets** alimentés par une carte — Actualités Eco, News et
+  Sports en français et en anglais (`eco_fr` … `sport_en`), Météo et Trafic en français seulement (`meteo`, `trafic`,
+  `theme` / `lang` : lignes de la matrice du registre, plus de ligne « Contexte ») ; Sport US supprimé. **Tags des
+  cartes = thèmes** : Actualités Eco (CNBC, FT, Finnhub, Fortune, WSJ ; Franceinfo – Entreprises, Le Figaro – Économie,
+  Le Monde – Entreprise), News (Le Monde, Franceinfo – Titres ; BBC News, NBC News, NYT), Sports (L'Équipe ; CBS Sports,
+  ESPN), Météo (Open-Meteo ×2), Trafic (TomTom) ; JEV garde « Stratégie ». Catalogue `CATALOG_KEEP` : tag et widgets
+  remis à la liste du catalogue (liste complète, plus d'ajout).
+- Actualité (`news`) n'est plus associable à une carte (`apiCard: false`) ; **hypothèse** : la tuile Actualité du
+  Cockpit lit désormais les cartes du widget News FR (`GET /api/widgets/news?widget=news_fr`) — elle n'avait plus de
+  cartes de son ancien tag « Actualités ». Tuiles Actualités : `GET /api/widgets/news?widget=…` (flux RSS et formats
+  JSON comme Finnhub) au lieu de `GET /api/widgets/feeds?widget=…` (paramètre retiré).
+- Flux déplacés (301) depuis la première vérification : Franceinfo (www.franceinfo.fr) et Fortune
+  (`/feed/fortune-feeds/?id=3230629`) ; le script remet l'endpoint (latence et dernier test effacés, comme l'API).
+- Registre : mosaïque sans hauteur maximale (la ligne Trafic sortait du cadre) ; colonne des tags 132 px (« Actualités
+  Eco ») ; lignes de la matrice : thèmes en deux langues d'abord ; liste envoyée au serveur limitée aux widgets
+  associables (un ancien « news » est retiré).

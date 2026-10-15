@@ -169,7 +169,7 @@ const clone = (x) => (x == null ? x : JSON.parse(JSON.stringify(x)));
 const pad2 = (n) => String(n).padStart(2, '0');
 // Tuiles Actualités du Cockpit (widgets thématiques du Registre des cartes API, 15/10/2026) : identifiants, articles lus
 // par widget (toutes sources) et titres montrés.
-const TH_WIDGETS = ['eco_fr', 'eco_en', 'news_fr', 'news_en', 'sport_fr', 'sport_en', 'sport_us'];
+const TH_WIDGETS = ['eco_fr', 'eco_en', 'news_fr', 'news_en', 'sport_fr', 'sport_en'];
 const TH_FETCH = 30, TH_ITEMS = 6;
 
 /** « JJ/MM/AAAA », « MM/AAAA » ou « AAAA » → { iso, prec } (borne de début ou de fin). */
@@ -1217,19 +1217,20 @@ export function attach(comp) {
         .then(([h, c]) => Promise.all([leg(h, c), leg(c, h)]))
         .then(([go, back]) => up({ tr: { home, go, back }, trErr: false }))
         .catch(() => up({ trErr: true }));
-      // Actualités agrégées du registre (GNews, NewsData.io, flux RSS Le Monde, L'Équipe, BBC… : cartes actives) ;
-      // la date ISO est remise au format AAAAMMJJTHHMMSS (heure locale) attendu par la tuile.
-      if (first) get('/widgets/news?limit=6', { headers: { 'X-RISE-Widget': 'news' } })
+      // Actualité : cartes actives du widget News FR du registre (15/10/2026 ; auparavant toutes les cartes du tag
+      // Actualités) ; la date ISO est remise au format AAAAMMJJTHHMMSS (heure locale) attendu par la tuile.
+      if (first) get('/widgets/news?widget=news_fr&limit=6', { headers: { 'X-RISE-Widget': 'news' } })
         .then((r) => ({ articles: (r.items || []).map((i) => { const d = i.date ? new Date(i.date) : null; return { t: i.title, src: i.source, url: i.url || '', iso: i.date || '', d: d ? d.getFullYear() + pad2(d.getMonth() + 1) + pad2(d.getDate()) + 'T' + pad2(d.getHours()) + pad2(d.getMinutes()) + '00' : '' }; }) }))
         .then((j) => { const A = (j.articles || []).filter((a) => a.t).slice(0, 6).map((a) => { const s = String(a.d || ''); return { t: a.t, url: a.url || '', iso: a.iso || '', src: String(a.src || '').replace(/^www\./, '').split('.')[0], d: s.length >= 12 ? s.slice(9, 11) + ':' + s.slice(11, 13) : '' }; }); if (!A.length) throw 0; up({ news: A }); })
         .catch(() => { up({ newsErr: true }); setTimeout(() => { comp._dbExtKey = null; }, 60000); });
-      // Tuiles Actualités (15/10/2026) : flux RSS associés à chaque widget thématique dans le Registre des cartes API.
-      // Sources alternées (une à tour de rôle, la plus récente de chacune d'abord) : un flux très actif n'occupe pas
-      // toute la tuile. Source affichée : nom de la carte avant « – » (« Financial Times – Global economy » → Financial Times).
-      if (first) TH_WIDGETS.forEach((id) => get('/widgets/feeds?widget=' + id + '&limit=' + TH_FETCH, { headers: { 'X-RISE-Widget': id } })
+      // Tuiles Actualités (15/10/2026) : cartes associées à chaque widget dans le Registre des cartes API (flux RSS,
+      // Finnhub…). Cartes alternées (une à tour de rôle, l'article le plus récent de chacune d'abord) : un flux très
+      // actif n'occupe pas toute la tuile. Source affichée : journal d'origine (agrégateur) ou nom de la carte avant « – »
+      // (« Financial Times – Global economy » → Financial Times).
+      if (first) TH_WIDGETS.forEach((id) => get('/widgets/news?widget=' + id + '&limit=' + TH_FETCH, { headers: { 'X-RISE-Widget': id } })
         .then((r) => {
           const by = {};
-          (r.items || []).filter((i) => i.title).forEach((i) => { (by[i.source] = by[i.source] || []).push(i); });
+          (r.items || []).filter((i) => i.title).forEach((i) => { const k = i.via || i.source; (by[k] = by[k] || []).push(i); });
           const L = Object.values(by), A = [];
           for (let k = 0; A.length < TH_ITEMS && L.some((x) => x[k]); k++) L.forEach((x) => { if (x[k] && A.length < TH_ITEMS) A.push(x[k]); });
           const th = A.map((i) => { const d = i.date ? new Date(i.date) : null; return { t: i.title, url: i.url || '', iso: i.date || '', src: String(i.source || '').split(' – ')[0], d: d ? pad2(d.getHours()) + ':' + pad2(d.getMinutes()) : '' }; });

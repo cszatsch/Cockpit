@@ -8,8 +8,8 @@
  * `tags` : tags de cartes API pour lesquels le widget est suggéré (« Suggérés pour <tag> »).
  * Météo et Trafic portent le nom de la ville du projet dans le Cockpit : « <ville> » ici.
  *
- * Registre des cartes API, tuiles symétriques (15/10/2026) : `group` range les widgets alimentés par une carte —
- * `context` (Actualité, Météo, Trafic, ligne « Contexte ») et `thematic` (matrice thème × langue, `theme`, `lang`).
+ * Registre des cartes API (15/10/2026) : `group: 'thematic'` pour les 8 widgets alimentés par une carte (matrice
+ * thème × langue du registre, `theme`, `lang`) ; `context` n'est plus utilisé.
  */
 export interface WidgetDef {
   id: string;
@@ -27,9 +27,11 @@ export interface WidgetDef {
 }
 
 export const WIDGET_CATALOGUE: readonly WidgetDef[] = [
-  { id: 'news', g: '◉', n: 'Actualité', cat: 'Contexte', apiCard: true, tags: ['Actualités'], group: 'context' },
-  { id: 'meteo', g: '☀', n: 'Météo · <ville>', cat: 'Contexte', apiCard: true, tags: ['Météo', 'Environnement'], group: 'context' },
-  { id: 'trafic', g: '⇅', n: 'Trafic · <ville>', cat: 'Contexte', apiCard: true, tags: ['Trafic', 'Mobilité'], group: 'context' },
+  // Actualité : plus associable à une carte depuis le 15/10/2026 (8 widgets du registre) ; la tuile du Cockpit lit les
+  // cartes du widget News FR (`GET /api/widgets/news?widget=news_fr`).
+  { id: 'news', g: '◉', n: 'Actualité', cat: 'Contexte', apiCard: false, tags: [] },
+  { id: 'meteo', g: '☀', n: 'Météo · <ville>', cat: 'Contexte', apiCard: true, tags: ['Météo'], group: 'thematic', theme: 'Météo', lang: 'FR' },
+  { id: 'trafic', g: '⇅', n: 'Trafic · <ville>', cat: 'Contexte', apiCard: true, tags: ['Trafic'], group: 'thematic', theme: 'Trafic', lang: 'FR' },
   { id: 'ai', g: '✦', n: 'L’essentiel, par Jev', cat: 'Synthèse', apiCard: false, tags: [] },
   { id: 'ech', g: '⧗', n: 'Échéances des 15 prochains jours', cat: 'Planning', apiCard: false, tags: [] },
   { id: 'golive', g: 'J', n: 'Compte à rebours Go-Live', cat: 'Planning', apiCard: false, tags: [] },
@@ -52,24 +54,23 @@ export const WIDGET_CATALOGUE: readonly WidgetDef[] = [
 ];
 
 /**
- * Widgets thématiques (Registre des cartes API, tuiles symétriques, 15/10/2026 ; liste du commanditaire du 15/10/2026 :
- * Tech retiré, Sport US ajouté) : par thème et par langue, alimentés par les cartes cochées dans la matrice du registre.
- * Tuiles « Actualités » du Cockpit (15/10/2026) : titres des flux associés (`GET /api/widgets/feeds?widget=…`).
- * Sport US n'a qu'une langue (colonne EN de la matrice).
+ * Widgets du registre (consigne du commanditaire du 15/10/2026) : 8 widgets alimentés par une carte — Actualités Eco,
+ * News et Sports en français et en anglais, Météo et Trafic en français seulement (ci-dessus, dans le catalogue du
+ * tableau de bord). Matrice du registre : une ligne par thème (`theme`), une colonne par langue (`lang`).
+ * Tuiles « Actualités » du Cockpit : titres des cartes associées (`GET /api/widgets/news?widget=…`).
  */
-export const THEMATIC_THEMES: ReadonlyArray<readonly [string, string, ReadonlyArray<'FR' | 'EN'>, string[]]> = [
-  ['eco', 'Actualités Eco', ['FR', 'EN'], ['Économie', 'Finance']],
-  ['sport', 'Sports', ['FR', 'EN'], ['Sports']],
-  ['news', 'News', ['FR', 'EN'], ['News', 'Actualités']],
+export const THEMATIC_THEMES: ReadonlyArray<readonly [string, string, string[]]> = [
+  ['eco', 'Actualités Eco', ['Actualités Eco']],
+  ['news', 'News', ['News']],
+  ['sport', 'Sports', ['Sports']],
 ];
-export const THEMATIC_WIDGETS: readonly WidgetDef[] = [
-  ...THEMATIC_THEMES.flatMap(([t, l, langs, tags]) =>
-    langs.map((lang) => ({ id: `${t}_${lang.toLowerCase()}`, g: '◉', n: `${l} ${lang}`, cat: 'Actualités', apiCard: true, tags, group: 'thematic' as const, theme: l, lang })),
-  ),
-  { id: 'sport_us', g: '◉', n: 'Sport US', cat: 'Actualités', apiCard: true, tags: ['Sports'], group: 'thematic', theme: 'Sport US', lang: 'EN' },
-];
+export const THEMATIC_WIDGETS: readonly WidgetDef[] = THEMATIC_THEMES.flatMap(([t, l, tags]) =>
+  (['FR', 'EN'] as const).map((lang) => ({ id: `${t}_${lang.toLowerCase()}`, g: '◉', n: `${l} ${lang}`, cat: 'Actualités', apiCard: true, tags, group: 'thematic' as const, theme: l, lang })),
+);
 /** Catalogue servi au registre (`GET /api/admin/widgets`) : widgets du tableau de bord, puis widgets thématiques. */
 export const REGISTRY_WIDGETS: readonly WidgetDef[] = [...WIDGET_CATALOGUE, ...THEMATIC_WIDGETS];
+/** Widgets d'actualités lus par `GET /api/widgets/news?widget=…` (tuiles Actualités du Cockpit). */
+export const NEWS_WIDGET_IDS: ReadonlySet<string> = new Set(THEMATIC_WIDGETS.map((w) => w.id));
 
 export const WIDGET_IDS: ReadonlySet<string> = new Set(REGISTRY_WIDGETS.map((w) => w.id));
 /** Widgets qu'une carte API peut alimenter (carte API requise). */

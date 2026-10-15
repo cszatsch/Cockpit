@@ -43,12 +43,12 @@
         </div>
       </div>
 
-      <div style="flex:none;max-height:300px;overflow-y:auto;padding:14px 14px 12px;display:flex;flex-direction:column;gap:2px;border-bottom:1px solid #eef3f2">
+      <div style="flex:none;padding:14px 14px 12px;display:flex;flex-direction:column;gap:2px;border-bottom:1px solid #eef3f2">
         <div style="display:flex;align-items:center;padding:0 8px 8px"><span style="flex:1;font-size:10.5px;font-weight:800;letter-spacing:.16em;color:#5c7280">ÉTAT DU REGISTRE</span><span style="font-size:11.5px;color:#a9b8c0">{{ mosaicHint }}</span></div>
         <div role="tablist" aria-label="Tags" style="display:flex;flex-direction:column;gap:2px">
           <sc-for list="{{ tagRows }}" as="t" hint-placeholder-count="7">
             <div role="tab" tabIndex="0" aria-selected="{{ t.on }}" onClick="{{ t.pick }}" onKeyDown="{{ t.key }}" style="{{ t.st }}" style-hover="{{ t.hov }}">
-              <span style="width:112px;flex:none;display:flex;align-items:baseline;gap:6px;min-width:0"><span style="{{ t.lSt }}">{{ t.l }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#a9b8c0">{{ t.n }}</span></span>
+              <span style="width:132px;flex:none;display:flex;align-items:baseline;gap:6px;min-width:0"><span style="{{ t.lSt }}">{{ t.l }}</span><span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#a9b8c0">{{ t.n }}</span></span>
               <span style="flex:1;min-width:0;display:flex;flex-wrap:wrap;gap:3px">
                 <sc-for list="{{ t.cells }}" as="c" hint-placeholder-count="4">
                   <button type="button" tabIndex="-1" data-cell="{{ c.id }}" title="{{ c.tip }}" aria-label="{{ c.tip }}" onClick="{{ c.pick }}" style="{{ c.st }}">{{ c.m }}</button>
@@ -196,14 +196,14 @@
                 </sc-for>
               </sc-for>
             </div>
-            <div style="display:grid;grid-template-columns:104px minmax(0,1fr);gap:6px;align-items:center;padding-top:6px">
+            <sc-if value="{{ d.hasOthers }}" hint-placeholder-val="{{ false }}"><div style="display:grid;grid-template-columns:104px minmax(0,1fr);gap:6px;align-items:center;padding-top:6px">
               <span style="font-size:12.5px;font-weight:700">Contexte</span>
               <div style="display:flex;flex-wrap:wrap;gap:6px">
                 <sc-for list="{{ d.others }}" as="o" hint-placeholder-count="3">
                   <button type="button" data-widget="{{ o.id }}" aria-pressed="{{ o.on }}" onClick="{{ o.toggle }}" title="{{ o.tip }}" style="{{ o.st }}" style-hover="{{ o.hov }}"><span style="{{ o.dot }}"></span>{{ o.l }}</button>
                 </sc-for>
               </div>
-            </div>
+            </div></sc-if>
           </div>
         </div>
 
@@ -324,8 +324,12 @@ class Component extends DCLogic {
   renderVals() {
     const s = this.state, cards = s.cards, card = this.cur(), NOW = this.now();
     const W = this.props.widgets || [];
-    const thematic = W.filter(w => w.group === 'thematic'), context = W.filter(w => w.group === 'context');
+    // Matrice : thèmes en deux langues d'abord (Actualités Eco, News, Sports), puis ceux d'une seule (Météo, Trafic) ;
+    // l'ordre du catalogue est gardé à l'intérieur de chaque groupe. Même ordre pour la mini-grille des lignes.
+    const nLang = t => W.filter(w => w.group === 'thematic' && w.theme === t).length;
+    const thematic = W.filter(w => w.group === 'thematic').map((w, i) => ({ w, i })).sort((a, b) => nLang(b.w.theme) - nLang(a.w.theme) || a.i - b.i).map(x => x.w), context = W.filter(w => w.group === 'context');
     const themes = [...new Set(thematic.map(w => w.theme))], langs = [...new Set(thematic.map(w => w.lang))];
+    const assoc = new Set([...thematic, ...context].map(w => w.id));
     const wName = Object.fromEntries(W.map(w => [w.id, w.n || w.name]));
     const tags = [...new Set(cards.map(c => c.tag))];
     const sources = id => cards.filter(c => !c.off && c.w.includes(id)).length;
@@ -420,7 +424,8 @@ class Component extends DCLogic {
       const st = this.status(card), res = s.tested[card.id] || card.resp;
       const exp = parseKey(card.key), days = exp ? Math.round((exp - NOW) / 864e5) : null;
       const toggleW = id => {
-        const on = card.w.includes(id), next = on ? card.w.filter(x => x !== id) : [...card.w, id];
+        // Liste envoyée : seulement les widgets associables du catalogue (un ancien identifiant, ex. « news », est retiré).
+        const on = card.w.includes(id), next = (on ? card.w.filter(x => x !== id) : [...card.w, id]).filter(x => assoc.has(x));
         this.write(card.id, () => ({ w: next }), () => this.props.onWidgets && this.props.onWidgets(card.id, next));
       };
       const tip = (l, n) => l + (n > 0 ? ` · ${n} autre${n > 1 ? 's' : ''} carte${n > 1 ? 's' : ''}` : ' · aucune autre carte');
@@ -468,7 +473,7 @@ class Component extends DCLogic {
         lines: tokenize(body, fmt),
         wCount: wl ? `${wl} widget${wl > 1 ? 's' : ''}` : 'Aucun widget',
         gridSt: `display:grid;grid-template-columns:104px repeat(${Math.max(1, langs.length)},minmax(0,1fr));gap:6px;align-items:center`,
-        langs: langs.map(l => ({ l })), matrix, others
+        langs: langs.map(l => ({ l })), matrix, others, hasOthers: others.length > 0
       };
     }
 

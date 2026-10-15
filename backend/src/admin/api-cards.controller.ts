@@ -10,7 +10,7 @@ import { ApiError, businessRule, conflict, notFound } from '../core/errors';
 import { parse } from '../core/http';
 import { PrismaService } from '../core/prisma.service';
 import { API_AUTH_MODES, API_CALL_TIMEOUT_MAX_MS, API_CARD_NAME_MAX, API_CARD_TAG_MAX, API_KEY_MIN_LENGTH, API_METHODS, bodyError, endpointError } from '../domain/api-cards';
-import { API_WIDGET_IDS, REGISTRY_WIDGETS, THEMATIC_WIDGETS, WIDGET_IDS, cardWidgets, widgetName } from '../domain/widgets';
+import { API_WIDGET_IDS, NEWS_WIDGET_IDS, REGISTRY_WIDGETS, WIDGET_IDS, cardWidgets, widgetName } from '../domain/widgets';
 import { ApiCardsService } from './api-cards.service';
 import { FEED_ITEMS_DEFAULT, FEED_ITEMS_MAX, isFeed, mergeFeeds, parseFeed } from '../domain/rss';
 import { parseNews } from '../domain/news';
@@ -278,15 +278,11 @@ export class WidgetFeedsController {
     private readonly cards: ApiCardsService,
   ) {}
 
-  /**
-   * Tous les flux actifs (ou ceux de `cards=id1,id2`, ou ceux qui alimentent le widget thématique `widget=eco_fr`, tuiles
-   * Actualités du Cockpit, 15/10/2026), `limit` articles au plus (10 par défaut, 50 au plus).
-   */
+  /** Tous les flux actifs (ou ceux de `cards=id1,id2`), `limit` articles au plus (10 par défaut, 50 au plus). */
   @Get()
-  async all(@Query('cards') ids: string | undefined, @Query('limit') limit: string | undefined, @Query('widget') wid: string | undefined, @Req() req: Request) {
-    if (wid !== undefined && !THEMATIC_WIDGETS.some((w) => w.id === wid)) throw businessRule('Widget inconnu', { widget: THEMATIC_WIDGETS.map((w) => w.id).join(', ') });
-    const list = await this.prisma.apiCard.findMany({ where: { feed: true, enabled: true, ...(ids ? { id: { in: ids.split(',').map((x) => x.trim()) } } : {}), ...(wid ? { widgets: { has: wid } } : {}) }, orderBy: { name: 'asc' } });
-    const widget = String(req.headers['x-rise-widget'] ?? '').slice(0, 60) || wid || null;
+  async all(@Query('cards') ids: string | undefined, @Query('limit') limit: string | undefined, @Req() req: Request) {
+    const list = await this.prisma.apiCard.findMany({ where: { feed: true, enabled: true, ...(ids ? { id: { in: ids.split(',').map((x) => x.trim()) } } : {}) }, orderBy: { name: 'asc' } });
+    const widget = String(req.headers['x-rise-widget'] ?? '').slice(0, 60) || null;
     const read = await Promise.all(list.map(async (c) => {
       try {
         return { card: c, feed: await this.read(c.id, widget), error: null as string | null };
@@ -337,11 +333,13 @@ export class WidgetNewsController {
   ) {}
 
   @Get()
-  async news(@Query('category') category: string | undefined, @Query('limit') limit: string | undefined, @Req() req: Request) {
-    const cat = NEWS_CATEGORY[category ?? 'actualites'];
-    if (!cat) throw businessRule('Catégorie inconnue', { category: 'actualites ou economie' });
-    const list = await this.prisma.apiCard.findMany({ where: { enabled: true, category: cat }, orderBy: { name: 'asc' } });
-    const widget = String(req.headers['x-rise-widget'] ?? '').slice(0, 60) || null;
+  async news(@Query('category') category: string | undefined, @Query('limit') limit: string | undefined, @Query('widget') wid: string | undefined, @Req() req: Request) {
+    // `widget=news_fr` (tuiles Actualités du Cockpit, 15/10/2026) : cartes actives associées au widget, toutes catégories.
+    if (wid !== undefined && !NEWS_WIDGET_IDS.has(wid)) throw businessRule('Widget inconnu', { widget: [...NEWS_WIDGET_IDS].join(', ') });
+    const cat = wid ? null : NEWS_CATEGORY[category ?? 'actualites'];
+    if (!wid && !cat) throw businessRule('Catégorie inconnue', { category: 'actualites ou economie' });
+    const list = await this.prisma.apiCard.findMany({ where: { enabled: true, ...(wid ? { widgets: { has: wid } } : { category: cat! }) }, orderBy: { name: 'asc' } });
+    const widget = String(req.headers['x-rise-widget'] ?? '').slice(0, 60) || wid || null;
     const read = await Promise.all(list.map(async (c) => {
       try {
         const r = await this.cards.proxy(c.id, {}, widget);
@@ -357,6 +355,6 @@ export class WidgetNewsController {
     // Source affichée : le journal d'origine quand le fournisseur le donne (agrégateurs), sinon le nom de la carte.
     const items = mergeFeeds(read.filter((r) => r.parsed).map((r) => ({ source: r.card.name, feed: { title: r.card.name, items: r.parsed!.items } })), n)
       .map((i: any) => ({ title: i.title, url: i.url, date: i.date, summary: i.summary, image: i.image, source: i.publisher || i.source, via: i.source }));
-    return { category: category ?? 'actualites', items, sources: read.map((r) => ({ id: r.card.id, name: r.card.name, ok: !!r.parsed, format: r.parsed?.format ?? null, count: r.parsed?.items.length ?? 0, error: r.error })) };
+    return { category: wid ? null : category ?? 'actualites', ...(wid ? { widget: wid } : {}), items, sources: read.map((r) => ({ id: r.card.id, name: r.card.name, ok: !!r.parsed, format: r.parsed?.format ?? null, count: r.parsed?.items.length ?? 0, error: r.error })) };
   }
 }

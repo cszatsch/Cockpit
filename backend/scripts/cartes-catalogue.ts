@@ -5,11 +5,11 @@
  *   npm run cartes:catalogue -- --confirmer  l'applique (tracé au journal d'audit)
  *
  * - Cartes de démonstration (absentes du catalogue) : supprimées.
- * - Cartes gardées : widgets thématiques du catalogue ajoutés, tag remplacé s'il est indiqué, le reste inchangé (clé, réglages).
+ * - Cartes gardées : remises au tag et aux widgets du catalogue (liste complète), le reste inchangé (clé, réglages).
  * - Flux du catalogue : créés sans clé (flux RSS) ou, déjà présents, remis au nom, tag, endpoint et widgets du catalogue.
  * Mêmes contrôles que l'API : endpoint https public, widgets connus et alimentés par une carte.
  */
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { endpointError } from '../src/domain/api-cards';
 import { API_WIDGET_IDS, cardWidgets, widgetName } from '../src/domain/widgets';
 import { CATALOG_CARDS, CATALOG_KEEP } from '../prisma/catalog/api-cartes';
@@ -43,21 +43,28 @@ async function main(): Promise<number> {
     for (const [id, keep] of Object.entries(CATALOG_KEEP)) {
       const c = all.find((x) => x.id === id);
       if (!c) { console.log(`! ${id} : carte à garder absente de la base`); continue; }
-      const add = keep.widgets ?? [], now = cardWidgets(c.widgets), next = [...new Set([...now, ...add])];
-      const sameW = next.length === now.length && next.every((w) => c.widgets.includes(w)), cat = keep.category && keep.category !== c.category ? keep.category : null;
+      // Widgets : liste complète du catalogue (anciens identifiants, dont « Actualité », retirés) ; sinon inchangés.
+      const next = keep.widgets ?? c.widgets;
+      const sameW = next.length === c.widgets.length && next.every((w) => c.widgets.includes(w)), cat = keep.category && keep.category !== c.category ? keep.category : null;
       if (sameW && !cat) { console.log(`= ${c.name} : gardée`); continue; }
-      console.log(`~ ${c.name} : gardée${sameW ? '' : ` · widgets ${names(next)}`}${cat ? ` · tag ${c.category} → ${cat}` : ''}`);
+      console.log(`~ ${c.name} : gardée${sameW ? '' : ` · widgets ${names(cardWidgets(c.widgets))} → ${names(next)}`}${cat ? ` · tag ${c.category} → ${cat}` : ''}`);
       if (apply) {
         await db.apiCard.update({ where: { id }, data: { widgets: next, ...(cat ? { category: cat } : {}), version: { increment: 1 }, updatedBy: 'Catalogue des cartes API' } });
-        if (add.some((w) => !now.includes(w))) await audit(db, 'Widgets alimentés par une carte API', `${c.name} · associée à ${names(add.filter((w) => !now.includes(w)))}`, id);
+        if (!sameW) await audit(db, 'Widgets alimentés par une carte API', `${c.name} · ${names(next)}`, id);
         if (cat) await audit(db, 'Modification d’une carte API', `${c.name} · tag ${c.category} → ${cat}`, id);
       }
     }
     for (const c of CATALOG_CARDS) {
       const found = all.find((x) => x.id === c.id);
       if (found) {
-        console.log(`~ ${c.name} (${c.id}) : remise au catalogue · ${c.category} · ${names(c.widgets)}`);
-        if (apply) await db.apiCard.update({ where: { id: c.id }, data: { name: c.name, category: c.category, endpoint: c.endpoint, widgets: c.widgets, feed: true, version: { increment: 1 }, updatedBy: 'Catalogue des cartes API' } });
+        const epChanged = found.endpoint !== c.endpoint, same = !epChanged && found.name === c.name && found.category === c.category && c.widgets.length === found.widgets.length && c.widgets.every((w) => found.widgets.includes(w));
+        if (same) { console.log(`= ${c.name} : à jour`); continue; }
+        console.log(`~ ${c.name} (${c.id}) : remise au catalogue · ${c.category} · ${names(c.widgets)}${epChanged ? ` · nouvel endpoint ${c.endpoint}` : ''}`);
+        if (apply) {
+          // Endpoint changé (flux déplacé) : latence, dernière réponse et erreur du dernier contrôle ne valent plus (comme l'API).
+          await db.apiCard.update({ where: { id: c.id }, data: { name: c.name, category: c.category, endpoint: c.endpoint, widgets: c.widgets, feed: true, ...(epChanged ? { latencyMs: null, lastTest: Prisma.DbNull, endpointSince: new Date(), checkError: null } : {}), version: { increment: 1 }, updatedBy: 'Catalogue des cartes API' } });
+          await audit(db, 'Modification d’une carte API', `${c.name} · catalogue des cartes API${epChanged ? ` · endpoint ${found.endpoint} → ${c.endpoint}` : ''}`, c.id);
+        }
         continue;
       }
       console.log(`+ ${c.name} (${c.id}) · ${c.category} · ${names(c.widgets)} · ${c.endpoint}`);

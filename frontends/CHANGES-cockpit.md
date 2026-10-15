@@ -729,3 +729,6 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
   catégorie « Actualités » de la bibliothèque, icône comme Décisions). Même visualisation éditoriale que l'Actualité
   (`feedViz`, factorisée depuis la tuile Actualité, inchangée pour elle). `api.js` : une lecture par widget
   (`GET /widgets/feeds?widget=…`, `TH_WIDGETS`, `TH_FETCH`, `TH_ITEMS`), sources alternées, `dbExt.th` / `dbExt.thErr`.
+- Tableau de bord (15/10/2026, refonte des widgets) : tuile Sport US retirée (6 tuiles Actualités) ; tuiles lues par
+  `GET /widgets/news?widget=…` (Finnhub compris) ; tuile Actualité alimentée par le widget News FR
+  (`?widget=news_fr`).

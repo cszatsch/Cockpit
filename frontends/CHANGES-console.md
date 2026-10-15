@@ -874,3 +874,6 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
   Actualités Eco, Sports, News (FR / EN) et Sport US (EN seul, case FR vide) ; Tech retiré. Aucun changement du composant.
 - Registre des cartes API (15/10/2026) : monogramme d'une carte calculé en coupant aussi sur les tirets « – » et « — »
   (« CBS Sports – Headlines » → CS, et non « C– »).
+- Registre des cartes API (15/10/2026, refonte des widgets) : matrice à 5 lignes (Actualités Eco, News, Sports en FR /
+  EN ; Météo, Trafic en FR), ligne « Contexte » masquée sans widget de contexte, mosaïque sans hauteur maximale (la
+  dernière ligne de tags était cachée), colonne des tags élargie à 132 px.
