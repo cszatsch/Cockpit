@@ -285,10 +285,10 @@ Chaque widget répond à une question. La couleur ne porte qu'un statut : bleu n
 |---|---|---|
 | L'essentiel, par Jev (2 × 2) | Où en est le projet, en trente secondes ? | Trois chiffres (J-n avant le Go-Live, avancement réel, écart au prévu), puis cinq rubriques : Avancement, Retards, Risques, Décisions, Échéances |
 | Compte à rebours Go-Live (1 × 1) | Combien de temps reste-t-il avant la bascule ? | J-n, semaines et jours ouvrés restants, frise du début du projet au Go-Live avec la part du temps écoulé |
-| Avancement vs référence (1 × 1) | Le projet avance-t-il au rythme prévu ? | Avancement réel moyen et écart en points au prévu, sur un anneau |
+| Avancement vs référence (1 × 1) | Le projet avance-t-il au rythme prévu ? | Avancement réel du projet et écart en points au prévu à date, sur un anneau (phases du planning, pondérées par leur durée) |
 | Prochains jalons (2 × 1) | Quelles sont les prochaines échéances et glissent-elles ? | Les 3 prochains jalons sur une ligne : jours entre deux étapes, date, nom, « à l'heure » ou « +n j de glissement » |
 | Chemin critique (2 × 1) | Quelles tâches conditionnent la date de fin ? | Les 4 premières sous-phases critiques en barres : grises si terminées, rouges en cours, bleu nuit à venir |
-| Météo des chantiers (2 × 1) | Quels chantiers décrochent ? | Par chantier : pictogramme (soleil à l'heure, éclaircie jusqu'à −10 pts, pluie au-delà), barre du réel, retard hachuré jusqu'au prévu, écart en points |
+| Météo des chantiers (2 × 1) | Quels chantiers décrochent ? | Les 4 chantiers du planning les plus en retard (commencés d'abord ; « 4 sur N ») : pictogramme (soleil à l'heure, éclaircie jusqu'à −10 pts, pluie au-delà), barre du réel, retard hachuré jusqu'au prévu, écart en points — mêmes valeurs que Pilotage › Planning |
 | Risques critiques (1 × 2) | Quels risques menacent le projet maintenant ? | Matrice probabilité × impact des risques ouverts, puis les 4 plus exposés |
 | Tendance des risques (1 × 1) | L'exposition au risque augmente-t-elle ? | Courbe des risques ouverts sur 8 semaines, dont critiques |
 | Problèmes ouverts (1 × 1) | Quels problèmes bloquent aujourd'hui ? | Nombre de problèmes ouverts, histogramme des sévérités S1 à S5, les plus graves |

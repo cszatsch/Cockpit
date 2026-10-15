@@ -790,3 +790,10 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
   les valeurs du Référentiel s'affichent ; rubriques vides toujours repliées (`data-proj-view`, `applyProjEdits`,
   `projCollapse(n, editable)` sans « Cliquer pour saisir ») ; bandeau « Fiche en lecture seule » avec « Ouvrir le
   Référentiel → » (`ficheGoRef`). Onglet Dispositif inchangé.
+- Aujourd'hui, widgets de pilotage alimentés par le projet ouvert (15/10/2026, correctif) : Météo des chantiers =
+  chantiers du planning (`plItems` : % réel, % prévu à date ; commencés d'abord, plus en retard en tête, `WS_TILE_MAX` 4,
+  « 4 sur N ») au lieu de la table de démonstration `workstreamProgress` (vide hors démo ; lignes 2 à 5 seulement,
+  `slice(1, 5)`) ; L'essentiel et Avancement vs référence = phases du planning pondérées par leur durée. Instance COPIL
+  (`copilBodyId` : sigle COPIL, sinon nom « pilotage » / « steering », sinon 1re instance) au lieu de l'identifiant `g1`
+  de la démo (Prochain COPIL, message d'accueil, échéances) ; Go-Live (`goliveIso` : date prévue du projet, sinon jalon
+  « Go-Live ») au lieu du jalon `J08` de la démo.

@@ -2615,3 +2615,15 @@ Brief du commanditaire : reproduire la maquette avec les vraies données et les 
 - La Fiche projet (Info projet) ne se modifie plus que par le Référentiel (objets Projet et Info projet). La saisie
   directe, qui créait des retouches locales (`projEd`) divergentes de l'objet Info projet lu par la Console et les
   notifications, est retirée ; ces retouches, encore stockées, ne sont plus appliquées.
+
+## Widgets de pilotage d'Aujourd'hui alimentés par le projet (15/10/2026, correctif)
+
+- Cause racine de la Météo des chantiers vide (et de « avancement réel — » dans L'essentiel / Avancement vs
+  référence) : ces tuiles lisaient la table de démonstration `workstreamProgress`, alimentée seulement par l'amorçage du
+  projet de démonstration (aucune création par l'initialisation, l'API ni l'écran).
+- Choix : avancement des chantiers et du projet calculés sur le planning, comme Pilotage › Planning ; **hypothèse** :
+  avancement du projet = moyenne des phases pondérée par leur durée (règle d'une phase à partir de ses sous-phases).
+- Audit des 19 widgets de pilotage : tous lus dans les données du projet ; deux autres dépendances à la démonstration
+  corrigées — instance COPIL (identifiant `g1`) et jalon de Go-Live (identifiant `J08`), désormais retrouvés par leur nom.
+  Restent liés à la démonstration, hors tableau de bord : l'ancienne vue Aujourd'hui masquée (`vTodayOld`) et les liens
+  d'exemple de l'ancien formulaire de tâche (`LINKS`).

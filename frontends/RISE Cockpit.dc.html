@@ -2836,7 +2836,7 @@ class Component extends DCLogic {
   }
   todayMsg() {
     const D = this.mergedData(), me = this.me(), first = this.meFirst(); if (!D) return 'Bonjour ' + first + '.';
-    const today = this.tdIso(), ses = this.sessionList().filter(x => x.bodyId === 'g1' && x.status === 'PLANNED' && x.dateIso >= today).sort((a, b) => a.dateIso.localeCompare(b.dateIso))[0];
+    const today = this.tdIso(), ses = this.sessionList().filter(x => x.bodyId === this.copilBodyId() && x.status === 'PLANNED' && x.dateIso >= today).sort((a, b) => a.dateIso.localeCompare(b.dateIso))[0];
     const val = (D.decisions || []).filter(x => x.status === 'TO_ARBITRATE').length, tasks = (D.actions || []).filter(x => x.owner === me.personId && x.status !== 'DONE' && (this.state.actStatus || {})[x.id] !== 'Terminée').length;
     const dd = ses ? this.tdDays(ses.dateIso) : null;
     // Message d'accueil (02/10/2026) : celui de Jev, lu par api.js (GET /today/greeting) ; en attendant, une seule priorité,
@@ -2856,7 +2856,8 @@ class Component extends DCLogic {
     const L = [];
     (D.milestones || []).filter(m => m.iso >= lo && m.iso <= hi).forEach(m => { const rev = m.confirmedDays > 14; L.push({ iso: m.iso, n: m.n, kind: 'Jalon ' + m.id, owner: nm(m.owner), tag: rev ? 'À revoir' : m.gap > 0 ? '+' + m.gap + ' j' : 'Conforme', k: rev ? 'iss' : m.gap > 0 ? 'ms-late' : 'ms-ok', open: () => h.msPanel(m) }); });
     (D.actions || []).filter(a => a.dueIso && a.dueIso >= lo && a.dueIso <= hi && (AS[a.id] || SL[a.status]) !== 'Terminée').forEach(a => L.push({ iso: a.dueIso, n: a.n, kind: 'Action ' + a.id, owner: nm(a.owner), tag: AS[a.id] || SL[a.status] || a.status, k: 'act', open: () => h.actionPanel(a) }));
-    this.sessionList().filter(x => x.bodyId === 'g1' && x.status === 'PLANNED' && x.dateIso >= today && x.dateIso <= hi).forEach(x => L.push({ iso: x.dateIso, n: 'COPIL n°' + x.number, kind: 'Comité', owner: nm(this.me().personId), tag: this.tdDays(x.dateIso) === 0 ? 'Aujourd’hui' : 'J-' + this.tdDays(x.dateIso), k: 'com', open: () => this.setState({ space: 'pilotage', tab: 'seances', panel: null }) }));
+    const copil = this.copilBodyId();
+    this.sessionList().filter(x => x.bodyId === copil && x.status === 'PLANNED' && x.dateIso >= today && x.dateIso <= hi).forEach(x => L.push({ iso: x.dateIso, n: 'COPIL n°' + x.number, kind: 'Comité', owner: nm(this.me().personId), tag: this.tdDays(x.dateIso) === 0 ? 'Aujourd’hui' : 'J-' + this.tdDays(x.dateIso), k: 'com', open: () => this.setState({ space: 'pilotage', tab: 'seances', panel: null }) }));
     return L.sort((a, b) => a.iso.localeCompare(b.iso)).slice(0, 10).map(x => ({ ...x, date: this.tdFr(x.iso) }));
   }
   todayStale(D, h) {
@@ -3953,7 +3954,22 @@ class Component extends DCLogic {
   /** Année en cours (date du jour du projet) : l'année n'est affichée que si elle en diffère. */
   thisYear() { return +this.fToday().slice(0, 4); }
   /** Prochaine séance planifiée (COPIL `g1` de préférence), à partir de la date du jour ; null s'il n'y en a pas. */
-  nextSession(bodyId = 'g1') {
+  /**
+   * Instance « COPIL » du projet ouvert (15/10/2026 : auparavant l'identifiant g1 du projet de démonstration) : sigle COPIL,
+   * sinon nom évoquant le pilotage (« Comité de pilotage », « Steering »), sinon la première instance du Référentiel.
+   */
+  copilBodyId() {
+    const R = ((((this.mergedData() || {}).model || {}).GOVERNANCE_BODY || {}).rows) || [];
+    const r = R.find(x => /^copil$/i.test(String(x.shortName || '').trim())) || R.find(x => /comit[ée] de pilotage|copil|steering/i.test(String(x.cells && x.cells[0] || ''))) || R[0];
+    return r ? r.id : 'g1';
+  }
+  /** Date de Go-Live du projet : date prévue (Référentiel), sinon jalon dont le nom évoque le Go-Live (prochain, sinon le dernier). */
+  goliveIso(d) {
+    const D = d || this.mergedData() || {}, f = D.project && D.project.forecast && D.project.forecast.goliveIso; if (f) return f;
+    const G = (D.milestones || []).filter(m => m.iso && /go[\s-]?live/i.test(String(m.n || ''))).sort((a, b) => a.iso.localeCompare(b.iso)), td = this.fToday();
+    return ((G.find(m => m.iso >= td) || G[G.length - 1]) || {}).iso || '';
+  }
+  nextSession(bodyId = this.copilBodyId()) {
     const today = this.fToday(), up = this.sessionList().filter(x => x.status === 'PLANNED' && x.dateIso >= today).sort((a, b) => a.dateIso.localeCompare(b.dateIso));
     const x = up.find(y => y.bodyId === bodyId) || up[0];
     return x ? { ...x, label: this.sessionLabel(x) } : null;
@@ -4328,7 +4344,7 @@ class Component extends DCLogic {
   }
   dbCatalog() {
     const d = this.mergedData(); if (!d) return null; if (this._dbCat && this._dbCatD === d && this._dbCatX === this.state.dbExt && this._dbCatM === this._mineRows) return this._dbCat; const EX = this.state.dbExt || {};
-    const tIso = this.fToday(), T = new Date(tIso + 'T12:00:00'), glIso = (d.project && d.project.forecast && d.project.forecast.goliveIso) || ((d.milestones || []).find(m => m.id === 'J08') || {}).iso || '', GL = glIso ? new Date(glIso + 'T12:00:00') : null, dGL = GL ? Math.round((GL - T) / 864e5) : null, nsT = this.nextSession();
+    const tIso = this.fToday(), T = new Date(tIso + 'T12:00:00'), glIso = this.goliveIso(d), GL = glIso ? new Date(glIso + 'T12:00:00') : null, dGL = GL ? Math.round((GL - T) / 864e5) : null, nsT = this.nextSession();
     const tag = (bg, c) => 'font-size:10.5px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap;padding:2px 6px;border-radius:5px;background:' + bg + ';color:' + c;
     const rt = c => 'font-size:11.5px;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums;color:' + c;
     const short = s => String(s).split(/ — | : /)[0];
@@ -4337,7 +4353,13 @@ class Component extends DCLogic {
     const acts = (d.actions || []).filter(a => a.late).slice(0, 3);
     const decs = (d.decisions || []).filter(x => !['ARBITRATED', 'SUPERSEDED', 'CANCELLED'].includes(x.status)).slice(0, 3);
     const arbOpen = (d.arbitrations || []).filter(x => !/Arbitrée|Annulée|Remplacée/.test(x.st)), arbTo = arbOpen.filter(x => x.st === 'À arbitrer').length;
-    const wss = (d.workstreams || []).slice(1, 5), SIG = { ok: '#1d8f86', warn: '#e39a2d', ko: '#d4574a', late: '#d4574a' }, gapC = g => g >= 0 ? '#1d8f86' : g > -10 ? '#e39a2d' : '#d4574a';
+    // Météo des chantiers (15/10/2026) : chantiers du planning, % réel et % prévu à date calculés comme Pilotage › Planning
+    // (plItems) — auparavant la table de démonstration « suivi d'avancement », vide pour tout projet initialisé. Chantiers
+    // commencés d'abord (tous s'il n'y en a aucun), les plus en retard en tête ; WS_TILE_MAX lignes dans la tuile.
+    const WS_TILE_MAX = 4, PLI = this.plItems();
+    const chAll = PLI.filter(x => x.kind === 'ch' && x.start && x.end).map(c => ({ n: (c.code ? c.code + ' · ' : '') + c.n, v: +c.reel || 0, ref: +c.prevu || 0, detail: c.status === 'future' ? 'pas encore commencé' : '', st: c.status }));
+    const chStarted = chAll.filter(c => c.st !== 'future'), chSrc = (chStarted.length ? chStarted : chAll).sort((a, b) => (a.v - a.ref) - (b.v - b.ref) || String(a.n).localeCompare(String(b.n), 'fr', { numeric: true }));
+    const wss = chSrc.slice(0, WS_TILE_MAX), wssMore = chSrc.length - wss.length, SIG = { ok: '#1d8f86', warn: '#e39a2d', ko: '#d4574a', late: '#d4574a' }, gapC = g => g >= 0 ? '#1d8f86' : g > -10 ? '#e39a2d' : '#d4574a';
     const rs = (d.riskStats || { weeks: [] }).weeks.map(w => w[0]), bs = (((d.barometre || {}).ecf || { series: [] }).series || []).filter(v => v != null); // mois sans relevé exclus (tuile « null », 12/10/2026)
     // Courbe (refonte 01/10/2026) : série plate centrée ; dégradé sous la courbe ; dernier point marqué d'un halo.
     const spark = (ser, c, v, u, sub, id) => { const n = ser.length, mn = Math.min(...ser), mx = Math.max(...ser), flat = mx === mn, sp = (mx - mn) || 1; const pts = ser.map((y, i) => [(i / (n - 1) * 200).toFixed(1), (flat ? 24 : 40 - (y - mn) / sp * 34).toFixed(1)]); const line = 'M' + pts.map(p => p.join(' ')).join(' L'); const [ex, ey] = pts[pts.length - 1].map(Number), at = 'position:absolute;left:' + (ex / 2).toFixed(2) + '%;top:' + (ey / 44 * 100).toFixed(2) + '%;border-radius:50%;transform:translate(-50%,-50%);';
@@ -4347,7 +4369,10 @@ class Component extends DCLogic {
     const moY = x => ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'][x.getMonth()] + ' ' + x.getFullYear();
     const gb = (a, b, c) => 'position:absolute;top:0;height:8px;border-radius:4px;left:' + gp(a).toFixed(1) + '%;width:' + Math.max(1.6, gp(b) - gp(a)).toFixed(1) + '%;background:' + c;
     // Avancement du projet : moyenne des lignes du suivi d'avancement (% réel, % prévu à date), comme « Météo des chantiers ».
-    const PRL = (d.workstreams || []).filter(w => w.v != null && w.ref != null), avg = k => PRL.length ? Math.round(PRL.reduce((a, w) => a + (+w[k] || 0), 0) / PRL.length) : null;
+    // Avancement du projet (15/10/2026) : phases du planning, moyenne du % réel et du % prévu à date pondérée par leur durée
+    // (même règle qu'une phase à partir de ses sous-phases) ; L'essentiel et Avancement vs référence.
+    const PHL = PLI.filter(x => x.kind === 'ph' && x.start && x.end), PHW = PHL.reduce((t, x) => t + (x.dur || 1), 0);
+    const avg = k => PHW ? Math.round(PHL.reduce((t, x) => t + (+(k === 'v' ? x.reel : x.prevu) || 0) * (x.dur || 1), 0) / PHW) : null;
     const avR = avg('v'), avP = avg('ref'), avGap = avR != null && avP != null ? avR - avP : null, avC = avGap == null ? '#10233a' : avGap >= 0 ? '#1d8f86' : avGap > -10 ? '#e39a2d' : '#d4574a';
     const curPh = (() => { try { return this.plItems().filter(x => x.kind === 'ph').find(x => x.start <= tIso && x.end >= tIso) || null; } catch (e) { return null; } })();
     // Mes tâches (liste « Mes tâches » d'Aujourd'hui, hors archivées) ; livrables du Référentiel (échéance, avancement).
@@ -4356,7 +4381,7 @@ class Component extends DCLogic {
     const lvSoon = LV.filter(x => (+x.prog || 0) < 100 && x.due >= tIso && x.due <= t30).length, lvLate = LV.filter(x => (+x.prog || 0) < 100 && x.due < tIso).length, lvDone = LV.length ? Math.round(LV.filter(x => (+x.prog || 0) >= 100).length / LV.length * 100) : null;
     const critN = (d.risks || []).filter(r => r.p * r.i >= 20).length, RS = d.riskStats || {}, now = new Date();
     const aiHead = glIso ? 'Go-Live prévu le ' + this.frShortIso(glIso) + (dGL != null ? ' (' + (dGL >= 0 ? 'J-' + dGL : 'J+' + (-dGL)) + ')' : '') + (avR != null ? ' · avancement ' + avR + ' % pour ' + avP + ' % prévu à date' : '') + '.' : 'Date de Go-Live non définie dans le planning.';
-    const aiN = PRL.length + (d.milestones || []).length + (d.risks || []).length + decs.length;
+    const aiN = PHL.length + (d.milestones || []).length + (d.risks || []).length + decs.length;
     // Tuiles Actualités (15/10/2026) : titres des cartes associées au widget dans le Registre des cartes API
     // (`GET /api/widgets/news?widget=…`, chargés par api.js dans `dbExt.th`) ; même lecture éditoriale que l'Actualité.
     const thW = id => { const L = (EX.th || {})[id]; return { size: [2, 2], type: 'list', g: '◉', fmt: 'Liste de titres', data: 'Cartes associées à ce widget dans le Registre des cartes API (flux RSS, Finnhub), titres récents',
@@ -4367,10 +4392,10 @@ class Component extends DCLogic {
           stats: [[dGL == null ? '—' : dGL >= 0 ? 'J-' + dGL : 'J+' + (-dGL), glIso ? 'Go-Live · ' + this.frShortIso(glIso) : 'Go-Live non planifié', 'var(--wi,#10233a)'], [avR != null ? avR + ' %' : '—', 'avancement réel', 'var(--wi,#10233a)'], [avGap == null ? '—' : (avGap >= 0 ? '+' : '−') + Math.abs(avGap) + ' pts', avP != null ? 'vs ' + avP + ' % prévu à date' : 'écart au prévu', avC]].map(([v, l, col]) => ({ v, l, vS: 'font-size:28px;font-weight:800;font-style:italic;letter-spacing:-.04em;line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap;color:' + col })),
           pts: [['Avancement', (curPh ? 'Phase ' + curPh.n + ' en cours' : 'Aucune phase en cours à cette date') + (avGap != null && avGap < 0 ? ', ' + Math.abs(avGap) + ' pts sous le prévu.' : '.'), avC], ['Retards', (() => { const n = (d.milestones || []).filter(m => m.gap > 0).length; return n ? n + (n > 1 ? ' jalons glissent' : ' jalon glisse') + ', jusqu’à +' + Math.max(0, ...(d.milestones || []).map(m => m.gap || 0)) + ' j.' : 'Aucun jalon en glissement par rapport à la référence v5.'; })(), (d.milestones || []).some(m => m.gap > 0) ? '#d4574a' : '#1d8f86'], ['Risques', critN ? critN + (critN > 1 ? ' critiques, dont ' : ' critique : ') + rk.filter(r => r.p * r.i >= 20).slice(0, 2).map(r => r.id).join(' et ') + '.' : 'Aucun risque critique.', critN ? '#d4574a' : '#1d8f86'], ['Décisions', (d.decisions || []).filter(x => !['ARBITRATED', 'SUPERSEDED', 'CANCELLED'].includes(x.status)).length + ' en attente' + (decs[0] ? ', dont ' + decs[0].id + ' (' + (s => s.charAt(0).toLowerCase() + s.slice(1))(String(decs[0].t || decs[0].n || '')) + ')' : '') + '.', decs.length ? '#e39a2d' : '#1d8f86'], ['Échéances', ms.length ? ms.slice(0, 2).map(m => short(m.n) + ' le ' + m.planned).join(', ') + '.' : 'Aucun jalon à venir.', '#1d8f86']].map(([k, t, c]) => ({ k, t, dot: 'width:7px;height:7px;border-radius:50%;margin-top:6px;background:' + c })) } },
       { id: 'golive', name: 'Compte à rebours Go-Live', cat: 'Planning', size: [1, 1], type: 'kpi', g: 'J', fmt: 'Tuile KPI', q: 'Combien de temps reste-t-il avant la bascule ?', data: 'Jalons (Go-Live Lot 1), Lots', k: { v: dGL == null ? '—' : dGL >= 0 ? 'J-' + dGL : 'J+' + (-dGL), u: '', sub: 'Go-Live · ' + (glIso ? this.frShortIso(glIso) : 'date non définie'), c: '#10233a' } },
-      { id: 'av', name: 'Avancement vs référence', cat: 'Planning', size: [1, 1], type: 'kpi', g: '%', fmt: 'Tuile KPI et jauge', q: 'Le projet avance-t-il au rythme prévu ?', data: 'Suivi d’avancement (% prévu à date, % réel à date)', k: avR == null ? { v: '—', u: '', sub: 'Aucune ligne de suivi d’avancement', c: '#10233a' } : { v: String(avR), u: '% réel', sub: 'Prévu à date : ' + avP + ' %', c: avC, ring: { v: avR, ref: avP, lbl: (avGap > 0 ? '+' : avGap < 0 ? '−' : '') + Math.abs(avGap), cap: 'pts d’écart' } } },
+      { id: 'av', name: 'Avancement vs référence', cat: 'Planning', size: [1, 1], type: 'kpi', g: '%', fmt: 'Tuile KPI et jauge', q: 'Le projet avance-t-il au rythme prévu ?', data: 'Planning : phases (% réel, % prévu à date, pondérés par leur durée)', k: avR == null ? { v: '—', u: '', sub: 'Aucune ligne de suivi d’avancement', c: '#10233a' } : { v: String(avR), u: '% réel', sub: 'Prévu à date : ' + avP + ' %', c: avC, ring: { v: avR, ref: avP, lbl: (avGap > 0 ? '+' : avGap < 0 ? '−' : '') + Math.abs(avGap), cap: 'pts d’écart' } } },
       { id: 'jal', name: 'Prochains jalons', cat: 'Jalons', size: [2, 1], type: 'list', g: '◆', fmt: 'Liste datée', q: 'Quelles sont les prochaines échéances et glissent-elles ?', data: 'Jalons — prévision vs référence (date prévue, glissement)', rows: ms.map(m => ({ a: m.planned, aS: tag('#f1f5f4', '#43586a'), t: m.n, r: m.gap > 0 ? '+' + m.gap + ' j' : 'à l’heure', rS: rt(m.gap > 0 ? '#c2473b' : '#1d8f86') })) },
       { id: 'crit', name: 'Chemin critique', cat: 'Planning', size: [2, 1], type: 'gantt', g: '▤', fmt: 'Mini-Gantt', q: 'Quelles tâches conditionnent la date de fin ?', data: 'Planning (sous-phases et chantiers sur le chemin critique)', rows: critSrc.map(x => { const e = dIso(x.end), b0 = dIso(x.start); return { t: (x.code ? x.code + ' ' : '') + x.n, bar: gb(b0, e, e < T ? '#b9c7cd' : b0 <= T ? '#d4574a' : '#10233a') }; }), g2: (() => { const x = 'left:calc(140px + (100% - 140px) * ' + (gp(T) / 100).toFixed(3) + ')'; return { lineS: 'position:absolute;top:0;bottom:17px;width:0;border-left:1.5px dashed #10233a;opacity:.45;z-index:1;' + x, tagS: 'position:absolute;bottom:0;transform:translateX(-50%);font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#10233a;white-space:nowrap;line-height:1;' + x, a: moY(g0), b: moY(g1) }; })() },
-      { id: 'ch', name: 'Météo des chantiers', cat: 'Chantiers', size: [2, 1], type: 'bars', g: '≡', fmt: 'Barres réel vs référence', q: 'Quels chantiers décrochent ?', data: 'Chantiers (avancement réel, référence, signal)', rows: wss.map(w => { const gC = gapC(w.v - w.ref); return { t: short(String(w.n).replace(/^\d+ · /, '')), v: w.v + ' %', vS: rt(gC) + ';text-align:right', bar: 'position:absolute;left:0;top:0;bottom:0;border-radius:3px;width:' + w.v + '%;background:' + gC, ref: 'position:absolute;top:-3px;bottom:-3px;width:2px;border-radius:1px;background:#10233a;left:' + w.ref + '%' }; }) },
+      { id: 'ch', name: 'Météo des chantiers', cat: 'Chantiers', size: [2, 1], type: 'bars', g: '≡', fmt: 'Barres réel vs référence', q: 'Quels chantiers décrochent ?', data: 'Planning : chantiers (% réel, % prévu à date), les plus en retard d’abord', rows: wss.map(w => { const gC = gapC(w.v - w.ref); return { t: short(String(w.n).replace(/^\d+ · /, '')), v: w.v + ' %', vS: rt(gC) + ';text-align:right', bar: 'position:absolute;left:0;top:0;bottom:0;border-radius:3px;width:' + w.v + '%;background:' + gC, ref: 'position:absolute;top:-3px;bottom:-3px;width:2px;border-radius:1px;background:#10233a;left:' + w.ref + '%' }; }) },
       { id: 'risk', name: 'Risques critiques', cat: 'Risques', size: [1, 2], type: 'list', g: '!', fmt: 'Liste priorisée', q: 'Quels risques menacent le projet maintenant ?', data: 'Risques (probabilité × impact, plan de mitigation, porteur)', rows: (d.risks || []).slice().sort((a, b) => b.p * b.i - a.p * a.i).slice(0, 8).map(r => ({ a: String(r.p * r.i), aS: tag(r.p * r.i >= 20 ? '#fbecea' : '#fff3dc', r.p * r.i >= 20 ? '#c2473b' : r.p * r.i >= 12 ? '#8a5a12' : '#5c7280'), t: short(r.n), r: r.id, rS: rt('#8a9aa6') })) },
       { id: 'rtrend', name: 'Tendance des risques', cat: 'Risques', size: [1, 1], type: 'spark', g: '↗', fmt: 'Courbe de tendance', q: 'L’exposition au risque augmente-t-elle ?', data: 'Registre des risques, historique hebdomadaire', s: spark(rs.length > 1 ? rs : rs.length ? [rs[0], rs[0]] : [0, 0], '#d4574a', String(RS.total ?? (d.risks || []).length), 'risques ouverts', 'dont ' + (RS.critical ?? critN) + ' critiques · ' + (rs.length >= 8 ? '8 dernières semaines' : RS.since ? 'suivi depuis le ' + this.frShortIso(RS.since) : 'registre vide'), 'rtrend') },
       { id: 'pb', name: 'Problèmes ouverts', cat: 'Risques', size: [1, 1], type: 'list', g: '⚑', fmt: 'Liste', q: 'Quels problèmes bloquent aujourd’hui ?', data: 'Problèmes (sévérité, porteur, résolution visée)', rows: (d.issues || []).slice(0, 3).map(x => ({ a: 'S' + x.sev, aS: tag(x.sev >= 4 ? '#fbecea' : '#fff3dc', x.sev >= 4 ? '#c2473b' : '#8a5a12'), t: short(x.n), r: '', rS: rt('#8a9aa6') })) },
@@ -4501,7 +4526,7 @@ class Component extends DCLogic {
     })();
     // Météo des chantiers : pictogramme météo selon l'écart au prévu (WS_GAP_WATCH), barre du réel en encre, retard hachuré jusqu'au prévu, écart en clair.
     (() => { const WS_GAP_WATCH = -10, kind = g => g >= 0 ? 'sun' : g > WS_GAP_WATCH ? 'cloud' : 'rain';
-      VIZ.ch = { viz: 'weather', meta: 'écart au prévu', wx: { rows: wss.map(w => { const g = w.v - w.ref, col = gapC(g), k = kind(g), lo = Math.min(w.v, w.ref), hi = Math.max(w.v, w.ref);
+      VIZ.ch = { viz: 'weather', meta: 'écart au prévu' + (wssMore > 0 ? ' · ' + wss.length + ' sur ' + chSrc.length : ''), wx: { rows: wss.map(w => { const g = w.v - w.ref, col = gapC(g), k = kind(g), lo = Math.min(w.v, w.ref), hi = Math.max(w.v, w.ref);
         return { t: String(w.n).replace(/^\d+ · /, ''), tip: [w.detail, 'réel ' + w.v + ' % · prévu ' + w.ref + ' %'].filter(Boolean).join(' · '), sun: k === 'sun', cloud: k === 'cloud', rain: k === 'rain', icS: 'display:block;color:' + col, v: w.v + ' %', gap: g ? (g > 0 ? '+' : '−') + Math.abs(g) + ' pts' : 'au prévu',
           gapS: 'font-size:12.5px;font-weight:800;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;color:' + (g ? col : '#1d8f86'),
           fillS: 'position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--wi,#10233a);opacity:.85;width:' + w.v + '%',
@@ -5718,7 +5743,8 @@ class Component extends DCLogic {
     const trajSrc = M.PHASE.rows.filter(p => p.cells[2] === 'Lot 1');
     const trajCur = trajSrc.findIndex(p => p.cells[5] === 'En cours');
     const trajPhases = trajSrc.map((p, i) => { const done = p.cells[5] === 'Terminée' || (trajCur >= 0 && i < trajCur); const cur = i === trajCur; return { n: p.cells[1], cur, barStyle: 'display:block;height:10px;border-radius:2px;background:' + (done ? '#10233a' : cur ? '#1d8f86' : '#e0e8e6'), labelStyle: 'font-size:10.5px;line-height:1.25;min-width:0;' + (cur ? 'font-weight:800;color:#1d8f86' : 'color:#5c7280') }; });
-    const trajGolive = D.milestones.find(m => m.id === 'J08');
+    // Go-Live (15/10/2026) : jalon du projet ouvert, et non plus le jalon J08 du projet de démonstration.
+    const trajGolive = (() => { const iso = this.goliveIso(D); return (D.milestones || []).find(m => m.iso === iso && /go[\s-]?live/i.test(String(m.n || ''))) || (iso ? { iso, n: 'Go-Live', id: '', planned: this.frShortIso(iso) } : null); })();
     const trajCurName = trajCur >= 0 ? trajSrc[trajCur].cells[1] : (trajSrc[0] ? trajSrc[0].cells[1] : '—');
     const trajCurPos = trajSrc.length ? 'phase ' + (trajCur >= 0 ? trajCur + 1 : 1) + ' sur ' + trajSrc.length : '';
     const goliveIso = (D.project && D.project.forecast && D.project.forecast.goliveIso) || (trajGolive && trajGolive.iso) || '', goliveDays = goliveIso ? Math.max(0, daysTo(goliveIso)) : '—';
