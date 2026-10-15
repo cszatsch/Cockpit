@@ -52,19 +52,22 @@ export const WIDGET_CATALOGUE: readonly WidgetDef[] = [
 ];
 
 /**
- * Widgets thématiques (Registre des cartes API, tuiles symétriques, 15/10/2026) : un par thème et par langue, alimentés
- * par les cartes cochées dans la matrice du registre. Le Cockpit ne les affiche pas encore (écart consigné dans
- * docs/DECISIONS.md) ; ils restent hors du catalogue des 22 widgets du tableau de bord.
+ * Widgets thématiques (Registre des cartes API, tuiles symétriques, 15/10/2026 ; liste du commanditaire du 15/10/2026 :
+ * Tech retiré, Sport US ajouté) : par thème et par langue, alimentés par les cartes cochées dans la matrice du registre.
+ * Le Cockpit ne les affiche pas encore (écart consigné dans docs/DECISIONS.md) ; ils restent hors du catalogue des 22
+ * widgets du tableau de bord. Sport US n'a qu'une langue (colonne EN de la matrice).
  */
-export const THEMATIC_THEMES: ReadonlyArray<readonly [string, string, string[]]> = [
-  ['eco', 'Actualités Eco', ['Finance', 'Actualités']],
-  ['sport', 'Sports', ['Sports', 'Actualités']],
-  ['news', 'News', ['Actualités']],
-  ['tech', 'Tech', ['Tech']],
+export const THEMATIC_THEMES: ReadonlyArray<readonly [string, string, ReadonlyArray<'FR' | 'EN'>, string[]]> = [
+  ['eco', 'Actualités Eco', ['FR', 'EN'], ['Économie', 'Finance']],
+  ['sport', 'Sports', ['FR', 'EN'], ['Sports']],
+  ['news', 'News', ['FR', 'EN'], ['News', 'Actualités']],
 ];
-export const THEMATIC_WIDGETS: readonly WidgetDef[] = THEMATIC_THEMES.flatMap(([t, l, tags]) =>
-  (['FR', 'EN'] as const).map((lang) => ({ id: `${t}_${lang.toLowerCase()}`, g: '◉', n: `${l} ${lang}`, cat: 'Thématique', apiCard: true, tags, group: 'thematic' as const, theme: l, lang })),
-);
+export const THEMATIC_WIDGETS: readonly WidgetDef[] = [
+  ...THEMATIC_THEMES.flatMap(([t, l, langs, tags]) =>
+    langs.map((lang) => ({ id: `${t}_${lang.toLowerCase()}`, g: '◉', n: `${l} ${lang}`, cat: 'Thématique', apiCard: true, tags, group: 'thematic' as const, theme: l, lang })),
+  ),
+  { id: 'sport_us', g: '◉', n: 'Sport US', cat: 'Thématique', apiCard: true, tags: ['Sports'], group: 'thematic', theme: 'Sport US', lang: 'EN' },
+];
 /** Catalogue servi au registre (`GET /api/admin/widgets`) : widgets du tableau de bord, puis widgets thématiques. */
 export const REGISTRY_WIDGETS: readonly WidgetDef[] = [...WIDGET_CATALOGUE, ...THEMATIC_WIDGETS];
 

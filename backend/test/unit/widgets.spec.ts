@@ -27,7 +27,8 @@ describe('Catalogue des widgets (registre des cartes API v3c)', () => {
     expect(widgetId(null)).toBeNull();
     expect(widgetName('ai')).toBe('L’essentiel, par Jev');
     expect(widgetName('xyz')).toBe('xyz');
-    expect(widgetName('tech_en')).toBe('Tech EN');
+    expect(widgetName('eco_en')).toBe('Actualités Eco EN');
+    expect(widgetName('sport_us')).toBe('Sport US');
     // Widgets d'une carte enregistrés sous d'anciens libellés (jeu de démonstration) : identifiants, sans doublon.
     expect(cardWidgets(['Actualités', 'news', 'Météo · ville', 'eco_fr'])).toEqual(['news', 'meteo', 'eco_fr']);
   });

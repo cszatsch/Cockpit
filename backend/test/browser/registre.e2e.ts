@@ -25,7 +25,7 @@ const RAW: Array<[string, string, string, string, number, number | null, string 
   ['gnews', 'GNews', 'Actualités', 'https://gnews.io/api/v4/top-headlines?lang=fr', 325, 5, '28/02/27', 'news_fr eco_fr'],
   ['monde', 'Le Monde', 'Actualités', 'https://www.lemonde.fr/rss/une.xml', 33, null, null, 'news_fr'],
   ['equipe', 'L’Équipe', 'Actualités', 'https://dwh.lequipe.fr/api/edito/rss', 33, null, null, 'sport_fr'],
-  ['newsdata', 'NewsData.io', 'Actualités', 'https://newsdata.io/api/1/latest?country=fr', 418, 2, '28/02/27', 'tech_fr'],
+  ['newsdata', 'NewsData.io', 'Actualités', 'https://newsdata.io/api/1/latest?country=fr', 418, 2, '28/02/27', 'news_fr'],
   ['reuters', 'Reuters', 'Actualités', 'https://www.reuters.com/arc/outboundfeeds/rss/', 88, null, null, 'news_en eco_en'],
   ['guardian', 'The Guardian', 'Actualités', 'https://content.guardianapis.com/search', 142, 12, '15/01/27', 'news_en'],
   ['franceinfo', 'France Info', 'Actualités', 'https://www.francetvinfo.fr/titres.rss', 52, null, null, 'news_fr news'],
@@ -52,12 +52,12 @@ const RAW: Array<[string, string, string, string, number, number | null, string 
   ['waze', 'Waze Partner', 'Trafic', 'https://www.waze.com/partnerhub-api/feeds', 241, null, '31/08/27', ''],
   ['jina', 'Jina Reader', 'Stratégie', 'https://r.jina.ai/', 220, null, '30/06/27', ''],
   ['statista', 'Statista', 'Stratégie', 'https://api.statista.com/v1/statistics', 288, 35, '31/12/26', 'eco_fr'],
-  ['gartner', 'Gartner Feed', 'Stratégie', 'https://www.gartner.com/en/newsroom/rss', 134, null, null, 'tech_en'],
+  ['gartner', 'Gartner Feed', 'Stratégie', 'https://www.gartner.com/en/newsroom/rss', 134, null, null, 'sport_us'],
   ['mck', 'McKinsey Insights', 'Stratégie', 'https://www.mckinsey.com/insights/rss', 117, null, null, ''],
-  ['tc', 'TechCrunch', 'Tech', 'https://techcrunch.com/feed/', 59, null, null, 'tech_en'],
-  ['verge', 'The Verge', 'Tech', 'https://www.theverge.com/rss/index.xml', 63, null, null, 'tech_en'],
-  ['hn', 'Hacker News', 'Tech', 'https://hacker-news.firebaseio.com/v0/topstories.json', 47, null, null, 'tech_en'],
-  ['01net', '01net', 'Tech', 'https://www.01net.com/actualites/feed/', 81, null, null, 'tech_fr'],
+  ['tc', 'TechCrunch', 'Tech', 'https://techcrunch.com/feed/', 59, null, null, 'sport_us'],
+  ['verge', 'The Verge', 'Tech', 'https://www.theverge.com/rss/index.xml', 63, null, null, 'sport_us'],
+  ['hn', 'Hacker News', 'Tech', 'https://hacker-news.firebaseio.com/v0/topstories.json', 47, null, null, 'sport_us'],
+  ['01net', '01net', 'Tech', 'https://www.01net.com/actualites/feed/', 81, null, null, 'news_fr'],
   ['espn', 'ESPN', 'Sports', 'https://site.api.espn.com/apis/site/v2/sports/soccer/news', 153, null, null, 'sport_en'],
   ['bbcsport', 'BBC Sport', 'Sports', 'https://feeds.bbci.co.uk/sport/rss.xml', 44, null, null, 'sport_en'],
   ['rmc', 'RMC Sport', 'Sports', 'https://rmcsport.bfmtv.com/rss/info/flux-rss/', 69, null, null, 'sport_fr'],
@@ -171,12 +171,12 @@ async function main() {
     await openRegistry(page);
     s = await state(page);
     const real = s.sel!;
-    await page.locator('[data-widget="tech_en"]').click();
+    await page.locator('[data-widget="sport_us"]').click();
     await page.waitForTimeout(1500);
-    const pressed = await page.locator('[data-widget="tech_en"]').getAttribute('aria-pressed');
-    await page.locator('[data-widget="tech_en"]').click();
+    const pressed = await page.locator('[data-widget="sport_us"]').getAttribute('aria-pressed');
+    await page.locator('[data-widget="sport_us"]').click();
     await page.waitForTimeout(1500);
-    check('7. vraie carte : widget « Tech EN » associé puis dissocié (enregistré)', pressed === 'true' && (await page.locator('[data-widget="tech_en"]').getAttribute('aria-pressed')) === 'false', real);
+    check('7. vraie carte : widget « Sport US » associé puis dissocié (enregistré)', pressed === 'true' && (await page.locator('[data-widget="sport_us"]').getAttribute('aria-pressed')) === 'false', real);
 
     await page.getByRole('button', { name: 'Modifier' }).click();
     await page.getByRole('textbox', { name: 'Nom de la carte' }).fill('');

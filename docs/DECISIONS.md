@@ -2503,3 +2503,21 @@ Brief du commanditaire : reproduire la maquette avec les vraies données et les 
   corrigé (`news`, `meteo`).
 - Recette `test/browser/registre.e2e.ts` (40 cartes fictives injectées dans la réponse de liste, puis vraies cartes de
   la base de test) : 17 / 17. Banc navigateur : Edge quand le Chromium de Playwright n'est pas téléchargé (Windows).
+
+## Cartes API et widgets thématiques (consigne du commanditaire, 15/10/2026)
+
+- Cartes gardées (captures du commanditaire) : BBC News, GNews, Le Monde, L'Équipe, NewsData.io, Open-Meteo ·
+  géocodage, Open-Meteo · prévisions, TomTom · Itinéraire, Finnhub, JEV ; toute autre carte est une carte de
+  démonstration, supprimée. Catalogue `prisma/catalog/api-cartes.ts` (`CATALOG_KEEP`, `CATALOG_CARDS`), appliqué par
+  `npm run cartes:catalogue -- --confirmer` (simulation sans l'option ; journal d'audit, acteur « Catalogue des cartes
+  API »). Jeu de démonstration (amorçage) inchangé : ses 5 cartes font partie des cartes gardées.
+- 12 flux RSS créés sans clé (adresses vérifiées le 15/10/2026, toutes en 200 avec des articles) : Financial Times –
+  Global economy, Fortune, CNBC – Top news, Wall Street Journal – Economy (Actualités Eco EN) ; Franceinfo –
+  Entreprises, Le Monde – Entreprise, Le Figaro – Économie (Actualités Eco FR) ; Franceinfo – Titres (News FR, avec Le
+  Monde) ; New York Times – Home, NBC News (News EN) ; ESPN – Top news, CBS Sports – Headlines (Sport US). L'Équipe
+  alimente Sports FR. Sports EN : aucune source donnée.
+- Tags des nouveaux flux : Économie, News, Sports. Hypothèse : pas « Actualités » ni « Finance », car la tuile
+  Actualité du Cockpit agrège toutes les cartes de sa catégorie (`GET /api/widgets/news`) — elle aurait mêlé ces
+  12 flux à ses sources actuelles.
+- Widgets thématiques : Actualités Eco FR / EN, Sports FR / EN, News FR / EN, Sport US (`sport_us`, une seule
+  langue : colonne EN de la matrice) ; Tech retiré (`THEMATIC_WIDGETS`). Toujours non affichés dans le Cockpit.

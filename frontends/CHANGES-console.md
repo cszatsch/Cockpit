@@ -870,3 +870,5 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
   `admin-api.js` : rappels du registre rejetés avec le message lisible en cas de refus (le composant rétablit l'état
   d'avant et l'affiche, plus de message de la Console en double), suppression envoyée après 4 s (`AP_UNDO_MS`, 5 s
   avant), `toCard` ajoute `err`.
+- Registre des cartes API (15/10/2026, consigne du commanditaire) : matrice des widgets thématiques lue du serveur —
+  Actualités Eco, Sports, News (FR / EN) et Sport US (EN seul, case FR vide) ; Tech retiré. Aucun changement du composant.
