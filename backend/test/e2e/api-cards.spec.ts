@@ -162,6 +162,13 @@ describe('Console — registre des cartes API', () => {
     expect(Object.fromEntries(all.body.sources.map((x: any) => [x.id, x.ok]))).toEqual({ 'rss-bbc': true, 'rss-lequipe': false, 'rss-le-monde': true });
     // Une carte JSON n'est pas un flux.
     expect((await pmo.get('/api/widgets/feeds/open-meteo').expect(502)).body.code).toBe('NOT_A_FEED');
+    // Tuile Actualités du Cockpit (15/10/2026) : seuls les flux associés au widget thématique ; widget inconnu refusé.
+    await admin.put(`${AC}/rss-le-monde/widgets`, { ids: ['news', 'news_fr'] }).expect(200);
+    const th = await pmo.get('/api/widgets/feeds?widget=news_fr&limit=30').expect(200);
+    expect(th.body.items.map((i: any) => i.source + ' · ' + i.title)).toEqual(['Le Monde · Titre LM']);
+    expect(th.body.sources.map((x: any) => x.id)).toEqual(['rss-le-monde']);
+    expect((await pmo.get('/api/widgets/feeds?widget=sport_en').expect(200)).body).toEqual({ items: [], sources: [] });
+    expect((await pmo.get('/api/widgets/feeds?widget=meteo').expect(422)).body.fields.widget).toContain('sport_us');
   });
 
   it('actualités agrégées : GNews, NewsData.io, Finnhub et flux RSS ramenés à une même forme ; économie à part', async () => {

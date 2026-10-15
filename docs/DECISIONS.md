@@ -2520,4 +2520,11 @@ Brief du commanditaire : reproduire la maquette avec les vraies données et les 
   Actualité du Cockpit agrège toutes les cartes de sa catégorie (`GET /api/widgets/news`) — elle aurait mêlé ces
   12 flux à ses sources actuelles.
 - Widgets thématiques : Actualités Eco FR / EN, Sports FR / EN, News FR / EN, Sport US (`sport_us`, une seule
-  langue : colonne EN de la matrice) ; Tech retiré (`THEMATIC_WIDGETS`). Toujours non affichés dans le Cockpit.
+  langue : colonne EN de la matrice) ; Tech retiré (`THEMATIC_WIDGETS`).
+- Tuiles du Cockpit (même jour, demande du commanditaire) : une tuile par widget thématique, catégorie « Actualités »
+  de la bibliothèque du tableau de bord (taille 2 × 2, lecture éditoriale de la tuile Actualité : titre principal et fil
+  horodaté, article ouvert au clic). Données : `GET /api/widgets/feeds?widget=<id>` (flux actifs associés au widget ;
+  identifiant non thématique refusé, 422). Hypothèse : sources alternées dans la tuile (`TH_FETCH` = 30 articles lus,
+  `TH_ITEMS` = 6 montrés, un par source à tour de rôle) pour qu'un flux très actif n'occupe pas toute la tuile ; source
+  affichée = nom de la carte avant « – ». Widget sans flux associé : « Aucun flux associé à ce widget dans le Registre
+  des cartes API ». Les tuiles ne sont pas dans les dispositions proposées : chacun les ajoute par « Personnaliser ».

@@ -10,7 +10,7 @@ import { ApiError, businessRule, conflict, notFound } from '../core/errors';
 import { parse } from '../core/http';
 import { PrismaService } from '../core/prisma.service';
 import { API_AUTH_MODES, API_CALL_TIMEOUT_MAX_MS, API_CARD_NAME_MAX, API_CARD_TAG_MAX, API_KEY_MIN_LENGTH, API_METHODS, bodyError, endpointError } from '../domain/api-cards';
-import { API_WIDGET_IDS, REGISTRY_WIDGETS, WIDGET_IDS, cardWidgets, widgetName } from '../domain/widgets';
+import { API_WIDGET_IDS, REGISTRY_WIDGETS, THEMATIC_WIDGETS, WIDGET_IDS, cardWidgets, widgetName } from '../domain/widgets';
 import { ApiCardsService } from './api-cards.service';
 import { FEED_ITEMS_DEFAULT, FEED_ITEMS_MAX, isFeed, mergeFeeds, parseFeed } from '../domain/rss';
 import { parseNews } from '../domain/news';
@@ -278,11 +278,15 @@ export class WidgetFeedsController {
     private readonly cards: ApiCardsService,
   ) {}
 
-  /** Tous les flux actifs (ou ceux de `cards=id1,id2`), `limit` articles au plus (10 par défaut, 50 au plus). */
+  /**
+   * Tous les flux actifs (ou ceux de `cards=id1,id2`, ou ceux qui alimentent le widget thématique `widget=eco_fr`, tuiles
+   * Actualités du Cockpit, 15/10/2026), `limit` articles au plus (10 par défaut, 50 au plus).
+   */
   @Get()
-  async all(@Query('cards') ids: string | undefined, @Query('limit') limit: string | undefined, @Req() req: Request) {
-    const list = await this.prisma.apiCard.findMany({ where: { feed: true, enabled: true, ...(ids ? { id: { in: ids.split(',').map((x) => x.trim()) } } : {}) }, orderBy: { name: 'asc' } });
-    const widget = String(req.headers['x-rise-widget'] ?? '').slice(0, 60) || null;
+  async all(@Query('cards') ids: string | undefined, @Query('limit') limit: string | undefined, @Query('widget') wid: string | undefined, @Req() req: Request) {
+    if (wid !== undefined && !THEMATIC_WIDGETS.some((w) => w.id === wid)) throw businessRule('Widget inconnu', { widget: THEMATIC_WIDGETS.map((w) => w.id).join(', ') });
+    const list = await this.prisma.apiCard.findMany({ where: { feed: true, enabled: true, ...(ids ? { id: { in: ids.split(',').map((x) => x.trim()) } } : {}), ...(wid ? { widgets: { has: wid } } : {}) }, orderBy: { name: 'asc' } });
+    const widget = String(req.headers['x-rise-widget'] ?? '').slice(0, 60) || wid || null;
     const read = await Promise.all(list.map(async (c) => {
       try {
         return { card: c, feed: await this.read(c.id, widget), error: null as string | null };

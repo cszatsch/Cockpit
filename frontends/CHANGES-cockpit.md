@@ -724,3 +724,8 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
   l'utilisateur a des documents consultables (`docsSuggest` de `POST /assistant/messages`), une suggestion repose la
   question en données et documents (« Cherche dans les documents : … », champ `searchDocs`, cas 4b). `api.js` ajoute la
   suggestion ; l'écran l'envoie par `jevSendText(texte, { docs: true })` (suggestion objet `{ label, send, docs }`).
+- Tableau de bord (15/10/2026, demande du commanditaire) : 7 tuiles « Actualités » — Actualités Eco FR / EN, News FR /
+  EN, Sports FR / EN, Sport US — une par widget thématique du Registre des cartes API (`thW` dans `RISE Cockpit.dc.html`,
+  catégorie « Actualités » de la bibliothèque, icône comme Décisions). Même visualisation éditoriale que l'Actualité
+  (`feedViz`, factorisée depuis la tuile Actualité, inchangée pour elle). `api.js` : une lecture par widget
+  (`GET /widgets/feeds?widget=…`, `TH_WIDGETS`, `TH_FETCH`, `TH_ITEMS`), sources alternées, `dbExt.th` / `dbExt.thErr`.

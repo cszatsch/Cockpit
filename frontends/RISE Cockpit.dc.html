@@ -4142,6 +4142,10 @@ class Component extends DCLogic {
     const critN = (d.risks || []).filter(r => r.p * r.i >= 20).length, RS = d.riskStats || {}, now = new Date();
     const aiHead = glIso ? 'Go-Live prévu le ' + this.frShortIso(glIso) + (dGL != null ? ' (' + (dGL >= 0 ? 'J-' + dGL : 'J+' + (-dGL)) + ')' : '') + (avR != null ? ' · avancement ' + avR + ' % pour ' + avP + ' % prévu à date' : '') + '.' : 'Date de Go-Live non définie dans le planning.';
     const aiN = PRL.length + (d.milestones || []).length + (d.risks || []).length + decs.length;
+    // Tuiles Actualités (15/10/2026) : titres des flux RSS associés au widget thématique dans le Registre des cartes API
+    // (`GET /api/widgets/feeds?widget=…`, chargés par api.js dans `dbExt.th`) ; même lecture éditoriale que l'Actualité.
+    const thW = id => { const L = (EX.th || {})[id]; return { size: [2, 2], type: 'list', g: '◉', fmt: 'Liste de titres', data: 'Flux RSS associés à ce widget dans le Registre des cartes API, titres récents',
+      rows: (L || []).slice(0, 6).map(x => ({ a: x.src, aS: tag('#eef1f6', '#10233a'), t: x.t, r: x.d, rS: rt('#8a9aa6') })).concat(L && L.length ? [] : [{ a: '…', aS: tag('#f1f5f4', '#8a9aa6'), t: L ? 'Aucun flux associé à ce widget dans le Registre des cartes API' : (EX.thErr || {})[id] ? 'Actualités indisponibles (connexion requise)' : 'Chargement des titres…', r: '', rS: rt('#8a9aa6') }]) }; };
     const W = [
       { id: 'ai', name: 'L’essentiel, par Jev', cat: 'Synthèse', size: [2, 2], type: 'ai', g: '✦', fmt: 'Tuile rédigée par l’IA', q: 'Où en est le projet, en trente secondes ?', data: 'Planning, jalons, livrables, risques, problèmes, décisions, fiches d’arbitrage, actions, COPIL',
         ai: { at: 'à jour · ' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0'), head: aiHead, src: 'Calculé à partir de 4 modules (avancement, jalons, risques, décisions) · ' + aiN + ' éléments',
@@ -4171,8 +4175,15 @@ class Component extends DCLogic {
         return { lbl: 'Météo · ' + (EX.city || '…'), t: wx ? wx.t + '°' : '—', sub: wx ? wx.lbl + ' · ' + wx.min + '° / ' + wx.max + '°' : (EX.wxErr ? 'Météo indisponible' : 'Chargement…'), rise: wx ? '↑ ' + hm(wx.rise) : '', set: wx ? hm(wx.set) + ' ↓' : '', arc: f != null && f > 0 ? 'M8 84 A124 76 0 0 1 ' + x + ' ' + y : 'M8 84', cx: x, cy: y, dot: f == null ? '0' : day ? '1' : '.45' }; })(), type0: 'kpi', g: '☀', fmt: 'Tuile KPI', q: 'Quel temps fait-il sur le site du projet ?', data: 'Référentiel Projet (ville, pays) · service météo Open-Meteo', k: EX.wx ? { v: EX.wx.t + '°', u: EX.wx.lbl, sub: EX.city + ', ' + EX.country + ' · max ' + EX.wx.max + '° / min ' + EX.wx.min + '°', c: '#10233a' } : { v: '—', u: '', sub: EX.wxErr ? 'Météo indisponible pour ' + (EX.city || 'la ville du projet') : 'Chargement de la météo…', c: '#a3b0b9' } },
       { id: 'trafic', name: 'Trafic · ' + (EX.city || 'site du projet'), cat: 'Contexte', size: [1, 1], type: 'route', g: '⇅', fmt: 'Tuile trajet', q: 'Combien de temps pour rejoindre le site, ou pour en revenir ?', data: 'Référentiel Projet (ville du projet), ville du profil · TomTom Routing (carte « tomtom-routing »), géocodage Open-Meteo', rt: (() => { const back = EX.trDir === 'back', c = EX.city || 'Site', home = (EX.home ?? this.state.profCity ?? 'Paris') || 'Domicile', leg = EX.tr ? (back ? EX.tr.back : EX.tr.go) : null, dur = m => m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + String(m % 60).padStart(2, '0'); return { from: back ? c : home, to: back ? home : c, t: leg ? dur(leg.min) : EX.trErr ? '—' : '…', d: leg ? (leg.delay > 0 ? '+' + leg.delay + ' min' : 'Trafic fluide') : EX.trErr ? 'Trafic indisponible' : 'Calcul du trajet…', rot: 'transition:transform .3s;transform:rotate(' + (back ? 180 : 0) + 'deg)', swap: e => { e.stopPropagation(); this.setState(s => ({ dbExt: { ...(s.dbExt || {}), trDir: back ? 'go' : 'back' } })); } }; })() },
       { id: 'news', name: 'Actualité', cat: 'Contexte', size: [2, 2], type: 'list', g: '◉', fmt: 'Liste de titres', q: 'Quels sont les faits marquants de l’actualité ?', data: 'Cartes d’actualité du Registre (GNews, NewsData.io, flux RSS), titres récents', rows: (EX.news || []).slice(0, 6).map(x => ({ a: x.src, aS: tag('#eef1f6', '#10233a'), t: x.t, r: x.d, rS: rt('#8a9aa6') })).concat(EX.news ? [] : [{ a: '…', aS: tag('#f1f5f4', '#8a9aa6'), t: EX.newsErr ? 'Actualité indisponible (connexion requise)' : 'Chargement des titres…', r: '', rS: rt('#8a9aa6') }]) },
+      { id: 'eco_fr', name: 'Actualités Eco FR', cat: 'Actualités', ...thW('eco_fr'), q: 'Que retient la presse économique française ?' },
+      { id: 'eco_en', name: 'Actualités Eco EN', cat: 'Actualités', ...thW('eco_en'), q: 'Que retient la presse économique anglophone ?' },
+      { id: 'news_fr', name: 'News FR', cat: 'Actualités', ...thW('news_fr'), q: 'Quels sont les titres de l’actualité française ?' },
+      { id: 'news_en', name: 'News EN', cat: 'Actualités', ...thW('news_en'), q: 'Quels sont les titres de l’actualité internationale ?' },
+      { id: 'sport_fr', name: 'Sports FR', cat: 'Actualités', ...thW('sport_fr'), q: 'Quelles sont les nouvelles du sport en France ?' },
+      { id: 'sport_en', name: 'Sports EN', cat: 'Actualités', ...thW('sport_en'), q: 'Quelles sont les nouvelles du sport dans le monde ?' },
+      { id: 'sport_us', name: 'Sport US', cat: 'Actualités', ...thW('sport_us'), q: 'Quelles sont les nouvelles du sport américain ?' },
     ];
-    const ICO = { Synthèse: ['#10233a', '#fff'], Planning: ['#e6f3f2', '#0f5f5a'], Jalons: ['#fff3dc', '#8a5a12'], Chantiers: ['#e6f3f2', '#0f5f5a'], Risques: ['#fbecea', '#c2473b'], Décisions: ['#eef1f6', '#10233a'], Comités: ['#eef1f6', '#10233a'], Actions: ['#f1f5f4', '#43586a'], Personnel: ['#f1f5f4', '#43586a'], Livrables: ['#fff3dc', '#8a5a12'], Équipes: ['#e6f3f2', '#0f5f5a'], Qualité: ['#fbecea', '#c2473b'], Documents: ['#eef1f6', '#10233a'], Contexte: ['#e6f3f2', '#0f5f5a'] };
+    const ICO = { Synthèse: ['#10233a', '#fff'], Planning: ['#e6f3f2', '#0f5f5a'], Jalons: ['#fff3dc', '#8a5a12'], Chantiers: ['#e6f3f2', '#0f5f5a'], Risques: ['#fbecea', '#c2473b'], Décisions: ['#eef1f6', '#10233a'], Comités: ['#eef1f6', '#10233a'], Actions: ['#f1f5f4', '#43586a'], Personnel: ['#f1f5f4', '#43586a'], Livrables: ['#fff3dc', '#8a5a12'], Équipes: ['#e6f3f2', '#0f5f5a'], Qualité: ['#fbecea', '#c2473b'], Documents: ['#eef1f6', '#10233a'], Contexte: ['#e6f3f2', '#0f5f5a'], Actualités: ['#eef1f6', '#10233a'] };
     // ── Visualisations propres à chaque widget (refonte 01/10/2026) : chaque liste devient une forme lisible d'un coup d'œil. ──
     const pName = id => ((d.people || []).find(p => p.id === id) || {}).name || '';
     const ini = n => String(n || '').split(/[\s-]+/).filter(Boolean).map(x => x[0]).join('').slice(0, 2).toUpperCase() || '·';
@@ -4202,13 +4213,16 @@ class Component extends DCLogic {
       VIZ.ech = { viz: 'strip', meta: types.map(k => K[k][0] + ' ' + k.toLowerCase()).join('   '), sp: { days, next: byDay, none: !EV.length } };
     })();
     // Actualité : une éditoriale — le titre principal à gauche, le fil horodaté des suivants à droite ; source en couleur, article ouvert au clic.
-    (() => { const N = EX.news || []; if (!N.length) return; const PAL = ['#c2473b', '#1d6fa5', '#8a5a12', '#1d8f86', '#6d4fa3'], srcC = s => PAL[[...String(s)].reduce((a, ch) => a + ch.charCodeAt(0), 0) % PAL.length];
+    // Tuiles Actualités : même lecture, une par widget thématique (dbExt.th).
+    (() => { const feedViz = N => { const PAL = ['#c2473b', '#1d6fa5', '#8a5a12', '#1d8f86', '#6d4fa3'], srcC = s => PAL[[...String(s)].reduce((a, ch) => a + ch.charCodeAt(0), 0) % PAL.length];
       const mins = it => it.iso ? Math.round((Date.now() - new Date(it.iso)) / 6e4) : null;
       const ago = it => { const m = mins(it); return m == null ? it.d || '' : m < 1 ? 'à l’instant' : m < 60 ? m + ' min' : m < 24 * 60 ? Math.round(m / 60) + ' h' : it.d; };
       const item = it => { const col = srcC(it.src), m = mins(it); return { t: it.t, src: it.src, when: ago(it), whenL: m != null && m < 24 * 60 ? (m < 1 ? 'à l’instant' : 'il y a ' + ago(it)) : ago(it), href: it.url || '#', go: e => { if (!it.url) e.preventDefault(); e.stopPropagation(); },
         ruleS: 'width:26px;height:3px;border-radius:2px;background:' + col, dotS: 'position:absolute;left:-4px;top:4px;width:7px;height:7px;border-radius:50%;background:' + col + ';box-shadow:0 0 0 3px var(--wbg,#fff)',
         srcS: 'font-size:9.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:' + col + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis', goS: 'font-size:11px;font-weight:800;color:' + col }; };
-      VIZ.news = { viz: 'feed', fd: { lead: item(N[0]), rest: N.slice(1, 6).map(item) } };
+      return { viz: 'feed', fd: { lead: item(N[0]), rest: N.slice(1, 6).map(item) } }; };
+      if ((EX.news || []).length) VIZ.news = feedViz(EX.news);
+      Object.entries(EX.th || {}).forEach(([id, L]) => { if (L && L.length) VIZ[id] = feedViz(L); });
     })();
     // Documents récents : icône de fichier teintée par format, titre sur deux lignes, type · version · date · pages ; composition de la base en pied.
     (() => { const F = { PDF: '#b23a2e', PPTX: '#c2560f', XLSX: '#1f7a4a', DOCX: '#2c5aa0' }, D0 = d.documents || [], fc = f => F[f] || '#5c7280';
