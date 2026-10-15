@@ -284,7 +284,7 @@ Chaque widget répond à une question. La couleur ne porte qu'un statut : bleu n
 | Widget | Question | Ce qu'il affiche |
 |---|---|---|
 | L'essentiel, par Jev (2 × 2) | Où en est le projet, en trente secondes ? | Trois chiffres (J-n avant le Go-Live, avancement réel, écart au prévu), puis cinq rubriques : Avancement, Retards, Risques, Décisions, Échéances |
-| Compte à rebours Go-Live (1 × 1) | Combien de temps reste-t-il avant la bascule ? | J-n, semaines et jours ouvrés restants, frise du début du projet au Go-Live avec la part du temps écoulé |
+| Compte à rebours Go-Live (1 × 1) | Combien de temps reste-t-il avant la bascule ? | « J−n » (ou jours ouvrés), puis HH:MM:SS sous le seuil choisi (48 h par défaut), « Jour J » le jour de la bascule, « J+n depuis la bascule » ensuite. Une mèche au bas de la tuile se consume du début de la première phase jusqu'à la date cible. Date cible : le Go-Live du projet (date prévisionnelle, sinon jalon « Go-Live »), à 08:00 ; sans date : « Go-Live · date non définie ». Réglages : voir ci-dessous |
 | Avancement vs référence (1 × 1) | Le projet avance-t-il au rythme prévu ? | Avancement réel du projet et écart en points au prévu à date, sur un anneau (phases du planning, pondérées par leur durée) |
 | Prochains jalons (2 × 1) | Quelles sont les prochaines échéances et glissent-elles ? | Les 3 prochains jalons sur une ligne : jours entre deux étapes, date, nom, « à l'heure » ou « +n j de glissement » |
 | Chemin critique (2 × 1) | Quelles tâches conditionnent la date de fin ? | Les 4 premières sous-phases critiques en barres : grises si terminées, rouges en cours, bleu nuit à venir |
@@ -352,6 +352,13 @@ Chaque widget répond à une question. La couleur ne porte qu'un statut : bleu n
 - La disposition et les couleurs sont enregistrées pour votre compte, sur le serveur, à chaque changement. Vous les retrouvez sur un autre poste.
 - La taille d'un widget n'est pas modifiable.
 
+**Régler le compte à rebours.** Au survol de la tuile, le bouton à curseurs (à gauche du bouton de thème) ouvre la fenêtre « Compte à rebours », avec un aperçu en direct. Vos réglages valent pour vous seul et pour le projet ouvert :
+
+- **Message** : titre, événement (par défaut le nom du jalon Go-Live), date et heure cibles (date vide : Go-Live du projet ; bouton **Auto** pour y revenir), début de la mèche (vide : début de la première phase), message du jour J (« bascule aujourd'hui »), message sans date ;
+- **Affichage** : unité (jours calendaires ou jours ouvrés, du lundi au vendredi, strictement entre aujourd'hui et la date cible), thème (sombre ou clair, comme le bouton de thème de la tuile), accent (4 couleurs), décompte à la seconde (48 h, 24 h ou aucun).
+
+**Réglages par défaut** rétablit les valeurs d'origine. Un clic sur la tuile ouvre Pilotage › Jalons ; une modification de la date du Go-Live met la tuile à jour sans recharger la page. Les dates s'entendent à l'heure de votre ordinateur.
+
 ## 3.4 Aujourd'hui : incohérences et échéances
 
 Ces deux vues s'ouvrent depuis les widgets **Incohérences à traiter** et **Échéances des 15 prochains jours**. Pour revenir au tableau de bord, cliquez sur **Aujourd'hui** dans la barre latérale.
@@ -362,7 +369,8 @@ Ces deux vues s'ouvrent depuis les widgets **Incohérences à traiter** et **Éc
   - **Blocages** : risque critique sans plan de mitigation, jalon à venir non confirmé depuis plus de 14 jours, action échue ;
   - **Avertissements** : jalon à venir non confirmé depuis 8 à 14 jours, budget programme non renseigné, modifications du projet depuis la capture du dernier rapport.
 - Filtres **Toutes**, **Blocages**, **Avertissements** (avec leur nombre).
-- Chaque ligne indique le responsable et l'action proposée : **Qualifier** (Pilotage › Risques et problèmes), **Confirmer** (Pilotage › Jalons, la ligne du jalon est mise en évidence), **Relancer** (Pilotage › Actions), **Régénérer** (Comités et rapports › Générer un rapport). Le budget n'a pas d'écran de saisie : pas de bouton.
+- Chaque ligne indique le responsable et un bouton qui ouvre l'objet concerné, sans rien modifier ni envoyer : **Ouvrir le risque** (Pilotage › Risques et problèmes), **Ouvrir le jalon** (Pilotage › Jalons, la ligne du jalon est mise en évidence), **Ouvrir l'action** (Pilotage › Actions, filtres levés, la ligne de l'action est mise en évidence), **Générer un rapport** (Comités et rapports). Le budget n'a pas d'écran de saisie : pas de bouton.
+- Pour faire disparaître une incohérence, traitez l'objet : un jalon se confirme en renseignant sa **Confirmation métier** (date du jour) dans Pilotage › Jalons ; une action échue se termine ou se replanifie dans Pilotage › Actions ; un risque critique reçoit un plan de mitigation.
 - Un Responsable ou un Lecteur ne voit que les incohérences de ses chantiers.
 - L'ancien onglet **Écarts** (écarts planning et d'avancement, santé calculée) a été retiré le 15/10/2026 : les écarts des jalons sont dans Pilotage › Jalons, l'avancement dans Pilotage › Planning.
 

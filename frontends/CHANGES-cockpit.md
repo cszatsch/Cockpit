@@ -814,3 +814,10 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 - Aujourd'hui › Incohérences (15/10/2026) : nouvel onglet à la place d'« Écarts » (bloc HTML remplacé, `vTodayInc`,
   `incVals`, `INC0`, filtre `incF`) ; la tuile « Incohérences à traiter » et `goQualite` y mènent ; description de la tuile
   alignée sur les contrôles réels ; `gapRows` / `wsGapRows` supprimés.
+- Compte à rebours Go-Live (16/10/2026, maquette « Mèche ») : nouveau composant `Compte a rebours.dc.html` ; tuile
+  `golive` de type `countdown` (`cdProps`, `cdAuto`, `cdMine`, `CD_DEFAULT`), sans l'ancienne frise (`VIZ.golive`
+  ignorée) ; fenêtre « Compte à rebours » (`cdOpen`, `cdVals`, aperçu en direct) ouverte par un bouton au survol
+  (`cfgSt`, `cfgOn`) ; préférence `dbCountdown` → `countdown` (`api.js`, `PREF_OF`). `Widget.dc.html` : bloc `isMeche`
+  qui importe le composant.
+- Aujourd'hui › Incohérences (16/10/2026, solution 2) : boutons « Ouvrir le jalon / l'action / le risque » (`incCta`),
+  aussi dans la tuile ; action mise en évidence dans Pilotage › Actions (`acFocus`, `acHi`, `data-ac-row`, `rowSt`).

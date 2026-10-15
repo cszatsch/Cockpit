@@ -25,6 +25,10 @@
   <sc-if value="{{ w.isClock }}" hint-placeholder-val="{{ false }}">
     <div style="position:absolute;inset:0;overflow:hidden;border-radius:inherit"><dc-import name="Horloge mondiale" cities="{{ w.clock.cities }}" show-seconds="{{ w.clock.showSeconds }}" hint-size="100%,100%" style="width:100%;height:100%"></dc-import></div>
   </sc-if>
+  <!-- Compte à rebours Go-Live (16/10/2026, maquette « Mèche ») : composant à part, qui recouvre toute la tuile et se met à jour seul chaque seconde. -->
+  <sc-if value="{{ w.isMeche }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;inset:0;overflow:hidden;border-radius:inherit"><dc-import name="Compte a rebours" title="{{ w.cd.title }}" event-label="{{ w.cd.eventLabel }}" target-date="{{ w.cd.targetDate }}" target-time="{{ w.cd.targetTime }}" start-date="{{ w.cd.startDate }}" day-message="{{ w.cd.dayMessage }}" empty-message="{{ w.cd.emptyMessage }}" unit="{{ w.cd.unit }}" theme="{{ w.cd.theme }}" accent="{{ w.cd.accent }}" seconds-threshold="{{ w.cd.secondsThreshold }}" hint-size="100%,100%" style="width:100%;height:100%"></dc-import></div>
+  </sc-if>
   <sc-if value="{{ w.isRoute }}" hint-placeholder-val="{{ false }}">
     <div style="position:absolute;inset:0;overflow:hidden;border-radius:inherit;{{ w.thBg2 }}"><div style="position:absolute;inset:0;color:#fff;padding:16px 18px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;{{ w.thF }}">
       <div style="display:flex;flex-direction:column;gap:8px;min-width:0">

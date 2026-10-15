@@ -161,7 +161,7 @@ const ROUTE = { CLIENT: 'clients', WAVE: 'waves', PHASE: 'phases', SUBPHASE: 'su
 /** Magasins de contenu libre de la fiche projet, persistés en sections (`PATCH /project/sections/ui.<nom>`, DECISIONS Q8). */
 const SECTION_STORES = ['projEd', 'goliveEd', 'goliveDate', 'chronoEd'];
 /** Préférences de l'utilisateur (`PATCH /api/me/preferences`). */
-const PREF_OF = { dbL: 'dashboardLayout', dbInv: 'theme', dbClock: 'worldClock', profFirst: 'firstName', profCity: 'city', profPhotoUrl: 'photoUrl', profNotif: 'notifications', profPhone: 'phone', profCountry: 'country', profLang: 'language', profTz: 'timezone' };
+const PREF_OF = { dbL: 'dashboardLayout', dbInv: 'theme', dbClock: 'worldClock', dbCountdown: 'countdown', profFirst: 'firstName', profCity: 'city', profPhotoUrl: 'photoUrl', profNotif: 'notifications', profPhone: 'phone', profCountry: 'country', profLang: 'language', profTz: 'timezone' };
 
 const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[’']/g, "'").replace(/\s+/g, ' ').trim();
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
@@ -370,6 +370,8 @@ export function attach(comp) {
       if (pf.theme && typeof pf.theme === 'object') st.dbInv = pf.theme;
       // Horloge mondiale (15/10/2026) : villes choisies par l'utilisateur ; absentes → villes par défaut de l'écran.
       if (pf.worldClock && Array.isArray(pf.worldClock.cities) && pf.worldClock.cities.length) st.dbClock = pf.worldClock;
+      // Compte à rebours Go-Live (16/10/2026) : réglages de l'utilisateur, par projet.
+      if (pf.countdown && typeof pf.countdown === 'object') st.dbCountdown = pf.countdown;
       if (pf.firstName != null) st.profFirst = pf.firstName;
       if (pf.phone != null) st.profPhone = pf.phone;
       if (pf.country != null) st.profCountry = pf.country;

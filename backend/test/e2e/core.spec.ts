@@ -82,6 +82,24 @@ describe('Étape 1 — socle', () => {
     expect((await c.get('/api/me').expect(200)).body.preferences.worldClock).toBeNull();
   });
 
+  it('compte à rebours Go-Live (16/10/2026) : réglages par projet, propres à chaque compte, validés', async () => {
+    const c = await t.as(WHO.pmo);
+    const countdown = { RISE: { title: 'Bascule PMS', targetDate: '2027-05-03', targetTime: '07:30', unit: 'business', accent: '#5fd0c4', secondsThreshold: 24 }, ATLAS: { startDate: '2026-01-05' } };
+    await c.patch('/api/me/preferences', { countdown }).expect(200);
+    expect((await c.get('/api/me').expect(200)).body.preferences.countdown).toEqual(countdown);
+    expect((await (await t.as(WHO.admin)).get('/api/me').expect(200)).body.preferences.countdown ?? null).toBeNull();
+    const bad = async (o: unknown) => (await c.patch('/api/me/preferences', { countdown: { RISE: o } }).expect(400)).body.fields;
+    expect(await bad({ targetDate: '2027-02-31' })).toBeDefined();
+    expect(await bad({ targetTime: '25:00' })).toBeDefined();
+    expect(await bad({ unit: 'weeks' })).toBeDefined();
+    expect(await bad({ secondsThreshold: 12 })).toBeDefined();
+    expect(await bad({ accent: 'orange' })).toBeDefined();
+    expect(await bad({ title: 'x'.repeat(81) })).toBeDefined();
+    expect(await bad({ inconnu: 1 })).toBeDefined();
+    await c.patch('/api/me/preferences', { countdown: null }).expect(200);
+    expect((await c.get('/api/me').expect(200)).body.preferences.countdown).toBeNull();
+  });
+
   it('publie la documentation OpenAPI', async () => {
     const r = await t.http().get('/api/docs/openapi.json').expect(200);
     expect(r.body.openapi).toMatch(/^3\./);

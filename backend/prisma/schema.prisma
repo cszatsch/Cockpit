@@ -1086,6 +1086,8 @@ model UserPreferences {
   defaultProject  String?
   /// Horloge mondiale (15/10/2026) : { cities: [{ name, timeZone, lat, lon }] (1 à 4, la première en référence), showSeconds }
   worldClock      Json?
+  /// Compte à rebours Go-Live (16/10/2026) : { [projectId]: réglages du widget (message et affichage) } — voir src/domain/countdown.ts
+  countdown       Json?
   updatedAt       DateTime @updatedAt
 }
 

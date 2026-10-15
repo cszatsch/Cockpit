@@ -2670,3 +2670,31 @@ Brief du commanditaire : reproduire la maquette avec les vraies données et les 
 - Onglet Écarts retiré (et ses données `gapRows`, `wsGapRows`) : écarts des jalons dans Pilotage › Jalons, avancement
   dans Pilotage › Planning. La fonction « Écarts et qualité » du module Aujourd'hui dans Console › Modules (catalogue de
   la maquette) n'a pas été renommée.
+
+## Incohérences : boutons « Ouvrir … » (16/10/2026, solution 2 du commanditaire)
+
+- Constat : « Confirmer », « Relancer », « Qualifier » (libellés `action` du serveur) laissaient croire à une confirmation
+  du jalon ou à un envoi au porteur ; le bouton ne faisait qu'ouvrir l'onglet.
+- Choix : le bouton dit ce qu'il fait (`incCta`) — « Ouvrir le jalon », « Ouvrir l'action », « Ouvrir le risque »,
+  « Générer un rapport » — dans la liste et dans la tuile ; l'action ouverte est mise en évidence comme le jalon
+  (`acFocus` : filtres levés, liste dépliée, ligne surlignée). Aucune confirmation ni relance automatique (option 1 non
+  retenue : canal et destinataire d'une relance à décider).
+
+## Compte à rebours Go-Live paramétrable (16/10/2026, maquette « Widget compte a rebours - Meche »)
+
+- Composant `frontends/Compte a rebours.dc.html` (GoLiveCountdown) : calcul de la classe Component de la maquette repris
+  tel quel ; props `title`, `eventLabel`, `targetDate`, `targetTime`, `startDate`, `dayMessage`, `emptyMessage`, `unit`
+  (`calendar` | `business`), `theme` (`dark` | `light`), `accent`, `secondsThreshold` (48 | 24 | 0) ; un setInterval
+  d'une seconde par instance ; `prefers-reduced-motion` respecté ; `role="group"` et `aria-label`, sans `aria-live`.
+- Écarts à la maquette, assumés : date invalide qui n'existe pas (2027-02-31) traitée comme absente ; mèche entièrement
+  consumée le jour J et après la bascule (brief § 4) ; date cible sans valeur en dur.
+- Réglages enregistrés par utilisateur et **par projet** (`UserPreferences.countdown` = { [projectId]: réglages },
+  migration `20261118001100_compte_a_rebours`, validation `src/domain/countdown.ts` : `COUNTDOWN_MAX_PROJECTS` 50,
+  `COUNTDOWN_TEXT_MAX` 80, seuils `COUNTDOWN_THRESHOLDS`) : seules les valeurs différentes des défauts sont gardées.
+- **Hypothèses** (`CD_DEFAULT`, `cdAuto` dans `RISE Cockpit.dc.html`) : date cible par défaut = Go-Live du projet
+  (`goliveIso` : date prévisionnelle du projet, sinon jalon « Go-Live ») — pas de 2027-04-01 en dur ; événement par
+  défaut = nom de ce jalon, sinon « Go-Live » ; début de la mèche par défaut = début de la première phase (le
+  « 2026-04-01 » du brief est celui de la démonstration).
+- Thème : le bouton clair / sombre de la grille (`dbInv.golive`, sombre par défaut) et le réglage « Thème » de la fenêtre
+  sont une seule et même valeur. Réglages ouverts par un bouton au survol de la tuile ; un clic sur la tuile ouvre
+  Pilotage › Jalons.

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+.cd-root{font-family:'Plus Jakarta Sans',sans-serif;-webkit-font-smoothing:antialiased}
+.cd-root *{box-sizing:border-box}
+.cd-fuse{transition:left 1s linear}
+@media (prefers-reduced-motion:reduce){.cd-fuse{transition:none!important}}
+</style>
+</helmet>
+<!-- Compte à rebours Go-Live (GoLiveCountdown, maquette « Widget compte a rebours - Meche », 16/10/2026) : tuile 1 × 1 du
+     tableau de bord Aujourd'hui (298 × 168 px). Calcul repris tel quel de la maquette ; la tuile remplit son emplacement. -->
+<div class="cd-root" role="group" aria-label="{{ aria }}" style="position:relative;width:100%;height:100%;border-radius:16px;overflow:hidden;padding:16px 18px 20px;display:flex;flex-direction:column;background:{{ bg }};color:{{ ink }};box-shadow:{{ sh }}">
+  <span style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:{{ ttl }}">{{ titre }}</span>
+  <div style="flex:1;display:flex;align-items:center;min-height:0">
+    <sc-if value="{{ isNum }}" hint-placeholder-val="{{ true }}"><div style="display:flex;align-items:flex-start;gap:3px"><span style="font-size:22px;font-weight:700;margin-top:7px;letter-spacing:-.02em;color:{{ mut }}">{{ pre }}</span><span style="font-size:76px;font-weight:800;letter-spacing:-.055em;line-height:.9;font-variant-numeric:tabular-nums;white-space:nowrap">{{ num }}</span><span style="align-self:flex-end;margin:0 0 5px 8px;font-size:11.5px;font-weight:600;line-height:1.25;max-width:80px;color:{{ mut }}">{{ unit }}</span></div></sc-if>
+    <sc-if value="{{ isClock }}" hint-placeholder-val="{{ false }}"><span style="font-size:46px;font-weight:800;letter-spacing:-.045em;line-height:1;font-variant-numeric:tabular-nums">{{ clock }}</span></sc-if>
+    <sc-if value="{{ isNone }}" hint-placeholder-val="{{ false }}"><span style="width:58px;height:4px;border-radius:2px;background:{{ faint }}"></span></sc-if>
+  </div>
+  <span style="font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums;color:{{ mut }}">{{ sub }}</span>
+  <span style="position:absolute;left:0;right:0;bottom:0;height:2px;background:{{ faint }}"></span>
+  <sc-if value="{{ hasT }}" hint-placeholder-val="{{ true }}">
+    <span class="cd-fuse" style="position:absolute;right:0;bottom:0;height:2px;left:{{ fuseL }};background:{{ acc }}"></span>
+    <span class="cd-fuse" style="position:absolute;bottom:0;width:2px;height:9px;margin-left:-1px;border-radius:1px 1px 0 0;left:{{ fuseL }};background:{{ acc }};box-shadow:{{ glow }}"></span>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:298,&quot;height&quot;:168},&quot;title&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Compte à rebours Go-Live&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Message&quot;},&quot;eventLabel&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Go-Live Lot 1&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Message&quot;},&quot;targetDate&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Message&quot;},&quot;targetTime&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;08:00&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Message&quot;},&quot;startDate&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;2026-04-01&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Message&quot;},&quot;dayMessage&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;bascule aujourd’hui&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Message&quot;},&quot;emptyMessage&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Go-Live · date non définie&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Message&quot;},&quot;unit&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;calendar&quot;,&quot;business&quot;],&quot;default&quot;:&quot;calendar&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Affichage&quot;},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Affichage&quot;},&quot;accent&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;options&quot;:[&quot;#f7a41c&quot;,&quot;#5fd0c4&quot;,&quot;#ff7a59&quot;,&quot;#ffffff&quot;],&quot;default&quot;:&quot;#f7a41c&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Affichage&quot;},&quot;secondsThreshold&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[48,24,0],&quot;default&quot;:48,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Affichage&quot;}}">
+// Calcul repris tel quel de la maquette (classe Component) ; seuls changent les noms des props (anglais, valeurs
+// `calendar` | `business`, `dark` | `light`, seuil en heures) et la date cible, sans valeur en dur : elle vient du Cockpit
+// (Go-Live du projet ou date choisie par l'utilisateur).
+const MO = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+const pad = n => String(n).padStart(2, '0');
+const DAY = 864e5;
+
+class Component extends DCLogic {
+  state = { now: Date.now() };
+  // Un seul setInterval d'une seconde par instance, nettoyé au démontage.
+  componentDidMount() { this.t = setInterval(() => this.setState({ now: Date.now() }), 1000); }
+  componentWillUnmount() { clearInterval(this.t); }
+  // Date locale (navigateur) à partir de 'AAAA-MM-JJ' + 'HH:MM' ; null si la date n'existe pas (ex. 2027-02-31).
+  parse(iso, hm) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec((iso || '').trim()); if (!m) return null;
+    const h = /^(\d{1,2}):(\d{2})$/.exec((hm || '').trim()) || [0, 0, 0];
+    const d = new Date(+m[1], +m[2] - 1, +m[3], +h[1], +h[2]);
+    return d.getMonth() === +m[2] - 1 && d.getDate() === +m[3] ? d : null;
+  }
+  dayKey(d) { return Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / DAY; }
+  // Jours ouvrés (lun–ven) strictement entre aujourd'hui et la date cible
+  workDays(a, b) { let n = 0; for (let k = a + 1; k < b; k++) { const w = new Date(k * DAY).getUTCDay(); if (w >= 1 && w <= 5) n++; } return n; }
+  renderVals() {
+    const P = this.props, now = this.state.now;
+    const light = (P.theme ?? 'dark') === 'light';
+    let acc = /^#[0-9a-f]{6}$/i.test(P.accent || '') ? P.accent : '#f7a41c'; if (light && acc.toLowerCase() === '#ffffff') acc = '#10233a';
+    const c = light ? '16,35,58' : '255,255,255';
+    const T = light
+      ? { bg: '#ffffff', ink: '#10233a', mut: '#5c7280', ttl: '#1d8f86', sh: '0 1px 2px rgba(16,35,58,.06),0 0 0 1px rgba(16,35,58,.05)' }
+      : { bg: 'linear-gradient(180deg,#10233a 0%,#173a55 100%)', ink: '#ffffff', mut: 'rgba(255,255,255,.66)', ttl: '#9fdcd4', sh: '0 1px 2px rgba(16,35,58,.12)' };
+    Object.assign(T, { acc, glow: `0 0 10px 2px ${acc}88`, faint: `rgba(${c},.12)` });
+    const ouv = (P.unit ?? 'calendar') === 'business';
+    const seuil = ([48, 24, 0].includes(+P.secondsThreshold) ? +P.secondsThreshold : 48) * 36e5;
+    const titre = P.title || 'Compte à rebours Go-Live', ev = P.eventLabel || 'Go-Live';
+    const target = this.parse(P.targetDate, P.targetTime || '08:00');
+    const v = { titre, ...T, hasT: !!target, isNum: false, isClock: false, isNone: false, pre: '', num: '', unit: '', clock: '', fuseL: '100%' };
+    if (!target) {
+      const sub = P.emptyMessage || 'Go-Live · date non définie';
+      return { ...v, isNone: true, sub, aria: titre + ' : ' + sub };
+    }
+    const tk = this.dayKey(target), nk = this.dayKey(new Date(now)), d = tk - nk, ms = target - now;
+    const dt = (target.getDate() === 1 ? '1er' : target.getDate()) + ' ' + MO[target.getMonth()] + ' ' + target.getFullYear();
+    const hm = pad(target.getHours()) + ':' + pad(target.getMinutes());
+    v.sub = ev + ' · ' + dt;
+    if (ms > 0 && seuil && ms < seuil) {
+      const s = Math.floor(ms / 1000);
+      Object.assign(v, { isClock: true, clock: pad(Math.floor(s / 3600)) + ':' + pad(Math.floor(s / 60) % 60) + ':' + pad(s % 60), sub: ev + ' · ' + dt + ', ' + hm });
+    } else if (d === 0) {
+      Object.assign(v, { isNum: true, num: 'Jour J', sub: ev + ' · ' + (ms > 0 ? 'à ' + hm : (P.dayMessage || 'bascule aujourd’hui')) });
+    } else if (d < 0) {
+      Object.assign(v, { isNum: true, pre: 'J+', num: String(-d), unit: 'depuis la bascule' });
+    } else if (ouv) {
+      Object.assign(v, { isNum: true, num: String(this.workDays(nk, tk)), unit: 'jours ouvrés' });
+    } else {
+      Object.assign(v, { isNum: true, pre: 'J−', num: String(d) });
+    }
+    // Mèche : part consommée entre la date de début et la date cible ; consumée après la bascule et le jour J.
+    const st = this.parse(P.startDate, '00:00'), span = st ? target - st : 0;
+    const p = d <= 0 ? 1 : span > 0 ? Math.min(1, Math.max(0, (now - st) / span)) : 1;
+    v.fuseL = (p * 100).toFixed(3) + '%';
+    v.aria = titre + ' : ' + (v.isClock ? v.clock + ' restantes' : (v.pre + v.num + ' ' + v.unit).trim()) + ', ' + v.sub;
+    return v;
+  }
+}
+</script>
+</body>
+</html>

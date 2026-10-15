@@ -8,6 +8,7 @@ import { parse } from '../core/http';
 import { rightsSummary, strongestProfile } from '../domain/rights';
 import { TodayService } from '../core/today.service';
 import { WORLD_CLOCK_MAX_CITIES, WORLD_CLOCK_NAME_MAX, duplicateCity, isTimeZone } from '../domain/world-clock';
+import { COUNTDOWN_MAX_PROJECTS, COUNTDOWN_TEXT_MAX, COUNTDOWN_THEMES, COUNTDOWN_THRESHOLDS, COUNTDOWN_UNITS, isHourMinute, isIsoDay } from '../domain/countdown';
 
 const ClockCity = z
   .object({
@@ -24,6 +25,26 @@ const WorldClock = z
     showSeconds: z.boolean().optional(),
   })
   .strict();
+// Compte à rebours Go-Live (16/10/2026) : réglages du widget par projet ; champ absent = valeur par défaut.
+const cdText = z.string().trim().max(COUNTDOWN_TEXT_MAX);
+const CountdownSettings = z
+  .object({
+    title: cdText.min(1, 'obligatoire').optional(),
+    eventLabel: cdText.min(1, 'obligatoire').optional(),
+    targetDate: z.string().refine(isIsoDay, 'date AAAA-MM-JJ attendue').nullable().optional(),
+    targetTime: z.string().refine(isHourMinute, 'heure HH:MM attendue').optional(),
+    startDate: z.string().refine(isIsoDay, 'date AAAA-MM-JJ attendue').nullable().optional(),
+    dayMessage: cdText.min(1, 'obligatoire').optional(),
+    emptyMessage: cdText.min(1, 'obligatoire').optional(),
+    unit: z.enum(COUNTDOWN_UNITS).optional(),
+    theme: z.enum(COUNTDOWN_THEMES).optional(),
+    accent: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'couleur #rrggbb attendue').optional(),
+    secondsThreshold: z.number().refine((n) => (COUNTDOWN_THRESHOLDS as readonly number[]).includes(n), `seuil parmi ${COUNTDOWN_THRESHOLDS.join(', ')}`).optional(),
+  })
+  .strict();
+const Countdown = z
+  .record(z.string().min(1).max(64), CountdownSettings)
+  .refine((r) => Object.keys(r).length <= COUNTDOWN_MAX_PROJECTS, `${COUNTDOWN_MAX_PROJECTS} projets au plus`);
 const Preferences = z
   .object({
     dashboardLayout: z.unknown().optional(),
@@ -40,6 +61,8 @@ const Preferences = z
     defaultProject: z.string().trim().max(40).nullable().optional(),
     // Horloge mondiale (15/10/2026) : 1 à 4 villes choisies par l'utilisateur, la première en référence ; null = villes par défaut.
     worldClock: WorldClock.nullable().optional(),
+    // Compte à rebours Go-Live (16/10/2026) : { [projectId]: réglages } ; null = réglages par défaut partout.
+    countdown: Countdown.nullable().optional(),
   })
   .strict();
 
