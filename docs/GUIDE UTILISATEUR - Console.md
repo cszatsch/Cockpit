@@ -1,6 +1,6 @@
 # Guide utilisateur de la Console d'administration Cockpit
 
-Version du 12 octobre 2026. Ce guide décrit le comportement réel de la Console, établi à partir de son code. Les écarts et les points encore ouverts sont regroupés en annexe.
+Version du 15 octobre 2026. Ce guide décrit le comportement réel de la Console, établi à partir de son code. Les écarts et les points encore ouverts sont regroupés en annexe.
 
 ## Sommaire
 
@@ -1572,20 +1572,22 @@ La liste affiche, pour chaque snapshot, les nombres de tâches, jalons, risques 
 
 **À quoi sert la page.** Activer les fonctions optionnelles du Cockpit, pour toute la plateforme ou projet par projet. Quatre modules existent : **Budget**, **Suivi des bénéfices**, **Message d'accueil de Jev** et **Recherche documentaire systématique**.
 
-> [Capture] Page Modules : tuiles des modules et bandeau de demande.
+> [Capture] Page Modules : jauge des modules actifs, tuiles et sélecteur de portée.
 
-Chaque module est présenté dans une tuile ; toutes les tuiles ont la même largeur et la même hauteur.
+En haut de la page, une jauge indique combien de modules sont actifs (« N sur 4 actifs »). Chaque module est présenté dans une tuile : son état (**Inactif**, **Actif par projet** ou **Actif sur tous les projets**), son nom, sa description, puis un sélecteur de portée. Toutes les tuiles ont la même hauteur et leurs sélecteurs sont alignés.
 
 **Utilisation**
 
-1. Pour chaque module, choisissez la portée :
-   - **Désactivé** (confirmation) : le module disparaît du Cockpit pour tous. Les données saisies sont conservées et réapparaissent à la réactivation ;
-   - **Tous les projets** (confirmation) : le module est actif partout, y compris sur les projets créés ensuite ;
-   - **Par projet** : un interrupteur par projet. L'activation est immédiate, la désactivation demande une confirmation.
-2. Traitez les demandes des PMO : **Activer sur {projet}** ou **Refuser**. Elles arrivent aussi dans la cloche (voir 3.2).
+1. Pour chaque module, choisissez la portée dans le sélecteur **Désactivé · Par projet · Tous les projets**. Le changement est **immédiat**, sans fenêtre de confirmation :
+   - **Désactivé** : le module disparaît du Cockpit pour tous. Les utilisateurs le voient verrouillé et peuvent demander son activation. Les données saisies sont conservées et réapparaissent à la réactivation ;
+   - **Tous les projets** : le module est actif partout, y compris sur les projets créés ensuite (« Activé sur tous les projets le … Les nouveaux projets en bénéficient automatiquement. ») ;
+   - **Par projet** : la fenêtre **Projets où « {module} » est actif** s'ouvre, avec un interrupteur par projet. Rouvrez-la ensuite par le bouton **Projets (N)** au pied de la tuile. Les nouveaux projets n'héritent pas du module.
+2. Au clavier : les flèches passent d'une portée à l'autre ; **Échap** ferme la fenêtre des projets.
+3. Traitez les demandes des PMO dans le bandeau : **Activer sur {projet}** ou **Refuser**. Elles arrivent aussi dans la cloche (voir 3.2).
 
 **Règles**
 
+- L'écran change aussitôt ; si le serveur refuse la modification, la tuile revient à son état précédent et un message l'explique.
 - Un utilisateur du Cockpit voit un module désactivé comme verrouillé, et peut en demander l'activation. Une même demande en attente n'est pas dupliquée.
 - Approuver une demande active le module sur le seul projet demandé.
 - Toutes les modifications sont tracées (Sensible).
@@ -1595,54 +1597,66 @@ Chaque module est présenté dans une tuile ; toutes les tuiles ont la même lar
 
 ## 3.17 Registre des cartes API
 
-**À quoi sert la page.** Recenser les services externes appelés par la plateforme (actualités, météo, trafic pour les widgets du Cockpit, et la carte « JEV » qui aiguille les questions posées à Jev), et surveiller leur santé, leurs clés et leurs quotas.
+**À quoi sert la page.** Recenser les services externes appelés par la plateforme (flux d'actualités, météo et trafic pour les widgets du Cockpit, et la carte « JEV » qui aiguille les questions posées à Jev), choisir les widgets que chacun alimente, et surveiller leur santé, leurs clés et leurs quotas.
 
-> [Capture] Registre : état du registre par tag et fiche d'une carte.
+> [Capture] Registre : tuile du registre (compteurs, mosaïque, liste) et tuile de détail d'une carte.
 
-### 3.17.1 Créer ou modifier une carte
+L'en-tête résume le registre : « {N} cartes · {T} tags · dernière vérification il y a … ». La page se compose de deux tuiles de même taille : à gauche le **registre**, à droite le **détail de la carte** sélectionnée.
 
-1. Cliquez sur **Nouvelle carte**.
-2. Renseignez les champs :
-   - le **nom** (60 caractères au plus) ;
-   - le **tag**, existant ou nouveau (40 caractères au plus) ;
-   - l'**endpoint**, qui commence toujours par `https://`.
-3. Précisez la **clé API** : **Sans clé**, ou **Clé requise**.
-   - Collez la clé ; sa date d'expiration est facultative.
-   - En modification, laissez le champ vide pour conserver la clé actuelle.
-4. Choisissez l'**envoi de la clé** : en-tête X-Api-Key, ou Authorization: Bearer.
-5. Choisissez la **requête** : **GET**, ou **POST** avec un corps JSON (4 096 caractères au plus).
-6. Cliquez sur **Créer la carte** ou **Enregistrer**, puis sur **Tester l'appel**.
+### 3.17.1 Retrouver une carte
+
+- **Compteurs** (en haut du registre) : **Opérationnelles**, **Lentes** et **Sans widget**. Un clic filtre sur cet état ; un second clic retire le filtre.
+- **État du registre** : une ligne par tag, une case par carte (deux lettres du nom). Couleur de la case : verte (opérationnelle), orange (lente), grise (désactivée), hachurée (sans widget). La carte sélectionnée est cerclée de bleu nuit. Les cases qui ne répondent pas aux filtres en cours s'estompent. Un clic sur un tag montre ses cartes dans la liste ; un clic sur une case sélectionne la carte.
+- **Liste** : le titre rappelle le tag affiché (ou « Toutes les cartes ») et le nombre de cartes. **Tout afficher** retire les filtres. La recherche **Nom ou domaine** porte sur le nom et l'endpoint.
+- **Colonnes** : CARTE (nom et domaine), LATENCE 24 H (courbe et médiane), QUOTA (part consommée ; « — » sans quota), CLÉ (date d'expiration, « Sans clé » ou « Sans échéance »), WIDGETS (nombre et mini-grille, « Aucun » en orange). Un clic sur un en-tête trie la liste : croissant, puis décroissant, puis ordre d'origine ; les valeurs absentes restent en dernier.
+- Sans résultat : « Aucune carte ne correspond », avec **Réinitialiser les filtres**.
+- Au clavier : flèches haut et bas dans la mosaïque (d'un tag à l'autre) et dans la liste (d'une carte à l'autre), **Entrée** ou **Espace** pour choisir.
+
+### 3.17.2 Le détail d'une carte
+
+- **En-tête** : initiales, tag, nom et état : **Opérationnelle**, **Lente** (latence médiane sur 24 h supérieure à 300 ms) ou **Désactivée**. Une carte en erreur (clé refusée, quota dépassé, service injoignable…) affiche la cause en rouge sous son endpoint.
+- **ENDPOINT** (bouton de copie) et **CLÉ API** (masquée, « expire le JJ/MM/AA », ou « Aucune clé requise »).
+- **Console de test** : **Tester l'appel** lance un appel réel. La barre affiche le code HTTP, le temps de réponse et l'heure ; le corps de la réponse s'affiche en dessous (« Aucun appel testé » avant le premier test).
+- **WIDGETS ALIMENTÉS** : une matrice thème × langue. Cochez une case pour que la carte alimente ce widget ; le chiffre « +N » indique combien d'**autres** cartes actives alimentent déjà ce widget.
+
+| Ligne | FR | EN |
+|---|---|---|
+| Actualités Eco | ✓ | ✓ |
+| News | ✓ | ✓ |
+| News Tech | ✓ | ✓ |
+| Sports | ✓ | ✓ |
+| Météo | ✓ | — |
+| Trafic | ✓ | — |
+
+Chaque case cochée alimente la tuile du même nom dans le Cockpit (onglet « Widgets infos & services » de la bibliothèque des widgets). Une tuile d'actualités alterne ses sources : une carte à tour de rôle, l'article le plus récent de chacune d'abord.
+
+### 3.17.3 Créer ou modifier une carte
+
+1. Cliquez sur **Nouvelle carte** (ou **Ajouter une carte à {tag}** au pied du registre). Une carte vide apparaît dans le tag affiché, en modification.
+2. Pour une carte existante, cliquez sur le crayon **Modifier**.
+3. Renseignez :
+   - le **nom** (60 caractères au plus), dans l'en-tête ;
+   - l'**endpoint**, qui commence toujours par `https://` ;
+   - le **tag** : choisissez-en un existant ou saisissez-en un nouveau (40 caractères au plus) ;
+   - la **clé API** : **Sans clé**, ou **Clé requise**. Collez la clé ; sa date d'expiration (jj/mm/aa) est facultative. En modification, laissez le champ vide pour conserver la clé actuelle ;
+   - l'**envoi de la clé** : en-tête X-Api-Key, ou Authorization: Bearer ;
+   - la **requête** : **GET**, ou **POST** avec un corps JSON (4 096 caractères au plus).
+4. Cliquez sur **Enregistrer** (ou **Annuler** : une nouvelle carte non enregistrée disparaît). Puis **Tester l'appel**.
 
 **Règles de sécurité**
 
 - Seules les adresses `https://` publiques sont acceptées.
 - Sont refusées les adresses locales ou privées, et une adresse qui contient un identifiant et un mot de passe.
-- Les redirections ne sont pas suivies.
+- Les redirections ne sont pas suivies : saisissez l'adresse finale du flux (un flux déplacé répond « déplacé (redirection 301) »).
 - La clé est chiffrée. Seuls ses 4 derniers caractères restent visibles.
 
 **La carte « JEV »** sert à l'aiguillage des questions posées à Jev (3.10). Son endpoint, sa clé et son modèle se règlent ici. Sans elle, ou si elle est désactivée, Jev reste utilisable mais traite chaque question comme ambiguë.
 
-### 3.17.2 États d'une carte
+### 3.17.4 Désactiver ou supprimer une carte
 
-Du plus prioritaire au moins prioritaire :
-
-| État | Condition |
-|---|---|
-| Désactivée | La carte n'est plus appelée ; les widgets ne sont plus mis à jour |
-| Non vérifiée | Aucun appel encore fait |
-| En erreur | Dernière réponse en erreur (clé refusée, quota dépassé, délai…) |
-| À surveiller | Clé expirant dans moins de 60 jours, ou quota du jour à 80 % ou plus |
-| Lente | Temps de réponse de 300 ms ou plus |
-| Opérationnelle | Tout va bien |
-
-### 3.17.3 Autres actions
-
-- **Associer un widget**. Seuls les widgets qui utilisent une carte API sont proposés : Actualité, Météo, Trafic. Un widget du Cockpit s'associe aussi automatiquement à sa carte lors de son premier appel.
-- **Désactiver / Réactiver** la carte.
-- **Supprimer la carte** :
-  1. La Console indique les widgets impactés.
-  2. Cliquez sur **Supprimer définitivement**.
-  3. Vous disposez de 5 secondes pour annuler.
+- **Désactiver / Réactiver** (pied de la tuile de détail) : une carte désactivée n'est plus appelée et n'alimente plus ses widgets.
+- **Supprimer la carte** : la carte disparaît aussitôt ; le message « « {Nom} » supprimée » propose **Annuler** pendant 4 secondes. Passé ce délai, la suppression est définitive.
+- Chaque action (cocher un widget, désactiver, modifier, supprimer) s'affiche immédiatement ; si le serveur la refuse, la carte revient à son état précédent et un message explique pourquoi.
 
 **Automatique**
 
@@ -1656,7 +1670,7 @@ Du plus prioritaire au moins prioritaire :
 - **Service en panne** : les widgets affichent la dernière réponse réussie de moins de 24 heures.
 - **Quota journalier atteint** : les widgets reçoivent un refus jusqu'à minuit (heure de Paris).
 
-**Messages d'erreur** : « Donnez un nom à la carte. », « Saisissez une adresse valide, sans espace : domaine puis chemin. », « Adresse privée ou locale interdite », « Collez la clé fournie par le service. », « JSON invalide », « Saisissez le corps JSON de l'appel ».
+**Messages d'erreur** : « Donnez un nom à la carte. », « Donnez un tag à la carte. », « Saisissez une adresse valide, sans espace : domaine puis chemin. », « Adresse privée ou locale interdite », « Collez la clé fournie par le service. », « Format jj/mm/aa », « Corps JSON invalide. », « Corps JSON obligatoire pour un appel POST. ».
 
 ## 3.18 Notifications envoyées aux utilisateurs
 
@@ -2158,10 +2172,15 @@ Elle n'a pas saisi le bon code de déverrouillage (3 essais), ou aucune clé n'a
 **Je veux couper l'accès d'une personne à qui j'ai envoyé un paquet.**
 Ce n'est pas possible à distance. Révoquez chez les fournisseurs les clés indiquées dans l'historique des paquets, et changez le mot de passe SMTP s'il était inclus.
 
-**Une carte API est « En erreur ».**
+**Une carte API est « En erreur ».** (cause affichée en rouge sous son endpoint)
 
-- Clé refusée : cliquez sur **Modifier** et remplacez la clé.
+- Clé refusée : cliquez sur le crayon **Modifier** et remplacez la clé.
+- « déplacé (redirection 301) » : le flux a changé d'adresse ; remplacez l'endpoint par la nouvelle adresse (les redirections ne sont pas suivies).
 - Service injoignable : les widgets affichent leur dernière valeur connue. Réessayez **Tester l'appel** plus tard.
+
+**Une tuile d'actualités du Cockpit affiche « Aucune carte associée à ce widget ».**
+
+Dans le Registre des cartes API, ouvrez une carte de flux et cochez la case du widget dans **Widgets alimentés** (3.17.2).
 
 # 7. Annexes
 

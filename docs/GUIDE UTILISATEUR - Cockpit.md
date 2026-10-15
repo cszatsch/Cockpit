@@ -1,6 +1,6 @@
 # Guide utilisateur de l'application Cockpit
 
-Version du 12 octobre 2026. Ce guide décrit le comportement réel du Cockpit, établi à partir de son code. Les écarts et les points encore ouverts sont regroupés en annexe.
+Version du 15 octobre 2026. Ce guide décrit le comportement réel du Cockpit, établi à partir de son code. Les écarts et les points encore ouverts sont regroupés en annexe.
 
 ## Sommaire
 
@@ -273,7 +273,7 @@ Le bouton reste grisé tant qu'une règle manque ou que la confirmation diffère
 | Échéances des 15 prochains jours | Aujourd'hui › Échéances |
 | Documents récents | Base de connaissance |
 
-- Météo, Trafic et les tuiles d'actualités n'ouvrent pas d'autre écran ; un titre d'actualité ouvre l'article dans un nouvel onglet.
+- Météo, Trafic et les tuiles d'actualités n'ouvrent pas d'autre écran ; un titre d'actualité ouvre l'article dans un nouvel onglet. Un clic sur l'Horloge mondiale ouvre le choix de vos villes.
 
 **Disposition par défaut.** L'essentiel par Jev, Compte à rebours Go-Live, Avancement vs référence, Prochain COPIL, Fiches d'arbitrage, Décisions en attente, Tendance des risques, Baromètre des équipes, Incohérences à traiter, Météo, Trafic.
 

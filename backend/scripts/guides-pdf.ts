@@ -115,7 +115,8 @@ async function main() {
   const out = join(ROOT, 'docs', 'guides');
   mkdirSync(out, { recursive: true });
   // Chromium de Playwright, sinon Chrome installé (comme les tests navigateur).
-  const browser = await chromium.launch().catch(() => chromium.launch({ channel: 'chrome' }));
+  // Chromium de Playwright, sinon Chrome, sinon Edge (poste Windows sans navigateur Playwright téléchargé).
+  const browser = await chromium.launch().catch(() => chromium.launch({ channel: 'chrome' })).catch(() => chromium.launch({ channel: 'msedge' }));
   try {
     for (const k of list) {
       const g = GUIDES[k];
