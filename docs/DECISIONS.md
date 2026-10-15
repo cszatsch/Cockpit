@@ -2600,3 +2600,12 @@ Brief du commanditaire : reproduire la maquette avec les vraies données et les 
   `supersedes` existant ; seules les décisions arbitrées sont proposées comme « remplacées ». Serveur : une décision
   créée directement arbitrée qui en remplace une autre fait aussi passer l'ancienne à « Remplacée » (auparavant
   seulement à la modification). Le lien reste enregistré sur la nouvelle décision ; « Remplacée par » est déduit.
+
+## Historique des générations de rapport (15/10/2026, correctif)
+
+- Cause racine de l'historique vide après rechargement : la génération suivie (Générer un rapport) n'était reliée qu'à
+  une ligne locale de l'écran ; le journal du projet (`templates.history`) n'était alimenté que par la création d'un
+  rapport de séance, déclenchée seulement pour un rapport versé et seulement si une séance de l'instance était planifiée.
+- Choix : le serveur inscrit chaque génération réussie, versée ou non (`ReportTemplateService.appendGeneration`) ;
+  l'historique est commun aux utilisateurs du projet. La création automatique d'un rapport sur la prochaine séance est
+  retirée de « Générer un rapport » (doublon du versement dans la Base, fait par la génération).

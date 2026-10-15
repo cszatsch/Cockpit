@@ -557,7 +557,9 @@ export function attach(comp) {
       case 'phAdded': return newItems(before, after).forEach((r) => { const s = parseRefDate(r.cells[3], 'start') || {}, e = parseRefDate(r.cells[4], 'end') || {}; const w = waveId(r.cells[2]); create('phases', r.id, { seq: +r.cells[0], code: String(r.cells[0]), name: r.cells[1], startDate: s.iso, endDate: e.iso, startPrecision: s.prec, endPrecision: e.prec, status: PLAN_STATUS[r.cells[5]] || 'PLANNED', ownerId: S.B.project.programDirectorId, ...(w ? { waveIds: [w] } : {}) }); });
       case 'spAdded': return newItems(before, after).forEach((r) => { const s = parseRefDate(r.cells[3], 'start') || {}, e = parseRefDate(r.cells[4], 'end') || {}; create('subphases', r.id, { phaseId: phaseId(r.cells[1]), code: r.cells[0], name: r.cells[2], startDate: s.iso, endDate: e.iso, startPrecision: s.prec, endPrecision: e.prec, status: PLAN_STATUS[r.cells[5]] || 'PLANNED' }); });
       case 'templates': return onTemplates(before, after);
-      case 'tplHistory': return newItems(before, after).filter((h) => /^H\d{10,}$/.test(String(h.id))).forEach((h) => onReportGenerated(h));
+      // Historique des générations (15/10/2026) : inscrit par le serveur à chaque génération, relu au chargement ; plus de
+      // rapport créé sur la prochaine séance depuis « Générer un rapport » (le versement dans la Base est fait par la génération).
+      case 'tplHistory': return;
       case 'cmts': return changedKeys(before, after).forEach((key) => {
         const a = (after || {})[key] || [], b = (before || {})[key] || [];
         a.slice(b.length).forEach((c) => write('COMMENT ' + key + ' ' + a.indexOf(c), () => ppost('/comments', { ...commentTarget(key), field: key.slice(0, 200), text: c.text }), 0, { noReload: true }));
@@ -843,13 +845,6 @@ export function attach(comp) {
       writePatch('PATCH', '/report-templates/' + enc(t.id), tplBody(t));
     });
     b.filter((t) => !a.some((x) => x.id === t.id) && serverIds.has(t.id)).forEach((t) => write('DELETE tpl ' + t.id, () => pdel('/report-templates/' + enc(t.id))));
-  }
-  function onReportGenerated(h) {
-    if (!h.saved) return; // téléchargement seul : aucun objet serveur (limite documentée)
-    const tpl = (comp.state.templates || []).find((t) => t.name === h.name && String(t.version) === String(h.version)) || (comp.state.templates || []).find((t) => t.name === h.name);
-    const sessionId = h.sessionId || ((comp.sessionList ? comp.sessionList() : []).filter((x) => x.status === 'PLANNED' && x.dateIso >= S.B.today && (!h.bodyId || x.bodyId === h.bodyId)).sort((x, y) => x.dateIso.localeCompare(y.dateIso))[0] || {}).id;
-    if (!tpl || !sessionId) return toast('Rapport non enregistré : template ou séance introuvable');
-    write('REPORT ' + h.id, () => ppost('/sessions/' + enc(sessionId) + '/reports', { templateId: tpl.id }));
   }
 
   // ── Baromètre : réconciliation de l'écran fusionné avec la référence ──
@@ -1340,6 +1335,8 @@ export function attach(comp) {
         if (j.done) { if (j.error) throw new Error(j.error.message); if (j.kb && j.kb.error) toast('Rapport généré, mais non versé dans la Base de connaissance : ' + j.kb.error); break; }
         await new Promise((r) => setTimeout(r, 400));
       }
+      // Historique (15/10/2026) : la génération est inscrite par le serveur ; les données sont relues pour l'afficher.
+      scheduleReload();
       const r = await pget('/report-generations/' + enc(job.id) + '/file', { raw: true });
       const blob = await r.blob(), url = URL.createObjectURL(blob);
       if (beforeSave) await beforeSave();

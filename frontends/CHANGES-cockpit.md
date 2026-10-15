@@ -778,3 +778,10 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 - Saisir sans Jev (15/10/2026, correctif) : « Texte de la décision » et « Remplace la décision » n'étaient affichés
   dans aucun chapitre (`SSJ_CHAP.decision`) ; ajoutés au chapitre « Issue ». Test `test/unit/saisie-chapitres.spec.ts` :
   tout champ d'un formulaire à chapitres doit appartenir à un chapitre.
+- Comités et rapports › Historique (15/10/2026, correctif) : l'historique se vidait à chaque rechargement. Cause : la
+  génération suivie (`POST /report-templates/:id/generations`) n'inscrivait rien dans le journal `templates.history`
+  (seule la création d'un rapport de séance l'alimentait) ; l'écran n'ajoutait qu'une ligne locale, puis `api.js`
+  tentait de créer un rapport sur la prochaine séance (versé seulement, et rien sans séance planifiée). Correctif : le
+  serveur inscrit chaque génération réussie (`appendGeneration` : modèle, version, comité, auteur, versé, document) ;
+  `tplGenerate` relit les données après la génération ; plus de ligne locale avec le serveur ; `onReportGenerated`
+  supprimé (plus de rapport créé sur une séance depuis « Générer un rapport »).

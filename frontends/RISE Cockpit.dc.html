@@ -5307,7 +5307,8 @@ class Component extends DCLogic {
       const entry = { id: 'H' + Date.now(), name: t.name, version: t.version, committee: t.committee, bodyId: t.bodyId, sessionId: null, date: todayFr, time, by: this.meName(), saved };
       // Versement réel par le serveur (05/10/2026) : sans API (démonstration), document local comme avant.
       const doc = saved && !this._api ? { n: t.name + ' — ' + t.committee + ' du ' + short, type: 'Support de comité', date: short, v: 'v' + t.version, conf: 'Interne', src: 'Généré', ext: 'SUCCEEDED', mime: 'PPTX', pages: t.pages } : null;
-      this.setState(s => ({ tplAsk: null, tplHistory: [entry, ...s.tplHistory], kbDocs: doc ? [doc, ...s.kbDocs] : s.kbDocs }));
+      // Avec le serveur (15/10/2026), la ligne d'historique est inscrite par la génération et relue ensuite ; sans lui (démonstration), ligne locale.
+      this.setState(s => ({ tplAsk: null, tplHistory: this._api ? s.tplHistory : [entry, ...s.tplHistory], kbDocs: doc ? [doc, ...s.kbDocs] : s.kbDocs }));
       // API : PowerPoint généré au format du template, génération suivie sur la ligne du template.
       this.tplGenRun(t, () => this.showToast(saved ? 'Rapport généré et versé dans la Base de connaissance · ' + t.name : 'Rapport généré · ' + t.name + ' v' + t.version + ' · PPTX'), { toKb: saved }); };
     const ask = S.tplAsk;

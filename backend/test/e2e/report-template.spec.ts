@@ -343,6 +343,11 @@ describe('Cockpit — Templates de rapport : versions et publications', () => {
     for (let k = 0; k < 600; k++) { st = (await get(`/report-generations/${plain.id}`).expect(200)).body; if (st.done) break; await new Promise((r) => setTimeout(r, 100)); }
     expect(st.kb).toBeNull();
     expect(await t.db.document.count({ where: { n: 'Versement v1.0' } })).toBe(1);
+    // Historique des générations (15/10/2026) : les deux générations sont inscrites par le serveur et relues au chargement
+    // (Comités et rapports › Historique), la plus récente d'abord ; versée ou non.
+    const hist = (await get('/bootstrap').expect(200)).body.tplHistory.filter((h: any) => h.name === 'Versement');
+    expect(hist.map((h: any) => [h.version, h.saved])).toEqual([['1.0', false], ['1.0', true]]);
+    expect(hist[0]).toMatchObject({ committee: expect.any(String), by: expect.any(String), date: expect.any(String), time: expect.stringMatching(/^\d{2}:\d{2}$/) });
   });
 
   it('tableau de bord, échéancier des actions et arbitrages : planches dessinées avec les données du projet', async () => {

@@ -682,6 +682,9 @@ export class ReportTemplateService implements OnModuleInit {
         // « Verser dans la Base de connaissance » (05/10/2026) : le PowerPoint produit suit le chemin d'un dépôt
         // (contrôles, extraction, résumé, indexation) ; une nouvelle génération du même rapport en devient la version suivante.
         if (kb) job.kb = await this.depositReport(scope, kb.actor, job.name, out.buf);
+        // Historique des générations (15/10/2026) : chaque génération réussie y est inscrite par le serveur, versée ou non
+        // (auparavant seule la création d'un rapport de séance l'alimentait ; les téléchargements disparaissaient au rechargement).
+        await this.appendGeneration(scope.project.id, { templateId: t.id, name: t.name, version: out.version.label, bodyId: t.bodyId, byId: by, saved: !!job.kb?.documentId, documentId: job.kb?.documentId ?? null });
         job.phase = 3;
       } catch (e) {
         const r = (e as { getResponse?: () => unknown }).getResponse?.() as { code?: string; message?: string; issues?: Issue[] } | undefined;
@@ -690,6 +693,17 @@ export class ReportTemplateService implements OnModuleInit {
       job.done = true;
     })();
     return { id, phase: 0 };
+  }
+
+  /** Ajoute une génération en tête de l'historique du projet (bloc `templates.history`, lu par le bootstrap : Comités et rapports › Historique). */
+  private async appendGeneration(projectId: string, entry: Record<string, unknown>) {
+    const key = { projectId_key: { projectId, key: 'templates.history' } };
+    await this.prisma.$transaction(async (db) => {
+      const cur = await db.contentBlock.findUnique({ where: key });
+      const list = Array.isArray(cur?.data) ? (cur!.data as unknown[]) : [];
+      const e = { id: techId('H'), at: new Date().toISOString(), reportId: null, ...entry };
+      await db.contentBlock.upsert({ where: key, create: { projectId, key: 'templates.history', data: [e] as any }, update: { data: [e, ...list] as any } });
+    });
   }
 
   /** Avancement d'une génération : phase (0 à 3), fin, erreur éventuelle (code, message, anomalies), avertissements une fois terminée. */

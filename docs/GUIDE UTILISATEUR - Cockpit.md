@@ -1038,6 +1038,7 @@ Couleurs, polices et hiérarchie des textes viennent des pages modèles de l'ét
 **Historique**
 
 - « Historique des générations » : Rapport, Comité, Version, Généré le, Par, et colonne Base de connaissance (« Versé » / « Non versé »). Un clic sur « Versé » ouvre la Base de connaissance.
+- Chaque génération réussie, téléchargée ou versée, y est inscrite par le serveur : l'historique est commun à tous les utilisateurs du projet et reste affiché après un rechargement de la page.
 
 ## 3.16 Base de connaissance
 
