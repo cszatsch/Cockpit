@@ -785,3 +785,8 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
   serveur inscrit chaque génération réussie (`appendGeneration` : modèle, version, comité, auteur, versé, document) ;
   `tplGenerate` relit les données après la génération ; plus de ligne locale avec le serveur ; `onReportGenerated`
   supprimé (plus de rapport créé sur une séance depuis « Générer un rapport »).
+- Info projet › Fiche projet figée (15/10/2026, demande du commanditaire) : plus de saisie directe dans la fiche
+  (`projEditable` faux pour l'onglet `fiche`), anciennes retouches locales (`projEd`, clés `fiche:…`) non appliquées, seules
+  les valeurs du Référentiel s'affichent ; rubriques vides toujours repliées (`data-proj-view`, `applyProjEdits`,
+  `projCollapse(n, editable)` sans « Cliquer pour saisir ») ; bandeau « Fiche en lecture seule » avec « Ouvrir le
+  Référentiel → » (`ficheGoRef`). Onglet Dispositif inchangé.

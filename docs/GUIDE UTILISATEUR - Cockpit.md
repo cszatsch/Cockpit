@@ -1122,7 +1122,7 @@ Les documents y arrivent de deux façons : par un dépôt manuel (voir 3.16.1), 
 - **Contexte client et enjeux** : le client (raison sociale et informations clés), les marques du groupe, le programme en une phrase, les enjeux stratégiques.
 - **Projet** : les lots, les périmètres fonctionnel, applicatif, géographique (« N pays ») et juridique (« N entités »).
 - Ces rubriques viennent de l'objet **Info projet** du Référentiel (voir 3.18).
-- Le PMO peut corriger un texte directement dans la fiche : clic sur le texte, Entrée pour valider, Échap pour annuler. Vider un champ le masque (« Champ vidé · masqué »).
+- **Lecture seule** (depuis le 15/10/2026) : la fiche ne se modifie plus directement. Ses informations se corrigent dans le **Référentiel** (objets Projet et Info projet) ; le bandeau « Fiche en lecture seule » en haut de la fiche y mène (« Ouvrir le Référentiel → »). Une rubrique vide n'est pas affichée.
 
 **Dispositif** (lecture seule ; « Ces données sont alimentées par le Référentiel ; modifiez-les dans Info projet › Référentiel. »)
 
@@ -1702,7 +1702,7 @@ Ces points viennent de la lecture du code. Ils décrivent un écart entre le cod
 **Info projet et Référentiel**
 
 38. **Jev** dit que « le référentiel est géré par l'administrateur du projet » : c'est le PMO.
-39. **Saisie directe de la Fiche projet** : elle n'alimente pas l'objet Info projet, que lisent la Console et les notifications ; les deux peuvent diverger. L'écran ne contrôle pas les droits.
+39. **Saisie directe de la Fiche projet** : supprimée le 15/10/2026 (fiche en lecture seule, modifiée par le seul Référentiel) ; les anciennes corrections faites dans la fiche ne sont plus affichées.
 40. **Lots et tuiles chiffrées de la Fiche projet** : contenu statique, distinct des Lots du Référentiel. L'en-tête d'Info projet affiche désormais le code et le client du projet ouvert (07/10/2026) ; le titre du projet n'a pas été revérifié.
 41. **Contrôle des usages** : l'écran vérifie moins de cas que le serveur ; une suppression permise à l'écran peut être refusée ensuite.
 42. **Rôle déjà porté par le passé** : sa suppression clôt les affectations, puis échoue côté serveur.

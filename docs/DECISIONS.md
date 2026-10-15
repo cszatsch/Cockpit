@@ -2609,3 +2609,9 @@ Brief du commanditaire : reproduire la maquette avec les vraies données et les 
 - Choix : le serveur inscrit chaque génération réussie, versée ou non (`ReportTemplateService.appendGeneration`) ;
   l'historique est commun aux utilisateurs du projet. La création automatique d'un rapport sur la prochaine séance est
   retirée de « Générer un rapport » (doublon du versement dans la Base, fait par la génération).
+
+## Fiche projet en lecture seule (15/10/2026, demande du commanditaire)
+
+- La Fiche projet (Info projet) ne se modifie plus que par le Référentiel (objets Projet et Info projet). La saisie
+  directe, qui créait des retouches locales (`projEd`) divergentes de l'objet Info projet lu par la Console et les
+  notifications, est retirée ; ces retouches, encore stockées, ne sont plus appliquées.
