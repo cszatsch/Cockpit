@@ -161,7 +161,7 @@ const ROUTE = { CLIENT: 'clients', WAVE: 'waves', PHASE: 'phases', SUBPHASE: 'su
 /** Magasins de contenu libre de la fiche projet, persistés en sections (`PATCH /project/sections/ui.<nom>`, DECISIONS Q8). */
 const SECTION_STORES = ['projEd', 'goliveEd', 'goliveDate', 'chronoEd'];
 /** Préférences de l'utilisateur (`PATCH /api/me/preferences`). */
-const PREF_OF = { dbL: 'dashboardLayout', dbInv: 'theme', profFirst: 'firstName', profCity: 'city', profPhotoUrl: 'photoUrl', profNotif: 'notifications', profPhone: 'phone', profCountry: 'country', profLang: 'language', profTz: 'timezone' };
+const PREF_OF = { dbL: 'dashboardLayout', dbInv: 'theme', dbClock: 'worldClock', profFirst: 'firstName', profCity: 'city', profPhotoUrl: 'photoUrl', profNotif: 'notifications', profPhone: 'phone', profCountry: 'country', profLang: 'language', profTz: 'timezone' };
 
 const norm = (s) => String(s == null ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[’']/g, "'").replace(/\s+/g, ' ').trim();
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
@@ -368,6 +368,8 @@ export function attach(comp) {
       const pf = L.me.preferences;
       if (Array.isArray(pf.dashboardLayout)) st.dbL = pf.dashboardLayout;
       if (pf.theme && typeof pf.theme === 'object') st.dbInv = pf.theme;
+      // Horloge mondiale (15/10/2026) : villes choisies par l'utilisateur ; absentes → villes par défaut de l'écran.
+      if (pf.worldClock && Array.isArray(pf.worldClock.cities) && pf.worldClock.cities.length) st.dbClock = pf.worldClock;
       if (pf.firstName != null) st.profFirst = pf.firstName;
       if (pf.phone != null) st.profPhone = pf.phone;
       if (pf.country != null) st.profCountry = pf.country;
@@ -1018,6 +1020,13 @@ export function attach(comp) {
     request, get, post, patch, put, del, projectId, errorText, reload: () => reload(),
     /** Changement de projet (menu « Projet ») : le Cockpit se recharge sur `?project=CODE`, autres paramètres gardés. */
     /** Projet ouvert par défaut (onglet « Projet » du profil) : préférence `defaultProject`, null pour la retirer. */
+    /**
+     * Horloge mondiale : recherche d'une ville par la carte « open-meteo-geocodage » du Registre (proxy du serveur, sans
+     * en-tête de widget) → `{ name, region, country, timeZone, lat, lon }` ; fuseaux inconnus du navigateur écartés.
+     */
+    clockSearch: (q) => get('/widgets/proxy/open-meteo-geocodage?' + new URLSearchParams({ name: q, count: 10, language: 'fr', format: 'json' }))
+      .then((r) => ((r && r.results) || []).filter((g) => g.timezone && (() => { try { new Intl.DateTimeFormat('fr-FR', { timeZone: g.timezone }); return true; } catch (e) { return false; } })())
+        .map((g) => ({ name: g.name, region: g.admin1 || '', country: g.country || '', timeZone: g.timezone, lat: Math.round(g.latitude * 1000) / 1000, lon: Math.round(g.longitude * 1000) / 1000 }))),
     setDefaultProject: (code) => patch('/me/preferences', { defaultProject: code }).catch((e) => toast(errorText(e))),
     switchProject: (code) => { const q = new URLSearchParams(location.search); q.set('project', code); location.search = q.toString(); },
     ntLoad,

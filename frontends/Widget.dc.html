@@ -21,6 +21,10 @@
       <div style="position:absolute;left:18px;right:18px;bottom:10px;display:flex;justify-content:space-between;font-size:10px;font-weight:700;color:rgba(255,255,255,.55);font-variant-numeric:tabular-nums"><span>{{ w.sn.rise }}</span><span>{{ w.sn.set }}</span></div>
     </div></div>
   </sc-if>
+  <!-- Horloge mondiale (15/10/2026) : composant à part, qui recouvre toute la tuile et se met à jour seul chaque seconde. -->
+  <sc-if value="{{ w.isClock }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;inset:0;overflow:hidden;border-radius:inherit"><dc-import name="Horloge mondiale" cities="{{ w.clock.cities }}" show-seconds="{{ w.clock.showSeconds }}" hint-size="100%,100%" style="width:100%;height:100%"></dc-import></div>
+  </sc-if>
   <sc-if value="{{ w.isRoute }}" hint-placeholder-val="{{ false }}">
     <div style="position:absolute;inset:0;overflow:hidden;border-radius:inherit;{{ w.thBg2 }}"><div style="position:absolute;inset:0;color:#fff;padding:16px 18px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;{{ w.thF }}">
       <div style="display:flex;flex-direction:column;gap:8px;min-width:0">

@@ -1,5 +1,5 @@
 /**
- * Catalogue des widgets du tableau de bord du Cockpit (21 widgets, `RISE Cockpit.dc.html` ; tuile Actualité retirée le 15/10/2026), servi à la Console
+ * Catalogue des widgets du tableau de bord du Cockpit (22 widgets, `RISE Cockpit.dc.html` ; tuile Actualité retirée et Horloge mondiale ajoutée le 15/10/2026), servi à la Console
  * (Registre des cartes API : « Alimente », « Associer un widget »). Un test vérifie qu'il reste identique au
  * catalogue du Cockpit (identifiants, noms, catégories).
  *
@@ -29,6 +29,8 @@ export interface WidgetDef {
 export const WIDGET_CATALOGUE: readonly WidgetDef[] = [
   { id: 'meteo', g: '☀', n: 'Météo · <ville>', cat: 'Contexte', apiCard: true, tags: ['Météo'], group: 'thematic', theme: 'Météo', lang: 'FR' },
   { id: 'trafic', g: '⇅', n: 'Trafic · <ville>', cat: 'Contexte', apiCard: true, tags: ['Trafic'], group: 'thematic', theme: 'Trafic', lang: 'FR' },
+  // Horloge mondiale (15/10/2026) : calculée dans le navigateur, sans carte API.
+  { id: 'clock', g: '◷', n: 'Horloge mondiale', cat: 'Contexte', apiCard: false, tags: [] },
   { id: 'ai', g: '✦', n: 'L’essentiel, par Jev', cat: 'Synthèse', apiCard: false, tags: [] },
   { id: 'ech', g: '⧗', n: 'Échéances des 15 prochains jours', cat: 'Planning', apiCard: false, tags: [] },
   { id: 'golive', g: 'J', n: 'Compte à rebours Go-Live', cat: 'Planning', apiCard: false, tags: [] },

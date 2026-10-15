@@ -1084,6 +1084,8 @@ model UserPreferences {
   phone           String?
   country         String?
   defaultProject  String?
+  /// Horloge mondiale (15/10/2026) : { cities: [{ name, timeZone, lat, lon }] (1 à 4, la première en référence), showSeconds }
+  worldClock      Json?
   updatedAt       DateTime @updatedAt
 }
 

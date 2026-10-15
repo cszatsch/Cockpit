@@ -2559,3 +2559,25 @@ Brief du commanditaire : reproduire la maquette avec les vraies données et les 
   01net, Le Monde – Pixels, Numerama (FR) ; TechCrunch, The Verge, CNBC – Technology (EN), choisies après le banc des
   flux tech du 15/10/2026 (31 flux testés deux fois depuis le poste : code, délai, lecture par `parseFeed`, fraîcheur).
   Registre : 10 widgets associables ; Cockpit : 8 tuiles dans « Widgets infos & services ».
+
+## Horloge mondiale du Cockpit (15/10/2026, maquette « Widget horloge mondiale - Quatre ciels »)
+
+- Composant `frontends/Horloge mondiale.dc.html` rendu par notre moteur React (`support.js` du projet, pas celui de la
+  maquette) ; calcul de la classe Component repris tel quel (`P`, `elev`, `skyRGB`, `lum`, `offL`) ; seule différence :
+  la ville de référence n'est formatée qu'une fois (4 lectures de l'heure par seconde).
+- Tuile 2 × 1 `clock` du tableau de bord (catégorie Contexte, onglet « Widgets infos & services »), qui remplit son
+  emplacement (612 × 168 px dans la grille de la maquette, 554 × 168 px à 1440 px avec la barre latérale). Pas de
+  bascule clair / sombre : les couleurs suivent le ciel.
+- **Question ouverte** : le paramétrage des villes. Le Cockpit n'a pas encore d'écran de réglage par widget ; la tuile
+  lit la préférence `dbClock` (`{ cities, sec }`) et, sans elle, `CLOCK_DEFAULT` (Paris en référence, New York, Tokyo,
+  Sydney). Choix des villes à trancher : Référentiel du projet (sites) ou préférences de l'utilisateur.
+- Tests : `test/unit/horloge-mondiale.spec.ts` exécute le script du composant (changements d'heure du 25 octobre, du
+  1er novembre et d'avril à Sydney, Asia/Kolkata, hémisphère sud, J+1 / J−1, week-end et heures de bureau, contraste,
+  libellés d'accessibilité, minuteur unique arrêté au démontage, un formateur par fuseau).
+- Villes de l'horloge (demande du commanditaire, même jour) : **chaque utilisateur choisit ses villes**, 4 au plus,
+  gardées dans ses préférences (`UserPreferences.worldClock` JSON `{ cities: [{ name, timeZone, lat, lon }], showSeconds }`,
+  migration `20261118000900_horloge_mondiale`), communes à tous ses projets ; null = villes par défaut. Contrôles du
+  serveur (`src/domain/world-clock.ts`, `me.controller.ts`) : 1 à `WORLD_CLOCK_MAX_CITIES` (4) villes, nom 1 à 60
+  caractères, fuseau IANA reconnu (`isTimeZone`), latitude et longitude bornées, pas de doublon (`duplicateCity`).
+  Recherche des villes par la carte « open-meteo-geocodage » du Registre (fuseau et coordonnées fournis) ; la tuile,
+  elle, ne fait toujours aucun appel réseau. La question ouverte précédente est close.

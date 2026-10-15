@@ -7,7 +7,23 @@ import { Actor, CurrentActor } from '../core/auth/auth';
 import { parse } from '../core/http';
 import { rightsSummary, strongestProfile } from '../domain/rights';
 import { TodayService } from '../core/today.service';
+import { WORLD_CLOCK_MAX_CITIES, WORLD_CLOCK_NAME_MAX, duplicateCity, isTimeZone } from '../domain/world-clock';
 
+const ClockCity = z
+  .object({
+    name: z.string().trim().min(1, 'obligatoire').max(WORLD_CLOCK_NAME_MAX),
+    timeZone: z.string().refine(isTimeZone, 'fuseau horaire inconnu'),
+    lat: z.number().min(-90).max(90),
+    lon: z.number().min(-180).max(180),
+  })
+  .strict();
+const WorldClock = z
+  .object({
+    cities: z.array(ClockCity).min(1, 'une ville au moins').max(WORLD_CLOCK_MAX_CITIES, `${WORLD_CLOCK_MAX_CITIES} villes au plus`)
+      .refine((l) => !duplicateCity(l), 'ville en double'),
+    showSeconds: z.boolean().optional(),
+  })
+  .strict();
 const Preferences = z
   .object({
     dashboardLayout: z.unknown().optional(),
@@ -22,6 +38,8 @@ const Preferences = z
     phone: z.string().trim().max(40).nullable().optional(),
     country: z.string().trim().max(80).nullable().optional(),
     defaultProject: z.string().trim().max(40).nullable().optional(),
+    // Horloge mondiale (15/10/2026) : 1 à 4 villes choisies par l'utilisateur, la première en référence ; null = villes par défaut.
+    worldClock: WorldClock.nullable().optional(),
   })
   .strict();
 

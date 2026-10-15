@@ -64,6 +64,24 @@ describe('Étape 1 — socle', () => {
     await c.patch('/api/me/preferences', { defaultProject: null }).expect(200);
   });
 
+  it('horloge mondiale (15/10/2026) : villes de l’utilisateur (1 à 4, fuseaux IANA, sans doublon), propres à chaque compte', async () => {
+    const c = await t.as(WHO.pmo);
+    const city = (name: string, timeZone: string, lat = 0, lon = 0) => ({ name, timeZone, lat, lon });
+    const clock = { cities: [city('Lyon', 'Europe/Paris', 45.76, 4.84), city('Calcutta', 'Asia/Kolkata', 22.57, 88.36), city('Montréal', 'America/Toronto', 45.5, -73.57)], showSeconds: true };
+    await c.patch('/api/me/preferences', { worldClock: clock }).expect(200);
+    expect((await c.get('/api/me').expect(200)).body.preferences.worldClock).toEqual(clock);
+    // Un autre compte garde les villes par défaut.
+    expect((await (await t.as(WHO.admin)).get('/api/me').expect(200)).body.preferences.worldClock ?? null).toBeNull();
+    const bad = async (worldClock: unknown) => (await c.patch('/api/me/preferences', { worldClock }).expect(400)).body.fields;
+    expect(await bad({ cities: [1, 2, 3, 4, 5].map((i) => city('V' + i, 'Europe/Paris')) })).toBeDefined();
+    expect(await bad({ cities: [] })).toBeDefined();
+    expect(await bad({ cities: [city('Atlantide', 'Ocean/Atlantis')] })).toBeDefined();
+    expect(await bad({ cities: [city('Lyon', 'Europe/Paris'), city('lyon', 'Europe/Paris')] })).toBeDefined();
+    expect(await bad({ cities: [{ ...city('Lyon', 'Europe/Paris'), lat: 120 }] })).toBeDefined();
+    await c.patch('/api/me/preferences', { worldClock: null }).expect(200);
+    expect((await c.get('/api/me').expect(200)).body.preferences.worldClock).toBeNull();
+  });
+
   it('publie la documentation OpenAPI', async () => {
     const r = await t.http().get('/api/docs/openapi.json').expect(200);
     expect(r.body.openapi).toMatch(/^3\./);

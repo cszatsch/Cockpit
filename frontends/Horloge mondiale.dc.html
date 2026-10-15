@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+.wc-root{font-family:'Plus Jakarta Sans',sans-serif;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
+.wc-root *{box-sizing:border-box}
+.wc-anim{transition:background 1s}
+.wc-sun{transition:all 1s}
+@media (prefers-reduced-motion:reduce){.wc-anim,.wc-sun{transition:none!important}}
+</style>
+</helmet>
+<!-- Horloge mondiale (WorldClockWidget, maquette « Widget horloge mondiale - Quatre ciels », 15/10/2026) : tuile 2 × 1 du
+     tableau de bord Aujourd'hui. Tout est calculé ici, sans appel réseau ; la tuile remplit son emplacement. -->
+<div class="wc-root" role="group" aria-label="Heure dans le monde" style="width:100%;height:100%;border-radius:16px;overflow:hidden;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:#10233a">
+  <sc-for list="{{ cols }}" as="c" hint-placeholder-count="4">
+    <div class="wc-anim" aria-label="{{ c.aria }}" style="{{ c.colSt }}">
+      <div style="display:flex;align-items:center;gap:6px;height:14px"><span style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.name }}</span><span style="flex:1"></span><span style="{{ c.offSt }}">{{ c.off }}</span></div>
+      <span style="{{ c.hzSt }}"></span>
+      <span class="wc-sun" style="{{ c.sun }}"></span>
+      <span style="flex:1"></span>
+      <span style="{{ c.subSt }}">{{ c.sub }}</span>
+      <span style="display:flex;align-items:baseline;gap:3px;margin-top:3px;font-variant-numeric:tabular-nums"><span style="font-size:30px;font-weight:700;letter-spacing:-.035em;line-height:1">{{ c.time }}</span><span style="{{ c.secSt }}">{{ c.sec }}</span></span>
+    </div>
+  </sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:612,&quot;height&quot;:168},&quot;cities&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;{ name: string; timeZone: string; lat: number; lon: number }[]&quot;},&quot;showSeconds&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+// Props : `cities` (4 villes { name, timeZone (IANA), lat, lon }, la première est la référence) et `showSeconds`.
+// Sans `cities` : Paris, New York, Tokyo, Sydney. Calculs repris tels quels de la maquette (classe Component) ; seule
+// différence, la référence n'est formatée qu'une fois (4 lectures de l'heure par seconde, un formateur par fuseau).
+const PRESETS = {
+  'Paris · New York · Tokyo · Sydney': [['Paris', 'Europe/Paris', 48.857, 2.352], ['New York', 'America/New_York', 40.713, -74.006], ['Tokyo', 'Asia/Tokyo', 35.68, 139.69], ['Sydney', 'Australia/Sydney', -33.87, 151.21]],
+  'Paris · Londres · Dubaï · Singapour': [['Paris', 'Europe/Paris', 48.857, 2.352], ['Londres', 'Europe/London', 51.507, -0.128], ['Dubaï', 'Asia/Dubai', 25.2, 55.27], ['Singapour', 'Asia/Singapore', 1.29, 103.85]],
+  'Paris · San Francisco · São Paulo · Shanghai': [['Paris', 'Europe/Paris', 48.857, 2.352], ['San Francisco', 'America/Los_Angeles', 37.77, -122.42], ['São Paulo', 'America/Sao_Paulo', -23.55, -46.63], ['Shanghai', 'Asia/Shanghai', 31.23, 121.47]]
+};
+const DEFAULT_PRESET = 'Paris · New York · Tokyo · Sydney';
+const WD = ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'];
+// Couleur du ciel selon la hauteur du soleil (degrés)
+const SKY = [[-90, [8, 17, 31]], [-18, [10, 20, 36]], [-12, [17, 31, 56]], [-6, [34, 50, 92]], [-2, [92, 82, 128]], [1, [210, 128, 100]], [5, [234, 168, 118]], [10, [176, 190, 196]], [20, [150, 194, 224]], [45, [176, 212, 236]], [90, [192, 222, 242]]];
+const pad = n => String(n).padStart(2, '0');
+
+class Component extends DCLogic {
+  state = { now: Date.now() };
+  f = {};
+  componentDidMount() { this.t = setInterval(() => this.setState({ now: Date.now() }), 1000); }
+  componentWillUnmount() { clearInterval(this.t); }
+  P(tz, ms) {
+    const f = this.f[tz] || (this.f[tz] = new Intl.DateTimeFormat('en-US', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric' }));
+    const o = {};
+    f.formatToParts(new Date(ms)).forEach(p => { if (p.type !== 'literal') o[p.type] = parseInt(p.value, 10); });
+    const H = o.hour % 24, u = Date.UTC(o.year, o.month - 1, o.day);
+    return { H, M: o.minute, S: o.second, d: o.day, h: H + o.minute / 60 + o.second / 3600, dayN: Math.round(u / 864e5), wd: new Date(u).getUTCDay(),
+      off: Math.round((Date.UTC(o.year, o.month - 1, o.day, H, o.minute, o.second) - Math.floor(ms / 1000) * 1000) / 60000) };
+  }
+  // Hauteur du soleil (approximation NOAA : déclinaison + équation du temps)
+  elev(lat, lon, ms) {
+    const d = new Date(ms), n = (ms - Date.UTC(d.getUTCFullYear(), 0, 0)) / 864e5, R = Math.PI / 180;
+    const dec = -23.44 * Math.cos(2 * Math.PI * (n + 10) / 365) * R, B = 2 * Math.PI * (n - 81) / 364;
+    const eot = 9.87 * Math.sin(2 * B) - 7.53 * Math.cos(B) - 1.5 * Math.sin(B);
+    const H = ((((ms % 864e5) + 864e5) % 864e5) / 36e5 + lon / 15 + eot / 60 - 12) * 15 * R, la = lat * R;
+    return Math.asin(Math.sin(la) * Math.sin(dec) + Math.cos(la) * Math.cos(dec) * Math.cos(H)) / R;
+  }
+  skyRGB(e) {
+    for (let i = 1; i < SKY.length; i++) if (e <= SKY[i][0]) {
+      const [e0, a] = SKY[i - 1], [e1, b] = SKY[i], t = (e - e0) / (e1 - e0);
+      return a.map((v, k) => Math.round(v + (b[k] - v) * t));
+    }
+    return SKY[SKY.length - 1][1];
+  }
+  sky(e) { const c = this.skyRGB(e); return `rgb(${c[0]},${c[1]},${c[2]})`; }
+  lum(e) { const [r, g, b] = this.skyRGB(e); return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255; }
+  offL(m, isRef) {
+    if (isRef) return 'Réf.';
+    if (!m) return '±0 h';
+    const a = Math.abs(m), h = Math.floor(a / 60), r = a % 60;
+    return (m > 0 ? '+' : '−') + h + ' h' + (r ? ' ' + r : '');
+  }
+  cities() {
+    const L = this.props.cities;
+    if (Array.isArray(L) && L.length) return L.slice(0, 4).map(c => ({ name: c.name, tz: c.timeZone, lat: +c.lat, lon: +c.lon }));
+    return (PRESETS[this.props.villes] || PRESETS[DEFAULT_PRESET]).map(([name, tz, lat, lon]) => ({ name, tz, lat, lon }));
+  }
+  renderVals() {
+    const n = this.state.now, sec = this.props.showSeconds ?? this.props.secondes ?? false;
+    const cs = this.cities();
+    const ref = this.P(cs[0].tz, n);
+    const cols = cs.map((c, i) => {
+      const p = i === 0 ? ref : this.P(c.tz, n), e = this.elev(c.lat, c.lon, n), dark = this.lum(e) < .5;
+      const ink = dark ? '#fff' : '#10233a', mut = dark ? 'rgba(255,255,255,.66)' : 'rgba(16,35,58,.66)';
+      const y = e >= 0 ? 78 - Math.min(e, 60) / 60 * 44 : 78 + Math.min(-e, 18) / 18 * 9, x = 10 + p.h / 24 * 80;
+      const sun = e >= 0 ? `position:absolute;left:${x.toFixed(2)}%;top:${y.toFixed(1)}px;width:11px;height:11px;margin:-5.5px 0 0 -5.5px;border-radius:50%;background:#ffe2a6;box-shadow:0 0 0 3px rgba(255,214,140,.25),0 0 18px 4px rgba(255,196,110,.55)`
+        : `position:absolute;left:${x.toFixed(2)}%;top:${y.toFixed(1)}px;width:9px;height:9px;margin:-4.5px 0 0 -4.5px;border-radius:50%;border:1.5px solid ${dark ? 'rgba(255,255,255,.6)' : 'rgba(16,35,58,.5)'}`;
+      const open = p.wd >= 1 && p.wd <= 5 && p.h >= 9 && p.h < 18;
+      const dd = p.dayN - ref.dayN, tg = dd ? (dd > 0 ? 'J+' + dd : 'J−' + -dd) : '';
+      const time = pad(p.H) + ':' + pad(p.M);
+      const bg = `linear-gradient(180deg,${this.sky(e - 9)} 0%,${this.sky(e + 3)} 100%)`, hz = dark ? 'rgba(255,255,255,.22)' : 'rgba(16,35,58,.2)';
+      return { name: c.name, off: this.offL(p.off - ref.off, i === 0), time, sec: sec ? ':' + pad(p.S) : '', ink, mut, bg, hz, sun, dark, e,
+        sub: WD[p.wd] + ' ' + p.d + (tg ? ' (' + tg + ')' : '') + (open ? ' · au bureau' : ''),
+        aria: `${c.name} : ${time}, ${WD[p.wd]} ${p.d}${open ? ', au bureau' : ''}`,
+        colSt: `position:relative;min-width:0;padding:14px;display:flex;flex-direction:column;background:${bg};color:${ink}`,
+        offSt: `font-size:10.5px;font-weight:700;color:${mut};font-variant-numeric:tabular-nums;white-space:nowrap`,
+        hzSt: `position:absolute;left:0;right:0;top:78px;height:1px;background:${hz}`,
+        subSt: `font-size:10.5px;font-weight:600;color:${mut};white-space:nowrap`,
+        secSt: `font-size:12px;font-weight:600;color:${mut}` };
+    });
+    return { cols };
+  }
+}
+</script>
+</body>
+</html>

@@ -197,7 +197,7 @@ describe('Console — registre des cartes API', () => {
   it('v3c : catalogue des widgets, association, tag libre, clé dans le PATCH, endpoint modifié, latence médiane', async () => {
     const cat = (await admin.get('/api/admin/widgets').expect(200)).body;
     // 22 widgets du Cockpit, puis 6 widgets thématiques ; 8 widgets alimentés par une carte (consigne du 15/10/2026).
-    expect(cat).toHaveLength(29);
+    expect(cat).toHaveLength(30);
     expect(cat.find((w: any) => w.id === 'news')).toBeUndefined(); // tuile Actualité retirée du Cockpit
     expect(cat.filter((w: any) => w.group === 'thematic').map((w: any) => `${w.theme} ${w.lang}`)).toEqual(['Météo FR', 'Trafic FR', 'Actualités Eco FR', 'Actualités Eco EN', 'News FR', 'News EN', 'News Tech FR', 'News Tech EN', 'Sports FR', 'Sports EN']);
     expect(cat.find((w: any) => w.id === 'eco_fr')).toMatchObject({ n: 'Actualités Eco FR', apiCard: true });

@@ -741,3 +741,16 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
   vide : « Tous les widgets de cet onglet sont déjà sur votre tableau de bord. » Guide utilisateur du Cockpit à jour.
 - Tableau de bord (15/10/2026) : tuiles News Tech FR et News Tech EN (`tech_fr`, `tech_en`, `TH_WIDGETS`), onglet
   « Widgets infos & services » ; guide utilisateur à jour.
+- Horloge mondiale (15/10/2026, maquette « Widget horloge mondiale - Quatre ciels ») : nouveau composant
+  `Horloge mondiale.dc.html` (WorldClockWidget : props `cities`, `showSeconds` ; calcul de la classe Component de la
+  maquette repris tel quel ; un `setInterval` par instance, un `Intl.DateTimeFormat` par fuseau, aucun appel réseau ;
+  `prefers-reduced-motion`). Tuile 2 × 1 « Horloge mondiale » (`clock`, catégorie Contexte → onglet « Widgets infos &
+  services ») affichée par `Widget.dc.html` (`w.isClock`, recouvre la tuile), sans bascule de thème. Villes : préférence
+  `dbClock`, sinon `CLOCK_DEFAULT` (Paris, New York, Tokyo, Sydney). Écart à la maquette : props `cities` / `showSeconds`
+  au lieu de `villes` / `secondes` (encore lues) ; la référence n'est formatée qu'une fois. Rendu comparé à la maquette
+  à heure figée : 0 pixel différent hors des coins arrondis.
+- Horloge mondiale, villes de l'utilisateur (15/10/2026, demande du commanditaire) : clic sur la tuile → dialogue
+  « Vos villes » (`clkOpen`, `clkVals`) : 4 villes au plus (`CLOCK_MAX`), recherche par la carte
+  « open-meteo-geocodage » du Registre (`clockSearch` d'`api.js`, proxy du serveur, fuseau fourni par Open-Meteo),
+  ordre (↑, la première en référence), retrait, secondes, « Villes par défaut » ; préférence `dbClock` → `worldClock`
+  (`PATCH /api/me/preferences`), relue au chargement. Échap ferme ; focus sur la recherche (ou sur Fermer si 4 villes).

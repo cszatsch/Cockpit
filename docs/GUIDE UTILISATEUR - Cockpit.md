@@ -304,6 +304,7 @@ Chaque widget répond à une question. La couleur ne porte qu'un statut : bleu n
 | Documents récents (1 × 2) | Quelles nouvelles pièces sont arrivées ? | Les 5 derniers documents (format, titre, type, version, date, pages), répartition par format |
 | Météo · {ville} (1 × 1) | Quel temps fait-il sur le site du projet ? | Température, ciel, minimum et maximum, lever et coucher du soleil |
 | Trafic · {ville} (1 × 1) | Combien de temps pour rejoindre le site ? | Durée du trajet en voiture avec le trafic, retard éventuel, bouton **Inverser le sens** |
+| Horloge mondiale (2 × 1) | Quelle heure est-il dans les autres sites ? | Jusqu'à quatre villes de votre choix (la première sert de référence) : heure, décalage, jour (J+1 / J−1), « au bureau » du lundi au vendredi de 9 h à 18 h, ciel et soleil du moment. Cliquez sur la tuile pour choisir vos villes |
 | Actualités Eco FR, Actualités Eco EN (2 × 2) | Que retient la presse économique française / anglophone ? | Un titre à la une et les 5 suivants, source et âge |
 | News FR, News EN (2 × 2) | Quels sont les titres de l'actualité française / internationale ? | Un titre à la une et les 5 suivants, source et âge |
 | News Tech FR, News Tech EN (2 × 2) | Que retient la presse tech française / américaine ? | Un titre à la une et les 5 suivants, source et âge |
@@ -317,6 +318,7 @@ Chaque widget répond à une question. La couleur ne porte qu'un statut : bleu n
 - **Action en retard** : action non terminée dont l'échéance est passée.
 - **Support du prochain COPIL** : « Support vX publié », « Support vX · {statut} », ou « Support à préparer » (rouge à 7 jours ou moins de la séance).
 - **Météo et trafic** : le site du projet est repéré par le **code postal**, la **ville** et le **pays du projet** du Référentiel (objet Projet), sinon Paris. Le code postal est cherché en premier ; entre deux villes de même nom, celle du pays du projet qui porte ce code postal l'emporte ; un nom composé introuvable (« Massy Palaiseau ») est cherché partie par partie. Le départ du trajet est la **Ville de résidence** de Mon profil, sinon Paris. Les deux widgets se mettent à jour dès que la ville, le code postal ou le pays du projet, ou votre ville de résidence, changent, sans recharger la page.
+- **Horloge mondiale** : cliquez sur la tuile pour ouvrir **Vos villes** : retirez une ville (×), cherchez-en une autre (« Ajouter une ville », 4 au plus), faites-la monter (↑ ; la première sert de référence), affichez les secondes, puis **Enregistrer**. **Villes par défaut** revient à Paris, New York, Tokyo, Sydney. Vos villes ne concernent que vous et vous suivent d'un projet à l'autre.
 - **Tuiles d'actualités** (catégorie « Actualités » de la bibliothèque) : titres des sources associées à la tuile dans le Registre des cartes API (réglées dans la Console), une source à tour de rôle, la plus récente d'abord, sans doublon. Une source en panne n'empêche pas les autres ; une tuile sans source affiche « Aucune carte associée à ce widget dans le Registre des cartes API ».
 - **Données externes** : les réponses sont gardées 2 minutes (météo, trafic) à 30 minutes (actualité). En cas de panne, la dernière réponse valable (24 h au plus) est affichée ; sinon « Météo indisponible », « Trafic indisponible » ou « Actualités indisponibles (connexion requise) ».
 
@@ -326,7 +328,7 @@ Chaque widget répond à une question. La couleur ne porte qu'un statut : bleu n
 2. Selon le besoin :
    - **déplacer** un widget : glissez-le par sa poignée ; un emplacement en pointillés indique « Relâchez pour déposer » ;
    - **retirer** un widget : cliquez sur × (« Widget retiré · il retourne dans la bibliothèque ») ;
-   - **ajouter** un widget : dans l'onglet **Widgets projet** (gestion de projet) ou **Widgets infos & services** (météo, trafic, actualités économiques, news, tech, sport) du panneau du bas, glissez-le sur la grille ou double-cliquez dessus (« Widget ajouté · {nom} ») ;
+   - **ajouter** un widget : dans l'onglet **Widgets projet** (gestion de projet) ou **Widgets infos & services** (météo, trafic, horloge mondiale, actualités économiques, news, tech, sport) du panneau du bas, glissez-le sur la grille ou double-cliquez dessus (« Widget ajouté · {nom} ») ;
    - **appliquer un mode** : dans l'onglet **Preset Modes de pilotage**, choisissez une disposition toute prête (« Un mode remplace la disposition · annulable 5 s ») ;
    - **revenir à la disposition par défaut** : lien **Disposition par défaut**.
 3. Cliquez sur **Terminer** (« Disposition enregistrée »).
