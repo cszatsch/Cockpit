@@ -709,7 +709,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
             <span title="Modifier la priorité" style="position:relative;display:flex;align-items:center;gap:7px;min-width:0;padding:4px 6px;margin:0 -7px;border:1px solid transparent;border-radius:6px;cursor:pointer;transition:border-color .15s,background .15s" style-hover="border-color:#dfe7e5;background:#fff"><span style="{{ r.pDot }}"></span><span style="{{ r.pc }}">{{ r.pl }}</span><select value="{{ r.pS }}" onChange="{{ r.setP }}" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:0;font:inherit"><sc-for list="{{ rgPrList }}" as="o" hint-placeholder-count="3"><option value="{{ o.v }}">{{ o.l }}</option></sc-for></select></span>
             <span style="color:#43586a;line-height:1.45;min-width:0"><sc-if value="{{ r.hasDec }}" hint-placeholder-val="{{ true }}"><span style="display:flex;gap:6px;align-items:baseline"><span style="flex:none;font-family:ui-monospace,Menlo,monospace;font-size:11px;font-weight:600;color:#10233a">{{ r.decId }}</span><span style="flex:1;min-width:0"><span contentEditable="true" suppressContentEditableWarning="{{ true }}" onKeyDown="{{ enterBlur }}" style="display:block;padding:2px 6px;margin:0 -7px;border:1px solid transparent;border-radius:6px;outline:none;cursor:text;transition:border-color .15s,background .15s" style-hover="border-color:#dfe7e5;background:#fff" style-focus="border-color:#1d8f86;background:#fff;box-shadow:0 0 0 3px rgba(29,143,134,.12)" onBlur="{{ r.setDec }}" title="Modifier le libellé de la décision">{{ r.decL }}</span></span></span></sc-if><sc-if value="{{ r.noDec }}" hint-placeholder-val="{{ false }}"><span style="color:#a3b0b9;font-style:italic">Non rédigée</span></sc-if></span>
             <span title="Modifier le statut" style="position:relative;display:flex;align-items:center;gap:7px;min-width:0;padding:4px 6px;margin:0 -7px;border:1px solid transparent;border-radius:6px;cursor:pointer;transition:border-color .15s,background .15s;flex-direction:column;align-items:flex-start;gap:6px" style-hover="border-color:#dfe7e5;background:#fff"><span style="display:flex;align-items:center"><span style="{{ r.k0 }}"></span><span style="{{ r.l0 }}"></span><span style="{{ r.k1 }}"></span><span style="{{ r.l1 }}"></span><span style="{{ r.k2 }}"></span><span style="{{ r.l2 }}"></span><span style="{{ r.k3 }}"></span></span><span style="{{ r.stTx }}">{{ r.st }}</span><select value="{{ r.st }}" onChange="{{ r.setSt }}" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:0;font:inherit"><sc-for list="{{ rgStList }}" as="o" hint-placeholder-count="3"><option value="{{ o.v }}">{{ o.l }}</option></sc-for></select></span>
-            <span><sc-if value="{{ r.optOn }}" hint-placeholder-val="{{ false }}"><input value="{{ r.optV }}" onChange="{{ r.setOpt }}" maxLength="3" placeholder="—" title="Option retenue (3 caractères max.) · affichée dans le sceau de la fiche" style="width:52px;height:30px;box-sizing:border-box;border:1px solid #dfe7e5;border-radius:8px;background:#fff;text-align:center;font-family:inherit;font-size:13px;font-weight:800;letter-spacing:.04em;color:#10233a;outline-color:#1d8f86;text-transform:uppercase"></input></sc-if><sc-if value="{{ r.optOff }}" hint-placeholder-val="{{ true }}"><span data-no-sel="1" title="Saisie possible une fois la fiche arbitrée" style="display:inline-grid;place-items:center;width:52px;height:30px;border-radius:8px;border:1px dashed #e3eae8;color:#c3cfcc;font-size:12px;cursor:not-allowed">—</span></sc-if></span>
+            <span><sc-if value="{{ r.optOn }}" hint-placeholder-val="{{ false }}"><span data-no-sel="1" title="Option retenue lors de l’arbitrage · affichée dans le sceau de la fiche" style="display:inline-grid;place-items:center;width:52px;height:30px;box-sizing:border-box;border:1px solid #dfe7e5;border-radius:8px;background:#fff;font-size:13px;font-weight:800;letter-spacing:.04em;color:#10233a">{{ r.optV }}</span></sc-if><sc-if value="{{ r.optOff }}" hint-placeholder-val="{{ true }}"><span data-no-sel="1" title="Choisie lors de l’arbitrage (statut « Arbitrée »)" style="display:inline-grid;place-items:center;width:52px;height:30px;border-radius:8px;border:1px dashed #e3eae8;color:#c3cfcc;font-size:12px;cursor:not-allowed">—</span></sc-if></span>
             <span><sc-if value="{{ r.ddEd }}" hint-placeholder-val="{{ false }}"><span data-pop-trigger="1" onClick="{{ r.openDd }}" title="Modifier la date de décision" style="display:inline-block;padding:4px 6px;margin:0 -7px;border:1px solid transparent;border-radius:6px;cursor:pointer;color:#10233a;font-variant-numeric:tabular-nums;transition:border-color .15s,background .15s" style-hover="border-color:#dfe7e5;background:#fff">{{ r.ddTxt }}</span></sc-if><sc-if value="{{ r.ddNo }}" hint-placeholder-val="{{ true }}"><span title="Renseignée une fois l'arbitrage rendu" style="color:#a3b0b9;font-style:italic">En attente</span></sc-if></span>
             <span title="Modifier le chantier" style="position:relative;display:flex;align-items:center;gap:7px;min-width:0;padding:4px 6px;margin:0 -7px;border:1px solid transparent;border-radius:6px;cursor:pointer;transition:border-color .15s,background .15s;color:#43586a" style-hover="border-color:#dfe7e5;background:#fff"><span title="{{ r.chTip }}" style="{{ r.chSt }}">{{ r.chCode }}</span><select value="{{ r.ch }}" onChange="{{ r.setCh }}" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:0;font:inherit"><sc-for list="{{ rgWsList }}" as="o" hint-placeholder-count="3"><option value="{{ o.v }}">{{ o.l }}</option></sc-for></select></span>
             <span title="{{ r.instTip }}" style="position:relative;display:flex;align-items:center;gap:7px;min-width:0;padding:4px 6px;margin:0 -7px;border:1px solid transparent;border-radius:6px;cursor:pointer;transition:border-color .15s,background .15s;flex-direction:column;align-items:flex-start;gap:1px" style-hover="border-color:#dfe7e5;background:#fff"><span style="color:#10233a">{{ r.inst }}</span><span style="font-size:11px;color:#8a9aa6">{{ r.instF }}</span><select value="{{ r.inst }}" onChange="{{ r.setInst }}" style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:0;font:inherit"><sc-for list="{{ rgInstList }}" as="o" hint-placeholder-count="3"><option value="{{ o.v }}">{{ o.l }}</option></sc-for></select></span>
@@ -2299,6 +2299,41 @@ a{color:#1d8f86}a:hover{color:#146b64}
 </div>
 </sc-if>
 
+<!-- Arbitrage d'une décision (15/10/2026) : option retenue, texte de la décision et date, envoyés avec le statut « Arbitrée ». -->
+<sc-if value="{{ arb.open }}" hint-placeholder-val="{{ false }}">
+<div onClick="{{ arb.close }}" style="position:fixed;inset:0;background:rgba(6,35,34,.55);backdrop-filter:blur(3px);animation:rise-fade .25s both;z-index:30"></div>
+<div role="dialog" aria-modal="true" aria-label="{{ arb.title }}" onKeyDown="{{ arb.key }}" style="position:fixed;inset:0;margin:auto;height:fit-content;width:min(540px,calc(100vw - 32px));max-height:calc(100vh - 56px);background:#fff;border-radius:18px;box-shadow:0 40px 90px -40px rgba(16,35,58,.7);z-index:31;display:flex;flex-direction:column;overflow:hidden;animation:rise-in .3s cubic-bezier(.2,.7,.2,1) both;color:#10233a">
+  <header style="padding:22px 24px 14px;display:flex;align-items:flex-start;gap:12px">
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">
+      <span style="font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#1d8f86">ARBITRAGE</span>
+      <span style="font-size:20px;font-weight:800;font-style:italic;letter-spacing:-.025em">{{ arb.title }}</span>
+      <span style="font-size:12.5px;color:#5c7280;line-height:1.5">{{ arb.q }}</span>
+    </div>
+    <button type="button" onClick="{{ arb.close }}" aria-label="Fermer" style="width:32px;height:32px;border:0;border-radius:9px;background:transparent;color:#5c7280;display:grid;place-items:center;cursor:pointer;flex:none" style-hover="background:#eef3f2;color:#10233a"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+  </header>
+  <div style="padding:0 24px 18px;display:flex;flex-direction:column;gap:16px;overflow-y:auto">
+    <div role="radiogroup" aria-label="Option retenue" style="display:flex;flex-direction:column;gap:6px">
+      <span style="font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#8a9aa6">OPTION RETENUE</span>
+      <sc-for list="{{ arb.opts }}" as="o" hint-placeholder-count="2">
+        <button type="button" role="radio" aria-checked="{{ o.on }}" data-arb-first="{{ o.first }}" onClick="{{ o.pick }}" style="{{ o.st }}"><span style="{{ o.dot }}"></span><span style="flex:1;min-width:0;font-size:13px;font-weight:700">{{ o.l }}</span><sc-if value="{{ o.reco }}" hint-placeholder-val="{{ false }}"><span style="height:22px;padding:0 9px;border-radius:11px;background:#e3f3f0;color:#146b64;font-size:11px;font-weight:800;display:inline-flex;align-items:center;white-space:nowrap">Recommandation PMO</span></sc-if></button>
+      </sc-for>
+      <sc-if value="{{ arb.optErr }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:#c2473b">Choisissez l’option retenue.</span></sc-if>
+      <sc-if value="{{ arb.noFiche }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:#8a9aa6">Sans fiche d’arbitrage, l’option est facultative.</span></sc-if>
+    </div>
+    <label style="display:flex;flex-direction:column;gap:6px"><span style="font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#8a9aa6">TEXTE DE LA DÉCISION</span>
+      <textarea value="{{ arb.decL }}" onChange="{{ arb.setDecL }}" maxLength="4000" aria-label="Texte de la décision" style="{{ arb.txtSt }}"></textarea>
+      <sc-if value="{{ arb.txtErr }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:#c2473b">Rédigez le texte de la décision.</span></sc-if>
+    </label>
+    <label style="display:flex;align-items:center;gap:12px"><span style="font-size:10.5px;font-weight:800;letter-spacing:.14em;color:#8a9aa6">DATE DE DÉCISION</span><input type="date" value="{{ arb.dd }}" onChange="{{ arb.setDd }}" aria-label="Date de décision" style="height:36px;border:0;border-radius:9px;padding:0 10px;font:inherit;font-size:13px;color:#10233a;box-shadow:inset 0 0 0 1.5px #d3dedb"></label>
+    <span style="font-size:12px;color:#8a5a12;line-height:1.5">Une fois arbitrée, la fiche passe en lecture seule.</span>
+  </div>
+  <footer style="padding:14px 24px;border-top:1px solid #eef3f2;background:#fbfdfc;display:flex;align-items:center;justify-content:flex-end;gap:8px">
+    <button type="button" onClick="{{ arb.close }}" style="height:38px;padding:0 14px;border:1px solid #d3dedb;border-radius:11px;background:#fff;font:inherit;font-size:13px;font-weight:700;cursor:pointer" style-hover="border-color:#10233a">Annuler</button>
+    <button type="button" onClick="{{ arb.confirm }}" style="height:38px;padding:0 16px;border:0;border-radius:11px;background:#10233a;color:#fff;font:inherit;font-size:13px;font-weight:700;cursor:pointer" style-hover="background:#1d3654">Arbitrer</button>
+  </footer>
+</div>
+</sc-if>
+
 <!-- Horloge mondiale (15/10/2026) : villes choisies par l'utilisateur, 4 au plus, la première en référence. -->
 <sc-if value="{{ clk.open }}" hint-placeholder-val="{{ false }}">
 <div onClick="{{ clk.close }}" style="position:fixed;inset:0;background:rgba(6,35,34,.55);backdrop-filter:blur(3px);animation:rise-fade .25s both;z-index:30"></div>
@@ -3752,8 +3787,10 @@ class Component extends DCLogic {
         rowSt: GR + (f.id === sel ? 'background:#f3f7fa;box-shadow:inset 3px 0 0 #1d8f86' : 'background:#fff'),
         select: e => { if (e.target.closest('[contenteditable="true"],select,input,[data-no-sel],[data-pop-trigger],[data-jev-ico]')) return; this.setState({ faSel: f.id }); this.scrollFiche(); },
         setT: txt(f.id, 't', f.t), setDec: txt(f.id, 'decL', f.decL), setP: e => this.edit('fa', f.id, 'p', +e.target.value), setCh: e => this.edit('fa', f.id, 'ch', e.target.value), setInst: e => this.edit('fa', f.id, 'inst', e.target.value),
-        optOn: f.st === 'Arbitrée', optOff: f.st !== 'Arbitrée', optV: f.opt || '', setOpt: e => this.edit('fa', f.id, 'opt', String(e.target.value || '').slice(0, 3).toUpperCase()),
-        setSt: e => { const v = e.target.value; this.edit('fa', f.id, 'st', v); if (!OPEN(v) && !f.ddIso) this.edit('fa', f.id, 'ddIso', today); if (OPEN(v) && f.ddIso) this.edit('fa', f.id, 'ddIso', ''); } };
+        optOn: f.st === 'Arbitrée', optOff: f.st !== 'Arbitrée', optV: f.opt || '—',
+        // « Arbitrée » (15/10/2026) : le serveur exige le texte de la décision et la fiche devient en lecture seule ; option,
+        // texte et date sont donc demandés dans la fenêtre « Arbitrer » et envoyés avec le statut, en une fois.
+        setSt: e => { const v = e.target.value; if (v === 'Arbitrée') { e.target.value = f.st; this.arbOpen(f); return; } this.edit('fa', f.id, 'st', v); if (!OPEN(v) && !f.ddIso) this.edit('fa', f.id, 'ddIso', today); if (OPEN(v) && f.ddIso) this.edit('fa', f.id, 'ddIso', ''); } };
       [0, 1, 2, 3].forEach(i => { x['k' + i] = 'display:block;width:7px;height:7px;border-radius:50%;flex:none;' + (rep ? 'background:#e3eae8' : i < ix ? 'background:' + col : i === ix ? 'background:' + col + ';box-shadow:0 0 0 3px ' + ring : 'background:#fff;box-shadow:inset 0 0 0 1.5px #cfd8d6'); if (i < 3) x['l' + i] = 'display:block;width:14px;height:1.5px;background:' + (!rep && i < ix ? col : '#e3eae8'); });
       return x; });
     const sDotC = { Brouillon: '#a3b0b9', 'En instruction': '#1d8f86', 'À arbitrer': '#c06f1f', 'Arbitrée': '#10233a', 'Annulée': '#cfd8d6' };
@@ -3784,7 +3821,7 @@ class Component extends DCLogic {
       faSt: F.st, faSDot: 'width:7px;height:7px;border-radius:50%;flex:none;background:' + sDotC[F.st] + (F.st === 'À arbitrer' ? ';box-shadow:0 0 0 3px rgba(192,111,31,.16)' : ''),
       faFull: full, faLite: !full, faMeta: F.ch + ' · ' + F.inst, faBy: 'Créée le ' + fr(F.crIso), faQ: F.t,
       faLitMsg: OPEN(F.st) ? 'La grille d\'analyse de cette fiche n\'est pas encore renseignée. Critères, options et recommandation s\'afficheront ici dès leur saisie.' : 'Arbitrage rendu le ' + fr(F.ddIso) + ' en ' + String(F.inst).toLowerCase() + '.',
-      faSealOn: full && F.st === 'Arbitrée', faSealTip: 'Arbitrée le ' + fr(F.ddIso) + ' · ' + F.inst + ' · option ' + (F.opt || recOpt) + ' retenue', faSeal: (() => { if (!(full && F.st === 'Arbitrée')) return null; const h = React.createElement, L = F.opt || (/\b([AB])\b/.exec(recOpt) || [, 'B'])[1], dt = (fr(F.ddIso) || '').toUpperCase(), inst = String(F.inst || '').toUpperCase();
+      faSealOn: full && F.st === 'Arbitrée', faSealTip: 'Arbitrée le ' + fr(F.ddIso) + ' · ' + F.inst + ' · ' + (F.opt ? 'option ' + F.opt + ' retenue' : 'option retenue non renseignée'), faSeal: (() => { if (!(full && F.st === 'Arbitrée')) return null; const h = React.createElement, L = F.opt || '–', dt = (fr(F.ddIso) || '').toUpperCase(), inst = String(F.inst || '').toUpperCase();
         return h('svg', { width: 88, height: 88, viewBox: '0 0 220 220', style: { display: 'block' } },
           h('defs', null, h('path', { id: 'fa-seal-t', d: 'M18 110 A92 92 0 0 1 202 110' }), h('path', { id: 'fa-seal-b', d: 'M8 110 A102 102 0 0 0 212 110' }),
             h('linearGradient', { id: 'fa-seal-a', x1: 0, y1: 0, x2: 1, y2: 1 }, h('stop', { offset: 0, stopColor: '#f7a41c' }), h('stop', { offset: 1, stopColor: '#f0752b' })),
@@ -3802,6 +3839,41 @@ class Component extends DCLogic {
   /** Fiche affichée dans Pilotage › Décisions : la décision choisie, sinon la première (10/10/2026 : plus de D-007 par défaut). */
   faSelId() { const L = ((this.mergedData() || {}).arbitrations) || [], s = this.state.faSel; return s && L.some(x => x.id === s) ? s : (L[0] || {}).id || ''; }
   /** Option recommandée d'une fiche = la mieux notée (barème commun, saisie-calc.js) ; '' sans note ou à égalité. */
+  // ── Arbitrage d'une décision (15/10/2026) : option retenue, texte de la décision et date, envoyés avec le statut. ──
+  arbOpts(id) {
+    const tx = (((this.state.arbData || {})[id] || {}).tx) || {}, lbl = (k, d) => String(tx[k] || '').trim() || d;
+    return [['A', lbl('dcOptA', 'Option A')], ['B', lbl('dcOptB', 'Option B')]];
+  }
+  arbDefaultText(id, opt) { const o = this.arbOpts(id).find(x => x[0] === opt); return o ? o[1] + ' retenue' : ''; }
+  arbOpen(f) {
+    if (!this.can('edit', this.findObj(f.id))) { this.showToast('Droit insuffisant : seul le PMO ou le Responsable du chantier peut modifier cette donnée'); return; }
+    const reco = (/\b([AB])\b/.exec(this.faReco(f.id)) || [])[1] || '', opt = f.opt || reco;
+    this.setState({ arbDlg: { id: f.id, t: f.t, opt, reco, decL: f.decL || this.arbDefaultText(f.id, opt), auto: !f.decL, dd: f.ddIso || this.fToday(), touched: false } });
+    setTimeout(() => { const el = document.querySelector('[data-arb-first]'); el && el.focus(); }, 80);
+  }
+  arbVals() {
+    const S = this.state, D = S.arbDlg;
+    if (!D) return { open: false };
+    const set = p => this.setState(s => ({ arbDlg: { ...s.arbDlg, ...p } })), close = () => this.setState({ arbDlg: null });
+    const hasFiche = !!(S.arbData || {})[D.id], optErr = hasFiche && !D.opt, txtErr = !String(D.decL || '').trim(), ddErr = !/^\d{4}-\d{2}-\d{2}$/.test(D.dd || '');
+    const opts = this.arbOpts(D.id).map(([k, l], i) => { const on = D.opt === k; return { k, l, on, reco: D.reco === k, first: i === 0,
+      pick: () => set({ opt: k, ...(D.auto ? { decL: this.arbDefaultText(D.id, k) } : {}) }),
+      st: 'display:flex;align-items:center;gap:10px;min-height:46px;padding:8px 12px;border:0;border-radius:11px;cursor:pointer;text-align:left;font:inherit;transition:background .15s,box-shadow .15s;' + (on ? 'background:#10233a;color:#fff;box-shadow:none' : 'background:#fff;color:#10233a;box-shadow:inset 0 0 0 1.5px #d3dedb'),
+      dot: 'width:16px;height:16px;border-radius:50%;flex:none;box-sizing:border-box;' + (on ? 'border:5px solid #3dd6c6;background:#10233a' : 'border:1.5px solid #a9b8c0') }; });
+    return { open: true, title: 'Arbitrer ' + D.id, q: D.t, opts, hasFiche, noFiche: !hasFiche,
+      decL: D.decL, setDecL: e => set({ decL: e.target.value, auto: false }), dd: D.dd, setDd: e => set({ dd: e.target.value }),
+      optErr: D.touched && optErr, txtErr: D.touched && txtErr, ddErr: D.touched && ddErr,
+      txtSt: 'width:100%;min-height:76px;box-sizing:border-box;border:0;border-radius:10px;padding:10px 12px;font:inherit;font-size:13px;line-height:1.5;resize:vertical;color:#10233a;box-shadow:inset 0 0 0 1.5px ' + (D.touched && txtErr ? '#c2473b' : '#d3dedb'),
+      close, key: e => { if (e.key === 'Escape') { e.stopPropagation(); close(); } },
+      confirm: () => {
+        if (optErr || txtErr || ddErr) return set({ touched: true });
+        const key = 'fa:' + D.id, v = { st: 'Arbitrée', opt: D.opt || '', decL: String(D.decL).trim(), ddIso: D.dd };
+        // Une seule modification (statut, option, texte, date) : api.js en fait un seul envoi au serveur.
+        this.setState(s => ({ arbDlg: null, ed: { ...(s.ed || {}), [key]: { ...((s.ed || {})[key] || {}), ...v } },
+          audit: Object.entries(v).map(([f, x]) => ({ k: 'fa', id: D.id, f, v: x, by: this.meName(), at: new Date().toISOString(), origin: 'saisie' })).concat(s.audit || []) }));
+        this.showToast(D.id + ' arbitrée' + (D.opt ? ' · option ' + D.opt + ' retenue' : ''));
+      } };
+  }
   faReco(id) {
     const A = (this.state.arbData || {})[id], C = globalThis.RiseSaisieCalc; if (!A || !C) return '';
     const cr = (A.crit || []).map(c => ({ poids: parseFloat(c[1]) || 0, noteA: +c[2] || 0, noteB: +c[4] || 0 })), a = C.baremeScore(cr, 'A'), b = C.baremeScore(cr, 'B');
@@ -5989,7 +6061,7 @@ class Component extends DCLogic {
     return Object.assign(base, {
       ...psVals, ...gbVals, ...dlVals, ...roVals, ...tmVals, ...spVals, ...phVals, ...msVals, ...waVals, ...dxVals,
       ...(S.refObj === 'WORKSTREAM' ? { refAddOn: false, refAddIco: true, refAddIcoFn: () => { const id = 'wn' + Date.now(), n = ((M.WORKSTREAM && M.WORKSTREAM.rows) || []).length + 1; this.setState(st => ({ wsAdded: [...(st.wsAdded || []), { id, cells: [String(n), 'Nouveau chantier', '', 'Actif', '', ''], waves: [0, 0, 0, 0] }] })); this.showToast('Ajouté — Chantiers · renommez le chantier'); } } : { refAddIco: false }), ...addVals, ...(() => { const f = { PROJECT_INFO: () => { this.setState(st => ({ ipAdded: [...(st.ipAdded || []), { id: 'ipn' + Date.now(), cells: ['Enjeux stratégiques', '—', ''] }] })); this.showToast('Ajouté — Info projet · choisissez la rubrique et saisissez la valeur'); }, PERSON: psVals.psAddOn, ROLE: addVals.roAdd, TEAM: addVals.tmAdd, WORKSTREAM: addVals.refAddIcoFn, SUBPHASE: addVals.spAdd, PHASE: addVals.phAdd, WAVE: addVals.waAdd, GOVERNANCE_BODY: gbVals.gbAdd, MILESTONE: this.can('referentielEdit') ? addVals.msAdd : null, DELIVERABLE: dlVals.refIsDl && (dlVals.dlCols || []).length ? () => this.setState({ dlAdd: dlVals.dlCols[0].code, dlNew: '' }) : null }[S.refObj]; return f && this.can('referentielEdit') ? { refAddIco: true, refAddIcoFn: f, refAddOn: false } : { refAddIco: false, refAddOn: false }; })(), vReferentiel: is('projet', 'referentiel'), refCanDelete: this.can('referentielEdit') && !['CLIENT', 'PROJECT'].includes(S.refObj), ...(this._refQ || {}), refList, refObjLabel: refObj.label, refObjTech: S.refObj, refObjScope: refObj.scope, refHead, refHeadStyle: refGrid + 'font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:#5c7280;padding-bottom:8px;border-bottom:1px solid #e6eeec', refRows, refConstraints, refAdd: () => (S.refObj === 'MILESTONE' ? this.setState({ addD: { obj: 'MILESTONE' } }) : this.showToast('Création — hors périmètre de la maquette')), refAddLabel: 'Ajouter · ' + refObj.label.toLowerCase(),
-      ...wbsVals, ...bmVals, ...previewVals, ...kbUpVals, clk: this.clkVals(), ...kbDupVals, ...kbDelVals, docEmpty, docEmptyT, docEmptyD, ...tplVals, trajPhases, trajNote, trajCurName, trajCurPos, goliveDays, refCurV, refCurD, refPrevV, refPrevD, goWbs: () => this.go('projet', 'wbs'), pj, gaps, gapCount, gapLabel: gapCount + (gapCount > 1 ? ' éléments' : ' élément'), hasGaps: gapCount > 0, goRefProject: () => goRef('PROJECT'), goRefAssign: () => goRef('PROJECT_ASSIGNMENT'), goRefWave: () => goRef('WAVE'), goRefWs: () => goRef('WORKSTREAM'), goRefTeam: () => goRef('TEAM'), goRefClient: () => goRef('CLIENT'),
+      ...wbsVals, ...bmVals, ...previewVals, ...kbUpVals, clk: this.clkVals(), arb: this.arbVals(), ...kbDupVals, ...kbDelVals, docEmpty, docEmptyT, docEmptyD, ...tplVals, trajPhases, trajNote, trajCurName, trajCurPos, goliveDays, refCurV, refCurD, refPrevV, refPrevD, goWbs: () => this.go('projet', 'wbs'), pj, gaps, gapCount, gapLabel: gapCount + (gapCount > 1 ? ' éléments' : ' élément'), hasGaps: gapCount > 0, goRefProject: () => goRef('PROJECT'), goRefAssign: () => goRef('PROJECT_ASSIGNMENT'), goRefWave: () => goRef('WAVE'), goRefWs: () => goRef('WORKSTREAM'), goRefTeam: () => goRef('TEAM'), goRefClient: () => goRef('CLIENT'),
       ...mineArchVals, waveRows, wsWaveRows, wsLots: WV.map(w => ({ l: w.l, tip: w.tip })), wsHeadSt, wsRowSt, teamModelRows, ...asgHist, assignRows, assignMore: '+ ' + assignMore + ' affectations · voir Équipe',
       projectFieldCount: (M.PROJECT.rows.length - M.PROJECT.rows.filter(r => r.missing).length) + ' / ' + M.PROJECT.rows.length + ' champs',
       projCode: this.projCode(), projLe: this.projCode() ? 'le projet ' + this.projCode() : 'le projet', projTitle: this.projCode() ? 'Projet ' + this.projCode() : 'Projet', projDash: this.projCode() ? this.projCode() + ' — ' : '', // code du projet ouvert (12/10/2026 : plus de « RISE » en dur)

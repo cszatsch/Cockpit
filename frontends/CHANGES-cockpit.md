@@ -754,3 +754,11 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
   « open-meteo-geocodage » du Registre (`clockSearch` d'`api.js`, proxy du serveur, fuseau fourni par Open-Meteo),
   ordre (↑, la première en référence), retrait, secondes, « Villes par défaut » ; préférence `dbClock` → `worldClock`
   (`PATCH /api/me/preferences`), relue au chargement. Échap ferme ; focus sur la recherche (ou sur Fermer si 4 villes).
+- Pilotage › Décisions, arbitrage (15/10/2026, correctif) : choisir « Arbitrée » revenait aussitôt à « À arbitrer ».
+  Cause : l'écran envoyait `{ status, ddIso }` sans le texte de la décision, que le serveur exige (422 « Une décision
+  arbitrée doit porter le texte de la décision ») ; le rechargement qui suit un refus effaçait la modification, après
+  que le sceau eut affiché l'option **recommandée** comme retenue. Correctif : « Arbitrée » ouvre la fenêtre « Arbitrer
+  D-xxx » (`arbOpen`, `arbVals`) — option retenue (obligatoire avec une fiche, recommandation présélectionnée), texte
+  proposé d'après l'option et modifiable, date — puis statut, option, texte et date partent en un seul PATCH. L'option
+  n'est plus saisissable après coup (fiche arbitrée en lecture seule côté serveur) : affichée seulement. Sceau : option
+  choisie (`F.opt`), « – » sinon, jamais la recommandation. Test `test/e2e/arbitrage-decision.spec.ts`.

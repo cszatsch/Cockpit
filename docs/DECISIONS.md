@@ -2581,3 +2581,14 @@ Brief du commanditaire : reproduire la maquette avec les vraies données et les 
   caractères, fuseau IANA reconnu (`isTimeZone`), latitude et longitude bornées, pas de doublon (`duplicateCity`).
   Recherche des villes par la carte « open-meteo-geocodage » du Registre (fuseau et coordonnées fournis) ; la tuile,
   elle, ne fait toujours aucun appel réseau. La question ouverte précédente est close.
+
+## Arbitrage d'une décision depuis Pilotage › Décisions (15/10/2026, correctif)
+
+- Cause racine du retour à « À arbitrer » : désaccord entre l'écran (statut « Arbitrée » proposé seul) et la règle du
+  serveur (texte de la décision obligatoire pour arbitrer, `transactional.ts`), masqué par la mise à jour immédiate de
+  l'écran ; le refus (422) provoquait un rechargement qui effaçait la modification.
+- Choix : l'écran demande option, texte et date dans une fenêtre d'arbitrage et les envoie avec le statut (un seul
+  PATCH) ; la règle du serveur est gardée. Option obligatoire seulement si la décision a une fiche d'arbitrage (barème
+  A / B). Texte proposé : « {libellé de l'option} retenue », modifiable.
+- Le sceau n'affiche plus la recommandation à la place de l'option retenue (une décision aurait pu paraître arbitrée en
+  faveur de A alors que le comité avait choisi B).

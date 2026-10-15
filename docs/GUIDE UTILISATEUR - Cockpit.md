@@ -726,8 +726,14 @@ Demandez-le à Jev (voir 3.19.4) : libellé, probabilité et impact (1 à 5, cri
 
 **Règles**
 
-- Clôturer (Arbitrée, Annulée) sans date pose la date du jour ; rouvrir l'efface.
-- Une décision arbitrée doit porter son texte : « Une décision arbitrée doit porter le texte de la décision ».
+- **Arbitrer une décision** : choisir « Arbitrée » dans le statut ouvre la fenêtre **Arbitrer {D-xxx}** :
+  1. choisissez l'**option retenue** (A ou B ; l'option recommandée par le PMO est présélectionnée et repérée « Recommandation PMO ») — obligatoire quand la décision a une fiche d'arbitrage, facultative sinon ;
+  2. vérifiez le **texte de la décision**, proposé d'après l'option (« Option A · Externalisation retenue ») et modifiable ;
+  3. vérifiez la **date de décision** (aujourd'hui par défaut) ;
+  4. cliquez sur **Arbitrer** (« D-xxx arbitrée · option A retenue »). **Annuler** ou Échap laisse la décision inchangée.
+  Statut, option, texte et date sont enregistrés ensemble : la fiche passe ensuite en lecture seule, l'option ne se change plus.
+- Clôturer (Annulée) sans date pose la date du jour ; rouvrir l'efface.
+- Une décision arbitrée doit porter son texte : « Rédigez le texte de la décision. » dans la fenêtre d'arbitrage.
 - Une fiche arbitrée ne se modifie plus : « Fiche arbitrée : lecture seule ».
 - Quand une décision qui en remplace une autre est arbitrée, l'ancienne passe à « Remplacée ».
 
@@ -738,7 +744,7 @@ Demandez-le à Jev (voir 3.19.4) : libellé, probabilité et impact (1 à 5, cri
 - **Barème commun** : les critères et leurs poids sont communs aux deux options ; chaque option reçoit, critère par critère, une note de 1 à 4 et une justification. Score pondéré = Σ poids / 100 × note, sur 4. Si la somme des poids ne fait pas 100 %, l'écran affiche « poids : X % ».
 - **Option recommandée = la mieux notée** : la pastille « Recommandation PMO » et la ligne **Recommandation PMO** désignent l'option qui a le meilleur score pondéré. Elles ne se modifient pas à la main ; sans note, ou à égalité, l'option affiche « À définir ».
 - **Décision attendue**, compte à rebours avant la prochaine séance.
-- Une fiche arbitrée porte le sceau « ARBITRÉE · date · OPTION RETENUE ».
+- Une fiche arbitrée porte le sceau « ARBITRÉE · date · OPTION RETENUE », avec la lettre de l'option choisie lors de l'arbitrage (jamais la recommandation à sa place ; « – » si aucune option n'a été retenue).
 - Les textes, les poids et les notes d'une fiche existante se corrigent directement dans la fiche (toast « Modifié · {nom} · saisie directe »).
 - Le bouton « Composer la fiche » / « Modifier la fiche » a été retiré de Pilotage › Décisions le 11 octobre 2026 : une fiche se compose depuis **Saisir sans Jev**.
 
