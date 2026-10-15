@@ -739,3 +739,5 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
   « Widgets projet », « Widgets infos & services » (catégories Contexte et Actualités : Météo, Trafic et les 6 tuiles
   d'actualités, `INFO_CATS`) ; les widgets verrouillés Budget / Bénéfices restent dans « Widgets projet » ; onglet
   vide : « Tous les widgets de cet onglet sont déjà sur votre tableau de bord. » Guide utilisateur du Cockpit à jour.
+- Tableau de bord (15/10/2026) : tuiles News Tech FR et News Tech EN (`tech_fr`, `tech_en`, `TH_WIDGETS`), onglet
+  « Widgets infos & services » ; guide utilisateur à jour.

@@ -306,6 +306,7 @@ Chaque widget répond à une question. La couleur ne porte qu'un statut : bleu n
 | Trafic · {ville} (1 × 1) | Combien de temps pour rejoindre le site ? | Durée du trajet en voiture avec le trafic, retard éventuel, bouton **Inverser le sens** |
 | Actualités Eco FR, Actualités Eco EN (2 × 2) | Que retient la presse économique française / anglophone ? | Un titre à la une et les 5 suivants, source et âge |
 | News FR, News EN (2 × 2) | Quels sont les titres de l'actualité française / internationale ? | Un titre à la une et les 5 suivants, source et âge |
+| News Tech FR, News Tech EN (2 × 2) | Que retient la presse tech française / américaine ? | Un titre à la une et les 5 suivants, source et âge |
 | Sports FR, Sports EN (2 × 2) | Quelles sont les nouvelles du sport en France / anglophone ? | Un titre à la une et les 5 suivants, source et âge |
 
 **Règles de calcul utiles**
@@ -325,7 +326,7 @@ Chaque widget répond à une question. La couleur ne porte qu'un statut : bleu n
 2. Selon le besoin :
    - **déplacer** un widget : glissez-le par sa poignée ; un emplacement en pointillés indique « Relâchez pour déposer » ;
    - **retirer** un widget : cliquez sur × (« Widget retiré · il retourne dans la bibliothèque ») ;
-   - **ajouter** un widget : dans l'onglet **Widgets projet** (gestion de projet) ou **Widgets infos & services** (météo, trafic, actualités économiques, news, sport) du panneau du bas, glissez-le sur la grille ou double-cliquez dessus (« Widget ajouté · {nom} ») ;
+   - **ajouter** un widget : dans l'onglet **Widgets projet** (gestion de projet) ou **Widgets infos & services** (météo, trafic, actualités économiques, news, tech, sport) du panneau du bas, glissez-le sur la grille ou double-cliquez dessus (« Widget ajouté · {nom} ») ;
    - **appliquer un mode** : dans l'onglet **Preset Modes de pilotage**, choisissez une disposition toute prête (« Un mode remplace la disposition · annulable 5 s ») ;
    - **revenir à la disposition par défaut** : lien **Disposition par défaut**.
 3. Cliquez sur **Terminer** (« Disposition enregistrée »).

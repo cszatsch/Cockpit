@@ -51,14 +51,15 @@ export const WIDGET_CATALOGUE: readonly WidgetDef[] = [
 ];
 
 /**
- * Widgets du registre (consigne du commanditaire du 15/10/2026) : 8 widgets alimentés par une carte — Actualités Eco,
- * News et Sports en français et en anglais, Météo et Trafic en français seulement (ci-dessus, dans le catalogue du
+ * Widgets du registre (consigne du commanditaire du 15/10/2026) : 10 widgets alimentés par une carte — Actualités Eco,
+ * News, News Tech et Sports en français et en anglais, Météo et Trafic en français seulement (ci-dessus, dans le catalogue du
  * tableau de bord). Matrice du registre : une ligne par thème (`theme`), une colonne par langue (`lang`).
  * Tuiles « Actualités » du Cockpit : titres des cartes associées (`GET /api/widgets/news?widget=…`).
  */
 export const THEMATIC_THEMES: ReadonlyArray<readonly [string, string, string[]]> = [
   ['eco', 'Actualités Eco', ['Actualités Eco']],
   ['news', 'News', ['News']],
+  ['tech', 'News Tech', ['News Tech']],
   ['sport', 'Sports', ['Sports']],
 ];
 export const THEMATIC_WIDGETS: readonly WidgetDef[] = THEMATIC_THEMES.flatMap(([t, l, tags]) =>

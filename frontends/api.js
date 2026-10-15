@@ -169,7 +169,7 @@ const clone = (x) => (x == null ? x : JSON.parse(JSON.stringify(x)));
 const pad2 = (n) => String(n).padStart(2, '0');
 // Tuiles Actualités du Cockpit (widgets thématiques du Registre des cartes API, 15/10/2026) : identifiants, articles lus
 // par widget (toutes sources) et titres montrés.
-const TH_WIDGETS = ['eco_fr', 'eco_en', 'news_fr', 'news_en', 'sport_fr', 'sport_en'];
+const TH_WIDGETS = ['eco_fr', 'eco_en', 'news_fr', 'news_en', 'tech_fr', 'tech_en', 'sport_fr', 'sport_en'];
 const TH_FETCH = 30, TH_ITEMS = 6;
 
 /** « JJ/MM/AAAA », « MM/AAAA » ou « AAAA » → { iso, prec } (borne de début ou de fin). */

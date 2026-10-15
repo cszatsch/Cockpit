@@ -7,10 +7,11 @@ describe('Catalogue des widgets (registre des cartes API v3c)', () => {
   it('reste identique au catalogue du Cockpit : identifiants, noms et catégories', () => {
     const src = readFileSync(join(__dirname, '../../../frontends/RISE Cockpit.dc.html'), 'utf8');
     const cockpit = [...src.matchAll(/\{ id: '([a-z_]+)', name: ('([^']*)'|'([^']*)' \+ [^,]+), cat: '([^']*)'/g)].map((m) => ({ id: m[1], n: m[3] ?? m[4], cat: m[5] }));
-    // 21 widgets du tableau de bord (Actualité retirée), puis les 6 tuiles Actualités (widgets thématiques, 15/10/2026).
-    expect(cockpit).toHaveLength(27);
+    // 21 widgets du tableau de bord (Actualité retirée), puis les 8 tuiles Actualités (widgets thématiques, 15/10/2026).
+    expect(cockpit).toHaveLength(29);
     expect(WIDGET_CATALOGUE).toHaveLength(21);
-    expect(REGISTRY_WIDGETS).toHaveLength(27);
+    expect(REGISTRY_WIDGETS).toHaveLength(29);
+    expect(widgetName('tech_fr')).toBe('News Tech FR');
     for (const w of cockpit) {
       const c = REGISTRY_WIDGETS.find((x) => x.id === w.id);
       expect(c).toBeDefined();

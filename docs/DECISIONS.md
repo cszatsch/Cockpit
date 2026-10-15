@@ -2554,3 +2554,8 @@ Brief du commanditaire : reproduire la maquette avec les vraies données et les 
   pilotage, Widgets projet, Widgets infos & services. Rangement par catégorie du widget (`INFO_CATS` = Contexte,
   Actualités : widgets hors gestion de projet) ; un widget ajouté plus tard dans l'une de ces catégories rejoint
   automatiquement l'onglet infos & services.
+- Widgets News Tech FR et News Tech EN (demande du commanditaire, même jour) : thème `tech` (`tech_fr`, `tech_en`,
+  « News Tech » ; le commanditaire écrit « News TECH EN », graphie alignée sur FR), tag des cartes « News Tech ». Cartes :
+  01net, Le Monde – Pixels, Numerama (FR) ; TechCrunch, The Verge, CNBC – Technology (EN), choisies après le banc des
+  flux tech du 15/10/2026 (31 flux testés deux fois depuis le poste : code, délai, lecture par `parseFeed`, fraîcheur).
+  Registre : 10 widgets associables ; Cockpit : 8 tuiles dans « Widgets infos & services ».
