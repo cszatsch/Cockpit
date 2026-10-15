@@ -241,7 +241,8 @@ const SSJ_CHAP = {
   risque: [['Risque', [0, 1]], ['Évaluation', [2, 3]], ['Traitement', [4, 5, 6]]],
   action: [['Action', [0]], ['Rattachement', [1, 2]], ['Pilotage', [3, 4, 5]]],
   tache: [['Tâche', [0]], ['Rattachement', [2, 3]], ['Pilotage', [1, 4, 5]]],
-  decision: [['Décision', [0, 1]], ['Détails', [2, 3, 4]], ['Issue', [5, 6]]],
+  // Issue (15/10/2026) : + texte de la décision (8) et décision remplacée (7).
+  decision: [['Décision', [0, 1]], ['Détails', [2, 3, 4]], ['Issue', [5, 6, 8, 7]]],
   // Fiche d'arbitrage : intitulé, décision, préparée par, contexte ; puis la fiche « barème commun » (maquette 11a), à la place du formulaire.
   arbitrage: [['Arbitrage', [0, 1]], ['Contexte', [2, 3]]],
   barometre: [['Relevé', [0, 1]], ['Ressenti', [2, 3]], ['Détail', [4, 5]], ['Verbatims', [6]]],

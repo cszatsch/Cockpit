@@ -11,7 +11,8 @@ import { join } from 'path';
 describe('Frontends : syntaxe des clients et des écrans', () => {
   const dir = join(__dirname, '../../../frontends');
   const tmp = mkdtempSync(join(tmpdir(), 'rise-syntaxe-'));
-  afterAll(() => rmSync(tmp, { recursive: true, force: true }));
+  // Nettoyage best effort : sous Windows, l'antivirus verrouille parfois le dossier (EPERM) ; ce n'est pas un échec du test.
+  afterAll(() => { try { rmSync(tmp, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 }); } catch { /* dossier temporaire laissé au système */ } });
   const check = (name: string, code: string) => {
     const f = join(tmp, name.replace(/[^A-Za-z0-9.-]/g, '_') + '.mjs');
     writeFileSync(f, code);

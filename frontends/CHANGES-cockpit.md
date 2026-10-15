@@ -775,3 +775,6 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
   fenêtre « Arbitrer » (envoyé avec l'arbitrage) ; affiché dans les deux sens sur les fiches (« ↺ Remplace D-xxx »,
   « → Remplacée par D-xxx », cliquables). Saisir sans Jev : champ « Texte de la décision », obligatoire pour une décision
   créée arbitrée (message clair au lieu du refus du serveur).
+- Saisir sans Jev (15/10/2026, correctif) : « Texte de la décision » et « Remplace la décision » n'étaient affichés
+  dans aucun chapitre (`SSJ_CHAP.decision`) ; ajoutés au chapitre « Issue ». Test `test/unit/saisie-chapitres.spec.ts` :
+  tout champ d'un formulaire à chapitres doit appartenir à un chapitre.
