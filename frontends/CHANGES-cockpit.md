@@ -762,3 +762,11 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
   proposé d'après l'option et modifiable, date — puis statut, option, texte et date partent en un seul PATCH. L'option
   n'est plus saisissable après coup (fiche arbitrée en lecture seule côté serveur) : affichée seulement. Sceau : option
   choisie (`F.opt`), « – » sinon, jamais la recommandation. Test `test/e2e/arbitrage-decision.spec.ts`.
+- Pilotage › Décisions, fiche arbitrée (15/10/2026, correctif) : l'écran respecte la lecture seule du serveur — garde
+  centrale `decRo` dans `edit()` (décisions), `tSet` (textes de la fiche) et `critSet` (poids, notes, critères) :
+  « Fiche arbitrée : lecture seule », aucun envoi ; ligne du registre (`r.ro`, `r.ce`) : listes désactivées, textes non
+  modifiables, date non modifiable ; pastille « Lecture seule » ; textes de la fiche `contentEditable` = `faCe`.
+  Bloc du bas : « Décision prise » (texte, option retenue, instance, « Arbitrée le … ») pour une décision arbitrée.
+  Décision ouverte : séance prévue choisie parmi les séances planifiées de l'instance de la décision (`expectedSessionId`
+  via `expSes` dans `api.js`), sinon la prochaine de cette instance (auparavant celle du COPIL, `nextSession('g1')`).
+  Texte de la décision du serveur gardé dans la liste (`decL`, il était remplacé par une valeur vide).

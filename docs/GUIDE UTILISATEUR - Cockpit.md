@@ -732,6 +732,7 @@ Demandez-le à Jev (voir 3.19.4) : libellé, probabilité et impact (1 à 5, cri
   3. vérifiez la **date de décision** (aujourd'hui par défaut) ;
   4. cliquez sur **Arbitrer** (« D-xxx arbitrée · option A retenue »). **Annuler** ou Échap laisse la décision inchangée.
   Statut, option, texte et date sont enregistrés ensemble : la fiche passe ensuite en lecture seule, l'option ne se change plus.
+- **Fiche arbitrée : lecture seule.** Une pastille « Lecture seule » s'affiche à côté du statut ; dans le registre, le statut, la priorité, le chantier, l'instance, le point de décision et la date ne sont plus modifiables, pas plus que les textes, poids et notes de la fiche (« Fiche arbitrée : lecture seule »). Pour revenir sur une décision arbitrée, créez une décision qui la remplace : à son arbitrage, l'ancienne passe à « Remplacée ».
 - Clôturer (Annulée) sans date pose la date du jour ; rouvrir l'efface.
 - Une décision arbitrée doit porter son texte : « Rédigez le texte de la décision. » dans la fenêtre d'arbitrage.
 - Une fiche arbitrée ne se modifie plus : « Fiche arbitrée : lecture seule ».
@@ -743,7 +744,8 @@ Demandez-le à Jev (voir 3.19.4) : libellé, probabilité et impact (1 à 5, cri
 - Titre, question, contexte, options A et B.
 - **Barème commun** : les critères et leurs poids sont communs aux deux options ; chaque option reçoit, critère par critère, une note de 1 à 4 et une justification. Score pondéré = Σ poids / 100 × note, sur 4. Si la somme des poids ne fait pas 100 %, l'écran affiche « poids : X % ».
 - **Option recommandée = la mieux notée** : la pastille « Recommandation PMO » et la ligne **Recommandation PMO** désignent l'option qui a le meilleur score pondéré. Elles ne se modifient pas à la main ; sans note, ou à égalité, l'option affiche « À définir ».
-- **Décision attendue**, compte à rebours avant la prochaine séance.
+- **Décision attendue** (décision ouverte) : le texte attendu, et à droite le compte à rebours (J-n) avant la **séance prévue**. Par défaut, c'est la prochaine séance planifiée de l'instance de la décision (« Prochaine séance ») ; le bouton sous la date permet d'en choisir une autre parmi les séances planifiées de cette instance (« Séance choisie »). Sans séance planifiée : « Aucune séance planifiée pour {instance} » — planifiez-la dans Comités et rapports.
+- **Décision prise** (décision arbitrée) : le texte de la décision, l'option retenue et l'instance, et « Arbitrée le {date} » à la place du compte à rebours.
 - Une fiche arbitrée porte le sceau « ARBITRÉE · date · OPTION RETENUE », avec la lettre de l'option choisie lors de l'arbitrage (jamais la recommandation à sa place ; « – » si aucune option n'a été retenue).
 - Les textes, les poids et les notes d'une fiche existante se corrigent directement dans la fiche (toast « Modifié · {nom} · saisie directe »).
 - Le bouton « Composer la fiche » / « Modifier la fiche » a été retiré de Pilotage › Décisions le 11 octobre 2026 : une fiche se compose depuis **Saisir sans Jev**.

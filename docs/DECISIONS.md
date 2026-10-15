@@ -2592,3 +2592,7 @@ Brief du commanditaire : reproduire la maquette avec les vraies données et les 
   A / B). Texte proposé : « {libellé de l'option} retenue », modifiable.
 - Le sceau n'affiche plus la recommandation à la place de l'option retenue (une décision aurait pu paraître arbitrée en
   faveur de A alors que le comité avait choisi B).
+- Suite (même jour) : l'écran applique la lecture seule d'une fiche arbitrée (aucune écriture tentée), affiche la
+  décision prise au lieu de la décision attendue, et rattache la séance prévue à la décision (`expectedSessionId`,
+  champ serveur existant, jusqu'ici inutilisé) ; à défaut, prochaine séance planifiée de **l'instance de la décision**.
+  Revenir sur un arbitrage reste impossible : créer une décision qui remplace l'ancienne (« Remplacée »).

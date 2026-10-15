@@ -16,6 +16,10 @@ describe('Arbitrage d’une décision (statut, option, texte et date en un envoi
     const rows = (await c.get(R).expect(200)).body;
     const d = (rows.items || rows).find((x: any) => x.status !== 'ARBITRATED' && !x.decL);
     expect(d).toBeDefined();
+    // Séance prévue d'une décision ouverte (15/10/2026) : une séance du projet, puis retour à « prochaine séance » (null).
+    const ses = (await t.db.session.findFirst({ where: { projectId: 'RISE', status: 'PLANNED' }, orderBy: { dateIso: 'asc' } }))!;
+    expect((await c.patch(`${R}/${d.id}`, { expectedSessionId: ses.id }).expect(200)).body.expectedSessionId).toBe(ses.id);
+    expect((await c.patch(`${R}/${d.id}`, { expectedSessionId: null }).expect(200)).body.expectedSessionId).toBeNull();
     // Ancien envoi de l'écran : refusé, la décision reste ouverte (cause du retour à « À arbitrer »).
     const bad = await c.patch(`${R}/${d.id}`, { status: 'ARBITRATED', ddIso: '2026-09-26' }).expect(422);
     expect(bad.body.fields.decL).toBeDefined();

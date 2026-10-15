@@ -622,6 +622,8 @@ export function attach(comp) {
       if ('status' in ch) body.status = ch.status;
       if ('ch' in ch && wsId(ch.ch)) body.wsId = wsId(ch.ch);
       if ('inst' in ch && bodyId(ch.inst)) body.bodyId = bodyId(ch.inst);
+      // Séance prévue de la décision (15/10/2026) : '' = la prochaine séance de son instance.
+      if ('expSes' in ch) body.expectedSessionId = ch.expSes || null;
       if (Object.keys(body).length) writePatch('PATCH', '/decisions/' + enc(id), body);
       return;
     }
