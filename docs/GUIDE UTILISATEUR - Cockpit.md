@@ -269,7 +269,7 @@ Le bouton reste grisé tant qu'une règle manque ou que la confirmation diffère
 | Mes tâches | Pilotage › Mes tâches |
 | Livrables sous 30 jours | Pilotage › Livrables |
 | Baromètre des équipes | Pilotage › Baromètre |
-| Incohérences à traiter | Aujourd'hui › Écarts |
+| Incohérences à traiter | Aujourd'hui › Incohérences |
 | Échéances des 15 prochains jours | Aujourd'hui › Échéances |
 | Documents récents | Base de connaissance |
 
@@ -299,7 +299,7 @@ Chaque widget répond à une question. La couleur ne porte qu'un statut : bleu n
 | Mes tâches (1 × 1) | Qu'ai-je à faire aujourd'hui ? | Nombre de tâches, validations et retards, les 2 prochaines tâches |
 | Livrables sous 30 jours (1 × 1) | Quels livrables doivent être remis ce mois-ci ? | Livrables à remettre sous 30 jours, en retard, part livrée |
 | Baromètre des équipes (1 × 1) | Comment les équipes vivent-elles le projet ? | Courbe du ressenti moyen, nombre de répondants du dernier relevé |
-| Incohérences à traiter (2 × 1) | Quelles informations manquent ou se contredisent ? | Nombre de blocages et d'avertissements, les 3 premières incohérences avec l'action proposée |
+| Incohérences à traiter (2 × 1) | Quelles informations manquent ou se contredisent ? | Nombre de blocages et d'avertissements, les 3 premières incohérences avec l'action proposée ; un clic ouvre la liste complète (Aujourd'hui › Incohérences) |
 | Échéances des 15 prochains jours (2 × 1) | Qu'est-ce qui tombe dans les quinze jours ? | Ruban de 15 jours : ● comité, ◆ jalon, ■ arbitrage ; les deux prochaines journées chargées en clair |
 | Documents récents (1 × 2) | Quelles nouvelles pièces sont arrivées ? | Les 5 derniers documents (format, titre, type, version, date, pages), répartition par format |
 | Météo · {ville} (1 × 1) | Quel temps fait-il sur le site du projet ? | Température, ciel, minimum et maximum, lever et coucher du soleil |
@@ -352,14 +352,19 @@ Chaque widget répond à une question. La couleur ne porte qu'un statut : bleu n
 - La disposition et les couleurs sont enregistrées pour votre compte, sur le serveur, à chaque changement. Vous les retrouvez sur un autre poste.
 - La taille d'un widget n'est pas modifiable.
 
-## 3.4 Aujourd'hui : écarts et échéances
+## 3.4 Aujourd'hui : incohérences et échéances
 
 Ces deux vues s'ouvrent depuis les widgets **Incohérences à traiter** et **Échéances des 15 prochains jours**. Pour revenir au tableau de bord, cliquez sur **Aujourd'hui** dans la barre latérale.
 
-**Écarts**
+**Incohérences**
 
-- **Écarts planning — prévu − référence** : un jalon par ligne, écart en jours (positif = retard). Couleur : vert à 0, ambre au-delà, rouge foncé au-delà de 30 jours. Un clic ouvre la fiche du jalon.
-- **Écarts d'avancement — réalisé − attendu à ce stade** : par ligne de suivi, réel − prévu en points. Couleur : vert à 0 ou plus, ambre en dessous, rouge foncé sous −20.
+- La liste complète des contrôles de cohérence du projet, calculés par l'application, en deux groupes :
+  - **Blocages** : risque critique sans plan de mitigation, jalon à venir non confirmé depuis plus de 14 jours, action échue ;
+  - **Avertissements** : jalon à venir non confirmé depuis 8 à 14 jours, budget programme non renseigné, modifications du projet depuis la capture du dernier rapport.
+- Filtres **Toutes**, **Blocages**, **Avertissements** (avec leur nombre).
+- Chaque ligne indique le responsable et l'action proposée : **Qualifier** (Pilotage › Risques et problèmes), **Confirmer** (Pilotage › Jalons, la ligne du jalon est mise en évidence), **Relancer** (Pilotage › Actions), **Régénérer** (Comités et rapports › Générer un rapport). Le budget n'a pas d'écran de saisie : pas de bouton.
+- Un Responsable ou un Lecteur ne voit que les incohérences de ses chantiers.
+- L'ancien onglet **Écarts** (écarts planning et d'avancement, santé calculée) a été retiré le 15/10/2026 : les écarts des jalons sont dans Pilotage › Jalons, l'avancement dans Pilotage › Planning.
 
 **Échéances**
 
@@ -1666,11 +1671,11 @@ Ces points viennent de la lecture du code. Ils décrivent un écart entre le cod
 
 9. **Message d'accueil** : il compte toutes les décisions à arbitrer du projet (pas seulement les vôtres) et seulement vos actions comme tâches ; le serveur prévoit un autre calcul, non utilisé.
 10. **Échéances** : le titre annonce « 50 prochains jours » ; le calcul couvre 7 jours en arrière à 45 jours en avant, 10 éléments au plus.
-11. **Écarts planning** : le titre cite la « référence v4 », le widget de Jev la « référence v5 » ; un écart négatif s'affiche « +-n j » ; sans date de référence, l'écart vaut 0.
+11. ~~**Écarts planning**~~ (onglet Écarts retiré le 15/10/2026).
 12. **Seuils de criticité** : matrice du widget à 15 / 8, règles du projet à 20 / 12 / 6.
 13. **Météo des chantiers** : ignore la première ligne du suivi d'avancement ; seuil −10 points, contre 0 / −20 côté serveur.
 14. **Fiches d'arbitrage** (widget) : compte en réalité les décisions non arbitrées, brouillons compris.
-15. **Incohérences** : la description annonce « actions sans porteur, dates incohérentes », contrôles qui n'existent pas ; la tuile ouvre Écarts, qui ne liste pas les incohérences ; libellés d'action différents d'un écran à l'autre (« Confirmer » / « Relancer »).
+15. ~~**Incohérences**~~ (corrigé le 15/10/2026 : description des contrôles réels, liste complète dans Aujourd'hui › Incohérences).
 16. **« L'essentiel, par Jev »** : présenté comme rédigé par l'IA, il est calculé sans appel à l'IA.
 17. **« Disposition enregistrée »** : la disposition est enregistrée à chaque changement, pas seulement sur **Terminer**.
 
@@ -1736,9 +1741,8 @@ Ces fonctionnalités existent dans le code mais sont désactivées, inaccessible
 
 | Fonctionnalité | État |
 |---|---|
-| Onglets d'Aujourd'hui (Dashboard, Écarts, Échéances) | Définis, non affichés ; Écarts et Échéances s'ouvrent depuis les widgets |
+| Onglets d'Aujourd'hui (Dashboard, Incohérences, Échéances) | Définis, non affichés ; Incohérences et Échéances s'ouvrent depuis les widgets |
 | Onglet Qualité d'Aujourd'hui (complétude, fraîcheur, à confirmer) | Inaccessible ; contenu en partie fixe |
-| Bloc « Santé calculée vs appréciation » (Écarts) | Contenu fixe |
 | Ancienne vue Situation | Désactivée |
 | Point d'accès serveur « Aujourd'hui » | Non appelé par l'écran |
 | Onglets Périmètre, Contrat, Chronologie, WBS et vue RACI d'Info projet | Calculés, sans écran |

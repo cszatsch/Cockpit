@@ -811,3 +811,6 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
   en-tête « Phase N · nom » / « Phases 1 et 2 » ; plus de `WS_TILE_MAX` ni de tri par retard. `Widget.dc.html` : le
   conteneur des lignes de la vue `weather` prend son style de `w.vz.wx.boxS` (défilement vertical au-delà de 4 lignes,
   centrage « safe ») — seule modification de ce composant.
+- Aujourd'hui › Incohérences (15/10/2026) : nouvel onglet à la place d'« Écarts » (bloc HTML remplacé, `vTodayInc`,
+  `incVals`, `INC0`, filtre `incF`) ; la tuile « Incohérences à traiter » et `goQualite` y mènent ; description de la tuile
+  alignée sur les contrôles réels ; `gapRows` / `wsGapRows` supprimés.

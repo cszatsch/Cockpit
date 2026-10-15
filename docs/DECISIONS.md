@@ -2657,3 +2657,16 @@ Brief du commanditaire : reproduire la maquette avec les vraies données et les 
 - Tous les chantiers, triés par code ; en-tête « Phase N · nom » ou « Phases 1 et 2 » ; la tuile défile au-delà de 4 lignes.
 - Conséquence assumée : la tuile ne donne plus l'avancement global du chantier (celui de Jev, des rapports et de la vue
   « Tous les chantiers » du Planning, `Workstream.progressPct`), mais son avancement dans la phase en cours.
+
+## Aujourd'hui : liste des incohérences, onglet Écarts retiré (15/10/2026, demande du commanditaire)
+
+- Constat : le widget « Incohérences à traiter » ouvrait l'onglet Écarts, qui ne listait pas les incohérences (écarts des
+  jalons, écarts d'avancement lus dans la table de démonstration `workstreamProgress`, bloc « Santé » au contenu fixe) ;
+  aucune vue ne présentait les incohérences au-delà des 3 de la tuile.
+- Choix : onglet « Incohérences » (`incoherences`, `incVals`) à la place d'Écarts : liste complète des `anomalies` du
+  bootstrap (`AnomaliesService`, filtrées par droits), groupées Blocages / Avertissements, filtres, responsable, action qui
+  ouvre l'objet (jalon mis en évidence par `msFocus`). Cibles du serveur sans onglet dans le Cockpit : préparation d'un
+  rapport → Comités et rapports › Générer un rapport ; budget programme → pas de bouton (aucun écran de saisie).
+- Onglet Écarts retiré (et ses données `gapRows`, `wsGapRows`) : écarts des jalons dans Pilotage › Jalons, avancement
+  dans Pilotage › Planning. La fonction « Écarts et qualité » du module Aujourd'hui dans Console › Modules (catalogue de
+  la maquette) n'a pas été renommée.
