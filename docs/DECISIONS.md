@@ -2550,3 +2550,7 @@ Brief du commanditaire : reproduire la maquette avec les vraies données et les 
   (`cardWidgets` ne garde que les widgets du catalogue). `GET /api/widgets/news?category=…` reste servi (plus utilisé
   par le Cockpit). Guide utilisateur du Cockpit à jour ; son PDF est à régénérer (`npm run guides:pdf -- cockpit`)
   puis à déposer dans Console › Guide utilisateur.
+- Bibliothèque des widgets du Cockpit en trois onglets (demande du commanditaire, même jour) : Preset Modes de
+  pilotage, Widgets projet, Widgets infos & services. Rangement par catégorie du widget (`INFO_CATS` = Contexte,
+  Actualités : widgets hors gestion de projet) ; un widget ajouté plus tard dans l'une de ces catégories rejoint
+  automatiquement l'onglet infos & services.

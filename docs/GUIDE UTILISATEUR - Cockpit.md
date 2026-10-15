@@ -325,8 +325,8 @@ Chaque widget répond à une question. La couleur ne porte qu'un statut : bleu n
 2. Selon le besoin :
    - **déplacer** un widget : glissez-le par sa poignée ; un emplacement en pointillés indique « Relâchez pour déposer » ;
    - **retirer** un widget : cliquez sur × (« Widget retiré · il retourne dans la bibliothèque ») ;
-   - **ajouter** un widget : dans l'onglet **Widgets à l'unité** du panneau du bas, glissez-le sur la grille ou double-cliquez dessus (« Widget ajouté · {nom} ») ;
-   - **appliquer un mode** : dans l'onglet **Modes de pilotage**, choisissez une disposition toute prête (« Un mode remplace la disposition · annulable 5 s ») ;
+   - **ajouter** un widget : dans l'onglet **Widgets projet** (gestion de projet) ou **Widgets infos & services** (météo, trafic, actualités économiques, news, sport) du panneau du bas, glissez-le sur la grille ou double-cliquez dessus (« Widget ajouté · {nom} ») ;
+   - **appliquer un mode** : dans l'onglet **Preset Modes de pilotage**, choisissez une disposition toute prête (« Un mode remplace la disposition · annulable 5 s ») ;
    - **revenir à la disposition par défaut** : lien **Disposition par défaut**.
 3. Cliquez sur **Terminer** (« Disposition enregistrée »).
 
