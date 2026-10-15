@@ -234,7 +234,7 @@ export class ApiCardsController {
   }
 }
 
-/** Catalogue des widgets du registre : 22 widgets du Cockpit (Contexte : `group`), puis 8 widgets thématiques. */
+/** Catalogue des widgets du registre : 21 widgets du Cockpit, puis 6 widgets thématiques (8 associables : `group`). */
 @ApiTags('console · registre des cartes API')
 @ApiBearerAuth()
 @AdminOnly()

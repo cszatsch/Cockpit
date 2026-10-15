@@ -197,8 +197,8 @@ describe('Console — registre des cartes API', () => {
   it('v3c : catalogue des widgets, association, tag libre, clé dans le PATCH, endpoint modifié, latence médiane', async () => {
     const cat = (await admin.get('/api/admin/widgets').expect(200)).body;
     // 22 widgets du Cockpit, puis 6 widgets thématiques ; 8 widgets alimentés par une carte (consigne du 15/10/2026).
-    expect(cat).toHaveLength(28);
-    expect(cat.find((w: any) => w.id === 'news')).toEqual({ id: 'news', g: '◉', n: 'Actualité', cat: 'Contexte', apiCard: false, tags: [] });
+    expect(cat).toHaveLength(27);
+    expect(cat.find((w: any) => w.id === 'news')).toBeUndefined(); // tuile Actualité retirée du Cockpit
     expect(cat.filter((w: any) => w.group === 'thematic').map((w: any) => `${w.theme} ${w.lang}`)).toEqual(['Météo FR', 'Trafic FR', 'Actualités Eco FR', 'Actualités Eco EN', 'News FR', 'News EN', 'Sports FR', 'Sports EN']);
     expect(cat.find((w: any) => w.id === 'eco_fr')).toMatchObject({ n: 'Actualités Eco FR', apiCard: true });
     expect(cat.filter((w: any) => w.apiCard)).toHaveLength(8);
@@ -212,7 +212,7 @@ describe('Console — registre des cartes API', () => {
     expect((await admin.put(`${AC}/pappers/widgets`, { ids: ['inconnu'] }).expect(422)).body.fields.ids).toBe('inconnu');
     // Carte API requise : un widget alimenté par les données du projet ne peut pas être associé.
     expect((await admin.put(`${AC}/pappers/widgets`, { ids: ['ai'] }).expect(422)).body.fields.ids).toBe('ai');
-    // Actualité : plus associable depuis le 15/10/2026 (la tuile lit le widget News FR).
+    // Actualité : retirée du catalogue le 15/10/2026.
     expect((await admin.put(`${AC}/pappers/widgets`, { ids: ['news'] }).expect(422)).body.fields.ids).toBe('news');
     expect((await admin.put(`${AC}/pappers/widgets`, { ids: ['meteo', 'sport_en'] }).expect(200)).body.widgets).toEqual(['meteo', 'sport_en']);
     expect((await t.db.auditEntry.findFirst({ where: { action: 'Widgets alimentés par une carte API' }, orderBy: { at: 'desc' } }))!.target).toBe('Pappers · associée à Sports EN · dissociée de News FR');

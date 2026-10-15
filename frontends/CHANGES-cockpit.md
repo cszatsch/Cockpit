@@ -732,3 +732,6 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 - Tableau de bord (15/10/2026, refonte des widgets) : tuile Sport US retirée (6 tuiles Actualités) ; tuiles lues par
   `GET /widgets/news?widget=…` (Finnhub compris) ; tuile Actualité alimentée par le widget News FR
   (`?widget=news_fr`).
+- Tableau de bord (15/10/2026, demande du commanditaire) : tuile « Actualité » retirée (doublon de News FR) ; les
+  tableaux de bord qui la contenaient l'ignorent (identifiant inconnu filtré). `api.js` ne lit plus `/widgets/news`
+  sans widget. Guide utilisateur du Cockpit mis à jour (6 tuiles d'actualités).

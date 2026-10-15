@@ -2545,3 +2545,8 @@ Brief du commanditaire : reproduire la maquette avec les vraies données et les 
 - Registre : mosaïque sans hauteur maximale (la ligne Trafic sortait du cadre) ; colonne des tags 132 px (« Actualités
   Eco ») ; lignes de la matrice : thèmes en deux langues d'abord ; liste envoyée au serveur limitée aux widgets
   associables (un ancien « news » est retiré).
+- Tuile Actualité retirée du Cockpit (demande du commanditaire, même jour) : catalogue du tableau de bord à 21 widgets
+  (`WIDGET_CATALOGUE`), `news` disparu ; ancien libellé « Actualités » et identifiant `news` des cartes ignorés
+  (`cardWidgets` ne garde que les widgets du catalogue). `GET /api/widgets/news?category=…` reste servi (plus utilisé
+  par le Cockpit). Guide utilisateur du Cockpit à jour ; son PDF est à régénérer (`npm run guides:pdf -- cockpit`)
+  puis à déposer dans Console › Guide utilisateur.

@@ -7,10 +7,10 @@ describe('Catalogue des widgets (registre des cartes API v3c)', () => {
   it('reste identique au catalogue du Cockpit : identifiants, noms et catégories', () => {
     const src = readFileSync(join(__dirname, '../../../frontends/RISE Cockpit.dc.html'), 'utf8');
     const cockpit = [...src.matchAll(/\{ id: '([a-z_]+)', name: ('([^']*)'|'([^']*)' \+ [^,]+), cat: '([^']*)'/g)].map((m) => ({ id: m[1], n: m[3] ?? m[4], cat: m[5] }));
-    // 22 widgets du tableau de bord, puis les 6 tuiles Actualités (widgets thématiques du registre, 15/10/2026).
-    expect(cockpit).toHaveLength(28);
-    expect(WIDGET_CATALOGUE).toHaveLength(22);
-    expect(REGISTRY_WIDGETS).toHaveLength(28);
+    // 21 widgets du tableau de bord (Actualité retirée), puis les 6 tuiles Actualités (widgets thématiques, 15/10/2026).
+    expect(cockpit).toHaveLength(27);
+    expect(WIDGET_CATALOGUE).toHaveLength(21);
+    expect(REGISTRY_WIDGETS).toHaveLength(27);
     for (const w of cockpit) {
       const c = REGISTRY_WIDGETS.find((x) => x.id === w.id);
       expect(c).toBeDefined();
@@ -24,7 +24,8 @@ describe('Catalogue des widgets (registre des cartes API v3c)', () => {
   it('identifiants : anciens libellés du Cockpit convertis, inconnus ignorés ; noms affichables', () => {
     expect(widgetId('meteo')).toBe('meteo');
     expect(widgetId('Météo · ville')).toBe('meteo');
-    expect(widgetId('Actualités')).toBe('news');
+    expect(widgetId('Actualités')).toBeNull();
+    expect(widgetId('news')).toBeNull();
     expect(widgetId('Météo du site')).toBeNull();
     expect(widgetId(null)).toBeNull();
     expect(widgetName('ai')).toBe('L’essentiel, par Jev');
@@ -32,7 +33,7 @@ describe('Catalogue des widgets (registre des cartes API v3c)', () => {
     expect(widgetName('eco_en')).toBe('Actualités Eco EN');
     expect(widgetName('sport_en')).toBe('Sports EN');
     // Widgets d'une carte enregistrés sous d'anciens libellés (jeu de démonstration) : identifiants, sans doublon.
-    expect(cardWidgets(['Actualités', 'news', 'Météo · ville', 'eco_fr'])).toEqual(['news', 'meteo', 'eco_fr']);
+    expect(cardWidgets(['Actualités', 'news', 'Météo · ville', 'eco_fr', 'meteo'])).toEqual(['meteo', 'eco_fr']);
   });
 
   it('latence médiane des appels réussis', () => {

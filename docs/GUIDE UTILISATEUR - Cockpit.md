@@ -273,7 +273,7 @@ Le bouton reste grisé tant qu'une règle manque ou que la confirmation diffère
 | Échéances des 15 prochains jours | Aujourd'hui › Échéances |
 | Documents récents | Base de connaissance |
 
-- Météo, Trafic et Actualité n'ouvrent pas d'autre écran ; un titre d'actualité ouvre l'article dans un nouvel onglet.
+- Météo, Trafic et les tuiles d'actualités n'ouvrent pas d'autre écran ; un titre d'actualité ouvre l'article dans un nouvel onglet.
 
 **Disposition par défaut.** L'essentiel par Jev, Compte à rebours Go-Live, Avancement vs référence, Prochain COPIL, Fiches d'arbitrage, Décisions en attente, Tendance des risques, Baromètre des équipes, Incohérences à traiter, Météo, Trafic.
 
@@ -304,7 +304,9 @@ Chaque widget répond à une question. La couleur ne porte qu'un statut : bleu n
 | Documents récents (1 × 2) | Quelles nouvelles pièces sont arrivées ? | Les 5 derniers documents (format, titre, type, version, date, pages), répartition par format |
 | Météo · {ville} (1 × 1) | Quel temps fait-il sur le site du projet ? | Température, ciel, minimum et maximum, lever et coucher du soleil |
 | Trafic · {ville} (1 × 1) | Combien de temps pour rejoindre le site ? | Durée du trajet en voiture avec le trafic, retard éventuel, bouton **Inverser le sens** |
-| Actualité (2 × 2) | Quels sont les faits marquants de l'actualité ? | Un titre à la une et les 5 suivants, source et âge |
+| Actualités Eco FR, Actualités Eco EN (2 × 2) | Que retient la presse économique française / anglophone ? | Un titre à la une et les 5 suivants, source et âge |
+| News FR, News EN (2 × 2) | Quels sont les titres de l'actualité française / internationale ? | Un titre à la une et les 5 suivants, source et âge |
+| Sports FR, Sports EN (2 × 2) | Quelles sont les nouvelles du sport en France / anglophone ? | Un titre à la une et les 5 suivants, source et âge |
 
 **Règles de calcul utiles**
 
@@ -314,8 +316,8 @@ Chaque widget répond à une question. La couleur ne porte qu'un statut : bleu n
 - **Action en retard** : action non terminée dont l'échéance est passée.
 - **Support du prochain COPIL** : « Support vX publié », « Support vX · {statut} », ou « Support à préparer » (rouge à 7 jours ou moins de la séance).
 - **Météo et trafic** : le site du projet est repéré par le **code postal**, la **ville** et le **pays du projet** du Référentiel (objet Projet), sinon Paris. Le code postal est cherché en premier ; entre deux villes de même nom, celle du pays du projet qui porte ce code postal l'emporte ; un nom composé introuvable (« Massy Palaiseau ») est cherché partie par partie. Le départ du trajet est la **Ville de résidence** de Mon profil, sinon Paris. Les deux widgets se mettent à jour dès que la ville, le code postal ou le pays du projet, ou votre ville de résidence, changent, sans recharger la page.
-- **Actualité** : titres des sources d'actualité actives du Registre des cartes API (réglées dans la Console), du plus récent au plus ancien, sans doublon. Une source en panne n'empêche pas les autres.
-- **Données externes** : les réponses sont gardées 2 minutes (météo, trafic) à 30 minutes (actualité). En cas de panne, la dernière réponse valable (24 h au plus) est affichée ; sinon « Météo indisponible », « Trafic indisponible » ou « Actualité indisponible (connexion requise) ».
+- **Tuiles d'actualités** (catégorie « Actualités » de la bibliothèque) : titres des sources associées à la tuile dans le Registre des cartes API (réglées dans la Console), une source à tour de rôle, la plus récente d'abord, sans doublon. Une source en panne n'empêche pas les autres ; une tuile sans source affiche « Aucune carte associée à ce widget dans le Registre des cartes API ».
+- **Données externes** : les réponses sont gardées 2 minutes (météo, trafic) à 30 minutes (actualité). En cas de panne, la dernière réponse valable (24 h au plus) est affichée ; sinon « Météo indisponible », « Trafic indisponible » ou « Actualités indisponibles (connexion requise) ».
 
 ## 3.3 Personnaliser le tableau de bord
 
@@ -1497,7 +1499,7 @@ Le traitement se fait un document à la fois ; un gros document peut prendre plu
 **Mon document est refusé comme doublon.**
 Un document au contenu identique existe déjà : le message donne son nom et sa date de dépôt.
 
-**Les widgets Météo, Trafic ou Actualité affichent « indisponible ».**
+**Les widgets Météo, Trafic ou une tuile d'actualités affichent « indisponible ».**
 La source externe ne répond pas, ou sa carte est désactivée dans la Console. Le widget affiche la dernière réponse valable quand elle a moins de 24 heures.
 
 **Le widget Trafic part de Paris.**

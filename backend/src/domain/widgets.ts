@@ -1,5 +1,5 @@
 /**
- * Catalogue des widgets du tableau de bord du Cockpit (22 widgets, `RISE Cockpit.dc.html`), servi à la Console
+ * Catalogue des widgets du tableau de bord du Cockpit (21 widgets, `RISE Cockpit.dc.html` ; tuile Actualité retirée le 15/10/2026), servi à la Console
  * (Registre des cartes API : « Alimente », « Associer un widget »). Un test vérifie qu'il reste identique au
  * catalogue du Cockpit (identifiants, noms, catégories).
  *
@@ -27,9 +27,6 @@ export interface WidgetDef {
 }
 
 export const WIDGET_CATALOGUE: readonly WidgetDef[] = [
-  // Actualité : plus associable à une carte depuis le 15/10/2026 (8 widgets du registre) ; la tuile du Cockpit lit les
-  // cartes du widget News FR (`GET /api/widgets/news?widget=news_fr`).
-  { id: 'news', g: '◉', n: 'Actualité', cat: 'Contexte', apiCard: false, tags: [] },
   { id: 'meteo', g: '☀', n: 'Météo · <ville>', cat: 'Contexte', apiCard: true, tags: ['Météo'], group: 'thematic', theme: 'Météo', lang: 'FR' },
   { id: 'trafic', g: '⇅', n: 'Trafic · <ville>', cat: 'Contexte', apiCard: true, tags: ['Trafic'], group: 'thematic', theme: 'Trafic', lang: 'FR' },
   { id: 'ai', g: '✦', n: 'L’essentiel, par Jev', cat: 'Synthèse', apiCard: false, tags: [] },
@@ -77,7 +74,7 @@ export const WIDGET_IDS: ReadonlySet<string> = new Set(REGISTRY_WIDGETS.map((w) 
 export const API_WIDGET_IDS: ReadonlySet<string> = new Set(REGISTRY_WIDGETS.filter((w) => w.apiCard).map((w) => w.id));
 
 /** Anciens libellés envoyés par le Cockpit (en-tête `X-RISE-Widget`) → identifiant du catalogue. */
-export const WIDGET_LEGACY_LABELS: Record<string, string> = { 'Météo · ville': 'meteo', 'Actualités': 'news', 'Trafic · ville': 'trafic' };
+export const WIDGET_LEGACY_LABELS: Record<string, string> = { 'Météo · ville': 'meteo', 'Trafic · ville': 'trafic' };
 
 /** Identifiant du catalogue d'un widget déclaré par le Cockpit ; null s'il est inconnu. */
 export function widgetId(v: string | null | undefined): string | null {
@@ -91,7 +88,10 @@ export function widgetName(id: string): string {
   return REGISTRY_WIDGETS.find((w) => w.id === id)?.n ?? id;
 }
 
-/** Widgets d'une carte sous les identifiants du catalogue (anciens libellés convertis, doublons retirés). */
+/**
+ * Widgets d'une carte sous les identifiants du catalogue : anciens libellés convertis, doublons et widgets disparus du
+ * catalogue (« Actualité » / `news`, retiré le 15/10/2026) retirés.
+ */
 export function cardWidgets(ws: readonly string[]): string[] {
-  return [...new Set(ws.map((w) => widgetId(w) ?? w))];
+  return [...new Set(ws.map((w) => widgetId(w)).filter((w): w is string => !!w))];
 }

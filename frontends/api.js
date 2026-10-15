@@ -1217,12 +1217,6 @@ export function attach(comp) {
         .then(([h, c]) => Promise.all([leg(h, c), leg(c, h)]))
         .then(([go, back]) => up({ tr: { home, go, back }, trErr: false }))
         .catch(() => up({ trErr: true }));
-      // Actualité : cartes actives du widget News FR du registre (15/10/2026 ; auparavant toutes les cartes du tag
-      // Actualités) ; la date ISO est remise au format AAAAMMJJTHHMMSS (heure locale) attendu par la tuile.
-      if (first) get('/widgets/news?widget=news_fr&limit=6', { headers: { 'X-RISE-Widget': 'news' } })
-        .then((r) => ({ articles: (r.items || []).map((i) => { const d = i.date ? new Date(i.date) : null; return { t: i.title, src: i.source, url: i.url || '', iso: i.date || '', d: d ? d.getFullYear() + pad2(d.getMonth() + 1) + pad2(d.getDate()) + 'T' + pad2(d.getHours()) + pad2(d.getMinutes()) + '00' : '' }; }) }))
-        .then((j) => { const A = (j.articles || []).filter((a) => a.t).slice(0, 6).map((a) => { const s = String(a.d || ''); return { t: a.t, url: a.url || '', iso: a.iso || '', src: String(a.src || '').replace(/^www\./, '').split('.')[0], d: s.length >= 12 ? s.slice(9, 11) + ':' + s.slice(11, 13) : '' }; }); if (!A.length) throw 0; up({ news: A }); })
-        .catch(() => { up({ newsErr: true }); setTimeout(() => { comp._dbExtKey = null; }, 60000); });
       // Tuiles Actualités (15/10/2026) : cartes associées à chaque widget dans le Registre des cartes API (flux RSS,
       // Finnhub…). Cartes alternées (une à tour de rôle, l'article le plus récent de chacune d'abord) : un flux très
       // actif n'occupe pas toute la tuile. Source affichée : journal d'origine (agrégateur) ou nom de la carte avant « – »
