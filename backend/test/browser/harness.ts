@@ -15,6 +15,8 @@ const LOCAL: Record<string, string> = {
 
 export async function openBrowser(): Promise<Browser> {
   const exe = fs.existsSync('/opt/pw-browsers/chromium-1194/chrome-linux/chrome') ? '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' : undefined;
+  // Poste Windows sans navigateur Playwright téléchargé : Edge, toujours installé.
+  if (!exe && process.platform === 'win32' && !fs.existsSync(chromium.executablePath())) return chromium.launch({ channel: 'msedge' });
   return chromium.launch({ executablePath: exe });
 }
 

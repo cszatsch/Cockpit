@@ -189,9 +189,13 @@ describe('Console — registre des cartes API', () => {
 
   it('v3c : catalogue des widgets, association, tag libre, clé dans le PATCH, endpoint modifié, latence médiane', async () => {
     const cat = (await admin.get('/api/admin/widgets').expect(200)).body;
-    expect(cat).toHaveLength(22);
-    expect(cat.find((w: any) => w.id === 'news')).toEqual({ id: 'news', g: '◉', n: 'Actualité', cat: 'Contexte', apiCard: true, tags: ['Actualités'] });
-    expect(cat.filter((w: any) => w.apiCard).map((w: any) => w.id)).toEqual(['news', 'meteo', 'trafic']);
+    // 22 widgets du Cockpit, puis 8 widgets thématiques (tuiles symétriques, 15/10/2026).
+    expect(cat).toHaveLength(30);
+    expect(cat.find((w: any) => w.id === 'news')).toEqual({ id: 'news', g: '◉', n: 'Actualité', cat: 'Contexte', apiCard: true, tags: ['Actualités'], group: 'context' });
+    expect(cat.filter((w: any) => w.group === 'context').map((w: any) => w.id)).toEqual(['news', 'meteo', 'trafic']);
+    expect(cat.filter((w: any) => w.group === 'thematic').map((w: any) => `${w.theme} ${w.lang}`)).toEqual(['Actualités Eco FR', 'Actualités Eco EN', 'Sports FR', 'Sports EN', 'News FR', 'News EN', 'Tech FR', 'Tech EN']);
+    expect(cat.find((w: any) => w.id === 'eco_fr')).toMatchObject({ n: 'Actualités Eco FR', apiCard: true });
+    expect(cat.filter((w: any) => w.apiCard)).toHaveLength(11);
     await (await t.as(WHO.pmo)).get('/api/admin/widgets').expect(403);
     // Tag créé à la volée.
     const c = await admin.post(AC, { name: 'Pappers', category: 'Entreprises', endpoint: 'https://api.pappers.fr/v2/entreprise', key: 'cle-pappers-0001', keyExpiresAt: '2027-01-31' }).expect(201);
@@ -202,8 +206,10 @@ describe('Console — registre des cartes API', () => {
     expect((await admin.put(`${AC}/pappers/widgets`, { ids: ['inconnu'] }).expect(422)).body.fields.ids).toBe('inconnu');
     // Carte API requise : un widget alimenté par les données du projet ne peut pas être associé.
     expect((await admin.put(`${AC}/pappers/widgets`, { ids: ['ai'] }).expect(422)).body.fields.ids).toBe('ai');
+    expect((await admin.put(`${AC}/pappers/widgets`, { ids: ['meteo', 'tech_en'] }).expect(200)).body.widgets).toEqual(['meteo', 'tech_en']);
+    expect((await t.db.auditEntry.findFirst({ where: { action: 'Widgets alimentés par une carte API' }, orderBy: { at: 'desc' } }))!.target).toBe('Pappers · associée à Tech EN · dissociée de Actualité');
     expect((await admin.put(`${AC}/pappers/widgets`, { ids: ['meteo'] }).expect(200)).body.widgets).toEqual(['meteo']);
-    expect((await t.db.auditEntry.findFirst({ where: { action: 'Widgets alimentés par une carte API' }, orderBy: { at: 'desc' } }))!.target).toBe('Pappers · dissociée de Actualité');
+    expect((await t.db.auditEntry.findFirst({ where: { action: 'Widgets alimentés par une carte API' }, orderBy: { at: 'desc' } }))!.target).toBe('Pappers · dissociée de Tech EN');
     // Test en 401, puis nouvelle clé dans le PATCH : l'erreur est levée, seuls les 4 derniers caractères reviennent.
     upstream = () => ({ status: 401, body: '{"error":"invalid_api_key"}' });
     expect((await admin.post(`${AC}/pappers/test`).expect(200)).body.code).toBe(401);

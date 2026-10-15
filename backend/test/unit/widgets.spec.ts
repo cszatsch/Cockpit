@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { latencyMedian } from '../../src/domain/api-cards';
-import { WIDGET_CATALOGUE, widgetId, widgetName } from '../../src/domain/widgets';
+import { WIDGET_CATALOGUE, cardWidgets, widgetId, widgetName } from '../../src/domain/widgets';
 
 describe('Catalogue des widgets (registre des cartes API v3c)', () => {
   it('reste identique au catalogue du Cockpit : identifiants, noms et catégories', () => {
@@ -27,6 +27,9 @@ describe('Catalogue des widgets (registre des cartes API v3c)', () => {
     expect(widgetId(null)).toBeNull();
     expect(widgetName('ai')).toBe('L’essentiel, par Jev');
     expect(widgetName('xyz')).toBe('xyz');
+    expect(widgetName('tech_en')).toBe('Tech EN');
+    // Widgets d'une carte enregistrés sous d'anciens libellés (jeu de démonstration) : identifiants, sans doublon.
+    expect(cardWidgets(['Actualités', 'news', 'Météo · ville', 'eco_fr'])).toEqual(['news', 'meteo', 'eco_fr']);
   });
 
   it('latence médiane des appels réussis', () => {

@@ -32,7 +32,7 @@ import {
   redactKey,
   TEST_BODY_MAX,
 } from '../domain/api-cards';
-import { widgetId } from '../domain/widgets';
+import { cardWidgets, widgetId } from '../domain/widgets';
 
 /** Contrôle de santé des cartes actives : toutes les 15 minutes (spécification § 6). */
 export const API_HEALTH_CRON = '*/15 * * * *';
@@ -201,7 +201,8 @@ export class ApiCardsService implements OnModuleInit {
         method: c.method,
         body: c.body,
         feed: c.feed,
-        widgets: c.widgets,
+        // Anciens libellés (« Actualités », « Météo · ville ») rendus sous l'identifiant du catalogue (15/10/2026).
+        widgets: cardWidgets(c.widgets),
         lastTest: (c.lastTest as { code: number; ms: number | null; at: string; body: string } | null) ?? null,
         version: c.version,
       };
@@ -233,7 +234,7 @@ export class ApiCardsService implements OnModuleInit {
     if (card.quotaLimit && (view.quotaUsed ?? 0) >= card.quotaLimit) throw new ApiError(429, 'QUOTA_EXCEEDED', `Quota journalier de « ${card.name} » atteint (${card.quotaLimit} appels)`);
     // Widget déclaré par le Cockpit (identifiant du catalogue) : associé à la carte à son premier appel.
     const wid = widgetId(widget);
-    if (wid && !card.widgets.includes(wid)) await this.prisma.apiCard.update({ where: { id: card.id }, data: { widgets: { push: wid } } });
+    if (wid && !cardWidgets(card.widgets).includes(wid)) await this.prisma.apiCard.update({ where: { id: card.id }, data: { widgets: { push: wid } } });
     const run = (async () => {
       const r = await this.call(card, query, 'PROXY', widget);
       const redirect = r.code >= 300 && r.code < 400, failed = !r.code || redirect || r.code >= 500 || r.code === 429;

@@ -854,3 +854,19 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
 - Console sur téléphone (15/10/2026) : `<main>` placé dans la colonne du contenu (`grid-column:2`) et tiroir des
   notifications dans un conteneur absolu de taille nulle ; la barre latérale (fixe sur téléphone) sortant de la grille,
   `<main>` glissait dans la première colonne, de largeur nulle (toutes les pages, défaut antérieur).
+- Registre des cartes API (15/10/2026, maquette « Registre des cartes API - tuiles symétriques », brief du
+  commanditaire) : `Registre des cartes API.dc.html` réécrit d'après la maquette (notre `support.js`, pas le sien) —
+  deux tuiles symétriques de 800 px (registre ; détail de la carte), compteurs-filtres Opérationnelles / Lentes / Sans
+  widget, mosaïque par tag (une case par carte, filtres combinés rendus par l'opacité), liste triable (CARTE, LATENCE
+  24 H, QUOTA, CLÉ, WIDGETS ; croissant → décroissant → aucun, valeurs absentes en dernier), console de test, matrice des
+  widgets thématiques FR / EN et ligne « Contexte », clavier (flèches dans la mosaïque et la liste). Libellés de la
+  maquette mot pour mot. Même interface qu'avant (`cards`, `widgets`, `now`, `checked`, `on-create`, `on-save`,
+  `on-toggle`, `on-delete`, `on-restore`, `on-test`, `on-widgets`) ; nouvelle prop facultative `slowMs` (seuil de
+  lenteur, 300 ms par défaut, `SLOW_MS`). Aucune carte ni aucun widget en dur : les widgets viennent de
+  `GET /api/admin/widgets` (`group`, `theme`, `lang`). Écarts à la maquette : le formulaire « Modifier » garde, sous le
+  nom et l'endpoint, les réglages des vraies cartes (tag, clé et échéance, envoi de la clé, requête GET / POST) ; ligne
+  rouge sous l'identité d'une carte en erreur (`err`, note du contrôle de santé) ; barre de la console de test avec le
+  vrai code HTTP (« 200 OK » de la maquette en turquoise, autre code en rouge) ; clé sans échéance : « sans échéance ».
+  `admin-api.js` : rappels du registre rejetés avec le message lisible en cas de refus (le composant rétablit l'état
+  d'avant et l'affiche, plus de message de la Console en double), suppression envoyée après 4 s (`AP_UNDO_MS`, 5 s
+  avant), `toCard` ajoute `err`.

@@ -2475,3 +2475,31 @@ données, sans intégrer son `support.js`.
 - Hors maquette, conservés : demandes d'activation ; sélection des projets dans une fenêtre (dans la tuile, elle aurait
   désaligné les sélecteurs). Libellé ajouté : « Projets (N) » dans le pied de tuile en mode « Par projet ».
 - Recette : `test/browser/modules.e2e.ts` ; essais faits dans la Console sur la base du poste (état d'origine rétabli).
+
+## Registre des cartes API, tuiles symétriques (15/10/2026, maquette « Registre des cartes API - tuiles symétriques »)
+
+Brief du commanditaire : reproduire la maquette avec les vraies données et les appels d'API, sans intégrer son
+`support.js` ; les 40 cartes de la maquette sont fictives (validation de l'affichage seulement).
+
+- Composant `frontends/Registre des cartes API.dc.html` réécrit, même interface (props et événements) : `admin-api.js`
+  et la Console ne changent que pour les erreurs (promesses rejetées) et le délai d'annulation.
+- Routes : celles du registre existant, pas celles du brief — `PATCH /api-cards/{id}` (nom, endpoint, `enabled`, …),
+  `PUT /api-cards/{id}/widgets` (liste complète) au lieu de `widgetIds` dans le PATCH, `POST /api-cards/{id}/test`
+  (`{ code, ms, body }`), `DELETE` envoyé après 4 s d'annulation possible (`AP_UNDO_MS`).
+- État d'une carte (brief) : désactivée, sinon lente si la latence médiane sur 24 h dépasse 300 ms (`SLOW_MS`, prop
+  `slowMs`), sinon opérationnelle ; « Sans widget » est indépendant. Une carte en erreur (contrôle de santé) n'a pas
+  d'état propre dans la maquette : elle reste « Opérationnelle » ou « Lente », avec la note d'erreur en rouge sous son
+  identité et dans l'infobulle de sa case.
+- Widgets thématiques : 8 widgets ajoutés au catalogue du registre (`THEMATIC_WIDGETS`, `REGISTRY_WIDGETS` dans
+  `src/domain/widgets.ts` ; identifiants `eco_fr` … `tech_en`, `group: 'thematic'`, `theme`, `lang`), associables à une
+  carte ; les 3 widgets de contexte portent `group: 'context'`. **Écart** : le Cockpit n'affiche pas encore ces
+  widgets thématiques (ils restent hors des 22 widgets du tableau de bord) ; les cocher n'a donc pas d'effet visible
+  dans le Cockpit pour le moment.
+- Monogramme d'une carte : calculé depuis son nom (deux premières initiales), pas stocké.
+- Hors maquette, conservés : réglages de la carte dans « Modifier » (tag, clé, échéance, envoi de la clé, requête).
+- Widgets d'une carte enregistrés sous d'anciens libellés du Cockpit (« Actualités », « Météo · ville », jeu de
+  démonstration et bases déjà amorcées) : renvoyés sous l'identifiant du catalogue (`cardWidgets`, liste des cartes,
+  journal, proxy) ; sinon la matrice ne les reconnaissait pas et `PUT …/widgets` refusait la liste (422). Amorçage
+  corrigé (`news`, `meteo`).
+- Recette `test/browser/registre.e2e.ts` (40 cartes fictives injectées dans la réponse de liste, puis vraies cartes de
+  la base de test) : 17 / 17. Banc navigateur : Edge quand le Chromium de Playwright n'est pas téléchargé (Windows).

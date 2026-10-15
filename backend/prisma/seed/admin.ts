@@ -66,16 +66,16 @@ export async function seedAdmin(db: PrismaClient): Promise<void> {
   // ── Registre des cartes API : services déjà appelés par les widgets (mêmes données que la migration 20261006000000_registre_api) ──
   await db.apiCard.createMany({
     data: [
-      { id: 'open-meteo-geocodage', name: 'Open-Meteo · géocodage', category: 'Météo', endpoint: 'https://geocoding-api.open-meteo.com/v1/search?name=Paris&count=1&format=json', widgets: ['Météo · ville'], updatedBy: 'Données initiales' },
-      { id: 'open-meteo', name: 'Open-Meteo · prévisions', category: 'Météo', endpoint: 'https://api.open-meteo.com/v1/forecast?latitude=48.85&longitude=2.35&current=temperature_2m', widgets: ['Météo · ville'], updatedBy: 'Données initiales' },
+      { id: 'open-meteo-geocodage', name: 'Open-Meteo · géocodage', category: 'Météo', endpoint: 'https://geocoding-api.open-meteo.com/v1/search?name=Paris&count=1&format=json', widgets: ['meteo'], updatedBy: 'Données initiales' },
+      { id: 'open-meteo', name: 'Open-Meteo · prévisions', category: 'Météo', endpoint: 'https://api.open-meteo.com/v1/forecast?latitude=48.85&longitude=2.35&current=temperature_2m', widgets: ['meteo'], updatedBy: 'Données initiales' },
     ],
   });
   // ── Flux RSS d'actualités (registre des cartes API) : Le Monde, L’Équipe, BBC (Les Échos et GDELT retirés le 28/09/2026) ──
   await db.apiCard.createMany({
     data: [
-      { id: 'rss-le-monde', name: 'Le Monde', category: 'Actualités', endpoint: 'https://www.lemonde.fr/rss/une.xml', feed: true, widgets: ['Actualités'], updatedBy: 'Données initiales' },
-      { id: 'rss-lequipe', name: 'L’Équipe', category: 'Actualités', endpoint: 'https://dwh.lequipe.fr/api/edito/rss?path=/', feed: true, widgets: ['Actualités'], updatedBy: 'Données initiales' },
-      { id: 'rss-bbc', name: 'BBC News', category: 'Actualités', endpoint: 'https://feeds.bbci.co.uk/news/rss.xml', feed: true, widgets: ['Actualités'], updatedBy: 'Données initiales' },
+      { id: 'rss-le-monde', name: 'Le Monde', category: 'Actualités', endpoint: 'https://www.lemonde.fr/rss/une.xml', feed: true, widgets: ['news'], updatedBy: 'Données initiales' },
+      { id: 'rss-lequipe', name: 'L’Équipe', category: 'Actualités', endpoint: 'https://dwh.lequipe.fr/api/edito/rss?path=/', feed: true, widgets: ['news'], updatedBy: 'Données initiales' },
+      { id: 'rss-bbc', name: 'BBC News', category: 'Actualités', endpoint: 'https://feeds.bbci.co.uk/news/rss.xml', feed: true, widgets: ['news'], updatedBy: 'Données initiales' },
     ],
   });
   // ── Persona de Jev : valeur initiale (même donnée que la migration 20261004000000_persona_jev) ──

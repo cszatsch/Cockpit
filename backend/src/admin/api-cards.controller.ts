@@ -10,7 +10,7 @@ import { ApiError, businessRule, conflict, notFound } from '../core/errors';
 import { parse } from '../core/http';
 import { PrismaService } from '../core/prisma.service';
 import { API_AUTH_MODES, API_CALL_TIMEOUT_MAX_MS, API_CARD_NAME_MAX, API_CARD_TAG_MAX, API_KEY_MIN_LENGTH, API_METHODS, bodyError, endpointError } from '../domain/api-cards';
-import { API_WIDGET_IDS, WIDGET_CATALOGUE, WIDGET_IDS, widgetName } from '../domain/widgets';
+import { API_WIDGET_IDS, REGISTRY_WIDGETS, WIDGET_IDS, cardWidgets, widgetName } from '../domain/widgets';
 import { ApiCardsService } from './api-cards.service';
 import { FEED_ITEMS_DEFAULT, FEED_ITEMS_MAX, isFeed, mergeFeeds, parseFeed } from '../domain/rss';
 import { parseNews } from '../domain/news';
@@ -50,7 +50,7 @@ const Update = z
   })
   .strict();
 const Rotate = z.object({ key: z.string(), keyExpiresAt: isoDate.nullable().optional() }).strict();
-const Widgets = z.object({ ids: z.array(z.string()).max(WIDGET_CATALOGUE.length) }).strict();
+const Widgets = z.object({ ids: z.array(z.string()).max(REGISTRY_WIDGETS.length) }).strict();
 
 /** Identifiant lisible d'une carte (« OpenWeather » → openweather). */
 const slug = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'carte';
@@ -175,7 +175,7 @@ export class ApiCardsController {
     const c = await this.one(id);
     await this.prisma.$transaction(async (db) => {
       await db.apiCard.delete({ where: { id } });
-      await this.trace(db, actor, req, 'Suppression d’une carte API', c.name + (c.widgets.length ? ` · widgets impactés : ${c.widgets.map(widgetName).join(', ')}` : ''), id);
+      await this.trace(db, actor, req, 'Suppression d’une carte API', c.name + (c.widgets.length ? ` · widgets impactés : ${cardWidgets(c.widgets).map(widgetName).join(', ')}` : ''), id);
     });
     this.cards.forget(id);
   }
@@ -192,7 +192,7 @@ export class ApiCardsController {
     const next = [...new Set(ids)];
     const card = await this.prisma.$transaction(async (db) => {
       const c = await db.apiCard.update({ where: { id }, data: { widgets: next, updatedBy: actor.fullName, version: { increment: 1 } } });
-      const added = next.filter((w) => !before.widgets.includes(w)), removed = before.widgets.filter((w) => !next.includes(w));
+      const was = cardWidgets(before.widgets), added = next.filter((w) => !was.includes(w)), removed = was.filter((w) => !next.includes(w));
       if (added.length || removed.length) await this.trace(db, actor, req, 'Widgets alimentés par une carte API', `${c.name}${added.length ? ` · associée à ${added.map(widgetName).join(', ')}` : ''}${removed.length ? ` · dissociée de ${removed.map(widgetName).join(', ')}` : ''}`, id);
       return c;
     });
@@ -234,7 +234,7 @@ export class ApiCardsController {
   }
 }
 
-/** Catalogue des widgets du Cockpit (22 widgets), pour « Alimente » et « Associer un widget » du registre. */
+/** Catalogue des widgets du registre : 22 widgets du Cockpit (Contexte : `group`), puis 8 widgets thématiques. */
 @ApiTags('console · registre des cartes API')
 @ApiBearerAuth()
 @AdminOnly()
@@ -242,7 +242,7 @@ export class ApiCardsController {
 export class WidgetCatalogueController {
   @Get()
   list() {
-    return WIDGET_CATALOGUE;
+    return REGISTRY_WIDGETS;
   }
 }
 

@@ -7,6 +7,9 @@
  * widgets peuvent être associés à une carte (« Associer un widget »).
  * `tags` : tags de cartes API pour lesquels le widget est suggéré (« Suggérés pour <tag> »).
  * Météo et Trafic portent le nom de la ville du projet dans le Cockpit : « <ville> » ici.
+ *
+ * Registre des cartes API, tuiles symétriques (15/10/2026) : `group` range les widgets alimentés par une carte —
+ * `context` (Actualité, Météo, Trafic, ligne « Contexte ») et `thematic` (matrice thème × langue, `theme`, `lang`).
  */
 export interface WidgetDef {
   id: string;
@@ -16,12 +19,17 @@ export interface WidgetDef {
   /** Carte API requise pour alimenter le widget. */
   apiCard: boolean;
   tags: string[];
+  /** Widgets alimentés par une carte API : ligne « Contexte » ou matrice des widgets thématiques du registre. */
+  group?: 'context' | 'thematic';
+  /** Widget thématique : thème (libellé de la ligne de la matrice) et langue (colonne). */
+  theme?: string;
+  lang?: 'FR' | 'EN';
 }
 
 export const WIDGET_CATALOGUE: readonly WidgetDef[] = [
-  { id: 'news', g: '◉', n: 'Actualité', cat: 'Contexte', apiCard: true, tags: ['Actualités'] },
-  { id: 'meteo', g: '☀', n: 'Météo · <ville>', cat: 'Contexte', apiCard: true, tags: ['Météo', 'Environnement'] },
-  { id: 'trafic', g: '⇅', n: 'Trafic · <ville>', cat: 'Contexte', apiCard: true, tags: ['Trafic', 'Mobilité'] },
+  { id: 'news', g: '◉', n: 'Actualité', cat: 'Contexte', apiCard: true, tags: ['Actualités'], group: 'context' },
+  { id: 'meteo', g: '☀', n: 'Météo · <ville>', cat: 'Contexte', apiCard: true, tags: ['Météo', 'Environnement'], group: 'context' },
+  { id: 'trafic', g: '⇅', n: 'Trafic · <ville>', cat: 'Contexte', apiCard: true, tags: ['Trafic', 'Mobilité'], group: 'context' },
   { id: 'ai', g: '✦', n: 'L’essentiel, par Jev', cat: 'Synthèse', apiCard: false, tags: [] },
   { id: 'ech', g: '⧗', n: 'Échéances des 15 prochains jours', cat: 'Planning', apiCard: false, tags: [] },
   { id: 'golive', g: 'J', n: 'Compte à rebours Go-Live', cat: 'Planning', apiCard: false, tags: [] },
@@ -43,9 +51,26 @@ export const WIDGET_CATALOGUE: readonly WidgetDef[] = [
   { id: 'docs', g: '▤', n: 'Documents récents', cat: 'Documents', apiCard: false, tags: [] },
 ];
 
-export const WIDGET_IDS: ReadonlySet<string> = new Set(WIDGET_CATALOGUE.map((w) => w.id));
+/**
+ * Widgets thématiques (Registre des cartes API, tuiles symétriques, 15/10/2026) : un par thème et par langue, alimentés
+ * par les cartes cochées dans la matrice du registre. Le Cockpit ne les affiche pas encore (écart consigné dans
+ * docs/DECISIONS.md) ; ils restent hors du catalogue des 22 widgets du tableau de bord.
+ */
+export const THEMATIC_THEMES: ReadonlyArray<readonly [string, string, string[]]> = [
+  ['eco', 'Actualités Eco', ['Finance', 'Actualités']],
+  ['sport', 'Sports', ['Sports', 'Actualités']],
+  ['news', 'News', ['Actualités']],
+  ['tech', 'Tech', ['Tech']],
+];
+export const THEMATIC_WIDGETS: readonly WidgetDef[] = THEMATIC_THEMES.flatMap(([t, l, tags]) =>
+  (['FR', 'EN'] as const).map((lang) => ({ id: `${t}_${lang.toLowerCase()}`, g: '◉', n: `${l} ${lang}`, cat: 'Thématique', apiCard: true, tags, group: 'thematic' as const, theme: l, lang })),
+);
+/** Catalogue servi au registre (`GET /api/admin/widgets`) : widgets du tableau de bord, puis widgets thématiques. */
+export const REGISTRY_WIDGETS: readonly WidgetDef[] = [...WIDGET_CATALOGUE, ...THEMATIC_WIDGETS];
+
+export const WIDGET_IDS: ReadonlySet<string> = new Set(REGISTRY_WIDGETS.map((w) => w.id));
 /** Widgets qu'une carte API peut alimenter (carte API requise). */
-export const API_WIDGET_IDS: ReadonlySet<string> = new Set(WIDGET_CATALOGUE.filter((w) => w.apiCard).map((w) => w.id));
+export const API_WIDGET_IDS: ReadonlySet<string> = new Set(REGISTRY_WIDGETS.filter((w) => w.apiCard).map((w) => w.id));
 
 /** Anciens libellés envoyés par le Cockpit (en-tête `X-RISE-Widget`) → identifiant du catalogue. */
 export const WIDGET_LEGACY_LABELS: Record<string, string> = { 'Météo · ville': 'meteo', 'Actualités': 'news', 'Trafic · ville': 'trafic' };
@@ -59,5 +84,10 @@ export function widgetId(v: string | null | undefined): string | null {
 
 /** Nom affichable d'un widget (identifiant inconnu : tel quel). */
 export function widgetName(id: string): string {
-  return WIDGET_CATALOGUE.find((w) => w.id === id)?.n ?? id;
+  return REGISTRY_WIDGETS.find((w) => w.id === id)?.n ?? id;
+}
+
+/** Widgets d'une carte sous les identifiants du catalogue (anciens libellés convertis, doublons retirés). */
+export function cardWidgets(ws: readonly string[]): string[] {
+  return [...new Set(ws.map((w) => widgetId(w) ?? w))];
 }

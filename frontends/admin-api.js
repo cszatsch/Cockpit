@@ -188,6 +188,8 @@ export const toTh = list => list.filter(t => t.limitEur != null).map(t => ({ id:
 const NT_REFRESH_MS = 60_000;
 // Guide utilisateur : suivi de l'indexation d'un dépôt.
 const GD_POLL_MS = 1200;
+// Registre des cartes API : délai pendant lequel une suppression peut être annulée (maquette « tuiles symétriques »).
+const AP_UNDO_MS = 4000;
 /** Date relative d'une notification : « à l'instant », « il y a 12 min », « il y a 1 h », « hier, 17:20 », « il y a 2 j ». */
 export const relWhen = (iso, now = Date.now()) => {
   const d = new Date(iso), m = Math.max(0, Math.round((now - d.getTime()) / 60_000));
@@ -217,7 +219,8 @@ export const toResp = (t, note) => {
 };
 export const toCard = v => ({ id: v.id, n: v.name, tag: v.category, ep: v.endpoint.replace(/^https:\/\//, ''), lat: v.latencyMedian24h ?? null, series: v.latency24h || null,
   q: v.quotaLimit ? Math.round(((v.quotaUsed || 0) / v.quotaLimit) * 100) : null, hasKey: !!v.keyLast4, key: toDdmmyy(v.keyExpiresAt), last4: v.keyLast4 || null,
-  w: [...(v.widgets || [])], auth: v.authMode || 'HEADER', method: v.method || 'GET', body: v.body || '', fmt: v.feed ? 'xml' : 'json', resp: toResp(v.lastTest, v.statusNote), off: !v.enabled });
+  w: [...(v.widgets || [])], auth: v.authMode || 'HEADER', method: v.method || 'GET', body: v.body || '', fmt: v.feed ? 'xml' : 'json', resp: toResp(v.lastTest, v.statusNote), off: !v.enabled,
+  err: v.enabled && v.status === 'err' ? v.statusNote || 'En erreur' : null });
 /** « dernière vérification … » : le test le plus récent des cartes. */
 export const lastCheck = cards => { const t = cards.map(v => v.lastTest && v.lastTest.at).filter(Boolean).sort().pop(); return t ? relWhen(t) : 'à venir'; };
 /** Module → `{ id, n, d, sc, pj:{CODE:Date}, g }`. */
@@ -540,14 +543,19 @@ export function bindConsole(c) {
   c.smTest = d => post('/settings/smtp/test', smBody(d)).then(r => { touch(); load(['smtp']).catch(() => {}); return r; }).catch(e => { fail(e); return null; });
   c.smTestEmail = (to, d) => post('/settings/smtp/test-email', { to, settings: smBody(d) }).then(r => { touch(); return r; }).catch(e => { fail(e); return null; });
 
-  // ── Registre des cartes API v3c (Registre des cartes API.dc.html, REGISTRE API - specification.md § 6) ──
-  // Le composant met sa liste à jour lui-même et confirme par ses propres messages ; les écritures partent l'une
-  // après l'autre, puis la liste du serveur est relue (elle rétablit l'état réel en cas de refus, message d'erreur
-  // à l'appui). La clé n'est envoyée que si elle a été saisie ; le serveur n'en renvoie que les 4 derniers caractères.
+  // ── Registre des cartes API (Registre des cartes API.dc.html, maquette « tuiles symétriques », 15/10/2026) ──
+  // Le composant met sa liste à jour lui-même (mise à jour optimiste) et confirme par ses propres messages ; les
+  // écritures partent l'une après l'autre, puis la liste du serveur est relue. Refus du serveur : la promesse est
+  // rejetée avec le message lisible, le composant rétablit l'état d'avant et l'affiche. La clé n'est envoyée que si
+  // elle a été saisie ; le serveur n'en renvoie que les 4 derniers caractères.
   let apQ = Promise.resolve();
   const AC = id => '/api-cards/' + encodeURIComponent(id);
   const apReload = () => { refreshNt(); return load(['apis']).catch(() => {}); };
-  const apRun = call => (apQ = apQ.then(call).then(r => { touch(); return apReload().then(() => r); }).catch(e => { fail(e); apReload(); return null; }));
+  const apRun = call => {
+    const p = apQ.then(call).then(r => { touch(); return apReload().then(() => r ?? true); }, e => { console.warn('[admin-api]', e); apReload(); throw new Error(errText(e)); });
+    apQ = p.catch(() => {});
+    return p;
+  };
   const expIso = card => (card.hasKey ? fromDdmmyy(card.key) : null);
   c.apCreate = (card, key) => apRun(() => post('/api-cards', { name: card.n, category: card.tag, endpoint: 'https://' + card.ep, key: key || null, keyExpiresAt: expIso(card), authMode: card.auth || 'HEADER', method: card.method || 'GET', body: card.method === 'POST' ? card.body : null })).then(r => r && r.id);
   c.apSave = (id, card, key) => {
@@ -557,10 +565,11 @@ export function bindConsole(c) {
   };
   c.apToggle = (id, off) => apRun(() => patch(AC(id), { enabled: !off }));
   c.apWidgetsSet = (id, ids) => apRun(() => put(AC(id) + '/widgets', { ids }));
-  // Suppression : envoyée au serveur à la fin des 5 s pendant lesquelles le message propose « Annuler ».
-  c.apDelete = id => { clearTimeout(apPend[id]); apPend[id] = setTimeout(() => apRun(() => del(AC(id))).then(() => { delete apPend[id]; }), 5000); };
+  // Suppression : envoyée au serveur à la fin des 4 s pendant lesquelles le message propose « Annuler » (AP_UNDO_MS) ;
+  // la promesse suit l'appel (rejetée si le serveur refuse : la carte revient).
+  c.apDelete = id => new Promise((ok, ko) => { clearTimeout(apPend[id]); apPend[id] = setTimeout(() => apRun(() => del(AC(id))).then(r => { delete apPend[id]; ok(r); }, e => { delete apPend[id]; apReload(); ko(e); }), AP_UNDO_MS); });
   c.apRestore = id => { clearTimeout(apPend[id]); delete apPend[id]; };
-  c.apTest = id => post(AC(id) + '/test').then(r => { touch(); apReload(); return { resp: toResp({ code: r.code, ms: r.ms, at: new Date().toISOString(), body: r.body }, r.code ? '' : 'Injoignable'), lat: null }; }).catch(e => { fail(e); return null; });
+  c.apTest = id => post(AC(id) + '/test').then(r => { touch(); apReload(); return { resp: toResp({ code: r.code, ms: r.ms, at: new Date().toISOString(), body: r.body }, r.code ? '' : 'Injoignable'), lat: null }; }, e => { throw new Error(errText(e)); });
 
   // Ouverture d'un menu : rechargement de la section en arrière-plan.
   // ── Fournisseurs et modèles (props `api` de l'écran) : l'API d'abord, puis l'écran et la Console sont relus. ──
