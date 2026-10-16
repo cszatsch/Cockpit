@@ -2751,3 +2751,16 @@ Brief du commanditaire : reproduire la maquette avec les vraies données et les 
 - Lieu d'une nouvelle séance (16/10/2026, demande du commanditaire) : la ville du projet (Référentiel › Projet, « Ville du
   projet »), et non plus le lieu de la dernière séance de l'instance (repris seulement si la ville n'est pas renseignée) ;
   l'heure reste reprise de la dernière séance (`draftFor`, `cityP`).
+
+## Widget « Jours fériés » (16/10/2026, maquette « Widget jours feries - Ephemeride »)
+
+- Composant `frontends/Jours feries.dc.html` (calcul de la maquette repris : Pâques et règles par pays, report américain
+  samedi → vendredi, dimanche → lundi, fusion des jours de même date, ponts, synthèse) ; deux widgets : `feries` (M, 2 × 2)
+  et `feries_s` (S, 1 × 1), catégorie « Contexte » (onglet « Widgets infos & services », demande du commanditaire).
+- Données : pays et date de fin cible du Référentiel › Projet ; le pays y est en toutes lettres → code ISO par
+  `HOL_ISO` (France, Belgique, Luxembourg, Suisse, Allemagne, États-Unis, Maroc ; code ISO accepté) ; autre pays :
+  « Calendrier indisponible pour {pays} ». Date du jour : celle du Cockpit (`fToday`). **Hypothèse** : jours fériés
+  calculés dans le navigateur, comme la maquette (pas encore de source par pays et région).
+- Écarts assumés : survol et focus visible par classes CSS et variables de thème (le moteur ne résout pas les valeurs
+  calculées de `style-hover`, y compris dans la maquette) ; thème = bouton clair / sombre de la grille (clair par
+  défaut) ; choix de pays, région et période gardés le temps de la session (pas enregistrés dans les préférences).

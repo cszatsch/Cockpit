@@ -34,6 +34,9 @@ export const WIDGET_CATALOGUE: readonly WidgetDef[] = [
   { id: 'ai', g: '✦', n: 'L’essentiel, par Jev', cat: 'Synthèse', apiCard: false, tags: [] },
   { id: 'ech', g: '⧗', n: 'Échéances des 15 prochains jours', cat: 'Planning', apiCard: false, tags: [] },
   { id: 'golive', g: 'J', n: 'Compte à rebours Go-Live', cat: 'Planning', apiCard: false, tags: [] },
+  // Jours fériés (16/10/2026) : calculés dans le navigateur, sans carte API ; tailles M et S.
+  { id: 'feries', g: '✶', n: 'Jours fériés', cat: 'Contexte', apiCard: false, tags: [] },
+  { id: 'feries_s', g: '✶', n: 'Jours fériés · compact', cat: 'Contexte', apiCard: false, tags: [] },
   { id: 'av', g: '%', n: 'Avancement vs référence', cat: 'Planning', apiCard: false, tags: [] },
   { id: 'jal', g: '◆', n: 'Prochains jalons', cat: 'Jalons', apiCard: false, tags: [] },
   { id: 'crit', g: '▤', n: 'Chemin critique', cat: 'Planning', apiCard: false, tags: [] },

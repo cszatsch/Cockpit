@@ -837,3 +837,6 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
   celui-ci. » sous « Ensuite » vide (`part.restEmpty`).
 - « Nouveau comité » (16/10/2026) : lieu proposé = ville du projet (`cityP`, ligne `city` de l'objet Projet), aide
   « Heure reprise de la dernière séance · lieu : ville du projet. ».
+- Widget « Jours fériés » (16/10/2026, maquette « Ephemeride ») : nouveau composant `Jours feries.dc.html` ; widgets
+  `feries` (2 × 2) et `feries_s` (1 × 1), type `holidays` (`jfProps`, `HOL_ISO`) ; `Widget.dc.html` : bloc `isFeries` qui
+  importe le composant ; thème du composant = bouton clair / sombre de la tuile.
