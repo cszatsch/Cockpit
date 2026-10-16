@@ -2292,3 +2292,21 @@ model ProjectTrash {
   @@index([expiresAt])
   @@map("project_trash")
 }
+
+/// Jours fériés (16/10/2026) : table de référence par pays et région ('' = calendrier national), indépendante des projets ;
+/// complétée au démarrage du serveur (src/domain/jours-feries.ts). Lue par la vue jev_cockpit.jours_feries et le widget.
+model PublicHoliday {
+  country      String
+  region       String  @default("")
+  date         String
+  name         String
+  observedFrom String?
+
+  @@id([country, region, date])
+}
+
+/// Noms de pays du Référentiel (en toutes lettres) → code du calendrier des jours fériés.
+model PublicHolidayCountry {
+  label String @id
+  iso   String
+}

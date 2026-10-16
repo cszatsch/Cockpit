@@ -885,7 +885,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
       </div>
       <div style="margin-top:26px;display:grid;grid-template-columns:{{ ses.part.cols }};align-items:end;padding-bottom:8px;border-bottom:1px solid #e6eeec">
         <span style="font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:#8a9aa6;font-weight:700;padding-bottom:3px">Instance</span>
-        <sc-for list="{{ ses.part.days }}" as="d" hint-placeholder-count="31"><div style="display:flex;flex-direction:column;align-items:center;gap:4px"><span style="{{ d.lSt }}">{{ d.l }}</span><span style="{{ d.nSt }}">{{ d.n }}</span></div></sc-for>
+        <sc-for list="{{ ses.part.days }}" as="d" hint-placeholder-count="31"><div title="{{ d.tip }}" style="display:flex;flex-direction:column;align-items:center;gap:4px"><span style="{{ d.lSt }}">{{ d.l }}</span><span style="{{ d.nSt }}">{{ d.n }}</span></div></sc-for>
       </div>
       <sc-for list="{{ ses.part.lanes }}" as="f" hint-placeholder-count="3">
         <div style="display:flex;align-items:center;gap:10px;padding:18px 0 6px"><span style="{{ f.mark }}"></span><span style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:800;color:#10233a">{{ f.l }}</span><span style="font-size:11.5px;color:#8a9aa6">{{ f.n }}</span></div>
@@ -900,6 +900,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
       <div style="display:flex;align-items:center;gap:22px;margin-top:22px;padding-top:14px;border-top:1px solid #eef3f2;font-size:11.5px;color:#8a9aa6;flex-wrap:wrap">
         <span style="display:inline-flex;align-items:center;gap:7px"><span style="width:11px;height:11px;border-radius:50%;background:#10233a"></span>séance à venir</span>
         <span style="display:inline-flex;align-items:center;gap:7px"><span style="width:10px;height:10px;border-radius:50%;box-shadow:inset 0 0 0 2px #10233a;opacity:.5"></span>séance passée</span>
+        <span style="display:inline-flex;align-items:center;gap:7px"><span style="width:12px;height:12px;border-radius:3px;background:#f4eff9;box-shadow:inset 0 -2px 0 #d9cbee"></span>jour férié</span>
         <span style="flex:1"></span>
         <span>Cliquez sur + pour planifier un comité ; glissez une séance vers un autre jour pour la déplacer.</span>
       </div>
@@ -2603,6 +2604,8 @@ const CLOCK_MAX = 4;
 // Jours fériés (16/10/2026) : pays du Référentiel (en toutes lettres) → code ISO du calendrier ; autre pays : « indisponible ».
 const HOL_ISO = { france: 'FR', belgique: 'BE', luxembourg: 'LU', suisse: 'CH', allemagne: 'DE', 'etats-unis': 'US', 'etats unis': 'US', usa: 'US', maroc: 'MA' };
 // Calendrier des comités (16/10/2026) : famille d'une instance déduite de son nom (le Référentiel n'en a pas).
+// Jours fériés dans le calendrier des comités (16/10/2026) : teinte discrète propre, distincte du week-end et du jour.
+const CAL_HOL = { bg: '#f4eff9', ink: '#6f52a0', mark: '#d9cbee' };
 const CAL_FAM_RULES = { A: /arbitrage/i, C: /^comit[ée]\s+(de\s+|du\s+|d['’]\s*)?(chantier|programme|projet|int[ée]gration)/i };
 // Disposition par défaut d'Aujourd'hui (16/10/2026, demande du commanditaire) : preset « Trajectoire et planning » pour
 // tout utilisateur qui n'a pas personnalisé sa vue (préférence `dbL` vide) ; « Disposition par défaut » y revient.
@@ -2720,11 +2723,23 @@ class Component extends DCLogic {
   }
   // ── Compte à rebours Go-Live : réglages (dialogue « Compte à rebours ») ──
   // ── Jours fériés : pays (code ISO) et fin cible du projet, date du jour du Cockpit ──
+  // Source des jours fériés du widget : la table de référence du serveur (GET /api/holidays), même source que Jev.
+  jfLoad = (country, region, from, to) => this._api && this._api.holidays ? this._api.holidays(country, region, from, to) : Promise.reject(new Error('API indisponible'));
+  /** Jours fériés du pays du projet pour une année : { 'AAAA-MM-JJ': nom } (table du serveur, mise en cache). */
+  holYear(y) {
+    const iso = this.jfProps('M').paysProjet, k = iso + '|' + y, C = this.state.holCache || {};
+    if (!iso) return {};
+    if (C[k]) return C[k];
+    if (!this._holAsk) this._holAsk = {};
+    if (!this._holAsk[k] && this._api && this._api.holidays) { this._holAsk[k] = 1;
+      this._api.holidays(iso, '', y + '-01-01', y + '-12-31').then(r => { const m = {}; ((r && r.items) || []).forEach(h => { m[h.date] = h.name; }); this.setState(s => ({ holCache: { ...(s.holCache || {}), [k]: m } })); }, () => { this._holAsk[k] = 0; }); }
+    return {};
+  }
   jfProps(taille) {
     const D = this.mergedData() || {}, R = ((D.model && D.model.PROJECT && D.model.PROJECT.rows) || []), cell = id => ((R.find(r => r.id === id) || {}).cells || [])[1] || '';
     const nom = String(cell('country') || 'France').trim(), k = nom.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(), iso = /^[A-Z]{2}$/.test(nom) ? nom : HOL_ISO[k] || '';
     const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(cell('end')), fin = m ? m[3] + '-' + m[2] + '-' + m[1] : /^\d{4}-\d{2}-\d{2}$/.test(cell('end')) ? cell('end') : '';
-    return { taille, paysProjet: iso, paysNom: nom, finProjet: fin, aujourdhui: this.fToday(), chargement: !D.project };
+    return { taille, paysProjet: iso, paysNom: nom, finProjet: fin, aujourdhui: this.fToday(), chargement: !D.project, charger: this.jfLoad };
   }
   cdPid() { const D = this.mergedData() || {}; return (D.project && (D.project.id || D.project.code)) || 'RISE'; }
   // Valeurs automatiques du projet : date du Go-Live, nom de son jalon, début de la première phase.
@@ -4424,10 +4439,11 @@ class Component extends DCLogic {
     const nDm = new Date(cy, cmo, 0).getDate(), ymP = cy + '-' + p2(cmo), live = all.filter(x => x.status !== 'CANCELLED');
     const sortT = L => L.slice().sort((a, c) => (a.dateIso + (a.time || '')).localeCompare(c.dateIso + (c.time || '')));
     const upP = sortT(all.filter(x => x.status === 'PLANNED' && x.dateIso > today)), nextP = upP[0] || null, tdyP = sortT(live.filter(x => x.dateIso === today));
-    const daysP = []; for (let dn = 1; dn <= nDm; dn++) { const k = ymP + '-' + p2(dn), wd = new Date(cy, cmo - 1, dn).getDay(), we = wd === 0 || wd === 6, isT = k === today;
-      daysP.push({ k, n: dn, we, isT, l: 'DLMMJVS'[wd], lSt: 'font-size:9.5px;font-weight:700;color:' + (we ? '#b3bec4' : '#8a9aa6'),
+    const HOLm = this.holYear(cy);
+    const daysP = []; for (let dn = 1; dn <= nDm; dn++) { const k = ymP + '-' + p2(dn), wd = new Date(cy, cmo - 1, dn).getDay(), we = wd === 0 || wd === 6, isT = k === today, hol = HOLm[k] || '';
+      daysP.push({ k, n: dn, we, isT, hol, tip: hol ? 'Jour férié · ' + hol : '', l: 'DLMMJVS'[wd], lSt: 'font-size:9.5px;font-weight:700;color:' + (hol ? CAL_HOL.ink : we ? '#b3bec4' : '#8a9aa6'),
         nSt: isT ? 'min-width:22px;height:20px;padding:0 4px;border-radius:6px;background:#d9443a;color:#fff;font-size:11px;font-weight:800;display:grid;place-items:center;font-variant-numeric:tabular-nums'
-          : 'height:20px;display:grid;place-items:center;font-size:11.5px;font-weight:700;font-variant-numeric:tabular-nums;color:' + (we ? '#b3bec4' : '#2b4055') }); }
+          : 'height:20px;min-width:20px;padding:0 3px;border-radius:6px;display:grid;place-items:center;font-size:11.5px;font-weight:700;font-variant-numeric:tabular-nums;' + (hol ? 'color:' + CAL_HOL.ink + ';background:' + CAL_HOL.bg + ';box-shadow:inset 0 -2px 0 ' + CAL_HOL.mark : 'color:' + (we ? '#b3bec4' : '#2b4055')) }); }
     const openCard = (x, k) => this.setState({ sesSel: k, sesOpen: x.id, sesNew: null, sesDelAsk: null });
     const planAt = (bid, k) => { if (!canEdit || k < today) return; this.setState({ sesSel: k, sesCm: k.slice(0, 7), sesNew: draftFor(k, bid), sesOpen: null, sesDelAsk: null }); };
     const moveTo = (id, k) => { const x = all.find(z => z.id === id); this.setState({ sesDrag: null, sesOver: null }); if (!x || x.dateIso === k) return; if (x.status !== 'PLANNED') { this.showToast('Seule une séance planifiée peut être déplacée'); return; } set(x.id, { dateIso: k }, 'Séance déplacée · ' + lab(x) + ' → ' + lgd(k)); };
@@ -4435,9 +4451,10 @@ class Component extends DCLogic {
       return { l: f.l, n: ii.length + ' instance' + (ii.length > 1 ? 's' : ''), mark: 'width:10px;height:10px;border-radius:3px;background:' + f.c, show: ii.length > 0,
         rows: ii.map(b => ({ l: shOf(b), tip: nmOf(b), cells: daysP.map(day => {
           const L = all.filter(x => x.bodyId === b.id && x.dateIso === day.k), sx = L.find(x => x.status !== 'CANCELLED') || L[0] || null;
-          const isO = S.sesOver === b.id + '|' + day.k && !!S.sesDrag, bg = isO ? 'background:#dcefeb;' : day.isT ? 'background:#eaf4f2;' : day.we ? 'background:#f8faf9;' : '';
+          const isO = S.sesOver === b.id + '|' + day.k && !!S.sesDrag, bg = isO ? 'background:#dcefeb;' : day.isT ? 'background:#eaf4f2;' : day.hol ? 'background:' + CAL_HOL.bg + ';' : day.we ? 'background:#f8faf9;' : '';
           const past = sx && (sx.dateIso < today || sx.status === 'CANCELLED'), plus = !sx && canEdit && day.k >= today, can = !!sx && canEdit && sx.status === 'PLANNED';
-          const tip = sx ? nmOf(b) + ' — ' + lgd(day.k) + tmOf(sx) + (sx.status === 'CANCELLED' ? ' (annulée)' : sx.status === 'HELD' ? ' (tenue)' : '') : plus ? 'Planifier ' + nmOf(b) + ' le ' + lgd(day.k) : nmOf(b) + ' — ' + lgd(day.k) + ' : aucune séance';
+          const hs = day.hol ? ' · jour férié (' + day.hol + ')' : '';
+          const tip = (sx ? nmOf(b) + ' — ' + lgd(day.k) + tmOf(sx) + (sx.status === 'CANCELLED' ? ' (annulée)' : sx.status === 'HELD' ? ' (tenue)' : '') : plus ? 'Planifier ' + nmOf(b) + ' le ' + lgd(day.k) : nmOf(b) + ' — ' + lgd(day.k) + ' : aucune séance') + hs;
           const act = () => sx ? openCard(sx, day.k) : plus ? planAt(b.id, day.k) : null;
           // style-hover n'accepte pas de valeur calculée (support.js le lit une fois) : case « + » et case simple séparées (16/10/2026).
           return { has: !!sx, plus, noPlus: !plus, tip, drag: can ? 'true' : 'false',
@@ -4462,7 +4479,7 @@ class Component extends DCLogic {
     const part = { monthL: MOf[cmo - 1][0].toUpperCase() + MOf[cmo - 1].slice(1) + ' ' + cy, metaL: nSm + ' séance' + (nSm > 1 ? 's' : '') + ' · ' + GB.length + ' instance' + (GB.length > 1 ? 's' : ''),
       goT: goTp, goP: navP(-1), goN: navP(1), keyT: kb(goTp), keyP: kb(navP(-1)), keyN: kb(navP(1)),
       cols: '248px repeat(' + nDm + ',minmax(0,1fr))', days: daysP, lanes: lanesP, noInst: !GB.length,
-      todayL: lgd(today) + ' ' + today.slice(0, 4), todayS: tdyP.length ? tdyP.map(x => shOf(gbOf(x)) + tmOf(x)).join(' — ') : 'Aucune séance ce jour.',
+      todayL: lgd(today) + ' ' + today.slice(0, 4) + (this.holYear(+today.slice(0, 4))[today] ? ' · ' + this.holYear(+today.slice(0, 4))[today] : ''), todayS: tdyP.length ? tdyP.map(x => shOf(gbOf(x)) + tmOf(x)).join(' — ') : 'Aucune séance ce jour.',
       hasNext: !!nxP, noNext: !nxP, nx: nxP || {}, rest: restP, restEmpty: !restP.length,
       openList: selList.filter(r => r.id === S.sesOpen), dlg: !!NW || !!openRow, close: closeP,
       dlgKey: e => { if (e.key === 'Escape') { e.stopPropagation(); closeP(); } },

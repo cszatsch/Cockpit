@@ -331,6 +331,36 @@ export const DICTIONNAIRE_COCKPIT: DictTable[] = [
     ],
   },
   {
+    // Jours fériés (16/10/2026) : table de référence (pays du calendrier, toutes années), croisée à la lecture avec le pays
+    // actuel du projet et sa période actuelle (début → fin cible) ; effet calculé ici : rien à mettre à jour si le projet bouge.
+    nom: 'jours_feries',
+    source: `"Project" p JOIN "PublicHolidayCountry" hc ON lower(hc.label) = lower(btrim(p.country)) JOIN "PublicHoliday" t ON t.country = hc.iso AND t.region = ''`,
+    filtre: 't.date >= p."startDate" AND t.date <= p."targetEndDate"',
+    description: 'Jours fériés du pays du projet (calendrier national) entre la date de début et la date de fin cible du projet, avec leur effet sur le planning : jour ouvré perdu, pont possible, week-end. Écran : widget « Jours fériés » de la page Aujourd’hui. Pays gérés : France, Belgique, Luxembourg, Suisse, Allemagne, États-Unis ; un autre pays ne donne aucune ligne.',
+    colonnes: [
+      { nom: 'projet_id', expr: 'p.id', type: 'texte', signification: 'Projet → projets.id' },
+      { nom: 'date', expr: 't.date', type: 'texte', signification: 'Date du jour férié (jour observé)', exemples: 'AAAA-MM-JJ' },
+      { nom: 'nom', expr: 't.name', type: 'texte', signification: 'Nom ; deux jours fériés à la même date sont réunis', exemples: 'Armistice 1918 ; Fête du Travail · Ascension' },
+      { nom: 'pays', expr: 't.country', type: 'texte', signification: 'Code du pays du calendrier', exemples: 'FR, BE, LU, CH, DE, US' },
+      { nom: 'jour_semaine_num', expr: 'extract(isodow from t.date::date)::int', type: 'entier', signification: 'Jour de la semaine', exemples: '1 = lundi … 5 = vendredi, 6 = samedi, 7 = dimanche' },
+      { nom: 'jour_semaine', expr: "(ARRAY['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'])[extract(isodow from t.date::date)::int]", type: 'texte', signification: 'Jour de la semaine en toutes lettres', exemples: 'mercredi' },
+      { nom: 'effet', expr: "CASE WHEN extract(isodow from t.date::date) >= 6 THEN 'WEEKEND' WHEN extract(isodow from t.date::date) IN (2, 4) AND NOT EXISTS (SELECT 1 FROM \"PublicHoliday\" b WHERE b.country = t.country AND b.region = t.region AND b.date = to_char(t.date::date + CASE extract(isodow from t.date::date) WHEN 2 THEN -1 ELSE 1 END, 'YYYY-MM-DD')) THEN 'PONT' ELSE 'JOUR_PERDU' END", type: 'texte', signification: 'Effet sur le planning', exemples: 'JOUR_PERDU = jour ouvré perdu (lundi à vendredi), PONT = jour ouvré perdu et pont possible (mardi ou jeudi), WEEKEND = sans effet' },
+      { nom: 'jour_pont', expr: "CASE WHEN extract(isodow from t.date::date) IN (2, 4) AND NOT EXISTS (SELECT 1 FROM \"PublicHoliday\" b WHERE b.country = t.country AND b.region = t.region AND b.date = to_char(t.date::date + CASE extract(isodow from t.date::date) WHEN 2 THEN -1 ELSE 1 END, 'YYYY-MM-DD')) THEN to_char(t.date::date + CASE extract(isodow from t.date::date) WHEN 2 THEN -1 ELSE 1 END, 'YYYY-MM-DD') END", type: 'texte', signification: 'Jour de pont possible (lundi avant un mardi férié, vendredi après un jeudi férié) ; null sinon', exemples: 'AAAA-MM-JJ' },
+      { nom: 'jours_ouvres_perdus', expr: "CASE WHEN extract(isodow from t.date::date) >= 6 THEN 0 ELSE 1 END", type: 'entier', signification: 'Jours ouvrés perdus (1 du lundi au vendredi, 0 le week-end)' },
+      { nom: 'reporte_du', expr: 't."observedFrom"', type: 'texte', signification: 'Date d’origine d’un jour férié reporté (États-Unis : samedi → vendredi, dimanche → lundi) ; null sinon', exemples: 'AAAA-MM-JJ' },
+    ],
+    relations: ['jours_feries.projet_id = projets.id', 'Croiser avec jalons.date_prevue, livrables.echeance, phases.date_fin… par comparaison de dates (texte AAAA-MM-JJ)'],
+    usages: ['Quel est le prochain jour férié et quel est son effet ?', 'Combien de jours ouvrés perdus d’ici la fin du projet, ou avant tel jalon ?', 'Quels jalons ou livrables tombent juste après un jour férié ou un pont ?'],
+    regles: [
+      'À venir = date > date du jour ; jours ouvrés perdus sur une période = SUM(jours_ouvres_perdus) des lignes de la période.',
+      'Impact sur un jalon ou un livrable = jours fériés ouvrés (jours_ouvres_perdus = 1) entre la date du jour et sa date prévue : ce sont des jours de travail en moins, le planning n’est pas décalé automatiquement (durées en jours calendaires).',
+      'Pont possible : le jour de pont lui-même est ouvré ; le prendre ferait perdre un jour de plus (non compté dans jours_ouvres_perdus).',
+      'Période : de la date de début à la date de fin cible du projet (projets.date_debut, date_fin_cible) ; le pays est celui du projet (projets.pays), calendrier national (sans région).',
+      DATES_TEXTE,
+      DROITS_PROJET,
+    ],
+  },
+  {
     nom: 'equipes',
     source: '"Team" t',
     description: 'Équipes du projet (client, AMOA, intégrateur…).',

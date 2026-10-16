@@ -31,7 +31,7 @@
   </sc-if>
   <!-- Jours fériés (16/10/2026, maquette « Ephemeride ») : composant à part qui recouvre toute la tuile (M ou S). -->
   <sc-if value="{{ w.isFeries }}" hint-placeholder-val="{{ false }}">
-    <div style="position:absolute;inset:0;overflow:hidden;border-radius:inherit"><dc-import name="Jours feries" theme="{{ w.jf.theme }}" taille="{{ w.jf.taille }}" pays-projet="{{ w.jf.paysProjet }}" pays-nom="{{ w.jf.paysNom }}" fin-projet="{{ w.jf.finProjet }}" aujourdhui="{{ w.jf.aujourdhui }}" chargement="{{ w.jf.chargement }}" hint-size="100%,100%" style="width:100%;height:100%"></dc-import></div>
+    <div style="position:absolute;inset:0;overflow:hidden;border-radius:inherit"><dc-import name="Jours feries" theme="{{ w.jf.theme }}" taille="{{ w.jf.taille }}" pays-projet="{{ w.jf.paysProjet }}" pays-nom="{{ w.jf.paysNom }}" fin-projet="{{ w.jf.finProjet }}" aujourdhui="{{ w.jf.aujourdhui }}" chargement="{{ w.jf.chargement }}" charger="{{ w.jf.charger }}" hint-size="100%,100%" style="width:100%;height:100%"></dc-import></div>
   </sc-if>
   <sc-if value="{{ w.isRoute }}" hint-placeholder-val="{{ false }}">
     <div style="position:absolute;inset:0;overflow:hidden;border-radius:inherit;{{ w.thBg2 }}"><div style="position:absolute;inset:0;color:#fff;padding:16px 18px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;{{ w.thF }}">

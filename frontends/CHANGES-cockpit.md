@@ -840,3 +840,6 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 - Widget « Jours fériés » (16/10/2026, maquette « Ephemeride ») : nouveau composant `Jours feries.dc.html` ; widgets
   `feries` (2 × 2) et `feries_s` (1 × 1), type `holidays` (`jfProps`, `HOL_ISO`) ; `Widget.dc.html` : bloc `isFeries` qui
   importe le composant ; thème du composant = bouton clair / sombre de la tuile.
+- Jours fériés depuis le serveur (16/10/2026) : `api.js` `holidays()` (GET /api/holidays) ; widget : prop `charger`
+  (`jfLoad`), cache `srcOf`, calcul local en secours ; calendrier des comités : `holYear` (cache `holCache`), colonnes et
+  numéros des jours fériés en teinte `CAL_HOL`, infobulle, mini-légende « jour férié ».

@@ -2764,3 +2764,21 @@ Brief du commanditaire : reproduire la maquette avec les vraies données et les 
 - Écarts assumés : survol et focus visible par classes CSS et variables de thème (le moteur ne résout pas les valeurs
   calculées de `style-hover`, y compris dans la maquette) ; thème = bouton clair / sombre de la grille (clair par
   défaut) ; choix de pays, région et période gardés le temps de la session (pas enregistrés dans les préférences).
+
+## Jours fériés côté serveur : table de référence, vue de Jev, calendrier des comités (16/10/2026, demande du commanditaire)
+
+- Constat : Jev ne pouvait pas répondre à « quel impact des jours fériés sur le projet ? » — les jours fériés n'existaient
+  que dans le navigateur (widget), aucune vue `jev_cockpit` ne les décrivait.
+- Table de référence `PublicHoliday` (pays, région, date, nom, date d'origine d'un jour reporté), indépendante des
+  projets, remplie au démarrage du serveur (`HolidaysService.ensure`, lignes manquantes seulement) de `HOLIDAY_FIRST_YEAR`
+  (2020) à l'année en cours + `HOLIDAY_HORIZON_YEARS` (15) ; règles `src/domain/jours-feries.ts` (celles du widget) ;
+  noms de pays du Référentiel → code par `PublicHolidayCountry` (`HOLIDAY_COUNTRY_LABELS`).
+- Vue `jev_cockpit.jours_feries` (dictionnaire du Cockpit) : pays actuel du projet, calendrier national, de la date de
+  début à la date de fin cible ; effet calculé à la lecture (WEEKEND, JOUR_PERDU, PONT, jour de pont, jours ouvrés
+  perdus) : un projet décalé ou un pays changé ne demandent aucune mise à jour. Le planning reste en jours calendaires :
+  la vue signale l'effet, elle ne décale rien.
+- Widget « Jours fériés » : lit `GET /api/holidays?country=&region=&from=&to=` (même source) ; calcul local de la
+  maquette en secours seulement (serveur injoignable).
+- Calendrier des comités (demande du commanditaire) : jours fériés du pays du projet en teinte discrète propre (`CAL_HOL` :
+  fond lavande pâle, numéro en pastille), distincte du week-end et du jour ; infobulle « Jour férié · {nom} » ; mention
+  dans la mini-légende ; nom du jour férié ajouté à la date du volet « Aujourd'hui ».

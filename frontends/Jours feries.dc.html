@@ -130,7 +130,17 @@ const TH = {
 };
 
 class Component extends DCLogic {
-  state = { cc: null, rg: '', mode: 'projet', years: [], pop: null };
+  state = { cc: null, rg: '', mode: 'projet', years: [], pop: null, src: {} };
+  // Jours fériés du serveur, mis en cache par pays, région et période ; null : pas de source (calcul local).
+  srcOf(cc, rg, from, to) {
+    const load = this.props.charger; if (typeof load !== 'function') return null;
+    const k = cc + '|' + rg + '|' + from + '|' + to, hit = (this.state.src || {})[k];
+    if (hit) return hit.fail ? null : hit;
+    this.state.src = { ...(this.state.src || {}), [k]: { loading: true } };
+    Promise.resolve().then(() => load(cc, rg, from, to)).then(r => this.setState(s => ({ src: { ...s.src, [k]: r && r.available === false ? { items: [] } : { items: (r && r.items) || [] } } })),
+      () => this.setState(s => ({ src: { ...s.src, [k]: { fail: true } } })));
+    return { loading: true };
+  }
   renderVals() {
     // Date du jour : celle du Cockpit (aujourdhui, AAAA-MM-JJ), sinon celle du navigateur.
     const st = this.state, today = PARSE(this.props.aujourdhui) || D0(new Date());
@@ -148,10 +158,15 @@ class Component extends DCLogic {
       const contig = ys.every((y, i) => !i || y === ys[i - 1] + 1); pLabel = ys.length === 1 ? String(ys[0]) : contig ? ys[0] + '–' + ys[ys.length - 1] : ys.join(' · '); }
     else if (st.mode === 'next12' || !pEndProj) { pEnd = addD(new Date(today.getFullYear() + 1, today.getMonth(), today.getDate()), -1); pLabel = '12 prochains mois'; }
     else { pEnd = pEndProj; pLabel = "Jusqu'au " + dMedF(pEnd); }
-    let H = [];
+    let H = [], srcLoading = false;
     if (!C.na && !ended) {
       const raw = [];
-      for (let y = pStart.getFullYear(); y <= pEnd.getFullYear() + 1; y++) HOL(cc, rg, y).forEach(h => raw.push(h));
+      // Source (16/10/2026) : la table de référence du serveur (prop `charger`, même source que Jev) ; calcul local en
+      // secours (maquette, serveur injoignable).
+      const src = this.srcOf(cc, rg, pStart.getFullYear() + '-01-01', (pEnd.getFullYear() + 1) + '-12-31');
+      if (src && src.loading) srcLoading = true;
+      else if (src && src.items) src.items.forEach(h => raw.push({ d: PARSE(h.date), n: h.name, o: PARSE(h.observedFrom) }));
+      else for (let y = pStart.getFullYear(); y <= pEnd.getFullYear() + 1; y++) HOL(cc, rg, y).forEach(h => raw.push(h));
       const by = {};
       raw.filter(h => h.d > today && h.d >= pStart && h.d <= pEnd && (st.mode !== 'years' || st.years.includes(h.d.getFullYear())))
         .forEach(h => { const k = KEY(h.d); if (by[k]) by[k].n += ' · ' + h.n; else by[k] = { ...h, k }; });
@@ -206,7 +221,7 @@ class Component extends DCLogic {
         sy, gL: gS('lost', th), gP: gS('pont', th), gW: gS('we', th) };
     };
     const dark = (this.props.theme ?? 'clair') === 'sombre', compact = (this.props.taille ?? 'M') === 'S';
-    const T = { ...mk(dark ? TH.D : TH.L, 'w'), cShort: C.n }, loading = !!this.props.chargement;
+    const T = { ...mk(dark ? TH.D : TH.L, 'w'), cShort: C.n }, loading = !!this.props.chargement || srcLoading;
     T.sAria = T.hasMsg ? 'Jours fériés · ' + C.n + ' : ' + T.msg.title : T.nx.aria ? 'Jours fériés · ' + C.n + ' : ' + T.nx.aria + ' ' + T.sy.lost + ' ' + T.sy.lostL + ' sur la période.' : 'Jours fériés';
     // Échap ferme le menu ouvert ; un clic à l'extérieur aussi (voile du menu).
     const key = e => { if (e.key === 'Escape' && this.state.pop) { e.stopPropagation(); this.setState({ pop: null }); } };

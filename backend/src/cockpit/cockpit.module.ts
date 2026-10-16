@@ -25,13 +25,14 @@ import { ReportTemplateService } from './committees/report-template.service';
 import { CollabController } from './collab/collab.controller';
 import { AssistantController } from './assistant/assistant.controller';
 import { AdminModule } from '../admin/admin.module';
+import { HolidaysController, HolidaysService } from './holidays/holidays';
 
 /** API du Cockpit : `/api/me`, `/api/projects/{projectId}/…`. */
 @Module({
   imports: [AdminModule],
   // Ordre significatif : les routes fixes (ex. deliverables/tracking) avant les routes paramétrées (deliverables/:id).
-  controllers: [MeController, MyNotificationsController, MyNotificationRulesController, AdminMyNotificationRulesController, ProjectController, BootstrapController, PilotageController, TodayController, CommitteesController, ReportFormatController, DocumentsController, CollabController, AssistantController, ...REFERENTIAL_CONTROLLERS, ...TX_CONTROLLERS],
-  providers: [ReferentialService, UsagesService, TransactionalService, AnomaliesService, BootstrapService, KbService, ReportFormatService, ReportTemplateService, JevCockpitDocsService, JevCockpitWriteService, TodayGreetingService],
+  controllers: [HolidaysController, MeController, MyNotificationsController, MyNotificationRulesController, AdminMyNotificationRulesController, ProjectController, BootstrapController, PilotageController, TodayController, CommitteesController, ReportFormatController, DocumentsController, CollabController, AssistantController, ...REFERENTIAL_CONTROLLERS, ...TX_CONTROLLERS],
+  providers: [HolidaysService, ReferentialService, UsagesService, TransactionalService, AnomaliesService, BootstrapService, KbService, ReportFormatService, ReportTemplateService, JevCockpitDocsService, JevCockpitWriteService, TodayGreetingService],
   exports: [ReferentialService, UsagesService, TransactionalService, AnomaliesService],
 })
 export class CockpitModule {}

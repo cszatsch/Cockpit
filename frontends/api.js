@@ -1028,6 +1028,8 @@ export function attach(comp) {
     clockSearch: (q) => get('/widgets/proxy/open-meteo-geocodage?' + new URLSearchParams({ name: q, count: 10, language: 'fr', format: 'json' }))
       .then((r) => ((r && r.results) || []).filter((g) => g.timezone && (() => { try { new Intl.DateTimeFormat('fr-FR', { timeZone: g.timezone }); return true; } catch (e) { return false; } })())
         .map((g) => ({ name: g.name, region: g.admin1 || '', country: g.country || '', timeZone: g.timezone, lat: Math.round(g.latitude * 1000) / 1000, lon: Math.round(g.longitude * 1000) / 1000 }))),
+    /** Jours fériés (16/10/2026) : table de référence du serveur, pays (et région) sur une période → `{ available, items }`. */
+    holidays: (country, region, from, to) => get('/holidays?' + new URLSearchParams({ country, region: region || '', from, to })),
     setDefaultProject: (code) => patch('/me/preferences', { defaultProject: code }).catch((e) => toast(errorText(e))),
     switchProject: (code) => { const q = new URLSearchParams(location.search); q.set('project', code); location.search = q.toString(); },
     ntLoad,
