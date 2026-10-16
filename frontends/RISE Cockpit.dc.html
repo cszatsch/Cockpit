@@ -892,7 +892,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
         <sc-for list="{{ f.rows }}" as="r" hint-placeholder-count="4">
           <div style="display:grid;grid-template-columns:{{ ses.part.cols }};align-items:center;border-radius:8px;transition:background .12s" style-hover="background:#f5f8f7">
             <span title="{{ r.tip }}" style="font-size:12.5px;font-weight:600;color:#2b4055;padding:0 14px 0 18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.l }}</span>
-            <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="31"><div role="button" tabIndex="0" aria-label="{{ c.tip }}" onClick="{{ c.click }}" onKeyDown="{{ c.key }}" onDragOver="{{ c.over }}" onDragLeave="{{ c.leave }}" onDrop="{{ c.drop }}" title="{{ c.tip }}" style="{{ c.st }}" style-hover="{{ c.hov }}"><sc-if value="{{ c.has }}" hint-placeholder-val="{{ false }}"><span draggable="{{ c.drag }}" onDragStart="{{ c.ds }}" onDragEnd="{{ c.de }}" aria-label="{{ c.tip }}" style="{{ c.dot }}"></span></sc-if><sc-if value="{{ c.plus }}" hint-placeholder-val="{{ true }}"><span aria-hidden="true" style="font-size:14px;font-weight:600;line-height:1">+</span></sc-if></div></sc-for>
+            <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="31"><sc-if value="{{ c.plus }}" hint-placeholder-val="{{ true }}"><div role="button" tabIndex="0" aria-label="{{ c.tip }}" onClick="{{ c.click }}" onKeyDown="{{ c.key }}" onDragOver="{{ c.over }}" onDrop="{{ c.drop }}" title="{{ c.tip }}" style="{{ c.st }}" style-hover="color:#1d8f86;background:#edf4f2"><span aria-hidden="true" style="font-size:14px;font-weight:600;line-height:1">+</span></div></sc-if><sc-if value="{{ c.noPlus }}" hint-placeholder-val="{{ false }}"><div role="button" tabIndex="0" aria-label="{{ c.tip }}" onClick="{{ c.click }}" onKeyDown="{{ c.key }}" onDragOver="{{ c.over }}" onDrop="{{ c.drop }}" title="{{ c.tip }}" style="{{ c.st }}"><sc-if value="{{ c.has }}" hint-placeholder-val="{{ false }}"><span draggable="{{ c.drag }}" onDragStart="{{ c.ds }}" onDragEnd="{{ c.de }}" aria-label="{{ c.tip }}" style="{{ c.dot }}"></span></sc-if></div></sc-if></sc-for>
           </div>
         </sc-for>
       </sc-for>
@@ -923,6 +923,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
         </div>
         <div style="display:flex;flex-direction:column">
           <span style="font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#5c7280;font-weight:700;padding-bottom:6px">Ensuite</span>
+          <sc-if value="{{ ses.part.restEmpty }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;color:#5c7280;padding-top:4px">Aucun autre comité planifié après celui-ci.</span></sc-if>
           <sc-for list="{{ ses.part.rest }}" as="u" hint-placeholder-count="4">
             <div title="{{ u.full }}" style="display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:12px;align-items:center;padding:11px 0;border-top:1px solid #f0f4f3">
               <div style="display:flex;flex-direction:column;align-items:center;line-height:1"><span style="font-size:18px;font-weight:800;font-variant-numeric:tabular-nums">{{ u.day }}</span><span style="font-size:10px;font-weight:700;color:#5c7280;text-transform:uppercase;letter-spacing:.06em;margin-top:3px">{{ u.mo }}</span></div>
@@ -4426,16 +4427,15 @@ class Component extends DCLogic {
           const past = sx && (sx.dateIso < today || sx.status === 'CANCELLED'), plus = !sx && canEdit && day.k >= today, can = !!sx && canEdit && sx.status === 'PLANNED';
           const tip = sx ? nmOf(b) + ' — ' + lgd(day.k) + tmOf(sx) + (sx.status === 'CANCELLED' ? ' (annulée)' : sx.status === 'HELD' ? ' (tenue)' : '') : plus ? 'Planifier ' + nmOf(b) + ' le ' + lgd(day.k) : nmOf(b) + ' — ' + lgd(day.k) + ' : aucune séance';
           const act = () => sx ? openCard(sx, day.k) : plus ? planAt(b.id, day.k) : null;
-          return { has: !!sx, plus, tip, drag: can ? 'true' : 'false',
+          // style-hover n'accepte pas de valeur calculée (support.js le lit une fois) : case « + » et case simple séparées (16/10/2026).
+          return { has: !!sx, plus, noPlus: !plus, tip, drag: can ? 'true' : 'false',
             st: 'height:32px;display:grid;place-items:center;cursor:' + (sx || plus ? 'pointer' : 'default') + ';color:transparent;outline-offset:-2px;transition:background .12s,color .12s;' + bg,
-            hov: plus ? 'color:#1d8f86;background:#edf4f2' : '',
             dot: !sx ? '' : past ? 'width:10px;height:10px;border-radius:50%;box-shadow:inset 0 0 0 2px ' + f.c + ';opacity:.5;cursor:' + (can ? 'grab' : 'pointer')
               : 'width:13px;height:13px;border-radius:50%;background:' + f.c + ';cursor:' + (can ? 'grab' : 'pointer') + ';' + (nextP && sx.id === nextP.id ? 'box-shadow:0 0 0 4px ' + f.soft : '') + (S.sesDrag === sx.id ? ';opacity:.35' : ''),
             click: act, key: e => { if (e.key === 'Enter') { e.preventDefault(); act(); } else if (e.key === 'Escape' && this.state.sesDrag) this.setState({ sesDrag: null, sesOver: null }); },
             ds: can ? e => { e.dataTransfer.setData('text/plain', sx.id); e.dataTransfer.effectAllowed = 'move'; this.setState({ sesDrag: sx.id }); } : e => e.preventDefault(),
             de: () => this.setState({ sesDrag: null, sesOver: null }),
             over: canEdit ? e => { e.preventDefault(); const kk = b.id + '|' + day.k; if (this.state.sesOver !== kk) this.setState({ sesOver: kk }); } : () => {},
-            leave: () => {},
             drop: canEdit ? e => { e.preventDefault(); moveTo(this.state.sesDrag || e.dataTransfer.getData('text/plain'), day.k); } : () => {} }; }) })) }; }).filter(x => x.show);
     const gbOf = x => gbN[x.bodyId] || { cells: ['—'] };
     let nxP = null; if (nextP) { const b = gbOf(nextP), f = FAMP[famOf(b)], n = ddj(nextP.dateIso);
@@ -4451,7 +4451,7 @@ class Component extends DCLogic {
       goT: goTp, goP: navP(-1), goN: navP(1), keyT: kb(goTp), keyP: kb(navP(-1)), keyN: kb(navP(1)),
       cols: '248px repeat(' + nDm + ',minmax(0,1fr))', days: daysP, lanes: lanesP, noInst: !GB.length,
       todayL: lgd(today) + ' ' + today.slice(0, 4), todayS: tdyP.length ? tdyP.map(x => shOf(gbOf(x)) + tmOf(x)).join(' — ') : 'Aucune séance ce jour.',
-      hasNext: !!nxP, noNext: !nxP, nx: nxP || {}, rest: restP,
+      hasNext: !!nxP, noNext: !nxP, nx: nxP || {}, rest: restP, restEmpty: !restP.length,
       openList: selList.filter(r => r.id === S.sesOpen), dlg: !!NW || !!openRow, close: closeP,
       dlgKey: e => { if (e.key === 'Escape') { e.stopPropagation(); closeP(); } },
       dlgL: NW ? 'Planifier un comité' : 'Séance', dlgRel: NW ? 'Planifier un comité' : openRow ? (openRow.status === 'HELD' ? 'Séance tenue' : openRow.status === 'CANCELLED' ? 'Séance annulée' : openRow.dateIso < today ? 'Séance passée' : 'Séance planifiée') : '',

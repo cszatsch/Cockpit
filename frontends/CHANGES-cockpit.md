@@ -832,3 +832,6 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
   `ses.part` (lignes par famille, cases focalisables, glisser-déposer, volet Aujourd'hui / Prochain comité / Ensuite) ;
   formulaire « Nouveau comité » et fiche de séance existants déplacés dans une fenêtre (`sesOpen`, `part.dlg`) ;
   familles `CAL_FAM_RULES` ; Échap global ferme la fenêtre et annule un déplacement.
+- Partition des comités, correctif (16/10/2026) : « + » au survol rétabli (cases `c.plus` / `c.noPlus`, `style-hover`
+  fixe : le moteur ne résout pas les valeurs calculées de `style-hover`) ; message « Aucun autre comité planifié après
+  celui-ci. » sous « Ensuite » vide (`part.restEmpty`).

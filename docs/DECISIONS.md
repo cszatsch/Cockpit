@@ -2743,3 +2743,8 @@ Brief du commanditaire : reproduire la maquette avec les vraies données et les 
   ou un jour à venir.
 - Déplacement : écriture `sesEd` existante (mise à jour immédiate de l'écran, rechargement et retour à la date d'origine
   si le serveur refuse) ; Échap annule le déplacement et ferme la fenêtre.
+- Correctif du jour même : le « + » n'apparaissait pas au survol. Cause : `style-hover="{{ c.hov }}"` — le moteur
+  d'affichage (`support.js`, `collectProps` → `pseudoClass`) crée la règle de survol une fois, avec le texte brut de
+  l'attribut, sans remplacer les `{{ … }}` ; la règle était invalide. Correction : deux variantes de case (`c.plus` avec
+  un `style-hover` fixe, `c.noPlus` sans survol). « Ensuite » vide : « Aucun autre comité planifié après celui-ci. ».
+  Les autres `style-hover` calculés de l'application (26) ont le même défaut : à traiter à part.
