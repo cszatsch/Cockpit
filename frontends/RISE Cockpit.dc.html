@@ -2536,6 +2536,9 @@ const JEV_TA_H0 = 54, JEV_TA_MAX = 240;
 // Horloge mondiale du tableau de bord : villes par défaut (la première est la référence), coordonnées de la maquette ;
 // chaque utilisateur choisit les siennes (4 au plus, CLOCK_MAX), gardées dans ses préférences (`dbClock` → worldClock).
 const CLOCK_MAX = 4;
+// Disposition par défaut d'Aujourd'hui (16/10/2026, demande du commanditaire) : preset « Trajectoire et planning » pour
+// tout utilisateur qui n'a pas personnalisé sa vue (préférence `dbL` vide) ; « Disposition par défaut » y revient.
+const DB_DEFAULT = ['crit', 'jal', 'ch', 'golive', 'av', 'liv', 'act', 'pb', 'mine'];
 const CLOCK_DEFAULT = { showSeconds: false, cities: [
   { name: 'Paris', timeZone: 'Europe/Paris', lat: 48.857, lon: 2.352 }, { name: 'New York', timeZone: 'America/New_York', lat: 40.713, lon: -74.006 },
   { name: 'Tokyo', timeZone: 'Asia/Tokyo', lat: 35.68, lon: 139.69 }, { name: 'Sydney', timeZone: 'Australia/Sydney', lat: -33.87, lon: 151.21 }] };
@@ -2856,6 +2859,9 @@ class Component extends DCLogic {
   findObj(id) { const D = this.mergedData() || {}; for (const k of ['risks', 'issues', 'actions', 'decisions', 'milestones']) { const o = (D[k] || []).find(x => x.id === id); if (o) return o; } return null; }
   /** Code du projet ouvert (vide tant que les données ne sont pas chargées). */
   projCode() { const PJ = (this.state.data && this.state.data.project) || null; return (PJ && PJ.code) || ''; }
+  /** Chantier lisible par l'utilisateur (RG8, 16/10/2026) : Admin et PMO lisent tout ; un Responsable ou un Lecteur ses
+   * chantiers ; un objet sans chantier (transverse) reste visible, comme les jalons transverses du serveur. */
+  wsReadable(wsId) { const p = this.prof(this.me().personId); return p.admin || p.pmo || !wsId || p.resp.includes(wsId) || p.lect.includes(wsId); }
   can(action, obj) { const m = this.me(), p = this.prof(m.personId), D = this.state.data || {};
     if (action === 'referentiel') return p.admin || p.pmo; // voir l'onglet (RG7)
     if (action === 'referentielEdit') return p.pmo; // l'Admin est en lecture seule (RG6)
@@ -4498,7 +4504,8 @@ class Component extends DCLogic {
     // (une seule phase : comme leurs lignes « Phase > Chantier » de Pilotage › Planning ; plusieurs : leurs sous-phases de ces
     // phases mises en commun, plSegMulti) ; tous les chantiers, triés par code (C1, C2…).
     const PLI = this.plItems(), wsPhs = this.plCurPhases(PLI.filter(x => x.kind === 'ph')), PLS = PLI.filter(x => x.kind === 'sp');
-    const wss = PLI.filter(x => x.kind === 'ch').map(c => this.plSegMulti(c, wsPhs, PLS)).filter(Boolean)
+    const wss = PLI.filter(x => x.kind === 'ch' && this.wsReadable(x.id)).map(c => this.plSegMulti(c, wsPhs, PLS)) // ses chantiers (16/10/2026)
+     .filter(Boolean)
       .sort((a, b) => String(a.code).localeCompare(String(b.code), 'fr', { numeric: true }))
       .map(c => ({ n: (c.code ? c.code + ' · ' : '') + c.n, v: c.reel, ref: c.prevu, detail: c.status === 'future' ? 'pas encore commencé dans ' + (wsPhs.length > 1 ? 'ces phases' : 'la phase') : '', st: c.status }));
     const phC = wsPhs.map(x => String(x.code || '')), wsPhL = wsPhs.length === 1 ? 'Phase ' + phC[0] + ' · ' + wsPhs[0].n : wsPhs.length ? 'Phases ' + phC.slice(0, -1).join(', ') + ' et ' + phC[phC.length - 1] : '';
@@ -4520,7 +4527,8 @@ class Component extends DCLogic {
     const curPh = (() => { try { return this.plItems().filter(x => x.kind === 'ph').find(x => x.start <= tIso && x.end >= tIso) || null; } catch (e) { return null; } })();
     // Mes tâches (liste « Mes tâches » d'Aujourd'hui, hors archivées) ; livrables du Référentiel (échéance, avancement).
     const mine = (this._mineRows || []).filter(m => !m.archived), mineVal = mine.filter(m => m.cta === 'Valider').length, mineLate = mine.filter(m => m.dueIso && m.dueIso < tIso).length;
-    const LV = (((d.model || {}).DELIVERABLE || {}).rows || []).filter(x => x.due), t30 = new Date(T.getTime() + 30 * 864e5).toISOString().slice(0, 10);
+    const LV = (((d.model || {}).DELIVERABLE || {}).rows || []).filter(x => x.due && this.wsReadable(x.workstreamId)), // livrables de ses chantiers (16/10/2026)
+      t30 = new Date(T.getTime() + 30 * 864e5).toISOString().slice(0, 10);
     const lvSoon = LV.filter(x => (+x.prog || 0) < 100 && x.due >= tIso && x.due <= t30).length, lvLate = LV.filter(x => (+x.prog || 0) < 100 && x.due < tIso).length, lvDone = LV.length ? Math.round(LV.filter(x => (+x.prog || 0) >= 100).length / LV.length * 100) : null;
     const critN = (d.risks || []).filter(r => r.p * r.i >= 20).length, RS = d.riskStats || {}, now = new Date();
     const aiHead = glIso ? 'Go-Live prévu le ' + this.frShortIso(glIso) + (dGL != null ? ' (' + (dGL >= 0 ? 'J-' + dGL : 'J+' + (-dGL)) + ')' : '') + (avR != null ? ' · avancement ' + avR + ' % pour ' + avP + ' % prévu à date' : '') + '.' : 'Date de Go-Live non définie dans le planning.';
@@ -4709,7 +4717,7 @@ class Component extends DCLogic {
     return { ...v, vars: '--wi:#ffffff;--wh:#9fdcd4;--wl:#b8c7cf;--wb:#c9d6dd;--wm:#8fa3b0;--wt:rgba(255,255,255,.1);--wln:rgba(255,255,255,.08);--wbg:#10233a', k: fo(v.k), g: fo(v.g), rows: (v.rows || []).map(r => { const o = fo(r); if (r.aS) o.aS = r.aS; return o; }), ai: v.ai ? { ...v.ai, pts: (v.ai.pts || []).map(p => ({ ...p, dot: f(p.dot), kS: f(p.kS) })) } : v.ai, s: v.s ? { ...v.s, dotS: String(v.s.dotS || '').replace('#fff', '#10233a') } : v.s }; }
   dbVals() {
     const W = this.dbCatalog(), S = this.state; if (!W) return this.DB0;
-    const byId = Object.fromEntries(W.map(w => [w.id, w])), L = (S.dbL || ['ai', 'golive', 'av', 'copil', 'arb', 'dec', 'rtrend', 'baro', 'inc', 'meteo', 'trafic']).filter(id => byId[id]), edit = !!S.dbEdit;
+    const byId = Object.fromEntries(W.map(w => [w.id, w])), L = (S.dbL || DB_DEFAULT).filter(id => byId[id]), edit = !!S.dbEdit;
     const save = L2 => { /* API : PATCH /api/me/preferences (api.js, via dbL) */ this.setState({ dbL: L2, dbDrag: null, dbOver: null }); };
     const end = () => this.setState({ dbDrag: null, dbOver: null });
     const start = (id, src) => e => { try { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', id); } catch (x) { } this.setState({ dbDrag: { id, src }, dbOver: null }); };

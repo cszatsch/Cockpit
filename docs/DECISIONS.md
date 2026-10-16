@@ -2698,3 +2698,15 @@ Brief du commanditaire : reproduire la maquette avec les vraies données et les 
 - Thème : le bouton clair / sombre de la grille (`dbInv.golive`, sombre par défaut) et le réglage « Thème » de la fenêtre
   sont une seule et même valeur. Réglages ouverts par un bouton au survol de la tuile ; un clic sur la tuile ouvre
   Pilotage › Jalons.
+
+## Aujourd'hui : preset « Trajectoire et planning » par défaut, widgets selon les droits (16/10/2026, demande du commanditaire)
+
+- Disposition par défaut (`DB_DEFAULT`) = preset « Trajectoire et planning » (Chemin critique, Prochains jalons, Météo des
+  chantiers, Compte à rebours, Avancement, Livrables, Actions en retard, Problèmes ouverts, Mes tâches), pour tout
+  utilisateur sans disposition enregistrée ; une disposition déjà personnalisée est conservée. Personnalisation
+  inchangée : par utilisateur (`UserPreferences.dashboardLayout`), commune à ses projets.
+- Droits : le serveur filtre déjà risques, problèmes, actions, décisions et jalons (RG8). Le planning et les livrables
+  du Référentiel restent lisibles par tous les membres (RG8) ; sur la page Aujourd'hui seulement, la Météo des chantiers
+  et la tuile Livrables sont limitées aux chantiers de l'utilisateur (`wsReadable` : Admin et PMO tout, Responsable et
+  Lecteur leurs chantiers, objets transverses visibles comme les jalons transverses). **Hypothèse** : avancement du
+  projet, chemin critique et Go-Live restent ceux du projet entier pour tous.
