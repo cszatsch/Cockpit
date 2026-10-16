@@ -822,18 +822,25 @@ Demandez-le à Jev (voir 3.19.4) : libellé, probabilité et impact (1 à 5, cri
 
 ### 3.13.1 Calendrier des séances
 
-- Calendrier mensuel, une couleur par instance. La légende rappelle : « Cliquez sur + pour planifier un comité ; glissez une séance vers un autre jour pour la déplacer. ».
-- Une séance planifiée dont la date est passée est entourée en orange : elle est à confirmer.
-- Un clic sur un jour ouvre, dans le panneau latéral, la fiche de chaque séance du jour : date, heure, lieu, statut (Planifiée, Tenue, Annulée), participants, rapport (« Générer le rapport » ou « Rapport vN · statut ») et bouton **Confirmer**. Le panneau n'affiche pas d'infobulles.
-- Glissez une séance planifiée vers un autre jour pour la déplacer (« Seule une séance planifiée peut être déplacée »).
+Le calendrier est une **partition du mois** : une ligne par instance, une colonne par jour.
 
-**Planifier un comité depuis le calendrier**
+- **En-tête** : le mois (« Octobre 2026 »), le nombre de séances du mois et d'instances, les boutons **Aujourd'hui** (retour au mois en cours), ‹ et ›.
+- **Colonnes** : initiale et numéro du jour ; le week-end est grisé, aujourd'hui est dans une pastille rouge et sa colonne légèrement teintée.
+- **Lignes** : les instances du Référentiel, groupées en trois familles, chacune à sa couleur : **Direction** (bleu nuit), **Programme & chantiers** (vert), **Comités d'arbitrage** (ocre). La famille est déduite du nom de l'instance : « … arbitrage … » → Comités d'arbitrage ; « Comité de chantier / programme / projet / d'intégration … » → Programme & chantiers ; les autres → Direction. Le nom court retire « Comité de chantier » ou « Comité d'arbitrage » ; le nom complet s'affiche au survol.
+- **Points** : séance à venir = disque plein à la couleur de la famille ; le prochain comité porte en plus un halo ; séance passée (ou annulée) = anneau pâle. Au survol : « {nom complet} — mardi 20 octobre · 14:00 ».
+- **Volet de droite** : **Aujourd'hui** (date du jour et séances du jour, ou « Aucune séance ce jour. »), **Prochain comité** (nombre de jours restants, nom complet, date et heure, famille), **Ensuite** (les 4 séances suivantes, avec « J-n »). Sans séance à venir : « Aucun comité planifié à venir. »
+- Pied de vue : « Cliquez sur + pour planifier un comité ; glissez une séance vers un autre jour pour la déplacer. »
 
-1. Survolez un jour (aujourd'hui ou à venir) et cliquez sur le **+** qui apparaît (un double-clic sur le jour a le même effet).
-2. Le formulaire « Nouveau comité » s'ouvre dans le panneau latéral : choisissez l'instance parmi les pastilles, à sa couleur. Le titre et le numéro (« COPIL n°24 ») sont calculés ; les participants sont les membres de l'instance.
+**Planifier un comité**
+
+1. Survolez une case vide (aujourd'hui ou à venir) de la ligne de l'instance et cliquez sur le **+** (ou, au clavier, placez-vous sur la case et appuyez sur **Entrée**).
+2. La fenêtre « Planifier un comité » s'ouvre avec l'instance et la date déjà renseignées. Le titre et le numéro (« COPIL n°24 ») sont calculés ; les participants sont les membres de l'instance ; vous pouvez encore changer d'instance.
 3. L'heure et le lieu sont repris de la dernière séance non annulée de l'instance. Modifiez-les si besoin.
-4. Cliquez sur **Planifier** (ou **Annuler**). Toast : « Comité planifié · {instance} n°N ».
+4. Cliquez sur **Planifier** (ou **Annuler**, ou Échap). Toast : « Comité planifié · {instance} n°N ».
 
+**Ouvrir une séance.** Un clic sur un point (ou Entrée) ouvre sa fiche dans une fenêtre : date, heure, lieu, statut (Planifiée, Tenue, Annulée), participants, rapport (« Générer le rapport » ou « Rapport vN · statut »), bouton **Confirmer** pour une séance passée encore planifiée, corbeille.
+
+**Déplacer une séance.** Glissez son point vers un autre jour : la date change, l'instance reste la même. L'écran se met à jour aussitôt ; si le serveur refuse, la séance revient à sa date d'origine avec le message d'erreur. Échap annule un déplacement en cours. Seule une séance planifiée peut être déplacée.
 
 **Supprimer un comité**
 

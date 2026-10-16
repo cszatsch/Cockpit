@@ -828,3 +828,7 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 - Pilotage › Décisions (16/10/2026) : la fiche d'arbitrage suit le registre filtré (`rgList`, `faSelId`, `faPin`) ; carte
   « Aucune fiche dans ce filtre » (`faNone`, `faEmptyGo`) ; position et flèches dans l'en-tête (`faNav`) ; bandeau hors
   filtre (`faOut`, `faOutGo`) ; filtre par défaut « Toutes » sans fiche ouverte (`stDef`).
+- Pilotage › Comités, partition du mois (16/10/2026, maquette « Partition ») : bloc `vSeances` réécrit ; valeurs
+  `ses.part` (lignes par famille, cases focalisables, glisser-déposer, volet Aujourd'hui / Prochain comité / Ensuite) ;
+  formulaire « Nouveau comité » et fiche de séance existants déplacés dans une fenêtre (`sesOpen`, `part.dlg`) ;
+  familles `CAL_FAM_RULES` ; Échap global ferme la fenêtre et annule un déplacement.

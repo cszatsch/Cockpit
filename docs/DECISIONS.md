@@ -2725,3 +2725,21 @@ Brief du commanditaire : reproduire la maquette avec les vraies données et les 
   raccourcis ; position « n sur N dans le registre », précédente / suivante ; fiche dont on change le statut gardée hors
   filtre avec un bandeau jusqu'au prochain choix (`faPin`, libéré par un changement de filtre ou de fiche) ; filtre par
   défaut « Toutes » quand aucune fiche n'est ouverte (`stDef`).
+
+## Calendrier des comités : partition du mois (16/10/2026, maquette « Calendrier des comites - Partition »)
+
+- La vue Pilotage › Comités remplace la grille du mois, la légende en pastilles et le volet du jour par la partition :
+  une ligne par instance, une colonne par jour, volet Aujourd'hui / Prochain comité / Ensuite (calcul de la maquette,
+  `sesVals().part`, séances réelles à la place de `SEED`).
+- **Hypothèse** : familles déduites du nom de l'instance, le Référentiel n'ayant pas de famille (`CAL_FAM_RULES` :
+  « arbitrage » → Comités d'arbitrage ; « Comité de chantier / programme / projet / d'intégration » → Programme &
+  chantiers ; sinon Direction) ; dans Programme & chantiers, les instances « programme / projet » avant les chantiers ;
+  sinon ordre du Référentiel. Nom court : sans « Comité de chantier » / « Comité d'arbitrage ».
+- Écarts à la maquette, assumés : le clic sur une case vide ouvre le vrai formulaire « Nouveau comité » (instance et date
+  renseignées) dans une fenêtre, et non une séance créée à 10:00 ; le clic sur un point ouvre la fiche de la séance
+  existante (heure, lieu, statut, confirmation, suppression, rapport) dans la même fenêtre, ces fonctions n'ayant pas
+  d'autre place dans la maquette ; « · HH:MM » omis pour une séance sans heure ; séance annulée affichée comme passée
+  (anneau) et exclue du prochain comité ; « + » seulement pour le PMO et le directeur de programme, et pour aujourd'hui
+  ou un jour à venir.
+- Déplacement : écriture `sesEd` existante (mise à jour immédiate de l'écran, rechargement et retour à la date d'origine
+  si le serveur refuse) ; Échap annule le déplacement et ferme la fenêtre.
