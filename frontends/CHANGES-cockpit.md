@@ -823,3 +823,5 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
   aussi dans la tuile ; action mise en évidence dans Pilotage › Actions (`acFocus`, `acHi`, `data-ac-row`, `rowSt`).
 - Aujourd'hui (16/10/2026) : disposition par défaut = preset « Trajectoire et planning » (`DB_DEFAULT`) ; Météo des
   chantiers et Livrables sous 30 jours limités aux chantiers lisibles par l'utilisateur (`wsReadable`).
+- Preset « Trajectoire et planning » recomposé (16/10/2026, capture du commanditaire) : 12 widgets (`DB_DEFAULT`, preset
+  `plan`), thème sombre par défaut de `risk`, `liv`, `act` (`DB_INV0`).

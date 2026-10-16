@@ -275,7 +275,7 @@ Le bouton reste grisé tant qu'une règle manque ou que la confirmation diffère
 
 - Météo, Trafic et les tuiles d'actualités n'ouvrent pas d'autre écran ; un titre d'actualité ouvre l'article dans un nouvel onglet. Un clic sur l'Horloge mondiale ouvre le choix de vos villes.
 
-**Disposition par défaut.** Le preset **Trajectoire et planning** : Chemin critique, Prochains jalons, Météo des chantiers, Compte à rebours Go-Live, Avancement vs référence, Livrables sous 30 jours, Actions en retard, Problèmes ouverts, Mes tâches. Chacun peut ensuite personnaliser sa vue (bouton **Personnaliser**, autres presets, ajout ou retrait de widgets) ; sa disposition est enregistrée pour lui seul et le suit sur tous ses projets.
+**Disposition par défaut.** Le preset **Trajectoire et planning** : Risques critiques, Compte à rebours Go-Live, Livrables sous 30 jours, Avancement vs référence, Prochains jalons, Actions en retard, Météo des chantiers, Mes tâches, Baromètre des équipes, Horloge mondiale, Météo et Trafic (Risques critiques, Compte à rebours, Livrables, Avancement et Actions en thème sombre). Chacun peut ensuite personnaliser sa vue (bouton **Personnaliser**, autres presets, ajout ou retrait de widgets) ; sa disposition est enregistrée pour lui seul et le suit sur tous ses projets.
 
 **Informations selon vos droits.** Les widgets ne montrent que ce que vous pouvez lire : un Responsable ou un Lecteur voit les risques, problèmes, actions, décisions, jalons et livrables de ses chantiers (et les éléments transverses), et seulement ses chantiers dans la Météo des chantiers ; l'avancement du projet, le chemin critique et le Go-Live restent ceux du projet entier. Le PMO et l'Administrateur voient tout.
 
@@ -340,7 +340,7 @@ Chaque widget répond à une question. La couleur ne porte qu'un statut : bleu n
 | Mode | Public | Widgets |
 |---|---|---|
 | Pilotage stratégique | Direction, sponsor | L'essentiel, Go-Live, Avancement, Prochain COPIL, Fiches d'arbitrage, Décisions, Tendance des risques, Baromètre |
-| Trajectoire et planning | PMO, direction de projet | Chemin critique, Jalons, Météo des chantiers, Go-Live, Avancement, Livrables, Actions en retard, Problèmes, Mes tâches |
+| Trajectoire et planning | PMO, direction de projet | Risques critiques, Compte à rebours Go-Live, Livrables, Avancement, Jalons, Actions en retard, Météo des chantiers, Mes tâches, Baromètre, Horloge mondiale, Météo, Trafic |
 | Maîtrise des risques | PMO, responsables de chantier | Risques critiques, L'essentiel, Tendance, Problèmes, Actions en retard, Décisions, Fiches d'arbitrage |
 | Préparation du comité | Direction de projet, secrétariat COPIL | Prochain COPIL, L'essentiel, Risques critiques, Fiches d'arbitrage, Décisions, Jalons |
 | Mon quotidien | Responsables de chantier, key users | Mes tâches, Actions en retard, Livrables, Go-Live, Jalons, Météo des chantiers, Problèmes, Avancement, Chemin critique |

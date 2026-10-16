@@ -2538,7 +2538,9 @@ const JEV_TA_H0 = 54, JEV_TA_MAX = 240;
 const CLOCK_MAX = 4;
 // Disposition par défaut d'Aujourd'hui (16/10/2026, demande du commanditaire) : preset « Trajectoire et planning » pour
 // tout utilisateur qui n'a pas personnalisé sa vue (préférence `dbL` vide) ; « Disposition par défaut » y revient.
-const DB_DEFAULT = ['crit', 'jal', 'ch', 'golive', 'av', 'liv', 'act', 'pb', 'mine'];
+// Composition du preset revue le 16/10/2026 (capture du commanditaire) : risques critiques, compte à rebours, livrables,
+// avancement, jalons, actions en retard, météo des chantiers, mes tâches, baromètre, horloge, météo et trafic.
+const DB_DEFAULT = ['risk', 'golive', 'liv', 'av', 'jal', 'act', 'ch', 'mine', 'baro', 'clock', 'meteo', 'trafic'];
 const CLOCK_DEFAULT = { showSeconds: false, cities: [
   { name: 'Paris', timeZone: 'Europe/Paris', lat: 48.857, lon: 2.352 }, { name: 'New York', timeZone: 'America/New_York', lat: 40.713, lon: -74.006 },
   { name: 'Tokyo', timeZone: 'Asia/Tokyo', lat: 35.68, lon: 139.69 }, { name: 'Sydney', timeZone: 'Australia/Sydney', lat: -33.87, lon: 151.21 }] };
@@ -4712,7 +4714,7 @@ class Component extends DCLogic {
     this._dbCat = W; this._dbCatD = d; this._dbCatX = this.state.dbExt; this._dbCatM = this._mineRows; return W;
   }
   DB0 = { cells: [], lib: [], cats: [] };
-  DB_INV0 = { trafic: true, meteo: true, golive: true, av: true };
+  DB_INV0 = { trafic: true, meteo: true, golive: true, av: true, risk: true, liv: true, act: true }; // sombres par défaut : compte à rebours, avancement, risques, livrables, actions (16/10/2026)
   dbDarkView(v) { const f = s => typeof s === 'string' ? s.split('#10233a').join('#ffffff').split('#5c7280').join('#b8c7cf').split('#1d8f86').join('#5fc2b8').split('#c2473b').join('#f2a39b').split('#8a5a12').join('#f7c56b').split('#8a9aa6').join('#8fa3b0') : s, fo = o => { if (!o) return o; const r = {}; Object.keys(o).forEach(k => { r[k] = /S$|bar|ref|today|dot/.test(k) ? f(o[k]) : o[k]; }); return r; };
     return { ...v, vars: '--wi:#ffffff;--wh:#9fdcd4;--wl:#b8c7cf;--wb:#c9d6dd;--wm:#8fa3b0;--wt:rgba(255,255,255,.1);--wln:rgba(255,255,255,.08);--wbg:#10233a', k: fo(v.k), g: fo(v.g), rows: (v.rows || []).map(r => { const o = fo(r); if (r.aS) o.aS = r.aS; return o; }), ai: v.ai ? { ...v.ai, pts: (v.ai.pts || []).map(p => ({ ...p, dot: f(p.dot), kS: f(p.kS) })) } : v.ai, s: v.s ? { ...v.s, dotS: String(v.s.dotS || '').replace('#fff', '#10233a') } : v.s }; }
   dbVals() {
@@ -4736,7 +4738,7 @@ class Component extends DCLogic {
     if (showPh && ov.idx >= L.length) cells.push(ph());
     const PRE = [
       { id: 'dir', name: 'Pilotage stratégique', who: 'Direction, sponsor', desc: 'La trajectoire et ce qui doit être décidé, sans le détail opérationnel.', ids: ['ai', 'golive', 'av', 'copil', 'arb', 'dec', 'rtrend', 'baro'] },
-      { id: 'plan', name: 'Trajectoire et planning', who: 'PMO, direction de projet', desc: 'Dates, chemin critique et chantiers qui décrochent.', ids: ['crit', 'jal', 'ch', 'golive', 'av', 'liv', 'act', 'pb', 'mine'] },
+      { id: 'plan', name: 'Trajectoire et planning', who: 'PMO, direction de projet', desc: 'Risques critiques, échéances, avancement et chantiers qui décrochent.', ids: DB_DEFAULT },
       { id: 'risk', name: 'Maîtrise des risques', who: 'PMO, responsables de chantier', desc: 'Exposition, problèmes ouverts et actions de traitement.', ids: ['risk', 'ai', 'rtrend', 'pb', 'act', 'dec', 'arb'] },
       { id: 'copil', name: 'Préparation du comité', who: 'Direction de projet, secrétariat COPIL', desc: 'Tout ce qu’il faut pour le prochain COPIL, en un écran.', ids: ['copil', 'ai', 'risk', 'arb', 'dec', 'jal'] },
       { id: 'ops', name: 'Mon quotidien', who: 'Responsables de chantier, key users', desc: 'Ce que j’ai à faire, livrer et débloquer cette semaine.', ids: ['mine', 'act', 'liv', 'golive', 'jal', 'ch', 'pb', 'av', 'crit'] },

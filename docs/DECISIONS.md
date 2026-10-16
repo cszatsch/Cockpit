@@ -2710,3 +2710,8 @@ Brief du commanditaire : reproduire la maquette avec les vraies données et les 
   et la tuile Livrables sont limitées aux chantiers de l'utilisateur (`wsReadable` : Admin et PMO tout, Responsable et
   Lecteur leurs chantiers, objets transverses visibles comme les jalons transverses). **Hypothèse** : avancement du
   projet, chemin critique et Go-Live restent ceux du projet entier pour tous.
+- Composition du preset « Trajectoire et planning » revue le jour même (capture du commanditaire) : Risques critiques,
+  Compte à rebours Go-Live, Livrables, Avancement, Prochains jalons, Actions en retard, Météo des chantiers, Mes tâches,
+  Baromètre, Horloge mondiale, Météo, Trafic (`DB_DEFAULT`, repris par le preset) ; thème sombre par défaut ajouté pour
+  Risques critiques, Livrables et Actions en retard (`DB_INV0`). Le titre « Nbre. de jours avant fin projet » de la
+  capture est un réglage personnel du Compte à rebours, pas une valeur par défaut.
