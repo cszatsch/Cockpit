@@ -2789,3 +2789,9 @@ Brief du commanditaire : reproduire la maquette avec les vraies données et les 
   souvent travaillés). Noms reconnus dans le Référentiel : Royaume-Uni, UK, Angleterre, Grande-Bretagne, Italie,
   Espagne, Portugal, Pays-Bas, Hollande (`HOLIDAY_COUNTRY_LABELS`, `HOL_ISO`). Ces pays n'ont pas de calcul local dans le
   widget : serveur injoignable → « Calendrier momentanément indisponible ». La table est complétée au prochain démarrage.
+- Correctif du widget (16/10/2026) : menus Pays et Période coupés en bas de la tuile (positionnés sous l'en-tête avec
+  320 px de haut, la tuile coupant ce qui dépasse) → placés par rapport au widget, hauteur limitée à la place disponible
+  (`max-height:calc(100% - 62px)`), défilement ; clic à l'extérieur sans effet (voile `position:fixed` enfermé dans la
+  tuile) → écoute du clic sur la page (`componentDidMount`, `data-jf-pop`).
+- Maroc retiré du menu Pays du widget (16/10/2026, demande du commanditaire) ; un projet situé dans un pays sans calendrier
+  garde l'état « Calendrier indisponible pour {pays} » (pays du projet ajouté au menu avec la mention « indisponible »).

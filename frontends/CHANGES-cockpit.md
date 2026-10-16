@@ -845,3 +845,6 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
   numéros des jours fériés en teinte `CAL_HOL`, infobulle, mini-légende « jour férié ».
 - Jours fériés, pays ajoutés (16/10/2026) : Royaume-Uni, Italie, Espagne, Portugal, Pays-Bas dans le menu Pays du widget
   (`CTRY`, `srv: true` : calendrier du serveur uniquement, message si injoignable) et dans `HOL_ISO`.
+- Widget « Jours fériés », correctif (16/10/2026) : menus contenus dans la tuile (hauteur limitée, défilement) ; fermeture
+  par un clic n'importe où hors du menu (écoute `pointerdown` de la page).
+- Widget « Jours fériés » (16/10/2026) : Maroc retiré du menu Pays (`CTRY`).

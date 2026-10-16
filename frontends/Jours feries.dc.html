@@ -34,20 +34,20 @@
   <span style="width:60%;height:12px;border-radius:6px;background:{{ t.soft }}"></span>
 </div></sc-if>
 <sc-if value="{{ full }}" hint-placeholder-val="{{ true }}"><div class="jf-root" role="region" aria-label="Jours fériés à venir" onKeyDown="{{ key }}" style="--jf-soft:{{ t.soft }};--jf-ink:{{ t.ink }};--jf-acc:{{ t.acc }};position:relative;width:100%;height:100%;border-radius:16px;padding:20px 22px 18px;display:flex;flex-direction:column;background:{{ t.bg }};color:{{ t.ink }};box-shadow:{{ t.sh }}">
-          <div style="display:flex;align-items:center;gap:4px;height:26px;position:relative;z-index:5">
+          <div style="display:flex;align-items:center;gap:4px;height:26px">
             <span style="font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:{{ t.mut }}">Jours fériés</span>
             <span style="flex:1"></span>
             <sc-if value="{{ t.moved }}" hint-placeholder-val="{{ false }}"><button onClick="{{ t.reset }}" title="{{ t.resetL }}" aria-label="{{ t.resetL }}" style="width:26px;height:26px;border:0;border-radius:7px;background:transparent;color:{{ t.mut }};display:grid;place-items:center;cursor:pointer" class="jf-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v5h5"></path></svg></button></sc-if>
-            <button onClick="{{ t.openC }}" aria-haspopup="listbox" aria-expanded="{{ t.popC }}" aria-label="{{ t.cAria }}" style="height:26px;padding:0 8px;border:0;border-radius:7px;background:transparent;color:{{ t.mut }};font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:6px;cursor:pointer" class="jf-btn"><sc-if value="{{ t.moved }}" hint-placeholder-val="{{ false }}"><span style="width:6px;height:6px;border-radius:50%;background:{{ t.warnDot }}"></span></sc-if>{{ t.cLabel }}<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></button>
+            <button data-jf-pop="{{ uid }}" onClick="{{ t.openC }}" aria-haspopup="listbox" aria-expanded="{{ t.popC }}" aria-label="{{ t.cAria }}" style="height:26px;padding:0 8px;border:0;border-radius:7px;background:transparent;color:{{ t.mut }};font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:6px;cursor:pointer" class="jf-btn"><sc-if value="{{ t.moved }}" hint-placeholder-val="{{ false }}"><span style="width:6px;height:6px;border-radius:50%;background:{{ t.warnDot }}"></span></sc-if>{{ t.cLabel }}<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></button>
             <span style="width:1px;height:12px;background:{{ t.line2 }}"></span>
-            <button onClick="{{ t.openP }}" aria-haspopup="listbox" aria-expanded="{{ t.popP }}" aria-label="{{ t.pAria }}" style="height:26px;padding:0 8px;border:0;border-radius:7px;background:transparent;color:{{ t.mut }};font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:6px;cursor:pointer" class="jf-btn">{{ t.pLabel }}<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></button>
-            <sc-if value="{{ t.popC }}" hint-placeholder-val="{{ false }}"><div onClick="{{ close }}" style="position:fixed;inset:0;z-index:20"></div><div role="listbox" aria-label="Pays" style="position:absolute;right:0;top:32px;z-index:21;width:264px;max-height:320px;overflow:auto;padding:6px;border-radius:12px;background:{{ t.pop }};box-shadow:{{ t.popSh }}">
+            <button data-jf-pop="{{ uid }}" onClick="{{ t.openP }}" aria-haspopup="listbox" aria-expanded="{{ t.popP }}" aria-label="{{ t.pAria }}" style="height:26px;padding:0 8px;border:0;border-radius:7px;background:transparent;color:{{ t.mut }};font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:6px;cursor:pointer" class="jf-btn">{{ t.pLabel }}<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg></button>
+            <sc-if value="{{ t.popC }}" hint-placeholder-val="{{ false }}"><div role="listbox" aria-label="Pays" data-jf-pop="{{ uid }}" style="position:absolute;right:22px;top:50px;z-index:21;width:264px;max-height:calc(100% - 62px);overflow:auto;padding:6px;border-radius:12px;background:{{ t.pop }};box-shadow:{{ t.popSh }}">
               <div style="padding:8px 10px 6px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:{{ t.mut }}">Pays</div>
               <sc-for list="{{ t.ctry }}" as="o" hint-placeholder-count="6"><button role="option" aria-selected="{{ o.on }}" onClick="{{ o.tap }}" style="{{ o.st }}" class="jf-opt"><span style="flex:1">{{ o.n }}</span><span style="font-size:11px;font-weight:600;color:{{ t.mut }}">{{ o.sub }}</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="{{ o.ck }}"><path d="M5 12l5 5 9-10"></path></svg></button></sc-for>
               <sc-if value="{{ t.hasRg }}" hint-placeholder-val="{{ false }}"><div style="margin:6px 4px 0;border-top:1px solid {{ t.line }}"></div><div style="padding:10px 10px 6px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:{{ t.mut }}">Région</div>
               <sc-for list="{{ t.rg }}" as="o" hint-placeholder-count="2"><button role="option" aria-selected="{{ o.on }}" onClick="{{ o.tap }}" style="{{ o.st }}" class="jf-opt"><span style="flex:1">{{ o.n }}</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="{{ o.ck }}"><path d="M5 12l5 5 9-10"></path></svg></button></sc-for></sc-if>
             </div></sc-if>
-            <sc-if value="{{ t.popP }}" hint-placeholder-val="{{ false }}"><div onClick="{{ close }}" style="position:fixed;inset:0;z-index:20"></div><div role="listbox" aria-label="Période" aria-multiselectable="true" style="position:absolute;right:0;top:32px;z-index:21;width:248px;padding:6px;border-radius:12px;background:{{ t.pop }};box-shadow:{{ t.popSh }}">
+            <sc-if value="{{ t.popP }}" hint-placeholder-val="{{ false }}"><div role="listbox" aria-label="Période" aria-multiselectable="true" data-jf-pop="{{ uid }}" style="position:absolute;right:22px;top:50px;z-index:21;width:248px;max-height:calc(100% - 62px);overflow:auto;padding:6px;border-radius:12px;background:{{ t.pop }};box-shadow:{{ t.popSh }}">
               <sc-for list="{{ t.per }}" as="o" hint-placeholder-count="2"><button role="option" aria-selected="{{ o.on }}" onClick="{{ o.tap }}" style="{{ o.st }}" class="jf-opt"><span style="flex:1">{{ o.n }}</span><span style="font-size:11px;font-weight:600;color:{{ t.mut }}">{{ o.sub }}</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="{{ o.ck }}"><path d="M5 12l5 5 9-10"></path></svg></button></sc-for>
               <div style="margin:6px 4px 0;border-top:1px solid {{ t.line }}"></div><div style="padding:10px 10px 6px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;color:{{ t.mut }}">Années</div>
               <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:0 4px 4px"><sc-for list="{{ t.yrs }}" as="o" hint-placeholder-count="4"><button role="option" class="jf-foc" aria-selected="{{ o.on }}" onClick="{{ o.tap }}" style="{{ o.st }}">{{ o.n }}</button></sc-for></div>
@@ -111,8 +111,9 @@ const CTRY = {
   IT: { n: 'Italie', loc: 'fr-FR', srv: true },
   ES: { n: 'Espagne', loc: 'fr-FR', rg: [['', 'Fêtes nationales'], ['MD', 'Madrid'], ['CT', 'Catalogne']], srv: true },
   PT: { n: 'Portugal', loc: 'fr-FR', srv: true },
-  NL: { n: 'Pays-Bas', loc: 'fr-FR', srv: true },
-  MA: { n: 'Maroc', na: true }
+  NL: { n: 'Pays-Bas', loc: 'fr-FR', srv: true }
+  // Maroc retiré de la liste (16/10/2026, demande du commanditaire) : un projet d'un pays sans calendrier reste signalé
+  // « indisponible » (pays du projet ajouté au menu).
 };
 function HOL(cc, rg, y) {
   const E = easter(y), F = (m, d) => new Date(y, m - 1, d), R = k => addD(E, k), L = [], a = (d, n, o) => L.push({ d, n, o });
@@ -137,6 +138,13 @@ const TH = {
 
 class Component extends DCLogic {
   state = { cc: null, rg: '', mode: 'projet', years: [], pop: null, src: {} };
+  // Clic hors du menu ouvert (16/10/2026) : écouté sur toute la page (un voile dans la tuile ne couvrait pas l'extérieur).
+  uid = 'jf' + Math.random().toString(36).slice(2, 9);
+  componentDidMount() {
+    this._out = e => { if (!this.state.pop) return; const t = e.target; if (t && t.closest && t.closest('[data-jf-pop="' + this.uid + '"]')) return; this.setState({ pop: null }); };
+    document.addEventListener('pointerdown', this._out, true);
+  }
+  componentWillUnmount() { document.removeEventListener('pointerdown', this._out, true); }
   // Jours fériés du serveur, mis en cache par pays, région et période ; null : pas de source (calcul local).
   srcOf(cc, rg, from, to) {
     const load = this.props.charger; if (typeof load !== 'function') return null;
@@ -233,7 +241,7 @@ class Component extends DCLogic {
     T.sAria = T.hasMsg ? 'Jours fériés · ' + C.n + ' : ' + T.msg.title : T.nx.aria ? 'Jours fériés · ' + C.n + ' : ' + T.nx.aria + ' ' + T.sy.lost + ' ' + T.sy.lostL + ' sur la période.' : 'Jours fériés';
     // Échap ferme le menu ouvert ; un clic à l'extérieur aussi (voile du menu).
     const key = e => { if (e.key === 'Escape' && this.state.pop) { e.stopPropagation(); this.setState({ pop: null }); } };
-    return { t: T, full: !compact && !loading, compact: compact && !loading, loading, full0: !compact, skPad: compact ? '16px 18px 14px' : '20px 22px 18px', skW: compact ? '100%' : '214px', skDay: compact ? '56px' : '92px', key, close: () => this.setState({ pop: null }) };
+    return { uid: this.uid, t: T, full: !compact && !loading, compact: compact && !loading, loading, full0: !compact, skPad: compact ? '16px 18px 14px' : '20px 22px 18px', skW: compact ? '100%' : '214px', skDay: compact ? '56px' : '92px', key, close: () => this.setState({ pop: null }) };
   }
 }
 
