@@ -708,8 +708,20 @@ a{color:#1d8f86}a:hover{color:#146b64}
       </sc-if>
     </div>
 
+    <!-- Registre vide (16/10/2026) : pas de fiche hors du registre ; raccourcis vers les autres filtres. -->
+    <sc-if value="{{ faNone }}" hint-placeholder-val="{{ false }}">
+      <div style="background:#fff;border-radius:16px;box-shadow:0 1px 2px rgba(16,35,58,.04);padding:22px 24px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <span style="font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#5c7280;font-weight:700">Fiche d'arbitrage</span>
+        <span style="color:#43586a">{{ faEmptyTxt }}</span>
+        <span style="flex:1"></span>
+        <sc-for list="{{ faEmptyGo }}" as="g" hint-placeholder-count="2"><span onClick="{{ g.on }}" style="height:32px;padding:0 12px;border-radius:9px;display:inline-flex;align-items:center;border:1px solid #bfdcd8;color:#1d8f86;font-size:12.5px;font-weight:700;cursor:pointer" style-hover="background:#e6f3f2">{{ g.l }}</span></sc-for>
+        <sc-if value="{{ faEmptyCustom }}" hint-placeholder-val="{{ false }}"><span onClick="{{ rgReset }}" style="font-size:12.5px;font-weight:600;color:#1d8f86;cursor:pointer">Réinitialiser les filtres</span></sc-if>
+      </div>
+    </sc-if>
+    <sc-if value="{{ faShow }}" hint-placeholder-val="{{ true }}">
     <div ref="{{ faRef }}" style="background:#fff;border-radius:16px;box-shadow:0 1px 2px rgba(16,35,58,.04);overflow:hidden;scroll-margin-top:16px">
       <div style="padding:22px 24px 20px;display:flex;flex-direction:column;gap:10px">
+        <sc-if value="{{ faOut }}" hint-placeholder-val="{{ false }}"><div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 14px;border-radius:10px;background:#fff6e3;box-shadow:inset 0 0 0 1px #f2dcae;color:#8a5a12;font-size:12.5px;font-weight:600"><span style="flex:1;min-width:200px">{{ faOutTxt }}</span><span onClick="{{ faOutGo }}" style="font-weight:700;color:#1d8f86;cursor:pointer;white-space:nowrap">{{ faOutGoL }}</span></div></sc-if>
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
           <span style="font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:#5c7280;font-weight:700">Fiche d'arbitrage</span>
           <span style="font-family:ui-monospace,Menlo,monospace;font-size:12px;font-weight:700">{{ faId }}</span>
@@ -720,6 +732,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
           
           <sc-if value="{{ faLite }}" hint-placeholder-val="{{ false }}"><span style="flex:none;white-space:nowrap;font-size:12px;color:#8a9aa6">· {{ faBy }}</span></sc-if>
           <span style="flex:1"></span>
+          <span style="display:inline-flex;align-items:center;gap:6px;flex:none"><span onClick="{{ faNav.prev }}" title="Fiche précédente du registre" aria-label="Fiche précédente du registre" style="{{ faNav.prevSt }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"></path></svg></span><span style="font-size:12px;font-weight:600;color:#5c7280;white-space:nowrap">{{ faNav.pos }}</span><span onClick="{{ faNav.next }}" title="Fiche suivante du registre" aria-label="Fiche suivante du registre" style="{{ faNav.nextSt }}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"></path></svg></span></span>
           <!-- Fiche « barème commun » (maquette 11a, 10/10/2026) : ouverte dans la barre latérale de Jev (création ou édition). -->
           
           
@@ -782,6 +795,7 @@ a{color:#1d8f86}a:hover{color:#146b64}
       </sc-if>
       <sc-if value="{{ faLite }}" hint-placeholder-val="{{ false }}"><div style="padding:0 24px 24px;display:flex;flex-direction:column;gap:8px;color:#43586a;line-height:1.6"><span>{{ faLitMsg }}</span><sc-if value="{{ faHasLitDec }}" hint-placeholder-val="{{ false }}"><b style="color:#10233a">{{ faLitDec }}</b></sc-if></div></sc-if>
     </div>
+    </sc-if>
   </div>
   </sc-if>
 
@@ -3926,9 +3940,9 @@ class Component extends DCLogic {
     if (spec.type === 'num') setTimeout(() => { const el = this._popIn && this._popIn.current; if (el) { el.focus(); el.select(); } }, 30);
   }
   decVals(D, M, calOpen) {
-    const S = this.state, o = { q: '', st: 'Ouvertes', pr: '', inst: '', ch: '', fold: false, all: false, sk: 'p', sd: -1, ...(S.rg || {}) }, set = p => this.setState(s => ({ rg: { ...(s.rg || {}), ...p } }));
+    // Filtres du registre (16/10/2026) : un changement de filtre libère la fiche gardée hors filtre (faPin).
+    const S = this.state, { o, ALL, cnt, L, q, OPEN, STO, K, stDef } = this.rgList(D), set = p => this.setState(s => ({ rg: { ...(s.rg || {}), ...p }, faPin: null }));
     const PRL = { 4: 'Critique', 3: 'Haute', 2: 'Moyenne', 1: 'Basse' }, PRC = { 4: '#c2413b', 3: '#c06f1f', 2: '#1d8f86', 1: '#8a9aa6' };
-    const STO = ['Brouillon', 'En instruction', 'À arbitrer', 'Arbitrée', 'Annulée', 'Remplacée'], OPEN = s => s !== 'Arbitrée' && s !== 'Annulée' && s !== 'Remplacée';
     const MOs = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
     const fr = iso => { if (!iso) return ''; const [y, m, d] = iso.split('-').map(Number); return (d === 1 ? '1er' : d) + ' ' + MOs[m - 1] + ' ' + y; };
     const nw = new Date(), today = this.fToday();
@@ -3938,16 +3952,7 @@ class Component extends DCLogic {
     const DHUES = ['#2a7f8e', '#6f58c9', '#c0673c', '#3f6fd1', '#b2457f', '#4f8a3a', '#b98516', '#55677d'];
     const WSC = {}; ((M && M.WORKSTREAM && M.WORKSTREAM.rows) || []).forEach(r => { const n = Math.max(1, parseInt(String(r.cells[0]).replace(/\D/g, ''), 10) || 1); WSC[r.cells[1]] = { code: 'C' + n, hue: DHUES[(n - 1) % DHUES.length] }; });
     const wsChipSt = h => 'flex:none;height:20px;padding:0 7px;border-radius:5px;display:inline-flex;align-items:center;font-size:10.5px;font-weight:800;letter-spacing:.03em;font-variant-numeric:tabular-nums;white-space:nowrap;color:' + h + ';background:' + h + '14;box-shadow:inset 0 0 0 1px ' + h + '26';
-    const ED = S.ed || {}, DEC = {}; (D.decisions || []).forEach(x => { DEC[x.id] = x.n; });
-    const ALL = (D.arbitrations || []).concat((S.added || {}).fa || []).map(f => { const e = ED['fa:' + f.id] || {}; return { ...f, ...e, decL: e.decL ?? (f.dec ? DEC[f.dec] || f.decL || '' : f.decL || '') }; }); // texte du serveur gardé (15/10/2026)
-    const cnt = { Ouvertes: ALL.filter(f => OPEN(f.st)).length, 'Clôturées': ALL.filter(f => !OPEN(f.st)).length, Toutes: ALL.length };
-    const q = (o.q || '').trim().toLowerCase();
-    let L = ALL.filter(f => o.st === 'Toutes' || (o.st === 'Ouvertes') === OPEN(f.st));
-    if (o.pr) L = L.filter(f => String(f.p) === o.pr); if (o.inst) L = L.filter(f => f.inst === o.inst); if (o.ch) L = L.filter(f => f.ch === o.ch);
-    if (q) L = L.filter(f => [f.id, f.t, f.dec, f.decL, f.ch, f.inst, f.st].join(' ').toLowerCase().includes(q));
-    const K = { id: f => f.id, t: f => f.t, p: f => f.p, dec: f => f.decL || '\uffff', st: f => STO.indexOf(f.st), dd: f => f.ddIso || '0000', ch: f => f.ch, inst: f => f.inst, cr: f => f.crIso };
-    L.sort((x, y) => { const a = K[o.sk](x), b = K[o.sk](y); const r = typeof a === 'number' ? a - b : String(a).localeCompare(String(b), 'fr', { numeric: true }); return r * o.sd || (y.p - x.p) || y.crIso.localeCompare(x.crIso); });
-    const custom = !!(q || o.pr || o.inst || o.ch || o.st !== 'Ouvertes'), cut = !custom && !o.all && L.length > 5, shown = cut ? L.slice(0, 5) : L, n = L.length, extra = L.length - 5, pl = x => x > 1 ? 's' : '';
+    const custom = !!(q || o.pr || o.inst || o.ch || o.st !== stDef), cut = !custom && o.st === 'Ouvertes' && !o.all && L.length > 5, shown = cut ? L.slice(0, 5) : L, n = L.length, extra = L.length - 5, pl = x => x > 1 ? 's' : '';
     const rgH = {}; Object.keys(K).forEach(c => { rgH[c] = { on: () => set(o.sk === c ? { sd: -o.sd } : { sk: c, sd: ['p', 'dd', 'cr'].includes(c) ? -1 : 1 }), ar: o.sk === c ? (o.sd > 0 ? '↑' : '↓') : '' }; });
     const sel = this.faSelId();
     const GR = 'display:grid;grid-template-columns:56px minmax(0,1.1fr) 88px minmax(0,1.4fr) 120px 64px 92px 100px 140px 84px 24px;gap:0 12px;align-items:center;padding:12px 24px;border-top:1px solid #eef3f2;cursor:pointer;transition:background .15s;';
@@ -3959,17 +3964,27 @@ class Component extends DCLogic {
         ddEd: !OPEN(f.st), ddNo: OPEN(f.st), ddTxt: fr(f.ddIso) || 'À renseigner', openDd: this.decRo(f.id) ? () => this.showToast('Fiche arbitrée : lecture seule') : calOpen('Date de décision · ' + f.id, f.ddIso || today, v => this.edit('fa', f.id, 'ddIso', v)),
         ch: f.ch, chCode: (WSC[f.ch] || {}).code || f.ch || '—', chTip: WSC[f.ch] ? WSC[f.ch].code + ' · ' + f.ch : (f.ch || ''), chSt: wsChipSt((WSC[f.ch] || {}).hue || '#55677d'), inst: f.inst, instF: (IM[f.inst] || {}).f || '', instTip: IM[f.inst] ? IM[f.inst].d + ' · Fréquence : ' + IM[f.inst].f : f.inst, cr: fr(f.crIso), jevLbl: f.id + ' · ' + f.t,
         rowSt: GR + (f.id === sel ? 'background:#f3f7fa;box-shadow:inset 3px 0 0 #1d8f86' : 'background:#fff'),
-        select: e => { if (e.target.closest('[contenteditable="true"],select,input,[data-no-sel],[data-pop-trigger],[data-jev-ico]')) return; this.setState({ faSel: f.id }); this.scrollFiche(); },
+        select: e => { if (e.target.closest('[contenteditable="true"],select,input,[data-no-sel],[data-pop-trigger],[data-jev-ico]')) return; this.setState({ faSel: f.id, faPin: null }); this.scrollFiche(); },
         setT: txt(f.id, 't', f.t), setDec: txt(f.id, 'decL', f.decL), setP: e => this.edit('fa', f.id, 'p', +e.target.value), setCh: e => this.edit('fa', f.id, 'ch', e.target.value), setInst: e => this.edit('fa', f.id, 'inst', e.target.value),
         optOn: f.st === 'Arbitrée', optOff: f.st !== 'Arbitrée', optV: f.opt || '—',
         ro: this.decRo(f.id), ce: !this.decRo(f.id), stTip: this.decRo(f.id) ? 'Fiche arbitrée : lecture seule' : 'Modifier le statut',
         // « Arbitrée » (15/10/2026) : le serveur exige le texte de la décision et la fiche devient en lecture seule ; option,
         // texte et date sont donc demandés dans la fenêtre « Arbitrer » et envoyés avec le statut, en une fois.
-        setSt: e => { const v = e.target.value; if (v === 'Arbitrée') { e.target.value = f.st; this.arbOpen(f); return; } this.edit('fa', f.id, 'st', v); if (!OPEN(v) && !f.ddIso) this.edit('fa', f.id, 'ddIso', today); if (OPEN(v) && f.ddIso) this.edit('fa', f.id, 'ddIso', ''); } };
+        setSt: e => { const v = e.target.value; if (v === 'Arbitrée') { e.target.value = f.st; this.arbOpen(f); return; } if (f.id === sel) this.setState({ faPin: f.id }); this.edit('fa', f.id, 'st', v); if (!OPEN(v) && !f.ddIso) this.edit('fa', f.id, 'ddIso', today); if (OPEN(v) && f.ddIso) this.edit('fa', f.id, 'ddIso', ''); } };
       [0, 1, 2, 3].forEach(i => { x['k' + i] = 'display:block;width:7px;height:7px;border-radius:50%;flex:none;' + (rep ? 'background:#e3eae8' : i < ix ? 'background:' + col : i === ix ? 'background:' + col + ';box-shadow:0 0 0 3px ' + ring : 'background:#fff;box-shadow:inset 0 0 0 1.5px #cfd8d6'); if (i < 3) x['l' + i] = 'display:block;width:14px;height:1.5px;background:' + (!rep && i < ix ? col : '#e3eae8'); });
       return x; });
     const sDotC = { Brouillon: '#a3b0b9', 'En instruction': '#1d8f86', 'À arbitrer': '#c06f1f', 'Arbitrée': '#10233a', 'Annulée': '#cfd8d6' };
-    const F = ALL.find(x => x.id === sel) || ALL[0] || { id: '', st: 'Brouillon', t: '', ch: '', inst: '', crIso: '' }, full = !!F.full || !!(S.arbData || {})[F.id];
+    const F = ALL.find(x => x.id === sel) || { id: '', st: 'Brouillon', t: '', ch: '', inst: '', crIso: '' }, full = !!F.full || !!(S.arbData || {})[F.id];
+    // Fiche et registre liés (16/10/2026) : position de la fiche dans le registre filtré, précédente / suivante ; fiche gardée
+    // hors filtre après un changement de son statut (bandeau) ; registre vide → carte « Aucune fiche dans ce filtre ».
+    const fIx = L.findIndex(x => x.id === F.id), faOut = !!F.id && fIx < 0, goIx = i => { const x = L[i]; if (!x) return; this.setState(s => ({ faSel: x.id, faPin: null, rg: { ...(s.rg || {}), ...(i >= 5 ? { all: true } : {}) } })); };
+    const segOf = st => OPEN(st) ? 'Ouvertes' : 'Clôturées', SEGL = { Ouvertes: 'les ouvertes', 'Clôturées': 'les clôturées', Toutes: 'toutes les fiches' };
+    const navSt = on => 'width:26px;height:26px;border-radius:8px;display:grid;place-items:center;border:1px solid #e3ecea;background:#fff;color:' + (on ? '#10233a;cursor:pointer' : '#c3cfcc;cursor:default');
+    const faNav = { pos: fIx >= 0 ? (fIx + 1) + ' sur ' + L.length + ' dans le registre' : 'Hors du filtre du registre', prevSt: navSt(fIx > 0), nextSt: navSt(fIx >= 0 && fIx < L.length - 1),
+      prev: () => fIx > 0 && goIx(fIx - 1), next: () => fIx >= 0 && fIx < L.length - 1 && goIx(fIx + 1) };
+    const faOutTxt = faOut ? 'Cette fiche est maintenant ' + (OPEN(F.st) ? 'ouverte (' + F.st + ')' : String(F.st).toLowerCase()) + ' : elle ne fait plus partie du filtre du registre.' : '';
+    const faOutGo = () => this.setState(s => ({ rg: { ...(s.rg || {}), st: segOf(F.st), q: '', pr: '', inst: '', ch: '' }, faPin: null }));
+    const faEmptyGo = ['Ouvertes', 'Clôturées', 'Toutes'].filter(k => k !== o.st && cnt[k] > 0).map(k => ({ l: 'Voir ' + SEGL[k] + ' (' + cnt[k] + ')', on: () => set({ st: k, all: false }) }));
     // Séance prévue (15/10/2026) : celle choisie pour la décision (expectedSessionId) si elle est encore planifiée, sinon la
     // prochaine séance planifiée de l'instance de la décision (et non plus celle du COPIL).
     const GBR = ((M && M.GOVERNANCE_BODY && M.GOVERNANCE_BODY.rows) || []), bidF = ((GBR.find(r => r.cells[0] === F.inst) || {}).id) || F.bodyId;
@@ -3979,7 +3994,7 @@ class Component extends DCLogic {
     // Remplacement (15/10/2026) : décision remplacée par celle-ci (son champ « remplace ») et décision qui la remplace.
     const DSL = (D && D.decisions) || [], supOf0 = (F.sup !== undefined ? F.sup : F.supersedes) || '', supOf = supOf0 ? DSL.find(x => x.id === supOf0) : null;
     const supBy = DSL.find(x => x.id !== F.id && ((((S.ed || {})['fa:' + x.id] || {}).sup !== undefined ? S.ed['fa:' + x.id].sup : x.supersedes) === F.id)) || null;
-    const goDec = x => () => { this.setState({ faSel: x.id }); this.scrollFiche(); };
+    const goDec = x => () => { this.setState({ faSel: x.id, faPin: null }); this.scrollFiche(); };
     const faRo = this.decRo(F.id), optLbl = F.opt ? ((this.arbOpts(F.id).find(o => o[0] === F.opt) || [])[1] || 'Option ' + F.opt) : '';
     const recOpt = this.faReco(F.id);
     if (!this._faRef) this._faRef = React.createRef();
@@ -3994,15 +4009,16 @@ class Component extends DCLogic {
       mtSelOn: !!mtD0, mtD: mtD0 ? { id: mtD0.id, ref: mtD0.code || mtD0.id, t: mtD0.t, inst: mtD0.inst, ch: mtD0.ch, pl: PRL[mtD0.p], pSt: 'font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:' + PRC[mtD0.p], fa: mtD0.dec ? mtD0.dec.replace(/^D-/, 'FA-') : 'Non rédigée' } : { id: '', t: '', inst: '', ch: '', pl: '', pSt: '', fa: '' },
       mtClose: () => setMt({ sel: null }), mtJev: () => mtD0 && this.jevOpen({ kind: 'ligne', block: 'Validations attendues', row: mtD0.id + ' · ' + mtD0.t, id: mtD0.id }), mtCols: mtD0 ? 'minmax(0,1fr) 320px' : 'minmax(0,1fr)' };
     return { ...mtVals, valRows, valEmpty: !valRows.length, valSub: valRows.length + ' fiche' + (valRows.length > 1 ? 's' : '') + ' au statut « À arbitrer » · registre des décisions', rgRows, rgH, rgQ: o.q, rgSetQ: e => set({ q: e.target.value }), rgOpen: !o.fold, rgFold: () => set({ fold: !o.fold }), rgFoldLbl: o.fold ? 'Déplier' : 'Replier', rgChev: 'display:flex;transition:transform .25s cubic-bezier(.2,.7,.2,1);transform:rotate(' + (o.fold ? -90 : 180) + 'deg)',
-      rgHeadline: custom ? n + ' fiche' + pl(n) + (q ? ' pour « ' + o.q.trim() + ' »' : '') : cut ? 'Les 5 fiches ouvertes les plus prioritaires' : n + ' fiches ouvertes', rgSub: cnt.Ouvertes + ' ouvertes · ' + cnt['Clôturées'] + ' clôturées',
+      rgHeadline: custom || o.st !== 'Ouvertes' ? n + ' fiche' + pl(n) + (q ? ' pour « ' + o.q.trim() + ' »' : '') : cut ? 'Les 5 fiches ouvertes les plus prioritaires' : n + ' fiche' + pl(n) + ' ouverte' + pl(n), rgSub: cnt.Ouvertes + ' ouvertes · ' + cnt['Clôturées'] + ' clôturées',
       rgSegs: ['Ouvertes', 'Clôturées', 'Toutes'].map(l => { const act = o.st === l; return { l, n: cnt[l], on: () => set({ st: l, all: false }), st: 'height:28px;padding:0 11px;border-radius:8px;display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;cursor:pointer;transition:all .15s;' + (act ? 'background:#fff;color:#10233a' : 'color:rgba(255,255,255,.75)'), nst: 'font-size:11px;font-variant-numeric:tabular-nums;color:' + (act ? '#1d8f86' : 'rgba(255,255,255,.5)') }; }),
       rgPr: o.pr, rgSetPr: e => set({ pr: e.target.value }), rgPrOpts: [{ v: '', l: 'Toutes priorités' }].concat([4, 3, 2, 1].map(p => ({ v: String(p), l: PRL[p] }))),
       rgInst: o.inst, rgSetInst: e => set({ inst: e.target.value }), rgInstOpts: [{ v: '', l: 'Toutes instances' }].concat(GB.map(g => ({ v: g.l, l: g.l }))),
       rgCh: o.ch, rgSetCh: e => set({ ch: e.target.value }), rgChOpts: [{ v: '', l: 'Tous chantiers' }].concat([...new Set(ALL.map(f => f.ch))].map(c => ({ v: c, l: c }))),
       rgPrList: [4, 3, 2, 1].map(p => ({ v: String(p), l: PRL[p] })), rgStList: STO.filter(s => s !== 'Brouillon').map(s => ({ v: s, l: s })), rgWsList: WS.map(w => ({ v: w, l: (WSC[w] ? WSC[w].code + ' · ' : '') + w })), rgInstList: GB.map(g => ({ v: g.l, l: g.l })),
-      rgCustom: custom, rgReset: () => set({ q: '', pr: '', inst: '', ch: '', st: 'Ouvertes', all: false }), rgEmpty: n === 0,
-      rgMore: !custom && L.length > 5, rgMoreLbl: o.all ? 'Afficher uniquement les 5 plus prioritaires' : 'Afficher ' + extra + ' autre' + pl(extra) + ' fiche' + pl(extra) + ' ouverte' + pl(extra), rgToggleAll: () => set({ all: !o.all }),
-      faRef: this._faRef, faId: F.id,
+      rgCustom: custom, rgReset: () => set({ q: '', pr: '', inst: '', ch: '', st: null, all: false }), rgEmpty: n === 0,
+      rgMore: !custom && o.st === 'Ouvertes' && L.length > 5, rgMoreLbl: o.all ? 'Afficher uniquement les 5 plus prioritaires' : 'Afficher ' + extra + ' autre' + pl(extra) + ' fiche' + pl(extra) + ' ouverte' + pl(extra), rgToggleAll: () => set({ all: !o.all }),
+      faRef: this._faRef, faId: F.id, faShow: !!F.id, faNone: !F.id, faNav, faOut, faOutTxt, faOutGo, faOutGoL: 'Voir ' + SEGL[segOf(F.st)], faEmptyGo, faEmptyCustom: custom,
+      faEmptyTxt: ALL.length ? (o.st === 'Ouvertes' && !custom ? 'Aucune fiche ouverte.' : 'Aucune fiche dans ce filtre.') : 'Aucune fiche d’arbitrage pour ce projet.',
       faSt: F.st, faSDot: 'width:7px;height:7px;border-radius:50%;flex:none;background:' + sDotC[F.st] + (F.st === 'À arbitrer' ? ';box-shadow:0 0 0 3px rgba(192,111,31,.16)' : ''),
       faFull: full, faLite: !full, faMeta: F.ch + ' · ' + F.inst, faBy: 'Créée le ' + fr(F.crIso), faQ: F.t,
       faLitMsg: OPEN(F.st) ? 'La grille d\'analyse de cette fiche n\'est pas encore renseignée. Critères, options et recommandation s\'afficheront ici dès leur saisie.' : 'Arbitrage rendu le ' + fr(F.ddIso) + ' en ' + String(F.inst).toLowerCase() + '.',
@@ -4029,8 +4045,31 @@ class Component extends DCLogic {
       faSesOpts: [{ v: '', l: sesUp.length ? 'Prochaine séance de l’instance (' + this.sessionLabel(sesUp[0]) + ' · ' + this.frShortIso(sesUp[0].dateIso) + ')' : 'Aucune séance planifiée pour cette instance' }].concat(sesUp.map(x => ({ v: x.id, l: this.sessionLabel(x) + ' · ' + this.frShortIso(x.dateIso) }))),
       faSesSet: e => this.edit('fa', F.id, 'expSes', e.target.value || '') };
   }
-  /** Fiche affichée dans Pilotage › Décisions : la décision choisie, sinon la première (10/10/2026 : plus de D-007 par défaut). */
-  faSelId() { const L = ((this.mergedData() || {}).arbitrations) || [], s = this.state.faSel; return s && L.some(x => x.id === s) ? s : (L[0] || {}).id || ''; }
+  /**
+   * Registre des décisions (16/10/2026) : fiches, compteurs et liste filtrée et triée, partagés par le registre et par le
+   * choix de la fiche affichée. Filtre par défaut : « Ouvertes », ou « Toutes » quand aucune fiche n'est ouverte.
+   */
+  rgList(D0) {
+    const S = this.state, D = D0 || this.mergedData() || {}, ED = S.ed || {}, DEC = {}; (D.decisions || []).forEach(x => { DEC[x.id] = x.n; });
+    const STO = ['Brouillon', 'En instruction', 'À arbitrer', 'Arbitrée', 'Annulée', 'Remplacée'], OPEN = s => s !== 'Arbitrée' && s !== 'Annulée' && s !== 'Remplacée';
+    const ALL = (D.arbitrations || []).concat((S.added || {}).fa || []).map(f => { const e = ED['fa:' + f.id] || {}; return { ...f, ...e, decL: e.decL ?? (f.dec ? DEC[f.dec] || f.decL || '' : f.decL || '') }; }); // texte du serveur gardé (15/10/2026)
+    const cnt = { Ouvertes: ALL.filter(f => OPEN(f.st)).length, 'Clôturées': ALL.filter(f => !OPEN(f.st)).length, Toutes: ALL.length };
+    const stDef = cnt.Ouvertes ? 'Ouvertes' : 'Toutes', R = S.rg || {};
+    const o = { q: '', pr: '', inst: '', ch: '', fold: false, all: false, sk: 'p', sd: -1, ...R, st: R.st || stDef };
+    const q = (o.q || '').trim().toLowerCase();
+    let L = ALL.filter(f => o.st === 'Toutes' || (o.st === 'Ouvertes') === OPEN(f.st));
+    if (o.pr) L = L.filter(f => String(f.p) === o.pr); if (o.inst) L = L.filter(f => f.inst === o.inst); if (o.ch) L = L.filter(f => f.ch === o.ch);
+    if (q) L = L.filter(f => [f.id, f.t, f.dec, f.decL, f.ch, f.inst, f.st].join(' ').toLowerCase().includes(q));
+    const K = { id: f => f.id, t: f => f.t, p: f => f.p, dec: f => f.decL || '\uffff', st: f => STO.indexOf(f.st), dd: f => f.ddIso || '0000', ch: f => f.ch, inst: f => f.inst, cr: f => f.crIso };
+    L.sort((x, y) => { const a = K[o.sk](x), b = K[o.sk](y); const r = typeof a === 'number' ? a - b : String(a).localeCompare(String(b), 'fr', { numeric: true }); return r * o.sd || (y.p - x.p) || String(y.crIso || '').localeCompare(String(x.crIso || '')); });
+    return { o, ALL, cnt, L, q, OPEN, STO, K, stDef };
+  }
+  /**
+   * Fiche affichée dans Pilotage › Décisions (16/10/2026) : toujours une fiche du registre filtré — la fiche choisie si elle y
+   * figure, sinon la première du registre ; exception : la fiche dont on vient de changer le statut reste affichée (faPin)
+   * jusqu'au prochain choix. Registre vide : aucune fiche ('').
+   */
+  faSelId() { const { ALL, L } = this.rgList(), s = this.state.faSel; if (s && L.some(x => x.id === s)) return s; if (s && s === this.state.faPin && ALL.some(x => x.id === s)) return s; return (L[0] || {}).id || ''; }
   /** Option recommandée d'une fiche = la mieux notée (barème commun, saisie-calc.js) ; '' sans note ou à égalité. */
   // ── Arbitrage d'une décision (15/10/2026) : option retenue, texte de la décision et date, envoyés avec le statut. ──
   arbOpts(id) {
@@ -4066,7 +4105,7 @@ class Component extends DCLogic {
         if (optErr || txtErr || ddErr) return set({ touched: true });
         const key = 'fa:' + D.id, v = { st: 'Arbitrée', opt: D.opt || '', decL: String(D.decL).trim(), ddIso: D.dd, sup: D.sup || '' };
         // Une seule modification (statut, option, texte, date) : api.js en fait un seul envoi au serveur.
-        this.setState(s => ({ arbDlg: null, ed: { ...(s.ed || {}), [key]: { ...((s.ed || {})[key] || {}), ...v } },
+        this.setState(s => ({ arbDlg: null, ...(D.id === this.faSelId() ? { faPin: D.id } : {}), ed: { ...(s.ed || {}), [key]: { ...((s.ed || {})[key] || {}), ...v } },
           audit: Object.entries(v).map(([f, x]) => ({ k: 'fa', id: D.id, f, v: x, by: this.meName(), at: new Date().toISOString(), origin: 'saisie' })).concat(s.audit || []) }));
         this.showToast(D.id + ' arbitrée' + (D.opt ? ' · option ' + D.opt + ' retenue' : ''));
       } };

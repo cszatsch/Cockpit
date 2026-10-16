@@ -723,11 +723,18 @@ Demandez-le à Jev (voir 3.19.4) : libellé, probabilité et impact (1 à 5, cri
 
 **Registre des décisions**
 
-- Vues : Ouvertes (par défaut), Clôturées (Arbitrée, Annulée, Remplacée), Toutes.
+- Vues : Ouvertes (par défaut ; **Toutes** quand aucune fiche n'est ouverte), Clôturées (Arbitrée, Annulée, Remplacée), Toutes.
 - Par défaut, les 5 fiches ouvertes les plus prioritaires, puis « Afficher N autres fiches ouvertes ».
 - Filtres : priorité, instance, chantier ; recherche ; **Réinitialiser**.
 - Colonnes : ID, Point de décision, Priorité (Critique, Haute, Moyenne, Basse), Fiche d'arbitrage, Statut, Option choisie, Date de décision (« En attente » tant que la fiche est ouverte), Chantier, Instance, Date de création.
 - La colonne **Chantier** affiche la référence du chantier (C1, C2…) dans sa couleur ; sa liste propose « C1 · {nom} », « C2 · {nom} »…
+
+**Fiche d'arbitrage et registre**
+
+- La fiche affichée sous le registre est toujours une fiche du registre filtré : celle que vous avez choisie (sa ligne est surlignée), sinon la première du registre. Changer de vue, de filtre ou de recherche change donc la fiche affichée.
+- L'en-tête de la fiche indique sa place, par exemple « 2 sur 4 dans le registre », avec les flèches **précédente** et **suivante**.
+- Registre vide : à la place de la fiche, « Aucune fiche dans ce filtre » avec des raccourcis (« Voir les clôturées (5) », « Voir toutes les fiches (10) », **Réinitialiser les filtres**).
+- Quand vous changez le statut de la fiche affichée (par exemple en l'arbitrant depuis la vue Ouvertes), elle reste affichée avec le bandeau « Cette fiche est maintenant arbitrée : elle ne fait plus partie du filtre du registre » et le lien **Voir les clôturées**, jusqu'à ce que vous choisissiez une autre fiche ou un autre filtre.
 
 **Cycle de vie**
 

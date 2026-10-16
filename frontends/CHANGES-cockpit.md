@@ -825,3 +825,6 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
   chantiers et Livrables sous 30 jours limités aux chantiers lisibles par l'utilisateur (`wsReadable`).
 - Preset « Trajectoire et planning » recomposé (16/10/2026, capture du commanditaire) : 12 widgets (`DB_DEFAULT`, preset
   `plan`), thème sombre par défaut de `risk`, `liv`, `act` (`DB_INV0`).
+- Pilotage › Décisions (16/10/2026) : la fiche d'arbitrage suit le registre filtré (`rgList`, `faSelId`, `faPin`) ; carte
+  « Aucune fiche dans ce filtre » (`faNone`, `faEmptyGo`) ; position et flèches dans l'en-tête (`faNav`) ; bandeau hors
+  filtre (`faOut`, `faOutGo`) ; filtre par défaut « Toutes » sans fiche ouverte (`stDef`).

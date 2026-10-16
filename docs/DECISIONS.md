@@ -2715,3 +2715,13 @@ Brief du commanditaire : reproduire la maquette avec les vraies données et les 
   Baromètre, Horloge mondiale, Météo, Trafic (`DB_DEFAULT`, repris par le preset) ; thème sombre par défaut ajouté pour
   Risques critiques, Livrables et Actions en retard (`DB_INV0`). Le titre « Nbre. de jours avant fin projet » de la
   capture est un réglage personnel du Compte à rebours, pas une valeur par défaut.
+
+## Décisions : la fiche d'arbitrage suit le registre (16/10/2026, demande du commanditaire)
+
+- Constat : la fiche affichée sous le registre (`faSelId`) prenait, faute de choix, la première fiche du projet, sans
+  tenir compte des filtres ; registre « Ouvertes » vide et fiche arbitrée affichée dessous.
+- Choix (points 1 à 4) : liste filtrée commune au registre et à la fiche (`rgList`) ; fiche affichée = fiche choisie si
+  elle est dans le registre filtré, sinon la première ; registre vide → carte « Aucune fiche dans ce filtre » et
+  raccourcis ; position « n sur N dans le registre », précédente / suivante ; fiche dont on change le statut gardée hors
+  filtre avec un bandeau jusqu'au prochain choix (`faPin`, libéré par un changement de filtre ou de fiche) ; filtre par
+  défaut « Toutes » quand aucune fiche n'est ouverte (`stDef`).
