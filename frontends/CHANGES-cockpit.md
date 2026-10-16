@@ -835,3 +835,5 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 - Partition des comités, correctif (16/10/2026) : « + » au survol rétabli (cases `c.plus` / `c.noPlus`, `style-hover`
   fixe : le moteur ne résout pas les valeurs calculées de `style-hover`) ; message « Aucun autre comité planifié après
   celui-ci. » sous « Ensuite » vide (`part.restEmpty`).
+- « Nouveau comité » (16/10/2026) : lieu proposé = ville du projet (`cityP`, ligne `city` de l'objet Projet), aide
+  « Heure reprise de la dernière séance · lieu : ville du projet. ».

@@ -4347,7 +4347,10 @@ class Component extends DCLogic {
     // Planifier un comité sur un jour (05/10/2026) : « + » au survol (ou double-clic) d'un jour à venir → formulaire dans le
     // panneau latéral ; instance au choix, numéro calculé, heure et lieu repris de la dernière séance de l'instance.
     const lastOf = bid => all.filter(z => z.bodyId === bid && z.status !== 'CANCELLED').sort((a, c) => (c.dateIso + (c.time || '')).localeCompare(a.dateIso + (a.time || '')))[0];
-    const draftFor = (iso, bid) => { const l = lastOf(bid) || {}; return { dateIso: iso, bodyId: bid, time: l.time || '', place: l.place || '', reused: !!(l.time || l.place) }; };
+    // Lieu proposé (16/10/2026, demande du commanditaire) : la ville du projet (Référentiel › Projet), sinon le lieu de la
+    // dernière séance ; l'heure reste reprise de la dernière séance de l'instance.
+    const cityP = ((((D.model.PROJECT || {}).rows || []).find(r => r.id === 'city') || {}).cells || [])[1] || '';
+    const draftFor = (iso, bid) => { const l = lastOf(bid) || {}; return { dateIso: iso, bodyId: bid, time: l.time || '', place: cityP || l.place || '', reused: !!l.time, cityUsed: !!cityP }; };
     const openAdd = iso => { if (!canEdit || iso < today) return; const prev = S.sesNew, bid = (prev && gbN[prev.bodyId] ? prev.bodyId : (GB[0] || {}).id); this.setState({ sesSel: iso, sesNew: draftFor(iso, bid), sesDelAsk: null }); };
     const cells = []; for (let i = 0; i < tot; i++) { const dn = i - off + 1, inM = dn >= 1 && dn <= nD, iso = inM ? cy + '-' + p2(cmo) + '-' + p2(dn) : '', L = inM ? (byDay[iso] || []) : [], isT = iso === today, isS = iso === selIso, isO = inM && S.sesOver === iso && !!S.sesDrag;
       const canAdd = inM && canEdit && iso >= today;
@@ -4387,12 +4390,12 @@ class Component extends DCLogic {
       const setNw = p => this.setState(s => ({ sesNew: { ...(s.sesNew || {}), ...p } }));
       add = { open: true, title: nb.cells[0] + ' n°' + num, dot: 'width:10px;height:10px;border-radius:50%;flex:none;background:' + col + ';box-shadow:0 0 0 3px ' + col + '22',
         nP: (nb.members || []).length + ' participant' + ((nb.members || []).length > 1 ? 's' : ''), timeV: NW.time || '', placeV: NW.place || '',
-        hint: NW.reused ? 'Heure et lieu repris de la dernière séance.' : '',
+        hint: NW.reused && NW.cityUsed ? 'Heure reprise de la dernière séance · lieu : ville du projet.' : NW.reused ? 'Heure reprise de la dernière séance.' : NW.cityUsed ? 'Lieu : ville du projet.' : '',
         bodies: GB.map(b => { const on = b.id === nb.id, c = COL[b.id] || '#8a9aa6';
           return { l: SH[b.id] || short(b), tip: b.cells[0], pick: () => this.setState({ sesNew: draftFor(selIso, b.id) }),
             st: 'height:28px;padding:0 10px 0 8px;border-radius:999px;display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .15s;' + (on ? 'background:#10233a;color:#fff' : 'background:#fff;color:#43586a;box-shadow:inset 0 0 0 1px #dfe7e5'),
             dot: 'width:7px;height:7px;border-radius:50%;flex:none;background:' + c + (on ? ';box-shadow:0 0 0 2px rgba(255,255,255,.9)' : '') }; }),
-        setTime: e => setNw({ time: e.target.value, reused: false }), setPlace: e => setNw({ place: e.target.value, reused: false }),
+        setTime: e => setNw({ time: e.target.value, reused: false }), setPlace: e => setNw({ place: e.target.value, cityUsed: false }),
         cancel: () => this.setState({ sesNew: null }),
         submit: () => { const id = 'S-' + nb.id + '-' + num + '-n' + Date.now().toString(36);
           const x = { id, bodyId: nb.id, number: num, dateIso: NW.dateIso, time: NW.time || '', place: (NW.place || '').trim(), status: 'PLANNED', participants: (nb.members || []).slice(), reportId: null };

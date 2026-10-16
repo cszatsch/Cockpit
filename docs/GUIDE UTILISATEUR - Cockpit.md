@@ -835,7 +835,7 @@ Le calendrier est une **partition du mois** : une ligne par instance, une colonn
 
 1. Survolez une case vide (aujourd'hui ou à venir) de la ligne de l'instance et cliquez sur le **+** (ou, au clavier, placez-vous sur la case et appuyez sur **Entrée**).
 2. La fenêtre « Planifier un comité » s'ouvre avec l'instance et la date déjà renseignées. Le titre et le numéro (« COPIL n°24 ») sont calculés ; les participants sont les membres de l'instance ; vous pouvez encore changer d'instance.
-3. L'heure et le lieu sont repris de la dernière séance non annulée de l'instance. Modifiez-les si besoin.
+3. L'heure est reprise de la dernière séance non annulée de l'instance ; le lieu proposé est la ville du projet (Info projet › Référentiel › Projet, « Ville du projet »), ou à défaut le lieu de la dernière séance. Modifiez-les si besoin.
 4. Cliquez sur **Planifier** (ou **Annuler**, ou Échap). Toast : « Comité planifié · {instance} n°N ».
 
 **Ouvrir une séance.** Un clic sur un point (ou Entrée) ouvre sa fiche dans une fenêtre : date, heure, lieu, statut (Planifiée, Tenue, Annulée), participants, rapport (« Générer le rapport » ou « Rapport vN · statut »), bouton **Confirmer** pour une séance passée encore planifiée, corbeille.

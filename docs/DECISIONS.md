@@ -2748,3 +2748,6 @@ Brief du commanditaire : reproduire la maquette avec les vraies données et les 
   l'attribut, sans remplacer les `{{ … }}` ; la règle était invalide. Correction : deux variantes de case (`c.plus` avec
   un `style-hover` fixe, `c.noPlus` sans survol). « Ensuite » vide : « Aucun autre comité planifié après celui-ci. ».
   Les autres `style-hover` calculés de l'application (26) ont le même défaut : à traiter à part.
+- Lieu d'une nouvelle séance (16/10/2026, demande du commanditaire) : la ville du projet (Référentiel › Projet, « Ville du
+  projet »), et non plus le lieu de la dernière séance de l'instance (repris seulement si la ville n'est pas renseignée) ;
+  l'heure reste reprise de la dernière séance (`draftFor`, `cityP`).
