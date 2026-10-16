@@ -231,8 +231,10 @@ cd /opt/rise && ./outils/gcp/sauvegarde.sh     # premier essai à la main
 gcloud storage ls gs://rise-sauvegardes-xxxx/
 crontab -e
 # ajouter :
-15 2 * * * cd /opt/rise && ./outils/gcp/sauvegarde.sh >> sauvegardes/sauvegarde.log 2>&1
+30 21 * * * cd /opt/rise && ./outils/gcp/sauvegarde.sh >> sauvegardes/sauvegarde.log 2>&1
 ```
+
+L'horloge de la VM est en UTC : 21:30 UTC = 22:30 (hiver) ou 23:30 (été) à Paris, avant l'arrêt nocturne (§ 12 bis).
 
 Trois niveaux : `pg_dump` + fichiers chaque nuit dans le bucket (30 jours), 7 jours sur la VM, instantané du disque
 complet chaque nuit (14 jours).
@@ -277,6 +279,30 @@ Le service redémarre seul après un redémarrage de la VM (`restart: unless-sto
 
 Quand l'usage est stable (2 ou 3 mois), une **remise sur engagement d'un an** (Committed Use Discount) réduit le prix
 de la VM d'environ 37 %.
+
+## 12 bis. Arrêt nocturne de la VM (16/10/2026)
+
+La VM est arrêtée chaque nuit de **00:00 à 07:00, heure de Paris** (changements d'heure suivis), par une planification
+d'instance de Compute Engine ; seul le disque et l'adresse IP restent facturés pendant l'arrêt.
+
+```bash
+source ~/rise.env
+PROJET=$(gcloud config get-value project); REGION=${ZONE%-*}
+NUM=$(gcloud projects describe $PROJET --format='value(projectNumber)')
+# L'agent de service de Compute Engine doit pouvoir démarrer et arrêter la VM
+gcloud projects add-iam-policy-binding $PROJET --condition=None --quiet   --member=serviceAccount:service-$NUM@compute-system.iam.gserviceaccount.com --role=roles/compute.instanceAdmin.v1
+gcloud compute resource-policies create instance-schedule rise-nuit --region=$REGION --timezone=Europe/Paris   --vm-stop-schedule='0 0 * * *' --vm-start-schedule='0 7 * * *' --description="Arrêt de la VM RISE de minuit à 7 h"
+gcloud compute instances add-resource-policies $VM --zone=$ZONE --resource-policies=rise-nuit
+```
+
+- Arrêt et démarrage ont lieu dans les 15 minutes qui suivent l'heure prévue.
+- Au démarrage, Docker relance les conteneurs (`restart: unless-stopped`) ; l'adresse IP est fixe (`rise-ip`).
+- La sauvegarde nocturne doit tourner avant minuit (cron à 21:30 UTC, § 10) ; l'instantané du disque (01:00 UTC) se
+  fait aussi VM arrêtée.
+- Pendant l'arrêt, le Cockpit et la Console sont injoignables ; les envois de notifications prévus la nuit partent au
+  redémarrage (rattrapage jusqu'au lendemain 23:59).
+- Suspendre : `gcloud compute instances remove-resource-policies $VM --zone=$ZONE --resource-policies=rise-nuit` ;
+  démarrer à la main : `gcloud compute instances start $VM --zone=$ZONE`.
 
 ## 13. Limites connues en production Linux
 

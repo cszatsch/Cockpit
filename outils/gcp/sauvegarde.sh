@@ -2,7 +2,8 @@
 # Sauvegarde nocturne de RISE en production : base PostgreSQL (pg_dump -Fc) et fichiers stockés (STORAGE_DIR),
 # copiés dans ./sauvegardes puis envoyés dans le bucket Cloud Storage (BUCKET_SAUVEGARDES de .env.prod).
 # À lancer depuis la racine du dépôt, sur la VM (crontab de l'utilisateur qui pilote Docker) :
-#   15 2 * * * cd /opt/rise && ./outils/gcp/sauvegarde.sh >> sauvegardes/sauvegarde.log 2>&1
+#   30 21 * * * cd /opt/rise && ./outils/gcp/sauvegarde.sh >> sauvegardes/sauvegarde.log 2>&1
+# (21:30 UTC : avant l'arrêt nocturne de la VM, de 00:00 à 07:00 heure de Paris — DEPLOIEMENT § 12 bis)
 # Restauration : outils/gcp/restaurer.sh. La clé SECRETS_KEY n'est pas dans la sauvegarde : la garder à part.
 set -euo pipefail
 # Entrée standard fermée : docker compose exec et gcloud la lisent, et avalaient la suite d'un script appelant
