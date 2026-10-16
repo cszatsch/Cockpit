@@ -843,3 +843,5 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 - Jours fériés depuis le serveur (16/10/2026) : `api.js` `holidays()` (GET /api/holidays) ; widget : prop `charger`
   (`jfLoad`), cache `srcOf`, calcul local en secours ; calendrier des comités : `holYear` (cache `holCache`), colonnes et
   numéros des jours fériés en teinte `CAL_HOL`, infobulle, mini-légende « jour férié ».
+- Jours fériés, pays ajoutés (16/10/2026) : Royaume-Uni, Italie, Espagne, Portugal, Pays-Bas dans le menu Pays du widget
+  (`CTRY`, `srv: true` : calendrier du serveur uniquement, message si injoignable) et dans `HOL_ISO`.

@@ -2782,3 +2782,10 @@ Brief du commanditaire : reproduire la maquette avec les vraies données et les 
 - Calendrier des comités (demande du commanditaire) : jours fériés du pays du projet en teinte discrète propre (`CAL_HOL` :
   fond lavande pâle, numéro en pastille), distincte du week-end et du jour ; infobulle « Jour férié · {nom} » ; mention
   dans la mini-légende ; nom du jour férié ajouté à la date du volet « Aujourd'hui ».
+- Pays ajoutés le jour même (demande du commanditaire) : Royaume-Uni (`GB` ; Angleterre et pays de Galles, Écosse,
+  Irlande du Nord ; jour fixe d'un week-end remplacé par le jour ouvré suivant non férié ; jours exceptionnels non
+  compris), Italie (Saint-François d'Assise, 4 octobre, férié à partir de 2026), Espagne (fêtes nationales ; Madrid,
+  Catalogne), Portugal, Pays-Bas (Jour du Roi avancé au 26 avril un dimanche ; Vendredi saint et 5 mai fériés officiels,
+  souvent travaillés). Noms reconnus dans le Référentiel : Royaume-Uni, UK, Angleterre, Grande-Bretagne, Italie,
+  Espagne, Portugal, Pays-Bas, Hollande (`HOLIDAY_COUNTRY_LABELS`, `HOL_ISO`). Ces pays n'ont pas de calcul local dans le
+  widget : serveur injoignable → « Calendrier momentanément indisponible ». La table est complétée au prochain démarrage.

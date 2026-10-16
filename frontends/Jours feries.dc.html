@@ -106,6 +106,12 @@ const CTRY = {
   CH: { n: 'Suisse', loc: 'fr-CH', rg: [['', 'Fêtes fédérales'], ['GE', 'Genève'], ['VD', 'Vaud'], ['ZH', 'Zurich']] },
   DE: { n: 'Allemagne', loc: 'fr-FR', rg: [['', 'Fêtes nationales'], ['BY', 'Bavière'], ['BW', 'Bade-Wurtemberg'], ['BE', 'Berlin'], ['NW', 'Rhénanie-du-Nord-Westphalie']] },
   US: { n: 'États-Unis', loc: 'fr-FR' },
+  // Ajoutés le 16/10/2026 : règles côté serveur seulement (src/domain/jours-feries.ts).
+  GB: { n: 'Royaume-Uni', loc: 'fr-FR', rg: [['', 'Angleterre et pays de Galles'], ['SCT', 'Écosse'], ['NIR', 'Irlande du Nord']], srv: true },
+  IT: { n: 'Italie', loc: 'fr-FR', srv: true },
+  ES: { n: 'Espagne', loc: 'fr-FR', rg: [['', 'Fêtes nationales'], ['MD', 'Madrid'], ['CT', 'Catalogne']], srv: true },
+  PT: { n: 'Portugal', loc: 'fr-FR', srv: true },
+  NL: { n: 'Pays-Bas', loc: 'fr-FR', srv: true },
   MA: { n: 'Maroc', na: true }
 };
 function HOL(cc, rg, y) {
@@ -158,7 +164,7 @@ class Component extends DCLogic {
       const contig = ys.every((y, i) => !i || y === ys[i - 1] + 1); pLabel = ys.length === 1 ? String(ys[0]) : contig ? ys[0] + '–' + ys[ys.length - 1] : ys.join(' · '); }
     else if (st.mode === 'next12' || !pEndProj) { pEnd = addD(new Date(today.getFullYear() + 1, today.getMonth(), today.getDate()), -1); pLabel = '12 prochains mois'; }
     else { pEnd = pEndProj; pLabel = "Jusqu'au " + dMedF(pEnd); }
-    let H = [], srcLoading = false;
+    let H = [], srcLoading = false, srvDown = false;
     if (!C.na && !ended) {
       const raw = [];
       // Source (16/10/2026) : la table de référence du serveur (prop `charger`, même source que Jev) ; calcul local en
@@ -166,6 +172,7 @@ class Component extends DCLogic {
       const src = this.srcOf(cc, rg, pStart.getFullYear() + '-01-01', (pEnd.getFullYear() + 1) + '-12-31');
       if (src && src.loading) srcLoading = true;
       else if (src && src.items) src.items.forEach(h => raw.push({ d: PARSE(h.date), n: h.name, o: PARSE(h.observedFrom) }));
+      else if (C.srv) srvDown = true; // pays sans calcul local : calendrier du serveur uniquement
       else for (let y = pStart.getFullYear(); y <= pEnd.getFullYear() + 1; y++) HOL(cc, rg, y).forEach(h => raw.push(h));
       const by = {};
       raw.filter(h => h.d > today && h.d >= pStart && h.d <= pEnd && (st.mode !== 'years' || st.years.includes(h.d.getFullYear())))
@@ -192,6 +199,7 @@ class Component extends DCLogic {
     const sy = { lost, pont, we, hasP: pont > 0, hasW: we > 0, lostL: (lost > 1 ? 'jours ouvrés perdus' : 'jour ouvré perdu'), pontL: pont > 1 ? 'ponts possibles' : 'pont possible' };
     let msg = null;
     if (C.na) msg = { title: 'Calendrier indisponible pour ' + (cc === 'MA' ? 'le Maroc' : C.n), sub: 'Choisissez un autre pays pour suivre les jours fériés.', act: 'Choisir un pays', w: 'c' };
+    else if (srvDown) msg = { title: 'Calendrier momentanément indisponible', sub: 'Les jours fériés de ce pays viennent du serveur, injoignable pour le moment.', act: 'Choisir un pays', w: 'c' };
     else if (ended) msg = { title: 'Projet terminé le ' + dMedF(pEndProj), sub: 'Plus aucun jour férié ne touche le planning.', act: 'Voir les 12 prochains mois', w: 'n' };
     else if (!H.length) msg = { title: 'Aucun jour férié sur la période', sub: pLabel, act: 'Changer de période', w: 'p' };
     const cLabel = C.n + (C.rg && rg ? ' · ' + rgName : '');

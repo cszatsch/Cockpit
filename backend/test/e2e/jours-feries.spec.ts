@@ -38,6 +38,11 @@ describe('Jours fériés : table de référence, route et vue de Jev', () => {
     // Pays changé : calendrier belge (21 juillet).
     await t.db.project.update({ where: { id: 'RISE' }, data: { targetEndDate: '2026-12-31', country: 'Belgique' } });
     expect((await view()).some((x) => x.date === '2026-07-21' && x.nom === 'Fête nationale')).toBe(true);
+    // Pays ajoutés (16/10/2026) : « Hollande » → calendrier des Pays-Bas ; Royaume-Uni : Boxing Day 2026 reporté au lundi 28.
+    await t.db.project.update({ where: { id: 'RISE' }, data: { country: 'Hollande' } });
+    expect((await view()).some((x) => x.date === '2026-04-27' && x.nom === 'Jour du Roi')).toBe(true);
+    await t.db.project.update({ where: { id: 'RISE' }, data: { country: 'Royaume-Uni' } });
+    expect((await view()).find((x) => x.nom === 'Boxing Day')).toMatchObject({ date: '2026-12-28', jour_semaine: 'lundi', effet: 'JOUR_PERDU' });
     // Pays sans calendrier : aucune ligne.
     await t.db.project.update({ where: { id: 'RISE' }, data: { country: 'Maroc' } });
     expect(await view()).toEqual([]);

@@ -19,13 +19,21 @@ export const HOLIDAY_COUNTRIES: Record<string, HolidayCountry> = {
   CH: { n: 'Suisse', rg: [['', 'Fêtes fédérales'], ['GE', 'Genève'], ['VD', 'Vaud'], ['ZH', 'Zurich']] },
   DE: { n: 'Allemagne', rg: [['', 'Fêtes nationales'], ['BY', 'Bavière'], ['BW', 'Bade-Wurtemberg'], ['BE', 'Berlin'], ['NW', 'Rhénanie-du-Nord-Westphalie']] },
   US: { n: 'États-Unis' },
+  // Ajoutés le 16/10/2026 (demande du commanditaire).
+  GB: { n: 'Royaume-Uni', rg: [['', 'Angleterre et pays de Galles'], ['SCT', 'Écosse'], ['NIR', 'Irlande du Nord']] },
+  IT: { n: 'Italie' },
+  ES: { n: 'Espagne', rg: [['', 'Fêtes nationales'], ['MD', 'Madrid'], ['CT', 'Catalogne']] },
+  PT: { n: 'Portugal' },
+  NL: { n: 'Pays-Bas' },
 };
 
 /** Noms de pays du Référentiel (en toutes lettres) reconnus pour chaque code ; comparaison sans casse. */
 export const HOLIDAY_COUNTRY_LABELS: Array<[string, string]> = [
   ['FR', 'France'], ['BE', 'Belgique'], ['LU', 'Luxembourg'], ['CH', 'Suisse'], ['DE', 'Allemagne'],
   ['US', 'États-Unis'], ['US', 'Etats-Unis'], ['US', 'Etats Unis'], ['US', 'USA'],
-  ['FR', 'FR'], ['BE', 'BE'], ['LU', 'LU'], ['CH', 'CH'], ['DE', 'DE'], ['US', 'US'],
+  ['GB', 'Royaume-Uni'], ['GB', 'UK'], ['GB', 'Angleterre'], ['GB', 'Grande-Bretagne'], ['IT', 'Italie'], ['ES', 'Espagne'],
+  ['PT', 'Portugal'], ['NL', 'Pays-Bas'], ['NL', 'Hollande'],
+  ['FR', 'FR'], ['BE', 'BE'], ['LU', 'LU'], ['CH', 'CH'], ['DE', 'DE'], ['US', 'US'], ['GB', 'GB'], ['IT', 'IT'], ['ES', 'ES'], ['PT', 'PT'], ['NL', 'NL'],
 ];
 
 /** Code ISO d'un pays du Référentiel, '' s'il n'a pas de calendrier. */
@@ -84,6 +92,37 @@ export function holidaysOf(cc: string, rg: string, y: number): Holiday[] {
     ob(F(1, 1), "Jour de l'an"); a(nth(y, 1, 1, 3), 'Martin Luther King Jr. Day'); a(nth(y, 2, 1, 3), "Presidents' Day"); a(lastWd(y, 5, 1), 'Memorial Day');
     ob(F(6, 19), 'Juneteenth'); ob(F(7, 4), "Fête de l'Indépendance"); a(nth(y, 9, 1, 1), 'Labor Day'); a(nth(y, 10, 1, 2), 'Columbus Day');
     ob(F(11, 11), 'Veterans Day'); a(nth(y, 11, 4, 4), 'Thanksgiving'); ob(F(12, 25), 'Noël');
+  }
+  if (cc === 'GB') {
+    // Jours fériés (bank holidays) : un jour fixe tombant un week-end est remplacé par le jour ouvré suivant non férié
+    // (Noël un samedi → lundi 27, lendemain → mardi 28). Jours exceptionnels (couronnement, jubilé) non compris.
+    const taken = new Set<string>(), sub = (d: Date, n: string) => { let x = d; if (x.getUTCDay() === 6 || x.getUTCDay() === 0) { do { x = add(x, 1); } while (x.getUTCDay() === 6 || x.getUTCDay() === 0 || taken.has(iso(x))); } taken.add(iso(x)); a(x, n, x.getTime() !== d.getTime() ? d : null); };
+    sub(F(1, 1), "Jour de l'an"); if (rg === 'SCT') sub(F(1, 2), '2 janvier'); if (rg === 'NIR') sub(F(3, 17), 'Saint-Patrick');
+    GF(); if (rg !== 'SCT') EM(); a(nth(y, 5, 1, 1), 'Jour férié de début mai'); a(lastWd(y, 5, 1), 'Jour férié de printemps');
+    if (rg === 'NIR') sub(F(7, 12), 'Bataille de la Boyne'); a(rg === 'SCT' ? nth(y, 8, 1, 1) : lastWd(y, 8, 1), "Jour férié d'été");
+    if (rg === 'SCT') sub(F(11, 30), 'Saint-André'); sub(F(12, 25), 'Noël'); sub(F(12, 26), 'Boxing Day');
+  }
+  if (cc === 'IT') {
+    NY(); EP(); EM(); a(F(4, 25), 'Fête de la Libération'); LB(); a(F(6, 2), 'Fête de la République'); AQ(); TS();
+    // Saint-François d'Assise (4 octobre) : de nouveau férié à partir de 2026 (loi italienne de 2025).
+    if (y >= 2026) a(F(10, 4), "Saint-François d'Assise");
+    a(F(12, 8), 'Immaculée Conception'); XM(); SE();
+  }
+  if (cc === 'ES') {
+    // Fêtes nationales communes ; les communautés autonomes en ajoutent ou en déplacent (Madrid, Catalogne ci-dessous).
+    NY(); EP(); GF(); LB(); AQ(); a(F(10, 12), 'Fête nationale'); TS(); a(F(12, 6), 'Jour de la Constitution'); a(F(12, 8), 'Immaculée Conception'); XM();
+    if (rg === 'MD') { a(R(-3), 'Jeudi saint'); a(F(5, 2), 'Fête de la Communauté de Madrid'); }
+    if (rg === 'CT') { EM(); a(F(6, 24), 'Saint-Jean'); a(F(9, 11), 'Fête nationale de Catalogne'); SE(); }
+  }
+  if (cc === 'PT') {
+    NY(); GF(); a(E, 'Pâques'); a(F(4, 25), 'Jour de la Liberté'); LB(); FD(); a(F(6, 10), 'Jour du Portugal'); AQ();
+    a(F(10, 5), 'Proclamation de la République'); TS(); a(F(12, 1), "Restauration de l'indépendance"); a(F(12, 8), 'Immaculée Conception'); XM();
+  }
+  if (cc === 'NL') {
+    // Jour du Roi : le 27 avril, avancé au 26 s'il tombe un dimanche. Vendredi saint et 5 mai : fériés officiels,
+    // souvent travaillés (selon la convention collective).
+    NY(); GF(); a(E, 'Pâques'); EM(); const kd = F(4, 27); a(kd.getUTCDay() === 0 ? F(4, 26) : kd, 'Jour du Roi', kd.getUTCDay() === 0 ? kd : null);
+    a(F(5, 5), 'Jour de la Libération'); AS(); a(R(49), 'Pentecôte'); PM(); XM(); a(F(12, 26), 'Lendemain de Noël');
   }
   const by = new Map<string, Holiday>();
   for (const h of L) {
