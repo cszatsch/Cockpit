@@ -29,7 +29,7 @@ import { FormatAnalysis, PAGE_KINDS, PageKind, previewSvg } from '../../domain/r
 import { COMPONENTS, ComponentConfig, ComponentData, ComponentValues, DASHBOARD_SERIES, frDay, indicatorsOf, inPeriod, Issue, KPI_MAX, pagesOf, periodOf, periodRange, sectionsOf, COMPONENT_MODULE, ComponentId, moduleOffMessage, reportPlan, fieldName, LEGACY_PARTS, planLevelOf, ARBITRATIONS_MAX, PLAN_LEVELS, statusesOf } from '../../domain/report-components';
 
 const STATUS: Record<string, string> = { OPEN: 'Ouvert', IN_PROGRESS: 'En cours', BLOCKED: 'Bloquée', DONE: 'Terminé', CLOSED: 'Clos', PLANNED: 'Prévu', PREPARATION: 'En préparation', ACTIVE: 'Actif', MITIGATING: 'En traitement', DRAFT: 'Brouillon', IN_REVIEW: 'En revue', TO_ARBITRATE: 'À arbitrer', ARBITRATED: 'Arbitrée', CANCELLED: 'Annulée', SUPERSEDED: 'Remplacée' };
-const PRIO: Record<string, string> = { HIGH: 'Haute', MEDIUM: 'Moyenne', LOW: 'Basse' };
+const PRIO: Record<string, string> = { CRITICAL: 'Critique', HIGH: 'Haute', MEDIUM: 'Moyenne', LOW: 'Basse' };
 const st = (s: string | null | undefined) => (s ? STATUS[s] ?? s : '—');
 const day = (s: string | null | undefined) => (s ? frDay(s) : '—');
 const daysBetween = (a: string, b: string) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86400000);

@@ -96,6 +96,8 @@ enum ActionStatus {
 }
 
 enum Priority {
+  /// Critique (16/10/2026) : quatre niveaux, comme les décisions
+  CRITICAL
   HIGH
   MEDIUM
   LOW
@@ -1025,6 +1027,8 @@ model Task {
   dueIso    String?
   detail    String?
   status    TaskStatus @default(TODO)
+  /// Priorité (16/10/2026) : Critique, Haute, Moyenne, Basse
+  prio      Priority   @default(MEDIUM)
   /// Responsable de la tâche (09/10/2026, « Saisir sans Jev ») : une personne du projet ; null = l'auteur
   ownerId   String?
   /// Chantiers de la tâche (un ou plusieurs) ; vide si transverse ou sans chantier

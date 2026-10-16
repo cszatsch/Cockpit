@@ -42,12 +42,12 @@ function emptyState(d: Draw, a: Box, title: string, sub: string): string {
 
 // ───────────── Actions : échéancier ─────────────
 
-export interface ActionRow { code: string; name: string; owner: string; ws: string | null; due: string | null; status: 'OPEN' | 'IN_PROGRESS' | 'BLOCKED'; prio: 'HIGH' | 'MEDIUM' | 'LOW'; source: string | null }
+export interface ActionRow { code: string; name: string; owner: string; ws: string | null; due: string | null; status: 'OPEN' | 'IN_PROGRESS' | 'BLOCKED'; prio: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'; source: string | null }
 export interface ActionsData { today: string; rows: ActionRow[]; show: Record<string, boolean> }
 /** Échéance « imminente » (ambre) : dans les 14 prochains jours. */
 export const ACTION_SOON_DAYS = 14;
 const ACTION_STATUS: Record<ActionRow['status'], string> = { OPEN: 'Ouverte', IN_PROGRESS: 'En cours', BLOCKED: 'Bloquée' };
-const PRIO_LABEL: Record<ActionRow['prio'], string> = { HIGH: 'Haute', MEDIUM: 'Moyenne', LOW: 'Basse' };
+const PRIO_LABEL: Record<ActionRow['prio'], string> = { CRITICAL: 'Critique', HIGH: 'Haute', MEDIUM: 'Moyenne', LOW: 'Basse' };
 
 /** Ordre de lecture : les plus en retard d'abord, puis les échéances les plus proches, enfin les actions sans échéance. */
 export function sortActions(rows: ActionRow[], today: string): ActionRow[] {
@@ -202,11 +202,12 @@ function actionsPanel(d: Draw, p: Box, rows: ActionRow[], today: string, show: R
     y += lh;
   }
   if (show.prio) {
-    const high = rows.filter((r) => r.prio === 'HIGH'), highLate = high.filter((r) => r.due && r.due < today).length;
+    // Priorité haute ou critique (16/10/2026 : niveau « Critique » ajouté).
+    const high = rows.filter((r) => r.prio === 'HIGH' || r.prio === 'CRITICAL'), highLate = high.filter((r) => r.due && r.due < today).length;
     const by = y + 0.1 * IN;
     if (by + 0.4 * IN < p.y + p.h) {
       out.push(d.line(p.x + pad, by, p.x + p.w - pad, by, rule, 0.75));
-      out.push(d.text({ x: p.x + pad, y: by + 0.12 * IN, w: iw - 0.5 * IN, h: 0.3 * IN }, [{ runs: [{ t: 'Priorité haute', size: ty.small, color: 'FFFFFF' }] }, ...(high.length ? [{ runs: [{ t: highLate ? `dont ${highLate} en retard` : 'aucune en retard', size: ty.label, color: highLate ? lite(t.risk) : dim, bold: highLate > 0 }] }] : [])], 't'));
+      out.push(d.text({ x: p.x + pad, y: by + 0.12 * IN, w: iw - 0.5 * IN, h: 0.3 * IN }, [{ runs: [{ t: 'Priorité haute ou critique', size: ty.small, color: 'FFFFFF' }] }, ...(high.length ? [{ runs: [{ t: highLate ? `dont ${highLate} en retard` : 'aucune en retard', size: ty.label, color: highLate ? lite(t.risk) : dim, bold: highLate > 0 }] }] : [])], 't'));
       out.push(d.text({ x: p.x + p.w - pad - 0.5 * IN, y: by + 0.12 * IN, w: 0.5 * IN, h: 0.22 * IN }, [{ align: 'r', runs: [{ t: String(high.length), size: ty.small, color: 'FFFFFF', bold: true }] }], 't'));
     }
   }

@@ -1,3 +1,4 @@
+import { DECISION_P_PRIORITY } from '../../domain/labels';
 import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Put } from '@nestjs/common';
 import { riskLinks } from '../../domain/rights';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -36,6 +37,8 @@ const TaskCreate = z
     detail: z.string().max(4000).nullable().optional(),
     // « Saisir sans Jev » (09/10/2026) : statuts En cours et Bloquée, responsable, chantiers (un ou plusieurs, ou transverse).
     status: z.enum(['TODO', 'IN_PROGRESS', 'BLOCKED', 'DONE']).optional(),
+    // Priorité (16/10/2026) : quatre niveaux, comme les actions et les décisions.
+    prio: z.enum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']).optional(),
     owner: z.string().min(1).max(100).nullable().optional(),
     wsIds: z.array(z.string().min(1).max(100)).max(50).optional(),
     allWs: z.boolean().optional(),
@@ -58,6 +61,8 @@ type TaskItem = {
   dueIso: string | null;
   late: boolean;
   status: string;
+  /** Priorité (16/10/2026) : action et tâche manuelle ; décision : tirée de sa priorité ; jalon : aucune. */
+  prio?: string | null;
   wsId?: string | null;
   cta?: string | null;
   archived?: boolean;
@@ -95,21 +100,21 @@ export class TodayController {
     if (me) {
       for (const a of await this.prisma.action.findMany({ where: { ...P, ownerId: me, status: { not: 'DONE' } }, orderBy: { order: 'asc' } })) {
         if (!canReadLinks(scope.access, riskLinks(a))) continue;
-        out.push({ key: `ACTION/${a.id}`, kind: 'ACTION', id: a.id, code: a.code, title: a.n, detail: a.detail, dueIso: a.dueIso, late: actionLate(a.status, a.dueIso, today), status: a.status, wsId: a.wsId });
+        out.push({ key: `ACTION/${a.id}`, kind: 'ACTION', id: a.id, code: a.code, title: a.n, detail: a.detail, dueIso: a.dueIso, late: actionLate(a.status, a.dueIso, today), status: a.status, prio: a.prio, wsId: a.wsId });
       }
       for (const d of await this.prisma.decision.findMany({ where: { ...P, makerId: me, status: { in: ['IN_REVIEW', 'TO_ARBITRATE'] } }, orderBy: { code: 'asc' } })) {
         if (!canReadWs(scope.access, d.wsId)) continue;
-        out.push({ key: `DECISION/${d.id}`, kind: 'DECISION', id: d.id, code: d.code, title: d.t, dueIso: d.ddIso, late: false, status: d.status, wsId: d.wsId });
+        out.push({ key: `DECISION/${d.id}`, kind: 'DECISION', id: d.id, code: d.code, title: d.t, dueIso: d.ddIso, late: false, status: d.status, prio: DECISION_P_PRIORITY[d.p as 1 | 2 | 3 | 4] ?? null, wsId: d.wsId });
       }
       const hi = addDays(today, MY_MILESTONES_HORIZON_DAYS);
       for (const m of await this.prisma.milestone.findMany({ where: { ...P, ownerId: me, iso: { gte: today, lt: hi } }, orderBy: [{ iso: 'asc' }, { code: 'asc' }] })) {
-        out.push({ key: `MILESTONE/${m.id}`, kind: 'MILESTONE', id: m.id, code: m.code, title: m.n, dueIso: m.iso, late: false, status: 'PLANNED', wsId: m.wsId });
+        out.push({ key: `MILESTONE/${m.id}`, kind: 'MILESTONE', id: m.id, code: m.code, title: m.n, dueIso: m.iso, late: false, status: 'PLANNED', prio: null, wsId: m.wsId });
       }
     }
     const author = this.personOrAccount(actor, scope);
     // Tâches manuelles : celles dont on est l'auteur ou le responsable (09/10/2026).
     for (const t of await this.prisma.task.findMany({ where: { ...P, OR: [{ authorId: author }, ...(me ? [{ ownerId: me }] : [])] }, orderBy: { createdAt: 'asc' } })) {
-      out.push({ key: `TASK/${t.id}`, kind: 'MANUAL', id: t.id, title: t.title, detail: t.detail, dueIso: t.dueIso, late: t.status !== 'DONE' && !!t.dueIso && t.dueIso < today, status: t.status, cta: t.cta, link: t.link, owner: t.ownerId ?? t.authorId, authorId: t.authorId, wsIds: t.wsIds, allWs: t.allWs });
+      out.push({ key: `TASK/${t.id}`, kind: 'MANUAL', id: t.id, title: t.title, detail: t.detail, dueIso: t.dueIso, late: t.status !== 'DONE' && !!t.dueIso && t.dueIso < today, status: t.status, prio: t.prio, cta: t.cta, link: t.link, owner: t.ownerId ?? t.authorId, authorId: t.authorId, wsIds: t.wsIds, allWs: t.allWs });
     }
     const overrides = await this.prisma.taskOverride.findMany({ where: { ...P, personId: author } });
     const ov = Object.fromEntries(overrides.map((o) => [`${o.entityType}/${o.entityId}`, o]));
@@ -153,7 +158,7 @@ export class TodayController {
     const input = parse(TaskCreate, body);
     const extra = await this.taskPeople(scope, input, null);
     return this.prisma.$transaction(async (db) => {
-      const row = await db.task.create({ data: { ...extra, id: techId('tk'), projectId: scope.project.id, authorId: this.personOrAccount(actor, scope), title: input.title, dueIso: input.dueIso ?? null, detail: input.detail ?? null, status: input.status ?? 'TODO', link: (input.link ?? undefined) as Prisma.InputJsonValue | undefined, cta: input.cta ?? null } });
+      const row = await db.task.create({ data: { ...extra, id: techId('tk'), projectId: scope.project.id, authorId: this.personOrAccount(actor, scope), title: input.title, dueIso: input.dueIso ?? null, detail: input.detail ?? null, status: input.status ?? 'TODO', prio: input.prio ?? 'MEDIUM', link: (input.link ?? undefined) as Prisma.InputJsonValue | undefined, cta: input.cta ?? null } });
       await this.audit.record(db, { actor, projectId: scope.project.id, profileUsed: null }, { entityType: 'TASK', entityId: row.id, before: null, after: row as any, target: row.title });
       return row;
     });

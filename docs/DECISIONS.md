@@ -2795,3 +2795,28 @@ Brief du commanditaire : reproduire la maquette avec les vraies données et les 
   tuile) → écoute du clic sur la page (`componentDidMount`, `data-jf-pop`).
 - Maroc retiré du menu Pays du widget (16/10/2026, demande du commanditaire) ; un projet situé dans un pays sans calendrier
   garde l'état « Calendrier indisponible pour {pays} » (pays du projet ajouté au menu avec la mention « indisponible »).
+
+## Formulaire « Problème » de « Saisir sans Jev » et priorité des actions et des tâches (17/10/2026)
+
+Demande du commanditaire : la vue Risques et problèmes renvoyait vers un formulaire Problème absent de « Saisir sans
+Jev » ; ajouter aussi la priorité aux actions et aux tâches, dans les formulaires et dans les vues.
+
+- Formulaire Problème (famille Suivi et pilotage, après Risque) en quatre chapitres : Problème (intitulé*), Origine (né
+  du risque : facultatif, risques ouverts seulement ; chantier* proposé d'après le risque choisi tant qu'aucun n'est
+  saisi, premier chantier du risque, aucun pour un risque transverse), Gravité, Traitement (porteur*, vous par défaut ;
+  résolution visée ; impact constaté → `detail`). Envoi par la route existante `POST /issues` (`originRiskId`), sans
+  changement du serveur.
+- Sévérité : composant réutilisable `Severite 1-5.dc.html`, escalier de cinq marches de hauteur croissante (ambre de
+  S1 à S3, rouge à S4 et S5, comme le tableau des problèmes), groupe de boutons radio au clavier ; libellés et sens :
+  Mineure (gêne ponctuelle), Modérée (ralentit une équipe), Sérieuse (menace une échéance du chantier), Majeure (menace
+  un jalon ou plusieurs chantiers), Bloquante (arrête le chantier). S3 par défaut (hypothèse : niveau médian, à
+  corriger consciemment).
+- Priorité à quatre niveaux, comme les décisions : valeur `CRITICAL` ajoutée à l'enum `Priority` (migration
+  `20261118001300_priorite_actions_taches`), libellés `PRIORITY_FR` (Critique, Haute, Moyenne, Basse). Correspondance
+  décision → priorité `DECISION_P_PRIORITY` (4 → Critique … 1 → Basse). `Task.prio` ajouté, `MEDIUM` par défaut, comme
+  les actions ; route `POST`/`PATCH /me/tasks` et `GET /me/tasks` (priorité de l'action, de la décision, aucune pour un
+  jalon). Rapports : « Priorité haute ou critique » compte les deux niveaux.
+- Écrans : colonne Priorité (quatre barres et libellé, triable) dans Pilotage › Actions (modifiable selon les droits de
+  l'action) et Mes tâches (action : modifie l'action ; tâche : la tâche ; décision : lecture seule ; jalon : « — »).
+  Dictionnaire de Jev : exemples de `priorite` des actions avec `CRITICAL`, et ceux des décisions corrigés (4 =
+  critique … 1 = basse).

@@ -848,3 +848,10 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
 - Widget « Jours fériés », correctif (16/10/2026) : menus contenus dans la tuile (hauteur limitée, défilement) ; fermeture
   par un clic n'importe où hors du menu (écoute `pointerdown` de la page).
 - Widget « Jours fériés » (16/10/2026) : Maroc retiré du menu Pays (`CTRY`).
+- « Saisir sans Jev » › Problème (17/10/2026) : objet `probleme` (`SSJ_OBJ`, icône drapeau, champs `SSJ_F.probleme`,
+  chapitres Problème / Origine / Gravité / Traitement), type de champ `sev` (composant `Severite 1-5.dc.html`), chantier
+  proposé d'après le risque d'origine (`setv`) ; données `risksO` (`ssjData`) ; `api.js` `saisie('probleme')` → `POST /issues`.
+- Priorité des actions et des tâches (17/10/2026) : champ `prio` des formulaires Action et Tâche (Moyenne par défaut) ;
+  colonne Priorité dans Pilotage › Actions et Mes tâches (`prioView` : quatre barres et libellé, liste des niveaux
+  superposée pour modifier ; tri `sAc.prio`, `sMt.prioSort`) ; `api.js` : `PRIO_FR` / `PRIO_CODE`, `prio` dans
+  `saisie`, `onEd` (actions), magasin `minePrio` (tâches, `PATCH /me/tasks/:id`).

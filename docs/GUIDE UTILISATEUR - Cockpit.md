@@ -420,7 +420,7 @@ Deux façons de créer, toutes deux depuis le bouton **Jev** de la barre latéra
 | Élément | Avec Jev | Saisir sans Jev | Ailleurs |
 |---|---|---|---|
 | Risque, action, décision | Oui | Oui | — |
-| Problème | Oui | — | — |
+| Problème | Oui | Oui (depuis le 17 octobre 2026) | — |
 | Phase, sous-phase, chantier, jalon, livrable (PMO) | Oui | Oui | Référentiel (Info projet, bouton **+** de l'objet) |
 | Tâche | — | Oui | — |
 | Fiche d'arbitrage | — | Oui | Correction dans Pilotage › Décisions (voir 3.11) |
@@ -447,13 +447,13 @@ Les icônes « Demander à Jev » des blocs et des lignes du Pilotage ont été 
 2. Sous le champ de saisie de Jev, cliquez sur **Saisir sans Jev** (icône de crayon). Le lien est affiché dans tous les espaces du Cockpit, sauf aux Lecteurs (profils sans droit d'écriture), pour qui il est masqué depuis le 12 octobre 2026.
 3. Le panneau « Que voulez-vous créer ? » liste les objets en deux familles :
    - **Structure du projet** : Phase, Chantier, Sous-phase, Jalon ;
-   - **Suivi et pilotage** : Livrable, Risque, Action, Tâche, Décision, Fiche d'arbitrage, Baromètre (proposé au PMO et au Responsable du chantier transverse).
+   - **Suivi et pilotage** : Livrable, Risque, Problème, Action, Tâche, Décision, Fiche d'arbitrage, Baromètre (proposé au PMO et au Responsable du chantier transverse).
 4. Cliquez sur un objet (ou choisissez-le au clavier et appuyez sur Entrée, ou cliquez sur **Continuer**). Le formulaire glisse à la place de la liste ; la flèche **Changer d'objet** ramène la liste. La croix ferme le panneau, depuis le choix de l'objet comme depuis un formulaire (la saisie en cours est abandonnée ; à la réouverture, Jev revient). Dans un formulaire, **Annuler** abandonne la saisie et revient au choix de l'objet.
 
 **Remplir le formulaire**
 
 - **Objets de structure** (Phase, Chantier, Sous-phase, Jalon) : un **parcours** en étapes numérotées. Un seul champ est ouvert à la fois ; Entrée passe au suivant ; un champ rempli est coché et résumé.
-- **Objets de suivi** (Livrable, Risque, Action, Tâche, Décision, Fiche d'arbitrage, Baromètre) : trois **chapitres** (deux pour la fiche d'arbitrage, quatre pour le baromètre), ouverts l'un après l'autre par **Suivant**.
+- **Objets de suivi** (Livrable, Risque, Problème, Action, Tâche, Décision, Fiche d'arbitrage, Baromètre) : trois **chapitres** (deux pour la fiche d'arbitrage, quatre pour le problème et le baromètre), ouverts l'un après l'autre par **Suivant**.
 - Un anneau indique le nombre de champs requis remplis (« 2/4 »). Le bouton **Créer …** reste grisé tant qu'un champ requis manque ; le pied du formulaire affiche « * Requis », ou « À corriger : … » pour une date impossible (31/02) ou une période dont la fin précède le début.
 - Les dates se saisissent au clavier, au format jj/mm/aaaa.
 - Après **Créer …**, le message du serveur s'affiche dans le panneau (par exemple « Phase 7 créée », « Risque R12 créé ») et le formulaire reste ouvert, vidé, pour une nouvelle saisie. En cas de refus, le message du serveur s'affiche en rouge dans le pied et vos valeurs sont conservées.
@@ -468,8 +468,9 @@ Les icônes « Demander à Jev » des blocs et des lignes du Pilotage ont été 
 | Jalon | Intitulé du jalon*, Chantier* (ou « Transverse » : aucun chantier), Date cible*, Responsable. La phase est déduite de la date |
 | Livrable | Livrable : nom*. Rattachement : phase*, chantier (« Aucun chantier » possible), sous-phase* (proposée parmi celles de la phase et du chantier). Pilotage : responsable*, date de début, date de fin* |
 | Risque | Risque : intitulé*, chantier (un ou plusieurs, ou « Transverse », proposé d'office au PMO). Évaluation : probabilité et impact (Faible, Modérée, Forte, Très forte), avec la criticité calculée. Traitement : responsable*, plan de mitigation, échéance |
-| Action | Action : intitulé*. Rattachement : rattachée à* (un risque, une décision ou un jalon ouverts), chantier* (un ou plusieurs, ou « Transverse »). Pilotage : responsable* (vous, par défaut), échéance*, statut (À faire, En cours, Terminée, Bloquée) |
-| Tâche | Tâche : intitulé*. Rattachement : action (facultative), chantier*. Pilotage : responsable*, échéance, statut |
+| Problème | Problème : intitulé*. Origine : né du risque (facultatif : « Aucun · problème imprévu », sinon un risque ouvert ; le chantier du risque est alors proposé), chantier*. Gravité : sévérité de S1 Mineure à S5 Bloquante, choisie sur un escalier de cinq marches (souris ou flèches du clavier), avec le sens du niveau sous l'escalier ; S3 Sérieuse par défaut. Traitement : porteur* (vous, par défaut), résolution visée, impact constaté. Le code P… est attribué par le serveur ; le problème apparaît dans Pilotage › Risques et problèmes |
+| Action | Action : intitulé*. Rattachement : rattachée à* (un risque, une décision ou un jalon ouverts), chantier* (un ou plusieurs, ou « Transverse »). Pilotage : responsable* (vous, par défaut), échéance*, statut (À faire, En cours, Terminée, Bloquée), priorité (Critique, Haute, Moyenne, Basse ; Moyenne par défaut) |
+| Tâche | Tâche : intitulé*. Rattachement : action (facultative), chantier*. Pilotage : responsable*, échéance, statut, priorité (Critique, Haute, Moyenne, Basse ; Moyenne par défaut) |
 | Décision | Décision : point de décision*, priorité (Critique, Haute, Moyenne, Basse). Détails : statut* (« En instruction » par défaut), chantier, instance de décision*. Issue : date de décision, option choisie |
 | Fiche d'arbitrage | Arbitrage : intitulé de l'arbitrage*, décision concernée* (parmi les décisions non clôturées). Contexte : préparée par, contexte. Puis **Composer la fiche** (voir 3.11) |
 | Baromètre | Relevé : mois du relevé* (après le dernier relevé, jusqu'au mois en cours), répondants* (avec le taux de participation). Ressenti : note globale* sur 10 (curseur, écart avec le relevé précédent), répartition négatif / neutre / positif (une barre à deux poignées, toujours 100 %, partant du relevé précédent). Détail : note sur 10 de chaque question commune et de chaque chantier suivi, facultative (la note précédente et l'écart s'affichent ; un clic sur la note l'efface) ; **Ajouter** sous chaque liste crée une nouvelle question ou un nouveau chantier (« Nouvelle question · Retirer »), enregistré avec le relevé : la question rejoint les questions communes, le chantier le comparateur, et les relevés suivants les proposent. Verbatims : thèmes, avec leur tonalité positif, vigilance ou alerte. **Ne plus poser** retire une question des relevés suivants, **Ne plus suivre** arrête le suivi d'un chantier (un chantier passé en production, par exemple) ; **Rétablir** annule avant l'enregistrement ; l'historique des mois passés reste affiché. Bouton **Enregistrer le relevé** (voir 3.12) |
@@ -705,7 +706,7 @@ Demandez-le à Jev (voir 3.19.4) : libellé, probabilité et impact (1 à 5, cri
 
 **Registre des actions**
 
-- Colonnes : #, Action, Chantier, Porteur, Échéance, Statut, Origine. La colonne **Chantier** affiche les références des chantiers de l'action, ou « Transverse ».
+- Colonnes : #, Action, Priorité, Chantier, Porteur, Échéance, Statut, Origine. La colonne **Priorité** (depuis le 17 octobre 2026) montre quatre barres croissantes, remplies selon le niveau (Critique : 4, Haute : 3, Moyenne : 2, Basse : 1), et le libellé ; un clic ouvre la liste des niveaux pour qui peut modifier l'action ; le tri par Priorité place les critiques en tête. La colonne **Chantier** affiche les références des chantiers de l'action, ou « Transverse ».
 - Une action issue d'un risque affiche les chantiers du risque, et suit donc leurs modifications : quand les chantiers du risque changent, le chantier de l'action est réaligné (s'il n'en fait plus partie, il passe au premier chantier du risque) et ce changement est tracé au journal d'audit.
 - La colonne Origine affiche le code de l'objet d'origine (R02, D-005…).
 - Filtres : statut (À faire, En cours, Bloquée, Terminée), porteur, « Échues ».
@@ -888,7 +889,7 @@ Une seule demande par module peut être en attente.
 | Vos jalons des 45 prochains jours | « Confirmer le jalon Jxx · … » | Mettre à jour |
 | Les tâches que vous avez créées, ou qui vous sont confiées | Titre saisi | Au choix |
 
-- Colonnes : Tâche, Chantier, Échéance, Action attendue. La colonne **Chantier** affiche la référence du chantier : pour une action, ses chantiers (ceux de son risque d'origine le cas échéant) ; pour une décision ou un jalon, son chantier.
+- Colonnes : Tâche, Priorité, Chantier, Échéance, Action attendue. La **Priorité** (depuis le 17 octobre 2026) est celle de l'action (modifiée ici, elle change l'action elle-même), de la tâche (modifiable par son auteur et son responsable) ou de la décision (Critique à Basse, lue seulement) ; un jalon n'en a pas (« — »). Tri possible sur la colonne. La colonne **Chantier** affiche la référence du chantier : pour une action, ses chantiers (ceux de son risque d'origine le cas échéant) ; pour une décision ou un jalon, son chantier.
 - Les codes affichés sont ceux du projet (A-01, D-005, J03…).
 
 **Ce que vous pouvez faire**

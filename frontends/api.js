@@ -122,6 +122,9 @@ export async function request(method, path, body, opts = {}) {
 }
 const P = (path) => '/projects/' + encodeURIComponent(projectId) + path;
 export const get = (path, o) => request('GET', path, undefined, o);
+/** Priorité des actions et des tâches (16/10/2026) : codes du serveur ↔ libellés de l'écran. */
+const PRIO_FR = { CRITICAL: 'Critique', HIGH: 'Haute', MEDIUM: 'Moyenne', LOW: 'Basse' };
+const PRIO_CODE = { Critique: 'CRITICAL', Haute: 'HIGH', Moyenne: 'MEDIUM', Basse: 'LOW' };
 export const post = (path, body, o) => request('POST', path, body, o);
 export const patch = (path, body, o) => request('PATCH', path, body, o);
 export const put = (path, body, o) => request('PUT', path, body, o);
@@ -193,7 +196,7 @@ const frShort = (iso, year) => { if (!iso) return ''; const [y, m, d] = iso.spli
 
 /** Magasins persistants observés dans l'état du composant. */
 const STORES = ['ed', 'actStatus', 'sesEd', 'sesAdded', 'sesDel', 'refValues', 'refDeleted', 'bmEd', 'bmAdd', 'phLots', 'txtEd', 'critEd', 'arbData', 'lvTrack',
-  'mineArch', 'mineTitles', 'mineDetails', 'mineDue', 'mineCta', 'newTasks', 'gbExtra', 'gbMem', 'gbAdded', 'added', 'lvAdded', 'dlOwner', 'psAdded', 'psAcc',
+  'mineArch', 'mineTitles', 'mineDetails', 'mineDue', 'mineCta', 'minePrio', 'newTasks', 'gbExtra', 'gbMem', 'gbAdded', 'added', 'lvAdded', 'dlOwner', 'psAdded', 'psAcc',
   'roAdded', 'roTier', 'tmAdded', 'wsAdded', 'ipAdded', 'spAdded', 'phAdded', 'waAdded', 'spDesc', 'phDesc', 'plAdd', 'templates', 'tplHistory', 'cmts', 'modPh',
   ...SECTION_STORES, ...Object.keys(PREF_OF)];
 
@@ -334,7 +337,7 @@ export function attach(comp) {
       ed: {}, actStatus: {}, sesEd: {}, sesAdded: [], sesDel: {}, refValues: {}, refDeleted: {}, bmEd: {}, bmAdd: {},
       phLots: hydratePhLots(B), txtEd: {}, critEd: {}, arbData: {}, lvTrack: {}, gbExtra: {}, gbMem: {}, gbAdded: [], added: {}, lvAdded: [], dlOwner: {},
       psAdded: [], psAcc: {}, roAdded: [], roTier: {}, tmAdded: [], wsAdded: [], ipAdded: [], spAdded: [], phAdded: [], waAdded: [], spDesc: {}, phDesc: {}, plAdd: {},
-      newTasks: [], mineArch: {}, mineTitles: {}, mineDetails: {}, mineDue: {}, mineCta: {}, cmts: {}, modPh: {}, modOn: {},
+      newTasks: [], mineArch: {}, mineTitles: {}, mineDetails: {}, mineDue: {}, mineCta: {}, minePrio: {}, cmts: {}, modPh: {}, modOn: {},
     };
     SECTION_STORES.forEach((k) => { const v = byId['ui.' + k]; st[k] = v && typeof v === 'object' ? v : {}; });
     // Fiches d'arbitrage : chacune dans arbData, avec ses seuls textes et critères (10/10/2026 : plus de cas particulier D-007).
@@ -361,7 +364,7 @@ export function attach(comp) {
     // Tâches manuelles.
     const meId = (B.me && B.me.personId) || null;
     (L.tasks || []).filter((t) => t.kind === 'MANUAL').forEach((t) => {
-      st.newTasks.push({ id: t.id, author: meId, status: t.status, link: t.link || null, owner: t.owner || null, wsIds: t.wsIds || [], allWs: !!t.allWs, n: t.title, detail: t.detail || '', due: t.dueIso ? new Date(t.dueIso + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }) : 'à planifier', dueIso: t.dueIso || '', cta: t.cta || 'Ouvrir', lvl: 'due' });
+      st.newTasks.push({ id: t.id, author: meId, status: t.status, prio: PRIO_FR[t.prio] || 'Moyenne', link: t.link || null, owner: t.owner || null, wsIds: t.wsIds || [], allWs: !!t.allWs, n: t.title, detail: t.detail || '', due: t.dueIso ? new Date(t.dueIso + 'T12:00:00').toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }) : 'à planifier', dueIso: t.dueIso || '', cta: t.cta || 'Ouvrir', lvl: 'due' });
     });
     // Préférences (premier chargement uniquement : ensuite, l'écran fait foi).
     if (S.firstLoad && L.me && L.me.preferences) {
@@ -384,7 +387,7 @@ export function attach(comp) {
     raw(st);
     // Surcharges de « Mes tâches » : indexées par position dans la liste calculée.
     const keys = mineKeys();
-    const mine = { mineArch: {}, mineTitles: {}, mineDetails: {}, mineDue: {}, mineCta: {} };
+    const mine = { mineArch: {}, mineTitles: {}, mineDetails: {}, mineDue: {}, mineCta: {}, minePrio: {} };
     const byKey = Object.fromEntries((L.tasks || []).map((t) => [(t.kind === 'MANUAL' ? 'TASK' : t.kind) + '/' + t.id, t]));
     const D = comp.mergedData() || {};
     keys.forEach((k, i) => {
@@ -529,7 +532,7 @@ export function attach(comp) {
         if (a.risk !== b.risk) body.riskOverride = a.risk ? DELIV_RISK[a.risk] : null;
         if (Object.keys(body).length) writePatch('PATCH', '/deliverables/' + enc(id), body, TYPING_DEBOUNCE_MS);
       });
-      case 'mineArch': case 'mineTitles': case 'mineDetails': case 'mineDue': case 'mineCta': return onMine(k, before, after);
+      case 'mineArch': case 'mineTitles': case 'mineDetails': case 'mineDue': case 'mineCta': case 'minePrio': return onMine(k, before, after);
       case 'newTasks': return newItems(before, after).forEach((t) => write('POST task ' + t.id, () => ppost('/tasks', { title: t.n, dueIso: date(t.dueIso), detail: t.detail || null, cta: t.cta || null, status: t.status === 'DONE' ? 'DONE' : 'TODO' })));
       case 'gbExtra': return changedKeys(before, after).forEach((id) => { if (!isServerRow('GOVERNANCE_BODY', id)) return; const x = (after || {})[id] || {}, body = {}; if (x.shortName != null) body.shortName = x.shortName; if (x.color) body.color = String(x.color).toUpperCase(); writePatch('PATCH', '/governance-bodies/' + enc(id), body); });
       case 'gbMem': return changedKeys(before, after).forEach((id) => {
@@ -612,6 +615,8 @@ export function attach(comp) {
       if (!known(list, id)) return;
       const F = { rk: ['n', 'p', 'i', 'plan', 'owner', 'dueIso', 'status'], is: ['n', 'sev', 'detail', 'owner', 'targetIso', 'status'], ac: ['n', 'detail', 'owner', 'dueIso', 'status'] }[kind];
       F.forEach((f) => { if (f in ch) body[f] = /Iso$/.test(f) ? date(ch[f]) : f === 'plan' ? (ch[f] || null) : ch[f]; });
+      // Priorité d'une action (16/10/2026) : libellé de l'écran → code du serveur.
+      if (kind === 'ac' && 'prio' in ch && PRIO_CODE[ch.prio]) body.prio = PRIO_CODE[ch.prio];
       if (kind === 'rk' && ('allWs' in ch || 'wss' in ch)) { if (ch.allWs) body.allWs = true; else body.wsIds = (ch.wss || []).map(wsId).filter(Boolean); }
       else if ('ws' in ch && wsId(ch.ws)) body.wsId = wsId(ch.ws);
       if (kind === 'ac' && 'source' in ch) { const s = sourceOf(ch.source); if (s) { body.sourceType = s.sourceType; body.sourceId = s.sourceId; } }
@@ -774,7 +779,7 @@ export function attach(comp) {
 
   function onMine(k, before, after) {
     const keys = mineKeys();
-    const field = { mineTitles: 'title', mineDetails: 'detail', mineDue: 'dueIso', mineCta: 'cta' }[k];
+    const field = { mineTitles: 'title', mineDetails: 'detail', mineDue: 'dueIso', mineCta: 'cta', minePrio: 'prio' }[k];
     changedKeys(before, after).forEach((i) => {
       const key = keys[+i]; if (!key) return;
       const [type, id] = key.split('/');
@@ -782,8 +787,10 @@ export function attach(comp) {
       if (k === 'mineArch') return writePatch('PUT', '/me/tasks/' + type + '/' + enc(id) + '/override', { archived: v !== undefined }, 0);
       if (type === 'TASK') {
         if (!(S.extra.tasks || []).some((t) => t.id === id)) return;
+        if (field === 'prio') return PRIO_CODE[v] ? writePatch('PATCH', '/tasks/' + enc(id), { prio: PRIO_CODE[v] }) : undefined;
         return writePatch('PATCH', '/tasks/' + enc(id), { [field === 'dueIso' ? 'dueIso' : field]: field === 'dueIso' ? date(v) : v ?? null });
       }
+      if (field === 'prio') return; // priorité d'une action : modifiée sur l'action elle-même (ed, 'ac')
       writePatch('PUT', '/me/tasks/' + type + '/' + enc(id) + '/override', { [field]: field === 'dueIso' ? date(v) : v ?? null });
     });
   }
@@ -1070,7 +1077,7 @@ export function attach(comp) {
     async saisie(kind, v) {
       const B = S.B, me = (comp.me && comp.me().personId) || null;
       const T = '__T__', links = (l) => (l || []).includes(T) ? { allWs: true } : { wsIds: (l || []).filter(Boolean) };
-      const ST4 = ['OPEN', 'IN_PROGRESS', 'DONE', 'BLOCKED'], TK4 = ['TODO', 'IN_PROGRESS', 'DONE', 'BLOCKED'];
+      const ST4 = ['OPEN', 'IN_PROGRESS', 'DONE', 'BLOCKED'], TK4 = ['TODO', 'IN_PROGRESS', 'DONE', 'BLOCKED'], PR4 = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
       const DEC = { Brouillon: 'DRAFT', 'En instruction': 'IN_REVIEW', 'À arbitrer': 'TO_ARBITRATE', Arbitrée: 'ARBITRATED', Annulée: 'CANCELLED', Remplacée: 'SUPERSEDED' };
       const opt = (o) => Object.fromEntries(Object.entries(o).filter(([, x]) => x !== '' && x !== undefined && x !== null));
       const name = (id) => ((B.people || []).find((x) => x.id === id) || {}).name || '';
@@ -1101,9 +1108,13 @@ export function attach(comp) {
         } else if (kind === 'risque') {
           const r = await ppost('/risks', opt({ n: v.n.trim(), p: +v.p, i: +v.i, owner: v.owner, plan: (v.plan || '').trim(), dueIso: v.due, ...links(v.wss) }));
           msg = 'Risque ' + r.code + ' créé';
+        } else if (kind === 'probleme') {
+          // Problème (16/10/2026) : né d'un risque (originRiskId) ou imprévu ; ouvert à la date du jour (serveur).
+          const r = await ppost('/issues', opt({ n: v.n.trim(), sev: +v.sev || 3, owner: v.owner, wsId: v.ws, targetIso: v.due, detail: (v.detail || '').trim(), originRiskId: v.origin || null }));
+          msg = 'Problème ' + r.code + ' créé';
         } else if (kind === 'action') {
           const [type, id] = String(v.src).split(':');
-          const r = await ppost('/actions', opt({ n: v.n.trim(), owner: v.owner, dueIso: v.due, status: ST4[+v.st] || 'OPEN', sourceType: type, sourceId: id, ...links(v.wss) }));
+          const r = await ppost('/actions', opt({ n: v.n.trim(), owner: v.owner, dueIso: v.due, status: ST4[+v.st] || 'OPEN', prio: PR4[+v.prio] || 'MEDIUM', sourceType: type, sourceId: id, ...links(v.wss) }));
           msg = 'Action ' + r.code + ' créée';
         } else if (kind === 'decision') {
           // Une décision est rattachée à un chantier (modèle actuel) : « Transverse » ou aucun chantier sont refusés.
@@ -1113,7 +1124,7 @@ export function attach(comp) {
           const r = await ppost('/decisions', opt({ t: v.n.trim(), p: [4, 3, 2, 1][+v.prio] || 3, status: DEC[v.st] || 'DRAFT', crIso: B.today, ddIso: v.dd, wsId: v.ws, bodyId: v.body, opt: (v.opt || '').trim(), decL: (v.decL || '').trim(), supersedes: v.sup || undefined }));
           msg = 'Décision ' + r.code + ' créée';
         } else if (kind === 'tache') {
-          const r = await ppost('/tasks', opt({ title: v.n.trim(), owner: v.owner, link: v.act ? { entityType: 'ACTION', entityId: v.act } : null, dueIso: v.due, status: TK4[+v.st] || 'TODO', ...links(v.wss) }));
+          const r = await ppost('/tasks', opt({ title: v.n.trim(), owner: v.owner, link: v.act ? { entityType: 'ACTION', entityId: v.act } : null, dueIso: v.due, status: TK4[+v.st] || 'TODO', prio: PR4[+v.prio] || 'MEDIUM', ...links(v.wss) }));
           msg = 'Tâche « ' + r.title + ' » créée';
         } else if (kind === 'arbitrage') {
           // Fiche d'arbitrage « barème commun » (maquette 11a, 10/10/2026) : intitulé, préparée par, contexte (formulaire) et fiche.

@@ -164,7 +164,7 @@ const ActionCreate = z
     allWs: z.boolean().optional(),
     dueIso: optIsoDate,
     status: z.enum(['OPEN', 'IN_PROGRESS', 'BLOCKED', 'DONE']).optional(),
-    prio: z.enum(['HIGH', 'MEDIUM', 'LOW']).optional(),
+    prio: z.enum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']).optional(),
     sourceType: z.enum(['RISK', 'ISSUE', 'MILESTONE', 'DECISION']).nullable().optional(),
     sourceId: id.nullable().optional(),
   })

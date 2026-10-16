@@ -22,7 +22,9 @@ export const LEVEL_FR = { STRATEGIC: 'Stratégique', STEERING: 'Pilotage', OPERA
 export const MEMBER_ROLE_FR = { CHAIR: 'Président', MEMBER: 'Membre', SECRETARY: 'Secrétaire', GUEST: 'Invité' } as const;
 export const PROJECT_STATUS_FR = { PREPARATION: 'Préparation', ACTIVE: 'Actif', CLOSED: 'Clos' } as const;
 
-export const PRIORITY_FR = { HIGH: 'Haute', MEDIUM: 'Moyenne', LOW: 'Basse' } as const;
+export const PRIORITY_FR = { CRITICAL: 'Critique', HIGH: 'Haute', MEDIUM: 'Moyenne', LOW: 'Basse' } as const;
+/** Priorité d'une décision (p : 4 = critique … 1 = basse) → priorité d'une action ou d'une tâche (16/10/2026). */
+export const DECISION_P_PRIORITY = { 4: 'CRITICAL', 3: 'HIGH', 2: 'MEDIUM', 1: 'LOW' } as const;
 export const ACTION_STATUS_FR = { OPEN: 'À faire', IN_PROGRESS: 'En cours', BLOCKED: 'Bloquée', DONE: 'Terminée' } as const;
 export const DECISION_STATUS_FR = {
   DRAFT: 'Brouillon',
