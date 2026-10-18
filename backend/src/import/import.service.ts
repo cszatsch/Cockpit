@@ -18,7 +18,7 @@ export interface ImportReport {
 const toErr = (i: ImportIssue) => ({ sheet: i.sheet, row: i.row, column: i.column ?? null, message: i.message });
 const toWarn = (i: ImportIssue) => ({ ...toErr(i), source: i.source });
 
-/** Moteur d'import partagé par le Cockpit (`/referential/import`) et la Console (`/project-imports`). */
+/** Moteur d'import de la Console (`/projects/import`, `/projects/init`). */
 @Injectable()
 export class ImportService {
   constructor(private readonly prisma: PrismaService, private readonly audit: AuditService) {}
@@ -51,7 +51,8 @@ export class ImportService {
   }
 
   /**
-   * Import dans un projet existant (Cockpit, PMO) : simulation (`dryRun`) puis mode réel, tout ou rien.
+   * Import dans un projet existant : simulation (`dryRun`) puis mode réel, tout ou rien. Plus exposé en HTTP depuis le
+   * 18/10/2026 (audit de sécurité : route du Cockpit sans écran) ; garde les tests du moteur commun (`test/e2e/import.spec.ts`).
    * Par prudence, le référentiel du projet doit être vide (sinon 409 REFERENTIAL_NOT_EMPTY).
    */
   async importIntoProject(buffer: Buffer, project: { id: string; code: string }, dryRun: boolean, ctx: WriteCtx): Promise<ImportReport> {

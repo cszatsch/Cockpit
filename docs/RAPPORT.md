@@ -517,6 +517,12 @@ Une phase avec sous-phases prend la moyenne de leurs avancements pondérée par 
 
 Réalisé selon le brief : collecte (événements d'usage des écrans, sessions, appels d'IA attribués au compte), agrégats horaires et journaliers, routes `/api/admin/consumption/…` avec droits « Voir les coûts » et « Voir les données individuelles » appliqués par le serveur, écran de la maquette « 1a Miroir », droits réglables dans Administrateurs. Tests : `test/unit/platform-usage.spec.ts` (temps actif, périodes et changements d'heure, hausses inhabituelles, CSV) ; `test/e2e/consommation-acces.spec.ts` (définitions, totaux = séries = tableau en Jour, Semaine et Mois, comparaison N-1, filtres dont fournisseur et modèle, hausses inhabituelles et réglage, tri, filtre texte, export et journal, deux règles de droits dans l'API et l'export, collecte). Recette navigateur : entrée et page, filtres, niveau Équipe, droits restreints (coûts « — », pseudonymes, niveau Utilisateur désactivé), aucun défilement horizontal de page à 900 et 1 920 px, envoi des événements par la Console et le Cockpit. Mesure : 500 utilisateurs, 1 million d'événements sur un mois, `summary` ≈ 0,43 s, `series` ≈ 0,18 s. Écarts : routes sous `/api/admin/consumption` (et non `/console/usage`) ; temps connecté non filtré par fonctionnalité ; jetons exacts dans l'export.
 
+### Audit de sécurité du 18/10/2026 : corrections
+
+Rapport d'audit hors du dépôt (`%USERPROFILE%\security-audit-skill\cockpit\run-1\REPORT.md`) ; décisions dans `docs/DECISIONS.md`.
+
+- **Lot 0, code mort** : route `POST /assistant/files`, champ `fileIds` et code d'écran des pièces jointes de Jev retirés ; route `POST /referential/import` du Cockpit retirée (aucun écran ne l'appelait). Tests : `import.spec.ts` appelle le moteur directement (12 tests, dont la route absente) ; `annexes.spec.ts` vérifie l'absence de la route des pièces jointes et le refus de `fileIds`.
+
 ## 4. Questions ouvertes
 
 1. **Déclencheur des règles de notification** : faut-il ajouter un sélecteur de déclencheur dans la console ? Aujourd'hui, une règle créée depuis l'écran reçoit un déclencheur par défaut : « planifié » pour une notification, « manuel » pour une alerte.

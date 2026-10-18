@@ -1,23 +1,20 @@
 import { span, traced, traceMeta } from '../../core/trace';
-import { Body, Controller, HttpCode, Param, Post, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, HttpCode, Param, Post } from '@nestjs/common';
 import { JevPromptService } from '../../core/jev-prompt.service';
 import { stripMarkdownLinks } from '../../domain/jev-prompt';
 import { LATENCY_SERVICE_MODEL, latencyCategory, latencyUnserved, measuredPrompt, recordRoute, timedStep } from '../../core/latency';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { z } from 'zod';
 import { AccessService, ProjectScope } from '../../core/access.service';
 import { Actor, CurrentActor } from '../../core/auth/auth';
 import { barometerWriteWs, removeBarometerSurvey } from '../pilotage/barometer';
 import { PrismaService } from '../../core/prisma.service';
-import { StorageService } from '../../core/storage.service';
 import { LlmService } from '../../core/llm.service';
-import { badRequest, businessRule, conflict, forbidden, notFound } from '../../core/errors';
+import { businessRule, conflict, forbidden, notFound } from '../../core/errors';
 import { parse } from '../../core/http';
 import { canReadWs } from '../../domain/rights';
 import { parseFrLabel } from '../../domain/dates';
 import { ACTIONS, DECISIONS, ISSUES, RISKS, TransactionalService, TxEntity } from '../pilotage/transactional';
-import type { UploadedBlob } from '../../import/import.controller';
 import { JevRouterService } from '../../admin/jev-router.service';
 import { GuideAnswerService } from '../../admin/guide-answer.service';
 import { TodayService } from '../../core/today.service';
@@ -42,7 +39,6 @@ const Message = z
   .object({
     context: z.object({ space: z.string().max(40), tab: z.string().max(40).optional(), block: z.string().max(80).optional(), rowId: z.string().max(80).optional() }).strict(),
     text: z.string().trim().min(1).max(4000),
-    fileIds: z.array(z.string()).max(10).default([]),
     /** Conversation en cours (mémoire) ; absente : nouvelle conversation. */
     conversationId: z.string().max(60).optional(),
     /** Réponse à la question à choix de Jev (cas 3), ou annulation de la demande en cours. */
@@ -72,7 +68,6 @@ export class AssistantController {
     private readonly access: AccessService,
     private readonly tx: TransactionalService,
     private readonly llm: LlmService,
-    private readonly storage: StorageService,
     private readonly jev: JevPromptService,
     private readonly router: JevRouterService,
     private readonly guide: GuideAnswerService,
@@ -316,16 +311,4 @@ export class AssistantController {
     await this.prisma.assistantChange.update({ where: { id }, data: { status: 'REJECTED', decidedAt: new Date() } });
     return { id, status: 'REJECTED' };
   }
-
-  @Post('files')
-  @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 25 * 1024 * 1024 } }))
-  async file(@CurrentActor() actor: Actor, @Param('projectId') p: string, @UploadedFile() file: UploadedBlob | undefined) {
-    const scope = await this.access.scope(actor, p);
-    if (!file) throw badRequest('Fichier manquant', { file: 'obligatoire' });
-    const key = await this.storage.put(`assistant/${scope.project.id}`, file.buffer, (/\.[a-z0-9]+$/i.exec(file.originalname)?.[0] ?? '').toLowerCase());
-    const f = await this.prisma.assistantFile.create({ data: { projectId: scope.project.id, accountId: actor.accountId, name: file.originalname, mime: file.mimetype, fileKey: key, status: 'READY' } });
-    return { id: f.id, status: f.status, name: f.name };
-  }
-
 }

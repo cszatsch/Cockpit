@@ -10,7 +10,7 @@ import { StorageService } from '../../core/storage.service';
 import { badRequest, forbidden, notFound } from '../../core/errors';
 import { parse } from '../../core/http';
 import { canWriteTools } from '../../domain/rights';
-import type { UploadedBlob } from '../../import/import.controller';
+import type { UploadedBlob } from '../../core/upload';
 import { KB_FORMATS, KB_MAX_BYTES, readSummary } from '../../domain/kb-documents';
 import { KbService } from './kb.service';
 

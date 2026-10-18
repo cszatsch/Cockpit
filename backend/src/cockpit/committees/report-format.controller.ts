@@ -14,7 +14,7 @@ import { parse } from '../../core/http';
 import { analyzeFormatFile } from '../../core/report-format-read';
 import { canWriteTools } from '../../domain/rights';
 import { FORMAT_MAX_BYTES, FORMAT_TOO_BIG, FormatReadError, PAGE_KINDS, SHAPE_ROLES, ShapeRole } from '../../domain/report-format';
-import type { UploadedBlob } from '../../import/import.controller';
+import type { UploadedBlob } from '../../core/upload';
 import { ReportFormatService } from './report-format.service';
 import { ReportTemplateService } from './report-template.service';
 import { COMPONENTS, configErrors, KPI_MAX, PERIODS, PLAN_LEVELS, STATUS_FILTERS } from '../../domain/report-components';

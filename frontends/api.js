@@ -1423,9 +1423,8 @@ export function attach(comp) {
      */
     async jevSend(text, J, extra = {}) {
       const context = { space: J.space || comp.state.space, ...(J.tab || comp.state.tab ? { tab: J.tab || comp.state.tab } : {}), ...(J.block ? { block: String(J.block).slice(0, 80) } : {}), ...(J.id ? { rowId: String(J.id).slice(0, 80) } : {}) };
-      const fileIds = (comp._jevFileIds || []).splice(0);
       try {
-        const r = await ppost('/assistant/messages', { context, text: (!extra.answer && J.row && J.kind === 'ligne' && !/\b(A-\d+|R\d{2,}|P\d{2,}|D-\d{3}|J\d{2,})\b/i.test(text) ? String(J.row).split(' · ')[0] + ' · ' : '') + text, fileIds, ...(comp._jevConv ? { conversationId: comp._jevConv } : {}), ...(extra.answer ? { answer: extra.answer } : {}), ...(extra.docs ? { searchDocs: true } : {}) });
+        const r = await ppost('/assistant/messages', { context, text: (!extra.answer && J.row && J.kind === 'ligne' && !/\b(A-\d+|R\d{2,}|P\d{2,}|D-\d{3}|J\d{2,})\b/i.test(text) ? String(J.row).split(' · ')[0] + ' · ' : '') + text, ...(comp._jevConv ? { conversationId: comp._jevConv } : {}), ...(extra.answer ? { answer: extra.answer } : {}), ...(extra.docs ? { searchDocs: true } : {}) });
         comp._jevConv = r.conversationId || comp._jevConv;
         // Sources en étiquettes (jev-format.js, séparateur : saut de ligne) : « Guide · section · p. N » → « section · p. N ».
         const src = (r.sources || []).map((s) => (s.entityType === 'GUIDE' ? String(s.label).replace(/^Guide · /, '') : s.label)).join('\n');
@@ -1487,27 +1486,6 @@ export function attach(comp) {
 
     /** Nouvelle conversation (réouverture du panneau, « Effacer tous les messages ») : la mémoire de Jev repart de zéro. */
     jevReset() { comp._jevConv = null; },
-
-    /** Pièce jointe de Jev : `POST /assistant/files` ; la progression suit l'envoi réel. */
-    jevAttach(files) {
-      const fs = [...(files || [])]; if (!fs.length) return;
-      const add = fs.map((x) => ({ id: 'f' + Date.now() + Math.random(), name: x.name, ext: (x.name.split('.').pop() || '').toUpperCase().slice(0, 4), sizeL: x.size > 1048576 ? (x.size / 1048576).toFixed(1).replace('.', ',') + ' Mo' : Math.max(1, Math.round(x.size / 1024)) + ' Ko', pct: 10 }));
-      comp.setState((st) => ({ jevFiles: (st.jevFiles || []).concat(add) }));
-      comp._jevFileObjs = { ...(comp._jevFileObjs || {}) };
-      fs.forEach((f, i) => {
-        comp._jevFileObjs[add[i].name] = f;
-        const fd = new FormData(); fd.append('file', f, f.name);
-        ppost('/assistant/files', fd)
-          .then((r) => { (comp._jevFileIds = comp._jevFileIds || []).push(r.id); comp.setState((st) => ({ jevFiles: (st.jevFiles || []).map((x) => (x.id === add[i].id ? { ...x, pct: 100 } : x)) })); })
-          .catch((e) => { toast(errorText(e)); comp.setState((st) => ({ jevFiles: (st.jevFiles || []).filter((x) => x.id !== add[i].id) })); });
-      });
-    },
-
-    /** « Charger » dans la Base de connaissance : les fichiers joints à Jev sont déposés (`POST /documents`). */
-    jevLoadFiles(names) {
-      const files = (names || []).map((n) => (comp._jevFileObjs || {})[n]).filter(Boolean);
-      if (files.length) api.uploadDocuments(files);
-    },
   };
   comp._api = api;
   // Session par cookie : expiration après 30 min d'inactivité (« Toujours là ? » 60 s avant) et déconnexion.

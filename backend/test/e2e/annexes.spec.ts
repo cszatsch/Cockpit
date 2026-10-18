@@ -102,6 +102,12 @@ describe('Étape 10 — documents, commentaires, historique, Jev, services exter
     route.mockRestore();
   });
 
+  it('pièces jointes de Jev retirées (audit du 18/10/2026) : route absente, fileIds refusé', async () => {
+    const c = await t.as(WHO.lecteurC3);
+    await request(t.app.getHttpServer()).post(`${R}/assistant/files`).set('Authorization', `Bearer ${await t.token(WHO.lecteurC3)}`).attach('file', Buffer.from('x'), 'x.txt').expect(404);
+    await c.post(`${R}/assistant/messages`, { context: { space: 'pilotage' }, text: 'Bonjour', fileIds: ['f1'] }).expect(400);
+  });
+
   it('demande d’activation de module (Cockpit) et demande d’invitation (Q8 bis)', async () => {
     const c = await t.as(WHO.pmo);
     const r = await c.post(`${R}/module-requests`, { moduleId: 'bud' }).expect(201);

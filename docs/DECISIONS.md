@@ -2820,3 +2820,22 @@ Jev » ; ajouter aussi la priorité aux actions et aux tâches, dans les formula
   l'action) et Mes tâches (action : modifie l'action ; tâche : la tâche ; décision : lecture seule ; jalon : « — »).
   Dictionnaire de Jev : exemples de `priorite` des actions avec `CRITICAL`, et ceux des décisions corrigés (4 =
   critique … 1 = basse).
+
+## Audit de sécurité du 18/10/2026 : corrections
+
+Audit complet de Cockpit et de la Console (skill `security-audit`, rapport hors du dépôt :
+`%USERPROFILE%\security-audit-skill\cockpit\run-1\REPORT.md`). Le commanditaire a demandé de corriger les 11 failles de
+gravité moyenne, en quatre lots, puis de mettre à jour la VM.
+
+### Lot 0 : code mort retiré
+
+- **Pièces jointes de Jev** : le trombone avait quitté l'écran le 02/10/2026, mais la route `POST /assistant/files`
+  restait appelable par tout membre d'un projet (25 Mo par fichier, aucun quota, fichiers jamais relus ni purgés). Route,
+  champ `fileIds` des messages (refusé désormais par le schéma strict) et code d'écran (`jevAttach`, `jevLoadFiles`,
+  `jevOnFile`, fichiers joints du panneau) supprimés. Hypothèse : la table `AssistantFile` et le dossier
+  `storage/assistant/` sont gardés (aucune migration) ; à purger plus tard si le commanditaire le souhaite.
+- **Import Excel du Cockpit** : `POST /api/projects/:id/referential/import` n'était appelée par aucun écran et laissait
+  un PMO de n'importe quel projet faire planter le serveur avec un classeur de 7 Ko. Route supprimée ; l'initialisation
+  passe par la Console (`/projects/init`, `/projects/import`). `ImportService.importIntoProject` reste le point d'entrée
+  des tests du moteur commun (`test/e2e/import.spec.ts`), sans route HTTP. Le type `UploadedBlob` passe dans
+  `src/core/upload.ts`.

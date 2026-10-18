@@ -12,7 +12,7 @@ import { badRequest, notFound } from '../core/errors';
 import { parse } from '../core/http';
 import { GUIDE_APP_LABELS, GUIDE_APPS, GUIDE_UNKNOWN_APP, GUIDE_UPLOAD_HARD_LIMIT, GuideApp, guideFileName, isGuideApp } from '../domain/guide';
 import { fromScreenSettings, RAG_DEFAULTS, RAG_LIMITS, screenSettingsErrors, toScreenSettings } from '../domain/jev-rag';
-import type { UploadedBlob } from '../import/import.controller';
+import type { UploadedBlob } from '../core/upload';
 import { GuideIndexService } from './guide-index.service';
 import { GuideSearchService } from './guide-search.service';
 import { adminCtx } from './profiles.service';

@@ -1,18 +1,32 @@
 import request from 'supertest';
 import { setup, TestCtx, WHO } from '../helpers';
 import { buildWorkbook, validAtlas } from '../fixtures/excel';
+import { ImportService } from '../../src/import/import.service';
+import type { WriteCtx } from '../../src/core/audit.service';
 
-const URL = '/api/projects/ATLAS/referential/import';
-
+/**
+ * Moteur d'import du Référentiel (§ 13.9). La route du Cockpit `POST /referential/import` est retirée depuis le 18/10/2026
+ * (audit de sécurité : aucun écran ne l'appelait) ; le moteur, commun avec la Console, est appelé directement.
+ */
 describe('Étape 9 — import Excel du Référentiel (§ 13.9)', () => {
   let t: TestCtx;
-  let token: string;
-  const post = (buf: Buffer, q = '') =>
-    request(t.app.getHttpServer()).post(URL + q).set('Authorization', `Bearer ${token}`).attach('file', buf, 'ref.xlsx');
+  let project: { id: string; code: string };
+  const ctx = { actor: { accountId: 'u2', sessionId: 'test', email: 'pmo@test', fullName: 'PMO', personId: null, isAdmin: false, surface: null }, projectId: 'ATLAS', profileUsed: 'PMO' } as unknown as WriteCtx;
+  /** Même forme qu'une réponse HTTP : `.expect(statut)` puis `.body`. */
+  const post = (buf: Buffer, q = '') => ({
+    async expect(status: number) {
+      let code = 200;
+      let body: any;
+      try { body = await t.app.get(ImportService).importIntoProject(buf, project, q.includes('dryRun=true'), { ...ctx, projectId: project.id }); } catch (e: any) { code = e.getStatus(); body = e.getResponse(); }
+      expect({ status: code, body }).toMatchObject({ status });
+      return { body };
+    },
+  });
 
   beforeAll(async () => {
     t = await setup();
-    token = await t.token(WHO.pmo); // u2 : PMO sur RISE et ATLAS
+    const p = await t.db.project.findFirstOrThrow({ where: { OR: [{ id: 'ATLAS' }, { code: 'ATLAS' }] } });
+    project = { id: p.id, code: p.code };
   });
   afterAll(() => t.close());
 
@@ -170,8 +184,8 @@ describe('Étape 9 — import Excel du Référentiel (§ 13.9)', () => {
     await post(await buildWorkbook(validAtlas()), '?dryRun=true').expect(409);
   });
 
-  it('import réservé au PMO', async () => {
-    const lec = await t.token(WHO.lecteurC3);
-    await request(t.app.getHttpServer()).post('/api/projects/RISE/referential/import').set('Authorization', `Bearer ${lec}`).attach('file', await buildWorkbook(), 'x.xlsx').expect(403);
+  it('la route d’import du Cockpit est retirée (audit du 18/10/2026)', async () => {
+    const pmo = await t.token(WHO.pmo);
+    await request(t.app.getHttpServer()).post('/api/projects/ATLAS/referential/import').set('Authorization', `Bearer ${pmo}`).attach('file', await buildWorkbook(), 'x.xlsx').expect(404);
   });
 });

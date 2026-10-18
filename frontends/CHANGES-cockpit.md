@@ -855,3 +855,7 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
   colonne Priorité dans Pilotage › Actions et Mes tâches (`prioView` : quatre barres et libellé, liste des niveaux
   superposée pour modifier ; tri `sAc.prio`, `sMt.prioSort`) ; `api.js` : `PRIO_FR` / `PRIO_CODE`, `prio` dans
   `saisie`, `onEd` (actions), magasin `minePrio` (tâches, `PATCH /me/tasks/:id`).
+- Pièces jointes de Jev retirées (18/10/2026, audit de sécurité) : le trombone n'existait plus depuis le 02/10/2026 ;
+  code mort supprimé (`RISE Cockpit.dc.html` : bloc des fichiers joints du panneau, `jevOnFile`, `jevFiles`, branches
+  « Charger » / « Autre emplacement » de `jevSendText`, `_jevLoad` / `_jevFileIds` de `jevClear` ; `api.js` :
+  `jevAttach`, `jevLoadFiles`, champ `fileIds` de `jevSend`). La route serveur `POST /assistant/files` est supprimée.

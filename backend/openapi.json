@@ -165,27 +165,10 @@
         ]
       }
     },
-    "/api/projects/{projectId}/referential/import": {
-      "post": {
-        "operationId": "ReferentialImportController_import",
-        "parameters": [
-          {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "dryRun",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
+    "/api/holidays": {
+      "get": {
+        "operationId": "HolidaysController_list",
+        "parameters": [],
         "responses": {
           "200": {
             "description": ""
@@ -197,7 +180,7 @@
           }
         ],
         "tags": [
-          "cockpit · référentiel · import Excel"
+          "cockpit · jours fériés"
         ]
       }
     },
@@ -3615,34 +3598,6 @@
         ],
         "responses": {
           "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "tags": [
-          "cockpit · assistant Jev"
-        ]
-      }
-    },
-    "/api/projects/{projectId}/assistant/files": {
-      "post": {
-        "operationId": "AssistantController_file",
-        "parameters": [
-          {
-            "name": "projectId",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
             "description": ""
           }
         },

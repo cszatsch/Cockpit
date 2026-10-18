@@ -13,7 +13,7 @@ import { parse } from '../core/http';
 import { personaText } from '../core/jev-prompt.service';
 import { adminCtx } from './profiles.service';
 import { DEMO_PERSONA, personaErrors, PersonaText } from '../domain/jev-prompt';
-import type { UploadedBlob } from '../import/import.controller';
+import type { UploadedBlob } from '../core/upload';
 
 /** Image importée pour l'avatar : 1 Mo au plus (spécification PERSONA § 2). */
 export const PERSONA_PHOTO_MAX_BYTES = 1024 * 1024;
