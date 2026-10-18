@@ -877,3 +877,6 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
 - Registre des cartes API (15/10/2026, refonte des widgets) : matrice à 5 lignes (Actualités Eco, News, Sports en FR /
   EN ; Météo, Trafic en FR), ligne « Contexte » masquée sans widget de contexte, mosaïque sans hauteur maximale (la
   dernière ligne de tags était cachée), colonne des tags élargie à 132 px.
+- Adresse de retour après connexion (Console et Cockpit) (18/10/2026, audit de sécurité) : `safeReturn` d'`auth-api.js` refuse les caractères
+  de contrôle et les barres obliques inverses, puis relit l'adresse comme le navigateur (`new URL`) et n'accepte que la
+  même origine : `?suite=/%09/site-externe` menait à un autre site. Aucun changement d'écran.

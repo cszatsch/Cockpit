@@ -135,7 +135,9 @@ export class SessionService {
     }
     const session = await this.prisma.authSession.findUnique({ where: { id: payload.sid } });
     if (!session || session.revokedAt || session.accountId !== payload.sub) return 'SESSION_CLOSED';
-    if (fromCookie && payload.rot !== session.rotation) return 'SESSION_CLOSED';
+    // Session d'une surface (APP, ADMIN) : jeton accepté seulement depuis son cookie, au rang de rotation courant ;
+    // en Bearer ou `?access_token=`, un jeton renouvelé ou copié servirait encore (audit du 18/10/2026).
+    if (session.surface !== null && (!fromCookie || payload.rot !== session.rotation)) return 'SESSION_CLOSED';
     const limit = idleLimitMs(session.surface);
     if (limit !== null && Date.now() - session.lastSeenAt.getTime() > limit) {
       await this.prisma.authSession.update({ where: { id: session.id }, data: { revokedAt: new Date() } });

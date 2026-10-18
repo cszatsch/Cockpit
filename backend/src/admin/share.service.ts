@@ -5,7 +5,7 @@ import * as path from 'path';
 import { AuditService, WriteCtx } from '../core/audit.service';
 import type { Actor } from '../core/auth/auth';
 import { config } from '../core/config';
-import { ApiError, badRequest, notFound } from '../core/errors';
+import { ApiError, badRequest, forbidden, notFound } from '../core/errors';
 import { JobsService } from '../core/jobs.service';
 import { PrismaService } from '../core/prisma.service';
 import {
@@ -74,6 +74,9 @@ class FakeBuilder {
  * génération asynchrone du paquet en 4 étapes (état en base, diffusé en direct), historique, liens de
  * téléchargement signés, suppression du fichier. Le code de déverrouillage n'existe qu'en mémoire jusqu'à sa remise.
  */
+/** Refus d'un paquet contenant des secrets demandé par un Admin qui n'est pas Super Admin. */
+export const SHARE_SECRETS_SUPER_ADMIN = 'Paquet avec clés d’IA, clés API ou serveur SMTP réservé au Super Admin : décochez-les ou demandez-le à un Super Admin.';
+
 @Injectable()
 export class ShareService implements OnModuleInit {
   private readonly live = new Map<string, Live>();
@@ -222,6 +225,9 @@ export class ShareService implements OnModuleInit {
     const keys = await this.keyRows([...new Set(r.keys)]);
     if (keys.length !== new Set(r.keys).size) throw badRequest('Clé inconnue', { keys: 'Clé d’IA inconnue ou sans clé.' });
     const smtp = r.smtp && !!(await this.prisma.smtpSettings.findFirst());
+    // Clés d'IA, des cartes API ou SMTP en clair pour le destinataire : réservé au Super Admin, seul à gérer ces secrets
+    // dans la Console depuis le 10/10/2026 (audit de sécurité du 18/10/2026).
+    if (secretCount(keys.length, smtp) > 0 && !actor.isSuperAdmin) throw forbidden(SHARE_SECRETS_SUPER_ADMIN);
     const profiles = r.prefill.enabled ? r.prefill.profiles.filter((p) => (SHARE_PROFILES as readonly string[]).includes(p)) : [];
     const { version, build } = this.version();
     const id = 'shp_' + randomBytes(9).toString('hex');

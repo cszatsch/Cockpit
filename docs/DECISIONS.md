@@ -2894,3 +2894,22 @@ gravité moyenne, en quatre lots, puis de mettre à jour la VM.
   n'associe plus un widget à une carte que pour une session d'administrateur ; sinon l'association se fait dans la
   Console (`PUT /api/admin/api-cards/:id/widgets`). **Effet visible** : une nouvelle carte branchée sur un widget du
   Cockpit doit être associée par l'Administrateur.
+
+### Lot 4 : sessions et connexion (trois constats)
+
+Feu vert du commanditaire pour les lots 4 et 5 (« Implémentes les lots 4 et 5 »).
+
+- **Jeton de session rejoué hors cookie** (`SessionService.resolve`) : le jeton d'une session de surface (`APP`,
+  `ADMIN`) n'est plus accepté qu'en cookie, au rang de rotation courant ; en `Authorization: Bearer` ou
+  `?access_token=`, il répond 401 (avant : un jeton renouvelé ou copié restait valable, sans contrôle de surface ni
+  anti-CSRF, jusqu'à expiration du JWT). Le Bearer reste pour les sessions sans surface (`dev-login`, tests, écrans en
+  `?as=`). Aucun effet visible.
+- **Redirection ouverte après connexion** (`safeReturn` d'`auth-api.js`) : `?suite=/%09/site` passait le contrôle,
+  puis le navigateur retirait la tabulation et suivait `//site`. Caractères de contrôle et barres obliques inverses
+  refusés, adresse relue avec `new URL` et même origine exigée ; même refus des caractères de contrôle côté serveur
+  (`returnTo`, `pages.ts`).
+- **Partager Cockpit et secrets** (piste à valider n° 8, tranchée par le commanditaire) : un paquet qui contient une clé
+  d'IA, une clé de carte API ou le serveur SMTP est réservé au Super Admin (403, `SHARE_SECRETS_SUPER_ADMIN`, contrôle
+  dans `ShareService.start`). La décision du 05/10/2026 (clés extractibles du paquet) précédait le profil Super Admin
+  du 10/10/2026 ; elle vaut désormais pour le Super Admin seul. **Effet visible** : un Admin génère encore un paquet
+  sans secret ; s'il coche une clé ou le SMTP, la Console affiche le refus.

@@ -59,9 +59,19 @@ export const resetPassword = (token, password) => call('POST', '/reset', { token
 export const changePassword = (password, surface) => call('POST', '/password', { password }, surface);
 export const keepalive = (surface) => call('POST', '/keepalive', undefined, surface);
 
-/** Adresse de retour après connexion : chemin local uniquement (jamais une autre origine). */
+/**
+ * Adresse de retour après connexion : chemin local uniquement (jamais une autre origine). Caractères de contrôle et
+ * barres obliques inverses refusés partout : le navigateur retire tabulations et retours à la ligne, et `/<TAB>/site`
+ * devenait `//site` (audit de sécurité du 18/10/2026). L'adresse est relue comme le ferait le navigateur.
+ */
 export function safeReturn(url) {
-  return typeof url === 'string' && url.startsWith('/') && !url.startsWith('//') && !url.startsWith('/\\') ? url : '';
+  if (typeof url !== 'string' || !url.startsWith('/') || /[\u0000-\u001f\u007f\\]/.test(url)) return '';
+  try {
+    const base = 'http://rise.invalid', u = new URL(url, base);
+    return u.origin === base && !u.pathname.startsWith('//') ? u.pathname + u.search + u.hash : '';
+  } catch (e) {
+    return '';
+  }
 }
 
 /** Écran de connexion de la surface, avec un motif (`expiree`, `deconnecte`) et l'adresse de retour. */

@@ -21,7 +21,7 @@ const HEADERS = {
 
 /** Adresse de retour après connexion : chemin local uniquement (pas de redirection ouverte). */
 function returnTo(url: string, home: string): string | null {
-  return url && url !== home && url.startsWith('/') && !url.startsWith('//') ? url : null;
+  return url && url !== home && url.startsWith('/') && !url.startsWith('//') && !/[\u0000-\u001f\u007f\\]/.test(url) ? url : null;
 }
 
 /**

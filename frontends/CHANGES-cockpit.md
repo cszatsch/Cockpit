@@ -859,3 +859,6 @@ Les widgets en liste reçoivent chacun une visualisation adaptée à leur donné
   code mort supprimé (`RISE Cockpit.dc.html` : bloc des fichiers joints du panneau, `jevOnFile`, `jevFiles`, branches
   « Charger » / « Autre emplacement » de `jevSendText`, `_jevLoad` / `_jevFileIds` de `jevClear` ; `api.js` :
   `jevAttach`, `jevLoadFiles`, champ `fileIds` de `jevSend`). La route serveur `POST /assistant/files` est supprimée.
+- Adresse de retour après connexion (18/10/2026, audit de sécurité) : `safeReturn` d'`auth-api.js` refuse les caractères
+  de contrôle et les barres obliques inverses, puis relit l'adresse comme le navigateur (`new URL`) et n'accepte que la
+  même origine : `?suite=/%09/site-externe` menait à un autre site. Aucun changement d'écran.
