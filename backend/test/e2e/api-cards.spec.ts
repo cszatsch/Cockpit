@@ -95,7 +95,9 @@ describe('Console — registre des cartes API', () => {
     await pmo.get('/api/widgets/proxy/openweather?lat=48.8').expect(200); // cache : pas de nouvel appel
     expect(seen.length).toBe(n0 + 1);
     expect(seen.at(-1)!.url).toContain('lat=48.8');
-    expect((await t.db.apiCard.findUniqueOrThrow({ where: { id: 'openweather' } })).widgets).toEqual(['meteo']); // ancien libellé du Cockpit → identifiant du catalogue
+    // Audit du 18/10/2026 : l'en-tête d'un utilisateur du Cockpit n'associe plus le widget (administrateur seulement).
+    expect((await t.db.apiCard.findUniqueOrThrow({ where: { id: 'openweather' } })).widgets).not.toContain('meteo');
+    await admin.put(`${AC}/openweather/widgets`, { ids: ['meteo'] }).expect(200); // association par la Console
     // Quota de 4 appels par jour : déjà 2 tests + 1 appel du proxy ; le 4e passe, le 5e est refusé.
     await pmo.get('/api/widgets/proxy/openweather?lat=1').expect(200);
     await pmo.get('/api/widgets/proxy/openweather?lat=2').expect(429);
@@ -283,7 +285,7 @@ describe('Console — registre des cartes API', () => {
     const u = new URL(seen[0].url);
     expect(u.pathname).toBe('/routing/1/calculateRoute/48.85,2.35:48.68,2.38/json');
     expect(Object.fromEntries(u.searchParams)).toEqual({ traffic: 'true', key: 'CLE-tomtom-routing-42', travelMode: 'car' });
-    expect((await t.db.apiCard.findUniqueOrThrow({ where: { id: c.body.id } })).widgets).toContain('trafic');
+    expect((await t.db.apiCard.findUniqueOrThrow({ where: { id: c.body.id } })).widgets).not.toContain('trafic'); // association par un administrateur seulement (audit du 18/10/2026)
     // Valeur qui tenterait de sortir du chemin : refusée, aucun appel.
     seen.length = 0;
     await pmo.get(`/api/widgets/proxy/${c.body.id}?route=${encodeURIComponent('../../traffic/x')}`).expect(400);

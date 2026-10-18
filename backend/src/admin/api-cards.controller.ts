@@ -257,10 +257,11 @@ export class WidgetProxyController {
   constructor(private readonly cards: ApiCardsService) {}
 
   @Get(':cardId')
-  async proxy(@Param('cardId') cardId: string, @Query() query: Record<string, string>, @Req() req: Request, @Res() res: Response) {
+  async proxy(@CurrentActor() actor: Actor, @Param('cardId') cardId: string, @Query() query: Record<string, string>, @Req() req: Request, @Res() res: Response) {
     const q = Object.fromEntries(Object.entries(query).filter(([, v]) => typeof v === 'string')) as Record<string, string>;
     const widget = String(req.headers['x-rise-widget'] ?? '').slice(0, 60) || null;
-    const r = await this.cards.proxy(cardId, q, widget);
+    // Audit du 18/10/2026 : appels sortants limités par compte ; association du widget par un administrateur seulement.
+    const r = await this.cards.proxy(cardId, q, widget, { accountId: actor.accountId, isAdmin: actor.isAdmin });
     res.status(r.code).setHeader('Content-Type', r.contentType).setHeader('X-RISE-Cache', r.cache ?? 'miss').send(r.body);
   }
 }

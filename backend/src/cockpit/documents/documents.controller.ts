@@ -135,7 +135,8 @@ export class DocumentsController {
     const { links } = parse(z.object({ links: z.array(LinkSchema) }).strict(), body);
     return this.prisma.$transaction(async (db) => {
       const d = await db.document.findFirst({ where: { id, projectId: scope.project.id }, include: { links: true } });
-      if (!d) throw notFound();
+      // Document Restreint invisible pour l'appelant : 404, comme en lecture (audit du 18/10/2026).
+      if (!d || !this.kb.visible(scope, actor, d)) throw notFound();
       await db.documentLink.deleteMany({ where: { documentId: id } });
       const uniq = [...new Map(links.map((l) => [`${l.entityType}|${l.entityId}`, l])).values()];
       await db.documentLink.createMany({ data: uniq.map((l) => ({ documentId: id, ...l })) });
@@ -152,7 +153,10 @@ export class DocumentsController {
     const input = parse(Meta, body);
     return this.prisma.$transaction(async (db) => {
       const d = await db.document.findFirst({ where: { id, projectId: scope.project.id }, include: { links: true } });
-      if (!d) throw notFound();
+      // Audit du 18/10/2026 : document invisible pour l'appelant → 404 ; confidentialité changée seulement par le PMO,
+      // l'administrateur ou l'auteur du dépôt (un Responsable ne déclassifie plus un document qu'il ne voit pas).
+      if (!d || !this.kb.visible(scope, actor, d)) throw notFound();
+      if (input.conf !== undefined && input.conf !== d.conf && !this.kb.canDelete(scope, actor, d)) throw forbidden('Confidentialité : réservée au PMO et à l’auteur du dépôt');
       const after = await db.document.update({ where: { id }, data: { ...input, version: { increment: 1 } }, include: { links: true } });
       await this.audit.record(db, { actor, projectId: scope.project.id, profileUsed: scope.access.pmo ? 'PMO' : 'RESPONSABLE' }, { entityType: 'DOCUMENT', entityId: id, before: this.view(d), after: this.view(after), target: d.n });
       return this.view(after);

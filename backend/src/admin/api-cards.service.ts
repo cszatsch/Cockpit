@@ -28,6 +28,9 @@ import {
   PROXY_STALE_MS,
   PROXY_CACHE_NEWS_MS,
   PROXY_NEWS_CATEGORIES,
+  PROXY_CACHE_MAX_ENTRIES,
+  PROXY_USER_MISSES_MAX,
+  PROXY_USER_WINDOW_MS,
   HEALTH_SKIP_IF_OK_MS,
   redactKey,
   TEST_BODY_MAX,
@@ -38,6 +41,12 @@ import { cardWidgets, widgetId } from '../domain/widgets';
 export const API_HEALTH_CRON = '*/15 * * * *';
 
 export type CallSource = 'PROXY' | 'HEALTH' | 'TEST' | 'JEV';
+
+/** Compte à l'origine d'un appel direct du proxy (`GET /api/widgets/proxy/:cardId`). */
+export interface ProxyCaller {
+  accountId: string;
+  isAdmin: boolean;
+}
 export interface CallResult {
   code: number;
   ms: number | null;
@@ -67,6 +76,8 @@ export class ApiCardsService implements OnModuleInit {
   private cache = new Map<string, { until: number; staleUntil: number; r: CallResult }>();
   /** Un seul appel en cours par requête identique (un service limité à 1 appel / 5 s, comme GDELT, répondrait 429). */
   private inflight = new Map<string, Promise<CallResult>>();
+  /** Appels sortants du proxy par compte et par carte (instants, fenêtre glissante `PROXY_USER_WINDOW_MS`). */
+  private misses = new Map<string, number[]>();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -216,9 +227,10 @@ export class ApiCardsService implements OnModuleInit {
    * et le trafic) ; chaque appel réel est journalisé. Carte en erreur ou appel en échec (délai, 5xx, 429) : la
    * dernière réponse réussie (24 h au plus) est servie, sinon 503. Un seul appel en cours par requête identique.
    */
-  async proxy(cardId: string, query: Record<string, string>, widget?: string | null): Promise<CallResult> {
+  async proxy(cardId: string, query: Record<string, string>, widget?: string | null, caller?: ProxyCaller | null): Promise<CallResult> {
     const card = await this.prisma.apiCard.findUnique({ where: { id: cardId } });
-    if (!card) throw new ApiError(404, 'NOT_FOUND', 'Carte API inconnue');
+    // Carte POST (JEV / TypeSafe, payante à chaque appel) : jamais appelée par les widgets (audit du 18/10/2026).
+    if (!card || card.method === 'POST') throw new ApiError(404, 'NOT_FOUND', 'Carte API inconnue');
     const [view] = await this.views([card]);
     if (!card.enabled) throw new ApiError(503, 'CARD_DISABLED', `Service « ${card.name} » désactivé`);
     const cacheKey = `${card.id}?${Object.keys(query).sort().map((k) => `${k}=${query[k]}`).join('&')}`;
@@ -231,15 +243,32 @@ export class ApiCardsService implements OnModuleInit {
     if (hit && hit.until > now) return { ...hit.r, cache: 'hit' };
     const pending = this.inflight.get(cacheKey);
     if (pending) return pending;
-    if (card.quotaLimit && (view.quotaUsed ?? 0) >= card.quotaLimit) throw new ApiError(429, 'QUOTA_EXCEEDED', `Quota journalier de « ${card.name} » atteint (${card.quotaLimit} appels)`);
-    // Widget déclaré par le Cockpit (identifiant du catalogue) : associé à la carte à son premier appel.
+    // Quota atteint : dernière réponse en réserve plutôt qu'un refus (audit du 18/10/2026).
+    if (card.quotaLimit && (view.quotaUsed ?? 0) >= card.quotaLimit) {
+      if (stale) return stale;
+      throw new ApiError(429, 'QUOTA_EXCEEDED', `Quota journalier de « ${card.name} » atteint (${card.quotaLimit} appels)`);
+    }
+    // Appels sortants limités par compte et par carte : un utilisateur ne vide ni le quota partagé ni le budget.
+    if (caller) {
+      const k = `${caller.accountId}|${card.id}`;
+      const recent = (this.misses.get(k) ?? []).filter((at) => at > now - PROXY_USER_WINDOW_MS);
+      if (recent.length >= PROXY_USER_MISSES_MAX) {
+        this.misses.set(k, recent);
+        if (stale) return stale;
+        throw new ApiError(429, 'RATE_LIMITED', `Trop d’appels à « ${card.name} » : réessayez dans quelques minutes`);
+      }
+      this.misses.set(k, [...recent, now]);
+    }
+    // Widget déclaré par le Cockpit (identifiant du catalogue) : associé à la carte à son premier appel, pour une
+    // session d'administrateur seulement (sinon par la Console, PUT /api/admin/api-cards/:id/widgets).
     const wid = widgetId(widget);
-    if (wid && !cardWidgets(card.widgets).includes(wid)) await this.prisma.apiCard.update({ where: { id: card.id }, data: { widgets: { push: wid } } });
+    if (caller?.isAdmin && wid && !cardWidgets(card.widgets).includes(wid)) await this.prisma.apiCard.update({ where: { id: card.id }, data: { widgets: { push: wid } } });
     const run = (async () => {
       const r = await this.call(card, query, 'PROXY', widget);
       const redirect = r.code >= 300 && r.code < 400, failed = !r.code || redirect || r.code >= 500 || r.code === 429;
       if (failed && stale) return stale;
       if (!r.code || redirect) throw new ApiError(503, 'CARD_UNAVAILABLE', `Service « ${card.name} » ${redirect ? `déplacé (redirection ${r.code})` : 'injoignable'}`);
+      if (r.code < 400) this.remember(cacheKey);
       if (r.code < 400) this.cache.set(cacheKey, { until: Date.now() + (PROXY_FAST_CATEGORIES.includes(card.category) ? PROXY_CACHE_FAST_MS : PROXY_CACHE_MS), staleUntil: Date.now() + PROXY_STALE_MS, r });
       if (r.code < 400 && PROXY_NEWS_CATEGORIES.includes(card.category)) this.cache.get(cacheKey)!.until = Date.now() + PROXY_CACHE_NEWS_MS;
       return { ...r, cache: 'miss' as const };
@@ -250,6 +279,12 @@ export class ApiCardsService implements OnModuleInit {
     } finally {
       this.inflight.delete(cacheKey);
     }
+  }
+
+  /** Place pour une entrée du cache : la clé repasse en dernier, les plus anciennes sortent au-delà du plafond. */
+  private remember(cacheKey: string) {
+    this.cache.delete(cacheKey);
+    while (this.cache.size >= PROXY_CACHE_MAX_ENTRIES) this.cache.delete(this.cache.keys().next().value as string);
   }
 
   /** Vide le cache d'une carte (clé remplacée, endpoint modifié, carte désactivée). */

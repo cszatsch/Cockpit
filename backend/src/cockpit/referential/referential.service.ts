@@ -11,6 +11,9 @@ import { EntityConfig, EntityCtx } from './entities';
 import { UsagesService } from './usages.service';
 import { assertPhaseProgressEditable, assertWorkstreamProgressEditable, rollupPhaseProgress, rollupWorkstreamProgress, rollupWorkstreamsOfSubphases } from '../phase-progress';
 
+/** Création et suppression d'un client : depuis la Console seulement (audit du 18/10/2026). */
+export const GLOBAL_FROM_CONSOLE = 'Les clients se créent et se suppriment depuis la Console';
+
 /**
  * Moteur CRUD du Référentiel (brief Cockpit § 9.4) : même patron pour toutes les entités.
  * Écritures réservées au PMO (§ 8.5), historisées champ par champ (§ 7.10), suppression bloquée
@@ -38,7 +41,8 @@ export class ReferentialService {
   }
 
   private where(def: EntityConfig, scope: ProjectScope, extra: Record<string, any> = {}) {
-    return def.global ? extra : { projectId: scope.project.id, ...extra };
+    // Entité partagée entre projets (le client) : le Cockpit ne voit que le client du projet de l'URL (audit du 18/10/2026).
+    return def.global ? { AND: [extra, { id: scope.project.clientId }] } : { projectId: scope.project.id, ...extra };
   }
 
   async list(def: EntityConfig, scope: ProjectScope, query: Record<string, string> = {}) {
@@ -63,6 +67,7 @@ export class ReferentialService {
 
   async create(def: EntityConfig, actor: Actor, scope: ProjectScope, body: unknown, origin: WriteCtx['origin'] = 'MANUAL') {
     this.assertWrite(scope);
+    if (def.global) throw forbidden(GLOBAL_FROM_CONSOLE);
     const input = parse(def.create, body);
     return this.prisma.$transaction(async (tx) => {
       const c = this.ctx(scope, tx);
@@ -130,6 +135,7 @@ export class ReferentialService {
 
   async remove(def: EntityConfig, actor: Actor, scope: ProjectScope, id: string, ifMatch?: string, origin: WriteCtx['origin'] = 'MANUAL') {
     this.assertWrite(scope);
+    if (def.global) throw forbidden(GLOBAL_FROM_CONSOLE);
     await this.prisma.$transaction(async (tx) => {
       const c = this.ctx(scope, tx);
       const existing = await this.findRow(def, scope, id, tx);
@@ -155,6 +161,8 @@ export class ReferentialService {
 
   async usages(def: EntityConfig, scope: ProjectScope, id: string) {
     await this.findRow(def, scope, id);
-    return this.usagesSvc.usages(this.prisma, scope.project.id, def.entityType, id);
+    const all = await this.usagesSvc.usages(this.prisma, scope.project.id, def.entityType, id);
+    // Client partagé : les autres projets qui l'utilisent ne sont pas révélés.
+    return def.global ? all.filter((u) => u.entityType !== 'PROJECT' || u.id === scope.project.id) : all;
   }
 }

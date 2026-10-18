@@ -34,6 +34,13 @@ export const PROXY_FAST_CATEGORIES: readonly string[] = ['Météo', 'Trafic'];
 /** Actualités et finance : cache de 30 min (quotas gratuits serrés : GNews 100 appels / jour, NewsData 200). */
 export const PROXY_CACHE_NEWS_MS = 30 * 60_000;
 export const PROXY_NEWS_CATEGORIES: readonly string[] = ['Actualités', 'Finance'];
+/**
+ * Proxy des widgets, audit du 18/10/2026 : 60 appels sortants (absences du cache) par compte et par carte sur 10 min
+ * au plus ; au-delà, dernière réponse en réserve ou 429. Cache limité à 2 000 entrées (les plus anciennes sortent).
+ */
+export const PROXY_USER_MISSES_MAX = 60;
+export const PROXY_USER_WINDOW_MS = 10 * 60_000;
+export const PROXY_CACHE_MAX_ENTRIES = 2000;
 /** Contrôle de santé passif : une carte ayant réussi un vrai appel dans l'heure n'est pas re-testée. */
 export const HEALTH_SKIP_IF_OK_MS = 60 * 60_000;
 /** Emplacement de la clé dans l'endpoint ; sans ce marqueur, la clé part dans l'en-tête `X-Api-Key`. */

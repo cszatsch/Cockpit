@@ -2870,3 +2870,27 @@ gravité moyenne, en quatre lots, puis de mettre à jour la VM.
   les composants) ; refuser est la correction minimale sûre. **Effet visible** : un Responsable ne génère plus un
   rapport « projet entier » (403 « Rapport réservé au PMO… ») ; seul le PMO (ou l'Admin) le fait. À revoir si le
   commanditaire préfère un filtrage des données par chantier.
+
+### Lot 3 : contournements d'autorité (cinq failles)
+
+- **Documents Restreints** (`PATCH /documents/:id`, `PUT /documents/:id/links`) : un document que l'appelant ne voit
+  pas répond 404, comme en lecture (`KbService.visible`) ; la confidentialité ne change que par le PMO, l'Admin ou
+  l'auteur du dépôt (`KbService.canDelete`), sinon 403. **Effet visible** : un Responsable modifie encore le titre ou
+  le type d'un document Interne, mais ne le passe plus en Restreint (ni l'inverse).
+- **Clients** (entité partagée entre projets, `def.global`) : le Cockpit ne lit, ne modifie et ne liste que le client
+  du projet de l'URL ; création et suppression refusées (403, `GLOBAL_FROM_CONSOLE`) : elles se font depuis la Console
+  (Initialisation projet, Bibliothèque des projets). Les usages d'un client ne citent plus les autres projets.
+- **Remplacement d'une décision** (`supersede`, `transactional.ts`) : la décision remplacée est lue et écrite avec les
+  droits de l'appelant (RG8, RG9) ; un Responsable de C5 ne fait plus passer à « Remplacée » une décision de C3.
+- **Paquet Partager Cockpit** (`ShareBuilder.copyDatabase`) : comptes sans lien avec les projets retenus retirés (ni
+  rattachement, ni habilitation, ni personne du référentiel à la même adresse) ; empreintes de mot de passe effacées et
+  droits d'administration retirés (l'installateur crée le compte du destinataire) ; journaux de la plateforme vidés
+  (`SHARE_PLATFORM_HISTORY` : conversations et traces de Jev, préremplissage, notifications de la Console, partages,
+  temps de réponse, appels des cartes API) et journal d'audit hors projet retiré.
+- **Proxy des widgets** (`GET /api/widgets/proxy/:cardId`) : carte POST (JEV / TypeSafe, payante à chaque appel)
+  jamais appelée (404) ; au plus `PROXY_USER_MISSES_MAX` (60) appels sortants par compte et par carte sur
+  `PROXY_USER_WINDOW_MS` (10 min), au-delà dernière réponse en réserve ou 429 `RATE_LIMITED` ; quota atteint : réserve
+  servie avant le 429 ; cache plafonné à `PROXY_CACHE_MAX_ENTRIES` (2 000) entrées. L'en-tête `X-RISE-Widget`
+  n'associe plus un widget à une carte que pour une session d'administrateur ; sinon l'association se fait dans la
+  Console (`PUT /api/admin/api-cards/:id/widgets`). **Effet visible** : une nouvelle carte branchée sur un widget du
+  Cockpit doit être associée par l'Administrateur.

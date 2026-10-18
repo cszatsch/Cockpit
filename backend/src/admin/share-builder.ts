@@ -42,6 +42,8 @@ export type StepFn = (step: number) => Promise<void> | void;
 const CONFIG_TABLES = ['Provider', 'AiModel', 'ModelAssignment', 'BudgetThreshold', 'smtp_settings', 'api_cards', 'Skill', 'Persona', 'PersonaVersion', 'jev_rag_settings', 'guide_versions', 'guide_chunks'];
 /** Tables liées aux fichiers déposés (Base de connaissance, guide) : vidées sans fichiers. Les formats et templates de rapport
  * restent toujours (décision du 05/10/2026 : quelques Mo, et sans eux « Générer un rapport » serait vide). */
+/** Journaux de la plateforme vidés dans tout paquet (audit du 18/10/2026), enfants avant parents. */
+export const SHARE_PLATFORM_HISTORY = ['jev_messages', 'jev_conversations', 'jev_classifications', 'jev_answer_logs', 'jev_traces', 'prefill_tasks', 'prefill_documents', '"Notification"', 'share_packages', 'step_timings', 'api_card_calls'];
 const FILE_TABLES = ['kb_chunks', 'document_events', 'Document', 'guide_chunks', 'guide_versions', 'guide_uploads', 'guide_downloads'];
 /** Export du jeu de démonstration livré dans l'application (relatif à `app/backend`). */
 export const DEMO_DUMP = path.join('demo', 'demo.dump');
@@ -235,6 +237,19 @@ export class ShareBuilder {
       ${o.smtp ? '' : 'DELETE FROM smtp_settings;'}
       ${o.files ? '' : FILE_TABLES.map((t) => `DELETE FROM "${t}";`).join(' ')}
     `);
+    // Audit du 18/10/2026 : le paquet ne contient que les projets retenus. Comptes sans lien avec eux retirés, aucune
+    // empreinte de mot de passe ni droit d'administration (l'installateur crée le compte du destinataire), journaux de la
+    // plateforme vidés (questions à Jev, préremplissage, notifications de la Console, partages, audit hors projet).
+    await this.sql(temp, `
+      DELETE FROM "Account" a WHERE NOT EXISTS (SELECT 1 FROM "AccountProject" ap WHERE ap."accountId" = a.id)
+        AND NOT EXISTS (SELECT 1 FROM "Habilitation" h WHERE h."accountId" = a.id)
+        AND NOT EXISTS (SELECT 1 FROM "Person" p WHERE lower(p.email) = lower(a.email));
+      UPDATE "Account" SET "passwordHash" = NULL, "passwordChangedAt" = NULL;
+      DELETE FROM "AdminGrant";
+      ${SHARE_PLATFORM_HISTORY.map((t) => `DELETE FROM ${t};`).join(' ')}
+      DELETE FROM "AuditEntry" WHERE "projectId" IS NULL;
+    `);
+    await this.sql(temp, ORPHANS_SQL);
   }
 
   /** Export du jeu de démonstration de cette version : celui livré avec l'installation, sinon fabriqué (et gardé en cache). */

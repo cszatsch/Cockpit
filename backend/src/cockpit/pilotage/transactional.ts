@@ -423,8 +423,11 @@ export class TransactionalService {
 
   /** Une décision arbitrée qui en remplace une autre fait passer celle-ci à SUPERSEDED. */
   private async supersede(tx: Tx, actor: Actor, scope: ProjectScope, decisionId: string) {
-    const old = await tx.decision.findUnique({ where: { id: decisionId } });
-    if (!old || old.status === 'SUPERSEDED') return;
+    // Audit du 18/10/2026 : la décision remplacée se lit et s'écrit avec les droits de l'appelant (RG8, RG9) ; un
+    // Responsable de C5 ne retire plus une décision de C3.
+    const old = await this.row(DECISIONS, scope, decisionId, tx, true);
+    this.assertWriteLinks(scope, linksOf(DECISIONS, old), false);
+    if (old.status === 'SUPERSEDED') return;
     const row = await tx.decision.update({ where: { id: decisionId }, data: { status: 'SUPERSEDED', version: { increment: 1 } } });
     await this.audit.record(tx, this.wctx(actor, scope, row.wsId), { entityType: 'DECISION', entityId: row.id, before: { status: old.status }, after: { status: row.status }, wsId: row.wsId, target: `${row.code} · ${row.t}` });
   }
