@@ -15,6 +15,8 @@
     - powershell -ExecutionPolicy Bypass -File .\outils\start_cockpit.ps1 -Reinitialiser
   Forcer la recompilation (normalement automatique quand le code a changé) :
     - powershell -ExecutionPolicy Bypass -File .\outils\start_cockpit.ps1 -Compiler
+  Ouvrir l'application aux autres postes du réseau (par défaut : ce poste seulement, 127.0.0.1) :
+    - powershell -ExecutionPolicy Bypass -File .\outils\start_cockpit.ps1 -Reseau
 
   Étapes :
     1. libère les ports utilisés : 3000 (application) et 5433 (PostgreSQL) ;
@@ -29,7 +31,8 @@
 param(
   [switch]$Arreter,
   [switch]$Reinitialiser,
-  [switch]$Compiler
+  [switch]$Compiler,
+  [switch]$Reseau
 )
 
 # « Continue » : sous Windows PowerShell 5.1, « Stop » transformerait les messages des outils PostgreSQL en erreurs bloquantes.
@@ -272,8 +275,11 @@ if ($recompiler -or -not (Test-Path (Join-Path $Backend 'dist\main.js')) -or ($d
 Etape '4/5 Lancement de l''application'
 # Fenêtre dédiée au serveur : ses messages y restent visibles ; la fermer arrête l'application.
 # Commande encodée (base64) pour éviter tout problème de guillemets ou d'espaces dans le chemin.
+# Écoute sur ce poste seulement (audit de sécurité du 18/10/2026 : connexion de développement sans mot de passe) ;
+# -Reseau ouvre aux autres postes, la connexion de développement restant refusée hors de ce poste.
+$hote = if ($Reseau) { '0.0.0.0' } else { '127.0.0.1' }
 $cheminEchappe = $Backend -replace "'", "''"
-$commande = "`$host.UI.RawUI.WindowTitle = 'RISE - serveur (fermer cette fenetre arrete l''application)'; Set-Location -LiteralPath '$cheminEchappe'; npm.cmd start"
+$commande = "`$host.UI.RawUI.WindowTitle = 'RISE - serveur (fermer cette fenetre arrete l''application)'; `$env:LISTEN_HOST = '$hote'; Set-Location -LiteralPath '$cheminEchappe'; npm.cmd start"
 $encodee = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($commande))
 Start-Process -FilePath 'powershell.exe' -ArgumentList @('-NoExit', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', $encodee)
 
@@ -285,7 +291,7 @@ for ($i = 0; $i -lt 60; $i++) {
   } catch { Start-Sleep -Seconds 1 }
 }
 if (-not $pret) { Echec 'l''application ne répond pas. Regardez les messages dans la fenêtre « RISE - serveur ».' }
-Ok "application prête sur $UrlBase"
+Ok ("application prête sur $UrlBase" + $(if ($Reseau) { ' (ouverte au réseau)' } else { ' (ce poste seulement)' }))
 
 # ───── 5. Navigateur ─────
 Etape '5/5 Ouverture des écrans de connexion'

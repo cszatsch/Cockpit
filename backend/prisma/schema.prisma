@@ -2318,3 +2318,13 @@ model PublicHolidayCountry {
   label String @id
   iso   String
 }
+
+/// Questions posées à Jev par compte et par jour civil (Cockpit et Console) : quota JEV_DAILY_QUESTIONS_MAX (audit du 18/10/2026).
+model JevQuota {
+  accountId String @map("account_id")
+  day       String
+  count     Int    @default(0)
+
+  @@id([accountId, day])
+  @@map("jev_quotas")
+}

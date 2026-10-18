@@ -16,6 +16,12 @@ const inputChars = (i: { prompt: string; system?: string; systemTail?: string; h
   (i.system ? i.system.length + 2 : 0) + (i.systemTail ? i.systemTail.length + 2 : 0) + (i.history ?? []).reduce((n, h) => n + h.content.length + 2, 0) + i.prompt.length;
 import { costOf, ModelCategory, priceOf } from '../domain/ai-pricing';
 import { hashEmbedding, normalize } from '../domain/guide-index';
+import { TodayService } from './today.service';
+import { localMidnightUtc } from '../domain/dates';
+import { providerCapMessage } from '../domain/hardening';
+
+/** Fuseau du mois civil des plafonds (celui de la Console). */
+const PLATFORM_TZ = 'Europe/Paris';
 
 export type AiFunctionId = 'insights' | 'crud' | 'rapports' | 'guidage' | 'doc_vec' | 'doc_rrk' | 'doc_syn' | 'init_projet';
 export type UsageSourceCode = 'COCKPIT' | 'JEV' | 'NOTIFICATION' | 'IMPORT' | 'GUIDE';
@@ -150,7 +156,19 @@ export const LIVE_MAX_OUTPUT_TOKENS = 1024;
  */
 @Injectable()
 export class LlmService {
-  constructor(private readonly prisma: PrismaService, private readonly keys: ProviderKeyTester, private readonly client: LlmClient, private readonly changes: ChangesService) {}
+  constructor(private readonly prisma: PrismaService, private readonly keys: ProviderKeyTester, private readonly client: LlmClient, private readonly changes: ChangesService, private readonly today: TodayService) {}
+
+  /**
+   * Plafond mensuel du fournisseur (`Provider.monthlyCapEur`, Console › Fournisseurs et modèles) : bloquant depuis l'audit
+   * du 18/10/2026 ; dépense réelle du mois civil (Paris, appels simulés exclus) comparée avant chaque appel payant.
+   */
+  private async assertUnderCap(provider: { id: string; name: string; monthlyCapEur: number | null }) {
+    if (provider.monthlyCapEur == null) return;
+    const today = this.today.today(PLATFORM_TZ);
+    const since = localMidnightUtc(`${today.slice(0, 8)}01`, PLATFORM_TZ);
+    const spent = await this.prisma.usageRecord.aggregate({ _sum: { costEur: true }, where: { providerId: provider.id, simulated: false, at: { gte: since } } });
+    if ((spent._sum.costEur ?? 0) >= provider.monthlyCapEur) throw new LlmCallError(providerCapMessage(provider.name, provider.monthlyCapEur));
+  }
 
   /**
    * Modèle disponible : actif, de la catégorie attendue (LLM par défaut : Embedding et Reranking ne génèrent
@@ -219,6 +237,7 @@ export class LlmService {
     const model = await this.prisma.aiModel.findUniqueOrThrow({ where: { id: modelId } });
     const provider = await this.prisma.provider.findUniqueOrThrow({ where: { id: model.providerId } });
     if (!provider.keyCipher) throw new LlmCallError(`${provider.name} : aucune clé enregistrée`);
+    await this.assertUnderCap(provider);
     let key: string;
     try {
       key = decryptSecret(provider.keyCipher);

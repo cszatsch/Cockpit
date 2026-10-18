@@ -20,6 +20,7 @@ import { UsageService } from './usage.service';
 import { INVITE_STALE_DAYS } from './accounts.controller';
 import { gapCount, gapText } from '../domain/habilitation-proposals';
 import { ProfilesService } from './profiles.service';
+import { JevQuotaService } from '../core/jev-quota.service';
 
 /** Durée de conservation du journal d'audit (brief Console § 6.2). */
 export const AUDIT_RETENTION_MONTHS = 24;
@@ -44,13 +45,14 @@ export class ConsoleController implements OnModuleInit {
     private readonly jevMemory: JevMemoryService,
     private readonly jevTraces: JevTraceService,
     private readonly jevAssistant: JevAssistantService,
+    private readonly jevQuota: JevQuotaService,
   ) {}
 
   onModuleInit() {
     this.jobs.register('audit.purge', () => this.purgeAudit().then(() => undefined));
     this.jobs.schedule('audit.purge', '15 3 * * *');
     // Conversations avec Jev sans échange depuis JEV_CONVERSATION_RETENTION_DAYS jours : supprimées chaque nuit.
-    this.jobs.register('jev.purge', () => Promise.all([this.jevMemory.purge(), this.jevTraces.purge(new Date())]).then(() => undefined));
+    this.jobs.register('jev.purge', () => Promise.all([this.jevMemory.purge(), this.jevTraces.purge(new Date()), this.jevQuota.purgeBefore(this.today.today())]).then(() => undefined));
     this.jobs.schedule('jev.purge', '25 3 * * *');
   }
 
@@ -341,6 +343,7 @@ export class ConsoleController implements OnModuleInit {
   @HttpCode(200)
   async jev(@CurrentActor() actor: Actor, @Body() body: unknown) {
     const input = parse(z.object({ context: z.object({ section: z.string().max(40) }).strict(), text: z.string().trim().min(1).max(2000), conversationId: z.string().max(40).nullable().optional() }).strict(), body);
+    await this.jevQuota.consume(actor.accountId); // quota quotidien (audit du 18/10/2026)
     // Aiguillage puis traitement (décision du 30/09/2026) : données, guide utilisateur ou clarification ; mémoire commune.
     const res = await this.jevAssistant.answer(actor.accountId, input.text, input.context.section, input.conversationId);
     return { ...res, actions: [] };

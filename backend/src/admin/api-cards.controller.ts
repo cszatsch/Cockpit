@@ -15,6 +15,7 @@ import { ApiCardsService } from './api-cards.service';
 import { FEED_ITEMS_DEFAULT, FEED_ITEMS_MAX, isFeed, mergeFeeds, parseFeed } from '../domain/rss';
 import { parseNews } from '../domain/news';
 import { adminCtx } from './profiles.service';
+import { PROXY_SAFE_HEADERS, proxyContentRefused } from '../domain/hardening';
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'date AAAA-MM-JJ attendue');
 /** Tag (catégorie) : libre, créé à la volée depuis la Console (REGISTRE API v3c § 4). */
@@ -262,6 +263,9 @@ export class WidgetProxyController {
     const widget = String(req.headers['x-rise-widget'] ?? '').slice(0, 60) || null;
     // Audit du 18/10/2026 : appels sortants limités par compte ; association du widget par un administrateur seulement.
     const r = await this.cards.proxy(cardId, q, widget, { accountId: actor.accountId, isAdmin: actor.isAdmin });
+    // Audit du 18/10/2026 : réponse jamais exécutée sur l'origine de Cockpit (HTML, SVG, scripts refusés ; nosniff, sandbox).
+    res.set(PROXY_SAFE_HEADERS);
+    if (proxyContentRefused(r.contentType)) throw new ApiError(502, 'UPSTREAM_CONTENT_REFUSED', `Réponse du fournisseur refusée : type ${String(r.contentType).split(';')[0]} non pris en charge par les widgets`);
     res.status(r.code).setHeader('Content-Type', r.contentType).setHeader('X-RISE-Cache', r.cache ?? 'miss').send(r.body);
   }
 }

@@ -22,6 +22,15 @@ import {
   Surface,
 } from './policy';
 import { SessionService } from './session.service';
+import { isLoopback, relayClientIp } from '../../domain/hardening';
+
+/**
+ * Adresse du client (verrouillage par adresse, sessions, journal) : celle transmise par le relais Cloud Run quand il est
+ * déclaré de confiance (`RELAIS_SECRET`), sinon celle d'Express (`TRUST_PROXY` : Caddy de la VM).
+ */
+function clientIp(req: any): string | null {
+  return relayClientIp(req.headers ?? {}, config.relaySecret) ?? req.ip ?? null;
+}
 
 const DevLogin = z
   .object({
@@ -88,7 +97,8 @@ export class AuthController {
   @Post('dev-login')
   @HttpCode(200)
   async devLogin(@Body() body: unknown, @Req() req: any) {
-    if (!config.authDev) throw notFound();
+    // Connexion sans mot de passe : depuis ce poste seulement (audit du 18/10/2026), même si le serveur écoute le réseau.
+    if (!config.authDev || !isLoopback(req.socket?.remoteAddress)) throw notFound();
     const input = parse(DevLogin, body);
     const account = input.accountId
       ? await this.prisma.account.findUnique({ where: { id: input.accountId } })
@@ -101,7 +111,7 @@ export class AuthController {
       data: {
         accountId: account.id,
         device: String(req.headers['user-agent'] ?? 'inconnu').slice(0, 120),
-        location: req.ip ?? null,
+        location: clientIp(req),
       },
     });
     await this.prisma.account.update({ where: { id: account.id }, data: { lastLoginAt: new Date() } });
@@ -121,7 +131,7 @@ export class AuthController {
     const input = parse(Login, body);
     const started = Date.now();
     try {
-      const out = await this.creds.checkLogin(input.email, input.password, req.ip ?? 'inconnue');
+      const out = await this.creds.checkLogin(input.email, input.password, clientIp(req) ?? 'inconnue');
       if (out.kind === 'locked') {
         throw new ApiErrorWithBody(423, {
           code: 'ACCOUNT_LOCKED',
@@ -136,14 +146,14 @@ export class AuthController {
       if (input.surface === 'ADMIN' && !isAdmin) {
         await this.audit.action(this.prisma, selfCtx(account), {
           action: 'Tentative d’accès à la console refusée', target: account.fullName, severity: 'SENSITIVE',
-          entityType: 'Account', entityId: account.id, details: { ip: req.ip ?? null },
+          entityType: 'Account', entityId: account.id, details: { ip: clientIp(req) },
         });
         throw new ApiError(403, 'ADMIN_REQUIRED', 'Ce compte ne dispose pas des droits d’administration');
       }
       const session = await this.sessions.open(res, account, input.surface, {
         restricted: account.mustChangePassword,
         device: String(req.headers['user-agent'] ?? 'inconnu'),
-        ip: req.ip ?? null,
+        ip: clientIp(req),
       });
       await this.prisma.account.update({ where: { id: account.id }, data: { lastLoginAt: new Date() } });
       return {

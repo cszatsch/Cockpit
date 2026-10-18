@@ -31,6 +31,17 @@ export const config = {
   get port() {
     return Number(process.env.PORT ?? 3000);
   },
+  /**
+   * Adresse d'écoute (audit du 18/10/2026) : vide = toutes les interfaces (conteneur Docker de la VM) ; le lanceur
+   * `start_cockpit` passe `127.0.0.1` (ce poste seulement), ou `0.0.0.0` avec son option -Reseau.
+   */
+  get listenHost() {
+    return process.env.LISTEN_HOST || '';
+  },
+  /** Secret partagé avec le relais Cloud Run : seul un relais qui l'envoie fait foi pour l'adresse du client. */
+  get relaySecret() {
+    return process.env.RELAIS_SECRET || '';
+  },
   /** Dossier des frontends servis en statique (vide = non servis). */
   get frontendDir() {
     return process.env.FRONTEND_DIR ?? '';

@@ -8,6 +8,10 @@
 # CIBLE : adresse HTTPS de la VM (certificat Let's Encrypt de son Caddy). Port nommé h2c : HTTP/2 de bout en bout,
 # sans la limite de 32 Mo des corps de requête HTTP/1 de Cloud Run (envois jusqu'à 260 Mo, plafond du Caddy de la VM).
 # timeoutSeconds 3600 : durée maximale d'une requête ; les flux SSE (/api/changes) sont rouverts par le navigateur.
+# RELAIS_SECRET (audit du 18/10/2026) : jamais écrit ici ; même valeur que RELAIS_SECRET de .env.prod, posée après chaque
+# « replace » par : gcloud run services update cockpit --region=europe-west9 --update-env-vars RELAIS_SECRET=<secret>
+# Le relais envoie alors l'adresse du client (X-Rise-Client-Ip, tirée de son X-Forwarded-For) avec ce secret
+# (X-Rise-Relais) : l'API la retient pour le verrouillage par adresse. Sans secret, l'API ignore ces en-têtes.
 apiVersion: serving.knative.dev/v1
 kind: Service
 metadata:
@@ -49,6 +53,8 @@ spec:
                 :8080 {
                   reverse_proxy https://{$CIBLE} {
                     header_up Host {$CIBLE}
+                    header_up X-Rise-Relais {$RELAIS_SECRET}
+                    header_up X-Rise-Client-Ip {http.request.header.X-Forwarded-For}
                     flush_interval -1
                   }
                 }

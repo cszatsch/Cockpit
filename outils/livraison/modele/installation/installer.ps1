@@ -94,8 +94,15 @@ if ($remplacer) {
     foreach ($d in $PgData, $Stockage, $Config) { if (Test-Path -LiteralPath $d) { Move-Item -LiteralPath $d -Destination $cote } }
     Ok "anciennes données sauvegardées dans $cote"
   }
-  & (Join-Path $PgBin 'initdb.exe') -D $PgData -U rise -A trust -E UTF8 --no-locale 2>&1 | Out-File (Join-Path $Journaux 'installation-base.log') -Encoding UTF8
+  # Base protégée par un mot de passe aléatoire (scram-sha-256) et non plus ouverte à tout utilisateur du poste
+  # (« trust », audit de sécurité du 18/10/2026) ; fichier du mot de passe effacé aussitôt après la création.
+  $PgMdp = Nouveau-MotDePassePg
+  $pwfile = Join-Path $Journaux ('pg-' + [guid]::NewGuid().ToString('N') + '.tmp')
+  [IO.File]::WriteAllText($pwfile, $PgMdp)
+  & (Join-Path $PgBin 'initdb.exe') -D $PgData -U rise --auth=scram-sha-256 "--pwfile=$pwfile" -E UTF8 --no-locale 2>&1 | Out-File (Join-Path $Journaux 'installation-base.log') -Encoding UTF8
+  Remove-Item -LiteralPath $pwfile -Force -ErrorAction SilentlyContinue
   if (-not (Test-Path -LiteralPath (Join-Path $PgData 'PG_VERSION'))) { Echec "création de la base impossible (voir $Journaux\installation-base.log)." }
+  $env:PGPASSWORD = $PgMdp
   Demarrer-Pg
   $psql = Join-Path $PgBin 'psql.exe'
   # Rôles de lecture de Jev (objets globaux, absents de l'export) puis base de l'application.
@@ -142,7 +149,7 @@ if ($remplacer) {
     if (-not $cle) {
       # Sans code valide : installation sans clés d'IA ni SMTP.
       $cle = -join ((1..32) | ForEach-Object { '{0:x2}' -f (Get-Random -Minimum 0 -Maximum 256) })
-      $env:DATABASE_URL = "postgresql://rise@localhost:$PortPg/rise"
+      $env:DATABASE_URL = "postgresql://rise:$PgMdp@localhost:$PortPg/rise"
       & $Node $deverrouiller sans-secrets
       if ($LASTEXITCODE -ne 0) { Echec 'retrait des secrets impossible.' }
       Write-Host '  [!] Installation sans clés d''IA ni SMTP : saisissez vos propres accès dans la Console.' -ForegroundColor Yellow
@@ -151,7 +158,7 @@ if ($remplacer) {
     $cle = (Get-Content -LiteralPath (Join-Path $Paquet 'donnees\cle-secrets.txt') -Raw).Trim()
   }
   @(
-    "DATABASE_URL=postgresql://rise@localhost:$PortPg/rise",
+    "DATABASE_URL=postgresql://rise:$PgMdp@localhost:$PortPg/rise",
     "JWT_SECRET=$jwt",
     "SECRETS_KEY=$cle",
     "STORAGE_DIR=$Stockage",
@@ -168,6 +175,7 @@ if ($remplacer) {
   $nouveauCompte = $true
 } else {
   Demarrer-Pg
+  Appliquer-MotDePassePg
   # Données conservées : migrations de la nouvelle version appliquées à la base existante (une seule fois chacune).
   $psql = Join-Path $PgBin 'psql.exe'
   $faites = @(& $psql -h localhost -p $PortPg -U rise -d rise -tAc 'SELECT migration_name FROM _prisma_migrations WHERE finished_at IS NOT NULL') | ForEach-Object { "$_".Trim() }

@@ -126,3 +126,10 @@ export function parseFrLabel(label: string | null | undefined, defaultYear = 202
   const iso = `${m[3] ?? defaultYear}-${String(mo).padStart(2, '0')}-${m[1].padStart(2, '0')}`;
   return isIsoDate(iso) ? iso : null;
 }
+
+/** Minuit (début) d'un jour civil dans un fuseau, en instant UTC. */
+export function localMidnightUtc(iso: string, timezone: string): Date {
+  const probe = new Date(`${iso}T12:00:00Z`);
+  const offsetH = Number(new Intl.DateTimeFormat('en-GB', { timeZone: timezone, hour: '2-digit', hourCycle: 'h23' }).format(probe)) - 12;
+  return new Date(Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10), -offsetH));
+}

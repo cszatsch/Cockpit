@@ -34,6 +34,17 @@ function Lire-Config {
   return $c
 }
 function Appliquer-Config { foreach ($e in (Lire-Config).GetEnumerator()) { Set-Item -Path "env:$($e.Key)" -Value $e.Value } }
+# Mot de passe de la base (audit de sécurité du 18/10/2026) : tiré au hasard à l'installation, gardé dans DATABASE_URL de
+# config.env ; repris dans PGPASSWORD pour psql et pg_restore. Une base installée avant (authentification « trust ») l'ignore.
+function Nouveau-MotDePassePg {
+  $b = New-Object byte[] 24
+  [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b)
+  return -join ($b | ForEach-Object { '{0:x2}' -f $_ })
+}
+function Appliquer-MotDePassePg {
+  $u = (Lire-Config)['DATABASE_URL']
+  if ($u -and $u -match '^postgresql://[^:@/]+:([^@/]+)@') { $env:PGPASSWORD = $Matches[1] }
+}
 
 function Processus-SurPort([int]$port) {
   Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | Where-Object { $_ -gt 4 }
@@ -46,7 +57,8 @@ function Demarrer-Pg {
   if (Pg-Pret) { return }
   New-Item -ItemType Directory -Force -Path $Journaux | Out-Null
   # Processus détaché : le serveur hérite sinon du flux de sortie et PowerShell attend indéfiniment sa fermeture.
-  Start-Process -FilePath (Join-Path $PgBin 'pg_ctl.exe') -ArgumentList @('-D', "`"$PgData`"", '-l', "`"$(Join-Path $Journaux 'postgresql.log')`"", '-o', "`"-p $PortPg`"", 'start') -WindowStyle Hidden | Out-Null
+  # Écoute sur la boucle locale seulement (audit de sécurité du 18/10/2026).
+  Start-Process -FilePath (Join-Path $PgBin 'pg_ctl.exe') -ArgumentList @('-D', "`"$PgData`"", '-l', "`"$(Join-Path $Journaux 'postgresql.log')`"", '-o', "`"-p $PortPg -c listen_addresses=localhost`"", 'start') -WindowStyle Hidden | Out-Null
   for ($i = 0; $i -lt 60; $i++) { if (Pg-Pret) { return } Start-Sleep -Seconds 1 }
   Echec "le serveur de base de données ne démarre pas (voir $Journaux\postgresql.log)."
 }

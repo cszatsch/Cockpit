@@ -4,6 +4,7 @@ import { JevPromptService } from './jev-prompt.service';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ChangesInterceptor, ChangesService } from './changes';
 import { ChangesController } from './changes.controller';
+import { JevQuotaService } from './jev-quota.service';
 import { JwtModule } from '@nestjs/jwt';
 import { PrismaModule } from './prisma.service';
 import { AuthGuard } from './auth/auth';
@@ -33,7 +34,7 @@ import { LlmClient } from './llm-client';
     }),
   ],
   controllers: [AuthController, ChangesController],
-  providers: [{ provide: APP_GUARD, useClass: AuthGuard }, ChangesService, { provide: APP_INTERCEPTOR, useClass: ChangesInterceptor }, AccessService, AuditService, TodayService, StorageService, LlmService, JevPromptService, JobsService, MailerService, SmtpService, SessionService, CredentialsService, ProviderKeyTester, LlmClient, DictionarySyncService],
-  exports: [ChangesService, AccessService, AuditService, TodayService, StorageService, LlmService, JevPromptService, JobsService, MailerService, SmtpService, SessionService, CredentialsService, ProviderKeyTester, LlmClient, DictionarySyncService],
+  providers: [{ provide: APP_GUARD, useClass: AuthGuard }, ChangesService, { provide: APP_INTERCEPTOR, useClass: ChangesInterceptor }, AccessService, AuditService, TodayService, StorageService, LlmService, JevPromptService, JobsService, MailerService, SmtpService, SessionService, CredentialsService, ProviderKeyTester, LlmClient, DictionarySyncService, JevQuotaService],
+  exports: [ChangesService, AccessService, AuditService, TodayService, StorageService, LlmService, JevPromptService, JobsService, MailerService, SmtpService, SessionService, CredentialsService, ProviderKeyTester, LlmClient, DictionarySyncService, JevQuotaService],
 })
 export class CoreModule {}

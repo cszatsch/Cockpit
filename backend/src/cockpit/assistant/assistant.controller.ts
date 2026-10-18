@@ -31,6 +31,7 @@ import { ChatTurn } from '../../core/llm-client';
 import { JevCockpitInsightService } from '../../admin/jev-cockpit-insight.service';
 import { JevCockpitDocsService } from './jev-cockpit-docs.service';
 import { requestContext } from '../../domain/jev-sql';
+import { JevQuotaService } from '../../core/jev-quota.service';
 
 /** Jev ne modifie jamais le Référentiel, les Comités et rapports, ni la Base de connaissance (§ 7.14). */
 export const JEV_WRITABLE: Record<string, TxEntity> = JEV_WRITABLE_DEFS;
@@ -77,6 +78,7 @@ export class AssistantController {
     private readonly write: JevCockpitWriteService,
     private readonly ref: ReferentialService,
     private readonly memory: JevMemoryService,
+    private readonly quota: JevQuotaService,
   ) {}
 
   @Post('messages')
@@ -87,6 +89,7 @@ export class AssistantController {
     return measuredPrompt(() => traced('Jev Cockpit', async () => {
       const scope = await span('projet et droits (base)', () => this.access.scope(actor, p));
       const input = parse(Message, body);
+      await this.quota.consume(actor.accountId); // quota quotidien de questions (audit du 18/10/2026)
       traceMeta('projet', scope.project.code);
       traceMeta('question', input.text.slice(0, 120));
       // Conversation (mémoire, une par utilisateur et par projet) : celle de l'écran, sinon une nouvelle.

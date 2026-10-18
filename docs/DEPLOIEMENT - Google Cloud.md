@@ -45,6 +45,17 @@ modèles d'IA facturés par leurs fournisseurs.
 Dans les commandes ci-dessous, remplacer `rise-prod-xxxx` (identifiant du projet), `europe-west9` (Paris ;
 `europe-west1`, Belgique, est un peu moins chère) et `gs://rise-sauvegardes-xxxx` (nom du bucket, unique au monde).
 
+La VM et sa zone sont lues dans `~/rise.env` (poste ou Cloud Shell), chargé par `source ~/rise.env` avant les commandes
+`gcloud` : la VM de production `rise-prod` est dans la zone **`europe-west9-b`** (et non `-a`).
+
+```bash
+cat > ~/rise.env <<'FIN'
+VM=rise-prod
+ZONE=europe-west9-b
+FIN
+source ~/rise.env
+```
+
 ## 3. Projet, facturation et budget
 
 ```bash
@@ -88,7 +99,7 @@ gcloud storage buckets add-iam-policy-binding gs://rise-sauvegardes-xxxx \
   --member=serviceAccount:rise-vm@rise-prod-xxxx.iam.gserviceaccount.com --role=roles/storage.objectAdmin
 
 # VM : 2 vCPU, 4 Go, Debian 12, SSD 40 Go
-gcloud compute instances create rise-prod --zone=europe-west9-a \
+gcloud compute instances create $VM --zone=$ZONE \
   --machine-type=e2-medium --image-family=debian-12 --image-project=debian-cloud \
   --boot-disk-size=40GB --boot-disk-type=pd-balanced \
   --address=rise-ip --tags=rise-web \
@@ -98,7 +109,7 @@ gcloud compute instances create rise-prod --zone=europe-west9-a \
 # Instantané quotidien du disque, gardé 14 jours
 gcloud compute resource-policies create snapshot-schedule rise-quotidien --region=europe-west9 \
   --daily-schedule --start-time=01:00 --max-retention-days=14
-gcloud compute disks add-resource-policies rise-prod --zone=europe-west9-a --resource-policies=rise-quotidien
+gcloud compute disks add-resource-policies $VM --zone=$ZONE --resource-policies=rise-quotidien
 ```
 
 Noter l'adresse IP (`gcloud compute addresses describe rise-ip --region=europe-west9 --format='value(address)'`)
@@ -107,7 +118,8 @@ et créer chez le registraire l'enregistrement DNS **A** `cockpit.votre-domaine.
 ## 6. Préparer la VM
 
 ```bash
-gcloud compute ssh rise-prod --zone=europe-west9-a --tunnel-through-iap
+source ~/rise.env
+gcloud compute ssh $VM --zone=$ZONE --tunnel-through-iap
 ```
 
 Sur la VM :
@@ -153,8 +165,17 @@ Renseigner `DOMAINE`, `POSTGRES_PASSWORD`, `JWT_SECRET`, `SECRETS_KEY`, le SMTP 
 `BUCKET_SAUVEGARDES`. **`SECRETS_KEY`** dépend du choix de l'étape 8 :
 
 - reprise de la base du poste : **la même valeur que `backend/.env` du poste**, sinon les clés API des fournisseurs
-  et le mot de passe SMTP enregistrés deviennent illisibles ;
+  et le mot de passe SMTP enregistrés deviennent illisibles ; **sauf** si cette valeur est la clé d'exemple publique
+  de `backend/.env.example` (`0123456789abcdef` répété) : l'API refuse alors de démarrer en production (audit du
+  18/10/2026, message dans `logs api`). Mettre une clé neuve (`openssl rand -hex 32`) et saisir de nouveau les clés
+  d'IA, des cartes API et le mot de passe SMTP dans la Console ;
 - base neuve : `openssl rand -hex 32`.
+
+Vérifier, sans l'afficher, que la clé en place n'est pas la clé d'exemple (aucune ligne = bonne clé) :
+
+```bash
+grep -c '^SECRETS_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef$' .env.prod
+```
 
 Dans les deux cas, garder une copie de `SECRETS_KEY` et `JWT_SECRET` **hors de la VM** (gestionnaire de mots de
 passe) : sans `SECRETS_KEY`, une sauvegarde restaurée ne déchiffre plus ses clés.
@@ -173,7 +194,8 @@ Sur le poste Windows (PowerShell, PostgreSQL local démarré par `start_cockpit`
 ```powershell
 & "C:\Program Files\PostgreSQL\18\bin\pg_dump.exe" -h localhost -p 5433 -U rise -Fc -f rise-reprise.dump rise
 tar -czf storage-reprise.tar.gz -C backend\storage .
-gcloud compute scp rise-reprise.dump storage-reprise.tar.gz rise-prod:/opt/rise/ --zone=europe-west9-a --tunnel-through-iap
+$VM = 'rise-prod'; $ZONE = 'europe-west9-b'   # mêmes valeurs que ~/rise.env
+gcloud compute scp rise-reprise.dump storage-reprise.tar.gz "${VM}:/opt/rise/" --zone=$ZONE --tunnel-through-iap
 ```
 
 Sur la VM :
@@ -209,9 +231,9 @@ Ne pas lancer `db:seed` en production : il vide la base et charge le jeu de dém
 ```bash
 cd /opt/rise
 docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
-docker compose -f docker-compose.prod.yml ps            # api « healthy » au bout d'une à deux minutes
-docker compose -f docker-compose.prod.yml logs -f api   # migrations puis « RISE API prête »
-docker compose -f docker-compose.prod.yml logs caddy | grep -i certificate
+docker compose -f docker-compose.prod.yml --env-file .env.prod ps            # api « healthy » au bout d'une à deux minutes
+docker compose -f docker-compose.prod.yml --env-file .env.prod logs -f api   # migrations puis « RISE API prête »
+docker compose -f docker-compose.prod.yml --env-file .env.prod logs caddy | grep -i certificate
 ```
 
 Puis, dans le navigateur :
@@ -253,7 +275,7 @@ cd /opt/rise
 ./outils/gcp/sauvegarde.sh                 # sauvegarde avant chaque mise à jour
 git pull
 docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
-docker compose -f docker-compose.prod.yml logs -f api
+docker compose -f docker-compose.prod.yml --env-file .env.prod logs -f api
 ```
 
 Les migrations Prisma s'appliquent au démarrage de l'API. Interruption : environ une minute (reconstruction de l'image
@@ -264,12 +286,12 @@ sauvegarde du jour si une migration a été appliquée.
 
 | Besoin | Commande (dans `/opt/rise`) |
 |---|---|
-| État des services | `docker compose -f docker-compose.prod.yml ps` |
-| Journal de l'API | `docker compose -f docker-compose.prod.yml logs --since 1h api` |
+| État des services | `docker compose -f docker-compose.prod.yml --env-file .env.prod ps` |
+| Journal de l'API | `docker compose -f docker-compose.prod.yml --env-file .env.prod logs --since 1h api` |
 | Redémarrer l'API | `docker compose -f docker-compose.prod.yml --env-file .env.prod restart api` |
-| Console SQL | `docker compose -f docker-compose.prod.yml exec db psql -U rise rise` |
+| Console SQL | `docker compose -f docker-compose.prod.yml --env-file .env.prod exec db psql -U rise rise` |
 | Place disque | `df -h /` et `docker system df` (nettoyage : `docker image prune -f`) |
-| Traces de Jev | `docker compose -f docker-compose.prod.yml exec api npm run -s jev:traces -- --dernieres 5` |
+| Traces de Jev | `docker compose -f docker-compose.prod.yml --env-file .env.prod exec api npm run -s jev:traces -- --dernieres 5` |
 
 Surveillance conseillée : **Monitoring › Uptime checks** sur `https://cockpit.votre-domaine.fr/connexion` (gratuit),
 alerte par e-mail ; l'**Ops Agent** (mémoire, disque) est facultatif à cette échelle.
@@ -347,11 +369,25 @@ Ce qui fonctionne : HTTPS, sessions (cookies liés à l'adresse visitée), jeton
 (HTTP/2 de bout en bout, port `h2c` : sans lui, Cloud Run refuse les corps HTTP/1 de plus de 32 Mo), mises à jour en
 direct (connexion rouverte par le navigateur au plus tard toutes les 60 minutes, `timeoutSeconds: 3600`).
 
+Adresse des utilisateurs (audit du 18/10/2026) : sans réglage, l'API voit l'adresse de Google pour tous les
+utilisateurs du relais, et le blocage après 20 échecs par adresse (`IP_MAX_FAILURES`) les bloque tous ensemble. Pour
+que l'API retienne l'adresse de chacun, déclarer le relais de confiance par un secret partagé `RELAIS_SECRET` (constante
+`RELAY_SECRET_HEADER` de `backend/src/domain/hardening.ts`) : le relais l'envoie dans `X-Rise-Relais` avec l'adresse
+du client (`X-Rise-Client-Ip`, tirée de son `X-Forwarded-For`) ; sans le bon secret, ces en-têtes sont ignorés.
+
+```bash
+openssl rand -hex 24                                   # → secret, à mettre aux deux endroits
+echo 'RELAIS_SECRET=<secret>' >> .env.prod             # sur la VM, puis :
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d api
+gcloud run services update cockpit --region=europe-west9 --update-env-vars RELAIS_SECRET=<secret>   # après chaque « replace »
+```
+
+Contrôle : la colonne « lieu » des sessions (Console) montre l'adresse de l'utilisateur et non une adresse de Google.
+
 Limites :
 
-- l'API voit les adresses IP de Google et non celles des utilisateurs : le blocage après 20 échecs par IP
-  (`IP_MAX_FAILURES`) vaut pour tous les utilisateurs du relais ensemble ; le blocage par adresse e-mail est inchangé ;
-  la colonne « lieu » des sessions montre une adresse de Google ;
+- sans `RELAIS_SECRET`, l'API voit les adresses IP de Google et non celles des utilisateurs : le blocage après 20 échecs
+  par IP vaut pour tous les utilisateurs du relais ensemble ; le blocage par adresse e-mail est inchangé ;
 - coût : Cloud Run facture tant qu'une requête est en cours, et chaque onglet ouvert garde son flux de mises à jour
   ouvert, soit environ 10 à 15 € par mois si des onglets restent ouverts toute la journée ;
 - l'adresse `sslip.io` reste ouverte (téléphones, réseaux hors entreprise) : session distincte pour le navigateur.

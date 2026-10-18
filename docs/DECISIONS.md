@@ -2964,3 +2964,50 @@ Feu vert du commanditaire pour les lots 6 et 7 (« Implémentes les corrections 
   l'Administrateur décide.
 - **Effet visible** : une personne ajoutée au référentiel par le PMO avec l'adresse d'un compte existant ne donne plus
   de droits à ce compte tant que l'Administrateur ne les a pas attribués (proposition dans « À traiter »).
+
+### Lot 7 : configuration et exposition (pistes à valider, choix par défaut du commanditaire)
+
+Le commanditaire n'ayant pas tranché, les choix par défaut proposés sont appliqués. Règles pures dans
+`backend/src/domain/hardening.ts` (tests `test/unit/hardening.spec.ts`, `test/e2e/audit-configuration.spec.ts`).
+
+- **Clé maître d'exemple** (piste n° 2) : l'API refuse de démarrer quand `NODE_ENV=production` (image Docker de la VM)
+  **et** que `SECRETS_KEY` est exactement la clé publique de `.env.example` (`EXAMPLE_SECRETS_KEY`,
+  `productionConfigErrors`, `main.ts`), avec un message qui dit quoi faire. Toute autre clé démarre comme avant ; le
+  poste de développement et les tests ne sont pas concernés. Guide de déploiement : contrôle de la clé sans l'afficher.
+- **Connexion de développement exposée** (piste n° 4) : `POST /api/auth/dev-login` refusé (404) hors de la boucle
+  locale (`isLoopback` sur l'adresse de la connexion TCP, jamais sur un en-tête) ; le lanceur `start_cockpit` fait
+  écouter l'application sur `127.0.0.1` (`LISTEN_HOST`, `config.listenHost`), option `-Reseau` pour l'ouvrir au réseau
+  (`0.0.0.0`). Sans `LISTEN_HOST` (VM, paquet installé), écoute inchangée. Limite : `docker-compose.yml` de
+  développement (ports publiés) n'accepte plus `dev-login` depuis l'hôte.
+- **PostgreSQL embarqué du paquet** (piste n° 3) : base créée avec un mot de passe aléatoire (48 caractères
+  hexadécimaux, `RandomNumberGenerator`) en `scram-sha-256` au lieu de `trust` (`installer.ps1`), écrit seulement dans
+  `DATABASE_URL` de `config.env` (repris dans `PGPASSWORD` pour psql et pg_restore, `Appliquer-MotDePassePg`) ;
+  serveur lancé avec `listen_addresses=localhost` (`commun.ps1`). Vérifié avec PostgreSQL 18 du poste : connexion sans
+  mot de passe refusée, avec le mot de passe acceptée. Limite : une installation existante conservée (« conserver »)
+  garde sa base en `trust` jusqu'à un « remplacer ». Le PostgreSQL du poste de développement (`start_cockpit`) reste
+  en `trust` (hors périmètre de ce choix).
+- **Proxy des widgets** (piste n° 4 du rapport, « type de contenu relayé ») : toute réponse porte
+  `X-Content-Type-Options: nosniff` et `Content-Security-Policy: sandbox; default-src 'none'` (`PROXY_SAFE_HEADERS`) ;
+  une réponse HTML, XHTML, SVG ou JavaScript du fournisseur est refusée (502 `UPSTREAM_CONTENT_REFUSED`,
+  `proxyContentRefused`).
+- **Relais Cloud Run** (piste n° 6) : l'adresse du client transmise par le relais (`X-Rise-Client-Ip`, tirée de son
+  `X-Forwarded-For`) n'est retenue (verrouillage par adresse, lieu des sessions, journal) que si le relais envoie le
+  secret déclaré dans `RELAIS_SECRET` (en-tête `X-Rise-Relais`, `RELAY_SECRET_HEADER`, comparaison à temps constant).
+  Choix d'un secret plutôt que d'une liste d'adresses : les adresses de sortie de Cloud Run ne sont pas fixes, et le
+  Caddy de la VM remplace le `X-Forwarded-For` d'un mandataire qu'il ne connaît pas. Sans `RELAIS_SECRET`,
+  comportement inchangé (limite déjà acceptée le 13/10/2026). Non vérifié de bout en bout (Cloud Run) : contrôle
+  décrit dans le guide (§ 15).
+- **Dépense d'IA** (piste n° 5) : au plus `JEV_DAILY_QUESTIONS_MAX` (100) questions à Jev par compte et par jour civil,
+  Cockpit et Console confondus (`JevQuotaService`, table `jev_quotas` incrémentée en une requête, purge des jours passés
+  par `jev.purge`), puis 429 `JEV_QUOTA` « Vous avez posé 100 questions à Jev aujourd’hui… ». Réglage dans Console ›
+  Modules écarté : les modules n'ont pas de paramètres (constante seulement). Le plafond mensuel d'un fournisseur
+  (`Provider.monthlyCapEur`) devient bloquant : avant chaque appel payant, la dépense réelle du mois civil (Paris,
+  appels simulés exclus) est comparée au plafond (`LlmService.assertUnderCap`) ; atteint, l'appel n'est pas fait, le
+  modèle de secours d'un autre fournisseur prend le relais, sinon « … plafond mensuel de <fournisseur> atteint (N €) :
+  l’IA reprendra le 1er du mois prochain, ou dès qu’un Super Admin relève le plafond », motif renvoyé à
+  l'utilisateur ; l'incident de la fonction d'IA est signalé à l'Administrateur comme toute indisponibilité.
+- **Piste n° 1 (pièces jointes de Jev)** : sans objet depuis le lot 0 (route supprimée). **Piste n° 8** : tranchée au
+  lot 4.
+- **Guide `docs/DEPLOIEMENT - Google Cloud.md`** : VM et zone lues dans `~/rise.env` (`$VM`, `$ZONE` ; la VM `rise-prod`
+  est en `europe-west9-b`, et non `-a`), `--env-file .env.prod` sur toutes les commandes `docker compose`, journaux
+  compris ; contrôle de `SECRETS_KEY` ; mise en place de `RELAIS_SECRET` (§ 15).
