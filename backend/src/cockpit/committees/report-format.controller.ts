@@ -272,6 +272,7 @@ export class ReportFormatController {
     assertReportScope(scope, d.components as any);
     const cfg = { ...configErrors(d.components as any), ...(await this.reports.moduleErrors(scope.project.id, d.components as any)) };
     if (Object.keys(cfg).length) throw badRequest('Composants invalides', cfg);
+    await this.reports.assertReferences(scope, d.components as any, d.bodyId);
     const format = d.format ? await this.prisma.$transaction((db) => this.formats.formatForTemplate(scope, d.format!, db)) : null;
     return this.reports.preview(scope, { name: d.name, version: d.version, bodyId: d.bodyId ?? null, components: d.components as any, format });
   }
@@ -285,6 +286,7 @@ export class ReportFormatController {
     assertReportScope(scope, d.components as any);
     const cfg = { ...configErrors(d.components as any), ...(await this.reports.moduleErrors(scope.project.id, d.components as any)) };
     if (Object.keys(cfg).length) throw badRequest('Composants invalides', cfg);
+    await this.reports.assertReferences(scope, d.components as any, d.bodyId);
     const format = d.format ? await this.prisma.$transaction((db) => this.formats.formatForTemplate(scope, d.format!, db)) : null;
     return this.reports.startPreview(scope, { name: d.name, version: d.version, bodyId: d.bodyId ?? null, components: d.components as any, format });
   }

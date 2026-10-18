@@ -13,9 +13,9 @@ import { PrismaService } from '../../core/prisma.service';
 import { StorageService } from '../../core/storage.service';
 import { TodayService } from '../../core/today.service';
 import { hnswIndexSql, HNSW_HALFVEC_MAX_DIMS, HNSW_VECTOR_MAX_DIMS, toBlocks, vectorLiteral } from '../../domain/guide-index';
-import { canWriteTools } from '../../domain/rights';
+import { canReadDocument, canWriteTools } from '../../domain/rights';
 import {
-  chunkLocation, chunkMetadata, detectFormat, docxChunks, KbChunk, KbDocMeta, KbFormat, kbDuplicateContent, kbDuplicateName, kbEmbeddingText, KB_INTERRUPTED,
+  chunkLocation, chunkMetadata, detectFormat, docxChunks, KbChunk, KbDocMeta, KbFormat, kbDuplicateContent, kbDuplicateName, KB_DUPLICATE_HIDDEN, kbEmbeddingText, KB_INTERRUPTED,
   KB_NO_TEXT, KB_SCANNED, KB_SUMMARY_MAX_TOKENS, KB_SUMMARY_SYSTEM, kbSizes, parseSummary, pdfChunks, pdfTextState, pptxChunks, summaryPrompt, xlsxChunks,
 } from '../../domain/kb-documents';
 
@@ -98,7 +98,10 @@ export class KbService implements OnModuleInit {
     // Doublons : contenu identique refusé ; même nom → remplacer ou garder les deux (choix de l'utilisateur).
     const hash = createHash('sha256').update(file.buffer).digest('hex');
     const same = await this.prisma.document.findFirst({ where: { projectId, contentHash: hash, ext: { not: 'FAILED' } } });
-    if (same) throw await refuse(kbDuplicateContent(same.n, frDate((same.uploadedAt ?? same.createdAt).toISOString().slice(0, 10))), 'DUPLICATE_CONTENT');
+    if (same) {
+      const shown = this.visible(scope, actor, same);
+      throw await refuse(shown ? kbDuplicateContent(same.n, frDate((same.uploadedAt ?? same.createdAt).toISOString().slice(0, 10))) : KB_DUPLICATE_HIDDEN, 'DUPLICATE_CONTENT');
+    }
     let name = (meta.n || fileName.replace(/\.[^.]+$/, '')).trim().slice(0, 300);
     let replaced: Awaited<ReturnType<typeof this.prisma.document.findFirst>> = null;
     if (dup.replaceId) {
@@ -275,7 +278,7 @@ export class KbService implements OnModuleInit {
 
   /** Documents Restreints : PMO, administrateur, et l'auteur du dépôt. */
   visible(scope: ProjectScope, actor: Actor | null, d: { conf: string; uploadedById?: string | null }) {
-    return d.conf !== 'RESTRICTED' || scope.access.pmo || scope.access.admin || (!!actor && !!d.uploadedById && d.uploadedById === actor.accountId);
+    return canReadDocument(scope.access, actor?.accountId, d);
   }
 
   async history(scope: ProjectScope) {

@@ -100,6 +100,11 @@ export function canReadWs(a: ProjectAccess, wsId: string | null | undefined): bo
   return a.responsable.includes(wsId) || a.lecteur.includes(wsId);
 }
 
+/** Document de la base de connaissance lisible (Restreint : PMO, Admin et auteur du dépôt seulement). */
+export function canReadDocument(a: ProjectAccess, accountId: string | null | undefined, d: { conf: string; uploadedById?: string | null }): boolean {
+  return d.conf !== 'RESTRICTED' || a.pmo || a.admin || (!!accountId && !!d.uploadedById && d.uploadedById === accountId);
+}
+
 /** Onglet Référentiel (lecture de l'administration du référentiel) : ADMIN, PMO. */
 export function canSeeReferentialTab(a: ProjectAccess): boolean {
   return a.admin || a.pmo;

@@ -1,6 +1,5 @@
 import { AsyncLocalStorage } from 'async_hooks';
-import { CallHandler, Controller, ExecutionContext, Get, Injectable, NestInterceptor, Req, Res } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { Observable, tap } from 'rxjs';
 
@@ -25,6 +24,17 @@ export const CHANGES_IGNORED = [
 ];
 /** Intervalle du signal de vie du flux (proxys et navigateurs ferment les connexions muettes). */
 export const CHANGES_PING_MS = 25_000;
+/** Relecture des projets accessibles d'un abonné non administrateur (droits changés pendant la connexion). */
+export const CHANGES_ACCESS_REFRESH_MS = 60_000;
+
+/**
+ * Annonce transmise à un abonné (audit de sécurité du 18/10/2026, RG16) : écriture d'un projet seulement si l'abonné y a
+ * accès (`projects` : identifiants et codes en majuscules ; `null` = administrateur, tous les projets) ; une annonce sans
+ * projet (Console, tâches de fond) ne dit que « quelque chose a changé ».
+ */
+export function changeVisible(e: Pick<ChangeEvent, 'project'>, projects: Set<string> | null): boolean {
+  return !e.project || !projects || projects.has(e.project.toUpperCase());
+}
 export const CLIENT_ID_HEADER = 'x-client-id';
 
 export interface ChangeEvent {
@@ -122,26 +132,5 @@ export class ChangesInterceptor implements NestInterceptor {
     const project = /^\/api\/projects\/([^/]+)/.exec(path)?.[1] ?? null;
     const client = String(req.headers[CLIENT_ID_HEADER] ?? '').slice(0, 64) || null;
     return next.handle().pipe(tap({ complete: () => this.changes.publish(project ? decodeURIComponent(project) : null, client) }));
-  }
-}
-
-@ApiTags('mises à jour en direct')
-@ApiBearerAuth()
-@Controller('api')
-export class ChangesController {
-  constructor(private readonly changes: ChangesService) {}
-
-  /**
-   * Flux SSE : `{ rev, project, client }` à chaque écriture ; révision courante à l'ouverture. Tout utilisateur connecté :
-   * `/api/changes` pour le Cockpit, `/api/admin/changes` pour la Console (la session par cookie dépend du chemin).
-   */
-  @Get(['changes', 'admin/changes'])
-  stream(@Req() req: Request, @Res() res: Response) {
-    res.status(200).set({ 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-store', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
-    res.flushHeaders();
-    res.write(`data: ${JSON.stringify({ rev: this.changes.current, project: null, client: null, kind: 'data', hello: true })}\n\n`);
-    const off = this.changes.subscribe((e) => res.write(`data: ${JSON.stringify(e)}\n\n`));
-    const ping = setInterval(() => res.write(': ping\n\n'), CHANGES_PING_MS);
-    req.on('close', () => { clearInterval(ping); off(); });
   }
 }

@@ -9,7 +9,7 @@ import { Tx } from '../../core/prisma.service';
 import { Actor, CurrentActor } from '../../core/auth/auth';
 import { checkIfMatch, parse, withWarnings } from '../../core/http';
 import { badRequest, conflict, forbidden, notFound } from '../../core/errors';
-import { canEditPlanning, canWriteReferential, canWriteWs } from '../../domain/rights';
+import { canEditPlanning, canReadWs, canWriteReferential, canWriteWs } from '../../domain/rights';
 import { plannedPct, progressSignal, to100 } from '../../domain/rules';
 import { TransactionalService, DECISIONS } from './transactional';
 import { AnomaliesService } from './anomalies.service';
@@ -254,7 +254,8 @@ export class PilotageController {
   async progress(@CurrentActor() actor: Actor, @Param('projectId') p: string) {
     const scope = await this.access.scope(actor, p);
     const rows = await this.prisma.workstreamProgress.findMany({ where: { projectId: scope.project.id }, orderBy: { order: 'asc' } });
-    return rows.map(progressView);
+    // Chantiers visibles seulement (RG8), comme le `bootstrap` (audit de sécurité du 18/10/2026).
+    return rows.filter((r) => canReadWs(scope.access, r.wsId)).map(progressView);
   }
 
   @Patch('workstream-progress/:id')

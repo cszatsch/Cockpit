@@ -35,6 +35,8 @@ export const KB_SCANNED = 'PDF scanné (pages en images, sans texte) : la reconn
 export const KB_NO_TEXT = 'Aucun texte exploitable dans ce document.';
 export const KB_INTERRUPTED = 'Traitement interrompu (redémarrage du serveur) : déposez le document à nouveau.';
 export const kbDuplicateContent = (name: string, date: string) => `Ce document est déjà dans la Base de connaissance : « ${name} », déposé le ${date}.`;
+/** Doublon d'un document que l'appelant ne voit pas (Restreint) : ni nom ni date (audit de sécurité du 18/10/2026). */
+export const KB_DUPLICATE_HIDDEN = 'Ce document est déjà dans la Base de connaissance.';
 export const kbDuplicateName = (name: string) => `Un document nommé « ${name} » existe déjà : remplacez-le ou gardez les deux.`;
 
 const CFB = Buffer.from([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]);

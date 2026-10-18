@@ -9,7 +9,7 @@ import { PrismaService, Tx } from '../../core/prisma.service';
 import { TodayService } from '../../core/today.service';
 import { badRequest, forbidden } from '../../core/errors';
 import { checkIfMatch, parse } from '../../core/http';
-import { canSeeReferentialTab, canWriteReferential } from '../../domain/rights';
+import { canReadLinks, canReadWs, canSeeReferentialTab, canWriteReferential, riskLinks } from '../../domain/rights';
 import { assignmentActive } from '../../domain/rules';
 import { PROJECT_INFO_BLOCK, ProjectInfoSchema, projectInfoOf } from '../../domain/project-info';
 import { isoDate, optIsoDate, optText, text } from '../referential/schemas';
@@ -197,14 +197,16 @@ export class ProjectController {
     const assigns = await this.prisma.assignment.findMany({ where: P });
     const activeP = new Set(assigns.filter((a) => assignmentActive(a, today)).map((a) => a.personId));
     const owned: Record<string, Array<{ entityType: string; id: string; label: string }>> = {};
-    const add = (pid: string | null, entityType: string, id: string, label: string) => {
-      if (pid && !activeP.has(pid)) (owned[pid] ??= []).push({ entityType, id, label });
+    const add = (pid: string | null, entityType: string, id: string, label: string, readable = true) => {
+      if (pid && readable && !activeP.has(pid)) (owned[pid] ??= []).push({ entityType, id, label });
     };
-    for (const m of await this.prisma.milestone.findMany({ where: { ...P, iso: { gte: today } } })) add(m.ownerId, 'MILESTONE', m.id, `${m.code} · ${m.n}`);
-    for (const a of await this.prisma.action.findMany({ where: { ...P, status: { not: 'DONE' } } })) add(a.ownerId, 'ACTION', a.id, `${a.code} · ${a.n}`);
-    for (const r of await this.prisma.risk.findMany({ where: { ...P, status: { not: 'CLOSED' } } })) add(r.ownerId, 'RISK', r.id, `${r.code} · ${r.n}`);
-    for (const x of await this.prisma.issue.findMany({ where: { ...P, status: { not: 'RESOLVED' } } })) add(x.ownerId, 'ISSUE', x.id, `${x.code} · ${x.n}`);
-    for (const d of await this.prisma.decision.findMany({ where: { ...P, status: { in: ['DRAFT', 'IN_REVIEW', 'TO_ARBITRATE'] } } })) add(d.makerId, 'DECISION', d.id, `${d.code} · ${d.t}`);
+    // Objets des chantiers visibles seulement (RG8, audit de sécurité du 18/10/2026), comme le `bootstrap`.
+    const A = scope.access;
+    for (const m of await this.prisma.milestone.findMany({ where: { ...P, iso: { gte: today } } })) add(m.ownerId, 'MILESTONE', m.id, `${m.code} · ${m.n}`, !m.wsId || canReadWs(A, m.wsId));
+    for (const a of await this.prisma.action.findMany({ where: { ...P, status: { not: 'DONE' } } })) add(a.ownerId, 'ACTION', a.id, `${a.code} · ${a.n}`, canReadLinks(A, riskLinks(a)));
+    for (const r of await this.prisma.risk.findMany({ where: { ...P, status: { not: 'CLOSED' } } })) add(r.ownerId, 'RISK', r.id, `${r.code} · ${r.n}`, canReadLinks(A, riskLinks(r)));
+    for (const x of await this.prisma.issue.findMany({ where: { ...P, status: { not: 'RESOLVED' } } })) add(x.ownerId, 'ISSUE', x.id, `${x.code} · ${x.n}`, canReadWs(A, x.wsId));
+    for (const d of await this.prisma.decision.findMany({ where: { ...P, status: { in: ['DRAFT', 'IN_REVIEW', 'TO_ARBITRATE'] } } })) add(d.makerId, 'DECISION', d.id, `${d.code} · ${d.t}`, canReadWs(A, d.wsId));
     for (const l of await this.prisma.deliverable.findMany({ where: { ...P, prog: { lt: 100 } } })) add(l.ownerId, 'DELIVERABLE', l.id, l.name);
     for (const w of await this.prisma.workstream.findMany({ where: { ...P, status: 'ACTIVE' } })) add(w.ownerId, 'WORKSTREAM', w.id, w.name);
     return persons

@@ -31,7 +31,7 @@ function makeController(def: EntityConfig): Type<unknown> {
 
     @Get(':id/usages')
     async usages(@CurrentActor() actor: Actor, @Param('projectId') projectId: string, @Param('id') id: string) {
-      return this.svc.usages(def, await this.access.scope(actor, projectId), id);
+      return this.svc.usages(def, await this.access.scope(actor, projectId), id, actor);
     }
 
     @Post()

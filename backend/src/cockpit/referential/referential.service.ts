@@ -5,14 +5,17 @@ import { TodayService } from '../../core/today.service';
 import { ProjectScope } from '../../core/access.service';
 import { Actor } from '../../core/auth/auth';
 import { checkIfMatch, parse, withWarnings } from '../../core/http';
-import { forbidden, inUse, notFound } from '../../core/errors';
-import { canWriteReferential } from '../../domain/rights';
+import { forbidden, inUse, notFound, Usage } from '../../core/errors';
+import { canReadDocument, canReadLinks, canReadWs, canWriteReferential, riskLinks, seesAllWorkstreams } from '../../domain/rights';
 import { EntityConfig, EntityCtx } from './entities';
 import { UsagesService } from './usages.service';
 import { assertPhaseProgressEditable, assertWorkstreamProgressEditable, rollupPhaseProgress, rollupWorkstreamProgress, rollupWorkstreamsOfSubphases } from '../phase-progress';
 
 /** Création et suppression d'un client : depuis la Console seulement (audit du 18/10/2026). */
 export const GLOBAL_FROM_CONSOLE = 'Les clients se créent et se suppriment depuis la Console';
+
+/** Types d'usages filtrés selon les droits de lecture de l'appelant ; les autres (phases, chantiers, personnes…) sont ouverts à tous. */
+const USAGES_CHECKED = new Set(['DOCUMENT', 'RISK', 'ACTION', 'ISSUE', 'DECISION', 'WORKSTREAM_PROGRESS', 'HABILITATION', 'MILESTONE']);
 
 /**
  * Moteur CRUD du Référentiel (brief Cockpit § 9.4) : même patron pour toutes les entités.
@@ -51,7 +54,12 @@ export class ReferentialService {
       if (query[f] !== undefined) filter[f] = query[f] === 'true' ? true : query[f] === 'false' ? false : query[f];
     }
     const rows = await (this.prisma as any)[def.delegate].findMany({ where: this.where(def, scope, filter), include: def.include, orderBy: def.orderBy });
-    return def.serializeMany(this.ctx(scope), rows);
+    return def.serializeMany(this.ctx(scope), rows.filter((r: any) => this.readable(def, scope, r)));
+  }
+
+  /** Ligne lisible par le profil (RG8, comme le `bootstrap`) : un jalon d'un chantier caché n'est pas rendu. */
+  private readable(def: EntityConfig, scope: ProjectScope, row: { wsId?: string | null }) {
+    return def.entityType !== 'MILESTONE' || !row.wsId || canReadWs(scope.access, row.wsId);
   }
 
   async findRow(def: EntityConfig, scope: ProjectScope, id: string, db: Tx = this.prisma) {
@@ -62,6 +70,7 @@ export class ReferentialService {
 
   async get(def: EntityConfig, scope: ProjectScope, id: string) {
     const row = await this.findRow(def, scope, id);
+    if (!this.readable(def, scope, row)) throw notFound();
     return (await def.serializeMany(this.ctx(scope), [row]))[0];
   }
 
@@ -159,10 +168,34 @@ export class ReferentialService {
     });
   }
 
-  async usages(def: EntityConfig, scope: ProjectScope, id: string) {
-    await this.findRow(def, scope, id);
+  async usages(def: EntityConfig, scope: ProjectScope, id: string, actor: Actor) {
+    const row = await this.findRow(def, scope, id);
+    if (!this.readable(def, scope, row)) throw notFound();
     const all = await this.usagesSvc.usages(this.prisma, scope.project.id, def.entityType, id);
     // Client partagé : les autres projets qui l'utilisent ne sont pas révélés.
-    return def.global ? all.filter((u) => u.entityType !== 'PROJECT' || u.id === scope.project.id) : all;
+    return this.visibleUsages(scope, actor, def.global ? all.filter((u) => u.entityType !== 'PROJECT' || u.id === scope.project.id) : all);
+  }
+
+  /**
+   * Usages lisibles par l'appelant (audit de sécurité du 18/10/2026) : objets des chantiers qu'il voit (RG8) et documents
+   * Restreints réservés au PMO, à l'Admin et à l'auteur du dépôt. Le contrôle de suppression (409) garde la liste entière.
+   */
+  private async visibleUsages(scope: ProjectScope, actor: Actor, all: Usage[]): Promise<Usage[]> {
+    const A = scope.access, projectId = scope.project.id;
+    const ids = (t: string) => ({ projectId, id: { in: all.filter((u) => u.entityType === t).map((u) => u.id) } });
+    const keep = new Set<string>();
+    const add = (t: string, rows: any[], ok: (r: any) => boolean) => rows.forEach((r) => ok(r) && keep.add(`${t}:${r.id}`));
+    add('DOCUMENT', await this.prisma.document.findMany({ where: ids('DOCUMENT') }), (d) => canReadDocument(A, actor.accountId, d));
+    if (seesAllWorkstreams(A)) {
+      return all.filter((u) => u.entityType !== 'DOCUMENT' || keep.has(`DOCUMENT:${u.id}`));
+    }
+    add('RISK', await this.prisma.risk.findMany({ where: ids('RISK') }), (r) => canReadLinks(A, riskLinks(r)));
+    add('ACTION', await this.prisma.action.findMany({ where: ids('ACTION') }), (r) => canReadLinks(A, riskLinks(r)));
+    add('ISSUE', await this.prisma.issue.findMany({ where: ids('ISSUE') }), (r) => canReadWs(A, r.wsId));
+    add('DECISION', await this.prisma.decision.findMany({ where: ids('DECISION') }), (r) => canReadWs(A, r.wsId));
+    add('WORKSTREAM_PROGRESS', await this.prisma.workstreamProgress.findMany({ where: ids('WORKSTREAM_PROGRESS') }), (r) => canReadWs(A, r.wsId));
+    add('HABILITATION', await this.prisma.habilitation.findMany({ where: ids('HABILITATION') }), (r) => canReadWs(A, r.wsId));
+    add('MILESTONE', await this.prisma.milestone.findMany({ where: ids('MILESTONE') }), (r) => !r.wsId || canReadWs(A, r.wsId));
+    return all.filter((u) => !USAGES_CHECKED.has(u.entityType) || keep.has(`${u.entityType}:${u.id}`));
   }
 }

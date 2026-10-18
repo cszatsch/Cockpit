@@ -2913,3 +2913,29 @@ Feu vert du commanditaire pour les lots 4 et 5 (« Implémentes les lots 4 et 5 
   dans `ShareService.start`). La décision du 05/10/2026 (clés extractibles du paquet) précédait le profil Super Admin
   du 10/10/2026 ; elle vaut désormais pour le Super Admin seul. **Effet visible** : un Admin génère encore un paquet
   sans secret ; s'il coche une clé ou le SMTP, la Console affiche le refus.
+
+### Lot 5 : cloisonnement par chantier (RG8) et par projet (RG16), suite (sept constats)
+
+- **Routes de lecture du Référentiel** (`GET /{entité}`, `/{entité}/:id`, `/{entité}/:id/usages`) : filtrées comme le
+  `bootstrap`, sans fermer l'onglet aux autres profils. Un jalon d'un chantier caché n'est ni listé ni lu (404) ; les
+  usages ne citent que les risques, actions, problèmes, décisions, jalons, avancements et habilitations des chantiers
+  visibles (`ReferentialService.visibleUsages`, `USAGES_CHECKED`). Phases, chantiers, personnes, équipes et livrables
+  restent ouverts à tous, comme dans le `bootstrap`. Le contrôle de suppression (409 et ses usages) garde la liste
+  entière : il est réservé au PMO.
+- **Usages d'un jalon (et de tout objet)** : document Restreint absent pour qui ne le voit pas (règle unique
+  `canReadDocument` de `domain/rights.ts`, reprise par `KbService.visible`).
+- **Avancement des chantiers** (`GET /workstream-progress`) : lignes des chantiers visibles seulement (`canReadWs`).
+- **Porteurs sans affectation** (`GET /signals/owners-without-assignment`) : jalons, actions, risques, problèmes et
+  décisions des chantiers visibles seulement ; livrables et chantiers restent cités (ouverts à tous).
+- **Flux des mises à jour en direct** (`/api/changes`, `/api/admin/changes`) : une annonce d'un projet n'est envoyée
+  qu'aux comptes qui y ont accès (`changeVisible`, identifiant ou code) ; les annonces sans projet (Console, tâches de
+  fond) restent envoyées à tous, sans contenu. Projets relus toutes les `CHANGES_ACCESS_REFRESH_MS` (60 s) pour suivre
+  un changement de droits ; un administrateur reçoit tout. Le contrôleur du flux passe dans `core/changes.controller.ts`
+  (`prisma.service` importe `changes.ts`, et `AccessService` dépend de Prisma : cycle d'import au démarrage).
+- **Doublon de contenu au dépôt** : si le document identique est invisible pour l'appelant (Restreint), refus 409 avec
+  `KB_DUPLICATE_HIDDEN` (« Ce document est déjà dans la Base de connaissance. »), sans nom ni date ; l'événement REFUS
+  de l'historique garde le même message neutre.
+- **Aperçus et templates de rapport** : cibles des composants et instance contrôlées dans le projet de l'URL
+  (`ReportTemplateService.assertReferences`, 400 « Référence invalide ») pour `POST /report-templates/preview` et
+  `/preview-jobs` ; `PATCH /report-templates/:id` refuse une instance d'un autre projet, comme la création ; libellés de
+  portée et instance lus avec le projet (`scopeLabel`, `body`), y compris pour les templates déjà enregistrés.

@@ -331,6 +331,8 @@ export class CommitteesController {
     return this.prisma.$transaction(async (db) => {
       const t = await db.reportTemplate.findFirst({ where: { id, projectId: scope.project.id } });
       if (!t) throw notFound();
+      // Instance d'un autre projet refusée, comme à la création (audit de sécurité du 18/10/2026).
+      if (input.bodyId && !(await db.governanceBody.findFirst({ where: { id: input.bodyId, projectId: scope.project.id } }))) throw badRequest('Référence invalide', { bodyId: 'instance introuvable' });
       if (input.components) await this.validateComponents(db, scope.project.id, input.components);
       const data: any = { ...input, rowVersion: { increment: 1 } };
       if (input.format !== undefined) data.format = input.format ? await this.formats.formatForTemplate(scope, input.format, db) : Prisma.DbNull;

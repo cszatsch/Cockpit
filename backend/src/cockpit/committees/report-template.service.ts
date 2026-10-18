@@ -8,7 +8,7 @@ import { ProjectScope } from '../../core/access.service';
 import { PrismaService, Tx } from '../../core/prisma.service';
 import { StorageService } from '../../core/storage.service';
 import { TodayService } from '../../core/today.service';
-import { ApiError, ApiErrorWithBody, notFound } from '../../core/errors';
+import { ApiError, ApiErrorWithBody, badRequest, notFound } from '../../core/errors';
 import JSZip from 'jszip';
 import { techId } from '../../core/ids';
 import { OoxmlPackage } from '../../core/ooxml';
@@ -81,13 +81,35 @@ export class ReportTemplateService implements OnModuleInit {
 
   // ───────────── Données ─────────────
 
-  private async scopeLabel(c: ComponentConfig): Promise<string | null> {
+  /** Libellé de la portée d'un composant ; cible cherchée dans le projet seulement (audit de sécurité du 18/10/2026). */
+  private async scopeLabel(scope: ProjectScope, c: ComponentConfig): Promise<string | null> {
     if (c.scope === 'PROJECT') return 'Projet entier';
     if (!c.targetId) return null;
-    if (c.scope === 'WAVE') { const w = await this.prisma.wave.findUnique({ where: { id: c.targetId } }); return w ? `Lot ${w.seq}` : null; }
-    if (c.scope === 'PHASE') { const p = await this.prisma.phase.findUnique({ where: { id: c.targetId } }); return p ? `Phase · ${p.name}` : null; }
-    const w = await this.prisma.workstream.findUnique({ where: { id: c.targetId } });
+    const where = { id: c.targetId, projectId: scope.project.id };
+    if (c.scope === 'WAVE') { const w = await this.prisma.wave.findFirst({ where }); return w ? `Lot ${w.seq}` : null; }
+    if (c.scope === 'PHASE') { const p = await this.prisma.phase.findFirst({ where }); return p ? `Phase · ${p.name}` : null; }
+    const w = await this.prisma.workstream.findFirst({ where });
     return w ? `Chantier · ${w.name}` : null;
+  }
+
+  /** Instance du rapport, dans le projet seulement. */
+  private body(scope: ProjectScope, bodyId: string | null) {
+    return bodyId ? this.prisma.governanceBody.findFirst({ where: { id: bodyId, projectId: scope.project.id } }) : Promise.resolve(null);
+  }
+
+  /**
+   * Cibles des composants et instance d'un aperçu ou d'un template : identifiants du projet de l'URL seulement (400 sinon ;
+   * audit de sécurité du 18/10/2026 : un aperçu nommait les chantiers, phases, lots ou instances d'un autre projet).
+   */
+  async assertReferences(scope: ProjectScope, comps: Array<{ scope: string; targetId?: string | null }>, bodyId?: string | null, db: Tx = this.prisma) {
+    const projectId = scope.project.id;
+    if (bodyId && !(await db.governanceBody.findFirst({ where: { id: bodyId, projectId } }))) throw badRequest('Référence invalide', { bodyId: 'instance introuvable' });
+    const delegate: Record<string, string> = { WAVE: 'wave', PHASE: 'phase', WORKSTREAM: 'workstream' };
+    for (const c of comps) {
+      if (c.scope === 'PROJECT') continue;
+      if (!c.targetId) throw badRequest('Composant incomplet', { components: `cible obligatoire pour la portée ${c.scope}` });
+      if (!delegate[c.scope] || !(await (db as any)[delegate[c.scope]].findFirst({ where: { id: c.targetId, projectId } }))) throw badRequest('Référence invalide', { components: `cible ${c.targetId} introuvable` });
+    }
   }
 
   private async wsNames(P: { projectId: string }) {
@@ -113,7 +135,7 @@ export class ReportTemplateService implements OnModuleInit {
     const issues: Issue[] = [];
     const warn = (message: string) => issues.push({ severity: 'warning', component: c.key, message: `${def.label} : ${message}` });
     const P = { projectId: scope.project.id };
-    const label = await this.scopeLabel(c);
+    const label = await this.scopeLabel(scope, c);
     const period = periodRange(periodOf(c), today);
     // Planning (11/10/2026) : la légende nomme le niveau (« Phase > Sous-phase »…) ; « Un chantier » nomme le chantier.
     const lvl = c.id === 'planning' ? planLevelOf(c) : null;
@@ -401,7 +423,7 @@ export class ReportTemplateService implements OnModuleInit {
   /** Valeurs de tout le rapport, zones du template remplies, anomalies (dont lignes au-delà de la capacité d'un tableau). */
   async reportData(scope: ProjectScope, d: Draft, manifest: TemplateManifest | null, opts: { write?: boolean; onPhase?: (phase: number) => void } = {}): Promise<{ data: FillData; issues: Issue[] }> {
     const today = this.todaySvc.today(scope.project.timezone);
-    const body = d.bodyId ? await this.prisma.governanceBody.findUnique({ where: { id: d.bodyId } }) : null;
+    const body = await this.body(scope, d.bodyId);
     const project = scope.project.name.startsWith(scope.project.code) ? scope.project.name : `${scope.project.code} — ${scope.project.name}`;
     const data: FillData = { text: { 'report.subtitle': [[body?.name, project, `v${d.version}`].filter(Boolean).join(' · ')], 'report.date': [frDay(today)], 'report.period': [`Données au ${frDay(today)}`] }, tables: {}, charts: {} };
     const issues: Issue[] = [];
@@ -542,7 +564,7 @@ export class ReportTemplateService implements OnModuleInit {
 
   /** Compose le template puis le remplit avec les valeurs du jour. */
   async build(scope: ProjectScope, d: Draft) {
-    const body = d.bodyId ? await this.prisma.governanceBody.findUnique({ where: { id: d.bodyId } }) : null;
+    const body = await this.body(scope, d.bodyId);
     const today = this.todaySvc.today(scope.project.timezone);
     const { buf, manifest } = await composeTemplate(await this.pageSources(d.format), {
       title: d.name, sections: sectionsOf(d.components),
@@ -772,7 +794,7 @@ export class ReportTemplateService implements OnModuleInit {
 
   private async runPreview(scope: ProjectScope, d: Draft, job: PreviewJob, plan: Array<{ n: number; component?: string }>) {
     try {
-      const body = d.bodyId ? await this.prisma.governanceBody.findUnique({ where: { id: d.bodyId } }) : null;
+      const body = await this.body(scope, d.bodyId);
       const today = this.todaySvc.today(scope.project.timezone);
       const { buf, manifest } = await composeTemplate(await this.pageSources(d.format), {
         title: d.name, sections: sectionsOf(d.components),
