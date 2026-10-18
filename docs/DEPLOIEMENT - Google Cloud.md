@@ -177,6 +177,21 @@ Vérifier, sans l'afficher, que la clé en place n'est pas la clé d'exemple (au
 grep -c '^SECRETS_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef$' .env.prod
 ```
 
+Si la commande affiche `1`, changer la clé **sans ressaisir les secrets**, sur la VM en marche, avant le `git pull` du
+code qui refuse la clé d'exemple ou juste après (l'API en cours tourne encore sur l'ancien code) :
+
+```bash
+./outils/gcp/sauvegarde.sh
+./outils/gcp/changer-cle-secrets.sh
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+```
+
+`changer-cle-secrets.sh` tire une clé neuve (`openssl rand -hex 32`, jamais affichée), fait rechiffrer par l'API en
+cours les clés des fournisseurs d'IA, des cartes API et le mot de passe SMTP (`rechiffrer-secrets.js`, tout ou rien :
+un secret illisible et rien n'est écrit), puis remplace `SECRETS_KEY` dans `.env.prod`. L'ancien fichier reste dans
+`sauvegardes/env.prod.avant-cle-<date>` (droits 600) : l'ancienne clé sert encore à relire les secrets des sauvegardes
+antérieures. Le relancement doit suivre aussitôt : entre les deux, l'API en cours lit les secrets avec l'ancienne clé.
+
 Dans les deux cas, garder une copie de `SECRETS_KEY` et `JWT_SECRET` **hors de la VM** (gestionnaire de mots de
 passe) : sans `SECRETS_KEY`, une sauvegarde restaurée ne déchiffre plus ses clés.
 

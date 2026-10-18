@@ -3011,3 +3011,8 @@ Le commanditaire n'ayant pas tranché, les choix par défaut proposés sont appl
 - **Guide `docs/DEPLOIEMENT - Google Cloud.md`** : VM et zone lues dans `~/rise.env` (`$VM`, `$ZONE` ; la VM `rise-prod`
   est en `europe-west9-b`, et non `-a`), `--env-file .env.prod` sur toutes les commandes `docker compose`, journaux
   compris ; contrôle de `SECRETS_KEY` ; mise en place de `RELAIS_SECRET` (§ 15).
+- **Changement de la clé d'exemple de la VM** (constaté au déploiement du lot 7 : la production utilisait la clé
+  publique) : `outils/gcp/changer-cle-secrets.sh` tire une clé neuve, fait rechiffrer les secrets en base par l'API en
+  cours (`outils/gcp/rechiffrer-secrets.js`, même format que `core/crypto.ts`, tout ou rien, une transaction) et
+  remplace `SECRETS_KEY` dans `.env.prod` ; ancien fichier gardé dans `sauvegardes/` (droits 600) pour relire les
+  sauvegardes antérieures. Choix : rechiffrer plutôt que faire ressaisir clés d'IA, clés API et mot de passe SMTP.
