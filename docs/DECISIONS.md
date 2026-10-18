@@ -2939,3 +2939,28 @@ Feu vert du commanditaire pour les lots 4 et 5 (« Implémentes les lots 4 et 5 
   (`ReportTemplateService.assertReferences`, 400 « Référence invalide ») pour `POST /report-templates/preview` et
   `/preview-jobs` ; `PATCH /report-templates/:id` refuse une instance d'un autre projet, comme la création ; libellés de
   portée et instance lus avec le projet (`scopeLabel`, `body`), y compris pour les templates déjà enregistrés.
+
+### Lot 6 : habilitations rattachées au compte, et non à l'e-mail
+
+Feu vert du commanditaire pour les lots 6 et 7 (« Implémentes les corrections du lot 6 et celles du lot 7 »).
+
+- **Constat** : `AccessService.personFor` reliait un compte à une personne du référentiel par son e-mail quand le compte
+  n'avait pas de lien direct. Le PMO pouvant modifier l'e-mail d'une personne, il donnait ses habilitations (jusqu'à PMO)
+  au compte de son choix, sans décision de l'Administrateur.
+- **Rattachement explicite** : colonne `Person.accountId` (unique par projet). Les droits d'une personne ne valent que
+  pour le compte rattaché (`Person.accountId`, ou lien direct `Account.personId`). Le PMO ne peut pas écrire ce champ
+  (schéma strict des personnes).
+- **Qui rattache** : l'Administrateur seulement, par ses actions de la Console (`linkPerson`, `linkPersonsByEmail` de
+  `core/person-links.ts`) : invitation d'un compte (personnes de même e-mail encore sans compte), habilitations
+  (`PUT /accounts/:id/habilitations` : personne rattachée, sinon de même e-mail et sans compte), import d'un projet,
+  restauration d'un snapshot ; et l'amorçage de la démonstration. Une suppression de compte détache ses personnes.
+- **Migration** `20261118001400_rattachement_personne_compte` : reprise des liens en vigueur (lien direct, puis e-mail
+  identique, une personne au plus par compte et par projet). Aucun droit existant ne change au déploiement.
+- **E-mail changé sur une personne rattachée** : écart `EMAIL_MISMATCH` (« À traiter » et cloche de la Console, comme
+  depuis le 30/09/2026), désormais aussi pour les personnes rattachées par `Person.accountId` ; l'Administrateur applique
+  l'adresse (`POST /accounts/:id/referential-email`, refusée si l'adresse est celle d'un autre compte).
+- **Console** : les droits affichés (`ProfilesService.rightsOf`, aussi destinataires des notifications) suivent la même
+  règle ; les propositions d'habilitations continuent de rapprocher par e-mail les personnes encore sans compte,
+  l'Administrateur décide.
+- **Effet visible** : une personne ajoutée au référentiel par le PMO avec l'adresse d'un compte existant ne donne plus
+  de droits à ce compte tant que l'Administrateur ne les a pas attribués (proposition dans « À traiter »).

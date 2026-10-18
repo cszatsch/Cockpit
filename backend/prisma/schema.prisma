@@ -633,8 +633,12 @@ model Person {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   version   Int      @default(1)
+  /// Compte rattaché à la personne (audit de sécurité du 18/10/2026) : ses habilitations passent à ce compte seul. Posé par
+  /// l'Administrateur (Console : invitation, habilitations, import), jamais déduit de l'e-mail modifiable par le PMO.
+  accountId String?
 
   @@unique([projectId, email])
+  @@unique([projectId, accountId])
 }
 
 model Assignment {

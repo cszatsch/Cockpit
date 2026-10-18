@@ -4,6 +4,7 @@ import { seedRise } from './rise';
 import { seedAdmin } from './admin';
 import { seedDictionnaire } from './dictionnaire';
 import { createInitialAdmin } from '../../src/core/auth/initial-admin';
+import { linkPersonsByEmail } from '../../src/core/person-links';
 
 /**
  * Script d'amorçage : vide la base puis charge le jeu de démonstration
@@ -18,6 +19,8 @@ export async function runSeed(db: PrismaClient): Promise<void> {
   await seedDictionnaire(db);
   // Compte initial (Cédric Schmitz), si RISE_INITIAL_ADMIN_PASSWORD est défini : il survit à la réinitialisation.
   await createInitialAdmin(db);
+  // Rattachement des personnes aux comptes de même e-mail (audit du 18/10/2026 : les droits ne suivent plus l'e-mail seul).
+  for (const p of await db.project.findMany({ select: { id: true } })) await linkPersonsByEmail(db, p.id);
 }
 
 /** TRUNCATE ne déclenche pas les triggers de ligne : le journal reste protégé contre UPDATE/DELETE. */

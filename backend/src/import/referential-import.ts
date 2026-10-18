@@ -7,6 +7,7 @@ import { PROJECT_INFO_BLOCK, PROJECT_INFO_ITEMS_MAX, PROJECT_INFO_LABEL_MAX, PRO
 import { multiValues, subphaseCodeError, workstreamSpan } from '../domain/workstream-links';
 import * as S from '../cockpit/referential/schemas';
 import { CellValue, ParsedWorkbook, SHEETS, SheetData } from './excel-reader';
+import { linkPersonsByEmail } from '../core/person-links';
 
 /**
  * Contrôle et chargement du Référentiel depuis le fichier Excel d'initialisation.
@@ -802,6 +803,8 @@ export async function commitPlan(db: Tx, plan: ImportPlan, target: CommitTarget,
       integratorTeamId: plan.project.integratorTeam ? teamId[plan.project.integratorTeam] : null,
     },
   });
+  // Import par l'Administrateur (Console) : personnes rattachées aux comptes existants de même e-mail (audit du 18/10/2026).
+  await linkPersonsByEmail(db, P);
   await tick(4, ++d4, n4);
 
   // Phase 5 : instances de pilotage et leurs membres.

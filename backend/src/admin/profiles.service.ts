@@ -64,21 +64,23 @@ export class ProfilesService {
   async referential(accounts: Account[], db: Tx = this.prisma): Promise<Map<string, ReferentialEntry[]>> {
     const rights = await this.rightsOf(accounts, db);
     const persons = await db.person.findMany({
-      where: { OR: [{ email: { in: accounts.map((a) => a.email.toLowerCase()), mode: 'insensitive' } }, { id: { in: accounts.map((a) => a.personId).filter(Boolean) as string[] } }] },
-      select: { id: true, projectId: true, email: true, firstName: true, lastName: true, wsIds: true, active: true },
+      where: { OR: [{ email: { in: accounts.map((a) => a.email.toLowerCase()), mode: 'insensitive' } }, { id: { in: accounts.map((a) => a.personId).filter(Boolean) as string[] } }, { accountId: { in: accounts.map((a) => a.id) } }] },
+      select: { id: true, projectId: true, email: true, firstName: true, lastName: true, wsIds: true, active: true, accountId: true },
     });
     const owned = await db.workstream.findMany({ where: { ownerId: { in: persons.map((p) => p.id) } }, select: { id: true, projectId: true, ownerId: true } });
     const codes = Object.fromEntries((await db.project.findMany({ select: { id: true, code: true } })).map((p) => [p.id, p.code]));
     const out = new Map<string, ReferentialEntry[]>();
     for (const a of accounts) {
-      const mine = persons.filter((p) => p.id === a.personId || p.email.toLowerCase() === a.email.toLowerCase());
+      // Personne rattachée au compte, ou de même e-mail et encore sans compte (proposition : l'Administrateur décide).
+      const linked = (p: { id: string; accountId: string | null }) => p.id === a.personId || p.accountId === a.id;
+      const mine = persons.filter((p) => linked(p) || (!p.accountId && p.email.toLowerCase() === a.email.toLowerCase()));
       out.set(
         a.id,
         mine.map((p) => {
           const own = owned.filter((w) => w.ownerId === p.id && w.projectId === p.projectId).map((w) => w.id);
           // Personne désactivée dans le référentiel : aucun droit proposé.
           const prop = p.active ? proposal(own, p.wsIds) : proposal([], []);
-          return { code: codes[p.projectId] ?? p.projectId, projectId: p.projectId, personId: p.id, personne: `${p.firstName} ${p.lastName}`.trim(), active: p.active, email: p.email, emailEcart: p.id === a.personId && p.email.trim().toLowerCase() !== a.email.toLowerCase(), responsable: [...own].sort(), rattachement: [...p.wsIds].sort(), proposition: prop, ecarts: gaps(prop, rights.get(a.id)!.projects[p.projectId], !p.active) };
+          return { code: codes[p.projectId] ?? p.projectId, projectId: p.projectId, personId: p.id, personne: `${p.firstName} ${p.lastName}`.trim(), active: p.active, email: p.email, emailEcart: linked(p) && p.email.trim().toLowerCase() !== a.email.toLowerCase(), responsable: [...own].sort(), rattachement: [...p.wsIds].sort(), proposition: prop, ecarts: gaps(prop, rights.get(a.id)!.projects[p.projectId], !p.active) };
         }),
       );
     }
@@ -107,13 +109,13 @@ export class ProfilesService {
 
   async rightsOf(accounts: Account[], db: Tx = this.prisma): Promise<Map<string, AccountRights>> {
     const all = await db.adminGrant.findMany(), grants = new Set(all.map((g) => g.accountId)), supers = new Set(all.filter((g) => g.superAdmin).map((g) => g.accountId));
-    const emails = accounts.map((a) => a.email.toLowerCase());
-    const persons = await db.person.findMany({ where: { email: { in: emails, mode: 'insensitive' } }, select: { id: true, email: true, projectId: true } });
+    // Droits réels : personnes rattachées au compte seulement, comme `AccessService.personFor` (audit du 18/10/2026).
+    const persons = await db.person.findMany({ where: { accountId: { in: accounts.map((a) => a.id) } }, select: { id: true, accountId: true } });
     const personIds = [...new Set([...persons.map((p) => p.id), ...accounts.map((a) => a.personId).filter(Boolean) as string[]])];
     const habs = await db.habilitation.findMany({ where: { OR: [{ accountId: { in: accounts.map((a) => a.id) } }, { personId: { in: personIds } }] } });
     const out = new Map<string, AccountRights>();
     for (const a of accounts) {
-      const mine = new Set<string>(persons.filter((p) => p.email.toLowerCase() === a.email.toLowerCase()).map((p) => p.id));
+      const mine = new Set<string>(persons.filter((p) => p.accountId === a.id).map((p) => p.id));
       if (a.personId) mine.add(a.personId);
       const r: AccountRights = { admin: grants.has(a.id), superAdmin: supers.has(a.id), projects: {}, strongest: null };
       for (const h of habs) {

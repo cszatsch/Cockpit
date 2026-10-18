@@ -7,6 +7,7 @@ import { AuditService, WriteCtx } from '../core/audit.service';
 import { TodayService } from '../core/today.service';
 import { conflict, notFound } from '../core/errors';
 import { DIFF_IGNORED_FIELDS, DiffItem, SAFETY_AUTHOR, SAFETY_LABEL, SnapshotChange, fieldLabel, formatValue, frDay, isSnapshotDue, toDiffItems } from '../domain/snapshots';
+import { linkPersonsByEmail } from '../core/person-links';
 
 /** Entités capturées dans un snapshot (données du projet). */
 export const SNAPSHOT_ENTITIES: Array<{ key: string; label: string; delegate: string; name: (r: any) => string }> = [
@@ -231,6 +232,9 @@ export class SnapshotsService implements OnModuleInit {
           const rows = content.links ? (content.links[l.key] ?? []) : current[l.key].filter((r) => l.ends.every(([f, k]) => ids(k).has(r[f])));
           if (rows.length) await tx[l.delegate].createMany({ data: rows.map((r: any) => restorable(l.delegate, r)), skipDuplicates: true });
         }
+        // Snapshot antérieur au rattachement des personnes aux comptes (18/10/2026) : liens repris par e-mail, restauration
+        // décidée par un administrateur.
+        await linkPersonsByEmail(db, s.projectId);
         await this.audit.action(db, { ...ctx, projectId: s.projectId }, {
           action: 'Restauration d’un snapshot',
           target: `${project.code} · état du ${frDay(s.takenAt.toISOString())}`,

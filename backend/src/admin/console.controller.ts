@@ -215,7 +215,7 @@ export class ConsoleController implements OnModuleInit {
     // actions tracées, dernière connexion, dernière modification du profil.
     const accountProjects = await this.prisma.accountProject.findMany({ where: { accountId: a.id } });
     const rights = (await this.profiles.rightsOf([a])).get(a.id)!;
-    const persons = await this.prisma.person.findMany({ where: { OR: [{ email: { equals: a.email, mode: 'insensitive' } }, ...(a.personId ? [{ id: a.personId }] : [])] } });
+    const persons = await this.prisma.person.findMany({ where: { OR: [{ email: { equals: a.email, mode: 'insensitive' } }, { accountId: a.id }, ...(a.personId ? [{ id: a.personId }] : [])] } });
     const assigns = persons.length ? await this.prisma.assignment.findMany({ where: { personId: { in: persons.map((x) => x.id) } }, orderBy: { startDate: 'asc' } }) : [];
     const pids = [...new Set([...accountProjects.map((x) => x.projectId), ...Object.keys(rights.projects), ...assigns.map((x) => x.projectId)])];
     const projects = pids.length ? await this.prisma.project.findMany({ where: { id: { in: pids } }, include: { client: true }, orderBy: { createdAt: 'asc' } }) : [];

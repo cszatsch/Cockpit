@@ -23,14 +23,18 @@ export class AccessService {
     );
   }
 
-  /** Personne du référentiel correspondant au compte sur un projet (lien direct, sinon e-mail). */
-  async personFor(actor: Pick<Actor, 'personId' | 'email'>, projectId: string, db: Tx = this.prisma): Promise<string | null> {
+  /**
+   * Personne du référentiel rattachée au compte sur un projet : lien direct du compte, sinon personne rattachée au compte
+   * (`Person.accountId`). Jamais par l'e-mail seul (audit de sécurité du 18/10/2026) : le PMO peut modifier l'e-mail
+   * d'une personne, et ses droits seraient passés au compte de cette adresse sans décision de l'Administrateur.
+   */
+  async personFor(actor: Pick<Actor, 'personId' | 'accountId'>, projectId: string, db: Tx = this.prisma): Promise<string | null> {
     if (actor.personId) {
       const p = await db.person.findUnique({ where: { id: actor.personId } });
       if (p && p.projectId === projectId) return p.id;
     }
-    const byMail = await db.person.findFirst({ where: { projectId, email: { equals: actor.email, mode: 'insensitive' } } });
-    return byMail?.id ?? null;
+    const linked = await db.person.findFirst({ where: { projectId, accountId: actor.accountId } });
+    return linked?.id ?? null;
   }
 
   async accessFor(actor: Actor, project: Project, db: Tx = this.prisma): Promise<ProjectAccess> {

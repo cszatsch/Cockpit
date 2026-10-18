@@ -16,6 +16,7 @@ import { parse } from '../core/http';
 import { adminCtx, ProfilesService, SUSPENSION_ACTION } from './profiles.service';
 import { ProjectDeletionService } from './project-deletion.service';
 import { proposal } from '../domain/habilitation-proposals';
+import { linkPerson } from '../core/person-links';
 
 /** Validité d'une invitation (brief Console § 7.1). */
 export const INVITE_VALIDITY_DAYS = 14;
@@ -238,7 +239,8 @@ export class AccountsController {
       : input.profile!;
     const now = this.today.now();
     const created = await this.prisma.$transaction(async (db) => {
-      const person = await db.person.findFirst({ where: { projectId: { in: projects.map((p) => p.id) }, email: { equals: input.email, mode: 'insensitive' } } });
+      const persons = await db.person.findMany({ where: { projectId: { in: projects.map((p) => p.id) }, accountId: null, email: { equals: input.email, mode: 'insensitive' } } });
+      const person = persons[0];
       const a = await db.account.create({
         data: {
           id: techId('u'),
@@ -251,6 +253,8 @@ export class AccountsController {
           projects: { create: projects.map((p) => ({ projectId: p.id })) },
         },
       });
+      // Invitation par l'Administrateur : les personnes du référentiel à cette adresse sont rattachées au compte.
+      for (const p of persons) await linkPerson(db, p.id, a.id);
       if (hab) await this.writeHabilitations(db, actor, a, hab);
       else if (!keepReferentialRights) {
         await this.applyProfile(db, a, input.profile!, projects);
@@ -328,7 +332,9 @@ export class AccountsController {
   async applyReferentialEmail(@CurrentActor() actor: Actor, @Param('id') id: string) {
     await this.guardSuper(actor, id);
     const a = await this.one(id);
-    const person = a.personId ? await this.prisma.person.findUnique({ where: { id: a.personId } }) : null;
+    // Personne rattachée (lien direct, puis `Person.accountId`) dont l'e-mail diffère de celui du compte.
+    const linked = await this.prisma.person.findMany({ where: { OR: [{ id: a.personId ?? '__' }, { accountId: a.id }] }, orderBy: { id: 'asc' } });
+    const person = linked.find((p) => p.email.trim().toLowerCase() !== a.email.toLowerCase()) ?? linked[0] ?? null;
     if (!person) throw conflict('NO_REFERENTIAL_PERSON', 'Ce compte n’est lié à aucune personne du référentiel');
     const email = person.email.trim().toLowerCase();
     if (!z.string().email().safeParse(email).success) throw conflict('INVALID_EMAIL', `L’e-mail du référentiel (${person.email}) n’est pas valide : faites-le corriger par le PMO`);
@@ -401,7 +407,7 @@ export class AccountsController {
     const out: Usage[] = [];
     // Journal d'audit : ne bloque plus la suppression (arbitrage du 11/10/2026). Chaque entrée garde le nom de l'auteur
     // (`actorName`) et le journal n'est jamais modifié : la trace reste lisible après la suppression du compte.
-    const persons = await this.prisma.person.findMany({ where: { OR: [{ id: a.personId ?? '__' }, { email: { equals: a.email, mode: 'insensitive' } }] } });
+    const persons = await this.prisma.person.findMany({ where: { OR: [{ id: a.personId ?? '__' }, { accountId: a.id }, { email: { equals: a.email, mode: 'insensitive' } }] } });
     for (const p of persons) {
       const P = { projectId: p.projectId };
       const owned = [
@@ -458,6 +464,7 @@ export class AccountsController {
       try {
         await this.prisma.$transaction(async (db) => {
           await db.habilitation.deleteMany({ where: { accountId: a.id } });
+          await db.person.updateMany({ where: { accountId: a.id }, data: { accountId: null } });
           await db.userPreferences.deleteMany({ where: { accountId: a.id } });
           await db.account.delete({ where: { id: a.id } });
           await this.audit.action(db, adminCtx(actor), { action: 'Suppression d’un utilisateur', target: `${a.fullName} · ${a.email}`, severity: 'CRITICAL', entityType: 'Account', entityId: a.id, details: { motif: 'Suppression des comptes suspendus' } });
@@ -481,6 +488,7 @@ export class AccountsController {
     await this.prisma.$transaction(async (db) => {
       await db.habilitation.deleteMany({ where: { accountId: id } });
       await db.adminGrant.deleteMany({ where: { accountId: id } });
+      await db.person.updateMany({ where: { accountId: id }, data: { accountId: null } });
       await db.userPreferences.deleteMany({ where: { accountId: id } });
       await db.account.delete({ where: { id } });
       await this.audit.action(db, adminCtx(actor), { action: 'Suppression d’un utilisateur', target: `${a.fullName} · ${a.email}`, severity: 'CRITICAL', entityType: 'Account', entityId: id });
@@ -541,7 +549,11 @@ export class AccountsController {
     // Projets touchés : ceux demandés et ceux rattachés jusqu'ici (un projet retiré perd ses habilitations).
     const attached = (await db.accountProject.findMany({ where: { accountId: a.id } })).map((x) => x.projectId);
     for (const pid of [...new Set([...attached, ...projects.map((p) => p.id)])]) {
-      const person = await db.person.findFirst({ where: { projectId: pid, OR: [...(a.personId ? [{ id: a.personId }] : []), { email: { equals: a.email, mode: 'insensitive' as const } }] } });
+      // Personne rattachée au compte ; sinon personne de même e-mail encore sans compte, que l'Administrateur rattache ici.
+      const person =
+        (await db.person.findFirst({ where: { projectId: pid, OR: [...(a.personId ? [{ id: a.personId }] : []), { accountId: a.id }] } })) ??
+        (await db.person.findFirst({ where: { projectId: pid, accountId: null, email: { equals: a.email, mode: 'insensitive' as const } } }));
+      if (person && projects.some((x) => x.id === pid)) await linkPerson(db, person.id, a.id);
       await db.habilitation.deleteMany({ where: { projectId: pid, OR: [{ accountId: a.id }, ...(person ? [{ personId: person.id }] : [])] } });
       const code = projects.find((x) => x.id === pid)?.code;
       const want = code ? input.projects.find((p) => p.code.toUpperCase() === code) : undefined;
