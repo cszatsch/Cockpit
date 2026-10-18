@@ -12,7 +12,7 @@ import { ApiError, badRequest, forbidden, inUse, notFound } from '../../core/err
 import { techId } from '../../core/ids';
 import { parse } from '../../core/http';
 import { analyzeFormatFile } from '../../core/report-format-read';
-import { canWriteTools } from '../../domain/rights';
+import { canReadWs, canWriteTools, seesAllWorkstreams } from '../../domain/rights';
 import { FORMAT_MAX_BYTES, FORMAT_TOO_BIG, FormatReadError, PAGE_KINDS, SHAPE_ROLES, ShapeRole } from '../../domain/report-format';
 import type { UploadedBlob } from '../../core/upload';
 import { ReportFormatService } from './report-format.service';
@@ -36,6 +36,20 @@ const PreviewSchema = z.object({
 }).strict();
 
 /** Format du rapport (étape B de « Créer un template », 02/10/2026) : pages modèles, contrôles, aperçus, PowerPoint. */
+/**
+ * Génération et aperçu d'un rapport (audit du 18/10/2026, RG8) : réservés aux profils Outils (PMO, Responsable), et un
+ * profil limité à certains chantiers ne produit qu'un rapport dont chaque composant porte sur un chantier qu'il voit ;
+ * les données d'un composant « projet » ou d'un autre chantier ne sont pas filtrées par chantier.
+ */
+export function assertReportScope(scope: ProjectScope, components: unknown) {
+  if (!canWriteTools(scope.access)) throw forbidden('Génération de rapport : profil non Lecteur (PMO, Responsable)');
+  if (seesAllWorkstreams(scope.access)) return;
+  const list = Array.isArray(components) ? (components as Array<{ scope?: string; targetId?: string | null }>) : [];
+  if (list.some((c) => c.scope !== 'WORKSTREAM' || !canReadWs(scope.access, c.targetId ?? null))) {
+    throw forbidden('Rapport réservé au PMO : il couvre des chantiers ou tout le projet, au-delà de vos chantiers');
+  }
+}
+
 @ApiTags('cockpit · comités')
 @ApiBearerAuth()
 @Controller('api/projects/:projectId')
@@ -148,7 +162,9 @@ export class ReportFormatController {
   @Get('report-templates/:id/check')
   async templateCheck(@CurrentActor() actor: Actor, @Param('projectId') p: string, @Param('id') id: string) {
     const scope = await this.access.scope(actor, p);
-    return this.reports.check(scope, await this.template(scope, id), scope.access.personId ?? actor.accountId);
+    const t = await this.template(scope, id);
+    assertReportScope(scope, t.components);
+    return this.reports.check(scope, t, scope.access.personId ?? actor.accountId);
   }
 
   /**
@@ -159,6 +175,7 @@ export class ReportFormatController {
   async pptx(@CurrentActor() actor: Actor, @Param('projectId') p: string, @Param('id') id: string, @Res() res: any) {
     const scope = await this.access.scope(actor, p);
     const t = await this.template(scope, id);
+    assertReportScope(scope, t.components);
     const out = await this.reports.generate(scope, t, scope.access.personId ?? actor.accountId);
     await this.reports.markFirstReport(t.id);
     this.send(res, out.buf, `${t.name} v${out.version.label}`);
@@ -174,7 +191,9 @@ export class ReportFormatController {
     const scope = await this.access.scope(actor, p);
     // `toKb` : verser le rapport produit dans la Base de connaissance (05/10/2026).
     const toKb = !!(body && typeof body === 'object' && (body as { toKb?: unknown }).toKb === true);
-    return this.reports.startGeneration(scope, await this.template(scope, id), scope.access.personId ?? actor.accountId, toKb ? { actor } : null);
+    const t = await this.template(scope, id);
+    assertReportScope(scope, t.components);
+    return this.reports.startGeneration(scope, t, scope.access.personId ?? actor.accountId, toKb ? { actor } : null);
   }
 
   @Get('report-generations/:id')
@@ -249,8 +268,8 @@ export class ReportFormatController {
   @HttpCode(200)
   async templatePreview(@CurrentActor() actor: Actor, @Param('projectId') p: string, @Body() body: unknown) {
     const scope = await this.access.scope(actor, p);
-    if (!canWriteTools(scope.access)) throw forbidden('Templates : profil non Lecteur (PMO, Responsable)');
     const d = parse(PreviewSchema, body);
+    assertReportScope(scope, d.components as any);
     const cfg = { ...configErrors(d.components as any), ...(await this.reports.moduleErrors(scope.project.id, d.components as any)) };
     if (Object.keys(cfg).length) throw badRequest('Composants invalides', cfg);
     const format = d.format ? await this.prisma.$transaction((db) => this.formats.formatForTemplate(scope, d.format!, db)) : null;
@@ -262,8 +281,8 @@ export class ReportFormatController {
   @HttpCode(202)
   async previewJobStart(@CurrentActor() actor: Actor, @Param('projectId') p: string, @Body() body: unknown) {
     const scope = await this.access.scope(actor, p);
-    if (!canWriteTools(scope.access)) throw forbidden('Templates : profil non Lecteur (PMO, Responsable)');
     const d = parse(PreviewSchema, body);
+    assertReportScope(scope, d.components as any);
     const cfg = { ...configErrors(d.components as any), ...(await this.reports.moduleErrors(scope.project.id, d.components as any)) };
     if (Object.keys(cfg).length) throw badRequest('Composants invalides', cfg);
     const format = d.format ? await this.prisma.$transaction((db) => this.formats.formatForTemplate(scope, d.format!, db)) : null;

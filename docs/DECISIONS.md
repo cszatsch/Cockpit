@@ -2855,3 +2855,18 @@ gravité moyenne, en quatre lots, puis de mettre à jour la VM.
   ordinaire.
 - Limite connue : plusieurs gros dépôts simultanés restent possibles ; aucune file d'attente ni processus séparé pour
   la lecture des fichiers.
+
+### Lot 2 : cloisonnement par chantier (RG8) sur trois routes
+
+- **Commentaires** (`GET /comments`) : chaque commentaire rendu est contrôlé (`assertReadable`), sauf quand le couple
+  `entityType` + `entityId` a déjà été vérifié ; `entityId` seul échappait aux deux contrôles.
+- **Rapport de séance** (`GET /reports/:id/file`) : jalons, risques, décisions et actions filtrés comme le `bootstrap`
+  (`canReadWs`, `canReadLinks`). Le PDF n'est mis en cache (`fileId`) et resservi que pour un profil qui voit tous les
+  chantiers (PMO, Admin) ; un profil limité reçoit un PDF rendu pour lui, sans cache.
+- **Génération et aperçu d'un rapport** (`GET /report-templates/:id/pptx|check`, `POST …/generations`,
+  `POST /report-templates/preview|preview-jobs`) : `assertReportScope` exige le droit Outils (PMO, Responsable), et un
+  profil limité à certains chantiers ne peut produire qu'un rapport dont **chaque composant** porte sur un chantier
+  qu'il voit. Choix : `componentValues` ne filtre pas ses données par chantier (une trentaine de requêtes réparties dans
+  les composants) ; refuser est la correction minimale sûre. **Effet visible** : un Responsable ne génère plus un
+  rapport « projet entier » (403 « Rapport réservé au PMO… ») ; seul le PMO (ou l'Admin) le fait. À revoir si le
+  commanditaire préfère un filtrage des données par chantier.

@@ -73,11 +73,12 @@ export class CollabController {
     const scope = await this.access.scope(actor, p);
     if (entityType && entityId) await this.assertReadable(scope, entityType, entityId);
     const rows = await this.prisma.cellComment.findMany({ where: { projectId: scope.project.id, ...(entityType ? { entityType } : {}), ...(entityId ? { entityId } : {}) }, orderBy: { createdAt: 'asc' } });
-    // Sans filtre : uniquement les commentaires d'objets lisibles.
+    // Chaque commentaire n'est rendu que si son objet est lisible, sauf quand l'objet précis a été vérifié ci-dessus
+    // (audit du 18/10/2026 : `entityId` seul, sans `entityType`, échappait aux deux contrôles).
     const out = [];
     for (const c of rows) {
       try {
-        if (!entityId) await this.assertReadable(scope, c.entityType, c.entityId);
+        if (!(entityType && entityId)) await this.assertReadable(scope, c.entityType, c.entityId);
         out.push(this.view(c));
       } catch {
         /* objet hors périmètre ou supprimé */

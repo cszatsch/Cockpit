@@ -14,7 +14,7 @@ import { badRequest, businessRule, conflict, forbidden, inUse, notFound } from '
 import { techId, nextCode } from '../../core/ids';
 import { checkIfMatch, parse } from '../../core/http';
 import { renderPdf } from '../../core/pdf';
-import { canWriteSessions, canWriteTools } from '../../domain/rights';
+import { canReadLinks, canReadWs, canWriteSessions, canWriteTools, riskLinks, seesAllWorkstreams } from '../../domain/rights';
 import { sessionDateChangeError, sessionTransitionError } from '../../domain/rules';
 import { frShort } from '../../domain/dates';
 import { sessionView } from '../views';
@@ -403,11 +403,16 @@ export class CommitteesController {
     const scope = await this.access.scope(actor, p);
     const r = await this.prisma.reportInstance.findFirst({ where: { id, projectId: scope.project.id } });
     if (!r) throw notFound();
-    let buf = r.fileId ? await this.storage.get(r.fileId) : null;
+    // Cloisonnement par chantier (RG8, audit du 18/10/2026) : le PDF n'est mis en cache, puis resservi, que pour un profil
+    // qui voit tous les chantiers ; un profil limité reçoit un PDF rendu pour lui, sans cache.
+    const all = seesAllWorkstreams(scope.access);
+    let buf = all && r.fileId ? await this.storage.get(r.fileId) : null;
     if (!buf) {
       buf = await this.renderReport(scope, r);
-      const key = await this.storage.put(`reports/${scope.project.id}`, buf, '.pdf');
-      await this.prisma.reportInstance.update({ where: { id }, data: { fileId: key } });
+      if (all) {
+        const key = await this.storage.put(`reports/${scope.project.id}`, buf, '.pdf');
+        await this.prisma.reportInstance.update({ where: { id }, data: { fileId: key } });
+      }
     }
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${r.id}-${r.v}.pdf"`);
@@ -416,27 +421,28 @@ export class CommitteesController {
 
   private async renderReport(scope: ProjectScope, r: any): Promise<Buffer> {
     const P = { projectId: scope.project.id };
+    const A = scope.access;
     const tpl = r.templateId ? await this.prisma.reportTemplate.findUnique({ where: { id: r.templateId } }) : null;
     const comps: string[] = tpl ? (tpl.components as any[]).map((c) => c.id) : ['synthese', 'jalons', 'risques', 'decisions', 'actions'];
     const lines: string[] = [`Projet ${scope.project.code} — ${scope.project.name}`, `Version ${r.v} · statut ${r.status} · généré le ${r.generatedAt.toISOString().slice(0, 16).replace('T', ' ')} UTC`, ''];
     if (comps.includes('jalons')) {
       lines.push('JALONS');
-      for (const m of await this.prisma.milestone.findMany({ where: P, orderBy: { iso: 'asc' } })) lines.push(`  ${m.code}  ${m.iso}  ${m.n}`);
+      for (const m of (await this.prisma.milestone.findMany({ where: P, orderBy: { iso: 'asc' } })).filter((m) => !m.wsId || canReadWs(A, m.wsId))) lines.push(`  ${m.code}  ${m.iso}  ${m.n}`);
       lines.push('');
     }
     if (comps.includes('risques')) {
       lines.push('RISQUES');
-      for (const x of await this.prisma.risk.findMany({ where: { ...P, status: { not: 'CLOSED' } }, orderBy: { code: 'asc' } })) lines.push(`  ${x.code}  criticité ${x.p * x.i}  ${x.n}`);
+      for (const x of (await this.prisma.risk.findMany({ where: { ...P, status: { not: 'CLOSED' } }, orderBy: { code: 'asc' } })).filter((x) => canReadLinks(A, riskLinks(x)))) lines.push(`  ${x.code}  criticité ${x.p * x.i}  ${x.n}`);
       lines.push('');
     }
     if (comps.includes('decisions')) {
       lines.push('DÉCISIONS');
-      for (const d of await this.prisma.decision.findMany({ where: P, orderBy: { code: 'asc' } })) lines.push(`  ${d.code}  ${d.status}  ${d.t}`);
+      for (const d of (await this.prisma.decision.findMany({ where: P, orderBy: { code: 'asc' } })).filter((d) => canReadWs(A, d.wsId))) lines.push(`  ${d.code}  ${d.status}  ${d.t}`);
       lines.push('');
     }
     if (comps.includes('actions')) {
       lines.push('ACTIONS');
-      for (const a of await this.prisma.action.findMany({ where: { ...P, status: { not: 'DONE' } }, orderBy: { order: 'asc' } })) lines.push(`  ${a.code}  ${a.dueIso ?? '—'}  ${a.n}`);
+      for (const a of (await this.prisma.action.findMany({ where: { ...P, status: { not: 'DONE' } }, orderBy: { order: 'asc' } })).filter((a) => canReadLinks(A, riskLinks(a)))) lines.push(`  ${a.code}  ${a.dueIso ?? '—'}  ${a.n}`);
     }
     return renderPdf(r.name, lines);
   }
