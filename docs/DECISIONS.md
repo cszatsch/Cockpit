@@ -2839,3 +2839,19 @@ gravité moyenne, en quatre lots, puis de mettre à jour la VM.
   passe par la Console (`/projects/init`, `/projects/import`). `ImportService.importIntoProject` reste le point d'entrée
   des tests du moteur commun (`test/e2e/import.spec.ts`), sans route HTTP. Le type `UploadedBlob` passe dans
   `src/core/upload.ts`.
+
+### Lot 1 : plafonds de décompression des fichiers Office
+
+- Module `backend/src/core/zip-limits.ts` : chaque archive déposée (DOCX, PPTX, XLSX) est décompressée en flux, octets
+  comptés, avant toute lecture ; la taille déclarée dans l'archive n'est pas crue. Plafonds (constantes nommées) :
+  `ZIP_MAX_ENTRIES` 5 000 parties, `ZIP_MAX_TOTAL_BYTES` 128 Mo décompressés au total, `ZIP_MAX_XML_PART_BYTES` 16 Mo
+  par partie XML, `ZIP_MAX_XML_TOTAL_BYTES` 32 Mo de XML au total. Hypothèse : un document réel reste très en deçà (une
+  diapositive pèse quelques centaines de Ko de XML, un Word de 300 pages quelques Mo) ; les images ne comptent que dans
+  le plafond total. Au-delà : refus avec « Document trop volumineux une fois décompressé… » (`ZIP_TOO_LARGE_MESSAGE`).
+- Branché sur : `OoxmlPackage.load` (formats de rapport), `office-text` (base de connaissance : Word, PowerPoint et,
+  avant ExcelJS, Excel), `prefill-text` (propositions Word), `excel-reader` (initialisation par la Console).
+- `readWorkbook` ne parcourt plus que les lignes et cellules existantes (`eachRow` / `eachCell` sans les vides) : une
+  cellule isolée en ligne 1 048 576 faisait créer un objet par ligne vide jusqu'à elle. Même résultat pour un classeur
+  ordinaire.
+- Limite connue : plusieurs gros dépôts simultanés restent possibles ; aucune file d'attente ni processus séparé pour
+  la lecture des fichiers.

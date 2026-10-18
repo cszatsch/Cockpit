@@ -1,3 +1,4 @@
+import { ZipTooLargeError } from './zip-limits';
 import {
   Box, DEFAULT_SIZE, EMU_PER_GUIDE_UNIT, EMU_PER_PT, Fill, FixedElement, FORMAT_EMPTY, FORMAT_EXTENSIONS, FORMAT_IMAGE_UNREADABLE, FORMAT_MAX_SLIDES, FORMAT_NO_SLIDE, FORMAT_OLD_PPT,
   FORMAT_PPTX_UNREADABLE, FORMAT_PROTECTED, FORMAT_REFUSED, FormatAnalysis, FormatFileKind, FormatReadError, IMAGE_MIN_WIDTH_PX, ShapeInfo, SlideAnalysis, TextStyle, Typography, Zone, ZoneRole,
@@ -283,7 +284,7 @@ async function themeOf(pkg: OoxmlPackage, themePath: string | null) {
 
 export async function analyzePptx(buf: Buffer): Promise<FormatAnalysis> {
   let pkg: OoxmlPackage;
-  try { pkg = await OoxmlPackage.load(buf); } catch { throw new FormatReadError(FORMAT_PPTX_UNREADABLE); }
+  try { pkg = await OoxmlPackage.load(buf); } catch (e) { throw new FormatReadError(e instanceof ZipTooLargeError ? e.message : FORMAT_PPTX_UNREADABLE); }
   const presPath = 'ppt/presentation.xml';
   const pres = await pkg.xml(presPath).catch(() => null);
   if (!pres || tagOf(pres) !== 'p:presentation') throw new FormatReadError(FORMAT_PPTX_UNREADABLE);

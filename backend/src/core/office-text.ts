@@ -1,6 +1,7 @@
 import JSZip from 'jszip';
 import ExcelJS from 'exceljs';
 import { XMLParser } from 'fast-xml-parser';
+import { loadZipBounded, ZipTooLargeError } from './zip-limits';
 
 /**
  * Lecture des documents Office (Base de connaissance du Cockpit, décision du 30/09/2026) : texte structuré, sans mise en
@@ -40,9 +41,9 @@ const clean = (s: string) => s.replace(/[ \t ]+/g, ' ').replace(/ *\n */g, '\n'
 
 async function zipOf(buf: Buffer): Promise<JSZip> {
   try {
-    return await JSZip.loadAsync(buf);
-  } catch {
-    throw new OfficeReadError('Fichier illisible : il est peut-être endommagé.');
+    return await loadZipBounded(buf);
+  } catch (e) {
+    throw new OfficeReadError(e instanceof ZipTooLargeError ? e.message : 'Fichier illisible : il est peut-être endommagé.');
   }
 }
 async function text(zip: JSZip, path: string): Promise<string | null> {
@@ -231,6 +232,7 @@ function cellText(v: ExcelJS.CellValue, fallback: string): string {
 }
 
 export async function readXlsx(buf: Buffer): Promise<XlsxSheet[]> {
+  await zipOf(buf); // plafonds de décompression avant ExcelJS, qui décompresse tout en mémoire
   const wb = new ExcelJS.Workbook();
   try {
     await wb.xlsx.load(buf as any);

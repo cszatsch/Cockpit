@@ -3,6 +3,7 @@ import { PrismaService } from '../core/prisma.service';
 import { AuditService, WriteCtx } from '../core/audit.service';
 import { ApiErrorWithBody, conflict } from '../core/errors';
 import { ParsedWorkbook, readWorkbook } from './excel-reader';
+import { ZipTooLargeError } from '../core/zip-limits';
 import { checkWorkbook, CheckResult, commitPlan, ImportIssue } from './referential-import';
 import { screenChecks, toScreen } from './import-screen';
 
@@ -26,8 +27,8 @@ export class ImportService {
   async check(buffer: Buffer): Promise<CheckResult> {
     try {
       return checkWorkbook(await readWorkbook(buffer));
-    } catch {
-      return { issues: [{ level: 'ERROR', sheet: 'Fichier', row: null, column: null, message: 'Fichier illisible : un classeur .xlsx est attendu', source: 'SERVER' }], plan: null, counts: {}, checks: [] };
+    } catch (e) {
+      return { issues: [{ level: 'ERROR', sheet: 'Fichier', row: null, column: null, message: e instanceof ZipTooLargeError ? e.message : 'Fichier illisible : un classeur .xlsx est attendu', source: 'SERVER' }], plan: null, counts: {}, checks: [] };
     }
   }
 

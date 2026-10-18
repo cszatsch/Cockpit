@@ -522,6 +522,7 @@ Réalisé selon le brief : collecte (événements d'usage des écrans, sessions,
 Rapport d'audit hors du dépôt (`%USERPROFILE%\security-audit-skill\cockpit\run-1\REPORT.md`) ; décisions dans `docs/DECISIONS.md`.
 
 - **Lot 0, code mort** : route `POST /assistant/files`, champ `fileIds` et code d'écran des pièces jointes de Jev retirés ; route `POST /referential/import` du Cockpit retirée (aucun écran ne l'appelait). Tests : `import.spec.ts` appelle le moteur directement (12 tests, dont la route absente) ; `annexes.spec.ts` vérifie l'absence de la route des pièces jointes et le refus de `fileIds`.
+- **Lot 1, plafonds de décompression** : `core/zip-limits.ts` (décompression en flux, plafonds par partie XML, XML total, total et nombre de parties) branché sur les formats de rapport, la base de connaissance, le préremplissage et l'import Excel de la Console ; `readWorkbook` ne parcourt plus que les lignes existantes. Tests : `test/unit/zip-limits.spec.ts` (6 tests : fichier piégé de quelques dizaines de Ko refusé sur chaque chemin, document ordinaire inchangé, cellule en ligne 1 048 576 lue en moins de 5 s).
 
 ## 4. Questions ouvertes
 

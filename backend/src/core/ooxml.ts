@@ -1,5 +1,6 @@
 import JSZip from 'jszip';
 import { XMLParser } from 'fast-xml-parser';
+import { loadZipBounded } from './zip-limits';
 
 /**
  * Lecture des paquets Office Open XML (PowerPoint) : arbre XML ordonné, relations entre parties, chemins et couleurs
@@ -103,7 +104,7 @@ export class OoxmlPackage {
   private cache = new Map<string, XNode>();
   constructor(readonly zip: JSZip) {}
   static async load(buf: Buffer): Promise<OoxmlPackage> {
-    return new OoxmlPackage(await JSZip.loadAsync(buf));
+    return new OoxmlPackage(await loadZipBounded(buf));
   }
   has(p: string) {
     return !!this.zip.file(p);

@@ -1,4 +1,5 @@
 import JSZip from 'jszip';
+import { loadZipBounded, ZipTooLargeError } from './zip-limits';
 import { detectFormat, KB_PROTECTED, pdfTextState } from '../domain/kb-documents';
 import { PREFILL_DOCX_PAGE_CHARS, PREFILL_EXTENSIONS, PREFILL_MAX_BYTES } from '../domain/prefill';
 import { OfficeReadError, readPptx } from './office-text';
@@ -32,9 +33,9 @@ const xmlText = (s: string) =>
 async function docxPages(buf: Buffer): Promise<string[]> {
   let xml: string | undefined;
   try {
-    xml = await (await JSZip.loadAsync(buf)).file('word/document.xml')?.async('string');
-  } catch {
-    throw new PrefillRefusal('LECTURE', PREFILL_READ_MESSAGE);
+    xml = await (await loadZipBounded(buf)).file('word/document.xml')?.async('string');
+  } catch (e) {
+    throw new PrefillRefusal('LECTURE', e instanceof ZipTooLargeError ? e.message : PREFILL_READ_MESSAGE);
   }
   if (!xml) throw new PrefillRefusal('LECTURE', PREFILL_READ_MESSAGE);
   const body = xml.replace(/<w:instrText[^>]*>[\s\S]*?<\/w:instrText>/g, '');
