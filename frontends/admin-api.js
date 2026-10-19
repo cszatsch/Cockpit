@@ -803,10 +803,14 @@ export function bindConsole(c) {
   c.nrToggle = (id, on) => nrRun(() => patch(NR(id), { on }), nrReload(['nrRules']));
   c.nrDelete = id => nrRun(() => del(NR(id)), nrReload(['nrRules', 'nrHist']));
   // Test : le brouillon affiché est envoyé à l'administrateur connecté ; un refus ne touche pas au brouillon.
-  c.nrTest = r => nrRun(() => post(NR(r.id) + '/test', r), out => {
+  // Résultat rendu à la vue (19/10/2026) : { ok, to } pour sa confirmation — le serveur envoie le test au seul compte
+  // connecté (`rules.controller.ts`), dont l'adresse est relue ; undefined en cas de refus (message déjà affiché).
+  c.nrTest = r => nrRun(() => post(NR(r.id) + '/test', r), async out => {
     const ko = (out || []).filter(h => !h.ok);
     if (ko.length) toast('Échec de l’envoi de test : ' + (ko[0].error || 'erreur'), 'err');
-    return load(['nrHist']).catch(() => {});
+    load(['nrHist']).catch(() => {});
+    const me = await get('/me/profile').catch(() => null);
+    return { ok: !ko.length, to: me?.email || null };
   }, false);
 
   // ── Modules : `setMod` (portée, projets) est le point de passage de setScope, togProj et Jev ──

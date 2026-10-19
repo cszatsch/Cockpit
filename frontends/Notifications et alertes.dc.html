@@ -14,6 +14,10 @@ button:focus-visible,select:focus-visible{outline:2px solid #1d8f86;outline-offs
 textarea::placeholder,input::placeholder{color:#8a9aa6}
 @keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @keyframes toastIn{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
+@keyframes ntSpin{to{transform:rotate(360deg)}}
+.nt-test{transition:transform .15s ease,box-shadow .15s ease,background .15s ease}
+.nt-test:not(:disabled):hover{transform:translateY(-1px);box-shadow:0 10px 20px -12px rgba(16,35,58,.65)}
+.nt-test:not(:disabled):active{transform:translateY(0) scale(.97);box-shadow:none}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style></helmet>
 <div data-screen-label="Notifications" style="max-width:1440px;margin:0 auto;padding:52px 56px 72px;display:flex;flex-direction:column;gap:32px">
@@ -154,7 +158,7 @@ textarea::placeholder,input::placeholder{color:#8a9aa6}
         </div>
       </div>
       <div style="display:flex;align-items:center;gap:10px;padding:16px 36px;background:#f8fbfa;border-top:1px solid #eef3f2;flex-wrap:wrap">
-        <button type="button" onClick="{{ test }}" disabled="{{ cantSend }}" style="{{ testSt }}" style-hover="{{ testHov }}">M’envoyer un test</button>
+        <button type="button" class="nt-test" onClick="{{ test }}" disabled="{{ cantSend }}" aria-busy="{{ testing }}" style="{{ testSt }}" style-hover="{{ testHov }}"><sc-if value="{{ testing }}" hint-placeholder-val="{{ false }}"><span aria-hidden="true" style="width:13px;height:13px;border-radius:50%;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;animation:ntSpin .7s linear infinite"></span></sc-if>{{ testL }}</button>
         <button type="button" onClick="{{ del }}" style="{{ delSt }}" style-hover="background:#fdf0ed"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"></path></svg>{{ delL }}</button>
         <span style="flex:1"></span>
         <sc-if value="{{ clean }}" hint-placeholder-val="{{ true }}"><span style="white-space:nowrap;font-size:12px;color:#8a9aa6">Aucune modification</span></sc-if>
@@ -223,15 +227,29 @@ const fill = (s, o) => (s || '').replace(/\{(\w+)\}/g, (m, k) => o[k] ?? m);
 const clone = o => JSON.parse(JSON.stringify(o));
 
 class Component extends DCLogic {
-  state = { rules: null, selId: null, draft: null, pv: 'app', hScope: 'rule', confirmDel: false, toast: '' };
+  state = { rules: null, selId: null, draft: null, pv: 'app', hScope: 'rule', confirmDel: false, toast: '', testing: false };
   rules() { return this.state.rules ?? (this.props.rules ?? RULES); }
   sel() { const r = this.rules(); return r.find(x => x.id === this.state.selId) || r[0]; }
   draft() { return this.state.draft ?? clone(this.sel()); }
   models() { return this.props.models ?? MODELS; }
   edit(patch) { this.setState({ draft: { ...this.draft(), ...patch }, confirmDel: false }); }
   setRules(rules) { this.setState({ rules }); }
-  say(t) { clearTimeout(this._t); this.setState({ toast: t }); this._t = setTimeout(() => this.setState({ toast: '' }), 2600); }
-  componentWillUnmount() { clearTimeout(this._t); }
+  say(t, ms = 2600) { clearTimeout(this._t); this.setState({ toast: t }); this._t = setTimeout(() => this.setState({ toast: '' }), ms); }
+  /** « M'envoyer un test » : bouton occupé pendant la rédaction et l'envoi ; confirmation seulement après la réponse. */
+  sendTest(d) {
+    if (this.state.testing) return;
+    this.setState({ testing: true });
+    const done = (r) => {
+      this.setState({ testing: false });
+      // Échec : le message d'erreur vient du client (admin-api.js) ; pas de confirmation. Le test part au seul compte connecté.
+      if (!r || !r.ok) return;
+      const where = [d.canaux.includes('mail') && (r.to ? 'par e-mail à ' + r.to : 'par e-mail'), d.canaux.includes('app') && 'dans la cloche du Cockpit'].filter(Boolean).join(' et ');
+      this.say('Test envoyé ' + (where || 'sur votre compte'), 5000);
+    };
+    if (!this.props.onTest) { this._tt = setTimeout(() => done({ ok: true }), 1200); return; }
+    Promise.resolve(this.props.onTest(d)).then(done, () => done(null));
+  }
+  componentWillUnmount() { clearTimeout(this._t); clearTimeout(this._tt); }
   pick(id) {
     if (this.state.draft && JSON.stringify(this.state.draft) !== JSON.stringify(this.sel()) && !window.confirm('Des modifications ne sont pas enregistrées. Les abandonner ?')) return;
     this.setState({ selId: id, draft: null, confirmDel: false });
@@ -331,10 +349,11 @@ class Component extends DCLogic {
       pv: { kind: 'Notification', subject: fill(d.subject, sample) || 'Sans objet', body: fill(d.body, sample),
         bar: 'width:3px;border-radius:2px;flex:none;background:#1d8f86',
         badge: 'height:20px;padding:0 8px;border-radius:999px;font-weight:700;display:inline-flex;align-items:center;background:#e6f4f2;color:#146b64' },
-      cantSend: !canSend,
-      testSt: 'flex:none;white-space:nowrap;height:36px;padding:0 16px;border-radius:10px;border:0;font-weight:700;font-size:12.5px;' + (canSend ? 'background:#10233a;color:#fff;cursor:pointer' : 'background:#e1e9e7;color:#8a9aa6;cursor:not-allowed'),
-      testHov: canSend ? 'background:#1d3654' : '',
-      test: () => { if (!canSend) return; this.props.onTest?.(d); this.say('Test envoyé sur votre compte'); },
+      cantSend: !canSend || S.testing, testing: S.testing,
+      testL: S.testing ? 'Envoi du test…' : 'M’envoyer un test',
+      testSt: 'flex:none;white-space:nowrap;height:36px;padding:0 16px;border-radius:10px;border:0;font-weight:700;font-size:12.5px;display:inline-flex;align-items:center;gap:8px;' + (S.testing ? 'background:#1d3654;color:#fff;cursor:progress' : canSend ? 'background:#10233a;color:#fff;cursor:pointer' : 'background:#e1e9e7;color:#8a9aa6;cursor:not-allowed'),
+      testHov: canSend && !S.testing ? 'background:#1d3654' : '',
+      test: () => { if (canSend) this.sendTest(d); },
       delL: S.confirmDel ? 'Confirmer la suppression' : 'Supprimer la règle',
       delSt: 'flex:none;white-space:nowrap;height:36px;padding:0 12px;border-radius:10px;font-weight:700;font-size:12.5px;display:inline-flex;align-items:center;gap:7px;cursor:pointer;color:#c2473b;' + (S.confirmDel ? 'border:1px solid #f0a193;background:#fdf0ed' : 'border:1px solid transparent;background:transparent'),
       del: () => { if (!S.confirmDel) return this.setState({ confirmDel: true });

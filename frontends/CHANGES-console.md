@@ -57,7 +57,7 @@ Lignes modifiées (`git diff --numstat`) : Console Admin **+4 / −1** ; ConsoCo
 | comparaison A/B (inline) | `GET /snapshots/compare?a&b` | Ajouts, modifications et suppressions calculés par le serveur, puis mis en cache. |
 | `newRule`, `saveRule` | `POST` (règle nouvelle) ou `PATCH /notification-rules/{id}` | Validations d'origine côté écran ; celles du serveur (`400`) sont affichées dans le toast. |
 | `toggleRule` | `POST /notification-rules/{id}/enable` et `/disable` | « Annuler » réactive la règle sur le serveur. |
-| « M'envoyer un test » (inline) | `POST /notification-rules/{id}/test` | Envoi réel à l'administrateur connecté ; l'historique est rechargé. |
+| « M'envoyer un test » (inline) | `POST /notification-rules/{id}/test` | Envoi réel à l'administrateur connecté ; l'historique est rechargé. Depuis le 19/10/2026 : léger relief au survol et enfoncement au clic (`.nt-test`), bouton occupé « Envoi du test… » avec indicateur tant que la rédaction et l'envoi durent, confirmation affichée seulement après la réponse du serveur, avec l'adresse e-mail du compte connecté et les canaux (« Test envoyé par e-mail à … et dans la cloche du Cockpit ») ; `nrTest` d'`admin-api.js` rend `{ ok, to }`. |
 | `setMod` (donc `setScope`, `togProj`, activation par Jev) | `PATCH /modules/{id}` | |
 | `approve`, `reject` | `POST /module-requests/{id}/approve` et `/reject` | |
 | `saveMe`, `onPhoto` | `PATCH /me/profile` | La photo est envoyée en data URL (`photoUrl`). |
