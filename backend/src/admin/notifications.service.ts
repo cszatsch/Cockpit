@@ -71,7 +71,7 @@ export class NotificationsService implements OnModuleInit {
     const budget = Math.max(NOTIFICATION_MIN_CONTENT_WORDS, NOTIFICATION_MAX_WORDS - 1 - frame);
     const res = await this.writer.write(rule, prompt, project, audience, previous, budget);
     const vars = { ...ctx, [LLM_RESPONSE_VARIABLE]: res.text } as Record<string, string>;
-    return { subject: fill(rule.subject, vars), body: fill(rule.body, vars), llmResponse: res.text, tokens: res.tokens, costEur: res.costEur, ms: Date.now() - t0, sources: res.sources };
+    return { subject: fill(rule.subject, vars), body: fill(rule.body, vars), llmResponse: res.text, tokens: res.tokens, costEur: res.costEur, ms: Date.now() - t0, sources: res.sources, sql: res.sql, rows: res.rows };
   }
 
   /** Dernier envoi réussi (texte rédigé) de moins de `NOTIFICATION_MEMORY_DAYS` jours, ou null. */
@@ -133,7 +133,7 @@ export class NotificationsService implements OnModuleInit {
         }
         const first = channel === rule.channels[0];
         const d = await this.prisma.delivery.create({
-          data: { ruleId: rule.id, at: this.today.now(), channel, recipientsCount: recipients.length, status, error: err, costEur: first ? gen?.costEur ?? 0 : 0, tokens: first ? gen?.tokens ?? 0 : 0, projectId, subject: gen?.subject ?? null, body: gen?.body ?? null, llmResponse: first ? gen?.llmResponse ?? null : null, scheduledAt: planned?.scheduledAt ?? null, mode: planned?.mode ?? null, eventKey, recipients: recipients.map((r) => r.id), profile: g.profile, scope: scopeKey(g.chantiers), optedOut: optedOut.get(g.profile + '|' + scopeKey(g.chantiers)) ?? 0 },
+          data: { ruleId: rule.id, at: this.today.now(), channel, recipientsCount: recipients.length, status, error: err, costEur: first ? gen?.costEur ?? 0 : 0, tokens: first ? gen?.tokens ?? 0 : 0, projectId, subject: gen?.subject ?? null, body: gen?.body ?? null, llmResponse: first ? gen?.llmResponse ?? null : null, sqlQuery: first ? gen?.sql ?? null : null, rowCount: first ? gen?.rows ?? null : null, scheduledAt: planned?.scheduledAt ?? null, mode: planned?.mode ?? null, eventKey, recipients: recipients.map((r) => r.id), profile: g.profile, scope: scopeKey(g.chantiers), optedOut: optedOut.get(g.profile + '|' + scopeKey(g.chantiers)) ?? 0 },
         });
         // Canal « Dans l'application » : notifications des destinataires dans le Cockpit (cloche, non lues).
         if (gen && channel === 'APP' && recipients.length) {

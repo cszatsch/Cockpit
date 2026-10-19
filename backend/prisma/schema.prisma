@@ -1471,6 +1471,9 @@ model Delivery {
   mode            String?
   /// Texte rédigé par le modèle ({reponse_llm}) : mémoire de la rédaction de l'envoi suivant.
   llmResponse     String?
+  /// Requête SQL retenue pour la rédaction et nombre de lignes rendues (incident du 19/10/2026 : diagnostic d'un envoi).
+  sqlQuery        String?
+  rowCount        Int?
   recipients      String[]       @default([])
   /// Périmètre du texte (12/10/2026) : « * » (tout le projet) ou codes des chantiers, triés (« C5,C6 ») ; un texte par profil et périmètre.
   scope           String?

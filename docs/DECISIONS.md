@@ -3016,3 +3016,24 @@ Le commanditaire n'ayant pas tranché, les choix par défaut proposés sont appl
   cours (`outils/gcp/rechiffrer-secrets.js`, même format que `core/crypto.ts`, tout ou rien, une transaction) et
   remplace `SECRETS_KEY` dans `.env.prod` ; ancien fichier gardé dans `sauvegardes/` (droits 600) pour relire les
   sauvegardes antérieures. Choix : rechiffrer plutôt que faire ressaisir clés d'IA, clés API et mot de passe SMTP.
+
+## Notifications : requête sans résultat et explication inventée (incident du 19/10/2026)
+
+Constat : la notification « Analyse des risques » de PMS (PMO, tout le projet) a annoncé « aucune donnée accessible :
+vérifiez votre habilitation PMO ». Diagnostic sur la VM : 4 risques ouverts lisibles par le rôle de Jev avec le
+périmètre PMO, 38 vues sur 38 lisibles, requête exécutée sans erreur (aucun appel de correction), aucune décision en
+cours sur le projet. Cause : consigne « les risques … et les décisions à prendre pour les couvrir » → requête qui exige
+une décision en cours pour chaque risque → 0 ligne ; le modèle a ensuite attribué ce vide aux droits. La requête exacte
+n'était pas conservée.
+
+- **Nouvelle requête si vide** (`EMPTY_RESULT_RETRIES` = 1, `emptyRetryPrompt`, `src/domain/notification-results.ts`) :
+  le modèle reçoit la requête vide et écrit une requête plus large (objet principal d'abord, données associées en
+  `LEFT JOIN`, seuls les filtres demandés) ; gardée seulement si elle rend des lignes, sinon la première reste.
+- **Aucune cause inventée** (`NO_ACCESS_SPECULATION`) : consigne ajoutée à la rédaction à partir des résultats et à la
+  rédaction sans données ; le motif technique d'un échec n'est plus transmis au modèle. Garde-fou : un texte qui met en
+  cause droits, habilitation, accès ou `projet_id` (`blamesAccess`) sur un résultat vide est remplacé par
+  `NO_MATCH_TEXT` (sur un échec de lecture : `NO_DATA_TEXT`).
+- **Traçabilité** : requête retenue et nombre de lignes conservés avec l'envoi (`Delivery.sqlQuery`, `rowCount`,
+  premier canal comme le texte rédigé ; migration `20261118001600_envoi_requete`).
+- Tests : `test/unit/notification-results.spec.ts` (4), `test/e2e/notification-resultat-vide.spec.ts` (9, requêtes
+  réelles sur les vues avec le rôle restreint, dont la reproduction de l'incident).

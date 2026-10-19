@@ -6,6 +6,7 @@ import { TodayService } from '../core/today.service';
 import { extractSql, formatRows, JEV_SQL_MAX_ROWS, JEV_SQL_RETRIES, looksLikeSql, renderDictionary, SQL_CUT_REASON, sqlCut, sqlError, sqlInstructions, viewsUsed } from '../domain/jev-sql';
 import { JEV_COCKPIT_SCHEMA } from '../domain/jev-dictionnaire-cockpit';
 import { AudienceProfile, ChantierScope, fitWords, NOTIFICATION_MAX_WORDS, wordCount } from '../domain/notification-rules';
+import { blamesAccess, EMPTY_RESULT_RETRIES, emptyRetryPrompt, NO_ACCESS_SPECULATION, NO_MATCH_TEXT } from '../domain/notification-results';
 import { dbMessage, JevSqlService } from './jev-sql.service';
 
 /** Destinataires d'un texte : un profil et les chantiers lisibles par tous ses membres. */
@@ -21,6 +22,8 @@ export interface WrittenText {
   /** Vues consultées (journal) ; requête exécutée. */
   sources: string[];
   sql: string | null;
+  /** Lignes rendues par la requête retenue (null : pas de requête, ou données illisibles) ; gardé avec l'envoi. */
+  rows: number | null;
 }
 
 export const PROFILE_NAME: Record<AudienceProfile, string> = { admin: 'Administrateur', pmo: 'PMO', resp: 'Responsable', lec: 'Lecteur' };
@@ -43,7 +46,7 @@ export const NOTIFICATION_STRUCTURE = [
 export const NOTIFICATION_ANSWER_INSTRUCTIONS = [
   '## Rédaction à partir des données',
   'La consigne a été traduite en requête SQL, exécutée sur les données du projet que les destinataires ont le droit de lire. Rédige le contenu à partir des résultats, et d’eux seuls :',
-  '- N’invente aucune valeur. Si les résultats sont vides, dis simplement qu’aucune donnée ne correspond. S’ils sont tronqués, dis-le.',
+  `- N’invente aucune valeur. Si les résultats sont vides, dis simplement qu’aucune donnée ne correspond. ${NO_ACCESS_SPECULATION} S’ils sont tronqués, dis-le.`,
   '- Traduis les codes d’après le dictionnaire (DONE = terminé…) ; ne montre pas la requête SQL.',
   '- Respecte le ton demandé par la consigne ; la longueur maximale prime sur la consigne. Chaque mot apporte une information.',
   NOTIFICATION_STRUCTURE,
@@ -119,12 +122,13 @@ export class NotificationWriterService {
       calls.push(r);
       return r;
     };
-    const out = (text: string, sources: string[] = [], sql: string | null = null): WrittenText => ({
+    const out = (text: string, sources: string[] = [], sql: string | null = null, rows: number | null = null): WrittenText => ({
       text: fitWords(text.trim(), maxWords),
       tokens: calls.reduce((n, c) => n + c.tokensIn + c.tokensOut, 0),
       costEur: calls.reduce((n, c) => n + c.costEur, 0),
       sources,
       sql,
+      rows,
     });
     const base = this.base(audience, project?.code ?? null);
     if (!project) return out(await this.shorten((await call(prompt, `${base}\nAucune donnée de projet n’est lisible pour cette règle de plateforme : rédige à partir de la consigne seule.`)).text, maxWords, call, base));
@@ -163,8 +167,24 @@ export class NotificationWriterService {
       cut = sqlCut(fix.text);
     }
     if (!rows) {
-      const plain = await call(prompt, `${base}\nLes données du projet n’ont pas pu être lues (${why}) : rédige sans aucun chiffre ni fait précis, et signale que le détail est à consulter dans le Cockpit.`);
-      return out(looksLikeSql(plain.text) ? NO_DATA_TEXT : plain.text, [], sql);
+      const plain = await call(prompt, `${base}\nLes données du projet n’ont pas pu être lues pour une raison technique : rédige sans aucun chiffre ni fait précis, et signale que le détail est à consulter dans le Cockpit. ${NO_ACCESS_SPECULATION}`);
+      return out(looksLikeSql(plain.text) || blamesAccess(plain.text) ? NO_DATA_TEXT : plain.text, [], sql);
+    }
+
+    // 4 bis. Aucune ligne (incident du 19/10/2026) : une requête plus large, gardée seulement si elle rend des lignes.
+    for (let attempt = 0; rows.length === 0 && attempt < EMPTY_RESULT_RETRIES; attempt++) {
+      const wider = await latencyKind('qry', () => call(emptyRetryPrompt(prompt, sql!), system));
+      const sql2 = extractSql(wider.text);
+      if (!sql2 || sqlCut(wider.text) || sqlError(sql2)) break;
+      try {
+        const rows2 = await timedStep('exe', LATENCY_SERVICE_MODEL, 'primary', () => this.jevSql.executeCockpit(sql2, project.id, audience.chantiers));
+        if (rows2.length) {
+          rows = rows2;
+          sql = sql2;
+        }
+      } catch {
+        // Requête plus large en échec : la première, valide mais vide, est gardée.
+      }
     }
 
     // 5. Rédaction à partir des résultats.
@@ -173,7 +193,9 @@ export class NotificationWriterService {
     const res = formatRows(rows);
     const head = `## Résultats de la requête (${res.count} ligne(s)${res.truncated ? `, tronqués aux ${JEV_SQL_MAX_ROWS} premières` : ''})`;
     const answer = await call(`${prompt}\n\n${head}\n${res.text}`, `${base}\n\n${NOTIFICATION_ANSWER_INSTRUCTIONS}`, `## Dictionnaire des vues consultées\n${renderDictionary(used, JEV_COCKPIT_SCHEMA)}`);
-    return out(looksLikeSql(answer.text) ? NO_DATA_TEXT : await this.shorten(answer.text, maxWords, call, base), sources, sql);
+    // Résultat vide : le texte ne peut pas mettre en cause les droits des destinataires (repli fixe sinon).
+    if (res.count === 0 && blamesAccess(answer.text)) return out(NO_MATCH_TEXT, sources, sql, 0);
+    return out(looksLikeSql(answer.text) ? NO_DATA_TEXT : await this.shorten(answer.text, maxWords, call, base), sources, sql, res.count);
   }
 
   private nowParis(): string {
