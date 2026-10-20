@@ -3037,3 +3037,25 @@ n'était pas conservée.
   premier canal comme le texte rédigé ; migration `20261118001600_envoi_requete`).
 - Tests : `test/unit/notification-results.spec.ts` (4), `test/e2e/notification-resultat-vide.spec.ts` (9, requêtes
   réelles sur les vues avec le rôle restreint, dont la reproduction de l'incident).
+
+## Compte créé avec son mot de passe par le Super Admin (20/10/2026)
+
+Demande du commanditaire : pouvoir créer un compte sans dépendre de l'e-mail d'invitation, souvent bloqué par les
+filtres de messagerie d'une société. Arbitrages du 20/10/2026 :
+
+- **Réservé au Super Admin** (`@SuperAdminOnly`) : bouton « Créer un compte » de Console › Accès › Utilisateurs, à côté
+  d'« Inviter » ; même fenêtre (nom, e-mail, rôle de plateforme, accès par projet) avec un champ « Mot de passe
+  provisoire » en plus. Route `POST /api/admin/accounts/with-password` (corps de `POST /accounts` + `password`).
+- **Changement obligatoire à la première connexion** (`mustChangePassword`, même parcours que le compte initial).
+- **Saisie libre ou « Générer »** (16 caractères aléatoires sans caractères ambigus, chaque famille présente, `genPw`) et
+  **« Copier »** ; le mot de passe suit les règles de `policy.ts` (`passwordProblem` côté serveur : 12 caractères,
+  majuscule et minuscule, chiffre, caractère spécial, absent des listes compromises) ; jamais conservé en clair ni
+  réaffiché, ni écrit dans le journal d'audit.
+- **Aucun e-mail** : le compte est actif tout de suite, sans lien ; le Super Admin transmet le mot de passe par un autre
+  canal.
+- **« Définir le mot de passe » d'un compte invité** (icône clé de la ligne, Super Admin) : `POST
+  /api/admin/accounts/:id/password` ; le compte devient actif, les liens d'invitation encore valides sont annulés ;
+  réservé aux comptes au statut Invité (409 `NOT_INVITED` sinon).
+- **Audit** : « Création d'un compte avec mot de passe » et « Mot de passe défini par le Super Admin » (niveau Sensible).
+- Écart induit : la réactivation d'un compte suspendu le remet Actif s'il a un mot de passe, même sans connexion
+  (auparavant : Invité faute de connexion). Un compte actif jamais connecté s'affiche « Jamais connecté ».

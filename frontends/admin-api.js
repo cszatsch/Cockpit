@@ -691,9 +691,21 @@ export function bindConsole(c) {
     if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test((f.e || '').trim())) fe.e = 'Adresse e-mail invalide.';
     else if (S.users.some(u => u.e.toLowerCase() === f.e.trim().toLowerCase() && u.id !== id)) fe.e = 'Cette adresse est déjà utilisée par un autre compte.';
     const he = c.habErr(f); if (he) fe.pr = he;
+    const direct = !id && !!S.dlg.direct;
+    if (direct) { const pe = c.pwErr(f.pw); if (pe) fe.pw = pe; }
     if (Object.keys(fe).length) return c.setState({ fe });
     // Erreur serveur : la fenêtre de saisie reste (ou redevient) ouverte, avec le message du serveur.
-    const onErr = e => { set0({ dlg: { type: 'user', id }, form: f }); if (e instanceof ApiError && e.code === 'DUPLICATE') set0({ fe: { e: e.message } }); else if (e instanceof ApiError && (e.code === 'SELF_ACTION' || e.code === 'LAST_ADMIN')) set0({ fe: { pr: e.message } }); else fail(e); };
+    const onErr = e => { set0({ dlg: { type: 'user', id, direct }, form: f }); if (e instanceof ApiError && e.code === 'DUPLICATE') set0({ fe: { e: e.message } }); else if (e instanceof ApiError && e.fields && e.fields.password) set0({ fe: { pw: e.fields.password } }); else if (e instanceof ApiError && (e.code === 'SELF_ACTION' || e.code === 'LAST_ADMIN')) set0({ fe: { pr: e.message } }); else fail(e); };
+    // Créer un compte avec son mot de passe (Super Admin, 20/10/2026) : actif tout de suite, aucun e-mail.
+    if (direct) {
+      try {
+        const a = await post('/accounts/with-password', { fullName: f.n.trim(), email: f.e.trim(), habilitations: habBody(f), password: f.pw });
+        const nu = toUser(a, S.users.length);
+        set0(s => ({ users: [nu, ...s.users], dlg: null, form: {} }));
+        toast('Compte de ' + nu.n + ' créé : communiquez-lui son mot de passe'); touch(); load(['admins']).catch(() => {});
+      } catch (e) { onErr(e); }
+      return;
+    }
     if (!id) {
       try {
         const a = await post('/accounts', { fullName: f.n.trim(), email: f.e.trim(), habilitations: habBody(f) });
@@ -715,6 +727,16 @@ export function bindConsole(c) {
       set0({ dlg: null, form: {} }); toast('Modifications enregistrées pour ' + f.n.trim()); touch();
       if (habCh) load(['admins', 'accounts']).catch(() => {});
     } catch (e) { onErr(e); }
+  };
+  // Définir le mot de passe d'un invité (Super Admin, 20/10/2026) : compte actif, lien d'invitation annulé, aucun e-mail.
+  c.savePw = async () => {
+    const S = c.state, id = S.dlg.id, f = S.form, e0 = c.pwErr(f.pw);
+    if (e0) return c.setState({ fe: { pw: e0 } });
+    try {
+      const a = await post('/accounts/' + id + '/password', { password: f.pw });
+      repl('users', id, userFrom(a)); set0({ dlg: null, form: {} });
+      toast('Compte de ' + a.fullName + ' activé : communiquez-lui son mot de passe'); touch();
+    } catch (e) { if (e instanceof ApiError && e.fields && e.fields.password) set0({ fe: { pw: e.fields.password } }); else fail(e); }
   };
   // E-mail du référentiel : lu par le serveur sur la personne liée ; une invitation en attente part à la nouvelle adresse.
   c.applyRefMail = async id => {

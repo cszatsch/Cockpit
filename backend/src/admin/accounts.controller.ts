@@ -4,7 +4,9 @@ import { invitationEmail } from '../domain/invitation-email';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Account } from '@prisma/client';
 import { z } from 'zod';
-import { AdminOnly, Actor, CurrentActor } from '../core/auth/auth';
+import { AdminOnly, Actor, CurrentActor, SuperAdminOnly } from '../core/auth/auth';
+import { hashPassword, passwordProblem } from '../core/auth/password';
+import { PASSWORD_MAX_LENGTH } from '../core/auth/policy';
 import { AuditService } from '../core/audit.service';
 import { PrismaService, Tx } from '../core/prisma.service';
 import { MailerService } from '../core/mailer.service';
@@ -52,6 +54,11 @@ const AccountCreate = z
   })
   .strict()
   .refine((v) => !!v.habilitations || (!!v.profile && !!v.projectCodes), { message: 'profil et projets, ou habilitations, attendus', path: ['habilitations'] });
+/**
+ * Compte créé avec son mot de passe (Super Admin, 20/10/2026) : aucun e-mail, compte actif tout de suite, mot de passe
+ * à changer à la première connexion. Évite d'être bloqué par les filtres de messagerie d'une société.
+ */
+const Password = z.object({ password: z.string().min(1, 'Saisissez le mot de passe').max(PASSWORD_MAX_LENGTH) }).strict();
 const AccountPatch = z
   .object({ fullName: z.string().trim().min(2, '2 caractères minimum').max(120), email: z.string().trim().toLowerCase().email('e-mail invalide'), profile: PROFILE, projectCodes: z.array(z.string().min(1)).min(1, 'au moins un projet') })
   .partial()
@@ -115,6 +122,7 @@ export class AccountsController {
         referentiel: (referential.get(a.id) ?? []).map(({ code, personne, active, responsable, rattachement, proposition, ecarts }) => ({ code, personne, active, responsable, rattachement, proposition, ecarts })),
         projectCodes: a.projects.map((p) => codes[p.projectId] ?? p.projectId),
         lastLoginAt: a.lastLoginAt,
+        mustChangePassword: a.mustChangePassword,
         lastLoginDays: a.lastLoginAt ? Math.floor((now - a.lastLoginAt.getTime()) / DAY) : null,
         invitedAt: a.invitedAt,
         invitedDays: a.status === 'INVITED' && a.invitedAt ? Math.floor((now - a.invitedAt.getTime()) / DAY) : null,
@@ -228,9 +236,51 @@ export class AccountsController {
     return this.createAccount(actor, parse(AccountCreate, body), false);
   }
 
-  /** `keepReferentialRights` : compte d'une personne du référentiel dont les droits viennent déjà du PMO. */
-  private async createAccount(actor: Actor, input: z.infer<typeof AccountCreate>, keepReferentialRights: boolean) {
+  /**
+   * Créer un compte avec son mot de passe (Super Admin, 20/10/2026) : mêmes champs que l'invitation, plus `password` ;
+   * le compte est actif, sans e-mail ni lien, et le mot de passe est à changer à la première connexion.
+   */
+  @Post('accounts/with-password')
+  @SuperAdminOnly()
+  async createWithPassword(@CurrentActor() actor: Actor, @Body() body: unknown) {
+    const raw = (body ?? {}) as Record<string, unknown>;
+    const { password } = parse(Password, { password: raw.password });
+    const { password: _omit, ...rest } = raw;
+    const input = parse(AccountCreate, rest);
+    const problem = await passwordProblem(password, null);
+    if (problem) throw badRequest('Mot de passe refusé', { password: problem });
+    return this.createAccount(actor, input, false, password);
+  }
+
+  /**
+   * Définir le mot de passe d'un compte invité (Super Admin, 20/10/2026) : le compte devient actif sans attendre l'e-mail
+   * d'invitation, dont le lien ne sert plus ; le mot de passe est à changer à la première connexion.
+   */
+  @Post('accounts/:id/password')
+  @HttpCode(200)
+  @SuperAdminOnly()
+  async setInvitedPassword(@CurrentActor() actor: Actor, @Param('id') id: string, @Body() body: unknown) {
+    const { password } = parse(Password, body);
+    const a = await this.one(id);
+    if (a.status !== 'INVITED') throw conflict('NOT_INVITED', 'Le mot de passe ne se définit ici que pour un compte invité');
+    const problem = await passwordProblem(password, null);
+    if (problem) throw badRequest('Mot de passe refusé', { password: problem });
+    const passwordHash = await hashPassword(password);
+    await this.prisma.$transaction(async (db) => {
+      await db.account.update({ where: { id }, data: { status: 'ACTIVE', passwordHash, mustChangePassword: true, passwordChangedAt: this.today.now(), inviteExpiresAt: null, version: { increment: 1 } } });
+      await db.passwordToken.updateMany({ where: { accountId: id, usedAt: null }, data: { usedAt: new Date() } });
+      await this.audit.action(db, adminCtx(actor), { action: 'Mot de passe défini par le Super Admin', target: a.fullName, severity: 'SENSITIVE', entityType: 'Account', entityId: id, details: { email: a.email, mustChangePassword: true } });
+    });
+    return (await this.view([await this.one(id)]))[0];
+  }
+
+  /**
+   * `keepReferentialRights` : compte d'une personne du référentiel dont les droits viennent déjà du PMO.
+   * `password` : compte créé actif avec ce mot de passe (à changer à la première connexion), sans invitation ni e-mail.
+   */
+  private async createAccount(actor: Actor, input: z.infer<typeof AccountCreate>, keepReferentialRights: boolean, password?: string) {
     if (await this.prisma.account.findUnique({ where: { email: input.email } })) throw conflict('DUPLICATE', `Un compte existe déjà pour ${input.email}`);
+    const passwordHash = password ? await hashPassword(password) : null;
     const hab = input.habilitations;
     const projects = await this.resolveProjects(hab ? hab.projects.map((p) => p.code) : input.projectCodes!);
     if (!projects.length && !hab?.admin) throw badRequest('Aucun accès', { habilitations: 'au moins un projet, ou le rôle d’administrateur' });
@@ -247,9 +297,9 @@ export class AccountsController {
           email: input.email,
           fullName: input.fullName,
           personId: person?.id ?? null,
-          status: 'INVITED',
-          invitedAt: now,
-          inviteExpiresAt: new Date(now.getTime() + INVITE_VALIDITY_DAYS * DAY),
+          ...(passwordHash
+            ? { status: 'ACTIVE' as const, passwordHash, mustChangePassword: true, passwordChangedAt: now }
+            : { status: 'INVITED' as const, invitedAt: now, inviteExpiresAt: new Date(now.getTime() + INVITE_VALIDITY_DAYS * DAY) }),
           projects: { create: projects.map((p) => ({ projectId: p.id })) },
         },
       });
@@ -260,12 +310,18 @@ export class AccountsController {
         await this.applyProfile(db, a, input.profile!, projects);
         if (input.profile === 'SUPER_ADMIN') await this.setSuper(db, actor, a.id, true);
       }
-      await this.audit.action(db, adminCtx(actor), { action: 'Invitation d’un utilisateur', target: `${a.fullName} · ${label}`, severity: 'INFO', entityType: 'Account', entityId: a.id, details: { email: a.email, profile: input.profile ?? null, projects: projects.map((p) => p.code), habilitations: hab ?? null } });
+      const details = { email: a.email, profile: input.profile ?? null, projects: projects.map((p) => p.code), habilitations: hab ?? null };
+      if (passwordHash) {
+        await this.audit.action(db, adminCtx(actor), { action: 'Création d’un compte avec mot de passe', target: `${a.fullName} · ${label}`, severity: 'SENSITIVE', entityType: 'Account', entityId: a.id, details: { ...details, mustChangePassword: true } });
+        return { a, raw: null };
+      }
+      await this.audit.action(db, adminCtx(actor), { action: 'Invitation d’un utilisateur', target: `${a.fullName} · ${label}`, severity: 'INFO', entityType: 'Account', entityId: a.id, details });
       const raw = await this.creds.issueToken(db, a, 'INVITE', (hab ? hab.admin : input.profile === 'ADMIN' || input.profile === 'SUPER_ADMIN') ? 'ADMIN' : 'APP', INVITE_VALIDITY_DAYS * DAY);
       return { a, raw };
     });
     // Le compte est créé même si l'e-mail ne part pas (serveur d'envoi indisponible) : la réponse le dit, et
     // l'Administrateur relance l'invitation ; sinon la Console affichait une erreur et un nouvel essai tombait en doublon.
+    if (!created.raw) return { ...(await this.view([await this.one(created.a.id)]))[0], inviteSent: null, inviteError: null };
     let inviteError: string | null = null;
     try {
       await this.inviteMail(created.a, created.raw, false);
@@ -378,7 +434,7 @@ export class AccountsController {
     const a = await this.one(id);
     if (a.status !== 'SUSPENDED') throw conflict('NOT_SUSPENDED', 'Seul un compte suspendu peut être réactivé');
     await this.prisma.$transaction(async (db) => {
-      await db.account.update({ where: { id }, data: { status: a.lastLoginAt ? 'ACTIVE' : 'INVITED', version: { increment: 1 } } });
+      await db.account.update({ where: { id }, data: { status: a.lastLoginAt || a.passwordHash ? 'ACTIVE' : 'INVITED', version: { increment: 1 } } });
       await this.audit.action(db, adminCtx(actor), { action: 'Réactivation d’un utilisateur', target: a.fullName, severity: 'SENSITIVE', entityType: 'Account', entityId: id });
     });
     return (await this.view([await this.one(id)]))[0];

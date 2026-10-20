@@ -880,3 +880,7 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
 - Adresse de retour après connexion (Console et Cockpit) (18/10/2026, audit de sécurité) : `safeReturn` d'`auth-api.js` refuse les caractères
   de contrôle et les barres obliques inverses, puis relit l'adresse comme le navigateur (`new URL`) et n'accepte que la
   même origine : `?suite=/%09/site-externe` menait à un autre site. Aucun changement d'écran.
+- Utilisateurs (20/10/2026, demande du commanditaire) : bouton « Créer un compte » (Super Admin) à côté d'« Inviter »,
+  même fenêtre avec un bloc « Mot de passe provisoire » (saisie, Masquer / Afficher, Générer, Copier, règles en pastilles) ;
+  icône clé « Définir le mot de passe » sur la ligne d'un invité (fenêtre dédiée, « Activer le compte ») ; compte actif
+  jamais connecté : « Jamais connecté ». Client : `saveUser` (mode `direct`) et `savePw` d'`admin-api.js`.

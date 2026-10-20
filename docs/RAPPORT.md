@@ -534,6 +534,10 @@ Rapport d'audit hors du dépôt (`%USERPROFILE%\security-audit-skill\cockpit\run
 
 Une notification d’un PMO annonçait « vérifiez votre habilitation » alors que droits et données étaient corrects : la requête du modèle exigeait une décision pour chaque risque et ne rendait rien. Correction : nouvelle requête plus large si la première est vide, interdiction d’attribuer un résultat vide aux droits (repli fixe sinon), requête et nombre de lignes conservés avec l’envoi (`Delivery.sqlQuery`, `rowCount`). Tests : `test/unit/notification-results.spec.ts` (4 tests), `test/e2e/notification-resultat-vide.spec.ts` (9 tests).
 
+### Compte créé avec son mot de passe par le Super Admin (20/10/2026)
+
+Console › Accès › Utilisateurs : bouton « Créer un compte » (Super Admin) — fenêtre d’invitation avec un mot de passe provisoire saisi ou généré, copiable ; compte actif sans e-mail, changement obligatoire à la première connexion ; action « Définir le mot de passe » sur un compte invité (lien d’invitation annulé). Routes `POST /api/admin/accounts/with-password` et `/accounts/:id/password`. Tests : `test/e2e/compte-mot-de-passe.spec.ts` (4 tests) ; écran vérifié dans le navigateur (données réelles sans envoi, et démonstration).
+
 ## 4. Questions ouvertes
 
 1. **Déclencheur des règles de notification** : faut-il ajouter un sélecteur de déclencheur dans la console ? Aujourd'hui, une règle créée depuis l'écran reçoit un déclencheur par défaut : « planifié » pour une notification, « manuel » pour une alerte.

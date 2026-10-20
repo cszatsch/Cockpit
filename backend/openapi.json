@@ -7584,6 +7584,53 @@
         ]
       }
     },
+    "/api/admin/accounts/with-password": {
+      "post": {
+        "operationId": "AccountsController_createWithPassword",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · comptes"
+        ]
+      }
+    },
+    "/api/admin/accounts/{id}/password": {
+      "post": {
+        "operationId": "AccountsController_setInvitedPassword",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · comptes"
+        ]
+      }
+    },
     "/api/admin/accounts/{id}/referential-email": {
       "post": {
         "operationId": "AccountsController_applyReferentialEmail",
