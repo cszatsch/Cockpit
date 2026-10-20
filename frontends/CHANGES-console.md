@@ -889,3 +889,6 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
   — (vectorisation, reclassement), masqué, effacé, non enregistré. Lue à l'ouverture du détail (`loadContent`, client
   `consoApi.callContent` d'`admin-api.js`) ; exemple fixe en démonstration.
 
+- Consommation et coûts (20/10/2026) : colonne « Fonction » du journal à la largeur de son libellé au minimum
+  (`minmax(max-content, .9fr)`) : à 900 px, « Guidage console » débordait de sa colonne (100 px), et « Initialisation
+  projet » plus encore. Recette `test/browser/conso.e2e.ts` alignée sur les six lignes budgétaires (tuiles en 3 + 3).

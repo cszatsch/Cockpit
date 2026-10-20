@@ -16,10 +16,10 @@ import { addDays } from '../../src/domain/dates';
 
 const API = process.env.CONSOLE_URL || 'http://localhost:3302';
 const TODAY = '2026-10-02';
-const LINES = ['insights', 'rapports', 'guidage', 'docs', 'crud'];
-const SPENT: Record<string, number> = { insights: 0.56, rapports: 0, guidage: 0.13, docs: 0.18, crud: 0.01 };
-const PROJ: Record<string, number> = { insights: 3.5, rapports: 0, guidage: 4.0, docs: 2.14, crud: 0.1 };
-const MODELS: Record<string, string[]> = { insights: ['Claude Sonnet 5'], rapports: ['Claude Sonnet 5'], guidage: ['Claude Haiku 4.5'], docs: ['Claude Sonnet 5', 'Voyage rerank-2.5', 'Qwen3 Embedding 8B'], crud: ['GPT-6 Luna'] };
+const LINES = ['insights', 'rapports', 'guidage', 'docs', 'crud', 'init_projet'];
+const SPENT: Record<string, number> = { insights: 0.56, rapports: 0, guidage: 0.13, docs: 0.18, crud: 0.01, init_projet: 0 };
+const PROJ: Record<string, number> = { insights: 3.5, rapports: 0, guidage: 4.0, docs: 2.14, crud: 0.1, init_projet: 0 };
+const MODELS: Record<string, string[]> = { insights: ['Claude Sonnet 5'], rapports: ['Claude Sonnet 5'], guidage: ['Claude Haiku 4.5'], docs: ['Claude Sonnet 5', 'Voyage rerank-2.5', 'Qwen3 Embedding 8B'], crud: ['GPT-6 Luna'], init_projet: ['Claude Sonnet 5'] };
 const PRICE = { anthropic: [2.62, 13.1], openai: [1.1, 8.8] } as const;
 
 const results: Array<{ step: string; ok: boolean; detail?: string }> = [];
@@ -223,7 +223,8 @@ async function main() {
     const rows = callsOf(cq.get('from')!, cq.get('to')!, cq.get('fn'));
     check('6. export CSV : même période et même fonction que le journal affiché', seen.csv.length === 1 && cq.get('fn') === 'guidage' && cq.get('from') === lq.get('from') && cq.get('to') === lq.get('to') && cq.get('from') === TODAY && e.jCount.startsWith(`${rows.length} appel`) && e.rows.length === rows.length && e.rows.every((x) => x[1] === 'Guidage console'), `${e.jCount} ; CSV ${rows.length} lignes`);
 
-    // 7. Lisible à 900 et 1 440 px : aucun débordement horizontal, valeurs entières, tuiles en 3 + 2 à 900 px.
+    // 7. Lisible à 900 et 1 440 px : aucun débordement horizontal, valeurs entières ; six tuiles (Initialisation projet
+    // depuis le 07/10/2026) en deux lignes de trois aux deux largeurs (grille de trois colonnes de l'écran).
     for (const w of [1440, 900]) {
       await page.setViewportSize({ width: w, height: 900 });
       await page.waitForTimeout(900);
@@ -241,7 +242,7 @@ async function main() {
         return { overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth, rootOverflow: root.scrollWidth - root.clientWidth, cut, ell, rowCut, perRow: rows.map((r) => tops.filter((t) => Math.abs(r - t) < 8).length), width: Math.round(root.getBoundingClientRect().width) };
       });
       await page.screenshot({ path: `${process.env.TEMP || '/tmp'}/conso-${w}.png`, fullPage: true });
-      check(`7. ${w} px : pas de débordement, aucun texte coupé${w === 900 ? ', tuiles en 3 + 2' : ''}`, lay.overflow <= 0 && lay.rootOverflow <= 1 && lay.cut.length === 0 && lay.ell.length === 0 && lay.rowCut === 0 && lay.perRow.join('+') === (w === 900 ? '3+2' : '5'), JSON.stringify(lay));
+      check(`7. ${w} px : pas de débordement, aucun texte coupé, tuiles en 3 + 3`, lay.overflow <= 0 && lay.rootOverflow <= 1 && lay.cut.length === 0 && lay.ell.length === 0 && lay.rowCut === 0 && lay.perRow.join('+') === '3+3', JSON.stringify(lay));
     }
     const js = errors.filter((e) => !e.startsWith('Failed to load resource')); // polices et bibliothèques coupées par le banc
     check('aucune erreur JS', js.length === 0, js.slice(0, 3).join(' | '));
