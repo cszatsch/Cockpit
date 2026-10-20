@@ -8597,6 +8597,34 @@
         ]
       }
     },
+    "/api/admin/usage/calls/{id}/content": {
+      "get": {
+        "operationId": "AiController_callContent",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "console · intelligence artificielle"
+        ]
+      }
+    },
     "/api/admin/usage/calls.csv": {
       "get": {
         "operationId": "AiController_callsCsv",

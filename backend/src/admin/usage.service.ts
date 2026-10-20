@@ -1,11 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../core/prisma.service';
 import { TodayService } from '../core/today.service';
-import { LlmService, AI_BUDGET_LINES, AI_FUNCTIONS, budgetLineOf } from '../core/llm.service';
+import { LlmService, AI_BUDGET_LINES, AI_FUNCTIONS, aiFunctionLabel, budgetLineOf } from '../core/llm.service';
 import { CACHE_READ_FACTOR, CACHE_WRITE_FACTOR } from '../core/llm-client';
 import { ModelCategory } from '../domain/ai-pricing';
 import { addDays, daysBetween, isoInTimezone, lastDayOfMonth } from '../domain/dates';
 import { csvFile, csvNum, encodeCursor, JournalFn, splitCost, stepsOf } from '../domain/journal';
+import { CALL_CONTENT_RETENTION_DAYS, callContentView, CallContentView } from '../domain/call-content';
 import { Prisma, UsageRecord } from '@prisma/client';
 
 /** Fuseau de la plateforme pour les agrégats de consommation (§ 7.4 : fuseau du projet ou de la plateforme). */
@@ -285,7 +286,27 @@ export class UsageService {
     return { csv: csvFile(header, lines), count: lines.length };
   }
 
-  /** Vue d'un appel : noms du modèle et du fournisseur, ligne budgétaire ; jamais de prompt ni de réponse (non stockés). */
+  /**
+   * Extraits d'un appel (question saisie, début de la réponse ; 20/10/2026) : lus un appel à la fois, à l'ouverture
+   * de son détail, et seulement avec le droit « voir le détail individuel » (`AdminGrant.seeIndividual`). Null : appel inconnu.
+   */
+  async callContent(id: string, viewerId: string): Promise<CallContentView | null> {
+    const r = await this.prisma.usageRecord.findUnique({ where: { id }, select: { functionId: true, accountId: true, contentState: true, promptExcerpt: true, responseExcerpt: true } });
+    if (!r) return null;
+    const g = await this.prisma.adminGrant.findUnique({ where: { accountId: viewerId }, select: { seeIndividual: true } });
+    return callContentView(r, { llm: AI_FUNCTIONS.find((f) => f.id === r.functionId)?.category === 'LLM', canSee: !!g?.seeIndividual, fnLabel: aiFunctionLabel(r.functionId) });
+  }
+
+  /** Extraits de plus de `CALL_CONTENT_RETENTION_DAYS` jours effacés ; la ligne de coût reste (tâche `usage.content.purge`). */
+  async purgeContent(now = new Date()): Promise<number> {
+    const r = await this.prisma.usageRecord.updateMany({
+      where: { contentState: 'KEPT', at: { lt: new Date(now.getTime() - CALL_CONTENT_RETENTION_DAYS * 86_400_000) } },
+      data: { promptExcerpt: null, responseExcerpt: null, contentState: 'PURGED' },
+    });
+    return r.count;
+  }
+
+  /** Vue d'un appel : noms du modèle et du fournisseur, ligne budgétaire ; sans les extraits (lus un à un, `callContent`). */
   private async callViews(rows: UsageRecord[]) {
     const [models, providers] = await Promise.all([this.prisma.aiModel.findMany({ select: { id: true, name: true } }), this.prisma.provider.findMany({ select: { id: true, name: true } })]);
     const mn = new Map(models.map((m) => [m.id, m.name])), pn = new Map(providers.map((p) => [p.id, p.name]));

@@ -19,6 +19,8 @@ import { hashEmbedding, normalize } from '../domain/guide-index';
 import { TodayService } from './today.service';
 import { localMidnightUtc } from '../domain/dates';
 import { providerCapMessage } from '../domain/hardening';
+import { callExcerpt } from '../domain/call-content';
+import { currentCallQuestion } from './call-question';
 
 /** Fuseau du mois civil des plafonds (celui de la Console). */
 const PLATFORM_TZ = 'Europe/Paris';
@@ -255,7 +257,7 @@ export class LlmService {
     // Jetons lus ou écrits dans le cache : comptés en entrée, facturés au tarif du cache.
     const read = out.cacheRead ?? 0, write = out.cacheWrite ?? 0;
     const billedIn = Math.max(0, tokensIn - read - write) + read * CACHE_READ_FACTOR + write * CACHE_WRITE_FACTOR;
-    const costEur = await this.record(model, input.functionId, { tokensIn, tokensOut, requests: 0 }, fallbackUsed, input, ms, billedIn, { read, write });
+    const costEur = await this.record(model, input.functionId, { tokensIn, tokensOut, requests: 0 }, fallbackUsed, input, ms, billedIn, { read, write }, false, out.text);
     return { text: out.text, modelId: model.id, providerId: model.providerId, tokensIn, tokensOut, costEur, fallbackUsed, ms };
   }
 
@@ -295,9 +297,11 @@ export class LlmService {
   /**
    * Une ligne de consommation au tarif en vigueur au moment de l'appel (Console § 6.3). Journal des appels (§ 3) :
    * identifiant de requête `req_…`, tarifs du modèle figés sur la ligne (un changement de tarif au catalogue ne
-   * modifie pas les appels passés), latence. Le contenu des prompts et des réponses n'est jamais enregistré.
+   * modifie pas les appels passés), latence. Le prompt envoyé au modèle n'est jamais enregistré : pour un LLM, seuls
+   * les débuts de la question saisie (`currentCallQuestion`) et de la réponse (`response`), coupés et e-mails masqués
+   * (`callExcerpt`, décision du 20/10/2026).
    */
-  private async record(model: Parameters<typeof costOf>[0] & { id: string; providerId: string }, functionId: AiFunctionId, v: { tokensIn: number; tokensOut: number; requests: number }, fallbackUsed: boolean, input: { projectId?: string | null; source: UsageSourceCode }, durationMs?: number, billedIn?: number, cache?: { read: number; write: number }, simulated = false) {
+  private async record(model: Parameters<typeof costOf>[0] & { id: string; providerId: string }, functionId: AiFunctionId, v: { tokensIn: number; tokensOut: number; requests: number }, fallbackUsed: boolean, input: { projectId?: string | null; source: UsageSourceCode }, durationMs?: number, billedIn?: number, cache?: { read: number; write: number }, simulated = false, response?: string) {
     // Jetons d'entrée facturés : moins que les jetons envoyés quand une partie est lue dans le cache.
     const costEur = costOf(model, billedIn === undefined ? v : { ...v, tokensIn: billedIn });
     const price = priceOf(model);
@@ -312,6 +316,7 @@ export class LlmService {
         tokensIn: v.tokensIn, tokensOut: v.tokensOut, requests: v.requests, costEur, fallbackUsed, source: input.source,
         priceIn: price.in ?? null, priceOut: price.out ?? null, pricePer1k: price.per1k ?? null, durationMs: durationMs ?? null,
         cacheReadTokens: cache?.read ?? 0, cacheWriteTokens: cache?.write ?? 0, accountId, feature, simulated,
+        promptExcerpt: aiFunction(functionId)?.category === 'LLM' ? callExcerpt(currentCallQuestion()) : null, responseExcerpt: callExcerpt(response), contentState: 'KEPT',
       },
     });
     // Consommation et coûts se met à jour en direct, y compris pour les appels faits en tâche de fond (05/10/2026).
@@ -495,7 +500,7 @@ export class LlmService {
     const tokensOut = Math.max(1, Math.ceil(text.length / 4));
     const ms = Date.now() - t0;
     // Bouchon : coût estimé, jamais facturé (repère `simulated`, 10/10/2026).
-    const costEur = await this.record(model, input.functionId, { tokensIn, tokensOut, requests: 0 }, fallbackUsed, input, ms, undefined, undefined, true);
+    const costEur = await this.record(model, input.functionId, { tokensIn, tokensOut, requests: 0 }, fallbackUsed, input, ms, undefined, undefined, true, text);
     return { text, modelId: model.id, providerId: model.providerId, tokensIn, tokensOut, costEur, fallbackUsed, ms };
   }
 

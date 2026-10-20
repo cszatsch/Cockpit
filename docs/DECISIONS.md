@@ -3059,3 +3059,25 @@ filtres de messagerie d'une société. Arbitrages du 20/10/2026 :
 - **Audit** : « Création d'un compte avec mot de passe » et « Mot de passe défini par le Super Admin » (niveau Sensible).
 - Écart induit : la réactivation d'un compte suspendu le remet Actif s'il a un mot de passe, même sans connexion
   (auparavant : Invité faute de connexion). Un compte actif jamais connecté s'affiche « Jamais connecté ».
+
+## Journal des appels : question saisie et début de la réponse (20/10/2026)
+
+Demande du commanditaire : voir, dans le détail d'un appel de Consommation et coûts, le prompt de l'utilisateur et la
+réponse du LLM tronqués à 50 caractères. Contraire à la spécification JOURNAL (« le contenu n'est jamais stocké ») ;
+arbitrages du 20/10/2026 sur trois recommandations :
+
+- **La question saisie, jamais le prompt envoyé** : le prompt assemblé par le serveur commence par le prompt système
+  (toujours le même début). La question est portée par le fil d'exécution depuis l'entrée de Jev (Console :
+  `JevAssistantService.answer`, Cockpit : `AssistantController.message` ; `withCallQuestion` / `noteCallQuestion`,
+  `src/core/call-question.ts`) jusqu'à `LlmService.record`, pour tous les appels faits pour y répondre. Sans question :
+  « tâche de fond · fonction » ou « action de l'écran · fonction ». Vectorisation et reclassement : « — ».
+- **Seuls 50 caractères en base** (`CALL_EXCERPT_CHARS`), espaces réduits, adresses e-mail masquées avant la coupe
+  (`callExcerpt`, `src/domain/call-content.ts`) ; colonnes `UsageRecord.promptExcerpt`, `responseExcerpt`,
+  `contentState` (migration `20261118001700_extraits_appels`).
+- **Réservé au droit « voir le détail individuel »** (`AdminGrant.seeIndividual`) : extraits lus un appel à la fois à
+  l'ouverture du détail (`GET /api/admin/usage/calls/:id/content`), jamais dans la page du journal ni dans l'export
+  CSV ; sans le droit : « masqué » ; chaque lecture d'un extrait est tracée à l'audit (« Consultation du contenu d'un
+  appel IA », niveau Sensible).
+- **Effacés après 30 jours** (`CALL_CONTENT_RETENTION_DAYS`, tâche `usage.content.purge` chaque nuit) ; la ligne de coût
+  reste (« effacé »). Appels antérieurs : « non enregistré ».
+

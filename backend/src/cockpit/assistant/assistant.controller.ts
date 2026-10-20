@@ -1,3 +1,4 @@
+import { noteCallQuestion, withCallQuestion } from '../../core/call-question';
 import { span, traced, traceMeta } from '../../core/trace';
 import { Body, Controller, HttpCode, Param, Post } from '@nestjs/common';
 import { JevPromptService } from '../../core/jev-prompt.service';
@@ -86,12 +87,14 @@ export class AssistantController {
   async message(@CurrentActor() actor: Actor, @Param('projectId') p: string, @Body() body: unknown) {
     // Trace de la question (01/10/2026) : chaque étape chronométrée, de la question à la réponse (journal du serveur,
     // table jev_traces, `npm run jev:traces`). Temps de traitement (TEMPS § 3) : prompt mesuré, catégorie fixée à l'aiguillage.
-    return measuredPrompt(() => traced('Jev Cockpit', async () => {
+    // Question portée jusqu'au journal des appels (extrait de 50 caractères, 20/10/2026), notée une fois le corps validé.
+    return withCallQuestion(() => measuredPrompt(() => traced('Jev Cockpit', async () => {
       const scope = await span('projet et droits (base)', () => this.access.scope(actor, p));
       const input = parse(Message, body);
       await this.quota.consume(actor.accountId); // quota quotidien de questions (audit du 18/10/2026)
       traceMeta('projet', scope.project.code);
       traceMeta('question', input.text.slice(0, 120));
+      noteCallQuestion(input.text);
       // Conversation (mémoire, une par utilisateur et par projet) : celle de l'écran, sinon une nouvelle.
       const { conv, mem } = await span('conversation et mémoire (base)', async () => {
         const conv = input.conversationId
@@ -105,7 +108,7 @@ export class AssistantController {
       traceMeta('cas', out.route);
       await span('enregistrement de l’échange dans la mémoire (base)', () => this.memory.record(conv, input.text, out.reply, out.sources.map((x) => x.label), { route: out.route }));
       return { ...out, conversationId: conv.id };
-    }));
+    })));
   }
 
   private async answer(scope: ProjectScope, actor: Actor, conv: JevConversation, input: z.infer<typeof Message>, history: ChatTurn[]): Promise<JevReply> {

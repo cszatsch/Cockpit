@@ -884,3 +884,8 @@ Livraison « Fournisseurs et modèles » (`docs/specs/FOURNISSEURS - specificati
   même fenêtre avec un bloc « Mot de passe provisoire » (saisie, Masquer / Afficher, Générer, Copier, règles en pastilles) ;
   icône clé « Définir le mot de passe » sur la ligne d'un invité (fenêtre dédiée, « Activer le compte ») ; compte actif
   jamais connecté : « Jamais connecté ». Client : `saveUser` (mode `direct`) et `savePw` d'`admin-api.js`.
+- Consommation et coûts (20/10/2026, demande du commanditaire) : seconde ligne dans le bandeau du détail d'un appel —
+  « question « … » » (ou « origine » pour un appel sans question) et « réponse « … » », ou un état : lecture…,
+  — (vectorisation, reclassement), masqué, effacé, non enregistré. Lue à l'ouverture du détail (`loadContent`, client
+  `consoApi.callContent` d'`admin-api.js`) ; exemple fixe en démonstration.
+

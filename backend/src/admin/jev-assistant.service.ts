@@ -1,3 +1,4 @@
+import { withCallQuestion } from '../core/call-question';
 import { latencyCategory, latencyKind, latencyUnserved, measuredPrompt, recordRoute } from '../core/latency';
 import { span, traced, traceMeta } from '../core/trace';
 import { Injectable } from '@nestjs/common';
@@ -61,7 +62,8 @@ export class JevAssistantService {
   ) {}
 
   async answer(accountId: string, text: string, section: string, conversationId?: string | null): Promise<JevReply> {
-    return measuredPrompt(() => traced('Jev Console', () => this.answerTraced(accountId, text, section, conversationId), { page: section, question: text.slice(0, 120) }));
+    // Question portée jusqu'au journal des appels (extrait de 50 caractères, 20/10/2026).
+    return withCallQuestion(() => measuredPrompt(() => traced('Jev Console', () => this.answerTraced(accountId, text, section, conversationId), { page: section, question: text.slice(0, 120) })), text);
   }
 
   private async answerTraced(accountId: string, text: string, section: string, conversationId?: string | null): Promise<JevReply> {

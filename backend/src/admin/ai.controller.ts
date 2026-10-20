@@ -110,6 +110,9 @@ export class AiController implements OnModuleInit {
   onModuleInit() {
     this.jobs.register('providers.test', () => this.testAllInternal({ actor: SYSTEM_ACTOR, projectId: null, profileUsed: null, origin: 'SYSTEM' }).then(() => undefined));
     this.jobs.schedule('providers.test', KEY_TEST_CRON);
+    // Extraits du journal des appels effacés au bout de CALL_CONTENT_RETENTION_DAYS jours (20/10/2026).
+    this.jobs.register('usage.content.purge', () => this.usage.purgeContent().then(() => undefined));
+    this.jobs.schedule('usage.content.purge', '35 3 * * *');
   }
 
   // ───────────── Fournisseurs ─────────────
@@ -618,6 +621,21 @@ export class AiController implements OnModuleInit {
     const cursor = q.cursor ? decodeCursor(q.cursor) : null;
     if (q.cursor && !cursor) throw badRequest('Curseur invalide', { cursor: 'valeur renvoyée par nextCursor' });
     return this.usage.calls(j.from, j.to, { fn: j.fn, provider: j.provider, cursor, limit });
+  }
+
+  /**
+   * Extraits d'un appel, à l'ouverture de son détail (20/10/2026) : question saisie et début de la réponse, 50 caractères,
+   * avec le droit « voir le détail individuel » ; chaque lecture d'un extrait est tracée au journal d'audit. Jamais dans l'export.
+   */
+  @Get('usage/calls/:id/content')
+  async callContent(@CurrentActor() actor: Actor, @Param('id') id: string) {
+    if (!/^[A-Za-z0-9_-]{1,40}$/.test(id)) throw notFound('Appel introuvable');
+    const v = await this.usage.callContent(id, actor.accountId);
+    if (!v) throw notFound('Appel introuvable');
+    if (v.state === 'kept' && (v.question || v.response)) {
+      await this.audit.action(this.prisma, adminCtx(actor), { action: 'Consultation du contenu d’un appel IA', target: id, severity: 'SENSITIVE', entityType: 'UsageRecord', entityId: id });
+    }
+    return v;
   }
 
   /** Export du journal : UTF-8 avec BOM, séparateur « ; », décimales à la virgule, mêmes colonnes que le journal. */

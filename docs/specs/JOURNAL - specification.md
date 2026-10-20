@@ -30,11 +30,14 @@ Nouvelle vue de la Console d’administration, section **IA**, placée sous « C
 | `costEur` | decimal(10,6) | `tokensIn × priceIn / 1e6 + tokensOut × priceOut / 1e6` |
 | `durationMs` | int | Latence totale |
 
-Le contenu des prompts et des réponses n’est jamais stocké dans le journal.
+Le prompt envoyé au modèle n’est jamais stocké dans le journal. Depuis le 20/10/2026 (`docs/DECISIONS.md`), pour un LLM :
+`promptExcerpt` (début de la question saisie par la personne, sinon null), `responseExcerpt` (début de la réponse),
+50 caractères au plus, e-mails masqués ; `contentState` (`KEPT`, `PURGED` après 30 jours, null avant cette date).
 
 ## 4. Routes
 - `GET /usage/daily?from=&to=&fn=` → `[{ date, tokensIn, tokensOut, costIn, costOut, calls }]` (un point par jour, jours vides inclus).
 - `GET /usage/calls?from=&to=&fn=&provider=&cursor=&limit=10` → `{ items: UsageRecord[], nextCursor, total }`, tri `at` décroissant, pagination par curseur.
+- `GET /usage/calls/{id}/content` → `{ state, question, response, context }` : extraits d’un appel, lus à l’ouverture de son détail ; `hidden` sans le droit « voir le détail individuel » ; lecture tracée à l’audit. Jamais dans `/usage/calls` ni dans le CSV.
 - `GET /usage/calls.csv?from=&to=&fn=&provider=` → CSV UTF-8 avec BOM, séparateur `;`, décimales à la virgule.
 
 ## 5. Règles d’affichage

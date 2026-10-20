@@ -1335,6 +1335,8 @@ export const consoApi = {
   daily: (fn, r, byHour) => get('/usage/daily?' + [fn && 'fn=' + encodeURIComponent(fn), r && 'from=' + r.from, r && 'to=' + r.to, byHour && 'by=hour'].filter(Boolean).join('&')),
   /** Page du journal, du plus récent au plus ancien ; `cursor` : `nextCursor` de la page précédente. */
   calls: ({ fn, cursor, limit, range: r } = {}) => get('/usage/calls?' + [fn && 'fn=' + encodeURIComponent(fn), r && 'from=' + r.from, r && 'to=' + r.to, cursor && 'cursor=' + encodeURIComponent(cursor), 'limit=' + (limit || 30)].filter(Boolean).join('&')),
+  /** Extraits d'un appel (question saisie, début de la réponse ; 20/10/2026), lus à l'ouverture de son détail. */
+  callContent: id => get('/usage/calls/' + encodeURIComponent(id) + '/content'),
   /** Export CSV du journal affiché (période et fonction ; UTF-8 avec BOM, « ; », virgule décimale). */
   csv: (fn, r) => download('/usage/calls.csv?' + [fn && 'fn=' + encodeURIComponent(fn), r && 'from=' + r.from, r && 'to=' + r.to].filter(Boolean).join('&'), 'consommation-appels.csv'),
 };

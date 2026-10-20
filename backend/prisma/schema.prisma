@@ -1381,6 +1381,13 @@ model UsageRecord {
   /// Appel simulé par le bouchon (hors ligne ou fonction non réelle) : coût estimé, jamais facturé (10/10/2026) ;
   /// exclu de Consommation et coûts · Accès
   simulated        Boolean     @default(false)
+  /// Journal des appels (20/10/2026) : début de la question saisie par la personne (LLM appelé pour Jev), jamais le
+  /// prompt envoyé ; 50 caractères au plus, e-mails masqués (`callExcerpt`). Null : appel sans question saisie.
+  promptExcerpt    String?
+  /// Début de la réponse du LLM, mêmes règles ; null pour la vectorisation et le reclassement.
+  responseExcerpt  String?
+  /// KEPT : extraits enregistrés ; PURGED : effacés après 30 jours (`CALL_CONTENT_RETENTION_DAYS`) ; null : appel antérieur.
+  contentState     String?
 
   @@index([at])
   @@index([accountId, at])

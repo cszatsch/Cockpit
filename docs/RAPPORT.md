@@ -538,6 +538,10 @@ Une notification d’un PMO annonçait « vérifiez votre habilitation » alors 
 
 Console › Accès › Utilisateurs : bouton « Créer un compte » (Super Admin) — fenêtre d’invitation avec un mot de passe provisoire saisi ou généré, copiable ; compte actif sans e-mail, changement obligatoire à la première connexion ; action « Définir le mot de passe » sur un compte invité (lien d’invitation annulé). Routes `POST /api/admin/accounts/with-password` et `/accounts/:id/password`. Tests : `test/e2e/compte-mot-de-passe.spec.ts` (4 tests) ; écran vérifié dans le navigateur (données réelles sans envoi, et démonstration).
 
+### Journal des appels : question saisie et début de la réponse (20/10/2026)
+
+Console › Consommation et coûts : seconde ligne dans le détail d’un appel — question saisie par la personne et début de la réponse du LLM (50 caractères, e-mails masqués), réservés au droit « voir le détail individuel », lecture tracée à l’audit, effacés après 30 jours ; origine affichée pour un appel sans question (tâche de fond, action de l’écran). Écart à la spécification JOURNAL (contenu jamais stocké) consigné dans `docs/DECISIONS.md`. Tests : `test/unit/journal-extraits.spec.ts` (5 tests), `test/e2e/journal-extraits.spec.ts` (5 tests).
+
 ## 4. Questions ouvertes
 
 1. **Déclencheur des règles de notification** : faut-il ajouter un sélecteur de déclencheur dans la console ? Aujourd'hui, une règle créée depuis l'écran reçoit un déclencheur par défaut : « planifié » pour une notification, « manuel » pour une alerte.

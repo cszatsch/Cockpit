@@ -82,7 +82,14 @@ const read = (page: Page) => page.evaluate(() => {
     head: txt(tabs?.parentElement?.firstElementChild ?? null), counters: txt(band.lastElementChild), chip: chip ? txt(chip) : null,
     svgText: svg ? Array.from(svg.querySelectorAll('text')).map((t) => t.textContent).join(' | ') : '', tiles, rows,
     jCount: txt(Array.from(root.querySelectorAll('span')).find((s) => /appels? ·/.test(s.textContent ?? '')) ?? null),
-    detail: txt(Array.from(root.querySelectorAll('div')).find((x) => /^requête\s*req_/.test((x.textContent ?? '').trim()) && !!x.querySelector('span')) ?? null),
+    // Bandeau du détail : requête, durée, calcul (sans la seconde ligne) ; seconde ligne : question et réponse (20/10/2026).
+    ...(() => {
+      const box = Array.from(root.querySelectorAll('div')).find((x) => /^requête\s*req_/.test((x.textContent ?? '').trim()) && !!x.querySelector('span'));
+      if (!box) return { detail: '', content: '' };
+      const c = box.cloneNode(true) as HTMLElement, ct = c.querySelector('[data-conso-content]');
+      ct?.remove();
+      return { detail: txt(c), content: ct ? txt(ct as HTMLElement) : '' };
+    })(),
   };
 });
 
@@ -92,8 +99,9 @@ async function main() {
   const seen: { calls: string[]; daily: string[]; csv: string[]; puts: Array<{ id: string; body: any }> } = { calls: [], daily: [], csv: [], puts: [] };
   try {
     const page = await newPage(browser, { errors });
-    await page.route(/\/api\/admin\/(usage\/(month|daily|calls(\.csv)?)|budget-thresholds\/[a-z]+)(\?|$)/, async (route) => {
+    await page.route(/\/api\/admin\/(usage\/(month|daily|calls(\.csv)?|calls\/[^/?]+\/content)|budget-thresholds\/[a-z]+)(\?|$)/, async (route) => {
       const req = route.request(), u = new URL(req.url()), q = Object.fromEntries(u.searchParams), fn = q.fn || null;
+      if (u.pathname.endsWith('/content')) return route.fulfill({ json: { state: 'kept', question: 'Où en est le chantier Finance cette semaine ?', response: 'Le chantier Finance avance conformément au plan…', context: null } });
       if (u.pathname.endsWith('/usage/month')) return route.fulfill({ json: month() });
       if (u.pathname.includes('/budget-thresholds/') && req.method() === 'PUT') {
         const id = u.pathname.split('/').pop()!, body = req.postDataJSON();
@@ -194,6 +202,8 @@ async function main() {
     await page.waitForTimeout(400);
     const d = await read(page), line = d.rows[0], cost = line[line.length - 1];
     check('5. détail : requête, durée, calcul dont le résultat = coût de la ligne', d.detail.includes('req_') && /durée\s*\d+,\d s/.test(d.detail) && d.detail.endsWith('= ' + cost) && d.detail.includes('lus en cache'), `${d.detail} | ligne ${cost}`);
+
+    check('5b. détail : question saisie et début de la réponse sur une seconde ligne', d.content.includes('question « Où en est le chantier Finance cette semaine ? »') && d.content.includes('réponse « Le chantier Finance avance conformément au plan… »'), d.content);
 
     // Pagination au défilement.
     const n0 = d.rows.length;
