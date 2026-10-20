@@ -1,4 +1,5 @@
 import { LATENCY_SERVICE_MODEL, latencyKind, LatencyStep, latencyUnserved, relabelLastStep, timedStep } from '../core/latency';
+import { traceMeta } from '../core/trace';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../core/prisma.service';
 import { LlmResult, LlmService } from '../core/llm.service';
@@ -6,8 +7,8 @@ import { JevPromptService } from '../core/jev-prompt.service';
 import { TodayService } from '../core/today.service';
 import type { JevMemory } from './jev-memory.service';
 import {
-  ANSWER_INSTRUCTIONS, extractSql, formatRows, JEV_SQL_MAX_ROWS, JEV_SQL_RETRIES, JEV_SQL_ROLE, JEV_SQL_TIMEOUT_MS,
-  looksLikeSql, renderDictionary, requestContext, SQL_CUT_REASON, sqlCut, sqlError, sqlInstructions, viewsUsed,
+  ANSWER_INSTRUCTIONS, CONSOLE_DATA_UNAVAILABLE_REPLY, extractSql, JEV_SQL_MAX_ROWS, JEV_SQL_RETRIES, JEV_SQL_ROLE, JEV_SQL_TIMEOUT_MS,
+  looksLikeSql, renderDictionary, requestContext, resultsSection, splitStatements, SQL_CUT_REASON, sqlCut, sqlError, sqlInstructions, viewsUsed,
 } from '../domain/jev-sql';
 import { JEV_COCKPIT_ROLE, JEV_COCKPIT_SCHEMA, SCOPE_CHANTIERS, SCOPE_PROJET } from '../domain/jev-dictionnaire-cockpit';
 import { ChantierScope } from '../domain/notification-rules';
@@ -72,13 +73,13 @@ export class JevSqlService {
     }
 
     // 2. Contrôle et exécution, une correction au plus.
-    let rows: Array<Record<string, unknown>> | null = null;
+    let sets: Array<Array<Record<string, unknown>>> | null = null;
     let why = '';
     for (let attempt = 0; ; attempt++) {
       why = cut ? SQL_CUT_REASON : sql ? sqlError(sql) ?? '' : 'aucune requête dans la réponse';
       if (!why) {
         try {
-          rows = await timedStep('exe', LATENCY_SERVICE_MODEL, 'primary', () => this.executeReadOnly(sql!));
+          sets = await timedStep('exe', LATENCY_SERVICE_MODEL, 'primary', () => this.executeReadOnlySets(splitStatements(sql!)));
           break;
         } catch (e) {
           why = dbMessage(e);
@@ -89,18 +90,18 @@ export class JevSqlService {
       sql = extractSql(fix.text);
       cut = sqlCut(fix.text);
     }
-    if (!rows) {
+    if (!sets) {
       latencyUnserved(why);
-      return { reply: `Je n’ai pas pu lire les données de la plateforme pour répondre (${why}). Reformulez la question, ou consultez directement l’écran concerné de la Console.`, sources: [], ai: ai(), sql };
+      traceMeta('erreur', why);
+      return { reply: CONSOLE_DATA_UNAVAILABLE_REPLY, sources: [], ai: ai(), sql };
     }
 
     // 3. Réponse à partir des résultats.
     const sources = viewsUsed(sql!, tables.map((t) => t.nom));
     const used = tables.filter((t) => sources.includes(t.nom));
-    const res = formatRows(rows);
+    const res = resultsSection(splitStatements(sql!), sets);
     const answerSystem = `${parts.stable}\n\n${ANSWER_INSTRUCTIONS}`;
-    const head = `## Résultats de la requête (${res.count} ligne(s)${res.truncated ? `, tronqués aux ${JEV_SQL_MAX_ROWS} premières` : ''})`;
-    const answer = await call(`${text}\n\n${head}\n${res.text}`, answerSystem, `${context}\n\n## Dictionnaire des vues consultées\n${renderDictionary(used)}`);
+    const answer = await call(`${text}\n\n${res.text}`, answerSystem, `${context}\n\n## Dictionnaire des vues consultées\n${renderDictionary(used)}`);
     return { reply: answer.text, sources, ai: ai(), sql };
   }
 
@@ -109,7 +110,11 @@ export class JevSqlService {
    * durée et nombre de lignes bornés. Garantie indépendante du contrôle de `sqlError()`.
    */
   async executeReadOnly(sql: string): Promise<Array<Record<string, unknown>>> {
-    const body = sql.trim().replace(/;\s*$/, '');
+    return (await this.executeReadOnlySets([sql]))[0];
+  }
+
+  /** Plusieurs instructions (contrôlées une à une par `sqlError`), dans la même transaction en lecture seule : un tableau de lignes par instruction. */
+  async executeReadOnlySets(statements: string[]): Promise<Array<Array<Record<string, unknown>>>> {
     return this.prisma.$transaction(
       async (tx) => {
         await tx.$executeRawUnsafe('SET TRANSACTION READ ONLY');
@@ -119,7 +124,7 @@ export class JevSqlService {
         await tx.$executeRawUnsafe(`SET LOCAL ROLE ${JEV_SQL_ROLE}`);
         await tx.$executeRawUnsafe(`SET LOCAL statement_timeout = ${JEV_SQL_TIMEOUT_MS}`);
         await tx.$executeRawUnsafe('SET LOCAL search_path = jev');
-        return tx.$queryRawUnsafe<Array<Record<string, unknown>>>(`SELECT * FROM (\n${body}\n) AS jev_requete LIMIT ${JEV_SQL_MAX_ROWS + 1}`);
+        return runStatements(tx, statements);
       },
       { timeout: JEV_SQL_TIMEOUT_MS + 5000 },
     );
@@ -131,7 +136,11 @@ export class JevSqlService {
    * lisibles (« * » : tous). Les vues filtrent sur ces paramètres ; la requête ne peut pas les modifier.
    */
   async executeCockpit(sql: string, projectId: string, chantiers: ChantierScope): Promise<Array<Record<string, unknown>>> {
-    const body = sql.trim().replace(/;\s*$/, '');
+    return (await this.executeCockpitSets([sql], projectId, chantiers))[0];
+  }
+
+  /** Plusieurs instructions sur les vues du Cockpit, même périmètre, même transaction : un tableau de lignes par instruction. */
+  async executeCockpitSets(statements: string[], projectId: string, chantiers: ChantierScope): Promise<Array<Array<Record<string, unknown>>>> {
     const lit = (v: string) => `'${v.replace(/'/g, "''")}'`;
     return this.prisma.$transaction(
       async (tx) => {
@@ -141,7 +150,7 @@ export class JevSqlService {
         await tx.$executeRawUnsafe(`SET LOCAL ROLE ${JEV_COCKPIT_ROLE}`);
         await tx.$executeRawUnsafe(`SET LOCAL statement_timeout = ${JEV_SQL_TIMEOUT_MS}`);
         await tx.$executeRawUnsafe(`SET LOCAL search_path = ${JEV_COCKPIT_SCHEMA}`);
-        return tx.$queryRawUnsafe<Array<Record<string, unknown>>>(`SELECT * FROM (\n${body}\n) AS jev_requete LIMIT ${JEV_SQL_MAX_ROWS + 1}`);
+        return runStatements(tx, statements);
       },
       { timeout: JEV_SQL_TIMEOUT_MS + 5000 },
     );
@@ -150,6 +159,19 @@ export class JevSqlService {
   private nowParis(): string {
     return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Paris', dateStyle: 'short', timeStyle: 'medium' }).format(this.today.now());
   }
+}
+
+/**
+ * Chaque instruction enveloppée dans un SELECT borné (une instruction par appel : jamais de « ; » transmis à la base),
+ * exécutées l'une après l'autre dans la transaction ouverte par l'appelant.
+ */
+async function runStatements(tx: { $queryRawUnsafe: <T>(q: string) => Promise<T> }, statements: string[]): Promise<Array<Array<Record<string, unknown>>>> {
+  const out: Array<Array<Record<string, unknown>>> = [];
+  for (const sql of statements) {
+    const body = sql.trim().replace(/;\s*$/, '');
+    out.push(await tx.$queryRawUnsafe<Array<Record<string, unknown>>>(`SELECT * FROM (\n${body}\n) AS jev_requete LIMIT ${JEV_SQL_MAX_ROWS + 1}`));
+  }
+  return out;
 }
 
 /** Message de PostgreSQL sans l'enveloppe de Prisma (renvoyé au modèle pour correction). */

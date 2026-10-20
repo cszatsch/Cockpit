@@ -3081,3 +3081,24 @@ arbitrages du 20/10/2026 sur trois recommandations :
 - **Effacés après 30 jours** (`CALL_CONTENT_RETENTION_DAYS`, tâche `usage.content.purge` chaque nuit) ; la ligne de coût
   reste (« effacé »). Appels antérieurs : « non enregistré ».
 
+## Jev : synthèse sur plusieurs sujets refusée (incident du 20/10/2026)
+
+Constat du commanditaire : la suggestion « Résumer la situation du jour » (écran Aujourd'hui) obtenait « Je n'ai pas pu
+lire les données du projet pour répondre (une seule instruction est permise) ». Cause : une synthèse porte sur
+plusieurs sujets ; le modèle écrivait une requête par sujet, séparées par « ; », refusées par le contrôle `sqlError`
+(une seule instruction), deux fois (`JEV_SQL_RETRIES` = 1) ; le motif technique était montré tel quel. Arbitrage du
+20/10/2026 (recommandations 1 à 3) :
+
+- **Plusieurs requêtes de lecture, `JEV_SQL_MAX_STATEMENTS` (4) au plus**, dans le même bloc : découpe hors chaînes et
+  identifiants (`splitStatements`), chaque instruction soumise au même contrôle (`sqlError`, motif « instruction N : … »)
+  et exécutée une à une, enveloppée et bornée, dans la même transaction en lecture seule, même rôle et même périmètre
+  (`executeReadOnlySets`, `executeCockpitSets`) ; résultats transmis à la rédaction requête par requête, taille partagée
+  (`resultsSection`). Consignes au modèle : « une instruction par sujet, 4 au plus ». S'applique au Jev du Cockpit, au
+  Jev de la Console et à la rédaction des notifications (relance « requête plus large » quand toutes sont vides).
+- **Plus de motif technique montré** : `INSIGHT_UNAVAILABLE_REPLY` (Cockpit), `CONSOLE_DATA_UNAVAILABLE_REPLY` (Console)
+  invitent à une question plus ciblée ; le motif reste dans la trace de la question (`jev_traces.meta.erreur`) et dans
+  l'analyse des temps de réponse.
+- **Tests de non-régression** : `test/unit/jev-sql.spec.ts` (découpe, contrôle, résultats, consignes),
+  `test/e2e/jev-cockpit-insight.spec.ts` (synthèse risques + jalons, plus de 4 requêtes, message sans motif),
+  `test/e2e/jev-sql.spec.ts` (deux requêtes dans la Console).
+

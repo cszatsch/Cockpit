@@ -542,6 +542,10 @@ Console › Accès › Utilisateurs : bouton « Créer un compte » (Super Admin
 
 Console › Consommation et coûts : seconde ligne dans le détail d’un appel — question saisie par la personne et début de la réponse du LLM (50 caractères, e-mails masqués), réservés au droit « voir le détail individuel », lecture tracée à l’audit, effacés après 30 jours ; origine affichée pour un appel sans question (tâche de fond, action de l’écran). Écart à la spécification JOURNAL (contenu jamais stocké) consigné dans `docs/DECISIONS.md`. Tests : `test/unit/journal-extraits.spec.ts` (5 tests), `test/e2e/journal-extraits.spec.ts` (5 tests).
 
+### Jev : synthèse sur plusieurs sujets refusée (incident du 20/10/2026)
+
+« Résumer la situation du jour » échouait (« une seule instruction est permise ») : le modèle écrivait une requête par sujet. Jev accepte désormais jusqu’à 4 requêtes de lecture par question, chacune contrôlée et exécutée en lecture seule dans la même transaction, résultats transmis requête par requête (Jev du Cockpit, de la Console, rédaction des notifications) ; plus aucun motif technique n’est montré à l’utilisateur (il reste dans la trace). Tests : `test/unit/jev-sql.spec.ts` (+6), `test/e2e/jev-cockpit-insight.spec.ts` (+2), `test/e2e/jev-sql.spec.ts` (+1).
+
 ## 4. Questions ouvertes
 
 1. **Déclencheur des règles de notification** : faut-il ajouter un sélecteur de déclencheur dans la console ? Aujourd'hui, une règle créée depuis l'écran reçoit un déclencheur par défaut : « planifié » pour une notification, « manuel » pour une alerte.

@@ -3,6 +3,8 @@ import { encryptSecret } from '../../src/core/crypto';
 import { ApiCardsService } from '../../src/admin/api-cards.service';
 import { LlmService } from '../../src/core/llm.service';
 import { COCKPIT_Q_CASE } from '../../src/domain/jev-router-cockpit';
+import { INSIGHT_UNAVAILABLE_REPLY } from '../../src/domain/jev-cockpit-answers';
+import { JEV_SQL_MAX_STATEMENTS } from '../../src/domain/jev-sql';
 
 const C = '/api/projects/RISE/assistant/messages';
 
@@ -77,8 +79,40 @@ describe('Jev du Cockpit — cas 1 : données du projet', () => {
     const spy = scripted('```sql\nDELETE FROM jev_cockpit.risques\n```', '```sql\nSELECT * FROM public.risks\n```');
     const r = await (await t.as(WHO.pmo)).post(C, { context: { space: 'pilotage' }, text: 'Combien de risques ?' }).expect(200);
     expect(r.body).toMatchObject({ route: '1', insight: 'FAILED', sources: [] });
-    expect(r.body.reply).toMatch(/^Je n’ai pas pu lire les données du projet pour répondre \(seules les vues jev\.\* sont lisibles\)/);
+    // Jamais de motif technique montré (incident du 20/10/2026) : il reste dans la trace de la question.
+    expect(r.body.reply).toBe(INSIGHT_UNAVAILABLE_REPLY);
+    expect(r.body.reply).not.toMatch(/jev|instruction|SELECT/i);
     expect(spy).toHaveBeenCalledTimes(2);
+    spy.mockRestore();
+    await new Promise((r) => setTimeout(r, 50));
+    const tr = await t.db.jevTrace.findFirst({ where: { label: 'Jev Cockpit' }, orderBy: { at: 'desc' } });
+    expect((tr!.meta as any).erreur).toBe('seules les vues jev.* sont lisibles');
+  });
+
+  // Incident du 20/10/2026 : « Résumer la situation du jour » → le modèle écrit une requête par sujet ; auparavant
+  // refusées (« une seule instruction est permise »), elles sont désormais contrôlées et exécutées une à une.
+  it('synthèse sur plusieurs sujets : plusieurs requêtes exécutées, résultats transmis requête par requête', async () => {
+    next = 'donnees';
+    const spy = scripted('```sql\nSELECT code, libelle FROM jev_cockpit.risques ORDER BY code;\nSELECT code, libelle FROM jev_cockpit.jalons ORDER BY code;\n```', 'Synthèse du jour : risques et jalons.');
+    const r = await (await t.as(WHO.pmo)).post(C, { context: { space: 'today' }, text: 'Résumer la situation du jour' }).expect(200);
+    expect(r.body).toMatchObject({ route: '1', insight: 'ANSWERED', reply: 'Synthèse du jour : risques et jalons.' });
+    expect(r.body.sources.map((x: any) => x.label)).toEqual(expect.arrayContaining(['Données · risques', 'Données · jalons']));
+    expect(spy).toHaveBeenCalledTimes(2); // aucune correction : les deux requêtes sont acceptées du premier coup
+    const a = spy.mock.calls[1][0] as any;
+    expect(a.prompt).toContain('## Résultats des 2 requêtes');
+    // Lignes de la requête n : la ligne JSON qui suit son bloc ```sql … ```.
+    const block = (n: number) => JSON.parse(a.prompt.split(`### Requête ${n} `)[1].split('```\n')[1].split('\n')[0]);
+    expect(block(1).length).toBe(await t.db.risk.count({ where: { projectId: 'RISE' } }));
+    expect(block(2).length).toBe(await t.db.milestone.count({ where: { projectId: 'RISE' } }));
+    spy.mockRestore();
+  });
+
+  it(`plus de ${JEV_SQL_MAX_STATEMENTS} requêtes : refusées, puis corrigées une fois`, async () => {
+    const five = Array.from({ length: JEV_SQL_MAX_STATEMENTS + 1 }, () => 'SELECT code FROM jev_cockpit.risques').join(';\n');
+    const spy = scripted(`\`\`\`sql\n${five}\n\`\`\``, '```sql\nSELECT code FROM jev_cockpit.risques\n```', 'Réponse.');
+    const r = await (await t.as(WHO.pmo)).post(C, { context: { space: 'today' }, text: 'Tout résumer' }).expect(200);
+    expect(r.body).toMatchObject({ insight: 'ANSWERED', reply: 'Réponse.' });
+    expect((spy.mock.calls[1][0] as any).prompt).toContain(`Motif du refus ou de l’échec : ${JEV_SQL_MAX_STATEMENTS} instructions SELECT au plus`);
     spy.mockRestore();
   });
 

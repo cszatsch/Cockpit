@@ -96,7 +96,11 @@ export const COCKPIT_INSIGHT_ANSWER_RULES = [
 ].join('\n');
 
 /** Lecture impossible (requête refusée deux fois ou en échec) : jamais de réponse inventée. */
-export const insightUnavailableReply = (why: string) => `Je n’ai pas pu lire les données du projet pour répondre (${why}). Reformulez la question, ou consultez directement l’écran concerné du Cockpit.`;
+/**
+ * Réponse quand les données du projet n'ont pas pu être lues (incident du 20/10/2026) : jamais de motif technique
+ * montré ; il reste dans la trace de la question (`erreur`) et dans l'analyse des temps de réponse.
+ */
+export const INSIGHT_UNAVAILABLE_REPLY = 'Je n’ai pas réussi à rassembler les données du projet pour cette question. Posez une question plus ciblée (un sujet à la fois : risques, jalons, actions…), ou consultez directement l’écran concerné du Cockpit.';
 
 /** Source affichée sous la réponse : la vue consultée, en clair. */
 export const insightSourceLabel = (view: string) => `Données · ${view.replace(/_/g, ' ')}`;

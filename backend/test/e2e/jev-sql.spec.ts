@@ -1,6 +1,7 @@
 import { setup, TestCtx, Client, WHO } from '../helpers';
 import { LlmService } from '../../src/core/llm.service';
 import { JevSqlService } from '../../src/admin/jev-sql.service';
+import { CONSOLE_DATA_UNAVAILABLE_REPLY } from '../../src/domain/jev-sql';
 
 const JEV = '/api/admin/assistant/messages';
 type Call = { functionId: string; prompt: string; system: string; systemTail: string };
@@ -59,6 +60,16 @@ describe('Console — Jev interroge les données (Text-to-SQL)', () => {
     expect(c2.systemTail).not.toContain('### jev.comptes');
   });
 
+  it('plusieurs requêtes dans un même bloc (incident du 20/10/2026) : exécutées une à une, résultats par requête', async () => {
+    script(sql("SELECT count(*)::int AS n FROM jev.comptes;\nSELECT count(*)::int AS n FROM jev.modeles_ia;"), 'Comptes et modèles.');
+    const r = await admin.post(JEV, { context: { section: 'users' }, text: 'Résume les comptes et les modèles' }).expect(200);
+    expect(r.body).toMatchObject({ reply: 'Comptes et modèles.', sources: ['comptes', 'modeles_ia'] });
+    expect(calls).toHaveLength(2);
+    expect(calls[1].prompt).toContain('## Résultats des 2 requêtes (2 ligne(s) en tout)');
+    expect(calls[1].prompt).toContain(`### Requête 1 (1 ligne(s))\n\`\`\`sql\nSELECT count(*)::int AS n FROM jev.comptes\n\`\`\`\n[{"n":${await t.db.account.count()}}]`);
+    expect(calls[1].prompt).toContain(`[{"n":${await t.db.aiModel.count()}}]`);
+  });
+
   it('le dictionnaire envoyé est celui des tables : une fiche désactivée n’est plus envoyée', async () => {
     await t.db.dictionnaireTable.update({ where: { espace_nom: { espace: 'console', nom: 'sessions' } }, data: { actif: false } });
     script('Réponse directe.');
@@ -89,7 +100,8 @@ describe('Console — Jev interroge les données (Text-to-SQL)', () => {
     script(sql('SELECT x FROM jev.inconnue'), sql('SELECT y FROM jev.inconnue'));
     const r = await admin.post(JEV, { context: { section: 'users' }, text: 'Question' }).expect(200);
     expect(calls).toHaveLength(2);
-    expect(r.body.reply).toMatch(/^Je n’ai pas pu lire les données de la plateforme pour répondre \(relation "jev.inconnue" does not exist\)/);
+    // Jamais de motif technique montré (incident du 20/10/2026).
+    expect(r.body.reply).toBe(CONSOLE_DATA_UNAVAILABLE_REPLY);
     expect(r.body.sources).toEqual([]);
   });
 
@@ -97,7 +109,7 @@ describe('Console — Jev interroge les données (Text-to-SQL)', () => {
     const before = await t.db.account.findMany({ orderBy: { id: 'asc' }, select: { id: true, fullName: true } });
     script(sql("UPDATE jev.comptes SET nom = 'Pirate'"), sql("WITH x AS (DELETE FROM jev.comptes RETURNING id) SELECT * FROM x"));
     const r = await admin.post(JEV, { context: { section: 'users' }, text: 'Renomme tout le monde' }).expect(200);
-    expect(r.body.reply).toMatch(/^Je n’ai pas pu lire les données/);
+    expect(r.body.reply).toBe(CONSOLE_DATA_UNAVAILABLE_REPLY);
     expect(calls[1].prompt).toContain('Motif du refus ou de l’échec : seule une lecture (SELECT) est permise');
     expect(await t.db.account.findMany({ orderBy: { id: 'asc' }, select: { id: true, fullName: true } })).toEqual(before);
   });

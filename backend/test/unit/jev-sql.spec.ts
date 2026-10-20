@@ -1,4 +1,4 @@
-import { extractSql, formatRows, JEV_SQL_MAX_ROWS, looksLikeSql, renderDictionary, sqlCut, sqlError, sqlInstructions, viewsUsed } from '../../src/domain/jev-sql';
+import { extractSql, formatRows, JEV_SQL_MAX_ROWS, JEV_SQL_MAX_STATEMENTS, looksLikeSql, renderDictionary, resultsSection, splitStatements, sqlCut, sqlError, sqlInstructions, viewsUsed } from '../../src/domain/jev-sql';
 
 describe('Jev de la Console — Text-to-SQL : règles', () => {
   it('extrait la requête du bloc ```sql``` ; sans bloc, réponse directe', () => {
@@ -33,7 +33,9 @@ describe('Jev de la Console — Text-to-SQL : règles', () => {
     ['', 'requête vide'],
     ['UPDATE jev.comptes SET nom = \'x\'', 'seule une lecture'],
     ['DELETE FROM jev.comptes', 'seule une lecture'],
-    ['SELECT 1; DROP TABLE "Account"', 'une seule instruction'],
+    ['SELECT 1; DROP TABLE "Account"', 'instruction 2 : seule une lecture'],
+    ['SELECT 1 FROM jev.comptes; SELECT * FROM public."Account"', 'instruction 2 : seules les vues jev'],
+    ['SELECT 1; SELECT 2; SELECT 3; SELECT 4; SELECT 5', '4 instructions SELECT au plus (5 reçues)'],
     ['WITH x AS (DELETE FROM jev.comptes RETURNING id) SELECT * FROM x', 'mot interdit : DELETE'],
     ['SELECT pg_sleep(30)', 'mot interdit : PG_SLEEP'],
     ['SELECT * FROM pg_catalog.pg_authid', 'tables système'],
@@ -86,5 +88,35 @@ describe('Vues du Cockpit : filtre de droits (rôle jev_lecteur_cockpit)', () =>
     expect(f('commentaires')).toContain(`current_setting('rise.chantiers', true) = '*'`);
     expect(f('documents')).toContain(`t.conf::text <> 'RESTRICTED'`);
     expect(f('projets')).toContain(`t.id = current_setting('rise.projet', true)`);
+  });
+
+  // Incident du 20/10/2026 : « Résumer la situation du jour » → une requête par sujet, refusée en bloc.
+  describe('plusieurs instructions (incident du 20/10/2026)', () => {
+    it('découpe sur les « ; » hors des chaînes et des identifiants, sans instruction vide', () => {
+      expect(splitStatements("SELECT 'a;b' AS x FROM jev.comptes;\n-- commentaire ; ici\nSELECT \"c;d\" FROM jev.cartes;  ;")).toEqual(["SELECT 'a;b' AS x FROM jev.comptes", 'SELECT "c;d" FROM jev.cartes']);
+      expect(splitStatements('SELECT 1;')).toEqual(['SELECT 1']);
+      expect(splitStatements(' ; ')).toEqual([]);
+    });
+
+    it(`accepte jusqu’à ${JEV_SQL_MAX_STATEMENTS} lectures, chacune contrôlée`, () => {
+      expect(sqlError('SELECT code FROM jev.risques;\nSELECT code FROM jev.jalons;\nSELECT code FROM jev.actions;')).toBeNull();
+      expect(sqlError(Array.from({ length: JEV_SQL_MAX_STATEMENTS }, () => 'SELECT 1').join(';'))).toBeNull();
+    });
+
+    it('résultats : section unique pour une requête (forme historique), une sous-section par requête sinon', () => {
+      const one = resultsSection(['SELECT 1'], [[{ n: 1 }]]);
+      expect(one).toEqual({ text: '## Résultats de la requête (1 ligne(s))\n[{"n":1}]', count: 1 });
+      const two = resultsSection(['SELECT code FROM risques', 'SELECT code FROM jalons'], [[{ code: 'R01' }, { code: 'R02' }], []]);
+      expect(two.count).toBe(2);
+      expect(two.text).toContain('## Résultats des 2 requêtes (2 ligne(s) en tout)');
+      expect(two.text).toContain('### Requête 1 (2 ligne(s))\n```sql\nSELECT code FROM risques\n```\n[{"code":"R01"},{"code":"R02"}]');
+      expect(two.text).toContain('### Requête 2 (0 ligne(s))\n```sql\nSELECT code FROM jalons\n```\n[]');
+    });
+
+    it('consignes au modèle : plusieurs requêtes courtes permises pour une synthèse', () => {
+      const s = sqlInstructions('', null, null);
+      expect(s).toContain(`Une instruction par sujet, ${JEV_SQL_MAX_STATEMENTS} au plus`);
+      expect(s).not.toContain('Une seule instruction');
+    });
   });
 });

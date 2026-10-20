@@ -1,15 +1,15 @@
 import { LATENCY_SERVICE_MODEL, latencyKind, LatencyStep, relabelLastStep, timedStep } from '../core/latency';
-import { span } from '../core/trace';
+import { span, traceMeta } from '../core/trace';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../core/prisma.service';
 import { AiFunctionId, LlmResult, LlmService } from '../core/llm.service';
 import { JevPromptService } from '../core/jev-prompt.service';
 import { TodayService } from '../core/today.service';
 import { ChatTurn } from '../core/llm-client';
-import { extractSql, formatRows, JEV_SQL_MAX_ROWS, JEV_SQL_RETRIES, looksLikeSql, renderDictionary, requestContext, SQL_CUT_REASON, sqlCut, sqlError, sqlInstructions, viewsUsed } from '../domain/jev-sql';
+import { extractSql, JEV_SQL_RETRIES, looksLikeSql, renderDictionary, requestContext, resultsSection, splitStatements, SQL_CUT_REASON, sqlCut, sqlError, sqlInstructions, viewsUsed } from '../domain/jev-sql';
 import { JEV_COCKPIT_SCHEMA } from '../domain/jev-dictionnaire-cockpit';
 import { ProjectAccess, visibleWorkstreams } from '../domain/rights';
-import { COCKPIT_INSIGHT_ANSWER_RULES, COCKPIT_INSIGHT_DATA_HINT, cockpitScopeLine, insightSourceLabel, insightUnavailableReply, nowParisLabel } from '../domain/jev-cockpit-answers';
+import { COCKPIT_INSIGHT_ANSWER_RULES, COCKPIT_INSIGHT_DATA_HINT, cockpitScopeLine, insightSourceLabel, INSIGHT_UNAVAILABLE_REPLY, nowParisLabel } from '../domain/jev-cockpit-answers';
 import { dbMessage, JevSqlService } from './jev-sql.service';
 
 export interface InsightAnswer {
@@ -82,13 +82,18 @@ export class JevCockpitInsightService {
     }
 
     // 2. Contrôle et exécution sur le périmètre de l'utilisateur, une correction au plus.
-    let rows: Array<Record<string, unknown>> | null = null;
+    let sets: Array<Array<Record<string, unknown>>> | null = null;
     let why = '';
     for (let attempt = 0; ; attempt++) {
       why = cut ? SQL_CUT_REASON : sql ? sqlError(sql) ?? '' : 'aucune requête dans la réponse';
       if (!why) {
         try {
-          rows = await span(`requête SQL en lecture seule (tentative ${attempt + 1}, base)`, async (d) => { const r = await timedStep('exe', LATENCY_SERVICE_MODEL, 'primary', () => this.jevSql.executeCockpit(sql!, opts.project.id, chantiers)); d.lignes = r.length; return r; });
+          sets = await span(`requête SQL en lecture seule (tentative ${attempt + 1}, base)`, async (d) => {
+            const r = await timedStep('exe', LATENCY_SERVICE_MODEL, 'primary', () => this.jevSql.executeCockpitSets(splitStatements(sql!), opts.project.id, chantiers));
+            d.instructions = r.length;
+            d.lignes = r.reduce((n, x) => n + x.length, 0);
+            return r;
+          });
           break;
         } catch (e) {
           why = dbMessage(e);
@@ -99,15 +104,17 @@ export class JevCockpitInsightService {
       sql = extractSql(fix.text);
       cut = sqlCut(fix.text);
     }
-    if (!rows) return { ...done('FAILED', insightUnavailableReply(why), [], sql), error: why };
+    if (!sets) {
+      traceMeta('erreur', why);
+      return { ...done('FAILED', INSIGHT_UNAVAILABLE_REPLY, [], sql), error: why };
+    }
 
     // 3. Réponse à partir des résultats, et d'eux seuls.
     const views = viewsUsed(sql!.replace(new RegExp(`${JEV_COCKPIT_SCHEMA}\\s*\\.`, 'gi'), ''), tables.map((t) => t.nom));
     const used = tables.filter((t) => views.includes(t.nom));
-    const res = formatRows(rows);
-    const head = `## Résultats de la requête (${res.count} ligne(s)${res.truncated ? `, tronqués aux ${JEV_SQL_MAX_ROWS} premières` : ''})`;
+    const res = resultsSection(splitStatements(sql!), sets);
     const answer = await call(
-      `${text}\n\n${head}\n${res.text}`,
+      `${text}\n\n${res.text}`,
       `${parts.stable}\n\n${COCKPIT_INSIGHT_ANSWER_RULES}${opts.extraRules ? `\n\n${opts.extraRules}` : ''}`,
       `${context}\n\n## Périmètre de l’utilisateur\n${cockpitScopeLine(chantiers)}\n\n## Dictionnaire des vues consultées\n${renderDictionary(used, JEV_COCKPIT_SCHEMA)}`,
     );

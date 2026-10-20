@@ -1200,7 +1200,7 @@ Avant de répondre, Jev classe chaque question avec l'API de la carte « JEV » 
 
 - Une question fait 2 000 caractères au plus.
 - Chaque lecture de données est limitée à 200 lignes et 5 secondes, en lecture seule.
-- Si sa première lecture échoue, Jev la corrige une fois. En cas de nouvel échec, il répond : « Je n'ai pas pu lire les données de la plateforme pour répondre (…). Reformulez la question, ou consultez directement l'écran concerné de la Console. ».
+- Si sa première lecture échoue, Jev la corrige une fois. En cas de nouvel échec, il répond : « Je n'ai pas réussi à rassembler les données de la plateforme pour cette question. Posez une question plus ciblée (un sujet à la fois : comptes, modèles, coûts…), ou consultez directement l'écran concerné de la Console. ».
 - Si la vectorisation de la question échoue, Jev fait une seconde tentative avec un délai plus long. En cas de nouvel échec, la cloche signale une erreur technique.
 
 **Mémoire conversationnelle**

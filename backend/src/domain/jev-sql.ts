@@ -14,6 +14,12 @@ export const JEV_SQL_MAX_ROWS = 200;
 export const JEV_SQL_MAX_RESULT_CHARS = 30_000;
 /** Nouvelles tentatives quand la requête est refusée ou échoue (décision du 28/09/2026). */
 export const JEV_SQL_RETRIES = 1;
+/**
+ * Instructions SELECT d'une même réponse du modèle (incident du 20/10/2026 : « Résumer la situation du jour » demandait
+ * plusieurs sujets, le modèle écrivait une requête par sujet, toutes refusées). Chacune est contrôlée et exécutée
+ * séparément, dans la même transaction en lecture seule.
+ */
+export const JEV_SQL_MAX_STATEMENTS = 4;
 
 /** Requête SQL d'une réponse du modèle : le contenu du premier bloc ```sql```, sinon null (réponse directe). */
 export function extractSql(text: string): string | null {
@@ -34,20 +40,59 @@ export function looksLikeSql(text: string): boolean {
   return /```\s*sql/i.test(text) || /^\s*(select|with)\b/i.test(text);
 }
 
+/**
+ * Réponse quand les données n'ont pas pu être lues (incident du 20/10/2026) : jamais de motif technique montré ; il
+ * reste dans la trace de la question (`erreur`) et dans l'analyse des temps de réponse.
+ */
+export const CONSOLE_DATA_UNAVAILABLE_REPLY = 'Je n’ai pas réussi à rassembler les données de la plateforme pour cette question. Posez une question plus ciblée (un sujet à la fois : comptes, modèles, coûts…), ou consultez directement l’écran concerné de la Console.';
+
 /** Motif transmis au modèle pour qu'il réécrive une requête coupée. */
-export const SQL_CUT_REASON = 'requête coupée car trop longue : écris une requête nettement plus courte (une seule instruction SELECT, colonnes utiles seulement), sans aucun texte autour';
+export const SQL_CUT_REASON = `requête coupée car trop longue : écris des requêtes nettement plus courtes (${JEV_SQL_MAX_STATEMENTS} instructions SELECT au plus, colonnes utiles seulement), sans aucun texte autour`;
 
 const FORBIDDEN = /\b(insert|update|delete|merge|drop|alter|create|grant|revoke|truncate|copy|call|do|execute|vacuum|analyze|lock|comment|refresh|listen|notify|prepare|reindex|cluster|security|set_config|pg_sleep|dblink|lo_import|lo_export|query_to_xml\w*|cursor_to_xml\w*)\b/i;
 
 /**
- * Contrôle d'une requête avant exécution : une seule instruction de lecture (SELECT ou WITH … SELECT),
- * sur les vues du schéma `jev` seulement. Renvoie le motif du refus, ou null.
+ * Instructions d'une requête, commentaires retirés : découpe sur les « ; » hors des chaînes ('…') et des
+ * identifiants entre guillemets ("…") ; instructions vides ignorées.
+ */
+export function splitStatements(raw: string): string[] {
+  const s = stripComments(raw);
+  const out: string[] = [];
+  let cur = '';
+  let quote: string | null = null;
+  for (const ch of s) {
+    if (quote) {
+      if (ch === quote) quote = null;
+    } else if (ch === "'" || ch === '"') quote = ch;
+    else if (ch === ';') {
+      out.push(cur);
+      cur = '';
+      continue;
+    }
+    cur += ch;
+  }
+  out.push(cur);
+  return out.map((x) => x.trim()).filter(Boolean);
+}
+
+/**
+ * Contrôle d'une requête avant exécution : de une à `JEV_SQL_MAX_STATEMENTS` instructions de lecture (SELECT ou
+ * WITH … SELECT), chacune sur les vues du schéma `jev` seulement. Renvoie le motif du refus, ou null.
  * Le rôle en lecture seule et la transaction READ ONLY restent la vraie garantie.
  */
 export function sqlError(raw: string): string | null {
-  const sql = stripComments(raw).trim().replace(/;\s*$/, '');
-  if (!sql) return 'requête vide';
-  if (sql.includes(';')) return 'une seule instruction est permise';
+  const list = splitStatements(raw);
+  if (!list.length) return 'requête vide';
+  if (list.length > JEV_SQL_MAX_STATEMENTS) return `${JEV_SQL_MAX_STATEMENTS} instructions SELECT au plus (${list.length} reçues) : regroupe les sujets voisins`;
+  for (const [i, sql] of list.entries()) {
+    const why = statementError(sql);
+    if (why) return list.length > 1 ? `instruction ${i + 1} : ${why}` : why;
+  }
+  return null;
+}
+
+/** Contrôle d'une instruction (sans « ; »). */
+function statementError(sql: string): string | null {
   if (!/^(select|with)\b/i.test(sql)) return 'seule une lecture (SELECT) est permise';
   const bare = sql.replace(/'(?:[^']|'')*'/g, "''");
   const bad = bare.match(FORBIDDEN);
@@ -121,9 +166,10 @@ export function sqlInstructions(dictionary: string, todayIso: string | null, now
   return [
     `## ${v.title}`,
     'Tu peux lire les données de la plateforme au moyen d’une requête SQL (PostgreSQL) sur les vues en lecture seule décrites ci-dessous, et seulement celles-ci.',
-    `- Si la question porte sur des données de la plateforme (${v.topics}), réponds UNIQUEMENT par une requête courte dans un bloc \`\`\`sql … \`\`\`, sans aucun autre texte (ni salutation, ni explication).`,
+    `- Si la question porte sur des données de la plateforme (${v.topics}), réponds UNIQUEMENT par une ou plusieurs requêtes courtes dans un seul bloc \`\`\`sql … \`\`\`, sans aucun autre texte (ni salutation, ni explication).`,
     `- ${v.direct}`,
-    `- Une seule instruction SELECT (WITH permis), vues préfixées par ${v.schema}. ; respecte les règles de chaque fiche (statuts, dates, calculs) ; noms de colonnes exactement comme dans les fiches.`,
+    `- Instructions SELECT (WITH permis), vues préfixées par ${v.schema}. ; respecte les règles de chaque fiche (statuts, dates, calculs) ; noms de colonnes exactement comme dans les fiches.`,
+    `- Une instruction par sujet, ${JEV_SQL_MAX_STATEMENTS} au plus, séparées par « ; » dans le même bloc : pour une synthèse sur plusieurs sujets (jalons, risques, actions…), plusieurs requêtes courtes valent mieux qu’une seule longue.`,
     ...(v.scope ? [`- ${v.scope}`] : []),
     `- ${todayIso === null ? 'Date du jour de la plateforme et heure de Paris : voir « Contexte de la demande »' : `Date du jour de la plateforme : ${todayIso}. Maintenant (heure de Paris) : ${nowParis}`}. Utilise ces valeurs écrites en toutes lettres dans la requête, jamais CURRENT_DATE, now() ni CURRENT_TIMESTAMP. Toutes les dates-heures des vues sont en heure de Paris.`,
     `- Limite-toi aux colonnes utiles ; ${JEV_SQL_MAX_ROWS} lignes au plus sont lues.`,
@@ -166,14 +212,34 @@ function plain(v: unknown): unknown {
 }
 
 /** Résultats d'une requête mis en forme pour le modèle (bornés en lignes et en taille). */
-export function formatRows(rows: Array<Record<string, unknown>>): { text: string; count: number; truncated: boolean } {
+export function formatRows(rows: Array<Record<string, unknown>>, maxChars = JEV_SQL_MAX_RESULT_CHARS): { text: string; count: number; truncated: boolean } {
   const truncated = rows.length > JEV_SQL_MAX_ROWS;
   const kept = rows.slice(0, JEV_SQL_MAX_ROWS).map((r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, plain(v)])));
   let text = JSON.stringify(kept);
   let cut = truncated;
-  if (text.length > JEV_SQL_MAX_RESULT_CHARS) {
-    text = text.slice(0, JEV_SQL_MAX_RESULT_CHARS) + '…';
+  if (text.length > maxChars) {
+    text = text.slice(0, maxChars) + '…';
     cut = true;
   }
   return { text, count: kept.length, truncated: cut };
+}
+
+/**
+ * Résultats transmis au modèle pour la rédaction : une requête → section unique (forme historique) ; plusieurs →
+ * une sous-section par requête, avec son texte (le modèle sait à quel sujet répond chaque tableau), la taille
+ * maximale étant partagée entre elles. `count` : lignes de toutes les requêtes.
+ */
+export function resultsSection(statements: string[], sets: Array<Array<Record<string, unknown>>>): { text: string; count: number } {
+  const note = (r: { count: number; truncated: boolean }) => `${r.count} ligne(s)${r.truncated ? `, tronqués aux ${JEV_SQL_MAX_ROWS} premières` : ''}`;
+  if (sets.length === 1) {
+    const r = formatRows(sets[0]);
+    return { text: `## Résultats de la requête (${note(r)})\n${r.text}`, count: r.count };
+  }
+  const budget = Math.floor(JEV_SQL_MAX_RESULT_CHARS / sets.length);
+  const parts = sets.map((rows, i) => {
+    const r = formatRows(rows, budget);
+    return { r, text: `### Requête ${i + 1} (${note(r)})\n\`\`\`sql\n${statements[i] ?? ''}\n\`\`\`\n${r.text}` };
+  });
+  const count = parts.reduce((n, p) => n + p.r.count, 0);
+  return { text: [`## Résultats des ${sets.length} requêtes (${count} ligne(s) en tout)`, ...parts.map((p) => p.text)].join('\n\n'), count };
 }

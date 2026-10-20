@@ -75,7 +75,7 @@ describe('Notifications du Cockpit et rédaction à partir des données', () => 
       expect(resp.length).toBeGreaterThan(1);
       expect(resp.every((g: any) => g.profile === 'resp' && Array.isArray(g.chantiers) && g.chantiers.length > 0)).toBe(true);
       expect(new Set(resp.map((g: any) => g.chantiers.join(','))).size).toBe(resp.length);
-      const exec = jest.spyOn(jev, 'executeCockpit');
+      const exec = jest.spyOn(jev, 'executeCockpitSets');
       const out = await svc.deliver(rule, RISE, { projet: 'RISE' }, 'test|profils');
       expect(out.map((d) => [d.profile, d.channel, d.status])).toEqual(groups.map((g: any) => [g.profile, 'APP', 'OK']));
       expect(out.map((d) => d.scope)).toEqual(groups.map((g: any) => (g.chantiers === '*' ? '*' : g.chantiers.join(','))));

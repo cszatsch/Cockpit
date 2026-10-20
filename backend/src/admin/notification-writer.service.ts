@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../core/prisma.service';
 import { LlmResult, LlmService } from '../core/llm.service';
 import { TodayService } from '../core/today.service';
-import { extractSql, formatRows, JEV_SQL_MAX_ROWS, JEV_SQL_RETRIES, looksLikeSql, renderDictionary, SQL_CUT_REASON, sqlCut, sqlError, sqlInstructions, viewsUsed } from '../domain/jev-sql';
+import { extractSql, JEV_SQL_RETRIES, looksLikeSql, renderDictionary, resultsSection, splitStatements, SQL_CUT_REASON, sqlCut, sqlError, sqlInstructions, viewsUsed } from '../domain/jev-sql';
 import { JEV_COCKPIT_SCHEMA } from '../domain/jev-dictionnaire-cockpit';
 import { AudienceProfile, ChantierScope, fitWords, NOTIFICATION_MAX_WORDS, wordCount } from '../domain/notification-rules';
 import { blamesAccess, EMPTY_RESULT_RETRIES, emptyRetryPrompt, NO_ACCESS_SPECULATION, NO_MATCH_TEXT } from '../domain/notification-results';
@@ -149,13 +149,13 @@ export class NotificationWriterService {
     if (sql === null && !looksLikeSql(first.text)) { relabelLastStep('qry', 'gen'); return out(await this.shorten(first.text, maxWords, call, base)); }
 
     // 4. Exécution sur le périmètre des destinataires, une correction au plus.
-    let rows: Array<Record<string, unknown>> | null = null;
+    let sets: Array<Array<Record<string, unknown>>> | null = null;
     let why = '';
     for (let attempt = 0; ; attempt++) {
       why = cut ? SQL_CUT_REASON : sql ? sqlError(sql) ?? '' : 'aucune requête dans la réponse';
       if (!why) {
         try {
-          rows = await timedStep('exe', LATENCY_SERVICE_MODEL, 'primary', () => this.jevSql.executeCockpit(sql!, project.id, audience.chantiers));
+          sets = await timedStep('exe', LATENCY_SERVICE_MODEL, 'primary', () => this.jevSql.executeCockpitSets(splitStatements(sql!), project.id, audience.chantiers));
           break;
         } catch (e) {
           why = dbMessage(e);
@@ -166,20 +166,21 @@ export class NotificationWriterService {
       sql = extractSql(fix.text);
       cut = sqlCut(fix.text);
     }
-    if (!rows) {
+    if (!sets) {
       const plain = await call(prompt, `${base}\nLes données du projet n’ont pas pu être lues pour une raison technique : rédige sans aucun chiffre ni fait précis, et signale que le détail est à consulter dans le Cockpit. ${NO_ACCESS_SPECULATION}`);
       return out(looksLikeSql(plain.text) || blamesAccess(plain.text) ? NO_DATA_TEXT : plain.text, [], sql);
     }
 
     // 4 bis. Aucune ligne (incident du 19/10/2026) : une requête plus large, gardée seulement si elle rend des lignes.
-    for (let attempt = 0; rows.length === 0 && attempt < EMPTY_RESULT_RETRIES; attempt++) {
+    const lines = (x: Array<Array<Record<string, unknown>>>) => x.reduce((n, r) => n + r.length, 0);
+    for (let attempt = 0; lines(sets) === 0 && attempt < EMPTY_RESULT_RETRIES; attempt++) {
       const wider = await latencyKind('qry', () => call(emptyRetryPrompt(prompt, sql!), system));
       const sql2 = extractSql(wider.text);
       if (!sql2 || sqlCut(wider.text) || sqlError(sql2)) break;
       try {
-        const rows2 = await timedStep('exe', LATENCY_SERVICE_MODEL, 'primary', () => this.jevSql.executeCockpit(sql2, project.id, audience.chantiers));
-        if (rows2.length) {
-          rows = rows2;
+        const sets2 = await timedStep('exe', LATENCY_SERVICE_MODEL, 'primary', () => this.jevSql.executeCockpitSets(splitStatements(sql2), project.id, audience.chantiers));
+        if (lines(sets2)) {
+          sets = sets2;
           sql = sql2;
         }
       } catch {
@@ -190,9 +191,8 @@ export class NotificationWriterService {
     // 5. Rédaction à partir des résultats.
     const sources = viewsUsed(sql!.replace(new RegExp(`${JEV_COCKPIT_SCHEMA}\\s*\\.`, 'gi'), ''), tables.map((t) => t.nom));
     const used = tables.filter((t) => sources.includes(t.nom));
-    const res = formatRows(rows);
-    const head = `## Résultats de la requête (${res.count} ligne(s)${res.truncated ? `, tronqués aux ${JEV_SQL_MAX_ROWS} premières` : ''})`;
-    const answer = await call(`${prompt}\n\n${head}\n${res.text}`, `${base}\n\n${NOTIFICATION_ANSWER_INSTRUCTIONS}`, `## Dictionnaire des vues consultées\n${renderDictionary(used, JEV_COCKPIT_SCHEMA)}`);
+    const res = resultsSection(splitStatements(sql!), sets);
+    const answer = await call(`${prompt}\n\n${res.text}`, `${base}\n\n${NOTIFICATION_ANSWER_INSTRUCTIONS}`, `## Dictionnaire des vues consultées\n${renderDictionary(used, JEV_COCKPIT_SCHEMA)}`);
     // Résultat vide : le texte ne peut pas mettre en cause les droits des destinataires (repli fixe sinon).
     if (res.count === 0 && blamesAccess(answer.text)) return out(NO_MATCH_TEXT, sources, sql, 0);
     return out(looksLikeSql(answer.text) ? NO_DATA_TEXT : await this.shorten(answer.text, maxWords, call, base), sources, sql, res.count);
