@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Put, Query } from '@nestjs/common';
-import { addDays } from '../domain/dates';
+import { addDays, calendarDaysSince } from '../domain/dates';
 import { invitationEmail } from '../domain/invitation-email';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Account } from '@prisma/client';
@@ -66,6 +66,8 @@ const AccountPatch = z
 const PROFILE_ORDER = ['SUPER_ADMIN', 'ADMIN', 'PMO', 'RESPONSABLE', 'LECTEUR'] as const;
 
 const DAY = 86_400_000;
+/** Fuseau des jours « depuis la dernière connexion » et « depuis l'invitation » (celui de la Console). */
+export const ACCOUNT_DAYS_TIMEZONE = 'Europe/Paris';
 
 /** Comptes d'accès, administrateurs et sessions (brief Console § 9.2-9.3). Réservé à l'Admin. */
 @ApiTags('console · comptes')
@@ -94,7 +96,8 @@ export class AccountsController {
     const rights = await this.profiles.rightsOf(accounts, db);
     // Ce que dit le référentiel (option 1 du 29/09/2026 : la Console propose, l'Administrateur décide).
     const referential = await this.profiles.referential(accounts, db);
-    const now = this.today.now().getTime();
+    const nowDate = this.today.now();
+    const now = nowDate.getTime();
     const codes = Object.fromEntries((await db.project.findMany({ select: { id: true, code: true } })).map((p) => [p.id, p.code]));
     return accounts.map((a) => {
       const r = rights.get(a.id)!;
@@ -123,9 +126,10 @@ export class AccountsController {
         projectCodes: a.projects.map((p) => codes[p.projectId] ?? p.projectId),
         lastLoginAt: a.lastLoginAt,
         mustChangePassword: a.mustChangePassword,
-        lastLoginDays: a.lastLoginAt ? Math.floor((now - a.lastLoginAt.getTime()) / DAY) : null,
+        // Jours du calendrier à Paris, et non périodes de 24 h (« Aujourd'hui » / « Hier » de l'écran, 21/10/2026).
+        lastLoginDays: a.lastLoginAt ? calendarDaysSince(a.lastLoginAt, nowDate, ACCOUNT_DAYS_TIMEZONE) : null,
         invitedAt: a.invitedAt,
-        invitedDays: a.status === 'INVITED' && a.invitedAt ? Math.floor((now - a.invitedAt.getTime()) / DAY) : null,
+        invitedDays: a.status === 'INVITED' && a.invitedAt ? calendarDaysSince(a.invitedAt, nowDate, ACCOUNT_DAYS_TIMEZONE) : null,
         inviteExpiresAt: a.status === 'INVITED' ? a.inviteExpiresAt : null,
         inviteExpired: a.status === 'INVITED' && !!a.inviteExpiresAt && a.inviteExpiresAt.getTime() < now,
         version: a.version,

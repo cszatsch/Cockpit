@@ -22,6 +22,15 @@ export function addDays(iso: string, n: number): string {
 }
 
 /** Date civile d'un instant dans un fuseau IANA. */
+/**
+ * Jours du calendrier, dans le fuseau donné, entre un instant passé et maintenant : 0 le même jour, 1 la veille…
+ * (Console › Utilisateurs, 21/10/2026 : une connexion d'hier 15:11 lue le lendemain matin, moins de 24 h plus tard,
+ * était comptée « Aujourd'hui »). Négatif si l'instant est postérieur à maintenant.
+ */
+export function calendarDaysSince(instant: Date, now: Date, timezone: string): number {
+  return daysBetween(isoInTimezone(instant, timezone), isoInTimezone(now, timezone));
+}
+
 export function isoInTimezone(instant: Date, timezone: string): string {
   const parts = new Intl.DateTimeFormat('en-CA', {
     timeZone: timezone,

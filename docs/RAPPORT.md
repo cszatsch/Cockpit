@@ -546,6 +546,10 @@ Console › Consommation et coûts : seconde ligne dans le détail d’un appel 
 
 « Résumer la situation du jour » échouait (« une seule instruction est permise ») : le modèle écrivait une requête par sujet. Jev accepte désormais jusqu’à 4 requêtes de lecture par question, chacune contrôlée et exécutée en lecture seule dans la même transaction, résultats transmis requête par requête (Jev du Cockpit, de la Console, rédaction des notifications) ; plus aucun motif technique n’est montré à l’utilisateur (il reste dans la trace). Tests : `test/unit/jev-sql.spec.ts` (+6), `test/e2e/jev-cockpit-insight.spec.ts` (+2), `test/e2e/jev-sql.spec.ts` (+1).
 
+### Console › Utilisateurs : « Dernière connexion » (21/10/2026)
+
+Une connexion de la veille, moins de 24 h avant la lecture, s’affichait « Aujourd’hui » : les jours étaient comptés en périodes de 24 h. Ils le sont désormais en jours du calendrier à Paris (`calendarDaysSince`), pour la dernière connexion et pour l’invitation. Tests : `test/unit/derniere-connexion.spec.ts` (3 tests), `test/e2e/derniere-connexion.spec.ts` (3 tests).
+
 ## 4. Questions ouvertes
 
 1. **Déclencheur des règles de notification** : faut-il ajouter un sélecteur de déclencheur dans la console ? Aujourd'hui, une règle créée depuis l'écran reçoit un déclencheur par défaut : « planifié » pour une notification, « manuel » pour une alerte.

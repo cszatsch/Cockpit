@@ -3102,3 +3102,13 @@ plusieurs sujets ; le modèle écrivait une requête par sujet, séparées par �
   `test/e2e/jev-cockpit-insight.spec.ts` (synthèse risques + jalons, plus de 4 requêtes, message sans motif),
   `test/e2e/jev-sql.spec.ts` (deux requêtes dans la Console).
 
+## Console › Utilisateurs : « Dernière connexion » en jours du calendrier (21/10/2026)
+
+Constat du commanditaire : des connexions de la veille (15:11, 10:38, 10:39) s'affichaient « Aujourd'hui, 15:11 ».
+Cause : `lastLoginDays` (et `invitedDays`) comptait des périodes de 24 h écoulées (`Math.floor((maintenant − connexion)
+/ 24 h)`) ; une connexion d'hier après-midi lue le lendemain matin, moins de 24 h plus tard, valait 0, que l'écran
+traduit par « Aujourd'hui ». Correction : jours du calendrier à Paris (`calendarDaysSince`, `src/domain/dates.ts` ;
+fuseau `ACCOUNT_DAYS_TIMEZONE`) ; « Aujourd'hui », « Hier » et « Il y a N j » suivent le changement de date, et le filtre
+« inactifs depuis N jours » aussi. Écran inchangé. Tests : `test/unit/derniere-connexion.spec.ts`,
+`test/e2e/derniere-connexion.spec.ts`.
+
