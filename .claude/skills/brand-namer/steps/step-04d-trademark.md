@@ -49,7 +49,7 @@ Lancez-la pour toute marque destinée au marché français ou européen, et par 
    - `aucune marque identique` : rien en expression exacte dans ces classes. Ce n'est pas une absence d'antériorité : les variantes phonétiques et les marques proches restent à juger.
    - `N marque(s)` : regardez le statut (enregistrée, en cours d'examen, expirée…), les classes et le déposant. Une marque en vigueur, identique ou phonétiquement proche, dans les mêmes classes ou des classes voisines → **High Risk**.
    - `inconnu` : l'appel a échoué. Le nom n'est **pas** vérifié ; ne le classez jamais Low Risk sur cette base.
-4. **Sans compte ou si le script échoue** (code 3 ou 4, ou tous les noms « inconnu ») : dites-le clairement, puis donnez la liste des noms et variantes à saisir sur [data.inpi.fr](https://data.inpi.fr), onglet Marques, avec les classes à filtrer. Le circuit d'appel de l'API a été reconstitué d'après des sources publiques sans essai réel ; s'il ne répond plus, la recherche manuelle fait foi.
+4. **Sans compte ou si le script échoue** (code 3 ou 4, ou tous les noms « inconnu ») : dites-le clairement, puis donnez la liste des noms et variantes à saisir sur [data.inpi.fr](https://data.inpi.fr), onglet Marques, avec les classes à filtrer. L'API de l'INPI n'est pas documentée publiquement dans sa forme actuelle (circuit vérifié le 23/10/2026) ; si elle change et ne répond plus, la recherche manuelle fait foi.
 
 Reportez dans `03-validation.md` une colonne **INPI** par nom (résultat, marques trouvées, classes interrogées) et ajoutez `INPI` à `trademark_screening.methodology`. Le niveau de risque final combine USPTO, EUIPO et INPI : le plus élevé l'emporte.
 
